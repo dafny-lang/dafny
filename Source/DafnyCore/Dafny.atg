@@ -1,4 +1,5 @@
-/*-----------------------------------------------------------------------------
+/* (
+-----------------------------------------------------------------------------
 //
 // Copyright (C) Microsoft Corporation.  All Rights Reserved.
 // Copyright by the contributors to the Dafny Project
@@ -96,7 +97,11 @@ void CheckDeclModifiers(ref DeclModifierData dmod, string declCaption, AllowedDe
   }
   if (dmod.IsGhost) {
     if ((allowed & AllowedDeclModifiers.AlreadyGhost) != 0) {
-      SemErr(dmod.GhostToken, $"{declCaption} cannot be declared 'ghost' (it is 'ghost' by default)");
+      if (declCaption.Contains("-by-method")) {
+        SemErr(dmod.GhostToken, $"{declCaption} has a ghost function body and a non-ghost method body; {declCaption} declaration does not use the 'ghost' keyword.");
+      } else {
+        SemErr(dmod.GhostToken, $"{declCaption} cannot be declared 'ghost' (it is 'ghost' by default)");
+      }
       dmod.IsGhost = false;
     } else if ((allowed & AllowedDeclModifiers.Ghost) == 0) {
       SemErr(dmod.GhostToken, $"{declCaption} cannot be declared 'ghost'");
@@ -2103,7 +2108,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
      ty = new BoolType();  /*keep compiler happy*/
      List<Type> gt;
      List<Type> tupleArgTypes = null;
-     List<bool> argumentGhostness = null;
+     List<IToken> argumentGhostTokens = null;
   .)
   ( "bool"                          (. tok = t; .)
   | "char"                          (. tok = t;  ty = new CharType(); .)
@@ -2177,7 +2182,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
                                        int dims = StringToInt(dimString, 1, "arrays of that many dimensions");
                                        ty = theBuiltIns.ArrayType(tok, dims, gt, true, q);
                                     .)
-  | TupleType<out ty, out tok, out tupleArgTypes, out argumentGhostness>
+  | TupleType<out ty, out tok, out tupleArgTypes, out argumentGhostTokens>
   | NamedType<out ty, out tok, inExpressionContext>
   )
   [ (. int arrowKind = 0; /* 0: any, 1: partial, 2: total */
@@ -2188,10 +2193,14 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
     | "->"           (. tok = t; arrowKind = 2; .)
     )
     Type<out t2>
-    (. if (tupleArgTypes != null) {
-         gt = tupleArgTypes;
-        } else {
+    (. if (tupleArgTypes == null) {
          gt = new List<Type>{ ty };
+       } else {
+         // make sure no "ghost" keyword was used in the tuple-looking type
+         foreach (var ghostToken in argumentGhostTokens.Where(ghostToken => ghostToken != null)) {
+           SemErr(ghostToken, $"arrow-type arguments may not be declared as 'ghost'");
+         }
+         gt = tupleArgTypes;
        }
        var arity = gt.Count;
        theBuiltIns.CreateArrowTypeDecl(arity);
@@ -2211,26 +2220,27 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
 
 /*------------------------------------------------------------------------*/
 
-TupleType<.out Type ty, out IToken tok, out List<Type> tupleArgTypes, out List<bool> argumentGhostness.> =
+TupleType<.out Type ty, out IToken tok, out List<Type> tupleArgTypes, out List<IToken> argumentGhostTokens.> =
   "("                             (. tok = t;
                                      ty = null; // To keep compiler happy
                                      tupleArgTypes = new List<Type>();
-                                     var isGhost = false;
-                                     argumentGhostness = new List<bool>();
+                                     IToken ghostToken = null;
+                                     argumentGhostTokens = new List<IToken>();
                                   .)
-  [ [ "ghost"                     (. isGhost = true; .)
+  [ [ "ghost"                     (. ghostToken = t; .)
     ]
-    Type<out ty>                  (. tupleArgTypes.Add(ty); argumentGhostness.Add(isGhost); .)
-    { ","                         (. isGhost = false; .)
-      [ "ghost"                   (. isGhost = true; .)
+    Type<out ty>                  (. tupleArgTypes.Add(ty); argumentGhostTokens.Add(ghostToken); .)
+    { ","                         (. ghostToken = null; .)
+      [ "ghost"                   (. ghostToken = t; .)
       ]
-      Type<out ty>                (. tupleArgTypes.Add(ty); argumentGhostness.Add(isGhost); .)
+      Type<out ty>                (. tupleArgTypes.Add(ty); argumentGhostTokens.Add(ghostToken); .)
     }
   ]
-  ")"                             (. if (tupleArgTypes.Count == 1 && !isGhost) {
+  ")"                             (. if (tupleArgTypes.Count == 1 && argumentGhostTokens[0] == null) {
                                        // just return the type 'ty'
                                      } else {
                                        var dims = tupleArgTypes.Count;
+                                       var argumentGhostness = argumentGhostTokens.ConvertAll(tok => tok != null);
                                        var tmp = theBuiltIns.TupleType(tok, dims, true, argumentGhostness);  // make sure the tuple type exists
                                        ty = new UserDefinedType(tok, BuiltIns.TupleTypeName(argumentGhostness), dims == 0 ? null : tupleArgTypes);
                                      }
@@ -2774,7 +2784,9 @@ SkeletonStmt<out Statement s>
 = (. IToken dotdotdot; .)
   ellipsis                             (. dotdotdot = t; .)
   ";"
-  (. s = new SkeletonStatement(dotdotdot, t); .)
+  (. s = new SkeletonStatement(dotdotdot, t); 
+     errors.Deprecated(t, "the ... refinement feature in statements is deprecated");
+  .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -2848,9 +2860,10 @@ UpdateStmt<out Statement/*!*/ s>
      IToken x = Token.NoToken;
      IToken endTok = Token.NoToken;
      Attributes attrs = null;
-     IToken suchThatAssume = null;
+     Attributes tokenAttrs = null;
+     AttributedToken suchThatAssume = null;
      Expression suchThat = null;
-     IToken keywordToken = null;
+     AttributedToken keywordToken = null;
      Expression exceptionExpr = null;
   .)
 ( Lhs<out e>                       (. x = e.tok; .)
@@ -2865,12 +2878,14 @@ UpdateStmt<out Statement/*!*/ s>
       }
     | ":|"                         (. x = t; .)
       [ IF(la.kind == _assume)     /* an Expression can also begin with an "assume", so this says to resolve it to pick up any "assume" here */
-        "assume"                   (. suchThatAssume = t; .)
+        "assume"                      (. var tok = t; .)
+        { Attribute<ref tokenAttrs> } (. suchThatAssume = new AttributedToken(tok, tokenAttrs); .)
       ]
       Expression<out suchThat, false, true>
     | ":-"                         (. x = t; .)
       [ IF(IsAssumeTypeKeyword(la))     /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */
-        ("expect"|"assert"|"assume")    (. keywordToken = t; .)
+        ("expect"|"assert"|"assume")  (. var tok = t; .)
+        { Attribute<ref tokenAttrs> } (. keywordToken = new AttributedToken(tok, tokenAttrs); .)
       ]
       Expression<out exceptionExpr, false, false>
       { "," Rhs<out r>             (. rhss.Add(r); .)
@@ -2881,7 +2896,8 @@ UpdateStmt<out Statement/*!*/ s>
   )
 | ":-"                             (. x = t; .)
    [ IF(IsAssumeTypeKeyword(la))     /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */
-      ("expect"|"assert"|"assume")    (. keywordToken = t; .)
+      ("expect"|"assert"|"assume")  (. var tok = t; .)
+      { Attribute<ref tokenAttrs> } (. keywordToken = new AttributedToken(tok, tokenAttrs); .)
    ]
    Expression<out exceptionExpr, false, false>
    { "," Rhs<out r>                (. rhss.Add(r); .)
@@ -2985,11 +3001,12 @@ VarDeclStatement<.out Statement/*!*/ s.>
      AssignmentRhs r;
      List<LocalVariable> lhss = new List<LocalVariable>();
      List<AssignmentRhs> rhss = new List<AssignmentRhs>();
-     IToken suchThatAssume = null;
+     AttributedToken suchThatAssume = null;
      Expression suchThat = null;
-     IToken keywordToken = null;
+     AttributedToken keywordToken = null;
      Expression exceptionExpr = null;
      Attributes attrs = null;
+     Attributes tokenAttrs = null;
      IToken endTok;
      s = dummyStmt;
   .)
@@ -3010,12 +3027,14 @@ VarDeclStatement<.out Statement/*!*/ s.>
     | { Attribute<ref attrs> }
       ":|"                           (. assignTok = t; .)
       [ IF(la.kind == _assume)       /* an Expression can also begin with an "assume", so this says to resolve it to pick up any "assume" here */
-        "assume"                     (. suchThatAssume = t; .)
+        "assume"                      (. var tok = t; .)
+        { Attribute<ref tokenAttrs> } (. suchThatAssume = new AttributedToken(tok, tokenAttrs); .)
       ]
       Expression<out suchThat, false, true>
     | ":-"                           (. assignTok = t; .)
       [ IF(IsAssumeTypeKeyword(la))     /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */
-        ("expect"|"assert"|"assume")    (. keywordToken = t; .)
+         ("expect"|"assert"|"assume")  (. var tok = t; .)
+         { Attribute<ref tokenAttrs> } (. keywordToken = new AttributedToken(tok, tokenAttrs); .)
       ]
       Expression<out exceptionExpr, false, false>
       { "," Rhs<out r>               (. rhss.Add(r); .)
@@ -3085,7 +3104,9 @@ IfStmt<out Statement/*!*/ ifStmt>
     ( IF(IsBindingGuard())
       BindingGuard<out guard, true>      (. isBindingGuard = true; .)
     | Guard<out guard>
-    | ellipsis                           (. guardEllipsis = t; .)
+    | ellipsis                           (. guardEllipsis = t;
+                                            errors.Deprecated(t, "the ... refinement feature in statements is deprecated");
+                                         .)
     )
     BlockStmt<out thn, out bodyStart, out bodyEnd>    (. endTok = thn.EndTok; .)
     [ "else"
@@ -3182,13 +3203,17 @@ WhileStmt<out Statement stmt>
     (. stmt = new AlternativeLoopStmt(x, endTok, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), alternatives, usesOptionalBraces, attrs); .)
   |
     ( Guard<out guard>           (. Contract.Assume(guard == null || cce.Owner.None(guard)); .)
-    | ellipsis                   (. guardEllipsis = t; .)
+    | ellipsis                   (. guardEllipsis = t; 
+                                    errors.Deprecated(t, "the ... refinement feature in statements is deprecated");
+                                 .)
     )
     LoopSpec<invariants, decreases, ref mod, ref decAttrs, ref modAttrs>
     ( IF(la.kind == _lbrace)      /* if there's an open brace, claim it as the beginning of the loop body (as opposed to a BlockStmt following the loop) */
       BlockStmt<out body, out bodyStart, out bodyEnd>  (. endTok = body.EndTok; isDirtyLoop = false; .)
     | IF(la.kind == _ellipsis)    /* if there's an ellipsis, claim it as standing for the loop body (as opposed to a "...;" statement following the loop) */
-      ellipsis                   (. bodyEllipsis = t; endTok = t; isDirtyLoop = false; .)
+      ellipsis                   (. bodyEllipsis = t; endTok = t; isDirtyLoop = false;
+                                    errors.Deprecated(t, "the ... refinement feature in statements is deprecated");
+                                  .)
     | /* go body-less */
     )
     (.
@@ -3429,7 +3454,9 @@ AssertStmt<out Statement/*!*/ s, bool inExprContext>
       BlockStmt<out proof, out proofStart, out proofEnd>
     | ";"
     )
-  | ellipsis                                   (. dotdotdot = t; .)
+  | ellipsis                                   (. dotdotdot = t; 
+                                                  errors.Deprecated(t, "the ... refinement feature in statements is deprecated");
+                                                .)
     ";"
   )
   (. if (dotdotdot != null) {
@@ -3449,7 +3476,9 @@ ExpectStmt<out Statement/*!*/ s>
   "expect"                                     (. x = t; .)
   { Attribute<ref attrs> }
   ( Expression<out e, false, true>
-  | ellipsis                                   (. dotdotdot = t; .)
+  | ellipsis                                   (. dotdotdot = t; 
+                                                  errors.Deprecated(t, "the ... refinement feature in statements is deprecated");
+                                                .)
   )
   [ "," Expression<out m, false, true> ]
   ";"
@@ -3470,7 +3499,9 @@ AssumeStmt<out Statement/*!*/ s>
   "assume"                                     (. x = t; .)
   { Attribute<ref attrs> }
   ( Expression<out e, false, true>
-  | ellipsis                                   (. dotdotdot = t; .)
+  | ellipsis                                   (. dotdotdot = t; 
+                                                  errors.Deprecated(t, "the ... refinement feature in statements is deprecated");
+                                                .)
   )
   ";"
   (. if (dotdotdot != null) {
@@ -3564,9 +3595,13 @@ ModifyStmt<out Statement s>
   ( FrameExpression<out fe, false, true>       (. mod.Add(fe); .)
     { "," FrameExpression<out fe, false, true> (. mod.Add(fe); .)
     }
-  | ellipsis                            (. ellipsisToken = t; .)
+  | ellipsis                            (. ellipsisToken = t; 
+                                           errors.Deprecated(t, "the ... refinement feature in statements is deprecated");
+                                         .)
   )
   ( BlockStmt<out body, out bodyStart, out endTok>
+                                        (. errors.Deprecated(t, "the modify statement with a block statement is deprecated");
+                                         .)
   | SYNC ";"         (. endTok = t; .)
   )
   (. s = new ModifyStmt(tok, endTok, mod, attrs, body);

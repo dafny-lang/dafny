@@ -2,8 +2,17 @@
 
 include "CSharpModel.dfy"
 
-module {:compile false} {:extern "Library"} Library {
-  import opened System
+module {:extern "App"} {:compile false} App {}
 
-{{{AutoExtern}}}
+module {:compile false} {:extern "ExactArithmetic"} App.ExactArithmetic {
+  import opened System
+  type {:compile false} {:extern} Decimal {
+    function method ToStr(): (s: System.String)
+  }
+}
+
+module {:compile false} {:extern "Library"} App.Library {
+  import opened System
+  import ExactArithmetic
+// {{{AutoExtern}}}
 }

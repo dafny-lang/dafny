@@ -62,7 +62,7 @@ namespace Microsoft.Dafny {
       this.reporter = reporter;
       if (flags == null) {
         flags = new TranslatorFlags() {
-          ReportRanges = DafnyOptions.O.ShowSnippets
+          ReportRanges = ShowSnippetsOption.Instance.Get(DafnyOptions.O)
         };
       }
       this.flags = flags;
@@ -166,6 +166,10 @@ namespace Microsoft.Dafny {
 
       if (d.IsVisibleInScope(verificationScope)) {
         Contract.Assert(d.IsRevealedInScope(verificationScope));
+        if (d is MemberDecl m && m.EnclosingClass.EnclosingModuleDefinition is { IsFacade: true }) {
+          return false;
+        }
+
         return true;
       }
       return false;
@@ -5547,10 +5551,14 @@ namespace Microsoft.Dafny {
       if (rdt is SubsetTypeDecl) {
         baseType = ((SubsetTypeDecl)rdt).RhsWithArgument(udt.TypeArgs);
         kind = "subset type";
-      } else {
+      } else if (rdt is NewtypeDecl) {
         baseType = ((NewtypeDecl)rdt).BaseType;
         kind = "newtype";
+      } else {
+        baseType = ((TypeSynonymDecl)rdt).RhsWithArgument(udt.TypeArgs);
+        kind = "type synonym";
       }
+
       if (baseType.AsRedirectingType != null) {
         CheckResultToBeInType_Aux(tok, expr, baseType, builder, etran, errorMsgPrefix);
       }
@@ -7214,28 +7222,22 @@ namespace Microsoft.Dafny {
       }
     }
 
-    // TODO: update to include structured description
     Bpl.Ensures Ensures(IToken tok, bool free, Bpl.Expr condition, string errorMessage, string comment) {
       Contract.Requires(tok != null);
       Contract.Requires(condition != null);
       Contract.Ensures(Contract.Result<Bpl.Ensures>() != null);
 
       Bpl.Ensures ens = new Bpl.Ensures(ForceCheckToken.Unwrap(tok), free, condition, comment);
-      if (errorMessage != null) {
-        ens.ErrorData = errorMessage;
-      }
+      ens.Description = new PODesc.AssertStatement(errorMessage ?? "This is the postcondition that might not hold.");
       return ens;
     }
 
-    // TODO: update to include structured description
     Bpl.Requires Requires(IToken tok, bool free, Bpl.Expr condition, string errorMessage, string comment) {
       Contract.Requires(tok != null);
       Contract.Requires(condition != null);
       Contract.Ensures(Contract.Result<Bpl.Requires>() != null);
       Bpl.Requires req = new Bpl.Requires(ForceCheckToken.Unwrap(tok), free, condition, comment);
-      if (errorMessage != null) {
-        req.ErrorData = errorMessage;
-      }
+      req.Description = new PODesc.AssertStatement(errorMessage ?? "This is the precondition that might not hold.");
       return req;
     }
 
@@ -8395,11 +8397,11 @@ namespace Microsoft.Dafny {
         } else if (lhs is SeqSelectExpr) {
           var e = (SeqSelectExpr)lhs;
           lhsType = null;  // for an array update, always make sure the value assigned is boxed
-          rhsTypeConstraint = e.Seq.Type.TypeArgs[0];
+          rhsTypeConstraint = e.Seq.Type.NormalizeExpand().TypeArgs[0];
         } else {
           var e = (MultiSelectExpr)lhs;
           lhsType = null;  // for an array update, always make sure the value assigned is boxed
-          rhsTypeConstraint = e.Array.Type.TypeArgs[0];
+          rhsTypeConstraint = e.Array.Type.NormalizeExpand().TypeArgs[0];
         }
         var bRhs = TrAssignmentRhs(rhss[i].Tok, null, (lhs as IdentifierExpr)?.Var, lhsType, rhss[i], rhsTypeConstraint, builder, locals, etran);
         finalRhss.Add(bRhs);

@@ -20,9 +20,7 @@
 
 title: Dafny Documentation
 #email: your-email@example.com
-description: >- # this means to ignore newlines until "baseurl:"
-  This site contains links to Dafny documentation.
-  The most significant is the Dafny Reference Manual.
+description:
 baseurl: "" # the subpath of your site, e.g. /blog
 url: "https://dafny-lang.github.io/dafny" # the base hostname & protocol for your site, e.g. http://example.com
 

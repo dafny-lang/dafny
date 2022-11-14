@@ -1,14 +1,79 @@
+CachedContainer.dfy(117,13): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(124,9): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(127,13): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(134,9): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(137,13): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(158,9): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(159,13): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(167,9): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(168,13): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(171,9): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(172,9): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(183,9): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(184,13): Warning: the ... refinement feature in statements is deprecated
 
-Dafny program verifier finished with 34 verified, 0 errors
+Dafny program verifier finished with 29 verified, 0 errors
+CachedContainer.dfy(117,13): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(124,9): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(127,13): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(134,9): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(137,13): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(158,9): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(159,13): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(167,9): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(168,13): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(171,9): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(172,9): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(183,9): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(184,13): Warning: the ... refinement feature in statements is deprecated
 
 Dafny program verifier did not attempt verification
 false true false true
+CachedContainer.dfy(117,13): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(124,9): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(127,13): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(134,9): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(137,13): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(158,9): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(159,13): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(167,9): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(168,13): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(171,9): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(172,9): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(183,9): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(184,13): Warning: the ... refinement feature in statements is deprecated
 
 Dafny program verifier did not attempt verification
 false true false true
+CachedContainer.dfy(117,13): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(124,9): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(127,13): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(134,9): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(137,13): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(158,9): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(159,13): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(167,9): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(168,13): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(171,9): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(172,9): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(183,9): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(184,13): Warning: the ... refinement feature in statements is deprecated
 
 Dafny program verifier did not attempt verification
 false true false true
+CachedContainer.dfy(117,13): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(124,9): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(127,13): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(134,9): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(137,13): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(158,9): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(159,13): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(167,9): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(168,13): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(171,9): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(172,9): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(183,9): Warning: the ... refinement feature in statements is deprecated
+CachedContainer.dfy(184,13): Warning: the ... refinement feature in statements is deprecated
 
 Dafny program verifier did not attempt verification
 false true false true

@@ -254,7 +254,7 @@ def pack(args, releases):
 def check_version_cs(args):
     # Checking Directory.Build.props
     with open(path.join(SOURCE_DIRECTORY, "Directory.Build.props")) as fp:
-        match = re.search(r'\<VersionPrefix\>([0-9]+.[0-9]+.[0-9]+).([0-9]+)"\)', fp.read())
+        match = re.search(r'\<VersionPrefix\>([0-9]+.[0-9]+.[0-9]+).([0-9]+)', fp.read())
         if match:
             (v1, v2) = match.groups()
         else:

@@ -526,7 +526,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write("{0} {1}", targetReturnTypeReplacement ?? "void", IdName(m));
       wr.Write("(");
       var sep = "";
-      WriteRuntimeTypeDescriptorsFormals(ForTypeDescriptors(typeArgs, m, lookasideBody), wr, ref sep, tp => $"{DafnyTypeDescriptor}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp)}");
+      WriteRuntimeTypeDescriptorsFormals(ForTypeDescriptors(typeArgs, m.EnclosingClass, m, lookasideBody), wr, ref sep, tp => $"{DafnyTypeDescriptor}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp)}");
       if (customReceiver) {
         DeclareFormal(sep, "_this", receiverType, m.tok, true, wr);
         sep = ", ";
@@ -571,7 +571,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(TypeParameters(TypeArgumentInstantiation.ToFormals(ForTypeParameters(typeArgs, member, lookasideBody)), " "));
       wr.Write($"{TypeName(resultType, wr, tok)} {name}(");
       var sep = "";
-      var argCount = WriteRuntimeTypeDescriptorsFormals(ForTypeDescriptors(typeArgs, member, lookasideBody), wr, ref sep, tp => $"{DafnyTypeDescriptor}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp)}");
+      var argCount = WriteRuntimeTypeDescriptorsFormals(ForTypeDescriptors(typeArgs, member.EnclosingClass, member, lookasideBody), wr, ref sep, tp => $"{DafnyTypeDescriptor}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp)}");
       if (customReceiver) {
         DeclareFormal(sep, "_this", receiverType, tok, true, wr);
         sep = ", ";
@@ -1309,7 +1309,7 @@ namespace Microsoft.Dafny.Compilers {
           // (T0 a0, T1 a1, ...) -> obj.F(rtd0, rtd1, ..., additionalCustomParameter, a0, a1, ...)
           wr.Write("(");
           var sep = "";
-          EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member, false), fn.tok, wr, ref sep);
+          EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member.EnclosingClass, member, false), fn.tok, wr, ref sep);
           if (additionalCustomParameter != null) {
             wr.Write("{0}{1}", sep, additionalCustomParameter);
             sep = ", ";
@@ -1337,7 +1337,7 @@ namespace Microsoft.Dafny.Compilers {
         if (member.IsStatic) {
           lvalue = SimpleLvalue(w => {
             w.Write("{0}.{1}(", TypeName_Companion(objType, w, member.tok, member), IdName(member));
-            EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member, false), member.tok, w);
+            EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member.EnclosingClass, member, false), member.tok, w);
             w.Write(")");
           });
         } else if (NeedsCustomReceiver(member) && !(member.EnclosingClass is TraitDecl)) {
@@ -1356,7 +1356,7 @@ namespace Microsoft.Dafny.Compilers {
           lvalue = SimpleLvalue(w => {
             obj(w);
             w.Write(".{0}(", IdName(member));
-            EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member, false), member.tok, w);
+            EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member.EnclosingClass, member, false), member.tok, w);
             w.Write(")");
           });
         } else if (member.EnclosingClass is TraitDecl) {
@@ -1766,8 +1766,18 @@ namespace Microsoft.Dafny.Compilers {
         w.WriteLine("return theDefault;");
       } else {
         wr.Write($"public static{justTypeArgs} {DtT_protected} Default(");
-        wr.Write(Util.Comma(usedTypeArgs, tp => $"{tp.CompileName} {FormatDefaultTypeParameterValue(tp)}"));
+        var typeParameters = Util.Comma(usedTypeArgs, tp => $"{tp.CompileName} {FormatDefaultTypeParameterValue(tp)}");
+        wr.Write(typeParameters);
         var w = wr.NewBlock(")");
+        var sep = "";
+        var typeArguments = TypeArgumentInstantiation.ListFromFormals(dt.TypeArgs);
+        WriteRuntimeTypeDescriptorsFormals(ForTypeDescriptors(typeArguments, dt, null, false), w, ref sep,
+          tp => {
+            sep = "";
+            return
+              $"{DafnyTypeDescriptor}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp)} = ({DafnyTypeDescriptor}<{tp.CompileName}>)dafny.TypeDescriptor.OBJECT;\n    ";
+          });
+
         w.Write("return ");
         wDefault = w.Fork();
         w.WriteLine(";");
@@ -2064,7 +2074,7 @@ namespace Microsoft.Dafny.Compilers {
       if (dt is TupleTypeDecl tupleDecl) {
         return DafnyTupleClass(tupleDecl.NonGhostDims);
       }
-      var dtName = IdProtect(dt.CompileName);
+      var dtName = IdProtect(dt.FullCompileName);
       return dt.IsRecordType ? dtName : dtName + "_" + ctor.CompileName;
     }
     string DtCreateName(DatatypeCtor ctor) {
@@ -2263,68 +2273,29 @@ namespace Microsoft.Dafny.Compilers {
 
       var files = new List<string>();
       foreach (string file in Directory.EnumerateFiles(targetDirectory, "*.java", SearchOption.AllDirectories)) {
-        files.Add($"\"{Path.GetFullPath(file)}\"");
+        files.Add(Path.GetFullPath(file));
       }
-      var classpath = GetClassPath(targetFilename);
-      var psi = new ProcessStartInfo("javac", string.Join(" ", files)) {
-        CreateNoWindow = true,
-        UseShellExecute = false,
-        RedirectStandardOutput = true,
-        RedirectStandardError = true,
-        WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename))
-      };
-      psi.EnvironmentVariables["CLASSPATH"] = classpath;
-      var proc = Process.Start(psi)!;
-      DataReceivedEventHandler printer = (sender, e) => {
-        if (e.Data is not null) {
-          outputWriter.WriteLine(e.Data);
-        }
-      };
-      proc.ErrorDataReceived += printer;
-      proc.OutputDataReceived += printer;
-      proc.BeginErrorReadLine();
-      proc.BeginOutputReadLine();
-      proc.WaitForExit();
 
-      if (proc.ExitCode != 0) {
-        outputWriter.WriteLine($"Error while compiling Java files. Process exited with exit code {proc.ExitCode}");
-        return false;
-      }
-      return true;
+      var psi = PrepareProcessStartInfo("javac", new List<string> { "-encoding", "UTF8" }.Concat(files));
+      psi.WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
+      psi.EnvironmentVariables["CLASSPATH"] = GetClassPath(targetFilename);
+      return 0 == RunProcess(psi, outputWriter, "Error while compiling Java files.");
     }
 
     public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string /*?*/ targetFilename,
      ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
-      var psi = new ProcessStartInfo("java") {
-        CreateNoWindow = true,
-        UseShellExecute = false,
-        RedirectStandardOutput = true,
-        RedirectStandardError = true,
-        WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename))
-      };
-      psi.ArgumentList.Add(Path.GetFileNameWithoutExtension(targetFilename));
-      foreach (var arg in DafnyOptions.O.MainArgs) {
-        psi.ArgumentList.Add(arg);
-      }
+      var psi = PrepareProcessStartInfo("java",
+        args: DafnyOptions.O.MainArgs.Prepend(Path.GetFileNameWithoutExtension(targetFilename)));
+      psi.WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
       psi.EnvironmentVariables["CLASSPATH"] = GetClassPath(targetFilename);
-      var proc = Process.Start(psi);
-      while (!proc.StandardOutput.EndOfStream) {
-        outputWriter.WriteLine(proc.StandardOutput.ReadLine());
-      }
-      while (!proc.StandardError.EndOfStream) {
-        outputWriter.WriteLine(proc.StandardError.ReadLine());
-      }
-      proc.WaitForExit();
-      if (proc.ExitCode != 0) {
-        outputWriter.WriteLine($"Error while running Java file {targetFilename}. Process exited with exit code {proc.ExitCode}");
-        return false;
-      }
-      return true;
+      return 0 == RunProcess(psi, outputWriter);
     }
 
     protected string GetClassPath(string targetFilename) {
       var targetDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
-      return "." + Path.PathSeparator + targetDirectory + Path.PathSeparator + Path.Combine(targetDirectory, "DafnyRuntime.jar");
+      var classpath = Environment.GetEnvironmentVariable("CLASSPATH"); // String.join converts null to ""
+      // Note that the items in the CLASSPATH must have absolute paths because the compilation is performed in a subfolder of where the command-line is executed
+      return string.Join(Path.PathSeparator, ".", targetDirectory, Path.Combine(targetDirectory, "DafnyRuntime.jar"), classpath);
     }
 
     static bool CopyExternLibraryIntoPlace(string externFilename, string mainProgram, TextWriter outputWriter) {

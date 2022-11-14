@@ -13,7 +13,6 @@ using System.IO;
 using System.Diagnostics.Contracts;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Threading.Tasks;
 using JetBrains.Annotations;
 
 namespace Microsoft.Dafny.Compilers {
@@ -52,7 +51,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       Coverage.EmitSetup(wr);
-      wr.WriteLine("_dafny.HandleHaltExceptions(() => {0}.{1}(require('process').argv));", mainMethod.EnclosingClass.FullCompileName, mainMethod.IsStatic ? IdName(mainMethod) : "Main");
+      wr.WriteLine("_dafny.HandleHaltExceptions(() => {0}.{1}(_dafny.FromMainArguments(require('process').argv)));", mainMethod.EnclosingClass.FullCompileName, mainMethod.IsStatic ? IdName(mainMethod) : "Main");
       Coverage.EmitTearDown(wr);
     }
 
@@ -648,7 +647,7 @@ namespace Microsoft.Dafny.Compilers {
       var customReceiver = !forBodyInheritance && NeedsCustomReceiver(m);
       wr.Write("{0}{1}(", m.IsStatic || customReceiver ? "static " : "", IdName(m));
       var sep = "";
-      WriteRuntimeTypeDescriptorsFormals(ForTypeDescriptors(typeArgs, m, lookasideBody), wr, ref sep, tp => $"rtd$_{tp.CompileName}");
+      WriteRuntimeTypeDescriptorsFormals(ForTypeDescriptors(typeArgs, m.EnclosingClass, m, lookasideBody), wr, ref sep, tp => $"rtd$_{tp.CompileName}");
       if (customReceiver) {
         var nt = m.EnclosingClass;
         var receiverType = UserDefinedType.FromTopLevelDecl(m.tok, nt);
@@ -678,7 +677,7 @@ namespace Microsoft.Dafny.Compilers {
       var customReceiver = !forBodyInheritance && NeedsCustomReceiver(member);
       wr.Write("{0}{1}(", isStatic || customReceiver ? "static " : "", name);
       var sep = "";
-      var nTypes = WriteRuntimeTypeDescriptorsFormals(ForTypeDescriptors(typeArgs, member, lookasideBody), wr, ref sep, tp => $"rtd$_{tp.CompileName}");
+      var nTypes = WriteRuntimeTypeDescriptorsFormals(ForTypeDescriptors(typeArgs, member.EnclosingClass, member, lookasideBody), wr, ref sep, tp => $"rtd$_{tp.CompileName}");
       if (customReceiver) {
         var nt = member.EnclosingClass;
         var receiverType = UserDefinedType.FromTopLevelDecl(tok, nt);
@@ -1653,7 +1652,7 @@ namespace Microsoft.Dafny.Compilers {
           suffixWr.Write(IdName(member));
           suffixWr.Write("(");
           var suffixSep = "";
-          EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member, false), fn.tok, suffixWr, ref suffixSep);
+          EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member.EnclosingClass, member, false), fn.tok, suffixWr, ref suffixSep);
           if (additionalCustomParameter != null) {
             suffixWr.Write("{0}{1}", suffixSep, additionalCustomParameter);
             suffixSep = ", ";
@@ -1681,7 +1680,7 @@ namespace Microsoft.Dafny.Compilers {
           return SimpleLvalue(w => {
             w.Write("{0}.{1}", TypeName_Companion(objType, w, member.tok, member), IdName(member));
             var sep = "(";
-            EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member, false), member.tok, w, ref sep);
+            EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member.EnclosingClass, member, false), member.tok, w, ref sep);
             if (sep != "(") {
               w.Write(")");
             }
@@ -1700,7 +1699,7 @@ namespace Microsoft.Dafny.Compilers {
             obj(w);
             w.Write(".{0}", IdName(member));
             var sep = "(";
-            EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member, false), member.tok, w, ref sep);
+            EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member.EnclosingClass, member, false), member.tok, w, ref sep);
             if (sep != "(") {
               w.Write(")");
             }
@@ -2477,48 +2476,27 @@ namespace Microsoft.Dafny.Compilers {
       TextWriter outputWriter) {
       Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
 
-      var psi = new ProcessStartInfo("node", "") {
-        CreateNoWindow = true,
-        UseShellExecute = false,
-        RedirectStandardInput = true,
-        RedirectStandardOutput = true,
-        RedirectStandardError = true,
-      };
+      var psi = PrepareProcessStartInfo("node");
+      psi.RedirectStandardInput = true;
 
       try {
-        Process nodeProcess = new Process { StartInfo = psi };
-        nodeProcess.Start();
+        Process nodeProcess = Process.Start(psi);
         foreach (var filename in otherFileNames) {
           WriteFromFile(filename, nodeProcess.StandardInput);
         }
         nodeProcess.StandardInput.Write(targetProgramText);
         if (callToMain != null && DafnyOptions.O.RunAfterCompile) {
-          nodeProcess.StandardInput.WriteLine("require('process').argv = [\"node\", " + string.Join(",", DafnyOptions.O.MainArgs.Select(ToStringLiteral)) + "];");
+          nodeProcess.StandardInput.WriteLine("require('process').argv = [\"node\",\"stdin\", " + string.Join(",", DafnyOptions.O.MainArgs.Select(ToStringLiteral)) + "];");
           nodeProcess.StandardInput.Write(callToMain);
         }
         nodeProcess.StandardInput.Flush();
         nodeProcess.StandardInput.Close();
-        // Fixes a problem of Node on Windows, where Node does not prints to the parent console its standard outputs.
-        var errorProcessing = Task.Run(() => {
-          PassthroughBuffer(nodeProcess.StandardError, Console.Error);
-        });
-        PassthroughBuffer(nodeProcess.StandardOutput, Console.Out);
-        nodeProcess.WaitForExit();
-        errorProcessing.Wait();
-        return nodeProcess.ExitCode == 0;
+        return 0 == WaitForExit(nodeProcess, outputWriter);
       } catch (System.ComponentModel.Win32Exception e) {
         outputWriter.WriteLine("Error: Unable to start node.js ({0}): {1}", psi.FileName, e.Message);
         return false;
       }
     }
 
-    // We read character by character because we did not find a way to ensure
-    // final newlines are kept when reading line by line
-    void PassthroughBuffer(StreamReader input, TextWriter output) {
-      int current;
-      while ((current = input.Read()) != -1) {
-        output.Write((char)current);
-      }
-    }
   }
 }

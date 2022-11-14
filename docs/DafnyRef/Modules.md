@@ -17,8 +17,6 @@ interface.
 ModuleDefinition = "module" { Attribute } ModuleQualifiedName
         [ "refines" ModuleQualifiedName ]
         "{" { TopDecl } "}"
-
-ModuleQualifiedName = ModuleName { "." ModuleName }
 ````
 A `ModuleQualifiedName` is a qualified name that is expected to refer to a module;
 a _qualified name_ is a sequence of `.`-separated identifiers, which designates
@@ -281,7 +279,32 @@ They are best used when the names being imported have obvious
 and unambiguous meanings and when using qualified names would be
 verbose enough to impede understanding.
 
+There is a special case in which the behavior described above is altered.
+If a module `M` declares a type `M` and `M` is `import opened` without renaming inside 
+another module `X`, then the rules above would have, within `X`,
+`M` mean the module and `M.M` mean the type. This is verbose. So in this 
+somewhat common case, the type `M` is effectively made a local declaration of `X`
+so that it has precedence over the module name. Now `M` refers to the type.
+If one needs to refer to the module, it will have to be renamed as part of
+the `import opened` statement.	
 
+This special-case behavior does give rise to a source of ambiguity. Consider
+the example
+```dafny
+module Option {
+  static const a := 1
+  datatype Option = … { static const a := 2 }
+}
+
+module X {
+  import opened Option
+  method M() { print Option.a; }
+}
+```
+`Option.a` now means the `a` in the datatype instead of the `a` in the module.
+To avoid confusion in such cases, it is an ambiguity error to `import open`
+a module without renaming that contains a declaration with the same name as a declaration in 
+a type in the module when the type has the same name as the module.
 
 ## 4.5. Export Sets and Access Control {#sec-export-sets}
 ````grammar
@@ -802,30 +825,30 @@ A qualified name may be used to refer to a module in an import statement or a re
 Such a qualified name is resolved as follows, with respect to its syntactic
 location within a module `Z`:
 
-0. The leading ``NameSegment`` is resolved as a local or imported module name of `Z`, if there
+1. The leading ``NameSegment`` is resolved as a local or imported module name of `Z`, if there
 is one with a matching name. The target of a `refines` clause does not
 consider local names, that is, in `module Z refines A.B.C`, any contents of `Z`
 are not considered in finding `A`.
 
-1. Otherwise, it is resolved as a local or imported module name of the most enclosing module of `Z`,
+2. Otherwise, it is resolved as a local or imported module name of the most enclosing module of `Z`,
    iterating outward to each successive enclosing module until a match is
 found or the default toplevel module is reached without a match.
 No consideration of export sets, default or otherwise, is used in this step.
 However, if at any stage a matching name is found that is not a module
 declaration, the resolution fails. See the examples below.
 
-2a. Once the leading ``NameSegment`` is resolved as say module `M`, the next ``NameSegment``
+3a. Once the leading ``NameSegment`` is resolved as say module `M`, the next ``NameSegment``
    is resolved as a local or imported  module name within `M`.
    The resolution is restricted to the default export set of `M`.
 
-2b. If the resolved module name is a module alias (from an `import` statement)
+3b. If the resolved module name is a module alias (from an `import` statement)
    then the target of the alias is resolved as a new qualified name
    with respect to its syntactic context (independent of any resolutions or
 modules so far). Since `Z` depends on `M`, any such alias target will
 already have been resolved, because modules are resolved in order of
 dependency.
 
-3. Step 2 is iterated for each ``NameSegment`` in the qualified module id,
+4. Step 3 is iterated for each ``NameSegment`` in the qualified module id,
    resulting in a module that is the final resolution of the complete
    qualified id.
 
@@ -874,7 +897,6 @@ rule that succeeds.
 
 4. Module-level (static) functions and methods
 
-TODO: Not sure about the following paragraph.
 In each module, names from opened modules are also potential matches, but
 only after names declared in the module.
 If an ambiguous name is found or a name of the wrong kind (e.g. a module
@@ -917,6 +939,5 @@ To resolve expression `E.id`:
   0. Member of module M: a sub-module (including submodules of imports),
      class, datatype, etc.
 * If `E` denotes a type:
-  1. If `allowDanglingDotName`: Return the type of `E` and the given `E.id`,
-     letting the caller try to make sense of the final dot-name.
-     TODO: I don't under this sentence. What is `allowDanglingDotName`?
+  1. Then the validity and meaning of `id` depends on the type and
+     must be a user-declared or pre-defined member of the type,

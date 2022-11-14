@@ -88,7 +88,7 @@ public abstract class Expression : INode {
     get { yield break; }
   }
 
-  private RangeToken rangeToken;
+  private RangeToken rangeToken = null;
 
   // Contains tokens that did not make it in the AST but are part of the expression,
   // Enables ranges to be correct.
@@ -96,7 +96,7 @@ public abstract class Expression : INode {
 
   /// Creates a token on the entire range of the expression.
   /// Used only for error reporting.
-  public RangeToken RangeToken {
+  public virtual RangeToken RangeToken {
     get {
       if (rangeToken == null) {
         if (tok is RangeToken tokAsRange) {
@@ -1034,9 +1034,8 @@ public class DatatypeValue : Expression, IHasUsages {
     Bindings.AcceptArgumentExpressionsAsExactParameterList();
   }
 
-  public override IEnumerable<Expression> SubExpressions {
-    get { return Arguments; }
-  }
+  public override IEnumerable<Expression> SubExpressions =>
+    Arguments ?? Enumerable.Empty<Expression>();
 
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return Enumerable.Repeat(Ctor, 1);
@@ -1284,7 +1283,7 @@ public class SeqDisplayExpr : DisplayExpression {
 
 public class MemberSelectExpr : Expression, IHasUsages {
   public readonly Expression Obj;
-  public readonly string MemberName;
+  public string MemberName;
   [FilledInDuringResolution] public MemberDecl Member;    // will be a Field or Function
   [FilledInDuringResolution] public Label /*?*/ AtLabel;  // non-null for a two-state selection
   [FilledInDuringResolution] public bool InCompiledContext;
@@ -1652,7 +1651,7 @@ public class ApplyExpr : Expression {
 }
 
 public class FunctionCallExpr : Expression, IHasUsages {
-  public readonly string Name;
+  public string Name;
   public readonly Expression Receiver;
   public readonly IToken OpenParen;  // can be null if Args.Count == 0
   public readonly IToken CloseParen;
@@ -1832,6 +1831,7 @@ public class OldExpr : Expression {
   [Peer]
   public readonly Expression E;
   public readonly string/*?*/ At;
+  [FilledInDuringResolution] public bool Useless = false;
   [FilledInDuringResolution] public Label/*?*/ AtLabel;  // after that, At==null iff AtLabel==null
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -4087,6 +4087,8 @@ public class DefaultValueExpression : ConcreteSyntaxExpression {
     TypeMap = typeMap;
     Type = Resolver.SubstType(formal.Type, typeMap);
   }
+
+  public override RangeToken RangeToken => new RangeToken(tok, tok);
 }
 
 /// <summary>
@@ -4285,5 +4287,18 @@ public class ApplySuffix : SuffixExpr {
     if (closeParen != null) {
       FormatTokens = new[] { closeParen };
     }
+  }
+
+  /// <summary>
+  /// Create an ApplySuffix expression using the most basic pieces: a target name and a list of expressions.
+  /// </summary>
+  /// <param name="tok">The location to associate with the new ApplySuffix expression.</param>
+  /// <param name="name">The name of the target function or method.</param>
+  /// <param name="args">The arguments to apply the function or method to.</param>
+  /// <returns></returns>
+  public static Expression MakeRawApplySuffix(IToken tok, string name, List<Expression> args) {
+    var nameExpr = new NameSegment(tok, name, null);
+    var argBindings = args.ConvertAll(arg => new ActualBinding(null, arg));
+    return new ApplySuffix(tok, null, nameExpr, argBindings, tok);
   }
 }

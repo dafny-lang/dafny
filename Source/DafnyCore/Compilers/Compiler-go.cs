@@ -1128,7 +1128,7 @@ namespace Microsoft.Dafny.Compilers {
       }
       wr.Write("{0}(", name);
       var prefix = "";
-      var nTypes = WriteRuntimeTypeDescriptorsFormals(ForTypeDescriptors(typeArgs, member, lookasideBody), wr, ref prefix, tp => $"{FormatRTDName(tp.CompileName)} {DafnyTypeDescriptor}");
+      var nTypes = WriteRuntimeTypeDescriptorsFormals(ForTypeDescriptors(typeArgs, member.EnclosingClass, member, lookasideBody), wr, ref prefix, tp => $"{FormatRTDName(tp.CompileName)} {DafnyTypeDescriptor}");
       if (customReceiver) {
         wr.Write("{0}_this {1}", nTypes != 0 ? ", " : "", TypeName(UserDefinedType.FromTopLevelDecl(tok, member.EnclosingClass), wr, tok));
       }
@@ -2059,14 +2059,10 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write("({0})(nil)", TypeName(e.Type, wr, e.tok));
       } else if (e.Value is bool) {
         wr.Write((bool)e.Value ? "true" : "false");
-      } else if (e is CharLiteralExpr) {
-        var v = (string)e.Value;
-        wr.Write("_dafny.Char('{0}')", TranslateEscapes(v, isChar: true));
-      } else if (e is StringLiteralExpr) {
-        var str = (StringLiteralExpr)e;
-        wr.Write("_dafny.SeqOfString(");
-        TrStringLiteral(str, wr);
-        wr.Write(")");
+      } else if (e is CharLiteralExpr chrLit) {
+        TrCharLiteral(chrLit, wr);
+      } else if (e is StringLiteralExpr strLit) {
+        TrStringLiteral(strLit, wr);
       } else if (AsNativeType(e.Type) is NativeType nt) {
         wr.Write("{0}({1})", GetNativeTypeName(nt), (BigInteger)e.Value);
       } else if (e.Value is BigInteger i) {
@@ -2094,6 +2090,47 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write("_dafny.IntOfInt64({0})", i);
       } else {
         wr.Write("_dafny.IntOfString(\"{0}\")", i);
+      }
+    }
+
+    protected void TrCharLiteral(CharLiteralExpr chr, ConcreteSyntaxTree wr) {
+      var v = (string)chr.Value;
+      wr.Write("_dafny.Char(");
+      // See comment in TrStringLiteral for why we can't just translate directly sometimes.
+      if (Util.MightContainNonAsciiCharacters(v, false)) {
+        var c = Util.UnescapedCharacters(v, false).Single();
+        wr.Write($"{(int)c}");
+      } else {
+        wr.Write("'{0}'", TranslateEscapes(v, isChar: true));
+      }
+      wr.Write(")");
+    }
+
+    protected override void TrStringLiteral(StringLiteralExpr str, ConcreteSyntaxTree wr) {
+      Contract.Requires(str != null);
+      Contract.Requires(wr != null);
+      // It may not be possible to translate a Dafny string into a valid Go string,
+      // since Go string literals have to be encodable in UTF-8,
+      // but Dafny allows invalid sequences of surrogate characters.
+      // In addition, _dafny.SeqOfString iterates over the runes in the Go string
+      // rather than the equivalent UTF-16 code units.
+      // That means in many cases we can't create a Dafny string value by emitting
+      // _dafny.SeqOfString("..."), since there's no way to encode the right data in the Go string literal.
+      // Instead, if any non-ascii characters might be present, just emit a sequence of the direct UTF-16 code units instead.
+      var s = (string)str.Value;
+      if (Util.MightContainNonAsciiCharacters(s, false)) {
+        wr.Write("_dafny.SeqOfChars(");
+        var comma = "";
+        foreach (var c in Util.UnescapedCharacters(s, str.IsVerbatim)) {
+          wr.Write(comma);
+          wr.Write($"{(int)c}");
+          comma = ", ";
+        }
+        wr.Write(")");
+      } else {
+        wr.Write("_dafny.SeqOfString(");
+        EmitStringLiteral(s, str.IsVerbatim, wr);
+        wr.Write(")");
       }
     }
 
@@ -2537,7 +2574,7 @@ namespace Microsoft.Dafny.Compilers {
           suffixWr.Write(IdName(member));
           suffixWr.Write("(");
           var suffixSep = "";
-          EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member, false), fn.tok, suffixWr, ref suffixSep);
+          EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member.EnclosingClass, member, false), fn.tok, suffixWr, ref suffixSep);
           if (additionalCustomParameter != null) {
             suffixWr.Write("{0}{1}", suffixSep, additionalCustomParameter);
             suffixSep = ", ";
@@ -2577,7 +2614,7 @@ namespace Microsoft.Dafny.Compilers {
         if (member.IsStatic) {
           lvalue = SimpleLvalue(w => {
             w.Write("{0}.{1}(", TypeName_Companion(objType, w, member.tok, member), IdName(member));
-            EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member, false), member.tok, w);
+            EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member.EnclosingClass, member, false), member.tok, w);
             w.Write(")");
           });
         } else if (NeedsCustomReceiver(member) && !(member.EnclosingClass is TraitDecl)) {
@@ -2596,7 +2633,7 @@ namespace Microsoft.Dafny.Compilers {
           lvalue = SimpleLvalue(w => {
             obj(w);
             w.Write(".{0}(", IdName(member));
-            EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member, false), member.tok, w);
+            EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member.EnclosingClass, member, false), member.tok, w);
             w.Write(")");
           });
         } else if (member.EnclosingClass is TraitDecl) {
@@ -3581,9 +3618,9 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
 
-      List<string> verb = new();
+      List<string> goArgs = new();
       if (run) {
-        verb.Add("run");
+        goArgs.Add("run");
       } else {
         string output;
         var outputToFile = !DafnyOptions.O.RunAfterCompile;
@@ -3618,48 +3655,22 @@ namespace Microsoft.Dafny.Compilers {
           }
         }
 
-        verb.Add("build");
-        verb.Add("-o");
-        verb.Add(output);
+        goArgs.Add("build");
+        goArgs.Add("-o");
+        goArgs.Add(output);
       }
 
-      var psi = new ProcessStartInfo("go") {
-        CreateNoWindow = Environment.OSVersion.Platform != PlatformID.Win32NT,
-        UseShellExecute = false,
-        RedirectStandardInput = false,
-        RedirectStandardOutput = false,
-        RedirectStandardError = false,
-      };
-      foreach (var verbArg in verb) {
-        psi.ArgumentList.Add(verbArg);
-      }
-      psi.ArgumentList.Add(targetFilename);
-      foreach (var arg in DafnyOptions.O.MainArgs) {
-        psi.ArgumentList.Add(arg);
-      }
+      goArgs.Add(targetFilename);
+      goArgs.AddRange(DafnyOptions.O.MainArgs);
+
+      var psi = PrepareProcessStartInfo("go", goArgs);
+
       psi.EnvironmentVariables["GOPATH"] = GoPath(targetFilename);
       // Dafny compiles to the old Go package system, whereas Go has moved on to a module
       // system. Until Dafny's Go compiler catches up, the GO111MODULE variable has to be set.
       psi.EnvironmentVariables["GO111MODULE"] = "auto";
-      if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-        // On Windows, Path.GetTempPath() returns "c:\Windows" which, being not writable, crashes Go.
-        // Hence we set up a local temporary directory
-        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        psi.EnvironmentVariables["GOTMPDIR"] = localAppData + @"\Temp";
-        psi.EnvironmentVariables["LOCALAPPDATA"] = localAppData + @"\go-build";
-      }
 
-      try {
-        using var process = Process.Start(psi);
-        if (process == null) {
-          return false;
-        }
-        process.WaitForExit();
-        return process.ExitCode == 0;
-      } catch (System.ComponentModel.Win32Exception e) {
-        outputWriter.WriteLine("Error: Unable to start go ({0}): {1}", psi.FileName, e.Message);
-        return false;
-      }
+      return 0 == RunProcess(psi, outputWriter);
     }
 
     static string GoPath(string filename) {
