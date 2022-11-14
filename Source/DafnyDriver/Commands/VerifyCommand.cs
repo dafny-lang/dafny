@@ -6,8 +6,9 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 class VerifyCommand : ICommandSpec {
-  public IEnumerable<IOptionSpec> Options => new [] {
-    FilterOption.Instance
+  public IEnumerable<IOptionSpec> Options => new IOptionSpec[] {
+    FilterOption.Instance,
+    NoVerifyIncludesOption.Instance
   }.Concat(CommandRegistry.CommonOptions);
 
   public Command Create() {

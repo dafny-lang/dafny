@@ -1,4 +1,5 @@
-// RUN: %dafny_0 /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %baredafny verify %args --no-verify-includes "%s" > "%t" || true
+// RUN: %baredafny verify %args "%s" >> "%t" || true
 // RUN: %diff "%s.expect" "%t"
 
 include "Includee.dfy"
