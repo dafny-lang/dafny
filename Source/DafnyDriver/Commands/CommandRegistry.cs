@@ -32,7 +32,6 @@ static class CommandRegistry {
     ResolvedPrintOption.Instance,
     BoogiePrintOption.Instance,
     InputsOption.Instance,
-    StrictDefiniteAssignmentOption.Instance,
     EnforceDeterminismOption.Instance,
   });
 
