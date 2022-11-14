@@ -3445,7 +3445,7 @@ namespace Microsoft.Dafny.Compilers {
               hasRhs = true;
             }
           }
-          TrLocalVar(local, !hasRhs && local.Type.KnownToHaveToAValue(false), wr);
+          TrLocalVar(local, !hasRhs, wr);
           i++;
         }
         if (s.Update != null) {
