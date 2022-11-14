@@ -6,7 +6,7 @@ namespace Microsoft.Dafny;
 
 public class FilterOption : CommandLineOption<IEnumerable<string>> {
   public static readonly FilterOption Instance = new();
-  
+
   public override object DefaultValue => Enumerable.Empty<string>();
   public override string LongName => "filter";
   public override string ArgumentName => "pattern";
