@@ -987,7 +987,7 @@ are contained in [this separate document](integration-js/IntegrationJavascript).
 
 The Dafny-to-Go compiler translates all the given `.dfy` files into a single
 `.go` file in `A-go/src/A.go`; the output folder can be specified with the 
-`-out` option. For an input file `A.dfy` the default output folder is `A-go`.
+`-out` option. For an input file `A.dfy` the default output folder is `A-go`. Then, Dafny compiles this program and creates an `A.exe` executable in the same folder as `A.dfy`.
 Some system runtime code is also placed in `A-go/src`.
 The build and run steps are
 - `dafny buld -t:go A.dfy B.dfy`
