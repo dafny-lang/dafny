@@ -16,7 +16,7 @@ class TranslateCommand : ICommandSpec {
       EnforceDeterminismOption.Instance,
       VerificationTimeLimitOption.Instance,
     }.Concat(ICommandSpec.CommonOptions);
-  
+
   public Command Create() {
     var result = new Command("translate", "Generate source and build files in a specified target language.");
     result.AddArgument(ICommandSpec.FilesArgument);

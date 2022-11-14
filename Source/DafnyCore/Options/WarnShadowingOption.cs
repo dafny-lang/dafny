@@ -6,7 +6,7 @@ class WarnShadowingOption : BooleanOption {
   public override string Description => @"
     Emits a warning if the name of a declared variable caused another
     variable to be shadowed.".TrimStart();
-    
+
   public override string PostProcess(DafnyOptions options) {
     options.WarnShadowing = Get(options);
     return null;

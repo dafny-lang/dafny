@@ -6,7 +6,7 @@ class WarnMissingConstructorParenthesisOption : BooleanOption {
   public override string Description => @"
     Emits a warning when a constructor name in a case pattern is not
     followed by parentheses.".TrimStart();
-    
+
   public override string PostProcess(DafnyOptions options) {
     options.DisallowConstructorCaseWithoutParentheses = Get(options);
     return null;

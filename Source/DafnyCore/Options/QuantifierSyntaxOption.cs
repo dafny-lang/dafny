@@ -20,7 +20,7 @@ class QuantifierSyntaxOption : StringOption {
   
       Note that quantifier variable domains (<- <Domain>) are available in
       both syntax versions.".TrimStart();
-  
+
   public override string PostProcess(DafnyOptions options) {
     var value = Get(options);
     if (value == "3") {

@@ -7,7 +7,7 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny; 
 
-public class GenerateTestsCommand : ICommandSpec {  
+public class GenerateTestsCommand : ICommandSpec {
   public IEnumerable<IOptionSpec> Options =>
     new IOptionSpec[] {
       LoopUnrollOption.Instance,
@@ -25,7 +25,7 @@ public class GenerateTestsCommand : ICommandSpec {
   readonly Argument<Mode> modeArgument = new("mode", @"
 Block - Prints block-coverage tests for the given program.
 Path - Prints path-coverage tests for the given program.");
-  
+
   public Command Create() {
     var result = new Command("generate-tests", "(Experimental) Execute every method in the program that's annotated with the {:test} attribute.");
     result.AddArgument(modeArgument);
@@ -40,7 +40,7 @@ Path - Prints path-coverage tests for the given program.");
     dafnyOptions.CompileVerbose = false;
     dafnyOptions.ForbidNondeterminism = true;
     dafnyOptions.DefiniteAssignmentLevel = 2;
-    
+
     var mode = context.ParseResult.GetValueForArgument(modeArgument);
     dafnyOptions.TestGenOptions.Mode = mode switch {
       Mode.Path => TestGenerationOptions.Modes.Path,

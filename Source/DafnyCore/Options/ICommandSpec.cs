@@ -18,7 +18,7 @@ public interface ICommandSpec {
       }
     };
   }
-  
+
   static ICommandSpec() {
     FilesArgument = new Argument<IEnumerable<FileInfo>>("file", "input files");
     FilesArgument.AddValidator(ValidateFileArgument());
@@ -44,7 +44,7 @@ public interface ICommandSpec {
     WarningAsErrorsOption.Instance,
     TrackPrintEffects.Instance
   });
-  
+
   IEnumerable<IOptionSpec> Options { get; }
 
   Command Create();

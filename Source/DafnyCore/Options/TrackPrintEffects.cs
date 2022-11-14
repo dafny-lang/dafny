@@ -10,7 +10,7 @@ false (default) - Every compiled method, constructor, and iterator,
    effects.
 true - A compiled method, constructor, or iterator is allowed to have
    print effects only if it is marked with {{:print}}.".TrimStart();
-  
+
   public override string PostProcess(DafnyOptions options) {
     options.EnforcePrintEffects = Get(options);
     return null;

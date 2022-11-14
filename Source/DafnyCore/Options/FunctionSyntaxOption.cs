@@ -39,7 +39,7 @@ public class FunctionSyntaxOption : StringOption {
       experimentalPredicateAlwaysGhost - Compiled functions are written
           `function`. Ghost functions are written `ghost function`.
           Predicates are always ghost and are written `predicate`.".TrimStart();
-  
+
   public override string PostProcess(DafnyOptions options) {
     var value = Get(options);
     if (value == "3") {

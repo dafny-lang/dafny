@@ -1,7 +1,7 @@
 // Generating tests:
 // RUN: cp %S/TestGeneration.dfy %t.dfy
 // RUN: %baredafny generate-tests %args Block %t.dfy > %t-tests.dfy
-// RUN: %baredafny translate %args --compile-verbose:true --no-verify "%t-tests.dfy" > "%t" 
+// RUN: %baredafny translate %args --include-runtime --compile-verbose --no-verify "%t-tests.dfy" > "%t" 
 // RUN: dotnet test -v:q -noLogo %S >> %t || true
 
 // RUN: %OutputCheck --file-to-check "%t" "%s"

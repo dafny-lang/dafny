@@ -5,7 +5,7 @@ class WarningAsErrorsOption : BooleanOption {
   public override string LongName => "warn-as-errors";
   public override string Description => @"
     Treat warnings as errors..".TrimStart();
-    
+
   public override string PostProcess(DafnyOptions options) {
     options.WarningsAsErrors = Get(options);
     return null;

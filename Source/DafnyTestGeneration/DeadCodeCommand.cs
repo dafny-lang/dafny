@@ -25,7 +25,7 @@ public class DeadCodeCommand : ICommandSpec {
     dafnyOptions.CompileVerbose = false;
     dafnyOptions.ForbidNondeterminism = true;
     dafnyOptions.DefiniteAssignmentLevel = 2;
-    
+
     dafnyOptions.TestGenOptions.Mode = TestGenerationOptions.Modes.Block;
   }
 }

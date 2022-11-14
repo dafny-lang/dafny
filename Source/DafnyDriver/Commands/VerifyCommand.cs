@@ -6,7 +6,7 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 class VerifyCommand : ICommandSpec {
-  public IEnumerable<IOptionSpec> Options => new [] {
+  public IEnumerable<IOptionSpec> Options => new[] {
     VerificationTimeLimitOption.Instance
   }.Concat(ICommandSpec.CommonOptions);
 
