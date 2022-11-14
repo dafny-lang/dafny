@@ -73,8 +73,19 @@ def c_label(name: str = None):
             raise g
 
 class CodePoint(str):
+
+    escapes = {
+      '\n' : "\\n";
+      '\r' : "\\r";
+      '\t' : "\\t";
+      '\0' : "\\0";
+      '\'' : "\\'";
+      '\"' : "\\\"";
+      '\\' : "\\\\";
+    }
+
     def __dafnystr__(self):
-        return f"'{self}'"
+        return escapes.get(self, f"'{self}'")
 
 class Seq(tuple):
     def __init__(self, __iterable = None, isStr = False):

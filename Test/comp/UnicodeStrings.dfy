@@ -76,7 +76,7 @@ method Main(args: seq<string>) {
 method CharPrinting() {
   var chars := "D\0\r\n\\\"\'\U{1F60E}";
   for i := 0 to |chars| {
-    print chars[i];
+    print chars[i], "\n";
   }
   for i := 0 to |chars| {
     var r := Print(chars[i]);
@@ -85,7 +85,7 @@ method CharPrinting() {
 }
 
 method Print<T>(t: T) returns (r: T) {
-  print t;
+  print t, "\n";
   return t;
 }
 
