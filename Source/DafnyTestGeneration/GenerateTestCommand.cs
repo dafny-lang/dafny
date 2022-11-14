@@ -94,7 +94,7 @@ class LoopUnrollOption : IntegerOption {
   public override object DefaultValue => 0;
   public override string LongName => "loop-unroll";
   public override string ArgumentName => "n";
-  public override string Description => "Higher values can improve accuracy of the analysis at the cost of taking longer to run";
+  public override string Description => "Higher values can improve accuracy of the analysis at the cost of taking longer to run.";
   public override string PostProcess(DafnyOptions options) {
     options.LoopUnrollCount = Get(options);
     return null!;
