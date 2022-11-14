@@ -6,7 +6,8 @@
 // RUN: %diff "%s.expect" "%t"
 
 /* Note, compiling to arrays in Java is difficult. In fact, this is currently
- * broken. Until this gets fixed, Java is omitted from this file.
+ * broken, see https://github.com/dafny-lang/dafny/issues/3055. Until this gets
+ * fixed, Java is omitted from this file.
  */
 
 method Main() {
