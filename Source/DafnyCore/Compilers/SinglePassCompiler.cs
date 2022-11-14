@@ -1018,7 +1018,6 @@ namespace Microsoft.Dafny.Compilers {
           dt.IsExtern(out _, out _) ||
           dt.Members.Any(member => member is Field)) {
         // don't optimize
-        // TODO: also don't optimize if a constructor parameter involves the type itself
       } else {
         var i = dt.Ctors.FindIndex(ctor => !ctor.IsGhost);
         if (0 <= i) {
@@ -1029,8 +1028,13 @@ namespace Microsoft.Dafny.Compilers {
             if (0 <= j) {
               if (ctor.Destructors.FindIndex(j + 1, dtor => !dtor.IsGhost) == -1) {
                 // there is exactly one non-ghost parameter to "ctor"
-                coreDestructor = ctor.Destructors[j];
-                return true;
+                var candidateCoreDestructor = ctor.Destructors[j];
+                var properlyContainedTypeDecls = new HashSet<TopLevelDecl>();
+                CompiledTypes(candidateCoreDestructor.Type, properlyContainedTypeDecls);
+                if (!properlyContainedTypeDecls.Contains(dt)) {
+                  coreDestructor = candidateCoreDestructor;
+                  return true;
+                }
               }
             }
           }
@@ -1038,6 +1042,24 @@ namespace Microsoft.Dafny.Compilers {
       }
       coreDestructor = null;
       return false;
+    }
+
+    /// <summary>
+    /// This method is for types the analogous thing to "FreeVariables(e)" for an expression "e".
+    /// It returns the user-defined types that are part of "type" (expanding past subset types).
+    /// </summary>
+    void CompiledTypes(Type type, ISet<TopLevelDecl> typeDecls) {
+      type = type.NormalizeExpand();
+      var decl = (type as UserDefinedType)?.ResolvedClass;
+      if (decl != null && typeDecls.Add(decl) && decl is DatatypeDecl dt) {
+        // we just added "decl" to the set
+        foreach (var ctor in dt.Ctors.Where(ctor => !ctor.IsGhost)) {
+          foreach (var dtor in ctor.Destructors.Where(dtor => !dtor.IsGhost)) {
+            CompiledTypes(dtor.Type, typeDecls);
+          }
+        }
+      }
+      type.TypeArgs.ForEach(ty => CompiledTypes(ty, typeDecls));
     }
 
     protected bool CanBeLeftUninitialized(Type type) {

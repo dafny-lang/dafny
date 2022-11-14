@@ -22,6 +22,7 @@ method Main() {
   TestDefaultValues<SingletonRecord, SingleOdd>();
   TestTypeParameters(GenericCompiled("<gen>"), GenericCompiled(3.14), GenericCompiled(2.7));
   TestMembers();
+  OptimizationChecks.Test();
 }
 
 method TestTargetTypesAndConstructors() {
@@ -275,3 +276,97 @@ datatype SList<X, Y> =
 datatype SMetaList<X, Y> =
   | TTT(tt: List<X, Y>)
   | UUU(uu: MetaList<X, Y>)
+
+// --------------------------------------------------------------------------------
+
+module OptimizationChecks {
+  // Not optimized
+  datatype CyclicTypeIsNotInvisibleWrapper =
+    | ghost Zero
+    | Succ(CyclicTypeIsNotInvisibleWrapper)
+
+  // Not optimized
+  datatype Mutual0 =
+    | ghost Zero
+    | AboutToBecomeSucc(Mutual1)
+  datatype Mutual1 =
+    | HereIsTheSucc(Mutual0)
+
+  // Optimized to just Mutual0
+  datatype Lasso =
+    | Lasso(m0: Mutual0)
+
+  // Optimized to just MyClass
+  datatype WrapperAroundMyClass = WAMC(MyClass)
+  class MyClass {
+    var w: WrapperAroundMyClass
+
+    constructor () {
+      w := WAMC(this);
+    }
+  }
+
+  // Not optimized
+  datatype ViaClass = ViaClass(Class<ViaClass>)
+  class Class<Y> { }
+
+  // Optimized to just ZClass
+  datatype DDZ = DDZ(ZClass)
+  trait ZParent<Z> { }
+  class ZClass extends ZParent<DDZ> { }
+
+  // Optimized to just X, whatever X is
+  datatype WrapperOrGhost<X> =
+    | Wrapper(X)
+    | ghost Nothing
+
+  method Test() {
+    var c;
+    c := Succ(c);
+
+    var m1;
+    m1 := HereIsTheSucc(AboutToBecomeSucc(m1));
+    var m0;
+    m0 := AboutToBecomeSucc(m1);
+
+    var l;
+    l := Lasso(m0);
+
+    var five := 5;
+
+    var mc := new MyClass();
+    var w;
+    if five < 10 {
+      w := WAMC(mc);
+    }
+
+    var vc := new Class<ViaClass>;
+    var v;
+    if five < 10 {
+      v := ViaClass(vc);
+    }
+
+    var zc := new ZClass;
+    var z;
+    if five < 10 {
+      z := DDZ(zc);
+    }
+
+    // In the following line, the verifier knows that w, v, and z have been initialized. However, C# does
+    // not (because of the two "if five < 10" statements above. Thus, Dafny had better make sure these local
+    // variables are initialized (to some placebo value).
+    Call(w, v, z);
+
+    var gw;
+    gw := Wrapper(true);
+
+    var gl: WrapperOrGhost<Lasso>; // compiled as Mutual0
+    var gg0: WrapperOrGhost<WrapperOrGhost<Lasso>>; // compiled as Mutual0
+    var gg1: WrapperOrGhost<WrapperOrGhost<Lasso>>; // compiled as Mutual0
+    gg0 := Wrapper(gl);
+    gl := Wrapper(l);
+    gg1 := Wrapper(gl);
+  }
+
+  method Call(w: WrapperAroundMyClass, v: ViaClass, z: DDZ) { }
+}
