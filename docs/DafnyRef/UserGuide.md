@@ -142,7 +142,8 @@ then runs it with the three command-line arguments `1 2 3`
 If building a `.dfy` file containing the `Main` method requires additional
 `.dfy` files, those files can be mentioned in `include` directives in the one `.dfy` file listed in the `dafny run` command. If other kinds of files (e.g., `.dll`, `.jar`) are needed, then use 
 the `--input` option for each extra file or use `dafny build` to build the executable and then run it in an 
-additional step.
+additional step.  
+**Note:** `dafny run` will typically produce the same results as the executables produced by `dafny build`.  The only expected differences are performance (`dafny run` may not optimize as much as `dafny build`), and target-language-specific configuration issues (e.g. encoding issues: `dafny run` sets language-specific flags to request UTF-8 output for the [`print`](#print-encoding) statement in all languages, whereas `dafny build` leaves language-specific runtime configuration to the user).
 
 The command-line also expects the following:
 - Files are designated by absolute paths or paths relative to the current

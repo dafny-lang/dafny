@@ -1722,6 +1722,8 @@ whose effect may be observed as part of the run-time evaluation of such function
 The verifier checks that each expression is well-defined, but otherwise 
 ignores the `print` statement.
 
+<a id="print-encoding"></a>
+
 **Note:** `print` writes to standard output.  To improve compatibility with
 native code and external libraries, the process of encoding Dafny strings passed
 to `print` into standard-output byte strings is left to the runtime of the
