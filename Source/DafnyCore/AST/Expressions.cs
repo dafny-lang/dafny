@@ -866,8 +866,8 @@ public class StaticReceiverExpr : LiteralExpr {
     if (top != cl) {
       Contract.Assert(top != null);
       var clArgsInTermsOfTFormals = cl.TypeArgs.ConvertAll(tp => top.ParentFormalTypeParametersToActuals[tp]);
-      var subst = Resolver.TypeSubstitutionMap(top.TypeArgs, t.TypeArgs);
-      var typeArgs = clArgsInTermsOfTFormals.ConvertAll(ty => Resolver.SubstType(ty, subst));
+      var subst = TypeUtil.TypeSubstitutionMap(top.TypeArgs, t.TypeArgs);
+      var typeArgs = clArgsInTermsOfTFormals.ConvertAll(ty => TypeUtil.SubstType(ty, subst));
       Type = new UserDefinedType(tok, cl.Name, cl, typeArgs);
     } else if (t.Name != cl.Name) {  // t may be using the name "C?", and we'd prefer it read "C"
       Type = new UserDefinedType(tok, cl.Name, cl, t.TypeArgs);
@@ -1405,7 +1405,7 @@ public class MemberSelectExpr : Expression, IHasUsages {
       // Add in the mappings from parent types' formal type parameters to types
       if (cl is TopLevelDeclWithMembers cls) {
         foreach (var entry in cls.ParentFormalTypeParametersToActuals) {
-          var v = Resolver.SubstType(entry.Value, subst);
+          var v = TypeUtil.SubstType(entry.Value, subst);
           subst.Add(entry.Key, v);
         }
       }
@@ -1457,7 +1457,7 @@ public class MemberSelectExpr : Expression, IHasUsages {
         typeMap.Add(cl.TypeArgs[i], TypeApplication_AtEnclosingClass[i]);
       }
       foreach (var entry in cl.ParentFormalTypeParametersToActuals) {
-        var v = Resolver.SubstType(entry.Value, typeMap);
+        var v = TypeUtil.SubstType(entry.Value, typeMap);
         typeMap.Add(entry.Key, v);
       }
     } else if (field.EnclosingClass == null) {
@@ -1468,7 +1468,7 @@ public class MemberSelectExpr : Expression, IHasUsages {
         typeMap.Add(field.EnclosingClass.TypeArgs[i], TypeApplication_AtEnclosingClass[i]);
       }
     }
-    this.Type = Resolver.SubstType(field.Type, typeMap);  // resolve here
+    this.Type = TypeUtil.SubstType(field.Type, typeMap);  // resolve here
   }
 
   public void MemberSelectCase(Action<Field> fieldK, Action<Function> functionK) {
@@ -4085,7 +4085,7 @@ public class DefaultValueExpression : ConcreteSyntaxExpression {
     Receiver = receiver;
     SubstMap = substMap;
     TypeMap = typeMap;
-    Type = Resolver.SubstType(formal.Type, typeMap);
+    Type = TypeUtil.SubstType(formal.Type, typeMap);
   }
 
   public override RangeToken RangeToken => new RangeToken(tok, tok);

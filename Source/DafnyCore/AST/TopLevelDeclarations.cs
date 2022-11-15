@@ -1097,7 +1097,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl {
           info.Add(traitHead, list);
         }
         foreach (var pair in entry.Value) {
-          var ty = Resolver.SubstType(pair.Item1, typeMap);
+          var ty = TypeUtil.SubstType(pair.Item1, typeMap);
           // prepend the path with "parent"
           var parentPath = new List<TraitDecl>() { parent };
           parentPath.AddRange(pair.Item2);
@@ -1246,8 +1246,8 @@ public class ClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl {
       // this optimization seems worthwhile
       return ParentTraits;
     } else {
-      var subst = Resolver.TypeSubstitutionMap(TypeArgs, typeArgs);
-      return ParentTraits.ConvertAll(traitType => Resolver.SubstType(traitType, subst));
+      var subst = TypeUtil.TypeSubstitutionMap(TypeArgs, typeArgs);
+      return ParentTraits.ConvertAll(traitType => TypeUtil.SubstType(traitType, subst));
     }
   }
 
@@ -1255,8 +1255,8 @@ public class ClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl {
     Contract.Requires(typeArgs != null);
     Contract.Requires(typeArgs.Count == TypeArgs.Count);
     // Instantiate with the actual type arguments
-    var subst = Resolver.TypeSubstitutionMap(TypeArgs, typeArgs);
-    return ParentTraits.ConvertAll(traitType => (Type)UserDefinedType.CreateNullableType((UserDefinedType)Resolver.SubstType(traitType, subst)));
+    var subst = TypeUtil.TypeSubstitutionMap(TypeArgs, typeArgs);
+    return ParentTraits.ConvertAll(traitType => (Type)UserDefinedType.CreateNullableType((UserDefinedType)TypeUtil.SubstType(traitType, subst)));
   }
 
   public override List<Type> ParentTypes(List<Type> typeArgs) {
@@ -2006,8 +2006,8 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl {
       // this optimization seems worthwhile
       return Rhs;
     } else {
-      var subst = Resolver.TypeSubstitutionMap(TypeArgs, typeArgs);
-      return Resolver.SubstType(Rhs, subst);
+      var subst = TypeUtil.TypeSubstitutionMap(TypeArgs, typeArgs);
+      return TypeUtil.SubstType(Rhs, subst);
     }
   }
 
