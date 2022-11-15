@@ -137,37 +137,37 @@ public class TypeUtil {
     }
   }
 
-    /// <summary>
-    /// Return a type that is like "type", but with type arguments "arguments".
-    /// </summary>
-    public static Type ReplaceTypeArguments(Type type, List<Type> arguments) {
-      Contract.Requires(type != null);
-      Contract.Requires(!(type is TypeProxy));
-      Contract.Requires(!(type is SelfType));
-      Contract.Requires(arguments != null);
-      Contract.Requires(type.TypeArgs.Count == arguments.Count);
+  /// <summary>
+  /// Return a type that is like "type", but with type arguments "arguments".
+  /// </summary>
+  public static Type ReplaceTypeArguments(Type type, List<Type> arguments) {
+    Contract.Requires(type != null);
+    Contract.Requires(!(type is TypeProxy));
+    Contract.Requires(!(type is SelfType));
+    Contract.Requires(arguments != null);
+    Contract.Requires(type.TypeArgs.Count == arguments.Count);
 
-      if (type is BasicType) {
-        return type;
-      } else if (type is MapType) {
-        var t = (MapType)type;
-        return new MapType(t.Finite, arguments[0], arguments[1]);
-      } else if (type is SetType) {
-        var st = (SetType)type;
-        return new SetType(st.Finite, arguments[0]);
-      } else if (type is MultiSetType) {
-        return new MultiSetType(arguments[0]);
-      } else if (type is SeqType) {
-        return new SeqType(arguments[0]);
-      } else if (type is ArrowType) {
-        var t = (ArrowType)type;
-        return new ArrowType(t.tok, (ArrowTypeDecl)t.ResolvedClass, arguments);
-      } else if (type is UserDefinedType) {
-        var t = (UserDefinedType)type;
-        return new UserDefinedType(t.tok, t.Name, t.ResolvedClass, arguments);
-      } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
-      }
+    if (type is BasicType) {
+      return type;
+    } else if (type is MapType) {
+      var t = (MapType)type;
+      return new MapType(t.Finite, arguments[0], arguments[1]);
+    } else if (type is SetType) {
+      var st = (SetType)type;
+      return new SetType(st.Finite, arguments[0]);
+    } else if (type is MultiSetType) {
+      return new MultiSetType(arguments[0]);
+    } else if (type is SeqType) {
+      return new SeqType(arguments[0]);
+    } else if (type is ArrowType) {
+      var t = (ArrowType)type;
+      return new ArrowType(t.tok, (ArrowTypeDecl)t.ResolvedClass, arguments);
+    } else if (type is UserDefinedType) {
+      var t = (UserDefinedType)type;
+      return new UserDefinedType(t.tok, t.Name, t.ResolvedClass, arguments);
+    } else {
+      Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
     }
+  }
 
 }
