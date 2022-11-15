@@ -1,0 +1,3 @@
+git-issue-3059.dfy(9,3): Error: value does not satisfy the subset constraints of 'foo'
+
+Dafny program verifier finished with 1 verified, 1 error

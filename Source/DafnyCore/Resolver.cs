@@ -15074,7 +15074,8 @@ namespace Microsoft.Dafny {
         ResolveExpression(e.Index, resolutionContext);
         ResolveExpression(e.Value, resolutionContext);
         AddXConstraint(expr.tok, "SeqUpdatable", e.Seq.Type, e.Index, e.Value, "update requires a sequence, map, or multiset (got {0})");
-        expr.Type = e.Seq.Type;
+        var ty = PartiallyResolveTypeForMemberSelection(expr.tok, e.Seq.Type);
+        expr.Type = ty;
 
       } else if (expr is DatatypeUpdateExpr) {
         var e = (DatatypeUpdateExpr)expr;

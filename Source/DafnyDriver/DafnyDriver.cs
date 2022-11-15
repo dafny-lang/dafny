@@ -93,6 +93,11 @@ namespace Microsoft.Dafny {
       "--verification-time-limit=300"
     };
 
+    public static readonly string[] NewDefaultArgumentsForTestingWithErrors =
+      NewDefaultArgumentsForTesting.Concat(new[] {
+        "--nonzero-exit-code-if-errors=false"
+      }).ToArray();
+
     public static int Main(string[] args) {
       int ret = 0;
       var thread = new System.Threading.Thread(

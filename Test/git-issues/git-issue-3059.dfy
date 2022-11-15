@@ -1,4 +1,4 @@
-// RUN: %baredafny verify %args "%s" > "%t"
+// RUN: %baredafny verify %args_0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 type foo = m: map<int, int> | forall n <- m.Keys :: m[n] < 5
