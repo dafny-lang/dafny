@@ -15,18 +15,18 @@
 // RUN: node %s.js "javascript" 1 >> "%t"
 // RUN: node %s.js "javascript" "aloha" >> "%t"
 // RUN: %baredafny build %args --unicode-char --no-verify --target:java "%s" >> "%t"
-// RUN: javac -cp %binaryDir/DafnyRuntime.jar:%S/CompileWithArgumentsUnicode-java %S/CompileWithArgumentsUnicode-java/CompileWithArgumentsUnicode.java %S/CompileWithArgumentsUnicode-java/*/*.java
-// RUN: java -cp %binaryDir/DafnyRuntime.jar:%S/CompileWithArgumentsUnicode-java CompileWithArgumentsUnicode Java 2 >> "%t"
-// RUN: java -cp %binaryDir/DafnyRuntime.jar:%S/CompileWithArgumentsUnicode-java CompileWithArgumentsUnicode Java 1 >> "%t"
-// RUN: java -cp %binaryDir/DafnyRuntime.jar:%S/CompileWithArgumentsUnicode-java CompileWithArgumentsUnicode Java aloha >> "%t"
+// RUN: javac -cp %binaryDir/DafnyRuntime.jar:%S/CompileWithArguments-java %S/CompileWithArguments-java/CompileWithArguments.java %S/CompileWithArguments-java/*/*.java
+// RUN: java -cp %binaryDir/DafnyRuntime.jar:%S/CompileWithArguments-java CompileWithArguments Java 2 >> "%t"
+// RUN: java -cp %binaryDir/DafnyRuntime.jar:%S/CompileWithArguments-java CompileWithArguments Java 1 >> "%t"
+// RUN: java -cp %binaryDir/DafnyRuntime.jar:%S/CompileWithArguments-java CompileWithArguments Java aloha >> "%t"
 // RUN: %baredafny build %args --unicode-char --no-verify --target:py "%s" >> "%t"
-// RUN: python3 %S/CompileWithArgumentsUnicode-py/CompileWithArgumentsUnicode.py Python 2 >> "%t"
-// RUN: python3 %S/CompileWithArgumentsUnicode-py/CompileWithArgumentsUnicode.py Python 1 >> "%t"
-// RUN: python3 %S/CompileWithArgumentsUnicode-py/CompileWithArgumentsUnicode.py Python aloha >> "%t"
+// RUN: python3 %S/CompileWithArguments-py/CompileWithArguments.py Python 2 >> "%t"
+// RUN: python3 %S/CompileWithArguments-py/CompileWithArguments.py Python 1 >> "%t"
+// RUN: python3 %S/CompileWithArguments-py/CompileWithArguments.py Python aloha >> "%t"
 // RUN: %baredafny build %args --unicode-char --no-verify --target:go "%s" >> "%t"
-// RUN: env GO111MODULE=auto GOPATH=%S/CompileWithArgumentsUnicode-go go run %S/CompileWithArgumentsUnicode-go/src/CompileWithArgumentsUnicode.go Go 2 >> "%t"
-// RUN: env GO111MODULE=auto GOPATH=%S/CompileWithArgumentsUnicode-go go run %S/CompileWithArgumentsUnicode-go/src/CompileWithArgumentsUnicode.go Go 1 >> "%t"
-// RUN: env GO111MODULE=auto GOPATH=%S/CompileWithArgumentsUnicode-go go run %S/CompileWithArgumentsUnicode-go/src/CompileWithArgumentsUnicode.go Go aloha >> "%t"
+// RUN: env GO111MODULE=auto GOPATH=%S/CompileWithArguments-go go run %S/CompileWithArguments-go/src/CompileWithArguments.go Go 2 >> "%t"
+// RUN: env GO111MODULE=auto GOPATH=%S/CompileWithArguments-go go run %S/CompileWithArguments-go/src/CompileWithArguments.go Go 1 >> "%t"
+// RUN: env GO111MODULE=auto GOPATH=%S/CompileWithArguments-go go run %S/CompileWithArguments-go/src/CompileWithArguments.go Go aloha >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main(args: seq<string>) {
