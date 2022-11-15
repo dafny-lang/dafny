@@ -1339,12 +1339,11 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor,
         List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
+      wr.Write(source);
       if (IsInvisibleWrapper(ctor.EnclosingDatatype, out var coreDtor)) {
         Contract.Assert(coreDtor.CorrespondingFormals.Count == 1);
         Contract.Assert(dtor == coreDtor.CorrespondingFormals[0]); // any other destructor is a ghost
-        wr.Write(source);
       } else {
-        wr.Write(source);
         wr.Write(ctor.EnclosingDatatype is TupleTypeDecl ? $"[{dtor.NameForCompilation}]" : $".{IdProtect(dtor.CompileName)}");
       }
     }
