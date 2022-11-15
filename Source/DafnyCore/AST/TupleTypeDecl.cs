@@ -18,7 +18,7 @@ public class TupleTypeDecl : IndDatatypeDecl {
   /// <summary>
   /// Construct a resolved built-in tuple type with "dim" arguments.  "systemModule" is expected to be the _System module.
   /// </summary>
-  public TupleTypeDecl(List<bool> argumentGhostness, ModuleDefinition systemModule, [CanBeNull] TupleTypeDecl  nonGhostTupleTypeDecl, Attributes attributes)
+  public TupleTypeDecl(List<bool> argumentGhostness, ModuleDefinition systemModule, [CanBeNull] TupleTypeDecl nonGhostTupleTypeDecl, Attributes attributes)
     : this(systemModule, CreateCovariantTypeParameters(argumentGhostness.Count), argumentGhostness, attributes) {
     Contract.Requires(0 <= argumentGhostness.Count);
     Contract.Requires(systemModule != null);

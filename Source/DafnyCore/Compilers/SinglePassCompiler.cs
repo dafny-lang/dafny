@@ -3912,7 +3912,7 @@ namespace Microsoft.Dafny.Compilers {
           EmitDecrementVar(varName, wr);
         }
       }
-      
+
       copyInstrWriters.Push(wr.Fork());
       ConcreteSyntaxTree guardWriter;
       var wStmtsIf = wr.Fork();
