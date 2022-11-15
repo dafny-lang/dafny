@@ -1066,6 +1066,7 @@ let _dafny = (function() {
     } catch (e) {
       if (e instanceof _dafny.HaltException) {
         process.stdout.write("[Program halted] " + e.message + "\n")
+        process.exitCode = 1
       } else {
         throw e
       }

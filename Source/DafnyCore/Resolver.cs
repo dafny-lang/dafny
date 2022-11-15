@@ -2714,7 +2714,6 @@ namespace Microsoft.Dafny {
 
         } else if (d is SubsetTypeDecl) {
           var dd = (SubsetTypeDecl)d;
-
           allTypeParameters.PushMarker();
           ResolveTypeParameters(d.TypeArgs, false, d);
           ResolveAttributes(d, new ResolutionContext(new NoContext(d.EnclosingModuleDefinition), false));
@@ -2722,6 +2721,7 @@ namespace Microsoft.Dafny {
           Contract.Assert(object.ReferenceEquals(dd.Var.Type, dd.Rhs));  // follows from SubsetTypeDecl invariant
           Contract.Assert(dd.Constraint != null);  // follows from SubsetTypeDecl invariant
           scope.PushMarker();
+          scope.AllowInstance = false;
           var added = scope.Push(dd.Var.Name, dd.Var);
           Contract.Assert(added == Scope<IVariable>.PushResult.Success);
           ResolveExpression(dd.Constraint, new ResolutionContext(new CodeContextWrapper(dd, true), false));
@@ -2749,7 +2749,12 @@ namespace Microsoft.Dafny {
               // Resolve the value expression
               if (field.Rhs != null) {
                 var ec = reporter.Count(ErrorLevel.Error);
+                scope.PushMarker();
+                if (currentClass == null || !currentClass.AcceptThis) {
+                  scope.AllowInstance = false;
+                }
                 ResolveExpression(field.Rhs, resolutionContext);
+                scope.PopMarker();
                 if (reporter.Count(ErrorLevel.Error) == ec) {
                   // make sure initialization only refers to constant field or literal expression
                   if (CheckIsConstantExpr(field, field.Rhs)) {
@@ -2797,7 +2802,12 @@ namespace Microsoft.Dafny {
           if (dd.Witness != null) {
             var prevErrCnt = reporter.Count(ErrorLevel.Error);
             var codeContext = new CodeContextWrapper(dd, dd.WitnessKind == SubsetTypeDecl.WKind.Ghost);
+            scope.PushMarker();
+            if (d is not TopLevelDeclWithMembers topLevelDecl || !topLevelDecl.AcceptThis) {
+              scope.AllowInstance = false;
+            }
             ResolveExpression(dd.Witness, new ResolutionContext(codeContext, false));
+            scope.PopMarker();
             ConstrainSubtypeRelation(dd.Var.Type, dd.Witness.Type, dd.Witness, "witness expression must have type '{0}' (got '{1}')", dd.Var.Type, dd.Witness.Type);
             SolveAllTypeConstraints();
             if (reporter.Count(ErrorLevel.Error) == prevErrCnt) {
@@ -3606,10 +3616,16 @@ namespace Microsoft.Dafny {
               }
             } else {
               var m = f.ByMethodDecl;
-              Contract.Assert(m != null && !m.IsGhost);
-              ComputeGhostInterest(m.Body, false, null, m);
-              CheckExpression(m.Body, this, m);
-              DetermineTailRecursion(m);
+              if (m != null) {
+                Contract.Assert(!m.IsGhost);
+                ComputeGhostInterest(m.Body, false, null, m);
+                CheckExpression(m.Body, this, m);
+                DetermineTailRecursion(m);
+              } else {
+                // m should not be null, unless an error has been reported
+                // (e.g. function-by-method and method with the same name) 
+                Contract.Assert(reporter.ErrorCount > 0);
+              }
             }
           }
           if (prevErrCnt == reporter.Count(ErrorLevel.Error) && member is ICodeContext) {
@@ -9458,6 +9474,8 @@ namespace Microsoft.Dafny {
             } else if (Attributes.Contains(member.Attributes, "extern")) {
               // Extern functions do not need to be reimplemented.
               // TODO: When `:extern` is separated from `:compile false`, this should become `:compile false`.
+            } else if (member is Lemma && Attributes.Contains(member.Attributes, "opaque_reveal")) {
+              // reveal lemmas do not need to be reimplemented
             } else {
               reporter.Error(MessageSource.Resolver, cl.tok, "{0} '{1}' does not implement trait {2} '{3}.{4}'", cl.WhatKind, cl.Name, member.WhatKind, member.EnclosingClass.Name, member.Name);
             }
@@ -10289,8 +10307,14 @@ namespace Microsoft.Dafny {
 
         if (f.ByMethodBody != null) {
           var method = f.ByMethodDecl;
-          Contract.Assert(method != null); // this should have been filled in by now
-          ResolveMethod(method);
+          if (method != null) {
+            ResolveMethod(method);
+          } else {
+            // method should have been filled in by now,
+            // unless there was a function by method and a method of the same name
+            // but then this error must have been reported.
+            Contract.Assert(reporter.ErrorCount > 0);
+          }
         }
       }
 
@@ -12883,6 +12907,7 @@ namespace Microsoft.Dafny {
         var udt = type.NormalizeExpand() as UserDefinedType;
         if (!(pat is IdPattern)) {
           reporter.Error(MessageSource.Resolver, pat.Tok, "pattern doesn't correspond to a tuple");
+          return;
         }
 
         IdPattern idpat = (IdPattern)pat;
@@ -12914,6 +12939,7 @@ namespace Microsoft.Dafny {
         if (!(pat is IdPattern)) {
           Contract.Assert(pat is LitPattern);
           reporter.Error(MessageSource.Resolver, pat.Tok, "Constant pattern used in place of datatype");
+          return;
         }
         IdPattern idpat = (IdPattern)pat;
 
@@ -13287,7 +13313,11 @@ namespace Microsoft.Dafny {
 
       var lhsSimpleVariables = new HashSet<IVariable>();
       foreach (var lhs in s.Lhss) {
-        CheckIsLvalue(lhs.Resolved, resolutionContext);
+        if (lhs.Resolved != null) {
+          CheckIsLvalue(lhs.Resolved, resolutionContext);
+        } else {
+          Contract.Assert(reporter.ErrorCount > 0);
+        }
         if (lhs.Resolved is IdentifierExpr ide) {
           if (lhsSimpleVariables.Contains(ide.Var)) {
             // syntactically forbid duplicate simple-variables on the LHS
@@ -14871,7 +14901,11 @@ namespace Microsoft.Dafny {
         if (currentClass is ClassDecl cd && cd.IsDefaultClass) {
           // there's no type
         } else {
-          expr.Type = GetThisType(expr.tok, currentClass);  // do this regardless of scope.AllowInstance, for better error reporting
+          if (currentClass == null) {
+            Contract.Assert(reporter.HasErrors);
+          } else {
+            expr.Type = GetThisType(expr.tok, currentClass);  // do this regardless of scope.AllowInstance, for better error reporting
+          }
         }
 
       } else if (expr is IdentifierExpr) {
@@ -16591,6 +16625,9 @@ namespace Microsoft.Dafny {
       MemberDecl member = null;
 
       var name = resolutionContext.InReveal ? "reveal_" + expr.SuffixName : expr.SuffixName;
+      if (!expr.Lhs.WasResolved()) {
+        return null;
+      }
       var lhs = expr.Lhs.Resolved;
       if (lhs != null && lhs.Type is Resolver_IdentifierExpr.ResolverType_Module) {
         var ri = (Resolver_IdentifierExpr)lhs;

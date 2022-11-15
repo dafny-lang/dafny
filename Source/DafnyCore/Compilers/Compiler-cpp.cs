@@ -2470,67 +2470,28 @@ namespace Microsoft.Dafny.Compilers {
       var codebase = System.IO.Path.GetDirectoryName(assemblyLocation);
       Contract.Assert(codebase != null);
       compilationResult = null;
-      var psi = new ProcessStartInfo("g++") {
-        CreateNoWindow = true,
-        UseShellExecute = false,
-        RedirectStandardOutput = true,
-        RedirectStandardError = true,
-        ArgumentList = {
-          "-Wall",
-          "-Wextra",
-          "-Wpedantic",
-          "-Wno-unused-variable",
-          "-Wno-deprecated-copy",
-          "-Wno-unused-label",
-          "-Wno-unused-but-set-variable",
-          "-Wno-unknown-warning-option",
-          "-g",
-          "-std=c++17",
-          "-I", codebase,
-          "-o", ComputeExeName(targetFilename),
-          targetFilename
-        }
-      };
-      var proc = Process.Start(psi);
-      while (!proc.StandardOutput.EndOfStream) {
-        outputWriter.WriteLine(proc.StandardOutput.ReadLine());
-      }
-      while (!proc.StandardError.EndOfStream) {
-        outputWriter.WriteLine(proc.StandardError.ReadLine());
-      }
-      proc.WaitForExit();
-      if (proc.ExitCode != 0) {
-        outputWriter.WriteLine($"Error while compiling C++ files. Process exited with exit code {proc.ExitCode}");
-        return false;
-      }
-      return true;
+      var psi = PrepareProcessStartInfo("g++", new List<string> {
+        "-Wall",
+        "-Wextra",
+        "-Wpedantic",
+        "-Wno-unused-variable",
+        "-Wno-deprecated-copy",
+        "-Wno-unused-label",
+        "-Wno-unused-but-set-variable",
+        "-Wno-unknown-warning-option",
+        "-g",
+        "-std=c++17",
+        "-I", codebase,
+        "-o", ComputeExeName(targetFilename),
+        targetFilename
+      });
+      return 0 == RunProcess(psi, outputWriter, "Error while compiling C++ files.");
     }
 
     public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string targetFilename, ReadOnlyCollection<string> otherFileNames,
       object compilationResult, TextWriter outputWriter) {
-      var psi = new ProcessStartInfo(ComputeExeName(targetFilename)) {
-        CreateNoWindow = true,
-        UseShellExecute = false,
-        RedirectStandardOutput = true,
-        RedirectStandardError = true
-      };
-      foreach (var arg in DafnyOptions.O.MainArgs) {
-        psi.ArgumentList.Add(arg);
-      }
-
-      var proc = Process.Start(psi);
-      while (!proc.StandardOutput.EndOfStream) {
-        outputWriter.WriteLine(proc.StandardOutput.ReadLine());
-      }
-      while (!proc.StandardError.EndOfStream) {
-        outputWriter.WriteLine(proc.StandardError.ReadLine());
-      }
-      proc.WaitForExit();
-      if (proc.ExitCode != 0) {
-        outputWriter.WriteLine($"Error while running C++ file {targetFilename}. Process exited with exit code {proc.ExitCode}");
-        return false;
-      }
-      return true;
+      var psi = PrepareProcessStartInfo(ComputeExeName(targetFilename), DafnyOptions.O.MainArgs);
+      return 0 == RunProcess(psi, outputWriter);
     }
   }
 }

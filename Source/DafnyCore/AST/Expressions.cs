@@ -1034,9 +1034,8 @@ public class DatatypeValue : Expression, IHasUsages {
     Bindings.AcceptArgumentExpressionsAsExactParameterList();
   }
 
-  public override IEnumerable<Expression> SubExpressions {
-    get { return Arguments; }
-  }
+  public override IEnumerable<Expression> SubExpressions =>
+    Arguments ?? Enumerable.Empty<Expression>();
 
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return Enumerable.Repeat(Ctor, 1);
@@ -1832,6 +1831,7 @@ public class OldExpr : Expression {
   [Peer]
   public readonly Expression E;
   public readonly string/*?*/ At;
+  [FilledInDuringResolution] public bool Useless = false;
   [FilledInDuringResolution] public Label/*?*/ AtLabel;  // after that, At==null iff AtLabel==null
   [ContractInvariantMethod]
   void ObjectInvariant() {

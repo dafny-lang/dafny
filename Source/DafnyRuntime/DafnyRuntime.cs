@@ -1545,6 +1545,14 @@ namespace Dafny {
         action();
       } catch (HaltException e) {
         Console.WriteLine("[Program halted] " + e.Message);
+        // This is unfriendly given that Dafny's C# compiler will
+        // invoke the compiled main method directly,
+        // so we might be exiting the whole Dafny process here.
+        // That's the best we can do until Dafny main methods support
+        // a return value though (https://github.com/dafny-lang/dafny/issues/2699).
+        // If we just set Environment.ExitCode here, the Dafny CLI
+        // will just override that with 0.
+        Environment.Exit(1);
       }
     }
 
