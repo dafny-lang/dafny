@@ -1109,8 +1109,8 @@ namespace Microsoft.Dafny.Compilers {
           return true;
         }
         if (IsInvisibleWrapper(dt, out var dtor)) {
-          var typeSubst = Resolver.TypeSubstitutionMap(dt.TypeArgs, udt.TypeArgs);
-          return CanBeLeftUninitialized(Resolver.SubstType(dtor.Type, typeSubst));
+          var typeSubst = TypeUtil.TypeSubstitutionMap(dt.TypeArgs, udt.TypeArgs);
+          return CanBeLeftUninitialized(TypeUtil.SubstType(dtor.Type, typeSubst));
         }
       }
       return false;
@@ -1148,8 +1148,8 @@ namespace Microsoft.Dafny.Compilers {
           }
 
         } else if (udt.ResolvedClass is DatatypeDecl datatypeDecl && IsInvisibleWrapper(datatypeDecl, out var dtor)) {
-          var typeSubst = Resolver.TypeSubstitutionMap(datatypeDecl.TypeArgs, udt.TypeArgs);
-          var stype = Resolver.SubstType(dtor.Type, typeSubst).NormalizeExpand(keepConstraints);
+          var typeSubst = TypeUtil.TypeSubstitutionMap(datatypeDecl.TypeArgs, udt.TypeArgs);
+          var stype = TypeUtil.SubstType(dtor.Type, typeSubst).NormalizeExpand(keepConstraints);
           return SimplifyType(stype, keepConstraints);
         }
       }
@@ -1158,7 +1158,7 @@ namespace Microsoft.Dafny.Compilers {
       if (ty.TypeArgs.Count != 0) {
         var simplifiedArguments = ty.TypeArgs.ConvertAll(typeArg => SimplifyType(typeArg, keepConstraints));
         if (Enumerable.Range(0, ty.TypeArgs.Count).Any(i => ty.TypeArgs[i].NormalizeExpand(keepConstraints) != simplifiedArguments[i])) {
-          Resolver.ReplaceTypeArguments(ty, simplifiedArguments);
+          TypeUtil.ReplaceTypeArguments(ty, simplifiedArguments);
         }
       }
       return ty;
