@@ -167,7 +167,10 @@ public enum Feature {
   SubtypeConstraintsInQuantifiers,
 
   [FeatureDescription("Tuples with more than 20 arguments", "sec-tuple-types")]
-  TuplesWiderThan20
+  TuplesWiderThan20,
+  
+  [FeatureDescription("Unicode chars", "#sec-characters")]
+  UnicodeChars
 }
 
 public class UnsupportedFeatureException : Exception {

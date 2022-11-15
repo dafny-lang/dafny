@@ -55,7 +55,8 @@ namespace Microsoft.Dafny.Compilers {
       Feature.MapComprehensions,
       Feature.ExactBoundedPool,
       Feature.RunAllTests,
-      Feature.MethodSynthesis
+      Feature.MethodSynthesis,
+      Feature.UnicodeChars
     };
 
     public override string TargetLanguage => "C++";
@@ -96,6 +97,11 @@ namespace Microsoft.Dafny.Compilers {
     protected override string ClassAccessor => "->";
 
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
+      // This seems to be a good place to check for unsupported options
+      if (UnicodeChars) {
+        throw new UnsupportedFeatureException(program.GetFirstTopLevelToken(), Feature.UnicodeChars);
+      }
+      
       wr.WriteLine("// Dafny program {0} compiled into Cpp", program.Name);
       wr.WriteLine("#include \"DafnyRuntime.h\"");
       foreach (var header in this.headers) {

@@ -358,12 +358,12 @@ In Dafny character or string literals, escaped characters may be used
 to specify the presence of a single- or double-quote character, backslash,
 null, new line, carriage return, tab, or a
 Unicode character with given hexadecimal representation.
-Which Unicode escape form is allowed depends on the value of the `/unicodeChar` option.
+Which Unicode escape form is allowed depends on the value of the `--unicode-char` option.
 
-If the `/unicodeChar:0` option is provided,
+If `--unicode-char:false` is provided,
 `\uXXXX` escapes can be used to specify any UTF-16 code unit.
 
-If the `/unicodeChar:1` option is provided,
+If `--unicode-char:true` option is provided,
 `\U{X..X}` escapes can be used to specify any Unicode scalar value.
 There must be at least one hex digit in between the braces, and at most six.
 Surrogate code points are not allowed.
