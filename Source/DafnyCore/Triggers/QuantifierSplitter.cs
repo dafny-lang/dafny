@@ -108,6 +108,10 @@ namespace Microsoft.Dafny.Triggers {
           splits[quantifier] = SplitQuantifier(quantifier).ToList();
         }
       }
+
+      if (expr is ITEExpr iteExpr && iteExpr.IsBindingGuard) {
+        splits.Remove((ExistsExpr)iteExpr.Test);
+      }
     }
 
     protected override void VisitOneStmt(Statement stmt) {
@@ -118,6 +122,10 @@ namespace Microsoft.Dafny.Triggers {
             VisitOneExpr(expr);
           }
         }
+      }
+
+      if (stmt is IfStmt ifStatement && ifStatement.IsBindingGuard) {
+        splits.Remove((ExistsExpr)ifStatement.Guard);
       }
     }
 

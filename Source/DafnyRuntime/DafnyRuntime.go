@@ -8,6 +8,7 @@ import (
   big "math/big"
   refl "reflect"
   "runtime"
+  "os"
 )
 
 func FromMainArguments(args []string) Seq {
@@ -2614,5 +2615,6 @@ func max(n, m int) int {
 func CatchHalt() {
   if r := recover(); r != nil {
     fmt.Println("[Program halted]", r)
+    os.Exit(1)
   }
 }
