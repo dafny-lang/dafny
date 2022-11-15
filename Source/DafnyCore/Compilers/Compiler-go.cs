@@ -1160,7 +1160,7 @@ namespace Microsoft.Dafny.Compilers {
           w = w.NewBlock("", open: BlockStyle.Brace);
           for (var i = 0; i < inParams.Count; i++) {
             var p = (overriddenInParams ?? inParams)[i];
-            var instantiatedType = Resolver.SubstType(p.Type, thisContext.ParentFormalTypeParametersToActuals);
+            var instantiatedType = TypeUtil.SubstType(p.Type, thisContext.ParentFormalTypeParametersToActuals);
             if (!instantiatedType.Equals(p.Type)) {
               // var p instantiatedType = p.(instantiatedType)
               var pName = IdName(inParams[i]);
@@ -1797,7 +1797,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitReturnExpr(Expression expr, Type resultType, bool inLetExprBody, ConcreteSyntaxTree wr) {
       var wStmts = wr.Fork();
       var w = EmitReturnExpr(wr);
-      var fromType = thisContext == null ? expr.Type : Resolver.SubstType(expr.Type, thisContext.ParentFormalTypeParametersToActuals);
+      var fromType = thisContext == null ? expr.Type : TypeUtil.SubstType(expr.Type, thisContext.ParentFormalTypeParametersToActuals);
       w = EmitCoercionIfNecessary(fromType, resultType, expr.tok, w);
       TrExpr(expr, w, inLetExprBody, wStmts);
     }
@@ -1811,7 +1811,7 @@ namespace Microsoft.Dafny.Compilers {
           wr.Write(sep);
           ConcreteSyntaxTree wOutParam;
           if (overriddenOutParams == null && typeMap != null) {
-            wOutParam = EmitCoercionIfNecessary(Resolver.SubstType(f.Type, typeMap), f.Type, f.tok, wr);
+            wOutParam = EmitCoercionIfNecessary(TypeUtil.SubstType(f.Type, typeMap), f.Type, f.tok, wr);
           } else if (overriddenOutParams != null) {
             // ignore typeMap
             wOutParam = EmitCoercionIfNecessary(f.Type, overriddenOutParams[i].Type, f.tok, wr);
@@ -2591,14 +2591,14 @@ namespace Microsoft.Dafny.Compilers {
           foreach (var arg in fn.Formals) {
             if (!arg.IsGhost) {
               var name = idGenerator.FreshId("_eta");
-              var ty = Resolver.SubstType(arg.Type, typeMap);
+              var ty = TypeUtil.SubstType(arg.Type, typeMap);
               prefixWr.Write($"{prefixSep}{name} {TypeName(ty, prefixWr, arg.tok)}");
               suffixWr.Write("{0}{1}", suffixSep, name);
               suffixSep = ", ";
               prefixSep = ", ";
             }
           }
-          var resultType = Resolver.SubstType(fn.ResultType, typeMap);
+          var resultType = TypeUtil.SubstType(fn.ResultType, typeMap);
           prefixWr.Write(") {0} {{ return ", TypeName(resultType, prefixWr, fn.tok));
           suffixWr.Write(")");
           var suffix = suffixWr.ToString();

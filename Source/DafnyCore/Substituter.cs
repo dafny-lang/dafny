@@ -34,17 +34,17 @@ namespace Microsoft.Dafny {
 
       if (expr is StaticReceiverExpr) {
         var e = (StaticReceiverExpr)expr;
-        var ty = Resolver.SubstType(e.Type, typeMap);
+        var ty = TypeUtil.SubstType(e.Type, typeMap);
         return new StaticReceiverExpr(e.tok, ty, e.IsImplicit) { Type = ty };
       } else if (expr is LiteralExpr literalExpr) {
         if (literalExpr.Value == null) {
-          return new LiteralExpr(literalExpr.tok) { Type = Resolver.SubstType(literalExpr.Type, typeMap) };
+          return new LiteralExpr(literalExpr.tok) { Type = TypeUtil.SubstType(literalExpr.Type, typeMap) };
         } else {
           // nothing to substitute
         }
       } else if (expr is Translator.BoogieWrapper) {
         var e = (Translator.BoogieWrapper)expr;
-        return new Translator.BoogieWrapper(e.Expr, Resolver.SubstType(e.Type, typeMap));
+        return new Translator.BoogieWrapper(e.Expr, TypeUtil.SubstType(e.Type, typeMap));
       } else if (expr is WildcardExpr) {
         // nothing to substitute
       } else if (expr is ThisExpr) {
@@ -74,7 +74,7 @@ namespace Microsoft.Dafny {
       } else if (expr is DisplayExpression) {
         DisplayExpression e = (DisplayExpression)expr;
         List<Expression> newElements = SubstituteExprList(e.Elements);
-        if (newElements != e.Elements || !Resolver.SubstType(e.Type, typeMap).Equals(e.Type)) {
+        if (newElements != e.Elements || !TypeUtil.SubstType(e.Type, typeMap).Equals(e.Type)) {
           if (expr is SetDisplayExpr) {
             newExpr = new SetDisplayExpr(expr.tok, ((SetDisplayExpr)expr).Finite, newElements);
           } else if (expr is MultiSetDisplayExpr) {
@@ -95,7 +95,7 @@ namespace Microsoft.Dafny {
             anyChanges = true;
           }
         }
-        var ty = Resolver.SubstType(e.Type, typeMap);
+        var ty = TypeUtil.SubstType(e.Type, typeMap);
         if (anyChanges || !ty.Equals(e.Type)) {
           newExpr = new MapDisplayExpr(expr.tok, e.Finite, elmts);
         }
@@ -104,8 +104,8 @@ namespace Microsoft.Dafny {
         Expression substE = Substitute(mse.Obj);
         MemberSelectExpr fseNew = new MemberSelectExpr(mse.tok, substE, mse.MemberName);
         fseNew.Member = mse.Member;
-        fseNew.TypeApplication_AtEnclosingClass = mse.TypeApplication_AtEnclosingClass.ConvertAll(t => Resolver.SubstType(t, typeMap));
-        fseNew.TypeApplication_JustMember = mse.TypeApplication_JustMember.ConvertAll(t => Resolver.SubstType(t, typeMap));
+        fseNew.TypeApplication_AtEnclosingClass = mse.TypeApplication_AtEnclosingClass.ConvertAll(t => TypeUtil.SubstType(t, typeMap));
+        fseNew.TypeApplication_JustMember = mse.TypeApplication_JustMember.ConvertAll(t => TypeUtil.SubstType(t, typeMap));
         fseNew.AtLabel = mse.AtLabel ?? oldHeapLabel;
         newExpr = fseNew;
       } else if (expr is SeqSelectExpr) {
@@ -164,7 +164,7 @@ namespace Microsoft.Dafny {
         if (newArguments != dtv.Bindings.Arguments) {
           DatatypeValue newDtv = new DatatypeValue(dtv.tok, dtv.DatatypeName, dtv.MemberName, newArguments);
           newDtv.Ctor = dtv.Ctor;  // resolve on the fly (and set newDtv.Type below, at end)
-          newDtv.InferredTypeArgs = Util.Map(dtv.InferredTypeArgs, tt => Resolver.SubstType(tt, typeMap));
+          newDtv.InferredTypeArgs = Util.Map(dtv.InferredTypeArgs, tt => TypeUtil.SubstType(tt, typeMap));
           // ^ Set the correct type arguments to the constructor
           newExpr = newDtv;
         }
@@ -308,7 +308,7 @@ namespace Microsoft.Dafny {
         bool anythingChanged = false;
         var newTyArgs = new List<Type>();
         foreach (var arg in e.TyArgs) {
-          var newArg = Resolver.SubstType(arg, typeMap);
+          var newArg = TypeUtil.SubstType(arg, typeMap);
           if (newArg != arg) {
             anythingChanged = true;
           }
@@ -333,7 +333,7 @@ namespace Microsoft.Dafny {
       if (newExpr == null) {
         return expr;
       } else {
-        newExpr.Type = Resolver.SubstType(expr.Type, typeMap);  // resolve on the fly (any additional resolution must be done above)
+        newExpr.Type = TypeUtil.SubstType(expr.Type, typeMap);  // resolve on the fly (any additional resolution must be done above)
         return newExpr;
       }
     }
@@ -463,7 +463,7 @@ namespace Microsoft.Dafny {
       bool anythingChanged = false;
       var newBoundVars = new List<BoundVar>();
       foreach (var bv in vars) {
-        var tt = Resolver.SubstType(bv.Type, typeMap);
+        var tt = TypeUtil.SubstType(bv.Type, typeMap);
         if (!forceSubstitutionOfBoundVars && tt == bv.Type) {
           newBoundVars.Add(bv);
         } else {
@@ -490,7 +490,7 @@ namespace Microsoft.Dafny {
       bool anythingChanged = false;
       var newVars = new List<LocalVariable>();
       foreach (var v in vars) {
-        var tt = Resolver.SubstType(v.OptionalType, typeMap);
+        var tt = TypeUtil.SubstType(v.OptionalType, typeMap);
         if (!forceSubstitutionOfVars && tt == v.OptionalType) {
           newVars.Add(v);
         } else {
@@ -532,7 +532,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(pat != null);
       if (pat.Var != null) {
         var bv = pat.Var;
-        var tt = Resolver.SubstType(bv.Type, typeMap);
+        var tt = TypeUtil.SubstType(bv.Type, typeMap);
         if (forceSubstitutionOfBoundVars || tt != bv.Type) {
           var newBv = cloneVt(pat, tt, bv);
           // update substMap to reflect the new BoundVar substitutions
@@ -558,7 +558,7 @@ namespace Microsoft.Dafny {
           var patE = (DatatypeValue)pat.Expr;
           var newPat = new CasePattern<VT>(pat.tok, pat.Id, newArgs);
           newPat.Ctor = pat.Ctor;
-          newPat.AssembleExpr(patE.InferredTypeArgs.ConvertAll(tp => Resolver.SubstType(tp, typeMap)));
+          newPat.AssembleExpr(patE.InferredTypeArgs.ConvertAll(tp => TypeUtil.SubstType(tp, typeMap)));
           return newPat;
         }
       }
@@ -601,7 +601,7 @@ namespace Microsoft.Dafny {
       var newTmap = new Dictionary<TypeParameter, Type>();
       var i = 0;
       foreach (var maplet in tmap) {
-        var tt = Resolver.SubstType(maplet.Value, typeMap);
+        var tt = TypeUtil.SubstType(maplet.Value, typeMap);
         if (tt != maplet.Value) {
           anythingChanged = true;
         }
@@ -625,7 +625,7 @@ namespace Microsoft.Dafny {
       var newTypes = new List<Type>();
       var i = 0;
       foreach (var ty in types) {
-        var tt = Resolver.SubstType(ty, typeMap);
+        var tt = TypeUtil.SubstType(ty, typeMap);
         if (tt != ty) {
           anythingChanged = true;
         }
