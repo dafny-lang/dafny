@@ -42,7 +42,8 @@ public interface ICommandSpec {
     WarnShadowingOption.Instance,
     WarnMissingConstructorParenthesisOption.Instance,
     WarningAsErrorsOption.Instance,
-    TrackPrintEffects.Instance
+    TrackPrintEffects.Instance,
+    DisableNonLinearArithmeticOption.Instance
   });
 
   IEnumerable<IOptionSpec> Options { get; }
