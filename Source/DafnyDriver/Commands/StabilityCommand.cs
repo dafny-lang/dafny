@@ -25,7 +25,7 @@ public class StabilityCommand : ICommandSpec {
 }
 
 class IsolateAssertionsOption : BooleanOption {
-  public static readonly IsolateAssertionsOption Instance = new ();
+  public static readonly IsolateAssertionsOption Instance = new();
   public override string LongName => "isolate-assertions";
 
   public override string Description => @"Verify each assertion in isolation.";
@@ -37,7 +37,7 @@ class IsolateAssertionsOption : BooleanOption {
 }
 
 class FormatOption : CommandLineOption<IEnumerable<string>> {
-  public static readonly FormatOption Instance = new ();
+  public static readonly FormatOption Instance = new();
   public override object DefaultValue => Enumerable.Empty<string>();
 
   public override string LongName => "format";
@@ -61,7 +61,7 @@ The `trx` and `csv` formats automatically choose an output file name by default,
 }
 
 class RandomSeedOption : NaturalNumberOption {
-  public static readonly RandomSeedOption Instance = new ();
+  public static readonly RandomSeedOption Instance = new();
   public override object DefaultValue => 0U;
   public override string LongName => "random-seed";
   public override string ArgumentName => "seed";
@@ -79,7 +79,7 @@ class RandomSeedOption : NaturalNumberOption {
 }
 
 class IterationsOption : NaturalNumberOption {
-  public static readonly IterationsOption Instance = new ();
+  public static readonly IterationsOption Instance = new();
   public override object DefaultValue => 10;
   public override string LongName => "iterations";
   public override string ArgumentName => "n";
