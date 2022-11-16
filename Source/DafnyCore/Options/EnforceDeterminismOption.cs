@@ -22,7 +22,7 @@ public class RelaxDefiniteAssignment : BooleanOption {
     "Allow variables to be read before they are assigned, but only if they are ghost or have an auto-initializable type.";
 
   public override string PostProcess(DafnyOptions options) {
-    if (options.ForbidNondeterminism) {
+    if (Get(options) && options.ForbidNondeterminism) {
       return $"The option {LongName} can not be used in conjunction with {EnforceDeterminismOption.Instance.LongName}.";
     }
     options.DefiniteAssignmentLevel = Get(options) ? 1 : 2;
