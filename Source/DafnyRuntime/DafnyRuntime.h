@@ -33,9 +33,6 @@ typedef int64_t  int64;
 class DafnyHaltException : public std::runtime_error{
   public:
   DafnyHaltException(std::string msg) : std::runtime_error(msg) {}
-  // virtual const char* what() const throw() {
-  //     return exception::what();
-  // }
 };
 
 // using boost::hash_combine
