@@ -1,4 +1,4 @@
-// RUN: %baredafny check-stability --format:trx";"LogFileName="%t.trx" "%s"
+// RUN: %baredafny check-stability --format:trx";"LogFileName="%t.trx" "%s" || true
 // RUN: %OutputCheck --file-to-check "%t.trx" "%s"
 
 // CHECK: \<UnitTestResult.* testName="ExampleWithSplits \(correctness\) \(assertion batch 3\)" .*\>

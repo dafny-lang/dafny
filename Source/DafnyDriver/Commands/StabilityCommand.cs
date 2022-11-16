@@ -70,7 +70,7 @@ class RandomSeedOption : NaturalNumberOption {
     $"Turn on randomization of the input that Boogie passes to the SMT solver and turn on randomization in the SMT solver itself. Certain Boogie inputs are unstable in the sense that changes to the input that preserve its meaning may cause the output to change. This option simulates meaning-preserving changes to the input without requiring the user to actually make those changes. The input changes are renaming variables and reordering declarations in the input, and setting solver options that have similar effects.";
 
   public override string PostProcess(DafnyOptions options) {
-    if (Get(options) != (ulong)DefaultValue) {
+    if (Get(options) != (uint)DefaultValue) {
       options.RandomSeed = (int?)Get(options);
     }
 
