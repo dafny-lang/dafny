@@ -22,6 +22,42 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   public class DiagnosticsTest : ClientBasedLanguageServerTest {
 
     [TestMethod]
+    public async Task CrashOfLanguageServer() {
+      // git-issue-3062
+      var source = @"
+function bullspec(s:seq<nat>, u:seq<nat>): (r: nat)
+  requires |s| > 0
+  requires |u| > 0
+  requires |s| == |u|
+  ensures forall i | i < r :: s[i] != u[i]
+  ensures r == |s| || s[r] == u[r]
+{
+  if |s| == 0 then 0 else
+  if |s| == 1 then
+    if s[0]==u[0] 
+    then 1 else 0
+  else
+    if s[0] != u[0] 
+    then bullspec(s[1..],u[1..])
+    else 1+bullspec(s[1..],u[1..])
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      // Uncomment what you need.
+      var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(7, diagnostics.Length);
+      ApplyChange(ref documentItem, ((7, 25), (10, 17)), "");
+      diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      Assert.AreEqual(5, diagnostics.Length);
+      Assert.AreEqual("Parser", diagnostics[0].Source);
+      Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
+      ApplyChange(ref documentItem, ((7, 20), (7, 25)), "");
+      diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(1, diagnostics.Length);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
+    }
+
+    [TestMethod]
     public async Task EmptyFileNoCodeWarning() {
       var source = "";
       var documentItem = CreateTestDocument(source);
