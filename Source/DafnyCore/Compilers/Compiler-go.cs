@@ -2191,26 +2191,12 @@ namespace Microsoft.Dafny.Compilers {
         s = s.Replace("\\'", "'");
       }
 
-      // Painfully, Go doesn't support octal escapes with fewer than three
-      // digits, so we have to expand them.
-      s = ShortOctalEscape.Replace(s, match => {
-        switch (match.Length) {
-          case 2: return "\\00" + match.Groups[1];
-          case 3: return "\\0" + match.Groups[1];
-          default: throw new Exception("Unexpected match of length " + match.Length);
-        }
-      });
-
-      // Similarly with hex escapes with only one digit
-      s = ShortHexEscape.Replace(s, match => "\\x0" + match.Groups[1]);
+      s = Util.ReplaceNullEscapesWithCharacterEscapes(s);
 
       s = Util.ExpandUnicodeEscapes(s, false);
 
       return s;
     }
-
-    private static Regex ShortOctalEscape = new Regex(@"(?<!\\)\\([0-7][0-7]?)(?![0-7])");
-    private static Regex ShortHexEscape = new Regex(@"(?<!\\)\\([0-9a-fA-F])(?![0-9a-fA-F])");
 
     protected override ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, ConcreteSyntaxTree wr) {
       string literalSuffix = null;

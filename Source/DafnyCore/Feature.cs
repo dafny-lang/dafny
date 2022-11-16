@@ -170,7 +170,10 @@ public enum Feature {
   TuplesWiderThan20,
   
   [FeatureDescription("Unicode chars", "#sec-characters")]
-  UnicodeChars
+  UnicodeChars,
+  
+  [FeatureDescription("Converting values to strings", "#sec-print-statement")]
+  ConvertingValuesToStrings
 }
 
 public class UnsupportedFeatureException : Exception {

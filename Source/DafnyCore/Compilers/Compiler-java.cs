@@ -1005,6 +1005,14 @@ namespace Microsoft.Dafny.Compilers {
         default: return "";
       }
     }
+    
+    private static string TranslateEscapes(string s) {
+      s = Util.ReplaceNullEscapesWithCharacterEscapes(s);
+
+      s = Util.UnicodeEscapesToUtf16Escapes(s);
+
+      return s;
+    }
 
     protected override void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e) {
       if (e is StaticReceiverExpr) {
@@ -1018,7 +1026,7 @@ namespace Microsoft.Dafny.Compilers {
         if (UnicodeChars && Util.MightContainNonAsciiCharacters(v, false)) {
           wr.Write($"{Util.UnescapedCharacters(v, false).Single()}");
         } else {
-          wr.Write($"'{v}'");
+          wr.Write($"'{TranslateEscapes(v)}'");
         }
       } else if (e is StringLiteralExpr str) {
         wr.Write(UnicodeChars ? $"{DafnySeqClass}.asUnicodeString(" : $"{DafnySeqClass}.asString(");
@@ -1059,7 +1067,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitStringLiteral(IToken tok, string str, bool isVerbatim, ConcreteSyntaxTree wr) {
       if (!isVerbatim) {
-        wr.Write($"\"{Util.UnicodeEscapesToUtf16Escapes(str)}\"");
+        wr.Write($"\"{TranslateEscapes(str)}\"");
       } else {
         //TODO: This is taken from Go and JS since Java doesn't have raw string literals, modify and make better if possible.
         var n = str.Length;

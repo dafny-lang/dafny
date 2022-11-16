@@ -1325,6 +1325,14 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    protected string TranslateEscapes(string s) {
+      s = Util.UnicodeEscapesToLowercase(s);
+      
+      s = Util.ReplaceNullEscapesWithCharacterEscapes(s);
+      
+      return s;
+    }
+    
     protected override void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e) {
       if (e is StaticReceiverExpr) {
         wr.Write(TypeName(e.Type, wr, e.tok));
@@ -1333,8 +1341,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (e.Value is bool) {
         wr.Write((bool)e.Value ? "true" : "false");
       } else if (e is CharLiteralExpr) {
-        var v = (string)e.Value;
-        var escaped = v == "\\0" ? "\\u0000" : v; // JavaScript doesn't have a \0
+        var escaped = TranslateEscapes((string)e.Value);
         if (UnicodeChars) {
           wr.Write($"new _dafny.CodePoint('{escaped}'.codePointAt(0))");
         } else {
@@ -1388,7 +1395,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitStringLiteral(IToken tok, string str, bool isVerbatim, ConcreteSyntaxTree wr) {
       var n = str.Length;
       if (!isVerbatim) {
-        wr.Write($"\"{Util.UnicodeEscapesToLowercase(str)}\"");
+        wr.Write($"\"{TranslateEscapes(str)}\"");
       } else {
         wr.Write("\"");
         for (var i = 0; i < n; i++) {

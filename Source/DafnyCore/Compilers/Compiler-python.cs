@@ -980,14 +980,22 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(")");
     }
 
+    protected static string TranslateEscapes(string s) {
+      s = Util.ReplaceNullEscapesWithCharacterEscapes(s);
+      
+      s = Util.ExpandUnicodeEscapes(s, false);
+      
+      return s;
+    }
+    
     protected override void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e) {
       switch (e) {
         case CharLiteralExpr:
+          var escaped = TranslateEscapes((string)e.Value);
           if (UnicodeChars) {
-            // TODO: Not escaping properly yet
-            wr.Write($"{DafnyRuntimeModule}.CodePoint('{(string)e.Value}')");
+            wr.Write($"{DafnyRuntimeModule}.CodePoint('{escaped}')");
           } else {
-            wr.Write($"'{(string)e.Value}'");
+            wr.Write($"'{escaped}'");
           }
           break;
         case StringLiteralExpr str:
@@ -1032,7 +1040,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitStringLiteral(IToken tok, string str, bool isVerbatim, ConcreteSyntaxTree wr) {
       if (!isVerbatim) {
-        wr.Write($"\"{Util.ExpandUnicodeEscapes(str, false)}\"");
+        wr.Write($"\"{TranslateEscapes(str)}\"");
       } else {
         var n = str.Length;
         wr.Write("\"");

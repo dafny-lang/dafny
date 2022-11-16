@@ -1325,7 +1325,14 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write("\"" + Dafny.ErrorReporter.TokenToString(tok) + ": \" + ");
       }
 
-      TrExpr(messageExpr, wr, false, wStmts);
+      if (messageExpr.Type.IsStringType) {
+        wr.Write("ToVerbatimString(");
+        TrExpr(messageExpr, wr, false, wStmts);
+        wr.Write(")");
+      } else {
+        throw new UnsupportedFeatureException(tok, Feature.ConvertingValuesToStrings);
+      }
+
       wr.WriteLine(");");
     }
 
@@ -1453,8 +1460,9 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write("'{0}'", v);
       } else if (e is StringLiteralExpr) {
         var str = (StringLiteralExpr)e;
-        // TODO: the string should be converted to a Dafny seq<char>
+        wr.Write("DafnySequenceFromString(");
         TrStringLiteral(str, wr);
+        wr.Write(")");
       } else if (AsNativeType(e.Type) is NativeType nt) {
         wr.Write("({0}){1}", GetNativeTypeName(nt), (BigInteger)e.Value);
         if ((BigInteger)e.Value > 9223372036854775807) {
@@ -1476,7 +1484,6 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitStringLiteral(IToken tok, string str, bool isVerbatim, ConcreteSyntaxTree wr) {
       var n = str.Length;
-      wr.Write("DafnySequenceFromString(");
       if (!isVerbatim) {
         wr.Write("\"{0}\"", str);
       } else {
@@ -1497,7 +1504,6 @@ namespace Microsoft.Dafny.Compilers {
         }
         wr.Write("\"");
       }
-      wr.Write(")");
     }
 
     protected override ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, ConcreteSyntaxTree wr) {
@@ -2285,9 +2291,8 @@ namespace Microsoft.Dafny.Compilers {
         if (e.ToType.IsNumericBased(Type.NumericPersuasion.Real)) {
           throw new UnsupportedFeatureException(e.tok, Feature.RealNumbers);
         } else if (e.ToType.IsCharType) {
-          wr.Write("_dafny.Char(");
+          wr.Write("(char)");
           TrParenExpr(e.E, wr, inLetExprBody, wStmts);
-          wr.Write(".Int32())");
         } else {
           // (int or bv or char) -> (int or bv or ORDINAL)
           var fromNative = AsNativeType(e.E.Type);
@@ -2299,13 +2304,10 @@ namespace Microsoft.Dafny.Compilers {
           } else if (e.E.Type.IsCharType) {
             Contract.Assert(fromNative == null);
             if (toNative == null) {
-              // char -> big-integer (int or bv or ORDINAL)
-              wr.Write("_dafny.IntOfInt32(rune(");
-              TrExpr(e.E, wr, inLetExprBody, wStmts);
-              wr.Write("))");
+              throw new UnsupportedFeatureException(e.tok, Feature.UnboundedIntegers);
             } else {
               // char -> native
-              wr.Write(GetNativeTypeName(toNative));
+              wr.Write($"({GetNativeTypeName(toNative)})");
               TrParenExpr(e.E, wr, inLetExprBody, wStmts);
             }
           } else if (fromNative == null && toNative == null) {

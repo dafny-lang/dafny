@@ -240,15 +240,11 @@ namespace Microsoft.Dafny {
       return sb.ToString();
     }
 
-    private static readonly Regex Utf16Escape = new Regex(@"(?<!\\)\\u([0-9a-fA-F]{4})");
-    private static readonly Regex UnicodeEscape = new Regex(@"(?<!\\)\\U\{([0-9a-fA-F]+)\}");
+    private static readonly Regex UnicodeEscape = new Regex(@"\\U\{([0-9a-fA-F]+)\}");
+    private static readonly Regex NullEscape = new Regex(@"\\0");
 
-    private static string ToUTF16Escape(char c) {
+    private static string ToUtf16Escape(char c) {
       return $"\\u{(int)c:x4}";
-    }
-
-    private static string ToUnicodeEscape(int c) {
-      return $"\\U{c:x8}";
     }
 
     private static string ReplaceTokensWithEscapes(string s, Regex pattern, MatchEvaluator evaluator) {
@@ -275,11 +271,15 @@ namespace Microsoft.Dafny {
         var codePoint = new Rune(Convert.ToInt32(match.Groups[1].Value, 16));
         var codeUnits = codePoint.EncodeToUtf16(utf16CodeUnits);
         if (codeUnits == 2) {
-          return ToUTF16Escape(utf16CodeUnits[0]) + ToUTF16Escape(utf16CodeUnits[1]); ;
+          return ToUtf16Escape(utf16CodeUnits[0]) + ToUtf16Escape(utf16CodeUnits[1]); ;
         } else {
-          return ToUTF16Escape(utf16CodeUnits[0]);
+          return ToUtf16Escape(utf16CodeUnits[0]);
         }
       });
+    }
+    
+    public static string ReplaceNullEscapesWithCharacterEscapes(string s) {
+      return ReplaceTokensWithEscapes(s, NullEscape, match => "\\u0000");
     }
 
     /// <summary>
