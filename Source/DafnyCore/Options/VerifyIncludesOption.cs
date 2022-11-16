@@ -1,7 +1,7 @@
 namespace Microsoft.Dafny; 
 
-public class NoVerifyIncludesOption : BooleanOption {
-  public static readonly NoVerifyIncludesOption Instance = new();
+public class VerifyIncludesOption : BooleanOption {
+  public static readonly VerifyIncludesOption Instance = new();
   public override string LongName => "verify-includes";
 
   public override string Description => @"Verify code in included files.";
