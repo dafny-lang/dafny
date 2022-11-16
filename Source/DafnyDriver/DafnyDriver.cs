@@ -632,7 +632,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(dafnyProgram != null);
       Contract.Assert(dafnyProgramName != null);
 
-      // TODO: The outputWriter parameter is unused.  Remove it?
+      // TODO: `outputWriter` seems to always be passed in as `null`.  Remove it?
       if (outputWriter == null) {
         outputWriter = Console.Out;
       }
