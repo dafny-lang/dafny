@@ -83,10 +83,7 @@ public class RunAllTestsMainMethod : IRewriter {
   /// }
   /// </summary>
   internal override void PostResolve(Program program) {
-
-
-
-    var tok = Token.NoToken;
+    var tok = program.GetFirstTopLevelToken();
     List<Statement> mainMethodStatements = new();
     var idGenerator = new FreshIdGenerator();
 
@@ -193,18 +190,15 @@ public class RunAllTestsMainMethod : IRewriter {
       }
     }
 
-    // For now just print a footer to call attention to any failed tests.
-    // Ideally we would also set the process return code, but since Dafny main methods
-    // don't support that yet, that is deferred for now.
+    // Use an expect statement to halt if there are any failed tests.
+    // Ideally we would just set the process return code instead of crashing the program,
+    // but since Dafny main methods don't support that yet, that is deferred for now.
     //
-    // if !success {
-    //   print "Test failures occurred: see above.\n";
-    // }
-    Statement printFailure = Statement.CreatePrintStmt(tok,
-      Expression.CreateStringLiteral(tok, "Test failures occurred: see above.\n"));
-    var failuresBlock = new BlockStmt(tok, tok, Util.Singleton(printFailure));
-    var ifNotSuccess = new IfStmt(tok, tok, false, Expression.CreateNot(tok, successVarExpr), failuresBlock, null);
-    mainMethodStatements.Add(ifNotSuccess);
+    // expect success, "Test failures occurred: see above.\n";
+    // 
+    Statement expectSuccess = new ExpectStmt(tok, tok, successVarExpr,
+      Expression.CreateStringLiteral(tok, "Test failures occurred: see above.\n"), null);
+    mainMethodStatements.Add(expectSuccess);
 
     // Find the resolved main method to attach the body to (which will be a different instance
     // than the Method we added in PreResolve).

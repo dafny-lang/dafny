@@ -86,7 +86,8 @@ namespace Microsoft.Dafny.Triggers {
 
       foreach (var q in quantifiers) {
         q.CandidateTerms = distinctPool; // The list of candidate terms is immutable
-        q.Candidates = TriggerUtils.AllNonEmptySubsets(distinctPool, SubsetGenerationPredicate, q.quantifier.BoundVars).Select(set => set.ToTriggerCandidate()).ToList();
+        q.Candidates = TriggerUtils.AllNonEmptySubsets(distinctPool, SubsetGenerationPredicate, q.quantifier.BoundVars)
+          .Select(set => set.ToTriggerCandidate()).ToList();
       }
     }
 

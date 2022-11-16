@@ -9,5 +9,5 @@ datatype Wrapper<T> = Wrapper(s: seq<T>)
 
 method Main() {
   var xs: Wrapper<nat> := Wrapper<nat>.empty();
-  print xs;
+  print xs, "\n";
 }
