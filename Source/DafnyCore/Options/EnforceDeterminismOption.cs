@@ -23,7 +23,7 @@ public class RelaxDefiniteAssignment : BooleanOption {
 
   public override string PostProcess(DafnyOptions options) {
     if (options.ForbidNondeterminism) {
-      return $"The option {LongName} can not be used in conjunction with {EnforceDeterminismOption.Instance.LongName}";
+      return $"The option {LongName} can not be used in conjunction with {EnforceDeterminismOption.Instance.LongName}.";
     }
     options.DefiniteAssignmentLevel = Get(options) ? 1 : 2;
     return null;
