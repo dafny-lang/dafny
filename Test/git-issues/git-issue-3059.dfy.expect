@@ -1,7 +1,5 @@
-git-issue-3059.dfy(9,3): Error: value does not satisfy the subset constraints of 'foo'
-git-issue-3059.dfy(14,9): Error: A postcondition might not hold on this return path.
-git-issue-3059.dfy(16,10): Related location: This is the postcondition that might not hold.
-git-issue-3059.dfy(18,3): Error: value does not satisfy the subset constraints of 'seq0'
-git-issue-3059.dfy(27,3): Error: value does not satisfy the subset constraints of 'map0'
+git-issue-3059.dfy(12,2): Error: value does not satisfy the subset constraints of 'seq0'
+git-issue-3059.dfy(28,3): Error: value does not satisfy the subset constraints of 'map0'
+git-issue-3059.dfy(43,8): Error: value does not satisfy the subset constraints of 'map0'
 
-Dafny program verifier finished with 3 verified, 4 errors
+Dafny program verifier finished with 3 verified, 3 errors
