@@ -33,6 +33,7 @@ static class CommandRegistry {
     BoogiePrintOption.Instance,
     InputsOption.Instance,
     EnforceDeterminismOption.Instance,
+    RelaxDefiniteAssignment.Instance, // Must come after EnforceDeterminismOption
   });
 
   static void AddCommand(ICommandSpec command) {
