@@ -15,7 +15,7 @@ public class StabilityCommand : ICommandSpec {
   }.Concat(CommandRegistry.CommonOptions);
 
   public Command Create() {
-    var result = new Command("check-stability", "(experimental) Check the stability of the program proofs. Be aware that the options and output of this command will change in the future.");
+    var result = new Command("check-stability", "(experimental) Check the stability of the program proofs. Be aware that the name, options and output of this command will change in the future.");
     result.AddArgument(CommandRegistry.FilesArgument);
     return result;
   }
@@ -80,7 +80,7 @@ class RandomSeedOption : NaturalNumberOption {
 
 class IterationsOption : NaturalNumberOption {
   public static readonly IterationsOption Instance = new();
-  public override object DefaultValue => 10;
+  public override object DefaultValue => 10U;
   public override string LongName => "iterations";
   public override string ArgumentName => "n";
 
