@@ -1,5 +1,5 @@
-// RUN: %baredafny verify %args --no-verify-includes "%s" > "%t" || true
-// RUN: %baredafny verify %args "%s" >> "%t" || true
+// RUN: %baredafny verify %args "%s" > "%t" || true
+// RUN: %baredafny verify %args --verify-includes "%s" >> "%t" || true
 // RUN: %diff "%s.expect" "%t"
 
 include "Includee.dfy"
