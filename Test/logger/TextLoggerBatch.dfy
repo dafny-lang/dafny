@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 /verificationLogger:text "%s" > "%t"
+// RUN: %baredafny check-stability --format:text "%s" > "%t"
 // RUN: %OutputCheck --file-to-check "%t" "%s"
 // CHECK: Overall outcome: Errors
 // CHECK: Overall time: .*

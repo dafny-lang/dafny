@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 /verificationLogger:text /vcsSplitOnEveryAssert "%s" > "%t"
+// RUN: %baredafny check-stability --format:text --isolate-assertions "%s" > "%t"
 // RUN: %OutputCheck --file-to-check "%t" "%s"
 // CHECK: Overall outcome: Errors
 // CHECK: Overall time: .*
