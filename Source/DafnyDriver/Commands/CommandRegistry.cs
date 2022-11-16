@@ -45,6 +45,7 @@ static class CommandRegistry {
     AddCommand(new RunCommand());
     AddCommand(new BuildCommand());
     AddCommand(new TranslateCommand());
+    AddCommand(new StabilityCommand());
 
     FileArgument = new Argument<FileInfo>("file", "input file");
     FileArgument.AddValidator(ValidateFileArgument());
