@@ -67,8 +67,8 @@ method Search(ll: Node?) returns (r: int)
   ensures ll == null ==> r == 0
   ensures ll != null ==>
             0 <= r && r <= |ll.List| &&
-            (r < |ll.List| ==> ll.List[r] == 0 &&
-            0 !in ll.List[..r]) &&
+            (r < |ll.List| ==>
+              ll.List[r] == 0 && 0 !in ll.List[..r]) &&
             (r == |ll.List| ==> 0 !in ll.List)
 {
   if (ll == null) {
@@ -76,7 +76,8 @@ method Search(ll: Node?) returns (r: int)
   } else {
     var jj,i := ll,0;
     while (jj != null && jj.head != 0)
-      invariant jj != null ==> jj.Valid() &&
+      invariant jj != null ==>
+            jj.Valid() &&
             i + |jj.List| == |ll.List| &&
             ll.List[i..] == jj.List
       invariant jj == null ==> i == |ll.List|
