@@ -1706,7 +1706,9 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
       rd.Close();
-      if (externFilename.EndsWith(".py")) return externFilename.Substring(0, externFilename.Length - 3);
+      if (externFilename.EndsWith(".py")) {
+        return externFilename.Substring(0, externFilename.Length - 3);
+      }
       return null;
     }
 
