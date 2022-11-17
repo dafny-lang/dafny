@@ -44,14 +44,23 @@ function bullspec(s:seq<nat>, u:seq<nat>): (r: nat)
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
       Assert.AreEqual(7, diagnostics.Length);
+      Assert.AreEqual(PublishedVerificationStatus.Stale, await PopNextStatus());
+      Assert.AreEqual(PublishedVerificationStatus.Running, await PopNextStatus());
+      Assert.AreEqual(PublishedVerificationStatus.Error, await PopNextStatus());
       ApplyChange(ref documentItem, ((7, 25), (10, 17)), "");
       diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(5, diagnostics.Length);
       Assert.AreEqual("Parser", diagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
+      Assert.AreEqual(PublishedVerificationStatus.Stale, await PopNextStatus());
+      Assert.AreEqual(PublishedVerificationStatus.Running, await PopNextStatus());
+      Assert.AreEqual(PublishedVerificationStatus.Error, await PopNextStatus());
       ApplyChange(ref documentItem, ((7, 20), (7, 25)), "");
       diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
-      Assert.AreEqual(1, diagnostics.Length);
+      Assert.AreEqual(8, diagnostics.Length);
+      Assert.AreEqual(PublishedVerificationStatus.Stale, await PopNextStatus());
+      Assert.AreEqual(PublishedVerificationStatus.Running, await PopNextStatus());
+      Assert.AreEqual(PublishedVerificationStatus.Error, await PopNextStatus());
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
