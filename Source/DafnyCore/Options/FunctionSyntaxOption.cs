@@ -42,22 +42,21 @@ public class FunctionSyntaxOption : StringOption {
 
   public override string PostProcess(DafnyOptions options) {
     var value = Get(options);
-    if (value == "3") {
-      options.FunctionSyntax = DafnyOptions.FunctionSyntaxOptions.Version3;
-    } else if (value == "4") {
-      options.FunctionSyntax = DafnyOptions.FunctionSyntaxOptions.Version4;
-    } else if (value == "migration3to4") {
-      options.FunctionSyntax = DafnyOptions.FunctionSyntaxOptions.Migration3To4;
-    } else if (value == "experimentalDefaultGhost") {
-      options.FunctionSyntax = DafnyOptions.FunctionSyntaxOptions.ExperimentalTreatUnspecifiedAsGhost;
-    } else if (value == "experimentalDefaultCompiled") {
-      options.FunctionSyntax = DafnyOptions.FunctionSyntaxOptions.ExperimentalTreatUnspecifiedAsCompiled;
-    } else if (value == "experimentalPredicateAlwaysGhost") {
-      options.FunctionSyntax = DafnyOptions.FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost;
-    } else {
+    DafnyOptions.FunctionSyntaxOptions? syntax = value switch {
+      "3" => DafnyOptions.FunctionSyntaxOptions.Version3,
+      "4" => DafnyOptions.FunctionSyntaxOptions.Version4,
+      "migration3to4" => DafnyOptions.FunctionSyntaxOptions.Migration3To4,
+      "experimentalDefaultGhost" => DafnyOptions.FunctionSyntaxOptions.ExperimentalTreatUnspecifiedAsGhost,
+      "experimentalDefaultCompiled" => DafnyOptions.FunctionSyntaxOptions.ExperimentalTreatUnspecifiedAsCompiled,
+      "experimentalPredicateAlwaysGhost" => DafnyOptions.FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost,
+      _ => null
+    };
+
+    if (syntax == null) {
       return $"Invalid argument to option {LongName}";
     }
 
+    options.FunctionSyntax = syntax.Value;
     return null;
   }
 }

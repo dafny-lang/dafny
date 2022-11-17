@@ -23,12 +23,15 @@ class QuantifierSyntaxOption : StringOption {
 
   public override string PostProcess(DafnyOptions options) {
     var value = Get(options);
-    if (value == "3") {
-      options.QuantifierSyntax = DafnyOptions.QuantifierSyntaxOptions.Version3;
-    } else if (value == "4") {
-      options.QuantifierSyntax = DafnyOptions.QuantifierSyntaxOptions.Version4;
-    } else {
-      return $"Invalid argument to option {LongName}";
+    switch (value) {
+      case "3":
+        options.QuantifierSyntax = DafnyOptions.QuantifierSyntaxOptions.Version3;
+        break;
+      case "4":
+        options.QuantifierSyntax = DafnyOptions.QuantifierSyntaxOptions.Version4;
+        break;
+      default:
+        return $"Invalid argument to option {LongName}";
     }
 
     return null;

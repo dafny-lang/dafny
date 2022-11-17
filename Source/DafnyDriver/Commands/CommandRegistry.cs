@@ -34,19 +34,9 @@ static class CommandRegistry {
     AddCommand(new DeadCodeCommand());
 
     FileArgument = new Argument<FileInfo>("file", "input file");
-    FileArgument.AddValidator(ValidateFileArgument());
   }
 
   public static Argument<FileInfo> FileArgument { get; }
-
-  private static ValidateSymbolResult<ArgumentResult> ValidateFileArgument() {
-    return r => {
-      var value = r.Tokens[0].Value;
-      if (value.StartsWith("--")) {
-        r.ErrorMessage = $"{value} is not a valid argument";
-      }
-    };
-  }
 
   [CanBeNull]
   public static ParseArgumentResult Create(string[] arguments) {
