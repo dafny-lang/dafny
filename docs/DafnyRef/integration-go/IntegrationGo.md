@@ -32,7 +32,7 @@ Suppose a Dafny program is contained in a `.dfy` file, `A.dfy`, which containing
 `dafny build --target:go A.dfy`
 
 The compiled program is then executed using the command `./A`
-or `(cd A-go; GO111MODULE=auto GOPATH=`pwd` go run src/A.go)`
+or `(cd A-go; GO111MODULE=auto GOPATH=\`pwd\` go run src/A.go)`
 
 Alternatively the build and run steps can be combined:
 `dafny run --target:go A.dfy`

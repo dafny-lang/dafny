@@ -941,7 +941,7 @@ is contained [in the section on command-line structure](#command-line).
 ### 25.8.3. C\#
 
 For a simple Dafny-only program, the translation step converts a `A.dfy` file into `A.cs`;
-the build step then produces a `A.dll`, which can be used as a library or as an executable (via `dotnet A.dll`).
+the build step then produces a `A.dll`, which can be used as a library or as an executable (ran via `dotnet A.dll`).
 
 It is also possible to run the dafny files as part of a `csproj` project, with these steps:
 - create a dotnet project file with the command `dotnet new console`
