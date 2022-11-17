@@ -6,7 +6,32 @@ using System.Text;
 
 namespace Microsoft.Dafny; 
 
-// Same as Boogie.ParserHelper, except that it takes newlines into account
+// Dafny files can use preprocessing directives, e.g.
+/// ```
+/// method TEst() {
+/// #if UNDEFINEDVARIABLE
+///   assert false;
+/// #else
+///   assert true;
+/// #endif
+/// }
+/// ```
+/// is transformed into
+/// ```
+/// method TEst() {
+/// 
+/// 
+/// 
+///   assert true;
+/// 
+/// }
+/// ```
+/// 
+/// However, at this moment, there is no way to tell Dafny which preprocessing variables
+/// are defined, so only all other blocks than "else" are replaced by empty newlines
+/// Note that, because this process replaces newlines, this version of PreprocessorHelper
+/// recover existing newlines to ensure that, if there is no pre-processing directives,
+/// the program string is exactly the same as the original one.
 public static class PreprocessorHelper {
   struct ReadState {
     public bool hasSeenElse;
