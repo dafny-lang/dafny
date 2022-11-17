@@ -2533,6 +2533,7 @@ namespace Microsoft.Dafny.Compilers {
         }
         nodeProcess.StandardInput.Write(targetProgramText);
         if (callToMain != null && DafnyOptions.O.RunAfterCompile) {
+          nodeProcess.StandardInput.WriteLine("require('process').stdout.setEncoding(\"utf-8\");");
           nodeProcess.StandardInput.WriteLine("require('process').argv = [\"node\",\"stdin\", " + string.Join(",", DafnyOptions.O.MainArgs.Select(ToStringLiteral)) + "];");
           nodeProcess.StandardInput.Write(callToMain);
         }

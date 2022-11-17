@@ -891,7 +891,7 @@ namespace Dafny {
   }
 
   public abstract class Sequence<T> : ISequence<T> {
-    public static readonly ISequence<T> Empty = new ArraySequence<T>(Array.Empty<T>());
+    public static readonly ISequence<T> Empty = new ArraySequence<T>(new T[0]);
 
     private static readonly TypeDescriptor<ISequence<T>> _TYPE = new Dafny.TypeDescriptor<ISequence<T>>(Empty);
     public static TypeDescriptor<ISequence<T>> _TypeDescriptor() {
@@ -1223,7 +1223,8 @@ namespace Dafny {
       // Traverse the tree formed by all descendants which are ConcatSequences
       var ansBuilder = ImmutableArray.CreateBuilder<T>(count);
       var toVisit = new Stack<ISequence<T>>();
-      var (leftBuffer, rightBuffer) = (left, right);
+      var leftBuffer = left;
+      var rightBuffer = right;
       if (left == null || right == null) {
         // elmts can't be .IsDefault while either left, or right are null
         return elmts;
@@ -1234,7 +1235,8 @@ namespace Dafny {
       while (toVisit.Count != 0) {
         var seq = toVisit.Pop();
         if (seq is ConcatSequence<T> cs && cs.elmts.IsDefault) {
-          (leftBuffer, rightBuffer) = (cs.left, cs.right);
+          leftBuffer = cs.left;
+          rightBuffer = cs.right;
           if (cs.left == null || cs.right == null) {
             // !cs.elmts.IsDefault, due to concurrent enumeration
             toVisit.Push(cs);

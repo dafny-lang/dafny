@@ -1795,6 +1795,7 @@ namespace Microsoft.Dafny.Compilers {
       string targetFilename, ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
       Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
       var psi = PrepareProcessStartInfo("python3", DafnyOptions.O.MainArgs.Prepend(targetFilename));
+      psi.EnvironmentVariables["PYTHONIOENCODING"] = "utf8";
       return 0 == RunProcess(psi, outputWriter);
     }
   }
