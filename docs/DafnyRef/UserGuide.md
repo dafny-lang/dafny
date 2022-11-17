@@ -990,7 +990,7 @@ The Dafny-to-Go compiler translates all the given `.dfy` files into a single
 `-out` option. For an input file `A.dfy` the default output folder is `A-go`. Then, Dafny compiles this program and creates an `A.exe` executable in the same folder as `A.dfy`.
 Some system runtime code is also placed in `A-go/src`.
 The build and run steps are
-- `dafny buld -t:go A.dfy B.dfy`
+- `dafny buld -t:go A.dfy`
 - `./A`
 The uncompiled code can be compiled and run by `go` itself using
 - `(cd A-go; GO111MODULE=auto GOPATH=`pwd` go run A.go)`
