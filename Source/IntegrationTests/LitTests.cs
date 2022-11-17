@@ -100,7 +100,6 @@ namespace IntegrationTests {
         throw new Exception($"Unsupported OS: {RuntimeInformation.OSDescription}");
       }
 
-      substitutions["%args_0"] = DafnyDriver.NewDefaultArgumentsForTestingWithErrors;
       substitutions["%args"] = DafnyDriver.NewDefaultArgumentsForTesting;
 
       var dafnyReleaseDir = Environment.GetEnvironmentVariable("DAFNY_RELEASE");

@@ -22,7 +22,6 @@ static class CommandRegistry {
   public static IReadOnlyList<IOptionSpec> CommonOptions = new List<IOptionSpec>(new IOptionSpec[] {
     CoresOption.Instance,
     VerificationTimeLimitOption.Instance,
-    NonZeroExitCodeIfErrorsOption.Instance,
     LibraryOption.Instance,
     ShowSnippetsOption.Instance,
     PluginOption.Instance,
