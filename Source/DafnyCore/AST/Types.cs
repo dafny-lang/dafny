@@ -937,10 +937,9 @@ public abstract class Type {
     }
   }
 
-  public static bool FromSameHead_Subtype(Type t, Type u, BuiltIns builtIns, out Type a, out Type b) {
+  public static bool FromSameHead_Subtype(Type t, Type u, out Type a, out Type b) {
     Contract.Requires(t != null);
     Contract.Requires(u != null);
-    Contract.Requires(builtIns != null);
     if (FromSameHead(t, u, out a, out b)) {
       return true;
     }

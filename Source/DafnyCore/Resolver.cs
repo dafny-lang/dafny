@@ -5376,7 +5376,7 @@ namespace Microsoft.Dafny {
                 }
               }
               Type a, b;
-              satisfied = Type.FromSameHead_Subtype(t, u, resolver.builtIns, out a, out b);
+              satisfied = Type.FromSameHead_Subtype(t, u, out a, out b);
               if (satisfied) {
                 Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
                 var cl = a is UserDefinedType ? ((UserDefinedType)a).ResolvedClass : null;
@@ -5436,7 +5436,7 @@ namespace Microsoft.Dafny {
               }
               Type a, b;
               // okay if t<:u or u<:t (this makes type inference more manageable, though it is more liberal than one might wish)
-              satisfied = Type.FromSameHead_Subtype(t, u, resolver.builtIns, out a, out b);
+              satisfied = Type.FromSameHead_Subtype(t, u, out a, out b);
               if (satisfied) {
                 Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
                 var cl = a is UserDefinedType ? ((UserDefinedType)a).ResolvedClass : null;
