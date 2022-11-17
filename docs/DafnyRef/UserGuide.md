@@ -996,7 +996,7 @@ The uncompiled code can be compiled and run by `go` itself using
 - `(cd A-go; GO111MODULE=auto GOPATH=`pwd` go run A.go)`
 
 The one-step process is
-- `dafny run -t:go A.dfy --input B.dfy`
+- `dafny run -t:go A.dfy`
 
 The `GO111MODULE` variable is used because Dafny translates to pre-module Go code.
 When the implementation changes to current Go, the above command-line will
