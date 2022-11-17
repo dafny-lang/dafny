@@ -956,7 +956,7 @@ Note that all input `.dfy` files and any needed runtime library code are combine
 
 
 Examples of how to integrate C# libraries and source code with Dafny source code
-are contained in [this separate document](integration-cs/IntegrationCS.md).
+are contained in [this separate document](integration-cs/IntegrationCS).
 
 ### 25.8.4. Java
 
@@ -988,7 +988,7 @@ Or, in one step,
 - `dafny run A.dfy`
 
 Examples of how to integrate Javascript libraries and source code with Dafny source
-are contained in [this separate document](integration-js/IntegrationJavascript).
+are contained in [this separate document](integration-js/IntegrationJS).
 
 ### 25.8.6. Go
 
