@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Formatting;
 using Microsoft.VisualBasic;
 
 namespace Microsoft.Dafny;
@@ -19,9 +20,9 @@ namespace Microsoft.Dafny;
  * ## What is the indentation of a "token"?
  *
  * This formatter considers that each token has to be associated with 3 types of indentation.
- * 1. The indentation about things that are before this token
+ * 1. The indentation of comments that are before this token
  * 2. The indentation of this token itself if it starts a new line
- * 3. The indentation of things that are after this token.
+ * 3. The indentation of comments and other non-marked tokens that are after this token.
  * 
  * Because the token printer will traverse the tokens in order, the indentation 1. is used only for the trivia associated to the token in the leading whitespace of that token, like `/* Comment about X * /` in the following example, which is in the leading trivia of `const`
  *
@@ -2303,6 +2304,15 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
       indentationAfter = IndentationBy(postIndentation);
     }
   }
+
+  public void GetNewLeadingTrailingTrivia(IToken token, string currentIndent, bool previousTrailingTriviaEndedWithNewline,
+    out string newLeadingTrivia, out string newTrailingTrivia, out string newIndentation,
+    out bool nextLeadingTriviaWillBePrecededByNewline) {
+    _Companion_IIndentationFormatter.GetNewLeadingTrailingTrivia(this, token, currentIndent,
+      previousTrailingTriviaEndedWithNewline, out newLeadingTrivia, out newTrailingTrivia, out newIndentation,
+      out nextLeadingTriviaWillBePrecededByNewline);
+  }
+
   #endregion
 }
 

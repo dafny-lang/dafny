@@ -26,26 +26,11 @@ public class DafnyFormatter : DocumentFormattingHandlerBase {
   }
 
   public override async Task<TextEditContainer?> Handle(DocumentFormattingParams request, CancellationToken cancellationToken) {
-    var lastDocument = await documents.GetLastDocumentAsync(request.TextDocument.Uri);
-    if (lastDocument != null && !lastDocument.Diagnostics.Any(diagnostic =>
-          diagnostic.Severity == DiagnosticSeverity.Error &&
-          diagnostic.Source == MessageSource.Parser.ToString()
-          )) {
-      var firstToken = lastDocument.Program.GetFirstTopLevelToken();
-      string result;
-      if (firstToken == null) {
-        result = lastDocument.TextDocumentItem.Text;
-      } else {
-        result =
-          Formatting.__default.ReindentProgramFromFirstToken(firstToken,
-            IndentationFormatter.ForProgram(lastDocument.Program));
-      }
-
-      return new TextEditContainer(new TextEdit[] {
-        new TextEdit() {NewText = result, Range = lastDocument.TextDocumentItem.Range}
-      });
+    var documentManager = documents.GetDocumentManager(request.TextDocument.Uri);
+    if (documentManager == null) {
+      return null;
     }
-
-    return null;
+    var edits = await documentManager.Compilation.GetTextEditToFormatCode();
+    return edits;
   }
 }

@@ -351,4 +351,28 @@ public class Compilation {
 
       return ResolvedDocument;
     }, TaskScheduler.Current).Unwrap();
+
+  public async Task<TextEditContainer?> GetTextEditToFormatCode() {
+    // TODO when available, use the parsed document rather than the resolved document
+    var parsedDocument = await ResolvedDocument;
+    if (parsedDocument.Diagnostics.Any(diagnostic =>
+          diagnostic.Severity == DiagnosticSeverity.Error &&
+          diagnostic.Source == MessageSource.Parser.ToString()
+        )) {
+      return null;
+    }
+
+    var firstToken = parsedDocument.Program.GetFirstTopLevelToken();
+    if (firstToken == null) {
+      return null;
+    }
+    var result = Formatting.__default.ReindentProgramFromFirstToken(firstToken,
+      IndentationFormatter.ForProgram(parsedDocument.Program));
+
+    // Could we return locally formatted elements instead?
+    return new TextEditContainer(new TextEdit[] {
+      new() {NewText = result, Range = parsedDocument.TextDocumentItem.Range}
+    });
+
+  }
 }

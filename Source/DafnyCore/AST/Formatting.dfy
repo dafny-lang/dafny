@@ -126,6 +126,28 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
             indentationAfter: CsString)
           requires token.Valid()
           ensures token.allTokens == old(token.allTokens)
+
+        // Given a token (including leading and trailing trivia), the current indentation, and whether the last trivia 
+        // was ending with a newline, returns the two new leading and trailing trivia of the token,
+        // the new current indentation and whether the last trailing trivia ended with a newline
+        method GetNewLeadingTrailingTrivia(token: IToken, currentIndent: CsString, previousTrailingTriviaEndedWithNewline: bool)
+          returns (newLeadingTrivia: CsString,
+                   newTrailingTrivia: CsString,
+                   newIndentation: CsString,
+                   nextLeadingTriviaWillBePrecededByNewline: bool)
+          requires token.Valid()
+          ensures token.Valid()
+          ensures token.allTokens == old(token.allTokens)
+          ensures nextLeadingTriviaWillBePrecededByNewline == HelperString.EndsWithNewline(token.TrailingTrivia)
+        {
+          var indentationBefore,
+              lastIndentation,
+              indentationAfter := GetIndentation(token, currentIndent);
+          newLeadingTrivia := ReindentLeadingTrivia(token, previousTrailingTriviaEndedWithNewline, indentationBefore, lastIndentation);
+          newTrailingTrivia := ReindentTrailingTrivia(token, false, indentationAfter, indentationAfter);
+          newIndentation := indentationAfter;
+          nextLeadingTriviaWillBePrecededByNewline := HelperString.EndsWithNewline(token.TrailingTrivia);
+        }
       }
 
       lemma IsAllocated<T>(x: T)
@@ -160,18 +182,18 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
             firstToken.TokenNextIsIPlus1(token, i);
           }
           IsAllocated(allTokens[0..i]);
-          var indentationBefore,
-              lastIndentation,
-              indentationAfter := reindent.GetIndentation(token, currentIndent);
 
-          var newLeadingTrivia := reindent.ReindentLeadingTrivia(token, leadingTriviaWasPreceededByNewline, indentationBefore, lastIndentation);
-          var newTrailingTrivia := reindent.ReindentTrailingTrivia(token, false, indentationAfter, indentationAfter);
-          leadingTriviaWasPreceededByNewline := HelperString.EndsWithNewline(token.TrailingTrivia);
+          var newLeadingTrivia,
+              newTrailingTrivia,
+              newCurrentIndent,
+              newEndedWithNewline :=
+              reindent.GetNewLeadingTrailingTrivia(token, currentIndent, leadingTriviaWasPreceededByNewline);
+          leadingTriviaWasPreceededByNewline := newEndedWithNewline;
+          currentIndent := newCurrentIndent;
           ghost var sPrev := sb.built;
           sb.Append(newLeadingTrivia);
           sb.Append(token.val);
           sb.Append(newTrailingTrivia);
-          currentIndent := indentationAfter;
           ContainsTransitive();
           assert {:split_here} forall t <- allTokens[0..i+1] :: sb.built.Contains(t.val);
           token := token.Next;
