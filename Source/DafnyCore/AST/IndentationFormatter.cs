@@ -1902,10 +1902,10 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
         binOpArgIndent = indent + conjunctExtraIndent;
         SetIndentations(firstToken, binOpIndent, binOpIndent, binOpArgIndent);
         SetIndentations(secondToken, binOpIndent, binOpIndent, binOpArgIndent);
-      } else {
+      } else if (ownedTokens.Count > 0) {
         if (binOpIndent > 0) {
           SetIndentations(ownedTokens[0], binOpIndent, binOpIndent, binOpArgIndent);
-        } else if (ownedTokens.Count > 0) {
+        } else {
           var startToken = binaryExpr.StartToken;
           var newIndent = GetNewTokenVisualIndent(startToken, GetIndentBefore(startToken));
           SetIndentations(ownedTokens[0], newIndent, newIndent, newIndent);

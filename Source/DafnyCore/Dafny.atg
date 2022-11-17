@@ -4019,9 +4019,10 @@ ImpliesExpression<out Expression e0, bool allowLemma, bool allowLambda, bool all
 LogicalExpression<out Expression e0, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1;
      var ownedTokens = new List<IToken>();
+     IToken/*!*/ firstOp;
      e0 = dummyExpr; /* mute the warning */
   .)
-  ( AndOp                                                       (. x = t; ownedTokens.Add(t); .)
+  ( AndOp                                                       (. x = t; firstOp = x; .)
     RelationalExpression<out e0, allowLemma, allowLambda, allowBitwiseOps>
     // We conjoin "true" to the left, for two reasons. One reason is to keep track of the source
     // location of the initial AndOp operator. The other reason is to make, when there is only
@@ -4033,7 +4034,8 @@ LogicalExpression<out Expression e0, bool allowLemma, bool allowLambda, bool all
          (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1); e0.OwnedTokens = new List<IToken>() {x}; .)
     }
     [ IF(IsOrOp()) OrOp (. SemErr(t, "Ambiguous use of && and ||. Use parentheses to disambiguate."); .) ]
-  | OrOp                                                        (. x = t; .)
+    (. e0.OwnedTokens = new List<IToken>() { firstOp }.Concat(e0.OwnedTokens ?? new IToken[]{}); .)
+  | OrOp                                                        (. x = t; firstOp = x; .)
     RelationalExpression<out e0, allowLemma, allowLambda, allowBitwiseOps>
     // We disjoin [sic] "false" to the left, for two reasons. One reason is to keep track of the source
     // location of the initial OrOp operator. The other reason is to make, when there is only
@@ -4045,6 +4047,7 @@ LogicalExpression<out Expression e0, bool allowLemma, bool allowLambda, bool all
          (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1); e0.OwnedTokens = new List<IToken>() {x}; .)
     }
     [ IF(IsAndOp()) AndOp (. SemErr(t, "Ambiguous use of && and ||. Use parentheses to disambiguate."); .) ]
+    (. e0.OwnedTokens = new List<IToken>() { firstOp }.Concat(e0.OwnedTokens ?? new IToken[]{}); .)
   | RelationalExpression<out e0, allowLemma, allowLambda, allowBitwiseOps>
     [ IF(IsAndOp() || IsOrOp())  /* read a LogicalExpression as far as possible */
       ( AndOp                                                   (. x = t; .)
