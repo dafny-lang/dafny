@@ -978,7 +978,7 @@ The build and run steps are simply
 - `dafny build -t:js A.dfy B.dfy`
 - `node A.js`
 Or, in one step,
-- `dafny run A.dfy --input B.dfy`
+- `dafny run A.dfy`
 
 Examples of how to integrate Javascript libraries and source code with Dafny source
 are contained in [this separate document](integration-js/IntegrationJavascript).
