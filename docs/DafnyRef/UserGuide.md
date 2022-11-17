@@ -1017,7 +1017,7 @@ The build and run steps are
 - `python A-py/A.py`
 
 In one step:
-- `dafny run -t:py A.dfy --input B.dfy`
+- `dafny run -t:py A.dfy`
 
 Examples of how to integrate Python libraries and source code with Dafny source
 are contained in [this separate document](integration-py/IntegrationPython).
