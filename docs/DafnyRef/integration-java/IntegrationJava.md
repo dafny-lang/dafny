@@ -38,7 +38,7 @@ The compiled program is then executed using the command
 `java -cp "A-java:A-java/DafnyRuntime.jar" A`
 
 Alternatively the build and run steps can be combined:
-`dafny run --target:java A.dfy --input B.dfy `
+`dafny run --target:java A.dfy`
 
 ## **Calling Java from Dafny**
 
