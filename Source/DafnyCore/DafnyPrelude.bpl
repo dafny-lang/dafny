@@ -121,8 +121,7 @@ function char#IsChar(n: int): bool {
   (0                  <= n && n < 55296   /* 0xD800 */) || 
   (57344 /* 0xE000 */ <= n && n < 1114112 /* 0x11_0000 */ )
 }
-#endif
-#if !UNICODE_CHAR
+#else
 function char#IsChar(n: int): bool {
   0 <= n && n < 65536
 }

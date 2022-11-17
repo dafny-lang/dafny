@@ -201,7 +201,7 @@ namespace Microsoft.Dafny {
             } else {
               var codePoint = Convert.ToInt32(token[3..^1], 16);
               if (codePoint >= 0x11_0000) {
-                errors.SemErr(t, "\\U{X..X} escape sequence must be at most 10FFFF");
+                errors.SemErr(t, "\\U{X..X} escape sequence must be less than 0x110000");
               }
               if (codePoint is >= 0xD800 and < 0xE000) {
                 errors.SemErr(t, "\\U{X..X} escape sequence must not be a surrogate");
@@ -287,7 +287,7 @@ namespace Microsoft.Dafny {
     /// escaped characters by the actual characters.
     /// 
     /// It also converts surrogate pairs to their equivalent code points
-    /// if --unicode-char is enabled - these are sythesized by the parser when
+    /// if --unicode-char is enabled - these are synthesized by the parser when
     /// reading the original UTF-8 source, but don't represent the true character values.
     /// </summary>
     public static IEnumerable<int> UnescapedCharacters(string p, bool isVerbatimString) {
@@ -332,7 +332,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Enumerates the sequence of regular characters and escape sequences in the given string.
+    /// Enumerates the sequence of regular characters and escape sequences in the given well-parsed string.
     /// For example, "ab\tuv\u12345" may be broken up as ["a", "b", "\t", "u", "v", "\u1234", "5"].
     /// Consecutive non-escaped characters may or may not be enumerated as a single string.
     /// </summary>
@@ -362,10 +362,7 @@ namespace Microsoft.Dafny {
                 i += 6;
                 break;
               case 'U':
-                var closeBracketIndex = i + 2;
-                while (p[closeBracketIndex] != '}') {
-                  closeBracketIndex++;
-                }
+                var closeBracketIndex = p.IndexOf('}', i + 2);
                 yield return p[i..(closeBracketIndex + 1)];
                 i = closeBracketIndex + 2;
                 continue;

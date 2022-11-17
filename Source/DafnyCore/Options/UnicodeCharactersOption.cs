@@ -9,8 +9,7 @@ public class UnicodeCharactersOption : BooleanOption, ILegacyOption {
   public override string LongName => "unicode-char";
   public override string ShortName => null;
   public string LegacyName => "unicodeChar";
-  // TODO: ???
-  public string Category => "Compilation options";
+  public string Category => "Language feature selection";
   public override string Description => @"
 0 (default) - The char type represents any UTF-16 code unit.
 1 - The char type represents any Unicode scalar value.".TrimStart();
