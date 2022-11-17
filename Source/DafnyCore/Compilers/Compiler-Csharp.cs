@@ -3285,6 +3285,7 @@ namespace Microsoft.Dafny.Compilers {
         throw new Exception("Cannot call run target on a compilation whose assembly has no entry.");
       }
       try {
+        Console.OutputEncoding = System.Text.Encoding.UTF8; // Force UTF-8 output in dafny run (#2999)
         object[] parameters = entry.GetParameters().Length == 0 ? new object[] { } : new object[] { DafnyOptions.O.MainArgs.ToArray() };
         entry.Invoke(null, parameters);
         return true;

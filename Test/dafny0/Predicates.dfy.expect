@@ -2,6 +2,7 @@ Predicates.dfy(62,15): Error: assertion might not hold
 Predicates.dfy(66,13): Error: assertion might not hold
 Predicates.dfy(105,4): Error: A postcondition might not hold on this return path.
 Predicates.dfy(104,14): Related location: This is the postcondition that might not hold.
+Predicates.dfy(104,39): Related location
 Predicates.dfy(104,45): Related location
 
 Dafny program verifier finished with 21 verified, 3 errors
