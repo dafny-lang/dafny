@@ -8,9 +8,11 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public abstract class Statement : IAttributeBearingDeclaration, INode {
+  public IToken StartToken;
   public readonly IToken Tok;
   public readonly IToken EndTok;  // typically a terminating semi-colon or end-curly-brace
   public LList<Label> Labels;  // mutable during resolution
+  public IEnumerable<IToken> OwnedTokens { get; set; } = new List<IToken>();
 
   private Attributes attributes;
   public Attributes Attributes {
@@ -35,6 +37,7 @@ public abstract class Statement : IAttributeBearingDeclaration, INode {
     Contract.Requires(endTok != null);
     this.Tok = tok;
     this.EndTok = endTok;
+    this.StartToken = tok;
     this.attributes = attrs;
   }
 
@@ -455,6 +458,7 @@ public class YieldStmt : ProduceStmt {
 
 public abstract class AssignmentRhs : INode {
   public readonly IToken Tok;
+  public IEnumerable<IToken> OwnedTokens { get; set; } = new List<IToken>();
 
   private Attributes attributes;
   public Attributes Attributes {
@@ -970,6 +974,7 @@ public class LocalVariable : IVariable, IAttributeBearingDeclaration {
   public readonly IToken EndTok;  // typically a terminating semi-colon or end-curly-brace
   readonly string name;
   public Attributes Attributes;
+  public IEnumerable<IToken> OwnedTokens { get; set; } = new List<IToken>();
   Attributes IAttributeBearingDeclaration.Attributes => Attributes;
   public bool IsGhost;
   [ContractInvariantMethod]

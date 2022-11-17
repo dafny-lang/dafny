@@ -11,6 +11,7 @@ namespace Microsoft.Dafny;
 [DebuggerDisplay("{Printer.ExprToString(this)}")]
 public abstract class Expression : INode {
   public readonly IToken tok;
+  public IEnumerable<IToken> OwnedTokens { get; set; } = new List<IToken>();
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(tok != null);
@@ -121,6 +122,22 @@ public abstract class Expression : INode {
           SubExpressions.Iter(updateStartEndTok);
           if (this is StmtExpr stmtExpr) {
             stmtExpr.S.SubStatements.Iter(s => s.SubExpressions.Iter(updateStartEndTok));
+          }
+
+
+          foreach (var token in Enumerable.Concat(FormatTokens ?? Enumerable.Empty<IToken>(), OwnedTokens)) {
+            if (token.Filename != tok.Filename) {
+              continue;
+            }
+
+            if (token.pos < startTok.pos) {
+              startTok = token;
+            }
+
+            if (token.pos + token.val.Length > endTok.pos + endTok.val.Length) {
+              endTok = token;
+
+            }
           }
 
           if (FormatTokens != null) {
@@ -1132,6 +1149,7 @@ public class IdentifierExpr : Expression, IHasUsages {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
     Name = name;
+    OwnedTokens = new List<IToken> { tok };
   }
   /// <summary>
   /// Constructs a resolved IdentifierExpr.
@@ -1143,6 +1161,7 @@ public class IdentifierExpr : Expression, IHasUsages {
     Name = v.Name;
     Var = v;
     Type = v.Type;
+    OwnedTokens = new List<IToken> { tok };
   }
 
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
@@ -3346,6 +3365,8 @@ public abstract class MatchCase : IHasUsages {
   public readonly IToken tok;
   [FilledInDuringResolution] public DatatypeCtor Ctor;
   public List<BoundVar> Arguments; // created by the resolver.
+  public IEnumerable<IToken> OwnedTokens { get; set; } = new List<IToken>();
+
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(tok != null);
@@ -3548,6 +3569,7 @@ ExtendedPattern is either:
 public abstract class ExtendedPattern : INode {
   public readonly IToken Tok;
   public bool IsGhost;
+  public IEnumerable<IToken> OwnedTokens { get; set; } = new List<IToken>();
 
   public ExtendedPattern(IToken tok, bool isGhost = false) {
     Contract.Requires(tok != null);
@@ -3681,6 +3703,7 @@ public class IdPattern : ExtendedPattern, IHasUsages {
 public abstract class NestedMatchCase : INode {
   public readonly IToken Tok;
   public readonly ExtendedPattern Pat;
+  public IEnumerable<IToken> OwnedTokens { get; set; } = new List<IToken>();
 
   public NestedMatchCase(IToken tok, ExtendedPattern pat) {
     Contract.Requires(tok != null);
@@ -3886,6 +3909,7 @@ public class AttributedExpression : IAttributeBearingDeclaration {
 public class FrameExpression : IHasUsages {
   public readonly IToken tok;
   public readonly Expression E;  // may be a WildcardExpr
+  public IEnumerable<IToken> OwnedTokens { get; set; } = new List<IToken>();
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(E != null);

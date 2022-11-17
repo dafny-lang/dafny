@@ -31,6 +31,11 @@ namespace Microsoft.Dafny {
     /// losing source location information, so those transformed nodes should not be returned by this property.
     /// </summary>
     IEnumerable<INode> Children { get; }
+
+    /// <summary>
+    /// These tokens are "owned" by the node
+    /// </summary>
+    IEnumerable<IToken> OwnedTokens { get; }
   }
 
   public interface IDeclarationOrUsage : INode {
@@ -47,6 +52,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(FullName != null);
       Contract.Invariant(DefaultModule != null);
     }
+    public IEnumerable<IToken> OwnedTokens { get; set; } = new List<IToken>();
 
     public readonly string FullName;
     [FilledInDuringResolution] public Dictionary<ModuleDefinition, ModuleSignature> ModuleSigs;
@@ -105,6 +111,8 @@ namespace Microsoft.Dafny {
     }
 
     public IEnumerable<INode> Children => new[] { DefaultModule };
+
+    public IEnumerable<INode> ConcreteChildren => Children;
   }
 
   public class Include : IComparable {
@@ -113,6 +121,7 @@ namespace Microsoft.Dafny {
     public string IncludedFilename { get; }
     public string CanonicalPath { get; }
     public bool CompileIncludedCode { get; }
+    public IEnumerable<IToken> OwnedTokens = new List<IToken>();
     public bool ErrorReported;
 
     public Include(IToken tok, string includer, string theFilename, bool compileIncludedCode) {
@@ -161,6 +170,7 @@ namespace Microsoft.Dafny {
     /*Frozen*/
     public readonly List<Expression> Args;
     public readonly Attributes Prev;
+    public IEnumerable<IToken> OwnedTokens = new List<IToken>();
 
     public Attributes(string name, [Captured] List<Expression> args, Attributes prev) {
       Contract.Requires(name != null);
@@ -403,6 +413,7 @@ namespace Microsoft.Dafny {
   }
   [ContractClassFor(typeof(IVariable))]
   public abstract class IVariableContracts : IVariable {
+    public IEnumerable<IToken> OwnedTokens { get; set; } = new List<IToken>();
     public string Name {
       get {
         Contract.Ensures(Contract.Result<string>() != null);
@@ -481,6 +492,7 @@ namespace Microsoft.Dafny {
   public abstract class NonglobalVariable : IVariable {
     public readonly IToken tok;
     readonly string name;
+    public IEnumerable<IToken> OwnedTokens => new List<IToken>() { tok };
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -744,10 +756,14 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class ActualBinding {
+  public class ActualBinding : INode {
     public readonly IToken /*?*/ FormalParameterName;
     public readonly Expression Actual;
     public readonly bool IsGhost;
+
+    public IEnumerable<INode> Children => new List<INode> { Actual }.Where(x => x != null);
+    // Names are owned by the method call
+    public IEnumerable<IToken> OwnedTokens => new List<IToken>();
 
     public ActualBinding(IToken /*?*/ formalParameterName, Expression actual, bool isGhost = false) {
       Contract.Requires(actual != null);
@@ -999,6 +1015,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(expr != null);
       return true;  // by default, visit the sub-parts with the same "st"
     }
+
     /// <summary>
     /// Visit one statement proper.  For the rest of the description of what this method
     /// does, see VisitOneExpr.
