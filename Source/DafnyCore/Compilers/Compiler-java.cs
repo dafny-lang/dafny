@@ -828,15 +828,6 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Assume(variance.Count == typeArgs.Count);
       string s = IdProtect(fullCompileName);
       if (typeArgs.Count != 0 && !omitTypeArguments) {
-        for (var i = 0; i < typeArgs.Count; i++) {
-          var v = variance[i];
-          var ta = typeArgs[i];
-          if (ComplicatedTypeParameterForCompilation(v, ta)) {
-            UnsupportedFeatureError(tok, Feature.TraitTypeParameters,
-              "compilation does not support trait types as a type parameter (got '{0}'{1}); consider introducing a ghost", wr,
-              ta, typeArgs.Count == 1 ? "" : $" for type parameter {i}");
-          }
-        }
         s += "<" + BoxedTypeNames(typeArgs, wr, tok) + ">";
       }
       return s;
@@ -3691,6 +3682,10 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override bool NeedsCastFromTypeParameter => true;
 
+    protected override bool TargetSubtypingRequiresEqualTypeArguments(Type type) {
+      return type.AsCollectionType == null;
+    }
+
     protected override bool IsCoercionNecessary(Type/*?*/ from, Type/*?*/ to) {
       if (from == null || to == null || !from.IsArrayType || !to.IsArrayType) {
         return false;
@@ -3717,7 +3712,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree EmitDowncast(Type from, Type to, IToken tok, ConcreteSyntaxTree wr) {
-      wr.Write($"(({TypeName(to, wr, tok)})(");
+      wr.Write($"(({TypeName(to, wr, tok)})(java.lang.Object)(");
       var w = wr.Fork();
       wr.Write("))");
       return w;
