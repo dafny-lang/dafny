@@ -910,7 +910,7 @@ code that is well-formed in the target language.
 
 Also note that the interface the external code needs to implement
 may be affected by compilation flags. In this case, if `/unicodeChar:1`
-is provided, `dafny` will compile its `char` type to the `System.Text.Rune`
+is provided, `dafny` will compile its `char` type to the `Dafny.Rune`
 C# type instead, so the references to the C# type `char` above
 would need to be changed accordingly. The reference to `charseq.FromString`
 would in turn need to be changed to `charseq.UnicodeFromString` to

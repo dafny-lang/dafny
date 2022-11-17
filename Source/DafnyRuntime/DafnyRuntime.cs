@@ -24,6 +24,86 @@ namespace Dafny {
   using System.Collections.Immutable;
   using System.Linq;
 
+  // Similar to Rune, which would be perfect to use
+  // except that it isn't available in the platforms we support
+  // (.NET Standard 2.0 and .NET Framework 4.5.2)
+  public readonly struct Rune : IComparable, IComparable<Rune>, IEquatable<Rune> {
+    
+    private readonly uint _value;
+    
+    public Rune(int value)
+      : this((uint)value)
+    {
+    }
+    
+    public Rune(uint value) {
+      if (!(value < 0xD800 || (0xE000 <= value && value < 0x11_0000))) {
+        throw new ArgumentException();
+      }
+
+      _value = value;
+    }
+
+    public int Value => (int)_value;
+
+    public bool Equals(Rune other) => this == other;
+
+    public override bool Equals(object obj) => (obj is Rune other) && Equals(other);
+
+    public override int GetHashCode() => Value;
+    
+    // Values are always between 0 and 0x11_0000, so overflow isn't possible
+    public int CompareTo(Rune other) => this.Value - other.Value;
+
+    int IComparable.CompareTo(object obj) {
+      switch (obj) {
+        case null:
+          return 1; // non-null ("this") always sorts after null
+        case Rune other:
+          return CompareTo(other);
+        default:
+          throw new ArgumentException();
+      }
+    }
+
+    public static bool operator ==(Rune left, Rune right) => left._value == right._value;
+
+    public static bool operator !=(Rune left, Rune right) => left._value != right._value;
+
+    public static bool operator <(Rune left, Rune right) => left._value < right._value;
+
+    public static bool operator <=(Rune left, Rune right) => left._value <= right._value;
+
+    public static bool operator >(Rune left, Rune right) => left._value > right._value;
+
+    public static bool operator >=(Rune left, Rune right) => left._value >= right._value;
+    
+    public static explicit operator Rune(int value) => new Rune(value);
+
+    public override string ToString() {
+      return char.ConvertFromUtf32(Value);
+    }
+
+    // Replacement for String.EnumerateRunes() from newer platforms
+    public static IEnumerable<Rune> Enumerate(string s) {
+      var sLength = s.Length;
+      for (var i = 0; i < sLength; i++) {
+        if (char.IsHighSurrogate(s[i])) {
+          if (char.IsLowSurrogate(s[i + 1])) {
+            yield return (Rune)char.ConvertToUtf32(s[i], s[i + 1]);
+            i++;
+          } else {
+            throw new ArgumentException();
+          }
+        } else if (char.IsLowSurrogate(s[i])) {
+          throw new ArgumentException();
+        } else {
+          yield return (Rune)s[i];
+        }
+      }
+    }
+  }
+
   public interface ISet<out T> {
     int Count { get; }
     long LongCount { get; }
@@ -915,12 +995,13 @@ namespace Dafny {
     public static ISequence<char> FromString(string s) {
       return new ArraySequence<char>(s.ToCharArray());
     }
-    public static ISequence<System.Text.Rune> UnicodeFromString(string s) {
-      var runes = new List<System.Text.Rune>();
-      foreach (var rune in s.EnumerateRunes()) {
+    public static ISequence<Rune> UnicodeFromString(string s) {
+      var runes = new List<Rune>();
+      
+      foreach (var rune in Rune.Enumerate(s)) {
         runes.Add(rune);
       }
-      return new ArraySequence<System.Text.Rune>(runes.ToArray());
+      return new ArraySequence<Rune>(runes.ToArray());
     }
 
     public static ISequence<ISequence<char>> FromMainArguments(string[] args) {
@@ -932,14 +1013,14 @@ namespace Dafny {
 
       return Sequence<ISequence<char>>.FromArray(dafnyArgs);
     }
-    public static ISequence<ISequence<System.Text.Rune>> UnicodeFromMainArguments(string[] args) {
-      Dafny.ISequence<System.Text.Rune>[] dafnyArgs = new Dafny.ISequence<System.Text.Rune>[args.Length + 1];
-      dafnyArgs[0] = Dafny.Sequence<System.Text.Rune>.UnicodeFromString("dotnet");
+    public static ISequence<ISequence<Rune>> UnicodeFromMainArguments(string[] args) {
+      Dafny.ISequence<Rune>[] dafnyArgs = new Dafny.ISequence<Rune>[args.Length + 1];
+      dafnyArgs[0] = Dafny.Sequence<Rune>.UnicodeFromString("dotnet");
       for (var i = 0; i < args.Length; i++) {
-        dafnyArgs[i + 1] = Dafny.Sequence<System.Text.Rune>.UnicodeFromString(args[i]);
+        dafnyArgs[i + 1] = Dafny.Sequence<Rune>.UnicodeFromString(args[i]);
       }
 
-      return Sequence<ISequence<System.Text.Rune>>.FromArray(dafnyArgs);
+      return Sequence<ISequence<Rune>>.FromArray(dafnyArgs);
     }
 
     public ISequence<U> DowncastClone<U>(Func<T, U> converter) {
@@ -1090,7 +1171,7 @@ namespace Dafny {
         builder.Append('"');
       }
       foreach (var c in this) {
-        var rune = (System.Text.Rune)(object)c;
+        var rune = (Rune)(object)c;
         if (asLiteral) {
           builder.Append(Helpers.EscapeCharacter(rune));
         } else {
@@ -1316,14 +1397,14 @@ namespace Dafny {
         return "null";
       } else if (g is bool) {
         return (bool)(object)g ? "true" : "false";  // capitalize boolean literals like in Dafny
-      } else if (g is System.Text.Rune) {
-        return "'" + EscapeCharacter((System.Text.Rune)(object)g) + "'";
+      } else if (g is Rune) {
+        return "'" + EscapeCharacter((Rune)(object)g) + "'";
       } else {
         return g.ToString();
       }
     }
 
-    public static string EscapeCharacter(System.Text.Rune r) {
+    public static string EscapeCharacter(Rune r) {
       switch (r.Value) {
         case '\n': return "\\n";
         case '\r': return "\\r";
@@ -1373,12 +1454,12 @@ namespace Dafny {
         yield return (char)i;
       }
     }
-    public static IEnumerable<System.Text.Rune> AllUnicodeChars() {
+    public static IEnumerable<Rune> AllUnicodeChars() {
       for (int i = 0; i < 0xD800; i++) {
-        yield return new System.Text.Rune(i);
+        yield return new Rune(i);
       }
       for (int i = 0xE000; i < 0x11_0000; i++) {
-        yield return new System.Text.Rune(i);
+        yield return new Rune(i);
       }
     }
     public static IEnumerable<BigInteger> AllIntegers() {
@@ -1558,12 +1639,12 @@ namespace Dafny {
       }
     }
 
-    public static System.Text.Rune AddRunes(System.Text.Rune left, System.Text.Rune right) {
-      return (System.Text.Rune)(left.Value + right.Value);
+    public static Rune AddRunes(Rune left, Rune right) {
+      return (Rune)(left.Value + right.Value);
     }
 
-    public static System.Text.Rune SubtractRunes(System.Text.Rune left, System.Text.Rune right) {
-      return (System.Text.Rune)(left.Value - right.Value);
+    public static Rune SubtractRunes(Rune left, Rune right) {
+      return (Rune)(left.Value - right.Value);
     }
   }
 

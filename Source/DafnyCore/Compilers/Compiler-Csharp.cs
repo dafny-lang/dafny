@@ -1448,12 +1448,12 @@ namespace Microsoft.Dafny.Compilers {
 
     private string CharTypeName() {
       // TODO: Figure out if there is any runtime code for using Rune instead of Int32
-      return UnicodeChars ? "System.Text.Rune" : "char";
+      return UnicodeChars ? "Dafny.Rune" : "char";
     }
 
     // This must be followed by the value to convert in parentheses
     private string ConvertToChar() {
-      return UnicodeChars ? "new System.Text.Rune" : "(char)";
+      return UnicodeChars ? "new Dafny.Rune" : "(char)";
     }
 
     private void ConvertToChar(Expression e, ConcreteSyntaxTree wr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
@@ -2092,7 +2092,7 @@ namespace Microsoft.Dafny.Compilers {
           // For such values we construct the Rune value directly from the unescaped codepoint.
           var codePoint = Util.UnescapedCharacters(v, false).Single();
           if (codePoint >= 0x1_0000) {
-            wr.Write($"new System.Text.Rune(0x{codePoint:x})");
+            wr.Write($"new Dafny.Rune(0x{codePoint:x})");
           } else {
             wr.Write($"{ConvertToChar()}('{Util.ExpandUnicodeEscapes(v, false)}')");
           }

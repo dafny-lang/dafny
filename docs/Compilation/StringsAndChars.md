@@ -30,7 +30,7 @@ and strings to the `print` statement.
 
 | Language      | --unicode-char=false           | --unicode-char=true                            |
 | ------------- | ------------------------------ | ---------------------------------------------- |
-| C#            | `char`                         | `System.Text.Rune`                             |
+| C#            | `char`                         | `Dafny.Rune`                             |
 | Java          | `char`                         | `int` / `dafny.CodePoint`                      |
 | JavaScript    | `string` of length 1           | `_dafny.CodePoint` (`number` wrapper)          |
 | Python        | `str` of length 1              | `_dafny.CodePoint` (`str` of length 1 wrapper) |
@@ -54,11 +54,14 @@ when `--unicode-char=true`:
 
 ## C#
 
-The `System.Test.Rune` struct is a wrapper around an `int` value,
+The `Dafny.Rune` struct is a wrapper around an `int` value,
 and its API guarantees that invalid values (e.g. surrogates) will be rejected on construction.
 Because C# optimizes this special case of a struct with a single value,
 using this in place of a direct `int` value when `--unicode-char` is enabled
 does not have any runtime overhead.
+We would use the standard `System.Text.Rune` struct instead,
+but the `DafnyRuntime` package is built for older .NET framework versions
+that don't include this type.
 
 ## Java
 
