@@ -20,8 +20,8 @@ to the Python code. There are two aspects to this:
 
 ## **The Dafny runtime library**
 
-The step of compiling or running Python files requires the Dafny runtime library for Python. That library is automatically included if dafny is doing the compilation,
-but not if dafny is only doing translation.
+The step of compiling or running Python files requires the Dafny runtime library for Python. That library is automatically included if `dafny` is doing the compilation,
+but not if `dafny` is only doing translation.
 
 ## **Manually executing Dafny-generated Python code**
 
@@ -76,7 +76,7 @@ main()
 
 And then execute these commands:
 ```
-dafny build -t:py Demo2.dfy
+dafny build --target:py Demo2.dfy
 PYTHONPATH=.:Demo2-py python3 Demo2x.py
 ```
 The first command translates `Demo2.dfy` into a `.py` file; by using `build`,

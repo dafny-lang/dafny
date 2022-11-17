@@ -17,19 +17,19 @@ to the Java code. There are two aspects to this:
 ## **The Dafny runtime library**
 
 The step of running Javascript files (using `node`) requires the Dafny runtime library. 
-That library is automatically included in the resulting `.js` file if dafny is doing the compilation,
-but not if dafny is only doing translation..
+That library is automatically included in the resulting `.js` file if `dafny` is doing the compilation,
+but not if `dafny` is only doing translation..
 
 ## **Manually executing Dafny-generation Java code**
 
 Suppose a Dafny program is contained in a .dfy files, A.dfy, which contains the Dafny `Main` method. One can build the corresponding Javascript program (without running it) using this command:
 
-`dafny build -t:js A.dfy`
+`dafny build --target:js A.dfy`
 
 The program is then executed using the command
 `node A.js`
 
-The combined build-and-run command is `dafny run -t:js A.dfy`.
+The combined build-and-run command is `dafny run --target:js A.dfy`.
 
 ## Combining Dafny and Javascript source files
 

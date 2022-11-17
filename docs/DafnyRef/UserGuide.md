@@ -982,7 +982,7 @@ are contained in [this separate document](integration-java/IntegrationJava).
 
 The Dafny-to-Javascript compiler translates all the given `.dfy` files into a single `.js` file, which can then be run using `node`. (Javascript has no compilation step). 
 The build and run steps are simply
-- `dafny build -t:js A.dfy`
+- `dafny build --target:js A.dfy`
 - `node A.js`
 Or, in one step,
 - `dafny run A.dfy`
@@ -997,13 +997,13 @@ The Dafny-to-Go compiler translates all the given `.dfy` files into a single
 `-out` option. For an input file `A.dfy` the default output folder is `A-go`. Then, Dafny compiles this program and creates an `A.exe` executable in the same folder as `A.dfy`.
 Some system runtime code is also placed in `A-go/src`.
 The build and run steps are
-- `dafny buld -t:go A.dfy`
+- `dafny buld --target:go A.dfy`
 - `./A`
 The uncompiled code can be compiled and run by `go` itself using
 - `(cd A-go; GO111MODULE=auto GOPATH=`pwd` go run A.go)`
 
 The one-step process is
-- `dafny run -t:go A.dfy`
+- `dafny run --target:go A.dfy`
 
 The `GO111MODULE` variable is used because Dafny translates to pre-module Go code.
 When the implementation changes to current Go, the above command-line will
@@ -1020,11 +1020,11 @@ compiler translates the `.dfy` files into a single `.py` file along with
 supporting runtime library code, all placed in the output location (`A-py` for an input file A.dfy, by default).
 
 The build and run steps are
-- `dafny build -t:py A.dfy`
+- `dafny build --target:py A.dfy`
 - `python A-py/A.py`
 
 In one step:
-- `dafny run -t:py A.dfy`
+- `dafny run --target:py A.dfy`
 
 Examples of how to integrate Python libraries and source code with Dafny source
 are contained in [this separate document](integration-py/IntegrationPython).

@@ -40,7 +40,7 @@ Note that the declaration of `p()` has no body; it is just a declaration because
 Its `extern` attribute has two arguments: the fully-qualified class name and the method name.
 
 Then the above can be built with
-`dafny build -t:cs Demo1.dfy Demo.cs`
+`dafny build --target:cs Demo1.dfy Demo.cs`
 and then run as a dotnet program with
 `dotnet Demo1.dll`
 
@@ -94,7 +94,7 @@ a module whose extern name is the same as the C# namespace.
 
 Then the `Main` method in the Dafny file calls the two Dafny methods, which are
 translated to the two C# methods. The combination is built and run using
-`dafny run -t:cs Demo1a.dfy --input Demo1x.cs`
+`dafny run --target:cs Demo1a.dfy --input Demo1x.cs`
 
 ## Calling Dafny from C#
 
@@ -131,7 +131,7 @@ public class Demo2x {
 }
 ```
 
-The above program is run with `dafny run -t:cs Demo2.dfy --input Demo2x.cs`.
+The above program is run with `dafny run --target:cs Demo2.dfy --input Demo2x.cs`.
 
 (Note that having Dafny invoke `Main` in the `.cs` code is not yet operational.)
 

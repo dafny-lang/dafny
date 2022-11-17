@@ -22,8 +22,8 @@ to the Go code. There are two aspects to this:
 
 ## **The Dafny runtime library**
 
-The step of compiling Go files requires the Dafny runtime library. That library is automatically included in the output files if dafny is doing the compilation,
-but not if dafny is only doing translation.
+The step of compiling Go files requires the Dafny runtime library. That library is automatically included in the output files if `dafny` is doing the compilation,
+but not if `dafny` is only doing translation.
 
 ## **Manually executing Dafny-generated Go code**
 

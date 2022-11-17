@@ -22,8 +22,8 @@ to the Java code. There are two aspects to this:
 
 ## **The Dafny runtime library**
 
-The step of compiling Java files (using `javac`) requires the Dafny runtime library. That library is automatically included if dafny is doing the compilation,
-but not if dafny is only doing translation.
+The step of compiling Java files (using `javac`) requires the Dafny runtime library. That library is automatically included if `dafny` is doing the compilation,
+but not if `dafny` is only doing translation.
 
 ## **Manually executing Dafny-generated Java code**
 
@@ -69,12 +69,12 @@ Note that the declaration of `p()` has no body; it is just a declaration because
 Its `extern` attribute has two arguments: the fully-qualified class name and the method name.
 
 Then the above can be built with
-`dafny build -t:java Demo1.dfy Demo.java`
+`dafny build --target:java Demo1.dfy Demo.java`
 and then run as a Java program with
 `java -cp Demo1-java:Demo1-java/DafnyRuntime.jar Demo1`
 
 Or, in one build-and-run step: 
-`dafny run -t:java Demo1.dfy --input Demo1.java`
+`dafny run --target:java Demo1.dfy --input Demo1.java`
 
 ## **Calling non-static Java methods from Dafny**
 
@@ -120,7 +120,7 @@ a module whose extern name is the same as the Java package.
 
 Then the `Main` method in the Dafny file calls the two Dafny methods, which are
 translated to the two Java methods. The combination is built and run using
-`dafny run -t:java Demo1a.dfy --input Demo1a.java`
+`dafny run --target:java Demo1a.dfy --input Demo1a.java`
 
 ## **Calling Dafny from Java**
 
@@ -146,7 +146,7 @@ public class Demo2 {
 }
 ```
 then the commands
-- `dafny build -t:java Demo2.dfy Demo2.java`
+- `dafny build --target:java Demo2.dfy Demo2.java`
 - `java -cp "Demo2-java:Demo2-java/DafnyRuntime.jar" demo.Demo2`
 compile and run the program.
 (Use `;` instead of `:` on Windows systems.)
@@ -161,7 +161,7 @@ The dafny build and run steps invoke `javac` and `java`. Dafny will use the vers
 found by a Linux `$PATH`). 
 There is no mechanism to supply options to these internal uses of `javac` and `java`. However, `dafny` does use the value of the environment variable `CLASSPATH`. For example, if you are writing a Dafny program, `Demo.java`, which calls
 methods in `Demo.jar`, you can build and run the program using
-```CLASSPATH=`pwd`/Demo.jar dafny run -t:java Demo.dfy```.
+```CLASSPATH=`pwd`/Demo.jar dafny run --target:java Demo.dfy```.
 The contents of the CLASSPATH must all be absolute paths.
 
 There are two means to include other options in the build. 
