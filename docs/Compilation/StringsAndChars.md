@@ -130,7 +130,7 @@ as needed. In other words, compiling a Dafny `"Hello"` string literal
 to something like `Seq(72, 101, 108, 108, 111)`.
 This would be a substantial hit to the readability of the compiled code,
 however, making it harder for Dafny users and contributors to debug issues:
-as string literals are often helpful landmarks for orienting oneself
+string literals are often helpful landmarks for orienting oneself
 when trying to understand the compiled code. Therefore,
 character and string literals are still translated to literals in the target
 language where possible.
