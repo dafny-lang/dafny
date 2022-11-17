@@ -81,7 +81,6 @@ static class CommandRegistry {
     var wasInvoked = false;
     string optionFailure = null;
     var dafnyOptions = new DafnyOptions();
-    dafnyOptions.VerifyAllModules = true;
     var optionValues = new Dictionary<IOptionSpec, object>();
     var options = new Options(optionValues);
     dafnyOptions.Options = options;
