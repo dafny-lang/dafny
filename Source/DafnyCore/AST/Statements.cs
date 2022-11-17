@@ -527,7 +527,7 @@ public abstract class AssignmentRhs : INode {
     }
   }
   /// <summary>
-  /// Returns the non-null sub-statements of the AssignmentRhs.
+  /// Returns the non-null substatements of the AssignmentRhs.
   /// </summary>
   public virtual IEnumerable<Statement> SubStatements {
     get { yield break; }

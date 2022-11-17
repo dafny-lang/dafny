@@ -1713,13 +1713,29 @@ explicitly invoke this conversion.
 One can always write an explicit function to convert a data value to a string
 and then call it explicitly in a `print` statement or elsewhere.
 
-Dafny does not keep track of print effects. `print` statements are allowed
+By default, Dafny does not keep track of print effects, but this can be changed
+using the `-trackPrintEffects` command line flag. `print` statements are allowed
 only in non-ghost contexts and not in expressions, with one exception.
 The exception is that a function-by-method may contain `print` statements,
 whose effect may be observed as part of the run-time evaluation of such functions.
 
 The verifier checks that each expression is well-defined, but otherwise 
 ignores the `print` statement.
+
+<a id="print-encoding"></a>
+
+**Note:** `print` writes to standard output.  To improve compatibility with
+native code and external libraries, the process of encoding Dafny strings passed
+to `print` into standard-output byte strings is left to the runtime of the
+language that the Dafny code is compiled to (some language runtimes use UTF-8 in
+all cases; others obey the current locale or console encoding).
+
+In most cases, the standard-output encoding can be set before running the
+compiled program using language-specific flags or environment variables
+(e.g. `-Dfile.encoding=` for Java).  This is in fact how `dafny run` operates:
+it uses language-specific flags and variables to enforce UTF-8 output regardless
+of the target language (but note that the C++ and Go backends currently have
+limited support for UTF-16 surrogates).
 
 ## 20.20. Reveal Statement {#sec-reveal-statement}
 ````grammar

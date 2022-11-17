@@ -87,7 +87,8 @@ namespace Microsoft.Dafny.Compilers {
         .WriteLine($"dafnyArgs = [{DafnyRuntimeModule}.Seq(a) for a in sys.argv]")
         .WriteLine($"{mainMethod.EnclosingClass.FullCompileName}.{(IssueCreateStaticMain(mainMethod) ? "StaticMain" : IdName(mainMethod))}(dafnyArgs)");
       wr.NewBlockPy($"except {DafnyRuntimeModule}.HaltException as e:")
-        .WriteLine($"{DafnyRuntimeModule}.print(\"[Program halted] \" + e.message + \"\\n\")");
+        .WriteLine($"{DafnyRuntimeModule}.print(\"[Program halted] \" + e.message + \"\\n\")")
+        .WriteLine("sys.exit(1)");
       Coverage.EmitTearDown(wr);
     }
 
@@ -1744,6 +1745,7 @@ namespace Microsoft.Dafny.Compilers {
       string targetFilename, ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
       Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
       var psi = PrepareProcessStartInfo("python3", DafnyOptions.O.MainArgs.Prepend(targetFilename));
+      psi.EnvironmentVariables["PYTHONIOENCODING"] = "utf8";
       return 0 == RunProcess(psi, outputWriter);
     }
   }
