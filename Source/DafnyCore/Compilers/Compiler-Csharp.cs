@@ -3170,6 +3170,7 @@ namespace Microsoft.Dafny.Compilers {
       var libPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
       if (DafnyOptions.O.UseRuntimeLib) {
         compilation = compilation.AddReferences(MetadataReference.CreateFromFile(Path.Join(libPath, "DafnyRuntime.dll")));
+        compilation = compilation.AddReferences(MetadataReference.CreateFromFile(Assembly.Load("netstandard").Location));
       }
 
       var standardLibraries = new List<string>() {
