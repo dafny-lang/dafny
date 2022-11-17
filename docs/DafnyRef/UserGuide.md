@@ -986,6 +986,7 @@ The Dafny-to-Javascript compiler translates all the given `.dfy` files into a si
 The build and run steps are simply
 - `dafny build --target:js A.dfy`
 - `node A.js`
+
 Or, in one step,
 - `dafny run A.dfy`
 
@@ -1001,6 +1002,7 @@ Some system runtime code is also placed in `A-go/src`.
 The build and run steps are
 - `dafny build --target:go A.dfy`
 - `./A`
+
 The uncompiled code can be compiled and run by `go` itself using
 - `(cd A-go; GO111MODULE=auto GOPATH=`pwd` go run A.go)`
 
