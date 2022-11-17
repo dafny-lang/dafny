@@ -18,8 +18,9 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
   public async Task NoGutterNotificationsReceivedWhenTurnedOff() {
     var source = @"
 method Foo() ensures false { } ";
-    await SetUp(new Dictionary<string, string>() {
-        { $"{VerifierOptions.Section}:{nameof(VerifierOptions.GutterStatus)}", "false" } });
+    await SetUp(options => {
+      LineVerificationStatusOption.Instance.Set(options, false);
+    });
 
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);

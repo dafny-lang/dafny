@@ -18,9 +18,9 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
   protected TestNotificationReceiver<VerificationStatusGutter> verificationStatusGutterReceiver;
 
   [TestInitialize]
-  public override async Task SetUp() {
+  public override async Task SetUp(Action<DafnyOptions> modifyOptions) {
     verificationStatusGutterReceiver = new();
-    await base.SetUp();
+    await base.SetUp(modifyOptions);
   }
 
   protected override void InitialiseClientHandler(LanguageClientOptions options) {

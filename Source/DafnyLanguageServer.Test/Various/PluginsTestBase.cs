@@ -73,6 +73,7 @@ public abstract class PluginsTestBase : DafnyLanguageServerTestBase {
   public async Task SetUpPlugin() {
     DiagnosticReceiver = new();
     LibraryPath = GetLibrary(LibraryName);
+
     Client = await InitializeClient(options => options.OnPublishDiagnostics(DiagnosticReceiver.NotificationReceived));
   }
 

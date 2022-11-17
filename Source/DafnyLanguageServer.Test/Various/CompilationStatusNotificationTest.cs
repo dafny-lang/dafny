@@ -1,4 +1,5 @@
-﻿using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
+﻿using System;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
@@ -10,6 +11,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
+using Microsoft.Extensions.DependencyInjection;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
@@ -19,24 +21,18 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     private ILanguageClient client;
     private TestNotificationReceiver<CompilationStatusParams> notificationReceiver;
-    private IDictionary<string, string> configuration;
+
 
     [TestInitialize]
-    public Task SetUp() => SetUp(null);
-
-    public async Task SetUp(IDictionary<string, string> configuration) {
-      this.configuration = configuration;
+    public async Task SetUp(Action<DafnyOptions> modifyOptions = null) {
+      modifyOptions ??= options => { };
       notificationReceiver = new();
+      var dafnyOptions = new DafnyOptions();
+      modifyOptions(dafnyOptions);
       client = await InitializeClient(options => {
         options
           .AddHandler(DafnyRequestNames.CompilationStatus, NotificationHandler.For<CompilationStatusParams>(notificationReceiver.NotificationReceived));
-      });
-    }
-
-    protected override IConfiguration CreateConfiguration() {
-      return configuration == null
-        ? base.CreateConfiguration()
-        : new ConfigurationBuilder().AddInMemoryCollection(configuration).Build();
+      }, options => options.Services.AddSingleton(dafnyOptions));
     }
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]

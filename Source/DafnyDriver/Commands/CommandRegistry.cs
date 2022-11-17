@@ -8,6 +8,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
+using Microsoft.Dafny.LanguageServer;
 
 namespace Microsoft.Dafny;
 
@@ -32,6 +33,7 @@ static class CommandRegistry {
     AddCommand(new TestCommand());
     AddCommand(new GenerateTestsCommand());
     AddCommand(new DeadCodeCommand());
+    AddCommand(new ServerCommand());
 
     FileArgument = new Argument<FileInfo>("file", "input file");
     FileArgument.AddValidator(ValidateFileArgument());

@@ -19,8 +19,6 @@ using Action = System.Action;
 
 namespace Microsoft.Dafny.LanguageServer {
   public static class DafnyLanguageServer {
-    private static readonly List<string> pluginLoadErrors = new();
-    public static IReadOnlyList<string> PluginLoadErrors => pluginLoadErrors;
     private static string DafnyVersion {
       get {
         var version = typeof(DafnyLanguageServer).Assembly.GetName().Version!;
@@ -28,15 +26,14 @@ namespace Microsoft.Dafny.LanguageServer {
       }
     }
 
-    public static LanguageServerOptions WithDafnyLanguageServer(this LanguageServerOptions options,
-        IConfiguration configuration, Action killLanguageServer) {
+    public static LanguageServerOptions WithDafnyLanguageServer(this LanguageServerOptions options, Action killLanguageServer) {
       options.ServerInfo = new ServerInfo {
         Name = "Dafny",
         Version = DafnyVersion
       };
       return options
-        .WithDafnyLanguage(configuration)
-        .WithDafnyWorkspace(configuration)
+        .WithDafnyLanguage()
+        .WithDafnyWorkspace()
         .WithDafnyHandlers()
         .OnInitialize((server, @params, token) => InitializeAsync(server, @params, token, killLanguageServer))
         .OnStarted(StartedAsync);
@@ -46,8 +43,6 @@ namespace Microsoft.Dafny.LanguageServer {
         Action killLanguageServer) {
       var logger = server.GetRequiredService<ILogger<Program>>();
       logger.LogTrace("initializing service");
-
-      LoadPlugins(logger, server);
 
       KillLanguageServerIfParentDies(logger, request, killLanguageServer);
 
@@ -109,23 +104,6 @@ namespace Microsoft.Dafny.LanguageServer {
       }
 
       DafnyOptions.O.ProverOptions[i] = "O:model.compact=false";
-    }
-
-    /// <summary>
-    /// Load the plugins for the Dafny pipeline
-    /// </summary>
-    private static void LoadPlugins(ILogger<Program> logger, ILanguageServer server) {
-      var dafnyPluginsOptions = server.GetRequiredService<IOptions<DafnyPluginsOptions>>();
-      var lastPlugin = "";
-      try {
-        foreach (var pluginPathArgument in dafnyPluginsOptions.Value.Plugins) {
-          lastPlugin = pluginPathArgument;
-          DafnyOptions.O.Parse(new[] { "-plugin:" + pluginPathArgument });
-        }
-      } catch (Exception e) {
-        logger.LogError(e, $"Error while instantiating plugin {lastPlugin}");
-        pluginLoadErrors.Add($"Error while instantiating plugin {lastPlugin}. Please restart the server.\n" + e);
-      }
     }
 
     /// <summary>

@@ -100,12 +100,11 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
       var serverPipe = new Pipe(TestOptions.DefaultPipeOptions);
       Server = OmniSharp.Extensions.LanguageServer.Server.LanguageServer.PreInit(
         options => {
-          var configuration = CreateConfiguration();
           options
             .WithInput(serverPipe.Reader)
             .WithOutput(clientPipe.Writer)
             .ConfigureLogging(SetupTestLogging)
-            .WithDafnyLanguageServer(configuration, () => { });
+            .WithDafnyLanguageServer(() => { });
           serverOptionsAction?.Invoke(options);
         });
       // This is the style used in the LSP implementation itself:
@@ -116,7 +115,7 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
       return (clientPipe.Reader.AsStream(), serverPipe.Writer.AsStream());
     }
 
-    protected virtual IConfiguration CreateConfiguration() {
+    protected virtual DafnyOptions CreateConfiguration() {
       var configurationBuilder = new ConfigurationBuilder();
       return configurationBuilder.Build();
     }

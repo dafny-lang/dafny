@@ -1,3 +1,4 @@
+using System;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
@@ -26,8 +27,8 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     private CancellationToken CancellationTokenWithHighTimeout => cancellationSource.Token;
 
     [TestInitialize]
-    public override async Task SetUp() {
-      await base.SetUp();
+    public override async Task SetUp(Action<DafnyOptions> modifyOptions) {
+      await base.SetUp(modifyOptions);
 
       // We use a custom cancellation token with a higher timeout to clearly identify where the request got stuck.
       cancellationSource = new();

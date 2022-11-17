@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System;
+using System.ComponentModel.DataAnnotations;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
@@ -15,9 +16,13 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   public class HoverTest : ClientBasedLanguageServerTest {
 
     [TestInitialize]
-    public override async Task SetUp() {
-      DafnyOptions.Install(DafnyOptions.Create("-proverOpt:SOLVER=noop"));
-      await base.SetUp();
+    public override async Task SetUp(Action<DafnyOptions> modifyOptions) {
+      void ModifyOptions2(DafnyOptions options) {
+        options.ProverOptions.Add("-proverOpt:SOLVER=noop");
+        modifyOptions(options);
+      }
+
+      await base.SetUp(ModifyOptions2);
     }
 
     private Task<Hover> RequestHover(TextDocumentItem documentItem, Position position) {

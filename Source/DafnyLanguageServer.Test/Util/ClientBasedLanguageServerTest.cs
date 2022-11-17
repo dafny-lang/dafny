@@ -31,7 +31,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
   protected ILanguageClient client;
   protected TestNotificationReceiver<FileVerificationStatus> verificationStatusReceiver;
-  private IDictionary<string, string> configuration;
   protected DiagnosticsReceiver diagnosticsReceiver;
   protected TestNotificationReceiver<GhostDiagnosticsParams> ghostnessReceiver;
 
@@ -69,24 +68,15 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
     return result;
   }
 
-  public async Task SetUp(IDictionary<string, string> configuration) {
-    this.configuration = configuration;
-    await SetUp();
-  }
-
-  protected override IConfiguration CreateConfiguration() {
-    return configuration == null
-      ? base.CreateConfiguration()
-      : new ConfigurationBuilder().AddInMemoryCollection(configuration).Build();
-  }
-
   [TestInitialize]
-  public virtual async Task SetUp() {
+  public virtual async Task SetUp(Action<DafnyOptions> modifyOptions) {
+    var dafnyOptions = new DafnyOptions();
+    modifyOptions(dafnyOptions);
     diagnosticsReceiver = new();
     verificationStatusReceiver = new();
     ghostnessReceiver = new();
     client = await InitializeClient(InitialiseClientHandler, serverOptions => {
-      ServerOptionsAction(serverOptions);
+      serverOptions.Services.AddSingleton(dafnyOptions);
     });
   }
 
@@ -101,7 +91,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
   protected virtual IServiceCollection ServerOptionsAction(LanguageServerOptions serverOptions) {
     return serverOptions.Services.AddSingleton<IProgramVerifier>(serviceProvider => new SlowVerifier(
       serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>(),
-      serviceProvider.GetRequiredService<IOptions<VerifierOptions>>()
+      serviceProvider.GetRequiredService<DafnyOptions>()
     ));
   }
 
