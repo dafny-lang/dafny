@@ -97,7 +97,7 @@ text editor. However, some tools provide syntax-aware features:
 Information about installing IDE extensions for Dafny is found
 on the [Dafny INSTALL page in the wiki](https://github.com/dafny-lang/dafny/wiki/INSTALL).
 
-## 25.6. Using Dafny From the Command Line
+## 25.6. Using Dafny From the Command Line {#command-line}
 
 `dafny` is a conventional command-line tool, operating just like other
 command-line tools in Windows and Unix-like systems.
@@ -934,12 +934,16 @@ Types marked with `{:extern}` must be opaque. The name argument, if any,
 usually refers to the type name in the target language, but some
 compilers treat it differently.
 
+Detailed description of the `dafny build` and `dafny run` commands and 
+the `--input` option (needed when `dafny run` has more than one input file)
+is contained [in the section on command-line structure](#command-line).
+
 ### 25.8.3. C\#
 
 For a simple Dafny-only program, the translation step converts a `A.dfy` file into `A.cs`;
 the build step then produces a `A.dll`, which can be used as a library or as an executable (via `dotnet A.dll`).
 
-It is also possible to run the dafny files as part of a `csproj` projecti, with these steps:
+It is also possible to run the dafny files as part of a `csproj` project, with these steps:
 - create a dotnet project file with the command `dotnet new console`
 - delete the `Program.cs` file
 - build the dafny program: `dafny build A.dfy`
@@ -958,11 +962,14 @@ are contained in [this separate document](integration-cs/IntegrationCS.md).
 
 The Dafny-to-Java compiler writes out the translated files of a file _A_`.dfy`
 to a directory _A_`-java`. The `-out` option can be used to choose a
-different output directory. The file _A_`.dfy` is translated to _A_`.java`,
-which is placed in the output directory along with helper files.
-If more than one `.dfy` file is listed on the command-line, then the output
-directory name is taken from the first file, and `.java` files are written
-for each of the `.dfy` files. _A_`-java` will also contain
+different output directory. 
+The compiler produces a single wrapper method that then calls classes in 
+relevant other `.java` files. Because Java files must be named consistent
+with the class they contain, but Dafny files do not, there may be no relation
+between the Java file names and the Dafny file names.
+However, the wrapper class that contains the Java `main` method is named for
+the first `.dfy` file on the command-line.
+The output folder  will also contain
 translations to java for any library modules that are used.
 
 The step of compiling Java files (using `javac`) requires the Dafny runtime library. That library is automatically included if dafny is doing the compilation,

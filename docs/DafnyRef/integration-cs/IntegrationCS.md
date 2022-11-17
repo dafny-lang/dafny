@@ -35,6 +35,7 @@ module M {
     p();
   }
 }
+```
 Note that the declaration of `p()` has no body; it is just a declaration because the actual implementation is in C#.
 Its `extern` attribute has two arguments: the fully-qualified class name and the method name.
 
@@ -74,10 +75,10 @@ using System;
 using System.IO;
 
 namespace demo {
-public class Demo {
-  public static Demo newDemo() { return new Demo(); }
-  public void p() { Console.WriteLine("Hi!"); }
-}
+  public class Demo {
+    public static Demo newDemo() { return new Demo(); }
+    public void p() { Console.WriteLine("Hi!"); }
+  }
 }
 ```
 In the C# file there are two methods: a static one that returns a new instance of the `Demo` class, and a non-static method that does something useful.

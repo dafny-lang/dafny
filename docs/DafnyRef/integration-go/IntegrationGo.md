@@ -1,55 +1,48 @@
 ---
-title: Integrating Dafny and Java code
+title: Integrating Dafny and Go code
 ---
 
 The Dafny compilation process translates Dafny programs into target language
-source code, compiles those to Java .class files, and then potentially runs the result. 
+source code, in particular a `.go` file, compiles the result, and then potentially runs the result. 
 
-The Dafny-to-Java compiler writes out the translated files of a file _A_`.dfy`
-to a folder _A_`-java`. The `-out` option can be used to choose a
-different output folder. The file _A_`.dfy` is translated to _A_`.java`,
+The Dafny-to-Go compiler writes out the translated files of a file _A_`.dfy`
+to a folder _A_`-go/src`. The `-out` option can be used to choose a
+different output folder. The file _A_`.dfy` is translated to _A_`.go`,
 which is placed in the output folder along with helper files.
 If more than one `.dfy` file is listed on the command-line, then the output
-folder name is taken from the first file, and `.java` files are written
-for each of the `.dfy` files. _A_`-java` will also contain 
-translations to java for any library modules that are used.
+folder name is taken from the first file, but just
+one `.go` file is written ithat combines the user source files, 
+along with additional System and library `.go` files.
 
-A multi-language program that combines Dafny and Java
+A multi-language program that combines Dafny and Go
 code "just" needs to be sure that the translated Dafny code fits in
-to the Java code. There are two aspects to this:
-- ensuring that the names of entities in the translated Dafny code are usable from Java
+to the Go code. There are two aspects to this:
+- ensuring that the names of entities in the translated Dafny code are usable from Go
 - ensuring that the types are the same on both sides
 
 ## **The Dafny runtime library**
 
-The step of compiling Java files (using `javac`) requires the Dafny runtime library. That library is automatically included if dafny is doing the compilation,
+The step of compiling Go files requires the Dafny runtime library. That library is automatically included in the output files if dafny is doing the compilation,
 but not if dafny is only doing translation.
 
-## **Manually executing Dafny-generated Java code**
+## **Manually executing Dafny-generated Go code**
 
-Suppose a Dafny program is contained in a `.dfy` files, `A.dfy`,
-including a `Main` method.
-One can build the corresponding Java program (without running it) using this command:
+Suppose a Dafny program is contained in a `.dfy` file, `A.dfy`, which containingthe Dafny `Main` method. One can build the corresponding Go program (without running it) using this command:
 
-`dafny build --target:java A.dfy`
+`dafny build --target:go A.dfy`
 
-Alternatively, one can insert in `A.dfy` the directive `include B.dfy` and omit
-B.dfy from the command-line.
-
-The compiled program is then executed using the command
-`java -cp "A-java:A-java/DafnyRuntime.jar" A`
+The compiled program is then executed using the command `./A`
+or `(cd A-go; GO111MODULE=auto GOPATH=`pwd` go run src/A.go)`
 
 Alternatively the build and run steps can be combined:
-`dafny run --target:java A.dfy
+`dafny run --target:go A.dfy`
 
-If there is more than one `.dfy` file, general practice is to use `include` directives to include dependencies.
+## **Calling Go from Dafny**
 
-## **Calling Java from Dafny**
+Calling a Go method from Dafny requires declaring a shim in Dafny that gives a name and types
+that can be referenced by Dafny code, while still being translated to the same name and types as in the Go code.
 
-Calling a Java method from Dafny requires declaring a [shim](https://en.wikipedia.org/wiki/Shim_(computing)) in Dafny that gives a name and types
-that can be referenced by Dafny code, while still being translated to the same name and types as in the Java code.
-
-For example, suppose we want to call a Java method `demo.Demo1.p()`. In `Demo1.java` we have
+For example, suppose we want to call a Go method `demo.Demo1.p()`. In `Demo1.java` we have
 ```java
 package demo;
 public class Demo1 {
@@ -69,15 +62,15 @@ Note that the declaration of `p()` has no body; it is just a declaration because
 Its `extern` attribute has two arguments: the fully-qualified class name and the method name.
 
 Then the above can be built with
-`dafny build -t:java Demo1.dfy Demo.java`
-and then run as a Java program with
-`java -cp Demo1-java:Demo1-java/DafnyRuntime.jar Demo1`
+`dafny build -t:go Demo1.dfy Demo.java`
+and then run as a Go program with
+`./Demo1`.
 
 Or, in one build-and-run step: 
 `dafny run -t:java Demo1.dfy --input Demo1.java`
 
 ## **Calling non-static Java methods from Dafny**
-
+../../../Source/DafnyCore/Compilers/Compiler-java.cs
 If the Java methods to be called are not static, then a receiver object 
 must also be created and shared between Java and Dafny. The following example
 shows how to do this.
@@ -97,9 +90,9 @@ module MM {
     d.p();
   }
 }
-```
-In a `Demo1a.java` file:
 ```java
+In a `Demo1a.java` file:
+```
 package demo;
 public class Demo1a {
   public static Demo1a newDemo1a() { return new Demo1a(); }
@@ -149,7 +142,6 @@ then the commands
 - `dafny build -t:java Demo2.dfy Demo2.java`
 - `java -cp "Demo2-java:Demo2-java/DafnyRuntime.jar" demo.Demo2`
 compile and run the program.
-(Use `;` instead of `:` on Windows systems.)
 Note that `dafny run` does not run the program as it does not know that there is a `main` method in the Java code.
 
 If the Dafny method (say `p()`) is not a member of any class and is in the top-level 
@@ -174,8 +166,7 @@ Dafny-generated Java code with other Java code.
 ## **Matching Dafny and Java types**
 
 If the Java method has input arguments or an output value, then the Dafny declaration must use
-corresponding types in the Dafny declaration, as shown in this table.
-Here, `T'` for a type parameter `T` indicates the Java type corresponding to a Dafny type `T`.
+corresponding types in the Dafny declaration:
 
 |-------------------------------|-----------------------------|
 |  Dafny type                   |   Java type                 |
@@ -193,6 +184,7 @@ Here, `T'` for a type parameter `T` indicates the Java type corresponding to a D
 |                               | double                      |
 |                               | float                       |
 | string                        | dafny.DafnySequence<? extends Character>  |
+| JavaString                    | java.lang.String                        |
 | C, C? (for class, iterator C) | (class) C                   |
 | (trait) T                     | (interface) T                |
 | datatype, codatatype          | (class) C                   |

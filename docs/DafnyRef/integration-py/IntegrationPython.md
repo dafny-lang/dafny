@@ -25,12 +25,9 @@ but not if dafny is only doing translation.
 
 ## **Manually executing Dafny-generated Python code**
 
-Suppose a Dafny program is contained in two `.dfy` files, `A.dfy` and `B.dfy`, with `A.dfy` containing a `Main` method. One can build the corresponding Java program (without running it) using this command:
+Suppose a Dafny program is contained in a `.dfy` file, `A.dfy`, which also contains the `Main` method. One can build the corresponding Java program (without running it) using this command:
 
-`dafny build --target:py A.dfy B.dfy`
-
-Alternatively, one can insert in `A.dfy` the directive `include B.dfy` and omit
-B.dfy from the command-line.
+`dafny build --target:py A.dfy`
 
 The compiled program is then executed using the command
 `PYTHONPATH=A-py python3 A-py/A.py`
@@ -38,7 +35,9 @@ or
 `(cd A-py; python3 A.py)`
 
 Alternatively the build and run steps can be combined:
-`dafny run --target:py A.dfy --input B.dfy `
+`dafny run --target:py A.dfy`
+
+If there are multiple `.dfy` files, general practice has the dependencies included within their client files using Dafny `include` directives.
 
 ## **Combining Python and Dafny**
 
