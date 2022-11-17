@@ -942,11 +942,11 @@ the build step then produces a `A.dll`, which can be used as a library or as an 
 It is also possible to run the dafny files as part of a `csproj` projecti, with these steps:
 - create a dotnet project file with the command `dotnet new console`
 - delete the `Program.cs` file
-- build the dafny program: `dafny build A.dfy B.dfy`
+- build the dafny program: `dafny build A.dfy`
 - run the built program `dotnet A.dll`
 
 The last two steps can be combined:
-`dafny run A.dfy --input B.dfy`
+`dafny run A.dfy`
 
 Note that all input `.dfy` files and any needed runtime library code are combined into a single `.cs` file, which is then compiled by `dotnet` to a `.dll`.
 
@@ -975,10 +975,10 @@ are contained in [this separate document](integration-java/IntegrationJava).
 
 The Dafny-to-Javascript compiler translates all the given `.dfy` files into a single `.js` file, which can then be run using `node`. (Javascript has no compilation step). 
 The build and run steps are simply
-- `dafny build -t:js A.dfy B.dfy`
+- `dafny build -t:js A.dfy`
 - `node A.js`
 Or, in one step,
-- `dafny run A.dfy --input B.dfy`
+- `dafny run A.dfy`
 
 Examples of how to integrate Javascript libraries and source code with Dafny source
 are contained in [this separate document](integration-js/IntegrationJavascript).
@@ -987,16 +987,16 @@ are contained in [this separate document](integration-js/IntegrationJavascript).
 
 The Dafny-to-Go compiler translates all the given `.dfy` files into a single
 `.go` file in `A-go/src/A.go`; the output folder can be specified with the 
-`-out` option. For an input file `A.dfy` the default output folder is `A-go`.
+`-out` option. For an input file `A.dfy` the default output folder is `A-go`. Then, Dafny compiles this program and creates an `A.exe` executable in the same folder as `A.dfy`.
 Some system runtime code is also placed in `A-go/src`.
 The build and run steps are
-- `dafny buld -t:go A.dfy B.dfy`
+- `dafny buld -t:go A.dfy`
 - `./A`
 The uncompiled code can be compiled and run by `go` itself using
 - `(cd A-go; GO111MODULE=auto GOPATH=`pwd` go run A.go)`
 
 The one-step process is
-- `dafny run -t:go A.dfy --input B.dfy`
+- `dafny run -t:go A.dfy`
 
 The `GO111MODULE` variable is used because Dafny translates to pre-module Go code.
 When the implementation changes to current Go, the above command-line will
@@ -1013,11 +1013,11 @@ compiler translates the `.dfy` files into a single `.py` file along with
 supporting runtime library code, all placed in the output location (`A-py` for an input file A.dfy, by default).
 
 The build and run steps are
-- `dafny build -t:py A.dfy B.dfy`
+- `dafny build -t:py A.dfy`
 - `python A-py/A.py`
 
 In one step:
-- `dafny run -t:py A.dfy --input B.dfy`
+- `dafny run -t:py A.dfy`
 
 Examples of how to integrate Python libraries and source code with Dafny source
 are contained in [this separate document](integration-py/IntegrationPython).

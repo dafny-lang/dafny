@@ -11,7 +11,7 @@ different output folder. The file _A_`.dfy` is translated to _A_`.java`,
 which is placed in the output folder along with helper files.
 If more than one `.dfy` file is listed on the command-line, then the output
 folder name is taken from the first file, and `.java` files are written
-for each of the `.dfy` files. _A_`-java` will also likely contain 
+for each of the `.dfy` files. _A_`-java` will also contain 
 translations to java for any library modules that are used.
 
 A multi-language program that combines Dafny and Java
