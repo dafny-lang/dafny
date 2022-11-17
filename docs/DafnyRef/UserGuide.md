@@ -975,7 +975,7 @@ are contained in [this separate document](integration-java/IntegrationJava).
 
 The Dafny-to-Javascript compiler translates all the given `.dfy` files into a single `.js` file, which can then be run using `node`. (Javascript has no compilation step). 
 The build and run steps are simply
-- `dafny build -t:js A.dfy B.dfy`
+- `dafny build -t:js A.dfy`
 - `node A.js`
 Or, in one step,
 - `dafny run A.dfy`
