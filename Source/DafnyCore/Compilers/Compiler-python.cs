@@ -1701,9 +1701,12 @@ namespace Microsoft.Dafny.Compilers {
       while (rd.ReadLine() is { } line) {
         var match = ModuleLine.Match(line);
         if (match.Success) {
+          rd.Close();
           return match.Groups[1].Value;
         }
       }
+      rd.Close();
+      if (externFilename.EndsWith(".py")) return externFilename.Substring(0, externFilename.Length - 3);
       return null;
     }
 

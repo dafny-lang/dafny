@@ -170,7 +170,7 @@ Dafny-generated Java code with other Java code.
 
 If the Java method has input arguments or an output value, then the Dafny declaration must use
 corresponding types in the Dafny declaration, as shown in this table.
-Here, `T'` for a type parameter `T` indicates the Java type corresponding to a Dafny type `T`.:
+Here, `T'` for a type parameter `T` indicates the Java type corresponding to a Dafny type `T`.
 
 |-------------------------------|-----------------------------|
 |  Dafny type                   |   Java type                 |
@@ -188,7 +188,6 @@ Here, `T'` for a type parameter `T` indicates the Java type corresponding to a D
 |                               | double                      |
 |                               | float                       |
 | string                        | dafny.DafnySequence<? extends Character>  |
-| JavaString                    | java.lang.String                        |
 | C, C? (for class, iterator C) | (class) C                   |
 | (trait) T                     | (interface) T                |
 | datatype, codatatype          | (class) C                   |
