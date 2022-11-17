@@ -22,8 +22,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   public class DiagnosticsTest : ClientBasedLanguageServerTest {
 
     [TestMethod]
-    public async Task CrashOfLanguageServer() {
-      // git-issue-3062
+    public async Task GitIssue3062CrashOfLanguageServer() {
       var source = @"
 function bullspec(s:seq<nat>, u:seq<nat>): (r: nat)
   requires |s| > 0
@@ -43,7 +42,6 @@ function bullspec(s:seq<nat>, u:seq<nat>): (r: nat)
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      // Uncomment what you need.
       var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
       Assert.AreEqual(7, diagnostics.Length);
       ApplyChange(ref documentItem, ((7, 25), (10, 17)), "");
