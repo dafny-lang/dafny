@@ -1013,7 +1013,7 @@ compiler translates the `.dfy` files into a single `.py` file along with
 supporting runtime library code, all placed in the output location (`A-py` for an input file A.dfy, by default).
 
 The build and run steps are
-- `dafny build -t:py A.dfy B.dfy`
+- `dafny build -t:py A.dfy`
 - `python A-py/A.py`
 
 In one step:
