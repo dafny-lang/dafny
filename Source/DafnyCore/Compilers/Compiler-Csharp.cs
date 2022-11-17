@@ -1727,7 +1727,7 @@ namespace Microsoft.Dafny.Compilers {
               $"{publik}{konst} {virtuall} {typeName} {name} {{get;}}");
           } else {
             cw.InstanceMemberWriter.Write(
-              $"{publik} {virtuall} {typeName} {name} {{get; set;}}");
+              $"{publik}{virtuall} {typeName} {name} {{get; set;}}");
           }
         } else {
           cw.InstanceMemberWriter.WriteLine($"{publik}{konst} {typeName} {name}");
