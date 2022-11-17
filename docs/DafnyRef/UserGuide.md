@@ -942,7 +942,7 @@ the build step then produces a `A.dll`, which can be used as a library or as an 
 One possibility to run the dafny files as part of a `csproj` project is this one
 - create a dotnet project file with the command `dotnet new console`
 - delete the `Program.cs` file
-- build the dafny program: `dafny build A.dfy B.dfy`
+- build the dafny program: `dafny build A.dfy`
 - run the built program `dotnet A.dll`
 
 The last two steps can be combined:
