@@ -127,7 +127,7 @@ class Release:
         """Zip entries always use '/' as the path separator."""
         return fpath.replace(os.path.sep, '/')
 
-    def run_publish(self, project):
+    def run_publish(self, project, framework = None):
         env = dict(os.environ)
         env["RUNTIME_IDENTIFIER"] = self.target
         flush("   + Publishing " + project)
@@ -135,12 +135,15 @@ class Release:
         exitStatus = 1
         while 0 < remaining and exitStatus != 0:
             remaining -= 1
+            otherArgs = []
+            if framework:
+                otherArgs += ["-f", framework]
             exitStatus = subprocess.call(["dotnet", "publish", path.join(SOURCE_DIRECTORY, project, project + ".csproj"),
                 "--nologo",
                 "-o", self.buildDirectory,
                 "-r", self.target,
                 "--self-contained",
-                "-c", "Release"], env=env)
+                "-c", "Release"] + otherArgs, env=env)
             if exitStatus != 0:
                 if remaining == 0:
                     flush("failed! (Is Dafny or the Dafny server running?)")
@@ -159,7 +162,8 @@ class Release:
         run(["make", "--quiet", "clean"])
         self.run_publish("DafnyLanguageServer")
         self.run_publish("DafnyServer")
-        self.run_publish("DafnyRuntime")
+        self.run_publish("DafnyRuntime", "netstandard2.0")
+        self.run_publish("DafnyRuntime", "net452")
         self.run_publish("Dafny")
 
     def pack(self):
