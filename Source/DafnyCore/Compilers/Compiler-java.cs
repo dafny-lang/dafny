@@ -925,7 +925,19 @@ namespace Microsoft.Dafny.Compilers {
       var wRestOfBody = wBody.Fork();
       var targetTypeName = BoxedTypeName(UserDefinedType.FromTopLevelDecl(cls.tok, cls, null), wTypeMethod, cls.tok);
       EmitTypeMethod(cls, javaName, typeParameters, typeParameters, targetTypeName, null, wTypeMethod);
+
+      if (fullPrintName != null) {
+        // By emitting a toString() method, printing an object will give the same output as with other target languages.
+        EmitToString(fullPrintName, wBody);
+      }
+
       return new ClassWriter(this, wRestOfBody, wCtorBody);
+    }
+
+    private void EmitToString(string fullPrintName, ConcreteSyntaxTree wr) {
+      wr.WriteLine("@Override");
+      var wrBody = wr.NewBlock("public java.lang.String toString()");
+      wrBody.WriteLine($"return \"{fullPrintName}\";");
     }
 
     /// <summary>
