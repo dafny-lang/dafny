@@ -8,6 +8,7 @@ import (
   big "math/big"
   refl "reflect"
   "runtime"
+  "os"
 )
 
 func FromMainArguments(args []string) Seq {
@@ -597,7 +598,7 @@ func (seq Seq) UniqueElements() Set {
 func (seq Seq) String() string {
   if seq.isString {
     s := ""
-    // Note this doesn't produce the right string in UTF-8,
+    // FIXME: Note this doesn't produce the right string in UTF-8,
     // since it converts surrogates independently.
     for _, c := range seq.contents {
       s += c.(Char).String()
@@ -2614,5 +2615,6 @@ func max(n, m int) int {
 func CatchHalt() {
   if r := recover(); r != nil {
     fmt.Println("[Program halted]", r)
+    os.Exit(1)
   }
 }

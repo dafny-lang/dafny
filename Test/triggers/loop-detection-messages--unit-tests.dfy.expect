@@ -3,18 +3,18 @@ loop-detection-messages--unit-tests.dfy(11,9): Info: Selected triggers: {f(f(i))
 loop-detection-messages--unit-tests.dfy(12,9): Info: Selected triggers: {f(_t#0), f(i)}
 loop-detection-messages--unit-tests.dfy(13,9): Info: Selected triggers: {f(_t#0), f(i)}
 loop-detection-messages--unit-tests.dfy(15,9): Info: For expression "false ==> f(i) == f(_t#0)":
-   Selected triggers: {f(_t#0), f(i)} in sub-expression at loop-detection-messages--unit-tests.dfy(15,36)
+   Selected triggers: {f(_t#0), f(i)} in subexpression at loop-detection-messages--unit-tests.dfy(15,27) [Related location] loop-detection-messages--unit-tests.dfy(15,36)
 loop-detection-messages--unit-tests.dfy(15,9): Info: For expression "false ==> f(i) == g(i)":
    Selected triggers:
-     {g(i)}, {f(i)} in sub-expression at loop-detection-messages--unit-tests.dfy(15,54)
+     {g(i)}, {f(i)} in subexpression at loop-detection-messages--unit-tests.dfy(15,27) [Related location] loop-detection-messages--unit-tests.dfy(15,54)
 loop-detection-messages--unit-tests.dfy(16,9): Info: For expression "false ==> f(i) == f(_t#0)":
-   Selected triggers: {f(_t#0), f(i)} in sub-expression at loop-detection-messages--unit-tests.dfy(16,36)
+   Selected triggers: {f(_t#0), f(i)} in subexpression at loop-detection-messages--unit-tests.dfy(16,27) [Related location] loop-detection-messages--unit-tests.dfy(16,36)
 loop-detection-messages--unit-tests.dfy(16,9): Info: For expression "false ==> f(i) == f(i)":
-   Selected triggers: {f(i)} in sub-expression at loop-detection-messages--unit-tests.dfy(16,54)
+   Selected triggers: {f(i)} in subexpression at loop-detection-messages--unit-tests.dfy(16,27) [Related location] loop-detection-messages--unit-tests.dfy(16,54)
 loop-detection-messages--unit-tests.dfy(17,9): Info: For expression "false ==> f(i) == f(_t#0)":
-   Selected triggers: {f(_t#0), f(i)} in sub-expression at loop-detection-messages--unit-tests.dfy(17,52)
+   Selected triggers: {f(_t#0), f(i)} in subexpression at loop-detection-messages--unit-tests.dfy(17,43) [Related location] loop-detection-messages--unit-tests.dfy(17,52)
 loop-detection-messages--unit-tests.dfy(17,9): Info: For expression "false ==> f(i) == f(i)":
-   Selected triggers: {f(i)} in sub-expression at loop-detection-messages--unit-tests.dfy(17,70)
+   Selected triggers: {f(i)} in subexpression at loop-detection-messages--unit-tests.dfy(17,43) [Related location] loop-detection-messages--unit-tests.dfy(17,70)
 loop-detection-messages--unit-tests.dfy(19,9): Info: Selected triggers: {f(i)}
 loop-detection-messages--unit-tests.dfy(20,9): Warning: /!\ No terms found to trigger on.
 loop-detection-messages--unit-tests.dfy(21,9): Info: Not generating triggers for "false ==> f(i + 1) == 0". Note that {:autotriggers false} can cause instabilities. Consider using {:nowarn}, {:matchingloop} (not great either), or a manual trigger instead.

@@ -52,6 +52,32 @@ method Multiply(x: int, y: int) returns (product: int)
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
+    [TestMethod]
+    public async Task RefinementTokensCorrectlyReported() {
+      // git-issue-2402
+      var source = @"
+abstract module M 
+{ 
+    type T(00)
+    const t : T
+    lemma Randomlemma()
+    {
+        forall i:int {}
+    }
+}
+
+module N refines M 
+{
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(1, diagnostics.Length);
+      Assert.AreEqual(
+        "static non-ghost const field 't' of type 'T' (which does not have a default compiled value) must give a defining value",
+        diagnostics[0].Message);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
+    }
 
     [TestMethod]
     public async Task NoCrashWhenPressingEnterAfterSelectingAllTextAndInputtingText() {
