@@ -20,7 +20,8 @@ class Main {
   method RecursiveMark(root: Node, ghost S: set<Node>)
     requires root in S
     // S is closed under 'children':
-    requires forall n :: n in S ==> allocated(n) &&
+    requires forall n :: n in S ==>
+                allocated(n) &&
                 forall ch :: ch in n.children ==> ch == null || ch in S
     requires forall n :: n in S ==> !n.marked && n.childrenVisited == 0
     modifies S
@@ -37,7 +38,8 @@ class Main {
 
   method RecursiveMarkWorker(root: Node, ghost S: set<Node>, ghost stackNodes: set<Node>)
     requires root in S
-    requires forall n :: n in S ==> allocated(n) &&
+    requires forall n :: n in S ==>
+                allocated(n) &&
                 forall ch :: ch in n.children ==> ch == null || ch in S
     requires forall n :: n in S && n.marked ==>
                 n in stackNodes ||
@@ -85,7 +87,8 @@ class Main {
   method IterativeMark(root: Node, ghost S: set<Node>)
     requires root in S
     // S is closed under 'children':
-    requires forall n :: n in S ==> allocated(n) &&
+    requires forall n :: n in S ==>
+                allocated(n) &&
                 forall ch :: ch in n.children ==> ch == null || ch in S
     requires forall n :: n in S ==> !n.marked && n.childrenVisited == 0
     modifies S
@@ -168,7 +171,8 @@ class Main {
   method SchorrWaite(root: Node, ghost S: set<Node>)
     requires root in S
     // S is closed under 'children':
-    requires forall n :: n in S ==> allocated(n) &&
+    requires forall n :: n in S ==>
+                allocated(n) &&
                 forall ch :: ch in n.children ==> ch == null || ch in S
     // the graph starts off with nothing marked and nothing being indicated as currently being visited:
     requires forall n :: n in S ==> !n.marked && n.childrenVisited == 0
