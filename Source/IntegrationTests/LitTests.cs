@@ -46,6 +46,7 @@ namespace IntegrationTests {
         { "%z3", Path.Join("z3", "bin", "z3") },
         { "%repositoryRoot", repositoryRoot.Replace(@"\", "/") },
         { "%refmanexamples", Path.Join("TestFiles", "LitTests", "LitTest", "refman", "examples") }
+        { "%userexamples", Path.Join("TestFiles", "LitTests", "LitTest", "examples") }
       };
 
       var commands = new Dictionary<string, Func<IEnumerable<string>, LitTestConfiguration, ILitCommand>> {

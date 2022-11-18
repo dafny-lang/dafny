@@ -11,4 +11,5 @@ the [examples folder of Dafny's github project](https://github.com/davidcok/dafn
 
 - [Simple Maximum method](https://github.com/davidcok/dafny/tree/cok-2819/docs/examples/maximum.dfy)
 - [Tutorial on parser combinators](https://github.com/davidcok/dafny/tree/cok-2819/docs/examples/parser_combinators.dfy)
--
+- A simple compiler: [code](https://github.com/davidcok/dafny/tree/cok-2819/Test/tutorial/Simple_compiler/Compiler.dfy) and [discussion](../../Test/tutorial/Simple_compiler/README)
+
