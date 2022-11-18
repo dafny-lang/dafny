@@ -9,8 +9,7 @@ Each of these prove successfully.
 The files for these examples can be found in 
 the [examples folder of Dafny's github project](https://github.com/davidcok/dafny/tree/cok-2819/docs/examples).
 
-- [Simple Maximum method](https://github.com/davidcok/dafny/tree/cok-2819/Test/tutorial/maximum.dfy)
-- [Simple Maximum method](https://github.com/davidcok/dafny/tree/cok-2819/docs/examples/maximum.dfy)
-- [Tutorial on parser combinators](https://github.com/davidcok/dafny/tree/cok-2819/docs/examples/parser_combinators.dfy)
-- A simple compiler: [code](https://github.com/davidcok/dafny/tree/cok-2819/Test/tutorial/Simple_compiler/Compiler.dfy) and [discussion](../../Test/tutorial/Simple_compiler/README)
+- [Simple Maximum method](https://github.com/davidcok/dafny/tree/cok-2819/Test/examples/maximum.dfy)
+- [Tutorial on parser combinators](https://github.com/davidcok/dafny/tree/cok-2819/Test/examples/parser_combinators.dfy)
+- A simple compiler: [code](https://github.com/davidcok/dafny/tree/cok-2819/Test/examples/Simple_compiler/Compiler.dfy) and [discussion](../../Test/tutorial/Simple_compiler/README)
 
