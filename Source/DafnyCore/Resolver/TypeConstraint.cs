@@ -1,4 +1,3 @@
-#define TI_DEBUG_PRINT
 //-----------------------------------------------------------------------------
 //
 // Copyright (C) Microsoft Corporation.  All Rights Reserved.

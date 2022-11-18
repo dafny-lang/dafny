@@ -1,3 +1,4 @@
+#define TI_DEBUG_PRINT
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
