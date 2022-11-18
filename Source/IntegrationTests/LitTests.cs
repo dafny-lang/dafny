@@ -45,7 +45,6 @@ namespace IntegrationTests {
         { "%binaryDir", "." },
         { "%z3", Path.Join("z3", "bin", "z3") },
         { "%repositoryRoot", repositoryRoot.Replace(@"\", "/") },
-        { "%userexamples", Path.Join("TestFiles", "LitTests", "LitTest", "examples") },
         { "%refmanexamples", Path.Join("TestFiles", "LitTests", "LitTest", "refman", "examples") }
       };
 
