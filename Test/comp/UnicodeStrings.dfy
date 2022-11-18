@@ -1,5 +1,12 @@
 // RUN: %testDafnyForEachCompiler "%s" -- /unicodeChar:1
 
+method AssertAndExpect(p: bool) 
+  requires p
+{
+  expect p;
+}
+
+// Included to test casting between char and all supported native types
 newtype uint8 = x: int | 0 <= x < 0x100 
 newtype uint16 = x: int | 0 <= x < 0x1_0000 
 newtype uint32 = x: int | 0 <= x < 0x1_0000_0000 
@@ -9,7 +16,6 @@ newtype int16 = x: int | -0x8000 <= x < 0x8000
 newtype int32 = x: int | -0x8000_0000 <= x < 0x8000_0000
 newtype int64 = x: int | -0x8000_0000_0000_0000 <= x < 8000_0000_0000_0000
 
-// TODO: Test cases for escapes in character literals
 // TODO: Remove token parameter in compilers if not needed
 
 const AllCasesAsCodePoints := [
@@ -26,28 +32,38 @@ const AllCasesAsCodePoints := [
   0x100,    // First codepoint that can't fit into a single byte
   0xD7FF,   // Last codepoint before the surrogate range
   0xE000,   // First codepoint after the surrogate range
-  0x1F680,  // Typical non-BMP codepoint (🚀)
-  0x10FFFF  // Maximum value
+  0xFFEE,   // '￮', which is after the surrogate range but a single code unit in UTF-16
+  0x1_0000, // First codepoint beyong the BMP, requiring two UTF-16 code units
+  0x1_D11E, // '𝄞', [0xD834, 0xDD1E] in UTF-16
+            // Included along with ￮ as an evil test case to catch comparing
+            // encoded bytes lexicographically by accident 😈.
+            // UTF-8 seems to have the property that this comparison
+            // is the same, but UTF-16 doesn't.
+  0x1_F680, // Typical non-BMP codepoint (🚀)
+  0x10_FFFF // Maximum value
 ];
 
-// First casted to characters from integers.
-// This is the simplest and most likely to be correct, and used as the baseline.
+
+// The primary definition of the character values is casting to characters from integers.
+// This is the simplest and most likely to be correct at runtime, and used as the baseline for comparisons.
 const AllCases := 
   seq(|AllCasesAsCodePoints|, i requires 0 <= i < |AllCasesAsCodePoints| => AllCasesAsCodePoints[i] as char)
 
 const AlternateForms: seq<seq<char>> := [
   // As character literals with escapes
-  ['\0', '\t', '\n', '\r', '\"', '\'', '\U{44}', '\\', '\U{80}', '\U{FF}', '\U{100}', '\U{D7FF}', '\U{E000}', '\U{1F680}', '\U{10FFFF}'],
+  ['\0', '\t', '\n', '\r', '\"', '\'', '\U{44}', '\\', '\U{80}', '\U{FF}',
+      '\U{100}', '\U{D7FF}', '\U{E000}', '\U{FFEE}', '\U{10000}', '\U{1D11E}', '\U{1F680}', '\U{10FFFF}'],
   // As verbatim character literals where reasonable, or using a \U escape where not
-  ['\U{0}', '\U{9}', '\U{A}', '\U{D}', '\U{22}', '\U{27}', 'D', '\U{5c}', '', 'ÿ', 'Ā', '\U{D7FF}', '\U{E000}', '🚀', '\U{10FFFF}'],
+  ['\U{0}', '\U{9}', '\U{A}', '\U{D}', '\U{22}', '\U{27}', 'D', '\U{5c}', 
+      '', 'ÿ', 'Ā', '\U{D7FF}', '\U{E000}', '￮', '𐀀', '𝄞', '🚀', '\U{10FFFF}'],
   // In a string literal with escapes
-  "\0\t\n\r\"\'\U{44}\\\U{80}\U{FF}\U{100}\U{D7FF}\U{E000}\U{1F680}\U{10FFFF}",
+  "\0\t\n\r\"\'\U{44}\\\U{80}\U{FF}\U{100}\U{D7FF}\U{E000}\U{FFEE}\U{10000}\U{1D11E}\U{1F680}\U{10FFFF}",
   // In a string literal without escapes where reasonable
-  "\U{0}\U{9}\U{A}\U{D}\U{22}\U{27}D\U{5c}ÿĀ\U{D7FF}\U{E000}🚀\U{10FFFF}"
+  "\U{0}\U{9}\U{A}\U{D}\U{22}\U{27}D\U{5c}ÿĀ\U{D7FF}\U{E000}￮𐀀𝄞🚀\U{10FFFF}"
 ]
 
 method AllCharCasesTest() {
-  // Boy a foreach would be really nice right about now... \U{1F604}
+  // Boy a foreach loop would be really nice right about now... \U{1F604}
   for caseIndex := 0 to |AllCases| {
     var thisCase := AllCases[caseIndex];
     for formIndex := 0 to |AlternateForms| {
@@ -61,7 +77,7 @@ method AllCharCasesTest() {
     }
   }
 
-  // Comparisons - this is why the list of cases is in ascending order
+  // Comparisons - taking advantage of the list of cases being in ascending order
   for i := 0 to |AllCases| {
     var left := AllCases[i];
     for j := 0 to |AllCases| {
@@ -116,14 +132,36 @@ function method MapToInt32(s: string): seq<int32> {
     [s[0] as int32] + MapToInt32(s[1..])
 }
 
+method Main(args: seq<string>) {
+  AllCharCasesTest();
+  CharQuantification();
+  CharPrinting();
+  StringPrinting();
+}
+
+method CharPrinting() {
+  var chars := stringThatNeedsEscaping;
+  for i := 0 to |chars| {
+    print chars[i], "\n";
+  }
+  for i := 0 to |chars| {
+    var r := Print(chars[i]);
+    expect chars[i] == r;
+  }
+}
+
+// Used to ensure characters can be passing in and out of generic code
+// (which is a real challenge in Java for example)
+method Print<T>(t: T) returns (r: T) {
+  print t, "\n";
+  return t;
+}
+
 datatype Option<T> = Some(value: T) | None
 
 datatype StringOption = SomeString(value: string) | NoString
 
-// Not including any non-printable characters in this one
-const stringThatNeedsEscaping := "D\0\r\n\\\"\'\U{1F60E}"
-
-method Main(args: seq<string>) {
+method StringPrinting() {
   var trickyString := "Dafny is just so \U{1F60E}";
   print trickyString, "\n";
 
@@ -141,44 +179,23 @@ method Main(args: seq<string>) {
   var sincere := MapToLower(sarcastic);
   print sincere, "\n";
 
+  // Exercising the new rules for how strings are printed,
+  // namely that a string is only printed verbatim if the value
+  // is statically known to be a seq<char>
+
   var mightBeString := Some(trickyString);
   print mightBeString, "\n";
   print mightBeString.value, "\n";
 
+  // Not including any non-printable characters in this one
+  var stringThatNeedsEscaping := "D\0\r\n\\\"\'\U{1F60E}";
+
+  // Note that the string is printed as a string, but with double quotes and escaping
   var definitelyString := SomeString(stringThatNeedsEscaping);
   print definitelyString, "\n";
 
   var tupleOfString := (stringThatNeedsEscaping, 42);
   print tupleOfString, "\n";
-  
-  AllCharCasesTest();
-  CharPrinting();
-  CharQuantification();
-}
-
-method CharPrinting() {
-  var chars := stringThatNeedsEscaping;
-  for i := 0 to |chars| {
-    print chars[i], "\n";
-  }
-  for i := 0 to |chars| {
-    var r := Print(chars[i]);
-    expect chars[i] == r;
-  }
-}
-
-
-// Used to ensure characters can be passing in and out of generic code
-// (which is a real challenge in Java for example)
-method Print<T>(t: T) returns (r: T) {
-  print t, "\n";
-  return t;
-}
-
-method AssertAndExpect(p: bool) 
-  requires p
-{
-  expect p;
 }
 
 method CastChar(c: char) {
@@ -206,22 +223,7 @@ method CastChar(c: char) {
   AssertAndExpect(asInt as char == c);
 }
 
-method CharComparisons() {
-  AssertAndExpect('a' < 'b');
-  AssertAndExpect('a' <= 'a');
-  AssertAndExpect('b' > 'a');
-  AssertAndExpect('b' >= 'b');
-
-  // Some evil edge cases to catch comparing
-  // encoded bytes lexicographically by accident 😈.
-  // UTF-8 seems to have the property that this comparison
-  // is the same, but UTF-16 doesn't.
-
-  // '￮' == [0xFFEE] in UTF-16
-  // '𝄞' == [0xD834, 0xDD1E] in UTF-16
-  AssertAndExpect('￮' < '𝄞');
-}
-
+// Testing that the runtime implementation of AllChars() is correct
 method CharQuantification() {
   ghost var allChars := set c: char {:trigger Identity(c)} | true :: Identity(c);
   ghost var allCodePoints := (set cp: int {:trigger Identity(cp)} | 0 <= cp < 0xD800 :: Identity(cp as char))
@@ -234,8 +236,7 @@ method CharQuantification() {
   // an O(n^2) operation in some runtimes that don't have hashcode-based
   // set operations, and n here is over a million. :P
   // Even just computing allChars at runtime seems to be too slow in Javascript. :(
-  // We calculate some small subsets here just as a basic sanity check
-  // all AllUnicodeChars() is implemented in the runtimes.
+  // It seems to be fast enough just to iterate over all characters though.
   expect forall c: char {:trigger Identity(c)} :: 0 <= c as int < 0xD800 || 0xE000 <= c as int < 0x11_0000;
 }
 
