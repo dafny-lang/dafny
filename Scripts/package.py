@@ -25,7 +25,7 @@ import ntpath
 ## Get a specific Z3 release like this:
 Z3_RELEASES_URL = "https://api.github.com/repos/Z3Prover/z3/releases/tags/Z3-4.8.5"
 ## How do we extract info from the name of a Z3 release file?
-Z3_RELEASE_REGEXP = re.compile(r"^(?P<directory>z3-[0-9a-z\.]+-(?P<platform>x86|x64)-(?P<os>[a-z0-9\.\-]+)).zip$", re.IGNORECASE)
+Z3_RELEASE_REGEXP = re.compile(r"^(?P<directory>z3-[0-9a-z\.]+-(?P<platform>x86|x64|arm64)-(?P<os>[a-z0-9\.\-]+)).zip$", re.IGNORECASE)
 ## How many times we allow ourselves to try to download Z3
 Z3_MAX_DOWNLOAD_ATTEMPTS = 5
 
@@ -171,6 +171,9 @@ class Release:
         missing = []
         with zipfile.ZipFile(self.dafny_zip, 'w',  zipfile.ZIP_DEFLATED) as archive:
             with zipfile.ZipFile(self.z3_zip) as Z3_archive:
+                #changing directory value for osx-arm64 to copyover files from z3-4.8.5-x64-osx-10.14.2.zip
+                if self.target == "osx-arm64":
+                    self.directory = "z3-4.8.5-x64-osx-10.14.2"
                 z3_files_count = 0
                 for fileinfo in Z3_archive.infolist():
                     fname = path.relpath(fileinfo.filename, self.directory)
@@ -215,6 +218,12 @@ def discover(args):
 
         for release_js in js["assets"]:
             release = Release(release_js, args.version, args.out)
+            # Copying assets of osx and chnaging value of "name" to include "arm64" as architecture and then add it to same list of releases. 
+            if release.os_name == "osx":
+                tmp_release_js = release_js
+                tmp_release_js.update({'name': 'z3-4.8.5-arm64-osx-11.0.zip'})
+                tmp_release = Release(tmp_release_js, args.version, args.out)
+                yield tmp_release
             if release.platform == "x64":
                 flush("    + Selecting {} ({:.2f}MB, {})".format(release.z3_name, release.MB, release.size))
                 yield release

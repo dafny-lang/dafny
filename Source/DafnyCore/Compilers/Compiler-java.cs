@@ -2285,7 +2285,8 @@ namespace Microsoft.Dafny.Compilers {
     public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string /*?*/ targetFilename,
      ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
       var psi = PrepareProcessStartInfo("java",
-        args: DafnyOptions.O.MainArgs.Prepend(Path.GetFileNameWithoutExtension(targetFilename)));
+        new List<string> { "-Dfile.encoding=UTF-8", Path.GetFileNameWithoutExtension(targetFilename) }
+          .Concat(DafnyOptions.O.MainArgs));
       psi.WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
       psi.EnvironmentVariables["CLASSPATH"] = GetClassPath(targetFilename);
       return 0 == RunProcess(psi, outputWriter);
