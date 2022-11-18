@@ -12,6 +12,86 @@ newtype int64 = x: int | -0x8000_0000_0000_0000 <= x < 8000_0000_0000_0000
 // TODO: Test cases for escapes in character literals
 // TODO: Remove token parameter in compilers if not needed
 
+const AllCasesAsCodePoints := [
+  0,        // \0, minimum value
+  0x9,      // \t
+  0xA,      // \n
+  0xD,      // \r
+  0x22,     // \"
+  0x27,     // \'
+  0x44,     // \\
+  0x5c,     // D (because Dafny)
+  0x80,     // First non-ASCII codepoint (and hence first with two bytes in UTF-8)
+  0xFF,     // Last codepoint that could fit into a single byte
+  0x100,    // First codepoint that can't fit into a single byte
+  0xD7FF,   // Last codepoint before the surrogate range
+  0xE000,   // First codepoint after the surrogate range
+  0x1F680,  // Typical non-BMP codepoint (🚀)
+  0x10FFFF  // Maximum value
+];
+
+// First casted to characters from integers.
+// This is the simplest and most likely to be correct, and used as the baseline.
+const AllCases := 
+  seq(|AllCasesAsCodePoints|, i requires 0 <= i < |AllCasesAsCodePoints| => AllCasesAsCodePoints[i] as char)
+
+const AlternateForms: seq<seq<char>> := [
+  // As character literals with escapes
+  ['\0', '\t', '\n', '\r', '\"', '\'', '\U{44}', '\\', '\U{80}', '\U{FF}', '\U{100}', '\U{D7FF}', '\U{E000}', '\U{1F680}', '\U{10FFFF}'],
+  // As verbatim character literals where reasonable, or using a \U escape where not
+  ['\U{0}', '\U{9}', '\U{A}', '\U{D}', '\U{22}', '\U{27}', 'D', '\U{5c}', '', 'ÿ', 'Ā', '\U{D7FF}', '\U{E000}', '🚀', '\U{10FFFF}'],
+  // In a string literal with escapes
+  "\0\t\n\r\"\'\U{44}\\\U{80}\U{FF}\U{100}\U{D7FF}\U{E000}\U{1F680}\U{10FFFF}",
+  // In a string literal without escapes where reasonable
+  "\U{0}\U{9}\U{A}\U{D}\U{22}\U{27}D\U{5c}ÿĀ\U{D7FF}\U{E000}🚀\U{10FFFF}"
+]
+
+method AllCharCasesTest() {
+  // Boy a foreach would be really nice right about now... \U{1F604}
+  for caseIndex := 0 to |AllCases| {
+    var thisCase := AllCases[caseIndex];
+    for formIndex := 0 to |AlternateForms| {
+      expect thisCase == AlternateForms[formIndex][caseIndex];
+      expect !(thisCase != AlternateForms[formIndex][caseIndex]);
+      
+      expect AlternateForms[formIndex][caseIndex] == thisCase;
+      expect !(AlternateForms[formIndex][caseIndex] != thisCase);
+
+      CastChar(thisCase);
+    }
+  }
+
+  // Comparisons - this is why the list of cases is in ascending order
+  for i := 0 to |AllCases| {
+    var left := AllCases[i];
+    for j := 0 to |AllCases| {
+      var right := AllCases[j];
+      if i < j {
+        expect left < right;
+        expect left <= right;
+        expect !(left == right);
+        expect left != right;
+        expect !(left > right);
+        expect !(left >= right);
+      } else if i == j {
+        expect !(left < right);
+        expect left <= right;
+        expect left == right;
+        expect !(left != right);
+        expect !(left > right);
+        expect left >= right;
+      } else {
+        expect !(left < right);
+        expect !(left <= right);
+        expect !(left == right);
+        expect left != right;
+        expect left > right;
+        expect left >= right;
+      }
+    }
+  }
+}
+
 // WARNING: Do not do this in real code!
 // It's a great example of what NOT to do when working with Unicode,
 // since the concept of upper/lower case is culture-specific.
@@ -40,6 +120,7 @@ datatype Option<T> = Some(value: T) | None
 
 datatype StringOption = SomeString(value: string) | NoString
 
+// Not including any non-printable characters in this one
 const stringThatNeedsEscaping := "D\0\r\n\\\"\'\U{1F60E}"
 
 method Main(args: seq<string>) {
@@ -69,11 +150,10 @@ method Main(args: seq<string>) {
 
   var tupleOfString := (stringThatNeedsEscaping, 42);
   print tupleOfString, "\n";
-
+  
+  AllCharCasesTest();
   CharPrinting();
-  CharCasting();
-  CharComparisons();
-  AllCharsTest();
+  CharQuantification();
 }
 
 method CharPrinting() {
@@ -87,6 +167,9 @@ method CharPrinting() {
   }
 }
 
+
+// Used to ensure characters can be passing in and out of generic code
+// (which is a real challenge in Java for example)
 method Print<T>(t: T) returns (r: T) {
   print t, "\n";
   return t;
@@ -96,14 +179,6 @@ method AssertAndExpect(p: bool)
   requires p
 {
   expect p;
-}
-
-method CharCasting() {
-  // TODO: more edge cases for UTF-8/16
-  var chars := "\0azAZ\U{10FFFF}";
-  for i := 0 to |chars| {
-    CastChar(chars[i]);
-  }
 }
 
 method CastChar(c: char) {
@@ -127,6 +202,8 @@ method CastChar(c: char) {
   AssertAndExpect(asInt32 as char == c);
   var asInt64 := c as int64;
   AssertAndExpect(asInt64 as char == c);
+  var asInt := c as int;
+  AssertAndExpect(asInt as char == c);
 }
 
 method CharComparisons() {
@@ -145,7 +222,7 @@ method CharComparisons() {
   AssertAndExpect('￮' < '𝄞');
 }
 
-method AllCharsTest() {
+method CharQuantification() {
   ghost var allChars := set c: char {:trigger Identity(c)} | true :: Identity(c);
   ghost var allCodePoints := (set cp: int {:trigger Identity(cp)} | 0 <= cp < 0xD800 :: Identity(cp as char))
                      + (set cp: int {:trigger Identity(cp)} | 0xE000 <= cp < 0x11_0000 :: Identity(cp as char));

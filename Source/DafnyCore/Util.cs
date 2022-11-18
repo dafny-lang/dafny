@@ -362,9 +362,9 @@ namespace Microsoft.Dafny {
                 i += 6;
                 break;
               case 'U':
-                var closeBracketIndex = p.IndexOf('}', i + 2);
-                yield return p[i..(closeBracketIndex + 1)];
-                i = closeBracketIndex + 2;
+                var escapeEnd = p.IndexOf('}', i + 2) + 1;
+                yield return p[i..escapeEnd];
+                i = escapeEnd;
                 continue;
               default:
                 yield return p[i..(i + 2)];
