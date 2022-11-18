@@ -1326,9 +1326,9 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected string TranslateEscapes(string s) {
-      s = Util.UnicodeEscapesToLowercase(s);
-      
       s = Util.ReplaceNullEscapesWithCharacterEscapes(s);
+      
+      s = Util.UnicodeEscapesToLowercase(s);
       
       return s;
     }
@@ -1849,7 +1849,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(", ");
       TrExpr(expr.Initializer, wr, inLetExprBody, wStmts);
       wr.Write(")");
-      if (fromType.Result.IsCharType) {
+      if (fromType.Result.IsCharType && !UnicodeChars) {
         wr.Write(".join('')");
       }
     }

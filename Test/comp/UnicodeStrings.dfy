@@ -135,9 +135,12 @@ function method MapToInt32(s: string): seq<int32> {
 method Main(args: seq<string>) {
   AllCharCasesTest();
   CharQuantification();
-  CharPrinting();
   StringPrinting();
+  CharPrinting();
 }
+
+// Not including any non-printable characters in this one
+const stringThatNeedsEscaping := "D\0\r\n\\\"\'\U{1F60E}";
 
 method CharPrinting() {
   var chars := stringThatNeedsEscaping;
@@ -186,9 +189,6 @@ method StringPrinting() {
   var mightBeString := Some(trickyString);
   print mightBeString, "\n";
   print mightBeString.value, "\n";
-
-  // Not including any non-printable characters in this one
-  var stringThatNeedsEscaping := "D\0\r\n\\\"\'\U{1F60E}";
 
   // Note that the string is printed as a string, but with double quotes and escaping
   var definitelyString := SomeString(stringThatNeedsEscaping);

@@ -1211,13 +1211,11 @@ namespace Microsoft.Dafny.Compilers {
         sep = ", ";
       }
 
-      TypeParameter elementTypeParameter = new TypeParameter(Token.NoToken, "T", TypeParameter.TPVarianceSyntax.Covariant_Permissive,
-        new TypeParameter.TypeParameterCharacteristics());
-      Type elementType = new UserDefinedType(Token.NoToken, elementTypeParameter);
       foreach (Expression e in elements) {
         wr.Write(sep);
-        wr = EmitCoercionIfNecessary(e.Type, elementType, Token.NoToken, wr);
-        TrExpr(e, wr, inLetExprBody, wStmts);
+        var elementWriter = wr.Fork();
+        elementWriter = EmitCoercionIfNecessary(e.Type, NativeObjectType, Token.NoToken, elementWriter);
+        TrExpr(e, elementWriter, inLetExprBody, wStmts);
         sep = ", ";
       }
       wr.Write(")");
