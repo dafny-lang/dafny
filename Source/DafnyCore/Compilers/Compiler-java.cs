@@ -3752,7 +3752,7 @@ namespace Microsoft.Dafny.Compilers {
       return false;
     }
 
-    protected override Type TypeForCoercionFromTypeParameter(Type type) {
+    protected override Type TypeForCoercion(Type type) {
       return null;
     }
 
