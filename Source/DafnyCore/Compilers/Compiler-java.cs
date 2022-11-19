@@ -1010,6 +1010,19 @@ namespace Microsoft.Dafny.Compilers {
       s = Util.ReplaceNullEscapesWithCharacterEscapes(s);
 
       s = Util.UnicodeEscapesToUtf16Escapes(s);
+      
+      // Java \u escapes are translated before parsing, so we need to convert to escapes
+      // that aren't for characters that will mess up paring the string or character literal.
+      s = Util.ReplaceTokensWithEscapes(s, Util.Utf16Escape, match => {
+        return match.Value switch {
+          "\\u000a" => "\\n",
+          "\\u000d" => "\\r",
+          "\\u0022" => "\\\"",
+          "\\u0027" => "\\\'",
+          "\\u005c" => "\\\\",
+          _ => match.Value
+        };
+      });
 
       return s;
     }
@@ -1168,13 +1181,15 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void DeclareLocalVar(string name, Type /*?*/ type, IToken /*?*/ tok, bool leaveRoomForRhs,
       string /*?*/ rhs, ConcreteSyntaxTree wr) {
-      if (type != null && type.AsArrayType != null) {
+      // Note that type can be null to represent the native object type.
+      // See comment on NativeObjectType.
+      if (type is { AsArrayType: { } }) {
         arrays.Add(type.AsArrayType.Dims);
       }
-      if (type != null && type.IsDatatype && type.AsDatatype is TupleTypeDecl tupleDecl) {
+      if (type is { IsDatatype: true, AsDatatype: TupleTypeDecl tupleDecl }) {
         tuples.Add(tupleDecl.NonGhostDims);
       }
-      if (type != null && type.IsTypeParameter) {
+      if (type is { IsTypeParameter: true }) {
         EmitSuppression(wr);
       }
       wr.Write("{0} {1}", type != null ? TypeName(type, wr, tok) : "Object", name);
@@ -1182,7 +1197,7 @@ namespace Microsoft.Dafny.Compilers {
         Contract.Assert(rhs == null); // follows from precondition
       } else if (rhs != null) {
         wr.WriteLine($" = {rhs};");
-      } else if (type != null && type.IsIntegerType) {
+      } else if (type is { IsIntegerType: true }) {
         wr.WriteLine(" = java.math.BigInteger.ZERO;");
       } else {
         wr.WriteLine(";");

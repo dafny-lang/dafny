@@ -240,14 +240,15 @@ namespace Microsoft.Dafny {
       return sb.ToString();
     }
 
-    private static readonly Regex UnicodeEscape = new Regex(@"\\U\{([0-9a-fA-F]+)\}");
+    public static readonly Regex Utf16Escape = new Regex(@"\\u([0-9a-fA-F]{4})");
+    public static readonly Regex UnicodeEscape = new Regex(@"\\U\{([0-9a-fA-F]+)\}");
     private static readonly Regex NullEscape = new Regex(@"\\0");
 
     private static string ToUtf16Escape(char c) {
       return $"\\u{(int)c:x4}";
     }
 
-    private static string ReplaceTokensWithEscapes(string s, Regex pattern, MatchEvaluator evaluator) {
+    public static string ReplaceTokensWithEscapes(string s, Regex pattern, MatchEvaluator evaluator) {
       return string.Join("",
         TokensWithEscapes(s, false)
           .Select(token => pattern.Replace(token, evaluator)));
