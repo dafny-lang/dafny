@@ -15075,8 +15075,11 @@ namespace Microsoft.Dafny {
         ResolveExpression(e.Index, resolutionContext);
         ResolveExpression(e.Value, resolutionContext);
         AddXConstraint(expr.tok, "SeqUpdatable", e.Seq.Type, e.Index, e.Value, "update requires a sequence, map, or multiset (got {0})");
-        expr.Type = e.Seq.Type;
-
+        expr.Type = new InferredTypeProxy(); // drop type constraints
+        ConstrainSubtypeRelation(
+          super: expr.Type, sub: e.Seq.Type, // expr.Type generalizes e.Seq.Type by dropping constraints
+          exprForToken: expr,
+          msg: "Update expression used with type '{0}'", e.Seq.Type);
       } else if (expr is DatatypeUpdateExpr) {
         var e = (DatatypeUpdateExpr)expr;
         ResolveExpression(e.Root, resolutionContext);
