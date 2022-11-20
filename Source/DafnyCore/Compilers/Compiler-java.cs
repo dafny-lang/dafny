@@ -227,7 +227,12 @@ namespace Microsoft.Dafny.Compilers {
         // where a cast is necessary, for the moment we just always cast to the
         // LHS type via Object, which is redundant 99% of the time but not
         // harmful.
-        wr.Write($"({TypeName(lhsTypes[i], wr, Token.NoToken)}) (Object) ");
+        if (lhsTypes[i] == null) {
+          wr.Write($"(Object) ");
+        } else {
+          wr.Write($"({TypeName(lhsTypes[i], wr, Token.NoToken)}) (Object) ");
+        }
+
         if (lhsNames.Count == 1) {
           wr.Write(outCollector);
         } else {
@@ -3729,14 +3734,18 @@ namespace Microsoft.Dafny.Compilers {
     protected override bool NeedsCastFromTypeParameter => true;
 
     protected override bool IsCoercionNecessary(Type/*?*/ from, Type/*?*/ to) {
+      if (to == NativeObjectType) {
+        return false;
+      }
+      if (from == NativeObjectType) {
+        return true;
+      }
+      
       if (UnicodeChars && ((IsObjectType(from) && to.IsCharType) || (from.IsCharType && IsObjectType(to)))) {
         // Need to box from int to CodePoint, or unbox from CodePoint to int
         return true;
       }
-      
-      if (from == null || to == null) {
-        return false;
-      }
+
       if (from.IsArrayType && to.IsArrayType) {
         var dims = from.AsArrayType.Dims;
         Contract.Assert(dims == to.AsArrayType.Dims);
@@ -3753,7 +3762,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override Type TypeForCoercion(Type type) {
-      return null;
+      return NativeObjectType;
     }
 
     // We use null to represent java.lang.Object, as that's a decent
@@ -3787,11 +3796,7 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
       
-      if (from == null || to == null) {
-        return wr;
-      }
-
-      if (from.IsArrayType && to.IsArrayType && IsCoercionNecessary(from, to)) {
+      if (IsCoercionNecessary(from, to)) {
         return EmitDowncast(from, to, tok, wr);
       }
 
