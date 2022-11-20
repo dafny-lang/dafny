@@ -108,6 +108,9 @@ namespace Microsoft.Dafny.Compilers {
         wr.WriteLine("#include \"{0}\"", header);
       }
 
+      // For "..."s string literals, to avoid interpreting /0 as the C end of the string, cstring-style
+      wr.WriteLine("using namespace std::literals;");
+
       var filenameNoExtension = program.Name.Substring(0, program.Name.Length - 4);
       var headerFileName = String.Format("{0}.h", filenameNoExtension);
       wr.WriteLine("#include \"{0}\"", headerFileName);
@@ -1504,6 +1507,11 @@ namespace Microsoft.Dafny.Compilers {
         }
         wr.Write("\"");
       }
+      
+      // Use the postfix "..."s operator (operator""s) to convert to std::string values
+      // without interpreting /0 as a terminator:
+      // https://en.cppreference.com/w/cpp/string/basic_string/operator%22%22s
+      wr.Write("s");
     }
 
     private static string TranslateEscapes(string s) {
