@@ -1484,6 +1484,9 @@ it must be allocated with the `new` keyword, but for now
 we will only work with methods that take a previously allocated array as an
 argument. (See the tutorial on memory for more on allocation.)
 
+If a variable's value might be null or an array, then its type must be
+`array?<...>` instead of `array<...>` (which has only non-null values).
+
 One of the most basic things we might want to do with an
 array is search through it for a particular key, and return the index of a
 place where we can find the key if it exists. We have two outcomes for a
