@@ -1472,8 +1472,11 @@ So far we have only considered a handful of values at a time in local
 variables. Now we turn our attention to arrays of data. Arrays are a built-in
 part of the language, with their own type, `array<T>`,
 where `T` is another type. For now we only consider
-arrays of integers, `array<int>`. Arrays can be `null`, and have a
-built-in length field, `a.Length`.
+arrays of integers, with type `array<int>`;
+the companion type `array?<T>` is the type of possibly-null arrays.
+That is, `array?<T>` includes all references to one-dimensional arrays of
+element type `T` (i.e., `array<T>`) and the null reference.
+Arrays have a built-in length field, `a.Length`.
 Element access uses the standard bracket syntax and are indexed from
 zero, so `a[3]` is preceded by the 3 elements `a[0]`,
 `a[1]`, and `a[2]`, in that order.
@@ -1483,9 +1486,6 @@ at verification time, no runtime checks need to be made. To create a new array,
 it must be allocated with the `new` keyword, but for now
 we will only work with methods that take a previously allocated array as an
 argument. (See the tutorial on memory for more on allocation.)
-
-If a variable's value might be null or an array, then its type must be
-`array?<...>` instead of `array<...>` (which has only non-null values).
 
 One of the most basic things we might want to do with an
 array is search through it for a particular key, and return the index of a
