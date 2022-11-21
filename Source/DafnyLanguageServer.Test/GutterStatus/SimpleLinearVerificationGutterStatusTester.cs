@@ -197,4 +197,15 @@ method Foo() ensures false { } ";
  .  |  |  | :  true
  .  |  |  | :}");
   }
+
+
+  [TestMethod]
+  public async Task EnsuresBodyVerifiedWithAssumptionsAreCorrectlyHighlighted() {
+    await VerifyTrace(@"
+ .  S  S  |? I? I? $?[S][ ]:method Test()
+ .  S  |  |? I? I? $?[=][=]:  ensures 1 == 2;
+ .  S  S  |? I? I? $?[=][=]:{
+ .  S  S  =? -? I? $?[S][ ]:  assume false; //Next:
+ .  S  S  |? I? I? $?[S][ ]:}");
+  }
 }

@@ -46,7 +46,13 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
     { LineVerificationStatus.AssertionVerifiedInErrorContextObsolete, "[o]" },
     { LineVerificationStatus.AssertionVerifiedInErrorContextVerifying, "[Q]" },
     { LineVerificationStatus.AssertionVerifiedInErrorContext, "[O]" },
-    { LineVerificationStatus.ResolutionError, @"/!\" }
+    { LineVerificationStatus.ResolutionError, @"/!\" },
+    { LineVerificationStatus.VerifiedWithAssumption, " |?" },
+    { LineVerificationStatus.VerifiedWithAssumptionObsolete, " I?" },
+    { LineVerificationStatus.VerifiedWithAssumptionVerifying, " $?" },
+    { LineVerificationStatus.AssumptionInVerifiedContext, " =?" },
+    { LineVerificationStatus.AssumptionInVerifiedContextObsolete, " -?" },
+    { LineVerificationStatus.AssumptionInVerifiedContextVerifying, " ~?" },
   };
 
   private static bool IsNotIndicatingProgress(LineVerificationStatus status) {
@@ -59,7 +65,9 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
            status != LineVerificationStatus.ErrorContextObsolete &&
            status != LineVerificationStatus.ErrorContextVerifying &&
            status != LineVerificationStatus.AssertionVerifiedInErrorContextObsolete &&
-           status != LineVerificationStatus.AssertionVerifiedInErrorContextVerifying;
+           status != LineVerificationStatus.AssertionVerifiedInErrorContextVerifying &&
+           status != LineVerificationStatus.VerifiedWithAssumptionObsolete &&
+           status != LineVerificationStatus.VerifiedWithAssumptionVerifying;
   }
   public static string RenderTrace(List<LineVerificationStatus[]> statusesTrace, string code) {
     var codeLines = new Regex("\r?\n").Split(code);

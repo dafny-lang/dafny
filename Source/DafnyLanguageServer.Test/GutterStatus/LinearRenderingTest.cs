@@ -51,6 +51,22 @@ public class LinearRenderingTest {
             : LineVerificationStatus.VerifiedVerifying,
         _ => throw new ArgumentOutOfRangeException()
       },
+      // If a node is marked with VerifiedWithAssumption
+      GutterVerificationStatus.VerifiedWithAssumption => currentStatus switch {
+        CurrentStatus.Current => contextHasErrors && isSingleLine
+                                 || !contextHasErrors && contextIsPending && !isSingleLine
+            ? LineVerificationStatus.Nothing
+            : LineVerificationStatus.VerifiedWithAssumption,
+        CurrentStatus.Obsolete => contextHasErrors && isSingleLine
+         || !contextHasErrors && contextIsPending && !isSingleLine
+          ? LineVerificationStatus.Scheduled
+            : LineVerificationStatus.VerifiedWithAssumptionObsolete,
+        CurrentStatus.Verifying => contextHasErrors && isSingleLine ||
+            !contextHasErrors && (contextIsPending && !isSingleLine)
+            ? LineVerificationStatus.Verifying
+            : LineVerificationStatus.VerifiedWithAssumptionVerifying,
+        _ => throw new ArgumentOutOfRangeException()
+      },
       // We don't display inconclusive on the gutter (user should focus on errors),
       // We display an error range instead
       GutterVerificationStatus.Inconclusive => currentStatus switch {
@@ -83,6 +99,8 @@ public class LinearRenderingTest {
               Assert.AreEqual(
                 RenderLineVerificationStatusOriginal(isSingleLine, contextHasError, contextIsPending, currentStatus, verificationStatus),
                 VerificationTree.RenderLineVerificationStatus(isSingleLine, contextHasError, contextIsPending, currentStatus, verificationStatus)
+                , "verificationStatus={0}, currentStatus={1} isSingleLine={2}, contextHasError={3}, contextIsPending={4}",
+                  verificationStatus, currentStatus, isSingleLine, contextHasError, contextIsPending
                 );
               contextIsPending = !contextIsPending;
             } while (!contextIsPending);

@@ -11,6 +11,7 @@ using Microsoft.Dafny.LanguageServer.Language;
 using OmniSharp.Extensions.JsonRpc;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Constant = Microsoft.Boogie.Constant;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
@@ -97,6 +98,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
   public enum GutterVerificationStatus {
     Nothing = 0,
     Verified = 200,
+    VerifiedWithAssumption = 250,
     Inconclusive = 270,
     Error = 400
   }
@@ -119,6 +121,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     VerifiedVerifying = 202,
     // Also applicable for empty spaces if they are not surrounded by errors.
     Verified = 200,
+    // For contexts where there is at least one Assume statement and that were verified.
+    VerifiedWithAssumptionObsolete = 251,
+    VerifiedWithAssumptionVerifying = 252,
+    VerifiedWithAssumption = 250,
+    // For single assumptions that were identified in a method. Will show up only in verified contexts
+    AssumptionInVerifiedContextObsolete = 281,
+    AssumptionInVerifiedContextVerifying = 282,
+    AssumptionInVerifiedContext = 280,
     // For trees containing children with errors (e.g. functions, methods, fields, subset types)
     ErrorContextObsolete = 301,
     ErrorContextVerifying = 302,
@@ -175,7 +185,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     public string PrefixedDisplayName => Kind + " " + DisplayName;
 
     // Overriden by checking children if there are some
-    public GutterVerificationStatus StatusVerification { get; set; } = GutterVerificationStatus.Nothing;
+    public virtual GutterVerificationStatus StatusVerification { get; set; } = GutterVerificationStatus.Nothing;
 
     // Overriden by checking children if there are some
     public CurrentStatus StatusCurrent { get; set; } = CurrentStatus.Obsolete;
@@ -282,6 +292,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
             : contextIsPending && !isFinalError
               ? LineVerificationStatus.Nothing
               : LineVerificationStatus.Verified,
+        GutterVerificationStatus.VerifiedWithAssumption =>
+          contextHasErrors
+            ? isFinalError // Sub-implementations that are verified do not count
+              ? LineVerificationStatus.Nothing
+              : LineVerificationStatus.VerifiedWithAssumption
+            : contextIsPending && !isFinalError
+              ? LineVerificationStatus.Nothing
+              : LineVerificationStatus.VerifiedWithAssumption,
         // We don't display inconclusive on the gutter (user should focus on errors),
         // We display an error range instead
         GutterVerificationStatus.Inconclusive =>
@@ -381,6 +399,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     public ImmutableDictionary<AssertionBatchIndex, AssertionBatchVerificationTree> AssertionBatches { get; private set; } =
       new Dictionary<AssertionBatchIndex, AssertionBatchVerificationTree>().ToImmutableDictionary();
 
+    // At most one of TopLevelDecl and MemberDecl is non-null
+    public INode node;
+    public bool ByMethodBody = false; // true only if MemberDecl != null
+
     public override VerificationTree GetCopyForNotification() {
       if (Finished) {
         return this;// Won't be modified anymore, no need to duplicate
@@ -435,6 +457,66 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     public int LongestAssertionBatchTime => AssertionBatches.Any() ? AssertionBatchTimes.Max() : 0;
 
     public int LongestAssertionBatchTimeIndex => LongestAssertionBatchTime != 0 ? AssertionBatchTimes.IndexOf(LongestAssertionBatchTime) : -1;
+
+    public override GutterVerificationStatus StatusVerification {
+      get {
+        var baseStatus = base.StatusVerification;
+        if (AssumptionsLines.Any() && baseStatus == GutterVerificationStatus.Verified) {
+          return GutterVerificationStatus.VerifiedWithAssumption;
+        }
+        return baseStatus;
+      }
+      set => base.StatusVerification = value;
+    }
+
+    private IEnumerable<int>? cachedAssumptionsLines = null;
+
+    private IEnumerable<int> AssumptionsLines {
+      get {
+        if (cachedAssumptionsLines != null) {
+          return cachedAssumptionsLines;
+        }
+        IEnumerable<int> CollectAssumeNotTrue(INode n) {
+          if (n is AssumeStmt { Expr: LiteralExpr { Value: not true } } assumeStmt) {
+            return new List<int> { assumeStmt.Tok.line - 1 };
+          }
+
+          return n == null ? Enumerable.Empty<int>() : n.Children.SelectMany(CollectAssumeNotTrue);
+        }
+
+        if (node is Function functionDecl) {
+          if (ByMethodBody) {
+            cachedAssumptionsLines = CollectAssumeNotTrue(functionDecl.ByMethodDecl);
+          } else {
+            cachedAssumptionsLines = functionDecl.Children.Where(child => child != functionDecl.ByMethodDecl).SelectMany(CollectAssumeNotTrue);
+          }
+        } else {
+          cachedAssumptionsLines = CollectAssumeNotTrue(node);
+        }
+
+        return cachedAssumptionsLines;
+      }
+    }
+
+    public override void RenderInto(LineVerificationStatus[] perLineDiagnostics, bool contextHasErrors = false,
+      bool contextIsPending = false, Range? otherRange = null, Range? contextRange = null) {
+      base.RenderInto(perLineDiagnostics, contextHasErrors, contextIsPending, otherRange, contextRange);
+      if (StatusVerification == GutterVerificationStatus.VerifiedWithAssumption) {
+        // Make all assumptions visible
+        foreach (var assumedLine in AssumptionsLines) {
+          LineVerificationStatus newStatus =
+              StatusCurrent switch {
+                CurrentStatus.Current => LineVerificationStatus.AssumptionInVerifiedContext,
+                CurrentStatus.Obsolete => LineVerificationStatus.AssumptionInVerifiedContextObsolete,
+                CurrentStatus.Verifying => LineVerificationStatus.AssumptionInVerifiedContextVerifying,
+                _ => LineVerificationStatus.Nothing
+              };
+          if (assumedLine < perLineDiagnostics.Length && perLineDiagnostics[assumedLine] < newStatus) {
+            perLineDiagnostics[assumedLine] = newStatus;
+          }
+        }
+      }
+    }
   }
 
   // Invariant: There is at least 1 child for every assertion batch
