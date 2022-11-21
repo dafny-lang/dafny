@@ -1607,19 +1607,20 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
         ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      wr = EmitCoercionIfNecessary(from: NativeObjectType, to: source.Type.AsCollectionType.TypeArgs[0], tok: source.tok, wr: wr);
-
       // Taken from C# compiler, assuming source is a DafnySequence type.
       if (source.Type.AsMultiSetType != null) {
+        wr = EmitCoercionIfNecessary(from: NativeObjectType, to: source.Type.AsMultiSetType.Arg, tok: source.tok, wr: wr);
         wr.Write($"{DafnyMultiSetClass}.<{BoxedTypeName(source.Type.AsMultiSetType.Arg, wr, Token.NoToken)}>multiplicity(");
         TrParenExpr(source, wr, inLetExprBody, wStmts);
         wr.Write(", ");
         TrExpr(index, wr, inLetExprBody, wStmts);
         wr.Write(")");
       } else if (source.Type.AsMapType != null) {
+        wr = EmitCoercionIfNecessary(from: NativeObjectType, to: source.Type.AsMapType.Range, tok: source.tok, wr: wr);
         TrParenExpr(source, wr, inLetExprBody, wStmts);
         TrParenExpr(".get", index, wr, inLetExprBody, wStmts);
       } else {
+        wr = EmitCoercionIfNecessary(from: NativeObjectType, to: source.Type.AsCollectionType.Arg, tok: source.tok, wr: wr);
         TrParenExpr(source, wr, inLetExprBody, wStmts);
         wr.Write(".select");
         TrParenExprAsInt(index, wr, inLetExprBody, wStmts);
