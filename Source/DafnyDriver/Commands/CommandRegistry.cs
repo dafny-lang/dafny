@@ -30,10 +30,10 @@ static class CommandRegistry {
     AddCommand(new RunCommand());
     AddCommand(new BuildCommand());
     AddCommand(new TranslateCommand());
+    AddCommand(new ServerCommand());
     AddCommand(new TestCommand());
     AddCommand(new GenerateTestsCommand());
     AddCommand(new DeadCodeCommand());
-    AddCommand(new ServerCommand());
 
     FileArgument = new Argument<FileInfo>("file", "input file");
     FileArgument.AddValidator(ValidateFileArgument());

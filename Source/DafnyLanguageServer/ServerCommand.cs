@@ -15,6 +15,7 @@ public class ServerCommand : ICommandSpec {
     LineVerificationStatusOption.Instance,
     VerifySnapshotsOption.Instance,
     VerificationTimeLimitOption.Instance,
+    EnforceDeterminismOption.Instance,
   }.Concat(ICommandSpec.CommonOptions);
 
   public Command Create() {

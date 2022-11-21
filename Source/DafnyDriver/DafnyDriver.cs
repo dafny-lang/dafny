@@ -109,12 +109,6 @@ namespace Microsoft.Dafny {
       var cliArgumentsResult = ProcessCommandLineArguments(args, out var dafnyOptions, out var dafnyFiles, out var otherFiles);
       DafnyOptions.Install(dafnyOptions);
 
-      if (dafnyOptions.RunServer) {
-#pragma warning disable VSTHRD002
-        LanguageServer.Server.Start(dafnyOptions).Wait();
-#pragma warning restore VSTHRD002
-        return 0;
-      }
       ExitValue exitValue;
 
 
@@ -138,6 +132,13 @@ namespace Microsoft.Dafny {
           throw new ArgumentOutOfRangeException();
       }
 
+      if (dafnyOptions.RunServer) {
+#pragma warning disable VSTHRD002
+        LanguageServer.Server.Start(dafnyOptions).Wait();
+#pragma warning restore VSTHRD002
+        return 0;
+      }
+      
       DafnyOptions.O.XmlSink?.Close();
 
       if (DafnyOptions.O.VerificationLoggerConfigs.Any()) {

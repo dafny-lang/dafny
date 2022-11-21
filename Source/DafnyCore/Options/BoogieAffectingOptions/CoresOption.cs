@@ -1,8 +1,10 @@
+using System;
+
 namespace Microsoft.Dafny;
 
 public class CoresOption : IntegerOption {
   public static readonly CoresOption Instance = new();
-  public override object DefaultValue => 1;
+  public override object DefaultValue => Math.Max(1, Environment.ProcessorCount / 2);
   public override string LongName => "cores";
   public override string ShortName => null;
   public override string ArgumentName => "count";
@@ -12,9 +14,6 @@ public class CoresOption : IntegerOption {
   public override string PostProcess(DafnyOptions options) {
     options.VcsCores = Get(options);
 
-    // return options.VcsCores == 0
-    //   ? Math.Max(1, Environment.ProcessorCount / 2)
-    //   : Convert.ToInt32(options.VcsCores);
     return null;
   }
 }
