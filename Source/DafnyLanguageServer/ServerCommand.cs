@@ -61,7 +61,7 @@ public class LineVerificationStatusOption : BooleanOption {
 Send notifications about the verification status of each line in the program.
 ".TrimStart();
 
-  public override object DefaultValue => true; // TODO change default? effects hover and gutter tests.
+  public override object DefaultValue => false;
 
   public override string PostProcess(DafnyOptions options) {
     return null;

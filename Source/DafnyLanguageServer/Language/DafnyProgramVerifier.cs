@@ -31,7 +31,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       //      A dash means write to the textwriter instead of a file.
       // https://github.com/boogie-org/boogie/blob/b03dd2e4d5170757006eef94cbb07739ba50dddb/Source/VCGeneration/Couterexample.cs#L217
       options.ModelViewFile = "-";
-      BatchObserver = new AssertionBatchCompletedObserver(logger, LineVerificationStatusOption.Instance.Get(options));
+      BatchObserver = new AssertionBatchCompletedObserver(logger, true);
 
       options.Printer = BatchObserver;
       engine = new ExecutionEngine(options, cache);

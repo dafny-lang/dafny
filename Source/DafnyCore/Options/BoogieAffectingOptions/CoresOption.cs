@@ -13,7 +13,6 @@ public class CoresOption : IntegerOption {
 
   public override string PostProcess(DafnyOptions options) {
     options.VcsCores = Get(options);
-
     return null;
   }
 }
