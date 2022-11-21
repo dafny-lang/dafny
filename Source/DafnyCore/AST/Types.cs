@@ -1782,7 +1782,7 @@ public abstract class NonProxyType : Type {
 }
 
 public abstract class BasicType : NonProxyType {
-  public override IEnumerable<INode> Children => new List<INode>();
+  public override IEnumerable<INode> Children => Enumerable.Empty<INode>();
   public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl>/*?*/ visitedDatatypes) {
     return false;
   }
@@ -2615,7 +2615,7 @@ public class UserDefinedType : NonProxyType {
 }
 
 public abstract class TypeProxy : Type {
-  public override IEnumerable<INode> Children => new List<INode>();
+  public override IEnumerable<INode> Children => Enumerable.Empty<INode>();
   [FilledInDuringResolution] public Type T;
   public readonly List<TypeConstraint> SupertypeConstraints = new List<TypeConstraint>();
   public readonly List<TypeConstraint> SubtypeConstraints = new List<TypeConstraint>();
@@ -2810,7 +2810,7 @@ public class InferredTypeProxy : TypeProxy {
 /// This proxy stands for any type, but it originates from an instantiated type parameter.
 /// </summary>
 public class ParamTypeProxy : TypeProxy {
-  public override IEnumerable<INode> Children => new List<INode>();
+  public override IEnumerable<INode> Children => Enumerable.Empty<INode>();
   public TypeParameter orig;
   [ContractInvariantMethod]
   void ObjectInvariant() {
