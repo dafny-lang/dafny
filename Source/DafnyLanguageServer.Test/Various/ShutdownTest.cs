@@ -88,15 +88,16 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Fail("Language server should have killed itself if the parent is gone.");
     }
 
+    // TODO test need to move to CLI level.
     private static async Task<Process> StartLanguageServerRunnerProcess() {
-      var languageServerBinary = Path.Join(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "DafnyLanguageServer");
+      var languageServerBinary = Path.Join(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "Dafny");
       var languageServerRunnerPath = await CreateDotNetDllThatStartsGivenFilepath(languageServerBinary.Replace(@"\", @"\\"));
 
-      var processInfo = new ProcessStartInfo("dotnet", languageServerRunnerPath) {
+      var processInfo = new ProcessStartInfo("dotnet", languageServerRunnerPath + " server") {
         RedirectStandardOutput = true,
         RedirectStandardError = true,
         RedirectStandardInput = true,
-        UseShellExecute = false
+        UseShellExecute = false,
       };
       return Process.Start(processInfo)!;
     }
@@ -143,7 +144,8 @@ public class ShortLivedProcessStarter {{
       // Prevents keeping stdio open after the outer process closes. 
       RedirectStandardOutput = true,
       RedirectStandardError = true,
-      UseShellExecute = false
+      UseShellExecute = false,
+      Arguments = string.Join("" "", args)
     }};
     using var process = Process.Start(processInfo)!;
     await Console.Out.WriteLineAsync(process.Id.ToString());

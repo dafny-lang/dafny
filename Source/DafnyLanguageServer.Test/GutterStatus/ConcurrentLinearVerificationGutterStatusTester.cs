@@ -30,8 +30,6 @@ public class ConcurrentLinearVerificationGutterStatusTester : LinearVerification
 
   [TestInitialize]
   public override async Task SetUp(Action<DafnyOptions> modifyOptions) {
-    var dafnyOptions = new DafnyOptions();
-    modifyOptions(dafnyOptions);
     for (var i = 0; i < verificationStatusGutterReceivers.Length; i++) {
       verificationStatusGutterReceivers[i] = new();
     }
@@ -40,7 +38,7 @@ public class ConcurrentLinearVerificationGutterStatusTester : LinearVerification
       options
         .AddHandler(DafnyRequestNames.VerificationStatusGutter,
           NotificationHandler.For<VerificationStatusGutter>(NotifyAllVerificationGutterStatusReceivers))
-    , options => options.Services.AddSingleton(dafnyOptions));
+    , null, modifyOptions);
   }
 
   [TestMethod]

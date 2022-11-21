@@ -11,8 +11,10 @@ using Microsoft.Extensions.DependencyInjection;
 using OmniSharpLanguageServer = OmniSharp.Extensions.LanguageServer.Server.LanguageServer;
 
 namespace Microsoft.Dafny.LanguageServer {
-  public class Program {
-    private static async Task Start(DafnyOptions dafnyOptions) {
+  public class Server {
+    public static async Task Start(DafnyOptions dafnyOptions) {
+      DafnyOptions.Install(dafnyOptions);
+
       var configuration = CreateConfiguration();
       InitializeLogger(configuration);
       try {

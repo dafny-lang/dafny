@@ -70,14 +70,10 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
 
   [TestInitialize]
   public virtual async Task SetUp(Action<DafnyOptions> modifyOptions) {
-    var dafnyOptions = new DafnyOptions();
-    modifyOptions(dafnyOptions);
     diagnosticsReceiver = new();
     verificationStatusReceiver = new();
     ghostnessReceiver = new();
-    client = await InitializeClient(InitialiseClientHandler, serverOptions => {
-      serverOptions.Services.AddSingleton(dafnyOptions);
-    });
+    client = await InitializeClient(InitialiseClientHandler, null, modifyOptions);
   }
 
   protected virtual void InitialiseClientHandler(LanguageClientOptions options) {

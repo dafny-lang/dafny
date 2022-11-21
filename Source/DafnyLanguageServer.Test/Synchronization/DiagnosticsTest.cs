@@ -248,9 +248,7 @@ method Multiply(x: int, y: int) returns (product: int)
     product := x + step;
   }
 }".TrimStart();
-      await SetUp(new Dictionary<string, string>() {
-        { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.Never) }
-      });
+      await SetUp(options => VerificationOption.Instance.Set(options, AutoVerification.Never));
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
@@ -331,9 +329,7 @@ method Multiply(x: int, y: int) returns (product: int)
     product := x + step;
   }
 }".TrimStart();
-      await SetUp(new Dictionary<string, string>() {
-        { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.Never) }
-      });
+      await SetUp(options => VerificationOption.Instance.Set(options, AutoVerification.Never));
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnosticsAfterOpening = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
@@ -391,9 +387,7 @@ method Multiply(x: int, y: int) returns (product: int)
     product := x + step;
   }
 }".TrimStart();
-      await SetUp(new Dictionary<string, string>() {
-        { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.Never) }
-      });
+      await SetUp(options => VerificationOption.Instance.Set(options, AutoVerification.Never));
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
@@ -567,9 +561,7 @@ method Multiply(x: int, y: int) returns (product: int)
     product := x + step;
   }
 }".TrimStart();
-      await SetUp(new Dictionary<string, string>() {
-        { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.OnSave) }
-      });
+      await SetUp(options => VerificationOption.Instance.Set(options, AutoVerification.OnSave));
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var changeDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
@@ -638,9 +630,7 @@ method t7() { assert false; }
 method t8() { assert false; }
 method t9() { assert false; }
 method t10() { assert false; }".TrimStart();
-      await SetUp(new Dictionary<string, string>() {
-        { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", "4" }
-      });
+      await SetUp(options => CoresOption.Instance.Set(options, 4));
       for (int i = 0; i < 10; i++) {
         diagnosticsReceiver.ClearHistory();
         var documentItem = CreateTestDocument(source, $"test_{i}.dfy");
@@ -693,9 +683,7 @@ module Parser {
     }
   }
 }".TrimStart();
-      await SetUp(new Dictionary<string, string>() {
-        { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", "1" }
-      });
+      await SetUp(options => CoresOption.Instance.Set(options, 1));
       diagnosticsReceiver.ClearHistory();
       var documentItem = CreateTestDocument(source, $"test1.dfy");
       client.OpenDocument(documentItem);
@@ -722,9 +710,7 @@ function method {:unroll 100} Ack(m: nat, n: nat): nat
 method test() {
   assert Ack(5, 5) == 0;
 }".TrimStart();
-      await SetUp(new Dictionary<string, string>() {
-        { $"{VerifierOptions.Section}:{nameof(VerifierOptions.TimeLimit)}", "1" }
-      });
+      await SetUp(options => VerificationTimeLimitOption.Instance.Set(options, 1));
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
       var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
@@ -823,9 +809,7 @@ method test()
   assert false;
 }
 ".TrimStart();
-      await SetUp(new Dictionary<string, string>() {
-        { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", "1" }
-      });
+      await SetUp(options => CoresOption.Instance.Set(options, 1));
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
       var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken.None, documentItem);
@@ -847,9 +831,7 @@ method test(x: int) {
   assert x != 3;
 }
 ".TrimStart();
-      await SetUp(new Dictionary<string, string>() {
-        { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", "1" }
-      });
+      await SetUp(options => CoresOption.Instance.Set(options, 1));
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
       var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken.None, documentItem);
@@ -870,9 +852,7 @@ method test2() {
   assert false;
 }
 ".TrimStart();
-      await SetUp(new Dictionary<string, string>() {
-        { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", "1" }
-      });
+      await SetUp(options => CoresOption.Instance.Set(options, 1));
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
       var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
@@ -907,9 +887,7 @@ method test() {
   assert false;
 }
 ".TrimStart() + SlowToVerify;
-      await SetUp(new Dictionary<string, string>() {
-        { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", "1" }
-      });
+      await SetUp(options => CoresOption.Instance.Set(options, 1));
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
       var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
@@ -942,9 +920,7 @@ method test2() {
   assert false;
 }
 ".TrimStart();
-      await SetUp(new Dictionary<string, string>() {
-        { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", "1" }
-      });
+      await SetUp(options => CoresOption.Instance.Set(options, 1));
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
       var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
@@ -982,9 +958,7 @@ method test()
   assert false;
 }
 ".TrimStart();
-      await SetUp(new Dictionary<string, string>() {
-        { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", "1" }
-      });
+      await SetUp(options => CoresOption.Instance.Set(options, 1));
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
       var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);

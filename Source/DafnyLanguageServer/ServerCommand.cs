@@ -22,11 +22,12 @@ public class ServerCommand : ICommandSpec {
   }
 
   public void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context) {
+    dafnyOptions.RunServer = true;
   }
 }
 
 public class VerificationOption : CommandLineOption<AutoVerification> {
-  public static readonly VerificationOption Instance = new ();
+  public static readonly VerificationOption Instance = new();
 
   public override object DefaultValue => AutoVerification.OnChange;
 
@@ -48,7 +49,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
 }
 
 public class LineVerificationStatusOption : BooleanOption {
-  public static readonly LineVerificationStatusOption Instance = new ();
+  public static readonly LineVerificationStatusOption Instance = new();
   public override string LongName => "show-line-verification-status";
 
   public override string Description => @"
@@ -62,7 +63,7 @@ Send notifications about the verification status of each line in the program.
 }
 
 public class GhostIndicatorsOption : BooleanOption {
-  public static readonly GhostIndicatorsOption Instance = new ();
+  public static readonly GhostIndicatorsOption Instance = new();
   public override string LongName => "show-ghostness";
   public override string Description => @"
 (experimental, API will change)
@@ -73,8 +74,8 @@ Send notifications that indicate which lines are ghost.".TrimStart();
 }
 
 public class VerifySnapshotsOption : NaturalNumberOption {
-  public static readonly VerifySnapshotsOption Instance = new ();
-  public override object DefaultValue => 0;
+  public static readonly VerifySnapshotsOption Instance = new();
+  public override object DefaultValue => 0U;
   public override string LongName => "cache-verification";
   public override string ArgumentName => "level";
 

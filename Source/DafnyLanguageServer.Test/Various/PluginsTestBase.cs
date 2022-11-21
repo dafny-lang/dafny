@@ -81,7 +81,7 @@ public abstract class PluginsTestBase : DafnyLanguageServerTestBase {
     DafnyOptions.O.Plugins = new List<Plugin>(DafnyOptions.DefaultPlugins);
   }
 
-  protected override IConfiguration CreateConfiguration() {
-    return new ConfigurationBuilder().AddCommandLine(CommandLineArgument).Build();
-  }
+  // protected override IConfiguration CreateConfiguration() {
+  //   return new ConfigurationBuilder().AddCommandLine(CommandLineArgument).Build();
+  // }
 }

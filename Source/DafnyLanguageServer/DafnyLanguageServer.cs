@@ -41,7 +41,7 @@ namespace Microsoft.Dafny.LanguageServer {
 
     private static Task InitializeAsync(ILanguageServer server, InitializeParams request, CancellationToken cancelRequestToken,
         Action killLanguageServer) {
-      var logger = server.GetRequiredService<ILogger<Program>>();
+      var logger = server.GetRequiredService<ILogger<Server>>();
       logger.LogTrace("initializing service");
 
       KillLanguageServerIfParentDies(logger, request, killLanguageServer);
@@ -55,10 +55,11 @@ namespace Microsoft.Dafny.LanguageServer {
 
     private static void PublishSolverPath(ILanguageServer server) {
       var telemetryPublisher = server.GetRequiredService<ITelemetryPublisher>();
+      var options = server.GetRequiredService<DafnyOptions>();
       string solverPath;
       try {
-        var proverOptions = new SMTLibSolverOptions(DafnyOptions.O);
-        proverOptions.Parse(DafnyOptions.O.ProverOptions);
+        var proverOptions = new SMTLibSolverOptions(options);
+        proverOptions.Parse(options.ProverOptions);
         solverPath = proverOptions.ExecutablePath();
         HandleZ3Version(telemetryPublisher, proverOptions);
       } catch (Exception e) {
@@ -110,7 +111,7 @@ namespace Microsoft.Dafny.LanguageServer {
     /// As part of the LSP spec, a language server must kill itself if its parent process dies
     /// https://github.com/microsoft/language-server-protocol/blob/gh-pages/_specifications/specification-3-16.md?plain=1#L1713
     /// </summary>
-    private static void KillLanguageServerIfParentDies(ILogger<Program> logger, InitializeParams request,
+    private static void KillLanguageServerIfParentDies(ILogger<Server> logger, InitializeParams request,
         Action killLanguageServer) {
       if (!(request.ProcessId >= 0)) {
         return;

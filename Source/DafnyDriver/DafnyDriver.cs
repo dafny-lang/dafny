@@ -108,7 +108,15 @@ namespace Microsoft.Dafny {
 
       var cliArgumentsResult = ProcessCommandLineArguments(args, out var dafnyOptions, out var dafnyFiles, out var otherFiles);
       DafnyOptions.Install(dafnyOptions);
+
+      if (dafnyOptions.RunServer) {
+#pragma warning disable VSTHRD002
+        LanguageServer.Server.Start(dafnyOptions).Wait();
+#pragma warning restore VSTHRD002
+        return 0;
+      }
       ExitValue exitValue;
+
 
       switch (cliArgumentsResult) {
         case CommandLineArgumentsResult.OK:
@@ -180,6 +188,10 @@ namespace Microsoft.Dafny {
         new DafnyConsolePrinter().ErrorWriteLine(Console.Out, "*** ProverException: {0}", pe.Message);
         options = null;
         return CommandLineArgumentsResult.PREPROCESSING_ERROR;
+      }
+
+      if (options.RunServer) {
+        return CommandLineArgumentsResult.OK;
       }
 
       // If requested, print version number, help, attribute help, etc. and exit.

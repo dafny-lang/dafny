@@ -21,15 +21,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       IServiceProvider services) {
 
       this.services = services;
-      services.GetService<DafnyOptions>()!.ProverOptions = AugmentedProverOptions;
+      SetAugmentedProverOptions(services.GetRequiredService<DafnyOptions>());
     }
 
-   private List<string> AugmentedProverOptions =>
-     DafnyOptions.O.ProverOptions.Concat(new List<string>() {
+    private static void SetAugmentedProverOptions(DafnyOptions options) =>
+      options.ProverOptions.AddRange(new List<string>()
+     {
        "O:model_compress=false", // Replaced by "O:model.compact=false" if z3's version is > 4.8.6
        "O:model.completion=true",
        "O:model_evaluator.completion=true"
-     }).ToList();
+     });
 
     public void OpenDocument(DocumentTextBuffer document) {
       documents.Add(document.Uri, new DocumentManager(services, document));

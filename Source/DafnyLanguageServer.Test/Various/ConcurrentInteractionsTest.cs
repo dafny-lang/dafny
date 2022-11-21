@@ -52,9 +52,7 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
   }
 }".TrimStart();
       var failSource = @"method Contradiction() { assert false; }";
-      await SetUp(new Dictionary<string, string>() {
-        { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.OnSave) }
-      });
+      await SetUp(options => VerificationOption.Instance.Set(options, AutoVerification.OnSave));
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationTokenWithHighTimeout);
 

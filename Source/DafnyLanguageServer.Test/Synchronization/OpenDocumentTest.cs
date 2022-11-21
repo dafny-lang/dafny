@@ -17,11 +17,8 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
 
     [TestInitialize]
     public async Task SetUp(Action<DafnyOptions> modifyOptions = null) {
-      modifyOptions ??= options => { };
-      var dafnyOptions = new DafnyOptions();
-      modifyOptions(dafnyOptions);
       client = await InitializeClient(options => {
-      }, options => options.Services.AddSingleton(dafnyOptions));
+      }, null, modifyOptions);
     }
 
     [TestMethod]

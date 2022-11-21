@@ -25,14 +25,11 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [TestInitialize]
     public async Task SetUp(Action<DafnyOptions> modifyOptions = null) {
-      modifyOptions ??= options => { };
       notificationReceiver = new();
-      var dafnyOptions = new DafnyOptions();
-      modifyOptions(dafnyOptions);
       client = await InitializeClient(options => {
         options
           .AddHandler(DafnyRequestNames.CompilationStatus, NotificationHandler.For<CompilationStatusParams>(notificationReceiver.NotificationReceived));
-      }, options => options.Services.AddSingleton(dafnyOptions));
+      }, null, modifyOptions);
     }
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
@@ -129,9 +126,7 @@ method Abs(x: int) returns (y: int)
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
     public async Task DocumentWithOnlyConfiguredVerifierTimeoutSendsCompilationSucceededVerificationStartedAndVerificationFailedStatuses() {
-      await SetUp(new Dictionary<string, string>() {
-        { $"{VerifierOptions.Section}:{nameof(VerifierOptions.TimeLimit)}", "3" }
-      });
+      await SetUp(options => VerificationTimeLimitOption.Instance.Set(options, 3));
       var documentItem = CreateTestDocument(SlowToVerify);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await AssertProgress(documentItem, CompilationStatus.ResolutionStarted);
@@ -147,9 +142,7 @@ method Abs(x: int) returns (y: int)
   return x;
 }
 ".TrimStart();
-      await SetUp(new Dictionary<string, string>() {
-        { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.OnSave) }
-      });
+      await SetUp(options => VerificationOption.Instance.Set(options, AutoVerification.OnSave));
 
       // We load two documents. If no verification is executed, we should receive each
       // compilation status twice without any verification status inbetween.
@@ -173,9 +166,7 @@ method Abs(x: int) returns (y: int)
   return x;
 }
 ".TrimStart();
-      await SetUp(new Dictionary<string, string>() {
-        { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.Never) }
-      });
+      await SetUp(options => VerificationOption.Instance.Set(options, AutoVerification.Never));
 
       // We load two and save two documents. If no verification is executed, we should receive each
       // compilation status twice without any verification status inbetween.

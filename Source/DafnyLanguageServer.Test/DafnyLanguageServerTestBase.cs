@@ -58,8 +58,18 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
 
     protected virtual async Task<ILanguageClient> InitializeClient(
       Action<LanguageClientOptions> clientOptionsAction = null,
-      [CanBeNull] Action<LanguageServerOptions> serverOptionsAction = null) {
-      var client = CreateClient(clientOptionsAction, serverOptionsAction);
+      [CanBeNull] Action<LanguageServerOptions> serverOptionsAction = null,
+      Action<DafnyOptions> modifyOptions = null) {
+      var dafnyOptions = DafnyOptions.Create();
+      DafnyOptions.Install(dafnyOptions);
+      modifyOptions?.Invoke(dafnyOptions);
+
+      void NewServerOptionsAction(LanguageServerOptions options) {
+        serverOptionsAction?.Invoke(options);
+        options.Services.AddSingleton(dafnyOptions);
+      }
+
+      var client = CreateClient(clientOptionsAction, NewServerOptionsAction);
       await client.Initialize(CancellationToken).ConfigureAwait(false);
 
       return client;
@@ -115,10 +125,10 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
       return (clientPipe.Reader.AsStream(), serverPipe.Writer.AsStream());
     }
 
-    protected virtual DafnyOptions CreateConfiguration() {
-      var configurationBuilder = new ConfigurationBuilder();
-      return configurationBuilder.Build();
-    }
+    // protected virtual DafnyOptions CreateConfiguration() {
+    //   var configurationBuilder = new ConfigurationBuilder();
+    //   return configurationBuilder.Build();
+    // }
 
     private static void SetupTestLogging(ILoggingBuilder builder) {
       builder

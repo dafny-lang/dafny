@@ -23,14 +23,11 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
 
     [TestInitialize]
     public async Task SetUp(Action<DafnyOptions> modifyOptions = null) {
-      modifyOptions ??= options => { };
       notificationReceiver = new();
-      var dafnyOptions = new DafnyOptions();
-      modifyOptions(dafnyOptions);
       client = await InitializeClient(options => {
         options
           .AddHandler(DafnyRequestNames.CompilationStatus, NotificationHandler.For<CompilationStatusParams>(notificationReceiver.NotificationReceived));
-      }, options => options.Services.AddSingleton(dafnyOptions));
+      }, null, modifyOptions);
     }
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]

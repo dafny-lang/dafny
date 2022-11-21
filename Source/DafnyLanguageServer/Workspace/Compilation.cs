@@ -283,7 +283,7 @@ public class Compilation {
     documentUpdates.OnNext(document);
   }
 
-  private bool ReportGutterStatus => ReportGutterStatus;
+  private bool ReportGutterStatus => LineVerificationStatusOption.Instance.Get(options);
 
   private List<Diagnostic> GetDiagnosticsFromResult(Document document, VerificationResult result) {
     var errorReporter = new DiagnosticErrorReporter(document.TextDocumentItem.Text, document.Uri);
