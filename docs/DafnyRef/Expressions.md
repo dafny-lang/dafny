@@ -524,7 +524,7 @@ ArrayAllocation_ =
   ]
 ````
 
-This (right-hand-side) expression allocates a new single or multi-dimensional array (cf. [Section 15](#sec-array-types)).
+This right-hand-side expression allocates a new single or multi-dimensional array (cf. [Section 15](#sec-array-types)).
 The initialization portion is optional. One form is an
 explicit list of values, in which case the dimension is optional:
 ```dafny
