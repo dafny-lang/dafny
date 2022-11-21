@@ -5,8 +5,8 @@ Dafny expressions come in three flavors:
 methods, functions, and specifications, and in either compiled or ghost code
 - some expressions, called [right-hand-side expressions](#rhs-expression),
 do have side-effects and may only be used in specific syntactic locations,
-such as the right-hand-side of update (assignment) statements; new array and
-object allocation are this kind of expression
+such as the right-hand-side of update (assignment) statements; 
+object allocation and method calls are two typical examples of [right-hand-side expressions](#rhs-expression)
 - some expressions are allowed only in specifications and other ghost code,
 as listed [here](#sec-list-of-specification-expressions).
 
