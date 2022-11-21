@@ -90,10 +90,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     // TODO test need to move to CLI level.
     private static async Task<Process> StartLanguageServerRunnerProcess() {
-      var languageServerBinary = Path.Join(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "Dafny");
+      var languageServerBinary = Path.Join(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "DafnyLanguageServer");
       var languageServerRunnerPath = await CreateDotNetDllThatStartsGivenFilepath(languageServerBinary.Replace(@"\", @"\\"));
 
-      var processInfo = new ProcessStartInfo("dotnet", languageServerRunnerPath + " server") {
+      var processInfo = new ProcessStartInfo("dotnet", languageServerRunnerPath) {
         RedirectStandardOutput = true,
         RedirectStandardError = true,
         RedirectStandardInput = true,

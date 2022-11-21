@@ -12,6 +12,7 @@ using OmniSharpLanguageServer = OmniSharp.Extensions.LanguageServer.Server.Langu
 
 namespace Microsoft.Dafny.LanguageServer {
   public class Server {
+
     public static async Task Start(DafnyOptions dafnyOptions) {
       DafnyOptions.Install(dafnyOptions);
 
