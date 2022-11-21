@@ -27,6 +27,7 @@ namespace Microsoft.Dafny {
     ModuleSignature moduleInfo = null;
 
     public ErrorReporter Reporter => reporter;
+    public List<TypeConstraint.ErrorMsg> TypeConstraintErrorsToBeReported { get; } = new();
 
     private bool RevealedInScope(Declaration d) {
       Contract.Requires(d != null);
@@ -4590,7 +4591,7 @@ namespace Microsoft.Dafny {
         // set "headSymbolsAgree" to "false" if it's clear the head symbols couldn't be the same; "true" means they may be the same
         bool headSymbolsAgree = Type.IsHeadSupertypeOf(super.NormalizeExpand(keepConstraints), sub);
         if (!headSymbolsAgree) {
-          c.FlagAsError();
+          c.FlagAsError(this);
           return false;
         }
         // TODO: inspect type parameters in order to produce some error messages sooner
@@ -4830,7 +4831,7 @@ namespace Microsoft.Dafny {
       sub = sub.NormalizeExpandKeepConstraints();
       List<int> polarities = ConstrainTypeHead_Recursive(super, ref sub);
       if (polarities == null) {
-        errorMsg.FlagAsError();
+        errorMsg.FlagAsError(this);
         return false;
       }
       bool keepConstraints = KeepConstraints(super, sub);
@@ -5524,7 +5525,7 @@ namespace Microsoft.Dafny {
             return false;  // to please the compiler
         }
         if (!satisfied) {
-          errorMsg.FlagAsError();
+          errorMsg.FlagAsError(resolver);
         }
         return true;  // the XConstraint has served its purpose
       }
@@ -6529,7 +6530,7 @@ namespace Microsoft.Dafny {
           // unexpected condition -- PartiallySolveTypeConstraints is supposed to have continued until no more sub-typing constraints can be satisfied
           Contract.Assume(false, string.Format("DEBUG: Unexpectedly satisfied supertype relation ({0} :> {1}) |||| ", constraint.Super, constraint.Sub));
         } else {
-          constraint.FlagAsError();
+          constraint.FlagAsError(this);
         }
       }
       foreach (var xc in AllXConstraints) {
@@ -6540,10 +6541,10 @@ namespace Microsoft.Dafny {
         } else if (xc.CouldBeAnything()) {
           // suppress the error message; it will later be flagged as an underspecified type
         } else {
-          xc.errorMsg.FlagAsError();
+          xc.errorMsg.FlagAsError(this);
         }
       }
-      TypeConstraint.ReportErrors(reporter);
+      TypeConstraint.ReportErrors(this, reporter);
       AllTypeConstraints.Clear();
       AllXConstraints.Clear();
     }
