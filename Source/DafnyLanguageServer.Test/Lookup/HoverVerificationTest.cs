@@ -22,7 +22,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
     private TestNotificationReceiver<CompilationStatusParams> notificationReceiver;
 
     [TestInitialize]
-    public async Task SetUp(Action<DafnyOptions> modifyOptions = null) {
+    public Task SetUp() => SetUp(null);
+
+    public async Task SetUp(Action<DafnyOptions> modifyOptions) {
       notificationReceiver = new();
       client = await InitializeClient(options => {
         options

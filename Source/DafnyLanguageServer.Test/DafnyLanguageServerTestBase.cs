@@ -66,6 +66,9 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
 
       void NewServerOptionsAction(LanguageServerOptions options) {
         serverOptionsAction?.Invoke(options);
+        foreach (var option in new ServerCommand().Options) {
+          option.PostProcess(dafnyOptions);
+        }
         options.Services.AddSingleton(dafnyOptions);
       }
 

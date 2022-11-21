@@ -28,7 +28,11 @@ public class ConcurrentLinearVerificationGutterStatusTester : LinearVerification
     }
   }
 
-  [TestInitialize]
+
+  public async Task SetUp() {
+    await SetUp(null);
+  }
+
   public override async Task SetUp(Action<DafnyOptions> modifyOptions) {
     for (var i = 0; i < verificationStatusGutterReceivers.Length; i++) {
       verificationStatusGutterReceivers[i] = new();

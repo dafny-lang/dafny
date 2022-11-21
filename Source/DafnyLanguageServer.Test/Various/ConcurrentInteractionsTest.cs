@@ -10,7 +10,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
-using Microsoft.Extensions.Configuration;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
   [TestClass]
@@ -26,8 +25,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     private CancellationToken CancellationTokenWithHighTimeout => cancellationSource.Token;
 
-    [TestInitialize]
-    public override async Task SetUp(Action<DafnyOptions> modifyOptions) {
+    public override async Task SetUp(Action<DafnyOptions> modifyOptions = null) {
       await base.SetUp(modifyOptions);
 
       // We use a custom cancellation token with a higher timeout to clearly identify where the request got stuck.

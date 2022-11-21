@@ -15,8 +15,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   [TestClass]
   public class HoverTest : ClientBasedLanguageServerTest {
 
-    [TestInitialize]
-    public override async Task SetUp(Action<DafnyOptions> modifyOptions) {
+    public override async Task SetUp(Action<DafnyOptions> modifyOptions = null) {
       void ModifyOptions2(DafnyOptions options) {
         options.ProverOptions.Add("-proverOpt:SOLVER=noop");
         modifyOptions(options);

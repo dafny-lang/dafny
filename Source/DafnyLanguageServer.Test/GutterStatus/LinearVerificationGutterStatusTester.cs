@@ -17,8 +17,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
 public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguageServerTest {
   protected TestNotificationReceiver<VerificationStatusGutter> verificationStatusGutterReceiver;
 
-  [TestInitialize]
-  public override async Task SetUp(Action<DafnyOptions> modifyOptions) {
+  public override async Task SetUp(Action<DafnyOptions> modifyOptions = null) {
     verificationStatusGutterReceiver = new();
     await base.SetUp(modifyOptions);
   }

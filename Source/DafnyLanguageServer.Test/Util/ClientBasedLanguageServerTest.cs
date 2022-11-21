@@ -69,6 +69,10 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
   }
 
   [TestInitialize]
+  public async Task SetUp() {
+    await SetUp(null);
+  }
+
   public virtual async Task SetUp(Action<DafnyOptions> modifyOptions) {
     diagnosticsReceiver = new();
     verificationStatusReceiver = new();

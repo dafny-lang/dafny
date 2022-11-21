@@ -16,7 +16,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
     private ILanguageClient client;
 
     [TestInitialize]
-    public async Task SetUp(Action<DafnyOptions> modifyOptions = null) {
+    public Task SetUp() => SetUp(null);
+
+    public async Task SetUp(Action<DafnyOptions> modifyOptions) {
       client = await InitializeClient(options => {
       }, null, modifyOptions);
     }

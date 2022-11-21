@@ -14,6 +14,7 @@ public class ServerCommand : ICommandSpec {
     GhostIndicatorsOption.Instance,
     LineVerificationStatusOption.Instance,
     VerifySnapshotsOption.Instance,
+    VerificationTimeLimitOption.Instance,
   }.Concat(ICommandSpec.CommonOptions);
 
   public Command Create() {

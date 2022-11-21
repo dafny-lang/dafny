@@ -22,9 +22,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     private ILanguageClient client;
     private TestNotificationReceiver<CompilationStatusParams> notificationReceiver;
 
-
     [TestInitialize]
-    public async Task SetUp(Action<DafnyOptions> modifyOptions = null) {
+    public Task SetUp() => SetUp(null);
+
+    public async Task SetUp(Action<DafnyOptions> modifyOptions) {
       notificationReceiver = new();
       client = await InitializeClient(options => {
         options
