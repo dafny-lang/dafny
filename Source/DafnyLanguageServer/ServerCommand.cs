@@ -24,6 +24,8 @@ public class ServerCommand : ICommandSpec {
 
   public void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context) {
     dafnyOptions.RunServer = true;
+    ShowSnippetsOption.Instance.Set(dafnyOptions, true);
+    dafnyOptions.PrintIncludesMode = DafnyOptions.IncludesModes.None;
   }
 }
 
@@ -57,6 +59,8 @@ public class LineVerificationStatusOption : BooleanOption {
 (experimental, API will change)
 Send notifications about the verification status of each line in the program.
 ".TrimStart();
+
+  public override object DefaultValue => true; // TODO change default? effects hover and gutter tests.
 
   public override string PostProcess(DafnyOptions options) {
     return null;

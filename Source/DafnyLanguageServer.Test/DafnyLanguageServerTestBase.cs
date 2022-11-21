@@ -69,6 +69,9 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
         foreach (var option in new ServerCommand().Options) {
           option.PostProcess(dafnyOptions);
         }
+
+        dafnyOptions.PrintIncludesMode = DafnyOptions.IncludesModes.None;
+        ShowSnippetsOption.Instance.Set(dafnyOptions, true);
         options.Services.AddSingleton(dafnyOptions);
       }
 

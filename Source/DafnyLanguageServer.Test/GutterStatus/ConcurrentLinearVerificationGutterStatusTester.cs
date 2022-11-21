@@ -28,11 +28,6 @@ public class ConcurrentLinearVerificationGutterStatusTester : LinearVerification
     }
   }
 
-
-  public async Task SetUp() {
-    await SetUp(null);
-  }
-
   public override async Task SetUp(Action<DafnyOptions> modifyOptions) {
     for (var i = 0; i < verificationStatusGutterReceivers.Length; i++) {
       verificationStatusGutterReceivers[i] = new();
@@ -48,8 +43,8 @@ public class ConcurrentLinearVerificationGutterStatusTester : LinearVerification
   [TestMethod]
   public async Task EnsuresManyDocumentsCanBeVerifiedAtOnce() {
     var result = new List<Task>();
-    //Every verificationStatusGutterReceiver checks that the filename matches and filters out notifications that do not match.
-    //That way, it can rebuild the trace for every file independently.
+    // Every verificationStatusGutterReceiver checks that the filename matches and filters out notifications that do not match.
+    // That way, it can rebuild the trace for every file independently.
     for (var i = 0; i < MaxSimultaneousVerificationTasks; i++) {
       result.Add(VerifyTrace(@"
  .  |  |  |  I  |  | :predicate F(i: int) {
