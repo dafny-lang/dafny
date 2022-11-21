@@ -3,23 +3,18 @@ using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Threading;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
-using Microsoft.Extensions.DependencyModel;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 
 [TestClass]
 public class PluginsAdvancedTest : PluginsTestBase {
-  [TestInitialize]
-  public async Task SetUp() {
-    await SetUpPlugin();
-  }
 
   protected override string LibraryName =>
     "PluginsAdvancedTest";
 
   protected override string[] CommandLineArgument =>
-    new[] { $"--dafny:plugins:0={LibraryPath},force you" };
+    new[] { $"{LibraryPath},force you" };
 
   [TestMethod]
   public async Task EnsureErrorMessageCanBeComplexAndTakeIntoAccountConfiguration() {
@@ -31,8 +26,8 @@ method {:test} myMethodWrongName() {
   expect result == 1;
 }
 ");
-    await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    var resolutionReport = await DiagnosticReceiver.AwaitNextNotificationAsync(CancellationToken.None);
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+    var resolutionReport = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken.None);
     Assert.AreEqual(documentItem.Uri, resolutionReport.Uri);
     var diagnostics = resolutionReport.Diagnostics.ToArray();
     Assert.AreEqual(1 + DafnyOptions.DefaultPlugins.Count, DafnyOptions.O.Plugins.Count,
