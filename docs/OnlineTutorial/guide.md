@@ -808,7 +808,7 @@ function max(a: int, b: int): int
   // Use your code from Exercise 4
 }
 method Testing() returns (r: int) {
-  // Add assertions to check max here. Be sure to capture it to the out parameter
+  // Add assertions to check max here. Be sure to capture it to the out-parameter
 }
 ```
 
