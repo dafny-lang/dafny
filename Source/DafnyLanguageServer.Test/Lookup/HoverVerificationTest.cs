@@ -29,7 +29,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
       client = await InitializeClient(options => {
         options
           .AddHandler(DafnyRequestNames.CompilationStatus, NotificationHandler.For<CompilationStatusParams>(notificationReceiver.NotificationReceived));
-      }, null, modifyOptions);
+      }, modifyOptions);
     }
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]

@@ -77,7 +77,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
     diagnosticsReceiver = new();
     verificationStatusReceiver = new();
     ghostnessReceiver = new();
-    client = await InitializeClient(InitialiseClientHandler, null, modifyOptions);
+    client = await InitializeClient(InitialiseClientHandler, modifyOptions);
   }
 
   protected virtual void InitialiseClientHandler(LanguageClientOptions options) {
@@ -86,13 +86,6 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
       NotificationHandler.For<GhostDiagnosticsParams>(ghostnessReceiver.NotificationReceived));
     options.AddHandler(DafnyRequestNames.VerificationSymbolStatus,
       NotificationHandler.For<FileVerificationStatus>(verificationStatusReceiver.NotificationReceived));
-  }
-
-  protected virtual IServiceCollection ServerOptionsAction(LanguageServerOptions serverOptions) {
-    return serverOptions.Services.AddSingleton<IProgramVerifier>(serviceProvider => new SlowVerifier(
-      serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>(),
-      serviceProvider.GetRequiredService<DafnyOptions>()
-    ));
   }
 
   protected void ApplyChange(ref TextDocumentItem documentItem, Range range, string text) {

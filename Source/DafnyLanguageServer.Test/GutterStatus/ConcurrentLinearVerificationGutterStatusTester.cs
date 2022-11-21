@@ -37,7 +37,7 @@ public class ConcurrentLinearVerificationGutterStatusTester : LinearVerification
       options
         .AddHandler(DafnyRequestNames.VerificationStatusGutter,
           NotificationHandler.For<VerificationStatusGutter>(NotifyAllVerificationGutterStatusReceivers))
-    , null, modifyOptions);
+    , modifyOptions);
   }
 
   [TestMethod]

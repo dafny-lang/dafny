@@ -19,6 +19,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using MediatR;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
+using Microsoft.Dafny.LanguageServer.Language;
 using OmniSharp.Extensions.LanguageServer.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Progress;
 
@@ -55,17 +57,22 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
 
     public DafnyLanguageServerTestBase() : base(new JsonRpcTestOptions(LoggerFactory.Create(
       builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning)))) { }
-
+    
+    protected virtual IServiceCollection ServerOptionsAction(LanguageServerOptions serverOptions) {
+      return serverOptions.Services.AddSingleton<IProgramVerifier>(serviceProvider => new SlowVerifier(
+        serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>(),
+        serviceProvider.GetRequiredService<DafnyOptions>()
+      ));
+    }
+    
     protected virtual async Task<ILanguageClient> InitializeClient(
       Action<LanguageClientOptions> clientOptionsAction = null,
-      [CanBeNull] Action<LanguageServerOptions> serverOptionsAction = null,
       Action<DafnyOptions> modifyOptions = null) {
       var dafnyOptions = DafnyOptions.Create();
       DafnyOptions.Install(dafnyOptions);
       modifyOptions?.Invoke(dafnyOptions);
 
       void NewServerOptionsAction(LanguageServerOptions options) {
-        serverOptionsAction?.Invoke(options);
         foreach (var option in new ServerCommand().Options) {
           option.PostProcess(dafnyOptions);
         }
@@ -73,6 +80,7 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
         dafnyOptions.PrintIncludesMode = DafnyOptions.IncludesModes.None;
         ShowSnippetsOption.Instance.Set(dafnyOptions, true);
         options.Services.AddSingleton(dafnyOptions);
+        ServerOptionsAction(options);
       }
 
       var client = CreateClient(clientOptionsAction, NewServerOptionsAction);
