@@ -1,4 +1,15 @@
 # 21. Expressions {#sec-expressions}
+
+Dafny expressions come in three flavors:
+- the bulk of expressions have no side-effects and can be used within
+methods, functions, and specifications, and in either compiled or ghost code
+- some expressions, called [right-hand-side expressions](#rhs-expression),
+do have side-effects and may only be used in specific syntactic locations,
+such as the right-hand-side of update (assignment) statements; new array and
+object allocation are this kind of expression
+- some expressions are allowed only in specifications and other ghost code,
+as listed [here](#sec-list-of-specification-expressions).
+
 The grammar of Dafny expressions follows a hierarchy that
 reflects the precedence of Dafny operators. The following
 table shows the Dafny operators and their precedence
@@ -472,7 +483,7 @@ An example of the second (`ConstAtomExpression`) form is:
     old(o.f).x
 ```
 
-## 21.15. Right-Hand-Side Expressions
+## 21.15. Right-Hand-Side Expressions {#rhs-expression}
 ````grammar
 Rhs =
   ( ArrayAllocation_
@@ -482,6 +493,11 @@ Rhs =
   )
   { Attribute }
 ````
+
+A Right-Hand-Side expression is an expression-like construct that may have 
+side-effects. Consequently such expressions
+ can only be used within certain statements
+within methods, and not as general expressions or within functions or specifications.
 
 An ``Rhs`` is either array allocation, an object allocation,
 an expression, or a havoc right-hand-side, optionally followed
@@ -505,7 +521,7 @@ ArrayAllocation_ =
   ]
 ````
 
-This expression allocates a new single or multi-dimensional array (cf. [Section 15](#sec-array-types)).
+This (right-hand-side) expression allocates a new single or multi-dimensional array (cf. [Section 15](#sec-array-types)).
 The initialization portion is optional. One form is an
 explicit list of values, in which case the dimension is optional:
 ```dafny
@@ -546,7 +562,8 @@ ObjectAllocation_ = "new" Type [ "." TypeNameOrCtorSuffix ]
                                [ "(" [ Bindings ] ")" ]
 ````
 
-This allocates a new object of a class type as explained
+This right-hand-side expression 
+allocates a new object of a class type as explained
 in section [Class Types](#sec-class-types).
 
 ## 21.18. Havoc Right-Hand-Side
