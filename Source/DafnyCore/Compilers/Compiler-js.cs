@@ -1327,12 +1327,12 @@ namespace Microsoft.Dafny.Compilers {
 
     protected string TranslateEscapes(string s) {
       s = Util.ReplaceNullEscapesWithCharacterEscapes(s);
-      
+
       s = Util.UnicodeEscapesToLowercase(s);
-      
+
       return s;
     }
-    
+
     protected override void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e) {
       if (e is StaticReceiverExpr) {
         wr.Write(TypeName(e.Type, wr, e.tok));

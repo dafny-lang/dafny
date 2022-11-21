@@ -982,12 +982,12 @@ namespace Microsoft.Dafny.Compilers {
 
     protected static string TranslateEscapes(string s) {
       s = Util.ReplaceNullEscapesWithCharacterEscapes(s);
-      
+
       s = Util.ExpandUnicodeEscapes(s, false);
-      
+
       return s;
     }
-    
+
     protected override void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e) {
       switch (e) {
         case CharLiteralExpr:

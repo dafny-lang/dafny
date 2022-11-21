@@ -168,10 +168,10 @@ public enum Feature {
 
   [FeatureDescription("Tuples with more than 20 arguments", "sec-tuple-types")]
   TuplesWiderThan20,
-  
+
   [FeatureDescription("Unicode chars", "#sec-characters")]
   UnicodeChars,
-  
+
   [FeatureDescription("Converting values to strings", "#sec-print-statement")]
   ConvertingValuesToStrings
 }

@@ -28,14 +28,13 @@ namespace Dafny {
   // except that it isn't available in the platforms we support
   // (.NET Standard 2.0 and .NET Framework 4.5.2)
   public readonly struct Rune : IComparable, IComparable<Rune>, IEquatable<Rune> {
-    
+
     private readonly uint _value;
-    
+
     public Rune(int value)
-      : this((uint)value)
-    {
+      : this((uint)value) {
     }
-    
+
     public Rune(uint value) {
       if (!(value < 0xD800 || (0xE000 <= value && value < 0x11_0000))) {
         throw new ArgumentException();
@@ -51,7 +50,7 @@ namespace Dafny {
     public override bool Equals(object obj) => (obj is Rune other) && Equals(other);
 
     public override int GetHashCode() => Value;
-    
+
     // Values are always between 0 and 0x11_0000, so overflow isn't possible
     public int CompareTo(Rune other) => this.Value - other.Value;
 
@@ -77,7 +76,7 @@ namespace Dafny {
     public static bool operator >(Rune left, Rune right) => left._value > right._value;
 
     public static bool operator >=(Rune left, Rune right) => left._value >= right._value;
-    
+
     public static explicit operator Rune(int value) => new Rune(value);
 
     public override string ToString() {
@@ -997,7 +996,7 @@ namespace Dafny {
     }
     public static ISequence<Rune> UnicodeFromString(string s) {
       var runes = new List<Rune>();
-      
+
       foreach (var rune in Rune.Enumerate(s)) {
         runes.Add(rune);
       }

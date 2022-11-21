@@ -1010,12 +1010,12 @@ namespace Microsoft.Dafny.Compilers {
         default: return "";
       }
     }
-    
+
     private static string TranslateEscapes(string s) {
       s = Util.ReplaceNullEscapesWithCharacterEscapes(s);
 
       s = Util.UnicodeEscapesToUtf16Escapes(s);
-      
+
       // Java \u escapes are translated before parsing, so we need to convert to escapes
       // that aren't for characters that will mess up paring the string or character literal.
       s = Util.ReplaceTokensWithEscapes(s, Util.Utf16Escape, match => {
@@ -3741,7 +3741,7 @@ namespace Microsoft.Dafny.Compilers {
       if (from == NativeObjectType) {
         return true;
       }
-      
+
       if (UnicodeChars && ((IsObjectType(from) && to.IsCharType) || (from.IsCharType && IsObjectType(to)))) {
         // Need to box from int to CodePoint, or unbox from CodePoint to int
         return true;
@@ -3796,7 +3796,7 @@ namespace Microsoft.Dafny.Compilers {
           return w;
         }
       }
-      
+
       if (IsCoercionNecessary(from, to)) {
         return EmitDowncast(from, to, tok, wr);
       }

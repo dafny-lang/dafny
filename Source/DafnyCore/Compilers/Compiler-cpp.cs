@@ -101,7 +101,7 @@ namespace Microsoft.Dafny.Compilers {
       if (UnicodeChars) {
         throw new UnsupportedFeatureException(program.GetFirstTopLevelToken(), Feature.UnicodeChars);
       }
-      
+
       wr.WriteLine("// Dafny program {0} compiled into Cpp", program.Name);
       wr.WriteLine("#include \"DafnyRuntime.h\"");
       foreach (var header in this.headers) {
@@ -1507,7 +1507,7 @@ namespace Microsoft.Dafny.Compilers {
         }
         wr.Write("\"");
       }
-      
+
       // Use the postfix "..."s operator (operator""s) to convert to std::string values
       // without interpreting /0 as a terminator:
       // https://en.cppreference.com/w/cpp/string/basic_string/operator%22%22s

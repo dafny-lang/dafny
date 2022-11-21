@@ -278,7 +278,7 @@ namespace Microsoft.Dafny {
         }
       });
     }
-    
+
     public static string ReplaceNullEscapesWithCharacterEscapes(string s) {
       return ReplaceTokensWithEscapes(s, NullEscape, match => "\\u0000");
     }

@@ -176,7 +176,7 @@ public class TestDafny {
     if (line.StartsWith("Wrote textual form of partial target program to")) {
       return true;
     }
-    
+
     // This is output if included files have errors,
     // which is expected if we're including another test file and testing different CLI options
     if (Regex.IsMatch(line, "Error: the included file .* contains error\\(s\\)")) {
