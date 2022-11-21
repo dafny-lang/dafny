@@ -3167,6 +3167,7 @@ public class StmtExpr : Expression {
       Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
     }
   }
+  public override IEnumerable<INode> Children => new List<INode> { S, E };
 }
 
 public class ITEExpr : Expression {

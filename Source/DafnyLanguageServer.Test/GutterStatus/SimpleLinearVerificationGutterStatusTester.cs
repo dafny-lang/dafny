@@ -198,7 +198,6 @@ method Foo() ensures false { } ";
  .  |  |  | :}");
   }
 
-
   [TestMethod]
   public async Task EnsuresBodyVerifiedWithAssumptionsAreCorrectlyHighlighted() {
     await VerifyTrace(@"
@@ -206,6 +205,17 @@ method Foo() ensures false { } ";
  .  S  |  |? I? I? $?[=][=]:  ensures 1 == 2;
  .  S  S  |? I? I? $?[=][=]:{
  .  S  S  =? -? I? $?[S][ ]:  assume false; //Next:
+ .  S  S  |? I? I? $?[S][ ]:}");
+  }
+
+  [TestMethod]
+  public async Task EnsuresFunctionVerifiedWithAssumptionsAreCorrectlyHighlighted() {
+    await VerifyTrace(@"
+ .  S  S  |? I? I? $?[=][=]:function Test(): int
+ .  S  |  |? I? I? $?[=][=]:  ensures 1 == 2;
+ .  S  S  |? I? I? $?[S][ ]:{
+ .  S  S  =? -? I? $?[S][ ]:  assume false; //Next:
+ .  S  S  |? I? I? $?[S][ ]:  1
  .  S  S  |? I? I? $?[S][ ]:}");
   }
 }
