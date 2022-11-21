@@ -89,7 +89,7 @@ public abstract class TokenWrapper : IToken {
 
   public int col {
     get { return WrappedToken.col; }
-    set { throw new NotSupportedException(); }
+    set { WrappedToken.col = value; }
   }
 
   public string ActualFilename => WrappedToken.ActualFilename;
@@ -112,11 +112,11 @@ public abstract class TokenWrapper : IToken {
   }
   public int pos {
     get { return WrappedToken.pos; }
-    set { throw new NotSupportedException(); }
+    set { WrappedToken.pos = value; }
   }
   public virtual string val {
     get { return WrappedToken.val; }
-    set { throw new NotSupportedException(); }
+    set { WrappedToken.val = value; }
   }
   public virtual string LeadingTrivia {
     get { return WrappedToken.LeadingTrivia; }
