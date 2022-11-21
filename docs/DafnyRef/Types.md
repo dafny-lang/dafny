@@ -1954,7 +1954,7 @@ if `ghost` was already specified for the method.
 Within the body of a method, formal parameters are immutable, that is, 
 they may not be assigned to, though their array elements or fields may be
 assigned, if otherwise permitted.
-The out parameters are mutable and must be assigned in the body of the method.
+The out-parameters are mutable and must be assigned in the body of the method.
 
 A ``ellipsis`` is used when a method or function is being redeclared
 in a module that refines another module. (cf. [Section 22](#sec-module-refinement))
