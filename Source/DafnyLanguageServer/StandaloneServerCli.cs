@@ -22,16 +22,16 @@ namespace Microsoft.Dafny.LanguageServer {
       VerificationTimeLimitOption.Instance.Set(dafnyOptions, verifierOptions.TimeLimit);
       CoresOption.Instance.Set(dafnyOptions, (int)verifierOptions.VcsCores);
       VerifySnapshotsOption.Instance.Set(dafnyOptions, verifierOptions.VerifySnapshots);
-      
+
       var ghostOptions = configuration.Get<GhostOptions>();
       GhostIndicatorsOption.Instance.Set(dafnyOptions, ghostOptions.MarkStatements);
-      
+
       var pluginOptions = configuration.Get<DafnyPluginsOptions>();
       PluginOption.Instance.Set(dafnyOptions, pluginOptions.Plugins.ToList());
-      
+
       await Server.Start(dafnyOptions);
     }
-    
+
     private static IConfiguration CreateConfiguration(string[] args) {
       return new ConfigurationBuilder()
         .AddJsonFile("DafnyLanguageServer.appsettings.json", optional: true)

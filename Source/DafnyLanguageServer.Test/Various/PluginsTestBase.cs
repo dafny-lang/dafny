@@ -60,8 +60,8 @@ public abstract class PluginsTestBase : ClientBasedLanguageServerTest {
     Assert.IsTrue(result.Success, string.Join("\n", result.Diagnostics.Select(d => d.ToString())));
     return assemblyPath;
   }
-  
-  
+
+
 
   protected abstract string LibraryName { get; }
 
