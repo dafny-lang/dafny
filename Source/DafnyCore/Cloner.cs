@@ -372,7 +372,9 @@ namespace Microsoft.Dafny {
 
       } else if (expr is OldExpr) {
         var e = (OldExpr)expr;
-        return new OldExpr(Tok(e.tok), CloneExpr(e.E), e.At);
+        return new OldExpr(Tok(e.tok), CloneExpr(e.E), e.At) {
+          Useless = e.Useless
+        };
 
       } else if (expr is UnchangedExpr) {
         var e = (UnchangedExpr)expr;
@@ -840,6 +842,14 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public class ClonerKeepParensExpressions : Cloner {
+    public override Expression CloneExpr(Expression expr) {
+      if (expr is ParensExpression parensExpression) {
+        return new ParensExpression(Tok(parensExpression.tok), CloneExpr(parensExpression.E));
+      }
+      return base.CloneExpr(expr);
+    }
+  }
 
   /// <summary>
   /// This cloner copies the origin module signatures to their cloned declarations

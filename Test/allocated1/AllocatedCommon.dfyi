@@ -33,7 +33,8 @@ function fBad(c:C, d:D, a:array<C>, s:set<C>):C
   assert allocated(c);
   assert allocated(d);
   assert allocated(a);
-  var x:C :| true; assert allocated(x);
+  var x:C :| true;
+  assert allocated(x);
   c // ok
 }
 
@@ -55,7 +56,8 @@ function method fmBad(c:C, d:D, a:array<C>, s:set<C>):C
   assert allocated(c);
   assert allocated(d);
   assert allocated(a);
-  var x:C :| true; assert allocated(x);
+  var x:C :| true;
+  assert allocated(x);
   c // ok
 }
 
