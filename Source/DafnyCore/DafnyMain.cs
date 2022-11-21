@@ -91,7 +91,7 @@ namespace Microsoft.Dafny {
             var decoded = attr.DecodeValue(new StringOnlyCustomAttributeTypeProvider());
             return (string)decoded.FixedArguments[0].Value;
           }
-        } catch (InvalidCastException e) {
+        } catch (InvalidCastException) {
           // Ignore - the Handle casts are handled as custom explicit operators,
           // and there's no way I can see to test if the cases will succeed ahead of time.
         }
