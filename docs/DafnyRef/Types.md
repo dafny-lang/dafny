@@ -2991,6 +2991,11 @@ ArrayType_ = arrayToken [ GenericInstantiation ]
 Dafny supports mutable fixed-length _array types_ of any positive
 dimension.  Array types are (heap-based) reference types.
 
+`arrayToken` is a kind of [reserved token](#sec-reserved-tokens),
+such as `array`, `array2`, `array3`, an so on (but not `array1`).
+The suffix giving the element type can be omitted if the element type can be inferred, though in that case it is likely that the `arrayToken` itself is also
+inferrable and can be omitted.
+
 ## 15.1. One-dimensional arrays
 
 A one-dimensional array of `n` `T` elements may be initialized by
@@ -2999,6 +3004,8 @@ Commonly, [array allocation expressions](#sec-array-allocation) are used.
 Some examples are shown here:
 ```dafny
 a := new T[n];
+b: array<int> := new int[8];
+c: array := new T[9];
 ```
 The initial values of the array elements are arbitrary values of type
 `T`. 
@@ -3006,7 +3013,7 @@ A one-dimensional array value can also be assigned using an ordered list of expr
 ```dafny
 a := new T[] [t1, t2, t3, t4];
 ```
-The initialazation can also use an expression that returns a function of type `nat -> T`:
+The initialization can also use an expression that returns a function of type `nat -> T`:
 ```dafny
 a := new int[5](i => i*i);
 ```
