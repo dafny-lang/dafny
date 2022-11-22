@@ -1,4 +1,4 @@
-// RUN: %baredafny verify %args --strict-definite-assignment --enforce-determinism "%s" > "%t" || true
+// RUN: %baredafny verify %args "%s" > "%t" || true
 // RUN: %diff "%s.expect" "%t"
 
 class C {
