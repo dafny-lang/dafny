@@ -1,1 +1,1 @@
-Do not sort SeqIndices that are not parseable as integers
+Counter-examples with non-integer sequence indices do not crash Dafny anymore.
