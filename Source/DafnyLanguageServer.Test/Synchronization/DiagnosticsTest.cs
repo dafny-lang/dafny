@@ -52,9 +52,6 @@ function bullspec(s:seq<nat>, u:seq<nat>): (r: nat)
       Assert.AreEqual(5, diagnostics.Length);
       Assert.AreEqual("Parser", diagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
-      Assert.AreEqual(PublishedVerificationStatus.Stale, await PopNextStatus());
-      Assert.AreEqual(PublishedVerificationStatus.Running, await PopNextStatus());
-      Assert.AreEqual(PublishedVerificationStatus.Error, await PopNextStatus());
       ApplyChange(ref documentItem, ((7, 20), (7, 25)), "");
       diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
       Assert.AreEqual(8, diagnostics.Length);
