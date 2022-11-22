@@ -3,22 +3,37 @@ package dafny;
 /**
  * An int wrapper type just like java.lang.Integer,
  * but used as a more type-safe reference to a Unicode scalar value
- * specifially, which corresponds to the Dafny `char` type
+ * specifically, which corresponds to the Dafny `char` type
  * when using --unicode-char.
  */
 public final class CodePoint {
 
+    // Caching a subset of values just like the built-in box types like Character.
+    private static class CodePointCache {
+        private CodePointCache(){}
+
+        static final CodePoint cache[] = new CodePoint[127 + 1];
+
+        static {
+            for (int i = 0; i < cache.length; i++) {
+                cache[i] = new CodePoint(i);
+            }
+        }
+    }
+
     public static CodePoint valueOf(int value) {
-        // TODO: cache common values just like the other boxing classes?
+        if (0 <= value && value <= 127) {
+            return CodePointCache.cache[value];
+        }
         return new CodePoint(value);
     }
 
     private final int value;
     
     private CodePoint(int value) {
-        // if (!Character.isValidCodePoint(value) || Character.isSurrogate((char)value)) {
-        //     throw new IllegalArgumentException("Code point out of range: " + value);
-        // }
+        if (!Character.isValidCodePoint(value) || (Character.MIN_SURROGATE <= value && value <= Character.MAX_SURROGATE) {
+            throw new IllegalArgumentException("Code point out of range: " + value);
+        }
         this.value = value;
     }
 

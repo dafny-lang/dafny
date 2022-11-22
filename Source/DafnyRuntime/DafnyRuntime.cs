@@ -78,6 +78,7 @@ namespace Dafny {
     public static bool operator >=(Rune left, Rune right) => left._value >= right._value;
 
     public static explicit operator Rune(int value) => new Rune(value);
+    public static explicit operator Rune(BigInteger value) => new Rune((uint)value);
 
     public override string ToString() {
       return char.ConvertFromUtf32(Value);

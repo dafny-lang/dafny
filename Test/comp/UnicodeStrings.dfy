@@ -221,6 +221,8 @@ method CastChar(c: char) {
   AssertAndExpect(asInt64 as char == c);
   var asInt := c as int;
   AssertAndExpect(asInt as char == c);
+  var asReal := c as real;
+  AssertAndExpect(asReal as char == c);
 }
 
 // Testing that the runtime implementation of AllChars() is correct

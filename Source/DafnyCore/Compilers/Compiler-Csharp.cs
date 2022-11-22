@@ -225,7 +225,7 @@ namespace Microsoft.Dafny.Compilers {
       var wr = ((ClassWriter)cw).StaticMemberWriter;
       // See EmitCallToMain() - this is named differently because otherwise C# tries
       // to resolve the reference to the instance-level Main method
-      return wr.NewBlock($"public static void _StaticMain(Dafny.ISequence<Dafny.ISequence<{CharTypeName()}>> {argsParameterName})");
+      return wr.NewBlock($"public static void _StaticMain(Dafny.ISequence<Dafny.ISequence<{CharTypeName}>> {argsParameterName})");
     }
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string /*?*/ libraryName, ConcreteSyntaxTree wr) {
@@ -1393,7 +1393,7 @@ namespace Microsoft.Dafny.Compilers {
       if (xType is BoolType) {
         return "bool";
       } else if (xType is CharType) {
-        return CharTypeName();
+        return CharTypeName;
       } else if (xType is IntType || xType is BigOrdinalType) {
         return "BigInteger";
       } else if (xType is RealType) {
@@ -1446,27 +1446,9 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    private string CharTypeName() {
-      // TODO: Figure out if there is any runtime code for using Rune instead of Int32
-      return UnicodeChars ? "Dafny.Rune" : "char";
-    }
-
-    // This must be followed by the value to convert in parentheses
-    private string ConvertToChar() {
-      return UnicodeChars ? "new Dafny.Rune" : "(char)";
-    }
-
-    private void ConvertToChar(Expression e, ConcreteSyntaxTree wr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
-      if (UnicodeChars) {
-        wr.Write(ConvertToChar());
-        wr.Write("((uint)");
-        TrParenExpr(e, wr, inLetExprBody, wStmts);
-        wr.Write(")");
-      } else {
-        wr.Write("(char)");
-        TrParenExpr(e, wr, inLetExprBody, wStmts);
-      }
-    }
+    // To improve readability
+    private static bool CharIsRune => UnicodeChars;
+    private static string CharTypeName => UnicodeChars ? "Dafny.Rune" : "char";
 
     private void ConvertFromChar(Expression e, ConcreteSyntaxTree wr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
       if (e.Type.IsCharType && UnicodeChars) {
@@ -2088,19 +2070,19 @@ namespace Microsoft.Dafny.Compilers {
       } else if (e is CharLiteralExpr) {
         var v = (string)e.Value;
         if (UnicodeChars) {
-          // C# supports \U, but doesn't allow values that require two UTF-16 code units in character literals.
-          // For such values we construct the Rune value directly from the unescaped codepoint.
           var codePoint = Util.UnescapedCharacters(v, false).Single();
-          if (codePoint >= 0x1_0000) {
+          if (codePoint > char.MaxValue) {
+            // C# supports \U, but doesn't allow values that require two UTF-16 code units in character literals.
+            // For such values we construct the Rune value directly from the unescaped codepoint.
             wr.Write($"new Dafny.Rune(0x{codePoint:x})");
           } else {
-            wr.Write($"{ConvertToChar()}('{Util.ExpandUnicodeEscapes(v, false)}')");
+            wr.Write($"new Dafny.Rune('{Util.ExpandUnicodeEscapes(v, false)}')");
           }
         } else {
           wr.Write($"'{v}'");
         }
       } else if (e is StringLiteralExpr str) {
-        wr.Format($"{DafnySeqClass}<{CharTypeName()}>.{CharMethodQualifier()}FromString({StringLiteral(str)})");
+        wr.Format($"{DafnySeqClass}<{CharTypeName}>.{CharMethodQualifier}FromString({StringLiteral(str)})");
       } else if (AsNativeType(e.Type) != null) {
         string nativeName = null, literalSuffix = null;
         bool needsCastAfterArithmetic = false;
@@ -2911,7 +2893,7 @@ namespace Microsoft.Dafny.Compilers {
           opString = ">>"; convertE1_to_int = true; break;
         case BinaryExpr.ResolvedOpcode.Add:
           if (resultType.IsCharType) {
-            if (UnicodeChars) {
+            if (CharIsRune) {
               staticCallString = $"{DafnyHelpersClass}.AddRunes";
             } else {
               opString = "+"; truncateResult = true;
@@ -2924,7 +2906,7 @@ namespace Microsoft.Dafny.Compilers {
           break;
         case BinaryExpr.ResolvedOpcode.Sub:
           if (resultType.IsCharType) {
-            if (UnicodeChars) {
+            if (CharIsRune) {
               staticCallString = $"{DafnyHelpersClass}.SubtractRunes";
             } else {
               opString = "-"; truncateResult = true;
@@ -3022,7 +3004,8 @@ namespace Microsoft.Dafny.Compilers {
           ConvertFromChar(e.E, wr, inLetExprBody, wStmts);
           wr.Write(", BigInteger.One)");
         } else if (e.ToType.IsCharType) {
-          ConvertToChar(e.E, wr, inLetExprBody, wStmts);
+          wr.Write($"({CharTypeName})");
+          TrParenExpr(e.E, wr, inLetExprBody, wStmts);
         } else {
           // (int or bv or char) -> (int or bv or ORDINAL)
           var fromNative = AsNativeType(e.E.Type);
@@ -3084,7 +3067,7 @@ namespace Microsoft.Dafny.Compilers {
         } else {
           // real -> (int or bv or char or ordinal)
           if (e.ToType.IsCharType) {
-            wr.Write(ConvertToChar());
+            wr.Write($"({CharTypeName})");
           } else if (AsNativeType(e.ToType) != null) {
             wr.Write("({0})", GetNativeTypeName(AsNativeType(e.ToType)));
           }
@@ -3095,7 +3078,8 @@ namespace Microsoft.Dafny.Compilers {
         if (e.ToType.IsNumericBased(Type.NumericPersuasion.Int) || e.ToType.IsBigOrdinalType) {
           TrExpr(e.E, wr, inLetExprBody, wStmts);
         } else if (e.ToType.IsCharType) {
-          ConvertToChar(e.E, wr, inLetExprBody, wStmts);
+          wr.Write($"({CharTypeName})");
+          TrParenExpr(e.E, wr, inLetExprBody, wStmts);
         } else if (e.ToType.IsNumericBased(Type.NumericPersuasion.Real)) {
           wr.Write("new Dafny.BigRational(");
           if (AsNativeType(e.E.Type) != null) {
@@ -3406,7 +3390,7 @@ namespace Microsoft.Dafny.Compilers {
       var idName = IssueCreateStaticMain(mainMethod) ? "_StaticMain" : IdName(mainMethod);
 
       Coverage.EmitSetup(wBody);
-      wBody.WriteLine($"{GetHelperModuleName()}.WithHaltHandling(() => {companion}.{idName}(Dafny.Sequence<Dafny.ISequence<{CharTypeName()}>>.{CharMethodQualifier()}FromMainArguments(args)));");
+      wBody.WriteLine($"{GetHelperModuleName()}.WithHaltHandling(() => {companion}.{idName}(Dafny.Sequence<Dafny.ISequence<{CharTypeName}>>.{CharMethodQualifier}FromMainArguments(args)));");
       Coverage.EmitTearDown(wBody);
     }
 
@@ -3414,7 +3398,7 @@ namespace Microsoft.Dafny.Compilers {
       var tryBlock = wr.NewBlock("try");
       TrStmt(body, tryBlock);
       var catchBlock = wr.NewBlock("catch (Dafny.HaltException e)");
-      catchBlock.WriteLine($"var {haltMessageVarName} = Dafny.Sequence<{CharTypeName()}>.{CharMethodQualifier()}FromString(e.Message);");
+      catchBlock.WriteLine($"var {haltMessageVarName} = Dafny.Sequence<{CharTypeName}>.{CharMethodQualifier}FromString(e.Message);");
       TrStmt(recoveryBody, catchBlock);
     }
 

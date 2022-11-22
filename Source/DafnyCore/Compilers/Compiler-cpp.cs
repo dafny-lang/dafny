@@ -1488,7 +1488,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitStringLiteral(IToken tok, string str, bool isVerbatim, ConcreteSyntaxTree wr) {
       var n = str.Length;
       if (!isVerbatim) {
-        wr.Write($"\"{TranslateEscapes(str)}\"", str);
+        wr.Write($"\"{TranslateEscapes(str)}\"");
       } else {
         wr.Write("\"");
         for (var i = 0; i < n; i++) {
@@ -1517,7 +1517,7 @@ namespace Microsoft.Dafny.Compilers {
     private static string TranslateEscapes(string s) {
       s = Util.ReplaceNullEscapesWithCharacterEscapes(s);
       // TODO: Other cases, once we address the fact that we shouldn't be
-      // using the C++ 8-bit char as the Dafny 16-bit char in the first place.
+      // using the C++ char as the Dafny 16-bit char in the first place.
       return s;
     }
 

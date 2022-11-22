@@ -347,7 +347,7 @@ namespace Microsoft.Dafny.Compilers {
       var modName = mainMethod.EnclosingClass.EnclosingModuleDefinition.CompileName == "_module" ? "_System." : "";
       companion = modName + companion;
       Coverage.EmitSetup(wBody);
-      wBody.WriteLine($"{DafnyHelpersClass}.withHaltHandling(() -> {{ {companion}.__Main({DafnyHelpersClass}.{CharMethodQualifier()}FromMainArguments(args)); }} );");
+      wBody.WriteLine($"{DafnyHelpersClass}.withHaltHandling(() -> {{ {companion}.__Main({DafnyHelpersClass}.{CharMethodQualifier}FromMainArguments(args)); }} );");
       Coverage.EmitTearDown(wBody);
     }
 
@@ -2192,11 +2192,10 @@ namespace Microsoft.Dafny.Compilers {
         if (arg.Type.IsStringType) {
           TrParenExpr(arg, wr, false, wStmts);
           wr.Write(".verbatimString()");
-        } else if (arg.Type.IsCharType) {
-          if (UnicodeChars) {
-            wr.Write($"{CharTypeName(true)}.valueOf");
-          }
-          TrParenExpr(arg, wr, false, wStmts);
+        } else if (arg.Type.IsCharType && UnicodeChars) {
+          wr.Write($"{DafnyHelpersClass}.ToCharLiteral(");
+          TrExpr(arg, wr, false, wStmts);
+          wr.Write(")");
         } else if (isGeneric && !UnicodeChars) {
           // This happens to not work when --unicode-char is true anyway,
           // but the guard is there to be more explicit that this is intentional.

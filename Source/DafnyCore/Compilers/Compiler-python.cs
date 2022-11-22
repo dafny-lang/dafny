@@ -817,14 +817,19 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
       var wStmts = wr.Fork();
+      wr.Write($"{DafnyRuntimeModule}.print(");
+      EmitToString(wr, arg, wStmts);
+      wr.WriteLine(")");
+    }
+
+    private void EmitToString(ConcreteSyntaxTree wr, Expression arg, ConcreteSyntaxTree wStmts) {
       if (UnicodeChars && arg.Type.IsStringType) {
-        wr.Write($"{DafnyRuntimeModule}.print(");
         TrParenExpr(arg, wr, false, wStmts);
-        wr.WriteLine(".VerbatimString(False))");
+        wr.Write(".VerbatimString(False)");
       } else {
-        wr.Write($"{DafnyRuntimeModule}.print({DafnyRuntimeModule}.string_of(");
+        wr.Write($"{DafnyRuntimeModule}.string_of(");
         TrExpr(arg, wr, false, wStmts);
-        wr.WriteLine("))");
+        wr.WriteLine(")");
       }
     }
 
@@ -869,16 +874,7 @@ namespace Microsoft.Dafny.Compilers {
       var wStmts = wr.Fork();
       wr.Write($"raise {DafnyRuntimeModule}.HaltException(");
       wr.Write($"\"{ErrorReporter.TokenToString(tok)}: \" + ");
-
-      if (UnicodeChars && messageExpr.Type.IsStringType) {
-        TrParenExpr(messageExpr, wr, false, wStmts);
-        wr.Write(".VerbatimString(False)");
-      } else {
-        wr.Write($"{DafnyRuntimeModule}.string_of(");
-        TrExpr(messageExpr, wr, false, wStmts);
-        wr.WriteLine(")");
-      }
-
+      EmitToString(wr, messageExpr, wStmts);
       wr.WriteLine(")");
     }
 

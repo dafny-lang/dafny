@@ -25,7 +25,7 @@ func UnicodeFromMainArguments(args []string) Seq {
   var size = len(args)
   var dafnyArgs []interface{} = make([]interface{}, size)
   for i, item := range args {
-    dafnyArgs[i] = UnicodeSeqOfString(item)
+    dafnyArgs[i] = UnicodeSeqOfUtf8Bytes(item)
   }
   return SeqOf(dafnyArgs...)
 }
@@ -508,14 +508,6 @@ func SeqOfChars(values ...Char) Seq {
   return Seq{arr, true}
 }
 
-func SeqOfCodePoints(values ...CodePoint) Seq {
-  arr := make([]interface{}, len(values))
-  for i, v := range values {
-    arr[i] = v
-  }
-  return Seq{arr, false}
-}
-
 // SeqOfString converts the given string into a sequence of characters.
 // The given string must contain only ASCII characters!
 func SeqOfString(str string) Seq {
@@ -527,7 +519,7 @@ func SeqOfString(str string) Seq {
   return Seq{arr, true}
 }
 
-func UnicodeSeqOfString(str string) Seq {
+func UnicodeSeqOfUtf8Bytes(str string) Seq {
   // Need to make sure the elements of the array are CodePoints
   arr := make([]interface{}, utf8.RuneCountInString(str))
   i := 0

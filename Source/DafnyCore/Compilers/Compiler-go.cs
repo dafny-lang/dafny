@@ -119,7 +119,7 @@ namespace Microsoft.Dafny.Compilers {
       var idName = IssueCreateStaticMain(mainMethod) ? "Main" : IdName(mainMethod);
 
       Coverage.EmitSetup(wBody);
-      wBody.WriteLine($"{companion}.{idName}({GetHelperModuleName()}.{CharMethodQualifier()}FromMainArguments(os.Args))");
+      wBody.WriteLine($"{companion}.{idName}({GetHelperModuleName()}.{CharMethodQualifier}FromMainArguments(os.Args))");
       Coverage.EmitTearDown(wBody);
     }
 
@@ -1372,9 +1372,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine("goto TAIL_CALL_START");
     }
 
-    private static string CharTypeName() {
-      return UnicodeChars ? "_dafny.CodePoint" : "_dafny.Char";
-    }
+    private static string CharTypeName => UnicodeChars ? "_dafny.CodePoint" : "_dafny.Char";
 
     internal override string TypeName(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl/*?*/ member = null) {
       Contract.Ensures(Contract.Result<string>() != null);
@@ -1391,7 +1389,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (xType is BoolType) {
         return "bool";
       } else if (xType is CharType) {
-        return CharTypeName();
+        return CharTypeName;
       } else if (xType is IntType) {
         return "_dafny.Int";
       } else if (xType is BigOrdinalType) {
@@ -1463,7 +1461,7 @@ namespace Microsoft.Dafny.Compilers {
       if (xType is BoolType) {
         return "false";
       } else if (xType is CharType) {
-        return $"{CharTypeName()}({CharType.DefaultValueAsString})";
+        return $"{CharTypeName}({CharType.DefaultValueAsString})";
       } else if (xType is IntType || xType is BigOrdinalType) {
         return "_dafny.Zero";
       } else if (xType is RealType) {
@@ -2114,7 +2112,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected void TrCharLiteral(CharLiteralExpr chr, ConcreteSyntaxTree wr) {
       var v = (string)chr.Value;
-      wr.Write($"{CharTypeName()}(");
+      wr.Write($"{CharTypeName}(");
       // See comment in TrStringLiteral for why we can't just translate directly sometimes.
       if (!UnicodeChars && Util.MightContainNonAsciiCharacters(v, false)) {
         var c = Util.UnescapedCharacters(v, false).Single();
@@ -2130,11 +2128,11 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(wr != null);
       var s = (string)str.Value;
       if (UnicodeChars) {
-        wr.Write($"_dafny.UnicodeSeqOfString(");
+        wr.Write($"_dafny.UnicodeSeqOfUtf8Bytes(");
         EmitStringLiteral(str.tok, s, str.IsVerbatim, wr);
         wr.Write(")");
       } else {
-        // It may not be possible to translate a Dafny string into a valid Go string,
+        // When --unicode-char is false, it may not be possible to translate a Dafny string into a valid Go string,
         // since Go string literals have to be encodable in UTF-8,
         // but Dafny allows invalid sequences of surrogate characters.
         // In addition, _dafny.SeqOfString iterates over the runes in the Go string
@@ -2836,6 +2834,9 @@ namespace Microsoft.Dafny.Compilers {
       TrExpr(expr.Initializer, initWr, inLetExprBody, wStmts);
       wr.Write(")");
       if (fromType.Result.IsCharType && !UnicodeChars) {
+        // Tag this sequence as being a string at runtime,
+        // but only if --unicode-char is false.
+        // See "Printing strings and characters" in docs/Compilation/StringsAndChars.md.
         wr.Write(".SetString()");
       }
     }
@@ -3257,7 +3258,7 @@ namespace Microsoft.Dafny.Compilers {
           TrParenExpr(e.E, w, inLetExprBody, wStmts);
           wr.Write(", _dafny.One)");
         } else if (e.ToType.IsCharType) {
-          wr.Write($"{CharTypeName()}(");
+          wr.Write($"{CharTypeName}(");
           TrParenExpr(e.E, wr, inLetExprBody, wStmts);
           if (AsNativeType(e.E.Type) == null) {
             wr.Write(".Int32()");
@@ -3325,7 +3326,7 @@ namespace Microsoft.Dafny.Compilers {
           Contract.Assert(AsNativeType(e.ToType) == null);
           TrExpr(e.E, wr, inLetExprBody, wStmts);
         } else if (e.ToType.IsCharType) {
-          wr.Write($"{CharTypeName()}(");
+          wr.Write($"{CharTypeName}(");
           TrParenExpr(e.E, wr, inLetExprBody, wStmts);
           wr.Write(".Int().Int32())");
         } else {
@@ -3504,8 +3505,8 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write("_dafny.MultiSetOf");
       } else {
         Contract.Assert(ct is SeqType);  // follows from precondition
-        if (ct.Arg.IsCharType) {
-          wr.Write(UnicodeChars ? "_dafny.SeqOfCodePoints" : "_dafny.SeqOfChars");
+        if (ct.Arg.IsCharType && !UnicodeChars) {
+          wr.Write("_dafny.SeqOfChars");
         } else {
           wr.Write("_dafny.SeqOf");
         }

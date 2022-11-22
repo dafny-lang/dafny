@@ -51,7 +51,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       Coverage.EmitSetup(wr);
-      wr.WriteLine($"_dafny.HandleHaltExceptions(() => {mainMethod.EnclosingClass.FullCompileName}.{(mainMethod.IsStatic ? IdName(mainMethod) : "Main")}(_dafny.{CharMethodQualifier()}FromMainArguments(require('process').argv)));");
+      wr.WriteLine($"_dafny.HandleHaltExceptions(() => {mainMethod.EnclosingClass.FullCompileName}.{(mainMethod.IsStatic ? IdName(mainMethod) : "Main")}(_dafny.{CharMethodQualifier}FromMainArguments(require('process').argv)));");
       Coverage.EmitTearDown(wr);
     }
 
@@ -2151,7 +2151,7 @@ namespace Microsoft.Dafny.Compilers {
           } else if (AsNativeType(resultType) != null) {
             opString = "+";
           } else if (resultType.IsCharType) {
-            staticCallString = $"_dafny.{CharMethodQualifier()}PlusChar";
+            staticCallString = $"_dafny.{CharMethodQualifier}PlusChar";
           } else {
             callString = "plus"; truncateResult = true;
           }
@@ -2162,7 +2162,7 @@ namespace Microsoft.Dafny.Compilers {
           } else if (AsNativeType(resultType) != null) {
             opString = "-";
           } else if (resultType.IsCharType) {
-            staticCallString = $"_dafny.{CharMethodQualifier()}MinusChar";
+            staticCallString = $"_dafny.{CharMethodQualifier}MinusChar";
           } else {
             callString = "minus"; truncateResult = true;
           }
@@ -2271,7 +2271,7 @@ namespace Microsoft.Dafny.Compilers {
 
           TrParenExpr(e.E, wr, inLetExprBody, wStmts);
           if (e.E.Type.IsCharType) {
-            wr.Write(UnicodeChars ? ".value" : ".charCodeAt(0))");
+            wr.Write(UnicodeChars ? ".value)" : ".charCodeAt(0))");
           }
 
           wr.Write(", new BigNumber(1))");
