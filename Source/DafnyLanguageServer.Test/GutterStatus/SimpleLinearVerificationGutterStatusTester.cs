@@ -202,10 +202,20 @@ method Foo() ensures false { } ";
   public async Task EnsuresBodyVerifiedWithAssumptionsAreCorrectlyHighlighted() {
     await VerifyTrace(@"
  .  S  S  |? I? I? $?[S][ ]:method Test()
- .  S  |  |? I? I? $?[=][=]:  ensures 1 == 2;
+ .  S  |  |? I? I? $?[=][=]:  ensures 1 == 2
  .  S  S  |? I? I? $?[=][=]:{
  .  S  S  =? -? I? $?[S][ ]:  assume false; //Next:
  .  S  S  |? I? I? $?[S][ ]:}");
+  }
+
+  [TestMethod]
+  public async Task EnsuresBodyWithRequiresFalseCorrectlyHighlighted() {
+    await VerifyTrace(@"
+ .  S  S  |?:method Test()
+ .  S  |  =?:  requires èxists x: int :: true ==> (true && false) || false
+ .  S  S  |?:{
+ .  S  S  =?:  assert true;
+ .  S  S  |?:}");
   }
 
   [TestMethod]
