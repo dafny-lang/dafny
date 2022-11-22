@@ -1,4 +1,4 @@
-// RUN: %baredafny verify %args --bprint:"%t.bpl" --boogie-filter="*Succeeds*" %s > %t
+// RUN: %baredafny verify %args --boogie-filter='*Succeeds*' --bprint:"%t.bpl" %s > %t
 // RUN: %baredafny verify %args %s >> %t || true
 // RUN: %diff "%s.expect" "%t"
 
