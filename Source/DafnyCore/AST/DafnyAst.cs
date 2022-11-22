@@ -33,10 +33,8 @@ namespace Microsoft.Dafny {
     IEnumerable<INode> Children { get; }
 
     /// <summary>
-    /// These tokens are "owned" by the node, roughly meaning
-    /// they are not "owned" by any other node normally (typically children)
-    /// Owned tokens will help the formatter determine formatting cues
-    /// when considering that node.
+    /// A token is owned by a node if it was used to parse this node,
+    /// but is not owned by any of this Node's children
     /// </summary>
     IEnumerable<IToken> OwnedTokens { get; }
   }
