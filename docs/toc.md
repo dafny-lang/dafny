@@ -33,6 +33,7 @@ This page contains links to Dafny documentation.
    * [**Dafny Reference Manual**](DafnyRef/DafnyRef)
    * [**Style Guide for Dafny programs**](StyleGuide/Style-Guide)
    * Language reference for the [Dafny type system](http://leino.science/papers/krml243.html), which also describes available expressions for each type
+   * [Miscellaneous Examples of Dafny programs](examples/README)
 * Dafny Tutorials
    * [Introduction to Dafny](OnlineTutorial/guide)
    * [A Tutorial on Using Dafny to Construct Verified Software](https://arxiv.org/pdf/1701.04481.pdf), Paqui Lucio, 2017
