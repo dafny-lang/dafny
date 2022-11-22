@@ -25,6 +25,6 @@ class TranslateCommand : ICommandSpec {
       NoVerifyOption.Instance,
       CompileVerboseOption.Instance,
       IncludeRuntimeOption.Instance,
-      FilterOption.Instance,
+      BoogieFilterOption.Instance,
     }.Concat(CommandRegistry.CommonOptions);
 }

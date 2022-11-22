@@ -11,7 +11,7 @@ class BuildCommand : ICommandSpec {
     TargetOption.Instance,
     NoVerifyOption.Instance,
     CompileVerboseOption.Instance,
-    FilterOption.Instance
+    BoogieFilterOption.Instance
   }.Concat(CommandRegistry.CommonOptions);
 
   public Command Create() {

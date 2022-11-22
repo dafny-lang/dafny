@@ -12,7 +12,7 @@ class RunCommand : ICommandSpec {
     new IOptionSpec[] {
       TargetOption.Instance,
       NoVerifyOption.Instance,
-      FilterOption.Instance,
+      BoogieFilterOption.Instance,
     }.Concat(CommandRegistry.CommonOptions);
 
   public RunCommand() {
