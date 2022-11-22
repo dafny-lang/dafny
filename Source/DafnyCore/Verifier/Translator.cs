@@ -5160,7 +5160,7 @@ namespace Microsoft.Dafny {
         rhsType = rhsType.Normalize();
         Contract.Assert(rhsType is UserDefinedType && ((UserDefinedType)rhsType).ResolvedClass != null);
         var rhsTypeUdt = (UserDefinedType)rhsType;
-        var typeSubstMap = TypeUtil.TypeSubstitutionMap(rhsTypeUdt.ResolvedClass.TypeArgs, rhsTypeUdt.TypeArgs);
+        var typeSubstMap = TypeParameter.SubstitutionMap(rhsTypeUdt.ResolvedClass.TypeArgs, rhsTypeUdt.TypeArgs);
 
         var ctor = pat.Ctor;
         var correctConstructor = FunctionCall(pat.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, rhs);
@@ -5567,7 +5567,7 @@ namespace Microsoft.Dafny {
         // TODO: use TrSplitExpr
         var substMap = new Dictionary<IVariable, Expression>();
         substMap.Add(rdt.Var, expr);
-        var typeMap = TypeUtil.TypeSubstitutionMap(rdt.TypeArgs, udt.TypeArgs);
+        var typeMap = TypeParameter.SubstitutionMap(rdt.TypeArgs, udt.TypeArgs);
         var constraint = etran.TrExpr(Substitute(rdt.Constraint, null, substMap, typeMap));
         builder.Add(Assert(tok, constraint, new PODesc.ConversionSatisfiesConstraints(errorMsgPrefix, kind, rdt.Name)));
       }

@@ -11905,7 +11905,7 @@ namespace Microsoft.Dafny {
       } else {
         ctors = datatypeCtors[dtd];
         Contract.Assert(ctors != null);  // dtd should have been inserted into datatypeCtors during a previous resolution stage
-        subst = TypeUtil.TypeSubstitutionMap(dtd.TypeArgs, sourceType.TypeArgs); // build the type-parameter substitution map for this use of the datatype
+        subst = TypeParameter.SubstitutionMap(dtd.TypeArgs, sourceType.TypeArgs); // build the type-parameter substitution map for this use of the datatype
       }
 
       ISet<string> memberNamesUsed = new HashSet<string>();
@@ -12615,7 +12615,7 @@ namespace Microsoft.Dafny {
       } else {
         ctors = datatypeCtors[dtd];
         Contract.Assert(ctors != null);  // dtd should have been inserted into datatypeCtors during a previous resolution stage
-        subst = TypeUtil.TypeSubstitutionMap(dtd.TypeArgs, currMatcheeType.TypeArgs); // Build the type-parameter substitution map for this use of the datatype
+        subst = TypeParameter.SubstitutionMap(dtd.TypeArgs, currMatcheeType.TypeArgs); // Build the type-parameter substitution map for this use of the datatype
       }
 
       // Get the head of each patterns
@@ -12966,8 +12966,8 @@ namespace Microsoft.Dafny {
               return;
             } else {
               // if non-nullary constructor
-              var subst = TypeUtil.TypeSubstitutionMap(dtd.TypeArgs, type.NormalizeExpand().TypeArgs);
               var argTypes = ctor.Formals.ConvertAll<Type>(x => TypeUtil.SubstType(x.Type, subst));
+              var subst = TypeParameter.SubstitutionMap(dtd.TypeArgs, type.NormalizeExpand().TypeArgs);
               var pairFA = argTypes.Zip(idpat.Arguments, (x, y) => new Tuple<Type, ExtendedPattern>(x, y));
               foreach (var fa in pairFA) {
                 // get DatatypeDecl of Formal, recursive call on argument
@@ -14238,8 +14238,8 @@ namespace Microsoft.Dafny {
                       }
                     }
                     List<Type> proxyTypeArgs = td.TypeArgs.ConvertAll(t0 => typeMapping.ContainsKey(t0) ? typeMapping[t0] : (Type)new InferredTypeProxy());
-                    var joinMapping = TypeUtil.TypeSubstitutionMap(cl.TypeArgs, joinType.TypeArgs);
                     proxyTypeArgs = proxyTypeArgs.ConvertAll(t0 => TypeUtil.SubstType(t0, joinMapping));
+                    var joinMapping = TypeParameter.SubstitutionMap(cl.TypeArgs, joinType.TypeArgs);
                     proxyTypeArgs = proxyTypeArgs.ConvertAll(t0 => t0.AsTypeParameter == null ? t0 : (Type)new InferredTypeProxy());
                     var pickItFromHere = new UserDefinedType(tok, mbr.EnclosingClass.Name, mbr.EnclosingClass, proxyTypeArgs);
                     if (DafnyOptions.O.TypeInferenceDebug) {
@@ -14878,7 +14878,7 @@ namespace Microsoft.Dafny {
           if (ctype == null) {
             subst = new Dictionary<TypeParameter, Type>();
           } else {
-            subst = TypeUtil.TypeSubstitutionMap(ctype.ResolvedClass.TypeArgs, ctype.TypeArgs);
+            subst = TypeParameter.SubstitutionMap(ctype.ResolvedClass.TypeArgs, ctype.TypeArgs);
           }
           foreach (var tp in fn.TypeArgs) {
             Type prox = new InferredTypeProxy();
@@ -14905,8 +14905,8 @@ namespace Microsoft.Dafny {
           } else {
             Contract.Assert(ctype.ResolvedClass != null); // follows from postcondition of ResolveMember
             // build the type substitution map
-            var subst = TypeUtil.TypeSubstitutionMap(ctype.ResolvedClass.TypeArgs, ctype.TypeArgs);
             e.Type = TypeUtil.SubstType(field.Type, subst);
+            var subst = TypeParameter.SubstitutionMap(ctype.ResolvedClass.TypeArgs, ctype.TypeArgs);
           }
           AddCallGraphEdgeForField(resolutionContext.CodeContext, field, e);
         } else {
@@ -15691,7 +15691,7 @@ namespace Microsoft.Dafny {
       var candidateResultCtors = dt.Ctors;  // list of constructors that have all the so-far-mentioned destructors
       var memberNames = new HashSet<string>();
       var rhsBindings = new Dictionary<string, Tuple<BoundVar/*let variable*/, IdentifierExpr/*id expr for let variable*/, Expression /*RHS in given syntax*/>>();
-      var subst = TypeUtil.TypeSubstitutionMap(dt.TypeArgs, root.Type.NormalizeExpand().TypeArgs);
+      var subst = TypeParameter.SubstitutionMap(dt.TypeArgs, root.Type.NormalizeExpand().TypeArgs);
       foreach (var entry in memberUpdates) {
         var destructor_str = entry.Item2;
         if (memberNames.Contains(destructor_str)) {
@@ -15927,7 +15927,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(ctors != null);  // dtd should have been inserted into datatypeCtors during a previous resolution stage
 
         // build the type-parameter substitution map for this use of the datatype
-        subst = TypeUtil.TypeSubstitutionMap(dtd.TypeArgs, sourceType.TypeArgs);
+        subst = TypeParameter.SubstitutionMap(dtd.TypeArgs, sourceType.TypeArgs);
       }
 
       ISet<string> memberNamesUsed = new HashSet<string>();
@@ -16092,7 +16092,7 @@ namespace Microsoft.Dafny {
         }
         // build the type-parameter substitution map for this use of the datatype
         Contract.Assert(dtd.TypeArgs.Count == udt.TypeArgs.Count);  // follows from the type previously having been successfully resolved
-        var subst = TypeUtil.TypeSubstitutionMap(dtd.TypeArgs, udt.TypeArgs);
+        var subst = TypeParameter.SubstitutionMap(dtd.TypeArgs, udt.TypeArgs);
         // recursively call ResolveCasePattern on each of the arguments
         var j = 0;
         if (pat.Arguments != null) {
@@ -16773,7 +16773,7 @@ namespace Microsoft.Dafny {
       Dictionary<TypeParameter, Type> subst;
       var rType = (receiverTypeBound ?? receiver.Type).NormalizeExpand();
       if (rType is UserDefinedType udt && udt.ResolvedClass != null) {
-        subst = TypeUtil.TypeSubstitutionMap(udt.ResolvedClass.TypeArgs, udt.TypeArgs);
+        subst = TypeParameter.SubstitutionMap(udt.ResolvedClass.TypeArgs, udt.TypeArgs);
         if (member.EnclosingClass == null) {
           // this can happen for some special members, like real.Floor
         } else {
@@ -16783,7 +16783,7 @@ namespace Microsoft.Dafny {
         var vtd = AsValuetypeDecl(rType);
         if (vtd != null) {
           Contract.Assert(vtd.TypeArgs.Count == rType.TypeArgs.Count);
-          subst = TypeUtil.TypeSubstitutionMap(vtd.TypeArgs, rType.TypeArgs);
+          subst = TypeParameter.SubstitutionMap(vtd.TypeArgs, rType.TypeArgs);
           rr.TypeApplication_AtEnclosingClass.AddRange(rType.TypeArgs);
         } else {
           Contract.Assert(rType.TypeArgs.Count == 0);

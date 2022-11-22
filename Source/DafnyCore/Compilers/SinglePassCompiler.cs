@@ -2556,7 +2556,7 @@ namespace Microsoft.Dafny.Compilers {
         }
 
         var dtv = (DatatypeValue)pat.Expr;
-        var substMap = TypeUtil.TypeSubstitutionMap(ctor.EnclosingDatatype.TypeArgs, dtv.InferredTypeArgs);
+        var substMap = TypeParameter.SubstitutionMap(ctor.EnclosingDatatype.TypeArgs, dtv.InferredTypeArgs);
         var k = 0;  // number of non-ghost formals processed
         for (int i = 0; i < pat.Arguments.Count; i++) {
           var arg = pat.Arguments[i];
@@ -5079,7 +5079,7 @@ namespace Microsoft.Dafny.Compilers {
         }
 
         var bvIdentifier = new IdentifierExpr(tok, boundVar);
-        var typeParameters = TypeUtil.TypeSubstitutionMap(typeParametersArgs, typeArgs);
+        var typeParameters = TypeParameter.SubstitutionMap(typeParametersArgs, typeArgs);
         var subContract = new Substituter(null,
           new Dictionary<IVariable, Expression>()
           {
@@ -5249,7 +5249,7 @@ namespace Microsoft.Dafny.Compilers {
         Contract.Assert(ctor != null);  // follows from successful resolution
         Contract.Assert(pat.Arguments.Count == ctor.Formals.Count);  // follows from successful resolution
         Contract.Assert(ctor.EnclosingDatatype.TypeArgs.Count == rhsType.NormalizeExpand().TypeArgs.Count);
-        var typeSubst = TypeUtil.TypeSubstitutionMap(ctor.EnclosingDatatype.TypeArgs, rhsType.NormalizeExpand().TypeArgs);
+        var typeSubst = TypeParameter.SubstitutionMap(ctor.EnclosingDatatype.TypeArgs, rhsType.NormalizeExpand().TypeArgs);
         var k = 0;  // number of non-ghost formals processed
         for (int i = 0; i < pat.Arguments.Count; i++) {
           var arg = pat.Arguments[i];

@@ -404,7 +404,7 @@ public abstract class Type {
       return AutoInitInfo.CompilableValue; // null is a value of this type
     } else if (cl is DatatypeDecl) {
       var dt = (DatatypeDecl)cl;
-      var subst = TypeUtil.TypeSubstitutionMap(dt.TypeArgs, udt.TypeArgs);
+      var subst = TypeParameter.SubstitutionMap(dt.TypeArgs, udt.TypeArgs);
       var r = AutoInitInfo.CompilableValue;  // assume it's compilable, until we find out otherwise
       if (cl is CoDatatypeDecl) {
         if (coDatatypesBeingVisited != null) {
@@ -573,8 +573,8 @@ public abstract class Type {
       return udt;
     }
     var typeMapParents = cl.ParentFormalTypeParametersToActuals;
-    var typeMapUdt = TypeUtil.TypeSubstitutionMap(cl.TypeArgs, udt.TypeArgs);
     var typeArgs = parent.TypeArgs.ConvertAll(tp => TypeUtil.SubstType(typeMapParents[tp], typeMapUdt));
+    var typeMapUdt = TypeParameter.SubstitutionMap(cl.TypeArgs, udt.TypeArgs);
     return new UserDefinedType(udt.tok, parent.Name, parent, typeArgs);
   }
   public bool IsTraitType {
@@ -1449,8 +1449,8 @@ public abstract class Type {
         // trait.  If such a trait is unique, pick it. (Unfortunately, this makes the join operation not associative.)
         var commonTraits = TopLevelDeclWithMembers.CommonTraits(A, B);
         if (commonTraits.Count == 1) {
-          var typeMap = TypeUtil.TypeSubstitutionMap(A.TypeArgs, a.TypeArgs);
           var r = (UserDefinedType)TypeUtil.SubstType(commonTraits[0], typeMap);
+          var typeMap = TypeParameter.SubstitutionMap(A.TypeArgs, a.TypeArgs);
           return abNonNullTypes ? UserDefinedType.CreateNonNullType(r) : r;
         } else {
           // the unfortunate part is when commonTraits.Count > 1 here :(

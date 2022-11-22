@@ -313,6 +313,18 @@ public class TypeParameter : TopLevelDecl {
       return characteristics;
     }
   }
+
+  public static Dictionary<TypeParameter, Type> SubstitutionMap(List<TypeParameter> formals, List<Type> actuals) {
+    Contract.Requires(formals != null);
+    Contract.Requires(actuals != null);
+    Contract.Requires(formals.Count == actuals.Count);
+    var subst = new Dictionary<TypeParameter, Type>();
+    for (int i = 0; i < formals.Count; i++) {
+      subst.Add(formals[i], actuals[i]);
+    }
+    return subst;
+  }
+
 }
 
 // Represents a submodule declaration at module level scope
@@ -1246,8 +1258,8 @@ public class ClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl {
       // this optimization seems worthwhile
       return ParentTraits;
     } else {
-      var subst = TypeUtil.TypeSubstitutionMap(TypeArgs, typeArgs);
       return ParentTraits.ConvertAll(traitType => TypeUtil.SubstType(traitType, subst));
+      var subst = TypeParameter.SubstitutionMap(TypeArgs, typeArgs);
     }
   }
 
@@ -1255,8 +1267,8 @@ public class ClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl {
     Contract.Requires(typeArgs != null);
     Contract.Requires(typeArgs.Count == TypeArgs.Count);
     // Instantiate with the actual type arguments
-    var subst = TypeUtil.TypeSubstitutionMap(TypeArgs, typeArgs);
     return ParentTraits.ConvertAll(traitType => (Type)UserDefinedType.CreateNullableType((UserDefinedType)TypeUtil.SubstType(traitType, subst)));
+    var subst = TypeParameter.SubstitutionMap(TypeArgs, typeArgs);
   }
 
   public override List<Type> ParentTypes(List<Type> typeArgs) {
@@ -2006,8 +2018,8 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl {
       // this optimization seems worthwhile
       return Rhs;
     } else {
-      var subst = TypeUtil.TypeSubstitutionMap(TypeArgs, typeArgs);
       return TypeUtil.SubstType(Rhs, subst);
+      var subst = TypeParameter.SubstitutionMap(TypeArgs, typeArgs);
     }
   }
 
