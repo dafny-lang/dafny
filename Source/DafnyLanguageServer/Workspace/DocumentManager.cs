@@ -113,6 +113,7 @@ public class DocumentManager {
       services,
       verifierOptions,
       updatedText,
+      // TODO do not pass this to CompilationManager but instead use it in FillMissingStateUsingLastPublishedDocument
       migratedVerificationTree
     );
 
