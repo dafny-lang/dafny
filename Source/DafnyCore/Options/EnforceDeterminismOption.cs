@@ -19,7 +19,7 @@ public class RelaxDefiniteAssignment : BooleanOption {
   public override string LongName => "relax-definite-assignment";
 
   public override string Description =>
-    "Allow variables to be read before they are assigned, but only if they are ghost or have an auto-initializable type.";
+    "Allow variables to be read before they are assigned, but only if they have an auto-initializable type or if they are ghost and have a nonempty type.";
 
   public override string PostProcess(DafnyOptions options) {
     if (Get(options) && options.ForbidNondeterminism) {
