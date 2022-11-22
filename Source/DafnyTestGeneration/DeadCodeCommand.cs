@@ -14,7 +14,8 @@ public class DeadCodeCommand : ICommandSpec {
     }.Concat(ICommandSpec.CommonOptions);
 
   public Command Create() {
-    var result = new Command("find-dead-code", "(Experimental) Use block-coverage tests to warn about potential dead code.");
+    var result = new Command("find-dead-code", "(Experimental) Use counterexample generation to warn about potential dead code.");
+    result.AddArgument(ICommandSpec.FilesArgument);
     return result;
   }
 

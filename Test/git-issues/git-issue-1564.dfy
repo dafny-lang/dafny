@@ -1,9 +1,9 @@
-// RUN: %baredafny verify %args --function-syntax:3 "%s" > "%t" || true
-// RUN: %baredafny verify %args --function-syntax:migration3to4 "%s" >> "%t" || true
-// RUN: %baredafny verify %args --function-syntax:4 "%s" >> "%t" || true
-// RUN: %baredafny verify %args --function-syntax:experimentalDefaultGhost "%s" >> "%t" || true
-// RUN: %baredafny verify %args --function-syntax:experimentalDefaultCompiled "%s" >> "%t" || true
-// RUN: %baredafny verify %args --function-syntax:experimentalPredicateAlwaysGhost "%s" >> "%t" || true
+// RUN: ! %baredafny verify %args --function-syntax:3 "%s" > "%t"
+// RUN: ! %baredafny verify %args --function-syntax:migration3to4 "%s" >> "%t"
+// RUN: ! %baredafny verify %args --function-syntax:4 "%s" >> "%t"
+// RUN: ! %baredafny verify %args --function-syntax:experimentalDefaultGhost "%s" >> "%t"
+// RUN: ! %baredafny verify %args --function-syntax:experimentalDefaultCompiled "%s" >> "%t"
+// RUN: ! %baredafny verify %args --function-syntax:experimentalPredicateAlwaysGhost "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 function F0(): int // error: 3to4

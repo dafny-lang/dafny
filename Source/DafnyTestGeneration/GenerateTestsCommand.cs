@@ -23,11 +23,11 @@ public class GenerateTestsCommand : ICommandSpec {
   }
 
   readonly Argument<Mode> modeArgument = new("mode", @"
-Block - Prints block-coverage tests for the given program.
-Path - Prints path-coverage tests for the given program.");
+block - Prints block-coverage tests for the given program.
+path - Prints path-coverage tests for the given program.");
 
   public Command Create() {
-    var result = new Command("generate-tests", "(Experimental) Execute every method in the program that's annotated with the {:test} attribute.");
+    var result = new Command("generate-tests", "(Experimental) Generate Dafny tests that ensure block or path coverage of a particular Dafny program .");
     result.AddArgument(modeArgument);
     result.AddArgument(ICommandSpec.FilesArgument);
     return result;
