@@ -870,7 +870,7 @@ TOKENS
         | highSurrogate lowSurrogate
         | "\\\'" | "\\\"" | "\\\\" | "\\0" | "\\n" | "\\r" | "\\t"
         | "\\u" hexdigit hexdigit hexdigit hexdigit
-        | "\\U{" hexdigit { hexdigit } "}"
+        | "\\U{" hexdigit { ['_'] hexdigit } "}"
       )
       "'".
   stringToken =
@@ -878,7 +878,7 @@ TOKENS
       { stringChar
         | "\\\'" | "\\\"" | "\\\\" | "\\0" | "\\n" | "\\r" | "\\t"
         | "\\u" hexdigit hexdigit hexdigit hexdigit
-        | "\\U{" hexdigit { hexdigit } "}"
+        | "\\U{" hexdigit { ['_'] hexdigit } "}"
       }
       '"'
     | '@' '"' { verbatimStringChar | "\"\"" } '"'.

@@ -78,7 +78,7 @@ function toLower(ch: char): char
 function BadToLower_Overflow(ch: char): char
 {
   if 'A' <= ch then
-    ch - 'A' + 'a'  // error: possible overvlow
+    ch - 'A' + 'a'  // error: possible overflow
   else
     ch
 }
@@ -86,7 +86,23 @@ function BadToLower_Overflow(ch: char): char
 function BadToLower_Underflow(ch: char): char
 {
   if ch <= 'Z' then
-    ch - 'A' + 'a'  // error: possible overvlow
+    ch - 'A' + 'a'  // error: possible underflow
+  else
+    ch
+}
+
+function BadToLower_OverflowIntoSurrogateRange(ch: char): char
+{
+  if 'A' <= ch <= '\U{D7FF}' then
+    ch - 'A' + 'a'  // error: possible overflow
+  else
+    ch
+}
+
+function BadToLower_UnderflowIntoSurrogateRange(ch: char): char
+{
+  if '\U{E000}' <= ch <= '\U{1_0000}' then
+    ch - 'A' + 'a'  // error: possible underflow
   else
     ch
 }

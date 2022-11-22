@@ -195,11 +195,11 @@ namespace Microsoft.Dafny {
           }
 
           if (token.StartsWith("\\U")) {
-            // At most 10 characters in total (\U{XXXXXX})
-            if (token.Length > 10) {
+            var hexDigits = RemoveUnderscores(token[3..^1]);
+            if (hexDigits.Length > 6) {
               errors.SemErr(t, "\\U{X..X} escape sequence must have at most six hex digits");
             } else {
-              var codePoint = Convert.ToInt32(token[3..^1], 16);
+              var codePoint = Convert.ToInt32(hexDigits, 16);
               if (codePoint >= 0x11_0000) {
                 errors.SemErr(t, "\\U{X..X} escape sequence must be less than 0x110000");
               }
@@ -241,7 +241,7 @@ namespace Microsoft.Dafny {
     }
 
     public static readonly Regex Utf16Escape = new Regex(@"\\u([0-9a-fA-F]{4})");
-    public static readonly Regex UnicodeEscape = new Regex(@"\\U\{([0-9a-fA-F]+)\}");
+    public static readonly Regex UnicodeEscape = new Regex(@"\\U\{([0-9a-fA-F_]+)\}");
     private static readonly Regex NullEscape = new Regex(@"\\0");
 
     private static string ToUtf16Escape(char c) {
@@ -256,20 +256,22 @@ namespace Microsoft.Dafny {
 
     public static string ExpandUnicodeEscapes(string s, bool lowerCaseU) {
       return ReplaceTokensWithEscapes(s, UnicodeEscape, match => {
-        var padChars = 8 - match.Groups[1].Length;
-        return (lowerCaseU ? "\\u" : "\\U") + new string('0', padChars) + match.Groups[1];
+        var hexDigits = RemoveUnderscores(match.Groups[1].Value);
+        var padChars = 8 - hexDigits.Length;
+        return (lowerCaseU ? "\\u" : "\\U") + new string('0', padChars) + hexDigits;
       });
     }
 
     public static string UnicodeEscapesToLowercase(string s) {
       return ReplaceTokensWithEscapes(s, UnicodeEscape, match =>
-        $"\\u{{{match.Groups[1]}}}");
+        $"\\u{{{RemoveUnderscores(match.Groups[1].Value)}}}");
     }
 
     public static string UnicodeEscapesToUtf16Escapes(string s) {
       return ReplaceTokensWithEscapes(s, UnicodeEscape, match => {
         var utf16CodeUnits = new char[2];
-        var codePoint = new Rune(Convert.ToInt32(match.Groups[1].Value, 16));
+        var hexDigits = RemoveUnderscores(match.Groups[1].Value);
+        var codePoint = new Rune(Convert.ToInt32(hexDigits, 16));
         var codeUnits = codePoint.EncodeToUtf16(utf16CodeUnits);
         if (codeUnits == 2) {
           return ToUtf16Escape(utf16CodeUnits[0]) + ToUtf16Escape(utf16CodeUnits[1]); ;
@@ -317,7 +319,7 @@ namespace Microsoft.Dafny {
               yield return Convert.ToInt32(s[2..], 16);
               break;
             case { } when s.StartsWith(@"\U"):
-              yield return Convert.ToInt32(s[3..^1], 16);
+              yield return Convert.ToInt32(Util.RemoveUnderscores(s[3..^1]), 16);
               break;
             case { } when unicodeChars && char.IsHighSurrogate(s[0]):
               yield return char.ConvertToUtf32(s[0], s[1]);
