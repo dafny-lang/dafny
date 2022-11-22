@@ -1376,13 +1376,13 @@ namespace Microsoft.Dafny {
           Bpl.Expr q;
           var codecl = ty.AsCoDatatype;
           if (codecl != null && codecl.SscRepr == dt.SscRepr) {
-            var lexprs = Map(ty.TypeArgs, tt => TypeUtil.SubstType(tt, lsu));
-            var rexprs = Map(ty.TypeArgs, tt => TypeUtil.SubstType(tt, rsu));
+            var lexprs = Map(ty.TypeArgs, tt => tt.Subst(lsu));
+            var rexprs = Map(ty.TypeArgs, tt => tt.Subst(rsu));
             q = CoEqualCall(codecl, lexprs, rexprs, k, l, a, b);
           } else {
             // ordinary equality; let the usual translation machinery figure out the translation
-            var tyA = TypeUtil.SubstType(ty, lsu);
-            var tyB = TypeUtil.SubstType(ty, rsu);
+            var tyA = ty.Subst(lsu);
+            var tyB = ty.Subst(rsu);
             var aa = CondApplyUnbox(tok, a, ty, tyA);
             var bb = CondApplyUnbox(tok, b, ty, tyB);
             var equal = new BinaryExpr(tok, BinaryExpr.Opcode.Eq, new BoogieWrapper(aa, tyA), new BoogieWrapper(bb, tyB));
@@ -2431,7 +2431,7 @@ namespace Microsoft.Dafny {
       var anteReqAxiom = ante; // note that antecedent so far is the same for #requires axioms, even the receiver parameter of a two-state function
       var substMap = new Dictionary<IVariable, Expression>();
       foreach (Formal p in f.Formals) {
-        var pType = TypeUtil.SubstType(p.Type, typeMap);
+        var pType = p.Type.Subst(typeMap);
         bv = new Bpl.BoundVariable(p.tok,
           new Bpl.TypedIdent(p.tok, p.AssignUniqueName(currentDeclaration.IdGenerator), TrType(pType)));
         forallFormals.Add(bv);
@@ -3285,7 +3285,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(field != null);
       Contract.Requires(localVariables != null);
 
-      var type = TypeUtil.SubstType(field.Type, enclosingClass.ParentFormalTypeParametersToActuals);
+      var type = field.Type.Subst(enclosingClass.ParentFormalTypeParametersToActuals);
       if (!NeedsDefiniteAssignmentTracker(field.IsGhost || forceGhostVar, type)) {
         return;
       }
@@ -4722,7 +4722,7 @@ namespace Microsoft.Dafny {
         } else {
           Contract.Assert(Bpl.Type.Equals(local.TypedIdent.Type, TrType(p.Type)));
         }
-        var pFormalType = TypeUtil.SubstType(mc.Ctor.Formals[i].Type, subst);
+        var pFormalType = mc.Ctor.Formals[i].Type.Subst(subst);
         var pIsAlloc = (isAlloc == ISALLOC) ? isAllocContext.Var(p) : NOALLOC;
         Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, local), pFormalType, etran, pIsAlloc);
         if (wh != null) {
@@ -5175,7 +5175,7 @@ namespace Microsoft.Dafny {
           var dtor = ctor.Destructors[i];
 
           var r = new Bpl.NAryExpr(arg.tok, new Bpl.FunctionCall(GetReadonlyField(dtor)), new List<Bpl.Expr> { rhs });
-          Type argType = TypeUtil.SubstType(dtor.Type, typeSubstMap);
+          Type argType = dtor.Type.Subst(typeSubstMap);
           var de = CondApplyUnbox(arg.tok, r, dtor.Type, argType);
           CheckCasePatternShape(arg, de, arg.tok, argType, builder);
         }
@@ -8342,7 +8342,7 @@ namespace Microsoft.Dafny {
           var field = (Field)fse.Member;
           Contract.Assert(VisibleInScope(field));
           lhsType = field.Type;
-          rhsTypeConstraint = TypeUtil.SubstType(lhsType, fse.TypeArgumentSubstitutionsWithParents());
+          rhsTypeConstraint = lhsType.Subst(fse.TypeArgumentSubstitutionsWithParents());
         } else if (lhs is SeqSelectExpr) {
           var e = (SeqSelectExpr)lhs;
           lhsType = null;  // for an array update, always make sure the value assigned is boxed
@@ -8393,7 +8393,7 @@ namespace Microsoft.Dafny {
           var field = (Field)fse.Member;
           Contract.Assert(VisibleInScope(field));
           lhsType = field.Type;
-          rhsTypeConstraint = TypeUtil.SubstType(lhsType, fse.TypeArgumentSubstitutionsWithParents());
+          rhsTypeConstraint = lhsType.Subst(fse.TypeArgumentSubstitutionsWithParents());
         } else if (lhs is SeqSelectExpr) {
           var e = (SeqSelectExpr)lhs;
           lhsType = null;  // for an array update, always make sure the value assigned is boxed
@@ -9277,7 +9277,7 @@ namespace Microsoft.Dafny {
         Tok = template.Tok;
         LetId = template.LetId;  // reuse the ID, which ensures we get the same $let functions
         FTVs = template.FTVs;
-        FTV_Types = template.FTV_Types.ConvertAll(t => TypeUtil.SubstType(t, typeMap));
+        FTV_Types = template.FTV_Types.ConvertAll(t => t.Subst(typeMap));
         FVs = template.FVs;
         FV_Exprs = template.FV_Exprs.ConvertAll(e => Translator.Substitute(e, null, substMap, typeMap));
         UsesHeap = template.UsesHeap;
@@ -10349,7 +10349,7 @@ namespace Microsoft.Dafny {
           } else {
             // inline this body
             var typeSpecializedBody = GetSubstitutedBody(fexp, f);
-            var typeSpecializedResultType = TypeUtil.SubstType(f.ResultType, fexp.GetTypeArgumentSubstitutions());
+            var typeSpecializedResultType = f.ResultType.Subst(fexp.GetTypeArgumentSubstitutions());
 
             // recurse on body
             var ss = new List<SplitExprInfo>();
@@ -10453,7 +10453,7 @@ namespace Microsoft.Dafny {
       Contract.Assert(fexp.Args.Count == f.Formals.Count);
       for (int i = 0; i < f.Formals.Count; i++) {
         Formal p = f.Formals[i];
-        var formalType = TypeUtil.SubstType(p.Type, fexp.GetTypeArgumentSubstitutions());
+        var formalType = p.Type.Subst(fexp.GetTypeArgumentSubstitutions());
         Expression arg = fexp.Args[i];
         arg = new BoxingCastExpr(arg, cce.NonNull(arg.Type), formalType);
         arg.Type = formalType;  // resolve here
@@ -10512,7 +10512,7 @@ namespace Microsoft.Dafny {
             int i = 0;
             Bpl.Expr typeAntecedent = Bpl.Expr.True;
             foreach (Formal arg in ctor.Formals) {
-              var instantiatedArgType = TypeUtil.SubstType(arg.Type, subst);
+              var instantiatedArgType = arg.Type.Subst(subst);
               Bpl.Expr wh = GetWhereClause(arg.tok, CondApplyUnbox(arg.tok, args[i], arg.Type, instantiatedArgType), instantiatedArgType, etran, NOALLOC);
               if (wh != null) {
                 typeAntecedent = BplAnd(typeAntecedent, wh);

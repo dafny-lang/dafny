@@ -3560,7 +3560,7 @@ namespace Microsoft.Dafny {
                   var f = (Field)member;
                   if (f is ConstantField && ((ConstantField)f).Rhs != null) {
                     // fine
-                  } else if (!TypeUtil.SubstType(f.Type, cl.ParentFormalTypeParametersToActuals).KnownToHaveToAValue(f.IsGhost)) {
+                  } else if (!f.Type.Subst(cl.ParentFormalTypeParametersToActuals).KnownToHaveToAValue(f.IsGhost)) {
                     fieldWithoutKnownInitializer = f;
                     break;
                   }
@@ -3570,7 +3570,7 @@ namespace Microsoft.Dafny {
             // go through inherited members...
             if (fieldWithoutKnownInitializer != null) {
               reporter.Error(MessageSource.Resolver, cl.tok, "class '{0}' with fields without known initializers, like '{1}' of type '{2}', must declare a constructor",
-                cl.Name, fieldWithoutKnownInitializer.Name, TypeUtil.SubstType(fieldWithoutKnownInitializer.Type, cl.ParentFormalTypeParametersToActuals));
+                cl.Name, fieldWithoutKnownInitializer.Name, fieldWithoutKnownInitializer.Type.Subst(cl.ParentFormalTypeParametersToActuals));
             }
           }
         }
@@ -9313,7 +9313,7 @@ namespace Microsoft.Dafny {
         RegisterInheritedMembers(trait);
         cl.ParentTypeInformation.Extend(trait, trait.ParentTypeInformation, cl.ParentFormalTypeParametersToActuals);
         foreach (var entry in trait.ParentFormalTypeParametersToActuals) {
-          var v = TypeUtil.SubstType(entry.Value, cl.ParentFormalTypeParametersToActuals);
+          var v = entry.Value.Subst(cl.ParentFormalTypeParametersToActuals);
           if (!cl.ParentFormalTypeParametersToActuals.ContainsKey(entry.Key)) {
             cl.ParentFormalTypeParametersToActuals.Add(entry.Key, v);
           }
@@ -9564,7 +9564,7 @@ namespace Microsoft.Dafny {
           nw.WhatKind, nw.Name, nwFix.KNat ? "nat" : "ORDINAL", oldFix.KNat ? "nat" : "ORDINAL");
       }
       CheckOverride_ResolvedParameters(nw.tok, old.Formals, nw.Formals, nw.Name, "function", "parameter", typeMap);
-      var oldResultType = TypeUtil.SubstType(old.ResultType, typeMap);
+      var oldResultType = old.ResultType.Subst(typeMap);
       if (!nw.ResultType.Equals(oldResultType, true)) {
         reporter.Error(MessageSource.Resolver, nw, "the result type of function '{0}' ({1}) differs from that in the overridden function ({2})",
           nw.Name, nw.ResultType, oldResultType);
@@ -9652,7 +9652,7 @@ namespace Microsoft.Dafny {
             reporter.Error(MessageSource.Resolver, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to in the overridden {2}, from older to non-older",
               parameterKind, n.Name, thing, name);
           } else {
-            var oo = TypeUtil.SubstType(o.Type, typeMap);
+            var oo = o.Type.Subst(typeMap);
             if (!n.Type.Equals(oo, true)) {
               reporter.Error(MessageSource.Resolver, n.tok,
                 "the type of {0} '{1}' is different from the type of the corresponding {0} in trait {2} ('{3}' instead of '{4}')",
@@ -11945,7 +11945,7 @@ namespace Microsoft.Dafny {
             ResolveType(v.tok, v.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
             if (i < mc.Ctor.Formals.Count) {
               Formal formal = mc.Ctor.Formals[i];
-              Type st = TypeUtil.SubstType(formal.Type, subst);
+              Type st = formal.Type.Subst(subst);
               ConstrainSubtypeRelation(v.Type, st, s.Tok,
                 "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", v.Type, st);
               v.IsGhost = formal.IsGhost;
@@ -12458,7 +12458,7 @@ namespace Microsoft.Dafny {
         // create a bound variable for each formal to use in the MatchCase for this constructor
         // using the currMatchee.tok to get a location closer to the error if something goes wrong
         var freshPatBV = ctor.Value.Formals.ConvertAll(
-          x => CreatePatBV(currMatchee.tok, TypeUtil.SubstType(x.Type, subst), mti.CodeContext));
+          x => CreatePatBV(currMatchee.tok, x.Type.Subst(subst), mti.CodeContext));
 
         // rhs to bind to head-patterns that are bound variables
         var rhsExpr = currMatchee;
@@ -12499,7 +12499,7 @@ namespace Microsoft.Dafny {
               var currBranch = CloneRBranch(PB.Item2);
 
               List<IdPattern> freshArgs = ctor.Value.Formals.ConvertAll(x =>
-                CreateFreshId(currPattern.Tok, TypeUtil.SubstType(x.Type, subst), mti.CodeContext, x.IsGhost));
+                CreateFreshId(currPattern.Tok, x.Type.Subst(subst), mti.CodeContext, x.IsGhost));
 
               currBranch.Patterns.InsertRange(0, freshArgs);
               LetBindNonWildCard(currBranch, currPattern, rhsExpr);
@@ -12966,8 +12966,8 @@ namespace Microsoft.Dafny {
               return;
             } else {
               // if non-nullary constructor
-              var argTypes = ctor.Formals.ConvertAll<Type>(x => TypeUtil.SubstType(x.Type, subst));
               var subst = TypeParameter.SubstitutionMap(dtd.TypeArgs, type.NormalizeExpand().TypeArgs);
+              var argTypes = ctor.Formals.ConvertAll<Type>(x => x.Type.Subst(subst));
               var pairFA = argTypes.Zip(idpat.Arguments, (x, y) => new Tuple<Type, ExtendedPattern>(x, y));
               foreach (var fa in pairFA) {
                 // get DatatypeDecl of Formal, recursive call on argument
@@ -13404,7 +13404,7 @@ namespace Microsoft.Dafny {
           // We're looking at a method call
           var typeMap = (asx.Lhs.Resolved as MemberSelectExpr)?.TypeArgumentSubstitutionsWithParents();
           if (call.Outs.Count != 0) {
-            firstType = TypeUtil.SubstType(call.Outs[0].Type, typeMap);
+            firstType = call.Outs[0].Type.Subst(typeMap);
           } else {
             reporter.Error(MessageSource.Resolver, s.Rhs.tok, "Expected {0} to have a Success/Failure output value, but the method returns nothing.", call.Name);
           }
@@ -13730,7 +13730,7 @@ namespace Microsoft.Dafny {
         for (int i = 0; i < callee.Outs.Count && i < s.Lhs.Count; i++) {
           var outFormal = callee.Outs[i];
           var it = outFormal.Type;
-          Type st = TypeUtil.SubstType(it, typeMap);
+          Type st = it.Subst(typeMap);
           var lhs = s.Lhs[i];
           var what = GetLocationInformation(outFormal, callee.Outs.Count(), i, "method out-parameter");
 
@@ -14238,8 +14238,8 @@ namespace Microsoft.Dafny {
                       }
                     }
                     List<Type> proxyTypeArgs = td.TypeArgs.ConvertAll(t0 => typeMapping.ContainsKey(t0) ? typeMapping[t0] : (Type)new InferredTypeProxy());
-                    proxyTypeArgs = proxyTypeArgs.ConvertAll(t0 => TypeUtil.SubstType(t0, joinMapping));
                     var joinMapping = TypeParameter.SubstitutionMap(cl.TypeArgs, joinType.TypeArgs);
+                    proxyTypeArgs = proxyTypeArgs.ConvertAll(t0 => t0.Subst(joinMapping));
                     proxyTypeArgs = proxyTypeArgs.ConvertAll(t0 => t0.AsTypeParameter == null ? t0 : (Type)new InferredTypeProxy());
                     var pickItFromHere = new UserDefinedType(tok, mbr.EnclosingClass.Name, mbr.EnclosingClass, proxyTypeArgs);
                     if (DafnyOptions.O.TypeInferenceDebug) {
@@ -14887,8 +14887,8 @@ namespace Microsoft.Dafny {
           }
           subst = BuildTypeArgumentSubstitute(subst);
           e.Type = SelectAppropriateArrowType(fn.tok,
-            fn.Formals.ConvertAll(f => TypeUtil.SubstType(f.Type, subst)),
-            TypeUtil.SubstType(fn.ResultType, subst),
+            fn.Formals.ConvertAll(f => f.Type.Subst(subst)),
+            fn.ResultType.Subst(subst),
             fn.Reads.Count != 0, fn.Req.Count != 0);
           AddCallGraphEdge(resolutionContext.CodeContext, fn, e, false);
         } else if (member is Field) {
@@ -14905,8 +14905,8 @@ namespace Microsoft.Dafny {
           } else {
             Contract.Assert(ctype.ResolvedClass != null); // follows from postcondition of ResolveMember
             // build the type substitution map
-            e.Type = TypeUtil.SubstType(field.Type, subst);
             var subst = TypeParameter.SubstitutionMap(ctype.ResolvedClass.TypeArgs, ctype.TypeArgs);
+            e.Type = field.Type.Subst(subst);
           }
           AddCallGraphEdgeForField(resolutionContext.CodeContext, field, e);
         } else {
@@ -15717,7 +15717,7 @@ namespace Microsoft.Dafny {
                 rhsBindings.Add(destructor_str, new Tuple<BoundVar, IdentifierExpr, Expression>(null, null, entry.Item3));
               } else {
                 var xName = FreshTempVarName(string.Format("dt_update#{0}#", destructor_str), resolutionContext.CodeContext);
-                var xVar = new BoundVar(new AutoGeneratedToken(tok), xName, TypeUtil.SubstType(destructor.Type, subst));
+                var xVar = new BoundVar(new AutoGeneratedToken(tok), xName, destructor.Type.Subst(subst));
                 var x = new IdentifierExpr(new AutoGeneratedToken(tok), xVar);
                 rhsBindings.Add(destructor_str, new Tuple<BoundVar, IdentifierExpr, Expression>(xVar, x, entry.Item3));
               }
@@ -15965,7 +15965,7 @@ namespace Microsoft.Dafny {
             ResolveType(v.tok, v.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
             if (i < mc.Ctor.Formals.Count) {
               Formal formal = mc.Ctor.Formals[i];
-              Type st = TypeUtil.SubstType(formal.Type, subst);
+              Type st = formal.Type.Subst(subst);
               ConstrainSubtypeRelation(v.Type, st, me,
                 "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", v.Type, st);
               v.IsGhost = formal.IsGhost;
@@ -16099,7 +16099,7 @@ namespace Microsoft.Dafny {
           foreach (var arg in pat.Arguments) {
             if (j < ctor.Formals.Count) {
               var formal = ctor.Formals[j];
-              Type st = TypeUtil.SubstType(formal.Type, subst);
+              Type st = formal.Type.Subst(subst);
               ResolveCasePattern(arg, st, resolutionContext.WithGhost(resolutionContext.IsGhost || formal.IsGhost));
             }
             j++;
@@ -16797,7 +16797,7 @@ namespace Microsoft.Dafny {
           reporter.Error(MessageSource.Resolver, tok, "a field ({0}) does not take any type arguments (got {1})", field.Name, optTypeArguments.Count);
         }
         subst = BuildTypeArgumentSubstitute(subst, receiverTypeBound ?? receiver.Type);
-        rr.Type = TypeUtil.SubstType(field.Type, subst);
+        rr.Type = field.Type.Subst(subst);
         AddCallGraphEdgeForField(resolutionContext.CodeContext, field, rr);
       } else if (member is Function) {
         var fn = (Function)member;
@@ -16816,8 +16816,8 @@ namespace Microsoft.Dafny {
         }
         subst = BuildTypeArgumentSubstitute(subst, receiverTypeBound ?? receiver.Type);
         rr.Type = SelectAppropriateArrowType(fn.tok,
-          fn.Formals.ConvertAll(f => TypeUtil.SubstType(f.Type, subst)),
-          TypeUtil.SubstType(fn.ResultType, subst),
+          fn.Formals.ConvertAll(f => f.Type.Subst(subst)),
+          fn.ResultType.Subst(subst),
           fn.Reads.Count != 0, fn.Req.Count != 0);
         AddCallGraphEdge(resolutionContext.CodeContext, fn, rr, IsFunctionReturnValue(fn, args, resolutionContext));
       } else {
@@ -16838,7 +16838,7 @@ namespace Microsoft.Dafny {
           subst.Add(m.TypeArgs[i], ta);
         }
         subst = BuildTypeArgumentSubstitute(subst, receiverTypeBound ?? receiver.Type);
-        rr.ResolvedOutparameterTypes = m.Outs.ConvertAll(f => TypeUtil.SubstType(f.Type, subst));
+        rr.ResolvedOutparameterTypes = m.Outs.ConvertAll(f => f.Type.Subst(subst));
         rr.Type = new InferredTypeProxy();  // fill in this field, in order to make "rr" resolved
       }
       return rr;
@@ -16967,7 +16967,7 @@ namespace Microsoft.Dafny {
             };
             var typeMap = BuildTypeArgumentSubstitute(mse.TypeArgumentSubstitutionsAtMemberDeclaration());
             ResolveActualParameters(rr.Bindings, callee.Formals, e.tok, callee, resolutionContext, typeMap, callee.IsStatic ? null : mse.Obj);
-            rr.Type = TypeUtil.SubstType(callee.ResultType, typeMap);
+            rr.Type = callee.ResultType.Subst(typeMap);
             if (errorCount == reporter.Count(ErrorLevel.Error)) {
               Contract.Assert(!(mse.Obj is StaticReceiverExpr) || callee.IsStatic);  // this should have been checked already
               Contract.Assert(callee.Formals.Count == rr.Args.Count);  // this should have been checked already
@@ -17123,7 +17123,7 @@ namespace Microsoft.Dafny {
             whatKind + (context is Method ? " in-parameter" : " parameter"));
 
           AddAssignableConstraint(
-            callTok, TypeUtil.SubstType(formal.Type, typeMap), b.Actual.Type,
+            callTok, formal.Type.Subst(typeMap), b.Actual.Type,
             $"incorrect argument type {what} (expected {{0}}, found {{1}})");
         } else if (formal.DefaultValue != null) {
           // Note, in the following line, "substMap" is passed in, but it hasn't been fully filled in until the
@@ -17256,7 +17256,7 @@ namespace Microsoft.Dafny {
         }
         if (cl != null) {
           foreach (var entry in cl.ParentFormalTypeParametersToActuals) {
-            var v = TypeUtil.SubstType(entry.Value, subst);
+            var v = entry.Value.Subst(subst);
             subst.Add(entry.Key, v);
           }
         }
@@ -17383,7 +17383,7 @@ namespace Microsoft.Dafny {
         // type check the arguments
         ResolveActualParameters(e.Bindings, function.Formals, e.tok, function, resolutionContext, subst, function.IsStatic ? null : e.Receiver);
 
-        e.Type = TypeUtil.SubstType(function.ResultType, subst).NormalizeExpand();
+        e.Type = function.ResultType.Subst(subst).NormalizeExpand();
 
         AddCallGraphEdge(resolutionContext.CodeContext, function, e, IsFunctionReturnValue(function, e.Bindings.ArgumentBindings, resolutionContext));
       }

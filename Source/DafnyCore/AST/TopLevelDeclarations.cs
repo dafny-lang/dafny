@@ -1109,7 +1109,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl {
           info.Add(traitHead, list);
         }
         foreach (var pair in entry.Value) {
-          var ty = TypeUtil.SubstType(pair.Item1, typeMap);
+          var ty = pair.Item1.Subst(typeMap);
           // prepend the path with "parent"
           var parentPath = new List<TraitDecl>() { parent };
           parentPath.AddRange(pair.Item2);
@@ -1258,8 +1258,8 @@ public class ClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl {
       // this optimization seems worthwhile
       return ParentTraits;
     } else {
-      return ParentTraits.ConvertAll(traitType => TypeUtil.SubstType(traitType, subst));
       var subst = TypeParameter.SubstitutionMap(TypeArgs, typeArgs);
+      return ParentTraits.ConvertAll(traitType => traitType.Subst(subst));
     }
   }
 
@@ -1267,8 +1267,8 @@ public class ClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl {
     Contract.Requires(typeArgs != null);
     Contract.Requires(typeArgs.Count == TypeArgs.Count);
     // Instantiate with the actual type arguments
-    return ParentTraits.ConvertAll(traitType => (Type)UserDefinedType.CreateNullableType((UserDefinedType)TypeUtil.SubstType(traitType, subst)));
     var subst = TypeParameter.SubstitutionMap(TypeArgs, typeArgs);
+    return ParentTraits.ConvertAll(traitType => (Type)UserDefinedType.CreateNullableType((UserDefinedType)traitType.Subst(subst)));
   }
 
   public override List<Type> ParentTypes(List<Type> typeArgs) {
@@ -2018,8 +2018,8 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl {
       // this optimization seems worthwhile
       return Rhs;
     } else {
-      return TypeUtil.SubstType(Rhs, subst);
       var subst = TypeParameter.SubstitutionMap(TypeArgs, typeArgs);
+      return Rhs.Subst(subst);
     }
   }
 

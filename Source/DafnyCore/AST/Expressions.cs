@@ -866,8 +866,8 @@ public class StaticReceiverExpr : LiteralExpr {
     if (top != cl) {
       Contract.Assert(top != null);
       var clArgsInTermsOfTFormals = cl.TypeArgs.ConvertAll(tp => top.ParentFormalTypeParametersToActuals[tp]);
-      var typeArgs = clArgsInTermsOfTFormals.ConvertAll(ty => TypeUtil.SubstType(ty, subst));
       var subst = TypeParameter.SubstitutionMap(top.TypeArgs, t.TypeArgs);
+      var typeArgs = clArgsInTermsOfTFormals.ConvertAll(ty => ty.Subst(subst));
       Type = new UserDefinedType(tok, cl.Name, cl, typeArgs);
     } else if (t.Name != cl.Name) {  // t may be using the name "C?", and we'd prefer it read "C"
       Type = new UserDefinedType(tok, cl.Name, cl, t.TypeArgs);
@@ -1175,6 +1175,9 @@ class Resolver_IdentifierExpr : Expression, IHasUsages {
     public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl>/*?*/ visitedDatatypes) {
       return false;
     }
+    public override Type Subst(Dictionary<TypeParameter, Type> subst) {
+      throw new NotImplementedException();
+    }
   }
   public class ResolverType_Module : ResolverType {
     [Pure]
@@ -1405,7 +1408,7 @@ public class MemberSelectExpr : Expression, IHasUsages {
       // Add in the mappings from parent types' formal type parameters to types
       if (cl is TopLevelDeclWithMembers cls) {
         foreach (var entry in cls.ParentFormalTypeParametersToActuals) {
-          var v = TypeUtil.SubstType(entry.Value, subst);
+          var v = entry.Value.Subst(subst);
           subst.Add(entry.Key, v);
         }
       }
@@ -1457,7 +1460,7 @@ public class MemberSelectExpr : Expression, IHasUsages {
         typeMap.Add(cl.TypeArgs[i], TypeApplication_AtEnclosingClass[i]);
       }
       foreach (var entry in cl.ParentFormalTypeParametersToActuals) {
-        var v = TypeUtil.SubstType(entry.Value, typeMap);
+        var v = entry.Value.Subst(typeMap);
         typeMap.Add(entry.Key, v);
       }
     } else if (field.EnclosingClass == null) {
@@ -1468,7 +1471,7 @@ public class MemberSelectExpr : Expression, IHasUsages {
         typeMap.Add(field.EnclosingClass.TypeArgs[i], TypeApplication_AtEnclosingClass[i]);
       }
     }
-    this.Type = TypeUtil.SubstType(field.Type, typeMap);  // resolve here
+    this.Type = field.Type.Subst(typeMap);  // resolve here
   }
 
   public void MemberSelectCase(Action<Field> fieldK, Action<Function> functionK) {
@@ -4085,7 +4088,7 @@ public class DefaultValueExpression : ConcreteSyntaxExpression {
     Receiver = receiver;
     SubstMap = substMap;
     TypeMap = typeMap;
-    Type = TypeUtil.SubstType(formal.Type, typeMap);
+    Type = formal.Type.Subst(typeMap);
   }
 
   public override RangeToken RangeToken => new RangeToken(tok, tok);
