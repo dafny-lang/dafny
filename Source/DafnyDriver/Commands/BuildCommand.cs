@@ -9,9 +9,9 @@ class BuildCommand : ICommandSpec {
   public IEnumerable<IOptionSpec> Options => new IOptionSpec[] {
     OutputOption.Instance,
     TargetOption.Instance,
-    NoVerifyOption.Instance,
     CompileVerboseOption.Instance,
-  }.Concat(CommandRegistry.CommonOptions);
+  }.Concat(CommandRegistry.ExecutionOptions).
+    Concat(CommandRegistry.CommonOptions);
 
   public Command Create() {
     var result = new Command("build", "Produce an executable binary or a library.");

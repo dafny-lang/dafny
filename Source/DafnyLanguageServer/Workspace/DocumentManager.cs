@@ -93,10 +93,14 @@ public class DocumentManager {
     Compilation.CancelPendingUpdates();
     var updatedText = textChangeProcessor.ApplyChange(Compilation.TextBuffer, documentChange, CancellationToken.None);
 
+
     var lastPublishedState = observer.LastPublishedState;
+    var migratedVerificationTree =
+      relocator.RelocateVerificationTree(lastPublishedState.VerificationTree, updatedText.NumberOfLines, documentChange, CancellationToken.None);
     lastPublishedState = lastPublishedState with {
       ImplementationIdToView = MigrateImplementationViews(documentChange, lastPublishedState.ImplementationIdToView),
-      SignatureAndCompletionTable = relocator.RelocateSymbols(lastPublishedState.SignatureAndCompletionTable, documentChange, CancellationToken.None)
+      SignatureAndCompletionTable = relocator.RelocateSymbols(lastPublishedState.SignatureAndCompletionTable, documentChange, CancellationToken.None),
+      VerificationTree = migratedVerificationTree
     };
 
     lock (ChangedRanges) {
@@ -105,10 +109,6 @@ public class DocumentManager {
             relocator.RelocateRange(range, documentChange, CancellationToken.None))).
           Where(r => r != null).Take(MaxRememberedChanges).ToList()!;
     }
-
-    var migratedVerificationTree =
-      relocator.RelocateVerificationTree(lastPublishedState.VerificationTree, updatedText.NumberOfLines, documentChange, CancellationToken.None);
-
     Compilation = new Compilation(
       services,
       verifierOptions,
