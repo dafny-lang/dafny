@@ -2128,7 +2128,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitStringLiteral(IToken tok, string str, bool isVerbatim, ConcreteSyntaxTree wr) {
+    protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
       wr.Write($"{(isVerbatim ? "@" : "")}\"{Util.ExpandUnicodeEscapes(str, false)}\"");
     }
 

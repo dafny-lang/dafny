@@ -1083,7 +1083,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitStringLiteral(IToken tok, string str, bool isVerbatim, ConcreteSyntaxTree wr) {
+    protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
       if (!isVerbatim) {
         wr.Write($"\"{TranslateEscapes(str)}\"");
       } else {
@@ -2197,8 +2197,6 @@ namespace Microsoft.Dafny.Compilers {
           TrExpr(arg, wr, false, wStmts);
           wr.Write(")");
         } else if (isGeneric && !UnicodeCharEnabled) {
-          // This happens to not work when --unicode-char is true anyway,
-          // but the guard is there to be more explicit that this is intentional.
           wr.Write($"((java.util.function.Function<{DafnySeqClass}<?>,String>)(_s -> (_s.elementType().defaultValue().getClass() == java.lang.Character.class ? _s.verbatimString() : String.valueOf(_s)))).apply(");
           TrExpr(arg, wr, false, wStmts);
           wr.Write(")");

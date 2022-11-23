@@ -1393,7 +1393,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitStringLiteral(IToken tok, string str, bool isVerbatim, ConcreteSyntaxTree wr) {
+    protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
       var n = str.Length;
       if (!isVerbatim) {
         wr.Write($"\"{TranslateEscapes(str)}\"");
@@ -2516,7 +2516,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public string ToStringLiteral(string s) {
       var wr = new ConcreteSyntaxTree();
-      EmitStringLiteral(Token.NoToken, s, false, wr);
+      EmitStringLiteral(s, false, wr);
       return wr.ToString();
     }
 

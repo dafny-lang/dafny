@@ -2118,7 +2118,7 @@ namespace Microsoft.Dafny.Compilers {
         var c = Util.UnescapedCharacters(v, false).Single();
         wr.Write($"{c}");
       } else {
-        wr.Write("'{0}'", TranslateEscapes(chr.tok, v, isChar: true, reporter: Reporter));
+        wr.Write("'{0}'", TranslateEscapes(v, isChar: true));
       }
       wr.Write(")");
     }
@@ -2129,7 +2129,7 @@ namespace Microsoft.Dafny.Compilers {
       var s = (string)str.Value;
       if (UnicodeCharEnabled) {
         wr.Write($"_dafny.UnicodeSeqOfUtf8Bytes(");
-        EmitStringLiteral(str.tok, s, str.IsVerbatim, wr);
+        EmitStringLiteral(s, str.IsVerbatim, wr);
         wr.Write(")");
       } else {
         // When --unicode-char is false, it may not be possible to translate a Dafny string into a valid Go string,
@@ -2152,16 +2152,16 @@ namespace Microsoft.Dafny.Compilers {
           wr.Write(")");
         } else {
           wr.Write($"_dafny.SeqOfString(");
-          EmitStringLiteral(str.tok, s, str.IsVerbatim, wr);
+          EmitStringLiteral(s, str.IsVerbatim, wr);
           wr.Write(")");
         }
       }
     }
 
-    protected override void EmitStringLiteral(IToken tok, string str, bool isVerbatim, ConcreteSyntaxTree wr) {
+    protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
       var n = str.Length;
       if (!isVerbatim) {
-        wr.Write("\"{0}\"", TranslateEscapes(tok, str, isChar: false, Reporter));
+        wr.Write("\"{0}\"", TranslateEscapes(str, isChar: false));
       } else {
         wr.Write("\"");
         for (var i = 0; i < n; i++) {
@@ -2182,7 +2182,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    private static string TranslateEscapes(IToken tok, string s, bool isChar, ErrorReporter reporter) {
+    private static string TranslateEscapes(string s, bool isChar) {
       if (isChar) {
         s = s.Replace("\\\"", "\"");
       } else {

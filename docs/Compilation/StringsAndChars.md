@@ -12,7 +12,7 @@ following newtype declaration:
 newtype char = c: int | 0 <= c < 65536
 ```
 
-That is, `char` really meant "UTF-16 code unit". Since means Dafny `string`
+That is, `char` really meant "UTF-16 code unit". Since Dafny `string`
 values can contain invalid use of surrogates, and since this is suboptimal
 for interoperating with other encodings such as UTF-8, the `--unicode-char`
 option was added to enable defining `char` to mean "Unicode scalar value"
@@ -45,7 +45,7 @@ which function to reference based on the value of `--unicode-char`.
 For example, most runtimes have a function named something like `SeqFromString`,
 for converting from the native string type to the appropriate type for the Dafny
 runtime if `--unicode-char=false`, but also a version named something like
-`UnicodeSeqFromString` for the `--unicode-char=false` case. Both accept the
+`UnicodeSeqFromString` for the `--unicode-char=true` case. Both accept the
 same input type, but the former will return something like a `Seq<Character>`
 whereas the latter will return something like a `Seq<CodePoint>`.
 

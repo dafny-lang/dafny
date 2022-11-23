@@ -711,7 +711,7 @@ namespace Microsoft.Dafny.Compilers {
       bool mustInitialize, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);
 
     protected abstract void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e);
-    protected abstract void EmitStringLiteral(IToken tok, string str, bool isVerbatim, ConcreteSyntaxTree wr);
+    protected abstract void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr);
     protected abstract ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, ConcreteSyntaxTree wr);
     protected delegate void FCE_Arg_Translator(Expression e, ConcreteSyntaxTree wr, bool inLetExpr, ConcreteSyntaxTree wStmts);
 
@@ -5200,7 +5200,7 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual void TrStringLiteral(StringLiteralExpr str, ConcreteSyntaxTree wr) {
       Contract.Requires(str != null);
       Contract.Requires(wr != null);
-      EmitStringLiteral(str.tok, (string)str.Value, str.IsVerbatim, wr);
+      EmitStringLiteral((string)str.Value, str.IsVerbatim, wr);
     }
 
     /// <summary>

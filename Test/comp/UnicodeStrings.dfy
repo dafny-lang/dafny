@@ -16,8 +16,6 @@ newtype int16 = x: int | -0x8000 <= x < 0x8000
 newtype int32 = x: int | -0x8000_0000 <= x < 0x8000_0000
 newtype int64 = x: int | -0x8000_0000_0000_0000 <= x < 8000_0000_0000_0000
 
-// TODO: Remove token parameter in compilers if not needed
-
 const AllCasesAsCodePoints := [
   0,        // \0, minimum value
   0x9,      // \t
