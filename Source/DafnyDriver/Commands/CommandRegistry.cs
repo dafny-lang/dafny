@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
@@ -19,23 +20,6 @@ record ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult ExitResult) :
 static class CommandRegistry {
   private static readonly HashSet<ICommandSpec> Commands = new();
 
-  public static IReadOnlyList<IOptionSpec> CommonOptions = new List<IOptionSpec>(new IOptionSpec[] {
-    CoresOption.Instance,
-    VerificationTimeLimitOption.Instance,
-    LibraryOption.Instance,
-    ShowSnippetsOption.Instance,
-    PluginOption.Instance,
-    BoogieOption.Instance,
-    PreludeOption.Instance,
-    UseBaseFileNameOption.Instance,
-    PrintOption.Instance,
-    ResolvedPrintOption.Instance,
-    BoogiePrintOption.Instance,
-    InputsOption.Instance,
-    StrictDefiniteAssignmentOption.Instance,
-    EnforceDeterminismOption.Instance,
-  });
-
   static void AddCommand(ICommandSpec command) {
     Commands.Add(command);
   }
@@ -45,26 +29,14 @@ static class CommandRegistry {
     AddCommand(new RunCommand());
     AddCommand(new BuildCommand());
     AddCommand(new TranslateCommand());
+    AddCommand(new TestCommand());
+    AddCommand(new GenerateTestsCommand());
+    AddCommand(new DeadCodeCommand());
 
     FileArgument = new Argument<FileInfo>("file", "input file");
-    FileArgument.AddValidator(ValidateFileArgument());
-
-    FilesArgument = new Argument<IEnumerable<FileInfo>>("file", "input files");
-    FilesArgument.AddValidator(ValidateFileArgument());
   }
 
   public static Argument<FileInfo> FileArgument { get; }
-
-  private static ValidateSymbolResult<ArgumentResult> ValidateFileArgument() {
-    return r => {
-      var value = r.Tokens[0].Value;
-      if (value.StartsWith("--")) {
-        r.ErrorMessage = $"{value} is not a valid argument";
-      }
-    };
-  }
-
-  public static Argument<IEnumerable<FileInfo>> FilesArgument { get; }
 
   [CanBeNull]
   public static ParseArgumentResult Create(string[] arguments) {
@@ -83,6 +55,7 @@ static class CommandRegistry {
     var dafnyOptions = new DafnyOptions();
     var optionValues = new Dictionary<IOptionSpec, object>();
     var options = new Options(optionValues);
+    dafnyOptions.ShowEnv = ExecutionEngineOptions.ShowEnvironment.Never;
     dafnyOptions.Options = options;
 
     var optionToSpec = Commands.SelectMany(c => c.Options).Distinct().ToDictionary(o => {
@@ -131,7 +104,7 @@ static class CommandRegistry {
       if (singleFile != null) {
         dafnyOptions.AddFile(singleFile.FullName);
       }
-      var files = context.ParseResult.GetValueForArgument(FilesArgument);
+      var files = context.ParseResult.GetValueForArgument(ICommandSpec.FilesArgument);
       if (files != null) {
         foreach (var file in files) {
           dafnyOptions.AddFile(file.FullName);
@@ -149,7 +122,9 @@ static class CommandRegistry {
         options.OptionArguments[optionSpec] = value;
         optionFailure ??= optionSpec.PostProcess(dafnyOptions);
         if (optionFailure != null) {
-          optionFailure = $"Parsing option {option.Name} failed because: {optionFailure}";
+          if (optionFailure == "") {
+            optionFailure = $"Parsing option {option.Name} failed.";
+          }
           break;
         }
       }
