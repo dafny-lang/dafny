@@ -189,7 +189,6 @@ module GenericBasics {
   // Cl has fewer type parameters than Tr
   class Cl<Q> extends Tr<Q, int> {
     constructor () {
-      abc := 100;
       this.abc := 101;
       xyz := 20;
       this.xyz := 21;
@@ -247,7 +246,6 @@ module GenericBasics {
   // Mega has more type parameters than Tr
   class Mega<P, Q, L> extends Tr<Q, int> {
     constructor () {
-      abc := 100;
       this.abc := 101;
       xyz := 20;
       this.xyz := 21;
