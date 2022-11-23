@@ -2474,46 +2474,46 @@ public class UserDefinedType : NonProxyType, INode {
   }
 
   public override Type Subst(Dictionary<TypeParameter, Type> subst) {
-      if (ResolvedClass is TypeParameter tp) {
-        if (subst.TryGetValue(tp, out var s)) {
-          Contract.Assert(TypeArgs.Count == 0);
-          return s;
-        } else {
-          return this;
-        }
-      } else if (ResolvedClass != null) {
-        List<Type> newArgs = null;  // allocate it lazily
-        var resolvedClass = ResolvedClass;
-        var isArrowType = ArrowType.IsPartialArrowTypeName(resolvedClass.Name) || ArrowType.IsTotalArrowTypeName(resolvedClass.Name);
-        for (int i = 0; i < TypeArgs.Count; i++) {
-          Type p = TypeArgs[i];
-          Type s = p.Subst(subst);
-          if (s is InferredTypeProxy && !isArrowType) {
-            ((InferredTypeProxy)s).KeepConstraints = true;
-          }
-          if (s != p && newArgs == null) {
-            // lazily construct newArgs
-            newArgs = new List<Type>();
-            for (int j = 0; j < i; j++) {
-              newArgs.Add(TypeArgs[j]);
-            }
-          }
-          if (newArgs != null) {
-            newArgs.Add(s);
-          }
-        }
-        if (newArgs == null) {
-          // there were no substitutions
-          return this;
-        } else {
-          // Note, even if t.NamePath is non-null, we don't care to keep that syntactic part of the expression in what we return here
-          return new UserDefinedType(tok, Name, resolvedClass, newArgs);
-        }
+    if (ResolvedClass is TypeParameter tp) {
+      if (subst.TryGetValue(tp, out var s)) {
+        Contract.Assert(TypeArgs.Count == 0);
+        return s;
       } else {
-        // there's neither a resolved param nor a resolved class, which means the UserDefinedType wasn't
-        // properly resolved; just return it
         return this;
       }
+    } else if (ResolvedClass != null) {
+      List<Type> newArgs = null;  // allocate it lazily
+      var resolvedClass = ResolvedClass;
+      var isArrowType = ArrowType.IsPartialArrowTypeName(resolvedClass.Name) || ArrowType.IsTotalArrowTypeName(resolvedClass.Name);
+      for (int i = 0; i < TypeArgs.Count; i++) {
+        Type p = TypeArgs[i];
+        Type s = p.Subst(subst);
+        if (s is InferredTypeProxy && !isArrowType) {
+          ((InferredTypeProxy)s).KeepConstraints = true;
+        }
+        if (s != p && newArgs == null) {
+          // lazily construct newArgs
+          newArgs = new List<Type>();
+          for (int j = 0; j < i; j++) {
+            newArgs.Add(TypeArgs[j]);
+          }
+        }
+        if (newArgs != null) {
+          newArgs.Add(s);
+        }
+      }
+      if (newArgs == null) {
+        // there were no substitutions
+        return this;
+      } else {
+        // Note, even if t.NamePath is non-null, we don't care to keep that syntactic part of the expression in what we return here
+        return new UserDefinedType(tok, Name, resolvedClass, newArgs);
+      }
+    } else {
+      // there's neither a resolved param nor a resolved class, which means the UserDefinedType wasn't
+      // properly resolved; just return it
+      return this;
+    }
   }
 
   /// <summary>
