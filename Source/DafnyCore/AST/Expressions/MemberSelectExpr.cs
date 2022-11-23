@@ -128,7 +128,7 @@ public class MemberSelectExpr : Expression, IHasUsages, ICloneable<MemberSelectE
       // Add in the mappings from parent types' formal type parameters to types
       if (cl is TopLevelDeclWithMembers cls) {
         foreach (var entry in cls.ParentFormalTypeParametersToActuals) {
-          var v = Resolver.SubstType(entry.Value, subst);
+          var v = entry.Value.Subst(subst);
           subst.Add(entry.Key, v);
         }
       }
@@ -197,7 +197,7 @@ public class MemberSelectExpr : Expression, IHasUsages, ICloneable<MemberSelectE
         typeMap.Add(cl.TypeArgs[i], TypeApplication_AtEnclosingClass[i]);
       }
       foreach (var entry in cl.ParentFormalTypeParametersToActuals) {
-        var v = Resolver.SubstType(entry.Value, typeMap);
+        var v = entry.Value.Subst(typeMap);
         typeMap.Add(entry.Key, v);
       }
     } else if (field.EnclosingClass == null) {
@@ -208,7 +208,7 @@ public class MemberSelectExpr : Expression, IHasUsages, ICloneable<MemberSelectE
         typeMap.Add(field.EnclosingClass.TypeArgs[i], TypeApplication_AtEnclosingClass[i]);
       }
     }
-    this.Type = Resolver.SubstType(field.Type, typeMap);  // resolve here
+    this.Type = field.Type.Subst(typeMap);  // resolve here
   }
 
   public void MemberSelectCase(Action<Field> fieldK, Action<Function> functionK) {

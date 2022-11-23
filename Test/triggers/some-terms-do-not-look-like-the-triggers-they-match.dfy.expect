@@ -1,8 +1,8 @@
 some-terms-do-not-look-like-the-triggers-they-match.dfy(12,17): Info: Selected triggers: {s[_t#0], s[x]}
 some-terms-do-not-look-like-the-triggers-they-match.dfy(15,17): Info: For expression "x in s ==> s[_t#0] > 0":
-   Selected triggers: {s[_t#0], s[x]} in sub-expression at some-terms-do-not-look-like-the-triggers-they-match.dfy(15,70)
+   Selected triggers: {s[_t#0], s[x]} in subexpression at some-terms-do-not-look-like-the-triggers-they-match.dfy(15,59) [Related location] some-terms-do-not-look-like-the-triggers-they-match.dfy(15,70)
 some-terms-do-not-look-like-the-triggers-they-match.dfy(15,17): Info: For expression "x in s ==> _t#0 !in s":
-   Selected triggers: {s[_t#0], s[x]} in sub-expression at some-terms-do-not-look-like-the-triggers-they-match.dfy(15,81)
+   Selected triggers: {s[_t#0], s[x]} in subexpression at some-terms-do-not-look-like-the-triggers-they-match.dfy(15,59) [Related location] some-terms-do-not-look-like-the-triggers-they-match.dfy(15,81)
 some-terms-do-not-look-like-the-triggers-they-match.dfy(24,18): Info: Selected triggers: {x in s + t}
 some-terms-do-not-look-like-the-triggers-they-match.dfy(25,18): Info: Selected triggers:
    {x in t}, {x in s}

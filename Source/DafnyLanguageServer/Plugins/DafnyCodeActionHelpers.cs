@@ -156,7 +156,7 @@ public static class DafnyCodeActionHelpers {
   /// <summary>
   /// Given an opening brace and a statement, if the statement's token is openingBrace
   /// returns the closing brace token, else null.
-  /// Visit sub-statements recursively
+  /// Visit substatements recursively
   /// </summary>
   private static IToken? GetMatchingEndToken(int line, int col, Statement stmt) {
     // Look in methods for BlockStmt with the IToken as opening brace

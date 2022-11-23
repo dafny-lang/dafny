@@ -392,7 +392,6 @@ namespace Microsoft.Dafny {
       } else if (expr is MultiSetFormingExpr) {
         var e = (MultiSetFormingExpr)expr;
         return new MultiSetFormingExpr(Tok(e.tok), CloneExpr(e.E));
-
       } else if (expr is UnaryOpExpr) {
         var e = (UnaryOpExpr)expr;
         return new UnaryOpExpr(Tok(e.tok), e.Op, CloneExpr(e.E));
@@ -676,6 +675,14 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public class ClonerKeepParensExpressions : Cloner {
+    public override Expression CloneExpr(Expression expr) {
+      if (expr is ParensExpression parensExpression) {
+        return new ParensExpression(Tok(parensExpression.tok), CloneExpr(parensExpression.E));
+      }
+      return base.CloneExpr(expr);
+    }
+  }
 
   /// <summary>
   /// This cloner copies the origin module signatures to their cloned declarations

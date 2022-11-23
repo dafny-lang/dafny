@@ -249,7 +249,7 @@ public class CompileNestedMatch : IRewriter {
     } else if (compiledMatch is CStmt c) {
       // Resolve s as desugared match
       var result = c.Body;
-      result.Attributes = nestedMatchStmt.Attributes;
+      result.Attributes = (new ClonerKeepParensExpressions()).CloneAttributes(nestedMatchStmt.Attributes);
       for (int id = 0; id < state.CaseCopyCount.Length; id++) {
         if (state.CaseCopyCount[id] <= 0) {
           resolver.reporter.Warning(MessageSource.Resolver, state.CaseTok[id], "this branch is redundant");
@@ -402,7 +402,7 @@ public class CompileNestedMatch : IRewriter {
     } else {
       ctors = dtd.Ctors.ToDictionary(c => c.Name, c => c); //resolver.datatypeCtors[dtd];
       Contract.Assert(ctors != null); // dtd should have been inserted into datatypeCtors during a previous resolution stage
-      subst = Resolver.TypeSubstitutionMap(dtd.TypeArgs,
+      subst = TypeParameter.SubstitutionMap(dtd.TypeArgs,
         currMatcheeType.TypeArgs); // Build the type-parameter substitution map for this use of the datatype
     }
 
@@ -490,7 +490,7 @@ public class CompileNestedMatch : IRewriter {
       // create a bound variable for each formal to use in the MatchCase for this constructor
       // using the currMatchee.tok to get a location closer to the error if something goes wrong
       var freshPatBV = ctor.Formals.ConvertAll(
-        x => CreateBoundVariable(headMatchee.tok, Resolver.SubstType(x.Type, subst), mti.CodeContext.CodeContext));
+        x => CreateBoundVariable(headMatchee.tok, x.Type.Subst(subst), mti.CodeContext.CodeContext));
 
       // rhs to bind to head-patterns that are bound variables
       var rhsExpr = headMatchee;
@@ -529,7 +529,7 @@ public class CompileNestedMatch : IRewriter {
             }
 
             List<IdPattern> freshArgs = ctor.Formals.ConvertAll(x =>
-              CreateFreshBindingPattern(idPattern.Tok, Resolver.SubstType(x.Type, subst), mti.CodeContext.CodeContext, x.IsGhost));
+              CreateFreshBindingPattern(idPattern.Tok, x.Type.Subst(subst), mti.CodeContext.CodeContext, x.IsGhost));
 
             tail.Patterns.InsertRange(0, freshArgs);
             var newPath = LetBindNonWildCard(idPattern, rhsExpr, tail);

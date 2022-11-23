@@ -281,7 +281,7 @@ As with most languages, Dafny syntax is defined in two levels. First the stream
 of input characters is broken up into _tokens_. Then these tokens are parsed
 using the Dafny grammar. The Dafny tokens are defined in this section.
 
-### 2.5.1. Reserved Words {sec-reserved-words}
+### 2.5.1. Reserved Words {#sec-reserved-words}
 The following reserved words appear in the Dafny grammar and may not be used
 as identifiers of user-defined entities:
 

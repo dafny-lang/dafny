@@ -1155,7 +1155,7 @@ namespace Microsoft.Dafny.Compilers {
           w = w.NewBlock("", open: BlockStyle.Brace);
           for (var i = 0; i < inParams.Count; i++) {
             var p = (overriddenInParams ?? inParams)[i];
-            var instantiatedType = Resolver.SubstType(p.Type, thisContext.ParentFormalTypeParametersToActuals);
+            var instantiatedType = p.Type.Subst(thisContext.ParentFormalTypeParametersToActuals);
             if (!instantiatedType.Equals(p.Type)) {
               // var p instantiatedType = p.(instantiatedType)
               var pName = IdName(inParams[i]);
@@ -1797,7 +1797,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitReturnExpr(Expression expr, Type resultType, bool inLetExprBody, ConcreteSyntaxTree wr) {
       var wStmts = wr.Fork();
       var w = EmitReturnExpr(wr);
-      var fromType = thisContext == null ? expr.Type : Resolver.SubstType(expr.Type, thisContext.ParentFormalTypeParametersToActuals);
+      var fromType = thisContext == null ? expr.Type : expr.Type.Subst(thisContext.ParentFormalTypeParametersToActuals);
       w = EmitCoercionIfNecessary(fromType, resultType, expr.tok, w);
       TrExpr(expr, w, inLetExprBody, wStmts);
     }
@@ -1811,7 +1811,7 @@ namespace Microsoft.Dafny.Compilers {
           wr.Write(sep);
           ConcreteSyntaxTree wOutParam;
           if (overriddenOutParams == null && typeMap != null) {
-            wOutParam = EmitCoercionIfNecessary(Resolver.SubstType(f.Type, typeMap), f.Type, f.tok, wr);
+            wOutParam = EmitCoercionIfNecessary(f.Type.Subst(typeMap), f.Type, f.tok, wr);
           } else if (overriddenOutParams != null) {
             // ignore typeMap
             wOutParam = EmitCoercionIfNecessary(f.Type, overriddenOutParams[i].Type, f.tok, wr);
@@ -2586,14 +2586,14 @@ namespace Microsoft.Dafny.Compilers {
           foreach (var arg in fn.Formals) {
             if (!arg.IsGhost) {
               var name = idGenerator.FreshId("_eta");
-              var ty = Resolver.SubstType(arg.Type, typeMap);
+              var ty = arg.Type.Subst(typeMap);
               prefixWr.Write($"{prefixSep}{name} {TypeName(ty, prefixWr, arg.tok)}");
               suffixWr.Write("{0}{1}", suffixSep, name);
               suffixSep = ", ";
               prefixSep = ", ";
             }
           }
-          var resultType = Resolver.SubstType(fn.ResultType, typeMap);
+          var resultType = fn.ResultType.Subst(typeMap);
           prefixWr.Write(") {0} {{ return ", TypeName(resultType, prefixWr, fn.tok));
           suffixWr.Write(")");
           var suffix = suffixWr.ToString();
@@ -3618,9 +3618,9 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
 
-      List<string> verb = new();
+      List<string> goArgs = new();
       if (run) {
-        verb.Add("run");
+        goArgs.Add("run");
       } else {
         string output;
         var outputToFile = !DafnyOptions.O.RunAfterCompile;
@@ -3655,48 +3655,22 @@ namespace Microsoft.Dafny.Compilers {
           }
         }
 
-        verb.Add("build");
-        verb.Add("-o");
-        verb.Add(output);
+        goArgs.Add("build");
+        goArgs.Add("-o");
+        goArgs.Add(output);
       }
 
-      var psi = new ProcessStartInfo("go") {
-        CreateNoWindow = Environment.OSVersion.Platform != PlatformID.Win32NT,
-        UseShellExecute = false,
-        RedirectStandardInput = false,
-        RedirectStandardOutput = false,
-        RedirectStandardError = false,
-      };
-      foreach (var verbArg in verb) {
-        psi.ArgumentList.Add(verbArg);
-      }
-      psi.ArgumentList.Add(targetFilename);
-      foreach (var arg in DafnyOptions.O.MainArgs) {
-        psi.ArgumentList.Add(arg);
-      }
+      goArgs.Add(targetFilename);
+      goArgs.AddRange(DafnyOptions.O.MainArgs);
+
+      var psi = PrepareProcessStartInfo("go", goArgs);
+
       psi.EnvironmentVariables["GOPATH"] = GoPath(targetFilename);
       // Dafny compiles to the old Go package system, whereas Go has moved on to a module
       // system. Until Dafny's Go compiler catches up, the GO111MODULE variable has to be set.
       psi.EnvironmentVariables["GO111MODULE"] = "auto";
-      if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-        // On Windows, Path.GetTempPath() returns "c:\Windows" which, being not writable, crashes Go.
-        // Hence we set up a local temporary directory
-        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        psi.EnvironmentVariables["GOTMPDIR"] = localAppData + @"\Temp";
-        psi.EnvironmentVariables["LOCALAPPDATA"] = localAppData + @"\go-build";
-      }
 
-      try {
-        using var process = Process.Start(psi);
-        if (process == null) {
-          return false;
-        }
-        process.WaitForExit();
-        return process.ExitCode == 0;
-      } catch (System.ComponentModel.Win32Exception e) {
-        outputWriter.WriteLine("Error: Unable to start go ({0}): {1}", psi.FileName, e.Message);
-        return false;
-      }
+      return 0 == RunProcess(psi, outputWriter);
     }
 
     static string GoPath(string filename) {

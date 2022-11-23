@@ -65,7 +65,7 @@ public class NestedMatchExpr : Expression {
                       null); // dtd should have been inserted into datatypeCtors during a previous resolution stage
 
       // build the type-parameter substitution map for this use of the datatype
-      subst = Resolver.TypeSubstitutionMap(dtd.TypeArgs, sourceType.TypeArgs);
+      subst = TypeParameter.SubstitutionMap(dtd.TypeArgs, sourceType.TypeArgs);
     }
 
     Type = new InferredTypeProxy();

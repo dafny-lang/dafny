@@ -71,7 +71,7 @@ public class IdPattern : ExtendedPattern, IHasUsages {
     Debug.Assert(Arguments != null || Type is InferredTypeProxy);
 
     if (Arguments == null) {
-      Type substitutedSourceType = Resolver.SubstType(sourceType, subst);
+      Type substitutedSourceType = sourceType.Subst(subst);
       Type = substitutedSourceType; // Only possible because we did a rewrite one level higher, which used the information from Type.
       //BoundVar = new Formal(Tok, Id, substitutedSourceType, false, isGhost, null); 
       if (mutable) {
@@ -89,11 +89,11 @@ public class IdPattern : ExtendedPattern, IHasUsages {
 
     } else {
       if (Ctor != null) {
-        subst = Resolver.TypeSubstitutionMap(Ctor.EnclosingDatatype.TypeArgs, sourceType.NormalizeExpand().TypeArgs);
+        subst = TypeParameter.SubstitutionMap(Ctor.EnclosingDatatype.TypeArgs, sourceType.NormalizeExpand().TypeArgs);
         for (var index = 0; index < Arguments.Count; index++) {
           var argument = Arguments[index];
           var formal = Ctor.Formals[index];
-          argument.Resolve(resolver, resolutionContext, subst, Resolver.SubstType(formal.Type, subst), formal.IsGhost, mutable);
+          argument.Resolve(resolver, resolutionContext, subst, formal.Type.Subst(subst), formal.IsGhost, mutable);
         }
       }
     }
