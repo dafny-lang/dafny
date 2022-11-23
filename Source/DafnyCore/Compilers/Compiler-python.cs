@@ -253,7 +253,6 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       var DtT = dt.CompileName;
-      var simplifiedType = SimplifyType(UserDefinedType.FromTopLevelDecl(dt.tok, dt));
 
       var btw = wr.NewBlockPy($"class {DtT}:", close: BlockStyle.Newline);
 
@@ -272,7 +271,7 @@ namespace Microsoft.Dafny.Compilers {
       var wDefault = btw.NewBlockPy($"def default(cls, {UsedTypeParameters(dt).Comma(FormatDefaultTypeParameterValue)}):");
       var groundingCtor = dt.GetGroundingCtor();
       if (groundingCtor.IsGhost) {
-        wDefault.WriteLine($"return lambda: {ForcePlaceboValue(simplifiedType, wDefault, dt.tok)}");
+        wDefault.WriteLine($"return lambda: {ForcePlaceboValue(UserDefinedType.FromTopLevelDecl(dt.tok, dt), wDefault, dt.tok)}");
       } else if (IsInvisibleWrapper(dt, out var dtor)) {
         wDefault.WriteLine($"return lambda: {DefaultValue(dtor.Type, wDefault, dt.tok)}");
       } else {
@@ -754,7 +753,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override string TypeName_Companion(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl member) {
       type = UserDefinedType.UpcastToMemberEnclosingType(type, member);
-      if (type.NormalizeExpandKeepConstraints() is UserDefinedType udt && udt.ResolvedClass is DatatypeDecl dt && IsInvisibleWrapper(dt, out _)) {
+      if (type.NormalizeExpandKeepConstraints() is UserDefinedType { ResolvedClass: DatatypeDecl dt } udt && IsInvisibleWrapper(dt, out _)) {
         var s = FullTypeName(udt, member);
         return TypeName_UDT(s, udt, wr, udt.tok);
       } else {
@@ -1175,11 +1174,13 @@ namespace Microsoft.Dafny.Compilers {
     protected override ILvalue EmitMemberSelect(Action<ConcreteSyntaxTree> obj, Type objType, MemberDecl member,
       List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap, Type expectedType,
       string additionalCustomParameter = null, bool internalAccess = false) {
-      var memberStatus = GetMemberStatus(member);
-      if (memberStatus == MemberCompileStatus.Identity) {
-        return SimpleLvalue(obj);
-      } else if (memberStatus == MemberCompileStatus.AlwaysTrue) {
-        return SimpleLvalue(w => w.Write("True"));
+      switch (GetMemberStatus(member)) {
+        case MemberCompileStatus.Identity:
+          return SimpleLvalue(obj);
+        case MemberCompileStatus.AlwaysTrue:
+          return SimpleLvalue(w => w.Write("True"));
+        default:
+          break;
       }
       switch (member) {
         case DatatypeDestructor dd: {
