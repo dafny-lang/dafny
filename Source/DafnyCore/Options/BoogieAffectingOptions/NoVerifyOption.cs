@@ -1,6 +1,6 @@
 namespace Microsoft.Dafny;
 
-class NoVerifyOption : BooleanOption {
+public class NoVerifyOption : BooleanOption {
   public static readonly NoVerifyOption Instance = new();
   public override string LongName => "no-verify";
   public override string ShortName => null;

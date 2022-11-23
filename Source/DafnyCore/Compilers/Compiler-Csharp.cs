@@ -692,7 +692,10 @@ namespace Microsoft.Dafny.Compilers {
           => (ty.AsTypeParameter != null && ty.AsTypeParameter.Equals(tp))
              || ty.TypeArgs.Exists(ty => ContainsTyVar(tp, ty));
         if (nonGhostTypeArgs.Exists(ty => ContainsTyVar(ty, fromType))) {
-          var to = TypeUtil.SubstType(fromType, typeSubstMap);
+          var map = nonGhostTypeArgs.ToDictionary(
+            tp => tp,
+            tp => (Type)new UserDefinedType(tp.tok, new TypeParameter(tp.tok, $"_{tp.Name}", tp.VarianceSyntax)));
+          var to = fromType.Subst(map);
           var downcast = new ConcreteSyntaxTree();
           EmitDowncast(fromType, to, null, downcast).Write(name);
           return downcast.ToString();
@@ -2489,7 +2492,7 @@ namespace Microsoft.Dafny.Compilers {
           foreach (var arg in fn.Formals) {
             if (!arg.IsGhost) {
               var name = idGenerator.FreshId("_eta");
-              var ty = TypeUtil.SubstType(arg.Type, typeMap);
+              var ty = arg.Type.Subst(typeMap);
               arguments.Write($"{prefixSep}{TypeName(ty, arguments, arg.tok)} {name}");
               callArguments.Write($"{sep}{name}");
               sep = ", ";
