@@ -7,6 +7,8 @@ namespace Microsoft.Dafny;
 
 class VerifyCommand : ICommandSpec {
   public IEnumerable<IOptionSpec> Options => new IOptionSpec[] {
+    VerifyIncludedFilesOption.Instance,
+    BoogieFilterOption.Instance,
   }.Concat(ICommandSpec.VerificationOptions.Except(new[] { NoVerifyOption.Instance })).
     Concat(ICommandSpec.CommonOptions);
 

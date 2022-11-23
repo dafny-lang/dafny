@@ -29,7 +29,6 @@ public interface ICommandSpec {
   public static IReadOnlyList<IOptionSpec> VerificationOptions = new IOptionSpec[] {
     NoVerifyOption.Instance,
     VerificationTimeLimitOption.Instance,
-    BoogieFilterOption.Instance,
   }.ToList();
 
   public static IReadOnlyList<IOptionSpec> ExecutionOptions = new IOptionSpec[] {
