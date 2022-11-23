@@ -1,4 +1,4 @@
-// RUN: %baredafny run %args --quantifier-syntax:4 "%s" > "%t"
+// RUN: %baredafny run %args --relax-strict-assignment --quantifier-syntax:4 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {
