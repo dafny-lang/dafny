@@ -1178,7 +1178,7 @@ namespace Microsoft.Dafny.Compilers {
         case MemberCompileStatus.Identity:
           return SimpleLvalue(obj);
         case MemberCompileStatus.AlwaysTrue:
-          return SimpleLvalue(w => w.Write("True"));
+          return StringLvalue(True);
         default:
           break;
       }
