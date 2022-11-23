@@ -30,7 +30,7 @@ public interface ICommandSpec {
     NoVerifyOption.Instance,
     EnforceDeterminismOption.Instance,
   }.ToList();
-  
+
   public static IReadOnlyList<IOptionSpec> CommonOptions = new List<IOptionSpec>(new IOptionSpec[] {
     CoresOption.Instance,
     LibraryOption.Instance,
