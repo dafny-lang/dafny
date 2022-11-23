@@ -20,28 +20,6 @@ record ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult ExitResult) :
 static class CommandRegistry {
   private static readonly HashSet<ICommandSpec> Commands = new();
 
-  public static IReadOnlyList<IOptionSpec> ExecutionOptions = new IOptionSpec[] {
-    NoVerifyOption.Instance,
-    EnforceDeterminismOption.Instance,
-  }.ToList();
-
-  public static IReadOnlyList<IOptionSpec> CommonOptions = new List<IOptionSpec>(new IOptionSpec[] {
-    CoresOption.Instance,
-    VerificationTimeLimitOption.Instance,
-    LibraryOption.Instance,
-    ShowSnippetsOption.Instance,
-    PluginOption.Instance,
-    BoogieOption.Instance,
-    PreludeOption.Instance,
-    UseBaseFileNameOption.Instance,
-    PrintOption.Instance,
-    ResolvedPrintOption.Instance,
-    BoogiePrintOption.Instance,
-    InputsOption.Instance,
-    RelaxDefiniteAssignment.Instance, // Must come after EnforceDeterminismOption
-    UnicodeCharactersOption.Instance,
-  });
-
   static void AddCommand(ICommandSpec command) {
     Commands.Add(command);
   }
