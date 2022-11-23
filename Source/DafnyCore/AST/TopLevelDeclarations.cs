@@ -473,10 +473,9 @@ public class ModuleExportDecl : ModuleDecl {
 
 }
 
-public class ExportSignature : IHasUsages {
+public class ExportSignature : INode, IHasUsages {
   public readonly IToken Tok;
   public readonly IToken ClassIdTok;
-  public IEnumerable<IToken> OwnedTokens { get; set; } = new List<IToken>();
   public readonly bool Opaque;
   public readonly string ClassId;
   public readonly string Id;
@@ -500,7 +499,7 @@ public class ExportSignature : IHasUsages {
     ClassId = prefix;
     Id = id;
     Opaque = opaque;
-    OwnedTokens = new List<IToken>() { Tok, prefixTok };
+    ownedTokens = new List<IToken>() { Tok, prefixTok };
   }
 
   public ExportSignature(IToken idTok, string id, bool opaque) {
@@ -624,7 +623,7 @@ public class ModuleQualifiedId {
   [FilledInDuringResolution] public ModuleSignature Sig; // the module signature corresponding to the full path
 }
 
-public class ModuleDefinition : IDeclarationOrUsage, INamedRegion, IAttributeBearingDeclaration {
+public class ModuleDefinition : INode, IDeclarationOrUsage, INamedRegion, IAttributeBearingDeclaration {
   public readonly IToken tok;
   public IToken BodyStartTok = Token.NoToken;
   public IToken BodyEndTok = Token.NoToken;

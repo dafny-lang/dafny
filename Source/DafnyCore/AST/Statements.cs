@@ -7,12 +7,10 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public abstract class Statement : IAttributeBearingDeclaration, INode {
-  public IToken StartToken;
+public abstract class Statement : INode, IAttributeBearingDeclaration {
   public readonly IToken Tok;
   public readonly IToken EndTok;  // typically a terminating semi-colon or end-curly-brace
   public LList<Label> Labels;  // mutable during resolution
-  public IEnumerable<IToken> OwnedTokens { get; set; } = new List<IToken>();
 
   private Attributes attributes;
   public Attributes Attributes {
@@ -154,7 +152,7 @@ public abstract class Statement : IAttributeBearingDeclaration, INode {
     }
   }
 
-  public virtual IEnumerable<INode> Children => SubStatements.Concat<INode>(SubExpressions);
+  public override IEnumerable<INode> Children => SubStatements.Concat<INode>(SubExpressions);
 }
 
 public class LList<T> {

@@ -11,7 +11,6 @@ namespace Microsoft.Dafny;
 [DebuggerDisplay("{Printer.ExprToString(this)}")]
 public abstract class Expression : INode {
   public readonly IToken tok;
-  public IEnumerable<IToken> OwnedTokens { get; set; } = new List<IToken>();
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(tok != null);
@@ -100,72 +99,12 @@ public abstract class Expression : INode {
   public virtual RangeToken RangeToken {
     get {
       if (rangeToken == null) {
-        if (tok is RangeToken tokAsRange) {
-          rangeToken = tokAsRange;
-        } else {
-          var startTok = tok;
-          var endTok = tok;
-
-          void updateStartEndTok(Expression expression) {
-            if (expression.tok.Filename != tok.Filename || expression.IsImplicit || expression is DefaultValueExpression) {
-              // Ignore any auto-generated expressions.
-            } else {
-              if (expression.StartToken.pos < startTok.pos) {
-                startTok = expression.StartToken;
-              }
-              if (endTok.pos < expression.EndToken.pos) {
-                endTok = expression.EndToken;
-              }
-            }
-          }
-
-          SubExpressions.Iter(updateStartEndTok);
-          if (this is StmtExpr stmtExpr) {
-            stmtExpr.S.SubStatements.Iter(s => s.SubExpressions.Iter(updateStartEndTok));
-          }
-
-
-          foreach (var token in Enumerable.Concat(FormatTokens ?? Enumerable.Empty<IToken>(), OwnedTokens)) {
-            if (token.Filename != tok.Filename) {
-              continue;
-            }
-
-            if (token.pos < startTok.pos) {
-              startTok = token;
-            }
-
-            if (token.pos + token.val.Length > endTok.pos + endTok.val.Length) {
-              endTok = token;
-
-            }
-          }
-
-          if (FormatTokens != null) {
-            foreach (var token in FormatTokens) {
-              if (token.Filename != tok.Filename) {
-                continue;
-              }
-
-              if (token.pos < startTok.pos) {
-                startTok = token;
-              }
-
-              if (token.pos + token.val.Length > endTok.pos + endTok.val.Length) {
-                endTok = token;
-              }
-            }
-          }
-
-          rangeToken = new RangeToken(startTok, endTok);
-        }
+        rangeToken = new RangeToken(StartToken ?? tok, EndToken ?? StartToken ?? tok);
       }
 
       return rangeToken;
     }
   }
-
-  public IToken StartToken => RangeToken.StartToken;
-  public IToken EndToken => RangeToken.EndToken;
 
   /// <summary>
   /// Returns the list of types that appear in this expression proper (that is, not including types that
@@ -839,7 +778,7 @@ public abstract class Expression : INode {
     return le == null ? null : le.Value as string;
   }
 
-  public virtual IEnumerable<INode> Children => SubExpressions;
+  public override IEnumerable<INode> Children => SubExpressions;
 }
 
 /// <summary>
@@ -1149,7 +1088,6 @@ public class IdentifierExpr : Expression, IHasUsages {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
     Name = name;
-    OwnedTokens = new List<IToken> { tok };
   }
   /// <summary>
   /// Constructs a resolved IdentifierExpr.
@@ -1161,7 +1099,6 @@ public class IdentifierExpr : Expression, IHasUsages {
     Name = v.Name;
     Var = v;
     Type = v.Type;
-    OwnedTokens = new List<IToken> { tok };
   }
 
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
@@ -1169,6 +1106,7 @@ public class IdentifierExpr : Expression, IHasUsages {
   }
 
   public IToken NameToken => tok;
+  public override IEnumerable<INode> Children { get; } = Enumerable.Empty<INode>();
 }
 
 /// <summary>

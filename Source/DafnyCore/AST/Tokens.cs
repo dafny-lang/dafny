@@ -37,6 +37,8 @@ public interface IToken : Microsoft.Boogie.IToken {
   /// </summary>
   string TrailingTrivia { get; set; }
   string LeadingTrivia { get; set; }
+  IToken Next { get; set; } // The next token
+  IToken Prev { get; set; } // The previous token
 }
 
 /// <summary>
@@ -76,6 +78,10 @@ public record Token : IToken {
   public string LeadingTrivia { get; set; }
 
   public string TrailingTrivia { get; set; }
+
+  public IToken Next { get; set; } // The next token
+
+  public IToken Prev { get; set; } // The previous token
 
   public bool IsValid => this.ActualFilename != null;
 }
@@ -126,6 +132,15 @@ public abstract class TokenWrapper : IToken {
     get { return WrappedToken.TrailingTrivia; }
     set { throw new NotSupportedException(); }
   }
+  public virtual IToken Next {
+    get { return WrappedToken.Next; }
+    set { throw new NotSupportedException(); }
+  }
+  public virtual IToken Prev {
+    get { return WrappedToken.Prev; }
+    set { throw new NotSupportedException(); }
+  }
+
 }
 
 public class RangeToken : TokenWrapper {
@@ -177,6 +192,17 @@ public class IncludeToken : TokenWrapper {
     get { return WrappedToken.val; }
     set { WrappedToken.val = value; }
   }
+
+  public override IToken Prev {
+    get { return WrappedToken.Prev; }
+    set { WrappedToken.Prev = value; }
+  }
+
+  public override IToken Next {
+    get { return WrappedToken.Next; }
+    set { WrappedToken.Next = value; }
+  }
+
 }
 
 /// <summary>

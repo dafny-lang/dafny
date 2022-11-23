@@ -6,10 +6,12 @@
 // SPDX-License-Identifier: MIT
 //
 //-----------------------------------------------------------------------------
+#nullable enable
 using System;
 using System.Collections;
 using System.Text;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Linq;
@@ -22,7 +24,7 @@ namespace Microsoft.Dafny {
   [System.AttributeUsage(System.AttributeTargets.Field)]
   public class FilledInDuringResolutionAttribute : System.Attribute { }
 
-  public interface INode {
+  public abstract class INode {
 
     /// <summary>
     /// These children should be such that they contain information produced by resolution such as inferred types
@@ -30,16 +32,67 @@ namespace Microsoft.Dafny {
     /// program is lost. As an example, the pattern matching compilation may deduplicate nodes from the original AST,
     /// losing source location information, so those transformed nodes should not be returned by this property.
     /// </summary>
-    IEnumerable<INode> Children { get; }
+    public abstract IEnumerable<INode> Children { get; }
+
+    public IToken? StartToken { get; set; }
+    public IToken? EndToken { get; set; }
+
+    protected IEnumerable<IToken>? ownedTokens;
 
     /// <summary>
     /// A token is owned by a node if it was used to parse this node,
     /// but is not owned by any of this Node's children
     /// </summary>
-    IEnumerable<IToken> OwnedTokens { get; }
+    IEnumerable<IToken> OwnedTokens {
+      get {
+        if (ownedTokens == null) {
+          var startNotOwnedToken = Children.Select(child => child.StartToken).ToImmutableHashSet();
+          var endNotOwnedToken = Children.Select(child => child.EndToken).ToImmutableHashSet();
+
+          var tmpTokens = new List<IToken>();
+          if (StartToken == null) {
+            if (EndToken != null) {
+              if (!endNotOwnedToken.Contains(EndToken)) {
+                tmpTokens.Add(EndToken);
+              }
+            }
+          } else {
+            var canOwnTokens = true;
+            if (!startNotOwnedToken.Contains(StartToken)) {
+              tmpTokens.Add(StartToken);
+            } else {
+              canOwnTokens = false;
+            }
+
+            if (EndToken != null) {
+              var tmpToken = StartToken.Next;
+              while (tmpToken != null && tmpToken != EndToken) {
+                var startsNotBeingOwned = startNotOwnedToken.Contains(tmpToken);
+                if (!startsNotBeingOwned && canOwnTokens) {
+                  tmpTokens.Add(tmpToken);
+                } else {
+                  canOwnTokens = false;
+                }
+
+                if (endNotOwnedToken.Contains(tmpToken)) {
+                  canOwnTokens = true;
+                }
+
+                tmpToken = tmpToken.Next;
+              }
+            }
+          }
+
+
+          ownedTokens = tmpTokens;
+        }
+
+        return ownedTokens;
+      }
+    }
   }
 
-  public interface IDeclarationOrUsage : INode {
+  public interface IDeclarationOrUsage {
     IToken NameToken { get; }
   }
 
@@ -53,7 +106,6 @@ namespace Microsoft.Dafny {
       Contract.Invariant(FullName != null);
       Contract.Invariant(DefaultModule != null);
     }
-    public IEnumerable<IToken> OwnedTokens { get; set; } = new List<IToken>();
 
     public readonly string FullName;
     [FilledInDuringResolution] public Dictionary<ModuleDefinition, ModuleSignature> ModuleSigs;
@@ -122,7 +174,6 @@ namespace Microsoft.Dafny {
     public string IncludedFilename { get; }
     public string CanonicalPath { get; }
     public bool CompileIncludedCode { get; }
-    public IEnumerable<IToken> OwnedTokens = new List<IToken>();
     public bool ErrorReported;
 
     public Include(IToken tok, string includer, string theFilename, bool compileIncludedCode) {
@@ -171,7 +222,6 @@ namespace Microsoft.Dafny {
     /*Frozen*/
     public readonly List<Expression> Args;
     public readonly Attributes Prev;
-    public IEnumerable<IToken> OwnedTokens = new List<IToken>();
 
     public Attributes(string name, [Captured] List<Expression> args, Attributes prev) {
       Contract.Requires(name != null);
@@ -493,7 +543,6 @@ namespace Microsoft.Dafny {
   public abstract class NonglobalVariable : IVariable {
     public readonly IToken tok;
     readonly string name;
-    public IEnumerable<IToken> OwnedTokens => new List<IToken>() { tok };
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -764,7 +813,6 @@ namespace Microsoft.Dafny {
 
     public IEnumerable<INode> Children => new List<INode> { Actual }.Where(x => x != null);
     // Names are owned by the method call
-    public IEnumerable<IToken> OwnedTokens => new List<IToken>();
 
     public ActualBinding(IToken /*?*/ formalParameterName, Expression actual, bool isGhost = false) {
       Contract.Requires(actual != null);
