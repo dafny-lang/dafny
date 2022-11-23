@@ -446,7 +446,7 @@ namespace Microsoft.Dafny.Compilers {
           foreach (var arg in ctor.Formals) {
             if (!arg.IsGhost) {
               anyFormals = true;
-              if (arg.Type.IsStringType && UnicodeChars) {
+              if (arg.Type.IsStringType && UnicodeCharEnabled) {
                 cw.Write("{0}this.{1}.toVerbatimString(true)", sep, FormalName(arg, k));
               } else {
                 cw.Write("{0}_dafny.toString(this.{1})", sep, FormalName(arg, k));
@@ -841,7 +841,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private static string CharFromNumberMethodName() {
-      return UnicodeChars ? "new _dafny.CodePoint" : "String.fromCharCode";
+      return UnicodeCharEnabled ? "new _dafny.CodePoint" : "String.fromCharCode";
     }
 
     internal override string TypeName(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl /*?*/ member = null) {
@@ -1087,13 +1087,13 @@ namespace Microsoft.Dafny.Compilers {
       bool isGeneric = arg.Type.AsSeqType != null &&
                        arg.Type.AsSeqType.Arg.IsTypeParameter;
       var wStmts = wr.Fork();
-      if (isStringLiteral && !UnicodeChars) {
+      if (isStringLiteral && !UnicodeCharEnabled) {
         // process.stdout.write(_dafny.toString(x));
         wr.Write("process.stdout.write(_dafny.toString(");
         TrExpr(arg, wr, false, wStmts);
         wr.WriteLine("));");
       } else if (isString) {
-        if (UnicodeChars) {
+        if (UnicodeCharEnabled) {
           wr.Write($"process.stdout.write(");
           TrParenExpr(arg, wr, false, wStmts);
           wr.WriteLine(".toVerbatimString(false));");
@@ -1102,7 +1102,7 @@ namespace Microsoft.Dafny.Compilers {
           TrExpr(arg, wr, false, wStmts);
           wr.WriteLine(")));");
         }
-      } else if (isGeneric && !UnicodeChars) {
+      } else if (isGeneric && !UnicodeCharEnabled) {
         // try { process.stdout.write(_dafny.toString(((x) instanceof Array && typeof((x)[0]) == \"string\") ? (x).join("") : (x))); } catch (_error) { process.stdout.write(_dafny.toString(x)); }
         wr.Write("try { process.stdout.write(_dafny.toString(");
         wr.Write("(");
@@ -1176,7 +1176,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       TrParenExpr(messageExpr, wr, false, wStmts);
-      if (UnicodeChars && messageExpr.Type.IsStringType) {
+      if (UnicodeCharEnabled && messageExpr.Type.IsStringType) {
         wr.Write(".toVerbatimString(false)");
       }
       wr.WriteLine(");");
@@ -1342,14 +1342,14 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write((bool)e.Value ? "true" : "false");
       } else if (e is CharLiteralExpr) {
         var escaped = TranslateEscapes((string)e.Value);
-        if (UnicodeChars) {
+        if (UnicodeCharEnabled) {
           wr.Write($"new _dafny.CodePoint('{escaped}'.codePointAt(0))");
         } else {
           wr.Write($"'{escaped}'");
         }
       } else if (e is StringLiteralExpr) {
         var str = (StringLiteralExpr)e;
-        if (UnicodeChars) {
+        if (UnicodeCharEnabled) {
           wr.Write($"_dafny.Seq.UnicodeFromString(");
           TrStringLiteral(str, wr);
           wr.Write(")");
@@ -1849,7 +1849,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(", ");
       TrExpr(expr.Initializer, wr, inLetExprBody, wStmts);
       wr.Write(")");
-      if (fromType.Result.IsCharType && !UnicodeChars) {
+      if (fromType.Result.IsCharType && !UnicodeCharEnabled) {
         wr.Write(".join('')");
       }
     }
@@ -1952,7 +1952,7 @@ namespace Microsoft.Dafny.Compilers {
 
     bool IsDirectlyComparable(Type t) {
       Contract.Requires(t != null);
-      return t.IsBoolType || (t.IsCharType && !UnicodeChars) || AsNativeType(t) != null || t.IsRefType;
+      return t.IsBoolType || (t.IsCharType && !UnicodeCharEnabled) || AsNativeType(t) != null || t.IsRefType;
     }
 
     bool IsRepresentedAsBigNumber(Type t) {
@@ -2103,17 +2103,17 @@ namespace Microsoft.Dafny.Compilers {
             Contract.Assert(false); throw new cce.UnreachableException();
           }
           break;
-        case BinaryExpr.ResolvedOpcode.LtChar when UnicodeChars:
+        case BinaryExpr.ResolvedOpcode.LtChar when UnicodeCharEnabled:
           callString = "isLessThan";
           break;
-        case BinaryExpr.ResolvedOpcode.LeChar when UnicodeChars:
+        case BinaryExpr.ResolvedOpcode.LeChar when UnicodeCharEnabled:
           callString = "isLessThanOrEqual";
           break;
-        case BinaryExpr.ResolvedOpcode.GtChar when UnicodeChars:
+        case BinaryExpr.ResolvedOpcode.GtChar when UnicodeCharEnabled:
           callString = "isLessThan";
           reverseArguments = true;
           break;
-        case BinaryExpr.ResolvedOpcode.GeChar when UnicodeChars:
+        case BinaryExpr.ResolvedOpcode.GeChar when UnicodeCharEnabled:
           callString = "isLessThanOrEqual";
           reverseArguments = true;
           break;
@@ -2271,7 +2271,7 @@ namespace Microsoft.Dafny.Compilers {
 
           TrParenExpr(e.E, wr, inLetExprBody, wStmts);
           if (e.E.Type.IsCharType) {
-            wr.Write(UnicodeChars ? ".value)" : ".charCodeAt(0))");
+            wr.Write(UnicodeCharEnabled ? ".value)" : ".charCodeAt(0))");
           }
 
           wr.Write(", new BigNumber(1))");
@@ -2295,11 +2295,11 @@ namespace Microsoft.Dafny.Compilers {
               // char -> big-integer (int or bv or ORDINAL)
               wr.Write("new BigNumber(");
               TrParenExpr(e.E, wr, inLetExprBody, wStmts);
-              wr.Write(UnicodeChars ? ".value)" : ".charCodeAt(0))");
+              wr.Write(UnicodeCharEnabled ? ".value)" : ".charCodeAt(0))");
             } else {
               // char -> native
               TrParenExpr(e.E, wr, inLetExprBody, wStmts);
-              wr.Write(UnicodeChars ? ".value" : ".charCodeAt(0)");
+              wr.Write(UnicodeCharEnabled ? ".value" : ".charCodeAt(0)");
             }
           } else if (fromNative == null && toNative == null) {
             // big-integer (int or bv) -> big-integer (int or bv or ORDINAL), so identity will do
@@ -2406,7 +2406,7 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         Contract.Assert(ct is SeqType);  // follows from precondition
         ConcreteSyntaxTree wrElements;
-        if (ct.Arg.IsCharType && !UnicodeChars) {
+        if (ct.Arg.IsCharType && !UnicodeCharEnabled) {
           // We're really constructing a string.
           // TODO: It may be that ct.Arg is a type parameter that may stand for char. We currently don't catch that case here.
           wr.Write("[");

@@ -664,7 +664,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private string CharTypeName(bool boxed) {
-      if (UnicodeChars) {
+      if (UnicodeCharEnabled) {
         return boxed ? "dafny.CodePoint" : "int";
       } else {
         return boxed ? "Character" : "char";
@@ -1041,13 +1041,13 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write(value ? "true" : "false");
       } else if (e is CharLiteralExpr) {
         var v = (string)e.Value;
-        if (UnicodeChars && Util.MightContainNonAsciiCharacters(v, false)) {
+        if (UnicodeCharEnabled && Util.MightContainNonAsciiCharacters(v, false)) {
           wr.Write($"{Util.UnescapedCharacters(v, false).Single()}");
         } else {
           wr.Write($"'{TranslateEscapes(v)}'");
         }
       } else if (e is StringLiteralExpr str) {
-        wr.Write(UnicodeChars ? $"{DafnySeqClass}.asUnicodeString(" : $"{DafnySeqClass}.asString(");
+        wr.Write(UnicodeCharEnabled ? $"{DafnySeqClass}.asUnicodeString(" : $"{DafnySeqClass}.asString(");
         TrStringLiteral(str, wr);
         wr.Write(")");
       } else if (AsNativeType(e.Type) is NativeType nt) {
@@ -1226,7 +1226,7 @@ namespace Microsoft.Dafny.Compilers {
       }
       wr.Write($"{CollectionTypeUnparameterizedName(ct)}.of(");
       string sep = "";
-      if (ct is SeqType && (!IsJavaPrimitiveType(ct.Arg) || (UnicodeChars && ct.Arg.IsCharType))) {
+      if (ct is SeqType && (!IsJavaPrimitiveType(ct.Arg) || (UnicodeCharEnabled && ct.Arg.IsCharType))) {
         wr.Write(TypeDescriptor(ct.Arg, wr, tok));
         sep = ", ";
       }
@@ -2074,9 +2074,9 @@ namespace Microsoft.Dafny.Compilers {
                 }
                 w.Write($"{tempVar}.append(");
                 var memberName = FieldName(arg, i);
-                if (UnicodeChars && arg.Type.IsCharType) {
+                if (UnicodeCharEnabled && arg.Type.IsCharType) {
                   w.Write($"{DafnyHelpersClass}.ToCharLiteral(this.{memberName})");
-                } else if (UnicodeChars && arg.Type.IsStringType) {
+                } else if (UnicodeCharEnabled && arg.Type.IsStringType) {
                   w.Write($"{DafnyHelpersClass}.ToStringLiteral(this.{memberName})");
                 } else if (IsJavaPrimitiveType(arg.Type)) {
                   w.Write($"this.{memberName}");
@@ -2192,11 +2192,11 @@ namespace Microsoft.Dafny.Compilers {
         if (arg.Type.IsStringType) {
           TrParenExpr(arg, wr, false, wStmts);
           wr.Write(".verbatimString()");
-        } else if (arg.Type.IsCharType && UnicodeChars) {
+        } else if (arg.Type.IsCharType && UnicodeCharEnabled) {
           wr.Write($"{DafnyHelpersClass}.ToCharLiteral(");
           TrExpr(arg, wr, false, wStmts);
           wr.Write(")");
-        } else if (isGeneric && !UnicodeChars) {
+        } else if (isGeneric && !UnicodeCharEnabled) {
           // This happens to not work when --unicode-char is true anyway,
           // but the guard is there to be more explicit that this is intentional.
           wr.Write($"((java.util.function.Function<{DafnySeqClass}<?>,String>)(_s -> (_s.elementType().defaultValue().getClass() == java.lang.Character.class ? _s.verbatimString() : String.valueOf(_s)))).apply(");
@@ -2463,7 +2463,7 @@ namespace Microsoft.Dafny.Compilers {
       if (type is BoolType) {
         return $"{DafnyTypeDescriptor}.BOOLEAN";
       } else if (type is CharType) {
-        return UnicodeChars ? $"{DafnyTypeDescriptor}.UNICODE_CHAR" : $"{DafnyTypeDescriptor}.CHAR";
+        return UnicodeCharEnabled ? $"{DafnyTypeDescriptor}.UNICODE_CHAR" : $"{DafnyTypeDescriptor}.CHAR";
       } else if (type is IntType) {
         return $"{DafnyTypeDescriptor}.BIG_INTEGER";
       } else if (type is BigOrdinalType) {
@@ -3741,7 +3741,7 @@ namespace Microsoft.Dafny.Compilers {
         return true;
       }
 
-      if (UnicodeChars && ((IsObjectType(from) && to.IsCharType) || (from.IsCharType && IsObjectType(to)))) {
+      if (UnicodeCharEnabled && ((IsObjectType(from) && to.IsCharType) || (from.IsCharType && IsObjectType(to)))) {
         // Need to box from int to CodePoint, or unbox from CodePoint to int
         return true;
       }
@@ -3778,7 +3778,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree EmitCoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, IToken tok, ConcreteSyntaxTree wr) {
-      if (UnicodeChars) {
+      if (UnicodeCharEnabled) {
         // Need to box from int to CodePoint, or unbox from CodePoint to int
 
         if (IsObjectType(from) && to is { IsCharType: true }) {

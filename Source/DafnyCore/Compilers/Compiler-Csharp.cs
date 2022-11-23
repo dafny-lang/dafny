@@ -981,7 +981,7 @@ namespace Microsoft.Dafny.Compilers {
                     w.WriteLine($"{tempVar} += \", \";");
                   }
 
-                  if (arg.Type.IsStringType && UnicodeChars) {
+                  if (arg.Type.IsStringType && UnicodeCharEnabled) {
                     w.WriteLine($"{tempVar} += this.{FieldName(arg, i)}.ToVerbatimString(true);");
                   } else {
                     w.WriteLine($"{tempVar} += {DafnyHelpersClass}.ToString(this.{FieldName(arg, i)});");
@@ -1447,11 +1447,11 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     // To improve readability
-    private static bool CharIsRune => UnicodeChars;
-    private static string CharTypeName => UnicodeChars ? "Dafny.Rune" : "char";
+    private static bool CharIsRune => UnicodeCharEnabled;
+    private static string CharTypeName => UnicodeCharEnabled ? "Dafny.Rune" : "char";
 
     private void ConvertFromChar(Expression e, ConcreteSyntaxTree wr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
-      if (e.Type.IsCharType && UnicodeChars) {
+      if (e.Type.IsCharType && UnicodeCharEnabled) {
         wr.Write("(");
         TrParenExpr(e, wr, inLetExprBody, wStmts);
         wr.Write(".Value)");
@@ -1828,7 +1828,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
       var wStmts = wr.Fork();
       var typeArgs = arg.Type.AsArrowType == null ? "" : $"<{TypeName(arg.Type, wr, null, null)}>";
-      var suffix = arg.Type.IsStringType && UnicodeChars ? ".ToVerbatimString(false)" : "";
+      var suffix = arg.Type.IsStringType && UnicodeCharEnabled ? ".ToVerbatimString(false)" : "";
       wr.WriteLine($"{DafnyHelpersClass}.Print{typeArgs}(({Expr(arg, false, wStmts)}){suffix});");
     }
 
@@ -1876,7 +1876,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       TrExpr(messageExpr, wr, false, wStmts);
-      if (UnicodeChars && messageExpr.Type.IsStringType) {
+      if (UnicodeCharEnabled && messageExpr.Type.IsStringType) {
         wr.Write(".ToVerbatimString(false)");
       }
 
@@ -2069,7 +2069,7 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write((bool)e.Value ? "true" : "false");
       } else if (e is CharLiteralExpr) {
         var v = (string)e.Value;
-        if (UnicodeChars) {
+        if (UnicodeCharEnabled) {
           var codePoint = Util.UnescapedCharacters(v, false).Single();
           if (codePoint > char.MaxValue) {
             // C# supports \U, but doesn't allow values that require two UTF-16 code units in character literals.

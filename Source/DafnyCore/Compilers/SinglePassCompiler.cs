@@ -129,9 +129,9 @@ namespace Microsoft.Dafny.Compilers {
     protected string IntSelect = ",int";
     protected string LambdaExecute = "";
 
-    protected static bool UnicodeChars => UnicodeCharactersOption.Instance.Get(DafnyOptions.O);
+    protected static bool UnicodeCharEnabled => UnicodeCharactersOption.Instance.Get(DafnyOptions.O);
 
-    protected static string CharMethodQualifier => UnicodeChars ? "Unicode" : "";
+    protected static string CharMethodQualifier => UnicodeCharEnabled ? "Unicode" : "";
 
     protected virtual void EmitHeader(Program program, ConcreteSyntaxTree wr) { }
     protected virtual void EmitFooter(Program program, ConcreteSyntaxTree wr) { }

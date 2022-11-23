@@ -818,7 +818,7 @@ namespace Microsoft.Dafny.Compilers {
             foreach (var arg in ctor.Formals) {
               if (!arg.IsGhost) {
                 anyFormals = true;
-                if (UnicodeChars && arg.Type.IsStringType) {
+                if (UnicodeCharEnabled && arg.Type.IsStringType) {
                   wCase.Write("{0}data.{1}.VerbatimString(true)", sep, DatatypeFieldName(arg, k));
                 } else {
                   wCase.Write("{0}_dafny.String(data.{1})", sep, DatatypeFieldName(arg, k));
@@ -1372,7 +1372,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine("goto TAIL_CALL_START");
     }
 
-    private static string CharTypeName => UnicodeChars ? "_dafny.CodePoint" : "_dafny.Char";
+    private static string CharTypeName => UnicodeCharEnabled ? "_dafny.CodePoint" : "_dafny.Char";
 
     internal override string TypeName(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl/*?*/ member = null) {
       Contract.Ensures(Contract.Result<string>() != null);
@@ -1474,7 +1474,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (xType is MultiSetType) {
         return "_dafny.EmptyMultiSet";
       } else if (xType is SeqType seq) {
-        if (seq.Arg.IsCharType && !UnicodeChars) {
+        if (seq.Arg.IsCharType && !UnicodeCharEnabled) {
           return "_dafny.EmptySeq.SetString()";
         }
         return "_dafny.EmptySeq";
@@ -1783,7 +1783,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
       var isString = arg.Type.IsStringType;
       var wStmts = wr.Fork();
-      if (isString && UnicodeChars) {
+      if (isString && UnicodeCharEnabled) {
         wr.Write("_dafny.Print(");
         TrExpr(arg, wr, false, wStmts);
         wr.WriteLine(".VerbatimString(false))");
@@ -1797,7 +1797,7 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write("_dafny.Print((");
         TrExpr(arg, wr, false, wStmts);
         wr.Write(")");
-        if (!UnicodeChars) {
+        if (!UnicodeCharEnabled) {
           wr.Write(".SetString()");
         }
         wr.WriteLine(")");
@@ -1880,7 +1880,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       TrParenExpr(messageExpr, wr, false, wStmts);
-      if (UnicodeChars && messageExpr.Type.IsStringType) {
+      if (UnicodeCharEnabled && messageExpr.Type.IsStringType) {
         wr.Write(".VerbatimString(false))");
       } else {
         wr.WriteLine(".String())");
@@ -2114,7 +2114,7 @@ namespace Microsoft.Dafny.Compilers {
       var v = (string)chr.Value;
       wr.Write($"{CharTypeName}(");
       // See comment in TrStringLiteral for why we can't just translate directly sometimes.
-      if (!UnicodeChars && Util.MightContainNonAsciiCharacters(v, false)) {
+      if (!UnicodeCharEnabled && Util.MightContainNonAsciiCharacters(v, false)) {
         var c = Util.UnescapedCharacters(v, false).Single();
         wr.Write($"{c}");
       } else {
@@ -2127,7 +2127,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(str != null);
       Contract.Requires(wr != null);
       var s = (string)str.Value;
-      if (UnicodeChars) {
+      if (UnicodeCharEnabled) {
         wr.Write($"_dafny.UnicodeSeqOfUtf8Bytes(");
         EmitStringLiteral(str.tok, s, str.IsVerbatim, wr);
         wr.Write(")");
@@ -2833,7 +2833,7 @@ namespace Microsoft.Dafny.Compilers {
       var initWr = EmitCoercionIfNecessary(fromType, toType, expr.tok, wr);
       TrExpr(expr.Initializer, initWr, inLetExprBody, wStmts);
       wr.Write(")");
-      if (fromType.Result.IsCharType && !UnicodeChars) {
+      if (fromType.Result.IsCharType && !UnicodeCharEnabled) {
         // Tag this sequence as being a string at runtime,
         // but only if --unicode-char is false.
         // See "Printing strings and characters" in docs/Compilation/StringsAndChars.md.
@@ -3505,7 +3505,7 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write("_dafny.MultiSetOf");
       } else {
         Contract.Assert(ct is SeqType);  // follows from precondition
-        if (ct.Arg.IsCharType && !UnicodeChars) {
+        if (ct.Arg.IsCharType && !UnicodeCharEnabled) {
           wr.Write("_dafny.SeqOfChars");
         } else {
           wr.Write("_dafny.SeqOf");

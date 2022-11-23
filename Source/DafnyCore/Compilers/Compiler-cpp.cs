@@ -99,7 +99,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       // This seems to be a good place to check for unsupported options
-      if (UnicodeChars) {
+      if (UnicodeCharEnabled) {
         throw new UnsupportedFeatureException(program.GetFirstTopLevelToken(), Feature.UnicodeChars);
       }
 

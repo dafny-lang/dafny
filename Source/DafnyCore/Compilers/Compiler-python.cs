@@ -342,7 +342,7 @@ namespace Microsoft.Dafny.Compilers {
       var args = ctor.Formals
         .Where(f => !f.IsGhost)
         .Select(f => {
-          if (f.Type.IsStringType && UnicodeChars) {
+          if (f.Type.IsStringType && UnicodeCharEnabled) {
             return $"{{self.{IdProtect(f.CompileName)}.VerbatimString(True)}}";
           } else {
             return $"{{{DafnyRuntimeModule}.string_of(self.{IdProtect(f.CompileName)})}}";
@@ -823,7 +823,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private void EmitToString(ConcreteSyntaxTree wr, Expression arg, ConcreteSyntaxTree wStmts) {
-      if (UnicodeChars && arg.Type.IsStringType) {
+      if (UnicodeCharEnabled && arg.Type.IsStringType) {
         TrParenExpr(arg, wr, false, wStmts);
         wr.Write(".VerbatimString(False)");
       } else {
@@ -988,14 +988,14 @@ namespace Microsoft.Dafny.Compilers {
       switch (e) {
         case CharLiteralExpr:
           var escaped = TranslateEscapes((string)e.Value);
-          if (UnicodeChars) {
+          if (UnicodeCharEnabled) {
             wr.Write($"{DafnyRuntimeModule}.CodePoint('{escaped}')");
           } else {
             wr.Write($"'{escaped}'");
           }
           break;
         case StringLiteralExpr str:
-          if (UnicodeChars) {
+          if (UnicodeCharEnabled) {
             wr.Write($"{DafnyRuntimeModule}.Seq(map({DafnyRuntimeModule}.CodePoint, ");
             TrStringLiteral(str, wr);
             // We pass str = None if --unicode-char is true because we no longer
@@ -1595,7 +1595,7 @@ namespace Microsoft.Dafny.Compilers {
         if (e.ToType.IsNumericBased(Type.NumericPersuasion.Real)) {
           (pre, post) = ($"{DafnyRuntimeModule}.BigRational(", ", 1)");
         } else if (e.ToType.IsCharType) {
-          if (UnicodeChars) {
+          if (UnicodeCharEnabled) {
             (pre, post) = ($"{DafnyRuntimeModule}.CodePoint(chr(", "))");
           } else {
             (pre, post) = ("chr(", ")");
@@ -1611,7 +1611,7 @@ namespace Microsoft.Dafny.Compilers {
         if (e.ToType.IsNumericBased(Type.NumericPersuasion.Int) || e.ToType.IsBitVectorType || e.ToType.IsBigOrdinalType) {
           (pre, post) = ("int(", ")");
         } else if (e.ToType.IsCharType) {
-          if (UnicodeChars) {
+          if (UnicodeCharEnabled) {
             (pre, post) = ($"{DafnyRuntimeModule}.CodePoint(chr(floor(", ")))");
           } else {
             (pre, post) = ("chr(floor(", "))");
