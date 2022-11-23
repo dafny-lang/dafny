@@ -17,5 +17,6 @@ Include.dfy(28,6): Error: A postcondition might not hold on this return path.
 Includee.dfy[Concrete](20,14): Related location: This is the postcondition that might not hold.
 Includee.dfy(6,0): Error: A postcondition might not hold on this return path.
 Includee.dfy(5,12): Related location: This is the postcondition that might not hold.
+Includee.dfy(7,0): Error: out-parameter 'y', which is subject to definite-assignment rules, might be uninitialized at this return point
 
-Dafny program verifier finished with 2 verified, 6 errors
+Dafny program verifier finished with 2 verified, 7 errors
