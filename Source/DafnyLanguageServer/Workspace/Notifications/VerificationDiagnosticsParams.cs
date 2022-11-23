@@ -477,7 +477,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
           return cachedAssumptionsLines;
         }
         IEnumerable<int> CollectAssumeNotTrue(INode n) {
-          if (n is AssumeStmt { Expr: LiteralExpr { Value: not true } } assumeStmt) {
+          if (n is AssumeStmt { Expr: var expression } assumeStmt &&
+              Translator.IsExpressionAlways(expression, false)) {
             return new List<int> { assumeStmt.Tok.line - 1 };
           }
 
@@ -490,8 +491,21 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
           } else {
             cachedAssumptionsLines = functionDecl.Children.Where(child => child != functionDecl.ByMethodDecl).SelectMany(CollectAssumeNotTrue);
           }
+          foreach (var req in functionDecl.Req) {
+            if (Translator.IsExpressionAlways(req.E, false)) {
+              cachedAssumptionsLines = cachedAssumptionsLines.Concat(new List<int>() { req.E.tok.line - 2 });
+            }
+          }
         } else {
           cachedAssumptionsLines = CollectAssumeNotTrue(node);
+        }
+
+        if (node is Method methodDecl) {
+          foreach (var req in methodDecl.Req) {
+            if (Translator.IsExpressionAlways(req.E, false)) {
+              cachedAssumptionsLines = cachedAssumptionsLines.Concat(new List<int>() { req.E.tok.line - 1 });
+            }
+          }
         }
 
         return cachedAssumptionsLines;

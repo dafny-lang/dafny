@@ -212,9 +212,9 @@ method Foo() ensures false { } ";
   public async Task EnsuresBodyWithRequiresFalseCorrectlyHighlighted() {
     await VerifyTrace(@"
  .  S  S  |?:method Test()
- .  S  |  =?:  requires èxists x: int :: true ==> (true && false) || false
+ .  S  S  =?:  requires exists x: int :: true ==> (true && false) || false
  .  S  S  |?:{
- .  S  S  =?:  assert true;
+ .  S  |  |?:  assert true;
  .  S  S  |?:}");
   }
 
