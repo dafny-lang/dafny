@@ -9,6 +9,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.Language;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.DependencyInjection;
 using OmniSharpLanguageServer = OmniSharp.Extensions.LanguageServer.Server.LanguageServer;
 
@@ -25,6 +26,9 @@ namespace Microsoft.Dafny.LanguageServer {
 
       var ghostOptions = configuration.Get<GhostOptions>();
       GhostIndicatorsOption.Instance.Set(dafnyOptions, ghostOptions.MarkStatements);
+
+      var documentOptions = configuration.Get<DocumentOptions>();
+      VerificationOption.Instance.Set(dafnyOptions, documentOptions.Verify);
 
       var pluginOptions = configuration.Get<DafnyPluginsOptions>();
       PluginOption.Instance.Set(dafnyOptions, pluginOptions.Plugins.ToList());
