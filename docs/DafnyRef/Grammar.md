@@ -363,10 +363,12 @@ Which Unicode escape form is allowed depends on the value of the `--unicode-char
 If `--unicode-char:false` is provided,
 `\uXXXX` escapes can be used to specify any UTF-16 code unit.
 
-If `--unicode-char:true` option is provided,
+If `--unicode-char:true` is provided,
 `\U{X..X}` escapes can be used to specify any Unicode scalar value.
 There must be at least one hex digit in between the braces, and at most six.
 Surrogate code points are not allowed.
+The hex digits may be interspersed with underscores for readability 
+(but not beginning or ending with an underscore), as in `\U{1_F680}`.
 
 
 ### 2.5.5. Character Constant Token {#sec-character-constant-token}

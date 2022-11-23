@@ -495,15 +495,19 @@ The escape sequence for a double quote is redundant, because
 `'"'` and `'\"'` denote the same
 character---both forms are provided in order to support the same
 escape sequences in string literals ([Section 10.3.5](#sec-strings)).
+
 In the form `\u`_xxxx_, which is only allowed if `--unicode-char` is disabled,
 the `u` is always lower case, but the four
 hexadecimal digits are case insensitive.
-Similarly in the form `\U{`_x..x_`}`, 
+
+In the form `\U{`_x..x_`}`, 
 which is only allowed if `--unicode-char` is enabled,
 the `U` is always upper case,
 but the hexadecimal digits are case insensitive, and there must
 be at least one and at most six digits.
 Surrogate code points are not allowed.
+The hex digits may be interspersed with underscores for readability 
+(but not beginning or ending with an underscore), as in `\U{1_F680}`.
 
 Character values are ordered and can be compared using the standard
 relational operators:
@@ -521,7 +525,7 @@ Sequences of characters represent _strings_, as described in
 Character values can be converted to and from `int` values using the
 `as int` and `as char` conversion operations. The result is what would
 be expected in other programming languages, namely, the `int` value of a
-`char` is the ASCII or unicode numeric value.
+`char` is the ASCII or Unicode numeric value.
 
 The only other operations on characters are obtaining a character
 by indexing into a string, and the implicit conversion to string
