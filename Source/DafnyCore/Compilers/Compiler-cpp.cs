@@ -56,7 +56,8 @@ namespace Microsoft.Dafny.Compilers {
       Feature.ExactBoundedPool,
       Feature.RunAllTests,
       Feature.MethodSynthesis,
-      Feature.UnicodeChars
+      Feature.UnicodeChars,
+      Feature.ConvertingValuesToStrings
     };
 
     public override string TargetLanguage => "C++";
