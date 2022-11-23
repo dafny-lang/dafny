@@ -14,6 +14,7 @@ using System.Diagnostics.Contracts;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Text;
+using System.Threading.Tasks;
 using JetBrains.Annotations;
 
 namespace Microsoft.Dafny.Compilers {
@@ -2524,9 +2525,12 @@ namespace Microsoft.Dafny.Compilers {
       TextWriter outputWriter) {
       Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
 
-      var psi = PrepareProcessStartInfo("node");
-      psi.RedirectStandardInput = true;
-      psi.StandardInputEncoding = Encoding.UTF8;
+      var psi = new ProcessStartInfo("node", "") {
+        RedirectStandardInput = true,
+        StandardInputEncoding = Encoding.UTF8,
+        RedirectStandardOutput = true,
+        RedirectStandardError = true,
+      };
 
       try {
         Process nodeProcess = Process.Start(psi);
@@ -2541,12 +2545,27 @@ namespace Microsoft.Dafny.Compilers {
         }
         nodeProcess.StandardInput.Flush();
         nodeProcess.StandardInput.Close();
-        return 0 == WaitForExit(nodeProcess, outputWriter);
+        // Fixes a problem of Node on Windows, where Node does not prints to the parent console its standard outputs.
+        var errorProcessing = Task.Run(() => {
+          PassthroughBuffer(nodeProcess.StandardError, Console.Error);
+        });
+        PassthroughBuffer(nodeProcess.StandardOutput, Console.Out);
+        nodeProcess.WaitForExit();
+        errorProcessing.Wait();
+        return nodeProcess.ExitCode == 0;
       } catch (System.ComponentModel.Win32Exception e) {
         outputWriter.WriteLine("Error: Unable to start node.js ({0}): {1}", psi.FileName, e.Message);
         return false;
       }
     }
 
+    // We read character by character because we did not find a way to ensure
+    // final newlines are kept when reading line by line
+    private static void PassthroughBuffer(TextReader input, TextWriter output) {
+      int current;
+      while ((current = input.Read()) != -1) {
+        output.Write((char)current);
+      }
+    }
   }
 }
