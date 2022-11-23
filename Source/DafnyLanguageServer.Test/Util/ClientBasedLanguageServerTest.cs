@@ -187,4 +187,11 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
     var resolutionDiagnostics = (await Documents.GetResolvedDocumentAsync(documentItem))!.Diagnostics;
     Assert.AreEqual(0, resolutionDiagnostics.Count(d => d.Severity == DiagnosticSeverity.Error));
   }
+
+  public async Task<PublishedVerificationStatus> PopNextStatus() {
+    var nextNotification = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    Assert.IsNotNull(nextNotification);
+    Assert.AreEqual(1, nextNotification.NamedVerifiables.Count);
+    return nextNotification.NamedVerifiables.Single().Status;
+  }
 }

@@ -19,6 +19,11 @@ record ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult ExitResult) :
 static class CommandRegistry {
   private static readonly HashSet<ICommandSpec> Commands = new();
 
+  public static IReadOnlyList<IOptionSpec> ExecutionOptions = new IOptionSpec[] {
+    NoVerifyOption.Instance,
+    EnforceDeterminismOption.Instance,
+  }.ToList();
+
   public static IReadOnlyList<IOptionSpec> CommonOptions = new List<IOptionSpec>(new IOptionSpec[] {
     CoresOption.Instance,
     VerificationTimeLimitOption.Instance,
@@ -32,8 +37,7 @@ static class CommandRegistry {
     ResolvedPrintOption.Instance,
     BoogiePrintOption.Instance,
     InputsOption.Instance,
-    StrictDefiniteAssignmentOption.Instance,
-    EnforceDeterminismOption.Instance,
+    RelaxDefiniteAssignment.Instance, // Must come after EnforceDeterminismOption
   });
 
   static void AddCommand(ICommandSpec command) {
@@ -149,7 +153,9 @@ static class CommandRegistry {
         options.OptionArguments[optionSpec] = value;
         optionFailure ??= optionSpec.PostProcess(dafnyOptions);
         if (optionFailure != null) {
-          optionFailure = $"Parsing option {option.Name} failed because: {optionFailure}";
+          if (optionFailure == "") {
+            optionFailure = $"Parsing option {option.Name} failed.";
+          }
           break;
         }
       }

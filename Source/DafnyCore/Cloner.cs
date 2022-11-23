@@ -843,6 +843,14 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public class ClonerKeepParensExpressions : Cloner {
+    public override Expression CloneExpr(Expression expr) {
+      if (expr is ParensExpression parensExpression) {
+        return new ParensExpression(Tok(parensExpression.tok), CloneExpr(parensExpression.E));
+      }
+      return base.CloneExpr(expr);
+    }
+  }
 
   /// <summary>
   /// This cloner copies the origin module signatures to their cloned declarations

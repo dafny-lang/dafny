@@ -1720,8 +1720,13 @@ namespace Microsoft.Dafny.Compilers {
       while (rd.ReadLine() is { } line) {
         var match = ModuleLine.Match(line);
         if (match.Success) {
+          rd.Close();
           return match.Groups[1].Value;
         }
+      }
+      rd.Close();
+      if (externFilename.EndsWith(".py")) {
+        return externFilename.Substring(0, externFilename.Length - 3);
       }
       return null;
     }
@@ -1764,6 +1769,7 @@ namespace Microsoft.Dafny.Compilers {
       string targetFilename, ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
       Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
       var psi = PrepareProcessStartInfo("python3", DafnyOptions.O.MainArgs.Prepend(targetFilename));
+      psi.EnvironmentVariables["PYTHONIOENCODING"] = "utf8";
       return 0 == RunProcess(psi, outputWriter);
     }
   }
