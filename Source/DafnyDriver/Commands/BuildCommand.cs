@@ -8,11 +8,9 @@ namespace Microsoft.Dafny;
 class BuildCommand : ICommandSpec {
   public IEnumerable<IOptionSpec> Options => new IOptionSpec[] {
     OutputOption.Instance,
-    TargetOption.Instance,
     CompileVerboseOption.Instance,
-    VerificationTimeLimitOption.Instance,
-    BoogieFilterOption.Instance
-  }.Concat(ICommandSpec.ExecutionOptions).
+  }.Concat(ICommandSpec.VerificationOptions).
+    Concat(ICommandSpec.ExecutionOptions).
     Concat(ICommandSpec.CommonOptions);
 
   public Command Create() {

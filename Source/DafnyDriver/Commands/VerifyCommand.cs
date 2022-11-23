@@ -7,9 +7,8 @@ namespace Microsoft.Dafny;
 
 class VerifyCommand : ICommandSpec {
   public IEnumerable<IOptionSpec> Options => new IOptionSpec[] {
-    BoogieFilterOption.Instance,
-    VerificationTimeLimitOption.Instance
-  }.Concat(ICommandSpec.CommonOptions);
+  }.Concat(ICommandSpec.VerificationOptions.Except(new [] { NoVerifyOption.Instance })).
+    Concat(ICommandSpec.CommonOptions);
 
   public Command Create() {
     var result = new Command("verify", "Verify the program.");
