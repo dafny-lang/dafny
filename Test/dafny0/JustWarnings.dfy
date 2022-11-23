@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" /warnShadowing "%s" > "%t"
+// RUN: %baredafny verify %args --warn-shadowing "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This file tests the behavior where the Resolver reports some warnings

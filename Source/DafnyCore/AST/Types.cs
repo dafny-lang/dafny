@@ -259,6 +259,11 @@ public abstract class Type {
   }
 
   /// <summary>
+  /// Return a type that is like "this", but where occurrences of type parameters are substituted as indicated by "subst".
+  /// </summary>
+  public abstract Type Subst(Dictionary<TypeParameter, Type> subst);
+
+  /// <summary>
   /// Returns whether or not "this" and "that" denote the same type, modulo proxies and type synonyms and subset types.
   /// </summary>
   [Pure]
@@ -405,7 +410,7 @@ public abstract class Type {
       return AutoInitInfo.CompilableValue; // null is a value of this type
     } else if (cl is DatatypeDecl) {
       var dt = (DatatypeDecl)cl;
-      var subst = Resolver.TypeSubstitutionMap(dt.TypeArgs, udt.TypeArgs);
+      var subst = TypeParameter.SubstitutionMap(dt.TypeArgs, udt.TypeArgs);
       var r = AutoInitInfo.CompilableValue;  // assume it's compilable, until we find out otherwise
       if (cl is CoDatatypeDecl) {
         if (coDatatypesBeingVisited != null) {
@@ -423,7 +428,7 @@ public abstract class Type {
         coDatatypesBeingVisited.Add(udt);
       }
       foreach (var formal in dt.GetGroundingCtor().Formals) {
-        var autoInit = Resolver.SubstType(formal.Type, subst).GetAutoInit(coDatatypesBeingVisited);
+        var autoInit = formal.Type.Subst(subst).GetAutoInit(coDatatypesBeingVisited);
         if (autoInit == AutoInitInfo.MaybeEmpty) {
           return AutoInitInfo.MaybeEmpty;
         } else if (formal.IsGhost) {
@@ -574,8 +579,8 @@ public abstract class Type {
       return udt;
     }
     var typeMapParents = cl.ParentFormalTypeParametersToActuals;
-    var typeMapUdt = Resolver.TypeSubstitutionMap(cl.TypeArgs, udt.TypeArgs);
-    var typeArgs = parent.TypeArgs.ConvertAll(tp => Resolver.SubstType(typeMapParents[tp], typeMapUdt));
+    var typeMapUdt = TypeParameter.SubstitutionMap(cl.TypeArgs, udt.TypeArgs);
+    var typeArgs = parent.TypeArgs.ConvertAll(tp => typeMapParents[tp].Subst(typeMapUdt));
     return new UserDefinedType(udt.tok, parent.Name, parent, typeArgs);
   }
   public bool IsTraitType {
@@ -1450,8 +1455,8 @@ public abstract class Type {
         // trait.  If such a trait is unique, pick it. (Unfortunately, this makes the join operation not associative.)
         var commonTraits = TopLevelDeclWithMembers.CommonTraits(A, B);
         if (commonTraits.Count == 1) {
-          var typeMap = Resolver.TypeSubstitutionMap(A.TypeArgs, a.TypeArgs);
-          var r = (UserDefinedType)Resolver.SubstType(commonTraits[0], typeMap);
+          var typeMap = TypeParameter.SubstitutionMap(A.TypeArgs, a.TypeArgs);
+          var r = (UserDefinedType)commonTraits[0].Subst(typeMap);
           return abNonNullTypes ? UserDefinedType.CreateNonNullType(r) : r;
         } else {
           // the unfortunate part is when commonTraits.Count > 1 here :(
@@ -1750,6 +1755,10 @@ public abstract class ArtificialType : Type {
     // ArtificialType's are used only with numeric types.
     return false;
   }
+
+  public override Type Subst(Dictionary<TypeParameter, Type> subst) {
+    throw new NotImplementedException();
+  }
 }
 /// <summary>
 /// The type "IntVarietiesSupertype" is used to denote a decimal-less number type, namely an int-based type
@@ -1783,6 +1792,10 @@ public abstract class NonProxyType : Type {
 public abstract class BasicType : NonProxyType {
   public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl>/*?*/ visitedDatatypes) {
     return false;
+  }
+
+  public override Type Subst(Dictionary<TypeParameter, Type> subst) {
+    return this;
   }
 }
 
@@ -1900,6 +1913,17 @@ public class SelfType : NonProxyType {
   }
   public override bool Equals(Type that, bool keepConstraints = false) {
     return that.NormalizeExpand(keepConstraints) is SelfType;
+  }
+
+  public override Type Subst(Dictionary<TypeParameter, Type> subst) {
+    if (subst.TryGetValue(TypeArg, out var t)) {
+      return t;
+    } else {
+      // SelfType's are used only in certain restricted situations. In those situations, we need to be able
+      // to substitute for the the SelfType's TypeArg. That's the only case in which we expect to see a
+      // SelfType being part of a substitution operation at all.
+      Contract.Assert(false); throw new cce.UnreachableException();
+    }
   }
 
   public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl>/*?*/ visitedDatatypes) {
@@ -2027,6 +2051,10 @@ public class ArrowType : UserDefinedType {
     return s;
   }
 
+  public override Type Subst(Dictionary<TypeParameter, Type> subst) {
+    return new ArrowType(tok, (ArrowTypeDecl)ResolvedClass, Args.ConvertAll(u => u.Subst(subst)), Result.Subst(subst));
+  }
+
   public override bool SupportsEquality {
     get {
       return false;
@@ -2114,6 +2142,15 @@ public class SetType : CollectionType {
     var t = that.NormalizeExpand(keepConstraints) as SetType;
     return t != null && Finite == t.Finite && Arg.Equals(t.Arg, keepConstraints);
   }
+
+  public override Type Subst(Dictionary<TypeParameter, Type> subst) {
+    var arg = Arg.Subst(subst);
+    if (arg is InferredTypeProxy) {
+      ((InferredTypeProxy)arg).KeepConstraints = true;
+    }
+    return arg == Arg ? this : new SetType(Finite, arg);
+  }
+
   public override bool SupportsEquality {
     get {
       // Sets always support equality, because there is a check that the set element type always does.
@@ -2130,6 +2167,15 @@ public class MultiSetType : CollectionType {
     var t = that.NormalizeExpand(keepConstraints) as MultiSetType;
     return t != null && Arg.Equals(t.Arg, keepConstraints);
   }
+
+  public override Type Subst(Dictionary<TypeParameter, Type> subst) {
+    var arg = Arg.Subst(subst);
+    if (arg is InferredTypeProxy) {
+      ((InferredTypeProxy)arg).KeepConstraints = true;
+    }
+    return arg == Arg ? this : new MultiSetType(arg);
+  }
+
   public override bool SupportsEquality {
     get {
       // Multisets always support equality, because there is a check that the set element type always does.
@@ -2146,6 +2192,15 @@ public class SeqType : CollectionType {
     var t = that.NormalizeExpand(keepConstraints) as SeqType;
     return t != null && Arg.Equals(t.Arg, keepConstraints);
   }
+
+  public override Type Subst(Dictionary<TypeParameter, Type> subst) {
+    var arg = Arg.Subst(subst);
+    if (arg is InferredTypeProxy) {
+      ((InferredTypeProxy)arg).KeepConstraints = true;
+    }
+    return arg == Arg ? this : new SeqType(arg);
+  }
+
   public override bool SupportsEquality {
     get {
       // The sequence type supports equality if its element type does
@@ -2187,6 +2242,23 @@ public class MapType : CollectionType {
     var t = that.NormalizeExpand(keepConstraints) as MapType;
     return t != null && Finite == t.Finite && Arg.Equals(t.Arg, keepConstraints) && Range.Equals(t.Range, keepConstraints);
   }
+
+  public override Type Subst(Dictionary<TypeParameter, Type> subst) {
+    var dom = Domain.Subst(subst);
+    if (dom is InferredTypeProxy) {
+      ((InferredTypeProxy)dom).KeepConstraints = true;
+    }
+    var ran = Range.Subst(subst);
+    if (ran is InferredTypeProxy) {
+      ((InferredTypeProxy)ran).KeepConstraints = true;
+    }
+    if (dom == Domain && ran == Range) {
+      return this;
+    } else {
+      return new MapType(Finite, dom, ran);
+    }
+  }
+
   public override bool SupportsEquality {
     get {
       // A map type supports equality if both its Keys type and Values type does.  It is checked
@@ -2402,6 +2474,49 @@ public class UserDefinedType : NonProxyType, INode {
     }
   }
 
+  public override Type Subst(Dictionary<TypeParameter, Type> subst) {
+    if (ResolvedClass is TypeParameter tp) {
+      if (subst.TryGetValue(tp, out var s)) {
+        Contract.Assert(TypeArgs.Count == 0);
+        return s;
+      } else {
+        return this;
+      }
+    } else if (ResolvedClass != null) {
+      List<Type> newArgs = null;  // allocate it lazily
+      var resolvedClass = ResolvedClass;
+      var isArrowType = ArrowType.IsPartialArrowTypeName(resolvedClass.Name) || ArrowType.IsTotalArrowTypeName(resolvedClass.Name);
+      for (int i = 0; i < TypeArgs.Count; i++) {
+        Type p = TypeArgs[i];
+        Type s = p.Subst(subst);
+        if (s is InferredTypeProxy && !isArrowType) {
+          ((InferredTypeProxy)s).KeepConstraints = true;
+        }
+        if (s != p && newArgs == null) {
+          // lazily construct newArgs
+          newArgs = new List<Type>();
+          for (int j = 0; j < i; j++) {
+            newArgs.Add(TypeArgs[j]);
+          }
+        }
+        if (newArgs != null) {
+          newArgs.Add(s);
+        }
+      }
+      if (newArgs == null) {
+        // there were no substitutions
+        return this;
+      } else {
+        // Note, even if t.NamePath is non-null, we don't care to keep that syntactic part of the expression in what we return here
+        return new UserDefinedType(tok, Name, resolvedClass, newArgs);
+      }
+    } else {
+      // there's neither a resolved param nor a resolved class, which means the UserDefinedType wasn't
+      // properly resolved; just return it
+      return this;
+    }
+  }
+
   /// <summary>
   /// If type denotes a resolved class type, then return that class type.
   /// Otherwise, return null.
@@ -2614,6 +2729,16 @@ public abstract class TypeProxy : Type {
   [FilledInDuringResolution] public Type T;
   public readonly List<TypeConstraint> SupertypeConstraints = new List<TypeConstraint>();
   public readonly List<TypeConstraint> SubtypeConstraints = new List<TypeConstraint>();
+
+  public override Type Subst(Dictionary<TypeParameter, Type> subst) {
+    if (T == null) {
+      return this;
+    }
+    var s = T.Subst(subst);
+    return s == T ? this : s;
+
+  }
+
   public IEnumerable<Type> Supertypes {
     get {
       foreach (var c in SupertypeConstraints) {
