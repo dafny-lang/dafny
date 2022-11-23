@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-class BoogieOption : StringOption {
+public class BoogieOption : StringOption {
   public static readonly BoogieOption Instance = new();
   public override object DefaultValue => null;
   public override string LongName => "boogie";
