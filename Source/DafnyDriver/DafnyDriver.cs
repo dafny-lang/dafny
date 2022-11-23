@@ -138,7 +138,7 @@ namespace Microsoft.Dafny {
 #pragma warning restore VSTHRD002
         return 0;
       }
-      
+
       DafnyOptions.O.XmlSink?.Close();
 
       if (DafnyOptions.O.VerificationLoggerConfigs.Any()) {
