@@ -130,7 +130,7 @@ namespace Microsoft.Dafny.Compilers {
     protected string LambdaExecute = "";
 
     protected static bool UnicodeChars => UnicodeCharactersOption.Instance.Get(DafnyOptions.O);
-    
+
     protected static string CharMethodQualifier => UnicodeChars ? "Unicode" : "";
 
     protected virtual void EmitHeader(Program program, ConcreteSyntaxTree wr) { }

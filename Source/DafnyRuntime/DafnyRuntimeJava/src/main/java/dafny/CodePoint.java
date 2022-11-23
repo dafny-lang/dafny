@@ -31,7 +31,7 @@ public final class CodePoint {
     private final int value;
     
     private CodePoint(int value) {
-        if (!Character.isValidCodePoint(value) || (Character.MIN_SURROGATE <= value && value <= Character.MAX_SURROGATE) {
+        if (!Character.isValidCodePoint(value) || (Character.MIN_SURROGATE <= value && value <= Character.MAX_SURROGATE)) {
             throw new IllegalArgumentException("Code point out of range: " + value);
         }
         this.value = value;
