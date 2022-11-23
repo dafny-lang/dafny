@@ -343,38 +343,91 @@ module X refines P {
 
 ## 22.9. Type declarations
 
-An opaque type (a type declaration without a definition) in an abstract module can be refined in a refining module, by giving it a definition as any other kind of type.
-Here are some examples:
+Types can be refined in two ways:
+
+- Turning an opaque type into a concrete type;
+- Adding members to a datatype or a newtype.
+
+For example, consider the following abstract module:
+
+```dafny
+abstract module Parent {
+  type T
+  type B = bool
+  type S = s: string | |s| > 0 witness "!"
+  newtype Pos = n: nat | n > 0 witness 1
+  datatype Bool = True | False
+}
+```
+
+In this module, type `T` is opaque and hence can be refined with any type,
+including class types.  Types `B`, `S`, `Pos`, and `Bool` are concrete and
+cannot be refined further, except (for `Pos` and `Bool`) by giving them
+additional members or attributes (or refining their existing members, if any).
+Hence, the following are valid refinements:
+
+```dafny
+module ChildWithTrait refines Parent {
+  trait T {}
+}
+
+module ChildWithClass refines Parent {
+  class T {}
+}
+
+module ChildWithSynonymType refines Parent {
+  type T = bool
+}
+
+module ChildWithSubsetType refines Parent {
+  type T = s: seq<int> | s != [] witness [0]
+}
+
+module ChildWithDataType refines Parent {
+  datatype T = True | False
+}
+
+abstract module ChildWithExtraMembers refines Parent {
+  newtype Pos ... {
+    method Print() { print this; }
+  }
+
+  datatype Bool ... {
+    function method AsDafnyBool() : bool { this.True? }
+  }
+}
+```
+
+(The last example is marked `abstract` because it leaves `T` opaque.)
+
+Note that datatype constructors, codatatype destructors, and newtype definitions
+cannot be refined: it is not possible to add or remove constructors to a
+`datatype`, nor to change destructors of a `codatatype`, nor to change the base
+type, constraint, or witness of a `newtype`.
+
+When a type takes arguments, its refinement must use the same type arguments
+with the same type constraints and the same variance.
+ 
+When a type has type constraints, these type constraints must be preserved by
+refinement.  This means that a type declaration `type T(!new)` cannot be refined
+by a `class T`, for example. Similarly, a `type T(00)` cannot be refined by a
+subset type with a `witness *` clause.
+
+The refinement of an opaque type with body-less members can include both a definition
+for the type along with a body for the member, as in this example:
 ```
 abstract module P {
-  type T1
-
-  type T2
-
   type T3 {
     function ToString(): string
   }
-
-  type T4
-
-  type T5
 }
 
 module X refines P {
-  type T1 = int
-
-  type T2 = i | 0 <= i < 10
-
   newtype T3 = i | 0 <= i < 10 {
     function ToString... { "" }
   }
-
-  datatype T4 = A | B | C 
-
-  class T5 {}
 }
 ```
-Opaque types in the abstract class may be given members if they are refined as a type, such as a `newtype` or `datatype` or `class`, that is permitted to declare members.
 
 Note that type refinements are not required to include the `...` indicator that they are refining a parent type.
 

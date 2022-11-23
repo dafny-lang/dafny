@@ -65,6 +65,11 @@ namespace Microsoft.Dafny.LanguageServer.Util {
       if (token is IncludeToken includeToken) {
         return DocumentUri.FromFileSystemPath(includeToken.Include.CanonicalPath);
       }
+
+      while (token is RefinementToken refinementToken) {
+        token = refinementToken.WrappedToken;
+      }
+
       return DocumentUri.Parse(token.filename);
     }
 

@@ -313,6 +313,18 @@ public class TypeParameter : TopLevelDecl {
       return characteristics;
     }
   }
+
+  public static Dictionary<TypeParameter, Type> SubstitutionMap(List<TypeParameter> formals, List<Type> actuals) {
+    Contract.Requires(formals != null);
+    Contract.Requires(actuals != null);
+    Contract.Requires(formals.Count == actuals.Count);
+    var subst = new Dictionary<TypeParameter, Type>();
+    for (int i = 0; i < formals.Count; i++) {
+      subst.Add(formals[i], actuals[i]);
+    }
+    return subst;
+  }
+
 }
 
 // Represents a submodule declaration at module level scope
@@ -595,7 +607,7 @@ public class ModuleQualifiedId {
       this.Sig = null;
     } else {
       this.Decl = m;
-      this.Def = ((LiteralModuleDecl)m).ModuleDef;
+      this.Def = m.Signature.ModuleDef;
       this.Sig = m.Signature;
     }
   }
@@ -1112,7 +1124,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl {
           info.Add(traitHead, list);
         }
         foreach (var pair in entry.Value) {
-          var ty = Resolver.SubstType(pair.Item1, typeMap);
+          var ty = pair.Item1.Subst(typeMap);
           // prepend the path with "parent"
           var parentPath = new List<TraitDecl>() { parent };
           parentPath.AddRange(pair.Item2);
@@ -1182,6 +1194,10 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl {
       tr.AddTraitAncestors(s);
     }
   }
+
+  // True if non-static members can access the underlying object "this"
+  // False if all members are implicitly static (e.g. in a default class declaration)
+  public abstract bool AcceptThis { get; }
 }
 
 public class TraitDecl : ClassDecl {
@@ -1257,8 +1273,8 @@ public class ClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl {
       // this optimization seems worthwhile
       return ParentTraits;
     } else {
-      var subst = Resolver.TypeSubstitutionMap(TypeArgs, typeArgs);
-      return ParentTraits.ConvertAll(traitType => Resolver.SubstType(traitType, subst));
+      var subst = TypeParameter.SubstitutionMap(TypeArgs, typeArgs);
+      return ParentTraits.ConvertAll(traitType => traitType.Subst(subst));
     }
   }
 
@@ -1266,8 +1282,8 @@ public class ClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl {
     Contract.Requires(typeArgs != null);
     Contract.Requires(typeArgs.Count == TypeArgs.Count);
     // Instantiate with the actual type arguments
-    var subst = Resolver.TypeSubstitutionMap(TypeArgs, typeArgs);
-    return ParentTraits.ConvertAll(traitType => (Type)UserDefinedType.CreateNullableType((UserDefinedType)Resolver.SubstType(traitType, subst)));
+    var subst = TypeParameter.SubstitutionMap(TypeArgs, typeArgs);
+    return ParentTraits.ConvertAll(traitType => (Type)UserDefinedType.CreateNullableType((UserDefinedType)traitType.Subst(subst)));
   }
 
   public override List<Type> ParentTypes(List<Type> typeArgs) {
@@ -1276,6 +1292,7 @@ public class ClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl {
 
   public TopLevelDecl AsTopLevelDecl => this;
   public TypeDeclSynonymInfo SynonymInfo { get; set; }
+  public override bool AcceptThis => this is not DefaultClassDecl;
 }
 
 public class DefaultClassDecl : ClassDecl {
@@ -1419,6 +1436,8 @@ public class IndDatatypeDecl : DatatypeDecl {
     Contract.Requires(cce.NonNullElements(members));
     Contract.Requires((isRefining && ctors.Count == 0) || (!isRefining && 1 <= ctors.Count));
   }
+
+  public override bool AcceptThis => true;
 }
 
 public class CoDatatypeDecl : DatatypeDecl {
@@ -1440,6 +1459,8 @@ public class CoDatatypeDecl : DatatypeDecl {
   public override DatatypeCtor GetGroundingCtor() {
     return Ctors.FirstOrDefault(ctor => ctor.IsGhost, Ctors[0]);
   }
+
+  public override bool AcceptThis => true;
 }
 
 /// <summary>
@@ -1815,6 +1836,7 @@ public class OpaqueTypeDecl : TopLevelDeclWithMembers, TypeParameter.ParentType,
 
   public TopLevelDecl AsTopLevelDecl => this;
   public TypeDeclSynonymInfo SynonymInfo { get; set; }
+  public override bool AcceptThis => true;
 }
 
 public interface RedirectingTypeDecl : ICallable {
@@ -1962,6 +1984,8 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
     get { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
     set { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
   }
+
+  public override bool AcceptThis => true;
 }
 
 public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl {
@@ -2009,8 +2033,8 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl {
       // this optimization seems worthwhile
       return Rhs;
     } else {
-      var subst = Resolver.TypeSubstitutionMap(TypeArgs, typeArgs);
-      return Resolver.SubstType(Rhs, subst);
+      var subst = TypeParameter.SubstitutionMap(TypeArgs, typeArgs);
+      return Rhs.Subst(subst);
     }
   }
 
