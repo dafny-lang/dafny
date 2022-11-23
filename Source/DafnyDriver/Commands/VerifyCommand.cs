@@ -7,7 +7,7 @@ namespace Microsoft.Dafny;
 
 class VerifyCommand : ICommandSpec {
   public IEnumerable<IOptionSpec> Options => new IOptionSpec[] {
-  }.Concat(ICommandSpec.VerificationOptions.Except(new [] { NoVerifyOption.Instance })).
+  }.Concat(ICommandSpec.VerificationOptions.Except(new[] { NoVerifyOption.Instance })).
     Concat(ICommandSpec.CommonOptions);
 
   public Command Create() {
