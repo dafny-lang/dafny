@@ -102,6 +102,10 @@ Usage: Dafny [ option ... ] [ filename ... ]
   
   ---- Language feature selection --------------------------------------------
   
+  /unicodeChar:<value>
+      0 (default) - The char type represents any UTF-16 code unit.
+      1 - The char type represents any Unicode scalar value.
+
   /noIncludes
       Ignore include directives.
   
@@ -409,10 +413,6 @@ Usage: Dafny [ option ... ] [ filename ... ]
   /out:<file>
       Specify the filename and location for the generated target language
       files.
-
-  /unicodeChar:<value>
-      0 (default) - The char type represents any UTF-16 code unit.
-      1 - The char type represents any Unicode scalar value.
 
   /useRuntimeLib:<value>
       Refer to pre-built DafnyRuntime.dll in compiled assembly rather
