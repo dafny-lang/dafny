@@ -13,6 +13,7 @@ using System.IO;
 using System.Diagnostics.Contracts;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Text;
 using JetBrains.Annotations;
 
 namespace Microsoft.Dafny.Compilers {
@@ -2525,6 +2526,7 @@ namespace Microsoft.Dafny.Compilers {
 
       var psi = PrepareProcessStartInfo("node");
       psi.RedirectStandardInput = true;
+      psi.StandardInputEncoding = Encoding.UTF8;
 
       try {
         Process nodeProcess = Process.Start(psi);

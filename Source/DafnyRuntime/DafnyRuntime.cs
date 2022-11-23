@@ -24,7 +24,7 @@ namespace Dafny {
   using System.Collections.Immutable;
   using System.Linq;
 
-  // Similar to Rune, which would be perfect to use
+  // Similar to System.Text.Rune, which would be perfect to use
   // except that it isn't available in the platforms we support
   // (.NET Standard 2.0 and .NET Framework 4.5.2)
   public readonly struct Rune : IComparable, IComparable<Rune>, IEquatable<Rune> {
@@ -80,6 +80,9 @@ namespace Dafny {
     public static explicit operator Rune(int value) => new Rune(value);
     public static explicit operator Rune(BigInteger value) => new Rune((uint)value);
 
+    // Defined this way to be consistent with System.Text.Rune,
+    // but note that Dafny will use Helpers.ToString(rune),
+    // which will print in the style of a character literal instead.
     public override string ToString() {
       return char.ConvertFromUtf32(Value);
     }

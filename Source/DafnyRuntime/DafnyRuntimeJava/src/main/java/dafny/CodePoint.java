@@ -12,7 +12,9 @@ public final class CodePoint {
     private static class CodePointCache {
         private CodePointCache(){}
 
-        static final CodePoint cache[] = new CodePoint[127 + 1];
+        static final int MAX_CACHE_KEY = 128;
+
+        static final CodePoint cache[] = new CodePoint[MAX_CACHE_KEY];
 
         static {
             for (int i = 0; i < cache.length; i++) {
@@ -22,7 +24,7 @@ public final class CodePoint {
     }
 
     public static CodePoint valueOf(int value) {
-        if (0 <= value && value <= 127) {
+        if (0 <= value && value < CodePointCache.MAX_CACHE_KEY) {
             return CodePointCache.cache[value];
         }
         return new CodePoint(value);

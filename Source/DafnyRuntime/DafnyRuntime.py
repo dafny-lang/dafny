@@ -92,6 +92,18 @@ class CodePoint(str):
 
 class Seq(tuple):
     def __init__(self, __iterable = None, isStr = False):
+        '''
+        isStr defines whether this value should be tracked at runtime as a string (a.k.a. seq<char>)
+        It accepts three different values:
+         - True: this value is definitely a string, mark it as such
+         - False: this value might be a string, apply heuristics to make a best guess
+         - None: don't apply heuristics, don't mark it as a string
+
+        None is used when --unicode-char is true, to ensure consistent printing of strings
+        across backends without depending on any runtime tracking.
+        See docs/Compilation/StringsAndChars.md.
+        '''
+
         if __iterable is None:
             __iterable = []
         if isStr is None:

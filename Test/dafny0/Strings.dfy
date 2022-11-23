@@ -67,7 +67,6 @@ method Main()
   assert |highBMPChar| == 1;
   expect |highBMPChar| == 1;
   assert highBMPChar[0] == 0xFFEE as char;
-  print highBMPChar, "\n";
   expect highBMPChar[0] == 0xFFEE as char;
   
   // Testing invalid UTF-16 content that Dafny allows (when --unicode-char=false)
