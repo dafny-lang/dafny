@@ -1107,7 +1107,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         .Count(IsNegativeIndexedSeq);
 
       /* If we do not see at least one, then the backend changed the indices being returned to the Language Server. */
-      Assert.IsTrue(nonIntegralIndexedSeqs > 0);
+      Assert.IsTrue(nonIntegralIndexedSeqs > 0,
+"If we do not see at least one non-integral index in this test case, then the backend changed " +
+        "The indices being returned to the Language Server.");
     }
 
     /* Helper for the NonIntegerSeqIndices test. */
