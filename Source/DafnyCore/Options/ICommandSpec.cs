@@ -29,6 +29,7 @@ public interface ICommandSpec {
   public static IReadOnlyList<IOptionSpec> VerificationOptions = new IOptionSpec[] {
     NoVerifyOption.Instance,
     VerificationTimeLimitOption.Instance,
+    VerifyIncludedFilesOption.Instance,
   }.ToList();
 
   public static IReadOnlyList<IOptionSpec> ExecutionOptions = new IOptionSpec[] {
