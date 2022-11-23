@@ -1756,7 +1756,7 @@ public abstract class ArtificialType : Type {
   }
 
   public override Type Subst(Dictionary<TypeParameter, Type> subst) {
-    throw new NotImplementedException();
+    throw new NotSupportedException();
   }
 }
 /// <summary>

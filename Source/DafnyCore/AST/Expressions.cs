@@ -1184,7 +1184,7 @@ class Resolver_IdentifierExpr : Expression, IHasUsages {
       return false;
     }
     public override Type Subst(Dictionary<TypeParameter, Type> subst) {
-      throw new NotImplementedException();
+      throw new NotSupportedException();
     }
   }
   public class ResolverType_Module : ResolverType {
