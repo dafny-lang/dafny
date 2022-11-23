@@ -1,4 +1,8 @@
-// RUN: %baredafny verify %args --strict-definite-assignment "%s" > "%t" || true
+<<<<<<< HEAD
+// RUN: ! %baredafny verify %args --strict-definite-assignment "%s" > "%t"
+=======
+// RUN: %baredafny verify %args "%s" > "%t" || true
+>>>>>>> origin/master
 // RUN: %diff "%s.expect" "%t"
 
 class C {

@@ -3,6 +3,7 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.CommandLine.Parsing;
 using System.IO;
+using System.Linq;
 
 namespace Microsoft.Dafny;
 
@@ -25,6 +26,11 @@ public interface ICommandSpec {
   }
   public static Argument<IEnumerable<FileInfo>> FilesArgument { get; }
 
+  public static IReadOnlyList<IOptionSpec> ExecutionOptions = new IOptionSpec[] {
+    NoVerifyOption.Instance,
+    EnforceDeterminismOption.Instance,
+  }.ToList();
+
   public static IReadOnlyList<IOptionSpec> CommonOptions = new List<IOptionSpec>(new IOptionSpec[] {
     CoresOption.Instance,
     LibraryOption.Instance,
@@ -36,7 +42,7 @@ public interface ICommandSpec {
     PrintOption.Instance,
     ResolvedPrintOption.Instance,
     BoogiePrintOption.Instance,
-    StrictDefiniteAssignmentOption.Instance,
+    RelaxDefiniteAssignment.Instance,
     FunctionSyntaxOption.Instance,
     QuantifierSyntaxOption.Instance,
     WarnShadowingOption.Instance,
