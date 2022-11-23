@@ -122,7 +122,9 @@ static class CommandRegistry {
         options.OptionArguments[optionSpec] = value;
         optionFailure ??= optionSpec.PostProcess(dafnyOptions);
         if (optionFailure != null) {
-          optionFailure = $"Parsing option {option.Name} failed because: {optionFailure}";
+          if (optionFailure == "") {
+            optionFailure = $"Parsing option {option.Name} failed.";
+          }
           break;
         }
       }
