@@ -22,6 +22,46 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   public class DiagnosticsTest : ClientBasedLanguageServerTest {
 
     [TestMethod]
+    public async Task GitIssue3062CrashOfLanguageServer() {
+      var source = @"
+function bullspec(s:seq<nat>, u:seq<nat>): (r: nat)
+  requires |s| > 0
+  requires |u| > 0
+  requires |s| == |u|
+  ensures forall i | i < r :: s[i] != u[i]
+  ensures r == |s| || s[r] == u[r]
+{
+  if |s| == 0 then 0 else
+  if |s| == 1 then
+    if s[0]==u[0] 
+    then 1 else 0
+  else
+    if s[0] != u[0] 
+    then bullspec(s[1..],u[1..])
+    else 1+bullspec(s[1..],u[1..])
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(7, diagnostics.Length);
+      Assert.AreEqual(PublishedVerificationStatus.Stale, await PopNextStatus());
+      Assert.AreEqual(PublishedVerificationStatus.Running, await PopNextStatus());
+      Assert.AreEqual(PublishedVerificationStatus.Error, await PopNextStatus());
+      ApplyChange(ref documentItem, ((7, 25), (10, 17)), "");
+      diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      Assert.AreEqual(5, diagnostics.Length);
+      Assert.AreEqual("Parser", diagnostics[0].Source);
+      Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
+      ApplyChange(ref documentItem, ((7, 20), (7, 25)), "");
+      diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(8, diagnostics.Length);
+      Assert.AreEqual(PublishedVerificationStatus.Stale, await PopNextStatus());
+      Assert.AreEqual(PublishedVerificationStatus.Running, await PopNextStatus());
+      Assert.AreEqual(PublishedVerificationStatus.Error, await PopNextStatus());
+      await AssertNoDiagnosticsAreComing(CancellationToken);
+    }
+
+    [TestMethod]
     public async Task EmptyFileNoCodeWarning() {
       var source = "";
       var documentItem = CreateTestDocument(source);
@@ -52,6 +92,32 @@ method Multiply(x: int, y: int) returns (product: int)
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
+    [TestMethod]
+    public async Task RefinementTokensCorrectlyReported() {
+      // git-issue-2402
+      var source = @"
+abstract module M 
+{ 
+    type T(00)
+    const t : T
+    lemma Randomlemma()
+    {
+        forall i:int {}
+    }
+}
+
+module N refines M 
+{
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(1, diagnostics.Length);
+      Assert.AreEqual(
+        "static non-ghost const field 't' of type 'T' (which does not have a default compiled value) must give a defining value",
+        diagnostics[0].Message);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
+    }
 
     [TestMethod]
     public async Task NoCrashWhenPressingEnterAfterSelectingAllTextAndInputtingText() {

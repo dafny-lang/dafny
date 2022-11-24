@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Text.RegularExpressions;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
@@ -747,13 +748,16 @@ namespace DafnyServer.CounterexampleGeneration {
         }
         return result;
       }
+
       var seqLen = fSeqLength.OptEval(var.Element);
       if (seqLen != null) { // Elt is a sequence
         var length = DafnyModelVariableFactory.Get(state, seqLen, "Length", var);
         result.Add(length);
         (var as SeqVariable)?.SetLength(length);
-        // Sequence can be constructed with build operator:
+
+        // Sequences can be constructed with the build operator:
         List<Model.Element> elements = new();
+
         var substring = var.Element;
         while (fSeqBuild.AppWithResult(substring) != null) {
           elements.Insert(0, Unbox(fSeqBuild.AppWithResult(substring).Args[1]));
@@ -767,13 +771,32 @@ namespace DafnyServer.CounterexampleGeneration {
         if (elements.Count > 0) {
           return result;
         }
-        // Otherwise, sequence can be reconstructed index by index:
+
+        // Otherwise, sequences can be reconstructed index by index, ensuring indices are in ascending order.
+        // NB: per https://github.com/dafny-lang/dafny/issues/3048 , not all indices may be parsed as a BigInteger,
+        // so ensure we do not try to sort those numerically.
+        var intIndices = new List<(Model.Element, BigInteger)>();
+        var otherIndices = new List<(Model.Element, String)>();
         foreach (var tpl in fSeqIndex.AppsWithArg(0, var.Element)) {
-          var e = DafnyModelVariableFactory.Get(state, Unbox(tpl.Result),
-            "[" + tpl.Args[1] + "]", var);
-          result.Add(e);
-          (var as SeqVariable)?.AddAtIndex(e, tpl.Args[1].ToString());
+          var asString = tpl.Args[1].ToString();
+          if (BigInteger.TryParse(asString, out var bi)) {
+            intIndices.Add((Unbox(tpl.Result), bi));
+          } else {
+            otherIndices.Add((Unbox(tpl.Result), asString));
+          }
         }
+
+        var sortedIndices = intIndices
+          .OrderBy(p => p.Item2)
+          .Select(p => (p.Item1, p.Item2.ToString()))
+          .Concat(otherIndices);
+
+        foreach (var (res, idx) in sortedIndices) {
+          var e = DafnyModelVariableFactory.Get(state, res, "[" + idx + "]", var);
+          result.Add(e);
+          (var as SeqVariable)?.AddAtIndex(e, idx);
+        }
+
         return result;
       }
       foreach (var tpl in fSetSelect.AppsWithArg(0, var.Element)) {

@@ -2477,21 +2477,19 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
 
       var psi = new ProcessStartInfo("node", "") {
-        CreateNoWindow = true,
-        UseShellExecute = false,
         RedirectStandardInput = true,
         RedirectStandardOutput = true,
         RedirectStandardError = true,
       };
 
       try {
-        Process nodeProcess = new Process { StartInfo = psi };
-        nodeProcess.Start();
+        Process nodeProcess = Process.Start(psi);
         foreach (var filename in otherFileNames) {
           WriteFromFile(filename, nodeProcess.StandardInput);
         }
         nodeProcess.StandardInput.Write(targetProgramText);
         if (callToMain != null && DafnyOptions.O.RunAfterCompile) {
+          nodeProcess.StandardInput.WriteLine("require('process').stdout.setEncoding(\"utf-8\");");
           nodeProcess.StandardInput.WriteLine("require('process').argv = [\"node\",\"stdin\", " + string.Join(",", DafnyOptions.O.MainArgs.Select(ToStringLiteral)) + "];");
           nodeProcess.StandardInput.Write(callToMain);
         }
@@ -2513,7 +2511,7 @@ namespace Microsoft.Dafny.Compilers {
 
     // We read character by character because we did not find a way to ensure
     // final newlines are kept when reading line by line
-    void PassthroughBuffer(StreamReader input, TextWriter output) {
+    private static void PassthroughBuffer(TextReader input, TextWriter output) {
       int current;
       while ((current = input.Read()) != -1) {
         output.Write((char)current);
