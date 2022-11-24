@@ -15,7 +15,7 @@ namespace DafnyDriver.Test;
 public class ServerCommandTest {
   [Fact]
   public async Task InitialisationWorks() {
-    
+
     var process = StartLanguageServerRunnerProcess();
     var initializeMessage = await GetLspInitializeMessage(process.Id);
     await process.StandardInput.WriteAsync(initializeMessage);
@@ -35,7 +35,7 @@ public class ServerCommandTest {
       RedirectStandardInput = true,
       UseShellExecute = false
     };
-    
+
     return Process.Start(processInfo)!;
   }
 
@@ -56,7 +56,7 @@ public class ServerCommandTest {
     await outputHandler.StopAsync();
     return Encoding.ASCII.GetString(buffer.ToArray());
   }
-  
+
   class AlwaysOutputFilter : IOutputFilter {
     public bool ShouldOutput(object value) => true;
   }

@@ -111,9 +111,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       {
       }
       ".TrimStart();
-      
+
       await SetUp(o => RelaxDefiniteAssignment.Instance.Set(o, true));
-      
+
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri))

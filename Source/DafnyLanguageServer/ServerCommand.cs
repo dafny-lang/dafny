@@ -27,8 +27,7 @@ public class ServerCommand : ICommandSpec {
     ConfigureDafnyOptionsForServer(dafnyOptions);
   }
 
-  public static void ConfigureDafnyOptionsForServer(DafnyOptions dafnyOptions)
-  {
+  public static void ConfigureDafnyOptionsForServer(DafnyOptions dafnyOptions) {
     dafnyOptions.RunServer = true;
     ShowSnippetsOption.Instance.Set(dafnyOptions, true);
     dafnyOptions.PrintIncludesMode = DafnyOptions.IncludesModes.None;

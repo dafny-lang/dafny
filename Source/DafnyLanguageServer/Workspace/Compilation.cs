@@ -256,7 +256,7 @@ public class Compilation {
     var implementationRange = implementationTask.Implementation.tok.GetLspRange();
     logger.LogDebug($"Received status {boogieStatus} for {implementationTask.Implementation.Name}");
     if (boogieStatus is Running) {
-        document.GutterProgressReporter.ReportVerifyImplementationRunning(implementationTask.Implementation);
+      document.GutterProgressReporter.ReportVerifyImplementationRunning(implementationTask.Implementation);
     }
 
     if (boogieStatus is Completed completed) {
