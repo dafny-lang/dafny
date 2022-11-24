@@ -55,7 +55,8 @@ public interface ICommandSpec {
     WarnMissingConstructorParenthesisOption.Instance,
     WarningAsErrorsOption.Instance,
     TrackPrintEffects.Instance,
-    DisableNonLinearArithmeticOption.Instance
+    DisableNonLinearArithmeticOption.Instance,
+    UnicodeCharactersOption.Instance,
   });
 
   IEnumerable<IOptionSpec> Options { get; }
