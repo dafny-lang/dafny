@@ -11,7 +11,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// <summary>
     /// The IConfiguration section of the document options.
     /// </summary>
-    public const string Section = "documents";
+    public const string Section = "Documents";
 
     /// <summary>
     /// Gets or sets when the automatic verification should be applied.
