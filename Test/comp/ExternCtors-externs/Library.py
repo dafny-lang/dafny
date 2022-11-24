@@ -19,6 +19,6 @@ class Class:
         return self.n
 
     def Print(self):
-        _dafny.print(_dafny.Seq("My value is "))
-        _dafny.print((self).Get())
-        _dafny.print(_dafny.Seq("\n"))
+        _dafny.print(_dafny.string_of(_dafny.Seq("My value is ")))
+        _dafny.print(_dafny.string_of((self).Get()))
+        _dafny.print(_dafny.string_of(_dafny.Seq("\n")))
