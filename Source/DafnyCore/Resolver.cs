@@ -9430,8 +9430,7 @@ namespace Microsoft.Dafny {
           ResolveTypeParameters(m.TypeArgs, true, m);
           ResolveMethodSignature(m);
           allTypeParameters.PopMarker();
-          var com = m as ExtremeLemma;
-          if (com != null && com.PrefixLemma != null && ec == reporter.Count(ErrorLevel.Error)) {
+          if (m is ExtremeLemma com && com.PrefixLemma != null && ec == reporter.Count(ErrorLevel.Error)) {
             var mm = com.PrefixLemma;
             // resolve signature of the prefix lemma
             mm.EnclosingClass = cl;
@@ -10495,8 +10494,7 @@ namespace Microsoft.Dafny {
 
         // Resolve body
         if (m.Body != null) {
-          var com = m as ExtremeLemma;
-          if (com != null && com.PrefixLemma != null) {
+          if (m is ExtremeLemma com && com.PrefixLemma != null) {
             // The body may mentioned the implicitly declared parameter _k.  Throw it into the
             // scope before resolving the body.
             var k = com.PrefixLemma.Ins[0];
