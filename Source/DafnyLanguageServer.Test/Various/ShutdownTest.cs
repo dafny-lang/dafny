@@ -88,7 +88,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Fail("Language server should have killed itself if the parent is gone.");
     }
 
-    // TODO test need to move to CLI level.
     private static async Task<Process> StartLanguageServerRunnerProcess() {
       var languageServerBinary = Path.Join(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "DafnyLanguageServer");
       var languageServerRunnerPath = await CreateDotNetDllThatStartsGivenFilepath(languageServerBinary.Replace(@"\", @"\\"));

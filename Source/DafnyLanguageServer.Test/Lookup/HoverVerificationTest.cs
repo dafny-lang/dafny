@@ -73,7 +73,7 @@ Resource usage: 9K RU"
       );
     }
 
-    [TestMethod]
+    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
     public async Task BetterMessageWhenOneAssertPerBatch() {
       var documentItem = await GetDocumentItem(@"
 method {:vcs_split_on_every_assert} f(x: int) {

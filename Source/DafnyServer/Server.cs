@@ -8,7 +8,6 @@ using DafnyServer;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
-
   public class Server {
     private bool running;
     private readonly ExecutionEngine engine;

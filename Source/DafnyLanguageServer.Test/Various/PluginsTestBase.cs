@@ -61,8 +61,6 @@ public abstract class PluginsTestBase : ClientBasedLanguageServerTest {
     return assemblyPath;
   }
 
-
-
   protected abstract string LibraryName { get; }
 
   protected abstract string[] CommandLineArgument { get; }

@@ -108,9 +108,7 @@ namespace Microsoft.Dafny {
 
       var cliArgumentsResult = ProcessCommandLineArguments(args, out var dafnyOptions, out var dafnyFiles, out var otherFiles);
       DafnyOptions.Install(dafnyOptions);
-
       ExitValue exitValue;
-
 
       switch (cliArgumentsResult) {
         case CommandLineArgumentsResult.OK:

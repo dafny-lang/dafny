@@ -16,12 +16,12 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   public class HoverTest : ClientBasedLanguageServerTest {
 
     public override async Task SetUp(Action<DafnyOptions> modifyOptions = null) {
-      void ModifyOptions2(DafnyOptions options) {
+      void ModifyOptions(DafnyOptions options) {
         options.ProverOptions.Add("-proverOpt:SOLVER=noop");
         modifyOptions?.Invoke(options);
       }
 
-      await base.SetUp(ModifyOptions2);
+      await base.SetUp(ModifyOptions);
     }
 
     private Task<Hover> RequestHover(TextDocumentItem documentItem, Position position) {

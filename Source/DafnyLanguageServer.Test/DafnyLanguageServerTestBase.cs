@@ -77,8 +77,7 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
           option.PostProcess(dafnyOptions);
         }
 
-        dafnyOptions.PrintIncludesMode = DafnyOptions.IncludesModes.None;
-        ShowSnippetsOption.Instance.Set(dafnyOptions, true);
+        ServerCommand.ConfigureDafnyOptionsForServer(dafnyOptions);
         options.Services.AddSingleton(dafnyOptions);
         ServerOptionsAction(options);
       }

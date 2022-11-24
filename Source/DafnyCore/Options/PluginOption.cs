@@ -57,17 +57,21 @@ https://github.com/dafny-lang/dafny/blob/master/Source/DafnyLanguageServer/READM
   public override string PostProcess(DafnyOptions options) {
     var plugins = Get(options);
     foreach (var pluginAndArgument in plugins) {
-      var pluginArray = pluginAndArgument.Split(',');
-      var pluginPath = pluginArray[0];
-      var arguments = Array.Empty<string>();
-      if (pluginArray.Length >= 2) {
-        // There are no commas in paths, but there can be in arguments
-        var argumentsString = string.Join(',', pluginArray.Skip(1));
-        // Parse arguments, accepting and remove double quotes that isolate long arguments
-        arguments = ParsePluginArguments(argumentsString);
-      }
+      try {
+        var pluginArray = pluginAndArgument.Split(',');
+        var pluginPath = pluginArray[0];
+        var arguments = Array.Empty<string>();
+        if (pluginArray.Length >= 2) {
+          // There are no commas in paths, but there can be in arguments
+          var argumentsString = string.Join(',', pluginArray.Skip(1));
+          // Parse arguments, accepting and remove double quotes that isolate long arguments
+          arguments = ParsePluginArguments(argumentsString);
+        }
 
-      options.Plugins.Add(AssemblyPlugin.Load(pluginPath, arguments));
+        options.Plugins.Add(AssemblyPlugin.Load(pluginPath, arguments));
+      } catch (Exception) {
+        return $"Error while instantiating plugin '{pluginAndArgument}'.";
+      }
     }
 
     return null;
