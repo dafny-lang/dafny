@@ -1,4 +1,4 @@
-// RUN: %baredafny verify %args "%s" > "%t"
+// RUN: %baredafny verify --relax-definite-assignment %args "%s" > "%t"
 // RUN: %baredafny run --no-verify --target=cs %args "%s" >> "%t"
 // RUN: %baredafny run --no-verify --target=js %args  "%s" >> "%t"
 // RUN: %baredafny run --no-verify --target=go %args  "%s" >> "%t"
@@ -8,6 +8,13 @@
 /* Note, compiling to arrays in Java is difficult. In fact, this is currently
  * broken, see https://github.com/dafny-lang/dafny/issues/3055. Until this gets
  * fixed, Java is omitted from this file.
+ *
+ * Also, note, these tests mostly check that auto-initialized variables of array
+ * types get proper values. Without --relax-definite-assignment (which is
+ * our new, planned default), there will still be some way to ask the compiler
+ * to generate these values (a plan is to change ":= *" to be evidence for a
+ * definite assignments). At that time, the functionality tested in this
+ * file will still be needed in the compilers.
  */
 
 method Main() {
