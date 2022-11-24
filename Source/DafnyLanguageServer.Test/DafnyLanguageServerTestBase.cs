@@ -139,11 +139,6 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
       return (clientPipe.Reader.AsStream(), serverPipe.Writer.AsStream());
     }
 
-    // protected virtual DafnyOptions CreateConfiguration() {
-    //   var configurationBuilder = new ConfigurationBuilder();
-    //   return configurationBuilder.Build();
-    // }
-
     private static void SetupTestLogging(ILoggingBuilder builder) {
       builder
         .AddFilter("OmniSharp", LogLevel.Warning)

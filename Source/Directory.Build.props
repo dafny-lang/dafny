@@ -1,8 +1,6 @@
 <Project>
 
   <PropertyGroup>
-    <!-- Target framework -->
-    <TargetFramework>net6.0</TargetFramework>
     <VersionPrefix>3.10.0</VersionPrefix>
     <NoWarn>1701;1702;VSTHRD200</NoWarn>
   </PropertyGroup>

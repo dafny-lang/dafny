@@ -10,12 +10,11 @@ class TranslateCommand : ICommandSpec {
     new IOptionSpec[] {
       OutputOption.Instance,
       TargetOption.Instance,
-      NoVerifyOption.Instance,
       CompileVerboseOption.Instance,
       IncludeRuntimeOption.Instance,
-      EnforceDeterminismOption.Instance,
       VerificationTimeLimitOption.Instance,
-    }.Concat(ICommandSpec.CommonOptions);
+    }.Concat(ICommandSpec.ExecutionOptions).
+      Concat(ICommandSpec.CommonOptions);
 
   public Command Create() {
     var result = new Command("translate", "Generate source and build files in a specified target language.");

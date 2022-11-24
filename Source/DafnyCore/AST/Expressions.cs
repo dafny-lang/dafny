@@ -104,17 +104,23 @@ public abstract class Expression : INode {
         } else {
           var startTok = tok;
           var endTok = tok;
-          foreach (var e in SubExpressions) {
-            if (e.tok.Filename != tok.Filename || e.IsImplicit) {
-              // Ignore auto-generated expressions, if any.
-              continue;
-            }
 
-            if (e.StartToken.pos < startTok.pos) {
-              startTok = e.StartToken;
-            } else if (e.EndToken.pos > endTok.pos) {
-              endTok = e.EndToken;
+          void updateStartEndTok(Expression expression) {
+            if (expression.tok.Filename != tok.Filename || expression.IsImplicit || expression is DefaultValueExpression) {
+              // Ignore any auto-generated expressions.
+            } else {
+              if (expression.StartToken.pos < startTok.pos) {
+                startTok = expression.StartToken;
+              }
+              if (endTok.pos < expression.EndToken.pos) {
+                endTok = expression.EndToken;
+              }
             }
+          }
+
+          SubExpressions.Iter(updateStartEndTok);
+          if (this is StmtExpr stmtExpr) {
+            stmtExpr.S.SubStatements.Iter(s => s.SubExpressions.Iter(updateStartEndTok));
           }
 
           if (FormatTokens != null) {
@@ -146,7 +152,7 @@ public abstract class Expression : INode {
 
   /// <summary>
   /// Returns the list of types that appear in this expression proper (that is, not including types that
-  /// may appear in subexpressions). Types occurring in sub-statements of the expression are not included.
+  /// may appear in subexpressions). Types occurring in substatements of the expression are not included.
   /// To be called after the expression has been resolved.
   /// </summary>
   public virtual IEnumerable<Type> ComponentTypes {
@@ -498,6 +504,13 @@ public abstract class Expression : INode {
     expr = StripParens(expr);
     return (expr is SetDisplayExpr && ((SetDisplayExpr)expr).Elements.Count == 0) ||
            (expr is MultiSetDisplayExpr && ((MultiSetDisplayExpr)expr).Elements.Count == 0);
+  }
+
+  /// <summary>
+  /// Create a resolved ParensExpression around a given resolved expression "e".
+  /// </summary>
+  public static Expression CreateParensExpression(IToken tok, Expression e) {
+    return new ParensExpression(tok, e) { Type = e.Type, ResolvedExpression = e };
   }
 
   public static Expression CreateNot(IToken tok, Expression e) {
@@ -866,8 +879,8 @@ public class StaticReceiverExpr : LiteralExpr {
     if (top != cl) {
       Contract.Assert(top != null);
       var clArgsInTermsOfTFormals = cl.TypeArgs.ConvertAll(tp => top.ParentFormalTypeParametersToActuals[tp]);
-      var subst = Resolver.TypeSubstitutionMap(top.TypeArgs, t.TypeArgs);
-      var typeArgs = clArgsInTermsOfTFormals.ConvertAll(ty => Resolver.SubstType(ty, subst));
+      var subst = TypeParameter.SubstitutionMap(top.TypeArgs, t.TypeArgs);
+      var typeArgs = clArgsInTermsOfTFormals.ConvertAll(ty => ty.Subst(subst));
       Type = new UserDefinedType(tok, cl.Name, cl, typeArgs);
     } else if (t.Name != cl.Name) {  // t may be using the name "C?", and we'd prefer it read "C"
       Type = new UserDefinedType(tok, cl.Name, cl, t.TypeArgs);
@@ -912,12 +925,7 @@ public class LiteralExpr : Expression {
   [Pure]
   public static bool IsTrue(Expression e) {
     Contract.Requires(e != null);
-    if (e is LiteralExpr) {
-      LiteralExpr le = (LiteralExpr)e;
-      return le.Value is bool && (bool)le.Value;
-    } else {
-      return false;
-    }
+    return Expression.IsBoolLiteral(e, out var value) && value;
   }
 
   public static bool IsEmptySet(Expression e) {
@@ -1175,6 +1183,9 @@ class Resolver_IdentifierExpr : Expression, IHasUsages {
     public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl>/*?*/ visitedDatatypes) {
       return false;
     }
+    public override Type Subst(Dictionary<TypeParameter, Type> subst) {
+      throw new NotImplementedException();
+    }
   }
   public class ResolverType_Module : ResolverType {
     [Pure]
@@ -1405,7 +1416,7 @@ public class MemberSelectExpr : Expression, IHasUsages {
       // Add in the mappings from parent types' formal type parameters to types
       if (cl is TopLevelDeclWithMembers cls) {
         foreach (var entry in cls.ParentFormalTypeParametersToActuals) {
-          var v = Resolver.SubstType(entry.Value, subst);
+          var v = entry.Value.Subst(subst);
           subst.Add(entry.Key, v);
         }
       }
@@ -1457,7 +1468,7 @@ public class MemberSelectExpr : Expression, IHasUsages {
         typeMap.Add(cl.TypeArgs[i], TypeApplication_AtEnclosingClass[i]);
       }
       foreach (var entry in cl.ParentFormalTypeParametersToActuals) {
-        var v = Resolver.SubstType(entry.Value, typeMap);
+        var v = entry.Value.Subst(typeMap);
         typeMap.Add(entry.Key, v);
       }
     } else if (field.EnclosingClass == null) {
@@ -1468,7 +1479,7 @@ public class MemberSelectExpr : Expression, IHasUsages {
         typeMap.Add(field.EnclosingClass.TypeArgs[i], TypeApplication_AtEnclosingClass[i]);
       }
     }
-    this.Type = Resolver.SubstType(field.Type, typeMap);  // resolve here
+    this.Type = field.Type.Subst(typeMap);  // resolve here
   }
 
   public void MemberSelectCase(Action<Field> fieldK, Action<Function> functionK) {
@@ -4085,7 +4096,7 @@ public class DefaultValueExpression : ConcreteSyntaxExpression {
     Receiver = receiver;
     SubstMap = substMap;
     TypeMap = typeMap;
-    Type = Resolver.SubstType(formal.Type, typeMap);
+    Type = formal.Type.Subst(typeMap);
   }
 
   public override RangeToken RangeToken => new RangeToken(tok, tok);
