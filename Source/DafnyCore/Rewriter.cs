@@ -191,9 +191,9 @@ namespace Microsoft.Dafny {
     }
 
     internal override void PostResolveIntermediate(ModuleDefinition m) {
-      var forallvisiter = new ForAllStmtVisitor(Reporter);
+      var forallVisitor = new ForAllStmtVisitor(Reporter);
       foreach (var decl in ModuleDefinition.AllCallablesIncludingPrefixDeclarations(m.TopLevelDecls)) {
-        forallvisiter.Visit(decl, true);
+        forallVisitor.Visit(decl, true);
       }
     }
 
