@@ -23,8 +23,11 @@ namespace Microsoft.Dafny.LanguageServer {
 
     public static DafnyOptions GetOptionsFromArgs(string[] args) {
       var configuration = CreateConfiguration(args);
-      var verifierOptions = configuration.Get<VerifierOptions>();
+
       var dafnyOptions = DafnyOptions.Create();
+
+      var verifierOptions = new VerifierOptions();
+      configuration.Bind(VerifierOptions.Section, verifierOptions);
       LineVerificationStatusOption.Instance.Set(dafnyOptions, verifierOptions.GutterStatus);
       VerificationTimeLimitOption.Instance.Set(dafnyOptions, verifierOptions.TimeLimit);
       CoresOption.Instance.Set(dafnyOptions, (int)verifierOptions.VcsCores);
