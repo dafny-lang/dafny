@@ -16,6 +16,12 @@ using OmniSharpLanguageServer = OmniSharp.Extensions.LanguageServer.Server.Langu
 namespace Microsoft.Dafny.LanguageServer {
   public class Program {
     public static async Task Main(string[] args) {
+      var dafnyOptions = GetOptionsFromArgs(args);
+
+      await Server.Start(dafnyOptions);
+    }
+
+    public static DafnyOptions GetOptionsFromArgs(string[] args) {
       var configuration = CreateConfiguration(args);
       var verifierOptions = configuration.Get<VerifierOptions>();
       var dafnyOptions = DafnyOptions.Create();
@@ -24,21 +30,22 @@ namespace Microsoft.Dafny.LanguageServer {
       CoresOption.Instance.Set(dafnyOptions, (int)verifierOptions.VcsCores);
       VerifySnapshotsOption.Instance.Set(dafnyOptions, verifierOptions.VerifySnapshots);
 
-      var ghostOptions = configuration.Get<GhostOptions>();
+      var ghostOptions = new GhostOptions();
+      configuration.Bind(GhostOptions.Section, ghostOptions);
       GhostIndicatorsOption.Instance.Set(dafnyOptions, ghostOptions.MarkStatements);
 
-      var documentOptions = configuration.Get<DocumentOptions>();
+      var documentOptions = new DocumentOptions();
+      configuration.Bind(DocumentOptions.Section, documentOptions);
       VerificationOption.Instance.Set(dafnyOptions, documentOptions.Verify);
 
-      var pluginOptions = configuration.Get<DafnyPluginsOptions>();
+      var pluginOptions = new DafnyPluginsOptions();
+      configuration.Bind(DafnyPluginsOptions.Section, pluginOptions);
       PluginOption.Instance.Set(dafnyOptions, pluginOptions.Plugins.ToList());
-
-      await Server.Start(dafnyOptions);
+      return dafnyOptions;
     }
 
     private static IConfiguration CreateConfiguration(string[] args) {
       return new ConfigurationBuilder()
-        .AddJsonFile("DafnyLanguageServer.appsettings.json", optional: true)
         .AddCommandLine(args)
         .Build();
     }
