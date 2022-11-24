@@ -75,7 +75,7 @@ assignments, `if` statements, loops, other method calls, `return` statements, et
 For example, the `MultipleReturns` method may be
 implemented as:
 
-```dafny {.editonly}
+``` {.editonly}
 method MultipleReturns(x: int, y: int) returns (more: int, less: int)
 {
   more := x + y;
@@ -108,7 +108,7 @@ parameters are used), or they can take a list of values to return. There are
 also compound statements, such as `if` statements. `if` statements do not require
 parentheses around the boolean condition, and act as one would expect:
 
-```dafny {.edit}
+```dafny
 method Abs(x: int) returns (y: int)
 {
   if x < 0 {
@@ -153,7 +153,7 @@ condition and most specifications, a postcondition is always a boolean
 expression: something that can be *true* or *false*. In
 the case of the `Abs` method, a reasonable postcondition is the following:
 
-```dafny {.editonly}
+``` {.editonly}
 method Abs(x: int) returns (y: int)
   ensures 0 <= y
 {
