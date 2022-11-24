@@ -59,7 +59,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   }
 
   public override string PostProcess(DafnyOptions options) {
-    return null;
+    return null!;
   }
 }
 
@@ -75,7 +75,7 @@ Send notifications about the verification status of each line in the program.
   public override object DefaultValue => false;
 
   public override string PostProcess(DafnyOptions options) {
-    return null;
+    return null!;
   }
 }
 
@@ -86,7 +86,7 @@ public class GhostIndicatorsOption : BooleanOption {
 (experimental, API will change)
 Send notifications that indicate which lines are ghost.".TrimStart();
   public override string PostProcess(DafnyOptions options) {
-    return null;
+    return null!;
   }
 }
 
@@ -107,6 +107,6 @@ public class VerifySnapshotsOption : NaturalNumberOption {
 ".TrimStart();
   public override string PostProcess(DafnyOptions options) {
     options.VerifySnapshots = (int)Get(options);
-    return null;
+    return null!;
   }
 }
