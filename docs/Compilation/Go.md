@@ -49,7 +49,7 @@ Predefined Types
 | `int`         | `_dafny.Int`      | Immutable wrapper for `*big.Int`  |
 | `bv`          | `_dafny.BV`       | Synonym of `_dafny.Int`           |
 | `real`        | `_dafny.Real`     | Immutable wrapper for `*big.Real` |
-| `char`        | `_dafny.Char`     | Defined as `rune`                 |
+| `char`        | `_dafny.Char` (`/unicodeChar:0`)<br> `_dafny.CodePoint` (`/unicodeChar:1`) | Defined as `rune`                 |
 | `string`      | `_dafny.Seq`      |
 | `object`      | `*interface{}`    |
 | `array<X>`    | `*_dafny.Array`   |
