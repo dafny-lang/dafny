@@ -49,7 +49,7 @@ method Abs(x: int) returns (y: int)
       // When hovering the postcondition, it should display the position of the failing path
       await AssertHoverMatches(documentItem, (2, 15),
         @"[**Error:**](???) This postcondition might not hold on a return path.  
-This is assertion #1 of 2 in method Abs  
+This is assertion #1 of 4 in method Abs  
 Resource usage: ??? RU  
 Return path: testFile.dfy(6, 5)"
       );
@@ -57,12 +57,12 @@ Return path: testFile.dfy(6, 5)"
       // because the IDE extension already does it.
       await AssertHoverMatches(documentItem, (5, 4),
         @"[**Error:**](???) A postcondition might not hold on this return path.  
-This is assertion #1 of 2 in method Abs  
+This is assertion #1 of 4 in method Abs  
 Resource usage: ??? RU"
       );
       await AssertHoverMatches(documentItem, (7, 11),
         @"[**Error:**](???) assertion might not hold  
-This is assertion #2 of 2 in method Abs  
+This is assertion #2 of 4 in method Abs  
 Resource usage: 9K RU"
       );
       await AssertHoverMatches(documentItem, (0, 7),
@@ -75,6 +75,10 @@ Resource usage: 9K RU"
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
     public async Task BetterMessageWhenOneAssertPerBatch() {
+      await SetUp(o => {
+        RelaxDefiniteAssignment.Instance.Set(o, true);
+        // LineVerificationStatusOption.Instance.Set(o, true);
+      });
       var documentItem = await GetDocumentItem(@"
 method {:vcs_split_on_every_assert} f(x: int) {
   assert x >= 2; // Hover #1

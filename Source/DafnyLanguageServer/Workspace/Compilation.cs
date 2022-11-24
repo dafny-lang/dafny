@@ -160,9 +160,9 @@ public class Compilation {
 
     if (ReportGutterStatus) {
       translated.GutterProgressReporter.ReportRealtimeDiagnostics(false, translated);
-      translated.GutterProgressReporter.ReportImplementationsBeforeVerification(
-        verificationTasks.Select(t => t.Implementation).ToArray());
     }
+    translated.GutterProgressReporter.ReportImplementationsBeforeVerification(
+      verificationTasks.Select(t => t.Implementation).ToArray());
 
     var implementations = verificationTasks.Select(t => t.Implementation).ToHashSet();
 
@@ -194,12 +194,11 @@ public class Compilation {
 
     var statusUpdates = implementationTask.TryRun();
     if (statusUpdates == null) {
-      if (ReportGutterStatus && implementationTask.CacheStatus is Completed completedCache) {
+      if (implementationTask.CacheStatus is Completed completedCache) {
         foreach (var result in completedCache.Result.VCResults) {
           document.GutterProgressReporter.ReportAssertionBatchResult(
             new AssertionBatchResult(implementationTask.Implementation, result));
         }
-
         document.GutterProgressReporter.ReportEndVerifyImplementation(implementationTask.Implementation,
           completedCache.Result);
       }
@@ -257,9 +256,7 @@ public class Compilation {
     var implementationRange = implementationTask.Implementation.tok.GetLspRange();
     logger.LogDebug($"Received status {boogieStatus} for {implementationTask.Implementation.Name}");
     if (boogieStatus is Running) {
-      if (ReportGutterStatus) {
         document.GutterProgressReporter.ReportVerifyImplementationRunning(implementationTask.Implementation);
-      }
     }
 
     if (boogieStatus is Completed completed) {
@@ -271,9 +268,7 @@ public class Compilation {
       var diagnostics = GetDiagnosticsFromResult(document, verificationResult);
       var view = new ImplementationView(implementationRange, status, diagnostics);
       document.ImplementationIdToView[id] = view;
-      if (ReportGutterStatus) {
-        document.GutterProgressReporter.ReportEndVerifyImplementation(implementationTask.Implementation, verificationResult);
-      }
+      document.GutterProgressReporter.ReportEndVerifyImplementation(implementationTask.Implementation, verificationResult);
     } else {
       var existingView = document.ImplementationIdToView.GetValueOrDefault(id) ??
                          new ImplementationView(implementationRange, status, Array.Empty<Diagnostic>());
