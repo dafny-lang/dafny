@@ -3487,6 +3487,7 @@ namespace Microsoft.Dafny {
       }
 
       //generating assume J.F(ins) == C.F(ins)
+      /*
       Bpl.FunctionCall funcIdC = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, TrType(f.ResultType)));
       Bpl.FunctionCall funcIdT = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.OverriddenFunction.tok, f.OverriddenFunction.FullSanitizedName, TrType(f.OverriddenFunction.ResultType)));
       List<Bpl.Expr> argsC = new List<Bpl.Expr>();
@@ -3530,9 +3531,32 @@ namespace Microsoft.Dafny {
         funcExpCPossiblyBoxed = BoxIfUnboxed(funcExpCPossiblyBoxed, f.ResultType);
       }
       builder.Add(TrAssumeCmd(f.tok, Bpl.Expr.Eq(funcExpCPossiblyBoxed, funcExpT)));
+      */
 
       //generating assume C.F(ins) == out, if a result variable was given
       if (resultVariable != null) {
+        Bpl.FunctionCall funcIdC = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, TrType(f.ResultType)));
+        List<Bpl.Expr> argsC = new List<Bpl.Expr>();
+
+        // add type arguments
+        argsC.AddRange(GetTypeArguments(f, null).ConvertAll(TypeToTy));
+
+        // add fuel arguments
+        if (f.IsFuelAware()) {
+          argsC.Add(etran.layerInterCluster.GetFunctionFuel(f));
+        }
+
+        // add heap arguments
+        if (f is TwoStateFunction) {
+          argsC.Add(etran.Old.HeapExpr);
+        }
+        if (AlwaysUseHeap || f.ReadsHeap) {
+          argsC.Add(etran.HeapExpr);
+        }
+
+        argsC.AddRange(implInParams.Select(var => new Bpl.IdentifierExpr(f.tok, var)));
+
+        Bpl.Expr funcExpC = new Bpl.NAryExpr(f.tok, funcIdC, argsC);
         var resultVar = new Bpl.IdentifierExpr(resultVariable.tok, resultVariable);
         builder.Add(TrAssumeCmd(f.tok, Bpl.Expr.Eq(funcExpC, resultVar)));
       }
@@ -3540,8 +3564,7 @@ namespace Microsoft.Dafny {
       //generating trait post-conditions with class variables
       foreach (var en in f.OverriddenFunction.Ens) {
         Expression postcond = Substitute(en.E, null, substMap, typeMap);
-        bool splitHappened;  // we don't actually care
-        foreach (var s in TrSplitExpr(postcond, etran, false, out splitHappened)) {
+        foreach (var s in TrSplitExpr(postcond, etran, false, out _)) {
           if (s.IsChecked) {
             builder.Add(Assert(f.tok, s.E, new PODesc.FunctionContractOverride(true)));
           }

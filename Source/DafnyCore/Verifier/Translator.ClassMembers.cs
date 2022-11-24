@@ -920,18 +920,19 @@ namespace Microsoft.Dafny {
       }
 
       var substMap = new Dictionary<IVariable, Expression>();
-      for (int i = 0; i < f.Formals.Count; i++) {
-        //get corresponsing formal in the class
-        var ie = new IdentifierExpr(f.Formals[i].tok, f.Formals[i].AssignUniqueName(f.IdGenerator));
-        ie.Var = f.Formals[i]; ie.Type = ie.Var.Type;
-        substMap.Add(f.OverriddenFunction.Formals[i], ie);
+      foreach (var (formal, overriddenFormal) in f.Formals.Zip(f.OverriddenFunction.Formals, Tuple.Create)) {
+        // get corresponding formal in the class
+        var ie = new IdentifierExpr(formal.tok, formal.AssignUniqueName(f.IdGenerator)) {
+          Var = formal,
+          Type = formal.Type
+        };
+        substMap.Add(overriddenFormal, ie);
       }
 
       if (f.OverriddenFunction.Result != null) {
         Contract.Assert(pOut != null);
-        //get corresponsing formal in the class
-        var ie = new IdentifierExpr(pOut.tok, pOut.AssignUniqueName(f.IdGenerator));
-        ie.Var = pOut; ie.Type = ie.Var.Type;
+        // get corresponding formal in the class
+        var ie = new IdentifierExpr(pOut.tok, pOut.AssignUniqueName(f.IdGenerator)) { Var = pOut, Type = pOut.Type };
         substMap.Add(f.OverriddenFunction.Result, ie);
       }
 
@@ -946,8 +947,9 @@ namespace Microsoft.Dafny {
       //adding assert W <= Frame’
       AddFunctionOverrideSubsetChk(f, builder, etran, localVariables, substMap, typeMap);
 
-      //adding assume Q; assert Post’;
+      //adding assume Q;
       //adding assume J.F(ins) == C.F(ins);
+      //assert Post’;
       AddFunctionOverrideEnsChk(f, builder, etran, substMap, typeMap, implInParams, implOutParams.Count == 0 ? null : implOutParams[0]);
 
       var stmts = builder.Collect(f.tok);
