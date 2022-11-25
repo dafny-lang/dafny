@@ -899,9 +899,22 @@ namespace Externs_Compile {
 }
 ```
 
+This serves as an example of implementing an extern,
+but was only necessary to retrieve command line arguments historically,
+as `dafny` now supports capturing these arguments via a main method
+that accepts a `seq<string>` (see the section on the [Main method](#sec-user-guide-main)).
+
 Note that `dafny` does not check the arguments to `{:extern}`, so it is
 the user's responsibility to ensure that the provided names result in
 code that is well-formed in the target language.
+
+Also note that the interface the external code needs to implement
+may be affected by compilation flags. In this case, if `/unicodeChar:1`
+is provided, `dafny` will compile its `char` type to the `Dafny.Rune`
+C# type instead, so the references to the C# type `char` above
+would need to be changed accordingly. The reference to `charseq.FromString`
+would in turn need to be changed to `charseq.UnicodeFromString` to
+return the correct type.
 
 Most declarations, including those for modules, classes, traits, member
 variables, constructors, methods, function methods, and opaque types,
@@ -1320,6 +1333,18 @@ older versions of Dafny.
   onward all functions and methods declared at the module scope are
   implicitly static and field declarations are not allowed at the
   module scope.
+
+* `-unicodeChar:<n>` - controls the meaning of the built-int `char`
+  type.
+
+  * `0` (default) - The `char` type represents any UTF-16 code unit.
+    This means any 16-bit value, including surrogate code points.
+    Allows `\uXXXX` escapes in string and character literals.
+  * `1` - The `char` type represents any Unicode scalar value.
+    This means any Unicode code point excluding surrogates.
+    Allows `\U{X..X}` escapes in string and character literals.
+
+  The default is currently `0`, but will be `1` in Dafny version 4.
 
 ### 25.9.6. Controlling warnings {#sec-controlling-warnings}
 

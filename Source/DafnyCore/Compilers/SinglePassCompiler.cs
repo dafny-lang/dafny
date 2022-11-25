@@ -129,6 +129,10 @@ namespace Microsoft.Dafny.Compilers {
     protected string IntSelect = ",int";
     protected string LambdaExecute = "";
 
+    protected static bool UnicodeCharEnabled => UnicodeCharactersOption.Instance.Get(DafnyOptions.O);
+
+    protected static string CharMethodQualifier => UnicodeCharEnabled ? "Unicode" : "";
+
     protected virtual void EmitHeader(Program program, ConcreteSyntaxTree wr) { }
     protected virtual void EmitFooter(Program program, ConcreteSyntaxTree wr) { }
     protected virtual void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr) { }
@@ -734,6 +738,10 @@ namespace Microsoft.Dafny.Compilers {
 
     protected virtual bool IsCoercionNecessary(Type /*?*/ from, Type /*?*/ to) {
       return NeedsCastFromTypeParameter;
+    }
+
+    protected virtual Type TypeForCoercion(Type type) {
+      return type;
     }
 
     /// <summary>
@@ -3502,7 +3510,7 @@ namespace Microsoft.Dafny.Compilers {
         collectionWriter.Write("{0}.AllBooleans()", GetHelperModuleName());
         return new BoolType();
       } else if (bound is ComprehensionExpr.CharBoundedPool) {
-        collectionWriter.Write("{0}.AllChars()", GetHelperModuleName());
+        collectionWriter.Write($"{GetHelperModuleName()}.All{CharMethodQualifier}Chars()");
         return new CharType();
       } else if (bound is ComprehensionExpr.IntBoundedPool) {
         var b = (ComprehensionExpr.IntBoundedPool)bound;
@@ -4186,7 +4194,15 @@ namespace Microsoft.Dafny.Compilers {
               // functions to begin with (C#) or has dynamic typing so none of
               // this comes up (JavaScript), so we only do this if
               // NeedsCastFromTypeParameter is on.
-              type = p.Type;
+              //
+              // This used to just assign p.Type to type, but that was something of a hack
+              // that didn't work in all cases: if p.Type is indeed a type parameter,
+              // it won't be in scope on the caller side. That means you can't generally
+              // declare a local variable with that type; it happened to work for Go
+              // because it would just use interface{}, but Java would try to use the type
+              // parameter directly. The TypeForCoercion() hook was added as a place to
+              // explicitly swap in a target-language type such as java.lang.Object.
+              type = TypeForCoercion(p.Type);
             } else {
               type = instantiatedType;
             }
@@ -4992,6 +5008,8 @@ namespace Microsoft.Dafny.Compilers {
         wr = CreateLambda(e.BoundVars.ConvertAll(bv => bv.Type), Token.NoToken, e.BoundVars.ConvertAll(IdName), e.Term.Type, wr, wStmts);
         wStmts = wr.Fork();
         wr = EmitReturnExpr(wr);
+        // May need an upcast or boxing conversion to coerce to the generic arrow result type
+        wr = EmitCoercionIfNecessary(e.Term.Type, TypeForCoercion(e.Type.AsArrowType.Result), e.Term.tok, wr);
         TrExpr(su.Substitute(e.Term), wr, inLetExprBody, wStmts);
 
       } else if (expr is StmtExpr) {
