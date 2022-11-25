@@ -8,6 +8,7 @@ import (
   big "math/big"
   refl "reflect"
   "runtime"
+  "unicode/utf8"
   "os"
 )
 
@@ -16,6 +17,15 @@ func FromMainArguments(args []string) Seq {
   var dafnyArgs []interface{} = make([]interface{}, size)
   for i, item := range args {
     dafnyArgs[i] = SeqOfString(item)
+  }
+  return SeqOf(dafnyArgs...)
+}
+
+func UnicodeFromMainArguments(args []string) Seq {
+  var size = len(args)
+  var dafnyArgs []interface{} = make([]interface{}, size)
+  for i, item := range args {
+    dafnyArgs[i] = UnicodeSeqOfUtf8Bytes(item)
   }
   return SeqOf(dafnyArgs...)
 }
@@ -264,6 +274,45 @@ func AllChars() Iterator {
   }
 }
 
+type CodePoint rune
+
+func (cp CodePoint) Escape() string {
+  switch (rune(cp)) {
+    case '\n': return "\\n";
+    case '\r': return "\\r";
+    case '\t': return "\\t";
+    case '\x00': return "\\0";
+    case '\'': return "\\'";
+    case '"': return "\\\"";
+    case '\\': return "\\\\";
+    default: return fmt.Sprintf("%c", rune(cp))
+  }
+}
+
+func (cp CodePoint) String() string {
+  return fmt.Sprintf("'%s'", cp.Escape())
+}
+
+
+
+// AllUnicodeChars returns an iterator that returns all Unicode scalar values.
+func AllUnicodeChars() Iterator {
+  c := int32(0)
+  return func() (interface{}, bool) {
+    if c >= 0x11_0000 {
+      return -1, false
+    } else {
+      if (c == 0xD800) {
+        // Skip over the surrogates
+        c = 0xE000
+      }
+      ans := CodePoint(c)
+      c++
+      return ans, true
+    }
+  }
+}
+
 /******************************************************************************
  * Slices
  ******************************************************************************/
@@ -460,6 +509,7 @@ func SeqOfChars(values ...Char) Seq {
 }
 
 // SeqOfString converts the given string into a sequence of characters.
+// The given string must contain only ASCII characters!
 func SeqOfString(str string) Seq {
   // Need to make sure the elements of the array are Chars
   arr := make([]interface{}, len(str))
@@ -469,8 +519,19 @@ func SeqOfString(str string) Seq {
   return Seq{arr, true}
 }
 
+func UnicodeSeqOfUtf8Bytes(str string) Seq {
+  // Need to make sure the elements of the array are CodePoints
+  arr := make([]interface{}, utf8.RuneCountInString(str))
+  i := 0
+  for _, v := range str {
+    arr[i] = CodePoint(v)
+    i++
+  }
+  return Seq{arr, false}
+}
+
 func (seq Seq) SetString() Seq {
-        return Seq{seq.contents, true}
+  return Seq{seq.contents, true}
 }
 
 // Index finds the sequence element at the given index.
@@ -607,6 +668,24 @@ func (seq Seq) String() string {
   } else {
     return "[" + stringOfElements(seq.contents) + "]"
   }
+}
+
+func (seq Seq) VerbatimString(asLiteral bool) string {
+  s := ""
+  if asLiteral {
+    s += "\""
+  }
+  for _, c := range seq.contents {
+    if asLiteral {
+      s += c.(CodePoint).Escape()
+    } else {
+      s += fmt.Sprintf("%c", c.(CodePoint))
+    }
+  }
+  if asLiteral {
+    s += "\""
+  }
+  return s
 }
 
 /******************************************************************************

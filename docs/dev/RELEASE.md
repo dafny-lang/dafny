@@ -11,7 +11,7 @@
    run `Scripts/prepare_release.py $VER prepare` from the root of the
    repository. The script will check that the repository is in a good
    state, create and check out a new release branch, update
-   `Source/version.cs` and `RELEASE_NOTES.md`, prepare a release commit,
+   `Source/Directory.Build.props` and `RELEASE_NOTES.md`, prepare a release commit,
    and push it.
 
 2. Kick off the deep test suite by navigating to

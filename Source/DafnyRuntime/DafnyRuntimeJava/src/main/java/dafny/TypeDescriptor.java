@@ -11,14 +11,20 @@ import java.util.Collection;
 import java.util.function.Function;
 
 public abstract class TypeDescriptor<T> {
-    final Class<T> javaClass;
+    final Class<T> boxedClass;
+    final Class<?> unboxedClass;
 
     TypeDescriptor(Class<T> javaClass) {
-        this.javaClass = javaClass;
+        this(javaClass, javaClass);
+    }
+
+    TypeDescriptor(Class<T> boxedClass, Class<?> unboxedClass) {
+        this.boxedClass = boxedClass;
+        this.unboxedClass = unboxedClass;
     }
 
     public final boolean isPrimitive() {
-        return javaClass.isPrimitive();
+        return unboxedClass.isPrimitive();
     }
 
     public abstract T defaultValue();
@@ -29,11 +35,11 @@ public abstract class TypeDescriptor<T> {
 
     public final Object newArray(int length) {
         // Unlike most others, this Array operation is fast
-        return java.lang.reflect.Array.newInstance(javaClass, length);
+        return java.lang.reflect.Array.newInstance(unboxedClass, length);
     }
 
     public final Object newArray(int ... dims) {
-        return java.lang.reflect.Array.newInstance(javaClass, dims);
+        return java.lang.reflect.Array.newInstance(unboxedClass, dims);
     }
 
     public abstract T getArrayElement(Object array, int index);
@@ -75,7 +81,7 @@ public abstract class TypeDescriptor<T> {
 
     @Override
     public String toString() {
-        return javaClass.toString();
+        return boxedClass.toString();
     }
 
     public static <T> TypeDescriptor<T> reference(Class<T> javaClass) {
@@ -116,6 +122,10 @@ public abstract class TypeDescriptor<T> {
         return new CharType(d);
     }
 
+    public static TypeDescriptor<CodePoint> unicodeCharWithDefault(char d) {
+        return new UnicodeCharType(CodePoint.valueOf(d));
+    }
+
     @FunctionalInterface
     public interface Initializer<T> {
         T defaultValue();
@@ -127,6 +137,7 @@ public abstract class TypeDescriptor<T> {
     public static final TypeDescriptor<Long> LONG = new LongType(0L);
     public static final TypeDescriptor<Boolean> BOOLEAN = new BooleanType(Boolean.FALSE);
     public static final TypeDescriptor<Character> CHAR = new CharType('D');  // See CharType.DefaultValue in Dafny source code
+    public static final TypeDescriptor<CodePoint> UNICODE_CHAR = new UnicodeCharType(CodePoint.valueOf((int)'D'));
 
     public static final TypeDescriptor<BigInteger> BIG_INTEGER =
             referenceWithDefault(BigInteger.class, BigInteger.ZERO);
@@ -141,6 +152,7 @@ public abstract class TypeDescriptor<T> {
     public static final TypeDescriptor<long[]> LONG_ARRAY = reference(long[].class);
     public static final TypeDescriptor<boolean[]> BOOLEAN_ARRAY = reference(boolean[].class);
     public static final TypeDescriptor<char[]> CHAR_ARRAY = reference(char[].class);
+    public static final TypeDescriptor<int[]> UNICODE_CHAR_ARRAY = reference(int[].class);
 
     public static <A, R> TypeDescriptor<Function<A, R>> function(TypeDescriptor<A> argType, TypeDescriptor<R> returnType) {
         @SuppressWarnings("unchecked")
@@ -198,7 +210,7 @@ public abstract class TypeDescriptor<T> {
 
         @Override
         public boolean isInstance(Object object) {
-            return javaClass.isInstance(object);
+            return boxedClass.isInstance(object);
         }
 
         @Override
@@ -546,6 +558,56 @@ public abstract class TypeDescriptor<T> {
         @Override
         public boolean arrayDeepEquals(Object array1, Object array2) {
             char[] castArray1 = (char[]) array1, castArray2 = (char[]) array2;
+            return Arrays.equals(castArray1, castArray2);
+        }
+    }
+
+    private static final class UnicodeCharType extends TypeDescriptor<CodePoint> {
+        private final CodePoint DEFAULT;
+
+        public UnicodeCharType(CodePoint d) {
+            super(CodePoint.class, Integer.TYPE);
+            DEFAULT = d;
+        }
+
+        @Override
+        public CodePoint defaultValue() {
+            return DEFAULT;
+        }
+
+        @Override
+        public boolean isInstance(Object object) {
+            return object instanceof CodePoint;
+        }
+
+        @Override
+        public TypeDescriptor<?> arrayType() {
+            return UNICODE_CHAR_ARRAY;
+        }
+
+        @Override
+        public CodePoint getArrayElement(Object array, int index) {
+            return CodePoint.valueOf(((int[]) array)[index]);
+        }
+
+        @Override
+        public void setArrayElement(Object array, int index, CodePoint value) {
+            ((int[]) array)[index] = value.value();
+        }
+
+        @Override
+        public Object cloneArray(Object array) {
+            return ((int[]) array).clone();
+        }
+
+        @Override
+        public void fillArray(Object array, CodePoint value) {
+            Arrays.fill((int[]) array, value.value());
+        }
+
+        @Override
+        public boolean arrayDeepEquals(Object array1, Object array2) {
+            int[] castArray1 = (int[]) array1, castArray2 = (int[]) array2;
             return Arrays.equals(castArray1, castArray2);
         }
     }
