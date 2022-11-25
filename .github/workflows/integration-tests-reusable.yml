@@ -11,7 +11,8 @@ on:
         type: number
 
 env:
-  dotnet-version: 6.0.x # SDK Version for building Dafny
+  # Trying out forcing a different version than what's pre-installed on the runners
+  dotnet-version: 6.0.306 # SDK Version for building Dafny
 
 
 jobs:
