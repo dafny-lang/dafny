@@ -10408,31 +10408,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    // private class ClonerButIVariablesAreKeptOnce : ClonerKeepParensExpressions {
-    //   private HashSet<IVariable> alreadyCloned = new();
-    //
-    //   private VT CloneIVariableHelper<VT>(VT local, Func<VT, VT> returnMethod) where VT : IVariable {
-    //     if (!alreadyCloned.Contains(local)) {
-    //       alreadyCloned.Add(local);
-    //       return local;
-    //     }
-    //
-    //     return returnMethod(local);
-    //   }
-    //
-    //   public override LocalVariable CloneLocalVariable(LocalVariable local, bool isReference) {
-    //     return CloneIVariableHelper(local, base.CloneLocalVariable);
-    //   }
-    //
-    //   public override Formal CloneFormal(Formal local, bool isReference) {
-    //     return CloneIVariableHelper(local, base.CloneFormal);
-    //   }
-    //   public override BoundVar CloneBoundVar(BoundVar local, bool isReference) {
-    //     return CloneIVariableHelper(local, base.CloneBoundVar);
-    //   }
-    // }
-
-    private Cloner matchBranchCloner = new Cloner(false); //new ClonerButIVariablesAreKeptOnce());
+    private Cloner matchBranchCloner = new ClonerButIVariablesAreKeptOnce();
 
     // deep clone Patterns and Body
     private RBranchStmt CloneRBranchStmt(RBranchStmt branch) {

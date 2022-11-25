@@ -21,7 +21,9 @@ public class NestedMatchExpr : ConcreteSyntaxExpression {
   }
 
   public override IEnumerable<Expression> SubExpressions =>
-    new[] { Source }.Concat(Cases.Select(c => c.Body));
+    ResolvedExpression == null ? new[] { Source }.Concat(Cases.Select(c => c.Body)) : base.SubExpressions;
 
-  public override IEnumerable<INode> Children => new[] { Source }.Concat<INode>(Cases);
+  public override IEnumerable<INode> Children => ResolvedExpression == null
+    ? new[] { Source }.Concat<INode>(Cases)
+    : base.Children;
 }

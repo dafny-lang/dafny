@@ -34,13 +34,11 @@ public class NestedMatchStmt : ConcreteSyntaxStatement, ICloneable<NestedMatchSt
     UsesOptionalBraces = original.UsesOptionalBraces;
   }
 
-  public override IEnumerable<INode> Children => new[] { Source }.Concat<INode>(Cases);
+  public override IEnumerable<INode> Children =>
+    ResolvedStatement == null ? new[] { Source }.Concat<INode>(Cases) : base.Children;
 
-  public override IEnumerable<Statement> SubStatements {
-    get {
-      return Cases.SelectMany(c => c.Body);
-    }
-  }
+  public override IEnumerable<Statement> SubStatements =>
+    ResolvedStatement == null ? Cases.SelectMany(c => c.Body) : base.SubStatements;
 
   public override IEnumerable<Expression> NonSpecificationSubExpressions {
     get {
@@ -50,6 +48,7 @@ public class NestedMatchStmt : ConcreteSyntaxStatement, ICloneable<NestedMatchSt
       yield return Source;
     }
   }
+
   public NestedMatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<NestedMatchCaseStmt> cases, bool usesOptionalBraces, Attributes attrs = null)
     : base(tok, endTok, attrs) {
     Contract.Requires(source != null);

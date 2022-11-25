@@ -728,7 +728,7 @@ public abstract class Expression : INode {
     Contract.Requires(new_body != null);
     Contract.Ensures(Contract.Result<MatchCaseExpr>() != null);
 
-    var cloner = new Cloner(true);
+    var cloner = new ResolvedCloner();
     var newVars = old_case.Arguments.ConvertAll(bv => cloner.CloneBoundVar(bv, false));
     new_body = VarSubstituter(old_case.Arguments.ConvertAll<NonglobalVariable>(x => (NonglobalVariable)x), newVars, new_body);
 
@@ -757,7 +757,7 @@ public abstract class Expression : INode {
     Contract.Requires(LHSs.Count == RHSs.Count);
     Contract.Requires(body != null);
 
-    var cloner = new Cloner(true);
+    var cloner = new ResolvedCloner();
     var newLHSs = LHSs.ConvertAll(cloner.CloneCasePattern);
 
     var oldVars = new List<BoundVar>();
@@ -779,7 +779,7 @@ public abstract class Expression : INode {
     //(IToken tok, List<BoundVar> vars, Expression range, Expression body, Attributes attribs, Qu) {
     Contract.Requires(expr != null);
 
-    var cloner = new Cloner(true);
+    var cloner = new ResolvedCloner();
     var newVars = expr.BoundVars.ConvertAll(bv => cloner.CloneBoundVar(bv, false));
 
     if (body == null) {
@@ -2848,6 +2848,9 @@ public abstract class ConcreteSyntaxExpression : Expression {
 }
 public abstract class ConcreteSyntaxStatement : Statement {
   [FilledInDuringResolution] public Statement ResolvedStatement;  // after resolution, manipulation of "this" should proceed as with manipulating "this.ResolvedExpression"
+
+  public override IEnumerable<INode> Children =>
+    ResolvedStatement == null ? base.Children : new [] { ResolvedStatement };
 
   public ConcreteSyntaxStatement(Cloner cloner, ConcreteSyntaxStatement original) : base(cloner, original) {
     if (cloner.CloneResolvedFields) {
