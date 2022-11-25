@@ -3892,7 +3892,10 @@ namespace Microsoft.Dafny {
                  IsExpressionAlways(e0, false) && IsExpressionAlways(e1, true));
           case BinaryExpr.Opcode.Eq:
             if (truth) { // Obvious case when A == B is true, when the two representations are the same.
-              return Printer.ExprToString(e0) == Printer.ExprToString(e1);
+              return
+                 e0.Type is BoolType && IsExpressionAlways(
+                new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Iff, e0, e1)
+                , true) || Printer.ExprToString(e0) == Printer.ExprToString(e1);
             } else {
               // Cases in which we absolutely know that an equality can't hold
               // - One expression is a datatype and the other is destructing this datatype
@@ -3903,7 +3906,8 @@ namespace Microsoft.Dafny {
               if (e0 is LiteralExpr { Value: bool bb1 } && e1 is LiteralExpr { Value: bool bb2 }) {
                 return bb1 != bb2;
               }
-              if (e0.Type.NormalizeExpand().AsIndDatatype is IndDatatypeDecl
+              if (!truth &&
+                  e0.Type.NormalizeExpand().AsIndDatatype is IndDatatypeDecl
                   && e1.Type.NormalizeExpand().AsIndDatatype is IndDatatypeDecl
                   && Printer.ExprToString(e0) is var e0str
                   && Printer.ExprToString(e1) is var e1str
@@ -3945,6 +3949,14 @@ namespace Microsoft.Dafny {
                 } else if (value1 is bool bb1 && value2 is bool bb2) {
                   return truth == (bb1 != bb2);
                 }
+              }
+              if (truth
+                  && e0.Type.NormalizeExpand().AsIndDatatype is IndDatatypeDecl
+                  && e1.Type.NormalizeExpand().AsIndDatatype is IndDatatypeDecl
+                  && Printer.ExprToString(e0) is var e0str
+                  && Printer.ExprToString(e1) is var e1str
+                  && (e1str.StartsWith(e0str + ".") || (e0str.StartsWith(e1str + ".")))) {
+                return true;
               }
 
               return false;
