@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt> {
+public class NestedMatchStmt : ConcreteSyntaxStatement, ICloneable<NestedMatchStmt> {
   public readonly Expression Source;
   public readonly List<NestedMatchCaseStmt> Cases;
   public readonly bool UsesOptionalBraces;
@@ -58,48 +58,5 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt> {
     this.Cases = cases;
     this.UsesOptionalBraces = usesOptionalBraces;
     InitializeAttributes();
-  }
-
-  public void Resolve(Resolver resolver, ResolutionContext resolutionContext) {
-
-    resolver.ResolveExpression(Source, resolutionContext);
-
-    bool debug = DafnyOptions.O.MatchCompilerDebug;
-    if (Source.Type is TypeProxy) {
-      resolver.PartiallySolveTypeConstraints(true);
-      if (debug) {
-        Console.WriteLine("DEBUG: Type of {0} was still a proxy, solving type constraints results in type {1}", Printer.ExprToString(Source), Source.Type.ToString());
-      }
-
-      if (Source.Type is TypeProxy) {
-        resolver.reporter.Error(MessageSource.Resolver, Tok, "Could not resolve the type of the source of the match expression. Please provide additional typing annotations.");
-        return;
-      }
-    }
-
-    var errorCount = resolver.reporter.Count(ErrorLevel.Error);
-    var sourceType = resolver.PartiallyResolveTypeForMemberSelection(Source.tok, Source.Type).NormalizeExpand();
-    resolver.CheckLinearNestedMatchStmt(sourceType, this, resolutionContext);
-    if (resolver.reporter.Count(ErrorLevel.Error) != errorCount) {
-      return;
-    }
-
-    var dtd = sourceType.AsDatatype;
-    var subst = new Dictionary<TypeParameter, Type>();
-    if (dtd != null) {
-      Contract.Assert(sourceType != null); // dtd and sourceType are set together above
-      var ctors = dtd.ConstructorsByName;
-      Contract.Assert(ctors !=
-                      null); // dtd should have been inserted into datatypeCtors during a previous resolution stage
-
-      // build the type-parameter substitution map for this use of the datatype
-      subst = TypeParameter.SubstitutionMap(dtd.TypeArgs, sourceType.TypeArgs);
-    }
-
-    foreach (var _case in Cases) {
-      resolver.scope.PushMarker();
-      _case.Resolve(resolver, resolutionContext, subst, sourceType);
-      resolver.scope.PopMarker();
-    }
   }
 }

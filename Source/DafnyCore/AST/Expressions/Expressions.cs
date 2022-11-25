@@ -728,7 +728,7 @@ public abstract class Expression : INode {
     Contract.Requires(new_body != null);
     Contract.Ensures(Contract.Result<MatchCaseExpr>() != null);
 
-    ResolvedCloner cloner = new ResolvedCloner();
+    var cloner = new Cloner(true);
     var newVars = old_case.Arguments.ConvertAll(bv => cloner.CloneBoundVar(bv, false));
     new_body = VarSubstituter(old_case.Arguments.ConvertAll<NonglobalVariable>(x => (NonglobalVariable)x), newVars, new_body);
 
@@ -757,7 +757,7 @@ public abstract class Expression : INode {
     Contract.Requires(LHSs.Count == RHSs.Count);
     Contract.Requires(body != null);
 
-    ResolvedCloner cloner = new ResolvedCloner();
+    var cloner = new Cloner(true);
     var newLHSs = LHSs.ConvertAll(cloner.CloneCasePattern);
 
     var oldVars = new List<BoundVar>();
@@ -779,7 +779,7 @@ public abstract class Expression : INode {
     //(IToken tok, List<BoundVar> vars, Expression range, Expression body, Attributes attribs, Qu) {
     Contract.Requires(expr != null);
 
-    ResolvedCloner cloner = new ResolvedCloner();
+    var cloner = new Cloner(true);
     var newVars = expr.BoundVars.ConvertAll(bv => cloner.CloneBoundVar(bv, false));
 
     if (body == null) {
@@ -2350,6 +2350,8 @@ public class MapComprehension : ComprehensionExpr, ICloneable<MapComprehension> 
 public class LambdaExpr : ComprehensionExpr, ICloneable<LambdaExpr> {
   public override string WhatKind => "lambda";
 
+  public Expression Body => Term;
+
   public readonly List<FrameExpression> Reads;
 
   public LambdaExpr(IToken tok, IToken endTok, List<BoundVar> bvars, Expression requires, List<FrameExpression> reads, Expression body)
@@ -2585,12 +2587,6 @@ public abstract class ExtendedPattern : INode {
 
   public IEnumerable<INode> DescendantsAndSelf =>
     new[] { this }.Concat(Children.OfType<ExtendedPattern>().SelectMany(c => c.DescendantsAndSelf));
-
-  public abstract void Resolve(Resolver resolver, ResolutionContext resolutionContext,
-    IDictionary<TypeParameter, Type> subst, Type sourceType, bool isGhost, bool mutable);
-
-  public abstract IEnumerable<(BoundVar var, Expression usage)> ReplaceTypesWithBoundVariables(Resolver resolver,
-    ResolutionContext resolutionContext);
 }
 
 public class DisjunctivePattern : ExtendedPattern {
@@ -2601,17 +2597,6 @@ public class DisjunctivePattern : ExtendedPattern {
   }
 
   public override IEnumerable<INode> Children => Alternatives;
-  public override void Resolve(Resolver resolver, ResolutionContext resolutionContext,
-    IDictionary<TypeParameter, Type> subst, Type sourceType, bool isGhost, bool mutable) {
-    foreach (var alternative in Alternatives) {
-      alternative.Resolve(resolver, resolutionContext, subst, sourceType, isGhost, mutable);
-    }
-  }
-
-  public override IEnumerable<(BoundVar var, Expression usage)> ReplaceTypesWithBoundVariables(Resolver resolver,
-    ResolutionContext resolutionContext) {
-    return Enumerable.Empty<(BoundVar var, Expression usage)>();
-  }
 }
 
 public class LitPattern : ExtendedPattern {
@@ -2671,29 +2656,6 @@ public class LitPattern : ExtendedPattern {
   }
 
   public override IEnumerable<INode> Children => new[] { OrigLit };
-
-  public override void Resolve(Resolver resolver,
-    ResolutionContext resolutionContext,
-    IDictionary<TypeParameter, Type> subst, Type sourceType, bool isGhost, bool mutable) {
-
-    var literal = OptimisticallyDesugaredLit;
-    if (sourceType.IsBitVectorType || sourceType.IsBigOrdinalType) {
-      var n = (BigInteger)literal.Value;
-      var absN = n < 0 ? -n : n;
-
-      // For bitvectors and ORDINALs, check for a unary minus that, earlier, was mistaken for a negative literal
-      // This can happen only in `match` patterns (see comment by LitPattern.OptimisticallyDesugaredLit).
-      if (n < 0 || literal.tok.val == "-0") {
-        Contract.Assert(literal.tok.val == "-0");  // this and the "if" above tests that "n < 0" happens only when the token is "-0"
-        resolver.reporter.Error(MessageSource.Resolver, literal.tok, "unary minus (-{0}, type {1}) not allowed in case pattern", absN, sourceType);
-      }
-    }
-  }
-
-  public override IEnumerable<(BoundVar var, Expression usage)> ReplaceTypesWithBoundVariables(Resolver resolver,
-    ResolutionContext resolutionContext) {
-    return Enumerable.Empty<(BoundVar var, Expression usage)>();
-  }
 }
 
 public abstract class NestedMatchCase : INode {
@@ -2884,7 +2846,27 @@ public abstract class ConcreteSyntaxExpression : Expression {
 
   public override IEnumerable<Type> ComponentTypes => ResolvedExpression.ComponentTypes;
 }
+public abstract class ConcreteSyntaxStatement : Statement {
+  [FilledInDuringResolution] public Statement ResolvedStatement;  // after resolution, manipulation of "this" should proceed as with manipulating "this.ResolvedExpression"
 
+  public ConcreteSyntaxStatement(Cloner cloner, ConcreteSyntaxStatement original) : base(cloner, original) {
+    if (cloner.CloneResolvedFields) {
+      ResolvedStatement = cloner.CloneStmt(original.ResolvedStatement);
+    }
+  }
+
+  public ConcreteSyntaxStatement(IToken tok, IToken endtok)
+    : base(tok, endtok) {
+  }
+  public ConcreteSyntaxStatement(IToken tok, IToken endtok, Attributes attrs)
+    : base(tok, endtok, attrs) {
+  }
+  public override IEnumerable<Statement> SubStatements {
+    get {
+      yield return ResolvedStatement;
+    }
+  }
+}
 public class ParensExpression : ConcreteSyntaxExpression {
   public readonly Expression E;
   public ParensExpression(IToken tok, Expression e)

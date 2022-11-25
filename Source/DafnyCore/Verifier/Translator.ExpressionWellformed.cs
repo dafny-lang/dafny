@@ -1112,7 +1112,7 @@ namespace Microsoft.Dafny {
             builder.Add(new Bpl.HavocCmd(me.tok, havocIds));
           }
 
-          String missingStr = me.Context.FillHole(new IdCtx(new KeyValuePair<string, DatatypeCtor>(missingCtor.Name, missingCtor))).AbstractAllHoles().ToString();
+          String missingStr = me.Context.FillHole(new IdCtx(missingCtor)).AbstractAllHoles().ToString();
           b.Add(Assert(GetToken(me), Bpl.Expr.False, new PODesc.MatchIsComplete("expression", missingStr)));
 
           Bpl.Expr guard = Bpl.Expr.Eq(src, r);

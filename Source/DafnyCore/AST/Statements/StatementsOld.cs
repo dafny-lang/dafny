@@ -403,13 +403,13 @@
 //
 // public abstract class ProduceStmt : Statement {
 //   public List<AssignmentRhs> rhss;
-//   public UpdateStmt hiddenUpdate;
+//   public UpdateStmt HiddenUpdate;
 //   public ProduceStmt(IToken tok, IToken endTok, List<AssignmentRhs> rhss)
 //     : base(tok, endTok) {
 //     Contract.Requires(tok != null);
 //     Contract.Requires(endTok != null);
 //     this.rhss = rhss;
-//     hiddenUpdate = null;
+//     HiddenUpdate = null;
 //   }
 //   public override IEnumerable<Expression> NonSpecificationSubExpressions {
 //     get {

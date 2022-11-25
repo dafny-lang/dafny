@@ -5149,7 +5149,7 @@ namespace Microsoft.Dafny {
       return false;
     }
 
-    void CheckCasePatternShape<VT>(CasePattern<VT> pat, Bpl.Expr rhs, IToken rhsTok, Type rhsType, BoogieStmtListBuilder builder) where VT : IVariable {
+    void CheckCasePatternShape<VT>(CasePattern<VT> pat, Bpl.Expr rhs, IToken rhsTok, Type rhsType, BoogieStmtListBuilder builder) where VT : class, IVariable {
       Contract.Requires(pat != null);
       Contract.Requires(rhs != null);
       Contract.Requires(rhsTok != null);
@@ -9097,7 +9097,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(e != null);
       Contract.Requires(!e.Exact);
       Contract.Ensures(Contract.Result<Expression>() != null);
-      if (e.getTranslationDesugaring(this) == null) {
+      if (e.GetTranslationDesugaring(this) == null) {
         // For let-such-that expression:
         //   var x:X, y:Y :| P(x,y,g); F(...)
         // where
@@ -9120,7 +9120,7 @@ namespace Microsoft.Dafny {
           var expr = (SubstLetExpr)e;
           var orgExpr = expr.orgExpr;
           Expression d = LetDesugaring(orgExpr);
-          e.setTranslationDesugaring(this, Substitute(d, null, expr.substMap, expr.typeMap));
+          e.SetTranslationDesugaring(this, Substitute(d, null, expr.substMap, expr.typeMap));
           var orgInfo = letSuchThatExprInfo[orgExpr];
           letSuchThatExprInfo.Add(expr, new LetSuchThatExprInfo(orgInfo, this, expr.substMap, expr.typeMap));
         } else {
@@ -9170,11 +9170,11 @@ namespace Microsoft.Dafny {
             }
             var expr = new LetExpr(e.tok, e.LHSs, rhss, e.Body, true);
             expr.Type = e.Type; // resolve here
-            e.setTranslationDesugaring(this, expr);
+            e.SetTranslationDesugaring(this, expr);
           }
         }
       }
-      return e.getTranslationDesugaring(this);
+      return e.GetTranslationDesugaring(this);
     }
 
     private Bpl.Function AddLetSuchThatCanCallFunction(LetExpr e, LetSuchThatExprInfo info) {

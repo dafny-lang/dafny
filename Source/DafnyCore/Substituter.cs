@@ -528,7 +528,7 @@ namespace Microsoft.Dafny {
     }
     CasePattern<VT> SubstituteCasePattern<VT>(CasePattern<VT> pat, bool forceSubstitutionOfBoundVars,
         Func<CasePattern<VT>, Type, VT, VT> cloneVt
-      ) where VT : IVariable {
+      ) where VT : class, IVariable {
       Contract.Requires(pat != null);
       if (pat.Var != null) {
         var bv = pat.Var;

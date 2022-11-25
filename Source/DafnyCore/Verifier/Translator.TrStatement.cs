@@ -51,8 +51,8 @@ namespace Microsoft.Dafny {
           // $_reverifyPost := true;
           builder.Add(Bpl.Cmd.SimpleAssign(s.Tok, new Bpl.IdentifierExpr(s.Tok, "$_reverifyPost", Bpl.Type.Bool), Bpl.Expr.True));
         }
-        if (s.hiddenUpdate != null) {
-          TrStmt(s.hiddenUpdate, builder, locals, etran);
+        if (s.HiddenUpdate != null) {
+          TrStmt(s.HiddenUpdate, builder, locals, etran);
         }
         if (codeContext is IMethodCodeContext) {
           var method = (IMethodCodeContext)codeContext;
@@ -65,8 +65,8 @@ namespace Microsoft.Dafny {
         Contract.Assert(codeContext is IteratorDecl);
         var iter = (IteratorDecl)codeContext;
         // if the yield statement has arguments, do them first
-        if (s.hiddenUpdate != null) {
-          TrStmt(s.hiddenUpdate, builder, locals, etran);
+        if (s.HiddenUpdate != null) {
+          TrStmt(s.HiddenUpdate, builder, locals, etran);
         }
         // this.ys := this.ys + [this.y];
         var th = new ThisExpr(iter);
@@ -773,7 +773,7 @@ namespace Microsoft.Dafny {
           }
           builder.Add(new Bpl.HavocCmd(stmt.Tok, havocIds));
         }
-        String missingStr = stmt.Context.FillHole(new IdCtx(new KeyValuePair<string, DatatypeCtor>(missingCtor.Name, missingCtor))).AbstractAllHoles()
+        String missingStr = stmt.Context.FillHole(new IdCtx(missingCtor)).AbstractAllHoles()
           .ToString();
         var desc = new PODesc.MatchIsComplete("statement", missingStr);
         b.Add(Assert(stmt.Tok, Bpl.Expr.False, desc));

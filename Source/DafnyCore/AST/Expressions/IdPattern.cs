@@ -65,57 +65,6 @@ public class IdPattern : ExtendedPattern, IHasUsages {
   }
 
   public override IEnumerable<INode> Children => Arguments ?? Enumerable.Empty<INode>();
-  public override void Resolve(Resolver resolver, ResolutionContext resolutionContext,
-    IDictionary<TypeParameter, Type> subst, Type sourceType, bool isGhost, bool mutable) {
-
-    Debug.Assert(Arguments != null || Type is InferredTypeProxy);
-
-    if (Arguments == null) {
-      Type substitutedSourceType = sourceType.Subst(subst);
-      Type = substitutedSourceType; // Only possible because we did a rewrite one level higher, which used the information from Type.
-      //BoundVar = new Formal(Tok, Id, substitutedSourceType, false, isGhost, null); 
-      if (mutable) {
-        var localVariable = new LocalVariable(Tok, Tok, Id, null, isGhost);
-        localVariable.type = substitutedSourceType;
-        BoundVar = localVariable;
-      } else {
-        var boundVar = new BoundVar(Tok, Id, substitutedSourceType);
-        boundVar.IsGhost = isGhost;
-        BoundVar = boundVar;
-      }
-
-      resolver.scope.Push(Id, BoundVar);
-      resolver.ResolveType(Tok, BoundVar.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
-
-    } else {
-      if (Ctor != null) {
-        subst = TypeParameter.SubstitutionMap(Ctor.EnclosingDatatype.TypeArgs, sourceType.NormalizeExpand().TypeArgs);
-        for (var index = 0; index < Arguments.Count; index++) {
-          var argument = Arguments[index];
-          var formal = Ctor.Formals[index];
-          argument.Resolve(resolver, resolutionContext, subst, formal.Type.Subst(subst), formal.IsGhost, mutable);
-        }
-      }
-    }
-  }
-
-  public override IEnumerable<(BoundVar var, Expression usage)> ReplaceTypesWithBoundVariables(Resolver resolver,
-    ResolutionContext resolutionContext) {
-    if (Arguments == null && Type is not InferredTypeProxy) {
-      var freshName = resolver.FreshTempVarName(Id, resolutionContext.CodeContext);
-      var boundVar = new BoundVar(Tok, Id, Type);
-      boundVar.IsGhost = IsGhost;
-      yield return (boundVar, new IdentifierExpr(Tok, freshName));
-      Id = freshName;
-      Type = new InferredTypeProxy();
-    }
-
-    if (Arguments != null) {
-      foreach (var childResult in Arguments.SelectMany(a => a.ReplaceTypesWithBoundVariables(resolver, resolutionContext))) {
-        yield return childResult;
-      }
-    }
-  }
 
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return new IDeclarationOrUsage[] { Ctor }.Where(x => x != null);

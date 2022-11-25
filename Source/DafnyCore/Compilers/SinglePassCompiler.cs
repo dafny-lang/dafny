@@ -2518,11 +2518,11 @@ namespace Microsoft.Dafny.Compilers {
     }
 
 
-    void TrCasePatternOpt<VT>(CasePattern<VT> pat, Expression rhs, ConcreteSyntaxTree wr, bool inLetExprBody) where VT : IVariable {
+    void TrCasePatternOpt<VT>(CasePattern<VT> pat, Expression rhs, ConcreteSyntaxTree wr, bool inLetExprBody) where VT : class, IVariable {
       TrCasePatternOpt(pat, rhs, null, rhs.Type, rhs.tok, wr, inLetExprBody);
     }
 
-    void TrCasePatternOpt<VT>(CasePattern<VT> pat, Expression rhs, string rhs_string, Type rhsType, IToken rhsTok, ConcreteSyntaxTree wr, bool inLetExprBody) where VT : IVariable {
+    void TrCasePatternOpt<VT>(CasePattern<VT> pat, Expression rhs, string rhs_string, Type rhsType, IToken rhsTok, ConcreteSyntaxTree wr, bool inLetExprBody) where VT : class, IVariable {
       Contract.Requires(pat != null);
       Contract.Requires(pat.Var != null || rhs != null || rhs_string != null);
       Contract.Requires(rhs != null || rhs_string != null);
@@ -2948,9 +2948,9 @@ namespace Microsoft.Dafny.Compilers {
       } else if (stmt is ProduceStmt) {
         var s = (ProduceStmt)stmt;
         var isTailRecursiveResult = false;
-        if (s.hiddenUpdate != null) {
-          TrStmt(s.hiddenUpdate, wr);
-          var ss = s.hiddenUpdate.ResolvedStatements;
+        if (s.HiddenUpdate != null) {
+          TrStmt(s.HiddenUpdate, wr);
+          var ss = s.HiddenUpdate.ResolvedStatements;
           if (ss.Count == 1 && ss[0] is AssignStmt assign && assign.Rhs is ExprRhs eRhs && eRhs.Expr.Resolved is FunctionCallExpr fce && IsTailRecursiveByMethodCall(fce)) {
             isTailRecursiveResult = true;
           }

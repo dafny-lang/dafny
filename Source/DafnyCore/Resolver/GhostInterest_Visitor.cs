@@ -116,8 +116,8 @@ class GhostInterest_Visitor {
       if (mustBeErasable && !codeContext.IsGhost) {
         Error(stmt, "{0} statement is not allowed in this context (because it is guarded by a specification-only expression)", kind);
       }
-      if (s.hiddenUpdate != null) {
-        Visit(s.hiddenUpdate, mustBeErasable, proofContext);
+      if (s.HiddenUpdate != null) {
+        Visit(s.HiddenUpdate, mustBeErasable, proofContext);
       }
 
     } else if (stmt is AssignSuchThatStmt) {
