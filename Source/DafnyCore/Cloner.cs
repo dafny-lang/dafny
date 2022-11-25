@@ -587,11 +587,11 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is ReturnStmt) {
         var s = (ReturnStmt)stmt;
-        r = new ReturnStmt(Tok(s.Tok), Tok(s.EndTok), s.rhss == null ? null : s.rhss.ConvertAll(CloneRHS));
+        r = new ReturnStmt(Tok(s.Tok), Tok(s.EndTok), s.Rhss == null ? null : s.Rhss.ConvertAll(CloneRHS));
 
       } else if (stmt is YieldStmt) {
         var s = (YieldStmt)stmt;
-        r = new YieldStmt(Tok(s.Tok), Tok(s.EndTok), s.rhss == null ? null : s.rhss.ConvertAll(CloneRHS));
+        r = new YieldStmt(Tok(s.Tok), Tok(s.EndTok), s.Rhss == null ? null : s.Rhss.ConvertAll(CloneRHS));
 
       } else if (stmt is AssignStmt) {
         var s = (AssignStmt)stmt;

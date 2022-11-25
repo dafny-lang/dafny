@@ -2948,9 +2948,9 @@ namespace Microsoft.Dafny.Compilers {
       } else if (stmt is ProduceStmt) {
         var s = (ProduceStmt)stmt;
         var isTailRecursiveResult = false;
-        if (s.hiddenUpdate != null) {
-          TrStmt(s.hiddenUpdate, wr);
-          var ss = s.hiddenUpdate.ResolvedStatements;
+        if (s.HiddenUpdate != null) {
+          TrStmt(s.HiddenUpdate, wr);
+          var ss = s.HiddenUpdate.ResolvedStatements;
           if (ss.Count == 1 && ss[0] is AssignStmt assign && assign.Rhs is ExprRhs eRhs && eRhs.Expr.Resolved is FunctionCallExpr fce && IsTailRecursiveByMethodCall(fce)) {
             isTailRecursiveResult = true;
           }

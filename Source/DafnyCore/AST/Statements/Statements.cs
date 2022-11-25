@@ -239,20 +239,20 @@ public class RevealStmt : Statement {
 }
 
 public abstract class ProduceStmt : Statement {
-  public List<AssignmentRhs> rhss;
-  public UpdateStmt hiddenUpdate;
+  public List<AssignmentRhs> Rhss;
+  public UpdateStmt HiddenUpdate;
   public ProduceStmt(IToken tok, IToken endTok, List<AssignmentRhs> rhss)
     : base(tok, endTok) {
     Contract.Requires(tok != null);
     Contract.Requires(endTok != null);
-    this.rhss = rhss;
-    hiddenUpdate = null;
+    this.Rhss = rhss;
+    HiddenUpdate = null;
   }
   public override IEnumerable<Expression> NonSpecificationSubExpressions {
     get {
       foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
-      if (rhss != null) {
-        foreach (var rhs in rhss) {
+      if (Rhss != null) {
+        foreach (var rhs in Rhss) {
           foreach (var ee in rhs.SubExpressions) {
             yield return ee;
           }
@@ -262,8 +262,8 @@ public abstract class ProduceStmt : Statement {
   }
   public override IEnumerable<Statement> SubStatements {
     get {
-      if (rhss != null) {
-        foreach (var rhs in rhss) {
+      if (Rhss != null) {
+        foreach (var rhs in Rhss) {
           foreach (var s in rhs.SubStatements) {
             yield return s;
           }
