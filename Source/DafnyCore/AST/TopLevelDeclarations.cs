@@ -133,12 +133,7 @@ public abstract class Declaration : INamedRegion, IAttributeBearingDeclaration, 
 
   internal FreshIdGenerator IdGenerator = new();
   public IToken NameToken => tok;
-  public virtual IEnumerable<INode> Children {
-    get {
-
-      return Enumerable.Empty<INode>();
-    }
-  }
+  public virtual IEnumerable<INode> Children => Enumerable.Empty<INode>();
 }
 
 public class TypeParameter : TopLevelDecl {
@@ -1337,6 +1332,8 @@ public class ArrowTypeDecl : ClassDecl {
 public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICallable {
   public override bool CanBeRevealed() { return true; }
   public readonly List<DatatypeCtor> Ctors;
+
+  [FilledInDuringResolution] public Dictionary<string, DatatypeCtor> ConstructorsByName { get; set; }
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(cce.NonNullElements(Ctors));

@@ -14,6 +14,17 @@ public abstract class LoopStmt : Statement, IDeclarationOrUsage {
     Contract.Invariant(Decreases != null);
     Contract.Invariant(Mod != null);
   }
+
+  protected LoopStmt(Cloner cloner, LoopStmt original) : base(cloner, original) {
+    Invariants = original.Invariants.ConvertAll(cloner.CloneAttributedExpr);
+    Decreases = cloner.CloneSpecExpr(original.Decreases);
+    Mod = cloner.CloneSpecFrameExpr(original.Mod);
+
+    if (cloner.CloneResolvedFields) {
+      InferredDecreases = original.InferredDecreases;
+    }
+  }
+
   public LoopStmt(IToken tok, IToken endTok, List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod)
     : base(tok, endTok) {
     Contract.Requires(tok != null);

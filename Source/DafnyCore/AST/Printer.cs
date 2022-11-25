@@ -1218,9 +1218,9 @@ namespace Microsoft.Dafny {
       } else if (stmt is ProduceStmt) {
         var s = (ProduceStmt)stmt;
         wr.Write(s is YieldStmt ? "yield" : "return");
-        if (s.rhss != null) {
+        if (s.Rhss != null) {
           var sep = " ";
-          foreach (var rhs in s.rhss) {
+          foreach (var rhs in s.Rhss) {
             wr.Write(sep);
             PrintRhs(rhs);
             sep = ", ";
@@ -1400,22 +1400,22 @@ namespace Microsoft.Dafny {
         // Print ResolvedStatement, if present, as comment
         var s = (NestedMatchStmt)stmt;
 
-        if (s.ResolvedStatement != null && DafnyOptions.O.DafnyPrintResolvedFile != null) {
-          wr.WriteLine();
-          if (!printingDesugared) {
-            Indent(indent); wr.WriteLine("/*---------- desugared ----------");
-          }
-
-          var savedDesugarMode = printingDesugared;
-          printingDesugared = true;
-          Indent(indent); PrintStatement(s.ResolvedStatement, indent);
-          printingDesugared = savedDesugarMode;
-
-          if (!printingDesugared) {
-            Indent(indent); wr.WriteLine("---------- end desugared ----------*/");
-          }
-          Indent(indent);
-        }
+        // if (s.ResolvedStatement != null && DafnyOptions.O.DafnyPrintResolvedFile != null) {
+        //   wr.WriteLine();
+        //   if (!printingDesugared) {
+        //     Indent(indent); wr.WriteLine("/*---------- desugared ----------");
+        //   }
+        //
+        //   var savedDesugarMode = printingDesugared;
+        //   printingDesugared = true;
+        //   Indent(indent); PrintStatement(s.ResolvedStatement, indent);
+        //   printingDesugared = savedDesugarMode;
+        //
+        //   if (!printingDesugared) {
+        //     Indent(indent); wr.WriteLine("---------- end desugared ----------*/");
+        //   }
+        //   Indent(indent);
+        // }
 
         if (!printingDesugared) {
           wr.Write("match");
@@ -1446,12 +1446,6 @@ namespace Microsoft.Dafny {
             wr.Write("}");
           }
         }
-      } else if (stmt is ConcreteSyntaxStatement && ((ConcreteSyntaxStatement)stmt).ResolvedStatement != null) {
-        var s = (ConcreteSyntaxStatement)stmt;
-        Indent(indent);
-        PrintStatement(s.ResolvedStatement, indent);
-        wr.WriteLine();
-
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;
         if (DafnyOptions.O.DafnyPrintResolvedFile == null && s.OrigUnresolved != null) {
@@ -1888,21 +1882,21 @@ namespace Microsoft.Dafny {
 
       } else if (expr is NestedMatchExpr) {
         var e = (NestedMatchExpr)expr;
-        if (e.ResolvedExpression != null && DafnyOptions.O.DafnyPrintResolvedFile != null) {
-          wr.WriteLine();
-          if (!printingDesugared) {
-            Indent(indent); wr.WriteLine("/*---------- desugared ----------");
-          }
-
-          var savedDesugarMode = printingDesugared;
-          printingDesugared = true;
-          PrintExtendedExpr(e.ResolvedExpression, indent, isRightmost, endWithCloseParen);
-          printingDesugared = savedDesugarMode;
-
-          if (!printingDesugared) {
-            Indent(indent); wr.WriteLine("---------- end desugared ----------*/");
-          }
-        }
+        // if (e.ResolvedExpression != null && DafnyOptions.O.DafnyPrintResolvedFile != null) {
+        //   wr.WriteLine();
+        //   if (!printingDesugared) {
+        //     Indent(indent); wr.WriteLine("/*---------- desugared ----------");
+        //   }
+        //
+        //   var savedDesugarMode = printingDesugared;
+        //   printingDesugared = true;
+        //   PrintExtendedExpr(e.ResolvedExpression, indent, isRightmost, endWithCloseParen);
+        //   printingDesugared = savedDesugarMode;
+        //
+        //   if (!printingDesugared) {
+        //     Indent(indent); wr.WriteLine("---------- end desugared ----------*/");
+        //   }
+        // }
         if (!printingDesugared) {
           Indent(indent);
           var parensNeeded = !isRightmost && !e.UsesOptionalBraces;
@@ -2598,7 +2592,7 @@ namespace Microsoft.Dafny {
       } else if (expr is QuantifierExpr) {
         QuantifierExpr e = (QuantifierExpr)expr;
 
-        if (DafnyOptions.O.DafnyPrintResolvedFile != null && e.SplitQuantifier != null) {
+        if (e.SplitQuantifier != null) {
           PrintExpr(e.SplitQuantifierExpression, contextBindingStrength, fragileContext, isRightmost, isFollowedBySemicolon, indent, keyword, resolv_count);
           return;
         }
@@ -2689,7 +2683,7 @@ namespace Microsoft.Dafny {
           readsPrefix = ", ";
         }
         wr.Write(" => ");
-        PrintExpression(e.Body, isFollowedBySemicolon);
+        PrintExpression(e.Term, isFollowedBySemicolon);
         if (parensNeeded) { wr.Write(")"); }
 
       } else if (expr is WildcardExpr) {
@@ -2739,24 +2733,24 @@ namespace Microsoft.Dafny {
         if (parensNeeded) { wr.Write(")"); }
       } else if (expr is NestedMatchExpr) {
         var e = (NestedMatchExpr)expr;
-        if (e.ResolvedExpression != null) {
-          PrintExpr(e.ResolvedExpression, contextBindingStrength, fragileContext, isRightmost, isFollowedBySemicolon, indent);
-        } else {
-          var parensNeeded = !isRightmost && !e.UsesOptionalBraces;
-          if (parensNeeded) { wr.Write("("); }
-          wr.Write("match ");
-          PrintExpression(e.Source, isRightmost && e.Cases.Count == 0, !parensNeeded && isFollowedBySemicolon);
-          if (e.UsesOptionalBraces) { wr.Write(" {"); }
-          int i = 0;
-          foreach (var mc in e.Cases) {
-            bool isLastCase = i == e.Cases.Count - 1;
-            wr.Write(" case {0}", mc.Pat.ToString());
-            wr.Write(" => ");
-            PrintExpression(mc.Body, isRightmost && isLastCase, !parensNeeded && isFollowedBySemicolon);
-            i++;
-          }
-          if (e.UsesOptionalBraces) { wr.Write(" }"); } else if (parensNeeded) { wr.Write(")"); }
+        // if (e.ResolvedExpression != null) {
+        //   PrintExpr(e.ResolvedExpression, contextBindingStrength, fragileContext, isRightmost, isFollowedBySemicolon, indent);
+        // } else {
+        var parensNeeded = !isRightmost && !e.UsesOptionalBraces;
+        if (parensNeeded) { wr.Write("("); }
+        wr.Write("match ");
+        PrintExpression(e.Source, isRightmost && e.Cases.Count == 0, !parensNeeded && isFollowedBySemicolon);
+        if (e.UsesOptionalBraces) { wr.Write(" {"); }
+        int i = 0;
+        foreach (var mc in e.Cases) {
+          bool isLastCase = i == e.Cases.Count - 1;
+          wr.Write(" case {0}", mc.Pat.ToString());
+          wr.Write(" => ");
+          PrintExpression(mc.Body, isRightmost && isLastCase, !parensNeeded && isFollowedBySemicolon);
+          i++;
         }
+        if (e.UsesOptionalBraces) { wr.Write(" }"); } else if (parensNeeded) { wr.Write(")"); }
+        // }
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
         if (DafnyOptions.O.DafnyPrintResolvedFile == null && e.OrigUnresolved != null) {
@@ -2816,7 +2810,8 @@ namespace Microsoft.Dafny {
       return parenPairs != 0 && (expr is NameSegment || expr is ExprDotName);
     }
 
-    void PrintCasePattern<VT>(CasePattern<VT> pat) where VT : IVariable {
+    void PrintCasePattern<VT>(CasePattern<VT> pat)
+      where VT : class, IVariable {
       Contract.Requires(pat != null);
       var v = pat.Var;
       if (v != null) {

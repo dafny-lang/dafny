@@ -1,15 +1,27 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 
 namespace Microsoft.Dafny;
 
 /**
    * Used by two phase constructors: https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#13323-two-phase-constructors
    */
-public class DividedBlockStmt : BlockStmt {
+public class DividedBlockStmt : BlockStmt, ICloneable<DividedBlockStmt> {
   public readonly List<Statement> BodyInit;  // first part of Body's statements
   public readonly IToken SeparatorTok;  // token that separates the two parts, if any
   public readonly List<Statement> BodyProper;  // second part of Body's statements
+
+  public new DividedBlockStmt Clone(Cloner cloner) {
+    return new DividedBlockStmt(cloner, this);
+  }
+
+  public DividedBlockStmt(Cloner cloner, DividedBlockStmt original) : base(cloner, original) {
+    BodyInit = Body.Take(original.BodyInit.Count).ToList();
+    BodyProper = Body.Skip(original.BodyInit.Count).ToList();
+    SeparatorTok = original.SeparatorTok;
+  }
+
   public DividedBlockStmt(IToken tok, IToken endTok, List<Statement> bodyInit, IToken/*?*/ separatorTok, List<Statement> bodyProper)
     : base(tok, endTok, Util.Concat(bodyInit, bodyProper)) {
     Contract.Requires(tok != null);

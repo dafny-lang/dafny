@@ -4,7 +4,17 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class AssignSuchThatStmt : ConcreteUpdateStatement {
+/// <summary>
+/// Attributed tokens are used when a subpart of a statement or expression can take attributes.
+/// (Perhaps in addition to attributes placed on the token itself.)
+///
+/// It is used in particular to attach `{:axiom}` tokens to the `assume` keyword
+/// on the RHS of `:|` and `:-` (in contrast, for `assume` statements, the
+/// `{:axiom}` attribute is directly attached to the statement-level
+/// attributes).
+/// </summary>
+public record AttributedToken(IToken Token, Attributes Attrs) { }
+public class AssignSuchThatStmt : ConcreteUpdateStatement, ICloneable<AssignSuchThatStmt> {
   public readonly Expression Expr;
   public readonly AttributedToken AssumeToken;
 
@@ -15,9 +25,26 @@ public class AssignSuchThatStmt : ConcreteUpdateStatement {
   public class WiggleWaggleBound : ComprehensionExpr.BoundedPool {
     public override PoolVirtues Virtues => PoolVirtues.Enumerable | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
     public override int Preference() => 1;
+    public override ComprehensionExpr.BoundedPool Clone(Cloner cloner) {
+      return this;
+    }
   }
 
   public override IEnumerable<INode> Children => Lhss.Concat<INode>(new[] { Expr });
+
+  public AssignSuchThatStmt Clone(Cloner cloner) {
+    return new AssignSuchThatStmt(cloner, this);
+  }
+
+  public AssignSuchThatStmt(Cloner cloner, AssignSuchThatStmt original) : base(cloner, original) {
+    Expr = cloner.CloneExpr(original.Expr);
+    AssumeToken = cloner.AttributedTok(original.AssumeToken);
+
+    if (cloner.CloneResolvedFields) {
+      Bounds = original.Bounds;
+      MissingBounds = original.MissingBounds?.Select(v => cloner.CloneIVariable(v, true)).ToList();
+    }
+  }
 
   /// <summary>
   /// "assumeToken" is allowed to be "null", in which case the verifier will check that a RHS value exists.

@@ -14,24 +14,16 @@ using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Linq;
 using System.Diagnostics;
-using System.Reflection;
 using System.Threading;
 using Microsoft.Boogie;
+using Action = System.Action;
 
 namespace Microsoft.Dafny {
-  [System.AttributeUsage(System.AttributeTargets.Field)]
+  [System.AttributeUsage(System.AttributeTargets.Field | System.AttributeTargets.Property)]
+  public class FilledInDuringTranslationAttribute : System.Attribute { }
+
+  [System.AttributeUsage(System.AttributeTargets.Field | System.AttributeTargets.Property)]
   public class FilledInDuringResolutionAttribute : System.Attribute { }
-
-  public interface INode {
-
-    /// <summary>
-    /// These children should be such that they contain information produced by resolution such as inferred types
-    /// and resolved references. However, they should not be so transformed that source location from the initial
-    /// program is lost. As an example, the pattern matching compilation may deduplicate nodes from the original AST,
-    /// losing source location information, so those transformed nodes should not be returned by this property.
-    /// </summary>
-    IEnumerable<INode> Children { get; }
-  }
 
   public interface IDeclarationOrUsage : INode {
     IToken NameToken { get; }
@@ -40,7 +32,6 @@ namespace Microsoft.Dafny {
   public interface IHasUsages : IDeclarationOrUsage {
     public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations();
   }
-
   public class Program : INode {
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -474,8 +465,8 @@ namespace Microsoft.Dafny {
       throw new NotImplementedException();
     }
 
-    public abstract IEnumerable<INode> Children { get; }
-    public abstract IToken NameToken { get; }
+    public IEnumerable<INode> Children => throw new NotImplementedException();
+    public IToken NameToken => throw new NotImplementedException();
   }
 
   public abstract class NonglobalVariable : IVariable {
@@ -673,11 +664,7 @@ namespace Microsoft.Dafny {
 
   [DebuggerDisplay("Bound<{name}>")]
   public class BoundVar : NonglobalVariable {
-    public override bool IsMutable {
-      get {
-        return false;
-      }
-    }
+    public override bool IsMutable => false;
 
     public BoundVar(IToken tok, string name, Type type)
       : base(tok, name, type, false) {
@@ -744,7 +731,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class ActualBinding {
+  public class ActualBinding : INode {
     public readonly IToken /*?*/ FormalParameterName;
     public readonly Expression Actual;
     public readonly bool IsGhost;
@@ -755,9 +742,11 @@ namespace Microsoft.Dafny {
       Actual = actual;
       IsGhost = isGhost;
     }
+
+    public IEnumerable<INode> Children => new[] { Actual };
   }
 
-  public class ActualBindings {
+  public class ActualBindings : INode {
     public readonly List<ActualBinding> ArgumentBindings;
 
     public ActualBindings(List<ActualBinding> argumentBindings) {
@@ -765,18 +754,28 @@ namespace Microsoft.Dafny {
       ArgumentBindings = argumentBindings;
     }
 
+    public ActualBindings(Cloner cloner, ActualBindings original) {
+      ArgumentBindings = original.ArgumentBindings.Select(actualBinding => new ActualBinding(
+        actualBinding.FormalParameterName == null ? null : cloner.Tok(actualBinding.FormalParameterName),
+        cloner.CloneExpr(actualBinding.Actual))).ToList();
+      if (cloner.CloneResolvedFields) {
+        arguments = original.Arguments?.Select(cloner.CloneExpr).ToList();
+      }
+    }
+
     public ActualBindings(List<Expression> actuals) {
       Contract.Requires(actuals != null);
       ArgumentBindings = actuals.ConvertAll(actual => new ActualBinding(null, actual));
     }
 
+    [FilledInDuringResolution]
     private List<Expression> arguments; // set by ResolveActualParameters during resolution
 
     public bool WasResolved => arguments != null;
 
     public List<Expression> Arguments {
       get {
-        Contract.Requires(WasResolved);
+        // Contract.Requires(WasResolved);
         return arguments;
       }
     }
@@ -786,6 +785,8 @@ namespace Microsoft.Dafny {
       Contract.Assume(ArgumentBindings.TrueForAll(arg => arg.Actual.WasResolved()));
       arguments = args ?? ArgumentBindings.ConvertAll(binding => binding.Actual);
     }
+
+    public IEnumerable<INode> Children => arguments == null ? ArgumentBindings : arguments;
   }
 
   class QuantifiedVariableDomainCloner : Cloner {
@@ -804,7 +805,8 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class Specification<T> : IAttributeBearingDeclaration where T : class {
+  public class Specification<T> : IAttributeBearingDeclaration, INode
+    where T : class, INode {
     public readonly List<T> Expressions;
 
     [ContractInvariantMethod]
@@ -831,6 +833,8 @@ namespace Microsoft.Dafny {
     public bool HasAttributes() {
       return Attributes != null;
     }
+
+    public IEnumerable<INode> Children => Expressions;
   }
 
   public class BottomUpVisitor {
@@ -973,7 +977,7 @@ namespace Microsoft.Dafny {
       }
       //TODO More?
     }
-    public void Visit(Method method, State st) {
+    public virtual void Visit(Method method, State st) {
       Visit(method.Ens, st);
       Visit(method.Req, st);
       Visit(method.Mod.Expressions, st);
@@ -981,7 +985,7 @@ namespace Microsoft.Dafny {
       if (method.Body != null) { Visit(method.Body, st); }
       //TODO More?
     }
-    public void Visit(Function function, State st) {
+    public virtual void Visit(Function function, State st) {
       Visit(function.Ens, st);
       Visit(function.Req, st);
       Visit(function.Reads, st);

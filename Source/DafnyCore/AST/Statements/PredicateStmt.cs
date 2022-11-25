@@ -9,6 +9,10 @@ public abstract class PredicateStmt : Statement {
     Contract.Invariant(Expr != null);
   }
 
+  protected PredicateStmt(Cloner cloner, PredicateStmt original) : base(cloner, original) {
+    Expr = cloner.CloneExpr(original.Expr);
+  }
+
   public PredicateStmt(IToken tok, IToken endTok, Expression expr, Attributes attrs)
     : base(tok, endTok, attrs) {
     Contract.Requires(tok != null);
