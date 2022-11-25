@@ -3864,6 +3864,10 @@ namespace Microsoft.Dafny {
       if (q is LiteralExpr { Value: bool value } && value == truth) {
         return true;
       }
+
+      if (q is UnaryOpExpr unaryOpExpr && unaryOpExpr.Op == UnaryOpExpr.Opcode.Not) {
+        return IsExpressionAlways(unaryOpExpr.E, !truth);
+      }
       if (q is BinaryExpr binaryExpr) {
         var e0 = binaryExpr.E0;
         var e1 = binaryExpr.E1;

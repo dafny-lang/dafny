@@ -478,7 +478,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
         }
         IEnumerable<int> CollectAssumeNotTrue(INode n) {
           if (n is AssumeStmt { Expr: var expression } assumeStmt &&
-              Translator.IsExpressionAlways(expression, false)) {
+              !Translator.IsExpressionAlways(expression, true) &&
+              !Attributes.Contains(assumeStmt.Attributes, "axiom")) {
             return new List<int> { assumeStmt.Tok.line - 1 };
           }
 
@@ -493,7 +494,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
           }
           foreach (var req in functionDecl.Req) {
             if (Translator.IsExpressionAlways(req.E, false)) {
-              cachedAssumptionsLines = cachedAssumptionsLines.Concat(new List<int>() { req.E.tok.line - 2 });
+              cachedAssumptionsLines = cachedAssumptionsLines.Concat(new List<int>() { req.E.tok.line - 1 });
+            }
+          }
+
+          if (functionDecl.Body == null) { // ensures are assumptions
+            foreach (var req in functionDecl.Ens) {
+              if (Translator.IsExpressionAlways(req.E, false)) {
+                cachedAssumptionsLines = cachedAssumptionsLines.Concat(new List<int>() { req.E.tok.line - 1 });
+              }
             }
           }
         } else {
@@ -504,6 +513,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
           foreach (var req in methodDecl.Req) {
             if (Translator.IsExpressionAlways(req.E, false)) {
               cachedAssumptionsLines = cachedAssumptionsLines.Concat(new List<int>() { req.E.tok.line - 1 });
+            }
+          }
+
+          if (methodDecl.Body == null) { // ensures are assumptions
+            foreach (var req in methodDecl.Ens) {
+              if (Translator.IsExpressionAlways(req.E, false)) {
+                cachedAssumptionsLines = cachedAssumptionsLines.Concat(new List<int>() { req.E.tok.line - 1 });
+              }
             }
           }
         }

@@ -118,7 +118,8 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
 
   protected async Task<List<LineVerificationStatus[]>> GetAllLineVerificationStatuses(
       TextDocumentItem documentItem,
-      TestNotificationReceiver<VerificationStatusGutter> verificationStatusGutterReceiver
+      TestNotificationReceiver<VerificationStatusGutter> verificationStatusGutterReceiver,
+      bool intermediates = true
       ) {
     var traces = new List<LineVerificationStatus[]>();
     var maximumNumberOfTraces = 50;
@@ -137,8 +138,13 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
         continue;
       }
 
-      traces.Add(verificationStatusGutter.PerLineStatus);
-      if (NoMoreNotificationsToAwaitFrom(verificationStatusGutter)) {
+      var noMoreNotificationsExpected = NoMoreNotificationsToAwaitFrom(verificationStatusGutter);
+
+      if (intermediates || noMoreNotificationsExpected) {
+        traces.Add(verificationStatusGutter.PerLineStatus);
+      }
+
+      if (noMoreNotificationsExpected) {
         break;
       }
 
@@ -229,8 +235,10 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
   }
 
   // If testTrace is false, codeAndTree should not contain a trace to test.
+  // Set intermediates to false if you don't care about intermediate results 
   public async Task VerifyTrace(string codeAndTrace, string fileName = null, bool testTrace = true,
-    TestNotificationReceiver<VerificationStatusGutter> verificationStatusGutterReceiver = null
+    TestNotificationReceiver<VerificationStatusGutter> verificationStatusGutterReceiver = null,
+    bool intermediates = true
     ) {
     if (verificationStatusGutterReceiver == null) {
       verificationStatusGutterReceiver = this.verificationStatusGutterReceiver;
@@ -243,10 +251,10 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
     var documentItem = CreateTestDocument(code, fileName);
     client.OpenDocument(documentItem);
     var traces = new List<LineVerificationStatus[]>();
-    traces.AddRange(await GetAllLineVerificationStatuses(documentItem, verificationStatusGutterReceiver));
+    traces.AddRange(await GetAllLineVerificationStatuses(documentItem, verificationStatusGutterReceiver, intermediates));
     foreach (var (range, inserted) in changes) {
       ApplyChange(ref documentItem, range, inserted);
-      traces.AddRange(await GetAllLineVerificationStatuses(documentItem, verificationStatusGutterReceiver));
+      traces.AddRange(await GetAllLineVerificationStatuses(documentItem, verificationStatusGutterReceiver, intermediates));
     }
 
     if (testTrace) {
@@ -266,7 +274,7 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
       return traceObtained;
     }
 
-    var toFindRegex = new Regex(@"(?<=(?:^|\n)[^:]*)\?");
+    var toFindRegex = new Regex(@"(?<=[^:\|=])\?");
     var matches = toFindRegex.Matches(expected);
     var pattern = "";
     for (var matchIndex = 0; matchIndex < matches.Count; matchIndex++) {
