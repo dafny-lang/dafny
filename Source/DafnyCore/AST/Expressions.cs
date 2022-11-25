@@ -2441,6 +2441,11 @@ public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBeari
   }
 
   public IEnumerable<BoundVar> AllBoundVars => BoundVars;
+
+  public override IEnumerable<INode> Children =>
+    (Attributes != null ? new List<INode> { Attributes } : Enumerable.Empty<INode>())
+    .Concat(LHSs)
+    .Concat(base.Children);
 }
 
 public class LetOrFailExpr : ConcreteSyntaxExpression {
@@ -2453,6 +2458,10 @@ public class LetOrFailExpr : ConcreteSyntaxExpression {
     Rhs = rhs;
     Body = body;
   }
+
+  // TODO: Children should take into account Rhs and Body when we support pre-resolved children
+  public override IEnumerable<INode> Children =>
+    new List<INode> { Lhs }.Concat(base.Children);
 }
 
 /// <summary>
@@ -2811,6 +2820,8 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
     this.BodyStartTok = tok;
     this.BodyEndTok = endTok;
   }
+
+  public override IEnumerable<INode> Children => (Attributes != null ? new List<INode> { Attributes } : Enumerable.Empty<INode>()).Concat(SubExpressions);
 
   public override IEnumerable<Expression> SubExpressions {
     get {
@@ -3233,7 +3244,7 @@ public class MatchExpr : Expression {  // a MatchExpr is an "extended expression
 /// which it is; in this case, Var is non-null, because this is the only place where Var.IsGhost
 /// is recorded by the parser.
 /// </summary>
-public class CasePattern<VT> where VT : IVariable {
+public class CasePattern<VT> : INode where VT : IVariable {
   public readonly IToken tok;
   public readonly string Id;
   // After successful resolution, exactly one of the following two fields is non-null.
@@ -3297,9 +3308,11 @@ public class CasePattern<VT> where VT : IVariable {
       }
     }
   }
+
+  public override IEnumerable<INode> Children => Arguments;
 }
 
-public abstract class MatchCase : IHasUsages {
+public abstract class MatchCase : INode, IHasUsages {
   public readonly IToken tok;
   [FilledInDuringResolution] public DatatypeCtor Ctor;
   public List<BoundVar> Arguments; // created by the resolver.
@@ -3322,7 +3335,6 @@ public abstract class MatchCase : IHasUsages {
   }
 
   public IToken NameToken => tok;
-  public abstract IEnumerable<INode> Children { get; }
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return new[] { Ctor };
   }
@@ -3514,8 +3526,6 @@ public abstract class ExtendedPattern : INode {
     this.Tok = tok;
     this.IsGhost = isGhost;
   }
-
-  public abstract IEnumerable<INode> Children { get; }
 }
 
 public class DisjunctivePattern : ExtendedPattern {
@@ -3649,8 +3659,6 @@ public abstract class NestedMatchCase : INode {
     this.Tok = tok;
     this.Pat = pat;
   }
-
-  public abstract IEnumerable<INode> Children { get; }
 }
 
 public class NestedMatchCaseExpr : NestedMatchCase, IAttributeBearingDeclaration {
@@ -3664,7 +3672,7 @@ public class NestedMatchCaseExpr : NestedMatchCase, IAttributeBearingDeclaration
     this.Attributes = attrs;
   }
 
-  public override IEnumerable<INode> Children => new INode[] { Body, Pat }.Concat(Attributes?.Args ?? Enumerable.Empty<INode>());
+  public override IEnumerable<INode> Children => new INode[] { Attributes, Body, Pat }.Concat(Attributes?.Args ?? Enumerable.Empty<INode>());
 }
 
 public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration {
@@ -3682,7 +3690,8 @@ public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration
     this.Attributes = attrs;
   }
 
-  public override IEnumerable<INode> Children => Body.Concat<INode>(Attributes?.Args ?? Enumerable.Empty<INode>());
+  public override IEnumerable<INode> Children =>
+    (Attributes != null ? new List<INode> { Attributes } : Enumerable.Empty<INode>()).Concat(Body).Concat<INode>(Attributes?.Args ?? Enumerable.Empty<INode>());
 }
 
 public class NestedMatchStmt : ConcreteSyntaxStatement {
@@ -3795,7 +3804,7 @@ public class UnboxingCastExpr : Expression {  // an UnboxingCastExpr is used onl
   }
 }
 
-public class AttributedExpression : IAttributeBearingDeclaration {
+public class AttributedExpression : INode, IAttributeBearingDeclaration {
   public readonly Expression E;
   public readonly AssertLabel/*?*/ Label;
 
@@ -3842,9 +3851,11 @@ public class AttributedExpression : IAttributeBearingDeclaration {
     IToken closeBrace = new Token(tok.line, tok.col + 7 + s.Length + 1); // where 7 = length(":error ")
     this.Attributes = new UserSuppliedAttributes(tok, openBrace, closeBrace, args, this.Attributes);
   }
+
+  public override IEnumerable<INode> Children => new List<INode>() { E };
 }
 
-public class FrameExpression : IHasUsages {
+public class FrameExpression : INode, IHasUsages {
   public readonly IToken tok;
   public readonly Expression E;  // may be a WildcardExpr
   public IEnumerable<IToken> OwnedTokens { get; set; } = new List<IToken>();
@@ -3871,7 +3882,7 @@ public class FrameExpression : IHasUsages {
   }
 
   public IToken NameToken => tok;
-  public IEnumerable<INode> Children => new[] { E };
+  public override IEnumerable<INode> Children => new[] { E };
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return new[] { Field }.Where(x => x != null);
   }

@@ -957,11 +957,10 @@ Dafny
      DefaultModuleDecl defaultModule = (DefaultModuleDecl)((LiteralModuleDecl)theModule).ModuleDef;
      // theModule should be a DefaultModuleDecl (actually, the singular DefaultModuleDecl)
      Contract.Assert(defaultModule != null);
-     IToken startToken, endToken;
+     IToken startToken;
   .)
   { "include"                 (. startToken = t; .)
     stringToken               (. {
-                                 endToken = t;
                                  string parsedFile = scanner.FullFilename;
                                  bool isVerbatimString;
                                  string includedFile = Util.RemoveParsedStringQuotes(t.val, out isVerbatimString);
@@ -972,7 +971,7 @@ Dafny
                                  }
                                  var oneInclude = new Include(t, parsedFile, includedFile, theCompileThisFile);
                                  oneInclude.StartToken = startToken;
-                                 oneInclude.EndToken = endToken;
+                                 oneInclude.EndToken = t;
                                  defaultModule.Includes.Add(oneInclude);
                                }
                             .)
@@ -1123,7 +1122,7 @@ ModuleImport<ModuleDefinition parent, out ModuleDecl submodule>
           (. submodule = new AliasModuleDecl(new ModuleQualifiedId(idPath),
                                          idPath[idPath.Count-1], parent, opened, idExports);
           .)
-    ) (. submodule.StartToken = startToken; submodule.EndToken = endToken; .)
+    ) (. submodule.StartToken = startToken; submodule.EndToken = t; .)
     .
 
 /*------------------------------------------------------------------------*/
@@ -2776,7 +2775,7 @@ BlockStmt<out BlockStmt/*!*/ block, out IToken bodyStart, out IToken bodyEnd>
   { Stmt<body> }
   "}"                                  (. bodyEnd = t;
                                           block = new BlockStmt(bodyStart, bodyEnd, body);
-                                          block.OwnedTokens = new List<IToken>() { bodyStart, bodyEnd }; .)
+                                          block.StartToken = bodyStart; block.EndToken = bodyEnd; .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -2844,9 +2843,8 @@ LabeledStmt<out Statement s>
   LabelName<out id> ":" (. colonToken = t; .)
   OneStmt<out s>
   (. s.Labels = new LList<Label>(new Label(id, id.val), s.Labels);
-     var allTokens = new List<IToken>(){labelToken, id, colonToken};
-     allTokens.AddRange(s.OwnedTokens);
-     s.OwnedTokens = allTokens;
+     s.StartToken = labelToken;
+     s.EndToken = t;
   .)
   .
 
@@ -2855,7 +2853,9 @@ SkeletonStmt<out Statement s>
 = (. IToken dotdotdot; .)
   ellipsis                             (. dotdotdot = t; .)
   ";"
-  (. s = new SkeletonStatement(dotdotdot, t); s.OwnedTokens = new List<IToken>() {dotdotdot, t};
+  (. s = new SkeletonStatement(dotdotdot, t);
+     s.StartToken = dotdotdot;
+     s.EndToken = t;
      errors.Deprecated(t, "the ... refinement feature in statements is deprecated");
   .)
   .
@@ -3907,7 +3907,9 @@ EquivExpression<out Expression e0, bool allowLemma, bool allowLambda, bool allow
   { IF(IsEquivOp())  /* read an EquivExpression as far as possible */
     EquivOp                                                   (. x = t; .)
     ImpliesExpliesExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>  (.
-      e0 = new BinaryExpr(x, BinaryExpr.Opcode.Iff, e0, e1); e0.OwnedTokens = new List<IToken>{x}; .)
+      e0 = new BinaryExpr(x, BinaryExpr.Opcode.Iff, e0, e1);
+      e0.StartToken = e0.StartToken;
+      e0.EndToken = t; .)
   }
   .
 
@@ -3922,14 +3924,17 @@ ImpliesExpliesExpression<out Expression e0, bool allowLemma, bool allowLambda, b
      * implies is right associative whereas reverse implication is left associative
      */
     ( ImpliesOp                                               (. x = t; .)
-      ImpliesExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>       (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Imp, e0, e1); e0.OwnedTokens = new List<IToken>(){x}; .)
+      ImpliesExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>       (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Imp, e0, e1);
+                                                                                   e0.StartToken = e0.StartToken; e0.EndToken = t; .)
     | ExpliesOp                                               (. x = t; .)
       LogicalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>       (. // The order of operands is reversed so that it can be turned into implication during resolution
-                                                                 e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e1, e0); e0.OwnedTokens = new List<IToken>(){x}; .)
+                                                                 e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e1, e0);
+                                                                 e0.StartToken = e0.StartToken; e0.EndToken = t; .)
       { IF(IsExpliesOp())  /* read a reverse implication as far as possible */
         ExpliesOp                                             (. x = t; .)
         LogicalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>     (. //The order of operands is reversed so that it can be turned into implication during resolution
-                                                                 e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e1, e0); e0.OwnedTokens = new List<IToken>(){x};
+                                                                 e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e1, e0);
+                                                                 e0.StartToken = e0.StartToken; e0.EndToken = t;
                                                               .)
       }
       [ IF(IsImpliesOp()) ImpliesOp (. SemErr(t, "Ambiguous use of ==> and <==. Use parentheses to disambiguate."); .) ]
@@ -3943,7 +3948,8 @@ ImpliesExpression<out Expression e0, bool allowLemma, bool allowLambda, bool all
   LogicalExpression<out e0, allowLemma, allowLambda, allowBitwiseOps>
   [ IF(IsImpliesOp())  /* read an ImpliesExpression as far as possible */
     ImpliesOp                                               (. x = t; .)
-    ImpliesExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>       (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Imp, e0, e1); e0.OwnedTokens = new List<IToken>() {x}; .)
+    ImpliesExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>       (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Imp, e0, e1); 
+                                                                                 e0.StartToken = e0.StartToken; e0.EndToken = t;.)
   ]
   [ IF(IsExpliesOp()) ExpliesOp (. SemErr(t, "Ambiguous use of ==> and <==. Use parentheses to disambiguate."); .)
   ]
@@ -3954,7 +3960,6 @@ LogicalExpression<out Expression e0, bool allowLemma, bool allowLambda, bool all
 = (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1;
      IToken startToken = null;
      IToken/*!*/ firstOp;
-     IToken startToken = null;
      e0 = dummyExpr; /* mute the warning */
   .)
     // This extra AndOp will belong to the outermost binary expression
@@ -3963,7 +3968,7 @@ LogicalExpression<out Expression e0, bool allowLemma, bool allowLambda, bool all
     // We conjoin "true" to the left, for two reasons. One reason is to keep track of the source
     // location of the initial AndOp operator. The other reason is to make, when there is only
     // one conjunct, that the type checker still checks it to be a boolean.
-    (. startToken = e0.startToken;
+    (. startToken = e0.StartToken;
        e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, new LiteralExpr(new AutoGeneratedToken(x), true), e0);
        e0.StartToken = startToken;
        e0.EndToken = t;
@@ -3971,7 +3976,7 @@ LogicalExpression<out Expression e0, bool allowLemma, bool allowLambda, bool all
     { IF(IsAndOp())  /* read a conjunction as far as possible */
       AndOp                                                     (. x = t; .)
       RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>
-         (. startToken = e0.startToken;
+         (. startToken = e0.StartToken;
             e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1);
             e0.StartToken = startToken; e0.EndToken = t; .)
     }
@@ -3982,13 +3987,13 @@ LogicalExpression<out Expression e0, bool allowLemma, bool allowLambda, bool all
     // We disjoin [sic] "false" to the left, for two reasons. One reason is to keep track of the source
     // location of the initial OrOp operator. The other reason is to make, when there is only
     // one disjunct, that the type checker still checks it to be a boolean.
-    (. startToken = e0.startToken;
+    (. startToken = e0.StartToken;
        e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, new LiteralExpr(new AutoGeneratedToken(x), false), e0);
        e0.StartToken = startToken; .)
     { IF(IsOrOp())  /* read a disjunction as far as possible */
       OrOp                                                      (. x = t; .)
       RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>
-         (. startToken = e0.startToken;
+         (. startToken = e0.StartToken;
             e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1);
             e0.StartToken = startToken; .)    }
     [ IF(IsAndOp()) AndOp (. SemErr(t, "Ambiguous use of && and ||. Use parentheses to disambiguate."); .) ]
@@ -3996,17 +4001,21 @@ LogicalExpression<out Expression e0, bool allowLemma, bool allowLambda, bool all
   | RelationalExpression<out e0, allowLemma, allowLambda, allowBitwiseOps>
     [ IF(IsAndOp() || IsOrOp())  /* read a LogicalExpression as far as possible */
       ( AndOp                                                   (. x = t; .)
-        RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>    (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1); e0.OwnedTokens = new List<IToken>{x}; .)
+        RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>    (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1);
+                                                                                     e0.StartToken = e0.StartToken; e0.EndToken = t; .)
         { IF(IsAndOp())  /* read a conjunction as far as possible */
           AndOp                                                 (. x = t; .)
-          RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1); e0.OwnedTokens = new List<IToken>{x}; .)
+          RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1);
+                                                                                     e0.StartToken = e0.StartToken; e0.EndToken = t; .)
         }
         [ IF(IsOrOp()) OrOp (. SemErr(t, "Ambiguous use of && and ||. Use parentheses to disambiguate."); .) ]
       | OrOp                                                    (. x = t; .)
-        RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>    (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1); e0.OwnedTokens = new List<IToken>{x}; .)
+        RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>    (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1);
+                                                                                     e0.StartToken = e0.StartToken; e0.EndToken = t; .)
         { IF(IsOrOp())  /* read a disjunction as far as possible */
           OrOp                                                  (. x = t; .)
-          RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1); e0.OwnedTokens = new List<IToken>{x}; .)
+          RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1);
+                                                                                     e0.StartToken = e0.StartToken; e0.EndToken = t; .)
         }
         [ IF(IsAndOp()) AndOp (. SemErr(t, "Ambiguous use of && and ||. Use parentheses to disambiguate."); .) ]
       )
@@ -4042,7 +4051,7 @@ RelationalExpression<out Expression e, bool allowLemma, bool allowLambda, bool a
                                         Contract.Assert(op == BinaryExpr.Opcode.Eq || op == BinaryExpr.Opcode.Neq);
                                         e = new TernaryExpr(x, op == BinaryExpr.Opcode.Eq ? TernaryExpr.Opcode.PrefixEqOp : TernaryExpr.Opcode.PrefixNeqOp, k, e0, e1);
                                       }
-                                      e.StartToken = e0;
+                                      e.StartToken = e0.StartToken;
                                       e.EndToken = t;
                                    .)
     { IF(IsRelOp())  /* read a RelationalExpression as far as possible */
@@ -4176,7 +4185,8 @@ Term<out Expression e0, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
   Factor<out e0, allowLemma, allowLambda, allowBitwiseOps>
   { IF(IsAddOp())  /* read a Term as far as possible */
     AddOp<out x, out op>
-    Factor<out e1, allowLemma, allowLambda, allowBitwiseOps> (. e0 = new BinaryExpr(x, op, e0, e1); e0.OwnedTokens = new List<IToken>(){x}; .)
+    Factor<out e1, allowLemma, allowLambda, allowBitwiseOps> (. e0 = new BinaryExpr(x, op, e0, e1);
+                                                                e0.StartToken = e0.StartToken; e0.EndToken = t; .)
   }
   .
 
@@ -4301,11 +4311,11 @@ Lhs<out Expression e>
 /* A ConstAtomExpression is never an l-value, and does not start with an identifier. */
 ConstAtomExpression<out Expression e>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
-     IToken/*!*/ x;
+     IToken/*!*/ x = t;
      e = dummyExpr;
   .)
   ( LiteralExpression<out e>
-  | "this"                                     (. e = new ThisExpr(t); .)
+  | "this"                                     (. e = new ThisExpr(t); x = t; .)
   | "allocated"                                (. x = t; .)
     "("
     Expression<out e, true, true>
@@ -4357,7 +4367,7 @@ LiteralExpression<out Expression e>
                                                   string s = Util.RemoveParsedStringQuotes(t.val, out isVerbatimString);
                                                   e = new StringLiteralExpr(t, s, isVerbatimString);
                                                .)
-  ) (. e.OwnedTokens = new List<IToken>(){t}; .)
+  ) (. e.StartToken = t; e.EndToken = t; .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -4833,7 +4843,7 @@ CasePatternLocal<.out CasePattern<LocalVariable> pat, bool isGhost.>
   )
   (. // In case of parsing errors, make sure 'pat' still returns as non-null
      if (pat == null) {
-       pat = new CasePattern<LocalVariable>(t, "_ParseError");
+       pat = new CasePattern<LocalVariable>(t, "_ParseError", null);
      }
   .)
   .
@@ -4953,7 +4963,7 @@ Suffix<ref Expression e>
          e.StartToken = startToken; e.EndToken = t;
       .)
     )
-  | "["                                        (. x = t; .)
+  | "["                                        (. x = t; startToken = t; .)
       ( Expression<out ee, true, true>         (. e0 = ee; .)
         ( ".."                                 (. anyDots = true; .)
           [ Expression<out ee, true, true>     (. e1 = ee; .)
@@ -5022,7 +5032,7 @@ Suffix<ref Expression e>
          }
          e.StartToken = startToken; e.EndToken = t;
       .)
-  | "("                                    (. IToken openParen = t;
+  | "("                                    (. IToken openParen = t; startToken = t;
                                               var args = new List<ActualBinding>(); .)
     [ ActualBindings<args> ]
     ")"                                    (.

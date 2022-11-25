@@ -9,17 +9,14 @@ namespace Microsoft.Dafny;
 
 public abstract class Statement : INode, IAttributeBearingDeclaration {
   public readonly IToken Tok;
-  public readonly IToken EndTok;  // typically a terminating semi-colon or end-curly-brace
-  public LList<Label> Labels;  // mutable during resolution
+  public readonly IToken EndTok; // typically a terminating semi-colon or end-curly-brace
+  public LList<Label> Labels; // mutable during resolution
 
   private Attributes attributes;
+
   public Attributes Attributes {
-    get {
-      return attributes;
-    }
-    set {
-      attributes = value;
-    }
+    get { return attributes; }
+    set { attributes = value; }
   }
 
   [ContractInvariantMethod]
@@ -91,9 +88,7 @@ public abstract class Statement : INode, IAttributeBearingDeclaration {
   /// Filters only expressions that are always part of specifications
   /// </summary>
   public virtual IEnumerable<Expression> SpecificationSubExpressions {
-    get {
-      yield break;
-    }
+    get { yield break; }
   }
 
   /// <summary>
@@ -142,17 +137,21 @@ public abstract class Statement : INode, IAttributeBearingDeclaration {
   }
 
   [FilledInDuringResolution] private IToken rangeToken;
+
   public virtual IToken RangeToken {
     get {
       if (rangeToken == null) {
         // Need a special case for the elephant operator to avoid end < start
         rangeToken = new RangeToken(Tok, Tok.pos > EndTok.pos ? Tok : EndTok);
       }
+
       return rangeToken;
     }
   }
 
-  public override IEnumerable<INode> Children => SubStatements.Concat<INode>(SubExpressions);
+  public override IEnumerable<INode> Children =>
+    (Attributes != null ? new List<INode> { Attributes } : Enumerable.Empty<INode>()).Concat(
+      SubStatements.Concat<INode>(SubExpressions));
 }
 
 public class LList<T> {
@@ -493,8 +492,6 @@ public abstract class AssignmentRhs : INode {
   public virtual IEnumerable<Statement> SubStatements {
     get { yield break; }
   }
-
-  public abstract IEnumerable<INode> Children { get; }
 }
 
 public class ExprRhs : AssignmentRhs {
@@ -546,7 +543,7 @@ public class ExprRhs : AssignmentRhs {
 ///    or all of Path denotes a type
 ///      -- represents new C._ctor(EE), where _ctor is the anonymous constructor for class C
 /// </summary>
-public class TypeRhs : AssignmentRhs, INode {
+public class TypeRhs : AssignmentRhs {
   /// <summary>
   /// If ArrayDimensions != null, then the TypeRhs represents "new EType[ArrayDimensions]",
   ///     ElementInit is non-null to represent "new EType[ArrayDimensions] (elementInit)",
@@ -726,6 +723,9 @@ public class VarDeclPattern : Statement {
       yield return RHS;
     }
   }
+
+  public override IEnumerable<INode> Children =>
+    new List<INode> { LHS }.Concat(base.Children);
 
   public IEnumerable<LocalVariable> LocalVars {
     get {
@@ -967,7 +967,7 @@ public class AssignStmt : Statement {
   }
 }
 
-public class LocalVariable : IVariable, IAttributeBearingDeclaration {
+public class LocalVariable : INode, IVariable, IAttributeBearingDeclaration {
   public readonly IToken Tok;
   public readonly IToken EndTok;  // typically a terminating semi-colon or end-curly-brace
   readonly string name;
@@ -1063,7 +1063,7 @@ public class LocalVariable : IVariable, IAttributeBearingDeclaration {
   }
 
   public IToken NameToken => Tok;
-  public IEnumerable<INode> Children => type.Nodes;
+  public override IEnumerable<INode> Children => (Attributes != null ? new List<INode> { Attributes } : Enumerable.Empty<INode>()).Concat(type.Nodes);
 }
 
 /// <summary>
@@ -1223,12 +1223,13 @@ public class IfStmt : Statement {
   }
 }
 
-public class GuardedAlternative : IAttributeBearingDeclaration {
+public class GuardedAlternative : INode, IAttributeBearingDeclaration {
   public readonly IToken Tok;
   public readonly bool IsBindingGuard;
   public readonly Expression Guard;
   public readonly List<Statement> Body;
   public Attributes Attributes;
+  public override IEnumerable<INode> Children => (Attributes != null ? new List<INode> { Attributes } : Enumerable.Empty<INode>()).Concat(new List<INode>() { Guard }).Concat<INode>(Body);
   Attributes IAttributeBearingDeclaration.Attributes => Attributes;
 
   [ContractInvariantMethod]
@@ -1302,6 +1303,8 @@ public class AlternativeStmt : Statement {
       }
     }
   }
+
+  public override IEnumerable<INode> Children => Alternatives;
 }
 
 public abstract class LoopStmt : Statement, IDeclarationOrUsage {
@@ -1540,6 +1543,8 @@ public class AlternativeLoopStmt : LoopStmt {
       }
     }
   }
+
+  public override IEnumerable<INode> Children => SpecificationSubExpressions.Concat<INode>(Alternatives);
 }
 
 public class ForallStmt : Statement {

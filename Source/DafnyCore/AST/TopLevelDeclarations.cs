@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public abstract class Declaration : INamedRegion, IAttributeBearingDeclaration, IDeclarationOrUsage {
+public abstract class Declaration : INode, INamedRegion, IAttributeBearingDeclaration, IDeclarationOrUsage {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(tok != null);
@@ -134,12 +134,7 @@ public abstract class Declaration : INamedRegion, IAttributeBearingDeclaration, 
 
   internal FreshIdGenerator IdGenerator = new();
   public IToken NameToken => tok;
-  public virtual IEnumerable<INode> Children {
-    get {
-
-      return Enumerable.Empty<INode>();
-    }
-  }
+  public override IEnumerable<INode> Children => (Attributes != null ? new List<INode> { Attributes } : Enumerable.Empty<INode>());
 }
 
 public class TypeParameter : TopLevelDecl {
@@ -508,7 +503,7 @@ public class ExportSignature : INode, IHasUsages {
     Tok = idTok;
     Id = id;
     Opaque = opaque;
-    OwnedTokens = new List<IToken>() { Tok };
+    ownedTokens = new List<IToken>() { Tok };
   }
 
   public override string ToString() {
@@ -519,7 +514,7 @@ public class ExportSignature : INode, IHasUsages {
   }
 
   public IToken NameToken => Tok;
-  public IEnumerable<INode> Children => Enumerable.Empty<INode>();
+  public override IEnumerable<INode> Children => Enumerable.Empty<INode>();
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return new[] { Decl };
   }
@@ -627,8 +622,6 @@ public class ModuleDefinition : INode, IDeclarationOrUsage, INamedRegion, IAttri
   public readonly IToken tok;
   public IToken BodyStartTok = Token.NoToken;
   public IToken BodyEndTok = Token.NoToken;
-  public IToken StartToken = Token.NoToken;
-  public IToken EndToken = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
   public IEnumerable<IToken> OwnedTokens { get; set; } = new List<IToken>();
   public readonly string DafnyName; // The (not-qualified) name as seen in Dafny source code
@@ -946,7 +939,7 @@ public class ModuleDefinition : INode, IDeclarationOrUsage, INamedRegion, IAttri
   }
 
   public IToken NameToken => tok;
-  public IEnumerable<INode> Children => TopLevelDecls;
+  public override IEnumerable<INode> Children => (Attributes != null ? new List<INode> { Attributes } : Enumerable.Empty<INode>()).Concat(TopLevelDecls);
 }
 
 public class DefaultModuleDecl : ModuleDefinition {

@@ -34,8 +34,8 @@ namespace Microsoft.Dafny {
     /// </summary>
     public abstract IEnumerable<INode> Children { get; }
 
-    public IToken? StartToken { get; set; }
-    public IToken? EndToken { get; set; }
+    public IToken? StartToken { get; set; } = Token.NoToken;
+    public IToken? EndToken { get; set; } = Token.NoToken;
 
     protected IEnumerable<IToken>? ownedTokens;
 
@@ -163,12 +163,12 @@ namespace Microsoft.Dafny {
       return DefaultModuleDef.GetFirstTopLevelToken();
     }
 
-    public IEnumerable<INode> Children => new[] { DefaultModule };
+    public override IEnumerable<INode> Children => new[] { DefaultModule };
 
     public IEnumerable<INode> ConcreteChildren => Children;
   }
 
-  public class Include : IComparable {
+  public class Include : INode, IComparable {
     public readonly IToken tok;
     public string IncluderFilename { get; }
     public string IncludedFilename { get; }
@@ -193,6 +193,8 @@ namespace Microsoft.Dafny {
         throw new NotImplementedException();
       }
     }
+
+    public override IEnumerable<INode> Children => Enumerable.Empty<INode>();
   }
 
   /// <summary>
@@ -211,7 +213,7 @@ namespace Microsoft.Dafny {
     Attributes Attributes { get; }
   }
 
-  public class Attributes {
+  public class Attributes : INode {
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Name != null);
@@ -221,8 +223,8 @@ namespace Microsoft.Dafny {
     public string Name;
     /*Frozen*/
     public readonly List<Expression> Args;
-    public readonly Attributes Prev;
 
+    public readonly Attributes Prev;
     public Attributes(string name, [Captured] List<Expression> args, Attributes prev) {
       Contract.Requires(name != null);
       Contract.Requires(cce.NonNullElements(args));
@@ -380,6 +382,11 @@ namespace Microsoft.Dafny {
         return false;
       }
     }
+
+    public override IEnumerable<INode> Children => Args.Concat<INode>(
+      Prev != null
+        ? Enumerable.Empty<INode>()
+        : new List<INode> { Prev });
   }
 
   public static class AttributesExtensions {
@@ -463,7 +470,7 @@ namespace Microsoft.Dafny {
     }
   }
   [ContractClassFor(typeof(IVariable))]
-  public abstract class IVariableContracts : IVariable {
+  public abstract class IVariableContracts : INode, IVariable {
     public IEnumerable<IToken> OwnedTokens { get; set; } = new List<IToken>();
     public string Name {
       get {
@@ -536,11 +543,10 @@ namespace Microsoft.Dafny {
       throw new NotImplementedException();
     }
 
-    public abstract IEnumerable<INode> Children { get; }
     public abstract IToken NameToken { get; }
   }
 
-  public abstract class NonglobalVariable : IVariable {
+  public abstract class NonglobalVariable : INode, IVariable {
     public readonly IToken tok;
     readonly string name;
 
@@ -661,7 +667,7 @@ namespace Microsoft.Dafny {
     }
 
     public IToken NameToken => tok;
-    public IEnumerable<INode> Children => Type.Nodes;
+    public override IEnumerable<INode> Children => Type.Nodes;
   }
 
   public class Formal : NonglobalVariable {
@@ -811,7 +817,7 @@ namespace Microsoft.Dafny {
     public readonly Expression Actual;
     public readonly bool IsGhost;
 
-    public IEnumerable<INode> Children => new List<INode> { Actual }.Where(x => x != null);
+    public override IEnumerable<INode> Children => new List<INode> { Actual }.Where(x => x != null);
     // Names are owned by the method call
 
     public ActualBinding(IToken /*?*/ formalParameterName, Expression actual, bool isGhost = false) {
