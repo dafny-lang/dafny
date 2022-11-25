@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public abstract class Statement : IAttributeBearingDeclaration, INode {
+public abstract class Statement : INode, IAttributeBearingDeclaration {
   public readonly IToken Tok;
   public readonly IToken EndTok;  // typically a terminating semi-colon or end-curly-brace
   public LList<Label> Labels;  // mutable during resolution
@@ -32,6 +32,7 @@ public abstract class Statement : IAttributeBearingDeclaration, INode {
     Contract.Requires(tok != null);
     Contract.Requires(endTok != null);
     this.Tok = tok;
+    this.StartToken = tok;
     this.EndTok = endTok;
     this.attributes = attrs;
   }
@@ -149,7 +150,10 @@ public abstract class Statement : IAttributeBearingDeclaration, INode {
     }
   }
 
-  public virtual IEnumerable<INode> Children => SubStatements.Concat<INode>(SubExpressions);
+
+  public override IEnumerable<INode> Children =>
+    (Attributes != null ? new List<INode> { Attributes } : Enumerable.Empty<INode>()).Concat(
+      SubStatements.Concat<INode>(SubExpressions));
 }
 
 public class LList<T> {
@@ -283,6 +287,7 @@ public class YieldStmt : ProduceStmt {
 
 public abstract class AssignmentRhs : INode {
   public readonly IToken Tok;
+  public IEnumerable<IToken> OwnedTokens { get; set; } = new List<IToken>();
 
   private Attributes attributes;
   public Attributes Attributes {
@@ -319,8 +324,6 @@ public abstract class AssignmentRhs : INode {
   public virtual IEnumerable<Statement> SubStatements {
     get { yield break; }
   }
-
-  public abstract IEnumerable<INode> Children { get; }
 }
 
 public class ExprRhs : AssignmentRhs {
@@ -372,7 +375,7 @@ public class ExprRhs : AssignmentRhs {
 ///    or all of Path denotes a type
 ///      -- represents new C._ctor(EE), where _ctor is the anonymous constructor for class C
 /// </summary>
-public class TypeRhs : AssignmentRhs, INode {
+public class TypeRhs : AssignmentRhs {
   /// <summary>
   /// If ArrayDimensions != null, then the TypeRhs represents "new EType[ArrayDimensions]",
   ///     ElementInit is non-null to represent "new EType[ArrayDimensions] (elementInit)",
@@ -553,6 +556,9 @@ public class VarDeclPattern : Statement {
     }
   }
 
+  public override IEnumerable<INode> Children =>
+    new List<INode> { LHS }.Concat(base.Children);
+
   public IEnumerable<LocalVariable> LocalVars {
     get {
       foreach (var bv in LHS.Vars) {
@@ -627,11 +633,12 @@ public class UpdateStmt : ConcreteUpdateStatement {
   }
 }
 
-public class LocalVariable : IVariable, IAttributeBearingDeclaration {
+public class LocalVariable : INode, IVariable, IAttributeBearingDeclaration {
   public readonly IToken Tok;
   public readonly IToken EndTok;  // typically a terminating semi-colon or end-curly-brace
   readonly string name;
   public Attributes Attributes;
+  public IEnumerable<IToken> OwnedTokens { get; set; } = new List<IToken>();
   Attributes IAttributeBearingDeclaration.Attributes => Attributes;
   public bool IsGhost;
   [ContractInvariantMethod]
@@ -722,7 +729,7 @@ public class LocalVariable : IVariable, IAttributeBearingDeclaration {
   }
 
   public IToken NameToken => Tok;
-  public IEnumerable<INode> Children => type.Nodes;
+  public override IEnumerable<INode> Children => (Attributes != null ? new List<INode> { Attributes } : Enumerable.Empty<INode>()).Concat(type.Nodes);
 }
 
 /// <summary>
@@ -782,12 +789,13 @@ public class CallStmt : Statement {
   }
 }
 
-public class GuardedAlternative : IAttributeBearingDeclaration {
+public class GuardedAlternative : INode, IAttributeBearingDeclaration {
   public readonly IToken Tok;
   public readonly bool IsBindingGuard;
   public readonly Expression Guard;
   public readonly List<Statement> Body;
   public Attributes Attributes;
+  public override IEnumerable<INode> Children => (Attributes != null ? new List<INode> { Attributes } : Enumerable.Empty<INode>()).Concat(new List<INode>() { Guard }).Concat<INode>(Body);
   Attributes IAttributeBearingDeclaration.Attributes => Attributes;
 
   [ContractInvariantMethod]

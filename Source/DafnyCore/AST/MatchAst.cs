@@ -70,10 +70,12 @@ public class MatchExpr : Expression {  // a MatchExpr is an "extended expression
   }
 }
 
-public abstract class MatchCase : IHasUsages {
+public abstract class MatchCase : INode, IHasUsages {
   public readonly IToken tok;
   [FilledInDuringResolution] public DatatypeCtor Ctor;
   public List<BoundVar> Arguments; // created by the resolver.
+  public IEnumerable<IToken> OwnedTokens { get; set; } = new List<IToken>();
+
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(tok != null);
@@ -91,7 +93,6 @@ public abstract class MatchCase : IHasUsages {
   }
 
   public IToken NameToken => tok;
-  public abstract IEnumerable<INode> Children { get; }
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return new[] { Ctor };
   }
