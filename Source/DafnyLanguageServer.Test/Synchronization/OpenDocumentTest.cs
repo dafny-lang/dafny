@@ -96,7 +96,7 @@ method Recurse(x: int) returns (r: int) {
         r := Recurse(x - 1);
     }
 }".Trim();
-      await SetUp(options => VerificationOption.Instance.Set(options, AutoVerification.Never));
+      await SetUp(options => VerificationOption.Instance.Set(options, VerifyOnMode.Never));
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);

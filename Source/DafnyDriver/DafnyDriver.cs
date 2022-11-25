@@ -130,7 +130,7 @@ namespace Microsoft.Dafny {
           throw new ArgumentOutOfRangeException();
       }
 
-      if (dafnyOptions.RunServer) {
+      if (dafnyOptions.RunLanguageServer) {
 #pragma warning disable VSTHRD002
         LanguageServer.Server.Start(dafnyOptions).Wait();
 #pragma warning restore VSTHRD002
@@ -189,7 +189,7 @@ namespace Microsoft.Dafny {
         return CommandLineArgumentsResult.PREPROCESSING_ERROR;
       }
 
-      if (options.RunServer) {
+      if (options.RunLanguageServer) {
         return CommandLineArgumentsResult.OK;
       }
 

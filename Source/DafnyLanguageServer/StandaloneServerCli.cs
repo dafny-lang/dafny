@@ -39,7 +39,13 @@ namespace Microsoft.Dafny.LanguageServer {
 
       var documentOptions = new DocumentOptions();
       configuration.Bind(DocumentOptions.Section, documentOptions);
-      VerificationOption.Instance.Set(dafnyOptions, documentOptions.Verify);
+      var mode = documentOptions.Verify switch {
+        AutoVerification.Never => VerifyOnMode.Never,
+        AutoVerification.OnChange => VerifyOnMode.Change,
+        AutoVerification.OnSave => VerifyOnMode.Save,
+        _ => throw new ArgumentOutOfRangeException()
+      };
+      VerificationOption.Instance.Set(dafnyOptions, mode);
 
       var pluginOptions = new DafnyPluginsOptions();
       configuration.Bind(DafnyPluginsOptions.Section, pluginOptions);

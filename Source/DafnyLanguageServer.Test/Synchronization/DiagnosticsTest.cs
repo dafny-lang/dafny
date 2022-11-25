@@ -288,7 +288,7 @@ method Multiply(x: int, y: int) returns (product: int)
     product := x + step;
   }
 }".TrimStart();
-      await SetUp(options => VerificationOption.Instance.Set(options, AutoVerification.Never));
+      await SetUp(options => VerificationOption.Instance.Set(options, VerifyOnMode.Never));
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
@@ -369,7 +369,7 @@ method Multiply(x: int, y: int) returns (product: int)
     product := x + step;
   }
 }".TrimStart();
-      await SetUp(options => VerificationOption.Instance.Set(options, AutoVerification.Never));
+      await SetUp(options => VerificationOption.Instance.Set(options, VerifyOnMode.Never));
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnosticsAfterOpening = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
@@ -427,7 +427,7 @@ method Multiply(x: int, y: int) returns (product: int)
     product := x + step;
   }
 }".TrimStart();
-      await SetUp(options => VerificationOption.Instance.Set(options, AutoVerification.Never));
+      await SetUp(options => VerificationOption.Instance.Set(options, VerifyOnMode.Never));
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
@@ -601,7 +601,7 @@ method Multiply(x: int, y: int) returns (product: int)
     product := x + step;
   }
 }".TrimStart();
-      await SetUp(options => VerificationOption.Instance.Set(options, AutoVerification.OnSave));
+      await SetUp(options => VerificationOption.Instance.Set(options, VerifyOnMode.Save));
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var changeDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);

@@ -33,7 +33,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     public async Task ChangingTheDocumentStopsOnSaveVerification() {
       await SetUp(options => {
         CoresOption.Instance.Set(options, 2);
-        VerificationOption.Instance.Set(options, AutoVerification.OnSave);
+        VerificationOption.Instance.Set(options, VerifyOnMode.Save);
       });
       var documentItem = CreateTestDocument(SlowToVerify2);
       client.OpenDocument(documentItem);
@@ -52,7 +52,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     public async Task ChangingTheDocumentStopsManualVerification() {
       await SetUp(options => {
         CoresOption.Instance.Set(options, 2);
-        VerificationOption.Instance.Set(options, AutoVerification.OnSave);
+        VerificationOption.Instance.Set(options, VerifyOnMode.Save);
       });
       var documentItem = CreateTestDocument(SlowToVerify2);
       client.OpenDocument(documentItem);

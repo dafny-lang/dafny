@@ -69,8 +69,8 @@ https://github.com/dafny-lang/dafny/blob/master/Source/DafnyLanguageServer/READM
         }
 
         options.Plugins.Add(AssemblyPlugin.Load(pluginPath, arguments));
-      } catch (Exception) {
-        return $"Error while instantiating plugin '{pluginAndArgument}'.";
+      } catch (Exception e) {
+        return $"Error while instantiating plugin '{pluginAndArgument}':\n{e}";
       }
     }
 

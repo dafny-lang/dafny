@@ -25,7 +25,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [TestMethod]
     public async Task CounterexamplesStillWorksIfNothingHasBeenVerified() {
-      await SetUp(options => VerificationOption.Instance.Set(options, AutoVerification.Never));
+      await SetUp(options => VerificationOption.Instance.Set(options, VerifyOnMode.Never));
       var source = @"
       method Abs(x: int) returns (y: int)
         ensures y > 0

@@ -29,9 +29,9 @@ public class DocumentManager {
   private IDisposable observerSubscription;
   private readonly ILogger<DocumentManager> logger;
 
-  private bool VerifyOnOpen => VerificationOption.Instance.Get(options) == AutoVerification.OnChange;
-  private bool VerifyOnChange => VerificationOption.Instance.Get(options) == AutoVerification.OnChange;
-  private bool VerifyOnSave => VerificationOption.Instance.Get(options) == AutoVerification.OnSave;
+  private bool VerifyOnOpen => VerificationOption.Instance.Get(options) == VerifyOnMode.Change;
+  private bool VerifyOnChange => VerificationOption.Instance.Get(options) == VerifyOnMode.Change;
+  private bool VerifyOnSave => VerificationOption.Instance.Get(options) == VerifyOnMode.Save;
   public List<Position> ChangedVerifiables { get; set; } = new();
   public List<Range> ChangedRanges { get; set; } = new();
 
