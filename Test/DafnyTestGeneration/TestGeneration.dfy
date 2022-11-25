@@ -3,9 +3,7 @@
 // RUN: cp %S/TestGeneration.dfy %t.dfy
 // RUN: %baredafny generate-tests %args Block %t.dfy > %t-tests.dfy
 // RUN: %baredafny translate %args --include-runtime --compile-verbose --no-verify "%t-tests.dfy" > "%t"
-// RUN: echo 'joooo' >&2
 // RUN: dotnet test -v:q -noLogo %S >> %t
-// RUN: false
 
 // RUN: %OutputCheck --file-to-check "%t" "%s"
 // CHECK: .*Passed!  - Failed:     0, Passed:     3, Skipped:     0, Total:     3*
