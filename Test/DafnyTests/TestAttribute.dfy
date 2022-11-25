@@ -1,5 +1,6 @@
+// UNSUPPORTED: macosx
 // RUN: %dafny_0 /compileVerbose:1 /compile:0 /spillTargetCode:3 /noVerify "%s" > "%t"
-// RUN: ! dotnet test -v:q -noLogo %S >> %t
+// RUN: dotnet test -v:q -noLogo %S >> %t || true
 //
 // RUN: %OutputCheck --file-to-check "%t" "%s"
 // CHECK: .*Error: Post-conditions on function Identity might be unsatisfied when synthesizing code for method mockUnsafe.*
