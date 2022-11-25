@@ -45,7 +45,7 @@ namespace Microsoft.Dafny {
       return useCompileSignatures || d.IsVisibleInScope(moduleInfo.VisibilityScope);
     }
 
-    static FreshIdGenerator defaultTempVarIdGenerator = new FreshIdGenerator();
+    public static FreshIdGenerator defaultTempVarIdGenerator = new FreshIdGenerator();
 
     public string FreshTempVarName(string prefix, ICodeContext context) {
       var gen = context is Declaration decl ? decl.IdGenerator : defaultTempVarIdGenerator;
@@ -445,7 +445,6 @@ namespace Microsoft.Dafny {
       if (DafnyOptions.O.DisallowConstructorCaseWithoutParentheses) {
         rewriters.Add(new ConstructorWarning(reporter));
       }
-      rewriters.Add(new CompileNestedMatch(this));
       rewriters.Add(new UselessOldLinter(reporter));
       rewriters.Add(new PrecedenceLinter(reporter));
 

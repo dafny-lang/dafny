@@ -1314,6 +1314,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public override void Compile(Program program, ConcreteSyntaxTree wrx) {
 
+
       Contract.Requires(program != null);
 
       EmitHeader(program, wrx);
@@ -1322,6 +1323,8 @@ namespace Microsoft.Dafny.Compilers {
       OrganizeModules(program, out temp);
       program.CompileModules = temp;
       foreach (ModuleDefinition m in program.CompileModules) {
+        new MatchDenester(program.Reporter, Resolver.defaultTempVarIdGenerator).Transform(m);
+
         if (m.IsAbstract) {
           // the purpose of an abstract module is to skip compilation
           continue;

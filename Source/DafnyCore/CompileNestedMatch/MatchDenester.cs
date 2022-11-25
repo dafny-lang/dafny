@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.Contracts;
 using System.Linq;
-using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny; 
 
@@ -38,19 +36,17 @@ namespace Microsoft.Dafny;
 ///
 /// 
 /// </summary>
-public class CompileNestedMatch : IRewriter {
+public class MatchDenester {
+  private readonly ErrorReporter reporter;
+  private readonly FreshIdGenerator idGenerator;
   private ResolutionContext resolutionContext;
-  private readonly Resolver resolver;
 
-  public CompileNestedMatch(Resolver resolver) : base(resolver.reporter) {
-    this.resolver = resolver;
+  public MatchDenester(ErrorReporter reporter, FreshIdGenerator idGenerator)  {
+    this.reporter = reporter;
+    this.idGenerator = idGenerator;
   }
 
-  internal override void PostCompileCloneAndResolve(ModuleDefinition moduleDefinition) {
-    PostResolve(moduleDefinition);
-  }
-
-  internal override void PostResolve(ModuleDefinition moduleDefinition) {
+  public void Transform(ModuleDefinition moduleDefinition) {
 
     ((INode)moduleDefinition).Visit(node => {
       if (node != moduleDefinition && node is ModuleDefinition) {
@@ -211,11 +207,11 @@ public class CompileNestedMatch : IRewriter {
       var newME = ((CExpr)compiledMatch).Body;
       for (int id = 0; id < state.CaseCopyCount.Length; id++) {
         if (state.CaseCopyCount[id] <= 0) {
-          resolver.reporter.Warning(MessageSource.Resolver, state.CaseTok[id], "this branch is redundant"); // TODO change to "this case is redundant"
-          resolver.scope.PushMarker();
-          //CheckLinearNestedMatchCase(e.Source.Type, cases.ElementAt(id), resolutionContext);
-          //ResolveExpression(cases.ElementAt(id).Body, resolutionContext);
-          resolver.scope.PopMarker();
+          reporter.Warning(MessageSource.Resolver, state.CaseTok[id], "this branch is redundant"); // TODO change to "this case is redundant"
+          // resolver.scope.PushMarker();
+          // //CheckLinearNestedMatchCase(e.Source.Type, cases.ElementAt(id), resolutionContext);
+          // //ResolveExpression(cases.ElementAt(id).Body, resolutionContext);
+          // resolver.scope.PopMarker();
         }
       }
       return newME;
@@ -252,11 +248,11 @@ public class CompileNestedMatch : IRewriter {
       result.Attributes = (new ClonerKeepParensExpressions()).CloneAttributes(nestedMatchStmt.Attributes);
       for (int id = 0; id < state.CaseCopyCount.Length; id++) {
         if (state.CaseCopyCount[id] <= 0) {
-          resolver.reporter.Warning(MessageSource.Resolver, state.CaseTok[id], "this branch is redundant");
-          resolver.scope.PushMarker();
-          // CheckLinearNestedMatchCase(s.Source.Type, cases.ElementAt(id), resolutionContext);
-          // cases.ElementAt(id).Body.ForEach(s => ResolveStatement(s, resolutionContext));
-          resolver.scope.PopMarker();
+          reporter.Warning(MessageSource.Resolver, state.CaseTok[id], "this branch is redundant");
+          // resolver.scope.PushMarker();
+          // // CheckLinearNestedMatchCase(s.Source.Type, cases.ElementAt(id), resolutionContext);
+          // // cases.ElementAt(id).Body.ForEach(s => ResolveStatement(s, resolutionContext));
+          // resolver.scope.PopMarker();
         }
       }
 
@@ -285,18 +281,24 @@ public class CompileNestedMatch : IRewriter {
         return pat;
       case IdPattern p:
         if (inDisjunctivePattern && p.ResolvedLit == null && p.Arguments == null && !p.IsWildcardPattern) {
-          resolver.reporter.Error(MessageSource.Resolver, pat.Tok, "Disjunctive patterns may not bind variables");
-          return new IdPattern(p.Tok, resolver.FreshTempVarName("_", null), null, p.IsGhost);
+          reporter.Error(MessageSource.Resolver, pat.Tok, "Disjunctive patterns may not bind variables");
+          return new IdPattern(p.Tok, FreshTempVarName("_", null), null, p.IsGhost);
         }
         var args = p.Arguments?.ConvertAll(a => RemoveIllegalSubpatterns(a, inDisjunctivePattern));
         return new IdPattern(p.Tok, p.Id, p.Type, args, p.IsGhost) { ResolvedLit = p.ResolvedLit, BoundVar = p.BoundVar };
       case DisjunctivePattern p:
-        resolver.reporter.Error(MessageSource.Resolver, pat.Tok, "Disjunctive patterns are not allowed inside other patterns");
-        return new IdPattern(p.Tok, resolver.FreshTempVarName("_", null), null, p.IsGhost);
+        reporter.Error(MessageSource.Resolver, pat.Tok, "Disjunctive patterns are not allowed inside other patterns");
+        return new IdPattern(p.Tok, FreshTempVarName("_", null), null, p.IsGhost);
       default:
         Contract.Assert(false);
         return null;
     }
+  }
+
+  string FreshTempVarName(string prefix, ICodeContext context) {
+    var gen = context is Declaration decl ? decl.IdGenerator : idGenerator;
+    var freshTempVarName = gen.FreshId(prefix);
+    return freshTempVarName;
   }
 
   private IEnumerable<ExtendedPattern> FlattenDisjunctivePatterns(ExtendedPattern pat) {
@@ -349,7 +351,7 @@ public class CompileNestedMatch : IRewriter {
 
     // For each path, number of matchees (n) is the number of patterns held by the path
     if (!paths.TrueForAll(x => matchees.Count() == x.Patterns.Count)) {
-      resolver.reporter.Error(MessageSource.Resolver, state.Tok, "Match is malformed, make sure constructors are fully applied");
+      reporter.Error(MessageSource.Resolver, state.Tok, "Match is malformed, make sure constructors are fully applied");
     }
 
     if (paths.Count == 0) {
@@ -386,11 +388,12 @@ public class CompileNestedMatch : IRewriter {
     Expression currMatchee = consMatchees.Head;
 
     // Get the datatype of the matchee
-    var currMatcheeType = resolver.PartiallyResolveTypeForMemberSelection(currMatchee.tok, currMatchee.Type)
+    var currMatcheeType = currMatchee.Type
+    // resolver.PartiallyResolveTypeForMemberSelection(currMatchee.tok, currMatchee.Type)
       .NormalizeExpand();
-    if (currMatcheeType is TypeProxy) {
-      resolver.PartiallySolveTypeConstraints(true);
-    }
+    // if (currMatcheeType is TypeProxy) {
+    //   resolver.PartiallySolveTypeConstraints(true);
+    // }
 
     var dtd = currMatcheeType.AsDatatype;
 
@@ -444,7 +447,7 @@ public class CompileNestedMatch : IRewriter {
             Contract.Assert(false);
             throw new cce.UnreachableException(); // non-nullary constructors of a non-datatype;
           } else {
-            resolver.reporter.Error(MessageSource.Resolver, currPattern.Tok,
+            reporter.Error(MessageSource.Resolver, currPattern.Tok,
               "Type mismatch: expected constructor of type {0}.  Got {1}.", dtd.Name, currPattern.Id);
           }
         }
@@ -505,7 +508,7 @@ public class CompileNestedMatch : IRewriter {
             // After making sure the constructor is applied to the right number of arguments
 
             if (!(idPattern.Arguments.Count.Equals(ctor.Formals.Count))) {
-              resolver.reporter.Error(MessageSource.Resolver, mti.CaseTok[tail.CaseId], "constructor {0} of arity {1} is applied to {2} argument(s)", ctor.Name, ctor.Formals.Count, idPattern.Arguments.Count);
+              reporter.Error(MessageSource.Resolver, mti.CaseTok[tail.CaseId], "constructor {0} of arity {1} is applied to {2} argument(s)", ctor.Name, ctor.Formals.Count, idPattern.Arguments.Count);
             }
             for (int j = 0; j < idPattern.Arguments.Count; j++) {
               // mark patterns standing in for ghost field
@@ -525,7 +528,7 @@ public class CompileNestedMatch : IRewriter {
 
             // make sure this potential bound var is not applied to anything, in which case it is likely a mispelled constructor
             if (idPattern.Arguments != null && idPattern.Arguments.Count != 0) {
-              resolver.reporter.Error(MessageSource.Resolver, mti.CaseTok[tail.CaseId], "bound variable {0} applied to {1} argument(s).", idPattern.Id, idPattern.Arguments.Count);
+              reporter.Error(MessageSource.Resolver, mti.CaseTok[tail.CaseId], "bound variable {0} applied to {1} argument(s).", idPattern.Id, idPattern.Arguments.Count);
             }
 
             List<IdPattern> freshArgs = ctor.Formals.ConvertAll(x =>
@@ -599,12 +602,12 @@ public class CompileNestedMatch : IRewriter {
   }
 
   private BoundVar CreateBoundVariable(IToken tok, Type type, ICodeContext codeContext) {
-    var name = resolver.FreshTempVarName("_mcc#", codeContext);
+    var name = FreshTempVarName("_mcc#", codeContext);
     return new BoundVar(new AutoGeneratedToken(tok), name, type);
   }
 
   private IdPattern CreateFreshBindingPattern(IToken tok, Type type, ICodeContext codeContext, bool isGhost = false) {
-    var name = resolver.FreshTempVarName("_mcc#", codeContext);
+    var name = FreshTempVarName("_mcc#", codeContext);
     return new IdPattern(new AutoGeneratedToken(tok), name, type, null, isGhost);
   }
 
