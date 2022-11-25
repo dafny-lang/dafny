@@ -1,8 +1,0 @@
-// Dafny 3.9.0.41003
-// Command Line Options: /useBaseNameForFileName /vcsCores:2 /compileVerbose:0 /timeLimit:300 /compileTarget:cpp /compile:3 /Users/remywillems/SourceCode/dafny/Test/comp/compile3/JustRun.dfy
-// JustRun.dfy
-
-method Main()
-{
-  print "hello, Dafny\n";
-}
