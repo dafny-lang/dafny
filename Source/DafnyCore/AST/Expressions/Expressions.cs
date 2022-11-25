@@ -2850,7 +2850,7 @@ public abstract class ConcreteSyntaxStatement : Statement {
   [FilledInDuringResolution] public Statement ResolvedStatement;  // after resolution, manipulation of "this" should proceed as with manipulating "this.ResolvedExpression"
 
   public override IEnumerable<INode> Children =>
-    ResolvedStatement == null ? base.Children : new [] { ResolvedStatement };
+    ResolvedStatement == null ? base.Children : new[] { ResolvedStatement };
 
   public ConcreteSyntaxStatement(Cloner cloner, ConcreteSyntaxStatement original) : base(cloner, original) {
     if (cloner.CloneResolvedFields) {

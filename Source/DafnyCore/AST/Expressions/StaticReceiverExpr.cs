@@ -59,7 +59,7 @@ public class StaticReceiverExpr : LiteralExpr {
       Contract.Assert(top != null);
       var clArgsInTermsOfTFormals = cl.TypeArgs.ConvertAll(tp => top.ParentFormalTypeParametersToActuals[tp]);
       var subst = TypeParameter.SubstitutionMap(top.TypeArgs, t.TypeArgs);
-      var typeArgs = clArgsInTermsOfTFormals.ConvertAll(ty => ty.Subst( subst));
+      var typeArgs = clArgsInTermsOfTFormals.ConvertAll(ty => ty.Subst(subst));
       Type = new UserDefinedType(tok, cl.Name, cl, typeArgs);
     } else if (t.Name != cl.Name) {  // t may be using the name "C?", and we'd prefer it read "C"
       Type = new UserDefinedType(tok, cl.Name, cl, t.TypeArgs);
