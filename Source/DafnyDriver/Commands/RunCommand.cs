@@ -10,10 +10,9 @@ class RunCommand : ICommandSpec {
 
   public IEnumerable<IOptionSpec> Options =>
     new IOptionSpec[] {
-      TargetOption.Instance,
       InputsOption.Instance,
-      VerificationTimeLimitOption.Instance,
-    }.Concat(ICommandSpec.ExecutionOptions).
+    }.Concat(ICommandSpec.VerificationOptions).
+      Concat(ICommandSpec.ExecutionOptions).
       Concat(ICommandSpec.CommonOptions);
 
   public RunCommand() {
