@@ -132,7 +132,7 @@ namespace IntegrationTests {
     }
 
     [FileTheory]
-    [FileData(Includes = new[] { "**/DafnyTests/TestAttribute.dfy" },
+    [FileData(Includes = new[] { "**/*.dfy", "**/*.transcript" },
               Excludes = new[] { "**/Inputs/**/*", "**/Output/**/*", "refman/examples/**/*",
                 "tutorial/AutoExtern", // This is tested separately in the unit tests of Source/AutoExtern
               })]

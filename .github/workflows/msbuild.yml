@@ -66,4 +66,4 @@ jobs:
       # label, and skip checking the nightly build above.
       # This is the best way to fix an issue in master that was only caught by the nightly build.
       all_platforms: ${{ contains(github.event.pull_request.labels.*.name, 'run-deep-tests') }}
-      num_shards: 1
+      num_shards: 5
