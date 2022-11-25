@@ -124,9 +124,8 @@ namespace XUnitExtensions.Lit {
     public override string ToString() {
       var builder = new StringBuilder();
       builder.Append(shellCommand);
-      builder.Append(" [");
-      builder.AppendJoin("] [", arguments);
-      builder.Append(']');
+      builder.Append(' ');
+      builder.AppendJoin(" ", arguments);
       return builder.ToString();
     }
   }
