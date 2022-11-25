@@ -1,5 +1,7 @@
 // RUN: %dafny_0 /compileVerbose:1 /compile:0 /spillTargetCode:3 /noVerify "%s" > "%t"
-// RUN: ! dotnet test -v:q -noLogo %S >> %t
+// RUN: echo %S
+// RUN: ls %S
+// RUN: ! dotnet test -v:q -noLogo %S/DafnyTests.csproj >> %t
 //
 // RUN: %OutputCheck --file-to-check "%t" "%s"
 // CHECK: .*Error: Post-conditions on function Identity might be unsatisfied when synthesizing code for method mockUnsafe.*
