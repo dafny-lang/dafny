@@ -11,7 +11,7 @@
 
       <PackageLicenseExpression>MIT</PackageLicenseExpression>
 
-      <IsPackable>false</IsPackable>
+      <IsPackable>true</IsPackable>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net6.0|AnyCPU'">
@@ -30,7 +30,7 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
       
     <!-- Locking down versions that would otherwise be downgraded -->
-    <PackageReference Include="System.Security.Principal.Windows" Version="4.5.0" />
+    <PackageReference Include="System.Security.Principal.Windows" Version="4.6.0" />
     <PackageReference Include="System.Collections" Version="4.3.0" />
     <PackageReference Include="System.Diagnostics.Debug" Version="4.3.0" />
     <PackageReference Include="System.IO.FileSystem.Primitives" Version="4.3.0" />
@@ -44,9 +44,5 @@
     <ProjectReference Include="..\DafnyCore\DafnyCore.csproj" />
     <ProjectReference Include="..\DafnyTestGeneration\DafnyTestGeneration.csproj" />
     <ProjectReference Include="..\DafnyServer\DafnyServer.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Include="..\version.cs" />
   </ItemGroup>
 </Project>

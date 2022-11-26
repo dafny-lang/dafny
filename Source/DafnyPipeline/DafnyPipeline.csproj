@@ -7,7 +7,6 @@
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <OutputPath>..\..\Binaries\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
-    <VersionPrefix>3.8.0.40729</VersionPrefix>
     <TargetFramework>net6.0</TargetFramework>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
@@ -58,10 +57,6 @@
     <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntime.py">
       <LogicalName>DafnyRuntime.py</LogicalName>
     </EmbeddedResource>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Include="..\version.cs" />
   </ItemGroup>
 
 </Project>

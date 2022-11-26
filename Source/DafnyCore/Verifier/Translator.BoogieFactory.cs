@@ -52,6 +52,7 @@ namespace Microsoft.Dafny {
       AsFuelBottom,
       CharFromInt,
       CharToInt,
+      IsChar,
 
       Is, IsBox,
       IsAlloc, IsAllocBox,
@@ -244,6 +245,10 @@ namespace Microsoft.Dafny {
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "char#ToInt", predef.CharType, args);
+        case BuiltinFunction.IsChar:
+          Contract.Assert(args.Length == 1);
+          Contract.Assert(typeInstantiation == null);
+          return FunctionCall(tok, "char#IsChar", Bpl.Type.Bool, args);
 
         case BuiltinFunction.Is:
           Contract.Assert(args.Length == 2);

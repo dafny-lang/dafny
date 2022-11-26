@@ -4,10 +4,13 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Diagnostics.Metrics;
 using System.Linq;
+using System.Net.Mime;
+using System.Threading;
 using Microsoft.Boogie;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.Dafny.LanguageServer.Language;
+using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
-using SymbolTable = Microsoft.Dafny.LanguageServer.Language.Symbols.SymbolTable;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -37,7 +40,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public IdeState InitialIdeState() {
       return ToIdeState(new IdeState(TextDocumentItem, Array.Empty<Diagnostic>(),
-        SymbolTable.Empty(TextDocumentItem), new Dictionary<ImplementationId, ImplementationView>(),
+        SymbolTable.Empty(), SignatureAndCompletionTable.Empty(TextDocumentItem), new Dictionary<ImplementationId, ImplementationView>(),
         Array.Empty<Counterexample>(),
         false, Array.Empty<Diagnostic>(),
         new DocumentVerificationTree(TextDocumentItem)));
@@ -83,13 +86,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       DocumentTextBuffer textDocumentItem,
       Dafny.Program program,
       IReadOnlyList<Diagnostic> parseAndResolutionDiagnostics,
-      SymbolTable symbolTable,
+      SymbolTable? newSymbolTable,
+      SignatureAndCompletionTable signatureAndCompletionTable,
       IReadOnlyList<Diagnostic> ghostDiagnostics,
       IReadOnlyList<IImplementationTask> verificationTasks,
       List<Counterexample> counterexamples,
       Dictionary<ImplementationId, ImplementationView> implementationIdToView,
       VerificationTree verificationTree)
-      : base(textDocumentItem, program, parseAndResolutionDiagnostics, symbolTable, ghostDiagnostics) {
+      : base(textDocumentItem, program, parseAndResolutionDiagnostics, newSymbolTable, signatureAndCompletionTable, ghostDiagnostics) {
       VerificationTree = verificationTree;
       VerificationTasks = verificationTasks;
       Counterexamples = counterexamples;
@@ -135,14 +139,5 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
   public record ImplementationView(Range Range, PublishedVerificationStatus Status, IReadOnlyList<Diagnostic> Diagnostics);
 
-  public record DocumentTextBuffer(int NumberOfLines) : TextDocumentItem {
-    public static DocumentTextBuffer From(TextDocumentItem textDocumentItem) {
-      return new DocumentTextBuffer(TextChangeProcessor.ComputeNumberOfLines(textDocumentItem.Text)) {
-        Text = textDocumentItem.Text,
-        Uri = textDocumentItem.Uri,
-        Version = textDocumentItem.Version,
-        LanguageId = textDocumentItem.LanguageId
-      };
-    }
-  }
+  public record BufferLine(int LineNumber, int StartIndex, int EndIndex);
 }

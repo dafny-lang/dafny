@@ -6,7 +6,17 @@ BigNumber.config({ MODULO_MODE: BigNumber.EUCLID })
 let _dafny = (function() {
   let $module = {};
   $module.areEqual = function(a, b) {
-    if (typeof a !== 'object' || a === null || b === null) {
+    if (typeof a === 'string' && b instanceof _dafny.Seq) {
+      // Seq.equals(string) works as expected,
+      // and the catch-all else block handles that direction.
+      // But the opposite direction doesn't work; handle it here.
+      return b.equals(a);
+    } else if (typeof a === 'number' && BigNumber.isBigNumber(b)) {
+      // This conditional would be correct even without the `typeof a` part,
+      // but in most cases it's probably faster to short-circuit on a `typeof`
+      // than to call `isBigNumber`. (But it remains to properly test this.)
+      return b.isEqualTo(a);
+    } else if (typeof a !== 'object' || a === null || b === null) {
       return a === b;
     } else if (BigNumber.isBigNumber(a)) {
       return a.isEqualTo(b);
@@ -28,6 +38,19 @@ let _dafny = (function() {
     } else {
       return a.toString();
     }
+  }
+  $module.escapeCharacter = function(cp) {
+    let s = String.fromCodePoint(cp.value)
+    switch (s) {
+      case '\n': return "\\n";
+      case '\r': return "\\r";
+      case '\t': return "\\t";
+      case '\0': return "\\0";
+      case '\'': return "\\'";
+      case '\"': return "\\\"";
+      case '\\': return "\\\\";
+      default: return s;
+    };
   }
   $module.NewObject = function() {
     return { _tname: "object" };
@@ -443,6 +466,26 @@ let _dafny = (function() {
       return this.IsSubsetOf(that) && this.cardinality().isLessThan(that.cardinality());
     }
   }
+  $module.CodePoint = class CodePoint {
+    constructor(value) {
+      this.value = value
+    }
+    equals(other) {
+      if (this === other) {
+        return true;
+      }
+      return this.value === other.value
+    }
+    isLessThan(other) {
+      return this.value < other.value
+    }
+    isLessThanOrEqual(other) {
+      return this.value <= other.value
+    }
+    toString() {
+      return "'" + $module.escapeCharacter(this) + "'";
+    }
+  }
   $module.Seq = class Seq extends Array {
     constructor(...elems) {
       super(...elems);
@@ -453,8 +496,18 @@ let _dafny = (function() {
     static Create(n, init) {
       return Seq.from({length: n}, (_, i) => init(new BigNumber(i)));
     }
+    static UnicodeFromString(s) {
+      return new Seq(...([...s].map(c => new _dafny.CodePoint(c.codePointAt(0)))))
+    }
     toString() {
       return "[" + arrayElementsToString(this) + "]";
+    }
+    toVerbatimString(asLiteral) {
+      if (asLiteral) {
+        return '"' + this.map(c => _dafny.escapeCharacter(c)).join("") + '"';
+      } else {
+        return this.map(c => String.fromCodePoint(c.value)).join("");
+      }
     }
     static update(s, i, v) {
       if (typeof s === "string") {
@@ -948,8 +1001,14 @@ let _dafny = (function() {
   $module.PlusChar = function(a, b) {
     return String.fromCharCode(a.charCodeAt(0) + b.charCodeAt(0));
   }
+  $module.UnicodePlusChar = function(a, b) {
+    return new _dafny.CodePoint(a.value + b.value);
+  }
   $module.MinusChar = function(a, b) {
     return String.fromCharCode(a.charCodeAt(0) - b.charCodeAt(0));
+  }
+  $module.UnicodeMinusChar = function(a, b) {
+    return new _dafny.CodePoint(a.value - b.value);
   }
   $module.AllBooleans = function*() {
     yield false;
@@ -958,6 +1017,14 @@ let _dafny = (function() {
   $module.AllChars = function*() {
     for (let i = 0; i < 0x10000; i++) {
       yield String.fromCharCode(i);
+    }
+  }
+  $module.AllUnicodeChars = function*() {
+    for (let i = 0; i < 0xD800; i++) {
+      yield new _dafny.CodePoint(i);
+    }
+    for (let i = 0xE0000; i < 0x110000; i++) {
+      yield new _dafny.CodePoint(i);
     }
   }
   $module.AllIntegers = function*() {
@@ -999,10 +1066,19 @@ let _dafny = (function() {
     } catch (e) {
       if (e instanceof _dafny.HaltException) {
         process.stdout.write("[Program halted] " + e.message + "\n")
+        process.exitCode = 1
       } else {
         throw e
       }
     }
+  }
+  $module.FromMainArguments = function(args) {
+    var a = [...args];
+    a.splice(0, 2, args[0] + " " + args[1]);
+    return a;
+  }
+  $module.UnicodeFromMainArguments = function(args) {
+    return $module.FromMainArguments(args).map(_dafny.Seq.UnicodeFromString);
   }
   return $module;
 

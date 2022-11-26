@@ -19,7 +19,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
     //      does not incorporate the closing braces.
 
     private bool TryFindSymbolDeclarationByName(IdeState state, string symbolName, out SymbolLocation location) {
-      location = state.SymbolTable.Locations
+      location = state.SignatureAndCompletionTable.Locations
         .WithCancellation(CancellationToken)
         .Where(entry => entry.Key.Name == symbolName)
         .Select(entry => entry.Value)

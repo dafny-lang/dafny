@@ -13,13 +13,53 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using DafnyTestGeneration;
+using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   [TestClass]
   public class DiagnosticsTest : ClientBasedLanguageServerTest {
+
+    [TestMethod]
+    public async Task GitIssue3062CrashOfLanguageServer() {
+      var source = @"
+function bullspec(s:seq<nat>, u:seq<nat>): (r: nat)
+  requires |s| > 0
+  requires |u| > 0
+  requires |s| == |u|
+  ensures forall i | i < r :: s[i] != u[i]
+  ensures r == |s| || s[r] == u[r]
+{
+  if |s| == 0 then 0 else
+  if |s| == 1 then
+    if s[0]==u[0] 
+    then 1 else 0
+  else
+    if s[0] != u[0] 
+    then bullspec(s[1..],u[1..])
+    else 1+bullspec(s[1..],u[1..])
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(7, diagnostics.Length);
+      Assert.AreEqual(PublishedVerificationStatus.Stale, await PopNextStatus());
+      Assert.AreEqual(PublishedVerificationStatus.Running, await PopNextStatus());
+      Assert.AreEqual(PublishedVerificationStatus.Error, await PopNextStatus());
+      ApplyChange(ref documentItem, ((7, 25), (10, 17)), "");
+      diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      Assert.AreEqual(5, diagnostics.Length);
+      Assert.AreEqual("Parser", diagnostics[0].Source);
+      Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
+      ApplyChange(ref documentItem, ((7, 20), (7, 25)), "");
+      diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(8, diagnostics.Length);
+      Assert.AreEqual(PublishedVerificationStatus.Stale, await PopNextStatus());
+      Assert.AreEqual(PublishedVerificationStatus.Running, await PopNextStatus());
+      Assert.AreEqual(PublishedVerificationStatus.Error, await PopNextStatus());
+      await AssertNoDiagnosticsAreComing(CancellationToken);
+    }
 
     [TestMethod]
     public async Task EmptyFileNoCodeWarning() {
@@ -48,6 +88,53 @@ method Multiply(x: int, y: int) returns (product: int)
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(0, diagnostics.Length);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
+    }
+
+    [TestMethod]
+    public async Task RefinementTokensCorrectlyReported() {
+      // git-issue-2402
+      var source = @"
+abstract module M 
+{ 
+    type T(00)
+    const t : T
+    lemma Randomlemma()
+    {
+        forall i:int {}
+    }
+}
+
+module N refines M 
+{
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(1, diagnostics.Length);
+      Assert.AreEqual(
+        "static non-ghost const field 't' of type 'T' (which does not have a default compiled value) must give a defining value",
+        diagnostics[0].Message);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
+    }
+
+    [TestMethod]
+    public async Task NoCrashWhenPressingEnterAfterSelectingAllTextAndInputtingText() {
+      var source = @"
+predicate method {:opaque} m() {
+  true
+}
+".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(0, diagnostics.Length);
+      ApplyChange(ref documentItem, ((0, 0), (3, 0)), "\n");
+      diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(1, diagnostics.Length);
+      ApplyChange(ref documentItem, ((1, 0), (1, 0)), "const x := 1");
+      diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
       Assert.AreEqual(0, diagnostics.Length);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
@@ -160,6 +247,29 @@ method Multiply(x: int, y: int) returns (product: int)
       Assert.AreEqual(1, diagnostics.Length);
       Assert.AreEqual(MessageSource.Verifier.ToString(), diagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
+    }
+
+    [TestMethod]
+    public async Task OpeningDocumentWithDefaultParamErrorHighlightsCallSite() {
+      var source = @"
+function test(x: int := 99): bool
+  requires x >= 100
+{
+  false
+}
+
+method A()
+{
+  var b := test();
+} ".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(1, diagnostics.Length);
+      Assert.AreEqual(MessageSource.Verifier.ToString(), diagnostics[0].Source);
+      Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
+      Assert.AreEqual(diagnostics[0].Range.Start.Line, 8);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
@@ -899,7 +1009,7 @@ method test2() {
 
     private static void AssertDiagnosticListsAreEqualBesidesMigration(Diagnostic[] expected, Diagnostic[] actual) {
       Assert.AreEqual(expected.Length, actual.Length, $"expected: {expected.Stringify()}, but was: {actual.Stringify()}");
-      foreach (var t in expected.Zip(actual)) {
+      foreach (var t in Enumerable.Zip(expected, actual)) {
         Assert.AreEqual(Relocator.OutdatedPrefix + t.First.Message, t.Second.Message, t.Second.ToString());
       }
     }

@@ -1,4 +1,5 @@
-/*-----------------------------------------------------------------------------
+/* (
+-----------------------------------------------------------------------------
 //
 // Copyright (C) Microsoft Corporation.  All Rights Reserved.
 // Copyright by the contributors to the Dafny Project
@@ -96,7 +97,11 @@ void CheckDeclModifiers(ref DeclModifierData dmod, string declCaption, AllowedDe
   }
   if (dmod.IsGhost) {
     if ((allowed & AllowedDeclModifiers.AlreadyGhost) != 0) {
-      SemErr(dmod.GhostToken, $"{declCaption} cannot be declared 'ghost' (it is 'ghost' by default)");
+      if (declCaption.Contains("-by-method")) {
+        SemErr(dmod.GhostToken, $"{declCaption} has a ghost function body and a non-ghost method body; {declCaption} declaration does not use the 'ghost' keyword.");
+      } else {
+        SemErr(dmod.GhostToken, $"{declCaption} cannot be declared 'ghost' (it is 'ghost' by default)");
+      }
       dmod.IsGhost = false;
     } else if ((allowed & AllowedDeclModifiers.Ghost) == 0) {
       SemErr(dmod.GhostToken, $"{declCaption} cannot be declared 'ghost'");
@@ -783,6 +788,8 @@ CHARACTERS
   posDigitFrom2 = "23456789".
   hexdigit = "0123456789ABCDEFabcdef".
   special = "'_?".
+  highSurrogate = '\ud800' .. '\udbff'.
+  lowSurrogate = '\udc00' .. '\udfff'.
   // These symbols are used but not needed as a production: "`~!@#$%^&*()-_=+[{]}|;:',<.>/?\\".
   cr        = '\r'.
   lf        = '\n'.
@@ -801,7 +808,7 @@ CHARACTERS
   idcharMinusPosDigitMinusQuery = idchar - posDigit - '?'.
   idcharMinusTick = idchar - '\''.
   /* string literals */
-  charChar = ANY - '\'' - '\\' - cr - lf.
+  charChar = ANY - '\'' - '\\' - cr - lf - highSurrogate - lowSurrogate.
   stringChar = ANY - '"' - '\\' - cr - lf.
   verbatimStringChar = ANY - '"'.
 
@@ -851,8 +858,19 @@ TOKENS
   charToken =
       "'"
       ( charChar
+        // Coco parses at the level of C# chars, meaning UTF-16 code units.
+        // (See https://github.com/SSW-CocoR/CocoR-CSharp/issues/4)
+        // We're working around that by inserting surrogate pairs
+        // as needed after reading the UTF-8 bytes.
+        // But that means character literals can appear to have more than one "character"
+        // in them. Normally we would just allow more than one charChar here and reject
+        // invalid sequences of them later, but because we allow single quotes in the
+        // "ident" rule above, that would then overlap with identifiers.
+        // Instead we only allow a surrogate pair here.
+        | highSurrogate lowSurrogate
         | "\\\'" | "\\\"" | "\\\\" | "\\0" | "\\n" | "\\r" | "\\t"
         | "\\u" hexdigit hexdigit hexdigit hexdigit
+        | "\\U{" hexdigit { ['_'] hexdigit } "}"
       )
       "'".
   stringToken =
@@ -860,6 +878,7 @@ TOKENS
       { stringChar
         | "\\\'" | "\\\"" | "\\\\" | "\\0" | "\\n" | "\\r" | "\\t"
         | "\\u" hexdigit hexdigit hexdigit hexdigit
+        | "\\U{" hexdigit { ['_'] hexdigit } "}"
       }
       '"'
     | '@' '"' { verbatimStringChar | "\"\"" } '"'.
@@ -957,6 +976,7 @@ Dafny
                                              string parsedFile = scanner.FullFilename;
                                              bool isVerbatimString;
                                              string includedFile = Util.RemoveParsedStringQuotes(t.val, out isVerbatimString);
+                                             Util.ValidateEscaping(t, includedFile, isVerbatimString, errors);
                                              includedFile = Util.RemoveEscaping(includedFile, isVerbatimString);
                                              if (!Path.IsPathRooted(includedFile)) {
                                                string basePath = Path.GetDirectoryName(parsedFile);
@@ -1363,11 +1383,16 @@ DatatypeMemberDecl<.List<DatatypeCtor/*!*/>/*!*/ ctors.>
      Attributes attrs = null;
      IToken/*!*/ id;
      List<Formal/*!*/> formals = new List<Formal/*!*/>();
+     var isGhost = false;
   .)
+  // Note, "ghost" is parsed before any attributes. This means that the
+  // attributes are parsed before the "id", which is consistent with other
+  // declarations.
+  [ "ghost"   (. isGhost = true; .) ]
   { Attribute<ref attrs> }
   DatatypeMemberName<out id>
   [ FormalsOptionalIds<formals> ]
-  (. var ctor = new DatatypeCtor(id, id.val, formals, attrs);
+  (. var ctor = new DatatypeCtor(id, id.val, isGhost, formals, attrs);
      ctor.StartToken = id;
      ctor.BodyEndTok = t;
      ctor.EndToken = t;
@@ -2098,7 +2123,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
      ty = new BoolType();  /*keep compiler happy*/
      List<Type> gt;
      List<Type> tupleArgTypes = null;
-     List<bool> argumentGhostness = null;
+     List<IToken> argumentGhostTokens = null;
   .)
   ( "bool"                          (. tok = t; .)
   | "char"                          (. tok = t;  ty = new CharType(); .)
@@ -2172,7 +2197,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
                                        int dims = StringToInt(dimString, 1, "arrays of that many dimensions");
                                        ty = theBuiltIns.ArrayType(tok, dims, gt, true, q);
                                     .)
-  | TupleType<out ty, out tok, out tupleArgTypes, out argumentGhostness>
+  | TupleType<out ty, out tok, out tupleArgTypes, out argumentGhostTokens>
   | NamedType<out ty, out tok, inExpressionContext>
   )
   [ (. int arrowKind = 0; /* 0: any, 1: partial, 2: total */
@@ -2183,10 +2208,14 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
     | "->"           (. tok = t; arrowKind = 2; .)
     )
     Type<out t2>
-    (. if (tupleArgTypes != null) {
-         gt = tupleArgTypes;
-        } else {
+    (. if (tupleArgTypes == null) {
          gt = new List<Type>{ ty };
+       } else {
+         // make sure no "ghost" keyword was used in the tuple-looking type
+         foreach (var ghostToken in argumentGhostTokens.Where(ghostToken => ghostToken != null)) {
+           SemErr(ghostToken, $"arrow-type arguments may not be declared as 'ghost'");
+         }
+         gt = tupleArgTypes;
        }
        var arity = gt.Count;
        theBuiltIns.CreateArrowTypeDecl(arity);
@@ -2206,26 +2235,27 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
 
 /*------------------------------------------------------------------------*/
 
-TupleType<.out Type ty, out IToken tok, out List<Type> tupleArgTypes, out List<bool> argumentGhostness.> =
+TupleType<.out Type ty, out IToken tok, out List<Type> tupleArgTypes, out List<IToken> argumentGhostTokens.> =
   "("                             (. tok = t;
                                      ty = null; // To keep compiler happy
                                      tupleArgTypes = new List<Type>();
-                                     var isGhost = false;
-                                     argumentGhostness = new List<bool>();
+                                     IToken ghostToken = null;
+                                     argumentGhostTokens = new List<IToken>();
                                   .)
-  [ [ "ghost"                     (. isGhost = true; .)
+  [ [ "ghost"                     (. ghostToken = t; .)
     ]
-    Type<out ty>                  (. tupleArgTypes.Add(ty); argumentGhostness.Add(isGhost); .)
-    { ","                         (. isGhost = false; .)
-      [ "ghost"                   (. isGhost = true; .)
+    Type<out ty>                  (. tupleArgTypes.Add(ty); argumentGhostTokens.Add(ghostToken); .)
+    { ","                         (. ghostToken = null; .)
+      [ "ghost"                   (. ghostToken = t; .)
       ]
-      Type<out ty>                (. tupleArgTypes.Add(ty); argumentGhostness.Add(isGhost); .)
+      Type<out ty>                (. tupleArgTypes.Add(ty); argumentGhostTokens.Add(ghostToken); .)
     }
   ]
-  ")"                             (. if (tupleArgTypes.Count == 1 && !isGhost) {
+  ")"                             (. if (tupleArgTypes.Count == 1 && argumentGhostTokens[0] == null) {
                                        // just return the type 'ty'
                                      } else {
                                        var dims = tupleArgTypes.Count;
+                                       var argumentGhostness = argumentGhostTokens.ConvertAll(tok => tok != null);
                                        var tmp = theBuiltIns.TupleType(tok, dims, true, argumentGhostness);  // make sure the tuple type exists
                                        ty = new UserDefinedType(tok, BuiltIns.TupleTypeName(argumentGhostness), dims == 0 ? null : tupleArgTypes);
                                      }
@@ -2769,7 +2799,9 @@ SkeletonStmt<out Statement s>
 = (. IToken dotdotdot; .)
   ellipsis                             (. dotdotdot = t; .)
   ";"
-  (. s = new SkeletonStatement(dotdotdot, t); .)
+  (. s = new SkeletonStatement(dotdotdot, t); 
+     errors.Deprecated(t, "the ... refinement feature in statements is deprecated");
+  .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -2843,9 +2875,10 @@ UpdateStmt<out Statement/*!*/ s>
      IToken x = Token.NoToken;
      IToken endTok = Token.NoToken;
      Attributes attrs = null;
-     IToken suchThatAssume = null;
+     Attributes tokenAttrs = null;
+     AttributedToken suchThatAssume = null;
      Expression suchThat = null;
-     IToken keywordToken = null;
+     AttributedToken keywordToken = null;
      Expression exceptionExpr = null;
   .)
 ( Lhs<out e>                       (. x = e.tok; .)
@@ -2860,12 +2893,14 @@ UpdateStmt<out Statement/*!*/ s>
       }
     | ":|"                         (. x = t; .)
       [ IF(la.kind == _assume)     /* an Expression can also begin with an "assume", so this says to resolve it to pick up any "assume" here */
-        "assume"                   (. suchThatAssume = t; .)
+        "assume"                      (. var tok = t; .)
+        { Attribute<ref tokenAttrs> } (. suchThatAssume = new AttributedToken(tok, tokenAttrs); .)
       ]
       Expression<out suchThat, false, true>
     | ":-"                         (. x = t; .)
       [ IF(IsAssumeTypeKeyword(la))     /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */
-        ("expect"|"assert"|"assume")    (. keywordToken = t; .)
+        ("expect"|"assert"|"assume")  (. var tok = t; .)
+        { Attribute<ref tokenAttrs> } (. keywordToken = new AttributedToken(tok, tokenAttrs); .)
       ]
       Expression<out exceptionExpr, false, false>
       { "," Rhs<out r>             (. rhss.Add(r); .)
@@ -2876,7 +2911,8 @@ UpdateStmt<out Statement/*!*/ s>
   )
 | ":-"                             (. x = t; .)
    [ IF(IsAssumeTypeKeyword(la))     /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */
-      ("expect"|"assert"|"assume")    (. keywordToken = t; .)
+      ("expect"|"assert"|"assume")  (. var tok = t; .)
+      { Attribute<ref tokenAttrs> } (. keywordToken = new AttributedToken(tok, tokenAttrs); .)
    ]
    Expression<out exceptionExpr, false, false>
    { "," Rhs<out r>                (. rhss.Add(r); .)
@@ -2980,11 +3016,12 @@ VarDeclStatement<.out Statement/*!*/ s.>
      AssignmentRhs r;
      List<LocalVariable> lhss = new List<LocalVariable>();
      List<AssignmentRhs> rhss = new List<AssignmentRhs>();
-     IToken suchThatAssume = null;
+     AttributedToken suchThatAssume = null;
      Expression suchThat = null;
-     IToken keywordToken = null;
+     AttributedToken keywordToken = null;
      Expression exceptionExpr = null;
      Attributes attrs = null;
+     Attributes tokenAttrs = null;
      IToken endTok;
      s = dummyStmt;
   .)
@@ -3005,12 +3042,14 @@ VarDeclStatement<.out Statement/*!*/ s.>
     | { Attribute<ref attrs> }
       ":|"                           (. assignTok = t; .)
       [ IF(la.kind == _assume)       /* an Expression can also begin with an "assume", so this says to resolve it to pick up any "assume" here */
-        "assume"                     (. suchThatAssume = t; .)
+        "assume"                      (. var tok = t; .)
+        { Attribute<ref tokenAttrs> } (. suchThatAssume = new AttributedToken(tok, tokenAttrs); .)
       ]
       Expression<out suchThat, false, true>
     | ":-"                           (. assignTok = t; .)
       [ IF(IsAssumeTypeKeyword(la))     /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */
-        ("expect"|"assert"|"assume")    (. keywordToken = t; .)
+         ("expect"|"assert"|"assume")  (. var tok = t; .)
+         { Attribute<ref tokenAttrs> } (. keywordToken = new AttributedToken(tok, tokenAttrs); .)
       ]
       Expression<out exceptionExpr, false, false>
       { "," Rhs<out r>               (. rhss.Add(r); .)
@@ -3080,7 +3119,9 @@ IfStmt<out Statement/*!*/ ifStmt>
     ( IF(IsBindingGuard())
       BindingGuard<out guard, true>      (. isBindingGuard = true; .)
     | Guard<out guard>
-    | ellipsis                           (. guardEllipsis = t; .)
+    | ellipsis                           (. guardEllipsis = t;
+                                            errors.Deprecated(t, "the ... refinement feature in statements is deprecated");
+                                         .)
     )
     BlockStmt<out thn, out bodyStart, out bodyEnd>    (. endTok = thn.EndTok; .)
     [ "else"
@@ -3177,13 +3218,17 @@ WhileStmt<out Statement stmt>
     (. stmt = new AlternativeLoopStmt(x, endTok, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), alternatives, usesOptionalBraces, attrs); .)
   |
     ( Guard<out guard>           (. Contract.Assume(guard == null || cce.Owner.None(guard)); .)
-    | ellipsis                   (. guardEllipsis = t; .)
+    | ellipsis                   (. guardEllipsis = t; 
+                                    errors.Deprecated(t, "the ... refinement feature in statements is deprecated");
+                                 .)
     )
     LoopSpec<invariants, decreases, ref mod, ref decAttrs, ref modAttrs>
     ( IF(la.kind == _lbrace)      /* if there's an open brace, claim it as the beginning of the loop body (as opposed to a BlockStmt following the loop) */
       BlockStmt<out body, out bodyStart, out bodyEnd>  (. endTok = body.EndTok; isDirtyLoop = false; .)
     | IF(la.kind == _ellipsis)    /* if there's an ellipsis, claim it as standing for the loop body (as opposed to a "...;" statement following the loop) */
-      ellipsis                   (. bodyEllipsis = t; endTok = t; isDirtyLoop = false; .)
+      ellipsis                   (. bodyEllipsis = t; endTok = t; isDirtyLoop = false;
+                                    errors.Deprecated(t, "the ... refinement feature in statements is deprecated");
+                                  .)
     | /* go body-less */
     )
     (.
@@ -3424,7 +3469,9 @@ AssertStmt<out Statement/*!*/ s, bool inExprContext>
       BlockStmt<out proof, out proofStart, out proofEnd>
     | ";"
     )
-  | ellipsis                                   (. dotdotdot = t; .)
+  | ellipsis                                   (. dotdotdot = t; 
+                                                  errors.Deprecated(t, "the ... refinement feature in statements is deprecated");
+                                                .)
     ";"
   )
   (. if (dotdotdot != null) {
@@ -3444,7 +3491,9 @@ ExpectStmt<out Statement/*!*/ s>
   "expect"                                     (. x = t; .)
   { Attribute<ref attrs> }
   ( Expression<out e, false, true>
-  | ellipsis                                   (. dotdotdot = t; .)
+  | ellipsis                                   (. dotdotdot = t; 
+                                                  errors.Deprecated(t, "the ... refinement feature in statements is deprecated");
+                                                .)
   )
   [ "," Expression<out m, false, true> ]
   ";"
@@ -3465,7 +3514,9 @@ AssumeStmt<out Statement/*!*/ s>
   "assume"                                     (. x = t; .)
   { Attribute<ref attrs> }
   ( Expression<out e, false, true>
-  | ellipsis                                   (. dotdotdot = t; .)
+  | ellipsis                                   (. dotdotdot = t; 
+                                                  errors.Deprecated(t, "the ... refinement feature in statements is deprecated");
+                                                .)
   )
   ";"
   (. if (dotdotdot != null) {
@@ -3559,9 +3610,13 @@ ModifyStmt<out Statement s>
   ( FrameExpression<out fe, false, true>       (. mod.Add(fe); .)
     { "," FrameExpression<out fe, false, true> (. mod.Add(fe); .)
     }
-  | ellipsis                            (. ellipsisToken = t; .)
+  | ellipsis                            (. ellipsisToken = t; 
+                                           errors.Deprecated(t, "the ... refinement feature in statements is deprecated");
+                                         .)
   )
   ( BlockStmt<out body, out bodyStart, out endTok>
+                                        (. errors.Deprecated(t, "the modify statement with a block statement is deprecated");
+                                         .)
   | SYNC ";"         (. endTok = t; .)
   )
   (. s = new ModifyStmt(tok, endTok, mod, attrs, body);
@@ -3765,35 +3820,30 @@ ImpliesExpression<out Expression e0, bool allowLemma, bool allowLambda, bool all
 /*------------------------------------------------------------------------*/
 LogicalExpression<out Expression e0, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1;
-     Expression first;
      e0 = dummyExpr; /* mute the warning */
   .)
   ( AndOp                                                       (. x = t; .)
-    RelationalExpression<out e0, allowLemma, allowLambda, allowBitwiseOps>        (. first = e0; .)
+    RelationalExpression<out e0, allowLemma, allowLambda, allowBitwiseOps>
+    // We conjoin "true" to the left, for two reasons. One reason is to keep track of the source
+    // location of the initial AndOp operator. The other reason is to make, when there is only
+    // one conjunct, that the type checker still checks it to be a boolean.
+    (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, new LiteralExpr(new AutoGeneratedToken(x), true), e0); .)
     { IF(IsAndOp())  /* read a conjunction as far as possible */
       AndOp                                                     (. x = t; .)
       RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>      (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1); .)
     }
     [ IF(IsOrOp()) OrOp (. SemErr(t, "Ambiguous use of && and ||. Use parentheses to disambiguate."); .) ]
-    (. if (e0 == first) {
-         // There was only one conjunct. To make sure that the type checker still checks it to
-         // be a boolean, we conjoin "true" to its left.
-         e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, new LiteralExpr(x, true), e0);
-       }
-    .)
   | OrOp                                                        (. x = t; .)
-    RelationalExpression<out e0, allowLemma, allowLambda, allowBitwiseOps>        (. first = e0; .)
+    RelationalExpression<out e0, allowLemma, allowLambda, allowBitwiseOps>
+    // We disjoin [sic] "false" to the left, for two reasons. One reason is to keep track of the source
+    // location of the initial OrOp operator. The other reason is to make, when there is only
+    // one disjunct, that the type checker still checks it to be a boolean.
+    (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, new LiteralExpr(new AutoGeneratedToken(x), false), e0); .)
     { IF(IsOrOp())  /* read a disjunction as far as possible */
       OrOp                                                      (. x = t; .)
       RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>      (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1); .)
     }
     [ IF(IsAndOp()) AndOp (. SemErr(t, "Ambiguous use of && and ||. Use parentheses to disambiguate."); .) ]
-    (. if (e0 == first) {
-         // There was only one disjunct. To make sure that the type checker still checks it to
-         // be a boolean, we disjoin [sic] "false" to its left.
-         e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, new LiteralExpr(x, false), e0);
-       }
-    .)
   | RelationalExpression<out e0, allowLemma, allowLambda, allowBitwiseOps>
     [ IF(IsAndOp() || IsOrOp())  /* read a LogicalExpression as far as possible */
       ( AndOp                                                   (. x = t; .)
@@ -4126,9 +4176,15 @@ LiteralExpression<out Expression e>
   | "null"                                     (. e = new LiteralExpr(t); .)
   | Nat<out n>                                 (. e = new LiteralExpr(t, n); .)
   | Dec<out d>                                 (. e = new LiteralExpr(t, d); .)
-  | charToken                                  (. e = new CharLiteralExpr(t, t.val.Substring(1, t.val.Length - 2)); .)
+  | charToken                                  (. string s = t.val.Substring(1, t.val.Length - 2);
+                                                  Util.ValidateEscaping(t, s, false, errors);
+                                                  if (Util.UnescapedCharacters(s, false).Count() > 1) {
+                                                    errors.SemErr(t, "too many characters in character literal");
+                                                  }
+                                                  e = new CharLiteralExpr(t, s); .)
   | stringToken                                (. bool isVerbatimString;
                                                   string s = Util.RemoveParsedStringQuotes(t.val, out isVerbatimString);
+                                                  Util.ValidateEscaping(t, s, isVerbatimString, errors);
                                                   e = new StringLiteralExpr(t, s, isVerbatimString);
                                                .)
   )
@@ -4876,7 +4932,7 @@ SetComprehensionExpr<out Expression q, bool allowLemma, bool allowLambda, bool a
        // range was not optional, so we map null to "true" here so that the rest of the
        // logic doesn't hit exceptions.
        if (range == null) {
-         range = LiteralExpr.CreateBoolLiteral(Token.NoToken, true);
+         range = LiteralExpr.CreateBoolLiteral(new AutoGeneratedToken(t), true);
        }
        q = new SetComprehension(setToken, t, finite, bvars, range, body, attrs);
      }

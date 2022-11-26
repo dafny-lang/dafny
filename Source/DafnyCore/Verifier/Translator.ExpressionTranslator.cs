@@ -305,17 +305,17 @@ namespace Microsoft.Dafny {
           } else if (e is CharLiteralExpr) {
             // we expect e.Value to be a string representing exactly one char
             Boogie.Expr rawElement = null;  // assignment to please compiler's definite assignment rule
-            foreach (char ch in Util.UnescapedCharacters((string)e.Value, false)) {
+            foreach (var ch in Util.UnescapedCharacters((string)e.Value, false)) {
               Contract.Assert(rawElement == null);  // we should get here only once
-              rawElement = translator.FunctionCall(GetToken(expr), BuiltinFunction.CharFromInt, null, Boogie.Expr.Literal((int)ch));
+              rawElement = translator.FunctionCall(GetToken(expr), BuiltinFunction.CharFromInt, null, Boogie.Expr.Literal(ch));
             }
             Contract.Assert(rawElement != null);  // there should have been an iteration of the loop above
             return MaybeLit(rawElement, predef.CharType);
           } else if (e is StringLiteralExpr) {
             var str = (StringLiteralExpr)e;
             Boogie.Expr seq = translator.FunctionCall(GetToken(expr), BuiltinFunction.SeqEmpty, predef.BoxType);
-            foreach (char ch in Util.UnescapedCharacters((string)e.Value, str.IsVerbatim)) {
-              var rawElement = translator.FunctionCall(GetToken(expr), BuiltinFunction.CharFromInt, null, Boogie.Expr.Literal((int)ch));
+            foreach (var ch in Util.UnescapedCharacters((string)e.Value, str.IsVerbatim)) {
+              var rawElement = translator.FunctionCall(GetToken(expr), BuiltinFunction.CharFromInt, null, Boogie.Expr.Literal(ch));
               Boogie.Expr elt = BoxIfNecessary(GetToken(expr), rawElement, Type.Char);
               seq = translator.FunctionCall(GetToken(expr), BuiltinFunction.SeqBuild, predef.BoxType, seq, elt);
             }
@@ -1254,11 +1254,6 @@ namespace Microsoft.Dafny {
 
             Boogie.Expr antecedent = Boogie.Expr.True;
 
-            if (Attributes.ContainsBool(e.Attributes, "layerQuantifier", ref _scratch)) {
-              // If this is a layer quantifier, quantify over layers here, and use $LS(ly) layers in the translation of the body
-              var ly = BplBoundVar(e.Refresh("q$ly#", translator.CurrentIdGenerator), predef.LayerType, bvars);
-              bodyEtran = bodyEtran.ReplaceLayer(ly);
-            }
             if (Attributes.ContainsBool(e.Attributes, "heapQuantifier", ref _scratch)) {
               var h = BplBoundVar(e.Refresh("q$heap#", translator.CurrentIdGenerator), predef.HeapType, bvars);
               bodyEtran = new ExpressionTranslator(bodyEtran, h);

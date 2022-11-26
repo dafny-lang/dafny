@@ -14,11 +14,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
     public const string OutdatedPrefix = "Outdated: ";
 
     private readonly ILogger logger;
-    private readonly ILogger<SymbolTable> loggerSymbolTable;
+    private readonly ILogger<SignatureAndCompletionTable> loggerSymbolTable;
 
     public Relocator(
       ILogger<Relocator> logger,
-      ILogger<SymbolTable> loggerSymbolTable
+      ILogger<SignatureAndCompletionTable> loggerSymbolTable
       ) {
       this.logger = logger;
       this.loggerSymbolTable = loggerSymbolTable;
@@ -32,7 +32,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
       return new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken).MigrateRange(range);
     }
 
-    public SymbolTable RelocateSymbols(SymbolTable originalSymbolTable, DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
+    public SignatureAndCompletionTable RelocateSymbols(SignatureAndCompletionTable originalSymbolTable, DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
       return new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken).MigrateSymbolTable(originalSymbolTable);
     }
 
@@ -65,11 +65,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
       // Invariant: Item1.Range == null <==> Item2 == null 
       private readonly List<TextDocumentContentChangeEvent> contentChanges;
       private readonly CancellationToken cancellationToken;
-      private readonly ILogger<SymbolTable> loggerSymbolTable;
+      private readonly ILogger<SignatureAndCompletionTable> loggerSymbolTable;
 
       public ChangeProcessor(
         ILogger logger,
-        ILogger<SymbolTable> loggerSymbolTable,
+        ILogger<SignatureAndCompletionTable> loggerSymbolTable,
         Container<TextDocumentContentChangeEvent> contentChanges,
         CancellationToken cancellationToken
       ) {
@@ -159,7 +159,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
         };
       }
 
-      public SymbolTable MigrateSymbolTable(SymbolTable originalSymbolTable) {
+      public SignatureAndCompletionTable MigrateSymbolTable(SignatureAndCompletionTable originalSymbolTable) {
         var migratedLookupTree = originalSymbolTable.LookupTree;
         var migratedDeclarations = originalSymbolTable.Locations;
         foreach (var change in contentChanges) {
@@ -173,7 +173,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
         }
         logger.LogTrace("migrated the lookup tree, lookup before={SymbolsBefore}, after={SymbolsAfter}",
           originalSymbolTable.LookupTree.Count, migratedLookupTree.Count);
-        return new SymbolTable(
+        return new SignatureAndCompletionTable(
           loggerSymbolTable,
           originalSymbolTable.CompilationUnit,
           originalSymbolTable.Declarations,
@@ -212,7 +212,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
 
         Position Compute() {
           var changeStart = change.Range!.Start;
-          var changeEof = change.Text.GetEofPosition();
+          var changeEof = GetEofPosition(change.Text);
           var characterOffset = changeEof.Character;
           if (changeEof.Line == 0) {
             characterOffset = changeStart.Character + changeEof.Character;
@@ -220,6 +220,43 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
 
           return new Position(changeStart.Line + changeEof.Line, characterOffset);
         }
+      }
+
+      /// <summary>
+      /// Gets the LSP position at the end of the given text.
+      /// </summary>
+      /// <param name="text">The text to get the LSP end of.</param>
+      /// <param name="cancellationToken">A token to cancel the resolution before its completion.</param>
+      /// <returns>The LSP position at the end of the text.</returns>
+      /// <exception cref="ArgumentException">Thrown if the specified position does not belong to the given text.</exception>
+      /// <exception cref="OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
+      /// <exception cref="ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
+      private static Position GetEofPosition(string text, CancellationToken cancellationToken = default) {
+        int line = 0;
+        int character = 0;
+        int absolutePosition = 0;
+        do {
+          cancellationToken.ThrowIfCancellationRequested();
+          if (IsEndOfLine(text, absolutePosition)) {
+            line++;
+            character = 0;
+          } else {
+            character++;
+          }
+          absolutePosition++;
+        } while (absolutePosition <= text.Length);
+        return new Position(line, character);
+      }
+
+      private static bool IsEndOfLine(string text, int absolutePosition) {
+        if (absolutePosition >= text.Length) {
+          return false;
+        }
+        return text[absolutePosition] switch {
+          '\n' => true,
+          '\r' => absolutePosition + 1 == text.Length || text[absolutePosition + 1] != '\n',
+          _ => false
+        };
       }
 
       public Range? MigrateRange(Range rangeToMigrate, TextDocumentContentChangeEvent change) {
@@ -261,7 +298,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
       }
 
       private IDictionary<ISymbol, SymbolLocation> ApplyDeclarationsChange(
-        SymbolTable originalSymbolTable,
+        SignatureAndCompletionTable originalSymbolTable,
         IDictionary<ISymbol, SymbolLocation> previousDeclarations,
         Range? changeRange,
         Position? afterChangeEndOffset

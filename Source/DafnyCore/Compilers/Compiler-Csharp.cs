@@ -86,7 +86,6 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine("// Optionally, you may want to include compiler switches like");
       wr.WriteLine("//     /debug /nowarn:162,164,168,183,219,436,1717,1718");
       wr.WriteLine();
-      wr.WriteLine("#nullable disable");
       wr.WriteLine("using System;");
       wr.WriteLine("using System.Numerics;");
       wr.WriteLine("using System.Collections;");
@@ -226,7 +225,7 @@ namespace Microsoft.Dafny.Compilers {
       var wr = ((ClassWriter)cw).StaticMemberWriter;
       // See EmitCallToMain() - this is named differently because otherwise C# tries
       // to resolve the reference to the instance-level Main method
-      return wr.NewBlock($"public static void _StaticMain(Dafny.ISequence<Dafny.ISequence<char>> {argsParameterName})");
+      return wr.NewBlock($"public static void _StaticMain(Dafny.ISequence<Dafny.ISequence<{CharTypeName}>> {argsParameterName})");
     }
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string /*?*/ libraryName, ConcreteSyntaxTree wr) {
@@ -517,15 +516,19 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       var groundingCtor = dt.GetGroundingCtor();
-      if (dt is CoDatatypeDecl) {
-        var wCo = wDefault;
-        wDefault = new ConcreteSyntaxTree();
-        wCo.Format($"new {dt.CompileName}__Lazy{DtT_TypeArgs}(() => {{ return {wDefault}; }})");
-      }
+      if (groundingCtor.IsGhost) {
+        wDefault.Write(ForcePlaceboValue(UserDefinedType.FromTopLevelDecl(dt.tok, dt), wDefault, dt.tok));
+      } else {
+        if (dt is CoDatatypeDecl) {
+          var wCo = wDefault;
+          wDefault = new ConcreteSyntaxTree();
+          wCo.Format($"new {dt.CompileName}__Lazy{DtT_TypeArgs}(() => {{ return {wDefault}; }})");
+        }
 
-      wDefault.Write(DtCreateName(groundingCtor));
-      var nonGhostFormals = groundingCtor.Formals.Where(f => !f.IsGhost);
-      wDefault.Write($"({nonGhostFormals.Comma(f => DefaultValue(f.Type, wDefault, f.tok))})");
+        wDefault.Write(DtCreateName(groundingCtor));
+        var nonGhostFormals = groundingCtor.Formals.Where(f => !f.IsGhost);
+        wDefault.Write($"({nonGhostFormals.Comma(f => DefaultValue(f.Type, wDefault, f.tok))})");
+      }
 
       EmitTypeDescriptorMethod(dt, wr);
 
@@ -535,7 +538,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       // create methods
-      foreach (var ctor in dt.Ctors) {
+      foreach (var ctor in dt.Ctors.Where(ctor => !ctor.IsGhost)) {
         wr.Write($"public static {DtTypeName(dt)} {DtCreateName(ctor)}(");
         WriteFormals("", ctor.Formals, wr);
         var w = wr.NewBlock(")");
@@ -547,7 +550,7 @@ namespace Microsoft.Dafny.Compilers {
       if (dt is TupleTypeDecl) {
         // omit the is_ property for tuples, since it cannot be used syntactically in the language
       } else {
-        foreach (var ctor in dt.Ctors) {
+        foreach (var ctor in dt.Ctors.Where(ctor => !ctor.IsGhost)) {
           interfaceTree.WriteLine($"bool is_{ctor.CompileName} {{ get; }}");
 
           var returnValue = dt.IsRecordType
@@ -566,7 +569,10 @@ namespace Microsoft.Dafny.Compilers {
         var wGet = w.NewBlock("get");
         foreach (var ctor in dt.Ctors) {
           Contract.Assert(ctor.Formals.Count == 0);
-          wGet.WriteLine($"yield return {DtT_protected}.{DtCreateName(ctor)}();");
+          var constructor = ctor.IsGhost
+            ? ForcePlaceboValue(UserDefinedType.FromTopLevelDecl(dt.tok, dt), wGet, dt.tok)
+            : $"{DtT_protected}.{DtCreateName(ctor)}()";
+          wGet.WriteLine($"yield return {constructor};");
         }
       }
 
@@ -670,7 +676,7 @@ namespace Microsoft.Dafny.Compilers {
           var map = nonGhostTypeArgs.ToDictionary(
             tp => tp,
             tp => (Type)new UserDefinedType(tp.tok, new TypeParameter(tp.tok, $"_{tp.Name}", tp.VarianceSyntax)));
-          var to = Resolver.SubstType(f.Type, map);
+          var to = f.Type.Subst(map);
           var downcast = new ConcreteSyntaxTree();
           EmitDowncast(f.Type, to, null, downcast).Write(name);
           return downcast.ToString();
@@ -697,8 +703,9 @@ namespace Microsoft.Dafny.Compilers {
         ConcreteSyntaxTree interfaceTree, string DtT_TypeArgs) {
       foreach (var ctor in dt.Ctors) {
         var index = 0;
-        foreach (var dtor in ctor.Destructors) {
-          if (dtor.EnclosingCtors[0] == ctor) {
+        foreach (var dtor in ctor.Destructors.Where(dtor => dtor.EnclosingCtors[0] == ctor)) {
+          var compiledConstructorCount = dtor.EnclosingCtors.Count(constructor => !constructor.IsGhost);
+          if (compiledConstructorCount != 0) {
             var arg = dtor.CorrespondingFormals[0];
             if (!arg.IsGhost) {
               var DtorM = arg.HasName ? "_" + arg.CompileName : FieldName(arg, index);
@@ -730,18 +737,23 @@ namespace Microsoft.Dafny.Compilers {
                   wGet.WriteLine("var d = this;");
                 }
 
-                var n = dtor.EnclosingCtors.Count;
-                for (int i = 0; i < n - 1; i++) {
+                var compiledConstructorsProcessed = 0;
+                for (var i = 0; i < dtor.EnclosingCtors.Count; i++) {
                   var ctor_i = dtor.EnclosingCtors[i];
                   Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[i].CompileName);
+                  if (ctor_i.IsGhost) {
+                    continue;
+                  }
                   var type = $"{dt.CompileName}_{ctor_i.CompileName}{DtT_TypeArgs}";
                   // TODO use pattern matching to replace cast.
-                  wGet.WriteLine($"if (d is {type}) {{ return (({type})d).{IdProtect(DtorM)}; }}");
+                  var returnTheValue = $"return (({type})d).{IdProtect(DtorM)};";
+                  if (compiledConstructorsProcessed < compiledConstructorCount - 1) {
+                    wGet.WriteLine($"if (d is {type}) {{ {returnTheValue} }}");
+                  } else {
+                    wGet.WriteLine(returnTheValue);
+                  }
+                  compiledConstructorsProcessed++;
                 }
-
-                Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[n - 1].CompileName);
-                wGet.WriteLine(
-                  $"return (({dt.CompileName}_{dtor.EnclosingCtors[n - 1].CompileName}{DtT_TypeArgs})d).{IdProtect(DtorM)};");
               }
               index++;
             }
@@ -835,7 +847,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       int constructorIndex = 0; // used to give each constructor a different name
-      foreach (DatatypeCtor ctor in dt.Ctors) {
+      foreach (var ctor in dt.Ctors.Where(ctor => !ctor.IsGhost)) {
         var wr = wrx.NewNamedBlock(
           $"public class {DtCtorDeclarationName(ctor)}{TypeParameters(nonGhostTypeArgs)} : {IdName(dt)}{typeParams}");
         DatatypeFieldsAndConstructor(ctor, constructorIndex, wr);
@@ -969,7 +981,12 @@ namespace Microsoft.Dafny.Compilers {
                     w.WriteLine($"{tempVar} += \", \";");
                   }
 
-                  w.WriteLine($"{tempVar} += {DafnyHelpersClass}.ToString(this.{FieldName(arg, i)});");
+                  if (arg.Type.IsStringType && UnicodeCharEnabled) {
+                    w.WriteLine($"{tempVar} += this.{FieldName(arg, i)}.ToVerbatimString(true);");
+                  } else {
+                    w.WriteLine($"{tempVar} += {DafnyHelpersClass}.ToString(this.{FieldName(arg, i)});");
+                  }
+
                   i++;
                 }
               }
@@ -1029,6 +1046,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     string DtCreateName(DatatypeCtor ctor) {
+      Contract.Assert(!ctor.IsGhost); // there should never be an occasion to ask for a ghost constructor
       if (ctor.EnclosingDatatype.IsRecordType) {
         return "create";
       } else {
@@ -1237,7 +1255,7 @@ namespace Microsoft.Dafny.Compilers {
     private ConcreteSyntaxTree GetFunctionParameters(List<Formal> formals, MemberDecl m, List<TypeArgumentInstantiation> typeArgs, bool lookasideBody, bool customReceiver) {
       var parameters = new ConcreteSyntaxTree();
       var sep = "";
-      WriteRuntimeTypeDescriptorsFormals(ForTypeDescriptors(typeArgs, m, lookasideBody), parameters, ref sep,
+      WriteRuntimeTypeDescriptorsFormals(ForTypeDescriptors(typeArgs, m.EnclosingClass, m, lookasideBody), parameters, ref sep,
         tp => $"{DafnyTypeDescriptor}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp)}");
       if (customReceiver) {
         var nt = m.EnclosingClass;
@@ -1375,7 +1393,7 @@ namespace Microsoft.Dafny.Compilers {
       if (xType is BoolType) {
         return "bool";
       } else if (xType is CharType) {
-        return "char";
+        return CharTypeName;
       } else if (xType is IntType || xType is BigOrdinalType) {
         return "BigInteger";
       } else if (xType is RealType) {
@@ -1425,6 +1443,20 @@ namespace Microsoft.Dafny.Compilers {
         return DafnyIMap + "<" + TypeName(domType, wr, tok) + "," + TypeName(ranType, wr, tok) + ">";
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
+      }
+    }
+
+    // To improve readability
+    private static bool CharIsRune => UnicodeCharEnabled;
+    private static string CharTypeName => UnicodeCharEnabled ? "Dafny.Rune" : "char";
+
+    private void ConvertFromChar(Expression e, ConcreteSyntaxTree wr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
+      if (e.Type.IsCharType && UnicodeCharEnabled) {
+        wr.Write("(");
+        TrParenExpr(e, wr, inLetExprBody, wStmts);
+        wr.Write(".Value)");
+      } else {
+        TrParenExpr(e, wr, inLetExprBody, wStmts);
       }
     }
 
@@ -1551,7 +1583,8 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance, List<Type> typeArgs, ConcreteSyntaxTree wr, IToken tok) {
+    protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance, List<Type> typeArgs,
+      ConcreteSyntaxTree wr, IToken tok, bool omitTypeArguments = false) {
       Contract.Assume(fullCompileName != null);  // precondition; this ought to be declared as a Requires in the superclass
       Contract.Assume(variance != null);  // precondition; this ought to be declared as a Requires in the superclass
       Contract.Assume(typeArgs != null);  // precondition; this ought to be declared as a Requires in the superclass
@@ -1795,7 +1828,8 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
       var wStmts = wr.Fork();
       var typeArgs = arg.Type.AsArrowType == null ? "" : $"<{TypeName(arg.Type, wr, null, null)}>";
-      wr.WriteLine($"{DafnyHelpersClass}.Print{typeArgs}({Expr(arg, false, wStmts)});");
+      var suffix = arg.Type.IsStringType && UnicodeCharEnabled ? ".ToVerbatimString(false)" : "";
+      wr.WriteLine($"{DafnyHelpersClass}.Print{typeArgs}(({Expr(arg, false, wStmts)}){suffix});");
     }
 
     protected override void EmitReturn(List<Formal> outParams, ConcreteSyntaxTree wr) {
@@ -1842,6 +1876,10 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       TrExpr(messageExpr, wr, false, wStmts);
+      if (UnicodeCharEnabled && messageExpr.Type.IsStringType) {
+        wr.Write(".ToVerbatimString(false)");
+      }
+
       wr.WriteLine(");");
     }
 
@@ -2030,9 +2068,21 @@ namespace Microsoft.Dafny.Compilers {
       } else if (e.Value is bool) {
         wr.Write((bool)e.Value ? "true" : "false");
       } else if (e is CharLiteralExpr) {
-        wr.Write("'{0}'", (string)e.Value);
+        var v = (string)e.Value;
+        if (UnicodeCharEnabled) {
+          var codePoint = Util.UnescapedCharacters(v, false).Single();
+          if (codePoint > char.MaxValue) {
+            // C# supports \U, but doesn't allow values that require two UTF-16 code units in character literals.
+            // For such values we construct the Rune value directly from the unescaped codepoint.
+            wr.Write($"new Dafny.Rune(0x{codePoint:x})");
+          } else {
+            wr.Write($"new Dafny.Rune('{Util.ExpandUnicodeEscapes(v, false)}')");
+          }
+        } else {
+          wr.Write($"'{v}'");
+        }
       } else if (e is StringLiteralExpr str) {
-        wr.Format($"{DafnySeqClass}<char>.FromString({StringLiteral(str)})");
+        wr.Format($"{DafnySeqClass}<{CharTypeName}>.{CharMethodQualifier}FromString({StringLiteral(str)})");
       } else if (AsNativeType(e.Type) != null) {
         string nativeName = null, literalSuffix = null;
         bool needsCastAfterArithmetic = false;
@@ -2079,7 +2129,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
-      wr.Write($"{(isVerbatim ? "@" : "")}\"{str}\"");
+      wr.Write($"{(isVerbatim ? "@" : "")}\"{Util.ExpandUnicodeEscapes(str, false)}\"");
     }
 
     protected override ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, ConcreteSyntaxTree wr) {
@@ -2316,7 +2366,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitThis(ConcreteSyntaxTree wr) {
       var custom =
-        (enclosingMethod != null && enclosingMethod.IsTailRecursive) ||
+        (enclosingMethod != null && (enclosingMethod.IsTailRecursive || NeedsCustomReceiver(enclosingMethod))) ||
         (enclosingFunction != null && (enclosingFunction.IsTailRecursive || NeedsCustomReceiver(enclosingFunction))) ||
         thisContext is NewtypeDecl ||
         thisContext is TraitDecl;
@@ -2434,7 +2484,7 @@ namespace Microsoft.Dafny.Compilers {
           // (T0 a0, T1 a1, ...) => obj.F(additionalCustomParameter, a0, a1, ...)
           var callArguments = wr.ForkInParens();
           var sep = "";
-          EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member, false), fn.tok, callArguments, ref sep);
+          EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member.EnclosingClass, member, false), fn.tok, callArguments, ref sep);
           if (additionalCustomParameter != null) {
             callArguments.Write($"{sep}{additionalCustomParameter}");
             sep = ", ";
@@ -2447,7 +2497,7 @@ namespace Microsoft.Dafny.Compilers {
           foreach (var arg in fn.Formals) {
             if (!arg.IsGhost) {
               var name = idGenerator.FreshId("_eta");
-              var ty = Resolver.SubstType(arg.Type, typeMap);
+              var ty = arg.Type.Subst(typeMap);
               arguments.Write($"{prefixSep}{TypeName(ty, arguments, arg.tok)} {name}");
               callArguments.Write($"{sep}{name}");
               sep = ", ";
@@ -2462,7 +2512,7 @@ namespace Microsoft.Dafny.Compilers {
           return SimpleLvalue(w => {
             w.Write("{0}.{1}", TypeName_Companion(objType, w, member.tok, member), IdName(member));
             var sep = "(";
-            EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member, false), member.tok, w, ref sep);
+            EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member.EnclosingClass, member, false), member.tok, w, ref sep);
             if (sep != "(") {
               w.Write(")");
             }
@@ -2482,7 +2532,7 @@ namespace Microsoft.Dafny.Compilers {
             obj(w);
             w.Write(".{0}", IdName(member));
             var sep = "(";
-            EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member, false), member.tok, w, ref sep);
+            EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member.EnclosingClass, member, false), member.tok, w, ref sep);
             if (sep != "(") {
               w.Write(")");
             }
@@ -2842,17 +2892,29 @@ namespace Microsoft.Dafny.Compilers {
         case BinaryExpr.ResolvedOpcode.RightShift:
           opString = ">>"; convertE1_to_int = true; break;
         case BinaryExpr.ResolvedOpcode.Add:
-          opString = "+"; truncateResult = true;
           if (resultType.IsCharType) {
-            preOpString = "(char)(";
-            postOpString = ")";
+            if (CharIsRune) {
+              staticCallString = $"{DafnyHelpersClass}.AddRunes";
+            } else {
+              opString = "+"; truncateResult = true;
+              preOpString = $"(char)(";
+              postOpString = ")";
+            }
+          } else {
+            opString = "+"; truncateResult = true;
           }
           break;
         case BinaryExpr.ResolvedOpcode.Sub:
-          opString = "-"; truncateResult = true;
           if (resultType.IsCharType) {
-            preOpString = "(char)(";
-            postOpString = ")";
+            if (CharIsRune) {
+              staticCallString = $"{DafnyHelpersClass}.SubtractRunes";
+            } else {
+              opString = "-"; truncateResult = true;
+              preOpString = $"(char)(";
+              postOpString = ")";
+            }
+          } else {
+            opString = "-"; truncateResult = true;
           }
           break;
         case BinaryExpr.ResolvedOpcode.Mul:
@@ -2939,10 +3001,11 @@ namespace Microsoft.Dafny.Compilers {
           if (AsNativeType(e.E.Type) != null) {
             wr.Write("new BigInteger");
           }
-          TrParenExpr(e.E, wr, inLetExprBody, wStmts);
+          ConvertFromChar(e.E, wr, inLetExprBody, wStmts);
           wr.Write(", BigInteger.One)");
         } else if (e.ToType.IsCharType) {
-          wr.Format($"(char)({Expr(e.E, inLetExprBody, wStmts)})");
+          wr.Write($"({CharTypeName})");
+          TrParenExpr(e.E, wr, inLetExprBody, wStmts);
         } else {
           // (int or bv or char) -> (int or bv or ORDINAL)
           var fromNative = AsNativeType(e.E.Type);
@@ -2951,7 +3014,7 @@ namespace Microsoft.Dafny.Compilers {
             if (e.E.Type.IsCharType) {
               // char -> big-integer (int or bv or ORDINAL)
               wr.Write("new BigInteger");
-              TrParenExpr(e.E, wr, inLetExprBody, wStmts);
+              ConvertFromChar(e.E, wr, inLetExprBody, wStmts);
             } else {
               // big-integer (int or bv) -> big-integer (int or bv or ORDINAL), so identity will do
               TrExpr(e.E, wr, inLetExprBody, wStmts);
@@ -2991,7 +3054,7 @@ namespace Microsoft.Dafny.Compilers {
               }
             } else {
               // no optimization applies; use the standard translation
-              TrParenExpr(e.E, wr, inLetExprBody, wStmts);
+              ConvertFromChar(e.E, wr, inLetExprBody, wStmts);
             }
           }
         }
@@ -3004,7 +3067,7 @@ namespace Microsoft.Dafny.Compilers {
         } else {
           // real -> (int or bv or char or ordinal)
           if (e.ToType.IsCharType) {
-            wr.Write("(char)");
+            wr.Write($"({CharTypeName})");
           } else if (AsNativeType(e.ToType) != null) {
             wr.Write("({0})", GetNativeTypeName(AsNativeType(e.ToType)));
           }
@@ -3015,7 +3078,7 @@ namespace Microsoft.Dafny.Compilers {
         if (e.ToType.IsNumericBased(Type.NumericPersuasion.Int) || e.ToType.IsBigOrdinalType) {
           TrExpr(e.E, wr, inLetExprBody, wStmts);
         } else if (e.ToType.IsCharType) {
-          wr.Write("(char)");
+          wr.Write($"({CharTypeName})");
           TrParenExpr(e.E, wr, inLetExprBody, wStmts);
         } else if (e.ToType.IsNumericBased(Type.NumericPersuasion.Real)) {
           wr.Write("new Dafny.BigRational(");
@@ -3156,6 +3219,7 @@ namespace Microsoft.Dafny.Compilers {
       var libPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
       if (DafnyOptions.O.UseRuntimeLib) {
         compilation = compilation.AddReferences(MetadataReference.CreateFromFile(Path.Join(libPath, "DafnyRuntime.dll")));
+        compilation = compilation.AddReferences(MetadataReference.CreateFromFile(Assembly.Load("netstandard").Location));
       }
 
       var standardLibraries = new List<string>() {
@@ -3270,6 +3334,7 @@ namespace Microsoft.Dafny.Compilers {
         throw new Exception("Cannot call run target on a compilation whose assembly has no entry.");
       }
       try {
+        Console.OutputEncoding = System.Text.Encoding.UTF8; // Force UTF-8 output in dafny run (#2999)
         object[] parameters = entry.GetParameters().Length == 0 ? new object[] { } : new object[] { DafnyOptions.O.MainArgs.ToArray() };
         entry.Invoke(null, parameters);
         return true;
@@ -3325,7 +3390,7 @@ namespace Microsoft.Dafny.Compilers {
       var idName = IssueCreateStaticMain(mainMethod) ? "_StaticMain" : IdName(mainMethod);
 
       Coverage.EmitSetup(wBody);
-      wBody.WriteLine($"{GetHelperModuleName()}.WithHaltHandling(() => {companion}.{idName}(Dafny.Sequence<Dafny.ISequence<char>>.FromMainArguments(args)));");
+      wBody.WriteLine($"{GetHelperModuleName()}.WithHaltHandling(() => {companion}.{idName}(Dafny.Sequence<Dafny.ISequence<{CharTypeName}>>.{CharMethodQualifier}FromMainArguments(args)));");
       Coverage.EmitTearDown(wBody);
     }
 
@@ -3333,7 +3398,7 @@ namespace Microsoft.Dafny.Compilers {
       var tryBlock = wr.NewBlock("try");
       TrStmt(body, tryBlock);
       var catchBlock = wr.NewBlock("catch (Dafny.HaltException e)");
-      catchBlock.WriteLine($"var {haltMessageVarName} = Dafny.Sequence<char>.FromString(e.Message);");
+      catchBlock.WriteLine($"var {haltMessageVarName} = Dafny.Sequence<{CharTypeName}>.{CharMethodQualifier}FromString(e.Message);");
       TrStmt(recoveryBody, catchBlock);
     }
 

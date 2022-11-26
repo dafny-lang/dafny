@@ -22,7 +22,26 @@ namespace Microsoft.Dafny {
   [System.AttributeUsage(System.AttributeTargets.Field)]
   public class FilledInDuringResolutionAttribute : System.Attribute { }
 
-  public class Program {
+  public interface INode {
+
+    /// <summary>
+    /// These children should be such that they contain information produced by resolution such as inferred types
+    /// and resolved references. However, they should not be so transformed that source location from the initial
+    /// program is lost. As an example, the pattern matching compilation may deduplicate nodes from the original AST,
+    /// losing source location information, so those transformed nodes should not be returned by this property.
+    /// </summary>
+    IEnumerable<INode> Children { get; }
+  }
+
+  public interface IDeclarationOrUsage : INode {
+    IToken NameToken { get; }
+  }
+
+  public interface IHasUsages : IDeclarationOrUsage {
+    public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations();
+  }
+
+  public class Program : INode {
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(FullName != null);
@@ -84,6 +103,8 @@ namespace Microsoft.Dafny {
     public IToken GetFirstTopLevelToken() {
       return DefaultModuleDef.GetFirstTopLevelToken();
     }
+
+    public IEnumerable<INode> Children => new[] { DefaultModule };
   }
 
   public class Include : IComparable {
@@ -342,7 +363,7 @@ namespace Microsoft.Dafny {
   }
 
   [ContractClass(typeof(IVariableContracts))]
-  public interface IVariable {
+  public interface IVariable : IDeclarationOrUsage {
     string Name {
       get;
     }
@@ -452,6 +473,9 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<string>() != null);
       throw new NotImplementedException();
     }
+
+    public abstract IEnumerable<INode> Children { get; }
+    public abstract IToken NameToken { get; }
   }
 
   public abstract class NonglobalVariable : IVariable {
@@ -573,6 +597,9 @@ namespace Microsoft.Dafny {
       this.type = type;
       this.isGhost = isGhost;
     }
+
+    public IToken NameToken => tok;
+    public IEnumerable<INode> Children => Type.Nodes;
   }
 
   public class Formal : NonglobalVariable {
@@ -877,7 +904,7 @@ namespace Microsoft.Dafny {
       // recursively visit all subexpressions and all substatements
       expr.SubExpressions.Iter(Visit);
       if (expr is StmtExpr) {
-        // a StmtExpr also has a sub-statement
+        // a StmtExpr also has a substatement
         var e = (StmtExpr)expr;
         Visit(e.S);
       }
@@ -906,7 +933,7 @@ namespace Microsoft.Dafny {
         // recursively visit all subexpressions and all substatements
         expr.SubExpressions.Iter(e => Visit(e, st));
         if (expr is StmtExpr) {
-          // a StmtExpr also has a sub-statement
+          // a StmtExpr also has a substatement
           var e = (StmtExpr)expr;
           Visit(e.S, st);
         }
@@ -964,7 +991,7 @@ namespace Microsoft.Dafny {
     }
     /// <summary>
     /// Visit one expression proper.  This method is invoked before it is invoked on the
-    /// sub-parts (sub-expressions and sub-statements).  A return value of "true" says to
+    /// sub-parts (subexpressions and substatements).  A return value of "true" says to
     /// continue invoking the method on sub-parts, whereas "false" says not to do so.
     /// The on-return value of "st" is the value that is passed to sub-parts.
     /// </summary>

@@ -307,8 +307,7 @@ namespace Microsoft.Dafny {
             CheckNonNull(expr.tok, e.Obj, builder, etran, options.AssertKv);
             // Check that the receiver is available in the state in which the dereference occurs
           }
-        } else if (e.Member is DatatypeDestructor) {
-          var dtor = (DatatypeDestructor)e.Member;
+        } else if (e.Member is DatatypeDestructor dtor) {
           var correctConstructor = BplOr(dtor.EnclosingCtors.ConvertAll(
             ctor => FunctionCall(e.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, etran.TrExpr(e.Obj))));
           if (dtor.EnclosingCtors.Count == dtor.EnclosingCtors[0].EnclosingDatatype.Ctors.Count) {
@@ -318,6 +317,9 @@ namespace Microsoft.Dafny {
             builder.Add(Assert(GetToken(expr), correctConstructor,
               new PODesc.DestructorValid(dtor.Name, dtor.EnclosingCtorNames("or"))));
           }
+          CheckNotGhostVariant(e, "destructor", dtor.EnclosingCtors, builder, etran);
+        } else if (e.Member is DatatypeDiscriminator discriminator) {
+          CheckNotGhostVariant(e, "discriminator", ((DatatypeDecl)discriminator.EnclosingClass).Ctors, builder, etran);
         }
         if (!e.Member.IsStatic) {
           if (e.Member is TwoStateFunction) {
@@ -564,7 +566,7 @@ namespace Microsoft.Dafny {
           }
           if (!e.Function.IsStatic && CommonHeapUse && !etran.UsesOldHeap) {
             // the argument can't be assumed to be allocated for the old heap
-            Type et = Resolver.SubstType(UserDefinedType.FromTopLevelDecl(e.tok, e.Function.EnclosingClass), e.GetTypeArgumentSubstitutions());
+            Type et = UserDefinedType.FromTopLevelDecl(e.tok, e.Function.EnclosingClass).Subst(e.GetTypeArgumentSubstitutions());
             builder.Add(new Bpl.CommentCmd("assume allocatedness for receiver argument to function"));
             builder.Add(TrAssumeCmd(e.Receiver.tok, MkIsAlloc(etran.TrExpr(e.Receiver), et, etran.HeapExpr)));
           }
@@ -580,7 +582,7 @@ namespace Microsoft.Dafny {
             Formal p = e.Function.Formals[i];
             // Note, in the following, the "##" makes the variable invisible in BVD.  An alternative would be to communicate
             // to BVD what this variable stands for and display it as such to the user.
-            Type et = Resolver.SubstType(p.Type, e.GetTypeArgumentSubstitutions());
+            Type et = p.Type.Subst(e.GetTypeArgumentSubstitutions());
             LocalVariable local = new LocalVariable(p.tok, p.tok, "##" + p.Name, et, p.IsGhost);
             local.type = local.OptionalType;  // resolve local here
             IdentifierExpr ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator));
@@ -754,7 +756,7 @@ namespace Microsoft.Dafny {
           foreach (var p in LinqExtender.Zip(dtv.Ctor.EnclosingDatatype.TypeArgs, dtv.InferredTypeArgs)) {
             su[p.Item1] = p.Item2;
           }
-          Type ty = Resolver.SubstType(formal.Type, su);
+          Type ty = formal.Type.Subst(su);
           CheckSubrange(arg.tok, etran.TrExpr(arg), arg.Type, ty, builder);
         }
       } else if (expr is SeqConstructionExpr) {
@@ -842,10 +844,14 @@ namespace Microsoft.Dafny {
               var e0 = FunctionCall(expr.tok, "char#ToInt", Bpl.Type.Int, etran.TrExpr(e.E0));
               var e1 = FunctionCall(expr.tok, "char#ToInt", Bpl.Type.Int, etran.TrExpr(e.E1));
               if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.Add) {
-                builder.Add(Assert(GetToken(expr), Bpl.Expr.Lt(Bpl.Expr.Binary(BinaryOperator.Opcode.Add, e0, e1), Bpl.Expr.Literal(65536)), new PODesc.CharOverflow()));
+                builder.Add(Assert(GetToken(expr),
+                  FunctionCall(Token.NoToken, BuiltinFunction.IsChar, null,
+                    Bpl.Expr.Binary(BinaryOperator.Opcode.Add, e0, e1)), new PODesc.CharOverflow()));
               } else {
                 Contract.Assert(e.ResolvedOp == BinaryExpr.ResolvedOpcode.Sub);  // .Mul is not supported for char
-                builder.Add(Assert(GetToken(expr), Bpl.Expr.Le(e1, e0), new PODesc.CharUnderflow()));
+                builder.Add(Assert(GetToken(expr),
+                  FunctionCall(Token.NoToken, BuiltinFunction.IsChar, null,
+                    Bpl.Expr.Binary(BinaryOperator.Opcode.Sub, e0, e1)), new PODesc.CharUnderflow()));
               }
             }
             CheckResultToBeInType(expr.tok, expr, expr.Type, locals, builder, etran);
@@ -895,6 +901,40 @@ namespace Microsoft.Dafny {
                 builder.Add(Assert(GetToken(expr), Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(e.E1)), positiveDesc, options.AssertKv));
                 builder.Add(Assert(GetToken(expr), Bpl.Expr.Le(etran.TrExpr(e.E1), Bpl.Expr.Literal(w)), upperDesc, options.AssertKv));
               }
+            }
+            break;
+          case BinaryExpr.ResolvedOpcode.EqCommon:
+          case BinaryExpr.ResolvedOpcode.NeqCommon:
+            CheckWellformed(e.E1, options, locals, builder, etran);
+            if (e.InCompiledContext) {
+              if (Resolver.CanCompareWith(e.E0) || Resolver.CanCompareWith(e.E1)) {
+                // everything's fine
+              } else {
+                Contract.Assert(!e.E0.Type.SupportsEquality); // otherwise, CanCompareWith would have returned "true" above
+                Contract.Assert(!e.E1.Type.SupportsEquality); // otherwise, CanCompareWith would have returned "true" above
+                Contract.Assert(e.E0.Type.PartiallySupportsEquality); // otherwise, the code wouldn't have got passed the resolver
+                Contract.Assert(e.E1.Type.PartiallySupportsEquality); // otherwise, the code wouldn't have got passed the resolver
+                var dt = e.E0.Type.AsIndDatatype;
+                Contract.Assert(dt != null); // only inductive datatypes support equality partially
+
+                // to compare the datatype values for equality, there must not be any possibility that either of the datatype
+                // variants is a ghost constructor
+                var ghostConstructors = dt.Ctors.Where(ctor => ctor.IsGhost).ToList();
+                Contract.Assert(ghostConstructors.Count != 0);
+
+                void checkOperand(Expression operand) {
+                  var value = etran.TrExpr(operand);
+                  var notGhostCtor = BplAnd(ghostConstructors.ConvertAll(
+                    ctor => Bpl.Expr.Not(FunctionCall(expr.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, value))));
+                  builder.Add(Assert(GetToken(expr), notGhostCtor,
+                    new PODesc.NotGhostVariant("equality", ghostConstructors)));
+                }
+
+                checkOperand(e.E0);
+                checkOperand(e.E1);
+              }
+
+
             }
             break;
           default:
@@ -1103,6 +1143,9 @@ namespace Microsoft.Dafny {
             new PODesc.ValidConstructorNames(DatatypeDestructor.PrintableCtorNameList(e.LegalSourceConstructors, "or"))));
         }
 
+        CheckNotGhostVariant(e.InCompiledContext, expr, e.Root, "update of", e.Members,
+          e.LegalSourceConstructors, builder, etran);
+
         CheckWellformedWithResult(e.ResolvedExpression, options, result, resultType, locals, builder, etran);
         result = null;
 
@@ -1176,6 +1219,29 @@ namespace Microsoft.Dafny {
 
       // $Heap := tmpHeap;
       builder.Add(Bpl.Cmd.SimpleAssign(token, theHeap, tmpHeap));
+    }
+
+    private void CheckNotGhostVariant(MemberSelectExpr expr, string whatKind, List<DatatypeCtor> candidateCtors,
+      BoogieStmtListBuilder builder, ExpressionTranslator etran) {
+      CheckNotGhostVariant(expr.InCompiledContext, expr, expr.Obj, whatKind, new List<MemberDecl>() { expr.Member },
+        candidateCtors, builder, etran);
+    }
+
+    private void CheckNotGhostVariant(bool inCompiledContext, Expression exprUsedForToken, Expression datatypeValue,
+      string whatKind, List<MemberDecl> members, List<DatatypeCtor> candidateCtors, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
+      if (inCompiledContext) {
+        // check that there is no possibility that the datatype variant is a ghost constructor
+        var enclosingGhostConstructors = candidateCtors.Where(ctor => ctor.IsGhost).ToList();
+        if (enclosingGhostConstructors.Count != 0) {
+          var obj = etran.TrExpr(datatypeValue);
+          var notGhostCtor = BplAnd(enclosingGhostConstructors.ConvertAll(
+            ctor => Bpl.Expr.Not(FunctionCall(exprUsedForToken.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, obj))));
+          builder.Add(Assert(GetToken(exprUsedForToken), notGhostCtor,
+            new PODesc.NotGhostVariant(whatKind,
+              Util.PrintableNameList(members.ConvertAll(member => member.Name), "and"),
+              enclosingGhostConstructors)));
+        }
+      }
     }
 
     void CheckWellformedSpecialFunction(FunctionCallExpr expr, WFOptions options, Bpl.Expr result, Type resultType, List<Bpl.Variable> locals,

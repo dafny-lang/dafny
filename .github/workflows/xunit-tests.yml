@@ -55,7 +55,7 @@ jobs:
       run: |
         chmod +x Binaries/z3/bin/z3
     - name: Build
-      run: dotnet build --no-restore ${{env.solutionPath}}
+      run: dotnet build -warnaserror --no-restore ${{env.solutionPath}}
     - name: Run DafnyLanguageServer Tests
       run: |
         dotnet test --no-restore --verbosity normal --logger trx Source/DafnyLanguageServer.Test
@@ -66,6 +66,8 @@ jobs:
       run: dotnet test --no-restore --verbosity normal --logger trx Source/DafnyTestGeneration.Test
     - name: Run AutoExtern Tests
       run: dotnet test --no-restore --verbosity normal --logger trx Source/AutoExtern.Test
+    - name: Run DafnyRuntime Tests
+      run: dotnet test --no-restore --verbosity normal --logger trx Source/DafnyRuntime.Tests
     - uses: actions/upload-artifact@v2
       if: always()
       with:

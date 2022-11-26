@@ -21,6 +21,15 @@ public abstract class Type {
   [ThreadStatic]
   private static bool scopesEnabled = false;
 
+  public virtual IEnumerable<INode> Nodes {
+    get {
+      if (this is UserDefinedType udt) {
+        return new[] { udt };
+      }
+
+      return Enumerable.Empty<INode>();
+    }
+  }
   public static void PushScope(VisibilityScope scope) {
     Scopes.Add(scope);
   }
@@ -249,6 +258,11 @@ public abstract class Type {
   }
 
   /// <summary>
+  /// Return a type that is like "this", but where occurrences of type parameters are substituted as indicated by "subst".
+  /// </summary>
+  public abstract Type Subst(Dictionary<TypeParameter, Type> subst);
+
+  /// <summary>
   /// Returns whether or not "this" and "that" denote the same type, modulo proxies and type synonyms and subset types.
   /// </summary>
   [Pure]
@@ -260,6 +274,7 @@ public abstract class Type {
   public bool IsRealType { get { return NormalizeExpand() is RealType; } }
   public bool IsBigOrdinalType { get { return NormalizeExpand() is BigOrdinalType; } }
   public bool IsBitVectorType { get { return AsBitVectorType != null; } }
+  public bool IsStringType { get { return AsSeqType?.Arg.IsCharType == true; } }
   public BitvectorType AsBitVectorType { get { return NormalizeExpand() as BitvectorType; } }
   public bool IsNumericBased() {
     var t = NormalizeExpand();
@@ -395,7 +410,7 @@ public abstract class Type {
       return AutoInitInfo.CompilableValue; // null is a value of this type
     } else if (cl is DatatypeDecl) {
       var dt = (DatatypeDecl)cl;
-      var subst = Resolver.TypeSubstitutionMap(dt.TypeArgs, udt.TypeArgs);
+      var subst = TypeParameter.SubstitutionMap(dt.TypeArgs, udt.TypeArgs);
       var r = AutoInitInfo.CompilableValue;  // assume it's compilable, until we find out otherwise
       if (cl is CoDatatypeDecl) {
         if (coDatatypesBeingVisited != null) {
@@ -413,7 +428,7 @@ public abstract class Type {
         coDatatypesBeingVisited.Add(udt);
       }
       foreach (var formal in dt.GetGroundingCtor().Formals) {
-        var autoInit = Resolver.SubstType(formal.Type, subst).GetAutoInit(coDatatypesBeingVisited);
+        var autoInit = formal.Type.Subst(subst).GetAutoInit(coDatatypesBeingVisited);
         if (autoInit == AutoInitInfo.MaybeEmpty) {
           return AutoInitInfo.MaybeEmpty;
         } else if (formal.IsGhost) {
@@ -564,8 +579,8 @@ public abstract class Type {
       return udt;
     }
     var typeMapParents = cl.ParentFormalTypeParametersToActuals;
-    var typeMapUdt = Resolver.TypeSubstitutionMap(cl.TypeArgs, udt.TypeArgs);
-    var typeArgs = parent.TypeArgs.ConvertAll(tp => Resolver.SubstType(typeMapParents[tp], typeMapUdt));
+    var typeMapUdt = TypeParameter.SubstitutionMap(cl.TypeArgs, udt.TypeArgs);
+    var typeArgs = parent.TypeArgs.ConvertAll(tp => typeMapParents[tp].Subst(typeMapUdt));
     return new UserDefinedType(udt.tok, parent.Name, parent, typeArgs);
   }
   public bool IsTraitType {
@@ -806,11 +821,21 @@ public abstract class Type {
       return udt?.ResolvedClass as OpaqueTypeDecl;
     }
   }
-  public virtual bool SupportsEquality {
-    get {
-      return true;
-    }
-  }
+
+  /// <summary>
+  /// Returns whether or not any values of the type can be checked for equality in compiled contexts
+  /// </summary>
+  public virtual bool SupportsEquality => true;
+
+  /// <summary>
+  /// Returns whether or not some values of the type can be checked for equality in compiled contexts.
+  /// This differs from SupportsEquality for types where the equality operation is partial, e.g.,
+  /// for datatypes where some, but not all, constructors are ghost.
+  /// Note, whereas SupportsEquality sometimes consults some constituent type for SupportEquality
+  /// (e.g., seq<T> supports equality if T does), PartiallySupportsEquality does not (because the
+  /// semantic check would be more complicated and it currently doesn't seem worth the trouble).
+  /// </summary>
+  public virtual bool PartiallySupportsEquality => SupportsEquality;
 
   public bool MayInvolveReferences => ComputeMayInvolveReferences(null);
 
@@ -1430,8 +1455,8 @@ public abstract class Type {
         // trait.  If such a trait is unique, pick it. (Unfortunately, this makes the join operation not associative.)
         var commonTraits = TopLevelDeclWithMembers.CommonTraits(A, B);
         if (commonTraits.Count == 1) {
-          var typeMap = Resolver.TypeSubstitutionMap(A.TypeArgs, a.TypeArgs);
-          var r = (UserDefinedType)Resolver.SubstType(commonTraits[0], typeMap);
+          var typeMap = TypeParameter.SubstitutionMap(A.TypeArgs, a.TypeArgs);
+          var r = (UserDefinedType)commonTraits[0].Subst(typeMap);
           return abNonNullTypes ? UserDefinedType.CreateNonNullType(r) : r;
         } else {
           // the unfortunate part is when commonTraits.Count > 1 here :(
@@ -1730,6 +1755,10 @@ public abstract class ArtificialType : Type {
     // ArtificialType's are used only with numeric types.
     return false;
   }
+
+  public override Type Subst(Dictionary<TypeParameter, Type> subst) {
+    throw new NotImplementedException();
+  }
 }
 /// <summary>
 /// The type "IntVarietiesSupertype" is used to denote a decimal-less number type, namely an int-based type
@@ -1763,6 +1792,10 @@ public abstract class NonProxyType : Type {
 public abstract class BasicType : NonProxyType {
   public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl>/*?*/ visitedDatatypes) {
     return false;
+  }
+
+  public override Type Subst(Dictionary<TypeParameter, Type> subst) {
+    return this;
   }
 }
 
@@ -1882,6 +1915,17 @@ public class SelfType : NonProxyType {
     return that.NormalizeExpand(keepConstraints) is SelfType;
   }
 
+  public override Type Subst(Dictionary<TypeParameter, Type> subst) {
+    if (subst.TryGetValue(TypeArg, out var t)) {
+      return t;
+    } else {
+      // SelfType's are used only in certain restricted situations. In those situations, we need to be able
+      // to substitute for the the SelfType's TypeArg. That's the only case in which we expect to see a
+      // SelfType being part of a substitution operation at all.
+      Contract.Assert(false); throw new cce.UnreachableException();
+    }
+  }
+
   public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl>/*?*/ visitedDatatypes) {
     // SelfType is used only with bitvector types
     return false;
@@ -1999,8 +2043,16 @@ public class ArrowType : UserDefinedType {
     s += Util.Comma(typeArgs.Take(arity), arg => arg.TypeName(context, parseAble));
     if (domainNeedsParens) { s += ")"; }
     s += " " + arrow + " ";
-    s += (result ?? typeArgs.Last()).TypeName(context, parseAble);
+    if (result != null || typeArgs.Count >= 1) {
+      s += (result ?? typeArgs.Last()).TypeName(context, parseAble);
+    } else {
+      s += "<unable to infer result type>";
+    }
     return s;
+  }
+
+  public override Type Subst(Dictionary<TypeParameter, Type> subst) {
+    return new ArrowType(tok, (ArrowTypeDecl)ResolvedClass, Args.ConvertAll(u => u.Subst(subst)), Result.Subst(subst));
   }
 
   public override bool SupportsEquality {
@@ -2012,6 +2064,8 @@ public class ArrowType : UserDefinedType {
 
 public abstract class CollectionType : NonProxyType {
   public abstract string CollectionTypeName { get; }
+  public override IEnumerable<INode> Nodes => TypeArgs.SelectMany(ta => ta.Nodes);
+
   public override string TypeName(ModuleDefinition context, bool parseAble) {
     Contract.Ensures(Contract.Result<string>() != null);
     var targs = HasTypeArg() ? this.TypeArgsToString(context, parseAble) : "";
@@ -2088,6 +2142,15 @@ public class SetType : CollectionType {
     var t = that.NormalizeExpand(keepConstraints) as SetType;
     return t != null && Finite == t.Finite && Arg.Equals(t.Arg, keepConstraints);
   }
+
+  public override Type Subst(Dictionary<TypeParameter, Type> subst) {
+    var arg = Arg.Subst(subst);
+    if (arg is InferredTypeProxy) {
+      ((InferredTypeProxy)arg).KeepConstraints = true;
+    }
+    return arg == Arg ? this : new SetType(Finite, arg);
+  }
+
   public override bool SupportsEquality {
     get {
       // Sets always support equality, because there is a check that the set element type always does.
@@ -2104,6 +2167,15 @@ public class MultiSetType : CollectionType {
     var t = that.NormalizeExpand(keepConstraints) as MultiSetType;
     return t != null && Arg.Equals(t.Arg, keepConstraints);
   }
+
+  public override Type Subst(Dictionary<TypeParameter, Type> subst) {
+    var arg = Arg.Subst(subst);
+    if (arg is InferredTypeProxy) {
+      ((InferredTypeProxy)arg).KeepConstraints = true;
+    }
+    return arg == Arg ? this : new MultiSetType(arg);
+  }
+
   public override bool SupportsEquality {
     get {
       // Multisets always support equality, because there is a check that the set element type always does.
@@ -2120,6 +2192,15 @@ public class SeqType : CollectionType {
     var t = that.NormalizeExpand(keepConstraints) as SeqType;
     return t != null && Arg.Equals(t.Arg, keepConstraints);
   }
+
+  public override Type Subst(Dictionary<TypeParameter, Type> subst) {
+    var arg = Arg.Subst(subst);
+    if (arg is InferredTypeProxy) {
+      ((InferredTypeProxy)arg).KeepConstraints = true;
+    }
+    return arg == Arg ? this : new SeqType(arg);
+  }
+
   public override bool SupportsEquality {
     get {
       // The sequence type supports equality if its element type does
@@ -2161,6 +2242,23 @@ public class MapType : CollectionType {
     var t = that.NormalizeExpand(keepConstraints) as MapType;
     return t != null && Finite == t.Finite && Arg.Equals(t.Arg, keepConstraints) && Range.Equals(t.Range, keepConstraints);
   }
+
+  public override Type Subst(Dictionary<TypeParameter, Type> subst) {
+    var dom = Domain.Subst(subst);
+    if (dom is InferredTypeProxy) {
+      ((InferredTypeProxy)dom).KeepConstraints = true;
+    }
+    var ran = Range.Subst(subst);
+    if (ran is InferredTypeProxy) {
+      ((InferredTypeProxy)ran).KeepConstraints = true;
+    }
+    if (dom == Domain && ran == Range) {
+      return this;
+    } else {
+      return new MapType(Finite, dom, ran);
+    }
+  }
+
   public override bool SupportsEquality {
     get {
       // A map type supports equality if both its Keys type and Values type does.  It is checked
@@ -2173,7 +2271,7 @@ public class MapType : CollectionType {
   }
 }
 
-public class UserDefinedType : NonProxyType {
+public class UserDefinedType : NonProxyType, INode {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(tok != null);
@@ -2376,6 +2474,49 @@ public class UserDefinedType : NonProxyType {
     }
   }
 
+  public override Type Subst(Dictionary<TypeParameter, Type> subst) {
+    if (ResolvedClass is TypeParameter tp) {
+      if (subst.TryGetValue(tp, out var s)) {
+        Contract.Assert(TypeArgs.Count == 0);
+        return s;
+      } else {
+        return this;
+      }
+    } else if (ResolvedClass != null) {
+      List<Type> newArgs = null;  // allocate it lazily
+      var resolvedClass = ResolvedClass;
+      var isArrowType = ArrowType.IsPartialArrowTypeName(resolvedClass.Name) || ArrowType.IsTotalArrowTypeName(resolvedClass.Name);
+      for (int i = 0; i < TypeArgs.Count; i++) {
+        Type p = TypeArgs[i];
+        Type s = p.Subst(subst);
+        if (s is InferredTypeProxy && !isArrowType) {
+          ((InferredTypeProxy)s).KeepConstraints = true;
+        }
+        if (s != p && newArgs == null) {
+          // lazily construct newArgs
+          newArgs = new List<Type>();
+          for (int j = 0; j < i; j++) {
+            newArgs.Add(TypeArgs[j]);
+          }
+        }
+        if (newArgs != null) {
+          newArgs.Add(s);
+        }
+      }
+      if (newArgs == null) {
+        // there were no substitutions
+        return this;
+      } else {
+        // Note, even if t.NamePath is non-null, we don't care to keep that syntactic part of the expression in what we return here
+        return new UserDefinedType(tok, Name, resolvedClass, newArgs);
+      }
+    } else {
+      // there's neither a resolved param nor a resolved class, which means the UserDefinedType wasn't
+      // properly resolved; just return it
+      return this;
+    }
+  }
+
   /// <summary>
   /// If type denotes a resolved class type, then return that class type.
   /// Otherwise, return null.
@@ -2402,6 +2543,8 @@ public class UserDefinedType : NonProxyType {
     Contract.Assert(udt.TypeArgs.Count == 1);  // holds true of all array types
     return udt.TypeArgs[0];
   }
+
+  public override IEnumerable<INode> Nodes => new[] { this }.Concat(TypeArgs.SelectMany(t => t.Nodes));
 
   [Pure]
   public override string TypeName(ModuleDefinition context, bool parseAble) {
@@ -2472,6 +2615,31 @@ public class UserDefinedType : NonProxyType {
       }
       Contract.Assume(false);  // the SupportsEquality getter requires the Type to have been successfully resolved
       return true;
+    }
+  }
+
+  public override bool PartiallySupportsEquality {
+    get {
+      var totalEqualitySupport = SupportsEquality;
+      if (!totalEqualitySupport && ResolvedClass is TypeSynonymDeclBase synonymBase) {
+        return synonymBase.IsRevealedInScope(Type.GetScope()) && synonymBase.RhsWithArgument(TypeArgs).PartiallySupportsEquality;
+      } else if (!totalEqualitySupport && ResolvedClass is IndDatatypeDecl dt && dt.IsRevealedInScope(Type.GetScope())) {
+        // Equality is partially supported (at run time) for a datatype that
+        //   * is inductive (because codatatypes never support equality), and
+        //   * has at least one non-ghost constructor (because if all constructors are ghost, then equality is never supported), and
+        //   * for each non-ghost constructor, every argument totally supports equality (an argument totally supports equality
+        //       if it is non-ghost (because ghost arguments are not available at run time) and has a type that supports equality).
+        var hasNonGhostConstructor = false;
+        foreach (var ctor in dt.Ctors.Where(ctor => !ctor.IsGhost)) {
+          hasNonGhostConstructor = true;
+          if (!ctor.Formals.All(formal => !formal.IsGhost && formal.Type.SupportsEquality)) {
+            return false;
+          }
+        }
+        Contract.Assert(dt.HasGhostVariant); // sanity check (if the types of all formals support equality, then either .SupportsEquality or there is a ghost constructor)
+        return hasNonGhostConstructor;
+      }
+      return totalEqualitySupport;
     }
   }
 
@@ -2552,12 +2720,25 @@ public class UserDefinedType : NonProxyType {
 
     return base.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity);
   }
+
+  public IToken NameToken => tok;
+  public IEnumerable<INode> Children => new[] { NamePath };
 }
 
 public abstract class TypeProxy : Type {
   [FilledInDuringResolution] public Type T;
   public readonly List<TypeConstraint> SupertypeConstraints = new List<TypeConstraint>();
   public readonly List<TypeConstraint> SubtypeConstraints = new List<TypeConstraint>();
+
+  public override Type Subst(Dictionary<TypeParameter, Type> subst) {
+    if (T == null) {
+      return this;
+    }
+    var s = T.Subst(subst);
+    return s == T ? this : s;
+
+  }
+
   public IEnumerable<Type> Supertypes {
     get {
       foreach (var c in SupertypeConstraints) {

@@ -42,7 +42,7 @@ namespace XUnitExtensions.Lit {
       }
 
       string fullDirectoryPath = Path.GetFullPath(directory).Replace(@"\", "/");
-      config = config.WithSubstitutions(new Dictionary<string, string> {
+      config = config.WithSubstitutions(new Dictionary<string, object> {
         {"%s", filePath.Replace(@"\", "/")},
         // For class path separators
         {".jar:%S", ".jar" + Path.PathSeparator + fullDirectoryPath},
@@ -86,9 +86,9 @@ namespace XUnitExtensions.Lit {
 
         if (exitCode != 0) {
           outputHelper?.WriteLine("Previous command results:");
-          foreach (var (prevOutput, _) in results) {
+          foreach (var (prevOutput, prevError) in results) {
             outputHelper?.WriteLine($"Output:\n{prevOutput}");
-            outputHelper?.WriteLine($"Error:\n{error}");
+            outputHelper?.WriteLine($"Error:\n{prevError}");
           }
 
           throw new Exception(

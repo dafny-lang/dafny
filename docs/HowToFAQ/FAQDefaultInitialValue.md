@@ -8,7 +8,7 @@ How does one declare a type to have a "default" initial value, say a type tagged
 
 ## Answer
 
-There is no general way to do this. Subset types and newtypes have [witness](#sec-witness-clauses) clauses and types that are [auto-initializable](https://dafny.org/dafny/DafnyRef/DafnyRef#sec-auto-init)
+There is no general way to do this. Subset types and newtypes have [witness](../DafnyRef/DafnyRef/#sec-witness-clauses) clauses and types that are [auto-initializable](../DafnyRef/DafnyRef#sec-auto-init)
 have a default, but those rules do not apply to anonymous extern types.
 Particularly for opaque types, there is not even a way to infer such a value.
 
@@ -23,3 +23,4 @@ method mmm() {
   var y:= x;
 }
 ```
+

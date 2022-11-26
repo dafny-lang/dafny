@@ -34,4 +34,4 @@ const d: ABCD := D
 You can determine which alternative a record value is with the built-in test functions: with the definitions above, `a.A?` is true and `b.C?` is false. And you can extract the record alternative's
 data: in the above `a.i` is well-defined if `a.A?` is true, in which case it has the value `7`.
 
-There is more description of datatypes [here](https://dafny.org/dafny/DafnyRef/DafnyRef#sec-algebraic-datatype).
+There is more description of datatypes [here](../DafnyRef/DafnyRef#sec-algebraic-datatype).

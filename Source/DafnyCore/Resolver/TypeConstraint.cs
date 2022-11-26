@@ -18,22 +18,21 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Microsoft.Dafny {
   public record TypeConstraint(Type Super, Type Sub, TypeConstraint.ErrorMsg ErrMsg, bool KeepConstraints) {
-    private static readonly List<ErrorMsg> ErrorsToBeReported = new List<ErrorMsg>();
-    public static void ReportErrors(ErrorReporter reporter) {
+    public static void ReportErrors(Resolver resolver, ErrorReporter reporter) {
       Contract.Requires(reporter != null);
-      foreach (var err in ErrorsToBeReported) {
+      foreach (var err in resolver.TypeConstraintErrorsToBeReported) {
         err.ReportAsError(reporter);
       }
-      ErrorsToBeReported.Clear();
+      resolver.TypeConstraintErrorsToBeReported.Clear();
     }
     public abstract class ErrorMsg {
       public abstract IToken Tok { get; }
       bool reported;
-      public void FlagAsError() {
+      public void FlagAsError(Resolver resolver) {
         if (DafnyOptions.O.TypeInferenceDebug) {
           Console.WriteLine($"DEBUG: flagging error: {ApproximateErrorMessage()}");
         }
-        TypeConstraint.ErrorsToBeReported.Add(this);
+        resolver.TypeConstraintErrorsToBeReported.Add(this);
       }
       internal void ReportAsError(ErrorReporter reporter) {
         Contract.Requires(reporter != null);
@@ -45,25 +44,6 @@ namespace Microsoft.Dafny {
         Contract.Requires(reporter != null);
         Contract.Requires(suffix != null);
 
-        object[] RemoveAmbiguity(object[] msgArgs) {
-          var renderedInterpolated = new HashSet<string>();
-          var ambiguity = false;
-          foreach (var x in msgArgs) {
-            var str = x.ToString();
-            if (renderedInterpolated.Contains(str)) {
-              ambiguity = true;
-            }
-
-            renderedInterpolated.Add(str);
-          }
-          if (ambiguity) {
-            return msgArgs.Select(x =>
-              (object)(x is UserDefinedType udt ? udt.FullName : x.ToString())
-            ).ToArray();
-          } else {
-            return msgArgs;
-          }
-        }
         if (this is ErrorMsgWithToken) {
           var err = (ErrorMsgWithToken)this;
           Contract.Assert(err.Tok != null);
@@ -74,22 +54,39 @@ namespace Microsoft.Dafny {
         }
         reported = true;
       }
+      protected object[] RemoveAmbiguity(object[] msgArgs) {
+        var renderedInterpolated = new HashSet<string>();
+        var ambiguity = false;
+        foreach (var x in msgArgs) {
+          var str = x.ToString();
+          if (renderedInterpolated.Contains(str)) {
+            ambiguity = true;
+          }
+
+          renderedInterpolated.Add(str);
+        }
+        if (ambiguity) {
+          return msgArgs.Select(x =>
+            (object)(x is UserDefinedType udt ? udt.FullName : x.ToString())
+          ).ToArray();
+        }
+        return msgArgs;
+      }
 
       protected abstract string ApproximateErrorMessage();
     }
     public class ErrorMsgWithToken : ErrorMsg {
       readonly IToken tok;
-      public override IToken Tok {
-        get { return tok; }
-      }
-      public readonly string Msg;
+      public override IToken Tok => tok;
+      readonly string msg;
+      public virtual string Msg => msg;
       public readonly object[] MsgArgs;
       public ErrorMsgWithToken(IToken tok, string msg, params object[] msgArgs) {
         Contract.Requires(tok != null);
         Contract.Requires(msg != null);
         Contract.Requires(msgArgs != null);
         this.tok = tok;
-        this.Msg = msg;
+        this.msg = msg;
         this.MsgArgs = msgArgs;
       }
 
@@ -113,8 +110,8 @@ namespace Microsoft.Dafny {
 
       protected override string ApproximateErrorMessage() => string.Format(Msg, MsgArgs);
     }
-    public void FlagAsError() {
-      ErrMsg.FlagAsError();
+    public void FlagAsError(Resolver resolver) {
+      ErrMsg.FlagAsError(resolver);
     }
   }
 }
