@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-      <OutputType>Library</OutputType>
+      <OutputType>Exe</OutputType>
       <AssemblyName>DafnyDriver</AssemblyName>
       <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
       <DefineConstants>TRACE</DefineConstants>
@@ -43,7 +43,7 @@
   <ItemGroup>
     <ProjectReference Include="..\DafnyCore\DafnyCore.csproj" />
     <ProjectReference Include="..\DafnyTestGeneration\DafnyTestGeneration.csproj" />
-    <ProjectReference Include="..\DafnyServerWithoutRuntimes\DafnyServerWithoutRuntimes.csproj" />
+    <ProjectReference Include="..\DafnyServer\DafnyServer.csproj" />
   </ItemGroup>
 
   <ItemGroup>

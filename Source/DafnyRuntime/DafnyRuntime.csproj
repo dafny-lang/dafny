@@ -19,9 +19,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DafnyWithoutRuntimes\DafnyWithoutRuntimes.csproj" />
+    <ProjectReference Include="..\DafnyDriver\DafnyDriver.csproj" />
   </ItemGroup>
-    
+
   <ItemGroup>
     <Compile Update="DafnyRuntime.cs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
