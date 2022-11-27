@@ -1,6 +1,6 @@
 
 
-DAFNY_WITHOUT_RUNTIMES = dotnet run --project ../../DafnyWithoutRuntimes --no-build
+DAFNY_WITHOUT_RUNTIMES = dotnet run --project ../../DafnyDriver
 
 all: verify cs java py js build
 

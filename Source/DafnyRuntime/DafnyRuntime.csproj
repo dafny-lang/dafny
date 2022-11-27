@@ -18,7 +18,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DafnyDriver\DafnyDriver.csproj" />
+    <!--
+    This project depends on DafnyDriver, but only as a CLI tool rather than a direct C# dependency.
+    We need to build DafnyDriver before this package, but we can't add a direct project dependency
+    because this project needs to build on older frameworks.
+    Instead we just use `dotnet run` on DafnyDriver.csproj, WITHOUT passing no-build as
+    we'd otherwise like to. We rely on dotnet handling concurrent requests to build
+    a project reasonably well.
+    -->
   </ItemGroup>
 
   <ItemGroup>

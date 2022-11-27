@@ -21,6 +21,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DafnyLanguageServer\DafnyLanguageServer.csproj" />
-    <ProjectReference Include="..\DafnyPipeline\DafnyPipeline.csproj" />
+    <ProjectReference Include="..\DafnyCore\DafnyCore.csproj" />
   </ItemGroup>
 </Project>
