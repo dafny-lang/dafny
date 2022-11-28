@@ -9,11 +9,10 @@ class TranslateCommand : ICommandSpec {
   public IEnumerable<IOptionSpec> Options =>
     new IOptionSpec[] {
       OutputOption.Instance,
-      TargetOption.Instance,
       CompileVerboseOption.Instance,
       IncludeRuntimeOption.Instance,
-      VerificationTimeLimitOption.Instance,
-    }.Concat(ICommandSpec.ExecutionOptions).
+    }.Concat(ICommandSpec.VerificationOptions).
+      Concat(ICommandSpec.ExecutionOptions).
       Concat(ICommandSpec.CommonOptions);
 
   public Command Create() {

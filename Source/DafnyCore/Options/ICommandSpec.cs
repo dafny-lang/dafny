@@ -26,8 +26,14 @@ public interface ICommandSpec {
   }
   public static Argument<IEnumerable<FileInfo>> FilesArgument { get; }
 
-  public static IReadOnlyList<IOptionSpec> ExecutionOptions = new IOptionSpec[] {
+  public static IReadOnlyList<IOptionSpec> VerificationOptions = new IOptionSpec[] {
     NoVerifyOption.Instance,
+    VerificationTimeLimitOption.Instance,
+    VerifyIncludedFilesOption.Instance,
+  }.ToList();
+
+  public static IReadOnlyList<IOptionSpec> ExecutionOptions = new IOptionSpec[] {
+    TargetOption.Instance,
     EnforceDeterminismOption.Instance,
   }.ToList();
 
@@ -49,7 +55,8 @@ public interface ICommandSpec {
     WarnMissingConstructorParenthesisOption.Instance,
     WarningAsErrorsOption.Instance,
     TrackPrintEffects.Instance,
-    DisableNonLinearArithmeticOption.Instance
+    DisableNonLinearArithmeticOption.Instance,
+    UnicodeCharactersOption.Instance,
   });
 
   IEnumerable<IOptionSpec> Options { get; }
