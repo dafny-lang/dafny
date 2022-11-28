@@ -34,9 +34,11 @@ body:
   - type: textarea
     id: alternatives
     attributes:
-      label: Alternative Designs
+      label: Alternatives
       description: |
-        Were there other options you considered?
+        How does not having this feature impact you?
+        Are there workarounds for the problem this feature addresses? 
+        Were there other solutions you considered?
         How does this compare to features in other language ecosystems?
     validations:
       required: false
