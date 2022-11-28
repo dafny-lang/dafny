@@ -2912,7 +2912,9 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(originalResultType != null);
       Contract.Requires(wr != null);
       Contract.Requires(accumulatorVar == null || (enclosingFunction != null && enclosingFunction.IsAccumulatorTailRecursive));
+      copyInstrWriters.Push(wr.Fork());
       TrExprOpt(body.Resolved, originalResultType, wr, accumulatorVar);
+      copyInstrWriters.Pop();
     }
 
     // ----- Type ---------------------------------------------------------------------------------
