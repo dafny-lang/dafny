@@ -75,16 +75,6 @@ assignments, `if` statements, loops, other method calls, `return` statements, et
 For example, the `MultipleReturns` method may be
 implemented as:
 
-```dafny {.editonly}
-method MultipleReturns(x: int, y: int) returns (more: int, less: int)
-{
-  more := x + y;
-  less := x - y;
-  // comments: are not strictly necessary.
-  /* unless you want to keep your sanity. */
-}
-```
-
 ```dafny
 method MultipleReturns(x: int, y: int) returns (more: int, less: int)
 {
@@ -108,7 +98,7 @@ parameters are used), or they can take a list of values to return. There are
 also compound statements, such as `if` statements. `if` statements do not require
 parentheses around the boolean condition, and act as one would expect:
 
-```dafny {.edit}
+```dafny
 method Abs(x: int) returns (y: int)
 {
   if x < 0 {
@@ -153,7 +143,7 @@ condition and most specifications, a postcondition is always a boolean
 expression: something that can be *true* or *false*. In
 the case of the `Abs` method, a reasonable postcondition is the following:
 
-```dafny {.editonly}
+```dafny
 method Abs(x: int) returns (y: int)
   ensures 0 <= y
 {
@@ -162,14 +152,6 @@ method Abs(x: int) returns (y: int)
   } else {
     return x;
   }
-}
-```
-
-```dafny
-method Abs(x: int) returns (y: int)
-  ensures 0 <= y
-{
-  ...
 }
 ```
 
@@ -189,7 +171,7 @@ latter is basically the same as the former, but it seperates distinct
 properties. For example, the return value names from the `MultipleReturns`
 method might lead one to guess the following postconditions:
 
-``` {.edit}
+```dafny
 method MultipleReturns(x: int, y: int) returns (more: int, less: int)
   ensures less < x
   ensures x < more
@@ -201,32 +183,24 @@ method MultipleReturns(x: int, y: int) returns (more: int, less: int)
 
 The postcondition can also be written:
 
-``` {.editonly}
+```dafny
 method MultipleReturns(x: int, y: int) returns (more: int, less: int)
   ensures less < x && x < more
 {
   more := x + y;
   less := x - y;
 }
-```
-
-```dafny
-  ensures less < x && x < more
 ```
 
 or even:
 
-``` {.editonly}
+```dafny
 method MultipleReturns(x: int, y: int) returns (more: int, less: int)
   ensures less < x < more
 {
   more := x + y;
   less := x - y;
 }
-```
-
-```dafny
-  ensures less < x < more
 ```
 
 because of the chaining comparison operator syntax in Dafny.
@@ -268,7 +242,7 @@ preconditions have their own keyword, `requires`.
 We can give the necessary precondition to `MultipleReturns`
 as below:
 
-``` {.edit}
+```dafny
 method MultipleReturns(x: int, y: int) returns (more: int, less: int)
   requires 0 < y
   ensures less < x < more
@@ -293,7 +267,7 @@ is correct.
   their maximum. Add appropriate annotations and make sure your code
   verifies.*
 
-``` {.editonly}
+```dafny
 method Max(a: int, b: int) returns (c: int)
   // What postcondition should go here, so that the function operates as expected?
   // Hint: there are many ways to write this.
@@ -301,11 +275,6 @@ method Max(a: int, b: int) returns (c: int)
   // fill in the code here
 }
 ```
-
-```dafny
-method Max(a: int, b: int) returns (c: int)
-```
-
 
 Not all methods necessarily have preconditions. For
 example, the `Abs` method we have already seen is defined for all integers, and
@@ -324,19 +293,12 @@ statements. An assertion says that a particular
 expression always holds when control reaches that part of the code. For
 example, the following is a trivial use of an assertion inside a dummy method:
 
-``` {.editonly}
+```dafny
 method Testing()
 {
   assert 2 < 3;
   // Try "asserting" something that is not true.
   // What does Dafny output?
-}
-```
-
-```dafny
-method Testing()
-{
-  assert 2 < 3;
 }
 ```
 
@@ -356,41 +318,29 @@ declarations. Unlike method parameters, where types are required, Dafny can
 infer the types of local variables in almost all situations. This is an example
 of an initialized, explicitly typed variable declaration:
 
-``` {.editonly}
+```dafny
 method m()
 {
   var x: int := 5;
 }
-```
-
-```dafny
-  var x: int := 5;
 ```
 
 The type annotation can be dropped in this case:
 
-``` {.editonly}
+```dafny
 method m()
 {
   var x := 5;
 }
-```
-
-```dafny
-  var x := 5;
 ```
 
 Multiple variables can be declared at once:
 
-``` {.editonly}
+```dafny
 method m()
 {
   var x, y, z: bool := 1, 2, true;
 }
-```
-
-```dafny
-  var x, y, z: bool := 1, 2, true;
 ```
 
 Explicit type declarations only apply to the immediately
@@ -402,7 +352,7 @@ method. We cannot put `Abs` inside a specification directly, as the method could
 change memory state, among other problems. So we capture the return value of a
 call to `Abs` as follows:
 
-``` {.editonly}
+```dafny
 method Abs(x: int) returns (y: int)
   ensures 0 <= y
 {
@@ -412,15 +362,6 @@ method Abs(x: int) returns (y: int)
     return x;
   }
 }
-method Testing()
-{
-  var v := Abs(3);
-  assert 0 <= v;
-}
-```
-
-```dafny
-// use definition of Abs() from before.
 method Testing()
 {
   var v := Abs(3);
@@ -442,7 +383,7 @@ non-negative after the call to `Abs`.
   *Write a test method that calls your `Max` method from Exercise 0
   and then asserts something about the result.*
 
-``` {.editonly}
+```dafny
 method Max(a: int, b:int) returns (c: int)
   // Use your code from Exercise 0
 method Testing() {
@@ -451,17 +392,12 @@ method Testing() {
 }
 ```
 
-```dafny
-method Testing() { ... }
-```
-
-
 But we know something stronger about the `Abs` method. In
 particular, for non-negative `x`, `Abs(x) == x`. Specifically, in the
 above program, the value of `v` is 3. If we try adding an assertion (or
 changing the existing one) to say:
 
-``` {.editonly}
+```dafny
 method Abs(x: int) returns (y: int)
   ensures 0 <= y
 {
@@ -477,10 +413,6 @@ method Testing()
   assert 0 <= v;
   assert v == 3;
 }
-```
-
-```dafny
-  assert v == 3;
 ```
 
 we find that Dafny cannot prove our assertion, and gives an
@@ -504,7 +436,7 @@ return values) as fixing the behavior of the method. Everywhere the method is
 used, we assume that it is any one of the conceivable method(s) that satisfies the pre- and
 postconditions. In the `Abs` case, we might have written:
 
-``` {.editonly}
+```dafny
 method Abs(x: int) returns (y: int)
   ensures 0 <= y
 {
@@ -516,14 +448,6 @@ method Testing()
   assert 0 <= v;
   // this stil does not verify, but now it is actually not true:
   assert v == 3;
-}
-```
-
-```dafny
-method Abs(x: int) returns (y: int)
-  ensures 0 <= y
-{
-  y := 0;
 }
 ```
 
