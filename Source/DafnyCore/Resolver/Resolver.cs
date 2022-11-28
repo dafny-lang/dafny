@@ -7290,7 +7290,7 @@ namespace Microsoft.Dafny {
     public void ComputeGhostInterest(Statement stmt, bool mustBeErasable, [CanBeNull] string proofContext, ICodeContext codeContext) {
       Contract.Requires(stmt != null);
       Contract.Requires(codeContext != null);
-      var visitor = new GhostInterest_Visitor(codeContext, this, false);
+      var visitor = new GhostInterestVisitor(codeContext, this, false);
       visitor.Visit(stmt, mustBeErasable, proofContext);
     }
 
@@ -9544,14 +9544,14 @@ namespace Microsoft.Dafny {
           reporter.Error(MessageSource.Resolver, stmt, "return statement is not allowed before 'new;' in a constructor");
         }
         var s = (ProduceStmt)stmt;
-        if (s.rhss != null) {
+        if (s.Rhss != null) {
           var cmc = resolutionContext.CodeContext as IMethodCodeContext;
           if (cmc == null) {
             // an error has already been reported above
-          } else if (cmc.Outs.Count != s.rhss.Count) {
-            reporter.Error(MessageSource.Resolver, s, "number of {2} parameters does not match declaration (found {0}, expected {1})", s.rhss.Count, cmc.Outs.Count, kind);
+          } else if (cmc.Outs.Count != s.Rhss.Count) {
+            reporter.Error(MessageSource.Resolver, s, "number of {2} parameters does not match declaration (found {0}, expected {1})", s.Rhss.Count, cmc.Outs.Count, kind);
           } else {
-            Contract.Assert(s.rhss.Count > 0);
+            Contract.Assert(s.Rhss.Count > 0);
             // Create a hidden update statement using the out-parameter formals, resolve the RHS, and check that the RHS is good.
             List<Expression> formals = new List<Expression>();
             foreach (Formal f in cmc.Outs) {
@@ -9570,12 +9570,12 @@ namespace Microsoft.Dafny {
               }
               formals.Add(produceLhs);
             }
-            s.hiddenUpdate = new UpdateStmt(s.Tok, s.EndTok, formals, s.rhss, true);
+            s.HiddenUpdate = new UpdateStmt(s.Tok, s.EndTok, formals, s.Rhss, true);
             // resolving the update statement will check for return/yield statement specifics.
-            ResolveStatement(s.hiddenUpdate, resolutionContext);
+            ResolveStatement(s.HiddenUpdate, resolutionContext);
           }
         } else {// this is a regular return/yield statement.
-          s.hiddenUpdate = null;
+          s.HiddenUpdate = null;
         }
       } else if (stmt is ConcreteUpdateStatement) {
         ResolveConcreteUpdateStmt((ConcreteUpdateStatement)stmt, resolutionContext);
