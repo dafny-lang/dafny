@@ -1,3 +1,4 @@
+#define TI_DEBUG_PRINT
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
@@ -274,6 +275,7 @@ public abstract class Type {
   public bool IsRealType { get { return NormalizeExpand() is RealType; } }
   public bool IsBigOrdinalType { get { return NormalizeExpand() is BigOrdinalType; } }
   public bool IsBitVectorType { get { return AsBitVectorType != null; } }
+  public bool IsStringType { get { return AsSeqType?.Arg.IsCharType == true; } }
   public BitvectorType AsBitVectorType { get { return NormalizeExpand() as BitvectorType; } }
   public bool IsNumericBased() {
     var t = NormalizeExpand();

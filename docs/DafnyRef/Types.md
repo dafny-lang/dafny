@@ -463,9 +463,18 @@ In Dafny, `ORDINAL`s are used primarily in conjunction with [extreme functions a
 CharType_ = "char"
 ````
 
-Dafny supports a type `char` of _characters_.  Character literals are
-enclosed in single quotes, as in `'D'`. Their form is described
-by the ``charToken`` nonterminal in the grammar.  To write a single quote as a
+Dafny supports a type `char` of _characters_.  
+Its exact meaning is controlled by the command-line switch `--unicode-char:true|false`.
+
+If `--unicode-char` is disabled, then `char` represents any [UTF-16 code unit](https://en.wikipedia.org/wiki/UTF-16).
+This includes surrogate code points.
+
+If `--unicode-char` is enabled, then `char` represents any [Unicode scalar value](https://unicode.org/glossary/#unicode_scalar_value).
+This excludes surrogate code points.
+
+Character literals are enclosed in single quotes, as in `'D'`. 
+Their form is described by the ``charToken`` nonterminal in the grammar.
+To write a single quote as a
 character literal, it is necessary to use an _escape sequence_.
 Escape sequences can also be used to write other characters.  The
 supported escape sequences are the following:
@@ -475,18 +484,30 @@ supported escape sequences are the following:
  `\'`               | the character `'`
  `\"`               | the character `"`
  `\\`               | the character `\`
- `\0`               | the null character, same as `\u0000`
+ `\0`               | the null character, same as `\u0000` or `\U{0}`
  `\n`               | line feed
  `\r`               | carriage return
  `\t`               | horizontal tab
- `\u`_xxxx_         | [universal (unicode) character](https://en.wikipedia.org/wiki/Universal_Character_Set_characters) whose hexadecimal code is _xxxx_,  where each _x_ is a hexadecimal digit
+ `\u`_xxxx_         | [UTF-16 code unit](https://en.wikipedia.org/wiki/UTF-16) whose hexadecimal code is _xxxx_,  where each _x_ is a hexadecimal digit
+ `\U{`_x..x_`}`     | [Unicode scalar value](https://unicode.org/glossary/#unicode_scalar_value) whose hexadecimal code is _x..x_,  where each _x_ is a hexadecimal digit
 
 The escape sequence for a double quote is redundant, because
 `'"'` and `'\"'` denote the same
 character---both forms are provided in order to support the same
 escape sequences in string literals ([Section 10.3.5](#sec-strings)).
-In the form `\u`_xxxx_, the `u` is always lower case, but the four
+
+In the form `\u`_xxxx_, which is only allowed if `--unicode-char` is disabled,
+the `u` is always lower case, but the four
 hexadecimal digits are case insensitive.
+
+In the form `\U{`_x..x_`}`, 
+which is only allowed if `--unicode-char` is enabled,
+the `U` is always upper case,
+but the hexadecimal digits are case insensitive, and there must
+be at least one and at most six digits.
+Surrogate code points are not allowed.
+The hex digits may be interspersed with underscores for readability 
+(but not beginning or ending with an underscore), as in `\U{1_F680}`.
 
 Character values are ordered and can be compared using the standard
 relational operators:
@@ -504,7 +525,7 @@ Sequences of characters represent _strings_, as described in
 Character values can be converted to and from `int` values using the
 `as int` and `as char` conversion operations. The result is what would
 be expected in other programming languages, namely, the `int` value of a
-`char` is the ASCII or unicode numeric value.
+`char` is the ASCII or Unicode numeric value.
 
 The only other operations on characters are obtaining a character
 by indexing into a string, and the implicit conversion to string

@@ -33,7 +33,8 @@ namespace Microsoft.Dafny {
         OldCompileVerboseOption.Instance,
         OutputOption.Instance,
         PluginOption.Instance,
-        UseRuntimeLibOption.Instance
+        UseRuntimeLibOption.Instance,
+        UnicodeCharactersOption.Instance,
       });
 
     public static DafnyOptions Create(params string[] arguments) {

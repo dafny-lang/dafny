@@ -65,7 +65,7 @@ type                            | C# target type
 `int`                           | `BigInteger`
 `real`                          | `BigRational`
 `bool`                          | `bool`
-`char`                          | `char`
+`char`                          | `char` (for `/unicodeChar:0`)<br>`Rune` (for `/unicodeChar:1`)
 bitvectors                      | `byte`, `ushort`, `uint`, `ulong`, or `BigInteger`
 `ORDINAL`                       | `BigInteger`
 integer-based `newtype`         | bounded C# integer or `BigInteger`
