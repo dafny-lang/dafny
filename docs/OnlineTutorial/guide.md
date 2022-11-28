@@ -67,7 +67,7 @@ can be multiple return values, as in this code:
 ```dafny
 method MultipleReturns(x: int, y: int) returns (more: int, less: int)
 {
-  ...
+  ... ...
 }
 ```
 
