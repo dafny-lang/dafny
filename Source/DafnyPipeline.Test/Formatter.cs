@@ -1996,6 +1996,20 @@ function test(): int {
     }
 
     [Fact]
+    public void FormatterWorksForMatchInMap() {
+      FormatterWorksFor(@"
+method AlignMapComplex(a: int) returns (r: map<string, string>) {
+  return ComputeMap(map[
+                      ""a"" := Compute(
+                        match a {
+                          case 0 => ""Zero""
+                          case _ => ""NonZero""
+                        })]);
+}
+");
+    }
+
+    [Fact]
     public void FormatterWorksForAbstractModuleDecl() {
       FormatterWorksFor(@"
 abstract module C {
