@@ -44,9 +44,9 @@ class ExtremeLemmaBodyCloner : ExtremeCloner {
         var f = e.Function as ExtremePredicate;
         if (f != null && focalPredicates.Contains(f)) {
 #if DEBUG_PRINT
-            var r = CloneCallAndAddK(e);
-            Console.WriteLine("{0}({1},{2}): DEBUG: Rewrote extreme predicate into prefix predicate: {3}", e.tok.filename, e.tok.line, e.tok.col, Printer.ExprToString(r));
-            return r;
+          var r = CloneCallAndAddK(e);
+          Console.WriteLine("{0}({1},{2}): DEBUG: Rewrote extreme predicate into prefix predicate: {3}", e.tok.filename, e.tok.line, e.tok.col, Printer.ExprToString(r));
+          return r;
 #else
           return CloneCallAndAddK(e);
 #endif
