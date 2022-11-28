@@ -478,7 +478,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
         }
         IEnumerable<int> CollectAssumeNotTrue(INode n) {
           if (n is AssumeStmt { Expr: var expression } assumeStmt &&
-              !Translator.IsExpressionAlways(expression, true) &&
+              !QuickVerifier.IsExpressionAlways(expression, true) &&
               !Attributes.Contains(assumeStmt.Attributes, "axiom")) {
             return new List<int> { assumeStmt.Tok.GetLspPosition().Line };
           }
@@ -493,14 +493,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
             cachedAssumptionsLines = functionDecl.Children.Where(child => child != functionDecl.ByMethodDecl).SelectMany(CollectAssumeNotTrue);
           }
           foreach (var req in functionDecl.Req) {
-            if (Translator.IsExpressionAlways(req.E, false)) {
+            if (QuickVerifier.IsExpressionAlways(req.E, false)) {
               cachedAssumptionsLines = cachedAssumptionsLines.Concat(new List<int>() { req.E.tok.GetLspPosition().Line });
             }
           }
 
           if (functionDecl.Body == null) { // ensures are assumptions
             foreach (var req in functionDecl.Ens) {
-              if (Translator.IsExpressionAlways(req.E, false)) {
+              if (QuickVerifier.IsExpressionAlways(req.E, false)) {
                 cachedAssumptionsLines = cachedAssumptionsLines.Concat(new List<int>() { req.E.tok.GetLspPosition().Line });
               }
             }
@@ -511,14 +511,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
         if (node is Method methodDecl) {
           foreach (var req in methodDecl.Req) {
-            if (Translator.IsExpressionAlways(req.E, false)) {
+            if (QuickVerifier.IsExpressionAlways(req.E, false)) {
               cachedAssumptionsLines = cachedAssumptionsLines.Concat(new List<int>() { req.E.tok.GetLspPosition().Line });
             }
           }
 
           if (methodDecl.Body == null) { // ensures are assumptions
             foreach (var req in methodDecl.Ens) {
-              if (Translator.IsExpressionAlways(req.E, false)) {
+              if (QuickVerifier.IsExpressionAlways(req.E, false)) {
                 cachedAssumptionsLines = cachedAssumptionsLines.Concat(new List<int>() { req.E.tok.GetLspPosition().Line });
               }
             }
