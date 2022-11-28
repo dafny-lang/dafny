@@ -10,15 +10,23 @@ namespace Microsoft.Dafny;
 /// </summary>
 public class StaticReceiverExpr : LiteralExpr {
   public readonly Type UnresolvedType;
-  public Expression OriginalResolved;
+  /// <summary>
+  /// A static member can be invoked through an object, in which case the object is not used for the call.
+  /// However, the object expression must be verified and is thus stored here, in addition to its type.
+  /// </summary>
+  public Expression ObjectToDiscard;
 
-  public StaticReceiverExpr(IToken tok, Type t, bool isImplicit, Expression lhs = null)
+  /// <summary>
+  /// In case this static receiver was specified through a dot expression, this field contains the LHS of the dot.
+  /// </summary>
+  public Expression ContainerExpression; 
+
+  public StaticReceiverExpr(IToken tok, Type t, bool isImplicit)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(t != null);
     UnresolvedType = t;
     IsImplicit = isImplicit;
-    OriginalResolved = lhs;
   }
 
   /// <summary>
@@ -33,7 +41,7 @@ public class StaticReceiverExpr : LiteralExpr {
     Type = new UserDefinedType(tok, cl is ClassDecl klass && klass.IsDefaultClass ? cl.Name : cl.Name + "?", cl, typeArgs);
     UnresolvedType = Type;
     IsImplicit = isImplicit;
-    OriginalResolved = lhs;
+    ObjectToDiscard = lhs;
   }
 
   /// <summary>
@@ -68,11 +76,11 @@ public class StaticReceiverExpr : LiteralExpr {
     }
     UnresolvedType = Type;
     IsImplicit = isImplicit;
-    OriginalResolved = lhs;
+    ObjectToDiscard = lhs;
   }
 
   public override bool IsImplicit { get; }
 
   public override IEnumerable<INode> Children =>
-    new[] { OriginalResolved }.Where(x => x != null).Concat(Type.Nodes);
+    new[] { ObjectToDiscard, ContainerExpression }.Where(x => x != null).Concat(Type.Nodes);
 }

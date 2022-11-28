@@ -1767,9 +1767,8 @@ namespace Microsoft.Dafny {
         }
         ins.Add(etran.TrExpr(receiver));
       } else if (receiver is StaticReceiverExpr stexpr) {
-        if (stexpr.OriginalResolved is { Type: not Resolver_IdentifierExpr.ResolverType_Module and not Resolver_IdentifierExpr.ResolverType_Type }) {
-          // TODO why would you ever need to check the WF of a namespace? Can StaticReceiverExpr be used for anything other than a namespace?
-          TrStmt_CheckWellformed(stexpr.OriginalResolved, builder, locals, etran, true);
+        if (stexpr.ObjectToDiscard != null) {
+          TrStmt_CheckWellformed(stexpr.ObjectToDiscard, builder, locals, etran, true);
         }
       }
 
