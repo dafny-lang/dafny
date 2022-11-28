@@ -19,7 +19,7 @@ public class StaticReceiverExpr : LiteralExpr {
   /// <summary>
   /// In case this static receiver was specified through a dot expression, this field contains the LHS of the dot.
   /// </summary>
-  public Expression ContainerExpression; 
+  public Expression ContainerExpression;
 
   public StaticReceiverExpr(IToken tok, Type t, bool isImplicit)
     : base(tok) {

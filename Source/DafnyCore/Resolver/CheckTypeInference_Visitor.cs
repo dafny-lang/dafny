@@ -179,7 +179,7 @@ partial class Resolver {
         }
 
         if (expr is StaticReceiverExpr stexpr) {
-            if (stexpr.ObjectToDiscard != null) {
+          if (stexpr.ObjectToDiscard != null) {
             Visit(stexpr.ObjectToDiscard);
           } else {
             foreach (Type t in stexpr.Type.TypeArgs) {
