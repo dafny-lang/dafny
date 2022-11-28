@@ -65,9 +65,9 @@ class ExtremeLemmaBodyCloner : ExtremeCloner {
           var fce = apply.Resolved as FunctionCallExpr;
           if (fce != null) {
 #if DEBUG_PRINT
-              if (fce.Function.Name.EndsWith("#") && Contract.Exists(focalPredicates, p => fce.Function.Name == p.Name + "#")) {
-                Console.WriteLine("{0}({1},{2}): DEBUG: Possible opportunity to rely on new rewrite: {3}", fce.tok.filename, fce.tok.line, fce.tok.col, Printer.ExprToString(fce));
-              }
+            if (fce.Function.Name.EndsWith("#") && Contract.Exists(focalPredicates, p => fce.Function.Name == p.Name + "#")) {
+              Console.WriteLine("{0}({1},{2}): DEBUG: Possible opportunity to rely on new rewrite: {3}", fce.tok.filename, fce.tok.line, fce.tok.col, Printer.ExprToString(fce));
+            }
 #endif
             var f = fce.Function as ExtremePredicate;
             if (f != null && focalPredicates.Contains(f)) {
