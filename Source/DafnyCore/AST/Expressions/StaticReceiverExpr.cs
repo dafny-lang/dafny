@@ -74,5 +74,5 @@ public class StaticReceiverExpr : LiteralExpr {
   public override bool IsImplicit { get; }
 
   public override IEnumerable<INode> Children =>
-    new[] { OriginalResolved }.Where(x => x != null).Concat(base.Children).Concat(Type.Nodes);
+    new[] { OriginalResolved }.Where(x => x != null).Concat(Type.Nodes);
 }
