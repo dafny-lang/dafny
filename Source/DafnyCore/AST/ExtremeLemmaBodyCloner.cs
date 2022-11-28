@@ -33,9 +33,9 @@ class ExtremeLemmaBodyCloner : ExtremeCloner {
       if (expr is FunctionCallExpr) {
         var e = (FunctionCallExpr)expr;
 #if DEBUG_PRINT
-          if (e.Function.Name.EndsWith("#") && Contract.Exists(focalPredicates, p => e.Function.Name == p.Name + "#")) {
-            Console.WriteLine("{0}({1},{2}): DEBUG: Possible opportunity to rely on new rewrite: {3}", e.tok.filename, e.tok.line, e.tok.col, Printer.ExprToString(e));
-          }
+        if (e.Function.Name.EndsWith("#") && Contract.Exists(focalPredicates, p => e.Function.Name == p.Name + "#")) {
+          Console.WriteLine("{0}({1},{2}): DEBUG: Possible opportunity to rely on new rewrite: {3}", e.tok.filename, e.tok.line, e.tok.col, Printer.ExprToString(e));
+        }
 #endif
         // Note, we don't actually ever get here, because all calls will have been parsed as ApplySuffix.
         // However, if something changes in the future (for example, some rewrite that changing an ApplySuffix
