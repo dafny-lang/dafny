@@ -262,7 +262,7 @@ namespace Microsoft.Dafny {
       }
 
       if (expr is StaticReceiverExpr stexpr) {
-        if (stexpr.OriginalResolved != null) {
+        if (stexpr.OriginalResolved is { Type: not Resolver_IdentifierExpr.ResolverType_Module and not Resolver_IdentifierExpr.ResolverType_Type }) {
           CheckWellformedWithResult(stexpr.OriginalResolved, options, null, null, locals, builder, etran);
         }
       } else if (expr is LiteralExpr) {
@@ -922,7 +922,7 @@ namespace Microsoft.Dafny {
                 var ghostConstructors = dt.Ctors.Where(ctor => ctor.IsGhost).ToList();
                 Contract.Assert(ghostConstructors.Count != 0);
 
-                void checkOperand(Expression operand) {
+                void CheckOperand(Expression operand) {
                   var value = etran.TrExpr(operand);
                   var notGhostCtor = BplAnd(ghostConstructors.ConvertAll(
                     ctor => Bpl.Expr.Not(FunctionCall(expr.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, value))));
@@ -930,8 +930,8 @@ namespace Microsoft.Dafny {
                     new PODesc.NotGhostVariant("equality", ghostConstructors)));
                 }
 
-                checkOperand(e.E0);
-                checkOperand(e.E1);
+                CheckOperand(e.E0);
+                CheckOperand(e.E1);
               }
 
 
