@@ -542,7 +542,19 @@ public class TypeRhs : AssignmentRhs, INode {
   }
 
   public IToken Start => Tok;
-  public override IEnumerable<INode> Children => new[] { EType, Type }.OfType<UserDefinedType>();
+  public override IEnumerable<INode> Children {
+    get {
+      if (ArrayDimensions == null) {
+        if (InitCall != null) {
+          return new[] { InitCall };
+        }
+
+        return EType.Nodes;
+      }
+
+      return EType.Nodes.Concat(SubExpressions).Concat<INode>(SubStatements);
+    }
+  }
 }
 
 public class HavocRhs : AssignmentRhs {

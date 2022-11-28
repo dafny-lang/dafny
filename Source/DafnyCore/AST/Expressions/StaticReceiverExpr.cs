@@ -10,30 +10,30 @@ namespace Microsoft.Dafny;
 /// </summary>
 public class StaticReceiverExpr : LiteralExpr {
   public readonly Type UnresolvedType;
-  private bool Implicit;
   public Expression OriginalResolved;
 
-  public StaticReceiverExpr(IToken tok, Type t, bool isImplicit)
+  public StaticReceiverExpr(IToken tok, Type t, bool isImplicit, Expression lhs = null)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(t != null);
     UnresolvedType = t;
-    Implicit = isImplicit;
-    OriginalResolved = null;
+    IsImplicit = isImplicit;
+    OriginalResolved = lhs;
   }
 
   /// <summary>
   /// Constructs a resolved LiteralExpr representing the fictitious static-receiver literal whose type is
   /// "cl" parameterized by the type arguments of "cl" itself.
   /// </summary>
-  public StaticReceiverExpr(IToken tok, TopLevelDeclWithMembers cl, bool isImplicit)
+  public StaticReceiverExpr(IToken tok, TopLevelDeclWithMembers cl, bool isImplicit, Expression lhs = null)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(cl != null);
     var typeArgs = cl.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
     Type = new UserDefinedType(tok, cl is ClassDecl klass && klass.IsDefaultClass ? cl.Name : cl.Name + "?", cl, typeArgs);
     UnresolvedType = Type;
-    Implicit = isImplicit;
+    IsImplicit = isImplicit;
+    OriginalResolved = lhs;
   }
 
   /// <summary>
@@ -67,13 +67,12 @@ public class StaticReceiverExpr : LiteralExpr {
       Type = t;
     }
     UnresolvedType = Type;
-    Implicit = isImplicit;
+    IsImplicit = isImplicit;
     OriginalResolved = lhs;
   }
 
-  public override bool IsImplicit {
-    get { return Implicit; }
-  }
+  public override bool IsImplicit { get; }
 
-  // public override IEnumerable<INode> Children => base.Children.Concat(Type.Nodes);
+  public override IEnumerable<INode> Children =>
+    new [] { OriginalResolved }.Where(x => x != null).Concat(base.Children).Concat(Type.Nodes);
 }
