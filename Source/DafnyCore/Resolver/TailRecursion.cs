@@ -68,7 +68,7 @@ class TailRecursion {
     var status = TailRecursionStatus.CanBeFollowedByAnything;
     foreach (var s in stmts) {
       if (!s.IsGhost) {
-        if (s is ReturnStmt && ((ReturnStmt)s).hiddenUpdate == null) {
+        if (s is ReturnStmt && ((ReturnStmt)s).HiddenUpdate == null) {
           return status;
         }
         if (status == TailRecursionStatus.TailCallSpent) {
@@ -101,8 +101,8 @@ class TailRecursion {
     } else if (stmt is BreakStmt) {
     } else if (stmt is ReturnStmt) {
       var s = (ReturnStmt)stmt;
-      if (s.hiddenUpdate != null) {
-        return CheckTailRecursive(s.hiddenUpdate, enclosingMethod, ref tailCall, reportErrors);
+      if (s.HiddenUpdate != null) {
+        return CheckTailRecursive(s.HiddenUpdate, enclosingMethod, ref tailCall, reportErrors);
       }
     } else if (stmt is AssignStmt) {
       var s = (AssignStmt)stmt;
