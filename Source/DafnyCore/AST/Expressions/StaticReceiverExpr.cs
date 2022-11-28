@@ -68,7 +68,6 @@ public class StaticReceiverExpr : LiteralExpr {
     }
     UnresolvedType = Type;
     Implicit = isImplicit;
-    OriginalResolved = lhs;
   }
 
   public override bool IsImplicit {
