@@ -117,7 +117,13 @@ public class ExpressionTester {
         if (callExpr.Function.ByMethodBody != null) {
           Contract.Assert(callExpr.Function.ByMethodDecl != null); // we expect .ByMethodDecl to have been filled in by now
           // this call will really go to the method part of the function-by-method, so add that edge to the call graph
+#if ENTANGLED_CALL_GRAPH_BUILDING
           resolver?.AddCallGraphEdge(codeContext, callExpr.Function.ByMethodDecl, callExpr, false);
+#else
+          if (resolver != null) {
+            new CallGraphBuilder(reporter).AddCallGraphEdge(codeContext, callExpr.Function.ByMethodDecl, callExpr, false);
+          }
+#endif
           callExpr.IsByMethodCall = true;
         }
         // function is okay, so check all NON-ghost arguments

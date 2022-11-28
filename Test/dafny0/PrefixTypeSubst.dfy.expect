@@ -139,17 +139,17 @@ module _System {
  * SCC at height 3:
  *   RstRst7
  * SCC at height 2:
- *   RstRst5
  *   RstRst5#
+ *   RstRst5
  * SCC at height 2:
- *   RstRst6
  *   RstRst6#
+ *   RstRst6
  * SCC at height 2:
- *   RstRst8
  *   RstRst8#
+ *   RstRst8
  * SCC at height 2:
- *   RstRst9
  *   RstRst9#
+ *   RstRst9
  * SCC at height 2:
  *   MyClass.L#
  * SCC at height 2:

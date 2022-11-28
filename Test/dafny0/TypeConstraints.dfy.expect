@@ -191,10 +191,6 @@ module Tests {
 
 module HereAreErrors {
   /* CALL GRAPH for module HereAreErrors:
-   * SCC at height 1:
-   *   Literals
-   * SCC at height 0:
-   *   MyInt
    */
   newtype MyInt = x: int
     | true
@@ -271,10 +267,6 @@ module PlusTests {
 
 module PlusTests' {
   /* CALL GRAPH for module PlusTests':
-   * SCC at height 1:
-   *   Plus5
-   * SCC at height 0:
-   *   MyInt
    */
   newtype MyInt = x: int
     | true
@@ -318,12 +310,6 @@ module PlusTests' {
 
 module MorePlusTests {
   /* CALL GRAPH for module MorePlusTests:
-   * SCC at height 1:
-   *   Plusses
-   * SCC at height 0:
-   *   C
-   * SCC at height 0:
-   *   MyInt
    */
   newtype MyInt = x: int
     | true
@@ -356,22 +342,6 @@ module MorePlusTests {
 
 module References {
   /* CALL GRAPH for module References:
-   * SCC at height 1:
-   *   M0
-   * SCC at height 1:
-   *   M1
-   * SCC at height 1:
-   *   M2
-   * SCC at height 1:
-   *   M3
-   * SCC at height 0:
-   *   C
-   * SCC at height 0:
-   *   K
-   * SCC at height 0:
-   *   M
-   * SCC at height 0:
-   *   R
    */
   class C extends K, M { }
   /*-- non-null type

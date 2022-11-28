@@ -459,8 +459,8 @@ namespace Microsoft.Dafny {
       ResolveValuetypeDecls();
       // The SystemModule is constructed with all its members already being resolved. Except for
       // the non-null type corresponding to class types.  They are resolved here:
-      var systemModuleClassesWithNonNullTypes = new List<TopLevelDecl>(
-        prog.BuiltIns.SystemModule.TopLevelDecls.Where(d => d is ClassDecl && ((ClassDecl)d).NonNullTypeDecl != null));
+      var systemModuleClassesWithNonNullTypes =
+        prog.BuiltIns.SystemModule.TopLevelDecls.Where(d => (d as ClassDecl)?.NonNullTypeDecl != null).ToList();
       foreach (var cl in systemModuleClassesWithNonNullTypes) {
         var d = ((ClassDecl)cl).NonNullTypeDecl;
         allTypeParameters.PushMarker();
@@ -624,7 +624,9 @@ namespace Microsoft.Dafny {
               int n = module.CallGraph.GetSCCSize(m);
               if (2 <= n) {
                 // the function is mutually recursive (note, the SCC does not determine self recursion)
+#if ENTANGLED_CALL_GRAPH_BUILDING
                 m.IsRecursive = true;
+#endif
               }
             }
           }
@@ -971,10 +973,12 @@ namespace Microsoft.Dafny {
       moduleInfo = systemNameInfo;
       foreach (var valueTypeDecl in valuetypeDecls) {
         foreach (var kv in valueTypeDecl.Members) {
-          if (kv.Value is Function) {
-            ResolveFunctionSignature((Function)kv.Value);
-          } else if (kv.Value is Method) {
-            ResolveMethodSignature((Method)kv.Value);
+          if (kv.Value is Function function) {
+            ResolveFunctionSignature(function);
+            new CallGraphBuilder(reporter).VisitFunction(function);
+          } else if (kv.Value is Method method) {
+            ResolveMethodSignature(method);
+            new CallGraphBuilder(reporter).VisitMethod(method);
           }
         }
       }
@@ -2308,8 +2312,6 @@ namespace Microsoft.Dafny {
                 null,
                 extremePredicate);
               extraMember = extremePredicate.PrefixPredicate;
-              // In the call graph, add an edge from P# to P, since this will have the desired effect of detecting unwanted cycles.
-              moduleDef.CallGraph.AddEdge(extremePredicate.PrefixPredicate, extremePredicate);
             } else {
               var extremeLemma = (ExtremeLemma)m;
               // _k has already been added to 'formals', so append the original formals
@@ -2334,8 +2336,6 @@ namespace Microsoft.Dafny {
                 null, // Note, the body for the prefix method will be created once the call graph has been computed and the SCC for the greatest lemma is known
                 cloner.CloneAttributes(extremeLemma.Attributes), extremeLemma);
               extraMember = extremeLemma.PrefixLemma;
-              // In the call graph, add an edge from M# to M, since this will have the desired effect of detecting unwanted cycles.
-              moduleDef.CallGraph.AddEdge(extremeLemma.PrefixLemma, extremeLemma);
             }
 
             extraMember.InheritVisibility(m, false);
@@ -2757,12 +2757,13 @@ namespace Microsoft.Dafny {
                 }
                 ResolveExpression(field.Rhs, resolutionContext);
                 scope.PopMarker();
+#if ENTANGLED_CALL_GRAPH_BUILDING
                 if (reporter.Count(ErrorLevel.Error) == ec) {
                   // make sure initialization only refers to constant field or literal expression
-                  if (CheckIsConstantExpr(field, field.Rhs)) {
-                    AddAssignableConstraint(field.tok, field.Type, field.Rhs.Type, "type for constant '" + field.Name + "' is '{0}', but its initialization value type is '{1}'");
-                  }
+                  CheckIsConstantExpr(field, field.Rhs);
                 }
+#endif
+                AddAssignableConstraint(field.tok, field.Type, field.Rhs.Type, "type for constant '" + field.Name + "' is '{0}', but its initialization value type is '{1}'");
               }
               SolveAllTypeConstraints();
               if (!CheckTypeInference_Visitor.IsDetermined(field.Type.NormalizeExpand())) {
@@ -2836,7 +2837,9 @@ namespace Microsoft.Dafny {
             foreach (var ctor in dt.Ctors) {
               ResolveAttributes(ctor, new ResolutionContext(new NoContext(d.EnclosingModuleDefinition), false));
               foreach (var formal in ctor.Formals) {
+#if ENTANGLED_CALL_GRAPH_BUILDING
                 AddTypeDependencyEdges((ICallable)d, formal.Type);
+#endif
               }
             }
             // resolve any default parameters
@@ -2855,6 +2858,10 @@ namespace Microsoft.Dafny {
           }
         }
         allTypeParameters.PopMarker();
+      }
+
+      if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+        new CallGraphBuilder(reporter).Build(declarations);
       }
 
       // ---------------------------------- Pass 1 ----------------------------------
@@ -3114,6 +3121,7 @@ namespace Microsoft.Dafny {
           allTypeParameters.PopMarker();
           currentClass = null;
           CheckTypeInference_Member(prefixLemma);
+          new CallGraphBuilder(reporter).VisitMethod(prefixLemma);
         }
       }
 
@@ -3644,7 +3652,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-
+#if ENTANGLED_CALL_GRAPH_BUILDING
     /// <summary>
     /// Add edges to the callgraph.
     /// </summary>
@@ -3662,6 +3670,7 @@ namespace Microsoft.Dafny {
         });
       }
     }
+#endif
 
     void ReportCallGraphCycleError(ICallable start, string msg) {
       Contract.Requires(start != null);
@@ -7822,8 +7831,6 @@ namespace Microsoft.Dafny {
             var classMethod = (Method)member;
             var traitMethod = (Method)traitMember;
             classMethod.OverriddenMethod = traitMethod;
-            //adding a call graph edge from the trait method to that of class
-            cl.EnclosingModuleDefinition.CallGraph.AddEdge(traitMethod, classMethod);
 
             CheckOverride_MethodParameters(classMethod, traitMethod, cl.ParentFormalTypeParametersToActuals);
 
@@ -7837,8 +7844,6 @@ namespace Microsoft.Dafny {
             var classFunction = (Function)member;
             var traitFunction = (Function)traitMember;
             classFunction.OverriddenFunction = traitFunction;
-            //adding a call graph edge from the trait function to that of class
-            cl.EnclosingModuleDefinition.CallGraph.AddEdge(traitFunction, classFunction);
 
             CheckOverride_FunctionParameters(classFunction, traitFunction, cl.ParentFormalTypeParametersToActuals);
 
@@ -8016,6 +8021,7 @@ namespace Microsoft.Dafny {
       currentClass = null;
     }
 
+#if ENTANGLED_CALL_GRAPH_BUILDING
     /// <summary>
     /// Checks if "expr" is a constant (that is, heap independent) expression that can be assigned to "field".
     /// If it is, return "true". Otherwise, report an error and return "false".
@@ -8041,6 +8047,7 @@ namespace Microsoft.Dafny {
       }
       return expr.SubExpressions.All(e => CheckIsConstantExpr(field, e));
     }
+#endif
 
     /// <summary>
     /// Assumes type parameters have already been pushed
@@ -8515,7 +8522,9 @@ namespace Microsoft.Dafny {
       foreach (Formal p in f.Formals) {
         ScopePushAndReport(scope, p, "parameter");
         ResolveType(p.tok, p.Type, f, option, f.TypeArgs);
+#if ENTANGLED_CALL_GRAPH_BUILDING
         AddTypeDependencyEdges(f, p.Type);
+#endif
       }
       if (f.Result != null) {
         ScopePushAndReport(scope, f.Result, "parameter/return");
@@ -8523,7 +8532,9 @@ namespace Microsoft.Dafny {
       } else {
         ResolveType(f.tok, f.ResultType, f, option, f.TypeArgs);
       }
+#if ENTANGLED_CALL_GRAPH_BUILDING
       AddTypeDependencyEdges(f, f.ResultType);
+#endif
       scope.PopMarker();
     }
 
@@ -8688,13 +8699,17 @@ namespace Microsoft.Dafny {
       foreach (Formal p in m.Ins) {
         ScopePushAndReport(scope, p, "parameter");
         ResolveType(p.tok, p.Type, m, option, m.TypeArgs);
+#if ENTANGLED_CALL_GRAPH_BUILDING
         AddTypeDependencyEdges(m, p.Type);
+#endif
       }
       // resolve out-parameters
       foreach (Formal p in m.Outs) {
         ScopePushAndReport(scope, p, "parameter");
         ResolveType(p.tok, p.Type, m, option, m.TypeArgs);
+#if ENTANGLED_CALL_GRAPH_BUILDING
         AddTypeDependencyEdges(m, p.Type);
+#endif
       }
       scope.PopMarker();
     }
@@ -9113,7 +9128,9 @@ namespace Microsoft.Dafny {
       }
       iter.Member_MoveNext.Decreases.Attributes = iter.Decreases.Attributes;
 
+#if ENTANGLED_CALL_GRAPH_BUILDING
       iter.EnclosingModuleDefinition.CallGraph.AddEdge(iter.Member_MoveNext, iter);
+#endif
     }
 
     // Like the ResolveTypeOptionEnum, but iff the case of AllowPrefixExtend, it also
@@ -9276,9 +9293,11 @@ namespace Microsoft.Dafny {
               var caller = CodeContextWrapper.Unwrap(resolutionContext.CodeContext) as ICallable;
               if (caller != null && !(d is SubsetTypeDecl && caller is SpecialFunction)) {
                 if (caller != d) {
+#if ENTANGLED_CALL_GRAPH_BUILDING
                   if (caller.EnclosingModule == dd.EnclosingModule) {
                     caller.EnclosingModule.CallGraph.AddEdge(caller, dd);
                   }
+#endif
                 } else if (d is TypeSynonymDecl && !(d is SubsetTypeDecl)) {
                   // detect self-loops here, since they don't show up in the graph's SCC methods
                   reporter.Error(MessageSource.Resolver, d.tok, "type-synonym cycle: {0} -> {0}", d.Name);
@@ -9289,11 +9308,13 @@ namespace Microsoft.Dafny {
               }
               t.ResolvedClass = d;
             } else if (d is DatatypeDecl) {
+#if ENTANGLED_CALL_GRAPH_BUILDING
               var dd = (DatatypeDecl)d;
               var caller = CodeContextWrapper.Unwrap(resolutionContext.CodeContext) as ICallable;
               if (caller != null && caller.EnclosingModule == dd.EnclosingModuleDefinition) {
                 caller.EnclosingModule.CallGraph.AddEdge(caller, dd);
               }
+#endif
               t.ResolvedClass = d;
             } else {
               // d is a type parameter, coinductive datatype, or class, and it may have type parameters
@@ -12023,6 +12044,7 @@ namespace Microsoft.Dafny {
           CheckIsLvalue(lhs.Resolved, resolutionContext);
         }
 
+#if ENTANGLED_CALL_GRAPH_BUILDING
         // Resolution termination check
         ModuleDefinition callerModule = resolutionContext.CodeContext.EnclosingModule;
         ModuleDefinition calleeModule = ((ICodeContext)callee).EnclosingModule;
@@ -12040,6 +12062,7 @@ namespace Microsoft.Dafny {
             }
           }
         }
+#endif
       }
       if (Contract.Exists(callee.Decreases.Expressions, e => e is WildcardExpr) && !resolutionContext.CodeContext.AllowsNontermination) {
         reporter.Error(MessageSource.Resolver, s.Tok, "a call to a possibly non-terminating method is allowed only if the calling method is also declared (with 'decreases *') to be possibly non-terminating");
@@ -12981,7 +13004,7 @@ namespace Microsoft.Dafny {
 
         if (e is StaticReceiverExpr) {
           StaticReceiverExpr eStatic = (StaticReceiverExpr)e;
-          this.ResolveType(eStatic.tok, eStatic.UnresolvedType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+          ResolveType(eStatic.tok, eStatic.UnresolvedType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
           eStatic.Type = eStatic.UnresolvedType;
         } else {
           if (e.Value == null) {
@@ -13133,7 +13156,9 @@ namespace Microsoft.Dafny {
             fn.Formals.ConvertAll(f => f.Type.Subst(subst)),
             fn.ResultType.Subst(subst),
             fn.Reads.Count != 0, fn.Req.Count != 0);
+#if ENTANGLED_CALL_GRAPH_BUILDING
           AddCallGraphEdge(resolutionContext.CodeContext, fn, e, false);
+#endif
         } else if (member is Field) {
           var field = (Field)member;
           e.Member = field;
@@ -13151,7 +13176,9 @@ namespace Microsoft.Dafny {
             var subst = TypeParameter.SubstitutionMap(ctype.ResolvedClass.TypeArgs, ctype.TypeArgs);
             e.Type = field.Type.Subst(subst);
           }
+#if ENTANGLED_CALL_GRAPH_BUILDING
           AddCallGraphEdgeForField(resolutionContext.CodeContext, field, e);
+#endif
         } else {
           reporter.Error(MessageSource.Resolver, expr, "member {0} in type {1} does not refer to a field or a function", e.MemberName, tentativeReceiverType);
         }
@@ -13567,7 +13594,9 @@ namespace Microsoft.Dafny {
             var v = lhs.Var;
             ScopePushAndReport(scope, v, "let-variable");
             ResolveType(v.tok, v.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+#if ENTANGLED_CALL_GRAPH_BUILDING
             AddTypeDependencyEdges(resolutionContext.CodeContext, v.Type);
+#endif
           }
           foreach (var rhs in e.RHSs) {
             ResolveExpression(rhs, resolutionContext);
@@ -14295,7 +14324,9 @@ namespace Microsoft.Dafny {
           v.MakeGhost();
         }
         ResolveType(v.Tok, v.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+#if ENTANGLED_CALL_GRAPH_BUILDING
         AddTypeDependencyEdges(resolutionContext.CodeContext, v.Type);
+#endif
         // Note, the following type constraint checks that the RHS type can be assigned to the new variable on the left. In particular, it
         // does not check that the entire RHS can be assigned to something of the type of the pattern on the left.  For example, consider
         // a type declared as "datatype Atom<T> = MakeAtom(T)", where T is a non-variant type argument.  Suppose the RHS has type Atom<nat>
@@ -15044,7 +15075,9 @@ namespace Microsoft.Dafny {
         }
         subst = BuildTypeArgumentSubstitute(subst, receiverTypeBound ?? receiver.Type);
         rr.Type = field.Type.Subst(subst);
+#if ENTANGLED_CALL_GRAPH_BUILDING
         AddCallGraphEdgeForField(resolutionContext.CodeContext, field, rr);
+#endif
       } else if (member is Function) {
         var fn = (Function)member;
         if (fn is TwoStateFunction && !resolutionContext.IsTwoState) {
@@ -15065,7 +15098,9 @@ namespace Microsoft.Dafny {
           fn.Formals.ConvertAll(f => f.Type.Subst(subst)),
           fn.ResultType.Subst(subst),
           fn.Reads.Count != 0, fn.Req.Count != 0);
+#if ENTANGLED_CALL_GRAPH_BUILDING
         AddCallGraphEdge(resolutionContext.CodeContext, fn, rr, IsFunctionReturnValue(fn, args, resolutionContext));
+#endif
       } else {
         // the member is a method
         var m = (Method)member;
@@ -15218,11 +15253,13 @@ namespace Microsoft.Dafny {
               Contract.Assert(!(mse.Obj is StaticReceiverExpr) || callee.IsStatic);  // this should have been checked already
               Contract.Assert(callee.Formals.Count == rr.Args.Count);  // this should have been checked already
             }
+#if ENTANGLED_CALL_GRAPH_BUILDING
             // further bookkeeping
             if (callee is ExtremePredicate) {
               ((ExtremePredicate)callee).Uses.Add(rr);
             }
             AddCallGraphEdge(resolutionContext.CodeContext, callee, rr, IsFunctionReturnValue(callee, e.Bindings.ArgumentBindings, resolutionContext));
+#endif
             r = rr;
           } else {
             List<Formal> formals;
@@ -15553,9 +15590,11 @@ namespace Microsoft.Dafny {
         dtv.Bindings.AcceptArgumentExpressionsAsExactParameterList();
       }
 
+#if ENTANGLED_CALL_GRAPH_BUILDING
       if (CodeContextWrapper.Unwrap(resolutionContext.CodeContext) is ICallable caller && caller.EnclosingModule == dt.EnclosingModuleDefinition) {
         caller.EnclosingModule.CallGraph.AddEdge(caller, dt);
       }
+#endif
       return ok && ctor.Formals.Count == dtv.Arguments.Count;
     }
 
@@ -15585,7 +15624,9 @@ namespace Microsoft.Dafny {
         Function function = (Function)member;
         e.Function = function;
         if (function is ExtremePredicate) {
+#if ENTANGLED_CALL_GRAPH_BUILDING
           ((ExtremePredicate)function).Uses.Add(e);
+#endif
         }
         if (function is TwoStateFunction && !resolutionContext.IsTwoState) {
           reporter.Error(MessageSource.Resolver, e.tok, "a two-state function can be used only in a two-state context");
@@ -15631,10 +15672,13 @@ namespace Microsoft.Dafny {
 
         e.Type = function.ResultType.Subst(subst).NormalizeExpand();
 
+#if ENTANGLED_CALL_GRAPH_BUILDING
         AddCallGraphEdge(resolutionContext.CodeContext, function, e, IsFunctionReturnValue(function, e.Bindings.ArgumentBindings, resolutionContext));
+#endif
       }
     }
 
+#if ENTANGLED_CALL_GRAPH_BUILDING
     private void AddCallGraphEdgeForField(ICodeContext callingContext, Field field, Expression e) {
       Contract.Requires(callingContext != null);
       Contract.Requires(field != null);
@@ -15675,6 +15719,7 @@ namespace Microsoft.Dafny {
         }
       }
     }
+#endif
 
     private static ModuleSignature GetSignatureExt(ModuleSignature sig, bool useCompileSignatures) {
       Contract.Requires(sig != null);
