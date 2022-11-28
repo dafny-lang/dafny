@@ -1217,9 +1217,9 @@ namespace Microsoft.Dafny {
       } else if (stmt is ProduceStmt) {
         var s = (ProduceStmt)stmt;
         wr.Write(s is YieldStmt ? "yield" : "return");
-        if (s.rhss != null) {
+        if (s.Rhss != null) {
           var sep = " ";
-          foreach (var rhs in s.rhss) {
+          foreach (var rhs in s.Rhss) {
             wr.Write(sep);
             PrintRhs(rhs);
             sep = ", ";
