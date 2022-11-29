@@ -7036,10 +7036,12 @@ namespace Microsoft.Dafny {
                 // that's cool
               } else if (CanCompareWith(e.E1)) {
                 // oh yeah!
-              } else if (!t0.PartiallySupportsEquality) {
-                resolver.reporter.Error(MessageSource.Resolver, e.E0, "{0} can only be applied to expressions of types that support equality (got {1}){2}", BinaryExpr.OpcodeString(e.Op), t0, TypeEqualityErrorMessageHint(t0));
-              } else if (!t1.PartiallySupportsEquality) {
-                resolver.reporter.Error(MessageSource.Resolver, e.E1, "{0} can only be applied to expressions of types that support equality (got {1}){2}", BinaryExpr.OpcodeString(e.Op), t1, TypeEqualityErrorMessageHint(t1));
+              } else if (!t0.PartiallySupportsEquality || !t1.PartiallySupportsEquality)
+              {
+                var errorExpression = !t0.PartiallySupportsEquality ? e.E0 : e.E1;
+                var errorType = !t0.PartiallySupportsEquality ? t0 : t1;
+                resolver.reporter.Error(MessageSource.Resolver, errorExpression, "{0} can only be applied to expressions of types that support equality (got {1}){2}",
+                  BinaryExpr.OpcodeString(e.Op), errorType, TypeEqualityErrorMessageHint(errorType));
               }
               break;
             default:
