@@ -2,12 +2,16 @@
 Dafny program verifier finished with 1 verified, 0 errors
 
 Dafny program verifier did not attempt verification
+done
 
 Dafny program verifier did not attempt verification
+done
 
 Dafny program verifier did not attempt verification
-git-issue-1815a.dfy(18,9): Error: compilation does not support trait types as a type parameter (got 'Tr'); consider introducing a ghost
-git-issue-1815a.dfy(18,9): Error: compilation does not support trait types as a type parameter (got 'Tr'); consider introducing a ghost
-Wrote textual form of partial target program to git-issue-1815a-java/git_issue_1815a.java
+done
 
 Dafny program verifier did not attempt verification
+done
+
+Dafny program verifier did not attempt verification
+done
