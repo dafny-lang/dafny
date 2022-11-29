@@ -689,6 +689,9 @@ namespace Microsoft.Dafny {
         defines.Add("ARITH_MUL_COMM");
         defines.Add("ARITH_MUL_ASSOC");
       }
+      if (UnicodeCharactersOption.Instance.Get(DafnyOptions.O)) {
+        defines.Add("UNICODE_CHAR");
+      }
       int errorCount = BplParser.Parse(preludePath, defines, out prelude);
       if (prelude == null || errorCount > 0) {
         return null;
@@ -5468,14 +5471,12 @@ namespace Microsoft.Dafny {
       if (toType.IsCharType) {
         if (expr.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
           PutSourceIntoLocal();
-          Bpl.Expr boundsCheck =
-            Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), o), Bpl.Expr.Lt(o, Bpl.Expr.Literal(65536)));
+          var boundsCheck = FunctionCall(Token.NoToken, BuiltinFunction.IsChar, null, o);
           builder.Add(Assert(tok, boundsCheck, new PODesc.ConversionFit("value", toType, errorMsgPrefix)));
         } else if (expr.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
           PutSourceIntoLocal();
           var oi = FunctionCall(tok, BuiltinFunction.RealToInt, null, o);
-          var boundsCheck =
-            Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), oi), Bpl.Expr.Lt(oi, Bpl.Expr.Literal(65536)));
+          var boundsCheck = FunctionCall(Token.NoToken, BuiltinFunction.IsChar, null, oi);
           builder.Add(Assert(tok, boundsCheck, new PODesc.ConversionFit("real value", toType, errorMsgPrefix)));
         } else if (expr.Type.IsBitVectorType) {
           PutSourceIntoLocal();
@@ -9119,7 +9120,7 @@ namespace Microsoft.Dafny {
           var expr = (SubstLetExpr)e;
           var orgExpr = expr.orgExpr;
           Expression d = LetDesugaring(orgExpr);
-          e.setTranslationDesugaring(this, Substitute(d, null, expr.substMap, expr.typeMap));
+          e.SetTranslationDesugaring(this, Substitute(d, null, expr.substMap, expr.typeMap));
           var orgInfo = letSuchThatExprInfo[orgExpr];
           letSuchThatExprInfo.Add(expr, new LetSuchThatExprInfo(orgInfo, this, expr.substMap, expr.typeMap));
         } else {
@@ -9169,7 +9170,7 @@ namespace Microsoft.Dafny {
             }
             var expr = new LetExpr(e.tok, e.LHSs, rhss, e.Body, true);
             expr.Type = e.Type; // resolve here
-            e.setTranslationDesugaring(this, expr);
+            e.SetTranslationDesugaring(this, expr);
           }
         }
       }

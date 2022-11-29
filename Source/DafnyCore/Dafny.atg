@@ -788,6 +788,8 @@ CHARACTERS
   posDigitFrom2 = "23456789".
   hexdigit = "0123456789ABCDEFabcdef".
   special = "'_?".
+  highSurrogate = '\ud800' .. '\udbff'.
+  lowSurrogate = '\udc00' .. '\udfff'.
   // These symbols are used but not needed as a production: "`~!@#$%^&*()-_=+[{]}|;:',<.>/?\\".
   cr        = '\r'.
   lf        = '\n'.
@@ -806,7 +808,7 @@ CHARACTERS
   idcharMinusPosDigitMinusQuery = idchar - posDigit - '?'.
   idcharMinusTick = idchar - '\''.
   /* string literals */
-  charChar = ANY - '\'' - '\\' - cr - lf.
+  charChar = ANY - '\'' - '\\' - cr - lf - highSurrogate - lowSurrogate.
   stringChar = ANY - '"' - '\\' - cr - lf.
   verbatimStringChar = ANY - '"'.
 
@@ -856,8 +858,19 @@ TOKENS
   charToken =
       "'"
       ( charChar
+        // Coco parses at the level of C# chars, meaning UTF-16 code units.
+        // (See https://github.com/SSW-CocoR/CocoR-CSharp/issues/4)
+        // We're working around that by inserting surrogate pairs
+        // as needed after reading the UTF-8 bytes.
+        // But that means character literals can appear to have more than one "character"
+        // in them. Normally we would just allow more than one charChar here and reject
+        // invalid sequences of them later, but because we allow single quotes in the
+        // "ident" rule above, that would then overlap with identifiers.
+        // Instead we only allow a surrogate pair here.
+        | highSurrogate lowSurrogate
         | "\\\'" | "\\\"" | "\\\\" | "\\0" | "\\n" | "\\r" | "\\t"
         | "\\u" hexdigit hexdigit hexdigit hexdigit
+        | "\\U{" hexdigit { ['_'] hexdigit } "}"
       )
       "'".
   stringToken =
@@ -865,6 +878,7 @@ TOKENS
       { stringChar
         | "\\\'" | "\\\"" | "\\\\" | "\\0" | "\\n" | "\\r" | "\\t"
         | "\\u" hexdigit hexdigit hexdigit hexdigit
+        | "\\U{" hexdigit { ['_'] hexdigit } "}"
       }
       '"'
     | '@' '"' { verbatimStringChar | "\"\"" } '"'.
@@ -962,6 +976,7 @@ Dafny
                                              string parsedFile = scanner.FullFilename;
                                              bool isVerbatimString;
                                              string includedFile = Util.RemoveParsedStringQuotes(t.val, out isVerbatimString);
+                                             Util.ValidateEscaping(t, includedFile, isVerbatimString, errors);
                                              includedFile = Util.RemoveEscaping(includedFile, isVerbatimString);
                                              if (!Path.IsPathRooted(includedFile)) {
                                                string basePath = Path.GetDirectoryName(parsedFile);
@@ -4161,9 +4176,15 @@ LiteralExpression<out Expression e>
   | "null"                                     (. e = new LiteralExpr(t); .)
   | Nat<out n>                                 (. e = new LiteralExpr(t, n); .)
   | Dec<out d>                                 (. e = new LiteralExpr(t, d); .)
-  | charToken                                  (. e = new CharLiteralExpr(t, t.val.Substring(1, t.val.Length - 2)); .)
+  | charToken                                  (. string s = t.val.Substring(1, t.val.Length - 2);
+                                                  Util.ValidateEscaping(t, s, false, errors);
+                                                  if (Util.UnescapedCharacters(s, false).Count() > 1) {
+                                                    errors.SemErr(t, "too many characters in character literal");
+                                                  }
+                                                  e = new CharLiteralExpr(t, s); .)
   | stringToken                                (. bool isVerbatimString;
                                                   string s = Util.RemoveParsedStringQuotes(t.val, out isVerbatimString);
+                                                  Util.ValidateEscaping(t, s, isVerbatimString, errors);
                                                   e = new StringLiteralExpr(t, s, isVerbatimString);
                                                .)
   )
