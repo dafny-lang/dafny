@@ -158,7 +158,7 @@ namespace Microsoft.Dafny {
     internal override void PostCyclicityResolve(ModuleDefinition m) {
       var finder = new Triggers.QuantifierCollector(Reporter);
 
-      foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
+      foreach (var decl in ModuleDefinition.AllCallablesIncludingPrefixDeclarations(m.TopLevelDecls)) {
         finder.Visit(decl, null);
       }
 
@@ -191,17 +191,10 @@ namespace Microsoft.Dafny {
     }
 
     internal override void PostResolveIntermediate(ModuleDefinition m) {
-      var forallvisiter = new ForAllStmtVisitor(Reporter);
-      foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
-        forallvisiter.Visit(decl, true);
-        if (decl is ExtremeLemma) {
-          var prefixLemma = ((ExtremeLemma)decl).PrefixLemma;
-          if (prefixLemma != null) {
-            forallvisiter.Visit(prefixLemma, true);
-          }
-        }
+      var forallVisitor = new ForAllStmtVisitor(Reporter);
+      foreach (var decl in ModuleDefinition.AllCallablesIncludingPrefixDeclarations(m.TopLevelDecls)) {
+        forallVisitor.Visit(decl, true);
       }
-
     }
 
     internal class ForAllStmtVisitor : TopDownVisitor<bool> {
