@@ -132,7 +132,7 @@ module MoreTests {
     print S, " ", T, " ", U, "\n"; // {_module.C} {_module.C} {_module.C}
 
     // The assignments in the following example don't need covariance of Dt, because
-    // Dafny checks that the value with its payment is suitable for the target type.
+    // Dafny checks that the value with its payload is suitable for the target type.
     var k: Dt<int> := Make(100);
     var m: Dt<nat> := k;
     var n: Dt<Even> := k;
