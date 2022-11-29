@@ -239,20 +239,20 @@ public class RevealStmt : Statement {
 }
 
 public abstract class ProduceStmt : Statement {
-  public List<AssignmentRhs> rhss;
-  public UpdateStmt hiddenUpdate;
+  public List<AssignmentRhs> Rhss;
+  public UpdateStmt HiddenUpdate;
   public ProduceStmt(IToken tok, IToken endTok, List<AssignmentRhs> rhss)
     : base(tok, endTok) {
     Contract.Requires(tok != null);
     Contract.Requires(endTok != null);
-    this.rhss = rhss;
-    hiddenUpdate = null;
+    this.Rhss = rhss;
+    HiddenUpdate = null;
   }
   public override IEnumerable<Expression> NonSpecificationSubExpressions {
     get {
       foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
-      if (rhss != null) {
-        foreach (var rhs in rhss) {
+      if (Rhss != null) {
+        foreach (var rhs in Rhss) {
           foreach (var ee in rhs.SubExpressions) {
             yield return ee;
           }
@@ -262,8 +262,8 @@ public abstract class ProduceStmt : Statement {
   }
   public override IEnumerable<Statement> SubStatements {
     get {
-      if (rhss != null) {
-        foreach (var rhs in rhss) {
+      if (Rhss != null) {
+        foreach (var rhs in Rhss) {
           foreach (var s in rhs.SubStatements) {
             yield return s;
           }
@@ -723,63 +723,6 @@ public class LocalVariable : IVariable, IAttributeBearingDeclaration {
 
   public IToken NameToken => Tok;
   public IEnumerable<INode> Children => type.Nodes;
-}
-
-/// <summary>
-/// A CallStmt is always resolved.  It is typically produced as a resolved counterpart of the syntactic AST note ApplySuffix.
-/// </summary>
-public class CallStmt : Statement {
-  [ContractInvariantMethod]
-  void ObjectInvariant() {
-    Contract.Invariant(MethodSelect.Member is Method);
-    Contract.Invariant(cce.NonNullElements(Lhs));
-    Contract.Invariant(cce.NonNullElements(Args));
-  }
-
-  public readonly List<Expression> Lhs;
-  public readonly MemberSelectExpr MethodSelect;
-  public readonly ActualBindings Bindings;
-  public List<Expression> Args => Bindings.Arguments;
-  public Expression OriginalInitialLhs = null;
-
-  public Expression Receiver { get { return MethodSelect.Obj; } }
-  public Method Method { get { return (Method)MethodSelect.Member; } }
-
-  public CallStmt(IToken tok, IToken endTok, List<Expression> lhs, MemberSelectExpr memSel, List<ActualBinding> args)
-    : base(tok, endTok) {
-    Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
-    Contract.Requires(cce.NonNullElements(lhs));
-    Contract.Requires(memSel != null);
-    Contract.Requires(memSel.Member is Method);
-    Contract.Requires(cce.NonNullElements(args));
-
-    this.Lhs = lhs;
-    this.MethodSelect = memSel;
-    this.Bindings = new ActualBindings(args);
-  }
-
-  /// <summary>
-  /// This constructor is intended to be used when constructing a resolved CallStmt. The "args" are expected
-  /// to be already resolved, and are all given positionally.
-  /// </summary>
-  public CallStmt(IToken tok, IToken endTok, List<Expression> lhs, MemberSelectExpr memSel, List<Expression> args)
-    : this(tok, endTok, lhs, memSel, args.ConvertAll(e => new ActualBinding(null, e))) {
-    Bindings.AcceptArgumentExpressionsAsExactParameterList();
-  }
-
-  public override IEnumerable<Expression> NonSpecificationSubExpressions {
-    get {
-      foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
-      foreach (var ee in Lhs) {
-        yield return ee;
-      }
-      yield return MethodSelect;
-      foreach (var ee in Args) {
-        yield return ee;
-      }
-    }
-  }
 }
 
 public class GuardedAlternative : IAttributeBearingDeclaration {

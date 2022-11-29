@@ -656,8 +656,7 @@ namespace Microsoft.Dafny {
         } else if (m is Function) {
           if (state != 0) { wr.WriteLine(); }
           PrintFunction((Function)m, indent, false);
-          var fixp = m as ExtremePredicate;
-          if (fixp != null && fixp.PrefixPredicate != null) {
+          if (m is ExtremePredicate fixp && fixp.PrefixPredicate != null) {
             Indent(indent); wr.WriteLine("/*** (note, what is printed here does not show substitutions of calls to prefix predicates)");
             PrintFunction(fixp.PrefixPredicate, indent, false);
             Indent(indent); wr.WriteLine("***/");
@@ -1218,9 +1217,9 @@ namespace Microsoft.Dafny {
       } else if (stmt is ProduceStmt) {
         var s = (ProduceStmt)stmt;
         wr.Write(s is YieldStmt ? "yield" : "return");
-        if (s.rhss != null) {
+        if (s.Rhss != null) {
           var sep = " ";
-          foreach (var rhs in s.rhss) {
+          foreach (var rhs in s.Rhss) {
             wr.Write(sep);
             PrintRhs(rhs);
             sep = ", ";
