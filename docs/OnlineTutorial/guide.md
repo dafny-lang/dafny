@@ -454,7 +454,7 @@ method Testing()
 This method satisfies the postconditions, but clearly the
 program fragment:
 
-``` {.editonly}
+```dafny
 method Abs(x: int) returns (y: int)
   ensures 0 <= y
 {
@@ -468,11 +468,6 @@ method Testing()
 }
 ```
 
-```dafny
-  var v := Abs(3);
-  assert v == 3;
-```
-
 would not be true in this case. Dafny is considering, in an
 abstract way, all methods with those annotations. The mathematical absolute
 value certainly is such a method, but so are all methods that return a positive
@@ -480,7 +475,7 @@ constant, for example. We need stronger postconditions to eliminate these
 other possibilities, and "fix" the method down to exactly the one we want. We
 can partially do this with the following:
 
-``` {.editonly}
+```dafny
 method Abs(x: int) returns (y: int)
   ensures 0 <= y
   ensures 0 <= x ==> y == x
@@ -490,15 +485,6 @@ method Abs(x: int) returns (y: int)
   } else {
     return x;
   }
-}
-```
-
-```dafny
-method Abs(x: int) returns (y: int)
-  ensures 0 <= y
-  ensures 0 <= x ==> y == x
-{
-  // body as before
 }
 ```
 
@@ -519,7 +505,7 @@ negative is that the result, `y`, is positive. But this
 is still not enough to fix the method, so we must add another postcondition,
 to make the following complete annotation covering all cases:
 
-``` {.editonly}
+```dafny
 method Abs(x: int) returns (y: int)
   ensures 0 <= y
   ensures 0 <= x ==> y == x
@@ -530,16 +516,6 @@ method Abs(x: int) returns (y: int)
   } else {
     return x;
   }
-}
-```
-
-```dafny
-method Abs(x: int) returns (y: int)
-  ensures 0 <= y
-  ensures 0 <= x ==> y == x
-  ensures x < 0 ==> y == -x
-{
-  // body as before
 }
 ```
 
@@ -548,7 +524,7 @@ actually computes the absolute value of `x`. These postconditions are
 not the only way to express this property. For example, this is a different,
 and somewhat shorter, way of saying the same thing:
 
-``` {.editonly}
+```dafny
 method Abs(x: int) returns (y: int)
   ensures 0 <= y && (y == x || y == -x)
 {
@@ -560,14 +536,9 @@ method Abs(x: int) returns (y: int)
 }
 ```
 
-```dafny
-  ensures 0 <= y && (y == x || y == -x)
-```
-
 In general, there can be many ways to write down a given property. Most of the
 time it doesn't matter which one you pick, but a good choice can make it easier
 to understand the stated property and verify that it is correct.
-
 
 But we still have an issue: there seems to be a lot of duplication. The body of the method
 is reflected very closely in the annotations. While this is correct code, we
@@ -579,7 +550,7 @@ of doing this: functions.
   negative values. Simplify the body of `Abs` into just one return
   statement and make sure the method still verifies.*
 
-``` {.editonly}
+```dafny
 method Abs(x: int) returns (y: int)
   // Add a precondition here.
   ensures 0 <= y
@@ -595,11 +566,6 @@ method Abs(x: int) returns (y: int)
 }
 ```
 
-```dafny
-method Abs(x: int) returns (y: int) { ... }
-```
-
-
 **Exercise 3.**
   *Keeping the postconditions of `Abs` the same as above, change the
   body of `Abs` to just `y := x + 2`. What precondition do you need to
@@ -607,7 +573,7 @@ method Abs(x: int) returns (y: int) { ... }
   through? What precondition do you need if the body is `y := x + 1`?
   What does that precondition say about when you can call the method?*
 
-``` {.editonly}
+```dafny
 method Abs(x: int) returns (y: int)
   // Add a precondition here so that the method verifies.
   // Don't change the postconditions.
@@ -628,11 +594,6 @@ method Abs2(x: int) returns (y: int)
 }
 ```
 
-```dafny
-method Abs(x: int) returns (y: int) { ... }
-```
-
-
 ## Functions
 
 ```dafny
@@ -650,7 +611,7 @@ correct type. Here our body must be an integer expression. In order to
 implement the absolute value function, we need to use an *`if` expression*. An `if`
 expression is like the ternary operator in other languages.
 
-``` {.edit}
+```dafny
 function abs(x: int): int
 {
   if x < 0 then -x else x
@@ -663,7 +624,7 @@ bother with functions, if they are so limited compared to methods. The power of
 functions comes from the fact that they can be *used directly in specifications*.
 So we can write:
 
-``` {.editonly}
+```dafny
 function abs(x: int): int
 {
   if x < 0 then -x else x
@@ -672,10 +633,6 @@ method m()
 {
   assert abs(3) == 3;
 }
-```
-
-```dafny
-  assert abs(3) == 3;
 ```
 
 In fact, not only can we write this statement directly
@@ -692,7 +649,7 @@ actually `3`.
   integer parameters. Write a test method using an `assert` that
   checks that your function is correct.*
 
-``` {.editonly}
+```dafny
 function max(a: int, b: int): int
 {
   // Fill in an expression here.
@@ -700,10 +657,6 @@ function max(a: int, b: int): int
 method Testing() {
   // Add assertions to check max here.
 }
-```
-
-```dafny
-function max(a: int, b: int): int { ... }
 ```
 
 One caveat of functions is that not only can they appear in
@@ -726,7 +679,7 @@ reference for details).
   the variable. Dafny will reject this program because you are calling
   `max` from real code. Fix this problem using a `function method`.*
 
-``` {.editonly}
+```dafny
 function max(a: int, b: int): int
 {
   // Use your code from Exercise 4
@@ -736,11 +689,6 @@ method Testing() returns (r: int) {
 }
 ```
 
-```dafny
-function max(a: int, b: int): int { ... }
-```
-
-
 **Exercise 6.**
   *Now that we have an `abs` function, change the postcondition of
   method `Abs` to make use of `abs`. After confirming the method still
@@ -748,7 +696,7 @@ function max(a: int, b: int): int { ... }
   this, you will realize there is not much point in having a method
   that does exactly the same thing as a function method.)*
 
-``` {.editonly}
+```dafny
 function abs(x: int): int
 {
   if x < 0 then -x else x
@@ -765,15 +713,10 @@ method Abs(x: int) returns (y: int)
 }
 ```
 
-```dafny
-function abs(x: int): int
-```
-
-
 Unlike methods, functions can appear in expressions. Thus we
 can do something like implement the mathematical Fibonacci function:
 
-``` {.edit}
+```dafny
 function fib(n: nat): nat
 {
   if n == 0 then 0
@@ -794,7 +737,7 @@ the guarantee of correctness and the performance we want.
 
 We can start by defining a method like the following:
 
-``` {.editonly}
+```dafny
 function fib(n: nat): nat
 {
   if n == 0 then 0
@@ -808,20 +751,13 @@ method ComputeFib(n: nat) returns (b: nat)
 }
 ```
 
-```dafny
-method ComputeFib(n: nat) returns (b: nat)
-  ensures b == fib(n)
-{
-}
-```
-
 We haven't written the body yet, so Dafny will complain that
 our postcondition doesn't hold. We need an algorithm to calculate the `n`<sup>th</sup>
 Fibonacci number. The basic idea is to keep a counter, and repeatedly calculate adjacent pairs
 of Fibonacci numbers until the desired number is reached. To do this, we need a loop. In Dafny, this is done
 via a *`while` loop*. A while loop looks like the following:
 
-``` {.editonly}
+```dafny
 method m(n: nat)
 {
   var i := 0;
@@ -830,14 +766,6 @@ method m(n: nat)
     i := i + 1;
   }
 }
-```
-
-```dafny
-  var i := 0;
-  while i < n
-  {
-    i := i + 1;
-  }
 ```
 
 This is a trivial loop that just increments `i` until it reaches `n`. This will form
@@ -861,7 +789,7 @@ expressions we have seen. For example, we see in the above loop that if `i`
 starts off positive, then it stays positive. So we can add the invariant, using
 its own keyword, to the loop:
 
-``` {.editonly}
+```dafny
 method m(n: nat)
 {
   var i := 0;
@@ -871,15 +799,6 @@ method m(n: nat)
     i := i + 1;
   }
 }
-```
-
-```dafny
-  var i := 0;
-  while i < n
-    invariant 0 <= i
-  {
-    i := i + 1;
-  }
 ```
 
 When you specify an invariant, Dafny proves two things: the
@@ -898,7 +817,7 @@ we exit the loop, we will have that `i == n`, because `i` will stop being
 incremented when it reaches `n`. We can use our assertion trick to check to see if Dafny
 sees this fact as well:
 
-``` {.editonly}
+```dafny
 method m(n: nat)
 {
   var i: int := 0;
@@ -909,16 +828,6 @@ method m(n: nat)
   }
   assert i == n;
 }
-```
-
-```dafny
-  var i: int := 0;
-  while i < n
-    invariant 0 <= i
-  {
-    i := i + 1;
-  }
-  assert i == n;
 ```
 
 We find that this assertion fails. As far as Dafny knows, it
@@ -931,7 +840,7 @@ Somehow we need to eliminate the possibility of `i`
 exceeding `n`. One first guess for solving this problem
 might be the following:
 
-``` {.editonly}
+```dafny
 method m(n: nat)
 {
   var i: int := 0;
@@ -941,15 +850,6 @@ method m(n: nat)
     i := i + 1;
   }
 }
-```
-
-```dafny
-  var i := 0;
-  while i < n
-    invariant 0 <= i < n
-  {
-    i := i + 1;
-  }
 ```
 
 This does not verify, as Dafny complains that the invariant
@@ -961,7 +861,7 @@ guard holds, in the last iteration `i` goes from `n - 1` to `n`, but does not in
 further, as the loop exits. Thus, we have only omitted exactly one case from
 our invariant, and repairing it is relatively easy:
 
-``` {.editonly}
+```dafny
 method m(n: nat)
 {
   var i: int := 0;
@@ -972,13 +872,6 @@ method m(n: nat)
   }
 }
 ```
-
-```dafny
-...
-  invariant 0 <= i <= n
-...
-```
-
 
 Now we can say both that `n <= i`
 from the loop guard and `0 <= i <= n` from the
@@ -991,7 +884,7 @@ has executed.
   *Change the loop invariant to `0 <= i <= n+2`. Does the loop still
   verify? Does the assertion `i == n` after the loop still verify?*
 
-``` {.editonly}
+```dafny
 method m(n: nat)
 {
   var i: int := 0;
@@ -1004,17 +897,13 @@ method m(n: nat)
 }
 ```
 
-```dafny
-  invariant 0 <= i <= n+2
-```
-
 
 **Exercise 8.**
   *With the original loop invariant, change the loop guard from
   `i < n` to `i != n`. Do the loop and the assertion after the loop
   still verify? Why or why not?*
 
-``` {.editonly}
+```dafny
 method m(n: nat)
 {
   var i: int := 0;
@@ -1025,10 +914,6 @@ method m(n: nat)
   }
   assert i == n;
 }
-```
-
-```dafny
-  while i != n ...
 ```
 
 
@@ -1067,7 +952,7 @@ At each step of the loop, the two values are summed to get
 the next leading number, while the trailing number is the old leading number.
 Using a parallel assignment, we can write a loop that performs this operation:
 
-``` {.editonly}
+```dafny
 function fib(n: nat): nat
 {
   if n == 0 then 0
@@ -1089,20 +974,6 @@ method ComputeFib(n: nat) returns (b: nat)
     i := i + 1;
   }
 }
-```
-
-```dafny
-  var i := 1;
-  var a := 0;
-  b := 1;
-  while i < n
-    invariant 0 < i <= n
-    invariant a == fib(i - 1)
-    invariant b == fib(i)
-  {
-    a, b := b, a + b;
-    i := i + 1;
-  }
 ```
 
 Here `a` is the trailing number, and `b` is the leading number.
@@ -1120,32 +991,13 @@ the loop. The only problem is when `n` is zero. This can
 be eliminated as a special case, by testing for this condition at the beginning
 of the loop. The completed Fibonacci method becomes:
 
-``` {.editonly}
+```dafny
 function fib(n: nat): nat
 {
   if n == 0 then 0
   else if n == 1 then 1
   else fib(n - 1) + fib(n - 2)
 }
-method ComputeFib(n: nat) returns (b: nat)
-  ensures b == fib(n)
-{
-  if n == 0 { return 0; }
-  var i: int := 1;
-  var a := 0;
-  b := 1;
-  while i < n
-    invariant 0 < i <= n
-    invariant a == fib(i - 1)
-    invariant b == fib(i)
-  {
-    a, b := b, a + b;
-    i := i + 1;
-  }
-}
-```
-
-```dafny
 method ComputeFib(n: nat) returns (b: nat)
   ensures b == fib(n)
 {
@@ -1176,7 +1028,7 @@ and `b == fib(i)`, which together imply the postcondition, `b == fib(n)`.
   variable `c` that succeeds `b`. Verify your program is correct
   according to the mathematical definition of Fibonacci.*
 
-``` {.editonly}
+```dafny
 function fib(n: nat): nat
 {
   if n == 0 then 0
@@ -1203,10 +1055,6 @@ method ComputeFib(n: nat) returns (b: nat)
 }
 ```
 
-```dafny
-method ComputeFib(n: nat) returns (b: nat)
-```
-
 
 **Exercise 10.**
   *Starting with the completed `ComputeFib` method above, delete the
@@ -1214,7 +1062,7 @@ method ComputeFib(n: nat) returns (b: nat)
   `0`.  Verify this new program by adjusting the loop invariants to
   match the new behavior.*
 
-``` {.editonly}
+```dafny
 function fib(n: nat): nat
 {
   if n == 0 then 0
@@ -1235,11 +1083,6 @@ method ComputeFib(n: nat) returns (b: nat)
   }
 }
 ```
-
-```dafny
-method ComputeFib(n: nat) returns (b: nat)
-```
-
 
 One of the problems with using invariants is that it is easy
 to forget to have the loop *make progress*, i.e. do work at each step. For
@@ -1272,7 +1115,7 @@ details.) In the case of integers, the bound is assumed to be zero. For
 example, the following is a proper use of `decreases` on a loop (with its own
 keyword, of course):
 
-``` {.editonly}
+```dafny
 method m ()
 {
   var i := 20;
@@ -1285,15 +1128,6 @@ method m ()
 }
 ```
 
-```dafny
-  while 0 < i
-    invariant 0 <= i
-    decreases i
-  {
-    i := i - 1;
-  }
-```
-
 Here Dafny has all the ingredients it needs to prove
 termination. The variable `i` gets smaller each loop iteration, and is bounded
 below by zero. This is fine, except the loop is backwards from most loops,
@@ -1301,7 +1135,7 @@ which tend to count up instead of down. In this case, what decreases is not the
 counter itself, but rather the distance between the counter and the upper
 bound. A simple trick for dealing with this situation is given below:
 
-``` {.editonly}
+```dafny
 method m()
 {
   var i, n := 0, 20;
@@ -1312,15 +1146,6 @@ method m()
     i := i + 1;
   }
 }
-```
-
-```dafny
-  while i < n
-    invariant 0 <= i <= n
-    decreases n - i
-  {
-    i := i + 1;
-  }
 ```
 
 This is actually Dafny's guess for this situation, as it
@@ -1341,7 +1166,7 @@ each other, and neither is fixed.
   and delete the invariant annotation. Does the program verify? What
   happened?*
 
-``` {.editonly}
+```dafny
 method m()
 {
   var i, n := 0, 20;
@@ -1353,11 +1178,6 @@ method m()
 }
 ```
 
-```dafny
-  while i != n
-```
-
-
 The other situation that requires a termination proof is
 when methods or functions are recursive. Similarly to looping forever, these
 methods could potentially call themselves forever, never returning to their
@@ -1365,21 +1185,13 @@ original caller. When Dafny is not able to guess the termination condition, an
 explicit decreases clause can be given along with pre- and postconditions, as
 in the unnecessary annotation for the fib function:
 
-``` {.editonly}
+```dafny
 function fib(n: nat): nat
   decreases n
 {
   if n == 0 then 0
   else if n == 1 then 1
   else fib(n - 1) + fib(n - 2)
-}
-```
-
-```dafny
-function fib(n: nat): nat
-  decreases n
-{
-  ...
 }
 ```
 
@@ -1419,20 +1231,12 @@ search, with a different correctness condition for each. If the algorithm
 returns an index (i.e. non-negative integer), then the key should be present at
 that index. This might be expressed as follows:
 
-``` {.editonly}
+```dafny
 method Find(a: array<int>, key: int) returns (index: int)
   ensures 0 <= index ==> index < a.Length && a[index] == key
 {
   // Can you write code that satisfies the postcondition?
   // Hint: you can do it with one statement.
-}
-```
-
-```dafny
-method Find(a: array<int>, key: int) returns (index: int)
-  ensures 0 <= index ==> index < a.Length && a[index] == key
-{
-  // Open in editor for a challenge...
 }
 ```
 
@@ -1463,15 +1267,11 @@ name suggests, this expression is true if some property holds for all elements
 of some set. For now, we will consider the set of integers. An example
 universal quantifier, wrapped in an assertion, is given below:
 
-``` {.editonly}
+```dafny
 method m()
 {
   assert forall k :: k < k + 1;
 }
-```
-
-```dafny
-  assert forall k :: k < k + 1;
 ```
 
 A quantifier introduces a temporary name for each element of
@@ -1509,7 +1309,7 @@ straightforward:
 Thus our method postconditions become (with the addition of the
 non-nullity precondition on `a`):
 
-``` {.editonly}
+```dafny
 method Find(a: array<int>, key: int) returns (index: int)
   ensures 0 <= index ==> index < a.Length && a[index] == key
   ensures index < 0 ==> forall k :: 0 <= k < a.Length ==> a[k] != key
@@ -1518,19 +1318,10 @@ method Find(a: array<int>, key: int) returns (index: int)
 }
 ```
 
-```dafny
-method Find(a: array<int>, key: int) returns (index: int)
-  ensures 0 <= index ==> index < a.Length && a[index] == key
-  ensures index < 0 ==> forall k :: 0 <= k < a.Length ==> a[k] != key
-{
-  ...
-}
-```
-
 We can fill in the body of this method in a number of ways,
 but perhaps the easiest is a linear search, implemented below:
 
-``` {.editonly}
+```dafny
 method Find(a: array<int>, key: int) returns (index: int)
   ensures 0 <= index ==> index < a.Length && a[index] == key
   ensures index < 0 ==> forall k :: 0 <= k < a.Length ==> a[k] != key
@@ -1543,16 +1334,6 @@ method Find(a: array<int>, key: int) returns (index: int)
   }
   index := -1;
 }
-```
-
-```dafny
-  index := 0;
-  while index < a.Length
-  {
-    if a[index] == key { return; }
-    index := index + 1;
-  }
-  index := -1;
 ```
 
 As you can see, we have omitted the loop invariants on the
@@ -1563,7 +1344,7 @@ we have to write an invariant that says that everything before the current
 index has already been looked at (and are not the key). Just like the
 postcondition, we can use a quantifier to express this property:
 
-``` {.editonly}
+```dafny
 method Find(a: array<int>, key: int) returns (index: int)
   ensures 0 <= index ==> index < a.Length && a[index] == key
   ensures index < 0 ==> forall k :: 0 <= k < a.Length ==> a[k] != key
@@ -1577,10 +1358,6 @@ method Find(a: array<int>, key: int) returns (index: int)
   }
   index := -1;
 }
-```
-
-```dafny
-  invariant forall k :: 0 <= k < index ==> a[k] != key
 ```
 
 This says that everything before, but excluding, the current
@@ -1605,7 +1382,7 @@ is one past the end of a growing range is a common pattern when working with
 arrays, where it is often used to build a property up one element at a time.
 The complete method is given below:
 
-``` {.edit}
+```dafny
 method Find(a: array<int>, key: int) returns (index: int)
   ensures 0 <= index ==> index < a.Length && a[index] == key
   ensures index < 0 ==> forall k :: 0 <= k < a.Length ==> a[k] != key
@@ -1629,7 +1406,7 @@ method Find(a: array<int>, key: int) returns (index: int)
   postconditions that state the intent of the method, and annotate its
   body with loop invariant to verify it.*
 
-``` {.editonly}
+```dafny
 method FindMax(a: array<int>) returns (i: int)
   // Annotate this method with pre- and postconditions
   // that ensure it behaves as described.
@@ -1637,11 +1414,6 @@ method FindMax(a: array<int>) returns (i: int)
   // Fill in the body that calculates the INDEX of the maximum.
 }
 ```
-
-```dafny
-method FindMax(a: array<int>) returns (i: int)
-```
-
 
 A linear search is not very efficient, especially when many
 queries are made of the same data. If the array is sorted, then we can use the
@@ -1679,7 +1451,7 @@ says that they are ordered properly with respect to one another. Quantifiers are
 a type of boolean valued expression in Dafny, so we can write the sorted predicate
 as:
 
-``` {.edit}
+```dafny
 predicate sorted(a: array<int>)
   requires a != null
 {
@@ -1708,20 +1480,13 @@ sorted. While we might be able to give invariants to preserve it in this case,
 it gets even more complex when manipulating data structures. In this case,
 framing is essential to making the verification process feasible.
 
-``` {.editonly}
+```dafny
 predicate sorted(a: array<int>)
   requires a != null
   reads a
 {
   forall j, k :: 0 <= j < k < a.Length ==> a[j] <= a[k]
 }
-```
-
-```dafny
-predicate sorted(a: array<int>)
-  ...
-  reads a
-  ...
 ```
 
 A `reads` annotation is not a boolean expression, like the
@@ -1765,7 +1530,7 @@ distinction between the reference itself and the value it points to.)
   true exactly when the array is sorted and all its elements are
   distinct.*
 
-``` {.editonly}
+```dafny
 predicate sorted(a: array<int>)
   requires a != null
   reads a
@@ -1774,17 +1539,12 @@ predicate sorted(a: array<int>)
 }
 ```
 
-```dafny
-predicate sorted(a: array<int>)
-```
-
-
 **Exercise 14.**
   *What happens if you remove the precondition `a != null`? Change the
   definition of `sorted` so that it allows its argument to be null but
   returns false if it is.*
 
-``` {.editonly}
+```dafny
 predicate sorted(a: array<int>)
   reads a
 {
@@ -1794,16 +1554,11 @@ predicate sorted(a: array<int>)
 }
 ```
 
-```dafny
-predicate sorted(a: array<int>)
-```
-
-
 ## Binary Search
 
 Predicates are usually used to make other annotations clearer:
 
-``` {.editonly}
+```dafny
 predicate sorted(a: array<int>)
   requires a != null
   reads a
@@ -1819,22 +1574,13 @@ method BinarySearch(a: array<int>, value: int) returns (index: int)
 }
 ```
 
-```dafny
-method BinarySearch(a: array<int>, key: int) returns (index: int)
-  requires a != null && sorted(a)
-  ensures ...
-{
-  ...
-}
-```
-
 We have the same postconditions that we did for the linear
 search, as the goal is the same. The difference is that now we know the array
 is sorted. Because Dafny can unwrap functions, inside the body of the method it
 knows this too. We can then use that property to prove the correctness of the
 search. The method body is given below:
 
-``` {.editonly}
+```dafny
 predicate sorted(a: array<int>)
   requires a != null
   reads a
@@ -1863,25 +1609,6 @@ method BinarySearch(a: array<int>, value: int) returns (index: int)
   }
   return -1;
 }
-```
-
-```dafny
-  var low, high := 0, a.Length;
-  while low < high
-    invariant 0 <= low <= high <= a.Length
-    invariant forall i ::
-      0 <= i < a.Length && !(low <= i < high) ==> a[i] != value
-  {
-    var mid := (low + high) / 2;
-    if a[mid] < value {
-      low := mid + 1;
-    } else if value < a[mid] {
-      high := mid;
-    } else {
-      return mid;
-    }
-  }
-  return -1;
 ```
 
 This is a fairly standard binary search implementation. First we
@@ -1923,7 +1650,7 @@ ourselves.
   to `mid` or to set `high` to `mid - 1`. In each case, what goes
   wrong?*
 
-``` {.editonly}
+```dafny
 predicate sorted(a: array<int>)
   requires a != null
   reads a
@@ -1953,11 +1680,6 @@ method BinarySearch(a: array<int>, value: int) returns (index: int)
   return -1;
 }
 ```
-
-```dafny
-method BinarySearch(a: array<int>, value: int) returns (index: int)
-```
-
 
 ## Conclusion
 
