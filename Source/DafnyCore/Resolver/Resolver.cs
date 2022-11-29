@@ -9742,7 +9742,22 @@ namespace Microsoft.Dafny {
           ExprRhs rr = (ExprRhs)s.Rhs;
           ResolveExpression(rr.Expr, resolutionContext);
           Contract.Assert(rr.Expr.Type != null);  // follows from postcondition of ResolveExpression
-          AddAssignableConstraint(stmt.Tok, lhsType, rr.Expr.Type, "RHS (of type {1}) not assignable to LHS (of type {0})");
+
+          bool isHiddenUpdateToOutVar = false;
+          if (s.Lhs is IdentifierExpr) {
+            IdentifierExpr ie = (IdentifierExpr)s.Lhs;
+            if (ie.Var is Formal) {
+              Formal f = ((Formal)ie.Var);
+              if (!f.InParam) {
+                isHiddenUpdateToOutVar = true;
+              }
+            }
+          }
+          if (isHiddenUpdateToOutVar) {
+            AddAssignableConstraint(stmt.Tok, lhsType, rr.Expr.Type, "Method return value mismatch (expecting {0}, got {1})");
+          } else {
+            AddAssignableConstraint(stmt.Tok, lhsType, rr.Expr.Type, "RHS (of type {1}) not assignable to LHS (of type {0})");
+          }
         } else if (s.Rhs is TypeRhs) {
           TypeRhs rr = (TypeRhs)s.Rhs;
           Type t = ResolveTypeRhs(rr, stmt, resolutionContext);

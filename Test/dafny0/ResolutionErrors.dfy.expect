@@ -73,8 +73,8 @@ ResolutionErrors.dfy(485,8): Error: when allocating an object of type 'Y', one o
 ResolutionErrors.dfy(490,8): Error: when allocating an object of type 'Luci', one of its constructor methods must be called
 ResolutionErrors.dfy(491,8): Error: when allocating an object of type 'Luci', one of its constructor methods must be called
 ResolutionErrors.dfy(493,15): Error: class Lamb does not have an anonymous constructor
-ResolutionErrors.dfy(546,7): Error: RHS (of type List<A>) not assignable to LHS (of type List<B>) (covariant type parameter would require A <: B)
-ResolutionErrors.dfy(551,7): Error: RHS (of type List<A>) not assignable to LHS (of type List<B>) (covariant type parameter would require A <: B)
+ResolutionErrors.dfy(546,7): Error: Method return value mismatch (expecting List<B>, got List<A>) (covariant type parameter would require A <: B)
+ResolutionErrors.dfy(551,7): Error: Method return value mismatch (expecting List<B>, got List<A>) (covariant type parameter would require A <: B)
 ResolutionErrors.dfy(565,17): Error: type of case bodies do not agree (found Tree<_T1, _T0>, previous types Tree<_T0, _T1>) (covariant type parameter 0 would require _T1 <: _T0)
 ResolutionErrors.dfy(577,24): Error: Wrong number of type arguments (0 instead of 2) passed to datatype: Tree
 ResolutionErrors.dfy(592,20): Error: unresolved identifier: w
@@ -98,12 +98,12 @@ ResolutionErrors.dfy(762,22): Error: a possibly infinite loop is allowed only if
 ResolutionErrors.dfy(795,17): Error: wrong number of method result arguments (got 0, expected 1)
 ResolutionErrors.dfy(816,4): Error: ghost variables such as y are allowed only in specification contexts. y was inferred to be ghost based on its declaration or initialization.
 ResolutionErrors.dfy(827,40): Error: ghost variables such as y are allowed only in specification contexts. y was inferred to be ghost based on its declaration or initialization.
-ResolutionErrors.dfy(850,6): Error: RHS (of type B) not assignable to LHS (of type object)
-ResolutionErrors.dfy(852,6): Error: RHS (of type B) not assignable to LHS (of type object)
-ResolutionErrors.dfy(857,6): Error: RHS (of type G) not assignable to LHS (of type object)
-ResolutionErrors.dfy(858,6): Error: RHS (of type Dt) not assignable to LHS (of type object)
-ResolutionErrors.dfy(859,6): Error: RHS (of type CoDt) not assignable to LHS (of type object)
-ResolutionErrors.dfy(851,6): Error: RHS (of type int) not assignable to LHS (of type object)
+ResolutionErrors.dfy(850,6): Error: Method return value mismatch (expecting object, got B)
+ResolutionErrors.dfy(852,6): Error: Method return value mismatch (expecting object, got B)
+ResolutionErrors.dfy(857,6): Error: Method return value mismatch (expecting object, got G)
+ResolutionErrors.dfy(858,6): Error: Method return value mismatch (expecting object, got Dt)
+ResolutionErrors.dfy(859,6): Error: Method return value mismatch (expecting object, got CoDt)
+ResolutionErrors.dfy(851,6): Error: Method return value mismatch (expecting object, got int)
 ResolutionErrors.dfy(871,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got int)
 ResolutionErrors.dfy(875,16): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (x)
 ResolutionErrors.dfy(887,14): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (x)
@@ -150,10 +150,10 @@ ResolutionErrors.dfy(1089,21): Error: unresolved identifier: x
 ResolutionErrors.dfy(1092,21): Error: unresolved identifier: x
 ResolutionErrors.dfy(1099,35): Error: Wrong number of type arguments (2 instead of 1) passed to opaque type: P
 ResolutionErrors.dfy(1111,13): Error: Undeclared top-level type or type parameter: BX (did you forget to qualify a name or declare a module import 'opened'?)
-ResolutionErrors.dfy(1121,6): Error: RHS (of type P<int>) not assignable to LHS (of type P<bool>) (non-variant type parameter would require bool = int)
-ResolutionErrors.dfy(1126,6): Error: RHS (of type P<A>) not assignable to LHS (of type P<B>) (non-variant type parameter would require B = A)
-ResolutionErrors.dfy(1131,6): Error: RHS (of type P<A>) not assignable to LHS (of type P<int>) (non-variant type parameter would require int = A)
-ResolutionErrors.dfy(1132,6): Error: RHS (of type P<int>) not assignable to LHS (of type P<A>) (non-variant type parameter would require A = int)
+ResolutionErrors.dfy(1121,6): Error: Method return value mismatch (expecting P<bool>, got P<int>) (non-variant type parameter would require bool = int)
+ResolutionErrors.dfy(1126,6): Error: Method return value mismatch (expecting P<B>, got P<A>) (non-variant type parameter would require B = A)
+ResolutionErrors.dfy(1131,6): Error: Method return value mismatch (expecting P<int>, got P<A>) (non-variant type parameter would require int = A)
+ResolutionErrors.dfy(1132,6): Error: Method return value mismatch (expecting P<A>, got P<int>) (non-variant type parameter would require A = int)
 ResolutionErrors.dfy(1137,13): Error: arguments must have comparable types (got P<int> and P<X>)
 ResolutionErrors.dfy(1138,13): Error: arguments must have comparable types (got P<bool> and P<X>)
 ResolutionErrors.dfy(1139,13): Error: arguments must have comparable types (got P<int> and P<bool>)

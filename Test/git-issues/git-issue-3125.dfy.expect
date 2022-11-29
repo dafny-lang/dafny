@@ -1,0 +1,3 @@
+git-issue-3125.dfy(5,4): Error: Method return value mismatch (expecting int, got string)
+git-issue-3125.dfy(8,9): Error: Function body type mismatch (expected int, got string)
+2 resolution/type errors detected in git-issue-3125.dfy
