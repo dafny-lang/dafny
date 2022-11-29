@@ -61,7 +61,7 @@ method Literals() {
 
   Print("JavaScript Number.MAX_SAFE_INTEGER", 0x1F_FFFF_FFFF_FFFF);  // 2^53 -  1
   Print("2^53", 0x20_0000_0000_0000);  // 2^53
-  Print("JavaScript Number.MAX_SAFE_INTEGER", - 0x1F_FFFF_FFFF_FFFF);  // - (2^53 -  1)
+  Print("JavaScript Number.MIN_SAFE_INTEGER", - 0x1F_FFFF_FFFF_FFFF);  // - (2^53 -  1)
   Print("", - 0x20_0000_0000_0000);  // - 2^53
 
   Print("C# long.MaxValue", 0x7FFF_ffff_FFFF_ffff);  // long.MaxValue
