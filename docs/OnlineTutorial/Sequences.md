@@ -11,6 +11,7 @@ types, rather than only characters. Sequence types are written:
 
 ```dafny
 seq<int>
+```
 
 for a sequence of integers, for example.
 For example, this function takes a sequence as a parameter:
@@ -66,8 +67,8 @@ Sequences can also be constructed from their elements, using *display notation*:
 ```
 
 Here we have a integer sequence variable in some imperative
-code containing the elements 1,2, and 3. Type inference has been used here to
-get the fact that the sequence is one of integers. This notation allows us to
+code containing the elements 1, 2, and 3. Type inference has been used here to
+determine that the sequence is one of integers. This notation allows us to
 construct empty sequences and singleton sequences:
 
 ```dafny
@@ -91,8 +92,8 @@ method m()
 ```
 
 By far the most common operations on sequences are getting
-the first and last elements, and getting everything but the first and last
-elements, as these are often used in recursive functions, such as `sorted2`
+the first and last elements, and getting everything but the first cworand last
+element, as these are often used in recursive functions, such as `sorted2`
 above. In addition to being deconstructed by being accessed or sliced, sequences
 can also be concatenated, using the plus (`+`) symbol:
 
@@ -106,7 +107,7 @@ method m()
 }
 ```
 
-The second assertion gives a relationship between
+The last assertion gives a relationship between
 concatenation and slicing. Because the slicing operation is exclusive on one
 side and inclusive on the other, the element appears in the concatenation
 exactly once, as it should. Note that the concatenation operation is
