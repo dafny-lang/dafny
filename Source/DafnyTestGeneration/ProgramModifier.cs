@@ -27,8 +27,6 @@ namespace DafnyTestGeneration {
   public abstract class ProgramModifier {
 
     // The implementation to test.
-    // If null, all implementations will be tested.
-    // If not null, other implementations can be inlined.
     protected Implementation/*?*/ ImplementationToTarget;
     // Boogie names of implementations to be tested or inlined
     private HashSet<string> toModify = new();
