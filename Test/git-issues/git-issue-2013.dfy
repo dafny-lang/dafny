@@ -122,6 +122,8 @@ module MoreTests {
     var u: set<Even> := s;
     t := u;
     u := t;
+    s := u;
+    s := t;
     print s, " ", t, " ", u, "\n"; // {100} {100} {100}
 
     var S: set<Z> := {c};
@@ -129,6 +131,8 @@ module MoreTests {
     var U: set<Y> := S;
     T := U;
     U := T;
+    S := U;
+    S := T;
     print S, " ", T, " ", U, "\n"; // {_module.C} {_module.C} {_module.C}
 
     // The assignments in the following example don't need covariance of Dt, because
@@ -138,6 +142,8 @@ module MoreTests {
     var n: Dt<Even> := k;
     m := n;
     n := m;
+    k := m;
+    k := n;
     print k, " ", m, " ", n, "\n"; // Dt.Make(100) Dt.Make(100) Dt.Make(100)
 
     var K: DtCovariant<Z> := MakeCovariant(c);
