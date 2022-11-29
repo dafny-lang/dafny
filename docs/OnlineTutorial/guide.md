@@ -10,7 +10,8 @@ errors, but also correct in actually doing what the programmer intended it to
 do. To accomplish this, Dafny relies on high-level annotations to reason about
 and prove correctness of code. The effect of a piece of code can be given abstractly,
 using a natural, high-level expression of the desired behavior, which is easier
-and less error prone to write. Dafny then generates a proof that the code
+and less error prone to write than the implementation code itself.
+ Dafny then generates a proof that the code
 matches the annotations (assuming they are correct, of course!). Dafny lifts the
 burden of writing bug-free *code* into that of writing bug-free *annotations*.
 This is often easier than writing the code, because annotations are shorter and
@@ -58,7 +59,7 @@ which takes a single integer parameter, called "`x`", and
 returns a single integer, called "`y`". Note that the types
 are required for each parameter and return value, and follow each name after a
 colon (`:`). Also, the return values are named, and there
-can be multiple return values, as in below:
+can be multiple return values, as in this code:
 
 ```dafny
 method MultipleReturns(x: int, y: int) returns (more: int, less: int)
@@ -167,7 +168,7 @@ Sometimes there are multiple properties that we would like
 to establish about our code. In this case, we have two options. We can either
 join the two conditions together with the boolean "and" operator (`&&`), or
 we can write multiple `ensures` specifications. The
-latter is basically the same as the former, but it seperates distinct
+latter is basically the same as the former, but it separates distinct
 properties. For example, the return value names from the `MultipleReturns`
 method might lead one to guess the following postconditions:
 
@@ -238,7 +239,7 @@ when you write a method, you get to assume the preconditions, but you must
 establish the postconditions. The caller of the method then gets to assume
 that the postconditions hold after the method returns.
 
-preconditions have their own keyword, `requires`.
+Preconditions have their own keyword, `requires`.
 We can give the necessary precondition to `MultipleReturns`
 as below:
 
@@ -660,7 +661,7 @@ method Testing() {
 ```
 
 One caveat of functions is that not only can they appear in
-annotations, they can only appear in annotations. One cannot write:
+annotations, they can only appear in annotations. One cannot write (TODO - this is changing in Dafny 4):
 
 ```dafny
   var v := abs(3);
@@ -753,7 +754,7 @@ method ComputeFib(n: nat) returns (b: nat)
 
 We haven't written the body yet, so Dafny will complain that
 our postcondition doesn't hold. We need an algorithm to calculate the `n`<sup>th</sup>
-Fibonacci number. The basic idea is to keep a counter, and repeatedly calculate adjacent pairs
+Fibonacci number. The basic idea is to keep a counter and repeatedly calculate adjacent pairs
 of Fibonacci numbers until the desired number is reached. To do this, we need a loop. In Dafny, this is done
 via a *`while` loop*. A while loop looks like the following:
 
@@ -780,7 +781,7 @@ around the loop any number of times. To make it possible for Dafny to work with
 loops, you need to provide *loop invariants*, another kind of annotation.
 
 A loop invariant is an expression that holds upon entering a
-loop, and after every execution of the loop body. It captures something that is
+loop and after every execution of the loop body. It captures something that is
 invariant, i.e. does not change, about every step of the loop. Now, obviously
 we are going to want to change variables, etc. each time around the loop, or we
 wouldn't need the loop. Like pre- and postconditions, an invariant is a *property* that is
@@ -802,7 +803,7 @@ method m(n: nat)
 ```
 
 When you specify an invariant, Dafny proves two things: the
-invariant holds upon entering the loop, and it is preserved by the loop. By
+invariant holds upon entering the loop and it is preserved by the loop. By
 preserved, we mean that assuming that the invariant holds at the beginning of
 the loop, we must show that executing the loop body once makes the invariant
 hold again. Dafny can only know upon analyzing the loop body what the
@@ -833,7 +834,7 @@ method m(n: nat)
 We find that this assertion fails. As far as Dafny knows, it
 is possible that `i` somehow became much larger than `n` at some point during the loop.
 All it knows after the loop exits (i.e. in the code after the loop) is that the loop guard
-failed, and the invariants hold. In this case, this amounts to `n <= i`
+failed and the invariants hold. In this case, this amounts to `n <= i`
 and `0 <= i`. But this is not enough to guarantee that
 `i == n`, just that `n <= i`.
 Somehow we need to eliminate the possibility of `i`
@@ -939,7 +940,7 @@ our out parameter, will be the current Fibonacci number:
 ```
 
 We also note that in our algorithm, we can compute any Fibonacci
-number by keeping track of a pair of numbers, and summing them to get the next
+number by keeping track of a pair of numbers and summing them to get the next
 number. So we want a way of tracking the previous Fibonacci number, which we
 will call `a`. Another invariant will express that
 number's relation to the loop counter. The invariants are:
@@ -976,7 +977,7 @@ method ComputeFib(n: nat) returns (b: nat)
 }
 ```
 
-Here `a` is the trailing number, and `b` is the leading number.
+Here `a` is the trailing number and `b` is the leading number.
 The parallel assignment means that the entire right hand side is
 calculated before the assignments to the
 variables are made. Thus `a` will get the old value of `b`, and `b`
@@ -1108,7 +1109,7 @@ situations require either an explicit annotation or a correct guess by Dafny.
 A `decreases` annotation, as its name suggests, gives Dafny
 an expression that decreases with every loop iteration or recursive call.
 There are two conditions that Dafny needs to verify when using a `decreases`
-expression: that the expression actually gets smaller, and that it is bounded.
+expression: that the expression actually gets smaller and that it is bounded.
 Many times, an integral value (natural or plain integer) is the quantity that
 decreases, but other things that can be used as well. (See the reference for
 details.) In the case of integers, the bound is assumed to be zero. For
@@ -1129,7 +1130,7 @@ method m ()
 ```
 
 Here Dafny has all the ingredients it needs to prove
-termination. The variable `i` gets smaller each loop iteration, and is bounded
+termination. The variable `i` gets smaller each loop iteration and is bounded
 below by zero. This is fine, except the loop is backwards from most loops,
 which tend to count up instead of down. In this case, what decreases is not the
 counter itself, but rather the distance between the counter and the upper
@@ -1200,6 +1201,8 @@ sometimes the decreasing condition is hidden within a field of an
 object or somewhere else where
 Dafny cannot find it on its own, and it requires an explicit annotation.
 
+There is a longer tutorial on termination [here](./Termination).
+
 ## Arrays
 
 All that we have considered is fine for toy functions and
@@ -1214,7 +1217,7 @@ element type `T` (i.e., `array<T>`) and the null reference.
 For now we only consider
 arrays of integers, with type `array<int>`.
 Arrays have a built-in length field, `a.Length`.
-Element access uses the standard bracket syntax and are indexed from
+Element access uses the standard bracket syntax and indexes from
 zero, so `a[3]` is preceded by the 3 elements `a[0]`,
 `a[1]`, and `a[2]`, in that order.
 All array accesses must be proven to be within bounds, which is part of Dafny's
@@ -1222,7 +1225,7 @@ no-runtime-errors safety guarantee. Because bounds checks are proven
 at verification time, no runtime checks need to be made. To create a new array,
 it must be allocated with the `new` keyword, but for now
 we will only work with methods that take a previously allocated array as an
-argument. (See the tutorial on memory for more on allocation.)
+argument.
 
 One of the most basic things we might want to do with an
 array is search through it for a particular key, and return the index of a
@@ -1296,7 +1299,7 @@ trivially true for values which are not indices:
 This says that some property holds for each element of the
 array. The implication makes sure that `k` is actually a valid index into the
 array before evaluating the second part of the expression. Dafny can use this
-fact not only to prove that the array is accessed safely, but also reduce the
+fact not only to prove that the array is accessed safely, but also to reduce the
 set of integers it must consider to only those that are indices into the array.
 
 With a quantifier, saying the key is not in the array is
@@ -1306,8 +1309,7 @@ straightforward:
   forall k :: 0 <= k < a.Length ==> a[k] != key
 ```
 
-Thus our method postconditions become (with the addition of the
-non-nullity precondition on `a`):
+Thus our method postconditions become:
 
 ```dafny
 method Find(a: array<int>, key: int) returns (index: int)
@@ -1317,6 +1319,8 @@ method Find(a: array<int>, key: int) returns (index: int)
   // There are many ways to fill this in. Can you write one?
 }
 ```
+
+Note that because `a` has type `array<int>`, it is implicitly non-null.
 
 We can fill in the body of this method in a number of ways,
 but perhaps the easiest is a linear search, implemented below:
