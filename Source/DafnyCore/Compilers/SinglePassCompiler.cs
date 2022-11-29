@@ -761,7 +761,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(wr != null);
       if (from != null && to != null) {
         if (!IsTargetSupertype(to, from)) {
-          // By the way, it is tempting that think that IsTargetSupertype(from, to)) would hold here, but that's not true.
+          // By the way, it is tempting to think that IsTargetSupertype(from, to)) would hold here, but that's not true.
           // For one, in a language with NeedsCastFromTypeParameter, "to" and "from" may contain uninstantiated formal type parameters.
           // Also, it is possible (subject to a check enforced by the verifier) to assign Datatype<X> to Datatype<Y>,
           // where Datatype is co-variant in its argument type and X and Y are two incomparable types with a common supertype.
