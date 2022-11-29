@@ -380,10 +380,10 @@ Usage: Dafny [ option ... ] [ filename ... ]
       should be inlined.
   /generateTestPrintBpl:<fileName>
       Print the Boogie code used during test generation.
-  /generateTestPrintStats:<fileName>
-      Create a json file with the summary statistics about the generated tests.
   /generateTestVerbose
       Print various debugging info as comments for the generated tests.
+  /generateTestNoPrune
+      Disable axiom pruning that Dafny uses to speed up verification.
   ---- Compilation options ---------------------------------------------------
   
   /compileTarget:<language>

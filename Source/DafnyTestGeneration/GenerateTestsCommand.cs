@@ -16,7 +16,8 @@ public class GenerateTestsCommand : ICommandSpec {
       VerificationTimeLimitOption.Instance,
       VerboseOption.Instance,
       PrintBpl.Instance,
-      TimeLimit.Instance
+      TimeLimit.Instance,
+      DisablePruneOption.Instance
     }.Concat(ICommandSpec.CommonOptions);
 
   private enum Mode {
@@ -135,6 +136,18 @@ internal class TimeLimit : NaturalNumberOption {
     $"{TestGenerationOptions.DefaultTimeLimit} is the default. Maximum number of seconds allowed to generate a test.";
   public override string PostProcess(DafnyOptions options) {
     options.TimeLimit = Get(options);
+    return null!;
+  }
+}
+
+internal class DisablePruneOption : BooleanOption {
+
+  public static readonly DisablePruneOption Instance = new();
+  public override object DefaultValue => false;
+  public override string LongName => "no-prune";
+  public override string Description => "Disable axiom pruning that Dafny uses to speed up verification.";
+  public override string PostProcess(DafnyOptions options) {
+    options.TestGenOptions.DisablePrune = Get(options);
     return null!;
   }
 }

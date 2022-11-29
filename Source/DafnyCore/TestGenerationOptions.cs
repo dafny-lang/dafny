@@ -15,6 +15,7 @@ namespace Microsoft.Dafny {
     public bool Verbose = false;
     [CanBeNull] public string PrintBpl = null;
     [CanBeNull] public string PrintStats = null;
+    public bool DisablePrune = false;
     public static readonly uint DefaultTimeLimit = 10;
 
     public bool ParseOption(string name, Bpl.CommandLineParseState ps) {
@@ -67,6 +68,10 @@ namespace Microsoft.Dafny {
         case "generateTestVerbose":
           Verbose = true;
           return true;
+
+        case "generateTestNoPrune":
+          DisablePrune = true;
+          return true;
       }
 
       return false;
@@ -94,7 +99,9 @@ namespace Microsoft.Dafny {
 /generateTestPrintBpl:<fileName>
     Print the Boogie code used during test generation.
 /generateTestVerbose
-    Print various debugging info as comments for the generated tests.";
+    Print various debugging info as comments for the generated tests.
+/generateTestNoPrune
+    Disable axiom pruning that Dafny uses to speed up verification.";
 
   }
 }
