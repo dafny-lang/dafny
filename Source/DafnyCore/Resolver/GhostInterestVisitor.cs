@@ -5,11 +5,11 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
-class GhostInterest_Visitor {
+class GhostInterestVisitor {
   readonly ICodeContext codeContext;
   readonly Resolver resolver;
   private readonly bool inConstructorInitializationPhase;
-  public GhostInterest_Visitor(ICodeContext codeContext, Resolver resolver, bool inConstructorInitializationPhase) {
+  public GhostInterestVisitor(ICodeContext codeContext, Resolver resolver, bool inConstructorInitializationPhase) {
     Contract.Requires(codeContext != null);
     Contract.Requires(resolver != null);
     this.codeContext = codeContext;
@@ -246,7 +246,7 @@ class GhostInterest_Visitor {
       var s = (BlockStmt)stmt;
       s.IsGhost = mustBeErasable;  // set .IsGhost before descending into substatements (since substatements may do a 'break' out of this block)
       if (s is DividedBlockStmt ds) {
-        var giv = new GhostInterest_Visitor(this.codeContext, this.resolver, true);
+        var giv = new GhostInterestVisitor(this.codeContext, this.resolver, true);
         ds.BodyInit.Iter(ss => giv.Visit(ss, mustBeErasable, proofContext));
         ds.BodyProper.Iter(ss => Visit(ss, mustBeErasable, proofContext));
       } else {

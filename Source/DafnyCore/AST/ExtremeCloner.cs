@@ -42,7 +42,6 @@ abstract class ExtremeCloner : Cloner {
     foreach (var arg in e.Bindings.ArgumentBindings) {
       args.Add(CloneActualBinding(arg));
     }
-
     var apply = new ApplySuffix(Tok(e.tok), e.AtTok == null ? null : Tok(e.AtTok), lhs, args, Tok(e.CloseParen));
     reporter.Info(MessageSource.Cloner, e.tok, name + suffix);
     return apply;
@@ -54,7 +53,6 @@ abstract class ExtremeCloner : Cloner {
     if (CloneResolvedFields) {
       throw new NotImplementedException();
     }
-
     var receiver = CloneExpr(e.Receiver);
     var args = new List<ActualBinding>();
     args.Add(new ActualBinding(null, k));

@@ -16,7 +16,6 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
   }
 
   public override IEnumerable<INode> Children => Lhs.Concat(new INode[] { MethodSelect, Bindings });
-
   public readonly List<Expression> Lhs;
   public readonly MemberSelectExpr MethodSelect;
   public readonly ActualBindings Bindings;
