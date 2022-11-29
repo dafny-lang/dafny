@@ -10,7 +10,7 @@ as set, you would construct the *union* of the original set and the singleton se
 containing the new element. The old set is still around, of course. This lack of a dependence
 on the heap makes value types especially useful in specification.
 
-This is not to say that you can't update things with value types in them. Variable that contain
+This is not to say that you can't update things with value types in them. Variables that contain
 a value type can be updated to have a new value of that type. It is just that any other variables or
 fields with the same set will keep their old value. Value types can contain references to
 the heap, as in the ubiquitous `set<object>`. In this case, the information in the value type
@@ -21,7 +21,7 @@ and used in real code in addition to specifications. Dafny's built in value type
 For a complete guide to various collection types and their operations,
 see the document on the [Dafny type system](http://leino.science/papers/krml243.html).
 Note, if you want to use these types in an executing program and you
-care about performance, use Dafny's `/optimize` option when compiling.
+care about performance, use Dafny's `-optimize` option when compiling.
 
 
 ## Sets
@@ -177,8 +177,7 @@ types, rather than only characters. Sequence types are written:
   seq<int>
 ```
 
-for a sequence of integers, for example. (Note a known bug
-in Dafny prevents you from creating sequences of naturals, `nat`.)
+for a sequence of integers, for example. 
 For example, this function takes a sequence as a parameter:
 
 ```dafny
@@ -232,8 +231,8 @@ Sequences can also be constructed from their elements, using *display notation*:
 ```
 
 Here we have a integer sequence variable in some imperative
-code containing the elements 1,2, and 3. Type inference has been used here to
-get the fact that the sequence is one of integers. This notation allows us to
+code containing the elements 1, 2, and 3. Type inference has been used here to
+determine that the sequence is one of integers. This notation allows us to
 construct empty sequences and singleton sequences:
 
 ```dafny
@@ -257,8 +256,8 @@ method m()
 ```
 
 By far the most common operations on sequences are getting
-the first and last elements, and getting everything but the first and last
-elements, as these are often used in recursive functions, such as `sorted2`
+the first and last elements, and getting everything but the first or last
+element, as these are often used in recursive functions, such as `sorted2`
 above. In addition to being deconstructed by being accessed or sliced, sequences
 can also be concatenated, using the plus (`+`) symbol:
 
@@ -272,9 +271,9 @@ method m()
 }
 ```
 
-The second assertion gives a relationship between
+The last assertion gives a relationship between
 concatenation and slicing. Because the slicing operation is exclusive on one
-side and inclusive on the other, the element appears in the concatenation
+side and inclusive on the other, the `i`th element appears in the concatenation
 exactly once, as it should. Note that the concatenation operation is
 associative:
 
@@ -360,7 +359,7 @@ method m()
 }
 ```
 
-To get just part of the array, the bounds can be given just like in a regular
+To extract just part of the array, the bounds can be given just like in a regular
 slicing operation:
 
 ```dafny
@@ -513,7 +512,7 @@ method test() {
 }
 ```
 
-is a map which take the numbers 0-9 to their doubles. This is also how you can remove a key from a map. For example, this expression
+is a map which takes the numbers 0-9 to their doubles. This is also how you can remove a key from a map. For example, this expression
 removes the key 3 from an `int` to `int` map `m`:
 
 ```dafny
