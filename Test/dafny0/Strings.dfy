@@ -40,11 +40,36 @@ method Main()
   print "Escape X: ", x, "\n";
   print "Escape Y: ", y, "\n";
   print "Escape Z: ", z, "\n";
-  // Not printing zz as per the comment above
+  // TODO: Won't work until https://github.com/dafny-lang/dafny/issues/2999 is addressed
+  // print "Escape ZZ: ", zz, "\n";
   var c, d := CharEscapes();
   print "Here is the end" + [c, d] + [' ', ' ', ' '] + [[d]][0] + "   ", d, "\n";
- 
-  // Testing invalid UTF-16 content that Dafny allows (at least until --unicode-char lands)
+
+  // Testing non-ASCII characters directly in string literals.
+  // Code points outside the BMP are still not supported.
+  // See https://github.com/dafny-lang/dafny/issues/818.
+  
+  var coffeeInvitation :=  "Let's go to the café";
+  assert |coffeeInvitation| == 20;
+  expect |coffeeInvitation| == 20;
+  assert coffeeInvitation[19] == 'é';
+  expect coffeeInvitation[19] == 'é';
+
+  var firstNonAsciiChar := "Ā";
+  assert |firstNonAsciiChar| == 1;
+  expect |firstNonAsciiChar| == 1;
+  assert firstNonAsciiChar[0] == 'Ā';
+  expect firstNonAsciiChar[0] == 'Ā';
+
+  // Something above the surrogate range,
+  // and a verbatim string to make sure that's handled as well.
+  var highBMPChar := @"￮";
+  assert |highBMPChar| == 1;
+  expect |highBMPChar| == 1;
+  assert highBMPChar[0] == 0xFFEE as char;
+  expect highBMPChar[0] == 0xFFEE as char;
+  
+  // Testing invalid UTF-16 content that Dafny allows (when --unicode-char=false)
 
   var x?, y?, z? := WeirdStrings();
   
@@ -62,6 +87,8 @@ method Main()
   // Ensuring we're precise enough about identifying \u escapes
   print "I'm afraid you'll find escape quite impossible, \\u007", "\n";
   print "Luckily I have this nifty gadget from my good friend, \\\u0051", "\n";
+
+  AllCharsTest();
 }
 
 method GimmieAChar(s: string) returns (ch: char)
@@ -110,3 +137,18 @@ method WeirdChars() returns (c: char, d: char)
   c := '\uD800';
   d := 0xDFFF as char;
 }
+
+method AllCharsTest() {
+  var allChars := set c: char {:trigger Identity(c)} | true :: Identity(c);
+  var allUTF16CodeUnits := set cp: int {:trigger Identity(cp)} | 0 <= cp < 0x1_0000 :: Identity(cp as char);
+  assert forall c: char {:trigger Identity(c)} :: 0 <= Identity(c as int) < 0x1_0000;
+  assert forall c: char :: Identity(c) in allChars;
+  assert allChars == allUTF16CodeUnits;
+
+  // I'd love to expect allChars == allCodePoints, but that's currently
+  // an O(n^2) operation in some runtimes that don't have hashcode-based
+  // set operations, and n here is 2^16. :P
+  expect |allChars| == |allUTF16CodeUnits|;
+}
+
+function method Identity<T>(x: T): T { x }
