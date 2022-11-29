@@ -26,7 +26,7 @@ module Mod {
 
 A module body can consist of anything that you could put at the toplevel. This includes classes, datatypes, types, methods, functions, etc.
 
-``` {.edit}
+```dafny
 module Mod {
   class C {
     var f: int;
@@ -41,7 +41,7 @@ module Mod {
 
 You can also put a module inside another, in a nested fashion:
 
-``` {.edit}
+```dafny
 module Mod {
   module Helpers {
     class C {
@@ -55,7 +55,7 @@ module Mod {
 Then you can refer the the members of the `Helpers` module within the `Mod`
 module by prefixing them with "`Helpers.`". For example:
 
-``` {.editonly}
+```dafny
 module Mod {
   module Helpers {
     class C {
@@ -85,7 +85,7 @@ module Mod {
 Methods and functions defined at the module level are available like classes, with just the module
 name prefixing them. They are also available in the methods and functions of the classes in the same module.
 
-``` {.edit}
+```dafny
 module Mod {
   module Helpers {
     function method addOne(n: nat): nat {
@@ -103,7 +103,7 @@ By default, definitions of functions (and predicates) are exposed outside of
 the module they are defined in. This can be controlled more precisely with
 export sets, as we will see in the following section. So adding
 
-``` {.editonly}
+```dafny
 module Mod {
   module Helpers {
     function method addOne(n: nat): nat {
@@ -134,7 +134,7 @@ The simplest kind is the *concrete import*, and has the form `import A = B`. Thi
 module containing the `import` declaration; it does not create a global alias. For example, if `Helpers` was
 defined outside of `Mod`, then we could import it:
 
-``` {.editonly}
+```dafny
 module Helpers {
   function method addOne(n: nat): nat
   {
@@ -192,7 +192,7 @@ In this example we declare 3 export sets, the `Spec` set grants access to the `a
 
 We can now choose any of these export sets when importing `Helpers` and get different views of it.
 
-``` {.editonly}
+```dafny
 module Helpers {
   export Spec provides addOne, addOne_result
   export Body reveals addOne
@@ -254,7 +254,7 @@ module Mod {
 
 Once an `export` has been imported that `reveals` a previously opaque type, all existing uses of it are known to be the inner type.
 
-``` {.editonly}
+```dafny
 module Helpers {
   export provides f, T
   export Body reveals f, T
@@ -323,7 +323,7 @@ module Helpers {
 
 Since we may define modules which contain both `import` and `export` declarations, we may need to export declarations from foreign modules in order to create a consistent `export` set. Declarations from foreign modules cannot be included in an `export` directly, however the `import` that provided them can.
 
-``` {.editonly}
+```dafny
 module Helpers {
   export provides f, T
   type T = int
@@ -343,7 +343,7 @@ module Mod {
 
 When importing `Mod` we now also gain qualified access to what is provided in its `import A`. We may also choose to directly import these, to give them a shorter name.
 
-``` {.editonly}
+```dafny
 module Helpers {
   export provides f, T
   type T = int
@@ -375,7 +375,7 @@ In this case, you can import the module as "`opened`", which causes all of its m
 `opened` keyword must immediately follow `import`, if it is present. For
 example, we could write the previous `addOne` example as:
 
-``` {.editonly}
+```dafny
 module Helpers {
   function method addOne(n: nat): nat
   {
@@ -404,7 +404,7 @@ definitions. This means if you define a local function called `addOne`, the func
 will no longer be available under that name. When modules are opened, the original name binding is still
 present however, so you can always use the name that was bound to get to anything that is hidden.
 
-``` {.editonly}
+```dafny
 module Helpers {
   function method addOne(n: nat): nat
   {
@@ -452,7 +452,7 @@ In that case, you can use an *abstract* module import. In Dafny, this is written
 `B` may have abstract type definitions, classes with bodyless methods, or otherwise be unsuitable to use directly. Because of the way refinement
 is defined, any refinement of `B` can be used safely. For example, if we start with:
 
-``` {.edit}
+```dafny
 abstract module Interface {
   function method addSome(n: nat): nat
     ensures addSome(n) > n
@@ -468,7 +468,7 @@ abstract module Mod {
 then we can be more precise if we know that `addSome` actually adds exactly one. The following module has this behavior. Further, the postcondition is stronger,
 so this is actually a refinement of the `Interface` module.
 
-``` {.edit}
+```dafny
 module Implementation refines Interface {
   function method addSome(n: nat): nat
     ensures addSome(n) == n + 1
@@ -480,7 +480,7 @@ module Implementation refines Interface {
 
 We can then substitute `Implementation` for `A` in a new module, by declaring a refinement of `Mod` which defines `A` to be `Implementation`.
 
-``` {.editonly}
+```dafny
 abstract module Interface {
   function method addSome(n: nat): nat
     ensures addSome(n) > n
@@ -518,14 +518,14 @@ When you refine an abstract import into a concrete one, the concrete module must
   such that each only refers to things defined <strong>before</strong> it in the source text. That doesn't mean the modules have to be given in that order. Dafny will figure out that order for you, assuming
   you haven't made any circular references. For example, this is pretty clearly meaningless:
 
-``` {.edit}
+```dafny
 import A = B
 import B = A
 ```
 
 You can have import statements at the toplevel, and you can import modules defined at the same level:
 
-``` {.editonly}
+```dafny
 import A = B
 method m() {
   A.whatever();
@@ -549,7 +549,7 @@ then Dafny will give an error, complaining about a cyclic dependency.
 Note that when rearranging modules and imports, they have to be kept in the same containing module, which disallows some pathological module structures. Also, the
 imports and submodules are always considered to be first, even at the toplevel. This means that the following is not well formed:
 
-``` {.edit}
+```dafny
 method doIt() { }
 module M {
   method m() {

@@ -23,7 +23,7 @@ natural lower bound, zero, and it is usually quite easy to prove that they
 decrease. Since many loops iterate through indices, these kinds of termination
 proofs are very common. For example, we may have the following loop:
 
-``` {.editonly}
+```dafny
 method m(n: nat)
 {
   var i := 0;
@@ -33,15 +33,6 @@ method m(n: nat)
     // do something interesting
      i := i + 1;
   }
-}
-```
-
-```dafny
-while i < n
-  invariant 0 <= i <= n
-{
-  // do something interesting
-  i := i + 1;
 }
 ```
 
@@ -67,7 +58,7 @@ verify. Dafny is actually a little less strict then requiring the termination
 measure to be bounded by zero. Really what it requires is that the loop does
 not execute again when the termination measure is negative. So we could write:
 
-``` {.editonly}
+```dafny
 method m()
 {
   var i, n := 0, 11;
@@ -77,16 +68,6 @@ method m()
     // do something interesting
     i := i + 5;
   }
-}
-```
-
-```dafny
-var i, n := 0, 11;
-while i < n
-  decreases n - i
-{
-  // do something interesting
-  i := i + 5;
 }
 ```
 
@@ -102,7 +83,7 @@ recursion. For each function/method that is possibly recursive, it requires
 either and explicit or implicit decreases annotation on the function or method.
 Most recursive functions/methods are self-recursive:
 
-``` {.edit}
+```dafny
 function fac(n: nat): nat
 {
   if n == 0 then 1 else n * fac(n-1)
@@ -124,7 +105,7 @@ Sometimes it is beneficial to have loops which may not
 terminate, or where a proof of termination is unknown. For example, consider
 the following method:
 
-``` {.edit}
+```dafny
 method hail(N: nat)
   decreases *
 {
@@ -158,7 +139,7 @@ want details.) The final termination measure is a tuple of the other kinds of
 measures. For example, the following implementation of the Ackermann function
 uses a pair of integers to prove termination:
 
-``` {.edit}
+```dafny
 function Ack(m: nat, n: nat): nat
   decreases m, n
 {
@@ -194,7 +175,7 @@ Termination applies not just to single functions/methods,
 but also to multiple mutually recursive functions/methods. For example,
 consider this pair of recursively defined parity predicates:
 
-``` {.edit}
+```dafny
 predicate even(n: nat)
   ensures even(n) <==> n % 2 == 0
 {
