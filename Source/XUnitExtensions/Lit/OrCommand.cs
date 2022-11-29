@@ -12,11 +12,13 @@ namespace XUnitExtensions.Lit {
     }
 
     public (int, string, string) Execute(ITestOutputHelper? outputHelper, TextReader? inputReader, TextWriter? outputWriter, TextWriter? errorWriter) {
-      var (exitCode, output, error) = lhs.Execute(outputHelper, inputReader, outputWriter, errorWriter);
-      if (exitCode == 0) {
-        return (exitCode, output, error);
+      var (leftExitCode, leftOutput, leftError) = lhs.Execute(outputHelper, inputReader, outputWriter, errorWriter);
+      if (leftExitCode == 0) {
+        return (leftExitCode, leftOutput, leftError);
       }
-      return rhs.Execute(outputHelper, inputReader, outputWriter, errorWriter);
+
+      var (rightExitCode, rightOutput, rightError) = rhs.Execute(outputHelper, inputReader, outputWriter, errorWriter);
+      return (rightExitCode, leftOutput + rightOutput, leftError + rightError);
     }
 
     public override string ToString() {

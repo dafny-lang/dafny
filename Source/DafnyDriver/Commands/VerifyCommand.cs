@@ -1,15 +1,19 @@
 using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
+using System.Linq;
 
 namespace Microsoft.Dafny;
 
 class VerifyCommand : ICommandSpec {
-  public IEnumerable<IOptionSpec> Options => CommandRegistry.CommonOptions;
+  public IEnumerable<IOptionSpec> Options => new IOptionSpec[] {
+    BoogieFilterOption.Instance,
+  }.Concat(ICommandSpec.VerificationOptions.Except(new[] { NoVerifyOption.Instance })).
+    Concat(ICommandSpec.CommonOptions);
 
   public Command Create() {
     var result = new Command("verify", "Verify the program.");
-    result.AddArgument(CommandRegistry.FilesArgument);
+    result.AddArgument(ICommandSpec.FilesArgument);
     return result;
   }
 
