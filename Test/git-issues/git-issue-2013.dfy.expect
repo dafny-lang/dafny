@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 11 verified, 0 errors
+Dafny program verifier finished with 12 verified, 0 errors
 
 Dafny program verifier did not attempt verification
 16
@@ -11,6 +11,7 @@ Result.Success(8) Result.Failure(_module.MyClassException)
 MoreTests_Compile.Dt.Make(100) MoreTests_Compile.Dt.Make(100) MoreTests_Compile.Dt.Make(100)
 MoreTests_Compile.DtCovariant.MakeCovariant(MoreTests_Compile.C) MoreTests_Compile.DtCovariant.MakeCovariant(MoreTests_Compile.C) MoreTests_Compile.DtCovariant.MakeCovariant(MoreTests_Compile.C)
 Conveyance_Compile.NonVariantResult.NVSuccess(Conveyance_Compile.Car) Conveyance_Compile.CovariantResult.CVSuccess(Conveyance_Compile.Car)
+Regression_mM_Compile.Stream.Next
 
 Dafny program verifier did not attempt verification
 16
@@ -22,6 +23,7 @@ Result.Success(8) Result.Failure(_module.MyClassException)
 MoreTests_Compile.Dt.Make(100) MoreTests_Compile.Dt.Make(100) MoreTests_Compile.Dt.Make(100)
 MoreTests_Compile.DtCovariant.MakeCovariant(MoreTests_Compile.C) MoreTests_Compile.DtCovariant.MakeCovariant(MoreTests_Compile.C) MoreTests_Compile.DtCovariant.MakeCovariant(MoreTests_Compile.C)
 Conveyance_Compile.NonVariantResult.NVSuccess(Conveyance_Compile.Car) Conveyance_Compile.CovariantResult.CVSuccess(Conveyance_Compile.Car)
+Regression_mM_Compile.Stream.Next
 
 Dafny program verifier did not attempt verification
 16
@@ -33,6 +35,7 @@ Result.Success(8) Result.Failure(_module.MyClassException)
 MoreTests_Compile.Dt.Make(100) MoreTests_Compile.Dt.Make(100) MoreTests_Compile.Dt.Make(100)
 MoreTests_Compile.DtCovariant.MakeCovariant(MoreTests_Compile.C) MoreTests_Compile.DtCovariant.MakeCovariant(MoreTests_Compile.C) MoreTests_Compile.DtCovariant.MakeCovariant(MoreTests_Compile.C)
 Conveyance_Compile.NonVariantResult.NVSuccess(Conveyance_Compile.Car) Conveyance_Compile.CovariantResult.CVSuccess(Conveyance_Compile.Car)
+Regression_mM_Compile.Stream.Next
 
 Dafny program verifier did not attempt verification
 16
@@ -44,6 +47,7 @@ Result.Success(8) Result.Failure(_module.MyClassException)
 MoreTests_Compile.Dt.Make(100) MoreTests_Compile.Dt.Make(100) MoreTests_Compile.Dt.Make(100)
 MoreTests_Compile.DtCovariant.MakeCovariant(MoreTests_Compile.C) MoreTests_Compile.DtCovariant.MakeCovariant(MoreTests_Compile.C) MoreTests_Compile.DtCovariant.MakeCovariant(MoreTests_Compile.C)
 Conveyance_Compile.NonVariantResult.NVSuccess(Conveyance_Compile.Car) Conveyance_Compile.CovariantResult.CVSuccess(Conveyance_Compile.Car)
+Regression_mM_Compile.Stream.Next
 
 Dafny program verifier did not attempt verification
 16
@@ -55,3 +59,4 @@ Result.Success(8) Result.Failure(_module.MyClassException)
 MoreTests_Compile.Dt.Make(100) MoreTests_Compile.Dt.Make(100) MoreTests_Compile.Dt.Make(100)
 MoreTests_Compile.DtCovariant.MakeCovariant(MoreTests_Compile.C) MoreTests_Compile.DtCovariant.MakeCovariant(MoreTests_Compile.C) MoreTests_Compile.DtCovariant.MakeCovariant(MoreTests_Compile.C)
 Conveyance_Compile.NonVariantResult.NVSuccess(Conveyance_Compile.Car) Conveyance_Compile.CovariantResult.CVSuccess(Conveyance_Compile.Car)
+Regression_mM_Compile.Stream.Next

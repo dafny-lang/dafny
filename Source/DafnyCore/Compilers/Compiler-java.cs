@@ -1965,7 +1965,7 @@ namespace Microsoft.Dafny.Compilers {
         wr.WriteLine();
         EmitSuppression(wr); //TODO: Fix implementations so they do not need this suppression
         var w = wr.NewNamedBlock($"public class {dt.CompileName}__Lazy{typeParams} extends {IdName(dt)}{typeParams}");
-        w.WriteLine($"interface Computer {{ {dt.CompileName} run(); }}");
+        w.WriteLine($"public interface Computer {{ {dt.CompileName} run(); }}");
         w.WriteLine("Computer c;");
         w.WriteLine($"{dt.CompileName}{typeParams} d;");
         w.WriteLine($"public {dt.CompileName}__Lazy(Computer c) {{ this.c = c; }}");

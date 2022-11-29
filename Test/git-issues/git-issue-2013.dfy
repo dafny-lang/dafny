@@ -13,6 +13,7 @@ method Main() {
   TestException();
   MoreTests.Test();
   Conveyance.Test();
+  Regression.Test();
 }
 
 // ----- reference types -----
@@ -193,5 +194,26 @@ module Conveyance {
     var cvVehicleSuccess: CovariantResult<Vehicle, Error> := cvCarSuccess;
 
     print nvCarSuccess, " ", cvCarSuccess, "\n"; // NonVariantResult.NVSuccess(_module.Car) CovariantResult.CVSuccess(_module.Car)
+  }
+}
+
+// ----- Regression test -----
+
+module Regression {
+  module M {
+    // A previous bug was that the following declaration was not exported correctly (in several compilers).
+    codatatype Stream<T> = Next(shead: T, stail: Stream)
+  }
+
+  function method CoUp(n: int, b: bool): M.Stream<int>
+  {
+    if b then
+      CoUp(n, false)  // recursive, not co-recursive, call
+    else
+      M.Next(n, CoUp(n+1, true))  // CoUp is co-recursive call
+  }
+
+  method Test(){
+    print CoUp(0, false), "\n";
   }
 }
