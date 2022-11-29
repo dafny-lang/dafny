@@ -2733,24 +2733,24 @@ namespace Microsoft.Dafny {
         if (parensNeeded) { wr.Write(")"); }
       } else if (expr is NestedMatchExpr) {
         var e = (NestedMatchExpr)expr;
-        // if (e.ResolvedExpression != null) {
-        //   PrintExpr(e.ResolvedExpression, contextBindingStrength, fragileContext, isRightmost, isFollowedBySemicolon, indent);
-        // } else {
-        var parensNeeded = !isRightmost && !e.UsesOptionalBraces;
-        if (parensNeeded) { wr.Write("("); }
-        wr.Write("match ");
-        PrintExpression(e.Source, isRightmost && e.Cases.Count == 0, !parensNeeded && isFollowedBySemicolon);
-        if (e.UsesOptionalBraces) { wr.Write(" {"); }
-        int i = 0;
-        foreach (var mc in e.Cases) {
-          bool isLastCase = i == e.Cases.Count - 1;
-          wr.Write(" case {0}", mc.Pat.ToString());
-          wr.Write(" => ");
-          PrintExpression(mc.Body, isRightmost && isLastCase, !parensNeeded && isFollowedBySemicolon);
-          i++;
+        if (e.ResolvedExpression != null) {
+          PrintExpr(e.ResolvedExpression, contextBindingStrength, fragileContext, isRightmost, isFollowedBySemicolon, indent);
+        } else {
+          var parensNeeded = !isRightmost && !e.UsesOptionalBraces;
+          if (parensNeeded) { wr.Write("("); }
+          wr.Write("match ");
+          PrintExpression(e.Source, isRightmost && e.Cases.Count == 0, !parensNeeded && isFollowedBySemicolon);
+          if (e.UsesOptionalBraces) { wr.Write(" {"); }
+          int i = 0;
+          foreach (var mc in e.Cases) {
+            bool isLastCase = i == e.Cases.Count - 1;
+            wr.Write(" case {0}", mc.Pat.ToString());
+            wr.Write(" => ");
+            PrintExpression(mc.Body, isRightmost && isLastCase, !parensNeeded && isFollowedBySemicolon);
+            i++;
+          }
+          if (e.UsesOptionalBraces) { wr.Write(" }"); } else if (parensNeeded) { wr.Write(")"); }
         }
-        if (e.UsesOptionalBraces) { wr.Write(" }"); } else if (parensNeeded) { wr.Write(")"); }
-        // }
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
         if (DafnyOptions.O.DafnyPrintResolvedFile == null && e.OrigUnresolved != null) {

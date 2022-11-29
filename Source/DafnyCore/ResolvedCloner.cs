@@ -1,7 +1,7 @@
 namespace Microsoft.Dafny;
 
 
-class ResolvedCloner : Cloner {
+class ResolvedCloner : Cloner { // TODO delete.
 
   public override Type CloneType(Type t) {
     Type new_t = base.CloneType(t);

@@ -676,13 +676,10 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt> {
   public readonly bool CanMutateKnownState;
   public Expression OriginalInitialLhs = null;
 
-  [FilledInDuringResolution] public readonly List<Statement> ResolvedStatements = new List<Statement>(); // TODO initialise with null
-  public override IEnumerable<Statement> SubStatements {
-    get { return ResolvedStatements; }
-  }
+  [FilledInDuringResolution] public List<Statement> ResolvedStatements = null;
+  public override IEnumerable<Statement> SubStatements => ResolvedStatements;
 
-  // Both resolved and unresolved are required. Duplicate usages will be filtered out.
-  public override IEnumerable<INode> Children => ResolvedStatements; //Lhss.Concat<INode>(Rhss).Concat(ResolvedStatements);
+  public override IEnumerable<INode> Children => ResolvedStatements ?? Lhss.Concat<INode>(Rhss);
 
   [ContractInvariantMethod]
   void ObjectInvariant() {

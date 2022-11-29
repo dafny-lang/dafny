@@ -749,7 +749,11 @@ namespace Microsoft.Dafny {
         } else {
           rr = new UpdateStmt(s.Tok, s.EndTok, s.Lhss.ConvertAll(Substitute), s.Rhss.ConvertAll(SubstRHS), s.CanMutateKnownState);
         }
-        rr.ResolvedStatements.AddRange(s.ResolvedStatements.ConvertAll(SubstStmt));
+
+        if (s.ResolvedStatements != null) {
+          rr.ResolvedStatements = new();
+          rr.ResolvedStatements.AddRange(s.ResolvedStatements.ConvertAll(SubstStmt));
+        }
         r = rr;
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;

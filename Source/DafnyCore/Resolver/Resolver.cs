@@ -11460,6 +11460,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(resolutionContext != null);
       IToken firstEffectfulRhs = null;
       MethodCallInformation methodCallInfo = null;
+      update.ResolvedStatements = new();
       var j = 0;
       foreach (var rhs in update.Rhss) {
         bool isEffectful;
