@@ -537,8 +537,7 @@ namespace DafnyTestGeneration {
                 actualBindings);
               newValue.Type = Utils.UseFullName(datatypeValue.Type);
               newValue.InferredTypeArgs = datatypeValue.InferredTypeArgs.ConvertAll(typ => Utils.UseFullName(typ));
-              newValue.Bindings.arguments =
-                actualBindings.ConvertAll(binding => binding.Actual);
+              newValue.Bindings.AcceptArgumentExpressionsAsExactParameterList();
               return newValue;
             }
             isValidExpression = false;
