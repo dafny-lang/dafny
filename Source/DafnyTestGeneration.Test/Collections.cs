@@ -16,7 +16,7 @@ namespace DafnyTestGeneration.Test {
     [TestMethod]
     public async Task StringLength() {
       var source = @"
-class C {
+module C {
   static method compareStringLengthToOne(s: string) returns (ret: int) {
       if (|s| == 1) {
           return 0;
@@ -37,22 +37,23 @@ class C {
       Assert.IsTrue(methods.All(m =>
         m.DafnyInfo.IsStatic("C.compareStringLengthToOne")));
       Assert.IsTrue(methods.All(m => m.ArgValues.Count == 1));
-      Assert.IsTrue(methods.All(m => m.ObjectsToMock.Count == 0));
-      Assert.IsTrue(methods.Exists(m => m.ArgValues[0] == "[]"));
+      Assert.IsTrue(methods.All(m => m.ValueCreation.Count == 1));
+      Assert.IsTrue(methods.Exists(m => m.ValueCreation[0].value == "\"\""));
       Assert.IsTrue(methods.Exists(m =>
-        Regex.IsMatch(m.ArgValues[0], "\\['.'\\]")));
+        Regex.IsMatch(m.ValueCreation[0].value, "\".\"")));
       Assert.IsTrue(methods.Exists(m =>
-        Regex.IsMatch(m.ArgValues[0], "\\['.'(, '.')+\\]")));
+        Regex.IsMatch(m.ValueCreation[0].value, "\"..+\"")));
     }
 
     [TestMethod]
     public async Task SeqOfObjects() {
       var source = @"
-class CharObject {
-   var value:char;
-}
+module SimpleTest {
 
-class SimpleTest {
+  class CharObject {
+     var value:char;
+  }
+
   static method compareStringToSeqOfChars(s: string, c:seq<CharObject>)
       returns (ret: bool)
   {
@@ -84,19 +85,20 @@ class SimpleTest {
           "SimpleTest.compareStringToSeqOfChars")));
       Assert.IsTrue(methods.All(m => m.ArgValues.Count == 2));
       Assert.IsTrue(methods.All(m =>
-        Regex.IsMatch(m.ArgValues[0], "\\['.'(, '.')*\\]") ||
-        m.ArgValues[0] == "[]"));
+        Regex.IsMatch(m.ValueCreation[0].value, "\".*\"")));
       Assert.IsTrue(methods.All(m =>
-        Regex.IsMatch(m.ArgValues[1],
+        Regex.IsMatch(m.ValueCreation.Last().value,
           "\\[(v[0-9]+|null)(, (v[0-9]+|null))*\\]") ||
-        m.ArgValues[1] == "[]"));
+        m.ValueCreation[1].value == "[]"));
 
       Assert.IsTrue(methods.Exists(m =>
-        m.ArgValues[0].Split(",").Length != m.ArgValues[1].Split(",").Length));
+        m.ValueCreation[0].value.Length - 2 !=
+        m.ValueCreation.Last().value.Split(",").Length));
 
       Assert.IsTrue(methods.Exists(m =>
-        m.ArgValues[0].Split(",").Length < 2 &&
-        m.ArgValues[0].Split(",").Length == m.ArgValues[1].Split(",").Length));
+        m.ValueCreation[0].value.Length < 4 &&
+        m.ValueCreation[0].value.Length - 2 ==
+        m.ValueCreation.Last().value.Split(",").Length));
     }
 
   }

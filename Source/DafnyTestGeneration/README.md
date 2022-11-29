@@ -35,12 +35,13 @@ We currently provide no oracle against which to compare the result. In the futur
 
 ## How to Generate Tests?
 
-- Test generation currently works with all basic types, user-defined classes, sequences, sets, and maps. It does not work with datatypes, arrays, and multisets. It is also not possible to generate tests for constructors. Please avoid top-level methods and wrap them inside classes or modules.
-- To generate block- or path-coverage tests use the `/generateTestMode:Block` or `/generateTestMode:Path` arguments respectively. Test generation relies on Dafny to generate Boogie implementations and Dafny does not generate a Boogie implementation when there are no proof obligations, so no tests will be generated in the latter scenario.
+- Test generation currently works with all basic types, user-defined classes, sequences, sets, and maps. Not counting several edge cases, it also works with datatypes. It does not currently work on arrays, and multisets. It is also not possible to generate tests for constructors. Please avoid top-level methods and wrap them inside classes or modules.
+- To generate block- or path-coverage tests use the `/generateTestMode:Block` or `/generateTestMode:Path` arguments respectively. Test generation relies on Dafny to generate Boogie implementations and Dafny does not generate a Boogie implementation when there are no proof obligations, so no tests will be generated in the latter scenario (so you might want to use /definiteAssignment:3).
 - If you wish to test a particular method rather than all the methods in a file, you can specify such a method with the `/generateTestTargetMethod` command line argument and providing the fully qualified method name.
 - If you are using `/generateTestTargetMethod` and would like to inline methods that are called from the method of interest, you can do so by setting `/generateTestInlineDepth` to something larger than zero (zero is the default). The `/verifyAllModules` argument might also be relevant if the methods to be inlined are defined in included files.
 - To deal with loops, you should use `/loopUnroll` and also `/generateTestSeqLengthLimit`. The latter argument adds an axiom that limits the length of any sequence to be no greater than some specified value. This restriction can be used to ensure that the number of loop unrolls is sufficient with respect to the length of any input sequence but it can also cause the program to miss certain corner cases.
 - The`/warnDeadCode` argument will make Dafny identify potential dead code in the specified file. Note that false negatives are possible if `/loopUnroll` is not used. False positives are also possible for a variety of reasons, such as `/loopUnroll` being assigned not high enough value.
+- You can use `/generateTestVerbose` and `/generateTestPrintBpl:FILENAME.bpl` for debugging purposes.
 
 ## How to Run Tests?
 
@@ -94,13 +95,28 @@ Saving these tests in a file `test.dfy` and compiling the code to C# using `dafn
 
 You can then run `dotnet test YourCSProjectFile.csproj` to execute the tests.
 
-Note that your `.csproj` file must include `xunit` and `Moq` libraries: 
+Note that your `.csproj` file must include `xunit` and `Moq` libraries. You can use this template:
 
 ```
-<ItemGroup>
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.11.0" />
     <PackageReference Include="xunit" Version="2.4.1" />
-    <PackageReference Include="Moq" Version="4.16.1" />
-</ItemGroup>
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.3">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Moq" Version="4.16.1" />	   
+  </ItemGroup>		  
+</Project>
+
 ```
 
 ## Dead Code Identification Example

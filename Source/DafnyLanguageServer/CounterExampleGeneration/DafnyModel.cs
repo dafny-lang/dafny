@@ -814,6 +814,7 @@ namespace DafnyServer.CounterexampleGeneration {
 
       var mapDomain = fMapDomain.OptEval(var.Element);
       var mapElements = fMapElements.OptEval(var.Element);
+      var mapBuildStartPoint = var.Element;
       var mapBuild = fMapBuild.AppWithResult(var.Element);
       while (mapBuild != null) {
         var pairId = var.Children.Count.ToString();
@@ -824,7 +825,7 @@ namespace DafnyServer.CounterexampleGeneration {
         ((MapVariable)var).AddMapping(key, value);
         mapDomain = fMapDomain.OptEval(mapBuild.Args[0]);
         mapElements = fMapElements.OptEval(mapBuild.Args[0]);
-        if (fMapBuild.AppWithResult(mapBuild.Args[0]) == mapBuild) {
+        if (mapBuild.Args[0] == mapBuildStartPoint) {
           break; // can happen when constructing maps with single application
         }
         mapBuild = fMapBuild.AppWithResult(mapBuild.Args[0]);
