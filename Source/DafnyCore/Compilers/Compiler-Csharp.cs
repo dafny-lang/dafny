@@ -1743,7 +1743,7 @@ namespace Microsoft.Dafny.Compilers {
         if (isPublic) {
           if (isConst) {
             cw.InstanceMemberWriter.Write(
-              $"{publik}{konst} {virtuall} {typeName} {name} {{get;}}");
+              $"{publik}{konst}{virtuall} {typeName} {name} {{get;}}");
           } else {
             cw.InstanceMemberWriter.Write(
               $"{publik}{virtuall} {typeName} {name} {{get; set;}}");
