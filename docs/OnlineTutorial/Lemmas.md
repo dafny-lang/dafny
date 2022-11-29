@@ -14,12 +14,12 @@ goal in and of themselves. They allow Dafny to break the proof into two:
 prove the lemma, then use it to prove the final result; the final result
 being the correctness of the program. By splitting it in this way, you
 can prevent Dafny from trying to bite off more than it can chew. Dafny,
-and computers in general, is very good at dealing with a bunch of specific
+like computers in general, is very good at dealing with a bunch of specific
 details and covering all the cases, but it lacks the cleverness to see
 intermediate steps that make the proof process easier.
 
-By writing and using lemmas, you can point out what these steps are,
-and when to use them in a program. The are particularly important for
+By writing and using lemmas, you can point out what these steps are
+and when to use them in a program. They are particularly important for
 inductive arguments, which are some of the hardest problems for theorem
 provers.
 
@@ -71,7 +71,7 @@ use a *lemma*.
 
 ## Lemmas
 
-A `lemma` is really just a ghost method.  The desired property stated by the lemma (more
+A `lemma` is syntactially a ghost method: the desired property stated by the lemma (more
 precisely, the conclusion of the lemma) is declared as the postcondition, just like you
 would for an ordinary method.  Unlike a method, a lemma is never allowed to change the
 state.  Since a lemma is ghost, it doesn't need to be called at run time, so the compiler
@@ -398,7 +398,7 @@ the lemma must be proven directly for that case. Then each call in the stack is 
 the lemma works for the smaller case. If Dafny did not prove the chain terminated, then the chain could
 continue forever, and the assumption for each call would not be justified.
 
-Induction in general is finding a way to build your goal up
+Induction in general is finding a way to build your goal
 one step at a time. Viewed another way, it is proving your goal in terms of a smaller version. The distributive
 lemma is proven by deconstructing the concatenated sequence one element at a time until the first sequence
 is entirely gone. This case is proven as a base case, and then the whole chain of deconstructions is verified.
@@ -483,7 +483,7 @@ predicate path(p: seq<Node>, graph: set<Node>)
 {
   p[0] in graph &&
     (|p| > 1 ==> p[1] in p[0].next && // the first link is valid, if it exists
-     path(p[1..], graph)) // and the rest of the sequence is a valid
+     path(p[1..], graph)) // and the rest of the sequence is a valid path
 }
 ```
 
