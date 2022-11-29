@@ -30,10 +30,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
         DocumentUri uri,
         int version,
         VerificationTree[] verificationTrees,
-        Container<Diagnostic> diagnostics,
+        Container<Diagnostic> resolutionErrors,
         int linesCount,
         bool verificationStarted) {
-      var perLineStatus = RenderPerLineDiagnostics(uri, verificationTrees, linesCount, verificationStarted, diagnostics);
+      var perLineStatus = RenderPerLineDiagnostics(uri, verificationTrees, linesCount, verificationStarted, resolutionErrors);
       return new VerificationStatusGutter(uri, version, perLineStatus);
     }
 
@@ -143,11 +143,22 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
   /// The verification status consists of two orthogonal concepts:
   /// - StatusVerification: Nothing (initial), Error, Verified, or Inconclusive
   /// - StatusCurrent: Current (Up-to-date), Obsolete (outdated), and Verifying (as notified by the verifier)
+  ///
+  /// The difference between "Range" and "Position" is that "Range" contains two positions that include the entire tree,
+  /// whereas "Position" is a single position that uniquely determines the range, e.g. a symbol position.
+  /// That position typically serves as an placeholder to uniquely determine a method.
+  ///  
+  /// For example:
+  /// 
+  ///     method Test() {}
+  ///     ^Range.Start   ^Range.End
+  ///            ^ Position 
   /// </summary>
   /// <param name="DisplayName">A user-facing name of this node, to be displayed in an IDE explorer</param>
   /// <param name="Identifier">A unique identifier, to be used by the IDE to request re-verification</param>
   /// <param name="Filename">The name of the file this region of the document is contained in</param>
   /// <param name="Range">The range of this region of the document</param>
+  /// <param name="Position">The position that uniquely identify this range</param>
   public record VerificationTree(
      // Method, Function, Subset type, Constant, Document, Assertion...
      string Kind,
@@ -156,8 +167,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
      // Used to re-trigger the verification of some diagnostics.
      string Identifier,
      string Filename,
-     // The range of this node.
-     Range Range
+     // The start and end of this verification tree
+     Range Range,
+     // The position of the symbol name attached to this node, or Range.Start if it's anonymous
+     Position Position
   ) {
     public string PrefixedDisplayName => Kind + " " + DisplayName;
 
@@ -166,9 +179,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
     // Overriden by checking children if there are some
     public CurrentStatus StatusCurrent { get; set; } = CurrentStatus.Obsolete;
-
-    // Used to relocate a verification tree and to determine which function is currently verifying
-    public Position Position => Range.Start;
 
     /// Time and Resource diagnostics
     public bool Started { get; set; } = false;
@@ -312,7 +322,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       // Ensure that if this is an ImplementationVerificationTree, and children "painted" verified,
       // and this node is still pending
       // at least the first line should show pending.
-      if (range.Start.Line >= 0 && range.End.Line - range.Start.Line + 1 < perLineDiagnostics.Length) {
+      if (range.Start.Line >= 0 && range.End.Line < perLineDiagnostics.Length) {
         if (StatusCurrent == CurrentStatus.Verifying &&
             perLineDiagnostics.ToList().GetRange(range.Start.Line, range.End.Line - range.Start.Line + 1).All(
               line => line == LineVerificationStatus.Verified)) {
@@ -347,10 +357,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
   }
 
   public record DocumentVerificationTree(
-    string Identifier,
-    int Lines
-  ) : VerificationTree("Document", Identifier, Identifier, Identifier,
-    LinesToRange(Lines)) {
+    DocumentTextBuffer TextDocumentItem
+  ) : VerificationTree("Document", TextDocumentItem.Uri.ToString(), TextDocumentItem.Uri.ToString(), TextDocumentItem.Uri.ToString(),
+    LinesToRange(TextDocumentItem.NumberOfLines), new Position(0, 0)) {
 
     public static Range LinesToRange(int lines) {
       return new Range(new Position(0, 0),
@@ -365,8 +374,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     string Identifier,
     string Filename,
     // The range of this node.
-    Range Range
-  ) : VerificationTree(Kind, DisplayName, Identifier, Filename, Range) {
+    Range Range,
+    Position Position
+  ) : VerificationTree(Kind, DisplayName, Identifier, Filename, Range, Position) {
     // Recomputed from the children which are ImplementationVerificationTree
     public ImmutableDictionary<AssertionBatchIndex, AssertionBatchVerificationTree> AssertionBatches { get; private set; } =
       new Dictionary<AssertionBatchIndex, AssertionBatchVerificationTree>().ToImmutableDictionary();
@@ -435,7 +445,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     string Filename,
     // The range of this node.
     Range Range
-  ) : VerificationTree("Assertion Batch", DisplayName, Identifier, Filename, Range) {
+  ) : VerificationTree("Assertion Batch", DisplayName, Identifier, Filename, Range, Range.Start) {
     public int NumberOfAssertions => Children.Count;
 
     public AssertionBatchVerificationTree WithDuration(DateTime parentStartTime, int implementationNodeAssertionBatchTime) {
@@ -468,8 +478,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     string Identifier,
     string Filename,
     // The range of this node.
-    Range Range
-  ) : VerificationTree("Implementation", DisplayName, Identifier, Filename, Range) {
+    Range Range,
+    // The position as used by Boogie
+    Position Position
+  ) : VerificationTree("Implementation", DisplayName, Identifier, Filename, Range, Position) {
     // The index of ImplementationVerificationTree.AssertionBatchTimes
     // is the same as the AssertionVerificationTree.AssertionBatchIndex
     public ImmutableDictionary<int, AssertionBatchMetrics> AssertionBatchMetrics { get; private set; } =
@@ -532,7 +544,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     Position? SecondaryPosition,
     // The range of this node.
     Range Range
-  ) : VerificationTree("Assertion", DisplayName, Identifier, Filename, Range) {
+  ) : VerificationTree("Assertion", DisplayName, Identifier, Filename, Range, Range.Start) {
     public AssertionVerificationTree WithDuration(DateTime parentStartTime, int batchTime) {
       Started = true;
       Finished = true;

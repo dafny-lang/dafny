@@ -18,6 +18,73 @@ import java.util.stream.Stream;
 
 public class Helpers {
 
+    public static DafnySequence<? extends DafnySequence<? extends Character>> FromMainArguments(String[] args) {
+       @SuppressWarnings("unchecked")
+       TypeDescriptor<DafnySequence<? extends Character>> type = DafnySequence.<Character>_typeDescriptor(TypeDescriptor.CHAR);
+       dafny.Array<DafnySequence<? extends Character>> dafnyArgs = dafny.Array.newArray(type, args.length + 1);
+       dafnyArgs.set(0, DafnySequence.asString("java"));
+       for (int i = 0; i < args.length; i++) dafnyArgs.set(i + 1, DafnySequence.asString(args[i]));
+       return DafnySequence.fromArray(type, dafnyArgs);
+    }
+    
+    public static DafnySequence<? extends DafnySequence<? extends CodePoint>> UnicodeFromMainArguments(String[] args) {
+       @SuppressWarnings("unchecked")
+       TypeDescriptor<DafnySequence<? extends CodePoint>> type = DafnySequence.<CodePoint>_typeDescriptor(TypeDescriptor.UNICODE_CHAR);
+       dafny.Array<DafnySequence<? extends CodePoint>> dafnyArgs = dafny.Array.newArray(type, args.length + 1);
+       dafnyArgs.set(0, DafnySequence.asUnicodeString("java"));
+       for (int i = 0; i < args.length; i++) dafnyArgs.set(i + 1, DafnySequence.asUnicodeString(args[i]));
+       return DafnySequence.fromArray(type, dafnyArgs);
+    }
+
+    public static String ToStringLiteral(DafnySequence<? extends CodePoint> dafnyString) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("\"");
+        for (CodePoint codePoint : dafnyString) {
+            AppendCodePointWithEscaping(builder, codePoint.value());
+        }
+        builder.append("\"");
+        return builder.toString();
+    }
+
+    // Note this is a Dafny character literal, not necessarily a valid Java character literal
+    public static String ToCharLiteral(int codePoint) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("\'");
+        AppendCodePointWithEscaping(builder, codePoint);
+        builder.append("\'");
+        return builder.toString();
+    }
+
+    private static void AppendCodePointWithEscaping(StringBuilder builder, int codePoint) {
+        switch (codePoint) {
+            case '\n':
+                builder.append("\\n");
+                break;
+            case '\r':
+                builder.append("\\r");
+                break;
+            case '\t':
+                builder.append("\\t");
+                break;
+            case '\0':
+                builder.append("\\0");
+                break;
+            case '\'':
+                builder.append("\\'");
+                break;
+            case '\"':
+                builder.append("\\\"");
+                break;
+            case '\\':
+                builder.append("\\\\");
+                break;
+            default:    
+                builder.appendCodePoint(codePoint);
+                break;
+        }
+        
+    }
+    
     public static <T> boolean Quantifier(Iterable<T> vals, boolean frall, Predicate<T> pred) {
         for (T t : vals) {
             if (pred.test(t) != frall) {
@@ -98,7 +165,15 @@ public class Helpers {
     }
 
     public static Iterable<Character> AllChars() {
-        return () -> IntStream.range(0, 0x1000).<Character>mapToObj(i -> Character.valueOf((char)i)).iterator();
+        return () -> IntStream.range(0, 0x1_0000).<Character>mapToObj(i -> Character.valueOf((char)i)).iterator();
+    }
+
+    // Note we don't use CodePoint here because this is only used in the implementation of quantification,
+    // where we want to enumerate primitive values, and it's challenging to customize that logic
+    // to unbox CodePoints manually.
+    public static Iterable<Integer> AllUnicodeChars() {
+        return () -> IntStream.concat(IntStream.range(0, 0xD800), 
+                                      IntStream.range(0xE000, 0x11_0000)).iterator();
     }
 
     public static <G> String toString(G g) {
@@ -204,7 +279,8 @@ public class Helpers {
         try {
             runnable.run();
         } catch (DafnyHaltException e) {
-            System.err.println("[Program halted] " + e.getMessage());
+            System.out.println("[Program halted] " + e.getMessage());
+            System.exit(1);
         }
     }
 }

@@ -1,7 +1,8 @@
+Twostate-Verification.dfy(34,13): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
 Twostate-Verification.dfy(39,26): Error: target object might not be allocated
 Twostate-Verification.dfy(44,34): Error: target object might not be allocated
-Twostate-Verification.dfy(60,26): Error: target object might not be allocated
 Twostate-Verification.dfy(60,26): Error: receiver might not be allocated in the state in which its fields are accessed
+Twostate-Verification.dfy(60,26): Error: target object might not be allocated
 Twostate-Verification.dfy(62,32): Error: receiver argument might not be allocated in the state in which the function is invoked
 Twostate-Verification.dfy(62,34): Error: target object might not be allocated
 Twostate-Verification.dfy(78,15): Error: assertion might not hold

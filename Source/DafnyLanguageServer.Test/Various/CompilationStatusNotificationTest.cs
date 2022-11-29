@@ -97,10 +97,6 @@ method Abs(x: int) returns (y: int)
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await AssertProgress(documentItem, CompilationStatus.ResolutionStarted);
       await AssertProgress(documentItem, CompilationStatus.CompilationSucceeded);
-      await AssertProgress(documentItem, CompilationStatus.VerificationStarted);
-      await AssertProgress(documentItem, CompilationStatus.VerificationStarted, "0/1 Abs");
-      await AssertProgress(documentItem, CompilationStatus.VerificationStarted, "1/1 (Abs finished)");
-      await AssertProgress(documentItem, CompilationStatus.VerificationSucceeded);
     }
     private async Task AssertProgress(TextDocumentItem documentItem, CompilationStatus expectedStatus, [CanBeNull] string expectedMessage = null) {
       var lastResult = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
@@ -125,10 +121,6 @@ method Abs(x: int) returns (y: int)
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await AssertProgress(documentItem, CompilationStatus.ResolutionStarted);
       await AssertProgress(documentItem, CompilationStatus.CompilationSucceeded);
-      await AssertProgress(documentItem, CompilationStatus.VerificationStarted);
-      await AssertProgress(documentItem, CompilationStatus.VerificationStarted, "0/1 Abs");
-      await AssertProgress(documentItem, CompilationStatus.VerificationStarted, "1/1 (Abs finished)");
-      await AssertProgress(documentItem, CompilationStatus.VerificationFailed);
     }
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
@@ -137,10 +129,6 @@ method Abs(x: int) returns (y: int)
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await AssertProgress(documentItem, CompilationStatus.ResolutionStarted);
       await AssertProgress(documentItem, CompilationStatus.CompilationSucceeded);
-      await AssertProgress(documentItem, CompilationStatus.VerificationStarted);
-      await AssertProgress(documentItem, CompilationStatus.VerificationStarted, "0/1 SquareRoot2NotRational");
-      await AssertProgress(documentItem, CompilationStatus.VerificationStarted, "1/1 (SquareRoot2NotRational finished)");
-      await AssertProgress(documentItem, CompilationStatus.VerificationFailed);
     }
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
@@ -152,10 +140,6 @@ method Abs(x: int) returns (y: int)
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await AssertProgress(documentItem, CompilationStatus.ResolutionStarted);
       await AssertProgress(documentItem, CompilationStatus.CompilationSucceeded);
-      await AssertProgress(documentItem, CompilationStatus.VerificationStarted);
-      await AssertProgress(documentItem, CompilationStatus.VerificationStarted, "0/1 SquareRoot2NotRational");
-      await AssertProgress(documentItem, CompilationStatus.VerificationStarted, "1/1 (SquareRoot2NotRational finished)");
-      await AssertProgress(documentItem, CompilationStatus.VerificationFailed);
     }
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
@@ -182,34 +166,6 @@ method Abs(x: int) returns (y: int)
       await AssertProgress(documentItem1, CompilationStatus.CompilationSucceeded);
       await AssertProgress(documentItem2, CompilationStatus.ResolutionStarted);
       await AssertProgress(documentItem2, CompilationStatus.CompilationSucceeded);
-    }
-
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
-    public async Task DocumentSaveWithOnSaveVerificationSendsVerificationStatuses() {
-      var source = @"
-method Abs(x: int) returns (y: int)
-    ensures y >= 0
-{
-  return x;
-}
-".TrimStart();
-      await SetUp(new Dictionary<string, string>() {
-        { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.OnSave) }
-      });
-
-      var documentItem = CreateTestDocument(source, "test_1.dfy");
-      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
-
-      bool verificationStartedReceived = false;
-      bool verificationFailedReceived = false;
-      while (!verificationStartedReceived || !verificationFailedReceived) {
-        var notification = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
-        Assert.AreEqual(documentItem.Uri, notification.Uri);
-        Assert.AreEqual(documentItem.Version, notification.Version);
-        verificationStartedReceived = verificationStartedReceived || notification.Status == CompilationStatus.VerificationStarted;
-        verificationFailedReceived = verificationFailedReceived || notification.Status == CompilationStatus.VerificationFailed;
-      }
     }
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]

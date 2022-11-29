@@ -85,6 +85,53 @@ method CallDoIt() returns () {
 }");
     }
 
+
+    [TestMethod]
+    public async Task HoveringBoundVariablesFormalsLocalVariablesInMatchExprOrStatement() {
+      await AssertHover(@"
+datatype DT = A | B | C
+
+method M(dt: DT) {
+  match dt {
+    case C => 
+    case A | B => var x := (y => y)(1); assert x == 1;
+                      ^[```dafny\nx: int\n```]
+                            ^[```dafny\ny: int\n```]
+                                 ^[```dafny\ny: int\n```]
+  }
+}
+
+method M2(dt: DT) {
+  match dt {
+    case C => 
+    case _ => var x := (y => y)(1); assert x == 1;
+                  ^[```dafny\nx: int\n```]
+                        ^[```dafny\ny: int\n```]
+                             ^[```dafny\ny: int\n```]
+  }
+}
+
+function method F(dt: DT): int {
+  match dt {
+    case C => 0
+    case A | B => var x := (y => y)(1); assert x == 1; 0
+                      ^[```dafny\nx: int\n```]
+                            ^[```dafny\ny: int\n```]
+                                 ^[```dafny\ny: int\n```]
+  }
+}
+function method F2(dt: DT): int {
+  match dt {
+    case C => 0
+    case _ => var x := (y => y)(1); assert x == 1; 0
+                  ^[```dafny\nx: int\n```]
+                        ^[```dafny\ny: int\n```]
+                             ^[```dafny\ny: int\n```]
+  }
+}
+");
+    }
+
     [TestMethod]
     public async Task HoverReturnsBeforeVerificationIsComplete() {
       var documentItem = CreateTestDocument(NeverVerifies);
@@ -436,7 +483,14 @@ lemma dummy(e: int) {
     case _ => var xx := 1;
                    ^[```dafny\nghost xx: int\n```]
   }
-}");
+}
+method test(opt: int) {
+  match(opt)
+  case 1 =>
+    var s := 1;
+        ^[```dafny\ns: int\n```]
+}
+");
     }
   }
 }

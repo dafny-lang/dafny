@@ -1,8 +1,9 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
+// RUN: %baredafny verify %args --relax-definite-assignment "%s" > "%t"
+// RUN: %baredafny run --no-verify --target=cs %args "%s" >> "%t"
+// RUN: %baredafny run --no-verify --target=js %args  "%s" >> "%t"
+// RUN: %baredafny run --no-verify --target=go %args  "%s" >> "%t"
+// RUN: %baredafny run --no-verify --target=java %args  "%s" >> "%t"
+// RUN: %baredafny run --no-verify --target=py %args  "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method LinearSearch(a: array<int>, key: int) returns (n: nat)
@@ -71,8 +72,6 @@ method Main() {
   CharValues();
 
   TypeSynonym.Test();
-
-  PrintString();
 }
 
 type lowercase = ch | 'a' <= ch <= 'z' witness 'd'
@@ -374,17 +373,4 @@ module TypeSynonym {
     var b := new uint8[] [19, 18, 9, 8];
     BufferTest(b);
   }
-}
-
-method PrintString() {
-  print "Strings in collections:\n";
-  print "  ", ["abc", "def"], "\n";
-  print "  ", [["abc", "def"]], "\n";
-  print "  ", {"abc", "def"}, "\n";
-  print "  ", [['a', 'b', 'c'], ['d', 'e', 'f']], "\n";
-  var a : seq<seq<char>> := [[]];
-  print "  ", a, "\n";
-  var b : seq<char>;
-  print "  ", [b], "\n";
-  print "  ", [seq(5, x => 'a')], "\n";
 }

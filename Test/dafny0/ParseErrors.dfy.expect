@@ -56,15 +56,15 @@ ParseErrors.dfy(220,2): Error: a module cannot be declared 'static'
 ParseErrors.dfy(226,2): Error: a datatype or codatatype cannot be declared 'ghost'
 ParseErrors.dfy(227,2): Error: a module cannot be declared 'ghost'
 ParseErrors.dfy(234,51): Error: a 'by method' implementation is not allowed on a twostate function
-ParseErrors.dfy(234,2): Error: a function-by-method cannot be declared 'ghost' (it is 'ghost' by default)
+ParseErrors.dfy(234,2): Error: a function-by-method has a ghost function body and a non-ghost method body; a function-by-method declaration does not use the 'ghost' keyword.
 ParseErrors.dfy(235,52): Error: a 'by method' implementation is not allowed on a twostate function
 ParseErrors.dfy(236,50): Error: a 'by method' implementation is not allowed on a twostate predicate
-ParseErrors.dfy(236,2): Error: a predicate-by-method cannot be declared 'ghost' (it is 'ghost' by default)
+ParseErrors.dfy(236,2): Error: a predicate-by-method has a ghost function body and a non-ghost method body; a predicate-by-method declaration does not use the 'ghost' keyword.
 ParseErrors.dfy(237,51): Error: a 'by method' implementation is not allowed on a twostate predicate
 ParseErrors.dfy(240,47): Error: a 'by method' implementation is not allowed on an extreme predicate
-ParseErrors.dfy(240,2): Error: a predicate-by-method cannot be declared 'ghost' (it is 'ghost' by default)
+ParseErrors.dfy(240,2): Error: a predicate-by-method has a ghost function body and a non-ghost method body; a predicate-by-method declaration does not use the 'ghost' keyword.
 ParseErrors.dfy(241,50): Error: a 'by method' implementation is not allowed on an extreme predicate
-ParseErrors.dfy(241,2): Error: a predicate-by-method cannot be declared 'ghost' (it is 'ghost' by default)
+ParseErrors.dfy(241,2): Error: a predicate-by-method has a ghost function body and a non-ghost method body; a predicate-by-method declaration does not use the 'ghost' keyword.
 ParseErrors.dfy(244,55): Error: a 'by method' implementation is not allowed on a twostate function
 ParseErrors.dfy(244,2): Error: a function-by-method cannot be declared 'abstract'
 ParseErrors.dfy(245,54): Error: a 'by method' implementation is not allowed on a twostate predicate
@@ -79,4 +79,8 @@ ParseErrors.dfy(255,32): Error: formal cannot be declared 'older' in this contex
 ParseErrors.dfy(256,11): Error: formal cannot be declared 'older' in this context
 ParseErrors.dfy(257,17): Error: formal cannot be declared 'older' in this context
 ParseErrors.dfy(261,28): Error: formal cannot be declared 'older' in this context
-76 parse errors detected in ParseErrors.dfy
+ParseErrors.dfy(267,12): Error: arrow-type arguments may not be declared as 'ghost'
+ParseErrors.dfy(272,18): Error: arrow-type arguments may not be declared as 'ghost'
+ParseErrors.dfy(272,35): Error: arrow-type arguments may not be declared as 'ghost'
+ParseErrors.dfy(278,10): Error: invalid NewtypeDecl
+80 parse errors detected in ParseErrors.dfy

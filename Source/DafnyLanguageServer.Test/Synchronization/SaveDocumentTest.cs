@@ -20,12 +20,9 @@ function GetConstant(): int {
 }".Trim();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var openedDocument = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(openedDocument);
+      await GetLastDiagnostics(documentItem, CancellationToken);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
-      var savedDocument = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(savedDocument);
-      Assert.AreSame(openedDocument, savedDocument);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
     [TestMethod]
@@ -39,12 +36,9 @@ function GetConstant(): int {
       });
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var openedDocument = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(openedDocument);
+      await GetLastDiagnostics(documentItem, CancellationToken);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
-      var savedDocument = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(savedDocument);
-      Assert.AreSame(openedDocument, savedDocument);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
     [TestMethod]
@@ -58,12 +52,9 @@ function GetConstant() int {
       });
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var openedDocument = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(openedDocument);
+      await GetLastDiagnostics(documentItem, CancellationToken);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
-      var savedDocument = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(savedDocument);
-      Assert.AreSame(openedDocument, savedDocument);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
     [TestMethod]
@@ -77,12 +68,9 @@ function GetConstant(): int {
       });
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var openedDocument = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(openedDocument);
+      await GetLastDiagnostics(documentItem, CancellationToken);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
-      var savedDocument = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(savedDocument);
-      Assert.AreSame(openedDocument, savedDocument);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
     [TestMethod]
@@ -96,11 +84,9 @@ function GetConstant(): int {
       });
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var openedDocument = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(openedDocument);
+      await GetLastDiagnostics(documentItem, CancellationToken);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
-      var savedDocument = await Documents.GetLastDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(savedDocument);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
     [TestMethod]
@@ -116,9 +102,7 @@ method DoIt() {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await GetLastDiagnostics(documentItem, CancellationToken);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
-      var document = await Documents.GetLastDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(document);
-      var afterSaveDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      var afterSaveDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
       Assert.AreEqual(1, afterSaveDiagnostics.Count());
       var message = afterSaveDiagnostics.First();
       Assert.AreEqual(MessageSource.Verifier.ToString(), message.Source);

@@ -1,0 +1,2 @@
+ERROR_Rbrace4.dfy(3,2): Error: rbrace expected
+1 parse errors detected in ERROR_Rbrace4.dfy
