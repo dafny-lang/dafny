@@ -530,8 +530,11 @@ namespace DafnyTestGeneration {
           case DatatypeValue datatypeValue:
             if (datatypeValue.Type is UserDefinedType udt &&
                 udt.ResolvedClass != null) {
-              var actualBindings = datatypeValue.Bindings.ArgumentBindings.ConvertAll(
-                  base.CloneActualBinding);
+              var actualBindings = new List<ActualBinding>();
+              foreach (var binding in datatypeValue.Bindings.ArgumentBindings) {
+                actualBindings.Add(base.CloneActualBinding(binding));
+                actualBindings.Last().Actual.Type = binding.Actual.Type;
+              }
               var newValue = new DatatypeValue(new Token(),
                 udt.ResolvedClass.FullDafnyName, datatypeValue.MemberName,
                 actualBindings);
