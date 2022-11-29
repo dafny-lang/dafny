@@ -646,7 +646,6 @@ namespace DafnyTestGeneration {
       List<string> lines = new();
 
       foreach (var line in ValueCreation) {
-        // TODO: nested tuples will break
         if (line.type is UserDefinedType userDefinedType && (userDefinedType.Name.StartsWith("_System.Tuple") || userDefinedType.Name.StartsWith("_System._tuple"))) {
           lines.Add($"var {line.id}: " +
                     $"({string.Join(",", line.type.TypeArgs.ConvertAll(typ => typ.ToString()))}) " +
