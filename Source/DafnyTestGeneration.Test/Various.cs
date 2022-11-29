@@ -226,7 +226,7 @@ module Objects {
         m.Assignments[0] == ("v1", "next", "null") &&
         m.ValueCreation.Count == 2)));
     }
-    
+
     [TestMethod]
     public async Task RecursivelyExtractDatatypeFields() {
       var source = @"
@@ -259,11 +259,11 @@ module DataTypes {
       Assert.IsTrue(methods.Exists(m =>
         m.ValueCreation.Count == 1));
       Assert.IsTrue(methods.Exists(m =>
-        m.ValueCreation.Count == 2 && 
+        m.ValueCreation.Count == 2 &&
         m.ValueCreation[1].value == $"DataTypes.Node.Cons(next:={m.ValueCreation[0].id})"));
       Assert.IsTrue(methods.Exists(m =>
-        m.ValueCreation.Count == 3 && 
-        m.ValueCreation[1].value == $"DataTypes.Node.Cons(next:={m.ValueCreation[0].id})" && 
+        m.ValueCreation.Count == 3 &&
+        m.ValueCreation[1].value == $"DataTypes.Node.Cons(next:={m.ValueCreation[0].id})" &&
         m.ValueCreation[2].value == $"DataTypes.Node.Cons(next:={m.ValueCreation[1].id})"));
     }
 
@@ -454,7 +454,7 @@ module C {
                                         m.ArgValues.Count == 1 &&
                                         m.ArgValues[0] == "0.0"));
     }
-    
+
     [TestMethod]
     public async Task Oracles() {
       var source = @"

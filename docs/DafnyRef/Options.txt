@@ -377,11 +377,11 @@ Usage: Dafny [ option ... ] [ filename ... ]
   /generateTestInlineDepth:<n>
       0 is the default. When used in conjunction with /testTargetMethod,
       this argument specifies the depth up to which all non-tested methods
-      should be inlined.        
+      should be inlined.
   /generateTestPrintBpl:<fileName>
-      Print the Boogie code used during test generation.      
+      Print the Boogie code used during test generation.
   /generateTestPrintStats:<fileName>
-      Create a json file with the summary statistics about the generated tests.      
+      Create a json file with the summary statistics about the generated tests.
   /generateTestVerbose
       Print various debugging info as comments for the generated tests.
   ---- Compilation options ---------------------------------------------------
