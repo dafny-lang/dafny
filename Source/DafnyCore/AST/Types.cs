@@ -826,7 +826,8 @@ public abstract class Type {
   /// <summary>
   /// Returns whether or not any values of the type can be checked for equality in compiled contexts
   /// </summary>
-  public virtual bool SupportsEquality => true;
+  public virtual bool SupportsEquality =>
+    true;
 
   /// <summary>
   /// Returns whether or not some values of the type can be checked for equality in compiled contexts.

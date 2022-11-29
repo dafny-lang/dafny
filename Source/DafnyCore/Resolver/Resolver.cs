@@ -8285,10 +8285,7 @@ namespace Microsoft.Dafny {
           }
           foreach (var arg in ctor.Formals) {
             var anotherIndDt = arg.Type.AsIndDatatype;
-            if (arg.IsGhost ||
-                (anotherIndDt != null && anotherIndDt.EqualitySupport == IndDatatypeDecl.ES.Never) ||
-                arg.Type.IsCoDatatype ||
-                arg.Type.IsArrowType) {
+            if (arg.IsGhost || !arg.Type.SupportsEquality) {
               // arg.Type is known never to support equality
               MarkSCCAsNotSupportingEquality();
               return;  // we are done

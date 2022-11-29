@@ -1,0 +1,2 @@
+git-issue-1427.dfy(9,11): Error: == can only be applied to expressions of types that support equality (got X)
+1 resolution/type errors detected in git-issue-1427.dfy
