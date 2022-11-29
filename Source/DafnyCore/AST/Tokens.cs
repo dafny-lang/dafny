@@ -146,7 +146,6 @@ public abstract class TokenWrapper : IToken {
 public class RangeToken : TokenWrapper {
   // The wrapped token is the startTok
   private IToken endTok;
-
   public IToken StartToken => WrappedToken;
   public IToken EndToken => endTok;
 

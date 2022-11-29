@@ -985,8 +985,7 @@ Dafny
                                    includedFile = Path.Combine(basePath, includedFile);
                                  }
                                  var oneInclude = new Include(t, parsedFile, includedFile, theCompileThisFile);
-                                 oneInclude.StartToken = startToken;
-                                 oneInclude.EndToken = t;
+                                 oneInclude.RangeToken = new RangeToken(startToken, t);
                                  defaultModule.Includes.Add(oneInclude);
                                }
                             .)
@@ -1096,13 +1095,11 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
      { TopDecl<module, namedModuleDefaultClassMembers, /* isTopLevel */ false, isAbstract>}
    "}"
     (.
-      module.StartToken = dmod.FirstToken;
-      module.EndToken = t;
+      module.RangeToken = new RangeToken(dmod.FirstToken, t);
       module.BodyEndTok = t;
       module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
       submodule = new LiteralModuleDecl(module, parent);
-      submodule.StartToken = dmod.FirstToken;
-      submodule.EndToken = t;
+      submodule.RangeToken = new RangeToken(dmod.FirstToken, t);
       theOptions = dafnyOptionsBackup;
     .)
   .
@@ -1135,7 +1132,7 @@ ModuleImport<ModuleDefinition parent, out ModuleDecl submodule>
           (. submodule = new AliasModuleDecl(new ModuleQualifiedId(idPath),
                                          idPath[idPath.Count-1], parent, opened, idExports);
           .)
-    ) (. submodule.StartToken = startToken; submodule.EndToken = t; .)
+    ) (. submodule.RangeToken = new RangeToken(startToken, t); .)
     .
 
 /*------------------------------------------------------------------------*/
@@ -1180,7 +1177,7 @@ ModuleExport<ModuleDefinition parent, out ModuleDecl submodule>
        isDefault = true;
      }
      submodule = new ModuleExportDecl(exportId, parent, exports, extends, provideAll, revealAll, isDefault, isRefining);
-     submodule.StartToken = startToken; submodule.EndToken = t;
+     submodule.RangeToken = new RangeToken(startToken, t);
   .)
   .
 
@@ -1200,7 +1197,7 @@ ExportSignature<bool opaque, out ExportSignature exsig>
      } else {
        exsig = new ExportSignature(prefix, prefix.val, opaque);
      }
-     exsig.StartToken = startToken; exsig.EndToken = t;
+     exsig.RangeToken = new RangeToken(startToken, t);
   .)
   .
 
@@ -1270,8 +1267,7 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
   (. c = new ClassDecl(id, id.val, module, typeArgs, members, attrs, isRefining, parentTraits);
      c.BodyStartTok = bodyStart;
      c.BodyEndTok = t;
-     c.StartToken = dmodClass.FirstToken;
-     c.EndToken = t;
+     c.RangeToken = new RangeToken(dmodClass.FirstToken, t);
      c.TokenWithTrailingDocString = tokenWithTrailingDocString;
   .)
   .
@@ -1311,8 +1307,7 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
   (. trait = new TraitDecl(id, id.val, module, typeArgs, members, attrs, isRefining, parentTraits);
      trait.BodyStartTok = bodyStart;
      trait.BodyEndTok = t;
-     trait.StartToken = dmodIn.FirstToken;
-     trait.EndToken = t;
+     trait.RangeToken = new RangeToken(dmodIn.FirstToken, t);
      trait.TokenWithTrailingDocString = tokenWithTrailingDocString;
     .)
   .
@@ -1386,8 +1381,7 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
      }
      dt.BodyStartTok = bodyStart;
      dt.BodyEndTok = t;
-     dt.StartToken = dmod.FirstToken;
-     dt.EndToken = t;
+     dt.RangeToken = new RangeToken(dmod.FirstToken, t);
      dt.TokenWithTrailingDocString = bodyStart;
   .)
   .
@@ -1447,11 +1441,11 @@ FieldDecl<.DeclModifierData dmod, bool isValueType, List<MemberDecl> mm.>
                                                        }
                                                     .)
   { Attribute<ref attrs> }
-  FIdentType<out id, out ty>           (. var f = new Field(id, id.val, dmod.IsGhost, ty, attrs); f.StartToken = dmod.FirstToken; mm.Add(f); f.TokenWithTrailingDocString = t; f.EndToken = t;
-                                          f.StartToken = startToken; f.EndToken = t; .)
+  FIdentType<out id, out ty>           (. var f = new Field(id, id.val, dmod.IsGhost, ty, attrs); f.RangeToken = new RangeToken(dmod.FirstToken, t); mm.Add(f); f.TokenWithTrailingDocString = t;
+                                          f.RangeToken = new RangeToken(startToken, t); .)
   { ","                                (. startToken = t; .)
-    FIdentType<out id, out ty>         (.     f = new Field(id, id.val, dmod.IsGhost, ty, attrs); f.StartToken = dmod.FirstToken; mm.Add(f); f.TokenWithTrailingDocString = t; f.EndToken = t;
-                                              f.StartToken = startToken; f.EndToken = t;
+    FIdentType<out id, out ty>         (.     f = new Field(id, id.val, dmod.IsGhost, ty, attrs); f.RangeToken = new RangeToken(dmod.FirstToken, t); mm.Add(f); f.TokenWithTrailingDocString = t;
+                                              f.RangeToken = new RangeToken(startToken, t);
                                        .)
   }
   OldSemi
@@ -1536,13 +1530,11 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
     [ TypeMembers<module, members> ]
     (. baseType = null; // Base type is not known yet
        td = new NewtypeDecl(id, id.val, module, baseType, members, attrs, isRefining: true);
-       td.StartToken = dmod.FirstToken;
-       td.EndToken = t;
+       td.RangeToken = new RangeToken(dmod.FirstToken, t);
     .)
   )  (. if (td != null) {
           td.TokenWithTrailingDocString = t; 
-          td.StartToken = dmod.FirstToken;
-          td.EndToken = t;
+          td.RangeToken = new RangeToken(dmod.FirstToken, t);
         }   .)
   .
 
@@ -1605,8 +1597,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
        td = new OpaqueTypeDecl(id, id.val, module, characteristics, typeArgs, members, attrs, isRefining);
      }
      td.BodyEndTok = t;
-     td.StartToken = dmod.FirstToken;
-     td.EndToken = t;
+     td.RangeToken = new RangeToken(dmod.FirstToken, t);
      td.TokenWithTrailingDocString = t;
   .)
   (. CheckDeclModifiers(ref dmod, kind, AllowedDeclModifiers.None); .)
@@ -1665,7 +1656,7 @@ LocalIdentTypeOptional<out LocalVariable var, bool isGhost, bool allowWild=true>
   [ ":" Type<out ty>             (. optType = ty; .)
   ]
   (. var = new LocalVariable(id, id, id.val, optType == null ? new InferredTypeProxy() : optType, isGhost);
-     var.StartToken = startToken; var.EndToken = t;
+     var.RangeToken = new RangeToken(startToken, t);
   .)
   .
 
@@ -1773,7 +1764,7 @@ IteratorDecl<DeclModifierData dmod, ModuleDefinition module, out IteratorDecl/*!
                              body, attrs, signatureEllipsis);
      iter.BodyStartTok = bodyStart;
      iter.BodyEndTok = bodyEnd;
-     iter.StartToken = dmod.FirstToken; iter.EndToken = t;
+     iter.RangeToken = new RangeToken(dmod.FirstToken, t);
  .)
   .
 
@@ -1962,8 +1953,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
      }
      m.BodyStartTok = bodyStart;
      m.BodyEndTok = bodyEnd;
-     m.StartToken = dmod.FirstToken;
-     m.EndToken = t;
+     m.RangeToken = new RangeToken(dmod.FirstToken, t);
      m.TokenWithTrailingDocString = tokenWithTrailingDocString;
  .)
   .
@@ -2230,7 +2220,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
   | NamedType<out ty, out tok, inExpressionContext>
   )
   (. startToken =  startToken ?? ty.StartToken ?? tok;
-     ty.StartToken = startToken; ty.EndToken = t;
+     ty.RangeToken = new RangeToken(startToken, t);
   .)
   [ (. int arrowKind = 0; /* 0: any, 1: partial, 2: total */
        Type t2;
@@ -2261,7 +2251,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
            ty = new UserDefinedType(tok, ArrowType.TotalArrowTypeName(arity), gt);
          }
        }
-       ty.StartToken = startToken; ty.EndToken = t;
+       ty.RangeToken = new RangeToken(startToken, t);
     .)
   ]
   .
@@ -2305,7 +2295,7 @@ NamedType<.out Type ty, out IToken tok, bool inExpressionContext.> =
     (. e = new ExprDotName(tok, e, tok.val, typeArgs); .)
   }
   (. ty = new UserDefinedType(e.tok, e);
-     ty.StartToken = startToken; ty.EndToken = t;
+     ty.RangeToken = new RangeToken(startToken, t);
    .)
   .
 
@@ -2637,8 +2627,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
      }
      f.BodyStartTok = bodyStart;
      f.BodyEndTok = bodyEnd;
-     f.StartToken = dmod.FirstToken;
-     f.EndToken = t;
+     f.RangeToken = new RangeToken(dmod.FirstToken, t);
      f.TokenWithTrailingDocString = tokenWithTrailingDocString;
      theBuiltIns.CreateArrowTypeDecl(formals.Count);
      if (isLeastPredicate || isGreatestPredicate) {
@@ -2764,7 +2753,7 @@ BlockStmt<out BlockStmt/*!*/ block, out IToken bodyStart, out IToken bodyEnd>
   { Stmt<body> }
   "}"                                  (. bodyEnd = t;
                                           block = new BlockStmt(bodyStart, bodyEnd, body);
-                                          block.StartToken = bodyStart; block.EndToken = bodyEnd; .)
+                                          block.RangeToken = new RangeToken(bodyStart, bodyEnd); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -2782,7 +2771,7 @@ DividedBlockStmt<out DividedBlockStmt body, out IToken bodyStart, out IToken bod
   ]
   "}"                                  (. bodyEnd = t; .)
   (. body = new DividedBlockStmt(bodyStart, bodyEnd, bodyInit, separatorTok, bodyProper);
-     body.StartToken = bodyStart; body.EndToken = t; .)
+     body.RangeToken = new RangeToken(bodyStart, t); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -2832,8 +2821,7 @@ LabeledStmt<out Statement s>
   LabelName<out id> ":" (. colonToken = t; .)
   OneStmt<out s>
   (. s.Labels = new LList<Label>(new Label(id, id.val), s.Labels);
-     s.StartToken = labelToken;
-     s.EndToken = t;
+     s.RangeToken = new RangeToken(labelToken, t);
   .)
   .
 
@@ -2843,8 +2831,7 @@ SkeletonStmt<out Statement s>
   ellipsis                             (. dotdotdot = t; .)
   ";"
   (. s = new SkeletonStatement(dotdotdot, t);
-     s.StartToken = dotdotdot;
-     s.EndToken = t;
+     s.RangeToken = new RangeToken(dotdotdot, t);
      errors.Deprecated(t, "the ... refinement feature in statements is deprecated");
   .)
   .
@@ -2975,7 +2962,7 @@ UpdateStmt<out Statement/*!*/ s>
          s = new UpdateStmt(x, endTok, lhss, rhss);
        }
      }
-     s.StartToken = startToken; s.EndToken = t;
+     s.RangeToken = new RangeToken(startToken, t);
   .)
   .
 
@@ -3018,7 +3005,7 @@ Rhs<out AssignmentRhs r>
   | Expression<out e, false, true>     (. r = new ExprRhs(e); startToken = e.StartToken; .)
   )
   { Attribute<ref attrs> }             (. r.Attributes = attrs;
-                                          r.StartToken = startToken; r.EndToken = t; .)
+                                          r.RangeToken = new RangeToken(startToken, t); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -3126,7 +3113,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
          update = new UpdateStmt(assignTok, endTok, lhsExprs, rhss);
        }
        s = new VarDeclStmt(x, endTok, lhss, update);
-       s.StartToken = startToken; s.EndToken = t;
+       s.RangeToken = new RangeToken(startToken, t);
     .)
   | (. CasePattern<LocalVariable> pat;
        Expression e = dummyExpr;
@@ -3141,7 +3128,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
 
     ";"
     (. s = new VarDeclPattern(e.tok, e.tok, pat, e, isGhost);
-       s.StartToken = pat.StartToken; s.EndToken = t; .)
+       s.RangeToken = new RangeToken(pat.StartToken, t); .)
   )
   .
 
@@ -3167,7 +3154,7 @@ IfStmt<out Statement/*!*/ ifStmt>
     IF(IsAlternative())
     AlternativeBlock<true, out alternatives, out usesOptionalBraces, out endTok>
     (. ifStmt = new AlternativeStmt(x, endTok, alternatives, usesOptionalBraces, attrs);
-       ifStmt.StartToken = startToken; ifStmt.EndToken = t; 
+       ifStmt.RangeToken = new RangeToken(startToken, t); 
     .)
   |
     ( IF(IsBindingGuard())
@@ -3189,11 +3176,11 @@ IfStmt<out Statement/*!*/ ifStmt>
        }
        if (guardEllipsis != null) {
          ifStmt = new IfStmt(x, endTok, isBindingGuard, guard, thn, els);
-         ifStmt.StartToken = startToken; ifStmt.EndToken = t;
+         ifStmt.RangeToken = new RangeToken(startToken, t);
          ifStmt = new SkeletonStatement(ifStmt, guardEllipsis, null);
        } else {
          ifStmt = new IfStmt(x, endTok, isBindingGuard, guard, thn, els, attrs);
-         ifStmt.StartToken = startToken; ifStmt.EndToken = t;
+         ifStmt.RangeToken = new RangeToken(startToken, t);
        }
     .)
   )
@@ -3274,7 +3261,7 @@ WhileStmt<out Statement stmt>
     LoopSpec<invariants, decreases, ref mod, ref decAttrs, ref modAttrs>
     AlternativeBlock<false, out alternatives, out usesOptionalBraces, out endTok>
     (. stmt = new AlternativeLoopStmt(x, endTok, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), alternatives, usesOptionalBraces, attrs);
-       stmt.StartToken = startToken; stmt.EndToken = t; .)
+       stmt.RangeToken = new RangeToken(startToken, t); .)
   |
     ( Guard<out guard>           (. Contract.Assume(guard == null || cce.Owner.None(guard)); .)
     | ellipsis                   (. guardEllipsis = t; 
@@ -3311,7 +3298,7 @@ WhileStmt<out Statement stmt>
       if(stmt is SkeletonStatement skeleton) {
         skeleton.S.StartToken = startToken; skeleton.S.EndToken = t;
       } else {
-        stmt.StartToken = startToken; stmt.EndToken = t;
+        stmt.RangeToken = new RangeToken(startToken, t);
       }
     .)
   )
@@ -3361,7 +3348,7 @@ ForLoopStmt<out Statement stmt>
     }
     stmt = new ForLoopStmt(x, endTok, loopIndex, start, end, goingUp,
       invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), body, attrs);
-    stmt.StartToken = startToken; stmt.EndToken = t;
+    stmt.RangeToken = new RangeToken(startToken, t);
   .)
   .
 
@@ -3494,7 +3481,7 @@ MatchStmt<out Statement/*!*/ s>
         }
   )
   (. s = new NestedMatchStmt(x, t, e, cases, usesOptionalBraces, attrs);
-     s.StartToken = startToken; s.EndToken = t;
+     s.RangeToken = new RangeToken(startToken, t);
   .)
   .
 
@@ -3548,12 +3535,12 @@ AssertStmt<out Statement/*!*/ s, bool inExprContext>
   )
   (. if (dotdotdot != null) {
        s = new AssertStmt(x, t, new LiteralExpr(x, true), null, null, attrs);
-       s.StartToken = startToken; s.EndToken = t;
+       s.RangeToken = new RangeToken(startToken, t);
        s = new SkeletonStatement(s, dotdotdot, null);
      } else {
        s = new AssertStmt(x, t, e, proof, lbl == null ? null : new AssertLabel(lbl, lbl.val), attrs);
      }
-     s.StartToken = startToken; s.EndToken = t;
+     s.RangeToken = new RangeToken(startToken, t);
   .)
   .
 
@@ -3575,11 +3562,11 @@ ExpectStmt<out Statement/*!*/ s>
   ";"
   (. if (dotdotdot != null) {
        s = new ExpectStmt(x, t, new LiteralExpr(x, true), m, attrs);
-       s.StartToken = startToken; s.EndToken = t;
+       s.RangeToken = new RangeToken(startToken, t);
        s = new SkeletonStatement(s, dotdotdot, null);
      } else {
        s = new ExpectStmt(x, t, e, m, attrs);
-       s.StartToken = startToken; s.EndToken = t;
+       s.RangeToken = new RangeToken(startToken, t);
      }
   .)
   .
@@ -3601,11 +3588,11 @@ AssumeStmt<out Statement/*!*/ s>
   ";"
   (. if (dotdotdot != null) {
        s = new AssumeStmt(x, t, new LiteralExpr(x, true), attrs);
-       s.StartToken = startToken; s.EndToken = t;
+       s.RangeToken = new RangeToken(startToken, t);
        s = new SkeletonStatement(s, dotdotdot, null);
      } else {
        s = new AssumeStmt(x, t, e, attrs);
-       s.StartToken = startToken; s.EndToken = t;
+       s.RangeToken = new RangeToken(startToken, t);
      }
   .)
   .
@@ -3623,7 +3610,7 @@ PrintStmt<out Statement s>
   }
   ";"                                          (.
     s = new PrintStmt(x, t, args);
-    s.StartToken = startToken; s.EndToken = t;
+    s.RangeToken = new RangeToken(startToken, t);
     .)
   .
 
@@ -3639,7 +3626,7 @@ RevealStmt<out Statement s>
   }
   ";"                                           (.
     s = new RevealStmt(x, t, es);
-    s.StartToken = startToken; s.EndToken = t; .)
+    s.RangeToken = new RangeToken(startToken, t); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -3681,7 +3668,7 @@ ForallStmt<out Statement/*!*/ s>
         tok = block.EndTok;
      }
      s = new ForallStmt(x, t, bvars, qattrs, range, ens, block);
-     s.StartToken = startToken; s.EndToken = t;
+     s.RangeToken = new RangeToken(startToken, t);
   .)
   .
 
@@ -3713,7 +3700,7 @@ ModifyStmt<out Statement s>
   | SYNC ";"         (. endTok = t; .)
   )
   (. s = new ModifyStmt(tok, endTok, mod, attrs, body);
-     s.StartToken = startToken; s.EndToken = t;
+     s.RangeToken = new RangeToken(startToken, t);
      if (ellipsisToken != null) {
        s = new SkeletonStatement(s, ellipsisToken, null);
      }
@@ -3786,7 +3773,7 @@ CalcStmt<out Statement s>
       lines.Add(lines[lines.Count - 1]);
     }
     s = new CalcStmt(x, t, userSuppliedOp, lines, hints, stepOps, attrs);
-    s.StartToken = startToken; s.EndToken = t;
+    s.RangeToken = new RangeToken(startToken, t);
   .)
   .
 
@@ -3875,8 +3862,7 @@ EquivExpression<out Expression e0, bool allowLemma, bool allowLambda, bool allow
     EquivOp                                                   (. x = t; .)
     ImpliesExpliesExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>  (.
       e0 = new BinaryExpr(x, BinaryExpr.Opcode.Iff, e0, e1);
-      e0.StartToken = e0.StartToken;
-      e0.EndToken = t; .)
+      e0.RangeToken = new RangeToken(e0.StartToken, t); .)
   }
   .
 
@@ -3892,16 +3878,16 @@ ImpliesExpliesExpression<out Expression e0, bool allowLemma, bool allowLambda, b
      */
     ( ImpliesOp                                               (. x = t; .)
       ImpliesExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>       (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Imp, e0, e1);
-                                                                                   e0.StartToken = e0.StartToken; e0.EndToken = t; .)
+                                                                                   e0.RangeToken = new RangeToken(e0.StartToken, t); .)
     | ExpliesOp                                               (. x = t; .)
       LogicalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>       (. // The order of operands is reversed so that it can be turned into implication during resolution
                                                                  e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e1, e0);
-                                                                 e0.StartToken = e0.StartToken; e0.EndToken = t; .)
+                                                                 e0.RangeToken = new RangeToken(e0.StartToken, t); .)
       { IF(IsExpliesOp())  /* read a reverse implication as far as possible */
         ExpliesOp                                             (. x = t; .)
         LogicalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>     (. //The order of operands is reversed so that it can be turned into implication during resolution
                                                                  e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e1, e0);
-                                                                 e0.StartToken = e0.StartToken; e0.EndToken = t;
+                                                                 e0.RangeToken = new RangeToken(e0.StartToken, t);
                                                               .)
       }
       [ IF(IsImpliesOp()) ImpliesOp (. SemErr(t, "Ambiguous use of ==> and <==. Use parentheses to disambiguate."); .) ]
@@ -3916,7 +3902,7 @@ ImpliesExpression<out Expression e0, bool allowLemma, bool allowLambda, bool all
   [ IF(IsImpliesOp())  /* read an ImpliesExpression as far as possible */
     ImpliesOp                                               (. x = t; .)
     ImpliesExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>       (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Imp, e0, e1); 
-                                                                                 e0.StartToken = e0.StartToken; e0.EndToken = t;.)
+                                                                                 e0.RangeToken = new RangeToken(e0.StartToken, t);.)
   ]
   [ IF(IsExpliesOp()) ExpliesOp (. SemErr(t, "Ambiguous use of ==> and <==. Use parentheses to disambiguate."); .)
   ]
@@ -3937,18 +3923,17 @@ LogicalExpression<out Expression e0, bool allowLemma, bool allowLambda, bool all
     // one conjunct, that the type checker still checks it to be a boolean.
     (. startToken = e0.StartToken;
        e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, new LiteralExpr(new AutoGeneratedToken(x), true), e0);
-       e0.StartToken = startToken;
-       e0.EndToken = t;
+       e0.RangeToken = new RangeToken(startToken, t);
     .)
     { IF(IsAndOp())  /* read a conjunction as far as possible */
       AndOp                                                     (. x = t; .)
       RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>
          (. startToken = e0.StartToken;
             e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1);
-            e0.StartToken = startToken; e0.EndToken = t; .)
+            e0.RangeToken = new RangeToken(startToken, t); .)
     }
     [ IF(IsOrOp()) OrOp (. SemErr(t, "Ambiguous use of && and ||. Use parentheses to disambiguate."); .) ]
-    (. e0.StartToken = firstOp; e0.EndToken = t; .)
+    (. e0.RangeToken = new RangeToken(firstOp, t); .)
   | OrOp                                                        (. x = t; firstOp = x; .)
     RelationalExpression<out e0, allowLemma, allowLambda, allowBitwiseOps>
     // We disjoin [sic] "false" to the left, for two reasons. One reason is to keep track of the source
@@ -3964,25 +3949,25 @@ LogicalExpression<out Expression e0, bool allowLemma, bool allowLambda, bool all
             e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1);
             e0.StartToken = startToken; .)    }
     [ IF(IsAndOp()) AndOp (. SemErr(t, "Ambiguous use of && and ||. Use parentheses to disambiguate."); .) ]
-    (. e0.StartToken = firstOp; e0.EndToken = t; .)
+    (. e0.RangeToken = new RangeToken(firstOp, t); .)
   | RelationalExpression<out e0, allowLemma, allowLambda, allowBitwiseOps>
     [ IF(IsAndOp() || IsOrOp())  /* read a LogicalExpression as far as possible */
       ( AndOp                                                   (. x = t; .)
         RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>    (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1);
-                                                                                     e0.StartToken = e0.StartToken; e0.EndToken = t; .)
+                                                                                     e0.RangeToken = new RangeToken(e0.StartToken, t); .)
         { IF(IsAndOp())  /* read a conjunction as far as possible */
           AndOp                                                 (. x = t; .)
           RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1);
-                                                                                     e0.StartToken = e0.StartToken; e0.EndToken = t; .)
+                                                                                     e0.RangeToken = new RangeToken(e0.StartToken, t); .)
         }
         [ IF(IsOrOp()) OrOp (. SemErr(t, "Ambiguous use of && and ||. Use parentheses to disambiguate."); .) ]
       | OrOp                                                    (. x = t; .)
         RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>    (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1);
-                                                                                     e0.StartToken = e0.StartToken; e0.EndToken = t; .)
+                                                                                     e0.RangeToken = new RangeToken(e0.StartToken, t); .)
         { IF(IsOrOp())  /* read a disjunction as far as possible */
           OrOp                                                  (. x = t; .)
           RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1);
-                                                                                     e0.StartToken = e0.StartToken; e0.EndToken = t; .)
+                                                                                     e0.RangeToken = new RangeToken(e0.StartToken, t); .)
         }
         [ IF(IsAndOp()) AndOp (. SemErr(t, "Ambiguous use of && and ||. Use parentheses to disambiguate."); .) ]
       )
@@ -4018,8 +4003,7 @@ RelationalExpression<out Expression e, bool allowLemma, bool allowLambda, bool a
                                         Contract.Assert(op == BinaryExpr.Opcode.Eq || op == BinaryExpr.Opcode.Neq);
                                         e = new TernaryExpr(x, op == BinaryExpr.Opcode.Eq ? TernaryExpr.Opcode.PrefixEqOp : TernaryExpr.Opcode.PrefixNeqOp, k, e0, e1);
                                       }
-                                      e.StartToken = e0.StartToken;
-                                      e.EndToken = t;
+                                      e.RangeToken = new RangeToken(e0.StartToken, t);
                                    .)
     { IF(IsRelOp())  /* read a RelationalExpression as far as possible */
                                    (. if (chain == null) {
@@ -4080,7 +4064,7 @@ RelationalExpression<out Expression e, bool allowLemma, bool allowLambda, bool a
   (. if (chain != null && kind != 3) {
        e = new ChainingExpression(opLocs[0], chain, ops, opLocs, prefixLimits);
      }
-     e.StartToken = startToken; e.EndToken = t;
+     e.RangeToken = new RangeToken(startToken, t);
   .)
   .
 
@@ -4145,7 +4129,7 @@ Term<out Expression e0, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
   { IF(IsAddOp())  /* read a Term as far as possible */
     AddOp<out x, out op>
     Factor<out e1, allowLemma, allowLambda, allowBitwiseOps> (. e0 = new BinaryExpr(x, op, e0, e1);
-                                                                e0.StartToken = e0.StartToken; e0.EndToken = t; .)
+                                                                e0.RangeToken = new RangeToken(e0.StartToken, t); .)
   }
   .
 
@@ -4294,7 +4278,7 @@ ConstAtomExpression<out Expression e>
       Expression<out e, true, true, false>     (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Cardinality, e); .)
     "|"
   | ParensExpression<out e>
-  ) (. if(!(e is ParensExpression) && !(e is LiteralExpr)) { e.StartToken = x; e.EndToken = t; } .)
+  ) (. if(!(e is ParensExpression) && !(e is LiteralExpr)) { e.RangeToken = new RangeToken(x, t); } .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -4318,7 +4302,7 @@ LiteralExpression<out Expression e>
                                                   Util.ValidateEscaping(t, s, isVerbatimString, errors);
                                                   e = new StringLiteralExpr(t, s, isVerbatimString);
                                                .)
-  ) (. e.StartToken = t; e.EndToken = t; .)
+  ) (. e.RangeToken = new RangeToken(t, t); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -4357,7 +4341,7 @@ LambdaExpression<out Expression e, bool allowLemma, bool allowBitwiseOps>
   Expression<out body, allowLemma, true, allowBitwiseOps>
   (. e = new LambdaExpr(x, t, bvs, req, reads, body);
      theBuiltIns.CreateArrowTypeDecl(bvs.Count);
-     e.StartToken = x; e.EndToken = t;
+     e.RangeToken = new RangeToken(x, t);
   .)
   .
 
@@ -4406,7 +4390,7 @@ ParensExpression<out Expression e>
        var tmp = theBuiltIns.TupleType(x, args.Count, true, argumentGhostness);
        e = new DatatypeValue(x, BuiltIns.TupleTypeName(argumentGhostness), BuiltIns.TupleTypeCtorName(args.Count), args);
      }
-     e.StartToken = x; e.EndToken = t;
+     e.RangeToken = new RangeToken(x, t);
   .)
   .
 
@@ -4442,7 +4426,7 @@ SetDisplayExpr<out Expression e>
                                                .)
     ")"
   )
-  (. e.StartToken = x; e.EndToken = t; .)
+  (. e.RangeToken = new RangeToken(x, t); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -4477,7 +4461,7 @@ SeqDisplayExpr<out Expression e>
                                              .)
     "]"
   )
-  (.  e.StartToken = x; e.EndToken = t; .)
+  (.  e.RangeToken = new RangeToken(x, t); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -4490,7 +4474,7 @@ MapDisplayExpr<out Expression e>
   "["
     [ MapLiteralExpressions<out elements> ] 
                      (. e = new MapDisplayExpr(mapToken, mapToken.kind == _map, elements);.)
-  "]"                (. e.StartToken = mapToken; e.EndToken = t; .)
+  "]"                (. e.RangeToken = new RangeToken(mapToken, t); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -4526,7 +4510,7 @@ MapComprehensionExpr<out Expression e, bool allowLemma, bool allowLambda, bool a
      } else {
        e = new MapComprehension(mapToken, t, finite, bvars, range ?? new LiteralExpr(mapToken, true), bodyLeft, bodyRight, attrs);
      }
-     e.StartToken = mapToken; e.EndToken = t;
+     e.RangeToken = new RangeToken(mapToken, t);
   .)
   .
 
@@ -4568,7 +4552,7 @@ IfExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitw
                        exists.Term }, e0, false);
                      }
                      e = new ITEExpr(x, isBindingGuard, e, e0, e1);
-                     e.StartToken = x; e.EndToken = t;
+                     e.RangeToken = new RangeToken(x, t);
                 .)
   .
 /*------------------------------------------------------------------------*/
@@ -4647,7 +4631,7 @@ LetExprWithLHS<out Expression e, bool allowLemma, bool allowLambda, bool allowBi
     } else {
       e = new LetExpr(x, letLHSs, letRHSs, e, exact, attrs);
     }
-    e.StartToken = x; e.EndToken = t;
+    e.RangeToken = new RangeToken(x, t);
   .)
   .
 
@@ -4662,7 +4646,7 @@ LetExprWithoutLHS<out Expression e, bool allowLemma, bool allowLambda, bool allo
   ";"
   Expression<out body, allowLemma, allowLambda, allowBitwiseOps>
   (. e = new LetOrFailExpr(x, null, rhs, body);
-     e.StartToken = x; e.EndToken = t;
+     e.RangeToken = new RangeToken(x, t);
    .)
   .
 
@@ -4683,7 +4667,7 @@ MatchExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowB
         }
   )
   (. e = new NestedMatchExpr(x, e, cases, usesOptionalBraces);
-     e.StartToken = x; e.EndToken = t; .)
+     e.RangeToken = new RangeToken(x, t); .)
 .
 
 /*------------------------------------------------------------------------*/
@@ -4805,7 +4789,7 @@ NameSegment<out Expression e>
      } else {
        Contract.Assert(atLabel == null);
      }
-     e.StartToken = id; e.EndToken = t;
+     e.RangeToken = new RangeToken(id, t);
   .)
   .
 
@@ -4893,7 +4877,7 @@ Suffix<ref Expression e>
          } else {
            Contract.Assert(atLabel == null);
          }
-         e.StartToken = startToken; e.EndToken = t;
+         e.RangeToken = new RangeToken(startToken, t);
       .)
     )
   | "["                                        (. x = t; startToken = t; .)
@@ -4961,13 +4945,13 @@ Suffix<ref Expression e>
              e = new SeqUpdateExpr(x, e, e0, e1);
            }
          }
-         e.StartToken = startToken; e.EndToken = t;
+         e.RangeToken = new RangeToken(startToken, t);
       .)
   | "("                                    (. IToken openParen = t; var args = new List<ActualBinding>(); .)
     [ ActualBindings<args> ]
     ")"                                    (.
                                               e = new ApplySuffix(openParen, null, e, args, t);
-                                              e.StartToken = openParen; e.EndToken = t;
+                                              e.RangeToken = new RangeToken(openParen, t);
                                            .)
   )
   .
@@ -5011,7 +4995,7 @@ QuantifierExpression<out Expression q, bool allowLemma, bool allowLambda>
      } else {
        q = new ExistsExpr(x, t, bvars, range, body, attrs);
      }
-     q.StartToken = x; q.EndToken = t;
+     q.RangeToken = new RangeToken(x, t);
   .)
   .
 
@@ -5085,7 +5069,7 @@ SetComprehensionExpr<out Expression q, bool allowLemma, bool allowLambda, bool a
        }
        q = new SetComprehension(setToken, t, finite, bvars, range, body, attrs);
      }
-     q.StartToken = t; q.EndToken = t;
+     q.RangeToken = new RangeToken(t, t);
   .)
   .
 
@@ -5127,7 +5111,7 @@ Attribute<ref Attributes attrs>
   [ Expressions<args> ]
   "}"                         (. closeBrace = t; .)
   (. attrs = new UserSuppliedAttributes(x, openBrace, closeBrace, args, attrs);
-     attrs.StartToken = openBrace; attrs.EndToken = t;
+     attrs.RangeToken = new RangeToken(openBrace, t);
   .)
   .
 

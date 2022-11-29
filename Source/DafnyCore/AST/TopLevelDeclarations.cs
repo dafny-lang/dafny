@@ -20,8 +20,6 @@ public abstract class Declaration : INode, INamedRegion, IAttributeBearingDeclar
   public IToken tok;
   public IToken BodyStartTok = Token.NoToken;
   public IToken BodyEndTok = Token.NoToken;
-  public IToken StartToken = Token.NoToken;
-  public IToken EndToken = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
   public IEnumerable<IToken> OwnedTokens { get; set; } = new List<IToken>();
   public string Name;
@@ -506,7 +504,7 @@ public class ExportSignature : INode, IHasUsages {
     ClassId = prefix;
     Id = id;
     Opaque = opaque;
-    ownedTokens = new List<IToken>() { Tok, prefixTok };
+    OwnedTokensCache = new List<IToken>() { Tok, prefixTok };
   }
 
   public ExportSignature(IToken idTok, string id, bool opaque) {
@@ -515,7 +513,7 @@ public class ExportSignature : INode, IHasUsages {
     Tok = idTok;
     Id = id;
     Opaque = opaque;
-    ownedTokens = new List<IToken>() { Tok };
+    OwnedTokensCache = new List<IToken>() { Tok };
   }
 
   public override string ToString() {

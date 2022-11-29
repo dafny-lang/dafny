@@ -34,10 +34,12 @@ namespace Microsoft.Dafny {
     /// </summary>
     public abstract IEnumerable<INode> Children { get; }
 
-    public IToken? StartToken { get; set; } = Token.NoToken;
-    public IToken? EndToken { get; set; } = Token.NoToken;
+    public RangeToken? RangeToken { get; set; } = null;
 
-    protected IEnumerable<IToken>? ownedTokens;
+    public IToken? StartToken => RangeToken?.StartToken;
+    public IToken? EndToken => RangeToken?.EndToken;
+
+    protected IReadOnlyList<IToken>? OwnedTokensCache;
 
     /// <summary>
     /// A token is owned by a node if it was used to parse this node,
@@ -45,49 +47,47 @@ namespace Microsoft.Dafny {
     /// </summary>
     IEnumerable<IToken> OwnedTokens {
       get {
-        if (ownedTokens == null) {
-          var startNotOwnedToken = Children.Select(child => child.StartToken).ToImmutableHashSet();
-          var endNotOwnedToken = Children.Select(child => child.EndToken).ToImmutableHashSet();
-
-          var tmpTokens = new List<IToken>();
-          if (StartToken == null) {
-            if (EndToken != null) {
-              if (!endNotOwnedToken.Contains(EndToken)) {
-                tmpTokens.Add(EndToken);
-              }
-            }
-          } else {
-            var canOwnTokens = true;
-            if (!startNotOwnedToken.Contains(StartToken)) {
-              tmpTokens.Add(StartToken);
-            } else {
-              canOwnTokens = false;
-            }
-
-            if (EndToken != null) {
-              var tmpToken = StartToken.Next;
-              while (tmpToken != null && tmpToken != EndToken) {
-                var startsNotBeingOwned = startNotOwnedToken.Contains(tmpToken);
-                if (!startsNotBeingOwned && canOwnTokens) {
-                  tmpTokens.Add(tmpToken);
-                } else {
-                  canOwnTokens = false;
-                }
-
-                if (endNotOwnedToken.Contains(tmpToken)) {
-                  canOwnTokens = true;
-                }
-
-                tmpToken = tmpToken.Next;
-              }
-            }
-          }
-
-
-          ownedTokens = tmpTokens;
+        if (OwnedTokensCache != null) {
+          return OwnedTokensCache;
         }
 
-        return ownedTokens;
+        var startNotOwnedToken = Children.Select(child => child.StartToken).ToImmutableHashSet();
+        var endNotOwnedToken = Children.Select(child => child.EndToken).ToImmutableHashSet();
+
+        var result = new List<IToken>();
+        if (StartToken == null) {
+          Contract.Assume(EndToken == null);
+        } else {
+          var canOwnTokens = true;
+          if (!startNotOwnedToken.Contains(StartToken)) {
+            result.Add(StartToken);
+          } else {
+            canOwnTokens = false;
+          }
+
+          if (EndToken != null) {
+            var tmpToken = StartToken.Next;
+            while (tmpToken != null && tmpToken != EndToken) {
+              var startsNotBeingOwned = startNotOwnedToken.Contains(tmpToken);
+              if (!startsNotBeingOwned && canOwnTokens) {
+                result.Add(tmpToken);
+              } else {
+                canOwnTokens = false;
+              }
+
+              if (endNotOwnedToken.Contains(tmpToken)) {
+                canOwnTokens = true;
+              }
+
+              tmpToken = tmpToken.Next;
+            }
+          }
+        }
+
+
+        OwnedTokensCache = result;
+
+        return OwnedTokensCache;
       }
     }
   }
