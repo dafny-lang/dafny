@@ -775,8 +775,7 @@ namespace Microsoft.Dafny {
         }
 
         if (s.ResolvedStatements != null) {
-          rr.ResolvedStatements = new();
-          rr.ResolvedStatements.AddRange(s.ResolvedStatements.ConvertAll(SubstStmt));
+          rr.ResolvedStatements = s.ResolvedStatements.ConvertAll(SubstStmt);
         }
         r = rr;
       } else if (stmt is VarDeclStmt) {
