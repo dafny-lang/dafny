@@ -842,15 +842,6 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Assume(variance.Count == typeArgs.Count);
       string s = IdProtect(fullCompileName);
       if (typeArgs.Count != 0 && !omitTypeArguments) {
-        for (var i = 0; i < typeArgs.Count; i++) {
-          var v = variance[i];
-          var ta = typeArgs[i];
-          if (ComplicatedTypeParameterForCompilation(v, ta)) {
-            UnsupportedFeatureError(tok, Feature.TraitTypeParameters,
-              "compilation does not support trait types as a type parameter (got '{0}'{1}); consider introducing a ghost", wr,
-              ta, typeArgs.Count == 1 ? "" : $" for type parameter {i}");
-          }
-        }
         s += "<" + BoxedTypeNames(typeArgs, wr, tok) + ">";
       }
       return s;
@@ -939,7 +930,19 @@ namespace Microsoft.Dafny.Compilers {
       var wRestOfBody = wBody.Fork();
       var targetTypeName = BoxedTypeName(UserDefinedType.FromTopLevelDecl(cls.tok, cls, null), wTypeMethod, cls.tok);
       EmitTypeMethod(cls, javaName, typeParameters, typeParameters, targetTypeName, null, wTypeMethod);
+
+      if (fullPrintName != null) {
+        // By emitting a toString() method, printing an object will give the same output as with other target languages.
+        EmitToString(fullPrintName, wBody);
+      }
+
       return new ClassWriter(this, wRestOfBody, wCtorBody);
+    }
+
+    private void EmitToString(string fullPrintName, ConcreteSyntaxTree wr) {
+      wr.WriteLine("@Override");
+      wr.NewBlock("public java.lang.String toString()")
+        .WriteLine($"return \"{fullPrintName}\";");
     }
 
     /// <summary>
@@ -1796,7 +1799,9 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         var nonGhostFormals = groundingCtor.Formals.Where(f => !f.IsGhost).ToList();
         var args = nonGhostFormals.Comma(f => DefaultValue(f.Type, wDefault, f.tok));
-        EmitDatatypeValue(dt, groundingCtor, null, dt is CoDatatypeDecl, args, wDefault);
+        EmitDatatypeValue(dt, groundingCtor,
+          dt.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(dt.tok, tp)),
+          dt is CoDatatypeDecl, args, wDefault);
       }
 
       var targetTypeName = BoxedTypeName(UserDefinedType.FromTopLevelDecl(dt.tok, dt, null), wr, dt.tok);
@@ -1921,7 +1926,7 @@ namespace Microsoft.Dafny.Compilers {
         wr.WriteLine();
         EmitSuppression(wr); //TODO: Fix implementations so they do not need this suppression
         var w = wr.NewNamedBlock($"public class {dt.CompileName}__Lazy{typeParams} extends {IdName(dt)}{typeParams}");
-        w.WriteLine($"interface Computer {{ {dt.CompileName} run(); }}");
+        w.WriteLine($"public interface Computer {{ {dt.CompileName} run(); }}");
         w.WriteLine("Computer c;");
         w.WriteLine($"{dt.CompileName}{typeParams} d;");
         w.WriteLine($"public {dt.CompileName}__Lazy(Computer c) {{ this.c = c; }}");
@@ -2584,9 +2589,9 @@ namespace Microsoft.Dafny.Compilers {
       EmitDatatypeValue(dt, dtv.Ctor, typeArgs, dtv.IsCoCall, arguments, wr);
     }
 
-    void EmitDatatypeValue(DatatypeDecl dt, DatatypeCtor ctor, List<Type>/*?*/ typeArgs, bool isCoCall, string arguments, ConcreteSyntaxTree wr) {
+    void EmitDatatypeValue(DatatypeDecl dt, DatatypeCtor ctor, List<Type> typeArgs, bool isCoCall, string arguments, ConcreteSyntaxTree wr) {
       var dtName = dt is TupleTypeDecl tupleDecl ? DafnyTupleClass(tupleDecl.NonGhostDims) : dt.FullCompileName;
-      var typeParams = typeArgs == null || typeArgs.Count == 0 ? "" : $"<{BoxedTypeNames(typeArgs, wr, dt.tok)}>";
+      var typeParams = typeArgs.Count == 0 ? "" : $"<{BoxedTypeNames(typeArgs, wr, dt.tok)}>";
       if (!isCoCall) {
         // For an ordinary constructor (that is, one that does not guard any co-recursive calls), generate:
         //   Dt.<T>create_Cons( args )
@@ -2594,7 +2599,7 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         wr.Write($"new {dt.CompileName}__Lazy(");
         wr.Write("() -> { return ");
-        wr.Write($"new {DtCtorName(ctor)}({arguments})");
+        wr.Write($"new {DtCtorName(ctor)}{typeParams}({arguments})");
         wr.Write("; })");
       }
     }
@@ -3699,6 +3704,10 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override bool NeedsCastFromTypeParameter => true;
 
+    protected override bool TargetSubtypingRequiresEqualTypeArguments(Type type) {
+      return type.AsCollectionType == null;
+    }
+
     protected override bool IsCoercionNecessary(Type/*?*/ from, Type/*?*/ to) {
       if (to == NativeObjectType) {
         return false;
@@ -3770,7 +3779,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree EmitDowncast(Type from, Type to, IToken tok, ConcreteSyntaxTree wr) {
-      wr.Write($"(({TypeName(to, wr, tok)})(");
+      wr.Write($"(({TypeName(to, wr, tok)})(java.lang.Object)(");
       var w = wr.Fork();
       wr.Write("))");
       return w;

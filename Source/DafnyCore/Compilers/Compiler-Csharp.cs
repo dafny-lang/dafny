@@ -522,7 +522,7 @@ namespace Microsoft.Dafny.Compilers {
         if (dt is CoDatatypeDecl) {
           var wCo = wDefault;
           wDefault = new ConcreteSyntaxTree();
-          wCo.Format($"new {dt.CompileName}__Lazy{DtT_TypeArgs}(() => {{ return {wDefault}; }})");
+          wCo.Format($"new {dt.FullCompileName}__Lazy{DtT_TypeArgs}(() => {{ return {wDefault}; }})");
         }
 
         wDefault.Write(DtCreateName(groundingCtor));
@@ -609,7 +609,7 @@ namespace Microsoft.Dafny.Compilers {
       var typeArgs = TypeParameters(nonGhostTypeArgs);
       var dtArgs = "_I" + datatype.CompileName + uTypeArgs;
       var converters = $"{nonGhostTypeArgs.Comma((_, i) => $"converter{i}")}";
-      var lazyClass = $"{datatype.CompileName}__Lazy";
+      var lazyClass = $"{datatype.FullCompileName}__Lazy";
       string PrintConverter(TypeParameter tArg, int i) {
         var name = IdName(tArg);
         return $"Func<{name}, __{name}> converter{i}";
@@ -1743,10 +1743,10 @@ namespace Microsoft.Dafny.Compilers {
         if (isPublic) {
           if (isConst) {
             cw.InstanceMemberWriter.Write(
-              $"{publik}{konst} {virtuall} {typeName} {name} {{get;}}");
+              $"{publik}{konst}{virtuall} {typeName} {name} {{get;}}");
           } else {
             cw.InstanceMemberWriter.Write(
-              $"{publik} {virtuall} {typeName} {name} {{get; set;}}");
+              $"{publik}{virtuall} {typeName} {name} {{get; set;}}");
           }
         } else {
           cw.InstanceMemberWriter.WriteLine($"{publik}{konst} {typeName} {name}");
@@ -2383,7 +2383,7 @@ namespace Microsoft.Dafny.Compilers {
         //     new Dt__Lazy<T>( LAMBDA )
         // where LAMBDA is:
         //     () => { return Dt_Cons<T>( ...args... ); }
-        wr.Write($"new {dtv.DatatypeName}__Lazy{typeParams}(");
+        wr.Write($"new {dtName}__Lazy{typeParams}(");
         wr.Write("() => { return ");
         wr.Write("new {0}({1})", DtCtorName(dtv.Ctor, dtv.InferredTypeArgs, wr), arguments);
         wr.Write("; })");
