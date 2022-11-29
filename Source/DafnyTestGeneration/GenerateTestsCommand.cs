@@ -16,7 +16,6 @@ public class GenerateTestsCommand : ICommandSpec {
       VerificationTimeLimitOption.Instance,
       VerboseOption.Instance,
       PrintBpl.Instance,
-      PrintStats.Instance,
       TimeLimit.Instance
     }.Concat(ICommandSpec.CommonOptions);
 
@@ -123,18 +122,6 @@ internal class PrintBpl : StringOption {
   public override string Description => "Print the Boogie code used during test generation.";
   public override string PostProcess(DafnyOptions options) {
     options.TestGenOptions.PrintBpl = Get(options);
-    return null!;
-  }
-}
-
-internal class PrintStats : StringOption {
-  public static readonly PrintStats Instance = new();
-  public override object DefaultValue => null!;
-  public override string LongName => "print-stats";
-  public override string ArgumentName => "filename";
-  public override string Description => "Create a json file with the summary statistics about the generated tests.";
-  public override string PostProcess(DafnyOptions options) {
-    options.TestGenOptions.PrintStats = Get(options);
     return null!;
   }
 }

@@ -64,12 +64,6 @@ namespace Microsoft.Dafny {
           }
           return true;
 
-        case "generateTestPrintStats":
-          if (ps.ConfirmArgumentCount(1)) {
-            PrintStats = args[ps.i];
-          }
-          return true;
-
         case "generateTestVerbose":
           Verbose = true;
           return true;
@@ -99,8 +93,6 @@ namespace Microsoft.Dafny {
     should be inlined.
 /generateTestPrintBpl:<fileName>
     Print the Boogie code used during test generation.
-/generateTestPrintStats:<fileName>
-    Create a json file with the summary statistics about the generated tests.
 /generateTestVerbose
     Print various debugging info as comments for the generated tests.";
 

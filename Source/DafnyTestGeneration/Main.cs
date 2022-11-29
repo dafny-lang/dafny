@@ -1,10 +1,8 @@
 #nullable disable
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Program = Microsoft.Dafny.Program;
 
@@ -19,7 +17,7 @@ namespace DafnyTestGeneration {
     /// loop unrolling may cause false negatives.
     /// </summary>
     /// <returns></returns>
-    public async static IAsyncEnumerable<string> GetDeadCodeStatistics(Program program) {
+    public static async IAsyncEnumerable<string> GetDeadCodeStatistics(Program program) {
 
       DafnyOptions.O.PrintMode = DafnyOptions.PrintModes.Everything;
       ProgramModification.ResetStatistics();
@@ -88,22 +86,16 @@ namespace DafnyTestGeneration {
     /// Generate test methods for a certain Dafny program.
     /// </summary>
     /// <returns></returns>
-    public async static IAsyncEnumerable<TestMethod> GetTestMethodsForProgram(Program program) {
+    public static async IAsyncEnumerable<TestMethod> GetTestMethodsForProgram(Program program) {
 
       DafnyOptions.O.PrintMode = DafnyOptions.PrintModes.Everything;
       ProgramModification.ResetStatistics();
       var dafnyInfo = new DafnyInfo(program);
-      HashSet<Implementation> implementations = new();
-      Dictionary<Implementation, int> testCount = new();
-      Dictionary<Implementation, int> failedTestCount = new();
       // Generate tests based on counterexamples produced from modifications
-      var numTestsGenerated = 0;
 
       foreach (var modification in GetModifications(program)) {
-        var blockCapturedState = "";
 
         var log = await modification.GetCounterExampleLog();
-        implementations.Add(modification.Implementation);
         if (log == null) {
           continue;
         }
@@ -111,31 +103,14 @@ namespace DafnyTestGeneration {
         if (testMethod == null) {
           continue;
         }
-        if (!testMethod.IsValid) {
-          failedTestCount[modification.Implementation] =
-            failedTestCount.GetValueOrDefault(modification.Implementation, 0) +
-            1;
-        }
-        testCount[modification.Implementation] =
-          testCount.GetValueOrDefault(modification.Implementation, 0) + 1;
-        if (testMethod.IsValid) {
-          Console.WriteLine("// newly covered:" + blockCapturedState);
-          numTestsGenerated += 1;
-        }
         yield return testMethod;
-      }
-
-      if (DafnyOptions.O.TestGenOptions.PrintStats != null) {
-        StatsPrinter printer = new StatsPrinter();
-        printer.PopulateInformation(dafnyInfo, implementations, testCount, failedTestCount);
-        printer.WriteToFile(DafnyOptions.O.TestGenOptions.PrintStats);
       }
     }
 
     /// <summary>
     /// Return a Dafny class (list of lines) with tests for the given Dafny file
     /// </summary>
-    public async static IAsyncEnumerable<string> GetTestClassForProgram(string sourceFile) {
+    public static async IAsyncEnumerable<string> GetTestClassForProgram(string sourceFile) {
 
       DafnyOptions.O.PrintMode = DafnyOptions.PrintModes.Everything;
       TestMethod.ClearTypesToSynthesize();

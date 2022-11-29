@@ -19,45 +19,43 @@ namespace DafnyTestGeneration {
   public class ProgramModification {
 
     private static Dictionary<string, ProgramModification>
-      IdToModification = new();
+      idToModification = new();
 
-    public enum Status { Success, Failure, Untested }
+    private enum Status { Success, Failure, Untested }
 
-    public Status CounterexampleStatus;
-    public readonly Implementation Implementation; // implementation under test
-    public readonly string UniqueId;
-    // if set to true, this modification will be ignored when generating tests
-    // and performing coverage reports
-    public bool ToBeIgnored;
+    private Status counterexampleStatus;
+    private readonly Implementation implementation; // implementation under test
+
+    private readonly string uniqueId;
     public readonly HashSet<string> CapturedStates;
 
     private readonly string procedure; // procedure to start verification from
     private Program/*?*/ program;
-    internal readonly HashSet<int> coversBlocks;
+    private readonly HashSet<int> coversBlocks;
     private string/*?*/ counterexampleLog;
     private TestMethod testMethod;
 
     public static ProgramModification GetProgramModification(Program program,
       Implementation impl, HashSet<int> coversBlocks, HashSet<string> capturedStates, string procedure,
       string uniqueId) {
-      if (!IdToModification.ContainsKey(uniqueId)) {
-        IdToModification[uniqueId] =
+      if (!idToModification.ContainsKey(uniqueId)) {
+        idToModification[uniqueId] =
           new ProgramModification(program, impl, coversBlocks, capturedStates, procedure,
             uniqueId);
       }
-      return IdToModification[uniqueId];
+      return idToModification[uniqueId];
     }
 
     private ProgramModification(Program program, Implementation impl,
       HashSet<int> coversBlocks, HashSet<string> capturedStates,
       string procedure, string uniqueId) {
-      Implementation = impl;
-      CounterexampleStatus = Status.Untested;
+      implementation = impl;
+      counterexampleStatus = Status.Untested;
       this.program = Utils.DeepCloneProgram(program);
       this.procedure = procedure;
       this.coversBlocks = coversBlocks;
       CapturedStates = capturedStates;
-      UniqueId = uniqueId;
+      this.uniqueId = uniqueId;
       counterexampleLog = null;
       testMethod = null;
     }
@@ -81,7 +79,6 @@ namespace DafnyTestGeneration {
         "O:model_evaluator.completion=true",
         "O:model.completion=true"
       };
-      options.TimeLimit = DafnyOptions.O.TimeLimit;
       options.Prune = false;
       options.ProverOptions.AddRange(DafnyOptions.O.ProverOptions);
       options.LoopUnrollCount = DafnyOptions.O.LoopUnrollCount;
@@ -98,7 +95,7 @@ namespace DafnyTestGeneration {
     /// counterexample does not cover any new SourceModifications.
     /// </summary>
     public async Task<string>/*?*/ GetCounterExampleLog() {
-      if (CounterexampleStatus != Status.Untested ||
+      if (counterexampleStatus != Status.Untested ||
           (coversBlocks.Count != 0 && IsCovered)) {
         return counterexampleLog;
       }
@@ -119,13 +116,13 @@ namespace DafnyTestGeneration {
           Task.Delay(TimeSpan.FromSeconds(oldOptions.TimeLimit <= 0 ?
             TestGenerationOptions.DefaultTimeLimit : oldOptions.TimeLimit)));
       program = null; // allows to garbage collect what is no longer needed
-      CounterexampleStatus = Status.Failure;
+      counterexampleStatus = Status.Failure;
       counterexampleLog = null;
       DafnyOptions.Install(oldOptions);
       if (result is not Task<PipelineOutcome>) {
         if (DafnyOptions.O.TestGenOptions.Verbose) {
           Console.WriteLine(
-            $"// No test can be generated for {UniqueId} " +
+            $"// No test can be generated for {uniqueId} " +
             "because the verifier timed out.");
         }
         return counterexampleLog;
@@ -136,30 +133,30 @@ namespace DafnyTestGeneration {
       while (await stringReader.ReadLineAsync() is { } line) {
         if (line.StartsWith("Block |")) {
           counterexampleLog = log;
-          CounterexampleStatus = Status.Success;
+          counterexampleStatus = Status.Success;
           var blockId = int.Parse(Regex.Replace(line, @"\s+", "").Split('|')[2]);
           coversBlocks.Add(blockId);
           if (DafnyOptions.O.TestGenOptions.Verbose) {
-            Console.WriteLine($"// Test {UniqueId} covers block {blockId}");
+            Console.WriteLine($"// Test {uniqueId} covers block {blockId}");
           }
         }
       }
       if (DafnyOptions.O.TestGenOptions.Verbose && counterexampleLog == null) {
         if (log == "") {
           Console.WriteLine(
-            $"// No test can be generated for {UniqueId} " +
+            $"// No test can be generated for {uniqueId} " +
             "because the verifier suceeded.");
         } else if (log.Contains("MODEL")) {
           Console.WriteLine(
-            $"// No test can be generated for {UniqueId} " +
+            $"// No test can be generated for {uniqueId} " +
             "because there is no enhanced error trace.");
         } else if (log.Contains("anon0")) {
           Console.WriteLine(
-            $"// No test can be generated for {UniqueId} " +
+            $"// No test can be generated for {uniqueId} " +
             "because the model cannot be extracted.");
         } else {
           Console.WriteLine(
-            $"// No test can be generated for {UniqueId} " +
+            $"// No test can be generated for {uniqueId} " +
             "because the verifier timed out.");
         }
       }
@@ -169,7 +166,7 @@ namespace DafnyTestGeneration {
     public async Task<TestMethod> GetTestMethod(DafnyInfo dafnyInfo, bool returnNullIfNotUnique = true) {
       if (DafnyOptions.O.TestGenOptions.Verbose) {
         Console.WriteLine(
-          $"// Extracting the test for {UniqueId} from the counterexample...");
+          $"// Extracting the test for {uniqueId} from the counterexample...");
       }
       var log = await GetCounterExampleLog();
       if (log == null) {
@@ -179,7 +176,7 @@ namespace DafnyTestGeneration {
       if (!testMethod.IsValid || !returnNullIfNotUnique) {
         return testMethod;
       }
-      var duplicate = ModificationsForImplementation(Implementation)
+      var duplicate = ModificationsForImplementation(implementation)
         .Where(mod => mod != this && Equals(mod.testMethod, testMethod))
         .FirstOrDefault((ProgramModification)null);
       if (duplicate == null) {
@@ -187,42 +184,28 @@ namespace DafnyTestGeneration {
       }
       if (DafnyOptions.O.TestGenOptions.Verbose) {
         Console.WriteLine(
-          $"// Test for {UniqueId} matches a test previously generated " +
-          $"for {duplicate.UniqueId}.");
+          $"// Test for {uniqueId} matches a test previously generated " +
+          $"for {duplicate.uniqueId}.");
       }
       return null;
     }
 
     private static IEnumerable<ProgramModification>
       ModificationsForImplementation(Implementation implementation) =>
-      IdToModification.Values.Where(modification =>
-        modification.Implementation == implementation ||
+      idToModification.Values.Where(modification =>
+        modification.implementation == implementation ||
         DafnyOptions.O.TestGenOptions.TargetMethod != null);
 
     private static bool BlocksAreCovered(Implementation implementation, HashSet<int> blockIds, bool onlyIfTestsExists = false) {
       var relevantModifications = ModificationsForImplementation(implementation).Where(modification =>
-        !modification.ToBeIgnored && modification.CounterexampleStatus == Status.Success && (!onlyIfTestsExists || (modification.testMethod != null && modification.testMethod.IsValid)));
+        modification.counterexampleStatus == Status.Success && (!onlyIfTestsExists || (modification.testMethod != null && modification.testMethod.IsValid)));
       return blockIds.All(blockId =>
         relevantModifications.Any(mod => mod.coversBlocks.Contains(blockId)));
     }
-
-    public static int NOfBlocksCovered(Implementation implementation, bool onlyIfTestsExists = false) {
-      var relevantModifications = ModificationsForImplementation(implementation).Where(modification =>
-        !modification.ToBeIgnored && modification.CounterexampleStatus == Status.Success && (!onlyIfTestsExists || (modification.testMethod != null && modification.testMethod.IsValid)));
-      var blockIds = implementation.Blocks.Where(block => block.Cmds.Count != 0)
-        .Select(block => block.UniqueId).ToHashSet();
-      return blockIds.Count(blockId =>
-        relevantModifications.Any(mod => mod.coversBlocks.Contains(blockId)));
-    }
-
-    public static int NWithStatus(Implementation implementation, Status status) =>
-      ModificationsForImplementation(implementation)
-        .Count(mod => mod.CounterexampleStatus == status);
-
-    public bool IsCovered => BlocksAreCovered(Implementation, coversBlocks);
+    public bool IsCovered => BlocksAreCovered(implementation, coversBlocks);
 
     public static void ResetStatistics() {
-      IdToModification = new();
+      idToModification = new();
     }
   }
 }
