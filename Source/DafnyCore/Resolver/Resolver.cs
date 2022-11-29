@@ -14767,7 +14767,8 @@ namespace Microsoft.Dafny {
             var ambiguousMember = (AmbiguousMemberDecl)member;
             reporter.Error(MessageSource.Resolver, expr.tok, "The name {0} ambiguously refers to a static member in one of the modules {1} (try qualifying the member name with the module name)", expr.SuffixName, ambiguousMember.ModuleNames());
           } else {
-            var receiver = new StaticReceiverExpr(expr.Lhs.tok, (ClassDecl)member.EnclosingClass, false, expr.Lhs);
+            var receiver = new StaticReceiverExpr(expr.Lhs.tok, (ClassDecl)member.EnclosingClass, false);
+            receiver.ContainerExpression = expr.Lhs;
             r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           }
         } else {
@@ -14810,7 +14811,8 @@ namespace Microsoft.Dafny {
               reporter.Error(MessageSource.Resolver, expr.tok, "accessing member '{0}' requires an instance expression", name); //TODO Unify with similar error messages
               // nevertheless, continue creating an expression that approximates a correct one
             }
-            var receiver = new StaticReceiverExpr(expr.Lhs.tok, (UserDefinedType)ty.NormalizeExpand(), (TopLevelDeclWithMembers)member.EnclosingClass, false, expr.Lhs);
+            var receiver = new StaticReceiverExpr(expr.Lhs.tok, (UserDefinedType)ty.NormalizeExpand(), (TopLevelDeclWithMembers)member.EnclosingClass, false);
+            receiver.ContainerExpression = expr.Lhs;
             r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           }
         }

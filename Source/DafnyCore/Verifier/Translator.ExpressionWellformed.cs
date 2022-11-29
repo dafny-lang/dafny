@@ -262,8 +262,8 @@ namespace Microsoft.Dafny {
       }
 
       if (expr is StaticReceiverExpr stexpr) {
-        if (stexpr.OriginalResolved is { Type: not Resolver_IdentifierExpr.ResolverType_Module and not Resolver_IdentifierExpr.ResolverType_Type }) {
-          CheckWellformedWithResult(stexpr.OriginalResolved, options, null, null, locals, builder, etran);
+        if (stexpr.ObjectToDiscard != null) {
+          CheckWellformedWithResult(stexpr.ObjectToDiscard, options, null, null, locals, builder, etran);
         }
       } else if (expr is LiteralExpr) {
         CheckResultToBeInType(expr.tok, expr, expr.Type, locals, builder, etran);
