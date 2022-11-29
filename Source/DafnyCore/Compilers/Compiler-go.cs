@@ -906,7 +906,7 @@ namespace Microsoft.Dafny.Compilers {
       if (nt.NativeType != null) {
         var wIntegerRangeBody = w.NewNamedBlock("func (_this *{0}) IntegerRange(lo _dafny.Int, hi _dafny.Int) _dafny.Iterator", FormatCompanionTypeName(IdName(nt)));
         wIntegerRangeBody.WriteLine("iter := _dafny.IntegerRange(lo, hi)");
-        var wIterFuncBody = wIntegerRangeBody.NewBlock("return func() (any, bool)");
+        var wIterFuncBody = wIntegerRangeBody.NewBlock($"return func() ({AnyType}, bool)");
         wIterFuncBody.WriteLine("next, ok := iter()");
         wIterFuncBody.WriteLine("if !ok {{ return {0}(0), false }}", nativeType);
         wIterFuncBody.WriteLine("return next.(_dafny.Int).{0}(), true", Capitalize(nativeType));
