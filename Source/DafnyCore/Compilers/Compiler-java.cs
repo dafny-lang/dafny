@@ -940,8 +940,8 @@ namespace Microsoft.Dafny.Compilers {
 
     private void EmitToString(string fullPrintName, ConcreteSyntaxTree wr) {
       wr.WriteLine("@Override");
-      var wrBody = wr.NewBlock("public java.lang.String toString()");
-      wrBody.WriteLine($"return \"{fullPrintName}\";");
+      wr.NewBlock("public java.lang.String toString()")
+        .WriteLine($"return \"{fullPrintName}\";");
     }
 
     /// <summary>
