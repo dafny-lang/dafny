@@ -6,9 +6,9 @@
 
 Structuring a program by breaking it into parts is an important part of creating large programs.
 In Dafny, this is accomplished via *modules*. Modules provide a way to
-group together related types, classes, methods, functions, and other modules together, as well as control the scope of
+group together related types, classes, methods, functions, and other modules, as well as control the scope of
 declarations.
-Modules may import each other for code reuse, and it is possible to abstract over modules to seperate an implementation
+Modules may import each other for code reuse, and it is possible to abstract over modules to separate an implementation
 from an interface.
 
 
@@ -52,7 +52,7 @@ module Mod {
 }
 ```
 
-Then you can refer the the members of the `Helpers` module within the `Mod`
+Then you can refer to the members of the `Helpers` module within the `Mod`
 module by prefixing them with "`Helpers.`". For example:
 
 ```dafny
@@ -63,17 +63,6 @@ module Mod {
       var f: int;
     }
   }
-  method m() {
-    var x := new Helpers.C;
-    x.doIt();
-    x.f := 4;
-  }
-}
-```
-
-```
-module Mod {
-  module Helpers { ... }
   method m() {
     var x := new Helpers.C;
     x.doIt();
@@ -118,10 +107,6 @@ module Mod {
 }
 ```
 
-```
-  assert x == 6;
-```
-
 to the end of `m()` will verify.
 
 ## Importing and Exporting Modules
@@ -140,18 +125,6 @@ module Helpers {
   {
     n + 1
   }
-}
-module Mod {
-  import A = Helpers
-  method m() {
-    assert A.addOne(5) == 6;
-  }
-}
-```
-
-```
-module Helpers {
-  ...
 }
 module Mod {
   import A = Helpers
@@ -265,9 +238,6 @@ module Mod {
   import A = Helpers
   function h(): A.T { A.f() }
 }
-```
-
-```
 module Mod2 {
   import M = Mod
   import A = Helpers`Body
@@ -308,7 +278,7 @@ module B {
 ### Export Consistency
 
 
-An `export` set must always present a coherent view of a module: anything that appears in an exported declaration must itself be exported. Revisiting the previous example, we could not create an `export` set that `reveals` `f` without also revealing `T`. This is for the simple reason that we would create a type constraint `0 : T` which cannot be solved if `T` is opaque. Similarly we cannot create an export set that `provides` or `reveals` `f` if we do not also at least provide `T`.
+An `export` set must always present a coherent view of a module: anything that appears in an exported declaration must itself be exported. Revisiting the previous example, we could not create an `export` set that `reveals` `f` without also revealing `T`, because the return type of `f` is `T`. This is for the simple reason that we would create a type constraint `0 : T` which cannot be solved if `T` is opaque. Similarly we cannot create an export set that `provides` or `reveals` `f` if we do not also at least provide `T`.
 
 ```
 module Helpers {
@@ -333,10 +303,10 @@ module Helpers {
 
 ```
 module Mod {
+  import A = Helpers
   export Try1 reveals h // error
   export Try2 reveals h, provides A.f, A.T // error, can't provide these directly
   export reveals h, provides A // good
-  import A = Helpers
   function h(): A.T { A.f() }
 }
 ```
@@ -354,9 +324,6 @@ module Mod {
   import A = Helpers
   function h(): A.T { A.f() }
 }
-```
-
-```
 module Mod2 {
   import M = Mod
   import MA = M.A
@@ -364,8 +331,6 @@ module Mod2 {
   function k(): MA.T { j() }
 }
 ```
-
-
 
 
 ## Opening Modules
@@ -390,15 +355,6 @@ module Mod {
 }
 ```
 
-```
-module Mod {
-  import opened Helpers
-  method m() {
-    assert addOne(5) == 6;
-  }
-}
-```
-
 When opening modules, the newly bound members will have low priority, so they will be hidden by local
 definitions. This means if you define a local function called `addOne`, the function from `Helpers`
 will no longer be available under that name. When modules are opened, the original name binding is still
@@ -411,20 +367,6 @@ module Helpers {
     n + 1
   }
 }
-module Mod {
-  import opened Helpers
-  function addOne(n: nat): nat {
-    n + 2
-  }
-  method m() {
-    assert addOne(5) == 6; // this is now false,
-                           // as this is the function just defined
-    assert Helpers.addOne(5) == 6; // this is still true
-  }
-}
-```
-
-```
 module Mod {
   import opened Helpers
   function addOne(n: nat): nat {
@@ -533,14 +475,6 @@ method m() {
 module B {
   method whatever() {}
 }
-```
-
-```
-import A = B
-method m() {
-  A.whatever();
-}
-module B { ... }
 ```
 
 In this case, everything is well defined because we can put `B` first, followed by the `A` import, and then finally `m()`. If there is no ordering,
