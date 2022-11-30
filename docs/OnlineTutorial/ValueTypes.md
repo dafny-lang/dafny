@@ -10,7 +10,7 @@ as set, you would construct the *union* of the original set and the singleton se
 containing the new element. The old set is still around, of course. This lack of a dependence
 on the heap makes value types especially useful in specification.
 
-This is not to say that you can't update things with value types in them. Variable that contain
+This is not to say that you can't update things with value types in them. Variables that contain
 a value type can be updated to have a new value of that type. It is just that any other variables or
 fields with the same set will keep their old value. Value types can contain references to
 the heap, as in the ubiquitous `set<object>`. In this case, the information in the value type
@@ -21,7 +21,7 @@ and used in real code in addition to specifications. Dafny's built in value type
 For a complete guide to various collection types and their operations,
 see the document on the [Dafny type system](http://leino.science/papers/krml243.html).
 Note, if you want to use these types in an executing program and you
-care about performance, use Dafny's `/optimize` option when compiling.
+care about performance, use Dafny's `-optimize` option when compiling.
 
 
 ## Sets
@@ -38,7 +38,7 @@ it has been created. A set has the type:
 
 for a set of integers, for example. In general, sets can be of almost any type, including objects. Concrete sets can be specified by using display notation:
 
-``` {.editonly}
+```dafny
 method()
 {
   var s1 := {}; // the empty set
@@ -48,19 +48,12 @@ method()
 }
 ```
 
-```dafny
-  var s1 := {}; // the empty set
-  var s2 := {1, 2, 3}; // set contains exactly 1, 2, and 3
-  assert s2 == {1,1,2,3,3,3,3}; // same as before
-  var s3, s4 := {1,2}, {1,4};
-```
-
 The set formed by the display is the expected set, containing just
 the elements specified. Above we also see that equality is defined
 for sets. Two sets are equal if they have exactly the same elements.
 New sets can be created from existing ones using the common set operations:
 
-``` {.editonly}
+```dafny
 method m ()
 {
   var s1 := {};
@@ -72,12 +65,6 @@ method m ()
 }
 ```
 
-```dafny
-  assert s2 + s4 == {1,2,3,4}; // set union
-  assert s2 * s3 == {1,2} && s2 * s4 == {1}; // set intersection
-  assert s2 - s3 == {3}; // set difference
-```
-
 Note that because sets can only contain at most one of each element,
 the union does not count repeated elements more than once. These
 operators will result in a finite set if both operands are finite,
@@ -86,7 +73,7 @@ operators, the set operators are always defined. In addition to set
 forming operators, there are comparison operators with their usual
 meanings:
 
-``` {.editonly}
+```dafny
 method m()
 {
   assert {1} <= {1, 2} && {1, 2} <= {1, 2}; // subset
@@ -94,19 +81,12 @@ method m()
   assert !({1, 2} <= {1, 4}) && !({1, 4} <= {1, 4}); // no relation
   assert {1, 2} == {1, 2} && {1, 3} != {1, 2}; // equality and non-equality
 }
-```
-
-```dafny
-  assert {1} <= {1, 2} && {1, 2} <= {1, 2}; // subset
-  assert {} < {1, 2} && !({1} < {1}); // strict, or proper, subset
-  assert !({1, 2} <= {1, 4}) && !({1, 4} <= {1, 4}); // no relation
-  assert {1, 2} == {1, 2} && {1, 3} != {1, 2}; // equality and non-equality
 ```
 
 Sets, like sequences, support the `in` and `!in` operators, to
 test element membership. For example:
 
-``` {.editonly}
+```dafny
 method m()
 {
   assert 5 in {1,3,4,5};
@@ -114,13 +94,6 @@ method m()
   assert 2 !in {1,3,4,5};
   assert forall x :: x !in {};
 }
-```
-
-```dafny
-  assert 5 in {1,3,4,5};
-  assert 1 in {1,3,4,5};
-  assert 2 !in {1,3,4,5};
-  assert forall x :: x !in {};
 ```
 
 Sets are used in several annotations, including reads and modifies
@@ -156,42 +129,30 @@ the type of the return value of `f(x)`. The values in the constructed set are th
 `x` itself acts only as a bridge between the predicate `p` and the function `f`. It
 usually has the same type as the resulting set, but it does not need to. As an example:
 
-``` {.editonly}
+```dafny
 method m()
 {
   assert (set x | x in {0,1,2} :: x * 1) == {0,1,2};
 }
-```
-
-```dafny
-  assert (set x | x in {0,1,2} :: x * 1) == {0,1,2};
 ```
 
 If the function is the identity, then the expression can be written with a particularly nice form:
 
-``` {.editonly}
+```dafny
 method m()
 {
   assert (set x | x in {0,1,2,3,4,5} && x < 3) == {0,1,2};
 }
-```
-
-```dafny
-  assert (set x | x in {0,1,2,3,4,5} && x < 3) == {0,1,2};
 ```
 
 General, non-identity functions in set comprehensions confuse Dafny easily. For example,
 the following is true, but Dafny cannot prove it:
 
-``` {.editonly}
+```dafny
 method m()
 {
   assert (set x | x in {0,1,2} :: x + 1) == {1,2,3};
 }
-```
-
-```dafny
-  assert (set x | x in {0,1,2} :: x + 1) == {1,2,3};
 ```
 
 This mechanism has the potential to create an infinite set, which is not allowed in Dafny.
@@ -216,11 +177,10 @@ types, rather than only characters. Sequence types are written:
   seq<int>
 ```
 
-for a sequence of integers, for example. (Note a known bug
-in Dafny prevents you from creating sequences of naturals, `nat`.)
+for a sequence of integers, for example. 
 For example, this function takes a sequence as a parameter:
 
-``` {.edit}
+```dafny
 predicate sorted(s: seq<int>)
 {
   forall i,j :: 0 <= i < j < |s| ==> s[i] <= s[j]
@@ -237,7 +197,7 @@ manipulate them. For example, another way of expressing sorted-ness is
 recursive: if the first element is smaller than the rest, and the rest is
 sorted, then the whole array is sorted:
 
-``` {.edit}
+```dafny
 predicate sorted2(s: seq<int>)
 {
   0 < |s| ==> (forall i :: 0 < i < |s| ==> s[0] <= s[i]) &&
@@ -271,8 +231,8 @@ Sequences can also be constructed from their elements, using *display notation*:
 ```
 
 Here we have a integer sequence variable in some imperative
-code containing the elements 1,2, and 3. Type inference has been used here to
-get the fact that the sequence is one of integers. This notation allows us to
+code containing the elements 1, 2, and 3. Type inference has been used here to
+determine that the sequence is one of integers. This notation allows us to
 construct empty sequences and singleton sequences:
 
 ```dafny
@@ -283,7 +243,7 @@ construct empty sequences and singleton sequences:
 Slice notation and display notation can be used to check
 properties of sequences:
 
-``` {.editonly}
+```dafny
 method m()
 {
   var s := [1, 2, 3, 4, 5];
@@ -295,22 +255,13 @@ method m()
 }
 ```
 
-```dafny
-  var s := [1, 2, 3, 4, 5];
-  assert s[|s|-1] == 5; //access the last element
-  assert s[|s|-1..|s|] == [5]; //slice just the last element, as a singleton
-  assert s[1..] == [2, 3, 4, 5]; // everything but the first
-  assert s[..|s|-1] == [1, 2, 3, 4]; // everything but the last
-  assert s == s[0..] == s[..|s|] == s[0..|s|] == s[..]; // the whole sequence
-```
-
 By far the most common operations on sequences are getting
-the first and last elements, and getting everything but the first and last
-elements, as these are often used in recursive functions, such as `sorted2`
+the first and last elements, and getting everything but the first or last
+element, as these are often used in recursive functions, such as `sorted2`
 above. In addition to being deconstructed by being accessed or sliced, sequences
 can also be concatenated, using the plus (`+`) symbol:
 
-``` {.editonly}
+```dafny
 method m()
 {
   var s := [1, 2, 3, 4, 5];
@@ -320,29 +271,18 @@ method m()
 }
 ```
 
-```dafny
-  assert [1,2,3] == [1] + [2,3];
-  assert s == s + [];
-  assert forall i :: 0 <= i <= |s| ==> s == s[..i] + s[i..];
-```
-
-The second assertion gives a relationship between
+The last assertion gives a relationship between
 concatenation and slicing. Because the slicing operation is exclusive on one
-side and inclusive on the other, the element appears in the concatenation
+side and inclusive on the other, the `i`th element appears in the concatenation
 exactly once, as it should. Note that the concatenation operation is
 associative:
 
-``` {.editonly}
+```dafny
 method m()
 {
   assert forall a: seq<int>, b: seq<int>, c: seq<int> ::
     (a + b) + c == a + (b + c);
 }
-```
-
-```dafny
-  assert forall a: seq<int>, b: seq<int>, c: seq<int> ::
-    (a + b) + c == a + (b + c);
 ```
 
 but that the Z3 theorem prover will not realize this unless
@@ -352,7 +292,7 @@ more information on why this is necessary).
 Sequences also support the `in` and `!in` operators, which test
 for containment within a sequence:
 
-``` {.editonly}
+```dafny
 method m()
 {
   var s := [1, 2, 3, 4, 5];
@@ -361,27 +301,17 @@ method m()
 }
 ```
 
-```dafny
-  assert 5 in s; // using s from before
-  assert 0 !in s;
-```
-
 This also allows us an alternate means of quantifying over
 the elements of a sequence, when we don't care about the index. For example, we
 can require that a sequence only contains elements which are indices into the
 sequence:
 
-``` {.editonly}
+```dafny
 method m()
 {
   var p := [2,3,1,0];
   assert forall i :: i in p ==> 0 <= i < |s|;
 }
-```
-
-```dafny
-  var p := [2,3,1,0];
-  assert forall i :: i in p ==> 0 <= i < |s|;
 ```
 
 This is a property of each individual element of the
@@ -393,7 +323,7 @@ arrays using sequences. While we can't change the original sequence, we can
 create a new sequence with the same elements everywhere except for the updated
 element:
 
-``` {.editonly}
+```dafny
 method m()
 {
   var s := [1,2,3,4];
@@ -401,15 +331,11 @@ method m()
 }
 ```
 
-```dafny
-  s[i := v] // replace index i by v in seq s
-```
-
 Of course, the index `i` has to be an index into the array. This syntax is just
 a shortcut for an operation that can be done with regular slicing and access operations.
 Can you fill in the code below that does this?
 
-``` {.editonly}
+```dafny
 function update(s: seq<int>, i: int, v: int): seq<int>
   requires 0 <= index < |s|
   ensures update(s, i, v) == s[i := v]
@@ -420,19 +346,10 @@ function update(s: seq<int>, i: int, v: int): seq<int>
 }
 ```
 
-```dafny
-function update(s: seq<int>, i: int, v: int): seq<int>
-  requires 0 <= index < |s|
-  ensures update(s, i, v) == s[i := v]
-{
-  // open in the editor to see the answer.
-}
-```
-
 You can also form a sequence from the elements of an array. This is done
 using the same "slice" notation as above:
 
-``` {.editonly}
+```dafny
 method m()
 {
   var a := new int[3]; // 3 element array of ints
@@ -442,17 +359,10 @@ method m()
 }
 ```
 
-```dafny
-  var a := new int[3]; // 3 element array of ints
-  a[0], a[1], a[2] := 0, 3, -1;
-  var s := a[..];
-  assert s == [0, 3, -1];
-```
-
-To get just part of the array, the bounds can be given just like in a regular
+To extract just part of the array, the bounds can be given just like in a regular
 slicing operation:
 
-``` {.editonly}
+```dafny
 method m()
 {
   var a := new int[3]; // 3 element array of ints
@@ -461,12 +371,6 @@ method m()
   assert a[..1] == [0];
   assert a[1..2] == [3];
 }
-```
-
-```dafny
-  assert a[1..] == [3, -1];
-  assert a[..1] == [0];
-  assert a[1..2] == [3];
 ```
 
 Because sequences support `in` and `!in`, this operation gives us
@@ -523,15 +427,11 @@ test whether some element is in a multiset (in means that it has at least one me
 union would have a total of three 3's. The multiset difference (`-`) works similarly, in that the duplicity of the elements
 (i.e. how many of each element are in the multiset) matters. So the following:
 
-``` {.editonly}
+```dafny
 method test()
 {
   assert (multiset{1,1,1} - multiset{1,1}) == multiset{1};
 }
-```
-
-```dafny
-  assert (multiset{1,1,1} - multiset{1,1}) == multiset{1};
 ```
 
 holds, because we start with three 1's, then take away two to be left with one.
@@ -542,17 +442,12 @@ Also, two multisets are equal if they have exactly the same count of each elemen
 
 Finally, multisets can be created from both sequences and sets by using multiset with parentheses:
 
-``` {.editonly}
+```dafny
 method test()
 {
   assert multiset([1,1]) == multiset{1,1};
   assert multiset({1,1}) == multiset{1};
 }
-```
-
-```dafny
-  assert multiset([1,1]) == multiset{1,1};
-  assert multiset({1,1}) == multiset{1};
 ```
 
 Both of these assertions are correct because the multiset of a sequence considers each element seperately,
@@ -578,16 +473,11 @@ to integers as `map<int, int>`. A literal of this type might be `map[4 := 5, 5 :
 associates 4 with 5 and 5 with 6. You can access the value for a given key with `m[key]`, if `m` is a
 map and `key` is a key. So we could write:
 
-``` {.editonly}
+```dafny
 method test() {
   var m := map[4 := 5, 5 := 6];
   assert m[4] == 5;
 }
-```
-
-```dafny
-  var m := map[4 := 5, 5 := 6];
-  assert m[4] == 5;
 ```
 
 This is because 4, taken as a key into `m`, produces 5. We also know that `m[5] == 6`, as this is
@@ -616,27 +506,19 @@ map i: T | p(i) :: f(i)
 The difference is that `i` is the key, and it is mapped to `f(i)`. `p(i)` is used to determine what the domain
 of the new map is. So:
 
-``` {.editonly}
+```dafny
 method test() {
   var m := map i | 0 <= i < 10 :: 2*i;
 }
 ```
 
-```dafny
-  map i | 0 <= i < 10 :: 2*i
-```
-
-is a map which take the numbers 0-9 to their doubles. This is also how you can remove a key from a map. For example, this expression
+is a map which takes the numbers 0-9 to their doubles. This is also how you can remove a key from a map. For example, this expression
 removes the key 3 from an `int` to `int` map `m`:
 
-``` {.editonly}
+```dafny
 method test() {
   var m := map[3 := 5, 4 := 6, 1 := 4];
   var l := map i | i in m && i != 3 :: m[i];
   assert l == map[4:= 6, 1 := 4];
 }
-```
-
-```dafny
-  map i | i in m && i != 3 :: m[i]
 ```
