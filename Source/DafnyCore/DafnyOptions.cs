@@ -428,12 +428,12 @@ namespace Microsoft.Dafny {
           return true;
 
         case "optimizeInvisibleDatatypeWrappers": {
-          int d = 1;
-          if (ps.GetIntArgument(ref d, 2)) {
-            OptimizeInvisibleDatatypeWrappers = d == 1;
+            int d = 1;
+            if (ps.GetIntArgument(ref d, 2)) {
+              OptimizeInvisibleDatatypeWrappers = d == 1;
+            }
+            return true;
           }
-          return true;
-        }
 
         case "verifyAllModules":
           VerifyAllModules = true;
