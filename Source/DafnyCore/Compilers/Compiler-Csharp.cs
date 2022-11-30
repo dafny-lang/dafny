@@ -2401,9 +2401,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, ConcreteSyntaxTree wr) {
       var dt = dtv.Ctor.EnclosingDatatype;
-      var dtName = "";
-      if (!dt.EnclosingModuleDefinition.IsDefaultModule) { dtName += IdProtect(dt.EnclosingModuleDefinition.CompileName) + "."; }
-      dtName += IdName(dt);
+      var dtName = dt.FullCompileName;
 
       var nonGhostInferredTypeArgs = SelectNonGhost(dt, dtv.InferredTypeArgs);
       var typeParams = nonGhostInferredTypeArgs.Count == 0 ? "" : $"<{TypeNames(nonGhostInferredTypeArgs, wr, dtv.tok)}>";
