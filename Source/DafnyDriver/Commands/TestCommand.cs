@@ -8,11 +8,9 @@ namespace Microsoft.Dafny;
 public class TestCommand : ICommandSpec {
   public IEnumerable<IOptionSpec> Options =>
     new IOptionSpec[] {
-      TargetOption.Instance,
-      NoVerifyOption.Instance,
-      EnforceDeterminismOption.Instance,
-      VerificationTimeLimitOption.Instance,
-    }.Concat(ICommandSpec.CommonOptions);
+    }.Concat(ICommandSpec.VerificationOptions).
+      Concat(ICommandSpec.ExecutionOptions).
+      Concat(ICommandSpec.CommonOptions);
 
   public Command Create() {
     var result = new Command("test", "(Experimental) Execute every method in the program that's annotated with the {:test} attribute.");
