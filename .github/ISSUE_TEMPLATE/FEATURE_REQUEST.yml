@@ -1,7 +1,6 @@
 name: Feature Request
 description: Request a feature for Dafny
-title: "[Feature request]: "
-labels: []
+labels: ["kind: enhancement"]
 body:
   - type: markdown
     attributes:
