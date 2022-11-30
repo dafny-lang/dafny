@@ -9120,7 +9120,7 @@ namespace Microsoft.Dafny {
           var expr = (SubstLetExpr)e;
           var orgExpr = expr.orgExpr;
           Expression d = LetDesugaring(orgExpr);
-          e.setTranslationDesugaring(this, Substitute(d, null, expr.substMap, expr.typeMap));
+          e.SetTranslationDesugaring(this, Substitute(d, null, expr.substMap, expr.typeMap));
           var orgInfo = letSuchThatExprInfo[orgExpr];
           letSuchThatExprInfo.Add(expr, new LetSuchThatExprInfo(orgInfo, this, expr.substMap, expr.typeMap));
         } else {
@@ -9170,7 +9170,7 @@ namespace Microsoft.Dafny {
             }
             var expr = new LetExpr(e.tok, e.LHSs, rhss, e.Body, true);
             expr.Type = e.Type; // resolve here
-            e.setTranslationDesugaring(this, expr);
+            e.SetTranslationDesugaring(this, expr);
           }
         }
       }

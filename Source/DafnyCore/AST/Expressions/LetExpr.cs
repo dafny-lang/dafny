@@ -20,7 +20,7 @@ public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBeari
   IToken IRegion.BodyStartTok { get { return BodyStartTok; } }
   IToken IRegion.BodyEndTok { get { return BodyEndTok; } }
 
-  public void setTranslationDesugaring(Translator trans, Expression expr) {
+  public void SetTranslationDesugaring(Translator trans, Expression expr) {
     lastTranslatorUsed = trans;
     translationDesugaring = expr;
   }
