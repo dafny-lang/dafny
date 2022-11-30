@@ -64,7 +64,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
 
 public class LineVerificationStatusOption : BooleanOption {
   public static readonly LineVerificationStatusOption Instance = new();
-  public override string LongName => "publish-line-verification-status";
+  public override string LongName => "notify-line-verification-status";
 
   public override string Description => @"
 (experimental, API will change)
