@@ -92,7 +92,7 @@ method m()
 ```
 
 By far the most common operations on sequences are getting
-the first and last elements, and getting everything but the first cworand last
+the first and last elements, and getting everything but the first or last
 element, as these are often used in recursive functions, such as `sorted2`
 above. In addition to being deconstructed by being accessed or sliced, sequences
 can also be concatenated, using the plus (`+`) symbol:

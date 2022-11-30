@@ -64,7 +64,7 @@ can be multiple return values, as in this code:
 ```dafny
 method MultipleReturns(x: int, y: int) returns (more: int, less: int)
 {
-  ... ...
+  ...
 }
 ```
 
@@ -661,7 +661,7 @@ method Testing() {
 ```
 
 One caveat of functions is that not only can they appear in
-annotations, they can only appear in annotations. One cannot write (TODO - this is changing in Dafny 4):
+annotations, they can only appear in annotations. One cannot write:
 
 ```dafny
   var v := abs(3);
