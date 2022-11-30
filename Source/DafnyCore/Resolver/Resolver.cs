@@ -9557,7 +9557,7 @@ namespace Microsoft.Dafny {
             foreach (Formal f in cmc.Outs) {
               Expression produceLhs;
               if (stmt is ReturnStmt) {
-                var ident = new IdentifierExpr(f.tok, f.Name);
+                var ident = new ImplicitIdentifierExpr(f.tok, f.Name);
                 // resolve it here to avoid capture into more closely declared local variables
                 ident.Var = f;
                 ident.Type = ident.Var.Type;
@@ -9743,18 +9743,8 @@ namespace Microsoft.Dafny {
           ResolveExpression(rr.Expr, resolutionContext);
           Contract.Assert(rr.Expr.Type != null);  // follows from postcondition of ResolveExpression
 
-          bool isHiddenUpdateToOutVar = false;
-          if (s.Lhs is IdentifierExpr) {
-            IdentifierExpr ie = (IdentifierExpr)s.Lhs;
-            if (ie.Var is Formal) {
-              Formal f = ((Formal)ie.Var);
-              if (!f.InParam) {
-                isHiddenUpdateToOutVar = true;
-              }
-            }
-          }
-          if (isHiddenUpdateToOutVar) {
-            AddAssignableConstraint(stmt.Tok, lhsType, rr.Expr.Type, "Method return value mismatch (expecting {0}, got {1})");
+          if (s.Lhs is ImplicitIdentifierExpr { Var: Formal { InParam: false } }) {
+            AddAssignableConstraint(stmt.Tok, lhsType, rr.Expr.Type, "Method return value mismatch (expected {0}, got {1})");
           } else {
             AddAssignableConstraint(stmt.Tok, lhsType, rr.Expr.Type, "RHS (of type {1}) not assignable to LHS (of type {0})");
           }

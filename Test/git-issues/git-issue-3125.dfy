@@ -2,7 +2,8 @@
 // RUN: %diff "%s.expect" "%t"
 
 method Foo() returns (i: int) {
-    return "hello";
+    i := "explicit assignment";
+    return "implicit assignment";
 }
 
 function foo(): int {

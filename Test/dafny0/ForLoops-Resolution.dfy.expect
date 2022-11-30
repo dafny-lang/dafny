@@ -1,7 +1,7 @@
 ForLoops-Resolution.dfy(6,18): Error: unresolved identifier: i
 ForLoops-Resolution.dfy(11,13): Error: unresolved identifier: i
-ForLoops-Resolution.dfy(32,8): Error: Method return value mismatch (expecting nat, got Nat)
-ForLoops-Resolution.dfy(38,8): Error: Method return value mismatch (expecting Nat, got int)
+ForLoops-Resolution.dfy(32,8): Error: RHS (of type Nat) not assignable to LHS (of type nat)
+ForLoops-Resolution.dfy(38,8): Error: RHS (of type int) not assignable to LHS (of type Nat)
 ForLoops-Resolution.dfy(78,4): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating (or you can add a 'decreases' clause to this 'for' loop if you want to prove that it does indeed terminate)
 ForLoops-Resolution.dfy(86,4): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating (or you can add a 'decreases' clause to this 'for' loop if you want to prove that it does indeed terminate)
 ForLoops-Resolution.dfy(95,16): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
