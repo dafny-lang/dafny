@@ -105,14 +105,14 @@ ensures true
         AssertTrivia(g, "/** This is the docstring */\n", "\n// This is not the docstring\n");
         AssertTrivia(m, "// Just a regular comment\n", "\n// This is the docstring\n");
 
-        TesTokens(dafnyProgram);
+        TestTokens(dafnyProgram);
       }
     }
 
     // Asserts that a token is owned by at most one node
     // and that every token from start to end of every program child
     // is owned by a node.
-    private void TesTokens(INode program) {
+    private void TestTokens(INode program) {
       var allTokens = new HashSet<IToken>();
 
       void Traverse(INode node, int depth = 0) {
