@@ -1,1 +1,1 @@
-Multiple exactt same failing assertions does not crash the Boogie counter-example engine anymore
+Multiple exact same failing assertions do not crash the Boogie counter-example engine anymore
