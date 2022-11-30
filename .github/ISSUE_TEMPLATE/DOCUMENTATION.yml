@@ -15,14 +15,3 @@ body:
       placeholder: I suggest X
     validations:
       required: true
-  - type: dropdown
-    id: operating-systems
-    attributes:
-      label: What type of Operating System are you seeing the problem on?
-      multiple: true
-      options:
-        - Linux
-        - Windows
-        - Mac
-        - WSL
-        - Other
