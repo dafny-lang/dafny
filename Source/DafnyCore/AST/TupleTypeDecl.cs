@@ -13,7 +13,7 @@ public class TupleTypeDecl : IndDatatypeDecl {
 
   public int NonGhostDims => ArgumentGhostness.Count(x => !x);
 
-  [CanBeNull] public readonly TupleTypeDecl NonGhostTupleTypeDecl;
+  [CanBeNull] public TupleTypeDecl NonGhostTupleTypeDecl { get;  }
 
   /// <summary>
   /// Construct a resolved built-in tuple type with "dim" arguments.  "systemModule" is expected to be the _System module.
