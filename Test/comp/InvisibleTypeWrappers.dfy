@@ -320,6 +320,9 @@ module OptimizationChecks {
     | Wrapper(X)
     | ghost Nothing
 
+  datatype IntsWrapper = IntsWrapper(ints: Ints) // optimized
+  datatype Ints = Ints(x: int, y: int) | AnotherIntsWrapper(wrapper: IntsWrapper)
+
   method Test() {
     var c;
     c := Succ(c);
@@ -366,7 +369,22 @@ module OptimizationChecks {
     gg0 := Wrapper(gl);
     gl := Wrapper(l);
     gg1 := Wrapper(gl);
+
+    var ii := Ints(5, 7);
+    var wrapper := IntsWrapper(ii);
+    var wwrapper := AnotherIntsWrapper(wrapper);
+    print ii, " ", wrapper, " ", wwrapper, "\n"; // Ints(5, 7) Ints(5, 7) AnotherIntsWrapper(Ints(5, 7))
   }
 
   method Call(w: WrapperAroundMyClass, v: ViaClass, z: DDZ) { }
+
+  // Technically, it would be possible to consider AA0 an invisible type wrapper, because
+  // the type parameter UnusedTypeParameter is not used. However, detecting this case would
+  // make the detection algorithm more complicated, so we opt not to detect this case.
+  // (Note. The tests don't print these types, because they unavoidably involve uninitialized
+  // values. We still include them here for the record, and to make sure that the compiler
+  // doesn't crash on them.)
+  datatype AA0 = AA0(BB0)
+  datatype BB0 = BB0(CC0<AA0>)
+  datatype CC0<UnusedTypeParameter> = CC0(BB0) | ghost NoCC0
 }

@@ -1067,69 +1067,91 @@ namespace Microsoft.Dafny.Compilers {
 
     /// <summary>
     /// This method determines whether or not "dt" is an "invisible datatype wrapper" that can be optimized away during compilation.
+    /// First off, this applies only if
+    ///   0 -- the compiler supports this kind of optimization (currently, only the C++ compiles does not support the optimization), and
+    ///   1 -- the user doesn't disable the optimization from the command-line using /optimizeInvisibleDatatypeWrappers:0.
     /// To be an invisible wrapper, the datatype has to:
-    ///   -- be an inductive datatype (not a "codatatype"), and
-    ///   -- have exactly one non-ghost constructor, and
-    ///   -- that constructor must have exactly one non-ghost field (say, "d" of type "D"), and
-    ///   -- have no fields declared as members.
-    /// Even when these requirements are met, there are three reasons why "dt" would NOT be considered an invisible wrapper:
-    ///   -- A datatype declared with {:extern} is not considered an invisible wrapper (since extern code may rely on it being there).
-    ///   -- If the compiler does not support this kind of optimization, the "dt" is not considered an invisible wrapper. At this
-    ///      time, only the C++ compiles does not support the optimization.
-    ///   -- If the users supplies the command-line switch /optimizeInvisibleDatatypeWrappers:0, then "dt" is not considered
-    ///      an invisible wrapper. This command-line switch disables the optimization.
-    /// When IsInvisibleWrapper returns "true", the out-parameter "coreDestructor" is set to "d". This will cause the compiler
-    /// to compile the datatype as the type "D".
+    ///   2 -- be an inductive datatype (not a "codatatype"), and
+    ///   3 -- have exactly one non-ghost constructor, and
+    ///   4 -- that constructor must have exactly one non-ghost destructor parameter (say, "d" of type "D"), and
+    ///   5 -- have no fields declared as members, and
+    ///   6 -- the compiled parts of type "D" must not include the datatype itself, and
+    ///   7 -- not be declared with {:extern} (since extern code may rely on it being there).
+    ///
+    /// If the conditions above apply, then the method returns true and sets the out-parameter to the core DatatypeDestructor "d".
+    /// From this return, the compiler (that is, the caller) will arrange to compile type "dt" as type "D".
+    /// If according to the conditions above, "dt" is not an invisible wrapper, the method returns false; the out-parameter should
+    /// then not be used by the caller.
     /// </summary>
     protected bool IsInvisibleWrapper(DatatypeDecl dt, out DatatypeDestructor coreDestructor) {
-      if (!DafnyOptions.O.OptimizeInvisibleDatatypeWrappers ||
-          !OptimizesInvisibleDatatypeWrappers ||
-          !(dt is IndDatatypeDecl) ||
-          dt.IsExtern(out _, out _) ||
-          dt.Members.Any(member => member is Field)) {
-        // don't optimize
-      } else {
-        var i = dt.Ctors.FindIndex(ctor => !ctor.IsGhost);
-        if (0 <= i) {
-          if (dt.Ctors.FindIndex(i + 1, ctor => !ctor.IsGhost) == -1) {
-            // there is exactly one non-ghost constructor
-            var ctor = dt.Ctors[i];
-            var j = ctor.Destructors.FindIndex(dtor => !dtor.IsGhost);
-            if (0 <= j) {
-              if (ctor.Destructors.FindIndex(j + 1, dtor => !dtor.IsGhost) == -1) {
-                // there is exactly one non-ghost parameter to "ctor"
-                var candidateCoreDestructor = ctor.Destructors[j];
-                var properlyContainedTypeDecls = new HashSet<TopLevelDecl>();
-                CompiledTypes(candidateCoreDestructor.Type, properlyContainedTypeDecls);
-                if (!properlyContainedTypeDecls.Contains(dt)) {
-                  coreDestructor = candidateCoreDestructor;
+      // This local method "FindUnwrappedCandidate" checks for conditions 2, 3, 4, 5, and 7 (but not 0, 1, and 6).
+      bool FindUnwrappedCandidate(DatatypeDecl datatypeDecl, out DatatypeDestructor coreDtor) {
+        if (datatypeDecl is IndDatatypeDecl &&
+            !datatypeDecl.IsExtern(out _, out _) &&
+            !datatypeDecl.Members.Any(member => member is Field)) {
+          var i = datatypeDecl.Ctors.FindIndex(ctor => !ctor.IsGhost);
+          if (0 <= i) {
+            if (datatypeDecl.Ctors.FindIndex(i + 1, ctor => !ctor.IsGhost) == -1) {
+              // there is exactly one non-ghost constructor
+              var ctor = datatypeDecl.Ctors[i];
+              var j = ctor.Destructors.FindIndex(dtor => !dtor.IsGhost);
+              if (0 <= j) {
+                if (ctor.Destructors.FindIndex(j + 1, dtor => !dtor.IsGhost) == -1) {
+                  // there is exactly one non-ghost parameter to "ctor"
+                  coreDtor = ctor.Destructors[j];
                   return true;
                 }
               }
             }
           }
         }
+        coreDtor = null;
+        return false;
       }
-      coreDestructor = null;
-      return false;
-    }
 
-    /// <summary>
-    /// This method is for types the analogous thing to "FreeVariables(e)" for an expression "e".
-    /// It returns the user-defined types that are part of "type" (expanding past subset types).
-    /// </summary>
-    void CompiledTypes(Type type, ISet<TopLevelDecl> typeDecls) {
-      type = type.NormalizeExpand();
-      var decl = (type as UserDefinedType)?.ResolvedClass;
-      if (decl != null && typeDecls.Add(decl) && decl is DatatypeDecl dt) {
-        // we just added "decl" to the set
-        foreach (var ctor in dt.Ctors.Where(ctor => !ctor.IsGhost)) {
-          foreach (var dtor in ctor.Destructors.Where(dtor => !dtor.IsGhost)) {
-            CompiledTypes(dtor.Type, typeDecls);
+      // This local method "CompiledTypeContains" returns "true" if a traversal into the components of "type" finds
+      // "lookingFor" before passing through any type in "visited".
+      // "lookingFor" is expected not to be a subset type, and "visited" is expected not to contain any subset types.
+      bool CompiledTypeContains(Type type, TopLevelDecl lookingFor, ISet<TopLevelDecl> visited) {
+        type = type.NormalizeExpand();
+        if (type is UserDefinedType udt) {
+          if (udt.ResolvedClass == lookingFor) {
+            return true;
+          }
+          if (visited.Contains(udt.ResolvedClass)) {
+            return false;
+          }
+          visited = visited.Union(new HashSet<TopLevelDecl>() { udt.ResolvedClass }).ToHashSet();
+          // (a) IF "udt.ResolvedClass" is an invisible type wrapper, then we want to continue the search with
+          // its core destructor, suitably substituting type arguments for type parameters.
+          // (b) If it is NOT, then we just want to search in its type arguments (like we would for non-UserDefinedType's).
+          //
+          // However, we don't know which of (a) or (b) we're looking at. So, we first explore (a), and if that
+          // shows that the core destructor of "udt.ResolvedClass" has no cycles, then "udt.ResolvedClass" is
+          // indeed an invisible type wrapper. If "udt.ResolvedClass" is involved in some cycle, then it is not
+          // an invisible type wrapper, so we abandon (a) and instead do (b).
+          if (udt.ResolvedClass is DatatypeDecl d && FindUnwrappedCandidate(d, out var dtor)) {
+            var typeSubst = TypeParameter.SubstitutionMap(d.TypeArgs, udt.TypeArgs);
+            if (CompiledTypeContains(dtor.Type.Subst(typeSubst), lookingFor, visited)) {
+              return true;
+            }
+          }
+        }
+        return type.TypeArgs.Any(ty => CompiledTypeContains(ty, lookingFor, visited));
+      }
+
+      if (OptimizesInvisibleDatatypeWrappers && DafnyOptions.O.OptimizeInvisibleDatatypeWrappers) {
+        // First, check for all conditions except the non-cycle condition
+        if (FindUnwrappedCandidate(dt, out var candidateCoreDestructor)) {
+          // Now, check if the type of the destructor contains "datatypeDecl" itself
+          if (!CompiledTypeContains(candidateCoreDestructor.Type, dt, new HashSet<TopLevelDecl>())) {
+            coreDestructor = candidateCoreDestructor;
+            return true;
           }
         }
       }
-      type.TypeArgs.ForEach(ty => CompiledTypes(ty, typeDecls));
+      coreDestructor = null;
+      return false;
     }
 
     protected bool CanBeLeftUninitialized(Type type) {
