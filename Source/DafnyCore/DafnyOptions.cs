@@ -1321,7 +1321,7 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     Produce optimized C# code by passing the /optimize flag to csc.exe.
 
 /optimizeInvisibleDatatypeWrappers:<n>
-    0 - Include all non-ghost datatype constructors in the compiled code 
+    0 - Include all non-ghost datatype constructors in the compiled code
     1 (default) - In the compiled target code, transform any non-extern
         datatype with a single non-ghost constructor that has a single
         non-ghost parameter into just that parameter. For example, the
