@@ -1112,6 +1112,10 @@ class Resolver_IdentifierExpr : Expression, IHasUsages {
     public override Type Subst(Dictionary<TypeParameter, Type> subst) {
       throw new NotSupportedException();
     }
+
+    public override Type ReplaceTypeArguments(List<Type> arguments) {
+      throw new NotSupportedException();
+    }
   }
   public class ResolverType_Module : ResolverType {
     [Pure]

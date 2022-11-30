@@ -622,7 +622,7 @@ namespace Microsoft.Dafny.Compilers {
 
       DatatypeDestructor coreDestructor = null;
       var resultType = IsInvisibleWrapper(datatype, out coreDestructor)
-        ? TypeName(TypeUtil.SubstType(coreDestructor.Type, typeSubstMap), wr, datatype.tok)
+        ? TypeName(coreDestructor.Type.Subst(typeSubstMap), wr, datatype.tok)
         : "_I" + datatype.CompileName + uTypeArgs;
       var converters = $"{nonGhostTypeArgs.Comma((_, i) => $"converter{i}")}";
       var lazyClass = $"{datatype.FullCompileName}__Lazy";
