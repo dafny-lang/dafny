@@ -1065,6 +1065,22 @@ namespace Microsoft.Dafny.Compilers {
       return MemberCompileStatus.Ordinary;
     }
 
+    /// <summary>
+    /// This method determines whether or not "dt" is an "invisible datatype wrapper" that can be optimized away during compilation.
+    /// To be an invisible wrapper, the datatype has to:
+    ///   -- be an inductive datatype (not a "codatatype"), and
+    ///   -- have exactly one non-ghost constructor, and
+    ///   -- that constructor must have exactly one non-ghost field (say, "d" of type "D"), and
+    ///   -- have no fields declared as members.
+    /// Even when these requirements are met, there are three reasons why "dt" would NOT be considered an invisible wrapper:
+    ///   -- A datatype declared with {:extern} is not considered an invisible wrapper (since extern code may rely on it being there).
+    ///   -- If the compiler does not support this kind of optimization, the "dt" is not considered an invisible wrapper. At this
+    ///      time, only the C++ compiles does not support the optimization.
+    ///   -- If the users supplies the command-line switch /optimizeInvisibleDatatypeWrappers:0, then "dt" is not considered
+    ///      an invisible wrapper. This command-line switch disables the optimization.
+    /// When IsInvisibleWrapper returns "true", the out-parameter "coreDestructor" is set to "d". This will cause the compiler
+    /// to compile the datatype as the type "D".
+    /// </summary>
     protected bool IsInvisibleWrapper(DatatypeDecl dt, out DatatypeDestructor coreDestructor) {
       if (!DafnyOptions.O.OptimizeInvisibleDatatypeWrappers ||
           !OptimizesInvisibleDatatypeWrappers ||
@@ -1130,7 +1146,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     /// <summary>
-    /// Remove any invisible type wrappers and simplify ghost typle types.
+    /// Remove any invisible type wrappers and simplify ghost tuple types.
     /// </summary>
     protected Type SimplifyType(Type ty, bool keepConstraints = false) {
       Contract.Requires(ty != null);
