@@ -14,7 +14,7 @@ it has been created. A set has the type:
 
 for a set of integers, for example. In general, sets can be of almost any type, including objects. Concrete sets can be specified by using display notation:
 
-``` {.editonly}
+```dafny
 method m()
 {
   var s1 := {}; // the empty set
@@ -25,20 +25,12 @@ method m()
 }
 ```
 
-```dafny
-  var s1 := {}; // the empty set
-  var s2 := {1, 2, 3}; // set contains exactly 1, 2, and 3
-  assert s2 == {1,1,2,3,3,3,3}; // same as before
-  assert s1 != s2;  // sets with different elements are different
-  var s3, s4 := {1,2}, {1,4};
-```
-
 The set formed by the display is the expected set, containing just
 the elements specified. Above we also see that equality is defined
 for sets. Two sets are equal if they have exactly the same elements.
 New sets can be created from existing ones using the common set operations:
 
-``` {.editonly}
+```dafny
 method m()
 {
   var s1 := {};
@@ -50,13 +42,6 @@ method m()
 }
 ```
 
-```dafny
-  assert s2 + s4 == {1,2,3,4}; // set union
-  assert s2 * s3 == {1,2} && s2 * s4 == {1}; // set intersection
-  assert s2 - s3 == {3}; // set difference
-```
-
-Note that because sets can only contain at most one of each element,
 the union does not count repeated elements more than once. These
 operators will result in a finite set if both operands are finite,
 so they cannot generate an infinite set. Unlike the arithmetic
@@ -64,7 +49,7 @@ operators, the set operators are always defined. In addition to set
 forming operators, there are comparison operators with their usual
 meanings:
 
-``` {.editonly}
+```dafny
 method m()
 {
   assert {1} <= {1, 2} && {1, 2} <= {1, 2}; // subset
@@ -72,19 +57,12 @@ method m()
   assert !({1, 2} <= {1, 4}) && !({1, 4} <= {1, 4}); // no relation
   assert {1, 2} == {1, 2} && {1, 3} != {1, 2}; // equality and non-equality
 }
-```
-
-```dafny
-  assert {1} <= {1, 2} && {1, 2} <= {1, 2}; // subset
-  assert {} < {1, 2} && !({1} < {1}); // strict, or proper, subset
-  assert !({1, 2} <= {1, 4}) && !({1, 4} <= {1, 4}); // no relation
-  assert {1, 2} == {1, 2} && {1, 3} != {1, 2}; // equality and non-equality
 ```
 
 Sets, like sequences, support the `in` and `!in` operators, to
 test element membership. For example:
 
-``` {.editonly}
+```dafny
 method m()
 {
   assert 5 in {1,3,4,5};
@@ -92,13 +70,6 @@ method m()
   assert 2 !in {1,3,4,5};
   assert forall x :: x !in {};
 }
-```
-
-```dafny
-  assert 5 in {1,3,4,5};
-  assert 1 in {1,3,4,5};
-  assert 2 !in {1,3,4,5};
-  assert forall x :: x !in {};
 ```
 
 Sets are used in several annotations, including reads and modifies
@@ -127,50 +98,38 @@ in the set for all `x` of type `T` that satisfy `p(x)`:
   set x: T | p(x) :: f(x)
 ```
 
-This defines a set in a manner reminiscent of a universal quantifier (`forall`). As with quanifiers,
+This defines a set in a manner reminiscent of a universal quantifier (`forall`). As with quantifiers,
 the type can usually be inferred. In contrast to quantifiers, the bar syntax (`|`) is required to
-seperate the predicate (`p`) from the bound variable (`x`). The type of the elements of the resulting set is
+separate the predicate (`p`) from the bound variable (`x`). The type of the elements of the resulting set is
 the type of the return value of `f(x)`. The values in the constructed set are the return values of `f(x)`:
 `x` itself acts only as a bridge between the predicate `p` and the function `f`. It
 usually has the same type as the resulting set, but it does not need to. As an example:
 
-``` {.editonly}
+```dafny
 method m()
 {
   assert (set x | x in {0,1,2} :: x + 0) == {0,1,2};
 }
-```
-
-```dafny
-  assert (set x | x in {0,1,2} :: x + 0) == {0,1,2};
 ```
 
 If the function is the identity, then the expression can be written with a particularly nice form:
 
-``` {.editonly}
+```dafny
 method m()
 {
   assert (set x | x in {0,1,2,3,4,5} && x < 3) == {0,1,2};
 }
-```
-
-```dafny
-  assert (set x | x in {0,1,2,3,4,5} && x < 3) == {0,1,2};
 ```
 
 To reason about general, non-identity functions in set comprehensions, Dafny may need some help.
 For example, the following is true, but Dafny cannot prove it:
 
-``` {.editonly}
+```dafny
 method m()
 {
   // assert {0*1, 1*1, 2*1} == {0,1,2};  // include this assertion as a lemma to prove the next line
   assert (set x | x in {0,1,2} :: x * 1) == {0,1,2};
 }
-```
-
-```dafny
-  assert (set x | x in {0,1,2} :: x * 1) == {0,1,2};
 ```
 
 To help Dafny prove this assertion, you can precede it with the assertion
