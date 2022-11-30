@@ -1066,7 +1066,8 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected bool IsInvisibleWrapper(DatatypeDecl dt, out DatatypeDestructor coreDestructor) {
-      if (!OptimizesInvisibleDatatypeWrappers ||
+      if (!DafnyOptions.O.OptimizeInvisibleDatatypeWrappers ||
+          !OptimizesInvisibleDatatypeWrappers ||
           !(dt is IndDatatypeDecl) ||
           dt.IsExtern(out _, out _) ||
           dt.Members.Any(member => member is Field)) {

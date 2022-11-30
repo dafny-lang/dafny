@@ -157,6 +157,7 @@ namespace Microsoft.Dafny {
     public bool PrintFunctionCallGraph = false;
     public bool WarnShadowing = false;
     public int DefiniteAssignmentLevel = 1; // [0..2]
+    public bool OptimizeInvisibleDatatypeWrappers = true;
     public FunctionSyntaxOptions FunctionSyntax = FunctionSyntaxOptions.Version3;
     public QuantifierSyntaxOptions QuantifierSyntax = QuantifierSyntaxOptions.Version3;
     public HashSet<string> LibraryFiles { get; set; } = new();
@@ -425,6 +426,14 @@ namespace Microsoft.Dafny {
         case "warnShadowing":
           WarnShadowing = true;
           return true;
+
+        case "optimizeInvisibleDatatypeWrappers": {
+          int d = 1;
+          if (ps.GetIntArgument(ref d, 2)) {
+            OptimizeInvisibleDatatypeWrappers = d == 1;
+          }
+          return true;
+        }
 
         case "verifyAllModules":
           VerifyAllModules = true;
@@ -1310,6 +1319,15 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 
 /optimize
     Produce optimized C# code by passing the /optimize flag to csc.exe.
+
+/optimizeInvisibleDatatypeWrappers:<n>
+    0 - Include all non-ghost datatype constructors in the compiled code 
+    1 (default) - In the compiled target code, transform any non-extern
+        datatype with a single non-ghost constructor that has a single
+        non-ghost parameter into just that parameter. For example, the
+        type
+            datatype Record = Record(x: int)
+        is transformed into just 'int' in the target code.
 
 /optimizeResolution:<n>
     0 - Resolve and translate all methods.
