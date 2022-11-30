@@ -20,5 +20,5 @@ public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration
   }
 
   public override IEnumerable<INode> Children =>
-    (Attributes != null ? new List<INode> { Attributes } : Enumerable.Empty<INode>()).Concat(Body).Concat<INode>(Attributes?.Args ?? Enumerable.Empty<INode>());
+    (Attributes != null ? new List<INode> { Attributes } : Enumerable.Empty<INode>()).Concat(Body);
 }

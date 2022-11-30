@@ -236,8 +236,7 @@ public class TypeParameter : TopLevelDecl {
 
   public enum EqualitySupportValue { Required, InferredRequired, Unspecified }
   public struct TypeParameterCharacteristics {
-    public IToken StartToken = null;
-    public IToken EndToken = null;
+    public IToken? RangeToken = null;
     public IEnumerable<IToken> OwnedTokens { get; set; } = new List<IToken>();
     public EqualitySupportValue EqualitySupport;  // the resolver may change this value from Unspecified to InferredRequired (for some signatures that may immediately imply that equality support is required)
     public Type.AutoInitInfo AutoInit;
@@ -378,8 +377,7 @@ public class LiteralModuleDecl : ModuleDecl {
   public LiteralModuleDecl(ModuleDefinition module, ModuleDefinition parent)
     : base(module.tok, module.Name, parent, false, false) {
     ModuleDef = module;
-    StartToken = module.StartToken;
-    EndToken = module.EndToken;
+    RangeToken = module.RangeToken;
     TokenWithTrailingDocString = module.TokenWithTrailingDocString;
     BodyStartTok = module.BodyStartTok;
     BodyEndTok = module.BodyEndTok;

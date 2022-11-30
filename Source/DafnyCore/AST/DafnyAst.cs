@@ -45,42 +45,30 @@ namespace Microsoft.Dafny {
     /// A token is owned by a node if it was used to parse this node,
     /// but is not owned by any of this Node's children
     /// </summary>
-    IEnumerable<IToken> OwnedTokens {
+    public IEnumerable<IToken> OwnedTokens {
       get {
         if (OwnedTokensCache != null) {
           return OwnedTokensCache;
         }
 
-        var startNotOwnedToken = Children.Select(child => child.StartToken).ToImmutableHashSet();
-        var endNotOwnedToken = Children.Select(child => child.EndToken).ToImmutableHashSet();
+        var startToEndTokenNotOwned =
+          Children.Where(child => child.StartToken != null && child.EndToken != null)
+            .ToDictionary(child => child.StartToken!, child => child.EndToken!);
 
         var result = new List<IToken>();
         if (StartToken == null) {
           Contract.Assume(EndToken == null);
         } else {
-          var canOwnTokens = true;
-          if (!startNotOwnedToken.Contains(StartToken)) {
-            result.Add(StartToken);
-          } else {
-            canOwnTokens = false;
-          }
-
-          if (EndToken != null) {
-            var tmpToken = StartToken.Next;
-            while (tmpToken != null && tmpToken != EndToken) {
-              var startsNotBeingOwned = startNotOwnedToken.Contains(tmpToken);
-              if (!startsNotBeingOwned && canOwnTokens) {
-                result.Add(tmpToken);
-              } else {
-                canOwnTokens = false;
-              }
-
-              if (endNotOwnedToken.Contains(tmpToken)) {
-                canOwnTokens = true;
-              }
-
-              tmpToken = tmpToken.Next;
+          Contract.Assume(EndToken != null);
+          var tmpToken = StartToken;
+          while (tmpToken != null && tmpToken != EndToken.Next) {
+            if (startToEndTokenNotOwned.TryGetValue(tmpToken, out var endNotOwnedToken)) {
+              tmpToken = endNotOwnedToken;
+            } else {
+              result.Add(tmpToken);
             }
+
+            tmpToken = tmpToken.Next;
           }
         }
 

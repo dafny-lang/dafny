@@ -88,24 +88,6 @@ public abstract class Expression : INode {
     get { yield break; }
   }
 
-  private RangeToken rangeToken = null;
-
-  // Contains tokens that did not make it in the AST but are part of the expression,
-  // Enables ranges to be correct.
-  protected IToken[] FormatTokens = null;
-
-  /// Creates a token on the entire range of the expression.
-  /// Used only for error reporting.
-  public virtual RangeToken RangeToken {
-    get {
-      if (rangeToken == null) {
-        rangeToken = new RangeToken(StartToken ?? tok, EndToken ?? StartToken ?? tok);
-      }
-
-      return rangeToken;
-    }
-  }
-
   /// <summary>
   /// Returns the list of types that appear in this expression proper (that is, not including types that
   /// may appear in subexpressions). Types occurring in substatements of the expression are not included.
@@ -1199,9 +1181,6 @@ public class SeqSelectExpr : Expression {
     E0 = e0;
     E1 = e1;
     CloseParen = closeParen;
-    if (closeParen != null) {
-      FormatTokens = new[] { closeParen };
-    }
   }
 
   public override IEnumerable<Expression> SubExpressions {
@@ -1312,7 +1291,6 @@ public class ApplyExpr : Expression {
     Function = fn;
     Args = args;
     CloseParen = closeParen;
-    FormatTokens = closeParen != null ? new[] { closeParen } : null;
   }
 }
 
@@ -1412,7 +1390,6 @@ public class FunctionCallExpr : Expression, IHasUsages {
     this.CloseParen = closeParen;
     this.AtLabel = atLabel;
     this.Bindings = bindings;
-    this.FormatTokens = closeParen != null ? new[] { closeParen } : null;
   }
 
   /// <summary>
@@ -2038,7 +2015,6 @@ public class LetOrFailExpr : ConcreteSyntaxExpression {
     Body = body;
   }
 
-  // TODO: Children should take into account Rhs and Body when we support pre-resolved children
   public override IEnumerable<INode> Children =>
     new List<INode> { Lhs }.Concat(base.Children);
 }
@@ -2789,9 +2765,8 @@ public class DefaultValueExpression : ConcreteSyntaxExpression {
     SubstMap = substMap;
     TypeMap = typeMap;
     Type = formal.Type.Subst(typeMap);
+    RangeToken = new RangeToken(tok, tok);
   }
-
-  public override RangeToken RangeToken => new RangeToken(tok, tok);
 }
 
 /// <summary>
@@ -2987,9 +2962,6 @@ public class ApplySuffix : SuffixExpr {
     AtTok = atLabel;
     CloseParen = closeParen;
     Bindings = new ActualBindings(args);
-    if (closeParen != null) {
-      FormatTokens = new[] { closeParen };
-    }
   }
 
   /// <summary>

@@ -84,6 +84,10 @@ public record Token : IToken {
   public IToken Prev { get; set; } // The previous token
 
   public bool IsValid => this.ActualFilename != null;
+
+  public override int GetHashCode() {
+    return pos;
+  }
 }
 
 public abstract class TokenWrapper : IToken {

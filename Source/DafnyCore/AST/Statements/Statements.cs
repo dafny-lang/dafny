@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Drawing.Imaging;
 using System.Linq;
+using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
 
@@ -32,8 +33,7 @@ public abstract class Statement : INode, IAttributeBearingDeclaration {
     Contract.Requires(tok != null);
     Contract.Requires(endTok != null);
     this.Tok = tok;
-    this.StartToken = tok;
-    this.EndTok = endTok;
+    this.RangeToken = new RangeToken(tok, endTok);
     this.attributes = attrs;
   }
 
@@ -138,18 +138,6 @@ public abstract class Statement : INode, IAttributeBearingDeclaration {
   public static PrintStmt CreatePrintStmt(IToken tok, params Expression[] exprs) {
     return new PrintStmt(tok, tok, exprs.ToList());
   }
-
-  [FilledInDuringResolution] private IToken rangeToken;
-  public virtual IToken RangeToken {
-    get {
-      if (rangeToken == null) {
-        // Need a special case for the elephant operator to avoid end < start
-        rangeToken = new RangeToken(Tok, Tok.pos > EndTok.pos ? Tok : EndTok);
-      }
-      return rangeToken;
-    }
-  }
-
 
   public override IEnumerable<INode> Children =>
     (Attributes != null ? new List<INode> { Attributes } : Enumerable.Empty<INode>()).Concat(
