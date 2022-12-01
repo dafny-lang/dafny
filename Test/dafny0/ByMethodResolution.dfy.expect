@@ -1,5 +1,5 @@
 ByMethodResolution.dfy(17,6): Error: number of return parameters does not match declaration (found 2, expected 1)
-ByMethodResolution.dfy(25,4): Error: RHS (of type bv9) not assignable to LHS (of type real)
+ByMethodResolution.dfy(25,4): Error: Method return value mismatch (expected real, got bv9)
 ByMethodResolution.dfy(24,6): Error: RHS (of type int) not assignable to LHS (of type real)
 ByMethodResolution.dfy(63,13): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function with 'function method')
 ByMethodResolution.dfy(64,13): Error: a call to a ghost predicate is allowed only in specification contexts (consider declaring the predicate with 'predicate method')
