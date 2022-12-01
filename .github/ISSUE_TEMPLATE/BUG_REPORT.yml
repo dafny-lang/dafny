@@ -33,7 +33,7 @@ body:
     attributes:
       label: What happened?
       description: Describe the issue here. What did you expect instead?
-      placeholder: Tell us what you wish to see!
+      placeholder: Tell us what you see and wish to see!
     validations:
       required: true
   - type: dropdown
