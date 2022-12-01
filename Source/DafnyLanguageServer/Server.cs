@@ -7,25 +7,28 @@ using System.IO;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
-using Serilog.Events;
+using Microsoft.Extensions.DependencyInjection;
 using OmniSharpLanguageServer = OmniSharp.Extensions.LanguageServer.Server.LanguageServer;
 
 namespace Microsoft.Dafny.LanguageServer {
-  public class Program {
-    private static async Task Main(string[] args) {
-      var configuration = CreateConfiguration(args);
+  public class Server {
+
+    public static async Task Start(DafnyOptions dafnyOptions) {
+      DafnyOptions.Install(dafnyOptions);
+
+      var configuration = CreateConfiguration();
       InitializeLogger(configuration);
       try {
         Action? shutdownServer = null;
         var server = await OmniSharpLanguageServer.From(
-          options => options
+          options => options.WithServices(s => s.AddSingleton(dafnyOptions))
             .WithInput(Console.OpenStandardInput())
             .WithOutput(Console.OpenStandardOutput())
             .ConfigureConfiguration(builder => builder.AddConfiguration(configuration))
             .ConfigureLogging(SetupLogging)
             .WithUnhandledExceptionHandler(LogException)
             // ReSharper disable once AccessToModifiedClosure
-            .WithDafnyLanguageServer(configuration, () => shutdownServer!())
+            .WithDafnyLanguageServer(() => shutdownServer!())
         );
         // Prevent any other parts of the language server to actually write to standard output.
         await using var logWriter = new LogWriter();
@@ -38,10 +41,9 @@ namespace Microsoft.Dafny.LanguageServer {
       }
     }
 
-    private static IConfiguration CreateConfiguration(string[] args) {
+    private static IConfiguration CreateConfiguration() {
       return new ConfigurationBuilder()
         .AddJsonFile("DafnyLanguageServer.appsettings.json", optional: true)
-        .AddCommandLine(args)
         .Build();
     }
 
