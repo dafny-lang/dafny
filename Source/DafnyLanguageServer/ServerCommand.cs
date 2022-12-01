@@ -80,7 +80,7 @@ Send notifications about the verification status of each line in the program.
 
 public class GhostIndicatorsOption : BooleanOption {
   public static readonly GhostIndicatorsOption Instance = new();
-  public override string LongName => "show-ghostness";
+  public override string LongName => "notify-ghostness";
   public override string Description => @"
 (experimental, API will change)
 Send notifications that indicate which lines are ghost.".TrimStart();
