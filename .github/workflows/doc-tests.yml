@@ -37,4 +37,4 @@ jobs:
     - name: Build Dafny
       run: dotnet build dafny/Source/Dafny.sln
     - name: Check
-      run: docs/check-examples docs/OnlineTutorial/Termination.md
+      run: cd dafny/docs && ./check-examples OnlineTutorial/Termination.md
