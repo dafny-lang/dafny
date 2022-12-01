@@ -57,9 +57,6 @@ public enum Feature {
   [FeatureDescription("Collections with trait element types", "sec-collection-types")]
   CollectionsOfTraits,
 
-  [FeatureDescription("User-defined types with traits as type parameters", "sec-trait-types")]
-  TraitTypeParameters,
-
   [FeatureDescription("External module names with only underscores", "sec-extern-decls")]
   AllUnderscoreExternalModuleNames,
 
@@ -167,7 +164,13 @@ public enum Feature {
   SubtypeConstraintsInQuantifiers,
 
   [FeatureDescription("Tuples with more than 20 arguments", "sec-tuple-types")]
-  TuplesWiderThan20
+  TuplesWiderThan20,
+
+  [FeatureDescription("Unicode chars", "#sec-characters")]
+  UnicodeChars,
+
+  [FeatureDescription("Converting values to strings", "#sec-print-statement")]
+  ConvertingValuesToStrings
 }
 
 public class UnsupportedFeatureException : Exception {

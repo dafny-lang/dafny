@@ -129,6 +129,10 @@ namespace Microsoft.Dafny.Compilers {
     protected string IntSelect = ",int";
     protected string LambdaExecute = "";
 
+    protected static bool UnicodeCharEnabled => UnicodeCharactersOption.Instance.Get(DafnyOptions.O);
+
+    protected static string CharMethodQualifier => UnicodeCharEnabled ? "Unicode" : "";
+
     protected virtual void EmitHeader(Program program, ConcreteSyntaxTree wr) { }
     protected virtual void EmitFooter(Program program, ConcreteSyntaxTree wr) { }
     protected virtual void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr) { }
@@ -732,8 +736,14 @@ namespace Microsoft.Dafny.Compilers {
 
     protected virtual bool NeedsCastFromTypeParameter => false;
 
+    protected virtual bool TargetSubtypingRequiresEqualTypeArguments(Type type) => false;
+
     protected virtual bool IsCoercionNecessary(Type /*?*/ from, Type /*?*/ to) {
       return NeedsCastFromTypeParameter;
+    }
+
+    protected virtual Type TypeForCoercion(Type type) {
+      return type;
     }
 
     /// <summary>
@@ -751,9 +761,11 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(wr != null);
       if (from != null && to != null) {
         if (!IsTargetSupertype(to, from)) {
-          // The following assert is a sanity check. Note, in a language with NeedsCastFromTypeParameter, "to" and "from" may
-          // contain uninstantiated formal type parameters.
-          Contract.Assert(NeedsCastFromTypeParameter || IsTargetSupertype(from, to));
+          // By the way, it is tempting to think that IsTargetSupertype(from, to)) would hold here, but that's not true.
+          // For one, in a language with NeedsCastFromTypeParameter, "to" and "from" may contain uninstantiated formal type parameters.
+          // Also, it is possible (subject to a check enforced by the verifier) to assign Datatype<X> to Datatype<Y>,
+          // where Datatype is co-variant in its argument type and X and Y are two incomparable types with a common supertype.
+
           wr = EmitDowncast(from, to, tok, wr);
         }
       }
@@ -766,7 +778,7 @@ namespace Microsoft.Dafny.Compilers {
     /// This to similar to Type.IsSupertype and Type.Equals, respectively, but ignores subset types (that
     /// is, always uses the base type of any subset type).
     /// </summary>
-    public static bool IsTargetSupertype(Type to, Type from, bool typeEqualityOnly = false) {
+    public bool IsTargetSupertype(Type to, Type from, bool typeEqualityOnly = false) {
       Contract.Requires(from != null);
       Contract.Requires(to != null);
       to = to.NormalizeExpand();
@@ -778,7 +790,7 @@ namespace Microsoft.Dafny.Compilers {
         Contract.Assert(formalTypeParameters != null || to.TypeArgs.Count == 0 || to is CollectionType);
         for (var i = 0; i < to.TypeArgs.Count; i++) {
           bool okay;
-          if (typeEqualityOnly) {
+          if (typeEqualityOnly || TargetSubtypingRequiresEqualTypeArguments(to)) {
             okay = IsTargetSupertype(to.TypeArgs[i], from.TypeArgs[i], true);
           } else if (formalTypeParameters == null || formalTypeParameters[i].Variance == TypeParameter.TPVariance.Co) {
             okay = IsTargetSupertype(to.TypeArgs[i], from.TypeArgs[i]);
@@ -1814,7 +1826,7 @@ namespace Microsoft.Dafny.Compilers {
             RedeclareInheritedMember(member, classWriter);
           } else if (member is ConstantField) {
             var cf = (ConstantField)member;
-            var cfType = Resolver.SubstType(cf.Type, c.ParentFormalTypeParametersToActuals);
+            var cfType = cf.Type.Subst(c.ParentFormalTypeParametersToActuals);
             if (cf.Rhs == null) {
               Contract.Assert(!cf.IsStatic); // as checked above, only instance members can be inherited
               classWriter.DeclareField("_" + cf.CompileName, c, false, false, cfType, cf.tok, PlaceboValue(cfType, errorWr, cf.tok, true), cf);
@@ -1831,7 +1843,7 @@ namespace Microsoft.Dafny.Compilers {
               EmitCallToInheritedConstRHS(cf, w);
             }
           } else if (member is Field f) {
-            var fType = Resolver.SubstType(f.Type, c.ParentFormalTypeParametersToActuals);
+            var fType = f.Type.Subst(c.ParentFormalTypeParametersToActuals);
             // every field is inherited
             classWriter.DeclareField("_" + f.CompileName, c, false, false, fType, f.tok, PlaceboValue(fType, errorWr, f.tok, true), f);
             ConcreteSyntaxTree wSet;
@@ -2081,7 +2093,7 @@ namespace Microsoft.Dafny.Compilers {
       wr = EmitReturnExpr(wr);
       wr = EmitCoercionIfNecessary(f.Type, fOriginal.Type, f.tok, wr);
 
-      var calleeReceiverType = Resolver.SubstType(UserDefinedType.FromTopLevelDecl(f.tok, f.EnclosingClass), thisContext.ParentFormalTypeParametersToActuals);
+      var calleeReceiverType = UserDefinedType.FromTopLevelDecl(f.tok, f.EnclosingClass).Subst(thisContext.ParentFormalTypeParametersToActuals);
       wr.Write("{0}{1}", TypeName_Companion(calleeReceiverType, wr, f.tok, f), ModuleSeparator);
       var typeArgs = CombineAllTypeArguments(f, thisContext);
       EmitNameAndActualTypeArgs(IdName(f), TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, f, true)), f.tok, wr);
@@ -2117,7 +2129,7 @@ namespace Microsoft.Dafny.Compilers {
       wr = EmitReturnExpr(wr);
       wr = EmitCoercionIfNecessary(f.ResultType, f.Original.ResultType, f.tok, wr);
 
-      var calleeReceiverType = Resolver.SubstType(UserDefinedType.FromTopLevelDecl(f.tok, f.EnclosingClass), thisContext.ParentFormalTypeParametersToActuals);
+      var calleeReceiverType = UserDefinedType.FromTopLevelDecl(f.tok, f.EnclosingClass).Subst(thisContext.ParentFormalTypeParametersToActuals);
       wr.Write("{0}{1}", TypeName_Companion(calleeReceiverType, wr, f.tok, f), ModuleSeparator);
       var typeArgs = CombineAllTypeArguments(f, thisContext);
       EmitNameAndActualTypeArgs(IdName(f), TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, f, true)), f.tok, wr);
@@ -2177,7 +2189,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       var protectedName = IdName(method);
-      var calleeReceiverType = Resolver.SubstType(UserDefinedType.FromTopLevelDecl(method.tok, method.EnclosingClass), thisContext.ParentFormalTypeParametersToActuals);
+      var calleeReceiverType = UserDefinedType.FromTopLevelDecl(method.tok, method.EnclosingClass).Subst(thisContext.ParentFormalTypeParametersToActuals);
       wr.Write(TypeName_Companion(calleeReceiverType, wr, method.tok, method));
       wr.Write(ClassAccessor);
 
@@ -2556,7 +2568,7 @@ namespace Microsoft.Dafny.Compilers {
         }
 
         var dtv = (DatatypeValue)pat.Expr;
-        var substMap = Resolver.TypeSubstitutionMap(ctor.EnclosingDatatype.TypeArgs, dtv.InferredTypeArgs);
+        var substMap = TypeParameter.SubstitutionMap(ctor.EnclosingDatatype.TypeArgs, dtv.InferredTypeArgs);
         var k = 0;  // number of non-ghost formals processed
         for (int i = 0; i < pat.Arguments.Count; i++) {
           var arg = pat.Arguments[i];
@@ -2567,7 +2579,7 @@ namespace Microsoft.Dafny.Compilers {
           } else {
             var sw = new ConcreteSyntaxTree(wr.RelativeIndentLevel);
             EmitDestructor(tmp_name, formal, k, ctor, dtv.InferredTypeArgs, arg.Expr.Type, sw);
-            Type targetType = Resolver.SubstType(formal.Type, substMap);
+            Type targetType = formal.Type.Subst(substMap);
             TrCasePatternOpt(arg, null, sw.ToString(), targetType, pat.Expr.tok, wr, inLetExprBody);
             k++;
           }
@@ -2674,7 +2686,7 @@ namespace Microsoft.Dafny.Compilers {
           if (thisContext == null) {
             wRHS = wr;
           } else {
-            var instantiatedType = Resolver.SubstType(e.Receiver.Type, thisContext.ParentFormalTypeParametersToActuals);
+            var instantiatedType = e.Receiver.Type.Subst(thisContext.ParentFormalTypeParametersToActuals);
             wRHS = EmitCoercionIfNecessary(instantiatedType, UserDefinedType.FromTopLevelDecl(e.tok, thisContext), e.tok, wr);
           }
           wRHS.Write(inTmps[n]);
@@ -2940,9 +2952,9 @@ namespace Microsoft.Dafny.Compilers {
       } else if (stmt is ProduceStmt) {
         var s = (ProduceStmt)stmt;
         var isTailRecursiveResult = false;
-        if (s.hiddenUpdate != null) {
-          TrStmt(s.hiddenUpdate, wr);
-          var ss = s.hiddenUpdate.ResolvedStatements;
+        if (s.HiddenUpdate != null) {
+          TrStmt(s.HiddenUpdate, wr);
+          var ss = s.HiddenUpdate.ResolvedStatements;
           if (ss.Count == 1 && ss[0] is AssignStmt assign && assign.Rhs is ExprRhs eRhs && eRhs.Expr.Resolved is FunctionCallExpr fce && IsTailRecursiveByMethodCall(fce)) {
             isTailRecursiveResult = true;
           }
@@ -3494,7 +3506,7 @@ namespace Microsoft.Dafny.Compilers {
         collectionWriter.Write("{0}.AllBooleans()", GetHelperModuleName());
         return new BoolType();
       } else if (bound is ComprehensionExpr.CharBoundedPool) {
-        collectionWriter.Write("{0}.AllChars()", GetHelperModuleName());
+        collectionWriter.Write($"{GetHelperModuleName()}.All{CharMethodQualifier}Chars()");
         return new CharType();
       } else if (bound is ComprehensionExpr.IntBoundedPool) {
         var b = (ComprehensionExpr.IntBoundedPool)bound;
@@ -4081,7 +4093,7 @@ namespace Microsoft.Dafny.Compilers {
         return e.Var.Type;
       } else if (lhs is MemberSelectExpr) {
         var e = (MemberSelectExpr)lhs;
-        return Resolver.SubstType(((Field)e.Member).Type, e.TypeArgumentSubstitutionsWithParents());
+        return ((Field)e.Member).Type.Subst(e.TypeArgumentSubstitutionsWithParents());
       } else if (lhs is SeqSelectExpr) {
         var e = (SeqSelectExpr)lhs;
         return e.Seq.Type.NormalizeExpand().TypeArgs[0];
@@ -4137,7 +4149,7 @@ namespace Microsoft.Dafny.Compilers {
           if (!p.IsGhost) {
             string target = ProtectedFreshId("_out");
             outTmps.Add(target);
-            var instantiatedType = Resolver.SubstType(p.Type, s.MethodSelect.TypeArgumentSubstitutionsWithParents());
+            var instantiatedType = p.Type.Subst(s.MethodSelect.TypeArgumentSubstitutionsWithParents());
             Type type;
             if (NeedsCastFromTypeParameter && IsCoercionNecessary(p.Type, instantiatedType)) {
               //
@@ -4178,7 +4190,15 @@ namespace Microsoft.Dafny.Compilers {
               // functions to begin with (C#) or has dynamic typing so none of
               // this comes up (JavaScript), so we only do this if
               // NeedsCastFromTypeParameter is on.
-              type = p.Type;
+              //
+              // This used to just assign p.Type to type, but that was something of a hack
+              // that didn't work in all cases: if p.Type is indeed a type parameter,
+              // it won't be in scope on the caller side. That means you can't generally
+              // declare a local variable with that type; it happened to work for Go
+              // because it would just use interface{}, but Java would try to use the type
+              // parameter directly. The TypeForCoercion() hook was added as a place to
+              // explicitly swap in a target-language type such as java.lang.Object.
+              type = TypeForCoercion(p.Type);
             } else {
               type = instantiatedType;
             }
@@ -4205,7 +4225,7 @@ namespace Microsoft.Dafny.Compilers {
         }
         var wrOrig = wr;
         if (returnStyleOutCollector == null && outTmps.Count == 1 && returnStyleOuts) {
-          var instantiatedFromType = Resolver.SubstType(outFormalTypes[0], s.MethodSelect.TypeArgumentSubstitutionsWithParents());
+          var instantiatedFromType = outFormalTypes[0].Subst(s.MethodSelect.TypeArgumentSubstitutionsWithParents());
           var toType = outTypes[0];
           wr = EmitDowncastIfNecessary(instantiatedFromType, toType, s.Tok, wr);
         }
@@ -4243,7 +4263,7 @@ namespace Microsoft.Dafny.Compilers {
             wr.Write(sep);
             var fromType = s.Args[i].Type;
             var toType = s.Method.Ins[i].Type;
-            var instantiatedToType = Resolver.SubstType(toType, s.MethodSelect.TypeArgumentSubstitutionsWithParents());
+            var instantiatedToType = toType.Subst(s.MethodSelect.TypeArgumentSubstitutionsWithParents());
             // Order of coercions is important here: EmitCoercionToNativeForm may coerce into a type we're unaware of, so it *has* to be last
             var w = EmitCoercionIfNecessary(fromType, toType, s.Tok, wr);
             w = EmitDowncastIfNecessary(fromType, instantiatedToType, s.Tok, w);
@@ -4327,7 +4347,7 @@ namespace Microsoft.Dafny.Compilers {
         if (thisContext == null) {
           wRHS = wr;
         } else {
-          var instantiatedType = Resolver.SubstType(receiver.Type, thisContext.ParentFormalTypeParametersToActuals);
+          var instantiatedType = receiver.Type.Subst(thisContext.ParentFormalTypeParametersToActuals);
           wRHS = EmitCoercionIfNecessary(instantiatedType, UserDefinedType.FromTopLevelDecl(tok, thisContext), tok, wr);
         }
         wRHS.Write(inTmps[n]);
@@ -4504,7 +4524,7 @@ namespace Microsoft.Dafny.Compilers {
 
       } else if (expr is ThisExpr) {
         if (thisContext != null) {
-          var instantiatedType = Resolver.SubstType(expr.Type, thisContext.ParentFormalTypeParametersToActuals);
+          var instantiatedType = expr.Type.Subst(thisContext.ParentFormalTypeParametersToActuals);
           wr = EmitCoercionIfNecessary(UserDefinedType.FromTopLevelDecl(expr.tok, thisContext), instantiatedType, expr.tok, wr);
         }
         EmitThis(wr);
@@ -4575,7 +4595,7 @@ namespace Microsoft.Dafny.Compilers {
             if (e.Member is Function && typeArgs.Count != 0) {
               // need to eta-expand wrap the receiver
               var etaReceiver = ProtectedFreshId("_eta_this");
-              wr = CreateIIFE_ExprBody(etaReceiver, e.Obj.Type, e.Obj.tok, e.Obj, inLetExprBody, Resolver.SubstType(e.Type, typeMap), e.tok, wr, ref wStmts);
+              wr = CreateIIFE_ExprBody(etaReceiver, e.Obj.Type, e.Obj.tok, e.Obj, inLetExprBody, e.Type.Subst(typeMap), e.tok, wr, ref wStmts);
               obj = w => w.Write(etaReceiver);
             } else {
               obj = w => TrExpr(e.Obj, w, inLetExprBody, wStmts);
@@ -4586,7 +4606,7 @@ namespace Microsoft.Dafny.Compilers {
             if (customReceiver && e.Member is Function) {
               // need to eta-expand wrap the receiver
               customReceiverName = ProtectedFreshId("_eta_this");
-              wr = CreateIIFE_ExprBody(customReceiverName, e.Obj.Type, e.Obj.tok, e.Obj, inLetExprBody, Resolver.SubstType(e.Type, typeMap), e.tok, wr, ref wStmts);
+              wr = CreateIIFE_ExprBody(customReceiverName, e.Obj.Type, e.Obj.tok, e.Obj, inLetExprBody, e.Type.Subst(typeMap), e.tok, wr, ref wStmts);
             }
             Action<ConcreteSyntaxTree> obj = w => w.Write(TypeName_Companion(e.Obj.Type, wr, e.tok, e.Member));
             EmitMemberSelect(obj, e.Obj.Type, e.Member, typeArgs, typeMap, expr.Type, customReceiverName).EmitRead(wr);
@@ -4984,6 +5004,8 @@ namespace Microsoft.Dafny.Compilers {
         wr = CreateLambda(e.BoundVars.ConvertAll(bv => bv.Type), Token.NoToken, e.BoundVars.ConvertAll(IdName), e.Body.Type, wr, wStmts);
         wStmts = wr.Fork();
         wr = EmitReturnExpr(wr);
+        // May need an upcast or boxing conversion to coerce to the generic arrow result type
+        wr = EmitCoercionIfNecessary(e.Body.Type, TypeForCoercion(e.Type.AsArrowType.Result), e.Body.tok, wr);
         TrExpr(su.Substitute(e.Body), wr, inLetExprBody, wStmts);
 
       } else if (expr is StmtExpr) {
@@ -5079,7 +5101,7 @@ namespace Microsoft.Dafny.Compilers {
         }
 
         var bvIdentifier = new IdentifierExpr(tok, boundVar);
-        var typeParameters = Resolver.TypeSubstitutionMap(typeParametersArgs, typeArgs);
+        var typeParameters = TypeParameter.SubstitutionMap(typeParametersArgs, typeArgs);
         var subContract = new Substituter(null,
           new Dictionary<IVariable, Expression>()
           {
@@ -5249,7 +5271,7 @@ namespace Microsoft.Dafny.Compilers {
         Contract.Assert(ctor != null);  // follows from successful resolution
         Contract.Assert(pat.Arguments.Count == ctor.Formals.Count);  // follows from successful resolution
         Contract.Assert(ctor.EnclosingDatatype.TypeArgs.Count == rhsType.NormalizeExpand().TypeArgs.Count);
-        var typeSubst = Resolver.TypeSubstitutionMap(ctor.EnclosingDatatype.TypeArgs, rhsType.NormalizeExpand().TypeArgs);
+        var typeSubst = TypeParameter.SubstitutionMap(ctor.EnclosingDatatype.TypeArgs, rhsType.NormalizeExpand().TypeArgs);
         var k = 0;  // number of non-ghost formals processed
         for (int i = 0; i < pat.Arguments.Count; i++) {
           var arg = pat.Arguments[i];
@@ -5260,7 +5282,7 @@ namespace Microsoft.Dafny.Compilers {
           } else {
             var sw = new ConcreteSyntaxTree(wr.RelativeIndentLevel);
             EmitDestructor(rhsString, formal, k, ctor, ((DatatypeValue)pat.Expr).InferredTypeArgs, arg.Expr.Type, sw);
-            wr = TrCasePattern(arg, sw.ToString(), Resolver.SubstType(formal.Type, typeSubst), bodyType, wr, ref wStmts);
+            wr = TrCasePattern(arg, sw.ToString(), formal.Type.Subst(typeSubst), bodyType, wr, ref wStmts);
             k++;
           }
         }
@@ -5288,7 +5310,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(tr != null);
       Function f = e.Function;
 
-      var toType = thisContext == null ? e.Type : Resolver.SubstType(e.Type, thisContext.ParentFormalTypeParametersToActuals);
+      var toType = thisContext == null ? e.Type : e.Type.Subst(thisContext.ParentFormalTypeParametersToActuals);
       wr = EmitCoercionIfNecessary(f.Original.ResultType, toType, e.tok, wr);
 
       var customReceiver = !(f.EnclosingClass is TraitDecl) && NeedsCustomReceiver(f);
@@ -5321,7 +5343,7 @@ namespace Microsoft.Dafny.Compilers {
           wr.Write(sep);
           var fromType = e.Args[i].Type;
           var w = EmitCoercionIfNecessary(fromType, e.Function.Formals[i].Type, tok: e.tok, wr: wr);
-          var instantiatedToType = Resolver.SubstType(e.Function.Formals[i].Type, e.TypeArgumentSubstitutionsWithParents());
+          var instantiatedToType = e.Function.Formals[i].Type.Subst(e.TypeArgumentSubstitutionsWithParents());
           w = EmitDowncastIfNecessary(fromType, instantiatedToType, e.tok, w);
           tr(e.Args[i], w, inLetExprBody, wStmts);
           sep = ", ";

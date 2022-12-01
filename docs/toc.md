@@ -25,7 +25,7 @@ This page contains links to Dafny documentation.
 
 * Quick start material:
    * [Installation](https://github.com/dafny-lang/dafny/wiki/INSTALL) and [Releases](https://github.com/dafny-lang/dafny/releases)
-   * [Cheatsheet](https://docs.google.com/document/d/1kz5_yqzhrEyXII96eCF1YoHZhnb_6dzv-K3u79bMMis/edit?pref=2&pli=1): basic Dafny syntax on two pages
+   * [Cheatsheet](DafnyCheatsheet.pdf)
    * Dafny [Quick Reference](./QuickReference)
    * [Getting started tutorial](./OnlineTutorial/guide), focusing mostly on simple imperative programs
    * [FAQs and explanations of error messages](HowToFAQ/index)
@@ -33,15 +33,16 @@ This page contains links to Dafny documentation.
    * [**Dafny Reference Manual**](DafnyRef/DafnyRef)
    * [**Style Guide for Dafny programs**](StyleGuide/Style-Guide)
    * Language reference for the [Dafny type system](http://leino.science/papers/krml243.html), which also describes available expressions for each type
+   * [Miscellaneous Examples of Dafny programs](examples/README)
 * Dafny Tutorials
    * [Introduction to Dafny](OnlineTutorial/guide)
-   * [A Tutorial on Using Dafny to Construct Verified Software](https://arxiv.org/pdf/1701.04481.pdf), Paqui Lucio, 2017
    * [Value Types](OnlineTutorial/ValueTypes)
    * [Sets](OnlineTutorial/Sets)
    * [Sequences](OnlineTutorial/Sequences)
    * [Lemmas and Induction](OnlineTutorial/Lemmas)
    * [Modules](OnlineTutorial/Modules)
    * [Termination](OnlineTutorial/Termination)
+   * [A Tutorial on Using Dafny to Construct Verified Software](https://arxiv.org/pdf/1701.04481.pdf), Paqui Lucio, 2017
 * Forums for Q&amp;A (#discussion)
    * [Problem reports](https://github.com/dafny-lang/dafny/issues) and [discussions](https://github.com/dafny-lang/dafny/discussions) on GitHub
    * Dafny-tagged queries on [Stackoverflow](https://stackoverflow.com/questions/tagged/dafny)
