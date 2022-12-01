@@ -21,7 +21,6 @@ public abstract class Declaration : INode, INamedRegion, IAttributeBearingDeclar
   public IToken BodyStartTok = Token.NoToken;
   public IToken BodyEndTok = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
-  public IEnumerable<IToken> OwnedTokens { get; set; } = new List<IToken>();
   public string Name;
   public bool IsRefining;
   IToken IRegion.BodyStartTok { get { return BodyStartTok; } }
@@ -236,8 +235,7 @@ public class TypeParameter : TopLevelDecl {
 
   public enum EqualitySupportValue { Required, InferredRequired, Unspecified }
   public struct TypeParameterCharacteristics {
-    public IToken? RangeToken = null;
-    public IEnumerable<IToken> OwnedTokens { get; set; } = new List<IToken>();
+    public IToken RangeToken = null;
     public EqualitySupportValue EqualitySupport;  // the resolver may change this value from Unspecified to InferredRequired (for some signatures that may immediately imply that equality support is required)
     public Type.AutoInitInfo AutoInit;
     public bool HasCompiledValue => AutoInit == Type.AutoInitInfo.CompilableValue;
@@ -636,7 +634,6 @@ public class ModuleDefinition : INode, IDeclarationOrUsage, INamedRegion, IAttri
   public IToken BodyStartTok = Token.NoToken;
   public IToken BodyEndTok = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
-  public IEnumerable<IToken> OwnedTokens { get; set; } = new List<IToken>();
   public readonly string DafnyName; // The (not-qualified) name as seen in Dafny source code
   public readonly string Name; // (Last segment of the) module name
   public string FullDafnyName {

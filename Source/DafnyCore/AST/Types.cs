@@ -12,7 +12,6 @@ public abstract class Type : INode {
   public static readonly CharType Char = new CharType();
   public static readonly IntType Int = new IntType();
   public static readonly RealType Real = new RealType();
-  public IEnumerable<IToken> OwnedTokens { get; set; } = new List<IToken>();
   public override IEnumerable<INode> Children { get; } = new List<INode>();
   public static Type Nat() { return new UserDefinedType(Token.NoToken, "nat", null); }  // note, this returns an unresolved type
   public static Type String() { return new UserDefinedType(Token.NoToken, "string", null); }  // note, this returns an unresolved type

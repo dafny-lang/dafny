@@ -2357,7 +2357,6 @@ ExtendedPattern is either:
 public abstract class ExtendedPattern : INode {
   public readonly IToken Tok;
   public bool IsGhost;
-  public IEnumerable<IToken> OwnedTokens { get; set; } = new List<IToken>();
 
   public ExtendedPattern(IToken tok, bool isGhost = false) {
     Contract.Requires(tok != null);
@@ -2438,7 +2437,6 @@ public class LitPattern : ExtendedPattern {
 public abstract class NestedMatchCase : INode {
   public readonly IToken Tok;
   public readonly ExtendedPattern Pat;
-  public IEnumerable<IToken> OwnedTokens { get; set; } = new List<IToken>();
 
   public NestedMatchCase(IToken tok, ExtendedPattern pat) {
     Contract.Requires(tok != null);
@@ -2556,7 +2554,6 @@ public class AttributedExpression : INode, IAttributeBearingDeclaration {
 public class FrameExpression : INode, IHasUsages {
   public readonly IToken tok;
   public readonly Expression E;  // may be a WildcardExpr
-  public IEnumerable<IToken> OwnedTokens { get; set; } = new List<IToken>();
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(E != null);

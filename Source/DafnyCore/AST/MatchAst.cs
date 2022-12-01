@@ -74,7 +74,6 @@ public abstract class MatchCase : INode, IHasUsages {
   public readonly IToken tok;
   [FilledInDuringResolution] public DatatypeCtor Ctor;
   public List<BoundVar> Arguments; // created by the resolver.
-  public IEnumerable<IToken> OwnedTokens { get; set; } = new List<IToken>();
 
   [ContractInvariantMethod]
   void ObjectInvariant() {

@@ -275,7 +275,6 @@ public class YieldStmt : ProduceStmt {
 
 public abstract class AssignmentRhs : INode {
   public readonly IToken Tok;
-  public IEnumerable<IToken> OwnedTokens { get; set; } = new List<IToken>();
 
   private Attributes attributes;
   public Attributes Attributes {
@@ -626,7 +625,6 @@ public class LocalVariable : INode, IVariable, IAttributeBearingDeclaration {
   public readonly IToken EndTok;  // typically a terminating semi-colon or end-curly-brace
   readonly string name;
   public Attributes Attributes;
-  public IEnumerable<IToken> OwnedTokens { get; set; } = new List<IToken>();
   Attributes IAttributeBearingDeclaration.Attributes => Attributes;
   public bool IsGhost;
   [ContractInvariantMethod]

@@ -5,7 +5,6 @@
 // SPDX-License-Identifier: MIT
 //
 //-----------------------------------------------------------------------------
-#nullable enable
 using System;
 using System.Collections;
 using System.Text;
@@ -33,12 +32,12 @@ namespace Microsoft.Dafny {
     /// </summary>
     public abstract IEnumerable<INode> Children { get; }
 
-    public RangeToken? RangeToken { get; set; } = null;
+    public RangeToken RangeToken { get; set; } = null;
 
-    public IToken? StartToken => RangeToken?.StartToken;
-    public IToken? EndToken => RangeToken?.EndToken;
+    public IToken StartToken => RangeToken?.StartToken;
+    public IToken EndToken => RangeToken?.EndToken;
 
-    protected IReadOnlyList<IToken>? OwnedTokensCache;
+    protected IReadOnlyList<IToken> OwnedTokensCache;
 
     /// <summary>
     /// A token is owned by a node if it was used to parse this node,
@@ -458,7 +457,6 @@ namespace Microsoft.Dafny {
   }
   [ContractClassFor(typeof(IVariable))]
   public abstract class IVariableContracts : INode, IVariable {
-    public IEnumerable<IToken> OwnedTokens { get; set; } = new List<IToken>();
     public string Name {
       get {
         Contract.Ensures(Contract.Result<string>() != null);
