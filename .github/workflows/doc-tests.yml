@@ -24,6 +24,10 @@ jobs:
             z3: z3-4.8.5-x64-ubuntu-16.04
             chmod: true
 
+    env:
+      solutionPath: Source/Dafny.sln
+      z3BaseUri: https://github.com/Z3Prover/z3/releases/download/Z3-4.8.5
+      Logging__LogLevel__Microsoft: Debug
     steps:
     - name: OS
       run: echo ${{ runner.os }} ${{ matrix.os }}
