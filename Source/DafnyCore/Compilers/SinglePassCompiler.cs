@@ -736,6 +736,8 @@ namespace Microsoft.Dafny.Compilers {
 
     protected virtual bool NeedsCastFromTypeParameter => false;
 
+    protected virtual bool TargetSubtypingRequiresEqualTypeArguments(Type type) => false;
+
     protected virtual bool IsCoercionNecessary(Type /*?*/ from, Type /*?*/ to) {
       return NeedsCastFromTypeParameter;
     }
@@ -759,9 +761,11 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(wr != null);
       if (from != null && to != null) {
         if (!IsTargetSupertype(to, from)) {
-          // The following assert is a sanity check. Note, in a language with NeedsCastFromTypeParameter, "to" and "from" may
-          // contain uninstantiated formal type parameters.
-          Contract.Assert(NeedsCastFromTypeParameter || IsTargetSupertype(from, to));
+          // By the way, it is tempting to think that IsTargetSupertype(from, to)) would hold here, but that's not true.
+          // For one, in a language with NeedsCastFromTypeParameter, "to" and "from" may contain uninstantiated formal type parameters.
+          // Also, it is possible (subject to a check enforced by the verifier) to assign Datatype<X> to Datatype<Y>,
+          // where Datatype is co-variant in its argument type and X and Y are two incomparable types with a common supertype.
+
           wr = EmitDowncast(from, to, tok, wr);
         }
       }
@@ -774,7 +778,7 @@ namespace Microsoft.Dafny.Compilers {
     /// This to similar to Type.IsSupertype and Type.Equals, respectively, but ignores subset types (that
     /// is, always uses the base type of any subset type).
     /// </summary>
-    public static bool IsTargetSupertype(Type to, Type from, bool typeEqualityOnly = false) {
+    public bool IsTargetSupertype(Type to, Type from, bool typeEqualityOnly = false) {
       Contract.Requires(from != null);
       Contract.Requires(to != null);
       to = to.NormalizeExpand();
@@ -786,7 +790,7 @@ namespace Microsoft.Dafny.Compilers {
         Contract.Assert(formalTypeParameters != null || to.TypeArgs.Count == 0 || to is CollectionType);
         for (var i = 0; i < to.TypeArgs.Count; i++) {
           bool okay;
-          if (typeEqualityOnly) {
+          if (typeEqualityOnly || TargetSubtypingRequiresEqualTypeArguments(to)) {
             okay = IsTargetSupertype(to.TypeArgs[i], from.TypeArgs[i], true);
           } else if (formalTypeParameters == null || formalTypeParameters[i].Variance == TypeParameter.TPVariance.Co) {
             okay = IsTargetSupertype(to.TypeArgs[i], from.TypeArgs[i]);
