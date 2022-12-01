@@ -130,6 +130,13 @@ namespace Microsoft.Dafny {
           throw new ArgumentOutOfRangeException();
       }
 
+      if (dafnyOptions.RunLanguageServer) {
+#pragma warning disable VSTHRD002
+        LanguageServer.Server.Start(dafnyOptions).Wait();
+#pragma warning restore VSTHRD002
+        return 0;
+      }
+
       DafnyOptions.O.XmlSink?.Close();
 
       if (DafnyOptions.O.VerificationLoggerConfigs.Any()) {
@@ -180,6 +187,10 @@ namespace Microsoft.Dafny {
         new DafnyConsolePrinter().ErrorWriteLine(Console.Out, "*** ProverException: {0}", pe.Message);
         options = null;
         return CommandLineArgumentsResult.PREPROCESSING_ERROR;
+      }
+
+      if (options.RunLanguageServer) {
+        return CommandLineArgumentsResult.OK;
       }
 
       // If requested, print version number, help, attribute help, etc. and exit.
