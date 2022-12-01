@@ -26,7 +26,10 @@ body:
     id: proposal
     attributes:
       label: Proposed Feature
-      description: Please provide a sketch of the feature you are proposing. Be as specific as you can: the more specific the proposal, the easier the process will be. Including screenshots of some of the existing problems can also help a lot here.
+      description: >
+        Please provide a sketch of the feature you are proposing. 
+        Be as specific as you can: the more specific the proposal, the easier the process will be.
+        Including screenshots of some of the existing problems can also help a lot here.
     validations:
       required: true
   - type: textarea
