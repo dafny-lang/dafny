@@ -1,5 +1,8 @@
 #! /usr/bin/env bash
 
+dir=$(dirname "${BASH_SOURCE[0]}")
+dafny="$dir/../scripts/dafny"
+
 text=text.dfy
 ANYFAIL=0
 for file in $@ ; do
@@ -35,7 +38,7 @@ do
       elif [ "$command" == "%no-check" ]; then
          echo -n ""
       elif [ $command == "%check-ok" ]; then
-        dafny verify $text > actual
+        "$dafny" verify $text > actual
         if [ $? -ne "0" ]; then
           echo "TEST FAILED"
           cat $text
