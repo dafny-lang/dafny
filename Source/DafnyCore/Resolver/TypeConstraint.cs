@@ -1,4 +1,3 @@
-#define TI_DEBUG_PRINT
 //-----------------------------------------------------------------------------
 //
 // Copyright (C) Microsoft Corporation.  All Rights Reserved.
@@ -18,22 +17,21 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Microsoft.Dafny {
   public record TypeConstraint(Type Super, Type Sub, TypeConstraint.ErrorMsg ErrMsg, bool KeepConstraints) {
-    private static readonly List<ErrorMsg> ErrorsToBeReported = new List<ErrorMsg>();
-    public static void ReportErrors(ErrorReporter reporter) {
+    public static void ReportErrors(Resolver resolver, ErrorReporter reporter) {
       Contract.Requires(reporter != null);
-      foreach (var err in ErrorsToBeReported) {
+      foreach (var err in resolver.TypeConstraintErrorsToBeReported) {
         err.ReportAsError(reporter);
       }
-      ErrorsToBeReported.Clear();
+      resolver.TypeConstraintErrorsToBeReported.Clear();
     }
     public abstract class ErrorMsg {
       public abstract IToken Tok { get; }
       bool reported;
-      public void FlagAsError() {
+      public void FlagAsError(Resolver resolver) {
         if (DafnyOptions.O.TypeInferenceDebug) {
           Console.WriteLine($"DEBUG: flagging error: {ApproximateErrorMessage()}");
         }
-        TypeConstraint.ErrorsToBeReported.Add(this);
+        resolver.TypeConstraintErrorsToBeReported.Add(this);
       }
       internal void ReportAsError(ErrorReporter reporter) {
         Contract.Requires(reporter != null);
@@ -111,8 +109,8 @@ namespace Microsoft.Dafny {
 
       protected override string ApproximateErrorMessage() => string.Format(Msg, MsgArgs);
     }
-    public void FlagAsError() {
-      ErrMsg.FlagAsError();
+    public void FlagAsError(Resolver resolver) {
+      ErrMsg.FlagAsError(resolver);
     }
   }
 }

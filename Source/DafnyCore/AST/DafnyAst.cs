@@ -1,4 +1,3 @@
-#define TI_DEBUG_PRINT
 //-----------------------------------------------------------------------------
 //
 // Copyright (C) Microsoft Corporation.  All Rights Reserved.
@@ -904,7 +903,7 @@ namespace Microsoft.Dafny {
       // recursively visit all subexpressions and all substatements
       expr.SubExpressions.Iter(Visit);
       if (expr is StmtExpr) {
-        // a StmtExpr also has a sub-statement
+        // a StmtExpr also has a substatement
         var e = (StmtExpr)expr;
         Visit(e.S);
       }
@@ -933,7 +932,7 @@ namespace Microsoft.Dafny {
         // recursively visit all subexpressions and all substatements
         expr.SubExpressions.Iter(e => Visit(e, st));
         if (expr is StmtExpr) {
-          // a StmtExpr also has a sub-statement
+          // a StmtExpr also has a substatement
           var e = (StmtExpr)expr;
           Visit(e.S, st);
         }
@@ -991,7 +990,7 @@ namespace Microsoft.Dafny {
     }
     /// <summary>
     /// Visit one expression proper.  This method is invoked before it is invoked on the
-    /// sub-parts (sub-expressions and sub-statements).  A return value of "true" says to
+    /// sub-parts (subexpressions and substatements).  A return value of "true" says to
     /// continue invoking the method on sub-parts, whereas "false" says not to do so.
     /// The on-return value of "st" is the value that is passed to sub-parts.
     /// </summary>

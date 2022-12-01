@@ -287,7 +287,7 @@ namespace Microsoft.Dafny.Triggers {
       var indent = addHeader ? "  " : "";
       bool suppressWarnings = Attributes.Contains(q.quantifier.Attributes, "nowarn");
       var reportingToken = q.quantifier.tok;
-      // If there is only one sub-expression, we discard the nested token information.
+      // If there is only one subexpression, we discard the nested token information.
       if (reportingToken is NestedToken nestedToken && !addHeader) {
         reportingToken = nestedToken.Outer;
       }
@@ -339,7 +339,7 @@ namespace Microsoft.Dafny.Triggers {
 #endif
       }
 
-      if (msg.Length > 0) {
+      if (msg.Length > 0 && !Attributes.Contains(q.quantifier.Attributes, "auto_generated")) {
         var msgStr = msg.ToString().TrimEnd("\r\n ".ToCharArray());
         reporter.Message(MessageSource.Rewriter, errorLevel, reportingToken, msgStr);
       }

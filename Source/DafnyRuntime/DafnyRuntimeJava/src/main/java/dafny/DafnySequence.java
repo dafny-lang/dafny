@@ -7,6 +7,8 @@ import java.math.BigInteger;
 import java.util.*;
 import java.util.function.Function;
 
+import dafny.TypeDescriptor;
+
 public abstract class DafnySequence<T> implements Iterable<T> {
     /*
     Invariant: forall 0<=i<length(). seq[i] == T || null
@@ -107,6 +109,27 @@ public abstract class DafnySequence<T> implements Iterable<T> {
         return new StringDafnySequence(s);
     }
 
+    public static DafnySequence<CodePoint> asUnicodeString(String s) {
+        int[] codePoints = new int[s.codePointCount(0, s.length())];
+        int charIndex = 0;
+        for (int codePointIndex = 0; codePointIndex < codePoints.length; codePointIndex++) {
+            char c1 = s.charAt(charIndex++);
+            if (Character.isHighSurrogate(c1)) {
+                if (charIndex >= s.length()) {
+                    throw new IllegalArgumentException();
+                }
+                char c2 = s.charAt(charIndex++);
+                if (!Character.isLowSurrogate(c2)) {
+                    throw new IllegalArgumentException();
+                }
+                codePoints[codePointIndex] = Character.toCodePoint(c1, c2);
+            } else {
+                codePoints[codePointIndex] = c1;
+            }
+        }
+        return new ArrayDafnySequence<>(Array.wrap(TypeDescriptor.UNICODE_CHAR, codePoints));
+    }
+
     public static DafnySequence<Byte> fromBytes(byte[] bytes) {
         return unsafeWrapBytes(bytes.clone());
     }
@@ -145,6 +168,10 @@ public abstract class DafnySequence<T> implements Iterable<T> {
 
     public static byte[] toByteArray(DafnySequence<Byte> seq) {
         return Array.unwrapBytes(seq.toArray());
+    }
+
+    public static int[] toIntArray(DafnySequence<Integer> seq) {
+        return Array.unwrapInts(seq.toArray());
     }
 
     public abstract TypeDescriptor<T> elementType();
@@ -395,15 +422,27 @@ public abstract class DafnySequence<T> implements Iterable<T> {
     }
 
     @SuppressWarnings("unchecked")
-    public String verbatimString(){
-        // This is slow, but the override in StringDafnySequence will almost
-        // always be used instead
-        StringBuilder builder = new StringBuilder(length());
-        for(Character ch: (List<Character>) asList())
-        {
-            builder.append(ch);
+    public String verbatimString() {
+        if (elementType() == TypeDescriptor.UNICODE_CHAR) {
+            // This is slow, but the override in ArrayDafnySequence will almost
+            // always be used instead
+            int[] codePoints = new int[length()];
+            int i = 0;
+            for(Integer ch: (List<Integer>) asList())
+            {
+                codePoints[i++] = ch;
+            }
+            return new String(codePoints, 0, codePoints.length);
+        } else {
+            // This is slow, but the override in StringDafnySequence will almost
+            // always be used instead
+            StringBuilder builder = new StringBuilder(length());
+            for(Character ch: (List<Character>) asList())
+            {
+                builder.append(ch);
+            }
+            return builder.toString();
         }
-        return builder.toString();
     }
 
     public Iterable<T> Elements() {
@@ -569,7 +608,11 @@ final class ArrayDafnySequence<T> extends NonLazyDafnySequence<T> {
 
     @Override
     public String verbatimString() {
-        return new String((char[]) seq.unwrap());
+        if (elementType() == TypeDescriptor.UNICODE_CHAR) {
+            return new String((int[]) seq.unwrap(), 0, seq.length());
+        } else {
+            return new String((char[]) seq.unwrap());
+        }
     }
 }
 

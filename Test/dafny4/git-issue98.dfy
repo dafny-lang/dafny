@@ -1,4 +1,4 @@
-// RUN: %dafny /noNLarith /compile:0 "%s" > "%t"
+// RUN: %baredafny verify %args --disable-nonlinear-arithmetic "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 abstract module One {

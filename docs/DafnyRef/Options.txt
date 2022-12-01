@@ -102,6 +102,10 @@ Usage: Dafny [ option ... ] [ filename ... ]
   
   ---- Language feature selection --------------------------------------------
   
+  /unicodeChar:<value>
+      0 (default) - The char type represents any UTF-16 code unit.
+      1 - The char type represents any Unicode scalar value.
+
   /noIncludes
       Ignore include directives.
   
@@ -613,6 +617,8 @@ Usage: Dafny [ option ... ] [ filename ... ]
                 do not verify mover type annotations on atomic action declarations
   /trustNoninterference
                 do not perform noninterference checks
+  /trustRefinement
+                do not perform refinement checks
   /trustLayersUpto:<n>
                 do not verify layers <n> and below
   /trustLayersDownto:<n>

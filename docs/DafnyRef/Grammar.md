@@ -87,16 +87,11 @@ let you reconstruct the original grammar.
 
 ## 2.1. Dafny Input {#sec-unicode}
 
-Dafny source code files are readable text encoded in UTF-8, where each decoded character has to be from the Basic Multilingual Plane and therefore encodable with a single UTF-16 code unit. This is what the Coco/R-generated scanner and parser read.
+Dafny source code files are readable text encoded in UTF-8.
 All program text other than the contents of comments, character, string and verbatim string literals
 consists of printable and white-space ASCII characters,
-that is, ASCII characters in the range `!` to `~`, plus space, tab, cr and nl (ASCII, 9, 10, 13, 32)  characters.
-
-However, a current limitation of the Coco/R tool used by `dafny`
-is that only printable and white-space ASCII characters can be used.
-Use `\u` escapes in string and character literals to insert unicode characters.
-Unicode in comments will work fine unless the unicode is interpreted as an end-of-comment indication.
-Unicode in verbatim strings will likely not be interpreted as intended. [Outstanding issue #818].
+that is, ASCII characters in the range `!` to `~`, plus space, tab, 
+carriage return and newline (ASCII, 9, 10, 13, 32) characters.
 
 ## 2.2. Tokens and whitespace {#sec-token-types}
 The characters used in a Dafny program fall into four groups:
@@ -217,19 +212,16 @@ will trigger a subsequent scanning or parsing error.
 charChar = ANY - '\'' - '\\' - cr - lf
 ````
 Characters that can appear in a character constant.
-See the [discussion on unicode support](#sec-unicode).
 
 ````grammar
 stringChar = ANY - '"' - '\\' - cr - lf
 ````
 Characters that can appear in a string constant.
-See the [discussion on unicode support](#sec-unicode).
 
 ````grammar
 verbatimStringChar = ANY - '"'
 ````
 Characters that can appear in a verbatim string.
-See the [discussion on unicode support](#sec-unicode).
 
 ## 2.4. Comments {#sec-comments}
 Comments are in two forms.
@@ -251,9 +243,9 @@ method m() {
 ```
 is permitted; this feature is convenient for commenting out blocks of
 program statements that already have multi-line comments within them.
-Other than looking for  end-of-comment delimiters,
+Other than looking for end-of-comment delimiters,
 the contents of a comment are not interpreted.
-Comments may contain any unicode character, but see the [discussion on unicode support](#sec-unicode) for more information.
+Comments may contain any characters.
 
 Note that the nesting is not fool-proof. In
 ```dafny
@@ -281,7 +273,7 @@ As with most languages, Dafny syntax is defined in two levels. First the stream
 of input characters is broken up into _tokens_. Then these tokens are parsed
 using the Dafny grammar. The Dafny tokens are defined in this section.
 
-### 2.5.1. Reserved Words {sec-reserved-words}
+### 2.5.1. Reserved Words {#sec-reserved-words}
 The following reserved words appear in the Dafny grammar and may not be used
 as identifiers of user-defined entities:
 
@@ -358,6 +350,7 @@ In this section the "\\" characters are literal.
 escapedChar =
     ( "\'" | "\"" | "\\" | "\0" | "\n" | "\r" | "\t"
       | "\u" hexdigit hexdigit hexdigit hexdigit
+      | "\U{" hexdigit { hexdigit } "}"
     )
 ````
 
@@ -365,6 +358,18 @@ In Dafny character or string literals, escaped characters may be used
 to specify the presence of a single- or double-quote character, backslash,
 null, new line, carriage return, tab, or a
 Unicode character with given hexadecimal representation.
+Which Unicode escape form is allowed depends on the value of the `--unicode-char` option.
+
+If `--unicode-char:false` is provided,
+`\uXXXX` escapes can be used to specify any UTF-16 code unit.
+
+If `--unicode-char:true` is provided,
+`\U{X..X}` escapes can be used to specify any Unicode scalar value.
+There must be at least one hex digit in between the braces, and at most six.
+Surrogate code points are not allowed.
+The hex digits may be interspersed with underscores for readability 
+(but not beginning or ending with an underscore), as in `\U{1_F680}`.
+
 
 ### 2.5.5. Character Constant Token {#sec-character-constant-token}
 ````grammar
@@ -602,7 +607,7 @@ For example, in the quantifier domain `i | 0 <= i < |s|, y <- s[i] | i < y`, the
 because the range attached to `i` ensures `i` is a valid index in the sequence `s`.
 
 Allowing per-variable ranges is not fully backwards compatible, and so it is not yet allowed by default;
-the `/functionSyntax:4` option needs to be provided to enable this feature (See [Section 25.9.5](#sec-controlling-language)).
+the `/quantifierSyntax:4` option needs to be provided to enable this feature (See [Section 25.9.5](#sec-controlling-language)).
 
 The general production for quantifier domains is:
 
