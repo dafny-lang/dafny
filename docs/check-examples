@@ -1,0 +1,66 @@
+#! /usr/bin/env bash
+
+text=text.dfy
+ANYFAIL=0
+for file in $@ ; do
+
+FAIL=0
+n=0
+inblock=0
+command= 
+expect= 
+while IFS= read -r line
+do 
+  let n++
+  ##echo LINE $n "$line"
+  echo $line | grep -e '```'  > /dev/null
+  if [ $? -eq "0" ]; then
+    ##echo FOUND BACKTICKS IN $n "$line"
+    if [ $inblock -eq "0" ]; then
+      command=
+      ( echo "$line" | grep -e '```dafny' > /dev/null ) || echo NO LANGUAGE LABEL $n "$line"
+      ( echo "$line" | grep -e '<!--' > /dev/null ) \
+          && action=( `echo "$line" | sed -e 's/[^<]*<!--//' -e 's/-->//'` ) \
+          && command=${action[0]} && expect=${action[1]} \
+          || echo NO TEST COMMAND $n "$line"
+      inblock=1
+      rm -f $text
+      touch $text
+    else
+      ( echo "$line" | grep -e '```dafny' > /dev/null ) && echo UNEXPECTED LANGUAGE LABEL $n "$line"
+      inblock=0
+      echo TESTING $command $expect
+      if [ "$command" == "" ]; then
+      echo -n ""
+      elif [ "$command" == "%no-check" ]; then
+         echo -n ""
+      elif [ $command == "%check-ok" ]; then
+        dafny verify $text > actual
+        if [ $? -ne "0" ]; then
+          echo "TEST FAILED"
+          cat $text
+          cat actual
+          FAIL=1
+        fi
+      else
+         echo UNKNOWN TEST COMMAND $command
+      fi
+    fi
+  else
+    if [ $inblock -eq "1" ]; then
+      echo "$line" >> $text
+    fi
+  fi
+done < $file
+
+if [ $inblock -eq "1" ]; then
+  echo UNCLOSED BACKTICK BLOCK
+fi
+
+if [ $FAIL -eq "1" ] ; then 
+  echo Test Failure: $file
+  ANYFAIL=1
+fi
+
+done
+exit $ANYFAIL
