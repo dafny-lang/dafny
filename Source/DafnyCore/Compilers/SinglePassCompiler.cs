@@ -3049,10 +3049,16 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(tok != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
-      var usePlaceboValue =
-        (type.NormalizeExpandKeepConstraints() as UserDefinedType)?.ResolvedClass is DatatypeDecl dt && dt.GetGroundingCtor().IsGhost;
-      type = SimplifyType(type, true);
-      return TypeInitializationValue(type, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
+      // If "type" is a datatype with a ghost grounding constructor, then compile as a placebo for SimplifyType(type, true).
+      // Otherwise, get default value for SimplifyType(type, true), which may itself have a ghost grounding constructor, in
+      // which case the value we produce is a placebo.
+      bool HasGhostGroundingCtor(Type ty) {
+        return (ty.NormalizeExpandKeepConstraints() as UserDefinedType)?.ResolvedClass is DatatypeDecl dt && dt.GetGroundingCtor().IsGhost;
+      }
+
+      var simplifiedType = SimplifyType(type, true);
+      var usePlaceboValue = HasGhostGroundingCtor(type) || HasGhostGroundingCtor(simplifiedType);
+      return TypeInitializationValue(simplifiedType, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
     }
 
     // ----- Stmt ---------------------------------------------------------------------------------
