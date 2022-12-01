@@ -38,7 +38,7 @@ do
       elif [ "$command" == "%no-check" ]; then
          echo -n ""
       elif [ $command == "%check-ok" ]; then
-        pwd; ls ..; ls ./../scripts; file ./../scripts/dafny
+        pwd; ls ..; ls ./../Scripts; file ./../Scripts/dafny
         "$dafny" verify $text 
         if [ $? -ne "0" ]; then
           echo "TEST FAILED"
