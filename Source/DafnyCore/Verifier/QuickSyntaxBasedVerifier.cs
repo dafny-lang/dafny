@@ -7,7 +7,7 @@ namespace Microsoft.Dafny;
 /// the use of Boogie
 /// See Translator.IsExprAlways for a smaller version for Boogie expressions
 /// </summary>
-public static class QuickVerifier {
+public static class QuickSyntaxBasedVerifier {
   // Determines heuristically if a given expression has always the given truth value
   // "false" means "Don't know", whereas "true" means `q` always evaluate to `truth`.
   public static bool IsExpressionAlways(Expression q, bool truth) {
@@ -63,12 +63,16 @@ public static class QuickVerifier {
             if (e0 is LiteralExpr { Value: bool bb1 } && e1 is LiteralExpr { Value: bool bb2 }) {
               return bb1 != bb2;
             }
-            if (!truth &&
-                e0.Type.NormalizeExpand().AsIndDatatype is IndDatatypeDecl
-                && e1.Type.NormalizeExpand().AsIndDatatype is IndDatatypeDecl
-                && Printer.ExprToString(e0) is var e0str
-                && Printer.ExprToString(e1) is var e1str
-                && (e1str.StartsWith(e0str + ".") || (e0str.StartsWith(e1str + ".")))) {
+            if (e0.Type.NormalizeExpand().AsIndDatatype != null
+                && e1.Type.NormalizeExpand().AsIndDatatype != null
+                && ((e0.Resolved is MemberSelectExpr e0Select
+                     && e0Select.Member is DatatypeDestructor
+                     && Printer.ExprToString(e0Select.Obj) == Printer.ExprToString(e1))
+                    ||
+                    (e1.Resolved is MemberSelectExpr e1Select
+                     && e1Select.Member is DatatypeDestructor
+                     && Printer.ExprToString(e1Select.Obj) == Printer.ExprToString(e0)
+                    ))) {
               return true;
             }
             return false;

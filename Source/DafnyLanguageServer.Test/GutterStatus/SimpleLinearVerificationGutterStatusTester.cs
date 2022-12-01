@@ -254,12 +254,15 @@ method Foo() ensures false { } ";
   [TestMethod]
   public async Task EnsureDatatypeSameCaught() {
     await VerifyTrace(@"
-   :datatype List = Nil | Cons(head: int, tail: List)
-   :
+ | :datatype List = Nil | Cons(head: int, tail: List) {
+ | : const t := this
+ | :}
  |?:method Test(a: List)
  |?:  requires a != Nil
  =?:  requires a.tail == a
  =?:  requires a == a.tail
+ |?: requires a == a.t // We can't detect statically if this is true or not
+ |?: requires a.t == a // We can't detect statically if this is true or not
  |?:{
  |?:  assert false;
  |?:}", intermediates: false);
