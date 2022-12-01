@@ -45,7 +45,7 @@ class FormatOption : CommandLineOption<IEnumerable<string>> {
   public override string ArgumentName => "configuration";
 
   public override string Description => $@"
-Logs verification results using the given test result format. The currently supported formats are `trx`, `csv`, and `text`. These are: the XML-based format commonly used for test results for .NET languages, a custom CSV schema, and a textual format meant for human consumption. You can provide configuration using the same string format as when using the --logger option for dotnet test, such as: --format "trx;LogFileName=<...>.z"
+Logs verification results using the given test result format. The currently supported formats are `trx`, `csv`, and `text`. These are: the XML-based format commonly used for test results for .NET languages, a custom CSV schema, and a textual format meant for human consumption. You can provide configuration using the same string format as when using the --logger option for dotnet test, such as: --format ""trx;LogFileName=<...>.z""
   
 The `trx` and `csv` formats automatically choose an output file name by default, and print the name of this file to the console. The `text` format prints its output to the console by default, but can send output to a file given the `LogFileName` option.
 
@@ -68,7 +68,7 @@ class RandomSeedOption : NaturalNumberOption {
   public override string ArgumentName => "seed";
 
   public override string Description =>
-    $"Turn on randomization of the input that Boogie passes to the SMT solver and turn on randomization in the SMT solver itself. Certain Boogie inputs are unstable in the sense that changes to the input that preserve its meaning may cause the output to change. This option simulates meaning-preserving changes to the input without requiring the user to actually make those changes. The input changes are renaming variables and reordering declarations in the input, and setting solver options that have similar effects.";
+    $"Turn on randomization of the input that Dafny passes to the SMT solver and turn on randomization in the SMT solver itself. Certain Dafny proofs are complex in the sense that changes to the proof that preserve its meaning may cause its verification result to change. This option simulates meaning-preserving changes to the proofs without requiring the user to actually make those changes. The proof changes are renaming variables and reordering declarations in the SMT input passed to the solver, and setting solver options that have similar effects.";
 
   public override string PostProcess(DafnyOptions options) {
     if (Get(options) != (uint)DefaultValue) {
@@ -86,7 +86,7 @@ class IterationsOption : NaturalNumberOption {
   public override string ArgumentName => "n";
 
   public override string Description =>
-    $"Attempt to verify each proof n times with n random seeds. If {RandomSeedOption.Instance.LongName} is used, each proof attempt will use a new random seed derived from this one. If not, it will use a different seed between iterations.";
+    $"Attempt to verify each proof n times with n random seeds, each seed derived from the previous one.  {RandomSeedOption.Instance.LongName} can be used to specify the first seed, which will otherwise be 0.";
 
   public override string PostProcess(DafnyOptions options) {
     options.RandomSeedIterations = (int)Get(options);
