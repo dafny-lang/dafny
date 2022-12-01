@@ -32,16 +32,15 @@ do
     else
       ( echo "$line" | grep -e '```dafny' > /dev/null ) && echo UNEXPECTED LANGUAGE LABEL $n "$line"
       inblock=0
-      echo TESTING $command $expect
+      ##echo TESTING $command $expect
       if [ "$command" == "" ]; then
       echo -n ""
       elif [ "$command" == "%no-check" ]; then
          echo -n ""
       elif [ $command == "%check-ok" ]; then
-        pwd; ls ..; ls ./../Scripts; file ./../Scripts/dafny
-        "$dafny" verify $text 
+        "$dafny" verify $text > actual
         if [ $? -ne "0" ]; then
-          echo "TEST FAILED"
+          echo "TEST FAILED" $file line $n  $command $expect
           cat $text
           cat actual
           FAIL=1
