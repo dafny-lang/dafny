@@ -3847,8 +3847,10 @@ Expression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwis
     ";"                       (. endTok = t; .)
     Expression<out e0, allowLemma, allowLambda>
     (. e = new StmtExpr(e.tok,
-             new UpdateStmt(e.tok, endTok, new List<Expression>(), new List<AssignmentRhs>() { new ExprRhs(e, null) }),
-             e0);
+             new UpdateStmt(e.tok, endTok, new List<Expression>(), new List<AssignmentRhs>() { new ExprRhs(e, null) }) {
+               RangeToken = e.RangeToken
+             },
+             e0) { RangeToken = new RangeToken(e.StartToken, t) };
     .)
   ]
   .
@@ -4544,7 +4546,7 @@ EndlessExpression<out Expression e, bool allowLemma, bool allowLambda, bool allo
   | QuantifierExpression<out e, allowLemma, allowLambda>  /* types are such that we can allow bitwise operations in the quantifier body */
   | SetComprehensionExpr<out e, allowLemma, allowLambda, allowBitwiseOps>
   | StmtInExpr<out s>
-    Expression<out e, allowLemma, allowLambda, allowBitwiseOps>    (. e = new StmtExpr(s.Tok, s, e); .)
+    Expression<out e, allowLemma, allowLambda, allowBitwiseOps>    (. e = new StmtExpr(s.Tok, s, e) { RangeToken = new RangeToken(s.StartToken, e.EndToken) }; .)
   | LetExpression<out e, allowLemma, allowLambda, allowBitwiseOps>
   | MapComprehensionExpr<out e, allowLemma, allowLambda, allowBitwiseOps>
   )
