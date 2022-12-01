@@ -57,5 +57,7 @@ jobs:
     - name: Check
       run: |
         pwd
-        cd dafny/docs && ./check-examples OnlineTutorial/Termination.md
+        ls
+        cd dafny/docs
+        ./check-examples OnlineTutorial/Termination.md
         echo Complete
