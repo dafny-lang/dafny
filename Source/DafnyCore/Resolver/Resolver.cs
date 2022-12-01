@@ -8284,7 +8284,9 @@ namespace Microsoft.Dafny {
             return;  // we are done
           }
           foreach (var arg in ctor.Formals) {
-            if (arg.IsGhost || (!arg.Type.IsTypeParameter && !arg.Type.SupportsEquality)) {
+            if (arg.IsGhost || (!arg.Type.IsTypeParameter &&
+                                arg.Type.AsIndDatatype?.EqualitySupport != IndDatatypeDecl.ES.NotYetComputed &&
+                                !arg.Type.SupportsEquality)) {
               // arg.Type is known never to support equality
               MarkSCCAsNotSupportingEquality();
               return;  // we are done
