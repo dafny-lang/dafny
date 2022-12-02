@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text;
+using Microsoft.Dafny.ExprExtensions;
 
 namespace Microsoft.Dafny.Triggers {
   class QuantifierSplitter : BottomUpVisitor {
@@ -160,7 +161,7 @@ namespace Microsoft.Dafny.Triggers {
         if (TriggersCollector.IsPotentialTriggerCandidate(e) && triggersCollector.IsTriggerKiller(e)) {
           foreach (var sub in e.SubExpressions) {
             if (triggersCollector.IsTriggerKiller(sub) && (!TriggersCollector.IsPotentialTriggerCandidate(sub))) {
-              var entry = substMap.Find(x => ExprExtensions.ExpressionEq(sub, x.Item1));
+              var entry = substMap.Find(x => sub.ExpressionEq(x.Item1));
               if (entry == null) {
                 var newBv = new BoundVar(sub.tok, "_t#" + substMap.Count, sub.Type);
                 var ie = new IdentifierExpr(sub.tok, newBv.Name);

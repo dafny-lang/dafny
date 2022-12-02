@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using Microsoft.Dafny.Triggers;
 
-namespace Microsoft.Dafny;
+namespace Microsoft.Dafny.ExprExtensions;
 
 /// <summary>
 /// This class's code contains helpers that help verifying assertions without
