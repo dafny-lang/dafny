@@ -84,6 +84,8 @@ namespace Microsoft.Dafny {
       get { return " " + VersionNumber; }
     }
 
+    public bool RunLanguageServer { get; set; }
+
     private static DafnyOptions clo;
 
     public static DafnyOptions O {
