@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using Microsoft.Dafny.Triggers;
 
 namespace Microsoft.Dafny;
 
@@ -52,7 +53,7 @@ public static class QuickSyntaxBasedVerifier {
             return
               e0.Type is BoolType && IsExpressionAlways(
                 new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Iff, e0, e1)
-                , true) || Printer.ExprToString(e0) == Printer.ExprToString(e1);
+                , true) || e0.ExpressionEq(e1);
           } else {
             // Cases in which we absolutely know that an equality can't hold
             // - One expression is a datatype and the other is destructing this datatype
@@ -67,18 +68,18 @@ public static class QuickSyntaxBasedVerifier {
                 && e1.Type.NormalizeExpand().AsIndDatatype != null
                 && ((e0.Resolved is MemberSelectExpr e0Select
                      && e0Select.Member is DatatypeDestructor
-                     && Printer.ExprToString(e0Select.Obj) == Printer.ExprToString(e1))
+                     && e0Select.Obj.ExpressionEq(e1))
                     ||
                     (e1.Resolved is MemberSelectExpr e1Select
                      && e1Select.Member is DatatypeDestructor
-                     && Printer.ExprToString(e1Select.Obj) == Printer.ExprToString(e0)
+                     && e1Select.Obj.ExpressionEq(e0)
                     ))) {
               return true;
             }
             return false;
           }
         case BinaryExpr.Opcode.Lt: {
-            if (!truth && Printer.ExprToString(e0) == Printer.ExprToString(e1)) { // Obvious case when A < B is wrong: B == A
+            if (!truth && e0.ExpressionEq(e1)) { // Obvious case when A < B is wrong: B == A
               return true;
             }
             // Obvious case when A < B is always true, when A and B are bigintegers
@@ -89,7 +90,7 @@ public static class QuickSyntaxBasedVerifier {
           }
         case BinaryExpr.Opcode.Gt: {
             // Obvious case when A > B is wrong: B == A
-            if (!truth && Printer.ExprToString(e0) == Printer.ExprToString(e1)) {
+            if (!truth && e0.ExpressionEq(e1)) {
               return true;
             }
             // Obvious case when A > B is always true, when A and B are bigintegers
@@ -100,24 +101,31 @@ public static class QuickSyntaxBasedVerifier {
           }
         case BinaryExpr.Opcode.Neq: {
             // Obvious case when A != B is wrong: B == A
-            if (!truth && Printer.ExprToString(e0) == Printer.ExprToString(e1)) {
+            if (!truth && e0.ExpressionEq(e1)) {
               return true;
             }
             // Obvious case when A > B is always true, when A and B are bigintegers
             if (e0 is LiteralExpr { Value: var value1 } && e1 is LiteralExpr { Value: var value2 }) {
               if (value1 is BigInteger b1 && value2 is BigInteger b2) {
                 return truth == (b1.CompareTo(b2) != 0);
-              } else if (value1 is bool bb1 && value2 is bool bb2) {
+              }
+
+              if (value1 is bool bb1 && value2 is bool bb2) {
                 return truth == (bb1 != bb2);
               }
             }
-            if (truth
-                && e0.Type.NormalizeExpand().AsIndDatatype is IndDatatypeDecl
-                && e1.Type.NormalizeExpand().AsIndDatatype is IndDatatypeDecl
-                && Printer.ExprToString(e0) is var e0str
-                && Printer.ExprToString(e1) is var e1str
-                && (e1str.StartsWith(e0str + ".") || (e0str.StartsWith(e1str + ".")))) {
-              return true;
+            // e.field != e
+            if (e0.Type.NormalizeExpand().AsIndDatatype != null
+                && e1.Type.NormalizeExpand().AsIndDatatype != null
+                && ((e0.Resolved is MemberSelectExpr e0Select
+                     && e0Select.Member is DatatypeDestructor
+                     && e0Select.Obj.ExpressionEq(e1))
+                    ||
+                    (e1.Resolved is MemberSelectExpr e1Select
+                     && e1Select.Member is DatatypeDestructor
+                     && e1Select.Obj.ExpressionEq(e0)
+                    ))) {
+              return truth;
             }
 
             return false;
