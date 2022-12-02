@@ -8,7 +8,7 @@ namespace Microsoft.Dafny;
 
 public abstract class Statement : INode, IAttributeBearingDeclaration {
   public readonly IToken Tok;
-  public readonly IToken EndTok;  // typically a terminating semi-colon or end-curly-brace
+  public IToken EndTok { get; set; }  // typically a terminating semi-colon or end-curly-brace
   public LList<Label> Labels;  // mutable during resolution
 
   private Attributes attributes;
@@ -33,6 +33,7 @@ public abstract class Statement : INode, IAttributeBearingDeclaration {
     Contract.Requires(tok != null);
     Contract.Requires(endTok != null);
     this.Tok = tok;
+    this.EndTok = endTok;
     this.RangeToken = new RangeToken(tok, endTok);
     this.attributes = attrs;
   }
