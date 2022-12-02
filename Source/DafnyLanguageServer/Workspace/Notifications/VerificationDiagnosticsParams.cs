@@ -7,6 +7,7 @@ using System.Linq;
 using System.Reflection.Metadata;
 using MediatR;
 using Microsoft.Boogie;
+using Microsoft.Dafny.ExprExtensions;
 using Microsoft.Dafny.LanguageServer.Language;
 using OmniSharp.Extensions.JsonRpc;
 using OmniSharp.Extensions.LanguageServer.Protocol;
