@@ -12,24 +12,20 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 
 [TestClass]
 public class PluginsDafnyCodeActionTest : PluginsTestBase {
-  [TestInitialize]
-  public async Task SetUp() {
-    await SetUpPlugin();
-  }
 
   protected override string LibraryName =>
     "PluginsDafnyCodeActionTest";
 
   protected override string[] CommandLineArgument =>
-    new[] { $"--dafny:plugins:0={LibraryPath}" };
+    new[] { $"{LibraryPath}" };
 
   [TestMethod]
   public async Task EnsureDafnyCodeActionProviderWorks() {
     var documentItem = CreateTestDocument(@"
 method firstMethod() {
 }");
-    await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    var codeActionResult = await Client.RequestCodeAction(new CodeActionParams {
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+    var codeActionResult = await client.RequestCodeAction(new CodeActionParams {
       TextDocument = documentItem.Uri.GetFileSystemPath(),
       Range = ((0, 0), (0, 0))
     },
