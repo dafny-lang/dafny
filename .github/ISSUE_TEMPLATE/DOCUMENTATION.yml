@@ -10,7 +10,7 @@ body:
     id: what-do-you-want
     attributes:
       label: What change in documentation do you suggest?
-      description: Describe the incorrect or desired documentation here`.
+      description: Describe the incorrect or desired documentation here.
       placeholder: I suggest X
     validations:
       required: true
