@@ -44,3 +44,13 @@ namespace Library {
     }
   }
 }
+
+namespace Nested {
+  namespace Library {
+    class __default {
+      public static void Foo() {
+        System.Console.WriteLine("Nested.Library.Foo");
+      }
+    }
+  }
+}

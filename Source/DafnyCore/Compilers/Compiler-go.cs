@@ -67,6 +67,14 @@ namespace Microsoft.Dafny.Compilers {
       public bool SuppressDummy;
     }
 
+    public override string GetModuleCompileName(bool isDefaultModule, string moduleName) {
+      // Go doesn't really support nested module names in the same way Dafny does,
+      // only nested paths to modules, but where module names do not contain any such separators.
+      // So we "escape" periods in the same way we do non-extern modules
+      // so that attributes like `{:extern "A.B.C"}` can function for all targets.
+      return moduleName.Replace(".", "_m");
+    }
+
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine("// Dafny program {0} compiled into Go", program.Name);
 

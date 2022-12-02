@@ -1740,7 +1740,7 @@ namespace Microsoft.Dafny.Compilers {
       TrStmt(recoveryBody, exceptBlock);
     }
 
-    private static readonly Regex ModuleLine = new(@"^\s*assert\s+""([a-zA-Z0-9_]+)""\s*==\s*__name__\s*$");
+    private static readonly Regex ModuleLine = new(@"^\s*assert\s+""(([a-zA-Z0-9_]+)(\.[a-zA-Z0-9_]+)*)""\s*==\s*__name__\s*$");
 
     private static string FindModuleName(string externFilename) {
       using var rd = new StreamReader(new FileStream(externFilename, FileMode.Open, FileAccess.Read));
@@ -1765,9 +1765,13 @@ namespace Microsoft.Dafny.Compilers {
         outputWriter.WriteLine($"Unable to determine module name: {externFilename}");
         return false;
       }
+
+      var segments = moduleName.Split(".");
       var mainDir = Path.GetDirectoryName(mainProgram);
       Contract.Assert(mainDir != null);
-      var tgtFilename = Path.Combine(mainDir, moduleName + ".py");
+      var tgtDir = segments[..^1].Aggregate(mainDir, Path.Combine);
+      var tgtFilename = Path.Combine(tgtDir, segments[^1] + ".py");
+      Directory.CreateDirectory(tgtDir);
       var file = new FileInfo(externFilename);
       file.CopyTo(tgtFilename, true);
       if (DafnyOptions.O.CompileVerbose) {

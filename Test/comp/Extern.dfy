@@ -1,8 +1,8 @@
 // RUN: %dafny /compile:3 /compileTarget:cs "%s" %S/Extern2.cs > "%t"
 // RUN: %dafny /compile:3 /compileTarget:js "%s" %S/Extern3.js >> "%t"
-// RUN: %dafny /compile:3 /compileTarget:go "%s" %S/Extern4.go >> "%t"
-// RUN: %dafny /compile:3 /compileTarget:java "%s" %S/LibClass.java %S/OtherClass.java %S/AllDafny.java %S/Mixed.java %S/AllExtern.java >> "%t"
-// RUN: %dafny /compile:3 /compileTarget:py "%s" %S/Extern5.py >> "%t"
+// RUN: %dafny /compile:3 /compileTarget:go "%s" %S/Extern4.go %S/Extern4Nested_mLibrary.go >> "%t"
+// RUN: %dafny /compile:3 /compileTarget:java "%s" %S/LibClass.java %S/OtherClass.java %S/AllDafny.java %S/Mixed.java %S/AllExtern.java %S/__default.java >> "%t"
+// RUN: %dafny /compile:3 /compileTarget:py "%s" %S/Extern5.py %S/Extern5Nested.py >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {
@@ -20,6 +20,8 @@ method Main() {
   print m.IF(), "\n";
   Library.AllExtern.P();
   assert Library.AllDafny.Seven() == Library.Mixed.Seven() == Library.AllExtern.Seven();
+
+  Nested.Library.Foo();
 }
 
 module {:extern "Library"} Library {
@@ -49,5 +51,13 @@ module {:extern "Library"} Library {
   class {:extern} AllExtern {
     static function Seven(): int { 7 }
     static method {:extern} P()
+  }
+}
+
+// Expanded like this for the benefit of Go.
+// See https://github.com/dafny-lang/dafny/issues/2953.
+module {:compile false} Nested {
+  module {:extern "Nested.Library"} Library {
+    method {:extern} Foo()
   }
 }
