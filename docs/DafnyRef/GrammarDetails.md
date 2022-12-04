@@ -173,3 +173,42 @@ LambdaExpression(allowLemma) =
   Expression(allowLemma, allowLambda: true)
 ````
 
+#### Left-hand-side expression {g-lhs-expression}
+````grammar
+Lhs =
+  ( NameSegment { Suffix }
+  | ConstAtomExpression Suffix { Suffix }
+  )
+````
+
+#### Right-hand-side expression {#g-rhs-expression}
+````grammar
+Rhs =
+  ( <a href="#g-array-allocation-expression">ArrayAllocation_</a>
+  | <a href="#g-object-allocation-expression">ObjectAllocation_</a>
+  | Expression(allowLemma: false, allowLambda: true)
+  | <a href="#g-havoc-expression">HavocRhs_</a>
+  )
+  { Attribute }
+````
+
+#### Array allocation right-hand-side expression {#g-array-allocation-expression}
+````grammar
+ArrayAllocation_ =
+  "new" [ Type ] "[" [ Expressions ] "]"
+  [ "(" Expression(allowLemma: true, allowLambda: true) ")"
+  | "[" [ Expressions ] "]"
+  ]
+````
+
+#### Object allocation right-hand-side expression {#g-object-allocation-expression}
+````grammar
+ObjectAllocation_ = "new" Type [ "." TypeNameOrCtorSuffix ]
+                               [ "(" [ Bindings ] ")" ]
+````
+
+#### Havoc right-hand-side expression (#g-havoc-expression}
+````grammar
+HavocRhs_ = "*"
+````
+

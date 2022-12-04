@@ -474,39 +474,30 @@ x requires F.requires(x) reads F.reads(x) => F(x)
 ```
 
 ## 21.14. Left-Hand-Side Expressions
-````grammar
-Lhs =
-  ( NameSegment { Suffix }
-  | ConstAtomExpression Suffix { Suffix }
-  )
-````
+([grammar](#g-lhs-expression))
+
+Examples: TODO
+```dafny
+x
+LibraryModule.F().x
+old(o.f).x
+```
 
 A left-hand-side expression is only used on the left hand
 side of an [``UpdateStmt``](#sec-update-and-call-statement)
 or an [Update with Failure Statement](#sec-update-failure).
 
-An example of the first (`NameSegment`) form is:
-
-```dafny
-    LibraryModule.F().x
-```
-
-An example of the second (`ConstAtomExpression`) form is:
-
-```dafny
-    old(o.f).x
-```
-
 ## 21.15. Right-Hand-Side Expressions {#rhs-expression}
-````grammar
-Rhs =
-  ( ArrayAllocation_
-  | ObjectAllocation_
-  | Expression(allowLemma: false, allowLambda: true)
-  | HavocRhs_
-  )
-  { Attribute }
-````
+([grammar](#g-rhs-expression))
+
+Examples: 
+```dafny
+new int[6]
+new MyClass
+new MyClass(x,y,z)
+x+y+z
+*
+```
 
 A Right-Hand-Side expression is an expression-like construct that may have 
 side-effects. Consequently such expressions
@@ -514,26 +505,29 @@ side-effects. Consequently such expressions
 within methods, and not as general expressions or within functions or specifications.
 
 An ``Rhs`` is either array allocation, an object allocation,
-an expression, or a havoc right-hand-side, optionally followed
+a havoc right-hand-side, or a regular expression, optionally followed
 by one or more ``Attribute``s.
 
-Right-hand-side expressions appear in the following constructs:
+Right-hand-side expressions (that are not just regular expressions) appear in the following constructs:
 [`ReturnStmt`](#sec-return-statement),
 [`YieldStmt`](#sec-yield-statement),
 [`UpdateStmt`](#sec-update-and-call-statement),
 [`UpdateFailureStmt`](#sec-update-failure), or
 [`VarDeclStatement`](#sec-var-decl-statement).
 These are the only contexts in which arrays or objects may be
-allocated, or in which havoc may be produced.
+allocated, or in which havoc may be stipulated.
 
 ## 21.16. Array Allocation {#sec-array-allocation}
-````grammar
-ArrayAllocation_ =
-  "new" [ Type ] "[" [ Expressions ] "]"
-  [ "(" Expression(allowLemma: true, allowLambda: true) ")"
-  | "[" [ Expressions ] "]"
-  ]
-````
+([grammar](#g-array-allocation-expression))
+
+Examples:
+```dafny
+new int[5,6]
+new int[5][2,3,5,7,11]
+new int[][2,3,5,7,11]
+new int[5](i => i*i)
+new int[2,3]((i,j) => i*j)
+```
 
 This right-hand-side expression allocates a new single or multi-dimensional array (cf. [Section 15](#sec-array-types)).
 The initialization portion is optional. One form is an
@@ -571,20 +565,28 @@ elements of an array are non-ghost, an array allocated in a ghost
 context in effect cannot be changed after initialization.
 
 ## 21.17. Object Allocation
-````grammar
-ObjectAllocation_ = "new" Type [ "." TypeNameOrCtorSuffix ]
-                               [ "(" [ Bindings ] ")" ]
-````
+([grammar](#g-object-allocation-expression))
+
+Examples: TODO
+```dafny
+new MyClass
+mew MyClass.Init
+new MyClass.Init(1,2,3)
+```
 
 This right-hand-side expression 
 allocates a new object of a class type as explained
 in section [Class Types](#sec-class-types).
 
 ## 21.18. Havoc Right-Hand-Side
-````grammar
-HavocRhs_ = "*"
-````
-A havoc right-hand-side produces an arbitrary value of its associated
+([grammar](#g-havoc-expression))
+
+Examples:
+```dafny
+*
+```
+A havoc right-hand-side is just a `*` character.
+It produces an arbitrary value of its associated
 type. To obtain a more constrained arbitrary value the "assign-such-that"
 operator (`:|`) can be used. See [Section 20.6](#sec-update-and-call-statement).
 

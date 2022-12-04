@@ -73,7 +73,7 @@ user understand how to do proofs with Dafny.
 <!--PDF NEWPAGE-->
 {% include_relative GrammarDetails.md %}
 
-<!--PDF NEWPAGE-->
+
 {% include_relative SyntaxTests.md %}
 
 # 30. References
