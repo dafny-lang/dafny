@@ -1,19 +1,19 @@
-# 30. Dafny Grammar
+# 29. Dafny Grammar
 
 The Dafny parser is generated from a grammar definition file, `Dafny.atg` by the [CoCo/r](https://ssw.jku.at/Research/Projects/Coco/)
 parser generator.
 
-## 30.1. Dafny Syntax
+## 29.1. Dafny Syntax
 
 
-## 30.2. Dafny Grammar productions
+## 29.2. Dafny Grammar productions
 
 
 
 
-### 30.2.10. Expressions
+### 29.2.1. Expressions
 
-#### Top-level expression {#top-level-expression}
+#### 29.2.1.1. Top-level expression {#top-level-expression}
 
 ````grammar
 Expression(allowLemma, allowLambda) =
@@ -34,7 +34,7 @@ or `=>`) only if "allowLambda" is true.  This affects function/method/iterator
 specifications, if/while statements with guarded alternatives, and expressions
 in the specification of a lambda expression itself.
 
-#### Equivalence expression {#g-equivalence-expression}
+#### 29.2.1.2. Equivalence expression {#g-equivalence-expression}
 
 ````grammar
 EquivExpression(allowLemma, allowLambda) =
@@ -42,7 +42,7 @@ EquivExpression(allowLemma, allowLambda) =
   { "<==>" ImpliesExpliesExpression(allowLemma, allowLambda) }
 ````
 
-#### Implies expression {#g-implies-expression}
+#### 29.2.1.3. Implies expression {#g-implies-expression}
 
 ````grammar
 ImpliesExpliesExpression(allowLemma, allowLambda) =
@@ -58,7 +58,7 @@ ImpliesExpression(allowLemma, allowLambda) =
   [  "==>" ImpliesExpression(allowLemma, allowLambda) ]
 ````
 
-#### Logical expression {#g-logical-expressions}
+#### 29.2.1.4. Logical expression {#g-logical-expressions}
 
 ````grammar
 LogicalExpression(allowLemma, allowLambda) =
@@ -73,7 +73,7 @@ LogicalExpression(allowLemma, allowLambda) =
   | { "||" RelationalExpression(allowLemma, allowLambda) }
 ````
 
-#### Relational expression {#g-relational-expressions}
+#### 29.2.1.5. Relational expression {#g-relational-expressions}
 
 ````grammar
 RelationalExpression(allowLemma, allowLambda) =
@@ -92,7 +92,7 @@ RelOp =
   )
 ````
 
-#### Bit-shift expression {#g-bit-shift-expressions}
+#### 29.2.1.6. Bit-shift expression {#g-bit-shift-expressions}
 
 ````grammar
 ShiftTerm(allowLemma, allowLambda) =
@@ -102,7 +102,7 @@ ShiftTerm(allowLemma, allowLambda) =
 ShiftOp = ( "<<" | ">>" )
 ````
 
-#### Term (addition operations) {#g-terms}
+#### 29.2.1.7. Term (addition operations) {#g-terms}
 
 ````grammar
 Term(allowLemma, allowLambda) =
@@ -112,7 +112,7 @@ Term(allowLemma, allowLambda) =
 AddOp = ( "+" | "-" )
 ````
 
-#### Factor (multiplication operations) {#g-factors}
+#### 29.2.1.8. Factor (multiplication operations) {#g-factors}
 
 ````grammar
 Factor(allowLemma, allowLambda) =
@@ -122,7 +122,7 @@ Factor(allowLemma, allowLambda) =
 MulOp = ( "*" | "/" | "%" )
 ````
 
-#### Bit-vector expression {#g-bit-vector-expression}
+#### 29.2.1.9. Bit-vector expression {#g-bit-vector-expression}
 
 ````grammar
 BitvectorFactor(allowLemma, allowLambda) =
@@ -132,7 +132,7 @@ BitvectorFactor(allowLemma, allowLambda) =
 BVOp = ( "|" | "&" | "^" )
 ````
 
-#### As/Is expression {#g-as-is-expression}
+#### 29.2.1.10. As/Is expression {#g-as-is-expression}
 
 ````grammar
 AsExpression(allowLemma, allowLambda) =
@@ -140,7 +140,7 @@ AsExpression(allowLemma, allowLambda) =
   { ( "as" | "is" ) Type }
 ````
 
-#### Unary expression {#g-unary-expression}
+#### 29.2.1.11. Unary expression {#g-unary-expression}
 ````grammar
 UnaryExpression(allowLemma, allowLambda) =
   ( "-" UnaryExpression(allowLemma, allowLambda)
@@ -149,7 +149,7 @@ UnaryExpression(allowLemma, allowLambda) =
   )
 ````
 
-#### Primary expression {#g-primary-expresson}
+#### 29.2.1.12. Primary expression {#g-primary-expresson}
 ````grammar
 PrimaryExpression(allowLemma, allowLambda) =
   ( NameSegment { Suffix }
@@ -162,7 +162,7 @@ PrimaryExpression(allowLemma, allowLambda) =
   )
 ````
 
-#### Lambda expression {#g-lambda-expression}
+#### 29.2.1.13. Lambda expression {#g-lambda-expression}
 ````grammar
 LambdaExpression(allowLemma) =
   ( WildIdent

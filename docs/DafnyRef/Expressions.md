@@ -279,7 +279,7 @@ intersection as explained in [Section 10.1](#sec-sets) and [Section 10.2](#sec-m
 `*` is commutative and associative; `/` and `%` are neither but do group to the left.
 
 ## 21.9. Bit-vector Operations
-([grammar](#g-bit-vector-expressions))
+([grammar](#g-bit-vector-expression))
 
 Examples:
 ```dafny
@@ -393,7 +393,7 @@ bit-vector negation (`-` -- [Section 7.3](#sec-bit-vector-types))
  to its operand.
 
 ## 21.12. Primary Expressions {#primary-expressions}
-([grammar](#g-primary-expressions))
+([grammar](#g-primary-expression))
 
 Examples: TODO: More examples
 ```dafny
@@ -415,8 +415,13 @@ recognized in this context.
 ## 21.13. Lambda expressions {#sec-lambda-expressions}
 ([grammar](#g-lambda-expression))
 
-Examples:
+Examples: TODO
 ```dafny
+x ==> -x
+_ ==> true
+(x,y) ==> x*y
+(x:int, b:bool) ==> if b then x else -x
+x requires x > 0 ==> x-1
 ```
 
 
