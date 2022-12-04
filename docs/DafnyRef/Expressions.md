@@ -74,24 +74,17 @@ operator is not present then we just descend to the
 next precedence level.
 
 ## 21.1. Top-level expressions {#sec-top-level-expression}
-````grammar
-Expression(allowLemma, allowLambda) =
-    EquivExpression(allowLemma, allowLambda)
-    [ ";" Expression(allowLemma, allowLambda) ]
-````
+([grammar](#top-level-expression))
 
-The "allowLemma" argument says whether or not the expression
-to be parsed is allowed to have the form `S;E` where `S` is a call to a lemma.
-"allowLemma" should be passed in as "false" whenever the expression to
-be parsed sits in a context that itself is terminated by a semi-colon.
+Examples:
+```dafny
+let a == 2*b; a*b
+```
 
-The "allowLambda" says whether or not the expression to be parsed is
-allowed to be a lambda expression.  More precisely, an identifier or
-parenthesized-enclosed comma-delimited list of identifiers is allowed to
-continue as a lambda expression (that is, continue with a `reads`, `requires`,
-or `=>`) only if "allowLambda" is true.  This affects function/method/iterator
-specifications, if/while statements with guarded alternatives, and expressions
-in the specification of a lambda expression itself.
+This top-level expression has the form `S; E`.
+The type of the expression is the type of `E`.
+Typically `S` is a call to a lemma that introduces a fact necessary to establish properties of `E`.
+Such a lemma is permitted only in situations in which the expression itself is not terminated by a semicolon.
 
 Sometimes an expression will fail unless some relevant fact is known.
 In the following example the `F_Fails` function fails to verify
@@ -121,14 +114,23 @@ function F_Succeeds(n: nat): int
 }
 ```
 
+A second restriction is that `E` is not always permitted to contain lambda expressions, such 
+as in the expressions that are the body of a lambda expression itself, function, method and iterator specifications,
+and if and while statements with guarded alternatives.
+
+
 ## 21.2. Equivalence Expressions {#sec-equivalence}
-````grammar
-EquivExpression(allowLemma, allowLambda) =
-  ImpliesExpliesExpression(allowLemma, allowLambda)
-  { "<==>" ImpliesExpliesExpression(allowLemma, allowLambda) }
-````
-An ``EquivExpression`` that contains one or more `<==>`s is
-a boolean expression and all the contained ``ImpliesExpliesExpression``
+([grammar](#g-equivalence-expression))
+
+Examples:
+```dafny
+A
+A <==> B
+A <==> C ==> D <==> B 
+```
+
+An Equivalence Expression that contains one or more `<==>`s is
+a boolean expression and all the operands
 must also be boolean expressions. In that case each `<==>`
 operator tests for logical equality which is the same as
 ordinary equality.
@@ -136,38 +138,31 @@ ordinary equality.
 See [Section 7.1.1](#sec-equivalence-operator) for an explanation of the
 `<==>` operator as compared with the `==` operator.
 
-## 21.3. Implies or Explies Expressions {#sec-implication}
-````grammar
-ImpliesExpliesExpression(allowLemma, allowLambda) =
-  LogicalExpression(allowLemma, allowLambda)
-  [ (  "==>" ImpliesExpression(allowLemma, allowLambda)
-    | "<==" LogicalExpression(allowLemma, allowLambda)
-            { "<==" LogicalExpression(allowLemma, allowLambda) }
-    )
-  ]
+The `<==>` operator is commutative and associative: `A <==> B <==> C` and `(A <==> B) <==> C` and `A <==> (B <==> C)` and `C <==> B <==> A`
+are all equivalent and are all true iff an even number of operands are false.
 
-ImpliesExpression(allowLemma, allowLambda) =
-  LogicalExpression(allowLemma, allowLambda)
-  [  "==>" ImpliesExpression(allowLemma, allowLambda) ]
-````
+## 21.3. Implies or Explies Expressions {#sec-implication}
+([garammar](#g-implies-expression))
+
+Examples:
+```dafny
+A ==> B
+A ==> B ==> C ==> D
+B <== A
+```
 
 See [Section 7.1.3](#sec-implication-and-reverse-implication) for an explanation
 of the `==>` and `<==` operators.
 
-## 21.4. Logical Expressions
+## 21.4. Logical Expressions {#sec-logical-expressions}
+([grammar](#g-logical-expression))
 
-````grammar
-LogicalExpression(allowLemma, allowLambda) =
-  RelationalExpression(allowLemma, allowLambda)
-  [ ( "&&" RelationalExpression(allowLemma, allowLambda)
-           { "&&" RelationalExpression(allowLemma, allowLambda) }
-    | "||" RelationalExpression(allowLemma, allowLambda)
-           { "||" RelationalExpression(allowLemma, allowLambda) }
-    )
-  ]
-  | { "&&" RelationalExpression(allowLemma, allowLambda) }
-  | { "||" RelationalExpression(allowLemma, allowLambda) }
-````
+Examples:
+```dafny
+A && B
+A || B
+&& A && B && C
+```
 
 Note that the Dafny grammar allows a conjunction or disjunction to be
 _prefixed_ with `&&` or `||` respectively. This form simply allows a
@@ -183,27 +178,26 @@ This is purely a syntactic convenience allowing easy edits such as reordering
 lines or commenting out lines without having to check that the infix
 operators are always where they should be.
 
+Note also that `&&` and `||` cannot be mixed without using parentheses:
+`A && B || C` is not permitted. Write `(A && B) || C` or `A && (B || C)` instead.
+
 See [Section 7.1.2](#sec-conjunction-and-disjunction) for an explanation
 of the `&&` and `||` operators.
 
-## 21.5. Relational Expressions
-````grammar
-RelationalExpression(allowLemma, allowLambda) =
-  ShiftTerm(allowLemma, allowLambda)
-  { RelOp ShiftTerm(allowLemma, allowLambda) }
+## 21.5. Relational Expressions {#sec-relational-expressions}
+([grammar](#g-relational-expressions))
 
-RelOp =
-  ( "=="
-    [ "#" "[" Expression(allowLemma: true, allowLambda: true) "]" ]
-  | "!="
-    [ "#" "[" Expression(allowLemma: true, allowLambda: true) "]" ]
-  | "<" | ">" | "<=" | ">="
-  | "in"
-  | "!in"
-  | "!!"
-  )
-
-````
+Examples:
+```dafny
+x == y
+x != y
+x < y
+x >= y
+x in y
+x ! in y
+x !! y
+x == # [ k ]
+```
 
 The relation expressions that have a ``RelOp`` compare two or more terms.
 As explained in [the section about basic types](#sec-basic-types), `==`, `!=`, ``<``, `>`, `<=`, and `>=`
@@ -221,13 +215,13 @@ coinductive values for equality to a nesting level of k, as
 explained in [the section about co-equality](#sec-co-equality).
 
 ## 21.6. Bit Shifts
-````grammar
-ShiftTerm(allowLemma, allowLambda) =
-  Term(allowLemma, allowLambda)
-  { ShiftOp Term(allowLemma, allowLambda) }
+([grammar](#g-bit-shift-expressions))
 
-ShiftOp = ( "<<" | ">>" )
-````
+Examples:
+```dafny
+k << 5
+j >> i
+```
 
 These operators are the left and right shift operators for bit-vector values.
 They take a bit-vector value and an `int`, shifting the bits by the given
@@ -236,6 +230,7 @@ For the expression to be well-defined, the RHS value must be in the range 0 to t
 bits in the bit-vector type, inclusive.
 
 The operations are left-associative: `a << i >> j` is `(a << i) >> j`.
+
 ## 21.7. Terms
 ````grammar
 Term(allowLemma, allowLambda) =

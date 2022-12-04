@@ -70,6 +70,8 @@ user understand how to do proofs with Dafny.
 <!--PDF NEWPAGE-->
 {% include_relative CommandLineOptions.md %}
 
+<!--PDF NEWPAGE-->
+{% include_relative GrammarDetails.md %}
 
 {% include_relative SyntaxTests.md %}
 
