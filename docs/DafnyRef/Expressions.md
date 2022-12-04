@@ -393,17 +393,16 @@ bit-vector negation (`-` -- [Section 7.3](#sec-bit-vector-types))
  to its operand.
 
 ## 21.12. Primary Expressions {#primary-expressions}
-````grammar
-PrimaryExpression(allowLemma, allowLambda) =
-  ( NameSegment { Suffix }
-  | LambdaExpression(allowLemma)
-  | MapDisplayExpr { Suffix }
-  | SeqDisplayExpr { Suffix }
-  | SetDisplayExpr { Suffix }
-  | EndlessExpression(allowLemma, allowLambda)
-  | ConstAtomExpression { Suffix }
-  )
-````
+([grammar](#g-primary-expressions))
+
+Examples: TODO: More examples
+```dafny
+M(i,j)
+
+[1,2,3]
+{2,3,4}
+
+```
 
 After descending through all the binary and unary operators we arrive at
 the primary expressions, which are explained in subsequent sections. As
@@ -414,15 +413,12 @@ If the `allowLambda` is false then ``LambdaExpression``s are not
 recognized in this context.
 
 ## 21.13. Lambda expressions {#sec-lambda-expressions}
-````grammar
-LambdaExpression(allowLemma) =
-  ( WildIdent
-  | "(" [ IdentTypeOptional { "," IdentTypeOptional } ] ")"
-  )
-  LambdaSpec
-  "=>"
-  Expression(allowLemma, allowLambda: true)
-````
+([grammar](#g-lambda-expression))
+
+Examples:
+```dafny
+```
+
 
 See [Section 5.4](#sec-lambda-specification) for a description of ``LambdaSpec``.
 

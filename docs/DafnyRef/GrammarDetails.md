@@ -140,13 +140,36 @@ AsExpression(allowLemma, allowLambda) =
   { ( "as" | "is" ) Type }
 ````
 
-### Unary expression {#g-unary-expression}
-
+#### Unary expression {#g-unary-expression}
 ````grammar
 UnaryExpression(allowLemma, allowLambda) =
   ( "-" UnaryExpression(allowLemma, allowLambda)
   | "!" UnaryExpression(allowLemma, allowLambda)
   | PrimaryExpression(allowLemma, allowLambda)
   )
+````
+
+#### Primary expression {#g-primary-expresson}
+````grammar
+PrimaryExpression(allowLemma, allowLambda) =
+  ( NameSegment { Suffix }
+  | LambdaExpression(allowLemma)
+  | MapDisplayExpr { Suffix }
+  | SeqDisplayExpr { Suffix }
+  | SetDisplayExpr { Suffix }
+  | EndlessExpression(allowLemma, allowLambda)
+  | ConstAtomExpression { Suffix }
+  )
+````
+
+#### Lambda expression {#g-lambda-expression}
+````grammar
+LambdaExpression(allowLemma) =
+  ( WildIdent
+  | "(" [ IdentTypeOptional { "," IdentTypeOptional } ] ")"
+  )
+  LambdaSpec
+  "=>"
+  Expression(allowLemma, allowLambda: true)
 ````
 
