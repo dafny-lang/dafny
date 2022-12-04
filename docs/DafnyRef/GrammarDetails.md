@@ -58,7 +58,7 @@ ImpliesExpression(allowLemma, allowLambda) =
   [  "==>" ImpliesExpression(allowLemma, allowLambda) ]
 ````
 
-#### 29.2.1.4. Logical expression {#g-logical-expressions}
+#### 29.2.1.4. Logical expression {#g-logical-expression}
 
 ````grammar
 LogicalExpression(allowLemma, allowLambda) =
@@ -73,7 +73,7 @@ LogicalExpression(allowLemma, allowLambda) =
   | { "||" RelationalExpression(allowLemma, allowLambda) }
 ````
 
-#### 29.2.1.5. Relational expression {#g-relational-expressions}
+#### 29.2.1.5. Relational expression {#g-relational-expression}
 
 ````grammar
 RelationalExpression(allowLemma, allowLambda) =
@@ -92,7 +92,7 @@ RelOp =
   )
 ````
 
-#### 29.2.1.6. Bit-shift expression {#g-bit-shift-expressions}
+#### 29.2.1.6. Bit-shift expression {#g-bit-shift-expression}
 
 ````grammar
 ShiftTerm(allowLemma, allowLambda) =
@@ -102,7 +102,7 @@ ShiftTerm(allowLemma, allowLambda) =
 ShiftOp = ( "<<" | ">>" )
 ````
 
-#### 29.2.1.7. Term (addition operations) {#g-terms}
+#### 29.2.1.7. Term (addition operations) {#g-term}
 
 ````grammar
 Term(allowLemma, allowLambda) =
@@ -112,7 +112,7 @@ Term(allowLemma, allowLambda) =
 AddOp = ( "+" | "-" )
 ````
 
-#### 29.2.1.8. Factor (multiplication operations) {#g-factors}
+#### 29.2.1.8. Factor (multiplication operations) {#g-factor}
 
 ````grammar
 Factor(allowLemma, allowLambda) =

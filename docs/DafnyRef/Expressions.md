@@ -185,7 +185,7 @@ See [Section 7.1.2](#sec-conjunction-and-disjunction) for an explanation
 of the `&&` and `||` operators.
 
 ## 21.5. Relational Expressions {#sec-relational-expressions}
-([grammar](#g-relational-expressions))
+([grammar](#g-relational-expression))
 
 Examples:
 ```dafny
@@ -215,7 +215,7 @@ coinductive values for equality to a nesting level of k, as
 explained in [the section about co-equality](#sec-co-equality).
 
 ## 21.6. Bit Shifts
-([grammar](#g-bit-shift-expressions))
+([grammar](#g-bit-shift-expression))
 
 Examples:
 ```dafny
@@ -232,7 +232,7 @@ bits in the bit-vector type, inclusive.
 The operations are left-associative: `a << i >> j` is `(a << i) >> j`.
 
 ## 21.7. Terms
-([grammar](#g-terms))
+([grammar](#g-term))
 
 Examples:
 ```dafny
@@ -257,7 +257,7 @@ Addition is commutative (except concatenation) and associative. Subtraction is n
 `x - y -z` is `(x - y) -z`.
 
 ## 21.8. Factors
-([grammar](#g-factors))
+([grammar](#g-factor))
 
 Examples:
 ```dafny
