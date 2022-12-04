@@ -142,7 +142,7 @@ The `<==>` operator is commutative and associative: `A <==> B <==> C` and `(A <=
 are all equivalent and are all true iff an even number of operands are false.
 
 ## 21.3. Implies or Explies Expressions {#sec-implication}
-([garammar](#g-implies-expression))
+([grammar](#g-implies-expression))
 
 Examples:
 ```dafny
@@ -196,10 +196,10 @@ x >= y
 x in y
 x ! in y
 x !! y
-x == # [ k ]
+x ==#[k] y
 ```
 
-The relation expressions that have a ``RelOp`` compare two or more terms.
+The relation expressions compare two or more terms.
 As explained in [the section about basic types](#sec-basic-types), `==`, `!=`, ``<``, `>`, `<=`, and `>=`
 are _chaining_.
 
@@ -210,7 +210,7 @@ respectively.
 The `!!` represents disjointness for sets and multisets as explained in
 [Section 10.1](#sec-sets) and [Section 10.2](#sec-multisets).
 
-Note that `x ==#[k] y` is the prefix equality operator that compares
+`x ==#[k] y` is the prefix equality operator that compares
 coinductive values for equality to a nesting level of k, as
 explained in [the section about co-equality](#sec-co-equality).
 
@@ -232,35 +232,41 @@ bits in the bit-vector type, inclusive.
 The operations are left-associative: `a << i >> j` is `(a << i) >> j`.
 
 ## 21.7. Terms
-````grammar
-Term(allowLemma, allowLambda) =
-  Factor(allowLemma, allowLambda)
-  { AddOp Factor(allowLemma, allowLambda) }
+([grammar](#g-terms))
 
-AddOp = ( "+" | "-" )
-````
+Examples:
+```dafny
+x + y - z
+```
 
 `Terms` combine `Factors` by adding or subtracting.
 Addition has these meanings for different types:
 
-* Arithmetic addition for numeric types ([Section 7.2](#sec-numeric-types)]).
-* Union for sets and multisets ([Section 10.1](#sec-sets) and [Section 10.2](#sec-multisets))
-* Concatenation for sequences ([Section 10.3](#sec-sequences))
-* Map merging for maps ([Section 10.4](#sec-maps)).
+* arithmetic addition for numeric types ([Section 7.2](#sec-numeric-types)])
+* union for sets and multisets ([Section 10.1](#sec-sets) and [Section 10.2](#sec-multisets))
+* concatenation for sequences ([Section 10.3](#sec-sequences))
+* map merging for maps ([Section 10.4](#sec-maps))
 
-Subtraction is arithmetic subtraction for numeric types, and set or multiset
-subtraction for sets and multisets, and domain subtraction for maps.
+Subtraction is 
+
+* arithmetic subtraction for numeric types
+* set or multiset subtraction for sets and multisets
+* domain subtraction for maps.
+
+Addition is commutative (except concatenation) and associative. Subtraction is neither: it groups to the left as expected:
+`x - y -z` is `(x - y) -z`.
 
 ## 21.8. Factors
-````grammar
-Factor(allowLemma, allowLambda) =
-  BitvectorFactor(allowLemma, allowLambda)
-  { MulOp BitvectorFactor(allowLemma, allowLambda) }
+([grammar](#g-factors))
 
-MulOp = ( "*" | "/" | "%" )
-````
+Examples:
+```dafny
+x * y
+x / y
+x % y
+```
 
-A ``Factor`` combines ``UnaryExpression``s using multiplication,
+A ``Factor`` combines bit-vector expressions using multiplication,
 division, or modulus. For numeric types these are explained in
 [Section 7.2](#sec-numeric-types).
 As explained there, `/` and `%` on `int` values represent _Euclidean_
@@ -270,40 +276,49 @@ language operations.
 Only `*` has a non-numeric application. It represents set or multiset
 intersection as explained in [Section 10.1](#sec-sets) and [Section 10.2](#sec-multisets).
 
-## 21.9. Bit-vector Operations
-````grammar
-BitvectorFactor(allowLemma, allowLambda) =
-  AsExpression(allowLemma, allowLambda)
-  { BVOp AsExpression(allowLemma, allowLambda) }
+`*` is commutative and associative; `/` and `%` are neither but do group to the left.
 
-BVOp = ( "|" | "&" | "^" )
-````
+## 21.9. Bit-vector Operations
+([grammar](#g-bit-vector-expressions))
+
+Examples:
+```dafny
+x | y
+x & y
+x ^ y
+```
+
 
 These operations take two bit-vector values of the same type, returning
 a value of the same type. The operations perform bit-wise _or_ (`|`),
 _and_ (`&`), and _exclusive-or_ (`^`). To perform bit-wise equality, use
 `^` and `!` (unary complement) together.
 
-These operations associate to the left but do not associate with each other;
-use parentheses: `a & b | c` is illegal; use `(a & b) | c` or `a & (b | c)`
+These operations are associative and commutative but do not associate with each other.
+Use parentheses: `a & b | c` is illegal; use `(a & b) | c` or `a & (b | c)`
 instead.
 
 Bit-vector operations are not allowed in some contexts.
 The `|` symbol is used both for bit-wise or and as the delimiter in a
 [cardinality](#sec-cardinality-expression) expression: an ambiguity arises if
 the expression E in `| E |` contains a `|`. This situation is easily
-remedied; just enclose E in parentheses, as in `|(E)|`.
+remedied: just enclose E in parentheses, as in `|(E)|`.
 The only type-correct way this can happen is if the expression is
 a comprehension, as in `| set x: int :: x | 0x101 |`.
 
 ## 21.10. As (Conversion) and Is (type test) Expressions {#sec-as-expression}
-````grammar
-AsExpression(allowLemma, allowLambda) =
-  UnaryExpression(allowLemma, allowLambda)
-  { ( "as" | "is" ) Type }
-````
-The `as` expression converts the given `UnaryExpression` to the stated
-`Type`, with the result being of the given type. The following combinations
+([grammar](#g-as-is-expression))
+
+Examples:
+```dafny
+e as MyClass
+i as bv8
+e is MyClass
+```
+
+
+The `as` expression converts the given LHS to the type stated on the RHS,
+with the result being of the given type. The following combinations
 of conversions are permitted:
 
 * Any type to itself
@@ -311,7 +326,7 @@ of conversions are permitted:
 * Any base type to a subset or newtype with that base
 * Any subset or newtype or to its base type or a subset or newtype of the same base
 * Any type to a subset of newtype that has the type as its base
-* Any trait to a class or trait that extends that trait
+* Any trait to a class or trait that extends (perhaps recursively) that trait
 * Any class or trait to a trait extended by that class or trait
 
 Some of the conversions above are already implicitly allowed, without the
@@ -362,16 +377,16 @@ For an expression `e` and type `t`, `e is t` is the condition determining whethe
 *The repertoire of types allowed in `is` tests may be expanded in the future.*
 
 ## 21.11. Unary Expressions
+([grammar](#g-unary-expression))
 
-````grammar
-UnaryExpression(allowLemma, allowLambda) =
-  ( "-" UnaryExpression(allowLemma, allowLambda)
-  | "!" UnaryExpression(allowLemma, allowLambda)
-  | PrimaryExpression(allowLemma, allowLambda)
-  )
-````
+Examples:
+```dafny
+- x
+- - x
+! x
+```
 
-A ``UnaryExpression`` applies either 
+A unary expression applies either 
 logical complement (`!` -- [Section 7.1](#sec-booleans)),
 numeric negation (`-` -- [Section 7.2](#sec-numeric-types)), or
 bit-vector negation (`-` -- [Section 7.3](#sec-bit-vector-types))

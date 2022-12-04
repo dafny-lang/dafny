@@ -73,7 +73,7 @@ LogicalExpression(allowLemma, allowLambda) =
   | { "||" RelationalExpression(allowLemma, allowLambda) }
 ````
 
-#### Relational expressions {#g-relational-expressions}
+#### Relational expression {#g-relational-expressions}
 
 ````grammar
 RelationalExpression(allowLemma, allowLambda) =
@@ -100,5 +100,53 @@ ShiftTerm(allowLemma, allowLambda) =
   { ShiftOp Term(allowLemma, allowLambda) }
 
 ShiftOp = ( "<<" | ">>" )
+````
+
+#### Term (addition operations) {#g-terms}
+
+````grammar
+Term(allowLemma, allowLambda) =
+  Factor(allowLemma, allowLambda)
+  { AddOp Factor(allowLemma, allowLambda) }
+
+AddOp = ( "+" | "-" )
+````
+
+#### Factor (multiplication operations) {#g-factors}
+
+````grammar
+Factor(allowLemma, allowLambda) =
+  BitvectorFactor(allowLemma, allowLambda)
+  { MulOp BitvectorFactor(allowLemma, allowLambda) }
+
+MulOp = ( "*" | "/" | "%" )
+````
+
+#### Bit-vector expression {#g-bit-vector-expression}
+
+````grammar
+BitvectorFactor(allowLemma, allowLambda) =
+  AsExpression(allowLemma, allowLambda)
+  { BVOp AsExpression(allowLemma, allowLambda) }
+
+BVOp = ( "|" | "&" | "^" )
+````
+
+#### As/Is expression {#g-as-is-expression}
+
+````grammar
+AsExpression(allowLemma, allowLambda) =
+  UnaryExpression(allowLemma, allowLambda)
+  { ( "as" | "is" ) Type }
+````
+
+### Unary expression {#g-unary-expression}
+
+````grammar
+UnaryExpression(allowLemma, allowLambda) =
+  ( "-" UnaryExpression(allowLemma, allowLambda)
+  | "!" UnaryExpression(allowLemma, allowLambda)
+  | PrimaryExpression(allowLemma, allowLambda)
+  )
 ````
 
