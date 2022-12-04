@@ -182,7 +182,7 @@ Lhs =
 ````
 
 #### Right-hand-side expression {#g-rhs-expression}
-````grammar
+<pre>
 Rhs =
   ( <a href="#g-array-allocation-expression">ArrayAllocation_</a>
   | <a href="#g-object-allocation-expression">ObjectAllocation_</a>
@@ -190,7 +190,7 @@ Rhs =
   | <a href="#g-havoc-expression">HavocRhs_</a>
   )
   { Attribute }
-````
+</pre>
 
 #### Array allocation right-hand-side expression {#g-array-allocation-expression}
 ````grammar
