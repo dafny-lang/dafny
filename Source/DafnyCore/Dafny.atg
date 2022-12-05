@@ -4862,14 +4862,14 @@ AtCall<.out IToken atLabel, out IToken openParen, out List<ActualBinding> args.>
 /*------------------------------------------------------------------------*/
 Suffix<ref Expression e>
 = (. Contract.Requires(e != null); Contract.Ensures(e!=null);
-     IToken id, x, startToken;
+     IToken id, x;
      Expression e0 = null;  Expression e1 = null;  Expression ee;  bool anyDots = false;
      List<Expression> multipleLengths = null; bool takeRest = false; // takeRest is relevant only if multipleLengths is non-null
      List<Expression> multipleIndices = null;
      List<Tuple<IToken, string, Expression>> updates;
      Expression v;
   .)
-  ( "."                                               (. startToken = t; .)
+  ( "."
     ( "("                                             (. x = t; updates = new List<Tuple<IToken, string, Expression>>(); .)
         MemberBindingUpdate<out id, out v>            (. updates.Add(Tuple.Create(id, id.val, v)); .)
         { "," MemberBindingUpdate<out id, out v>      (. updates.Add(Tuple.Create(id, id.val, v)); .)
@@ -4893,7 +4893,8 @@ Suffix<ref Expression e>
       | HashCall<id, out openParen, out typeArgs, out args>
       | [ AtCall<out atLabel, out openParen, out args> ]
       )
-      (. e = new ExprDotName(id, e, id.val, typeArgs);
+      (. var startToken = e.StartToken;
+         e = new ExprDotName(id, e, id.val, typeArgs);
          if (openParen != null) {
            e = new ApplySuffix(openParen, atLabel, e, args, t);
          } else {
@@ -4902,7 +4903,7 @@ Suffix<ref Expression e>
          e.RangeToken = new RangeToken(startToken, t);
       .)
     )
-  | "["                                        (. x = t; startToken = t; .)
+  | "["                                        (. x = t; .)
       ( Expression<out ee, true, true>         (. e0 = ee; .)
         ( ".."                                 (. anyDots = true; .)
           [ Expression<out ee, true, true>     (. e1 = ee; .)
@@ -4934,7 +4935,8 @@ Suffix<ref Expression e>
         ]
       )
     "]"
-      (. if (multipleIndices != null) {
+      (. var startToken = e.StartToken;
+         if (multipleIndices != null) {
            e = new MultiSelectExpr(x, e, multipleIndices);
            // make sure an array class with this dimensionality exists
            var tmp = theBuiltIns.ArrayType(multipleIndices.Count, new IntType(), true);
@@ -4977,9 +4979,9 @@ Suffix<ref Expression e>
       .)
   | "("                                    (. IToken openParen = t; var args = new List<ActualBinding>(); .)
     [ ActualBindings<args> ]
-    ")"                                    (.
+    ")"                                    (. var startToken = e.StartToken;
                                               e = new ApplySuffix(openParen, null, e, args, t);
-                                              e.RangeToken = new RangeToken(openParen, t);
+                                              e.RangeToken = new RangeToken(startToken, t);
                                            .)
   )
   .
