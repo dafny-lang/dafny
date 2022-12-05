@@ -2606,7 +2606,18 @@ public class FrameExpression : INode, IHasUsages {
 /// it gets "replaced" by the expression in "ResolvedExpression".
 /// </summary>
 public abstract class ConcreteSyntaxExpression : Expression {
-  [FilledInDuringResolution] public Expression ResolvedExpression;  // after resolution, manipulation of "this" should proceed as with manipulating "this.ResolvedExpression"
+  [FilledInDuringResolution]
+  private Expression resolvedExpression;
+
+  public Expression ResolvedExpression {
+    get => resolvedExpression;
+    set {
+      resolvedExpression = value;
+      if (RangeToken != null) {
+        resolvedExpression.RangeToken = RangeToken;
+      }
+    }
+  }  // after resolution, manipulation of "this" should proceed as with manipulating "this.ResolvedExpression"
   public ConcreteSyntaxExpression(IToken tok)
     : base(tok) {
   }
