@@ -39,10 +39,10 @@
     <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntime.cs">
       <LogicalName>DafnyRuntime.cs</LogicalName>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntime.go">
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeGo\DafnyRuntime.go">
       <LogicalName>DafnyRuntime.go</LogicalName>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyRuntime\generated-go\src\dafny\dafny.go">
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeGo\DafnyRuntimeFromDafny.go">
       <LogicalName>DafnyRuntimeFromDafny.go</LogicalName>
     </EmbeddedResource>
     <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntime.h">

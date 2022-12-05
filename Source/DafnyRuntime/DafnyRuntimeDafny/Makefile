@@ -18,9 +18,12 @@ py: verify
 	
 go: verify
 	$(DAFNY_WITHOUT_RUNTIMES) /noVerify /compile:0 /spillTargetCode:3 /useRuntimeLib src/dafnyRuntimeGo.dfy /compileTarget:go /out:../generated
+	cp ../generated-go/src/dafny/dafny.go ../DafnyRuntimeGo/DafnyRuntimeFromDafny.go
+# Probably the wrong place for this
+	GO111MODULE=auto go test ../DafnyRuntimeGo
 
 js: verify
 	$(DAFNY_WITHOUT_RUNTIMES) /noVerify /compile:0 /spillTargetCode:3 /useRuntimeLib src/dafnyRuntime.dfy /compileTarget:js /out:../generated
 
 build:
-	dotnet build ../DafnyRuntime
+	dotnet build ../DafnyRuntime.csproj
