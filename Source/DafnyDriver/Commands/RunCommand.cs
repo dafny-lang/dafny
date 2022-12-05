@@ -36,4 +36,12 @@ class RunCommand : ICommandSpec {
     dafnyOptions.ForceCompile = NoVerifyOption.Instance.Get(options);
     dafnyOptions.CompileVerbose = false;
   }
+
+  // var compilers = options.Plugins.SelectMany(p => p.GetCompilers()).ToList();
+  // var compiler = compilers.LastOrDefault(c => c.TargetId == value);
+  //   if (compiler == null) {
+  //   var known = String.Join(", ", compilers.Select(c => $"'{c.TargetId}' ({c.TargetLanguage})"));
+  //   return $"No compiler found for compileTarget \"{value}\"; expecting one of {known}";
+  // }
+  // options.Compiler = compiler;
 }

@@ -52,7 +52,7 @@ public class DafnyConsolePrinter : ConsolePrinter {
     realigned_tok.val = tok.val;
     realigned_tok.filename = tok.filename;
     base.ReportBplError(realigned_tok, message, error, tw, category);
-    if (ShowSnippetsOption.Instance.Get(DafnyOptions.O)) {
+    if (DafnyOptions.O.Get(MiscOptionBag.ShowSnippets)) {
       WriteSourceCodeSnippet(tok, tw);
     }
 

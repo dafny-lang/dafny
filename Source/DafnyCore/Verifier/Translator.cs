@@ -62,7 +62,7 @@ namespace Microsoft.Dafny {
       this.reporter = reporter;
       if (flags == null) {
         flags = new TranslatorFlags() {
-          ReportRanges = ShowSnippetsOption.Instance.Get(DafnyOptions.O)
+          ReportRanges = DafnyOptions.O.Get(MiscOptionBag.ShowSnippets)
         };
       }
       this.flags = flags;
@@ -689,7 +689,7 @@ namespace Microsoft.Dafny {
         defines.Add("ARITH_MUL_COMM");
         defines.Add("ARITH_MUL_ASSOC");
       }
-      if (UnicodeCharactersOption.Instance.Get(DafnyOptions.O)) {
+      if (DafnyOptions.O.Get(MiscOptionBag.UnicodeCharacters)) {
         defines.Add("UNICODE_CHAR");
       }
       int errorCount = BplParser.Parse(preludePath, defines, out prelude);

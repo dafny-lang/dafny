@@ -188,7 +188,7 @@ namespace Microsoft.Dafny {
     }
 
     public static void ValidateEscaping(IToken t, string s, bool isVerbatimString, Errors errors) {
-      if (UnicodeCharactersOption.Instance.Get(DafnyOptions.O)) {
+      if (DafnyOptions.O.Get(MiscOptionBag.UnicodeCharacters)) {
         foreach (var token in TokensWithEscapes(s, isVerbatimString)) {
           if (token.StartsWith("\\u")) {
             errors.SemErr(t, "\\u escape sequences are not permitted when Unicode chars are enabled");
@@ -232,7 +232,7 @@ namespace Microsoft.Dafny {
     public static string RemoveEscaping(string s, bool isVerbatimString) {
       Contract.Requires(s != null);
       var sb = new StringBuilder();
-      if (UnicodeCharactersOption.Instance.Get(DafnyOptions.O)) {
+      if (DafnyOptions.O.Get(MiscOptionBag.UnicodeCharacters)) {
         UnescapedCharacters(s, isVerbatimString).Iter(ch => sb.Append(new Rune(ch)));
       } else {
         UnescapedCharacters(s, isVerbatimString).Iter(ch => sb.Append((char)ch));
@@ -294,7 +294,7 @@ namespace Microsoft.Dafny {
     /// reading the original UTF-8 source, but don't represent the true character values.
     /// </summary>
     public static IEnumerable<int> UnescapedCharacters(string p, bool isVerbatimString) {
-      var unicodeChars = UnicodeCharactersOption.Instance.Get(DafnyOptions.O);
+      var unicodeChars = DafnyOptions.O.Get(MiscOptionBag.UnicodeCharacters);
       if (isVerbatimString) {
         foreach (var s in TokensWithEscapes(p, true)) {
           if (s == "\"\"") {

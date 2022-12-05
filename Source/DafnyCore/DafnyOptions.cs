@@ -1,8 +1,10 @@
 // Copyright by the contributors to the Dafny Project
 // SPDX-License-Identifier: MIT
 
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.CommandLine;
 using System.Linq;
 using System.Diagnostics.Contracts;
 using System.IO;
@@ -16,26 +18,56 @@ using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
 
+  public enum FunctionSyntaxOptions {
+    Version3,
+    Migration3To4,
+    ExperimentalTreatUnspecifiedAsGhost,
+    ExperimentalTreatUnspecifiedAsCompiled,
+    ExperimentalPredicateAlwaysGhost,
+    Version4,
+  }
+
+  public enum QuantifierSyntaxOptions {
+    Version3,
+    Version4,
+  }
+
   public record Options(IDictionary<IOptionSpec, object> OptionArguments);
 
   public class DafnyOptions : Bpl.CommandLineOptions {
+
+    public T Get<T>(Option<T> option) {
+
+    }
+
+    public void Set<T>(Option<T> showSnippets, T value) {
+      throw new NotImplementedException();
+    }
+
     public void AddFile(string file) => base.AddFile(file, null);
 
-    private static readonly ISet<ILegacyOption> AvailableNewStyleOptions = new HashSet<ILegacyOption>(
-      new ILegacyOption[] {
-        ShowSnippetsOption.Instance,
-        TargetOption.Instance,
-        PrintOption.Instance,
-        LibraryOption.Instance,
-        PreludeOption.Instance,
-        PrintModeOption.Instance,
-        ResolvedPrintOption.Instance,
-        OldCompileVerboseOption.Instance,
-        OutputOption.Instance,
-        PluginOption.Instance,
-        UseRuntimeLibOption.Instance,
-        UnicodeCharactersOption.Instance,
-      });
+    public static void RegisterLegacyBinding<T>(Option<T> option, Action<DafnyOptions, T> bind) {
+
+    }
+
+    public static void ParseStringElement(Option<IList<string>> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
+      var value = options.Get(option) ?? new List<string>();
+      if (ps.ConfirmArgumentCount(1)) {
+        value.Add(ps.args[ps.i]);
+      }
+    }
+    public static void ParseBoolean(Option<bool> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
+      int result = 0;
+      if (ps.GetIntArgument(ref result, 2)) {
+        options.Set(option, result == 1);
+      }
+    }
+
+    public static void RegisterLegacyUi<T>(Option<T> option,
+      Action<Option<T>, Bpl.CommandLineParseState, DafnyOptions> parse,
+      string category, string legacyName = null, string legacyDescription = null) {
+
+    }
 
     public static DafnyOptions Create(params string[] arguments) {
       var result = new DafnyOptions();
@@ -112,13 +144,6 @@ namespace Microsoft.Dafny {
     public string DafnyPrelude = null;
     public string DafnyPrintFile = null;
 
-    public enum PrintModes {
-      Everything,
-      DllEmbed,
-      NoIncludes,
-      NoGhost
-    }
-
     public enum ContractTestingMode {
       None,
       Externs,
@@ -132,6 +157,7 @@ namespace Microsoft.Dafny {
     public bool Compile = true;
     public List<string> MainArgs = new List<string>();
 
+    public string CompilerName;
     public Compiler Compiler;
     public bool CompileVerbose = true;
     public bool EnforcePrintEffects = false;
@@ -164,20 +190,6 @@ namespace Microsoft.Dafny {
     public HashSet<string> LibraryFiles { get; set; } = new();
     public ContractTestingMode TestContracts = ContractTestingMode.None;
 
-    public enum FunctionSyntaxOptions {
-      Version3,
-      Migration3To4,
-      ExperimentalTreatUnspecifiedAsGhost,
-      ExperimentalTreatUnspecifiedAsCompiled,
-      ExperimentalPredicateAlwaysGhost,
-      Version4,
-    }
-
-    public enum QuantifierSyntaxOptions {
-      Version3,
-      Version4,
-    }
-
     public bool ForbidNondeterminism { get; set; }
 
     public int DeprecationNoise = 1;
@@ -201,8 +213,45 @@ namespace Microsoft.Dafny {
     public bool ExtractCounterexample = false;
     public List<string> VerificationLoggerConfigs = new();
 
-    public static readonly ReadOnlyCollection<Plugin> DefaultPlugins = new(new[] { Compilers.SinglePassCompiler.Plugin });
-    public List<Plugin> Plugins = new(DefaultPlugins);
+    public static readonly ReadOnlyCollection<Plugin> DefaultPlugins = new(new[] { SinglePassCompiler.Plugin });
+    private IReadOnlyList<Plugin> pluginCache;
+    public IEnumerable<Plugin> Plugins => pluginCache ??= ComputePlugins(AdditionalPluginArguments);
+    public List<string> AdditionalPluginArguments = new();
+
+    static IReadOnlyList<Plugin> ComputePlugins(IEnumerable<string> pluginArguments) {
+      var result = new List<Plugin>(DefaultPlugins);
+      foreach (var pluginAndArgument in pluginArguments) {
+        try {
+          var pluginArray = pluginAndArgument.Split(',');
+          var pluginPath = pluginArray[0];
+          var arguments = Array.Empty<string>();
+          if (pluginArray.Length >= 2) {
+            // There are no commas in paths, but there can be in arguments
+            var argumentsString = string.Join(',', pluginArray.Skip(1));
+            // Parse arguments, accepting and remove double quotes that isolate long arguments
+            arguments = ParsePluginArguments(argumentsString);
+          }
+
+          result.Add(AssemblyPlugin.Load(pluginPath, arguments));
+        } catch (Exception e) {
+          result.Add(new ErrorPlugin(pluginAndArgument, e));
+        }
+      }
+
+      return result;
+    }
+
+    private static string[] ParsePluginArguments(string argumentsString) {
+      var splitter = new Regex(@"""(?<escapedArgument>(?:[^""\\]|\\\\|\\"")*)""|(?<rawArgument>[^ ]+)");
+      var escapedChars = new Regex(@"(?<escapedDoubleQuote>\\"")|\\\\");
+      return splitter.Matches(argumentsString).Select(
+        matchResult =>
+          matchResult.Groups["escapedArgument"].Success
+            ? escapedChars.Replace(matchResult.Groups["escapedArgument"].Value,
+              matchResult2 => matchResult2.Groups["escapedDoubleQuote"].Success ? "\"" : "\\")
+            : matchResult.Groups["rawArgument"].Value
+      ).ToArray();
+    }
 
     /// <summary>
     /// Automatic shallow-copy constructor
@@ -1345,6 +1394,7 @@ However, some Boogie options, like /loopUnroll, may not be sound for
 Dafny or may not have the same meaning for a Dafny program as it would
 for a similar Boogie program.
 ".Replace("\n", "\n  ");
+
   }
 
 }

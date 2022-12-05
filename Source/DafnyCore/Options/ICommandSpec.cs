@@ -26,40 +26,40 @@ public interface ICommandSpec {
   }
   public static Argument<IEnumerable<FileInfo>> FilesArgument { get; }
 
-  public static IReadOnlyList<IOptionSpec> VerificationOptions = new IOptionSpec[] {
-    NoVerifyOption.Instance,
-    VerificationTimeLimitOption.Instance,
-    VerifyIncludedFilesOption.Instance,
+  public static IReadOnlyList<Option> VerificationOptions = new Option[] {
+    BoogieOptionBag.NoVerify,
+    BoogieOptionBag.VerificationTimeLimit,
+    MiscOptionBag.VerifyIncludedFiles
   }.ToList();
 
-  public static IReadOnlyList<IOptionSpec> ExecutionOptions = new IOptionSpec[] {
-    TargetOption.Instance,
-    EnforceDeterminismOption.Instance,
+  public static IReadOnlyList<Option> ExecutionOptions = new Option[] {
+    MiscOptionBag.Target,
+    MiscOptionBag.EnforceDeterminism
   }.ToList();
 
-  public static IReadOnlyList<IOptionSpec> CommonOptions = new List<IOptionSpec>(new IOptionSpec[] {
-    CoresOption.Instance,
-    LibraryOption.Instance,
-    ShowSnippetsOption.Instance,
-    PluginOption.Instance,
-    BoogieOption.Instance,
-    PreludeOption.Instance,
-    UseBaseFileNameOption.Instance,
-    PrintOption.Instance,
-    ResolvedPrintOption.Instance,
-    BoogiePrintOption.Instance,
-    RelaxDefiniteAssignment.Instance,
-    FunctionSyntaxOption.Instance,
-    QuantifierSyntaxOption.Instance,
-    WarnShadowingOption.Instance,
-    WarnMissingConstructorParenthesisOption.Instance,
-    WarningAsErrorsOption.Instance,
-    TrackPrintEffects.Instance,
-    DisableNonLinearArithmeticOption.Instance,
-    UnicodeCharactersOption.Instance,
+  public static IReadOnlyList<Option> CommonOptions = new List<Option>(new Option[] {
+    BoogieOptionBag.Cores,
+    MiscOptionBag.Libraries,
+    MiscOptionBag.ShowSnippets,
+    MiscOptionBag.Plugin,
+    BoogieOptionBag.BoogieArguments,
+    MiscOptionBag.Prelude,
+    DeveloperOptionBag.UseBaseFileName,
+    DeveloperOptionBag.Print,
+    DeveloperOptionBag.ResolvedPrint,
+    DeveloperOptionBag.BoogiePrint,
+    MiscOptionBag.RelaxDefiniteAssignment,
+    Function.FunctionSyntaxOption,
+    MiscOptionBag.QuantifierSyntax,
+    MiscOptionBag.WarnShadowing,
+    MiscOptionBag.WarnMissingConstructorParenthesis,
+    MiscOptionBag.WarningAsErrors,
+    PrintStmt.TrackPrintEffectsOption,
+    MiscOptionBag.DisableNonLinearArithmetic,
+    MiscOptionBag.UnicodeCharacters,
   });
 
-  IEnumerable<IOptionSpec> Options { get; }
+  IEnumerable<Option> Options { get; }
 
   Command Create();
 
