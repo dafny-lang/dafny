@@ -92,7 +92,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public void PublishGutterIcons(IdeState state, bool verificationStarted) {
-      if (!LineVerificationStatusOption.Instance.Get(options)) {
+      if (!options.Get(ServerCommand.LineVerificationStatus)) {
         return;
       }
 

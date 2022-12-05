@@ -253,7 +253,7 @@ bool IsQuantifierVariableDecl(QuantifiedVar previousVar) {
   // The /quantifierSyntax option is used to help migrate this otherwise breaking change:
   // * /quantifierSyntax:3 keeps the old behaviour where a "| <Range>" always terminates the list of quantified variables.
   // * /quantifierSyntax:4 instead attempts to parse additional quantified variables.
-  if (previousVar.Range != null && theOptions.QuantifierSyntax == DafnyOptions.QuantifierSyntaxOptions.Version3) {
+  if (previousVar.Range != null && theOptions.QuantifierSyntax == QuantifierSyntaxOptions.Version3) {
     return false;
   }
 

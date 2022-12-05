@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.CommandLine;
+using System.CommandLine.Parsing;
 using System.Linq;
 using System.Diagnostics.Contracts;
 using System.IO;
@@ -17,7 +18,6 @@ using Microsoft.Dafny.Plugins;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
-
   public enum FunctionSyntaxOptions {
     Version3,
     Migration3To4,
@@ -32,22 +32,27 @@ namespace Microsoft.Dafny {
     Version4,
   }
 
-  public record Options(IDictionary<IOptionSpec, object> OptionArguments);
+  public record Options(IDictionary<Option, object> OptionArguments);
 
   public class DafnyOptions : Bpl.CommandLineOptions {
 
-    public T Get<T>(Option<T> option) {
-
+    public DafnyOptions(ParseResult result) : base(new DafnyConsolePrinter()) {
+      // Use bindings
     }
 
-    public void Set<T>(Option<T> showSnippets, T value) {
-      throw new NotImplementedException();
+    public T Get<T>(Option<T> option) {
+      return (T)Options.OptionArguments[option];
+    }
+
+    public void Set<T>(Option<T> option, T value) {
+      Options.OptionArguments[option] = value;
     }
 
     public void AddFile(string file) => base.AddFile(file, null);
 
+    private static Dictionary<Option, Action<DafnyOptions, object>> bindings = new();
     public static void RegisterLegacyBinding<T>(Option<T> option, Action<DafnyOptions, T> bind) {
-
+      bindings[option] = (options, o) => bind(options, (T)o);
     }
 
     public static void ParseStringElement(Option<IList<string>> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
@@ -63,10 +68,19 @@ namespace Microsoft.Dafny {
       }
     }
 
+    private static readonly List<LegacyUiForOption> legacyUis = new();
+
     public static void RegisterLegacyUi<T>(Option<T> option,
       Action<Option<T>, Bpl.CommandLineParseState, DafnyOptions> parse,
-      string category, string legacyName = null, string legacyDescription = null) {
-
+      string category, string legacyName = null, string legacyDescription = null, T defaultValue = default(T)) {
+      legacyUis.Add(new LegacyUiForOption(
+        option,
+        (state, options) => parse(option, state, options),
+        category,
+        legacyName ?? option.Name,
+        legacyDescription ?? option.Description,
+        option.ArgumentHelpName ?? "value",
+        defaultValue));
     }
 
     public static DafnyOptions Create(params string[] arguments) {
@@ -106,7 +120,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public Options Options { get; set; } = new(new Dictionary<IOptionSpec, object>());
+    public Options Options { get; set; } = new(new Dictionary<Option, object>());
 
     public override string Version {
       get { return ToolName + VersionSuffix; }
@@ -279,7 +293,7 @@ namespace Microsoft.Dafny {
         return true;
       }
 
-      foreach (var option in AvailableNewStyleOptions.Where(o => o.LegacyName == name)) {
+      foreach (var option in legacyUis.Where(o => o.Name == name)) {
         option.Parse(ps, this);
         return true;
       }
@@ -292,7 +306,7 @@ namespace Microsoft.Dafny {
     }
 
     public override string Help => "Use 'dafny --help' to see help for a newer Dafny CLI format.\n" +
-      ILegacyOption.GenerateHelp(base.Help, AvailableNewStyleOptions, true);
+      LegacyUiForOption.GenerateHelp(base.Help, legacyUis, true);
 
     protected bool ParseDafnySpecificOption(string name, Bpl.CommandLineParseState ps) {
       var args = ps.args; // convenient synonym
@@ -677,9 +691,9 @@ namespace Microsoft.Dafny {
     }
 
     public override void ApplyDefaultOptions() {
-      foreach (var option in AvailableNewStyleOptions) {
-        Options.OptionArguments.GetOrCreate(option, () => option.DefaultValue);
-        option.PostProcess(this);
+      foreach (var option in legacyUis) {
+        var value = Options.OptionArguments.GetOrCreate(option.Option, () => option.DefaultValue);
+        bindings[option.Option](this, value);
       }
 
       ApplyDefaultOptionsWithoutSettingsDefault();
