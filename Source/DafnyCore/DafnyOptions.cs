@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.CommandLine;
+using System.CommandLine.Binding;
 using System.CommandLine.Parsing;
 using System.Linq;
 using System.Diagnostics.Contracts;
@@ -37,7 +38,9 @@ namespace Microsoft.Dafny {
   public class DafnyOptions : Bpl.CommandLineOptions {
 
     public void ApplyBinding(Option option) {
-      bindings[option](this, Options.OptionArguments[option]);
+      if (bindings.ContainsKey(option)) {
+        bindings[option](this, Get(option));
+      }
     }
 
     public DafnyOptions(Options options) : base(new DafnyConsolePrinter()) {
@@ -46,6 +49,14 @@ namespace Microsoft.Dafny {
 
     public T Get<T>(Option<T> option) {
       return (T)Options.OptionArguments[option];
+    }
+
+    public object Get(Option option) {
+      return Options.OptionArguments[option];
+    }
+
+    public void Set(Option option, object value) {
+      Options.OptionArguments[option] = value;
     }
 
     public void Set<T>(Option<T> option, T value) {
@@ -696,9 +707,14 @@ namespace Microsoft.Dafny {
     }
 
     public override void ApplyDefaultOptions() {
-      foreach (var option in legacyUis) {
-        var value = Options.OptionArguments.GetOrCreate(option.Option, () => option.DefaultValue);
-        bindings[option.Option](this, value);
+      foreach (var legacyUiOption in legacyUis) {
+        if (!Options.OptionArguments.ContainsKey(legacyUiOption.Option)) {
+          Set(legacyUiOption.Option, legacyUiOption.DefaultValue);
+        }
+        if (bindings.ContainsKey(legacyUiOption.Option)) {
+          var value = Get(legacyUiOption.Option);
+          bindings[legacyUiOption.Option](this, value);
+        }
       }
 
       ApplyDefaultOptionsWithoutSettingsDefault();

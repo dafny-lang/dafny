@@ -17,7 +17,7 @@ public static class BoogieOptionBag {
     ArgumentHelpName = "arguments",
   };
 
-  public static readonly Option<int> Cores = new("--cores",
+  public static readonly Option<int> Cores = new("--cores", () => 1,
     "Run the Dafny CLI using <n> cores. Defaults to 1.") {
     ArgumentHelpName = "count"
   };

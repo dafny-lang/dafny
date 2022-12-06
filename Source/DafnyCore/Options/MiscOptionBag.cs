@@ -161,7 +161,7 @@ true - The char type represents any Unicode scalar value.".TrimStart());
       options.DafnyPrintCompiledFile = value;
     });
 
-    DafnyOptions.RegisterLegacyUi(Libraries, DafnyOptions.ParseStringElement, "Compilation options");
+    DafnyOptions.RegisterLegacyUi(Libraries, DafnyOptions.ParseStringElement, "Compilation options", defaultValue: new List<string>());
     DafnyOptions.RegisterLegacyBinding(Libraries, (options, value) => {
       options.LibraryFiles = value.ToHashSet();
     });

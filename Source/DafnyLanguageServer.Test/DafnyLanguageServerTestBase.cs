@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.CommandLine;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -73,7 +74,14 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
       modifyOptions?.Invoke(dafnyOptions);
 
       void NewServerOptionsAction(LanguageServerOptions options) {
+        var testCommand = new System.CommandLine.Command("test");
+        foreach (var serverOption in new ServerCommand().Options) {
+          testCommand.AddOption(serverOption);
+        }
+        var result = testCommand.Parse("test");
         foreach (var option in new ServerCommand().Options) {
+          var value = result.GetValueForOption(option);
+          dafnyOptions.Set(option, value);
           dafnyOptions.ApplyBinding(option);
         }
 
