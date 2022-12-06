@@ -48,7 +48,7 @@ namespace Microsoft.Dafny {
     }
 
     public T Get<T>(Option<T> option) {
-      return (T)Options.OptionArguments[option];
+      return (T)Options.OptionArguments.GetOrCreate(option, () => default(T));
     }
 
     public object Get(Option option) {

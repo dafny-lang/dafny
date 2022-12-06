@@ -110,10 +110,6 @@ static class CommandRegistry {
       }
 
       foreach (var option in command.Options) {
-        if (!context.ParseResult.HasOption(option)) {
-          continue;
-        }
-
         var value = context.ParseResult.GetValueForOption(option);
         options.OptionArguments[option] = value;
         dafnyOptions.ApplyBinding(option);
@@ -132,7 +128,7 @@ static class CommandRegistry {
       }
 
       return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR);
-    }
+    } 
     if (exitCode == 0) {
       return new ParseArgumentSuccess(dafnyOptions);
     }

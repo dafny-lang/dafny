@@ -26,7 +26,6 @@ Results in more manual work, but also produces more predictable behavior.".TrimS
     "Allow variables to be read before they are assigned, but only if they have an auto-initializable type or if they are ghost and have a nonempty type.") {
   };
 
-
   public static readonly Option<IList<string>> Libraries = new("--library",
     @"
 The contents of this file and any files it includes can be referenced from other files as if they were included. 
@@ -82,8 +81,8 @@ Note that quantifier variable domains (<- <Domain>) are available in both syntax
     ArgumentHelpName = "version"
   };
 
-  public static readonly Option<string> Target = new(new [] { "--target", "-t" }, @"
-cs (default) - Compile to .NET via C#.
+  public static readonly Option<string> Target = new(new [] { "--target", "-t" }, () => "cs", @"
+cs - Compile to .NET via C#.
 go - Compile to Go.
 js - Compile to JavaScript.
 java - Compile to Java.
@@ -132,6 +131,18 @@ true - The char type represents any Unicode scalar value.".TrimStart());
       options.VerifyAllModules = value;
     });
 
+    DafnyOptions.RegisterLegacyUi(Target, DafnyOptions.ParseString, "Compilation options", "compileTarget", @"
+cs (default) - Compile to .NET via C#.
+go - Compile to Go.
+js - Compile to JavaScript.
+java - Compile to Java.
+py - Compile to Python.
+cpp - Compile to C++.
+Note that the C++ backend has various limitations (see
+Docs/Compilation/Cpp.md). This includes lack of support for
+BigIntegers (aka int), most higher order functions, and advanced
+features like traits or co-inductive types.".TrimStart(), "cs");
+    
     DafnyOptions.RegisterLegacyBinding(Target, (options, value) => {
       options.CompilerName = value;
     });
@@ -144,7 +155,7 @@ true - The char type represents any Unicode scalar value.".TrimStart());
       options.QuantifierSyntax = value;
     });
 
-    DafnyOptions.RegisterLegacyUi(Plugin, DafnyOptions.ParseStringElement, "Plugins");
+    DafnyOptions.RegisterLegacyUi(Plugin, DafnyOptions.ParseStringElement, "Plugins", defaultValue: new List<string>());
     DafnyOptions.RegisterLegacyBinding(Plugin, (options, value) => {
       options.AdditionalPluginArguments = value;
     });
