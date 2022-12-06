@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny; 
 
-public class MiscOptionBag {
+public class CommonOptionBag {
 
   public static readonly Option<bool> CompileVerbose = new("--compile-verbose",
     "Print information such as files being written by the compiler to the console") {
@@ -114,7 +114,7 @@ true - The char type represents any Unicode scalar value.".TrimStart());
   public static readonly Option<bool> IncludeRuntime = new("--include-runtime",
     "Include the Dafny runtime as source in the target language.");
 
-  static MiscOptionBag() {
+  static CommonOptionBag() {
     DafnyOptions.RegisterLegacyBinding(IncludeRuntime, (options, value) => {
       options.UseRuntimeLib = !value;
     });

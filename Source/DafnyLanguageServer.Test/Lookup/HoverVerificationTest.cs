@@ -76,7 +76,7 @@ Resource usage: 9K RU"
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
     public async Task BetterMessageWhenOneAssertPerBatch() {
       await SetUp(o => {
-        o.Set(MiscOptionBag.RelaxDefiniteAssignment, true);
+        o.Set(CommonOptionBag.RelaxDefiniteAssignment, true);
         // LineVerificationStatusOption.Instance.Set(o, true);
       });
       var documentItem = await GetDocumentItem(@"

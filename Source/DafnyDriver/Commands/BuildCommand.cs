@@ -7,8 +7,8 @@ namespace Microsoft.Dafny;
 
 class BuildCommand : ICommandSpec {
   public IEnumerable<Option> Options => new Option[] {
-    MiscOptionBag.Output,
-    MiscOptionBag.CompileVerbose,
+    CommonOptionBag.Output,
+    CommonOptionBag.CompileVerbose,
   }.Concat(ICommandSpec.VerificationOptions).
     Concat(ICommandSpec.ExecutionOptions).
     Concat(ICommandSpec.ConsoleOutputOptions).

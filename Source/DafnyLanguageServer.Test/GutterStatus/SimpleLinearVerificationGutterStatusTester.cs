@@ -38,7 +38,7 @@ method Foo() ensures false { } ";
 
   [TestMethod, Timeout(MaxTestExecutionTimeMs)]
   public async Task EnsureVerificationGutterStatusIsWorking() {
-    await SetUp(o => o.Set(MiscOptionBag.RelaxDefiniteAssignment, true));
+    await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
     await VerifyTrace(@"
  .  |  |  |  I  I  |  | :predicate Ok() {
  .  |  |  |  I  I  |  | :  true
@@ -142,7 +142,7 @@ method Foo() ensures false { } ";
 
   [TestMethod/*, Timeout(MaxTestExecutionTimeMs)*/]
   public async Task EnsuresWorkWithInformationsAsWell() {
-    await SetUp(o => o.Set(MiscOptionBag.RelaxDefiniteAssignment, true));
+    await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
     await VerifyTrace(@"
  .  S [S][ ][I][S][S][ ]:method f(x: int) returns (y: int)
  .  S [S][ ][I][S][S][ ]:ensures

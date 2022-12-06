@@ -29,12 +29,12 @@ public interface ICommandSpec {
   public static IReadOnlyList<Option> VerificationOptions = new Option[] {
     BoogieOptionBag.NoVerify,
     BoogieOptionBag.VerificationTimeLimit,
-    MiscOptionBag.VerifyIncludedFiles
+    CommonOptionBag.VerifyIncludedFiles
   }.ToList();
 
   public static IReadOnlyList<Option> ExecutionOptions = new Option[] {
-    MiscOptionBag.Target,
-    MiscOptionBag.EnforceDeterminism
+    CommonOptionBag.Target,
+    CommonOptionBag.EnforceDeterminism
   }.ToList();
 
   public static IReadOnlyList<Option> ConsoleOutputOptions = new List<Option>(new Option[] {
@@ -43,23 +43,23 @@ public interface ICommandSpec {
     DeveloperOptionBag.Print,
     DeveloperOptionBag.ResolvedPrint,
     DeveloperOptionBag.BoogiePrint,
-    MiscOptionBag.WarningAsErrors,
+    CommonOptionBag.WarningAsErrors,
   });
 
   public static IReadOnlyList<Option> CommonOptions = new List<Option>(new Option[] {
     BoogieOptionBag.Cores,
-    MiscOptionBag.Libraries,
-    MiscOptionBag.Plugin,
+    CommonOptionBag.Libraries,
+    CommonOptionBag.Plugin,
     BoogieOptionBag.BoogieArguments,
-    MiscOptionBag.Prelude,
-    MiscOptionBag.RelaxDefiniteAssignment,
+    CommonOptionBag.Prelude,
+    CommonOptionBag.RelaxDefiniteAssignment,
     Function.FunctionSyntaxOption,
-    MiscOptionBag.QuantifierSyntax,
-    MiscOptionBag.WarnShadowing,
-    MiscOptionBag.WarnMissingConstructorParenthesis,
+    CommonOptionBag.QuantifierSyntax,
+    CommonOptionBag.WarnShadowing,
+    CommonOptionBag.WarnMissingConstructorParenthesis,
     PrintStmt.TrackPrintEffectsOption,
-    MiscOptionBag.DisableNonLinearArithmetic,
-    MiscOptionBag.UnicodeCharacters,
+    CommonOptionBag.DisableNonLinearArithmetic,
+    CommonOptionBag.UnicodeCharacters,
   });
 
   IEnumerable<Option> Options { get; }

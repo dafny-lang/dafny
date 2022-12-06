@@ -689,7 +689,7 @@ namespace Microsoft.Dafny {
         defines.Add("ARITH_MUL_COMM");
         defines.Add("ARITH_MUL_ASSOC");
       }
-      if (DafnyOptions.O.Get(MiscOptionBag.UnicodeCharacters)) {
+      if (DafnyOptions.O.Get(CommonOptionBag.UnicodeCharacters)) {
         defines.Add("UNICODE_CHAR");
       }
       int errorCount = BplParser.Parse(preludePath, defines, out prelude);

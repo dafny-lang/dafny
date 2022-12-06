@@ -49,7 +49,7 @@ namespace Microsoft.Dafny.LanguageServer {
 
       var pluginOptions = new DafnyPluginsOptions();
       configuration.Bind(DafnyPluginsOptions.Section, pluginOptions);
-      dafnyOptions.Set(MiscOptionBag.Plugin, pluginOptions.Plugins.ToList());
+      dafnyOptions.Set(CommonOptionBag.Plugin, pluginOptions.Plugins.ToList());
       return dafnyOptions;
     }
 

@@ -17,7 +17,6 @@ using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
 
-
   public enum PrintModes {
     Everything,
     DllEmbed,

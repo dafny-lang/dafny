@@ -47,7 +47,7 @@ Send notifications about the verification status of each line in the program.
     LineVerificationStatus,
     VerifySnapshots,
     BoogieOptionBag.VerificationTimeLimit,
-    MiscOptionBag.EnforceDeterminism,
+    CommonOptionBag.EnforceDeterminism,
   }.Concat(ICommandSpec.CommonOptions);
 
   public Command Create() {

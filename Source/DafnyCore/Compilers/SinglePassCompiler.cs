@@ -129,7 +129,7 @@ namespace Microsoft.Dafny.Compilers {
     protected string IntSelect = ",int";
     protected string LambdaExecute = "";
 
-    protected static bool UnicodeCharEnabled => DafnyOptions.O.Get(MiscOptionBag.UnicodeCharacters);
+    protected static bool UnicodeCharEnabled => DafnyOptions.O.Get(CommonOptionBag.UnicodeCharacters);
 
     protected static string CharMethodQualifier => UnicodeCharEnabled ? "Unicode" : "";
 

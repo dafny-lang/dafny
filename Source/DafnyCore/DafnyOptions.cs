@@ -43,10 +43,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public DafnyOptions(Options options) : base(new DafnyConsolePrinter()) {
-      // Use bindings
-    }
-
     public T Get<T>(Option<T> option) {
       return (T)Options.OptionArguments.GetOrCreate(option, () => default(T));
     }

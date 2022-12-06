@@ -8,9 +8,9 @@ namespace Microsoft.Dafny;
 class TranslateCommand : ICommandSpec {
   public IEnumerable<Option> Options =>
     new Option[] {
-      MiscOptionBag.Output,
-      MiscOptionBag.CompileVerbose,
-      MiscOptionBag.IncludeRuntime,
+      CommonOptionBag.Output,
+      CommonOptionBag.CompileVerbose,
+      CommonOptionBag.IncludeRuntime,
     }.Concat(ICommandSpec.VerificationOptions).
       Concat(ICommandSpec.ExecutionOptions).
       Concat(ICommandSpec.ConsoleOutputOptions).

@@ -32,7 +32,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       {
       }
       ".TrimStart();
-      await SetUp(o => o.Set(MiscOptionBag.RelaxDefiniteAssignment, true));
+      await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -49,7 +49,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       {
       }
       ".TrimStart();
-      await SetUp(o => o.Set(MiscOptionBag.RelaxDefiniteAssignment, true));
+      await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -112,7 +112,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       }
       ".TrimStart();
 
-      await SetUp(o => o.Set(MiscOptionBag.RelaxDefiniteAssignment, true));
+      await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
 
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
