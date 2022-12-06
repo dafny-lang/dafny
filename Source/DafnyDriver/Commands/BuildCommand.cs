@@ -6,9 +6,9 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 class BuildCommand : ICommandSpec {
-  public IEnumerable<IOptionSpec> Options => new IOptionSpec[] {
-    OutputOption.Instance,
-    CompileVerboseOption.Instance,
+  public IEnumerable<Option> Options => new Option[] {
+    MiscOptionBag.Output,
+    MiscOptionBag.CompileVerbose,
   }.Concat(ICommandSpec.VerificationOptions).
     Concat(ICommandSpec.ExecutionOptions).
     Concat(ICommandSpec.CommonOptions);
@@ -22,6 +22,6 @@ class BuildCommand : ICommandSpec {
   public void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context) {
     dafnyOptions.Compile = true;
     dafnyOptions.RunAfterCompile = false;
-    dafnyOptions.ForceCompile = NoVerifyOption.Instance.Get(options);
+    dafnyOptions.ForceCompile = dafnyOptions.Get(BoogieOptionBag.NoVerify);
   }
 }

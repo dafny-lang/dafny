@@ -74,7 +74,7 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
 
       void NewServerOptionsAction(LanguageServerOptions options) {
         foreach (var option in new ServerCommand().Options) {
-          option.PostProcess(dafnyOptions);
+          dafnyOptions.ApplyBinding(option);
         }
 
         ServerCommand.ConfigureDafnyOptionsForServer(dafnyOptions);

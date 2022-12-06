@@ -6,8 +6,8 @@ using System.Linq;
 namespace Microsoft.Dafny; 
 
 public class TestCommand : ICommandSpec {
-  public IEnumerable<IOptionSpec> Options =>
-    new IOptionSpec[] {
+  public IEnumerable<Option> Options =>
+    new Option[] {
     }.Concat(ICommandSpec.VerificationOptions).
       Concat(ICommandSpec.ExecutionOptions).
       Concat(ICommandSpec.CommonOptions);
@@ -22,7 +22,7 @@ public class TestCommand : ICommandSpec {
     dafnyOptions.Compile = true;
     dafnyOptions.RunAfterCompile = true;
     dafnyOptions.RunAllTests = true;
-    dafnyOptions.ForceCompile = NoVerifyOption.Instance.Get(options);
+    dafnyOptions.ForceCompile = dafnyOptions.Get(BoogieOptionBag.NoVerify);
     dafnyOptions.CompileVerbose = false;
   }
 }

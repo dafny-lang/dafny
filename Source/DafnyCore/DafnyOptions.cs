@@ -36,7 +36,11 @@ namespace Microsoft.Dafny {
 
   public class DafnyOptions : Bpl.CommandLineOptions {
 
-    public DafnyOptions(ParseResult result) : base(new DafnyConsolePrinter()) {
+    public void ApplyBinding(Option option) {
+      bindings[option](this, Options.OptionArguments[option]);
+    }
+
+    public DafnyOptions(Options options) : base(new DafnyConsolePrinter()) {
       // Use bindings
     }
 
@@ -228,13 +232,14 @@ namespace Microsoft.Dafny {
     public List<string> VerificationLoggerConfigs = new();
 
     public static readonly ReadOnlyCollection<Plugin> DefaultPlugins = new(new[] { SinglePassCompiler.Plugin });
-    private IReadOnlyList<Plugin> pluginCache;
-    public IEnumerable<Plugin> Plugins => pluginCache ??= ComputePlugins(AdditionalPluginArguments);
+    private IList<Plugin> cliPluginCache;
+    public IList<Plugin> Plugins => cliPluginCache ??= ComputePlugins();
+    public List<Plugin> AdditionalPlugins = new();
     public List<string> AdditionalPluginArguments = new();
 
-    static IReadOnlyList<Plugin> ComputePlugins(IEnumerable<string> pluginArguments) {
-      var result = new List<Plugin>(DefaultPlugins);
-      foreach (var pluginAndArgument in pluginArguments) {
+    IList<Plugin> ComputePlugins() {
+      var result = new List<Plugin>(DefaultPlugins.Concat(AdditionalPlugins));
+      foreach (var pluginAndArgument in AdditionalPluginArguments) {
         try {
           var pluginArray = pluginAndArgument.Split(',');
           var pluginPath = pluginArray[0];

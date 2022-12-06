@@ -68,13 +68,14 @@ public abstract class PluginsTestBase : ClientBasedLanguageServerTest {
   public override Task SetUp(Action<DafnyOptions> modifyOptions) {
     LibraryPath = GetLibrary(LibraryName);
     void ModifyOptions(DafnyOptions options) {
-      PluginOption.Instance.Set(options, CommandLineArgument.ToList());
+      options.Set(MiscOptionBag.Plugin, CommandLineArgument.ToList());
       modifyOptions?.Invoke(options);
     }
     return base.SetUp(ModifyOptions);
   }
 
   protected void CleanupPlugin() {
-    DafnyOptions.O.Plugins = new List<Plugin>(DafnyOptions.DefaultPlugins);
+    // TODO do we still need this?
+    //DafnyOptions.O.Plugins = new List<Plugin>(DafnyOptions.DefaultPlugins);
   }
 }

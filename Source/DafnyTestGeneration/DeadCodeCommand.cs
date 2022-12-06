@@ -6,11 +6,11 @@ using System.Linq;
 namespace Microsoft.Dafny; 
 
 public class DeadCodeCommand : ICommandSpec {
-  public IEnumerable<IOptionSpec> Options =>
-    new IOptionSpec[] {
-      LoopUnrollOption.Instance,
-      SequenceLengthLimitOption.Instance,
-      VerificationTimeLimitOption.Instance,
+  public IEnumerable<Option> Options =>
+    new Option[] {
+      GenerateTestsCommand.LoopUnroll,
+      GenerateTestsCommand.SequenceLengthLimit,
+      BoogieOptionBag.VerificationTimeLimit,
     }.Concat(ICommandSpec.CommonOptions);
 
   public Command Create() {
