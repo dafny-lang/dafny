@@ -28,7 +28,7 @@ namespace Microsoft.Dafny {
   public class Printer {
 
     static Printer() {
-      
+
       void ParsePrintMode(Option<PrintModes> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
         if (ps.ConfirmArgumentCount(1)) {
           if (ps.args[ps.i].Equals("Everything")) {
@@ -44,7 +44,7 @@ namespace Microsoft.Dafny {
           }
         }
       }
-      
+
       DafnyOptions.RegisterLegacyUi(PrintMode, ParsePrintMode, "Overall reporting and printing");
       DafnyOptions.RegisterLegacyBinding(PrintMode, (options, value) => {
         options.PrintMode = value;

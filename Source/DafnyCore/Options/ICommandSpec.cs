@@ -45,7 +45,7 @@ public interface ICommandSpec {
     DeveloperOptionBag.BoogiePrint,
     MiscOptionBag.WarningAsErrors,
   });
-  
+
   public static IReadOnlyList<Option> CommonOptions = new List<Option>(new Option[] {
     BoogieOptionBag.Cores,
     MiscOptionBag.Libraries,

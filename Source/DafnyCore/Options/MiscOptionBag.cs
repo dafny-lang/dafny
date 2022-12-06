@@ -5,7 +5,7 @@ using System.Linq;
 namespace Microsoft.Dafny; 
 
 public class MiscOptionBag {
-  
+
   public static readonly Option<bool> CompileVerbose = new("--compile-verbose",
     "Print information such as files being written by the compiler to the console") {
   };
@@ -33,12 +33,12 @@ However, these contents are skipped during code generation and verification.
 This option is useful in a diamond dependency situation, 
 to prevent code from the bottom dependency from being generated more than once.".TrimStart());
 
-  public static readonly Option<string> Output = new(new [] { "--output", "-o" },
+  public static readonly Option<string> Output = new(new[] { "--output", "-o" },
     "Specify the filename and location for the generated target language files.") {
-ArgumentHelpName = "file"
+    ArgumentHelpName = "file"
   };
 
-  public static readonly Option<IList<string>> Plugin = new(new [] { "--plugin" },
+  public static readonly Option<IList<string>> Plugin = new(new[] { "--plugin" },
     @"
 (experimental) One path to an assembly that contains at least one
 instantiatable class extending Microsoft.Dafny.Plugin.Rewriter. It
@@ -68,7 +68,7 @@ https://github.com/dafny-lang/dafny/blob/master/Source/DafnyLanguageServer/READM
       }
 
       return QuantifierSyntaxOptions.Version3;
-    },true,  @"
+    }, true, @"
 The syntax for quantification domains is changing from Dafny version 3 to version 4, more specifically where quantifier ranges (|
 <Range>) are allowed. This switch gives early access to the new syntax.
 
@@ -81,7 +81,7 @@ Note that quantifier variable domains (<- <Domain>) are available in both syntax
     ArgumentHelpName = "version"
   };
 
-  public static readonly Option<string> Target = new(new [] { "--target", "-t" }, () => "cs", @"
+  public static readonly Option<string> Target = new(new[] { "--target", "-t" }, () => "cs", @"
 cs - Compile to .NET via C#.
 go - Compile to Go.
 js - Compile to JavaScript.
@@ -142,7 +142,7 @@ Note that the C++ backend has various limitations (see
 Docs/Compilation/Cpp.md). This includes lack of support for
 BigIntegers (aka int), most higher order functions, and advanced
 features like traits or co-inductive types.".TrimStart(), "cs");
-    
+
     DafnyOptions.RegisterLegacyBinding(Target, (options, value) => {
       options.CompilerName = value;
     });

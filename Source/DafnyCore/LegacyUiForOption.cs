@@ -9,7 +9,7 @@ namespace Microsoft.Dafny;
 
 public record LegacyUiForOption(Option Option, Action<Boogie.CommandLineParseState, DafnyOptions> Parse,
   string Category, string Name, string Description, string ArgumentName, object DefaultValue) {
-    
+
   public static string GenerateHelp(string template, IEnumerable<LegacyUiForOption> options, bool oldStyle = false) {
     var regex = new Regex(@"---- ([^-]+) -+\r?\n *\r?\n");
     var categories = regex.Matches(template).ToArray();

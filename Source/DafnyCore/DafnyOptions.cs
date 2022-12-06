@@ -75,14 +75,14 @@ namespace Microsoft.Dafny {
         options.Set(option, ps.args[ps.i]);
       }
     }
-    
+
     public static void ParseStringElement(Option<IList<string>> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
       var value = options.Get(option) ?? new List<string>();
       if (ps.ConfirmArgumentCount(1)) {
         value.Add(ps.args[ps.i]);
       }
     }
-    
+
     public static void ParseBoolean(Option<bool> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
       int result = 0;
       if (ps.GetIntArgument(ref result, 2)) {
@@ -355,14 +355,14 @@ namespace Microsoft.Dafny {
           }
 
         case "compileVerbose": {
-          int verbosity = 0;
-          if (ps.GetIntArgument(ref verbosity, 2)) {
-            CompileVerbose = verbosity == 1;
+            int verbosity = 0;
+            if (ps.GetIntArgument(ref verbosity, 2)) {
+              CompileVerbose = verbosity == 1;
+            }
+
+            return true;
           }
 
-          return true;
-        }
-        
         case "trackPrintEffects": {
             int printEffects = 0;
             if (ps.GetIntArgument(ref printEffects, 2)) {
@@ -642,10 +642,10 @@ namespace Microsoft.Dafny {
           }
 
         case "useRuntimeLib": {
-          UseRuntimeLib = true;
-          return true;
-        }
-        
+            UseRuntimeLib = true;
+            return true;
+          }
+
         case "disableScopes": {
             DisableScopes = true;
             return true;

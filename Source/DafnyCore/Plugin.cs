@@ -18,7 +18,7 @@ record ErrorPlugin(string AssemblyAndArgument, Exception Exception) : Plugin {
   }
 
   public IEnumerable<IRewriter> GetRewriters(ErrorReporter reporter) {
-    return new [] { new ErrorRewriter(reporter, this) };
+    return new[] { new ErrorRewriter(reporter, this) };
   }
 
   class ErrorRewriter : IRewriter {

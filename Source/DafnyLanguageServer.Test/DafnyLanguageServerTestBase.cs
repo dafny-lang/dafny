@@ -87,19 +87,15 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
       return client;
     }
 
-    private static void ApplyDefaultOptionValues(DafnyOptions dafnyOptions)
-    {
+    private static void ApplyDefaultOptionValues(DafnyOptions dafnyOptions) {
       var testCommand = new System.CommandLine.Command("test");
-      foreach (var serverOption in new ServerCommand().Options)
-      {
+      foreach (var serverOption in new ServerCommand().Options) {
         testCommand.AddOption(serverOption);
       }
 
       var result = testCommand.Parse("test");
-      foreach (var option in new ServerCommand().Options)
-      {
-        if (!dafnyOptions.Options.OptionArguments.ContainsKey(option))
-        {
+      foreach (var option in new ServerCommand().Options) {
+        if (!dafnyOptions.Options.OptionArguments.ContainsKey(option)) {
           var value = result.GetValueForOption(option);
           dafnyOptions.Set(option, value);
         }

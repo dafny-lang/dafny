@@ -39,7 +39,7 @@ Print Dafny program after resolving it.
       options.ExpandFilename(options.DafnyPrintResolvedFile, x => options.DafnyPrintResolvedFile = x, options.LogPrefix,
         options.FileTimestamp);
     });
-    
+
     DafnyOptions.RegisterLegacyUi(Print, DafnyOptions.ParseString, "Overall reporting and printing", "dprint");
     DafnyOptions.RegisterLegacyBinding(Print, (options, value) => {
       options.DafnyPrintFile = value;

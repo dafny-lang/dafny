@@ -128,7 +128,7 @@ static class CommandRegistry {
       }
 
       return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR);
-    } 
+    }
     if (exitCode == 0) {
       return new ParseArgumentSuccess(dafnyOptions);
     }

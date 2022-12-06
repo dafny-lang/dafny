@@ -197,7 +197,7 @@ namespace Microsoft.Dafny {
       var nonOutOptions = options;
       var compilers = options.Plugins.SelectMany(p => p.GetCompilers()).ToList();
       var compiler = compilers.LastOrDefault(c => c.TargetId == nonOutOptions.CompilerName);
-      if (compiler == null ) {
+      if (compiler == null) {
         if (options.Compile) {
           var known = String.Join(", ", compilers.Select(c => $"'{c.TargetId}' ({c.TargetLanguage})"));
           options.Printer.ErrorWriteLine(Console.Error, $"No compiler found for compileTarget \"{options.CompilerName}\"; expecting one of {known}");
@@ -745,7 +745,7 @@ namespace Microsoft.Dafny {
     #endregion
 
   }
-  
+
   class NoCompiler : Compiler {
     public override IReadOnlySet<string> SupportedExtensions => new HashSet<string>();
     public override string TargetLanguage => throw new NotSupportedException();
@@ -755,7 +755,7 @@ namespace Microsoft.Dafny {
     }
 
     public override bool TextualTargetIsExecutable => throw new NotSupportedException();
-    
+
     public override bool SupportsInMemoryCompilation => throw new NotSupportedException();
     public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
       throw new NotSupportedException();
