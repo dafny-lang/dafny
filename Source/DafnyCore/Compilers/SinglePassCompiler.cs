@@ -760,8 +760,8 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(tok != null);
       Contract.Requires(wr != null);
       if (from != null && to != null) {
-        from = SimplifyType(from);
-        to = SimplifyType(to);
+        from = DatatypeWrapperEraser.SimplifyType(from);
+        to = DatatypeWrapperEraser.SimplifyType(to);
         if (!IsTargetSupertype(to, from)) {
           // By the way, it is tempting to think that IsTargetSupertype(from, to)) would hold here, but that's not true.
           // For one, in a language with NeedsCastFromTypeParameter, "to" and "from" may contain uninstantiated formal type parameters.
@@ -1048,172 +1048,6 @@ namespace Microsoft.Dafny.Compilers {
     /// </summary>
     protected abstract ILvalue EmitMemberSelect(Action<ConcreteSyntaxTree> obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
       Type expectedType, string/*?*/ additionalCustomParameter = null, bool internalAccess = false);
-
-    protected enum MemberCompileStatus { Ordinary, Identity, AlwaysTrue }
-
-    protected MemberCompileStatus GetMemberStatus(MemberDecl member) {
-      if (member.EnclosingClass is DatatypeDecl dt) {
-        if (OptimizesErasableDatatypeWrappers && IsErasableDatatypeWrapper(dt, out var dtor) && dtor == member) {
-          // "member" is the sole destructor of an erasable datatype wrapper
-          return MemberCompileStatus.Identity;
-        } else if (member is DatatypeDiscriminator) {
-          // a discriminator of an inductive or coinductive datatype
-          return dt.Ctors.Count(c => !c.IsGhost) == 1 ? MemberCompileStatus.AlwaysTrue : MemberCompileStatus.Ordinary;
-        }
-      }
-
-      return MemberCompileStatus.Ordinary;
-    }
-
-    /// <summary>
-    /// This method determines whether or not "dt" is an "erasable datatype wrapper" that can be optimized away during compilation.
-    /// First off, this applies only if
-    ///   0 -- the compiler supports this kind of optimization (currently, only the C++ compiles does not support the optimization), and
-    ///   1 -- the user doesn't disable the optimization from the command-line using /optimizeerasableDatatypeWrappers:0.
-    /// To be an erasable wrapper, the datatype has to:
-    ///   2 -- be an inductive datatype (not a "codatatype"), and
-    ///   3 -- have exactly one non-ghost constructor, and
-    ///   4 -- that constructor must have exactly one non-ghost destructor parameter (say, "d" of type "D"), and
-    ///   5 -- have no fields declared as members, and
-    ///   6 -- the compiled parts of type "D" must not include the datatype itself, and
-    ///   7 -- not be declared with {:extern} (since extern code may rely on it being there).
-    ///
-    /// If the conditions above apply, then the method returns true and sets the out-parameter to the core DatatypeDestructor "d".
-    /// From this return, the compiler (that is, the caller) will arrange to compile type "dt" as type "D".
-    /// If according to the conditions above, "dt" is not an erasable wrapper, the method returns false; the out-parameter should
-    /// then not be used by the caller.
-    /// </summary>
-    protected bool IsErasableDatatypeWrapper(DatatypeDecl dt, out DatatypeDestructor coreDestructor) {
-      // This local method "FindUnwrappedCandidate" checks for conditions 2, 3, 4, 5, and 7 (but not 0, 1, and 6).
-      bool FindUnwrappedCandidate(DatatypeDecl datatypeDecl, out DatatypeDestructor coreDtor) {
-        if (datatypeDecl is IndDatatypeDecl &&
-            !datatypeDecl.IsExtern(out _, out _) &&
-            !datatypeDecl.Members.Any(member => member is Field)) {
-          var i = datatypeDecl.Ctors.FindIndex(ctor => !ctor.IsGhost);
-          if (0 <= i) {
-            if (datatypeDecl.Ctors.FindIndex(i + 1, ctor => !ctor.IsGhost) == -1) {
-              // there is exactly one non-ghost constructor
-              var ctor = datatypeDecl.Ctors[i];
-              var j = ctor.Destructors.FindIndex(dtor => !dtor.IsGhost);
-              if (0 <= j) {
-                if (ctor.Destructors.FindIndex(j + 1, dtor => !dtor.IsGhost) == -1) {
-                  // there is exactly one non-ghost parameter to "ctor"
-                  coreDtor = ctor.Destructors[j];
-                  return true;
-                }
-              }
-            }
-          }
-        }
-        coreDtor = null;
-        return false;
-      }
-
-      // This local method "CompiledTypeContains" returns "true" if a traversal into the components of "type" finds
-      // "lookingFor" before passing through any type in "visited".
-      // "lookingFor" is expected not to be a subset type, and "visited" is expected not to contain any subset types.
-      bool CompiledTypeContains(Type type, TopLevelDecl lookingFor, ISet<TopLevelDecl> visited) {
-        type = type.NormalizeExpand();
-        if (type is UserDefinedType udt) {
-          if (udt.ResolvedClass == lookingFor) {
-            return true;
-          }
-          if (visited.Contains(udt.ResolvedClass)) {
-            return false;
-          }
-          visited = visited.Union(new HashSet<TopLevelDecl>() { udt.ResolvedClass }).ToHashSet();
-          // (a) IF "udt.ResolvedClass" is an erasable type wrapper, then we want to continue the search with
-          // its core destructor, suitably substituting type arguments for type parameters.
-          // (b) If it is NOT, then we just want to search in its type arguments (like we would for non-UserDefinedType's).
-          //
-          // However, we don't know which of (a) or (b) we're looking at. So, we first explore (a), and if that
-          // shows that the core destructor of "udt.ResolvedClass" has no cycles, then "udt.ResolvedClass" is
-          // indeed an erasable type wrapper. If "udt.ResolvedClass" is involved in some cycle, then it is not
-          // an erasable type wrapper, so we abandon (a) and instead do (b).
-          if (udt.ResolvedClass is DatatypeDecl d && FindUnwrappedCandidate(d, out var dtor)) {
-            var typeSubst = TypeParameter.SubstitutionMap(d.TypeArgs, udt.TypeArgs);
-            if (CompiledTypeContains(dtor.Type.Subst(typeSubst), lookingFor, visited)) {
-              return true;
-            }
-          }
-        }
-        return type.TypeArgs.Any(ty => CompiledTypeContains(ty, lookingFor, visited));
-      }
-
-      if (OptimizesErasableDatatypeWrappers && DafnyOptions.O.OptimizeErasableDatatypeWrappers) {
-        // First, check for all conditions except the non-cycle condition
-        if (FindUnwrappedCandidate(dt, out var candidateCoreDestructor)) {
-          // Now, check if the type of the destructor contains "datatypeDecl" itself
-          if (!CompiledTypeContains(candidateCoreDestructor.Type, dt, new HashSet<TopLevelDecl>())) {
-            coreDestructor = candidateCoreDestructor;
-            return true;
-          }
-        }
-      }
-      coreDestructor = null;
-      return false;
-    }
-
-    protected bool CanBeLeftUninitialized(Type type) {
-      if (type.NormalizeExpandKeepConstraints() is UserDefinedType udt && udt.ResolvedClass is DatatypeDecl dt) {
-        if (dt.GetGroundingCtor().IsGhost) {
-          return true;
-        }
-        if (IsErasableDatatypeWrapper(dt, out var dtor)) {
-          var typeSubst = TypeParameter.SubstitutionMap(dt.TypeArgs, udt.TypeArgs);
-          return CanBeLeftUninitialized(dtor.Type.Subst(typeSubst));
-        }
-      }
-      return false;
-    }
-
-    /// <summary>
-    /// Remove any erasable type wrappers and simplify ghost tuple types.
-    /// </summary>
-    protected Type SimplifyType(Type ty, bool keepConstraints = false) {
-      Contract.Requires(ty != null);
-      Contract.Requires(ty is not TypeProxy);
-
-      ty = ty.NormalizeExpand(keepConstraints);
-      Contract.Assert(ty is NonProxyType);
-      if (!OptimizesErasableDatatypeWrappers) {
-        return ty;
-      }
-
-      if (ty is UserDefinedType udt) {
-        if (udt.ResolvedClass is TupleTypeDecl tupleTypeDecl && tupleTypeDecl.NonGhostDims != 1) {
-          var nonGhostTupleTypeDecl = tupleTypeDecl.NonGhostTupleTypeDecl;
-          if (nonGhostTupleTypeDecl != null) {
-            var typeArgsForNonGhostTuple = new List<Type>();
-            var n = tupleTypeDecl.TypeArgs.Count;
-            Contract.Assert(tupleTypeDecl.ArgumentGhostness.Count == n);
-            Contract.Assert(udt.TypeArgs.Count == n);
-            for (var i = 0; i < n; i++) {
-              if (!tupleTypeDecl.ArgumentGhostness[i]) {
-                typeArgsForNonGhostTuple.Add(udt.TypeArgs[i]);
-              }
-            }
-            Contract.Assert(typeArgsForNonGhostTuple.Count == nonGhostTupleTypeDecl.Dims);
-            Contract.Assert(nonGhostTupleTypeDecl.NonGhostDims == nonGhostTupleTypeDecl.Dims);
-            return new UserDefinedType(udt.tok, nonGhostTupleTypeDecl.Name, nonGhostTupleTypeDecl, typeArgsForNonGhostTuple);
-          }
-
-        } else if (udt.ResolvedClass is DatatypeDecl datatypeDecl && IsErasableDatatypeWrapper(datatypeDecl, out var dtor)) {
-          var typeSubst = TypeParameter.SubstitutionMap(datatypeDecl.TypeArgs, udt.TypeArgs);
-          var stype = dtor.Type.Subst(typeSubst).NormalizeExpand(keepConstraints);
-          return SimplifyType(stype, keepConstraints);
-        }
-      }
-
-      // Simplify the type arguments of "ty"
-      if (ty.TypeArgs.Count != 0) {
-        var simplifiedArguments = ty.TypeArgs.ConvertAll(typeArg => SimplifyType(typeArg, keepConstraints));
-        if (Enumerable.Range(0, ty.TypeArgs.Count).Any(i => ty.TypeArgs[i].NormalizeExpand(keepConstraints) != simplifiedArguments[i])) {
-          ty.ReplaceTypeArguments(simplifiedArguments);
-        }
-      }
-      return ty;
-    }
 
     protected abstract ConcreteSyntaxTree EmitArraySelect(List<string> indices, Type elmtType, ConcreteSyntaxTree wr);
     protected abstract ConcreteSyntaxTree EmitArraySelect(List<Expression> indices, Type elmtType, bool inLetExprBody,
@@ -1960,7 +1794,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (member.EnclosingClass is DatatypeDecl datatypeDecl) {
         // An undefined value "o" cannot use this o.F(...) form in most languages.
         // Also, an erasable wrapper type has a receiver that's not part of the enclosing target class.
-        return datatypeDecl.Ctors.Any(ctor => ctor.IsGhost) || IsErasableDatatypeWrapper(datatypeDecl, out _);
+        return datatypeDecl.Ctors.Any(ctor => ctor.IsGhost) || DatatypeWrapperEraser.IsErasableDatatypeWrapper(datatypeDecl, out _);
       } else {
         return false;
       }
@@ -2994,7 +2828,7 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual void TypeName_SplitArrayName(Type type, out Type innermostElementType, out string brackets) {
       Contract.Requires(type != null);
 
-      type = SimplifyType(type);
+      type = DatatypeWrapperEraser.SimplifyType(type);
       var at = type.AsArrayType;
       if (at != null) {
         var elementType = type.TypeArgs[0];
@@ -3039,7 +2873,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(tok != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
-      type = SimplifyType(type, true);
+      type = DatatypeWrapperEraser.SimplifyType(type, true);
       return TypeInitializationValue(type, wr, tok, true, constructTypeParameterDefaultsFromTypeDescriptors);
     }
 
@@ -3049,14 +2883,14 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(tok != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
-      // If "type" is a datatype with a ghost grounding constructor, then compile as a placebo for SimplifyType(type, true).
-      // Otherwise, get default value for SimplifyType(type, true), which may itself have a ghost grounding constructor, in
+      // If "type" is a datatype with a ghost grounding constructor, then compile as a placebo for DatatypeWrapperEraser.SimplifyType(type, true).
+      // Otherwise, get default value for DatatypeWrapperEraser.SimplifyType(type, true), which may itself have a ghost grounding constructor, in
       // which case the value we produce is a placebo.
       bool HasGhostGroundingCtor(Type ty) {
         return (ty.NormalizeExpandKeepConstraints() as UserDefinedType)?.ResolvedClass is DatatypeDecl dt && dt.GetGroundingCtor().IsGhost;
       }
 
-      var simplifiedType = SimplifyType(type, true);
+      var simplifiedType = DatatypeWrapperEraser.SimplifyType(type, true);
       var usePlaceboValue = HasGhostGroundingCtor(type) || HasGhostGroundingCtor(simplifiedType);
       return TypeInitializationValue(simplifiedType, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
     }
@@ -4556,7 +4390,7 @@ namespace Microsoft.Dafny.Compilers {
       if (tp.ArrayDimensions == null) {
         var initCall = tp.InitCall != null && tp.InitCall.Method is Constructor ? tp.InitCall : null;
         EmitNew(tp.EType, tp.Tok, initCall, wr, wStmts);
-      } else if (tp.ElementInit != null || tp.InitDisplay != null || CanBeLeftUninitialized(tp.EType)) {
+      } else if (tp.ElementInit != null || tp.InitDisplay != null || DatatypeWrapperEraser.CanBeLeftUninitialized(tp.EType)) {
         EmitNewArray(tp.EType, tp.Tok, tp.ArrayDimensions, false, wr, wStmts);
       } else {
         // If an initializer is not known, the only way the verifier would have allowed this allocation
@@ -4834,7 +4668,7 @@ namespace Microsoft.Dafny.Compilers {
           TrExpr(e.Root, wr, inLetExprBody, wStmts);
           return;
         }
-        if (IsErasableDatatypeWrapper(e.Root.Type.AsDatatype, out var dtor)) {
+        if (DatatypeWrapperEraser.IsErasableDatatypeWrapper(e.Root.Type.AsDatatype, out var dtor)) {
           var i = e.Members.IndexOf(dtor);
           if (0 <= i) {
             // the datatype is an erasable wrapper and its core destructor is part of the update (which implies everything else must be a ghost),
@@ -4864,7 +4698,7 @@ namespace Microsoft.Dafny.Compilers {
         var dtv = (DatatypeValue)expr;
         Contract.Assert(dtv.Ctor != null);  // since dtv has been successfully resolved
 
-        if (IsErasableDatatypeWrapper(dtv.Ctor.EnclosingDatatype, out var dtor)) {
+        if (DatatypeWrapperEraser.IsErasableDatatypeWrapper(dtv.Ctor.EnclosingDatatype, out var dtor)) {
           var i = dtv.Ctor.Destructors.IndexOf(dtor);
           Contract.Assert(0 <= i);
           TrExpr(dtv.Arguments[i], wr, inLetExprBody, wStmts);

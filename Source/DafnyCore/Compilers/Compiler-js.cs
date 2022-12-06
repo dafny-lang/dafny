@@ -319,7 +319,7 @@ namespace Microsoft.Dafny.Compilers {
 
       string DtT = dt.CompileName;
       string DtT_protected = IdProtect(DtT);
-      var simplifiedType = SimplifyType(UserDefinedType.FromTopLevelDecl(dt.tok, dt));
+      var simplifiedType = DatatypeWrapperEraser.SimplifyType(UserDefinedType.FromTopLevelDecl(dt.tok, dt));
 
       // from here on, write everything into the new block created here:
       var btw = wr.NewNamedBlock("$module.{0} = class {0}", DtT_protected);
@@ -488,7 +488,7 @@ namespace Microsoft.Dafny.Compilers {
           foreach (Formal arg in ctor.Formals) {
             if (!arg.IsGhost) {
               string nm = FormalName(arg, k);
-              if (IsDirectlyComparable(SimplifyType(arg.Type))) {
+              if (IsDirectlyComparable(DatatypeWrapperEraser.SimplifyType(arg.Type))) {
                 guard.Write(" && this.{0} === other.{0}", nm);
               } else {
                 guard.Write(" && _dafny.areEqual(this.{0}, other.{0})", nm);
@@ -513,7 +513,7 @@ namespace Microsoft.Dafny.Compilers {
         var groundingCtor = dt.GetGroundingCtor();
         if (groundingCtor.IsGhost) {
           wDefault.Write(ForcePlaceboValue(simplifiedType, wDefault, dt.tok));
-        } else if (IsErasableDatatypeWrapper(dt, out var dtor)) {
+        } else if (DatatypeWrapperEraser.IsErasableDatatypeWrapper(dt, out var dtor)) {
           wDefault.Write(DefaultValue(dtor.Type, wDefault, dt.tok));
         } else {
           var nonGhostFormals = groundingCtor.Formals.Where(f => !f.IsGhost).ToList();
@@ -736,7 +736,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(tok != null);
       Contract.Requires(wr != null);
 
-      var xType = SimplifyType(type, true);
+      var xType = DatatypeWrapperEraser.SimplifyType(type, true);
       if (xType is BoolType) {
         return "_dafny.Rtd_bool";
       } else if (xType is CharType) {
@@ -848,7 +848,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
 
-      var xType = SimplifyType(type);
+      var xType = DatatypeWrapperEraser.SimplifyType(type);
       if (xType is BoolType) {
         return "bool";
       } else if (xType is CharType) {
@@ -1003,7 +1003,8 @@ namespace Microsoft.Dafny.Compilers {
     protected override string TypeName_Companion(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl/*?*/ member) {
       // Companion classes in JavaScript are just the same as the type, except for erasable type wrappers
       type = UserDefinedType.UpcastToMemberEnclosingType(type, member);
-      if (type.NormalizeExpandKeepConstraints() is UserDefinedType udt && udt.ResolvedClass is DatatypeDecl dt && IsErasableDatatypeWrapper(dt, out _)) {
+      if (type.NormalizeExpandKeepConstraints() is UserDefinedType udt && udt.ResolvedClass is DatatypeDecl dt &&
+          DatatypeWrapperEraser.IsErasableDatatypeWrapper(dt, out _)) {
         var s = FullTypeName(udt, member);
         return TypeName_UDT(s, udt, wr, udt.tok);
       } else {
@@ -1648,10 +1649,10 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ILvalue EmitMemberSelect(Action<ConcreteSyntaxTree> obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
       Type expectedType, string/*?*/ additionalCustomParameter, bool internalAccess = false) {
-      var memberStatus = GetMemberStatus(member);
-      if (memberStatus == MemberCompileStatus.Identity) {
+      var memberStatus = DatatypeWrapperEraser.GetMemberStatus(member);
+      if (memberStatus == DatatypeWrapperEraser.MemberCompileStatus.Identity) {
         return SimpleLvalue(obj);
-      } else if (memberStatus == MemberCompileStatus.AlwaysTrue) {
+      } else if (memberStatus == DatatypeWrapperEraser.MemberCompileStatus.AlwaysTrue) {
         return SimpleLvalue(w => w.Write("true"));
       } else if (member is DatatypeDestructor dtor && dtor.EnclosingClass is TupleTypeDecl) {
         Contract.Assert(dtor.CorrespondingFormals.Count == 1);
@@ -1878,7 +1879,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
-      if (IsErasableDatatypeWrapper(ctor.EnclosingDatatype, out var coreDtor)) {
+      if (DatatypeWrapperEraser.IsErasableDatatypeWrapper(ctor.EnclosingDatatype, out var coreDtor)) {
         Contract.Assert(coreDtor.CorrespondingFormals.Count == 1);
         Contract.Assert(dtor == coreDtor.CorrespondingFormals[0]); // any other destructor is a ghost
         wr.Write(source);
@@ -2037,7 +2038,7 @@ namespace Microsoft.Dafny.Compilers {
           break;
 
         case BinaryExpr.ResolvedOpcode.EqCommon: {
-            var eqType = SimplifyType(e0.Type);
+            var eqType = DatatypeWrapperEraser.SimplifyType(e0.Type);
             if (IsHandleComparison(tok, e0, e1, errorWr)) {
               opString = "===";
             } else if (IsDirectlyComparable(eqType)) {
@@ -2052,7 +2053,7 @@ namespace Microsoft.Dafny.Compilers {
             break;
           }
         case BinaryExpr.ResolvedOpcode.NeqCommon: {
-            var eqType = SimplifyType(e0.Type);
+            var eqType = DatatypeWrapperEraser.SimplifyType(e0.Type);
             if (IsHandleComparison(tok, e0, e1, errorWr)) {
               opString = "!==";
             } else if (IsDirectlyComparable(eqType)) {

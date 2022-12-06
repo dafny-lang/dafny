@@ -272,7 +272,7 @@ namespace Microsoft.Dafny.Compilers {
       var groundingCtor = dt.GetGroundingCtor();
       if (groundingCtor.IsGhost) {
         wDefault.WriteLine($"return lambda: {ForcePlaceboValue(UserDefinedType.FromTopLevelDecl(dt.tok, dt), wDefault, dt.tok)}");
-      } else if (IsErasableDatatypeWrapper(dt, out var dtor)) {
+      } else if (DatatypeWrapperEraser.  IsErasableDatatypeWrapper(dt, out var dtor)) {
         wDefault.WriteLine($"return lambda: {DefaultValue(dtor.Type, wDefault, dt.tok)}");
       } else {
         var arguments = groundingCtor.Formals.Where(f => !f.IsGhost).Comma(f => DefaultValue(f.Type, wDefault, f.tok));
@@ -565,7 +565,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(tok != null);
       Contract.Requires(wr != null);
 
-      return SimplifyType(type, true) switch {
+      return DatatypeWrapperEraser.SimplifyType(type, true) switch {
         var x when x.IsBuiltinArrowType => $"{DafnyDefaults}.pointer",
         // unresolved proxy; just treat as bool, since no particular type information is apparently needed for this type
         BoolType or TypeProxy => $"{DafnyDefaults}.bool",
@@ -639,7 +639,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
 
-      var xType = SimplifyType(type);
+      var xType = DatatypeWrapperEraser.SimplifyType(type);
 
       if (xType.IsObjectQ) {
         return "object";
@@ -759,7 +759,8 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override string TypeName_Companion(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl member) {
       type = UserDefinedType.UpcastToMemberEnclosingType(type, member);
-      if (type.NormalizeExpandKeepConstraints() is UserDefinedType { ResolvedClass: DatatypeDecl dt } udt && IsErasableDatatypeWrapper(dt, out _)) {
+      if (type.NormalizeExpandKeepConstraints() is UserDefinedType { ResolvedClass: DatatypeDecl dt } udt &&
+          DatatypeWrapperEraser.IsErasableDatatypeWrapper(dt, out _)) {
         var s = FullTypeName(udt, member);
         return TypeName_UDT(s, udt, wr, udt.tok);
       } else {
@@ -1212,10 +1213,10 @@ namespace Microsoft.Dafny.Compilers {
     protected override ILvalue EmitMemberSelect(Action<ConcreteSyntaxTree> obj, Type objType, MemberDecl member,
       List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap, Type expectedType,
       string additionalCustomParameter = null, bool internalAccess = false) {
-      switch (GetMemberStatus(member)) {
-        case MemberCompileStatus.Identity:
+      switch (DatatypeWrapperEraser.GetMemberStatus(member)) {
+        case DatatypeWrapperEraser.MemberCompileStatus.Identity:
           return SimpleLvalue(obj);
-        case MemberCompileStatus.AlwaysTrue:
+        case DatatypeWrapperEraser.MemberCompileStatus.AlwaysTrue:
           return StringLvalue(True);
         default:
           break;
@@ -1379,7 +1380,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor,
         List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
       wr.Write(source);
-      if (IsErasableDatatypeWrapper(ctor.EnclosingDatatype, out var coreDtor)) {
+      if (DatatypeWrapperEraser.IsErasableDatatypeWrapper(ctor.EnclosingDatatype, out var coreDtor)) {
         Contract.Assert(coreDtor.CorrespondingFormals.Count == 1);
         Contract.Assert(dtor == coreDtor.CorrespondingFormals[0]); // any other destructor is a ghost
       } else {
