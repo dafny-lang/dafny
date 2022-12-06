@@ -80,8 +80,10 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
         }
         var result = testCommand.Parse("test");
         foreach (var option in new ServerCommand().Options) {
-          var value = result.GetValueForOption(option);
-          dafnyOptions.Set(option, value);
+          if (!dafnyOptions.Options.OptionArguments.ContainsKey(option)) {
+            var value = result.GetValueForOption(option);
+            dafnyOptions.Set(option, value);
+          }
           dafnyOptions.ApplyBinding(option);
         }
 
