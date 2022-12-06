@@ -520,7 +520,7 @@ namespace Microsoft.Dafny.Compilers {
       var groundingCtor = dt.GetGroundingCtor();
       if (groundingCtor.IsGhost) {
         wDefault.Write(ForcePlaceboValue(simplifiedType, wDefault, dt.tok));
-      } else if (IsInvisibleWrapper(dt, out var dtor)) {
+      } else if (IsErasableDatatypeWrapper(dt, out var dtor)) {
         wDefault.Write(DefaultValue(dtor.Type, wDefault, dt.tok));
       } else {
         if (dt is CoDatatypeDecl) {
@@ -597,7 +597,7 @@ namespace Microsoft.Dafny.Compilers {
     /// the abstract method for the abstract class, and the actual implementations for the constructor classes. If the
     /// datatype is a record type, there is no abstract class, so the method is directly emitted. Contravariant type
     /// parameters require a CustomReceiver-like treatment involving static methods and can thus require a jump table in
-    /// the abstract class. Invisible type wrappers require the same kind of CustomReceiver-like treatment and operate
+    /// the abstract class. Erasable type wrappers require the same kind of CustomReceiver-like treatment and operate
     /// on the unwrapped type.
     /// toInterface: just the signature for the interface
     /// lazy: convert the computer of a codatatype's "__Lazy" class
@@ -621,7 +621,7 @@ namespace Microsoft.Dafny.Compilers {
         tp => (Type)new UserDefinedType(tp.tok, new TypeParameter(tp.tok, $"_{tp.Name}", tp.VarianceSyntax)));
 
       DatatypeDestructor coreDestructor = null;
-      var resultType = IsInvisibleWrapper(datatype, out coreDestructor)
+      var resultType = IsErasableDatatypeWrapper(datatype, out coreDestructor)
         ? TypeName(coreDestructor.Type.Subst(typeSubstMap), wr, datatype.tok)
         : "_I" + datatype.CompileName + uTypeArgs;
       var converters = $"{nonGhostTypeArgs.Comma((_, i) => $"converter{i}")}";
@@ -713,7 +713,7 @@ namespace Microsoft.Dafny.Compilers {
         return PrintConvertedExpr(name, f.Type);
       }
 
-      if (IsInvisibleWrapper(datatype, out var dtor)) {
+      if (IsErasableDatatypeWrapper(datatype, out var dtor)) {
         var wBody = wr.NewBlock("");
         wBody.WriteLine($"return {PrintConvertedExpr("_this", dtor.Type)};");
       } else {
@@ -2765,7 +2765,7 @@ namespace Microsoft.Dafny.Compilers {
 
     bool DowncastCloneNeedsCustomReceiver(DatatypeDecl dt) {
       return SelectNonGhost(dt, dt.TypeArgs).Any(ty => ty.Variance == TypeParameter.TPVariance.Contra) ||
-             IsInvisibleWrapper(dt, out _);
+             IsErasableDatatypeWrapper(dt, out _);
     }
 
     string DowncastConverter(Type from, Type to, ConcreteSyntaxTree errorWr, IToken tok) {
@@ -2797,7 +2797,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
-      if (IsInvisibleWrapper(ctor.EnclosingDatatype, out var coreDtor)) {
+      if (IsErasableDatatypeWrapper(ctor.EnclosingDatatype, out var coreDtor)) {
         Contract.Assert(coreDtor.CorrespondingFormals.Count == 1);
         Contract.Assert(dtor == coreDtor.CorrespondingFormals[0]); // any other destructor is a ghost
         wr.Write(source);

@@ -82,7 +82,7 @@ public abstract class Compiler {
   ///     datatype Record = R(oneThing: X)
   /// into just X.
   /// </summary>
-  public virtual bool OptimizesInvisibleDatatypeWrappers => true;
+  public virtual bool OptimizesErasableDatatypeWrappers => true;
 
   /// <summary>
   /// Dafny features this compiler is known to not support.

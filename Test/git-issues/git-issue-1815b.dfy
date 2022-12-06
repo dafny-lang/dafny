@@ -13,7 +13,7 @@ class Cl extends Tr {
 }
 
 method Main() {
-  // Because Y is an invisible type wrapper, it gets compiled as its argument,
+  // Because Y is an erasable type wrapper, it gets compiled as its argument,
   // so even Java supports this one.
   var cl := new Cl();
   var e: Y<Tr> := Y(cl);

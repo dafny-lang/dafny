@@ -1053,8 +1053,8 @@ namespace Microsoft.Dafny.Compilers {
 
     protected MemberCompileStatus GetMemberStatus(MemberDecl member) {
       if (member.EnclosingClass is DatatypeDecl dt) {
-        if (OptimizesInvisibleDatatypeWrappers && IsInvisibleWrapper(dt, out var dtor) && dtor == member) {
-          // "member" is the sole destructor of an invisible datatype wrapper
+        if (OptimizesErasableDatatypeWrappers && IsErasableDatatypeWrapper(dt, out var dtor) && dtor == member) {
+          // "member" is the sole destructor of an erasable datatype wrapper
           return MemberCompileStatus.Identity;
         } else if (member is DatatypeDiscriminator) {
           // a discriminator of an inductive or coinductive datatype
@@ -1066,11 +1066,11 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     /// <summary>
-    /// This method determines whether or not "dt" is an "invisible datatype wrapper" that can be optimized away during compilation.
+    /// This method determines whether or not "dt" is an "erasable datatype wrapper" that can be optimized away during compilation.
     /// First off, this applies only if
     ///   0 -- the compiler supports this kind of optimization (currently, only the C++ compiles does not support the optimization), and
-    ///   1 -- the user doesn't disable the optimization from the command-line using /optimizeInvisibleDatatypeWrappers:0.
-    /// To be an invisible wrapper, the datatype has to:
+    ///   1 -- the user doesn't disable the optimization from the command-line using /optimizeerasableDatatypeWrappers:0.
+    /// To be an erasable wrapper, the datatype has to:
     ///   2 -- be an inductive datatype (not a "codatatype"), and
     ///   3 -- have exactly one non-ghost constructor, and
     ///   4 -- that constructor must have exactly one non-ghost destructor parameter (say, "d" of type "D"), and
@@ -1080,10 +1080,10 @@ namespace Microsoft.Dafny.Compilers {
     ///
     /// If the conditions above apply, then the method returns true and sets the out-parameter to the core DatatypeDestructor "d".
     /// From this return, the compiler (that is, the caller) will arrange to compile type "dt" as type "D".
-    /// If according to the conditions above, "dt" is not an invisible wrapper, the method returns false; the out-parameter should
+    /// If according to the conditions above, "dt" is not an erasable wrapper, the method returns false; the out-parameter should
     /// then not be used by the caller.
     /// </summary>
-    protected bool IsInvisibleWrapper(DatatypeDecl dt, out DatatypeDestructor coreDestructor) {
+    protected bool IsErasableDatatypeWrapper(DatatypeDecl dt, out DatatypeDestructor coreDestructor) {
       // This local method "FindUnwrappedCandidate" checks for conditions 2, 3, 4, 5, and 7 (but not 0, 1, and 6).
       bool FindUnwrappedCandidate(DatatypeDecl datatypeDecl, out DatatypeDestructor coreDtor) {
         if (datatypeDecl is IndDatatypeDecl &&
@@ -1122,14 +1122,14 @@ namespace Microsoft.Dafny.Compilers {
             return false;
           }
           visited = visited.Union(new HashSet<TopLevelDecl>() { udt.ResolvedClass }).ToHashSet();
-          // (a) IF "udt.ResolvedClass" is an invisible type wrapper, then we want to continue the search with
+          // (a) IF "udt.ResolvedClass" is an erasable type wrapper, then we want to continue the search with
           // its core destructor, suitably substituting type arguments for type parameters.
           // (b) If it is NOT, then we just want to search in its type arguments (like we would for non-UserDefinedType's).
           //
           // However, we don't know which of (a) or (b) we're looking at. So, we first explore (a), and if that
           // shows that the core destructor of "udt.ResolvedClass" has no cycles, then "udt.ResolvedClass" is
-          // indeed an invisible type wrapper. If "udt.ResolvedClass" is involved in some cycle, then it is not
-          // an invisible type wrapper, so we abandon (a) and instead do (b).
+          // indeed an erasable type wrapper. If "udt.ResolvedClass" is involved in some cycle, then it is not
+          // an erasable type wrapper, so we abandon (a) and instead do (b).
           if (udt.ResolvedClass is DatatypeDecl d && FindUnwrappedCandidate(d, out var dtor)) {
             var typeSubst = TypeParameter.SubstitutionMap(d.TypeArgs, udt.TypeArgs);
             if (CompiledTypeContains(dtor.Type.Subst(typeSubst), lookingFor, visited)) {
@@ -1140,7 +1140,7 @@ namespace Microsoft.Dafny.Compilers {
         return type.TypeArgs.Any(ty => CompiledTypeContains(ty, lookingFor, visited));
       }
 
-      if (OptimizesInvisibleDatatypeWrappers && DafnyOptions.O.OptimizeInvisibleDatatypeWrappers) {
+      if (OptimizesErasableDatatypeWrappers && DafnyOptions.O.OptimizeErasableDatatypeWrappers) {
         // First, check for all conditions except the non-cycle condition
         if (FindUnwrappedCandidate(dt, out var candidateCoreDestructor)) {
           // Now, check if the type of the destructor contains "datatypeDecl" itself
@@ -1159,7 +1159,7 @@ namespace Microsoft.Dafny.Compilers {
         if (dt.GetGroundingCtor().IsGhost) {
           return true;
         }
-        if (IsInvisibleWrapper(dt, out var dtor)) {
+        if (IsErasableDatatypeWrapper(dt, out var dtor)) {
           var typeSubst = TypeParameter.SubstitutionMap(dt.TypeArgs, udt.TypeArgs);
           return CanBeLeftUninitialized(dtor.Type.Subst(typeSubst));
         }
@@ -1168,7 +1168,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     /// <summary>
-    /// Remove any invisible type wrappers and simplify ghost tuple types.
+    /// Remove any erasable type wrappers and simplify ghost tuple types.
     /// </summary>
     protected Type SimplifyType(Type ty, bool keepConstraints = false) {
       Contract.Requires(ty != null);
@@ -1176,7 +1176,7 @@ namespace Microsoft.Dafny.Compilers {
 
       ty = ty.NormalizeExpand(keepConstraints);
       Contract.Assert(ty is NonProxyType);
-      if (!OptimizesInvisibleDatatypeWrappers) {
+      if (!OptimizesErasableDatatypeWrappers) {
         return ty;
       }
 
@@ -1198,7 +1198,7 @@ namespace Microsoft.Dafny.Compilers {
             return new UserDefinedType(udt.tok, nonGhostTupleTypeDecl.Name, nonGhostTupleTypeDecl, typeArgsForNonGhostTuple);
           }
 
-        } else if (udt.ResolvedClass is DatatypeDecl datatypeDecl && IsInvisibleWrapper(datatypeDecl, out var dtor)) {
+        } else if (udt.ResolvedClass is DatatypeDecl datatypeDecl && IsErasableDatatypeWrapper(datatypeDecl, out var dtor)) {
           var typeSubst = TypeParameter.SubstitutionMap(datatypeDecl.TypeArgs, udt.TypeArgs);
           var stype = dtor.Type.Subst(typeSubst).NormalizeExpand(keepConstraints);
           return SimplifyType(stype, keepConstraints);
@@ -1534,7 +1534,7 @@ namespace Microsoft.Dafny.Compilers {
             var w = DeclareNewtype(nt, wr);
             v.Visit(nt);
             CompileClassMembers(program, nt, w);
-          } else if ((d as TupleTypeDecl)?.NonGhostDims == 1 && OptimizesInvisibleDatatypeWrappers) {
+          } else if ((d as TupleTypeDecl)?.NonGhostDims == 1 && OptimizesErasableDatatypeWrappers) {
             // ignore this type declaration
           } else if (d is DatatypeDecl) {
             var dt = (DatatypeDecl)d;
@@ -1959,8 +1959,8 @@ namespace Microsoft.Dafny.Compilers {
         return member is ConstantField { Rhs: { } } or Function { Body: { } } or Method { Body: { } };
       } else if (member.EnclosingClass is DatatypeDecl datatypeDecl) {
         // An undefined value "o" cannot use this o.F(...) form in most languages.
-        // Also, an invisible wrapper type has a receiver that's not part of the enclosing target class.
-        return datatypeDecl.Ctors.Any(ctor => ctor.IsGhost) || IsInvisibleWrapper(datatypeDecl, out _);
+        // Also, an erasable wrapper type has a receiver that's not part of the enclosing target class.
+        return datatypeDecl.Ctors.Any(ctor => ctor.IsGhost) || IsErasableDatatypeWrapper(datatypeDecl, out _);
       } else {
         return false;
       }
@@ -4834,10 +4834,10 @@ namespace Microsoft.Dafny.Compilers {
           TrExpr(e.Root, wr, inLetExprBody, wStmts);
           return;
         }
-        if (IsInvisibleWrapper(e.Root.Type.AsDatatype, out var dtor)) {
+        if (IsErasableDatatypeWrapper(e.Root.Type.AsDatatype, out var dtor)) {
           var i = e.Members.IndexOf(dtor);
           if (0 <= i) {
-            // the datatype is an invisible wrapper and its core destructor is part of the update (which implies everything else must be a ghost),
+            // the datatype is an erasable wrapper and its core destructor is part of the update (which implies everything else must be a ghost),
             // so proceed as with the rhs
             Contract.Assert(Enumerable.Range(0, e.Members.Count).All(j => j == i || e.Members[j].IsGhost));
             Contract.Assert(e.Members.Count == e.Updates.Count);
@@ -4864,7 +4864,7 @@ namespace Microsoft.Dafny.Compilers {
         var dtv = (DatatypeValue)expr;
         Contract.Assert(dtv.Ctor != null);  // since dtv has been successfully resolved
 
-        if (IsInvisibleWrapper(dtv.Ctor.EnclosingDatatype, out var dtor)) {
+        if (IsErasableDatatypeWrapper(dtv.Ctor.EnclosingDatatype, out var dtor)) {
           var i = dtv.Ctor.Destructors.IndexOf(dtor);
           Contract.Assert(0 <= i);
           TrExpr(dtv.Arguments[i], wr, inLetExprBody, wStmts);

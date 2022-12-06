@@ -272,7 +272,7 @@ namespace Microsoft.Dafny.Compilers {
       var groundingCtor = dt.GetGroundingCtor();
       if (groundingCtor.IsGhost) {
         wDefault.WriteLine($"return lambda: {ForcePlaceboValue(UserDefinedType.FromTopLevelDecl(dt.tok, dt), wDefault, dt.tok)}");
-      } else if (IsInvisibleWrapper(dt, out var dtor)) {
+      } else if (IsErasableDatatypeWrapper(dt, out var dtor)) {
         wDefault.WriteLine($"return lambda: {DefaultValue(dtor.Type, wDefault, dt.tok)}");
       } else {
         var arguments = groundingCtor.Formals.Where(f => !f.IsGhost).Comma(f => DefaultValue(f.Type, wDefault, f.tok));
@@ -759,7 +759,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override string TypeName_Companion(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl member) {
       type = UserDefinedType.UpcastToMemberEnclosingType(type, member);
-      if (type.NormalizeExpandKeepConstraints() is UserDefinedType { ResolvedClass: DatatypeDecl dt } udt && IsInvisibleWrapper(dt, out _)) {
+      if (type.NormalizeExpandKeepConstraints() is UserDefinedType { ResolvedClass: DatatypeDecl dt } udt && IsErasableDatatypeWrapper(dt, out _)) {
         var s = FullTypeName(udt, member);
         return TypeName_UDT(s, udt, wr, udt.tok);
       } else {
@@ -1379,7 +1379,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor,
         List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
       wr.Write(source);
-      if (IsInvisibleWrapper(ctor.EnclosingDatatype, out var coreDtor)) {
+      if (IsErasableDatatypeWrapper(ctor.EnclosingDatatype, out var coreDtor)) {
         Contract.Assert(coreDtor.CorrespondingFormals.Count == 1);
         Contract.Assert(dtor == coreDtor.CorrespondingFormals[0]); // any other destructor is a ghost
       } else {

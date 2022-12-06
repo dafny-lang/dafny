@@ -24,7 +24,7 @@ method Main() {
 
   var singleton := Library.SingletonOptimization.SingletonTuple((ghost 10, 2));
   assert singleton.0 == 3;
-  var noWrapper := Library.SingletonOptimization.NoWrapper(Library.InvisibleWrapper(2));
+  var noWrapper := Library.SingletonOptimization.NoWrapper(Library.ErasableWrapper(2));
   assert noWrapper.x == 3;
   var ghostWrapper := Library.SingletonOptimization.GhostWrapper(Library.Something(2));
   assert ghostWrapper.x == 3;
@@ -60,7 +60,7 @@ module {:extern "Library"} Library {
     static method {:extern} P()
   }
 
-  datatype InvisibleWrapper = InvisibleWrapper(x: MyInt)
+  datatype ErasableWrapper = ErasableWrapper(x: MyInt)
 
   datatype Ghost<X> = ghost Uninitialized | Something(x: X)
 
@@ -69,7 +69,7 @@ module {:extern "Library"} Library {
     static method {:extern} SingletonTuple(a: (ghost MyInt, MyInt)) returns (b: (MyInt, ghost MyInt, ghost MyInt))
       requires a.1 < 0x7fff_ffff
       ensures b.0 == a.1 + 1
-    static method {:extern} NoWrapper(a: InvisibleWrapper) returns (b: InvisibleWrapper)
+    static method {:extern} NoWrapper(a: ErasableWrapper) returns (b: ErasableWrapper)
       requires a.x < 0x7fff_ffff
       ensures b.x == a.x + 1
     static method {:extern} GhostWrapper(a: Ghost<MyInt>) returns (b: Ghost<MyInt>)

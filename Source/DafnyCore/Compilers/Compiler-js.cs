@@ -513,7 +513,7 @@ namespace Microsoft.Dafny.Compilers {
         var groundingCtor = dt.GetGroundingCtor();
         if (groundingCtor.IsGhost) {
           wDefault.Write(ForcePlaceboValue(simplifiedType, wDefault, dt.tok));
-        } else if (IsInvisibleWrapper(dt, out var dtor)) {
+        } else if (IsErasableDatatypeWrapper(dt, out var dtor)) {
           wDefault.Write(DefaultValue(dtor.Type, wDefault, dt.tok));
         } else {
           var nonGhostFormals = groundingCtor.Formals.Where(f => !f.IsGhost).ToList();
@@ -1001,9 +1001,9 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override string TypeName_Companion(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl/*?*/ member) {
-      // Companion classes in JavaScript are just the same as the type, except for invisible type wrappers
+      // Companion classes in JavaScript are just the same as the type, except for erasable type wrappers
       type = UserDefinedType.UpcastToMemberEnclosingType(type, member);
-      if (type.NormalizeExpandKeepConstraints() is UserDefinedType udt && udt.ResolvedClass is DatatypeDecl dt && IsInvisibleWrapper(dt, out _)) {
+      if (type.NormalizeExpandKeepConstraints() is UserDefinedType udt && udt.ResolvedClass is DatatypeDecl dt && IsErasableDatatypeWrapper(dt, out _)) {
         var s = FullTypeName(udt, member);
         return TypeName_UDT(s, udt, wr, udt.tok);
       } else {
@@ -1878,12 +1878,12 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
-      if (IsInvisibleWrapper(ctor.EnclosingDatatype, out var coreDtor)) {
+      if (IsErasableDatatypeWrapper(ctor.EnclosingDatatype, out var coreDtor)) {
         Contract.Assert(coreDtor.CorrespondingFormals.Count == 1);
         Contract.Assert(dtor == coreDtor.CorrespondingFormals[0]); // any other destructor is a ghost
         wr.Write(source);
       } else if (ctor.EnclosingDatatype is TupleTypeDecl tupleTypeDecl) {
-        Contract.Assert(tupleTypeDecl.NonGhostDims != 1); // such a tuple is an invisible-wrapper type, handled above
+        Contract.Assert(tupleTypeDecl.NonGhostDims != 1); // such a tuple is an erasable-wrapper type, handled above
         wr.Write("({0})[{1}]", source, formalNonGhostIndex);
       } else {
         var dtorName = FormalName(dtor, formalNonGhostIndex);

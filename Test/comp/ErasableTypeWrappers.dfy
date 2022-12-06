@@ -281,9 +281,9 @@ datatype SMetaList<X, Y> =
 
 module OptimizationChecks {
   // Not optimized
-  datatype CyclicTypeIsNotInvisibleWrapper =
+  datatype CyclicTypeIsNotErasableWrapper =
     | ghost Zero
-    | Succ(CyclicTypeIsNotInvisibleWrapper)
+    | Succ(CyclicTypeIsNotErasableWrapper)
 
   // Not optimized
   datatype Mutual0 =
@@ -378,7 +378,7 @@ module OptimizationChecks {
 
   method Call(w: WrapperAroundMyClass, v: ViaClass, z: DDZ) { }
 
-  // Technically, it would be possible to consider AA0 an invisible type wrapper, because
+  // Technically, it would be possible to consider AA0 an erasable type wrapper, because
   // the type parameter UnusedTypeParameter is not used. However, detecting this case would
   // make the detection algorithm more complicated, so we opt not to detect this case.
   // (Note. The tests don't print these types, because they unavoidably involve uninitialized

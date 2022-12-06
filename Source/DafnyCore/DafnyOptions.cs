@@ -159,7 +159,7 @@ namespace Microsoft.Dafny {
     public bool PrintFunctionCallGraph = false;
     public bool WarnShadowing = false;
     public int DefiniteAssignmentLevel = 1; // [0..2]
-    public bool OptimizeInvisibleDatatypeWrappers = true;
+    public bool OptimizeErasableDatatypeWrappers = true;
     public FunctionSyntaxOptions FunctionSyntax = FunctionSyntaxOptions.Version3;
     public QuantifierSyntaxOptions QuantifierSyntax = QuantifierSyntaxOptions.Version3;
     public HashSet<string> LibraryFiles { get; set; } = new();
@@ -429,10 +429,10 @@ namespace Microsoft.Dafny {
           WarnShadowing = true;
           return true;
 
-        case "optimizeInvisibleDatatypeWrappers": {
+        case "optimizeErasableDatatypeWrappers": {
             int d = 1;
             if (ps.GetIntArgument(ref d, 2)) {
-              OptimizeInvisibleDatatypeWrappers = d == 1;
+              OptimizeErasableDatatypeWrappers = d == 1;
             }
             return true;
           }
@@ -1322,7 +1322,7 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 /optimize
     Produce optimized C# code by passing the /optimize flag to csc.exe.
 
-/optimizeInvisibleDatatypeWrappers:<n>
+/optimizeErasableDatatypeWrappers:<n>
     0 - Include all non-ghost datatype constructors in the compiled code
     1 (default) - In the compiled target code, transform any non-extern
         datatype with a single non-ghost constructor that has a single

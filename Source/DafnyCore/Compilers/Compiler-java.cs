@@ -1844,7 +1844,7 @@ namespace Microsoft.Dafny.Compilers {
       var groundingCtor = dt.GetGroundingCtor();
       if (groundingCtor.IsGhost) {
         wDefault.Write(ForcePlaceboValue(simplifiedType, wDefault, dt.tok));
-      } else if (IsInvisibleWrapper(dt, out var dtor)) {
+      } else if (IsErasableDatatypeWrapper(dt, out var dtor)) {
         wDefault.Write(DefaultValue(dtor.Type, wDefault, dt.tok));
       } else {
         var nonGhostFormals = groundingCtor.Formals.Where(f => !f.IsGhost).ToList();
@@ -2460,7 +2460,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void TypeArgDescriptorUse(bool isStatic, bool lookasideBody, TopLevelDeclWithMembers cl, out bool needsTypeParameter, out bool needsTypeDescriptor) {
       if (cl is DatatypeDecl dt) {
-        needsTypeParameter = isStatic || IsInvisibleWrapper(dt, out _);
+        needsTypeParameter = isStatic || IsErasableDatatypeWrapper(dt, out _);
         needsTypeDescriptor = true;
       } else if (cl is TraitDecl) {
         needsTypeParameter = isStatic || lookasideBody;
@@ -3272,7 +3272,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
-      if (IsInvisibleWrapper(ctor.EnclosingDatatype, out var coreDtor)) {
+      if (IsErasableDatatypeWrapper(ctor.EnclosingDatatype, out var coreDtor)) {
         Contract.Assert(coreDtor.CorrespondingFormals.Count == 1);
         Contract.Assert(dtor == coreDtor.CorrespondingFormals[0]); // any other destructor is a ghost
         wr.Write(source);
@@ -3280,7 +3280,7 @@ namespace Microsoft.Dafny.Compilers {
       }
       string dtorName;
       if (ctor.EnclosingDatatype is TupleTypeDecl tupleTypeDecl) {
-        Contract.Assert(tupleTypeDecl.NonGhostDims != 1); // such a tuple is an invisible-wrapper type, handled above
+        Contract.Assert(tupleTypeDecl.NonGhostDims != 1); // such a tuple is an erasable-wrapper type, handled above
         dtorName = $"dtor__{dtor.NameForCompilation}()";
       } else {
         dtorName = FieldName(dtor, formalNonGhostIndex);

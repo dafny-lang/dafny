@@ -313,7 +313,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override bool DatatypeDeclarationAndMemberCompilationAreSeparate => false;
-    public override bool OptimizesInvisibleDatatypeWrappers => false;
+    public override bool OptimizesErasableDatatypeWrappers => false;
 
     protected override IClassWriter DeclareDatatype(DatatypeDecl dt, ConcreteSyntaxTree writer) {
       if (dt is TupleTypeDecl) {
