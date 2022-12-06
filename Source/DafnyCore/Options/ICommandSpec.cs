@@ -38,7 +38,7 @@ public interface ICommandSpec {
   }.ToList();
 
   public static IReadOnlyList<Option> ConsoleOutputOptions = new List<Option>(new Option[] {
-    MiscOptionBag.ShowSnippets,
+    DafnyConsolePrinter.ShowSnippets,
     DeveloperOptionBag.UseBaseFileName,
     DeveloperOptionBag.Print,
     DeveloperOptionBag.ResolvedPrint,

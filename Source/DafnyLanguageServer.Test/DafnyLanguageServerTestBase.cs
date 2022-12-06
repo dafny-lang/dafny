@@ -74,18 +74,7 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
       modifyOptions?.Invoke(dafnyOptions);
 
       void NewServerOptionsAction(LanguageServerOptions options) {
-        var testCommand = new System.CommandLine.Command("test");
-        foreach (var serverOption in new ServerCommand().Options) {
-          testCommand.AddOption(serverOption);
-        }
-        var result = testCommand.Parse("test");
-        foreach (var option in new ServerCommand().Options) {
-          if (!dafnyOptions.Options.OptionArguments.ContainsKey(option)) {
-            var value = result.GetValueForOption(option);
-            dafnyOptions.Set(option, value);
-          }
-          dafnyOptions.ApplyBinding(option);
-        }
+        ApplyDefaultOptionValues(dafnyOptions);
 
         ServerCommand.ConfigureDafnyOptionsForServer(dafnyOptions);
         options.Services.AddSingleton(dafnyOptions);
@@ -96,6 +85,27 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
       await client.Initialize(CancellationToken).ConfigureAwait(false);
 
       return client;
+    }
+
+    private static void ApplyDefaultOptionValues(DafnyOptions dafnyOptions)
+    {
+      var testCommand = new System.CommandLine.Command("test");
+      foreach (var serverOption in new ServerCommand().Options)
+      {
+        testCommand.AddOption(serverOption);
+      }
+
+      var result = testCommand.Parse("test");
+      foreach (var option in new ServerCommand().Options)
+      {
+        if (!dafnyOptions.Options.OptionArguments.ContainsKey(option))
+        {
+          var value = result.GetValueForOption(option);
+          dafnyOptions.Set(option, value);
+        }
+
+        dafnyOptions.ApplyBinding(option);
+      }
     }
 
     protected virtual ILanguageClient CreateClient(

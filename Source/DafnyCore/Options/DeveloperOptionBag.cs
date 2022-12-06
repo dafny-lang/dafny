@@ -33,11 +33,14 @@ Print Dafny program after resolving it.
   };
 
   static DeveloperOptionBag() {
+    DafnyOptions.RegisterLegacyUi(ResolvedPrint, DafnyOptions.ParseString, "Overall reporting and printing", "rprint");
     DafnyOptions.RegisterLegacyBinding(ResolvedPrint, (options, value) => {
       options.DafnyPrintResolvedFile = value;
       options.ExpandFilename(options.DafnyPrintResolvedFile, x => options.DafnyPrintResolvedFile = x, options.LogPrefix,
         options.FileTimestamp);
     });
+    
+    DafnyOptions.RegisterLegacyUi(Print, DafnyOptions.ParseString, "Overall reporting and printing", "dprint");
     DafnyOptions.RegisterLegacyBinding(Print, (options, value) => {
       options.DafnyPrintFile = value;
       options.ExpandFilename(options.DafnyPrintFile, x => options.DafnyPrintFile = x, options.LogPrefix,

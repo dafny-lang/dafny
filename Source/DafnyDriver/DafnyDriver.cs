@@ -193,6 +193,16 @@ namespace Microsoft.Dafny {
         return CommandLineArgumentsResult.OK;
       }
 
+      var nonOutOptions = options;
+      var compilers = options.Plugins.SelectMany(p => p.GetCompilers()).ToList();
+      var compiler = compilers.LastOrDefault(c => c.TargetId == nonOutOptions.CompilerName);
+      if (compiler == null) {
+        var known = String.Join(", ", compilers.Select(c => $"'{c.TargetId}' ({c.TargetLanguage})"));
+        options.Printer.ErrorWriteLine(Console.Error, $"No compiler found for compileTarget \"{options.CompilerName}\"; expecting one of {known}");
+        return CommandLineArgumentsResult.PREPROCESSING_ERROR;
+      }
+      options.Compiler = compiler;
+
       // If requested, print version number, help, attribute help, etc. and exit.
       if (options.ProcessInfoFlags()) {
         return CommandLineArgumentsResult.OK_EXIT_EARLY;

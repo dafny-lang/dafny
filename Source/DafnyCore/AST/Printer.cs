@@ -28,6 +28,24 @@ namespace Microsoft.Dafny {
   public class Printer {
 
     static Printer() {
+      
+      void ParsePrintMode(Option<PrintModes> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
+        if (ps.ConfirmArgumentCount(1)) {
+          if (ps.args[ps.i].Equals("Everything")) {
+            options.Set(option, PrintModes.Everything);
+          } else if (ps.args[ps.i].Equals("NoIncludes")) {
+            options.Set(option, PrintModes.NoIncludes);
+          } else if (ps.args[ps.i].Equals("NoGhost")) {
+            options.Set(option, PrintModes.NoGhost);
+          } else if (ps.args[ps.i].Equals("DllEmbed")) {
+            options.Set(option, PrintModes.DllEmbed);
+          } else {
+            ps.Error("Invalid argument \"{0}\" to option {1}", ps.args[ps.i], option.Name);
+          }
+        }
+      }
+      
+      DafnyOptions.RegisterLegacyUi(PrintMode, ParsePrintMode, "Overall reporting and printing");
       DafnyOptions.RegisterLegacyBinding(PrintMode, (options, value) => {
         options.PrintMode = value;
       });

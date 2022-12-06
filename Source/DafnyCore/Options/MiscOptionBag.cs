@@ -39,7 +39,7 @@ to prevent code from the bottom dependency from being generated more than once."
 ArgumentHelpName = "file"
   };
 
-  public static readonly Option<List<string>> Plugin = new(new [] { "--plugin" },
+  public static readonly Option<IList<string>> Plugin = new(new [] { "--plugin" },
     @"
 (experimental) One path to an assembly that contains at least one
 instantiatable class extending Microsoft.Dafny.Plugin.Rewriter. It
@@ -81,9 +81,6 @@ The syntax for quantification domains is changing from Dafny version 3 to versio
 Note that quantifier variable domains (<- <Domain>) are available in both syntax versions.".TrimStart()) {
     ArgumentHelpName = "version"
   };
-
-  public static readonly Option<bool> ShowSnippets = new("--show-snippets",
-    "Show a source code snippet for each Dafny message.");
 
   public static readonly Option<string> Target = new(new [] { "--target", "-t" }, @"
 cs (default) - Compile to .NET via C#.
@@ -143,20 +140,21 @@ true - The char type represents any Unicode scalar value.".TrimStart());
 0 (default) - The char type represents any UTF-16 code unit.
 1 - The char type represents any Unicode scalar value.");
 
-    DafnyOptions.RegisterLegacyUi(ShowSnippets, DafnyOptions.ParseBoolean, "Overall reporting and printing", "showSnippets");
-
     DafnyOptions.RegisterLegacyBinding(QuantifierSyntax, (options, value) => {
       options.QuantifierSyntax = value;
     });
 
+    DafnyOptions.RegisterLegacyUi(Plugin, DafnyOptions.ParseStringElement, "Plugins");
     DafnyOptions.RegisterLegacyBinding(Plugin, (options, value) => {
       options.AdditionalPluginArguments = value;
     });
 
+    DafnyOptions.RegisterLegacyUi(Prelude, DafnyOptions.ParseString, "Input configuration", "dprelude");
     DafnyOptions.RegisterLegacyBinding(Prelude, (options, value) => {
       options.DafnyPrelude = value;
       options.ExpandFilename(options.DafnyPrelude, x => options.DafnyPrelude = x, options.LogPrefix, options.FileTimestamp);
     });
+    DafnyOptions.RegisterLegacyUi(Output, DafnyOptions.ParseString, "Compilation options", "out");
     DafnyOptions.RegisterLegacyBinding(Output, (options, value) => {
       options.DafnyPrintCompiledFile = value;
     });
