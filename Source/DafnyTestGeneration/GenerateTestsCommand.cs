@@ -4,6 +4,7 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Linq;
 using Microsoft.Boogie;
+using Microsoft.Dafny.Compilers;
 
 namespace Microsoft.Dafny; 
 
@@ -35,6 +36,7 @@ path - Prints path-coverage tests for the given program.");
   }
 
   public void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context) {
+    dafnyOptions.CompilerName = "cs";
     dafnyOptions.Compile = true;
     dafnyOptions.RunAfterCompile = false;
     dafnyOptions.ForceCompile = false;
