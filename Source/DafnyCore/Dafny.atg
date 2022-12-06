@@ -1441,10 +1441,10 @@ FieldDecl<.DeclModifierData dmod, bool isValueType, List<MemberDecl> mm.>
                                                        }
                                                     .)
   { Attribute<ref attrs> }
-  FIdentType<out id, out ty>           (. var f = new Field(id, id.val, dmod.IsGhost, ty, attrs); f.RangeToken = new RangeToken(dmod.FirstToken, t); mm.Add(f); f.TokenWithTrailingDocString = t;
+  FIdentType<out id, out ty>           (. var f = new Field(id, id.val, dmod.IsGhost, ty, attrs); f.RangeToken = new RangeToken(startToken, t); mm.Add(f); f.TokenWithTrailingDocString = t;
                                           f.RangeToken = new RangeToken(startToken, t); .)
   { ","                                (. startToken = t; .)
-    FIdentType<out id, out ty>         (.     f = new Field(id, id.val, dmod.IsGhost, ty, attrs); f.RangeToken = new RangeToken(dmod.FirstToken, t); mm.Add(f); f.TokenWithTrailingDocString = t;
+    FIdentType<out id, out ty>         (.     f = new Field(id, id.val, dmod.IsGhost, ty, attrs); f.RangeToken = new RangeToken(startToken, t); mm.Add(f); f.TokenWithTrailingDocString = t;
                                               f.RangeToken = new RangeToken(startToken, t);
                                        .)
   }
@@ -4221,9 +4221,9 @@ AsExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitw
   UnaryExpression<out e, allowLemma, allowLambda, allowBitwiseOps>
   { IF(IsAsOrIs())
     ( "as"                                  (. tok = t; .)
-      TypeAndToken<out x, out toType, true> (. e = new ConversionExpr(tok, e, toType); .)
+      TypeAndToken<out x, out toType, true> (. e = new ConversionExpr(tok, e, toType) { RangeToken = new RangeToken(e.StartToken, t)}; .)
     | "is"                                  (. tok = t; .)
-      TypeAndToken<out x, out toType, true> (. e = new TypeTestExpr(tok, e, toType); .)
+      TypeAndToken<out x, out toType, true> (. e = new TypeTestExpr(tok, e, toType) { RangeToken = new RangeToken(e.StartToken, t)}; .)
     )
   }
   .
@@ -4571,10 +4571,10 @@ IfExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitw
                        LHSs.Add(new CasePattern<BoundVar>(e.tok, v));
                      }
                      e0 = new LetExpr(e.tok, LHSs, new List<Expression>() {
-                       exists.Term }, e0, false);
-                     }
-                     e = new ITEExpr(x, isBindingGuard, e, e0, e1);
-                     e.RangeToken = new RangeToken(x, t);
+                       exists.Term }, e0, false) { RangeToken = exists.RangeToken};
+                 }
+                 e = new ITEExpr(x, isBindingGuard, e, e0, e1);
+                 e.RangeToken = new RangeToken(x, t);
                 .)
   .
 /*------------------------------------------------------------------------*/
@@ -4867,6 +4867,7 @@ Suffix<ref Expression e>
      List<Expression> multipleLengths = null; bool takeRest = false; // takeRest is relevant only if multipleLengths is non-null
      List<Expression> multipleIndices = null;
      List<Tuple<IToken, string, Expression>> updates;
+     var startToken = e.StartToken;
      Expression v;
   .)
   ( "."
@@ -4875,10 +4876,10 @@ Suffix<ref Expression e>
         { "," MemberBindingUpdate<out id, out v>      (. updates.Add(Tuple.Create(id, id.val, v)); .)
         }
       ")"
-      (. e = new DatatypeUpdateExpr(x, e, updates); .)
+      (. e = new DatatypeUpdateExpr(x, e, updates) { RangeToken = new RangeToken(startToken, t)}; .)
     | DotSuffix<out id, out x>                 (. if (x != null) {
                                                     // process id as a Suffix in its own right
-                                                    e = new ExprDotName(id, e, id.val, null);
+                                                    e = new ExprDotName(id, e, id.val, null) { RangeToken = new RangeToken(startToken, t)};
                                                     id = x;  // move to the next Suffix
                                                   }
                                                   IToken openParen = null;  List<Type> typeArgs = null;
@@ -4893,8 +4894,7 @@ Suffix<ref Expression e>
       | HashCall<id, out openParen, out typeArgs, out args>
       | [ AtCall<out atLabel, out openParen, out args> ]
       )
-      (. var startToken = e.StartToken;
-         e = new ExprDotName(id, e, id.val, typeArgs);
+      (. e = new ExprDotName(id, e, id.val, typeArgs);
          if (openParen != null) {
            e = new ApplySuffix(openParen, atLabel, e, args, t);
          } else {
@@ -4935,8 +4935,7 @@ Suffix<ref Expression e>
         ]
       )
     "]"
-      (. var startToken = e.StartToken;
-         if (multipleIndices != null) {
+      (. if (multipleIndices != null) {
            e = new MultiSelectExpr(x, e, multipleIndices);
            // make sure an array class with this dimensionality exists
            var tmp = theBuiltIns.ArrayType(multipleIndices.Count, new IntType(), true);
@@ -4979,8 +4978,7 @@ Suffix<ref Expression e>
       .)
   | "("                                    (. IToken openParen = t; var args = new List<ActualBinding>(); .)
     [ ActualBindings<args> ]
-    ")"                                    (. var startToken = e.StartToken;
-                                              e = new ApplySuffix(openParen, null, e, args, t);
+    ")"                                    (. e = new ApplySuffix(openParen, null, e, args, t);
                                               e.RangeToken = new RangeToken(startToken, t);
                                            .)
   )

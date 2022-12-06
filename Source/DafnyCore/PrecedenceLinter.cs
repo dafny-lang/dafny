@@ -247,7 +247,12 @@ namespace Microsoft.Dafny {
     }
 
     void VisitRhsComponent(IToken errorToken, Expression expr, string what) {
-      VisitRhsComponent(errorToken, expr, expr.StartToken.col, what);
+      if (expr.StartToken == null) {
+        // Might be a resolved expression.
+        VisitIndependentComponent(expr);
+      } else {
+        VisitRhsComponent(errorToken, expr, expr.StartToken.col, what);
+      }
     }
 
     void VisitRhsComponent(IToken errorToken, Expression expr, int rightMargin, string what) {
