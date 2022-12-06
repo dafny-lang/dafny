@@ -35,6 +35,7 @@ namespace Microsoft.Dafny {
         PluginOption.Instance,
         UseRuntimeLibOption.Instance,
         UnicodeCharactersOption.Instance,
+        OptimizeErasableDatatypeWrapperOption.Instance,
       });
 
     public static DafnyOptions Create(params string[] arguments) {
@@ -428,14 +429,6 @@ namespace Microsoft.Dafny {
         case "warnShadowing":
           WarnShadowing = true;
           return true;
-
-        case "optimizeErasableDatatypeWrappers": {
-            int d = 1;
-            if (ps.GetIntArgument(ref d, 2)) {
-              OptimizeErasableDatatypeWrappers = d == 1;
-            }
-            return true;
-          }
 
         case "verifyAllModules":
           VerifyAllModules = true;
@@ -1321,15 +1314,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 
 /optimize
     Produce optimized C# code by passing the /optimize flag to csc.exe.
-
-/optimizeErasableDatatypeWrappers:<n>
-    0 - Include all non-ghost datatype constructors in the compiled code
-    1 (default) - In the compiled target code, transform any non-extern
-        datatype with a single non-ghost constructor that has a single
-        non-ghost parameter into just that parameter. For example, the
-        type
-            datatype Record = Record(x: int)
-        is transformed into just 'int' in the target code.
 
 /optimizeResolution:<n>
     0 - Resolve and translate all methods.
