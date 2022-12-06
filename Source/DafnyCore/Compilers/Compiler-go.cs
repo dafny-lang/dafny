@@ -89,7 +89,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr) {
     }
 
-    const string DafnyTypeDescriptor = "_dafny.TypeDescriptor";
+    private string DafnyTypeDescriptor => $"{GetHelperModulePrefix()}TypeDescriptor";
 
     void EmitModuleHeader(ConcreteSyntaxTree wr) {
       wr.WriteLine("// Package {0}", ModuleName);
@@ -293,19 +293,32 @@ namespace Microsoft.Dafny.Compilers {
 
         w.WriteLine();
         var wEquals = w.NewNamedBlock("func (_this *{0}) Equals(other *{0}) bool", name);
-        wEquals.WriteLine("return _this == other");
+        // TODO-HACK
+        if (name.EndsWith("Sequence")) {
+          wEquals.WriteLine("return EqualSequences(_this, other)");
+        } else {
+          wEquals.WriteLine("return _this == other");
+        }
 
         w.WriteLine();
         var wEqualsGeneric = w.NewNamedBlock("func (_this *{0}) EqualsGeneric(x interface{{}}) bool", name);
-        wEqualsGeneric.WriteLine("other, ok := x.(*{0})", name);
-        wEqualsGeneric.WriteLine("return ok && _this.Equals(other)");
+        if (name.EndsWith("Sequence")) {
+          wEqualsGeneric.WriteLine("other, ok := x.(*Sequence)");
+          wEquals.WriteLine("return EqualSequences(_this, other)");
+        } else {
+          wEqualsGeneric.WriteLine("other, ok := x.(*{0})", name);
+          wEqualsGeneric.WriteLine("return ok && _this.Equals(other)");
+        }
       }
 
       w.WriteLine();
-      var wString = w.NewNamedBlock("func (*{0}) String() string", name);
-      // Be consistent with other back ends, which don't fold _module into the main module
-      var module = ModuleName == MainModuleName ? "_module" : ModuleName;
-      wString.WriteLine("return \"{0}.{1}\"", module, name);
+      if (!name.EndsWith("Sequence")) {
+        var wString = w.NewNamedBlock("func (*{0}) String() string", name);
+        
+        // Be consistent with other back ends, which don't fold _module into the main module
+        var module = ModuleName == MainModuleName ? "_module" : ModuleName;
+        wString.WriteLine("return \"{0}.{1}\"", module, name);
+      }
 
       if (includeRtd) {
         ConcreteSyntaxTree wDefault;
@@ -321,7 +334,7 @@ namespace Microsoft.Dafny.Compilers {
 
         // Emit a method that returns the ID of each parent trait
         var parentTraitsWriter = w.NewBlock($"func (_this *{name}) ParentTraits_() []*{GetHelperModulePrefix()}TraitID");
-        parentTraitsWriter.WriteLine("return [](*_dafny.TraitID){{{0}}};", Util.Comma(superClasses, parent => {
+        parentTraitsWriter.WriteLine("return [](*{0}TraitID){{{1}}};", GetHelperModulePrefix(), Util.Comma(superClasses, parent => {
           var trait = ((UserDefinedType)parent).ResolvedClass;
           return TypeName_Companion(trait, parentTraitsWriter, tok) + ".TraitID_";
         }));
@@ -331,7 +344,7 @@ namespace Microsoft.Dafny.Compilers {
           w.WriteLine("var _ {0} = &{1}{{}}", TypeName(typ, w, tok), name);
         }
 
-        w.WriteLine("var _ _dafny.TraitOffspring = &{0}{{}}", name);
+        w.WriteLine("var _ {0}TraitOffspring = &{1}{{}}", GetHelperModulePrefix(), name);
       }
       return cw;
     }
@@ -380,8 +393,8 @@ namespace Microsoft.Dafny.Compilers {
       wCastTo.WriteLine("return t");
 
       var cw = new ClassWriter(this, name, isExtern, abstractMethodWriter, concreteMethodWriter, null, null, null, staticFieldWriter, staticFieldInitWriter);
-      staticFieldWriter.WriteLine("TraitID_ *_dafny.TraitID");
-      staticFieldInitWriter.WriteLine("TraitID_: &_dafny.TraitID{},");
+      staticFieldWriter.WriteLine($"TraitID_ *{GetHelperModulePrefix()}TraitID");
+      staticFieldInitWriter.WriteLine($"TraitID_: &{GetHelperModulePrefix()}TraitID{{}},");
       return cw;
     }
 
@@ -917,12 +930,13 @@ namespace Microsoft.Dafny.Compilers {
       var w = cw.ConcreteMethodWriter;
       var nativeType = nt.NativeType != null ? GetNativeTypeName(nt.NativeType) : null;
       if (nt.NativeType != null) {
-        var wIntegerRangeBody = w.NewNamedBlock("func (_this *{0}) IntegerRange(lo _dafny.Int, hi _dafny.Int) _dafny.Iterator", FormatCompanionTypeName(IdName(nt)));
-        wIntegerRangeBody.WriteLine("iter := _dafny.IntegerRange(lo, hi)");
+        var intType = $"{GetHelperModulePrefix()}Int";
+        var wIntegerRangeBody = w.NewNamedBlock($"func (_this *{FormatCompanionTypeName(IdName(nt))}) IntegerRange(lo {intType}, hi {intType}) {GetHelperModulePrefix()}Iterator");
+        wIntegerRangeBody.WriteLine($"iter := {GetHelperModulePrefix()}IntegerRange(lo, hi)");
         var wIterFuncBody = wIntegerRangeBody.NewBlock("return func() (interface{}, bool)");
         wIterFuncBody.WriteLine("next, ok := iter()");
         wIterFuncBody.WriteLine("if !ok {{ return {0}(0), false }}", nativeType);
-        wIterFuncBody.WriteLine("return next.(_dafny.Int).{0}(), true", Capitalize(nativeType));
+        wIterFuncBody.WriteLine($"return next.({intType}).{Capitalize(nativeType)}(), true");
       }
       if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var retType = nativeType ?? TypeName(nt.BaseType, w, nt.tok);
@@ -1404,7 +1418,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (xType is CharType) {
         return CharTypeName;
       } else if (xType is IntType) {
-        return "_dafny.Int";
+        return $"{GetHelperModulePrefix()}Int";
       } else if (xType is BigOrdinalType) {
         return "_dafny.Ord";
       } else if (xType is RealType) {
@@ -3587,7 +3601,7 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write("{0}.IntegerRange(", TypeName_Companion(type.AsNewtype, wr, tok: Token.NoToken));
         result = type;
       } else {
-        wr.Write("_dafny.IntegerRange(");
+        wr.Write($"{GetHelperModulePrefix()}IntegerRange(");
         result = new IntType();
       }
       wLo = wr.Fork();

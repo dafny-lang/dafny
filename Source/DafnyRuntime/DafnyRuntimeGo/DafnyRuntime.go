@@ -21,7 +21,7 @@ func FromMainArguments(args []string) Sequence {
   return SeqOf(dafnyArgs...)
 }
 
-func UnicodeFromMainArguments(args []string) Seq {
+func UnicodeFromMainArguments(args []string) Sequence {
   var size = len(args)
   var dafnyArgs []interface{} = make([]interface{}, size)
   for i, item := range args {
@@ -478,31 +478,29 @@ var EmptySeq = SeqOf()
 
 // SeqOf returns a sequence containing the given values.
 func SeqOf(values ...interface{}) Sequence {
-  // Making a defensive copy here because variadic functions can get hinky
-  // if someone says SeqOf(slice...) and then mutates slice.
-  arr := make([]interface{}, len(values))
-  copy(arr, values)
-  return ArraySequence{arr, false}
+  arr := NewNativeArrayOf(values)
+  result := New_ArraySequence_()
+  result.Ctor__(arr, false) 
+  return result
 }
 
 // SeqOfChars returns a sequence containing the given character values.
 func SeqOfChars(values ...Char) Sequence {
-  arr := make([]interface{}, len(values))
-  for i, v := range values {
-    arr[i] = v
-  }
-  return Seq{arr, true}
+  arr := NewNativeArrayOf(values)
+  result := New_ArraySequence_()
+  result.Ctor__(&arr, true) 
+  return result
 }
 
 // SeqOfString converts the given string into a sequence of characters.
 // The given string must contain only ASCII characters!
 func SeqOfString(str string) Sequence {
   // Need to make sure the elements of the array are Chars
-  arr := make([]interface{}, len(str))
+  arr := make([]Char, len(str))
   for i, v := range str {
     arr[i] = Char(v)
   }
-  return Seq{arr, true}
+  return SeqOfChars(arr...)
 }
 
 func UnicodeSeqOfUtf8Bytes(str string) Sequence {
@@ -513,7 +511,7 @@ func UnicodeSeqOfUtf8Bytes(str string) Sequence {
     arr[i] = CodePoint(v)
     i++
   }
-  return Seq{arr, false}
+  return SeqOf(arr...)
 }
 
 // Iterator returns an iterator over the sequence.
@@ -522,8 +520,8 @@ func UnicodeSeqOfUtf8Bytes(str string) Sequence {
 // by traversing the Sequence node structure rather than
 // forcing the lazy evaluation,
 // but will involve defining an Iterator trait of some kind.
-func (seq Sequence) Iterator() Iterator {
-  i := 0
+func SequenceIterator(seq Sequence) Iterator {
+  var i uint32 = 0
   n := seq.Cardinality()
   return func() (interface{}, bool) {
     if i >= n {
@@ -534,36 +532,40 @@ func (seq Sequence) Iterator() Iterator {
     return ans, true
   }
 }
-
-// Equals compares two sequences for equality.
-// This has to be defined in native Go because Dafny's variance rules
-// won't let you define it as an instance method.
-func (seq Sequence) Equals(seq2 Sequence) bool {
-  return EqualSequences(seq, seq2)
+func (seq *ArraySequence) Iterator() Iterator {
+  return SequenceIterator(seq)
+}
+func (seq *ConcatSequence) Iterator() Iterator {
+  return SequenceIterator(seq)
+}
+func (seq *LazySequence) Iterator() Iterator {
+  return SequenceIterator(seq)
 }
 
-// EqualsGeneric implements the EqualsGeneric interface.
-func (seq Sequence) EqualsGeneric(other interface{}) bool {
-  seq2, ok := other.(Seq)
-  return ok && seq.Equals(seq2)
-}
-
-// Elements returns the sequence of elements (i.e. the sequence itself).
-func (seq Sequence) Elements() Sequence {
-  return seq
-}
+// TODO: Dafny is hard-coded to define Equals and EqualsGeneric by reference equality,
+// but we need to compare contents somehow...
 
 // UniqueElements returns the set of elements in the sequence.
-func (seq Sequence) UniqueElements() Set {
+func (seq *ArraySequence) UniqueElements() Set {
+  return NewBuilderOf(seq).ToSet()
+}
+func (seq *ConcatSequence) UniqueElements() Set {
+  return NewBuilderOf(seq).ToSet()
+}
+func (seq *LazySequence) UniqueElements() Set {
   return NewBuilderOf(seq).ToSet()
 }
 
-func (seq Sequence) String() string {
-  if seq.isString {
+func SequenceString(seq Sequence) string {
+  if seq.IsString() {
     s := ""
     // FIXME: Note this doesn't produce the right string in UTF-8,
     // since it converts surrogates independently.
-    for _, c := range seq.contents {
+    for i := Iterate(seq); ; {
+      c, ok := i()
+      if !ok {
+        break
+      }
       s += c.(Char).String()
     }
     return s
@@ -571,13 +573,27 @@ func (seq Sequence) String() string {
     return "[" + stringOfElements(seq.contents) + "]"
   }
 }
+func (seq *ArraySequence) String() string {
+  return SequenceString(seq)
+}
+func (seq *ConcatSequence) String() string {
+  return SequenceString(seq)
+}
+func (seq *LazySequence) String() string {
+  return SequenceString(seq)
+}
 
-func (seq Seq) VerbatimString(asLiteral bool) string {
+func SequenceVerbatimString(seq Sequence, asLiteral bool) string {
   s := ""
   if asLiteral {
     s += "\""
   }
-  for _, c := range seq.contents {
+  for i := Iterate(seq); ; {
+    c, ok := i()
+    if !ok {
+      break
+    }
+
     if asLiteral {
       s += c.(CodePoint).Escape()
     } else {
@@ -588,6 +604,15 @@ func (seq Seq) VerbatimString(asLiteral bool) string {
     s += "\""
   }
   return s
+}
+func (seq *ArraySequence) VerbatimString(asLiteral bool) string {
+  return SequenceVerbatimString(seq, asLiteral)
+}
+func (seq *ConcatSequence) VerbatimString(asLiteral bool) string {
+  return SequenceVerbatimString(seq, asLiteral)
+}
+func (seq *LazySequence) VerbatimString(asLiteral bool) string {
+  return SequenceVerbatimString(seq, asLiteral)
 }
 
 /******************************************************************************
@@ -602,42 +627,50 @@ type NativeArray struct {
 
 func NewNativeArray(length int) NativeArray {
   contents := make([]interface{}, length)
-  return &NativeArray{
+  return NativeArray{
     contents: contents,
   }
 }
 
-func CopyNativeArray(other NativeArray) {
+func NewNativeArrayOf(values ...interface{}) NativeArray {
+  contents := make([]interface{}, len(values))
+  copy(contents, values)
+  return NativeArray{
+    contents: contents,
+  }
+}
+
+func CopyNativeArray(other NativeArray) NativeArray {
   contents := make([]interface{}, other.Length())
-  copy(arr, other.contents)
-  return &NativeArray{
+  copy(contents, other.contents)
+  return NativeArray{
     contents: contents,
   }
 }
 
-func (array *NativeArray) Length() int {
-  return len(contents)
+func (array *NativeArray) Length() uint32 {
+  return uint32(len(array.contents))
 }
 
-func (array *NativeArray) Select(i int) interface{} {
-  return contents[i]
+func (array *NativeArray) Select(i uint32) interface{} {
+  return array.contents[i]
 }
 
-func (array *NativeArray) Update(i int, t interface{}) interface{} {
-  contents[i] = t
+func (array *NativeArray) Update(i uint32, t interface{}) {
+  array.contents[i] = t
 }
 
-func (array *NativeArray) UpdateSubarray(i int, other NativeArray) interface{} {
-  contents[i:(i + other.Length())] = other.contents
+func (array *NativeArray) UpdateSubarray(i uint32, other NativeArray) {
+  copy(array.contents[i:(i + other.Length())], other.contents)
 }
 
-func (array *NativeArray) Freeze() NativeArray {
+func (array *NativeArray) Freeze() *ImmutableArray {
   return array
 }
 
-func (array *NativeArray) Subarray(lo int, hi int) NativeArray {
+func (array *NativeArray) Subarray(lo uint32, hi uint32) *ImmutableArray {
   return &NativeArray{
-    contents: contents[lo:hi],
+    contents: array.contents[lo:hi],
   }
 }
 
@@ -765,21 +798,21 @@ func (array *Array) Iterator() Iterator {
 }
 
 // RangeToSeq converts the selected portion of the array to a sequence.
-func (array *Array) RangeToSeq(lo, hi Int) Seq {
+func (array *Array) RangeToSeq(lo, hi Int) Sequence {
   if len(array.dims) != 1 {
     panic("Can't take a slice of a multidimensional array")
   }
-        isString := false;
-        if len(array.contents) > 0 {
-            _, isString = array.contents[0].(Char)
-        }
+  isString := false;
+  if len(array.contents) > 0 {
+      _, isString = array.contents[0].(Char)
+  }
 
   // TODO Should set isString to true if this is an array of characters
   // Do not know if it is an array of characters if the array is empty
   seq := SeqOf(array.contents...)
-        seq.isString = isString
+  seq.IsString_set_(isString)
 
-  return seq.Subseq(lo, hi)
+  return seq.Subsequence(lo, hi)
 }
 
 // Update updates a location in a one-dimensional array.  (Must be
@@ -906,7 +939,7 @@ func NewBuilder() *Builder {
 
 // NewBuilder creates a new Builder.
 func NewBuilderOf(iter Iterable) *Builder {
-  b := NewBuilder(Builder)
+  b := NewBuilder()
   for i := Iterate(iter); ; {
     v, ok := i()
     if !ok {
@@ -930,6 +963,11 @@ func (builder *Builder) ToArray() *Array {
 // ToSet creates a Set with the accumulated values.
 func (builder *Builder) ToSet() Set {
   return SetOf(*builder...)
+}
+
+// ToMultiset creates a MultiSet with the accumulated values.
+func (builder *Builder) ToMultiSet() MultiSet {
+  return MultiSetOf(*builder...)
 }
 
 // Iterator iterates over the accumulated values.
@@ -1173,8 +1211,8 @@ NEXT_INPUT:
 }
 
 // MultiSetFromSeq creates a MultiSet from the elements in the given sequence.
-func MultiSetFromSeq(seq Seq) MultiSet {
-  return MultiSetOf(seq.contents...)
+func MultiSetFromSeq(seq Sequence) MultiSet {
+  return NewBuilderOf(seq).ToMultiSet()
 }
 
 // MultiSetFromSet creates a MultiSet from the elements in the given set.

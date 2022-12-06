@@ -16,7 +16,7 @@ cs: verify
 py: verify
 	$(DAFNY_WITHOUT_RUNTIMES) /noVerify /compile:0 /spillTargetCode:3 /useRuntimeLib src/dafnyRuntime.dfy /compileTarget:py /out:../generated
 	
-go: verify
+go:
 	$(DAFNY_WITHOUT_RUNTIMES) /noVerify /compile:0 /spillTargetCode:3 /useRuntimeLib src/dafnyRuntimeGo.dfy /compileTarget:go /out:../generated
 	cp ../generated-go/src/dafny/dafny.go ../DafnyRuntimeGo/DafnyRuntimeFromDafny.go
 # Probably the wrong place for this

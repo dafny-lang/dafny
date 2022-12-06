@@ -381,6 +381,12 @@ abstract module {:options "/functionSyntax:4"} Dafny {
   // TODO: Align terminology between length/size/etc.
   trait {:extern} Sequence<+T> {
    
+    // This is only here to support the attempts some runtimes make to
+    // track what sequence values are actually sequences of characters.
+    // This is not used when --unicode-char is enabled, and not currently
+    // used by any Dafny code.
+    var isString: bool
+
     // TODO: Better name, NOT a size_t
     ghost const size: nat
 
@@ -396,22 +402,6 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       requires Valid()
       decreases size, 2
       ensures |Value()| < SIZE_T_LIMIT && |Value()| as size_t == Cardinality()
-
-    method ToString() returns (ret: string)
-      requires Valid()
-    {
-      // TODO: Can we use compiled seq<T> values like this?
-      // TODO: Need to track whether this is a seq<char> at runtime
-      ret := "[";
-      for i := ZERO_SIZE to Cardinality() {
-        if i != 0 {
-          ret := ret + ",";
-        }
-        var element := Select(i as size_t);
-        ret := ret + DafnyValueToString(element);
-      }
-      ret := ret + "]";
-    }
 
     method Select(index: size_t) returns (ret: T)
       requires Valid()
@@ -463,6 +453,10 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       ensures ret.Valid()
       ensures ret.Length() == Cardinality()
       ensures ret.values == Value()
+
+    // We specifically DON'T yet implement a ToString() method because that
+    // doesn't help much in practice. Most runtimes implement the conversion between
+    // various Dafny types and their native string type, which we don't yet model here.
   }
 
   // TODO: this would be safe(r) if we used a datatype instead, but still not guaranteed.
@@ -486,12 +480,13 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       && size == 1
     }
 
-    constructor(value: ImmutableArray<T>) 
+    constructor(value: ImmutableArray<T>, isString: bool := false) 
       requires value.Valid()
       ensures Valid()
       ensures this.value == value
     {
       this.value := value;
+      this.isString := isString;
       this.size := 1;
     }
 
