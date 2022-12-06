@@ -37,23 +37,26 @@ public interface ICommandSpec {
     MiscOptionBag.EnforceDeterminism
   }.ToList();
 
-  public static IReadOnlyList<Option> CommonOptions = new List<Option>(new Option[] {
-    BoogieOptionBag.Cores,
-    MiscOptionBag.Libraries,
+  public static IReadOnlyList<Option> ConsoleOutputOptions = new List<Option>(new Option[] {
     MiscOptionBag.ShowSnippets,
-    MiscOptionBag.Plugin,
-    BoogieOptionBag.BoogieArguments,
-    MiscOptionBag.Prelude,
     DeveloperOptionBag.UseBaseFileName,
     DeveloperOptionBag.Print,
     DeveloperOptionBag.ResolvedPrint,
     DeveloperOptionBag.BoogiePrint,
+    MiscOptionBag.WarningAsErrors,
+  });
+  
+  public static IReadOnlyList<Option> CommonOptions = new List<Option>(new Option[] {
+    BoogieOptionBag.Cores,
+    MiscOptionBag.Libraries,
+    MiscOptionBag.Plugin,
+    BoogieOptionBag.BoogieArguments,
+    MiscOptionBag.Prelude,
     MiscOptionBag.RelaxDefiniteAssignment,
     Function.FunctionSyntaxOption,
     MiscOptionBag.QuantifierSyntax,
     MiscOptionBag.WarnShadowing,
     MiscOptionBag.WarnMissingConstructorParenthesis,
-    MiscOptionBag.WarningAsErrors,
     PrintStmt.TrackPrintEffectsOption,
     MiscOptionBag.DisableNonLinearArithmetic,
     MiscOptionBag.UnicodeCharacters,

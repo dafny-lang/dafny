@@ -13,6 +13,7 @@ class TranslateCommand : ICommandSpec {
       MiscOptionBag.IncludeRuntime,
     }.Concat(ICommandSpec.VerificationOptions).
       Concat(ICommandSpec.ExecutionOptions).
+      Concat(ICommandSpec.ConsoleOutputOptions).
       Concat(ICommandSpec.CommonOptions);
 
   public Command Create() {

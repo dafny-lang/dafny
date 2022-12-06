@@ -9,6 +9,7 @@ class VerifyCommand : ICommandSpec {
   public IEnumerable<Option> Options => new Option[] {
     BoogieOptionBag.BoogieFilter,
   }.Concat(ICommandSpec.VerificationOptions.Except(new[] { BoogieOptionBag.NoVerify })).
+    Concat(ICommandSpec.ConsoleOutputOptions).
     Concat(ICommandSpec.CommonOptions);
 
   public Command Create() {

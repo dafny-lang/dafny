@@ -11,6 +11,7 @@ class BuildCommand : ICommandSpec {
     MiscOptionBag.CompileVerbose,
   }.Concat(ICommandSpec.VerificationOptions).
     Concat(ICommandSpec.ExecutionOptions).
+    Concat(ICommandSpec.ConsoleOutputOptions).
     Concat(ICommandSpec.CommonOptions);
 
   public Command Create() {

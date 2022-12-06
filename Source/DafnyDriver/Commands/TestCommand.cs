@@ -10,6 +10,7 @@ public class TestCommand : ICommandSpec {
     new Option[] {
     }.Concat(ICommandSpec.VerificationOptions).
       Concat(ICommandSpec.ExecutionOptions).
+      Concat(ICommandSpec.ConsoleOutputOptions).
       Concat(ICommandSpec.CommonOptions);
 
   public Command Create() {

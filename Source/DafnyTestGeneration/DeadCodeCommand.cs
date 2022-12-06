@@ -11,7 +11,8 @@ public class DeadCodeCommand : ICommandSpec {
       GenerateTestsCommand.LoopUnroll,
       GenerateTestsCommand.SequenceLengthLimit,
       BoogieOptionBag.VerificationTimeLimit,
-    }.Concat(ICommandSpec.CommonOptions);
+    }.Concat(ICommandSpec.ConsoleOutputOptions).
+      Concat(ICommandSpec.CommonOptions);
 
   public Command Create() {
     var result = new Command("find-dead-code", "(Experimental) Use counterexample generation to warn about potential dead code.");

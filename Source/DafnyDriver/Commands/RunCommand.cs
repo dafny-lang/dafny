@@ -25,6 +25,7 @@ class RunCommand : ICommandSpec {
       Inputs,
     }.Concat(ICommandSpec.VerificationOptions).
       Concat(ICommandSpec.ExecutionOptions).
+      Concat(ICommandSpec.ConsoleOutputOptions).
       Concat(ICommandSpec.CommonOptions);
 
   public RunCommand() {
