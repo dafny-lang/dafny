@@ -619,59 +619,63 @@ func (seq *LazySequence) VerbatimString(asLiteral bool) string {
  * Arrays
  ******************************************************************************/
 
-// A NativeArray is a single dimensional Go slice,
+// A GoArray is a single dimensional Go slice,
 // wrapped up for the benefit of dafnyRuntime.dfy.
-type NativeArray struct {
+type GoArray struct {
   contents []interface{}
 }
 
-func NewNativeArray(length int) NativeArray {
+func NewNativeArray(length int) GoArray {
   contents := make([]interface{}, length)
-  return NativeArray{
+  return GoArray{
     contents: contents,
   }
 }
 
-func NewNativeArrayOf(values ...interface{}) NativeArray {
+func NewNativeArrayOf(values ...interface{}) GoArray {
   contents := make([]interface{}, len(values))
   copy(contents, values)
-  return NativeArray{
+  return GoArray{
     contents: contents,
   }
 }
 
-func CopyNativeArray(other NativeArray) NativeArray {
+func CopyNativeArray(other GoArray) GoArray {
   contents := make([]interface{}, other.Length())
   copy(contents, other.contents)
-  return NativeArray{
+  return GoArray{
     contents: contents,
   }
 }
 
-func (array *NativeArray) Length() uint32 {
+func (array GoArray) Length() uint32 {
   return uint32(len(array.contents))
 }
 
-func (array *NativeArray) Select(i uint32) interface{} {
+func (array GoArray) Select(i uint32) interface{} {
   return array.contents[i]
 }
 
-func (array *NativeArray) Update(i uint32, t interface{}) {
+func (array GoArray) Update(i uint32, t interface{}) {
   array.contents[i] = t
 }
 
-func (array *NativeArray) UpdateSubarray(i uint32, other NativeArray) {
+func (array GoArray) UpdateSubarray(i uint32, other GoArray) {
   copy(array.contents[i:(i + other.Length())], other.contents)
 }
 
-func (array *NativeArray) Freeze() *ImmutableArray {
+func (array GoArray) Freeze() ImmutableArray {
   return array
 }
 
-func (array *NativeArray) Subarray(lo uint32, hi uint32) *ImmutableArray {
-  return &NativeArray{
+func (array GoArray) Subarray(lo uint32, hi uint32) ImmutableArray {
+  return GoArray{
     contents: array.contents[lo:hi],
   }
+}
+
+func (array GoArray) String() string {
+  return "dafny.GoArray"
 }
 
 // An Array is a Go slice representing a (possibly) multidimensional array,
@@ -1212,7 +1216,7 @@ NEXT_INPUT:
 
 // MultiSetFromSeq creates a MultiSet from the elements in the given sequence.
 func MultiSetFromSeq(seq Sequence) MultiSet {
-  return NewBuilderOf(seq).ToMultiSet()
+  return NewBuilderOf(SequenceIterator(seq)).ToMultiSet()
 }
 
 // MultiSetFromSet creates a MultiSet from the elements in the given set.
@@ -2688,4 +2692,16 @@ func CatchHalt() {
     fmt.Println("[Program halted]", r)
     os.Exit(1)
   }
+}
+
+type AtomicBox struct {
+  value interface{}
+}
+
+func (box AtomicBox) Get() interface{} {
+  return box.value
+}
+
+func (box AtomicBox) Set(value interface{}) {
+  box.value = value
 }

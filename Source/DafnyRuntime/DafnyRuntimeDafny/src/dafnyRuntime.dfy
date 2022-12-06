@@ -470,22 +470,22 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       || e is LazySequence<T>
 
   class ArraySequence<T> extends Sequence<T> {
-    const value: ImmutableArray<T>
+    const values: ImmutableArray<T>
 
     ghost predicate Valid()
       decreases size, 0
       ensures Valid() ==> 0 < size
     {
-      && value.Valid()
+      && values.Valid()
       && size == 1
     }
 
     constructor(value: ImmutableArray<T>, isString: bool := false) 
       requires value.Valid()
       ensures Valid()
-      ensures this.value == value
+      ensures this.values == value
     {
-      this.value := value;
+      this.values := value;
       this.isString := isString;
       this.size := 1;
     }
@@ -494,7 +494,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       requires Valid() 
       decreases size, 1
     {
-      value.Length()
+      values.Length()
     }
 
     ghost function Value(): seq<T> 
@@ -502,7 +502,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       decreases size, 2
       ensures |Value()| < SIZE_T_LIMIT && |Value()| as size_t == Cardinality()
     {
-      value.values
+      values.values
     }
 
     method ToArray() returns (ret: ImmutableArray<T>)
@@ -512,7 +512,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       ensures ret.Length() == Cardinality()
       ensures ret.values == Value()
     {
-      return value;
+      return values;
     }
   }
 
@@ -626,7 +626,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       AppendOptimized(builder, boxed, stack);
     } else if e is ArraySequence<T> {
       var a := e as ArraySequence<T>;
-      builder.Append(a.value);
+      builder.Append(a.values);
       if 0 < stack.size {
         var next: Sequence<T> := stack.RemoveLast();
         AppendOptimized(builder, next, stack);
