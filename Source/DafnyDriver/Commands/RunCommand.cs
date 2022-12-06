@@ -8,7 +8,7 @@ namespace Microsoft.Dafny;
 class RunCommand : ICommandSpec {
   private readonly Argument<IEnumerable<string>> userProgramArguments;
 
-  public static readonly Option<IEnumerable<string>> Inputs = new("input", "Specify an additional input file.") {
+  public static readonly Option<IEnumerable<string>> Inputs = new("--input", "Specify an additional input file.") {
     ArgumentHelpName = "file"
   };
 
