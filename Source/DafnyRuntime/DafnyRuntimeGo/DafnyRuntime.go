@@ -532,15 +532,6 @@ func SequenceIterator(seq Sequence) Iterator {
     return ans, true
   }
 }
-func (seq *ArraySequence) Iterator() Iterator {
-  return SequenceIterator(seq)
-}
-func (seq *ConcatSequence) Iterator() Iterator {
-  return SequenceIterator(seq)
-}
-func (seq *LazySequence) Iterator() Iterator {
-  return SequenceIterator(seq)
-}
 
 // TODO: Dafny is hard-coded to define Equals and EqualsGeneric by reference equality,
 // but we need to compare contents somehow...
@@ -942,7 +933,7 @@ func NewBuilder() *Builder {
 }
 
 // NewBuilder creates a new Builder.
-func NewBuilderOf(iter Iterable) *Builder {
+func NewBuilderOf(iter interface{}) *Builder {
   b := NewBuilder()
   for i := Iterate(iter); ; {
     v, ok := i()
@@ -2694,14 +2685,24 @@ func CatchHalt() {
   }
 }
 
-type AtomicBox struct {
+type GoAtomicBox struct {
   value interface{}
 }
 
-func (box AtomicBox) Get() interface{} {
+func (box GoAtomicBox) Get() interface{} {
   return box.value
 }
 
-func (box AtomicBox) Set(value interface{}) {
+func (box GoAtomicBox) Put(value interface{}) {
   box.value = value
+}
+
+func (box GoAtomicBox) String() string {
+  return "dafny.GoAtomicBox"
+}
+
+func (CompanionStruct_AtomicBox_) Make(value interface{}) AtomicBox {
+  return GoAtomicBox{
+    value: value,
+  }
 }

@@ -350,7 +350,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
   // Compilers could special case this type to inline declarations and avoid
   // the cost of allocation and indirection, e.g. by replacing a `const fooBox: AtomicBox<T>`
   // with a direct `volitile T fooBox;` in the target language.
-  class {:extern} AtomicBox<!T> {
+  trait {:extern} AtomicBox<!T> {
 
     ghost const inv: T -> bool
 

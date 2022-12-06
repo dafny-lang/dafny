@@ -298,7 +298,7 @@ namespace Microsoft.Dafny.Compilers {
         var wEqualsGeneric = w.NewNamedBlock("func (_this *{0}) EqualsGeneric(x interface{{}}) bool", name);
         if (name.EndsWith("Sequence")) {
           wEqualsGeneric.WriteLine("other, ok := x.(*Sequence)");
-          wEqualsGeneric.WriteLine("return Companion_Default___.EqualSequences(_this, other)");
+          wEqualsGeneric.WriteLine("return ok && Companion_Default___.EqualSequences(_this, *other)");
         } else {
           wEqualsGeneric.WriteLine("other, ok := x.(*{0})", name);
           wEqualsGeneric.WriteLine("return ok && _this.Equals(other)");
