@@ -36,13 +36,13 @@ This page contains links to Dafny documentation.
    * [Miscellaneous Examples of Dafny programs](examples/README)
 * Dafny Tutorials
    * [Introduction to Dafny](OnlineTutorial/guide)
-   * [A Tutorial on Using Dafny to Construct Verified Software](https://arxiv.org/pdf/1701.04481.pdf), Paqui Lucio, 2017
    * [Value Types](OnlineTutorial/ValueTypes)
    * [Sets](OnlineTutorial/Sets)
    * [Sequences](OnlineTutorial/Sequences)
    * [Lemmas and Induction](OnlineTutorial/Lemmas)
    * [Modules](OnlineTutorial/Modules)
    * [Termination](OnlineTutorial/Termination)
+   * [A Tutorial on Using Dafny to Construct Verified Software](https://arxiv.org/pdf/1701.04481.pdf), Paqui Lucio, 2017
 * Forums for Q&amp;A (#discussion)
    * [Problem reports](https://github.com/dafny-lang/dafny/issues) and [discussions](https://github.com/dafny-lang/dafny/discussions) on GitHub
    * Dafny-tagged queries on [Stackoverflow](https://stackoverflow.com/questions/tagged/dafny)

@@ -43,7 +43,6 @@ namespace Microsoft.Dafny.Compilers {
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
       Feature.Iterators,
       Feature.SubsetTypeTests,
-      Feature.TraitTypeParameters,
       Feature.MethodSynthesis,
       Feature.TuplesWiderThan20
     };
