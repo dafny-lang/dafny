@@ -938,38 +938,28 @@ ghost var im := imap[1 := "a", 2 := "b"];
 See [Section 10.4](#sec-maps) for more details on maps and imaps.
 
 ## 21.31. Endless Expression
-````grammar
-EndlessExpression(allowLemma, allowLambda) =
-  ( IfExpression(allowLemma, allowLambda)
-  | MatchExpression(allowLemma, allowLambda)
-  | QuantifierExpression(allowLemma, allowLambda)
-  | SetComprehensionExpr(allowLemma, allowLambda)
-  | StmtInExpr Expression(allowLemma, allowLambda)
-  | LetExpression(allowLemma, allowLambda)
-  | MapComprehensionExpr(allowLemma, allowLambda)
-  )
-````
+([grammar](#g-endless-expression))
 
 ``EndlessExpression`` gets it name from the fact that all its alternate
 productions have no terminating symbol to end them, but rather they
 all end with an ``Expression`` at the end. The various
 ``EndlessExpression`` alternatives are described below.
 
-## 21.32. If Expression
-````grammar
-IfExpression(allowLemma, allowLambda) =
-    "if" ( BindingGuard(allowLambda: true)
-         | Expression(allowLemma: true, allowLambda: true)
-         )
-    "then" Expression(allowLemma: true, allowLambda: true)
-    "else" Expression(allowLemma, allowLambda)
-````
+### 21.32.1. If Expression
+([grammar](#g-if-expression))
 
-The ``IfExpression`` is a conditional expression. It first evaluates
-the expression following the `if`. If it evaluates to `true` then
-it evaluates the expression following the `then` and that is the
-result of the expression. If it evaluates to `false` then the
-expression following the `else` is evaluated and that is the result
+Examples:
+```dafny
+if c then e1 else e2
+if x: int :| P(x) then x else 0
+```
+
+
+An _if expression_ is a conditional (ternary) expression. It first evaluates
+the condition expression that follows the `if`. If the condition evaluates to `true` then
+the expression following the `then` is evaluated and its value is the
+result of the expression. If the condition evaluates to `false` then the
+expression following the `else` is evaluated and that value is the result
 of the expression. It is important that only the selected expression
 is evaluated as the following example shows.
 
@@ -1008,29 +998,16 @@ In the example given, the binder for `x` has no constraining range, so the expre
 if a range is given, such as `var y := if x: int :| 0 <= x < 10 && P(x) then x else 0;`,
 then the `if` and `y` are no longer ghost, and `y` could be used, for example, in a `print` statement.
 
-## 21.33. Case and Extended Patterns {#sec-case-pattern}
-````grammar
-CasePattern =
-  ( IdentTypeOptional
-  | [Ident] "(" [ CasePattern { "," CasePattern } ] ")"
-  )
+### 21.33.1. Case and Extended Patterns {#sec-case-pattern}
+([grammar](#g-pattern))
 
-SingleExtendedPattern =
-  ( PossiblyNegatedLiteralExpression
-  | IdentTypeOptional
-  | [ Ident ] "(" [ SingleExtendedPattern { "," SingleExtendedPattern } ] ")"
-  )
+Examples: TODO
+```dafny
+```
 
-ExtendedPattern =
-  ( [ "|" ] SingleExtendedPattern { "|" SingleExtendedPattern } )
+TODO - edit
 
-PossiblyNegatedLiteralExpression =
-  ( "-" ( Nat | Dec )
-  | LiteralExpression
-  )
-````
-
-Case patterns and extended patterns are used for (possibly nested)
+Patterns are used for (possibly nested)
 pattern matching on inductive, coinductive or base type values.
 The `ExtendedPattern` construct is used in
 `CaseStatement` and `CaseExpression`s,
@@ -1087,26 +1064,16 @@ They are bound to the corresponding values in the value being
 matched. (Thus, for example, one cannot repeat a bound variable to
 attempt to match a constructor that has two identical arguments.)
 
-## 21.34. Match Expression {#sec-match-expression}
+### 21.34.1. Match Expression {#sec-match-expression}
+([grammar](#g-match-expression))
 
-````grammar
-MatchExpression(allowLemma, allowLambda) =
-  "match" Expression(allowLemma, allowLambda)
-  ( "{" { CaseExpression(allowLemma: true, allowLambda: true) } "}"
-  | { CaseExpression(allowLemma, allowLambda) }
-  )
+Examples:
+```dafny
+```
 
-CaseExpression(allowLemma, allowLambda) =
-  "case" { Attribute } ExtendedPattern "=>" Expression(allowLemma, allowLambda)
-````
-
-A ``MatchExpression`` is used to conditionally evaluate and select an
+A _match expression_ is used to conditionally evaluate and select an
 expression depending on the value of an algebraic type, i.e. an inductive
 type, a coinductive type, or a base type.
-
-The ``Expression`` following the `match` keyword is called the
-_selector_. The selector is evaluated and then matched against each ``CaseExpression`` in order until a matching clause is found, as described in
-the [section on `CaseBinding`s](#sec-case-pattern).
 
 All of the variables in the ``ExtendedPattern``s must be distinct.
 If types for the identifiers are not given then types are inferred
@@ -1114,29 +1081,35 @@ from the types of the constructor's parameters. If types are
 given then they must agree with the types of the
 corresponding parameters.
 
-A ``MatchExpression`` is evaluated by first evaluating the selector.
-The ``ExtendedPattern``s of each match alternative are then compared in order
- with the resulting value until a matching pattern is found.
+The expression following the `match` keyword is called the
+_selector_. A match expression is evaluated by first evaluating the selector.
+The patterns of each match alternative are then compared, in order,
+ with the resulting value until a matching pattern is found, as described in
+the [section on `CaseBinding`s](#sec-case-pattern).
 If the constructor had
 parameters, then the actual values used to construct the selector
 value are bound to the identifiers in the identifier list.
 The expression to the right of the `=>` in the matched alternative is then
 evaluated in the environment enriched by this binding. The result
-of that evaluation is the result of the ``MatchExpression``.
+of that evaluation is the result of the match expression.
 
 Note that the braces enclosing the sequence of match alternatives may be omitted.
 Those braces are required if lemma or lambda expressions are used in the
 body of any match alternative; they may also be needed for disambiguation if
 there are nested match expressions.
 
-## 21.35. Quantifier Expression {#sec-quantifier-expression}
-````grammar
-QuantifierExpression(allowLemma, allowLambda) =
-    ( "forall" | "exists" ) QuantifierDomain "::"
-    Expression(allowLemma, allowLambda)
-````
+### 21.35.1. Quantifier Expression {#sec-quantifier-expression}
+([grammar])(#g-quantifier-expression))
 
-A ``QuantifierExpression`` is a boolean expression that specifies that a
+Examples:
+```dafny
+forall x: int :: x > 0
+forall x: nat | x < 10 :: x*x < 100
+exists x: int :: x * x == 25
+```
+
+
+A _quantifier expression_ is a boolean expression that specifies that a
 given expression (the one following the `::`) is true for all (for
 **forall**) or some (for **exists**) combination of values of the
 quantified variables, namely those in the ``QuantifierDomain``.
@@ -1150,20 +1123,25 @@ assert forall x: nat | 0 <= x < |s|, y <- s[x] :: y < x;
 ```
 
 The quantifier identifiers are _bound_ within the scope of the
-expressions in the ``QuantifierExpression``.
+expressions in the quantifier expression.
 
 If types are not given for the quantified identifiers, then Dafny
 attempts to infer their types from the context of the expressions.
 It this is not possible, the program is in error.
 
 
-## 21.36. Set Comprehension Expressions {#sec-set-comprehension-expression}
-````grammar
-SetComprehensionExpr(allowLemma, allowLambda) =
-  [ "set" | "iset" ]
-  QuantifierDomain(allowLemma, allowLambda)
-  [ "::" Expression(allowLemma, allowLambda) ]
-````
+### 21.36.1. Set Comprehension Expressions {#sec-set-comprehension-expression}
+([grammar](#g-set-comprehension-expression))
+
+TODO  example using <-
+
+Examples:
+```dafny
+set x: nat | x < 100
+set x: nat | x < 100 :: x * x
+set x: nat | x < 100, y: nat | x < y < 100 :: x * y
+iset x: nat | x > 100
+```
 
 A set comprehension expression is an expression that yields a set
 (possibly infinite only if `iset` is used) that
@@ -1247,12 +1225,19 @@ at the point in program execution that `test` is evaluated. This could be
 no instances, one per value of `x.i` in the stated range, multiple instances
 of `I` for each value of `x.i`, or any other combination.
 
-## 21.37. Statements in an Expression {#sec-statement-in-an-expression}
-````grammar
-StmtInExpr = ( AssertStmt | AssumeStmt | ExpectStmt
-             | RevealStmt | CalcStmt
-             )
-````
+### 21.37.1. Statements in an Expression {#sec-statement-in-an-expression}
+([grammar](#g-statement-in-expression))
+
+TODO Example of calc stastement
+
+Examples:
+```dafny
+assert x != 0; 10/x
+assert x != 0; assert y > 0; y/x
+assume x != 0; 10/x
+expect x != 0; 10/x
+reveal M.f; M.f(x)
+```
 
 A ``StmtInExpr`` is a kind of statement that is allowed to
 precede an expression in order to ensure that the expression
@@ -1264,22 +1249,18 @@ assume x != 0; 10/x
 
 `Assert`, `assume`, `expect`, `reveal` and `calc` statements can be used in this way.
 
-## 21.38. Let Expression {#sec-let-expression}
+### 21.38.1. Let and Let or Fail Expression {#sec-let-expression}
+([grammar](#g-let-expression))
 
-````grammar
-LetExpression(allowLemma, allowLambda) =
-  (
-    [ "ghost" ] "var" CasePattern { "," CasePattern }
-    ( ":=" | ":-" | { Attribute } ":|" )
-    Expression(allowLemma: false, allowLambda: true)
-    { "," Expression(allowLemma: false, allowLambda: true) }
-  |
-    ":-"
-    Expression(allowLemma: false, allowLambda: true)
-  )
-  ";"
-  Expression(allowLemma, allowLambda)
-````
+TODO Example of destructor, discussion of :|
+
+Examples:
+```dafny
+var x := f(y); x*x
+var x :- f(y); x*x
+var x :| P(x); x*x
+```
+
 
 A `let` expression allows binding of intermediate values to identifiers
 for use in an expression. The start of the `let` expression is
@@ -1292,7 +1273,7 @@ For example:
 var sum := x + y; sum * sum
 ```
 
-In the simple case, the ``CasePattern`` is just an identifier with optional
+In the simple case, the pattern is just an identifier with optional
 type (which if missing is inferred from the rhs).
 
 The more complex case allows destructuring of constructor expressions.
@@ -1307,15 +1288,15 @@ function GhostF(z: Stuff): int
 }
 ```
 
-The syntax using `:-` is discussed in the following subsection.
-
-## 21.39. Let or Fail Expression
-
-The Let expression described in [Section 21.38](#sec-let-expression) has a failure variant
+The Let expression has a failure variant
 that simply uses `:-` instead of `:=`. This Let-or-Fail expression also permits propagating
 failure results. However, in statements ([Section 20.7](#sec-update-failure)), failure results in
 immediate return from the method; expressions do not have side effects or immediate return
-mechanisms.
+mechanisms. Rather, if the expression to the right of `:-` results in a failure value `V`,
+the overall expression returns `V.PropagateFailure()`; if there is no failure, the expression following the 
+semicolon is returned. Note that these two possible return values must have the same type (or be 
+implicitly convertible to the same type). Typically that means that `tmp.PropagateFailure()` is a failure value and
+`E` is a value-carrying success value, both of the same failure-compatible type, as described in [Section 20.7](#sec-update-failure).
 
 The expression `:- V; E` is desugared into the _expression_
 ```dafny
@@ -1344,22 +1325,17 @@ else var v, v1 := tmp.Extract(), V1; E
 So, if tmp is a failure value, then a corresponding failure value is propagated along; otherwise, the expression
 is evaluated as normal.
 
-Note that the value of the let-or-fail expression is either `tmp.PropagateFailure()` or `E`, the two sides of the
-if-then-else expression. Consequently these two expressions must have types that can be joined into one type for
-the whole let-or-fail expression. Typically that means that `tmp.PropagateFailure()` is a failure value and
-`E` is a value-carrying success value, both of the same failure-compatible type, as described in [Section 20.7](#sec-update-failure).
+### 21.40.1. Map Comprehension Expression {#sec-map-comprehension-expression}
+([grammar](#g-map-comprehension-expression}
 
-## 21.40. Map Comprehension Expression {#sec-map-comprehension-expression}
-````grammar
-MapComprehensionExpr(allowLemma, allowLambda) =
-  ( "map" | "imap" )
-  QuantifierDomain(allowLemma, allowLambda)
-  "::"
-  Expression(allowLemma, allowLambda)
-  [ ":=" Expression(allowLemma, allowLambda) ]
-````
+Examples:
+```dafny
+map x : int | 0 <= x <= 10 :: x * x;
+map x : int | 0 <= x <= 10 :: -x := x * x;
+imap x : int | 10 < x :: x * x;
+```
 
-A ``MapComprehensionExpr`` defines a finite or infinite map value
+A _map comprehension expression_  defines a finite or infinite map value
 by defining a domain and for each value in the domain,
 giving the mapped value using the expression following the "::".
 See [Section 2.6.5](#sec-quantifier-domains) for more details on quantifier domains.
@@ -1376,7 +1352,7 @@ method test()
 ```
 
 Dafny finite maps must be finite, so the domain must be constrained to be finite.
-But imaps may be infinite as the example shows. The last example shows
+But imaps may be infinite as the examples show. The last example shows
 creation of an infinite map that gives the same results as a function.
 
 If the expression includes the `:=` token, that token separates
@@ -1394,10 +1370,19 @@ method test()
 NameSegment = Ident [ GenericInstantiation | HashCall ]
 ````
 
-A ``NameSegment`` names a Dafny entity by giving its declared
+Examples:
+```dafny
+I
+I<int,C>
+I#[k]
+I#<int>[k]
+```
+
+A _name segment_ names a Dafny entity by giving its declared
 name optionally followed by information to
 make the name more complete. For the simple case, it is
-just an identifier.
+just an identifier. Note that a name segment may be followed
+by [suffixes](#sec-suffix), including the common '.' and further name segments.
 
 If the identifier is for a generic entity, it is followed by
 a ``GenericInstantiation`` which provides actual types for
@@ -1408,12 +1393,6 @@ prefix lemma (see [Section 19.3.5.3](#sec-prefix-lemmas)), the identifier
 must be the name of the greatest predicate or greatest lemma and it must be
 followed by a ``HashCall``.
 
-## 21.42. Hash Call {#sec-hash-call}
-````grammar
-HashCall = "#" [ GenericInstantiation ]
-  "[" Expression(allowLemma: true, allowLambda: true) "]"
-  "(" [ Bindings ] ")"
-````
 A ``HashCall`` is used to call the prefix for a greatest predicate or greatest lemma.
 In the non-generic case, just insert `"#[k]"` before the call argument
 list where k is the number of recursion levels.
@@ -1466,30 +1445,26 @@ greatest lemma {:induction false} Theorem0<T>(s: T)
 where the ``HashCall`` is `"Theorem0#<T>[_k-1](s);"`.
 See [Section 19.3.4](#sec-copredicates) and [Section 19.3.5.3](#sec-prefix-lemmas).
 
-## 21.43. Suffix
-````grammar
-Suffix =
-  ( AugmentedDotSuffix_
-  | DatatypeUpdateSuffix_
-  | SubsequenceSuffix_
-  | SlicesByLengthSuffix_
-  | SequenceUpdateSuffix_
-  | SelectionSuffix_
-  | ArgumentListSuffix_
-  )
-````
+## 21.43. Suffix {#sec-suffix}
+([grammar](#g-suffix))
+
 
 The ``Suffix`` non-terminal describes ways of deriving a new value from
 the entity to which the suffix is appended. The several kinds
 of suffixes are described below.
 
 ### 21.43.1. Augmented Dot Suffix
-````grammar
-AugmentedDotSuffix_ = "." DotSuffix
-                      [ GenericInstantiation | HashCall ]
-````
+([grammar](#g-augmented-dot-suffix))
 
-An augmented dot suffix consists of a simple ``DotSuffix`` optionally
+Examples: (expression with suffix)
+```dafny
+a.b
+(a).b<int>
+a.b#[k]
+a.b#<int>[k]
+```
+
+An augmented dot suffix consists of a simple [_dot suffix](#sec-identifier-variations) optionally
 followed by either
 
 * a ``GenericInstantiation`` (for the case where the item
@@ -1499,17 +1474,16 @@ selected by the ``DotSuffix`` is generic), or
   or prefix lemma.
 
 ### 21.43.2. Datatype Update Suffix {#sec-datatype-update-suffix}
+([grammar](#g-datatype-update-suffix)]
 
-````grammar
-DatatypeUpdateSuffix_ =
-  "." "(" MemberBindingUpdate { "," MemberBindingUpdate } ")"
+Examples: (expression with suffix)
+```dafny
+a.(f := e1, g:= e2)
+a.(0 := e1)
+(e).(f := e1, g:= e2)
+```
 
-MemberBindingUpdate =
-  ( ident | digits )
-  ":=" Expression(allowLemma: true, allowLambda: true)
-````
-
-A datatype update suffix is used to produce a new datatype value
+A _datatype update suffix_ is used to produce a new datatype value
 that is the same as an old datatype value except that the
 value corresponding to a given destructor has the specified value.
 In a ``MemberBindingUpdate``, the ``ident`` or ``digits`` is the
@@ -1517,7 +1491,7 @@ name of a destructor (i.e. formal parameter name) for one of the
 constructors of the datatype. The expression to the right of the
 `:=` is the new value for that formal.
 
-All of the destructors in a ``DatatypeUpdateSuffix_`` must be
+All of the destructors in a datatype update suffix must be
 for the same constructor, and if they do not cover all of the
 destructors for that constructor then the datatype value being
 updated must have a value derived from that same constructor.
@@ -1526,11 +1500,11 @@ Here is an example:
 
 ```dafny
 module NewSyntax {
-datatype MyDataType = MyConstructor(myint:int, mybool:bool)
+  datatype MyDataType = MyConstructor(myint:int, mybool:bool)
                     | MyOtherConstructor(otherbool:bool)
                     | MyNumericConstructor(42:int)
 
-method test(datum:MyDataType, x:int)
+  method test(datum:MyDataType, x:int)
     returns (abc:MyDataType, def:MyDataType,
              ghi:MyDataType, jkl:MyDataType)
     requires datum.MyConstructor?
@@ -1540,7 +1514,7 @@ method test(datum:MyDataType, x:int)
     // Resolution error: no non_destructor in MyDataType
     //ensures jkl == datum.(non_destructor := 5)
     ensures jkl == datum.(42 := 7)
-{
+  {
     abc := MyConstructor(x + 2, datum.mybool);
     abc := datum.(myint := x + 2);
     def := MyOtherConstructor(!datum.mybool);
@@ -1548,38 +1522,40 @@ method test(datum:MyDataType, x:int)
     jkl := datum.(42 := 7);
 
     assert abc.(myint := abc.myint - 2) == datum.(myint := x);
-}
+  }
 }
 ```
 
 
 
 ### 21.43.3. Subsequence Suffix
-````grammar
-SubsequenceSuffix_ =
-  "[" [ Expression(allowLemma: true, allowLambda: true) ]
-      ".." [ Expression(allowLemma: true, allowLambda: true) ]
-  "]"
-````
+([grammar](#g-subsequence-suffix))
+
+Examples: (with leading expression)
+```dafny
+a[lo .. hi ]
+(e)[ lo .. ]
+e[ .. hi ]
+e[ .. ]
+```
+
 A subsequence suffix applied to a sequence produces a new sequence whose
 elements are taken from a contiguous part of the original sequence. For
 example, expression `s[lo..hi]` for sequence `s`, and integer-based
 numerics `lo` and `hi` satisfying `0 <= lo <= hi <= |s|`. See
 [the section about other sequence expressions](#sec-other-sequence-expressions) for details.
 
-### 21.43.4. Slices By Length Suffix
-````grammar
-SlicesByLengthSuffix_ =
-  "[" Expression(allowLemma: true, allowLambda: true) ":"
-      [
-        Expression(allowLemma: true, allowLambda: true)
-        { ":" Expression(allowLemma: true, allowLambda: true) }
-        [ ":" ]
-      ]
-  "]"
-````
+### 21.43.4. Subsequence Slices Suffix
+([grammar](#g-subsequence-slices-suffix))
 
-Applying a ``SlicesByLengthSuffix_`` to a sequence produces a
+Examples: (with leading expression)
+```dafny
+a[ 0 : 2 : 3 ]
+a[ e1 : e2 : e3 ]
+a[ 0 : 2 : ]
+```
+
+Applying a _subsequence slices suffix_ to a sequence produces a
 sequence of subsequences of the original sequence.
 See [the section about other sequence expressions](#sec-other-sequence-expressions) for details.
 

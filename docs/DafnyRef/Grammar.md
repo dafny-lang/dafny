@@ -410,7 +410,7 @@ later be inserted through refinement or is already present in a parent declarati
 
 ## 2.6. Low Level Grammar Productions {#sec-grammar}
 
-### 2.6.1. Identifier Variations
+### 2.6.1. Identifier Variations {#sec-identifier-variations}
 
 ````grammar
 Ident = ident
