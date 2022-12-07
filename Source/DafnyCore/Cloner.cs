@@ -55,8 +55,9 @@ namespace Microsoft.Dafny {
           return new NewtypeDecl(Tok(dd.tok), dd.Name, m, CloneBoundVar(dd.Var), CloneExpr(dd.Constraint), dd.WitnessKind, CloneExpr(dd.Witness), dd.Members.ConvertAll(CloneMember), CloneAttributes(dd.Attributes), dd.IsRefining);
         }
       } else if (d is TupleTypeDecl) {
-        var dd = (TupleTypeDecl)d;
-        return new TupleTypeDecl(dd.ArgumentGhostness, dd.EnclosingModuleDefinition, dd.Attributes);
+        // Tuple type declarations only exist in the system module. Therefore, they are never cloned.
+        Contract.Assert(false);
+        throw new cce.UnreachableException();
       } else if (d is IndDatatypeDecl) {
         var dd = (IndDatatypeDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);

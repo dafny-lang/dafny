@@ -6,6 +6,14 @@ namespace Microsoft.Dafny;
 
 public class CommonOptionBag {
 
+  public static readonly Option<bool> OptimizeErasableDatatypeWrapper = new("--optimize-erasable-datatype-wrapper", () => true, @"
+false - Include all non-ghost datatype constructors in the compiled code
+true - In the compiled target code, transform any non-extern
+    datatype with a single non-ghost constructor that has a single
+    non-ghost parameter into just that parameter. For example, the type
+        datatype Record = Record(x: int)
+    is transformed into just 'int' in the target code.".TrimStart());
+
   public static readonly Option<bool> CompileVerbose = new("--compile-verbose",
     "Print information such as files being written by the compiler to the console") {
   };
@@ -146,6 +154,14 @@ features like traits or co-inductive types.".TrimStart(), "cs");
     DafnyOptions.RegisterLegacyBinding(Target, (options, value) => {
       options.CompilerName = value;
     });
+
+    DafnyOptions.RegisterLegacyUi(OptimizeErasableDatatypeWrapper, DafnyOptions.ParseBoolean, "Compilation options", "optimizeErasableDatatypeWrapper", @"
+0 - Include all non-ghost datatype constructors in the compiled code
+1 (default) - In the compiled target code, transform any non-extern
+    datatype with a single non-ghost constructor that has a single
+    non-ghost parameter into just that parameter. For example, the type
+        datatype Record = Record(x: int)
+    is transformed into just 'int' in the target code.".TrimStart());
 
     DafnyOptions.RegisterLegacyUi(UnicodeCharacters, DafnyOptions.ParseBoolean, "Language feature selection", "unicodeChar", @"
 0 (default) - The char type represents any UTF-16 code unit.
