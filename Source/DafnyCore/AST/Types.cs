@@ -1,3 +1,4 @@
+#define TI_DEBUG_PRINT
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
@@ -261,6 +262,12 @@ public abstract class Type {
   /// Return a type that is like "this", but where occurrences of type parameters are substituted as indicated by "subst".
   /// </summary>
   public abstract Type Subst(Dictionary<TypeParameter, Type> subst);
+
+
+  /// <summary>
+  /// Return a type that is like "type", but with type arguments "arguments".
+  /// </summary>
+  public abstract Type ReplaceTypeArguments(List<Type> arguments);
 
   /// <summary>
   /// Returns whether or not "this" and "that" denote the same type, modulo proxies and type synonyms and subset types.
@@ -943,10 +950,9 @@ public abstract class Type {
     }
   }
 
-  public static bool FromSameHead_Subtype(Type t, Type u, BuiltIns builtIns, out Type a, out Type b) {
+  public static bool FromSameHead_Subtype(Type t, Type u, out Type a, out Type b) {
     Contract.Requires(t != null);
     Contract.Requires(u != null);
-    Contract.Requires(builtIns != null);
     if (FromSameHead(t, u, out a, out b)) {
       return true;
     }
@@ -1757,7 +1763,11 @@ public abstract class ArtificialType : Type {
   }
 
   public override Type Subst(Dictionary<TypeParameter, Type> subst) {
-    throw new NotImplementedException();
+    throw new NotSupportedException();
+  }
+
+  public override Type ReplaceTypeArguments(List<Type> arguments) {
+    throw new NotSupportedException();
   }
 }
 /// <summary>
@@ -1795,6 +1805,10 @@ public abstract class BasicType : NonProxyType {
   }
 
   public override Type Subst(Dictionary<TypeParameter, Type> subst) {
+    return this;
+  }
+
+  public override Type ReplaceTypeArguments(List<Type> arguments) {
     return this;
   }
 }
@@ -1926,6 +1940,10 @@ public class SelfType : NonProxyType {
     }
   }
 
+  public override Type ReplaceTypeArguments(List<Type> arguments) {
+    throw new NotSupportedException();
+  }
+
   public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl>/*?*/ visitedDatatypes) {
     // SelfType is used only with bitvector types
     return false;
@@ -2055,6 +2073,10 @@ public class ArrowType : UserDefinedType {
     return new ArrowType(tok, (ArrowTypeDecl)ResolvedClass, Args.ConvertAll(u => u.Subst(subst)), Result.Subst(subst));
   }
 
+  public override Type ReplaceTypeArguments(List<Type> arguments) {
+    return new ArrowType(tok, (ArrowTypeDecl)ResolvedClass, arguments);
+  }
+
   public override bool SupportsEquality {
     get {
       return false;
@@ -2151,6 +2173,10 @@ public class SetType : CollectionType {
     return arg == Arg ? this : new SetType(Finite, arg);
   }
 
+  public override Type ReplaceTypeArguments(List<Type> arguments) {
+    return new SetType(Finite, arguments[0]);
+  }
+
   public override bool SupportsEquality {
     get {
       // Sets always support equality, because there is a check that the set element type always does.
@@ -2176,6 +2202,10 @@ public class MultiSetType : CollectionType {
     return arg == Arg ? this : new MultiSetType(arg);
   }
 
+  public override Type ReplaceTypeArguments(List<Type> arguments) {
+    return new MultiSetType(arguments[0]);
+  }
+
   public override bool SupportsEquality {
     get {
       // Multisets always support equality, because there is a check that the set element type always does.
@@ -2199,6 +2229,10 @@ public class SeqType : CollectionType {
       ((InferredTypeProxy)arg).KeepConstraints = true;
     }
     return arg == Arg ? this : new SeqType(arg);
+  }
+
+  public override Type ReplaceTypeArguments(List<Type> arguments) {
+    return new SeqType(arguments[0]);
   }
 
   public override bool SupportsEquality {
@@ -2257,6 +2291,10 @@ public class MapType : CollectionType {
     } else {
       return new MapType(Finite, dom, ran);
     }
+  }
+
+  public override Type ReplaceTypeArguments(List<Type> arguments) {
+    return new MapType(Finite, arguments[0], arguments[1]);
   }
 
   public override bool SupportsEquality {
@@ -2517,6 +2555,10 @@ public class UserDefinedType : NonProxyType, INode {
     }
   }
 
+  public override Type ReplaceTypeArguments(List<Type> arguments) {
+    return new UserDefinedType(tok, Name, ResolvedClass, arguments);
+  }
+
   /// <summary>
   /// If type denotes a resolved class type, then return that class type.
   /// Otherwise, return null.
@@ -2737,6 +2779,10 @@ public abstract class TypeProxy : Type {
     var s = T.Subst(subst);
     return s == T ? this : s;
 
+  }
+
+  public override Type ReplaceTypeArguments(List<Type> arguments) {
+    throw new NotSupportedException();
   }
 
   public IEnumerable<Type> Supertypes {

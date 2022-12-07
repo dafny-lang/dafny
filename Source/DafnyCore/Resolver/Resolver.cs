@@ -2292,50 +2292,50 @@ namespace Microsoft.Dafny {
             reporter.Info(MessageSource.Resolver, m.tok, string.Format("_k: {0}", k.Type));
             formals.Add(k);
             if (m is ExtremePredicate) {
-              var cop = (ExtremePredicate)m;
-              formals.AddRange(cop.Formals.ConvertAll(cloner.CloneFormal));
+              var extremePredicate = (ExtremePredicate)m;
+              formals.AddRange(extremePredicate.Formals.ConvertAll(cloner.CloneFormal));
 
-              List<TypeParameter> tyvars = cop.TypeArgs.ConvertAll(cloner.CloneTypeParam);
+              List<TypeParameter> tyvars = extremePredicate.TypeArgs.ConvertAll(cloner.CloneTypeParam);
 
               // create prefix predicate
-              cop.PrefixPredicate = new PrefixPredicate(cop.tok, extraName, cop.HasStaticKeyword,
+              extremePredicate.PrefixPredicate = new PrefixPredicate(extremePredicate.tok, extraName, extremePredicate.HasStaticKeyword,
                 tyvars, k, formals,
-                cop.Req.ConvertAll(cloner.CloneAttributedExpr),
-                cop.Reads.ConvertAll(cloner.CloneFrameExpr),
-                cop.Ens.ConvertAll(cloner.CloneAttributedExpr),
-                new Specification<Expression>(new List<Expression>() { new IdentifierExpr(cop.tok, k.Name) }, null),
-                cop.Body,
+                extremePredicate.Req.ConvertAll(cloner.CloneAttributedExpr),
+                extremePredicate.Reads.ConvertAll(cloner.CloneFrameExpr),
+                extremePredicate.Ens.ConvertAll(cloner.CloneAttributedExpr),
+                new Specification<Expression>(new List<Expression>() { new IdentifierExpr(extremePredicate.tok, k.Name) }, null),
+                cloner.CloneExpr(extremePredicate.Body),
                 null,
-                cop);
-              extraMember = cop.PrefixPredicate;
+                extremePredicate);
+              extraMember = extremePredicate.PrefixPredicate;
               // In the call graph, add an edge from P# to P, since this will have the desired effect of detecting unwanted cycles.
-              moduleDef.CallGraph.AddEdge(cop.PrefixPredicate, cop);
+              moduleDef.CallGraph.AddEdge(extremePredicate.PrefixPredicate, extremePredicate);
             } else {
-              var com = (ExtremeLemma)m;
+              var extremeLemma = (ExtremeLemma)m;
               // _k has already been added to 'formals', so append the original formals
-              formals.AddRange(com.Ins.ConvertAll(cloner.CloneFormal));
+              formals.AddRange(extremeLemma.Ins.ConvertAll(cloner.CloneFormal));
               // prepend _k to the given decreases clause
               var decr = new List<Expression>();
-              decr.Add(new IdentifierExpr(com.tok, k.Name));
-              decr.AddRange(com.Decreases.Expressions.ConvertAll(cloner.CloneExpr));
+              decr.Add(new IdentifierExpr(extremeLemma.tok, k.Name));
+              decr.AddRange(extremeLemma.Decreases.Expressions.ConvertAll(cloner.CloneExpr));
               // Create prefix lemma.  Note that the body is not cloned, but simply shared.
               // For a greatest lemma, the postconditions are filled in after the greatest lemma's postconditions have been resolved.
               // For a least lemma, the preconditions are filled in after the least lemma's preconditions have been resolved.
-              var req = com is GreatestLemma
-                ? com.Req.ConvertAll(cloner.CloneAttributedExpr)
+              var req = extremeLemma is GreatestLemma
+                ? extremeLemma.Req.ConvertAll(cloner.CloneAttributedExpr)
                 : new List<AttributedExpression>();
-              var ens = com is GreatestLemma
+              var ens = extremeLemma is GreatestLemma
                 ? new List<AttributedExpression>()
-                : com.Ens.ConvertAll(cloner.CloneAttributedExpr);
-              com.PrefixLemma = new PrefixLemma(com.tok, extraName, com.HasStaticKeyword,
-                com.TypeArgs.ConvertAll(cloner.CloneTypeParam), k, formals, com.Outs.ConvertAll(cloner.CloneFormal),
-                req, cloner.CloneSpecFrameExpr(com.Mod), ens,
+                : extremeLemma.Ens.ConvertAll(cloner.CloneAttributedExpr);
+              extremeLemma.PrefixLemma = new PrefixLemma(extremeLemma.tok, extraName, extremeLemma.HasStaticKeyword,
+                extremeLemma.TypeArgs.ConvertAll(cloner.CloneTypeParam), k, formals, extremeLemma.Outs.ConvertAll(cloner.CloneFormal),
+                req, cloner.CloneSpecFrameExpr(extremeLemma.Mod), ens,
                 new Specification<Expression>(decr, null),
                 null, // Note, the body for the prefix method will be created once the call graph has been computed and the SCC for the greatest lemma is known
-                cloner.CloneAttributes(com.Attributes), com);
-              extraMember = com.PrefixLemma;
+                cloner.CloneAttributes(extremeLemma.Attributes), extremeLemma);
+              extraMember = extremeLemma.PrefixLemma;
               // In the call graph, add an edge from M# to M, since this will have the desired effect of detecting unwanted cycles.
-              moduleDef.CallGraph.AddEdge(com.PrefixLemma, com);
+              moduleDef.CallGraph.AddEdge(extremeLemma.PrefixLemma, extremeLemma);
             }
 
             extraMember.InheritVisibility(m, false);
@@ -3036,7 +3036,9 @@ namespace Microsoft.Dafny {
             }
           }
           reporter.Info(MessageSource.Resolver, com.tok,
-            string.Format("{0} with focal predicate{2} {1}", com.PrefixLemma.Name, Util.Comma(focalPredicates, p => p.Name), Util.Plural(focalPredicates.Count)));
+            focalPredicates.Count == 0 ?
+              $"{com.PrefixLemma.Name} has no focal predicates" :
+              $"{com.PrefixLemma.Name} with focal predicate{Util.Plural(focalPredicates.Count)} {Util.Comma(focalPredicates, p => p.Name)}");
           // Compute the statement body of the prefix lemma
           Contract.Assume(prefixLemma.Body == null);  // this is not supposed to have been filled in before
           if (com.Body != null) {
@@ -5336,7 +5338,7 @@ namespace Microsoft.Dafny {
                 }
               }
               Type a, b;
-              satisfied = Type.FromSameHead_Subtype(t, u, resolver.builtIns, out a, out b);
+              satisfied = Type.FromSameHead_Subtype(t, u, out a, out b);
               if (satisfied) {
                 Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
                 var cl = a is UserDefinedType ? ((UserDefinedType)a).ResolvedClass : null;
@@ -5396,7 +5398,7 @@ namespace Microsoft.Dafny {
               }
               Type a, b;
               // okay if t<:u or u<:t (this makes type inference more manageable, though it is more liberal than one might wish)
-              satisfied = Type.FromSameHead_Subtype(t, u, resolver.builtIns, out a, out b);
+              satisfied = Type.FromSameHead_Subtype(t, u, out a, out b);
               if (satisfied) {
                 Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
                 var cl = a is UserDefinedType ? ((UserDefinedType)a).ResolvedClass : null;
@@ -7299,7 +7301,7 @@ namespace Microsoft.Dafny {
     public void ComputeGhostInterest(Statement stmt, bool mustBeErasable, [CanBeNull] string proofContext, ICodeContext codeContext) {
       Contract.Requires(stmt != null);
       Contract.Requires(codeContext != null);
-      var visitor = new GhostInterest_Visitor(codeContext, this, false);
+      var visitor = new GhostInterestVisitor(codeContext, this, false);
       visitor.Visit(stmt, mustBeErasable, proofContext);
     }
 
@@ -7731,8 +7733,7 @@ namespace Microsoft.Dafny {
           ResolveTypeParameters(m.TypeArgs, true, m);
           ResolveMethodSignature(m);
           allTypeParameters.PopMarker();
-          var com = m as ExtremeLemma;
-          if (com != null && com.PrefixLemma != null && ec == reporter.Count(ErrorLevel.Error)) {
+          if (m is ExtremeLemma com && com.PrefixLemma != null && ec == reporter.Count(ErrorLevel.Error)) {
             var mm = com.PrefixLemma;
             // resolve signature of the prefix lemma
             mm.EnclosingClass = cl;
@@ -8796,8 +8797,7 @@ namespace Microsoft.Dafny {
 
         // Resolve body
         if (m.Body != null) {
-          var com = m as ExtremeLemma;
-          if (com != null && com.PrefixLemma != null) {
+          if (m is ExtremeLemma com && com.PrefixLemma != null) {
             // The body may mentioned the implicitly declared parameter _k.  Throw it into the
             // scope before resolving the body.
             var k = com.PrefixLemma.Ins[0];
@@ -9553,20 +9553,20 @@ namespace Microsoft.Dafny {
           reporter.Error(MessageSource.Resolver, stmt, "return statement is not allowed before 'new;' in a constructor");
         }
         var s = (ProduceStmt)stmt;
-        if (s.rhss != null) {
+        if (s.Rhss != null) {
           var cmc = resolutionContext.CodeContext as IMethodCodeContext;
           if (cmc == null) {
             // an error has already been reported above
-          } else if (cmc.Outs.Count != s.rhss.Count) {
-            reporter.Error(MessageSource.Resolver, s, "number of {2} parameters does not match declaration (found {0}, expected {1})", s.rhss.Count, cmc.Outs.Count, kind);
+          } else if (cmc.Outs.Count != s.Rhss.Count) {
+            reporter.Error(MessageSource.Resolver, s, "number of {2} parameters does not match declaration (found {0}, expected {1})", s.Rhss.Count, cmc.Outs.Count, kind);
           } else {
-            Contract.Assert(s.rhss.Count > 0);
+            Contract.Assert(s.Rhss.Count > 0);
             // Create a hidden update statement using the out-parameter formals, resolve the RHS, and check that the RHS is good.
             List<Expression> formals = new List<Expression>();
             foreach (Formal f in cmc.Outs) {
               Expression produceLhs;
               if (stmt is ReturnStmt) {
-                var ident = new IdentifierExpr(f.tok, f.Name);
+                var ident = new ImplicitIdentifierExpr(f.tok, f.Name);
                 // resolve it here to avoid capture into more closely declared local variables
                 ident.Var = f;
                 ident.Type = ident.Var.Type;
@@ -9579,12 +9579,12 @@ namespace Microsoft.Dafny {
               }
               formals.Add(produceLhs);
             }
-            s.hiddenUpdate = new UpdateStmt(s.Tok, s.EndTok, formals, s.rhss, true);
+            s.HiddenUpdate = new UpdateStmt(s.Tok, s.EndTok, formals, s.Rhss, true);
             // resolving the update statement will check for return/yield statement specifics.
-            ResolveStatement(s.hiddenUpdate, resolutionContext);
+            ResolveStatement(s.HiddenUpdate, resolutionContext);
           }
         } else {// this is a regular return/yield statement.
-          s.hiddenUpdate = null;
+          s.HiddenUpdate = null;
         }
       } else if (stmt is ConcreteUpdateStatement) {
         ResolveConcreteUpdateStmt((ConcreteUpdateStatement)stmt, resolutionContext);
@@ -9751,7 +9751,12 @@ namespace Microsoft.Dafny {
           ExprRhs rr = (ExprRhs)s.Rhs;
           ResolveExpression(rr.Expr, resolutionContext);
           Contract.Assert(rr.Expr.Type != null);  // follows from postcondition of ResolveExpression
-          AddAssignableConstraint(stmt.Tok, lhsType, rr.Expr.Type, "RHS (of type {1}) not assignable to LHS (of type {0})");
+
+          if (s.Lhs is ImplicitIdentifierExpr { Var: Formal { InParam: false } }) {
+            AddAssignableConstraint(stmt.Tok, lhsType, rr.Expr.Type, "Method return value mismatch (expected {0}, got {1})");
+          } else {
+            AddAssignableConstraint(stmt.Tok, lhsType, rr.Expr.Type, "RHS (of type {1}) not assignable to LHS (of type {0})");
+          }
         } else if (s.Rhs is TypeRhs) {
           TypeRhs rr = (TypeRhs)s.Rhs;
           Type t = ResolveTypeRhs(rr, stmt, resolutionContext);

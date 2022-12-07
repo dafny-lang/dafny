@@ -410,6 +410,14 @@ Usage: Dafny [ option ... ] [ filename ... ]
       This option is useful in a diamond dependency situation, 
       to prevent code from the bottom dependency from being generated more than once.
 
+  /optimizeErasableDatatypeWrapper:<value>
+      0 - Include all non-ghost datatype constructors in the compiled code
+      1 (default) - In the compiled target code, transform any non-extern
+          datatype with a single non-ghost constructor that has a single
+          non-ghost parameter into just that parameter. For example, the type
+              datatype Record = Record(x: int)
+          is transformed into just 'int' in the target code.
+
   /out:<file>
       Specify the filename and location for the generated target language
       files.
@@ -617,6 +625,8 @@ Usage: Dafny [ option ... ] [ filename ... ]
                 do not verify mover type annotations on atomic action declarations
   /trustNoninterference
                 do not perform noninterference checks
+  /trustRefinement
+                do not perform refinement checks
   /trustLayersUpto:<n>
                 do not verify layers <n> and below
   /trustLayersDownto:<n>

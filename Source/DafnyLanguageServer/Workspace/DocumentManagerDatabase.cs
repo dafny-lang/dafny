@@ -15,28 +15,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private readonly IServiceProvider services;
 
-    private VerifierOptions VerifierOptions { get; }
-    private readonly DocumentOptions documentOptions;
-
     private readonly Dictionary<DocumentUri, DocumentManager> documents = new();
 
-    public DocumentManagerDatabase(
-      IServiceProvider services,
-      DocumentOptions documentOptions,
-      VerifierOptions verifierOptions) {
+    public DocumentManagerDatabase(IServiceProvider services) {
+
       this.services = services;
-      this.documentOptions = documentOptions;
-      VerifierOptions = verifierOptions;
-
-      // TODO improve
-      // Initialises DafnyOptions.O
-      services.GetRequiredService<IDafnyParser>();
-
-      DafnyOptions.O.ProverOptions = this.documentOptions.AugmentedProverOptions;
     }
 
     public void OpenDocument(DocumentTextBuffer document) {
-      documents.Add(document.Uri, new DocumentManager(services, documentOptions, VerifierOptions, document));
+      documents.Add(document.Uri, new DocumentManager(services, document));
     }
 
     public void UpdateDocument(DidChangeTextDocumentParams documentChange) {

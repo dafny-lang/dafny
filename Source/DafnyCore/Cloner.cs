@@ -55,8 +55,9 @@ namespace Microsoft.Dafny {
           return new NewtypeDecl(Tok(dd.tok), dd.Name, m, CloneBoundVar(dd.Var), CloneExpr(dd.Constraint), dd.WitnessKind, CloneExpr(dd.Witness), dd.Members.ConvertAll(CloneMember), CloneAttributes(dd.Attributes), dd.IsRefining);
         }
       } else if (d is TupleTypeDecl) {
-        var dd = (TupleTypeDecl)d;
-        return new TupleTypeDecl(dd.ArgumentGhostness, dd.EnclosingModuleDefinition, dd.Attributes);
+        // Tuple type declarations only exist in the system module. Therefore, they are never cloned.
+        Contract.Assert(false);
+        throw new cce.UnreachableException();
       } else if (d is IndDatatypeDecl) {
         var dd = (IndDatatypeDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
@@ -587,11 +588,11 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is ReturnStmt) {
         var s = (ReturnStmt)stmt;
-        r = new ReturnStmt(Tok(s.Tok), Tok(s.EndTok), s.rhss == null ? null : s.rhss.ConvertAll(CloneRHS));
+        r = new ReturnStmt(Tok(s.Tok), Tok(s.EndTok), s.Rhss == null ? null : s.Rhss.ConvertAll(CloneRHS));
 
       } else if (stmt is YieldStmt) {
         var s = (YieldStmt)stmt;
-        r = new YieldStmt(Tok(s.Tok), Tok(s.EndTok), s.rhss == null ? null : s.rhss.ConvertAll(CloneRHS));
+        r = new YieldStmt(Tok(s.Tok), Tok(s.EndTok), s.Rhss == null ? null : s.Rhss.ConvertAll(CloneRHS));
 
       } else if (stmt is AssignStmt) {
         var s = (AssignStmt)stmt;
@@ -1132,252 +1133,6 @@ namespace Microsoft.Dafny {
         }
       }
       return sig;
-    }
-  }
-
-  /// <summary>
-  /// Subclass of Cloner that collects some common functionality between ExtremeLemmaSpecificationSubstituter and
-  /// ExtremeLemmaBodyCloner.
-  /// </summary>
-  abstract class ExtremeCloner : Cloner {
-    protected readonly Expression k;
-    protected readonly ErrorReporter reporter;
-    protected readonly string suffix;
-    protected ExtremeCloner(Expression k, ErrorReporter reporter) {
-      Contract.Requires(k != null);
-      Contract.Requires(reporter != null);
-      this.k = k;
-      this.reporter = reporter;
-      this.suffix = string.Format("#[{0}]", Printer.ExprToString(k));
-    }
-    protected Expression CloneCallAndAddK(ApplySuffix e) {
-      Contract.Requires(e != null);
-      Contract.Requires(e.Resolved is FunctionCallExpr && ((FunctionCallExpr)e.Resolved).Function is ExtremePredicate);
-      Contract.Requires(e.Lhs is NameSegment || e.Lhs is ExprDotName);
-      Expression lhs;
-      string name;
-      var ns = e.Lhs as NameSegment;
-      if (ns != null) {
-        name = ns.Name;
-        lhs = new NameSegment(Tok(ns.tok), name + "#", ns.OptTypeArguments == null ? null : ns.OptTypeArguments.ConvertAll(CloneType));
-      } else {
-        var edn = (ExprDotName)e.Lhs;
-        name = edn.SuffixName;
-        lhs = new ExprDotName(Tok(edn.tok), CloneExpr(edn.Lhs), name + "#", edn.OptTypeArguments == null ? null : edn.OptTypeArguments.ConvertAll(CloneType));
-      }
-      var args = new List<ActualBinding>();
-      args.Add(new ActualBinding(null, k));
-      foreach (var arg in e.Bindings.ArgumentBindings) {
-        args.Add(CloneActualBinding(arg));
-      }
-      var apply = new ApplySuffix(Tok(e.tok), e.AtTok == null ? null : Tok(e.AtTok), lhs, args, Tok(e.CloseParen));
-      reporter.Info(MessageSource.Cloner, e.tok, name + suffix);
-      return apply;
-    }
-    protected Expression CloneCallAndAddK(FunctionCallExpr e) {
-      Contract.Requires(e != null);
-      Contract.Requires(e.Function is ExtremePredicate);
-      var receiver = CloneExpr(e.Receiver);
-      var args = new List<ActualBinding>();
-      args.Add(new ActualBinding(null, k));
-      foreach (var binding in e.Bindings.ArgumentBindings) {
-        args.Add(CloneActualBinding(binding));
-      }
-      var fexp = new FunctionCallExpr(Tok(e.tok), e.Name + "#", receiver, e.OpenParen, e.CloseParen, args, e.AtLabel);
-      reporter.Info(MessageSource.Cloner, e.tok, e.Name + suffix);
-      return fexp;
-    }
-  }
-
-  /// <summary>
-  /// The ExtremeLemmaSpecificationSubstituter clones the precondition (or postcondition) declared
-  /// on a least (resp. greatest) lemma, but replaces the calls and equalities in "coConclusions"
-  /// with corresponding prefix versions.  The resulting expression is then appropriate to be a
-  /// precondition (resp. postcondition) of the least (resp. greatest) lemma's corresponding prefix lemma.
-  /// It is assumed that the source expression has been resolved.  Note, the "k" given to the constructor
-  /// is not cloned with each use; it is simply used as is.
-  /// The resulting expression needs to be resolved by the caller.
-  /// </summary>
-  class ExtremeLemmaSpecificationSubstituter : ExtremeCloner {
-    readonly bool isCoContext;
-    readonly ISet<Expression> friendlyCalls;
-    public ExtremeLemmaSpecificationSubstituter(ISet<Expression> friendlyCalls, Expression k, ErrorReporter reporter, bool isCoContext)
-      : base(k, reporter) {
-      Contract.Requires(friendlyCalls != null);
-      Contract.Requires(k != null);
-      Contract.Requires(reporter != null);
-      this.isCoContext = isCoContext;
-      this.friendlyCalls = friendlyCalls;
-    }
-    public override Expression CloneExpr(Expression expr) {
-      if (expr is NameSegment || expr is ExprDotName) {
-        // make sure to clone any user-supplied type-parameter instantiations
-        return base.CloneExpr(expr);
-      } else if (expr is ApplySuffix) {
-        var e = (ApplySuffix)expr;
-        var r = e.Resolved as FunctionCallExpr;
-        if (r != null && friendlyCalls.Contains(r)) {
-          return CloneCallAndAddK(e);
-        }
-      } else if (expr is SuffixExpr) {
-        // make sure to clone any user-supplied type-parameter instantiations
-        return base.CloneExpr(expr);
-      } else if (expr is ConcreteSyntaxExpression) {
-        var e = (ConcreteSyntaxExpression)expr;
-        // Note, the ExtremeLemmaSpecificationSubstituter is an unusual cloner in that it operates on
-        // resolved expressions.  Hence, we bypass the syntactic parts here, except for the ones
-        // checked above.
-        return CloneExpr(e.Resolved);
-      } else if (expr is FunctionCallExpr) {
-        var e = (FunctionCallExpr)expr;
-        if (friendlyCalls.Contains(e)) {
-          return CloneCallAndAddK(e);
-        }
-      } else if (expr is BinaryExpr && isCoContext) {
-        var e = (BinaryExpr)expr;
-        if ((e.ResolvedOp == BinaryExpr.ResolvedOpcode.EqCommon || e.ResolvedOp == BinaryExpr.ResolvedOpcode.NeqCommon) && friendlyCalls.Contains(e)) {
-          var op = e.ResolvedOp == BinaryExpr.ResolvedOpcode.EqCommon ? TernaryExpr.Opcode.PrefixEqOp : TernaryExpr.Opcode.PrefixNeqOp;
-          var A = CloneExpr(e.E0);
-          var B = CloneExpr(e.E1);
-          var teq = new TernaryExpr(Tok(e.tok), op, k, A, B);
-          var opString = op == TernaryExpr.Opcode.PrefixEqOp ? "==" : "!=";
-          reporter.Info(MessageSource.Cloner, e.tok, opString + suffix);
-          return teq;
-        }
-      }
-      return base.CloneExpr(expr);
-    }
-    public override Type CloneType(Type t) {
-      if (t is UserDefinedType) {
-        var tt = (UserDefinedType)t;
-        // We want syntactic cloning of the Expression that is tt.NamePath, unlike the semantic (that is, post-resolved)
-        // cloning that CloneExpr is doing above.
-        return new UserDefinedType(Tok(tt.tok), CloneNamePathExpression(tt.NamePath));
-      } else {
-        return base.CloneType(t);
-      }
-    }
-    Expression CloneNamePathExpression(Expression expr) {
-      Contract.Requires(expr is NameSegment || expr is ExprDotName);
-      if (expr is NameSegment) {
-        var e = (NameSegment)expr;
-        return new NameSegment(Tok(e.tok), e.Name, e.OptTypeArguments == null ? null : e.OptTypeArguments.ConvertAll(CloneType));
-      } else {
-        var e = (ExprDotName)expr;
-        return new ExprDotName(Tok(e.tok), CloneNamePathExpression(e.Lhs), e.SuffixName, e.OptTypeArguments == null ? null : e.OptTypeArguments.ConvertAll(CloneType));
-      }
-    }
-  }
-
-  /// <summary>
-  /// The task of the ExtremeLemmaBodyCloner is to fill in the implicit _k-1 arguments in recursive least/greatest lemma calls
-  /// and in calls to the focal predicates.
-  /// The source statement and the given "k" are assumed to have been resolved.
-  /// </summary>
-  class ExtremeLemmaBodyCloner : ExtremeCloner {
-    readonly ExtremeLemma context;
-    readonly ISet<ExtremePredicate> focalPredicates;
-    public ExtremeLemmaBodyCloner(ExtremeLemma context, Expression k, ISet<ExtremePredicate> focalPredicates, ErrorReporter reporter)
-      : base(k, reporter) {
-      Contract.Requires(context != null);
-      Contract.Requires(k != null);
-      Contract.Requires(reporter != null);
-      this.context = context;
-      this.focalPredicates = focalPredicates;
-    }
-    public override Statement CloneStmt(Statement stmt) {
-      if (stmt is ConcreteSyntaxStatement) {
-        var s = (ConcreteSyntaxStatement)stmt;
-        return CloneStmt(s.ResolvedStatement);
-      } else {
-        return base.CloneStmt(stmt);
-      }
-    }
-
-    public override Expression CloneExpr(Expression expr) {
-      if (DafnyOptions.O.RewriteFocalPredicates) {
-        if (expr is FunctionCallExpr) {
-          var e = (FunctionCallExpr)expr;
-#if DEBUG_PRINT
-          if (e.Function.Name.EndsWith("#") && Contract.Exists(focalPredicates, p => e.Function.Name == p.Name + "#")) {
-            Console.WriteLine("{0}({1},{2}): DEBUG: Possible opportunity to rely on new rewrite: {3}", e.tok.filename, e.tok.line, e.tok.col, Printer.ExprToString(e));
-          }
-#endif
-          // Note, we don't actually ever get here, because all calls will have been parsed as ApplySuffix.
-          // However, if something changes in the future (for example, some rewrite that changing an ApplySuffix
-          // to its resolved FunctionCallExpr), then we do want this code, so with the hope of preventing
-          // some error in the future, this case is included.  (Of course, it is currently completely untested!)
-          var f = e.Function as ExtremePredicate;
-          if (f != null && focalPredicates.Contains(f)) {
-#if DEBUG_PRINT
-            var r = CloneCallAndAddK(e);
-            Console.WriteLine("{0}({1},{2}): DEBUG: Rewrote extreme predicate into prefix predicate: {3}", e.tok.filename, e.tok.line, e.tok.col, Printer.ExprToString(r));
-            return r;
-#else
-            return CloneCallAndAddK(e);
-#endif
-          }
-        } else if (expr is StaticReceiverExpr ee) {
-          return new StaticReceiverExpr(Tok(ee.tok), ee.Type, ee.IsImplicit);
-        } else if (expr is ApplySuffix) {
-          var apply = (ApplySuffix)expr;
-          if (!apply.WasResolved()) {
-            // Since we're assuming the enclosing statement to have been resolved, this ApplySuffix must
-            // be part of an ExprRhs that actually designates a method call.  Such an ApplySuffix does
-            // not get listed as being resolved, but its components (like its .Lhs) are resolved.
-            var mse = (MemberSelectExpr)apply.Lhs.Resolved;
-            Contract.Assume(mse.Member is Method);
-          } else {
-            var fce = apply.Resolved as FunctionCallExpr;
-            if (fce != null) {
-#if DEBUG_PRINT
-              if (fce.Function.Name.EndsWith("#") && Contract.Exists(focalPredicates, p => fce.Function.Name == p.Name + "#")) {
-                Console.WriteLine("{0}({1},{2}): DEBUG: Possible opportunity to rely on new rewrite: {3}", fce.tok.filename, fce.tok.line, fce.tok.col, Printer.ExprToString(fce));
-              }
-#endif
-              var f = fce.Function as ExtremePredicate;
-              if (f != null && focalPredicates.Contains(f)) {
-#if DEBUG_PRINT
-                var r = CloneCallAndAddK(fce);
-                Console.WriteLine("{0}({1},{2}): DEBUG: Rewrote extreme predicate into prefix predicate: {3}", fce.tok.filename, fce.tok.line, fce.tok.col, Printer.ExprToString(r));
-                return r;
-#else
-                return CloneCallAndAddK(fce);
-#endif
-              }
-            }
-          }
-        }
-      }
-      return base.CloneExpr(expr);
-    }
-    public override AssignmentRhs CloneRHS(AssignmentRhs rhs) {
-      var r = rhs as ExprRhs;
-      if (r != null && r.Expr is ApplySuffix) {
-        var apply = (ApplySuffix)r.Expr;
-        var mse = apply.Lhs.Resolved as MemberSelectExpr;
-        if (mse != null && mse.Member is ExtremeLemma && ModuleDefinition.InSameSCC(context, (ExtremeLemma)mse.Member)) {
-          // we're looking at a recursive call to an extreme lemma
-          Contract.Assert(apply.Lhs is NameSegment || apply.Lhs is ExprDotName);  // this is the only way a call statement can have been parsed
-          // clone "apply.Lhs", changing the least/greatest lemma to the prefix lemma; then clone "apply", adding in the extra argument
-          Expression lhsClone;
-          if (apply.Lhs is NameSegment) {
-            var lhs = (NameSegment)apply.Lhs;
-            lhsClone = new NameSegment(Tok(lhs.tok), lhs.Name + "#", lhs.OptTypeArguments == null ? null : lhs.OptTypeArguments.ConvertAll(CloneType));
-          } else {
-            var lhs = (ExprDotName)apply.Lhs;
-            lhsClone = new ExprDotName(Tok(lhs.tok), CloneExpr(lhs.Lhs), lhs.SuffixName + "#", lhs.OptTypeArguments == null ? null : lhs.OptTypeArguments.ConvertAll(CloneType));
-          }
-          var args = new List<ActualBinding>();
-          args.Add(new ActualBinding(null, k));
-          apply.Bindings.ArgumentBindings.ForEach(arg => args.Add(CloneActualBinding(arg)));
-          var applyClone = new ApplySuffix(Tok(apply.tok), apply.AtTok == null ? null : Tok(apply.AtTok), lhsClone, args, Tok(apply.CloseParen));
-          var c = new ExprRhs(applyClone);
-          reporter.Info(MessageSource.Cloner, apply.Lhs.tok, mse.Member.Name + suffix);
-          return c;
-        }
-      }
-      return base.CloneRHS(rhs);
     }
   }
 

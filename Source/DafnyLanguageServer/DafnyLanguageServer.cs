@@ -19,8 +19,6 @@ using Action = System.Action;
 
 namespace Microsoft.Dafny.LanguageServer {
   public static class DafnyLanguageServer {
-    private static readonly List<string> pluginLoadErrors = new();
-    public static IReadOnlyList<string> PluginLoadErrors => pluginLoadErrors;
     private static string DafnyVersion {
       get {
         var version = typeof(DafnyLanguageServer).Assembly.GetName().Version!;
@@ -28,15 +26,14 @@ namespace Microsoft.Dafny.LanguageServer {
       }
     }
 
-    public static LanguageServerOptions WithDafnyLanguageServer(this LanguageServerOptions options,
-        IConfiguration configuration, Action killLanguageServer) {
+    public static LanguageServerOptions WithDafnyLanguageServer(this LanguageServerOptions options, Action killLanguageServer) {
       options.ServerInfo = new ServerInfo {
         Name = "Dafny",
         Version = DafnyVersion
       };
       return options
-        .WithDafnyLanguage(configuration)
-        .WithDafnyWorkspace(configuration)
+        .WithDafnyLanguage()
+        .WithDafnyWorkspace()
         .WithDafnyHandlers()
         .OnInitialize((server, @params, token) => InitializeAsync(server, @params, token, killLanguageServer))
         .OnStarted(StartedAsync);
@@ -44,10 +41,8 @@ namespace Microsoft.Dafny.LanguageServer {
 
     private static Task InitializeAsync(ILanguageServer server, InitializeParams request, CancellationToken cancelRequestToken,
         Action killLanguageServer) {
-      var logger = server.GetRequiredService<ILogger<Program>>();
+      var logger = server.GetRequiredService<ILogger<Server>>();
       logger.LogTrace("initializing service");
-
-      LoadPlugins(logger, server);
 
       KillLanguageServerIfParentDies(logger, request, killLanguageServer);
 
@@ -60,10 +55,11 @@ namespace Microsoft.Dafny.LanguageServer {
 
     private static void PublishSolverPath(ILanguageServer server) {
       var telemetryPublisher = server.GetRequiredService<ITelemetryPublisher>();
+      var options = server.GetRequiredService<DafnyOptions>();
       string solverPath;
       try {
-        var proverOptions = new SMTLibSolverOptions(DafnyOptions.O);
-        proverOptions.Parse(DafnyOptions.O.ProverOptions);
+        var proverOptions = new SMTLibSolverOptions(options);
+        proverOptions.Parse(options.ProverOptions);
         solverPath = proverOptions.ExecutablePath();
         HandleZ3Version(telemetryPublisher, proverOptions);
       } catch (Exception e) {
@@ -112,27 +108,10 @@ namespace Microsoft.Dafny.LanguageServer {
     }
 
     /// <summary>
-    /// Load the plugins for the Dafny pipeline
-    /// </summary>
-    private static void LoadPlugins(ILogger<Program> logger, ILanguageServer server) {
-      var dafnyPluginsOptions = server.GetRequiredService<IOptions<DafnyPluginsOptions>>();
-      var lastPlugin = "";
-      try {
-        foreach (var pluginPathArgument in dafnyPluginsOptions.Value.Plugins) {
-          lastPlugin = pluginPathArgument;
-          DafnyOptions.O.Parse(new[] { "-plugin:" + pluginPathArgument });
-        }
-      } catch (Exception e) {
-        logger.LogError(e, $"Error while instantiating plugin {lastPlugin}");
-        pluginLoadErrors.Add($"Error while instantiating plugin {lastPlugin}. Please restart the server.\n" + e);
-      }
-    }
-
-    /// <summary>
     /// As part of the LSP spec, a language server must kill itself if its parent process dies
     /// https://github.com/microsoft/language-server-protocol/blob/gh-pages/_specifications/specification-3-16.md?plain=1#L1713
     /// </summary>
-    private static void KillLanguageServerIfParentDies(ILogger<Program> logger, InitializeParams request,
+    private static void KillLanguageServerIfParentDies(ILogger<Server> logger, InitializeParams request,
         Action killLanguageServer) {
       if (!(request.ProcessId >= 0)) {
         return;

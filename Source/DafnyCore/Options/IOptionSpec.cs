@@ -31,7 +31,7 @@ public abstract class CommandLineOption<T> : IOptionSpec {
       return (T)result;
     }
 
-    return default;
+    return (T)DefaultValue;
   }
 
   public void Set(DafnyOptions options, T value) {

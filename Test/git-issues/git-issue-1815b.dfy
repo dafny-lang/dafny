@@ -4,18 +4,19 @@
 // RUN: %dafny_0 /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
 // RUN: %dafny_0 /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
-// The Java compiler lacks support for this (see dafny0/RuntimeTypeTests0.dfy).
 
-datatype X<+U> = X(x: U)
+datatype Y<+U> = Y(y: U)
 
 trait Tr {}
 class Cl extends Tr {
-    constructor () {}
+  constructor () {}
 }
 
 method Main() {
-    var cl := new Cl();
-    var e: X<Tr> := X(cl);
-    match e
-    case X(tr) => return;
+  // Because Y is an erasable type wrapper, it gets compiled as its argument,
+  // so even Java supports this one.
+  var cl := new Cl();
+  var e: Y<Tr> := Y(cl);
+  match e
+  case Y(tr) => return;
 }

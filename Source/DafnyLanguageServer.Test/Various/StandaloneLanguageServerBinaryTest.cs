@@ -13,6 +13,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using Microsoft.CodeAnalysis;
+using Microsoft.Extensions.Logging.Abstractions;
 using OmniSharp.Extensions.JsonRpc;
 using OmniSharp.Extensions.JsonRpc.Client;
 using OmniSharp.Extensions.JsonRpc.Serialization;
@@ -22,9 +23,35 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
   [TestClass]
-  public class ShutdownTest {
+  public class StandaloneLanguageServerBinaryTest {
 
-    [TestMethod, Timeout(10_000)]
+    [TestMethod]
+    public async Task InitialisationWorks() {
+
+      var process = StartLanguageServer();
+      var initializeMessage = await GetLspInitializeMessage(process.Id);
+      await process.StandardInput.WriteAsync(initializeMessage);
+
+      var initializedResponseFirstLine = await process.StandardOutput.ReadLineAsync();
+      Assert.IsFalse(string.IsNullOrEmpty(initializedResponseFirstLine));
+      process.Kill();
+      await process.WaitForExitAsync();
+    }
+
+    private Process StartLanguageServer() {
+      var serverBinary = Path.Join(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "DafnyLanguageServer.dll");
+
+      var processInfo = new ProcessStartInfo("dotnet", serverBinary) {
+        RedirectStandardOutput = true,
+        RedirectStandardError = true,
+        RedirectStandardInput = true,
+        UseShellExecute = false
+      };
+
+      return Process.Start(processInfo)!;
+    }
+
+    [TestMethod]
     public async Task LanguageServerStaysAliveIfParentDiesButNoParentIdWasProvided() {
       var process = await StartLanguageServerRunnerProcess();
 
@@ -96,7 +123,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         RedirectStandardOutput = true,
         RedirectStandardError = true,
         RedirectStandardInput = true,
-        UseShellExecute = false
+        UseShellExecute = false,
       };
       return Process.Start(processInfo)!;
     }
@@ -109,7 +136,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var buffer = new MemoryStream();
       OutputHandler outputHandler = new OutputHandler(PipeWriter.Create(buffer), new JsonRpcSerializer(),
         new List<IOutputFilter> { new AlwaysOutputFilter() },
-        TaskPoolScheduler.Default, null);
+        TaskPoolScheduler.Default, new NullLogger<OutputHandler>());
       outputHandler.Send(new OutgoingRequest {
         Id = 1,
         Method = "initialize",
