@@ -520,8 +520,8 @@ namespace Microsoft.Dafny.Compilers {
       var groundingCtor = dt.GetGroundingCtor();
       if (groundingCtor.IsGhost) {
         wDefault.Write(ForcePlaceboValue(simplifiedType, wDefault, dt.tok));
-      } else if (DatatypeWrapperEraser.IsErasableDatatypeWrapper(dt, out var dtor)) {
-        wDefault.Write(DefaultValue(dtor.Type, wDefault, dt.tok));
+      } else if (DatatypeWrapperEraser.GetInnerTypeOfErasableDatatypeWrapper(dt, out var innerType)) {
+        wDefault.Write(DefaultValue(innerType, wDefault, dt.tok));
       } else {
         if (dt is CoDatatypeDecl) {
           var wCo = wDefault;
@@ -620,9 +620,8 @@ namespace Microsoft.Dafny.Compilers {
         tp => tp,
         tp => (Type)new UserDefinedType(tp.tok, new TypeParameter(tp.tok, $"_{tp.Name}", tp.VarianceSyntax)));
 
-      DatatypeDestructor coreDestructor = null;
-      var resultType = DatatypeWrapperEraser.IsErasableDatatypeWrapper(datatype, out coreDestructor)
-        ? TypeName(coreDestructor.Type.Subst(typeSubstMap), wr, datatype.tok)
+      var resultType = DatatypeWrapperEraser.GetInnerTypeOfErasableDatatypeWrapper(datatype, out var innerType)
+        ? TypeName(innerType.Subst(typeSubstMap), wr, datatype.tok)
         : "_I" + datatype.CompileName + uTypeArgs;
       var converters = $"{nonGhostTypeArgs.Comma((_, i) => $"converter{i}")}";
       var lazyClass = $"{datatype.FullCompileName}__Lazy";
@@ -713,9 +712,9 @@ namespace Microsoft.Dafny.Compilers {
         return PrintConvertedExpr(name, f.Type);
       }
 
-      if (DatatypeWrapperEraser.IsErasableDatatypeWrapper(datatype, out var dtor)) {
+      if (innerType != null) {
         var wBody = wr.NewBlock("");
-        wBody.WriteLine($"return {PrintConvertedExpr("_this", dtor.Type)};");
+        wBody.WriteLine($"return {PrintConvertedExpr("_this", innerType)};");
       } else {
         var wBody = wr.NewBlock("").WriteLine($"if ({(customReceiver ? "_" : "")}this is {resultType} dt) {{ return dt; }}");
         var constructorArgs = lazy

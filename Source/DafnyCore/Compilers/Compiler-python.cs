@@ -272,8 +272,8 @@ namespace Microsoft.Dafny.Compilers {
       var groundingCtor = dt.GetGroundingCtor();
       if (groundingCtor.IsGhost) {
         wDefault.WriteLine($"return lambda: {ForcePlaceboValue(UserDefinedType.FromTopLevelDecl(dt.tok, dt), wDefault, dt.tok)}");
-      } else if (DatatypeWrapperEraser.IsErasableDatatypeWrapper(dt, out var dtor)) {
-        wDefault.WriteLine($"return lambda: {DefaultValue(dtor.Type, wDefault, dt.tok)}");
+      } else if (DatatypeWrapperEraser.GetInnerTypeOfErasableDatatypeWrapper(dt, out var innerType)) {
+        wDefault.WriteLine($"return lambda: {DefaultValue(innerType, wDefault, dt.tok)}");
       } else {
         var arguments = groundingCtor.Formals.Where(f => !f.IsGhost).Comma(f => DefaultValue(f.Type, wDefault, f.tok));
         var constructorCall = $"{DtCtorDeclarationName(groundingCtor, false)}({arguments})";

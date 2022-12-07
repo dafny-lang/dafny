@@ -1844,8 +1844,8 @@ namespace Microsoft.Dafny.Compilers {
       var groundingCtor = dt.GetGroundingCtor();
       if (groundingCtor.IsGhost) {
         wDefault.Write(ForcePlaceboValue(simplifiedType, wDefault, dt.tok));
-      } else if (DatatypeWrapperEraser.IsErasableDatatypeWrapper(dt, out var dtor)) {
-        wDefault.Write(DefaultValue(dtor.Type, wDefault, dt.tok));
+      } else if (DatatypeWrapperEraser.GetInnerTypeOfErasableDatatypeWrapper(dt, out var innerType)) {
+        wDefault.Write(DefaultValue(innerType, wDefault, dt.tok));
       } else {
         var nonGhostFormals = groundingCtor.Formals.Where(f => !f.IsGhost).ToList();
         var args = nonGhostFormals.Comma(f => DefaultValue(f.Type, wDefault, f.tok));

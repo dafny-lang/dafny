@@ -17,9 +17,9 @@ namespace Microsoft.Dafny.Compilers {
         if (dt.GetGroundingCtor().IsGhost) {
           return true;
         }
-        if (IsErasableDatatypeWrapper(dt, out var dtor)) {
+        if (GetInnerTypeOfErasableDatatypeWrapper(dt, out var innerType)) {
           var typeSubst = TypeParameter.SubstitutionMap(dt.TypeArgs, udt.TypeArgs);
-          return CanBeLeftUninitialized(dtor.Type.Subst(typeSubst));
+          return CanBeLeftUninitialized(innerType.Subst(typeSubst));
         }
       }
       return false;
@@ -51,9 +51,9 @@ namespace Microsoft.Dafny.Compilers {
           Contract.Assert(nonGhostTupleTypeDecl.NonGhostDims == nonGhostTupleTypeDecl.Dims);
           return new UserDefinedType(udt.tok, nonGhostTupleTypeDecl.Name, nonGhostTupleTypeDecl, typeArgsForNonGhostTuple);
 
-        } else if (udt.ResolvedClass is DatatypeDecl datatypeDecl && IsErasableDatatypeWrapper(datatypeDecl, out var dtor)) {
+        } else if (udt.ResolvedClass is DatatypeDecl datatypeDecl && GetInnerTypeOfErasableDatatypeWrapper(datatypeDecl, out var innerType)) {
           var typeSubst = TypeParameter.SubstitutionMap(datatypeDecl.TypeArgs, udt.TypeArgs);
-          var stype = dtor.Type.Subst(typeSubst).NormalizeExpand(keepConstraints);
+          var stype = innerType.Subst(typeSubst).NormalizeExpand(keepConstraints);
           return SimplifyType(stype, keepConstraints);
         }
       }
@@ -82,6 +82,19 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       return MemberCompileStatus.Ordinary;
+    }
+
+    /// <summary>
+    /// If "dt" is an erasable datatype wrapper (see description of IsErasableDatatypeWrapper), then return "true" and
+    /// set the out-parameter to the inner type. Otherwise, return "false" and sets the out-parameter to null.
+    /// </summary>
+    public static bool GetInnerTypeOfErasableDatatypeWrapper(DatatypeDecl dt, out Type innerType) {
+      if (IsErasableDatatypeWrapper(dt, out var coreDestructor)) {
+        innerType = coreDestructor.Type;
+        return true;
+      }
+      innerType = null;
+      return false;
     }
 
     /// <summary>
