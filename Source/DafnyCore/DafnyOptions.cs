@@ -73,7 +73,7 @@ namespace Microsoft.Dafny {
     }
 
     public static void ParseStringElement(Option<IList<string>> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
-      var value = options.Get(option) ?? new List<string>();
+      var value = (IList<string>)options.Options.OptionArguments.GetOrCreate(option, () => new List<string>());
       if (ps.ConfirmArgumentCount(1)) {
         value.Add(ps.args[ps.i]);
       }
