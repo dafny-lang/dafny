@@ -90,6 +90,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private string DafnyTypeDescriptor => $"{HelperModulePrefix}TypeDescriptor";
+    private string DafnySequenceCompanion => $"{HelperModulePrefix}Companion_Sequence_";
 
     void EmitModuleHeader(ConcreteSyntaxTree wr) {
       wr.WriteLine("// Package {0}", ModuleName);
@@ -289,7 +290,7 @@ namespace Microsoft.Dafny.Compilers {
         var wEquals = w.NewNamedBlock("func (_this *{0}) Equals(other *{0}) bool", name);
         // TODO-HACK
         if (name.EndsWith("Sequence")) {
-          wEquals.WriteLine("return Companion_Default___.EqualSequences(_this, other)");
+          wEquals.WriteLine($"return {DafnySequenceCompanion}.Equal(_this, other)");
         } else {
           wEquals.WriteLine("return _this == other");
         }
@@ -298,7 +299,7 @@ namespace Microsoft.Dafny.Compilers {
         var wEqualsGeneric = w.NewNamedBlock("func (_this *{0}) EqualsGeneric(x interface{{}}) bool", name);
         if (name.EndsWith("Sequence")) {
           wEqualsGeneric.WriteLine("other, ok := x.(*Sequence)");
-          wEqualsGeneric.WriteLine("return ok && Companion_Default___.EqualSequences(_this, *other)");
+          wEqualsGeneric.WriteLine($"return ok && {DafnySequenceCompanion}.Equal(_this, *other)");
         } else {
           wEqualsGeneric.WriteLine("other, ok := x.(*{0})", name);
           wEqualsGeneric.WriteLine("return ok && _this.Equals(other)");
@@ -2774,14 +2775,20 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value,
         CollectionType resultCollectionType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      EmitIndexCollectionUpdate(out var wSource, out var wIndex, out var wValue, wr, false);
-      TrParenExpr(source, wSource, inLetExprBody, wSource);
       if (source.Type.AsSeqType != null) {
-        TrExprToBigInt(index, wIndex, inLetExprBody);
+        wr.Write($"{HelperModulePrefix}Companion_Default___.Update(");
+        TrExpr(source, wr, inLetExprBody, wStmts);
+        wr.Write(", ");
+        TrExpr(index, wr, inLetExprBody, wStmts);
+        wr.Write(", ");
+        TrExpr(value, wr, inLetExprBody, wStmts);
+        wr.Write(")");
       } else {
+        EmitIndexCollectionUpdate(out var wSource, out var wIndex, out var wValue, wr, false);
+        TrParenExpr(source, wSource, inLetExprBody, wSource);
         TrExpr(index, wIndex, inLetExprBody, wSource);
+        TrExpr(value, wValue, inLetExprBody, wSource);
       }
-      TrExpr(value, wValue, inLetExprBody, wSource);
     }
 
     protected override void EmitIndexCollectionUpdate(out ConcreteSyntaxTree wSource, out ConcreteSyntaxTree wIndex, out ConcreteSyntaxTree wValue, ConcreteSyntaxTree wr, bool nativeIndex) {
@@ -2857,7 +2864,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitSeqConstructionExpr(SeqConstructionExpr expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      wr.Write("_dafny.SeqCreate(");
+      wr.Write($"{DafnySequenceCompanion}.Create(");
       TrExpr(expr.N, wr, inLetExprBody, wStmts);
       wr.Write(", ");
       var fromType = (ArrowType)expr.Initializer.Type.NormalizeExpand();
@@ -3260,7 +3267,7 @@ namespace Microsoft.Dafny.Compilers {
         case BinaryExpr.ResolvedOpcode.Prefix:
           callString = "IsPrefixOf"; break;
         case BinaryExpr.ResolvedOpcode.Concat:
-          staticCallString = "Companion_Default___.Concatenate"; break;
+          staticCallString = $"{DafnySequenceCompanion}.Concatenate"; break;
         case BinaryExpr.ResolvedOpcode.InSeq:
           callString = "Contains"; reverseArguments = true; break;
 

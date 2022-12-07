@@ -460,6 +460,114 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     // We specifically DON'T yet implement a ToString() method because that
     // doesn't help much in practice. Most runtimes implement the conversion between
     // various Dafny types and their native string type, which we don't yet model here.
+
+    // Sequence creation methods
+
+    static method Create<T>(cardinality: size_t, initFn: size_t -> T) returns (ret: Sequence<T>) {
+      var a := NativeArray<T>.MakeWithInit(cardinality, initFn);
+      var frozen := a.Freeze(cardinality);
+      ret := new ArraySequence(frozen);
+    }
+
+    // Sequence methods that must be static because they require T to be equality-supporting
+
+    static method EqualUpTo<T(==)>(left: Sequence<T>, right: Sequence<T>, index: size_t) returns (ret: bool) 
+      requires left.Valid()
+      requires right.Valid()
+      requires index <= left.Cardinality()
+      requires index <= right.Cardinality()
+      ensures ret == (left.Value()[..index] == right.Value()[..index])
+    {
+      for i := 0 to index
+        invariant left.Value()[..i] == right.Value()[..i]
+      {
+        var leftElement := left.Select(i);
+        var rightElement := right.Select(i);
+        if leftElement != rightElement {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    static method Equal<T(==)>(left: Sequence<T>, right: Sequence<T>) returns (ret: bool) 
+      requires left.Valid()
+      requires right.Valid()
+      ensures ret == (left.Value() == right.Value())
+    {
+      if left.Cardinality() != right.Cardinality() {
+        return false;
+      }
+      ret := EqualUpTo(left, right, left.Cardinality());
+    }
+
+    static method IsPrefixOf<T(==)>(left: Sequence<T>, right: Sequence<T>) returns (ret: bool) 
+      requires left.Valid()
+      requires right.Valid()
+      ensures ret == (left.Value() <= right.Value())
+    {
+      if right.Cardinality() < left.Cardinality() {
+        return false;
+      }
+      ret := EqualUpTo(left, right, left.Cardinality());
+    }
+
+    static method IsProperPrefixOf<T(==)>(left: Sequence<T>, right: Sequence<T>) returns (ret: bool) 
+      requires left.Valid()
+      requires right.Valid()
+      ensures ret == (left.Value() < right.Value())
+    {
+      if right.Cardinality() <= left.Cardinality() {
+        return false;
+      }
+      ret := EqualUpTo(left, right, left.Cardinality());
+    }
+
+
+    static predicate Contains<T(==)>(s: Sequence<T>, t: T)
+      requires s.Valid()
+    {
+      t in s.Value()
+    } by method {
+      for i := ZERO_SIZE to s.Cardinality() 
+        invariant t !in s.Value()[..i]
+      {
+        var element := s.Select(i);
+        if element == t {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    // Sequence methods that must be static because they use T as an in-parameter
+
+    static method Update<T>(s: Sequence<T>, i: size_t, t: T) returns (ret: Sequence<T>)
+      requires s.Valid()
+      requires i < s.Cardinality()
+      ensures ret.Valid()
+      ensures ret.Value() == s.Value()[..i] + [t] + s.Value()[(i + 1)..]
+    {
+      var a := s.ToArray();
+      var newValue := NativeArray<T>.Copy(a);
+      newValue.Update(i, t);
+      var newValueFrozen := newValue.Freeze(newValue.Length());
+      ret := new ArraySequence(newValueFrozen);
+    }
+
+    static method Concatenate<T>(left: Sequence<T>, right: Sequence<T>) returns (ret: Sequence<T>)
+      requires left.Valid()
+      requires right.Valid()
+      ensures ret.Valid()
+    {
+      expect SizeAdditionInRange(left.Cardinality(), right.Cardinality()),
+        "Concatenation result cardinality would be larger than the maximum (" + Helpers.DafnyValueToDafnyString(SIZE_T_MAX) + ")";
+
+      // TODO: This could inspect left and right to see if they are already LazySequences
+      // and concatenate the boxed values if so.
+      var c := new ConcatSequence(left, right);
+      ret := new LazySequence(c);
+    }
   }
 
   // TODO: this would be safe(r) if we used a datatype instead, but still not guaranteed.
@@ -737,113 +845,5 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       var arraySeq := new ArraySequence(ret);
       box.Put(arraySeq);
     }
-  }
-
-  // Sequence creation methods
-
-  method CreateSequence<T>(cardinality: size_t, initFn: size_t -> T) returns (ret: Sequence<T>) {
-    var a := NativeArray<T>.MakeWithInit(cardinality, initFn);
-    var frozen := a.Freeze(cardinality);
-    ret := new ArraySequence(frozen);
-  }
-
-  // Sequence methods that must be static because they require T to be equality-supporting
-
-  method EqualUpTo<T(==)>(left: Sequence<T>, right: Sequence<T>, index: size_t) returns (ret: bool) 
-    requires left.Valid()
-    requires right.Valid()
-    requires index <= left.Cardinality()
-    requires index <= right.Cardinality()
-    ensures ret == (left.Value()[..index] == right.Value()[..index])
-  {
-    for i := 0 to index
-      invariant left.Value()[..i] == right.Value()[..i]
-    {
-      var leftElement := left.Select(i);
-      var rightElement := right.Select(i);
-      if leftElement != rightElement {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  method EqualSequences<T(==)>(left: Sequence<T>, right: Sequence<T>) returns (ret: bool) 
-    requires left.Valid()
-    requires right.Valid()
-    ensures ret == (left.Value() == right.Value())
-  {
-    if left.Cardinality() != right.Cardinality() {
-      return false;
-    }
-    ret := EqualUpTo(left, right, left.Cardinality());
-  }
-
-  method IsPrefixOf<T(==)>(left: Sequence<T>, right: Sequence<T>) returns (ret: bool) 
-    requires left.Valid()
-    requires right.Valid()
-    ensures ret == (left.Value() <= right.Value())
-  {
-    if right.Cardinality() < left.Cardinality() {
-      return false;
-    }
-    ret := EqualUpTo(left, right, left.Cardinality());
-  }
-
-  method IsProperPrefixOf<T(==)>(left: Sequence<T>, right: Sequence<T>) returns (ret: bool) 
-    requires left.Valid()
-    requires right.Valid()
-    ensures ret == (left.Value() < right.Value())
-  {
-    if right.Cardinality() <= left.Cardinality() {
-      return false;
-    }
-    ret := EqualUpTo(left, right, left.Cardinality());
-  }
-
-
-  predicate Contains<T(==)>(s: Sequence<T>, t: T)
-    requires s.Valid()
-  {
-    t in s.Value()
-  } by method {
-    for i := ZERO_SIZE to s.Cardinality() 
-      invariant t !in s.Value()[..i]
-    {
-      var element := s.Select(i);
-      if element == t {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  // Sequence methods that must be static because they use T as an in-parameter
-
-  method Concatenate<T>(left: Sequence<T>, right: Sequence<T>) returns (ret: Sequence<T>)
-    requires left.Valid()
-    requires right.Valid()
-    ensures ret.Valid()
-  {
-    expect SizeAdditionInRange(left.Cardinality(), right.Cardinality()),
-      "Concatenation result cardinality would be larger than the maximum (" + Helpers.DafnyValueToDafnyString(SIZE_T_MAX) + ")";
-
-    // TODO: This could inspect left and right to see if they are already LazySequences
-    // and concatenate the boxed values if so.
-    var c := new ConcatSequence(left, right);
-    ret := new LazySequence(c);
-  }
-
-  method Update<T>(s: Sequence<T>, i: size_t, t: T) returns (ret: Sequence<T>)
-    requires s.Valid()
-    requires i < s.Cardinality()
-    ensures ret.Valid()
-    ensures ret.Value() == s.Value()[..i] + [t] + s.Value()[(i + 1)..]
-  {
-    var a := s.ToArray();
-    var newValue := NativeArray<T>.Copy(a);
-    newValue.Update(i, t);
-    var newValueFrozen := newValue.Freeze(newValue.Length());
-    ret := new ArraySequence(newValueFrozen);
   }
 }
