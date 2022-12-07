@@ -591,158 +591,63 @@ type. To obtain a more constrained arbitrary value the "assign-such-that"
 operator (`:|`) can be used. See [Section 20.6](#sec-update-and-call-statement).
 
 ## 21.19. Constant Or Atomic Expressions
-````grammar
-ConstAtomExpression =
-  ( LiteralExpression
-  | "this"
-  | FreshExpression_
-  | AllocatedExpression_
-  | UnchangedExpression_
-  | OldExpression_
-  | CardinalityExpression_
-  | ParensExpression
-  )
-````
-A ``ConstAtomExpression`` represents either a constant of some type, or an
-atomic expression. A ``ConstAtomExpression`` is never an l-value.
+([grammar](#g-atomic-expression))
+
+Examples:
+```dafny
+this
+null
+5
+5.5
+true
+'a'
+"dafny"
+( e )
+| s |
+old(x)
+allocated(x)
+unchanged(x)
+fresh(e)
+```
+
+These expressions represent either a constant of some type (a literal), or an
+atomic expression. They are neve l-values.
 
 ## 21.20. Literal Expressions
-````grammar
-LiteralExpression =
- ( "false" | "true" | "null" | Nat | Dec |
-   charToken | stringToken )
-````
+([grammar](#g-literal-expression)}
+
+Examples:
+```dafny
+5
+5.5
+true
+'a'
+"dafny"
+```
+
 A literal expression is a boolean literal, a null object reference,
 an integer or real literal, a character or string literal.
 
 ## 21.21. `this` Expression
+
+([grammar](#g-this-expression))
+
+Examples:
+```dafny
+this
+```
+
 The `this` token denotes the current object in the context of 
 a constructor, instance method, or instance function.
 
-## 21.22. Fresh Expressions {#sec-fresh-expression}
-
-`fresh(e)` returns a boolean value that is true if
-the objects denoted by expression `e` were all
-freshly allocated since the time of entry to the enclosing method,
-or since [`label L:`](#sec-labeled-stmt) in the variant `fresh@L(e)`.
-For example, consider this valid program:
-
-```dafny
-class C { constructor() {} }
-method f(c1: C) returns (r: C)
-  ensures fresh(r)
-{
-  assert !fresh(c1);
-  var c2 := new C();
-  label AfterC2:
-  var c3 := new C();
-  assert fresh(c2) && fresh(c3);
-  assert fresh({c2, c3});
-  assert !fresh@AfterC2(c2) && fresh@AfterC2(c3);
-  r := c2;
-}
-```
-
-The `L` in the variant `fresh@L(e)` must denote a [label](#sec-labeled-stmt) that, in the
-enclosing method's control flow, [dominates the expression](#sec-labeled-stmt). In this
-case, `fresh@L(e)` returns `true` if the objects denoted by `e` were all
-freshly allocated since control flow reached label `L`.
-
-The argument of `fresh` must be either an [`object`](#sec-object-type) reference
-or a set or sequence of object references.
-In this case, `fresh(e)` (respectively `fresh@L(e)` with a label)
-is a synonym of [`old(!allocated(e))`](#sec-allocated-expression)
-(respectively [`old@L(!allocated(e))`](#sec-allocated-expression))
-
-````grammar
-FreshExpression_ =
-  "fresh" [ "@" LabelName ]
-  "(" Expression(allowLemma: true, allowLambda: true) ")"
-````
-
-## 21.23. Allocated Expressions {#sec-allocated-expression}
-For any expression `e`, the expression `allocated(e)` evaluates to `true`
-in a state if the value of `e` is available in that state, meaning that
-it could in principle have been the value of a variable in that state.
-
-For example, consider this valid program:
-
-```dafny
-class C { constructor() {} }
-datatype D = Nil | Cons(C, D)
-method f() {
-  var d1, d2 := Nil, Nil;
-  var c1 := new C();
-  label L1:
-  var c2 := new C();
-  label L2:
-  assert old(allocated(d1) && allocated(d2));
-  d1 := Cons(c1, Nil);
-  assert old(!allocated(d1) && allocated(d2));
-  d2 := Cons(c2, Nil);
-  assert old(!allocated(d1) && !allocated(d2));
-  assert allocated(d1) && allocated(d2);
-  assert old@L1(allocated(d1) && !allocated(d2));
-  assert old@L2(allocated(d1) && allocated(d2));
-  d1 := Nil;
-  assert old(allocated(d1) && !allocated(d2));
-}
-```
-
-This can be useful when, for example, `allocated(e)` is evaluated in an
-[`old`](#sec-old-expression) state. Like in the example, where `d1` is a local variable holding a datatype value
-`Cons(c1, Nil)` where `c1` is an object that was allocated in the enclosing
-method, then [`old(allocated(d))`](#sec-old-expression) is `false`.
-
-If the expression `e` is of a reference type, then `!old(allocated(e))`
-is the same as [`fresh(e)`](#sec-fresh-expression).
-
-````grammar
-AllocatedExpression_ =
-  "allocated" "(" Expression(allowLemma: true, allowLambda: true) ")"
-````
-
-## 21.24. Unchanged Expressions {#sec-unchanged-expression}
-
-````grammar
-UnchangedExpression_ =
-  "unchanged" [ "@" LabelName ]
-  "(" FrameExpression(allowLemma: true, allowLambda: true)
-      { "," FrameExpression(allowLemma: true, allowLambda: true) }
-  ")"
-````
-
-The `unchanged` expression returns `true` if and only if every reference
-denoted by its arguments has the same value for all its fields in the
-old and current state. For example, if `c` is an object with two
-fields, `x` and `y`, then `unchanged(c)` is equivalent to
-```dafny
-c.x == old(c.x) && c.y == old(c.y)
-```
-
-Each argument to `unchanged` can be a reference, a set of references, or
-a sequence of references. If it is a reference, it can be followed by
-`` `f``, where `f` is a field of the reference. This form expresses that `f`,
-not necessarily all fields, has the same value in the old and current
-state.
-
-The optional `@`-label says to use it as the old-state instead of using
-the `old` state. That is, using the example `c` from above, the expression
-`unchanged@Lbl(c)` is equivalent to
-```dafny
-c.x == old@Lbl(c.x) && c.y == old@Lbl(c.y)
-```
-
-Each reference denoted by the arguments of `unchanged` must be non-null and
-must be allocated in the old-state of the expression.
-
 ## 21.25. Old and Old@ Expressions {#sec-old-expression}
+([grammar](#g-old-expression))
 
-````grammar
-OldExpression_ =
-  "old" [ "@" LabelName ]
-  "(" Expression(allowLemma: true, allowLambda: true) ")"
-````
+Examples:
+```dafny
+old(c)
+old@L(c)
+```
 
 An _old expression_ is used in postconditions or in the body of a method
 or in the body or specification of any two-state function or two-state lemma;
@@ -783,25 +688,150 @@ The next example demonstrates the interaction between `old` and array elements.
 {% include_relative examples/Example-Old3.dfy %}
 ```
 
+## 21.22. Fresh Expressions {#sec-fresh-expression}
+
+([grammar](#g-fresh-expression))
+
+Examples:
+```dafny
+fresh(e)
+fresh@L(e)
+```
+
+`fresh(e)` returns a boolean value that is true if
+the objects denoted by expression `e` were all
+freshly allocated since the time of entry to the enclosing method,
+or since [`label L:`](#sec-labeled-stmt) in the variant `fresh@L(e)`.
+For example, consider this valid program:
+
+```dafny
+class C { constructor() {} }
+method f(c1: C) returns (r: C)
+  ensures fresh(r)
+{
+  assert !fresh(c1);
+  var c2 := new C();
+  label AfterC2:
+  var c3 := new C();
+  assert fresh(c2) && fresh(c3);
+  assert fresh({c2, c3});
+  assert !fresh@AfterC2(c2) && fresh@AfterC2(c3);
+  r := c2;
+}
+```
+
+The `L` in the variant `fresh@L(e)` must denote a [label](#sec-labeled-stmt) that, in the
+enclosing method's control flow, [dominates the expression](#sec-labeled-stmt). In this
+case, `fresh@L(e)` returns `true` if the objects denoted by `e` were all
+freshly allocated since control flow reached label `L`.
+
+The argument of `fresh` must be either an [`object`](#sec-object-type) reference
+or a set or sequence of object references.
+In this case, `fresh(e)` (respectively `fresh@L(e)` with a label)
+is a synonym of [`old(!allocated(e))`](#sec-allocated-expression)
+(respectively [`old@L(!allocated(e))`](#sec-allocated-expression))
+
+
+## 21.23. Allocated Expressions {#sec-allocated-expression}
+([grammar](#g-allocated-expression))
+
+Examples:
+```dafny
+allocated(c)
+allocated({c1,c2})
+allocated@L(c)
+```
+
+For any expression `e`, the expression `allocated(e)` evaluates to `true`
+in a state if the value of `e` is available in that state, meaning that
+it could in principle have been the value of a variable in that state.
+
+For example, consider this valid program:
+
+```dafny
+class C { constructor() {} }
+datatype D = Nil | Cons(C, D)
+method f() {
+  var d1, d2 := Nil, Nil;
+  var c1 := new C();
+  label L1:
+  var c2 := new C();
+  label L2:
+  assert old(allocated(d1) && allocated(d2));
+  d1 := Cons(c1, Nil);
+  assert old(!allocated(d1) && allocated(d2));
+  d2 := Cons(c2, Nil);
+  assert old(!allocated(d1) && !allocated(d2));
+  assert allocated(d1) && allocated(d2);
+  assert old@L1(allocated(d1) && !allocated(d2));
+  assert old@L2(allocated(d1) && allocated(d2));
+  d1 := Nil;
+  assert old(allocated(d1) && !allocated(d2));
+}
+```
+
+This can be useful when, for example, `allocated(e)` is evaluated in an
+[`old`](#sec-old-expression) state. Like in the example, where `d1` is a local variable holding a datatype value
+`Cons(c1, Nil)` where `c1` is an object that was allocated in the enclosing
+method, then [`old(allocated(d))`](#sec-old-expression) is `false`.
+
+If the expression `e` is of a reference type, then `!old(allocated(e))`
+is the same as [`fresh(e)`](#sec-fresh-expression).
+
+
+## 21.24. Unchanged Expressions {#sec-unchanged-expression}
+([grammar](#g-unchanged-expression))
+
+Examples:
+```dafny
+unchanged(c)
+unchanged([c1,c2])
+unchanged@L(c)
+```
+
+The `unchanged` expression returns `true` if and only if every reference
+denoted by its arguments has the same value for all its fields in the
+old and current state. For example, if `c` is an object with two
+fields, `x` and `y`, then `unchanged(c)` is equivalent to
+```dafny
+c.x == old(c.x) && c.y == old(c.y)
+```
+
+Each argument to `unchanged` can be a reference, a set of references, or
+a sequence of references. If it is a reference, it can be followed by
+`` `f``, where `f` is a field of the reference. This form expresses that the field `f`,
+not necessarily all fields, has the same value in the old and current
+state.
+
+The optional `@`-label says to use the state at that label as the old-state instead of using
+the `old` state (the pre-state of the method). That is, using the example `c` from above, the expression
+`unchanged@Lbl(c)` is equivalent to
+```dafny
+c.x == old@Lbl(c.x) && c.y == old@Lbl(c.y)
+```
+
+Each reference denoted by the arguments of `unchanged` must be non-null and
+must be allocated in the old-state of the expression.
+
 ## 21.26. Cardinality Expressions {#sec-cardinality-expression}
-````grammar
-CardinalityExpression_ =
-  "|" Expression(allowLemma: true, allowLambda: true) "|"
-````
+([grammar](#g-cardinality-expression))
+
+Examples:
+```dafny
+|s|
+```
 
 For a finite-collection expression `c`, `|c|` is the cardinality of `c`. For a
 finite set or sequence, the cardinality is the number of elements. For
 a multiset, the cardinality is the sum of the multiplicities of the
 elements. For a finite map, the cardinality is the cardinality of the
 domain of the map. Cardinality is not defined for infinite sets or infinite maps.
-For more, see [Section 10](#sec-collection-types).
+For more information, see [Section 10](#sec-collection-types).
 
 ## 21.27. Parenthesized Expression
-````grammar
-ParensExpression =
-  "(" [ Expressions ] ")"
-````
-A ``ParensExpression`` is a list of zero or more expressions
+([grammar](#g-parenthesized-expression))
+
+A parenthesized expression is a list of zero or more expressions
 enclosed in parentheses.
 
 If there is exactly one expression enclosed then the value is just
@@ -811,15 +841,16 @@ If there are zero or more than one, the result is a `tuple` value.
 See [Section 18](#sec-tuple-types).
 
 ## 21.28. Sequence Display Expression {#sec-seq-comprehension}
-````grammar
-SeqDisplayExpr =
-  ( "[" [ Expressions ] "]"
-  | "seq" [ GenericInstantiation ]
-    "(" Expression(allowLemma: true, allowLambda: true)
-    "," Expression(allowLemma: true, allowLambda: true)
-    ")"
-  )
-````
+([grammar](#g-sequence-display-expression))
+
+Examples:
+```dafny
+[1, 2, 3]
+[1]
+[]
+seq(k, n => n+1)
+```
+
 A sequence display expression provides a way to construct
 a sequence with given values. For example
 
@@ -838,13 +869,16 @@ See [this section](#sec-sequences) for more information on
 sequences.
 
 ## 21.29. Set Display Expression
-````grammar
-SetDisplayExpr =
-  ( [ "iset" | "multiset" ] "{" [ Expressions ] "}"
-  | "multiset" "(" Expression(allowLemma: true,
-                              allowLambda: true) ")"
-  )
-````
+([grammar](#g-set-display-expression))
+
+Examples:
+```dafny
+{}
+{1,2,3}
+iset{1,2,3,4}
+multiset{1,2,2,3,3,3}
+multiset(s)
+```
 
 A set display expression provides a way of constructing a set with given
 elements. If the keyword `iset` is present, then a potentially infinite
@@ -884,20 +918,17 @@ See [Section 10.2](#sec-multisets) for more information on
 multisets.
 
 ## 21.30. Map Display Expression {#sec-map-display-expression}
-````grammar
-MapDisplayExpr =
-  ("map" | "imap" ) "[" [ MapLiteralExpressions ] "]"
+([grammar](#g-map-display-expression))
 
-MapLiteralExpressions =
-  Expression(allowLemma: true, allowLambda: true)
-  ":=" Expression(allowLemma: true, allowLambda: true)
-  { "," Expression(allowLemma: true, allowLambda: true)
-        ":=" Expression(allowLemma: true, allowLambda: true)
-  }
-````
+Examples:
+```dafny
+map[]
+map[1 := "a", 2 := "b"]
+imap[1 := "a", 2 := "b"]
+```
 
 A map display expression builds a finite or potentially infinite
-map from explicit ``MapLiteralExpressions``. For example:
+map from explicit mappings. For example:
 
 ```dafny
 var m := map[1 := "a", 2 := "b"];

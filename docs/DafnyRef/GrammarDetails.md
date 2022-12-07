@@ -181,7 +181,7 @@ Lhs =
   )
 ````
 
-#### Right-hand-side expression {#g-rhs-expression}
+#### 29.2.1.14. Right-hand-side expression {#g-rhs-expression}
 <pre>
 Rhs =
   ( <a href="#g-array-allocation-expression">ArrayAllocation_</a>
@@ -192,7 +192,7 @@ Rhs =
   { Attribute }
 </pre>
 
-#### Array allocation right-hand-side expression {#g-array-allocation-expression}
+#### 29.2.1.15 Array allocation right-hand-side expression {#g-array-allocation-expression}
 ````grammar
 ArrayAllocation_ =
   "new" [ Type ] "[" [ Expressions ] "]"
@@ -201,14 +201,116 @@ ArrayAllocation_ =
   ]
 ````
 
-#### Object allocation right-hand-side expression {#g-object-allocation-expression}
+#### 29.2.1.16 Object allocation right-hand-side expression {#g-object-allocation-expression}
 ````grammar
 ObjectAllocation_ = "new" Type [ "." TypeNameOrCtorSuffix ]
                                [ "(" [ Bindings ] ")" ]
 ````
 
-#### Havoc right-hand-side expression (#g-havoc-expression}
+#### 29.2.1.17 Havoc right-hand-side expression {#g-havoc-expression}
 ````grammar
 HavocRhs_ = "*"
 ````
+
+#### 99. Constant or Atomic expression {#g-atomic-expression}
+````grammar
+ConstAtomExpression =
+  ( LiteralExpression
+  | ThisExpression_
+  | FreshExpression_
+  | AllocatedExpression_
+  | UnchangedExpression_
+  | OldExpression_
+  | CardinalityExpression_
+  | ParensExpression
+  )
+````
+
+#### 99. Literal expression {#g-literal-expression}
+````grammar
+LiteralExpression =
+ ( "false" | "true" | "null" | Nat | Dec |
+   charToken | stringToken )
+````
+
+#### 99. `this` expression {#g-this-expression}
+````grammar
+ThisExpression_ = "this"
+````
+
+#### 99. Old expression {#g-old-expression}
+````grammar
+OldExpression_ =
+  "old" [ "@" LabelName ]
+  "(" Expression(allowLemma: true, allowLambda: true) ")"
+````
+
+#### 99. Fresh expression {#g-fresh-expression}
+````grammar
+FreshExpression_ =
+  "fresh" [ "@" LabelName ]
+  "(" Expression(allowLemma: true, allowLambda: true) ")"
+````
+
+#### 99. Allocated expression {#g-allocated-expression}
+
+````grammar
+AllocatedExpression_ =
+  "allocated" "(" Expression(allowLemma: true, allowLambda: true) ")"
+````
+
+#### 99. Unchanged expression {#g-unchanged-expression}
+````grammar
+UnchangedExpression_ =
+  "unchanged" [ "@" LabelName ]
+  "(" FrameExpression(allowLemma: true, allowLambda: true)
+      { "," FrameExpression(allowLemma: true, allowLambda: true) }
+  ")"
+````
+
+#### 99. Cardinality expression {#g-cardinality-expression}
+````grammar
+CardinalityExpression_ =
+  "|" Expression(allowLemma: true, allowLambda: true) "|"
+````
+
+#### 99. Parenthesized expression {#g-parenthesized-expression}
+````grammar
+ParensExpression =
+  "(" [ Expressions ] ")"
+````
+
+#### 99. Sequence Display expression {#g-sequence-display-expression}
+````grammar
+SeqDisplayExpr =
+  ( "[" [ Expressions ] "]"
+  | "seq" [ GenericInstantiation ]
+    "(" Expression(allowLemma: true, allowLambda: true)
+    "," Expression(allowLemma: true, allowLambda: true)
+    ")"
+  )
+````
+
+#### 99. Set Display expression {#g-set-display-expression}
+````grammar
+SetDisplayExpr =
+  ( [ "iset" | "multiset" ] "{" [ Expressions ] "}"
+  | "multiset" "(" Expression(allowLemma: true,
+                              allowLambda: true) ")"
+  )
+````
+
+#### 99. Map Display expression {#g-map-display-expression}
+````grammar
+MapDisplayExpr =
+  ("map" | "imap" ) "[" [ MapLiteralExpressions ] "]"
+
+MapLiteralExpressions =
+  Expression(allowLemma: true, allowLambda: true)
+  ":=" Expression(allowLemma: true, allowLambda: true)
+  { "," Expression(allowLemma: true, allowLambda: true)
+        ":=" Expression(allowLemma: true, allowLambda: true)
+  }
+````
+
 
