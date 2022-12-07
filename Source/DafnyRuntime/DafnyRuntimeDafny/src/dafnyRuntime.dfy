@@ -1,6 +1,8 @@
 abstract module {:options "/functionSyntax:4"} Dafny {
 
-  function {:extern} DafnyValueToString<T>(t: T): string
+  trait {:extern} Helpers {
+    static function {:extern} DafnyValueToString<T>(t: T): string
+  }
 
   // A trait for objects with a Valid() predicate. Necessary in order to
   // generalize some proofs, but also useful for reducing the boilerplate
@@ -148,25 +150,25 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       ensures ret.Valid()
       ensures |ret.values| as size_t == size
       ensures forall i | 0 <= i < size :: ret.values[i] == values[i].value
+
+    static method {:extern} Make<T>(length: size_t) returns (ret: NativeArray<T>)
+      ensures ret.Valid()
+      ensures fresh(ret.Repr)
+      ensures ret.Length() == length
+
+    static method {:extern} MakeWithInit<T>(length: size_t, initFn: size_t -> T) returns (ret: NativeArray<T>)
+      ensures ret.Valid()
+      ensures fresh(ret.Repr)
+      ensures ret.Length() == length
+      ensures ret.values == seq(length, ((i: nat) requires 0 <= i < length as nat => Set(initFn(i as size_t))))
+
+    static method {:extern} Copy<T>(other: ImmutableArray<T>) returns (ret: NativeArray<T>)
+      ensures ret.Valid()
+      ensures fresh(ret.Repr)
+      ensures ret.values == other.CellValues()
   }
 
   datatype ArrayCell<T> = Set(value: T) | Unset
-
-  method {:extern} NewNativeArray<T>(length: size_t) returns (ret: NativeArray<T>)
-    ensures ret.Valid()
-    ensures fresh(ret.Repr)
-    ensures ret.Length() == length
-
-  method {:extern} NewNativeArrayWithInit<T>(length: size_t, initFn: size_t -> T) returns (ret: NativeArray<T>)
-    ensures ret.Valid()
-    ensures fresh(ret.Repr)
-    ensures ret.Length() == length
-    ensures ret.values == seq(length, ((i: nat) requires 0 <= i < length as nat => Set(initFn(i as size_t))))
-
-  method {:extern} CopyNativeArray<T>(other: ImmutableArray<T>) returns (ret: NativeArray<T>)
-    ensures ret.Valid()
-    ensures fresh(ret.Repr)
-    ensures ret.values == other.CellValues()
 
   // Separate type in order to have a type without a Valid() that reads {}.
   // This could easily be implemented by the same native type as NativeArray.
@@ -228,7 +230,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       ensures Value() == []
       ensures fresh(Repr)
     {
-      var storage := NewNativeArray<T>(length);
+      var storage := NativeArray<T>.Make(length);
       this.storage := storage;
       size := 0;
       Repr := {this} + storage.Repr;
@@ -291,7 +293,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
         newCapacity := Max(newCapacity, storage.Length() * TWO_SIZE);
       }
 
-      var newStorage := NewNativeArray<T>(newCapacity);
+      var newStorage := NativeArray<T>.Make(newCapacity);
       var values := storage.Freeze(size);
       newStorage.UpdateSubarray(0, values);
       storage := newStorage;
@@ -541,6 +543,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       this.left := left;
       this.right := right;
       this.length := left.Cardinality() + right.Cardinality();
+      this.isString := left.isString || right.isString;
       this.size := 1 + left.size + right.size;
     }
 
@@ -699,6 +702,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
 
       this.box := box;
       this.length := wrapped.Cardinality();
+      this.isString := wrapped.isString;
       this.value := value;
       this.size := size;
     }
@@ -737,7 +741,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
   // Sequence creation methods
 
   method CreateSequence<T>(cardinality: size_t, initFn: size_t -> T) returns (ret: Sequence<T>) {
-    var a := NewNativeArrayWithInit(cardinality, initFn);
+    var a := NativeArray<T>.MakeWithInit(cardinality, initFn);
     var frozen := a.Freeze(cardinality);
     ret := new ArraySequence(frozen);
   }
@@ -821,7 +825,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     ensures ret.Valid()
   {
     expect SizeAdditionInRange(left.Cardinality(), right.Cardinality()),
-      "Concatenation result cardinality would be larger than the maximum (" + DafnyValueToString(SIZE_T_MAX) + ")";
+      "Concatenation result cardinality would be larger than the maximum (" + Helpers.DafnyValueToString(SIZE_T_MAX) + ")";
 
     // TODO: This could inspect left and right to see if they are already LazySequences
     // and concatenate the boxed values if so.
@@ -836,7 +840,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     ensures ret.Value() == s.Value()[..i] + [t] + s.Value()[(i + 1)..]
   {
     var a := s.ToArray();
-    var newValue := CopyNativeArray(a);
+    var newValue := NativeArray<T>.Copy(a);
     newValue.Update(i, t);
     var newValueFrozen := newValue.Freeze(newValue.Length());
     ret := new ArraySequence(newValueFrozen);

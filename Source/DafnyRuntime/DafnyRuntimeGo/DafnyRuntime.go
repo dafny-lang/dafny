@@ -362,17 +362,6 @@ func sliceIterator(s []interface{}) Iterator {
   }
 }
 
-func stringOfElements(s []interface{}) string {
-  str := ""
-  for i, v := range s {
-    if i > 0 {
-      str += ", "
-    }
-    str += String(v)
-  }
-  return str
-}
-
 /******************************************************************************
  * Iteration
  ******************************************************************************/
@@ -465,6 +454,22 @@ func AllBooleans() Iterator {
   }
 }
 
+func StringOfElements(iter interface{}) string {
+  str := ""
+  sep := ""
+  for i := Iterate(iter); ; {
+    v, ok := i()
+    if !ok {
+      break
+    }
+
+    str += sep
+    str += String(v)
+    sep = ", "
+  }
+  return str
+}
+
 /******************************************************************************
  * Sequences
  ******************************************************************************/
@@ -533,10 +538,8 @@ func SequenceIterator(seq Sequence) Iterator {
   }
 }
 
-// TODO: Dafny is hard-coded to define Equals and EqualsGeneric by reference equality,
-// but we need to compare contents somehow...
-
 // UniqueElements returns the set of elements in the sequence.
+// TODO: move to dafnyRuntime.dfy?
 func (seq *ArraySequence) UniqueElements() Set {
   return NewBuilderOf(seq).ToSet()
 }
@@ -561,7 +564,7 @@ func SequenceString(seq Sequence) string {
     }
     return s
   } else {
-    return "[" + stringOfElements(seq.contents) + "]"
+    return "[" + StringOfElements(SequenceIterator(seq)) + "]"
   }
 }
 func (seq *ArraySequence) String() string {
@@ -616,13 +619,6 @@ type GoArray struct {
   contents []interface{}
 }
 
-func NewNativeArray(length int) GoArray {
-  contents := make([]interface{}, length)
-  return GoArray{
-    contents: contents,
-  }
-}
-
 func NewNativeArrayOf(values ...interface{}) GoArray {
   contents := make([]interface{}, len(values))
   copy(contents, values)
@@ -631,7 +627,24 @@ func NewNativeArrayOf(values ...interface{}) GoArray {
   }
 }
 
-func CopyNativeArray(other GoArray) GoArray {
+func (CompanionStruct_NativeArray_) Make(length uint32) GoArray {
+  contents := make([]interface{}, length)
+  return GoArray{
+    contents: contents,
+  }
+}
+
+func (CompanionStruct_NativeArray_) MakeWithInit(length uint32, init func(uint32) (interface{})) GoArray {
+  contents := make([]interface{}, length)
+  for i := uint32(0); i < length; i++ {
+    contents[i] = init(i)
+  }
+  return GoArray{
+    contents: contents,
+  }
+}
+
+func (CompanionStruct_NativeArray_) Copy(other GoArray) GoArray {
   contents := make([]interface{}, other.Length())
   copy(contents, other.contents)
   return GoArray{
@@ -651,12 +664,13 @@ func (array GoArray) Update(i uint32, t interface{}) {
   array.contents[i] = t
 }
 
-func (array GoArray) UpdateSubarray(i uint32, other GoArray) {
-  copy(array.contents[i:(i + other.Length())], other.contents)
+func (array GoArray) UpdateSubarray(i uint32, other ImmutableArray) {
+  otherArray := other.(GoArray)
+  copy(array.contents[i:(i + otherArray.Length())], otherArray.contents)
 }
 
-func (array GoArray) Freeze() ImmutableArray {
-  return array
+func (array GoArray) Freeze(size uint32) ImmutableArray {
+  return array.Subarray(0, size)
 }
 
 func (array GoArray) Subarray(lo uint32, hi uint32) ImmutableArray {
@@ -807,7 +821,7 @@ func (array *Array) RangeToSeq(lo, hi Int) Sequence {
   seq := SeqOf(array.contents...)
   seq.IsString_set_(isString)
 
-  return seq.Subsequence(lo, hi)
+  return seq.Subsequence(lo.Uint32(), hi.Uint32())
 }
 
 // Update updates a location in a one-dimensional array.  (Must be
@@ -876,7 +890,7 @@ func (tuple Tuple) EqualsGeneric(other interface{}) bool {
 }
 
 func (tuple Tuple) String() string {
-  return "(" + stringOfElements(tuple.contents) + ")"
+  return "(" + StringOfElements(tuple.contents) + ")"
 }
 
 // Index looks up the address of the ith element of the tuple.
@@ -1169,7 +1183,7 @@ func reverse(values []interface{}) []interface{} {
 }
 
 func (set Set) String() string {
-  return "{" + stringOfElements(set.contents) + "}"
+  return "{" + StringOfElements(set.contents) + "}"
 }
 
 /******************************************************************************
@@ -2705,4 +2719,8 @@ func (CompanionStruct_AtomicBox_) Make(value interface{}) AtomicBox {
   return GoAtomicBox{
     value: value,
   }
+}
+
+func (CompanionStruct_Helpers_) DafnyValueToString(value interface{}) string {
+  return String(value)
 }

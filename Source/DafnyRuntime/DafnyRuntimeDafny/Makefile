@@ -11,7 +11,7 @@ java: verify
 	$(DAFNY_WITHOUT_RUNTIMES) /noVerify /compile:0 /spillTargetCode:3 /useRuntimeLib src/dafnyRuntime.dfy /compileTarget:java /out:../DafnyRuntimeJava/src/main/generated
 
 cs: verify
-	$(DAFNY_WITHOUT_RUNTIMES) /noVerify /compile:0 /spillTargetCode:3 /useRuntimeLib src/dafnyRuntime.dfy /compileTarget:cs /out:../generated
+	$(DAFNY_WITHOUT_RUNTIMES) /noVerify /compile:0 /spillTargetCode:3 /useRuntimeLib src/dafnyRuntimeCsharp.dfy /compileTarget:cs /out:../../generated
 
 py: verify
 	$(DAFNY_WITHOUT_RUNTIMES) /noVerify /compile:0 /spillTargetCode:3 /useRuntimeLib src/dafnyRuntime.dfy /compileTarget:py /out:../generated
