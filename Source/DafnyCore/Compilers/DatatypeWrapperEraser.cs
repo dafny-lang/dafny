@@ -138,19 +138,15 @@ namespace Microsoft.Dafny.Compilers {
       if (datatypeDecl is IndDatatypeDecl &&
           !datatypeDecl.IsExtern(out _, out _) &&
           !datatypeDecl.Members.Any(member => member is Field)) {
-        var i = datatypeDecl.Ctors.FindIndex(ctor => !ctor.IsGhost);
-        if (0 <= i) {
-          if (datatypeDecl.Ctors.FindIndex(i + 1, ctor => !ctor.IsGhost) == -1) {
-            // there is exactly one non-ghost constructor
-            var ctor = datatypeDecl.Ctors[i];
-            var j = ctor.Destructors.FindIndex(dtor => !dtor.IsGhost);
-            if (0 <= j) {
-              if (ctor.Destructors.FindIndex(j + 1, dtor => !dtor.IsGhost) == -1) {
-                // there is exactly one non-ghost parameter to "ctor"
-                coreDtor = ctor.Destructors[j];
-                return true;
-              }
-            }
+        var nonGhostConstructors = datatypeDecl.Ctors.Where(ctor => !ctor.IsGhost).ToList();
+        if (nonGhostConstructors.Count == 1) {
+          // there is exactly one non-ghost constructor
+          var ctor = nonGhostConstructors[0];
+          var nonGhostDestructors = ctor.Destructors.Where(dtor => !dtor.IsGhost).ToList();
+          if (nonGhostDestructors.Count == 1) {
+            // there is exactly one non-ghost parameter to "ctor"
+            coreDtor = nonGhostDestructors[0];
+            return true;
           }
         }
       }
