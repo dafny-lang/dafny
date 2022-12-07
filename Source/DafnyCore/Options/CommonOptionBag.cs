@@ -161,7 +161,7 @@ features like traits or co-inductive types.".TrimStart(), "cs");
     datatype with a single non-ghost constructor that has a single
     non-ghost parameter into just that parameter. For example, the type
         datatype Record = Record(x: int)
-    is transformed into just 'int' in the target code.".TrimStart());
+    is transformed into just 'int' in the target code.".TrimStart(), defaultValue: true);
 
     DafnyOptions.RegisterLegacyUi(UnicodeCharacters, DafnyOptions.ParseBoolean, "Language feature selection", "unicodeChar", @"
 0 (default) - The char type represents any UTF-16 code unit.
