@@ -1,7 +1,7 @@
 abstract module {:options "/functionSyntax:4"} Dafny {
 
   trait {:extern} Helpers {
-    static function {:extern} DafnyValueToString<T>(t: T): string
+    static function {:extern} DafnyValueToDafnyString<T>(t: T): string
   }
 
   // A trait for objects with a Valid() predicate. Necessary in order to
@@ -619,7 +619,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     if e is ConcatSequence<T> {
       var concat := e as ConcatSequence<T>;
       // TODO: Come back to this - probably possible to bound size in terms of
-      // Length() if we add the invariant that no leave nodes are empty.
+      // Length() if we add the invariant that no leaf nodes are empty.
       expect SizeAdditionInRange(stack.size, ONE_SIZE);
       stack.AddLast(concat.right);
       AppendOptimized(builder, concat.left, stack);
@@ -825,7 +825,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     ensures ret.Valid()
   {
     expect SizeAdditionInRange(left.Cardinality(), right.Cardinality()),
-      "Concatenation result cardinality would be larger than the maximum (" + Helpers.DafnyValueToString(SIZE_T_MAX) + ")";
+      "Concatenation result cardinality would be larger than the maximum (" + Helpers.DafnyValueToDafnyString(SIZE_T_MAX) + ")";
 
     // TODO: This could inspect left and right to see if they are already LazySequences
     // and concatenate the boxed values if so.

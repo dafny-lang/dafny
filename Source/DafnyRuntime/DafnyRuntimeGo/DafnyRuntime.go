@@ -627,14 +627,14 @@ func NewNativeArrayOf(values ...interface{}) GoArray {
   }
 }
 
-func (CompanionStruct_NativeArray_) Make(length uint32) GoArray {
+func (CompanionStruct_NativeArray_) Make(length uint32) NativeArray {
   contents := make([]interface{}, length)
   return GoArray{
     contents: contents,
   }
 }
 
-func (CompanionStruct_NativeArray_) MakeWithInit(length uint32, init func(uint32) (interface{})) GoArray {
+func (CompanionStruct_NativeArray_) MakeWithInit(length uint32, init func(uint32) (interface{})) NativeArray {
   contents := make([]interface{}, length)
   for i := uint32(0); i < length; i++ {
     contents[i] = init(i)
@@ -644,9 +644,10 @@ func (CompanionStruct_NativeArray_) MakeWithInit(length uint32, init func(uint32
   }
 }
 
-func (CompanionStruct_NativeArray_) Copy(other GoArray) GoArray {
-  contents := make([]interface{}, other.Length())
-  copy(contents, other.contents)
+func (CompanionStruct_NativeArray_) Copy(other ImmutableArray) NativeArray {
+  otherArray := other.(GoArray)
+  contents := make([]interface{}, otherArray.Length())
+  copy(contents, otherArray.contents)
   return GoArray{
     contents: contents,
   }
@@ -2721,6 +2722,6 @@ func (CompanionStruct_AtomicBox_) Make(value interface{}) AtomicBox {
   }
 }
 
-func (CompanionStruct_Helpers_) DafnyValueToString(value interface{}) string {
-  return String(value)
+func (CompanionStruct_Helpers_) DafnyValueToDafnyString(value interface{}) Sequence {
+  return SeqOfString(String(value))
 }
