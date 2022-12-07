@@ -387,4 +387,10 @@ module OptimizationChecks {
   datatype AA0 = AA0(BB0)
   datatype BB0 = BB0(CC0<AA0>)
   datatype CC0<UnusedTypeParameter> = CC0(BB0) | ghost NoCC0
+
+  // For the record, here are some types where the type parameters make it impossible to erase
+  // the datatype wrapper for A (for a target language that supports type parameters).
+  datatype HA = HA(HB)
+  datatype HB = HB0(HD<HA>) | ghost HB1
+  datatype HD<X> = HD(X, HA)
 }
