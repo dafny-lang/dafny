@@ -52,7 +52,7 @@ NoIncludes - disable printing of {:verify false} methods
     fields included from other files.
 NoGhost - disable printing of functions, ghost methods, and proof
     statements in implementation methods. It also disables anything
-    NoIncludes disables.".TrimStart(), 
+    NoIncludes disables.".TrimStart(),
         argumentName: "Everything|DllEmbed|NoIncludes|NoGhost",
         defaultValue: PrintModes.Everything);
       DafnyOptions.RegisterLegacyBinding(PrintMode, (options, value) => {
