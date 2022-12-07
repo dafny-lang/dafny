@@ -71,7 +71,6 @@ public class MatchExpr : Expression {  // a MatchExpr is an "extended expression
 }
 
 public abstract class MatchCase : INode, IHasUsages {
-  public readonly IToken tok;
   [FilledInDuringResolution] public DatatypeCtor Ctor;
   public List<BoundVar> Arguments; // created by the resolver.
 

@@ -106,7 +106,7 @@ public abstract class TokenWrapper : IToken {
 
   public virtual string Filename {
     get { return WrappedToken.Filename; }
-    set { throw new NotSupportedException(); }
+    set { WrappedToken.filename = value; }
   }
 
   public bool IsValid {

@@ -24,6 +24,12 @@ namespace Microsoft.Dafny {
 
   public abstract class INode {
 
+    public IToken tok = Token.NoToken;
+    public IToken Tok {
+      get => tok;
+      set => tok = value;
+    }
+
     /// <summary>
     /// These children should be such that they contain information produced by resolution such as inferred types
     /// and resolved references. However, they should not be so transformed that source location from the initial
@@ -32,7 +38,70 @@ namespace Microsoft.Dafny {
     /// </summary>
     public abstract IEnumerable<INode> Children { get; }
 
-    public RangeToken RangeToken { get; set; } = null;
+    private RangeToken rangeToken = null;
+
+    // Contains tokens that did not make it in the AST but are part of the expression,
+    // Enables ranges to be correct.
+    // TODO: Re-add format tokens where needed until we put all the formatting to replace the tok of every expression
+    protected IToken[] FormatTokens = null;
+
+    public RangeToken RangeToken {
+      get {
+        if (rangeToken == null) {
+          if (tok is RangeToken tokAsRange) {
+            rangeToken = tokAsRange;
+          } else {
+            var startTok = tok;
+            var endTok = tok;
+
+            void updateStartEndTok(INode node) {
+              if (node.tok.Filename != tok.Filename || node is Expression { IsImplicit: true } ||
+                  node is DefaultValueExpression) {
+                // Ignore any auto-generated expressions.
+              } else if (node.rangeToken != null) {
+                if (node.StartToken.pos < startTok.pos) {
+                  startTok = node.StartToken;
+                }
+
+                if (endTok.pos < node.EndToken.pos) {
+                  endTok = node.EndToken;
+                }
+              }
+
+              node.Children.Iter(updateStartEndTok);
+            }
+
+            updateStartEndTok(this);
+
+            if (FormatTokens != null) {
+              foreach (var token in FormatTokens) {
+                if (token.Filename != tok.Filename) {
+                  continue;
+                }
+
+                if (token.pos < startTok.pos) {
+                  startTok = token;
+                }
+
+                if (token.pos + token.val.Length > endTok.pos + endTok.val.Length) {
+                  endTok = token;
+                }
+              }
+            }
+
+            rangeToken = new RangeToken(startTok, endTok);
+          }
+        }
+
+        if (rangeToken.Filename == null) {
+          rangeToken.Filename = tok.Filename;
+        }
+
+        return rangeToken;
+      }
+      set => rangeToken = value;
+    }
+
 
     public IToken StartToken => RangeToken?.StartToken;
     public IToken EndToken => RangeToken?.EndToken;
@@ -155,7 +224,6 @@ namespace Microsoft.Dafny {
   }
 
   public class Include : INode, IComparable {
-    public readonly IToken tok;
     public string IncluderFilename { get; }
     public string IncludedFilename { get; }
     public string CanonicalPath { get; }
@@ -388,7 +456,6 @@ namespace Microsoft.Dafny {
   }
 
   public class UserSuppliedAttributes : Attributes {
-    public readonly IToken tok;  // may be null, if the attribute was constructed internally
     public readonly IToken OpenBrace;
     public readonly IToken CloseBrace;
     public bool Recognized;  // set to true to indicate an attribute that is processed by some part of Dafny; this allows it to be colored in the IDE
@@ -532,7 +599,6 @@ namespace Microsoft.Dafny {
   }
 
   public abstract class NonglobalVariable : INode, IVariable {
-    public readonly IToken tok;
     readonly string name;
 
     [ContractInvariantMethod]
@@ -634,11 +700,6 @@ namespace Microsoft.Dafny {
     }
     public void MakeGhost() {
       IsGhost = true;
-    }
-    public IToken Tok {
-      get {
-        return tok;
-      }
     }
 
     public NonglobalVariable(IToken tok, string name, Type type, bool isGhost) {

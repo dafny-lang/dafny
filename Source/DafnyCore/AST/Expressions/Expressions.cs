@@ -10,7 +10,6 @@ namespace Microsoft.Dafny;
 
 [DebuggerDisplay("{Printer.ExprToString(this)}")]
 public abstract class Expression : INode {
-  public readonly IToken tok;
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(tok != null);
@@ -1199,6 +1198,9 @@ public class SeqSelectExpr : Expression {
     E0 = e0;
     E1 = e1;
     CloseParen = closeParen;
+    if (closeParen != null) {
+      FormatTokens = new[] { closeParen };
+    }
   }
 
   public override IEnumerable<Expression> SubExpressions {
@@ -1309,6 +1311,7 @@ public class ApplyExpr : Expression {
     Function = fn;
     Args = args;
     CloseParen = closeParen;
+    FormatTokens = closeParen != null ? new[] { closeParen } : null;
   }
 }
 
@@ -1408,6 +1411,7 @@ public class FunctionCallExpr : Expression, IHasUsages {
     this.CloseParen = closeParen;
     this.AtLabel = atLabel;
     this.Bindings = bindings;
+    this.FormatTokens = closeParen != null ? new[] { closeParen } : null;
   }
 
   /// <summary>
@@ -2299,7 +2303,6 @@ public class ITEExpr : Expression {
 /// is recorded by the parser.
 /// </summary>
 public class CasePattern<VT> : INode where VT : IVariable {
-  public readonly IToken tok;
   public readonly string Id;
   // After successful resolution, exactly one of the following two fields is non-null.
   public DatatypeCtor Ctor;  // finalized by resolution (null if the pattern is a bound variable)
@@ -2373,7 +2376,6 @@ ExtendedPattern is either:
     a bound variable or a constructor applied to n arguments or a symbolic constant
 */
 public abstract class ExtendedPattern : INode {
-  public readonly IToken Tok;
   public bool IsGhost;
 
   public ExtendedPattern(IToken tok, bool isGhost = false) {
@@ -2453,7 +2455,6 @@ public class LitPattern : ExtendedPattern {
 }
 
 public abstract class NestedMatchCase : INode {
-  public readonly IToken Tok;
   public readonly ExtendedPattern Pat;
 
   public NestedMatchCase(IToken tok, ExtendedPattern pat) {
@@ -2570,7 +2571,6 @@ public class AttributedExpression : INode, IAttributeBearingDeclaration {
 }
 
 public class FrameExpression : INode, IHasUsages {
-  public readonly IToken tok;
   public readonly Expression E;  // may be a WildcardExpr
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -2988,6 +2988,9 @@ public class ApplySuffix : SuffixExpr {
     AtTok = atLabel;
     CloseParen = closeParen;
     Bindings = new ActualBindings(args);
+    if (closeParen != null) {
+      FormatTokens = new[] { closeParen };
+    }
   }
 
   /// <summary>

@@ -2286,7 +2286,6 @@ public class UserDefinedType : NonProxyType {
   }
 
   public readonly Expression NamePath;  // either NameSegment or ExprDotName (with the inner expression satisfying this same constraint)
-  public readonly IToken tok;  // token of the Name
   public readonly string Name;
   [Rep]
 

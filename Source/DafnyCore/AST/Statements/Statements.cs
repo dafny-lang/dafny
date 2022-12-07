@@ -7,7 +7,6 @@ using JetBrains.Annotations;
 namespace Microsoft.Dafny;
 
 public abstract class Statement : INode, IAttributeBearingDeclaration {
-  public readonly IToken Tok;
   public IToken EndTok { get; set; }  // typically a terminating semi-colon or end-curly-brace
   public LList<Label> Labels;  // mutable during resolution
 
@@ -275,8 +274,6 @@ public class YieldStmt : ProduceStmt {
 }
 
 public abstract class AssignmentRhs : INode {
-  public readonly IToken Tok;
-
   private Attributes attributes;
   public Attributes Attributes {
     get {
@@ -622,7 +619,6 @@ public class UpdateStmt : ConcreteUpdateStatement {
 }
 
 public class LocalVariable : INode, IVariable, IAttributeBearingDeclaration {
-  public readonly IToken Tok;
   public readonly IToken EndTok;  // typically a terminating semi-colon or end-curly-brace
   readonly string name;
   public Attributes Attributes;
@@ -720,7 +716,6 @@ public class LocalVariable : INode, IVariable, IAttributeBearingDeclaration {
 }
 
 public class GuardedAlternative : INode, IAttributeBearingDeclaration {
-  public readonly IToken Tok;
   public readonly bool IsBindingGuard;
   public readonly Expression Guard;
   public readonly List<Statement> Body;

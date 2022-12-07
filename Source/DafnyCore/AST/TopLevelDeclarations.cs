@@ -480,7 +480,6 @@ public class ModuleExportDecl : ModuleDecl {
 }
 
 public class ExportSignature : INode, IHasUsages {
-  public readonly IToken Tok;
   public readonly IToken ClassIdTok;
   public readonly bool Opaque;
   public readonly string ClassId;
@@ -630,7 +629,6 @@ public class ModuleQualifiedId {
 }
 
 public class ModuleDefinition : INode, IDeclarationOrUsage, INamedRegion, IAttributeBearingDeclaration {
-  public readonly IToken tok;
   public IToken BodyStartTok = Token.NoToken;
   public IToken BodyEndTok = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
