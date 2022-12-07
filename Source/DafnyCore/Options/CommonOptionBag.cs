@@ -192,7 +192,7 @@ features like traits or co-inductive types.".TrimStart(), "cs");
     });
 
     DafnyOptions.RegisterLegacyBinding(CompileVerbose, (o, v) => o.CompileVerbose = v);
-    DafnyOptions.RegisterLegacyBinding(DisableNonLinearArithmetic, (o, v) => o.CompileVerbose = v);
+    DafnyOptions.RegisterLegacyBinding(DisableNonLinearArithmetic, (o, v) => o.DisableNLarith = v);
     DafnyOptions.RegisterLegacyBinding(EnforceDeterminism, (options, value) => {
       options.ForbidNondeterminism = value;
       options.DefiniteAssignmentLevel = value ? 2 : 1;
