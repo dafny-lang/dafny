@@ -6,7 +6,7 @@
 // RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
-datatype Dt<+U> = Dt(x: U)
+datatype Dt<+U> = Dt(x: U, i: int)
 
 trait Tr {}
 class Cl extends Tr {
@@ -15,9 +15,9 @@ class Cl extends Tr {
 
 method Main() {
   var cl: Cl := new Cl();
-  var e: Dt<Tr> := Dt(cl);
+  var e: Dt<Tr> := Dt(cl, 1815);
   match e {
-    case Dt(tr) =>
+    case Dt(tr, _) =>
   }
   print "done\n";
 }

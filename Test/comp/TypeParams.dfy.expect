@@ -2,7 +2,7 @@
 Dafny program verifier finished with 17 verified, 0 errors
 
 Dafny program verifier did not attempt verification
-0 0 0 false Color.Orange 0.0 {} DtZ.DZ0(Color.Orange)
+0 0 0 false Color.Orange 0.0 {} Color.Orange
 null null null null null
 {} multiset{} [] map[] {} map[]
 null null null null
@@ -23,7 +23,7 @@ System.Func`3[_module._IColor,Dafny.ISet`1[System.UInt16],System.UInt32]
 0 0
 
 Dafny program verifier did not attempt verification
-0 0 0 false Color.Orange 0.0 {} DtZ.DZ0(Color.Orange)
+0 0 0 false Color.Orange 0.0 {} Color.Orange
 null null null null null
 {} multiset{} [] map[] {} map[]
 null null null null
@@ -44,7 +44,7 @@ function () { return _dafny.ZERO; }
 0 0
 
 Dafny program verifier did not attempt verification
-0 0 0 false Color.Orange 0.0 {} DtZ.DZ0(Color.Orange)
+0 0 0 false Color.Orange 0.0 {} Color.Orange
 null null null null null
 {} multiset{} [] map[] {} map[]
 null null null null
@@ -65,7 +65,7 @@ func(main.Color, dafny.Set) uint32
 0 0
 
 Dafny program verifier did not attempt verification
-0 0 0 false Color.Orange 0.0 {} DtZ.DZ0(Color.Orange)
+0 0 0 false Color.Orange 0.0 {} Color.Orange
 null null null null null
 {} multiset{} [] map[] {} map[]
 null null null null
@@ -86,7 +86,7 @@ Function
 0 0
 
 Dafny program verifier did not attempt verification
-0 0 0 false Color.Orange 0.0 {} DtZ.DZ0(Color.Orange)
+0 0 0 false Color.Orange 0.0 {} Color.Orange
 null null null null null
 {} multiset{} [] map[] {} map[]
 null null null null
