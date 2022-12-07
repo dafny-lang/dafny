@@ -80,9 +80,9 @@ public abstract class Compiler {
   /// <summary>
   /// Whether or not the compiler turns
   ///     datatype Record = R(oneThing: X)
-  /// into just X.
+  /// into just X, including the case where "Record" is a tuple type with 1 non-ghost component.
   /// </summary>
-  public virtual bool OptimizesErasableDatatypeWrappers => true;
+  public virtual bool SupportsDatatypeWrapperErasure => true;
 
   /// <summary>
   /// Dafny features this compiler is known to not support.

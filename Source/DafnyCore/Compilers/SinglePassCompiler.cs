@@ -1368,7 +1368,7 @@ namespace Microsoft.Dafny.Compilers {
             var w = DeclareNewtype(nt, wr);
             v.Visit(nt);
             CompileClassMembers(program, nt, w);
-          } else if ((d as TupleTypeDecl)?.NonGhostDims == 1 && OptimizesErasableDatatypeWrappers) {
+          } else if ((d as TupleTypeDecl)?.NonGhostDims == 1 && SupportsDatatypeWrapperErasure && DafnyOptions.O.OptimizeErasableDatatypeWrappers) {
             // ignore this type declaration
           } else if (d is DatatypeDecl) {
             var dt = (DatatypeDecl)d;

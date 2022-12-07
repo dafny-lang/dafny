@@ -234,9 +234,14 @@ public class BuiltIns {
     if (!tupleTypeDecls.TryGetValue(argumentGhostness, out var tt)) {
       Contract.Assume(allowCreationOfNewType);  // the parser should ensure that all needed tuple types exist by the time of resolution
 
+      // A tuple type with ghost components is represented as the shorter tuple type with the ghost components erased, except
+      // possibly when that shorter tuple type is a 1-tuple. Ordinarily, such a 1-tuple is optimized into its component, so
+      // there's no reason to create it here; but if either the compiler doesn't support datatype wrapper erasure or if
+      // the user has disabled this optimization, then we still create the 1-tuple here.
       var nonGhostDims = argumentGhostness.Count(x => !x);
       TupleTypeDecl nonGhostTupleTypeDecl = null;
-      if (nonGhostDims != dims && (nonGhostDims != 1 || !DafnyOptions.O.Compiler.OptimizesErasableDatatypeWrappers)) {
+      if (nonGhostDims != dims &&
+          (nonGhostDims != 1 || !DafnyOptions.O.Compiler.SupportsDatatypeWrapperErasure || !DafnyOptions.O.OptimizeErasableDatatypeWrappers)) {
         // make sure the corresponding non-ghost tuple type also exists
         nonGhostTupleTypeDecl = TupleType(tok, nonGhostDims, allowCreationOfNewType);
       }

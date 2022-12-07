@@ -34,27 +34,22 @@ namespace Microsoft.Dafny.Compilers {
 
       ty = ty.NormalizeExpand(keepConstraints);
       Contract.Assert(ty is NonProxyType);
-      if (!DafnyOptions.O.Compiler.OptimizesErasableDatatypeWrappers) {
-        return ty;
-      }
 
       if (ty is UserDefinedType udt) {
-        if (udt.ResolvedClass is TupleTypeDecl tupleTypeDecl && tupleTypeDecl.NonGhostDims != 1) {
+        if (udt.ResolvedClass is TupleTypeDecl tupleTypeDecl && tupleTypeDecl.NonGhostTupleTypeDecl != null) {
           var nonGhostTupleTypeDecl = tupleTypeDecl.NonGhostTupleTypeDecl;
-          if (nonGhostTupleTypeDecl != null) {
-            var typeArgsForNonGhostTuple = new List<Type>();
-            var n = tupleTypeDecl.TypeArgs.Count;
-            Contract.Assert(tupleTypeDecl.ArgumentGhostness.Count == n);
-            Contract.Assert(udt.TypeArgs.Count == n);
-            for (var i = 0; i < n; i++) {
-              if (!tupleTypeDecl.ArgumentGhostness[i]) {
-                typeArgsForNonGhostTuple.Add(udt.TypeArgs[i]);
-              }
+          var typeArgsForNonGhostTuple = new List<Type>();
+          var n = tupleTypeDecl.TypeArgs.Count;
+          Contract.Assert(tupleTypeDecl.ArgumentGhostness.Count == n);
+          Contract.Assert(udt.TypeArgs.Count == n);
+          for (var i = 0; i < n; i++) {
+            if (!tupleTypeDecl.ArgumentGhostness[i]) {
+              typeArgsForNonGhostTuple.Add(udt.TypeArgs[i]);
             }
-            Contract.Assert(typeArgsForNonGhostTuple.Count == nonGhostTupleTypeDecl.Dims);
-            Contract.Assert(nonGhostTupleTypeDecl.NonGhostDims == nonGhostTupleTypeDecl.Dims);
-            return new UserDefinedType(udt.tok, nonGhostTupleTypeDecl.Name, nonGhostTupleTypeDecl, typeArgsForNonGhostTuple);
           }
+          Contract.Assert(typeArgsForNonGhostTuple.Count == nonGhostTupleTypeDecl.Dims);
+          Contract.Assert(nonGhostTupleTypeDecl.NonGhostDims == nonGhostTupleTypeDecl.Dims);
+          return new UserDefinedType(udt.tok, nonGhostTupleTypeDecl.Name, nonGhostTupleTypeDecl, typeArgsForNonGhostTuple);
 
         } else if (udt.ResolvedClass is DatatypeDecl datatypeDecl && IsErasableDatatypeWrapper(datatypeDecl, out var dtor)) {
           var typeSubst = TypeParameter.SubstitutionMap(datatypeDecl.TypeArgs, udt.TypeArgs);
@@ -77,7 +72,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public static MemberCompileStatus GetMemberStatus(MemberDecl member) {
       if (member.EnclosingClass is DatatypeDecl dt) {
-        if (DafnyOptions.O.Compiler.OptimizesErasableDatatypeWrappers && IsErasableDatatypeWrapper(dt, out var dtor) && dtor == member) {
+        if (IsErasableDatatypeWrapper(dt, out var dtor) && dtor == member) {
           // "member" is the sole destructor of an erasable datatype wrapper
           return MemberCompileStatus.Identity;
         } else if (member is DatatypeDiscriminator) {
@@ -108,7 +103,7 @@ namespace Microsoft.Dafny.Compilers {
     /// then not be used by the caller.
     /// </summary>
     public static bool IsErasableDatatypeWrapper(DatatypeDecl dt, out DatatypeDestructor coreDestructor) {
-      if (DafnyOptions.O.Compiler.OptimizesErasableDatatypeWrappers && DafnyOptions.O.OptimizeErasableDatatypeWrappers) {
+      if (DafnyOptions.O.Compiler.SupportsDatatypeWrapperErasure && DafnyOptions.O.OptimizeErasableDatatypeWrappers) {
         // First, check for all conditions except the non-cycle condition
         if (FindUnwrappedCandidate(dt, out var candidateCoreDestructor)) {
           // Now, check if the type of the destructor contains "datatypeDecl" itself
