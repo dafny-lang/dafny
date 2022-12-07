@@ -555,7 +555,7 @@ func SequenceString(seq Sequence) string {
     s := ""
     // FIXME: Note this doesn't produce the right string in UTF-8,
     // since it converts surrogates independently.
-    for i := Iterate(seq); ; {
+    for i := Iterate(SequenceIterator(seq)); ; {
       c, ok := i()
       if !ok {
         break

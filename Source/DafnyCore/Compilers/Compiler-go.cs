@@ -1465,7 +1465,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (xType is SetType) {
         return HelperModulePrefix + "Set";
       } else if (xType is SeqType) {
-        return HelperModulePrefix + "Seq";
+        return HelperModulePrefix + "Sequence";
       } else if (xType is MultiSetType) {
         return HelperModulePrefix + "MultiSet";
       } else if (xType is MapType) {

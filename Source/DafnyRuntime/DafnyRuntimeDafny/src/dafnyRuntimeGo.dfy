@@ -12,5 +12,12 @@ module {:extern "dafny"} {:options "/functionSyntax:4"} DafnyGo refines Dafny {
     function Elements(): Sequence<T> {
       this
     }
+
+    method SetString() returns (ret: Sequence<T>) 
+      modifies this
+    {
+      isString := true;
+      return this;
+    }
   }
 }
