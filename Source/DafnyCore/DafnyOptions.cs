@@ -90,14 +90,14 @@ namespace Microsoft.Dafny {
 
     public static void RegisterLegacyUi<T>(Option<T> option,
       Action<Option<T>, Bpl.CommandLineParseState, DafnyOptions> parse,
-      string category, string legacyName = null, string legacyDescription = null, T defaultValue = default(T)) {
+      string category, string legacyName = null, string legacyDescription = null, T defaultValue = default(T), string argumentName = null) {
       legacyUis.Add(new LegacyUiForOption(
         option,
         (state, options) => parse(option, state, options),
         category,
         legacyName ?? option.Name,
         legacyDescription ?? option.Description,
-        option.ArgumentHelpName ?? "value",
+        argumentName ?? option.ArgumentHelpName ?? "value",
         defaultValue));
     }
 

@@ -44,7 +44,16 @@ namespace Microsoft.Dafny {
         }
       }
 
-      DafnyOptions.RegisterLegacyUi(PrintMode, ParsePrintMode, "Overall reporting and printing", "printMode");
+      DafnyOptions.RegisterLegacyUi(PrintMode, ParsePrintMode, "Overall reporting and printing", "printMode", legacyDescription: @"
+Everything (default) - Print everything listed below.
+DllEmbed - print the source that will be included in a compiled dll.
+NoIncludes - disable printing of {:verify false} methods
+    incorporated via the include mechanism, as well as datatypes and
+    fields included from other files.
+NoGhost - disable printing of functions, ghost methods, and proof
+    statements in implementation methods. It also disables anything
+    NoIncludes disables.".TrimStart(), 
+        argumentName: "Everything|DllEmbed|NoIncludes|NoGhost");
       DafnyOptions.RegisterLegacyBinding(PrintMode, (options, value) => {
         options.PrintMode = value;
       });

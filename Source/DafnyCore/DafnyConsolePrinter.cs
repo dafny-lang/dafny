@@ -49,7 +49,9 @@ public class DafnyConsolePrinter : ConsolePrinter {
     "Show a source code snippet for each Dafny message.");
 
   static DafnyConsolePrinter() {
-    DafnyOptions.RegisterLegacyUi(ShowSnippets, DafnyOptions.ParseBoolean, "Overall reporting and printing", "showSnippets");
+    DafnyOptions.RegisterLegacyUi(ShowSnippets, DafnyOptions.ParseBoolean, "Overall reporting and printing", "showSnippets", @"
+0 (default) - Don't show source code snippets for Dafny messages.
+1 - Show a source code snippet for each Dafny message.".TrimStart());
   }
 
   public override void ReportBplError(Boogie.IToken tok, string message, bool error, TextWriter tw, string category = null) {
