@@ -2613,7 +2613,7 @@ public abstract class ConcreteSyntaxExpression : Expression {
     get => resolvedExpression;
     set {
       resolvedExpression = value;
-      if (RangeToken != null) {
+      if (RangeToken != null && resolvedExpression != null) {
         resolvedExpression.RangeToken = RangeToken;
       }
     }

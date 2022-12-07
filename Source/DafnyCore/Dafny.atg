@@ -4280,7 +4280,7 @@ ConstAtomExpression<out Expression e>
      e = dummyExpr;
   .)
   ( LiteralExpression<out e>
-  | "this"                                     (. e = new ThisExpr(t); .)
+  | "this"                                     (. x = t; e = new ThisExpr(t); .)
   | "allocated"                                (. x = t; .)
     "(" Expression<out e, true, true> ")"      (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Allocated, e); .)
   | "fresh"                                    (. x = t; IToken atLabel = null; .)

@@ -584,12 +584,6 @@ namespace Microsoft.Dafny {
     public void MakeGhost() {
       throw new NotImplementedException();
     }
-    public IToken Tok {
-      get {
-        Contract.Ensures(Contract.Result<IToken>() != null);
-        throw new NotImplementedException();
-      }
-    }
     public string AssignUniqueName(FreshIdGenerator generator) {
       Contract.Ensures(Contract.Result<string>() != null);
       throw new NotImplementedException();

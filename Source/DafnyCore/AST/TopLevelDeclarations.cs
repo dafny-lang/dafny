@@ -17,7 +17,6 @@ public abstract class Declaration : INode, INamedRegion, IAttributeBearingDeclar
     return DafnyOptions.O.Compiler.PublicIdProtect(name);
   }
 
-  public IToken tok;
   public IToken BodyStartTok = Token.NoToken;
   public IToken BodyEndTok = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
