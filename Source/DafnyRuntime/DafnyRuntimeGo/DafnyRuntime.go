@@ -839,7 +839,19 @@ func (array *Array) RangeToSeq(lo, hi Int) Sequence {
   seq := SeqOf(array.contents...)
   seq.IsString_set_(isString)
 
-  return seq.Subsequence(lo.Uint32(), hi.Uint32())
+  var nonNullLo uint32
+  if lo.IsNilInt() {
+    nonNullLo = 0
+  } else {
+    nonNullLo = lo.Uint32()
+  }
+  var nonNullHi uint32
+  if hi.IsNilInt() {
+    nonNullHi = seq.Cardinality()
+  } else {
+    nonNullHi = hi.Uint32()
+  }
+  return seq.Subsequence(nonNullLo, nonNullHi)
 }
 
 // Update updates a location in a one-dimensional array.  (Must be
