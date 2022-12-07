@@ -44,7 +44,7 @@ namespace Microsoft.Dafny {
         }
       }
 
-      DafnyOptions.RegisterLegacyUi(PrintMode, ParsePrintMode, "Overall reporting and printing");
+      DafnyOptions.RegisterLegacyUi(PrintMode, ParsePrintMode, "Overall reporting and printing", "printMode");
       DafnyOptions.RegisterLegacyBinding(PrintMode, (options, value) => {
         options.PrintMode = value;
       });

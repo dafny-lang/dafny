@@ -95,7 +95,7 @@ namespace Microsoft.Dafny {
         option,
         (state, options) => parse(option, state, options),
         category,
-        legacyName ?? option.Name.Substring(2),
+        legacyName ?? option.Name,
         legacyDescription ?? option.Description,
         option.ArgumentHelpName ?? "value",
         defaultValue));

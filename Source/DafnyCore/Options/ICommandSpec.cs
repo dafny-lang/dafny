@@ -44,6 +44,7 @@ public interface ICommandSpec {
     DeveloperOptionBag.Print,
     DeveloperOptionBag.ResolvedPrint,
     DeveloperOptionBag.BoogiePrint,
+    Printer.PrintMode,
     CommonOptionBag.WarningAsErrors,
   });
 
