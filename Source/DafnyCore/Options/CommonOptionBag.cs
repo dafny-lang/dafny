@@ -97,10 +97,7 @@ java - Compile to Java.
 py - Compile to Python.
 cpp - Compile to C++.
 
-Note that the C++ backend has various limitations (see
-Docs/Compilation/Cpp.md). This includes lack of support for
-BigIntegers (aka int), most higher order functions, and advanced
-features like traits or co-inductive types.".TrimStart()
+Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md). This includes lack of support for BigIntegers (aka int), most higher order functions, and advanced features like traits or co-inductive types.".TrimStart()
   ) {
     ArgumentHelpName = "language"
   };
@@ -146,6 +143,7 @@ js - Compile to JavaScript.
 java - Compile to Java.
 py - Compile to Python.
 cpp - Compile to C++.
+
 Note that the C++ backend has various limitations (see
 Docs/Compilation/Cpp.md). This includes lack of support for
 BigIntegers (aka int), most higher order functions, and advanced
@@ -165,7 +163,7 @@ features like traits or co-inductive types.".TrimStart(), "cs");
 
     DafnyOptions.RegisterLegacyUi(UnicodeCharacters, DafnyOptions.ParseBoolean, "Language feature selection", "unicodeChar", @"
 0 (default) - The char type represents any UTF-16 code unit.
-1 - The char type represents any Unicode scalar value.");
+1 - The char type represents any Unicode scalar value.".TrimStart());
 
     DafnyOptions.RegisterLegacyBinding(QuantifierSyntax, (options, value) => {
       options.QuantifierSyntax = value;

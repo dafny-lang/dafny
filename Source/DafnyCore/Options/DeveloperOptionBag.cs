@@ -19,14 +19,14 @@ Print Boogie program translated from Dafny
   };
 
   public static readonly Option<string> Print = new("--print", @"
-Print Dafny program after parsing it. 
+Print Dafny program after parsing it.
 (Use - as <file> to print to console.)".TrimStart()) {
     IsHidden = true,
     ArgumentHelpName = "file"
   };
 
   public static readonly Option<string> ResolvedPrint = new("--rprint", @"
-Print Dafny program after resolving it. 
+Print Dafny program after resolving it.
 (use - as <file> to print to console.)".TrimStart()) {
     IsHidden = true,
     ArgumentHelpName = "file"
