@@ -35,6 +35,7 @@ namespace Microsoft.Dafny {
         PluginOption.Instance,
         UseRuntimeLibOption.Instance,
         UnicodeCharactersOption.Instance,
+        OptimizeErasableDatatypeWrapperOption.Instance,
       });
 
     public static DafnyOptions Create(params string[] arguments) {
@@ -159,6 +160,7 @@ namespace Microsoft.Dafny {
     public bool PrintFunctionCallGraph = false;
     public bool WarnShadowing = false;
     public int DefiniteAssignmentLevel = 1; // [0..2]
+    public bool OptimizeErasableDatatypeWrappers = true;
     public FunctionSyntaxOptions FunctionSyntax = FunctionSyntaxOptions.Version3;
     public QuantifierSyntaxOptions QuantifierSyntax = QuantifierSyntaxOptions.Version3;
     public HashSet<string> LibraryFiles { get; set; } = new();
