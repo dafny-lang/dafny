@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>report</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    table tr:nth-child(odd) td {
+      background-color: #BBBBBB;
+    }
+  </style>
+  <link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+<script src="https://code.jquery.com/jquery-3.6.1.min.js"></script>
+<script src="https://unpkg.com/sorttable@1.0.2/sorttable.js" crossorigin></script>
+<table>
+<tr><th>Name</th><th>Compiled</th><th>Explicit Assumption</th><th>Extern</th><th>Issue</th><th>Mitigation</th></tr>
+<tr><td>T</td><td>True</td><td>False</td><td>False</td><td>Trait method calls may not terminate (uses `{:termination false}`).</td><td>Remove or justify.</td></tr>
+<tr><td>MinusBv8NoBody</td><td>False</td><td>False</td><td>False</td><td>Ghost declaration has no body and has an ensures clause.</td><td>Provide a body or add `{:axiom}`.</td></tr>
+<tr><td>LeftShiftBV128</td><td>False</td><td>True</td><td>False</td><td>Declaration has explicit `{:axiom}` attribute.</td><td>Provide a proof, test, or other justification.</td></tr>
+<tr><td>MinusBv8Assume</td><td>False</td><td>False</td><td>False</td><td>Definition has `assume` statement in body.</td><td>Replace with `assert` and prove or add `{:axiom}`.</td></tr>
+<tr><td>GenerateBytes</td><td>True</td><td>False</td><td>True</td><td>Compiled declaration has no body and has an ensures clause.</td><td>Provide a body or add `{:axiom}`.</td></tr>
+<tr><td>GenerateBytes</td><td>True</td><td>False</td><td>True</td><td>Declaration with `{:extern}` has a requires clause.</td><td>Test external caller (maybe with `/testContracts`) or justify.</td></tr>
+<tr><td>GenerateBytes</td><td>True</td><td>False</td><td>True</td><td>Declaration with `{:extern}` has a ensures clause.</td><td>Test external callee (maybe with `/testContracts`) or justify.</td></tr>
+<tr><td>GenerateBytesWithModel</td><td>True</td><td>False</td><td>True</td><td>Declaration with `{:extern}` has a requires clause.</td><td>Test external caller (maybe with `/testContracts`) or justify.</td></tr>
+<tr><td>GenerateBytesWithModel</td><td>True</td><td>False</td><td>True</td><td>Declaration with `{:extern}` has a ensures clause.</td><td>Test external callee (maybe with `/testContracts`) or justify.</td></tr>
+<tr><td>GenerateBytesWrapper</td><td>True</td><td>False</td><td>False</td><td>Definition has `assume` statement in body.</td><td>Replace with `assert` and prove or add `{:axiom}`.</td></tr>
+<tr><td>GenerateBytesNoGuarantee</td><td>True</td><td>False</td><td>True</td><td>Compiled declaration has no body.</td><td>Provide a body or add `{:axiom}`.</td></tr>
+<tr><td>GenerateBytesNoGuarantee</td><td>True</td><td>False</td><td>True</td><td>Declaration with `{:extern}` has a requires clause.</td><td>Test external caller (maybe with `/testContracts`) or justify.</td></tr>
+<tr><td>DoesNotTerminate</td><td>True</td><td>False</td><td>False</td><td>Method may not terminate (uses `decreases *`).</td><td>Provide a valid `decreases` clause or justify the absence.</td></tr>
+</table>
+<script>$( "table" ).last().addClass( "sortable" );</script>
+</body>
+</html>

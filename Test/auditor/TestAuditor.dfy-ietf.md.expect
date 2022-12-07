@@ -1,0 +1,47 @@
+# Module `_module`
+
+## Type `T`
+
+* Trait method calls may not terminate (uses `{:termination false}`). MUST remove or justify.
+
+## Type `_default`
+
+## Member `MinusBv8NoBody`
+
+* Ghost declaration has no body and has an ensures clause. MUST provide a body or add `{:axiom}`.
+
+## Member `LeftShiftBV128`
+
+* Declaration has explicit `{:axiom}` attribute. MUST provide a proof, test, or other justification.
+
+## Member `MinusBv8Assume`
+
+* Definition has `assume` statement in body. MUST replace with `assert` and prove or add `{:axiom}`.
+
+## Member `GenerateBytes`
+
+* Compiled declaration has no body and has an ensures clause. MUST provide a body or add `{:axiom}`.
+
+* Declaration with `{:extern}` has a requires clause. MUST test external caller (maybe with `/testContracts`) or justify.
+
+* Declaration with `{:extern}` has a ensures clause. MUST test external callee (maybe with `/testContracts`) or justify.
+
+## Member `GenerateBytesWithModel`
+
+* Declaration with `{:extern}` has a requires clause. MUST test external caller (maybe with `/testContracts`) or justify.
+
+* Declaration with `{:extern}` has a ensures clause. MUST test external callee (maybe with `/testContracts`) or justify.
+
+## Member `GenerateBytesWrapper`
+
+* Definition has `assume` statement in body. MUST replace with `assert` and prove or add `{:axiom}`.
+
+## Member `GenerateBytesNoGuarantee`
+
+* Compiled declaration has no body. MUST provide a body or add `{:axiom}`.
+
+* Declaration with `{:extern}` has a requires clause. MUST test external caller (maybe with `/testContracts`) or justify.
+
+## Member `DoesNotTerminate`
+
+* Method may not terminate (uses `decreases *`). MUST provide a valid `decreases` clause or justify the absence.

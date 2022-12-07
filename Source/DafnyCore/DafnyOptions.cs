@@ -203,6 +203,12 @@ namespace Microsoft.Dafny {
     public bool ExtractCounterexample = false;
     public List<string> VerificationLoggerConfigs = new();
 
+    public enum ReportFormat { HTML, MarkdownTable, MarkdownIETF, Text }
+
+    public string AuditorReportFile = null;
+    public ReportFormat? AuditReportFormat = null;
+    public bool CompareAuditReport = false;
+
     public static readonly ReadOnlyCollection<Plugin> DefaultPlugins = new(new[] { Compilers.SinglePassCompiler.Plugin });
     public List<Plugin> Plugins = new(DefaultPlugins);
 

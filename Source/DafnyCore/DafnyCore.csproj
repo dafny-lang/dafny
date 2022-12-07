@@ -37,4 +37,9 @@
     <Content Include="DafnyPrelude.bpl" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="assets\audit_template.html">
+      <LogicalName>audit_template.html</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
 </Project>
