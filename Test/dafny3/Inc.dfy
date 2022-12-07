@@ -1,4 +1,4 @@
-// RUN: %exit 2 %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exit 4 %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype cmd = Inc | Seq(cmd, cmd) | Repeat(cmd)
