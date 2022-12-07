@@ -481,31 +481,42 @@ func StringOfElements(iter interface{}) string {
 // EmptySeq is the empty sequence.
 var EmptySeq = SeqOf()
 
+func SeqFromArray(contents []interface{}, isString bool) Sequence {
+  arr := GoArray{
+    contents: contents,
+  }
+  result := New_ArraySequence_()
+  result.Ctor__(arr, isString) 
+  return result
+}
+
 // SeqOf returns a sequence containing the given values.
 func SeqOf(values ...interface{}) Sequence {
-  arr := NewNativeArrayOf(values)
-  result := New_ArraySequence_()
-  result.Ctor__(arr, false) 
-  return result
+  // Making a defensive copy here because variadic functions can get hinky
+  // if someone says SeqOf(slice...) and then mutates slice.
+  arr := make([]interface{}, len(values))
+  copy(arr, values)
+  return SeqFromArray(arr, false)
 }
 
 // SeqOfChars returns a sequence containing the given character values.
 func SeqOfChars(values ...Char) Sequence {
-  arr := NewNativeArrayOf(values)
-  result := New_ArraySequence_()
-  result.Ctor__(&arr, true) 
-  return result
+  arr := make([]interface{}, len(values))
+  for i, v := range values {
+    arr[i] = v
+  }
+  return SeqFromArray(arr, true)
 }
 
 // SeqOfString converts the given string into a sequence of characters.
 // The given string must contain only ASCII characters!
 func SeqOfString(str string) Sequence {
   // Need to make sure the elements of the array are Chars
-  arr := make([]Char, len(str))
+  arr := make([]interface{}, len(str))
   for i, v := range str {
     arr[i] = Char(v)
   }
-  return SeqOfChars(arr...)
+  return SeqFromArray(arr, true)
 }
 
 func UnicodeSeqOfUtf8Bytes(str string) Sequence {
@@ -516,7 +527,7 @@ func UnicodeSeqOfUtf8Bytes(str string) Sequence {
     arr[i] = CodePoint(v)
     i++
   }
-  return SeqOf(arr...)
+  return SeqFromArray(arr, false)
 }
 
 // Iterator returns an iterator over the sequence.
@@ -617,14 +628,6 @@ func (seq *LazySequence) VerbatimString(asLiteral bool) string {
 // wrapped up for the benefit of dafnyRuntime.dfy.
 type GoArray struct {
   contents []interface{}
-}
-
-func NewNativeArrayOf(values ...interface{}) GoArray {
-  contents := make([]interface{}, len(values))
-  copy(contents, values)
-  return GoArray{
-    contents: contents,
-  }
 }
 
 func (CompanionStruct_NativeArray_) Make(length uint32) NativeArray {

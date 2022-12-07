@@ -387,6 +387,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     // track what sequence values are actually sequences of characters.
     // This is not used when --unicode-char is enabled, and not currently
     // used by any Dafny code.
+    // TODO: rename. isNonUnicodeString?
     var isString: bool
 
     // TODO: Better name, NOT a size_t
