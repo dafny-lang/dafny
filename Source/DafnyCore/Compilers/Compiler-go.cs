@@ -2749,14 +2749,30 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
     }
+    
+    // This will probably move up to the superclass once more compilers are using dafnyRuntime.dfy
+    protected void TrExprAsSizeT(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      if (expr is LiteralExpr lit) {
+        wr.Write(lit.Value.ToString());
+      } else {
+        if (AsNativeType(expr.Type) == null) {
+          TrParenExpr(expr, wr, inLetExprBody, wStmts);
+          wr.Write(".Uint32()");
+        } else {
+          wr.Write("uint32(");
+          TrExpr(expr, wr, inLetExprBody, wStmts);
+          wr.Write(")");
+        }
+      }
+    }
 
     protected override void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
         ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       var type = source.Type.NormalizeExpand();
       if (type is SeqType seqType) {
         TrParenExpr(source, wr, inLetExprBody, wStmts);
-        wr.Write(".Index(");
-        TrExprToBigInt(index, wr, inLetExprBody);
+        wr.Write(".Select(");
+        TrExprAsSizeT(index, inLetExprBody, wr, wStmts);
         wr.Write(").({0})", TypeName(seqType.Arg, wr, null));
       } else if (type is MultiSetType) {
         TrParenExpr(source, wr, inLetExprBody, wStmts);
@@ -2776,10 +2792,10 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value,
         CollectionType resultCollectionType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       if (source.Type.AsSeqType != null) {
-        wr.Write($"{HelperModulePrefix}Companion_Default___.Update(");
+        wr.Write($"{DafnySequenceCompanion}.Update(");
         TrExpr(source, wr, inLetExprBody, wStmts);
         wr.Write(", ");
-        TrExpr(index, wr, inLetExprBody, wStmts);
+        TrExprAsSizeT(index, inLetExprBody, wr, wStmts);
         wr.Write(", ");
         TrExpr(value, wr, inLetExprBody, wStmts);
         wr.Write(")");
@@ -2864,8 +2880,8 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitSeqConstructionExpr(SeqConstructionExpr expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      wr.Write($"{DafnySequenceCompanion}.Create(");
-      TrExpr(expr.N, wr, inLetExprBody, wStmts);
+      wr.Write($"{HelperModulePrefix}SeqCreate(");
+      TrExprAsSizeT(expr.N, inLetExprBody, wr, wStmts);
       wr.Write(", ");
       var fromType = (ArrowType)expr.Initializer.Type.NormalizeExpand();
       var atd = (ArrowTypeDecl)fromType.ResolvedClass;
@@ -2988,8 +3004,9 @@ namespace Microsoft.Dafny.Compilers {
           }
           break;
         case ResolvedUnaryOp.Cardinality:
+          wr.Write($"{HelperModulePrefix}IntOfUint32(");
           TrParenExpr(expr, wr, inLetExprBody, wStmts);
-          wr.Write(".Cardinality()");
+          wr.Write(".Cardinality())");
           break;
         default:
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary expression
@@ -3354,7 +3371,7 @@ namespace Microsoft.Dafny.Compilers {
               // Optimize .Count to avoid intermediate BigInteger
               wr.Write("{0}(", GetNativeTypeName(toNative));
               TrParenExpr(u.E, wr, inLetExprBody, wStmts);
-              wr.Write(".CardinalityInt())");
+              wr.Write(".Cardinality())");
             } else if (m != null && m.MemberName == "Length" && m.Obj.Type.IsArrayType) {
               // Optimize .Length to avoid intermediate BigInteger
               wr.Write("{0}(", GetNativeTypeName(toNative));

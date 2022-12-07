@@ -478,8 +478,22 @@ func StringOfElements(iter interface{}) string {
 // These declarations are just filling in the gaps to make sure
 // Dafny.Sequence is a well-behaved Dafny value in this runtime.
 
+// TODO: Need to avoid the per-concrete type declarations, or else
+// it will not be possible to provide other Sequence implementations
+// in native code.
+
 // EmptySeq is the empty sequence.
 var EmptySeq = SeqOf()
+
+// Create a sequence from a length and an element initializer
+// This still exists because it's technically difficult
+// for the compiler to coerce the init function to a
+// func (uint32) interface{}.
+func SeqCreate(n uint32, init func (Int) interface{}) Sequence {
+  return Companion_Sequence_.Create(n, func (index uint32) interface{} { 
+    return init(IntOfUint32(index))
+  })
+}
 
 func SeqFromArray(contents []interface{}, isString bool) Sequence {
   arr := GoArray{
