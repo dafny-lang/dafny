@@ -1,37 +1,47 @@
 
-Dafny program verifier finished with 6 verified, 0 errors
+Dafny program verifier finished with 7 verified, 0 errors
 
 Dafny program verifier did not attempt verification
 Co.Co(_module.Y) and Co.Co(_module.Y)
-ReCo.ReCo(_module.Y) and ReCo.ReCo(_module.Y)
+_module.Y and _module.Y
+_module.Y _module.Y
+false and false
 false and false
 _module.Y and _module.Y
 Done
 
 Dafny program verifier did not attempt verification
 Co.Co(_module.Y) and Co.Co(_module.Y)
-ReCo.ReCo(_module.Y) and ReCo.ReCo(_module.Y)
+_module.Y and _module.Y
+_module.Y _module.Y
+false and false
 false and false
 _module.Y and _module.Y
 Done
 
 Dafny program verifier did not attempt verification
 Co.Co(_module.Y) and Co.Co(_module.Y)
-ReCo.ReCo(_module.Y) and ReCo.ReCo(_module.Y)
+_module.Y and _module.Y
+_module.Y _module.Y
+false and false
 false and false
 _module.Y and _module.Y
 Done
 
 Dafny program verifier did not attempt verification
 Co.Co(_module.Y) and Co.Co(_module.Y)
-ReCo.ReCo(_module.Y) and ReCo.ReCo(_module.Y)
+_module.Y and _module.Y
+_module.Y _module.Y
+false and false
 false and false
 _module.Y and _module.Y
 Done
 
 Dafny program verifier did not attempt verification
 Co.Co(_module.Y) and Co.Co(_module.Y)
-ReCo.ReCo(_module.Y) and ReCo.ReCo(_module.Y)
+_module.Y and _module.Y
+_module.Y _module.Y
+false and false
 false and false
 _module.Y and _module.Y
 Done

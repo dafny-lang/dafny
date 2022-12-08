@@ -15,3 +15,6 @@ predicate Valid(t: T)
   var short := t.F;
   t.Repr == (set i | 0 <= i < short.Length :: short[i].G) + {short}
 }
+
+method Main() {
+}
