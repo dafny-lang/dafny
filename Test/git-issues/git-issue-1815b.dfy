@@ -1,8 +1,8 @@
 // RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny_0 /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
-// RUN: %dafny_0 /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
+// RUN: %exits-with 3 %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype Y<+U> = Y(y: U)

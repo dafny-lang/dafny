@@ -27,7 +27,7 @@ if arg == "-z":
     else:
         exit(0)
 if p.returncode != int(arg) :
-    print( 'Expected exit code', arg, 'instead of', p.returncode )
+    print( 'Expected exit code', arg, ', actual result is', p.returncode )
     exit(1)
 
 exit(0)

@@ -1,9 +1,9 @@
 // RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %dafny_0 /noVerify /compile:4 /spillTargetCode:2 /optimizeErasableDatatypeWrapper:0 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny_0 /noVerify /compile:4 /spillTargetCode:2 /optimizeErasableDatatypeWrapper:0 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny_0 /noVerify /compile:4 /spillTargetCode:2 /optimizeErasableDatatypeWrapper:0 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny_0 /noVerify /compile:4 /spillTargetCode:2 /optimizeErasableDatatypeWrapper:0 /compileTarget:java "%s" >> "%t"
-// RUN: %dafny_0 /noVerify /compile:4 /spillTargetCode:2 /optimizeErasableDatatypeWrapper:0 /compileTarget:py "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /optimizeErasableDatatypeWrapper:0 /compileTarget:cs "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /optimizeErasableDatatypeWrapper:0 /compileTarget:js "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /optimizeErasableDatatypeWrapper:0 /compileTarget:go "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /optimizeErasableDatatypeWrapper:0 /compileTarget:java "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /optimizeErasableDatatypeWrapper:0 /compileTarget:py "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype SingletonRecord = SingletonRecord(u: int)
