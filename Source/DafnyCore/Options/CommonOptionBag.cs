@@ -136,57 +136,28 @@ true - The char type represents any Unicode scalar value.".TrimStart());
       options.VerifyAllModules = value;
     });
 
-    DafnyOptions.RegisterLegacyUi(Target, DafnyOptions.ParseString, "Compilation options", "compileTarget", @"
-cs (default) - Compile to .NET via C#.
-go - Compile to Go.
-js - Compile to JavaScript.
-java - Compile to Java.
-py - Compile to Python.
-cpp - Compile to C++.
-
-Note that the C++ backend has various limitations (see
-Docs/Compilation/Cpp.md). This includes lack of support for
-BigIntegers (aka int), most higher order functions, and advanced
-features like traits or co-inductive types.".TrimStart(), "cs");
-
     DafnyOptions.RegisterLegacyBinding(Target, (options, value) => {
       options.CompilerName = value;
     });
 
-    DafnyOptions.RegisterLegacyUi(OptimizeErasableDatatypeWrapper, DafnyOptions.ParseBoolean, "Compilation options", "optimizeErasableDatatypeWrapper", @"
-0 - Include all non-ghost datatype constructors in the compiled code
-1 (default) - In the compiled target code, transform any non-extern
-    datatype with a single non-ghost constructor that has a single
-    non-ghost parameter into just that parameter. For example, the type
-        datatype Record = Record(x: int)
-    is transformed into just 'int' in the target code.".TrimStart(), defaultValue: true);
-
-    DafnyOptions.RegisterLegacyUi(UnicodeCharacters, DafnyOptions.ParseBoolean, "Language feature selection", "unicodeChar", @"
-0 (default) - The char type represents any UTF-16 code unit.
-1 - The char type represents any Unicode scalar value.".TrimStart());
 
     DafnyOptions.RegisterLegacyBinding(QuantifierSyntax, (options, value) => {
       options.QuantifierSyntax = value;
     });
 
-    DafnyOptions.RegisterLegacyUi(Plugin, DafnyOptions.ParseStringElement, "Plugins", defaultValue: new List<string>());
     DafnyOptions.RegisterLegacyBinding(Plugin, (options, value) => {
       options.AdditionalPluginArguments = value;
     });
 
-    DafnyOptions.RegisterLegacyUi(Prelude, DafnyOptions.ParseString, "Input configuration", "dprelude");
     DafnyOptions.RegisterLegacyBinding(Prelude, (options, value) => {
       options.DafnyPrelude = value;
       options.ExpandFilename(options.DafnyPrelude, x => options.DafnyPrelude = x, options.LogPrefix, options.FileTimestamp);
     });
-    DafnyOptions.RegisterLegacyUi(Output, DafnyOptions.ParseString, "Compilation options", "out");
-    DafnyOptions.RegisterLegacyBinding(Output, (options, value) => {
-      options.DafnyPrintCompiledFile = value;
-    });
-
-    DafnyOptions.RegisterLegacyUi(Libraries, DafnyOptions.ParseStringElement, "Compilation options", defaultValue: new List<string>());
     DafnyOptions.RegisterLegacyBinding(Libraries, (options, value) => {
       options.LibraryFiles = value.ToHashSet();
+    });
+    DafnyOptions.RegisterLegacyBinding(Output, (options, value) => {
+      options.DafnyPrintCompiledFile = value;
     });
 
     DafnyOptions.RegisterLegacyBinding(CompileVerbose, (o, v) => o.CompileVerbose = v);
