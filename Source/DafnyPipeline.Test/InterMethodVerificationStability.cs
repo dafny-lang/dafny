@@ -207,7 +207,7 @@ method M(heap: object)
         Console.Out.WriteLine(dafnyProcess.StandardError.ReadToEnd());
         Console.Out.Flush();
       }
-      Assert.Equal(0, dafnyProcess.ExitCode);
+      Assert.Equal(4, dafnyProcess.ExitCode);
       return result;
     }
   }
