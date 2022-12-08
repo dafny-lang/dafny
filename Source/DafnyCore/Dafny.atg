@@ -4276,7 +4276,7 @@ Lhs<out Expression e>
 /* A ConstAtomExpression is never an l-value, and does not start with an identifier. */
 ConstAtomExpression<out Expression e>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
-     IToken/*!*/ x = t;
+     IToken/*!*/ x = null;
      e = dummyExpr;
   .)
   ( LiteralExpression<out e>
@@ -4300,7 +4300,7 @@ ConstAtomExpression<out Expression e>
       Expression<out e, true, true, false>     (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Cardinality, e); .)
     "|"
   | ParensExpression<out e>
-  ) (. if(!(e is ParensExpression) && !(e is LiteralExpr)) { e.RangeToken = new RangeToken(x, t); } .)
+  ) (. if(x!= null) { e.RangeToken = new RangeToken(x, t); } .)
   .
 
 /*------------------------------------------------------------------------*/

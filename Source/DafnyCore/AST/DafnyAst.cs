@@ -438,7 +438,7 @@ namespace Microsoft.Dafny {
     }
 
     public override IEnumerable<INode> Children => Args.Concat<INode>(
-      Prev != null
+      Prev == null
         ? Enumerable.Empty<INode>()
         : new List<INode> { Prev });
   }
