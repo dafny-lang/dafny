@@ -172,6 +172,8 @@ abstract module {:options "/functionSyntax:4"} Dafny {
 
   // Separate type in order to have a type without a Valid() that reads {}.
   // This could easily be implemented by the same native type as NativeArray.
+  // TODO: Need to make sure NativeArray.Freeze() never returns the same object,
+  // as a.Freeze() == a will lead to unsoundness. Write a Dafny test first!
   trait {:extern} ImmutableArray<+T> {
 
     ghost const values: seq<T>

@@ -45,6 +45,10 @@ type EqualsGeneric interface {
 // values are handled intelligently if their type is refl.Value or any type that
 // implements the EqualsGeneric interface.
 func AreEqual(x, y interface{}) bool {
+  fmt.Println("x: ", x, " y: ", y)
+  fmt.Printf("x type: %T", x)
+  fmt.Printf("y type: %T", y)
+
   if IsDafnyNull(x) {
     return IsDafnyNull(y)
   }
@@ -59,6 +63,7 @@ func AreEqual(x, y interface{}) bool {
         AreEqual(x.Interface(), y.Interface())
     }
   case EqualsGeneric:
+    fmt.Println("Hey hey we're generic")
     return x.EqualsGeneric(y)
   default:
     return refl.DeepEqual(x, y)

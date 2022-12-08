@@ -299,7 +299,7 @@ namespace Microsoft.Dafny.Compilers {
         var wEqualsGeneric = w.NewNamedBlock("func (_this *{0}) EqualsGeneric(x interface{{}}) bool", name);
         if (name.EndsWith("Sequence")) {
           wEqualsGeneric.WriteLine("other, ok := x.(*Sequence)");
-          wEqualsGeneric.WriteLine($"return ok && {DafnySequenceCompanion}.Equal(_this, *other)");
+          wEqualsGeneric.WriteLine($"return ok && {DafnySequenceCompanion}.Equal(_this, other)");
         } else {
           wEqualsGeneric.WriteLine("other, ok := x.(*{0})", name);
           wEqualsGeneric.WriteLine("return ok && _this.Equals(other)");
@@ -349,6 +349,7 @@ namespace Microsoft.Dafny.Compilers {
       //
       // type Trait interface {
       //   String() string
+      //   EqualsGeneric(x interface{}) bool
       //   AbstractMethod0(param0 type0, ...) returnType0
       //   ...
       // }
@@ -381,6 +382,9 @@ namespace Microsoft.Dafny.Compilers {
       var abstractMethodWriter = wr.NewNamedBlock("type {0} interface", name);
       var concreteMethodWriter = wr.Fork();
       abstractMethodWriter.WriteLine("String() string");
+      if (name == "Sequence") {
+        abstractMethodWriter.WriteLine("EqualsGeneric(x interface{}) bool");
+      }
 
       var staticFieldWriter = wr.NewNamedBlock("type {0} struct", FormatCompanionTypeName(name));
       var staticFieldInitWriter = wr.NewNamedBlock("var {0} = {1}", FormatCompanionName(name), FormatCompanionTypeName(name));
