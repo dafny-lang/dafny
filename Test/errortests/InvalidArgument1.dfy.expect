@@ -1,8 +1,62 @@
-Argument '2' not recognized. Must be one of:
-	'3'
-	'4'
-	'migration3to4'
-	'experimentalDefaultGhost'
-	'experimentalDefaultCompiled'
-	'experimentalPredicateAlwaysGhost'
+Description:
+  Verify the program.
+
+Usage:
+  Dafny verify [<file>...] [options]
+
+Arguments:
+  <file>  input files
+
+Options:
+  --boogie-filter <pattern>                    (experimental) Only check proofs whose Boogie name is matched by pattern <p>. This option may be specified multiple times to match multiple patterns. The pattern <p> may contain * wildcards which match any character zero or more times. If you are unsure of how Boogie names are generated, please pre- and postfix your pattern with a wildcard to enable matching on Dafny proof names.
+  --no-verify                                  Skip verification
+  --verification-time-limit <seconds>          Limit the number of seconds spent trying to verify each procedure
+  --verify-included-files                      Verify code in included files.
+  --show-snippets                              Show a source code snippet for each Dafny message.
+  --warn-as-errors                             Treat warnings as errors.
+  --cores <count>                              Run the Dafny CLI using <n> cores. Defaults to 1. [default: 1]
+  --library <library>                          The contents of this file and any files it includes can be referenced from other files as if they were included. 
+                                               However, these contents are skipped during code generation and verification.
+                                               This option is useful in a diamond dependency situation, 
+                                               to prevent code from the bottom dependency from being generated more than once.
+  --plugin <path-to-one-assembly[,argument]*>  (experimental) One path to an assembly that contains at least one
+                                               instantiatable class extending Microsoft.Dafny.Plugin.Rewriter. It
+                                               can also extend Microsoft.Dafny.Plugins.PluginConfiguration to
+                                               receive arguments. More information about what plugins do and how
+                                               to define them:
+  
+                                               https://github.com/dafny-lang/dafny/blob/master/Source/DafnyLanguageServer/README.md#about-plugins
+  --boogie <arguments>                         Specify arguments that are passed to Boogie, a tool used to verify Dafny programs.
+  --prelude <file>                             Choose the Dafny prelude file.
+  --relax-definite-assignment                  Allow variables to be read before they are assigned, but only if they have an auto-initializable type or if they are ghost and have a nonempty type.
+  --function-syntax <version>                  The syntax for functions is changing from Dafny version 3 to version 4. This switch gives early access to the new syntax, and also provides a mode to help with migration.
+  
+                                               3 - Compiled functions are written `function method` and `predicate method`. Ghost functions are written `function` and `predicate`.
+                                               4 - Compiled functions are written `function` and `predicate`. Ghost functions are written `ghost function` and `ghost predicate`.
+                                               migration3to4 - Compiled functions are written `function method` and `predicate method`. Ghost functions are written `ghost function` and `ghost predicate`. To migrate from version 3 to version 4, use this flag on your version 3 program. This will give flag all occurrences of `function` and `predicate` as parsing errors. These are ghost functions, so change those into the new syntax `ghost function` and `ghost predicate`. Then, start using --functionSyntax:4. This will flag all occurrences of `function method` and `predicate method` as parsing errors. So, change those to just `function` and `predicate`. Now, your program uses version 4 syntax and has the exact same meaning as your previous version 3 program.
+                                               experimentalDefaultGhost - Like migration3to4, but allow `function` and `predicate` as alternatives to declaring ghost functions and predicates, respectively.
+                                               experimentalDefaultCompiled - Like migration3to4, but allow `function` and `predicate` as alternatives to declaring compiled
+                                                   functions and predicates, respectively.
+                                               experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Ghost functions are written `ghost function`. Predicates are always ghost and are written `predicate`. [default: 3]
+  --quantifier-syntax <version>                The syntax for quantification domains is changing from Dafny version 3 to version 4, more specifically where quantifier ranges (|
+                                               <Range>) are allowed. This switch gives early access to the new syntax.
+  
+                                               3 - Ranges are only allowed after all quantified variables are declared. 
+                                                   (e.g. set x, y | 0 <= x < |s| && y in s[x] && 0 <= y :: y)
+                                               4 - Ranges are allowed after each quantified variable declaration.
+                                                   (e.g. set x | 0 <= x < |s|, y <- s[x] | 0 <= y :: y)
+  
+                                               Note that quantifier variable domains (<- <Domain>) are available in both syntax versions. [default: Version3]
+  --warn-shadowing                             Emits a warning if the name of a declared variable caused another variable to be shadowed.
+  --warn-missing-constructor-parentheses       Emits a warning when a constructor name in a case pattern is not followed by parentheses.
+  --track-print-effects                        A compiled method, constructor, or iterator is allowed to have print effects only if it is marked with {{:print}}.
+  --disable-nonlinear-arithmetic               (experimental, will be replaced in the future)
+                                               Reduce Dafny's knowledge of non-linear arithmetic (*,/,%).
+  
+                                               Results in more manual work, but also produces more predictable behavior.
+  --unicode-char                               false - The char type represents any UTF-16 code unit.
+                                               true - The char type represents any Unicode scalar value.
+  -?, -h, --help                               Show help and usage information
+
+
 
