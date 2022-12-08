@@ -38,7 +38,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     public abstract IEnumerable<INode> Children { get; }
 
-    private RangeToken rangeToken = null;
+    protected RangeToken rangeToken = null;
 
     // Contains tokens that did not make it in the AST but are part of the expression,
     // Enables ranges to be correct.

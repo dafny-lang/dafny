@@ -2613,8 +2613,8 @@ public abstract class ConcreteSyntaxExpression : Expression {
     get => resolvedExpression;
     set {
       resolvedExpression = value;
-      if (RangeToken != null && resolvedExpression != null) {
-        resolvedExpression.RangeToken = RangeToken;
+      if (rangeToken != null && resolvedExpression != null) {
+        resolvedExpression.RangeToken = rangeToken;
       }
     }
   }  // after resolution, manipulation of "this" should proceed as with manipulating "this.ResolvedExpression"
