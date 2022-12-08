@@ -202,9 +202,29 @@ namespace Microsoft.Dafny {
         // print call graph
         Indent(indent); wr.WriteLine("/* CALL GRAPH for module {0}:", module.Name);
         var SCCs = module.CallGraph.TopologicallySortedComponents();
-        SCCs.Reverse();
+        // Sort output SCCs in order of: descending height, then decreasing size of SCC, then alphabetical order of the name of
+        // the representative element. By being this specific, we reduce changes in output from minor changes in the code. (With
+        // more effort, we could be even more deterministic, if needed in the future.)
+        SCCs.Sort((m, n) => {
+          var mm = module.CallGraph.GetSCCRepresentativePredecessorCount(m);
+          var nn = module.CallGraph.GetSCCRepresentativePredecessorCount(n);
+          if (mm < nn) {
+            return 1;
+          } else if (mm > nn) {
+            return -1;
+          }
+          mm = module.CallGraph.GetSCCSize(m);
+          nn = module.CallGraph.GetSCCSize(n);
+          if (mm < nn) {
+            return 1;
+          } else if (mm > nn) {
+            return -1;
+          }
+          return string.CompareOrdinal(m.NameRelativeToModule, n.NameRelativeToModule);
+        });
         foreach (var clbl in SCCs) {
-          Indent(indent); wr.WriteLine(" * SCC at height {0}:", module.CallGraph.GetSCCRepresentativePredecessorCount(clbl));
+          Indent(indent);
+          wr.WriteLine(" * SCC at height {0}:", module.CallGraph.GetSCCRepresentativePredecessorCount(clbl));
           var r = module.CallGraph.GetSCC(clbl);
           foreach (var m in r) {
             Indent(indent);

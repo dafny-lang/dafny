@@ -110,9 +110,9 @@ module U.V.W {
 module _System {
   /* CALL GRAPH for module _System:
    * SCC at height 1:
-   *   RotateRight
-   * SCC at height 1:
    *   RotateLeft
+   * SCC at height 1:
+   *   RotateRight
    * SCC at height 0:
    *   nat
    */
@@ -241,9 +241,9 @@ module Outer {
      * SCC at height 1:
      *   a
      * SCC at height 0:
-     *   c
-     * SCC at height 0:
      *   b
+     * SCC at height 0:
+     *   c
      */
 
     import B
@@ -399,10 +399,10 @@ module U {
     /* CALL GRAPH for module V:
      * SCC at height 2:
      *   Test
-     * SCC at height 0:
-     *   string
      * SCC at height 1:
      *   x2
+     * SCC at height 0:
+     *   string
      * SCC at height 0:
      *   x0
      * SCC at height 0:

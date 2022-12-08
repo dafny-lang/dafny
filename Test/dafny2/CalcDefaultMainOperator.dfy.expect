@@ -4,9 +4,9 @@
 module _System {
   /* CALL GRAPH for module _System:
    * SCC at height 1:
-   *   RotateRight
-   * SCC at height 1:
    *   RotateLeft
+   * SCC at height 1:
+   *   RotateRight
    * SCC at height 0:
    *   nat
    */
@@ -101,43 +101,43 @@ module _System {
 
 /* CALL GRAPH for module _module:
  * SCC at height 0:
+ *   TestBool
+ * SCC at height 0:
  *   TestMultiset
  * SCC at height 0:
  *   TestSet
- * SCC at height 0:
- *   TestBool
  */
 
 module PrintTest {
   /* CALL GRAPH for module PrintTest:
-   * SCC at height 0:
-   *   NewEven
+   * SCC at height 1:
+   *   Eleven
+   * SCC at height 1:
+   *   Ten
+   * SCC at height 1:
+   *   TenAgain
+   * SCC at height 1:
+   *   TenOnceMore
+   * SCC at height 1:
+   *   Twelve
+   * SCC at height 1:
+   *   TwentyOne
    * SCC at height 0:
    *   Even
+   * SCC at height 0:
+   *   Five
+   * SCC at height 0:
+   *   NewEven
    * SCC at height 0:
    *   NewOdd
    * SCC at height 0:
    *   Odd
    * SCC at height 0:
-   *   Twenty
-   * SCC at height 1:
-   *   TwentyOne
-   * SCC at height 0:
-   *   Yes
-   * SCC at height 1:
-   *   Twelve
-   * SCC at height 1:
-   *   Eleven
-   * SCC at height 1:
-   *   TenOnceMore
-   * SCC at height 1:
-   *   TenAgain
-   * SCC at height 1:
-   *   Ten
-   * SCC at height 0:
    *   Six
    * SCC at height 0:
-   *   Five
+   *   Twenty
+   * SCC at height 0:
+   *   Yes
    */
   type Odd = x: int
     | ghost var rr: int := 2; x % rr == 1
