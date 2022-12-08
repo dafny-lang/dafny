@@ -1251,11 +1251,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     /proverOpt:O:model.compact=false (for z3 version >= 4.8.7), and
     /proverOpt:O:model.completion=true.
 
-/countVerificationErrors:<n>
-    (deprecated)
-    0 - Set exit code to 0 regardless of the presence of any other errors.
-    1 (default) - Emit usual exit code (cf. beginning of the help message).
-
 ---- Test generation options -----------------------------------------------
 {TestGenOptions.Help}
 ---- Compilation options ---------------------------------------------------
