@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /compile:3 /compileTarget:java "%s" > "%t"
+// RUN: %dafny /compile:3 /compileTarget:java "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype Wrapper<T> = Wrapper(s: seq<T>)

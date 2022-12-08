@@ -1,4 +1,4 @@
-// RUN: %exits-with 3 %dafny /compile:0 "%s" > "%t"
+// RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 predicate P(x: int)

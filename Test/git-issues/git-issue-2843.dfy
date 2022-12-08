@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /functionSyntax:4 "%s" > "%t"
+// RUN: %exits-with 2 %dafny /functionSyntax:4 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 function F(ghost x: int, y: int): int {
