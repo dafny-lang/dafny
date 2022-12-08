@@ -179,11 +179,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(cce.NonNullElements(Contract.Result<List<Node>>()));
       ComputeSCCs();
       Contract.Assert(topologicallySortedRepresentatives != null);  // follows from object invariant
-      List<Node> nn = new List<Node>();
-      foreach (Vertex v in topologicallySortedRepresentatives) {
-        nn.Add(v.N);
-      }
-      return nn;
+      return topologicallySortedRepresentatives.ConvertAll(v => v.N);
     }
 
     /// <summary>
