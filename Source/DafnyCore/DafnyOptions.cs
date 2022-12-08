@@ -38,8 +38,8 @@ namespace Microsoft.Dafny {
   public class DafnyOptions : Bpl.CommandLineOptions {
 
     public void ApplyBinding(Option option) {
-      if (bindings.ContainsKey(option)) {
-        bindings[option](this, Get(option));
+      if (legacyBindings.ContainsKey(option)) {
+        legacyBindings[option](this, Get(option));
       }
     }
 
@@ -61,9 +61,9 @@ namespace Microsoft.Dafny {
 
     public void AddFile(string file) => base.AddFile(file, null);
 
-    private static Dictionary<Option, Action<DafnyOptions, object>> bindings = new();
+    private static Dictionary<Option, Action<DafnyOptions, object>> legacyBindings = new();
     public static void RegisterLegacyBinding<T>(Option<T> option, Action<DafnyOptions, T> bind) {
-      bindings[option] = (options, o) => bind(options, (T)o);
+      legacyBindings[option] = (options, o) => bind(options, (T)o);
     }
 
     public static void ParseString(Option<string> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
@@ -728,9 +728,9 @@ namespace Microsoft.Dafny {
         if (!Options.OptionArguments.ContainsKey(legacyUiOption.Option)) {
           Set(legacyUiOption.Option, legacyUiOption.DefaultValue);
         }
-        if (bindings.ContainsKey(legacyUiOption.Option)) {
+        if (legacyBindings.ContainsKey(legacyUiOption.Option)) {
           var value = Get(legacyUiOption.Option);
-          bindings[legacyUiOption.Option](this, value);
+          legacyBindings[legacyUiOption.Option](this, value);
         }
       }
 
