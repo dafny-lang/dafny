@@ -39,7 +39,7 @@ class C {
   lemma MyLemma()
 }".TrimStart();
       await SetUp(options => {
-        GhostIndicatorsOption.Instance.Set(options, false);
+        options.Set(ServerCommand.GhostIndicators, false);
       });
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -63,7 +63,7 @@ class C {
   lemma MyLemma()
 }".TrimStart();
       await SetUp(options => {
-        GhostIndicatorsOption.Instance.Set(options, true);
+        options.Set(ServerCommand.GhostIndicators, true);
       });
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -92,7 +92,7 @@ class C {
   lemma MyLemma()
 }".TrimStart();
       await SetUp(options => {
-        GhostIndicatorsOption.Instance.Set(options, true);
+        options.Set(ServerCommand.GhostIndicators, true);
       });
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -119,7 +119,7 @@ class C {
   lemma MyLemma()
 }".TrimStart();
       await SetUp(options => {
-        GhostIndicatorsOption.Instance.Set(options, true);
+        options.Set(ServerCommand.GhostIndicators, true);
       });
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -146,7 +146,7 @@ class C {
   lemma MyLemma()
 }".TrimStart();
       await SetUp(options => {
-        GhostIndicatorsOption.Instance.Set(options, true);
+        options.Set(ServerCommand.GhostIndicators, true);
       });
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -181,7 +181,7 @@ class C {
   lemma MyLemma()
 }".TrimStart();
       await SetUp(options => {
-        GhostIndicatorsOption.Instance.Set(options, true);
+        options.Set(ServerCommand.GhostIndicators, true);
       });
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
