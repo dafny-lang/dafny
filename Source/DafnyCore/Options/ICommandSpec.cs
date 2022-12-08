@@ -35,6 +35,7 @@ public interface ICommandSpec {
   public static IReadOnlyList<IOptionSpec> ExecutionOptions = new IOptionSpec[] {
     TargetOption.Instance,
     EnforceDeterminismOption.Instance,
+    OptimizeErasableDatatypeWrapperOption.Instance,
   }.ToList();
 
   public static IReadOnlyList<IOptionSpec> CommonOptions = new List<IOptionSpec>(new IOptionSpec[] {
