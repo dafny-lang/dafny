@@ -2366,7 +2366,7 @@ public class CasePattern<VT> : INode where VT : IVariable {
     }
   }
 
-  public override IEnumerable<INode> Children => Arguments;
+  public override IEnumerable<INode> Children => Arguments ?? Enumerable.Empty<INode>();
 }
 
 /*
