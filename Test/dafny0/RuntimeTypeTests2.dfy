@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:3 "%s" /compileTarget:cs > "%t"
+// RUN: %exits-with 3 %dafny /compile:3 "%s" /compileTarget:cs > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // The errors in this file are produced by the compiler

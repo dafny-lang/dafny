@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 /tracePOs "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /tracePOs "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // These tests make sure that the built-in arrow types are taken into account when
