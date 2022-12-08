@@ -8,7 +8,7 @@ namespace Microsoft.Dafny;
 class VerifyCommand : ICommandSpec {
   public IEnumerable<Option> Options => new Option[] {
     BoogieOptionBag.BoogieFilter,
-  }.Concat(ICommandSpec.VerificationOptions.Except(new[] { BoogieOptionBag.NoVerify })).
+  }.Concat(ICommandSpec.VerificationOptions).
     Concat(ICommandSpec.ConsoleOutputOptions).
     Concat(ICommandSpec.CommonOptions);
 
