@@ -2,7 +2,7 @@
 ## and the rest of the arguments are a command to run, with its
 ## command-line arguments.
 ## The script runs the command and then if the first argument is
-## (1) -ok -- returns success, ignoring the exit code of the command
+## (1) -any -- returns success, ignoring the exit code of the command
 ## (2) -z  -- returns success iff the exit code is non-zero
 ## (3) some integer literal -- return success iff the exit code 
 ##     matches the given integer
@@ -18,7 +18,7 @@ if arg == "-skip":
 
 p = subprocess.run( sys.argv[2:] )
 
-if arg == "-ok":
+if arg == "-any":
     exit(0)
 if arg == "-z":
     if p.returncode == 0 :
