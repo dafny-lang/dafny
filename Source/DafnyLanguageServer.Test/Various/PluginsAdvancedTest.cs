@@ -41,9 +41,4 @@ method {:test} myMethodWrongName() {
     Assert.AreEqual(new Range((3, 15), (3, 32)), related.Current.Location.Range);
     related.Dispose();
   }
-
-  [TestCleanup]
-  public void DoCleanup() {
-    CleanupPlugin();
-  }
 }

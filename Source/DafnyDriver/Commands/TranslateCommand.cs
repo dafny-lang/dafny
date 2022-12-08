@@ -6,13 +6,14 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 class TranslateCommand : ICommandSpec {
-  public IEnumerable<IOptionSpec> Options =>
-    new IOptionSpec[] {
-      OutputOption.Instance,
-      CompileVerboseOption.Instance,
-      IncludeRuntimeOption.Instance,
+  public IEnumerable<Option> Options =>
+    new Option[] {
+      CommonOptionBag.Output,
+      CommonOptionBag.CompileVerbose,
+      CommonOptionBag.IncludeRuntime,
     }.Concat(ICommandSpec.VerificationOptions).
       Concat(ICommandSpec.ExecutionOptions).
+      Concat(ICommandSpec.ConsoleOutputOptions).
       Concat(ICommandSpec.CommonOptions);
 
   public Command Create() {
@@ -23,7 +24,7 @@ class TranslateCommand : ICommandSpec {
 
   public void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context) {
     dafnyOptions.Compile = false;
-    var noVerify = NoVerifyOption.Instance.Get(options);
+    var noVerify = dafnyOptions.Get(BoogieOptionBag.NoVerify);
     dafnyOptions.SpillTargetCode = noVerify ? 3U : 2U;
   }
 }

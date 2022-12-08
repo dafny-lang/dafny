@@ -129,7 +129,7 @@ namespace Microsoft.Dafny.Compilers {
     protected string IntSelect = ",int";
     protected string LambdaExecute = "";
 
-    protected static bool UnicodeCharEnabled => UnicodeCharactersOption.Instance.Get(DafnyOptions.O);
+    protected static bool UnicodeCharEnabled => DafnyOptions.O.Get(CommonOptionBag.UnicodeCharacters);
 
     protected static string CharMethodQualifier => UnicodeCharEnabled ? "Unicode" : "";
 
@@ -1368,7 +1368,7 @@ namespace Microsoft.Dafny.Compilers {
             var w = DeclareNewtype(nt, wr);
             v.Visit(nt);
             CompileClassMembers(program, nt, w);
-          } else if ((d as TupleTypeDecl)?.NonGhostDims == 1 && SupportsDatatypeWrapperErasure && DafnyOptions.O.OptimizeErasableDatatypeWrappers) {
+          } else if ((d as TupleTypeDecl)?.NonGhostDims == 1 && SupportsDatatypeWrapperErasure && DafnyOptions.O.Get(CommonOptionBag.OptimizeErasableDatatypeWrapper)) {
             // ignore this type declaration
           } else if (d is DatatypeDecl) {
             var dt = (DatatypeDecl)d;
