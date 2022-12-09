@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module {:options "/quantifierSyntax:4"} NewSyntax {
