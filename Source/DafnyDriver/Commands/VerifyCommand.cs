@@ -22,3 +22,19 @@ class VerifyCommand : ICommandSpec {
     dafnyOptions.Compile = false;
   }
 }
+
+class ResolveCommand : ICommandSpec {
+  public IEnumerable<Option> Options => ICommandSpec.ConsoleOutputOptions.
+    Concat(ICommandSpec.CommonOptions);
+
+  public Command Create() {
+    var result = new Command("resolve", "Resolve the program.");
+    result.AddArgument(ICommandSpec.FilesArgument);
+    return result;
+  }
+
+  public void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context) {
+    dafnyOptions.Compile = false;
+  }
+
+}
