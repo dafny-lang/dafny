@@ -28,7 +28,7 @@ class ResolveCommand : ICommandSpec {
     Concat(ICommandSpec.CommonOptions);
 
   public Command Create() {
-    var result = new Command("resolve", "Resolve the program.");
+    var result = new Command("resolve", "Only check for parse and type resolution errors.");
     result.AddArgument(ICommandSpec.FilesArgument);
     return result;
   }
