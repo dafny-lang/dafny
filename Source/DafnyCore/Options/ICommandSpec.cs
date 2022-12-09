@@ -27,16 +27,16 @@ public interface ICommandSpec {
   public static Argument<IEnumerable<FileInfo>> FilesArgument { get; }
 
   public static IReadOnlyList<Option> VerificationOptions = new Option[] {
-    BoogieOptionBag.NoVerify,
     BoogieOptionBag.VerificationTimeLimit,
     CommonOptionBag.VerifyIncludedFiles
   }.ToList();
 
   public static IReadOnlyList<Option> ExecutionOptions = new Option[] {
     CommonOptionBag.Target,
+    BoogieOptionBag.NoVerify,
     CommonOptionBag.EnforceDeterminism,
     CommonOptionBag.OptimizeErasableDatatypeWrapper,
-  }.ToList();
+  }.Concat(VerificationOptions).ToList();
 
   public static IReadOnlyList<Option> ConsoleOutputOptions = new List<Option>(new Option[] {
     DafnyConsolePrinter.ShowSnippets,

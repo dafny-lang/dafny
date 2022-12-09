@@ -26,6 +26,7 @@ static class CommandRegistry {
   }
 
   static CommandRegistry() {
+    AddCommand(new ResolveCommand());
     AddCommand(new VerifyCommand());
     AddCommand(new RunCommand());
     AddCommand(new BuildCommand());
