@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0  "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0  "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 predicate inner(x:int, y:int) { x == y}
