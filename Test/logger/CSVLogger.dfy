@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /verificationLogger:csv";"LogFileName="%t.csv" "%s"
+// RUN: %exits-with 4 %dafny /verificationLogger:csv";"LogFileName="%t.csv" "%s"
 // RUN: %OutputCheck --file-to-check "%t.csv" "%s"
 
 // CHECK: TestResult\.DisplayName,TestResult\.Outcome,TestResult\.Duration,TestResult\.ResourceCount
