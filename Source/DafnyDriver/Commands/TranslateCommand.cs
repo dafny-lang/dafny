@@ -11,8 +11,7 @@ class TranslateCommand : ICommandSpec {
       CommonOptionBag.Output,
       CommonOptionBag.CompileVerbose,
       CommonOptionBag.IncludeRuntime,
-    }.Concat(ICommandSpec.VerificationOptions).
-      Concat(ICommandSpec.ExecutionOptions).
+    }.Concat(ICommandSpec.ExecutionOptions).
       Concat(ICommandSpec.ConsoleOutputOptions).
       Concat(ICommandSpec.CommonOptions);
 
