@@ -8,8 +8,7 @@ namespace Microsoft.Dafny;
 public class TestCommand : ICommandSpec {
   public IEnumerable<Option> Options =>
     new Option[] {
-    }.Concat(ICommandSpec.VerificationOptions).
-      Concat(ICommandSpec.ExecutionOptions).
+    }.Concat(ICommandSpec.ExecutionOptions).
       Concat(ICommandSpec.ConsoleOutputOptions).
       Concat(ICommandSpec.CommonOptions);
 
