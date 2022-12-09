@@ -162,13 +162,13 @@ module _System {
  * SCC at height 1:
  *   ConstrainedIntermediateExpressions
  * SCC at height 1:
- *   Numerics
- * SCC at height 1:
  *   SubsetTypes
  * SCC at height 0:
  *   Byte
  * SCC at height 0:
  *   NegIsOdd
+ * SCC at height 0:
+ *   Numerics
  * SCC at height 0:
  *   Sequences
  * SCC at height 0:
@@ -177,8 +177,6 @@ module _System {
  *   Subset_Byte
  * SCC at height 0:
  *   Subset_NegIsOdd
- * SCC at height 0:
- *   nat
  */
 newtype NegIsOdd = x: int
   | x < 0 ==> x % 2 == 1

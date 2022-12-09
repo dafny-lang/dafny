@@ -140,8 +140,6 @@ module _System {
  *   EvenInt
  * SCC at height 0:
  *   SmallReal
- * SCC at height 0:
- *   nat
  */
 newtype EvenInt = x: int
   | x % 2 == 0

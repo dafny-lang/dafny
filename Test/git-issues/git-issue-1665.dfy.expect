@@ -104,16 +104,14 @@ module _System {
 
 module ConcreteModule {
   /* CALL GRAPH for module ConcreteModule:
-   * SCC at height 3:
+   * SCC at height 2:
    *   execute_external_method
-   * SCC at height 2:
-   *   Status.PropagateFailure
-   * SCC at height 2:
+   * SCC at height 1:
    *   Func1
    * SCC at height 1:
-   *   Status
+   *   Status.PropagateFailure
    * SCC at height 0:
-   *   nat
+   *   Status
    * SCC at height 0:
    *   Status.IsFailure
    */

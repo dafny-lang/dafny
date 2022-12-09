@@ -3656,7 +3656,7 @@ namespace Microsoft.Dafny {
         type.ForeachTypeComponent(ty => {
           var udt = ty as UserDefinedType;
           var cl = udt == null ? null : udt.ResolvedClass as ICallable;
-          if (cl != null) {
+          if (cl != null && caller.EnclosingModule == cl.EnclosingModule) {
             caller.EnclosingModule.CallGraph.AddEdge(caller, cl);
           }
         });
@@ -8033,7 +8033,9 @@ namespace Microsoft.Dafny {
         }
         if (e.Member is ICallable) {
           var other = (ICallable)e.Member;
-          field.EnclosingModule.CallGraph.AddEdge(field, other);
+          if (field.EnclosingModule == other.EnclosingModule) {
+            field.EnclosingModule.CallGraph.AddEdge(field, other);
+          }
         }
         // okay so far; now, go on checking subexpressions
       }
@@ -9274,7 +9276,9 @@ namespace Microsoft.Dafny {
               var caller = CodeContextWrapper.Unwrap(resolutionContext.CodeContext) as ICallable;
               if (caller != null && !(d is SubsetTypeDecl && caller is SpecialFunction)) {
                 if (caller != d) {
-                  caller.EnclosingModule.CallGraph.AddEdge(caller, dd);
+                  if (caller.EnclosingModule == dd.EnclosingModule) {
+                    caller.EnclosingModule.CallGraph.AddEdge(caller, dd);
+                  }
                 } else if (d is TypeSynonymDecl && !(d is SubsetTypeDecl)) {
                   // detect self-loops here, since they don't show up in the graph's SCC methods
                   reporter.Error(MessageSource.Resolver, d.tok, "type-synonym cycle: {0} -> {0}", d.Name);
@@ -9287,7 +9291,7 @@ namespace Microsoft.Dafny {
             } else if (d is DatatypeDecl) {
               var dd = (DatatypeDecl)d;
               var caller = CodeContextWrapper.Unwrap(resolutionContext.CodeContext) as ICallable;
-              if (caller != null) {
+              if (caller != null && caller.EnclosingModule == dd.EnclosingModuleDefinition) {
                 caller.EnclosingModule.CallGraph.AddEdge(caller, dd);
               }
               t.ResolvedClass = d;

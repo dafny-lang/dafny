@@ -210,8 +210,6 @@ module _System {
  *   MyClass.RST_Nat
  * SCC at height 0:
  *   MyClass.S
- * SCC at height 0:
- *   nat
  */
 class MyClass<A, B> {
   greatest predicate P<X, Y>(x: X, y: Y)

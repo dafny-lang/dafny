@@ -142,16 +142,14 @@ module _System {
 
 module Tests {
   /* CALL GRAPH for module Tests:
-   * SCC at height 2:
+   * SCC at height 1:
    *   CC.M
-   * SCC at height 1:
-   *   CC.F
-   * SCC at height 1:
-   *   CC.N
-   * SCC at height 1:
-   *   ChainOfAssignments
    * SCC at height 0:
-   *   nat
+   *   CC.F
+   * SCC at height 0:
+   *   CC.N
+   * SCC at height 0:
+   *   ChainOfAssignments
    */
   class CC {
     var f: nat
@@ -374,8 +372,6 @@ module References {
    *   M
    * SCC at height 0:
    *   R
-   * SCC at height 0:
-   *   object
    */
   class C extends K, M { }
   /*-- non-null type
@@ -437,8 +433,6 @@ module SimpleClassesAndTraits {
    *   D
    * SCC at height 0:
    *   K
-   * SCC at height 0:
-   *   object
    */
   class C extends K, M { }
   /*-- non-null type
@@ -633,8 +627,6 @@ module OtherTraitsAndClasses {
    * SCC at height 1:
    *   G
    * SCC at height 1:
-   *   M
-   * SCC at height 1:
    *   Q1
    * SCC at height 0:
    *   Basics
@@ -649,13 +641,11 @@ module OtherTraitsAndClasses {
    * SCC at height 0:
    *   K
    * SCC at height 0:
+   *   M
+   * SCC at height 0:
    *   MyClass
    * SCC at height 0:
    *   Q0
-   * SCC at height 0:
-   *   nat
-   * SCC at height 0:
-   *   object
    */
   trait J { }
   /*-- non-null type
@@ -769,12 +759,6 @@ module LetPatterns {
 
 module Arrays_and_SubsetTypes {
   /* CALL GRAPH for module Arrays_and_SubsetTypes:
-   * SCC at height 1:
-   *   M
-   * SCC at height 0:
-   *   array
-   * SCC at height 0:
-   *   nat
    */
   method M()
   {
@@ -803,12 +787,6 @@ module Arrays_and_SubsetTypes {
 
 module Arrays_and_SubsetTypesOK {
   /* CALL GRAPH for module Arrays_and_SubsetTypesOK:
-   * SCC at height 1:
-   *   M
-   * SCC at height 0:
-   *   array
-   * SCC at height 0:
-   *   nat
    */
   method M()
   {
@@ -925,7 +903,7 @@ module PrettyPrintingBindingPowers {
 
 module SameSCC {
   /* CALL GRAPH for module SameSCC:
-   * SCC at height 1:
+   * SCC at height 0:
    *   G6
    *   G5
    *   G4
@@ -933,10 +911,6 @@ module SameSCC {
    *   G2
    *   G1
    *   G0
-   * SCC at height 0:
-   *   _tuple#2
-   * SCC at height 0:
-   *   array
    */
   type G0 = G1
 
