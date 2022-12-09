@@ -712,7 +712,10 @@ public class LocalVariable : INode, IVariable, IAttributeBearingDeclaration {
   }
 
   public IToken NameToken => Tok;
-  public override IEnumerable<INode> Children => (Attributes != null ? new List<INode> { Attributes } : Enumerable.Empty<INode>()).Concat(type.Nodes);
+  public bool IsTypeExplicit = false;
+  public override IEnumerable<INode> Children =>
+    (Attributes != null ? new List<INode> { Attributes } : Enumerable.Empty<INode>()).Concat(
+      IsTypeExplicit ? new List<INode>() { type } : Enumerable.Empty<INode>());
 }
 
 public class GuardedAlternative : INode, IAttributeBearingDeclaration {

@@ -671,6 +671,7 @@ namespace Microsoft.Dafny {
       compileName ??= SanitizedName;
 
     Type type;
+    public bool IsTypeExplicit = false;
     public Type SyntacticType { get { return type; } }  // returns the non-normalized type
     public Type Type {
       get {
@@ -708,7 +709,7 @@ namespace Microsoft.Dafny {
     }
 
     public IToken NameToken => tok;
-    public override IEnumerable<INode> Children => Type.Nodes;
+    public override IEnumerable<INode> Children => IsTypeExplicit ? Type.Nodes : Enumerable.Empty<INode>();
   }
 
   public class Formal : NonglobalVariable {

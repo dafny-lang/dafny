@@ -1519,7 +1519,7 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
       )
     ]
     [ TypeMembers<module, members> ]
-    (. td = new NewtypeDecl(id, id.val, module, new BoundVar(bvId, bvId.val, baseType), constraint, witnessKind, witness, members, attrs, isRefining: false);
+    (. td = new NewtypeDecl(id, id.val, module, new BoundVar(bvId, bvId.val, baseType){ IsTypeExplicit = true }, constraint, witnessKind, witness, members, attrs, isRefining: false);
     .)
   | Type<out baseType>
     [ TypeMembers<module, members> ]
@@ -1575,7 +1575,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
           )
         )
       ]
-      (. td = new SubsetTypeDecl(id, id.val, characteristics, typeArgs, module, new BoundVar(bvId, bvId.val, ty), constraint, witnessKind, witness, attrs);
+      (. td = new SubsetTypeDecl(id, id.val, characteristics, typeArgs, module, new BoundVar(bvId, bvId.val, ty){ IsTypeExplicit = !(ty is InferredTypeProxy) }, constraint, witnessKind, witness, attrs);
          kind = "subset type";
       .)
     |
@@ -1654,7 +1654,9 @@ LocalIdentTypeOptional<out LocalVariable var, bool isGhost, bool allowWild=true>
   WildIdent<out id, allowWild> (. startToken = t; .)
   [ ":" Type<out ty>             (. optType = ty; .)
   ]
-  (. var = new LocalVariable(id, id, id.val, optType == null ? new InferredTypeProxy() : optType, isGhost);
+  (. var = new LocalVariable(id, id, id.val, optType == null ? new InferredTypeProxy() : optType, isGhost) {
+       IsTypeExplicit = optType != null
+     };
      var.RangeToken = new RangeToken(startToken, t);
   .)
   .
@@ -1666,7 +1668,9 @@ IdentTypeOptional<out BoundVar var>
   WildIdent<out id, true>
   [ ":" Type<out ty>             (. optType = ty; .)
   ]
-  (. var = new BoundVar(id, id.val, optType == null ? new InferredTypeProxy() : optType); .)
+  (. var = new BoundVar(id, id.val, optType == null ? new InferredTypeProxy() : optType) {
+       IsTypeExplicit = optType != null
+     }; .)
   .
 
 TypeIdentOptional<out IToken/*!*/ id, out string/*!*/ identName, out Type/*!*/ ty, out bool isGhost, out Expression defaultValue, out bool isNameOnly>
