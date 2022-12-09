@@ -1,3 +1,6 @@
+---
+title: How-to and FAQ Guide for Dafny users (one page)
+---
 
 # How do I format a string?
 
