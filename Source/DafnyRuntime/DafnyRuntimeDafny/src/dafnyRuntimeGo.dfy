@@ -9,11 +9,7 @@ module {:extern "dafny"} {:options "/functionSyntax:4"} DafnyGo refines Dafny {
 
   trait {:extern} Sequence<+T> ... {
 
-    function Elements(): Sequence<T> {
-      this
-    }
-
-    method SetString() returns (ret: Sequence<T>) 
+    method SetString() returns (ret: Sequence<T>)
       modifies this
     {
       isString := true;

@@ -18,6 +18,17 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- TODO: why does this need to be here as well as DafnyPipeline? -->
+    <Compile Update="DafnyRuntime.cs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Compile>
+    <Content Include="DafnyRuntime.js" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="DafnyRuntimeGo\DafnyRuntime.go" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="DafnyRuntimeGo\DafnyRuntimeFromDafny.go" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="DafnyRuntime.h" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="DafnyRuntime.py" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="DafnyRuntimeJava\build\libs\DafnyRuntime.jar" Link="DafnyRuntime.jar" CopyToOutputDirectory="PreserveNewest" />
+
     <!--
     This project depends on DafnyDriver, but only as a CLI tool rather than a direct C# dependency.
     We need to build DafnyDriver before this package, but we can't add a direct project dependency

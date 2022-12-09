@@ -99,9 +99,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine("package {0}", ModuleName);
       wr.WriteLine();
       // This is a non-main module; it only imports things declared before it, so we don't need these writers
-      if (ModuleName != "dafny") {
-        EmitImports(wr, out _, out _);
-      }
+      EmitImports(wr, out _, out _);
       wr.WriteLine();
       wr.WriteLine("type {0} struct{{}}", DummyTypeName);
       wr.WriteLine();
@@ -112,9 +110,11 @@ namespace Microsoft.Dafny.Compilers {
       importWriter = wr.Fork(1);
       wr.WriteLine(")");
       importDummyWriter = wr.Fork();
-
-      foreach (var import in Imports) {
-        EmitImport(import, importWriter, importDummyWriter);
+      // TODO-HACK
+      if (ModuleName != "dafny") {
+        foreach (var import in Imports) {
+          EmitImport(import, importWriter, importDummyWriter);
+        }
       }
     }
 
@@ -287,18 +287,19 @@ namespace Microsoft.Dafny.Compilers {
         // This Equals() is so simple that we could just use == instead, but uniformity is good and it'll get inlined anyway.
 
         w.WriteLine();
-        var wEquals = w.NewNamedBlock("func (_this *{0}) Equals(other *{0}) bool", name);
         // TODO-HACK
         if (name.EndsWith("Sequence")) {
+          var wEquals = w.NewNamedBlock("func (_this *{0}) Equals(other Sequence) bool", name);
           wEquals.WriteLine($"return {DafnySequenceCompanion}.Equal(_this, other)");
         } else {
+          var wEquals = w.NewNamedBlock("func (_this *{0}) Equals(other *{0}) bool", name);
           wEquals.WriteLine("return _this == other");
         }
 
         w.WriteLine();
         var wEqualsGeneric = w.NewNamedBlock("func (_this *{0}) EqualsGeneric(x interface{{}}) bool", name);
         if (name.EndsWith("Sequence")) {
-          wEqualsGeneric.WriteLine("other, ok := x.(*Sequence)");
+          wEqualsGeneric.WriteLine("other, ok := x.(Sequence)");
           wEqualsGeneric.WriteLine($"return ok && {DafnySequenceCompanion}.Equal(_this, other)");
         } else {
           wEqualsGeneric.WriteLine("other, ok := x.(*{0})", name);
@@ -383,7 +384,9 @@ namespace Microsoft.Dafny.Compilers {
       var concreteMethodWriter = wr.Fork();
       abstractMethodWriter.WriteLine("String() string");
       if (name == "Sequence") {
+        abstractMethodWriter.WriteLine("Equals(other Sequence) bool");
         abstractMethodWriter.WriteLine("EqualsGeneric(x interface{}) bool");
+        abstractMethodWriter.WriteLine("VerbatimString(isLiteral bool) string");
       }
 
       var staticFieldWriter = wr.NewNamedBlock("type {0} struct", FormatCompanionTypeName(name));
@@ -2011,7 +2014,7 @@ namespace Microsoft.Dafny.Compilers {
         } else if (boundVarType.IsTraitType) {
           var trait = boundVarType.AsTraitType;
           conditions.Add(
-            $"{HelperModulePrefix}.InstanceOfTrait/*1*/({tmpVarName}.(_dafny.TraitOffspring), {TypeName_Companion(trait, wPreconditions, tok)}.TraitID_)");
+            $"{HelperModulePrefix}InstanceOfTrait/*1*/({tmpVarName}.(_dafny.TraitOffspring), {TypeName_Companion(trait, wPreconditions, tok)}.TraitID_)");
         } else {
           var typeAssertSucceeds = idGenerator.FreshId("_typeAssertSucceeds");
           wPreconditions.WriteLine(

@@ -45,10 +45,6 @@ type EqualsGeneric interface {
 // values are handled intelligently if their type is refl.Value or any type that
 // implements the EqualsGeneric interface.
 func AreEqual(x, y interface{}) bool {
-  fmt.Println("x: ", x, " y: ", y)
-  fmt.Printf("x type: %T", x)
-  fmt.Printf("y type: %T", y)
-
   if IsDafnyNull(x) {
     return IsDafnyNull(y)
   }
@@ -63,7 +59,6 @@ func AreEqual(x, y interface{}) bool {
         AreEqual(x.Interface(), y.Interface())
     }
   case EqualsGeneric:
-    fmt.Println("Hey hey we're generic")
     return x.EqualsGeneric(y)
   default:
     return refl.DeepEqual(x, y)
@@ -483,10 +478,6 @@ func StringOfElements(iter interface{}) string {
 // These declarations are just filling in the gaps to make sure
 // Dafny.Sequence is a well-behaved Dafny value in this runtime.
 
-// TODO: Need to avoid the per-concrete type declarations, or else
-// it will not be possible to provide other Sequence implementations
-// in native code.
-
 // EmptySeq is the empty sequence.
 var EmptySeq = SeqOf()
 
@@ -549,6 +540,11 @@ func UnicodeSeqOfUtf8Bytes(str string) Sequence {
   return SeqFromArray(arr, false)
 }
 
+// TODO: Need to avoid the per-concrete type declarations, or else
+// it will not be possible to provide other Sequence implementations
+// in native code.
+// Likely the compiler needs to insert these instead.
+
 // Iterator returns an iterator over the sequence.
 // This could be implemented more efficiently
 // in the source Dafny code in the future,
@@ -566,6 +562,15 @@ func SequenceIterator(seq Sequence) Iterator {
     i++
     return ans, true
   }
+}
+func (seq *ArraySequence) Iterator() Iterator {
+  return SequenceIterator(seq)
+}
+func (seq *ConcatSequence) Iterator() Iterator {
+  return SequenceIterator(seq)
+}
+func (seq *LazySequence) Iterator() Iterator {
+  return SequenceIterator(seq)
 }
 
 // UniqueElements returns the set of elements in the sequence.
@@ -585,7 +590,7 @@ func SequenceString(seq Sequence) string {
     s := ""
     // FIXME: Note this doesn't produce the right string in UTF-8,
     // since it converts surrogates independently.
-    for i := Iterate(SequenceIterator(seq)); ; {
+    for i := Iterate(seq); ; {
       c, ok := i()
       if !ok {
         break
@@ -594,7 +599,7 @@ func SequenceString(seq Sequence) string {
     }
     return s
   } else {
-    return "[" + StringOfElements(SequenceIterator(seq)) + "]"
+    return "[" + StringOfElements(seq) + "]"
   }
 }
 func (seq *ArraySequence) String() string {
@@ -1256,7 +1261,7 @@ NEXT_INPUT:
 
 // MultiSetFromSeq creates a MultiSet from the elements in the given sequence.
 func MultiSetFromSeq(seq Sequence) MultiSet {
-  return NewBuilderOf(SequenceIterator(seq)).ToMultiSet()
+  return NewBuilderOf(seq).ToMultiSet()
 }
 
 // MultiSetFromSet creates a MultiSet from the elements in the given set.

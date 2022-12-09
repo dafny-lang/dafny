@@ -10,6 +10,7 @@ hello, Dafny
 Dafny program verifier finished with 0 verified, 0 errors
 Wrote textual form of target program to CompileAndThenRun-go/src/CompileAndThenRun.go
 Additional target code written to CompileAndThenRun-go/src/dafny/dafny.go
+Additional target code written to CompileAndThenRun-go/src/dafny/dafnyFromDafny.go
 Additional target code written to CompileAndThenRun-go/src/System_/System_.go
 hello, Dafny
 

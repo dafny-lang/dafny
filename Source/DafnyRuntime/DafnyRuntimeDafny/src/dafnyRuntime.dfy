@@ -463,6 +463,14 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     // doesn't help much in practice. Most runtimes implement the conversion between
     // various Dafny types and their native string type, which we don't yet model here.
 
+    // Quantification methods
+
+    function Elements(): Sequence<T> {
+      this
+    }
+
+    function {:extern} UniqueElements(): set<T>
+
     // Sequence creation methods
 
     static method Create<T>(cardinality: size_t, initFn: size_t -> T) returns (ret: Sequence<T>) {
