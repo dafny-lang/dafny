@@ -21,7 +21,7 @@ public class SymbolTable {
 
   public SymbolTable(Document document, IReadOnlyList<(IDeclarationOrUsage usage, IDeclarationOrUsage declaration)> usages) {
     var safeUsages = usages.Where(k => k.declaration.NameToken.Filename != null).ToList();
-    Declarations = safeUsages.ToDictionary(k => k.usage, k => k.declaration);
+    Declarations = safeUsages.DistinctBy(k => k.usage).ToDictionary(k => k.usage, k => k.declaration);
     Usages = safeUsages.GroupBy(u => u.declaration).ToDictionary(
       g => g.Key,
       g => (ISet<IDeclarationOrUsage>)g.Select(k => k.usage).ToHashSet());

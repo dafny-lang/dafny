@@ -22,6 +22,27 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   public class DiagnosticsTest : ClientBasedLanguageServerTest {
 
     [TestMethod]
+    public async Task GitIssue3155ItemWithSameKeyAlreadyBeenAdded() {
+      var source = @"
+datatype Test =
+    | A(field: int)
+    | B(field: int)
+
+
+predicate updateTest(test: Test, test': Test)
+{
+    test' == test.(field := 1)
+}
+".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+
+      var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(0, diagnostics.Length);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
+    }
+
+    [TestMethod]
     public async Task GitIssue3062CrashOfLanguageServer() {
       var source = @"
 function bullspec(s:seq<nat>, u:seq<nat>): (r: nat)
