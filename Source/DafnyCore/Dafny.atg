@@ -4894,13 +4894,16 @@ Suffix<ref Expression e>
       | HashCall<id, out openParen, out typeArgs, out args>
       | [ AtCall<out atLabel, out openParen, out args> ]
       )
-      (. e = new ExprDotName(id, e, id.val, typeArgs);
+      (. e = new ExprDotName(id, e, id.val, typeArgs) {
+           RangeToken = new RangeToken(startToken, id)
+         };
          if (openParen != null) {
-           e = new ApplySuffix(openParen, atLabel, e, args, t);
+           e = new ApplySuffix(openParen, atLabel, e, args, t) {
+             RangeToken = new RangeToken(startToken, t)
+           };
          } else {
            Contract.Assert(atLabel == null);
          }
-         e.RangeToken = new RangeToken(startToken, t);
       .)
     )
   | "["                                        (. x = t; .)

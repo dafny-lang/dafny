@@ -54,38 +54,39 @@ namespace Microsoft.Dafny {
             var startTok = tok;
             var endTok = tok;
 
-            void updateStartEndTok(INode node) {
+            void UpdateStartEndToken(IToken token1) {
+              if (token1.Filename != tok.Filename) {
+                return;
+              }
+
+              if (token1.pos < startTok.pos) {
+                startTok = token1;
+              }
+
+              if (token1.pos + token1.val.Length > endTok.pos + endTok.val.Length) {
+                endTok = token1;
+              }
+            }
+
+            void updateStartEndTokRecursive(INode node) {
               if (node.tok.Filename != tok.Filename || node is Expression { IsImplicit: true } ||
                   node is DefaultValueExpression) {
                 // Ignore any auto-generated expressions.
-              } else if (node.rangeToken != null) {
-                if (node.StartToken.pos < startTok.pos) {
-                  startTok = node.StartToken;
-                }
-
-                if (endTok.pos < node.EndToken.pos) {
-                  endTok = node.EndToken;
-                }
+              } else if (node != this && node.RangeToken != null) {
+                UpdateStartEndToken(node.StartToken);
+                UpdateStartEndToken(node.EndToken);
+              } else {
+                UpdateStartEndToken(node.tok);
               }
 
-              node.Children.Iter(updateStartEndTok);
+              node.Children.Iter(updateStartEndTokRecursive);
             }
 
-            updateStartEndTok(this);
+            updateStartEndTokRecursive(this);
 
             if (FormatTokens != null) {
               foreach (var token in FormatTokens) {
-                if (token.Filename != tok.Filename) {
-                  continue;
-                }
-
-                if (token.pos < startTok.pos) {
-                  startTok = token;
-                }
-
-                if (token.pos + token.val.Length > endTok.pos + endTok.val.Length) {
-                  endTok = token;
-                }
+                UpdateStartEndToken(token);
               }
             }
 
