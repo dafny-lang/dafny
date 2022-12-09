@@ -1,5 +1,5 @@
-// RUN: %dafny_0 "%s" > "%t"
-// RUN: %dafny_0 /arith:10 "%s" >> "%t"
+// RUN: %exits-with 4 %dafny "%s" > "%t"
+// RUN: %exits-with 4 %dafny /arith:10 "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // When multiplication is axiomatized to include associativity of Mul

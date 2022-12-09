@@ -6,9 +6,10 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 class VerifyCommand : ICommandSpec {
-  public IEnumerable<IOptionSpec> Options => new IOptionSpec[] {
-    BoogieFilterOption.Instance,
+  public IEnumerable<Option> Options => new Option[] {
+    BoogieOptionBag.BoogieFilter,
   }.Concat(ICommandSpec.VerificationOptions).
+    Concat(ICommandSpec.ConsoleOutputOptions).
     Concat(ICommandSpec.CommonOptions);
 
   public Command Create() {
