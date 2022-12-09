@@ -119,7 +119,7 @@ namespace Microsoft.Dafny.Compilers {
 
       var strwr = new StringWriter();
       strwr.NewLine = Environment.NewLine;
-      new Printer(strwr, DafnyOptions.PrintModes.DllEmbed).PrintProgram(program, true);
+      new Printer(strwr, PrintModes.DllEmbed).PrintProgram(program, true);
       var programString = strwr.GetStringBuilder().Replace("\"", "\"\"").ToString();
 
       wr.WriteLine($"[assembly: DafnyAssembly.DafnySourceAttribute(@\"{programString}\")]");

@@ -127,7 +127,7 @@ method Abs(x: int) returns (y: int)
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
     public async Task DocumentWithOnlyConfiguredVerifierTimeoutSendsCompilationSucceededVerificationStartedAndVerificationFailedStatuses() {
-      await SetUp(options => VerificationTimeLimitOption.Instance.Set(options, 3));
+      await SetUp(options => options.Set(BoogieOptionBag.VerificationTimeLimit, 3U));
       var documentItem = CreateTestDocument(SlowToVerify);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await AssertProgress(documentItem, CompilationStatus.ResolutionStarted);
@@ -143,7 +143,7 @@ method Abs(x: int) returns (y: int)
   return x;
 }
 ".TrimStart();
-      await SetUp(options => VerificationOption.Instance.Set(options, VerifyOnMode.Save));
+      await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Save));
 
       // We load two documents. If no verification is executed, we should receive each
       // compilation status twice without any verification status inbetween.
@@ -167,7 +167,7 @@ method Abs(x: int) returns (y: int)
   return x;
 }
 ".TrimStart();
-      await SetUp(options => VerificationOption.Instance.Set(options, VerifyOnMode.Never));
+      await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Never));
 
       // We load two and save two documents. If no verification is executed, we should receive each
       // compilation status twice without any verification status inbetween.

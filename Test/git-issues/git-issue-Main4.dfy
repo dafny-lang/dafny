@@ -19,11 +19,10 @@
 // RUN: %dafny /noVerify /compile:4 /compileTarget:js /Main:C.Test "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:go /Main:C.Test "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:java /Main:C.Test "%s" >> "%t"
-// RUN: %dafny_0 /noVerify /compile:4 /compileTarget:cs /Main:X "%s" >> "%t"
-// RUN: %dafny_0 /noVerify /compile:4 /compileTarget:js /Main:X "%s" >> "%t"
-// RUN: %dafny_0 /noVerify /compile:4 /compileTarget:go /Main:X "%s" >> "%t"
-// RUN: %dafny_0 /noVerify /compile:4 /compileTarget:java /Main:X "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %exits-with 3 %dafny /noVerify /compile:4 /compileTarget:cs /Main:X "%s" >> "%t"
+// RUN: %exits-with 3 %dafny /noVerify /compile:4 /compileTarget:js /Main:X "%s" >> "%t"
+// RUN: %exits-with 3 %dafny /noVerify /compile:4 /compileTarget:go /Main:X "%s" >> "%t"
+// RUN: %exits-with 3 %dafny /noVerify /compile:4 /compileTarget:java /Main:X "%s" >> "%t"
 
 module A {
   module AA {
