@@ -29,10 +29,6 @@ public class AuditReport {
     }
   }
 
-  public AssumptionProperties TagsForDecl(Declaration decl) {
-    return assumptionsByDecl[decl];
-  }
-
   public IEnumerable<Assumption> AllAssumptions() {
     return assumptionsByDecl.Select((e, _) => new Assumption(e.Key, e.Value));
   }
