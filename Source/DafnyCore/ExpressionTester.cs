@@ -104,7 +104,7 @@ public class ExpressionTester {
           } else {
             var what = callExpr.Function.WhatKind;
             string compiledDeclHint;
-            if (DafnyOptions.O.FunctionSyntax == DafnyOptions.FunctionSyntaxOptions.Version4) {
+            if (DafnyOptions.O.FunctionSyntax == FunctionSyntaxOptions.Version4) {
               compiledDeclHint = "without the 'ghost' keyword";
             } else {
               compiledDeclHint = $"with '{what} method'";

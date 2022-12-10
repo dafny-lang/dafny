@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 "%s" > "%t"
 // RUN: ! %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
 // RUN: ! %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
 // RUN: ! %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"

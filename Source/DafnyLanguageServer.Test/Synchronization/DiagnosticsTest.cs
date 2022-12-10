@@ -22,6 +22,27 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   public class DiagnosticsTest : ClientBasedLanguageServerTest {
 
     [TestMethod]
+    public async Task GitIssue3155ItemWithSameKeyAlreadyBeenAdded() {
+      var source = @"
+datatype Test =
+    | A(field: int)
+    | B(field: int)
+
+
+predicate updateTest(test: Test, test': Test)
+{
+    test' == test.(field := 1)
+}
+".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+
+      var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(0, diagnostics.Length);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
+    }
+
+    [TestMethod]
     public async Task GitIssue3062CrashOfLanguageServer() {
       var source = @"
 function bullspec(s:seq<nat>, u:seq<nat>): (r: nat)
@@ -288,7 +309,7 @@ method Multiply(x: int, y: int) returns (product: int)
     product := x + step;
   }
 }".TrimStart();
-      await SetUp(options => VerificationOption.Instance.Set(options, VerifyOnMode.Never));
+      await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Never));
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
@@ -369,7 +390,7 @@ method Multiply(x: int, y: int) returns (product: int)
     product := x + step;
   }
 }".TrimStart();
-      await SetUp(options => VerificationOption.Instance.Set(options, VerifyOnMode.Never));
+      await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Never));
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnosticsAfterOpening = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
@@ -427,7 +448,7 @@ method Multiply(x: int, y: int) returns (product: int)
     product := x + step;
   }
 }".TrimStart();
-      await SetUp(options => VerificationOption.Instance.Set(options, VerifyOnMode.Never));
+      await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Never));
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
@@ -601,7 +622,7 @@ method Multiply(x: int, y: int) returns (product: int)
     product := x + step;
   }
 }".TrimStart();
-      await SetUp(options => VerificationOption.Instance.Set(options, VerifyOnMode.Save));
+      await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Save));
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var changeDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
@@ -670,7 +691,7 @@ method t7() { assert false; }
 method t8() { assert false; }
 method t9() { assert false; }
 method t10() { assert false; }".TrimStart();
-      await SetUp(options => CoresOption.Instance.Set(options, 4));
+      await SetUp(options => options.Set(BoogieOptionBag.Cores, 4));
       for (int i = 0; i < 10; i++) {
         diagnosticsReceiver.ClearHistory();
         var documentItem = CreateTestDocument(source, $"test_{i}.dfy");
@@ -723,7 +744,7 @@ module Parser {
     }
   }
 }".TrimStart();
-      await SetUp(options => CoresOption.Instance.Set(options, 1));
+      await SetUp(options => options.Set(BoogieOptionBag.Cores, 1));
       diagnosticsReceiver.ClearHistory();
       var documentItem = CreateTestDocument(source, $"test1.dfy");
       client.OpenDocument(documentItem);
@@ -750,7 +771,7 @@ function method {:unroll 100} Ack(m: nat, n: nat): nat
 method test() {
   assert Ack(5, 5) == 0;
 }".TrimStart();
-      await SetUp(options => VerificationTimeLimitOption.Instance.Set(options, 1));
+      await SetUp(options => options.Set(BoogieOptionBag.VerificationTimeLimit, 1U));
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
       var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
@@ -849,7 +870,7 @@ method test()
   assert false;
 }
 ".TrimStart();
-      await SetUp(options => CoresOption.Instance.Set(options, 1));
+      await SetUp(options => options.Set(BoogieOptionBag.Cores, 1));
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
       var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken.None, documentItem);
@@ -871,7 +892,7 @@ method test(x: int) {
   assert x != 3;
 }
 ".TrimStart();
-      await SetUp(options => CoresOption.Instance.Set(options, 1));
+      await SetUp(options => options.Set(BoogieOptionBag.Cores, 1));
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
       var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken.None, documentItem);
@@ -892,7 +913,7 @@ method test2() {
   assert false;
 }
 ".TrimStart();
-      await SetUp(options => CoresOption.Instance.Set(options, 1));
+      await SetUp(options => options.Set(BoogieOptionBag.Cores, 1));
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
       var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
@@ -927,7 +948,7 @@ method test() {
   assert false;
 }
 ".TrimStart() + SlowToVerify;
-      await SetUp(options => CoresOption.Instance.Set(options, 1));
+      await SetUp(options => options.Set(BoogieOptionBag.Cores, 1));
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
       var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
@@ -960,7 +981,7 @@ method test2() {
   assert false;
 }
 ".TrimStart();
-      await SetUp(options => CoresOption.Instance.Set(options, 1));
+      await SetUp(options => options.Set(BoogieOptionBag.Cores, 1));
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
       var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
@@ -998,7 +1019,7 @@ method test()
   assert false;
 }
 ".TrimStart();
-      await SetUp(options => CoresOption.Instance.Set(options, 1));
+      await SetUp(options => options.Set(BoogieOptionBag.Cores, 1));
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
       var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);

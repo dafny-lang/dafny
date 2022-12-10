@@ -6,10 +6,10 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 class AuditCommand : ICommandSpec {
-  public IEnumerable<IOptionSpec> Options => new IOptionSpec[] {
-    ReportFileOption.Instance,
-    ReportFormatOption.Instance,
-    CompareReportOption.Instance
+  public IEnumerable<Option> Options => new Option[] {
+    CommonOptionBag.ReportFileOption,
+    CommonOptionBag.ReportFormatOption,
+    CommonOptionBag.CompareReportOption
   }.Concat(ICommandSpec.CommonOptions);
 
   public Command Create() {

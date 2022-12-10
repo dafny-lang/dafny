@@ -29,7 +29,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     public IEnumerable<Diagnostic> GetGhostStateDiagnostics(SignatureAndCompletionTable signatureAndCompletionTable, CancellationToken cancellationToken) {
-      if (!GhostIndicatorsOption.Instance.Get(options)) {
+      if (!options.Get(ServerCommand.GhostIndicators)) {
         return Enumerable.Empty<Diagnostic>();
       }
 

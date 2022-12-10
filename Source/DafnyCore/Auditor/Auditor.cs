@@ -12,8 +12,10 @@ namespace Microsoft.Dafny.Auditor;
 /// </summary>
 public class Auditor : IRewriter {
   private readonly string? reportFileName;
-  private readonly DafnyOptions.ReportFormat? reportFormat;
+  private readonly ReportFormat? reportFormat;
   private readonly bool compareReport;
+
+  private enum ReportFormat { HTML, MarkdownTable, MarkdownIETF, Text }
 
   /// <summary>
   /// Construct an auditor to write to or compare to the given file in the
@@ -33,7 +35,7 @@ public class Auditor : IRewriter {
   /// if true, compare the generated report to an existing file instead
   /// of creating a file
   /// </param>
-  public Auditor(ErrorReporter reporter, string? reportFileName, DafnyOptions.ReportFormat? format, bool compareReport) : base(reporter) {
+  public Auditor(ErrorReporter reporter, string? reportFileName, string? format, bool compareReport) : base(reporter) {
     this.reportFileName = reportFileName;
     this.compareReport = compareReport;
     if (format is null) {
@@ -42,18 +44,37 @@ public class Auditor : IRewriter {
       }
 
       if (reportFileName.EndsWith(".html")) {
-        reportFormat = DafnyOptions.ReportFormat.HTML;
+        reportFormat = ReportFormat.HTML;
       } else if (reportFileName.EndsWith(".md")) {
-        reportFormat = DafnyOptions.ReportFormat.MarkdownTable;
+        reportFormat = ReportFormat.MarkdownTable;
       } else if (reportFileName.EndsWith(".txt")) {
-        reportFormat = DafnyOptions.ReportFormat.Text;
+        reportFormat = ReportFormat.Text;
       } else {
         Reporter.Error(MessageSource.Resolver, Token.NoToken,
           $"Unsupported extension on report filename: {reportFileName}, using plain text. " +
                "Supported extensions are: .html, .md, .txt");
       }
     } else {
-      reportFormat = format;
+      switch (format) {
+        case "md":
+        case "md-table":
+        case "markdown":
+        case "markdown-table":
+          reportFormat = ReportFormat.MarkdownTable; break;
+        case "md-ietf":
+        case "markdown-ietf":
+          reportFormat = ReportFormat.MarkdownIETF; break;
+        case "html":
+          reportFormat = ReportFormat.HTML; break;
+        case "text":
+        case "txt":
+          reportFormat = ReportFormat.Text; break;
+        default:
+          Reporter.Error(MessageSource.Resolver, Token.NoToken,
+            $"Unsupported report format. Supported formats are: {CommonOptionBag.SupportedReportFormats}");
+          reportFormat = null;
+          break;
+      }
     }
   }
 
@@ -80,10 +101,10 @@ public class Auditor : IRewriter {
       }
     } else {
       var text = reportFormat switch {
-        DafnyOptions.ReportFormat.HTML => GenerateHTMLReport(report),
-        DafnyOptions.ReportFormat.MarkdownTable => report.RenderMarkdownTable(),
-        DafnyOptions.ReportFormat.MarkdownIETF => report.RenderMarkdownSections(),
-        DafnyOptions.ReportFormat.Text => report.RenderText(),
+        ReportFormat.HTML => GenerateHTMLReport(report),
+        ReportFormat.MarkdownTable => report.RenderMarkdownTable(),
+        ReportFormat.MarkdownIETF => report.RenderMarkdownSections(),
+        ReportFormat.Text => report.RenderText(),
         _ => $"Internal error: unknown format {reportFormat}"
       };
       if (reportFileName is null) {
