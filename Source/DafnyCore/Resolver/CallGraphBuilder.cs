@@ -129,84 +129,41 @@ namespace Microsoft.Dafny {
     /// successfully resolved and type checked.
     /// </summary>
     public void Build(List<TopLevelDecl> declarations) {
-      foreach (var topd in declarations) {
-        TopLevelDecl d = topd is ClassDecl ? ((ClassDecl)topd).NonNullTypeDecl : topd;
-        if (d is NewtypeDecl) {
-          var dd = (NewtypeDecl)d;
-          VisitUserProvidedType(dd.BaseType, new ResolutionContext(dd, false));
-          VisitAttributes(d, new ResolutionContext(new NoContext(d.EnclosingModuleDefinition), false));
-          if (dd.Var == null) {
-          } else {
+      foreach (var d in declarations) {
+        VisitAttributes(d, ResolutionContext.FromCodeContext(new NoContext(d.EnclosingModuleDefinition)));
+
+        if (d is RedirectingTypeDecl) {
+          var dd = (RedirectingTypeDecl)d;
+          var baseType = (d as NewtypeDecl)?.BaseType ?? ((TypeSynonymDeclBase)d).Rhs;
+          VisitUserProvidedType(baseType, ResolutionContext.FromCodeContext(dd));
+          if (dd.Constraint != null) {
             VisitExpression(dd.Constraint, new ResolutionContext(new CodeContextWrapper(dd, true), false));
           }
-
-        } else if (d is SubsetTypeDecl) {
-          var dd = (SubsetTypeDecl)d;
-          VisitUserProvidedType(dd.Rhs, new ResolutionContext(dd, false));
-          VisitAttributes(d, new ResolutionContext(new NoContext(d.EnclosingModuleDefinition), false));
-          VisitExpression(dd.Constraint, new ResolutionContext(new CodeContextWrapper(dd, true), false));
-        } else if (d is TypeSynonymDecl) {
-          var dd = (TypeSynonymDecl)d;
-          VisitUserProvidedType(dd.Rhs, new ResolutionContext(dd, false));
-        }
-
-        if (topd is TopLevelDeclWithMembers) {
-          var cl = (TopLevelDeclWithMembers)topd;
-          currentClass = cl;
-          foreach (var member in cl.Members) {
-            if (member is ConstantField field) {
-              var resolutionContext = new ResolutionContext(field, false);
-              VisitAttributes(field, resolutionContext);
-              VisitUserProvidedType(field.Type, resolutionContext);
-              if (field.Rhs != null) {
-                VisitExpression(field.Rhs, resolutionContext);
-                CheckIsConstantExpr(field, field.Rhs);
-              }
-            }
-          }
-          currentClass = null;
-        }
-      }
-
-      // Now, we're ready for the other declarations, along with any witness clauses of newtype/subset-type declarations.
-      foreach (var d in declarations) {
-        if (d is NewtypeDecl || d is SubsetTypeDecl) {
-          // NewTypeDecl's and SubsetTypeDecl's were already processed in the loop above, except for any witness clauses
-          var dd = (RedirectingTypeDecl)d;
           if (dd.Witness != null) {
             var codeContext = new CodeContextWrapper(dd, dd.WitnessKind == SubsetTypeDecl.WKind.Ghost);
             VisitExpression(dd.Witness, new ResolutionContext(codeContext, false));
           }
-          if (d is TopLevelDeclWithMembers dm) {
-            VisitClassMemberBodies(dm);
-          }
-        } else {
-          if (!(d is IteratorDecl)) {
-            // Note, attributes of iterators are resolved by ResolvedIterator, after registering any names in the iterator signature
-            VisitAttributes(d, new ResolutionContext(new NoContext(d.EnclosingModuleDefinition), false));
-          }
-          if (d is IteratorDecl) {
-            var iter = (IteratorDecl)d;
-            VisitIterator(iter);
-            VisitClassMemberBodies(iter);  // resolve the automatically generated members
-          } else if (d is DatatypeDecl) {
-            var dt = (DatatypeDecl)d;
-            foreach (var ctor in dt.Ctors) {
-              VisitAttributes(ctor, new ResolutionContext(new NoContext(d.EnclosingModuleDefinition), false));
-              foreach (var formal in ctor.Formals) {
-                AddTypeDependencyEdges((ICallable)d, formal.Type);
-              }
+
+        } else if (d is IteratorDecl) {
+          var iter = (IteratorDecl)d;
+          VisitIterator(iter);
+
+        } else if (d is DatatypeDecl) {
+          var dt = (DatatypeDecl)d;
+          foreach (var ctor in dt.Ctors) {
+            VisitAttributes(ctor, ResolutionContext.FromCodeContext(new NoContext(d.EnclosingModuleDefinition)));
+            foreach (var formal in ctor.Formals) {
+              AddTypeDependencyEdges((ICallable)d, formal.Type);
             }
-            // resolve any default parameters
-            foreach (var ctor in dt.Ctors) {
-              ResolveParameterDefaultValues(ctor.Formals, ResolutionContext.FromCodeContext(dt));
-            }
-            // resolve members
-            VisitClassMemberBodies(dt);
-          } else if (d is TopLevelDeclWithMembers) {
-            var dd = (TopLevelDeclWithMembers)d;
-            VisitClassMemberBodies(dd);
           }
+          // resolve any default parameters
+          foreach (var ctor in dt.Ctors) {
+            ResolveParameterDefaultValues(ctor.Formals, ResolutionContext.FromCodeContext(dt));
+          }
+        }
+
+        if (d is TopLevelDeclWithMembers cl) {
+          VisitClassMemberBodies(cl);
         }
       }
     }
@@ -219,6 +176,36 @@ namespace Microsoft.Dafny {
           }
         }
       }
+    }
+
+    void VisitClassMemberBodies(TopLevelDeclWithMembers cl) {
+      Contract.Requires(cl != null);
+      Contract.Requires(currentClass == null);
+      Contract.Ensures(currentClass == null);
+
+      currentClass = cl;
+      foreach (var member in cl.Members) {
+        if (member is ConstantField constantField) {
+          var resolutionContext = ResolutionContext.FromCodeContext(constantField);
+          VisitAttributes(constantField, resolutionContext);
+          VisitUserProvidedType(constantField.Type, resolutionContext);
+          if (constantField.Rhs != null) {
+            VisitExpression(constantField.Rhs, resolutionContext);
+            CheckIsConstantExpr(constantField, constantField.Rhs);
+          }
+        } else if (member is Field field) {
+          var resolutionContext = ResolutionContext.FromCodeContext(new NoContext(cl.EnclosingModuleDefinition));
+          VisitAttributes(field, resolutionContext);
+          VisitUserProvidedType(field.Type, resolutionContext);
+        } else if (member is Function function) {
+          VisitFunction(function);
+        } else if (member is Method method) {
+          VisitMethod(method);
+        } else {
+          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member type
+        }
+      }
+      currentClass = null;
     }
 
     /// <summary>
@@ -242,66 +229,45 @@ namespace Microsoft.Dafny {
       expr.SubExpressions.Iter(e => CheckIsConstantExpr(field, e));
     }
 
-    void VisitClassMemberBodies(TopLevelDeclWithMembers cl) {
-      Contract.Requires(cl != null);
-      Contract.Requires(currentClass == null);
-      Contract.Ensures(currentClass == null);
-
-      currentClass = cl;
-      foreach (var member in cl.Members) {
-        if (member is ConstantField) {
-          // don't do anything here, because const fields were processed above
-        } else if (member is Field) {
-          var resolutionContext = new ResolutionContext(new NoContext(currentClass.EnclosingModuleDefinition), false);
-          VisitAttributes(member, resolutionContext);
-        } else if (member is Function function) {
-          VisitFunction(function);
-        } else if (member is Method method) {
-          VisitMethod(method);
-        } else {
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member type
-        }
-      }
-      currentClass = null;
-    }
-
     void VisitIterator(IteratorDecl iter) {
       Contract.Requires(iter != null);
       Contract.Requires(currentClass == null);
       Contract.Ensures(currentClass == null);
 
-      VisitAttributes(iter, new ResolutionContext(iter, false));
-      ResolveParameterDefaultValues(iter.Ins, new ResolutionContext(iter, false));
+      var resolutionContext = new ResolutionContext(iter, false); // single-state context
 
-      VisitAttributes(iter.Decreases, new ResolutionContext(iter, false));
+      VisitAttributes(iter, resolutionContext);
+      ResolveParameterDefaultValues(iter.Ins, resolutionContext);
+
+      VisitAttributes(iter.Decreases, resolutionContext);
       for (var i = 0; i < iter.Decreases.Expressions.Count; i++) {
         var e = iter.Decreases.Expressions[i];
-        VisitExpression(e, new ResolutionContext(iter, false));
+        VisitExpression(e, resolutionContext);
       }
       foreach (FrameExpression fe in iter.Reads.Expressions) {
         ResolveFrameExpressionTopLevel(fe, iter);
       }
-      VisitAttributes(iter.Modifies, new ResolutionContext(iter, false));
+      VisitAttributes(iter.Modifies, resolutionContext);
       foreach (FrameExpression fe in iter.Modifies.Expressions) {
         ResolveFrameExpressionTopLevel(fe, iter);
       }
       foreach (AttributedExpression e in iter.Requires) {
-        VisitAttributes(e, new ResolutionContext(iter, false));
-        VisitExpression(e.E, new ResolutionContext(iter, false));
+        VisitAttributes(e, resolutionContext);
+        VisitExpression(e.E, resolutionContext);
       }
 
       currentClass = iter;
       foreach (AttributedExpression e in iter.YieldRequires) {
-        VisitAttributes(e, new ResolutionContext(iter, false));
-        VisitExpression(e.E, new ResolutionContext(iter, false));
+        VisitAttributes(e, resolutionContext);
+        VisitExpression(e.E, resolutionContext);
       }
       foreach (AttributedExpression e in iter.YieldEnsures) {
-        VisitAttributes(e, new ResolutionContext(iter, true));
-        VisitExpression(e.E, new ResolutionContext(iter, true));
+        VisitAttributes(e, ResolutionContext.FromCodeContext(iter));
+        VisitExpression(e.E, ResolutionContext.FromCodeContext(iter));
       }
       foreach (AttributedExpression e in iter.Ensures) {
-        VisitAttributes(e, new ResolutionContext(iter, true));
-        VisitExpression(e.E, new ResolutionContext(iter, true));
+        VisitAttributes(e, ResolutionContext.FromCodeContext(iter));
+        VisitExpression(e.E, ResolutionContext.FromCodeContext(iter));
       }
 
       // Resolve body
@@ -960,29 +926,6 @@ namespace Microsoft.Dafny {
         Contract.Assert(false); throw new cce.UnreachableException();
       }
       VisitAttributes(s, resolutionContext);
-    }
-
-    private void ResolveAssignSuchThatStmt(AssignSuchThatStmt s, ResolutionContext resolutionContext) {
-      Contract.Requires(s != null);
-      Contract.Requires(resolutionContext != null);
-
-      var lhsSimpleVariables = new HashSet<IVariable>();
-      foreach (var lhs in s.Lhss) {
-        if (lhs.Resolved is IdentifierExpr ide) {
-          if (lhsSimpleVariables.Contains(ide.Var)) {
-            // syntactically forbid duplicate simple-variables on the LHS
-            reporter.Error(MessageSource.Resolver, lhs, $"variable '{ide.Var.Name}' occurs more than once as left-hand side of :|");
-          } else {
-            lhsSimpleVariables.Add(ide.Var);
-          }
-        }
-        // to ease in the verification of the existence check, only allow local variables as LHSs
-        if (s.AssumeToken == null && !(lhs.Resolved is IdentifierExpr)) {
-          reporter.Error(MessageSource.Resolver, lhs, "an assign-such-that statement (without an 'assume' clause) currently only supports local-variable LHSs");
-        }
-      }
-
-      VisitExpression(s.Expr, resolutionContext);
     }
 
     void ResolveTypeRhs(TypeRhs rr, Statement stmt, ResolutionContext resolutionContext) {

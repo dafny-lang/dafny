@@ -18,7 +18,7 @@ public record ResolutionContext(ICodeContext CodeContext, bool IsTwoState, bool 
   /// </summary>
   public static ResolutionContext FromCodeContext(ICodeContext codeContext) {
     bool isTwoState;
-    if (codeContext is NoContext || codeContext is DatatypeDecl) {
+    if (codeContext is NoContext || codeContext is DatatypeDecl || codeContext is ConstantField) {
       isTwoState = false;
     } else if (codeContext is Function && !(codeContext is TwoStateFunction)) {
       isTwoState = false;
