@@ -9,7 +9,7 @@ Compare the report that would have been generated with the
 existing file given by --report-file, and fail if they differ.";
 
   public override string PostProcess(DafnyOptions options) {
-    options.CompareAuditReport = true;
+    options.CompareAuditReport = Get(options);
     return null;
   }
 }

@@ -8,14 +8,16 @@ public class ReportFormatOption : StringOption {
   public override string LongName => "report-format";
   public override string ArgumentName => "format";
 
-  public override string Description => @"
+  public override string Description => $@"
 Specify the file format to use for the audit report. Supported options include:
+{SupportedFormats}. With no option given, the format will be inferred from the
+filename extension. With no filename or format given, the report will consist of
+standard Dafny warnings.";
+
+  private string SupportedFormats = @"
 plain text in the format of warnings ('txt', 'text'); standalone HTML ('html');
-a Markdown table ('md', 'markdown', 'md-table', 'markdown-table'); or
-an IETF-language document in Markdown format ('md-ietf', 'markdown-ietf').
-With no option given, the format will be inferred from the filename extension.
-With no filename or format given, the report will consist of standard Dafny
-warnings.";
+a Markdown table ('md', 'markdown', 'md-table', 'markdown-table'); or an
+IETF-language document in Markdown format ('md-ietf', 'markdown-ietf')";
 
   public override string PostProcess(DafnyOptions options) {
     string formatName = Get(options);
@@ -29,8 +31,10 @@ warnings.";
       "md-table" => DafnyOptions.ReportFormat.MarkdownTable,
       "markdown-ietf" => DafnyOptions.ReportFormat.MarkdownIETF,
       "md-ietf" => DafnyOptions.ReportFormat.MarkdownIETF,
-      _ => throw new ArgumentException("TODO")
+      _ => null
     };
-    return null;
+    return options.AuditReportFormat is null
+      ? $"Unsupported report file format: {formatName}. Supported formats are: {SupportedFormats}."
+      : null;
   }
 }

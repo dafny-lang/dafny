@@ -9,9 +9,11 @@ namespace Microsoft.Dafny.Auditor;
 public class Auditor : IRewriter {
   private readonly string? reportFileName;
   private readonly DafnyOptions.ReportFormat? reportFormat;
+  private readonly bool compareReport;
 
-  public Auditor(ErrorReporter reporter, string? reportFileName, DafnyOptions.ReportFormat? format) : base(reporter) {
+  public Auditor(ErrorReporter reporter, string? reportFileName, DafnyOptions.ReportFormat? format, bool compareReport) : base(reporter) {
     this.reportFileName = reportFileName;
+    this.compareReport = compareReport;
     if (format is null) {
       if (reportFileName is null) {
         return;
@@ -65,7 +67,7 @@ public class Auditor : IRewriter {
       if (reportFileName is null) {
         Console.Write(text);
       } else {
-        if (DafnyOptions.O.CompareAuditReport) {
+        if (compareReport) {
           var matches = File.ReadAllText(reportFileName).Equals(text);
           if (!matches) {
             Reporter.Error(MessageSource.Resolver, Token.NoToken,

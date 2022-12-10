@@ -41,9 +41,20 @@ public class AuditReport {
     return beg + String.Join(sep, cells) + end;
   }
 
+  private string GetFullName(Declaration decl) {
+    if (decl is MemberDecl m) {
+      return m.FullDafnyName;
+    } else if (decl is ModuleDecl mod) {
+      return mod.FullDafnyName;
+    } else if (decl is TopLevelDecl tld) {
+      return tld.FullDafnyName;
+    } else {
+      return decl.Name;
+    }
+  }
   private IEnumerable<String> IssueRow(Assumption a, string issue, string mitigation) {
     return new List<string>() {
-      a.decl.Name, // TODO: full name!
+      GetFullName(a.decl),
       (!a.props.IsGhost).ToString(),
       a.props.HasAxiomAttribute.ToString(),
       a.props.HasExternAttribute.ToString(),
