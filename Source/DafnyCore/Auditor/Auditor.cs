@@ -6,11 +6,33 @@ using System.Collections.Generic;
 namespace Microsoft.Dafny.Auditor;
 
 
+/// <summary>
+/// A rewriter pass that produces an AuditReport and writes it to either
+/// standard output or a file, in one of several formats.
+/// </summary>
 public class Auditor : IRewriter {
   private readonly string? reportFileName;
   private readonly DafnyOptions.ReportFormat? reportFormat;
   private readonly bool compareReport;
 
+  /// <summary>
+  /// Construct an auditor to write to or compare to the given file in the
+  /// given format.
+  /// </summary>
+  /// <param name="reporter">
+  /// the reporter to use to emit errors and warnings
+  /// </param>
+  /// <param name="reportFileName">
+  /// the file to write the report to (standard output if null)
+  /// </param>
+  /// <param name="format">
+  /// the format of report to produce (derived from the file name, if null,
+  /// or defaults to standard warnings if the file name is also null)
+  /// </param>
+  /// <param name="compareReport">
+  /// if true, compare the generated report to an existing file instead
+  /// of creating a file
+  /// </param>
   public Auditor(ErrorReporter reporter, string? reportFileName, DafnyOptions.ReportFormat? format, bool compareReport) : base(reporter) {
     this.reportFileName = reportFileName;
     this.compareReport = compareReport;

@@ -6,6 +6,11 @@ using System.Text;
 
 namespace Microsoft.Dafny.Auditor;
 
+/// <summary>
+/// Represents an audit report of a Dafny program, ultimately intended to give an overview of
+/// the final assurance argument for the verification of that program. For the moment, it consists
+/// of a set of assumptions that can be rendered in several formats.
+/// </summary>
 public class AuditReport {
   private HashSet<Declaration> declsWithEntries = new();
   private HashSet<ModuleDefinition> modulesWithEntries = new();

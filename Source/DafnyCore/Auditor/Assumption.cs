@@ -3,6 +3,11 @@ using System.Linq;
 
 namespace Microsoft.Dafny.Auditor;
 
+/// <summary>
+/// A set of assumption-related properties of a Dafny entity. Certain
+/// combinations of these properties classify the entity as containing
+/// an assumption.
+/// </summary>
 public struct AssumptionProperties {
   internal bool IsGhost;
   internal bool IsSubsetType;
@@ -17,6 +22,10 @@ public struct AssumptionProperties {
   internal IEnumerable<AttributedExpression> RequiresClauses; // non-null implies one or more elements
   internal IEnumerable<AttributedExpression> EnsuresClauses; // non-null implies one or more elements
 
+  /// <summary>
+  /// Determines whether the set of properties constitutes an assumption.
+  /// </summary>
+  /// <returns>whether this entity contains assumptions</returns>
   public bool HasAssumptions() {
     return HasAxiomAttribute ||
            (IsCallable &&
@@ -26,6 +35,10 @@ public struct AssumptionProperties {
            (MayNotTerminate && (IsCallable || IsTrait));
   }
 
+  /// <summary>
+  /// Describe all of the assumptions this entity makes.
+  /// </summary>
+  /// <returns>a list of (assumption, mitigation) pairs</returns>
   public IEnumerable<(string, string)> Description() {
     if (HasAxiomAttribute) {
       return new List<(string, string)>{
@@ -86,6 +99,9 @@ public record Assumption(Declaration decl, AssumptionProperties props) {
   }
 }
 
+/// <summary>
+/// Extracts all assumptions from a declaration.
+/// </summary>
 public class AssumptionExtractor {
 
   private static bool StmtContainsAssume(Statement s) {
@@ -169,6 +185,10 @@ public class AssumptionExtractor {
   }
 }
 
+/// <summary>
+/// Combines AssumptionExtractor with AuditReport to generate a full
+/// report from a program.
+/// </summary>
 public class ReportBuilder {
   public static AuditReport BuildReport(Program program) {
     AuditReport report = new();
