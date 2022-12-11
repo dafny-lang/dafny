@@ -13612,9 +13612,11 @@ namespace Microsoft.Dafny {
         ResolveLetOrFailExpr(e, resolutionContext);
       } else if (expr is QuantifierExpr) {
         var e = (QuantifierExpr)expr;
+#if ENTANGLED_CALL_GRAPH_BUILDING
         if (resolutionContext.CodeContext is Function) {
           ((Function)resolutionContext.CodeContext).ContainsQuantifier = true;
         }
+#endif
         Contract.Assert(e.SplitQuantifier == null); // No split quantifiers during resolution
         int prevErrorCount = reporter.Count(ErrorLevel.Error);
         scope.PushMarker();

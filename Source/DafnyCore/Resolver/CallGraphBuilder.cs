@@ -14,8 +14,10 @@ using Microsoft.Dafny.Plugins;
 namespace Microsoft.Dafny {
   /// <summary>
   /// This class builds the call graph for a resolved list of declarations.
-  /// It also sets the .IsRecursive and .AllCalls fields of functions, and the .Uses field
-  /// of ExtremePredicate.
+  /// It also sets
+  ///   -- the .IsRecursive, .AllCalls, and .ContainsQuantifier fields of Function,
+  ///   -- the .Uses field of ExtremePredicate, and
+  ///   -- the .IsRecursive field of Method.
   ///
   /// Note: There are other things going on, too:
   ///   -- CheckIsConstantExpr
