@@ -4430,6 +4430,7 @@ SetDisplayExpr<out Expression e>
   [ ( "iset" | "multiset" )                  (. token = t; startToken = t; x = t; .)
   ]
   ( "{"                                      (. token = token ?? t;
+                                                startToken = startToken ?? t;
                                                 x = token; 
                                                 List<Expression> elements = new List<Expression/*!*/>();
                                              .)
@@ -4443,7 +4444,7 @@ SetDisplayExpr<out Expression e>
                                              .)
     "}"
   |
-    "("                                       (. x = t; .)
+    "("                                       (. x = t; startToken = startToken ?? t; .)
      Expression<out e, true, true>            (.
                                                   if (token == null || token.kind != _multiset) {
                                                     SemErr(x, "A forming expression must be a multiset");
