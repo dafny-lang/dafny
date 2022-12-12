@@ -3009,7 +3009,7 @@ namespace Microsoft.Dafny {
                 if (fce != null) {  // the other possibility is that "e" is a BinaryExpr
                   GreatestPredicate predicate = (GreatestPredicate)fce.Function;
                   focalPredicates.Add(predicate);
-                  // For every focal predicate P in S, add to S all co-predicates in the same strongly connected
+                  // For every focal predicate P in S, add to S all greatest predicates in the same strongly connected
                   // component (in the call graph) as P
                   foreach (var node in predicate.EnclosingClass.EnclosingModuleDefinition.CallGraph.GetSCC(predicate)) {
                     if (node is GreatestPredicate) {

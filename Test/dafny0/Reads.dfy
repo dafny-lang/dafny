@@ -150,3 +150,16 @@ class ReadsTestsInsideLetSuchThat {
     yy
   }
 }
+
+class ConstInitializers {
+  var x: int
+
+  const u: int := x // error: insufficient reads clause
+
+  const v: int := F() // error: insufficient reads clause
+  function method F(): int
+    reads this
+  {
+    x + x
+  }
+}

@@ -136,3 +136,16 @@ class DynamicFramesIdiom {
                   // predicate can also be invoked in a state where its body will evaluate to false
   }
 }
+
+class ConstInitializers {
+  var x: int
+
+  const u: int := x // error: insufficient reads clause
+
+  const v: int := F() // error: insufficient reads clause
+  function method F(): int
+    reads this
+  {
+    x + x
+  }
+}

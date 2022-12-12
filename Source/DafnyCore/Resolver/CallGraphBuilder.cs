@@ -19,12 +19,20 @@ namespace Microsoft.Dafny {
   ///   -- the .Uses field of ExtremePredicate, and
   ///   -- the .IsRecursive and .AssignedAssumptionVariables fields of Method.
   ///
-  /// Note: There are other things going on, too:
-  ///   -- CheckIsConstantExpr
-  ///   -- CreateIteratorMethodSpecs
-  ///   -- "new allocation not supported in aggregate assignments" error
-  /// We need to decide whether to keep these in the name resolution / type checking phase, or do them
-  /// here, or do them in a separate pass.
+  /// The call graph of a module is stored as a field .CallGraph in ModuleDefinition. The edges of such
+  /// a call graph are between vertices of the module itself, with one exception: there can also be edges
+  /// from trait members in a different module to the overriding members in the module.
+  ///
+  /// The Build(declarations) method adds the call-graph edges for the given declarations. It is assumed
+  /// that the specification of iterators have already been created, and thus call-graph edges for them will
+  /// be built here. The Build method works with the "nested" match constructs and does not need to go
+  /// into their desugarings (in fact, it's even okay if those desugarings have not yet been created--creating
+  /// them later does not give rise to any new edges).
+  ///
+  /// The Build method does NOT add the edges associated with the bodies of prefix predicates/lemmas, because
+  /// those bodies are not created until later in the resolution phases. The creation of those bodies uses
+  /// the parts of the call graph that is built up here. After those prefix bodies have been created, the
+  /// resolver calls into the VisitFunction/VisitMethod methods here to add edges for the prefix bodies.
   /// </summary>
   public class CallGraphBuilder {
     private ErrorReporter reporter;
@@ -196,7 +204,6 @@ namespace Microsoft.Dafny {
           VisitUserProvidedType(constantField.Type, context);
           if (constantField.Rhs != null) {
             VisitExpression(constantField.Rhs, context);
-            CheckIsConstantExpr(constantField, constantField.Rhs);
           }
         } else if (member is Field field) {
           var context = new CallGraphBuilderContext(new NoContext(cl.EnclosingModuleDefinition));
@@ -210,27 +217,6 @@ namespace Microsoft.Dafny {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member type
         }
       }
-    }
-
-    /// <summary>
-    /// Checks if "expr" is a constant (that is, heap independent) expression that can be assigned to "field".
-    /// If it is, return "true". Otherwise, report an error and return "false".
-    /// This method also adds dependency edges to the module's call graph.
-    /// </summary>
-    void CheckIsConstantExpr(ConstantField field, Expression expr) {
-      Contract.Requires(field != null);
-      Contract.Requires(expr != null);
-      if (expr is MemberSelectExpr) {
-        var e = (MemberSelectExpr)expr;
-        if (e.Member is Field && ((Field)e.Member).IsMutable) {
-          reporter.Error(MessageSource.Resolver, field.tok, "only constants are allowed in the expression to initialize constant {0}", field.Name);
-        }
-        if (e.Member is ICallable other && field.EnclosingModule == other.EnclosingModule) {
-          field.EnclosingModule.CallGraph.AddEdge(field, other);
-        }
-        // okay so far; now, go on checking subexpressions
-      }
-      expr.SubExpressions.Iter(e => CheckIsConstantExpr(field, e));
     }
 
     void VisitIterator(IteratorDecl iter) {
