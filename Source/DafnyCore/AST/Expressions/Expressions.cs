@@ -2038,7 +2038,8 @@ public class LetOrFailExpr : ConcreteSyntaxExpression {
   }
 
   public override IEnumerable<INode> Children =>
-    new List<INode> { Lhs }.Concat(base.Children);
+    (Lhs != null ?
+    new List<INode> { Lhs } : Enumerable.Empty<INode>()).Concat(base.Children);
 }
 
 public class ForallExpr : QuantifierExpr {

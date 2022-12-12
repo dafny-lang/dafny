@@ -4424,10 +4424,10 @@ ParensExpression<out Expression e>
 SetDisplayExpr<out Expression e>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
      IToken token = null;
-     IToken x = null;
+     IToken x = null, startToken = null;
      e = dummyExpr;
   .)
-  [ ( "iset" | "multiset" )                  (. token = t; .)
+  [ ( "iset" | "multiset" )                  (. token = t; startToken = t; x = t; .)
   ]
   ( "{"                                      (. token = token ?? t;
                                                 x = token; 
@@ -4452,7 +4452,7 @@ SetDisplayExpr<out Expression e>
                                                .)
     ")"
   )
-  (. e.RangeToken = new RangeToken(x, t); .)
+  (. e.RangeToken = new RangeToken(startToken, t); .)
   .
 
 /*------------------------------------------------------------------------*/
