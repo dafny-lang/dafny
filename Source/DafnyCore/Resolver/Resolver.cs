@@ -9727,23 +9727,6 @@ namespace Microsoft.Dafny {
             // the LHS didn't resolve correctly; some error would already have been reported
           } else {
             CheckIsLvalue(lhs, resolutionContext);
-
-            var localVar = var as LocalVariable;
-            if (localVar != null && currentMethod != null && Attributes.Contains(localVar.Attributes, "assumption")) {
-              var rhs = s.Rhs as ExprRhs;
-              var expr = (rhs != null ? rhs.Expr : null);
-              var binaryExpr = expr as BinaryExpr;
-              if (binaryExpr != null
-                  && (binaryExpr.Op == BinaryExpr.Opcode.And)
-                  && (binaryExpr.E0.Resolved is IdentifierExpr)
-                  && ((IdentifierExpr)(binaryExpr.E0.Resolved)).Var == localVar
-                  && !currentMethod.AssignedAssumptionVariables.Contains(localVar)) {
-                currentMethod.AssignedAssumptionVariables.Add(localVar);
-              } else {
-                reporter.Error(MessageSource.Resolver, stmt,
-                  string.Format("there may be at most one assignment to an assumption variable, the RHS of which must match the expression \"{0} && <boolean expression>\"", localVar.Name));
-              }
-            }
           }
         } else if (lhs is MemberSelectExpr) {
           var fse = (MemberSelectExpr)lhs;

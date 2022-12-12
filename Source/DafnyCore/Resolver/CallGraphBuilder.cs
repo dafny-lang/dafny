@@ -17,12 +17,11 @@ namespace Microsoft.Dafny {
   /// It also sets
   ///   -- the .IsRecursive, .AllCalls, and .ContainsQuantifier fields of Function,
   ///   -- the .Uses field of ExtremePredicate, and
-  ///   -- the .IsRecursive field of Method.
+  ///   -- the .IsRecursive and .AssignedAssumptionVariables fields of Method.
   ///
   /// Note: There are other things going on, too:
   ///   -- CheckIsConstantExpr
   ///   -- CreateIteratorMethodSpecs
-  ///   -- AssignedAssumptionVariables
   ///   -- "new allocation not supported in aggregate assignments" error
   /// We need to decide whether to keep these in the name resolution / type checking phase, or do them
   /// here, or do them in a separate pass.
@@ -787,7 +786,22 @@ namespace Microsoft.Dafny {
       } else if (stmt is AssignStmt) {
         AssignStmt s = (AssignStmt)stmt;
         VisitExpression(s.Lhs, context);  // allow ghosts for now, tighted up below
-        var lhs = s.Lhs.Resolved;
+
+        // check on assumption variables
+        if (context.CodeContext is Method currentMethod &&
+            (s.Lhs.Resolved as IdentifierExpr)?.Var is LocalVariable localVar &&
+            Attributes.Contains(localVar.Attributes, "assumption")) {
+          if ((s.Rhs as ExprRhs)?.Expr is BinaryExpr binaryExpr &&
+              binaryExpr.Op == BinaryExpr.Opcode.And &&
+              (binaryExpr.E0.Resolved as IdentifierExpr)?.Var == localVar &&
+              !currentMethod.AssignedAssumptionVariables.Contains(localVar)) {
+            currentMethod.AssignedAssumptionVariables.Add(localVar);
+          } else {
+            reporter.Error(MessageSource.Resolver, stmt,
+              $"there may be at most one assignment to an assumption variable, the RHS of which must match the expression \"{localVar.Name} && <boolean expression>\"");
+          }
+        }
+
         Type lhsType = s.Lhs.Type;
         if (s.Rhs is ExprRhs) {
           ExprRhs rr = (ExprRhs)s.Rhs;
