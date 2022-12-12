@@ -18,16 +18,30 @@ namespace Microsoft.Dafny {
   ///   -- the .IsRecursive, .AllCalls, and .ContainsQuantifier fields of Function,
   ///   -- the .Uses field of ExtremePredicate, and
   ///   -- the .IsRecursive and .AssignedAssumptionVariables fields of Method.
+  /// It assumes that the given declarations have been resolved (name resolution and type checking).
   ///
   /// The call graph of a module is stored as a field .CallGraph in ModuleDefinition. The edges of such
   /// a call graph are between vertices of the module itself, with one exception: there can also be edges
-  /// from trait members in a different module to the overriding members in the module.
+  /// from trait members in a different module to the overriding members in the module. The methods
+  /// in this CallGraphBuilder class populate the .CallGraph of modules.
   ///
-  /// The Build(declarations) method adds the call-graph edges for the given declarations. It is assumed
-  /// that the specification of iterators have already been created, and thus call-graph edges for them will
-  /// be built here. The Build method works with the "nested" match constructs and does not need to go
-  /// into their desugarings (in fact, it's even okay if those desugarings have not yet been created--creating
-  /// them later does not give rise to any new edges).
+  /// The public Build method adds the call-graph edges for the given declarations. It assumes
+  /// that the specification of iterators have already been created, and adds call-graph edges for them, too.
+  /// The Build method works with the "nested" match constructs and does not need to go into their desugarings
+  /// (in fact, it's even okay if those desugarings have not yet been created--creating them later does not
+  /// give rise to any new edges).
+  ///
+  /// A call to a function-by-method goes to the "function" part if the call is in a ghost context and goes
+  /// to the "by method" part if the call is in a compiled context. The Build method does not assume ghost
+  /// interests have been computed, so the edge to the "by method" part may be missing. (The edge to the
+  /// "function" part is added and so is the edge from the "by method" part to the "function" part, so no
+  /// edges need to be removed.) Instead, when the resolver later determines that a call goes to the "by method"
+  /// part, it will call the AddCallGraphEdge method directly.
+  ///
+  /// Building the call graph for the "system" module (the module that contains Dafny's built-in declarations)
+  /// works a little differently. It calls Build only for a subset of the top-level declarations in the
+  /// system module. The other declarations are handled in the resolver's ResolveValuetypeDecls() method,
+  /// which calls into the VisitFunction and VisitMethod methods below.
   ///
   /// The Build method does NOT add the edges associated with the bodies of prefix predicates/lemmas, because
   /// those bodies are not created until later in the resolution phases. The creation of those bodies uses
@@ -35,13 +49,32 @@ namespace Microsoft.Dafny {
   /// resolver calls into the VisitFunction/VisitMethod methods here to add edges for the prefix bodies.
   /// </summary>
   public class CallGraphBuilder {
+    public static void Build(List<TopLevelDecl> declarations, ErrorReporter reporter) {
+      new CallGraphBuilder(reporter).Build(declarations);
+    }
+
+    public static void VisitFunction(Function function, ErrorReporter reporter) {
+      new CallGraphBuilder(reporter).VisitFunction(function);
+    }
+
+    public static void VisitMethod(Method method, ErrorReporter reporter) {
+      new CallGraphBuilder(reporter).VisitMethod(method);
+    }
+
+    public static void AddCallGraphEdge(ICodeContext callingContext, ICallable function, Expression e, ErrorReporter reporter) {
+      new CallGraphBuilder(reporter).AddCallGraphEdge(callingContext, function, e, false);
+    }
+
     private ErrorReporter reporter;
 
-    public CallGraphBuilder(ErrorReporter reporter) {
+    /// <summary>
+    /// The only reason there is a constructor for this class is to keep track of the "reporter" as an instance field.
+    /// </summary>
+    private CallGraphBuilder(ErrorReporter reporter) {
       this.reporter = reporter;
     }
 
-    class CallGraphBuilderContext {
+    private class CallGraphBuilderContext {
       public readonly ICodeContext CodeContext;
       public bool InFunctionPostcondition { get; set; }
       public CallGraphBuilderContext(ICodeContext codeContext) {
@@ -71,7 +104,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// See comment about AddCallGraphEdgeForField.
     /// </summary>
-    public void AddCallGraphEdge(ICodeContext callingContext, ICallable function, Expression e, bool isFunctionReturnValue) {
+    private void AddCallGraphEdge(ICodeContext callingContext, ICallable function, Expression e, bool isFunctionReturnValue) {
       Contract.Requires(callingContext != null);
       Contract.Requires(function != null);
       Contract.Requires(e != null);
@@ -98,7 +131,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// See comment about AddCallGraphEdgeForField.
     /// </summary>
-    void AddCallGraphEdge(CallStmt s, CallGraphBuilderContext context) {
+    private void AddCallGraphEdge(CallStmt s, CallGraphBuilderContext context) {
       Contract.Requires(s != null);
       Contract.Requires(context != null);
       var callee = s.Method;
@@ -120,7 +153,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void AddCallGraphEdgeRaw(ICallable caller, ICallable callee) {
+    private void AddCallGraphEdgeRaw(ICallable caller, ICallable callee) {
       callee.EnclosingModule.CallGraph.AddEdge(caller, callee);
     }
 
@@ -144,7 +177,7 @@ namespace Microsoft.Dafny {
     /// This method builds the call graph for the given declarations. It assumes that all declarations have been
     /// successfully resolved and type checked.
     /// </summary>
-    public void Build(List<TopLevelDecl> declarations) {
+    private void Build(List<TopLevelDecl> declarations) {
       foreach (var d in declarations) {
         VisitAttributes(d, new CallGraphBuilderContext(new NoContext(d.EnclosingModuleDefinition)));
 
@@ -194,7 +227,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void VisitClassMemberBodies(TopLevelDeclWithMembers cl) {
+    private void VisitClassMemberBodies(TopLevelDeclWithMembers cl) {
       Contract.Requires(cl != null);
 
       foreach (var member in cl.Members) {
@@ -219,7 +252,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void VisitIterator(IteratorDecl iter) {
+    private void VisitIterator(IteratorDecl iter) {
       Contract.Requires(iter != null);
 
       var context = new CallGraphBuilderContext(iter); // single-state context
@@ -266,7 +299,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Visits a function and its body.
     /// </summary>
-    public void VisitFunction(Function f) {
+    private void VisitFunction(Function f) {
       VisitFunctionProper(f);
 
       if (f.OverriddenFunction != null) {
@@ -286,7 +319,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void VisitFunctionProper(Function f) {
+    private void VisitFunctionProper(Function f) {
       VisitAttributes(f, new CallGraphBuilderContext(f));
 
       foreach (var formal in f.Formals) {
@@ -322,7 +355,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void VisitExpression(Expression expr, CallGraphBuilderContext context) {
+    private void VisitExpression(Expression expr, CallGraphBuilderContext context) {
       Contract.Requires(expr != null);
       Contract.Requires(context != null);
 
@@ -568,7 +601,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void ResolveFunctionCallExpr(FunctionCallExpr e, CallGraphBuilderContext context) {
+    private void ResolveFunctionCallExpr(FunctionCallExpr e, CallGraphBuilderContext context) {
       VisitExpression(e.Receiver, context);
 
       var function = e.Function;
@@ -582,18 +615,18 @@ namespace Microsoft.Dafny {
       AddCallGraphEdge(context.CodeContext, function, e, IsFunctionReturnValue(function, e.Receiver, e.Bindings.Arguments, context));
     }
 
-    void ResolveFrameExpressionTopLevel(FrameExpression fe, ICodeContext codeContext) {
+    private void ResolveFrameExpressionTopLevel(FrameExpression fe, ICodeContext codeContext) {
       ResolveFrameExpression(fe, new CallGraphBuilderContext(codeContext));
     }
 
-    void ResolveFrameExpression(FrameExpression fe, CallGraphBuilderContext context) {
+    private void ResolveFrameExpression(FrameExpression fe, CallGraphBuilderContext context) {
       Contract.Requires(fe != null);
       Contract.Requires(context != null);
 
       VisitExpression(fe.E, context);
     }
 
-    void ResolveParameterDefaultValues(List<Formal> formals, CallGraphBuilderContext context) {
+    private void ResolveParameterDefaultValues(List<Formal> formals, CallGraphBuilderContext context) {
       Contract.Requires(formals != null);
       Contract.Requires(context != null);
 
@@ -625,7 +658,7 @@ namespace Microsoft.Dafny {
       return false;
     }
 
-    public void VisitMethod(Method m) {
+    private void VisitMethod(Method m) {
       VisitMethodProper(m);
 
       if (m.OverriddenMethod != null) {
@@ -641,7 +674,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void VisitMethodProper(Method m) {
+    private void VisitMethodProper(Method m) {
       Contract.Requires(m != null);
 
       foreach (var p in m.Ins) {
@@ -684,7 +717,7 @@ namespace Microsoft.Dafny {
       VisitAttributes(m, new CallGraphBuilderContext(m));
     }
 
-    void ResolveBlockStatement(BlockStmt blockStmt, CallGraphBuilderContext context) {
+    private void ResolveBlockStatement(BlockStmt blockStmt, CallGraphBuilderContext context) {
       Contract.Requires(blockStmt != null);
       Contract.Requires(context != null);
 
@@ -697,20 +730,20 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void ResolveStatementList(List<Statement> statements, CallGraphBuilderContext context) {
+    private void ResolveStatementList(List<Statement> statements, CallGraphBuilderContext context) {
       foreach (var stmt in statements) {
         ResolveStatementWithLabels(stmt, context);
       }
     }
 
-    void ResolveStatementWithLabels(Statement stmt, CallGraphBuilderContext context) {
+    private void ResolveStatementWithLabels(Statement stmt, CallGraphBuilderContext context) {
       Contract.Requires(stmt != null);
       Contract.Requires(context != null);
 
       ResolveStatement(stmt, context);
     }
 
-    void ResolveStatement(Statement stmt, CallGraphBuilderContext context) {
+    private void ResolveStatement(Statement stmt, CallGraphBuilderContext context) {
       Contract.Requires(stmt != null);
       Contract.Requires(context != null);
 
@@ -933,7 +966,7 @@ namespace Microsoft.Dafny {
       VisitAttributes(s, context);
     }
 
-    void ResolveTypeRhs(TypeRhs rr, Statement stmt, CallGraphBuilderContext context) {
+    private void ResolveTypeRhs(TypeRhs rr, Statement stmt, CallGraphBuilderContext context) {
       Contract.Requires(rr != null);
       Contract.Requires(stmt != null);
       Contract.Requires(context != null);
@@ -964,7 +997,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void ResolveAlternatives(List<GuardedAlternative> alternatives, AlternativeLoopStmt loopToCatchBreaks, CallGraphBuilderContext context) {
+    private void ResolveAlternatives(List<GuardedAlternative> alternatives, AlternativeLoopStmt loopToCatchBreaks, CallGraphBuilderContext context) {
       Contract.Requires(alternatives != null);
       Contract.Requires(context != null);
 
@@ -1004,7 +1037,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void ResolveMatchStmt(MatchStmt s, CallGraphBuilderContext context) {
+    private void ResolveMatchStmt(MatchStmt s, CallGraphBuilderContext context) {
       Contract.Requires(s != null);
       Contract.Requires(context != null);
       Contract.Requires(s.OrigUnresolved == null);
@@ -1020,7 +1053,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void ResolveCasePattern<VT>(CasePattern<VT> pat, CallGraphBuilderContext context) where VT : IVariable {
+    private void ResolveCasePattern<VT>(CasePattern<VT> pat, CallGraphBuilderContext context) where VT : IVariable {
       Contract.Requires(pat != null);
       Contract.Requires(context != null);
 
@@ -1038,7 +1071,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void VisitUserProvidedType(Type type, CallGraphBuilderContext context) {
+    private void VisitUserProvidedType(Type type, CallGraphBuilderContext context) {
       AddTypeDependencyEdges(context.CodeContext, type);
     }
   }

@@ -975,10 +975,10 @@ namespace Microsoft.Dafny {
         foreach (var kv in valueTypeDecl.Members) {
           if (kv.Value is Function function) {
             ResolveFunctionSignature(function);
-            new CallGraphBuilder(reporter).VisitFunction(function);
+            CallGraphBuilder.VisitFunction(function, reporter);
           } else if (kv.Value is Method method) {
             ResolveMethodSignature(method);
-            new CallGraphBuilder(reporter).VisitMethod(method);
+            CallGraphBuilder.VisitMethod(method, reporter);
           }
         }
       }
@@ -2861,7 +2861,7 @@ namespace Microsoft.Dafny {
       }
 
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-        new CallGraphBuilder(reporter).Build(declarations);
+        CallGraphBuilder.Build(declarations, reporter);
       }
 
       // ---------------------------------- Pass 1 ----------------------------------
@@ -3121,7 +3121,7 @@ namespace Microsoft.Dafny {
           allTypeParameters.PopMarker();
           currentClass = null;
           CheckTypeInference_Member(prefixLemma);
-          new CallGraphBuilder(reporter).VisitMethod(prefixLemma);
+          CallGraphBuilder.VisitMethod(prefixLemma, reporter);
         }
       }
 

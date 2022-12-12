@@ -121,7 +121,7 @@ public class ExpressionTester {
           resolver?.AddCallGraphEdge(codeContext, callExpr.Function.ByMethodDecl, callExpr, false);
 #else
           if (resolver != null) {
-            new CallGraphBuilder(reporter).AddCallGraphEdge(codeContext, callExpr.Function.ByMethodDecl, callExpr, false);
+            CallGraphBuilder.AddCallGraphEdge(codeContext, callExpr.Function.ByMethodDecl, callExpr, reporter);
           }
 #endif
           callExpr.IsByMethodCall = true;
