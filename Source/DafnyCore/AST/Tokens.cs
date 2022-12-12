@@ -160,8 +160,14 @@ public class RangeToken : TokenWrapper {
     }
   }
 
-  public RangeToken(IToken startTok, IToken endTok) : base(startTok) {
-    this.endTok = endTok;
+  public RangeToken(IToken startTok, IToken endTok) : base(
+    endTok.pos < startTok.pos && startTok is RangeToken startRange ?
+        startRange.StartToken : startTok) {
+    if (endTok.pos < startTok.pos && startTok is RangeToken startRange2) {
+      this.endTok = startRange2.EndToken;
+    } else {
+      this.endTok = endTok;
+    }
   }
 }
 
