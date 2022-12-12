@@ -1388,7 +1388,7 @@ namespace Microsoft.Dafny {
             var tyB = ty.Subst(rsu);
             var aa = CondApplyUnbox(tok, a, ty, tyA);
             var bb = CondApplyUnbox(tok, b, ty, tyB);
-            var equal = new BinaryExpr(tok, BinaryExpr.Opcode.Eq, new BoogieWrapper(aa, tyA), new BoogieWrapper(bb, tyB));
+            var equal = new BinaryExpr(tok, BinaryExpr.Opcode.Eq, new BoogieWrapper(aa, tyA), new BoogieWrapper(bb, tyB), null);
             equal.ResolvedOp = Resolver.ResolveOp(equal.Op, tyA, tyB);  // resolve here
             equal.Type = Type.Bool;  // resolve here
             q = etran.TrExpr(equal);
@@ -1735,7 +1735,7 @@ namespace Microsoft.Dafny {
       var yeEtran = new ExpressionTranslator(this, predef, etran.HeapExpr, new Bpl.IdentifierExpr(iter.tok, "$_OldIterHeap", predef.HeapType));
       var old_nw = new OldExpr(iter.tok, nw);
       old_nw.Type = nw.Type;  // resolve here
-      var setDiff = new BinaryExpr(iter.tok, BinaryExpr.Opcode.Sub, nw, old_nw);
+      var setDiff = new BinaryExpr(iter.tok, BinaryExpr.Opcode.Sub, nw, old_nw, null);
       setDiff.ResolvedOp = BinaryExpr.ResolvedOpcode.SetDifference; setDiff.Type = nw.Type;  // resolve here
       Expression cond = new FreshExpr(iter.tok, setDiff);
       cond.Type = Type.Bool;  // resolve here
@@ -1756,7 +1756,7 @@ namespace Microsoft.Dafny {
         oldThisYs.Type = thisYs.Type;  // resolve here
         var singleton = new SeqDisplayExpr(iter.tok, new List<Expression>() { thisY });
         singleton.Type = thisYs.Type;  // resolve here
-        var concat = new BinaryExpr(iter.tok, BinaryExpr.Opcode.Add, oldThisYs, singleton);
+        var concat = new BinaryExpr(iter.tok, BinaryExpr.Opcode.Add, oldThisYs, singleton, null);
         concat.ResolvedOp = BinaryExpr.ResolvedOpcode.Concat; concat.Type = oldThisYs.Type;  // resolve here
 
         // In the yield-ensures case:  assume this.ys == old(this.ys) + [this.y];
@@ -2730,7 +2730,7 @@ namespace Microsoft.Dafny {
           // Here, instead of using the usual ORD#Less, we use the semantically equivalent ORD#LessThanLimit, because this
           // allows us to write a good trigger for a targeted monotonicity axiom.  That axiom, in turn, makes the
           // automatic verification more powerful for least lemmas that have more than one focal-predicate term.
-          var smaller = new BinaryExpr(kprime.tok, BinaryExpr.Opcode.Lt, kprime, k) {
+          var smaller = new BinaryExpr(kprime.tok, BinaryExpr.Opcode.Lt, kprime, k, null) {
             ResolvedOp = BinaryExpr.ResolvedOpcode.LessThanLimit,
             Type = Type.Bool
           };

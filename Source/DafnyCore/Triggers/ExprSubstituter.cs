@@ -54,8 +54,8 @@ namespace Microsoft.Dafny {
 
         // conjoin all the new equalities to the range of the quantifier
         foreach (var entry in usedSubstMap) {
-          var eq = new BinaryExpr(e.tok, BinaryExpr.ResolvedOpcode.EqCommon, entry.Item2, entry.Item1);
-          newRange = newRange == null ? eq : new BinaryExpr(e.tok, BinaryExpr.ResolvedOpcode.And, eq, newRange);
+          var eq = new BinaryExpr(e.tok, BinaryExpr.ResolvedOpcode.EqCommon, entry.Item2, entry.Item1, null);
+          newRange = newRange == null ? eq : new BinaryExpr(e.tok, BinaryExpr.ResolvedOpcode.And, eq, newRange, null);
           newBoundVars.Add((BoundVar)entry.Item2.Var);
           newBounds.Add(new ComprehensionExpr.ExactBoundedPool(entry.Item1));
         }

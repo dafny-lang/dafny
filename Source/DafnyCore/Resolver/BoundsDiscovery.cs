@@ -390,7 +390,7 @@ namespace Microsoft.Dafny {
             goto JUST_RETURN_IT;
         }
         if (newROp != b.ResolvedOp || swapOperands) {
-          b = new BinaryExpr(b.tok, newOp, swapOperands ? b.E1 : b.E0, swapOperands ? b.E0 : b.E1);
+          b = new BinaryExpr(b.tok, newOp, swapOperands ? b.E1 : b.E0, swapOperands ? b.E0 : b.E1, b.PrefixOp);
           b.ResolvedOp = newROp;
           b.Type = Type.Bool;
           yield return b;
@@ -471,10 +471,10 @@ namespace Microsoft.Dafny {
               // Change "A+B op C" into either "A op C-B" or "B op C-A", depending on where we find bv among A and B.
               if (!FreeVariables(bin.E1).Contains(bv)) {
                 thisSide = bin.E0.Resolved;
-                thatSide = new BinaryExpr(bin.tok, BinaryExpr.Opcode.Sub, thatSide, bin.E1);
+                thatSide = new BinaryExpr(bin.tok, BinaryExpr.Opcode.Sub, thatSide, bin.E1, null);
               } else if (!FreeVariables(bin.E0).Contains(bv)) {
                 thisSide = bin.E1.Resolved;
-                thatSide = new BinaryExpr(bin.tok, BinaryExpr.Opcode.Sub, thatSide, bin.E0);
+                thatSide = new BinaryExpr(bin.tok, BinaryExpr.Opcode.Sub, thatSide, bin.E0, null);
               } else {
                 break; // done simplifying
               }
@@ -486,14 +486,14 @@ namespace Microsoft.Dafny {
               if (!FreeVariables(bin.E1).Contains(bv)) {
                 // change to "A op C+B"
                 thisSide = bin.E0.Resolved;
-                thatSide = new BinaryExpr(bin.tok, BinaryExpr.Opcode.Add, thatSide, bin.E1);
+                thatSide = new BinaryExpr(bin.tok, BinaryExpr.Opcode.Add, thatSide, bin.E1, null);
                 ((BinaryExpr)thatSide).ResolvedOp = BinaryExpr.ResolvedOpcode.Add;
               } else if (!FreeVariables(bin.E0).Contains(bv)) {
                 // In principle, change to "-B op C-A" and then to "B dualOp A-C".  But since we don't want
                 // to change "op", we instead end with "A-C op B" and switch the mapping of thisSide/thatSide
                 // to e0/e1 (by inverting "whereIsBv").
                 thisSide = bin.E1.Resolved;
-                thatSide = new BinaryExpr(bin.tok, BinaryExpr.Opcode.Sub, bin.E0, thatSide);
+                thatSide = new BinaryExpr(bin.tok, BinaryExpr.Opcode.Sub, bin.E0, thatSide, null);
                 ((BinaryExpr)thatSide).ResolvedOp = BinaryExpr.ResolvedOpcode.Sub;
                 whereIsBv = 1 - whereIsBv;
               } else {
