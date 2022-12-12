@@ -596,7 +596,7 @@ namespace Microsoft.Dafny {
       // type check the arguments
       e.Bindings.Arguments.ForEach(arg => VisitExpression(arg, resolutionContext));
 
-      AddCallGraphEdge(resolutionContext.CodeContext, function, e, IsFunctionReturnValue(function, e.Bindings.ArgumentBindings, resolutionContext));
+      AddCallGraphEdge(resolutionContext.CodeContext, function, e, IsFunctionReturnValue(function, e.Receiver, e.Bindings.Arguments, resolutionContext));
     }
 
     void ResolveFrameExpressionTopLevel(FrameExpression fe, ICodeContext codeContext) {
@@ -622,11 +622,24 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private bool IsFunctionReturnValue(Function fn, List<ActualBinding> args, ResolutionContext resolutionContext) {
-      // if the call is in post-condition and it is calling itself, and the arguments matches
-      // formal parameters, then it denotes function return value.
-      return args != null && resolutionContext.InFunctionPostcondition && resolutionContext.CodeContext == fn &&
-             args.All(binding => binding.Actual.Resolved is IdentifierExpr ide && ide.Var is Formal);
+    /// <summary>
+    /// Return "true" only if the call to "fn" with arguments "receiver/args" in context "resolutionContext"
+    /// denotes the function result value. (If so, the call is not a recursive call, but just a
+    /// way to refer to the function's result value.)
+    ///
+    /// If the call is in a function postcondition, it is calling itself, and the arguments match the
+    /// formal parameters, then it denotes a function return value. In general, matching the actuals with
+    /// formals requires verification. Here, the two are compared syntactically. Thus, this method may
+    /// return "false" even in some cases where the call denotes the function's result value.
+    /// </summary>
+    private bool IsFunctionReturnValue(Function fn, Expression receiver, List<Expression> args, ResolutionContext resolutionContext) {
+      if (resolutionContext.CodeContext == fn && resolutionContext.InFunctionPostcondition) {
+        Contract.Assert(fn.Formals.Count == args.Count);
+        return
+          (fn.IsStatic || receiver.Resolved is ThisExpr) &&
+          Enumerable.Range(0, args.Count).All(i => (args[i].Resolved as IdentifierExpr)?.Var == fn.Formals[i]);
+      }
+      return false;
     }
 
     public void VisitMethod(Method m) {
