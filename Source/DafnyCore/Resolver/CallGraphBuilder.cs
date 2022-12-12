@@ -65,7 +65,7 @@ namespace Microsoft.Dafny {
       new CallGraphBuilder(reporter).AddCallGraphEdge(callingContext, function, e, false);
     }
 
-    private ErrorReporter reporter;
+    private readonly ErrorReporter reporter;
 
     /// <summary>
     /// The only reason there is a constructor for this class is to keep track of the "reporter" as an instance field.
@@ -76,7 +76,7 @@ namespace Microsoft.Dafny {
 
     private class CallGraphBuilderContext {
       public readonly ICodeContext CodeContext;
-      public bool InFunctionPostcondition { get; set; }
+      public bool InFunctionPostcondition { get; init; }
       public CallGraphBuilderContext(ICodeContext codeContext) {
         CodeContext = codeContext;
       }
@@ -112,7 +112,7 @@ namespace Microsoft.Dafny {
       ModuleDefinition calleeModule = function is SpecialFunction ? null : function.EnclosingModule;
       if (callerModule == calleeModule) {
         // intra-module call; add edge in module's call graph
-        if (CodeContextWrapper.Unwrap(callingContext) is ICallable caller) {
+        if (callingContext is ICallable caller) {
           callerModule.CallGraph.AddEdge(caller, function);
           if (caller is Function f) {
             if (e is FunctionCallExpr ee) {
@@ -139,7 +139,7 @@ namespace Microsoft.Dafny {
       ModuleDefinition calleeModule = ((ICodeContext)callee).EnclosingModule;
       if (callerModule == calleeModule) {
         // intra-module call; add edge in module's call graph
-        if (CodeContextWrapper.Unwrap(context.CodeContext) is ICallable caller) {
+        if (context.CodeContext is ICallable caller) {
           if (caller is IteratorDecl iteratorDecl) {
             // use the MoveNext() method as the caller
             callerModule.CallGraph.AddEdge(iteratorDecl.Member_MoveNext, callee);
@@ -164,7 +164,7 @@ namespace Microsoft.Dafny {
     private void AddTypeDependencyEdges(ICodeContext context, Type type) {
       Contract.Requires(type != null);
       Contract.Requires(context != null);
-      if (CodeContextWrapper.Unwrap(context) is ICallable caller && type is NonProxyType) {
+      if (context is ICallable caller && type is NonProxyType) {
         type.ForeachTypeComponent(ty => {
           if ((ty as UserDefinedType)?.ResolvedClass is ICallable cl && caller.EnclosingModule == cl.EnclosingModule) {
             caller.EnclosingModule.CallGraph.AddEdge(caller, cl);
@@ -186,11 +186,10 @@ namespace Microsoft.Dafny {
           var baseType = (d as NewtypeDecl)?.BaseType ?? ((TypeSynonymDeclBase)d).Rhs;
           VisitUserProvidedType(baseType, new CallGraphBuilderContext(dd));
           if (dd.Constraint != null) {
-            VisitExpression(dd.Constraint, new CallGraphBuilderContext(new CodeContextWrapper(dd, true)));
+            VisitExpression(dd.Constraint, new CallGraphBuilderContext(dd));
           }
           if (dd.Witness != null) {
-            var codeContext = new CodeContextWrapper(dd, dd.WitnessKind == SubsetTypeDecl.WKind.Ghost);
-            VisitExpression(dd.Witness, new CallGraphBuilderContext(codeContext));
+            VisitExpression(dd.Witness, new CallGraphBuilderContext(dd));
           }
 
         } else if (d is IteratorDecl) {
@@ -266,11 +265,11 @@ namespace Microsoft.Dafny {
         VisitExpression(e, context);
       }
       foreach (FrameExpression fe in iter.Reads.Expressions) {
-        ResolveFrameExpressionTopLevel(fe, iter);
+        ResolveFrameExpressionTopLevel(fe, new CallGraphBuilderContext(iter));
       }
       VisitAttributes(iter.Modifies, context);
       foreach (FrameExpression fe in iter.Modifies.Expressions) {
-        ResolveFrameExpressionTopLevel(fe, iter);
+        ResolveFrameExpressionTopLevel(fe, new CallGraphBuilderContext(iter));
       }
       foreach (AttributedExpression e in iter.Requires) {
         VisitAttributes(e, context);
@@ -334,7 +333,7 @@ namespace Microsoft.Dafny {
         VisitExpression(e.E, new CallGraphBuilderContext(f));
       }
       foreach (FrameExpression fr in f.Reads) {
-        ResolveFrameExpressionTopLevel(fr, f);
+        ResolveFrameExpressionTopLevel(fr, new CallGraphBuilderContext(f));
       }
       foreach (AttributedExpression e in f.Ens) {
         VisitAttributes(e, new CallGraphBuilderContext(f));
@@ -454,7 +453,7 @@ namespace Microsoft.Dafny {
 
       } else if (expr is OldExpr) {
         var e = (OldExpr)expr;
-        VisitExpression(e.E, new CallGraphBuilderContext(context.CodeContext));
+        VisitExpression(e.E, context);
 
       } else if (expr is UnchangedExpr) {
         var e = (UnchangedExpr)expr;
@@ -596,7 +595,7 @@ namespace Microsoft.Dafny {
 
       dtv.Bindings.Arguments.ForEach(arg => VisitExpression(arg, context));
 
-      if (CodeContextWrapper.Unwrap(context.CodeContext) is ICallable caller && caller.EnclosingModule == dt.EnclosingModuleDefinition) {
+      if (context.CodeContext is ICallable caller && caller.EnclosingModule == dt.EnclosingModuleDefinition) {
         caller.EnclosingModule.CallGraph.AddEdge(caller, dt);
       }
     }
@@ -615,8 +614,8 @@ namespace Microsoft.Dafny {
       AddCallGraphEdge(context.CodeContext, function, e, IsFunctionReturnValue(function, e.Receiver, e.Bindings.Arguments, context));
     }
 
-    private void ResolveFrameExpressionTopLevel(FrameExpression fe, ICodeContext codeContext) {
-      ResolveFrameExpression(fe, new CallGraphBuilderContext(codeContext));
+    private void ResolveFrameExpressionTopLevel(FrameExpression fe, CallGraphBuilderContext context) {
+      ResolveFrameExpression(fe, context);
     }
 
     private void ResolveFrameExpression(FrameExpression fe, CallGraphBuilderContext context) {
@@ -695,7 +694,7 @@ namespace Microsoft.Dafny {
 
       VisitAttributes(m.Mod, new CallGraphBuilderContext(m));
       foreach (FrameExpression fe in m.Mod.Expressions) {
-        ResolveFrameExpressionTopLevel(fe, m);
+        ResolveFrameExpressionTopLevel(fe, new CallGraphBuilderContext(m));
       }
       VisitAttributes(m.Decreases, new CallGraphBuilderContext(m));
       foreach (Expression e in m.Decreases.Expressions) {
