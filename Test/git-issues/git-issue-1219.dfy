@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /print:"%t.print" /dprint:- /env:0 "%s" > "%t"
+// RUN: %exits-with 2 %dafny /print:"%t.print" /dprint:- /env:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Issue1219 {

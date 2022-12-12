@@ -6,9 +6,10 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 class VerifyCommand : ICommandSpec {
-  public IEnumerable<IOptionSpec> Options => new IOptionSpec[] {
-    BoogieFilterOption.Instance,
-  }.Concat(ICommandSpec.VerificationOptions.Except(new[] { NoVerifyOption.Instance })).
+  public IEnumerable<Option> Options => new Option[] {
+    BoogieOptionBag.BoogieFilter,
+  }.Concat(ICommandSpec.VerificationOptions).
+    Concat(ICommandSpec.ConsoleOutputOptions).
     Concat(ICommandSpec.CommonOptions);
 
   public Command Create() {
@@ -20,4 +21,20 @@ class VerifyCommand : ICommandSpec {
   public void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context) {
     dafnyOptions.Compile = false;
   }
+}
+
+class ResolveCommand : ICommandSpec {
+  public IEnumerable<Option> Options => ICommandSpec.ConsoleOutputOptions.
+    Concat(ICommandSpec.CommonOptions);
+
+  public Command Create() {
+    var result = new Command("resolve", "Only check for parse and type resolution errors.");
+    result.AddArgument(ICommandSpec.FilesArgument);
+    return result;
+  }
+
+  public void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context) {
+    dafnyOptions.Compile = false;
+  }
+
 }

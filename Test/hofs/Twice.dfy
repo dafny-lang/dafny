@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /print:"%t.print" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /print:"%t.print" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 function method Twice<A>(f : A ~> A): A ~> A

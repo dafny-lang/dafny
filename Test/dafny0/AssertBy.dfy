@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /env:0 /dprint:- "%s" > "%t"
+// RUN: %exits-with 4 %dafny /env:0 /dprint:- "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method M0(x: int, y: int)

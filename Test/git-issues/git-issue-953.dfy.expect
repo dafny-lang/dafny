@@ -1,26 +1,42 @@
 
-Dafny program verifier finished with 5 verified, 0 errors
+Dafny program verifier finished with 6 verified, 0 errors
 
 Dafny program verifier did not attempt verification
-C_Compile.C.C(C_Compile.T_.T)
+C_Compile.T_.T
 P_Compile.T_.T
 OtherNamesWithSpecialCharacters_q___Compile.A?_.A?_ OtherNamesWithSpecialCharacters_q___Compile.B?_.B?_
 17 17 0 0
+C2_Compile.C.C(10, 11)
+9
 
 Dafny program verifier did not attempt verification
-C_Compile.C.C(C_Compile.T_.T)
+C_Compile.T_.T
 P_Compile.T_.T
 OtherNamesWithSpecialCharacters_q___Compile.A?_.A?_ OtherNamesWithSpecialCharacters_q___Compile.B?_.B?_
 17 17 0 0
+C2_Compile.C.C(10, 11)
+9
 
 Dafny program verifier did not attempt verification
-C_Compile.C.C(C_Compile.T_.T)
+C_Compile.T_.T
 P_Compile.T_.T
 OtherNamesWithSpecialCharacters_q___Compile.A?_.A?_ OtherNamesWithSpecialCharacters_q___Compile.B?_.B?_
 17 17 0 0
+C2_Compile.C.C(10, 11)
+9
 
 Dafny program verifier did not attempt verification
-C_Compile.C.C(C_Compile.T_.T)
+C_Compile.T_.T
 P_Compile.T_.T
 OtherNamesWithSpecialCharacters_q___Compile.A?_.A?_ OtherNamesWithSpecialCharacters_q___Compile.B?_.B?_
 17 17 0 0
+C2_Compile.C.C(10, 11)
+9
+
+Dafny program verifier did not attempt verification
+C_Compile.T_.T
+P_Compile.T_.T
+OtherNamesWithSpecialCharacters_q___Compile.A?_.A?_ OtherNamesWithSpecialCharacters_q___Compile.B?_.B?_
+17 17 0 0
+C2_Compile.C.C(10, 11)
+9
