@@ -1,5 +1,5 @@
 
 Dafny program verifier finished with 1 verified, 0 errors
-M_Compile.D.D(M.T)
+M.T
 M_Compile.E.E(M.T, 45)
 M_Compile.F.F(null, M.V)

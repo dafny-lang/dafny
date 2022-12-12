@@ -85,7 +85,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var errorReporter = new DiagnosticErrorReporter(textDocument.Text, textDocument.Uri);
       statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionStarted);
       var program = parser.Parse(textDocument, errorReporter, cancellationToken);
-      IncludePluginLoadErrors(errorReporter, program);
       var documentAfterParsing = new DocumentAfterParsing(textDocument, program, errorReporter.GetDiagnostics(textDocument.Uri));
       if (errorReporter.HasErrors) {
         statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ParsingFailed);
@@ -111,12 +110,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         symbolTable,
         ghostDiagnostics
       );
-    }
-
-    private static void IncludePluginLoadErrors(DiagnosticErrorReporter errorReporter, Dafny.Program program) {
-      foreach (var error in DafnyLanguageServer.PluginLoadErrors) {
-        errorReporter.Error(MessageSource.Compiler, program.GetFirstTopLevelToken(), error);
-      }
     }
 
     private IdeState CreateDocumentWithEmptySymbolTable(

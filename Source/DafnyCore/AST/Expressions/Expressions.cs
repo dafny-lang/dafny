@@ -1079,6 +1079,24 @@ public class IdentifierExpr : Expression, IHasUsages {
 }
 
 /// <summary>
+/// An implicit identifier is used in the context of a ReturnStmt tacetly
+/// assigning a value to a Method's out parameter.
+/// </summary>
+public class ImplicitIdentifierExpr : IdentifierExpr {
+  public ImplicitIdentifierExpr(IToken tok, string name)
+    : base(tok, name) { }
+
+  /// <summary>
+  /// Constructs a resolved implicit identifier.
+  /// </summary>
+  public ImplicitIdentifierExpr(IToken tok, IVariable v)
+    : base(tok, v) { }
+
+  public override bool IsImplicit => true;
+}
+
+
+/// <summary>
 /// If an "AutoGhostIdentifierExpr" is used as the out-parameter of a ghost method or
 /// a method with a ghost parameter, resolution will change the .Var's .IsGhost to true
 /// automatically.  This class is intended to be used only as a communicate between the
@@ -1110,7 +1128,11 @@ class Resolver_IdentifierExpr : Expression, IHasUsages {
       return false;
     }
     public override Type Subst(Dictionary<TypeParameter, Type> subst) {
-      throw new NotImplementedException();
+      throw new NotSupportedException();
+    }
+
+    public override Type ReplaceTypeArguments(List<Type> arguments) {
+      throw new NotSupportedException();
     }
   }
   public class ResolverType_Module : ResolverType {

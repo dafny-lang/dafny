@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:3 "%s" > "%t"
+// RUN: %exits-with 2 %dafny /compile:3 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // The following examples show that verification would be unsound if ghost methods would

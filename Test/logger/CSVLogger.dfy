@@ -1,4 +1,4 @@
-// RUN: %baredafny check-stability --format:csv";"LogFileName="%t.csv" "%s" || true
+// RUN: %exits-with 4 %baredafny check-stability --format:csv";"LogFileName="%t.csv" "%s"
 // RUN: %OutputCheck --file-to-check "%t.csv" "%s"
 
 // CHECK: TestResult\.DisplayName,TestResult\.Outcome,TestResult\.Duration,TestResult\.ResourceCount

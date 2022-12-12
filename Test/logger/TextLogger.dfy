@@ -1,4 +1,4 @@
-// RUN: %baredafny check-stability --format:text --isolate-assertions "%s" > "%t" || true
+// RUN: %exits-with 4 %baredafny check-stability --format:text --isolate-assertions "%s" > "%t"
 // RUN: %OutputCheck --file-to-check "%t" "%s"
 // CHECK: Overall outcome: Errors
 // CHECK: Overall time: .*
