@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /env:0 /rprint:- "%s" > "%t"
+// RUN: %exits-with 4 %dafny /env:0 /rprint:- "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class MyClass<A,B> {

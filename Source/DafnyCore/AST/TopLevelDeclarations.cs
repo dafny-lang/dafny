@@ -1397,6 +1397,9 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
     set { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
   }
 
+  /// <summary>
+  /// For information about the grounding constructor, see docs/Compilation/AutoInitialization.md.
+  /// </summary>
   public abstract DatatypeCtor GetGroundingCtor();
 
 

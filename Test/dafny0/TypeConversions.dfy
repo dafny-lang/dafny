@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 /print:"%t.print" /env:0 /rprint:- "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /print:"%t.print" /env:0 /rprint:- "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 newtype EvenInt = x | x % 2 == 0
