@@ -12,15 +12,15 @@ layout: default
 Italicized words in the given messages indicate variable content 
 that depends on the content.
 
-# Command-line Errors and Warnings
+# **Command-line Errors and Warnings**
 
-# Parser Errors and Warnings
+# **Parser Errors and Warnings**
 
 {% include_relative Errors-Parser.md %}}
 
-## Name and Type Resolution Errors and Warnings
+## **Name and Type Resolution Errors and Warnings**
 
-## Verification Errors
+## **Verification Errors**
 
 
-## Compilation Errors
+## **Compilation Errors**
