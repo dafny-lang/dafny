@@ -46,7 +46,7 @@ public struct AssumptionProperties {
       return new List<AssumptionDescription>{
         new(
           issue: "Declaration has explicit [{:axiom}] attribute.",
-          mitigation: "Provide a proof, test, or other justification.")
+          mitigation: "Provide a proof or test.")
       };
     }
 
@@ -64,13 +64,13 @@ public struct AssumptionProperties {
       descs.Add(
         new(
           issue: "Declaration with [{:extern}] has a requires clause.",
-          mitigation: "Test external caller (maybe with [/testContracts]) or justify."));
+          mitigation: "Test external caller (maybe with [/testContracts])."));
     }
     if (IsCallable && HasExternAttribute && EnsuresClauses is not null) {
       descs.Add(
         new(
           issue: "Declaration with [{:extern}] has a ensures clause.",
-          mitigation: "Test external callee (maybe with [/testContracts]) or justify."));
+          mitigation: "Test external callee (maybe with [/testContracts])."));
     }
     if (IsCallable && HasAssumeInBody) {
       descs.Add(
@@ -82,19 +82,19 @@ public struct AssumptionProperties {
       descs.Add(
         new(
           issue: "Method may not terminate (uses [decreases *]).",
-          mitigation: "Provide a valid [decreases] clause or justify the absence."));
+          mitigation: "Provide a valid [decreases] clause."));
     }
     if (IsTrait && MayNotTerminate) {
       descs.Add(
         new(
           issue: "Trait method calls may not terminate (uses [{:termination false}]).",
-          mitigation: "Remove or justify."));
+          mitigation: "Remove if possible."));
     }
     if (HasVerifyFalseAttribute) {
       descs.Add(
         new(
           issue: "Definition has [{:verify false}] attribute.",
-          mitigation: "Remove and prove or justify."));
+          mitigation: "Remove and prove if possible."));
     }
 
     return descs;
