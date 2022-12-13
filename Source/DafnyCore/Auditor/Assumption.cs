@@ -3,7 +3,38 @@ using System.Linq;
 
 namespace Microsoft.Dafny.Auditor;
 
-public record AssumptionDescription(string issue, string mitigation);
+public record AssumptionDescription(string issue, string mitigation) {
+  public static AssumptionDescription AxiomAttributeAssumption = new(
+    issue: "Declaration has explicit [{:axiom}] attribute.",
+    mitigation: "Provide a proof or test.");
+  public static AssumptionDescription VerifyFalseAssumption = new(
+    issue: "Declaration has [{:verify false}] attribute.",
+    mitigation: "Remove and prove if possible.");
+  public static AssumptionDescription ExternWithRequires = new(
+    issue: "Declaration with [{:extern}] has a requires clause.",
+    mitigation: "Test external caller (maybe with [/testContracts]).");
+  public static AssumptionDescription ExternWithEnsures = new(
+    issue: "Declaration with [{:extern}] has a ensures clause.",
+    mitigation: "Test external callee (maybe with [/testContracts]).");
+  public static AssumptionDescription AssumeInBody = new(
+    issue: "Definition has [assume] statement in body.",
+    mitigation: "Replace with [assert] and prove or add [{:axiom}].");
+  public static AssumptionDescription DecreasesStar = new(
+    issue: "Method may not terminate (uses [decreases *]).",
+    mitigation: "Provide a valid [decreases] clause.");
+  public static AssumptionDescription TerminationFalse = new(
+    issue: "Trait method calls may not terminate (uses [{:termination false}]).",
+    mitigation: "Remove if possible.");
+
+  public static AssumptionDescription NoBody(bool hasEnsures, bool isGhost) {
+    return new(
+      issue: (isGhost ? "Ghost" : "Compiled") +
+             " declaration has no body" +
+             (!hasEnsures ? "." : " and has an ensures clause."),
+      mitigation: "Provide a body or add [{:axiom}].");
+  }
+}
+
 
 /// <summary>
 /// A set of assumption-related properties of a Dafny entity. Certain
@@ -44,57 +75,32 @@ public struct AssumptionProperties {
   public IEnumerable<AssumptionDescription> Description() {
     if (HasAxiomAttribute) {
       return new List<AssumptionDescription>{
-        new(
-          issue: "Declaration has explicit [{:axiom}] attribute.",
-          mitigation: "Provide a proof or test.")
+        AssumptionDescription.AxiomAttributeAssumption
       };
     }
 
     List<AssumptionDescription> descs = new();
 
     if (IsCallable && MissingBody) {
-      descs.Add(
-        new(
-          issue: (IsGhost ? "Ghost" : "Compiled") +
-            " declaration has no body" +
-            (EnsuresClauses is null ? "." : " and has an ensures clause."),
-          mitigation: "Provide a body or add [{:axiom}]."));
+      descs.Add(AssumptionDescription.NoBody(EnsuresClauses is not null, IsGhost));
     }
     if (IsCallable && HasExternAttribute && RequiresClauses is not null) {
-      descs.Add(
-        new(
-          issue: "Declaration with [{:extern}] has a requires clause.",
-          mitigation: "Test external caller (maybe with [/testContracts])."));
+      descs.Add(AssumptionDescription.ExternWithRequires);
     }
     if (IsCallable && HasExternAttribute && EnsuresClauses is not null) {
-      descs.Add(
-        new(
-          issue: "Declaration with [{:extern}] has a ensures clause.",
-          mitigation: "Test external callee (maybe with [/testContracts])."));
+      descs.Add(AssumptionDescription.ExternWithEnsures);
     }
     if (IsCallable && HasAssumeInBody) {
-      descs.Add(
-        new(
-          issue: "Definition has [assume] statement in body.",
-          mitigation: "Replace with [assert] and prove or add [{:axiom}]."));
+      descs.Add(AssumptionDescription.AssumeInBody);
     }
     if (IsCallable && MayNotTerminate) {
-      descs.Add(
-        new(
-          issue: "Method may not terminate (uses [decreases *]).",
-          mitigation: "Provide a valid [decreases] clause."));
+      descs.Add(AssumptionDescription.DecreasesStar);
     }
     if (IsTrait && MayNotTerminate) {
-      descs.Add(
-        new(
-          issue: "Trait method calls may not terminate (uses [{:termination false}]).",
-          mitigation: "Remove if possible."));
+      descs.Add(AssumptionDescription.TerminationFalse);
     }
     if (HasVerifyFalseAttribute) {
-      descs.Add(
-        new(
-          issue: "Definition has [{:verify false}] attribute.",
-          mitigation: "Remove and prove if possible."));
+      descs.Add(AssumptionDescription.VerifyFalseAssumption);
     }
 
     return descs;
