@@ -5,7 +5,7 @@
 abstract abstract module M {}
 ```
 
-No Dafny modifier, such as [`abstract`, `static`, `ghost`](../DafnyRef/DafnyRef/#sec-declaration-modifiers may be repeated. Such repetition would be superfluous even if allowed.
+No Dafny modifier, such as [`abstract`, `static`, `ghost`](../DafnyRef/DafnyRef#sec-declaration-modifiers) may be repeated. Such repetition would be superfluous even if allowed.
 
 ### Error: a _decl_ cannot be declared 'abstract'
  
