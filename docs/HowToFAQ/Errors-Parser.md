@@ -5,7 +5,7 @@
 abstract abstract module M {}
 ```
 
-No Dafny modifier, such as [`abstract`, `static, `ghost`](../DafnyRef/DafnyRef/#sec-declaration-modifiers may be repeated. Such repetition would be superfluous even if allowed.
+No Dafny modifier, such as [`abstract`, `static`, `ghost`](../DafnyRef/DafnyRef/#sec-declaration-modifiers may be repeated. Such repetition would be superfluous even if allowed.
 
 ### Error: a _decl_ cannot be declared 'abstract'
  
@@ -100,6 +100,6 @@ module M {}
 module N refine M {}
 ```
 
-The [syntax for a module declaration](../DafnyRef/DafnyRef/#sec-modules) is either `module M { ... }` or
+The [syntax for a module declaration](../DafnyRef/DafnyRef#sec-modules) is either `module M { ... }` or
 `module M refines N { ... }` with optional attributes after the `module` keyword.
 This error message often occurs if the `refines` keyword is misspelled.
