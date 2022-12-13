@@ -218,7 +218,7 @@ whereas `{:compile false}` will just ignore the declaration for compilation purp
 See [`{:extern <name>}`](#sec-extern).
 
 ### 23.2.5. `{:fuel X}` {#sec-fuel}
-The fuel attributes is used to specify how much "fuel" a function should have,
+The fuel attribute is used to specify how much "fuel" a function should have,
 i.e., how many times the verifier is permitted to unfold its definition.  The
 `{:fuel}` annotation can be added to the function itself, it which
 case it will apply to all uses of that function, or it can be overridden
