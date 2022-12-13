@@ -43,4 +43,6 @@ public class AlternativeStmt : Statement {
       }
     }
   }
+
+  public override IEnumerable<INode> Children => Alternatives;
 }
