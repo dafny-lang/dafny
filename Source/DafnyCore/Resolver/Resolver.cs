@@ -3476,20 +3476,11 @@ namespace Microsoft.Dafny {
         // Check that type-parameter variance is respected in type definitions
         foreach (TopLevelDecl d in declarations) {
           if (d is IteratorDecl || d is ClassDecl) {
-            // TODO: option to opt-in to this
-            var dd = (ClassDecl)d;
-            foreach(var member in dd.Members) {
-              // TODO: other cases
-              if (member is Method method) {
-                method.Ins.Iter(formal => CheckVariance(formal.Type, method, TypeParameter.TPVariance.Contra, false));
-                method.Outs.Iter(formal => CheckVariance(formal.Type, method, TypeParameter.TPVariance.Co, false));
+            foreach (var tp in d.TypeArgs) {
+              if (tp.Variance != TypeParameter.TPVariance.Non) {
+                reporter.Error(MessageSource.Resolver, tp.tok, "{0} declarations only support non-variant type parameters", d.WhatKind);
               }
             }
-            // foreach (var tp in d.TypeArgs) {
-            //   if (tp.Variance != TypeParameter.TPVariance.Non) {
-            //     reporter.Error(MessageSource.Resolver, tp.tok, "{0} declarations only support non-variant type parameters", d.WhatKind);
-            //   }
-            // }
           } else if (d is TypeSynonymDecl) {
             var dd = (TypeSynonymDecl)d;
             CheckVariance(dd.Rhs, dd, TypeParameter.TPVariance.Co, false);

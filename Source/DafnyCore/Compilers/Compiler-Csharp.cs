@@ -338,7 +338,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private ConcreteSyntaxTree WriteTypeHeader(string kind, string name, List<TypeParameter> typeParameters, List<Type>/*?*/ superClasses, IToken tok, ConcreteSyntaxTree wr) {
-      wr.Write($"public {kind} {IdProtect(name)}{TypeParameters(typeParameters, true)}");
+      wr.Write($"public {kind} {IdProtect(name)}{TypeParameters(typeParameters)}");
       var realSuperClasses = superClasses?.Where(trait => !trait.IsObject).ToList() ?? new List<Type>();
       if (realSuperClasses.Any()) {
         wr.Write($" : {realSuperClasses.Comma(trait => TypeName(trait, wr, tok))}");

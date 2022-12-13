@@ -1,5 +1,12 @@
 abstract module {:options "/functionSyntax:4"} Dafny {
 
+  // Note that the T type parameters on some types,
+  // such as Sequence<T> and ImmutableArray<T>,
+  // should really be +T, but that isn't yet supported.
+  // Before this implementation is used in more runtimes,
+  // we will need to either add that support or make adjustments
+  // like downcast-cloning in some backends.
+
   trait {:extern} Helpers {
     static function {:extern} DafnyValueToDafnyString<T>(t: T): string
   }
@@ -174,7 +181,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
   // This could easily be implemented by the same native type as NativeArray.
   // TODO: Need to make sure NativeArray.Freeze() never returns the same object,
   // as a.Freeze() == a will lead to unsoundness. Write a Dafny test first!
-  trait {:extern} ImmutableArray<+T> {
+  trait {:extern} ImmutableArray<T> {
 
     ghost const values: seq<T>
 
@@ -354,7 +361,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
   // Compilers could special case this type to inline declarations and avoid
   // the cost of allocation and indirection, e.g. by replacing a `const fooBox: AtomicBox<T>`
   // with a direct `volitile T fooBox;` in the target language.
-  trait {:extern} AtomicBox<!T> {
+  trait {:extern} AtomicBox<T> {
 
     ghost const inv: T -> bool
 
@@ -383,12 +390,12 @@ abstract module {:options "/functionSyntax:4"} Dafny {
   // (e.g. s[i] -> s.Select(i)) have `modifies {}` (implicitly or explicitly).
   // TODO: Might also be good to assert that seq<T> is only used in specifications.
   // TODO: Align terminology between length/size/etc.
-  trait {:extern} Sequence<+T> {
+
+  trait {:extern} Sequence<T> {
    
     // This is only here to support the attempts some runtimes make to
     // track what sequence values are actually sequences of characters.
-    // This is not used when --unicode-char is enabled, and not currently
-    // used by any Dafny code.
+    // This is not used when --unicode-char is enabled.
     // TODO: rename. isNonUnicodeString?
     var isString: bool
 
