@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class ProofDurabilityCommand : ICommandSpec {
+public class CheckProofComplexityCommand : ICommandSpec {
   public IEnumerable<Option> Options => new Option[] {
     Iterations,
     RandomSeed,
@@ -14,7 +14,7 @@ public class ProofDurabilityCommand : ICommandSpec {
   }.Concat(ICommandSpec.VerificationOptions).
     Concat(ICommandSpec.CommonOptions);
 
-  static ProofDurabilityCommand() {
+  static CheckProofComplexityCommand() {
     DafnyOptions.RegisterLegacyBinding(Iterations, (o, v) => o.RandomSeedIterations = (int)v);
     DafnyOptions.RegisterLegacyBinding(RandomSeed, (o, v) => o.RandomSeed = (int)v);
     DafnyOptions.RegisterLegacyBinding(IsolateAssertions, (o, v) => o.VcsSplitOnEveryAssert = v);
@@ -41,11 +41,12 @@ The `text` format also includes a more detailed breakdown of what assertions app
   };
 
   public Command Create() {
-    var result = new Command("check-proof-durability", "(experimental) Check the durability of the program proofs. Be aware that the name, options and output of this command will change in the future.");
+    var result = new Command("check-proof-complexity", "(experimental) Check the complexity of the program proofs. Be aware that the name, options and output of this command will change in the future.");
     result.AddArgument(ICommandSpec.FilesArgument);
     return result;
   }
 
   public void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context) {
+    dafnyOptions.Compile = false;
   }
 }

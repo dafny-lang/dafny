@@ -30,7 +30,7 @@ static class CommandRegistry {
     AddCommand(new RunCommand());
     AddCommand(new BuildCommand());
     AddCommand(new TranslateCommand());
-    AddCommand(new ProofDurabilityCommand());
+    AddCommand(new CheckProofComplexityCommand());
     AddCommand(new ServerCommand());
     AddCommand(new TestCommand());
     AddCommand(new GenerateTestsCommand());
