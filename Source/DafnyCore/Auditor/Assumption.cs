@@ -3,6 +3,8 @@ using System.Linq;
 
 namespace Microsoft.Dafny.Auditor;
 
+public record AssumptionDescription(string issue, string mitigation);
+
 /// <summary>
 /// A set of assumption-related properties of a Dafny entity. Certain
 /// combinations of these properties classify the entity as containing
@@ -39,52 +41,60 @@ public struct AssumptionProperties {
   /// Describe all of the assumptions this entity makes.
   /// </summary>
   /// <returns>a list of (assumption, mitigation) pairs</returns>
-  public IEnumerable<(string, string)> Description() {
+  public IEnumerable<AssumptionDescription> Description() {
     if (HasAxiomAttribute) {
-      return new List<(string, string)>{
-        ("Declaration has explicit `{:axiom}` attribute.",
-         "Provide a proof, test, or other justification.")
+      return new List<AssumptionDescription>{
+        new(
+          issue: "Declaration has explicit `{:axiom}` attribute.",
+          mitigation: "Provide a proof, test, or other justification.")
       };
     }
 
-    List<(string, string)> descs = new();
+    List<AssumptionDescription> descs = new();
 
     if (IsCallable && MissingBody) {
       descs.Add(
-        ((IsGhost ? "Ghost" : "Compiled") +
-          " declaration has no body" +
-          (EnsuresClauses is null ? "." : " and has an ensures clause."),
-        "Provide a body or add `{:axiom}`."));
+        new(
+          issue: (IsGhost ? "Ghost" : "Compiled") +
+            " declaration has no body" +
+            (EnsuresClauses is null ? "." : " and has an ensures clause."),
+          mitigation: "Provide a body or add `{:axiom}`."));
     }
     if (IsCallable && HasExternAttribute && RequiresClauses is not null) {
       descs.Add(
-        ("Declaration with `{:extern}` has a requires clause.",
-         "Test external caller (maybe with `/testContracts`) or justify."));
+        new(
+          issue: "Declaration with `{:extern}` has a requires clause.",
+          mitigation: "Test external caller (maybe with `/testContracts`) or justify."));
     }
     if (IsCallable && HasExternAttribute && EnsuresClauses is not null) {
       descs.Add(
-        ("Declaration with `{:extern}` has a ensures clause.",
-         "Test external callee (maybe with `/testContracts`) or justify."));
+        new(
+          issue: "Declaration with `{:extern}` has a ensures clause.",
+          mitigation: "Test external callee (maybe with `/testContracts`) or justify."));
     }
     if (IsCallable && HasAssumeInBody) {
       descs.Add(
-        ("Definition has `assume` statement in body.",
-         "Replace with `assert` and prove or add `{:axiom}`."));
+        new(
+          issue: "Definition has `assume` statement in body.",
+          mitigation: "Replace with `assert` and prove or add `{:axiom}`."));
     }
     if (IsCallable && MayNotTerminate) {
       descs.Add(
-        ("Method may not terminate (uses `decreases *`).",
-         "Provide a valid `decreases` clause or justify the absence."));
+        new(
+          issue: "Method may not terminate (uses `decreases *`).",
+          mitigation: "Provide a valid `decreases` clause or justify the absence."));
     }
     if (IsTrait && MayNotTerminate) {
       descs.Add(
-        ("Trait method calls may not terminate (uses `{:termination false}`).",
-         "Remove or justify."));
+        new(
+          issue: "Trait method calls may not terminate (uses `{:termination false}`).",
+          mitigation: "Remove or justify."));
     }
     if (HasVerifyFalseAttribute) {
       descs.Add(
-        ("Definition has `{:verify false}` attribute.",
-         "Remove and prove or justify."));
+        new(
+          issue: "Definition has `{:verify false}` attribute.",
+          mitigation: "Remove and prove or justify."));
     }
 
     return descs;

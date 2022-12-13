@@ -67,7 +67,7 @@ public class AuditReport {
   private string RenderAssumptionRows(Assumption a, string beg, string sep, string end) {
     var rows = a.props
       .Description()
-      .Select((desc, _) => RenderRow(beg, sep, end, IssueRow(a, desc.Item1, desc.Item2)));
+      .Select((desc, _) => RenderRow(beg, sep, end, IssueRow(a, desc.issue, desc.mitigation)));
     return rows.Count() > 0 ? String.Join("\n", rows) : a.ToString();
   }
 
