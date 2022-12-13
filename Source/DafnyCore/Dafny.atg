@@ -1880,12 +1880,12 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static; .)
   | ( "greatest"                    (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
       "lemma"
-    | "colemma"                     (. errors.Deprecated(t, "the old keyword 'colemma' has been renamed to the keyword phrase 'greatest lemma'"); .)
+    | "colemma"                     (. CheckAndSetTokenOnce(ref dmod.FirstToken); errors.Deprecated(t, "the old keyword 'colemma' has been renamed to the keyword phrase 'greatest lemma'"); .)
     )
                                     (. isGreatestLemma = true; caption = "greatest lemma";
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static; .)
-  | ( "least" (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
-    | "inductive"                   (. errors.Deprecated(t, "the old keyword phrase 'inductive lemma' has been renamed to 'least lemma'"); .)
+  | ( "least"                       (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
+    | "inductive"                   (. CheckAndSetTokenOnce(ref dmod.FirstToken);errors.Deprecated(t, "the old keyword phrase 'inductive lemma' has been renamed to 'least lemma'"); .)
     )
     "lemma"
                                     (. isLeastLemma = true;  caption = "least lemma";
@@ -2425,7 +2425,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
   | (. Contract.Assert(!isTwoState);  // the IsFunctionDecl check checks that "twostate" is not followed by "least"
     .)
     ( "least"                  (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
-    | "inductive"              (. errors.Deprecated(t, "the old keyword phrase 'inductive predicate' has been renamed to 'least predicate'"); .)
+    | "inductive"              (. CheckAndSetTokenOnce(ref dmod.FirstToken); errors.Deprecated(t, "the old keyword phrase 'inductive predicate' has been renamed to 'least predicate'"); .)
     )
     "predicate"
     (. isLeastPredicate = true; .)
@@ -2444,7 +2444,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
     .)
     ( "greatest"                 (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
       "predicate"     
-    | "copredicate"              (. errors.Deprecated(t, "the old keyword 'copredicate' has been renamed to the keyword phrase 'greatest predicate'"); .)
+    | "copredicate"              (. CheckAndSetTokenOnce(ref dmod.FirstToken); errors.Deprecated(t, "the old keyword 'copredicate' has been renamed to the keyword phrase 'greatest predicate'"); .)
     )
     (. isGreatestPredicate = true; .)
     { Attribute<ref attrs> }
@@ -2916,10 +2916,11 @@ UpdateStmt<out Statement/*!*/ s>
      Expression suchThat = null;
      AttributedToken keywordToken = null;
      Expression exceptionExpr = null;
+     IToken endToken = Token.NoToken;
   .)
-( Lhs<out e>                       (. x = e.tok; startToken = e.StartToken; .)
-  ( { Attribute<ref attrs> }
-    ";"                            (. endTok = t; rhss.Add(new ExprRhs(e, attrs)); .)
+( Lhs<out e>                       (. x = e.tok; startToken = e.StartToken; endToken = t; .)
+  ( { Attribute<ref attrs> }       (. endToken = t; .)
+    ";"                            (. endTok = t; rhss.Add(new ExprRhs(e, attrs) { RangeToken = new RangeToken(e.StartToken, endToken) }); .)
   |                                (. lhss.Add(e); .)
     { "," Lhs<out e>               (. lhss.Add(e); .)
     }
@@ -3008,7 +3009,7 @@ Rhs<out AssignmentRhs r>
   | Expression<out e, false, true>     (. r = new ExprRhs(e); startToken = e.StartToken; .)
   )
   { Attribute<ref attrs> }             (. r.Attributes = attrs;
-                                          r.RangeToken = new RangeToken(startToken, t); .)
+                                          r.RangeToken = new RangeToken(startToken ?? t, t); .)
   .
 
 /*------------------------------------------------------------------------*/
