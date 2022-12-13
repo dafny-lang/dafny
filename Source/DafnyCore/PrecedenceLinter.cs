@@ -92,6 +92,8 @@ namespace Microsoft.Dafny {
           // a SeqSelectExpr is the open-bracket). To avoid looking at that internal structure, we instead
           // use the .StartToken for these expressions.
           column = expr.StartToken.col;
+        } else if (expr is BinaryExpr binaryExpr && binaryExpr.OwnedTokens.Count() > 1) {
+          column = binaryExpr.OwnedTokens.FirstOrDefault()!.col;
         } else {
           column = expr.tok.col;
         }
