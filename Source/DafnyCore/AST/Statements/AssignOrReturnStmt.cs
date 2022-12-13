@@ -18,7 +18,7 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement {
   void ObjectInvariant() {
     Contract.Invariant(Lhss != null);
     Contract.Invariant(
-      Lhss.Count == 0 ||                   // ":- MethodOrExpresion;" which returns void success or an error
+      Lhss.Count == 0 ||                   // ":- MethodOrExpression;" which returns void success or an error
       (Lhss.Count == 1 && Lhss[0] != null)   // "y :- MethodOrExpression;"
     );
     Contract.Invariant(Rhs != null);

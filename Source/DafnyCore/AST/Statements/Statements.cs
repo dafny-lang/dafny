@@ -69,7 +69,7 @@ public abstract class Statement : IAttributeBearingDeclaration, INode {
 
   /// <summary>
   /// Returns the non-null expressions of this statement proper (that is, do not include the expressions of substatements).
-  /// Filters all sub expressions that are not part of specifications
+  /// Includes both specification and non-specification expressions.
   /// </summary>
   public IEnumerable<Expression> SubExpressions {
     get {
