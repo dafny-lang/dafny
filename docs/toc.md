@@ -31,7 +31,7 @@ This page contains links to Dafny documentation.
    * [FAQs](HowToFAQ/index)
 * Detailed documents for programmers
    * [**Dafny Reference Manual**](DafnyRef/DafnyRef)
-   * [Explanations of Error and Warning messages](HotToFAQ/Errors)
+   * [Explanations of Error and Warning messages](HowToFAQ/Errors)
    * [**Style Guide for Dafny programs**](StyleGuide/Style-Guide)
    * Language reference for the [Dafny type system](http://leino.science/papers/krml243.html), which also describes available expressions for each type
    * [Miscellaneous Examples of Dafny programs](examples/README)
