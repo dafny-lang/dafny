@@ -16,13 +16,20 @@ that depends on the content.
 
 # **Command-line Errors and Warnings**
 
+{% include_relative Errors-CommandLine.md %}
+
 # **Parser Errors and Warnings**
 
 {% include_relative Errors-Parser.md %}}
 
 # **Name and Type Resolution Errors and Warnings**
 
+_This section is a work in progress_
+
 # **Verification Errors**
 
+_This section is a work in progress_
 
 # **Compilation Errors**
+
+_This section is a work in progress_
