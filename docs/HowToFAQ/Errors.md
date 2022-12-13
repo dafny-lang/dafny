@@ -1,7 +1,7 @@
 ---
 title: Dafny Errors and Warnings
-layout: default
 ---
+layout: default
 <link rel="stylesheet" href="../assets/main.css">
 <link rel="icon" href="../images/dafny-favicon.png" type="image/png">
 <link rel="icon" href="../images/dafny-favicon.svg" type="image/svg+xml">
@@ -18,9 +18,9 @@ that depends on the content.
 
 {% include_relative Errors-Parser.md %}}
 
-## **Name and Type Resolution Errors and Warnings**
+# **Name and Type Resolution Errors and Warnings**
 
-## **Verification Errors**
+# **Verification Errors**
 
 
-## **Compilation Errors**
+# **Compilation Errors**
