@@ -1,7 +1,9 @@
 ---
-title: Dafny Errors and Warnings
----
 layout: default
+---
+<font size="+4"><p style="text-align: center;">Dafny Errors and Warnings</p></font> <!-- PDFOMIT -->
+
+
 <link rel="stylesheet" href="../assets/main.css">
 <link rel="icon" href="../images/dafny-favicon.png" type="image/png">
 <link rel="icon" href="../images/dafny-favicon.svg" type="image/svg+xml">
