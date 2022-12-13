@@ -53,30 +53,36 @@ public class AuditReport {
       return decl.Name;
     }
   }
-  private IEnumerable<String> IssueRow(Assumption a, string issue, string mitigation) {
+  private IEnumerable<string> IssueRow(Assumption a, string issue, string mitigation, Func<string, string> targetFormatter) {
     return new List<string>() {
       GetFullName(a.decl),
       (!a.props.IsGhost).ToString(),
       a.props.HasAxiomAttribute.ToString(),
       a.props.HasExternAttribute.ToString(),
-      issue,
-      mitigation
+      targetFormatter(issue),
+      targetFormatter(mitigation)
     };
   }
 
-  private string RenderAssumptionRows(Assumption a, string beg, string sep, string end) {
+  private string RenderAssumptionRows(Assumption a, string beg, string sep, string end, Func<string, string> targetFormatter) {
     var rows = a.props
       .Description()
-      .Select((desc, _) => RenderRow(beg, sep, end, IssueRow(a, desc.issue, desc.mitigation)));
+      .Select((desc, _) => RenderRow(beg, sep, end, IssueRow(a, desc.issue, desc.mitigation, targetFormatter)));
     return rows.Count() > 0 ? String.Join("\n", rows) : a.ToString();
   }
 
+  private string UpdateVerbatim(string text, string beg, string end) {
+    return text.Replace("[", beg).Replace("]", end);
+  }
+
   private string RenderAssumptionRowsMarkdown(Assumption a) {
-    return RenderAssumptionRows(a, "| ", " | ", " |");
+    return RenderAssumptionRows(a, "| ", " | ", " |",
+      s => UpdateVerbatim(s, "`", "`"));
   }
 
   private string RenderAssumptionRowsHTML(Assumption a) {
-    return RenderAssumptionRows(a, "<tr><td>", "</td><td>", "</td></tr>");
+    return RenderAssumptionRows(a, "<tr><td>", "</td><td>", "</td></tr>",
+      s => UpdateVerbatim(s, "<code>", "</code>"));
   }
 
   public string RenderHTMLTable() {
@@ -95,7 +101,15 @@ public class AuditReport {
     return header + String.Join("\n", rows);
   }
 
-  public string RenderMarkdownSections() {
+  private void AppendMarkdownIETFDescription(AssumptionDescription desc, StringBuilder text) {
+    var issue = UpdateVerbatim(desc.issue, "`", "`");
+    var mitigation = desc.mitigation.Replace("[", "`").Replace("]", "`");
+    var mustMitigation = char.ToLower(mitigation[0]) + mitigation.Substring(1);
+    text.AppendLine("");
+    text.AppendLine($"* {issue} MUST {mustMitigation}");
+  }
+
+  public string RenderMarkdownIETF() {
     StringBuilder text = new StringBuilder();
 
     foreach (var module in modulesWithEntries) {
@@ -108,10 +122,8 @@ public class AuditReport {
         text.AppendLine($"## Type `{topLevelDecl.Name}`");
 
         if (assumptionsByDecl.ContainsKey(topLevelDecl)) {
-          foreach (var (problem, mitigation) in assumptionsByDecl[topLevelDecl].Description()) {
-            var mustMitigation = char.ToLower(mitigation[0]) + mitigation.Substring(1);
-            text.AppendLine("");
-            text.AppendLine($"* {problem} MUST {mustMitigation}");
+          foreach (var desc in assumptionsByDecl[topLevelDecl].Description()) {
+            AppendMarkdownIETFDescription(desc, text);
           }
         }
 
@@ -126,10 +138,8 @@ public class AuditReport {
           text.AppendLine("");
           text.AppendLine($"## Member `{decl.Name}`");
           if (assumptionsByDecl.ContainsKey(decl)) {
-            foreach (var (problem, mitigation) in assumptionsByDecl[decl].Description()) {
-              var mustMitigation = char.ToLower(mitigation[0]) + mitigation.Substring(1);
-              text.AppendLine("");
-              text.AppendLine($"* {problem} MUST {mustMitigation}");
+            foreach (var desc in assumptionsByDecl[decl].Description()) {
+              AppendMarkdownIETFDescription(desc, text);
             }
           }
         }

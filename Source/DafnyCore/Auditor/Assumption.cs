@@ -45,7 +45,7 @@ public struct AssumptionProperties {
     if (HasAxiomAttribute) {
       return new List<AssumptionDescription>{
         new(
-          issue: "Declaration has explicit `{:axiom}` attribute.",
+          issue: "Declaration has explicit [{:axiom}] attribute.",
           mitigation: "Provide a proof, test, or other justification.")
       };
     }
@@ -58,42 +58,42 @@ public struct AssumptionProperties {
           issue: (IsGhost ? "Ghost" : "Compiled") +
             " declaration has no body" +
             (EnsuresClauses is null ? "." : " and has an ensures clause."),
-          mitigation: "Provide a body or add `{:axiom}`."));
+          mitigation: "Provide a body or add [{:axiom}]."));
     }
     if (IsCallable && HasExternAttribute && RequiresClauses is not null) {
       descs.Add(
         new(
-          issue: "Declaration with `{:extern}` has a requires clause.",
-          mitigation: "Test external caller (maybe with `/testContracts`) or justify."));
+          issue: "Declaration with [{:extern}] has a requires clause.",
+          mitigation: "Test external caller (maybe with [/testContracts]) or justify."));
     }
     if (IsCallable && HasExternAttribute && EnsuresClauses is not null) {
       descs.Add(
         new(
-          issue: "Declaration with `{:extern}` has a ensures clause.",
-          mitigation: "Test external callee (maybe with `/testContracts`) or justify."));
+          issue: "Declaration with [{:extern}] has a ensures clause.",
+          mitigation: "Test external callee (maybe with [/testContracts]) or justify."));
     }
     if (IsCallable && HasAssumeInBody) {
       descs.Add(
         new(
-          issue: "Definition has `assume` statement in body.",
-          mitigation: "Replace with `assert` and prove or add `{:axiom}`."));
+          issue: "Definition has [assume] statement in body.",
+          mitigation: "Replace with [assert] and prove or add [{:axiom}]."));
     }
     if (IsCallable && MayNotTerminate) {
       descs.Add(
         new(
-          issue: "Method may not terminate (uses `decreases *`).",
-          mitigation: "Provide a valid `decreases` clause or justify the absence."));
+          issue: "Method may not terminate (uses [decreases *]).",
+          mitigation: "Provide a valid [decreases] clause or justify the absence."));
     }
     if (IsTrait && MayNotTerminate) {
       descs.Add(
         new(
-          issue: "Trait method calls may not terminate (uses `{:termination false}`).",
+          issue: "Trait method calls may not terminate (uses [{:termination false}]).",
           mitigation: "Remove or justify."));
     }
     if (HasVerifyFalseAttribute) {
       descs.Add(
         new(
-          issue: "Definition has `{:verify false}` attribute.",
+          issue: "Definition has [{:verify false}] attribute.",
           mitigation: "Remove and prove or justify."));
     }
 

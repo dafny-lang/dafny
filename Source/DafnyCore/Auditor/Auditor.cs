@@ -103,7 +103,7 @@ public class Auditor : IRewriter {
       var text = reportFormat switch {
         ReportFormat.HTML => GenerateHTMLReport(report),
         ReportFormat.MarkdownTable => report.RenderMarkdownTable(),
-        ReportFormat.MarkdownIETF => report.RenderMarkdownSections(),
+        ReportFormat.MarkdownIETF => report.RenderMarkdownIETF(),
         ReportFormat.Text => report.RenderText(),
         _ => $"Internal error: unknown format {reportFormat}"
       };
