@@ -132,7 +132,7 @@ ensures true
 
       var count = 0;
       void AreAllTokensOwned(INode node) {
-        if (node.StartToken != null) {
+        if (node.StartToken is { filename: { } }) {
           count++;
           var t = node.StartToken;
           while (t != null && t != node.EndToken) {

@@ -132,7 +132,7 @@ namespace Microsoft.Dafny {
           while (tmpToken != null && tmpToken != EndToken.Next) {
             if (startToEndTokenNotOwned.TryGetValue(tmpToken, out var endNotOwnedToken)) {
               tmpToken = endNotOwnedToken;
-            } else {
+            } else if (tmpToken.filename != null) {
               result.Add(tmpToken);
             }
 
