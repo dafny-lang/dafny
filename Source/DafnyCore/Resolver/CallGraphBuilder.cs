@@ -204,9 +204,8 @@ namespace Microsoft.Dafny {
               AddTypeDependencyEdges((ICallable)d, formal.Type);
             }
           }
-          // resolve any default parameters
           foreach (var ctor in dt.Ctors) {
-            ResolveParameterDefaultValues(ctor.Formals, new CallGraphBuilderContext(dt));
+            VisitDefaultParameterValues(ctor.Formals, new CallGraphBuilderContext(dt));
           }
         }
 
@@ -257,7 +256,7 @@ namespace Microsoft.Dafny {
       var context = new CallGraphBuilderContext(iter); // single-state context
 
       VisitAttributes(iter, context);
-      ResolveParameterDefaultValues(iter.Ins, context);
+      VisitDefaultParameterValues(iter.Ins, context);
 
       VisitAttributes(iter.Decreases, context);
       for (var i = 0; i < iter.Decreases.Expressions.Count; i++) {
@@ -265,11 +264,11 @@ namespace Microsoft.Dafny {
         VisitExpression(e, context);
       }
       foreach (FrameExpression fe in iter.Reads.Expressions) {
-        ResolveFrameExpressionTopLevel(fe, new CallGraphBuilderContext(iter));
+        ResolveFrameExpression(fe, new CallGraphBuilderContext(iter));
       }
       VisitAttributes(iter.Modifies, context);
       foreach (FrameExpression fe in iter.Modifies.Expressions) {
-        ResolveFrameExpressionTopLevel(fe, new CallGraphBuilderContext(iter));
+        ResolveFrameExpression(fe, new CallGraphBuilderContext(iter));
       }
       foreach (AttributedExpression e in iter.Requires) {
         VisitAttributes(e, context);
@@ -326,14 +325,14 @@ namespace Microsoft.Dafny {
       }
       VisitUserProvidedType(f.ResultType, new CallGraphBuilderContext(f));
 
-      ResolveParameterDefaultValues(f.Formals, new CallGraphBuilderContext(f));
+      VisitDefaultParameterValues(f.Formals, new CallGraphBuilderContext(f));
 
       foreach (AttributedExpression e in f.Req) {
         VisitAttributes(e, new CallGraphBuilderContext(f));
         VisitExpression(e.E, new CallGraphBuilderContext(f));
       }
       foreach (FrameExpression fr in f.Reads) {
-        ResolveFrameExpressionTopLevel(fr, new CallGraphBuilderContext(f));
+        ResolveFrameExpression(fr, new CallGraphBuilderContext(f));
       }
       foreach (AttributedExpression e in f.Ens) {
         VisitAttributes(e, new CallGraphBuilderContext(f));
@@ -366,133 +365,42 @@ namespace Microsoft.Dafny {
       }
       expr = expr.Resolved;
 
-      if (expr is LiteralExpr) {
-
-      } else if (expr is ThisExpr) {
-
-      } else if (expr is IdentifierExpr) {
-
-      } else if (expr is NegationExpression) {
-        // A NegationExpression is a ConcreteSyntaxExpr, but its .ResolvedExpression may not
-        // yet have been filled in--it's filled in during a later resolution phase. So, we
-        // handle it here.
-        var e = (NegationExpression)expr;
-        VisitExpression(e.E, context);
-
-      } else if (expr is DatatypeValue) {
-        DatatypeValue dtv = (DatatypeValue)expr;
-        ResolveDatatypeValue(context, dtv, dtv.Type.AsDatatype, null);
-
-      } else if (expr is DisplayExpression) {
-        DisplayExpression e = (DisplayExpression)expr;
-        foreach (Expression ee in e.Elements) {
-          VisitExpression(ee, context);
+      if (expr is DatatypeValue dtv) {
+        var dt = dtv.Type.AsDatatype;
+        if (context.CodeContext is ICallable caller && caller.EnclosingModule == dt.EnclosingModuleDefinition) {
+          caller.EnclosingModule.CallGraph.AddEdge(caller, dt);
         }
 
-      } else if (expr is MapDisplayExpr) {
-        MapDisplayExpr e = (MapDisplayExpr)expr;
-        foreach (ExpressionPair p in e.Elements) {
-          VisitExpression(p.A, context);
-          VisitExpression(p.B, context);
-        }
-
-      } else if (expr is MemberSelectExpr) {
-        var e = (MemberSelectExpr)expr;
-        VisitExpression(e.Obj, context);
-        if (e.Member is Function fn) {
-          AddCallGraphEdge(context.CodeContext, fn, e, false);
+      } else if (expr is MemberSelectExpr memberSelectExpr) {
+        if (memberSelectExpr.Member is Function function) {
+          AddCallGraphEdge(context.CodeContext, function, memberSelectExpr, false);
         } else {
-          var field = (Field)e.Member;
-          AddCallGraphEdgeForField(context.CodeContext, field, e);
+          var field = (Field)memberSelectExpr.Member;
+          AddCallGraphEdgeForField(context.CodeContext, field, memberSelectExpr);
         }
 
-      } else if (expr is SeqSelectExpr) {
-        SeqSelectExpr e = (SeqSelectExpr)expr;
-        VisitExpression(e.Seq, context);
-        if (e.E0 != null) {
-          VisitExpression(e.E0, context);
+      } else if (expr is FunctionCallExpr functionCallExpr) {
+        var function = functionCallExpr.Function;
+        if (function is ExtremePredicate extremePredicate) {
+          extremePredicate.Uses.Add(functionCallExpr);
         }
-        if (e.E1 != null) {
-          VisitExpression(e.E1, context);
-        }
+        AddCallGraphEdge(context.CodeContext, function, functionCallExpr,
+          IsFunctionReturnValue(function, functionCallExpr.Receiver, functionCallExpr.Args, context));
 
-      } else if (expr is MultiSelectExpr) {
-        MultiSelectExpr e = (MultiSelectExpr)expr;
-
-        VisitExpression(e.Array, context);
-        foreach (Expression idx in e.Indices) {
-          VisitExpression(idx, context);
+      } else if (expr is SeqConstructionExpr seqConstructionExpr) {
+        var userProvidedElementType = seqConstructionExpr.ExplicitElementType;
+        if (userProvidedElementType != null) {
+          VisitUserProvidedType(userProvidedElementType, context);
         }
 
-      } else if (expr is SeqUpdateExpr) {
-        SeqUpdateExpr e = (SeqUpdateExpr)expr;
-        VisitExpression(e.Seq, context);
-        VisitExpression(e.Index, context);
-        VisitExpression(e.Value, context);
-
-      } else if (expr is FunctionCallExpr) {
-        var e = (FunctionCallExpr)expr;
-        ResolveFunctionCallExpr(e, context);
-
-      } else if (expr is ApplyExpr) {
-        var e = (ApplyExpr)expr;
-        VisitExpression(e.Function, context);
-        foreach (var arg in e.Args) {
-          VisitExpression(arg, context);
-        }
-
-      } else if (expr is SeqConstructionExpr) {
-        var e = (SeqConstructionExpr)expr;
-        VisitUserProvidedType(e.ExplicitElementType ?? new InferredTypeProxy(), context);
-        VisitExpression(e.N, context);
-        VisitExpression(e.Initializer, context);
-
-      } else if (expr is MultiSetFormingExpr) {
-        MultiSetFormingExpr e = (MultiSetFormingExpr)expr;
-        VisitExpression(e.E, context);
-
-      } else if (expr is OldExpr) {
-        var e = (OldExpr)expr;
-        VisitExpression(e.E, context);
-
-      } else if (expr is UnchangedExpr) {
-        var e = (UnchangedExpr)expr;
-        foreach (var fe in e.Frame) {
-          ResolveFrameExpression(fe, context);
-        }
-
-      } else if (expr is UnaryOpExpr) {
-        var e = (UnaryOpExpr)expr;
-        VisitExpression(e.E, context);
-
-      } else if (expr is TypeUnaryExpr) {
-        var e = (TypeUnaryExpr)expr;
-        VisitExpression(e.E, context);
-        VisitUserProvidedType(e.ToType, context);
-
-      } else if (expr is BinaryExpr) {
-        BinaryExpr e = (BinaryExpr)expr;
-        VisitExpression(e.E0, context);
-        VisitExpression(e.E1, context);
-
-      } else if (expr is TernaryExpr) {
-        var e = (TernaryExpr)expr;
-        VisitExpression(e.E0, context);
-        VisitExpression(e.E1, context);
-        VisitExpression(e.E2, context);
+      } else if (expr is TypeUnaryExpr typeUnaryExpr) {
+        VisitUserProvidedType(typeUnaryExpr.ToType, context);
 
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
         if (e.Exact) {
-          foreach (var rhs in e.RHSs) {
-            VisitExpression(rhs, context);
-          }
-          var i = 0;
           foreach (var lhs in e.LHSs) {
-            var rhsType = i < e.RHSs.Count ? e.RHSs[i].Type : new InferredTypeProxy();
             ResolveCasePattern(lhs, context);
-            // Check for duplicate names now, because not until after resolving the case pattern do we know if identifiers inside it refer to bound variables or nullary constructors
-            i++;
           }
         } else {
           // let-such-that expression
@@ -500,122 +408,46 @@ namespace Microsoft.Dafny {
             var v = lhs.Var;
             VisitUserProvidedType(v.Type, context);
           }
-          foreach (var rhs in e.RHSs) {
-            VisitExpression(rhs, context);
+        }
+
+      } else if (expr is QuantifierExpr quantifierExpr) {
+        Contract.Assert(quantifierExpr.SplitQuantifier == null); // No split quantifiers during resolution
+        if (context.CodeContext is Function enclosingFunction) {
+          enclosingFunction.ContainsQuantifier = true;
+        }
+        foreach (BoundVar v in quantifierExpr.BoundVars) {
+          VisitUserProvidedType(v.Type, context);
+        }
+
+      } else if (expr is SetComprehension setComprehension) {
+        foreach (BoundVar v in setComprehension.BoundVars) {
+          VisitUserProvidedType(v.Type, context);
+        }
+
+      } else if (expr is MapComprehension mapComprehension) {
+        foreach (BoundVar v in mapComprehension.BoundVars) {
+          VisitUserProvidedType(v.Type, context);
+        }
+
+      } else if (expr is LambdaExpr lambdaExpr) {
+        foreach (BoundVar v in lambdaExpr.BoundVars) {
+          VisitUserProvidedType(v.Type, context);
+        }
+
+      } else if (expr is StmtExpr stmtExpr) {
+        ResolveStatement(stmtExpr.S, context);
+
+      } else if (expr is MatchExpr matchExpr) {
+        foreach (MatchCaseExpr mc in matchExpr.Cases) {
+          foreach (BoundVar v in mc.Arguments) {
+            VisitUserProvidedType(v.Type, context);
           }
         }
-        VisitExpression(e.Body, context);
-        VisitAttributes(e, context);
-      } else if (expr is QuantifierExpr) {
-        var e = (QuantifierExpr)expr;
-        if (context.CodeContext is Function) {
-          ((Function)context.CodeContext).ContainsQuantifier = true;
-        }
-        Contract.Assert(e.SplitQuantifier == null); // No split quantifiers during resolution
-        foreach (BoundVar v in e.BoundVars) {
-          VisitUserProvidedType(v.Type, context);
-        }
-        if (e.Range != null) {
-          VisitExpression(e.Range, context);
-        }
-        VisitExpression(e.Term, context);
-        VisitAttributes(e, context);
-
-      } else if (expr is SetComprehension) {
-        var e = (SetComprehension)expr;
-        foreach (BoundVar v in e.BoundVars) {
-          VisitUserProvidedType(v.Type, context);
-        }
-        VisitExpression(e.Range, context);
-        VisitExpression(e.Term, context);
-        VisitAttributes(e, context);
-
-      } else if (expr is MapComprehension) {
-        var e = (MapComprehension)expr;
-        foreach (BoundVar v in e.BoundVars) {
-          VisitUserProvidedType(v.Type, context);
-        }
-        VisitExpression(e.Range, context);
-        if (e.TermLeft != null) {
-          VisitExpression(e.TermLeft, context);
-        }
-        VisitExpression(e.Term, context);
-
-        VisitAttributes(e, context);
-
-      } else if (expr is LambdaExpr) {
-        var e = (LambdaExpr)expr;
-        foreach (BoundVar v in e.BoundVars) {
-          VisitUserProvidedType(v.Type, context);
-        }
-
-        if (e.Range != null) {
-          VisitExpression(e.Range, context);
-        }
-        foreach (var read in e.Reads) {
-          ResolveFrameExpression(read, context);
-        }
-        VisitExpression(e.Term, context);
-
-      } else if (expr is WildcardExpr) {
-      } else if (expr is StmtExpr) {
-        var e = (StmtExpr)expr;
-        ResolveStatement(e.S, context);
-        VisitExpression(e.E, context);
-
-      } else if (expr is ITEExpr) {
-        ITEExpr e = (ITEExpr)expr;
-        VisitExpression(e.Test, context);
-        VisitExpression(e.Thn, context);
-        VisitExpression(e.Els, context);
-
-      } else if (expr is MatchExpr) {
-        var e = (MatchExpr)expr;
-        VisitExpression(e.Source, context);
-        foreach (MatchCaseExpr mc in e.Cases) {
-          if (mc.Arguments != null) {
-            foreach (BoundVar v in mc.Arguments) {
-              VisitUserProvidedType(v.Type, context);
-            }
-          }
-          VisitExpression(mc.Body, context);
-        }
-
-      } else {
-        Contract.Assert(false);
-        throw new cce.UnreachableException(); // unexpected expression
-      }
-    }
-
-    private void ResolveDatatypeValue(CallGraphBuilderContext context, DatatypeValue dtv, DatatypeDecl dt, Type ty, bool complain = true) {
-      Contract.Requires(context != null);
-      Contract.Requires(dtv != null);
-      Contract.Requires(dt != null);
-      Contract.Requires(ty == null || (ty.AsDatatype == dt && ty.TypeArgs.Count == dt.TypeArgs.Count));
-
-      dtv.Bindings.Arguments.ForEach(arg => VisitExpression(arg, context));
-
-      if (context.CodeContext is ICallable caller && caller.EnclosingModule == dt.EnclosingModuleDefinition) {
-        caller.EnclosingModule.CallGraph.AddEdge(caller, dt);
-      }
-    }
-
-    private void ResolveFunctionCallExpr(FunctionCallExpr e, CallGraphBuilderContext context) {
-      VisitExpression(e.Receiver, context);
-
-      var function = e.Function;
-      if (function is ExtremePredicate extremePredicate) {
-        extremePredicate.Uses.Add(e);
       }
 
-      // type check the arguments
-      e.Bindings.Arguments.ForEach(arg => VisitExpression(arg, context));
-
-      AddCallGraphEdge(context.CodeContext, function, e, IsFunctionReturnValue(function, e.Receiver, e.Bindings.Arguments, context));
-    }
-
-    private void ResolveFrameExpressionTopLevel(FrameExpression fe, CallGraphBuilderContext context) {
-      ResolveFrameExpression(fe, context);
+      foreach (var ee in expr.SubExpressions) {
+        VisitExpression(ee, context);
+      }
     }
 
     private void ResolveFrameExpression(FrameExpression fe, CallGraphBuilderContext context) {
@@ -625,7 +457,7 @@ namespace Microsoft.Dafny {
       VisitExpression(fe.E, context);
     }
 
-    private void ResolveParameterDefaultValues(List<Formal> formals, CallGraphBuilderContext context) {
+    private void VisitDefaultParameterValues(List<Formal> formals, CallGraphBuilderContext context) {
       Contract.Requires(formals != null);
       Contract.Requires(context != null);
 
@@ -676,44 +508,41 @@ namespace Microsoft.Dafny {
     private void VisitMethodProper(Method m) {
       Contract.Requires(m != null);
 
+      var context = new CallGraphBuilderContext(m);
+
+      VisitAttributes(m, context);
+
       foreach (var p in m.Ins) {
-        VisitUserProvidedType(p.Type, new CallGraphBuilderContext(m));
+        VisitUserProvidedType(p.Type, context);
       }
       foreach (var p in m.Outs) {
-        VisitUserProvidedType(p.Type, new CallGraphBuilderContext(m));
+        VisitUserProvidedType(p.Type, context);
       }
 
-      // Add in-parameters to the scope, but don't care about any duplication errors, since they have already been reported
-      ResolveParameterDefaultValues(m.Ins, new CallGraphBuilderContext(m));
+      VisitDefaultParameterValues(m.Ins, context);
 
-      // Start resolving specification...
       foreach (AttributedExpression e in m.Req) {
-        VisitAttributes(e, new CallGraphBuilderContext(m));
-        VisitExpression(e.E, new CallGraphBuilderContext(m));
+        VisitAttributes(e, context);
+        VisitExpression(e.E, context);
       }
 
-      VisitAttributes(m.Mod, new CallGraphBuilderContext(m));
+      VisitAttributes(m.Mod, context);
       foreach (FrameExpression fe in m.Mod.Expressions) {
-        ResolveFrameExpressionTopLevel(fe, new CallGraphBuilderContext(m));
+        ResolveFrameExpression(fe, context);
       }
-      VisitAttributes(m.Decreases, new CallGraphBuilderContext(m));
+      VisitAttributes(m.Decreases, context);
       foreach (Expression e in m.Decreases.Expressions) {
-        VisitExpression(e, new CallGraphBuilderContext(m));
+        VisitExpression(e, context);
       }
 
-      // ... continue resolving specification
       foreach (AttributedExpression e in m.Ens) {
-        VisitAttributes(e, new CallGraphBuilderContext(m));
-        VisitExpression(e.E, new CallGraphBuilderContext(m));
+        VisitAttributes(e, context);
+        VisitExpression(e.E, context);
       }
 
-      // Resolve body
       if (m.Body != null) {
-        ResolveBlockStatement(m.Body, new CallGraphBuilderContext(m));
+        ResolveBlockStatement(m.Body, context);
       }
-
-      // attributes are allowed to mention both in- and out-parameters (including the implicit _k, for greatest lemmas)
-      VisitAttributes(m, new CallGraphBuilderContext(m));
     }
 
     private void ResolveBlockStatement(BlockStmt blockStmt, CallGraphBuilderContext context) {
@@ -731,15 +560,8 @@ namespace Microsoft.Dafny {
 
     private void ResolveStatementList(List<Statement> statements, CallGraphBuilderContext context) {
       foreach (var stmt in statements) {
-        ResolveStatementWithLabels(stmt, context);
+        ResolveStatement(stmt, context);
       }
-    }
-
-    private void ResolveStatementWithLabels(Statement stmt, CallGraphBuilderContext context) {
-      Contract.Requires(stmt != null);
-      Contract.Requires(context != null);
-
-      ResolveStatement(stmt, context);
     }
 
     private void ResolveStatement(Statement stmt, CallGraphBuilderContext context) {
