@@ -311,8 +311,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public bool ExtractCounterexample = false;
     public List<string> VerificationLoggerConfigs = new();
 
+    public bool AuditProgram = false;
     public string AuditorReportFile = null;
-    public string AuditReportFormat = null;
+    public Auditor.ReportFormat? AuditReportFormat = null;
     public bool CompareAuditReport = false;
 
     public static readonly ReadOnlyCollection<Plugin> DefaultPlugins = new(new[] { SinglePassCompiler.Plugin });

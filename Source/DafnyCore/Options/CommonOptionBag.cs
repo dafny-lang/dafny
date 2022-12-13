@@ -119,16 +119,6 @@ true - The char type represents any Unicode scalar value.".TrimStart());
   public static readonly Option<bool> IncludeRuntime = new("--include-runtime",
     "Include the Dafny runtime as source in the target language.");
 
-  public static readonly Option<string> ReportFileOption = new("--report-file",
-    "Specify a path to store the audit report file. Without this, the report will take the form of standard warnings.");
-  public static readonly Option<bool> CompareReportOption = new("--compare-report",
-    "Compare the report that would have been generated with the existing file given by --report-file, and fail if they differ.");
-
-  public static string SupportedReportFormats = "plain text in the format of warnings ('txt', 'text'); standalone HTML ('html'); a Markdown table ('md', 'markdown', 'md-table', 'markdown-table'); or an IETF-language document in Markdown format ('md-ietf', 'markdown-ietf')";
-
-  public static readonly Option<string> ReportFormatOption = new("--report-format",
-    $"Specify the file format to use for the audit report. Supported options include: {SupportedReportFormats}. With no option given, the format will be inferred from the filename extension. With no filename or format given, the report will consist of standard Dafny warnings.");
-
   static CommonOptionBag() {
     DafnyOptions.RegisterLegacyBinding(IncludeRuntime, (options, value) => {
       options.UseRuntimeLib = !value;
@@ -184,16 +174,6 @@ true - The char type represents any Unicode scalar value.".TrimStart());
     });
     DafnyOptions.RegisterLegacyBinding(RelaxDefiniteAssignment, (options, value) => {
       options.DefiniteAssignmentLevel = value ? 1 : 2;
-    });
-
-    DafnyOptions.RegisterLegacyBinding(ReportFileOption, (options, value) => {
-      options.AuditorReportFile = value;
-    });
-    DafnyOptions.RegisterLegacyBinding(ReportFormatOption, (options, value) => {
-      options.AuditReportFormat = value;
-    });
-    DafnyOptions.RegisterLegacyBinding(CompareReportOption, (options, value) => {
-      options.CompareAuditReport = value;
     });
 
   }

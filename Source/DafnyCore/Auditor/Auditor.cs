@@ -5,6 +5,8 @@ using System.Collections.Generic;
 
 namespace Microsoft.Dafny.Auditor;
 
+public enum ReportFormat { HTML, MarkdownTable, MarkdownIETF, Text }
+
 
 /// <summary>
 /// A rewriter pass that produces an AuditReport and writes it to either
@@ -14,8 +16,6 @@ public class Auditor : IRewriter {
   private readonly string? reportFileName;
   private readonly ReportFormat? reportFormat;
   private readonly bool compareReport;
-
-  private enum ReportFormat { HTML, MarkdownTable, MarkdownIETF, Text }
 
   /// <summary>
   /// Construct an auditor to write to or compare to the given file in the
@@ -35,7 +35,7 @@ public class Auditor : IRewriter {
   /// if true, compare the generated report to an existing file instead
   /// of creating a file
   /// </param>
-  public Auditor(ErrorReporter reporter, string? reportFileName, string? format, bool compareReport) : base(reporter) {
+  public Auditor(ErrorReporter reporter, string? reportFileName, ReportFormat? format, bool compareReport) : base(reporter) {
     this.reportFileName = reportFileName;
     this.compareReport = compareReport;
     if (format is null) {
@@ -55,26 +55,7 @@ public class Auditor : IRewriter {
                "Supported extensions are: .html, .md, .txt");
       }
     } else {
-      switch (format) {
-        case "md":
-        case "md-table":
-        case "markdown":
-        case "markdown-table":
-          reportFormat = ReportFormat.MarkdownTable; break;
-        case "md-ietf":
-        case "markdown-ietf":
-          reportFormat = ReportFormat.MarkdownIETF; break;
-        case "html":
-          reportFormat = ReportFormat.HTML; break;
-        case "text":
-        case "txt":
-          reportFormat = ReportFormat.Text; break;
-        default:
-          Reporter.Error(MessageSource.Resolver, Token.NoToken,
-            $"Unsupported report format. Supported formats are: {CommonOptionBag.SupportedReportFormats}");
-          reportFormat = null;
-          break;
-      }
+      reportFormat = format;
     }
   }
 

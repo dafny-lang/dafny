@@ -416,10 +416,14 @@ namespace Microsoft.Dafny {
       }
 
       rewriters = new List<IRewriter>();
-      rewriters.Add(new Auditor.Auditor(reporter,
-        DafnyOptions.O.AuditorReportFile,
-        DafnyOptions.O.AuditReportFormat,
-        DafnyOptions.O.CompareAuditReport));
+
+      if (DafnyOptions.O.AuditProgram) {
+        rewriters.Add(new Auditor.Auditor(reporter,
+          DafnyOptions.O.AuditorReportFile,
+          DafnyOptions.O.AuditReportFormat,
+          DafnyOptions.O.CompareAuditReport));
+      }
+
       refinementTransformer = new RefinementTransformer(prog);
       rewriters.Add(refinementTransformer);
       rewriters.Add(new AutoContractsRewriter(reporter, builtIns));
