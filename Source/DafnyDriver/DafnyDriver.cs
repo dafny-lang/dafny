@@ -25,6 +25,7 @@ using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 using System.Diagnostics;
 using Microsoft.Dafny.Plugins;
+using Tomlyn;
 
 namespace Microsoft.Dafny {
 
@@ -106,7 +107,7 @@ namespace Microsoft.Dafny {
 
     public static int ThreadMain(string[] args) {
       Contract.Requires(cce.NonNullElements(args));
-
+      //var projectOptions = ProcessProjectOptions(args, out var dafnyOptions, out var dafnyFiles, out var otherFiles);
       var cliArgumentsResult = ProcessCommandLineArguments(args, out var dafnyOptions, out var dafnyFiles, out var otherFiles);
       DafnyOptions.Install(dafnyOptions);
       ExitValue exitValue;
@@ -167,6 +168,13 @@ namespace Microsoft.Dafny {
       /// Indicates that arguments were parsed successfully, but the program should exit without processing files.
       OK_EXIT_EARLY
     }
+
+//Reads project file and oerrides default values with provided option values.
+    /*public static ProjectData ProcessProjectOptions(out DafnyOptions options,string projectfile = "dafny.toml") {
+      options = new DafnyOptions();
+        var file_options= ProjectFileTools.ProjectParser(options,projectfile);
+        DafnyOptions projectoptions = CommandRegistry.
+    }*/
 
     public static CommandLineArgumentsResult ProcessCommandLineArguments(string[] args, out DafnyOptions options, out List<DafnyFile> dafnyFiles, out List<string> otherFiles) {
       dafnyFiles = new List<DafnyFile>();
