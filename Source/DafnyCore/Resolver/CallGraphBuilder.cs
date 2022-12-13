@@ -112,7 +112,7 @@ namespace Microsoft.Dafny {
       ModuleDefinition calleeModule = function is SpecialFunction ? null : function.EnclosingModule;
       if (callerModule == calleeModule) {
         // intra-module call; add edge in module's call graph
-        if (callingContext is ICallable caller) {
+        if (CodeContextWrapper.Unwrap(callingContext) is ICallable caller) {
           callerModule.CallGraph.AddEdge(caller, function);
           if (caller is Function f) {
             if (e is FunctionCallExpr ee) {

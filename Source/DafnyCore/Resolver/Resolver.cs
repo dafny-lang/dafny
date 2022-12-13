@@ -3565,7 +3565,7 @@ namespace Microsoft.Dafny {
         }
       }
       // Verifies that, in all compiled places, subset types in comprehensions have a compilable constraint
-      new SubsetConstraintGhostChecker(this).Traverse(declarations);
+      new SubsetConstraintGhostChecker(this.Reporter).Traverse(declarations);
     }
 
     private void CheckIsOkayWithoutRHS(ConstantField f) {
@@ -16238,10 +16238,10 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public Resolver resolver;
+    public ErrorReporter reporter;
 
-    public SubsetConstraintGhostChecker(Resolver resolver) {
-      this.resolver = resolver;
+    public SubsetConstraintGhostChecker(ErrorReporter reporter) {
+      this.reporter = reporter;
     }
 
     protected override ContinuationStatus OnEnter(Statement stmt, string field, object parent) {
@@ -16304,15 +16304,14 @@ namespace Microsoft.Dafny {
               IToken finalToken = boundVar.tok;
               if (constraint.tok.line != 0) {
                 var errorCollector = new FirstErrorCollector();
-                ExpressionTester.CheckIsCompilable(this.resolver, errorCollector, constraint,
-                  new CodeContextWrapper(subsetTypeDecl, true));
+                ExpressionTester.CheckIsCompilable(null, errorCollector, constraint, new CodeContextWrapper(subsetTypeDecl, true));
                 if (errorCollector.Collected) {
                   finalToken = new NestedToken(finalToken, errorCollector.FirstCollectedToken,
                     "The constraint is not compilable because " + errorCollector.FirstCollectedMessage
                   );
                 }
               }
-              this.resolver.Reporter.Error(MessageSource.Resolver, finalToken,
+              this.reporter.Error(MessageSource.Resolver, finalToken,
                 $"{boundVar.Type} is a subset type and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in {what}.");
             }
           }
