@@ -47,11 +47,14 @@ jobs:
         Invoke-WebRequest ${{env.z3BaseUri}}/${{matrix.z3}}.zip -OutFile z3.zip
         Expand-Archive z3.zip .
         Remove-Item z3.zip
-        Copy-Item ${{matrix.z3}} Binaries/z3 -Recurse
     - name: Set Z3 Permissions
       if: ${{matrix.chmod}}
       run: |
-        chmod +x Binaries/z3/bin/z3
+        mkdir bin
+        pwd
+        ls
+        mv ${{matrix.z3}}/bin/z3* bin/
+        chmod +x bin/z3*
     - name: Build Dafny
       run: dotnet build dafny/Source/Dafny.sln
     - name: Check
