@@ -126,6 +126,7 @@ do
       if [ "$command" == "%no-check" ]; then
         echo -n ""
       elif [ "$command" == "%check-ok" ]; then
+        echo TESTING $n $file
         if [ "$lang" != "dafny" ]; then
           echo EXPECTED A dafny BLOCK, NOT $lang
           FAIL=1
