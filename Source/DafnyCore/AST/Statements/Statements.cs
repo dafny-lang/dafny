@@ -833,13 +833,6 @@ public class WhileStmt : OneBodyLoopStmt {
     this.Guard = guard;
   }
 
-  public override IEnumerable<Statement> SubStatements {
-    get {
-      if (Body != null) {
-        yield return Body;
-      }
-    }
-  }
   public override IEnumerable<Expression> NonSpecificationSubExpressions {
     get {
       foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
