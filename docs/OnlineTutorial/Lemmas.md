@@ -8,7 +8,6 @@ Sometimes there are steps of logic required to prove a program correct,
 but they are too complex for Dafny to discover and use on its own. When
 this happens, we can often give Dafny assistance by providing a *lemma*.
 
-
 Lemmas are theorems used to prove another result, rather than being a
 goal in and of themselves. They allow Dafny to break the proof into two:
 prove the lemma, then use it to prove the final result; the final result
@@ -30,7 +29,7 @@ for zero in an array. What makes this problem interesting is that the array we a
 searching in has two special properties: all elements are non-negative, and each successive
 element decreases by at most one from the previous element. In code:
 
-```dafny <!-- %check-verify -->
+```dafny <!-- %check-verify Lemmas.1.expect -->
 method FindZero(a: array<int>) returns (index: int)
   requires forall i :: 0 <= i < a.Length ==> 0 <= a[i]
   requires forall i :: 0 < i < a.Length ==> a[i-1]-1 <= a[i]
@@ -44,7 +43,7 @@ Then we know that `6 <= a[j+1]`, `5 <= a[j+2]`, etc. In fact, the next zero can'
 be until 7 more elements in the array. So we don't even have to search for a zero until
 `a[j+a[j]]`. So we could write a loop like:
 
-```dafny <!-- %check-verify -->
+```dafny <!-- %check-verify Lemmas.2.expect -->
 method FindZero(a: array<int>) returns (index: int)
   requires forall i :: 0 <= i < a.Length ==> 0 <= a[i]
   requires forall i :: 0 < i < a.Length ==> a[i-1]-1 <= a[i]
@@ -75,7 +74,7 @@ A `lemma` is syntactially a ghost method: the desired property stated by the lem
 precisely, the conclusion of the lemma) is declared as the postcondition, just like you
 would for an ordinary method.  Unlike a method, a lemma is never allowed to change the
 state.  Since a lemma is ghost, it doesn't need to be called at run time, so the compiler
-erases it before producing executable code.  So, the lemma is present solely for its effect
+erases it before producing executable code. The lemma is present solely for its effect
 on the verification of the
 program. You may think of lemmas as heavyweight assertions, in that they are only
 necessary to help the proof of the program along. A typical lemma might look like:
@@ -92,7 +91,7 @@ For the zero search problem, the desirable property is that none of the elements
 `index` until `index + a[index]` can be zero. We take the array and the index
 to start from as parameters, with the usual requirements from `FindZero`:
 
-```dafny <!-- %check-verify -->
+```dafny <!-- %check-verify Lemmas.3.expect -->
 lemma SkippingLemma(a: array<int>, j: int)
   requires forall i :: 0 <= i < a.Length ==> 0 <= a[i]
   requires forall i :: 0 < i < a.Length ==> a[i-1]-1 <= a[i]
@@ -110,7 +109,7 @@ then do a crucial step: check that our lemma is sufficient to prove the loop inv
 By making this check before filling in the lemma body, we ensure that we are trying to
 prove the right thing. The `FindZero` method becomes:
 
-```dafny <!-- %check-verify -->
+```dafny <!-- %check-verify Lemmas.4.expect  -->
 lemma SkippingLemma(a: array<int>, j: int)
   requires forall i :: 0 <= i < a.Length ==> 0 <= a[i]
   requires forall i :: 0 < i < a.Length ==> a[i-1]-1 <= a[i]
@@ -282,7 +281,7 @@ is more work than proving the concrete, specific case, so we will tackle this ca
 Thus the lemma should take as arguments the sequences of interest, and the postcondition is
 as follows:
 
-```dafny <!-- %check-verify -->
+```dafny <!-- %check-verify Lemmas.5.expect -->
 lemma DistributiveLemma(a: seq<bool>, b: seq<bool>)
   ensures count(a + b) == count(a) + count(b)
 {
@@ -309,7 +308,7 @@ trait of lemmas. We notice that if `a == []`, then `a + b == b`, regardless of w
 `b` is. Lemmas handle cases using the same thing code does to handle cases: if statements. A short
 proof of the desirable property is given using asserts below.
 
-```dafny <!-- %check-verify -->
+```dafny <!-- %check-verify Lemmas.6.expect -->
 lemma DistributiveLemma(a: seq<bool>, b: seq<bool>)
   ensures count(a + b) == count(a) + count(b)
 {
@@ -456,6 +455,11 @@ We represent a graph as a set of Nodes that only point to other nodes in the gra
 We call such a set of nodes *closed*:
 
 ```dafny <!-- %check-verify -->
+class Node
+{
+  // a single field giving the nodes linked to
+  var next: seq<Node>
+}
 predicate closed(graph: set<Node>)
   reads graph
 {
@@ -469,6 +473,17 @@ path. We define two predicates, one that defines a valid path, and another that 
 path is a valid one between two specific nodes in the graph:
 
 ```dafny <!-- %check-verify -->
+class Node
+{
+  // a single field giving the nodes linked to
+  var next: seq<Node>
+}
+predicate closed(graph: set<Node>)
+  reads graph
+{
+  forall i :: i in graph ==>
+    forall k :: 0 <= k < |i.next| ==> i.next[k] in graph && i.next[k] != i
+}
 predicate pathSpecific(p: seq<Node>, start: Node, end: Node, graph: set<Node>)
   requires closed(graph)
   reads graph
@@ -483,7 +498,7 @@ predicate path(p: seq<Node>, graph: set<Node>)
 {
   p[0] in graph &&
     (|p| > 1 ==> p[1] in p[0].next && // the first link is valid, if it exists
-     path(p[1..], graph)) // and the rest of the sequence is a valid path
+                 path(p[1..], graph)) // and the rest of the sequence is a valid path
 }
 ```
 
@@ -492,7 +507,7 @@ of the nodes of the graph which also forms a graph. This sub-graph must be *clos
 outside of itself. If we have such a situation, then there cannot be a valid path from a node in the sub-graph
 to a node outside this sub-graph. We will call this fact the Closed Lemma, which we state in Dafny as follows:
 
-```dafny <!-- %check-verify -->
+```dafny <!-- %check-verify Lemmas.7.expect -->
 lemma ClosedLemma(subgraph: set<Node>, root: Node, goal: Node, graph: set<Node>)
   requires closed(subgraph) && closed(graph) && subgraph <= graph
   requires root in subgraph && goal in graph - subgraph
@@ -518,7 +533,7 @@ predicate path(p: seq<Node>, graph: set<Node>)
 {
   p[0] in graph &&
     (|p| > 1 ==> p[1] in p[0].next && // the first link is valid, if it exists
-     path(p[1..], graph)) // and the rest of the sequence is a valid
+                 path(p[1..], graph)) // and the rest of the sequence is a valid path
 }
 predicate closed(graph: set<Node>)
   reads graph
@@ -537,7 +552,7 @@ it cannot be a valid path. We can do this with, you guessed it, another lemma. T
 prove for any given sequence, that it cannot be a valid path from `root` to `goal`.
 The disproof of a path lemma looks like:
 
-```dafny <!-- %check-verify -->
+```dafny <!-- %check-verify Lemmas.8.expect -->
 lemma DisproofLemma(p: seq<Node>, subgraph: set<Node>,
                     root: Node, goal: Node, graph: set<Node>)
   requires closed(subgraph) && closed(graph) && subgraph <= graph
@@ -576,7 +591,7 @@ The preconditions are the same as `ClosedLemma`.  To use `DisproofLemma` in `Clo
 to invoke it once for every sequence of nodes.  This can be done with Dafny's `forall` statement,
 which aggregates the effect of its body for all values of the given bound variable.
 
-```dafny <!-- %check-verify -->
+```dafny <!-- %check-verify Lemmas.9.expect -->
 lemma ClosedLemma(subgraph: set<Node>, root: Node, goal: Node, graph: set<Node>)
   requires closed(subgraph) && closed(graph) && subgraph <= graph
   requires root in subgraph && goal in graph - subgraph
@@ -630,7 +645,7 @@ element needs to be `goal`. Because `root in subgraph` and `goal !in subgraph`, 
 have `root != goal`, so the sequence must have at least two elements. To check that Dafny sees this,
 we can temporarily put preconditions on our lemma as follows:
 
-```dafny <!-- %check-verify -->
+```dafny <!-- %check-verify Lemmas.10.expect -->
 lemma DisproofLemma(p: seq<Node>, subgraph: set<Node>,
                     root: Node, goal: Node, graph: set<Node>)
   requires closed(subgraph) && closed(graph) && subgraph <= graph
@@ -638,6 +653,15 @@ lemma DisproofLemma(p: seq<Node>, subgraph: set<Node>,
   requires |p| < 2 || p[0] != root || p[|p|-1] != goal
   ensures !pathSpecific(p, root, goal, graph)
 {
+}
+lemma ClosedLemma(subgraph: set<Node>, root: Node, goal: Node, graph: set<Node>)
+  requires closed(subgraph) && closed(graph) && subgraph <= graph
+  requires root in subgraph && goal in graph - subgraph
+  ensures !(exists p: seq<Node> :: pathSpecific(p, root, goal, graph))
+{
+  forall p {
+    DisproofLemma(p, subgraph, root, goal, graph);
+  }
 }
 class Node
 {
