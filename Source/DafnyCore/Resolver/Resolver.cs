@@ -925,7 +925,7 @@ namespace Microsoft.Dafny {
             var bvIE = new IdentifierExpr(e.tok, bv.Name);
             bvIE.Var = bv; // resolve here
             bvIE.Type = bv.Type; // resolve here
-            var sInE = new BinaryExpr(e.tok, BinaryExpr.Opcode.In, bvIE, e, null);
+            var sInE = new BinaryExpr(e.tok, BinaryExpr.Opcode.In, bvIE, e);
             if (eType is SeqType) {
               sInE.ResolvedOp = BinaryExpr.ResolvedOpcode.InSeq; // resolve here
             } else {
@@ -957,7 +957,7 @@ namespace Microsoft.Dafny {
       } else {
         Expression s = sets[0];
         for (int i = 1; i < sets.Count; i++) {
-          BinaryExpr union = new BinaryExpr(s.tok, BinaryExpr.Opcode.Add, s, sets[i], null);
+          BinaryExpr union = new BinaryExpr(s.tok, BinaryExpr.Opcode.Add, s, sets[i]);
           union.ResolvedOp = BinaryExpr.ResolvedOpcode.Union; // resolve here
           union.Type = new SetType(true, builtIns.ObjectQ()); // resolve here
           s = union;
@@ -2359,7 +2359,7 @@ namespace Microsoft.Dafny {
       var r = Expression.CreateIdentExpr(resultVar);
       var receiver = f.IsStatic ? (Expression)new StaticReceiverExpr(tok, cl, true) : new ImplicitThisExpr(tok);
       var fn = new FunctionCallExpr(tok, f.Name, receiver, tok, tok, f.Formals.ConvertAll(Expression.CreateIdentExpr));
-      var post = new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq, r, fn, null));
+      var post = new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq, r, fn));
       var method = new Method(f.tok, f.Name, f.HasStaticKeyword, false, f.TypeArgs,
         f.Formals, new List<Formal>() { resultVar },
         f.Req, new Specification<FrameExpression>(new List<FrameExpression>(), null), new List<AttributedExpression>() { post }, f.Decreases,
@@ -3042,7 +3042,7 @@ namespace Microsoft.Dafny {
           // Compute the statement body of the prefix lemma
           Contract.Assume(prefixLemma.Body == null);  // this is not supposed to have been filled in before
           if (com.Body != null) {
-            var kMinusOne = new BinaryExpr(com.tok, BinaryExpr.Opcode.Sub, new IdentifierExpr(k.tok, k.Name), new LiteralExpr(com.tok, 1), null);
+            var kMinusOne = new BinaryExpr(com.tok, BinaryExpr.Opcode.Sub, new IdentifierExpr(k.tok, k.Name), new LiteralExpr(com.tok, 1));
             var subst = new ExtremeLemmaBodyCloner(com, kMinusOne, focalPredicates, this.reporter);
             var mainBody = subst.CloneBlockStmt(com.Body);
             Expression kk;
@@ -3101,7 +3101,7 @@ namespace Microsoft.Dafny {
               kk = new IdentifierExpr(k.tok, k.Name);
               els = null;
             }
-            var kPositive = new BinaryExpr(com.tok, BinaryExpr.Opcode.Lt, new LiteralExpr(com.tok, 0), kk, null);
+            var kPositive = new BinaryExpr(com.tok, BinaryExpr.Opcode.Lt, new LiteralExpr(com.tok, 0), kk);
             var condBody = new IfStmt(com.BodyStartTok, mainBody.EndTok, false, kPositive, mainBody, els);
             prefixLemma.Body = new BlockStmt(com.tok, condBody.EndTok, new List<Statement>() { condBody });
           }
@@ -9010,7 +9010,7 @@ namespace Microsoft.Dafny {
         } else if (fr.E.Type.IsRefType) {
           modSetSingletons.Add(fr.E);
         } else {
-          frameSet = new BinaryExpr(fr.tok, BinaryExpr.Opcode.Add, frameSet, fr.E, null);
+          frameSet = new BinaryExpr(fr.tok, BinaryExpr.Opcode.Add, frameSet, fr.E);
         }
       }
       ens.Add(new AttributedExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Eq,
@@ -9025,7 +9025,7 @@ namespace Microsoft.Dafny {
         } else if (fr.E.Type.IsRefType) {
           modSetSingletons.Add(fr.E);
         } else {
-          frameSet = new BinaryExpr(fr.tok, BinaryExpr.Opcode.Add, frameSet, fr.E, null);
+          frameSet = new BinaryExpr(fr.tok, BinaryExpr.Opcode.Add, frameSet, fr.E);
         }
       }
       ens.Add(new AttributedExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Eq,
@@ -9087,13 +9087,13 @@ namespace Microsoft.Dafny {
             new OldExpr(tok, new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), ys.Name)),
             new SeqDisplayExpr(iter.tok, new List<Expression>() { new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), y.Name) }), null),
           new OldExpr(tok, new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), ys.Name)));
-        var eq = new BinaryExpr(iter.tok, BinaryExpr.Opcode.Eq, new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), ys.Name), ite, null);
+        var eq = new BinaryExpr(iter.tok, BinaryExpr.Opcode.Eq, new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), ys.Name), ite);
         ens.Add(new AttributedExpression(eq));
       }
       // ensures more ==> YieldEnsures;
       foreach (var ye in iter.YieldEnsures) {
         ens.Add(new AttributedExpression(
-          new BinaryExpr(iter.tok, BinaryExpr.Opcode.Imp, new IdentifierExpr(iter.tok, "more"), ye.E, null)
+          new BinaryExpr(iter.tok, BinaryExpr.Opcode.Imp, new IdentifierExpr(iter.tok, "more"), ye.E)
           ));
       }
       // ensures !more ==> Ensures;
@@ -10546,7 +10546,7 @@ namespace Microsoft.Dafny {
 
       IToken tok = matchee.tok;
       IToken endtok = matchee.tok;
-      Expression guard = new BinaryExpr(tok, BinaryExpr.Opcode.Eq, matchee, currBlock.Item1, null);
+      Expression guard = new BinaryExpr(tok, BinaryExpr.Opcode.Eq, matchee, currBlock.Item1);
 
       var elsC = MakeIfFromContainers(mti, context, matchee, blocks, def);
 

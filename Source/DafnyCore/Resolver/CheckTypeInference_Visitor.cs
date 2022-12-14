@@ -435,7 +435,7 @@ partial class Resolver {
               zero = new LiteralExpr(e.tok, 0);
             }
             zero.Type = expr.Type;
-            resolved = new BinaryExpr(e.tok, BinaryExpr.Opcode.Sub, zero, e.E, null) { ResolvedOp = BinaryExpr.ResolvedOpcode.Sub };
+            resolved = new BinaryExpr(e.tok, BinaryExpr.Opcode.Sub, zero, e.E) { ResolvedOp = BinaryExpr.ResolvedOpcode.Sub };
           }
           resolved.Type = expr.Type;
           e.ResolvedExpression = resolved;

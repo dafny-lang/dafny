@@ -209,7 +209,7 @@ namespace Microsoft.Dafny {
           if (s.Kind == ForallStmt.BodyKind.Proof) {
             Expression term = s.Ens.Count != 0 ? s.Ens[0].E : Expression.CreateBoolLiteral(s.Tok, true);
             for (int i = 1; i < s.Ens.Count; i++) {
-              term = new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.And, term, s.Ens[i].E, null);
+              term = new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.And, term, s.Ens[i].E);
             }
             List<Expression> exprList = new List<Expression>();
             ForallExpr expr = new ForallExpr(s.Tok, s.EndTok, s.BoundVars, s.Range, term, s.Attributes);
@@ -289,7 +289,7 @@ namespace Microsoft.Dafny {
                         Printer.ExprToString(newRhs));
                       reporter.Info(MessageSource.Resolver, stmt.Tok, msg);
 
-                      var expr = new ForallExpr(s.Tok, s.EndTok, jList, val.Range, new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.EqCommon, lhs, newRhs, null), attributes);
+                      var expr = new ForallExpr(s.Tok, s.EndTok, jList, val.Range, new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.EqCommon, lhs, newRhs), attributes);
                       expr.Type = Type.Bool; //resolve here
                       exprList.Add(expr);
                     }
@@ -297,7 +297,7 @@ namespace Microsoft.Dafny {
                   }
                 }
                 if (!usedInversion) {
-                  var expr = new ForallExpr(s.Tok, s.EndTok, s.BoundVars, s.Range, new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.EqCommon, lhs, rhs, null), s.Attributes);
+                  var expr = new ForallExpr(s.Tok, s.EndTok, s.BoundVars, s.Range, new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.EqCommon, lhs, rhs), s.Attributes);
                   expr.Type = Type.Bool; // resolve here
                   expr.Bounds = s.Bounds;
                   exprList.Add(expr);
@@ -325,7 +325,7 @@ namespace Microsoft.Dafny {
             // substitute the call's actuals for the method's formals
             Expression term = s0.Method.Ens.Count != 0 ? substituter.Substitute(s0.Method.Ens[0].E) : Expression.CreateBoolLiteral(s.Tok, true);
             for (int i = 1; i < s0.Method.Ens.Count; i++) {
-              term = new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.And, term, substituter.Substitute(s0.Method.Ens[i].E), null);
+              term = new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.And, term, substituter.Substitute(s0.Method.Ens[i].E));
             }
             List<Expression> exprList = new List<Expression>();
             ForallExpr expr = new ForallExpr(s.Tok, s.EndTok, s.BoundVars, s.Range, term, s.Attributes);
@@ -815,7 +815,7 @@ namespace Microsoft.Dafny {
             // ensures fresh(Repr - old(Repr));
             var e0 = new OldExpr(tok, Repr);
             e0.Type = Repr.Type;
-            var e1 = new BinaryExpr(tok, BinaryExpr.Opcode.Sub, Repr, e0, null);
+            var e1 = new BinaryExpr(tok, BinaryExpr.Opcode.Sub, Repr, e0);
             e1.ResolvedOp = BinaryExpr.ResolvedOpcode.SetDifference;
             e1.Type = Repr.Type;
             var freshness = new FreshExpr(tok, e1);
@@ -850,7 +850,7 @@ namespace Microsoft.Dafny {
         Expression e = new SetDisplayExpr(tok, true, new List<Expression>() { F }) {
           Type = new SetType(true, builtIns.ObjectQ())  // resolve here
         };
-        var rhs = new BinaryExpr(tok, BinaryExpr.Opcode.Add, Repr, e, null) {
+        var rhs = new BinaryExpr(tok, BinaryExpr.Opcode.Add, Repr, e) {
           ResolvedOp = BinaryExpr.ResolvedOpcode.Union,
           Type = Repr.Type
         };
@@ -860,7 +860,7 @@ namespace Microsoft.Dafny {
         } else {
           // Repr := Repr + {F} + F.Repr
           var FRepr = new MemberSelectExpr(tok, F, ff.Item2);  // create resolved MemberSelectExpr
-          rhs = new BinaryExpr(tok, BinaryExpr.Opcode.Add, rhs, FRepr, null) {
+          rhs = new BinaryExpr(tok, BinaryExpr.Opcode.Add, rhs, FRepr) {
             ResolvedOp = BinaryExpr.ResolvedOpcode.Union,
             Type = Repr.Type
           };
@@ -970,7 +970,7 @@ namespace Microsoft.Dafny {
     }
 
     public static BinaryExpr BinBoolExpr(IToken tok, BinaryExpr.ResolvedOpcode rop, Expression e0, Expression e1) {
-      var p = new BinaryExpr(tok, BinaryExpr.ResolvedOp2SyntacticOp(rop), e0, e1, null);
+      var p = new BinaryExpr(tok, BinaryExpr.ResolvedOp2SyntacticOp(rop), e0, e1);
       p.ResolvedOp = rop;  // resolve here
       p.Type = Type.Bool;  // resolve here
       return p;
@@ -1122,7 +1122,7 @@ namespace Microsoft.Dafny {
       lemma_attrs = new Attributes("verify", new List<Expression>() { new LiteralExpr(m.tok, false) }, lemma_attrs);
       var ens = new List<AttributedExpression>();
       if (m is ConstantField c && c.Rhs != null) {
-        ens.Add(new AttributedExpression(new BinaryExpr(c.tok, BinaryExpr.Opcode.Eq, new NameSegment(c.Tok, c.Name, null), c.Rhs, null)));
+        ens.Add(new AttributedExpression(new BinaryExpr(c.tok, BinaryExpr.Opcode.Eq, new NameSegment(c.Tok, c.Name, null), c.Rhs)));
       }
       Method reveal;
       if (m is TwoStateFunction) {

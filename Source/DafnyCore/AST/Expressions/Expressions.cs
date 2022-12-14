@@ -172,7 +172,7 @@ public abstract class Expression : INode {
       (e0.Type.IsNumericBased(Type.NumericPersuasion.Int) && e1.Type.IsNumericBased(Type.NumericPersuasion.Int)) ||
       (e0.Type.IsNumericBased(Type.NumericPersuasion.Real) && e1.Type.IsNumericBased(Type.NumericPersuasion.Real)));
     Contract.Ensures(Contract.Result<Expression>() != null);
-    var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Add, e0, e1, null);
+    var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Add, e0, e1);
     s.ResolvedOp = BinaryExpr.ResolvedOpcode.Add;  // resolve here
     s.Type = e0.Type.NormalizeExpand();  // resolve here
     return s;
@@ -188,7 +188,7 @@ public abstract class Expression : INode {
       (e0.Type.IsNumericBased(Type.NumericPersuasion.Int) && e1.Type.IsNumericBased(Type.NumericPersuasion.Int)) ||
       (e0.Type.IsNumericBased(Type.NumericPersuasion.Real) && e1.Type.IsNumericBased(Type.NumericPersuasion.Real)));
     Contract.Ensures(Contract.Result<Expression>() != null);
-    var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Mul, e0, e1, null);
+    var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Mul, e0, e1);
     s.ResolvedOp = BinaryExpr.ResolvedOpcode.Mul;  // resolve here
     s.Type = e0.Type.NormalizeExpand();  // resolve here
     return s;
@@ -245,7 +245,7 @@ public abstract class Expression : INode {
       (e0.Type.IsNumericBased(Type.NumericPersuasion.Real) && e1.Type.IsNumericBased(Type.NumericPersuasion.Real)) ||
       (e0.Type.IsBigOrdinalType && e1.Type.IsBigOrdinalType));
     Contract.Ensures(Contract.Result<Expression>() != null);
-    var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Sub, e0, e1, null);
+    var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Sub, e0, e1);
     s.ResolvedOp = BinaryExpr.ResolvedOpcode.Sub;  // resolve here
     s.Type = e0.Type.NormalizeExpand();  // resolve here (and it's important to remove any constraints)
     return s;
@@ -265,7 +265,7 @@ public abstract class Expression : INode {
     if (LiteralExpr.IsEmptySet(e0) || LiteralExpr.IsEmptySet(e1)) {
       return e0;
     }
-    var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Sub, e0, e1, null) {
+    var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Sub, e0, e1) {
       ResolvedOp = BinaryExpr.ResolvedOpcode.SetDifference,
       Type = e0.Type.NormalizeExpand() // important to remove any constraints
     };
@@ -286,7 +286,7 @@ public abstract class Expression : INode {
     if (LiteralExpr.IsEmptyMultiset(e0) || LiteralExpr.IsEmptyMultiset(e1)) {
       return e0;
     }
-    var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Sub, e0, e1, null) {
+    var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Sub, e0, e1) {
       ResolvedOp = BinaryExpr.ResolvedOpcode.MultiSetDifference,
       Type = e0.Type.NormalizeExpand() // important to remove any constraints
     };
@@ -496,7 +496,7 @@ public abstract class Expression : INode {
           break;
       }
       if (negatedOp != BinaryExpr.ResolvedOpcode.Add) {
-        return new BinaryExpr(bin.tok, BinaryExpr.ResolvedOp2SyntacticOp(negatedOp), bin.E0, bin.E1, null) {
+        return new BinaryExpr(bin.tok, BinaryExpr.ResolvedOp2SyntacticOp(negatedOp), bin.E0, bin.E1) {
           ResolvedOp = negatedOp,
           Type = bin.Type
         };
@@ -522,7 +522,7 @@ public abstract class Expression : INode {
       (e0.Type.IsCharType && e1.Type.IsCharType) ||
       (e0.Type.IsBigOrdinalType && e1.Type.IsBigOrdinalType));
     Contract.Ensures(Contract.Result<Expression>() != null);
-    return new BinaryExpr(e0.tok, BinaryExpr.Opcode.Lt, e0, e1, null) {
+    return new BinaryExpr(e0.tok, BinaryExpr.Opcode.Lt, e0, e1) {
       ResolvedOp = e0.Type.IsCharType ? BinaryExpr.ResolvedOpcode.LtChar : BinaryExpr.ResolvedOpcode.Lt,
       Type = Type.Bool
     };
@@ -542,7 +542,7 @@ public abstract class Expression : INode {
       (e0.Type.IsCharType && e1.Type.IsCharType) ||
       (e0.Type.IsBigOrdinalType && e1.Type.IsBigOrdinalType));
     Contract.Ensures(Contract.Result<Expression>() != null);
-    return new BinaryExpr(e0.tok, BinaryExpr.Opcode.Le, e0, e1, null) {
+    return new BinaryExpr(e0.tok, BinaryExpr.Opcode.Le, e0, e1) {
       ResolvedOp = e0.Type.IsCharType ? BinaryExpr.ResolvedOpcode.LeChar : BinaryExpr.ResolvedOpcode.Le,
       Type = Type.Bool
     };
@@ -552,7 +552,7 @@ public abstract class Expression : INode {
     Contract.Requires(e0 != null);
     Contract.Requires(e1 != null);
     Contract.Requires(ty != null);
-    var eq = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Eq, e0, e1, null);
+    var eq = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Eq, e0, e1);
     if (ty is SetType) {
       eq.ResolvedOp = BinaryExpr.ResolvedOpcode.SetEq;
     } else if (ty is SeqType) {
@@ -581,7 +581,7 @@ public abstract class Expression : INode {
     } else if (allowSimplification && LiteralExpr.IsTrue(b)) {
       return a;
     } else {
-      var and = new BinaryExpr(a.tok, BinaryExpr.Opcode.And, a, b, null);
+      var and = new BinaryExpr(a.tok, BinaryExpr.Opcode.And, a, b);
       and.ResolvedOp = BinaryExpr.ResolvedOpcode.And;  // resolve here
       and.Type = Type.Bool;  // resolve here
       return and;
@@ -599,7 +599,7 @@ public abstract class Expression : INode {
     if (allowSimplification && (LiteralExpr.IsTrue(a) || LiteralExpr.IsTrue(b))) {
       return b;
     } else {
-      var imp = new BinaryExpr(a.tok, BinaryExpr.Opcode.Imp, a, b, null);
+      var imp = new BinaryExpr(a.tok, BinaryExpr.Opcode.Imp, a, b);
       imp.ResolvedOp = BinaryExpr.ResolvedOpcode.Imp;  // resolve here
       imp.Type = Type.Bool;  // resolve here
       return imp;
@@ -619,7 +619,7 @@ public abstract class Expression : INode {
     } else if (allowSimplification && LiteralExpr.IsTrue(b)) {
       return b;
     } else {
-      var or = new BinaryExpr(a.tok, BinaryExpr.Opcode.Or, a, b, null);
+      var or = new BinaryExpr(a.tok, BinaryExpr.Opcode.Or, a, b);
       or.ResolvedOp = BinaryExpr.ResolvedOpcode.Or;  // resolve here
       or.Type = Type.Bool;  // resolve here
       return or;
@@ -1929,7 +1929,7 @@ public class BinaryExpr : Expression {
     Contract.Invariant(E1 != null);
   }
 
-  public BinaryExpr(IToken tok, Opcode op, Expression e0, Expression e1, IToken prefixOp)
+  public BinaryExpr(IToken tok, Opcode op, Expression e0, Expression e1, IToken prefixOp = null)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(e0 != null);
@@ -1946,7 +1946,7 @@ public class BinaryExpr : Expression {
   /// <summary>
   /// Returns a resolved binary expression
   /// </summary>
-  public BinaryExpr(IToken tok, BinaryExpr.ResolvedOpcode rop, Expression e0, Expression e1, IToken prefixOp)
+  public BinaryExpr(IToken tok, BinaryExpr.ResolvedOpcode rop, Expression e0, Expression e1, IToken prefixOp = null)
     : this(tok, BinaryExpr.ResolvedOp2SyntacticOp(rop), e0, e1, prefixOp) {
     ResolvedOp = rop;
     switch (rop) {
@@ -2065,7 +2065,7 @@ public class ForallExpr : QuantifierExpr {
     if (Range == null) {
       return Term;
     }
-    var body = new BinaryExpr(Term.tok, BinaryExpr.Opcode.Imp, Range, Term, null);
+    var body = new BinaryExpr(Term.tok, BinaryExpr.Opcode.Imp, Range, Term);
     body.ResolvedOp = BinaryExpr.ResolvedOpcode.Imp;
     body.Type = Term.Type;
     return body;
@@ -2086,7 +2086,7 @@ public class ExistsExpr : QuantifierExpr {
     if (Range == null) {
       return Term;
     }
-    var body = new BinaryExpr(Term.tok, BinaryExpr.Opcode.And, Range, Term, null);
+    var body = new BinaryExpr(Term.tok, BinaryExpr.Opcode.And, Range, Term);
     body.ResolvedOp = BinaryExpr.ResolvedOpcode.And;
     body.Type = Term.Type;
     return body;
@@ -2858,13 +2858,13 @@ public class ChainingExpression : ConcreteSyntaxExpression {
     // Compute the desugaring
     if (operators[0] == BinaryExpr.Opcode.Disjoint) {
       Expression acc = operands[0];  // invariant:  "acc" is the union of all operands[j] where j <= i
-      desugaring = new BinaryExpr(operatorLocs[0], operators[0], operands[0], operands[1], null);
+      desugaring = new BinaryExpr(operatorLocs[0], operators[0], operands[0], operands[1]);
       for (int i = 0; i < operators.Count; i++) {
         Contract.Assume(operators[i] == BinaryExpr.Opcode.Disjoint);
         var opTok = operatorLocs[i];
-        var e = new BinaryExpr(opTok, BinaryExpr.Opcode.Disjoint, acc, operands[i + 1], null);
-        desugaring = new BinaryExpr(opTok, BinaryExpr.Opcode.And, desugaring, e, null);
-        acc = new BinaryExpr(opTok, BinaryExpr.Opcode.Add, acc, operands[i + 1], null);
+        var e = new BinaryExpr(opTok, BinaryExpr.Opcode.Disjoint, acc, operands[i + 1]);
+        desugaring = new BinaryExpr(opTok, BinaryExpr.Opcode.And, desugaring, e);
+        acc = new BinaryExpr(opTok, BinaryExpr.Opcode.Add, acc, operands[i + 1]);
       }
     } else {
       desugaring = null;
@@ -2878,11 +2878,11 @@ public class ChainingExpression : ConcreteSyntaxExpression {
         var e1 = operands[i + 1];
         Expression e;
         if (k == null) {
-          e = new BinaryExpr(opTok, op, e0, e1, null);
+          e = new BinaryExpr(opTok, op, e0, e1);
         } else {
           e = new TernaryExpr(opTok, op == BinaryExpr.Opcode.Eq ? TernaryExpr.Opcode.PrefixEqOp : TernaryExpr.Opcode.PrefixNeqOp, k, e0, e1);
         }
-        desugaring = desugaring == null ? e : new BinaryExpr(opTok, BinaryExpr.Opcode.And, desugaring, e, null);
+        desugaring = desugaring == null ? e : new BinaryExpr(opTok, BinaryExpr.Opcode.And, desugaring, e);
       }
     }
     E = desugaring;

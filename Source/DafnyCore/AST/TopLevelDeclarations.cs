@@ -2166,7 +2166,7 @@ public class NonNullTypeDecl : SubsetTypeDecl {
 
   private NonNullTypeDecl(ClassDecl cl, List<TypeParameter> tps, BoundVar id)
     : base(cl.tok, cl.Name, new TypeParameter.TypeParameterCharacteristics(), tps, cl.EnclosingModuleDefinition, id,
-      new BinaryExpr(cl.tok, BinaryExpr.Opcode.Neq, new IdentifierExpr(cl.tok, id), new LiteralExpr(cl.tok), null),
+      new BinaryExpr(cl.tok, BinaryExpr.Opcode.Neq, new IdentifierExpr(cl.tok, id), new LiteralExpr(cl.tok)),
       SubsetTypeDecl.WKind.Special, null, BuiltIns.AxiomAttribute()) {
     Contract.Requires(cl != null);
     Contract.Requires(tps != null);

@@ -100,9 +100,9 @@ public class CalcStmt : Statement {
     public override Expression StepExpr(Expression line0, Expression line1) {
       if (Op == BinaryExpr.Opcode.Exp) {
         // The order of operands is reversed so that it can be turned into implication during resolution
-        return new BinaryExpr(line0.tok, Op, line1, line0, null);
+        return new BinaryExpr(line0.tok, Op, line1, line0);
       } else {
-        return new BinaryExpr(line0.tok, Op, line0, line1, null);
+        return new BinaryExpr(line0.tok, Op, line0, line1);
       }
     }
 
@@ -134,7 +134,7 @@ public class CalcStmt : Statement {
       } else if (other is TernaryCalcOp) {
         var a = Index;
         var b = ((TernaryCalcOp)other).Index;
-        var minIndex = new ITEExpr(a.tok, false, new BinaryExpr(a.tok, BinaryExpr.Opcode.Le, a, b, null), a, b);
+        var minIndex = new ITEExpr(a.tok, false, new BinaryExpr(a.tok, BinaryExpr.Opcode.Le, a, b), a, b);
         return new TernaryCalcOp(minIndex); // ToDo: if we could compare expressions for syntactic equalty, we could use this here to optimize
       } else {
         Contract.Assert(false);
