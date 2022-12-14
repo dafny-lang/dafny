@@ -23,7 +23,7 @@ natural lower bound, zero, and it is usually quite easy to prove that they
 decrease. Since many loops iterate through indices, these kinds of termination
 proofs are very common. For example, we may have the following loop:
 
-```dafny <!-- %check-ok -->
+```dafny <!-- %check-verify -->
 method m(n: nat)
 {
   var i := 0;
@@ -58,7 +58,7 @@ verify. Dafny is actually a little less strict than requiring the termination
 measure to be bounded by zero. Really what it requires is that the loop does
 not execute again when the termination measure is negative. So we could write:
 
-```dafny <!-- %check-ok -->
+```dafny <!-- %check-verify -->
 method m()
 {
   var i, n := 0, 11;
@@ -83,7 +83,7 @@ recursion. For each function/method that is possibly recursive, it requires
 either an explicit or implicit decreases annotation on the function or method.
 Most recursive functions/methods are self-recursive:
 
-```dafny <!-- %check-ok -->
+```dafny <!-- %check-verify -->
 function fac(n: nat): nat
 {
   if n == 0 then 1 else n * fac(n-1)
@@ -105,7 +105,7 @@ Sometimes it is beneficial to have loops which may not
 terminate, or where a proof of termination is unknown. For example, consider
 the following method:
 
-```dafny <!-- %check-ok -->
+```dafny <!-- %check-verify -->
 method hail(N: nat)
   decreases *
 {
@@ -139,7 +139,7 @@ want details.) The final kind of termination measure is a tuple of the other kin
 measures. For example, the following implementation of the Ackermann function
 uses a pair of integers to prove termination:
 
-```dafny <!-- %check-ok -->
+```dafny <!-- %check-verify -->
 function Ack(m: nat, n: nat): nat
   decreases m, n
 {
@@ -175,7 +175,7 @@ Termination applies not just to single functions/methods,
 but also to multiple mutually recursive functions/methods. For example,
 consider this pair of recursively defined parity predicates:
 
-```dafny <!-- %check-ok -->
+```dafny <!-- %check-verify -->
 predicate even(n: nat)
   ensures even(n) <==> n % 2 == 0
 {

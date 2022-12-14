@@ -34,7 +34,7 @@
 ## Commands (here $F is the name of a file containing the dafny source code
 ## under test):
 ##   %no-check : do nothing
-##   %check-ok <expect> : runs the command 
+##   %check-verify <expect> : runs the command 
 ##              "dafny verify --useBaseNameForFileName $F" and checks 
 ##              (1) that the exit code is 0
 ##              (2) if <expect> is non-empty then it names a file whose
@@ -125,31 +125,38 @@ do
       ##echo TESTING $command $expect
       if [ "$command" == "%no-check" ]; then
         echo -n ""
-      elif [ "$command" == "%check-ok" ]; then
+      elif [ "$command" == "%check-verify" ]; then
         echo TESTING $n $file
         if [ "$lang" != "dafny" ]; then
           echo EXPECTED A dafny BLOCK, NOT $lang
           FAIL=1
         else
           "$dafny" verify --useBaseNameForFileName $text > actual
-          if [ $? -ne "0" ]; then
-            echo "TEST FAILED" $file line $n  $command $expect
-            cat $text
-            cat actual
-            FAIL=1
-          elif [ `cat actual | wc -l ` != "2" ]; then
-            echo EXPECTED SUCCESS OUTPUT
-            cat actual
-            FAIL=1
-          fi
-          if [ -n "$expect" ]; then
-              diff actual $expect
-              if "$?" -ne "0" ]; then
-                  FAIL=1
-                  echo Actual output differs from expected
-                  echo "TEST FAILED" $file line $n  $command $expect
-                  cat $text
-              fi
+          ec=$?
+          if [ -z "$expect" ]; then
+            if [ "$ec" != "0" ]; then
+              echo "TEST FAILED" $file line $n  $command $expect
+              cat $text
+              cat actual
+              FAIL=1
+            fi
+            if [ `cat actual | wc -l ` != "2" ]; then
+              echo EXPECTED SUCCESS OUTPUT
+              cat actual
+              FAIL=1
+            fi
+          else
+            if [ "$ec" != "4" ]; then
+              echo EXPECTED EXIT CODE 4, got $ec
+              FAIL=1
+            fi
+            diff actual $expect
+            if [ "$?" -ne "0" ]; then
+              FAIL=1
+              echo Actual output differs from expected
+              echo "TEST FAILED" $file line $n  $command $expect
+              cat $text
+            fi
           fi
         fi
       elif [ "$command" == "%check-cli" ]; then
