@@ -4,14 +4,14 @@ include "IMP.dfy"
 type offset = int
 
 datatype instruction =
-  | Iconst(int)
-  | Ivar(ident)
-  | Isetvar(string)
+  | Iconst(n: int)
+  | Ivar(x: ident)
+  | Isetvar(x: string)
   | Iadd
 	| Iopp
-  | Ibranch(offset)
-  | Ibeq(offset,offset)
-  | Ible(offset,offset)
+  | Ibranch(d: offset)
+  | Ibeq(d1: offset, d0: offset)
+  | Ible(d1: offset, d0: offset)
   | Ihalt
 
 type code = seq<instruction>
@@ -69,15 +69,15 @@ predicate machine_terminates(C: code, s_init: store, s_final: store) {
 }
 
 predicate machine_diverges(C: code, s_init: store) {
-	inf((c1,c2) => transition(C,c1,c2),(0,[],s_init))
+	infseq((c1,c2) => transition(C,c1,c2),(0,[],s_init))
 }
 
 function method compile_aexp(a: aexp): code {
 	match a {
-		case AConst(n) => [Iconst(n)]
-		case AId(id) => [Ivar(id)]
-		case APlus(a1, a2) => compile_aexp(a1) + compile_aexp(a2) + [Iadd]
-		case AMinus(a1, a2) => compile_aexp(a1) + compile_aexp(a2) + [Iopp,Iadd]
+		case CONST(n) => [Iconst(n)]
+		case VAR(id) => [Ivar(id)]
+		case PLUS(a1, a2) => compile_aexp(a1) + compile_aexp(a2) + [Iadd]
+		case MINUS(a1, a2) => compile_aexp(a1) + compile_aexp(a2) + [Iopp,Iadd]
 	}
 }
 
@@ -87,12 +87,12 @@ function method negb(b: bool): bool {
 
 function method compile_bexp(b: bexp, d1: int, d0: int): code {
   match b {
-		case BTrue => if d1 == 0 then [] else [Ibranch(d1)]
-		case BFalse => if d0 == 0 then [] else [Ibranch(d0)]
-		case BEq(a1, a2) => compile_aexp(a1) + compile_aexp(a2) + [Ibeq(d1,d0)]   
-		case BLe(a1, a2) => compile_aexp(a1) + compile_aexp(a2) + [Ible(d1,d0)]
-		case BNot(b1) => compile_bexp(b1, d0, d1)
-		case BAnd(b1, b2) =>
+		case TRUE => if d1 == 0 then [] else [Ibranch(d1)]
+		case FALSE => if d0 == 0 then [] else [Ibranch(d0)]
+		case EQUAL(a1, a2) => compile_aexp(a1) + compile_aexp(a2) + [Ibeq(d1,d0)]   
+		case LESSEQUAL(a1, a2) => compile_aexp(a1) + compile_aexp(a2) + [Ible(d1,d0)]
+		case NOT(b1) => compile_bexp(b1, d0, d1)
+		case AND(b1, b2) =>
       var c2 := compile_bexp(b2, d1, d0);
       var c1 := compile_bexp(b1, 0, |c2| + d0);
       c1 + c2
@@ -101,15 +101,15 @@ function method compile_bexp(b: bexp, d1: int, d0: int): code {
 
 function method compile_com(c: com): code {
 	match c {
-		case CSkip => []
-		case CAsgn(id, a) => compile_aexp(a) + [Isetvar(id)]
-		case CSeq(c1, c2) => compile_com(c1) + compile_com(c2)
-		case CIf(b, ifso, ifnot) =>
+		case SKIP => []
+		case ASSIGN(id, a) => compile_aexp(a) + [Isetvar(id)]
+		case SEQ(c1, c2) => compile_com(c1) + compile_com(c2)
+		case IFTHENELSE(b, ifso, ifnot) =>
 			var code_ifso := compile_com(ifso);
 			var code_ifnot := compile_com(ifnot);
 			compile_bexp(b,0,|code_ifso| + 1)
 			+ code_ifso + [Ibranch(|code_ifnot|)] + code_ifnot
-		case CWhile(b, body) =>
+		case WHILE(b, body) =>
 			var code_body := compile_com(body);
 			var code_test := compile_bexp(b,0,|code_body|+1);
 			code_test + code_body + [Ibranch(-( |code_test| + |code_body| + 1))]
@@ -168,7 +168,7 @@ lemma compile_aexp_correct(C: code, s: store, a: aexp, pc: nat, stk: stack)
 	var tr := (c1,c2) => transition(C,c1,c2);
 	match a {
 
-		case AConst(n) => { 
+		case CONST(n) => { 
 
 			assert aeval(s,a) == n;
 			assert compile_aexp(a) == [Iconst(n)];
@@ -180,9 +180,9 @@ lemma compile_aexp_correct(C: code, s: store, a: aexp, pc: nat, stk: stack)
 			
 		}
 		
-		case AId(id) => star_one_sequent<configuration>(tr,conf1,conf2);
+		case VAR(id) => star_one_sequent<configuration>(tr,conf1,conf2);
 
-		case APlus(a1, a2) => {
+		case PLUS(a1, a2) => {
 			assert code_at(C,pc,compile_aexp(a1)) by { resolve_code_at(); }
 			compile_aexp_correct(C,s,a1,pc,stk);
 			assert code_at(C,pc + |compile_aexp(a1)|,compile_aexp(a2)) by { resolve_code_at(); }
@@ -196,7 +196,7 @@ lemma compile_aexp_correct(C: code, s: store, a: aexp, pc: nat, stk: stack)
 			star_trans_sequent<configuration>(tr,conf1,confi2,conf2);
 		}
 
-		case AMinus(a1, a2) => {
+		case MINUS(a1, a2) => {
 			assert code_at(C,pc,compile_aexp(a1)) by { resolve_code_at(); }
 			compile_aexp_correct(C,s,a1,pc,stk);
 			assert code_at(C,pc + |compile_aexp(a1)|,compile_aexp(a2)) by { resolve_code_at(); }
@@ -236,7 +236,7 @@ lemma compile_bexp_correct_true(C: code, s: store, b: bexp, pc: nat, d1: nat, d0
 	
 	match b {
 
-		case BTrue => {
+		case TRUE => {
 			assert {:split_here} true;
 			if d1 == 0 {
 			} else {
@@ -249,9 +249,9 @@ lemma compile_bexp_correct_true(C: code, s: store, b: bexp, pc: nat, d1: nat, d0
 			}
 		}
 		
-		case BFalse => assert !beval(s,b);
+		case FALSE => assert !beval(s,b);
 			
-		case BEq(a1, a2) => {
+		case EQUAL(a1, a2) => {
 			assert {:split_here} true;			
 
 			var conf1 := (pc,stk,s);
@@ -286,7 +286,7 @@ lemma compile_bexp_correct_true(C: code, s: store, b: bexp, pc: nat, d1: nat, d0
 			
 			}
 
-		case BLe(a1, a2) => {
+		case LESSEQUAL(a1, a2) => {
 			assert {:split_here} true;
 
 			var conf1 := (pc,stk,s);
@@ -321,7 +321,7 @@ lemma compile_bexp_correct_true(C: code, s: store, b: bexp, pc: nat, d1: nat, d0
 			
 			}
 			
-		case BNot(b1) => {
+		case NOT(b1) => {
 			assert {:split_here} true;
 			
 			var conf1 := (pc,stk,s);
@@ -331,7 +331,7 @@ lemma compile_bexp_correct_true(C: code, s: store, b: bexp, pc: nat, d1: nat, d0
 			
 			}
 			
-		case BAnd(b1, b2) => {
+		case AND(b1, b2) => {
 			assert {:split_here} true;
 
 			var conf1 := (pc,stk,s);
@@ -366,9 +366,9 @@ lemma compile_bexp_correct_false(C: code, s: store, b: bexp, pc: nat, d1: nat, d
 	
 	match b {
 
-		case BTrue => assert beval(s,b);
+		case TRUE => assert beval(s,b);
 		
-		case BFalse => {
+		case FALSE => {
 			assert {:split_here} true;
 			if d0 == 0 {
 			} else {
@@ -381,7 +381,7 @@ lemma compile_bexp_correct_false(C: code, s: store, b: bexp, pc: nat, d1: nat, d
 			}
 		}
 			
-		case BEq(a1, a2) => {
+		case EQUAL(a1, a2) => {
 			assert {:split_here} true;			
 
 			var conf1 := (pc,stk,s);
@@ -416,7 +416,7 @@ lemma compile_bexp_correct_false(C: code, s: store, b: bexp, pc: nat, d1: nat, d
 			
 			}
 
-		case BLe(a1, a2) => {
+		case LESSEQUAL(a1, a2) => {
 			assert {:split_here} true;
 
 			var conf1 := (pc,stk,s);
@@ -451,7 +451,7 @@ lemma compile_bexp_correct_false(C: code, s: store, b: bexp, pc: nat, d1: nat, d
 			
 			}
 			
-		case BNot(b1) => {
+		case NOT(b1) => {
 			assert {:split_here} true;
 			
 			var conf1 := (pc,stk,s);
@@ -461,7 +461,7 @@ lemma compile_bexp_correct_false(C: code, s: store, b: bexp, pc: nat, d1: nat, d
 			
 			}
 			
-		case BAnd(b1, b2) => {
+		case AND(b1, b2) => {
 			assert {:split_here} true;
 
 			// This case if more interesting because and is compiled as a lazy and.
@@ -517,9 +517,9 @@ least lemma compile_com_correct_terminating(s: store, c: com, s': store, C: code
 	var tr := (c1,c2) => transition(C,c1,c2);
 	match c {
 
-		case CSkip => 
+		case SKIP => 
 
-		case CAsgn(id, a) => {
+		case ASSIGN(id, a) => {
 			assert code_at(C,pc,compile_aexp(a)) by { resolve_code_at(); }
 			var v := aeval(s,a);
 			assert s' == s[id := v];
@@ -534,7 +534,7 @@ least lemma compile_com_correct_terminating(s: store, c: com, s': store, C: code
 			star_trans_sequent<configuration>(tr,conf1,conf2,conf3);
 		}
 
-		case CSeq(c1, c2) => {
+		case SEQ(c1, c2) => {
 			var C1 := compile_com(c1);
 			var C2 := compile_com(c2);
 			var conf1 := (pc,stk,s);
@@ -552,7 +552,7 @@ least lemma compile_com_correct_terminating(s: store, c: com, s': store, C: code
 			star_trans_sequent<configuration>(tr,conf1,conf2,conf3);
 		}
 
-		case CIf(b, if_so, if_not) => {
+		case IFTHENELSE(b, if_so, if_not) => {
 			assert {:split_here} true;
 			var bv := beval(s,b);
 			var d1 := 0;
@@ -608,7 +608,7 @@ least lemma compile_com_correct_terminating(s: store, c: com, s': store, C: code
 
 		}
 
-		case CWhile(b, body) => {
+		case WHILE(b, body) => {
 			assert {:split_here} true;
 
 			var conf1 := (pc,stk,s);
@@ -623,7 +623,7 @@ least lemma compile_com_correct_terminating(s: store, c: com, s': store, C: code
 				assert transitions(C,conf1,conf2) by { compile_bexp_correct_true(C,s,b,pc,d1,d0,stk); }
 				assert star<configuration>(tr,conf1,conf2);
 
-				var si :| cexec(s,body,si) && cexec(si,CWhile(b,body),s');
+				var si :| cexec(s,body,si) && cexec(si,WHILE(b,body),s');
 
 				// Simulation of the loop body
 				var conf3 := (pc + |compile_bexp(b,d1,d0)| + d1 + |compile_com(body)|,stk,si);
@@ -646,9 +646,9 @@ least lemma compile_com_correct_terminating(s: store, c: com, s': store, C: code
 				// recursively simulate the rest
 
 				var conf5 := (pc + |compile_bexp(b,d1,d0)| + |compile_com(body)| + 1,stk,s');
-				assert code_at(C,pc,compile_com(CWhile(b,body))) by { resolve_code_at(); }
+				assert code_at(C,pc,compile_com(WHILE(b,body))) by { resolve_code_at(); }
 				assert transitions(C,conf4,conf5) by {
-					compile_com_correct_terminating(si,CWhile(b,body),s',C,pc,stk);
+					compile_com_correct_terminating(si,WHILE(b,body),s',C,pc,stk);
 				}
 				assert star<configuration>(tr,conf4,conf5);
 				star_trans_sequent<configuration>(tr,conf1,conf4,conf5);
@@ -700,10 +700,10 @@ least predicate compile_cont(C: code, k: cont, pc: nat) {
 			((match (k,C[pc]) {
 				case (Kwhile(b,c,k),Ibranch(ofs)) =>
 					var pc' := pc + 1 + ofs;
-					var pc'' := pc' + |compile_com(CWhile(b, c))|;
+					var pc'' := pc' + |compile_com(WHILE(b, c))|;
 					&& (pc' >= 0)
 						&& (pc'' >= 0)	
-						&& code_at(C, pc', (compile_com(CWhile(b, c)))) 
+						&& code_at(C, pc', (compile_com(WHILE(b, c)))) 
 						&& compile_cont(C, k, pc'')
 				case _ => false
 			})
@@ -728,7 +728,7 @@ predicate match_config(C: code, hl: conf, ll:configuration) {
 
 lemma match_config_skip(C: code, k: cont, s: store, pc: nat)
 	requires compile_cont(C, k, pc)
-	ensures match_config(C, (CSkip, k, s), (pc, [], s))
+	ensures match_config(C, (SKIP, k, s), (pc, [], s))
 {
 
 	assert pc < |C|;
@@ -771,16 +771,16 @@ lemma compile_cont_Kwhile_simp(C: code, b: bexp, c: com, k: cont, pc: nat, s: st
 	ensures 
 	|| (pc + 1 + ofs >= 0 && compile_cont(C, Kwhile(b,c,k), pc + 1 + ofs))
 	|| (&& pc + 1 + ofs >= 0
-	   && (pc + 1 + ofs) + |compile_com(CWhile(b, c))| >= 0
- 		 && code_at(C, pc + 1 + ofs, (compile_com(CWhile(b, c))))
- 		 && compile_cont(C, k, (pc + 1 + ofs) + |compile_com(CWhile(b, c))|))
+	   && (pc + 1 + ofs) + |compile_com(WHILE(b, c))| >= 0
+ 		 && code_at(C, pc + 1 + ofs, (compile_com(WHILE(b, c))))
+ 		 && compile_cont(C, k, (pc + 1 + ofs) + |compile_com(WHILE(b, c))|))
 {
 }
 		 
 
 least lemma compile_cont_Kwhile_inv(C: code, b: bexp, c: com, k: cont, pc: nat, s: store)
 	requires compile_cont(C,Kwhile(b,c,k),pc)
-	ensures exists pc': nat :: plus((c1,c2) => transition(C,c1,c2),(pc, [], s),(pc', [], s)) && code_at(C,pc',compile_com(CWhile(b,c))) && compile_cont(C,k,pc' + |compile_com(CWhile(b,c))|)
+	ensures exists pc': nat :: plus((c1,c2) => transition(C,c1,c2),(pc, [], s),(pc', [], s)) && code_at(C,pc',compile_com(WHILE(b,c))) && compile_cont(C,k,pc' + |compile_com(WHILE(b,c))|)
 {
 
 	match C[pc] {
@@ -816,11 +816,11 @@ least lemma compile_cont_Kwhile_inv(C: code, b: bexp, c: com, k: cont, pc: nat, 
 function com_size(c: com): nat {
 
 	match c {
-		case CSkip => 1
-		case CAsgn(_,_) => 1 
-		case CSeq(c1,c2) => com_size(c1) + com_size(c2) + 1
-		case CIf(b,c1,c2) => com_size(c1) + com_size(c2) + 1 
-		case CWhile(b,c) => com_size(c) + 1 
+		case SKIP => 1
+		case ASSIGN(_,_) => 1 
+		case SEQ(c1,c2) => com_size(c1) + com_size(c2) + 1
+		case IFTHENELSE(b,c1,c2) => com_size(c1) + com_size(c2) + 1 
+		case WHILE(b,c) => com_size(c) + 1 
 	}
 
 }
@@ -856,7 +856,7 @@ lemma simulation_step(C: code, impconf1: conf, impconf2: conf, machconf1: config
 {
 	match (impconf1.0,impconf1.1) {
 		
-		case (CAsgn(i, a), _) => {
+		case (ASSIGN(i, a), _) => {
 			assert {:split_here} true;
 			var tr := (c1,c2) => transition(C,c1,c2);
 			
@@ -864,7 +864,7 @@ lemma simulation_step(C: code, impconf1: conf, impconf2: conf, machconf1: config
 			var (c2,k2,s2) := impconf2;
 			var (pc1,stk1,str1) := machconf1;
 
-			assert (c2,k2,s2) == (CSkip,k1,s1[i := aeval(s1,a)]);
+			assert (c2,k2,s2) == (SKIP,k1,s1[i := aeval(s1,a)]);
 
 			var chunk := compile_aexp(a) + [Isetvar(i)];
 			assert code_at(C, pc1, chunk);
@@ -896,7 +896,7 @@ lemma simulation_step(C: code, impconf1: conf, impconf2: conf, machconf1: config
 			
 		}
 		
-		case (CSeq(c1', c1''), k) => {
+		case (SEQ(c1', c1''), k) => {
 			assert {:split_here} true;
 			var tr := (c1,c2) => transition(C,c1,c2);
 			
@@ -935,7 +935,7 @@ lemma simulation_step(C: code, impconf1: conf, impconf2: conf, machconf1: config
 			}
 		}
 		
-		case (CIf(b, cifso, cifnotso), _) => {
+		case (IFTHENELSE(b, cifso, cifnotso), _) => {
 			assert {:split_here} true;
 			var tr := (c1,c2) => transition(C,c1,c2);
 			
@@ -996,7 +996,7 @@ lemma simulation_step(C: code, impconf1: conf, impconf2: conf, machconf1: config
 			
 		}
 		
-		case (CWhile(b, body), k) => {
+		case (WHILE(b, body), k) => {
 			assert {:split_here} true;
 			var tr := (c1,c2) => transition(C,c1,c2);
 			
@@ -1023,8 +1023,8 @@ lemma simulation_step(C: code, impconf1: conf, impconf2: conf, machconf1: config
 					var ofs: int := -( |compile_bexp(b,d1,d0)| + |compile_com(body)| + 1);
 					assert C[pc] == Ibranch(ofs);
 					var pc' := pc + 1 + ofs;
-					var pc'' := pc' + |compile_com(CWhile(b, body))|;
-					assert code_at(C,pc',compile_com(CWhile(b,body)));
+					var pc'' := pc' + |compile_com(WHILE(b, body))|;
+					assert code_at(C,pc',compile_com(WHILE(b,body)));
 					assert compile_cont(C, k, pc'');
 					assert pc < |C|;
 					assert pc' == pc1;
@@ -1044,7 +1044,7 @@ lemma simulation_step(C: code, impconf1: conf, impconf2: conf, machconf1: config
 				assert transitions(C,machconf1,machconf2) by { compile_bexp_correct_false(C,s1,b,pc1,d1,d0,stk1); }
 				assert star<configuration>(tr,machconf1,machconf2);
 
-				assert impconf2 == (CSkip,k,s1);
+				assert impconf2 == (SKIP,k,s1);
 
 				assert compile_cont(C, k, machconf2.0);
 				match_config_skip(C,k,s1,machconf2.0);
@@ -1053,7 +1053,7 @@ lemma simulation_step(C: code, impconf1: conf, impconf2: conf, machconf1: config
 			
 		}
 		
-		case (CSkip, Kseq(c, k)) => {
+		case (SKIP, Kseq(c, k)) => {
 			assert {:split_here} true;
 			var tr := (c1,c2) => transition(C,c1,c2);
 			
@@ -1077,7 +1077,7 @@ lemma simulation_step(C: code, impconf1: conf, impconf2: conf, machconf1: config
 			
 		}
 		
-		case (CSkip, Kwhile(b, c, k)) =>	{
+		case (SKIP, Kwhile(b, c, k)) =>	{
 			assert {:split_here} true;
 			var tr := (c1,c2) => transition(C,c1,c2);
 			
@@ -1087,7 +1087,7 @@ lemma simulation_step(C: code, impconf1: conf, impconf2: conf, machconf1: config
 
 			compile_cont_Kwhile_inv(C,b,c,k,pc1,str1);
 
-			var pc': nat :| plus((c1,c2) => transition(C,c1,c2),(pc1, [], str1),(pc', [], str1)) && code_at(C,pc',compile_com(CWhile(b,c))) && compile_cont(C,k,pc' + |compile_com(CWhile(b,c))|);
+			var pc': nat :| plus((c1,c2) => transition(C,c1,c2),(pc1, [], str1),(pc', [], str1)) && code_at(C,pc',compile_com(WHILE(b,c))) && compile_cont(C,k,pc' + |compile_com(WHILE(b,c))|);
 
 			var machconf2: configuration := (pc', [], str1);
 			assert plus((c1,c2) => transition(C,c1,c2),machconf1,machconf2);
@@ -1140,12 +1140,12 @@ lemma match_initial_configs(c: com, s: store)
 }
 
 lemma compile_program_correct_terminating_2(c: com, s1: store, s2: store) 
-	requires star(step,(c,Kstop,s1),(CSkip,Kstop,s2))
+	requires star(step,(c,Kstop,s1),(SKIP,Kstop,s2))
 	ensures machine_terminates(compile_program(c),s1,s2)
 {
 	var C := compile_program(c);
 	var impconf1 := (c,Kstop,s1);
-	var impconf2 := (CSkip,Kstop,s2);
+	var impconf2 := (SKIP,Kstop,s2);
 	var machconf1 := (0,[],s1);
 	match_initial_configs(c,s1);
 	simulation_steps(C,impconf1,impconf2,machconf1);
@@ -1169,15 +1169,15 @@ lemma compile_program_correct_terminating_2(c: com, s1: store, s2: store)
 
 lemma simulation_infseq_inv(C: code, impconf1: conf, machconf1: configuration)
 	decreases measure(impconf1)
-	requires inf(step,impconf1)
+	requires infseq(step,impconf1)
 	requires match_config(C,impconf1,machconf1)
 	ensures exists impconf2: conf :: exists machconf2: configuration ::
-	  inf(step,impconf2)
+	  infseq(step,impconf2)
 		&& plus((c1,c2) => transition(C,c1,c2),machconf1,machconf2)
 		&& match_config(C,impconf2,machconf2)
 {
 	
-	var impconf2: conf :| step(impconf1,impconf2) && inf(step,impconf2);
+	var impconf2: conf :| step(impconf1,impconf2) && infseq(step,impconf2);
 	star_one_sequent<conf>(step,impconf1,impconf2);
 	simulation_step(C, impconf1, impconf2, machconf1);
 	var machconfi: configuration :| && (
@@ -1195,7 +1195,7 @@ lemma simulation_infseq_inv(C: code, impconf1: conf, machconf1: configuration)
 			
 			simulation_infseq_inv(C,impconf2,machconfi);
 			var impconf2: conf, machconf2: configuration :|
-				inf(step,impconf2)
+				infseq(step,impconf2)
 				&& plus((c1,c2) => transition(C,c1,c2),machconfi,machconf2)
 				&& match_config(C,impconf2,machconf2);
 
@@ -1206,11 +1206,11 @@ lemma simulation_infseq_inv(C: code, impconf1: conf, machconf1: configuration)
 }
 
 predicate {:opaque} X(C: code, mc: configuration) {
-	exists ic: conf :: inf(step,ic) && match_config(C,ic,mc)
+	exists ic: conf :: infseq(step,ic) && match_config(C,ic,mc)
 }
 	
 lemma compile_program_correct_diverging(c: com, s: store)
-	requires H: inf(step,(c,Kstop,s))
+	requires H: infseq(step,(c,Kstop,s))
 	ensures machine_diverges(compile_program(c),s)
 {
 	var C: code := compile_program(c);
@@ -1229,10 +1229,10 @@ lemma compile_program_correct_diverging(c: com, s: store)
 		//forall a: T :: X(a) ==> exists b: T :: plus(R,a, b) && X(b)
 		forall a: configuration ensures ((mc) => X(C,mc))(a) ==> exists b: configuration :: plus((c1, c2) => transition(C,c1,c2),a, b) && ((mc) => X(C,mc))(b) {
 			if ((mc) => X(C,mc))(a) {
-				assert exists ic: conf :: inf(step,ic) && match_config(C,ic,a) by {
+				assert exists ic: conf :: infseq(step,ic) && match_config(C,ic,a) by {
 					reveal X();
 				}
-				var ic :| inf(step,ic) && match_config(C,ic,a);
+				var ic :| infseq(step,ic) && match_config(C,ic,a);
 				simulation_infseq_inv(C,ic,a);
 			}
 		}
