@@ -107,6 +107,8 @@ Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md).
 false - The char type represents any UTF-16 code unit.
 true - The char type represents any Unicode scalar value.".TrimStart());
 
+  public static readonly Option<string> SolverPath = new("--solver-path",
+    "Can be used to specify a custom SMT solver to use for verifying Dafny proofs.");
   public static readonly Option<bool> VerifyIncludedFiles = new("--verify-included-files",
     "Verify code in included files.");
   public static readonly Option<bool> WarningAsErrors = new("--warn-as-errors",
@@ -120,6 +122,9 @@ true - The char type represents any Unicode scalar value.".TrimStart());
     "Include the Dafny runtime as source in the target language.");
 
   static CommonOptionBag() {
+    DafnyOptions.RegisterLegacyBinding(SolverPath, (options, value) => {
+      options.ProverOptions.Add($"PROVER_PATH={value}");
+    });
     DafnyOptions.RegisterLegacyBinding(IncludeRuntime, (options, value) => {
       options.UseRuntimeLib = !value;
     });
