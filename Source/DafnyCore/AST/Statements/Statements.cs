@@ -253,7 +253,19 @@ public abstract class ProduceStmt : Statement {
       foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
       if (Rhss != null) {
         foreach (var rhs in Rhss) {
-          foreach (var ee in rhs.SubExpressions) {
+          foreach (var ee in rhs.NonSpecificationSubExpressions) {
+            yield return ee;
+          }
+        }
+      }
+    }
+  }
+  public override IEnumerable<Expression> SpecificationSubExpressions {
+    get {
+      foreach (var e in base.SpecificationSubExpressions) { yield return e; }
+      if (Rhss != null) {
+        foreach (var rhs in Rhss) {
+          foreach (var ee in rhs.SpecificationSubExpressions) {
             yield return ee;
           }
         }
@@ -303,16 +315,42 @@ public abstract class AssignmentRhs : INode {
     Attributes = attrs;
   }
   public abstract bool CanAffectPreviouslyKnownExpressions { get; }
+
   /// <summary>
-  /// Returns the non-null subexpressions of the AssignmentRhs.
+  /// Returns all (specification and non-specification) non-null expressions of the AssignmentRhs.
   /// </summary>
-  public virtual IEnumerable<Expression> SubExpressions {
+  public IEnumerable<Expression> SubExpressions {
+    get {
+      foreach (var e in SpecificationSubExpressions) {
+        yield return e;
+      }
+
+      foreach (var e in NonSpecificationSubExpressions) {
+        yield return e;
+      }
+    }
+  }
+
+  /// <summary>
+  /// Returns the non-null non-specification subexpressions of the AssignmentRhs.
+  /// </summary>
+  public virtual IEnumerable<Expression> NonSpecificationSubExpressions {
+    get {
+      yield break;
+    }
+  }
+
+  /// <summary>
+  /// Returns the non-null specification subexpressions of the AssignmentRhs.
+  /// </summary>
+  public virtual IEnumerable<Expression> SpecificationSubExpressions {
     get {
       foreach (var e in Attributes.SubExpressions(Attributes)) {
         yield return e;
       }
     }
   }
+
   /// <summary>
   /// Returns the non-null substatements of the AssignmentRhs.
   /// </summary>
@@ -330,13 +368,13 @@ public class ExprRhs : AssignmentRhs {
     Contract.Invariant(Expr != null);
   }
 
-  public ExprRhs(Expression expr, Attributes attrs = null)  // TODO: these 'attrs' apparently aren't handled correctly in the Cloner, and perhaps not in various visitors either (for example, CheckIsCompilable should not go into attributes)
+  public ExprRhs(Expression expr, Attributes attrs = null)
     : base(expr.tok, attrs) {
     Contract.Requires(expr != null);
     Expr = expr;
   }
   public override bool CanAffectPreviouslyKnownExpressions { get { return false; } }
-  public override IEnumerable<Expression> SubExpressions {
+  public override IEnumerable<Expression> NonSpecificationSubExpressions {
     get {
       yield return Expr;
     }
@@ -457,7 +495,7 @@ public class TypeRhs : AssignmentRhs, INode {
     }
   }
 
-  public override IEnumerable<Expression> SubExpressions {
+  public override IEnumerable<Expression> NonSpecificationSubExpressions {
     get {
       if (ArrayDimensions != null) {
         foreach (var e in ArrayDimensions) {

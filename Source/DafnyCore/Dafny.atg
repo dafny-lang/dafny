@@ -216,7 +216,7 @@ public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, Include include, ModuleD
 {
   // initialize readonly fields
   dummyExpr = new LiteralExpr(Token.NoToken);
-  dummyRhs = new ExprRhs(dummyExpr, null);
+  dummyRhs = new ExprRhs(dummyExpr);
   dummyFrameExpr = new FrameExpression(dummyExpr.tok, dummyExpr, null);
   dummyStmt = new ReturnStmt(Token.NoToken, Token.NoToken, null);
   var dummyBlockStmt = new BlockStmt(Token.NoToken, Token.NoToken, new List<Statement>());
@@ -3765,7 +3765,7 @@ Expression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwis
     ";"                       (. endTok = t; .)
     Expression<out e0, allowLemma, allowLambda>
     (. e = new StmtExpr(e.tok,
-             new UpdateStmt(e.tok, endTok, new List<Expression>(), new List<AssignmentRhs>() { new ExprRhs(e, null) }),
+             new UpdateStmt(e.tok, endTok, new List<Expression>(), new List<AssignmentRhs>() { new ExprRhs(e) }),
              e0);
     .)
   ]
