@@ -41,7 +41,7 @@ The `text` format also includes a more detailed breakdown of what assertions app
   };
 
   public Command Create() {
-    var result = new Command("measure-complexity", "(experimental) Measure the complexity of verification the program. Be aware that the options and output of this command will change in the future.");
+    var result = new Command("measure-complexity", "(experimental) Measure the complexity of verifying the program. Be aware that the options and output of this command will change in the future.");
     result.AddArgument(ICommandSpec.FilesArgument);
     return result;
   }
