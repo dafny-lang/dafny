@@ -119,9 +119,9 @@ true - The char type represents any Unicode scalar value.".TrimStart());
   public static readonly Option<bool> IncludeRuntime = new("--include-runtime",
     "Include the Dafny runtime as source in the target language.");
   public static readonly Option<bool> TestAssumptions = new("--test-assumptions", @"
-(experimental) When turned on, inserts dynamic tests at locations where (implicit) assumptions occur, such as when calling or being called by external code and when using assume statements.
+(experimental) When turned on, inserts runtime tests at locations where (implicit) assumptions occur, such as when calling or being called by external code and when using assume statements.
 
-Functionality is still being expanded. Currently only checks contracts on every call to a function or method marked with the {{:extern}} attribute.".TrimStart());
+Functionality is still being expanded. Currently only checks contracts on every call to a function or method marked with the {:extern} attribute.".TrimStart());
 
   static CommonOptionBag() {
     DafnyOptions.RegisterLegacyBinding(IncludeRuntime, (options, value) => {
