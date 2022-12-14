@@ -8,7 +8,7 @@ name: Test documentation
 
 on:
   push:
-    branches: [ master , cok-2679 ]
+    branches: [ master ]
   pull_request:
     branches: [ master ]
 
@@ -47,22 +47,17 @@ jobs:
         Invoke-WebRequest ${{env.z3BaseUri}}/${{matrix.z3}}.zip -OutFile z3.zip
         Expand-Archive z3.zip .
         Remove-Item z3.zip
-    - name: Set Z3 Permissions
+    - name: Set Z3 location and permissions
       if: ${{matrix.chmod}}
       run: |
         cd dafny
         mkdir bin
-        pwd
-        ls
         mv ../${{matrix.z3}}/bin/z3* bin/
         chmod +x bin/z3*
-        ls -la bin
     - name: Build Dafny
       run: dotnet build dafny/Source/Dafny.sln
     - name: Check
       run: |
         cd dafny/docs
-        pwd
-        ls
-        PATH=../bin:$PATH ./check-examples OnlineTutorial/Termination.md
+        PATH=../bin:$PATH ./check-examples OnlineTutorial/Termination.md || echo Tests Failed && echo Tests Succeeded
         echo Complete
