@@ -1,15 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
 using System.Diagnostics.Contracts;
-using System.IO;
-using System.Reflection;
-using JetBrains.Annotations;
-using Microsoft.BaseTypes;
-using Microsoft.Boogie;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny {
   /// <summary>
@@ -264,11 +256,11 @@ namespace Microsoft.Dafny {
         VisitExpression(e, context);
       }
       foreach (FrameExpression fe in iter.Reads.Expressions) {
-        ResolveFrameExpression(fe, new CallGraphBuilderContext(iter));
+        VisitExpression(fe.E, new CallGraphBuilderContext(iter));
       }
       VisitAttributes(iter.Modifies, context);
       foreach (FrameExpression fe in iter.Modifies.Expressions) {
-        ResolveFrameExpression(fe, new CallGraphBuilderContext(iter));
+        VisitExpression(fe.E, new CallGraphBuilderContext(iter));
       }
       foreach (AttributedExpression e in iter.Requires) {
         VisitAttributes(e, context);
@@ -288,9 +280,8 @@ namespace Microsoft.Dafny {
         VisitExpression(e.E, new CallGraphBuilderContext(iter));
       }
 
-      // Resolve body
       if (iter.Body != null) {
-        ResolveBlockStatement(iter.Body, new CallGraphBuilderContext(iter));
+        VisitStatement(iter.Body, new CallGraphBuilderContext(iter));
       }
     }
 
@@ -332,7 +323,7 @@ namespace Microsoft.Dafny {
         VisitExpression(e.E, new CallGraphBuilderContext(f));
       }
       foreach (FrameExpression fr in f.Reads) {
-        ResolveFrameExpression(fr, new CallGraphBuilderContext(f));
+        VisitExpression(fr.E, new CallGraphBuilderContext(f));
       }
       foreach (AttributedExpression e in f.Ens) {
         VisitAttributes(e, new CallGraphBuilderContext(f));
@@ -374,9 +365,12 @@ namespace Microsoft.Dafny {
       } else if (expr is MemberSelectExpr memberSelectExpr) {
         if (memberSelectExpr.Member is Function function) {
           AddCallGraphEdge(context.CodeContext, function, memberSelectExpr, false);
-        } else {
-          var field = (Field)memberSelectExpr.Member;
+        } else if (memberSelectExpr.Member is Field field) {
           AddCallGraphEdgeForField(context.CodeContext, field, memberSelectExpr);
+        } else {
+          // Apparently, we're called on the CallStmt.MemberSelect expression. The call-graph edge is added by the
+          // handling of the CallStmt. Below, we will continue visiting the MemberSelectExpr.Obj subexpression.
+          Contract.Assert(memberSelectExpr.Member is Method);
         }
 
       } else if (expr is FunctionCallExpr functionCallExpr) {
@@ -396,17 +390,10 @@ namespace Microsoft.Dafny {
       } else if (expr is TypeUnaryExpr typeUnaryExpr) {
         VisitUserProvidedType(typeUnaryExpr.ToType, context);
 
-      } else if (expr is LetExpr) {
-        var e = (LetExpr)expr;
-        if (e.Exact) {
-          foreach (var lhs in e.LHSs) {
-            ResolveCasePattern(lhs, context);
-          }
-        } else {
-          // let-such-that expression
-          foreach (var lhs in e.LHSs) {
-            var v = lhs.Var;
-            VisitUserProvidedType(v.Type, context);
+      } else if (expr is LetExpr letExpr) {
+        foreach (var lhs in letExpr.LHSs) {
+          foreach (var v in lhs.Vars) {
+            VisitUserProvidedType(v.SyntacticType, context);
           }
         }
 
@@ -435,7 +422,7 @@ namespace Microsoft.Dafny {
         }
 
       } else if (expr is StmtExpr stmtExpr) {
-        ResolveStatement(stmtExpr.S, context);
+        VisitStatement(stmtExpr.S, context);
 
       } else if (expr is MatchExpr matchExpr) {
         foreach (MatchCaseExpr mc in matchExpr.Cases) {
@@ -448,13 +435,6 @@ namespace Microsoft.Dafny {
       foreach (var ee in expr.SubExpressions) {
         VisitExpression(ee, context);
       }
-    }
-
-    private void ResolveFrameExpression(FrameExpression fe, CallGraphBuilderContext context) {
-      Contract.Requires(fe != null);
-      Contract.Requires(context != null);
-
-      VisitExpression(fe.E, context);
     }
 
     private void VisitDefaultParameterValues(List<Formal> formals, CallGraphBuilderContext context) {
@@ -528,7 +508,7 @@ namespace Microsoft.Dafny {
 
       VisitAttributes(m.Mod, context);
       foreach (FrameExpression fe in m.Mod.Expressions) {
-        ResolveFrameExpression(fe, context);
+        VisitExpression(fe.E, context);
       }
       VisitAttributes(m.Decreases, context);
       foreach (Expression e in m.Decreases.Expressions) {
@@ -541,97 +521,41 @@ namespace Microsoft.Dafny {
       }
 
       if (m.Body != null) {
-        ResolveBlockStatement(m.Body, context);
+        VisitStatement(m.Body, context);
       }
     }
 
-    private void ResolveBlockStatement(BlockStmt blockStmt, CallGraphBuilderContext context) {
-      Contract.Requires(blockStmt != null);
-      Contract.Requires(context != null);
-
-      if (blockStmt is DividedBlockStmt) {
-        var div = (DividedBlockStmt)blockStmt;
-        ResolveStatementList(div.BodyInit, context);
-        ResolveStatementList(div.BodyProper, context);
-      } else {
-        ResolveStatementList(blockStmt.Body, context);
-      }
-    }
-
-    private void ResolveStatementList(List<Statement> statements, CallGraphBuilderContext context) {
-      foreach (var stmt in statements) {
-        ResolveStatement(stmt, context);
-      }
-    }
-
-    private void ResolveStatement(Statement stmt, CallGraphBuilderContext context) {
+    private void VisitStatement(Statement stmt, CallGraphBuilderContext context) {
       Contract.Requires(stmt != null);
       Contract.Requires(context != null);
 
-      if (stmt is PredicateStmt) {
-        PredicateStmt s = (PredicateStmt)stmt;
-        VisitExpression(s.Expr, context);
-        if (stmt is AssertStmt assertStmt && assertStmt.Proof != null) {
-          ResolveStatement(assertStmt.Proof, context);
-        }
-        if (stmt is ExpectStmt expectStmt) {
-          VisitExpression(expectStmt.Message, context);
+      if (stmt is RevealStmt revealStmt) {
+        foreach (var ss in revealStmt.ResolvedStatements) {
+          VisitStatement(ss, context);
         }
 
-      } else if (stmt is PrintStmt) {
-        var s = (PrintStmt)stmt;
-        s.Args.Iter(e => VisitExpression(e, context));
-
-      } else if (stmt is RevealStmt) {
-        var s = (RevealStmt)stmt;
-        ResolveStatementList(s.ResolvedStatements, context);
-
-      } else if (stmt is BreakStmt) {
-
-      } else if (stmt is ProduceStmt) {
-        var kind = stmt is YieldStmt ? "yield" : "return";
-        var s = (ProduceStmt)stmt;
-        if (s.HiddenUpdate != null) {
-          ResolveStatement(s.HiddenUpdate, context);
-        }
-
-      } else if (stmt is ConcreteUpdateStatement) {
-        ResolveConcreteUpdateStmt((ConcreteUpdateStatement)stmt, context);
-
-      } else if (stmt is VarDeclStmt) {
-        var s = (VarDeclStmt)stmt;
-        // We have four cases.
-        Contract.Assert(s.Update == null || s.Update is AssignSuchThatStmt || s.Update is UpdateStmt || s.Update is AssignOrReturnStmt);
-        foreach (var local in s.Locals) {
+      } else if (stmt is VarDeclStmt varDeclStmt) {
+        foreach (var local in varDeclStmt.Locals) {
           VisitUserProvidedType(local.OptionalType, context);
         }
 
-        foreach (var local in s.Locals) {
-          VisitAttributes(local, context);
-        }
-
-        if (s.Update != null) {
-          ResolveConcreteUpdateStmt(s.Update, context);
-        }
-
-      } else if (stmt is VarDeclPattern) {
-        VarDeclPattern s = (VarDeclPattern)stmt;
-        foreach (var local in s.LocalVars) {
+      } else if (stmt is VarDeclPattern varDeclPattern) {
+        foreach (var local in varDeclPattern.LocalVars) {
           VisitUserProvidedType(local.OptionalType, context);
         }
-        VisitExpression(s.RHS, context);
-        ResolveCasePattern(s.LHS, context);
-        // Check for duplicate names now, because not until after resolving the case pattern do we know if identifiers inside it refer to bound variables or nullary constructors
 
-      } else if (stmt is AssignStmt) {
-        AssignStmt s = (AssignStmt)stmt;
-        VisitExpression(s.Lhs, context);  // allow ghosts for now, tighted up below
+      } else if (stmt is AssignStmt assignStmt) {
+        if (assignStmt.Rhs is TypeRhs typeRhs) {
+          if (typeRhs.EType != null) {
+            VisitUserProvidedType(typeRhs.EType, context);
+          }
+        }
 
         // check on assumption variables
         if (context.CodeContext is Method currentMethod &&
-            (s.Lhs.Resolved as IdentifierExpr)?.Var is LocalVariable localVar &&
+            (assignStmt.Lhs.Resolved as IdentifierExpr)?.Var is LocalVariable localVar &&
             Attributes.Contains(localVar.Attributes, "assumption")) {
-          if ((s.Rhs as ExprRhs)?.Expr is BinaryExpr binaryExpr &&
+          if ((assignStmt.Rhs as ExprRhs)?.Expr is BinaryExpr binaryExpr &&
               binaryExpr.Op == BinaryExpr.Opcode.And &&
               (binaryExpr.E0.Resolved as IdentifierExpr)?.Var == localVar &&
               !currentMethod.AssignedAssumptionVariables.Contains(localVar)) {
@@ -642,253 +566,34 @@ namespace Microsoft.Dafny {
           }
         }
 
-        Type lhsType = s.Lhs.Type;
-        if (s.Rhs is ExprRhs) {
-          ExprRhs rr = (ExprRhs)s.Rhs;
-          VisitExpression(rr.Expr, context);
-        } else if (s.Rhs is TypeRhs) {
-          TypeRhs rr = (TypeRhs)s.Rhs;
-          ResolveTypeRhs(rr, stmt, context);
-        } else if (s.Rhs is HavocRhs) {
-          // nothing else to do
-        } else {
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected RHS
+      } else if (stmt is CallStmt callStmt) {
+        AddCallGraphEdge(callStmt, context);
+
+      } else if (stmt is OneBodyLoopStmt oneBodyLoopStmt) {
+        if (oneBodyLoopStmt is ForLoopStmt forLoopStmt) {
+          VisitUserProvidedType(forLoopStmt.LoopIndex.Type, context);
         }
 
-      } else if (stmt is CallStmt) {
-        CallStmt s = (CallStmt)stmt;
-        AddCallGraphEdge(s, context);
-        VisitExpression(s.Receiver, context);
-        s.Bindings.Arguments.ForEach(arg => VisitExpression(arg, context));
-
-      } else if (stmt is BlockStmt) {
-        var s = (BlockStmt)stmt;
-        ResolveBlockStatement(s, context);
-
-      } else if (stmt is IfStmt) {
-        IfStmt s = (IfStmt)stmt;
-        if (s.Guard != null) {
-          VisitExpression(s.Guard, context);
-        }
-
-        ResolveBlockStatement(s.Thn, context);
-
-        if (s.Els != null) {
-          ResolveStatement(s.Els, context);
-        }
-
-      } else if (stmt is AlternativeStmt) {
-        var s = (AlternativeStmt)stmt;
-        ResolveAlternatives(s.Alternatives, null, context);
-
-      } else if (stmt is OneBodyLoopStmt) {
-        var s = (OneBodyLoopStmt)stmt;
-        if (s is WhileStmt whileS && whileS.Guard != null) {
-          VisitExpression(whileS.Guard, context);
-        } else if (s is ForLoopStmt forS) {
-          var loopIndex = forS.LoopIndex;
-          VisitUserProvidedType(loopIndex.Type, context);
-
-          VisitExpression(forS.Start, context);
-          if (forS.End != null) {
-            VisitExpression(forS.End, context);
-          }
-        }
-
-        ResolveLoopSpecificationComponents(s.Invariants, s.Decreases, s.Mod, context);
-
-        if (s.Body != null) {
-          ResolveStatement(s.Body, context);
-        }
-
-      } else if (stmt is AlternativeLoopStmt) {
-        var s = (AlternativeLoopStmt)stmt;
-        ResolveAlternatives(s.Alternatives, s, context);
-        ResolveLoopSpecificationComponents(s.Invariants, s.Decreases, s.Mod, context);
-
-      } else if (stmt is ForallStmt) {
-        var s = (ForallStmt)stmt;
-
-        foreach (BoundVar v in s.BoundVars) {
+      } else if (stmt is ForallStmt forallStmt) {
+        foreach (BoundVar v in forallStmt.BoundVars) {
           VisitUserProvidedType(v.Type, context);
         }
-        VisitExpression(s.Range, context);
-        foreach (var ens in s.Ens) {
-          VisitExpression(ens.E, context);
-        }
 
-        if (s.Body != null) {
-          ResolveStatement(s.Body, context);
-        }
-
-        if (s.ForallExpressions != null) {
-          foreach (Expression expr in s.ForallExpressions) {
-            VisitExpression(expr, context);
+      } else if (stmt is MatchStmt matchStmt) {
+        foreach (MatchCaseStmt mc in matchStmt.Cases) {
+          if (mc.Arguments != null) {
+            foreach (BoundVar v in mc.Arguments) {
+              VisitUserProvidedType(v.Type, context);
+            }
           }
         }
-
-      } else if (stmt is ModifyStmt) {
-        var s = (ModifyStmt)stmt;
-        VisitAttributes(s.Mod, context);
-        foreach (FrameExpression fe in s.Mod.Expressions) {
-          ResolveFrameExpression(fe, context);
-        }
-        if (s.Body != null) {
-          ResolveBlockStatement(s.Body, context);
-        }
-
-      } else if (stmt is CalcStmt) {
-        CalcStmt s = (CalcStmt)stmt;
-
-        foreach (var line in s.Lines) {
-          VisitExpression(line, context);
-        }
-
-        foreach (var h in s.Hints) {
-          ResolveStatementList(h.Body, context);
-        }
-
-      } else if (stmt is MatchStmt) {
-        ResolveMatchStmt((MatchStmt)stmt, context);
-
-      } else if (stmt is SkeletonStatement) {
-        var s = (SkeletonStatement)stmt;
-        if (s.S != null) {
-          ResolveStatement(s.S, context);
-        }
-
-      } else if (stmt is ConcreteSyntaxStatement) {
-        var s = (ConcreteSyntaxStatement)stmt;
-        ResolveStatement(s.ResolvedStatement, context);
-
-      } else {
-        Contract.Assert(false); throw new cce.UnreachableException();
-      }
-    }
-
-    private void ResolveConcreteUpdateStmt(ConcreteUpdateStatement s, CallGraphBuilderContext context) {
-      Contract.Requires(context != null);
-
-      var lhsNameSet = new HashSet<string>();  // used to check for duplicate identifiers on the left (full duplication checking for references and the like is done during verification)
-      foreach (var lhs in s.Lhss) {
-        VisitExpression(lhs, context);
       }
 
-      // RHSs
-      if (s is AssignSuchThatStmt assignSuchThatStmt) {
-        VisitExpression(assignSuchThatStmt.Expr, context);
-      } else if (s is UpdateStmt updateStatement) {
-        ResolveStatementList(updateStatement.ResolvedStatements, context);
-      } else if (s is AssignOrReturnStmt assignOrReturnStmt) {
-        ResolveStatementList(assignOrReturnStmt.ResolvedStatements, context);
-      } else {
-        Contract.Assert(false); throw new cce.UnreachableException();
+      foreach (var ee in stmt.SubExpressions) {
+        VisitExpression(ee, context);
       }
-      VisitAttributes(s, context);
-    }
-
-    private void ResolveTypeRhs(TypeRhs rr, Statement stmt, CallGraphBuilderContext context) {
-      Contract.Requires(rr != null);
-      Contract.Requires(stmt != null);
-      Contract.Requires(context != null);
-      Contract.Ensures(Contract.Result<Type>() != null);
-
-      if (rr.ArrayDimensions != null) {
-        // ---------- new T[EE]    OR    new T[EE] (elementInit)
-        Contract.Assert(rr.Bindings == null && rr.Path == null && rr.InitCall == null);
-        VisitUserProvidedType(rr.EType, context);
-        foreach (Expression dim in rr.ArrayDimensions) {
-          Contract.Assert(dim != null);
-          VisitExpression(dim, context);
-        }
-        if (rr.ElementInit != null) {
-          VisitExpression(rr.ElementInit, context);
-        } else if (rr.InitDisplay != null) {
-          foreach (var v in rr.InitDisplay) {
-            VisitExpression(v, context);
-          }
-        }
-      } else {
-        if (rr.Bindings == null) {
-          VisitUserProvidedType(rr.EType, context);
-        } else {
-          // ---------- new C.Init(EE)
-          ResolveStatement(rr.InitCall, context);
-        }
-      }
-    }
-
-    private void ResolveAlternatives(List<GuardedAlternative> alternatives, AlternativeLoopStmt loopToCatchBreaks, CallGraphBuilderContext context) {
-      Contract.Requires(alternatives != null);
-      Contract.Requires(context != null);
-
-      // first, resolve the guards
-      foreach (var alternative in alternatives) {
-        VisitExpression(alternative.Guard, context);
-      }
-
-      foreach (var alternative in alternatives) {
-        VisitAttributes(alternative, context);
-        ResolveStatementList(alternative.Body, context);
-      }
-    }
-
-    private void ResolveLoopSpecificationComponents(List<AttributedExpression> invariants, Specification<Expression> decreases,
-      Specification<FrameExpression> modifies, CallGraphBuilderContext context) {
-      Contract.Requires(invariants != null);
-      Contract.Requires(decreases != null);
-      Contract.Requires(modifies != null);
-      Contract.Requires(context != null);
-
-      foreach (AttributedExpression inv in invariants) {
-        VisitAttributes(inv, context);
-        VisitExpression(inv.E, context);
-      }
-
-      VisitAttributes(decreases, context);
-      foreach (Expression e in decreases.Expressions) {
-        VisitExpression(e, context);
-      }
-
-      VisitAttributes(modifies, context);
-      if (modifies.Expressions != null) {
-        foreach (FrameExpression fe in modifies.Expressions) {
-          ResolveFrameExpression(fe, context);
-        }
-      }
-    }
-
-    private void ResolveMatchStmt(MatchStmt s, CallGraphBuilderContext context) {
-      Contract.Requires(s != null);
-      Contract.Requires(context != null);
-      Contract.Requires(s.OrigUnresolved == null);
-
-      VisitExpression(s.Source, context);
-      foreach (MatchCaseStmt mc in s.Cases) {
-        if (mc.Arguments != null) {
-          foreach (BoundVar v in mc.Arguments) {
-            VisitUserProvidedType(v.Type, context);
-          }
-        }
-        ResolveStatementList(mc.Body, context);
-      }
-    }
-
-    private void ResolveCasePattern<VT>(CasePattern<VT> pat, CallGraphBuilderContext context) where VT : IVariable {
-      Contract.Requires(pat != null);
-      Contract.Requires(context != null);
-
-      if (pat.Var != null) {
-        VisitUserProvidedType(pat.Var.Type, context);
-        return;
-      }
-      var j = 0;
-      if (pat.Arguments != null) {
-        foreach (var arg in pat.Arguments) {
-          var formal = pat.Ctor.Formals[j];
-          ResolveCasePattern(arg, context);
-          j++;
-        }
+      foreach (var ss in stmt.SubStatements) {
+        VisitStatement(ss, context);
       }
     }
 
