@@ -10,6 +10,6 @@ public class StandaloneServerTest {
   public void OptionParsing() {
     var arguments = new[] { "--documents:verify=onsave", "--verifier:timelimit=3", "--ghost:markStatements=true" };
     var options = Program.GetOptionsFromArgs(arguments);
-    Assert.AreEqual(VerifyOnMode.Save, VerificationOption.Instance.Get(options));
+    Assert.AreEqual(VerifyOnMode.Save, options.Get(ServerCommand.Verification));
   }
 }

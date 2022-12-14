@@ -1,11 +1,9 @@
 ﻿// SPDX-License-Identifier: MIT
 #nullable enable
 
-using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
-using System.Reflection;
 
 namespace Microsoft.Dafny.Plugins;
 

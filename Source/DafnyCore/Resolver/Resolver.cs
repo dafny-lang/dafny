@@ -15071,7 +15071,7 @@ namespace Microsoft.Dafny {
               }
               if (allowMethodCall) {
                 Contract.Assert(!e.Bindings.WasResolved); // we expect that .Bindings has not yet been processed, so we use just .ArgumentBindings in the next line
-                var tok = ShowSnippetsOption.Instance.Get(DafnyOptions.O) ? new RangeToken(e.Lhs.tok, e.CloseParen) : e.tok;
+                var tok = DafnyOptions.O.Get(DafnyConsolePrinter.ShowSnippets) ? new RangeToken(e.Lhs.tok, e.CloseParen) : e.tok;
                 var cRhs = new MethodCallInformation(tok, mse, e.Bindings.ArgumentBindings);
                 return cRhs;
               } else {
@@ -15318,7 +15318,7 @@ namespace Microsoft.Dafny {
     void FillInDefaultValueExpression(DefaultValueExpression expr, Dictionary<DefaultValueExpression, WorkProgress> visited) {
       Contract.Requires(expr != null);
       Contract.Requires(visited != null);
-      Contract.Ensures(Contract.ValueAtReturn(out expr.ResolvedExpression) != null);
+      Contract.Ensures(expr.ResolvedExpression != null);
 
       if (visited.TryGetValue(expr, out var p)) {
         if (p == WorkProgress.Done) {

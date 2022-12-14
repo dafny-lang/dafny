@@ -50,7 +50,7 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
   }
 }".TrimStart();
       var failSource = @"method Contradiction() { assert false; }";
-      await SetUp(options => VerificationOption.Instance.Set(options, VerifyOnMode.Save));
+      await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Save));
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationTokenWithHighTimeout);
 
