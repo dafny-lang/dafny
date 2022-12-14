@@ -608,7 +608,7 @@ namespace Microsoft.Dafny {
             new FunctionCallExpr(tok, "Valid", new ImplicitThisExpr(tok), tok, tok, new List<ActualBinding>()),
             new BinaryExpr(tok, BinaryExpr.Opcode.In,
               new ThisExpr(tok),
-               new MemberSelectExpr(tok, new ImplicitThisExpr(tok), "Repr"), null), null);
+               new MemberSelectExpr(tok, new ImplicitThisExpr(tok), "Repr")));
           valid.Ens.Insert(0, new AttributedExpression(post));
           if (member.tok == cl.tok) {
             // We added this function above, so produce a hover text for the entire function signature

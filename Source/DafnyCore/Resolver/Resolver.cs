@@ -882,7 +882,7 @@ namespace Microsoft.Dafny {
             new BinaryExpr(e.tok, BinaryExpr.Opcode.In, obj,
               new ApplyExpr(e.tok, e, bexprs, e.tok) {
                 Type = new SetType(true, builtIns.ObjectQ())
-              }, null) {
+              }) {
               ResolvedOp =
                 arrTy.Result.AsMultiSetType != null ? BinaryExpr.ResolvedOpcode.InMultiSet :
                 arrTy.Result.AsSeqType != null ? BinaryExpr.ResolvedOpcode.InSeq :
@@ -8991,12 +8991,12 @@ namespace Microsoft.Dafny {
       foreach (var p in iter.Ins) {
         // ensures this.x == x;
         ens.Add(new AttributedExpression(new BinaryExpr(p.tok, BinaryExpr.Opcode.Eq,
-          new MemberSelectExpr(p.tok, new ThisExpr(p.tok), p.Name), new IdentifierExpr(p.tok, p.Name), null)));
+          new MemberSelectExpr(p.tok, new ThisExpr(p.tok), p.Name), new IdentifierExpr(p.tok, p.Name))));
       }
       foreach (var p in iter.OutsHistoryFields) {
         // ensures this.ys == [];
         ens.Add(new AttributedExpression(new BinaryExpr(p.tok, BinaryExpr.Opcode.Eq,
-          new MemberSelectExpr(p.tok, new ThisExpr(p.tok), p.Name), new SeqDisplayExpr(p.tok, new List<Expression>()), null)));
+          new MemberSelectExpr(p.tok, new ThisExpr(p.tok), p.Name), new SeqDisplayExpr(p.tok, new List<Expression>()))));
       }
       // ensures this.Valid();
       var valid_call = new FunctionCallExpr(iter.tok, "Valid", new ThisExpr(iter.tok), iter.tok, iter.tok, new List<ActualBinding>());
@@ -9030,18 +9030,18 @@ namespace Microsoft.Dafny {
       }
       ens.Add(new AttributedExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Eq,
         new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), "_modifies"),
-        new OldExpr(tok, frameSet), null)));
+        new OldExpr(tok, frameSet))));
       // ensures this._new == {};
       ens.Add(new AttributedExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Eq,
         new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), "_new"),
-        new SetDisplayExpr(iter.tok, true, new List<Expression>()), null)));
+        new SetDisplayExpr(iter.tok, true, new List<Expression>()))));
       // ensures this._decreases0 == old(DecreasesClause[0]) && ...;
       Contract.Assert(iter.Decreases.Expressions.Count == iter.DecreasesFields.Count);
       for (int i = 0; i < iter.Decreases.Expressions.Count; i++) {
         var p = iter.Decreases.Expressions[i];
         ens.Add(new AttributedExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Eq,
           new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), iter.DecreasesFields[i].Name),
-          new OldExpr(tok, p), null)));
+          new OldExpr(tok, p))));
       }
 
       // ---------- here comes predicate Valid() ----------
@@ -9067,11 +9067,11 @@ namespace Microsoft.Dafny {
       ens.Add(new AttributedExpression(new FreshExpr(iter.tok,
         new BinaryExpr(iter.tok, BinaryExpr.Opcode.Sub,
           new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), "_new"),
-          new OldExpr(tok, new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), "_new")), null))));
+          new OldExpr(tok, new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), "_new"))))));
       // ensures null !in _new
       ens.Add(new AttributedExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.NotIn,
         new LiteralExpr(iter.tok),
-        new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), "_new"), null)));
+        new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), "_new"))));
       // ensures more ==> this.Valid();
       valid_call = new FunctionCallExpr(iter.tok, "Valid", new ThisExpr(iter.tok), iter.tok, iter.tok, new List<ActualBinding>());
       ens.Add(new AttributedExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Imp,
@@ -9085,7 +9085,7 @@ namespace Microsoft.Dafny {
         var ite = new ITEExpr(iter.tok, false, new IdentifierExpr(iter.tok, "more"),
           new BinaryExpr(iter.tok, BinaryExpr.Opcode.Add,
             new OldExpr(tok, new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), ys.Name)),
-            new SeqDisplayExpr(iter.tok, new List<Expression>() { new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), y.Name) }), null),
+            new SeqDisplayExpr(iter.tok, new List<Expression>() { new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), y.Name) })),
           new OldExpr(tok, new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), ys.Name)));
         var eq = new BinaryExpr(iter.tok, BinaryExpr.Opcode.Eq, new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), ys.Name), ite);
         ens.Add(new AttributedExpression(eq));
@@ -9100,7 +9100,7 @@ namespace Microsoft.Dafny {
       foreach (var e in iter.Ensures) {
         ens.Add(new AttributedExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Imp,
           new UnaryOpExpr(iter.tok, UnaryOpExpr.Opcode.Not, new IdentifierExpr(iter.tok, "more")),
-          e.E, null)
+          e.E)
         ));
       }
       // decreases this._decreases0, this._decreases1, ...;
