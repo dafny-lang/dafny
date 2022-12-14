@@ -50,18 +50,19 @@ jobs:
     - name: Set Z3 Permissions
       if: ${{matrix.chmod}}
       run: |
+        cd dafny
         mkdir bin
         pwd
         ls
-        mv ${{matrix.z3}}/bin/z3* bin/
+        mv ../${{matrix.z3}}/bin/z3* bin/
         chmod +x bin/z3*
         ls -la bin
     - name: Build Dafny
       run: dotnet build dafny/Source/Dafny.sln
     - name: Check
       run: |
+        cd dafny/docs
         pwd
         ls
-        cd docs
         PATH=../bin:$PATH ./check-examples OnlineTutorial/Termination.md
         echo Complete
