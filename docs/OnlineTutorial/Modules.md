@@ -165,7 +165,7 @@ In this example we declare 3 export sets, the `Spec` set grants access to the `a
 
 We can now choose any of these export sets when importing `Helpers` and get different views of it.
 
-```dafny <!-- %check-verify -->
+```dafny <!-- %check-verify Modules.1.expect -->
 module Helpers {
   export Spec provides addOne, addOne_result
   export Body reveals addOne
@@ -178,9 +178,7 @@ module Helpers {
      ensures addOne(n) == n + 1
   { }
 }
-```
 
-```dafny  <!-- %check-verify Modules.1.expect -->
 module Mod1 {
   import A = Helpers`Body
   method m() {
@@ -211,7 +209,7 @@ module Mod3 {
 
 We may also use `export` sets to control which type definitions are available. All type declarations (i.e. `newtype`, `type`, `datatype`, etc.) can be exported as `provides` or `reveals`. In the former case, modules which `import` that type will treat it as an opaque type.
 
-```dafny  <!-- %check-verify Modules.2.expect -->
+```dafny  <!-- %check-resolve Modules.2.expect -->
 module Helpers {
   export provides f, T
   export Body reveals f, T
@@ -280,7 +278,7 @@ module B {
 
 An `export` set must always present a coherent view of a module: anything that appears in an exported declaration must itself be exported. Revisiting the previous example, we could not create an `export` set that `reveals` `f` without also revealing `T`, because the return type of `f` is `T`. This is for the simple reason that we would create a type constraint `0 : T` which cannot be solved if `T` is opaque. Similarly we cannot create an export set that `provides` or `reveals` `f` if we do not also at least provide `T`.
 
-```dafny  <!-- %check-resolve -->
+```dafny  <!-- %check-resolve Modules.3.expect -->
 module Helpers {
   export provides f, T // good
   export Body reveals f, T // good
@@ -293,20 +291,18 @@ module Helpers {
 
 Since we may define modules which contain both `import` and `export` declarations, we may need to export declarations from foreign modules in order to create a consistent `export` set. Declarations from foreign modules cannot be included in an `export` directly, however the `import` that provided them can.
 
-```dafny <!-- %check-verify -->
+```dafny <!-- %check-resolve Modules.4.expect -->
 module Helpers {
   export provides f, T
   type T = int
   function f(): T { 0 }
 }
-```
 
-```dafny  <!-- %check-verify Modules.3.expect -->
 module Mod {
   import A = Helpers
   export Try1 reveals h // error
-  export Try2 reveals h, provides A.f, A.T // error, can't provide these directly
-  export reveals h, provides A // good
+  export Try2 reveals h provides A.f, A.T // error, can't provide these directly
+  export reveals h provides A // good
   function h(): A.T { A.f() }
 }
 ```
@@ -320,7 +316,7 @@ module Helpers {
   function f(): T { 0 }
 }
 module Mod {
-  export reveals h, provides A
+  export reveals h provides A
   import A = Helpers
   function h(): A.T { A.f() }
 }
@@ -360,7 +356,7 @@ definitions. This means if you define a local function called `addOne`, the func
 will no longer be available under that name. When modules are opened, the original name binding is still
 present however, so you can always use the name that was bound to get to anything that is hidden.
 
-```dafny <!-- %check-verify Modules.4.expect -->
+```dafny <!-- %check-verify Modules.5.expect -->
 module Helpers {
   function method addOne(n: nat): nat
   {
@@ -411,6 +407,16 @@ then we can be more precise if we know that `addSome` actually adds exactly one.
 so this is actually a refinement of the `Interface` module.
 
 ```dafny <!-- %check-verify -->
+abstract module Interface {
+  function method addSome(n: nat): nat
+    ensures addSome(n) > n
+}
+abstract module Mod {
+  import A : Interface
+  method m() {
+    assert 6 <= A.addSome(5);
+  }
+}
 module Implementation refines Interface {
   function method addSome(n: nat): nat
     ensures addSome(n) == n + 1
@@ -460,7 +466,7 @@ When you refine an abstract import into a concrete one, the concrete module must
   such that each only refers to things defined <strong>before</strong> it in the source text. That doesn't mean the modules have to be given in that order. Dafny will figure out that order for you, assuming
   you haven't made any circular references. For example, this is pretty clearly meaningless:
 
-```dafny <!-- %check-resolve Modules.5.expect -->
+```dafny <!-- %check-resolve Modules.6.expect -->
 import A = B
 import B = A
 ```
@@ -483,7 +489,7 @@ then Dafny will give an error, complaining about a cyclic dependency.
 Note that when rearranging modules and imports, they have to be kept in the same containing module, which disallows some pathological module structures. Also, the
 imports and submodules are always considered to be first, even at the toplevel. This means that the following is not well formed:
 
-```dafny <!-- %check-verify -->
+```dafny <!-- %check-resolve Modules.7.expect -->
 method doIt() { }
 module M {
   method m() {
