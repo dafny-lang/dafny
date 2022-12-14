@@ -1,37 +1,46 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace Microsoft.Dafny.Auditor;
 
-public record AssumptionDescription(string issue, string mitigation) {
+public record AssumptionDescription(string issue, string mitigation, bool isExplicit) {
   public static AssumptionDescription AxiomAttributeAssumption = new(
     issue: "Declaration has explicit [{:axiom}] attribute.",
-    mitigation: "Provide a proof or test.");
+    mitigation: "Provide a proof or test.",
+    isExplicit: true);
   public static AssumptionDescription VerifyFalseAssumption = new(
     issue: "Declaration has [{:verify false}] attribute.",
-    mitigation: "Remove and prove if possible.");
+    mitigation: "Remove and prove if possible.",
+    isExplicit: false);
   public static AssumptionDescription ExternWithRequires = new(
     issue: "Declaration with [{:extern}] has a requires clause.",
-    mitigation: "Test external caller (maybe with [/testContracts]).");
+    mitigation: "Test external caller (maybe with [/testContracts]).",
+    isExplicit: false);
   public static AssumptionDescription ExternWithEnsures = new(
     issue: "Declaration with [{:extern}] has a ensures clause.",
-    mitigation: "Test external callee (maybe with [/testContracts]).");
+    mitigation: "Test external callee (maybe with [/testContracts]).",
+    isExplicit: false);
   public static AssumptionDescription AssumeInBody = new(
     issue: "Definition has [assume] statement in body.",
-    mitigation: "Replace with [assert] and prove or add [{:axiom}].");
+    mitigation: "Replace with [assert] and prove or add [{:axiom}].",
+    isExplicit: false);
   public static AssumptionDescription DecreasesStar = new(
     issue: "Method may not terminate (uses [decreases *]).",
-    mitigation: "Provide a valid [decreases] clause.");
+    mitigation: "Provide a valid [decreases] clause.",
+    isExplicit: false);
   public static AssumptionDescription TerminationFalse = new(
     issue: "Trait method calls may not terminate (uses [{:termination false}]).",
-    mitigation: "Remove if possible.");
+    mitigation: "Remove if possible.",
+    isExplicit: false);
 
   public static AssumptionDescription NoBody(bool hasEnsures, bool isGhost) {
     return new(
       issue: (isGhost ? "Ghost" : "Compiled") +
              " declaration has no body" +
              (!hasEnsures ? "." : " and has an ensures clause."),
-      mitigation: "Provide a body or add [{:axiom}].");
+      mitigation: "Provide a body or add [{:axiom}].",
+      isExplicit: false);
   }
 }
 
@@ -41,6 +50,7 @@ public record AssumptionDescription(string issue, string mitigation) {
 /// combinations of these properties classify the entity as containing
 /// an assumption.
 /// </summary>
+/*
 public struct AssumptionProperties {
   internal bool IsGhost;
   internal bool IsSubsetType;
@@ -106,11 +116,12 @@ public struct AssumptionProperties {
     return descs;
   }
 }
+*/
 
-public record Assumption(Declaration decl, AssumptionProperties props) {
+public record Assumption(Declaration decl, IEnumerable<AssumptionDescription> assumptions) {
   public IEnumerable<string> Warnings() {
-    foreach (var (problem, mitigation) in props.Description()) {
-      yield return decl.Name + ": " + problem + " Possible mitigation: " + mitigation;
+    foreach (var desc in assumptions) {
+      yield return decl.Name + ": " + desc.issue + " Possible mitigation: " + desc.mitigation;
     }
   }
 }
@@ -118,6 +129,7 @@ public record Assumption(Declaration decl, AssumptionProperties props) {
 /// <summary>
 /// Extracts all assumptions from a declaration.
 /// </summary>
+/*
 public class AssumptionExtractor {
 
   private static bool StmtContainsAssume(Statement s) {
@@ -200,6 +212,7 @@ public class AssumptionExtractor {
     return props;
   }
 }
+*/
 
 /// <summary>
 /// Combines AssumptionExtractor with AuditReport to generate a full
@@ -211,13 +224,13 @@ public class ReportBuilder {
 
     foreach (var moduleDefinition in program.Modules()) {
       foreach (var topLevelDecl in moduleDefinition.TopLevelDecls) {
-        report.AddAssumptions(topLevelDecl, AssumptionExtractor.GetAssumptionTags(topLevelDecl));
+        report.AddAssumptions(topLevelDecl, topLevelDecl.Assumptions);
         if (topLevelDecl is not TopLevelDeclWithMembers topLevelDeclWithMembers) {
           continue;
         }
 
         foreach (var decl in topLevelDeclWithMembers.Members) {
-          report.AddAssumptions(decl, AssumptionExtractor.GetAssumptionTags(decl));
+          report.AddAssumptions(decl, decl.Assumptions);
         }
       }
     }

@@ -14,7 +14,7 @@ namespace Microsoft.Dafny.Auditor;
 public class AuditReport {
   private HashSet<Declaration> declsWithEntries = new();
   private HashSet<ModuleDefinition> modulesWithEntries = new();
-  private Dictionary<Declaration, AssumptionProperties> assumptionsByDecl = new();
+  private Dictionary<Declaration, IEnumerable<AssumptionDescription>> assumptionsByDecl = new();
 
   private void UseDecl(Declaration decl) {
     declsWithEntries.Add(decl);
@@ -27,8 +27,8 @@ public class AuditReport {
         break;
     }
   }
-  public void AddAssumptions(Declaration decl, AssumptionProperties assumptions) {
-    if (assumptions.HasAssumptions()) {
+  public void AddAssumptions(Declaration decl, IEnumerable<AssumptionDescription> assumptions) {
+    if (assumptions.Count() > 0) {
       assumptionsByDecl.Add(decl, assumptions);
       UseDecl(decl);
     }
@@ -56,17 +56,16 @@ public class AuditReport {
   private IEnumerable<string> IssueRow(Assumption a, string issue, string mitigation, Func<string, string> targetFormatter) {
     return new List<string>() {
       GetFullName(a.decl),
-      (!a.props.IsGhost).ToString(),
-      a.props.HasAxiomAttribute.ToString(),
-      a.props.HasExternAttribute.ToString(),
+      (!(a.decl is ICallable c && c.IsGhost)).ToString(),
+      Attributes.Contains(a.decl.Attributes, "axiom").ToString(),
+      Attributes.Contains(a.decl.Attributes, "extern").ToString(),
       targetFormatter(issue),
       targetFormatter(mitigation)
     };
   }
 
   private string RenderAssumptionRows(Assumption a, string beg, string sep, string end, Func<string, string> targetFormatter) {
-    var rows = a.props
-      .Description()
+    var rows = a.assumptions
       .Select((desc, _) => RenderRow(beg, sep, end, IssueRow(a, desc.issue, desc.mitigation, targetFormatter)));
     return rows.Count() > 0 ? String.Join("\n", rows) : a.ToString();
   }
@@ -121,10 +120,8 @@ public class AuditReport {
         text.AppendLine("");
         text.AppendLine($"## Type `{topLevelDecl.Name}`");
 
-        if (assumptionsByDecl.ContainsKey(topLevelDecl)) {
-          foreach (var desc in assumptionsByDecl[topLevelDecl].Description()) {
-            AppendMarkdownIETFDescription(desc, text);
-          }
+        foreach (var desc in topLevelDecl.Assumptions) {
+          AppendMarkdownIETFDescription(desc, text);
         }
 
         if (topLevelDecl is not TopLevelDeclWithMembers topLevelDeclWithMembers) {
@@ -137,10 +134,8 @@ public class AuditReport {
 
           text.AppendLine("");
           text.AppendLine($"## Member `{decl.Name}`");
-          if (assumptionsByDecl.ContainsKey(decl)) {
-            foreach (var desc in assumptionsByDecl[decl].Description()) {
-              AppendMarkdownIETFDescription(desc, text);
-            }
+          foreach (var desc in decl.Assumptions) {
+            AppendMarkdownIETFDescription(desc, text);
           }
         }
       }

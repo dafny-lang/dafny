@@ -3,6 +3,7 @@ using System.CommandLine;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Numerics;
+using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
@@ -33,6 +34,30 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
 
   public override bool CanBeRevealed() {
     return true;
+  }
+
+  public override IEnumerable<AssumptionDescription> Assumptions {
+    get {
+      foreach (var a in base.Assumptions) {
+        yield return a;
+      }
+
+      if (Children.Any(n => n is AssumeStmt)) {
+        yield return AssumptionDescription.AssumeInBody;
+      }
+
+      if (Body is null) {
+        yield return AssumptionDescription.NoBody(Ens.Count > 0, IsGhost);
+      }
+
+      if (Attributes.Contains(Attributes, "extern") && Ens.Count > 0) {
+        yield return AssumptionDescription.ExternWithEnsures;
+      }
+
+      if (Attributes.Contains(Attributes, "extern") && Req.Count > 0) {
+        yield return AssumptionDescription.ExternWithRequires;
+      }
+    }
   }
 
   [FilledInDuringResolution] public bool IsRecursive;

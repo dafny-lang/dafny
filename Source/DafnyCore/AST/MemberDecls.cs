@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
@@ -465,6 +466,34 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext {
   public Method Original => OverriddenMethod == null ? this : OverriddenMethod.Original;
   public override bool IsOverrideThatAddsBody => base.IsOverrideThatAddsBody && Body != null;
   private static BlockStmt emptyBody = new BlockStmt(Token.NoToken, Token.NoToken, new List<Statement>());
+
+  public override IEnumerable<AssumptionDescription> Assumptions {
+    get {
+      foreach (var a in base.Assumptions) {
+        yield return a;
+      }
+
+      if (Children.Any(n => n is AssumeStmt)) {
+        yield return AssumptionDescription.AssumeInBody;
+      }
+
+      if (Body is null) {
+        yield return AssumptionDescription.NoBody(Ens.Count > 0, IsGhost);
+      }
+
+      if (Attributes.Contains(Attributes, "extern") && Ens.Count > 0) {
+        yield return AssumptionDescription.ExternWithEnsures;
+      }
+
+      if (Attributes.Contains(Attributes, "extern") && Req.Count > 0) {
+        yield return AssumptionDescription.ExternWithRequires;
+      }
+
+      if (AllowsNontermination) {
+        yield return AssumptionDescription.DecreasesStar;
+      }
+    }
+  }
 
   public override IEnumerable<Expression> SubExpressions {
     get {
