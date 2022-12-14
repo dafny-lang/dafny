@@ -293,7 +293,7 @@ public class YieldStmt : ProduceStmt {
   }
 }
 
-public abstract class AssignmentRhs : INode {
+public abstract class AssignmentRhs : INode, IAttributeBearingDeclaration {
   public readonly IToken Tok;
 
   private Attributes attributes;

@@ -235,6 +235,98 @@ module JustAboutEverything {
   method ModifyStatement(s: set<object>) {
     modify {:myAttr false + 3} s; // error: false + 3 is ill-typed
   }
+
+  method LocalVariablesAndAssignments(opt: Option<int>) returns (r: Option<int>) {
+    // variables declared with attributes
+    var
+      {:boolAttr false + 3} a: int, // error: false + 3 is ill-typed
+      {:boolAttr false + 3} b: int; // error: false + 3 is ill-typed
+      
+    // simple assignments, where each RHS has an attribute
+    var x, y :=
+      10 {:boolAttr false + 3}, // error: false + 3 is ill-typed
+      20 {:boolAttr false + 3}; // error: false + 3 is ill-typed
+    x, y :=
+      10 {:boolAttr false + 3}, // error: false + 3 is ill-typed
+      20 {:boolAttr false + 3}; // error: false + 3 is ill-typed
+
+    // method call, where either the variable or the RHS has an attribute
+    var {:boolAttr false + 3} u0 := If(13); // error: false + 3 is ill-typed
+    var u1 := If(13) {:boolAttr false + 3}; // error: false + 3 is ill-typed
+    u1 := If(13) {:boolAttr false + 3}; // error: false + 3 is ill-typed
+    
+    // arbitrary assignment, where either the variable or the RHS has an attribute
+    var {:boolAttr false + 3} k0: int := *; // error: false + 3 is ill-typed
+    var k1: int := * {:boolAttr false + 3}; // error: false + 3 is ill-typed
+    k1 := * {:boolAttr false + 3}; // error: false + 3 is ill-typed
+    
+    // allocation, where either the variable or the RHS has an attribute
+    var {:boolAttr false + 3} c0 := new CClass; // error: false + 3 is ill-typed
+    var c1 := new CClass {:boolAttr false + 3}; // error: false + 3 is ill-typed
+    c1 := new CClass {:boolAttr false + 3}; // error: false + 3 is ill-typed
+    var {:boolAttr false + 3} d0 := new DClass(); // error: false + 3 is ill-typed
+    var d1 := new DClass() {:boolAttr false + 3}; // error: false + 3 is ill-typed
+    d1 := new DClass() {:boolAttr false + 3}; // error: false + 3 is ill-typed
+
+    // assign-such-that, where variable has an attribute
+    var s := {101};
+    var {:boolAttr false + 3} w0 :| w0 in s; // error: false + 3 is ill-typed
+    var
+      {:boolAttr false + 3} w1, // error: false + 3 is ill-typed
+      {:boolAttr false + 3} w2 // error: false + 3 is ill-typed
+      :| w1 in s && w2 in s;
+
+    // :- with expression RHS, where variable declarations have attributes
+    var {:boolAttr false + 3} f0 :- opt;
+    var
+      {:boolAttr false + 3} f1,
+      {:boolAttr false + 3} f2
+      :- opt, true;
+    // :- with call RHS, where variable declarations have attributes
+    var {:boolAttr false + 3} f3 :- GiveOption();
+    var
+      {:boolAttr false + 3} f4,
+      {:boolAttr false + 3} f5
+      :- GiveOptions();
+
+    // :- with expression RHS, where RHSs have attributes
+//    var g0 :- opt {:boolAttr false + 3}; // NOT ALLOWED BY PARSER
+//    var g1, g2 :-
+//      opt {:boolAttr false + 3}, // NOT ALLOWED BY PARSER
+//      true {:boolAttr false + 3};
+    var g3, g4, g5 :-
+      opt, 
+      true {:boolAttr false + 3}, // FAILS TO PRINT THIS RHS!
+      true {:boolAttr false + 3}; // FAILS TO PRINT THIS RHS!
+    // :- with call RHS, where variable declarations have attributes
+//    var g6 :- GiveOption() {:boolAttr false + 3}; // NOT ALLOWED BY PARSER
+//    var g7, g8 :- GiveOptions() {:boolAttr false + 3}; // NOT ALLOWED BY PARSER
+  }
+
+  class CClass {
+  }
+  class DClass {
+    constructor () { }
+  }
+  
+  method GiveOption() returns (r: Option<int>)
+  method GiveOptions() returns (r: Option<int>, s: int)
+
+  datatype Option<+T> = None | Some(value: T) {
+    predicate method IsFailure() {
+      None?
+    }
+    function method PropagateFailure<U>(): Option<U>
+      requires None?
+    {
+      None
+    }
+    function method Extract(): T
+      requires Some?
+    {
+      value
+    }
+  }
 }
 
 module

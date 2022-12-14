@@ -11431,6 +11431,7 @@ namespace Microsoft.Dafny {
         if (isEffectful && firstEffectfulRhs == null) {
           firstEffectfulRhs = rhs.Tok;
         }
+        ResolveAttributes(rhs, resolutionContext);
         j++;
       }
 
@@ -11703,7 +11704,7 @@ namespace Microsoft.Dafny {
       for (int k = (expectExtract ? 1 : 0); k < s.Lhss.Count; ++k) {
         lhss2.Add(s.Lhss[k]);
       }
-      List<AssignmentRhs> rhss2 = new List<AssignmentRhs>() { new ExprRhs(s.Rhs) };
+      List<AssignmentRhs> rhss2 = new List<AssignmentRhs>() { new ExprRhs(s.Rhs, s.Attributes) };
       if (s.Rhss != null) {
         s.Rhss.ForEach(e => rhss2.Add(e));
       }
