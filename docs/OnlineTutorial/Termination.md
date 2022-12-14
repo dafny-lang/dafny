@@ -83,7 +83,7 @@ recursion. For each function/method that is possibly recursive, it requires
 either an explicit or implicit decreases annotation on the function or method.
 Most recursive functions/methods are self-recursive:
 
-```dafnya<!-- %check-ok -->
+```dafny <!-- %check-ok -->
 function fac(n: nat): nat
 {
   if n == 0 then 1 else n * fac(n-1)
@@ -139,7 +139,7 @@ want details.) The final kind of termination measure is a tuple of the other kin
 measures. For example, the following implementation of the Ackermann function
 uses a pair of integers to prove termination:
 
-```dafnya<!-- %check-ok -->
+```dafny <!-- %check-ok -->
 function Ack(m: nat, n: nat): nat
   decreases m, n
 {

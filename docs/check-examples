@@ -35,7 +35,7 @@
 ## under test):
 ##   %no-check : do nothing
 ##   %check-ok <expect> : runs the command 
-##              "dafny verify -useBaseNameForFilename $F" and checks 
+##              "dafny verify --useBaseNameForFileName $F" and checks 
 ##              (1) that the exit code is 0
 ##              (2) if <expect> is non-empty then it names a file whose
 ##                  content matches the actrual output of the above command
@@ -64,7 +64,7 @@ text=text.dfy
 ## Tracks if there have been any failures
 ANYFAIL=0
 
-## Loop over all remaining comman-line arguments
+## Loop over all remaining command-line arguments
 for file in $@ ; do
 
 ## Whether this file fails
@@ -130,10 +130,14 @@ do
           echo EXPECTED A dafny BLOCK, NOT $lang
           FAIL=1
         else
-          "$dafny" verify -useBaseNameForFileName $text > actual
+          "$dafny" verify --useBaseNameForFileName $text > actual
           if [ $? -ne "0" ]; then
             echo "TEST FAILED" $file line $n  $command $expect
             cat $text
+            cat actual
+            FAIL=1
+          elif [ `cat actual | wc -l ` != "2" ]; then
+            echo EXPECTED SUCCESS OUTPUT
             cat actual
             FAIL=1
           fi
