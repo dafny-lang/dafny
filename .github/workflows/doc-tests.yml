@@ -56,14 +56,12 @@ jobs:
         mv ${{matrix.z3}}/bin/z3* bin/
         chmod +x bin/z3*
         ls -la bin
-        echo "Z3?"
-        which z3
     - name: Build Dafny
       run: dotnet build dafny/Source/Dafny.sln
     - name: Check
       run: |
         pwd
         ls
-        cd dafny/docs
-        ./check-examples OnlineTutorial/Termination.md
+        cd docs
+        PATH=../bin:$PATH ./check-examples OnlineTutorial/Termination.md
         echo Complete
