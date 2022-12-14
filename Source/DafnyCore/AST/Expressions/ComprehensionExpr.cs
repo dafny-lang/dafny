@@ -362,6 +362,8 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
     this.BodyEndTok = endTok;
   }
 
+  public override IEnumerable<INode> Children => (Attributes != null ? new List<INode> { Attributes } : Enumerable.Empty<INode>()).Concat(SubExpressions);
+
   public override IEnumerable<Expression> SubExpressions {
     get {
       foreach (var e in Attributes.SubExpressions(Attributes)) {
