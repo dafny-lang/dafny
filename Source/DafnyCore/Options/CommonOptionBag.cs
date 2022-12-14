@@ -123,7 +123,9 @@ true - The char type represents any Unicode scalar value.".TrimStart());
 
   static CommonOptionBag() {
     DafnyOptions.RegisterLegacyBinding(SolverPath, (options, value) => {
-      options.ProverOptions.Add($"PROVER_PATH={value}");
+      if (!string.IsNullOrEmpty(value)) {
+        options.ProverOptions.Add($"PROVER_PATH={value}");
+      }
     });
     DafnyOptions.RegisterLegacyBinding(IncludeRuntime, (options, value) => {
       options.UseRuntimeLib = !value;
