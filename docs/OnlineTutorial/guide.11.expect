@@ -1,0 +1,5 @@
+text.dfy(9,0): Error: A postcondition might not hold on this return path.
+text.dfy(8,12): Related location: This is the postcondition that might not hold.
+text.dfy(11,0): Error: out-parameter 'b', which is subject to definite-assignment rules, might be uninitialized at this return point
+
+Dafny program verifier finished with 1 verified, 2 errors

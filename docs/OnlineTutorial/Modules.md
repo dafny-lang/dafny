@@ -59,12 +59,13 @@ module by prefixing them with "`Helpers.`". For example:
 module Mod {
   module Helpers {
     class C {
+      constructor () { f := 0; }
       method doIt()
       var f: int;
     }
   }
   method m() {
-    var x := new Helpers.C;
+    var x := new Helpers.C();
     x.doIt();
     x.f := 4;
   }

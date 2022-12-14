@@ -129,11 +129,10 @@ do
     else
       ## End of backtick block, so check the text
       inblock=0
-      ##echo TESTING $command $expect
+      echo TESTING $n $file $expect
       if [ "$command" == "%no-check" ]; then
         echo -n ""
       elif [ "$command" == "%check-verify" ]; then
-        echo TESTING $n $file
         if [ "$lang" != "dafny" ]; then
           echo EXPECTED A dafny BLOCK, NOT $lang
           FAIL=1
@@ -148,7 +147,7 @@ do
               FAIL=1
             fi
             if [ `cat actual | wc -l ` != "2" ]; then
-              echo EXPECTED SUCCESS OUTPUT
+              echo ACTUAL ERROR OUTPUT BUT NONE EXPECTED
               cat actual
               FAIL=1
             fi
@@ -157,22 +156,28 @@ do
               echo EXPECTED EXIT CODE 4, got $ec
               FAIL=1
             fi
-            diff actual $expect
-            if [ "$?" -ne "0" ]; then
+            if [ -e "$expect" ]; then
+              diff actual "$expect"
+              if [ "$?" -ne "0" ]; then
+                FAIL=1
+                echo Actual output differs from expected
+                echo "TEST FAILED" $file line $n  $command $expect
+                cat $text
+                cat actual
+              fi
+            else
+              echo EXPECT FILE $expect DOES NOT EXIST
+              cat actual
               FAIL=1
-              echo Actual output differs from expected
-              echo "TEST FAILED" $file line $n  $command $expect
-              cat $text
             fi
           fi
         fi
       elif [ "$command" == "%check-resolve" ]; then
-        echo TESTING $n $file
         if [ "$lang" != "dafny" ]; then
           echo EXPECTED A dafny BLOCK, NOT $lang
           FAIL=1
         else
-          "$dafny" verify --useBaseNameForFileName $text > actual
+          "$dafny" resolve --useBaseNameForFileName $text > actual
           ec=$?
           if [ -z "$expect" ]; then
             if [ "$ec" != "0" ]; then
@@ -182,7 +187,7 @@ do
               FAIL=1
             fi
             if [ `cat actual | wc -l ` != "2" ]; then
-              echo EXPECTED SUCCESS OUTPUT
+              echo ACTUAL ERROR OUTPUT BUT NONE EXPECTED
               cat actual
               FAIL=1
             fi
@@ -191,12 +196,19 @@ do
               echo EXPECTED EXIT CODE 2, got $ec
               FAIL=1
             fi
-            diff actual $expect
-            if [ "$?" -ne "0" ]; then
+            if [ -e "$expect" ]; then
+              diff actual $expect
+              if [ "$?" -ne "0" ]; then
+                FAIL=1
+                echo Actual output differs from expected
+                echo "TEST FAILED" $file line $n  $command $expect
+                cat $text
+                cat actual
+              fi
+            else 
+              echo EXPECT FILE $expect DOES NOT EXIST
+              cat actual
               FAIL=1
-              echo Actual output differs from expected
-              echo "TEST FAILED" $file line $n  $command $expect
-              cat $text
             fi
           fi
         fi
@@ -235,7 +247,7 @@ do
     fi
   elif [ "$inblock" == "1" ]; then
     ## If in a backtick block, save the text to the temporary file
-    echo "$line" >> $text
+    echo "$line" | sed -e 's/\.\.\./   /' >> $text
   fi
 done < $file
 

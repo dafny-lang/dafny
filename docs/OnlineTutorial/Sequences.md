@@ -175,7 +175,7 @@ Can you fill in the code below that does this?
 
 ```dafny <!-- %check-verify -->
 function update(s: seq<int>, i: int, v: int): seq<int>
-  requires 0 <= index < |s|
+  requires 0 <= i < |s|
   ensures update(s, i, v) == s[i := v]
 {
   s[..i] + [v] + s[i+1..]
@@ -190,7 +190,7 @@ using the same "slice" notation as above:
 ```dafny <!-- %check-verify -->
 method m()
 {
-  var a := new int[3]; // 3 element array of ints
+  var a := new int[][42, 43, 44]; // 3 element array of ints
   a[0], a[1], a[2] := 0, 3, -1;
   var s := a[..];
   assert s == [0, 3, -1];
@@ -203,7 +203,7 @@ slicing operation:
 ```dafny <!-- %check-verify -->
 method m()
 {
-  var a := new int[3]; // 3 element array of ints
+  var a := new int[][42, 43, 44]; // 3 element array of ints
   a[0], a[1], a[2] := 0, 3, -1;
   assert a[1..] == [3, -1];
   assert a[..1] == [0];
