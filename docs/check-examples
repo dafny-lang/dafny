@@ -180,8 +180,6 @@ do
            FAIL=1
         fi
         msg=
-##     elif [ "$command" == "" ]; then
-##        echo -n
       else
          echo UNKNOWN TEST COMMAND $command
          FAIL=1
