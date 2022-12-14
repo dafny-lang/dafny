@@ -89,7 +89,9 @@ public abstract class Statement : IAttributeBearingDeclaration, INode {
   /// </summary>
   public virtual IEnumerable<Expression> SpecificationSubExpressions {
     get {
-      yield break;
+      foreach (var e in Attributes.SubExpressions(Attributes)) {
+        yield return e;
+      }
     }
   }
 
@@ -99,9 +101,7 @@ public abstract class Statement : IAttributeBearingDeclaration, INode {
   /// </summary>
   public virtual IEnumerable<Expression> NonSpecificationSubExpressions {
     get {
-      foreach (var e in Attributes.SubExpressions(Attributes)) {
-        yield return e;
-      }
+      yield break;
     }
   }
 
@@ -556,9 +556,9 @@ public class VarDeclStmt : Statement {
     get { if (Update != null) { yield return Update; } }
   }
 
-  public override IEnumerable<Expression> NonSpecificationSubExpressions {
+  public override IEnumerable<Expression> SpecificationSubExpressions {
     get {
-      foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
+      foreach (var e in base.SpecificationSubExpressions) { yield return e; }
       foreach (var v in Locals) {
         foreach (var e in Attributes.SubExpressions(v.Attributes)) {
           yield return e;
