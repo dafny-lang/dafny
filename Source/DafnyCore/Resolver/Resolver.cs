@@ -9015,7 +9015,7 @@ namespace Microsoft.Dafny {
       }
       ens.Add(new AttributedExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Eq,
         new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), "_reads"),
-        new OldExpr(tok, frameSet), null)));
+        new OldExpr(tok, frameSet))));
       // ensures this._modifies == old(ModifiesClause);
       modSetSingletons = new List<Expression>();
       frameSet = new SetDisplayExpr(iter.tok, true, modSetSingletons);
@@ -9076,7 +9076,7 @@ namespace Microsoft.Dafny {
       valid_call = new FunctionCallExpr(iter.tok, "Valid", new ThisExpr(iter.tok), iter.tok, iter.tok, new List<ActualBinding>());
       ens.Add(new AttributedExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Imp,
         new IdentifierExpr(iter.tok, "more"),
-        valid_call, null)));
+        valid_call)));
       // ensures this.ys == if more then old(this.ys) + [this.y] else old(this.ys);
       Contract.Assert(iter.OutsFields.Count == iter.OutsHistoryFields.Count);
       for (int i = 0; i < iter.OutsFields.Count; i++) {
