@@ -234,4 +234,5 @@ if [ $FAIL -eq "1" ] ; then
 fi
 
 done
+rm -f actual $text
 exit $ANYFAIL
