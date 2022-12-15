@@ -87,7 +87,7 @@ public class ForallStmt : Statement, ICloneable<ForallStmt> {
           // dig further into s
         } else if (s is UpdateStmt) {
           var update = (UpdateStmt)s;
-          if (update.ResolvedStatements.Count == 1) {
+          if (update.ResolvedStatements?.Count == 1) {
             s = update.ResolvedStatements[0];
             // dig further into s
           } else {
