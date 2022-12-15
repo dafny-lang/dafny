@@ -1426,22 +1426,22 @@ NoGhost - disable printing of functions, ghost methods, and proof
         // Print ResolvedStatement, if present, as comment
         var s = (NestedMatchStmt)stmt;
 
-        // if (s.ResolvedStatement != null && DafnyOptions.O.DafnyPrintResolvedFile != null) {
-        //   wr.WriteLine();
-        //   if (!printingDesugared) {
-        //     Indent(indent); wr.WriteLine("/*---------- desugared ----------");
-        //   }
-        //
-        //   var savedDesugarMode = printingDesugared;
-        //   printingDesugared = true;
-        //   Indent(indent); PrintStatement(s.ResolvedStatement, indent);
-        //   printingDesugared = savedDesugarMode;
-        //
-        //   if (!printingDesugared) {
-        //     Indent(indent); wr.WriteLine("---------- end desugared ----------*/");
-        //   }
-        //   Indent(indent);
-        // }
+        if (s.ResolvedStatement != null && DafnyOptions.O.DafnyPrintResolvedFile != null) {
+          wr.WriteLine();
+          if (!printingDesugared) {
+            Indent(indent); wr.WriteLine("/*---------- desugared ----------");
+          }
+
+          var savedDesugarMode = printingDesugared;
+          printingDesugared = true;
+          Indent(indent); PrintStatement(s.ResolvedStatement, indent);
+          printingDesugared = savedDesugarMode;
+
+          if (!printingDesugared) {
+            Indent(indent); wr.WriteLine("---------- end desugared ----------*/");
+          }
+          Indent(indent);
+        }
 
         if (!printingDesugared) {
           wr.Write("match");
@@ -1472,6 +1472,11 @@ NoGhost - disable printing of functions, ghost methods, and proof
             wr.Write("}");
           }
         }
+      }  else if (stmt is ConcreteSyntaxStatement && ((ConcreteSyntaxStatement)stmt).ResolvedStatement != null) {
+        var s = (ConcreteSyntaxStatement)stmt;
+        Indent(indent);
+        PrintStatement(s.ResolvedStatement, indent);
+        wr.WriteLine();
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;
         if (DafnyOptions.O.DafnyPrintResolvedFile == null && s.OrigUnresolved != null) {
@@ -1908,21 +1913,21 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
       } else if (expr is NestedMatchExpr) {
         var e = (NestedMatchExpr)expr;
-        // if (e.ResolvedExpression != null && DafnyOptions.O.DafnyPrintResolvedFile != null) {
-        //   wr.WriteLine();
-        //   if (!printingDesugared) {
-        //     Indent(indent); wr.WriteLine("/*---------- desugared ----------");
-        //   }
-        //
-        //   var savedDesugarMode = printingDesugared;
-        //   printingDesugared = true;
-        //   PrintExtendedExpr(e.ResolvedExpression, indent, isRightmost, endWithCloseParen);
-        //   printingDesugared = savedDesugarMode;
-        //
-        //   if (!printingDesugared) {
-        //     Indent(indent); wr.WriteLine("---------- end desugared ----------*/");
-        //   }
-        // }
+        if (e.ResolvedExpression != null && DafnyOptions.O.DafnyPrintResolvedFile != null) {
+          wr.WriteLine();
+          if (!printingDesugared) {
+            Indent(indent); wr.WriteLine("/*---------- desugared ----------");
+          }
+
+          var savedDesugarMode = printingDesugared;
+          printingDesugared = true;
+          PrintExtendedExpr(e.ResolvedExpression, indent, isRightmost, endWithCloseParen);
+          printingDesugared = savedDesugarMode;
+
+          if (!printingDesugared) {
+            Indent(indent); wr.WriteLine("---------- end desugared ----------*/");
+          }
+        }
         if (!printingDesugared) {
           Indent(indent);
           var parensNeeded = !isRightmost && !e.UsesOptionalBraces;
