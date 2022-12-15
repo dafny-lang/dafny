@@ -664,8 +664,8 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt> {
   public readonly bool CanMutateKnownState;
   public Expression OriginalInitialLhs = null;
 
-  [FilledInDuringResolution] public List<Statement> ResolvedStatements = null;
-  public override IEnumerable<Statement> SubStatements => ResolvedStatements;
+  [FilledInDuringResolution] public List<Statement> ResolvedStatements;
+  public override IEnumerable<Statement> SubStatements => Children.OfType<Statement>();
 
   public override IEnumerable<INode> Children => ResolvedStatements ?? Lhss.Concat<INode>(Rhss);
 
