@@ -450,7 +450,6 @@ module Implementation refines Interface {
 module Mod2 refines Mod {
   import A = Implementation
   method m() {
-    //...;
     // this is now provable, because we know A is Implementation
     assert 6 == A.addSome(5);
   }
