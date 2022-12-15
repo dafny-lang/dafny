@@ -241,7 +241,7 @@ module JustAboutEverything {
     var
       {:boolAttr false + 3} a: int, // error: false + 3 is ill-typed
       {:boolAttr false + 3} b: int; // error: false + 3 is ill-typed
-      
+
     // simple assignments, where each RHS has an attribute
     var x, y :=
       10 {:boolAttr false + 3}, // error: false + 3 is ill-typed
@@ -254,12 +254,12 @@ module JustAboutEverything {
     var {:boolAttr false + 3} u0 := If(13); // error: false + 3 is ill-typed
     var u1 := If(13) {:boolAttr false + 3}; // error: false + 3 is ill-typed
     u1 := If(13) {:boolAttr false + 3}; // error: false + 3 is ill-typed
-    
+
     // arbitrary assignment, where either the variable or the RHS has an attribute
     var {:boolAttr false + 3} k0: int := *; // error: false + 3 is ill-typed
     var k1: int := * {:boolAttr false + 3}; // error: false + 3 is ill-typed
     k1 := * {:boolAttr false + 3}; // error: false + 3 is ill-typed
-    
+
     // allocation, where either the variable or the RHS has an attribute
     var {:boolAttr false + 3} c0 := new CClass; // error: false + 3 is ill-typed
     var c1 := new CClass {:boolAttr false + 3}; // error: false + 3 is ill-typed
@@ -341,7 +341,7 @@ module JustAboutEverything {
   class DClass {
     constructor () { }
   }
-  
+
   method GiveOption() returns (r: Option<int>)
   method GiveOptions() returns (r: Option<int>, s: int)
   method GiveMustHave() returns (r: MustHave<int>)
