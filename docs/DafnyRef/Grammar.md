@@ -232,7 +232,7 @@ Comments are in two forms.
 Comments may be nested,
 but note that the nesting of multi-line comments is behavior that is different
 from most programming languages. In Dafny,
-```dafny
+```dafny <!-- %check-resolve -->
 method m() {
   /* comment
      /* nested comment
@@ -248,7 +248,7 @@ the contents of a comment are not interpreted.
 Comments may contain any characters.
 
 Note that the nesting is not fool-proof. In
-```dafny
+```dafny <!-- %check-resolve Grammar.1.expect -->
 method m() {
   /* var i: int;
      // */ line comment
@@ -257,7 +257,7 @@ method m() {
 }
 ```
 and
-```dafny
+```dafny <!-- %check-resolve Grammar.2.expect -->
 method m() {
   /* var i: int;
      var s: string := "a*/b";
