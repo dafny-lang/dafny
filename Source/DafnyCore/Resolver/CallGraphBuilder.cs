@@ -73,7 +73,7 @@ namespace Microsoft.Dafny {
         CodeContext = codeContext;
       }
     }
-    
+
     /// <summary>
     /// This method, the two AddCallGraphEdge methods, and AddTypeDependencyEdges are what the
     /// CallGraphBuilder is all about. These two methods are called during the traversal of the
