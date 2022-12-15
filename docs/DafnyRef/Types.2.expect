@@ -1,0 +1,3 @@
+text.dfy(5,15): Error: Ambiguous use of &, |, ^. Use parentheses to disambiguate.
+text.dfy(5,17): Error: invalid AssertStmt
+2 parse errors detected in text.dfy
