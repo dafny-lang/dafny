@@ -129,7 +129,7 @@ do
     else
       ## End of backtick block, so check the text
       inblock=0
-      echo TESTING $n $file $expect
+      echo TESTING $n $file $command $expect
       if [ "$command" == "%no-check" ]; then
         echo -n ""
       elif [ "$command" == "%check-verify" ]; then
