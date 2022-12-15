@@ -1693,6 +1693,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
         var stmt = (AssignOrReturnStmt)s;
         wr.Write(":- ");
         PrintExpression(stmt.Rhs, true);
+        foreach (var rhs in stmt.Rhss) {
+          wr.Write(", ");
+          PrintRhs(rhs);
+        }
         if (DafnyOptions.O.DafnyPrintResolvedFile != null && stmt.ResolvedStatements.Count > 0) {
           wr.WriteLine();
           Indent(indent); wr.WriteLine("/*---------- desugared ----------");

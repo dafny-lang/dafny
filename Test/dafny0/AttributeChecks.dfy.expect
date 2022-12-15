@@ -298,10 +298,10 @@ module JustAboutEverything {
     var {:boolAttr false + 3} w0 :| w0 in s;
     var {:boolAttr false + 3} w1, {:boolAttr false + 3} w2 :| w1 in s && w2 in s;
     var {:boolAttr false + 3} f0 :- opt;
-    var {:boolAttr false + 3} f1, {:boolAttr false + 3} f2 :- opt;
+    var {:boolAttr false + 3} f1, {:boolAttr false + 3} f2 :- opt, true;
     var {:boolAttr false + 3} f3 :- GiveOption();
     var {:boolAttr false + 3} f4, {:boolAttr false + 3} f5 :- GiveOptions();
-    var g3, g4, g5 :- opt;
+    var g3, g4, g5 :- opt, true {:boolAttr false + 4}, true {:boolAttr false + 5};
   }
 
   method GiveOption() returns (r: Option<int>)

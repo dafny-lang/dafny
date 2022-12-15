@@ -295,9 +295,9 @@ module JustAboutEverything {
 //      opt {:boolAttr false + 3}, // NOT ALLOWED BY PARSER
 //      true {:boolAttr false + 3};
     var g3, g4, g5 :-
-      opt, 
-      true {:boolAttr false + 3}, // FAILS TO PRINT THIS RHS!
-      true {:boolAttr false + 3}; // FAILS TO PRINT THIS RHS!
+      opt,
+      true {:boolAttr false + 4},
+      true {:boolAttr false + 5};
     // :- with call RHS, where variable declarations have attributes
 //    var g6 :- GiveOption() {:boolAttr false + 3}; // NOT ALLOWED BY PARSER
 //    var g7, g8 :- GiveOptions() {:boolAttr false + 3}; // NOT ALLOWED BY PARSER
