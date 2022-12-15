@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 
 namespace Microsoft.Dafny;
 
@@ -57,4 +58,6 @@ public class AlternativeLoopStmt : LoopStmt, ICloneable<AlternativeLoopStmt> {
       }
     }
   }
+
+  public override IEnumerable<INode> Children => SpecificationSubExpressions.Concat<INode>(Alternatives);
 }

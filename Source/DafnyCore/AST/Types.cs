@@ -7,11 +7,12 @@ using System.Threading;
 
 namespace Microsoft.Dafny;
 
-public abstract class Type {
+public abstract class Type : INode {
   public static readonly BoolType Bool = new BoolType();
   public static readonly CharType Char = new CharType();
   public static readonly IntType Int = new IntType();
   public static readonly RealType Real = new RealType();
+  public override IEnumerable<INode> Children { get; } = new List<INode>();
   public static Type Nat() { return new UserDefinedType(Token.NoToken, "nat", null); }  // note, this returns an unresolved type
   public static Type String() { return new UserDefinedType(Token.NoToken, "string", null); }  // note, this returns an unresolved type
   public static readonly BigOrdinalType BigOrdinal = new BigOrdinalType();
@@ -255,6 +256,12 @@ public abstract class Type {
   /// Return a type that is like "this", but where occurrences of type parameters are substituted as indicated by "subst".
   /// </summary>
   public abstract Type Subst(IDictionary<TypeParameter, Type> subst);
+
+
+  /// <summary>
+  /// Return a type that is like "type", but with type arguments "arguments".
+  /// </summary>
+  public abstract Type ReplaceTypeArguments(List<Type> arguments);
 
   /// <summary>
   /// Returns whether or not "this" and "that" denote the same type, modulo proxies and type synonyms and subset types.
@@ -937,10 +944,9 @@ public abstract class Type {
     }
   }
 
-  public static bool FromSameHead_Subtype(Type t, Type u, BuiltIns builtIns, out Type a, out Type b) {
+  public static bool FromSameHead_Subtype(Type t, Type u, out Type a, out Type b) {
     Contract.Requires(t != null);
     Contract.Requires(u != null);
-    Contract.Requires(builtIns != null);
     if (FromSameHead(t, u, out a, out b)) {
       return true;
     }
@@ -1751,7 +1757,11 @@ public abstract class ArtificialType : Type {
   }
 
   public override Type Subst(IDictionary<TypeParameter, Type> subst) {
-    throw new NotImplementedException();
+    throw new NotSupportedException();
+  }
+
+  public override Type ReplaceTypeArguments(List<Type> arguments) {
+    throw new NotSupportedException();
   }
 }
 /// <summary>
@@ -1784,11 +1794,16 @@ public abstract class NonProxyType : Type {
 }
 
 public abstract class BasicType : NonProxyType {
+  public override IEnumerable<INode> Children => Enumerable.Empty<INode>();
   public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl>/*?*/ visitedDatatypes) {
     return false;
   }
 
   public override Type Subst(IDictionary<TypeParameter, Type> subst) {
+    return this;
+  }
+
+  public override Type ReplaceTypeArguments(List<Type> arguments) {
     return this;
   }
 }
@@ -1920,6 +1935,10 @@ public class SelfType : NonProxyType {
     }
   }
 
+  public override Type ReplaceTypeArguments(List<Type> arguments) {
+    throw new NotSupportedException();
+  }
+
   public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl>/*?*/ visitedDatatypes) {
     // SelfType is used only with bitvector types
     return false;
@@ -2049,11 +2068,17 @@ public class ArrowType : UserDefinedType {
     return new ArrowType(tok, (ArrowTypeDecl)ResolvedClass, Args.ConvertAll(u => u.Subst(subst)), Result.Subst(subst));
   }
 
+  public override Type ReplaceTypeArguments(List<Type> arguments) {
+    return new ArrowType(tok, (ArrowTypeDecl)ResolvedClass, arguments);
+  }
+
   public override bool SupportsEquality {
     get {
       return false;
     }
   }
+
+  public override IEnumerable<INode> Children => Args.Concat(new List<INode>() { Result });
 }
 
 public abstract class CollectionType : NonProxyType {
@@ -2145,6 +2170,10 @@ public class SetType : CollectionType {
     return arg == Arg ? this : new SetType(Finite, arg);
   }
 
+  public override Type ReplaceTypeArguments(List<Type> arguments) {
+    return new SetType(Finite, arguments[0]);
+  }
+
   public override bool SupportsEquality {
     get {
       // Sets always support equality, because there is a check that the set element type always does.
@@ -2170,6 +2199,10 @@ public class MultiSetType : CollectionType {
     return arg == Arg ? this : new MultiSetType(arg);
   }
 
+  public override Type ReplaceTypeArguments(List<Type> arguments) {
+    return new MultiSetType(arguments[0]);
+  }
+
   public override bool SupportsEquality {
     get {
       // Multisets always support equality, because there is a check that the set element type always does.
@@ -2193,6 +2226,10 @@ public class SeqType : CollectionType {
       ((InferredTypeProxy)arg).KeepConstraints = true;
     }
     return arg == Arg ? this : new SeqType(arg);
+  }
+
+  public override Type ReplaceTypeArguments(List<Type> arguments) {
+    return new SeqType(arguments[0]);
   }
 
   public override bool SupportsEquality {
@@ -2253,6 +2290,10 @@ public class MapType : CollectionType {
     }
   }
 
+  public override Type ReplaceTypeArguments(List<Type> arguments) {
+    return new MapType(Finite, arguments[0], arguments[1]);
+  }
+
   public override bool SupportsEquality {
     get {
       // A map type supports equality if both its Keys type and Values type does.  It is checked
@@ -2265,7 +2306,7 @@ public class MapType : CollectionType {
   }
 }
 
-public class UserDefinedType : NonProxyType, INode {
+public class UserDefinedType : NonProxyType {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(tok != null);
@@ -2276,7 +2317,6 @@ public class UserDefinedType : NonProxyType, INode {
   }
 
   public readonly Expression NamePath;  // either NameSegment or ExprDotName (with the inner expression satisfying this same constraint)
-  public readonly IToken tok;  // token of the Name
   public readonly string Name;
   [Rep]
 
@@ -2518,6 +2558,10 @@ public class UserDefinedType : NonProxyType, INode {
     }
   }
 
+  public override Type ReplaceTypeArguments(List<Type> arguments) {
+    return new UserDefinedType(tok, Name, ResolvedClass, arguments);
+  }
+
   /// <summary>
   /// If type denotes a resolved class type, then return that class type.
   /// Otherwise, return null.
@@ -2723,15 +2767,12 @@ public class UserDefinedType : NonProxyType, INode {
   }
 
   public IToken NameToken => tok;
-  public IEnumerable<INode> Children => new[] { NamePath };
+  public override IEnumerable<INode> Children => base.Children.Concat(new[] { NamePath });
 }
 
 public abstract class TypeProxy : Type {
-  [FilledInDuringResolution]
-  public Type T {
-    get;
-    set;
-  }
+  public override IEnumerable<INode> Children => Enumerable.Empty<INode>();
+  [FilledInDuringResolution] public Type T;
   public readonly List<TypeConstraint> SupertypeConstraints = new List<TypeConstraint>();
   public readonly List<TypeConstraint> SubtypeConstraints = new List<TypeConstraint>();
 
@@ -2742,6 +2783,10 @@ public abstract class TypeProxy : Type {
     var s = T.Subst(subst);
     return s == T ? this : s;
 
+  }
+
+  public override Type ReplaceTypeArguments(List<Type> arguments) {
+    throw new NotSupportedException();
   }
 
   public IEnumerable<Type> Supertypes {
@@ -2936,6 +2981,7 @@ public class InferredTypeProxy : TypeProxy {
 /// This proxy stands for any type, but it originates from an instantiated type parameter.
 /// </summary>
 public class ParamTypeProxy : TypeProxy {
+  public override IEnumerable<INode> Children => Enumerable.Empty<INode>();
   public TypeParameter orig;
   [ContractInvariantMethod]
   void ObjectInvariant() {

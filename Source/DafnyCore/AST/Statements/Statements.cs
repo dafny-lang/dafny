@@ -3,13 +3,11 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
-using System.Security.Policy;
 
 namespace Microsoft.Dafny;
 
-public abstract class Statement : IAttributeBearingDeclaration, INode {
-  public readonly IToken Tok;
-  public readonly IToken EndTok;  // typically a terminating semi-colon or end-curly-brace
+public abstract class Statement : INode, IAttributeBearingDeclaration {
+  public IToken EndTok { get; set; }  // typically a terminating semi-colon or end-curly-brace
   public LList<Label> Labels;  // mutable during resolution
 
   private Attributes attributes;
@@ -45,6 +43,7 @@ public abstract class Statement : IAttributeBearingDeclaration, INode {
     Contract.Requires(endTok != null);
     this.Tok = tok;
     this.EndTok = endTok;
+    this.RangeToken = new RangeToken(tok, endTok);
     this.attributes = attrs;
   }
 
@@ -150,19 +149,6 @@ public abstract class Statement : IAttributeBearingDeclaration, INode {
     return new PrintStmt(tok, tok, exprs.ToList());
   }
 
-  [FilledInDuringResolution] private IToken rangeToken;
-  public virtual IToken RangeToken {
-    get {
-      if (rangeToken == null) {
-        // Need a special case for the elephant operator to avoid end < start
-        rangeToken = new RangeToken(Tok, Tok.pos > EndTok.pos ? Tok : EndTok);
-      }
-      return rangeToken;
-    }
-  }
-
-  public virtual IEnumerable<INode> Children => SubStatements.Concat<INode>(SubExpressions);
-
   public override string ToString() {
     try {
       return Printer.StatementToString(this);
@@ -170,6 +156,9 @@ public abstract class Statement : IAttributeBearingDeclaration, INode {
       return $"couldn't print stmt because: {e.Message}";
     }
   }
+  public override IEnumerable<INode> Children =>
+    (Attributes != null ? new List<INode> { Attributes } : Enumerable.Empty<INode>()).Concat(
+      SubStatements.Concat<INode>(SubExpressions));
 }
 
 public class LList<T> {
@@ -341,8 +330,6 @@ public class YieldStmt : ProduceStmt, ICloneable<YieldStmt> {
 }
 
 public abstract class AssignmentRhs : INode {
-  public readonly IToken Tok;
-
   private Attributes attributes;
   public Attributes Attributes {
     get {
@@ -378,8 +365,6 @@ public abstract class AssignmentRhs : INode {
   public virtual IEnumerable<Statement> SubStatements {
     get { yield break; }
   }
-
-  public abstract IEnumerable<INode> Children { get; }
 }
 
 public class ExprRhs : AssignmentRhs {
@@ -431,7 +416,7 @@ public class ExprRhs : AssignmentRhs {
 ///    or all of Path denotes a type
 ///      -- represents new C._ctor(EE), where _ctor is the anonymous constructor for class C
 /// </summary>
-public class TypeRhs : AssignmentRhs, INode {
+public class TypeRhs : AssignmentRhs {
   /// <summary>
   /// If ArrayDimensions != null, then the TypeRhs represents "new EType[ArrayDimensions]",
   ///     ElementInit is non-null to represent "new EType[ArrayDimensions] (elementInit)",
@@ -643,6 +628,9 @@ public class VarDeclPattern : Statement, ICloneable<VarDeclPattern> {
     }
   }
 
+  public override IEnumerable<INode> Children =>
+    new List<INode> { LHS }.Concat(base.Children);
+
   public IEnumerable<LocalVariable> LocalVars {
     get {
       foreach (var bv in LHS.Vars) {
@@ -721,8 +709,7 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt> {
   }
 }
 
-public class LocalVariable : IVariable, IAttributeBearingDeclaration {
-  public readonly IToken Tok;
+public class LocalVariable : INode, IVariable, IAttributeBearingDeclaration {
   public readonly IToken EndTok;  // typically a terminating semi-colon or end-curly-brace
   readonly string name;
   public Attributes Attributes;
@@ -829,15 +816,18 @@ public class LocalVariable : IVariable, IAttributeBearingDeclaration {
   }
 
   public IToken NameToken => Tok;
-  public IEnumerable<INode> Children => type.Nodes;
+  public bool IsTypeExplicit = false;
+  public override IEnumerable<INode> Children =>
+    (Attributes != null ? new List<INode> { Attributes } : Enumerable.Empty<INode>()).Concat(
+      IsTypeExplicit ? new List<INode>() { type } : Enumerable.Empty<INode>());
 }
 
-public class GuardedAlternative : IAttributeBearingDeclaration {
-  public readonly IToken Tok;
+public class GuardedAlternative : INode, IAttributeBearingDeclaration {
   public readonly bool IsBindingGuard;
   public readonly Expression Guard;
   public readonly List<Statement> Body;
   public Attributes Attributes;
+  public override IEnumerable<INode> Children => (Attributes != null ? new List<INode> { Attributes } : Enumerable.Empty<INode>()).Concat(new List<INode>() { Guard }).Concat<INode>(Body);
   Attributes IAttributeBearingDeclaration.Attributes => Attributes;
 
   [ContractInvariantMethod]

@@ -70,8 +70,9 @@ namespace Microsoft.Dafny {
             dd.Members.ConvertAll(d => CloneMember(d, false)), CloneAttributes(dd.Attributes), dd.IsRefining);
         }
       } else if (d is TupleTypeDecl) {
-        var dd = (TupleTypeDecl)d;
-        return new TupleTypeDecl(dd.ArgumentGhostness, dd.EnclosingModuleDefinition, dd.Attributes);
+        // Tuple type declarations only exist in the system module. Therefore, they are never cloned.
+        Contract.Assert(false);
+        throw new cce.UnreachableException();
       } else if (d is IndDatatypeDecl) {
         var dd = (IndDatatypeDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
@@ -403,7 +404,6 @@ namespace Microsoft.Dafny {
       } else if (expr is TypeTestExpr) {
         var e = (TypeTestExpr)expr;
         return new TypeTestExpr(Tok(e.tok), CloneExpr(e.E), CloneType(e.ToType));
-
       } else if (expr is TernaryExpr) {
         var e = (TernaryExpr)expr;
         return new TernaryExpr(Tok(e.tok), e.Op, CloneExpr(e.E0), CloneExpr(e.E1), CloneExpr(e.E2));
