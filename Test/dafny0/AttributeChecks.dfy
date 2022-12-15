@@ -236,7 +236,7 @@ module JustAboutEverything {
     modify {:myAttr false + 3} s; // error: false + 3 is ill-typed
   }
 
-  method LocalVariablesAndAssignments(opt: Option<int>) returns (r: Option<int>) {
+  method LocalVariablesAndAssignments(opt: Option<int>, mustHave: MustHave<int>) returns (r: Option<int>) {
     // variables declared with attributes
     var
       {:boolAttr false + 3} a: int, // error: false + 3 is ill-typed
@@ -301,6 +301,9 @@ module JustAboutEverything {
     // :- with call RHS, where variable declarations have attributes
     var g6 :- GiveOption() {:boolAttr false + 3}; // error: false + 3 is ill-typed
     var g7, g8 :- GiveOptions() {:boolAttr false + 3}; // error: false + 3 is ill-typed
+
+    :- mustHave {:boolAttr false + 3}; // error: false + 3 is ill-typed
+    :- GiveMustHave() {:boolAttr false + 3}; // error: false + 3 is ill-typed
   }
 
   class CClass {
@@ -311,6 +314,7 @@ module JustAboutEverything {
   
   method GiveOption() returns (r: Option<int>)
   method GiveOptions() returns (r: Option<int>, s: int)
+  method GiveMustHave() returns (r: MustHave<int>)
 
   datatype Option<+T> = None | Some(value: T) {
     predicate method IsFailure() {
@@ -325,6 +329,17 @@ module JustAboutEverything {
       requires Some?
     {
       value
+    }
+  }
+
+  datatype MustHave<+T> = HasIt | DoesNotHave(value: T) {
+    predicate method IsFailure() {
+      DoesNotHave?
+    }
+    function method PropagateFailure<U>(): Option<T>
+      requires DoesNotHave?
+    {
+      None
     }
   }
 }
