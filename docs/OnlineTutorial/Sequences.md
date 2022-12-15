@@ -197,7 +197,7 @@ method m()
 }
 ```
 
-To get just part of the array, the bounds can be given just like in a regular
+To extract just part of the array, the bounds can be given just like in a regular
 slicing operation:
 
 ```dafny <!-- %check-verify -->

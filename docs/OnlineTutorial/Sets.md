@@ -68,7 +68,7 @@ method m()
 Sets, like sequences, support the `in` and `!in` operators, to
 test element membership. For example:
 
-```dafny <!-- %check-verify -->
+```dafny <!-- %check-verify-warn Sets.W1.expect -->
 method m()
 {
   assert 5 in {1,3,4,5};
@@ -111,7 +111,7 @@ the type of the return value of `f(x)`. The values in the constructed set are th
 `x` itself acts only as a bridge between the predicate `p` and the function `f`. It
 usually has the same type as the resulting set, but it does not need to. As an example:
 
-```dafny <!-- %check-verify -->
+```dafny <!-- %check-verify-warn Sets.W2.expect -->
 method m()
 {
   assert (set x | x in {0,1,2} :: x + 0) == {0,1,2};
@@ -120,7 +120,7 @@ method m()
 
 If the function is the identity, then the expression can be written with a particularly nice form:
 
-```dafny <!-- %check-verify -->
+```dafny <!-- %check-verify-warn Sets.W3.expect -->
 method m()
 {
   assert (set x | x in {0,1,2,3,4,5} && x < 3) == {0,1,2};

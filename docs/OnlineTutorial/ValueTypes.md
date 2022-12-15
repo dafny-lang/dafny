@@ -41,7 +41,7 @@ for a set of integers, for example. In general, sets can be of almost any type, 
 ```dafny <!-- %check-verify -->
 method m()
 {
-  var s1 := {}; // the empty set
+  var s1: set<int> := {}; // the empty set
   var s2 := {1, 2, 3}; // set contains exactly 1, 2, and 3
   assert s2 == {1,1,2,3,3,3,3}; // same as before
   var s3, s4 := {1,2}, {1,4};
@@ -86,7 +86,7 @@ method m()
 Sets, like sequences, support the `in` and `!in` operators, to
 test element membership. For example:
 
-```dafny <!-- %check-verify -->
+```dafny <!-- %check-verify-warn Sets.W1.expect -->
 method m()
 {
   assert 5 in {1,3,4,5};
@@ -129,16 +129,16 @@ the type of the return value of `f(x)`. The values in the constructed set are th
 `x` itself acts only as a bridge between the predicate `p` and the function `f`. It
 usually has the same type as the resulting set, but it does not need to. As an example:
 
-```dafny <!-- %check-verify -->
+```dafny <!-- %check-verify-warn Sets.W2.expect -->
 method m()
 {
-  assert (set x | x in {0,1,2} :: x * 1) == {0,1,2};
+  assert (set x | x in {0,1,2} :: x + 0) == {0,1,2};
 }
 ```
 
 If the function is the identity, then the expression can be written with a particularly nice form:
 
-```dafny <!-- %check-verify -->
+```dafny <!-- %check-verify-warn Sets.W3.expect -->
 method m()
 {
   assert (set x | x in {0,1,2,3,4,5} && x < 3) == {0,1,2};
@@ -148,10 +148,11 @@ method m()
 General, non-identity functions in set comprehensions confuse Dafny easily. For example,
 the following is true, but Dafny cannot prove it:
 
-```dafny <!-- %check-verify -->
+```dafny <!-- %check-verify  Sets.1.expect -->
 method m()
 {
-  assert (set x | x in {0,1,2} :: x + 1) == {1,2,3};
+  // assert {0*1, 1*1, 2*1} == {0,1,2};  // include this assertion as a lemma to prove the next line
+  assert (set x | x in {0,1,2} :: x * 1) == {0,1,2};
 }
 ```
 
@@ -162,7 +163,6 @@ in at least one clause of the predicate (something like `0 <= x < n`). Requiring
 variable to be in an existing set also works, as in `x in {0,1,2}` from above. This works
 only when the inclusion part is conjuncted (`&&`'ed) with the rest of the predicate, as it
 needs to limit the possible values to consider.
-
 
 ## Sequences
 
@@ -354,7 +354,7 @@ using the same "slice" notation as above:
 ```dafny <!-- %check-verify -->
 method m()
 {
-  var a := new int[3]; // 3 element array of ints
+  var a := new int[][42,43,44]; // 3 element array of ints
   a[0], a[1], a[2] := 0, 3, -1;
   var s := a[..];
   assert s == [0, 3, -1];
@@ -367,7 +367,7 @@ slicing operation:
 ```dafny <!-- %check-verify -->
 method m()
 {
-  var a := new int[3]; // 3 element array of ints
+  var a := new int[][42,43,44]; // 3 element array of ints
   a[0], a[1], a[2] := 0, 3, -1;
   assert a[1..] == [3, -1];
   assert a[..1] == [0];
