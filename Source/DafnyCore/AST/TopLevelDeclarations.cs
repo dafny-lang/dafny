@@ -379,7 +379,7 @@ public class LiteralModuleDecl : ModuleDecl {
   public LiteralModuleDecl(ModuleDefinition module, ModuleDefinition parent)
     : base(module.tok, module.Name, parent, false, false) {
     ModuleDef = module;
-    RangeToken = module.RangeToken;
+    RangeToken = module.GetRangeToken();
     TokenWithTrailingDocString = module.TokenWithTrailingDocString;
     BodyStartTok = module.BodyStartTok;
     BodyEndTok = module.BodyEndTok;

@@ -46,70 +46,74 @@ namespace Microsoft.Dafny {
     protected IToken[] FormatTokens = null;
 
     public RangeToken RangeToken {
-      get {
-        if (rangeToken == null) {
-          if (tok is RangeToken tokAsRange) {
-            rangeToken = tokAsRange;
-          } else {
-            var startTok = tok;
-            var endTok = tok;
-
-            void UpdateStartEndToken(IToken token1) {
-              if (token1.Filename != tok.Filename) {
-                return;
-              }
-
-              if (token1.pos < startTok.pos) {
-                startTok = token1;
-              }
-
-              if (token1.pos + token1.val.Length > endTok.pos + endTok.val.Length) {
-                endTok = token1;
-              }
-            }
-
-            void updateStartEndTokRecursive(INode node) {
-              if (node is null) {
-                return;
-              }
-
-              if (node.tok.Filename != tok.Filename || node is Expression { IsImplicit: true } ||
-                  node is DefaultValueExpression) {
-                // Ignore any auto-generated expressions.
-              } else if (node != this && node.RangeToken != null) {
-                UpdateStartEndToken(node.StartToken);
-                UpdateStartEndToken(node.EndToken);
-              } else {
-                UpdateStartEndToken(node.tok);
-              }
-
-              node.Children.Iter(updateStartEndTokRecursive);
-            }
-
-            updateStartEndTokRecursive(this);
-
-            if (FormatTokens != null) {
-              foreach (var token in FormatTokens) {
-                UpdateStartEndToken(token);
-              }
-            }
-
-            rangeToken = new RangeToken(startTok, endTok);
-          }
-        }
-
-        if (rangeToken.Filename == null) {
-          rangeToken.Filename = tok.Filename;
-        }
-
-        return rangeToken;
-      }
       set => rangeToken = value;
     }
 
+    public RangeToken GetRangeToken()
+    {
+      if (rangeToken == null) {
+        if (tok is RangeToken tokAsRange) {
+          rangeToken = tokAsRange;
+        } else {
+          var startTok = tok;
+          var endTok = tok;
 
-    public IToken StartToken => RangeToken?.StartToken;
-    public IToken EndToken => RangeToken?.EndToken;
+          void UpdateStartEndToken(IToken token1)
+          {
+            if (token1.Filename != tok.Filename) {
+              return;
+            }
+
+            if (token1.pos < startTok.pos) {
+              startTok = token1;
+            }
+
+            if (token1.pos + token1.val.Length > endTok.pos + endTok.val.Length) {
+              endTok = token1;
+            }
+          }
+
+          void UpdateStartEndTokRecursive(INode node)
+          {
+            if (node is null) {
+              return;
+            }
+
+            if (node.tok.Filename != tok.Filename || node is Expression { IsImplicit: true } ||
+                node is DefaultValueExpression) {
+              // Ignore any auto-generated expressions.
+            } else if (node != this && node.GetRangeToken() != null) {
+              UpdateStartEndToken(node.StartToken);
+              UpdateStartEndToken(node.EndToken);
+            } else {
+              UpdateStartEndToken(node.tok);
+            }
+
+            node.Children.Iter(UpdateStartEndTokRecursive);
+          }
+
+          UpdateStartEndTokRecursive(this);
+
+          if (FormatTokens != null) {
+            foreach (var token in FormatTokens) {
+              UpdateStartEndToken(token);
+            }
+          }
+
+          rangeToken = new RangeToken(startTok, endTok);
+        }
+      }
+
+      if (rangeToken.Filename == null) {
+        rangeToken.Filename = tok.Filename;
+      }
+
+      return rangeToken;
+    }
+
+
+    public IToken StartToken => GetRangeToken()?.StartToken;
+    public IToken EndToken => GetRangeToken()?.EndToken;
 
     protected IReadOnlyList<IToken> OwnedTokensCache;
 
