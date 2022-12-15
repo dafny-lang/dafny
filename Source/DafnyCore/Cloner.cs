@@ -399,8 +399,8 @@ namespace Microsoft.Dafny {
 
       } else if (expr is BinaryExpr) {
         var e = (BinaryExpr)expr;
-        return new BinaryExpr(Tok(e.tok), e.Op, CloneExpr(e.E0), CloneExpr(e.E1));
-
+        var prefixOp = e.PrefixOp is null ? null : Tok(e.PrefixOp);
+        return new BinaryExpr(Tok(e.tok), e.Op, CloneExpr(e.E0), CloneExpr(e.E1), prefixOp);
       } else if (expr is TernaryExpr) {
         var e = (TernaryExpr)expr;
         return new TernaryExpr(Tok(e.tok), e.Op, CloneExpr(e.E0), CloneExpr(e.E1), CloneExpr(e.E2));
