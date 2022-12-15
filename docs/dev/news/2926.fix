@@ -1,1 +1,0 @@
-The Python and Go backends now encode non-ASCII characters in string literals correctly

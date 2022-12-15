@@ -1,2 +1,0 @@
-`dafny run` now consistently requests UTF-8 output from compiled code.
-Use `chcp 65501` if you see garbled output on Windows.

@@ -1,3 +1,0 @@
-The definition of the `char` type will change in Dafny version 4, to represent any Unicode scalar value instead of any UTF-16 code unit.
-The new command-line option `--unicode-char` allows early adoption of this mode.
-See section [7.5](http://dafny.org/dafny/DafnyRef/DafnyRef#sec-characters) of the Reference Manual for more details.
