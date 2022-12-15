@@ -38,8 +38,8 @@ class C {
 
   lemma MyLemma()
 }".TrimStart();
-      await SetUp(new Dictionary<string, string>() {
-        { $"{GhostOptions.Section}:{nameof(GhostOptions.MarkStatements)}", "false" }
+      await SetUp(options => {
+        options.Set(ServerCommand.GhostIndicators, false);
       });
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -62,8 +62,8 @@ class C {
 
   lemma MyLemma()
 }".TrimStart();
-      await SetUp(new Dictionary<string, string>() {
-        { $"{GhostOptions.Section}:{nameof(GhostOptions.MarkStatements)}", "true" }
+      await SetUp(options => {
+        options.Set(ServerCommand.GhostIndicators, true);
       });
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -91,8 +91,8 @@ class C {
 
   lemma MyLemma()
 }".TrimStart();
-      await SetUp(new Dictionary<string, string>() {
-        { $"{GhostOptions.Section}:{nameof(GhostOptions.MarkStatements)}", "true" }
+      await SetUp(options => {
+        options.Set(ServerCommand.GhostIndicators, true);
       });
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -118,8 +118,8 @@ class C {
 
   lemma MyLemma()
 }".TrimStart();
-      await SetUp(new Dictionary<string, string>() {
-        { $"{GhostOptions.Section}:{nameof(GhostOptions.MarkStatements)}", "true" }
+      await SetUp(options => {
+        options.Set(ServerCommand.GhostIndicators, true);
       });
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -145,8 +145,8 @@ class C {
 
   lemma MyLemma()
 }".TrimStart();
-      await SetUp(new Dictionary<string, string>() {
-        { $"{GhostOptions.Section}:{nameof(GhostOptions.MarkStatements)}", "true" }
+      await SetUp(options => {
+        options.Set(ServerCommand.GhostIndicators, true);
       });
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -180,8 +180,8 @@ class C {
 
   lemma MyLemma()
 }".TrimStart();
-      await SetUp(new Dictionary<string, string>() {
-        { $"{GhostOptions.Section}:{nameof(GhostOptions.MarkStatements)}", "true" }
+      await SetUp(options => {
+        options.Set(ServerCommand.GhostIndicators, true);
       });
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);

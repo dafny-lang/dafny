@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /dprint:- /env:0 "%s" > "%t"
+// RUN: %exits-with 4 %dafny /dprint:- /env:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 predicate P(n: int)

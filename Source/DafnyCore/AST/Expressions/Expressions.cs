@@ -10,7 +10,6 @@ namespace Microsoft.Dafny;
 
 [DebuggerDisplay("{Printer.ExprToString(this)}")]
 public abstract class Expression : INode {
-  public readonly IToken tok;
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(tok != null);
@@ -87,68 +86,6 @@ public abstract class Expression : INode {
   public virtual IEnumerable<Expression> SubExpressions {
     get { yield break; }
   }
-
-  private RangeToken rangeToken = null;
-
-  // Contains tokens that did not make it in the AST but are part of the expression,
-  // Enables ranges to be correct.
-  protected IToken[] FormatTokens = null;
-
-  /// Creates a token on the entire range of the expression.
-  /// Used only for error reporting.
-  public virtual RangeToken RangeToken {
-    get {
-      if (rangeToken == null) {
-        if (tok is RangeToken tokAsRange) {
-          rangeToken = tokAsRange;
-        } else {
-          var startTok = tok;
-          var endTok = tok;
-
-          void updateStartEndTok(Expression expression) {
-            if (expression.tok.Filename != tok.Filename || expression.IsImplicit || expression is DefaultValueExpression) {
-              // Ignore any auto-generated expressions.
-            } else {
-              if (expression.StartToken.pos < startTok.pos) {
-                startTok = expression.StartToken;
-              }
-              if (endTok.pos < expression.EndToken.pos) {
-                endTok = expression.EndToken;
-              }
-            }
-          }
-
-          SubExpressions.Iter(updateStartEndTok);
-          if (this is StmtExpr stmtExpr) {
-            stmtExpr.S.SubStatements.Iter(s => s.SubExpressions.Iter(updateStartEndTok));
-          }
-
-          if (FormatTokens != null) {
-            foreach (var token in FormatTokens) {
-              if (token.Filename != tok.Filename) {
-                continue;
-              }
-
-              if (token.pos < startTok.pos) {
-                startTok = token;
-              }
-
-              if (token.pos + token.val.Length > endTok.pos + endTok.val.Length) {
-                endTok = token;
-              }
-            }
-          }
-
-          rangeToken = new RangeToken(startTok, endTok);
-        }
-      }
-
-      return rangeToken;
-    }
-  }
-
-  public IToken StartToken => RangeToken.StartToken;
-  public IToken EndToken => RangeToken.EndToken;
 
   /// <summary>
   /// Returns the list of types that appear in this expression proper (that is, not including types that
@@ -858,7 +795,7 @@ public abstract class Expression : INode {
     return le == null ? null : le.Value as string;
   }
 
-  public virtual IEnumerable<INode> Children => SubExpressions;
+  public override IEnumerable<INode> Children => SubExpressions;
 }
 
 public class LiteralExpr : Expression {
@@ -1112,7 +1049,26 @@ public class IdentifierExpr : Expression, IHasUsages {
   }
 
   public IToken NameToken => tok;
+  public override IEnumerable<INode> Children { get; } = Enumerable.Empty<INode>();
 }
+
+/// <summary>
+/// An implicit identifier is used in the context of a ReturnStmt tacetly
+/// assigning a value to a Method's out parameter.
+/// </summary>
+public class ImplicitIdentifierExpr : IdentifierExpr {
+  public ImplicitIdentifierExpr(IToken tok, string name)
+    : base(tok, name) { }
+
+  /// <summary>
+  /// Constructs a resolved implicit identifier.
+  /// </summary>
+  public ImplicitIdentifierExpr(IToken tok, IVariable v)
+    : base(tok, v) { }
+
+  public override bool IsImplicit => true;
+}
+
 
 /// <summary>
 /// If an "AutoGhostIdentifierExpr" is used as the out-parameter of a ghost method or
@@ -1146,7 +1102,11 @@ class Resolver_IdentifierExpr : Expression, IHasUsages {
       return false;
     }
     public override Type Subst(Dictionary<TypeParameter, Type> subst) {
-      throw new NotImplementedException();
+      throw new NotSupportedException();
+    }
+
+    public override Type ReplaceTypeArguments(List<Type> arguments) {
+      throw new NotSupportedException();
     }
   }
   public class ResolverType_Module : ResolverType {
@@ -1727,6 +1687,7 @@ public class BinaryExpr : Expression {
     BitwiseXor
   }
   public readonly Opcode Op;
+  public readonly IToken PrefixOp;
   public enum ResolvedOpcode {
     YetUndetermined,  // the value before resolution has determined the value; .ResolvedOp should never be read in this state
 
@@ -2004,7 +1965,7 @@ public class BinaryExpr : Expression {
     Contract.Invariant(E1 != null);
   }
 
-  public BinaryExpr(IToken tok, Opcode op, Expression e0, Expression e1)
+  public BinaryExpr(IToken tok, Opcode op, Expression e0, Expression e1, IToken prefixOp = null)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(e0 != null);
@@ -2012,13 +1973,17 @@ public class BinaryExpr : Expression {
     this.Op = op;
     this.E0 = e0;
     this.E1 = e1;
+    this.PrefixOp = prefixOp;
+    if (prefixOp != null) {
+      FormatTokens = new[] { prefixOp };
+    }
   }
 
   /// <summary>
   /// Returns a resolved binary expression
   /// </summary>
-  public BinaryExpr(IToken tok, BinaryExpr.ResolvedOpcode rop, Expression e0, Expression e1)
-    : this(tok, BinaryExpr.ResolvedOp2SyntacticOp(rop), e0, e1) {
+  public BinaryExpr(IToken tok, BinaryExpr.ResolvedOpcode rop, Expression e0, Expression e1, IToken prefixOp = null)
+    : this(tok, BinaryExpr.ResolvedOp2SyntacticOp(rop), e0, e1, prefixOp) {
     ResolvedOp = rop;
     switch (rop) {
       case ResolvedOpcode.EqCommon:
@@ -2116,6 +2081,10 @@ public class LetOrFailExpr : ConcreteSyntaxExpression {
     Rhs = rhs;
     Body = body;
   }
+
+  public override IEnumerable<INode> Children =>
+    (Lhs != null ?
+    new List<INode> { Lhs } : Enumerable.Empty<INode>()).Concat(base.Children);
 }
 
 public class ForallExpr : QuantifierExpr {
@@ -2379,8 +2348,7 @@ public class ITEExpr : Expression {
 /// which it is; in this case, Var is non-null, because this is the only place where Var.IsGhost
 /// is recorded by the parser.
 /// </summary>
-public class CasePattern<VT> where VT : IVariable {
-  public readonly IToken tok;
+public class CasePattern<VT> : INode where VT : IVariable {
   public readonly string Id;
   // After successful resolution, exactly one of the following two fields is non-null.
   public DatatypeCtor Ctor;  // finalized by resolution (null if the pattern is a bound variable)
@@ -2443,6 +2411,8 @@ public class CasePattern<VT> where VT : IVariable {
       }
     }
   }
+
+  public override IEnumerable<INode> Children => Arguments ?? Enumerable.Empty<INode>();
 }
 
 /*
@@ -2452,7 +2422,6 @@ ExtendedPattern is either:
     a bound variable or a constructor applied to n arguments or a symbolic constant
 */
 public abstract class ExtendedPattern : INode {
-  public readonly IToken Tok;
   public bool IsGhost;
 
   public ExtendedPattern(IToken tok, bool isGhost = false) {
@@ -2460,8 +2429,6 @@ public abstract class ExtendedPattern : INode {
     this.Tok = tok;
     this.IsGhost = isGhost;
   }
-
-  public abstract IEnumerable<INode> Children { get; }
 }
 
 public class DisjunctivePattern : ExtendedPattern {
@@ -2534,7 +2501,6 @@ public class LitPattern : ExtendedPattern {
 }
 
 public abstract class NestedMatchCase : INode {
-  public readonly IToken Tok;
   public readonly ExtendedPattern Pat;
 
   public NestedMatchCase(IToken tok, ExtendedPattern pat) {
@@ -2543,8 +2509,6 @@ public abstract class NestedMatchCase : INode {
     this.Tok = tok;
     this.Pat = pat;
   }
-
-  public abstract IEnumerable<INode> Children { get; }
 }
 
 public class BoxingCastExpr : Expression {  // a BoxingCastExpr is used only as a temporary placeholding during translation
@@ -2601,7 +2565,7 @@ public class UnboxingCastExpr : Expression {  // an UnboxingCastExpr is used onl
   }
 }
 
-public class AttributedExpression : IAttributeBearingDeclaration {
+public class AttributedExpression : INode, IAttributeBearingDeclaration {
   public readonly Expression E;
   public readonly AssertLabel/*?*/ Label;
 
@@ -2648,10 +2612,11 @@ public class AttributedExpression : IAttributeBearingDeclaration {
     IToken closeBrace = new Token(tok.line, tok.col + 7 + s.Length + 1); // where 7 = length(":error ")
     this.Attributes = new UserSuppliedAttributes(tok, openBrace, closeBrace, args, this.Attributes);
   }
+
+  public override IEnumerable<INode> Children => new List<INode>() { E };
 }
 
-public class FrameExpression : IHasUsages {
-  public readonly IToken tok;
+public class FrameExpression : INode, IHasUsages {
   public readonly Expression E;  // may be a WildcardExpr
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -2676,7 +2641,7 @@ public class FrameExpression : IHasUsages {
   }
 
   public IToken NameToken => tok;
-  public IEnumerable<INode> Children => new[] { E };
+  public override IEnumerable<INode> Children => new[] { E };
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return new[] { Field }.Where(x => x != null);
   }
@@ -2687,7 +2652,18 @@ public class FrameExpression : IHasUsages {
 /// it gets "replaced" by the expression in "ResolvedExpression".
 /// </summary>
 public abstract class ConcreteSyntaxExpression : Expression {
-  [FilledInDuringResolution] public Expression ResolvedExpression;  // after resolution, manipulation of "this" should proceed as with manipulating "this.ResolvedExpression"
+  [FilledInDuringResolution]
+  private Expression resolvedExpression;
+
+  public Expression ResolvedExpression {
+    get => resolvedExpression;
+    set {
+      resolvedExpression = value;
+      if (rangeToken != null && resolvedExpression != null) {
+        resolvedExpression.RangeToken = rangeToken;
+      }
+    }
+  }  // after resolution, manipulation of "this" should proceed as with manipulating "this.ResolvedExpression"
   public ConcreteSyntaxExpression(IToken tok)
     : base(tok) {
   }
@@ -2861,9 +2837,8 @@ public class DefaultValueExpression : ConcreteSyntaxExpression {
     SubstMap = substMap;
     TypeMap = typeMap;
     Type = formal.Type.Subst(typeMap);
+    RangeToken = new RangeToken(tok, tok);
   }
-
-  public override RangeToken RangeToken => new RangeToken(tok, tok);
 }
 
 /// <summary>

@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 "%s" /extractCounterexample /mv model  > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 "%s" /extractCounterexample /mv model  > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method foo(n: nat) returns (ret: array<string>)

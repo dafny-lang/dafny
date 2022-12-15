@@ -9557,7 +9557,7 @@ namespace Microsoft.Dafny {
             foreach (Formal f in cmc.Outs) {
               Expression produceLhs;
               if (stmt is ReturnStmt) {
-                var ident = new IdentifierExpr(f.tok, f.Name);
+                var ident = new ImplicitIdentifierExpr(f.tok, f.Name);
                 // resolve it here to avoid capture into more closely declared local variables
                 ident.Var = f;
                 ident.Type = ident.Var.Type;
@@ -9742,7 +9742,12 @@ namespace Microsoft.Dafny {
           ExprRhs rr = (ExprRhs)s.Rhs;
           ResolveExpression(rr.Expr, resolutionContext);
           Contract.Assert(rr.Expr.Type != null);  // follows from postcondition of ResolveExpression
-          AddAssignableConstraint(stmt.Tok, lhsType, rr.Expr.Type, "RHS (of type {1}) not assignable to LHS (of type {0})");
+
+          if (s.Lhs is ImplicitIdentifierExpr { Var: Formal { InParam: false } }) {
+            AddAssignableConstraint(stmt.Tok, lhsType, rr.Expr.Type, "Method return value mismatch (expected {0}, got {1})");
+          } else {
+            AddAssignableConstraint(stmt.Tok, lhsType, rr.Expr.Type, "RHS (of type {1}) not assignable to LHS (of type {0})");
+          }
         } else if (s.Rhs is TypeRhs) {
           TypeRhs rr = (TypeRhs)s.Rhs;
           Type t = ResolveTypeRhs(rr, stmt, resolutionContext);
@@ -15174,7 +15179,7 @@ namespace Microsoft.Dafny {
               }
               if (allowMethodCall) {
                 Contract.Assert(!e.Bindings.WasResolved); // we expect that .Bindings has not yet been processed, so we use just .ArgumentBindings in the next line
-                var tok = ShowSnippetsOption.Instance.Get(DafnyOptions.O) ? new RangeToken(e.Lhs.tok, e.CloseParen) : e.tok;
+                var tok = DafnyOptions.O.Get(DafnyConsolePrinter.ShowSnippets) ? new RangeToken(e.Lhs.tok, e.CloseParen) : e.tok;
                 var cRhs = new MethodCallInformation(tok, mse, e.Bindings.ArgumentBindings);
                 return cRhs;
               } else {
@@ -15426,7 +15431,7 @@ namespace Microsoft.Dafny {
     void FillInDefaultValueExpression(DefaultValueExpression expr, Dictionary<DefaultValueExpression, WorkProgress> visited) {
       Contract.Requires(expr != null);
       Contract.Requires(visited != null);
-      Contract.Ensures(Contract.ValueAtReturn(out expr.ResolvedExpression) != null);
+      Contract.Ensures(expr.ResolvedExpression != null);
 
       if (visited.TryGetValue(expr, out var p)) {
         if (p == WorkProgress.Done) {

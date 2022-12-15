@@ -25,15 +25,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [TestMethod]
     public async Task CounterexamplesStillWorksIfNothingHasBeenVerified() {
-      await SetUp(new Dictionary<string, string> {
-        { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.Never) }
-      });
+      await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Never));
       var source = @"
       method Abs(x: int) returns (y: int)
         ensures y > 0
       {
       }
       ".TrimStart();
+      await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -50,6 +49,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       {
       }
       ".TrimStart();
+      await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -111,6 +111,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       {
       }
       ".TrimStart();
+
+      await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
+
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri))

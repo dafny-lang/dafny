@@ -34,11 +34,11 @@ class Class0 extends Tr { var x: int }
 
 class Class1 extends Tr { var y: real }
 
-datatype Dt<+A> = Atom(get: A)
+datatype Dt<+A> = Atom(get: A, more: int)
 
 method H() {
   var c := new Class0;
-  var a: Dt<Class0> := Atom(c);
+  var a: Dt<Class0> := Atom(c, 10);
   var b: Dt<object>; // compilation error: compilation does not support trait types as a type parameter; consider introducing a ghost
   b := a;
   print a, " and ", b, "\n";
@@ -47,7 +47,7 @@ method H() {
 method I()
 {
   var c := new Class0;
-  var a: Dt<Class0> := Atom(c);
+  var a: Dt<Class0> := Atom(c, 10);
   var b: Dt<object>; // compilation error: compilation does not support trait types as a type parameter; consider introducing a ghost
   b := a;
   print a, " and ", b, "\n";
