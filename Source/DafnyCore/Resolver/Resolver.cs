@@ -11588,10 +11588,7 @@ namespace Microsoft.Dafny {
       bool expectExtract = s.Lhss.Count != 0; // default value if we cannot determine and inspect the type
       Type firstType = null;
       Method call = null;
-      if (s.Rhss != null && s.Rhss.Count != 0) {
-        ResolveExpression(s.Rhs, resolutionContext);
-        firstType = s.Rhs.Type;
-      } else if (s.Rhs is ApplySuffix asx) {
+      if ((s.Rhss == null || s.Rhss.Count == 0) && s.Rhs.Expr is ApplySuffix asx) {
         ResolveApplySuffix(asx, resolutionContext, true);
         call = (asx.Lhs.Resolved as MemberSelectExpr)?.Member as Method;
         if (call != null) {
@@ -11607,8 +11604,8 @@ namespace Microsoft.Dafny {
           firstType = asx.Type;
         }
       } else {
-        ResolveExpression(s.Rhs, resolutionContext);
-        firstType = s.Rhs.Type;
+        ResolveExpression(s.Rhs.Expr, resolutionContext);
+        firstType = s.Rhs.Expr.Type;
       }
 
       var method = (Method)resolutionContext.CodeContext;
@@ -11704,7 +11701,7 @@ namespace Microsoft.Dafny {
       for (int k = (expectExtract ? 1 : 0); k < s.Lhss.Count; ++k) {
         lhss2.Add(s.Lhss[k]);
       }
-      List<AssignmentRhs> rhss2 = new List<AssignmentRhs>() { new ExprRhs(s.Rhs, s.Attributes) };
+      List<AssignmentRhs> rhss2 = new List<AssignmentRhs>() { s.Rhs };
       if (s.Rhss != null) {
         s.Rhss.ForEach(e => rhss2.Add(e));
       }

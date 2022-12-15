@@ -279,28 +279,28 @@ module JustAboutEverything {
     // :- with expression RHS, where variable declarations have attributes
     var {:boolAttr false + 3} f0 :- opt;
     var
-      {:boolAttr false + 3} f1,
-      {:boolAttr false + 3} f2
+      {:boolAttr false + 3} f1, // error: false + 3 is ill-typed
+      {:boolAttr false + 3} f2 // error: false + 3 is ill-typed
       :- opt, true;
     // :- with call RHS, where variable declarations have attributes
     var {:boolAttr false + 3} f3 :- GiveOption();
     var
-      {:boolAttr false + 3} f4,
-      {:boolAttr false + 3} f5
+      {:boolAttr false + 3} f4, // error: false + 3 is ill-typed
+      {:boolAttr false + 3} f5 // error: false + 3 is ill-typed
       :- GiveOptions();
 
     // :- with expression RHS, where RHSs have attributes
-//    var g0 :- opt {:boolAttr false + 3}; // NOT ALLOWED BY PARSER
-//    var g1, g2 :-
-//      opt {:boolAttr false + 3}, // NOT ALLOWED BY PARSER
-//      true {:boolAttr false + 3};
+    var g0 :- opt {:boolAttr false + 3}; // error: false + 3 is ill-typed
+    var g1, g2 :-
+      opt {:boolAttr false + 3}, // error: false + 3 is ill-typed
+      true {:boolAttr false + 3}; // error: false + 3 is ill-typed
     var g3, g4, g5 :-
-      opt,
-      true {:boolAttr false + 4},
-      true {:boolAttr false + 5};
+      opt {:boolAttr false + 3}, // error: false + 3 is ill-typed
+      true {:boolAttr false + 4}, // error: false + 4 is ill-typed
+      true {:boolAttr false + 5}; // error: false + 5 is ill-typed
     // :- with call RHS, where variable declarations have attributes
-//    var g6 :- GiveOption() {:boolAttr false + 3}; // NOT ALLOWED BY PARSER
-//    var g7, g8 :- GiveOptions() {:boolAttr false + 3}; // NOT ALLOWED BY PARSER
+    var g6 :- GiveOption() {:boolAttr false + 3}; // error: false + 3 is ill-typed
+    var g7, g8 :- GiveOptions() {:boolAttr false + 3}; // error: false + 3 is ill-typed
   }
 
   class CClass {

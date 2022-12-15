@@ -1692,7 +1692,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       } else if (s is AssignOrReturnStmt) {
         var stmt = (AssignOrReturnStmt)s;
         wr.Write(":- ");
-        PrintExpression(stmt.Rhs, true);
+        PrintRhs(stmt.Rhs);
         foreach (var rhs in stmt.Rhss) {
           wr.Write(", ");
           PrintRhs(rhs);
