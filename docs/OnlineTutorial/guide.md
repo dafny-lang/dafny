@@ -1271,7 +1271,7 @@ name suggests, this expression is true if some property holds for all elements
 of some set. For now, we will consider the set of integers. An example
 universal quantifier, wrapped in an assertion, is given below:
 
-```dafny <!-- %check-verify -->
+```dafny <!-- %check-verify-warn guide.17.expect -->
 method m()
 {
   assert forall k :: k < k + 1;
@@ -1326,7 +1326,7 @@ Note that because `a` has type `array<int>`, it is implicitly non-null.
 We can fill in the body of this method in a number of ways,
 but perhaps the easiest is a linear search, implemented below:
 
-```dafny <!-- %check-verify -->
+```dafny <!-- %check-verify guide.18.expect -->
 method Find(a: array<int>, key: int) returns (index: int)
   ensures 0 <= index ==> index < a.Length && a[index] == key
   ensures index < 0 ==> forall k :: 0 <= k < a.Length ==> a[k] != key
@@ -1349,7 +1349,7 @@ we have to write an invariant that says that everything before the current
 index has already been looked at (and are not the key). Just like the
 postcondition, we can use a quantifier to express this property:
 
-```dafny <!-- %check-verify -->
+```dafny <!-- %check-verify guide.19.expect -->
 method Find(a: array<int>, key: int) returns (index: int)
   ensures 0 <= index ==> index < a.Length && a[index] == key
   ensures index < 0 ==> forall k :: 0 <= k < a.Length ==> a[k] != key
@@ -1456,9 +1456,8 @@ says that they are ordered properly with respect to one another. Quantifiers are
 a type of boolean valued expression in Dafny, so we can write the sorted predicate
 as:
 
-```dafny <!-- %check-verify -->
+```dafny <!-- %check-verify guide.20.expect -->
 predicate sorted(a: array<int>)
-  requires a != null
 {
   forall j, k :: 0 <= j < k < a.Length ==> a[j] <= a[k]
 }
@@ -1487,7 +1486,6 @@ framing is essential to making the verification process feasible.
 
 ```dafny <!-- %check-verify -->
 predicate sorted(a: array<int>)
-  requires a != null
   reads a
 {
   forall j, k :: 0 <= j < k < a.Length ==> a[j] <= a[k]
@@ -1537,20 +1535,19 @@ distinction between the reference itself and the value it points to.)
 
 ```dafny <!-- %check-resolve -->
 predicate sorted(a: array<int>)
-  requires a != null
   reads a
 {
-  // Fill in a new body here.
+  false // Fill in a new body here.
 }
 ```
 
 **Exercise 14.**
-  *What happens if you remove the precondition `a != null`? Change the
-  definition of `sorted` so that it allows its argument to be null but
+  *Change the definition of `sorted` so that it allows its argument to be 
+  null (using a nullable array type) but
   returns false if it is.*
 
 ```dafny <!-- %check-verify -->
-predicate sorted(a: array<int>)
+predicate sorted(a: array<int>) // Change the type
   reads a
 {
   // Change this definition to treat null arrays as "not sorted".
@@ -1563,15 +1560,14 @@ predicate sorted(a: array<int>)
 
 Predicates are usually used to make other annotations clearer:
 
-```dafny <!-- %check-verify -->
+```dafny <!-- %check-resolve -->
 predicate sorted(a: array<int>)
-  requires a != null
   reads a
 {
   forall j, k :: 0 <= j < k < a.Length ==> a[j] <= a[k]
 }
 method BinarySearch(a: array<int>, value: int) returns (index: int)
-  requires a != null && 0 <= a.Length && sorted(a)
+  requires 0 <= a.Length && sorted(a)
   ensures 0 <= index ==> index < a.Length && a[index] == value
   ensures index < 0 ==> forall k :: 0 <= k < a.Length ==> a[k] != value
 {
@@ -1587,13 +1583,12 @@ search. The method body is given below:
 
 ```dafny <!-- %check-verify -->
 predicate sorted(a: array<int>)
-  requires a != null
   reads a
 {
   forall j, k :: 0 <= j < k < a.Length ==> a[j] <= a[k]
 }
 method BinarySearch(a: array<int>, value: int) returns (index: int)
-  requires a != null && 0 <= a.Length && sorted(a)
+  requires 0 <= a.Length && sorted(a)
   ensures 0 <= index ==> index < a.Length && a[index] == value
   ensures index < 0 ==> forall k :: 0 <= k < a.Length ==> a[k] != value
 {
@@ -1657,13 +1652,12 @@ ourselves.
 
 ```dafny <!-- %check-verify -->
 predicate sorted(a: array<int>)
-  requires a != null
   reads a
 {
   forall j, k :: 0 <= j < k < a.Length ==> a[j] <= a[k]
 }
 method BinarySearch(a: array<int>, value: int) returns (index: int)
-  requires a != null && 0 <= a.Length && sorted(a)
+  requires 0 <= a.Length && sorted(a)
   ensures 0 <= index ==> index < a.Length && a[index] == value
   ensures index < 0 ==> forall k :: 0 <= k < a.Length ==> a[k] != value
 {
