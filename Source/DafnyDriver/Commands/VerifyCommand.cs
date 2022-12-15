@@ -37,5 +37,4 @@ class ResolveCommand : ICommandSpec {
     dafnyOptions.Compile = false;
     dafnyOptions.Verify = false;
   }
-
 }
