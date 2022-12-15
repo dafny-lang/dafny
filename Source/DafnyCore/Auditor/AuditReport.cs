@@ -28,14 +28,17 @@ public class AuditReport {
     }
   }
   public void AddAssumptions(Declaration decl, IEnumerable<AssumptionDescription> assumptions) {
-    if (assumptions.Count() > 0) {
-      assumptionsByDecl.Add(decl, assumptions);
+    var explicitAssumptions = assumptions.Where(a => a.isExplicit);
+    var assumptionsToAdd = explicitAssumptions.Any() ? explicitAssumptions : assumptions;
+    if (assumptionsToAdd.Any()) {
+      assumptionsByDecl.Add(decl, assumptionsToAdd);
       UseDecl(decl);
     }
   }
 
   public IEnumerable<Assumption> AllAssumptions() {
-    return assumptionsByDecl.Select((e, _) => new Assumption(e.Key, e.Value));
+    return assumptionsByDecl.Select((e, _) =>
+      new Assumption(e.Key, e.Value));
   }
 
   private string RenderRow(string beg, string sep, string end, IEnumerable<string> cells) {
@@ -70,7 +73,7 @@ public class AuditReport {
     return rows.Count() > 0 ? String.Join("\n", rows) : a.ToString();
   }
 
-  private string UpdateVerbatim(string text, string beg, string end) {
+  public static string UpdateVerbatim(string text, string beg, string end) {
     return text.Replace("[", beg).Replace("]", end);
   }
 
@@ -102,7 +105,7 @@ public class AuditReport {
 
   private void AppendMarkdownIETFDescription(AssumptionDescription desc, StringBuilder text) {
     var issue = UpdateVerbatim(desc.issue, "`", "`");
-    var mitigation = desc.mitigation.Replace("[", "`").Replace("]", "`");
+    var mitigation = UpdateVerbatim(desc.mitigation, "`", "`");
     var mustMitigation = char.ToLower(mitigation[0]) + mitigation.Substring(1);
     text.AppendLine("");
     text.AppendLine($"* {issue} MUST {mustMitigation}");

@@ -34,11 +34,10 @@ public record AssumptionDescription(string issue, string mitigation, bool isExpl
     mitigation: "Remove if possible.",
     isExplicit: false);
 
-  public static AssumptionDescription NoBody(bool hasEnsures, bool isGhost) {
+  public static AssumptionDescription NoBody(bool isGhost) {
     return new(
       issue: (isGhost ? "Ghost" : "Compiled") +
-             " declaration has no body" +
-             (!hasEnsures ? "." : " and has an ensures clause."),
+             " declaration has no body and has an ensures clause.",
       mitigation: "Provide a body or add [{:axiom}].",
       isExplicit: false);
   }
@@ -121,7 +120,9 @@ public struct AssumptionProperties {
 public record Assumption(Declaration decl, IEnumerable<AssumptionDescription> assumptions) {
   public IEnumerable<string> Warnings() {
     foreach (var desc in assumptions) {
-      yield return decl.Name + ": " + desc.issue + " Possible mitigation: " + desc.mitigation;
+      var tickIssue = AuditReport.UpdateVerbatim(desc.issue, "`", "`");
+      var tickMitigation = AuditReport.UpdateVerbatim(desc.mitigation, "`", "`");
+      yield return decl.Name + ": " + tickIssue + " Possible mitigation: " + tickMitigation;
     }
   }
 }

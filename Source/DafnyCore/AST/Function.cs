@@ -46,8 +46,8 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
         yield return AssumptionDescription.AssumeInBody;
       }
 
-      if (Body is null) {
-        yield return AssumptionDescription.NoBody(Ens.Count > 0, IsGhost);
+      if (Body is null && Ens.Count > 0) {
+        yield return AssumptionDescription.NoBody(IsGhost);
       }
 
       if (Attributes.Contains(Attributes, "extern") && Ens.Count > 0) {
