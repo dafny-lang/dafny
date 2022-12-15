@@ -2936,7 +2936,7 @@ UpdateStmt<out Statement/*!*/ s>
       ]
       Expression<out suchThat, false, true>
     | ":-"                         (. x = t; .)
-      [ IF(IsAssumeTypeKeyword(la))     /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */
+      [ IF(IsAssumeTypeKeyword(la))   /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */
         ("expect"|"assert"|"assume")  (. var tok = t; .)
         { Attribute<ref tokenAttrs> } (. keywordToken = new AttributedToken(tok, tokenAttrs); .)
       ]
@@ -2949,8 +2949,9 @@ UpdateStmt<out Statement/*!*/ s>
   | ":"                            (. SemErr(t, "invalid statement (did you forget the 'label' keyword?)"); .)
   )
 | ":-"                             (. x = t; startToken = t; .)
-   [ IF(IsAssumeTypeKeyword(la))     /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */
-      ("expect"|"assert"|"assume") (. var tok = t; .){ Attribute<ref tokenAttrs> } (. keywordToken = new AttributedToken(tok, tokenAttrs); .)
+   [ IF(IsAssumeTypeKeyword(la))      /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */
+      ("expect"|"assert"|"assume")    (. var tok = t; .)
+      { Attribute<ref tokenAttrs> }   (. keywordToken = new AttributedToken(tok, tokenAttrs); .)
    ]
    Expression<out exceptionExpr, false, false>
    { Attribute<ref attrs> }        (. exceptionRhs = new ExprRhs(exceptionExpr, attrs); .)

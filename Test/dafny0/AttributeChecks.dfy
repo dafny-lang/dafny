@@ -276,6 +276,9 @@ module JustAboutEverything {
       {:boolAttr false + 3} w2 // error: false + 3 is ill-typed
       :| w1 in s && w2 in s;
 
+    // assign-such-that, where assume has an attribute
+    w1, w2 :| assume {:boolAttr false + 3} w1 in s && w2 in s; // error: false + 3 is ill-typed
+
     // :- with expression RHS, where variable declarations have attributes
     var {:boolAttr false + 3} f0 :- opt;
     var
@@ -304,6 +307,33 @@ module JustAboutEverything {
 
     :- mustHave {:boolAttr false + 3}; // error: false + 3 is ill-typed
     :- GiveMustHave() {:boolAttr false + 3}; // error: false + 3 is ill-typed
+
+    // :- with expression RHS, where assert/assume/expect has attributes
+    var p0 :- assert {:boolAttr false + 3} opt; // error: false + 3 is ill-typed
+    var p1 :- assume {:boolAttr false + 3} opt; // error: false + 3 is ill-typed
+    var p2 :- expect {:boolAttr false + 3} opt; // error: false + 3 is ill-typed
+    p0 :- assert {:boolAttr false + 3} opt; // error: false + 3 is ill-typed
+    p1 :- assume {:boolAttr false + 3} opt; // error: false + 3 is ill-typed
+    p2 :- expect {:boolAttr false + 3} opt; // error: false + 3 is ill-typed
+
+    // :- with call RHS, where variable declarations have attributes
+    var q0 :- assert {:boolAttr false + 3} GiveOption(); // error: false + 3 is ill-typed
+    var q1 :- assume {:boolAttr false + 3} GiveOption(); // error: false + 3 is ill-typed
+    var q2 :- expect {:boolAttr false + 3} GiveOption(); // error: false + 3 is ill-tyqed
+    q0 :- assert {:boolAttr false + 3} GiveOption(); // error: false + 3 is ill-tyqed
+    q1 :- assume {:boolAttr false + 3} GiveOption(); // error: false + 3 is ill-tyqed
+    q2 :- expect {:boolAttr false + 3} GiveOption(); // error: false + 3 is ill-typed
+
+    // let-such-that with an attribute
+    var i := var
+      a, b {:boolAttr false + 3} :| a == 0 && b == 1; // error: false + 3 is ill-typed
+      100;
+  }
+
+  function ExtendedPrintExpr(): int {
+    var
+      a, b {:boolAttr false + 3} :| a == 0 && b == 1; // error: false + 3 is ill-typed
+      100
   }
 
   class CClass {

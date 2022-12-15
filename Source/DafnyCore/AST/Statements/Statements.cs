@@ -614,7 +614,9 @@ public abstract class ConcreteUpdateStatement : Statement {
 /// `{:axiom}` attribute is directly attached to the statement-level
 /// attributes).
 /// </summary>
-public record AttributedToken(IToken Token, Attributes Attrs) { }
+public record AttributedToken(IToken Token, Attributes Attrs) : IAttributeBearingDeclaration {
+  Attributes IAttributeBearingDeclaration.Attributes => Attrs;
+}
 
 public class UpdateStmt : ConcreteUpdateStatement {
   public readonly List<AssignmentRhs> Rhss;

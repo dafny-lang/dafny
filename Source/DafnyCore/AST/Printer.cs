@@ -1686,12 +1686,19 @@ NoGhost - disable printing of functions, ghost methods, and proof
         var update = (AssignSuchThatStmt)s;
         wr.Write(":| ");
         if (update.AssumeToken != null) {
-          wr.Write("assume ");
+          wr.Write("assume");
+          PrintAttributes(update.AssumeToken.Attrs);
+          wr.Write(" ");
         }
         PrintExpression(update.Expr, true);
       } else if (s is AssignOrReturnStmt) {
         var stmt = (AssignOrReturnStmt)s;
-        wr.Write(":- ");
+        wr.Write(":-");
+        if (stmt.KeywordToken != null) {
+          wr.Write($" {stmt.KeywordToken.Token.val}");
+          PrintAttributes(stmt.KeywordToken.Attrs);
+        }
+        wr.Write(" ");
         PrintRhs(stmt.Rhs);
         foreach (var rhs in stmt.Rhss) {
           wr.Write(", ");
@@ -2029,6 +2036,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         if (e.Exact) {
           wr.Write(" := ");
         } else {
+          PrintAttributes(e.Attributes);
           wr.Write(" :| ");
         }
         PrintExpressionList(e.RHSs, true);
@@ -2621,6 +2629,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         if (e.Exact) {
           wr.Write(" := ");
         } else {
+          PrintAttributes(e.Attributes);
           wr.Write(" :| ");
         }
         PrintExpressionList(e.RHSs, true);
