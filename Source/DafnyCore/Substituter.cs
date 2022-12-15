@@ -264,7 +264,7 @@ namespace Microsoft.Dafny {
         Expression e0 = Substitute(e.E0);
         Expression e1 = Substitute(e.E1);
         if (e0 != e.E0 || e1 != e.E1) {
-          BinaryExpr newBin = new BinaryExpr(expr.tok, e.Op, e0, e1);
+          BinaryExpr newBin = new BinaryExpr(expr.tok, e.Op, e0, e1, e.PrefixOp);
           newBin.ResolvedOp = e.ResolvedOp;  // part of what needs to be done to resolve on the fly (newBin.Type is set below, at end)
           newExpr = newBin;
         }
