@@ -99,12 +99,12 @@ do
    && msg=`echo "$line" | sed -E -e 's/^##[ ]*//' -e 's/_[a-z]+_/.*/g'`
 
   ## Check for the marker
-  echo $line | grep -e '```' > /dev/null
+  echo $line | grep -e '^```' > /dev/null
   if [ "$?" == "0" ]; then
     ##echo FOUND BACKTICKS IN $n "$line"
     if [ "$inblock" == "0" ]; then
       ## get language
-      lang=`echo "$line" | sed -e 's/\`\`\`//' -e 's/[ ].*$//'`
+      lang=`echo "$line" | sed -e 's/^\`\`\`[\`]*//' -e 's/[ ].*$//'`
       if [ -z "$lang" ]; then
         lang=$defaultLang
         if [ -z "$lang" ]; then
@@ -114,10 +114,11 @@ do
       fi
 
       command=
+      expect=
       ( echo "$line" | grep -e '<!--' > /dev/null ) \
           && action=( `echo "$line" | sed -e 's/[^<]*<!--//' -e 's/-->//'` ) \
           && command=${action[0]} && expect=${action[1]}
-      if [ -z "$command" ]; then
+      if [ "lang" == "dafny" -a -z "$command" ]; then
         command="$defaultCommand"
         if [ -z "$command" ]; then
           echo "NO COMMAND GIVEN $n $line"
@@ -131,7 +132,9 @@ do
     else
       ## End of backtick block, so check the text
       inblock=0
-      echo TESTING $n $file $command $expect
+      if [ "$lang" == "dafny" -o "$lang" == "cli" ]; then
+        echo TESTING $n $file $command $expect
+      fi
       if [ "$command" == "%no-check" ]; then
         echo -n ""
       elif [ "$command" == "%check-verify" -o "$command" == "%check-verify-warn" -o "$command" == "%check-resolve" ]; then
@@ -212,7 +215,7 @@ do
            FAIL=1
         fi
         msg=
-      else
+      elif [ "$lang" == "dafny" ]; then
          echo UNKNOWN TEST COMMAND $command
          FAIL=1
       fi
