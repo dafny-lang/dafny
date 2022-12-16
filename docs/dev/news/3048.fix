@@ -1,1 +1,0 @@
-Counter-examples with non-integer sequence indices do not crash Dafny anymore.
