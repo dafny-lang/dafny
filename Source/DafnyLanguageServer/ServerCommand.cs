@@ -61,7 +61,7 @@ Send notifications about the verification status of each line in the program.
 
   public static void ConfigureDafnyOptionsForServer(DafnyOptions dafnyOptions) {
     dafnyOptions.RunLanguageServer = true;
-    DafnyOptions.O.Set(DafnyConsolePrinter.ShowSnippets, true);
+    dafnyOptions.Set(DafnyConsolePrinter.ShowSnippets, true);
     dafnyOptions.PrintIncludesMode = DafnyOptions.IncludesModes.None;
     dafnyOptions.ProverOptions.AddRange(new List<string>()
     {

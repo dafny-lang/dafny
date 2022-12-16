@@ -15439,7 +15439,7 @@ namespace Microsoft.Dafny {
     void FillInDefaultValueExpression(DefaultValueExpression expr, Dictionary<DefaultValueExpression, WorkProgress> visited) {
       Contract.Requires(expr != null);
       Contract.Requires(visited != null);
-      Contract.Ensures(Contract.ValueAtReturn(out expr.ResolvedExpression) != null);
+      Contract.Ensures(expr.ResolvedExpression != null);
 
       if (visited.TryGetValue(expr, out var p)) {
         if (p == WorkProgress.Done) {

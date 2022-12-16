@@ -37,6 +37,8 @@ public interface IToken : Microsoft.Boogie.IToken {
   /// </summary>
   string TrailingTrivia { get; set; }
   string LeadingTrivia { get; set; }
+  IToken Next { get; set; } // The next token
+  IToken Prev { get; set; } // The previous token
 }
 
 /// <summary>
@@ -77,7 +79,15 @@ public record Token : IToken {
 
   public string TrailingTrivia { get; set; }
 
+  public IToken Next { get; set; } // The next token
+
+  public IToken Prev { get; set; } // The previous token
+
   public bool IsValid => this.ActualFilename != null;
+
+  public override int GetHashCode() {
+    return pos;
+  }
 }
 
 public abstract class TokenWrapper : IToken {
@@ -89,14 +99,14 @@ public abstract class TokenWrapper : IToken {
 
   public int col {
     get { return WrappedToken.col; }
-    set { throw new NotSupportedException(); }
+    set { WrappedToken.col = value; }
   }
 
   public string ActualFilename => WrappedToken.ActualFilename;
 
   public virtual string Filename {
     get { return WrappedToken.Filename; }
-    set { throw new NotSupportedException(); }
+    set { WrappedToken.filename = value; }
   }
 
   public bool IsValid {
@@ -112,11 +122,11 @@ public abstract class TokenWrapper : IToken {
   }
   public int pos {
     get { return WrappedToken.pos; }
-    set { throw new NotSupportedException(); }
+    set { WrappedToken.pos = value; }
   }
   public virtual string val {
     get { return WrappedToken.val; }
-    set { throw new NotSupportedException(); }
+    set { WrappedToken.val = value; }
   }
   public virtual string LeadingTrivia {
     get { return WrappedToken.LeadingTrivia; }
@@ -126,12 +136,20 @@ public abstract class TokenWrapper : IToken {
     get { return WrappedToken.TrailingTrivia; }
     set { throw new NotSupportedException(); }
   }
+  public virtual IToken Next {
+    get { return WrappedToken.Next; }
+    set { throw new NotSupportedException(); }
+  }
+  public virtual IToken Prev {
+    get { return WrappedToken.Prev; }
+    set { throw new NotSupportedException(); }
+  }
+
 }
 
 public class RangeToken : TokenWrapper {
   // The wrapped token is the startTok
   private IToken endTok;
-
   public IToken StartToken => WrappedToken;
   public IToken EndToken => endTok;
 
@@ -142,8 +160,14 @@ public class RangeToken : TokenWrapper {
     }
   }
 
-  public RangeToken(IToken startTok, IToken endTok) : base(startTok) {
-    this.endTok = endTok;
+  public RangeToken(IToken startTok, IToken endTok) : base(
+    endTok.pos < startTok.pos && startTok is RangeToken startRange ?
+        startRange.StartToken : startTok) {
+    if (endTok.pos < startTok.pos && startTok is RangeToken startRange2) {
+      this.endTok = startRange2.EndToken;
+    } else {
+      this.endTok = endTok;
+    }
   }
 }
 
@@ -177,6 +201,17 @@ public class IncludeToken : TokenWrapper {
     get { return WrappedToken.val; }
     set { WrappedToken.val = value; }
   }
+
+  public override IToken Prev {
+    get { return WrappedToken.Prev; }
+    set { WrappedToken.Prev = value; }
+  }
+
+  public override IToken Next {
+    get { return WrappedToken.Next; }
+    set { WrappedToken.Next = value; }
+  }
+
 }
 
 /// <summary>
