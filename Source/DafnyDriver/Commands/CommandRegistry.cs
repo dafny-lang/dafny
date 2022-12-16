@@ -5,7 +5,6 @@ using System.CommandLine.Invocation;
 using System.CommandLine.Parsing;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer;
@@ -31,6 +30,7 @@ static class CommandRegistry {
     AddCommand(new RunCommand());
     AddCommand(new BuildCommand());
     AddCommand(new TranslateCommand());
+    AddCommand(new MeasureComplexityCommand());
     AddCommand(new ServerCommand());
     AddCommand(new TestCommand());
     AddCommand(new GenerateTestsCommand());
