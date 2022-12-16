@@ -128,66 +128,66 @@ true - The char type represents any Unicode scalar value.".TrimStart());
     DafnyOptions.RegisterLegacyBinding(SolverPath, (options, value) => {
       if (!string.IsNullOrEmpty(value)) {
         options.ProverOptions.Add($"PROVER_PATH={value}");
-    DafnyOptions.RegisterLegacyBinding(ManualLemmaInduction, (options, value) => {
-      if (value) {
-        options.Induction = 1;
+        DafnyOptions.RegisterLegacyBinding(ManualLemmaInduction, (options, value) => {
+          if (value) {
+            options.Induction = 1;
+          }
+        });
+        DafnyOptions.RegisterLegacyBinding(IncludeRuntime, (options, value) => {
+          options.UseRuntimeLib = !value;
+        });
+        DafnyOptions.RegisterLegacyBinding(WarnShadowing, (options, value) => {
+          options.WarnShadowing = value;
+        });
+        DafnyOptions.RegisterLegacyBinding(WarnMissingConstructorParenthesis, (options, value) => {
+          options.DisallowConstructorCaseWithoutParentheses = value;
+        });
+        DafnyOptions.RegisterLegacyBinding(WarningAsErrors, (options, value) => {
+          options.WarningsAsErrors = value;
+        });
+        DafnyOptions.RegisterLegacyBinding(VerifyIncludedFiles, (options, value) => {
+          options.VerifyAllModules = value;
+        });
+
+        DafnyOptions.RegisterLegacyBinding(Target, (options, value) => {
+          options.CompilerName = value;
+        });
+
+
+        DafnyOptions.RegisterLegacyBinding(QuantifierSyntax, (options, value) => {
+          options.QuantifierSyntax = value;
+        });
+
+        DafnyOptions.RegisterLegacyBinding(Plugin, (options, value) => {
+          options.AdditionalPluginArguments = value;
+        });
+
+        DafnyOptions.RegisterLegacyBinding(Prelude, (options, value) => {
+          options.DafnyPrelude = value;
+          options.ExpandFilename(options.DafnyPrelude, x => options.DafnyPrelude = x, options.LogPrefix, options.FileTimestamp);
+        });
+        DafnyOptions.RegisterLegacyBinding(Libraries, (options, value) => {
+          options.LibraryFiles = value.ToHashSet();
+        });
+        DafnyOptions.RegisterLegacyBinding(Output, (options, value) => {
+          options.DafnyPrintCompiledFile = value;
+        });
+
+        DafnyOptions.RegisterLegacyBinding(CompileVerbose, (o, v) => o.CompileVerbose = v);
+        DafnyOptions.RegisterLegacyBinding(DisableNonLinearArithmetic, (o, v) => o.DisableNLarith = v);
+        DafnyOptions.RegisterLegacyBinding(EnforceDeterminism, (options, value) => {
+          options.ForbidNondeterminism = value;
+          options.DefiniteAssignmentLevel = value ? 2 : 1;
+        });
+        RelaxDefiniteAssignment.AddValidator(optionResult => {
+          var enforceDeterminismResult = optionResult.FindResultFor(EnforceDeterminism);
+          if (enforceDeterminismResult is not null && enforceDeterminismResult.GetValueOrDefault<bool>()) {
+            optionResult.ErrorMessage = $"The option {RelaxDefiniteAssignment.Name} can not be used in conjunction with {EnforceDeterminism.Name}.";
+          }
+        });
+        DafnyOptions.RegisterLegacyBinding(RelaxDefiniteAssignment, (options, value) => {
+          options.DefiniteAssignmentLevel = value ? 1 : 2;
+        });
+
       }
-    });
-    DafnyOptions.RegisterLegacyBinding(IncludeRuntime, (options, value) => {
-      options.UseRuntimeLib = !value;
-    });
-    DafnyOptions.RegisterLegacyBinding(WarnShadowing, (options, value) => {
-      options.WarnShadowing = value;
-    });
-    DafnyOptions.RegisterLegacyBinding(WarnMissingConstructorParenthesis, (options, value) => {
-      options.DisallowConstructorCaseWithoutParentheses = value;
-    });
-    DafnyOptions.RegisterLegacyBinding(WarningAsErrors, (options, value) => {
-      options.WarningsAsErrors = value;
-    });
-    DafnyOptions.RegisterLegacyBinding(VerifyIncludedFiles, (options, value) => {
-      options.VerifyAllModules = value;
-    });
-
-    DafnyOptions.RegisterLegacyBinding(Target, (options, value) => {
-      options.CompilerName = value;
-    });
-
-
-    DafnyOptions.RegisterLegacyBinding(QuantifierSyntax, (options, value) => {
-      options.QuantifierSyntax = value;
-    });
-
-    DafnyOptions.RegisterLegacyBinding(Plugin, (options, value) => {
-      options.AdditionalPluginArguments = value;
-    });
-
-    DafnyOptions.RegisterLegacyBinding(Prelude, (options, value) => {
-      options.DafnyPrelude = value;
-      options.ExpandFilename(options.DafnyPrelude, x => options.DafnyPrelude = x, options.LogPrefix, options.FileTimestamp);
-    });
-    DafnyOptions.RegisterLegacyBinding(Libraries, (options, value) => {
-      options.LibraryFiles = value.ToHashSet();
-    });
-    DafnyOptions.RegisterLegacyBinding(Output, (options, value) => {
-      options.DafnyPrintCompiledFile = value;
-    });
-
-    DafnyOptions.RegisterLegacyBinding(CompileVerbose, (o, v) => o.CompileVerbose = v);
-    DafnyOptions.RegisterLegacyBinding(DisableNonLinearArithmetic, (o, v) => o.DisableNLarith = v);
-    DafnyOptions.RegisterLegacyBinding(EnforceDeterminism, (options, value) => {
-      options.ForbidNondeterminism = value;
-      options.DefiniteAssignmentLevel = value ? 2 : 1;
-    });
-    RelaxDefiniteAssignment.AddValidator(optionResult => {
-      var enforceDeterminismResult = optionResult.FindResultFor(EnforceDeterminism);
-      if (enforceDeterminismResult is not null && enforceDeterminismResult.GetValueOrDefault<bool>()) {
-        optionResult.ErrorMessage = $"The option {RelaxDefiniteAssignment.Name} can not be used in conjunction with {EnforceDeterminism.Name}.";
-      }
-    });
-    DafnyOptions.RegisterLegacyBinding(RelaxDefiniteAssignment, (options, value) => {
-      options.DefiniteAssignmentLevel = value ? 1 : 2;
-    });
-
-  }
-}
+    }
