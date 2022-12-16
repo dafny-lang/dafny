@@ -243,11 +243,9 @@ public abstract class ProduceStmt : Statement {
   public override IEnumerable<Expression> NonSpecificationSubExpressions {
     get {
       foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
-      if (Rhss != null) {
-        foreach (var rhs in Rhss) {
-          foreach (var ee in rhs.NonSpecificationSubExpressions) {
-            yield return ee;
-          }
+      foreach (var rhs in Rhss ?? Enumerable.Empty<AssignmentRhs>()) {
+        foreach (var e in rhs.NonSpecificationSubExpressions) {
+          yield return e;
         }
       }
     }
@@ -255,22 +253,18 @@ public abstract class ProduceStmt : Statement {
   public override IEnumerable<Expression> SpecificationSubExpressions {
     get {
       foreach (var e in base.SpecificationSubExpressions) { yield return e; }
-      if (Rhss != null) {
-        foreach (var rhs in Rhss) {
-          foreach (var ee in rhs.SpecificationSubExpressions) {
-            yield return ee;
-          }
+      foreach (var rhs in Rhss ?? Enumerable.Empty<AssignmentRhs>()) {
+        foreach (var e in rhs.SpecificationSubExpressions) {
+          yield return e;
         }
       }
     }
   }
   public override IEnumerable<Statement> SubStatements {
     get {
-      if (Rhss != null) {
-        foreach (var rhs in Rhss) {
-          foreach (var s in rhs.SubStatements) {
-            yield return s;
-          }
+      foreach (var rhs in Rhss ?? Enumerable.Empty<AssignmentRhs>()) {
+        foreach (var s in rhs.SubStatements) {
+          yield return s;
         }
       }
     }
@@ -309,17 +303,7 @@ public abstract class AssignmentRhs : INode, IAttributeBearingDeclaration {
   /// <summary>
   /// Returns all (specification and non-specification) non-null expressions of the AssignmentRhs.
   /// </summary>
-  public IEnumerable<Expression> SubExpressions {
-    get {
-      foreach (var e in SpecificationSubExpressions) {
-        yield return e;
-      }
-
-      foreach (var e in NonSpecificationSubExpressions) {
-        yield return e;
-      }
-    }
-  }
+  public IEnumerable<Expression> SubExpressions => SpecificationSubExpressions.Concat(NonSpecificationSubExpressions);
 
   /// <summary>
   /// Returns the non-null non-specification subexpressions of the AssignmentRhs.
