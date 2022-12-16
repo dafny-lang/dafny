@@ -99,12 +99,12 @@ do
    && msg=`echo "$line" | sed -E -e 's/^##[ ]*//' -e 's/_[a-z]+_/.*/g'`
 
   ## Check for the marker
-  echo $line | grep -e '^```' > /dev/null
+  echo $line | grep -e '^[ ]*```' > /dev/null
   if [ "$?" == "0" ]; then
     ##echo FOUND BACKTICKS IN $n "$line"
     if [ "$inblock" == "0" ]; then
       ## get language
-      lang=`echo "$line" | sed -e 's/^\`\`\`[\`]*//' -e 's/[ ].*$//'`
+      lang=`echo "$line" | sed -e 's/^[ ]*\`\`\`[\`]*//' -e 's/[ ].*$//'`
       if [ -z "$lang" ]; then
         lang=$defaultLang
         if [ -z "$lang" ]; then
