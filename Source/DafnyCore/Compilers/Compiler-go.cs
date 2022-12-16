@@ -1282,7 +1282,7 @@ namespace Microsoft.Dafny.Compilers {
       if (xType is BoolType) {
         return "_dafny.BoolType";
       } else if (xType is CharType) {
-        return "_dafny.CharType";
+        return CharTypeDescriptorName;
       } else if (xType is IntType) {
         return "_dafny.IntType";
       } else if (xType is BigOrdinalType) {
@@ -1379,7 +1379,9 @@ namespace Microsoft.Dafny.Compilers {
 
     private const string AnyType = "interface{}"; // In Go 1.18, this type can be written as "any"
 
-    private static string CharTypeName => UnicodeCharEnabled ? "_dafny.CodePoint" : "_dafny.Char";
+    private static string CharTypeName => $"_dafny.{CharTypeNameProper}";
+    private static string CharTypeDescriptorName => $"_dafny.{CharTypeNameProper}Type";
+    private static string CharTypeNameProper => UnicodeCharEnabled ? "CodePoint" : "Char";
 
     internal override string TypeName(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl/*?*/ member = null) {
       Contract.Ensures(Contract.Result<string>() != null);
@@ -2700,7 +2702,7 @@ namespace Microsoft.Dafny.Compilers {
       var typeSpecialization = "";
       if (dimensionCount == 1 && elementType != null) {
         if (elementType.IsCharType) {
-          typeSpecialization = "Char";
+          typeSpecialization = CharTypeNameProper;
         } else {
           var nt = AsNativeType(elementType);
           if (nt != null && nt.Sel == NativeType.Selection.Byte) {

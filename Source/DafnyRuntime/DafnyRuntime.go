@@ -144,6 +144,9 @@ var BoolType = CreateStandardTypeDescriptor(false)
 // CharType is the RTD of char
 var CharType = CreateStandardTypeDescriptor(Char('D'))  // See CharType.DefaultValue in Dafny source code
 
+// CodePointType is the RTD of char
+var CodePointType = CreateStandardTypeDescriptor(CodePoint('D'))  // See CharType.DefaultValue in Dafny source code
+
 // RealType is the RTD for real
 var RealType = CreateStandardTypeDescriptor(ZeroReal)
 
@@ -712,6 +715,8 @@ type Array interface {
   ArraySet1Byte(value byte, index int)
   ArrayGet1Char(index int) Char
   ArraySet1Char(value Char, index int)
+  ArrayGet1CodePoint(index int) CodePoint
+  ArraySet1CodePoint(value CodePoint, index int)
 }
 
 /***** newArray *****/
@@ -778,6 +783,19 @@ func NewArrayFromExample(example interface{}, init interface{}, dims ...Int) Arr
       }
     }
     return &ArrayForChar{
+      contents: arr,
+      dims:     intDims,
+    }
+  }
+  if _, ok := example.(CodePoint); ok {
+    arr := make([]CodePoint, totalLength)
+    if init != nil {
+      x := init.(CodePoint)
+      for i := range arr {
+        arr[i] = x
+      }
+    }
+    return &ArrayForCodePoint{
       contents: arr,
       dims:     intDims,
     }
@@ -886,11 +904,19 @@ func (_this ArrayStruct) ArraySet1Byte(value byte, index int) {
 }
 
 func (_this ArrayStruct) ArrayGet1Char(index int) Char {
-  panic("Expected specialized array type that contains chars, but found general-purpose array of interface{}")
+  panic("Expected specialized array type that contains characters, but found general-purpose array of interface{}")
 }
 
 func (_this ArrayStruct) ArraySet1Char(value Char, index int) {
-  panic("Expected specialized array type that contains chars, but found general-purpose array of interface{}")
+  panic("Expected specialized array type that contains characters, but found general-purpose array of interface{}")
+}
+
+func (_this ArrayStruct) ArrayGet1CodePoint(index int) CodePoint {
+  panic("Expected specialized array type that contains code points, but found general-purpose array of interface{}")
+}
+
+func (_this ArrayStruct) ArraySet1CodePoint(value CodePoint, index int) {
+  panic("Expected specialized array type that contains code points, but found general-purpose array of interface{}")
 }
 
 func (_this ArrayStruct) anySlice(lo, hi Int) []interface{} {
@@ -948,11 +974,19 @@ func (_this ArrayForByte) ArraySet1Byte(value byte, index int) {
 }
 
 func (_this ArrayForByte) ArrayGet1Char(index int) Char {
-  panic("Expected specialized array type that contains chars, but found general-purpose array of interface{}")
+  panic("Expected specialized array type that contains characters, but found general-purpose array of interface{}")
 }
 
 func (_this ArrayForByte) ArraySet1Char(value Char, index int) {
-  panic("Expected specialized array type that contains chars, but found general-purpose array of interface{}")
+  panic("Expected specialized array type that contains characters, but found general-purpose array of interface{}")
+}
+
+func (_this ArrayForByte) ArrayGet1CodePoint(index int) CodePoint {
+  panic("Expected specialized array type that contains code points, but found general-purpose array of interface{}")
+}
+
+func (_this ArrayForByte) ArraySet1CodePoint(value CodePoint, index int) {
+  panic("Expected specialized array type that contains code points, but found general-purpose array of interface{}")
 }
 
 func (_this ArrayForByte) anySlice(lo, hi Int) []interface{} {
@@ -980,7 +1014,7 @@ func (_this ArrayForByte) EqualsGeneric(other interface{}) bool {
   return &_this.dims[0] == &otherArray.dims[0]
 }
 
-/***** ArrayForChar is the Array interface specialized for char. *****/
+/***** ArrayForChar is the Array interface specialized for Char. *****/
 
 type ArrayForChar struct {
   contents []Char // stored as a flat one-dimensional slice
@@ -1019,6 +1053,14 @@ func (_this ArrayForChar) ArraySet1Char(value Char, index int) {
   _this.contents[index] = value
 }
 
+func (_this ArrayForChar) ArrayGet1CodePoint(index int) CodePoint {
+  panic("Expected specialized array type that contains code points, but found general-purpose array of interface{}")
+}
+
+func (_this ArrayForChar) ArraySet1CodePoint(value CodePoint, index int) {
+  panic("Expected specialized array type that contains code points, but found general-purpose array of interface{}")
+}
+
 func (_this ArrayForChar) anySlice(lo, hi Int) []interface{} {
   if lo.IsNilInt() {
     lo = Zero
@@ -1038,6 +1080,78 @@ func (_this ArrayForChar) anySlice(lo, hi Int) []interface{} {
 // ArrayForChar implements the EqualsGeneric interface.
 func (_this ArrayForChar) EqualsGeneric(other interface{}) bool {
   otherArray, ok := other.(*ArrayForChar)
+  if !ok {
+    return false
+  }
+  return &_this.dims[0] == &otherArray.dims[0]
+}
+
+/***** ArrayForCodePoint is the Array interface specialized for CodePoint. *****/
+
+type ArrayForCodePoint struct {
+  contents []CodePoint // stored as a flat one-dimensional slice
+  dims     []int
+}
+
+func (_this ArrayForCodePoint) dimensionCount() int {
+  return len(_this.dims)
+}
+
+func (_this ArrayForCodePoint) dimensionLength(dim int) int {
+  return _this.dims[dim]
+}
+
+func (_this ArrayForCodePoint) ArrayGet1(index int) interface{} {
+  return _this.contents[index]
+}
+
+func (_this ArrayForCodePoint) ArraySet1(value interface{}, index int) {
+  _this.contents[index] = value.(CodePoint)
+}
+
+func (_this ArrayForCodePoint) ArrayGet1Byte(index int) byte {
+  panic("Expected specialized array type that contains bytes, but found general-purpose array of interface{}")
+}
+
+func (_this ArrayForCodePoint) ArraySet1Byte(value byte, index int) {
+  panic("Expected specialized array type that contains bytes, but found general-purpose array of interface{}")
+}
+
+func (_this ArrayForCodePoint) ArrayGet1Char(index int) Char {
+  panic("Expected specialized array type that contains characters, but found general-purpose array of interface{}")
+}
+
+func (_this ArrayForCodePoint) ArraySet1Char(value Char, index int) {
+  panic("Expected specialized array type that contains characters, but found general-purpose array of interface{}")
+}
+
+func (_this ArrayForCodePoint) ArrayGet1CodePoint(index int) CodePoint {
+  return _this.contents[index]
+}
+
+func (_this ArrayForCodePoint) ArraySet1CodePoint(value CodePoint, index int) {
+  _this.contents[index] = value
+}
+
+func (_this ArrayForCodePoint) anySlice(lo, hi Int) []interface{} {
+  if lo.IsNilInt() {
+    lo = Zero
+  }
+  if hi.IsNilInt() {
+    hi = IntOf(len(_this.contents))
+  }
+  iLo := lo.Int()
+  iHi := hi.Int()
+  anyArray := make([]interface{}, iHi - iLo)
+  for i := iLo; i < iHi; i++ {
+    anyArray[i] = _this.contents[i]
+  }
+  return anyArray
+}
+
+// ArrayForCodePoint implements the EqualsGeneric interface.
+func (_this ArrayForCodePoint) EqualsGeneric(other interface{}) bool {
+  otherArray, ok := other.(*ArrayForCodePoint)
   if !ok {
     return false
   }
