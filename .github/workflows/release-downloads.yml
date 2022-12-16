@@ -14,11 +14,11 @@ jobs:
       fail-fast: false
       matrix:
         # This workflow breaks on windows-2022: https://github.com/dafny-lang/dafny/issues/1906
-        os: [ ubuntu-latest, ubuntu-18.04, macos-latest, windows-2019 ]
+        os: [ ubuntu-latest, ubuntu-20.04, macos-latest, windows-2019 ]
         include:
         - os:  'ubuntu-latest'
           osn: 'ubuntu\-16.04'
-        - os:  'ubuntu-18.04'
+        - os:  'ubuntu-20.04'
           osn: 'ubuntu\-16.04'
         - os:  'macos-latest'
           osn: 'osx-.*'
