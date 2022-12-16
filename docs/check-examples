@@ -75,6 +75,7 @@ ANYFAIL=0
 
 ## Loop over all remaining command-line arguments
 for file in $@ ; do
+dir=$(dirname "$file")
 
 ## Whether this file fails
 FAIL=0
@@ -171,8 +172,8 @@ do
               echo EXPECTED EXIT CODE $ec, got $actualec
               FAIL=1
             fi
-            if [ -e "$expect" ]; then
-              diff actual "$expect"
+            if [ -e "$dir/$expect" ]; then
+              diff actual "$dir/$expect"
               if [ "$?" -ne "0" ]; then
                 FAIL=1
                 echo Actual output differs from expected
