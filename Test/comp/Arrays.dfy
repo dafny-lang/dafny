@@ -397,7 +397,7 @@ module MoreArrays {
 
     var b := StringToByteArray("hello there");
     print a == b; // false
-    CheckEquality(a, b); // false
+    CheckEquality(a, b); // false (this once caused the emitted JavaScript to crash, see issue #3207)
     print a == a; // true
     CheckEquality(a, a); // true
     var c: array?<byte> := null;
