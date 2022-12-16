@@ -1,13 +1,12 @@
 ﻿using System.Collections.Generic;
+using System.IO;
 using Microsoft.Dafny.LanguageServer.Handlers.Custom;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol;
-using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using DafnyServer.CounterexampleGeneration;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
 
@@ -26,15 +25,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [TestMethod]
     public async Task CounterexamplesStillWorksIfNothingHasBeenVerified() {
-      await SetUp(new Dictionary<string, string> {
-        { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.Never) }
-      });
+      await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Never));
       var source = @"
       method Abs(x: int) returns (y: int)
         ensures y > 0
       {
       }
       ".TrimStart();
+      await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -51,6 +49,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       {
       }
       ".TrimStart();
+      await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -112,6 +111,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       {
       }
       ".TrimStart();
+
+      await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
+
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri))
@@ -1086,6 +1088,48 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.IsTrue(counterExamples[0].Variables["c:M.C?"] is
         "(c1 := '\\u1023', c2 := '\\u1023')" or
         "(c2 := '\\u1023', c1 := '\\u1023')");
+    }
+
+    /// <summary>
+    /// Tests that a Dafny program where a sequence with non-integral indices is generated as part of
+    /// a counterexample.  This would previously crash the LSP before #3093.
+    /// For more details, see https://github.com/dafny-lang/dafny/issues/3048 .
+    /// </summary>
+    [TestMethod]
+    public async Task NonIntegerSeqIndices() {
+      string fp = Path.Combine(Directory.GetCurrentDirectory(), "Various", "TestFiles", "3048.dfy");
+      var source = await File.ReadAllTextAsync(fp, CancellationToken);
+      var documentItem = CreateTestDocument(source);
+
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+
+      /* First, ensure we can correctly extract counterexamples without crashing... */
+      var nonIntegralIndexedSeqs = (await RequestCounterExamples(documentItem.Uri))
+        .SelectMany(cet => cet.Variables.ToList())
+        /* Then, extract the number of non-integral indexed sequences from the repro case... */
+        .Count(IsNegativeIndexedSeq);
+
+      Assert.IsTrue(nonIntegralIndexedSeqs > 0, "If we do not see at least one non-integral index in " +
+                                                "this test case, then the backend changed " +
+                                                "The indices being returned to the Language Server.");
+    }
+
+    /* Helper for the NonIntegerSeqIndices test. */
+    private static bool IsNegativeIndexedSeq(KeyValuePair<string, string> kvp) {
+      var r = new Regex(@"\[\(- \d+\)\]");
+      return kvp.Key.Contains("seq<_module.uint8>") && r.IsMatch(kvp.Value);
+    }
+
+    [TestMethod]
+    public void TestIsNegativeIndexedSeq() {
+      Assert.IsFalse(
+        IsNegativeIndexedSeq(new KeyValuePair<string, string>("uint8", "42")));
+      Assert.IsFalse(
+        IsNegativeIndexedSeq(new KeyValuePair<string, string>("seq<_module.uint8>", "(Length := 42, [0] := 42)")));
+      Assert.IsTrue(
+        IsNegativeIndexedSeq(new KeyValuePair<string, string>("seq<_module.uint8>", "(Length := 9899, [(- 1)] := 42)")));
+      Assert.IsTrue(
+        IsNegativeIndexedSeq(new KeyValuePair<string, string>("seq<seq<_module.uint8>>", "(Length := 1123, [(- 12345)] := @12)")));
     }
   }
 }

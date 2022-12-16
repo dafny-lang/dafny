@@ -1017,8 +1017,8 @@ having been initialized.
 [This document](../Compilation/AutoInitialization) has more detail on
 auto-initialization.
 
-The `-definiteAssignment` option allows choosing different levels of 
-checking the definite assignment rules.
+The `--strict-definite-assignment` option will cause definite assignment rules
+to be enforced even for auto-initializable types.
 
 ## 24.7. Well-founded Orders {#sec-well-founded-orders}
 

@@ -24,6 +24,7 @@ using System.Linq;
 using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 using System.Diagnostics;
+using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny {
 
@@ -130,6 +131,13 @@ namespace Microsoft.Dafny {
           throw new ArgumentOutOfRangeException();
       }
 
+      if (dafnyOptions.RunLanguageServer) {
+#pragma warning disable VSTHRD002
+        LanguageServer.Server.Start(dafnyOptions).Wait();
+#pragma warning restore VSTHRD002
+        return 0;
+      }
+
       DafnyOptions.O.XmlSink?.Close();
 
       if (DafnyOptions.O.VerificationLoggerConfigs.Any()) {
@@ -180,6 +188,25 @@ namespace Microsoft.Dafny {
         new DafnyConsolePrinter().ErrorWriteLine(Console.Out, "*** ProverException: {0}", pe.Message);
         options = null;
         return CommandLineArgumentsResult.PREPROCESSING_ERROR;
+      }
+
+      if (options.RunLanguageServer) {
+        return CommandLineArgumentsResult.OK;
+      }
+
+      var nonOutOptions = options;
+      var compilers = options.Plugins.SelectMany(p => p.GetCompilers()).ToList();
+      var compiler = compilers.LastOrDefault(c => c.TargetId == nonOutOptions.CompilerName);
+      if (compiler == null) {
+        if (options.Compile) {
+          var known = String.Join(", ", compilers.Select(c => $"'{c.TargetId}' ({c.TargetLanguage})"));
+          options.Printer.ErrorWriteLine(Console.Error, $"No compiler found for compileTarget \"{options.CompilerName}\"; expecting one of {known}");
+          return CommandLineArgumentsResult.PREPROCESSING_ERROR;
+        }
+
+        options.Compiler = new NoCompiler();
+      } else {
+        options.Compiler = compiler;
       }
 
       // If requested, print version number, help, attribute help, etc. and exit.
@@ -632,6 +659,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(dafnyProgram != null);
       Contract.Assert(dafnyProgramName != null);
 
+      // TODO: `outputWriter` seems to always be passed in as `null`.  Remove it?
       if (outputWriter == null) {
         outputWriter = Console.Out;
       }
@@ -702,6 +730,7 @@ namespace Microsoft.Dafny {
             outputWriter.WriteLine("Running...");
             outputWriter.WriteLine();
           }
+
           compiledCorrectly = compiler.RunTargetProgram(dafnyProgramName, targetProgramText, callToMain, paths.Filename, otherFileNames, compilationResult, outputWriter);
         } else {
           // make sure to give some feedback to the user
@@ -715,5 +744,35 @@ namespace Microsoft.Dafny {
 
     #endregion
 
+  }
+
+  class NoCompiler : Compiler {
+    public override IReadOnlySet<string> SupportedExtensions => new HashSet<string>();
+    public override string TargetLanguage => throw new NotSupportedException();
+    public override string TargetExtension => throw new NotSupportedException();
+    public override string PublicIdProtect(string name) {
+      throw new NotSupportedException();
+    }
+
+    public override bool TextualTargetIsExecutable => throw new NotSupportedException();
+
+    public override bool SupportsInMemoryCompilation => throw new NotSupportedException();
+    public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
+      throw new NotSupportedException();
+    }
+
+    public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree callToMainTree) {
+      throw new NotSupportedException();
+    }
+
+    public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string pathsFilename,
+      ReadOnlyCollection<string> otherFileNames, bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
+      throw new NotSupportedException();
+    }
+
+    public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string pathsFilename,
+      ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
+      throw new NotSupportedException();
+    }
   }
 }

@@ -6,22 +6,22 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 class BuildCommand : ICommandSpec {
-  public IEnumerable<IOptionSpec> Options => new IOptionSpec[] {
-    OutputOption.Instance,
-    TargetOption.Instance,
-    NoVerifyOption.Instance,
-    CompileVerboseOption.Instance,
-  }.Concat(CommandRegistry.CommonOptions);
+  public IEnumerable<Option> Options => new Option[] {
+    CommonOptionBag.Output,
+    CommonOptionBag.CompileVerbose,
+  }.Concat(ICommandSpec.ExecutionOptions).
+    Concat(ICommandSpec.ConsoleOutputOptions).
+    Concat(ICommandSpec.CommonOptions);
 
   public Command Create() {
     var result = new Command("build", "Produce an executable binary or a library.");
-    result.AddArgument(CommandRegistry.FilesArgument);
+    result.AddArgument(ICommandSpec.FilesArgument);
     return result;
   }
 
   public void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context) {
     dafnyOptions.Compile = true;
     dafnyOptions.RunAfterCompile = false;
-    dafnyOptions.ForceCompile = NoVerifyOption.Instance.Get(options);
+    dafnyOptions.ForceCompile = dafnyOptions.Get(BoogieOptionBag.NoVerify);
   }
 }

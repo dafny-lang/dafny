@@ -11,15 +11,12 @@ type. Since the type of a variable never changes, this ensures type safety, prov
 a variable is assigned before it is used. But what about any uses before then?
 
 If a variable is used before it has been assigned, Dafny still arranges for the
-variable to be initialized with _some_ value of the variable's type.[^fn-determinism]
+variable to be initialized with _some_ value of the variable's type.
 To accomplish this, the compiler needs to have the ability to emit an expression that
 produces a value of a given type. This is possible for many, but not all, types.
 
 This document describes for which types the compiler can produce initializing
 expressions and the mechanism used for doing so.
-
-[^fn-determinism]: The command-line option `/definiteAssignment:3` tells Dafny to
-    instead generate an error if a variable is not assigned by the program.
 
 Types
 -----
@@ -68,7 +65,7 @@ type                            | C# target type
 `int`                           | `BigInteger`
 `real`                          | `BigRational`
 `bool`                          | `bool`
-`char`                          | `char`
+`char`                          | `char` (for `/unicodeChar:0`)<br>`Rune` (for `/unicodeChar:1`)
 bitvectors                      | `byte`, `ushort`, `uint`, `ulong`, or `BigInteger`
 `ORDINAL`                       | `BigInteger`
 integer-based `newtype`         | bounded C# integer or `BigInteger`

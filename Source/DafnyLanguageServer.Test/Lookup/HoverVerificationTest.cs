@@ -1,10 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.JsonRpc;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
@@ -18,25 +20,16 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
 
     private ILanguageClient client;
     private TestNotificationReceiver<CompilationStatusParams> notificationReceiver;
-    private IDictionary<string, string> configuration;
 
     [TestInitialize]
     public Task SetUp() => SetUp(null);
 
-    public async Task SetUp(IDictionary<string, string> configuration) {
-      DafnyOptions.Install(DafnyOptions.Create());
-      this.configuration = configuration;
+    public async Task SetUp(Action<DafnyOptions> modifyOptions) {
       notificationReceiver = new();
       client = await InitializeClient(options => {
         options
           .AddHandler(DafnyRequestNames.CompilationStatus, NotificationHandler.For<CompilationStatusParams>(notificationReceiver.NotificationReceived));
-      });
-    }
-
-    protected override IConfiguration CreateConfiguration() {
-      return configuration == null
-        ? base.CreateConfiguration()
-        : new ConfigurationBuilder().AddInMemoryCollection(configuration).Build();
+      }, modifyOptions);
     }
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
@@ -56,7 +49,7 @@ method Abs(x: int) returns (y: int)
       // When hovering the postcondition, it should display the position of the failing path
       await AssertHoverMatches(documentItem, (2, 15),
         @"[**Error:**](???) This postcondition might not hold on a return path.  
-This is assertion #1 of 2 in method Abs  
+This is assertion #1 of 4 in method Abs  
 Resource usage: ??? RU  
 Return path: testFile.dfy(6, 5)"
       );
@@ -64,12 +57,12 @@ Return path: testFile.dfy(6, 5)"
       // because the IDE extension already does it.
       await AssertHoverMatches(documentItem, (5, 4),
         @"[**Error:**](???) A postcondition might not hold on this return path.  
-This is assertion #1 of 2 in method Abs  
+This is assertion #1 of 4 in method Abs  
 Resource usage: ??? RU"
       );
       await AssertHoverMatches(documentItem, (7, 11),
         @"[**Error:**](???) assertion might not hold  
-This is assertion #2 of 2 in method Abs  
+This is assertion #2 of 4 in method Abs  
 Resource usage: 9K RU"
       );
       await AssertHoverMatches(documentItem, (0, 7),
@@ -82,6 +75,10 @@ Resource usage: 9K RU"
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
     public async Task BetterMessageWhenOneAssertPerBatch() {
+      await SetUp(o => {
+        o.Set(CommonOptionBag.RelaxDefiniteAssignment, true);
+        // LineVerificationStatusOption.Instance.Set(o, true);
+      });
       var documentItem = await GetDocumentItem(@"
 method {:vcs_split_on_every_assert} f(x: int) {
   assert x >= 2; // Hover #1

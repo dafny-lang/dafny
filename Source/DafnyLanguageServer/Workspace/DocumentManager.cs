@@ -24,30 +24,26 @@ public class DocumentManager {
   private readonly ITextChangeProcessor textChangeProcessor;
 
   private readonly IServiceProvider services;
-  private readonly DocumentOptions documentOptions;
-  private readonly VerifierOptions verifierOptions;
   private readonly IdeStateObserver observer;
   public Compilation Compilation { get; private set; }
   private IDisposable observerSubscription;
   private readonly ILogger<DocumentManager> logger;
 
-  private bool VerifyOnOpen => documentOptions.Verify == AutoVerification.OnChange;
-  private bool VerifyOnChange => documentOptions.Verify == AutoVerification.OnChange;
-  private bool VerifyOnSave => documentOptions.Verify == AutoVerification.OnSave;
+  private bool VerifyOnOpen => options.Get(ServerCommand.Verification) == VerifyOnMode.Change;
+  private bool VerifyOnChange => options.Get(ServerCommand.Verification) == VerifyOnMode.Change;
+  private bool VerifyOnSave => options.Get(ServerCommand.Verification) == VerifyOnMode.Save;
   public List<Position> ChangedVerifiables { get; set; } = new();
   public List<Range> ChangedRanges { get; set; } = new();
 
   private readonly SemaphoreSlim workCompletedForCurrentVersion = new(0);
+  private readonly DafnyOptions options;
 
   public DocumentManager(
     IServiceProvider services,
-    DocumentOptions documentOptions,
-    VerifierOptions verifierOptions,
     DocumentTextBuffer document) {
     this.services = services;
+    this.options = services.GetRequiredService<DafnyOptions>();
     this.logger = services.GetRequiredService<ILogger<DocumentManager>>();
-    this.documentOptions = documentOptions;
-    this.verifierOptions = verifierOptions;
     this.relocator = services.GetRequiredService<IRelocator>();
     this.textChangeProcessor = services.GetRequiredService<ITextChangeProcessor>();
 
@@ -58,7 +54,6 @@ public class DocumentManager {
       document);
     Compilation = new Compilation(
       services,
-      verifierOptions,
       document,
       null);
 
@@ -93,10 +88,14 @@ public class DocumentManager {
     Compilation.CancelPendingUpdates();
     var updatedText = textChangeProcessor.ApplyChange(Compilation.TextBuffer, documentChange, CancellationToken.None);
 
+
     var lastPublishedState = observer.LastPublishedState;
+    var migratedVerificationTree =
+      relocator.RelocateVerificationTree(lastPublishedState.VerificationTree, updatedText.NumberOfLines, documentChange, CancellationToken.None);
     lastPublishedState = lastPublishedState with {
       ImplementationIdToView = MigrateImplementationViews(documentChange, lastPublishedState.ImplementationIdToView),
-      SignatureAndCompletionTable = relocator.RelocateSymbols(lastPublishedState.SignatureAndCompletionTable, documentChange, CancellationToken.None)
+      SignatureAndCompletionTable = relocator.RelocateSymbols(lastPublishedState.SignatureAndCompletionTable, documentChange, CancellationToken.None),
+      VerificationTree = migratedVerificationTree
     };
 
     lock (ChangedRanges) {
@@ -105,13 +104,8 @@ public class DocumentManager {
             relocator.RelocateRange(range, documentChange, CancellationToken.None))).
           Where(r => r != null).Take(MaxRememberedChanges).ToList()!;
     }
-
-    var migratedVerificationTree =
-      relocator.RelocateVerificationTree(lastPublishedState.VerificationTree, updatedText.NumberOfLines, documentChange, CancellationToken.None);
-
     Compilation = new Compilation(
       services,
-      verifierOptions,
       updatedText,
       // TODO do not pass this to CompilationManager but instead use it in FillMissingStateUsingLastPublishedDocument
       migratedVerificationTree

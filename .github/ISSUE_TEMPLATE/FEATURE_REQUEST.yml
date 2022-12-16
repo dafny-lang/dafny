@@ -1,0 +1,45 @@
+name: Feature Request
+description: Request a feature for Dafny
+labels: "kind: enhancement"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        <!--
+        Markdown is supported.
+        -->
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: Brief summary of what this proposal is about.
+    validations:
+      required: false
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Background and Motivation
+      description: What is the problem we are solving and in what context did you encounter it?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed Feature
+      description: >
+        Please provide a sketch of the feature you are proposing. 
+        Be as specific as you can: the more specific the proposal, the easier the process will be.
+        Including screenshots of some of the existing problems can also help a lot here.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      description: |
+        How does not having this feature impact you?
+        Are there workarounds for the problem this feature addresses? 
+        Were there other solutions you considered?
+        How does this compare to features in other language ecosystems?
+    validations:
+      required: false

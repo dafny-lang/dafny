@@ -84,11 +84,16 @@ namespace Microsoft.Dafny {
 
       foreach (var attrHandle in dllMetadataReader.CustomAttributes) {
         var attr = dllMetadataReader.GetCustomAttribute(attrHandle);
-        var constructor = dllMetadataReader.GetMemberReference((MemberReferenceHandle)attr.Constructor);
-        var attrType = dllMetadataReader.GetTypeReference((TypeReferenceHandle)constructor.Parent);
-        if (dllMetadataReader.GetString(attrType.Name) == "DafnySourceAttribute") {
-          var decoded = attr.DecodeValue(new StringOnlyCustomAttributeTypeProvider());
-          return (string)decoded.FixedArguments[0].Value;
+        try {
+          var constructor = dllMetadataReader.GetMemberReference((MemberReferenceHandle)attr.Constructor);
+          var attrType = dllMetadataReader.GetTypeReference((TypeReferenceHandle)constructor.Parent);
+          if (dllMetadataReader.GetString(attrType.Name) == "DafnySourceAttribute") {
+            var decoded = attr.DecodeValue(new StringOnlyCustomAttributeTypeProvider());
+            return (string)decoded.FixedArguments[0].Value;
+          }
+        } catch (InvalidCastException) {
+          // Ignore - the Handle casts are handled as custom explicit operators,
+          // and there's no way I can see to test if the cases will succeed ahead of time.
         }
       }
 

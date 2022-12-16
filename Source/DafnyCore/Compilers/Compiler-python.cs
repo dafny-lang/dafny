@@ -87,7 +87,8 @@ namespace Microsoft.Dafny.Compilers {
         .WriteLine($"dafnyArgs = [{DafnyRuntimeModule}.Seq(a) for a in sys.argv]")
         .WriteLine($"{mainMethod.EnclosingClass.FullCompileName}.{(IssueCreateStaticMain(mainMethod) ? "StaticMain" : IdName(mainMethod))}(dafnyArgs)");
       wr.NewBlockPy($"except {DafnyRuntimeModule}.HaltException as e:")
-        .WriteLine($"{DafnyRuntimeModule}.print(\"[Program halted] \" + e.message + \"\\n\")");
+        .WriteLine($"{DafnyRuntimeModule}.print(\"[Program halted] \" + e.message + \"\\n\")")
+        .WriteLine("sys.exit(1)");
       Coverage.EmitTearDown(wr);
     }
 
@@ -270,7 +271,9 @@ namespace Microsoft.Dafny.Compilers {
       var wDefault = btw.NewBlockPy($"def default(cls, {UsedTypeParameters(dt).Comma(FormatDefaultTypeParameterValue)}):");
       var groundingCtor = dt.GetGroundingCtor();
       if (groundingCtor.IsGhost) {
-        wDefault.WriteLine($"return {ForcePlaceboValue(UserDefinedType.FromTopLevelDecl(dt.tok, dt), wDefault, dt.tok)}");
+        wDefault.WriteLine($"return lambda: {ForcePlaceboValue(UserDefinedType.FromTopLevelDecl(dt.tok, dt), wDefault, dt.tok)}");
+      } else if (DatatypeWrapperEraser.GetInnerTypeOfErasableDatatypeWrapper(dt, out var innerType)) {
+        wDefault.WriteLine($"return lambda: {DefaultValue(innerType, wDefault, dt.tok)}");
       } else {
         var arguments = groundingCtor.Formals.Where(f => !f.IsGhost).Comma(f => DefaultValue(f.Type, wDefault, f.tok));
         var constructorCall = $"{DtCtorDeclarationName(groundingCtor, false)}({arguments})";
@@ -340,7 +343,13 @@ namespace Microsoft.Dafny.Compilers {
       // {self.Dtor0}, {self.Dtor1}, ..., {self.DtorN}
       var args = ctor.Formals
         .Where(f => !f.IsGhost)
-        .Select(f => $"{{{DafnyRuntimeModule}.string_of(self.{IdProtect(f.CompileName)})}}")
+        .Select(f => {
+          if (f.Type.IsStringType && UnicodeCharEnabled) {
+            return $"{{self.{IdProtect(f.CompileName)}.VerbatimString(True)}}";
+          } else {
+            return $"{{{DafnyRuntimeModule}.string_of(self.{IdProtect(f.CompileName)})}}";
+          }
+        })
         .Comma();
 
       if (args.Length > 0 && dt is not CoDatatypeDecl) {
@@ -556,7 +565,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(tok != null);
       Contract.Requires(wr != null);
 
-      return type.NormalizeExpandKeepConstraints() switch {
+      return DatatypeWrapperEraser.SimplifyType(type, true) switch {
         var x when x.IsBuiltinArrowType => $"{DafnyDefaults}.pointer",
         // unresolved proxy; just treat as bool, since no particular type information is apparently needed for this type
         BoolType or TypeProxy => $"{DafnyDefaults}.bool",
@@ -630,7 +639,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
 
-      var xType = type.NormalizeExpand();
+      var xType = DatatypeWrapperEraser.SimplifyType(type);
 
       if (xType.IsObjectQ) {
         return "object";
@@ -750,7 +759,13 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override string TypeName_Companion(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl member) {
       type = UserDefinedType.UpcastToMemberEnclosingType(type, member);
-      return TypeName(type, wr, tok, member);
+      if (type.NormalizeExpandKeepConstraints() is UserDefinedType { ResolvedClass: DatatypeDecl dt } udt &&
+          DatatypeWrapperEraser.IsErasableDatatypeWrapper(dt, out _)) {
+        var s = FullTypeName(udt, member);
+        return TypeName_UDT(s, udt, wr, udt.tok);
+      } else {
+        return TypeName(type, wr, tok, member);
+      }
     }
 
     protected override void TypeArgDescriptorUse(bool isStatic, bool lookasideBody, TopLevelDeclWithMembers cl, out bool needsTypeParameter, out bool needsTypeDescriptor) {
@@ -811,8 +826,19 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
       var wStmts = wr.Fork();
       wr.Write($"{DafnyRuntimeModule}.print(");
-      TrExpr(arg, wr, false, wStmts);
+      EmitToString(wr, arg, wStmts);
       wr.WriteLine(")");
+    }
+
+    private void EmitToString(ConcreteSyntaxTree wr, Expression arg, ConcreteSyntaxTree wStmts) {
+      if (UnicodeCharEnabled && arg.Type.IsStringType) {
+        TrParenExpr(arg, wr, false, wStmts);
+        wr.Write(".VerbatimString(False)");
+      } else {
+        wr.Write($"{DafnyRuntimeModule}.string_of(");
+        TrExpr(arg, wr, false, wStmts);
+        wr.WriteLine(")");
+      }
     }
 
     protected override void EmitReturn(List<Formal> outParams, ConcreteSyntaxTree wr) {
@@ -852,14 +878,12 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitHalt(IToken tok, Expression messageExpr, ConcreteSyntaxTree wr) {
+      Contract.Requires(tok != null);
       var wStmts = wr.Fork();
       wr.Write($"raise {DafnyRuntimeModule}.HaltException(");
-      if (tok != null) {
-        wr.Write($"\"{ErrorReporter.TokenToString(tok)}: \" + {DafnyRuntimeModule}.string_of(");
-      }
-
-      TrExpr(messageExpr, wr, false, wStmts);
-      wr.WriteLine("))");
+      wr.Write($"\"{ErrorReporter.TokenToString(tok)}: \" + ");
+      EmitToString(wr, messageExpr, wStmts);
+      wr.WriteLine(")");
     }
 
     protected override ConcreteSyntaxTree EmitIf(out ConcreteSyntaxTree guardWriter, bool hasElse, ConcreteSyntaxTree wr) {
@@ -960,15 +984,38 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(")");
     }
 
+    protected static string TranslateEscapes(string s) {
+      s = Util.ReplaceNullEscapesWithCharacterEscapes(s);
+
+      s = Util.ExpandUnicodeEscapes(s, false);
+
+      return s;
+    }
+
     protected override void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e) {
       switch (e) {
         case CharLiteralExpr:
-          wr.Write($"'{(string)e.Value}'");
+          var escaped = TranslateEscapes((string)e.Value);
+          if (UnicodeCharEnabled) {
+            wr.Write($"{DafnyRuntimeModule}.CodePoint('{escaped}')");
+          } else {
+            wr.Write($"'{escaped}'");
+          }
           break;
         case StringLiteralExpr str:
-          wr.Write($"{DafnyRuntimeModule}.Seq(");
-          TrStringLiteral(str, wr);
-          wr.Write(")");
+          if (UnicodeCharEnabled) {
+            wr.Write($"{DafnyRuntimeModule}.Seq(map({DafnyRuntimeModule}.CodePoint, ");
+            TrStringLiteral(str, wr);
+            // We pass str = None if --unicode-char is true because we no longer
+            // attempt to dynamically track what sequence values are actually strings
+            // with that flag enabled, and we don't want Seq trying to be clever about it.
+            wr.Write("), isStr = None)");
+          } else {
+            wr.Write($"{DafnyRuntimeModule}.Seq(");
+            TrStringLiteral(str, wr);
+            wr.Write(")");
+          }
+
           break;
         case StaticReceiverExpr:
           wr.Write(TypeName(e.Type, wr, e.tok));
@@ -997,7 +1044,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
       if (!isVerbatim) {
-        wr.Write($"\"{str}\"");
+        wr.Write($"\"{TranslateEscapes(str)}\"");
       } else {
         var n = str.Length;
         wr.Write("\"");
@@ -1166,6 +1213,14 @@ namespace Microsoft.Dafny.Compilers {
     protected override ILvalue EmitMemberSelect(Action<ConcreteSyntaxTree> obj, Type objType, MemberDecl member,
       List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap, Type expectedType,
       string additionalCustomParameter = null, bool internalAccess = false) {
+      switch (DatatypeWrapperEraser.GetMemberStatus(member)) {
+        case DatatypeWrapperEraser.MemberCompileStatus.Identity:
+          return SimpleLvalue(obj);
+        case DatatypeWrapperEraser.MemberCompileStatus.AlwaysTrue:
+          return StringLvalue(True);
+        default:
+          break;
+      }
       switch (member) {
         case DatatypeDestructor dd: {
             var dest = dd.EnclosingClass switch {
@@ -1325,7 +1380,12 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor,
         List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
       wr.Write(source);
-      wr.Write(ctor.EnclosingDatatype is TupleTypeDecl ? $"[{dtor.NameForCompilation}]" : $".{IdProtect(dtor.CompileName)}");
+      if (DatatypeWrapperEraser.IsErasableDatatypeWrapper(ctor.EnclosingDatatype, out var coreDtor)) {
+        Contract.Assert(coreDtor.CorrespondingFormals.Count == 1);
+        Contract.Assert(dtor == coreDtor.CorrespondingFormals[0]); // any other destructor is a ghost
+      } else {
+        wr.Write(ctor.EnclosingDatatype is TupleTypeDecl ? $"[{dtor.NameForCompilation}]" : $".{IdProtect(dtor.CompileName)}");
+      }
     }
 
     protected override bool TargetLambdasRestrictedToExpressions => true;
@@ -1556,7 +1616,11 @@ namespace Microsoft.Dafny.Compilers {
         if (e.ToType.IsNumericBased(Type.NumericPersuasion.Real)) {
           (pre, post) = ($"{DafnyRuntimeModule}.BigRational(", ", 1)");
         } else if (e.ToType.IsCharType) {
-          (pre, post) = ("chr(", ")");
+          if (UnicodeCharEnabled) {
+            (pre, post) = ($"{DafnyRuntimeModule}.CodePoint(chr(", "))");
+          } else {
+            (pre, post) = ("chr(", ")");
+          }
         }
       } else if (e.E.Type.IsCharType) {
         if (e.ToType.IsNumericBased(Type.NumericPersuasion.Int) || e.ToType.IsBitVectorType || e.ToType.IsBigOrdinalType) {
@@ -1568,7 +1632,11 @@ namespace Microsoft.Dafny.Compilers {
         if (e.ToType.IsNumericBased(Type.NumericPersuasion.Int) || e.ToType.IsBitVectorType || e.ToType.IsBigOrdinalType) {
           (pre, post) = ("int(", ")");
         } else if (e.ToType.IsCharType) {
-          (pre, post) = ("chr(floor(", "))");
+          if (UnicodeCharEnabled) {
+            (pre, post) = ($"{DafnyRuntimeModule}.CodePoint(chr(floor(", ")))");
+          } else {
+            (pre, post) = ("chr(floor(", "))");
+          }
         }
       }
       wr.Write(pre);
@@ -1700,8 +1768,13 @@ namespace Microsoft.Dafny.Compilers {
       while (rd.ReadLine() is { } line) {
         var match = ModuleLine.Match(line);
         if (match.Success) {
+          rd.Close();
           return match.Groups[1].Value;
         }
+      }
+      rd.Close();
+      if (externFilename.EndsWith(".py")) {
+        return externFilename.Substring(0, externFilename.Length - 3);
       }
       return null;
     }
@@ -1743,27 +1816,9 @@ namespace Microsoft.Dafny.Compilers {
     public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string /*?*/ callToMain,
       string targetFilename, ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
       Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
-      var psi = new ProcessStartInfo("python3") {
-        CreateNoWindow = true,
-        UseShellExecute = false,
-        RedirectStandardInput = true,
-        RedirectStandardOutput = false,
-        RedirectStandardError = false,
-      };
-      psi.ArgumentList.Add(targetFilename);
-      foreach (var arg in DafnyOptions.O.MainArgs) {
-        psi.ArgumentList.Add(arg);
-      }
-
-      try {
-        using var pythonProcess = Process.Start(psi);
-        pythonProcess.StandardInput.Close();
-        pythonProcess.WaitForExit();
-        return pythonProcess.ExitCode == 0;
-      } catch (Exception e) {
-        outputWriter.WriteLine("Error: Unable to start python ({0}): {1}", psi.FileName, e.Message);
-        return false;
-      }
+      var psi = PrepareProcessStartInfo("python3", DafnyOptions.O.MainArgs.Prepend(targetFilename));
+      psi.EnvironmentVariables["PYTHONIOENCODING"] = "utf8";
+      return 0 == RunProcess(psi, outputWriter);
     }
   }
 }

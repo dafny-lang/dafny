@@ -7,35 +7,40 @@
 
   <title>Dafny</title>
   <link href="style.css" rel="stylesheet">
-  <meta name="description" content=“The Dafny Programming and Verification Language and tools.”>
-  <meta name="author" content=“Dafny project“>
+  <meta name="description" content="The Dafny Programming and Verification Language and tools.">
+  <meta name="author" content="Dafny project">
 
-  <meta property="og:title" content=“Dafny”>
+  <meta property="og:title" content="Dafny">
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://dafny.org”>
-  <meta property="og:description" content="The Dafny Programming and Verification Language and tools.">
+  <meta property="og:url" content="https://dafny.org">
+  <meta property="og:description" content="The Dafny Programming and Verification Language and tools">
   <meta property="og:image" content="image.png">
 
   <link rel="icon" href="images/dafny-favicon.png" type="image/png">
   <link rel="icon" href="images/dafny-favicon.svg" type="image/svg+xml">
-
 </head>
 
 <body>
-
-<div>
-<h1>Dafny<br><p>
+<header>
+<h1>The Dafny Programming and Verification Language</h1>
 <!-- VERSION INFO HERE-->Development version
-</p></h1>
-</div>
+</header>
 
-<table style="width:100%">
-<tr>
-<td style="width:15%">
-<img src="images/dafny-logo.jpg" alt="Dafny" width="180" height="150">
-</td>
-<td style="width:45%">
+<nav>
+<h2>Quick Links</h2>
+<ul>
+<li><a href="https://github.com/dafny-lang/dafny/wiki/INSTALL"><b>Installation</b></a>
+     (or a <a href="https://marketplace.visualstudio.com/items?itemName=dafny-lang.ide-vscode">VSCode plugin for Dafny</a>)</li>
+<li><a href="./DafnyRef/DafnyRef">Dafny Reference Manual and User Guide</a></li>
+<li><a href="./toc">Dafny Resources for Users</a></li>
+<li><a href="https://github.com/dafny-lang/dafny">Dafny GitHub project (for developers of the Dafny tools themselves)</a></li>
+<li><a href="Snapshots">Other documentation snapshots</a></li>
+</ul>
+</nav>
+
+<main>
 <p>
+<img id="logo" src="images/dafny-logo.jpg" alt="The Dafny logo, showing the word Dafny in blue next to wavy black and blue lines.">
 <b>Dafny</b> is a verification-aware programming language that has native support for recording specifications
 and is equipped with a static program verifier.
 By blending sophisticated automated reasoning with familiar programming idioms and tools,
@@ -44,25 +49,7 @@ It also compiles Dafny code to familiar development environments such as C#, Jav
 Dafny makes rigorous verification an integral part of development,
 thus reducing costly late-stage bugs that may be missed by testing.
 </p>
-</td>
-<td style="width:40%">
-<b>&nbsp;&nbsp;&nbsp;Quick Links:</b>
-<ul>
-<li> <a href="https://github.com/dafny-lang/dafny/wiki/INSTALL"><b>Installation</b></a> 
-     (or a <a href="https://marketplace.visualstudio.com/items?itemName=dafny-lang.ide-vscode">VSCode plugin for Dafny</a>)
-<li> <a href="./DafnyRef/DafnyRef">Dafny Reference Manual and User Guide</a>
-<li> <a href="./toc">Dafny Resources for Users</a>
-<li> <a href="https://github.com/dafny-lang/dafny">Dafny GitHub project (for developers of the Dafny tools themselves)</a>
-<li> <a href="Snapshots">Other documentation snapshots</a>
-</ul>
-</td>
 
-
-</tr>
-</table>
-
-<table style="width:100%">
-<td style="width:65%" valign=top>
 <p>
 In addition to a verification engine to check implementation against specifications,
 the Dafny ecosystem includes several compilers,
@@ -75,31 +62,29 @@ power user tips,
 books,
 the experiences of professors teaching Dafny,
 and the accumulating expertise of industrial projects using Dafny.
-Example Dafny code in a Visual Studio IDE is shown to the right.
 </p>
 
 <p>Dafny has support for common programming concepts such as </p>
 <ul>
-<li> mathematical and bounded integers and reals, bit-vectors, classes, iterators, arrays, tuples, generic types, refinement and inheritance,
-<li> <a href="./DafnyRef/DafnyRef#sec-inductive-datatypes">inductive datatypes</a> that can have methods and are suitable for pattern matching,
-<li> <a href="./DafnyRef/DafnyRef#sec-co-inductive-datatypes">lazily unbounded datatypes</a>,
-<li> <a href="./DafnyRef/DafnyRef#sec-subset-types">subset types</a>, such as for bounded integers,
-<li> <a href="./DafnyRef/DafnyRef#sec-lambda-expressions">lambda expressions</a> and functional programming idioms,
-<li> and <a href="./DafnyRef/DafnyRef#sec-collection-types">immutable and mutable data structures</a>.
+<li>mathematical and bounded integers and reals, bit-vectors, classes, iterators, arrays, tuples, generic types, refinement and inheritance,</li>
+<li><a href="./latest/DafnyRef/DafnyRef#sec-inductive-datatypes">inductive datatypes</a> that can have methods and are suitable for pattern matching,</li>
+<li><a href="./latest/DafnyRef/DafnyRef#sec-co-inductive-datatypes">lazily unbounded datatypes</a>,</li>
+<li><a href="./latest/DafnyRef/DafnyRef#sec-subset-types">subset types</a>, such as for bounded integers,</li>
+<li><a href="./latest/DafnyRef/DafnyRef#sec-lambda-expressions">lambda expressions</a> and functional programming idioms,</li>
+<li>and <a href="./latest/DafnyRef/DafnyRef#sec-collection-types">immutable and mutable data structures</a>.</li>
 </ul>
 
 <p>Dafny also offers an extensive toolbox for mathematical proofs about software, including</p>
 <ul>
-<li> <a href="./DafnyRef/DafnyRef#sec-quantifier-domains">bounded and unbounded quantifiers</a>,
-<li> <a href="./DafnyRef/DafnyRef#sec-calc-statement">calculational proofs</a> and the ability to use and prove lemmas,
-<li> <a href="./DafnyRef/DafnyRef#sec-specification-clauses">pre- and post-conditions, termination conditions, loop invariants, and read/write specifications</a>.
+<li><a href="./latest/DafnyRef/DafnyRef#sec-quantifier-domains">bounded and unbounded quantifiers</a>,</li>
+<li><a href="./latest/DafnyRef/DafnyRef#sec-calc-statement">calculational proofs</a> and the ability to use and prove lemmas,</li>
+<li><a href="./latest/DafnyRef/DafnyRef#sec-specification-clauses">pre- and post-conditions, termination conditions, loop invariants, and read/write specifications</a>.</li>
 </ul>
 
-</td>
-
-<td style="width:35%" img-align:center>
-<img src="images/Demo.png" alt="Demo code" width="460" height="600">
-</td>
-</table>
+<figure id="snapshot">
+<img src="images/Demo.png" alt="A snippet of code shown in the VSCode IDE showing an implementation of the Dutch national flag problem written in Dafny.  IDE extensions are showing successes and failures in verification reported by the Dafny Language Server running in real time.">
+<figcaption>Dafny running in Visual Studio Code</figcaption>
+</figure>
+</main>
 </body>
 </html>

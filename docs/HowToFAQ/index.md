@@ -9,6 +9,8 @@ These pages are not intended to be a reference manual or an organized tutorial f
 
 If you have questions that are not addressed here, be sure to communicate them to the Dafny team.
 
+[All content on one page](onepage)
+
 # FAQs
 ## Dafny language
 
@@ -106,4 +108,12 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["possible violation of function precondition for op(v)"](ERROR_FunctionPrecondition)
 - ["type ? does not have a member IsFailure"](ERROR_IsFailure)
 - ["value does not satisfy subset constraints of ?"](ERROR_Covariance)
-
+- ["function precondition might not hold"](ERROR_SeqComp)
+- ["insufficient reads clause to invoke function"](ERROR_InsufficientReads)
+- ["Cannot export mutable field 'x' without revealing its enclosing class 'A'"](ERROR_MutableField)
+- ["this symbol not expected in Dafny"](ERROR_PostconditionLemma)
+- [Prover error: Unexpected prover response (getting info about 'unknown' response): (:reason-unknown "Overflow encountered when expanding old_vector")](ERROR_ProverError1)
+- ["Warning: File contains no code: ..."](ERROR_NoCode)
+- ["Duplicate name of import: ..."](ERROR_DuplicateImportName)
+- ["Warning: /!\ No terms found to trigger on."](ERROR_NoTriggers)
+- ["Error: value does not satisfy the subset constraints of '(seq<uint8>, Materials.EncryptedDataKey) -> seq<uint8>' (possible cause: it may be partial or have read effects)"](ERROR_SubsetConstraints)
