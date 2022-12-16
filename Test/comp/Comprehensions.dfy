@@ -540,7 +540,7 @@ module {:options "/functionSyntax:4"} EnumerationRegression {
   method Test() {
     // The Java compiler once converted each candidate Long number to a 32-bit int, which meant
     // that none of them fell into the range mentioned by the set. Thus, it erroneously computed
-    // the empty set.
+    // the empty set. (issue #3204)
     var s := set l: Long | 0x20_0000_0002 <= l < 0x20_0000_0008 && l.True() && l != 0x20_0000_0006;
     var s' := ToSeq(s, (x, y) => x < y);
     print s', "\n";
