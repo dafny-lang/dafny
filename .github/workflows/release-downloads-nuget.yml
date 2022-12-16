@@ -96,38 +96,26 @@ jobs:
       run: version="${{ steps.dafny.outputs.release }}"; dafny -version | grep -E "Dafny "${version:1}".[0-9]{5}"
       shell: bash
     - name: Check
-      run: dafny /compileVerbose:0 /compile:0 a.dfy
+      run: dafny verify a.dfy
     - name: Check bad
-      run: dafny /compile:0 b.dfy || echo "EXPECTED FAILURE" ; exit 0
+      run: dafny verify b.dfy || echo "EXPECTED FAILURE" ; exit 0
     ## Check that a simple program compiles and runs on each supported platform
     - name: Check C# compile
       run: |
-        dafny /compileVerbose:0 /compile:3 /compileTarget:cs /spillTargetCode:3 a.dfy
+        dafny run --target:cs a.dfy
     - name: Check Go compile
       run: |
-        dafny /compile:3 /spillTargetCode:3 /compileTarget:go a.dfy
-    - name: Running Go artifacts
-      if: runner.os != 'Windows'
-      run: |
-        GO111MODULE=auto GOPATH=$PWD/a-go go run a-go/src/a.go > actual.txt
-        diff expect.txt actual.txt
-    - name: Running Go artifacts - Windows
-      shell: pwsh
-      if: runner.os == 'Windows'
-      run: |
-        $Env:GO111MODULE="auto"
-        $Env:GOPATH="$PWD/a-go"
-        go run a-go/src/a.go > actual.txt
+        dafny run -target:go a.dfy > actual.txt
         diff expect.txt actual.txt
     - name: Check Javascript compile
       run: |
         npm install bignumber.js
-        dafny /compile:3 /spillTargetCode:3 /compileTarget:js a.dfy
-        node a.js dafny/DafnyRuntime.js > actual.txt
+        dafny run --target:js a.dfy > actual.txt
         diff expect.txt actual.txt
     - name: Check Java compile
       run: |
-        dafny /compile:3 /spillTargetCode:3 /compileTarget:java a.dfy
+        dafny run --target:java a.dfy > actual.txt
+        diff expect.txt actual.txt
 
   test-dafny-libraries:
 
