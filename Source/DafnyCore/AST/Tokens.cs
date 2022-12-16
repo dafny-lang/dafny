@@ -44,7 +44,8 @@ public interface IToken : Microsoft.Boogie.IToken {
 /// <summary>
 /// Has one-indexed line and column fields
 /// </summary>
-public record Token : IToken {
+public class Token : IToken {
+
   public Token peekedTokens; // Used only internally by Coco when the scanner "peeks" tokens. Normallly null at the end of parsing
   public static readonly IToken NoToken = (IToken)new Token();
 
@@ -91,6 +92,7 @@ public record Token : IToken {
 }
 
 public abstract class TokenWrapper : IToken {
+
   public readonly IToken WrappedToken;
   protected TokenWrapper(IToken wrappedToken) {
     Contract.Requires(wrappedToken != null);
