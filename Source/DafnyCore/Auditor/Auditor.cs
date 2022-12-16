@@ -2,17 +2,54 @@
 using System;
 using System.IO;
 using System.Collections.Generic;
+using System.CommandLine;
+using System.Linq;
 
 namespace Microsoft.Dafny.Auditor;
-
-public enum ReportFormat { HTML, MarkdownTable, MarkdownIETF, Text }
-
 
 /// <summary>
 /// A rewriter pass that produces an AuditReport and writes it to either
 /// standard output or a file, in one of several formats.
 /// </summary>
 public class Auditor : IRewriter {
+  public enum ReportFormat { HTML, MarkdownTable, MarkdownIETF, Text }
+
+  public static readonly Option<string> ReportFileOption = new("--report-file",
+    "Specify a path to store the audit report file. Without this, the report will take the form of standard warnings.");
+  public static readonly Option<bool> CompareReportOption = new("--compare-report",
+    "Compare the report that would have been generated with the existing file given by --report-file, and fail if they differ.");
+
+  public static string SupportedReportFormats = "plain text in the format of warnings ('txt', 'text'); standalone HTML ('html'); a Markdown table ('md', 'markdown', 'md-table', 'markdown-table'); or an IETF-language document in Markdown format ('md-ietf', 'markdown-ietf')";
+
+  public static readonly Option<ReportFormat?> ReportFormatOption = new("--report-format",
+    arg => {
+      if (arg.Tokens.Any()) {
+        switch (arg.Tokens[0].Value) {
+          case "md":
+          case "md-table":
+          case "markdown":
+          case "markdown-table":
+            return ReportFormat.MarkdownTable;
+          case "md-ietf":
+          case "markdown-ietf":
+            return ReportFormat.MarkdownIETF;
+          case "html":
+            return ReportFormat.HTML;
+          case "text":
+          case "txt":
+            return ReportFormat.Text;
+          default:
+            arg.ErrorMessage =
+              $"Unsupported report format. Supported formats are: {SupportedReportFormats}";
+            return null;
+        }
+      }
+
+      return null;
+    },
+    false,
+    $"Specify the file format to use for the audit report. Supported options include: {SupportedReportFormats}. With no option given, the format will be inferred from the filename extension. With no filename or format given, the report will consist of standard Dafny warnings.");
+
   private readonly string? reportFileName;
   private readonly ReportFormat? reportFormat;
   private readonly bool compareReport;
@@ -35,9 +72,10 @@ public class Auditor : IRewriter {
   /// if true, compare the generated report to an existing file instead
   /// of creating a file
   /// </param>
-  public Auditor(ErrorReporter reporter, string? reportFileName, ReportFormat? format, bool compareReport) : base(reporter) {
-    this.reportFileName = reportFileName;
-    this.compareReport = compareReport;
+  public Auditor(ErrorReporter reporter) : base(reporter) {
+    reportFileName = DafnyOptions.O.Get(ReportFileOption);
+    compareReport = DafnyOptions.O.Get(CompareReportOption);
+    var format = DafnyOptions.O.Get(ReportFormatOption);
     if (format is null) {
       if (reportFileName is null) {
         return;
