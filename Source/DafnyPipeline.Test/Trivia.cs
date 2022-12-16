@@ -92,8 +92,8 @@ ensures true
         var f = defaultClass.Members[1];
         var g = defaultClass.Members[2];
         var m = defaultClass.Members[3];
-        Assert.NotNull(trait1.StartToken.Next);
-        Assert.Equal("Trait1", trait1.StartToken.Next.val);
+        Assert.NotNull(trait1.GetStartToken().Next);
+        Assert.Equal("Trait1", trait1.GetStartToken().Next.val);
 
         AssertTrivia(moduleTest, "\n// Comment ∈ before\n", " // Module docstring\n");
         AssertTrivia(trait1, "/** Trait docstring */\n", " ");
@@ -119,7 +119,7 @@ ensures true
         if (depth == 2) {
           depth = 2;
         }
-        foreach (var ownedToken in node.OwnedTokens) {
+        foreach (var ownedToken in node.GetOwnedTokens()) {
           Assert.DoesNotContain(ownedToken, allTokens);
           allTokens.Add(ownedToken);
         }
@@ -132,10 +132,10 @@ ensures true
 
       var count = 0;
       void AreAllTokensOwned(INode node) {
-        if (node.StartToken is { filename: { } }) {
+        if (node.GetStartToken() is { filename: { } }) {
           count++;
-          var t = node.StartToken;
-          while (t != null && t != node.EndToken) {
+          var t = node.GetStartToken();
+          while (t != null && t != node.GetEndToken()) {
             Assert.Contains(t, allTokens);
             t = t.Next;
           }
@@ -159,12 +159,12 @@ ensures true
     }
 
     private void AssertTrivia(TopLevelDecl topLevelDecl, string triviaBefore, string triviaDoc) {
-      Assert.Equal(AdjustNewlines(triviaBefore), topLevelDecl.StartToken.LeadingTrivia);
+      Assert.Equal(AdjustNewlines(triviaBefore), topLevelDecl.GetStartToken().LeadingTrivia);
       Assert.Equal(AdjustNewlines(triviaDoc), topLevelDecl.TokenWithTrailingDocString.TrailingTrivia);
     }
 
     private void AssertTrivia(MemberDecl topLevelDecl, string triviaBefore, string triviaDoc) {
-      Assert.Equal(AdjustNewlines(triviaBefore), topLevelDecl.StartToken.LeadingTrivia);
+      Assert.Equal(AdjustNewlines(triviaBefore), topLevelDecl.GetStartToken().LeadingTrivia);
       Assert.Equal(AdjustNewlines(triviaDoc), topLevelDecl.TokenWithTrailingDocString.TrailingTrivia);
     }
   }

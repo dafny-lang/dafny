@@ -154,11 +154,7 @@ public class RangeToken : TokenWrapper {
   public IToken EndToken => endTok;
 
   // Used for range reporting
-  override public string val {
-    get {
-      return new string(' ', endTok.pos + endTok.val.Length - pos);
-    }
-  }
+  public override string val => new string(' ', endTok.pos + endTok.val.Length - pos);
 
   public RangeToken(IToken startTok, IToken endTok) : base(
     endTok.pos < startTok.pos && startTok is RangeToken startRange ?
