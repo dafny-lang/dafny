@@ -47,20 +47,20 @@ if the selection is on the line of the method.
 Assuming the Dafny source code is installed in the folder `dafny/`
 start by creating an empty folder next to it, e.g. `PluginTutorial/`
 
-```
+```bash
 > mkdir PluginTutorial
 > cd PluginTutorial
 ```
 Then, create a dotnet class project
-```
+```bash
 > dotnet new classlib
 ```
 It will create a file `Class1.cs` that you can rename
-```
+```bash
 > mv Class1.cs PluginAddComment.cs
 ```
 Open the newly created file `PluginTutorial.csproj`, and add the following after `</PropertyGroup>`:
-```
+```xml
   <ItemGroup>
     <ProjectReference Include="../dafny/source/DafnyLanguageServer/DafnyLanguageServer.csproj" />
   </ItemGroup>
@@ -82,7 +82,7 @@ namespace PluginAddComment;
 
 After that, add a `PluginConfiguration` that will expose all the quickfixers of your plugin.
 This class will be discovered and instantiated automatically by Dafny.
-```
+```csharp
 public class TestConfiguration : PluginConfiguration {
   public override DafnyCodeActionProvider[] GetDafnyCodeActionProviders() {
     return new DafnyCodeActionProvider[] { new AddCommentDafnyCodeActionProvider() };
@@ -93,7 +93,7 @@ Note that you could also override the methods `GetRewriters()` and `GetCompilers
 
 Then, we need to create the quickFixer `AddCommentDafnyCodeActionProvider` itself:
 
-```
+```csharp
 public class AddCommentDafnyCodeActionProvider : DafnyCodeActionProvider {
   public override IEnumerable<DafnyCodeAction> GetDafnyCodeActions(IDafnyCodeActionInput input, Range selection) {
     return new DafnyCodeAction[] { };
@@ -103,7 +103,7 @@ public class AddCommentDafnyCodeActionProvider : DafnyCodeActionProvider {
 
 For now, this quick fixer returns nothing. `input` is the program state, and `selection` is where the caret is.
 We replace the return statement with a conditional that tests whether the selection is on the first line:
-```
+```csharp
     var firstTokenRange = input.Program?.GetFirstTopLevelToken()?.GetLspRange();
     if(firstTokenRange != null && firstTokenRange.Start.Line == selection.Start.Line) {
       return new DafnyCodeAction[] {
@@ -119,7 +119,7 @@ An `DafnyCodeActionEdit` has a `Range` to remove and some `string` to insert ins
 of the same `DafnyCodeAction` are applied at the same time if selected.
 
 To create a `DafnyCodeAction`, we can either use the easy-to-use `InstantDafnyCodeAction`, which accepts a title and an array of edits:
-```
+```csharp
   return new DafnyCodeAction[] {
     new InstantDafnyCodeAction("Insert comment", new DafnyCodeActionEdit[] {
       new DafnyCodeActionEdit(firstTokenRange.GetStartRange(), "/*First comment*/")
@@ -128,7 +128,7 @@ To create a `DafnyCodeAction`, we can either use the easy-to-use `InstantDafnyCo
 ```
 
 or we can implement our custom inherited class of `DafnyCodeAction`:
-```
+```csharp
 public class CustomDafnyCodeAction: DafnyCodeAction {
   public Range whereToInsert;
   
@@ -143,14 +143,14 @@ public class CustomDafnyCodeAction: DafnyCodeAction {
 }
 ```
 In that case, we could return:
-```
+```csharp
   return new DafnyCodeAction[] {
     new CustomDafnyCodeAction(firstTokenRange)
   };
 ```
 
 That's it! Now, build your library while inside your folder:
-```
+```bash
 > dotnet build
 ```
 
