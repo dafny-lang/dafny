@@ -390,7 +390,7 @@ namespace Microsoft.Dafny {
             goto JUST_RETURN_IT;
         }
         if (newROp != b.ResolvedOp || swapOperands) {
-          b = new BinaryExpr(b.tok, newOp, swapOperands ? b.E1 : b.E0, swapOperands ? b.E0 : b.E1);
+          b = new BinaryExpr(b.tok, newOp, swapOperands ? b.E1 : b.E0, swapOperands ? b.E0 : b.E1, b.PrefixOp);
           b.ResolvedOp = newROp;
           b.Type = Type.Bool;
           yield return b;

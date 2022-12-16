@@ -6,6 +6,9 @@ namespace Microsoft.Dafny;
 
 public class CommonOptionBag {
 
+  public static readonly Option<bool> ManualLemmaInduction =
+    new("--manual-lemma-induction", "Turn off automatic induction for lemmas.");
+
   public static readonly Option<bool> OptimizeErasableDatatypeWrapper = new("--optimize-erasable-datatype-wrapper", () => true, @"
 false - Include all non-ghost datatype constructors in the compiled code
 true - In the compiled target code, transform any non-extern
@@ -125,6 +128,9 @@ true - The char type represents any Unicode scalar value.".TrimStart());
     DafnyOptions.RegisterLegacyBinding(SolverPath, (options, value) => {
       if (!string.IsNullOrEmpty(value)) {
         options.ProverOptions.Add($"PROVER_PATH={value}");
+    DafnyOptions.RegisterLegacyBinding(ManualLemmaInduction, (options, value) => {
+      if (value) {
+        options.Induction = 1;
       }
     });
     DafnyOptions.RegisterLegacyBinding(IncludeRuntime, (options, value) => {

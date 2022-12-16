@@ -69,6 +69,10 @@ namespace Microsoft.Dafny {
             }
 
             void updateStartEndTokRecursive(INode node) {
+              if (node is null) {
+                return;
+              }
+
               if (node.tok.Filename != tok.Filename || node is Expression { IsImplicit: true } ||
                   node is DefaultValueExpression) {
                 // Ignore any auto-generated expressions.
