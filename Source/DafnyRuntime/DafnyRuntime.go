@@ -737,6 +737,10 @@ func computeTotalArrayLength(dims ...Int) int {
 // If "init" is non-nil, it is used to initialize all elements of the array.
 // "example" is used only to figure out the right kind of Array to return.
 // If "init" is non-nil, the types of "example" and "init" must agree.
+// All numbers in "dims" are expected to be non-negative and "len(dims)" is
+// expected to be at least 1 (this is not checked). The function checks that
+// the product of the numbers in "dims" lies within the limit of what array
+// lengths are supported; the code will panic if the limit is exceeded.
 func NewArrayFromExample(example interface{}, init interface{}, dims ...Int) Array {
   numberOfDimensions := len(dims)
   intDims := make([]int, len(dims))
@@ -874,19 +878,19 @@ func (_this ArrayStruct) ArraySet1(value interface{}, index int) {
 }
 
 func (_this ArrayStruct) ArrayGet1Byte(index int) byte {
-  panic("cannot specialize general ArrayGet with byte")
+  panic("Expected specialized array type that contains bytes, but found general-purpose array of interface{}")
 }
 
 func (_this ArrayStruct) ArraySet1Byte(value byte, index int) {
-  panic("cannot specialize general ArraySet with byte")
+  panic("Expected specialized array type that contains bytes, but found general-purpose array of interface{}")
 }
 
 func (_this ArrayStruct) ArrayGet1Char(index int) Char {
-  panic("cannot specialize general ArrayGet with char")
+  panic("Expected specialized array type that contains chars, but found general-purpose array of interface{}")
 }
 
 func (_this ArrayStruct) ArraySet1Char(value Char, index int) {
-  panic("cannot specialize general ArraySet with char")
+  panic("Expected specialized array type that contains chars, but found general-purpose array of interface{}")
 }
 
 func (_this ArrayStruct) anySlice(lo, hi Int) []interface{} {
@@ -908,6 +912,7 @@ func (_this ArrayStruct) EqualsGeneric(other interface{}) bool {
   if !ok {
     return false
   }
+  // In the next line, we're sure to compare the references, not the addresses of the ArrayStruct's.
   return &_this.dims[0] == &otherArray.dims[0]
 }
 
@@ -943,11 +948,11 @@ func (_this ArrayForByte) ArraySet1Byte(value byte, index int) {
 }
 
 func (_this ArrayForByte) ArrayGet1Char(index int) Char {
-  panic("cannot specialize general ArrayGet with char")
+  panic("Expected specialized array type that contains chars, but found general-purpose array of interface{}")
 }
 
 func (_this ArrayForByte) ArraySet1Char(value Char, index int) {
-  panic("cannot specialize general ArraySet with char")
+  panic("Expected specialized array type that contains chars, but found general-purpose array of interface{}")
 }
 
 func (_this ArrayForByte) anySlice(lo, hi Int) []interface{} {
@@ -999,11 +1004,11 @@ func (_this ArrayForChar) ArraySet1(value interface{}, index int) {
 }
 
 func (_this ArrayForChar) ArrayGet1Byte(index int) byte {
-  panic("cannot specialize general ArrayGet with byte")
+  panic("Expected specialized array type that contains bytes, but found general-purpose array of interface{}")
 }
 
 func (_this ArrayForChar) ArraySet1Byte(value byte, index int) {
-  panic("cannot specialize general ArraySet with byte")
+  panic("Expected specialized array type that contains bytes, but found general-purpose array of interface{}")
 }
 
 func (_this ArrayForChar) ArrayGet1Char(index int) Char {

@@ -4313,7 +4313,7 @@ namespace Microsoft.Dafny.Compilers {
           DeclareLocalVar(startName, null, typeRhs.Tok, false, ArrayIndexLiteral(1), wElse);
         }
 
-        // Build a loop nest that will call the initializer for all indices
+        // Build a nested loop that will call the initializer for all indices
         indices = Util.Map(Enumerable.Range(0, typeRhs.ArrayDimensions.Count), ii => ProtectedFreshId($"_i{ii}_"));
         var w = wElse;
         for (var d = 0; d < typeRhs.ArrayDimensions.Count; d++) {
@@ -4351,7 +4351,7 @@ namespace Microsoft.Dafny.Compilers {
         var wRhs = DeclareLocalVar(nw, typeRhs.Type, typeRhs.Tok, wStmts);
         EmitNewArray(typeRhs.EType, typeRhs.Tok, typeRhs.ArrayDimensions, false, null, wRhs, pwStmts);
 
-        // Build a loop nest that will call the initializer for all indices
+        // Build a nested loop that will call the initializer for all indices
         var indices = Util.Map(Enumerable.Range(0, typeRhs.ArrayDimensions.Count), ii => ProtectedFreshId($"_i{ii}_"));
         var w = wStmts;
         for (var d = 0; d < typeRhs.ArrayDimensions.Count; d++) {

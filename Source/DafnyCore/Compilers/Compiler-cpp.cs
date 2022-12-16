@@ -1446,7 +1446,7 @@ namespace Microsoft.Dafny.Compilers {
       // TODO: Handle initValue
       if (dimensions.Count == 1) {
         // handle the common case of 1-dimensional arrays separately
-        wr.Write("DafnyArray<{0}>::New({1})", TypeName(elementType, wr, tok), dimensions[0]);
+        wr.Write($"DafnyArray<{TypeName(elementType, wr, tok)}>::New({dimensions[0]})");
       } else {
         throw new UnsupportedFeatureException(tok, Feature.MultiDimensionalArrays);
       }

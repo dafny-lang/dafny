@@ -81,6 +81,8 @@ method Main() {
   ArrayAllocationInitialization.Test();
   VariationsOnIndexAndDimensionTypes.Test();
   TypeSpecialization.Test();
+
+  GenericArrayEquality.Test();
 }
 
 type lowercase = ch | 'a' <= ch <= 'z' witness 'd'
@@ -872,5 +874,40 @@ module TypeSpecialization {
     b[20] := 'k';
     b[21] := 'k';
     a[21] := t;
+  }
+}
+
+module GenericArrayEquality {
+  method Test() {
+    var a := new int[25];
+    var b := new int[25];
+    ArrayCompare(a, b); // false
+    GenericCompare(a, b); // false
+
+    // In Go, an array is stored as a struct that contains a pointer to the actual array elements.
+    // An easy mistake (in the runtime) would be to compare the address of the struct to determine
+    // array equality. The following test checks that it's done properly.
+    b := a;
+    ArrayCompare(a, b); // true
+    GenericCompare(a, b); // true
+
+    b := null;
+    ArrayCompare(a, b); // false
+    GenericCompare(a, b); // false
+    ArrayCompare(b, a); // false
+    GenericCompare(b, a); // false
+
+    a := null;
+    ArrayCompare(a, b); // true
+    GenericCompare(a, b); // true
+  }
+
+  method ArrayCompare<X>(a: array?<X>, b: array?<X>) {
+    print a == b, " ";
+  }
+  
+
+  method GenericCompare<X(==)>(a: X, b: X) {
+    print a == b, "\n";
   }
 }
