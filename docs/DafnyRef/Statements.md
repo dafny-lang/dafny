@@ -60,7 +60,7 @@ used to exit a sequence of statements in a block statement before
 reaching the end of the block.
 
 For example,
-```dafny
+```dafny <!-- %no-check -->
 label L: {
   var n := ReadNext();
   if n < 0 {
@@ -70,7 +70,7 @@ label L: {
 }
 ```
 is equivalent to
-```dafny
+```dafny <!-- %no-check -->
 {
   var n := ReadNext();
   if 0 <= n {
@@ -84,7 +84,7 @@ occurrences of `break`, then the statement must be enclosed in
 at least `n` levels of loop statements. Control continues after exiting `n`
 enclosing loops. For example,
 
-```dafny
+```dafny <!-- %check-resolve -->
 for i := 0 to 10 {
   for j := 0 to 10 {
     label X: {
@@ -108,26 +108,28 @@ The continue statement transfers control to the point immediately
 before the closing curly-brace of the loop body.
 
 For example,
-```dafny
+```dafny <!-- %check-resolve -->
 for i := 0 to 100 {
   if i == 17 {
     continue;
   }
   DoSomething(i);
 }
+method DoSomething(i:int){}
 ```
 is equivalent to
-```dafny
+```dafny <!-- %check-resolve -->
 for i := 0 to 100 {
   if i != 17 {
     DoSomething(i);
   }
 }
+method DoSomething(i:int){}
 ```
 The same effect can also be obtained by wrapping the loop body in a labeled
 block statement and then using `break` with a label, but that usually makes
 for a more cluttered program:
-```dafny
+```dafny <!-- %check-resolve -->
 for i := 0 to 100 {
   label LoopBody: {
     if i == 17 {
@@ -136,6 +138,7 @@ for i := 0 to 100 {
     DoSomething(i);
   }
 }
+method DoSomething(i:int){}
 ```
 
 Stated differently, `continue` has the effect of ending the current loop iteration,
@@ -144,32 +147,39 @@ for `for` loops. For a `while` loop, be careful to make progress toward terminat
 before a `continue` statement. For example, the following program snippet shows
 an easy mistake to make (the verifier will complain that the loop may not terminate):
 
-```dafny
-var i := 0;
-while i < 100 {
-  if i == 17 {
-    continue; // error: this would cause an infinite loop
+```dafny <!-- %check-verify Statements.1.expect -->
+method m() {
+  var i := 0;
+  while i < 100 {
+    if i == 17 {
+      continue; // error: this would cause an infinite loop
+    }
+    DoSomething(i);
+    i := i + 1;
   }
-  DoSomething(i);
-  i := i + 1;
 }
+method DoSomething(i:int){}
 ```
 
 The `continue` statement can give a label, provided the label is a label of a loop.
 For example,
 
-```dafny
-label Outer:
-for i := 0 to 100 {
-  for j := 0 to 100 {
-    if i + j == 19 {
-      continue Outer;
+```dafny <!-- %check-resolve -->
+method m() {
+  label Outer:
+  for i := 0 to 100 {
+    for j := 0 to 100 {
+      if i + j == 19 {
+        continue Outer;
+      }
+      WorkIt(i, j);
     }
-    WorkIt(i, j);
+    PostProcess(i);
+    // the "continue Outer" statement above transfers control to here
   }
-  PostProcess(i);
-  // the "continue Outer" statement above transfers control to here
 }
+method WorkIt(i:int, j:int){}
+method PostProcess(i:int){}
 ```
 
 If a non-labeled continue statement lists `n` occurrences of `break` before the
@@ -182,17 +192,21 @@ will break out of `n` levels of loops and then do a `continue`.
 
 For example, the `WorkIt` example above can equivalently be written without labels
 as
-```dafny
-for i := 0 to 100 {
-  for j := 0 to 100 {
-    if i + j == 19 {
-      break continue;
+```dafny <!-- %check-resolve -->
+method m() {
+  for i := 0 to 100 {
+    for j := 0 to 100 {
+      if i + j == 19 {
+        break continue;
+      }
+      WorkIt(i, j);
     }
-    WorkIt(i, j);
+    PostProcess(i);
+    // the "break continue" statement above transfers control to here
   }
-  PostProcess(i);
-  // the "break continue" statement above transfers control to here
 }
+method WorkIt(i:int, j:int){}
+method PostProcess(i:int){}
 ```
 
 Note that a loop invariant is checked on entry to a loop and at the closing curly-brace
@@ -208,18 +222,21 @@ not hold immediately following a loop if a loop iteration changes the program st
 then exits the loop with a break statement.
 
 For example, the following program verifies:
-```dafny
-var i := 0;
-while i < 10
-  invariant 0 <= i <= 10
-{
-  if P(i) {
-    i := i + 200;
-    break;
+```dafny <!-- %check-verify -->
+method m() {
+  var i := 0;
+  while i < 10
+    invariant 0 <= i <= 10
+  {
+    if P(i) {
+      i := i + 200;
+      break;
+    }
+    i := i + 1;
   }
-  i := i + 1;
+  assert i == 10 || 200 <= i < 210;
 }
-assert i == 10 || 200 <= i < 210;
+predicate P(i:int)
 ```
 To explain the example, the loop invariant `0 <= i <= 10` is known to hold at the very top
 of each iteration,
@@ -310,16 +327,16 @@ The update statement serves several logical purposes.
 
 1) The form
 
-```
+````grammar
 Lhs {Attribute} ";"
-```
+````
 is assumed to be a call to a method with no out-parameters.
 
 2) The form
 
-```
+````grammar
     Lhs { , Lhs } ":=" Rhs ";"
-```
+````
 can occur in the ``UpdateStmt`` grammar when there is a single Rhs that
 takes the special form of a ``Lhs`` that is a call.
 This is the only case
@@ -332,9 +349,9 @@ Note that the result of a method call is not allowed to be used as an argument o
 another method call, as if it were an expression.
 
 3) This is the typical parallel-assignment form, in which no call is involved:
-```
+````grammar
     Lhs { , Lhs } ":=" Rhs { "," Rhs } ";"
-```
+````
 This ``UpdateStmt`` is a parallel
 assignment of right-hand-side values to the left-hand sides. For example,
 `x,y := y,x` swaps the values of `x` and `y`. If more than one
@@ -345,16 +362,16 @@ Of course, the most common case will have only one
 ``Rhs`` and one ``Lhs``.
 
 4) The form
-```
+````grammar
   Lhs { "," Lhs } :| [ "assume" ] Expression<false,false>
-```
+````
 using "`:|`" assigns some values to the left-hand side
 variables such that the boolean expression on the right hand side
 is satisfied. This can be used to make a choice as in the
 following example where we choose an element in a set.
 The given boolean expression need not constrain the LHS values uniquely.
 
-```dafny
+```dafny <!-- %check-verify -->
 method Sum(X: set<int>) returns (s: int)
 {
   s := 0; var Y := X;
@@ -431,19 +448,46 @@ The following subsections show various uses and alternatives.
 
 A simple failure-compatible type is the following:
 ```dafny
-{% include_relative examples/Example-Fail1.dfy %}
+datatype Status =
+| Success
+| Failure(error: string)
+{
+  predicate method IsFailure() { this.Failure?  }
+  function method PropagateFailure(): Status
+    requires IsFailure()
+  {
+    Failure(this.error)
+  }
+}
 ```
 
 A commonly used alternative that carries some value information is something like this generic type:
-```dafny
-{% include_relative examples/Example-Fail2.dfy %}
+```dafny <!-- %check-resolve -->
+datatype Outcome<T> =
+| Success(value: T)
+| Failure(error: string)
+{
+  predicate method IsFailure() {
+    this.Failure?
+  }
+  function method PropagateFailure<U>(): Outcome<U>
+    requires IsFailure()
+  {
+    Failure(this.error) // this is Outcome<U>.Failure(...)
+  }
+  function method Extract(): T
+    requires !IsFailure()
+  {
+    this.value
+  }
+}
 ```
 
 
 ### 20.7.2. Simple status return with no other outputs
 
 The simplest use of this failure-return style of programming is to have a method call that just returns a non-value-carrying `Status` value:
-```dafny
+```dafny <!-- %check-resolve -->
 method Callee(i: int) returns (r: Status)
 {
   if i < 0 { return Failure("negative"); }
@@ -465,7 +509,7 @@ If `Callee` does not return `Failure` (that is, returns a value for which `IsFai
 then that return value is forgotten and execution proceeds normally with the statements following the call of `Callee` in the body of `Caller`.
 
 The desugaring of the `:- Callee(i);` statement is
-```dafny
+```dafny <!-- %no-check -->
 var tmp;
 tmp := Callee(i);
 if tmp.IsFailure() {
@@ -482,7 +526,7 @@ It may well be convenient to have additional out-parameters, as is allowed for `
 these out-parameters behave just as for `:=`.
 Here is an example:
 
-```dafny
+```dafny <!-- %check-resolve -->
 method Callee(i: int) returns (r: Status, v: int, w: int)
 {
   if i < 0 { return Failure("negative"), 0, 0; }
@@ -509,7 +553,7 @@ Those outputs are assigned in the `:-` call regardless of the `Status` value:
 caller continues execution as normal.
 
 The desugaring of the `j, k :- Callee(i);` statement is
-```dafny
+```dafny <!-- %no-check -->
 var tmp;
 tmp, j, k := Callee(i);
 if tmp.IsFailure() {
@@ -524,7 +568,7 @@ if tmp.IsFailure() {
 The failure-compatible return value can carry additional data as shown in the `Outcome<T>` example above.
 In this case there is a (first) LHS l-value to receive this additional data.
 
-```dafny
+```dafny <!-- %check-resolve -->
 method Callee(i: int) returns (r: Outcome<nat>, v: int)
 {
   if i < 0 { return Failure("negative"), i+i; }
@@ -564,7 +608,7 @@ and calls that use `:-`
 and the return value keeps having `IsFailure()` true.
 
 The desugaring of the `j, k :- Callee(i);` statement in this example is
-```dafny
+```dafny <!-- %no-check -->
 var tmp;
 tmp, k := Callee(i);
 if tmp.IsFailure() {
@@ -595,7 +639,7 @@ and the execution of the caller's body is ended.
 A RHS with a method call cannot be mixed with a RHS containing multiple expressions.
 
 For example, the desugaring of
-```dafny
+```dafny <!-- %check-resolve -->
 method m(Status r) returns (rr: Status) {
   var k;
   k :- r, 7;
@@ -603,7 +647,7 @@ method m(Status r) returns (rr: Status) {
 }
 ```
 is
-```dafny
+```dafny <!-- %no-check -->
 var k;
 var tmp;
 tmp, k := r, 7;
@@ -615,11 +659,11 @@ if tmp.IsFailure() {
 ### 20.7.6. Failure with initialized declaration.
 
 The `:-` syntax can also be used in initialization, as in
-```dafny
+```dafny <!-- %no-check -->
 var s :- M();
 ```
 This is equivalent to
-```dafny
+```dafny <!-- %no-check -->
 var s;
 s :- M();
 ```
@@ -650,22 +694,22 @@ out-parameter of the caller need not match the return type of
 callee need not have a `PropagateFailure` member.
 
 The equivalent desugaring replaces
-```dafny
+```dafny <!-- %no-check -->
 if tmp.IsFailure() {
   rr := tmp.PropagateFailure();
   return;
 }
 ```
 with
-```dafny
+```dafny <!-- %no-check -->
 expect !tmp.IsFailure(), tmp;
 ```
 or
-```dafny
+```dafny <!-- %no-check -->
 assert !tmp.IsFailure();
 ```
 or
-```dafny
+```dafny <!-- %no-check -->
 assume !tmp.IsFailure();
 ```
 
@@ -774,7 +818,7 @@ context, not a statement context.
 
 Note that the type of each variable must be given individually. The following code
 
-```dafny
+```dafny <!-- %no-check -->
 var x, y : int;
 ```
 does not declare both `x` and `y` to be of type `int`. Rather it will give an
@@ -790,7 +834,7 @@ if the `ghost` keyword is not part of the variable declaration statement.
 The left-hand side can also contain a tuple of patterns that will be
 matched against the right-hand-side. For example:
 
-```dafny
+```dafny <!-- %check-resolve -->
 function returnsTuple() : (int, int)
 {
     (5, 10)
@@ -838,13 +882,13 @@ where the bound variables are not in scope.
 
 In other words, the statement
 
-```dafny
+```dafny <!-- %no-check -->
 if x :| P { S } else { T }
 ```
 
 has the same meaning as
 
-```dafny
+```dafny <!-- %no-check -->
 if exists x :| P { var x :| P; S } else { T }
 ```
 
@@ -854,7 +898,7 @@ used in specification contexts.
 
 Here is an example:
 
-```dafny
+```dafny <!-- %check-verify -->
 predicate P(n: int)
 {
   n % 2 == 0
@@ -897,7 +941,7 @@ AlternativeBlockCase(allowBindingGuards) =
 The simplest form of an `if` statement uses a guard that is a boolean
 expression. For example,
 
-```dafny
+```dafny <!-- %no-check -->
   if x < 0 {
     x := -x;
   }
@@ -910,7 +954,7 @@ block.  To ensure that an `if` statement is exhaustive, use the
 
 If the guard is an asterisk then a non-deterministic choice is made:
 
-```dafny
+```dafny <!-- %no-check -->
   if * {
     print "True";
   } else {
@@ -923,11 +967,14 @@ The `if-case` statement using the `AlternativeBlock` form is similar to the
 Edsger W. Dijkstra. It is used for a multi-branch `if`.
 
 For example:
-```dafny
+```dafny <!-- %check-resolve -->
+function (x: int, y: int): (max: int) 
+{
   if {
     case x <= y => max := y;
     case y <= x => max := x;
   }
+}
 ```
 
 In this form, the expressions following the `case` keyword are called
@@ -964,11 +1011,13 @@ It has two general forms.
 The first form is similar to a while loop in a C-like language. For
 example:
 
-```dafny
+```dafny <!-- %check-resolve -->
+method m(){
   var i := 0;
   while i < 5 {
     i := i + 1;
   }
+}
 ```
 
 In this form, the condition following the `while` is one of these:
@@ -993,7 +1042,8 @@ The second form uses the `AlternativeBlock`. It is similar to the
 `do ... od` construct used in the book "A Discipline of Programming" by
 Edsger W. Dijkstra. For example:
 
-```dafny
+```dafny <!-- %check-verify -->
+method m(){
   while
     decreases if 0 <= r then r else -r;
   {
@@ -1002,6 +1052,7 @@ Edsger W. Dijkstra. For example:
     case 0 < r =>
       r := r - 1;
   }
+}
 ```
 For this form, the guards are evaluated in some undetermined order
 until one is found that is true, in which case the corresponding statements
@@ -1033,14 +1084,14 @@ but not after the `for` loop. Assignments to the loop index are not allowed.
 The type of the loop index can typically be inferred, so it need not be given
 explicitly. If the identifier is not used, it can be written as `_`, as illustrated
 in this repeat-20-times loop:
-```dafny
+```dafny <!-- %no-check -->
 for _ := 0 to 20 {
   Body
 }
 ```
 
 There are four basic variations of the `for` loop:
-```dafny
+```dafny <!-- %no-check -->
 for i: T := lo to hi
   LoopSpec
 { Body }
@@ -1058,7 +1109,7 @@ for i: T := hi downto *
 { Body }
 ```
 Semantically, they are defined as the following respective `while` loops:
-```dafny
+```dafny <!-- %no-check -->
 {
   var _lo, _hi := lo, hi;
   assert _lo <= _hi && forall _i: int :: _lo <= _i <= _hi ==> _i is T;
@@ -1121,7 +1172,7 @@ Also, note in all variations that the values of `i` in the body are the values
 from `lo` to, _but not including_, `hi`. This makes it convenient to
 write common loops, including these:
 
-```dafny
+```dafny <!-- %no-check -->
 for i := 0 to a.Length {
   Process(a[i]);
 }
@@ -1171,7 +1222,7 @@ the loop, or we wouldn't need the loop. Like pre- and postconditions, an
 invariant is a property that is preserved for each execution of the loop,
 expressed using the same boolean expressions we have seen. For example,
 
-```dafny
+```dafny <!-- %no-check -->
 var i := 0;
 while i < n
   invariant 0 <= i
@@ -1223,13 +1274,15 @@ loop test, it must exit the loop, since there is no permitted value for
 For example, the following is
 a proper use of `decreases` on a loop:
 
-```dafny
+```dafny <!-- %check-verify -->
+method m(){
   while 0 < i
     invariant 0 <= i
     decreases i
   {
     i := i - 1;
   }
+}
 ```
 
 Here Dafny has all the ingredients it needs to prove termination. The
@@ -1242,13 +1295,15 @@ tend to count up instead of down. In this case, what decreases is not the
 counter itself, but rather the distance between the counter and the upper
 bound. A simple trick for dealing with this situation is given below:
 
-```dafny
+```dafny <!-- %check-verify -->
+method m() {
   while i < n
     invariant 0 <= i <= n
     decreases n - i
   {
     i := i + 1;
   }
+}
 ```
 
 This is actually Dafny's guess for this situation, as it sees `i < n` and
@@ -1297,7 +1352,7 @@ loop. The one case where it is sometimes needed is if a loop modifies less
 than is allowed by the enclosing method. Here are two simple methods that
 illustrate this case:
 
-```
+```dafny <!-- %check-verify Statements.2.expect -->
 class Cell {
   var data: int
 }
@@ -1408,7 +1463,7 @@ The IDE will display the computed loop frame in hover text.
 
 For example, consider
 
-```dafny
+```dafny <!-- %check-verify Sstatements.3.expect -->
 class Cell {
   var data: int
   const K: int
@@ -1478,7 +1533,7 @@ the same as for match expressions and is described in
 
 The code below shows an example of a match statement.
 
-```dafny
+```dafny <!-- %check-resolve -->
 datatype Tree = Empty | Node(left: Tree, data: int, right: Tree)
 
 // Return the sum of the data in a tree.
@@ -1601,7 +1656,7 @@ A) To check the specifications of external methods.
 Consider an external method `Random` that takes a `nat` as input
 and returns a `nat` value that is less than the input.
 Such a method could be specified as
-```dafny
+```dafny <!-- %no-check -->
 method {:extern} Random(n: nat) returns (r: nat)
   ensures r < n
 ```
@@ -1610,7 +1665,7 @@ it cannot be verified that `Random` actually satisfies this specification.
 
 To mitigate this situation somewhat, we can define a wrapper function, `Random'`,
 that calls `Random` but in which we can put some run-time checks:
-```dafny
+```dafny <!-- %check-resolve -->
 method {:extern} Random(n: nat) returns (r: nat)
 
 method Random'(n: nat) returns (r: nat)
@@ -1692,7 +1747,7 @@ line you should include `"\n"` as part of one of the expressions.
 Dafny automatically creates implementations of methods that convert values to strings
 for all Dafny data types. For example,
 
-```dafny
+```dafny <!-- %check-run -->
 datatype Tree = Empty | Node(left: Tree, data: int, right: Tree)
 method Main()
 {
@@ -1703,7 +1758,7 @@ method Main()
 
 produces this output:
 
-```
+```text
 x=Tree.Node(Tree.Node(Tree.Empty, 1, Tree.Empty), 2, Tree.Empty)
 ```
 
@@ -1752,7 +1807,7 @@ The `reveal` statement makes available to the solver information that is otherwi
 
 If an assert statement has an expression label, then a proof of that assertion is attempted, but the assertion itself
 is not used subsequently.  For example, consider
-```dafny
+```dafny <!-- %check-verify Statements.4.expect -->
 method m(i: int) {
   assert x: i == 0; // Fails
   assert i == 0; // Fails also because the x: makes the first assertion opaque
@@ -1762,7 +1817,7 @@ The first assertion fails. Without the label `x:`, the second would succeed beca
 assertion is assumed in the context of the rest of the program.  But with the label, the first assertion is hidden from
 the rest of the program. That assertion can be _revealed_ by adding a `reveal` statement:
 
-```dafny
+```dafny <!-- %check-verify Statements.5.expect -->
 method m(i: int) {
   assert x: i == 0; // Fails
   reveal x;
@@ -1770,7 +1825,7 @@ method m(i: int) {
 }
 ```
 or
-```dafny
+```dafny <!-- %check-verify Statements.6.expect -->
 method m(i: int) {
   assert x: i == 0; // Fails
   assert i == 0 by { reveal x; } // Now succeeds
@@ -1787,7 +1842,7 @@ Within the body of a method, a precondition is an assumption; if the preconditio
 A `reveal` statement naming the label of the precondition then makes the assumption visible.
 
 Here is a toy example:
-```
+``` <!-- %check-verify Statements.7.expect -->
 method m(x: int, y: int) returns (z: int)
   requires L: 0 < y
   ensures z == x+y
@@ -1801,7 +1856,7 @@ However, if we add a `reveal L;` statement in the body of the method, then the p
 and both postconditions can be proved.
 
 One could also use this style:
-```
+``` <!-- %check-verify -->
 method m(x: int, y: int) returns (z: int)
   requires L: 0 < y
   ensures z == x+y
@@ -1828,7 +1883,7 @@ possible where there might be information overload otherwise.
 
 But then there may be specific instances where the definition of that opaque function is needed. In that situation, the
 body of the function can be _revealed_ using the reveal statement. Here is an example:
-```dafny
+```dafny <!-- %check-verify Statements.9.expect -->
 function {:opaque} f(i: int): int { i + 1 }
 
 method m(int i) {
@@ -1877,7 +1932,7 @@ into the new buffer.
 
 [leino233]: http://research.microsoft.com/en-us/um/people/leino/papers/krml233.pdf
 
-```dafny
+```dafny <!-- %check-verify -->
 class {:autocontracts} SimpleQueue<Data>
 {
   ghost var Contents: seq<Data>;
@@ -1905,7 +1960,7 @@ Here is an example of a _call_ `forall` statement and the
 callee. This is contained in the `CloudMake-ConsistentBuilds.dfy`
 test in the Dafny repository.
 
-```dafny
+```dafny <!-- %check-verify -->
 forall cmd', deps', e' |
        Hash(Loc(cmd', deps', e')) == Hash(Loc(cmd, deps, e)) {
   HashProperty(cmd', deps', e', cmd, deps, e);
@@ -1919,7 +1974,7 @@ lemma HashProperty(cmd: Expression, deps: Expression, ext: string,
 
 The following example of a _proof_ `forall` statement comes from the same file:
 
-```dafny
+```dafny <!-- %check-verify -->
 forall p | p in DomSt(stCombinedC.st) && p in DomSt(stExecC.st)
   ensures GetSt(p, stCombinedC.st) == GetSt(p, stExecC.st)
 {
@@ -1930,12 +1985,12 @@ forall p | p in DomSt(stCombinedC.st) && p in DomSt(stExecC.st)
 ```
 
 More generally, the statement
-```dafny
+```dafny <!-- %no-check -->
 forall x | P(x) { Lemma(x); }
 ```
 is used to invoke `Lemma(x)` on all `x` for which `P(x)` holds. If
 `Lemma(x)` ensures `Q(x)`, then the forall statement establishes
-```dafny
+```dafny <!-- %no-check -->
 forall x :: P(x) ==> Q(x).
 ```
 
@@ -1961,7 +2016,7 @@ followed by a `modify` statement that may modify any field
 in the object. After that we can no longer prove that the field
 `x` still has the value we assigned to it.
 
-```dafny
+```dafny <!-- %check-verify Statements.9.expect -->
 class MyClass {
   var x: int
   method N()
@@ -2033,7 +2088,7 @@ Here is an example using `calc` statements to prove an elementary
 algebraic identity. As it turns out, Dafny is able to prove this without
 the `calc` statements, but the example illustrates the syntax.
 
-```dafny
+```dafny <!-- %check-verify -->
 lemma docalc(x : int, y: int)
   ensures (x + y) * (x + y) == x * x + 2 * x * y + y * y
 {
@@ -2087,13 +2142,17 @@ every pair of expressions by giving a default operator between
 the `calc` keyword and the opening brace as shown in this abbreviated
 version of the above calc statement:
 
-```dafny
-calc == {
-  (x + y) * (x + y);
-  x * (x + y) + y * (x + y);
-  x * x + x * y + y * x + y * y;
-  x * x + x * y + x * y + y * y;
-  x * x + 2 * x * y + y * y;
+```dafny <!-- %check-verify -->
+lemma docalc(x : int, y: int)
+  ensures (x + y) * (x + y) == x * x + 2 * x * y + y * y
+{
+  calc == {
+    (x + y) * (x + y);
+    x * (x + y) + y * (x + y);
+    x * x + x * y + y * x + y * y;
+    x * x + x * y + x * y + y * y;
+    x * x + 2 * x * y + y * y;
+  }
 }
 ```
 
