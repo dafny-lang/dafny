@@ -13,11 +13,11 @@ public record AssumptionDescription(string issue, string mitigation, bool isExpl
     issue: "Declaration has [{:verify false}] attribute.",
     mitigation: "Remove and prove if possible.",
     isExplicit: false);
-  public static AssumptionDescription ExternWithRequires = new(
+  public static AssumptionDescription ExternWithPrecondition = new(
     issue: "Declaration with [{:extern}] has a requires clause.",
     mitigation: "Test external caller (maybe with [/testContracts]).",
     isExplicit: false);
-  public static AssumptionDescription ExternWithEnsures = new(
+  public static AssumptionDescription ExternWithPostcondition = new(
     issue: "Declaration with [{:extern}] has a ensures clause.",
     mitigation: "Test external callee (maybe with [/testContracts]).",
     isExplicit: false);
@@ -63,13 +63,13 @@ public class ReportBuilder {
 
     foreach (var moduleDefinition in program.Modules()) {
       foreach (var topLevelDecl in moduleDefinition.TopLevelDecls) {
-        report.AddAssumptions(topLevelDecl, topLevelDecl.Assumptions);
+        report.AddAssumptions(topLevelDecl, topLevelDecl.Assumptions());
         if (topLevelDecl is not TopLevelDeclWithMembers topLevelDeclWithMembers) {
           continue;
         }
 
         foreach (var decl in topLevelDeclWithMembers.Members) {
-          report.AddAssumptions(decl, decl.Assumptions);
+          report.AddAssumptions(decl, decl.Assumptions());
         }
       }
     }

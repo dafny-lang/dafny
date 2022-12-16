@@ -123,7 +123,7 @@ public class AuditReport {
         text.AppendLine("");
         text.AppendLine($"## Type `{topLevelDecl.Name}`");
 
-        foreach (var desc in topLevelDecl.Assumptions) {
+        foreach (var desc in topLevelDecl.Assumptions()) {
           AppendMarkdownIETFDescription(desc, text);
         }
 
@@ -137,7 +137,7 @@ public class AuditReport {
 
           text.AppendLine("");
           text.AppendLine($"## Member `{decl.Name}`");
-          foreach (var desc in decl.Assumptions) {
+          foreach (var desc in decl.Assumptions()) {
             AppendMarkdownIETFDescription(desc, text);
           }
         }

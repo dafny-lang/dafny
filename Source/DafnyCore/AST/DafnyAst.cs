@@ -38,6 +38,10 @@ namespace Microsoft.Dafny {
     /// </summary>
     public abstract IEnumerable<INode> Children { get; }
 
+    public IEnumerable<INode> DeepChildren() {
+      return Children.Concat(Children.SelectMany(n => n.DeepChildren()));
+    }
+
     protected RangeToken rangeToken = null;
 
     // Contains tokens that did not make it in the AST but are part of the expression,

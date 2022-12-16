@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.Diagnostics.Contracts;
@@ -36,27 +37,31 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
     return true;
   }
 
-  public override IEnumerable<AssumptionDescription> Assumptions {
-    get {
-      foreach (var a in base.Assumptions) {
-        yield return a;
-      }
+  public bool HasPostcondition =>
+    Ens.Count > 0 || ResultType.AsSubsetType is not null;
 
-      if (Children.Any(n => n is AssumeStmt)) {
-        yield return AssumptionDescription.AssumeInBody;
-      }
+  public bool HasPrecondition =>
+    Req.Count > 0 || Formals.Any(f => f.Type.AsSubsetType is not null);
 
-      if (Body is null && Ens.Count > 0) {
-        yield return AssumptionDescription.NoBody(IsGhost);
-      }
+  public override IEnumerable<AssumptionDescription> Assumptions() {
+    foreach (var a in base.Assumptions()) {
+      yield return a;
+    }
 
-      if (Attributes.Contains(Attributes, "extern") && Ens.Count > 0) {
-        yield return AssumptionDescription.ExternWithEnsures;
-      }
+    if (DeepChildren().Any(n => n is AssumeStmt)) {
+      yield return AssumptionDescription.AssumeInBody;
+    }
 
-      if (Attributes.Contains(Attributes, "extern") && Req.Count > 0) {
-        yield return AssumptionDescription.ExternWithRequires;
-      }
+    if (Body is null && HasPostcondition) {
+      yield return AssumptionDescription.NoBody(IsGhost);
+    }
+
+    if (Attributes.Contains(Attributes, "extern") && HasPostcondition) {
+      yield return AssumptionDescription.ExternWithPostcondition;
+    }
+
+    if (Attributes.Contains(Attributes, "extern") && HasPrecondition) {
+      yield return AssumptionDescription.ExternWithPrecondition;
     }
   }
 

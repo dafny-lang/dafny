@@ -32,17 +32,15 @@ public abstract class Declaration : INode, INamedRegion, IAttributeBearingDeclar
 
   private bool scopeIsInherited = false;
 
-  public virtual IEnumerable<AssumptionDescription> Assumptions {
-    get {
-      if (Attributes.Contains(Attributes, "axiom")) {
-        yield return AssumptionDescription.AxiomAttributeAssumption;
-      }
+  public virtual IEnumerable<AssumptionDescription> Assumptions() {
+    if (Attributes.Contains(Attributes, "axiom")) {
+      yield return AssumptionDescription.AxiomAttributeAssumption;
+    }
 
-      if (Attributes.Find(Attributes, "verify") is Attributes va &&
-          va.Args.Count == 1 && Expression.IsBoolLiteral(va.Args[0], out var verify) &&
-          verify == false) {
-        yield return AssumptionDescription.VerifyFalseAssumption;
-      }
+    if (Attributes.Find(Attributes, "verify") is Attributes va &&
+        va.Args.Count == 1 && Expression.IsBoolLiteral(va.Args[0], out var verify) &&
+        verify == false) {
+      yield return AssumptionDescription.VerifyFalseAssumption;
     }
   }
 
@@ -1210,17 +1208,15 @@ public class TraitDecl : ClassDecl {
     List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, bool isRefining, List<Type>/*?*/ traits)
     : base(tok, name, module, typeArgs, members, attributes, isRefining, traits) { }
 
-  public override IEnumerable<AssumptionDescription> Assumptions {
-    get {
-      foreach (var assumption in base.Assumptions) {
-        yield return assumption;
-      }
+  public override IEnumerable<AssumptionDescription> Assumptions() {
+    foreach (var assumption in base.Assumptions()) {
+      yield return assumption;
+    }
 
-      if (Attributes.Find(Attributes, "termination") is Attributes ta &&
-          ta.Args.Count == 1 && Expression.IsBoolLiteral(ta.Args[0], out var termCheck) &&
-          termCheck == false) {
-        yield return AssumptionDescription.TerminationFalse;
-      }
+    if (Attributes.Find(Attributes, "termination") is Attributes ta &&
+        ta.Args.Count == 1 && Expression.IsBoolLiteral(ta.Args[0], out var termCheck) &&
+        termCheck == false) {
+      yield return AssumptionDescription.TerminationFalse;
     }
   }
 }

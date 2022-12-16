@@ -466,31 +466,35 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext {
   public override bool IsOverrideThatAddsBody => base.IsOverrideThatAddsBody && Body != null;
   private static BlockStmt emptyBody = new BlockStmt(Token.NoToken, Token.NoToken, new List<Statement>());
 
-  public override IEnumerable<AssumptionDescription> Assumptions {
-    get {
-      foreach (var a in base.Assumptions) {
-        yield return a;
-      }
+  public bool HasPostcondition =>
+    Ens.Count > 0 || Outs.Any(f => f.Type.AsSubsetType is not null);
 
-      if (Children.Any(n => n is AssumeStmt)) {
-        yield return AssumptionDescription.AssumeInBody;
-      }
+  public bool HasPrecondition =>
+    Req.Count > 0 || Ins.Any(f => f.Type.AsSubsetType is not null);
 
-      if (Body is null && Ens.Count > 0) {
-        yield return AssumptionDescription.NoBody(IsGhost);
-      }
+  public override IEnumerable<AssumptionDescription> Assumptions() {
+    foreach (var a in base.Assumptions()) {
+      yield return a;
+    }
 
-      if (Attributes.Contains(Attributes, "extern") && Ens.Count > 0) {
-        yield return AssumptionDescription.ExternWithEnsures;
-      }
+    if (DeepChildren().Any(n => n is AssumeStmt)) {
+      yield return AssumptionDescription.AssumeInBody;
+    }
 
-      if (Attributes.Contains(Attributes, "extern") && Req.Count > 0) {
-        yield return AssumptionDescription.ExternWithRequires;
-      }
+    if (Body is null && HasPostcondition) {
+      yield return AssumptionDescription.NoBody(IsGhost);
+    }
 
-      if (AllowsNontermination) {
-        yield return AssumptionDescription.DecreasesStar;
-      }
+    if (Attributes.Contains(Attributes, "extern") && HasPostcondition) {
+      yield return AssumptionDescription.ExternWithPostcondition;
+    }
+
+    if (Attributes.Contains(Attributes, "extern") && HasPrecondition) {
+      yield return AssumptionDescription.ExternWithPrecondition;
+    }
+
+    if (AllowsNontermination) {
+      yield return AssumptionDescription.DecreasesStar;
     }
   }
 
