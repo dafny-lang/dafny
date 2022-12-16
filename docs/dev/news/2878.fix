@@ -1,1 +1,0 @@
-Returning a tuple when it should be two variables does not crash Dafny anymore
