@@ -49,8 +49,7 @@ namespace Microsoft.Dafny {
       set => rangeToken = value;
     }
 
-    public RangeToken GetRangeToken()
-    {
+    public RangeToken GetRangeToken() {
       if (rangeToken == null) {
         if (tok is RangeToken tokAsRange) {
           rangeToken = tokAsRange;
@@ -58,8 +57,7 @@ namespace Microsoft.Dafny {
           var startTok = tok;
           var endTok = tok;
 
-          void UpdateStartEndToken(IToken token1)
-          {
+          void UpdateStartEndToken(IToken token1) {
             if (token1.Filename != tok.Filename) {
               return;
             }
@@ -73,8 +71,7 @@ namespace Microsoft.Dafny {
             }
           }
 
-          void UpdateStartEndTokRecursive(INode node)
-          {
+          void UpdateStartEndTokRecursive(INode node) {
             if (node is null) {
               return;
             }
@@ -121,8 +118,7 @@ namespace Microsoft.Dafny {
     /// A token is owned by a node if it was used to parse this node,
     /// but is not owned by any of this Node's children
     /// </summary>
-    public IEnumerable<IToken> GetOwnedTokens()
-    {
+    public IEnumerable<IToken> GetOwnedTokens() {
       if (OwnedTokensCache != null) {
         return OwnedTokensCache;
       }
