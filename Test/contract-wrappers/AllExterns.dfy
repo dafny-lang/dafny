@@ -1,4 +1,4 @@
-// RUN: ! %baredafny test %args --no-verify --test-assumptions %s %s.externs.cs > %t
+// RUN: ! %baredafny test %args --no-verify --test-assumptions=externs %s %s.externs.cs > %t
 // RUN: %diff "%s.expect" "%t"
 // RUN: %OutputCheck --file-to-check "%S/AllExterns.cs" "%s"
 // CHECK: .*Foo____dafny__checked\(x\).*
