@@ -38,7 +38,7 @@ jobs:
     ## Check that a simple program compiles and runs on each supported platform
     - name: Check C# compile
       run: |
-        dafny run -target:cs a.dfy > actual.txt
+        dafny run --target:cs a.dfy > actual.txt
         diff expect.txt actual.txt
     - name: Check Go compile
       run: |
