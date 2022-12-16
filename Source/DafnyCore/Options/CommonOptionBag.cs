@@ -138,7 +138,7 @@ Functionality is still being expanded. Currently only checks contracts on every 
       options.WarnShadowing = value;
     });
     DafnyOptions.RegisterLegacyBinding(TestAssumptions, (options, value) => {
-      options.TestContracts = value ? DafnyOptions.ContractTestingMode.Externs : DafnyOptions.ContractTestingMode.None;
+      options.TestContracts = value == TestAssumptionsMode.Externs ? DafnyOptions.ContractTestingMode.Externs : DafnyOptions.ContractTestingMode.None;
     });
     DafnyOptions.RegisterLegacyBinding(WarnMissingConstructorParenthesis, (options, value) => {
       options.DisallowConstructorCaseWithoutParentheses = value;
