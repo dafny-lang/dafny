@@ -29,7 +29,8 @@ public interface ICommandSpec {
   public static IReadOnlyList<Option> VerificationOptions = new Option[] {
     BoogieOptionBag.VerificationTimeLimit,
     CommonOptionBag.VerifyIncludedFiles,
-    CommonOptionBag.ManualLemmaInduction
+    CommonOptionBag.ManualLemmaInduction,
+    CommonOptionBag.SolverPath,
   }.ToList();
 
   public static IReadOnlyList<Option> ExecutionOptions = new Option[] {
@@ -37,6 +38,7 @@ public interface ICommandSpec {
     BoogieOptionBag.NoVerify,
     CommonOptionBag.EnforceDeterminism,
     CommonOptionBag.OptimizeErasableDatatypeWrapper,
+    CommonOptionBag.TestAssumptions
   }.Concat(VerificationOptions).ToList();
 
   public static IReadOnlyList<Option> ConsoleOutputOptions = new List<Option>(new Option[] {
