@@ -64,6 +64,9 @@ let _dafny = (function() {
   $module.Rtd_char = class {
     static get Default() { return 'D'; }  // See CharType.DefaultValue in Dafny source code
   }
+  $module.Rtd_codepoint = class {
+    static get Default() { return new _dafny.CodePoint('D'.codePointAt(0)); }
+  }
   $module.Rtd_int = class {
     static get Default() { return BigNumber(0); }
   }

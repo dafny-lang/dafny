@@ -456,6 +456,7 @@ class Doubler:
 class defaults:
     bool = staticmethod(lambda: False)
     char = staticmethod(lambda: 'D')
+    codepoint = staticmethod(lambda: CodePoint('D'))
     int = staticmethod(lambda: 0)
     real = staticmethod(BigRational)
     pointer = staticmethod(lambda: None)

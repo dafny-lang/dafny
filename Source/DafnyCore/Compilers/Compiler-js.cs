@@ -740,7 +740,7 @@ namespace Microsoft.Dafny.Compilers {
       if (xType is BoolType) {
         return "_dafny.Rtd_bool";
       } else if (xType is CharType) {
-        return "_dafny.Rtd_char";
+        return UnicodeCharEnabled ? "_dafny.Rtd_codepoint" : "_dafny.Rtd_char";
       } else if (xType is IntType) {
         return "_dafny.Rtd_int";
       } else if (xType is BigOrdinalType) {

@@ -569,7 +569,7 @@ namespace Microsoft.Dafny.Compilers {
         var x when x.IsBuiltinArrowType => $"{DafnyDefaults}.pointer",
         // unresolved proxy; just treat as bool, since no particular type information is apparently needed for this type
         BoolType or TypeProxy => $"{DafnyDefaults}.bool",
-        CharType => $"{DafnyDefaults}.char",
+        CharType => UnicodeCharEnabled ? $"{DafnyDefaults}.codepoint" : $"{DafnyDefaults}.char",
         IntType or BitvectorType => $"{DafnyDefaults}.int",
         RealType => $"{DafnyDefaults}.real",
         SeqType or SetType or MultiSetType or MapType => CollectionTypeDescriptor(),
