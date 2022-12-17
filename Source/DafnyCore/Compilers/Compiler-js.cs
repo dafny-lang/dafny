@@ -903,7 +903,7 @@ namespace Microsoft.Dafny.Compilers {
       if (xType is BoolType) {
         return "false";
       } else if (xType is CharType) {
-        return CharType.DefaultValueAsString;
+        return $"{CharFromNumberMethodName()}({CharType.DefaultValueAsString}.codePointAt(0))";
       } else if (xType is IntType || xType is BigOrdinalType) {
         return IntegerLiteral(0);
       } else if (xType is RealType) {
