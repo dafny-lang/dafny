@@ -1475,6 +1475,7 @@ namespace Microsoft.Dafny.Compilers {
     // To improve readability
     private static bool CharIsRune => UnicodeCharEnabled;
     private static string CharTypeName => UnicodeCharEnabled ? "Dafny.Rune" : "char";
+    private static string CharTypeDescriptorName => DafnyHelpersClass + (UnicodeCharEnabled ? ".RUNE" : ".CHAR");
 
     private void ConvertFromChar(Expression e, ConcreteSyntaxTree wr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
       if (e.Type.IsCharType && UnicodeCharEnabled) {
@@ -1529,7 +1530,7 @@ namespace Microsoft.Dafny.Compilers {
       if (xType is BoolType) {
         return "false";
       } else if (xType is CharType) {
-        return CharType.DefaultValueAsString;
+        return UnicodeCharEnabled ? $"new {CharTypeName}({CharType.DefaultValueAsString})" : CharType.DefaultValueAsString;
       } else if (xType is IntType || xType is BigOrdinalType) {
         return "BigInteger.Zero";
       } else if (xType is RealType) {
@@ -1650,7 +1651,7 @@ namespace Microsoft.Dafny.Compilers {
       if (type is BoolType) {
         return "Dafny.Helpers.BOOL";
       } else if (type is CharType) {
-        return "Dafny.Helpers.CHAR";
+        return CharTypeDescriptorName;
       } else if (type is IntType || type is BigOrdinalType) {
         return "Dafny.Helpers.INT";
       } else if (type is RealType) {
