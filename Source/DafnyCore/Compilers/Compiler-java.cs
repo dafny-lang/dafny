@@ -3068,7 +3068,7 @@ namespace Microsoft.Dafny.Compilers {
       if (xType is BoolType) {
         return "false";
       } else if (xType is CharType) {
-        return CharType.DefaultValueAsString;
+        return UnicodeCharEnabled ? $"dafny.CodePoint.valueOf({CharType.DefaultValueAsString})" : CharType.DefaultValueAsString;
       } else if (xType is IntType || xType is BigOrdinalType) {
         return "java.math.BigInteger.ZERO";
       } else if (xType is RealType) {
