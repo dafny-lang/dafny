@@ -392,7 +392,7 @@ public class LiteralModuleDecl : ModuleDecl {
   public LiteralModuleDecl(ModuleDefinition module, ModuleDefinition parent)
     : base(module.tok, module.Name, parent, false, false) {
     ModuleDef = module;
-    RangeToken = module.RangeToken;
+    RangeToken = module.GetRangeToken();
     TokenWithTrailingDocString = module.TokenWithTrailingDocString;
     BodyStartTok = module.BodyStartTok;
     BodyEndTok = module.BodyEndTok;
@@ -1981,8 +1981,8 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
 
   string RedirectingTypeDecl.Name { get { return Name; } }
   IToken RedirectingTypeDecl.tok { get { return tok; } }
-  IEnumerable<IToken> RedirectingTypeDecl.OwnedTokens => OwnedTokens;
-  IToken RedirectingTypeDecl.StartToken => StartToken;
+  IEnumerable<IToken> RedirectingTypeDecl.OwnedTokens => GetOwnedTokens();
+  IToken RedirectingTypeDecl.StartToken => GetStartToken();
   Attributes RedirectingTypeDecl.Attributes { get { return Attributes; } }
   ModuleDefinition RedirectingTypeDecl.Module { get { return EnclosingModuleDefinition; } }
   BoundVar RedirectingTypeDecl.Var { get { return Var; } }
@@ -2075,8 +2075,8 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl {
 
   string RedirectingTypeDecl.Name { get { return Name; } }
   IToken RedirectingTypeDecl.tok { get { return tok; } }
-  IEnumerable<IToken> RedirectingTypeDecl.OwnedTokens => OwnedTokens;
-  IToken RedirectingTypeDecl.StartToken => StartToken;
+  IEnumerable<IToken> RedirectingTypeDecl.OwnedTokens => GetOwnedTokens();
+  IToken RedirectingTypeDecl.StartToken => GetStartToken();
   Attributes RedirectingTypeDecl.Attributes { get { return Attributes; } }
   ModuleDefinition RedirectingTypeDecl.Module { get { return EnclosingModuleDefinition; } }
   BoundVar RedirectingTypeDecl.Var { get { return null; } }

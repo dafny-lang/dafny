@@ -47,73 +47,74 @@ namespace Microsoft.Dafny {
     // Contains tokens that did not make it in the AST but are part of the expression,
     // Enables ranges to be correct.
     // TODO: Re-add format tokens where needed until we put all the formatting to replace the tok of every expression
-    protected IToken[] FormatTokens = null;
+    internal IToken[] FormatTokens = null;
 
     public RangeToken RangeToken {
-      get {
-        if (rangeToken == null) {
-          if (tok is RangeToken tokAsRange) {
-            rangeToken = tokAsRange;
-          } else {
-            var startTok = tok;
-            var endTok = tok;
-
-            void UpdateStartEndToken(IToken token1) {
-              if (token1.Filename != tok.Filename) {
-                return;
-              }
-
-              if (token1.pos < startTok.pos) {
-                startTok = token1;
-              }
-
-              if (token1.pos + token1.val.Length > endTok.pos + endTok.val.Length) {
-                endTok = token1;
-              }
-            }
-
-            void updateStartEndTokRecursive(INode node) {
-              if (node is null) {
-                return;
-              }
-
-              if (node.tok.Filename != tok.Filename || node is Expression { IsImplicit: true } ||
-                  node is DefaultValueExpression) {
-                // Ignore any auto-generated expressions.
-              } else if (node != this && node.RangeToken != null) {
-                UpdateStartEndToken(node.StartToken);
-                UpdateStartEndToken(node.EndToken);
-              } else {
-                UpdateStartEndToken(node.tok);
-              }
-
-              node.Children.Iter(updateStartEndTokRecursive);
-            }
-
-            updateStartEndTokRecursive(this);
-
-            if (FormatTokens != null) {
-              foreach (var token in FormatTokens) {
-                UpdateStartEndToken(token);
-              }
-            }
-
-            rangeToken = new RangeToken(startTok, endTok);
-          }
-        }
-
-        if (rangeToken.Filename == null) {
-          rangeToken.Filename = tok.Filename;
-        }
-
-        return rangeToken;
-      }
       set => rangeToken = value;
     }
 
+    public RangeToken GetRangeToken() {
+      if (rangeToken == null) {
+        if (tok is RangeToken tokAsRange) {
+          rangeToken = tokAsRange;
+        } else {
+          var startTok = tok;
+          var endTok = tok;
 
-    public IToken StartToken => RangeToken?.StartToken;
-    public IToken EndToken => RangeToken?.EndToken;
+          void UpdateStartEndToken(IToken token1) {
+            if (token1.Filename != tok.Filename) {
+              return;
+            }
+
+            if (token1.pos < startTok.pos) {
+              startTok = token1;
+            }
+
+            if (token1.pos + token1.val.Length > endTok.pos + endTok.val.Length) {
+              endTok = token1;
+            }
+          }
+
+          void UpdateStartEndTokRecursive(INode node) {
+            if (node is null) {
+              return;
+            }
+
+            if (node.tok.Filename != tok.Filename || node is Expression { IsImplicit: true } ||
+                node is DefaultValueExpression) {
+              // Ignore any auto-generated expressions.
+            } else if (node != this && node.GetRangeToken() != null) {
+              UpdateStartEndToken(node.GetStartToken());
+              UpdateStartEndToken(node.GetEndToken());
+            } else {
+              UpdateStartEndToken(node.tok);
+            }
+
+            node.Children.Iter(UpdateStartEndTokRecursive);
+          }
+
+          UpdateStartEndTokRecursive(this);
+
+          if (FormatTokens != null) {
+            foreach (var token in FormatTokens) {
+              UpdateStartEndToken(token);
+            }
+          }
+
+          rangeToken = new RangeToken(startTok, endTok);
+        }
+      }
+
+      if (rangeToken.Filename == null) {
+        rangeToken.Filename = tok.Filename;
+      }
+
+      return rangeToken;
+    }
+
+
+    public IToken GetStartToken() => GetRangeToken()?.StartToken;
+    public IToken GetEndToken() => GetRangeToken()?.EndToken;
 
     protected IReadOnlyList<IToken> OwnedTokensCache;
 
@@ -121,38 +122,36 @@ namespace Microsoft.Dafny {
     /// A token is owned by a node if it was used to parse this node,
     /// but is not owned by any of this Node's children
     /// </summary>
-    public IEnumerable<IToken> OwnedTokens {
-      get {
-        if (OwnedTokensCache != null) {
-          return OwnedTokensCache;
-        }
-
-        var startToEndTokenNotOwned =
-          Children.Where(child => child.StartToken != null && child.EndToken != null)
-            .ToDictionary(child => child.StartToken!, child => child.EndToken!);
-
-        var result = new List<IToken>();
-        if (StartToken == null) {
-          Contract.Assume(EndToken == null);
-        } else {
-          Contract.Assume(EndToken != null);
-          var tmpToken = StartToken;
-          while (tmpToken != null && tmpToken != EndToken.Next) {
-            if (startToEndTokenNotOwned.TryGetValue(tmpToken, out var endNotOwnedToken)) {
-              tmpToken = endNotOwnedToken;
-            } else if (tmpToken.filename != null) {
-              result.Add(tmpToken);
-            }
-
-            tmpToken = tmpToken.Next;
-          }
-        }
-
-
-        OwnedTokensCache = result;
-
+    public IEnumerable<IToken> GetOwnedTokens() {
+      if (OwnedTokensCache != null) {
         return OwnedTokensCache;
       }
+
+      var startToEndTokenNotOwned =
+        Children.Where(child => child.GetStartToken() != null && child.GetEndToken() != null)
+          .ToDictionary(child => child.GetStartToken()!, child => child.GetEndToken()!);
+
+      var result = new List<IToken>();
+      if (GetStartToken() == null) {
+        Contract.Assume(GetEndToken() == null);
+      } else {
+        Contract.Assume(GetEndToken() != null);
+        var tmpToken = GetStartToken();
+        while (tmpToken != null && tmpToken != GetEndToken().Next) {
+          if (startToEndTokenNotOwned.TryGetValue(tmpToken, out var endNotOwnedToken)) {
+            tmpToken = endNotOwnedToken;
+          } else if (tmpToken.filename != null) {
+            result.Add(tmpToken);
+          }
+
+          tmpToken = tmpToken.Next;
+        }
+      }
+
+
+      OwnedTokensCache = result;
+
+      return OwnedTokensCache;
     }
   }
 
