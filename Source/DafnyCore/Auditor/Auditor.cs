@@ -110,7 +110,7 @@ public class Auditor : IRewriter {
   }
 
   internal override void PostResolve(Program program) {
-    var report = ReportBuilder.BuildReport(program);
+    var report = AuditReport.BuildReport(program);
 
     if (reportFileName is null && reportFormat is null) {
       foreach (var assumption in report.AllAssumptions()) {

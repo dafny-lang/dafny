@@ -159,4 +159,23 @@ public class AuditReport {
 
     return text.ToString();
   }
+
+  public static AuditReport BuildReport(Program program) {
+    AuditReport report = new();
+
+    foreach (var moduleDefinition in program.Modules()) {
+      foreach (var topLevelDecl in moduleDefinition.TopLevelDecls) {
+        report.AddAssumptions(topLevelDecl, topLevelDecl.Assumptions());
+        if (topLevelDecl is not TopLevelDeclWithMembers topLevelDeclWithMembers) {
+          continue;
+        }
+
+        foreach (var decl in topLevelDeclWithMembers.Members) {
+          report.AddAssumptions(decl, decl.Assumptions());
+        }
+      }
+    }
+
+    return report;
+  }
 }
