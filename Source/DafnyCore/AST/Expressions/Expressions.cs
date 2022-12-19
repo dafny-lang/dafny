@@ -2790,10 +2790,7 @@ public class AttributedExpression : INode, IAttributeBearingDeclaration {
     Contract.Requires(e != null);
   }
 
-  public AttributedExpression(Expression e, Attributes attrs) {
-    Contract.Requires(e != null);
-    E = e;
-    Attributes = attrs;
+  public AttributedExpression(Expression e, Attributes attrs) : this(e, null, attrs) {
   }
 
   public AttributedExpression(Expression e, AssertLabel/*?*/ label, Attributes attrs) {
@@ -2801,6 +2798,8 @@ public class AttributedExpression : INode, IAttributeBearingDeclaration {
     E = e;
     Label = label;
     Attributes = attrs;
+    this.RangeToken = e.GetRangeToken();
+    this.Tok = e.Tok;
   }
 
   public void AddCustomizedErrorMessage(IToken tok, string s) {

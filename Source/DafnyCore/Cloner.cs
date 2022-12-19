@@ -293,7 +293,9 @@ namespace Microsoft.Dafny {
     }
 
     public AttributedExpression CloneAttributedExpr(AttributedExpression expr) {
-      var mfe = new AttributedExpression(CloneExpr(expr.E), expr.Label == null ? null : new AssertLabel(Tok(expr.Label.Tok), expr.Label.Name), CloneAttributes(expr.Attributes));
+      var mfe = new AttributedExpression(CloneExpr(expr.E),
+        expr.Label == null ? null : new AssertLabel(Tok(expr.Label.Tok), expr.Label.Name),
+        CloneAttributes(expr.Attributes));
       mfe.Attributes = CloneAttributes(expr.Attributes);
       return mfe;
     }
