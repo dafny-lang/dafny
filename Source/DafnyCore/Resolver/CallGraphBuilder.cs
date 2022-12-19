@@ -96,25 +96,27 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// See comment about AddCallGraphEdgeForField.
     /// </summary>
-    private void AddCallGraphEdge(ICodeContext callingContext, ICallable function, Expression e, bool isFunctionReturnValue) {
+    private void AddCallGraphEdge(ICodeContext callingContext, ICallable callable, Expression e, bool isFunctionReturnValue) {
       Contract.Requires(callingContext != null);
-      Contract.Requires(function != null);
+      Contract.Requires(callable != null);
       Contract.Requires(e != null);
       ModuleDefinition callerModule = callingContext.EnclosingModule;
-      ModuleDefinition calleeModule = function is SpecialFunction ? null : function.EnclosingModule;
-      if (callerModule == calleeModule) {
-        // intra-module call; add edge in module's call graph
-        if (CodeContextWrapper.Unwrap(callingContext) is ICallable caller) {
-          callerModule.CallGraph.AddEdge(caller, function);
-          if (caller is Function f) {
-            if (e is FunctionCallExpr ee) {
-              f.AllCalls.Add(ee);
-            }
-            // if the call denotes the function return value in the function postconditions, then we don't
-            // mark it as recursive.
-            if (caller == function && !isFunctionReturnValue) {
-              f.IsRecursive = true;  // self recursion (mutual recursion is determined elsewhere)
-            }
+      ModuleDefinition calleeModule = callable is SpecialFunction ? null : callable.EnclosingModule;
+      if (callerModule != calleeModule) {
+        // inter-module call; don't record in call graph
+      }
+
+      // intra-module call; add edge in module's call graph
+      if (CodeContextWrapper.Unwrap(callingContext) is ICallable caller) {
+        callerModule.CallGraph.AddEdge(caller, callable);
+        if (caller is Function f) {
+          if (e is FunctionCallExpr ee) {
+            f.AllCalls.Add(ee);
+          }
+          // if the call denotes the function return value in the function postconditions, then we don't
+          // mark it as recursive.
+          if (caller == callable && !isFunctionReturnValue) {
+            f.IsRecursive = true;  // self recursion (mutual recursion is determined elsewhere)
           }
         }
       }
@@ -129,17 +131,19 @@ namespace Microsoft.Dafny {
       var callee = s.Method;
       ModuleDefinition callerModule = context.CodeContext.EnclosingModule;
       ModuleDefinition calleeModule = ((ICodeContext)callee).EnclosingModule;
-      if (callerModule == calleeModule) {
-        // intra-module call; add edge in module's call graph
-        if (context.CodeContext is ICallable caller) {
-          if (caller is IteratorDecl iteratorDecl) {
-            // use the MoveNext() method as the caller
-            callerModule.CallGraph.AddEdge(iteratorDecl.Member_MoveNext, callee);
-          } else {
-            callerModule.CallGraph.AddEdge(caller, callee);
-            if (caller == callee) {
-              callee.IsRecursive = true; // self recursion (mutual recursion is determined elsewhere)
-            }
+      if (callerModule != calleeModule) {
+        // inter-module call; don't record in call graph
+      }
+
+      // intra-module call; add edge in module's call graph
+      if (context.CodeContext is ICallable caller) {
+        if (caller is IteratorDecl iteratorDecl) {
+          // use the MoveNext() method as the caller
+          callerModule.CallGraph.AddEdge(iteratorDecl.Member_MoveNext, callee);
+        } else {
+          callerModule.CallGraph.AddEdge(caller, callee);
+          if (caller == callee) {
+            callee.IsRecursive = true; // self recursion (mutual recursion is determined elsewhere)
           }
         }
       }
@@ -150,7 +154,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Add edges to the callgraph.
+    /// Add edges to the call graph.
     /// See comment about AddCallGraphEdgeForField.
     /// </summary>
     private void AddTypeDependencyEdges(ICodeContext context, Type type) {
