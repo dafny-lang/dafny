@@ -68,7 +68,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
               destructor => destructor.CorrespondingFormals).Any(
               formal => formal.DefaultValue != null);
             if (aFormalHasADefaultValue) {
-              var verificationTreeRange = ctor.StartToken.GetLspRange(ctor.EndToken);
+              var verificationTreeRange = ctor.GetStartToken().GetLspRange(ctor.GetEndToken());
               var verificationTree = new TopLevelDeclMemberVerificationTree(
                 "datatype",
                 ctor.Name,
@@ -94,7 +94,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
                 continue; // Nothing to verify
               }
 
-              var verificationTreeRange = member.StartToken.GetLspRange(member.EndToken);
+              var verificationTreeRange = member.GetStartToken().GetLspRange(member.GetEndToken());
               var verificationTree = new TopLevelDeclMemberVerificationTree(
                 "constant",
                 member.Name,
@@ -104,7 +104,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
                 member.tok.GetLspPosition());
               AddAndPossiblyMigrateVerificationTree(verificationTree);
             } else if (member is Method or Function) {
-              var verificationTreeRange = member.StartToken.GetLspRange(member.EndToken);
+              var verificationTreeRange = member.GetStartToken().GetLspRange(member.GetEndToken());
               var verificationTree = new TopLevelDeclMemberVerificationTree(
                 (member is Method ? "method" : "function"),
                 member.Name,
@@ -133,7 +133,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
             continue;
           }
 
-          var verificationTreeRange = subsetTypeDecl.StartToken.GetLspRange(subsetTypeDecl.EndToken);
+          var verificationTreeRange = subsetTypeDecl.GetStartToken().GetLspRange(subsetTypeDecl.GetEndToken());
           var verificationTree = new TopLevelDeclMemberVerificationTree(
             $"subset type",
             subsetTypeDecl.Name,
