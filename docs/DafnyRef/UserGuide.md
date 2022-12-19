@@ -10,7 +10,7 @@ The software itself is licensed under the [MIT license](https://github.com/dafny
 
 ## 25.1. Introduction
 
-The `dafny` tool implements the following primary capabilities, implemented as various _commands_ with the `dafny` tool:
+The `dafny` tool implements the following primary capabilities, implemented as various [_commands_](#sec-dafny-commands) within the `dafny` tool:
 
 - checking that the input files represent a valid Dafny program (i.e., syntax, grammar and name and type resolution);
 - verifying that the program meets its specifications, by translating the program to verification conditions
@@ -19,7 +19,7 @@ and checking those with Boogie and an SMT solver, typically Z3;
 - running the executable produced by the compiler.
 
 In addition there are a variety of other capabilities, such as formatting files, also implemented as commands;
-more such additions are expected in the future.
+more such commands are expected in the future.
 
 ## 25.2. Installing Dafny
 
