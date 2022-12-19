@@ -117,10 +117,10 @@ public class MatchStmt : Statement, ICloneable<MatchStmt> {
     source = cloner.CloneExpr(original.Source);
     cases = original.cases.Select(cloner.CloneMatchCaseStmt).ToList();
     Context = original.Context;
-    MissingCases = original.MissingCases;
     UsesOptionalBraces = original.UsesOptionalBraces;
 
     if (cloner.CloneResolvedFields) {
+      MissingCases = original.MissingCases;
       OrigUnresolved = original.OrigUnresolved;
     }
   }
