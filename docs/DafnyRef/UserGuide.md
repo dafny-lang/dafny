@@ -40,10 +40,10 @@ Current and past Dafny binary releases can be found at
 Each release is a .zip file with a name combining the release name and the
 platform. Current platforms are Windows 10, Ubuntu 16ff, and MacOS 10.14ff.
 
-The principal dependencies of the `dafny` tool are
-- (1) that it uses `dotnet`, which
+The principal dependencies of the `dafny` tool are that
+- (1) it uses `dotnet`, which
 is available and must be installed on Linux and Mac platforms to use `dafny`, and
-- (2) it uses `Z3`, and SMT solver that does the logical reasoning.
+- (2) it uses `Z3`, an SMT solver that does the logical reasoning.
 
 ### 25.2.2. IDEs for Dafny {#sec-ides}
 
