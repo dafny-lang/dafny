@@ -1965,7 +1965,7 @@ public class BinaryExpr : Expression {
     Contract.Invariant(E1 != null);
   }
 
-  public BinaryExpr(IToken tok, Opcode op, Expression e0, Expression e1, IToken prefixOp = null)
+  public BinaryExpr(IToken tok, Opcode op, Expression e0, Expression e1)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(e0 != null);
@@ -1973,17 +1973,13 @@ public class BinaryExpr : Expression {
     this.Op = op;
     this.E0 = e0;
     this.E1 = e1;
-    this.PrefixOp = prefixOp;
-    if (prefixOp != null) {
-      FormatTokens = new[] { prefixOp };
-    }
   }
 
   /// <summary>
   /// Returns a resolved binary expression
   /// </summary>
-  public BinaryExpr(IToken tok, BinaryExpr.ResolvedOpcode rop, Expression e0, Expression e1, IToken prefixOp = null)
-    : this(tok, BinaryExpr.ResolvedOp2SyntacticOp(rop), e0, e1, prefixOp) {
+  public BinaryExpr(IToken tok, BinaryExpr.ResolvedOpcode rop, Expression e0, Expression e1)
+    : this(tok, BinaryExpr.ResolvedOp2SyntacticOp(rop), e0, e1) {
     ResolvedOp = rop;
     switch (rop) {
       case ResolvedOpcode.EqCommon:
