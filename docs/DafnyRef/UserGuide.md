@@ -96,7 +96,7 @@ verification failure in a file that is being checked.
 Thus it is important to eventually check all files, preferably in an order
 in which the files without dependencies are checked first, then those that
 depend on them, etc., until all files are checked.
-The `--verify-includes` option (`-verifyAllModules` in legacy mode) will cause all modules, whether the result of include directives or not,
+The `--verify-included-files` option (`-verifyAllModules` in legacy mode) will cause all modules, whether the result of include directives or not,
 to be verified.
 
 [^fn-duplicate-files]: File names are considered equal if they have the same absolute path, compared as case-sensitive strings (regardless of whether the underlying file-system is case sensitive).  Using symbolic links may make the same file have a different absolute path; this will generally cause duplicate declaration errors.
@@ -131,7 +131,7 @@ the command-name must be the first command-line argument.
 
 The command-line `dafny --help` or `dafny -h` lists all the available commands.
 
-The command-line `dafny <command> --help` (or `-h` or `-?`) gives help information for that particular <command>.
+The command-line `dafny <command> --help` (or `-h` or `-?`) gives help information for that particular \<command\>.
 
 Also, the command-style command-line has modernized the syntax of options. 
 Options are intended to be POSIX-compliant and are processed with dotnet's `System.CommandLine` package.
@@ -144,7 +144,7 @@ If no command is given, then the command-line is presumed to use old-style synta
 written command-line will still be valid.
 
 `dafny` recognizes the commands described in the following subsections. The most commonly used
-are [`dafny verify`](), [`dafny build`](), and [`dafny run`]().
+are [`dafny verify`](#sec-dafny-verify), [`dafny build`](#sec-dafny-build), and [`dafny run`](#sec-dafny-run).
 
 The command-line also expects the following:
 - Files are designated by absolute paths or paths relative to the current
@@ -158,14 +158,17 @@ the language that the Dafny files are being compiled to. The kind of file is det
 - The option `--` means that all subsequent command-line arguments are not options to the dafny tool; they are either files or arguments to the `dafny run` command.
 - If an option is repeated (e.g., with a different argument), then the later instance on the command-line supersedes the earlier instance, with just a few options accumulating arguments.
 - If an option takes an argument, the option name is followed by a `:` or `=` or whitespace and then by the argument value; if the argument itself contains white space, the argument must be enclosed in quotes.
-- Boolean options can take the values `true` and `false` (or any case-insensitive version of those words). For example, the value of `--no-verify` is by default `false` (that is, do verification). It can be set to true (no verification) using `--no-verify`, `--no-verify:true`, `--no-verify=true`, '--noverify true`; it can be set false (do verification) using `--no-verify:false` or `--no-verify=false`.
+- Boolean options can take the values `true` and `false` (or any case-insensitive version of those words). For example, the value of `--no-verify` is by default `false` (that is, do verification). It can be set to true (no verification) using `--no-verify`, `--no-verify:true`, `--no-verify=true`, `--noverify true`; it can be set false (do verification) using `--no-verify:false` or `--no-verify=false` or `--no-verify false`.
 - There is a potential ambiguity when the form `--option value` is used if the value is optional (such as for boolean values). In such a case an argument afer an option (that does not have an argument given with `:` or `=`) is interpreted as the value if it is indeed a valid value for that option. However, better style advises always using a ':' or '=' to set option values.
 No valid option values in dafny look like filenames or begin with `--`.
 
 
-#### 25.5.1.1. dafny resolve {#sec-dafny-resolve}
+Options may change over time; `dafny <command> --help` lists those options for a given \<command\> that are implemented in your version of dafny.
 
-The `dafny resolve` command checks the command-line and then (only) parses and typechecks the given files.
+
+#### 25.5.1.1. `dafny resolve` {#sec-dafny-resolve}
+
+The `dafny resolve` command checks the command-line and then parses and typechecks the given files and any included files.
 
 The options relevant to this command are
 - those relevant to the command-line itself
@@ -173,9 +176,9 @@ The options relevant to this command are
    - `--warn-as-errors` --- turn all warnings into errors, which alters [dafny's exit code](#sec-exit-code)
 
 - those that affect dafny` as a whole, such as
-   - `--cores` (set the number of cores dafny should use)
-   - `--show-snippets` (emit a line or so of source code along with an error message)
-   - `--library` (include this file in the program, but do not verify or compile it)
+   - `--cores` --- set the number of cores dafny should use
+   - `--show-snippets` --- emit a line or so of source code along with an error message
+   - `--library` --- include this file in the program, but do not verify or compile it (multiple such library files can be listed using multiple instances of the `--library` option)
 - those that affect the syntax of dafny, such as
    - `--prelude`
    - `--unicode-char`
@@ -185,10 +188,8 @@ The options relevant to this command are
    - `--warn-shadowing`
    - `--warn-missing-constructor-parentheses`
 
-Options may change over time; `dafny resolve --help` lists those current to your version of dafny.
 
-
-#### 25.5.1.2. dafny verify {#sec-dafny-verify}
+#### 25.5.1.2. `dafny verify` {#sec-dafny-verify}
 
 The `dafny verify` command performs the [`dafny resolve`](#sec-dafny-resolve) checks and then attempts to verify each method in the listed files. Although the Dafny program being considered
 consists of the listed files and any included files (recursively), by default only listed files are verified.
@@ -207,8 +208,6 @@ Various options control the verification process, in addition to all those descr
    - `--verification-time-limit`
    - `--boogie`
    - `--boogie-filter`
-
-Options may change over time; `dafny verify --help` lists those current to your version of dafny.
 
 
 #### 25.5.1.3. dafny translate {#sec-dafny-translate}
@@ -233,8 +232,6 @@ Various options control the verification process, in addition to all those descr
    - `--optimize-erasable-datatype-wrapper`
    - `--enforce-determinism`
 
-Options may change over time; `dafny translate --help` lists those current to your version of dafny.
-
 #### 25.5.1.4. `dafny build` {#sec-dafny-build}
 
 The `dafny build` command runs `dafny translate` and then compiles the result into an executable artifact for the target platform,
@@ -242,7 +239,6 @@ such as a `.exe` or `.dll`. or executable `jar`, or just the source code for an 
 As with `dafny trnaslate`, all the previous phases are also executed, including verification (unless `--no-verify` is a command-line argument).
 
 There are no additional options for `dafny build` beyond those for `dafny translate` and the previous compiler phases.
-
 
 TODO: OLD TEXT: The command has options that enable being specific about the build platform and architecture.
 
