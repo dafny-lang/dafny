@@ -57,7 +57,7 @@ namespace Microsoft.Dafny {
           continue;
         }
 
-        foreach (var child in current.Children.Reverse()) {
+        foreach (var child in current.Children) {
           if (child == null) {
             throw new InvalidOperationException($"Object of type {current.GetType()} has null child");
           }
@@ -89,8 +89,7 @@ namespace Microsoft.Dafny {
           var startTok = tok;
           var endTok = tok;
 
-          void UpdateStartEndToken(IToken token1)
-          {
+          void UpdateStartEndToken(IToken token1) {
             if (token1.Filename != tok.Filename) {
               return;
             }
@@ -104,8 +103,7 @@ namespace Microsoft.Dafny {
             }
           }
 
-          void UpdateStartEndTokRecursive(INode node)
-          {
+          void UpdateStartEndTokRecursive(INode node) {
             if (node is null) {
               return;
             }
