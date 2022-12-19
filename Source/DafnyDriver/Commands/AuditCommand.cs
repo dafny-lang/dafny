@@ -14,7 +14,7 @@ class AuditCommand : ICommandSpec {
   }.Concat(ICommandSpec.CommonOptions);
 
   public Command Create() {
-    var result = new Command("audit", "Audit the program, optionally creating a report document.");
+    var result = new Command("audit", "Identify all assumptions in the program, emitting them as warnings or in a report document.");
     result.AddArgument(ICommandSpec.FilesArgument);
     return result;
   }
