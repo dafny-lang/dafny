@@ -104,6 +104,7 @@ namespace Microsoft.Dafny {
       ModuleDefinition calleeModule = callable is SpecialFunction ? null : callable.EnclosingModule;
       if (callerModule != calleeModule) {
         // inter-module call; don't record in call graph
+        return;
       }
 
       // intra-module call; add edge in module's call graph
@@ -133,6 +134,7 @@ namespace Microsoft.Dafny {
       ModuleDefinition calleeModule = ((ICodeContext)callee).EnclosingModule;
       if (callerModule != calleeModule) {
         // inter-module call; don't record in call graph
+        return;
       }
 
       // intra-module call; add edge in module's call graph
