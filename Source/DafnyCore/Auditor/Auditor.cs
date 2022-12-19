@@ -9,7 +9,8 @@ namespace Microsoft.Dafny.Auditor;
 
 /// <summary>
 /// A rewriter pass that produces an AuditReport and writes it to either
-/// standard output or a file, in one of several formats.
+/// standard output or a file, in one of several formats. If neither a file
+/// or a format is provided, it reports all assumptions as warnings.
 /// </summary>
 public class Auditor : IRewriter {
   public enum ReportFormat { HTML, MarkdownTable, MarkdownIETF, Text }
@@ -60,17 +61,6 @@ public class Auditor : IRewriter {
   /// </summary>
   /// <param name="reporter">
   /// the reporter to use to emit errors and warnings
-  /// </param>
-  /// <param name="reportFileName">
-  /// the file to write the report to (standard output if null)
-  /// </param>
-  /// <param name="format">
-  /// the format of report to produce (derived from the file name, if null,
-  /// or defaults to standard warnings if the file name is also null)
-  /// </param>
-  /// <param name="compareReport">
-  /// if true, compare the generated report to an existing file instead
-  /// of creating a file
   /// </param>
   public Auditor(ErrorReporter reporter) : base(reporter) {
     reportFileName = DafnyOptions.O.Get(ReportFileOption);
