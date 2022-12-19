@@ -80,14 +80,14 @@ public abstract class QuantifierExpr : ComprehensionExpr, TypeParameter.ParentTy
 
   public override IEnumerable<Expression> SubExpressions {
     get {
-      // TODO is this change OK?
-      foreach (var e in base.SubExpressions) {
-        yield return e;
-      }
-      foreach (var e in Attributes.SubExpressions(Attributes)) {
-        yield return e;
-      }
-      if (SplitQuantifier != null) {
+      if (SplitQuantifier == null) {
+        foreach (var e in base.SubExpressions) {
+          yield return e;
+        }
+      } else {
+        foreach (var e in Attributes.SubExpressions(Attributes)) {
+          yield return e;
+        }
         foreach (var e in SplitQuantifier) {
           yield return e;
         }
