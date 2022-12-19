@@ -191,7 +191,7 @@ The options relevant to this command are
 
 #### 25.5.1.2. `dafny verify` {#sec-dafny-verify}
 
-The `dafny verify` command performs the [`dafny resolve`](#sec-dafny-resolve) checks and then attempts to verify each method in the listed files. Although the Dafny program being considered
+The `dafny verify` command performs the [`dafny resolve`](#sec-dafny-resolve) checks and then attempts to verify each method in the files listed on the command line. Although the Dafny program being considered
 consists of the listed files and any included files (recursively), by default only listed files are verified.
 
 A guide to controlling and aiding the verification process is given in [a later section](#sec-verification)
@@ -210,19 +210,23 @@ Various options control the verification process, in addition to all those descr
    - `--boogie-filter`
 
 
-#### 25.5.1.3. dafny translate {#sec-dafny-translate}
+#### 25.5.1.3. `dafny translate` {#sec-dafny-translate}
 
 The `dafny translate` command translates Dafny source code to source code for another target programming language.
 The command always performs the actions of `dafny resolve` and by default does the actions of `dafny verify`.
 
-In addition to generating the target source code, `dafny` may generate build artifacts to assist in compiling the geneated code.
+In addition to generating the target source code, `dafny` may generate build artifacts to assist in compiling the generated code.
 The specific files generated depend on the target programming language.
 More detail is given in [the section on compilation](#sec-compilation).
 
-Various options control the verification process, in addition to all those described for [`dafny resolve`](#sec-dafny-resolve) and [`dafny verify`](#sec-dafny-verify).
+The `dafny` tool intends that the compiled program in the target language be a semantically faithful rendering of the 
+(verified) Dafny program. However, resource and language limitations make this not always possible. For example, Dafny
+can express and reason about arrays of unbounded size, not all target programming languages can represent arrays larger than the maximum signed 32-bit integer.
+
+Various options control the translation process, in addition to all those described for [`dafny resolve`](#sec-dafny-resolve) and [`dafny verify`](#sec-dafny-verify).
 
 - General options:
-   - `--no-verify` --- turns off all attempts to verify the program)
+   - `--no-verify` --- turns off all attempts to verify the program
    - `--compile-verbose` --- print information about generated files
 
 - The translation target
@@ -235,8 +239,8 @@ Various options control the verification process, in addition to all those descr
 #### 25.5.1.4. `dafny build` {#sec-dafny-build}
 
 The `dafny build` command runs `dafny translate` and then compiles the result into an executable artifact for the target platform,
-such as a `.exe` or `.dll`. or executable `jar`, or just the source code for an interpreted language.
-As with `dafny trnaslate`, all the previous phases are also executed, including verification (unless `--no-verify` is a command-line argument).
+such as a `.exe` or `.dll`. or executable `.jar`, or just the source code for an interpreted language.
+As with `dafny translate`, all the previous phases are also executed, including verification (unless `--no-verify` is a command-line argument).
 
 There are no additional options for `dafny build` beyond those for `dafny translate` and the previous compiler phases.
 
@@ -246,7 +250,7 @@ TODO: OLD TEXT: The command has options that enable being specific about the bui
 
 The `dafny run` command performs `dafny build` and then runs the resulting executable.
 
-THe form of the `dafny run` command-line is slightly different than for other commands.
+The form of the `dafny run` command-line is slightly different than for other commands.
 - It permits just one `.dfy` file, which must be the file containing the `Main` entry point
 - Other files are included in the program either by `include` directives within that one file or by 
 the `--input` option on the command-line. 
@@ -254,12 +258,13 @@ the `--input` option on the command-line.
 is an argument to the program being run (and not to dafny itself) 
 - If the `--` option is used, then anything after that option is a command-line argument to the program being run 
 
-If more complex build configurations are required, then use `dafny build` and then execute the compiled program as two separate steps. 
+If more complex build configurations are required, then use `dafny build` and then execute the compiled program, as two separate steps. 
 `dafny run` is primarily intended as a convenient way to run relatively simple Dafny programs.
 
 Here are some examples:
   - `dafny run A.dfy` -- builds and runs the Main program in `A.dfy` with no command-line arguments
   - `dafny run A.dfy --no-verify` -- builds the Main program in `A.dfy` using the `--no-verify` option, and then runs the program with no command-line arguments
+  - `dafny run A.dfy -- --no-verify` -- builds the Main program in `A.dfy` (_not_ using the `--no-verify` option), and then runs the program with one command-line argument, namely `--no-verify`
   - `dafny run A.dfy 1 2 3 B.dfy` -- builds the Main program in `A.dfy` and
 then runs it with the four command-line arguments `1 2 3 B.dfy`
   - `dafny run A.dfy 1 2 3 --input B.dfy` -- builds the Main program in `A.dfy` and `B.dfy`, and
@@ -268,7 +273,7 @@ then runs it with the three command-line arguments `1 2 3`
 
 
 **Note:** `dafny run` will typically produce the same results as the executables produced by `dafny build`.  The only expected differences are these:
-- performance --- `dafny run` may not optimize as much as `dafny build`)
+- performance --- `dafny run` may not optimize as much as `dafny build`
 - target-language-specific configuration issues ---  e.g. encoding issues: `dafny run` sets language-specific flags to request UTF-8 output for the [`print`](#print-encoding) statement in all languages, whereas `dafny build` leaves language-specific runtime configuration to the user.
 
 #### 25.5.1.6. `dafny server` {#sec-dafny-server}
@@ -298,7 +303,7 @@ There are currently no other options specific to the `dafny test` command.
 
 The order in which the tests are run is not specified.
 
-For example, this code (as file `t.dfy`
+For example, this code (as the file `t.dfy`)
 ```
 method {:test} m() {
   mm();
@@ -336,16 +341,16 @@ PASSED
 
 #### 25.5.1.9. `dafny generate-tests` {#sec-dafny-generate-tests}
 
-This _experimental_ command (verifies and compiles the program and) then generates unit test code (as Dafny source code) that provides
+This _experimental_ command (verifies the program and) then generates unit test code (as Dafny source code) that provides
 complete coverage of the method.
 
 Such methods must be static and have no input parameters.
 
 _This command is under development and not yet functional._
 
-#### 25.5.1.10. 'dafny find-dead-code` {#sec-dafny-find-dead-code}
+#### 25.5.1.10. `dafny find-dead-code` {#sec-dafny-find-dead-code}
 
-This experimental command finds dead code in a program, that is, code branches within a method that are not reachable by any inputs that satisfy 
+This _experimental_ command finds dead code in a program, that is, code branches within a method that are not reachable by any inputs that satisfy 
 the method's preconditions.
 
 _This command is under development and not yet functional._
@@ -355,16 +360,16 @@ _This command is under development and not yet functional._
 This execution mode is not a command, per se, but rather a command-line option that enables executing plugins to the dafny tool.
 
 The form of the command-line is `dafny --plugin:<path-to-one-assembly[,argument]*>`
-where the argument to `--plugi` gives the path to the compiled assemply of the plugin and the arguments to be provided to the plugin.
+where the argument to `--plugin` gives the path to the compiled assemply of the plugin and the arguments to be provided to the plugin.
 
 More on writing and building plugins can be found [in this section](#sec-plugins).
 
 #### 25.5.1.12. Legacy operation
 
 Prior to implementing the command-based CLI, the `dafny` command-line simply took files and options and the arguments to options.
-That mode of operation is still supported, though discouraged. The command `dafny -?` produces the list of legacy options.
-In particular, the common commands liek `dafny verify` and `dafny build` are accomplished with combinations of 
-options like `-compile`, `-compileTarget` and `spillTargetCode`.
+That legacy mode of operation is still supported, though discouraged. The command `dafny -?` produces the list of legacy options.
+In particular, the common commands like `dafny verify` and `dafny build` are accomplished with combinations of 
+options like `-compile`, `-compileTarget` and `-spillTargetCode`.
  
 
 
@@ -389,7 +394,9 @@ Errors in earlier phases of processing typically hide later errors.
 For example, if a program has parsing errors, verification or compilation will
 not be attempted.
 
-Other dafny commands may have their own conventions for 
+Other dafny commands may have their own conventions for exit codes. 
+However in all cases, an exit code of 0 indicates successful completion of the command's
+task and small positive integer values indicate errors of some sort.
 
 ### 25.5.4. dafny output
 
@@ -398,6 +405,7 @@ Most output from `dafny` is directed to the standard output of the shell invokin
 - Other errors: parsing, typechecking, verification and compilation errors are directed to **standard-out**
 - Non-error progress information also is output to **standard-out**
 - Dafny `print` statements, when executed, send output to **standard-out**
+- Dafny `expect` statements (when they fail) send a message to **standard-out**.
 - Dafny I/O libraries send output explicitly to either **standard-out or standard-error**
 
 ## 25.6. Verification {#sec-verification}
@@ -569,7 +577,7 @@ In this section, we describe techniques to apply in the case when verification i
 
 #### 25.6.2.1. `assume false;` {#sec-assume-false}
 
-Assuming `false` is an empirical way to short-circuit the verifier and usually stop verification at a given point[^explainer-assume-false], and since the final compilation steps do not accept this command, it is safe to use it during development.
+Assuming `false` is an empirical way to short-circuit the verifier and usually stop verification at a given point,[^explainer-assume-false] and since the final compilation steps do not accept this command, it is safe to use it during development.
 Another similar command, `assert false;`, would also short-circuit the verifier, but it would still make the verifier try to prove `false`, which can also lead to timeouts.
 
 [^explainer-assume-false]: `assume false` tells the `dafny` verifier "Assume everything is true from this point of the program". The reason is that, 'false' proves anything. For example, `false ==> A` is always true because it is equivalent to `!false || A`, which reduces to `true || A`, which reduces to `true`.
@@ -785,7 +793,7 @@ One might consider refactoring this code into separate functions if used over an
 
 #### 25.6.2.6. Nested loops {#sec-nested-loops}
 
-In the case of nested loops, the verifier might timeout sometimes because of the information available[^verifier-lost].
+In the case of nested loops, the verifier might timeout sometimes because of inadequate or too much available information[^verifier-lost].
 One way to mitigate this problem, when it happens, is to isolate the inner loop by refactoring it into a separate method, with suitable pre and postconditions that will usually assume and prove the invariant again.
 For example,
 
@@ -872,7 +880,7 @@ In this list, each assertion depends on other assertions, statements and express
 
 The fundamental unit of verification in `dafny` is an _assertion batch_, which consists of one or more assertions from this "list", along with all the remaining assertions turned into assumptions. To reduce overhead, by default `dafny` collects all the assertions in the body of a given method into a single assertion batch that it sends to the verifier, which tries to prove it correct.
 
-* If the verifier says it is correct[^smt-encoding], it means that all the assertions hold.
+* If the verifier says it is correct,[^smt-encoding] it means that all the assertions hold.
 * If the verifier returns a counterexample, this counterexample is used to determine both the failing assertion and the failing path.
   In order to retrieve additional failing assertions, `dafny` will again query the verifier after turning previously failed assertions into assumptions.[^example-assertion-turned-into-assumption] [^caveat-about-assertion-and-assumption]
 * If the verifier returns `unknown` or times out, or even preemptively for difficult assertions or to reduce the chance that the verifier will ‘be confused’ by the many assertions in a large batch, `dafny` may partition the assertions into smaller batches[^smaller-batches]. An extreme case is the use of the `/vcsSplitOnEveryAssert` command-line option or the [`{:vcs_split_on_every_assert}` attribute](#sec-vcs_split_on_every_assert), which causes `dafny` to make one batch for each assertion.
@@ -995,8 +1003,9 @@ The `dafny` tool can compile a Dafny program to one of several target languages.
 of these are described in the following subsections. In general note the following:
 
 - The compiled code originating from `dafny` can be compiled with other source and binary code, but only the `dafny`-originated code is verified.
-- Output file names can be set using `-out`.
-- Code generated by `dafny` relies requires a Dafny-specific runtime library.  By default the runtime is included in the generated code for most languages (use `-useRuntimeLib` to omit it).  For Java and C++ the runtime must be linked to separately, except when running the generated code using `dafny`'s `-compile:3` or `-compile:4`.  All runtime libraries are part of the Binary (`./DafnyRuntime.*`) and Source (`./Source/DafnyRuntime/DafnyRuntime.*`) releases.
+- Output file names can be set using `--output`.
+- Code generated by `dafny` relies requires a Dafny-specific runtime library.  By default the runtime is included in the generated code. However for `dafny translate` it is not
+included by default and must be explicitly requested using `--include-runtime`.  All runtime libraries are part of the Binary (`./DafnyRuntime.*`) and Source (`./Source/DafnyRuntime/DafnyRuntime.*`) releases.
 - Names in Dafny are written out as names in the target language. In some cases this can result in naming conflicts. Thus if a Dafny program is intended to be compiled to a target language X, you should avoid using Dafny identifiers that are not legal identifiers in X or that conflict with reserved words in X.
 
 ### 25.7.1. Main method {#sec-user-guide-main}
