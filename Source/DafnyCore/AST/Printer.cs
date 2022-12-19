@@ -1472,7 +1472,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
             wr.Write("}");
           }
         }
-      }  else if (stmt is ConcreteSyntaxStatement && ((ConcreteSyntaxStatement)stmt).ResolvedStatement != null) {
+      } else if (stmt is ConcreteSyntaxStatement && ((ConcreteSyntaxStatement)stmt).ResolvedStatement != null) {
         var s = (ConcreteSyntaxStatement)stmt;
         Indent(indent);
         PrintStatement(s.ResolvedStatement, indent);

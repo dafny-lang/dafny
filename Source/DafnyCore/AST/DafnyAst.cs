@@ -89,8 +89,7 @@ namespace Microsoft.Dafny {
           var startTok = tok;
           var endTok = tok;
 
-          void UpdateStartEndToken(IToken token1)
-          {
+          void UpdateStartEndToken(IToken token1) {
             if (token1.Filename != tok.Filename) {
               return;
             }

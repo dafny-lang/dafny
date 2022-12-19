@@ -141,7 +141,7 @@ public abstract class Statement : INode, IAttributeBearingDeclaration {
     var variableUpdateStmt = new UpdateStmt(tok, tok, Util.Singleton(variableExpr),
       Util.Singleton<AssignmentRhs>(new ExprRhs(value)));
     var variableAssignStmt = new AssignStmt(tok, tok, variableUpdateStmt.Lhss[0], variableUpdateStmt.Rhss[0]);
-    variableUpdateStmt.ResolvedStatements = new List<Statement>() {variableAssignStmt };
+    variableUpdateStmt.ResolvedStatements = new List<Statement>() { variableAssignStmt };
     return new VarDeclStmt(tok, tok, Util.Singleton(variable), variableUpdateStmt);
   }
 

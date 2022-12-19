@@ -2096,7 +2096,7 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr> {
       ResolvedOp = original.ResolvedOp;
     }
   }
-  
+
   public BinaryExpr(IToken tok, Opcode op, Expression e0, Expression e1)
     : base(tok) {
     Contract.Requires(tok != null);

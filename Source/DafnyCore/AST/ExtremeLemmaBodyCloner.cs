@@ -28,7 +28,7 @@ class ExtremeLemmaBodyCloner : ExtremeCloner {
 
     return base.CloneStmt(stmt);
   }
-  
+
   public override Expression CloneExpr(Expression expr) {
     if (DafnyOptions.O.RewriteFocalPredicates) {
       if (expr is FunctionCallExpr) {
