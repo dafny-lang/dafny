@@ -81,8 +81,7 @@ namespace Microsoft.Dafny {
       set => rangeToken = value;
     }
 
-    public RangeToken GetRangeToken()
-    {
+    public RangeToken GetRangeToken() {
       if (rangeToken == null) {
         if (tok is RangeToken tokAsRange) {
           rangeToken = tokAsRange;
@@ -115,8 +114,8 @@ namespace Microsoft.Dafny {
                 node is DefaultValueExpression) {
               // Ignore any auto-generated expressions.
             } else if (node != this && node.GetRangeToken() != null) {
-              UpdateStartEndToken(node.StartToken);
-              UpdateStartEndToken(node.EndToken);
+              UpdateStartEndToken(node.GetStartToken());
+              UpdateStartEndToken(node.GetEndToken());
             } else {
               UpdateStartEndToken(node.tok);
             }
@@ -143,9 +142,8 @@ namespace Microsoft.Dafny {
       return rangeToken;
     }
 
-
-    public IToken StartToken => GetRangeToken()?.StartToken;
-    public IToken EndToken => GetRangeToken()?.EndToken;
+    public IToken GetStartToken() => GetRangeToken()?.StartToken;
+    public IToken GetEndToken() => GetRangeToken()?.EndToken;
 
     protected IReadOnlyList<IToken> OwnedTokensCache;
 
@@ -153,38 +151,36 @@ namespace Microsoft.Dafny {
     /// A token is owned by a node if it was used to parse this node,
     /// but is not owned by any of this Node's children
     /// </summary>
-    public IEnumerable<IToken> OwnedTokens {
-      get {
-        if (OwnedTokensCache != null) {
-          return OwnedTokensCache;
-        }
-
-        var startToEndTokenNotOwned =
-          Children.Where(child => child.StartToken != null && child.EndToken != null)
-            .ToDictionary(child => child.StartToken!, child => child.EndToken!);
-
-        var result = new List<IToken>();
-        if (StartToken == null) {
-          Contract.Assume(EndToken == null);
-        } else {
-          Contract.Assume(EndToken != null);
-          var tmpToken = StartToken;
-          while (tmpToken != null && tmpToken != EndToken.Next) {
-            if (startToEndTokenNotOwned.TryGetValue(tmpToken, out var endNotOwnedToken)) {
-              tmpToken = endNotOwnedToken;
-            } else if (tmpToken.filename != null) {
-              result.Add(tmpToken);
-            }
-
-            tmpToken = tmpToken.Next;
-          }
-        }
-
-
-        OwnedTokensCache = result;
-
+    public IEnumerable<IToken> GetOwnedTokens() {
+      if (OwnedTokensCache != null) {
         return OwnedTokensCache;
       }
+
+      var startToEndTokenNotOwned =
+        Children.Where(child => child.GetStartToken() != null && child.GetEndToken() != null)
+          .ToDictionary(child => child.GetStartToken()!, child => child.GetEndToken()!);
+
+      var result = new List<IToken>();
+      if (GetStartToken() == null) {
+        Contract.Assume(GetEndToken() == null);
+      } else {
+        Contract.Assume(GetEndToken() != null);
+        var tmpToken = GetStartToken();
+        while (tmpToken != null && tmpToken != GetEndToken().Next) {
+          if (startToEndTokenNotOwned.TryGetValue(tmpToken, out var endNotOwnedToken)) {
+            tmpToken = endNotOwnedToken;
+          } else if (tmpToken.filename != null) {
+            result.Add(tmpToken);
+          }
+
+          tmpToken = tmpToken.Next;
+        }
+      }
+
+
+      OwnedTokensCache = result;
+
+      return OwnedTokensCache;
     }
   }
 
