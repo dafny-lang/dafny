@@ -6,9 +6,9 @@ without concern for verifying or sompiling the program. Or it might modify the p
 and then continue on with verification and compilation with the core Dafny tool. A user plugin might also be used
 in the Language Server and thereby be available in the VSCode (or other) IDE.
 
-*_This is an experimental aspect of Dafny._
+_ **This is an experimental aspect of Dafny.**
 The plugin API directly exposes the Dafny AST, which is constantly evolving.
-Hence, always recompile your plugin against the binary of Dafny that will be importing your plugin.*
+Hence, always recompile your plugin against the binary of Dafny that will be importing your plugin._
 
 Plugins are libraries linked to a `Dafny.dll` of the same version than the language server.
 A plugin typically defines:
