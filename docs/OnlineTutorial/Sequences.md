@@ -9,14 +9,14 @@ modified once they are created. In this sense, they are similar to strings in
 languages like Java and Python, except they can be sequences of arbitrary
 types, rather than only characters. Sequence types are written:
 
-```dafny
+```dafny <!-- %no-check -->
 seq<int>
 ```
 
 for a sequence of integers, for example.
 For example, this function takes a sequence as a parameter:
 
-```dafny
+```dafny <!-- %check-verify -->
 predicate sorted(s: seq<int>)
 {
   forall i,j :: 0 <= i < j < |s| ==> s[i] <= s[j]
@@ -33,7 +33,7 @@ manipulate them. For example, another way of expressing sorted-ness is
 recursive: if the first element is smaller than the rest, and the rest is
 sorted, then the whole array is sorted:
 
-```dafny
+```dafny <!-- %check-verify -->
 predicate sorted2(s: seq<int>)
 {
   0 < |s| ==> (forall i :: 0 < i < |s| ==> s[0] <= s[i]) &&
@@ -50,7 +50,7 @@ the same order, except for the first one. This is similar to addition of
 integers in that the original values are not changed, just new ones created.
 The slice notation is:
 
-```dafny
+```dafny <!-- %no-check -->
   s[i..j]
 ```
 
@@ -62,8 +62,10 @@ same half-open interval used for regular indexing.
 
 Sequences can also be constructed from their elements, using *display notation*:
 
-```dafny
+```dafny <!-- %check-verify -->
+method m() {
   var s := [1, 2, 3];
+}
 ```
 
 Here we have a integer sequence variable in some imperative
@@ -71,7 +73,7 @@ code containing the elements 1, 2, and 3. Type inference has been used here to
 determine that the sequence is one of integers. This notation allows us to
 construct empty sequences and singleton sequences:
 
-```dafny
+```dafny <!-- %no-check -->
   [] // the empty sequence, which can be a sequence of any type
   [true] // a singleton sequence of type seq<bool>
 ```
@@ -79,7 +81,7 @@ construct empty sequences and singleton sequences:
 Slice notation and display notation can be used to check
 properties of sequences:
 
-```dafny
+```dafny <!-- %check-verify -->
 method m()
 {
   var s := [1, 2, 3, 4, 5];
@@ -97,7 +99,7 @@ element, as these are often used in recursive functions, such as `sorted2`
 above. In addition to being deconstructed by being accessed or sliced, sequences
 can also be concatenated, using the plus (`+`) symbol:
 
-```dafny
+```dafny <!-- %check-verify -->
 method m()
 {
   var s := [1, 2, 3, 4, 5];
@@ -113,7 +115,7 @@ side and inclusive on the other, the element appears in the concatenation
 exactly once, as it should. Note that the concatenation operation is
 associative:
 
-```dafny
+```dafny <!-- %check-verify -->
 method m()
 {
   assert forall a: seq<int>, b: seq<int>, c: seq<int> ::
@@ -128,7 +130,7 @@ more information on why this is necessary).
 Sequences also support the `in` and `!in` operators, which test
 for containment within a sequence:
 
-```dafny
+```dafny <!-- %check-verify -->
 method m()
 {
   var s := [1, 2, 3, 4, 5];
@@ -142,11 +144,11 @@ the elements of a sequence, when we don't care about the index. For example, we
 can require that a sequence only contains elements which are indices into the
 sequence:
 
-```dafny
+```dafny <!-- %check-verify -->
 method m()
 {
-  var p := [2,3,1,0];
-  assert forall i :: i in p ==> 0 <= i < |s|;
+  var s := [2,3,1,0];
+  assert forall i :: i in s ==> 0 <= i < |s|;
 }
 ```
 
@@ -159,7 +161,7 @@ arrays using sequences. While we can't change the original sequence, we can
 create a new sequence with the same elements everywhere except for the updated
 element:
 
-```dafny
+```dafny <!-- %check-verify -->
 method m()
 {
   var s := [1,2,3,4];
@@ -171,9 +173,9 @@ Of course, the index `i` has to be an index into the array. This syntax is just
 a shortcut for an operation that can be done with regular slicing and access operations.
 Can you fill in the code below that does this?
 
-```dafny
+```dafny <!-- %check-verify -->
 function update(s: seq<int>, i: int, v: int): seq<int>
-  requires 0 <= index < |s|
+  requires 0 <= i < |s|
   ensures update(s, i, v) == s[i := v]
 {
   s[..i] + [v] + s[i+1..]
@@ -185,23 +187,23 @@ function update(s: seq<int>, i: int, v: int): seq<int>
 You can also form a sequence from the elements of an array. This is done
 using the same "slice" notation as above:
 
-```dafny
+```dafny <!-- %check-verify -->
 method m()
 {
-  var a := new int[3]; // 3 element array of ints
+  var a := new int[][42, 43, 44]; // 3 element array of ints
   a[0], a[1], a[2] := 0, 3, -1;
   var s := a[..];
   assert s == [0, 3, -1];
 }
 ```
 
-To get just part of the array, the bounds can be given just like in a regular
+To extract just part of the array, the bounds can be given just like in a regular
 slicing operation:
 
-```dafny
+```dafny <!-- %check-verify -->
 method m()
 {
-  var a := new int[3]; // 3 element array of ints
+  var a := new int[][42, 43, 44]; // 3 element array of ints
   a[0], a[1], a[2] := 0, 3, -1;
   assert a[1..] == [3, -1];
   assert a[..1] == [0];
@@ -212,23 +214,23 @@ method m()
 Because sequences support `in` and `!in`, this operation gives us
 an easy way to express the "element not in array" property, turning:
 
-```dafny
+```dafny <!-- %no-check -->
 forall k :: 0 <= k < a.Length ==> elem != a[k]
 ```
 
 into:
 
-```dafny
+```dafny <!-- %no-check -->
 elem !in a[..]
 ```
 
 Further, bounds are easily included:
-```dafny
+```dafny <!-- %no-check -->
 forall k :: 0 <= k < i ==> elem != a[k]
 ```
 
 is the same as
 
-```dafny
+```dafny <!-- %no-check -->
 elem !in a[..i]
 ```

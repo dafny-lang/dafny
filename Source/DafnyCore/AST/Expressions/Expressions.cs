@@ -1802,7 +1802,6 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr> {
     BitwiseXor
   }
   public readonly Opcode Op;
-  public readonly IToken PrefixOp;
   public enum ResolvedOpcode {
     YetUndetermined,  // the value before resolution has determined the value; .ResolvedOp should never be read in this state
 
@@ -2089,13 +2088,12 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr> {
     this.E0 = cloner.CloneExpr(original.E0);
     this.E1 = cloner.CloneExpr(original.E1);
 
-    PrefixOp = original.PrefixOp is null ? null : cloner.Tok(original.PrefixOp);
     if (cloner.CloneResolvedFields) {
       ResolvedOp = original.ResolvedOp;
     }
   }
-
-  public BinaryExpr(IToken tok, Opcode op, Expression e0, Expression e1, IToken prefixOp = null)
+  
+  public BinaryExpr(IToken tok, Opcode op, Expression e0, Expression e1)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(e0 != null);
@@ -2103,17 +2101,13 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr> {
     this.Op = op;
     this.E0 = e0;
     this.E1 = e1;
-    this.PrefixOp = prefixOp;
-    if (prefixOp != null) {
-      FormatTokens = new[] { prefixOp };
-    }
   }
 
   /// <summary>
   /// Returns a resolved binary expression
   /// </summary>
-  public BinaryExpr(IToken tok, BinaryExpr.ResolvedOpcode rop, Expression e0, Expression e1, IToken prefixOp = null)
-    : this(tok, BinaryExpr.ResolvedOp2SyntacticOp(rop), e0, e1, prefixOp) {
+  public BinaryExpr(IToken tok, BinaryExpr.ResolvedOpcode rop, Expression e0, Expression e1)
+    : this(tok, BinaryExpr.ResolvedOp2SyntacticOp(rop), e0, e1) {
     ResolvedOp = rop;
     switch (rop) {
       case ResolvedOpcode.EqCommon:
