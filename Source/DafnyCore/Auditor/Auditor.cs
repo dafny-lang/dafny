@@ -78,7 +78,7 @@ public class Auditor : IRewriter {
       } else if (reportFileName.EndsWith(".txt")) {
         reportFormat = ReportFormat.Text;
       } else {
-        Reporter.Error(MessageSource.Resolver, Token.NoToken,
+        Reporter.Error(MessageSource.Verifier, Token.NoToken,
           $"Unsupported extension on report filename: {reportFileName}, using plain text. " +
                "Supported extensions are: .html, .md, .txt");
       }
@@ -120,11 +120,15 @@ public class Auditor : IRewriter {
         Console.Write(text);
       } else {
         if (compareReport) {
-          var matches = File.ReadAllText(reportFileName).Equals(text);
-          if (!matches) {
-            Reporter.Error(MessageSource.Resolver, Token.NoToken,
-              $"Given report file ({reportFileName}) does not match text generated (and saved in {reportFileName}.expect)");
-            File.WriteAllText(reportFileName + ".expect", text);
+          try {
+            var matches = File.ReadAllText(reportFileName).Equals(text);
+            if (!matches) {
+              Reporter.Error(MessageSource.Verifier, Token.NoToken,
+                $"Given report file ({reportFileName}) does not match text generated (and saved in {reportFileName}.expect).");
+              File.WriteAllText(reportFileName + ".expect", text);
+            }
+          } catch (IOException ioe) {
+            Reporter.Error(MessageSource.Verifier, Token.NoToken, $"I/O exception trying to read {reportFileName} ({ioe.Message}).");
           }
         } else {
           File.WriteAllText(reportFileName, text);
