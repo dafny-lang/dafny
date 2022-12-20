@@ -463,7 +463,7 @@ namespace Microsoft.Dafny {
       AssignmentRhs c;
       if (rhs is ExprRhs) {
         var r = (ExprRhs)rhs;
-        c = new ExprRhs(CloneExpr(r.Expr));
+        c = new ExprRhs(CloneExpr(r.Expr), CloneAttributes(rhs.Attributes));
       } else if (rhs is HavocRhs) {
         c = new HavocRhs(Tok(rhs.Tok));
       } else {
@@ -481,7 +481,6 @@ namespace Microsoft.Dafny {
           c = new TypeRhs(Tok(r.Tok), CloneType(r.Path), r.Bindings.ArgumentBindings.ConvertAll(CloneActualBinding));
         }
       }
-      c.Attributes = CloneAttributes(rhs.Attributes);
       return c;
     }
 

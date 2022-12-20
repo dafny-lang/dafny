@@ -50,6 +50,18 @@ public class AlternativeLoopStmt : LoopStmt, ICloneable<AlternativeLoopStmt> {
       }
     }
   }
+
+  public override IEnumerable<Expression> SpecificationSubExpressions {
+    get {
+      foreach (var e in base.SpecificationSubExpressions) { yield return e; }
+      foreach (var alt in Alternatives) {
+        foreach (var e in Attributes.SubExpressions(alt.Attributes)) {
+          yield return e;
+        }
+      }
+    }
+  }
+
   public override IEnumerable<Expression> NonSpecificationSubExpressions {
     get {
       foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }

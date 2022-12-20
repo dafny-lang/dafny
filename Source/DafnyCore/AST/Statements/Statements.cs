@@ -80,7 +80,7 @@ public abstract class Statement : INode, IAttributeBearingDeclaration {
 
   /// <summary>
   /// Returns the non-null expressions of this statement proper (that is, do not include the expressions of substatements).
-  /// Filters all sub expressions that are not part of specifications
+  /// Includes both specification and non-specification expressions.
   /// </summary>
   public IEnumerable<Expression> SubExpressions {
     get {
@@ -100,7 +100,9 @@ public abstract class Statement : INode, IAttributeBearingDeclaration {
   /// </summary>
   public virtual IEnumerable<Expression> SpecificationSubExpressions {
     get {
-      yield break;
+      foreach (var e in Attributes.SubExpressions(Attributes)) {
+        yield return e;
+      }
     }
   }
 
@@ -110,9 +112,7 @@ public abstract class Statement : INode, IAttributeBearingDeclaration {
   /// </summary>
   public virtual IEnumerable<Expression> NonSpecificationSubExpressions {
     get {
-      foreach (var e in Attributes.SubExpressions(Attributes)) {
-        yield return e;
-      }
+      yield break;
     }
   }
 
@@ -292,22 +292,28 @@ public abstract class ProduceStmt : Statement {
   public override IEnumerable<Expression> NonSpecificationSubExpressions {
     get {
       foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
-      if (Rhss != null) {
-        foreach (var rhs in Rhss) {
-          foreach (var ee in rhs.SubExpressions) {
-            yield return ee;
-          }
+      foreach (var rhs in Rhss ?? Enumerable.Empty<AssignmentRhs>()) {
+        foreach (var e in rhs.NonSpecificationSubExpressions) {
+          yield return e;
+        }
+      }
+    }
+  }
+  public override IEnumerable<Expression> SpecificationSubExpressions {
+    get {
+      foreach (var e in base.SpecificationSubExpressions) { yield return e; }
+      foreach (var rhs in Rhss ?? Enumerable.Empty<AssignmentRhs>()) {
+        foreach (var e in rhs.SpecificationSubExpressions) {
+          yield return e;
         }
       }
     }
   }
   public override IEnumerable<Statement> SubStatements {
     get {
-      if (Rhss != null) {
-        foreach (var rhs in Rhss) {
-          foreach (var s in rhs.SubStatements) {
-            yield return s;
-          }
+      foreach (var rhs in Rhss ?? Enumerable.Empty<AssignmentRhs>()) {
+        foreach (var s in rhs.SubStatements) {
+          yield return s;
         }
       }
     }
@@ -329,7 +335,7 @@ public class YieldStmt : ProduceStmt, ICloneable<YieldStmt> {
   }
 }
 
-public abstract class AssignmentRhs : INode {
+public abstract class AssignmentRhs : INode, IAttributeBearingDeclaration {
   private Attributes attributes;
   public Attributes Attributes {
     get {
@@ -349,16 +355,32 @@ public abstract class AssignmentRhs : INode {
     Attributes = attrs;
   }
   public abstract bool CanAffectPreviouslyKnownExpressions { get; }
+
   /// <summary>
-  /// Returns the non-null subexpressions of the AssignmentRhs.
+  /// Returns all (specification and non-specification) non-null expressions of the AssignmentRhs.
   /// </summary>
-  public virtual IEnumerable<Expression> SubExpressions {
+  public IEnumerable<Expression> SubExpressions => SpecificationSubExpressions.Concat(NonSpecificationSubExpressions);
+
+  /// <summary>
+  /// Returns the non-null non-specification subexpressions of the AssignmentRhs.
+  /// </summary>
+  public virtual IEnumerable<Expression> NonSpecificationSubExpressions {
+    get {
+      yield break;
+    }
+  }
+
+  /// <summary>
+  /// Returns the non-null specification subexpressions of the AssignmentRhs.
+  /// </summary>
+  public virtual IEnumerable<Expression> SpecificationSubExpressions {
     get {
       foreach (var e in Attributes.SubExpressions(Attributes)) {
         yield return e;
       }
     }
   }
+
   /// <summary>
   /// Returns the non-null sub-statements of the AssignmentRhs.
   /// </summary>
@@ -374,13 +396,13 @@ public class ExprRhs : AssignmentRhs {
     Contract.Invariant(Expr != null);
   }
 
-  public ExprRhs(Expression expr, Attributes attrs = null)  // TODO: these 'attrs' apparently aren't handled correctly in the Cloner, and perhaps not in various visitors either (for example, CheckIsCompilable should not go into attributes)
+  public ExprRhs(Expression expr, Attributes attrs = null)
     : base(expr.tok, attrs) {
     Contract.Requires(expr != null);
     Expr = expr;
   }
   public override bool CanAffectPreviouslyKnownExpressions { get { return false; } }
-  public override IEnumerable<Expression> SubExpressions {
+  public override IEnumerable<Expression> NonSpecificationSubExpressions {
     get {
       yield return Expr;
     }
@@ -501,7 +523,7 @@ public class TypeRhs : AssignmentRhs {
     }
   }
 
-  public override IEnumerable<Expression> SubExpressions {
+  public override IEnumerable<Expression> NonSpecificationSubExpressions {
     get {
       if (ArrayDimensions != null) {
         foreach (var e in ArrayDimensions) {
@@ -583,9 +605,9 @@ public class VarDeclStmt : Statement, ICloneable<VarDeclStmt> {
     get { if (Update != null) { yield return Update; } }
   }
 
-  public override IEnumerable<Expression> NonSpecificationSubExpressions {
+  public override IEnumerable<Expression> SpecificationSubExpressions {
     get {
-      foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
+      foreach (var e in base.SpecificationSubExpressions) { yield return e; }
       foreach (var v in Locals) {
         foreach (var e in Attributes.SubExpressions(v.Attributes)) {
           yield return e;
@@ -657,6 +679,19 @@ public abstract class ConcreteUpdateStatement : Statement {
     Contract.Requires(cce.NonNullElements(lhss));
     Lhss = lhss;
   }
+}
+
+/// <summary>
+/// Attributed tokens are used when a subpart of a statement or expression can take attributes.
+/// (Perhaps in addition to attributes placed on the token itself.)
+///
+/// It is used in particular to attach `{:axiom}` tokens to the `assume` keyword
+/// on the RHS of `:|` and `:-` (in contrast, for `assume` statements, the
+/// `{:axiom}` attribute is directly attached to the statement-level
+/// attributes).
+/// </summary>
+public record AttributedToken(IToken Token, Attributes Attrs) : IAttributeBearingDeclaration {
+  Attributes IAttributeBearingDeclaration.Attributes => Attrs;
 }
 
 public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt> {
@@ -900,13 +935,6 @@ public class WhileStmt : OneBodyLoopStmt, ICloneable<WhileStmt> {
     this.Guard = guard;
   }
 
-  public override IEnumerable<Statement> SubStatements {
-    get {
-      if (Body != null) {
-        yield return Body;
-      }
-    }
-  }
   public override IEnumerable<Expression> NonSpecificationSubExpressions {
     get {
       foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
