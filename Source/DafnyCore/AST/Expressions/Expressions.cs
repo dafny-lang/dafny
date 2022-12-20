@@ -104,77 +104,6 @@ public abstract class Expression : INode {
     get { yield break; }
   }
 
-  // private RangeToken rangeToken = null;
-  //
-  // // Contains tokens that did not make it in the AST but are part of the expression,
-  // // Enables ranges to be correct.
-  // protected IToken[] FormatTokens = null;
-  //
-  // protected Expression(Cloner cloner, Expression original) {
-  //
-  //   tok = cloner.Tok(original.tok);
-  //
-  //   if (cloner.CloneResolvedFields && original.Type != null) {
-  //     Type = original.Type;
-  //   }
-  // }
-  //
-  // /// Creates a token on the entire range of the expression.
-  // /// Used only for error reporting.
-  // public virtual RangeToken RangeToken {
-  //   get {
-  //     if (rangeToken == null) {
-  //       if (tok is RangeToken tokAsRange) {
-  //         rangeToken = tokAsRange;
-  //       } else {
-  //         var startTok = tok;
-  //         var endTok = tok;
-  //
-  //         void updateStartEndTok(Expression expression) {
-  //           if (expression.tok.Filename != tok.Filename || expression.IsImplicit || expression is DefaultValueExpression) {
-  //             // Ignore any auto-generated expressions.
-  //           } else {
-  //             if (expression.StartToken.pos < startTok.pos) {
-  //               startTok = expression.StartToken;
-  //             }
-  //             if (endTok.pos < expression.EndToken.pos) {
-  //               endTok = expression.EndToken;
-  //             }
-  //           }
-  //         }
-  //
-  //         SubExpressions.Iter(updateStartEndTok);
-  //         if (this is StmtExpr stmtExpr) {
-  //           stmtExpr.S.SubStatements.Iter(s => s.SubExpressions.Iter(updateStartEndTok));
-  //         }
-  //
-  //         if (FormatTokens != null) {
-  //           foreach (var token in FormatTokens) {
-  //             if (token.Filename != tok.Filename) {
-  //               continue;
-  //             }
-  //
-  //             if (token.pos < startTok.pos) {
-  //               startTok = token;
-  //             }
-  //
-  //             if (token.pos + token.val.Length > endTok.pos + endTok.val.Length) {
-  //               endTok = token;
-  //             }
-  //           }
-  //         }
-  //
-  //         rangeToken = new RangeToken(startTok, endTok);
-  //       }
-  //     }
-  //
-  //     return rangeToken;
-  //   }
-  // }
-  //
-  // public IToken StartToken => RangeToken.StartToken;
-  // public IToken EndToken => RangeToken.EndToken;
-
   /// <summary>
   /// Returns the list of types that appear in this expression proper (that is, not including types that
   /// may appear in subexpressions). Types occurring in substatements of the expression are not included.
@@ -2831,7 +2760,7 @@ public class FrameExpression : INode, IHasUsages {
     Contract.Requires(tok != null);
     Contract.Requires(e != null);
     Debug.Assert(!(e is WildcardExpr) || fieldName == null);
-    //Debug.Assert(!(e is ImplicitThisExpr) || fieldName != null);
+    Debug.Assert(!(e is ImplicitThisExpr) || fieldName != null);
     this.tok = tok;
     E = e;
     FieldName = fieldName;
@@ -2894,6 +2823,12 @@ public abstract class ConcreteSyntaxExpression : Expression {
 
   public override IEnumerable<Type> ComponentTypes => ResolvedExpression.ComponentTypes;
 }
+
+/// <summary>
+/// This class represents a piece of concrete syntax in the parse tree.  During resolution,
+/// it gets "replaced" by the statement in "ResolvedStatement".
+/// Adapted from ConcreteSyntaxStatement
+/// </summary>
 public abstract class ConcreteSyntaxStatement : Statement {
   [FilledInDuringResolution] public Statement ResolvedStatement;  // after resolution, manipulation of "this" should proceed as with manipulating "this.ResolvedExpression"
 

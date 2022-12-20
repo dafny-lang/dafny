@@ -926,12 +926,7 @@ namespace Microsoft.Dafny {
 
     public bool WasResolved => arguments != null;
 
-    public List<Expression> Arguments {
-      get {
-        // Contract.Requires(WasResolved);
-        return arguments;
-      }
-    }
+    public List<Expression> Arguments => arguments;
 
     public void AcceptArgumentExpressionsAsExactParameterList(List<Expression> args = null) {
       Contract.Requires(!WasResolved); // this operation should be done at most once

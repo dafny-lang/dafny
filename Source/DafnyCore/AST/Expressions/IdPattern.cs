@@ -33,7 +33,7 @@ public class IdPattern : ExtendedPattern, IHasUsages {
       BoundVar = cloner.CloneIVariable(original.BoundVar, false);
       Type = original.Type;
     } else {
-      Type = new InferredTypeProxy(); // TODO seems wrong. Should always copy type no?
+      Type = new InferredTypeProxy();
     }
   }
 
