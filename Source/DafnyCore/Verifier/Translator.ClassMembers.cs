@@ -922,10 +922,7 @@ namespace Microsoft.Dafny {
       var substMap = new Dictionary<IVariable, Expression>();
       foreach (var (formal, overriddenFormal) in f.Formals.Zip(f.OverriddenFunction.Formals, Tuple.Create)) {
         // get corresponding formal in the class
-        var ie = new IdentifierExpr(formal.tok, formal.AssignUniqueName(f.IdGenerator)) {
-          Var = formal,
-          Type = formal.Type
-        };
+        var ie = new IdentifierExpr(formal.tok, formal.AssignUniqueName(f.IdGenerator)) { Var = formal, Type = formal.Type };
         substMap.Add(overriddenFormal, ie);
       }
 

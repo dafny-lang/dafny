@@ -2156,10 +2156,9 @@ namespace Microsoft.Dafny {
       foreach (AttributedExpression req in f.Req) {
         pre = BplAnd(pre, etran.TrExpr(Substitute(req.E, null, substMap)));
       }
-      // useViaContext: (mh != ModuleContextHeight || fh != FunctionContextHeight)
-      var mod = f.EnclosingClass.EnclosingModuleDefinition;
-      Bpl.Expr useViaContext = !InVerificationScope(f) ? Bpl.Expr.True :
-        (Bpl.Expr)Bpl.Expr.Le(Bpl.Expr.Literal((mod.CallGraph.GetSCCRepresentativePredecessorCount(f) + 1) * 2), etran.FunctionContextHeight());
+      // useViaContext: fh < FunctionContextHeight
+      var lowerBound = (f.EnclosingClass.EnclosingModuleDefinition.CallGraph.GetSCCRepresentativePredecessorCount(f) + 1) * 2;
+      Expr useViaContext = !InVerificationScope(f) ? Bpl.Expr.True : Expr.Le(Expr.Literal(lowerBound), etran.FunctionContextHeight());
       // useViaCanCall: f#canCall(args)
       Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
       Bpl.Expr useViaCanCall = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(canCallFuncID), Concat(tyargs, args));
@@ -2261,7 +2260,8 @@ namespace Microsoft.Dafny {
       var module = f.EnclosingClass.EnclosingModuleDefinition;
 
       if (InVerificationScope(f)) {
-        return Expr.Le(Expr.Literal(module.CallGraph.GetSCCRepresentativePredecessorCount(f) * 2 + (hidden ? 1 : 0)), etran.FunctionContextHeight());
+        var lowerBound = module.CallGraph.GetSCCRepresentativePredecessorCount(f) * 2 + (hidden ? 1 : 0);
+        return Expr.Le(Expr.Literal(lowerBound), etran.FunctionContextHeight());
       } else {
         return Bpl.Expr.True;
       }
@@ -3487,8 +3487,8 @@ namespace Microsoft.Dafny {
 
       //generating assume C.F(ins) == out, if a result variable was given
       if (resultVariable != null) {
-        Bpl.FunctionCall funcIdC = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, TrType(f.ResultType)));
-        List<Bpl.Expr> argsC = new List<Bpl.Expr>();
+        var funcIdC = new FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, TrType(f.ResultType)));
+        List<Expr> argsC = new List<Expr>();
 
         // add type arguments
         argsC.AddRange(GetTypeArguments(f, null).ConvertAll(TypeToTy));
@@ -3508,14 +3508,15 @@ namespace Microsoft.Dafny {
 
         argsC.AddRange(implInParams.Select(var => new Bpl.IdentifierExpr(f.tok, var)));
 
-        Bpl.Expr funcExpC = new Bpl.NAryExpr(f.tok, funcIdC, argsC);
+        Expr funcExpC = new Bpl.NAryExpr(f.tok, funcIdC, argsC);
         var resultVar = new Bpl.IdentifierExpr(resultVariable.tok, resultVariable);
-        builder.Add(TrAssumeCmd(f.tok, Bpl.Expr.Eq(funcExpC, resultVar)));
+        builder.Add(TrAssumeCmd(f.tok, Expr.Eq(funcExpC, resultVar)));
       }
 
       //generating trait post-conditions with class variables
       foreach (var en in f.OverriddenFunction.Ens) {
-        var sub = new FunctionCallSubstituter(new ImplicitThisExpr(f.tok) { Type = Resolver.GetThisType(f.tok, (TopLevelDeclWithMembers)f.EnclosingClass) }, substMap, typeMap, f.OverriddenFunction, f);
+        var receiver = new ImplicitThisExpr(f.tok) { Type = Resolver.GetThisType(f.tok, (TopLevelDeclWithMembers)f.EnclosingClass) };
+        var sub = new FunctionCallSubstituter(receiver, substMap, typeMap, f.OverriddenFunction, f);
         Expression postcond = sub.Substitute(en.E);
         foreach (var s in TrSplitExpr(postcond, etran, false, out _).Where(s => s.IsChecked)) {
           builder.Add(Assert(f.tok, s.E, new PODesc.FunctionContractOverride(true)));
