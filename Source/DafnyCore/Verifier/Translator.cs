@@ -2159,7 +2159,7 @@ namespace Microsoft.Dafny {
       // useViaContext: (mh != ModuleContextHeight || fh != FunctionContextHeight)
       var mod = f.EnclosingClass.EnclosingModuleDefinition;
       Bpl.Expr useViaContext = !InVerificationScope(f) ? Bpl.Expr.True :
-        (Bpl.Expr)Bpl.Expr.Neq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativePredecessorCount(f)), etran.FunctionContextHeight());
+        (Bpl.Expr)Bpl.Expr.Le(Bpl.Expr.Literal((mod.CallGraph.GetSCCRepresentativePredecessorCount(f) + 1) * 2), etran.FunctionContextHeight());
       // useViaCanCall: f#canCall(args)
       Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
       Bpl.Expr useViaCanCall = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(canCallFuncID), Concat(tyargs, args));
@@ -2254,15 +2254,14 @@ namespace Microsoft.Dafny {
       return (olderParameterCount, olderCondition);
     }
 
-    Bpl.Expr AxiomActivation(Function f, ExpressionTranslator etran) {
+    Bpl.Expr AxiomActivation(Function f, ExpressionTranslator etran, bool hidden = false) {
       Contract.Requires(f != null);
       Contract.Requires(etran != null);
       Contract.Requires(VisibleInScope(f));
       var module = f.EnclosingClass.EnclosingModuleDefinition;
 
       if (InVerificationScope(f)) {
-        return
-          Bpl.Expr.Le(Bpl.Expr.Literal(module.CallGraph.GetSCCRepresentativePredecessorCount(f)), etran.FunctionContextHeight());
+        return Expr.Le(Expr.Literal(module.CallGraph.GetSCCRepresentativePredecessorCount(f) * 2 + (hidden ? 1 : 0)), etran.FunctionContextHeight());
       } else {
         return Bpl.Expr.True;
       }
@@ -2511,7 +2510,7 @@ namespace Microsoft.Dafny {
       ModuleDefinition mod = f.EnclosingClass.EnclosingModuleDefinition;
       Bpl.Expr useViaContext = !InVerificationScope(f)
         ? (Bpl.Expr)Bpl.Expr.True
-        : Bpl.Expr.Neq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativePredecessorCount(f)),
+        : Bpl.Expr.Le(Bpl.Expr.Literal((mod.CallGraph.GetSCCRepresentativePredecessorCount(f) + 1) * 2),
           etran.FunctionContextHeight());
       // ante := (useViaContext && typeAnte && pre)
       ante = BplAnd(useViaContext, BplAnd(ante, pre));
@@ -3516,11 +3515,10 @@ namespace Microsoft.Dafny {
 
       //generating trait post-conditions with class variables
       foreach (var en in f.OverriddenFunction.Ens) {
-        Expression postcond = Substitute(en.E, null, substMap, typeMap);
-        foreach (var s in TrSplitExpr(postcond, etran, false, out _)) {
-          if (s.IsChecked) {
-            builder.Add(Assert(f.tok, s.E, new PODesc.FunctionContractOverride(true)));
-          }
+        var sub = new FunctionCallSubstituter(new ImplicitThisExpr(f.tok) { Type = Resolver.GetThisType(f.tok, (TopLevelDeclWithMembers)f.EnclosingClass) }, substMap, typeMap, f.OverriddenFunction, f);
+        Expression postcond = sub.Substitute(en.E);
+        foreach (var s in TrSplitExpr(postcond, etran, false, out _).Where(s => s.IsChecked)) {
+          builder.Add(Assert(f.tok, s.E, new PODesc.FunctionContractOverride(true)));
         }
       }
     }
@@ -4744,7 +4742,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(predef != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
-      if (expr is LiteralExpr || expr is ThisExpr || expr is IdentifierExpr || expr is WildcardExpr || expr is BoogieWrapper) {
+      if (expr is LiteralExpr or ThisExpr or IdentifierExpr or WildcardExpr or BoogieWrapper) {
         return Bpl.Expr.True;
       } else if (expr is DisplayExpression) {
         DisplayExpression e = (DisplayExpression)expr;

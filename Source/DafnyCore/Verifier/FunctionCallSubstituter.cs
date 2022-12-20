@@ -3,8 +3,8 @@ using System.Collections.Generic;
 namespace Microsoft.Dafny {
   public class FunctionCallSubstituter : Substituter {
     public readonly Function A, B;
-    public FunctionCallSubstituter(Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/>/*!*/ substMap, Function a, Function b)
-      : base(receiverReplacement, substMap, new Dictionary<TypeParameter, Type>()) {
+    public FunctionCallSubstituter(Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/>/*!*/ substMap, Dictionary<TypeParameter, Type> typeMap, Function a, Function b)
+      : base(receiverReplacement, substMap, typeMap) {
       A = a;
       B = b;
     }
@@ -21,8 +21,8 @@ namespace Microsoft.Dafny {
           newFce.Function = e.Function;
           newFce.Type = e.Type;
         }
-        newFce.TypeApplication_AtEnclosingClass = e.TypeApplication_AtEnclosingClass;  // resolve here
-        newFce.TypeApplication_JustFunction = e.TypeApplication_JustFunction;  // resolve here
+        newFce.TypeApplication_AtEnclosingClass = SubstituteTypeList(e.TypeApplication_AtEnclosingClass);  // resolve here
+        newFce.TypeApplication_JustFunction = SubstituteTypeList(e.TypeApplication_JustFunction);  // resolve here
         newFce.IsByMethodCall = e.IsByMethodCall;
         return newFce;
       }

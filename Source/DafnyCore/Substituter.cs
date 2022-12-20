@@ -54,7 +54,7 @@ namespace Microsoft.Dafny {
       } else if (expr is WildcardExpr) {
         // nothing to substitute
       } else if (expr is ThisExpr) {
-        return receiverReplacement == null ? expr : receiverReplacement;
+        return receiverReplacement ?? expr;
       } else if (expr is IdentifierExpr) {
         IdentifierExpr e = (IdentifierExpr)expr;
         Expression substExpr;
