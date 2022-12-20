@@ -106,7 +106,7 @@ Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md).
     ArgumentHelpName = "language"
   };
 
-  public static readonly Option<bool> UnicodeCharacters = new("--unicode-char",
+  public static readonly Option<bool> UnicodeCharacters = new("--unicode-char", () => false,
     @"
 false - The char type represents any UTF-16 code unit.
 true - The char type represents any Unicode scalar value.".TrimStart());
