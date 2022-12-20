@@ -297,7 +297,23 @@ The Dafny Language Server is described in more detail [here](#sec-dafny-language
 
 The `dafny audit` command reports issues in the Dafny code that might limit the soundness claims of verification.
 
-_This implementation is in progress._
+The command executes the `dafny resolve` phase (accepting its options) and has the following additional options:
+
+- `--report-file:<report-file>` --- spcifies the path where the audit
+   report file will be stored. Without this option, the report
+    will be issued as standard warnings, written to standard-out.
+- `--report-format:<format>` --- specifies the file format to use for
+   the audit report. Supported options include: 
+   - 'txt, 'text': plain text in the format of warnings
+   - 'html': standalone HTML ('html')
+   - 'md', 'markdown', 'md-table', 'markdown-table': a Markdown table
+   - 'md-ietf', 'markdown-ietf': an IETF-language document in Markdown format
+   - The default is to infer the format from the filename extension
+- `--compare-report` --- compare the report that would have
+   been generated with the existing file given by --report-file, and fail if
+   they differ.
+
+The command emits exit codes of TODO.
 
 #### 25.5.1.9. `dafny test` {#sec-dafny-test}
  
