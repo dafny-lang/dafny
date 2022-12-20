@@ -165,6 +165,14 @@ No valid option values in dafny look like filenames or begin with `--`.
 
 Options may change over time; `dafny <command> --help` lists those options for a given \<command\> that are implemented in your version of dafny.
 
+#### 25.5.1.0. Options that are not associated with a command
+
+A few options are not part of a command. In these cases any single-hyphen spelling also pewrmits a spelling beginning with '/'.
+- `dafny --help` or `dafny -h` lists all the available commands
+- `dafny -?` or `dafny -help` list all legacy options
+- `dafny --version` (or `-version`) prints out the numbe of the version this build of dafny implements
+- `dafny -attrHelp` prints out help information about attributes
+
 
 #### 25.5.1.1. `dafny resolve` {#sec-dafny-resolve}
 
@@ -1301,9 +1309,12 @@ while an X indicates that it is.
 
 There are many command-line options to the `dafny` tool.
 The most current documentation of the options is within the tool itself,
-using the `/?` or `/help` option.
+using the `-?` or `--help` or `-h` options.
 
-Remember that options can be stated with either a leading `/` or a leading `-`.
+Remember that options are typically stated with either a leading `--`.
+
+Legacy options begin with either '-' or '/'; however they are begin
+migrated to the POSIX-compliant `--` form.
 
 ### 25.8.1. Help and version information {#sec-controlling-help}
 
@@ -1318,7 +1329,7 @@ being used, and information about how Dafny was invoked.
 * `-attrHelp` - print out the current list of supported attribute
   declarations and terminate.
 
-* `-version` - print the version of the executable being invoked and
+* `--version` (was `-version`) - print the version of the executable being invoked and
   terminate.
 
 * `-env:<n>` - print the command-line arguments supplied to the program.
@@ -1336,7 +1347,7 @@ being used, and information about how Dafny was invoked.
 
 These options control how Dafny processes its input.
 
-* `-dprelude:<file>` - select an alternative Dafny prelude file. This
+* `--prelude:<file>` (was `-dprelude`) - select an alternative Dafny prelude file. This
   file contains Boogie definitions (including many axioms) required by
   the translator from Dafny to Boogie. Using an alternative prelude is
   primarily useful if you're extending the Dafny language or changing
@@ -1420,12 +1431,9 @@ code (which can be helpful for debugging).
   `mod` is the name of its containing module, and `callee*` is a
   space-separated list of the functions that `func` calls.
 
-* `-showSnippets:<n>` - show a source code snippet for each Dafny
-  message. The value of `<n>` can be one of the following.
+* `--show-snippets` (was `-showSnippets:<n>` ) - show a source code snippet for each Dafny
+  message. The legacy option was `-showSnippets` with values 0 and 1 for false and true.
 
-  * `0` (default) - don't print snippets.
-
-  * `1` - do print snippets.
 
 * `-printTooltips` - dump additional positional information (displayed
   as mouse-over tooltips by LSP clients) to standard output as `Info`
@@ -1484,7 +1492,7 @@ older versions of Dafny.
 
 <a id="sec-function-syntax"/>
 
-* `-functionSyntax:<version>` - select what function syntax to
+* `--function-syntax:<version>` (was `-functionSyntax:<version>` ) - select what function syntax to
   recognize. The syntax for functions is changing from Dafny version 3
   to version 4. This switch gives early access to the new syntax, and
   also provides a mode to help with migration. The valid arguments
@@ -1531,7 +1539,7 @@ older versions of Dafny.
   }
   ```
 
-* `-quantifierSyntax:<version>` - select what quantifier syntax to recognize.
+* `--quantifier-syntax:<version>` (was `-quantifierSyntax:<version>` ) - select what quantifier syntax to recognize.
     The syntax for quantification domains is changing from Dafny version 3 to version 4,
     more specifically where quantifier ranges (`| <Range>`) are allowed.
     This switch gives early access to the new syntax.
@@ -1556,25 +1564,23 @@ older versions of Dafny.
   implicitly static and field declarations are not allowed at the
   module scope.
 
-* `-unicodeChar:<n>` - controls the meaning of the built-int `char`
-  type.
-
-  * `0` (default) - The `char` type represents any UTF-16 code unit.
-    This means any 16-bit value, including surrogate code points.
-    Allows `\uXXXX` escapes in string and character literals.
-  * `1` - The `char` type represents any Unicode scalar value.
-    This means any Unicode code point excluding surrogates.
-    Allows `\U{X..X}` escapes in string and character literals.
-
-  The default is currently `0`, but will be `1` in Dafny version 4.
+* `--unicode-char` - if false, the `char` type represents any UTF-16 code unit;
+  this means any 16-bit value, including surrogate code points and
+  allows `\uXXXX` escapes in string and character literals.
+  If true, `char` represnts any Unicode scalar value;
+  this means any Unicode code point excluding surrogates and
+  allows `\U{X..X}` escapes in string and character literals. 
+  The default is false for Dafny version 3 and true for version 4.
+  The legacy option was -unicodeChar:<n>` with values 0 and 1 for
+  false and true above.
 
 ### 25.8.6. Controlling warnings {#sec-controlling-warnings}
 
 These options control what warnings Dafny produces, and whether to treat
 warnings as errors.
 
-* `-warnShadowing` - emit a warning if the name of a declared variable
-  caused another variable to be shadowed.
+* `--warn-shadowing (was `-warnShadowing`) - emit a warning if the name 
+  of a declared variable caused another variable to be shadowed.
 
 * `-deprecation:<n>` - control warnings about deprecated features. The
   value of `<n>` can be any of the following.
@@ -1585,7 +1591,7 @@ warnings as errors.
 
    * `2` - issue warnings and advise about alternate syntax.
 
-* `-warningsAsErrors` - treat warnings as errors.
+* `--warn-as-errors (was `-warningsAsErrors`) - treat warnings as errors.
 
 ### 25.8.7. Controlling verification {#sec-controlling-verification}
 
@@ -1593,25 +1599,25 @@ These options control how Dafny verifies the input program, including
 how much it verifies, what techniques it uses to perform verification,
 and what information it produces about the verification process.
 
-* `-dafnyVerify:<n>` - turn verification of the program on or off. The
+* `-dafnyVerify:<n>` [discouraged] - turn verification of the program on or off. The
   value of `<n>` can be any of the following.
 
   * `0` - stop after type checking.
 
   * `1` - continue on to verification and compilation.
 
-* `-verifyAllModules` - verify modules that come from include directives.
+* `--verify-included-files` (was `-verifyAllModules`) - verify modules that come from include directives.
 
   By default, Dafny only verifies files explicitly listed on the command
   line: if `a.dfy` includes `b.dfy`, a call to `Dafny a.dfy` will detect
   and report verification errors from `a.dfy` but not from `b.dfy`.
 
-  With this flag, Dafny will instead verify everything: all input
+  With this option, Dafny will instead verify everything: all input
   modules and all their transitive dependencies. This way `Dafny a.dfy`
   will verify `a.dfy` and all files that it includes (here `b.dfy`), as
   well all files that these files include, etc.
 
-  Running Dafny with `-verifyAllModules` on the file containing your
+  Running Dafny with this option on the file containing your
   main result is a good way to ensure that all its dependencies verify.
 
 * `-separateModuleOutput` - output verification results for each module
@@ -1687,15 +1693,11 @@ and what information it produces about the verification process.
 
   * `6` (default) - use the most discriminating induction heuristic.
 
-* `-trackPrintEffects:<n>` - control what implementations are allowed to
-  use `print`. The value of `<n>` can be one of the following.
-
-  * `0` (default) - every compiled method, constructor, and iterator,
-    whether or not it bears a `{:print}` attribute, may have print
-    effects.
-
-  * `1` - A compiled method, constructor, or iterator is allowed to have
-    print effects only if it is marked with the `{:print}` attribute.
+* `--track-print-effects - If true, a compiled method, constructor, or 
+   iterator is allowed to have print effects only if it is marked with 
+   {{:print}}. (default false)
+   The legacy option was `-trackPrintEffects:<n>`) with values 0 or 1
+   for false and true.
 
 * `-allocated:<n>` - specify defaults for where Dafny should assert and
   assume `allocated(x)` for various parameters `x`, local variables `x`,
@@ -1725,21 +1727,19 @@ and what information it produces about the verification process.
   `-allocated:1` let functions depend on the allocation state, which is
   not sound in general.
 
-* `-definiteAssignment:<n>` - control the rules governing definite
+* `--relax-definite-assignment - control the rules governing definite
   assignment, the property that every variable is eventually assigned a
-  value along every path. The value of `<n>` can be one of the
-  following.
-
+  value before it is used.  If false (the default) definite assignment
+  rules are strictly checked (corresponding to legacy level 3); if true,
+  checking corresponds to legacy level TODO.
+  The legacy option was `-definiteAssignment:<n>` wioth possible values
   * `0` - ignore definite-assignment rules; this mode is unsound and is
     for testing only.
-
   * `1` (default) - enforce definite-assignment rules for compiled
     variables and fields whose types do not support auto-initialization
     and for ghost variables and fields whose type is possibly empty.
-
   * `2` - enforce definite-assignment for all non-yield-parameter
     variables and fields, regardless of their types.
-
   * `3` - like `2`, but also performs checks in the compiler that no
     nondeterministic statements are used; thus, a program that passes at
     this level 3 is one that the language guarantees that values seen
@@ -1751,7 +1751,8 @@ and what information it produces about the verification process.
 * `-autoReqPrint:<file>` - print the requires clauses that were
   automatically generated by `autoReq` to the given `<file>`.
 
-* `-noNLarith` - reduce Z3's knowledge of non-linear arithmetic (the
+* `--disable-nonlinear-arithmetic` (was `-noNLarith`) - reduce 
+  Z3's knowledge of non-linear arithmetic (the
   operators `*`, `/`, and `%`). Enabling this option will typically
   require more manual work to complete proofs (by explicitly applying
   lemmas about non-linear operators), but will also result in more
@@ -1927,7 +1928,8 @@ The following options are also commonly used:
   Default is 5; 0 means as many as possible; a small positive number runs faster
   but a large positive number reports more errors per run
 
-* `timeLimit:<n>` - limits the number of seconds spent trying to verify each procedure.
+* `--verification-time-limit:<n>` (was `-timeLimit:<n>`) - limits 
+  the number of seconds spent trying to verify each procedure.
 
 
 ### 25.8.10. Controlling test generation {#sec-controlling-test-gen}
@@ -1943,7 +1945,8 @@ These options control what code gets compiled, what target language is
 used, how compilation proceeds, and whether the compiled program is
 immediately executed.
 
-* `-compile:<n>` - control whether compilation happens. The value of
+* `-compile:<n>` -  [obsolete - use `dafny build` or `dafny run`] control whether compilation 
+   happens. The value of
   `<n>` can be one of the following. Note that if the program is 
    compiled, it will be compiled to the target language determined by
    the `-compileTarget` option, which is C\# by default.
@@ -1962,7 +1965,7 @@ immediately executed.
    * `4` - always compile (like option `2`), and then if there is a
      `Main` method, attempt to run the program.
 
-* `-compileTarget:<s>` - set the target programming language for the
+* `--target:<s>` or `-t:<s>` (was `-compileTarget:<s>`) - set the target programming language for the
   compiler. The value of `<s>` can be one of the following.
 
    * `cs` - C\# . Produces a .dll file that can be run using `dotnet`.
@@ -1990,7 +1993,7 @@ immediately executed.
       program can be run using `./Hello.exe`.
 
 
-* `-spillTargetCode:<n>` - control whether to write out compiled code in
+* `-spillTargetCode:<n>` - [obsolete - use `dafny translate`) control whether to write out compiled code in
   the target language (instead of just holding it in internal temporary
   memory). The value of `<n>` can be one of the following.
 
@@ -2014,7 +2017,7 @@ out the textual target program as part of compilation, in which case
   use as the executable entry point. The default is the method with the
   `{:main}` attribute, or else the method named `Main`.
 
-* `-out:<file>` - set the name to use for compiled code files.
+* `--output:<file>` or `-o:<file>` (was `-out:<file>`) - set the name to use for compiled code files.
 
 By default, `dafny` reuses the name of the Dafny file being compiled.
 Compilers that generate a single file use the file name as-is (e.g. the
@@ -2054,7 +2057,7 @@ periods.
 
 * `-useRuntimeLib` - refer to the pre-built `DafnyRuntime.dll` in the
   compiled assembly rather than including `DafnyRuntime.cs` in the build
-  process.
+  process. TODO
 
 
 * `-testContracts:<mode>` - test certain function and method contracts
