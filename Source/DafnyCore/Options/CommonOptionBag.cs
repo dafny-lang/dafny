@@ -136,6 +136,7 @@ true - The char type represents any Unicode scalar value.".TrimStart());
 Functionality is still being expanded. Currently only checks contracts on every call to a function or method marked with the {:extern} attribute.".TrimStart());
 
   static CommonOptionBag() {
+    QuantifierSyntax = QuantifierSyntax.FromAmong("3", "4");
     DafnyOptions.RegisterLegacyBinding(SolverPath, (options, value) => {
       if (!string.IsNullOrEmpty(value)) {
         options.ProverOptions.Add($"PROVER_PATH={value}");
