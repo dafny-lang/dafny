@@ -55,6 +55,13 @@ public class Auditor : IRewriter {
   private readonly ReportFormat? reportFormat;
   private readonly bool compareReport;
 
+  static Auditor() {
+    ReportFormatOption.FromAmong("html",
+                                 "md", "markdown", "md-table", "markdown-table",
+                                 "md-ietf", "markdown-ietf",
+                                 "txt");
+  }
+
   /// <summary>
   /// Construct an auditor to write to or compare to the given file in the
   /// given format.
