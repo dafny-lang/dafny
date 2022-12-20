@@ -22,7 +22,7 @@ using System.Linq;
 using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny {
-  public class RefinementToken : TokenWrapper, IToken {
+  public class RefinementToken : TokenWrapper {
     public readonly ModuleDefinition InheritingModule;
 
     public RefinementToken(IToken tok, ModuleDefinition m)
