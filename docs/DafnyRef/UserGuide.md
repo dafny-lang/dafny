@@ -165,7 +165,7 @@ No valid option values in dafny look like filenames or begin with `--`.
 
 Options may change over time; `dafny <command> --help` lists those options for a given \<command\> that are implemented in your version of dafny.
 
-#### 25.5.1.0. Options that are not associated with a command
+#### 25.5.1.1. Options that are not associated with a command
 
 A few options are not part of a command. In these cases any single-hyphen spelling also pewrmits a spelling beginning with '/'.
 - `dafny --help` or `dafny -h` lists all the available commands
@@ -174,7 +174,7 @@ A few options are not part of a command. In these cases any single-hyphen spelli
 - `dafny -attrHelp` prints out help information about attributes
 
 
-#### 25.5.1.1. `dafny resolve` {#sec-dafny-resolve}
+#### 25.5.1.2. `dafny resolve` {#sec-dafny-resolve}
 
 The `dafny resolve` command checks the command-line and then parses and typechecks the given files and any included files.
 
@@ -197,7 +197,7 @@ The options relevant to this command are
    - `--warn-missing-constructor-parentheses`
 
 
-#### 25.5.1.2. `dafny verify` {#sec-dafny-verify}
+#### 25.5.1.3. `dafny verify` {#sec-dafny-verify}
 
 The `dafny verify` command performs the [`dafny resolve`](#sec-dafny-resolve) checks and then attempts to verify each method in the files listed on the command line. Although the Dafny program being considered
 consists of the listed files and any included files (recursively), by default only listed files are verified.
@@ -218,7 +218,7 @@ Various options control the verification process, in addition to all those descr
    - `--boogie-filter`
 
 
-#### 25.5.1.3. `dafny translate` {#sec-dafny-translate}
+#### 25.5.1.4. `dafny translate` {#sec-dafny-translate}
 
 The `dafny translate` command translates Dafny source code to source code for another target programming language.
 The command always performs the actions of `dafny resolve` and by default does the actions of `dafny verify`.
@@ -244,7 +244,7 @@ Various options control the translation process, in addition to all those descri
    - `--optimize-erasable-datatype-wrapper`
    - `--enforce-determinism`
 
-#### 25.5.1.4. `dafny build` {#sec-dafny-build}
+#### 25.5.1.5. `dafny build` {#sec-dafny-build}
 
 The `dafny build` command runs `dafny translate` and then compiles the result into an executable artifact for the target platform,
 such as a `.exe` or `.dll`. or executable `.jar`, or just the source code for an interpreted language.
@@ -254,7 +254,7 @@ There are no additional options for `dafny build` beyond those for `dafny transl
 
 TODO: OLD TEXT: The command has options that enable being specific about the build platform and architecture.
 
-#### 25.5.1.5. `dafny run` {#sec-dafny-run}
+#### 25.5.1.6. `dafny run` {#sec-dafny-run}
 
 The `dafny run` command performs `dafny build` and then runs the resulting executable.
 
@@ -284,7 +284,7 @@ then runs it with the three command-line arguments `1 2 3`
 - performance --- `dafny run` may not optimize as much as `dafny build`
 - target-language-specific configuration issues ---  e.g. encoding issues: `dafny run` sets language-specific flags to request UTF-8 output for the [`print`](#print-encoding) statement in all languages, whereas `dafny build` leaves language-specific runtime configuration to the user.
 
-#### 25.5.1.6. `dafny server` {#sec-dafny-server}
+#### 25.5.1.7. `dafny server` {#sec-dafny-server}
 
 The `dafny server` command starts the Dafny Language Server, which as an [LSP-compliant](https://microsoft.github.io/language-server-protocol/) implementation of Dafny.
 Note two important points:
@@ -293,13 +293,13 @@ Note two important points:
 
 The Dafny Language Server is described in more detail [here](#sec-dafny-language-server-vscode).
 
-#### 25.5.1.7. `dafny audit` {#sec-dafny-audit}
+#### 25.5.1.8. `dafny audit` {#sec-dafny-audit}
 
 The `dafny audit` command reports issues in the Dafny code that might limit the soundness claims of verification.
 
 _This implementation is in progress._
 
-#### 25.5.1.8. `dafny test` {#sec-dafny-test}
+#### 25.5.1.9. `dafny test` {#sec-dafny-test}
  
 This _experimental_ command (verifies and compiles the program and) runs every method in the program that is annotated with the `{:test}` attribute.
 Verification can be disabled using the `--no-verify` option. `dafny test` also accepts all other options of the `dafny build` command. 
@@ -347,7 +347,7 @@ Hi!
 PASSED
 ```
 
-#### 25.5.1.9. `dafny generate-tests` {#sec-dafny-generate-tests}
+#### 25.5.1.10. `dafny generate-tests` {#sec-dafny-generate-tests}
 
 This _experimental_ command (verifies the program and) then generates unit test code (as Dafny source code) that provides
 complete coverage of the method.
@@ -356,14 +356,14 @@ Such methods must be static and have no input parameters.
 
 _This command is under development and not yet functional._
 
-#### 25.5.1.10. `dafny find-dead-code` {#sec-dafny-find-dead-code}
+#### 25.5.1.11. `dafny find-dead-code` {#sec-dafny-find-dead-code}
 
 This _experimental_ command finds dead code in a program, that is, code branches within a method that are not reachable by any inputs that satisfy 
 the method's preconditions.
 
 _This command is under development and not yet functional._
 
-#### 25.5.1.11. Plugins
+#### 25.5.1.12. Plugins
 
 This execution mode is not a command, per se, but rather a command-line option that enables executing plugins to the dafny tool.
 
@@ -372,7 +372,7 @@ where the argument to `--plugin` gives the path to the compiled assemply of the 
 
 More on writing and building plugins can be found [in this section](#sec-plugins).
 
-#### 25.5.1.12. Legacy operation
+#### 25.5.1.13. Legacy operation
 
 Prior to implementing the command-based CLI, the `dafny` command-line simply took files and options and the arguments to options.
 That legacy mode of operation is still supported, though discouraged. The command `dafny -?` produces the list of legacy options.
