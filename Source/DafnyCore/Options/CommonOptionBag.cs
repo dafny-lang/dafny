@@ -138,7 +138,7 @@ Functionality is still being expanded. Currently only checks contracts on every 
   static CommonOptionBag() {
     DafnyOptions.RegisterLegacyBinding(SolverPath, (options, value) => {
       if (value != null) {
-        options.ProverOptions.Add($"PROVER_PATH={value.FullName}");
+        options.ProverOptions.Add($"PROVER_PATH={value?.FullName}");
       }
     });
 
@@ -166,13 +166,13 @@ Functionality is still being expanded. Currently only checks contracts on every 
     DafnyOptions.RegisterLegacyBinding(Plugin, (options, value) => { options.AdditionalPluginArguments = value; });
 
     DafnyOptions.RegisterLegacyBinding(Prelude, (options, value) => {
-      options.DafnyPrelude = value.FullName;
+      options.DafnyPrelude = value?.FullName;
       options.ExpandFilename(options.DafnyPrelude, x => options.DafnyPrelude = x, options.LogPrefix,
         options.FileTimestamp);
     });
     DafnyOptions.RegisterLegacyBinding(Libraries,
       (options, value) => { options.LibraryFiles = value.ToHashSet(); });
-    DafnyOptions.RegisterLegacyBinding(Output, (options, value) => { options.DafnyPrintCompiledFile = value.FullName; });
+    DafnyOptions.RegisterLegacyBinding(Output, (options, value) => { options.DafnyPrintCompiledFile = value?.FullName; });
 
     DafnyOptions.RegisterLegacyBinding(CompileVerbose, (o, v) => o.CompileVerbose = v);
     DafnyOptions.RegisterLegacyBinding(DisableNonLinearArithmetic, (o, v) => o.DisableNLarith = v);

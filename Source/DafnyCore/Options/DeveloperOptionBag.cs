@@ -34,20 +34,20 @@ Print Dafny program after resolving it.
 
   static DeveloperOptionBag() {
     DafnyOptions.RegisterLegacyBinding(ResolvedPrint, (options, value) => {
-      options.DafnyPrintResolvedFile = value.FullName;
+      options.DafnyPrintResolvedFile = value?.FullName;
       options.ExpandFilename(options.DafnyPrintResolvedFile, x => options.DafnyPrintResolvedFile = x, options.LogPrefix,
         options.FileTimestamp);
     });
 
     DafnyOptions.RegisterLegacyBinding(Print, (options, value) => {
-      options.DafnyPrintFile = value.FullName;
+      options.DafnyPrintFile = value?.FullName;
       options.ExpandFilename(options.DafnyPrintFile, x => options.DafnyPrintFile = x, options.LogPrefix,
         options.FileTimestamp);
     });
 
     DafnyOptions.RegisterLegacyBinding(UseBaseFileName, (o, f) => o.UseBaseNameForFileName = f);
     DafnyOptions.RegisterLegacyBinding(BoogiePrint, (options, f) => {
-      options.PrintFile = f.FullName;
+      options.PrintFile = f?.FullName;
       options.ExpandFilename(options.PrintFile, x => options.PrintFile = x, options.LogPrefix,
         options.FileTimestamp);
     });
