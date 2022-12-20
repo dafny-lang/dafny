@@ -122,9 +122,6 @@ true - The char type represents any Unicode scalar value.".TrimStart());
   public static readonly Option<bool> WarnShadowing = new("--warn-shadowing",
     "Emits a warning if the name of a declared variable caused another variable to be shadowed.");
 
-  public static readonly Option<bool> IncludeRuntime = new("--include-runtime",
-    "Include the Dafny runtime as source in the target language.");
-
   public enum TestAssumptionsMode {
     None,
     Externs
@@ -150,7 +147,6 @@ Functionality is still being expanded. Currently only checks contracts on every 
         options.Induction = 1;
       }
     });
-    DafnyOptions.RegisterLegacyBinding(IncludeRuntime, (options, value) => { options.UseRuntimeLib = !value; });
     DafnyOptions.RegisterLegacyBinding(WarnShadowing, (options, value) => { options.WarnShadowing = value; });
     DafnyOptions.RegisterLegacyBinding(WarnMissingConstructorParenthesis,
       (options, value) => { options.DisallowConstructorCaseWithoutParentheses = value; });

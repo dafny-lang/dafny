@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
@@ -8,12 +9,28 @@ namespace Microsoft.Dafny;
 class TranslateCommand : ICommandSpec {
   public IEnumerable<Option> Options =>
     new Option[] {
+        CompileTarget,
       CommonOptionBag.Output,
       CommonOptionBag.CompileVerbose,
-      CommonOptionBag.IncludeRuntime,
+      IncludeRuntime,
     }.Concat(ICommandSpec.TranslationOptions).
       Concat(ICommandSpec.ConsoleOutputOptions).
       Concat(ICommandSpec.CommonOptions);
+
+  static TranslateCommand() {
+    CompileTarget.AddValidator((r) => {
+      var compileTarget = r.GetValueForOption(CompileTarget);
+      var includeRuntime = r.FindResultFor(IncludeRuntime);
+
+      if (compileTarget && includeRuntime != null) {
+        r.ErrorMessage = $"Options {CompileTarget.Name} and ${IncludeRuntime.Name} can not be used together.";
+      }
+    });
+    DafnyOptions.RegisterLegacyBinding(IncludeRuntime, (options, value) => { options.UseRuntimeLib = !value; });
+  }
+
+  public static readonly Option<bool> IncludeRuntime = new("--include-runtime",
+    "Include the Dafny runtime as source in the target language.");
 
   private static readonly Argument<string> Target = new("target", @"
 cs - Translate to C#.
@@ -40,7 +57,12 @@ Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md).
 
   public void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context) {
     dafnyOptions.Compile = dafnyOptions.Get(CompileTarget);
+    if (dafnyOptions.Compile) {
+      dafnyOptions.UseRuntimeLib = false;
+    }
     var noVerify = dafnyOptions.Get(BoogieOptionBag.NoVerify);
-    dafnyOptions.SpillTargetCode = dafnyOptions.Compile ? (noVerify ? 3U : 2U) : 0U;
+    dafnyOptions.ForceCompile = dafnyOptions.Compile && noVerify;
+    dafnyOptions.CompilerName = context.ParseResult.GetValueForArgument(Target);
+    dafnyOptions.SpillTargetCode = dafnyOptions.Compile ? 0U : (noVerify ? 3U : 2U);
   }
 }
