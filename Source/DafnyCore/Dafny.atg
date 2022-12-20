@@ -2222,7 +2222,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
   | TupleType<out ty, out tok, out tupleArgTypes, out argumentGhostTokens>
   | NamedType<out ty, out tok, inExpressionContext>
   )
-  (. startToken =  startToken ?? ty.StartToken ?? tok;
+  (. startToken =  startToken ?? ty.GetStartToken() ?? tok;
      ty.RangeToken = new RangeToken(startToken, t);
   .)
   [ (. int arrowKind = 0; /* 0: any, 1: partial, 2: total */
@@ -2918,9 +2918,9 @@ UpdateStmt<out Statement/*!*/ s>
      Expression exceptionExpr = null;
      IToken endToken = Token.NoToken;
   .)
-( Lhs<out e>                       (. x = e.tok; startToken = e.StartToken; endToken = t; .)
+( Lhs<out e>                       (. x = e.tok; startToken = e.GetStartToken(); endToken = t; .)
   ( { Attribute<ref attrs> }       (. endToken = t; .)
-    ";"                            (. endTok = t; rhss.Add(new ExprRhs(e, attrs) { RangeToken = new RangeToken(e.StartToken, endToken) }); .)
+    ";"                            (. endTok = t; rhss.Add(new ExprRhs(e, attrs) { RangeToken = new RangeToken(e.GetStartToken(), endToken) }); .)
   |                                (. lhss.Add(e); .)
     { "," Lhs<out e>               (. lhss.Add(e); .)
     }
@@ -3006,7 +3006,7 @@ Rhs<out AssignmentRhs r>
        }
     .)
   | "*"                                (. r = new HavocRhs(t); startToken = t; .)
-  | Expression<out e, false, true>     (. r = new ExprRhs(e); startToken = e.StartToken; .)
+  | Expression<out e, false, true>     (. r = new ExprRhs(e); startToken = e.GetStartToken(); .)
   )
   { Attribute<ref attrs> }             (. r.Attributes = attrs;
                                           r.RangeToken = new RangeToken(startToken ?? t, t); .)
@@ -3132,7 +3132,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
 
     ";"
     (. s = new VarDeclPattern(e.tok, e.tok, pat, e, isGhost);
-       s.RangeToken = new RangeToken(pat.StartToken, t); .)
+       s.RangeToken = new RangeToken(pat.GetStartToken(), t); .)
   )
   .
 
@@ -3853,9 +3853,9 @@ Expression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwis
     Expression<out e0, allowLemma, allowLambda>
     (. e = new StmtExpr(e.tok,
              new UpdateStmt(e.tok, endTok, new List<Expression>(), new List<AssignmentRhs>() { new ExprRhs(e, null) }) {
-               RangeToken = e.RangeToken
+               RangeToken = e.GetRangeToken()
              },
-             e0) { RangeToken = new RangeToken(e.StartToken, t) };
+             e0) { RangeToken = new RangeToken(e.GetStartToken(), t) };
     .)
   ]
   .
@@ -3867,7 +3867,7 @@ EquivExpression<out Expression e0, bool allowLemma, bool allowLambda, bool allow
   { IF(IsEquivOp())  /* read an EquivExpression as far as possible */
     EquivOp                                                   (. x = t; .)
     ImpliesExpliesExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>  (.
-      var startToken = e0.StartToken;
+      var startToken = e0.GetStartToken();
       e0 = new BinaryExpr(x, BinaryExpr.Opcode.Iff, e0, e1);
       e0.RangeToken = new RangeToken(startToken, t); .)
   }
@@ -3884,18 +3884,18 @@ ImpliesExpliesExpression<out Expression e0, bool allowLemma, bool allowLambda, b
      * implies is right associative whereas reverse implication is left associative
      */
     ( ImpliesOp                                               (. x = t; .)
-      ImpliesExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>       (. var startToken = e0.StartToken;
+      ImpliesExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>       (. var startToken = e0.GetStartToken();
                                                                                    e0 = new BinaryExpr(x, BinaryExpr.Opcode.Imp, e0, e1);
                                                                                    e0.RangeToken = new RangeToken(startToken, t); .)
     | ExpliesOp                                               (. x = t; .)
       LogicalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>       (. // The order of operands is reversed so that it can be turned into implication during resolution
-                                                                 var startToken = e0.StartToken;
+                                                                 var startToken = e0.GetStartToken();
                                                                  e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e1, e0);
                                                                  e0.RangeToken = new RangeToken(startToken, t); .)
       { IF(IsExpliesOp())  /* read a reverse implication as far as possible */
         ExpliesOp                                             (. x = t; .)
         LogicalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>     (. //The order of operands is reversed so that it can be turned into implication during resolution
-                                                                 startToken = e0.StartToken;
+                                                                 startToken = e0.GetStartToken();
                                                                  e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e1, e0);
                                                                  e0.RangeToken = new RangeToken(startToken, t);
                                                               .)
@@ -3911,7 +3911,7 @@ ImpliesExpression<out Expression e0, bool allowLemma, bool allowLambda, bool all
   LogicalExpression<out e0, allowLemma, allowLambda, allowBitwiseOps>
   [ IF(IsImpliesOp())  /* read an ImpliesExpression as far as possible */
     ImpliesOp                                               (. x = t; .)
-    ImpliesExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>       (. var startToken = e0.StartToken;
+    ImpliesExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>       (. var startToken = e0.GetStartToken();
                                                                                  e0 = new BinaryExpr(x, BinaryExpr.Opcode.Imp, e0, e1); 
                                                                                  e0.RangeToken = new RangeToken(startToken, t);.)
   ]
@@ -3933,17 +3933,20 @@ LogicalExpression<out Expression e0, bool allowLemma, bool allowLambda, bool all
     { IF(IsAndOp())  /* read a conjunction as far as possible */
       AndOp                                                     (. x = t; .)
       RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>
-         (. startToken = e0.StartToken;
-            e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1, firstOp);
-            e0.RangeToken = new RangeToken(startToken, t); .)
+         (. startToken = e0.GetStartToken();
+            e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1);
+            e0.RangeToken = new RangeToken(startToken, t);
+            e0.FormatTokens = new[] { firstOp };
+         .)
     }
     [ IF(IsOrOp()) OrOp (. SemErr(t, "Ambiguous use of && and ||. Use parentheses to disambiguate."); .) ]
     (. e0.RangeToken = new RangeToken(firstOp, t);
        if (e0 == first) {
          // There was only one conjunct. To make sure that the type checker still checks it to
          // be a boolean, we conjoin "true" to its left.
-         e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, new LiteralExpr(new AutoGeneratedToken(x), true), e0, firstOp);
+         e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, new LiteralExpr(new AutoGeneratedToken(x), true), e0);
          e0.RangeToken = new RangeToken(firstOp, t);
+         e0.FormatTokens = new[] { firstOp };
        }
     .)
   | OrOp                                                        (. x = t; firstOp = x; .)
@@ -3951,38 +3954,41 @@ LogicalExpression<out Expression e0, bool allowLemma, bool allowLambda, bool all
     { IF(IsOrOp())  /* read a disjunction as far as possible */
       OrOp                                                      (. x = t; .)
       RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>
-         (. startToken = e0.StartToken;
-            e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1, firstOp);
-            e0.RangeToken = new RangeToken(startToken, t); .)    }
+         (. startToken = e0.GetStartToken();
+            e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1);
+            e0.RangeToken = new RangeToken(startToken, t);
+            e0.FormatTokens = new[] { firstOp };
+         .) }
     [ IF(IsAndOp()) AndOp (. SemErr(t, "Ambiguous use of && and ||. Use parentheses to disambiguate."); .) ]
     (. e0.RangeToken = new RangeToken(firstOp, t);
        if (e0 == first) {
          // There was only one disjunct. To make sure that the type checker still checks it to
          // be a boolean, we disjoin [sic] "false" to its left.
-         e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, new LiteralExpr(new AutoGeneratedToken(x), false), e0, firstOp);
+         e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, new LiteralExpr(new AutoGeneratedToken(x), false), e0);
          e0.RangeToken = new RangeToken(firstOp, t);
+         e0.FormatTokens = new[] { firstOp };
        }
     .)
   | RelationalExpression<out e0, allowLemma, allowLambda, allowBitwiseOps>
     [ IF(IsAndOp() || IsOrOp())  /* read a LogicalExpression as far as possible */
       ( AndOp                                                   (. x = t; .)
-        RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>    (. startToken = e0.StartToken;
+        RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>    (. startToken = e0.GetStartToken();
                                                                                      e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1);
                                                                                      e0.RangeToken = new RangeToken(startToken, t); .)
         { IF(IsAndOp())  /* read a conjunction as far as possible */
           AndOp                                                 (. x = t; .)
-          RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>  (. startToken = e0.StartToken;
+          RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>  (. startToken = e0.GetStartToken();
                                                                                      e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1);
                                                                                      e0.RangeToken = new RangeToken(startToken, t); .)
         }
         [ IF(IsOrOp()) OrOp (. SemErr(t, "Ambiguous use of && and ||. Use parentheses to disambiguate."); .) ]
       | OrOp                                                    (. x = t; .)
-        RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>    (. startToken = e0.StartToken;
+        RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>    (. startToken = e0.GetStartToken();
                                                                                      e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1);
                                                                                      e0.RangeToken = new RangeToken(startToken, t); .)
         { IF(IsOrOp())  /* read a disjunction as far as possible */
           OrOp                                                  (. x = t; .)
-          RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>  (. startToken = e0.StartToken;
+          RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>  (. startToken = e0.GetStartToken();
                                                                                      e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1);
                                                                                      e0.RangeToken = new RangeToken(startToken, t); .)
         }
@@ -4010,11 +4016,11 @@ RelationalExpression<out Expression e, bool allowLemma, bool allowLambda, bool a
      bool hasSeenNeq = false;
   .)
   ShiftTerm<out e0, allowLemma, allowLambda, allowBitwiseOps>
-                                   (. e = e0; startToken = e0.StartToken; .)
+                                   (. e = e0; startToken = e0.GetStartToken(); .)
   [ IF(IsRelOp())  /* read a RelationalExpression as far as possible */
     RelOp<out x, out op, out k>
     ShiftTerm<out e1, allowLemma, allowLambda, allowBitwiseOps>
-                                   (. startToken = e0.StartToken;
+                                   (. startToken = e0.GetStartToken();
                                       if (k == null) {
                                         e = new BinaryExpr(x, op, e0, e1);
                                       } else {
@@ -4137,7 +4143,7 @@ ShiftTerm<out Expression e0, bool allowLemma, bool allowLambda, bool allowBitwis
       ">"            (. x.val = "<<";  Contract.Assert(t.pos == x.pos + 1); .)
     )
     Term<out e1, allowLemma, allowLambda, allowBitwiseOps> (.
-      var startToken = e0.StartToken;
+      var startToken = e0.GetStartToken();
       e0 = new BinaryExpr(x, op, e0, e1);
       e0.RangeToken = new RangeToken(startToken, t);
      .)
@@ -4151,7 +4157,7 @@ Term<out Expression e0, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
   { IF(IsAddOp())  /* read a Term as far as possible */
     AddOp<out x, out op>
     Factor<out e1, allowLemma, allowLambda, allowBitwiseOps>
-    (. var startToken = e0.StartToken;
+    (. var startToken = e0.GetStartToken();
        e0 = new BinaryExpr(x, op, e0, e1);
        e0.RangeToken = new RangeToken(startToken, t); .)
   }
@@ -4173,7 +4179,7 @@ Factor<out Expression e0, bool allowLemma, bool allowLambda, bool allowBitwiseOp
     MulOp<out x, out op>
     BitvectorFactor<out e1, allowLemma, allowLambda, allowBitwiseOps>
     (. 
-      var startToken = e0.StartToken;
+      var startToken = e0.GetStartToken();
       e0 = new BinaryExpr(x, op, e0, e1);
       e0.RangeToken = new RangeToken(startToken, t);
     .)
@@ -4196,26 +4202,26 @@ BitvectorFactor<out Expression e0, bool allowLemma, bool allowLambda, bool allow
   [ IF(allowBitwiseOps && IsBitwiseOp())  /* read a BitvectorFactor as far as possible, but not in the context inside a |.| size expression */
     ( (. op = BinaryExpr.Opcode.BitwiseAnd; .)
       "&"                                                             (. x = t; .)
-      AsExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>   (. var startToken = e0.StartToken; e0 = new BinaryExpr(x, op, e0, e1); e0.RangeToken = new RangeToken(startToken, t); .)
+      AsExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>   (. var startToken = e0.GetStartToken(); e0 = new BinaryExpr(x, op, e0, e1); e0.RangeToken = new RangeToken(startToken, t); .)
       { IF(IsBitwiseAndOp())
         "&"                                                           (. x = t; .)
-        AsExpression<out e1, allowLemma, allowLambda, allowBitwiseOps> (. startToken = e0.StartToken; e0 = new BinaryExpr(x, op, e0, e1); e0.RangeToken = new RangeToken(startToken, t); .)
+        AsExpression<out e1, allowLemma, allowLambda, allowBitwiseOps> (. startToken = e0.GetStartToken(); e0 = new BinaryExpr(x, op, e0, e1); e0.RangeToken = new RangeToken(startToken, t); .)
       }
       [ IF(IsBitwiseOp()) ( "|" | "^" )  (. SemErr(t, "Ambiguous use of &, |, ^. Use parentheses to disambiguate."); .) ]
     | (. op = BinaryExpr.Opcode.BitwiseOr; .)
       "|"                                                             (. x = t; .)
-      AsExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>   (. var startToken = e0.StartToken; e0 = new BinaryExpr(x, op, e0, e1); e0.RangeToken = new RangeToken(startToken, t); .)
+      AsExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>   (. var startToken = e0.GetStartToken(); e0 = new BinaryExpr(x, op, e0, e1); e0.RangeToken = new RangeToken(startToken, t); .)
       { IF(IsBitwiseOrOp())
         "|"                                                           (. x = t; .)
-        AsExpression<out e1, allowLemma, allowLambda, allowBitwiseOps> (. startToken = e0.StartToken; e0 = new BinaryExpr(x, op, e0, e1); e0.RangeToken = new RangeToken(startToken, t); .)
+        AsExpression<out e1, allowLemma, allowLambda, allowBitwiseOps> (. startToken = e0.GetStartToken(); e0 = new BinaryExpr(x, op, e0, e1); e0.RangeToken = new RangeToken(startToken, t); .)
       }
       [ IF(IsBitwiseOp()) ( "^" | "&" )  (. SemErr(t, "Ambiguous use of &, |, ^. Use parentheses to disambiguate."); .) ]
     | (. op = BinaryExpr.Opcode.BitwiseXor; .)
       "^"                                                             (. x = t; .)
-      AsExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>   (. var startToken = e0.StartToken; e0 = new BinaryExpr(x, op, e0, e1); e0.RangeToken = new RangeToken(startToken, t); .)
+      AsExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>   (. var startToken = e0.GetStartToken(); e0 = new BinaryExpr(x, op, e0, e1); e0.RangeToken = new RangeToken(startToken, t); .)
       { IF(IsBitwiseXorOp())
         "^"                                                           (. x = t; .)
-        AsExpression<out e1, allowLemma, allowLambda, allowBitwiseOps> (. startToken = e0.StartToken; e0 = new BinaryExpr(x, op, e0, e1); e0.RangeToken = new RangeToken(startToken, t); .)
+        AsExpression<out e1, allowLemma, allowLambda, allowBitwiseOps> (. startToken = e0.GetStartToken(); e0 = new BinaryExpr(x, op, e0, e1); e0.RangeToken = new RangeToken(startToken, t); .)
       }
       [ IF(IsBitwiseOp()) ( "&" | "|" )  (. SemErr(t, "Ambiguous use of &, |, ^. Use parentheses to disambiguate."); .) ]
     )
@@ -4228,9 +4234,9 @@ AsExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitw
   UnaryExpression<out e, allowLemma, allowLambda, allowBitwiseOps>
   { IF(IsAsOrIs())
     ( "as"                                  (. tok = t; .)
-      TypeAndToken<out x, out toType, true> (. e = new ConversionExpr(tok, e, toType) { RangeToken = new RangeToken(e.StartToken, t)}; .)
+      TypeAndToken<out x, out toType, true> (. e = new ConversionExpr(tok, e, toType) { RangeToken = new RangeToken(e.GetStartToken(), t)}; .)
     | "is"                                  (. tok = t; .)
-      TypeAndToken<out x, out toType, true> (. e = new TypeTestExpr(tok, e, toType) { RangeToken = new RangeToken(e.StartToken, t)}; .)
+      TypeAndToken<out x, out toType, true> (. e = new TypeTestExpr(tok, e, toType) { RangeToken = new RangeToken(e.GetStartToken(), t)}; .)
     )
   }
   .
@@ -4378,7 +4384,7 @@ LambdaExpression<out Expression e, bool allowLemma, bool allowBitwiseOps>
 LambdaSpec<.ref List<FrameExpression> reads, ref Expression req.>
 = { ReadsClause<reads, true, false, true>
   | "requires"                             (. Expression ee; .)
-    Expression<out ee, true, false>        (. req = req == null ? ee : new BinaryExpr(req.tok, BinaryExpr.Opcode.And, req, ee) { RangeToken = new RangeToken(req.StartToken, ee.EndToken) } ; .)
+    Expression<out ee, true, false>        (. req = req == null ? ee : new BinaryExpr(req.tok, BinaryExpr.Opcode.And, req, ee) { RangeToken = new RangeToken(req.GetStartToken(), ee.GetEndToken()) } ; .)
   }
   .
 
@@ -4554,7 +4560,7 @@ EndlessExpression<out Expression e, bool allowLemma, bool allowLambda, bool allo
   | QuantifierExpression<out e, allowLemma, allowLambda>  /* types are such that we can allow bitwise operations in the quantifier body */
   | SetComprehensionExpr<out e, allowLemma, allowLambda, allowBitwiseOps>
   | StmtInExpr<out s>
-    Expression<out e, allowLemma, allowLambda, allowBitwiseOps>    (. e = new StmtExpr(s.Tok, s, e) { RangeToken = new RangeToken(s.StartToken, e.EndToken) }; .)
+    Expression<out e, allowLemma, allowLambda, allowBitwiseOps>    (. e = new StmtExpr(s.Tok, s, e) { RangeToken = new RangeToken(s.GetStartToken(), e.GetEndToken()) }; .)
   | LetExpression<out e, allowLemma, allowLambda, allowBitwiseOps>
   | MapComprehensionExpr<out e, allowLemma, allowLambda, allowBitwiseOps>
   )
@@ -4579,7 +4585,7 @@ IfExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitw
                        LHSs.Add(new CasePattern<BoundVar>(e.tok, v));
                      }
                      e0 = new LetExpr(e.tok, LHSs, new List<Expression>() {
-                       exists.Term }, e0, false) { RangeToken = exists.RangeToken};
+                       exists.Term }, e0, false) { RangeToken = exists.GetRangeToken() };
                  }
                  e = new ITEExpr(x, isBindingGuard, e, e0, e1);
                  e.RangeToken = new RangeToken(x, t);
@@ -4875,7 +4881,7 @@ Suffix<ref Expression e>
      List<Expression> multipleLengths = null; bool takeRest = false; // takeRest is relevant only if multipleLengths is non-null
      List<Expression> multipleIndices = null;
      List<Tuple<IToken, string, Expression>> updates;
-     var startToken = e.StartToken;
+     var startToken = e.GetStartToken();
      Expression v;
   .)
   ( "."
@@ -4964,16 +4970,16 @@ Suffix<ref Expression e>
              List<Expression> seqs = new List<Expression>();
               foreach (var len in multipleLengths) {
                 var end = prev == null ? len : new BinaryExpr(x, BinaryExpr.Opcode.Add, prev, len) {
-                  RangeToken = new RangeToken(prev.StartToken, len.EndToken)
+                  RangeToken = new RangeToken(prev.GetStartToken(), len.GetEndToken())
                 };
                 seqs.Add(new SeqSelectExpr(x, false, e, prev, end, t) {
-                  RangeToken = new RangeToken(e.StartToken, t)
+                  RangeToken = new RangeToken(e.GetStartToken(), t)
                 });
                 prev = end;
               }
              if (takeRest) {
                seqs.Add(new SeqSelectExpr(x, false, e, prev, null, t) {
-                 RangeToken = new RangeToken(e.StartToken, t)
+                 RangeToken = new RangeToken(e.GetStartToken(), t)
                });
              }
              e = new SeqDisplayExpr(x, seqs);
