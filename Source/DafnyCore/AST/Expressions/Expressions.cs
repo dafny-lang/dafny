@@ -2779,6 +2779,10 @@ public class AttributedExpression : INode, IAttributeBearingDeclaration {
     }
   }
 
+  public override RangeToken GetRangeToken() {
+    return E.GetRangeToken();
+  }
+
   public bool HasAttributes() {
     return Attributes != null;
   }
@@ -2796,7 +2800,6 @@ public class AttributedExpression : INode, IAttributeBearingDeclaration {
     E = e;
     Label = label;
     Attributes = attrs;
-    this.RangeToken = e.GetRangeToken();
     this.Tok = e.Tok;
   }
 

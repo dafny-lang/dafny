@@ -81,7 +81,7 @@ namespace Microsoft.Dafny {
       set => rangeToken = value;
     }
 
-    public RangeToken GetRangeToken() {
+    public virtual RangeToken GetRangeToken() {
       if (rangeToken == null) {
         if (tok is RangeToken tokAsRange) {
           rangeToken = tokAsRange;
