@@ -736,7 +736,7 @@ public abstract class Expression : INode {
     Contract.Requires(new_body != null);
     Contract.Ensures(Contract.Result<MatchCaseExpr>() != null);
 
-    var cloner = new ResolvedCloner();
+    var cloner = new Cloner(true);
     var newVars = old_case.Arguments.ConvertAll(bv => cloner.CloneBoundVar(bv, false));
     new_body = VarSubstituter(old_case.Arguments.ConvertAll<NonglobalVariable>(x => (NonglobalVariable)x), newVars, new_body);
 
@@ -765,7 +765,7 @@ public abstract class Expression : INode {
     Contract.Requires(LHSs.Count == RHSs.Count);
     Contract.Requires(body != null);
 
-    var cloner = new ResolvedCloner();
+    var cloner = new Cloner(true);
     var newLHSs = LHSs.ConvertAll(cloner.CloneCasePattern);
 
     var oldVars = new List<BoundVar>();
@@ -784,10 +784,9 @@ public abstract class Expression : INode {
   /// Optionally replace the old body with the supplied argument
   /// </summary>
   public static Expression CreateQuantifier(QuantifierExpr expr, bool forall, Expression body = null) {
-    //(IToken tok, List<BoundVar> vars, Expression range, Expression body, Attributes attribs, Qu) {
     Contract.Requires(expr != null);
 
-    var cloner = new ResolvedCloner();
+    var cloner = new Cloner(true);
     var newVars = expr.BoundVars.ConvertAll(bv => cloner.CloneBoundVar(bv, false));
 
     if (body == null) {
