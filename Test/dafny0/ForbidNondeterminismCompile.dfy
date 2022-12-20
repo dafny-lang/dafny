@@ -1,4 +1,4 @@
-// RUN: ! %baredafny build %args --enforce-determinism "%s" --target cs > "%t"
+// RUN: ! %baredafny run %args --enforce-determinism "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class C {

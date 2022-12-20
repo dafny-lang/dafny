@@ -1,4 +1,4 @@
-// RUN: %baredafny build --target=cs %args "%s" %S/ExternDLL2.cs %S/ExternHelloLibrary.dll > "%t"
+// RUN: %baredafny translate cs %args --compile-target "%s" %S/ExternDLL2.cs %S/ExternHelloLibrary.dll > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {

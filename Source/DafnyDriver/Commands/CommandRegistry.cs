@@ -28,7 +28,6 @@ static class CommandRegistry {
     AddCommand(new ResolveCommand());
     AddCommand(new VerifyCommand());
     AddCommand(new RunCommand());
-    AddCommand(new BuildCommand());
     AddCommand(new TranslateCommand());
     AddCommand(new MeasureComplexityCommand());
     AddCommand(new ServerCommand());
