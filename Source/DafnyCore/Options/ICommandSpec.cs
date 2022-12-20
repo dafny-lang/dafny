@@ -27,10 +27,13 @@ public interface ICommandSpec {
   public static Argument<IEnumerable<FileInfo>> FilesArgument { get; }
 
   public static IReadOnlyList<Option> VerificationOptions = new Option[] {
+    CommonOptionBag.RelaxDefiniteAssignment,
     BoogieOptionBag.VerificationTimeLimit,
     CommonOptionBag.VerifyIncludedFiles,
     CommonOptionBag.ManualLemmaInduction,
     CommonOptionBag.SolverPath,
+    CommonOptionBag.DisableNonLinearArithmetic,
+    BoogieOptionBag.BoogieArguments,
   }.ToList();
 
   public static IReadOnlyList<Option> TranslationOptions = new Option[] {
@@ -58,15 +61,12 @@ public interface ICommandSpec {
     BoogieOptionBag.Cores,
     CommonOptionBag.Libraries,
     CommonOptionBag.Plugin,
-    BoogieOptionBag.BoogieArguments,
     CommonOptionBag.Prelude,
-    CommonOptionBag.RelaxDefiniteAssignment,
     Function.FunctionSyntaxOption,
     CommonOptionBag.QuantifierSyntax,
     CommonOptionBag.WarnShadowing,
     CommonOptionBag.WarnMissingConstructorParenthesis,
     PrintStmt.TrackPrintEffectsOption,
-    CommonOptionBag.DisableNonLinearArithmetic,
     CommonOptionBag.UnicodeCharacters,
   });
 
