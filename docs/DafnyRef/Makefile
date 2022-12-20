@@ -10,7 +10,7 @@ numbers:
 
 options:
 	echo '```' > OptionsTemp.txt
-	../../Scripts/dafny -help | tr -d '\r' | sed -e 's/[ ]+\n/\n/' | grep -v 'Error: ' >> OptionsTemp.txt
+	../../Scripts/dafny /help | tr -d '\r' | sed -e 's/[ ]+\n/\n/' | grep -v 'Error: ' >> OptionsTemp.txt
 	echo '```' >> OptionsTemp.txt
 	if [ ! -e Options.txt ]; then cp OptionsTemp.txt Options.txt; fi
 	diff -q OptionsTemp.txt Options.txt || ( cp OptionsTemp.txt Options.txt && echo Updated Options.txt )
