@@ -1,5 +1,5 @@
 using System.CommandLine;
-using Microsoft.Dafny.Plugins;
+using System.IO;
 
 namespace Microsoft.Dafny;
 
@@ -10,7 +10,7 @@ public class DeveloperOptionBag {
     IsHidden = true
   };
 
-  public static readonly Option<string> BoogiePrint = new("--bprint",
+  public static readonly Option<FileInfo> BoogiePrint = new("--bprint",
     @"
 Print Boogie program translated from Dafny
 (use - as <file> to print to console)".TrimStart()) {
@@ -18,14 +18,14 @@ Print Boogie program translated from Dafny
     ArgumentHelpName = "file"
   };
 
-  public static readonly Option<string> Print = new("--print", @"
+  public static readonly Option<FileInfo> Print = new("--print", @"
 Print Dafny program after parsing it.
 (Use - as <file> to print to console.)".TrimStart()) {
     IsHidden = true,
     ArgumentHelpName = "file"
   };
 
-  public static readonly Option<string> ResolvedPrint = new("--rprint", @"
+  public static readonly Option<FileInfo> ResolvedPrint = new("--rprint", @"
 Print Dafny program after resolving it.
 (use - as <file> to print to console.)".TrimStart()) {
     IsHidden = true,
@@ -34,20 +34,20 @@ Print Dafny program after resolving it.
 
   static DeveloperOptionBag() {
     DafnyOptions.RegisterLegacyBinding(ResolvedPrint, (options, value) => {
-      options.DafnyPrintResolvedFile = value;
+      options.DafnyPrintResolvedFile = value.FullName;
       options.ExpandFilename(options.DafnyPrintResolvedFile, x => options.DafnyPrintResolvedFile = x, options.LogPrefix,
         options.FileTimestamp);
     });
 
     DafnyOptions.RegisterLegacyBinding(Print, (options, value) => {
-      options.DafnyPrintFile = value;
+      options.DafnyPrintFile = value.FullName;
       options.ExpandFilename(options.DafnyPrintFile, x => options.DafnyPrintFile = x, options.LogPrefix,
         options.FileTimestamp);
     });
 
     DafnyOptions.RegisterLegacyBinding(UseBaseFileName, (o, f) => o.UseBaseNameForFileName = f);
     DafnyOptions.RegisterLegacyBinding(BoogiePrint, (options, f) => {
-      options.PrintFile = f;
+      options.PrintFile = f.FullName;
       options.ExpandFilename(options.PrintFile, x => options.PrintFile = x, options.LogPrefix,
         options.FileTimestamp);
     });

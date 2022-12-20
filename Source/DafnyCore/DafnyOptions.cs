@@ -59,16 +59,16 @@ features like traits or co-inductive types.".TrimStart(), "cs");
         datatype Record = Record(x: int)
     is transformed into just 'int' in the target code.".TrimStart(), defaultValue: true);
 
-      RegisterLegacyUi(CommonOptionBag.Output, ParseString, "Compilation options", "out");
+      RegisterLegacyUi(CommonOptionBag.Output, ParseFileInfo, "Compilation options", "out");
       RegisterLegacyUi(CommonOptionBag.UnicodeCharacters, ParseBoolean, "Language feature selection", "unicodeChar", @"
 0 (default) - The char type represents any UTF-16 code unit.
 1 - The char type represents any Unicode scalar value.".TrimStart());
       RegisterLegacyUi(CommonOptionBag.Plugin, ParseStringElement, "Plugins", defaultValue: new List<string>());
-      RegisterLegacyUi(CommonOptionBag.Prelude, ParseString, "Input configuration", "dprelude");
+      RegisterLegacyUi(CommonOptionBag.Prelude, ParseFileInfo, "Input configuration", "dprelude");
 
       RegisterLegacyUi(CommonOptionBag.Libraries, ParseStringElement, "Compilation options", defaultValue: new List<string>());
-      RegisterLegacyUi(DeveloperOptionBag.ResolvedPrint, ParseString, "Overall reporting and printing", "rprint");
-      RegisterLegacyUi(DeveloperOptionBag.Print, ParseString, "Overall reporting and printing", "dprint");
+      RegisterLegacyUi(DeveloperOptionBag.ResolvedPrint, ParseFileInfo, "Overall reporting and printing", "rprint");
+      RegisterLegacyUi(DeveloperOptionBag.Print, ParseFileInfo, "Overall reporting and printing", "dprint");
 
       RegisterLegacyUi(DafnyConsolePrinter.ShowSnippets, ParseBoolean, "Overall reporting and printing", "showSnippets", @"
 0 (default) - Don't show source code snippets for Dafny messages.
@@ -130,6 +130,12 @@ NoGhost - disable printing of functions, ghost methods, and proof
     private static Dictionary<Option, Action<DafnyOptions, object>> legacyBindings = new();
     public static void RegisterLegacyBinding<T>(Option<T> option, Action<DafnyOptions, T> bind) {
       legacyBindings[option] = (options, o) => bind(options, (T)o);
+    }
+
+    public static void ParseFileInfo(Option<FileInfo> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
+      if (ps.ConfirmArgumentCount(1)) {
+        options.Set(option, new FileInfo(ps.args[ps.i]));
+      }
     }
 
     public static void ParseString(Option<string> option, Bpl.CommandLineParseState ps, DafnyOptions options) {

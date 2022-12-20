@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using System.CommandLine;
-using System.Diagnostics.Tracing;
+using System.IO;
 using System.Linq;
 
 namespace Microsoft.Dafny; 
@@ -45,7 +45,7 @@ However, these contents are skipped during code generation and verification.
 This option is useful in a diamond dependency situation, 
 to prevent code from the bottom dependency from being generated more than once.".TrimStart());
 
-  public static readonly Option<string> Output = new(new[] { "--output", "-o" },
+  public static readonly Option<FileInfo> Output = new(new[] { "--output", "-o" },
     "Specify the filename and location for the generated target language files.") {
     ArgumentHelpName = "file"
   };
@@ -62,7 +62,7 @@ https://github.com/dafny-lang/dafny/blob/master/Source/DafnyLanguageServer/READM
     ArgumentHelpName = "path-to-one-assembly[,argument]*"
   };
 
-  public static readonly Option<string> Prelude = new("--prelude", "Choose the Dafny prelude file.") {
+  public static readonly Option<FileInfo> Prelude = new("--prelude", "Choose the Dafny prelude file.") {
     ArgumentHelpName = "file"
   };
 
@@ -111,7 +111,7 @@ Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md).
 false - The char type represents any UTF-16 code unit.
 true - The char type represents any Unicode scalar value.".TrimStart());
 
-  public static readonly Option<string> SolverPath = new("--solver-path",
+  public static readonly Option<FileInfo> SolverPath = new("--solver-path",
     "Can be used to specify a custom SMT solver to use for verifying Dafny proofs.");
   public static readonly Option<bool> VerifyIncludedFiles = new("--verify-included-files",
     "Verify code in included files.");
@@ -137,8 +137,8 @@ Functionality is still being expanded. Currently only checks contracts on every 
 
   static CommonOptionBag() {
     DafnyOptions.RegisterLegacyBinding(SolverPath, (options, value) => {
-      if (!string.IsNullOrEmpty(value)) {
-        options.ProverOptions.Add($"PROVER_PATH={value}");
+      if (value != null) {
+        options.ProverOptions.Add($"PROVER_PATH={value.FullName}");
       }
     });
 
@@ -166,13 +166,13 @@ Functionality is still being expanded. Currently only checks contracts on every 
     DafnyOptions.RegisterLegacyBinding(Plugin, (options, value) => { options.AdditionalPluginArguments = value; });
 
     DafnyOptions.RegisterLegacyBinding(Prelude, (options, value) => {
-      options.DafnyPrelude = value;
+      options.DafnyPrelude = value.FullName;
       options.ExpandFilename(options.DafnyPrelude, x => options.DafnyPrelude = x, options.LogPrefix,
         options.FileTimestamp);
     });
     DafnyOptions.RegisterLegacyBinding(Libraries,
       (options, value) => { options.LibraryFiles = value.ToHashSet(); });
-    DafnyOptions.RegisterLegacyBinding(Output, (options, value) => { options.DafnyPrintCompiledFile = value; });
+    DafnyOptions.RegisterLegacyBinding(Output, (options, value) => { options.DafnyPrintCompiledFile = value.FullName; });
 
     DafnyOptions.RegisterLegacyBinding(CompileVerbose, (o, v) => o.CompileVerbose = v);
     DafnyOptions.RegisterLegacyBinding(DisableNonLinearArithmetic, (o, v) => o.DisableNLarith = v);
