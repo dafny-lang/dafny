@@ -85,17 +85,19 @@ at least `n` levels of loop statements. Control continues after exiting `n`
 enclosing loops. For example,
 
 ```dafny <!-- %check-resolve -->
-for i := 0 to 10 {
-  for j := 0 to 10 {
-    label X: {
-      for k := 0 to 10 {
-        if j + k == 15 {
-          break break;
+method m() {
+  for i := 0 to 10 {
+    for j := 0 to 10 {
+      label X: {
+        for k := 0 to 10 {
+          if j + k == 15 {
+            break break;
+          }
         }
       }
     }
+    // control continues here after the "break break", exiting two loops
   }
-  // control continues here after the "break break", exiting two loops
 }
 ```
 
@@ -109,19 +111,23 @@ before the closing curly-brace of the loop body.
 
 For example,
 ```dafny <!-- %check-resolve -->
-for i := 0 to 100 {
-  if i == 17 {
-    continue;
+method m() {
+  for i := 0 to 100 {
+    if i == 17 {
+      continue;
+    }
+    DoSomething(i);
   }
-  DoSomething(i);
 }
 method DoSomething(i:int){}
 ```
 is equivalent to
 ```dafny <!-- %check-resolve -->
-for i := 0 to 100 {
-  if i != 17 {
-    DoSomething(i);
+method m() {
+  for i := 0 to 100 {
+    if i != 17 {
+      DoSomething(i);
+    }
   }
 }
 method DoSomething(i:int){}
@@ -130,12 +136,14 @@ The same effect can also be obtained by wrapping the loop body in a labeled
 block statement and then using `break` with a label, but that usually makes
 for a more cluttered program:
 ```dafny <!-- %check-resolve -->
-for i := 0 to 100 {
-  label LoopBody: {
-    if i == 17 {
-      break LoopBody;
+method m() {
+  for i := 0 to 100 {
+    label LoopBody: {
+      if i == 17 {
+        break LoopBody;
+      }
+      DoSomething(i);
     }
-    DoSomething(i);
   }
 }
 method DoSomething(i:int){}
@@ -236,7 +244,7 @@ method m() {
   }
   assert i == 10 || 200 <= i < 210;
 }
-predicate P(i:int)
+predicate method P(i:int)
 ```
 To explain the example, the loop invariant `0 <= i <= 10` is known to hold at the very top
 of each iteration,
@@ -447,7 +455,7 @@ The following subsections show various uses and alternatives.
 ### 20.7.1. Failure compatible types {#sec-failure-compatible-types}
 
 A simple failure-compatible type is the following:
-```dafny
+```dafny <!-- %check-resolve -->
 datatype Status =
 | Success
 | Failure(error: string)
@@ -459,7 +467,7 @@ datatype Status =
     Failure(this.error)
   }
 }
-```
+``` <!-- %save Status.tmp -->
 
 A commonly used alternative that carries some value information is something like this generic type:
 ```dafny <!-- %check-resolve -->
@@ -481,13 +489,13 @@ datatype Outcome<T> =
     this.value
   }
 }
-```
+``` <!-- %save Outcome.tmp -->
 
 
 ### 20.7.2. Simple status return with no other outputs
 
 The simplest use of this failure-return style of programming is to have a method call that just returns a non-value-carrying `Status` value:
-```dafny <!-- %check-resolve -->
+```dafny <!-- %check-resolve %use Status.tmp -->
 method Callee(i: int) returns (r: Status)
 {
   if i < 0 { return Failure("negative"); }
@@ -526,7 +534,7 @@ It may well be convenient to have additional out-parameters, as is allowed for `
 these out-parameters behave just as for `:=`.
 Here is an example:
 
-```dafny <!-- %check-resolve -->
+```dafny <!-- %check-resolve %use Status.tmp -->
 method Callee(i: int) returns (r: Status, v: int, w: int)
 {
   if i < 0 { return Failure("negative"), 0, 0; }
@@ -568,7 +576,7 @@ if tmp.IsFailure() {
 The failure-compatible return value can carry additional data as shown in the `Outcome<T>` example above.
 In this case there is a (first) LHS l-value to receive this additional data.
 
-```dafny <!-- %check-resolve -->
+```dafny <!-- %check-resolve %use Outcome.tmp -->
 method Callee(i: int) returns (r: Outcome<nat>, v: int)
 {
   if i < 0 { return Failure("negative"), i+i; }
@@ -639,8 +647,8 @@ and the execution of the caller's body is ended.
 A RHS with a method call cannot be mixed with a RHS containing multiple expressions.
 
 For example, the desugaring of
-```dafny <!-- %check-resolve -->
-method m(Status r) returns (rr: Status) {
+```dafny <!-- %check-resolve %use Status.tmp -->
+method m(r: Status) returns (rr: Status) {
   var k;
   k :- r, 7;
   ...
@@ -968,7 +976,7 @@ Edsger W. Dijkstra. It is used for a multi-branch `if`.
 
 For example:
 ```dafny <!-- %check-resolve -->
-function (x: int, y: int): (max: int) 
+method m(x: int, y: int) returns (max: int) 
 {
   if {
     case x <= y => max := y;
@@ -1043,7 +1051,8 @@ The second form uses the `AlternativeBlock`. It is similar to the
 Edsger W. Dijkstra. For example:
 
 ```dafny <!-- %check-verify -->
-method m(){
+method m(n: int){
+  var r := n;
   while
     decreases if 0 <= r then r else -r;
   {
@@ -1275,7 +1284,8 @@ For example, the following is
 a proper use of `decreases` on a loop:
 
 ```dafny <!-- %check-verify -->
-method m(){
+method m(n: nat){
+  var i := n;
   while 0 < i
     invariant 0 <= i
     decreases i
@@ -1296,7 +1306,9 @@ counter itself, but rather the distance between the counter and the upper
 bound. A simple trick for dealing with this situation is given below:
 
 ```dafny <!-- %check-verify -->
-method m() {
+method m(m: nat, n: int) {
+  assume m <= n;
+  var i := m;
   while i < n
     invariant 0 <= i <= n
     decreases n - i
@@ -1463,7 +1475,7 @@ The IDE will display the computed loop frame in hover text.
 
 For example, consider
 
-```dafny <!-- %check-verify Sstatements.3.expect -->
+```dafny <!-- %check-verify Statements.3.expect -->
 class Cell {
   var data: int
   const K: int
@@ -1711,7 +1723,7 @@ C) Compiler tests
 
 If one wants to assure that compiled code is behaving at run-time consistently with the statically verified code,
 one can use paired assert/expect statements with the same expression:
-```dafny
+```dafny <!-- %no-check -->
 assert _P_;
 expect _P_;
 ```
@@ -1747,7 +1759,7 @@ line you should include `"\n"` as part of one of the expressions.
 Dafny automatically creates implementations of methods that convert values to strings
 for all Dafny data types. For example,
 
-```dafny <!-- %check-run -->
+```dafny <!-- %check-run Statements.4.expect -->
 datatype Tree = Empty | Node(left: Tree, data: int, right: Tree)
 method Main()
 {
@@ -1807,7 +1819,7 @@ The `reveal` statement makes available to the solver information that is otherwi
 
 If an assert statement has an expression label, then a proof of that assertion is attempted, but the assertion itself
 is not used subsequently.  For example, consider
-```dafny <!-- %check-verify Statements.4.expect -->
+```dafny <!-- %check-verify Statements.5.expect -->
 method m(i: int) {
   assert x: i == 0; // Fails
   assert i == 0; // Fails also because the x: makes the first assertion opaque
@@ -1817,7 +1829,7 @@ The first assertion fails. Without the label `x:`, the second would succeed beca
 assertion is assumed in the context of the rest of the program.  But with the label, the first assertion is hidden from
 the rest of the program. That assertion can be _revealed_ by adding a `reveal` statement:
 
-```dafny <!-- %check-verify Statements.5.expect -->
+```dafny <!-- %check-verify Statements.6.expect -->
 method m(i: int) {
   assert x: i == 0; // Fails
   reveal x;
@@ -1825,7 +1837,7 @@ method m(i: int) {
 }
 ```
 or
-```dafny <!-- %check-verify Statements.6.expect -->
+```dafny <!-- %check-verify Statements.7.expect -->
 method m(i: int) {
   assert x: i == 0; // Fails
   assert i == 0 by { reveal x; } // Now succeeds
@@ -1842,7 +1854,7 @@ Within the body of a method, a precondition is an assumption; if the preconditio
 A `reveal` statement naming the label of the precondition then makes the assumption visible.
 
 Here is a toy example:
-``` <!-- %check-verify Statements.7.expect -->
+```dafny <!-- %check-verify Statements.8.expect -->
 method m(x: int, y: int) returns (z: int)
   requires L: 0 < y
   ensures z == x+y
@@ -1851,12 +1863,12 @@ method m(x: int, y: int) returns (z: int)
   z := x + y;
 }
 ```
-The above methhod will not verify. In particular, the second postcondition cannot be proved.
+The above method will not verify. In particular, the second postcondition cannot be proved.
 However, if we add a `reveal L;` statement in the body of the method, then the precondition is visible 
 and both postconditions can be proved.
 
 One could also use this style:
-``` <!-- %check-verify -->
+```dafny <!-- %check-verify -->
 method m(x: int, y: int) returns (z: int)
   requires L: 0 < y
   ensures z == x+y
@@ -1886,7 +1898,7 @@ body of the function can be _revealed_ using the reveal statement. Here is an ex
 ```dafny <!-- %check-verify Statements.9.expect -->
 function {:opaque} f(i: int): int { i + 1 }
 
-method m(int i) {
+method m(i: int) {
   assert f(i) == i + 1;
 }
 ```
@@ -1960,10 +1972,12 @@ Here is an example of a _call_ `forall` statement and the
 callee. This is contained in the `CloudMake-ConsistentBuilds.dfy`
 test in the Dafny repository.
 
-```dafny <!-- %check-verify -->
-forall cmd', deps', e' |
+```dafny <!-- %no-check Too many undeclared symbols -->
+method m() {
+  forall cmd', deps', e' |
        Hash(Loc(cmd', deps', e')) == Hash(Loc(cmd, deps, e)) {
-  HashProperty(cmd', deps', e', cmd, deps, e);
+    HashProperty(cmd', deps', e', cmd, deps, e);
+  }
 }
 
 lemma HashProperty(cmd: Expression, deps: Expression, ext: string,
@@ -1974,7 +1988,7 @@ lemma HashProperty(cmd: Expression, deps: Expression, ext: string,
 
 The following example of a _proof_ `forall` statement comes from the same file:
 
-```dafny <!-- %check-verify -->
+```dafny <!-- %no-check Too many undeclared symbols -->
 forall p | p in DomSt(stCombinedC.st) && p in DomSt(stExecC.st)
   ensures GetSt(p, stCombinedC.st) == GetSt(p, stExecC.st)
 {
@@ -2016,7 +2030,7 @@ followed by a `modify` statement that may modify any field
 in the object. After that we can no longer prove that the field
 `x` still has the value we assigned to it.
 
-```dafny <!-- %check-verify Statements.9.expect -->
+```dafny <!-- %check-verify Statements.10.expect -->
 class MyClass {
   var x: int
   method N()

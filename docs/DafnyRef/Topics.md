@@ -823,6 +823,10 @@ Thus, `FibProperty` can be declared and proved simply by:
 lemma FibProperty(n: nat)
   ensures fib(n) % 2 == 0 <==> n % 3 == 0
 { }
+function fib(n: nat): nat
+{
+  if n < 2 then n else fib(n-2) + fib(n-1)
+}
 ```
 
 Going in the other direction from universal introduction is existential elimination,
@@ -843,8 +847,8 @@ well-founded predicate.  The declarations for introducing extreme predicates are
 greatest solutions of $g$ from above; let's call them `g` and `G`:
 
 ```dafny <!-- %check-verify -->
-least predicate g(x: int) { x == 0 || g(x-2) }
-greatest predicate G(x: int) { x == 0 || G(x-2) }
+least predicate g[nat](x: int) { x == 0 || g(x-2) }
+greatest predicate G[nat](x: int) { x == 0 || G(x-2) }
 ```
 
 When Dafny receives either of these definitions, it automatically declares the corresponding
@@ -881,8 +885,8 @@ From what has been presented so far, we can do the formal proofs for
 former:
 
 ```dafny <!-- %check-verify -->
-predicate g#[_k: nat](x: int) { _k != 0 && (x == 0 || g#[_k-1](x-2)) }
-predicate G#[_k: nat](x: int) { _k != 0 ==> (x == 0 || G#[_k-1](x-2)) }
+least predicate g[nat](x: int) { x == 0 || g(x-2) }
+greatest predicate G[nat](x: int) { x == 0 || G(x-2) }
 lemma EvenNat(x: int)
   requires g(x)
   ensures 0 <= x && x % 2 == 0
@@ -924,6 +928,8 @@ completes the proof automatically.
 Here is the Dafny program that gives the proof from [the example of the greatest solution](#sec-example-greatest-solution):
 
 ```dafny <!-- %check-verify -->
+least predicate g[nat](x: int) { x == 0 || g(x-2) }
+greatest predicate G[nat](x: int) { x == 0 || G(x-2) }
 lemma Always(x: int)
   ensures G(x)
 { forall k: nat { AlwaysAux(k, x); } }
@@ -975,6 +981,8 @@ Let us see what effect these rewrites have on how one can write proofs.  Here ar
 of our running example:
 
 ```dafny <!-- %check-verify -->
+least predicate g(x: int) { x == 0 || g(x-2) }
+greatest predicate G(x: int) { x == 0 || G(x-2) }
 least lemma EvenNat(x: int)
   requires g(x)
   ensures 0 <= x && x % 2 == 0
