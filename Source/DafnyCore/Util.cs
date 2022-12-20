@@ -448,12 +448,9 @@ namespace Microsoft.Dafny {
 
       foreach (var module in program.Modules()) {
         foreach (var decl in module.TopLevelDecls) {
-          if (decl is ClassDecl) {
-            var c = (ClassDecl)decl;
+          if (decl is TopLevelDeclWithMembers c) {
             foreach (var member in c.Members) {
-              if (member is Function) {
-                var f = (Function)member;
-
+              if (member is Function f) {
                 List<Function> calls = new List<Function>();
                 foreach (var e in f.Reads) { if (e != null && e.E != null) { callFinder.Visit(e.E, calls); } }
                 foreach (var e in f.Req) { if (e != null) { callFinder.Visit(e, calls); } }
