@@ -14,6 +14,7 @@ jobs:
     steps:
     - name: Install dafny
       run: |
+        export HOMEBREW_NO_INSTALL_CLEANUP=1
         brew install dafny || echo DONE
         brew link --overwrite dotnet
     - name: Make test program
