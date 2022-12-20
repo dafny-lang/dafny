@@ -181,7 +181,7 @@ The `dafny resolve` command checks the command-line and then parses and typechec
 The options relevant to this command are
 - those relevant to the command-line itself
    - `--` --- signals that any command-line arguments after the appearance of `--` are interpreted as files and not as options (but see [`dafny run`](#sec-dafny-run) for a variation)
-   - `--warn-as-errors` --- turn all warnings into errors, which alters [dafny's exit code](#sec-exit-code)
+   - `--warn-as-errors` --- turn all warnings into errors, which alters [dafny's exit code](#sec-exit-codes)
 
 - those that affect dafny` as a whole, such as
    - `--cores` --- set the number of cores dafny should use
@@ -388,7 +388,7 @@ As is typical for command-line tools, `dafny` provides in-tool help through the 
 - `dafny -?` lists all the (legacy) options implemented in `dafny`
 - `dafny <command> -h`, `dafny <command> --help`, `dafny <command> -?` list the options available for that command
 
-### 25.5.3. dafny exit codes
+### 25.5.3. dafny exit codes {#sec-exit-codes}
 
 The dafny tool terminates with these exit codes:
 
