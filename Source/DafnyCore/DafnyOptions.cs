@@ -189,7 +189,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     }
 
     public DafnyOptions()
-      : base("Dafny", "Dafny program verifier", new DafnyConsolePrinter()) {
+      : base("dafny", "Dafny program verifier", new DafnyConsolePrinter()) {
       ErrorTrace = 0;
       Prune = true;
       NormalizeNames = true;
