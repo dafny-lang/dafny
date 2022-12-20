@@ -15,7 +15,7 @@ jobs:
     - name: Install dafny
       run: |
         brew install dafny || echo DONE
-        brew link --overwrite dotnet
+        #brew link --overwrite dotnet
     - name: Make test program
       run: |
         echo "method Main() { assert true; print 42, '\n'; }" > a.dfy
