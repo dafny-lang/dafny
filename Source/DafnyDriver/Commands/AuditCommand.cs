@@ -14,7 +14,7 @@ class AuditCommand : ICommandSpec {
   }.Concat(ICommandSpec.CommonOptions);
 
   public Command Create() {
-    var result = new Command("audit", "Identify all assumptions in the program, emitting them as warnings or in a report document.");
+    var result = new Command("audit", "Report issues in the Dafny code that might limit the soundness claims of verification, emitting them as warnings or in a report document.");
     result.AddArgument(ICommandSpec.FilesArgument);
     return result;
   }
