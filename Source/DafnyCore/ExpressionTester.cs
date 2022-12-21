@@ -1,32 +1,35 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
 
 public class ExpressionTester {
-  private bool reportErrors = false;
-  private ErrorReporter reporter = null;
-  private Resolver resolver = null;
+  private bool ReportErrors => reporter != null;
+  [CanBeNull] private readonly ErrorReporter reporter; // if null, no errors will be reported
 
-  public ExpressionTester(Resolver resolver = null, bool reportErrors = false) :
-    this(resolver, resolver?.Reporter, reportErrors) {
-  }
+  /// <summary>
+  /// If "resolver" is non-null, CheckIsCompilable will update some fields in the resolver. In particular,
+  ///   - .InCompiledContext in DatatypeUpdateExpr will be updated
+  ///   - for a FunctionCallExpr that calls a function-by-method in a compiled context, a call-graph edge will be
+  ///     added from the caller to the by-method.
+  ///   - .Constraint_Bounds of LetExpr will be updated
+  /// </summary>
+  [CanBeNull] private readonly Resolver resolver; // if non-null, CheckIsCompilable will update some fields in the resolver
 
-  public ExpressionTester(Resolver resolver, ErrorReporter reporter, bool reportErrors = false) {
-    Contract.Requires(reportErrors == false || resolver != null);
+  private ExpressionTester([CanBeNull] Resolver resolver, [CanBeNull] ErrorReporter reporter) {
     this.resolver = resolver;
     this.reporter = reporter;
-    this.reportErrors = reportErrors;
   }
 
   // Static call to CheckIsCompilable
-  public static bool CheckIsCompilable(Resolver resolver, Expression expr, ICodeContext codeContext) {
-    return new ExpressionTester(resolver, resolver != null).CheckIsCompilable(expr, codeContext);
+  public static bool CheckIsCompilable([CanBeNull] Resolver resolver, Expression expr, ICodeContext codeContext) {
+    return new ExpressionTester(resolver, resolver?.Reporter).CheckIsCompilable(expr, codeContext);
   }
   // Static call to CheckIsCompilable
   public static bool CheckIsCompilable(Resolver resolver, ErrorReporter reporter, Expression expr, ICodeContext codeContext) {
-    return new ExpressionTester(resolver, reporter, resolver != null).CheckIsCompilable(expr, codeContext);
+    return new ExpressionTester(resolver, reporter).CheckIsCompilable(expr, codeContext);
   }
 
   /// <summary>
@@ -94,7 +97,7 @@ public class ExpressionTester {
     } else if (expr is FunctionCallExpr callExpr) {
       if (callExpr.Function != null) {
         if (callExpr.Function.IsGhost) {
-          if (reportErrors == false) {
+          if (ReportErrors == false) {
             return false;
           }
 
@@ -117,7 +120,9 @@ public class ExpressionTester {
         if (callExpr.Function.ByMethodBody != null) {
           Contract.Assert(callExpr.Function.ByMethodDecl != null); // we expect .ByMethodDecl to have been filled in by now
           // this call will really go to the method part of the function-by-method, so add that edge to the call graph
-          resolver?.AddCallGraphEdge(codeContext, callExpr.Function.ByMethodDecl, callExpr, false);
+          if (resolver != null) {
+            CallGraphBuilder.AddCallGraphEdge(codeContext, callExpr.Function.ByMethodDecl, callExpr, reporter);
+          }
           callExpr.IsByMethodCall = true;
         }
         // function is okay, so check all NON-ghost arguments
@@ -228,7 +233,7 @@ public class ExpressionTester {
     } else if (expr is ComprehensionExpr comprehensionExpr) {
       var uncompilableBoundVars = comprehensionExpr.UncompilableBoundVars();
       if (uncompilableBoundVars.Count != 0) {
-        if (reportErrors == false) {
+        if (ReportErrors == false) {
           return false;
         }
 

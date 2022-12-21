@@ -1,12 +1,12 @@
-// git-issue-1665.dfy
+// git-issue228.dfy
 
 /*
 module _System {
   /* CALL GRAPH for module _System:
    * SCC at height 1:
-   *   RotateLeft
-   * SCC at height 1:
    *   RotateRight
+   * SCC at height 1:
+   *   RotateLeft
    * SCC at height 0:
    *   nat
    */
@@ -96,88 +96,85 @@ module _System {
 
   datatype {:compile false} /*_tuple#0*/ () = _#Make0
 }
-// bitvector types in use:
+// bitvector types in use: bv0 bv19
 */
 
 /* CALL GRAPH for module _module:
+ * SCC at height 0:
+ *   Sets
+ * SCC at height 0:
+ *   Sequences
+ * SCC at height 1:
+ *   SubsetTypes
+ * SCC at height 0:
+ *   Subset_Byte
+ * SCC at height 0:
+ *   Subset_NegIsOdd
+ * SCC at height 1:
+ *   ConstrainedIntermediateExpressions
+ * SCC at height 0:
+ *   Byte
+ * SCC at height 0:
+ *   NegIsOdd
+ * SCC at height 1:
+ *   Numerics
+ * SCC at height 0:
+ *   nat
  */
+newtype NegIsOdd = x: int
+  | x < 0 ==> x % 2 == 1
+  witness 1
 
-module ConcreteModule {
-  /* CALL GRAPH for module ConcreteModule:
-   * SCC at height 2:
-   *   execute_external_method
-   * SCC at height 1:
-   *   Func1
-   * SCC at height 1:
-   *   Status.PropagateFailure
-   * SCC at height 0:
-   *   Status
-   * SCC at height 0:
-   *   Status.IsFailure
-   */
-  datatype Status = Success | Failure(error: nat) {
-    predicate method IsFailure()
-      decreases this
-    {
-      this.Failure?
-    }
+newtype Byte = x: int
+  | 0 <= x < 256
 
-    function method PropagateFailure(): Status
-      requires IsFailure()
-      decreases this
-    {
-      Failure(this.error)
-    }
-  }
+type Subset_NegIsOdd = x: int
+  | x < 0 ==> x % 2 == 1
+  witness 1
 
-  method execute_external_method(n: nat, m: nat) returns (r: Status)
-    decreases n, m
-  {
-    
-    /*---------- desugared ----------
-    if n == 0 {
-      :- Func1()
-      /*---------- desugared ----------
-      var valueOrError0: Status;
-      valueOrError0 := Func1();
-      if valueOrError0.IsFailure() {
-        r := valueOrError0.PropagateFailure();
-        return;
-      }
-      ---------- end desugared ----------*/;
-      
-      if m == 1 {
-        :- Func1()
-        /*---------- desugared ----------
-        var valueOrError1: Status;
-        valueOrError1 := Func1();
-        if valueOrError1.IsFailure() {
-          r := valueOrError1.PropagateFailure();
-          return;
-        }
-        ---------- end desugared ----------*/;
-      } else {
-        return Success;
-      }      
-    } else {
-      return Success;
-    }    ---------- end desugared ----------*/
-    match n {
-      case {:split false} 0 =>
-        :- Func1();
-        match m {
-          case {:split false} 1 =>
-            :- Func1();
-          case {:split false} _ =>
-            return Success;
-        }
-      case {:split false} _ =>
-        return Success;
-    }
-  }
+type Subset_Byte = x: int
+  | 0 <= x < 256
 
-  method Func1() returns (r: Status)
-  {
-    return Success;
-  }
+lemma Sequences(s: seq, t: seq, u: seq)
+  ensures s + t + u == s + (t + u)
+  decreases s, t, u
+{
+}
+
+lemma Sets(s: set, t: set, u: set)
+  ensures s + t + u == s + (t + u)
+  ensures s * t * u == s * (t * u)
+  decreases s, t, u
+{
+}
+
+method Numerics()
+    returns (x: int, n: nat, r: real, o: ORDINAL, b: bv0, c: bv19)
+{
+  x := x + x + x + x;
+  n := n + n + n + n;
+  r := r + r + r + r;
+  o := o + o + o + o;
+  b := b + b + b + b;
+  c := c + c + c + c;
+}
+
+method ConstrainedIntermediateExpressions(a: NegIsOdd, b: NegIsOdd, x: Byte, z: Byte)
+  requires 0 <= b && z == 0
+  decreases a, b, x, z
+{
+  var c0: NegIsOdd := a + (b + b);
+  var c1: NegIsOdd := a + b + b;
+  var d0: Byte := x * (x * z);
+  var d1: Byte := x * x * z;
+}
+
+method SubsetTypes(a: Subset_NegIsOdd, b: Subset_NegIsOdd, x: Subset_Byte, z: Subset_Byte)
+  requires 0 <= b && z == 0
+  decreases a, b, x, z
+{
+  var c0: int := a + b + b;
+  var c1: int := a + b + b;
+  var d0: int := x * x * z;
+  var d1: int := x * x * z;
 }

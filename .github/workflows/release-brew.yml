@@ -14,7 +14,7 @@ jobs:
     steps:
     - name: Install dafny
       run: |
-        brew install dafny || echo DONE
+        brew install dafny
     - name: Make test program
       run: |
         echo "method Main() { assert true; print 42, '\n'; }" > a.dfy
@@ -22,7 +22,7 @@ jobs:
         echo "42" > expect.txt
     - name: Versions
       run: |
-        dafny -version || echo OK
+        dafny -version
         which dafny
         # -version is not supported in old dafny,
         # but this gives the version with an error

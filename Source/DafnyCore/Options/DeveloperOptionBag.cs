@@ -1,5 +1,5 @@
 using System.CommandLine;
-using Microsoft.Dafny.Plugins;
+using System.IO;
 
 namespace Microsoft.Dafny;
 
