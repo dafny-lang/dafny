@@ -2053,7 +2053,7 @@ namespace Microsoft.Dafny {
       //   (mh == ModuleContextHeight && fh <= FunctionContextHeight)
       //
       // USE_VIA_CONTEXT
-      //   (mh != ModuleContextHeight || fh != FunctionContextHeight) &&
+      //   fh < FunctionContextHeight &&
       //   GOOD_PARAMETERS
       // where GOOD_PARAMETERS means:
       //   $IsGoodHeap($Heap) && this != null && formals-have-the-expected-types &&
@@ -2157,8 +2157,8 @@ namespace Microsoft.Dafny {
         pre = BplAnd(pre, etran.TrExpr(Substitute(req.E, null, substMap)));
       }
       // useViaContext: fh < FunctionContextHeight
-      var lowerBound = (f.EnclosingClass.EnclosingModuleDefinition.CallGraph.GetSCCRepresentativePredecessorCount(f) + 1) * 2;
-      Expr useViaContext = !InVerificationScope(f) ? Bpl.Expr.True : Expr.Le(Expr.Literal(lowerBound), etran.FunctionContextHeight());
+      var visibilityLevel = f.EnclosingClass.EnclosingModuleDefinition.CallGraph.GetSCCRepresentativePredecessorCount(f);
+      Expr useViaContext = !InVerificationScope(f) ? Bpl.Expr.True : Expr.Lt(MkFunctionHeight(visibilityLevel), etran.FunctionContextHeight());
       // useViaCanCall: f#canCall(args)
       Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
       Bpl.Expr useViaCanCall = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(canCallFuncID), Concat(tyargs, args));
@@ -2253,15 +2253,14 @@ namespace Microsoft.Dafny {
       return (olderParameterCount, olderCondition);
     }
 
-    Bpl.Expr AxiomActivation(Function f, ExpressionTranslator etran, bool hidden = false) {
+    Bpl.Expr AxiomActivation(Function f, ExpressionTranslator etran, bool requiresFullScope = false) {
       Contract.Requires(f != null);
       Contract.Requires(etran != null);
       Contract.Requires(VisibleInScope(f));
-      var module = f.EnclosingClass.EnclosingModuleDefinition;
 
       if (InVerificationScope(f)) {
-        var lowerBound = module.CallGraph.GetSCCRepresentativePredecessorCount(f) * 2 + (hidden ? 1 : 0);
-        return Expr.Le(Expr.Literal(lowerBound), etran.FunctionContextHeight());
+        var visibilityLevel = f.EnclosingClass.EnclosingModuleDefinition.CallGraph.GetSCCRepresentativePredecessorCount(f);
+        return Expr.Le(MkFunctionHeight(visibilityLevel, !requiresFullScope), etran.FunctionContextHeight());
       } else {
         return Bpl.Expr.True;
       }
@@ -2301,7 +2300,7 @@ namespace Microsoft.Dafny {
       // for visibility==ForeignModuleOnly, means:
       //   GOOD_PARAMETERS
       // for visibility==IntraModuleOnly, means:
-      //   fh != FunctionContextHeight &&
+      //   fh < FunctionContextHeight &&
       //   GOOD_PARAMETERS
       // where GOOD_PARAMETERS means:
       //   $IsGoodHeap($Heap) && this != null && formals-have-the-expected-types &&
@@ -2506,12 +2505,11 @@ namespace Microsoft.Dafny {
         return null;
       }
 
-      // useViaContext: (mh != ModuleContextHeight || fh != FunctionContextHeight)
-      ModuleDefinition mod = f.EnclosingClass.EnclosingModuleDefinition;
+      // useViaContext: fh < FunctionContextHeight
+      var visibilityLevel = f.EnclosingClass.EnclosingModuleDefinition.CallGraph.GetSCCRepresentativePredecessorCount(f);
       Bpl.Expr useViaContext = !InVerificationScope(f)
-        ? (Bpl.Expr)Bpl.Expr.True
-        : Bpl.Expr.Le(Bpl.Expr.Literal((mod.CallGraph.GetSCCRepresentativePredecessorCount(f) + 1) * 2),
-          etran.FunctionContextHeight());
+        ? Bpl.Expr.True
+        : Bpl.Expr.Lt(MkFunctionHeight(visibilityLevel), etran.FunctionContextHeight());
       // ante := (useViaContext && typeAnte && pre)
       ante = BplAnd(useViaContext, BplAnd(ante, pre));
 
@@ -3488,7 +3486,7 @@ namespace Microsoft.Dafny {
       //generating assume C.F(ins) == out, if a result variable was given
       if (resultVariable != null) {
         var funcIdC = new FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, TrType(f.ResultType)));
-        List<Expr> argsC = new List<Expr>();
+        var argsC = new List<Bpl.Expr>();
 
         // add type arguments
         argsC.AddRange(GetTypeArguments(f, null).ConvertAll(TypeToTy));
@@ -3508,9 +3506,9 @@ namespace Microsoft.Dafny {
 
         argsC.AddRange(implInParams.Select(var => new Bpl.IdentifierExpr(f.tok, var)));
 
-        Expr funcExpC = new Bpl.NAryExpr(f.tok, funcIdC, argsC);
+        var funcExpC = new Bpl.NAryExpr(f.tok, funcIdC, argsC);
         var resultVar = new Bpl.IdentifierExpr(resultVariable.tok, resultVariable);
-        builder.Add(TrAssumeCmd(f.tok, Expr.Eq(funcExpC, resultVar)));
+        builder.Add(TrAssumeCmd(f.tok, Bpl.Expr.Eq(funcExpC, resultVar)));
       }
 
       //generating trait post-conditions with class variables
@@ -10720,6 +10718,14 @@ namespace Microsoft.Dafny {
         return FunctionCall(expr.tok, "$AlwaysAllocated", Bpl.Type.Bool, expr);
       }
       return null;
+    }
+
+    // We use the $FunctionContextHeight to restrict the applicability of certain axioms. The entity at the end of a
+    // dependency chain has the highest number. To get more granular control over the visibility, we extend every
+    // visibility level by a precursory intermediate level. This additional level is helpful for proofs that would be
+    // disturbed by axioms that are visible the the final level.
+    static Bpl.Expr MkFunctionHeight(int visibilityLevel, bool intermediateScope = false) {
+      return Expr.Literal(visibilityLevel * 2 + (intermediateScope ? 0 : 1));
     }
 
     public static void MapM<A>(IEnumerable<A> xs, Action<A> K) {

@@ -261,9 +261,8 @@ namespace Microsoft.Dafny {
       public Boogie.Expr HeightContext(ICallable m, bool reducedScope = false) {
         Contract.Requires(m != null);
         // free requires fh == FunctionContextHeight;
-        var module = m.EnclosingModule;
-        Boogie.Expr context =
-          Boogie.Expr.Eq(Boogie.Expr.Literal(module.CallGraph.GetSCCRepresentativePredecessorCount(m) * 2 + (reducedScope ? 0 : 1)), FunctionContextHeight());
+        var visibilityLevel = m.EnclosingModule.CallGraph.GetSCCRepresentativePredecessorCount(m);
+        Boogie.Expr context = Boogie.Expr.Eq(MkFunctionHeight(visibilityLevel, reducedScope), FunctionContextHeight());
         return context;
       }
 

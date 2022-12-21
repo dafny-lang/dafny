@@ -1,0 +1,3 @@
+git-issue-2500.dfy(16,13): Error: the function must provide an equal or more detailed postcondition than in its parent trait
+
+Dafny program verifier finished with 1 verified, 1 error

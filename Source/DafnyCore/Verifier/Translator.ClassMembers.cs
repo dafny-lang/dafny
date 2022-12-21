@@ -213,7 +213,8 @@ namespace Microsoft.Dafny {
         AddWellformednessCheck(cf);
         if (InVerificationScope(cf)) {
           var etran = new ExpressionTranslator(this, predef, f.tok);
-          heightAntecedent = Bpl.Expr.Lt(Bpl.Expr.Literal(cf.EnclosingModule.CallGraph.GetSCCRepresentativePredecessorCount(cf) * 2 + 1), etran.FunctionContextHeight());
+          var visibilityLevel = cf.EnclosingModule.CallGraph.GetSCCRepresentativePredecessorCount(cf);
+          heightAntecedent = Bpl.Expr.Lt(MkFunctionHeight(visibilityLevel), etran.FunctionContextHeight());
         }
       }
 
@@ -877,7 +878,7 @@ namespace Microsoft.Dafny {
       }
       // the procedure itself
       var req = new List<Boogie.Requires>();
-      // free requires mh == ModuleContextHeight && fh == FunctionContextHeight;
+      // free requires fh == FunctionContextHeight;
       req.Add(Requires(f.tok, true, etran.HeightContext(f.OverriddenFunction, true), null, null));
       if (f is TwoStateFunction) {
         // free requires prevHeap == Heap && HeapSucc(prevHeap, currHeap) && IsHeap(currHeap)
@@ -945,7 +946,6 @@ namespace Microsoft.Dafny {
       AddFunctionOverrideSubsetChk(f, builder, etran, localVariables, substMap, typeMap);
 
       //adding assume Q;
-      //adding assume J.F(ins) == C.F(ins);
       //assert Post’;
       AddFunctionOverrideEnsChk(f, builder, etran, substMap, typeMap, implInParams, implOutParams.Count == 0 ? null : implOutParams[0]);
 
