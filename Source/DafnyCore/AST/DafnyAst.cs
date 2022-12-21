@@ -977,6 +977,201 @@ namespace Microsoft.Dafny {
     public override IEnumerable<INode> Children => Expressions;
   }
 
+  public class ASTVisitor {
+    public ASTVisitor() {
+    }
+
+    /// <summary>
+    /// For every TopLevelDecl in "declarations" and every MemberDecl in such a TopLevelDecl, visit every
+    /// statement and expression using "visitor".
+    /// </summary>
+    public void VisitDeclarations(List<TopLevelDecl> declarations) {
+      declarations.Iter(VisitOneDeclaration);
+    }
+
+    protected void VisitOneDeclaration(TopLevelDecl decl) {
+      VisitAttributes(decl, decl.EnclosingModuleDefinition);
+
+      if (decl is RedirectingTypeDecl dd) {
+        var baseType = (decl as NewtypeDecl)?.BaseType ?? ((TypeSynonymDeclBase)decl).Rhs;
+        VisitUserProvidedType(baseType, dd);
+        if (dd.Constraint != null) {
+          VisitExpression(dd.Constraint, dd);
+        }
+        if (dd.Witness != null) {
+          VisitExpression(dd.Witness, dd);
+        }
+
+      } else if (decl is IteratorDecl iteratorDecl) {
+        VisitIterator(iteratorDecl);
+
+      } else if (decl is DatatypeDecl datatypeDecl) {
+        foreach (var ctor in datatypeDecl.Ctors) {
+          VisitAttributes(ctor, decl.EnclosingModuleDefinition);
+        }
+        foreach (var ctor in datatypeDecl.Ctors) {
+          VisitDefaultParameterValues(ctor.Formals, datatypeDecl);
+        }
+      }
+
+      if (decl is TopLevelDeclWithMembers cl) {
+        VisitClassMemberBodies(cl);
+      }
+    }
+
+    private void VisitIterator(IteratorDecl iteratorDecl) {
+      VisitAttributes(iteratorDecl, iteratorDecl.EnclosingModuleDefinition);
+
+      VisitDefaultParameterValues(iteratorDecl.Ins, iteratorDecl);
+
+      iteratorDecl.Requires.Iter(aexpr => VisitAttributedExpression(aexpr, iteratorDecl));
+
+      VisitAttributes(iteratorDecl.Modifies, iteratorDecl.EnclosingModuleDefinition);
+      iteratorDecl.Modifies.Expressions.Iter(frameExpr => VisitExpression(frameExpr.E, iteratorDecl));
+
+      iteratorDecl.YieldRequires.Iter(aexpr => VisitAttributedExpression(aexpr, iteratorDecl));
+
+      iteratorDecl.Reads.Expressions.Iter(frameExpr => VisitExpression(frameExpr.E, iteratorDecl));
+
+      iteratorDecl.YieldEnsures.Iter(frameExpr => VisitExpression(frameExpr.E, iteratorDecl));
+
+      iteratorDecl.Ensures.Iter(frameExpr => VisitExpression(frameExpr.E, iteratorDecl));
+
+      VisitAttributes(iteratorDecl.Decreases, iteratorDecl.EnclosingModuleDefinition);
+      iteratorDecl.Decreases.Expressions.Iter(expr => VisitExpression(expr, iteratorDecl));
+
+      if (iteratorDecl.Body != null) {
+        VisitStatement(iteratorDecl.Body, iteratorDecl);
+      }
+    }
+
+    private void VisitClassMemberBodies(TopLevelDeclWithMembers cl) {
+      Contract.Requires(cl != null);
+
+      foreach (var member in cl.Members) {
+        if (member is ConstantField constantField) {
+          VisitAttributes(constantField, constantField.EnclosingModule);
+          VisitUserProvidedType(constantField.Type, constantField);
+          if (constantField.Rhs != null) {
+            VisitExpression(constantField.Rhs, constantField);
+          }
+        } else if (member is Field field) {
+          var context = new NoContext(cl.EnclosingModuleDefinition);
+          VisitAttributes(field, cl.EnclosingModuleDefinition);
+          VisitUserProvidedType(field.Type, context);
+        } else if (member is Function function) {
+          VisitFunction(function);
+
+          var prefixPredicate = (function as ExtremePredicate)?.PrefixPredicate;
+          if (prefixPredicate != null) {
+            VisitFunction(prefixPredicate);
+          }
+
+          if (function.ByMethodDecl != null) {
+            VisitMethod(function.ByMethodDecl);
+          }
+
+        } else if (member is Method method) {
+          VisitMethod(method);
+
+          var prefixLemma = (method as ExtremeLemma)?.PrefixLemma;
+          if (prefixLemma != null) {
+            VisitMethod(prefixLemma);
+          }
+
+        } else {
+          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member type
+        }
+      }
+    }
+
+    private void VisitFunction(Function function) {
+      VisitAttributes(function, function.EnclosingClass.EnclosingModuleDefinition);
+
+      foreach (var formal in function.Formals) {
+        VisitUserProvidedType(formal.Type, function);
+      }
+      VisitUserProvidedType(function.ResultType, function);
+
+      VisitDefaultParameterValues(function.Formals, function);
+
+      function.Req.Iter(aexpr => VisitAttributedExpression(aexpr, function));
+
+      function.Reads.Iter(frameExpression => VisitExpression(frameExpression.E, function));
+
+      function.Ens.Iter(aexpr => VisitAttributedExpression(aexpr, function, true));
+
+      VisitAttributes(function.Decreases, function.EnclosingClass.EnclosingModuleDefinition);
+      function.Decreases.Expressions.Iter(expr => VisitExpression(expr, function));
+
+      if (function.Body != null) {
+        VisitExpression(function.Body, function);
+      }
+    }
+
+    private void VisitMethod(Method method) {
+      VisitAttributes(method, method.EnclosingClass.EnclosingModuleDefinition);
+
+      foreach (var p in method.Ins) {
+        VisitUserProvidedType(p.Type, method);
+      }
+      foreach (var p in method.Outs) {
+        VisitUserProvidedType(p.Type, method);
+      }
+
+      VisitDefaultParameterValues(method.Ins, method);
+
+      method.Req.Iter(aexpr => VisitAttributedExpression(aexpr, method));
+
+      VisitAttributes(method.Mod, method.EnclosingClass.EnclosingModuleDefinition);
+      method.Mod.Expressions.Iter(frameExpression => VisitExpression(frameExpression.E, method));
+
+      VisitAttributes(method.Decreases, method.EnclosingClass.EnclosingModuleDefinition);
+      method.Decreases.Expressions.Iter(expr => VisitExpression(expr, method));
+
+      method.Ens.Iter(aexpr => VisitAttributedExpression(aexpr, method));
+
+      if (method.Body != null) {
+        VisitStatement(method.Body, method);
+      }
+    }
+
+    private void VisitDefaultParameterValues(List<Formal> formals, IASTVisitorContext context) {
+      formals
+        .Where(formal => formal.DefaultValue != null)
+        .Iter(formal => VisitExpression(formal.DefaultValue, context));
+    }
+
+    private void VisitAttributedExpression(AttributedExpression attributedExpression, IASTVisitorContext context, bool inFunctionPostcondition = false) {
+      VisitAttributes(attributedExpression, context.EnclosingModule);
+      // TODO:
+      // if (inFunctionPostcondition) {
+      //   context = context with { InFunctionPostcondition = true };
+      //}
+      VisitExpression(attributedExpression.E, context);
+    }
+
+    private void VisitAttributes(IAttributeBearingDeclaration parent, ModuleDefinition enclosingModule) {
+      foreach (var attribute in parent.Attributes.AsEnumerable()) {
+        foreach (var arg in attribute.Args ?? Enumerable.Empty<Expression>()) {
+          VisitExpression(arg, new NoContext(enclosingModule));
+        }
+      }
+    }
+
+    protected virtual void VisitUserProvidedType(Type type, IASTVisitorContext context) {
+      // TODO
+    }
+
+    protected virtual void VisitExpression(Expression expr, IASTVisitorContext context) {
+      // TODO
+    }
+
+    protected virtual void VisitStatement(Statement stmt, IASTVisitorContext context) {
+      // TODO
+    }
+  }
+
   public class BottomUpVisitor {
     public void Visit(IEnumerable<Expression> exprs) {
       exprs.Iter(Visit);
