@@ -76,10 +76,11 @@ static class CommandRegistry {
       command.SetHandler(CommandHandler);
     }
 
-    var commandNames = commandToSpec.Keys.Select(c => c.Name).ToHashSet();
     if (arguments.Length != 0) {
       var first = arguments[0];
-      if (first != "--dev" && first != "--version" && first != "-h" && first != "--help" && !commandNames.Contains(first)) {
+      var keywordForNewMode = commandToSpec.Keys.Select(c => c.Name).
+        Union(new[] { "--dev", "--version", "-h", "--help", "[parse]", "[suggest]" });
+      if (!keywordForNewMode.Contains(first)) {
         var oldOptions = new DafnyOptions();
         if (oldOptions.Parse(arguments)) {
           return new ParseArgumentSuccess(oldOptions);
