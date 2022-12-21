@@ -42,15 +42,18 @@ namespace Microsoft.Dafny {
   /// </summary>
   public class CallGraphBuilder {
     public static void Build(List<TopLevelDecl> declarations, ErrorReporter reporter) {
-      new CallGraphBuilder(reporter).Build(declarations);
+      var astVisitor = new CallGraphASTVisitor(new CallGraphBuilder(reporter));
+      astVisitor.VisitDeclarations(declarations);
     }
 
     public static void VisitFunction(Function function, ErrorReporter reporter) {
-      new CallGraphBuilder(reporter).VisitFunction(function);
+      var astVisitor = new CallGraphASTVisitor(new CallGraphBuilder(reporter));
+      astVisitor.VisitFunction(function);
     }
 
     public static void VisitMethod(Method method, ErrorReporter reporter) {
-      new CallGraphBuilder(reporter).VisitMethod(method);
+      var astVisitor = new CallGraphASTVisitor(new CallGraphBuilder(reporter));
+      astVisitor.VisitMethod(method);
     }
 
     public static void AddCallGraphEdge(ICodeContext callingContext, ICallable function, Expression e, ErrorReporter reporter) {
@@ -80,8 +83,36 @@ namespace Microsoft.Dafny {
         this.callGraphBuilder = callGraphBuilder;
       }
 
+      public override void VisitFunction(Function f) {
+        if (f.OverriddenFunction != null) {
+          // add an edge from the trait function to that of the class/type
+         callGraphBuilder.AddCallGraphEdgeRaw(f.OverriddenFunction, f);
+        }
+
+        if (f is PrefixPredicate prefixPredicate) {
+          // add an edge from P# to P, since this will have the desired effect of detecting unwanted cycles.
+          callGraphBuilder.AddCallGraphEdgeRaw(prefixPredicate, prefixPredicate.ExtremePred);
+        }
+
+        base.VisitFunction(f);
+      }
+
+      public override void VisitMethod(Method method) {
+        if (method.OverriddenMethod != null) {
+          // add an edge from the trait method to that of the class/type
+          callGraphBuilder.AddCallGraphEdgeRaw(method.OverriddenMethod, method);
+        }
+
+        if (method is PrefixLemma prefixLemma) {
+          // add an edge from M# to M, since this will have the desired effect of detecting unwanted cycles.
+          callGraphBuilder.AddCallGraphEdgeRaw(prefixLemma, prefixLemma.ExtremeLemma);
+        }
+
+        base.VisitMethod(method);
+      }
+
       private CallGraphBuilderContext GetCallGraphBuilderContext(IASTVisitorContext context) {
-        return new CallGraphBuilderContext(context);
+        return new CallGraphBuilderContext(context) { InFunctionPostcondition = InFunctionPostcondition };
       }
 
       protected override void VisitUserProvidedType(Type type, IASTVisitorContext context) {
