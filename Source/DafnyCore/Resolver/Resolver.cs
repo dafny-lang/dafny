@@ -2292,9 +2292,8 @@ namespace Microsoft.Dafny {
             var k = new ImplicitFormal(m.tok, "_k", typeOfK, true, false);
             reporter.Info(MessageSource.Resolver, m.tok, string.Format("_k: {0}", k.Type));
             formals.Add(k);
-            if (m is ExtremePredicate) {
-              var extremePredicate = (ExtremePredicate)m;
-              formals.AddRange(extremePredicate.Formals.ConvertAll(cloner.CloneFormal));
+            if (m is ExtremePredicate extremePredicate) {
+              formals.AddRange(extremePredicate.Formals.ConvertAll(f => cloner.CloneFormal(f, false)));
 
               List<TypeParameter> tyvars = extremePredicate.TypeArgs.ConvertAll(cloner.CloneTypeParam);
 
@@ -2312,7 +2311,7 @@ namespace Microsoft.Dafny {
             } else {
               var extremeLemma = (ExtremeLemma)m;
               // _k has already been added to 'formals', so append the original formals
-              formals.AddRange(extremeLemma.Ins.ConvertAll(cloner.CloneFormal));
+              formals.AddRange(extremeLemma.Ins.ConvertAll(f => cloner.CloneFormal(f, false)));
               // prepend _k to the given decreases clause
               var decr = new List<Expression>();
               decr.Add(new IdentifierExpr(extremeLemma.tok, k.Name));
@@ -2327,7 +2326,7 @@ namespace Microsoft.Dafny {
                 ? new List<AttributedExpression>()
                 : extremeLemma.Ens.ConvertAll(cloner.CloneAttributedExpr);
               extremeLemma.PrefixLemma = new PrefixLemma(extremeLemma.tok, extraName, extremeLemma.HasStaticKeyword,
-                extremeLemma.TypeArgs.ConvertAll(cloner.CloneTypeParam), k, formals, extremeLemma.Outs.ConvertAll(cloner.CloneFormal),
+                extremeLemma.TypeArgs.ConvertAll(cloner.CloneTypeParam), k, formals, extremeLemma.Outs.ConvertAll(f => cloner.CloneFormal(f, false)),
                 req, cloner.CloneSpecFrameExpr(extremeLemma.Mod), ens,
                 new Specification<Expression>(decr, null),
                 null, // Note, the body for the prefix method will be created once the call graph has been computed and the SCC for the greatest lemma is known
@@ -6693,30 +6692,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private class ClonerButIVariablesAreKeptOnce : ClonerKeepParensExpressions {
-      private HashSet<IVariable> alreadyCloned = new();
-
-      private VT CloneIVariableHelper<VT>(VT local, Func<VT, VT> returnMethod) where VT : IVariable {
-        if (!alreadyCloned.Contains(local)) {
-          alreadyCloned.Add(local);
-          return local;
-        }
-
-        return returnMethod(local);
-      }
-
-      public override LocalVariable CloneLocalVariable(LocalVariable local) {
-        return CloneIVariableHelper(local, base.CloneLocalVariable);
-      }
-
-      public override Formal CloneFormal(Formal local) {
-        return CloneIVariableHelper(local, base.CloneFormal);
-      }
-      public override BoundVar CloneBoundVar(BoundVar local) {
-        return CloneIVariableHelper(local, base.CloneBoundVar);
-      }
-    }
-
     private Cloner matchBranchCloner = new ClonerButIVariablesAreKeptOnce();
 
     // deep clone Patterns and Body
@@ -7070,7 +7045,7 @@ namespace Microsoft.Dafny {
         List<Expression> cmatchees = matchees.Select(x => x).ToList();
         cmatchees.InsertRange(0, freshMatchees);
         // Update the current context
-        MatchingContext ctorctx = new IdCtx(ctor);
+        MatchingContext ctorctx = new IdCtx(ctor.Value);
         MatchingContext newcontext = context.FillHole(ctorctx);
         var insideContainer = CompileRBranch(mti, newcontext, cmatchees, currBranches);
         if (insideContainer is null) {
@@ -8389,7 +8364,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void ResolveCasePattern<VT>(CasePattern<VT> pat, Type sourceType, ResolutionContext resolutionContext) where VT : IVariable {
+    void ResolveCasePattern<VT>(CasePattern<VT> pat, Type sourceType, ResolutionContext resolutionContext) where VT : class, IVariable {
       Contract.Requires(pat != null);
       Contract.Requires(sourceType != null);
       Contract.Requires(resolutionContext != null);
