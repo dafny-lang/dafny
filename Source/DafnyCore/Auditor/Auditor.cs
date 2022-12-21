@@ -22,34 +22,37 @@ public class Auditor : IRewriter {
 
   public static string SupportedReportFormats = "plain text in the format of warnings ('txt', 'text'); standalone HTML ('html'); a Markdown table ('md', 'markdown', 'md-table', 'markdown-table'); or an IETF-language document in Markdown format ('md-ietf', 'markdown-ietf')";
 
-  public static readonly Option<ReportFormat?> ReportFormatOption = new("--report-format",
-    arg => {
-      if (arg.Tokens.Any()) {
-        switch (arg.Tokens[0].Value) {
-          case "md":
-          case "md-table":
-          case "markdown":
-          case "markdown-table":
-            return ReportFormat.MarkdownTable;
-          case "md-ietf":
-          case "markdown-ietf":
-            return ReportFormat.MarkdownIETF;
-          case "html":
-            return ReportFormat.HTML;
-          case "text":
-          case "txt":
-            return ReportFormat.Text;
-          default:
-            arg.ErrorMessage =
-              $"Unsupported report format. Supported formats are: {SupportedReportFormats}";
-            return null;
+  public static Option<ReportFormat?> ReportFormatOption =
+    new("--report-format",
+      arg => {
+        if (arg.Tokens.Any()) {
+          switch (arg.Tokens[0].Value) {
+            case "md":
+            case "md-table":
+            case "markdown":
+            case "markdown-table":
+              return ReportFormat.MarkdownTable;
+            case "md-ietf":
+            case "markdown-ietf":
+              return ReportFormat.MarkdownIETF;
+            case "html":
+              return ReportFormat.HTML;
+            case "text":
+            case "txt":
+              return ReportFormat.Text;
+            default:
+              arg.ErrorMessage =
+                $"Unsupported report format. Supported formats are: {SupportedReportFormats}";
+              return null;
+          }
         }
-      }
 
-      return null;
-    },
-    false,
-    $"Specify the file format to use for the audit report. Supported options include: {SupportedReportFormats}. With no option given, the format will be inferred from the filename extension. With no filename or format given, the report will consist of standard Dafny warnings.");
+        return null;
+      },
+      false,
+      $"Specify the file format to use for the audit report. Supported options include: {SupportedReportFormats}. " +
+               "With no option given, the format will be inferred from the filename extension. " +
+               "With no filename or format given, the report will consist of standard Dafny warnings.") { ArgumentHelpName = "format" };
 
   private readonly string? reportFileName;
   private readonly ReportFormat? reportFormat;
