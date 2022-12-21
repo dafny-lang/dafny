@@ -81,20 +81,27 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private class CallGraphBuilderContext {
+    private class CallGraphBuilderContext : IASTVisitorContext {
       public readonly IASTVisitorContext CodeContext;
       public readonly bool InFunctionPostcondition;
+
       public CallGraphBuilderContext(IASTVisitorContext codeContext, bool inFunctionPostcondition) {
         CodeContext = codeContext;
         InFunctionPostcondition = inFunctionPostcondition;
       }
+
+      public ModuleDefinition EnclosingModule => CodeContext.EnclosingModule;
     }
 
-    private class CallGraphASTVisitor : ASTVisitor {
+    private class CallGraphASTVisitor : ASTVisitor<CallGraphBuilderContext> {
       private readonly ErrorReporter reporter;
 
       public CallGraphASTVisitor(ErrorReporter reporter) {
         this.reporter = reporter;
+      }
+
+      public override CallGraphBuilderContext GetContext(IASTVisitorContext astVisitorContext, bool inFunctionPostcondition) {
+        return new CallGraphBuilderContext(astVisitorContext, inFunctionPostcondition);
       }
 
       public override void VisitFunction(Function f) {
@@ -125,20 +132,16 @@ namespace Microsoft.Dafny {
         base.VisitMethod(method);
       }
 
-      private static CallGraphBuilderContext GetCallGraphBuilderContext(IASTVisitorContext context, bool inFunctionPostcondition) {
-        return new CallGraphBuilderContext(context, inFunctionPostcondition);
+      protected override void VisitUserProvidedType(Type type, CallGraphBuilderContext context) {
+        XVisitUserProvidedType(type, context);
       }
 
-      protected override void VisitUserProvidedType(Type type, IASTVisitorContext context) {
-        XVisitUserProvidedType(type, GetCallGraphBuilderContext(context, false));
+      protected override void VisitExpression(Expression expr, CallGraphBuilderContext context) {
+        XVisitExpression(expr, context);
       }
 
-      protected override void VisitExpression(Expression expr, IASTVisitorContext context, bool inFunctionPostcondition) {
-        XVisitExpression(expr, GetCallGraphBuilderContext(context, inFunctionPostcondition));
-      }
-
-      protected override void VisitStatement(Statement stmt, IASTVisitorContext context) {
-        XVisitStatement(stmt, GetCallGraphBuilderContext(context, false));
+      protected override void VisitStatement(Statement stmt, CallGraphBuilderContext context) {
+        XVisitStatement(stmt, context);
       }
 
       private void XVisitExpression(Expression expr, CallGraphBuilderContext context) {
