@@ -52,12 +52,12 @@ A development environment to _build_ dafny from source requires additional depen
 Dafny source files are text files and can of course be edited with any
 text editor. However, some tools provide syntax-aware features:
 
-- There is a [Dafny mode for
-    Emacs](https://github.com/boogie-org/boogie-friends).
 - VSCode, a cross-platform editor for many programming languages has an extension for Dafny. 
   VSCode is available [here](http://code.visualstudio.com) and the Dafny extension can be installed from within VSCode.
   The [extension](#sec-dafny-language-server-vscode) provides syntax highlighting, in-line parser,
   type and verification errors, code navigation, counter-example display and gutter highlights.
+- There is a [Dafny mode for
+    Emacs](https://github.com/boogie-org/boogie-friends).
 - An old Visual Studio plugin is no longer supported
 
 Information about installing IDE extensions for Dafny is found
@@ -71,7 +71,6 @@ Modules can refer to other modules, such as through `import` declarations
 or `refines` clauses.
 A Dafny program consists of all the modules needed so that all module
 references are resolved.
-
 Dafny programs are contained in files that have a `.dfy` suffix.
 Such files each hold
 some number of top-level declarations. Thus a full program may be
@@ -85,9 +84,6 @@ Thus the complete set of modules are all the modules in all the files listed
 on the command-line or referenced, recursively, by `include` directives
 within those files. It does not matter if files are repeated either as
 includes or on the command-line.[^fn-duplicate-files]
-
-A _Dafny project file_, which would contain information about the files, libraries, and
-options needed to build a program, is being designed and developed.
 
 Note however that although the complete set of files, command-line plus
 included files, make up the program, by default, only those files listed on
@@ -122,27 +118,24 @@ but is expected to be a series of space-separated "words", each representing a c
 
 ### 25.5.1. dafny commands {#sec-dafny-commands}
 
-As of v3.9.0, `dafny` uses a subcommand-style command-line (like `git` for example); prior to v3.9.0, the 
+As of v3.9.0, `dafny` uses a command-style command-line (like `git` for example); prior to v3.9.0, the 
 command line consisted only of options and files.
 It is expected that additional commands will be added in the future.
-Each command may have its own subcommands and its own options, in addition to generally applicable options. 
+Each command may have its own commands and its own options, in addition to generally applicable options. 
 Thus the format of the command-line is
-a command name, followed by 0 or more subcommands, followed by options and files:
-`dafny <command> <subcommand>* <options> <files>`;
+a command name, followed by options and files:
+`dafny <command> <options> <files>`;
 the command-name must be the first command-line argument.
 
 The command-line `dafny --help` or `dafny -h` lists all the available commands.
 
-The command-line `dafny <command> --help` (or `-h` or `-?`) gives help information for that particular \<command\>.
+The command-line `dafny <command> --help` (or `-h` or `-?`) gives help information for that particular \<command\>, including the list of options.
 
-Also, the command-style command-line has modernized the syntax of options. 
-Options are intended to be POSIX-compliant and are processed with dotnet's `System.CommandLine` package.
-Like many other tools, options
-now typically begin with a double hyphen, with some options having a single-hyphen short form, such as `--help` and `-h`.
-The value of an option is given after an `=` or ':' character or as the next item on the command-line (that is, after a space).
-For example, legacy `dafny` accepts `/noVerify` and `-noVerify`, while the current command-oriented option is `--no-verify`.
+Also, the command-style command-line has modernized the syntax of options; they are now POSIX-compliant.
+Like many other tools, options now typically begin with a double hyphen, 
+with some options having a single-hyphen short form, such as `--help` and `-h`.
  
-If no command is given, then the command-line is presumed to use old-style syntax, so any previously 
+If no \<command\> is given, then the command-line is presumed to use old-style syntax, so any previously 
 written command-line will still be valid.
 
 `dafny` recognizes the commands described in the following subsections. The most commonly used
@@ -151,21 +144,20 @@ are [`dafny verify`](#sec-dafny-verify), [`dafny build`](#sec-dafny-build), and 
 The command-line also expects the following:
 - Files are designated by absolute paths or paths relative to the current
 working directory. A command-line argument not matching a known option is considered a filepath, and likely one
-with an unsupported suffix, provoking an error message..
+with an unsupported suffix, provoking an error message.
 - Files containing dafny code must have a `.dfy` suffix.
 - There must be at least one `.dfy` file.
 - The command-line may contain other kinds of files appropriate to
 the language that the Dafny files are being compiled to. The kind of file is determined by its suffix.
 - Escape characters are determined by the shell executing the command-line.
-- The option `--` means that all subsequent command-line arguments are not options to the dafny tool; they are either files or arguments to the `dafny run` command.
+- Per POSIX convention, the option `--` means that all subsequent command-line arguments are not options to the dafny tool; they are either files or arguments to the `dafny run` command.
 - If an option is repeated (e.g., with a different argument), then the later instance on the command-line supersedes the earlier instance, with just a few options accumulating arguments.
 - If an option takes an argument, the option name is followed by a `:` or `=` or whitespace and then by the argument value; if the argument itself contains white space, the argument must be enclosed in quotes.
-- Boolean options can take the values `true` and `false` (or any case-insensitive version of those words). For example, the value of `--no-verify` is by default `false` (that is, do verification). It can be set to true (no verification) using `--no-verify`, `--no-verify:true`, `--no-verify=true`, `--noverify true`; it can be set false (do verification) using `--no-verify:false` or `--no-verify=false` or `--no-verify false`.
+- Boolean options can take the values `true` and `false` (or any case-insensitive version of those words). For example, the value of `--no-verify` is by default `false` (that is, do verification). 
+It can be explicitly set to true (no verification) using `--no-verify`, `--no-verify:true`, `--no-verify=true`, `--noverify true`; 
+it can be explicitly set false (do verification) using `--no-verify:false` or `--no-verify=false` or `--no-verify false`.
 - There is a potential ambiguity when the form `--option value` is used if the value is optional (such as for boolean values). In such a case an argument afer an option (that does not have an argument given with `:` or `=`) is interpreted as the value if it is indeed a valid value for that option. However, better style advises always using a ':' or '=' to set option values.
 No valid option values in dafny look like filenames or begin with `--`.
-
-
-Options may change over time; `dafny <command> --help` lists those options for a given \<command\> that are implemented in your version of dafny.
 
 #### 25.5.1.1. Options that are not associated with a command
 
@@ -182,7 +174,6 @@ The `dafny resolve` command checks the command-line and then parses and typechec
 
 The options relevant to this command are
 - those relevant to the command-line itself
-   - `--` --- signals that any command-line arguments after the appearance of `--` are interpreted as files and not as options (but see [`dafny run`](#sec-dafny-run) for a variation)
    - `--warn-as-errors` --- turn all warnings into errors, which alters [dafny's exit code](#sec-exit-codes)
 
 - those that affect dafny` as a whole, such as
@@ -220,18 +211,27 @@ Various options control the verification process, in addition to all those descr
    - `--boogie-filter`
 
 
-#### 25.5.1.4. `dafny translate` {#sec-dafny-translate}
+#### 25.5.1.4. `dafny translate <platform>` {#sec-dafny-translate}
 
 The `dafny translate` command translates Dafny source code to source code for another target programming language.
 The command always performs the actions of `dafny resolve` and by default does the actions of `dafny verify`.
+The platform is designated by a subcommand argument, rather than an option, and is required.
+The current set of supported platforms is 
+- cs (C#)
+- java (Java)
+- js (JavaScript)
+- py (Python)
+- go (Go)
+- cpp (C++ -- but only limited support)
 
 In addition to generating the target source code, `dafny` may generate build artifacts to assist in compiling the generated code.
 The specific files generated depend on the target programming language.
 More detail is given in [the section on compilation](#sec-compilation).
 
 The `dafny` tool intends that the compiled program in the target language be a semantically faithful rendering of the 
-(verified) Dafny program. However, resource and language limitations make this not always possible. For example, Dafny
-can express and reason about arrays of unbounded size, not all target programming languages can represent arrays larger than the maximum signed 32-bit integer.
+(verified) Dafny program. However, resource and language limitations make this not always possible. 
+For example, though Dafny can express and reason about arrays of unbounded size, 
+not all target programming languages can represent arrays larger than the maximum signed 32-bit integer.
 
 Various options control the translation process, in addition to all those described for [`dafny resolve`](#sec-dafny-resolve) and [`dafny verify`](#sec-dafny-verify).
 
@@ -239,8 +239,7 @@ Various options control the translation process, in addition to all those descri
    - `--no-verify` --- turns off all attempts to verify the program
    - `--compile-verbose` --- print information about generated files
 
-- The translation target
-   - `--target` (or `-t`) --- the target language: cs (C#), java, js (Javascript), go, py (Python), cpp (C++)
+- The translation results
    - `--output` (or `-o`) --- location (file or folder depending on the target) of the generated file(s)
    - `--include-runtime` --- include the Dafny runtime as source or a library in the target language
    - `--optimize-erasable-datatype-wrapper`
@@ -254,11 +253,15 @@ As with `dafny translate`, all the previous phases are also executed, including 
 
 There are no additional options for `dafny build` beyond those for `dafny translate` and the previous compiler phases.
 
-TODO: OLD TEXT: The command has options that enable being specific about the build platform and architecture.
+Note that `dafny build` may do optimizations that `dafny run` does not.
+
+<!-- TODO: OLD TEXT: The command has options that enable being specific about the build platform and architecture. -->
 
 #### 25.5.1.6. `dafny run` {#sec-dafny-run}
 
-The `dafny run` command performs `dafny build` and then runs the resulting executable.
+The `dafny run` command compiles the Dafny program and then runs the resulting executable.
+Note that `dafny run` is engineered to quickly compile and launch the program; 
+`dafny build` may take more time to do optimizations of the build artifacts.
 
 The form of the `dafny run` command-line is slightly different than for other commands.
 - It permits just one `.dfy` file, which must be the file containing the `Main` entry point
@@ -289,9 +292,7 @@ then runs it with the three command-line arguments `1 2 3`
 #### 25.5.1.7. `dafny server` {#sec-dafny-server}
 
 The `dafny server` command starts the Dafny Language Server, which as an [LSP-compliant](https://microsoft.github.io/language-server-protocol/) implementation of Dafny.
-Note two important points:
-- The [Dafny VSCode extension]() uses this LSP implementation
-- This LSP implementation is designed so that its behavior (other than IDE specific aspects) matches that of the command-line `dafny` tool
+The [Dafny VSCode extension]() uses this LSP implementation, which in turn uses the same core Dafny implementation as the command-line tool.
 
 The Dafny Language Server is described in more detail [here](#sec-dafny-language-server-vscode).
 
@@ -376,6 +377,8 @@ This _experimental_ command (verifies the program and) then generates unit test 
 complete coverage of the method.
 
 Such methods must be static and have no input parameters.
+
+_This command is under development and not yet functional._
 
 #### 25.5.1.11. `dafny find-dead-code` {#sec-dafny-find-dead-code}
 
