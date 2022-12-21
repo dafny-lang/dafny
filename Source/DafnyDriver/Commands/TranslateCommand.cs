@@ -15,7 +15,7 @@ class TranslateCommand : ICommandSpec {
       Concat(ICommandSpec.ConsoleOutputOptions).
       Concat(ICommandSpec.CommonOptions);
 
-  private static readonly Argument<string> Target = new("target",@"
+  private static readonly Argument<string> Target = new("language",@"
 cs - Translate to C#.
 go - Translate to Go.
 js - Translate to JavaScript.
@@ -24,12 +24,10 @@ py - Translate to Python.
 cpp - Translate to C++.
 
 Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md). This includes lack of support for BigIntegers (aka int), most higher order functions, and advanced features like traits or co-inductive types.".TrimStart()
-  ) {
-    HelpName = "language"
-  };
+  );
 
   public Command Create() {
-    var result = new Command("translate", "Generate source and build files in a specified target language.");
+    var result = new Command("translate", "Translate Dafny sources to source and build files in a specified language.");
     result.AddArgument(Target);
     result.AddArgument(ICommandSpec.FilesArgument);
     return result;
