@@ -57,9 +57,6 @@ public enum Feature {
   [FeatureDescription("Collections with trait element types", "sec-collection-types")]
   CollectionsOfTraits,
 
-  [FeatureDescription("User-defined types with traits as type parameters", "sec-trait-types")]
-  TraitTypeParameters,
-
   [FeatureDescription("External module names with only underscores", "sec-extern-decls")]
   AllUnderscoreExternalModuleNames,
 

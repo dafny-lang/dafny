@@ -10,7 +10,6 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny;
 
 public abstract class Expression : INode {
-  public readonly IToken tok;
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(tok != null);
@@ -79,6 +78,15 @@ public abstract class Expression : INode {
     this.tok = tok;
   }
 
+  protected Expression(Cloner cloner, Expression original) {
+
+    tok = cloner.Tok(original.tok);
+
+    if (cloner.CloneResolvedFields && original.Type != null) {
+      Type = original.Type;
+    }
+  }
+
   public override string ToString() {
     try {
       return Printer.ExprToString(this);
@@ -95,77 +103,6 @@ public abstract class Expression : INode {
   public virtual IEnumerable<Expression> SubExpressions {
     get { yield break; }
   }
-
-  private RangeToken rangeToken = null;
-
-  // Contains tokens that did not make it in the AST but are part of the expression,
-  // Enables ranges to be correct.
-  protected IToken[] FormatTokens = null;
-
-  protected Expression(Cloner cloner, Expression original) {
-
-    tok = cloner.Tok(original.tok);
-
-    if (cloner.CloneResolvedFields && original.Type != null) {
-      Type = original.Type;
-    }
-  }
-
-  /// Creates a token on the entire range of the expression.
-  /// Used only for error reporting.
-  public virtual RangeToken RangeToken {
-    get {
-      if (rangeToken == null) {
-        if (tok is RangeToken tokAsRange) {
-          rangeToken = tokAsRange;
-        } else {
-          var startTok = tok;
-          var endTok = tok;
-
-          void updateStartEndTok(Expression expression) {
-            if (expression.tok.Filename != tok.Filename || expression.IsImplicit || expression is DefaultValueExpression) {
-              // Ignore any auto-generated expressions.
-            } else {
-              if (expression.StartToken.pos < startTok.pos) {
-                startTok = expression.StartToken;
-              }
-              if (endTok.pos < expression.EndToken.pos) {
-                endTok = expression.EndToken;
-              }
-            }
-          }
-
-          SubExpressions.Iter(updateStartEndTok);
-          if (this is StmtExpr stmtExpr) {
-            stmtExpr.S.SubStatements.Iter(s => s.SubExpressions.Iter(updateStartEndTok));
-          }
-
-          if (FormatTokens != null) {
-            foreach (var token in FormatTokens) {
-              if (token.Filename != tok.Filename) {
-                continue;
-              }
-
-              if (token.pos < startTok.pos) {
-                startTok = token;
-              }
-
-              if (token.pos + token.val.Length > endTok.pos + endTok.val.Length) {
-                endTok = token;
-              }
-            }
-          }
-
-          rangeToken = new RangeToken(startTok, endTok);
-        }
-      }
-
-      return rangeToken;
-    }
-  }
-
-  public IToken StartToken => RangeToken.StartToken;
-  public IToken EndToken => RangeToken.EndToken;
 
   /// <summary>
   /// Returns the list of types that appear in this expression proper (that is, not including types that
@@ -728,7 +665,7 @@ public abstract class Expression : INode {
     Contract.Requires(new_body != null);
     Contract.Ensures(Contract.Result<MatchCaseExpr>() != null);
 
-    ResolvedCloner cloner = new ResolvedCloner();
+    var cloner = new Cloner(true);
     var newVars = old_case.Arguments.ConvertAll(bv => cloner.CloneBoundVar(bv, false));
     new_body = VarSubstituter(old_case.Arguments.ConvertAll<NonglobalVariable>(x => (NonglobalVariable)x), newVars, new_body);
 
@@ -757,7 +694,7 @@ public abstract class Expression : INode {
     Contract.Requires(LHSs.Count == RHSs.Count);
     Contract.Requires(body != null);
 
-    ResolvedCloner cloner = new ResolvedCloner();
+    var cloner = new Cloner(true);
     var newLHSs = LHSs.ConvertAll(cloner.CloneCasePattern);
 
     var oldVars = new List<BoundVar>();
@@ -776,10 +713,9 @@ public abstract class Expression : INode {
   /// Optionally replace the old body with the supplied argument
   /// </summary>
   public static Expression CreateQuantifier(QuantifierExpr expr, bool forall, Expression body = null) {
-    //(IToken tok, List<BoundVar> vars, Expression range, Expression body, Attributes attribs, Qu) {
     Contract.Requires(expr != null);
 
-    ResolvedCloner cloner = new ResolvedCloner();
+    var cloner = new Cloner(true);
     var newVars = expr.BoundVars.ConvertAll(bv => cloner.CloneBoundVar(bv, false));
 
     if (body == null) {
@@ -839,7 +775,7 @@ public abstract class Expression : INode {
     return le == null ? null : le.Value as string;
   }
 
-  public virtual IEnumerable<INode> Children => SubExpressions;
+  public override IEnumerable<INode> Children => SubExpressions;
 }
 
 public class LiteralExpr : Expression {
@@ -1124,7 +1060,26 @@ public class IdentifierExpr : Expression, IHasUsages, ICloneable<IdentifierExpr>
   }
 
   public IToken NameToken => tok;
+  public override IEnumerable<INode> Children { get; } = Enumerable.Empty<INode>();
 }
+
+/// <summary>
+/// An implicit identifier is used in the context of a ReturnStmt tacetly
+/// assigning a value to a Method's out parameter.
+/// </summary>
+public class ImplicitIdentifierExpr : IdentifierExpr {
+  public ImplicitIdentifierExpr(IToken tok, string name)
+    : base(tok, name) { }
+
+  /// <summary>
+  /// Constructs a resolved implicit identifier.
+  /// </summary>
+  public ImplicitIdentifierExpr(IToken tok, IVariable v)
+    : base(tok, v) { }
+
+  public override bool IsImplicit => true;
+}
+
 
 /// <summary>
 /// If an "AutoGhostIdentifierExpr" is used as the out-parameter of a ghost method or
@@ -1132,12 +1087,16 @@ public class IdentifierExpr : Expression, IHasUsages, ICloneable<IdentifierExpr>
 /// automatically.  This class is intended to be used only as a communicate between the
 /// parser and parts of the resolver.
 /// </summary>
-public class AutoGhostIdentifierExpr : IdentifierExpr {
+public class AutoGhostIdentifierExpr : IdentifierExpr, ICloneable<AutoGhostIdentifierExpr> {
   public AutoGhostIdentifierExpr(IToken tok, string name)
     : base(new AutoGeneratedToken(tok), name) { }
 
   public AutoGhostIdentifierExpr(Cloner cloner, AutoGhostIdentifierExpr original)
     : base(cloner, original) {
+  }
+
+  public new AutoGhostIdentifierExpr Clone(Cloner cloner) {
+    return new AutoGhostIdentifierExpr(cloner, this);
   }
 }
 
@@ -1162,7 +1121,11 @@ class Resolver_IdentifierExpr : Expression, IHasUsages {
       return false;
     }
     public override Type Subst(IDictionary<TypeParameter, Type> subst) {
-      throw new NotImplementedException();
+      throw new NotSupportedException();
+    }
+
+    public override Type ReplaceTypeArguments(List<Type> arguments) {
+      throw new NotSupportedException();
     }
   }
   public class ResolverType_Module : ResolverType {
@@ -2184,6 +2147,10 @@ public class LetOrFailExpr : ConcreteSyntaxExpression, ICloneable<LetOrFailExpr>
     Rhs = cloner.CloneExpr(original.Rhs);
     Body = cloner.CloneExpr(original.Body);
   }
+
+  public override IEnumerable<INode> Children =>
+    (Lhs != null ?
+    new List<INode> { Lhs } : Enumerable.Empty<INode>()).Concat(base.Children);
 }
 
 public class ForallExpr : QuantifierExpr, ICloneable<ForallExpr> {
@@ -2350,6 +2317,8 @@ public class MapComprehension : ComprehensionExpr, ICloneable<MapComprehension> 
 public class LambdaExpr : ComprehensionExpr, ICloneable<LambdaExpr> {
   public override string WhatKind => "lambda";
 
+  public Expression Body => Term;
+
   public readonly List<FrameExpression> Reads;
 
   public LambdaExpr(IToken tok, IToken endTok, List<BoundVar> bvars, Expression requires, List<FrameExpression> reads, Expression body)
@@ -2482,9 +2451,8 @@ public class ITEExpr : Expression {
 /// which it is; in this case, Var is non-null, because this is the only place where Var.IsGhost
 /// is recorded by the parser.
 /// </summary>
-public class CasePattern<VT>
+public class CasePattern<VT> : INode
   where VT : class, IVariable {
-  public readonly IToken tok;
   public readonly string Id;
   // After successful resolution, exactly one of the following two fields is non-null.
   public DatatypeCtor Ctor;  // finalized by resolution (null if the pattern is a bound variable)
@@ -2563,6 +2531,8 @@ public class CasePattern<VT>
       }
     }
   }
+
+  public override IEnumerable<INode> Children => Arguments ?? Enumerable.Empty<INode>();
 }
 
 /*
@@ -2572,7 +2542,6 @@ ExtendedPattern is either:
     a bound variable or a constructor applied to n arguments or a symbolic constant
 */
 public abstract class ExtendedPattern : INode {
-  public readonly IToken Tok;
   public bool IsGhost;
 
   public ExtendedPattern(IToken tok, bool isGhost = false) {
@@ -2580,8 +2549,6 @@ public abstract class ExtendedPattern : INode {
     this.Tok = tok;
     this.IsGhost = isGhost;
   }
-
-  public abstract IEnumerable<INode> Children { get; }
 
   public IEnumerable<INode> DescendantsAndSelf =>
     new[] { this }.Concat(Children.OfType<ExtendedPattern>().SelectMany(c => c.DescendantsAndSelf));
@@ -2697,7 +2664,6 @@ public class LitPattern : ExtendedPattern {
 }
 
 public abstract class NestedMatchCase : INode {
-  public readonly IToken Tok;
   public readonly ExtendedPattern Pat;
 
   public NestedMatchCase(IToken tok, ExtendedPattern pat) {
@@ -2706,8 +2672,6 @@ public abstract class NestedMatchCase : INode {
     this.Tok = tok;
     this.Pat = pat;
   }
-
-  public abstract IEnumerable<INode> Children { get; }
 }
 
 public class BoxingCastExpr : Expression {  // a BoxingCastExpr is used only as a temporary placeholding during translation
@@ -2764,7 +2728,7 @@ public class UnboxingCastExpr : Expression {  // an UnboxingCastExpr is used onl
   }
 }
 
-public class AttributedExpression : IAttributeBearingDeclaration, INode {
+public class AttributedExpression : INode, IAttributeBearingDeclaration {
   public readonly Expression E;
   public readonly AssertLabel/*?*/ Label;
 
@@ -2783,6 +2747,10 @@ public class AttributedExpression : IAttributeBearingDeclaration, INode {
     }
   }
 
+  public override RangeToken GetRangeToken() {
+    return E.GetRangeToken();
+  }
+
   public bool HasAttributes() {
     return Attributes != null;
   }
@@ -2792,10 +2760,7 @@ public class AttributedExpression : IAttributeBearingDeclaration, INode {
     Contract.Requires(e != null);
   }
 
-  public AttributedExpression(Expression e, Attributes attrs) {
-    Contract.Requires(e != null);
-    E = e;
-    Attributes = attrs;
+  public AttributedExpression(Expression e, Attributes attrs) : this(e, null, attrs) {
   }
 
   public AttributedExpression(Expression e, AssertLabel/*?*/ label, Attributes attrs) {
@@ -2803,6 +2768,7 @@ public class AttributedExpression : IAttributeBearingDeclaration, INode {
     E = e;
     Label = label;
     Attributes = attrs;
+    this.Tok = e.Tok;
   }
 
   public void AddCustomizedErrorMessage(IToken tok, string s) {
@@ -2812,11 +2778,10 @@ public class AttributedExpression : IAttributeBearingDeclaration, INode {
     this.Attributes = new UserSuppliedAttributes(tok, openBrace, closeBrace, args, this.Attributes);
   }
 
-  public IEnumerable<INode> Children => new[] { E };
+  public override IEnumerable<INode> Children => new List<INode>() { E };
 }
 
-public class FrameExpression : IHasUsages {
-  public readonly IToken tok;
+public class FrameExpression : INode, IHasUsages {
   public readonly Expression E;  // may be a WildcardExpr
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -2835,7 +2800,7 @@ public class FrameExpression : IHasUsages {
     Contract.Requires(tok != null);
     Contract.Requires(e != null);
     Debug.Assert(!(e is WildcardExpr) || fieldName == null);
-    //Debug.Assert(!(e is ImplicitThisExpr) || fieldName != null);
+    Debug.Assert(!(e is ImplicitThisExpr) || fieldName != null);
     this.tok = tok;
     E = e;
     FieldName = fieldName;
@@ -2852,7 +2817,7 @@ public class FrameExpression : IHasUsages {
   }
 
   public IToken NameToken => tok;
-  public IEnumerable<INode> Children => new[] { E };
+  public override IEnumerable<INode> Children => new[] { E };
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return new[] { Field }.Where(x => x != null);
   }
@@ -2863,13 +2828,25 @@ public class FrameExpression : IHasUsages {
 /// it gets "replaced" by the expression in "ResolvedExpression".
 /// </summary>
 public abstract class ConcreteSyntaxExpression : Expression {
-  [FilledInDuringResolution] public Expression ResolvedExpression;  // after resolution, manipulation of "this" should proceed as with manipulating "this.ResolvedExpression"
-
   protected ConcreteSyntaxExpression(Cloner cloner, ConcreteSyntaxExpression original) : base(cloner, original) {
     if (cloner.CloneResolvedFields && original.ResolvedExpression != null) {
       ResolvedExpression = cloner.CloneExpr(original.ResolvedExpression);
     }
   }
+
+  [FilledInDuringResolution]
+  private Expression resolvedExpression;
+
+  public Expression ResolvedExpression {
+    get => resolvedExpression;
+    set {
+      resolvedExpression = value;
+      if (rangeToken != null && resolvedExpression != null) {
+        resolvedExpression.RangeToken = rangeToken;
+      }
+    }
+  }  // after resolution, manipulation of "this" should proceed as with manipulating "this.ResolvedExpression"
+
   public ConcreteSyntaxExpression(IToken tok)
     : base(tok) {
   }
@@ -3036,9 +3013,8 @@ public class DefaultValueExpression : ConcreteSyntaxExpression {
     SubstMap = substMap;
     TypeMap = typeMap;
     Type = formal.Type.Subst(typeMap);
+    RangeToken = new RangeToken(tok, tok);
   }
-
-  public override RangeToken RangeToken => new RangeToken(tok, tok);
 }
 
 /// <summary>

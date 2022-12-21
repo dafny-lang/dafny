@@ -17,6 +17,7 @@ public class ForLoopStmt : OneBodyLoopStmt, ICloneable<ForLoopStmt> {
     LoopIndex = cloner.CloneBoundVar(original.LoopIndex, false);
     Start = cloner.CloneExpr(original.Start);
     End = cloner.CloneExpr(original.End);
+    GoingUp = original.GoingUp;
   }
 
   public ForLoopStmt(IToken tok, IToken endTok, BoundVar loopIndexVariable, Expression start, Expression/*?*/ end, bool goingUp,

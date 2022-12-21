@@ -521,7 +521,12 @@ public class Scanner {
     
     int recKind = noSym;
     int recEnd = pos;
+    var prevT = t;
     t = new Token();
+    if(prevT != null) {
+      prevT.Next = t;
+      t.Prev = prevT;
+    }
     t.LeadingTrivia = buffer.GetString(posTrailingEndLeadingStart, pos);
     
     t.pos = pos; t.col = col; t.line = line;

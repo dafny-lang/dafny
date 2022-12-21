@@ -62,7 +62,7 @@ namespace Microsoft.Dafny {
       this.reporter = reporter;
       if (flags == null) {
         flags = new TranslatorFlags() {
-          ReportRanges = ShowSnippetsOption.Instance.Get(DafnyOptions.O)
+          ReportRanges = DafnyOptions.O.Get(DafnyConsolePrinter.ShowSnippets)
         };
       }
       this.flags = flags;
@@ -689,7 +689,7 @@ namespace Microsoft.Dafny {
         defines.Add("ARITH_MUL_COMM");
         defines.Add("ARITH_MUL_ASSOC");
       }
-      if (UnicodeCharactersOption.Instance.Get(DafnyOptions.O)) {
+      if (DafnyOptions.O.Get(CommonOptionBag.UnicodeCharacters)) {
         defines.Add("UNICODE_CHAR");
       }
       int errorCount = BplParser.Parse(preludePath, defines, out prelude);
@@ -3352,11 +3352,11 @@ namespace Microsoft.Dafny {
     }
 
     internal IToken GetToken(Expression expression) {
-      return flags.ReportRanges ? expression.RangeToken : expression.tok;
+      return flags.ReportRanges ? expression.GetRangeToken() : expression.tok;
     }
 
     internal IToken GetToken(Statement stmt) {
-      return flags.ReportRanges ? stmt.RangeToken : stmt.Tok;
+      return flags.ReportRanges ? stmt.GetRangeToken() : stmt.Tok;
     }
 
     void CheckDefiniteAssignment(IdentifierExpr expr, BoogieStmtListBuilder builder) {

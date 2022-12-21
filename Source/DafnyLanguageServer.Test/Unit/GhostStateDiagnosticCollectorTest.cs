@@ -20,10 +20,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit;
 public class GhostStateDiagnosticCollectorTest {
   private GhostStateDiagnosticCollector ghostStateDiagnosticCollector;
 
-  class DummyOptions : IOptions<GhostOptions> {
-    public GhostOptions Value { get; set; }
-  }
-
   class DummyLogger : ILogger<GhostStateDiagnosticCollector> {
     public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter) {
       // Do nothing
@@ -40,11 +36,8 @@ public class GhostStateDiagnosticCollectorTest {
 
   [TestInitialize]
   public void SetUp() {
-    var loggerFactory = new Mock<ILoggerFactory>();
-    var options = new DummyOptions {
-      Value = new Mock<GhostOptions>().Object
-    };
-    options.Value.MarkStatements = true;
+    var options = new DafnyOptions();
+    options.Set(ServerCommand.GhostIndicators, true);
     ghostStateDiagnosticCollector = new GhostStateDiagnosticCollector(
       options,
       new DummyLogger());

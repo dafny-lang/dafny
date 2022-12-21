@@ -129,7 +129,7 @@ namespace Microsoft.Dafny.Compilers {
     protected string IntSelect = ",int";
     protected string LambdaExecute = "";
 
-    protected static bool UnicodeCharEnabled => UnicodeCharactersOption.Instance.Get(DafnyOptions.O);
+    protected static bool UnicodeCharEnabled => DafnyOptions.O.Get(CommonOptionBag.UnicodeCharacters);
 
     protected static string CharMethodQualifier => UnicodeCharEnabled ? "Unicode" : "";
 
@@ -736,6 +736,8 @@ namespace Microsoft.Dafny.Compilers {
 
     protected virtual bool NeedsCastFromTypeParameter => false;
 
+    protected virtual bool TargetSubtypingRequiresEqualTypeArguments(Type type) => false;
+
     protected virtual bool IsCoercionNecessary(Type /*?*/ from, Type /*?*/ to) {
       return NeedsCastFromTypeParameter;
     }
@@ -758,10 +760,14 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(tok != null);
       Contract.Requires(wr != null);
       if (from != null && to != null) {
+        from = DatatypeWrapperEraser.SimplifyType(from);
+        to = DatatypeWrapperEraser.SimplifyType(to);
         if (!IsTargetSupertype(to, from)) {
-          // The following assert is a sanity check. Note, in a language with NeedsCastFromTypeParameter, "to" and "from" may
-          // contain uninstantiated formal type parameters.
-          Contract.Assert(NeedsCastFromTypeParameter || IsTargetSupertype(from, to));
+          // By the way, it is tempting to think that IsTargetSupertype(from, to)) would hold here, but that's not true.
+          // For one, in a language with NeedsCastFromTypeParameter, "to" and "from" may contain uninstantiated formal type parameters.
+          // Also, it is possible (subject to a check enforced by the verifier) to assign Datatype<X> to Datatype<Y>,
+          // where Datatype is co-variant in its argument type and X and Y are two incomparable types with a common supertype.
+
           wr = EmitDowncast(from, to, tok, wr);
         }
       }
@@ -774,7 +780,7 @@ namespace Microsoft.Dafny.Compilers {
     /// This to similar to Type.IsSupertype and Type.Equals, respectively, but ignores subset types (that
     /// is, always uses the base type of any subset type).
     /// </summary>
-    public static bool IsTargetSupertype(Type to, Type from, bool typeEqualityOnly = false) {
+    public bool IsTargetSupertype(Type to, Type from, bool typeEqualityOnly = false) {
       Contract.Requires(from != null);
       Contract.Requires(to != null);
       to = to.NormalizeExpand();
@@ -786,7 +792,7 @@ namespace Microsoft.Dafny.Compilers {
         Contract.Assert(formalTypeParameters != null || to.TypeArgs.Count == 0 || to is CollectionType);
         for (var i = 0; i < to.TypeArgs.Count; i++) {
           bool okay;
-          if (typeEqualityOnly) {
+          if (typeEqualityOnly || TargetSubtypingRequiresEqualTypeArguments(to)) {
             okay = IsTargetSupertype(to.TypeArgs[i], from.TypeArgs[i], true);
           } else if (formalTypeParameters == null || formalTypeParameters[i].Variance == TypeParameter.TPVariance.Co) {
             okay = IsTargetSupertype(to.TypeArgs[i], from.TypeArgs[i]);
@@ -1043,9 +1049,6 @@ namespace Microsoft.Dafny.Compilers {
     protected abstract ILvalue EmitMemberSelect(Action<ConcreteSyntaxTree> obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
       Type expectedType, string/*?*/ additionalCustomParameter = null, bool internalAccess = false);
 
-    protected void EmitArraySelect(string index, Type elmtType, ConcreteSyntaxTree wr) {
-      EmitArraySelect(new List<string>() { index }, elmtType, wr);
-    }
     protected abstract ConcreteSyntaxTree EmitArraySelect(List<string> indices, Type elmtType, ConcreteSyntaxTree wr);
     protected abstract ConcreteSyntaxTree EmitArraySelect(List<Expression> indices, Type elmtType, bool inLetExprBody,
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);
@@ -1379,6 +1382,8 @@ namespace Microsoft.Dafny.Compilers {
             var w = DeclareNewtype(nt, wr);
             v.Visit(nt);
             CompileClassMembers(program, nt, w);
+          } else if ((d as TupleTypeDecl)?.NonGhostDims == 1 && SupportsDatatypeWrapperErasure && DafnyOptions.O.Get(CommonOptionBag.OptimizeErasableDatatypeWrapper)) {
+            // ignore this type declaration
           } else if (d is DatatypeDecl) {
             var dt = (DatatypeDecl)d;
             CheckForCapitalizationConflicts(dt.Ctors);
@@ -1802,7 +1807,8 @@ namespace Microsoft.Dafny.Compilers {
         return member is ConstantField { Rhs: { } } or Function { Body: { } } or Method { Body: { } };
       } else if (member.EnclosingClass is DatatypeDecl datatypeDecl) {
         // An undefined value "o" cannot use this o.F(...) form in most languages.
-        return datatypeDecl.Ctors.Any(ctor => ctor.IsGhost);
+        // Also, an erasable wrapper type has a receiver that's not part of the enclosing target class.
+        return datatypeDecl.Ctors.Any(ctor => ctor.IsGhost) || DatatypeWrapperEraser.IsErasableDatatypeWrapper(datatypeDecl, out _);
       } else {
         return false;
       }
@@ -2531,7 +2537,6 @@ namespace Microsoft.Dafny.Compilers {
       return !m.IsStatic || m.EnclosingClass.TypeArgs.Count != 0;
     }
 
-
     void TrCasePatternOpt<VT>(CasePattern<VT> pat, Expression rhs, ConcreteSyntaxTree wr, bool inLetExprBody)
       where VT : class, IVariable {
       TrCasePatternOpt(pat, rhs, null, rhs.Type, rhs.tok, wr, inLetExprBody);
@@ -2799,7 +2804,9 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(originalResultType != null);
       Contract.Requires(wr != null);
       Contract.Requires(accumulatorVar == null || (enclosingFunction != null && enclosingFunction.IsAccumulatorTailRecursive));
+      copyInstrWriters.Push(wr.Fork());
       TrExprOpt(body.Resolved, originalResultType, wr, accumulatorVar);
+      copyInstrWriters.Pop();
     }
 
     // ----- Type ---------------------------------------------------------------------------------
@@ -2824,31 +2831,33 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     /// <summary>
-    /// Note, C# reverses the order of brackets in array type names.
+    /// Note, C# and Java reverse the order of brackets in array type names.
     /// </summary>
     protected void TypeName_SplitArrayName(Type type, ConcreteSyntaxTree wr, IToken tok, out string typeNameSansBrackets, out string brackets) {
       Contract.Requires(type != null);
 
-      var xType = type.NormalizeExpand();
-      if (xType.IsArrayType) {
-        ArrayClassDecl at = xType.AsArrayType;
-        Contract.Assert(at != null);  // follows from type.IsArrayType
-        Type elType = UserDefinedType.ArrayElementType(xType);
-        TypeName_SplitArrayName(elType, wr, tok, out typeNameSansBrackets, out brackets);
+      TypeName_SplitArrayName(type, out var innermostElementType, out brackets);
+      typeNameSansBrackets = TypeName(innermostElementType, wr, tok);
+    }
+
+    protected virtual void TypeName_SplitArrayName(Type type, out Type innermostElementType, out string brackets) {
+      Contract.Requires(type != null);
+
+      type = DatatypeWrapperEraser.SimplifyType(type);
+      var at = type.AsArrayType;
+      if (at != null) {
+        var elementType = type.TypeArgs[0];
+        TypeName_SplitArrayName(elementType, out innermostElementType, out brackets);
         brackets = TypeNameArrayBrackets(at.Dims) + brackets;
       } else {
-        typeNameSansBrackets = TypeName(type, wr, tok);
+        innermostElementType = type;
         brackets = "";
       }
     }
 
     protected virtual string TypeNameArrayBrackets(int dims) {
       Contract.Requires(0 <= dims);
-      var name = "[";
-      for (int i = 1; i < dims; i++) {
-        name += ",";
-      }
-      return name + "]";
+      return $"[{Util.Repeat(dims - 1, ",")}]";
     }
 
     protected bool ComplicatedTypeParameterForCompilation(TypeParameter.TPVariance v, Type t) {
@@ -2879,8 +2888,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(tok != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
-      type = type.NormalizeExpandKeepConstraints();
-      Contract.Assert(type is NonProxyType);  // this should never happen, since all types should have been successfully resolved
+      type = DatatypeWrapperEraser.SimplifyType(type, true);
       return TypeInitializationValue(type, wr, tok, true, constructTypeParameterDefaultsFromTypeDescriptors);
     }
 
@@ -2890,10 +2898,16 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(tok != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
-      type = type.NormalizeExpandKeepConstraints();
-      Contract.Assert(type is NonProxyType);  // this should never happen, since all types should have been successfully resolved
-      var usePlaceboValue = type.AsDatatype?.GetGroundingCtor().IsGhost == true;
-      return TypeInitializationValue(type, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
+      // If "type" is a datatype with a ghost grounding constructor, then compile as a placebo for DatatypeWrapperEraser.SimplifyType(type, true).
+      // Otherwise, get default value for DatatypeWrapperEraser.SimplifyType(type, true), which may itself have a ghost grounding constructor, in
+      // which case the value we produce is a placebo.
+      bool HasGhostGroundingCtor(Type ty) {
+        return (ty.NormalizeExpandKeepConstraints() as UserDefinedType)?.ResolvedClass is DatatypeDecl dt && dt.GetGroundingCtor().IsGhost;
+      }
+
+      var simplifiedType = DatatypeWrapperEraser.SimplifyType(type, true);
+      var usePlaceboValue = HasGhostGroundingCtor(type) || HasGhostGroundingCtor(simplifiedType);
+      return TypeInitializationValue(simplifiedType, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
     }
 
     // ----- Stmt ---------------------------------------------------------------------------------
@@ -3360,7 +3374,7 @@ namespace Microsoft.Dafny.Compilers {
               hasRhs = true;
             }
           }
-          TrLocalVar(local, !hasRhs && local.Type.KnownToHaveToAValue(false), wr);
+          TrLocalVar(local, !hasRhs, wr);
           i++;
         }
         if (s.Update != null) {
@@ -3801,11 +3815,15 @@ namespace Microsoft.Dafny.Compilers {
           EmitDecrementVar(varName, wr);
         }
       }
+
+      copyInstrWriters.Push(wr.Fork());
       ConcreteSyntaxTree guardWriter;
       var wStmtsIf = wr.Fork();
       var wBody = EmitIf(out guardWriter, false, wr);
       TrExpr(constraint, guardWriter, inLetExprBody, wStmtsIf);
       EmitBreak(doneLabel, wBody);
+      copyInstrWriters.Pop();
+
       // Java compiler throws unreachable error when absurd statement is written after unbounded for-loop, so we don't write it then.
       EmitAbsurd(string.Format("assign-such-that search produced no value (line {0})", debuginfoLine), wrOuter, needIterLimit);
     }
@@ -4382,7 +4400,7 @@ namespace Microsoft.Dafny.Compilers {
       if (tp.ArrayDimensions == null) {
         var initCall = tp.InitCall != null && tp.InitCall.Method is Constructor ? tp.InitCall : null;
         EmitNew(tp.EType, tp.Tok, initCall, wr, wStmts);
-      } else if (tp.ElementInit != null || tp.InitDisplay != null) {
+      } else if (tp.ElementInit != null || tp.InitDisplay != null || DatatypeWrapperEraser.CanBeLeftUninitialized(tp.EType)) {
         EmitNewArray(tp.EType, tp.Tok, tp.ArrayDimensions, false, wr, wStmts);
       } else {
         // If an initializer is not known, the only way the verifier would have allowed this allocation
@@ -4425,7 +4443,7 @@ namespace Microsoft.Dafny.Compilers {
         // only emit non-ghosts (we get here only for local variables introduced implicitly by call statements)
         return;
       }
-      DeclareLocalVar(IdName(v), v.Type, v.Tok, false, alwaysInitialize ? DefaultValue(v.Type, wr, v.Tok, true) : null, wr);
+      DeclareLocalVar(IdName(v), v.Type, v.Tok, false, alwaysInitialize ? PlaceboValue(v.Type, wr, v.Tok, true) : null, wr);
     }
 
     ConcreteSyntaxTree MatchCasePrelude(string source, UserDefinedType sourceType, DatatypeCtor ctor, List<BoundVar> arguments, int caseIndex, int caseCount, ConcreteSyntaxTree wr) {
@@ -4538,11 +4556,11 @@ namespace Microsoft.Dafny.Compilers {
 
       } else if (expr is IdentifierExpr) {
         var e = (IdentifierExpr)expr;
-        if (e.Var is Formal && inLetExprBody && !((Formal)e.Var).InParam) {
-          // out param in letExpr body, need to copy it to a temp since
-          // letExpr body is translated to an anonymous function that doesn't
-          // allow out parameters
-          var name = string.Format("_pat_let_tv{0}", GetUniqueAstNumber(e));
+        if (inLetExprBody && !(e.Var is BoundVar)) {
+          // copy variable to a temp since
+          //   - C# doesn't allow out param in letExpr body, and
+          //   - Java doesn't allow any non-final variable in letExpr body.
+          var name = ProtectedFreshId("_pat_let_tv");
           wr.Write(name);
           DeclareLocalVar(name, null, null, false, IdName(e.Var), copyInstrWriters.Peek(), e.Type);
         } else {
@@ -4653,6 +4671,27 @@ namespace Microsoft.Dafny.Compilers {
         var collectionType = e.Type.AsCollectionType;
         Contract.Assert(collectionType != null);
         EmitIndexCollectionUpdate(e.Seq, e.Index, e.Value, collectionType, inLetExprBody, wr, wStmts);
+      } else if (expr is DatatypeUpdateExpr) {
+        var e = (DatatypeUpdateExpr)expr;
+        if (e.Members.All(member => member.IsGhost)) {
+          // all fields to be updated are ghost, which doesn't change the value
+          TrExpr(e.Root, wr, inLetExprBody, wStmts);
+          return;
+        }
+        if (DatatypeWrapperEraser.IsErasableDatatypeWrapper(e.Root.Type.AsDatatype, out var dtor)) {
+          var i = e.Members.IndexOf(dtor);
+          if (0 <= i) {
+            // the datatype is an erasable wrapper and its core destructor is part of the update (which implies everything else must be a ghost),
+            // so proceed as with the rhs
+            Contract.Assert(Enumerable.Range(0, e.Members.Count).All(j => j == i || e.Members[j].IsGhost));
+            Contract.Assert(e.Members.Count == e.Updates.Count);
+            var rhs = e.Updates[i].Item3;
+            TrExpr(rhs, wr, inLetExprBody, wStmts);
+            return;
+          }
+        }
+        // the optimized cases don't apply, so proceed according to the desugaring
+        TrExpr(e.ResolvedExpression, wr, inLetExprBody, wStmts);
       } else if (expr is FunctionCallExpr) {
         FunctionCallExpr e = (FunctionCallExpr)expr;
         if (e.Function is SpecialFunction) {
@@ -4668,6 +4707,13 @@ namespace Microsoft.Dafny.Compilers {
       } else if (expr is DatatypeValue) {
         var dtv = (DatatypeValue)expr;
         Contract.Assert(dtv.Ctor != null);  // since dtv has been successfully resolved
+
+        if (DatatypeWrapperEraser.IsErasableDatatypeWrapper(dtv.Ctor.EnclosingDatatype, out var dtor)) {
+          var i = dtv.Ctor.Destructors.IndexOf(dtor);
+          Contract.Assert(0 <= i);
+          TrExpr(dtv.Arguments[i], wr, inLetExprBody, wStmts);
+          return;
+        }
 
         var wrArgumentList = new ConcreteSyntaxTree();
         string sep = "";
@@ -4907,7 +4953,7 @@ namespace Microsoft.Dafny.Compilers {
           wBody.Write(')');
           wBody = newWBody;
         }
-        TrExpr(logicalBody, wBody, true, wStmts);
+        TrExpr(logicalBody, wBody, inLetExprBody, wStmts);
 
       } else if (expr is SetComprehension) {
         var e = (SetComprehension)expr;

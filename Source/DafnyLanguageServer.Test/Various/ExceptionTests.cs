@@ -32,7 +32,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       .AddSingleton<IProgramVerifier>(serviceProvider => new CrashingVerifier(this,
         new DafnyProgramVerifier(
           serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>(),
-          serviceProvider.GetRequiredService<IOptions<VerifierOptions>>())
+          serviceProvider.GetRequiredService<DafnyOptions>())
     ));
   }
 

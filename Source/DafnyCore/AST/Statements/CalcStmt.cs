@@ -240,8 +240,7 @@ public class CalcStmt : Statement, ICloneable<CalcStmt> {
         yield return Lines[i];
       }
       foreach (var calcop in AllCalcOps) {
-        var o3 = calcop as TernaryCalcOp;
-        if (o3 != null) {
+        if (calcop is TernaryCalcOp o3) {
           yield return o3.Index;
         }
       }

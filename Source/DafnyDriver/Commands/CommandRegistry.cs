@@ -5,9 +5,9 @@ using System.CommandLine.Invocation;
 using System.CommandLine.Parsing;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
+using Microsoft.Dafny.LanguageServer;
 
 namespace Microsoft.Dafny;
 
@@ -25,10 +25,13 @@ static class CommandRegistry {
   }
 
   static CommandRegistry() {
+    AddCommand(new ResolveCommand());
     AddCommand(new VerifyCommand());
     AddCommand(new RunCommand());
     AddCommand(new BuildCommand());
     AddCommand(new TranslateCommand());
+    AddCommand(new MeasureComplexityCommand());
+    AddCommand(new ServerCommand());
     AddCommand(new TestCommand());
     AddCommand(new GenerateTestsCommand());
     AddCommand(new DeadCodeCommand());
@@ -51,25 +54,21 @@ static class CommandRegistry {
     }
 
     var wasInvoked = false;
-    string optionFailure = null;
     var dafnyOptions = new DafnyOptions();
-    var optionValues = new Dictionary<IOptionSpec, object>();
+    var optionValues = new Dictionary<Option, object>();
     var options = new Options(optionValues);
     dafnyOptions.ShowEnv = ExecutionEngineOptions.ShowEnvironment.Never;
     dafnyOptions.Options = options;
 
-    var optionToSpec = Commands.SelectMany(c => c.Options).Distinct().ToDictionary(o => {
-      var result = o.ToOption;
+    foreach (var option in Commands.SelectMany(c => c.Options)) {
       if (!allowHidden) {
-        result.IsHidden = false;
+        option.IsHidden = false;
       }
-      return result;
-    }, o => o);
-    var specToOption = optionToSpec.ToDictionary(o => o.Value, o => o.Key);
+    }
     var commandToSpec = Commands.ToDictionary(c => {
       var result = c.Create();
       foreach (var option in c.Options) {
-        result.AddOption(specToOption[option]);
+        result.AddOption(option);
       }
       return result;
     }, c => c);
@@ -112,21 +111,9 @@ static class CommandRegistry {
       }
 
       foreach (var option in command.Options) {
-        if (!context.ParseResult.HasOption(option)) {
-          continue;
-        }
-
-
-        var optionSpec = optionToSpec[option];
         var value = context.ParseResult.GetValueForOption(option);
-        options.OptionArguments[optionSpec] = value;
-        optionFailure ??= optionSpec.PostProcess(dafnyOptions);
-        if (optionFailure != null) {
-          if (optionFailure == "") {
-            optionFailure = $"Parsing option {option.Name} failed.";
-          }
-          break;
-        }
+        options.OptionArguments[option] = value;
+        dafnyOptions.ApplyBinding(option);
       }
 
       dafnyOptions.ApplyDefaultOptionsWithoutSettingsDefault();
@@ -136,12 +123,12 @@ static class CommandRegistry {
 #pragma warning disable VSTHRD002
     var exitCode = rootCommand.InvokeAsync(arguments).Result;
 #pragma warning restore VSTHRD002
-    if (optionFailure != null) {
-      Console.WriteLine(optionFailure);
-      return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR);
-    }
     if (!wasInvoked) {
-      return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.OK_EXIT_EARLY);
+      if (exitCode == 0) {
+        return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.OK_EXIT_EARLY);
+      }
+
+      return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR);
     }
     if (exitCode == 0) {
       return new ParseArgumentSuccess(dafnyOptions);

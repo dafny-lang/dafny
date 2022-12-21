@@ -41,7 +41,7 @@ public class MatchDenester {
   private readonly FreshIdGenerator idGenerator;
   private ResolutionContext resolutionContext;
 
-  public MatchDenester(ErrorReporter reporter, FreshIdGenerator idGenerator)  {
+  public MatchDenester(ErrorReporter reporter, FreshIdGenerator idGenerator) {
     this.reporter = reporter;
     this.idGenerator = idGenerator;
   }

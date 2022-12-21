@@ -121,9 +121,7 @@ method m5() { assert false; } //Remove4:
     var original = DafnyOptions.O.CreateSolver;
     DafnyOptions.O.CreateSolver = (_, _) =>
       new UnsatSolver(semaphoreSlim);
-    await SetUp(new Dictionary<string, string> {
-    { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", "1" },
-    });
+    await SetUp(options => options.Set(BoogieOptionBag.Cores, 1));
 
     var (code, changes) = ExtractCodeAndChanges(codeAndChanges.TrimStart());
     var documentItem = CreateTestDocument(code);

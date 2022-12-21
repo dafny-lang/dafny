@@ -70,8 +70,9 @@ namespace Microsoft.Dafny {
             dd.Members.ConvertAll(d => CloneMember(d, false)), CloneAttributes(dd.Attributes), dd.IsRefining);
         }
       } else if (d is TupleTypeDecl) {
-        var dd = (TupleTypeDecl)d;
-        return new TupleTypeDecl(dd.ArgumentGhostness, dd.EnclosingModuleDefinition, dd.Attributes);
+        // Tuple type declarations only exist in the system module. Therefore, they are never cloned.
+        Contract.Assert(false);
+        throw new cce.UnreachableException();
       } else if (d is IndDatatypeDecl) {
         var dd = (IndDatatypeDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
@@ -223,7 +224,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public Formal CloneFormal(Formal formal, bool isReference) {
+    public virtual Formal CloneFormal(Formal formal, bool isReference) {
       return (Formal)clones.GetOrCreate(formal, () => isReference ? formal :
         new Formal(Tok(formal.tok), formal.Name, CloneType(formal.Type), formal.InParam, formal.IsGhost,
         CloneExpr(formal.DefaultValue), formal.IsOld, formal.IsNameOnly, formal.IsOlder, formal.NameForCompilation));
@@ -292,7 +293,9 @@ namespace Microsoft.Dafny {
     }
 
     public AttributedExpression CloneAttributedExpr(AttributedExpression expr) {
-      var mfe = new AttributedExpression(CloneExpr(expr.E), expr.Label == null ? null : new AssertLabel(Tok(expr.Label.Tok), expr.Label.Name), CloneAttributes(expr.Attributes));
+      var mfe = new AttributedExpression(CloneExpr(expr.E),
+        expr.Label == null ? null : new AssertLabel(Tok(expr.Label.Tok), expr.Label.Name),
+        CloneAttributes(expr.Attributes));
       mfe.Attributes = CloneAttributes(expr.Attributes);
       return mfe;
     }
@@ -403,11 +406,9 @@ namespace Microsoft.Dafny {
       } else if (expr is TypeTestExpr) {
         var e = (TypeTestExpr)expr;
         return new TypeTestExpr(Tok(e.tok), CloneExpr(e.E), CloneType(e.ToType));
-
       } else if (expr is TernaryExpr) {
         var e = (TernaryExpr)expr;
         return new TernaryExpr(Tok(e.tok), e.Op, CloneExpr(e.E0), CloneExpr(e.E1), CloneExpr(e.E2));
-
       } else if (expr is WildcardExpr) {
         return new WildcardExpr(Tok(expr.tok));
       } else if (expr is StmtExpr) {
@@ -461,7 +462,7 @@ namespace Microsoft.Dafny {
       AssignmentRhs c;
       if (rhs is ExprRhs) {
         var r = (ExprRhs)rhs;
-        c = new ExprRhs(CloneExpr(r.Expr));
+        c = new ExprRhs(CloneExpr(r.Expr), CloneAttributes(rhs.Attributes));
       } else if (rhs is HavocRhs) {
         c = new HavocRhs(Tok(rhs.Tok));
       } else {
@@ -479,7 +480,6 @@ namespace Microsoft.Dafny {
           c = new TypeRhs(Tok(r.Tok), CloneType(r.Path), r.Bindings.ArgumentBindings.ConvertAll(CloneActualBinding));
         }
       }
-      c.Attributes = CloneAttributes(rhs.Attributes);
       return c;
     }
 

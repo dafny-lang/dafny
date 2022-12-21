@@ -43,7 +43,7 @@ method Main() {
   print w.strm.tail.head, " ", w.pair.0, " ", w.pair.1, "\n";  // 3 false 0
 
   var c := new Class();
-  print c.cell, " ", c.cell.data, " ", c.cell.Cell?, "\n";  // Cell.Cell(false) false true
+  print c.cell, " ", c.cell.data, " ", c.cell.Cell?, "\n";  // false false true
 
   var x0: ();
   var x4: (int, bool, bool, seq<real>);
@@ -51,10 +51,10 @@ method Main() {
 
   var null2: (SomeObject?, Cell<int>);
   var null2': (SomeObject?, Cell<int>);
-  print null2, " ", null2', " ", null2 == null2', "\n";  // (null, Cell.Cell(0)) (null, Cell.Cell(0)) true
+  print null2, " ", null2', " ", null2 == null2', "\n";  // (null, 0) (null, 0) true
   var null4: (SomeObject?, Class?, WClass?<bool>, Cell<int>);
   var null4': (SomeObject?, Class?, WClass?<bool>, Cell<int>);
-  print null4, " ", null4', " ", null4 == null4', "\n";  // (null, null, null, Cell.Cell(0)) (null, null, null, Cell.Cell(0)) true
+  print null4, " ", null4', " ", null4 == null4', "\n";  // (null, null, null, 0) (null, null, null, 0) true
   print c == c, " ", c == null4.1, " ", null4.1 == c, " ", null4.1 == null, "\n";  // true false false true
   print Same(c, c), " ", Same(c, null4.1), " ", Same(null4.1, c), " ", Same(null4.1, null), "\n";  // true false false true
 
@@ -254,12 +254,12 @@ module DatatypeDefaultValues {
     var d: GenericTree<int>;
     var e: Complicated<int, bool, real, bv3>;
     var f: CellCell<int, real>;
-    print a, "\n  ", b, "\n  ", c, "\n";
-    print d, "\n  ", e, "\n  ", f, "\n";
+    print a, "\n  ", b, "\n  ", c, "\n"; // MakeZero Nil 0
+    print d, "\n  ", e, "\n  ", f, "\n"; // Leaf ComplA(0, false) MakeCellCell(0)
 
     var g: Difficult;
     var h: GenDifficult<int>;
-    print g, "\n  ", h, "\n";
+    print g, "\n  ", h, "\n"; // null null
   }
 }
 

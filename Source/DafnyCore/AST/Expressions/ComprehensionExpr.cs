@@ -424,6 +424,7 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
       Bounds = original.Bounds?.Select(b => b.Clone(cloner)).ToList();
     }
   }
+  public override IEnumerable<INode> Children => (Attributes != null ? new List<INode> { Attributes } : Enumerable.Empty<INode>()).Concat(SubExpressions);
 
   public override IEnumerable<Expression> SubExpressions {
     get {

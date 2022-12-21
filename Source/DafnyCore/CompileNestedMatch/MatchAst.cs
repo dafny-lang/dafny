@@ -65,10 +65,10 @@ public class MatchExpr : Expression {  // a MatchExpr is an "extended expression
   }
 }
 
-public abstract class MatchCase : IHasUsages {
-  public readonly IToken tok;
+public abstract class MatchCase : INode, IHasUsages {
   [FilledInDuringResolution] public DatatypeCtor Ctor;
   public List<BoundVar> Arguments; // created by the resolver.
+
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(tok != null);
@@ -86,7 +86,6 @@ public abstract class MatchCase : IHasUsages {
   }
 
   public IToken NameToken => tok;
-  public abstract IEnumerable<INode> Children { get; }
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return new[] { Ctor };
   }
@@ -108,7 +107,7 @@ public class MatchStmt : Statement, ICloneable<MatchStmt> {
 
   [FilledInDuringResolution]
   // TODO remove field?
-  public MatchStmt OrigUnresolved;  // the resolver makes this clone of the MatchStmt before it starts desugaring it 
+  public MatchStmt OrigUnresolved;  // the resolver makes this clone of the MatchStmt before it starts desugaring it
 
   public MatchStmt Clone(Cloner cloner) {
     return new MatchStmt(cloner, this);
@@ -118,10 +117,10 @@ public class MatchStmt : Statement, ICloneable<MatchStmt> {
     source = cloner.CloneExpr(original.Source);
     cases = original.cases.Select(cloner.CloneMatchCaseStmt).ToList();
     Context = original.Context;
-    MissingCases = original.MissingCases;
     UsesOptionalBraces = original.UsesOptionalBraces;
 
     if (cloner.CloneResolvedFields) {
+      MissingCases = original.MissingCases;
       OrigUnresolved = original.OrigUnresolved;
     }
   }

@@ -33,7 +33,7 @@ public class IdPattern : ExtendedPattern, IHasUsages {
       BoundVar = cloner.CloneIVariable(original.BoundVar, false);
       Type = original.Type;
     } else {
-      Type = new InferredTypeProxy(); // TODO seems wrong. Should always copy type no?
+      Type = new InferredTypeProxy();
     }
   }
 
@@ -65,6 +65,7 @@ public class IdPattern : ExtendedPattern, IHasUsages {
   }
 
   public override IEnumerable<INode> Children => Arguments ?? Enumerable.Empty<INode>();
+
   public override void Resolve(Resolver resolver, ResolutionContext resolutionContext,
     IDictionary<TypeParameter, Type> subst, Type sourceType, bool isGhost, bool mutable) {
 

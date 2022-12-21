@@ -769,7 +769,8 @@ namespace Microsoft.Dafny {
           }
           builder.Add(new Bpl.HavocCmd(stmt.Tok, havocIds));
         }
-        String missingStr = stmt.Context.FillHole(new IdCtx(missingCtor)).AbstractAllHoles().ToString();
+        String missingStr = stmt.Context.FillHole(new IdCtx(missingCtor)).AbstractAllHoles()
+          .ToString();
         var desc = new PODesc.MatchIsComplete("statement", missingStr);
         b.Add(Assert(stmt.Tok, Bpl.Expr.False, desc));
 
@@ -1762,8 +1763,8 @@ namespace Microsoft.Dafny {
         }
         ins.Add(etran.TrExpr(receiver));
       } else if (receiver is StaticReceiverExpr stexpr) {
-        if (stexpr.OriginalResolved != null) {
-          TrStmt_CheckWellformed(stexpr.OriginalResolved, builder, locals, etran, true);
+        if (stexpr.ObjectToDiscard != null) {
+          TrStmt_CheckWellformed(stexpr.ObjectToDiscard, builder, locals, etran, true);
         }
       }
 

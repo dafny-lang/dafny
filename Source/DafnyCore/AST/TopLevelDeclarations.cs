@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public abstract class Declaration : INamedRegion, IAttributeBearingDeclaration, IDeclarationOrUsage {
+public abstract class Declaration : INode, INamedRegion, IAttributeBearingDeclaration, IDeclarationOrUsage {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(tok != null);
@@ -17,11 +17,8 @@ public abstract class Declaration : INamedRegion, IAttributeBearingDeclaration, 
     return DafnyOptions.O.Compiler.PublicIdProtect(name);
   }
 
-  public IToken tok;
   public IToken BodyStartTok = Token.NoToken;
   public IToken BodyEndTok = Token.NoToken;
-  public IToken StartToken = Token.NoToken;
-  public IToken EndToken = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
   public string Name;
   public bool IsRefining;
@@ -133,7 +130,7 @@ public abstract class Declaration : INamedRegion, IAttributeBearingDeclaration, 
 
   internal FreshIdGenerator IdGenerator = new();
   public IToken NameToken => tok;
-  public virtual IEnumerable<INode> Children => Enumerable.Empty<INode>();
+  public override IEnumerable<INode> Children => (Attributes != null ? new List<INode> { Attributes } : Enumerable.Empty<INode>());
 }
 
 public class TypeParameter : TopLevelDecl {
@@ -237,6 +234,7 @@ public class TypeParameter : TopLevelDecl {
 
   public enum EqualitySupportValue { Required, InferredRequired, Unspecified }
   public struct TypeParameterCharacteristics {
+    public IToken RangeToken = null;
     public EqualitySupportValue EqualitySupport;  // the resolver may change this value from Unspecified to InferredRequired (for some signatures that may immediately imply that equality support is required)
     public Type.AutoInitInfo AutoInit;
     public bool HasCompiledValue => AutoInit == Type.AutoInitInfo.CompilableValue;
@@ -347,6 +345,11 @@ abstract public class ModuleDecl : TopLevelDecl {
   public abstract object Dereference();
 
   public int? ResolvedHash { get; set; }
+
+  public override bool IsEssentiallyEmpty() {
+    // A module or import is considered "essentially empty" to its parents, but the module is going to be resolved by itself.
+    return true;
+  }
 }
 // Represents module X { ... }
 public class LiteralModuleDecl : ModuleDecl {
@@ -376,8 +379,10 @@ public class LiteralModuleDecl : ModuleDecl {
   public LiteralModuleDecl(ModuleDefinition module, ModuleDefinition parent)
     : base(module.tok, module.Name, parent, false, false) {
     ModuleDef = module;
-    StartToken = module.StartToken;
+    RangeToken = module.GetRangeToken();
     TokenWithTrailingDocString = module.TokenWithTrailingDocString;
+    BodyStartTok = module.BodyStartTok;
+    BodyEndTok = module.BodyEndTok;
   }
   public override object Dereference() { return ModuleDef; }
 }
@@ -473,8 +478,7 @@ public class ModuleExportDecl : ModuleDecl {
 
 }
 
-public class ExportSignature : IHasUsages {
-  public readonly IToken Tok;
+public class ExportSignature : INode, IHasUsages {
   public readonly IToken ClassIdTok;
   public readonly bool Opaque;
   public readonly string ClassId;
@@ -499,6 +503,7 @@ public class ExportSignature : IHasUsages {
     ClassId = prefix;
     Id = id;
     Opaque = opaque;
+    OwnedTokensCache = new List<IToken>() { Tok, prefixTok };
   }
 
   public ExportSignature(IToken idTok, string id, bool opaque) {
@@ -507,6 +512,7 @@ public class ExportSignature : IHasUsages {
     Tok = idTok;
     Id = id;
     Opaque = opaque;
+    OwnedTokensCache = new List<IToken>() { Tok };
   }
 
   public override string ToString() {
@@ -517,7 +523,7 @@ public class ExportSignature : IHasUsages {
   }
 
   public IToken NameToken => Tok;
-  public IEnumerable<INode> Children => Enumerable.Empty<INode>();
+  public override IEnumerable<INode> Children => Enumerable.Empty<INode>();
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return new[] { Decl };
   }
@@ -621,11 +627,9 @@ public class ModuleQualifiedId {
   [FilledInDuringResolution] public ModuleSignature Sig; // the module signature corresponding to the full path
 }
 
-public class ModuleDefinition : IDeclarationOrUsage, INamedRegion, IAttributeBearingDeclaration {
-  public readonly IToken tok;
+public class ModuleDefinition : INode, IDeclarationOrUsage, INamedRegion, IAttributeBearingDeclaration {
   public IToken BodyStartTok = Token.NoToken;
   public IToken BodyEndTok = Token.NoToken;
-  public IToken StartToken = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
   public readonly string DafnyName; // The (not-qualified) name as seen in Dafny source code
   public readonly string Name; // (Last segment of the) module name
@@ -832,22 +836,33 @@ public class ModuleDefinition : IDeclarationOrUsage, INamedRegion, IAttributeBea
   /// declarations.
   /// Note, an iterator declaration is a type, in this sense.
   /// Note, if the given list are the top-level declarations of a module, the yield will include
-  /// greatest lemmas but not their associated prefix lemmas (which are tucked into the greatest lemma's
-  /// .PrefixLemma field).
+  /// extreme predicates/lemmas but not their associated prefix predicates/lemmas (which are tucked
+  /// into the extreme predicate/lemma's PrefixPredicate/PrefixLemma field).
   /// </summary>
   public static IEnumerable<ICallable> AllCallables(List<TopLevelDecl> declarations) {
     foreach (var d in declarations) {
-      var cl = d as TopLevelDeclWithMembers;
-      if (cl != null) {
-        foreach (var member in cl.Members) {
-          var clbl = member as ICallable;
-          if (clbl != null && !(member is ConstantField)) {
-            yield return clbl;
-            if (clbl is Function f && f.ByMethodDecl != null) {
-              yield return f.ByMethodDecl;
-            }
+      if (d is TopLevelDeclWithMembers cl) {
+        foreach (var member in cl.Members.Where(member => member is ICallable and not ConstantField)) {
+          yield return (ICallable)member;
+          if (member is Function { ByMethodDecl: { } } f) {
+            yield return f.ByMethodDecl;
           }
         }
+      }
+    }
+  }
+
+  /// <summary>
+  /// Yields all functions and methods that are members of some type in the given list of
+  /// declarations, including prefix lemmas and prefix predicates.
+  /// </summary>
+  public static IEnumerable<ICallable> AllCallablesIncludingPrefixDeclarations(List<TopLevelDecl> declarations) {
+    foreach (var decl in AllCallables(declarations)) {
+      yield return decl;
+      if (decl is ExtremeLemma extremeLemma) {
+        yield return extremeLemma.PrefixLemma;
+      } else if (decl is ExtremePredicate extremePredicate) {
+        yield return extremePredicate.PrefixPredicate;
       }
     }
   }
@@ -859,17 +874,12 @@ public class ModuleDefinition : IDeclarationOrUsage, INamedRegion, IAttributeBea
   public static IEnumerable<ICallable> AllItersAndCallables(List<TopLevelDecl> declarations) {
     foreach (var d in declarations) {
       if (d is IteratorDecl) {
-        var iter = (IteratorDecl)d;
-        yield return iter;
-      } else if (d is TopLevelDeclWithMembers) {
-        var cl = (TopLevelDeclWithMembers)d;
-        foreach (var member in cl.Members) {
-          var clbl = member as ICallable;
-          if (clbl != null) {
-            yield return clbl;
-            if (clbl is Function f && f.ByMethodDecl != null) {
-              yield return f.ByMethodDecl;
-            }
+        yield return (IteratorDecl)d;
+      } else if (d is TopLevelDeclWithMembers cl) {
+        foreach (var member in cl.Members.Where(member => member is ICallable)) {
+          yield return (ICallable)member;
+          if (member is Function { ByMethodDecl: { } } f) {
+            yield return f.ByMethodDecl;
           }
         }
       }
@@ -878,8 +888,7 @@ public class ModuleDefinition : IDeclarationOrUsage, INamedRegion, IAttributeBea
 
   public static IEnumerable<IteratorDecl> AllIteratorDecls(List<TopLevelDecl> declarations) {
     foreach (var d in declarations) {
-      var iter = d as IteratorDecl;
-      if (iter != null) {
+      if (d is IteratorDecl iter) {
         yield return iter;
       }
     }
@@ -892,8 +901,7 @@ public class ModuleDefinition : IDeclarationOrUsage, INamedRegion, IAttributeBea
   public static IEnumerable<TopLevelDecl> AllDeclarationsAndNonNullTypeDecls(List<TopLevelDecl> declarations) {
     foreach (var d in declarations) {
       yield return d;
-      var cl = d as ClassDecl;
-      if (cl != null && cl.NonNullTypeDecl != null) {
+      if (d is ClassDecl { NonNullTypeDecl: { } } cl) {
         yield return cl.NonNullTypeDecl;
       }
     }
@@ -901,12 +909,10 @@ public class ModuleDefinition : IDeclarationOrUsage, INamedRegion, IAttributeBea
 
   public static IEnumerable<ExtremeLemma> AllExtremeLemmas(List<TopLevelDecl> declarations) {
     foreach (var d in declarations) {
-      var cl = d as TopLevelDeclWithMembers;
-      if (cl != null) {
+      if (d is TopLevelDeclWithMembers cl) {
         foreach (var member in cl.Members) {
-          var m = member as ExtremeLemma;
-          if (m != null) {
-            yield return m;
+          if (member is ExtremeLemma extremeLemma) {
+            yield return extremeLemma;
           }
         }
       }
@@ -914,20 +920,7 @@ public class ModuleDefinition : IDeclarationOrUsage, INamedRegion, IAttributeBea
   }
 
   public bool IsEssentiallyEmptyModuleBody() {
-    foreach (var d in TopLevelDecls) {
-      if (d is ModuleDecl) {
-        // modules don't count
-        continue;
-      } else if (d is ClassDecl) {
-        var cl = (ClassDecl)d;
-        if (cl.Members.Count == 0) {
-          // the class is empty, so it doesn't count
-          continue;
-        }
-      }
-      return false;
-    }
-    return true;
+    return TopLevelDecls.All(decl => decl.IsEssentiallyEmpty());
   }
 
   public IToken GetFirstTopLevelToken() {
@@ -942,7 +935,7 @@ public class ModuleDefinition : IDeclarationOrUsage, INamedRegion, IAttributeBea
   }
 
   public IToken NameToken => tok;
-  public IEnumerable<INode> Children => TopLevelDecls;
+  public override IEnumerable<INode> Children => (Attributes != null ? new List<INode> { Attributes } : Enumerable.Empty<INode>()).Concat(TopLevelDecls);
 }
 
 public class DefaultModuleDecl : ModuleDefinition {
@@ -1053,6 +1046,14 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
 
   public bool AllowsAllocation => true;
   public override IEnumerable<INode> Children => Enumerable.Empty<INode>();
+
+  /// <summary>
+  /// A top-level declaration is considered "essentially empty" if there is no way it could generate any resolution error
+  /// other than introducing a duplicate name.
+  /// </summary>
+  public virtual bool IsEssentiallyEmpty() {
+    return Attributes == null || TypeArgs.Count != 0;
+  }
 }
 
 public abstract class TopLevelDeclWithMembers : TopLevelDecl {
@@ -1178,6 +1179,13 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl {
   // True if non-static members can access the underlying object "this"
   // False if all members are implicitly static (e.g. in a default class declaration)
   public abstract bool AcceptThis { get; }
+
+  public override bool IsEssentiallyEmpty() {
+    if (Members.Count != 0 || ParentTraits.Count != 0) {
+      return false;
+    }
+    return base.IsEssentiallyEmpty();
+  }
 }
 
 public class TraitDecl : ClassDecl {
@@ -1391,7 +1399,18 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
     set { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
   }
 
+  /// <summary>
+  /// For information about the grounding constructor, see docs/Compilation/AutoInitialization.md.
+  /// </summary>
   public abstract DatatypeCtor GetGroundingCtor();
+
+
+  public override bool IsEssentiallyEmpty() {
+    if (Ctors.Any(ctor => ctor.Attributes != null || ctor.Formals.Count != 0)) {
+      return false;
+    }
+    return base.IsEssentiallyEmpty();
+  }
 }
 
 public class IndDatatypeDecl : DatatypeDecl {
@@ -1825,6 +1844,8 @@ public interface RedirectingTypeDecl : ICallable {
   string Name { get; }
 
   IToken tok { get; }
+  IEnumerable<IToken> OwnedTokens { get; }
+  IToken StartToken { get; }
   Attributes Attributes { get; }
   ModuleDefinition Module { get; }
   BoundVar/*?*/ Var { get; }
@@ -1937,6 +1958,8 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
 
   string RedirectingTypeDecl.Name { get { return Name; } }
   IToken RedirectingTypeDecl.tok { get { return tok; } }
+  IEnumerable<IToken> RedirectingTypeDecl.OwnedTokens => GetOwnedTokens();
+  IToken RedirectingTypeDecl.StartToken => GetStartToken();
   Attributes RedirectingTypeDecl.Attributes { get { return Attributes; } }
   ModuleDefinition RedirectingTypeDecl.Module { get { return EnclosingModuleDefinition; } }
   BoundVar RedirectingTypeDecl.Var { get { return Var; } }
@@ -1968,6 +1991,11 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
   }
 
   public override bool AcceptThis => true;
+
+  public override bool IsEssentiallyEmpty() {
+    // A "newtype" is not considered "essentially empty", because it always has a parent type to be resolved.
+    return false;
+  }
 }
 
 public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl {
@@ -2024,6 +2052,8 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl {
 
   string RedirectingTypeDecl.Name { get { return Name; } }
   IToken RedirectingTypeDecl.tok { get { return tok; } }
+  IEnumerable<IToken> RedirectingTypeDecl.OwnedTokens => GetOwnedTokens();
+  IToken RedirectingTypeDecl.StartToken => GetStartToken();
   Attributes RedirectingTypeDecl.Attributes { get { return Attributes; } }
   ModuleDefinition RedirectingTypeDecl.Module { get { return EnclosingModuleDefinition; } }
   BoundVar RedirectingTypeDecl.Var { get { return null; } }
@@ -2055,6 +2085,11 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl {
   }
   public override bool CanBeRevealed() {
     return true;
+  }
+
+  public override bool IsEssentiallyEmpty() {
+    // A synonym/subset type is not considered "essentially empty", because it always has a parent type to be resolved.
+    return false;
   }
 }
 

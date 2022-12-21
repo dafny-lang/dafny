@@ -170,8 +170,8 @@ class CheckTypeInferenceVisitor : ResolverBottomUpVisitor {
       }
 
       if (expr is StaticReceiverExpr stexpr) {
-        if (stexpr.OriginalResolved != null) {
-          Visit(stexpr.OriginalResolved);
+        if (stexpr.ObjectToDiscard != null) {
+          Visit(stexpr.ObjectToDiscard);
         } else {
           foreach (Type t in stexpr.Type.TypeArgs) {
             if (t is InferredTypeProxy && ((InferredTypeProxy)t).T == null) {
@@ -180,7 +180,6 @@ class CheckTypeInferenceVisitor : ResolverBottomUpVisitor {
           }
         }
       }
-
     } else if (expr is ComprehensionExpr) {
       var e = (ComprehensionExpr)expr;
       foreach (var bv in e.BoundVars) {

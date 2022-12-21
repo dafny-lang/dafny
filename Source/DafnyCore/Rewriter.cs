@@ -159,7 +159,7 @@ namespace Microsoft.Dafny {
     internal override void PostCyclicityResolve(ModuleDefinition m) {
       var finder = new Triggers.QuantifierCollector(Reporter);
 
-      foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
+      foreach (var decl in ModuleDefinition.AllCallablesIncludingPrefixDeclarations(m.TopLevelDecls)) {
         finder.Visit(decl, null);
       }
 
@@ -192,17 +192,10 @@ namespace Microsoft.Dafny {
     }
 
     internal override void PostResolveIntermediate(ModuleDefinition m) {
-      var forallvisiter = new ForAllStmtVisitor(Reporter);
-      foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
-        forallvisiter.Visit(decl, true);
-        if (decl is ExtremeLemma) {
-          var prefixLemma = ((ExtremeLemma)decl).PrefixLemma;
-          if (prefixLemma != null) {
-            forallvisiter.Visit(prefixLemma, true);
-          }
-        }
+      var forallVisitor = new ForAllStmtVisitor(Reporter);
+      foreach (var decl in ModuleDefinition.AllCallablesIncludingPrefixDeclarations(m.TopLevelDecls)) {
+        forallVisitor.Visit(decl, true);
       }
-
     }
 
     internal class ForAllStmtVisitor : TopDownVisitor<bool> {
@@ -1503,6 +1496,14 @@ namespace Microsoft.Dafny {
         nestedMatchExpr.Type = Type.Bool;
         reqs.Add(nestedMatchExpr);
 
+        // <<<<<<< HEAD
+        // =======
+        //         var autoReqs = GenerateAutoReqs(e.ResolvedExpression);
+        //         var newMatch = new NestedMatchExpr(e.tok, e.Source, e.Cases, e.UsesOptionalBraces);
+        //         newMatch.ResolvedExpression = Andify(e.tok, autoReqs);
+        //         newMatch.Type = newMatch.ResolvedExpression.Type;
+        //         reqs.Add(newMatch);
+        // >>>>>>> updateChildren
       } else if (expr is ConcreteSyntaxExpression) {
         var e = (ConcreteSyntaxExpression)expr;
         reqs.AddRange(GenerateAutoReqs(e.ResolvedExpression));

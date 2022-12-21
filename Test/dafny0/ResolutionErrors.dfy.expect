@@ -353,18 +353,14 @@ ResolutionErrors.dfy(2354,22): Error: a set comprehension involved in a const fi
 ResolutionErrors.dfy(2354,22): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'c'
 ResolutionErrors.dfy(2361,19): Error: a set comprehension involved in a predicate definition is not allowed to depend on the set of allocated references, but values of 'c' may contain references (see documentation for 'older' parameters)
 ResolutionErrors.dfy(2367,37): Error: a const field definition is not allowed to depend on the set of allocated references
-ResolutionErrors.dfy(2367,10): Error: const field's type is not fully determined
 ResolutionErrors.dfy(2370,49): Error: a newtype definition is not allowed to depend on the set of allocated references
 ResolutionErrors.dfy(2371,47): Error: a subset type definition is not allowed to depend on the set of allocated references
 ResolutionErrors.dfy(2369,35): Error: a const field definition is not allowed to depend on the set of allocated references
-ResolutionErrors.dfy(2369,8): Error: const field's type is not fully determined
 ResolutionErrors.dfy(2376,32): Error: a predicate definition is not allowed to depend on the set of allocated references
 ResolutionErrors.dfy(2382,41): Error: a const field definition is not allowed to depend on the set of allocated references
-ResolutionErrors.dfy(2382,10): Error: const field's type is not fully determined
 ResolutionErrors.dfy(2385,53): Error: a newtype definition is not allowed to depend on the set of allocated references
 ResolutionErrors.dfy(2386,51): Error: a subset type definition is not allowed to depend on the set of allocated references
 ResolutionErrors.dfy(2384,39): Error: a const field definition is not allowed to depend on the set of allocated references
-ResolutionErrors.dfy(2384,8): Error: const field's type is not fully determined
 ResolutionErrors.dfy(2391,36): Error: a predicate definition is not allowed to depend on the set of allocated references
 ResolutionErrors.dfy(2398,25): Error: the value returned by an abstemious function must come from invoking a co-constructor
 ResolutionErrors.dfy(2434,25): Error: the value returned by an abstemious function must come from invoking a co-constructor
@@ -603,4 +599,4 @@ ResolutionErrors.dfy(3760,8): Error: ghost-context break statement is not allowe
 ResolutionErrors.dfy(3768,8): Error: ghost-context continue statement is not allowed to continue out of non-ghost loop
 ResolutionErrors.dfy(3783,10): Error: ghost-context continue statement is not allowed to continue out of non-ghost loop
 ResolutionErrors.dfy(3806,10): Error: ghost-context continue statement is not allowed to continue out of non-ghost loop
-600 resolution/type errors detected in ResolutionErrors.dfy
+596 resolution/type errors detected in ResolutionErrors.dfy

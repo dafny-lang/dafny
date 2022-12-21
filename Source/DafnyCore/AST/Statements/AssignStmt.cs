@@ -45,7 +45,16 @@ public class AssignStmt : Statement, ICloneable<AssignStmt> {
     get {
       foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
       yield return Lhs;
-      foreach (var ee in Rhs.SubExpressions) {
+      foreach (var ee in Rhs.NonSpecificationSubExpressions) {
+        yield return ee;
+      }
+    }
+  }
+
+  public override IEnumerable<Expression> SpecificationSubExpressions {
+    get {
+      foreach (var e in base.SpecificationSubExpressions) { yield return e; }
+      foreach (var ee in Rhs.SpecificationSubExpressions) {
         yield return ee;
       }
     }

@@ -1598,10 +1598,6 @@ and what information it produces about the verification process.
   `-proverOpt:O:model_compress=false` and
   `-proverOpt:O:model.completion=true` options.
 
-* `-countVerificationErrors:<n>` - if `0` then always exit with a 0 exit
-  code, regardless of whether errors are found. If `1` (default) then
-  use the appropriate exit code. This option is deprecated.
-
 ### 25.9.8. Controlling Boogie {#sec-controlling-boogie}
 
 Dafny builds on top of Boogie, a general-purpose intermediate language

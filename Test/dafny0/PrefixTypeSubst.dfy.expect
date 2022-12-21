@@ -4,9 +4,9 @@
 module _System {
   /* CALL GRAPH for module _System:
    * SCC at height 1:
-   *   RotateRight
-   * SCC at height 1:
    *   RotateLeft
+   * SCC at height 1:
+   *   RotateRight
    * SCC at height 0:
    *   nat
    */
@@ -132,86 +132,84 @@ module _System {
 */
 
 /* CALL GRAPH for module _module:
- * SCC at height 2:
- *   RstRst10#
- * SCC at height 1:
- *   RstRst10
- * SCC at height 2:
- *   RstRst9
- *   RstRst9#
- * SCC at height 2:
- *   RstRst8
- *   RstRst8#
  * SCC at height 4:
  *   RstRst7#
  * SCC at height 3:
+ *   MyClass.M#
+ * SCC at height 3:
  *   RstRst7
  * SCC at height 2:
- *   RstRst6
- *   RstRst6#
- * SCC at height 2:
- *   RstRst5
  *   RstRst5#
+ *   RstRst5
  * SCC at height 2:
- *   RstRst4#
- * SCC at height 1:
- *   RstRst4
+ *   RstRst6#
+ *   RstRst6
  * SCC at height 2:
- *   RstRst3#
- * SCC at height 1:
- *   RstRst3
+ *   RstRst8#
+ *   RstRst8
  * SCC at height 2:
- *   RstRst2#
- * SCC at height 1:
- *   RstRst2
+ *   RstRst9#
+ *   RstRst9
  * SCC at height 2:
- *   RstRst1#
- * SCC at height 1:
- *   RstRst1
- * SCC at height 2:
- *   RstRst0#
- * SCC at height 1:
- *   RstRst0
- * SCC at height 2:
- *   O#
- * SCC at height 1:
- *   O
- * SCC at height 2:
- *   N#
- * SCC at height 1:
- *   N
- * SCC at height 0:
- *   MyClass
- * SCC at height 3:
- *   MyClass.M#
+ *   MyClass.L#
  * SCC at height 2:
  *   MyClass.M
  * SCC at height 2:
- *   MyClass.L#
+ *   N#
+ * SCC at height 2:
+ *   O#
+ * SCC at height 2:
+ *   RstRst0#
+ * SCC at height 2:
+ *   RstRst1#
+ * SCC at height 2:
+ *   RstRst10#
+ * SCC at height 2:
+ *   RstRst2#
+ * SCC at height 2:
+ *   RstRst3#
+ * SCC at height 2:
+ *   RstRst4#
  * SCC at height 1:
  *   MyClass.L
  * SCC at height 1:
- *   MyClass.RST_Nat#
- * SCC at height 0:
- *   nat
- * SCC at height 0:
- *   MyClass.RST_Nat
- * SCC at height 1:
- *   MyClass.RST#
- * SCC at height 0:
- *   MyClass.RST
- * SCC at height 1:
- *   MyClass.S#
- * SCC at height 0:
- *   MyClass.S
+ *   MyClass.P#
  * SCC at height 1:
  *   MyClass.R#
- * SCC at height 0:
- *   MyClass.R
  * SCC at height 1:
- *   MyClass.P#
+ *   MyClass.RST#
+ * SCC at height 1:
+ *   MyClass.RST_Nat#
+ * SCC at height 1:
+ *   MyClass.S#
+ * SCC at height 1:
+ *   N
+ * SCC at height 1:
+ *   O
+ * SCC at height 1:
+ *   RstRst0
+ * SCC at height 1:
+ *   RstRst1
+ * SCC at height 1:
+ *   RstRst10
+ * SCC at height 1:
+ *   RstRst2
+ * SCC at height 1:
+ *   RstRst3
+ * SCC at height 1:
+ *   RstRst4
+ * SCC at height 0:
+ *   MyClass
  * SCC at height 0:
  *   MyClass.P
+ * SCC at height 0:
+ *   MyClass.R
+ * SCC at height 0:
+ *   MyClass.RST
+ * SCC at height 0:
+ *   MyClass.RST_Nat
+ * SCC at height 0:
+ *   MyClass.S
  */
 class MyClass<A, B> {
   greatest predicate P<X, Y>(x: X, y: Y)
@@ -287,7 +285,7 @@ class MyClass<A, B> {
     if 0 < _k.Offset {
       L#[_k - 1](u, v);
     } else {
-      forall _k': ORDINAL, u: U, v: V /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} | _k' < _k
+      forall _k': ORDINAL, u: U, v: V /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} {:trigger this.P#[_k'](u, v)} | _k' < _k
         ensures this.P#[_k'](u, v)
       {
         L#[_k'](u, v)
@@ -311,7 +309,7 @@ class MyClass<A, B> {
       M#<W>[_k - 1]();
       assert R#<char>[_k - 1]();
     } else {
-      forall _k': ORDINAL /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} | _k' < _k
+      forall _k': ORDINAL /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} {:trigger this.R#[_k']()} {:trigger _k' < _k} | _k' < _k
         ensures this.R#[_k']()
       {
         M#[_k']()
@@ -337,7 +335,7 @@ lemma /*{:_induction _k}*/ N#<D0, D1, D2>[_k: ORDINAL](o: MyClass<D0, D1>)
   if 0 < _k.Offset {
     N#<D0, D1, D2>[_k - 1](o);
   } else {
-    forall _k': ORDINAL, o: MyClass<D0, D1> /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} | _k' < _k
+    forall _k': ORDINAL, o: MyClass<D0, D1> /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} {:trigger o.R#[_k']()} | _k' < _k
       ensures o.R#[_k']()
     {
       N#[_k'](o)
@@ -359,7 +357,7 @@ lemma /*{:_induction _k}*/ O#<D0, D1, D2>[_k: ORDINAL]()
   if 0 < _k.Offset {
     O#<D0, D1, D2>[_k - 1]();
   } else {
-    forall _k': ORDINAL /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} | _k' < _k
+    forall _k': ORDINAL /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} {:trigger MyClass<D0, D1>.S#[_k']()} {:trigger _k' < _k} | _k' < _k
       ensures MyClass<D0, D1>.S#[_k']()
     {
       O#[_k']()
@@ -381,7 +379,7 @@ lemma {:induction false} RstRst0#<alpha, gamma>[_k: ORDINAL]()
   if 0 < _k.Offset {
     RstRst0#<int, gamma>[_k - 1]();
   } else {
-    forall _k': ORDINAL /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} | _k' < _k
+    forall _k': ORDINAL /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} {:trigger MyClass<alpha, char>.RST#[_k']()} {:trigger _k' < _k} | _k' < _k
       ensures MyClass<alpha, char>.RST#[_k']()
     {
       RstRst0#[_k']()
@@ -403,7 +401,7 @@ lemma {:induction false} RstRst1#<alpha, gamma>[_k: ORDINAL]()
   if 0 < _k.Offset {
     RstRst1#<int, int>[_k - 1]();
   } else {
-    forall _k': ORDINAL /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} | _k' < _k
+    forall _k': ORDINAL /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} {:trigger MyClass<alpha, char>.RST#[_k']()} {:trigger _k' < _k} | _k' < _k
       ensures MyClass<alpha, char>.RST#[_k']()
     {
       RstRst1#[_k']()
@@ -425,7 +423,7 @@ lemma {:induction false} RstRst2#<alpha, gamma>[_k: ORDINAL]()
   if 0 < _k.Offset {
     RstRst2#<alpha, gamma>[_k - 1]();
   } else {
-    forall _k': ORDINAL /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} | _k' < _k
+    forall _k': ORDINAL /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} {:trigger MyClass<alpha, char>.RST#[_k']()} {:trigger _k' < _k} | _k' < _k
       ensures MyClass<alpha, char>.RST#[_k']()
     {
       RstRst2#[_k']()
@@ -447,7 +445,7 @@ lemma {:induction false} RstRst3#<alpha, beta, gamma>[_k: ORDINAL]()
   if 0 < _k.Offset {
     RstRst3#<alpha, beta, gamma>[_k - 1]();
   } else {
-    forall _k': ORDINAL /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} | _k' < _k
+    forall _k': ORDINAL /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} {:trigger MyClass<alpha, beta>.RST#[_k']()} {:trigger _k' < _k} | _k' < _k
       ensures MyClass<alpha, beta>.RST#[_k']()
     {
       RstRst3#[_k']()
@@ -469,7 +467,7 @@ lemma {:induction false} RstRst4#<alpha, beta, gamma>[_k: ORDINAL]()
   if 0 < _k.Offset {
     RstRst4#<beta, alpha, gamma>[_k - 1]();
   } else {
-    forall _k': ORDINAL /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} | _k' < _k
+    forall _k': ORDINAL /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} {:trigger MyClass<alpha, beta>.RST#[_k']()} {:trigger _k' < _k} | _k' < _k
       ensures MyClass<alpha, beta>.RST#[_k']()
     {
       RstRst4#[_k']()
@@ -499,7 +497,7 @@ lemma {:induction false} RstRst5#<alpha, gamma>[_k: ORDINAL]()
       assert _k.Offset == 1;
     }
   } else {
-    forall _k': ORDINAL /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} | _k' < _k
+    forall _k': ORDINAL /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} {:trigger MyClass<alpha, char>.RST#[_k']()} {:trigger _k' < _k} | _k' < _k
       ensures MyClass<alpha, char>.RST#[_k']()
     {
       RstRst5#[_k']()
@@ -529,7 +527,7 @@ lemma {:induction false} RstRst6#<alpha, beta, gamma>[_k: ORDINAL]()
     case 2 <= _k.Offset =>
       RstRst6#<alpha, beta, gamma>[_k - 2]();
   } else {
-    forall _k': ORDINAL /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} | _k' < _k
+    forall _k': ORDINAL /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} {:trigger MyClass<alpha, beta>.RST#[_k']()} {:trigger _k' < _k} | _k' < _k
       ensures MyClass<alpha, beta>.RST#[_k']()
     {
       RstRst6#[_k']()
@@ -557,7 +555,7 @@ lemma /*{:_induction _k}*/ RstRst7#<alpha, beta, gamma>[_k: ORDINAL]()
     } else {
     }
   } else {
-    forall _k': ORDINAL /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} | _k' < _k
+    forall _k': ORDINAL /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} {:trigger MyClass<alpha, beta>.RST#[_k']()} {:trigger _k' < _k} | _k' < _k
       ensures MyClass<alpha, beta>.RST#[_k']()
     {
       RstRst7#[_k']()

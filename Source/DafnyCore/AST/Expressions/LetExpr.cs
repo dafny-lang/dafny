@@ -81,4 +81,9 @@ public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBeari
   }
 
   public IEnumerable<BoundVar> AllBoundVars => BoundVars;
+
+  public override IEnumerable<INode> Children =>
+    (Attributes != null ? new List<INode> { Attributes } : Enumerable.Empty<INode>())
+    .Concat(LHSs)
+    .Concat(base.Children);
 }

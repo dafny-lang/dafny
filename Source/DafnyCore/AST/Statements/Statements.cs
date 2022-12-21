@@ -7,9 +7,8 @@ using System.Security.Policy;
 
 namespace Microsoft.Dafny;
 
-public abstract class Statement : IAttributeBearingDeclaration, INode {
-  public readonly IToken Tok;
-  public readonly IToken EndTok;  // typically a terminating semi-colon or end-curly-brace
+public abstract class Statement : INode, IAttributeBearingDeclaration {
+  public IToken EndTok { get; set; }  // typically a terminating semi-colon or end-curly-brace
   public LList<Label> Labels;  // mutable during resolution
 
   private Attributes attributes;
@@ -45,6 +44,7 @@ public abstract class Statement : IAttributeBearingDeclaration, INode {
     Contract.Requires(endTok != null);
     this.Tok = tok;
     this.EndTok = endTok;
+    this.RangeToken = new RangeToken(tok, endTok);
     this.attributes = attrs;
   }
 
@@ -81,7 +81,7 @@ public abstract class Statement : IAttributeBearingDeclaration, INode {
 
   /// <summary>
   /// Returns the non-null expressions of this statement proper (that is, do not include the expressions of substatements).
-  /// Filters all sub expressions that are not part of specifications
+  /// Includes both specification and non-specification expressions.
   /// </summary>
   public IEnumerable<Expression> SubExpressions {
     get {
@@ -101,7 +101,9 @@ public abstract class Statement : IAttributeBearingDeclaration, INode {
   /// </summary>
   public virtual IEnumerable<Expression> SpecificationSubExpressions {
     get {
-      yield break;
+      foreach (var e in Attributes.SubExpressions(Attributes)) {
+        yield return e;
+      }
     }
   }
 
@@ -111,9 +113,7 @@ public abstract class Statement : IAttributeBearingDeclaration, INode {
   /// </summary>
   public virtual IEnumerable<Expression> NonSpecificationSubExpressions {
     get {
-      foreach (var e in Attributes.SubExpressions(Attributes)) {
-        yield return e;
-      }
+      yield break;
     }
   }
 
@@ -142,26 +142,13 @@ public abstract class Statement : IAttributeBearingDeclaration, INode {
     var variableUpdateStmt = new UpdateStmt(tok, tok, Util.Singleton(variableExpr),
       Util.Singleton<AssignmentRhs>(new ExprRhs(value)));
     var variableAssignStmt = new AssignStmt(tok, tok, variableUpdateStmt.Lhss[0], variableUpdateStmt.Rhss[0]);
-    variableUpdateStmt.ResolvedStatements.Add(variableAssignStmt);
+    variableUpdateStmt.ResolvedStatements = new List<Statement>() { variableAssignStmt };
     return new VarDeclStmt(tok, tok, Util.Singleton(variable), variableUpdateStmt);
   }
 
   public static PrintStmt CreatePrintStmt(IToken tok, params Expression[] exprs) {
     return new PrintStmt(tok, tok, exprs.ToList());
   }
-
-  [FilledInDuringResolution] private IToken rangeToken;
-  public virtual IToken RangeToken {
-    get {
-      if (rangeToken == null) {
-        // Need a special case for the elephant operator to avoid end < start
-        rangeToken = new RangeToken(Tok, Tok.pos > EndTok.pos ? Tok : EndTok);
-      }
-      return rangeToken;
-    }
-  }
-
-  public virtual IEnumerable<INode> Children => SubStatements.Concat<INode>(SubExpressions);
 
   public override string ToString() {
     try {
@@ -170,6 +157,10 @@ public abstract class Statement : IAttributeBearingDeclaration, INode {
       return $"couldn't print stmt because: {e.Message}";
     }
   }
+
+  public override IEnumerable<INode> Children =>
+    (Attributes != null ? new List<INode> { Attributes } : Enumerable.Empty<INode>()).Concat(
+      SubStatements.Concat<INode>(SubExpressions));
 }
 
 public class LList<T> {
@@ -303,22 +294,28 @@ public abstract class ProduceStmt : Statement {
   public override IEnumerable<Expression> NonSpecificationSubExpressions {
     get {
       foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
-      if (Rhss != null) {
-        foreach (var rhs in Rhss) {
-          foreach (var ee in rhs.SubExpressions) {
-            yield return ee;
-          }
+      foreach (var rhs in Rhss ?? Enumerable.Empty<AssignmentRhs>()) {
+        foreach (var e in rhs.NonSpecificationSubExpressions) {
+          yield return e;
+        }
+      }
+    }
+  }
+  public override IEnumerable<Expression> SpecificationSubExpressions {
+    get {
+      foreach (var e in base.SpecificationSubExpressions) { yield return e; }
+      foreach (var rhs in Rhss ?? Enumerable.Empty<AssignmentRhs>()) {
+        foreach (var e in rhs.SpecificationSubExpressions) {
+          yield return e;
         }
       }
     }
   }
   public override IEnumerable<Statement> SubStatements {
     get {
-      if (Rhss != null) {
-        foreach (var rhs in Rhss) {
-          foreach (var s in rhs.SubStatements) {
-            yield return s;
-          }
+      foreach (var rhs in Rhss ?? Enumerable.Empty<AssignmentRhs>()) {
+        foreach (var s in rhs.SubStatements) {
+          yield return s;
         }
       }
     }
@@ -340,9 +337,7 @@ public class YieldStmt : ProduceStmt, ICloneable<YieldStmt> {
   }
 }
 
-public abstract class AssignmentRhs : INode {
-  public readonly IToken Tok;
-
+public abstract class AssignmentRhs : INode, IAttributeBearingDeclaration {
   private Attributes attributes;
   public Attributes Attributes {
     get {
@@ -362,24 +357,38 @@ public abstract class AssignmentRhs : INode {
     Attributes = attrs;
   }
   public abstract bool CanAffectPreviouslyKnownExpressions { get; }
+
   /// <summary>
-  /// Returns the non-null subexpressions of the AssignmentRhs.
+  /// Returns all (specification and non-specification) non-null expressions of the AssignmentRhs.
   /// </summary>
-  public virtual IEnumerable<Expression> SubExpressions {
+  public IEnumerable<Expression> SubExpressions => SpecificationSubExpressions.Concat(NonSpecificationSubExpressions);
+
+  /// <summary>
+  /// Returns the non-null non-specification subexpressions of the AssignmentRhs.
+  /// </summary>
+  public virtual IEnumerable<Expression> NonSpecificationSubExpressions {
+    get {
+      yield break;
+    }
+  }
+
+  /// <summary>
+  /// Returns the non-null specification subexpressions of the AssignmentRhs.
+  /// </summary>
+  public virtual IEnumerable<Expression> SpecificationSubExpressions {
     get {
       foreach (var e in Attributes.SubExpressions(Attributes)) {
         yield return e;
       }
     }
   }
+
   /// <summary>
   /// Returns the non-null sub-statements of the AssignmentRhs.
   /// </summary>
   public virtual IEnumerable<Statement> SubStatements {
     get { yield break; }
   }
-
-  public abstract IEnumerable<INode> Children { get; }
 }
 
 public class ExprRhs : AssignmentRhs {
@@ -389,13 +398,13 @@ public class ExprRhs : AssignmentRhs {
     Contract.Invariant(Expr != null);
   }
 
-  public ExprRhs(Expression expr, Attributes attrs = null)  // TODO: these 'attrs' apparently aren't handled correctly in the Cloner, and perhaps not in various visitors either (for example, CheckIsCompilable should not go into attributes)
+  public ExprRhs(Expression expr, Attributes attrs = null)
     : base(expr.tok, attrs) {
     Contract.Requires(expr != null);
     Expr = expr;
   }
   public override bool CanAffectPreviouslyKnownExpressions { get { return false; } }
-  public override IEnumerable<Expression> SubExpressions {
+  public override IEnumerable<Expression> NonSpecificationSubExpressions {
     get {
       yield return Expr;
     }
@@ -431,7 +440,7 @@ public class ExprRhs : AssignmentRhs {
 ///    or all of Path denotes a type
 ///      -- represents new C._ctor(EE), where _ctor is the anonymous constructor for class C
 /// </summary>
-public class TypeRhs : AssignmentRhs, INode {
+public class TypeRhs : AssignmentRhs {
   /// <summary>
   /// If ArrayDimensions != null, then the TypeRhs represents "new EType[ArrayDimensions]",
   ///     ElementInit is non-null to represent "new EType[ArrayDimensions] (elementInit)",
@@ -516,7 +525,7 @@ public class TypeRhs : AssignmentRhs, INode {
     }
   }
 
-  public override IEnumerable<Expression> SubExpressions {
+  public override IEnumerable<Expression> NonSpecificationSubExpressions {
     get {
       if (ArrayDimensions != null) {
         foreach (var e in ArrayDimensions) {
@@ -542,7 +551,19 @@ public class TypeRhs : AssignmentRhs, INode {
   }
 
   public IToken Start => Tok;
-  public override IEnumerable<INode> Children => new[] { EType, Type }.OfType<UserDefinedType>();
+  public override IEnumerable<INode> Children {
+    get {
+      if (ArrayDimensions == null) {
+        if (InitCall != null) {
+          return new[] { InitCall };
+        }
+
+        return EType.Nodes;
+      }
+
+      return EType.Nodes.Concat(SubExpressions).Concat<INode>(SubStatements);
+    }
+  }
 }
 
 public class HavocRhs : AssignmentRhs {
@@ -586,9 +607,9 @@ public class VarDeclStmt : Statement, ICloneable<VarDeclStmt> {
     get { if (Update != null) { yield return Update; } }
   }
 
-  public override IEnumerable<Expression> NonSpecificationSubExpressions {
+  public override IEnumerable<Expression> SpecificationSubExpressions {
     get {
-      foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
+      foreach (var e in base.SpecificationSubExpressions) { yield return e; }
       foreach (var v in Locals) {
         foreach (var e in Attributes.SubExpressions(v.Attributes)) {
           yield return e;
@@ -631,6 +652,9 @@ public class VarDeclPattern : Statement, ICloneable<VarDeclPattern> {
     }
   }
 
+  public override IEnumerable<INode> Children =>
+    new List<INode> { LHS }.Concat(base.Children);
+
   public IEnumerable<LocalVariable> LocalVars {
     get {
       foreach (var bv in LHS.Vars) {
@@ -659,18 +683,28 @@ public abstract class ConcreteUpdateStatement : Statement {
   }
 }
 
+/// <summary>
+/// Attributed tokens are used when a subpart of a statement or expression can take attributes.
+/// (Perhaps in addition to attributes placed on the token itself.)
+///
+/// It is used in particular to attach `{:axiom}` tokens to the `assume` keyword
+/// on the RHS of `:|` and `:-` (in contrast, for `assume` statements, the
+/// `{:axiom}` attribute is directly attached to the statement-level
+/// attributes).
+/// </summary>
+public record AttributedToken(IToken Token, Attributes Attrs) : IAttributeBearingDeclaration {
+  Attributes IAttributeBearingDeclaration.Attributes => Attrs;
+}
+
 public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt> {
   public readonly List<AssignmentRhs> Rhss;
   public readonly bool CanMutateKnownState;
   public Expression OriginalInitialLhs = null;
 
-  [FilledInDuringResolution] public readonly List<Statement> ResolvedStatements = new List<Statement>(); // TODO initialise with null
-  public override IEnumerable<Statement> SubStatements {
-    get { return ResolvedStatements; }
-  }
+  [FilledInDuringResolution] public List<Statement> ResolvedStatements;
+  public override IEnumerable<Statement> SubStatements => Children.OfType<Statement>();
 
-  // Both resolved and unresolved are required. Duplicate usages will be filtered out.
-  public override IEnumerable<INode> Children => ResolvedStatements; //Lhss.Concat<INode>(Rhss).Concat(ResolvedStatements);
+  public override IEnumerable<INode> Children => ResolvedStatements ?? Lhss.Concat<INode>(Rhss);
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -712,8 +746,7 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt> {
   }
 }
 
-public class LocalVariable : IVariable, IAttributeBearingDeclaration {
-  public readonly IToken Tok;
+public class LocalVariable : INode, IVariable, IAttributeBearingDeclaration {
   public readonly IToken EndTok;  // typically a terminating semi-colon or end-curly-brace
   readonly string name;
   public Attributes Attributes;
@@ -820,15 +853,18 @@ public class LocalVariable : IVariable, IAttributeBearingDeclaration {
   }
 
   public IToken NameToken => Tok;
-  public IEnumerable<INode> Children => type.Nodes;
+  public bool IsTypeExplicit = false;
+  public override IEnumerable<INode> Children =>
+    (Attributes != null ? new List<INode> { Attributes } : Enumerable.Empty<INode>()).Concat(
+      IsTypeExplicit ? new List<INode>() { type } : Enumerable.Empty<INode>());
 }
 
-public class GuardedAlternative : IAttributeBearingDeclaration {
-  public readonly IToken Tok;
+public class GuardedAlternative : INode, IAttributeBearingDeclaration {
   public readonly bool IsBindingGuard;
   public readonly Expression Guard;
   public readonly List<Statement> Body;
   public Attributes Attributes;
+  public override IEnumerable<INode> Children => (Attributes != null ? new List<INode> { Attributes } : Enumerable.Empty<INode>()).Concat(new List<INode>() { Guard }).Concat<INode>(Body);
   Attributes IAttributeBearingDeclaration.Attributes => Attributes;
 
   [ContractInvariantMethod]
@@ -901,13 +937,6 @@ public class WhileStmt : OneBodyLoopStmt, ICloneable<WhileStmt> {
     this.Guard = guard;
   }
 
-  public override IEnumerable<Statement> SubStatements {
-    get {
-      if (Body != null) {
-        yield return Body;
-      }
-    }
-  }
   public override IEnumerable<Expression> NonSpecificationSubExpressions {
     get {
       foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }

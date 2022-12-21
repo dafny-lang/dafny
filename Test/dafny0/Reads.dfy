@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Checking that the reads clause also is checked over requires
@@ -148,5 +148,18 @@ class ReadsTestsInsideLetSuchThat {
   function F(): int {
     var yy :| yy == this.y;  // error: F does not have permission to read this.y
     yy
+  }
+}
+
+class ConstInitializers {
+  var x: int
+
+  const u: int := x // error: insufficient reads clause
+
+  const v: int := F() // error: insufficient reads clause
+  function method F(): int
+    reads this
+  {
+    x + x
   }
 }

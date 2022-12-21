@@ -9,6 +9,8 @@ These pages are not intended to be a reference manual or an organized tutorial f
 
 If you have questions that are not addressed here, be sure to communicate them to the Dafny team.
 
+[All content on one page](onepage)
+
 # FAQs
 ## Dafny language
 

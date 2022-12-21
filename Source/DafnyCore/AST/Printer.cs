@@ -9,15 +9,42 @@
 using System;
 using System.IO;
 using System.Collections.Generic;
+using System.CommandLine;
 using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Linq;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
+
+  public enum PrintModes {
+    Everything,
+    DllEmbed,
+    NoIncludes,
+    NoGhost
+  }
+
   public class Printer {
+    static Printer() {
+      DafnyOptions.RegisterLegacyBinding(PrintMode, (options, value) => {
+        options.PrintMode = value;
+      });
+    }
+
+    public static readonly Option<PrintModes> PrintMode = new("--print-mode", () => PrintModes.Everything, @"
+Everything - Print everything listed below.
+DllEmbed - print the source that will be included in a compiled dll.
+NoIncludes - disable printing of {:verify false} methods
+    incorporated via the include mechanism, as well as datatypes and
+    fields included from other files.
+NoGhost - disable printing of functions, ghost methods, and proof
+    statements in implementation methods. It also disables anything
+    NoIncludes disables.".TrimStart()) {
+      IsHidden = true
+    };
+
     TextWriter wr;
-    DafnyOptions.PrintModes printMode;
+    PrintModes printMode;
     bool afterResolver;
     bool printingExportSet = false;
     bool printingDesugared = false;
@@ -27,7 +54,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(wr != null);
     }
 
-    public Printer(TextWriter wr, DafnyOptions.PrintModes printMode = DafnyOptions.PrintModes.Everything) {
+    public Printer(TextWriter wr, PrintModes printMode = PrintModes.Everything) {
       Contract.Requires(wr != null);
       this.wr = wr;
       this.printMode = printMode;
@@ -123,7 +150,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public static string ModuleDefinitionToString(ModuleDefinition m, DafnyOptions.PrintModes printMode = DafnyOptions.PrintModes.Everything) {
+    public static string ModuleDefinitionToString(ModuleDefinition m, PrintModes printMode = PrintModes.Everything) {
       Contract.Requires(m != null);
       using (var wr = new System.IO.StringWriter()) {
         var pr = new Printer(wr, printMode);
@@ -171,10 +198,10 @@ namespace Microsoft.Dafny {
         wr.WriteLine("// " + DafnyOptions.O.Version);
         wr.WriteLine("// " + DafnyOptions.O.Environment);
       }
-      if (DafnyOptions.O.PrintMode != DafnyOptions.PrintModes.DllEmbed) {
+      if (DafnyOptions.O.PrintMode != PrintModes.DllEmbed) {
         wr.WriteLine("// {0}", prog.Name);
       }
-      if (DafnyOptions.O.DafnyPrintResolvedFile != null && DafnyOptions.O.PrintMode == DafnyOptions.PrintModes.Everything) {
+      if (DafnyOptions.O.DafnyPrintResolvedFile != null && DafnyOptions.O.PrintMode == PrintModes.Everything) {
         wr.WriteLine();
         wr.WriteLine("/*");
         PrintModuleDefinition(prog.BuiltIns.SystemModule, null, 0, null, Path.GetFullPath(DafnyOptions.O.DafnyPrintResolvedFile));
@@ -198,13 +225,33 @@ namespace Microsoft.Dafny {
     public void PrintCallGraph(ModuleDefinition module, int indent) {
       Contract.Requires(module != null);
       Contract.Requires(0 <= indent);
-      if (DafnyOptions.O.DafnyPrintResolvedFile != null && DafnyOptions.O.PrintMode == DafnyOptions.PrintModes.Everything) {
+      if (DafnyOptions.O.DafnyPrintResolvedFile != null && DafnyOptions.O.PrintMode == PrintModes.Everything) {
         // print call graph
         Indent(indent); wr.WriteLine("/* CALL GRAPH for module {0}:", module.Name);
         var SCCs = module.CallGraph.TopologicallySortedComponents();
-        SCCs.Reverse();
+        // Sort output SCCs in order of: descending height, then decreasing size of SCC, then alphabetical order of the name of
+        // the representative element. By being this specific, we reduce changes in output from minor changes in the code. (With
+        // more effort, we could be even more deterministic, if needed in the future.)
+        SCCs.Sort((m, n) => {
+          var mm = module.CallGraph.GetSCCRepresentativePredecessorCount(m);
+          var nn = module.CallGraph.GetSCCRepresentativePredecessorCount(n);
+          if (mm < nn) {
+            return 1;
+          } else if (mm > nn) {
+            return -1;
+          }
+          mm = module.CallGraph.GetSCCSize(m);
+          nn = module.CallGraph.GetSCCSize(n);
+          if (mm < nn) {
+            return 1;
+          } else if (mm > nn) {
+            return -1;
+          }
+          return string.CompareOrdinal(m.NameRelativeToModule, n.NameRelativeToModule);
+        });
         foreach (var clbl in SCCs) {
-          Indent(indent); wr.WriteLine(" * SCC at height {0}:", module.CallGraph.GetSCCRepresentativePredecessorCount(clbl));
+          Indent(indent);
+          wr.WriteLine(" * SCC at height {0}:", module.CallGraph.GetSCCRepresentativePredecessorCount(clbl));
           var r = module.CallGraph.GetSCC(clbl);
           foreach (var m in r) {
             Indent(indent);
@@ -369,7 +416,7 @@ namespace Microsoft.Dafny {
             if (dd.Opened) {
               wr.Write(" opened");
             }
-            if (dd.ResolvedHash.HasValue && this.printMode == DafnyOptions.PrintModes.DllEmbed) {
+            if (dd.ResolvedHash.HasValue && this.printMode == PrintModes.DllEmbed) {
               wr.Write(" /*");
               wr.Write(dd.ResolvedHash);
               wr.Write("*/");
@@ -392,7 +439,7 @@ namespace Microsoft.Dafny {
             if (dd.Opened) {
               wr.Write(" opened");
             }
-            if (dd.ResolvedHash.HasValue && this.printMode == DafnyOptions.PrintModes.DllEmbed) {
+            if (dd.ResolvedHash.HasValue && this.printMode == PrintModes.DllEmbed) {
               wr.Write(" /*");
               wr.Write(dd.ResolvedHash);
               wr.Write("*/");
@@ -637,7 +684,7 @@ namespace Microsoft.Dafny {
       int state = 0;  // 0 - no members yet; 1 - previous member was a field; 2 - previous member was non-field
       foreach (MemberDecl m in members) {
         if (PrintModeSkipGeneral(m.tok, fileBeingPrinted)) { continue; }
-        if (printMode == DafnyOptions.PrintModes.DllEmbed && Attributes.Contains(m.Attributes, "auto_generated")) {
+        if (printMode == PrintModes.DllEmbed && Attributes.Contains(m.Attributes, "auto_generated")) {
           // omit this declaration
         } else if (m is Method) {
           if (state != 0) { wr.WriteLine(); }
@@ -656,8 +703,7 @@ namespace Microsoft.Dafny {
         } else if (m is Function) {
           if (state != 0) { wr.WriteLine(); }
           PrintFunction((Function)m, indent, false);
-          var fixp = m as ExtremePredicate;
-          if (fixp != null && fixp.PrefixPredicate != null) {
+          if (m is ExtremePredicate fixp && fixp.PrefixPredicate != null) {
             Indent(indent); wr.WriteLine("/*** (note, what is printed here does not show substitutions of calls to prefix predicates)");
             PrintFunction(fixp.PrefixPredicate, indent, false);
             Indent(indent); wr.WriteLine("***/");
@@ -906,8 +952,8 @@ namespace Microsoft.Dafny {
     }
 
     private bool PrintModeSkipFunctionOrMethod(bool IsGhost, Attributes attributes, string name) {
-      if (printMode == DafnyOptions.PrintModes.NoGhost && IsGhost) { return true; }
-      if (printMode == DafnyOptions.PrintModes.NoIncludes || printMode == DafnyOptions.PrintModes.NoGhost) {
+      if (printMode == PrintModes.NoGhost && IsGhost) { return true; }
+      if (printMode == PrintModes.NoIncludes || printMode == PrintModes.NoGhost) {
         bool verify = true;
         if (Attributes.ContainsBool(attributes, "verify", ref verify) && !verify) { return true; }
         if (name.Contains("INTERNAL") || name.StartsWith("reveal_")) { return true; }
@@ -916,7 +962,7 @@ namespace Microsoft.Dafny {
     }
 
     private bool PrintModeSkipGeneral(Bpl.IToken tok, string fileBeingPrinted) {
-      return (printMode == DafnyOptions.PrintModes.NoIncludes || printMode == DafnyOptions.PrintModes.NoGhost)
+      return (printMode == PrintModes.NoIncludes || printMode == PrintModes.NoGhost)
              && tok.filename != null && fileBeingPrinted != null && Path.GetFullPath(tok.filename) != fileBeingPrinted;
     }
 
@@ -1035,7 +1081,7 @@ namespace Microsoft.Dafny {
 
     internal void PrintDecreasesSpec(Specification<Expression> decs, int indent) {
       Contract.Requires(decs != null);
-      if (printMode == DafnyOptions.PrintModes.NoGhost) { return; }
+      if (printMode == PrintModes.NoGhost) { return; }
       if (decs.Expressions != null && decs.Expressions.Count != 0) {
         wr.WriteLine();
         Indent(indent);
@@ -1066,7 +1112,7 @@ namespace Microsoft.Dafny {
     internal void PrintSpec(string kind, List<AttributedExpression> ee, int indent) {
       Contract.Requires(kind != null);
       Contract.Requires(ee != null);
-      if (printMode == DafnyOptions.PrintModes.NoGhost) { return; }
+      if (printMode == PrintModes.NoGhost) { return; }
       foreach (AttributedExpression e in ee) {
         Contract.Assert(e != null);
         wr.WriteLine();
@@ -1148,7 +1194,7 @@ namespace Microsoft.Dafny {
     public void PrintStatement(Statement stmt, int indent) {
       Contract.Requires(stmt != null);
 
-      if (stmt.IsGhost && printMode == DafnyOptions.PrintModes.NoGhost) { return; }
+      if (stmt.IsGhost && printMode == PrintModes.NoGhost) { return; }
       for (LList<Label> label = stmt.Labels; label != null; label = label.Next) {
         if (label.Data.Name != null) {
           wr.WriteLine("label {0}:", label.Data.Name);
@@ -1157,7 +1203,7 @@ namespace Microsoft.Dafny {
       }
 
       if (stmt is PredicateStmt) {
-        if (printMode == DafnyOptions.PrintModes.NoGhost) { return; }
+        if (printMode == PrintModes.NoGhost) { return; }
         Expression expr = ((PredicateStmt)stmt).Expr;
         var assertStmt = stmt as AssertStmt;
         var expectStmt = stmt as ExpectStmt;
@@ -1352,7 +1398,7 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is CalcStmt) {
         CalcStmt s = (CalcStmt)stmt;
-        if (printMode == DafnyOptions.PrintModes.NoGhost) { return; }   // Calcs don't get a "ghost" attribute, but they are.
+        if (printMode == PrintModes.NoGhost) { return; }   // Calcs don't get a "ghost" attribute, but they are.
         wr.Write("calc");
         PrintAttributes(stmt.Attributes);
         wr.Write(" ");
@@ -1507,7 +1553,7 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
-        if (s.Locals.Exists(v => v.IsGhost) && printMode == DafnyOptions.PrintModes.NoGhost) { return; }
+        if (s.Locals.Exists(v => v.IsGhost) && printMode == PrintModes.NoGhost) { return; }
         if (s.Locals.TrueForAll((v => v.IsGhost))) {
           // Emit the "ghost" modifier if all of the variables are ghost. If some are ghost, but not others,
           // then some of these ghosts are auto-converted to ghost, so we should not emit the "ghost" keyword.
@@ -1634,13 +1680,24 @@ namespace Microsoft.Dafny {
         var update = (AssignSuchThatStmt)s;
         wr.Write(":| ");
         if (update.AssumeToken != null) {
-          wr.Write("assume ");
+          wr.Write("assume");
+          PrintAttributes(update.AssumeToken.Attrs);
+          wr.Write(" ");
         }
         PrintExpression(update.Expr, true);
       } else if (s is AssignOrReturnStmt) {
         var stmt = (AssignOrReturnStmt)s;
-        wr.Write(":- ");
-        PrintExpression(stmt.Rhs, true);
+        wr.Write(":-");
+        if (stmt.KeywordToken != null) {
+          wr.Write($" {stmt.KeywordToken.Token.val}");
+          PrintAttributes(stmt.KeywordToken.Attrs);
+        }
+        wr.Write(" ");
+        PrintRhs(stmt.Rhs);
+        foreach (var rhs in stmt.Rhss) {
+          wr.Write(", ");
+          PrintRhs(rhs);
+        }
         if (DafnyOptions.O.DafnyPrintResolvedFile != null && stmt.ResolvedStatements.Count > 0) {
           wr.WriteLine();
           Indent(indent); wr.WriteLine("/*---------- desugared ----------");
@@ -1973,6 +2030,7 @@ namespace Microsoft.Dafny {
         if (e.Exact) {
           wr.Write(" := ");
         } else {
+          PrintAttributes(e.Attributes);
           wr.Write(" :| ");
         }
         PrintExpressionList(e.RHSs, true);
@@ -2145,7 +2203,7 @@ namespace Microsoft.Dafny {
           PrintExpr(e.Lhs, opBindingStrength, false, false, !parensNeeded && isFollowedBySemicolon, -1, keyword);
           if (e.Lhs.Type is Resolver_IdentifierExpr.ResolverType_Type) {
             Contract.Assert(e.Lhs is NameSegment || e.Lhs is ExprDotName);  // these are the only expressions whose .Type can be ResolverType_Type
-            if (DafnyOptions.O.DafnyPrintResolvedFile != null && DafnyOptions.O.PrintMode == DafnyOptions.PrintModes.Everything) {
+            if (DafnyOptions.O.DafnyPrintResolvedFile != null && DafnyOptions.O.PrintMode == PrintModes.Everything) {
               // The printing of e.Lhs printed the type arguments only if they were given explicitly in the input.
               var optionalTypeArgs = e.Lhs is NameSegment ns ? ns.OptTypeArguments : ((ExprDotName)e.Lhs).OptTypeArguments;
               if (optionalTypeArgs == null && e.Lhs.Resolved is Resolver_IdentifierExpr ri) {
@@ -2265,7 +2323,7 @@ namespace Microsoft.Dafny {
           sep = ", ";
         }
         wr.Write(")");
-        if (DafnyOptions.O.DafnyPrintResolvedFile != null && DafnyOptions.O.PrintMode == DafnyOptions.PrintModes.Everything) {
+        if (DafnyOptions.O.DafnyPrintResolvedFile != null && DafnyOptions.O.PrintMode == PrintModes.Everything) {
           if (e.ResolvedExpression != null) {
             wr.Write("/*");
             PrintExpression(e.ResolvedExpression, false);
@@ -2565,6 +2623,7 @@ namespace Microsoft.Dafny {
         if (e.Exact) {
           wr.Write(" := ");
         } else {
+          PrintAttributes(e.Attributes);
           wr.Write(" :| ");
         }
         PrintExpressionList(e.RHSs, true);

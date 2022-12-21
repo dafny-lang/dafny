@@ -24,30 +24,26 @@ public class DocumentManager {
   private readonly ITextChangeProcessor textChangeProcessor;
 
   private readonly IServiceProvider services;
-  private readonly DocumentOptions documentOptions;
-  private readonly VerifierOptions verifierOptions;
   private readonly IdeStateObserver observer;
   public Compilation Compilation { get; private set; }
   private IDisposable observerSubscription;
   private readonly ILogger<DocumentManager> logger;
 
-  private bool VerifyOnOpen => documentOptions.Verify == AutoVerification.OnChange;
-  private bool VerifyOnChange => documentOptions.Verify == AutoVerification.OnChange;
-  private bool VerifyOnSave => documentOptions.Verify == AutoVerification.OnSave;
+  private bool VerifyOnOpen => options.Get(ServerCommand.Verification) == VerifyOnMode.Change;
+  private bool VerifyOnChange => options.Get(ServerCommand.Verification) == VerifyOnMode.Change;
+  private bool VerifyOnSave => options.Get(ServerCommand.Verification) == VerifyOnMode.Save;
   public List<Position> ChangedVerifiables { get; set; } = new();
   public List<Range> ChangedRanges { get; set; } = new();
 
   private readonly SemaphoreSlim workCompletedForCurrentVersion = new(0);
+  private readonly DafnyOptions options;
 
   public DocumentManager(
     IServiceProvider services,
-    DocumentOptions documentOptions,
-    VerifierOptions verifierOptions,
     DocumentTextBuffer document) {
     this.services = services;
+    this.options = services.GetRequiredService<DafnyOptions>();
     this.logger = services.GetRequiredService<ILogger<DocumentManager>>();
-    this.documentOptions = documentOptions;
-    this.verifierOptions = verifierOptions;
     this.relocator = services.GetRequiredService<IRelocator>();
     this.textChangeProcessor = services.GetRequiredService<ITextChangeProcessor>();
 
@@ -58,7 +54,6 @@ public class DocumentManager {
       document);
     Compilation = new Compilation(
       services,
-      verifierOptions,
       document,
       null);
 
@@ -111,7 +106,6 @@ public class DocumentManager {
     }
     Compilation = new Compilation(
       services,
-      verifierOptions,
       updatedText,
       // TODO do not pass this to CompilationManager but instead use it in FillMissingStateUsingLastPublishedDocument
       migratedVerificationTree
