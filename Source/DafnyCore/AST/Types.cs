@@ -23,15 +23,8 @@ public abstract class Type : INode {
   [ThreadStatic]
   private static bool scopesEnabled = false;
 
-  public virtual IEnumerable<INode> Nodes {
-    get {
-      if (this is UserDefinedType udt) {
-        return new[] { udt };
-      }
+  public virtual IEnumerable<INode> Nodes => Enumerable.Empty<INode>();
 
-      return Enumerable.Empty<INode>();
-    }
-  }
   public static void PushScope(VisibilityScope scope) {
     Scopes.Add(scope);
   }
@@ -262,7 +255,7 @@ public abstract class Type : INode {
   /// <summary>
   /// Return a type that is like "this", but where occurrences of type parameters are substituted as indicated by "subst".
   /// </summary>
-  public abstract Type Subst(Dictionary<TypeParameter, Type> subst);
+  public abstract Type Subst(IDictionary<TypeParameter, Type> subst);
 
 
   /// <summary>
@@ -1763,7 +1756,7 @@ public abstract class ArtificialType : Type {
     return false;
   }
 
-  public override Type Subst(Dictionary<TypeParameter, Type> subst) {
+  public override Type Subst(IDictionary<TypeParameter, Type> subst) {
     throw new NotSupportedException();
   }
 
@@ -1806,7 +1799,7 @@ public abstract class BasicType : NonProxyType {
     return false;
   }
 
-  public override Type Subst(Dictionary<TypeParameter, Type> subst) {
+  public override Type Subst(IDictionary<TypeParameter, Type> subst) {
     return this;
   }
 
@@ -1931,7 +1924,7 @@ public class SelfType : NonProxyType {
     return that.NormalizeExpand(keepConstraints) is SelfType;
   }
 
-  public override Type Subst(Dictionary<TypeParameter, Type> subst) {
+  public override Type Subst(IDictionary<TypeParameter, Type> subst) {
     if (subst.TryGetValue(TypeArg, out var t)) {
       return t;
     } else {
@@ -2071,7 +2064,7 @@ public class ArrowType : UserDefinedType {
     return s;
   }
 
-  public override Type Subst(Dictionary<TypeParameter, Type> subst) {
+  public override Type Subst(IDictionary<TypeParameter, Type> subst) {
     return new ArrowType(tok, (ArrowTypeDecl)ResolvedClass, Args.ConvertAll(u => u.Subst(subst)), Result.Subst(subst));
   }
 
@@ -2169,7 +2162,7 @@ public class SetType : CollectionType {
     return t != null && Finite == t.Finite && Arg.Equals(t.Arg, keepConstraints);
   }
 
-  public override Type Subst(Dictionary<TypeParameter, Type> subst) {
+  public override Type Subst(IDictionary<TypeParameter, Type> subst) {
     var arg = Arg.Subst(subst);
     if (arg is InferredTypeProxy) {
       ((InferredTypeProxy)arg).KeepConstraints = true;
@@ -2198,7 +2191,7 @@ public class MultiSetType : CollectionType {
     return t != null && Arg.Equals(t.Arg, keepConstraints);
   }
 
-  public override Type Subst(Dictionary<TypeParameter, Type> subst) {
+  public override Type Subst(IDictionary<TypeParameter, Type> subst) {
     var arg = Arg.Subst(subst);
     if (arg is InferredTypeProxy) {
       ((InferredTypeProxy)arg).KeepConstraints = true;
@@ -2227,7 +2220,7 @@ public class SeqType : CollectionType {
     return t != null && Arg.Equals(t.Arg, keepConstraints);
   }
 
-  public override Type Subst(Dictionary<TypeParameter, Type> subst) {
+  public override Type Subst(IDictionary<TypeParameter, Type> subst) {
     var arg = Arg.Subst(subst);
     if (arg is InferredTypeProxy) {
       ((InferredTypeProxy)arg).KeepConstraints = true;
@@ -2281,7 +2274,7 @@ public class MapType : CollectionType {
     return t != null && Finite == t.Finite && Arg.Equals(t.Arg, keepConstraints) && Range.Equals(t.Range, keepConstraints);
   }
 
-  public override Type Subst(Dictionary<TypeParameter, Type> subst) {
+  public override Type Subst(IDictionary<TypeParameter, Type> subst) {
     var dom = Domain.Subst(subst);
     if (dom is InferredTypeProxy) {
       ((InferredTypeProxy)dom).KeepConstraints = true;
@@ -2375,6 +2368,13 @@ public class UserDefinedType : NonProxyType {
       this.TypeArgs = new List<Type>();  // TODO: is this really the thing to do?
     }
     this.NamePath = namePath;
+  }
+
+  public UserDefinedType(Cloner cloner, UserDefinedType original)
+    : this(cloner.Tok(original.tok), cloner.CloneExpr(original.NamePath)) {
+    if (cloner.CloneResolvedFields) {
+      ResolvedClass = original.ResolvedClass;
+    }
   }
 
   /// <summary>
@@ -2515,7 +2515,7 @@ public class UserDefinedType : NonProxyType {
     }
   }
 
-  public override Type Subst(Dictionary<TypeParameter, Type> subst) {
+  public override Type Subst(IDictionary<TypeParameter, Type> subst) {
     if (ResolvedClass is TypeParameter tp) {
       if (subst.TryGetValue(tp, out var s)) {
         Contract.Assert(TypeArgs.Count == 0);
@@ -2776,7 +2776,7 @@ public abstract class TypeProxy : Type {
   public readonly List<TypeConstraint> SupertypeConstraints = new List<TypeConstraint>();
   public readonly List<TypeConstraint> SubtypeConstraints = new List<TypeConstraint>();
 
-  public override Type Subst(Dictionary<TypeParameter, Type> subst) {
+  public override Type Subst(IDictionary<TypeParameter, Type> subst) {
     if (T == null) {
       return this;
     }
@@ -2807,6 +2807,7 @@ public abstract class TypeProxy : Type {
       }
     }
   }
+
   public void AddSupertype(TypeConstraint c) {
     Contract.Requires(c != null);
     Contract.Requires(c.Sub == this);
