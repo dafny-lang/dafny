@@ -63,6 +63,15 @@ public abstract class QuantifierExpr : ComprehensionExpr, TypeParameter.ParentTy
     this.UniqueId = FreshQuantId();
   }
 
+  protected QuantifierExpr(Cloner cloner, QuantifierExpr original) : base(cloner, original) {
+    if (cloner.CloneResolvedFields) {
+      if (original.SplitQuantifier != null) {
+        SplitQuantifier = original.SplitQuantifier.Select(cloner.CloneExpr).ToList();
+      }
+    }
+    this.UniqueId = FreshQuantId();
+  }
+
   public virtual Expression LogicalBody(bool bypassSplitQuantifier = false) {
     // Don't call this on a quantifier with a Split clause: it's not a real quantifier. The only exception is the Compiler.
     Contract.Requires(bypassSplitQuantifier || SplitQuantifier == null);

@@ -1340,6 +1340,8 @@ public class ArrowTypeDecl : ClassDecl {
 public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICallable {
   public override bool CanBeRevealed() { return true; }
   public readonly List<DatatypeCtor> Ctors;
+
+  [FilledInDuringResolution] public Dictionary<string, DatatypeCtor> ConstructorsByName { get; set; }
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(cce.NonNullElements(Ctors));

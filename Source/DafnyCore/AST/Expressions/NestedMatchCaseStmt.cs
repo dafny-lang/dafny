@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -19,6 +20,5 @@ public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration
     this.Attributes = attrs;
   }
 
-  public override IEnumerable<INode> Children =>
-    (Attributes != null ? new List<INode> { Attributes } : Enumerable.Empty<INode>()).Concat(Body);
+  public override IEnumerable<INode> Children => new[] { Pat }.Concat<INode>(Body).Concat(Attributes != null ? new List<INode> { Attributes } : Enumerable.Empty<INode>());
 }

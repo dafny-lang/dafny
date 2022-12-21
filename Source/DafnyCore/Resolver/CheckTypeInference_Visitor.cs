@@ -179,8 +179,8 @@ partial class Resolver {
         }
 
         if (expr is StaticReceiverExpr stexpr) {
-          if (stexpr.OriginalResolved != null) {
-            Visit(stexpr.OriginalResolved);
+          if (stexpr.ObjectToDiscard != null) {
+            Visit(stexpr.ObjectToDiscard);
           } else {
             foreach (Type t in stexpr.Type.TypeArgs) {
               if (t is InferredTypeProxy && ((InferredTypeProxy)t).T == null) {

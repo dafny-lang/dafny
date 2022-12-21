@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class AssignSuchThatStmt : ConcreteUpdateStatement {
+public class AssignSuchThatStmt : ConcreteUpdateStatement, ICloneable<AssignSuchThatStmt> {
   public readonly Expression Expr;
   public readonly AttributedToken AssumeToken;
 
@@ -15,9 +15,26 @@ public class AssignSuchThatStmt : ConcreteUpdateStatement {
   public class WiggleWaggleBound : ComprehensionExpr.BoundedPool {
     public override PoolVirtues Virtues => PoolVirtues.Enumerable | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
     public override int Preference() => 1;
+    public override ComprehensionExpr.BoundedPool Clone(Cloner cloner) {
+      return this;
+    }
   }
 
   public override IEnumerable<INode> Children => Lhss.Concat<INode>(new[] { Expr });
+
+  public AssignSuchThatStmt Clone(Cloner cloner) {
+    return new AssignSuchThatStmt(cloner, this);
+  }
+
+  public AssignSuchThatStmt(Cloner cloner, AssignSuchThatStmt original) : base(cloner, original) {
+    Expr = cloner.CloneExpr(original.Expr);
+    AssumeToken = cloner.AttributedTok(original.AssumeToken);
+
+    if (cloner.CloneResolvedFields) {
+      Bounds = original.Bounds;
+      MissingBounds = original.MissingBounds?.Select(v => cloner.CloneIVariable(v, true)).ToList();
+    }
+  }
 
   /// <summary>
   /// "assumeToken" is allowed to be "null", in which case the verifier will check that a RHS value exists.
