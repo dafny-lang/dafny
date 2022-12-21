@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -5,7 +6,7 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public class NestedMatchCaseExpr : NestedMatchCase, IAttributeBearingDeclaration {
-  public readonly Expression Body;
+  public Expression Body;
   public Attributes Attributes;
   Attributes IAttributeBearingDeclaration.Attributes => Attributes;
 
@@ -15,5 +16,6 @@ public class NestedMatchCaseExpr : NestedMatchCase, IAttributeBearingDeclaration
     this.Attributes = attrs;
   }
 
-  public override IEnumerable<INode> Children => new INode[] { Body, Pat }.Concat(Attributes?.Args ?? Enumerable.Empty<INode>());
+  public override IEnumerable<INode> Children =>
+    (Attributes != null ? new INode[] { Attributes } : Enumerable.Empty<INode>()).Concat(new INode[] { Body, Pat });
 }

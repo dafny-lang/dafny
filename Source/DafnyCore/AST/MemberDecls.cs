@@ -275,7 +275,6 @@ public class ConstantField : SpecialField, ICallable {
   public ModuleDefinition EnclosingModule { get { return this.EnclosingClass.EnclosingModuleDefinition; } }
   public bool MustReverify { get { return false; } }
   public bool AllowsNontermination { get { throw new cce.UnreachableException(); } }
-  public IToken Tok { get { return tok; } }
   public string NameRelativeToModule {
     get {
       if (EnclosingClass is DefaultClassDecl) {
@@ -346,6 +345,8 @@ public abstract class ExtremePredicate : Function {
   }
   [FilledInDuringResolution] public readonly List<FunctionCallExpr> Uses = new List<FunctionCallExpr>();  // used by verifier
   [FilledInDuringResolution] public PrefixPredicate PrefixPredicate;  // (name registration)
+
+  public override IEnumerable<INode> Children => base.Children.Concat(new[] { PrefixPredicate });
 
   public ExtremePredicate(IToken tok, string name, bool hasStaticKeyword, KType typeOfK,
     List<TypeParameter> typeArgs, List<Formal> formals, Formal result,
@@ -440,9 +441,9 @@ public class TwoStatePredicate : TwoStateFunction {
 }
 
 public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext {
-  public override IEnumerable<INode> Children => (Body?.SubStatements ?? Enumerable.Empty<INode>()).Concat<INode>(Ins).Concat(Outs).Concat(TypeArgs).
-    Concat(Req.Select(r => r.E)).Concat(Ens.Select(r => r.E)).Concat(Mod.Expressions).Concat(Decreases.Expressions).
-    Concat(Attributes?.Args ?? Enumerable.Empty<INode>());
+  public override IEnumerable<INode> Children => new INode[] { Body, Decreases }.
+    Where(x => x != null).Concat(Ins).Concat(Outs).Concat(TypeArgs).
+    Concat(Req).Concat(Ens).Concat(Mod.Expressions);
 
   public override string WhatKind => "method";
   public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }
@@ -736,6 +737,8 @@ public abstract class ExtremeLemma : Method {
     }
   }
   [FilledInDuringResolution] public PrefixLemma PrefixLemma;  // (name registration)
+
+  public override IEnumerable<INode> Children => base.Children.Concat(new[] { PrefixLemma });
 
   public ExtremeLemma(IToken tok, string name,
     bool hasStaticKeyword, ExtremePredicate.KType typeOfK,

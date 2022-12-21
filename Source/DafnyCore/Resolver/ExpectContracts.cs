@@ -46,7 +46,7 @@ public class ExpectContracts : IRewriter {
       msg += " (not compiled because it references ghost state)";
     }
     var msgExpr = Expression.CreateStringLiteral(tok, msg);
-    return new ExpectStmt(tok, expr.E.EndToken, exprToCheck, msgExpr, null);
+    return new ExpectStmt(tok, expr.E.GetEndToken(), exprToCheck, msgExpr, null);
   }
 
   /// <summary>
