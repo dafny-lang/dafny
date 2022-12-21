@@ -512,7 +512,7 @@ namespace Microsoft.Dafny {
       AssignmentRhs c;
       if (rhs is ExprRhs) {
         var r = (ExprRhs)rhs;
-        c = new ExprRhs(CloneExpr(r.Expr));
+        c = new ExprRhs(CloneExpr(r.Expr), CloneAttributes(rhs.Attributes));
       } else if (rhs is HavocRhs) {
         c = new HavocRhs(Tok(rhs.Tok));
       } else {
@@ -530,7 +530,6 @@ namespace Microsoft.Dafny {
           c = new TypeRhs(Tok(r.Tok), CloneType(r.Path), r.Bindings.ArgumentBindings.ConvertAll(CloneActualBinding));
         }
       }
-      c.Attributes = CloneAttributes(rhs.Attributes);
       return c;
     }
 
@@ -657,7 +656,9 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is AssignOrReturnStmt) {
         var s = (AssignOrReturnStmt)stmt;
-        r = new AssignOrReturnStmt(Tok(s.Tok), Tok(s.EndTok), s.Lhss.ConvertAll(CloneExpr), CloneExpr(s.Rhs), s.KeywordToken == null ? null : AttributedTok(s.KeywordToken), s.Rhss == null ? null : s.Rhss.ConvertAll(e => CloneRHS(e)));
+        r = new AssignOrReturnStmt(Tok(s.Tok), Tok(s.EndTok), s.Lhss.ConvertAll(CloneExpr),
+          (ExprRhs)CloneRHS(s.Rhs),
+          s.KeywordToken == null ? null : AttributedTok(s.KeywordToken), s.Rhss == null ? null : s.Rhss.ConvertAll(e => CloneRHS(e)));
 
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;

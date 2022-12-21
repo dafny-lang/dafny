@@ -110,9 +110,9 @@ module U.V.W {
 module _System {
   /* CALL GRAPH for module _System:
    * SCC at height 1:
-   *   RotateRight
-   * SCC at height 1:
    *   RotateLeft
+   * SCC at height 1:
+   *   RotateRight
    * SCC at height 0:
    *   nat
    */
@@ -206,26 +206,20 @@ module _System {
 */
 
 /* CALL GRAPH for module _module:
- * SCC at height 1:
- *   Main
  * SCC at height 0:
- *   string
+ *   Main
  */
 
 module Outer {
   /* CALL GRAPH for module Outer:
-   * SCC at height 1:
-   *   Test
    * SCC at height 0:
-   *   string
+   *   Test
    */
 
   module C {
     /* CALL GRAPH for module C:
-     * SCC at height 1:
-     *   c
      * SCC at height 0:
-     *   d
+     *   c
      */
 
     import D
@@ -238,12 +232,8 @@ module Outer {
 
   module A {
     /* CALL GRAPH for module A:
-     * SCC at height 1:
+     * SCC at height 0:
      *   a
-     * SCC at height 0:
-     *   c
-     * SCC at height 0:
-     *   b
      */
 
     import B
@@ -307,10 +297,8 @@ module Outer {
 
 module XY {
   /* CALL GRAPH for module XY:
-   * SCC at height 1:
-   *   Test
    * SCC at height 0:
-   *   string
+   *   Test
    */
   method Test()
   {
@@ -325,10 +313,8 @@ module XY {
 
     module M {
       /* CALL GRAPH for module M:
-       * SCC at height 1:
-       *   n
        * SCC at height 0:
-       *   m
+       *   n
        */
 
       import Y
@@ -397,16 +383,10 @@ module U {
 
   module V {
     /* CALL GRAPH for module V:
-     * SCC at height 2:
+     * SCC at height 1:
      *   Test
      * SCC at height 0:
-     *   string
-     * SCC at height 1:
      *   x2
-     * SCC at height 0:
-     *   x0
-     * SCC at height 0:
-     *   x1
      */
     const x2: int := 14 + W.x1 + W.X.x0
 
@@ -417,10 +397,8 @@ module U {
 
     module W {
       /* CALL GRAPH for module W:
-       * SCC at height 1:
-       *   x1
        * SCC at height 0:
-       *   x0
+       *   x1
        */
       const x1: int := 12 * X.x0
 

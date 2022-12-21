@@ -459,8 +459,8 @@ namespace Microsoft.Dafny {
       ResolveValuetypeDecls();
       // The SystemModule is constructed with all its members already being resolved. Except for
       // the non-null type corresponding to class types.  They are resolved here:
-      var systemModuleClassesWithNonNullTypes = new List<TopLevelDecl>(
-        prog.BuiltIns.SystemModule.TopLevelDecls.Where(d => d is ClassDecl && ((ClassDecl)d).NonNullTypeDecl != null));
+      var systemModuleClassesWithNonNullTypes =
+        prog.BuiltIns.SystemModule.TopLevelDecls.Where(d => (d as ClassDecl)?.NonNullTypeDecl != null).ToList();
       foreach (var cl in systemModuleClassesWithNonNullTypes) {
         var d = ((ClassDecl)cl).NonNullTypeDecl;
         allTypeParameters.PushMarker();
@@ -624,7 +624,6 @@ namespace Microsoft.Dafny {
               int n = module.CallGraph.GetSCCSize(m);
               if (2 <= n) {
                 // the function is mutually recursive (note, the SCC does not determine self recursion)
-                m.IsRecursive = true;
               }
             }
           }
@@ -971,10 +970,12 @@ namespace Microsoft.Dafny {
       moduleInfo = systemNameInfo;
       foreach (var valueTypeDecl in valuetypeDecls) {
         foreach (var kv in valueTypeDecl.Members) {
-          if (kv.Value is Function) {
-            ResolveFunctionSignature((Function)kv.Value);
-          } else if (kv.Value is Method) {
-            ResolveMethodSignature((Method)kv.Value);
+          if (kv.Value is Function function) {
+            ResolveFunctionSignature(function);
+            CallGraphBuilder.VisitFunction(function, reporter);
+          } else if (kv.Value is Method method) {
+            ResolveMethodSignature(method);
+            CallGraphBuilder.VisitMethod(method, reporter);
           }
         }
       }
@@ -2308,8 +2309,6 @@ namespace Microsoft.Dafny {
                 null,
                 extremePredicate);
               extraMember = extremePredicate.PrefixPredicate;
-              // In the call graph, add an edge from P# to P, since this will have the desired effect of detecting unwanted cycles.
-              moduleDef.CallGraph.AddEdge(extremePredicate.PrefixPredicate, extremePredicate);
             } else {
               var extremeLemma = (ExtremeLemma)m;
               // _k has already been added to 'formals', so append the original formals
@@ -2334,8 +2333,6 @@ namespace Microsoft.Dafny {
                 null, // Note, the body for the prefix method will be created once the call graph has been computed and the SCC for the greatest lemma is known
                 cloner.CloneAttributes(extremeLemma.Attributes), extremeLemma);
               extraMember = extremeLemma.PrefixLemma;
-              // In the call graph, add an edge from M# to M, since this will have the desired effect of detecting unwanted cycles.
-              moduleDef.CallGraph.AddEdge(extremeLemma.PrefixLemma, extremeLemma);
             }
 
             extraMember.InheritVisibility(m, false);
@@ -2757,12 +2754,7 @@ namespace Microsoft.Dafny {
                 }
                 ResolveExpression(field.Rhs, resolutionContext);
                 scope.PopMarker();
-                if (reporter.Count(ErrorLevel.Error) == ec) {
-                  // make sure initialization only refers to constant field or literal expression
-                  if (CheckIsConstantExpr(field, field.Rhs)) {
-                    AddAssignableConstraint(field.tok, field.Type, field.Rhs.Type, "type for constant '" + field.Name + "' is '{0}', but its initialization value type is '{1}'");
-                  }
-                }
+                AddAssignableConstraint(field.tok, field.Type, field.Rhs.Type, "type for constant '" + field.Name + "' is '{0}', but its initialization value type is '{1}'");
               }
               SolveAllTypeConstraints();
               if (!CheckTypeInference_Visitor.IsDetermined(field.Type.NormalizeExpand())) {
@@ -2835,9 +2827,6 @@ namespace Microsoft.Dafny {
             var dt = (DatatypeDecl)d;
             foreach (var ctor in dt.Ctors) {
               ResolveAttributes(ctor, new ResolutionContext(new NoContext(d.EnclosingModuleDefinition), false));
-              foreach (var formal in ctor.Formals) {
-                AddTypeDependencyEdges((ICallable)d, formal.Type);
-              }
             }
             // resolve any default parameters
             foreach (var ctor in dt.Ctors) {
@@ -2855,6 +2844,10 @@ namespace Microsoft.Dafny {
           }
         }
         allTypeParameters.PopMarker();
+      }
+
+      if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+        CallGraphBuilder.Build(declarations, reporter);
       }
 
       // ---------------------------------- Pass 1 ----------------------------------
@@ -3002,7 +2995,7 @@ namespace Microsoft.Dafny {
                 if (fce != null) {  // the other possibility is that "e" is a BinaryExpr
                   GreatestPredicate predicate = (GreatestPredicate)fce.Function;
                   focalPredicates.Add(predicate);
-                  // For every focal predicate P in S, add to S all co-predicates in the same strongly connected
+                  // For every focal predicate P in S, add to S all greatest predicates in the same strongly connected
                   // component (in the call graph) as P
                   foreach (var node in predicate.EnclosingClass.EnclosingModuleDefinition.CallGraph.GetSCC(predicate)) {
                     if (node is GreatestPredicate) {
@@ -3114,6 +3107,7 @@ namespace Microsoft.Dafny {
           allTypeParameters.PopMarker();
           currentClass = null;
           CheckTypeInference_Member(prefixLemma);
+          CallGraphBuilder.VisitMethod(prefixLemma, reporter);
         }
       }
 
@@ -3571,7 +3565,7 @@ namespace Microsoft.Dafny {
         }
       }
       // Verifies that, in all compiled places, subset types in comprehensions have a compilable constraint
-      new SubsetConstraintGhostChecker(this).Traverse(declarations);
+      new SubsetConstraintGhostChecker(this.Reporter).Traverse(declarations);
     }
 
     private void CheckIsOkayWithoutRHS(ConstantField f) {
@@ -3641,25 +3635,6 @@ namespace Microsoft.Dafny {
           ExpressionTester.CheckIsCompilable(this, formal.DefaultValue, codeContext);
         }
         CheckExpression(formal.DefaultValue, this, codeContext);
-      }
-    }
-
-
-    /// <summary>
-    /// Add edges to the callgraph.
-    /// </summary>
-    private void AddTypeDependencyEdges(ICodeContext context, Type type) {
-      Contract.Requires(type != null);
-      Contract.Requires(context != null);
-      var caller = CodeContextWrapper.Unwrap(context) as ICallable;
-      if (caller != null && type is NonProxyType) {
-        type.ForeachTypeComponent(ty => {
-          var udt = ty as UserDefinedType;
-          var cl = udt == null ? null : udt.ResolvedClass as ICallable;
-          if (cl != null) {
-            caller.EnclosingModule.CallGraph.AddEdge(caller, cl);
-          }
-        });
       }
     }
 
@@ -7822,8 +7797,6 @@ namespace Microsoft.Dafny {
             var classMethod = (Method)member;
             var traitMethod = (Method)traitMember;
             classMethod.OverriddenMethod = traitMethod;
-            //adding a call graph edge from the trait method to that of class
-            cl.EnclosingModuleDefinition.CallGraph.AddEdge(traitMethod, classMethod);
 
             CheckOverride_MethodParameters(classMethod, traitMethod, cl.ParentFormalTypeParametersToActuals);
 
@@ -7837,8 +7810,6 @@ namespace Microsoft.Dafny {
             var classFunction = (Function)member;
             var traitFunction = (Function)traitMember;
             classFunction.OverriddenFunction = traitFunction;
-            //adding a call graph edge from the trait function to that of class
-            cl.EnclosingModuleDefinition.CallGraph.AddEdge(traitFunction, classFunction);
 
             CheckOverride_FunctionParameters(classFunction, traitFunction, cl.ParentFormalTypeParametersToActuals);
 
@@ -8014,30 +7985,6 @@ namespace Microsoft.Dafny {
         Contract.Assert(AllTypeConstraints.Count == 0);
       }
       currentClass = null;
-    }
-
-    /// <summary>
-    /// Checks if "expr" is a constant (that is, heap independent) expression that can be assigned to "field".
-    /// If it is, return "true". Otherwise, report an error and return "false".
-    /// This method also adds dependency edges to the module's call graph and checks for self-loops. If a self-loop
-    /// is detected, "false" is returned.
-    /// </summary>
-    bool CheckIsConstantExpr(ConstantField field, Expression expr) {
-      Contract.Requires(field != null);
-      Contract.Requires(expr != null);
-      if (expr is MemberSelectExpr) {
-        var e = (MemberSelectExpr)expr;
-        if (e.Member is Field && ((Field)e.Member).IsMutable) {
-          reporter.Error(MessageSource.Resolver, field.tok, "only constants are allowed in the expression to initialize constant {0}", field.Name);
-          return false;
-        }
-        if (e.Member is ICallable) {
-          var other = (ICallable)e.Member;
-          field.EnclosingModule.CallGraph.AddEdge(field, other);
-        }
-        // okay so far; now, go on checking subexpressions
-      }
-      return expr.SubExpressions.All(e => CheckIsConstantExpr(field, e));
     }
 
     /// <summary>
@@ -8513,7 +8460,6 @@ namespace Microsoft.Dafny {
       foreach (Formal p in f.Formals) {
         ScopePushAndReport(scope, p, "parameter");
         ResolveType(p.tok, p.Type, f, option, f.TypeArgs);
-        AddTypeDependencyEdges(f, p.Type);
       }
       if (f.Result != null) {
         ScopePushAndReport(scope, f.Result, "parameter/return");
@@ -8521,7 +8467,6 @@ namespace Microsoft.Dafny {
       } else {
         ResolveType(f.tok, f.ResultType, f, option, f.TypeArgs);
       }
-      AddTypeDependencyEdges(f, f.ResultType);
       scope.PopMarker();
     }
 
@@ -8686,13 +8631,11 @@ namespace Microsoft.Dafny {
       foreach (Formal p in m.Ins) {
         ScopePushAndReport(scope, p, "parameter");
         ResolveType(p.tok, p.Type, m, option, m.TypeArgs);
-        AddTypeDependencyEdges(m, p.Type);
       }
       // resolve out-parameters
       foreach (Formal p in m.Outs) {
         ScopePushAndReport(scope, p, "parameter");
         ResolveType(p.tok, p.Type, m, option, m.TypeArgs);
-        AddTypeDependencyEdges(m, p.Type);
       }
       scope.PopMarker();
     }
@@ -9110,8 +9053,6 @@ namespace Microsoft.Dafny {
         iter.Member_MoveNext.Decreases.Expressions.Add(new MemberSelectExpr(p.tok, new ThisExpr(p.tok), iter.DecreasesFields[i].Name));
       }
       iter.Member_MoveNext.Decreases.Attributes = iter.Decreases.Attributes;
-
-      iter.EnclosingModuleDefinition.CallGraph.AddEdge(iter.Member_MoveNext, iter);
     }
 
     // Like the ResolveTypeOptionEnum, but iff the case of AllowPrefixExtend, it also
@@ -9274,7 +9215,6 @@ namespace Microsoft.Dafny {
               var caller = CodeContextWrapper.Unwrap(resolutionContext.CodeContext) as ICallable;
               if (caller != null && !(d is SubsetTypeDecl && caller is SpecialFunction)) {
                 if (caller != d) {
-                  caller.EnclosingModule.CallGraph.AddEdge(caller, dd);
                 } else if (d is TypeSynonymDecl && !(d is SubsetTypeDecl)) {
                   // detect self-loops here, since they don't show up in the graph's SCC methods
                   reporter.Error(MessageSource.Resolver, d.tok, "type-synonym cycle: {0} -> {0}", d.Name);
@@ -9285,11 +9225,6 @@ namespace Microsoft.Dafny {
               }
               t.ResolvedClass = d;
             } else if (d is DatatypeDecl) {
-              var dd = (DatatypeDecl)d;
-              var caller = CodeContextWrapper.Unwrap(resolutionContext.CodeContext) as ICallable;
-              if (caller != null) {
-                caller.EnclosingModule.CallGraph.AddEdge(caller, dd);
-              }
               t.ResolvedClass = d;
             } else {
               // d is a type parameter, coinductive datatype, or class, and it may have type parameters
@@ -9702,23 +9637,6 @@ namespace Microsoft.Dafny {
             // the LHS didn't resolve correctly; some error would already have been reported
           } else {
             CheckIsLvalue(lhs, resolutionContext);
-
-            var localVar = var as LocalVariable;
-            if (localVar != null && currentMethod != null && Attributes.Contains(localVar.Attributes, "assumption")) {
-              var rhs = s.Rhs as ExprRhs;
-              var expr = (rhs != null ? rhs.Expr : null);
-              var binaryExpr = expr as BinaryExpr;
-              if (binaryExpr != null
-                  && (binaryExpr.Op == BinaryExpr.Opcode.And)
-                  && (binaryExpr.E0.Resolved is IdentifierExpr)
-                  && ((IdentifierExpr)(binaryExpr.E0.Resolved)).Var == localVar
-                  && !currentMethod.AssignedAssumptionVariables.Contains(localVar)) {
-                currentMethod.AssignedAssumptionVariables.Add(localVar);
-              } else {
-                reporter.Error(MessageSource.Resolver, stmt,
-                  string.Format("there may be at most one assignment to an assumption variable, the RHS of which must match the expression \"{0} && <boolean expression>\"", localVar.Name));
-              }
-            }
           }
         } else if (lhs is MemberSelectExpr) {
           var fse = (MemberSelectExpr)lhs;
@@ -11513,6 +11431,7 @@ namespace Microsoft.Dafny {
         if (isEffectful && firstEffectfulRhs == null) {
           firstEffectfulRhs = rhs.Tok;
         }
+        ResolveAttributes(rhs, resolutionContext);
         j++;
       }
 
@@ -11585,6 +11504,10 @@ namespace Microsoft.Dafny {
     private void ResolveAssignSuchThatStmt(AssignSuchThatStmt s, ResolutionContext resolutionContext) {
       Contract.Requires(s != null);
       Contract.Requires(resolutionContext != null);
+
+      if (s.AssumeToken != null) {
+        ResolveAttributes(s.AssumeToken, resolutionContext);
+      }
 
       var lhsSimpleVariables = new HashSet<IVariable>();
       foreach (var lhs in s.Lhss) {
@@ -11669,10 +11592,7 @@ namespace Microsoft.Dafny {
       bool expectExtract = s.Lhss.Count != 0; // default value if we cannot determine and inspect the type
       Type firstType = null;
       Method call = null;
-      if (s.Rhss != null && s.Rhss.Count != 0) {
-        ResolveExpression(s.Rhs, resolutionContext);
-        firstType = s.Rhs.Type;
-      } else if (s.Rhs is ApplySuffix asx) {
+      if ((s.Rhss == null || s.Rhss.Count == 0) && s.Rhs.Expr is ApplySuffix asx) {
         ResolveApplySuffix(asx, resolutionContext, true);
         call = (asx.Lhs.Resolved as MemberSelectExpr)?.Member as Method;
         if (call != null) {
@@ -11688,8 +11608,8 @@ namespace Microsoft.Dafny {
           firstType = asx.Type;
         }
       } else {
-        ResolveExpression(s.Rhs, resolutionContext);
-        firstType = s.Rhs.Type;
+        ResolveExpression(s.Rhs.Expr, resolutionContext);
+        firstType = s.Rhs.Expr.Type;
       }
 
       var method = (Method)resolutionContext.CodeContext;
@@ -11785,7 +11705,7 @@ namespace Microsoft.Dafny {
       for (int k = (expectExtract ? 1 : 0); k < s.Lhss.Count; ++k) {
         lhss2.Add(s.Lhss[k]);
       }
-      List<AssignmentRhs> rhss2 = new List<AssignmentRhs>() { new ExprRhs(s.Rhs) };
+      List<AssignmentRhs> rhss2 = new List<AssignmentRhs>() { s.Rhs };
       if (s.Rhss != null) {
         s.Rhss.ForEach(e => rhss2.Add(e));
       }
@@ -12017,24 +11937,6 @@ namespace Microsoft.Dafny {
           var lhs = s.Lhs[i];
           // LHS must denote a mutable field.
           CheckIsLvalue(lhs.Resolved, resolutionContext);
-        }
-
-        // Resolution termination check
-        ModuleDefinition callerModule = resolutionContext.CodeContext.EnclosingModule;
-        ModuleDefinition calleeModule = ((ICodeContext)callee).EnclosingModule;
-        if (callerModule == calleeModule) {
-          // intra-module call; add edge in module's call graph
-          var caller = CodeContextWrapper.Unwrap(resolutionContext.CodeContext) as ICallable;
-          if (caller == null) {
-            // don't add anything to the call graph after all
-          } else if (caller is IteratorDecl) {
-            callerModule.CallGraph.AddEdge(((IteratorDecl)caller).Member_MoveNext, callee);
-          } else {
-            callerModule.CallGraph.AddEdge(caller, callee);
-            if (caller == callee) {
-              callee.IsRecursive = true;  // self recursion (mutual recursion is determined elsewhere)
-            }
-          }
         }
       }
       if (Contract.Exists(callee.Decreases.Expressions, e => e is WildcardExpr) && !resolutionContext.CodeContext.AllowsNontermination) {
@@ -12977,7 +12879,7 @@ namespace Microsoft.Dafny {
 
         if (e is StaticReceiverExpr) {
           StaticReceiverExpr eStatic = (StaticReceiverExpr)e;
-          this.ResolveType(eStatic.tok, eStatic.UnresolvedType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+          ResolveType(eStatic.tok, eStatic.UnresolvedType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
           eStatic.Type = eStatic.UnresolvedType;
         } else {
           if (e.Value == null) {
@@ -13129,7 +13031,6 @@ namespace Microsoft.Dafny {
             fn.Formals.ConvertAll(f => f.Type.Subst(subst)),
             fn.ResultType.Subst(subst),
             fn.Reads.Count != 0, fn.Req.Count != 0);
-          AddCallGraphEdge(resolutionContext.CodeContext, fn, e, false);
         } else if (member is Field) {
           var field = (Field)member;
           e.Member = field;
@@ -13147,7 +13048,6 @@ namespace Microsoft.Dafny {
             var subst = TypeParameter.SubstitutionMap(ctype.ResolvedClass.TypeArgs, ctype.TypeArgs);
             e.Type = field.Type.Subst(subst);
           }
-          AddCallGraphEdgeForField(resolutionContext.CodeContext, field, e);
         } else {
           reporter.Error(MessageSource.Resolver, expr, "member {0} in type {1} does not refer to a field or a function", e.MemberName, tentativeReceiverType);
         }
@@ -13563,7 +13463,6 @@ namespace Microsoft.Dafny {
             var v = lhs.Var;
             ScopePushAndReport(scope, v, "let-variable");
             ResolveType(v.tok, v.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
-            AddTypeDependencyEdges(resolutionContext.CodeContext, v.Type);
           }
           foreach (var rhs in e.RHSs) {
             ResolveExpression(rhs, resolutionContext);
@@ -13579,9 +13478,6 @@ namespace Microsoft.Dafny {
         ResolveLetOrFailExpr(e, resolutionContext);
       } else if (expr is QuantifierExpr) {
         var e = (QuantifierExpr)expr;
-        if (resolutionContext.CodeContext is Function) {
-          ((Function)resolutionContext.CodeContext).ContainsQuantifier = true;
-        }
         Contract.Assert(e.SplitQuantifier == null); // No split quantifiers during resolution
         int prevErrorCount = reporter.Count(ErrorLevel.Error);
         scope.PushMarker();
@@ -14291,7 +14187,6 @@ namespace Microsoft.Dafny {
           v.MakeGhost();
         }
         ResolveType(v.Tok, v.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
-        AddTypeDependencyEdges(resolutionContext.CodeContext, v.Type);
         // Note, the following type constraint checks that the RHS type can be assigned to the new variable on the left. In particular, it
         // does not check that the entire RHS can be assigned to something of the type of the pattern on the left.  For example, consider
         // a type declared as "datatype Atom<T> = MakeAtom(T)", where T is a non-variant type argument.  Suppose the RHS has type Atom<nat>
@@ -15040,7 +14935,6 @@ namespace Microsoft.Dafny {
         }
         subst = BuildTypeArgumentSubstitute(subst, receiverTypeBound ?? receiver.Type);
         rr.Type = field.Type.Subst(subst);
-        AddCallGraphEdgeForField(resolutionContext.CodeContext, field, rr);
       } else if (member is Function) {
         var fn = (Function)member;
         if (fn is TwoStateFunction && !resolutionContext.IsTwoState) {
@@ -15061,7 +14955,6 @@ namespace Microsoft.Dafny {
           fn.Formals.ConvertAll(f => f.Type.Subst(subst)),
           fn.ResultType.Subst(subst),
           fn.Reads.Count != 0, fn.Req.Count != 0);
-        AddCallGraphEdge(resolutionContext.CodeContext, fn, rr, IsFunctionReturnValue(fn, args, resolutionContext));
       } else {
         // the member is a method
         var m = (Method)member;
@@ -15214,11 +15107,6 @@ namespace Microsoft.Dafny {
               Contract.Assert(!(mse.Obj is StaticReceiverExpr) || callee.IsStatic);  // this should have been checked already
               Contract.Assert(callee.Formals.Count == rr.Args.Count);  // this should have been checked already
             }
-            // further bookkeeping
-            if (callee is ExtremePredicate) {
-              ((ExtremePredicate)callee).Uses.Add(rr);
-            }
-            AddCallGraphEdge(resolutionContext.CodeContext, callee, rr, IsFunctionReturnValue(callee, e.Bindings.ArgumentBindings, resolutionContext));
             r = rr;
           } else {
             List<Formal> formals;
@@ -15549,9 +15437,6 @@ namespace Microsoft.Dafny {
         dtv.Bindings.AcceptArgumentExpressionsAsExactParameterList();
       }
 
-      if (CodeContextWrapper.Unwrap(resolutionContext.CodeContext) is ICallable caller && caller.EnclosingModule == dt.EnclosingModuleDefinition) {
-        caller.EnclosingModule.CallGraph.AddEdge(caller, dt);
-      }
       return ok && ctor.Formals.Count == dtv.Arguments.Count;
     }
 
@@ -15580,9 +15465,6 @@ namespace Microsoft.Dafny {
       } else {
         Function function = (Function)member;
         e.Function = function;
-        if (function is ExtremePredicate) {
-          ((ExtremePredicate)function).Uses.Add(e);
-        }
         if (function is TwoStateFunction && !resolutionContext.IsTwoState) {
           reporter.Error(MessageSource.Resolver, e.tok, "a two-state function can be used only in a two-state context");
         }
@@ -15626,49 +15508,6 @@ namespace Microsoft.Dafny {
         ResolveActualParameters(e.Bindings, function.Formals, e.tok, function, resolutionContext, subst, function.IsStatic ? null : e.Receiver);
 
         e.Type = function.ResultType.Subst(subst).NormalizeExpand();
-
-        AddCallGraphEdge(resolutionContext.CodeContext, function, e, IsFunctionReturnValue(function, e.Bindings.ArgumentBindings, resolutionContext));
-      }
-    }
-
-    private void AddCallGraphEdgeForField(ICodeContext callingContext, Field field, Expression e) {
-      Contract.Requires(callingContext != null);
-      Contract.Requires(field != null);
-      Contract.Requires(e != null);
-      var cf = field as ConstantField;
-      if (cf != null) {
-        if (cf == callingContext) {
-          // detect self-loops here, since they don't show up in the graph's SSC methods
-          reporter.Error(MessageSource.Resolver, cf.tok, "recursive dependency involving constant initialization: {0} -> {0}", cf.Name);
-        } else {
-          AddCallGraphEdge(callingContext, cf, e, false);
-        }
-      }
-    }
-
-    internal void AddCallGraphEdge(ICodeContext callingContext, ICallable function, Expression e, bool isFunctionReturnValue) {
-      Contract.Requires(callingContext != null);
-      Contract.Requires(function != null);
-      Contract.Requires(e != null);
-      // Resolution termination check
-      ModuleDefinition callerModule = callingContext.EnclosingModule;
-      ModuleDefinition calleeModule = function is SpecialFunction ? null : function.EnclosingModule;
-      if (callerModule == calleeModule) {
-        // intra-module call; add edge in module's call graph
-        var caller = CodeContextWrapper.Unwrap(callingContext) as ICallable;
-        if (caller == null) {
-          // don't add anything to the call graph after all
-        } else {
-          callerModule.CallGraph.AddEdge(caller, function);
-          if (caller is Function && e is FunctionCallExpr ee) {
-            ((Function)caller).AllCalls.Add(ee);
-          }
-          // if the call denotes the function return value in the function postconditions, then we don't
-          // mark it as recursive.
-          if (caller == function && function is Function && !isFunctionReturnValue) {
-            ((Function)function).IsRecursive = true;  // self recursion (mutual recursion is determined elsewhere)
-          }
-        }
       }
     }
 
@@ -16401,10 +16240,10 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public Resolver resolver;
+    public ErrorReporter reporter;
 
-    public SubsetConstraintGhostChecker(Resolver resolver) {
-      this.resolver = resolver;
+    public SubsetConstraintGhostChecker(ErrorReporter reporter) {
+      this.reporter = reporter;
     }
 
     protected override ContinuationStatus OnEnter(Statement stmt, string field, object parent) {
@@ -16467,15 +16306,14 @@ namespace Microsoft.Dafny {
               IToken finalToken = boundVar.tok;
               if (constraint.tok.line != 0) {
                 var errorCollector = new FirstErrorCollector();
-                ExpressionTester.CheckIsCompilable(this.resolver, errorCollector, constraint,
-                  new CodeContextWrapper(subsetTypeDecl, true));
+                ExpressionTester.CheckIsCompilable(null, errorCollector, constraint, new CodeContextWrapper(subsetTypeDecl, true));
                 if (errorCollector.Collected) {
                   finalToken = new NestedToken(finalToken, errorCollector.FirstCollectedToken,
                     "The constraint is not compilable because " + errorCollector.FirstCollectedMessage
                   );
                 }
               }
-              this.resolver.Reporter.Error(MessageSource.Resolver, finalToken,
+              this.reporter.Error(MessageSource.Resolver, finalToken,
                 $"{boundVar.Type} is a subset type and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in {what}.");
             }
           }
