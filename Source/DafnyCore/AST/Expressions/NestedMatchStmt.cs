@@ -1,9 +1,11 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class NestedMatchStmt : ConcreteSyntaxStatement {
+public class NestedMatchStmt : ConcreteSyntaxStatement, ICloneable<NestedMatchStmt> {
   public readonly Expression Source;
   public readonly List<NestedMatchCaseStmt> Cases;
   public readonly bool UsesOptionalBraces;
@@ -22,16 +24,31 @@ public class NestedMatchStmt : ConcreteSyntaxStatement {
     }
   }
 
+  public NestedMatchStmt Clone(Cloner cloner) {
+    return new NestedMatchStmt(cloner, this);
+  }
+
+  public NestedMatchStmt(Cloner cloner, NestedMatchStmt original) : base(cloner, original) {
+    Source = cloner.CloneExpr(original.Source);
+    Cases = original.Cases.ConvertAll(cloner.CloneNestedMatchCaseStmt);
+    UsesOptionalBraces = original.UsesOptionalBraces;
+  }
+
+  public override IEnumerable<INode> Children =>
+    ResolvedStatement == null ? new[] { Source }.Concat<INode>(Cases) : base.Children;
+
+  public override IEnumerable<Statement> SubStatements =>
+    ResolvedStatement == null ? Cases.SelectMany(c => c.Body) : base.SubStatements;
+
   public override IEnumerable<Expression> NonSpecificationSubExpressions {
     get {
       foreach (var e in base.NonSpecificationSubExpressions) {
         yield return e;
       }
-      if (this.ResolvedStatement == null) {
-        yield return Source;
-      }
+      yield return Source;
     }
   }
+
   public NestedMatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<NestedMatchCaseStmt> cases, bool usesOptionalBraces, Attributes attrs = null)
     : base(tok, endTok, attrs) {
     Contract.Requires(source != null);

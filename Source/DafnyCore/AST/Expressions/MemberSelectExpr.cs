@@ -4,7 +4,7 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public class MemberSelectExpr : Expression, IHasUsages {
+public class MemberSelectExpr : Expression, IHasUsages, ICloneable<MemberSelectExpr> {
   public readonly Expression Obj;
   public string MemberName;
   [FilledInDuringResolution] public MemberDecl Member;    // will be a Field or Function
@@ -143,6 +143,23 @@ public class MemberSelectExpr : Expression, IHasUsages {
     Contract.Invariant(MemberName != null);
     Contract.Invariant((Member != null) == (TypeApplication_AtEnclosingClass != null));  // TypeApplication_* are set whenever Member is set
     Contract.Invariant((Member != null) == (TypeApplication_JustMember != null));  // TypeApplication_* are set whenever Member is set
+  }
+
+  public MemberSelectExpr Clone(Cloner cloner) {
+    return new MemberSelectExpr(cloner, this);
+  }
+
+  public MemberSelectExpr(Cloner cloner, MemberSelectExpr original) : base(cloner, original) {
+    Obj = cloner.CloneExpr(original.Obj);
+    MemberName = original.MemberName;
+
+    if (cloner.CloneResolvedFields) {
+      Member = cloner.CloneMember(original.Member, true);
+      AtLabel = original.AtLabel;
+      InCompiledContext = original.InCompiledContext;
+      TypeApplication_AtEnclosingClass = original.TypeApplication_AtEnclosingClass;
+      TypeApplication_JustMember = original.TypeApplication_JustMember;
+    }
   }
 
   public MemberSelectExpr(IToken tok, Expression obj, string memberName)

@@ -88,7 +88,7 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
 
   public override IEnumerable<INode> Children => new[] { ByMethodDecl }.Where(x => x != null).
     Concat<INode>(Reads).
-    Concat<INode>(Req.Select(e => e.E)).
+    Concat<INode>(Req).
     Concat(Ens.Select(e => e.E)).
     Concat(Decreases.Expressions).
     Concat(Formals).Concat(ResultType.Nodes).
