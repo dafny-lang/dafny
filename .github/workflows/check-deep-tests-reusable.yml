@@ -18,6 +18,7 @@ jobs:
         path: dafny
         submodules: true
     - uses: actions/github-script@v6
+      if: !contains(github.event.pull_request.labels.*.name, 'skip-deep-tests')
       with:
         script: |
           const script = require('${{ github.workspace }}/dafny/.github/workflows/check-for-workflow-run.js')
