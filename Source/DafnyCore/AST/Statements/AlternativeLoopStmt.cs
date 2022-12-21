@@ -4,13 +4,23 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class AlternativeLoopStmt : LoopStmt {
+public class AlternativeLoopStmt : LoopStmt, ICloneable<AlternativeLoopStmt> {
   public readonly bool UsesOptionalBraces;
   public readonly List<GuardedAlternative> Alternatives;
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Alternatives != null);
   }
+
+  public AlternativeLoopStmt Clone(Cloner cloner) {
+    return new AlternativeLoopStmt(cloner, this);
+  }
+
+  public AlternativeLoopStmt(Cloner cloner, AlternativeLoopStmt original) : base(cloner, original) {
+    Alternatives = original.Alternatives.ConvertAll(cloner.CloneGuardedAlternative);
+    UsesOptionalBraces = original.UsesOptionalBraces;
+  }
+
   public AlternativeLoopStmt(IToken tok, IToken endTok,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
     List<GuardedAlternative> alternatives, bool usesOptionalBraces)
