@@ -48,16 +48,16 @@ Assuming the Dafny source code is installed in the folder `dafny/`
 start by creating an empty folder next to it, e.g. `PluginTutorial/`
 
 ```bash
-> mkdir PluginTutorial
-> cd PluginTutorial
+mkdir PluginTutorial
+cd PluginTutorial
 ```
 Then, create a dotnet class project
 ```bash
-> dotnet new classlib
+dotnet new classlib
 ```
 It will create a file `Class1.cs` that you can rename
 ```bash
-> mv Class1.cs PluginAddComment.cs
+mv Class1.cs PluginAddComment.cs
 ```
 Open the newly created file `PluginTutorial.csproj`, and add the following after `</PropertyGroup>`:
 ```xml
@@ -65,7 +65,6 @@ Open the newly created file `PluginTutorial.csproj`, and add the following after
     <ProjectReference Include="../dafny/source/DafnyLanguageServer/DafnyLanguageServer.csproj" />
   </ItemGroup>
 ```
-
 
 Then, open the file `PluginAddComment.cs`, remove everything, and write the imports and a namespace:
 

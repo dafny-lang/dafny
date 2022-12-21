@@ -490,7 +490,7 @@ module B {
 The following table shows which parts of a declaration are exported by an
 export set that `provides` or `reveals` the declaration.
 
-```zzz
+```text
  declaration         | what is exported    | what is exported
                      | with provides       | with reveals
 ---------------------|---------------------|---------------------
@@ -527,7 +527,7 @@ export set that `provides` or `reveals` the declaration.
    // members...     |                     |
  }                   |                     |
 ```
-```zzz
+```text
 ---------------------|---------------------|---------------------
  datatype D =        | type D              | datatype D =
      Ctor0(x0: X0)   |                     |    Ctor0(x0: X0)

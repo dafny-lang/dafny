@@ -755,7 +755,7 @@ file.
 
 In general, we recommend something like the following:
 
-```cli <!-- %no-check -->
+```bash <!-- %no-check -->
 dafny-reportgenerator --max-resource-cv-pct 10 TestResults/*.csv
 ```
 
