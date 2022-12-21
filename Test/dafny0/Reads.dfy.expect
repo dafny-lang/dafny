@@ -1,5 +1,7 @@
 Reads.dfy(138,10): Error: insufficient reads clause to read field
 Reads.dfy(149,25): Error: insufficient reads clause to read field
+Reads.dfy(157,18): Error: insufficient reads clause to read field
+Reads.dfy(159,18): Error: insufficient reads clause to invoke function
 Reads.dfy(9,16): Error: insufficient reads clause to read field
 Reads.dfy(18,29): Error: insufficient reads clause to read field
 Reads.dfy(28,32): Error: insufficient reads clause to read field
@@ -9,4 +11,4 @@ Reads.dfy(122,35): Error: function precondition might not hold
 Reads.dfy(122,35): Error: insufficient reads clause to invoke function
 Reads.dfy(125,37): Error: insufficient reads clause to invoke function
 
-Dafny program verifier finished with 18 verified, 10 errors
+Dafny program verifier finished with 19 verified, 12 errors

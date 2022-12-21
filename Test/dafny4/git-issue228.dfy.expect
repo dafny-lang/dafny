@@ -63,9 +63,9 @@ Dafny program verifier finished with 8 verified, 2 errors
 module _System {
   /* CALL GRAPH for module _System:
    * SCC at height 1:
-   *   RotateRight
-   * SCC at height 1:
    *   RotateLeft
+   * SCC at height 1:
+   *   RotateRight
    * SCC at height 0:
    *   nat
    */
@@ -159,26 +159,24 @@ module _System {
 */
 
 /* CALL GRAPH for module _module:
- * SCC at height 0:
- *   Sets
- * SCC at height 0:
- *   Sequences
- * SCC at height 1:
- *   SubsetTypes
- * SCC at height 0:
- *   Subset_Byte
- * SCC at height 0:
- *   Subset_NegIsOdd
  * SCC at height 1:
  *   ConstrainedIntermediateExpressions
+ * SCC at height 1:
+ *   SubsetTypes
  * SCC at height 0:
  *   Byte
  * SCC at height 0:
  *   NegIsOdd
- * SCC at height 1:
+ * SCC at height 0:
  *   Numerics
  * SCC at height 0:
- *   nat
+ *   Sequences
+ * SCC at height 0:
+ *   Sets
+ * SCC at height 0:
+ *   Subset_Byte
+ * SCC at height 0:
+ *   Subset_NegIsOdd
  */
 newtype NegIsOdd = x: int
   | x < 0 ==> x % 2 == 1
