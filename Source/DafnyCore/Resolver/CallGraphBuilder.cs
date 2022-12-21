@@ -54,7 +54,7 @@ namespace Microsoft.Dafny {
     }
 
     public static void AddCallGraphEdge(ICodeContext callingContext, ICallable function, Expression e, ErrorReporter reporter) {
-      new CallGraphBuilder(reporter).AddCallGraphEdge(callingContext, function, e, false);
+      new CallGraphBuilder(reporter).AddCallGraphEdge(CodeContextWrapper.Unwrap(callingContext), function, e, false);
     }
 
     private readonly ErrorReporter reporter;
@@ -67,9 +67,9 @@ namespace Microsoft.Dafny {
     }
 
     private class CallGraphBuilderContext {
-      public readonly ICodeContext CodeContext;
+      public readonly IASTVisitorContext CodeContext;
       public bool InFunctionPostcondition { get; init; }
-      public CallGraphBuilderContext(ICodeContext codeContext) {
+      public CallGraphBuilderContext(IASTVisitorContext codeContext) {
         CodeContext = codeContext;
       }
     }
@@ -102,7 +102,7 @@ namespace Microsoft.Dafny {
     /// CallGraphBuilder is all about. These two methods are called during the traversal of the
     /// declarations given to the public Build method.
     /// </summary>
-    private void AddCallGraphEdgeForField(ICodeContext callingContext, Field field, Expression e) {
+    private void AddCallGraphEdgeForField(IASTVisitorContext callingContext, Field field, Expression e) {
       Contract.Requires(callingContext != null);
       Contract.Requires(field != null);
       Contract.Requires(e != null);
@@ -119,7 +119,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// See comment about AddCallGraphEdgeForField.
     /// </summary>
-    private void AddCallGraphEdge(ICodeContext callingContext, ICallable callable, Expression e, bool isFunctionReturnValue) {
+    private void AddCallGraphEdge(IASTVisitorContext callingContext, ICallable callable, Expression e, bool isFunctionReturnValue) {
       Contract.Requires(callingContext != null);
       Contract.Requires(callable != null);
       Contract.Requires(e != null);
@@ -131,7 +131,7 @@ namespace Microsoft.Dafny {
       }
 
       // intra-module call; add edge in module's call graph
-      if (CodeContextWrapper.Unwrap(callingContext) is ICallable caller) {
+      if (callingContext is ICallable caller) {
         callerModule.CallGraph.AddEdge(caller, callable);
         if (caller is Function f) {
           if (e is FunctionCallExpr ee) {
@@ -154,7 +154,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(context != null);
       var callee = s.Method;
       ModuleDefinition callerModule = context.CodeContext.EnclosingModule;
-      ModuleDefinition calleeModule = ((ICodeContext)callee).EnclosingModule;
+      ModuleDefinition calleeModule = ((IASTVisitorContext)callee).EnclosingModule;
       if (callerModule != calleeModule) {
         // inter-module call; don't record in call graph
         return;
@@ -182,7 +182,7 @@ namespace Microsoft.Dafny {
     /// Add edges to the call graph.
     /// See comment about AddCallGraphEdgeForField.
     /// </summary>
-    private void AddTypeDependencyEdges(ICodeContext context, Type type) {
+    private void AddTypeDependencyEdges(IASTVisitorContext context, Type type) {
       Contract.Requires(type != null);
       Contract.Requires(context != null);
       if (context is ICallable caller && type is NonProxyType) {
