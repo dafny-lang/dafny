@@ -549,7 +549,9 @@ class C {
 
   method M() 
     modifies next
-  { ... }
+  { 
+    ... 
+  }
 }
 ```
 method `M` is permitted to modify `this.next.next` and `this.next.value`

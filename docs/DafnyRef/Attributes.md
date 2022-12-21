@@ -278,7 +278,7 @@ The form of the `{:induction}` attribute is one of the following:
 usage conventionally `X` is `true`.
 
 Here is an example of using it on a quantifier expression:
-```dafny <!-- %check-verify -->
+```dafny <!-- %no-check TODO: Replace with an example that works -->
 lemma Fill_J(s: seq<int>)
   requires forall i :: 1 <= i < |s| ==> s[i-1] <= s[i]
   ensures forall i,j {:induction j} :: 0 <= i < j < |s| ==> s[i] <= s[j]

@@ -88,8 +88,6 @@ n=0
 ## if inblock==1 we are in a ```-delimited block
 inblock=0
 
-command= 
-expect= 
 msg=
 checkingErrors=1
 ## Read and process each line of the file.  The file is input on stdin 
@@ -104,7 +102,7 @@ do
    && msg=`echo "$line" | sed -E -e 's/^##[ ]*//' -e 's/_[a-z]+_/.*/g'`
 
   ## Check for the marker
-  echo $line | grep -e '^[ ]*```' > /dev/null
+  echo "$line" | grep -e '^[ ]*```' > /dev/null
   if [ "$?" == "0" ]; then
     ##echo FOUND BACKTICKS IN $n "$line"
     if [ "$inblock" == "0" ]; then
@@ -122,10 +120,13 @@ do
       use=
       command=
       expect=
+      options=
       ( echo "$line" | grep -e '<!--' > /dev/null ) \
           && action=( `echo "$line" | sed -e 's/[^<]*<!--//' -e 's/-->//'` ) \
           && command=${action[0]} && expect=${action[1]}
-      if [ "$expect" == "%use" ]; then
+      ( echo "$line" | grep -e '%options' > /dev/null ) \
+          && options=( `echo "$line" | sed -e 's/^.*%options//' -e 's/-->//'` )
+      if [ "$expect" == "%use" -o "$expect" == "%options" ]; then
         expect=
       fi
       if [ "${action[1]}" == "%use" ]; then
@@ -148,19 +149,19 @@ do
     else
       ## End of backtick block, so check the text
       inblock=0
+      if [ -n "$use" ]; then
+        ##echo " " USING $use
+        cat "$use" >> $text
+      fi
       echo $line | grep '%save' > /dev/null
       if [ "$?" == "0" ]; then
          rest=( `echo $line | sed -e 's/^[^%]*%save//'` )
          save=${rest[0]}
-         echo " SAVING" $save
+         ##echo " SAVING" $save
          cp $text $save
       fi
       if [ "$lang" == "dafny" -o "$lang" == "cli" ]; then
         echo TESTING $n $file $command $expect
-      fi
-      if [ -n "$use" ]; then
-        echo " " USING $use
-        cat "$use" >> $text
       fi
       if [ "$command" == "%no-check" ]; then
         echo -n ""
@@ -182,7 +183,7 @@ do
           echo EXPECTED A dafny BLOCK, NOT $lang
           FAIL=1
         else
-          "$dafny" $com --useBaseNameForFileName $text > actual
+          "$dafny" $com --useBaseNameForFileName $options $text > actual
           actualec=$?
           if [ -z "$expect" ]; then
             if [ "$actualec" != "0" ]; then
@@ -252,7 +253,7 @@ do
     fi
   elif [ "$inblock" == "1" ]; then
     ## If in a backtick block, save the text to the temporary file
-    echo "$line" | sed -e 's/\.\.\./   /' >> $text
+    echo "$line" | sed -e 's/^[ ]*\.\.\./   /' >> $text
   fi
 done < $file
 rm -rf *.tmp

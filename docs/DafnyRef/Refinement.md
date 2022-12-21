@@ -161,16 +161,6 @@ module A {
     return y;
   }
 
-  method ToSuperimpose(x: int) returns (r: int)
-  {
-    var y: int := x;
-    if y < 0 {
-      return -y;
-    } else {
-      return y;
-    }
-  }
-
 }
 
 module B refines A {
@@ -189,16 +179,6 @@ module B refines A {
   {
     return x;
   }
-
-  method ToSuperimpose(x: int) returns (r: int)
-  {
-    ...;
-    if y < 0 {
-      print "inverting";
-    } else {
-      print "not modifying";
-    }
-  }
 }
 ```
 
@@ -211,8 +191,6 @@ operations:
   `ensures` clauses (as in `ToStrengthen`),
 * provide a more deterministic version of a non-deterministic parent
   body (as in `ToDeterminize`), or
-* superimpose the body of the parent method with additional statements
-  (as in `ToSuperimpose`).
 
 The type signature of a child method must be the same as that of the
 parent method it refines. This can be ensured by providing an explicit
@@ -358,7 +336,7 @@ abstract module Parent {
   newtype Pos = n: nat | n > 0 witness 1
   datatype Bool = True | False
 }
-```
+``` <!-- %save Parent.tmp -->
 
 In this module, type `T` is opaque and hence can be refined with any type,
 including class types.  Types `B`, `S`, `Pos`, and `Bool` are concrete and
@@ -366,7 +344,7 @@ cannot be refined further, except (for `Pos` and `Bool`) by giving them
 additional members or attributes (or refining their existing members, if any).
 Hence, the following are valid refinements:
 
-```dafny  <!-- %check-verify -->
+```dafny  <!-- %check-verify %use Parent.tmp -->
 module ChildWithTrait refines Parent {
   trait T {}
 }

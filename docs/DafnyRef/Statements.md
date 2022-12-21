@@ -1944,15 +1944,18 @@ into the new buffer.
 
 [leino233]: http://research.microsoft.com/en-us/um/people/leino/papers/krml233.pdf
 
-```dafny <!-- %check-verify -->
-class {:autocontracts} SimpleQueue<Data>
+```dafny <!-- %check-verify %options --relax-definite-assignment -->
+class SimpleQueue<Data(0)>
 {
   ghost var Contents: seq<Data>;
   var a: array<Data>  // Buffer holding contents of queue.
   var m: int          // Index head of queue.
   var n: int          // Index just past end of queue
-  ...
+   
   method Enqueue(d: Data)
+    requires a.Length > 0;
+    requires 0 <= m <= n <= a.Length;
+    modifies this, this.a;
     ensures Contents == old(Contents) + [d]
   {
     if n == a.Length {

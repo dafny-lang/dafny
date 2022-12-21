@@ -27,8 +27,8 @@ of the new module, and a pair of curly braces ({}) enclosing the body
 of the module:
 
 ```dafny <!-- %check-resolve -->
-module Mod {
-  ...
+module Mod { 
+   ...
 }
 ```
 
@@ -216,7 +216,7 @@ There they serve simply as a way to give a new name, perhaps a
 shorthand name, to a module. For example,
 
 ```dafny <!-- %check-resolve Modules.1.expect -->
-module MyModule { ... } // declares module MyModule
+module MyModule { } // declare MyModule
 import MyModule  // error: cannot add a module named MyModule
                  // because there already is one
 import M = MyModule // OK. M and MyModule are equivalent
@@ -282,7 +282,7 @@ The `opened` keyword may be used with any kind of
 
 An `import opened` may occur at the top-level as well. For example,
 ```dafny <!-- %check-resolve -->
-module MyModule { ... } // declares MyModule
+module MyModule {  } // declares MyModule
 import opened MyModule // does not declare a new module, but does
                        // make all names in MyModule available in
                        // the current scope, without needing
