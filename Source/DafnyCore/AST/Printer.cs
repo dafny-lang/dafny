@@ -1497,7 +1497,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
         Indent(indent);
         PrintStatement(s.ResolvedStatement, indent);
         wr.WriteLine();
-
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;
         if (DafnyOptions.O.DafnyPrintResolvedFile == null && s.OrigUnresolved != null) {
@@ -2657,7 +2656,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       } else if (expr is QuantifierExpr) {
         QuantifierExpr e = (QuantifierExpr)expr;
 
-        if (DafnyOptions.O.DafnyPrintResolvedFile != null && e.SplitQuantifier != null) {
+        if (e.SplitQuantifier != null) {
           PrintExpr(e.SplitQuantifierExpression, contextBindingStrength, fragileContext, isRightmost, isFollowedBySemicolon, indent, keyword, resolv_count);
           return;
         }
@@ -2748,7 +2747,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
           readsPrefix = ", ";
         }
         wr.Write(" => ");
-        PrintExpression(e.Body, isFollowedBySemicolon);
+        PrintExpression(e.Term, isFollowedBySemicolon);
         if (parensNeeded) { wr.Write(")"); }
 
       } else if (expr is WildcardExpr) {
@@ -2875,7 +2874,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
       return parenPairs != 0 && (expr is NameSegment || expr is ExprDotName);
     }
 
-    void PrintCasePattern<VT>(CasePattern<VT> pat) where VT : IVariable {
+    void PrintCasePattern<VT>(CasePattern<VT> pat)
+      where VT : class, IVariable {
       Contract.Requires(pat != null);
       var v = pat.Var;
       if (v != null) {

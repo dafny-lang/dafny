@@ -1,9 +1,10 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class AssignOrReturnStmt : ConcreteUpdateStatement {
+public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrReturnStmt> {
   public readonly ExprRhs Rhs; // this is the unresolved RHS, and thus can also be a method call
   public readonly List<AssignmentRhs> Rhss;
   public readonly AttributedToken KeywordToken;
@@ -22,6 +23,20 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement {
       (Lhss.Count == 1 && Lhss[0] != null)   // "y :- MethodOrExpression;"
     );
     Contract.Invariant(Rhs != null);
+  }
+
+  public AssignOrReturnStmt Clone(Cloner cloner) {
+    return new AssignOrReturnStmt(cloner, this);
+  }
+
+  public AssignOrReturnStmt(Cloner cloner, AssignOrReturnStmt original) : base(cloner, original) {
+    Rhs = (ExprRhs)cloner.CloneRHS(original.Rhs);
+    Rhss = original.Rhss.Select(cloner.CloneRHS).ToList();
+    KeywordToken = cloner.AttributedTok(original.KeywordToken);
+
+    if (cloner.CloneResolvedFields) {
+      ResolvedStatements = original.ResolvedStatements.Select(cloner.CloneStmt).ToList();
+    }
   }
 
   public AssignOrReturnStmt(IToken tok, IToken endTok, List<Expression> lhss, ExprRhs rhs, AttributedToken keywordToken, List<AssignmentRhs> rhss = null)

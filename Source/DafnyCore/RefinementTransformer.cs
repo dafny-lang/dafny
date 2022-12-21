@@ -151,20 +151,14 @@ namespace Microsoft.Dafny {
   ///      In EPTCS, 2016. (Post-workshop proceedings of REFINE 2015.) 
   /// </summary>
   public class RefinementTransformer : IRewriter {
-    Cloner rawCloner; // This cloner just gives exactly the same thing back.
     RefinementCloner refinementCloner; // This cloner wraps things in a RefinementToken
-
-    Program program;
 
     public RefinementTransformer(ErrorReporter reporter)
       : base(reporter) {
-      rawCloner = new Cloner();
     }
 
     public RefinementTransformer(Program p)
       : this(p.Reporter) {
-      Contract.Requires(p != null);
-      program = p;
     }
 
     private ModuleDefinition moduleUnderConstruction;  // non-null for the duration of Construct calls
@@ -398,7 +392,7 @@ namespace Microsoft.Dafny {
         var (dn, nwn) = ((NewtypeDecl)d, (NewtypeDecl)nw);
         Contract.Assert(nwn.BaseType == null && nwn.Var == null &&
                         nwn.Constraint == null && nwn.Witness == null);
-        nwn.Var = dn.Var == null ? null : refinementCloner.CloneBoundVar(dn.Var);
+        nwn.Var = dn.Var == null ? null : refinementCloner.CloneBoundVar(dn.Var, false);
         nwn.BaseType = nwn.Var?.Type ?? refinementCloner.CloneType(dn.BaseType); // Preserve newtype invariant that Var.Type is BaseType
         nwn.Constraint = dn.Constraint == null ? null : refinementCloner.CloneExpr(dn.Constraint);
         nwn.WitnessKind = dn.WitnessKind;
@@ -540,22 +534,19 @@ namespace Microsoft.Dafny {
       Contract.Requires(moreBody == null || replacementBody == null);
 
       var tps = f.TypeArgs.ConvertAll(refinementCloner.CloneTypeParam);
-      var formals = f.Formals.ConvertAll(refinementCloner.CloneFormal);
+      var formals = f.Formals.ConvertAll(p => refinementCloner.CloneFormal(p, false));
       var req = f.Req.ConvertAll(refinementCloner.CloneAttributedExpr);
       var reads = f.Reads.ConvertAll(refinementCloner.CloneFrameExpr);
       var decreases = refinementCloner.CloneSpecExpr(f.Decreases);
       var result = f.Result ?? moreResult;
       if (result != null) {
-        result = refinementCloner.CloneFormal(result);
+        result = refinementCloner.CloneFormal(result, false);
       }
 
-      List<AttributedExpression> ens;
-      if (checkPrevPostconditions)  // note, if a postcondition includes something that changes in the module, the translator will notice this and still re-check the postcondition
-{
-        ens = f.Ens.ConvertAll(rawCloner.CloneAttributedExpr);
-      } else {
-        ens = f.Ens.ConvertAll(refinementCloner.CloneAttributedExpr);
-      }
+
+      var ens = refinementCloner.WithRefinementTokenWrapping(
+        () => f.Ens.ConvertAll(refinementCloner.CloneAttributedExpr),
+        !checkPrevPostconditions); // note, if a postcondition includes something that changes in the module, the translator will notice this and still re-check the postcondition
 
       if (moreEnsures != null) {
         ens.AddRange(moreEnsures);
@@ -611,16 +602,12 @@ namespace Microsoft.Dafny {
       Contract.Requires(decreases != null);
 
       var tps = m.TypeArgs.ConvertAll(refinementCloner.CloneTypeParam);
-      var ins = m.Ins.ConvertAll(refinementCloner.CloneFormal);
+      var ins = m.Ins.ConvertAll(p => refinementCloner.CloneFormal(p, false));
       var req = m.Req.ConvertAll(refinementCloner.CloneAttributedExpr);
       var mod = refinementCloner.CloneSpecFrameExpr(m.Mod);
 
-      List<AttributedExpression> ens;
-      if (checkPreviousPostconditions) {
-        ens = m.Ens.ConvertAll(rawCloner.CloneAttributedExpr);
-      } else {
-        ens = m.Ens.ConvertAll(refinementCloner.CloneAttributedExpr);
-      }
+      var ens = refinementCloner.WithRefinementTokenWrapping(
+        () => m.Ens.ConvertAll(refinementCloner.CloneAttributedExpr), !checkPreviousPostconditions);
 
       if (moreEnsures != null) {
         ens.AddRange(moreEnsures);
@@ -633,20 +620,25 @@ namespace Microsoft.Dafny {
       }
       var body = newBody ?? refinementCloner.CloneBlockStmt(m.BodyForRefinement);
       if (m is LeastLemma) {
-        return new LeastLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, ((LeastLemma)m).TypeOfK, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
+        return new LeastLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, ((LeastLemma)m).TypeOfK, tps, ins,
+          m.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
       } else if (m is GreatestLemma) {
-        return new GreatestLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, ((GreatestLemma)m).TypeOfK, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
+        return new GreatestLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, ((GreatestLemma)m).TypeOfK, tps, ins,
+          m.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
       } else if (m is Lemma) {
-        return new Lemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
+        return new Lemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, tps, ins,
+          m.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
       } else if (m is TwoStateLemma) {
         var two = (TwoStateLemma)m;
-        return new TwoStateLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
+        return new TwoStateLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, tps, ins,
+          m.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
       } else {
-        return new Method(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, m.IsGhost, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
+        return new Method(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, m.IsGhost, tps, ins,
+          m.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null, m.IsByMethod);
       }
     }
@@ -692,16 +684,18 @@ namespace Microsoft.Dafny {
         newBody = MergeBlockStmt(nw.Body, prev.Body);
       }
 
-      var ens = prev.Ensures.ConvertAll(rawCloner.CloneAttributedExpr);
+      var ens = refinementCloner.WithRefinementTokenWrapping(() =>
+        prev.Ensures.ConvertAll(refinementCloner.CloneAttributedExpr));
       ens.AddRange(nw.Ensures);
-      var yens = prev.YieldEnsures.ConvertAll(rawCloner.CloneAttributedExpr);
+      var yens = refinementCloner.WithRefinementTokenWrapping(() =>
+        prev.YieldEnsures.ConvertAll(refinementCloner.CloneAttributedExpr));
       yens.AddRange(nw.YieldEnsures);
 
       return new IteratorDecl(new RefinementToken(nw.tok, moduleUnderConstruction),
         nw.Name, moduleUnderConstruction,
         nw.SignatureIsOmitted ? prev.TypeArgs.ConvertAll(refinementCloner.CloneTypeParam) : nw.TypeArgs,
-        nw.SignatureIsOmitted ? prev.Ins.ConvertAll(refinementCloner.CloneFormal) : nw.Ins,
-        nw.SignatureIsOmitted ? prev.Outs.ConvertAll(refinementCloner.CloneFormal) : nw.Outs,
+        nw.SignatureIsOmitted ? prev.Ins.ConvertAll(p => refinementCloner.CloneFormal(p, false)) : nw.Ins,
+        nw.SignatureIsOmitted ? prev.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)) : nw.Outs,
         refinementCloner.CloneSpecFrameExpr(prev.Reads),
         refinementCloner.CloneSpecFrameExpr(prev.Modifies),
         refinementCloner.CloneSpecExpr(prev.Decreases),
@@ -733,7 +727,7 @@ namespace Microsoft.Dafny {
       foreach (var member in prev.Members) {
         int index;
         if (!declaredNames.TryGetValue(member.Name, out index)) {
-          var nwMember = refinementCloner.CloneMember(member);
+          var nwMember = refinementCloner.CloneMember(member, false);
           nwMember.RefinementBase = member;
           nw.Members.Add(nwMember);
         } else {
@@ -1661,7 +1655,9 @@ namespace Microsoft.Dafny {
   }
 
   class RefinementCloner : Cloner {
-    ModuleDefinition moduleUnderConstruction;
+    readonly ModuleDefinition moduleUnderConstruction;
+    private bool wrapWithRefinementToken = true;
+
     public RefinementCloner(ModuleDefinition m) {
       moduleUnderConstruction = m;
     }
@@ -1672,8 +1668,22 @@ namespace Microsoft.Dafny {
         return CloneBlockStmt(m.BodyForRefinement);
       }
     }
+
+    [Pure]
+    public T WithRefinementTokenWrapping<T>(Func<T> action, bool wrap = false) {
+      var current = wrapWithRefinementToken;
+      wrapWithRefinementToken = wrap;
+      var result = action();
+      wrapWithRefinementToken = current;
+      return result;
+    }
+
     public override IToken Tok(IToken tok) {
-      return new RefinementToken(tok, moduleUnderConstruction);
+      if (wrapWithRefinementToken) {
+        return new RefinementToken(tok, moduleUnderConstruction);
+      }
+
+      return tok;
     }
     public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
       var dd = base.CloneDeclaration(d, m);
