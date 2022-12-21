@@ -15,7 +15,7 @@ class TranslateCommand : ICommandSpec {
       Concat(ICommandSpec.ConsoleOutputOptions).
       Concat(ICommandSpec.CommonOptions);
 
-  private static readonly Argument<string> Target = new("language",@"
+  private static readonly Argument<string> Target = new("language", @"
 cs - Translate to C#.
 go - Translate to Go.
 js - Translate to JavaScript.
