@@ -3840,6 +3840,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(resolutionContext != null);
       IToken firstEffectfulRhs = null;
       MethodCallInformation methodCallInfo = null;
+      update.ResolvedStatements = new();
       var j = 0;
       foreach (var rhs in update.Rhss) {
         bool isEffectful;
@@ -6197,6 +6198,7 @@ namespace Microsoft.Dafny {
             reporter.Error(MessageSource.Resolver, expr.tok, "The name {0} ambiguously refers to a static member in one of the modules {1} (try qualifying the member name with the module name)", expr.SuffixName, ambiguousMember.ModuleNames());
           } else {
             var receiver = new StaticReceiverExpr(expr.Lhs.tok, (ClassDecl)member.EnclosingClass, false);
+            receiver.ContainerExpression = expr.Lhs;
             r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           }
         } else {
@@ -6240,6 +6242,7 @@ namespace Microsoft.Dafny {
               // nevertheless, continue creating an expression that approximates a correct one
             }
             var receiver = new StaticReceiverExpr(expr.Lhs.tok, (UserDefinedType)ty.NormalizeExpand(), (TopLevelDeclWithMembers)member.EnclosingClass, false);
+            receiver.ContainerExpression = expr.Lhs;
             r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           }
         }
