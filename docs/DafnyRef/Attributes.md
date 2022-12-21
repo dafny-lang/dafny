@@ -278,10 +278,21 @@ The form of the `{:induction}` attribute is one of the following:
 usage conventionally `X` is `true`.
 
 Here is an example of using it on a quantifier expression:
-```dafny <!-- %no-check TODO: Replace with an example that works -->
-lemma Fill_J(s: seq<int>)
-  requires forall i :: 1 <= i < |s| ==> s[i-1] <= s[i]
-  ensures forall i,j {:induction j} :: 0 <= i < j < |s| ==> s[i] <= s[j]
+```dafny <!-- %check-verify -->
+datatype Unary = Zero | Succ(Unary)
+
+function UnaryToNat(n: Unary): nat {
+  match n
+  case Zero => 0
+  case Succ(p) => 1 + UnaryToNat(p)
+}
+
+function NatToUnary(n: nat): Unary {
+  if n == 0 then Zero else Succ(NatToUnary(n - 1))
+}
+
+lemma Correspondence()
+  ensures forall n: nat {:induction n} :: UnaryToNat(NatToUnary(n)) == n
 {
 }
 ```
