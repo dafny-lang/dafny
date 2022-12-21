@@ -320,15 +320,8 @@ namespace Microsoft.Dafny {
     private void VisitFunction(Function f) {
       VisitFunctionProper(f);
 
-      if (f.OverriddenFunction != null) {
-        // add an edge from the trait function to that of the class/type
-        AddCallGraphEdgeRaw(f.OverriddenFunction, f);
-      }
-
       var prefixPredicate = (f as ExtremePredicate)?.PrefixPredicate;
       if (prefixPredicate != null) {
-        // add an edge from P# to P, since this will have the desired effect of detecting unwanted cycles.
-        AddCallGraphEdgeRaw(prefixPredicate, f);
         VisitFunctionProper(prefixPredicate);
       }
 
@@ -338,6 +331,16 @@ namespace Microsoft.Dafny {
     }
 
     private void VisitFunctionProper(Function f) {
+      if (f.OverriddenFunction != null) {
+        // add an edge from the trait function to that of the class/type
+        AddCallGraphEdgeRaw(f.OverriddenFunction, f);
+      }
+
+      if (f is PrefixPredicate prefixPredicate) {
+        // add an edge from P# to P, since this will have the desired effect of detecting unwanted cycles.
+        AddCallGraphEdgeRaw(prefixPredicate, prefixPredicate.ExtremePred);
+      }
+
       VisitAttributes(f, new CallGraphBuilderContext(f));
 
       foreach (var formal in f.Formals) {
