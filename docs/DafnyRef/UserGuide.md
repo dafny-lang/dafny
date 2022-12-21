@@ -165,7 +165,6 @@ A few options are not part of a command. In these cases any single-hyphen spelli
 - `dafny --help` or `dafny -h` lists all the available commands
 - `dafny -?` or `dafny -help` list all legacy options
 - `dafny --version` (or `-version`) prints out the numbe of the version this build of dafny implements
-- `dafny -attrHelp` prints out help information about attributes
 
 
 #### 25.5.1.2. `dafny resolve` {#sec-dafny-resolve}
@@ -237,7 +236,7 @@ Various options control the translation process, in addition to all those descri
 
 - General options:
    - `--no-verify` --- turns off all attempts to verify the program
-   - `--compile-verbose` --- print information about generated files
+   - `--verbose` --- print information about generated files
 
 - The translation results
    - `--output` (or `-o`) --- location (file or folder depending on the target) of the generated file(s)
