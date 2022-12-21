@@ -74,6 +74,29 @@ namespace Microsoft.Dafny {
       }
     }
 
+    private class CallGraphASTVisitor : ASTVisitor {
+      private readonly CallGraphBuilder callGraphBuilder;
+      public CallGraphASTVisitor(CallGraphBuilder callGraphBuilder) {
+        this.callGraphBuilder = callGraphBuilder;
+      }
+
+      private CallGraphBuilderContext GetCallGraphBuilderContext(IASTVisitorContext context) {
+        return new CallGraphBuilderContext(context);
+      }
+
+      protected override void VisitUserProvidedType(Type type, IASTVisitorContext context) {
+        callGraphBuilder.VisitUserProvidedType(type, GetCallGraphBuilderContext(context));
+      }
+
+      protected override void VisitExpression(Expression expr, IASTVisitorContext context) {
+        callGraphBuilder.VisitExpression(expr, GetCallGraphBuilderContext(context));
+      }
+
+      protected override void VisitStatement(Statement stmt, IASTVisitorContext context) {
+        callGraphBuilder.VisitStatement(stmt, GetCallGraphBuilderContext(context));
+      }
+    }
+
     /// <summary>
     /// This method, the two AddCallGraphEdge methods, and AddTypeDependencyEdges are what the
     /// CallGraphBuilder is all about. These two methods are called during the traversal of the
