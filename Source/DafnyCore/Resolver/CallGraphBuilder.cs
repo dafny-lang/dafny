@@ -504,21 +504,24 @@ namespace Microsoft.Dafny {
     private void VisitMethod(Method m) {
       VisitMethodProper(m);
 
-      if (m.OverriddenMethod != null) {
-        // add an edge from the trait method to that of the class/type
-        AddCallGraphEdgeRaw(m.OverriddenMethod, m);
-      }
-
       var prefixLemma = (m as ExtremeLemma)?.PrefixLemma;
       if (prefixLemma != null) {
-        // add an edge from M# to M, since this will have the desired effect of detecting unwanted cycles.
-        AddCallGraphEdgeRaw(prefixLemma, m);
         VisitMethodProper(prefixLemma);
       }
     }
 
     private void VisitMethodProper(Method m) {
       Contract.Requires(m != null);
+
+      if (m.OverriddenMethod != null) {
+        // add an edge from the trait method to that of the class/type
+        AddCallGraphEdgeRaw(m.OverriddenMethod, m);
+      }
+
+      if (m is PrefixLemma prefixLemma) {
+        // add an edge from M# to M, since this will have the desired effect of detecting unwanted cycles.
+        AddCallGraphEdgeRaw(prefixLemma, prefixLemma.ExtremeLemma);
+      }
 
       var context = new CallGraphBuilderContext(m);
 
