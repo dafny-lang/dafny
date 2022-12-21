@@ -1142,19 +1142,9 @@ namespace Microsoft.Dafny {
         .Iter(formal => VisitExpression(formal.DefaultValue, context));
     }
 
-    /// <summary>
-    /// "InFunctionPostcondition" is really part of an IASTVisitorContext. As a temporary measure before adding it to that
-    /// context, it's modeled here as a visitor-global boolean.
-    /// </summary>
-    public bool InFunctionPostcondition { get; private set; }
-
     private void VisitAttributedExpression(AttributedExpression attributedExpression, IASTVisitorContext context, bool inFunctionPostcondition = false) {
       VisitAttributes(attributedExpression, context.EnclosingModule);
-
-      Contract.Assert(!InFunctionPostcondition);
-      InFunctionPostcondition = inFunctionPostcondition;
-      VisitExpression(attributedExpression.E, context);
-      InFunctionPostcondition = false;
+      VisitExpression(attributedExpression.E, context, inFunctionPostcondition);
     }
 
     private void VisitAttributes(IAttributeBearingDeclaration parent, ModuleDefinition enclosingModule) {
@@ -1169,7 +1159,7 @@ namespace Microsoft.Dafny {
       // TODO
     }
 
-    protected virtual void VisitExpression(Expression expr, IASTVisitorContext context) {
+    protected virtual void VisitExpression(Expression expr, IASTVisitorContext context, bool inFunctionPostcondition = false) {
       // TODO
     }
 
