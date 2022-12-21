@@ -32,18 +32,20 @@ They are not repeated here to avoid replicating information that
 easily becomes inconsistent and out of date.
 The dafny tool can also be installed using `dotnet install`.
 
-As of this writing, users can install pre-built Dafny binaries
-or build directly from the source files maintained in the github project.
+Most users will find it most convenient to install the pre-built Dafny binaries available on the project release site.
+As is typical for Open Source projects, dafny can also be built directly from the source files maintained in the github project.
 
 Current and past Dafny binary releases can be found at
 [https://github.com/dafny-lang/dafny/releases](https://github.com/dafny-lang/dafny/releases) for each supported platform.
 Each release is a .zip file with a name combining the release name and the
 platform. Current platforms are Windows 10, Ubuntu 16ff, and MacOS 10.14ff.
 
-The principal dependencies of the `dafny` tool are that
-- (1) it uses `dotnet`, which
-is available and must be installed on Linux and Mac platforms to use `dafny`, and
-- (2) it uses `Z3`, an SMT solver that does the logical reasoning.
+The dafny tool is distributed as a standalone executable. 
+A compatible version of the required Z3 solver is included in the release.
+There are additional dependencies that are needed to compile dafny to particular target languages,
+as described in the release instructions.
+A development environment to _build_ dafny from source requires additional dependencies, described [here](https://github.com/dafny-lang/dafny/wiki/INSTALL#building-and-developing-from-source-code).
+
 
 ### 25.2.2. IDEs for Dafny {#sec-ides}
 
@@ -297,6 +299,8 @@ The Dafny Language Server is described in more detail [here](#sec-dafny-language
 
 The `dafny audit` command reports issues in the Dafny code that might limit the soundness claims of verification.
 
+_This command is under development._
+
 The command executes the `dafny resolve` phase (accepting its options) and has the following additional options:
 
 - `--report-file:<report-file>` --- spcifies the path where the audit
@@ -313,7 +317,10 @@ The command executes the `dafny resolve` phase (accepting its options) and has t
    been generated with the existing file given by --report-file, and fail if
    they differ.
 
-The command emits exit codes of TODO.
+The command emits exit codes of
+- 1 for command-line errors
+- 2 for paarsing, type-checking or serious errors in running the auditor (e.g. failure to write a report or when report comparison fails)
+- 0 for normal operation, including operation that identifies audit findings
 
 #### 25.5.1.9. `dafny test` {#sec-dafny-test}
  
@@ -369,8 +376,6 @@ This _experimental_ command (verifies the program and) then generates unit test 
 complete coverage of the method.
 
 Such methods must be static and have no input parameters.
-
-_This command is under development and not yet functional._
 
 #### 25.5.1.11. `dafny find-dead-code` {#sec-dafny-find-dead-code}
 
@@ -1329,7 +1334,7 @@ using the `-?` or `--help` or `-h` options.
 
 Remember that options are typically stated with either a leading `--`.
 
-Legacy options begin with either '-' or '/'; however they are begin
+Legacy options begin with either '-' or '/'; however they are being
 migrated to the POSIX-compliant `--` form.
 
 ### 25.8.1. Help and version information {#sec-controlling-help}
@@ -1748,7 +1753,7 @@ and what information it produces about the verification process.
   value before it is used.  If false (the default) definite assignment
   rules are strictly checked (corresponding to legacy level 3); if true,
   checking corresponds to legacy level TODO.
-  The legacy option was `-definiteAssignment:<n>` wioth possible values
+  The legacy option was `-definiteAssignment:<n>` with possible values
   * `0` - ignore definite-assignment rules; this mode is unsound and is
     for testing only.
   * `1` (default) - enforce definite-assignment rules for compiled
