@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -9,7 +8,7 @@ public class MatchExpr : Expression {  // a MatchExpr is an "extended expression
   private Expression source;
   private List<MatchCaseExpr> cases;
   public readonly MatchingContext Context;
-  [FilledInDuringResolution] public readonly List<DatatypeCtor> MissingCases = new List<DatatypeCtor>();
+  [FilledInDuringResolution] public readonly List<DatatypeCtor> MissingCases = new();
   public readonly bool UsesOptionalBraces;
   public MatchExpr OrigUnresolved;  // the resolver makes this clone of the MatchExpr before it starts desugaring it
 
@@ -31,13 +30,9 @@ public class MatchExpr : Expression {  // a MatchExpr is an "extended expression
     this.Context = context is null ? new HoleCtx() : context;
   }
 
-  public Expression Source {
-    get { return source; }
-  }
+  public Expression Source => source;
 
-  public List<MatchCaseExpr> Cases {
-    get { return cases; }
-  }
+  public List<MatchCaseExpr> Cases => cases;
 
   // should only be used in desugar in resolve to change the source and cases of the matchexpr
   public void UpdateSource(Expression source) {
@@ -96,7 +91,7 @@ public abstract class MatchCase : INode, IHasUsages {
   }
 }
 
-public class MatchStmt : Statement {
+public class MatchStmt : Statement, ICloneable<MatchStmt> {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Source != null);
@@ -107,9 +102,29 @@ public class MatchStmt : Statement {
   private Expression source;
   private List<MatchCaseStmt> cases;
   public readonly MatchingContext Context;
-  [FilledInDuringResolution] public readonly List<DatatypeCtor> MissingCases = new List<DatatypeCtor>();
+  [FilledInDuringResolution] public readonly List<DatatypeCtor> MissingCases = new();
   public readonly bool UsesOptionalBraces;
+
+  [FilledInDuringResolution]
+  // TODO remove field?
   public MatchStmt OrigUnresolved;  // the resolver makes this clone of the MatchStmt before it starts desugaring it
+
+  public MatchStmt Clone(Cloner cloner) {
+    return new MatchStmt(cloner, this);
+  }
+
+  public MatchStmt(Cloner cloner, MatchStmt original) : base(cloner, original) {
+    source = cloner.CloneExpr(original.Source);
+    cases = original.cases.Select(cloner.CloneMatchCaseStmt).ToList();
+    Context = original.Context;
+    UsesOptionalBraces = original.UsesOptionalBraces;
+
+    if (cloner.CloneResolvedFields) {
+      MissingCases = original.MissingCases;
+      OrigUnresolved = original.OrigUnresolved;
+    }
+  }
+
   public MatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<MatchCaseStmt> cases, bool usesOptionalBraces, MatchingContext context = null)
     : base(tok, endTok) {
     Contract.Requires(tok != null);
@@ -137,9 +152,9 @@ public class MatchStmt : Statement {
     get { return source; }
   }
 
-  public List<MatchCaseStmt> Cases {
-    get { return cases; }
-  }
+  public List<MatchCaseStmt> Cases => cases;
+
+  public override IEnumerable<INode> Children => new[] { Source }.Concat<INode>(Cases);
 
   // should only be used in desugar in resolve to change the cases of the matchexpr
   public void UpdateSource(Expression source) {
@@ -195,7 +210,7 @@ public class MatchCaseStmt : MatchCase {
 
   public override IEnumerable<INode> Children => body;
 
-  public MatchCaseStmt(IToken tok, DatatypeCtor ctor, bool FromBoundVar, [Captured] List<BoundVar> arguments, [Captured] List<Statement> body, Attributes attrs = null)
+  public MatchCaseStmt(IToken tok, DatatypeCtor ctor, bool fromBoundVar, [Captured] List<BoundVar> arguments, [Captured] List<Statement> body, Attributes attrs = null)
     : base(tok, ctor, arguments) {
     Contract.Requires(tok != null);
     Contract.Requires(ctor != null);
@@ -203,7 +218,7 @@ public class MatchCaseStmt : MatchCase {
     Contract.Requires(cce.NonNullElements(body));
     this.body = body;
     this.Attributes = attrs;
-    this.FromBoundVar = FromBoundVar;
+    this.FromBoundVar = fromBoundVar;
   }
 
   public List<Statement> Body {
@@ -314,19 +329,19 @@ public class ForallCtx : MatchingContext {
 }
 
 public class IdCtx : MatchingContext {
-  public readonly String Id;
+  public readonly string Id;
   public readonly List<MatchingContext> Arguments;
 
-  public IdCtx(String id, List<MatchingContext> arguments) {
+  public IdCtx(string id, List<MatchingContext> arguments) {
     Contract.Requires(id != null);
     Contract.Requires(arguments != null); // Arguments can be empty, but shouldn't be null
     this.Id = id;
     this.Arguments = arguments;
   }
 
-  public IdCtx(KeyValuePair<string, DatatypeCtor> ctor) {
-    List<MatchingContext> arguments = Enumerable.Repeat((MatchingContext)new HoleCtx(), ctor.Value.Formals.Count).ToList();
-    this.Id = ctor.Key;
+  public IdCtx(DatatypeCtor ctor) {
+    List<MatchingContext> arguments = Enumerable.Repeat((MatchingContext)new HoleCtx(), ctor.Formals.Count).ToList();
+    this.Id = ctor.Name;
     this.Arguments = arguments;
   }
 
@@ -335,7 +350,7 @@ public class IdCtx : MatchingContext {
       return Id;
     } else {
       List<string> cps = Arguments.ConvertAll<string>(x => x.ToString());
-      return string.Format("{0}({1})", Id, String.Join(", ", cps));
+      return string.Format("{0}({1})", Id, string.Join(", ", cps));
     }
   }
 
@@ -345,7 +360,7 @@ public class IdCtx : MatchingContext {
 
   // Find the first (leftmost) occurrence of HoleCtx and replace it with curr
   // Returns false if no HoleCtx is found
-  private bool ReplaceLeftmost(MatchingContext curr, out MatchingContext newcontext) {
+  private bool ReplaceLeftmost(MatchingContext curr, out MatchingContext newContext) {
     var newArguments = new List<MatchingContext>();
     bool foundHole = false;
     int currArgIndex = 0;
@@ -376,13 +391,13 @@ public class IdCtx : MatchingContext {
       }
     }
 
-    newcontext = new IdCtx(this.Id, newArguments);
+    newContext = new IdCtx(this.Id, newArguments);
     return foundHole;
   }
 
   public override MatchingContext FillHole(MatchingContext curr) {
-    MatchingContext newcontext;
-    ReplaceLeftmost(curr, out newcontext);
-    return newcontext;
+    MatchingContext newContext;
+    ReplaceLeftmost(curr, out newContext);
+    return newContext;
   }
 }

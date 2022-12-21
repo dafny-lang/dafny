@@ -1,12 +1,13 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 
 namespace Microsoft.Dafny;
 
 /// <summary>
 /// A CallStmt is always resolved.  It is typically produced as a resolved counterpart of the syntactic AST note ApplySuffix.
 /// </summary>
-public class CallStmt : Statement {
+public class CallStmt : Statement, ICloneable<CallStmt> {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(MethodSelect.Member is Method);
@@ -14,6 +15,7 @@ public class CallStmt : Statement {
     Contract.Invariant(cce.NonNullElements(Args));
   }
 
+  public override IEnumerable<INode> Children => Lhs.Concat(new INode[] { MethodSelect, Bindings });
   public readonly List<Expression> Lhs;
   public readonly MemberSelectExpr MethodSelect;
   public readonly ActualBindings Bindings;
@@ -35,6 +37,16 @@ public class CallStmt : Statement {
     this.Lhs = lhs;
     this.MethodSelect = memSel;
     this.Bindings = new ActualBindings(args);
+  }
+
+  public CallStmt Clone(Cloner cloner) {
+    return new CallStmt(cloner, this);
+  }
+
+  public CallStmt(Cloner cloner, CallStmt original) : base(cloner, original) {
+    MethodSelect = (MemberSelectExpr)cloner.CloneExpr(original.MethodSelect);
+    Lhs = original.Lhs.Select(cloner.CloneExpr).ToList();
+    Bindings = new ActualBindings(cloner, original.Bindings);
   }
 
   /// <summary>

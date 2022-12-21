@@ -10,30 +10,38 @@ namespace Microsoft.Dafny;
 /// </summary>
 public class StaticReceiverExpr : LiteralExpr {
   public readonly Type UnresolvedType;
-  private bool Implicit;
-  public Expression OriginalResolved;
+  /// <summary>
+  /// A static member can be invoked through an object, in which case the object is not used for the call.
+  /// However, the object expression must be verified and is thus stored here, in addition to its type.
+  /// </summary>
+  public Expression ObjectToDiscard;
+
+  /// <summary>
+  /// In case this static receiver was specified through a dot expression, this field contains the LHS of the dot.
+  /// </summary>
+  public Expression ContainerExpression;
 
   public StaticReceiverExpr(IToken tok, Type t, bool isImplicit)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(t != null);
     UnresolvedType = t;
-    Implicit = isImplicit;
-    OriginalResolved = null;
+    IsImplicit = isImplicit;
   }
 
   /// <summary>
   /// Constructs a resolved LiteralExpr representing the fictitious static-receiver literal whose type is
   /// "cl" parameterized by the type arguments of "cl" itself.
   /// </summary>
-  public StaticReceiverExpr(IToken tok, TopLevelDeclWithMembers cl, bool isImplicit)
+  public StaticReceiverExpr(IToken tok, TopLevelDeclWithMembers cl, bool isImplicit, Expression lhs = null)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(cl != null);
     var typeArgs = cl.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
     Type = new UserDefinedType(tok, cl is ClassDecl klass && klass.IsDefaultClass ? cl.Name : cl.Name + "?", cl, typeArgs);
     UnresolvedType = Type;
-    Implicit = isImplicit;
+    IsImplicit = isImplicit;
+    ObjectToDiscard = lhs;
   }
 
   /// <summary>
@@ -67,13 +75,12 @@ public class StaticReceiverExpr : LiteralExpr {
       Type = t;
     }
     UnresolvedType = Type;
-    Implicit = isImplicit;
-    OriginalResolved = lhs;
+    IsImplicit = isImplicit;
+    ObjectToDiscard = lhs;
   }
 
-  public override bool IsImplicit {
-    get { return Implicit; }
-  }
+  public override bool IsImplicit { get; }
 
-  public override IEnumerable<INode> Children => base.Children.Concat(Type.Nodes);
+  public override IEnumerable<INode> Children =>
+    new[] { ObjectToDiscard, ContainerExpression }.Where(x => x != null).Concat(Type.Nodes);
 }

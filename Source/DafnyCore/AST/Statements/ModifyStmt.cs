@@ -3,9 +3,18 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public class ModifyStmt : Statement {
+public class ModifyStmt : Statement, ICloneable<ModifyStmt> {
   public readonly Specification<FrameExpression> Mod;
   public readonly BlockStmt Body;
+
+  public ModifyStmt Clone(Cloner cloner) {
+    return new ModifyStmt(cloner, this);
+  }
+
+  public ModifyStmt(Cloner cloner, ModifyStmt original) : base(cloner, original) {
+    Mod = cloner.CloneSpecFrameExpr(original.Mod);
+    Body = cloner.CloneBlockStmt(original.Body);
+  }
 
   public ModifyStmt(IToken tok, IToken endTok, List<FrameExpression> mod, Attributes attrs, BlockStmt body)
     : base(tok, endTok) {
