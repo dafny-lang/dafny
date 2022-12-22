@@ -110,7 +110,7 @@ jobs:
     - name: Print DoubleRead
       run: cat dafny/Test/concurrency/02-DoubleRead.dfy
     - name: Run Release DoubleRead
-      run: ./dafny/unzippedRelease/dafny/dafny dafny/Test/concurrency/02-DoubleRead.dfy
+      run: ./${{ github.workspace }}/unzippedRelease/dafny/dafny dafny/Test/concurrency/02-DoubleRead.dfy
     - name: Run FromSource DoubleRead
       run: ./dafny/Scripts/dafny dafny/Test/concurrency/02-DoubleRead.dfy
     - name: Run integration tests
