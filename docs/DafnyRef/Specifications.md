@@ -103,14 +103,16 @@ presence of recursion. If more than one `decreases` clause is given
 it is as if a single `decreases` clause had been given with the
 collected list of arguments and a collected list of Attributes. That is,
 
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 decreases A, B
 decreases C, D
 ```
 
 is equivalent to
 
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 decreases A, B, C, D
 ```
 Note that changing the order of multiple `decreases` clauses will change
@@ -155,7 +157,8 @@ decreases clause is any prefix followed by the guess followed by $\top$.
 
 Here is a simple but interesting example: the Fibonacci function.
 
-```dafny <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 function Fib(n: nat) : nat
 {
   if n < 2 then n else Fib(n-2) + Fib(n-1)
@@ -169,7 +172,8 @@ Let's take a look at the kind of example where a mysterious-looking
 decreases clause like "Rank, 0" is useful.
 
 Consider two mutually recursive methods, `A` and `B`:
-```dafny <!-- %check-verify Specifications.1.expect -->
+<!-- %check-verify Specifications.1.expect -->
+```dafny
 method A(x: nat)
 {
   B(x);
@@ -196,7 +200,8 @@ does not work, because that won't prove a strict decrease for the call
 from `A(x)` to `B(x)`.
 
 Here's one possibility:
-```dafny <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 method A(x: nat)
   decreases x, 1
 {
@@ -234,7 +239,8 @@ lexicographic tuple `"x-1, 1"` is strictly smaller than `"x, 0"`.
  $\top$ to the user-supplied decreases clause. For the A-and-B example,
  this lets us drop the constant from the `decreases` clause of A:
 
-```dafny <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 method A(x: nat)
    decreases x
 {
@@ -258,7 +264,8 @@ Let's take a look at one more example that better illustrates the utility
 of $\top$. Consider again two mutually recursive methods, call them `Outer`
 and `Inner`, representing the recursive counterparts of what iteratively
 might be two nested loops:
-```dafny <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 method Outer(x: nat)
 {
   // set y to an arbitrary non-negative integer
@@ -290,7 +297,8 @@ decreases clause of `Outer` to be $(x, \top)$ and the effective decreases
 clause for `Inner` to be $(x, y, \top)$, then we can show the strict
 decreases as required. Since $\top$ is implicitly appended, the two
 decreases clauses declared in the program text can be:
-```dafny <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 method Outer(x: nat)
   decreases x
 {
@@ -314,7 +322,8 @@ Moreover, remember that if a function or method has no user-declared
 the list of arguments of the function/method, in the order given. This is
 exactly the decreases clauses needed here. Thus, Dafny successfully
 verifies the program without any explicit `decreases` clauses:
-```dafny <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 method Outer(x: nat)
 {
   var y :| 0 <= y;
@@ -379,7 +388,8 @@ object. This form is only used within a method of a class or trait.
 A ``FrameField`` can be useful in the following case:
 When a method modifies only one field, rather than writing
 
-```dafny <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 class A {
   var i: int
   var x0: int
@@ -396,7 +406,8 @@ class A {
 
 one can write the more concise:
 
-```dafny <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 class A {
   var i: int
   var x0: int
@@ -454,7 +465,8 @@ lambda, or iterator may read. The memory locations are all the fields
 of all of the references given in the set specified in the frame expression
 and the single fields given in [`FrameField`](#sec-frame-expression) elements of the frame expression.
 For example, in
-```dafny <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 class C {
   var x: int
   var y: int
@@ -486,7 +498,8 @@ a collection of references. Such an expression is converted to a set by taking t
 union of the function's image over all inputs. For example, if `F` is
 a function from `int` to `set<object>`, then `reads F` has the meaning
 
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 set x: int, o: object | o in F(x) :: o
 ```
 
@@ -494,7 +507,8 @@ This is particularly useful when wanting to specify the reads set of
 another function. For example, function `Sum` adds up the values of
 `f(i)` where `i` ranges from `lo` to `hi`:
 
-```dafny <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 function Sum(f: int ~> real, lo: int, hi: int): real
   requires lo <= hi
   requires forall i :: lo <= i < hi ==> f.requires(i)
@@ -542,7 +556,8 @@ Just as for a `reads` clause, the memory locations allowed to be modified
 in a method are all the fields of any object reference in the frame expression
 set and any specific field denoted by a [`FrameField`](#sec-frame-expression) in the `modifies` clause.
 For example, in
-```dafny <!-- %check-resolve -->
+<!-- %check-resolve -->
+```dafny
 class C {
   var next: C?
   var value: int
@@ -703,36 +718,43 @@ into a class. The user simply
 AutoContracts then
 
 - Declares, unless there already exist members with these names:
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
   ghost var Repr: set(object)
   predicate Valid()
 ```
 
 - For function/predicate `Valid()`, inserts
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
   reads this, Repr
   ensures Valid() ==> this in Repr
 ```
 - Into body of `Valid()`, inserts (at the beginning of the body)
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
   this in Repr && null !in Repr
 ```
   and also inserts, for every array-valued field `A` declared in the class:
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
   (A != null ==> A in Repr) &&
 ```
   and for every field `F` of a class type `T` where `T` has a field called `Repr`, also inserts
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
   (F != null ==> F in Repr && F.Repr SUBSET Repr && this !in Repr && F.Valid())
 ```
   except, if `A` or `F` is declared with `{:autocontracts false}`, then the implication will not
 be added.
 - For every constructor, inserts
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
   ensures Valid() && fresh(Repr)
 ```
 - At the end of the body of the constructor, adds
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
    Repr := {this};
    if (A != null) { Repr := Repr + {A}; }
    if (F != null) { Repr := Repr + {F} + F.Repr; }
@@ -743,27 +765,32 @@ has given one.
 
 - For every non-static non-ghost method that is not a "simple query method",
 inserts
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
    requires Valid()
    modifies Repr
    ensures Valid() && fresh(Repr - old(Repr))
 ```
 - At the end of the body of the method, inserts
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
    if (A != null && !(A in Repr)) { Repr := Repr + {A}; }
    if (F != null && !(F in Repr && F.Repr SUBSET Repr)) { Repr := Repr + {F} + F.Repr; }
 ```
 - For every non-static non-twostate method that is either ghost or is a "simple query method",
 add:
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
    requires Valid()
 ```
 - For every non-static twostate method, inserts
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
    requires old(Valid())
 ```
 - For every non-"Valid" non-static function, inserts
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
    requires Valid()
    reads Repr
 ```
