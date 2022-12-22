@@ -46,7 +46,6 @@ namespace Microsoft.Dafny {
 
       if (topd is NewtypeDecl newtypeDecl) {
         if (initialRound) {
-          ResolveAttributes(topd, new ResolutionContext(new NoContext(topd.EnclosingModuleDefinition), false));
           // this check can be done only after it has been determined that the redirected types do not involve cycles
           AddXConstraint(newtypeDecl.tok, "NumericType", newtypeDecl.BaseType, "newtypes must be based on some numeric type (got {0})");
           // type check the constraint, if any
@@ -63,7 +62,6 @@ namespace Microsoft.Dafny {
             scope.PopMarker();
           }
         } else {
-
           if (newtypeDecl.Witness != null) {
             var codeContext = new CodeContextWrapper(newtypeDecl, newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost);
             scope.PushMarker();
@@ -75,20 +73,17 @@ namespace Microsoft.Dafny {
         }
         SolveAllTypeConstraints();
 
-        ResolveClassMemberBodies(newtypeDecl, initialRound);
-
       } else if (topd is SubsetTypeDecl subsetTypeDecl) {
         if (initialRound) {
-          ResolveAttributes(topd, new ResolutionContext(new NoContext(topd.EnclosingModuleDefinition), false));
           // type check the constraint
-          Contract.Assert(object.ReferenceEquals(subsetTypeDecl.Var.Type, subsetTypeDecl.Rhs));  // follows from SubsetTypeDecl invariant
-          Contract.Assert(subsetTypeDecl.Constraint != null);  // follows from SubsetTypeDecl invariant
+          Contract.Assert(object.ReferenceEquals(subsetTypeDecl.Var.Type, subsetTypeDecl.Rhs)); // follows from SubsetTypeDecl invariant
+          Contract.Assert(subsetTypeDecl.Constraint != null); // follows from SubsetTypeDecl invariant
           scope.PushMarker();
           scope.AllowInstance = false;
           var added = scope.Push(subsetTypeDecl.Var.Name, subsetTypeDecl.Var);
           Contract.Assert(added == Scope<IVariable>.PushResult.Success);
           ResolveExpression(subsetTypeDecl.Constraint, new ResolutionContext(new CodeContextWrapper(subsetTypeDecl, true), false));
-          Contract.Assert(subsetTypeDecl.Constraint.Type != null);  // follows from postcondition of ResolveExpression
+          Contract.Assert(subsetTypeDecl.Constraint.Type != null); // follows from postcondition of ResolveExpression
           ConstrainTypeExprBool(subsetTypeDecl.Constraint, "subset-type constraint must be of type bool (instead got {0})");
           scope.PopMarker();
         } else {
@@ -104,19 +99,13 @@ namespace Microsoft.Dafny {
         }
         SolveAllTypeConstraints();
 
-      } else if (!initialRound) {
-
-        if (!(topd is IteratorDecl)) {
-          // Note, attributes of iterators are resolved by ResolvedIterator, after registering any names in the iterator signature
-          ResolveAttributes(topd, new ResolutionContext(new NoContext(topd.EnclosingModuleDefinition), false));
-        }
-        if (topd is IteratorDecl iteratorDecl) {
+      } else if (topd is IteratorDecl iteratorDecl) {
+        if (!initialRound) {
           ResolveIterator(iteratorDecl);
-          ResolveClassMemberBodies(iteratorDecl, initialRound);  // resolve the automatically generated members
-        } else if (topd is DatatypeDecl dt) {
-          foreach (var ctor in dt.Ctors) {
-            ResolveAttributes(ctor, new ResolutionContext(new NoContext(topd.EnclosingModuleDefinition), false));
-          }
+        }
+
+      } else if (topd is DatatypeDecl dt) {
+        if (!initialRound) {
           // resolve any default parameters
           foreach (var ctor in dt.Ctors) {
             scope.PushMarker();
@@ -124,17 +113,18 @@ namespace Microsoft.Dafny {
             ctor.Formals.ForEach(p => scope.Push(p.Name, p));
             ResolveParameterDefaultValues(ctor.Formals, ResolutionContext.FromCodeContext(dt));
             scope.PopMarker();
+
+            ResolveAttributes(ctor, new ResolutionContext(new NoContext(topd.EnclosingModuleDefinition), false));
           }
-          // resolve members
-          ResolveClassMemberBodies(dt, initialRound);
-        } else if (topd is TopLevelDeclWithMembers) {
-          var ddd = (TopLevelDeclWithMembers)topd;
-          ResolveClassMemberBodies(ddd, initialRound);
         }
       }
 
-      if (initialRound && topd is TopLevelDeclWithMembers cl) {
+      if (topd is TopLevelDeclWithMembers cl) {
         ResolveClassMemberBodies(cl, initialRound);
+      }
+
+      if (!initialRound) {
+        ResolveAttributes(topd, new ResolutionContext(new NoContext(topd.EnclosingModuleDefinition), false));
       }
 
       allTypeParameters.PopMarker();
@@ -3669,8 +3659,6 @@ namespace Microsoft.Dafny {
         ConstrainTypeExprBool(e.E, "Postcondition must be a boolean (got {0})");
       }
       SolveAllTypeConstraints();
-
-      ResolveAttributes(iter, new ResolutionContext(iter, false));
 
       var postSpecErrorCount = reporter.Count(ErrorLevel.Error);
 
