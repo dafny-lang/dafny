@@ -108,7 +108,8 @@ by setting the 'sourceIsFile' flag to true.
 
 For example, if you compile and run `DafnyServer.exe`, you could paste the following command:
 
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 verify
 eyJhcmdzIjpbIi9jb21waWxlOjAiLCIvcHJpbnRUb29sdGlwcyIsIi90aW1lTGltaXQ6MjAiXSwi
 ZmlsZW5hbWUiOiJ0cmFuc2NyaXB0Iiwic291cmNlIjoibWV0aG9kIEEoYTppbnQpIHJldHVybnMg

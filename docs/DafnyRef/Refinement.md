@@ -18,7 +18,8 @@ and the augmentation directives) is the _assembled_ module or _refinement result
 Syntactically, the refinement parent is a normal module declaration.
 The refining module declares which module is its refinement parent with the
 `refines` clause:
-```dafny <!-- %check-resolve -->
+<!-- %check-resolve -->
+```dafny
 module P { // refinement parent
 }
 module M refines P { // refining module
@@ -91,7 +92,8 @@ the abstract import.
 With respect to refinement, a nested module behaves just like a top-level module. It may be declared abstract and it may be declared to `refine` some refinement parent. If the nested module is not refining anything and not being refined, then it is copied into the refinement result like any other declaration.
 
 Here is some example code:
-```dafny <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 abstract module P {
   module A { const i := 5 }
   abstract module B { type T }

@@ -200,7 +200,8 @@ The following section is textual description of the animation below, which illus
 
 #### 25.7.1.1. Failing postconditions {#sec-failing-postconditions}
 Let's look at an example of a failing postcondition.
-```dafny <!-- %check-verify UserGuide.1.expect -->
+<!-- %check-verify UserGuide.1.expect -->
+```dafny
 method FailingPostcondition(b: bool) returns (i: int)
   ensures 2 <= i
 {
@@ -212,7 +213,8 @@ method FailingPostcondition(b: bool) returns (i: int)
 }
 ```
 One first thing you can do is replace the statement `return j;` by two statements `i := j; return;` to better understand what is wrong:
-```dafny <!-- %check-verify UserGuide.2.expect -->
+<!-- %check-verify UserGuide.2.expect -->
+```dafny
 method FailingPostcondition(b: bool) returns (i: int)
   ensures 2 <= i
 {
@@ -225,7 +227,8 @@ method FailingPostcondition(b: bool) returns (i: int)
 }
 ```
 Now, you can assert the postcondition just before the return:
-```dafny <!-- %check-verify UserGuide.3.expect -->
+<!-- %check-verify UserGuide.3.expect -->
+```dafny
 method FailingPostcondition(b: bool) returns (i: int)
   ensures 2 <= i
 {
@@ -243,7 +246,8 @@ you can now move to the next section to find out how to debug this `assert`.
 
 #### 25.7.1.2. Failing asserts {#sec-failing-asserts}
 In the [previous section](#sec-failing-postconditions), we arrived at the point where we have a failing assertion:
-```dafny <!-- %check-verify UserGuide.4.expect -->
+<!-- %check-verify UserGuide.4.expect -->
+```dafny
 method FailingPostcondition(b: bool) returns (i: int)
   ensures 2 <= i
 {
@@ -259,7 +263,8 @@ method FailingPostcondition(b: bool) returns (i: int)
 To debug why this assert might not hold, we need to _move this assert up_, which is similar to [_computing the weakest precondition_](https://en.wikipedia.org/wiki/Predicate_transformer_semantics#Weakest_preconditions).
 For example, if we have `x := Y; assert F;` and the `assert F;` might not hold, the weakest precondition for it to hold before `x := Y;` can be written as the assertion `assert F[x:= Y];`, where we replace every occurence of `x` in `F` into `Y`.
 Let's do it in our example:
-```dafny <!-- %check-verify UserGuide.5.expect -->
+<!-- %check-verify UserGuide.5.expect -->
+```dafny
 method FailingPostcondition(b: bool) returns (i: int)
   ensures 2 <= i
 {
@@ -276,7 +281,8 @@ method FailingPostcondition(b: bool) returns (i: int)
 Yay! The assertion `assert 2 <= i;` is not proven wrong, which means that if we manage to prove `assert 2 <= j;`, it will work.
 Now, this assert should hold only if we are in this branch, so to _move the assert up_, we need to guard it.
 Just before the `if`, we can add the weakest precondition `assert b ==> (2 <= j)`:
-```dafny <!-- %check-verify UserGuide.6.expect -->
+<!-- %check-verify UserGuide.6.expect -->
+```dafny
 method FailingPostcondition(b: bool) returns (i: int)
   ensures 2 <= i
 {
@@ -293,7 +299,8 @@ method FailingPostcondition(b: bool) returns (i: int)
 ```
 Again, now the error is only on the topmost assert, which means that we are making progress.
 Now, either the error is obvious, or we can one more time replace `j` by its value and create the assert `assert b ==> ((if !b then 3 else 1) >= 2);`
-```dafny <!-- %check-verify UserGuide.7.expect -->
+<!-- %check-verify UserGuide.7.expect -->
+```dafny
 method FailingPostcondition(b: bool) returns (i: int)
   ensures 2 <= i
 {
@@ -310,7 +317,8 @@ method FailingPostcondition(b: bool) returns (i: int)
 }
 ```
 At this point, this is pure logic. We can simplify the assumption:
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 b ==>  2 <= (if !b then 3 else 1)
 !b ||  (if !b then 2 <= 3 else 2 <= 1)
 !b ||  (if !b then true else false)
@@ -363,7 +371,8 @@ Another similar command, `assert false;`, would also short-circuit the verifier,
 
 Thus, let us say a program of this shape takes forever to verify.
 
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 method NotTerminating(b: bool) {
    assert X;
    if b {
@@ -377,7 +386,8 @@ method NotTerminating(b: bool) {
 
 What we can first do is add an `assume false` at the beginning of the method:
 
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 method NotTerminating() {
    assume false; // Will never compile, but everything verifies instantly
    assert X;
@@ -394,7 +404,8 @@ method NotTerminating() {
 This verifies instantly. This gives use a strategy to bisect, or do binary search to find the assertion that slows everything down.
 Now, we move the `assume false;` below the next assertion:
 
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 method NotTerminating() {
    assert X;
    assume false;
@@ -412,7 +423,8 @@ If verification is slow again, we can use [techniques seen before](#sec-verifica
 
 If verification is fast, that's the sign that `X` is probably not the problem,. We now move the `assume false;` after the if/then block:
 
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 method NotTerminating() {
    assert X;
    if b {
@@ -429,7 +441,8 @@ method NotTerminating() {
 Now, if verification is fast, we know that `assert W;` is the problem. If it is slow, we know that one of the two branches of the `if` is the problem.
 The next step is to put an `assume false;` at the end of the `then` branch, and an `assume false` at the beginning of the else branch:
 
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 method NotTerminating() {
    assert X;
    if b {
@@ -450,7 +463,8 @@ One trick to ensure we measure the verification time of the `else` branch and no
 Then, we can move the second `assume false;` down and identify which of the two assertions makes the verifier slow.
 
 
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 method NotTerminating() {
    assert X;
    if b {
@@ -476,7 +490,8 @@ Next, we will describe some other strategies at the assertion level to figure ou
 
 If an assertion `assert X;` is slow, it is possible that calling a lemma or invoking other assertions can help to prove it: The postcondition of this lemma, or the added assertions, could help the `dafny` verifier figure out faster how to prove the result.
 
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
   assert SOMETHING_HELPING_TO_PROVE_LEMMA_PRECONDITION;
   LEMMA();
   assert X;
@@ -491,7 +506,8 @@ but also for every assertion that appears afterwards. This can result in slowdow
 A good practice consists of wrapping the intermediate verification steps in an `assert ... by {}`, like this:
 
 
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
   assert X by {
     assert SOMETHING_HELPING_TO_PROVE_LEMMA_PRECONDITION;
     LEMMA();
@@ -509,7 +525,8 @@ Labeling an assertion has the effect of "hiding" its result, until there is a "r
 
 The example of the [previous section](#sec-verification-debugging-assert-by) could be written like this.
 
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
   assert p: SOMETHING_HELPING_TO_PROVE_LEMMA_PRECONDITION;
   // p is not available here.
   assert X by {
@@ -520,7 +537,8 @@ The example of the [previous section](#sec-verification-debugging-assert-by) cou
 
 Similarly, if a precondition is only needed to prove a specific result in a method, one can label and reveal the precondition, like this:
 
-```dafny <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 method Slow(i: int, j: int)
   requires greater: i > j {
   
@@ -542,13 +560,15 @@ Bitvectors and natural integers are very similar, but they are not treated the s
 
 There are two solutions to this for now. First, one can define a [subset type](#sec-subset-types) instead of using the built-in type `bv8`:
 
-```dafny <!-- %check-resolve -->
+<!-- %check-resolve -->
+```dafny
 type byte = x | 0 <= x < 256
 ```
 
 One of the problems of this approach is that additions, substractions and multiplications do not enforce the result to be in the same bounds, so it would have to be checked, and possibly truncated with modulos. For example:
 
-```dafny <!-- %check-resolve -->
+<!-- %check-resolve -->
+```dafny
 type byte = x | 0 <= x < 256
 method m() {
   var a: byte := 250;
@@ -562,7 +582,8 @@ method m() {
 
 A better solution consists of creating a [newtype](#sec-newtypes) that will have the ability to check bounds of arithmetic expressions, and can actually be compiled to bitvectors as well.
 
-```dafny <!-- %check-verify UserGuide.8.expect -->
+<!-- %check-verify UserGuide.8.expect -->
+```dafny
 newtype {:nativeType "short"} byte = x | 0 <= x < 256
 method m() {
   var a: byte := 250;
@@ -581,7 +602,8 @@ In the case of nested loops, the verifier might timeout sometimes because of the
 One way to mitigate this problem, when it happens, is to isolate the inner loop by refactoring it into a separate method, with suitable pre and postconditions that will usually assume and prove the invariant again.
 For example,
 
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 while X
    invariant Y
  {
@@ -595,7 +617,8 @@ while X
 
 could be refactored as this:
 
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 `while X
    invariant Y
  {
@@ -1308,7 +1331,8 @@ older versions of Dafny.
   This option can also be set locally (at the module level) using the `:options`
   attribute:
 
-  ```dafny <!-- %check-verify -->
+<!-- %check-verify -->
+  ```dafny
   module {:options "-functionSyntax:4"} M {
     predicate CompiledPredicate() { true }
   }
