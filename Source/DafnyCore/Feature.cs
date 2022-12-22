@@ -60,7 +60,7 @@ public enum Feature {
   [FeatureDescription("External module names with only underscores", "sec-extern-decls")]
   AllUnderscoreExternalModuleNames,
 
-  [FeatureDescription("Co-inductive datatypes", "sec-co-inductive-datatypes")]
+  [FeatureDescription("Co-inductive datatypes", "sec-coinductive-datatypes")]
   Codatatypes,
 
   [FeatureDescription("Multisets", "sec-multisets")]
