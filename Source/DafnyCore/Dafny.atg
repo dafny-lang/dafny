@@ -17,6 +17,7 @@ using System.IO;
 using System.Text;
 using System.Linq;
 using Microsoft.Dafny;
+using System.CommandLine;
 COMPILER Dafny
 /*--------------------------------------------------------------------------*/
 readonly Expression/*!*/ dummyExpr;
@@ -192,6 +193,21 @@ public void ApplyOptionsFromAttributes(Attributes attrs) {
   if (overrides.Any()) {
     var options = new DafnyAttributeOptions(theOptions, errors);
     foreach (var (token, opts) in overrides) {
+
+      var newOptionsCommand = new RootCommand();
+      newOptionsCommand.AddOption(CommonOptionBag.QuantifierSyntax);
+      newOptionsCommand.AddOption(Function.FunctionSyntaxOption);
+      var result = newOptionsCommand.Parse(string.Join(' ', opts));
+
+      if (!result.Errors.Any()) {
+        foreach (var option in newOptionsCommand.Options) {
+          var value = result.GetValueForOption(option);
+          options.Options.OptionArguments[option] = value;
+          options.ApplyBinding(option);
+        }
+        continue;
+      }
+
       options.Token = token;
       options.Parse(opts);
     }
