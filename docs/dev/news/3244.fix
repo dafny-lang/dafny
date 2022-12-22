@@ -1,0 +1,1 @@
+Check loop invariants on entry, even when such are the only proof obligations in a method.
