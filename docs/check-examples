@@ -100,6 +100,7 @@ default=0
 while IFS= read -r line
 do 
   let n++
+  echo LINE $n "$line"
 
   ## For header lines, extract the error message from
   ## the header text (everything but the initial ##[ ]* )
@@ -109,6 +110,7 @@ do
   ## Check for the test command information
   echo "$line" | grep '^[ ]*<!-- [ ]*%' > /dev/null
   if [ "$?" == "0" ]; then 
+      echo COMMAND "$line"
       contents=( `echo "$line" | sed -e 's/[^<]*<!--//' -e 's/-->//'` )
       command=${contents[0]}
       expect=${contents[1]}
