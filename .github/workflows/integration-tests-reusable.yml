@@ -109,6 +109,11 @@ jobs:
         unzip dafny/Package/CI.zip -d unzippedRelease
     - name: Print DoubleRead
       run: cat dafny/Test/concurrency/02-DoubleRead.dfy
+    - name: LS DoubleRead
+      run: |
+        ls ${{ github.workspace }}
+        ls ${{ github.workspace }}/unzippedRelease
+        ls ${{ github.workspace }}/unzippedRelease/dafny
     - name: Run Release DoubleRead
       run: ./${{ github.workspace }}/unzippedRelease/dafny/dafny dafny/Test/concurrency/02-DoubleRead.dfy
     - name: Run FromSource DoubleRead
