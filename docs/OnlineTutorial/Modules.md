@@ -260,7 +260,7 @@ module Mod2 {
 As a convenient shorthand, the special identifier "*" can be given after `provides` or `reveals` to indicate that all declarations should be either provided or revealed.
 
 <!-- %check-verify -->
-``dafny
+```dafny
 module A {
    export All reveals * // reveals T, f, g
    export Spec provides * // provides T, f, g

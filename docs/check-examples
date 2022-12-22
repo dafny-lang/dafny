@@ -62,7 +62,7 @@ defaultCommand=
 defaultExit=
 defaultLang=
 
-while getopts 'd:x:l:' opt; do
+while getopts 'md:x:l:' opt; do
   case "$opt" in
     "d") defaultCommand="$OPTARG";;
     "x") defaultExit="$OPTARG";;
@@ -92,17 +92,50 @@ msg=
 checkingErrors=1
 ## Read and process each line of the file.  The file is input on stdin 
 ## by redirection after the 'done' corresponding to this while-do
+use=
+command=
+expect=
+options=
+default=0
 while IFS= read -r line
 do 
   let n++
 
-  ## For header lines (check-errors test), extract the error message from
+  ## For header lines, extract the error message from
   ## the header text (everything but the initial ##[ ]* )
   ( echo "$line" | grep -E -e '[#][#] ' > /dev/null ) \
    && msg=`echo "$line" | sed -E -e 's/^##[ ]*//' -e 's/_[a-z]+_/.*/g'`
 
+  ## Check for the test command information
+  echo "$line" | grep '^[ ]*<!-- [ ]*%' > /dev/null
+  if [ "$?" == "0" ]; then 
+      contents=( `echo "$line" | sed -e 's/[^<]*<!--//' -e 's/-->//'` )
+      command=${contents[0]}
+      expect=${contents[1]}
+      if [ "$expect" == "%use" -o "$expect" == "%options" ]; then
+        expect=
+      fi
+      options=
+      ( echo "$line" | grep -e '%options' > /dev/null ) \
+          && options=( `echo "$line" | sed -e 's/^.*%options//' -e 's/-->//'` )
+      if [ "${contents[1]}" == "%use" ]; then
+        use=${contents[2]}
+      fi
+      if [ "${contents[2]}" == "%use" ]; then
+        use=${contents[3]}
+      fi
+      if [ "lang" == "dafny" -a -z "$command" ]; then
+        command="$defaultCommand"
+        if [ -z "$command" ]; then
+          echo "NO COMMAND GIVEN $n $line"
+          FAIL=1
+        fi
+      fi
+      echo "$line" | grep -e '%default' > /dev/null
+      if [ "$?" == "0" ]; then default=1; fi
+  fi
   ## Check for the marker
-  echo "$line" | grep -e '^[ ]*```' > /dev/null
+  echo "$line" | grep -e '^[ ]*\`\`\`' > /dev/null
   if [ "$?" == "0" ]; then
     ##echo FOUND BACKTICKS IN $n "$line"
     if [ "$inblock" == "0" ]; then
@@ -112,33 +145,6 @@ do
         lang=$defaultLang
         if [ -z "$lang" ]; then
           echo NO LANGUAGE LABEL $n "$line"
-          FAIL=1
-        fi
-      fi
-
-      action=
-      use=
-      command=
-      expect=
-      options=
-      ( echo "$line" | grep -e '<!--' > /dev/null ) \
-          && action=( `echo "$line" | sed -e 's/[^<]*<!--//' -e 's/-->//'` ) \
-          && command=${action[0]} && expect=${action[1]}
-      ( echo "$line" | grep -e '%options' > /dev/null ) \
-          && options=( `echo "$line" | sed -e 's/^.*%options//' -e 's/-->//'` )
-      if [ "$expect" == "%use" -o "$expect" == "%options" ]; then
-        expect=
-      fi
-      if [ "${action[1]}" == "%use" ]; then
-        use=${action[2]}
-      fi
-      if [ "${action[2]}" == "%use" ]; then
-        use=${action[3]}
-      fi
-      if [ "lang" == "dafny" -a -z "$command" ]; then
-        command="$defaultCommand"
-        if [ -z "$command" ]; then
-          echo "NO COMMAND GIVEN $n $line"
           FAIL=1
         fi
       fi
@@ -204,7 +210,7 @@ do
             fi
             if [ -e "$dir/$expect" ]; then
               diff actual "$dir/$expect"
-              if [ "$?" -ne "0" ]; then
+              if [ "$?" != "0" ]; then
                 FAIL=1
                 echo Actual output differs from expected
                 echo "TEST FAILED" $file line $n  $command $expect
@@ -240,7 +246,7 @@ do
       elif [ "$command" == "%check-error" ]; then
         "$dafny" resolve -useBaseNameForFileName $text | head -1 | sed -e 's/[^:]*: //' > actual
         act=`cat actual`
-	dif=`echo $act | sed -e "s/$msg//"`
+	dif=`echo "$act" | sed -e "s/$msg//"`
         if [ -n "$dif" ] ; then
            echo NO MATCH "$msg" VS "$act"
            FAIL=1
@@ -249,6 +255,12 @@ do
       elif [ "$lang" == "dafny" ]; then
          echo UNKNOWN TEST COMMAND $command
          FAIL=1
+      fi
+      if [ "$default" == "0" ]; then
+        use=
+        command=
+        expect=
+        options=
       fi
     fi
   elif [ "$inblock" == "1" ]; then
@@ -263,7 +275,7 @@ if [ "$inblock" == "1" ]; then
   FAIL=1
 fi
 
-if [ $FAIL -eq "1" ] ; then 
+if [ "$FAIL" == "1" ] ; then 
   echo Test Failure: $file
   ANYFAIL=1
 fi
