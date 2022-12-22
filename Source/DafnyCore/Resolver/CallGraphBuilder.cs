@@ -104,6 +104,18 @@ namespace Microsoft.Dafny {
         return new CallGraphBuilderContext(astVisitorContext, inFunctionPostcondition);
       }
 
+      protected override void VisitOneDeclaration(TopLevelDecl decl) {
+        if (decl is DatatypeDecl datatypeDecl) {
+          foreach (var ctor in datatypeDecl.Ctors) {
+            foreach (var formal in ctor.Formals) {
+              AddTypeDependencyEdges(datatypeDecl, formal.Type);
+            }
+          }
+        }
+
+        base.VisitOneDeclaration(decl);
+      }
+
       public override void VisitFunction(Function f) {
         if (f.OverriddenFunction != null) {
           // add an edge from the trait function to that of the class/type

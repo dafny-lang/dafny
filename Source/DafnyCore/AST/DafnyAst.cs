@@ -991,7 +991,7 @@ namespace Microsoft.Dafny {
       declarations.Iter(VisitOneDeclaration);
     }
 
-    protected void VisitOneDeclaration(TopLevelDecl decl) {
+    protected virtual void VisitOneDeclaration(TopLevelDecl decl) {
       VisitAttributes(decl, decl.EnclosingModuleDefinition);
 
       if (decl is RedirectingTypeDecl dd) {
@@ -1019,7 +1019,7 @@ namespace Microsoft.Dafny {
       }
 
       if (decl is TopLevelDeclWithMembers cl) {
-        VisitClassMemberBodies(cl);
+        cl.Members.Iter(member => VisitMember(cl, member));
       }
     }
 
@@ -1051,44 +1051,43 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void VisitClassMemberBodies(TopLevelDeclWithMembers cl) {
-      Contract.Requires(cl != null);
-
-      foreach (var member in cl.Members) {
-        if (member is ConstantField constantField) {
-          var context = GetContext(constantField, false);
-          VisitAttributes(constantField, constantField.EnclosingModule);
-          VisitUserProvidedType(constantField.Type, context);
-          if (constantField.Rhs != null) {
-            VisitExpression(constantField.Rhs, context);
-          }
-        } else if (member is Field field) {
-          var context = GetContext(new NoContext(cl.EnclosingModuleDefinition), false);
-          VisitAttributes(field, cl.EnclosingModuleDefinition);
-          VisitUserProvidedType(field.Type, context);
-        } else if (member is Function function) {
-          VisitFunction(function);
-
-          var prefixPredicate = (function as ExtremePredicate)?.PrefixPredicate;
-          if (prefixPredicate != null) {
-            VisitFunction(prefixPredicate);
-          }
-
-          if (function.ByMethodDecl != null) {
-            VisitMethod(function.ByMethodDecl);
-          }
-
-        } else if (member is Method method) {
-          VisitMethod(method);
-
-          var prefixLemma = (method as ExtremeLemma)?.PrefixLemma;
-          if (prefixLemma != null) {
-            VisitMethod(prefixLemma);
-          }
-
-        } else {
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member type
+    protected virtual void VisitMember(TopLevelDeclWithMembers cl, MemberDecl member) {
+      if (member is ConstantField constantField) {
+        var context = GetContext(constantField, false);
+        VisitAttributes(constantField, constantField.EnclosingModule);
+        VisitUserProvidedType(constantField.Type, context);
+        if (constantField.Rhs != null) {
+          VisitExpression(constantField.Rhs, context);
         }
+
+      } else if (member is Field field) {
+        var context = GetContext(new NoContext(cl.EnclosingModuleDefinition), false);
+        VisitAttributes(field, cl.EnclosingModuleDefinition);
+        VisitUserProvidedType(field.Type, context);
+
+      } else if (member is Function function) {
+        VisitFunction(function);
+
+        var prefixPredicate = (function as ExtremePredicate)?.PrefixPredicate;
+        if (prefixPredicate != null) {
+          VisitFunction(prefixPredicate);
+        }
+
+        if (function.ByMethodDecl != null) {
+          VisitMethod(function.ByMethodDecl);
+        }
+
+      } else if (member is Method method) {
+        VisitMethod(method);
+
+        var prefixLemma = (method as ExtremeLemma)?.PrefixLemma;
+        if (prefixLemma != null) {
+          VisitMethod(prefixLemma);
+        }
+
+      } else {
+        Contract.Assert(false);
+        throw new cce.UnreachableException(); // unexpected member type
       }
     }
 
