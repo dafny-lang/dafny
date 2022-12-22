@@ -210,12 +210,12 @@ Various options control the verification process, in addition to all those descr
    - `--boogie-filter`
 
 
-#### 25.5.1.4. `dafny translate <platform>` {#sec-dafny-translate}
+#### 25.5.1.4. `dafny translate <language>` {#sec-dafny-translate}
 
 The `dafny translate` command translates Dafny source code to source code for another target programming language.
 The command always performs the actions of `dafny resolve` and by default does the actions of `dafny verify`.
-The platform is designated by a subcommand argument, rather than an option, and is required.
-The current set of supported platforms is 
+The language is designated by a subcommand argument, rather than an option, and is required.
+The current set of supported target languages is 
 - cs (C#)
 - java (Java)
 - js (JavaScript)
@@ -319,7 +319,7 @@ The command executes the `dafny resolve` phase (accepting its options) and has t
 
 The command emits exit codes of
 - 1 for command-line errors
-- 2 for paarsing, type-checking or serious errors in running the auditor (e.g. failure to write a report or when report comparison fails)
+- 2 for parsing, type-checking or serious errors in running the auditor (e.g. failure to write a report or when report comparison fails)
 - 0 for normal operation, including operation that identifies audit findings
 
 #### 25.5.1.9. `dafny test` {#sec-dafny-test}
