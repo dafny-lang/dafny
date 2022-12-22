@@ -59,6 +59,10 @@
 ##                  the output is just a success message
 ##              (2) if <expect> is non-empty. then the exit code is r32 and
 ##                  the actual output matches the content of the file <expect>
+##   %check-run <expect> : runs the command
+##              "dafny run --useBaseNameForFileName $F" and, 
+##              if <expect> is present, then check that the output matches the
+##              content of the file names <expect> and that the exit code is 0
 
 dir=$(dirname "${BASH_SOURCE[0]}")
 dafny="$dir/../Scripts/dafny"
@@ -271,9 +275,10 @@ do
     fi
   elif [ "$inblock" == "1" ]; then
     ## If in a backtick block, save the text to the temporary file
-    echo "$line" | sed -e 's/[ ]*\.\.\./   /' >> $text
+    echo "$line" | sed -e 's/^[ ]*\.\.\./   /' >> $text
   fi
 done < $file
+rm -rf *.tmp
 
 if [ "$inblock" == "1" ]; then
   echo UNCLOSED BACKTICK BLOCK

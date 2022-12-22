@@ -1,7 +1,7 @@
 # 23. Attributes {#sec-attributes}
 Dafny allows many of its entities to be annotated with _Attributes_.
 Attributes are declared between `{:` and `}` like this:
-```dafny
+```dafny <!-- %no-check -->
 {:attributeName "argument", "second" + "argument", 57}
 ```
 (White-space may follow but not precede the `:` in `{:`.)
@@ -49,48 +49,48 @@ From the user's perspective, what needs to be done is simply:
 AutoContracts will then:
 
 *  Declare:
-```dafny
+```dafny <!-- %no-check -->
    ghost var Repr: set<object>
 ```
 
 * For function/predicate `Valid()`, insert:
-```dafny
+```dafny <!-- %no-check -->
    reads this, Repr
 ```
 * Into body of `Valid()`, insert (at the beginning of the body):
-```dafny
+```dafny <!-- %no-check -->
    this in Repr && null !in Repr
 ```
 * and also insert, for every array-valued field `A` declared in the class:
-```dafny
+```dafny <!-- %no-check -->
    && (A != null ==> A in Repr)
 ```
 * and for every field `F` of a class type `T` where `T` has a field called `Repr`, also insert:
-```dafny
+```dafny <!-- %no-check -->
    (F != null ==> F in Repr && F.Repr <= Repr && this !in F.Repr)
 ```
   Except, if A or F is declared with `{:autocontracts false}`, then the implication will not
 be added.
 
 * For every constructor, add:
-```dafny
+```dafny <!-- %no-check -->
    modifies this
    ensures Valid() && fresh(Repr - {this})
 ```
 * At the end of the body of the constructor, add:
-```dafny
+```dafny <!-- %no-check -->
    Repr := {this};
    if (A != null) { Repr := Repr + {A}; }
    if (F != null) { Repr := Repr + {F} + F.Repr; }
 ```
 * For every method, add:
-```dafny
+```dafny <!-- %no-check -->
    requires Valid()
    modifies Repr
    ensures Valid() && fresh(Repr - old(Repr))
 ```
 * At the end of the body of the method, add:
-```dafny
+```dafny <!-- %no-check -->
    if (A != null) { Repr := Repr + {A}; }
    if (F != null) { Repr := Repr + {F} + F.Repr; }
 ```
@@ -99,9 +99,9 @@ be added.
 The `{:nativeType}` attribute may only be used on a ``NewtypeDecl``
 where the base type is an integral type or a real type. For example:
 
-```dafny
+```dafny <!-- %check-resolve Attributes.1.expect -->
 newtype {:nativeType "byte"} ubyte = x : int | 0 <= x < 256
-newtype {:nativeType "byte"} ubyte = x : int | 0 <= x < 257 // Fails
+newtype {:nativeType "byte"} bad_ubyte = x : int | 0 <= x < 257 // Fails
 ```
 
 It can take one of the following forms:
@@ -170,7 +170,7 @@ level, then its `requires` clause is strengthened sufficiently so that
 it may call the functions that it calls.
 
 For following example
-```dafny
+```dafny <!-- %check-verify -->
 function f(x:int) : bool
   requires x > 3
 {
@@ -186,7 +186,12 @@ function {:autoReq} g(y:int, b:bool) : bool
 the `{:autoReq}` attribute causes Dafny to
 deduce a `requires` clause for g as if it had been
 declared
-```dafny
+```dafny <!-- %check-verify -->
+function f(x:int) : bool
+  requires x > 3
+{
+  x > 7
+}
 function g(y:int, b:bool) : bool
   requires if b then y + 2 > 3 else 2 * y > 3
 {
@@ -225,7 +230,7 @@ case it will apply to all uses of that function, or it can be overridden
 within the scope of a module, function, method, iterator, calc, forall,
 while, assert, or assume.  The general format is:
 
-```dafny
+```dafny <!-- %no-check -->
 {:fuel functionName,lowFuel,highFuel}
 ```
 
@@ -273,10 +278,21 @@ The form of the `{:induction}` attribute is one of the following:
 usage conventionally `X` is `true`.
 
 Here is an example of using it on a quantifier expression:
-```dafny
-lemma Fill_J(s: seq<int>)
-  requires forall i :: 1 <= i < |s| ==> s[i-1] <= s[i]
-  ensures forall i,j {:induction j} :: 0 <= i < j < |s| ==> s[i] <= s[j]
+```dafny <!-- %check-verify -->
+datatype Unary = Zero | Succ(Unary)
+
+function UnaryToNat(n: Unary): nat {
+  match n
+  case Zero => 0
+  case Succ(p) => 1 + UnaryToNat(p)
+}
+
+function NatToUnary(n: nat): Unary {
+  if n == 0 then Zero else Succ(NatToUnary(n - 1))
+}
+
+lemma Correspondence()
+  ensures forall n: nat {:induction n} :: UnaryToNat(NatToUnary(n)) == n
 {
 }
 ```
@@ -313,14 +329,14 @@ If using [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) as wel
 To give orders of magnitude about resource usage, here is a list of examples indicating how many resources are used to verify each method:
 
 * 8K resource usage
-  ```dafny
+  ```dafny <!-- %check-verify -->
   method f() {
     assert true;
   }
   ```
 * 10K resource usage using assertions that do not add assumptions:
-  ```dafny
-  method f() {
+  ```dafny <!-- %check-verify -->
+  method f(a: bool, b: bool) {
     assert a: (a ==> b) <==> (!b ==> !a);
     assert b: (a ==> b) <==> (!b ==> !a);
     assert c: (a ==> b) <==> (!b ==> !a);
@@ -329,7 +345,7 @@ To give orders of magnitude about resource usage, here is a list of examples ind
   ```
 
 * 40K total resource usage using [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert)
-  ```dafny
+  ```dafny <!-- %check-verify -->
   method {:vcs_split_on_every_assert} f(a: bool, b: bool) {
     assert a: (a ==> b) <==> (!b ==> !a);
     assert b: (a ==> b) <==> (!b ==> !a);
@@ -338,7 +354,7 @@ To give orders of magnitude about resource usage, here is a list of examples ind
   }
   ```
 *  37K total resource usage and thus fails with `out of resource`.
-   ```dafny
+   ```dafny <!-- %check-verify Attributes.4.expect -->
    method {:rlimit 30} f(a: int, b: int, c: int) {
      assert ((1 + a*a)*c) / (1 + a*a) == c;
    }
@@ -472,7 +488,7 @@ grammar for postconditions that are supported (`S` is the start symbol, `EXPR`
 stands for an arbitrary Dafny expression, and `ID` stands for
 variable/method/type identifiers):
 
-```
+```text
 S         = FORALL
           | EQUALS
           | S && S
@@ -507,7 +523,7 @@ Hence, it might also occasionally double-report errors.
 If you truly want a split on the batches, prefer [`{:split_here}`](#sec-split_here).
 
 Here are two examples illustrating how `{:focus}` works, where `--` in the comments stands for `Assumption`:
-```dafny
+```dafny <!-- %check-verify -->
 method doFocus1(x: bool) returns (y: int) {
   y := 1;                     // Batch 1    Batch 2
   assert y == 1;              // Assertion  --
@@ -531,7 +547,7 @@ method doFocus1(x: bool) returns (y: int) {
 ```
 
 And another one where the focused block is guarded with a `while`, resulting in remaining assertions not being part of the first assertion batch:
-```dafny
+```dafny <!-- %check-verify -->
 method doFocus2(x: bool) returns (y: int) {
   y := 1;                     // Batch 1    Batch 2
   assert y == 1;              // Assertion  --
@@ -561,7 +577,7 @@ and the code leading from this point (included) to the next `{:split_here}` or u
 It might help with timeouts.
 
 Here is one example, where `--` in the comments stands for `Assumption`:
-```dafny
+```dafny <!-- %check-verify -->
 method doSplitHere(x: bool) returns (y: int) {
   y := 1;                      // Batch 1    Batch 2     Batch 3
   assert y >= 0;               // Assertion  --          --
@@ -604,13 +620,13 @@ When it appears in a quantifier expression, it is as if a new heap-valued
 quantifier variable was added to the quantification. Consider this code
 that is one of the invariants of a while loop.
 
-```dafny
+```dafny <!-- %no-check -->
 invariant forall u {:heapQuantifier} :: f(u) == u + r
 ```
 
 The quantifier is translated into the following Boogie:
 
-```
+```boogie
 (forall q$heap#8: Heap, u#5: int ::
     {:heapQuantifier}
     $IsGoodHeap(q$heap#8) && ($Heap == q$heap#8 || $HeapSucc($Heap, q$heap#8))
@@ -630,7 +646,7 @@ Trigger attributes are used on quantifiers and comprehensions.
 The verifier instantiates the body of a quantified expression only when it can find an expression that matches the provided trigger.  
 
 Here is an example:
-```dafny
+```dafny <!-- %check-verify Attributes.3.expect -->
 predicate P(i: int)
 predicate Q(i: int)
 
