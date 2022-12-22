@@ -135,7 +135,7 @@ do
       if [ "$?" == "0" ]; then default=1; fi
   fi
   ## Check for the marker
-  echo "$line" | grep -e '^[ ]*\`\`\`' > /dev/null
+  echo "$line" | grep -e '^[ ]*\`\`\`' 
   if [ "$?" == "0" ]; then
     echo FOUND BACKTICKS IN $n "$line"
     if [ "$inblock" == "0" ]; then
