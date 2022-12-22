@@ -114,7 +114,7 @@ jobs:
     - name: Run Release DoubleRead
       run: ${{ github.workspace }}/unzippedRelease/dafny/dafny dafny/Test/concurrency/02-DoubleRead.dfy
     - name: Run FromSource DoubleRead
-      run: ${{ github.workspace }}/dafny/Scripts/dafny dafny/Test/concurrency/02-DoubleRead.dfy
+      run: dotnet test dafny/Source/IntegrationTests/IntegrationTests.csproj --filter DisplayName~DoubleRead
     - name: Run integration tests
       if: runner.os == 'Windows'
       env:
