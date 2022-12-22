@@ -108,7 +108,7 @@ jobs:
       run: |
         unzip dafny/Package/CI.zip -d unzippedRelease
     - name: MD5 Substituter
-      run: md5 dafny/Source/DafnyCore/Substituter.cs
+      run: md5sum dafny/Source/DafnyCore/Substituter.cs
     - name: Print DoubleRead
       run: cat dafny/Test/concurrency/02-DoubleRead.dfy
     - name: LS DoubleRead
