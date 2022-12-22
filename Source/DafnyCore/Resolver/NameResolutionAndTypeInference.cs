@@ -30,139 +30,114 @@ namespace Microsoft.Dafny {
         Contract.Assert(VisibleInScope(topd));
         Contract.Assert(AllTypeConstraints.Count == 0);
 
-        if (!initialRound) {
-          ResolveTypeParameters(topd.TypeArgs, false, topd);
+        ResolveNamesAndInferTypesForOneDeclaration(topd, initialRound);
+        var nonnullTypeDecl = (topd as ClassDecl)?.NonNullTypeDecl;
+        if (nonnullTypeDecl != null) {
+          ResolveNamesAndInferTypesForOneDeclaration(nonnullTypeDecl, initialRound);
         }
 
-        if (topd is NewtypeDecl dd) {
-          if (initialRound) {
-            ResolveAttributes(topd, new ResolutionContext(new NoContext(topd.EnclosingModuleDefinition), false));
-            // this check can be done only after it has been determined that the redirected types do not involve cycles
-            AddXConstraint(dd.tok, "NumericType", dd.BaseType, "newtypes must be based on some numeric type (got {0})");
-            // type check the constraint, if any
-            if (dd.Var != null) {
-              Contract.Assert(object.ReferenceEquals(dd.Var.Type, dd.BaseType));  // follows from NewtypeDecl invariant
-              Contract.Assert(dd.Constraint != null);  // follows from NewtypeDecl invariant
+        Contract.Assert(AllTypeConstraints.Count == 0);
+      }
+    }
 
-              scope.PushMarker();
-              var added = scope.Push(dd.Var.Name, dd.Var);
-              Contract.Assert(added == Scope<IVariable>.PushResult.Success);
-              ResolveExpression(dd.Constraint, new ResolutionContext(new CodeContextWrapper(dd, true), false));
-              Contract.Assert(dd.Constraint.Type != null);  // follows from postcondition of ResolveExpression
-              ConstrainTypeExprBool(dd.Constraint, "newtype constraint must be of type bool (instead got {0})");
-              scope.PopMarker();
-            }
-            SolveAllTypeConstraints();
-          } else {
-            allTypeParameters.PushMarker();
+    void ResolveNamesAndInferTypesForOneDeclaration(TopLevelDecl topd, bool initialRound) {
+      allTypeParameters.PushMarker();
+      ResolveTypeParameters(topd.TypeArgs, initialRound, topd);
 
-            if (dd.Witness != null) {
-              var codeContext = new CodeContextWrapper(dd, dd.WitnessKind == SubsetTypeDecl.WKind.Ghost);
-              scope.PushMarker();
-              if (!dd.AcceptThis) {
-                scope.AllowInstance = false;
-              }
-              ResolveExpression(dd.Witness, new ResolutionContext(codeContext, false));
-              scope.PopMarker();
-              ConstrainSubtypeRelation(dd.Var.Type, dd.Witness.Type, dd.Witness, "witness expression must have type '{0}' (got '{1}')", dd.Var.Type, dd.Witness.Type);
-              SolveAllTypeConstraints();
-            }
-            ResolveClassMemberBodies(dd);
-            allTypeParameters.PopMarker();
+      if (topd is NewtypeDecl newtypeDecl) {
+        if (initialRound) {
+          ResolveAttributes(topd, new ResolutionContext(new NoContext(topd.EnclosingModuleDefinition), false));
+          // this check can be done only after it has been determined that the redirected types do not involve cycles
+          AddXConstraint(newtypeDecl.tok, "NumericType", newtypeDecl.BaseType, "newtypes must be based on some numeric type (got {0})");
+          // type check the constraint, if any
+          if (newtypeDecl.Var != null) {
+            Contract.Assert(object.ReferenceEquals(newtypeDecl.Var.Type, newtypeDecl.BaseType));  // follows from NewtypeDecl invariant
+            Contract.Assert(newtypeDecl.Constraint != null);  // follows from NewtypeDecl invariant
+
+            scope.PushMarker();
+            var added = scope.Push(newtypeDecl.Var.Name, newtypeDecl.Var);
+            Contract.Assert(added == Scope<IVariable>.PushResult.Success);
+            ResolveExpression(newtypeDecl.Constraint, new ResolutionContext(new CodeContextWrapper(newtypeDecl, true), false));
+            Contract.Assert(newtypeDecl.Constraint.Type != null);  // follows from postcondition of ResolveExpression
+            ConstrainTypeExprBool(newtypeDecl.Constraint, "newtype constraint must be of type bool (instead got {0})");
+            scope.PopMarker();
           }
+        } else {
 
-        } else if (topd is SubsetTypeDecl subsetTypeDecl) {
-          if (initialRound) {
-            allTypeParameters.PushMarker();
-            ResolveTypeParameters(topd.TypeArgs, false, topd);
-            ResolveAttributes(topd, new ResolutionContext(new NoContext(topd.EnclosingModuleDefinition), false));
-            // type check the constraint
-            Contract.Assert(object.ReferenceEquals(subsetTypeDecl.Var.Type, subsetTypeDecl.Rhs));  // follows from SubsetTypeDecl invariant
-            Contract.Assert(subsetTypeDecl.Constraint != null);  // follows from SubsetTypeDecl invariant
+          if (newtypeDecl.Witness != null) {
+            var codeContext = new CodeContextWrapper(newtypeDecl, newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost);
             scope.PushMarker();
             scope.AllowInstance = false;
-            var added = scope.Push(subsetTypeDecl.Var.Name, subsetTypeDecl.Var);
-            Contract.Assert(added == Scope<IVariable>.PushResult.Success);
-            ResolveExpression(subsetTypeDecl.Constraint, new ResolutionContext(new CodeContextWrapper(subsetTypeDecl, true), false));
-            Contract.Assert(subsetTypeDecl.Constraint.Type != null);  // follows from postcondition of ResolveExpression
-            ConstrainTypeExprBool(subsetTypeDecl.Constraint, "subset-type constraint must be of type bool (instead got {0})");
+            ResolveExpression(newtypeDecl.Witness, new ResolutionContext(codeContext, false));
             scope.PopMarker();
-            allTypeParameters.PopMarker();
-
-            SolveAllTypeConstraints();
-          } else {
-            allTypeParameters.PushMarker();
-            if (subsetTypeDecl.Witness != null) {
-              var codeContext = new CodeContextWrapper(subsetTypeDecl, subsetTypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost);
-              scope.PushMarker();
-              scope.AllowInstance = false;
-              ResolveExpression(subsetTypeDecl.Witness, new ResolutionContext(codeContext, false));
-              scope.PopMarker();
-              ConstrainSubtypeRelation(subsetTypeDecl.Var.Type, subsetTypeDecl.Witness.Type, subsetTypeDecl.Witness,
-                "witness expression must have type '{0}' (got '{1}')", subsetTypeDecl.Var.Type, subsetTypeDecl.Witness.Type);
-              SolveAllTypeConstraints();
-            }
-            allTypeParameters.PopMarker();
+            ConstrainSubtypeRelation(newtypeDecl.Var.Type, newtypeDecl.Witness.Type, newtypeDecl.Witness, "witness expression must have type '{0}' (got '{1}')", newtypeDecl.Var.Type, newtypeDecl.Witness.Type);
           }
-
-        } else if (!initialRound) {
-          allTypeParameters.PushMarker();
-
-          if (!(topd is IteratorDecl)) {
-            // Note, attributes of iterators are resolved by ResolvedIterator, after registering any names in the iterator signature
-            ResolveAttributes(topd, new ResolutionContext(new NoContext(topd.EnclosingModuleDefinition), false));
-          }
-          if (topd is IteratorDecl) {
-            var iter = (IteratorDecl)topd;
-            ResolveIterator(iter);
-            ResolveClassMemberBodies(iter);  // resolve the automatically generated members
-          } else if (topd is DatatypeDecl) {
-            var dt = (DatatypeDecl)topd;
-            foreach (var ctor in dt.Ctors) {
-              ResolveAttributes(ctor, new ResolutionContext(new NoContext(topd.EnclosingModuleDefinition), false));
-            }
-            // resolve any default parameters
-            foreach (var ctor in dt.Ctors) {
-              scope.PushMarker();
-              scope.AllowInstance = false;
-              ctor.Formals.ForEach(p => scope.Push(p.Name, p));
-              ResolveParameterDefaultValues(ctor.Formals, ResolutionContext.FromCodeContext(dt));
-              scope.PopMarker();
-            }
-            // resolve members
-            ResolveClassMemberBodies(dt);
-          } else if (topd is TopLevelDeclWithMembers) {
-            var ddd = (TopLevelDeclWithMembers)topd;
-            ResolveClassMemberBodies(ddd);
-          }
-          allTypeParameters.PopMarker();
         }
+        SolveAllTypeConstraints();
 
-        if (initialRound && topd is TopLevelDeclWithMembers cl) {
-          currentClass = cl;
-          foreach (var member in cl.Members) {
-            Contract.Assert(VisibleInScope(member));
-            if (member is ConstantField constantField) {
-              var resolutionContext = new ResolutionContext(constantField, false);
-              ResolveAttributes(constantField, resolutionContext);
-              // Resolve the value expression
-              if (constantField.Rhs != null) {
-                var ec = reporter.Count(ErrorLevel.Error);
-                scope.PushMarker();
-                if (currentClass == null || !currentClass.AcceptThis) {
-                  scope.AllowInstance = false;
-                }
-                ResolveExpression(constantField.Rhs, resolutionContext);
-                scope.PopMarker();
-                AddAssignableConstraint(constantField.tok, constantField.Type, constantField.Rhs.Type, "type for constant '" + constantField.Name + "' is '{0}', but its initialization value type is '{1}'");
-              }
-              SolveAllTypeConstraints();
-            }
+        ResolveClassMemberBodies(newtypeDecl, initialRound);
+
+      } else if (topd is SubsetTypeDecl subsetTypeDecl) {
+        if (initialRound) {
+          ResolveAttributes(topd, new ResolutionContext(new NoContext(topd.EnclosingModuleDefinition), false));
+          // type check the constraint
+          Contract.Assert(object.ReferenceEquals(subsetTypeDecl.Var.Type, subsetTypeDecl.Rhs));  // follows from SubsetTypeDecl invariant
+          Contract.Assert(subsetTypeDecl.Constraint != null);  // follows from SubsetTypeDecl invariant
+          scope.PushMarker();
+          scope.AllowInstance = false;
+          var added = scope.Push(subsetTypeDecl.Var.Name, subsetTypeDecl.Var);
+          Contract.Assert(added == Scope<IVariable>.PushResult.Success);
+          ResolveExpression(subsetTypeDecl.Constraint, new ResolutionContext(new CodeContextWrapper(subsetTypeDecl, true), false));
+          Contract.Assert(subsetTypeDecl.Constraint.Type != null);  // follows from postcondition of ResolveExpression
+          ConstrainTypeExprBool(subsetTypeDecl.Constraint, "subset-type constraint must be of type bool (instead got {0})");
+          scope.PopMarker();
+        } else {
+          if (subsetTypeDecl.Witness != null) {
+            var codeContext = new CodeContextWrapper(subsetTypeDecl, subsetTypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost);
+            scope.PushMarker();
+            scope.AllowInstance = false;
+            ResolveExpression(subsetTypeDecl.Witness, new ResolutionContext(codeContext, false));
+            scope.PopMarker();
+            ConstrainSubtypeRelation(subsetTypeDecl.Var.Type, subsetTypeDecl.Witness.Type, subsetTypeDecl.Witness,
+              "witness expression must have type '{0}' (got '{1}')", subsetTypeDecl.Var.Type, subsetTypeDecl.Witness.Type);
           }
-          currentClass = null;
+        }
+        SolveAllTypeConstraints();
+
+      } else if (!initialRound) {
+
+        if (!(topd is IteratorDecl)) {
+          // Note, attributes of iterators are resolved by ResolvedIterator, after registering any names in the iterator signature
+          ResolveAttributes(topd, new ResolutionContext(new NoContext(topd.EnclosingModuleDefinition), false));
+        }
+        if (topd is IteratorDecl iteratorDecl) {
+          ResolveIterator(iteratorDecl);
+          ResolveClassMemberBodies(iteratorDecl, initialRound);  // resolve the automatically generated members
+        } else if (topd is DatatypeDecl dt) {
+          foreach (var ctor in dt.Ctors) {
+            ResolveAttributes(ctor, new ResolutionContext(new NoContext(topd.EnclosingModuleDefinition), false));
+          }
+          // resolve any default parameters
+          foreach (var ctor in dt.Ctors) {
+            scope.PushMarker();
+            scope.AllowInstance = false;
+            ctor.Formals.ForEach(p => scope.Push(p.Name, p));
+            ResolveParameterDefaultValues(ctor.Formals, ResolutionContext.FromCodeContext(dt));
+            scope.PopMarker();
+          }
+          // resolve members
+          ResolveClassMemberBodies(dt, initialRound);
+        } else if (topd is TopLevelDeclWithMembers) {
+          var ddd = (TopLevelDeclWithMembers)topd;
+          ResolveClassMemberBodies(ddd, initialRound);
         }
       }
-      Contract.Assert(AllTypeConstraints.Count == 0);
+
+      if (initialRound && topd is TopLevelDeclWithMembers cl) {
+        ResolveClassMemberBodies(cl, initialRound);
+      }
+
+      allTypeParameters.PopMarker();
     }
 
     void EagerAddAssignableConstraint(IToken tok, Type lhs, Type rhs, string errMsgFormat) {
@@ -3231,7 +3206,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Assumes type parameters have already been pushed, and that all types in class members have been resolved
     /// </summary>
-    void ResolveClassMemberBodies(TopLevelDeclWithMembers cl) {
+    void ResolveClassMemberBodies(TopLevelDeclWithMembers cl, bool initialRound) {
       Contract.Requires(cl != null);
       Contract.Requires(currentClass == null);
       Contract.Requires(AllTypeConstraints.Count == 0);
@@ -3242,7 +3217,27 @@ namespace Microsoft.Dafny {
       foreach (MemberDecl member in cl.Members) {
         Contract.Assert(VisibleInScope(member));
         if (member is ConstantField) {
-          // don't do anything here, because const fields have already been resolved
+          if (initialRound) {
+            if (member is ConstantField constantField) {
+              var resolutionContext = new ResolutionContext(constantField, false);
+              ResolveAttributes(constantField, resolutionContext);
+              // Resolve the value expression
+              if (constantField.Rhs != null) {
+                var ec = reporter.Count(ErrorLevel.Error);
+                scope.PushMarker();
+                if (constantField.IsStatic || currentClass == null || !currentClass.AcceptThis) {
+                  scope.AllowInstance = false;
+                }
+                ResolveExpression(constantField.Rhs, resolutionContext);
+                scope.PopMarker();
+                AddAssignableConstraint(constantField.tok, constantField.Type, constantField.Rhs.Type,
+                  "type for constant '" + constantField.Name + "' is '{0}', but its initialization value type is '{1}'");
+              }
+              SolveAllTypeConstraints();
+            }
+          }
+        } else if (initialRound) {
+          // do nothing (because everything else in done in the next round)
         } else if (member is Field) {
           var resolutionContext = new ResolutionContext(new NoContext(currentClass.EnclosingModuleDefinition), false);
           ResolveAttributes(member, resolutionContext);

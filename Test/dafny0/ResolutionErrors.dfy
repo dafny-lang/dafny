@@ -2793,16 +2793,16 @@ module GhostReceiverTests {
 module GhostRhsConst {
   class C {
     function F(n: nat): nat { n }  // a ghost function
-
+    static function G(n: nat): nat { n }  // a ghost function
     const b := F(0);  // error: RHS uses a ghost function
-    static const u := F(0);  // error: RHS uses a ghost function
+    static const u := G(0);  // error: RHS uses a ghost function
   }
 
   trait R {
     function F(n: nat): nat { n }  // a ghost function
-
+    static function G(n: nat): nat { n }  // a ghost function
     const b := F(0);  // error: RHS uses a ghost function
-    static const u := F(0);  // error: RHS uses a ghost function
+    static const u := G(0);  // error: RHS uses a ghost function
   }
 }
 
