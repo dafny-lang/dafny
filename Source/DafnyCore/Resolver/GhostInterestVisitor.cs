@@ -422,6 +422,22 @@ class GhostInterestVisitor {
         Visit(h, true, "a hint");
       }
 
+    } else if (stmt is NestedMatchStmt nestedMatchStmt) {
+      var hasGhostPattern = nestedMatchStmt.Cases.
+        SelectMany(caze => caze.Pat.DescendantsAndSelf)
+        .OfType<IdPattern>().Any(idPattern => idPattern.Ctor != null && idPattern.Ctor.IsGhost);
+      nestedMatchStmt.IsGhost = mustBeErasable || ExpressionTester.UsesSpecFeatures(nestedMatchStmt.Source) || hasGhostPattern;
+      
+      if (!mustBeErasable && nestedMatchStmt.IsGhost) {
+        resolver.reporter.Info(MessageSource.Resolver, nestedMatchStmt.Tok, "ghost match");
+      }
+      nestedMatchStmt.Cases.Iter(kase => kase.Body.Iter(ss => Visit(ss, nestedMatchStmt.IsGhost, proofContext)));
+      nestedMatchStmt.IsGhost = nestedMatchStmt.IsGhost || nestedMatchStmt.Cases.All(kase => kase.Body.All(ss => ss.IsGhost));
+      if (!nestedMatchStmt.IsGhost) {
+        // If there were features in the source expression that are treated differently in ghost and non-ghost
+        // contexts, make sure they get treated for non-ghost use.
+        ExpressionTester.CheckIsCompilable(resolver, nestedMatchStmt.Source, codeContext);
+      }
     } else if (stmt is MatchStmt) {
       var s = (MatchStmt)stmt;
       s.IsGhost = mustBeErasable || ExpressionTester.UsesSpecFeatures(s.Source) || ExpressionTester.FirstCaseThatDependsOnGhostCtor(s.Cases) != null;
