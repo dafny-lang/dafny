@@ -171,11 +171,14 @@ are reserved for internal use.
 In match statements and expressions, an 
 identifier that is a single underscore is used as a wild-card match.
 
-## Error: type-parameter variance is not allowed to be specified in this context
+## XError: type-parameter variance is not allowed to be specified in this context
 
 ```dafny
+type List<T>
+method m<T>(i: int, list: List<T>) {}
 ```
 
+TODO - not yet working
 TODO - 2 instances
 
 ## Error: mutable fields are not allowed in value types
@@ -199,13 +202,34 @@ or a right-hand-side expression, whose type is then the type of the
 declared identifier. So use syntax either like `const i: int` or `const i:= 5`
 (or both together).
 
-## Error: a 'by method' implementation is not allowed on a twostate {what}
+## Error: a 'by method' implementation is not allowed on a twostate _what_
 
-TODO
+```dafny
+class Cell { var data: int  constructor(i: int) { data := i; } }
+twostate predicate Increasing(c: Cell)
+  reads c
+{
+  old(c.data) <= c.data
+} by method {
+  return old(c.data) <= c.data;
+}
+```
+
+Two state functions and  predicates are always ghost and do not have a compiled representation.
+Such functions use values from two different program (heap) states, which is not 
+something that can be implemented (at least with any degree of good performance) in conventional programming languages.
+
+Because there is no feasible compiled verion of a two-state function, it cannot have a `by method` block (which is always compiled).
 
 ## Error: a 'by method' implementation is not allowed on an extreme predicate
 
-TODO
+```dafny
+least predicate g() { 42 } by method { return 42; }
+```
+
+Least and greatest predicates are always ghost and do not have a compiled representation, 
+so it makes no sense to have a `by method` alternative implementation.
+
 
 ## Error: to use a 'by method' implementation with a {what}, declare '{id.val}' using '{what}', not '{what} method'
 
@@ -223,7 +247,7 @@ TODO
 ## Error: the phrase '_what_ method' is not allowed; to declare a compiled _what_, use just '_what_'
 
 ```dafny
-module {:options "-functionSyntax:4"} M {
+module {:options "--function-syntax:4"} M {
   function method f(): int { 42 }
 }
 ```
@@ -260,11 +284,25 @@ IMPROVE
 
 ## Error: constructors are allowed only in classes
 
-TODO
+```dafny
+module M {
+  constructor M() {}
+}
+```
+
+Constructors are methods that initialize classe instances. That is, when a new instance of a class is being created, 
+using the `new` object syntax, then some constructor of the class is called, perhaps a default anonymous one.
+So constructor declarations only make sense within classes.
 
 ## Error: a method must be given a name (expecting identifier)
 
-TODO
+```dafny
+method {:extern "M"} (i: int) {}
+```
+
+A method declaration always requires an identifier between the `mehtod` keyword and the `(` that starts the formal parameter list.
+This is the case even when, as in the example above, a name is specified using `:extern`. The extern name is only used in the
+compiled code; it is not the name used to refer to the method in Dafny code
 
 ## Error: type of _k can only be specified for least and greatest lemmas
 
@@ -272,7 +310,20 @@ TODO
 
 ## Error: constructors cannot have out-parameters
 
-TODO
+```dafny
+class C {
+  constructor (i: int) returns (j: int) {}
+}
+```
+
+Constructors are used to initalize the state of an instance of a class.
+Thus they typically set the values of the fields of the class instance.
+Constructors are used in `new` object expressions, which return 
+a reference to the newly constructed object (as in `new C(42)`).
+There is no syntax to receive out-parameter values of a contructor
+and they may not be declared. 
+(This is similar to constructors in other progrmaming languages, like Java.)
+
 
 ## Error: formal cannot be declared 'ghost' in this context
 
@@ -294,7 +345,11 @@ TODO
 
 TODO
 
-## Error: use of the 'nameonly' modifier must be accompanied with a parameter name
+## XError: use of the 'nameonly' modifier must be accompanied with a parameter name
+
+```dafny
+method m(i: int, nameonly : int) {}
+```
 
 TODO
 
@@ -444,7 +499,14 @@ TODO - IMPROVE -- 3 instances
 
 ## Error: too many characters in character literal
 
-TODO
+TODO: If this can happen at all it is with an unusual unicode char
+
+A character literal consists of two `'` characters enclosing either
+- a single ASCII character (that is not a backslash)
+- a backslash-escaped character
+- a sequence of characters designating a unicode character
+
+More detail is given [here](../DafnyRef/DafnyRef#sec-character-constant-token) and [here](../DafnyRef/DafnyRef#sec-escaped-characters).;
 
 ## Error: binding not allowed in parenthesized expression
 
@@ -452,27 +514,114 @@ TODO
 
 ## Error: incorrectly formatted number
 
-TODO -- 3 instances
+This error can only result from an internal bug in the Dafny parser.
+The parser should recognize a legitimate sequence of digits or sequence of hexdigits or
+a decimal number and then pass that string to a libary routine to create a BigInteger
+or BigDecimal. Given the parser logic, that parsing should never fail.
 
 ## Error: a map comprehension with more than one bound variable must have a term expression of the form 'Expr := Expr'
 
-TODO
+```dafny
+const s := map x, y  | 0 <= x < y < 10 :: x*y
+```
+
+A map comprehension defines a map, which associates a value with each member of a set of keys.
+The full syntax for a map comprehension looks like `map x | 0 <= x < 5:: x*2 => x*3`
+which maps the keys `0, 2, 4, 6, 8` to the values `0, 3, 6, 9, 12` respectively.
+
+One can abbreviate the above syntax to expressions like `map x | 0 <= x < 5 :: x*3`,
+which is equivalent to `map x | 0 <= x < 5 :: x => x*3`.
+
+One can also have multiple variables involved as in `map x, y | 0 < x < y < < 5 :: 10*x+y => 10*y+x`,
+which defines the mappings `(12 => 21, 13=>31, 14=>41, 23=>32, 24=>42, 34=>43)`.
+
+But when there are multiple variables, one cannot abbreviate the `=>` syntax with just itts right-hand expression,
+becuase it is not clear what the left-hand expression should be. If there is just one variable, say `x`, then the 
+default left hand expression is just `x`. 
+
+The failing example above as `const s := map x, y  | 0 <= x < y < 10 :: f(x,y) => x*y` for some `f(x,y)` that gives
+a unique value for each pair of `x,y` permitted by the range expression (here `0 <= x < y < 10 `).
 
 ## Error: a set comprehension with more than one bound variable must have a term expression
 
-TODO
+```dafny
+const s := set x, y  | 0 <= x < y < 10 
+```
+
+A set comprehension (1) declares one or more variables, (2) possibly states some limits on those variables, 
+and (3) states an expression over those variables that are the values in the set.
+
+If there is no expression, then the expression is taken to be just the _one_ declared variable.
+For instance one could write `set b: bool`, which is equivalent to `set b: bool :: b` and would be the set of all `bool` values.
+Another example is `set x: nat | x < 5, which is equivalent to `set x: nat | x < 5:: x` and would be the set `{0, 1, 2, 3, 4}`.
+
+But if more than one variable is declared, then there is no natural implicit expression to fill in if it is omitted, 
+so such an expression is required. The failing example above, for example, might use the expression `x * y`, as in 
+`set x, y  | 0 <= x < y < 10 :: x * y`, or any other expression over `x` and `y`.
 
 ## Error: LHS of let-such-that expression must be variables, not general patterns
 
-TODO
+```dafny
+datatype Data = D(i: int, j: int)
+const c: int := var Data(d,dd) :| d == 10 && dd == 11; d
+```
+
+The let-such-that expression initializes a variable to some value satisfying a given condition.
+For example, one might write `const cc := var x: int :| x <= 10; x`,
+where `cc` would get some value `x` satisfying `x < 10`.
+
+For simplicity, however, Dafny requires the variables being initialized to be simple names, not patterns.
 
 ## Error: ':-' can have at most one left-hand side
 
-TODO - since when?
+```dafny
+datatype Outcome<T> = 
+  | Success(value: T) 
+  | Failure(error: string) 
+{ predicate method IsFailure() { this.Failure? } 
+  function method PropagateFailure<U>(): Outcome<U> 
+    requires IsFailure() 
+  { Outcome<U>.Failure(this.error) // this is Outcome<U>.Failure(...) 
+  }
+ 
+  function method Extract(): T requires !IsFailure() { this.value } 
+}
+
+function m(): Outcome<int> { Outcome<int>.Success(0) }
+function test(): Outcome<int> {
+  var rr, rrr :- m(), 44; Outcome.Success(1) 
+}
+```
+
 
 ## Error: ':-' must have exactly one right-hand side
 
-TODO
+```dafny
+datatype Outcome<T> = 
+  | Success(value: T) 
+  | Failure(error: string) 
+{ predicate method IsFailure() { this.Failure? } 
+  function method PropagateFailure<U>(): Outcome<U> 
+    requires IsFailure() 
+  { Outcome<U>.Failure(this.error) // this is Outcome<U>.Failure(...) 
+  }
+ 
+  function method Extract(): T requires !IsFailure() { this.value } 
+}
+
+function m(): Outcome<int> { Outcome<int>.Success(0) }
+function test(): Outcome<int> {
+  var rr :- m(), 44; Outcome.Success(1) 
+}
+```
+
+This error only occurs when using the elephant operator `:-` in conjunction with
+[failure-compatible types](../DafnyRef/DafnyRef#sec-failure-compatible-types)
+and in the context of a let-or-fail expression, as in the body of `test()` in the example above.
+
+In contrast to the let expression (`:=`), which allows multiple parallel initializations, the let-or-fail expression (`:-`) is implemented to
+only allow a single left-hand-side and a single-right-hand-side.
+
 
 ## Error: invalid DotSuffix
 
