@@ -1167,15 +1167,129 @@ namespace Microsoft.Dafny {
     }
 
     protected virtual void VisitUserProvidedType(Type type, VisitorContext context) {
-      // TODO
     }
 
     protected virtual void VisitExpression(Expression expr, VisitorContext context) {
-      // TODO
+      if (VisitOneExpression(expr, context)) {
+        // Visit user-provided types
+        if (expr is SeqConstructionExpr seqConstructionExpr) {
+          var userProvidedElementType = seqConstructionExpr.ExplicitElementType;
+          if (userProvidedElementType != null) {
+            VisitUserProvidedType(userProvidedElementType, context);
+          }
+
+        } else if (expr is TypeUnaryExpr typeUnaryExpr) {
+          VisitUserProvidedType(typeUnaryExpr.ToType, context);
+
+        } else if (expr is LetExpr letExpr) {
+          foreach (var lhs in letExpr.LHSs) {
+            foreach (var v in lhs.Vars) {
+              VisitUserProvidedType(v.SyntacticType, context);
+            }
+          }
+
+        } else if (expr is QuantifierExpr quantifierExpr) {
+          foreach (BoundVar v in quantifierExpr.BoundVars) {
+            VisitUserProvidedType(v.Type, context);
+          }
+
+        } else if (expr is SetComprehension setComprehension) {
+          foreach (BoundVar v in setComprehension.BoundVars) {
+            VisitUserProvidedType(v.Type, context);
+          }
+
+        } else if (expr is MapComprehension mapComprehension) {
+          foreach (BoundVar v in mapComprehension.BoundVars) {
+            VisitUserProvidedType(v.Type, context);
+          }
+
+        } else if (expr is LambdaExpr lambdaExpr) {
+          foreach (BoundVar v in lambdaExpr.BoundVars) {
+            VisitUserProvidedType(v.Type, context);
+          }
+
+        } else if (expr is MatchExpr matchExpr) {
+          foreach (MatchCaseExpr mc in matchExpr.Cases) {
+            foreach (BoundVar v in mc.Arguments) {
+              VisitUserProvidedType(v.Type, context);
+            }
+          }
+        }
+
+        // Visit subexpressions
+        expr.SubExpressions.Iter(ee => VisitExpression(ee, context));
+
+        // Visit substatements
+        if (expr is StmtExpr stmtExpr) {
+          VisitStatement(stmtExpr.S, context);
+        }
+      }
+    }
+
+    /// <summary>
+    /// Visits the given expression.
+    /// Returns "true" to request that the caller keeps visiting all user-provided types, subexpressions, and substatements of "expr", and
+    /// returns "false" to tell the caller not to.
+    /// </summary>
+    protected virtual bool VisitOneExpression(Expression expr, VisitorContext context) {
+      return true;
     }
 
     protected virtual void VisitStatement(Statement stmt, VisitorContext context) {
-      // TODO
+      if (VisitOneStatement(stmt, context)) {
+        // Visit user-provided types
+        if (stmt is VarDeclStmt varDeclStmt) {
+          foreach (var local in varDeclStmt.Locals) {
+            VisitUserProvidedType(local.OptionalType, context);
+          }
+
+        } else if (stmt is VarDeclPattern varDeclPattern) {
+          foreach (var local in varDeclPattern.LocalVars) {
+            VisitUserProvidedType(local.OptionalType, context);
+          }
+
+        } else if (stmt is AssignStmt assignStmt) {
+          if (assignStmt.Rhs is TypeRhs typeRhs) {
+            if (typeRhs.EType != null) {
+              VisitUserProvidedType(typeRhs.EType, context);
+            }
+          }
+
+        } else if (stmt is OneBodyLoopStmt oneBodyLoopStmt) {
+          if (oneBodyLoopStmt is ForLoopStmt forLoopStmt) {
+            VisitUserProvidedType(forLoopStmt.LoopIndex.Type, context);
+          }
+
+        } else if (stmt is ForallStmt forallStmt) {
+          foreach (BoundVar v in forallStmt.BoundVars) {
+            VisitUserProvidedType(v.Type, context);
+          }
+
+        } else if (stmt is MatchStmt matchStmt) {
+          foreach (MatchCaseStmt mc in matchStmt.Cases) {
+            if (mc.Arguments != null) {
+              foreach (BoundVar v in mc.Arguments) {
+                VisitUserProvidedType(v.Type, context);
+              }
+            }
+          }
+        }
+
+        // Visit subexpressions
+        stmt.SubExpressions.Iter(ee => VisitExpression(ee, context));
+
+        // Visit substatements
+        stmt.SubStatements.Iter(ss => VisitStatement(ss, context));
+      }
+    }
+
+    /// <summary>
+    /// Visits the given statement.
+    /// Returns "true" to request that the caller keeps visiting all user-provided types, subexpressions, and substatements of "stmt", and
+    /// returns "false" to tell the caller not to.
+    /// </summary>
+    protected virtual bool VisitOneStatement(Statement stmt, VisitorContext context) {
+      return true;
     }
   }
 

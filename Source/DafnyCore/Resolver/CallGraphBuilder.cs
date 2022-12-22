@@ -133,28 +133,16 @@ namespace Microsoft.Dafny {
       }
 
       protected override void VisitUserProvidedType(Type type, CallGraphBuilderContext context) {
-        XVisitUserProvidedType(type, context);
+        AddTypeDependencyEdges(context.CodeContext, type);
       }
 
-      protected override void VisitExpression(Expression expr, CallGraphBuilderContext context) {
-        XVisitExpression(expr, context);
-      }
-
-      protected override void VisitStatement(Statement stmt, CallGraphBuilderContext context) {
-        XVisitStatement(stmt, context);
-      }
-
-      private void XVisitExpression(Expression expr, CallGraphBuilderContext context) {
-        Contract.Requires(expr != null);
-        Contract.Requires(context != null);
-
+      protected override bool VisitOneExpression(Expression expr, CallGraphBuilderContext context) {
         if (expr is DefaultValueExpression) {
           // A DefaultValueExpression is a wrapper around the expression given as a default in the callee's declaration.
           // It hasn't yet been resolved, so we can't process it here. But that's okay, because we will set up the necessary
           // call graph edges when processing the callee's declaration.
-          return;
+          return false;
         }
-        expr = expr.Resolved;
 
         if (expr is DatatypeValue dtv) {
           var dt = dtv.Type.AsDatatype;
@@ -181,60 +169,15 @@ namespace Microsoft.Dafny {
           AddCallGraphEdge(context.CodeContext, function, functionCallExpr,
             IsFunctionReturnValue(function, functionCallExpr.Receiver, functionCallExpr.Args, context));
 
-        } else if (expr is SeqConstructionExpr seqConstructionExpr) {
-          var userProvidedElementType = seqConstructionExpr.ExplicitElementType;
-          if (userProvidedElementType != null) {
-            XVisitUserProvidedType(userProvidedElementType, context);
-          }
-
-        } else if (expr is TypeUnaryExpr typeUnaryExpr) {
-          XVisitUserProvidedType(typeUnaryExpr.ToType, context);
-
-        } else if (expr is LetExpr letExpr) {
-          foreach (var lhs in letExpr.LHSs) {
-            foreach (var v in lhs.Vars) {
-              XVisitUserProvidedType(v.SyntacticType, context);
-            }
-          }
-
         } else if (expr is QuantifierExpr quantifierExpr) {
           Contract.Assert(quantifierExpr.SplitQuantifier == null); // No split quantifiers during resolution
           if (context.CodeContext is Function enclosingFunction) {
             enclosingFunction.ContainsQuantifier = true;
           }
-          foreach (BoundVar v in quantifierExpr.BoundVars) {
-            XVisitUserProvidedType(v.Type, context);
-          }
 
-        } else if (expr is SetComprehension setComprehension) {
-          foreach (BoundVar v in setComprehension.BoundVars) {
-            XVisitUserProvidedType(v.Type, context);
-          }
-
-        } else if (expr is MapComprehension mapComprehension) {
-          foreach (BoundVar v in mapComprehension.BoundVars) {
-            XVisitUserProvidedType(v.Type, context);
-          }
-
-        } else if (expr is LambdaExpr lambdaExpr) {
-          foreach (BoundVar v in lambdaExpr.BoundVars) {
-            XVisitUserProvidedType(v.Type, context);
-          }
-
-        } else if (expr is StmtExpr stmtExpr) {
-          XVisitStatement(stmtExpr.S, context);
-
-        } else if (expr is MatchExpr matchExpr) {
-          foreach (MatchCaseExpr mc in matchExpr.Cases) {
-            foreach (BoundVar v in mc.Arguments) {
-              XVisitUserProvidedType(v.Type, context);
-            }
-          }
         }
 
-        foreach (var ee in expr.SubExpressions) {
-          XVisitExpression(ee, context);
-        }
+        return true;
       }
 
       /// <summary>
@@ -257,32 +200,8 @@ namespace Microsoft.Dafny {
         return false;
       }
 
-      private void XVisitStatement(Statement stmt, CallGraphBuilderContext context) {
-        Contract.Requires(stmt != null);
-        Contract.Requires(context != null);
-
-        if (stmt is RevealStmt revealStmt) {
-          foreach (var ss in revealStmt.ResolvedStatements) {
-            XVisitStatement(ss, context);
-          }
-
-        } else if (stmt is VarDeclStmt varDeclStmt) {
-          foreach (var local in varDeclStmt.Locals) {
-            XVisitUserProvidedType(local.OptionalType, context);
-          }
-
-        } else if (stmt is VarDeclPattern varDeclPattern) {
-          foreach (var local in varDeclPattern.LocalVars) {
-            XVisitUserProvidedType(local.OptionalType, context);
-          }
-
-        } else if (stmt is AssignStmt assignStmt) {
-          if (assignStmt.Rhs is TypeRhs typeRhs) {
-            if (typeRhs.EType != null) {
-              XVisitUserProvidedType(typeRhs.EType, context);
-            }
-          }
-
+      protected override bool VisitOneStatement(Statement stmt, CallGraphBuilderContext context) {
+        if (stmt is AssignStmt assignStmt) {
           // check on assumption variables
           if (context.CodeContext is Method currentMethod &&
               (assignStmt.Lhs.Resolved as IdentifierExpr)?.Var is LocalVariable localVar &&
@@ -301,36 +220,9 @@ namespace Microsoft.Dafny {
         } else if (stmt is CallStmt callStmt) {
           AddCallGraphEdge(callStmt, context);
 
-        } else if (stmt is OneBodyLoopStmt oneBodyLoopStmt) {
-          if (oneBodyLoopStmt is ForLoopStmt forLoopStmt) {
-            XVisitUserProvidedType(forLoopStmt.LoopIndex.Type, context);
-          }
-
-        } else if (stmt is ForallStmt forallStmt) {
-          foreach (BoundVar v in forallStmt.BoundVars) {
-            XVisitUserProvidedType(v.Type, context);
-          }
-
-        } else if (stmt is MatchStmt matchStmt) {
-          foreach (MatchCaseStmt mc in matchStmt.Cases) {
-            if (mc.Arguments != null) {
-              foreach (BoundVar v in mc.Arguments) {
-                XVisitUserProvidedType(v.Type, context);
-              }
-            }
-          }
         }
 
-        foreach (var ee in stmt.SubExpressions) {
-          XVisitExpression(ee, context);
-        }
-        foreach (var ss in stmt.SubStatements) {
-          XVisitStatement(ss, context);
-        }
-      }
-
-      private void XVisitUserProvidedType(Type type, CallGraphBuilderContext context) {
-        AddTypeDependencyEdges(context.CodeContext, type);
+        return true;
       }
 
       /// <summary>
