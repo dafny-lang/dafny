@@ -335,7 +335,8 @@ There are currently no other options specific to the `dafny test` command.
 The order in which the tests are run is not specified.
 
 For example, this code (as the file `t.dfy`)
-```
+<!-- %no-check -->
+```dafny
 method {:test} m() {
   mm();
   print "Hi!\n";
