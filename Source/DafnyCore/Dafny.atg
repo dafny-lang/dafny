@@ -177,7 +177,6 @@ public static Expression ParseExpression(string/*!*/ s, string/*!*/ fullFilename
   return e;
 }
 
-
 public void ApplyOptionsFromAttributes(Attributes attrs) {
   var overrides = attrs.AsEnumerable().Where(a => a.Name == "options")
     .Reverse().Select(a =>
@@ -192,7 +191,6 @@ public void ApplyOptionsFromAttributes(Attributes attrs) {
     .Where(opts => opts.options.Any());
 
   if (overrides.Any()) {
-
     var options = new DafnyAttributeOptions(theOptions, errors);
     foreach (var (token, opts) in overrides) {
 
