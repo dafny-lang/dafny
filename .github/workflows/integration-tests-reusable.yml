@@ -111,11 +111,9 @@ jobs:
       run: cat dafny/Test/concurrency/02-DoubleRead.dfy
     - name: LS DoubleRead
       run: |
-        ls ${{ github.workspace }}
-        ls ${{ github.workspace }}/unzippedRelease
         ls ${{ github.workspace }}/unzippedRelease/dafny
     - name: Run Release DoubleRead
-      run: ./${{ github.workspace }}/unzippedRelease/dafny/dafny dafny/Test/concurrency/02-DoubleRead.dfy
+      run: .${{ github.workspace }}/unzippedRelease/dafny/dafny dafny/Test/concurrency/02-DoubleRead.dfy
     - name: Run FromSource DoubleRead
       run: ./dafny/Scripts/dafny dafny/Test/concurrency/02-DoubleRead.dfy
     - name: Run integration tests
