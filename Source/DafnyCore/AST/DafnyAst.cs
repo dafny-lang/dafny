@@ -57,7 +57,7 @@ namespace Microsoft.Dafny {
           continue;
         }
 
-        foreach (var child in current.Children) {
+        foreach (var child in current.Children.Reverse()) {
           if (child == null) {
             throw new InvalidOperationException($"Object of type {current.GetType()} has null child");
           }
