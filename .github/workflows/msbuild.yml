@@ -53,13 +53,12 @@ jobs:
       run: dotnet pack --no-build dafny/Source/Dafny.sln
 
   check-deep-tests:
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'run-deep-tests') }}
     uses: ./.github/workflows/check-deep-tests-reusable.yml
     with:
       branch: master
 
   integration-tests:
-    needs: check-deep-tests
-    if: always() && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests'))
     uses: ./.github/workflows/integration-tests-reusable.yml
     with:
       # By default run only on one platform, but run on all platforms if the PR has the "run-deep-tests"
