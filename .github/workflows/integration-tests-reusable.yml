@@ -107,6 +107,10 @@ jobs:
     - if: runner.os != 'Windows'
       run: |
         unzip dafny/Package/CI.zip -d unzippedRelease
+    - name: Print DoubleRead
+      run: cat dafny/Test/concurrency/02-DoubleRead.dfy
+    - name: Run DoubleRead
+      run: dafny/unzippedRelease/dafny/dafny dafny/Test/concurrency/02-DoubleRead.dfy
     - name: Run integration tests
       if: runner.os == 'Windows'
       env:
