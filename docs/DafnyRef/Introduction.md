@@ -63,7 +63,8 @@ The details of using (and contributing to) the dafny tool are described in the U
 ## 1.1. Dafny Example {#sec-example}
 To give a flavor of Dafny, here is the solution to a competition problem.
 
-```dafny <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 // VSComp 2010, problem 3, find a 0 in a linked list and return
 // how many nodes were skipped until the first 0 (or end-of-list)
 // was found.

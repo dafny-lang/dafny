@@ -8,13 +8,15 @@ sequences, sets are immutable value types. This allows them to be used easily
 in annotations, without involving the heap, as a set cannot be modified once
 it has been created. A set has the type:
 
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
   set<int>
 ```
 
 for a set of integers, for example. In general, sets can be of almost any type, including objects. Concrete sets can be specified by using display notation:
 
-```dafny <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 method m()
 {
   var s1 := {}; // the empty set
@@ -36,7 +38,8 @@ Above we also see that equality is defined
 for sets. Two sets are equal if they have exactly the same elements.
 New sets can be created from existing ones using the common set operations:
 
-```dafny <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 method m()
 {
   var s1: set<int> := {};
@@ -55,7 +58,8 @@ operators, the set operators are always defined. In addition to set
 forming operators, there are comparison operators with their usual
 meanings:
 
-```dafny <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 method m()
 {
   assert {1} <= {1, 2} && {1, 2} <= {1, 2}; // subset
@@ -68,7 +72,8 @@ method m()
 Sets, like sequences, support the `in` and `!in` operators, to
 test element membership. For example:
 
-```dafny <!-- %check-verify-warn Sets.W1.expect -->
+<!-- %check-verify-warn Sets.W1.expect -->
+```dafny
 method m()
 {
   assert 5 in {1,3,4,5};
@@ -100,7 +105,8 @@ A useful way to create sets is using a set comprehension. This defines
 a new set by including `f(x)`
 in the set for all `x` of type `T` that satisfy `p(x)`:
 
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
   set x: T | p(x) :: f(x)
 ```
 
@@ -111,7 +117,8 @@ the type of the return value of `f(x)`. The values in the constructed set are th
 `x` itself acts only as a bridge between the predicate `p` and the function `f`. It
 usually has the same type as the resulting set, but it does not need to. As an example:
 
-```dafny <!-- %check-verify-warn Sets.W2.expect -->
+<!-- %check-verify-warn Sets.W2.expect -->
+```dafny
 method m()
 {
   assert (set x | x in {0,1,2} :: x + 0) == {0,1,2};
@@ -120,7 +127,8 @@ method m()
 
 If the function is the identity, then the expression can be written with a particularly nice form:
 
-```dafny <!-- %check-verify-warn Sets.W3.expect -->
+<!-- %check-verify-warn Sets.W3.expect -->
+```dafny
 method m()
 {
   assert (set x | x in {0,1,2,3,4,5} && x < 3) == {0,1,2};
@@ -130,7 +138,8 @@ method m()
 To reason about general, non-identity functions in set comprehensions, Dafny may need some help.
 For example, the following is true, but Dafny cannot prove it:
 
-```dafny <!-- %check-verify Sets.1.expect -->
+<!-- %check-verify Sets.1.expect -->
+```dafny
 method m()
 {
   // assert {0*1, 1*1, 2*1} == {0,1,2};  // include this assertion as a lemma to prove the next line
@@ -141,7 +150,8 @@ method m()
 To help Dafny prove this assertion, you can precede it with the assertion
 `assert {0*1, 1*1, 2*1} == {0,1,2};`. This lets Dafny figure out both assertions.
 
-```dafny <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 method m()
 {
   assert {0*1, 1*1, 2*1} == {0,1,2};  // include this assertion as a lemma to prove the next line
