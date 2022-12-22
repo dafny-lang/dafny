@@ -856,8 +856,11 @@ namespace Microsoft.Dafny {
 
       Type.ResetScopes();
 
+      foreach (var rawModule in p.RawModules()) {
+        new MatchDenester(reporter, Resolver.defaultTempVarIdGenerator).Transform(rawModule);
+      }
+
       foreach (ModuleDefinition outerModule in VerifiableModules(p)) {
-        new MatchDenester(reporter, Resolver.defaultTempVarIdGenerator).Transform(outerModule);
         var translator = new Translator(reporter, flags);
 
         if (translator.sink == null || translator.sink == null) {

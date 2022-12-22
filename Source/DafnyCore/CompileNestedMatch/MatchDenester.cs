@@ -48,7 +48,7 @@ public class MatchDenester {
 
   public void Transform(ModuleDefinition moduleDefinition) {
 
-    ((INode)moduleDefinition).Visit(node => {
+    moduleDefinition.Visit(node => {
       if (node != moduleDefinition && node is ModuleDefinition) {
         // The resolver clones module definitions for compilation, but also the top level module which also contains the uncloned definitions,
         // so this is to prevent recursion into the uncloned definitions. 
