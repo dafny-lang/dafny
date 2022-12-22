@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 
 namespace Microsoft.Dafny;
 
@@ -17,4 +19,11 @@ public class NestedMatchExpr : ConcreteSyntaxExpression {
     this.UsesOptionalBraces = usesOptionalBraces;
     this.Attributes = attrs;
   }
+
+  public override IEnumerable<Expression> SubExpressions =>
+    ResolvedExpression == null ? new[] { Source }.Concat(Cases.Select(c => c.Body)) : base.SubExpressions;
+
+  public override IEnumerable<INode> Children => ResolvedExpression == null
+    ? new[] { Source }.Concat<INode>(Cases)
+    : base.Children;
 }

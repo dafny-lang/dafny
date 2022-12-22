@@ -48,6 +48,10 @@
 ##                  the output is just a success message
 ##              (2) if <expect> is non-empty. then the exit code is 2 and
 ##                  the actual output matches the content of the file <expect>
+##   %check-run <expect> : runs the command
+##              "dafny run --useBaseNameForFileName $F" and, 
+##              if <expect> is present, then the output matches the
+##              content of the file names <expect>
 ##   %check-error
 ##   check
 
@@ -84,8 +88,6 @@ n=0
 ## if inblock==1 we are in a ```-delimited block
 inblock=0
 
-command= 
-expect= 
 msg=
 checkingErrors=1
 ## Read and process each line of the file.  The file is input on stdin 
@@ -100,12 +102,12 @@ do
    && msg=`echo "$line" | sed -E -e 's/^##[ ]*//' -e 's/_[a-z]+_/.*/g'`
 
   ## Check for the marker
-  echo $line | grep -e '^```' > /dev/null
+  echo "$line" | grep -e '^[ ]*```' > /dev/null
   if [ "$?" == "0" ]; then
     ##echo FOUND BACKTICKS IN $n "$line"
     if [ "$inblock" == "0" ]; then
       ## get language
-      lang=`echo "$line" | sed -e 's/^\`\`\`[\`]*//' -e 's/[ ].*$//'`
+      lang=`echo "$line" | sed -e 's/^[ ]*\`\`\`[\`]*//' -e 's/[ ].*$//'`
       if [ -z "$lang" ]; then
         lang=$defaultLang
         if [ -z "$lang" ]; then
@@ -114,11 +116,25 @@ do
         fi
       fi
 
+      action=
+      use=
       command=
       expect=
+      options=
       ( echo "$line" | grep -e '<!--' > /dev/null ) \
           && action=( `echo "$line" | sed -e 's/[^<]*<!--//' -e 's/-->//'` ) \
           && command=${action[0]} && expect=${action[1]}
+      ( echo "$line" | grep -e '%options' > /dev/null ) \
+          && options=( `echo "$line" | sed -e 's/^.*%options//' -e 's/-->//'` )
+      if [ "$expect" == "%use" -o "$expect" == "%options" ]; then
+        expect=
+      fi
+      if [ "${action[1]}" == "%use" ]; then
+        use=${action[2]}
+      fi
+      if [ "${action[2]}" == "%use" ]; then
+        use=${action[3]}
+      fi
       if [ "lang" == "dafny" -a -z "$command" ]; then
         command="$defaultCommand"
         if [ -z "$command" ]; then
@@ -133,12 +149,23 @@ do
     else
       ## End of backtick block, so check the text
       inblock=0
+      if [ -n "$use" ]; then
+        ##echo " " USING $use
+        cat "$use" >> $text
+      fi
+      echo $line | grep '%save' > /dev/null
+      if [ "$?" == "0" ]; then
+         rest=( `echo $line | sed -e 's/^[^%]*%save//'` )
+         save=${rest[0]}
+         ##echo " SAVING" $save
+         cp $text $save
+      fi
       if [ "$lang" == "dafny" -o "$lang" == "cli" ]; then
         echo TESTING $n $file $command $expect
       fi
       if [ "$command" == "%no-check" ]; then
         echo -n ""
-      elif [ "$command" == "%check-verify" -o "$command" == "%check-verify-warn" -o "$command" == "%check-resolve" ]; then
+      elif [ "$command" == "%check-verify" -o "$command" == "%check-verify-warn" -o "$command" == "%check-resolve" -o "$command" == "%check-run" ]; then
         if [ "$command" == "%check-verify" ]; then
           com=verify
           ec=4
@@ -148,12 +175,15 @@ do
         elif [ "$command" == "%check-resolve" ]; then
           com=resolve
           ec=2
+        elif [ "$command" == "%check-run" ]; then
+          com=run
+          ec=0
         fi
         if [ "$lang" != "dafny" ]; then
           echo EXPECTED A dafny BLOCK, NOT $lang
           FAIL=1
         else
-          "$dafny" $com --useBaseNameForFileName $text > actual
+          "$dafny" $com --useBaseNameForFileName $options $text > actual
           actualec=$?
           if [ -z "$expect" ]; then
             if [ "$actualec" != "0" ]; then
@@ -223,9 +253,10 @@ do
     fi
   elif [ "$inblock" == "1" ]; then
     ## If in a backtick block, save the text to the temporary file
-    echo "$line" | sed -e 's/\.\.\./   /' >> $text
+    echo "$line" | sed -e 's/^[ ]*\.\.\./   /' >> $text
   fi
 done < $file
+rm -rf *.tmp
 
 if [ "$inblock" == "1" ]; then
   echo UNCLOSED BACKTICK BLOCK

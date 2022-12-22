@@ -1,8 +1,8 @@
+
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
-using System.Drawing.Imaging;
 using System.Linq;
-using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
 
@@ -26,7 +26,17 @@ public abstract class Statement : INode, IAttributeBearingDeclaration {
     Contract.Invariant(EndTok != null);
   }
 
-  [FilledInDuringResolution] public bool IsGhost;
+  [FilledInDuringResolution] public bool IsGhost { get; set; }
+
+  protected Statement(Cloner cloner, Statement original) {
+    this.Tok = cloner.Tok(original.Tok);
+    this.EndTok = cloner.Tok(original.EndTok);
+    this.attributes = cloner.CloneAttributes(original.Attributes);
+
+    if (cloner.CloneResolvedFields) {
+      IsGhost = original.IsGhost;
+    }
+  }
 
   public Statement(IToken tok, IToken endTok, Attributes attrs) {
     Contract.Requires(tok != null);
@@ -70,7 +80,7 @@ public abstract class Statement : INode, IAttributeBearingDeclaration {
 
   /// <summary>
   /// Returns the non-null expressions of this statement proper (that is, do not include the expressions of substatements).
-  /// Filters all sub expressions that are not part of specifications
+  /// Includes both specification and non-specification expressions.
   /// </summary>
   public IEnumerable<Expression> SubExpressions {
     get {
@@ -90,7 +100,9 @@ public abstract class Statement : INode, IAttributeBearingDeclaration {
   /// </summary>
   public virtual IEnumerable<Expression> SpecificationSubExpressions {
     get {
-      yield break;
+      foreach (var e in Attributes.SubExpressions(Attributes)) {
+        yield return e;
+      }
     }
   }
 
@@ -100,9 +112,7 @@ public abstract class Statement : INode, IAttributeBearingDeclaration {
   /// </summary>
   public virtual IEnumerable<Expression> NonSpecificationSubExpressions {
     get {
-      foreach (var e in Attributes.SubExpressions(Attributes)) {
-        yield return e;
-      }
+      yield break;
     }
   }
 
@@ -131,7 +141,7 @@ public abstract class Statement : INode, IAttributeBearingDeclaration {
     var variableUpdateStmt = new UpdateStmt(tok, tok, Util.Singleton(variableExpr),
       Util.Singleton<AssignmentRhs>(new ExprRhs(value)));
     var variableAssignStmt = new AssignStmt(tok, tok, variableUpdateStmt.Lhss[0], variableUpdateStmt.Rhss[0]);
-    variableUpdateStmt.ResolvedStatements.Add(variableAssignStmt);
+    variableUpdateStmt.ResolvedStatements = new List<Statement>() { variableAssignStmt };
     return new VarDeclStmt(tok, tok, Util.Singleton(variable), variableUpdateStmt);
   }
 
@@ -139,6 +149,13 @@ public abstract class Statement : INode, IAttributeBearingDeclaration {
     return new PrintStmt(tok, tok, exprs.ToList());
   }
 
+  public override string ToString() {
+    try {
+      return Printer.StatementToString(this);
+    } catch (Exception e) {
+      return $"couldn't print stmt because: {e.Message}";
+    }
+  }
   public override IEnumerable<INode> Children =>
     (Attributes != null ? new List<INode> { Attributes } : Enumerable.Empty<INode>()).Concat(
       SubStatements.Concat<INode>(SubExpressions));
@@ -189,7 +206,10 @@ public class Label {
 }
 
 public class AssertLabel : Label {
-  public Boogie.Expr E;  // filled in during translation
+
+  [FilledInDuringTranslation]
+  public Boogie.Expr E;
+
   public AssertLabel(IToken tok, string label)
     : base(tok, label) {
     Contract.Requires(tok != null);
@@ -197,7 +217,7 @@ public class AssertLabel : Label {
   }
 }
 
-public class RevealStmt : Statement {
+public class RevealStmt : Statement, ICloneable<RevealStmt> {
   public readonly List<Expression> Exprs;
   [FilledInDuringResolution] public readonly List<AssertLabel> LabeledAsserts = new List<AssertLabel>();  // to indicate that "Expr" denotes a labeled assertion
   [FilledInDuringResolution] public readonly List<Statement> ResolvedStatements = new List<Statement>();
@@ -210,6 +230,18 @@ public class RevealStmt : Statement {
   void ObjectInvariant() {
     Contract.Invariant(Exprs != null);
     Contract.Invariant(LabeledAsserts.Count <= Exprs.Count);
+  }
+
+  public RevealStmt Clone(Cloner cloner) {
+    return new RevealStmt(cloner, this);
+  }
+
+  public RevealStmt(Cloner cloner, RevealStmt original) : base(cloner, original) {
+    Exprs = original.Exprs.Select(cloner.CloneExpr).ToList();
+    if (cloner.CloneResolvedFields) {
+      LabeledAsserts = original.LabeledAsserts.Select(a => new AssertLabel(cloner.Tok(a.Tok), a.Name)).ToList();
+      ResolvedStatements = original.ResolvedStatements.Select(cloner.CloneStmt).ToList();
+    }
   }
 
   public RevealStmt(IToken tok, IToken endTok, List<Expression> exprs)
@@ -232,7 +264,20 @@ public class RevealStmt : Statement {
 
 public abstract class ProduceStmt : Statement {
   public List<AssignmentRhs> Rhss;
+  [FilledInDuringResolution]
   public UpdateStmt HiddenUpdate;
+
+  protected ProduceStmt(Cloner cloner, ProduceStmt original) : base(cloner, original) {
+    if (original.Rhss != null) {
+      Rhss = original.Rhss.Select(cloner.CloneRHS).ToList();
+    }
+    if (cloner.CloneResolvedFields) {
+      if (original.HiddenUpdate != null) {
+        HiddenUpdate = new UpdateStmt(cloner, original.HiddenUpdate);
+      }
+    }
+  }
+
   public ProduceStmt(IToken tok, IToken endTok, List<AssignmentRhs> rhss)
     : base(tok, endTok) {
     Contract.Requires(tok != null);
@@ -240,32 +285,49 @@ public abstract class ProduceStmt : Statement {
     this.Rhss = rhss;
     HiddenUpdate = null;
   }
+
+  public override IEnumerable<INode> Children =>
+    HiddenUpdate == null ? base.Children : new INode[] { HiddenUpdate }.Concat(base.Children);
+
   public override IEnumerable<Expression> NonSpecificationSubExpressions {
     get {
       foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
-      if (Rhss != null) {
-        foreach (var rhs in Rhss) {
-          foreach (var ee in rhs.SubExpressions) {
-            yield return ee;
-          }
+      foreach (var rhs in Rhss ?? Enumerable.Empty<AssignmentRhs>()) {
+        foreach (var e in rhs.NonSpecificationSubExpressions) {
+          yield return e;
+        }
+      }
+    }
+  }
+  public override IEnumerable<Expression> SpecificationSubExpressions {
+    get {
+      foreach (var e in base.SpecificationSubExpressions) { yield return e; }
+      foreach (var rhs in Rhss ?? Enumerable.Empty<AssignmentRhs>()) {
+        foreach (var e in rhs.SpecificationSubExpressions) {
+          yield return e;
         }
       }
     }
   }
   public override IEnumerable<Statement> SubStatements {
     get {
-      if (Rhss != null) {
-        foreach (var rhs in Rhss) {
-          foreach (var s in rhs.SubStatements) {
-            yield return s;
-          }
+      foreach (var rhs in Rhss ?? Enumerable.Empty<AssignmentRhs>()) {
+        foreach (var s in rhs.SubStatements) {
+          yield return s;
         }
       }
     }
   }
 }
 
-public class YieldStmt : ProduceStmt {
+public class YieldStmt : ProduceStmt, ICloneable<YieldStmt> {
+  public YieldStmt Clone(Cloner cloner) {
+    return new YieldStmt(cloner, this);
+  }
+
+  public YieldStmt(Cloner cloner, YieldStmt original) : base(cloner, original) {
+  }
+
   public YieldStmt(IToken tok, IToken endTok, List<AssignmentRhs> rhss)
     : base(tok, endTok, rhss) {
     Contract.Requires(tok != null);
@@ -273,7 +335,7 @@ public class YieldStmt : ProduceStmt {
   }
 }
 
-public abstract class AssignmentRhs : INode {
+public abstract class AssignmentRhs : INode, IAttributeBearingDeclaration {
   private Attributes attributes;
   public Attributes Attributes {
     get {
@@ -293,18 +355,34 @@ public abstract class AssignmentRhs : INode {
     Attributes = attrs;
   }
   public abstract bool CanAffectPreviouslyKnownExpressions { get; }
+
   /// <summary>
-  /// Returns the non-null subexpressions of the AssignmentRhs.
+  /// Returns all (specification and non-specification) non-null expressions of the AssignmentRhs.
   /// </summary>
-  public virtual IEnumerable<Expression> SubExpressions {
+  public IEnumerable<Expression> SubExpressions => SpecificationSubExpressions.Concat(NonSpecificationSubExpressions);
+
+  /// <summary>
+  /// Returns the non-null non-specification subexpressions of the AssignmentRhs.
+  /// </summary>
+  public virtual IEnumerable<Expression> NonSpecificationSubExpressions {
+    get {
+      yield break;
+    }
+  }
+
+  /// <summary>
+  /// Returns the non-null specification subexpressions of the AssignmentRhs.
+  /// </summary>
+  public virtual IEnumerable<Expression> SpecificationSubExpressions {
     get {
       foreach (var e in Attributes.SubExpressions(Attributes)) {
         yield return e;
       }
     }
   }
+
   /// <summary>
-  /// Returns the non-null substatements of the AssignmentRhs.
+  /// Returns the non-null sub-statements of the AssignmentRhs.
   /// </summary>
   public virtual IEnumerable<Statement> SubStatements {
     get { yield break; }
@@ -318,13 +396,13 @@ public class ExprRhs : AssignmentRhs {
     Contract.Invariant(Expr != null);
   }
 
-  public ExprRhs(Expression expr, Attributes attrs = null)  // TODO: these 'attrs' apparently aren't handled correctly in the Cloner, and perhaps not in various visitors either (for example, CheckIsCompilable should not go into attributes)
+  public ExprRhs(Expression expr, Attributes attrs = null)
     : base(expr.tok, attrs) {
     Contract.Requires(expr != null);
     Expr = expr;
   }
   public override bool CanAffectPreviouslyKnownExpressions { get { return false; } }
-  public override IEnumerable<Expression> SubExpressions {
+  public override IEnumerable<Expression> NonSpecificationSubExpressions {
     get {
       yield return Expr;
     }
@@ -445,7 +523,7 @@ public class TypeRhs : AssignmentRhs {
     }
   }
 
-  public override IEnumerable<Expression> SubExpressions {
+  public override IEnumerable<Expression> NonSpecificationSubExpressions {
     get {
       if (ArrayDimensions != null) {
         foreach (var e in ArrayDimensions) {
@@ -471,7 +549,19 @@ public class TypeRhs : AssignmentRhs {
   }
 
   public IToken Start => Tok;
-  public override IEnumerable<INode> Children => new[] { EType, Type }.OfType<UserDefinedType>();
+  public override IEnumerable<INode> Children {
+    get {
+      if (ArrayDimensions == null) {
+        if (InitCall != null) {
+          return new[] { InitCall };
+        }
+
+        return EType.Nodes;
+      }
+
+      return EType.Nodes.Concat(SubExpressions).Concat<INode>(SubStatements);
+    }
+  }
 }
 
 public class HavocRhs : AssignmentRhs {
@@ -482,13 +572,22 @@ public class HavocRhs : AssignmentRhs {
   public override IEnumerable<INode> Children => Enumerable.Empty<INode>();
 }
 
-public class VarDeclStmt : Statement {
+public class VarDeclStmt : Statement, ICloneable<VarDeclStmt> {
   public readonly List<LocalVariable> Locals;
   public readonly ConcreteUpdateStatement Update;
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(cce.NonNullElements(Locals));
     Contract.Invariant(Locals.Count != 0);
+  }
+
+  public VarDeclStmt Clone(Cloner cloner) {
+    return new VarDeclStmt(cloner, this);
+  }
+
+  public VarDeclStmt(Cloner cloner, VarDeclStmt original) : base(cloner, original) {
+    Locals = original.Locals.Select(l => cloner.CloneLocalVariable(l, false)).ToList();
+    Update = (ConcreteUpdateStatement)cloner.CloneStmt(original.Update);
   }
 
   public VarDeclStmt(IToken tok, IToken endTok, List<LocalVariable> locals, ConcreteUpdateStatement update)
@@ -506,9 +605,9 @@ public class VarDeclStmt : Statement {
     get { if (Update != null) { yield return Update; } }
   }
 
-  public override IEnumerable<Expression> NonSpecificationSubExpressions {
+  public override IEnumerable<Expression> SpecificationSubExpressions {
     get {
-      foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
+      foreach (var e in base.SpecificationSubExpressions) { yield return e; }
       foreach (var v in Locals) {
         foreach (var e in Attributes.SubExpressions(v.Attributes)) {
           yield return e;
@@ -520,10 +619,20 @@ public class VarDeclStmt : Statement {
   public override IEnumerable<INode> Children => Locals.Concat<INode>(SubStatements);
 }
 
-public class VarDeclPattern : Statement {
+public class VarDeclPattern : Statement, ICloneable<VarDeclPattern> {
   public readonly CasePattern<LocalVariable> LHS;
   public readonly Expression RHS;
   public bool HasGhostModifier;
+
+  public VarDeclPattern Clone(Cloner cloner) {
+    return new VarDeclPattern(cloner, this);
+  }
+
+  public VarDeclPattern(Cloner cloner, VarDeclPattern original) : base(cloner, original) {
+    LHS = cloner.CloneCasePattern(original.LHS);
+    RHS = cloner.CloneExpr(original.RHS);
+    HasGhostModifier = original.HasGhostModifier;
+  }
 
   public VarDeclPattern(IToken tok, IToken endTok, CasePattern<LocalVariable> lhs, Expression rhs, bool hasGhostModifier)
     : base(tok, endTok) {
@@ -558,6 +667,11 @@ public class VarDeclPattern : Statement {
 /// </summary>
 public abstract class ConcreteUpdateStatement : Statement {
   public readonly List<Expression> Lhss;
+
+  protected ConcreteUpdateStatement(Cloner cloner, ConcreteUpdateStatement original) : base(cloner, original) {
+    Lhss = original.Lhss.Select(cloner.CloneExpr).ToList();
+  }
+
   public ConcreteUpdateStatement(IToken tok, IToken endTok, List<Expression> lhss, Attributes attrs = null)
     : base(tok, endTok, attrs) {
     Contract.Requires(tok != null);
@@ -576,26 +690,38 @@ public abstract class ConcreteUpdateStatement : Statement {
 /// `{:axiom}` attribute is directly attached to the statement-level
 /// attributes).
 /// </summary>
-public record AttributedToken(IToken Token, Attributes Attrs) { }
+public record AttributedToken(IToken Token, Attributes Attrs) : IAttributeBearingDeclaration {
+  Attributes IAttributeBearingDeclaration.Attributes => Attrs;
+}
 
-public class UpdateStmt : ConcreteUpdateStatement {
+public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt> {
   public readonly List<AssignmentRhs> Rhss;
   public readonly bool CanMutateKnownState;
   public Expression OriginalInitialLhs = null;
 
-  [FilledInDuringResolution] public readonly List<Statement> ResolvedStatements = new List<Statement>();
-  public override IEnumerable<Statement> SubStatements {
-    get { return ResolvedStatements; }
-  }
+  [FilledInDuringResolution] public List<Statement> ResolvedStatements;
+  public override IEnumerable<Statement> SubStatements => Children.OfType<Statement>();
 
-  // Both resolved and unresolved are required. Duplicate usages will be filtered out.
-  public override IEnumerable<INode> Children => Lhss.Concat<INode>(Rhss).Concat(ResolvedStatements);
+  public override IEnumerable<INode> Children => ResolvedStatements ?? Lhss.Concat<INode>(Rhss);
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(cce.NonNullElements(Lhss));
     Contract.Invariant(cce.NonNullElements(Rhss));
   }
+
+  public UpdateStmt Clone(Cloner cloner) {
+    return new UpdateStmt(cloner, this);
+  }
+
+  public UpdateStmt(Cloner cloner, UpdateStmt original) : base(cloner, original) {
+    Rhss = original.Rhss.Select(cloner.CloneRHS).ToList();
+    CanMutateKnownState = original.CanMutateKnownState;
+    if (cloner.CloneResolvedFields) {
+      ResolvedStatements = original.ResolvedStatements.Select(cloner.CloneStmt).ToList();
+    }
+  }
+
   public UpdateStmt(IToken tok, IToken endTok, List<Expression> lhss, List<AssignmentRhs> rhss)
     : base(tok, endTok, lhss) {
     Contract.Requires(tok != null);
@@ -630,6 +756,17 @@ public class LocalVariable : INode, IVariable, IAttributeBearingDeclaration {
     Contract.Invariant(OptionalType != null);
   }
 
+  public LocalVariable(Cloner clone, LocalVariable original) {
+    Tok = clone.Tok(original.Tok);
+    EndTok = clone.Tok(original.EndTok);
+    name = original.Name;
+    OptionalType = clone.CloneType(original.OptionalType);
+    IsGhost = original.IsGhost;
+
+    if (clone.CloneResolvedFields) {
+      type = original.type;
+    }
+  }
   public LocalVariable(IToken tok, IToken endTok, string name, Type type, bool isGhost) {
     Contract.Requires(tok != null);
     Contract.Requires(endTok != null);
@@ -680,6 +817,8 @@ public class LocalVariable : INode, IVariable, IAttributeBearingDeclaration {
 
   public readonly Type OptionalType;  // this is the type mentioned in the declaration, if any
   Type IVariable.OptionalType { get { return this.OptionalType; } }
+
+  [FilledInDuringResolution]
   internal Type type;  // this is the declared or inferred type of the variable; it is non-null after resolution (even if resolution fails)
   public Type Type {
     get {
@@ -757,7 +896,7 @@ public class GuardedAlternative : INode, IAttributeBearingDeclaration {
   }
 }
 
-public class WhileStmt : OneBodyLoopStmt {
+public class WhileStmt : OneBodyLoopStmt, ICloneable<WhileStmt> {
   public readonly Expression/*?*/ Guard;
 
   public class LoopBodySurrogate {
@@ -768,6 +907,14 @@ public class WhileStmt : OneBodyLoopStmt {
       LocalLoopTargets = localLoopTargets;
       UsesHeap = usesHeap;
     }
+  }
+
+  public WhileStmt Clone(Cloner cloner) {
+    return new WhileStmt(cloner, this);
+  }
+
+  public WhileStmt(Cloner cloner, WhileStmt original) : base(cloner, original) {
+    Guard = cloner.CloneExpr(original.Guard);
   }
 
   public WhileStmt(IToken tok, IToken endTok, Expression guard,
@@ -788,13 +935,6 @@ public class WhileStmt : OneBodyLoopStmt {
     this.Guard = guard;
   }
 
-  public override IEnumerable<Statement> SubStatements {
-    get {
-      if (Body != null) {
-        yield return Body;
-      }
-    }
-  }
   public override IEnumerable<Expression> NonSpecificationSubExpressions {
     get {
       foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
@@ -840,12 +980,23 @@ public class RefinedWhileStmt : WhileStmt {
 /// * modify ... { Stmt }
 ///   ConditionOmitted == true && BodyOmitted == false
 /// </summary>
-public class SkeletonStatement : Statement {
+public class SkeletonStatement : Statement, ICloneable<SkeletonStatement> {
   public readonly Statement S;
   public bool ConditionOmitted { get { return ConditionEllipsis != null; } }
   public readonly IToken ConditionEllipsis;
   public bool BodyOmitted { get { return BodyEllipsis != null; } }
   public readonly IToken BodyEllipsis;
+
+  public SkeletonStatement Clone(Cloner cloner) {
+    return new SkeletonStatement(cloner, this);
+  }
+
+  public SkeletonStatement(Cloner cloner, SkeletonStatement original) : base(cloner, original) {
+    S = original.S == null ? null : cloner.CloneStmt(original.S);
+    ConditionEllipsis = original.ConditionEllipsis;
+    BodyEllipsis = original.BodyEllipsis;
+  }
+
   public SkeletonStatement(IToken tok, IToken endTok)
     : base(tok, endTok) {
     Contract.Requires(tok != null);
@@ -885,10 +1036,21 @@ public class SkeletonStatement : Statement {
 /// }
 ///
 /// </summary>
-public class TryRecoverStatement : Statement {
+public class TryRecoverStatement : Statement, ICloneable<TryRecoverStatement> {
   public readonly Statement TryBody;
   public readonly IVariable HaltMessageVar;
   public readonly Statement RecoverBody;
+
+  public TryRecoverStatement Clone(Cloner cloner) {
+    return new TryRecoverStatement(cloner, this);
+  }
+
+  public TryRecoverStatement(Cloner cloner, TryRecoverStatement original) : base(cloner, original) {
+    TryBody = cloner.CloneStmt(original.TryBody);
+    RecoverBody = cloner.CloneStmt(original.RecoverBody);
+    HaltMessageVar = cloner.CloneIVariable(original.HaltMessageVar, false);
+  }
+
   public TryRecoverStatement(Statement tryBody, IVariable haltMessageVar, Statement recoverBody)
     : base(tryBody.Tok, recoverBody.EndTok) {
     Contract.Requires(tryBody != null);

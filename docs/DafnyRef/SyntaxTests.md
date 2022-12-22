@@ -6,7 +6,7 @@ Sample math B: $a \to b$ or
  or \( a \top \) or \[ a \to \pi \]
 
 Colors
-```dafny
+```dafny <!-- %no-check -->
 integer literal:  10
 hex literal:      0xDEAD
 real literal:     1.1
@@ -28,7 +28,7 @@ error:            $
 
 Syntax color tests:
 
-```dafny
+```dafny <!-- %no-check -->
 integer: 0 00 20 01 0_1
 float:   .0 1.0 1. 0_1.1_0
 bad:    0_

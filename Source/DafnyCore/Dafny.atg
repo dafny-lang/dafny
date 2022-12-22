@@ -217,7 +217,7 @@ public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, Include include, ModuleD
 {
   // initialize readonly fields
   dummyExpr = new LiteralExpr(Token.NoToken);
-  dummyRhs = new ExprRhs(dummyExpr, null);
+  dummyRhs = new ExprRhs(dummyExpr);
   dummyFrameExpr = new FrameExpression(dummyExpr.tok, dummyExpr, null);
   dummyStmt = new ReturnStmt(Token.NoToken, Token.NoToken, null);
   var dummyBlockStmt = new BlockStmt(Token.NoToken, Token.NoToken, new List<Statement>());
@@ -1992,7 +1992,7 @@ EnsuresClause<.List<AttributedExpression> ens, bool allowLambda.>
                  .)
   { Attribute<ref attrs> }
   Expression<out e, false, allowLambda>
-  OldSemi       (. ens.Add(new AttributedExpression(e, attrs)); .)
+    OldSemi       (. ens.Add(new AttributedExpression(e, attrs)); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -2916,6 +2916,7 @@ UpdateStmt<out Statement/*!*/ s>
      Expression suchThat = null;
      AttributedToken keywordToken = null;
      Expression exceptionExpr = null;
+     ExprRhs exceptionRhs = null;
      IToken endToken = Token.NoToken;
   .)
 ( Lhs<out e>                       (. x = e.tok; startToken = e.GetStartToken(); endToken = t; .)
@@ -2935,11 +2936,12 @@ UpdateStmt<out Statement/*!*/ s>
       ]
       Expression<out suchThat, false, true>
     | ":-"                         (. x = t; .)
-      [ IF(IsAssumeTypeKeyword(la))     /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */
+      [ IF(IsAssumeTypeKeyword(la))   /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */
         ("expect"|"assert"|"assume")  (. var tok = t; .)
         { Attribute<ref tokenAttrs> } (. keywordToken = new AttributedToken(tok, tokenAttrs); .)
       ]
       Expression<out exceptionExpr, false, false>
+      { Attribute<ref attrs> }     (. exceptionRhs = new ExprRhs(exceptionExpr, attrs); .)
       { "," Rhs<out r>             (. rhss.Add(r); .)
       }
     )
@@ -2947,18 +2949,20 @@ UpdateStmt<out Statement/*!*/ s>
   | ":"                            (. SemErr(t, "invalid statement (did you forget the 'label' keyword?)"); .)
   )
 | ":-"                             (. x = t; startToken = t; .)
-   [ IF(IsAssumeTypeKeyword(la))     /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */
-      ("expect"|"assert"|"assume") (. var tok = t; .){ Attribute<ref tokenAttrs> } (. keywordToken = new AttributedToken(tok, tokenAttrs); .)
+   [ IF(IsAssumeTypeKeyword(la))      /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */
+      ("expect"|"assert"|"assume")    (. var tok = t; .)
+      { Attribute<ref tokenAttrs> }   (. keywordToken = new AttributedToken(tok, tokenAttrs); .)
    ]
    Expression<out exceptionExpr, false, false>
+   { Attribute<ref attrs> }        (. exceptionRhs = new ExprRhs(exceptionExpr, attrs); .)
    { "," Rhs<out r>                (. rhss.Add(r); .)
    }
    ";"                             (. endTok = t; .)
 )
   (. if (suchThat != null) {
        s = new AssignSuchThatStmt(x, endTok, lhss, suchThat, suchThatAssume, null);
-     } else if (exceptionExpr != null) {
-       s = new AssignOrReturnStmt(x, endTok, lhss, exceptionExpr, keywordToken, rhss);
+     } else if (exceptionRhs != null) {
+       s = new AssignOrReturnStmt(x, endTok, lhss, exceptionRhs, keywordToken, rhss);
      } else {
        if (lhss.Count == 0 && rhss.Count == 0) {
          s = new BlockStmt(x, endTok, new List<Statement>()); // error, give empty statement
@@ -3059,6 +3063,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
      Expression suchThat = null;
      AttributedToken keywordToken = null;
      Expression exceptionExpr = null;
+     ExprRhs exceptionRhs = null;
      Attributes attrs = null;
      Attributes tokenAttrs = null;
      IToken endTok;
@@ -3092,13 +3097,14 @@ VarDeclStatement<.out Statement/*!*/ s.>
          { Attribute<ref tokenAttrs> } (. keywordToken = new AttributedToken(tok, tokenAttrs); .)
       ]
       Expression<out exceptionExpr, false, false>
+      { Attribute<ref attrs> }       (. exceptionRhs = new ExprRhs(exceptionExpr, attrs); .)
       { "," Rhs<out r>               (. rhss.Add(r); .)
       }
     ]
     SYNC ";"                         (. endTok = t; .)
     (. ConcreteUpdateStatement update;
        var lhsExprs = new List<Expression>();
-       if (isGhost || (rhss.Count == 0 && exceptionExpr == null && suchThat == null)) { // explicitly ghost or no init
+       if (isGhost || (rhss.Count == 0 && exceptionRhs == null && suchThat == null)) { // explicitly ghost or no init
          foreach (var lhs in lhss) {
            lhsExprs.Add(new IdentifierExpr(lhs.Tok, lhs.Name) { RangeToken = new RangeToken(lhs.Tok, lhs.Tok) } );
          }
@@ -3109,8 +3115,8 @@ VarDeclStatement<.out Statement/*!*/ s.>
        }
        if (suchThat != null) {
          update = new AssignSuchThatStmt(assignTok, endTok, lhsExprs, suchThat, suchThatAssume, attrs);
-       } else if (exceptionExpr != null) {
-         update = new AssignOrReturnStmt(assignTok, endTok, lhsExprs, exceptionExpr, keywordToken, rhss);
+       } else if (exceptionRhs != null) {
+         update = new AssignOrReturnStmt(assignTok, endTok, lhsExprs, exceptionRhs, keywordToken, rhss);
        } else if (rhss.Count == 0) {
          update = null;
        } else {
@@ -3852,7 +3858,7 @@ Expression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwis
     ";"                       (. endTok = t; .)
     Expression<out e0, allowLemma, allowLambda>
     (. e = new StmtExpr(e.tok,
-             new UpdateStmt(e.tok, endTok, new List<Expression>(), new List<AssignmentRhs>() { new ExprRhs(e, null) }) {
+             new UpdateStmt(e.tok, endTok, new List<Expression>(), new List<AssignmentRhs>() { new ExprRhs(e) }) {
                RangeToken = e.GetRangeToken()
              },
              e0) { RangeToken = new RangeToken(e.GetStartToken(), t) };
