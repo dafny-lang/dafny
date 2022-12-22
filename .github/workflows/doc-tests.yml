@@ -58,7 +58,6 @@ jobs:
       run: dotnet build dafny/Source/Dafny.sln
     - name: Check OnlineTutorial examples
       run: |
-        bash --version
         cd dafny/docs
         PATH=../bin:$PATH ./check-examples OnlineTutorial/Lemmas.md || ( echo Tests Failed; exit 1 ) && echo Tests Succeeded
     - name: Check Reference Manual examples
