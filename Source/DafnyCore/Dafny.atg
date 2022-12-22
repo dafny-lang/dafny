@@ -1175,14 +1175,24 @@ ModuleExport<ModuleDefinition parent, out ModuleDecl submodule>
     "provides"
     (
       ( ExportSignature<true, out exsig>        (. exports.Add(exsig); .)
-        {"," ExportSignature<true, out exsig>   (. exports.Add(exsig); .) }
-      )
+        {"," 
+             ( ExportSignature<true, out exsig>  (. exports.Add(exsig); .)
+             | "provides" (. SemErr(la, "no comma is allowed between provides and reveals clauses in an export declaration"); .)
+             | "reveals" (. SemErr(la, "no comma is allowed between provides and reveals clauses in an export declaration"); .)
+             )
+        }
+     )
     | "*" (. provideAll = true; .)
     )
   | "reveals"
     (
       ( ExportSignature<false, out exsig>       (. exports.Add(exsig); .)
-        {"," ExportSignature<false, out exsig>  (. exports.Add(exsig); .) }
+        {"," 
+             ( ExportSignature<false, out exsig>  (. exports.Add(exsig); .)
+             | "provides" (. SemErr(la, "no comma is allowed between provides and reveals clauses in an export declaration"); .)
+             | "reveals" (. SemErr(la, "no comma is allowed between provides and reveals clauses in an export declaration"); .)
+             )
+        }
       )
     | "*" (. revealAll = true; .)
     )
@@ -1459,10 +1469,12 @@ FieldDecl<.DeclModifierData dmod, bool isValueType, List<MemberDecl> mm.>
   { Attribute<ref attrs> }
   FIdentType<out id, out ty>           (. var f = new Field(id, id.val, dmod.IsGhost, ty, attrs); f.RangeToken = new RangeToken(startToken, t); mm.Add(f); f.TokenWithTrailingDocString = t;
                                           f.RangeToken = new RangeToken(startToken, t); .)
+  [ ("="|":=") (. SemErr(la, "field declarations may not be initialized"); .)]
   { ","                                (. startToken = t; .)
     FIdentType<out id, out ty>         (.     f = new Field(id, id.val, dmod.IsGhost, ty, attrs); f.RangeToken = new RangeToken(startToken, t); mm.Add(f); f.TokenWithTrailingDocString = t;
                                               f.RangeToken = new RangeToken(startToken, t);
                                        .)
+    [ ("="|":=") (. SemErr(la, "field declarations may not be initialized"); .)]
   }
   OldSemi
   .
@@ -1484,7 +1496,8 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
   { Attribute<ref attrs> }
   CIdentType<out id, out ty>                 (. if (ty == null) { ty = new InferredTypeProxy(); } .)
   [ ellipsis ]
-  [ ":=" Expression<out e, false, true> ]
+  [ ( ":=" | "=" (. SemErr(la, "a const declaration s initialized using ':=', not '='"); .) )
+    Expression<out e, false, true> ]
                                              (. if (e == null && ty is InferredTypeProxy) {
                                                   SemErr(id, "a const declaration must have a type or a RHS value");
                                                 }
@@ -3096,7 +3109,8 @@ VarDeclStatement<.out Statement/*!*/ s.>
       { Attribute<ref attrs> }
       LocalIdentTypeOptional<out d, isGhost>  (. lhss.Add(d); d.Attributes = attrs; attrs = null; .)
     }
-    [ ":="                           (. assignTok = t; .)
+    [ ( ":=" | "=" (. SemErr(la, "a var declaration is initialized using ':=', ':-' or ':|', not '='"); .) )                         
+                                     (. assignTok = t; .)
       Rhs<out r>                     (. rhss.Add(r); .)
       { "," Rhs<out r>               (. rhss.Add(r); .)
       }
@@ -4653,7 +4667,7 @@ LetExprWithLHS<out Expression e, bool allowLemma, bool allowLambda, bool allowBi
                                        letLHSs.Add(pat);
                                     .)
     }
-    ( ":="
+    ( ":=" 
     | { Attribute<ref attrs> }
       ":|"                          (. exact = false;
                                        foreach (var lhs in letLHSs) {
@@ -4663,6 +4677,7 @@ LetExprWithLHS<out Expression e, bool allowLemma, bool allowLambda, bool allowBi
                                        }
                                     .)
     | ":-"                          (. isLetOrFail = true; .)
+    | "=" (. SemErr(la, "a let declaration is initialized using ':=', ':-' or ':|', not '='"); .)
     )
     Expression<out e, false, true>        (. letRHSs.Add(e); .)
     { "," Expression<out e, false, true>  (. letRHSs.Add(e); .)
