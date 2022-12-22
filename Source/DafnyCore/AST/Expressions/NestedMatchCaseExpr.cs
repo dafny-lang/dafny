@@ -36,7 +36,7 @@ public class NestedMatchCaseExpr : NestedMatchCase, IAttributeBearingDeclaration
       Body = new LetExpr(Token.NoToken, lhss, rhss, Body, true);
     }
 
-    Pat.Resolve(resolver, resolutionContext, subst, sourceType, false, false); // TODO: is this isGhost false correct?
+    Pat.Resolve(resolver, resolutionContext, subst, sourceType, false, false, false, false); // TODO: is this isGhost false correct?
 
     resolver.ResolveAttributes(this, resolutionContext);
     var afterResolveErrorCount = resolver.reporter.ErrorCount;

@@ -1316,8 +1316,6 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public override void Compile(Program program, ConcreteSyntaxTree wrx) {
-
-
       Contract.Requires(program != null);
 
       EmitHeader(program, wrx);

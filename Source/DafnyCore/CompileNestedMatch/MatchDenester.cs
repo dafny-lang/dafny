@@ -281,13 +281,11 @@ public class MatchDenester {
         return pat;
       case IdPattern p:
         if (inDisjunctivePattern && p.ResolvedLit == null && p.Arguments == null && !p.IsWildcardPattern) {
-          reporter.Error(MessageSource.Resolver, pat.Tok, "Disjunctive patterns may not bind variables");
           return new IdPattern(p.Tok, FreshTempVarName("_", null), null, p.IsGhost);
         }
         var args = p.Arguments?.ConvertAll(a => RemoveIllegalSubpatterns(a, inDisjunctivePattern));
         return new IdPattern(p.Tok, p.Id, p.Type, args, p.IsGhost) { ResolvedLit = p.ResolvedLit, BoundVar = p.BoundVar };
       case DisjunctivePattern p:
-        reporter.Error(MessageSource.Resolver, pat.Tok, "Disjunctive patterns are not allowed inside other patterns");
         return new IdPattern(p.Tok, FreshTempVarName("_", null), null, p.IsGhost);
       default:
         Contract.Assert(false);

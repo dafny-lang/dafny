@@ -67,8 +67,13 @@ public class IdPattern : ExtendedPattern, IHasUsages {
   public override IEnumerable<INode> Children => Arguments ?? Enumerable.Empty<INode>();
 
   public override void Resolve(Resolver resolver, ResolutionContext resolutionContext,
-    IDictionary<TypeParameter, Type> subst, Type sourceType, bool isGhost, bool mutable) {
+    IDictionary<TypeParameter, Type> subst, Type sourceType, bool isGhost, bool mutable,
+    bool inPattern, bool inDisjunctivePattern) {
 
+    if (inDisjunctivePattern && ResolvedLit == null && Arguments == null && !IsWildcardPattern) {
+      resolver.reporter.Error(MessageSource.Resolver, Tok, "Disjunctive patterns may not bind variables");
+    }
+    
     Debug.Assert(Arguments != null || Type is InferredTypeProxy);
 
     if (Arguments == null) {
@@ -94,7 +99,7 @@ public class IdPattern : ExtendedPattern, IHasUsages {
         for (var index = 0; index < Arguments.Count; index++) {
           var argument = Arguments[index];
           var formal = Ctor.Formals[index];
-          argument.Resolve(resolver, resolutionContext, subst, formal.Type.Subst(subst), formal.IsGhost, mutable);
+          argument.Resolve(resolver, resolutionContext, subst, formal.Type.Subst(subst), formal.IsGhost, mutable, true, inDisjunctivePattern);
         }
       }
     }
