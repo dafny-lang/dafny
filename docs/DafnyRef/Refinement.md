@@ -18,7 +18,7 @@ and the augmentation directives) is the _assembled_ module or _refinement result
 Syntactically, the refinement parent is a normal module declaration.
 The refining module declares which module is its refinement parent with the
 `refines` clause:
-```
+```dafny <!-- %check-resolve -->
 module P { // refinement parent
 }
 module M refines P { // refining module
@@ -91,7 +91,7 @@ the abstract import.
 With respect to refinement, a nested module behaves just like a top-level module. It may be declared abstract and it may be declared to `refine` some refinement parent. If the nested module is not refining anything and not being refined, then it is copied into the refinement result like any other declaration.
 
 Here is some example code:
-```
+```dafny <!-- %check-verify -->
 abstract module P {
   module A { const i := 5 }
   abstract module B { type T }
@@ -116,7 +116,7 @@ Hence the names `X.B'.T`, `X.A.i` and `X.C.k` are all valid.
 
 Const declarations can be refined as in the following example.
 
-```
+```dafny  <!-- %check-verify -->
 module A {
   const ToDefine: int
   const ToDefineWithoutType: int
@@ -147,7 +147,7 @@ not exist in the refinement parent.
 
 Method declarations can be refined as in the following example.
 
-```
+```dafny  <!-- %check-verify -->
 module A {
   method ToImplement(x: int) returns (r: int)
     ensures r > x
@@ -161,16 +161,6 @@ module A {
     return y;
   }
 
-  method ToSuperimpose(x: int) returns (r: int)
-  {
-    var y: int := x;
-    if y < 0 {
-      return -y;
-    } else {
-      return y;
-    }
-  }
-
 }
 
 module B refines A {
@@ -179,7 +169,7 @@ module B refines A {
     return x + 2;
   }
 
-  method ToStrengthen...
+  method ToStrengthen ...
     ensures r == x*2
   {
     return x*2;
@@ -188,16 +178,6 @@ module B refines A {
   method ToDeterminize(x: int) returns (r: int)
   {
     return x;
-  }
-
-  method ToSuperimpose(x: int) returns (r: int)
-  {
-    ...;
-    if y < 0 {
-      print "inverting";
-    } else {
-      print "not modifying";
-    }
   }
 }
 ```
@@ -211,8 +191,6 @@ operations:
   `ensures` clauses (as in `ToStrengthen`),
 * provide a more deterministic version of a non-deterministic parent
   body (as in `ToDeterminize`), or
-* superimpose the body of the parent method with additional statements
-  (as in `ToSuperimpose`).
 
 The type signature of a child method must be the same as that of the
 parent method it refines. This can be ensured by providing an explicit
@@ -236,7 +214,7 @@ hover text that shows what each `...` or `}` expands to.
 
 The refinement result for `ToSuperimpose` will be as follows.
 
-```
+```dafny  <!-- %check-verify -->
 method ToSuperimpose(x: int) returns (r: int)
 {
   var y: int := x;
@@ -281,7 +259,7 @@ of any method or lemma it mentions.
 Function (and equivalently predicate) declarations can be refined as in
 the following example.
 
-```
+```dafny  <!-- %check-verify -->
 module A {
   function F(x: int): (r: int)
     ensures r > x
@@ -292,10 +270,10 @@ module A {
 }
 
 module B refines A {
-  function F...
+  function F ...
   { x + 1 }
 
-  function G...
+  function G ...
     ensures r == x + 1
 }
 ```
@@ -324,7 +302,7 @@ refinement result.
 according to the rules for that category of member.
 
 Here is an example code snippet:
-```
+```dafny  <!-- %check-verify -->
 abstract module P {
   class C {
     function F(): int
@@ -350,7 +328,7 @@ Types can be refined in two ways:
 
 For example, consider the following abstract module:
 
-```dafny
+```dafny  <!-- %check-verify -->
 abstract module Parent {
   type T
   type B = bool
@@ -358,7 +336,7 @@ abstract module Parent {
   newtype Pos = n: nat | n > 0 witness 1
   datatype Bool = True | False
 }
-```
+``` <!-- %save Parent.tmp -->
 
 In this module, type `T` is opaque and hence can be refined with any type,
 including class types.  Types `B`, `S`, `Pos`, and `Bool` are concrete and
@@ -366,7 +344,7 @@ cannot be refined further, except (for `Pos` and `Bool`) by giving them
 additional members or attributes (or refining their existing members, if any).
 Hence, the following are valid refinements:
 
-```dafny
+```dafny  <!-- %check-verify %use Parent.tmp -->
 module ChildWithTrait refines Parent {
   trait T {}
 }
@@ -415,7 +393,7 @@ subset type with a `witness *` clause.
 
 The refinement of an opaque type with body-less members can include both a definition
 for the type along with a body for the member, as in this example:
-```
+```dafny  <!-- %check-verify -->
 abstract module P {
   type T3 {
     function ToString(): string
