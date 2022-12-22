@@ -154,7 +154,8 @@ same time, so sometimes you have to use the `=` version to ensure the names do n
 
 By default, an `import` will give access to all declarations (and their definitions) from the imported module. To control this more precisely we can instead use `export` sets. Each `export` set may have a list of declarations from the current module, given as `provides` or `reveals`. An `export` without a name is considered the default export for that module, and is used when no set is explicitly named.
 
-```dafny  <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 module Helpers {
   export Spec provides addOne, addOne_result
   export Body reveals addOne
@@ -218,7 +219,8 @@ module Mod3 {
 
 We may also use `export` sets to control which type definitions are available. All type declarations (i.e. `newtype`, `type`, `datatype`, etc.) can be exported as `provides` or `reveals`. In the former case, modules which `import` that type will treat it as an opaque type.
 
-```dafny  <!-- %check-resolve Modules.2.expect -->
+<!-- %check-resolve Modules.2.expect -->
+```dafny
 module Helpers {
   export provides f, T
   export Body reveals f, T
@@ -257,7 +259,8 @@ module Mod2 {
 
 As a convenient shorthand, the special identifier "*" can be given after `provides` or `reveals` to indicate that all declarations should be either provided or revealed.
 
-```dafny  <!-- %check-verify -->
+<!-- %check-verify -->
+``dafny
 module A {
    export All reveals * // reveals T, f, g
    export Spec provides * // provides T, f, g
@@ -270,7 +273,8 @@ module A {
 
 We can also provide multiple exports at once to create an aggregate `import`.
 
-```dafny  <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 module A {
   export Justf reveals f
   export JustT reveals T
@@ -288,7 +292,8 @@ module B {
 
 An `export` set must always present a coherent view of a module: anything that appears in an exported declaration must itself be exported. Revisiting the previous example, we could not create an `export` set that `reveals` `f` without also revealing `T`, because the return type of `f` is `T`. This is for the simple reason that we would create a type constraint `0 : T` which cannot be solved if `T` is opaque. Similarly we cannot create an export set that `provides` or `reveals` `f` if we do not also at least provide `T`.
 
-```dafny  <!-- %check-resolve Modules.3.expect -->
+<!-- %check-resolve Modules.3.expect -->
+```dafny
 module Helpers {
   export provides f, T // good
   export Body reveals f, T // good

@@ -118,7 +118,8 @@ Hence the names `X.B'.T`, `X.A.i` and `X.C.k` are all valid.
 
 Const declarations can be refined as in the following example.
 
-```dafny  <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 module A {
   const ToDefine: int
   const ToDefineWithoutType: int
@@ -149,7 +150,8 @@ not exist in the refinement parent.
 
 Method declarations can be refined as in the following example.
 
-```dafny  <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 module A {
   method ToImplement(x: int) returns (r: int)
     ensures r > x
@@ -216,7 +218,8 @@ hover text that shows what each `...` or `}` expands to.
 
 The refinement result for `ToSuperimpose` will be as follows.
 
-```dafny  <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 method ToSuperimpose(x: int) returns (r: int)
 {
   var y: int := x;
@@ -261,7 +264,8 @@ of any method or lemma it mentions.
 Function (and equivalently predicate) declarations can be refined as in
 the following example.
 
-```dafny  <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 module A {
   function F(x: int): (r: int)
     ensures r > x
@@ -304,7 +308,8 @@ refinement result.
 according to the rules for that category of member.
 
 Here is an example code snippet:
-```dafny  <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 abstract module P {
   class C {
     function F(): int
@@ -330,7 +335,8 @@ Types can be refined in two ways:
 
 For example, consider the following abstract module:
 
-```dafny  <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 abstract module Parent {
   type T
   type B = bool
@@ -346,7 +352,8 @@ cannot be refined further, except (for `Pos` and `Bool`) by giving them
 additional members or attributes (or refining their existing members, if any).
 Hence, the following are valid refinements:
 
-```dafny  <!-- %check-verify %use Parent.tmp -->
+<!-- %check-verify %use Parent.tmp -->
+```dafny
 module ChildWithTrait refines Parent {
   trait T {}
 }
@@ -395,7 +402,8 @@ subset type with a `witness *` clause.
 
 The refinement of an opaque type with body-less members can include both a definition
 for the type along with a body for the member, as in this example:
-```dafny  <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 abstract module P {
   type T3 {
     function ToString(): string

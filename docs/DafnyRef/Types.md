@@ -3819,7 +3819,8 @@ then be thought of as being captured into the function definition.
 For example, suppose function `F` above is declared in a class `C` and
 that `c` references an object of type `C`; then, the following is type
 correct:
-```dafny  <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 var f: (int, bool) -> real := c.F;
 ```
 whereas it would have been incorrect to have written something like:
