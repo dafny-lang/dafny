@@ -2218,7 +2218,7 @@ An instance method has an implicit receiver parameter, `this`.
 A static method M in a class C can be invoked by `C.M(…)`.
 
 An ordinary method is declared with the `method` keyword;
-[the section about constructors](#sec-constructors) explains methods that instead use the
+[the section about constructors](#sec-constructor-methods) explains methods that instead use the
 `constructor` keyword; [the section about lemmas](#sec-lemmas) discusses methods that are
 declared with the `lemma` keyword. Methods declared with the
 `least lemma` or `greatest lemma` keyword phrases
@@ -3291,7 +3291,7 @@ ArrayType_ = arrayToken [ GenericInstantiation ]
 Dafny supports mutable fixed-length _array types_ of any positive
 dimension.  Array types are (heap-based) reference types.
 
-`arrayToken` is a kind of [reserved token](#sec-reserved-tokens),
+`arrayToken` is a kind of [reserved token](#sec-reserved-words),
 such as `array`, `array2`, `array3`, an so on (but not `array1`).
 The suffix giving the element type can be omitted if the element type can be inferred, though in that case it is likely that the `arrayToken` itself is also
 inferrable and can be omitted.

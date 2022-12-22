@@ -387,7 +387,7 @@ numeric negation (`-` -- [Section 7.2](#sec-numeric-types)), or
 bit-vector negation (`-` -- [Section 7.3](#sec-bit-vector-types))
  to its operand.
 
-## 21.12. Primary Expressions {#primary-expressions}
+## 21.12. Primary Expressions {#sec-primary-expressions}
 ````grammar
 PrimaryExpression(allowLemma, allowLambda) =
   ( NameSegment { Suffix }
