@@ -2704,9 +2704,6 @@ namespace Microsoft.Dafny {
             Contract.Assert(dd.Constraint.Type != null);  // follows from postcondition of ResolveExpression
             ConstrainTypeExprBool(dd.Constraint, "newtype constraint must be of type bool (instead got {0})");
             SolveAllTypeConstraints();
-            if (!CheckTypeInference_Visitor.IsDetermined(dd.BaseType.NormalizeExpand())) {
-              reporter.Error(MessageSource.Resolver, dd.tok, "newtype's base type is not fully determined; add an explicit type for '{0}'", dd.Var.Name);
-            }
             scope.PopMarker();
           }
 
@@ -2726,11 +2723,6 @@ namespace Microsoft.Dafny {
           Contract.Assert(dd.Constraint.Type != null);  // follows from postcondition of ResolveExpression
           ConstrainTypeExprBool(dd.Constraint, "subset-type constraint must be of type bool (instead got {0})");
           SolveAllTypeConstraints();
-          if (!CheckTypeInference_Visitor.IsDetermined(dd.Rhs.NormalizeExpand())) {
-            reporter.Error(MessageSource.Resolver, dd.tok, "subset type's base type is not fully determined; add an explicit type for '{0}'", dd.Var.Name);
-          }
-          dd.ConstraintIsCompilable = ExpressionTester.CheckIsCompilable(null, dd.Constraint, new CodeContextWrapper(dd, true));
-          dd.CheckedIfConstraintIsCompilable = true;
 
           scope.PopMarker();
           allTypeParameters.PopMarker();
@@ -2756,34 +2748,44 @@ namespace Microsoft.Dafny {
                 AddAssignableConstraint(field.tok, field.Type, field.Rhs.Type, "type for constant '" + field.Name + "' is '{0}', but its initialization value type is '{1}'");
               }
               SolveAllTypeConstraints();
-              if (!CheckTypeInference_Visitor.IsDetermined(field.Type.NormalizeExpand())) {
-                reporter.Error(MessageSource.Resolver, field.tok, "const field's type is not fully determined");
-              }
             }
           }
           currentClass = null;
         }
       }
       Contract.Assert(AllTypeConstraints.Count == 0);
-      if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-        // Check type inference, which also discovers bounds, in newtype/subset-type constraints and const declarations
-        foreach (TopLevelDecl topd in declarations) {
-          TopLevelDecl d = topd is ClassDecl ? ((ClassDecl)topd).NonNullTypeDecl : topd;
-          if (d is RedirectingTypeDecl dd && dd.Constraint != null) {
-            CheckTypeInference(dd.Constraint, dd);
+
+      // Check if types have been determined, part 0.
+      foreach (TopLevelDecl topd in declarations) {
+        TopLevelDecl d = topd is ClassDecl ? ((ClassDecl)topd).NonNullTypeDecl : topd;
+        if (d is NewtypeDecl) {
+          var dd = (NewtypeDecl)d;
+          if (dd.Var == null) {
+          } else {
+            if (!CheckTypeInference_Visitor.IsDetermined(dd.BaseType.NormalizeExpand())) {
+              reporter.Error(MessageSource.Resolver, dd.tok, "newtype's base type is not fully determined; add an explicit type for '{0}'", dd.Var.Name);
+            }
           }
-          if (topd is TopLevelDeclWithMembers cl) {
-            foreach (var member in cl.Members) {
-              if (member is ConstantField field && field.Rhs != null) {
-                CheckTypeInference(field.Rhs, field);
-                if (!field.IsGhost) {
-                  ExpressionTester.CheckIsCompilable(this, field.Rhs, field);
-                }
+        } else if (d is SubsetTypeDecl) {
+          var dd = (SubsetTypeDecl)d;
+          if (!CheckTypeInference_Visitor.IsDetermined(dd.Rhs.NormalizeExpand())) {
+            reporter.Error(MessageSource.Resolver, dd.tok, "subset type's base type is not fully determined; add an explicit type for '{0}'", dd.Var.Name);
+          }
+          dd.ConstraintIsCompilable = ExpressionTester.CheckIsCompilable(null, dd.Constraint, new CodeContextWrapper(dd, true));
+          dd.CheckedIfConstraintIsCompilable = true;
+        }
+        if (topd is TopLevelDeclWithMembers) {
+          var cl = (TopLevelDeclWithMembers)topd;
+          foreach (var member in cl.Members) {
+            if (member is ConstantField field) {
+              if (!CheckTypeInference_Visitor.IsDetermined(field.Type.NormalizeExpand())) {
+                reporter.Error(MessageSource.Resolver, field.tok, "const field's type is not fully determined");
               }
             }
           }
         }
       }
+
       // Now, we're ready for the other declarations, along with any witness clauses of newtype/subset-type declarations.
       foreach (TopLevelDecl d in declarations) {
         Contract.Assert(AllTypeConstraints.Count == 0);
@@ -2793,7 +2795,6 @@ namespace Microsoft.Dafny {
           // NewTypeDecl's and SubsetTypeDecl's were already processed in the loop above, except for any witness clauses
           var dd = (RedirectingTypeDecl)d;
           if (dd.Witness != null) {
-            var prevErrCnt = reporter.Count(ErrorLevel.Error);
             var codeContext = new CodeContextWrapper(dd, dd.WitnessKind == SubsetTypeDecl.WKind.Ghost);
             scope.PushMarker();
             if (d is not TopLevelDeclWithMembers topLevelDecl || !topLevelDecl.AcceptThis) {
@@ -2803,12 +2804,6 @@ namespace Microsoft.Dafny {
             scope.PopMarker();
             ConstrainSubtypeRelation(dd.Var.Type, dd.Witness.Type, dd.Witness, "witness expression must have type '{0}' (got '{1}')", dd.Var.Type, dd.Witness.Type);
             SolveAllTypeConstraints();
-            if (reporter.Count(ErrorLevel.Error) == prevErrCnt) {
-              CheckTypeInference(dd.Witness, dd);
-            }
-            if (reporter.Count(ErrorLevel.Error) == prevErrCnt && dd.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-              ExpressionTester.CheckIsCompilable(this, dd.Witness, codeContext);
-            }
           }
           if (d is TopLevelDeclWithMembers dm) {
             ResolveClassMemberBodies(dm);
@@ -2843,6 +2838,41 @@ namespace Microsoft.Dafny {
           }
         }
         allTypeParameters.PopMarker();
+      }
+
+      // Check if types have been determined, part 1.
+      foreach (TopLevelDecl d in declarations) {
+        if (d is NewtypeDecl || d is SubsetTypeDecl) {
+          // NewTypeDecl's and SubsetTypeDecl's were already processed in the loop above, except for any witness clauses
+          var dd = (RedirectingTypeDecl)d;
+          if (dd.Witness != null) {
+            var codeContext = new CodeContextWrapper(dd, dd.WitnessKind == SubsetTypeDecl.WKind.Ghost);
+            CheckTypeInference(dd.Witness, dd);
+            if (dd.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
+              ExpressionTester.CheckIsCompilable(this, dd.Witness, codeContext);
+            }
+          }
+        }
+      }
+
+      if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+        // Check type inference, which also discovers bounds, in newtype/subset-type constraints and const declarations
+        foreach (TopLevelDecl topd in declarations) {
+          TopLevelDecl d = topd is ClassDecl ? ((ClassDecl)topd).NonNullTypeDecl : topd;
+          if (d is RedirectingTypeDecl dd && dd.Constraint != null) {
+            CheckTypeInference(dd.Constraint, dd);
+          }
+          if (topd is TopLevelDeclWithMembers cl) {
+            foreach (var member in cl.Members) {
+              if (member is ConstantField field && field.Rhs != null) {
+                CheckTypeInference(field.Rhs, field);
+                if (!field.IsGhost) {
+                  ExpressionTester.CheckIsCompilable(this, field.Rhs, field);
+                }
+              }
+            }
+          }
+        }
       }
 
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
