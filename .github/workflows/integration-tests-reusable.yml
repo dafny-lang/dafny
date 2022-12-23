@@ -120,12 +120,19 @@ jobs:
       if: "!inputs.all_platforms"
       run: |
         chmod +x dafny/Binaries/z3/bin/z3
+    - name: Setup .NET
+      if: "!inputs.all_platforms"
+      uses: actions/setup-dotnet@v1.9.0
+      with:
+        dotnet-version: 6.0.x
+    - name: Install dependencies
+      if: false
+      run: dotnet restore dafny/Source/Dafny.sln
     - name: Run integration tests
       if: runner.os == 'Windows'
       env:
         XUNIT_SHARD: ${{ matrix.shard }}
         XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
-        DAFNY_RELEASE: ${{ github.workspace }}\unzippedRelease\dafny
       run: |
         dotnet test --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj
     # echo ${{ inputs.all_platforms }} | grep false && unset DAFNY_RELEASE
@@ -134,7 +141,6 @@ jobs:
       env:
         XUNIT_SHARD: ${{ matrix.shard }}
         XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
-        DAFNY_RELEASE: ${{ github.workspace }}/unzippedRelease/dafny
       run: |
         printenv DAFNY_RELEASE
         export DAFNY_RELEASE="${{ github.workspace }}/unzippedRelease/dafny"
