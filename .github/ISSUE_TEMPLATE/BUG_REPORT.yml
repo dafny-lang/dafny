@@ -1,0 +1,51 @@
+name: Bug Report
+description: File a bug report
+labels: "kind: bug"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+        Are you having trouble with a proof?  Consider posting your question on [Stack Overflow](https://stackoverflow.com/questions/ask?tags=dafny).	  
+        Please do not report security issues on this public tracker. Instead, follow our [policy](https://github.com/dafny-lang/dafny/security/policy).
+  - type: input
+    id: dafnyversion
+    attributes:
+      label: Dafny version
+      description: What version of Dafny were you using? Run `dafny --version` on the command-line or look at the bottom right of VSCode when viewing a Dafny file.
+      placeholder: ex. 4.0.0
+    validations:
+      required: true
+  - type: textarea
+    id: code
+    attributes:
+      label: Code to produce this issue
+      description: Please paste a minimal example that reproduces the issue.
+      render: dafny
+  - type: textarea
+    id: environment
+    attributes:
+      label: Command to run and resulting output
+      description: "Please paste here what you ran (command, vscode) and what were your results that you think ought to be different:"
+      render: code
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the issue here. What did you expect instead?
+      placeholder: Tell us what you see and wish to see!
+    validations:
+      required: true
+  - type: dropdown
+    id: operating-systems
+    attributes:
+      label: What type of operating system are you experiencing the problem on?
+      multiple: true
+      options:
+        - Linux
+        - Windows
+        - Mac
+        - WSL
+        - Other
+    validations:
+      required: true

@@ -17,15 +17,15 @@ DefiniteAssignment.dfy(444,2): Error: out-parameter 'r', which is subject to def
 DefiniteAssignment.dfy(11,9): Error: field 'y', which is subject to definite-assignment rules, might be uninitialized here
 DefiniteAssignment.dfy(13,4): Error: field 'oxA', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
 DefiniteAssignment.dfy(13,4): Error: field 'oxB', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
-DefiniteAssignment.dfy(18,4): Error: field 'y', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
 DefiniteAssignment.dfy(18,4): Error: field 'oxA', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
 DefiniteAssignment.dfy(18,4): Error: field 'oxB', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
-DefiniteAssignment.dfy(23,2): Error: field 'y', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
+DefiniteAssignment.dfy(18,4): Error: field 'y', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
 DefiniteAssignment.dfy(23,2): Error: field 'oxA', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
 DefiniteAssignment.dfy(23,2): Error: field 'oxB', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
-DefiniteAssignment.dfy(27,2): Error: field 'x', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
+DefiniteAssignment.dfy(23,2): Error: field 'y', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
 DefiniteAssignment.dfy(27,2): Error: field 'oxA', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
 DefiniteAssignment.dfy(27,2): Error: field 'oxB', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
+DefiniteAssignment.dfy(27,2): Error: field 'x', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
 DefiniteAssignment.dfy(276,13): Error: variable 'f', which is subject to definite-assignment rules, might be uninitialized here
 DefiniteAssignment.dfy(281,13): Error: variable 'f', which is subject to definite-assignment rules, might be uninitialized here
 DefiniteAssignment.dfy(289,13): Error: variable 'f', which is subject to definite-assignment rules, might be uninitialized here

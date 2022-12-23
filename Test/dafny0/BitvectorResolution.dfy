@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 2 %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module LiteralSizes {
@@ -35,8 +35,8 @@ module OrdinaryTypeChecking {
     x := b67 << 3;  // error: result not assignable to an int
     x := b67 << 3 as int;  // error: ditto (the "as" applies only to the "3")
     x := (b67 << 3) as int;
-    x := b67.RotateLeft(3);
-    x := b67.RotateRight(3);
+    x := b67.RotateLeft(3); // error: bitwise rotations produce bitvectors
+    x := b67.RotateRight(3); // error: ditto
     b67 := b67 << r;  // error: cannot shift by a real
     b67 := b67 << small;  // error: cannot shift by a real
     b67 := b67.RotateLeft(r);

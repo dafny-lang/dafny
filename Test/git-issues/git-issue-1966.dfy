@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 /noVerify "%s" > "%t"
+// RUN: %exits-with 2 %dafny /compile:0 /noVerify "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // {:compile false}: no error

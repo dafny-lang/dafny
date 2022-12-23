@@ -15,7 +15,13 @@ class classproperty(property):
         return classmethod(self.fget).__get__(None, owner)()
 
 def print(value):
-    builtins.print(string_of(value), end="")
+    builtins.print(value, end="")
+
+# Dafny strings are currently sequences of UTF-16 code units.
+# To make a best effort attempt at printing the right characters we attempt to decode,
+# but have to allow for invalid sequences.
+def string_from_utf_16(utf_16_code_units):
+    return b''.join(ord(c).to_bytes(2, 'little') for c in utf_16_code_units).decode("utf-16-le", errors = 'replace')
 
 def string_of(value) -> str:
     if hasattr(value, '__dafnystr__'):
@@ -24,6 +30,11 @@ def string_of(value) -> str:
         return "null"
     elif isinstance(value, bool):
         return "true" if value else "false"
+    elif isinstance(value, str):
+        # This is only for Dafny char values.
+        # Dafny strings are represented as Seq's of individual char values,
+        # and Seq defines __dafnystr__.
+        return string_from_utf_16(value)
     elif isinstance(value, tuple):
         return '(' + ', '.join(map(string_of, value)) + ')'
     elif isinstance(value, FunctionType):
@@ -61,16 +72,49 @@ def c_label(name: str = None):
         if g.target != name:
             raise g
 
+class CodePoint(str):
+
+    escapes = {
+      '\n' : "\\n",
+      '\r' : "\\r",
+      '\t' : "\\t",
+      '\0' : "\\0",
+      '\'' : "\\'",
+      '\"' : "\\\"",
+      '\\' : "\\\\",
+    }
+
+    def __escaped__(self):
+        return self.escapes.get(self, self)
+
+    def __dafnystr__(self):
+        return f"'{self.__escaped__()}'"
+
 class Seq(tuple):
     def __init__(self, __iterable = None, isStr = False):
+        '''
+        isStr defines whether this value should be tracked at runtime as a string (a.k.a. seq<char>)
+        It accepts three different values:
+         - True: this value is definitely a string, mark it as such
+         - False: this value might be a string, apply heuristics to make a best guess
+         - None: don't apply heuristics, don't mark it as a string
+
+        None is used when --unicode-char is true, to ensure consistent printing of strings
+        across backends without depending on any runtime tracking.
+        See docs/Compilation/StringsAndChars.md.
+        '''
+
         if __iterable is None:
             __iterable = []
-        self.isStr = isStr \
-                     or isinstance(__iterable, str) \
-                     or (isinstance(__iterable, Seq) and __iterable.isStr) \
-                     or (not isinstance(__iterable, GeneratorType)
-                         and all(isinstance(e, str) and len(e) == 1 for e in __iterable)
-                         and len(__iterable) > 0)
+        if isStr is None:
+            self.isStr = False
+        else:
+            self.isStr = isStr \
+                        or isinstance(__iterable, str) \
+                        or (isinstance(__iterable, Seq) and __iterable.isStr) \
+                        or (not isinstance(__iterable, GeneratorType)
+                            and all(isinstance(e, str) and len(e) == 1 for e in __iterable)
+                            and len(__iterable) > 0)
 
     @property
     def Elements(self):
@@ -80,9 +124,17 @@ class Seq(tuple):
     def UniqueElements(self):
         return frozenset(self)
 
+    def VerbatimString(self, asliteral):
+        if asliteral:
+            return f"\"{''.join(map(lambda c: c.__escaped__(), self))}\""
+        else:
+            return ''.join(self)
+
     def __dafnystr__(self) -> str:
         if self.isStr:
-            return ''.join(self)
+            # This should never be true when using --unicode-char,
+            # so it is safe to assume we are a sequence of UTF-16 code units.
+            return string_from_utf_16(self)
         return '[' + ', '.join(map(string_of, self)) + ']'
 
     def __add__(self, other):
@@ -381,6 +433,10 @@ def AllBooleans():
 
 def AllChars():
     return (chr(i) for i in range(0x10000))
+
+def AllUnicodeChars():
+    return chain((CodePoint(chr(i)) for i in range(0xD800)), 
+                 (CodePoint(chr(i)) for i in range(0xE000, 0x11_0000)))
 
 def AllIntegers():
     return (i//2 if i % 2 == 0 else -i//2 for i in count(0))

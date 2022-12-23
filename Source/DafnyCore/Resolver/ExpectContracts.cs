@@ -1,10 +1,5 @@
-using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using Microsoft.Boogie;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Microsoft.Dafny;
 
@@ -21,9 +16,8 @@ namespace Microsoft.Dafny;
 public class ExpectContracts : IRewriter {
   private readonly ClonerButDropMethodBodies cloner = new();
   private readonly Dictionary<MemberDecl, MemberDecl> wrappedDeclarations = new();
-  private readonly Dictionary<MemberDecl, string> fullNames = new();
   private readonly Dictionary<string, MemberDecl> newDeclarationsByName = new();
-  private CallRedirector callRedirector;
+  private readonly CallRedirector callRedirector;
 
   public ExpectContracts(ErrorReporter reporter) : base(reporter) {
     callRedirector = new(reporter);
@@ -52,7 +46,7 @@ public class ExpectContracts : IRewriter {
       msg += " (not compiled because it references ghost state)";
     }
     var msgExpr = Expression.CreateStringLiteral(tok, msg);
-    return new ExpectStmt(tok, expr.E.EndToken, exprToCheck, msgExpr, null);
+    return new ExpectStmt(tok, expr.E.GetEndToken(), exprToCheck, msgExpr, null);
   }
 
   /// <summary>
@@ -125,9 +119,9 @@ public class ExpectContracts : IRewriter {
       var locs = new List<LocalVariable> { local };
       var rhss = new List<AssignmentRhs> { callRhs };
 
-      var callStmt = origFunc.Result?.Name is null
-        ? (Statement)new VarDeclStmt(tok, tok, locs, new UpdateStmt(tok, tok, lhss, rhss))
-        : (Statement)new UpdateStmt(tok, tok, lhss, rhss);
+      Statement callStmt = origFunc.Result?.Name is null
+        ? new VarDeclStmt(tok, tok, locs, new UpdateStmt(tok, tok, lhss, rhss))
+        : new UpdateStmt(tok, tok, lhss, rhss);
 
       var body = MakeContractCheckingBody(origFunc.Req, origFunc.Ens, callStmt);
 
@@ -221,7 +215,6 @@ public class ExpectContracts : IRewriter {
     protected override bool VisitOneExpr(Expression expr, ref MemberDecl decl) {
       if (expr is FunctionCallExpr fce) {
         var f = fce.Function;
-        var targetName = f.Name;
         if (ShouldCallWrapper(decl, f)) {
           var newTarget = newRedirections[f];
           var resolved = (FunctionCallExpr)fce.Resolved;
@@ -237,7 +230,6 @@ public class ExpectContracts : IRewriter {
     protected override bool VisitOneStmt(Statement stmt, ref MemberDecl decl) {
       if (stmt is CallStmt cs) {
         var m = cs.Method;
-        var targetName = m.Name;
         if (ShouldCallWrapper(decl, m)) {
           var newTarget = newRedirections[m];
           var resolved = (MemberSelectExpr)cs.MethodSelect.Resolved;
@@ -262,15 +254,15 @@ public class ExpectContracts : IRewriter {
       }
     }
 
-    foreach (var (caller, callee) in wrappedDeclarations) {
-      var callerFullName = caller.FullName;
-      var calleeFullName = callRedirector.newFullNames[callee];
-      if (newDeclarationsByName.ContainsKey(callerFullName) &&
-          newDeclarationsByName.ContainsKey(calleeFullName)) {
-        var callerDecl = newDeclarationsByName[caller.FullName];
-        var calleeDecl = newDeclarationsByName[calleeFullName];
-        if (!callRedirector.newRedirections.ContainsKey(callerDecl)) {
-          callRedirector.newRedirections.Add(callerDecl, calleeDecl);
+    foreach (var (origCallee, newCallee) in wrappedDeclarations) {
+      var origCalleeFullName = origCallee.FullName;
+      var newCalleeFullName = callRedirector.newFullNames[newCallee];
+      if (newDeclarationsByName.ContainsKey(origCalleeFullName) &&
+          newDeclarationsByName.ContainsKey(newCalleeFullName)) {
+        var origCalleeDecl = newDeclarationsByName[origCallee.FullName];
+        var newCalleeDecl = newDeclarationsByName[newCalleeFullName];
+        if (!callRedirector.newRedirections.ContainsKey(origCalleeDecl)) {
+          callRedirector.newRedirections.Add(origCalleeDecl, newCalleeDecl);
         }
       }
     }

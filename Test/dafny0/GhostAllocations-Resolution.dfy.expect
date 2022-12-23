@@ -3,22 +3,22 @@ GhostAllocations-Resolution.dfy(432,6): Warning: the modify statement with a blo
 GhostAllocations-Resolution.dfy(456,4): Warning: the modify statement with a block statement is deprecated
 GhostAllocations-Resolution.dfy(501,6): Warning: the modify statement with a block statement is deprecated
 GhostAllocations-Resolution.dfy(537,10): Warning: the modify statement with a block statement is deprecated
-GhostAllocations-Resolution.dfy(17,11): Error: a ghost variable is allowed only in specification contexts
-GhostAllocations-Resolution.dfy(39,11): Error: a ghost variable is allowed only in specification contexts
-GhostAllocations-Resolution.dfy(47,22): Error: a ghost variable is allowed only in specification contexts
+GhostAllocations-Resolution.dfy(17,11): Error: ghost variables such as g are allowed only in specification contexts. g was inferred to be ghost based on its declaration or initialization.
+GhostAllocations-Resolution.dfy(39,11): Error: ghost variables such as g are allowed only in specification contexts. g was inferred to be ghost based on its declaration or initialization.
+GhostAllocations-Resolution.dfy(47,22): Error: ghost variables such as n' are allowed only in specification contexts. n' was inferred to be ghost based on its declaration or initialization.
 GhostAllocations-Resolution.dfy(55,20): Error: the result of a ghost constructor can only be assigned to a ghost variable
 GhostAllocations-Resolution.dfy(56,20): Error: only ghost methods can be called from this context
 GhostAllocations-Resolution.dfy(62,20): Error: only ghost methods can be called from this context
 GhostAllocations-Resolution.dfy(72,23): Error: the result of a ghost constructor can only be assigned to a ghost variable
 GhostAllocations-Resolution.dfy(75,26): Error: the result of a ghost constructor can only be assigned to a ghost variable
 GhostAllocations-Resolution.dfy(78,22): Error: the result of a ghost constructor can only be assigned to a ghost variable
-GhostAllocations-Resolution.dfy(90,17): Error: a ghost variable is allowed only in specification contexts
-GhostAllocations-Resolution.dfy(99,22): Error: a ghost variable is allowed only in specification contexts
-GhostAllocations-Resolution.dfy(111,11): Error: a ghost variable is allowed only in specification contexts
-GhostAllocations-Resolution.dfy(115,11): Error: a ghost variable is allowed only in specification contexts
-GhostAllocations-Resolution.dfy(125,11): Error: a ghost variable is allowed only in specification contexts
-GhostAllocations-Resolution.dfy(127,11): Error: a ghost variable is allowed only in specification contexts
-GhostAllocations-Resolution.dfy(129,11): Error: a ghost variable is allowed only in specification contexts
+GhostAllocations-Resolution.dfy(90,17): Error: ghost variables such as n' are allowed only in specification contexts. n' was inferred to be ghost based on its declaration or initialization.
+GhostAllocations-Resolution.dfy(99,22): Error: ghost variables such as f' are allowed only in specification contexts. f' was inferred to be ghost based on its declaration or initialization.
+GhostAllocations-Resolution.dfy(111,11): Error: ghost variables such as b are allowed only in specification contexts. b was inferred to be ghost based on its declaration or initialization.
+GhostAllocations-Resolution.dfy(115,11): Error: ghost variables such as d are allowed only in specification contexts. d was inferred to be ghost based on its declaration or initialization.
+GhostAllocations-Resolution.dfy(125,11): Error: ghost variables such as b are allowed only in specification contexts. b was inferred to be ghost based on its declaration or initialization.
+GhostAllocations-Resolution.dfy(127,11): Error: ghost variables such as c are allowed only in specification contexts. c was inferred to be ghost based on its declaration or initialization.
+GhostAllocations-Resolution.dfy(129,11): Error: ghost variables such as d are allowed only in specification contexts. d was inferred to be ghost based on its declaration or initialization.
 GhostAllocations-Resolution.dfy(170,6): Error: LHS of assignment must denote a mutable field
 GhostAllocations-Resolution.dfy(171,6): Error: LHS of assignment must denote a mutable field
 GhostAllocations-Resolution.dfy(173,6): Error: LHS of assignment must denote a mutable field
@@ -37,7 +37,7 @@ GhostAllocations-Resolution.dfy(254,18): Error: an assert-by body is not allowed
 GhostAllocations-Resolution.dfy(255,18): Error: an assert-by body is not allowed to use 'new'
 GhostAllocations-Resolution.dfy(255,18): Error: in an assert-by body, calls are allowed only to lemmas
 GhostAllocations-Resolution.dfy(274,11): Error: assignment to non-ghost field is not allowed in this context, because this is a ghost method
-GhostAllocations-Resolution.dfy(285,11): Error: a ghost variable is allowed only in specification contexts
+GhostAllocations-Resolution.dfy(285,11): Error: ghost variables such as b are allowed only in specification contexts. b was inferred to be ghost based on its declaration or initialization.
 GhostAllocations-Resolution.dfy(303,13): Error: a lemma is not allowed to use 'new'
 GhostAllocations-Resolution.dfy(304,13): Error: a lemma is not allowed to use 'new'
 GhostAllocations-Resolution.dfy(308,15): Error: a lemma is not allowed to use 'new'
@@ -116,9 +116,9 @@ GhostAllocations-Resolution.dfy(642,11): Error: a forall statement is not allowe
 GhostAllocations-Resolution.dfy(643,6): Error: a forall statement is not allowed to perform an aggregate heap update
 GhostAllocations-Resolution.dfy(663,21): Error: the result of a ghost constructor can only be assigned to a ghost variable
 GhostAllocations-Resolution.dfy(673,21): Error: only ghost methods can be called from this context
-GhostAllocations-Resolution.dfy(675,19): Error: a ghost variable is allowed only in specification contexts
-GhostAllocations-Resolution.dfy(676,22): Error: a ghost variable is allowed only in specification contexts
-GhostAllocations-Resolution.dfy(677,23): Error: a ghost variable is allowed only in specification contexts
+GhostAllocations-Resolution.dfy(675,19): Error: ghost variables such as n are allowed only in specification contexts. n was inferred to be ghost based on its declaration or initialization.
+GhostAllocations-Resolution.dfy(676,22): Error: ghost variables such as n are allowed only in specification contexts. n was inferred to be ghost based on its declaration or initialization.
+GhostAllocations-Resolution.dfy(677,23): Error: ghost variables such as init are allowed only in specification contexts. init was inferred to be ghost based on its declaration or initialization.
 GhostAllocations-Resolution.dfy(683,21): Error: only ghost methods can be called from this context
 GhostAllocations-Resolution.dfy(692,9): Error: a lemma is not allowed to use 'new'
 GhostAllocations-Resolution.dfy(693,11): Error: a lemma is not allowed to use 'new'

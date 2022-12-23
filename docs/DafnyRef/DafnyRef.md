@@ -65,6 +65,9 @@ user understand how to do proofs with Dafny.
 {% include_relative VSCodeIDE.md %}
 
 <!--PDF NEWPAGE-->
+{% include_relative Plugins.md %}
+
+<!--PDF NEWPAGE-->
 {% include_relative CommandLineOptions.md %}
 
 # 29. References

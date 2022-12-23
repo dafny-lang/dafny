@@ -1,5 +1,5 @@
 ---
-title: "Error: name of datatype (String) is used as a function"?
+title: "Error: name of datatype (String) is used as a function?"
 ---
 
 How do I fix this error message: "name of datatype (String) is used as a function"?

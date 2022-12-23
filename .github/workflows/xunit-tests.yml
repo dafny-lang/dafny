@@ -55,11 +55,13 @@ jobs:
       run: |
         chmod +x Binaries/z3/bin/z3
     - name: Build
-      run: dotnet build --no-restore ${{env.solutionPath}}
+      run: dotnet build -warnaserror --no-restore ${{env.solutionPath}}
     - name: Run DafnyLanguageServer Tests
       run: |
         dotnet test --no-restore --verbosity normal --logger trx Source/DafnyLanguageServer.Test
         dotnet test --no-restore --verbosity normal --logger trx Source/DafnyLanguageServer.Test
+    - name: Run DafnyDriver Tests
+      run: dotnet test --no-restore --verbosity normal --logger trx Source/DafnyDriver.Test
     - name: Run DafnyPipeline Tests
       run: dotnet test --no-restore --verbosity normal --logger trx Source/DafnyPipeline.Test
     - name: Run DafnyTestGeneration Tests

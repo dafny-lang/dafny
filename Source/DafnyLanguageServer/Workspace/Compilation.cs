@@ -35,9 +35,6 @@ public class Compilation {
   private readonly INotificationPublisher notificationPublisher;
   private readonly IProgramVerifier verifier;
 
-  private DafnyOptions Options => DafnyOptions.O;
-  private VerifierOptions VerifierOptions { get; }
-
   public DocumentTextBuffer TextBuffer { get; }
   private readonly IServiceProvider services;
 
@@ -54,10 +51,9 @@ public class Compilation {
   public Task<DocumentAfterTranslation> TranslatedDocument { get; }
 
   public Compilation(IServiceProvider services,
-    VerifierOptions verifierOptions,
     DocumentTextBuffer textBuffer,
     VerificationTree? migratedVerificationTree) {
-    VerifierOptions = verifierOptions;
+    options = services.GetRequiredService<DafnyOptions>();
     logger = services.GetRequiredService<ILogger<Compilation>>();
     documentLoader = services.GetRequiredService<ITextDocumentLoader>();
     notificationPublisher = services.GetRequiredService<INotificationPublisher>();
@@ -162,11 +158,11 @@ public class Compilation {
 
     translated.GutterProgressReporter.RecomputeVerificationTree();
 
-    if (VerifierOptions.GutterStatus) {
+    if (ReportGutterStatus) {
       translated.GutterProgressReporter.ReportRealtimeDiagnostics(false, translated);
-      translated.GutterProgressReporter.ReportImplementationsBeforeVerification(
-        verificationTasks.Select(t => t.Implementation).ToArray());
     }
+    translated.GutterProgressReporter.ReportImplementationsBeforeVerification(
+      verificationTasks.Select(t => t.Implementation).ToArray());
 
     var implementations = verificationTasks.Select(t => t.Implementation).ToHashSet();
 
@@ -198,12 +194,11 @@ public class Compilation {
 
     var statusUpdates = implementationTask.TryRun();
     if (statusUpdates == null) {
-      if (VerifierOptions.GutterStatus && implementationTask.CacheStatus is Completed completedCache) {
+      if (implementationTask.CacheStatus is Completed completedCache) {
         foreach (var result in completedCache.Result.VCResults) {
           document.GutterProgressReporter.ReportAssertionBatchResult(
             new AssertionBatchResult(implementationTask.Implementation, result));
         }
-
         document.GutterProgressReporter.ReportEndVerifyImplementation(implementationTask.Implementation,
           completedCache.Result);
       }
@@ -245,7 +240,7 @@ public class Compilation {
 
   public void FinishedNotifications(DocumentAfterTranslation document) {
     MarkVerificationFinished();
-    if (VerifierOptions.GutterStatus) {
+    if (ReportGutterStatus) {
       // All unvisited trees need to set them as "verified"
       if (!cancellationSource.IsCancellationRequested) {
         SetAllUnvisitedMethodsAsVerified(document);
@@ -261,9 +256,7 @@ public class Compilation {
     var implementationRange = implementationTask.Implementation.tok.GetLspRange();
     logger.LogDebug($"Received status {boogieStatus} for {implementationTask.Implementation.Name}");
     if (boogieStatus is Running) {
-      if (VerifierOptions.GutterStatus) {
-        document.GutterProgressReporter.ReportVerifyImplementationRunning(implementationTask.Implementation);
-      }
+      document.GutterProgressReporter.ReportVerifyImplementationRunning(implementationTask.Implementation);
     }
 
     if (boogieStatus is Completed completed) {
@@ -275,9 +268,7 @@ public class Compilation {
       var diagnostics = GetDiagnosticsFromResult(document, verificationResult);
       var view = new ImplementationView(implementationRange, status, diagnostics);
       document.ImplementationIdToView[id] = view;
-      if (VerifierOptions.GutterStatus) {
-        document.GutterProgressReporter.ReportEndVerifyImplementation(implementationTask.Implementation, verificationResult);
-      }
+      document.GutterProgressReporter.ReportEndVerifyImplementation(implementationTask.Implementation, verificationResult);
     } else {
       var existingView = document.ImplementationIdToView.GetValueOrDefault(id) ??
                          new ImplementationView(implementationRange, status, Array.Empty<Diagnostic>());
@@ -287,13 +278,15 @@ public class Compilation {
     documentUpdates.OnNext(document);
   }
 
+  private bool ReportGutterStatus => options.Get(ServerCommand.LineVerificationStatus);
+
   private List<Diagnostic> GetDiagnosticsFromResult(Document document, VerificationResult result) {
     var errorReporter = new DiagnosticErrorReporter(document.TextDocumentItem.Text, document.Uri);
     foreach (var counterExample in result.Errors) {
-      errorReporter.ReportBoogieError(counterExample.CreateErrorInformation(result.Outcome, Options.ForceBplErrors));
+      errorReporter.ReportBoogieError(counterExample.CreateErrorInformation(result.Outcome, options.ForceBplErrors));
     }
 
-    var outcomeError = result.GetOutcomeError(Options);
+    var outcomeError = result.GetOutcomeError(options);
     if (outcomeError != null) {
       errorReporter.ReportBoogieError(outcomeError);
     }
@@ -323,6 +316,7 @@ public class Compilation {
   }
 
   private TaskCompletionSource verificationCompleted = new();
+  private readonly DafnyOptions options;
 
   public void MarkVerificationStarted() {
     logger.LogDebug("MarkVerificationStarted called");

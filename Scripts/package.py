@@ -25,7 +25,7 @@ import ntpath
 ## Get a specific Z3 release like this:
 Z3_RELEASES_URL = "https://api.github.com/repos/Z3Prover/z3/releases/tags/Z3-4.8.5"
 ## How do we extract info from the name of a Z3 release file?
-Z3_RELEASE_REGEXP = re.compile(r"^(?P<directory>z3-[0-9a-z\.]+-(?P<platform>x86|x64)-(?P<os>[a-z0-9\.\-]+)).zip$", re.IGNORECASE)
+Z3_RELEASE_REGEXP = re.compile(r"^(?P<directory>z3-[0-9a-z\.]+-(?P<platform>x86|x64|arm64)-(?P<os>[a-z0-9\.\-]+)).zip$", re.IGNORECASE)
 ## How many times we allow ourselves to try to download Z3
 Z3_MAX_DOWNLOAD_ATTEMPTS = 5
 
@@ -127,7 +127,7 @@ class Release:
         """Zip entries always use '/' as the path separator."""
         return fpath.replace(os.path.sep, '/')
 
-    def run_publish(self, project):
+    def run_publish(self, project, framework = None):
         env = dict(os.environ)
         env["RUNTIME_IDENTIFIER"] = self.target
         flush("   + Publishing " + project)
@@ -135,13 +135,15 @@ class Release:
         exitStatus = 1
         while 0 < remaining and exitStatus != 0:
             remaining -= 1
+            otherArgs = []
+            if framework:
+                otherArgs += ["-f", framework]
             exitStatus = subprocess.call(["dotnet", "publish", path.join(SOURCE_DIRECTORY, project, project + ".csproj"),
                 "--nologo",
-                "-f", "net6.0",
                 "-o", self.buildDirectory,
                 "-r", self.target,
                 "--self-contained",
-                "-c", "Release"], env=env)
+                "-c", "Release"] + otherArgs, env=env)
             if exitStatus != 0:
                 if remaining == 0:
                     flush("failed! (Is Dafny or the Dafny server running?)")
@@ -160,7 +162,8 @@ class Release:
         run(["make", "--quiet", "clean"])
         self.run_publish("DafnyLanguageServer")
         self.run_publish("DafnyServer")
-        self.run_publish("DafnyRuntime")
+        self.run_publish("DafnyRuntime", "netstandard2.0")
+        self.run_publish("DafnyRuntime", "net452")
         self.run_publish("Dafny")
 
     def pack(self):
@@ -171,6 +174,9 @@ class Release:
         missing = []
         with zipfile.ZipFile(self.dafny_zip, 'w',  zipfile.ZIP_DEFLATED) as archive:
             with zipfile.ZipFile(self.z3_zip) as Z3_archive:
+                #changing directory value for osx-arm64 to copyover files from z3-4.8.5-x64-osx-10.14.2.zip
+                if self.target == "osx-arm64":
+                    self.directory = "z3-4.8.5-x64-osx-10.14.2"
                 z3_files_count = 0
                 for fileinfo in Z3_archive.infolist():
                     fname = path.relpath(fileinfo.filename, self.directory)
@@ -215,6 +221,12 @@ def discover(args):
 
         for release_js in js["assets"]:
             release = Release(release_js, args.version, args.out)
+            # Copying assets of osx and chnaging value of "name" to include "arm64" as architecture and then add it to same list of releases. 
+            if release.os_name == "osx":
+                tmp_release_js = release_js
+                tmp_release_js.update({'name': 'z3-4.8.5-arm64-osx-11.0.zip'})
+                tmp_release = Release(tmp_release_js, args.version, args.out)
+                yield tmp_release
             if release.platform == "x64":
                 flush("    + Selecting {} ({:.2f}MB, {})".format(release.z3_name, release.MB, release.size))
                 yield release

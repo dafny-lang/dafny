@@ -55,7 +55,9 @@ namespace Microsoft.Dafny.Compilers {
       Feature.MapComprehensions,
       Feature.ExactBoundedPool,
       Feature.RunAllTests,
-      Feature.MethodSynthesis
+      Feature.MethodSynthesis,
+      Feature.UnicodeChars,
+      Feature.ConvertingValuesToStrings
     };
 
     public override string TargetLanguage => "C++";
@@ -96,11 +98,19 @@ namespace Microsoft.Dafny.Compilers {
     protected override string ClassAccessor => "->";
 
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
+      // This seems to be a good place to check for unsupported options
+      if (UnicodeCharEnabled) {
+        throw new UnsupportedFeatureException(program.GetFirstTopLevelToken(), Feature.UnicodeChars);
+      }
+
       wr.WriteLine("// Dafny program {0} compiled into Cpp", program.Name);
       wr.WriteLine("#include \"DafnyRuntime.h\"");
       foreach (var header in this.headers) {
         wr.WriteLine("#include \"{0}\"", header);
       }
+
+      // For "..."s string literals, to avoid interpreting /0 as the C end of the string, cstring-style
+      wr.WriteLine("using namespace std::literals;");
 
       var filenameNoExtension = program.Name.Substring(0, program.Name.Length - 4);
       var headerFileName = String.Format("{0}.h", filenameNoExtension);
@@ -208,7 +218,7 @@ namespace Microsoft.Dafny.Compilers {
       if (typeArgs != null) {
         var targs = "";
         if (typeArgs.Count > 0) {
-          targs = String.Format("<{0}>", Util.Comma(typeArgs, ta => TypeName(ta, null, null)));
+          targs = String.Format("<{0}>", Util.Comma(typeArgs, ta => TypeName(ta, null, Token.NoToken)));
         }
 
         return targs;
@@ -303,6 +313,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override bool DatatypeDeclarationAndMemberCompilationAreSeparate => false;
+    public override bool SupportsDatatypeWrapperErasure => false;
 
     protected override IClassWriter DeclareDatatype(DatatypeDecl dt, ConcreteSyntaxTree writer) {
       if (dt is TupleTypeDecl) {
@@ -1108,7 +1119,7 @@ namespace Microsoft.Dafny.Compilers {
 
     private string ActualTypeArgs(List<Type> typeArgs) {
       return typeArgs.Count > 0
-        ? String.Format(" <{0}> ", Util.Comma(typeArgs, tp => TypeName(tp, null, null))) : "";
+        ? String.Format(" <{0}> ", Util.Comma(typeArgs, tp => TypeName(tp, null, Token.NoToken))) : "";
     }
 
     protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance, List<Type> typeArgs,
@@ -1319,7 +1330,14 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write("\"" + Dafny.ErrorReporter.TokenToString(tok) + ": \" + ");
       }
 
-      TrExpr(messageExpr, wr, false, wStmts);
+      if (messageExpr.Type.IsStringType) {
+        wr.Write("ToVerbatimString(");
+        TrExpr(messageExpr, wr, false, wStmts);
+        wr.Write(")");
+      } else {
+        throw new UnsupportedFeatureException(tok, Feature.ConvertingValuesToStrings);
+      }
+
       wr.WriteLine(");");
     }
 
@@ -1447,8 +1465,9 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write("'{0}'", v);
       } else if (e is StringLiteralExpr) {
         var str = (StringLiteralExpr)e;
-        // TODO: the string should be converted to a Dafny seq<char>
+        wr.Write("DafnySequenceFromString(");
         TrStringLiteral(str, wr);
+        wr.Write(")");
       } else if (AsNativeType(e.Type) is NativeType nt) {
         wr.Write("({0}){1}", GetNativeTypeName(nt), (BigInteger)e.Value);
         if ((BigInteger)e.Value > 9223372036854775807) {
@@ -1470,9 +1489,8 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
       var n = str.Length;
-      wr.Write("DafnySequenceFromString(");
       if (!isVerbatim) {
-        wr.Write("\"{0}\"", str);
+        wr.Write($"\"{TranslateEscapes(str)}\"");
       } else {
         wr.Write("\"");
         for (var i = 0; i < n; i++) {
@@ -1491,7 +1509,18 @@ namespace Microsoft.Dafny.Compilers {
         }
         wr.Write("\"");
       }
-      wr.Write(")");
+
+      // Use the postfix "..."s operator (operator""s) to convert to std::string values
+      // without interpreting /0 as a terminator:
+      // https://en.cppreference.com/w/cpp/string/basic_string/operator%22%22s
+      wr.Write("s");
+    }
+
+    private static string TranslateEscapes(string s) {
+      s = Util.ReplaceNullEscapesWithCharacterEscapes(s);
+      // TODO: Other cases, once we address the fact that we shouldn't be
+      // using the C++ char as the Dafny 16-bit char in the first place.
+      return s;
     }
 
     protected override ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, ConcreteSyntaxTree wr) {
@@ -2279,9 +2308,8 @@ namespace Microsoft.Dafny.Compilers {
         if (e.ToType.IsNumericBased(Type.NumericPersuasion.Real)) {
           throw new UnsupportedFeatureException(e.tok, Feature.RealNumbers);
         } else if (e.ToType.IsCharType) {
-          wr.Write("_dafny.Char(");
+          wr.Write("(char)");
           TrParenExpr(e.E, wr, inLetExprBody, wStmts);
-          wr.Write(".Int32())");
         } else {
           // (int or bv or char) -> (int or bv or ORDINAL)
           var fromNative = AsNativeType(e.E.Type);
@@ -2293,13 +2321,10 @@ namespace Microsoft.Dafny.Compilers {
           } else if (e.E.Type.IsCharType) {
             Contract.Assert(fromNative == null);
             if (toNative == null) {
-              // char -> big-integer (int or bv or ORDINAL)
-              wr.Write("_dafny.IntOfInt32(rune(");
-              TrExpr(e.E, wr, inLetExprBody, wStmts);
-              wr.Write("))");
+              throw new UnsupportedFeatureException(e.tok, Feature.UnboundedIntegers);
             } else {
               // char -> native
-              wr.Write(GetNativeTypeName(toNative));
+              wr.Write($"({GetNativeTypeName(toNative)})");
               TrParenExpr(e.E, wr, inLetExprBody, wStmts);
             }
           } else if (fromNative == null && toNative == null) {
@@ -2464,67 +2489,28 @@ namespace Microsoft.Dafny.Compilers {
       var codebase = System.IO.Path.GetDirectoryName(assemblyLocation);
       Contract.Assert(codebase != null);
       compilationResult = null;
-      var psi = new ProcessStartInfo("g++") {
-        CreateNoWindow = true,
-        UseShellExecute = false,
-        RedirectStandardOutput = true,
-        RedirectStandardError = true,
-        ArgumentList = {
-          "-Wall",
-          "-Wextra",
-          "-Wpedantic",
-          "-Wno-unused-variable",
-          "-Wno-deprecated-copy",
-          "-Wno-unused-label",
-          "-Wno-unused-but-set-variable",
-          "-Wno-unknown-warning-option",
-          "-g",
-          "-std=c++17",
-          "-I", codebase,
-          "-o", ComputeExeName(targetFilename),
-          targetFilename
-        }
-      };
-      var proc = Process.Start(psi);
-      while (!proc.StandardOutput.EndOfStream) {
-        outputWriter.WriteLine(proc.StandardOutput.ReadLine());
-      }
-      while (!proc.StandardError.EndOfStream) {
-        outputWriter.WriteLine(proc.StandardError.ReadLine());
-      }
-      proc.WaitForExit();
-      if (proc.ExitCode != 0) {
-        outputWriter.WriteLine($"Error while compiling C++ files. Process exited with exit code {proc.ExitCode}");
-        return false;
-      }
-      return true;
+      var psi = PrepareProcessStartInfo("g++", new List<string> {
+        "-Wall",
+        "-Wextra",
+        "-Wpedantic",
+        "-Wno-unused-variable",
+        "-Wno-deprecated-copy",
+        "-Wno-unused-label",
+        "-Wno-unused-but-set-variable",
+        "-Wno-unknown-warning-option",
+        "-g",
+        "-std=c++17",
+        "-I", codebase,
+        "-o", ComputeExeName(targetFilename),
+        targetFilename
+      });
+      return 0 == RunProcess(psi, outputWriter, "Error while compiling C++ files.");
     }
 
     public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string targetFilename, ReadOnlyCollection<string> otherFileNames,
       object compilationResult, TextWriter outputWriter) {
-      var psi = new ProcessStartInfo(ComputeExeName(targetFilename)) {
-        CreateNoWindow = true,
-        UseShellExecute = false,
-        RedirectStandardOutput = true,
-        RedirectStandardError = true
-      };
-      foreach (var arg in DafnyOptions.O.MainArgs) {
-        psi.ArgumentList.Add(arg);
-      }
-
-      var proc = Process.Start(psi);
-      while (!proc.StandardOutput.EndOfStream) {
-        outputWriter.WriteLine(proc.StandardOutput.ReadLine());
-      }
-      while (!proc.StandardError.EndOfStream) {
-        outputWriter.WriteLine(proc.StandardError.ReadLine());
-      }
-      proc.WaitForExit();
-      if (proc.ExitCode != 0) {
-        outputWriter.WriteLine($"Error while running C++ file {targetFilename}. Process exited with exit code {proc.ExitCode}");
-        return false;
-      }
-      return true;
+      var psi = PrepareProcessStartInfo(ComputeExeName(targetFilename), DafnyOptions.O.MainArgs);
+      return 0 == RunProcess(psi, outputWriter);
     }
   }
 }
