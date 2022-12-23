@@ -132,7 +132,7 @@ public class SpecialFunction : Function, ICodeContext, ICallable {
     : base(tok, name, hasStaticKeyword, isGhost, typeArgs, formals, null, resultType, req, reads, ens, decreases, body, null, null, attributes, signatureEllipsis) {
     Module = module;
   }
-  ModuleDefinition ICodeContext.EnclosingModule { get { return this.Module; } }
+  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return this.Module; } }
   string ICallable.NameRelativeToModule { get { return Name; } }
 }
 
@@ -554,7 +554,7 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext {
 
   public virtual bool AllowsAllocation => true;
 
-  ModuleDefinition ICodeContext.EnclosingModule {
+  ModuleDefinition IASTVisitorContext.EnclosingModule {
     get {
       Contract.Assert(this.EnclosingClass != null);  // this getter is supposed to be called only after signature-resolution is complete
       return this.EnclosingClass.EnclosingModuleDefinition;
