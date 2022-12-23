@@ -98,7 +98,8 @@ In the following example the `F_Fails` function fails to verify
 because the `Fact(n)` divisor may be zero. But preceding
 the expression by a lemma that ensures that the denominator
 is not zero allows function `F_Succeeds` to succeed.
-```dafny <!-- %check-verify Expressions.1.expect -->
+<!-- %check-verify Expressions.1.expect -->
+```dafny
 function Fact(n: nat): nat
 {
   if n == 0 then 1 else n * Fact(n-1)
@@ -172,7 +173,8 @@ LogicalExpression(allowLemma, allowLambda) =
 Note that the Dafny grammar allows a conjunction or disjunction to be
 _prefixed_ with `&&` or `||` respectively. This form simply allows a
 parallel structure to be written:
-```dafny <!-- %check-resolve -->
+<!-- %check-resolve -->
+```dafny
 method m(x: object?, y:object?, z: object?) {
   var b: bool :=
     && x != null
@@ -347,7 +349,8 @@ type parameters of the LHS type. The last restriction is designed to make it
 possible to perform type tests without inspecting type parameters at run time.
 For example, consider the following types:
 
-```dafny <!-- %check-resolve -->
+<!-- %check-resolve -->
+```dafny
 trait A { }
 trait B<X> { }
 class C<Y> extends B<Y> { }
@@ -384,7 +387,7 @@ numeric negation (`-` -- [Section 7.2](#sec-numeric-types)), or
 bit-vector negation (`-` -- [Section 7.3](#sec-bit-vector-types))
  to its operand.
 
-## 21.12. Primary Expressions {#primary-expressions}
+## 21.12. Primary Expressions {#sec-primary-expressions}
 ````grammar
 PrimaryExpression(allowLemma, allowLambda) =
   ( NameSegment { Suffix }
@@ -422,7 +425,8 @@ In addition to named functions, Dafny supports expressions that define
 functions.  These are called _lambda (expression)s_ (some languages
 know them as _anonymous functions_).  A lambda expression has the
 form:
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 ( _params_ ) _specification_ => _body_
 ```
 where _params_ is a comma-delimited list of parameter
@@ -433,7 +437,8 @@ _params_ consists of a single parameter `x` (or `_`) without an
 explicit type, then the parentheses can be dropped; for example, the
 function that returns the successor of a given integer can be written
 as the following lambda expression:
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 x => x + 1
 ```
 
@@ -447,7 +452,8 @@ parameters that satisfy the precondition (just like the bodies of
 named functions and methods).  In some cases, this means it is
 necessary to write explicit `requires` and `reads` clauses.  For
 example, the lambda expression
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 x requires x != 0 => 100 / x
 ```
 would not be well-formed if the `requires` clause were omitted,
@@ -460,7 +466,8 @@ in such a way that the lambda expression is equivalent to `F`) would
 be written `x => F(x)`.  In Dafny, eta expansion must also account for
 the precondition and reads set of the function, so the eta expansion
 of `F` looks like:
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 x requires F.requires(x) reads F.reads(x) => F(x)
 ```
 
@@ -478,13 +485,15 @@ or an [Update with Failure Statement](#sec-update-failure).
 
 An example of the first (`NameSegment`) form is:
 
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
     LibraryModule.F().x
 ```
 
 An example of the second (`ConstAtomExpression`) form is:
 
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
     old(o.f).x
 ```
 
@@ -529,7 +538,8 @@ ArrayAllocation_ =
 This right-hand-side expression allocates a new single or multi-dimensional array (cf. [Section 15](#sec-array-types)).
 The initialization portion is optional. One form is an
 explicit list of values, in which case the dimension is optional:
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 var a := new int[5];  // valid only if definiteAssignment is not strict
 var b := new int[5][2,3,5,7,11];
 var c := new int[][2,3,5,7,11];
@@ -537,13 +547,15 @@ var d := new int[3][4,5,6,7]; // error
 ```
 The comprehension form requires a dimension and uses a function of
 type `nat -> T` where `T` is the array element type:
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 var a := new int[5](i => i*i);
 ```
 
 To allocate a multi-dimensional array, simply give the sizes of
 each dimension. For example,
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 var m := new real[640, 480];
 ```
 allocates a 640-by-480 two-dimensional array of `real`s. The initialization
@@ -551,7 +563,8 @@ portion cannot give a display of elements like in the one-dimensional
 case, but it can use an initialization function. A function used to initialize
 a n-dimensional array requires a function from n `nat`s to a `T`, where `T`
 is element type of the array. Here is an example:
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 var diag := new int[30, 30]((i, j) => if i == j then 1 else 0);
 ```
 
@@ -616,7 +629,8 @@ freshly allocated since the time of entry to the enclosing method,
 or since [`label L:`](#sec-labeled-stmt) in the variant `fresh@L(e)`.
 For example, consider this valid program:
 
-```dafny <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 class C { constructor() {} }
 method f(c1: C) returns (r: C)
   ensures fresh(r)
@@ -656,7 +670,8 @@ it could in principle have been the value of a variable in that state.
 
 For example, consider this valid program:
 
-```dafny <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 class C { constructor() {} }
 datatype D = Nil | Cons(C, D)
 method f() {
@@ -705,7 +720,8 @@ The `unchanged` expression returns `true` if and only if every reference
 denoted by its arguments has the same value for all its fields in the
 old and current state. For example, if `c` is an object with two
 fields, `x` and `y`, then `unchanged(c)` is equivalent to
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 c.x == old(c.x) && c.y == old(c.y)
 ```
 
@@ -718,7 +734,8 @@ state.
 The optional `@`-label says to use it as the old-state instead of using
 the `old` state. That is, using the example `c` from above, the expression
 `unchanged@Lbl(c)` is equivalent to
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 c.x == old@Lbl(c.x) && c.y == old@Lbl(c.y)
 ```
 
@@ -761,7 +778,8 @@ or [`unchanged`](#sec-unchanged-expression) expressions,
 nor [two-state functions](#sec-two-state) or [two-state lemmas](#sec-two-state-lemma).
 
 Here are some explanatory examples. All `assert` statements verify to be true.
-```dafny <!-- %check-verify-warn Expressions.2.expect -->
+<!-- %check-verify-warn Expressions.2.expect -->
+```dafny
 class A {
 
   var value: int
@@ -791,7 +809,8 @@ class A {
   }
 }
 ```
-```dafny <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 class A {
   var value: int
   constructor ()
@@ -832,7 +851,8 @@ class B {
   }
 }
 ```
-```dafny <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 class A {
   var value: int
   constructor ()
@@ -874,7 +894,8 @@ class B {
 }
 ```
 The next example demonstrates the interaction between `old` and array elements.
-```dafny <!-- %check-verify-warn Expressions.3.expect -->
+<!-- %check-verify-warn Expressions.3.expect -->
+```dafny
 class A {
   var z1: array<nat>
   var z2: array<nat>
@@ -937,12 +958,14 @@ SeqDisplayExpr =
 A sequence display expression provides a way to construct
 a sequence with given values. For example
 
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 [1, 2, 3]
 ```
 is a sequence with three elements in it.
 
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 seq(k, n => n+1)
 ```
 is a sequence of k elements whose values are obtained by evaluating the
@@ -966,7 +989,8 @@ set (with the finite set of given elements) is constructed.
 
 For example
 
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 {1, 2, 3}
 ```
 is a set with three elements in it.
@@ -976,7 +1000,8 @@ sets.
 A multiset display expression provides a way of constructing
 a multiset with given elements and multiplicities. For example
 
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 multiset{1, 1, 2, 3}
 ```
 is a multiset with three elements in it. The number 1 has a multiplicity of 2,
@@ -985,7 +1010,8 @@ and the numbers 2 and 3 each have a multiplicity of 1.
 A multiset cast expression converts a set or a sequence
 into a multiset as shown here:
 
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 var s : set<int> := {1, 2, 3};
 var ms : multiset<int> := multiset(s);
 ms := ms + multiset{1};
@@ -1013,7 +1039,8 @@ MapLiteralExpressions =
 A map display expression builds a finite or potentially infinite
 map from explicit ``MapLiteralExpressions``. For example:
 
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 var m := map[1 := "a", 2 := "b"];
 ghost var im := imap[1 := "a", 2 := "b"];
 ```
@@ -1056,7 +1083,8 @@ expression following the `else` is evaluated and that is the result
 of the expression. It is important that only the selected expression
 is evaluated as the following example shows.
 
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 var k := 10 / x; // error, may divide by 0.
 var m := if x != 0 then 10 / x else 1; // ok, guarded
 ```
@@ -1070,7 +1098,8 @@ bound to the given variable and that variable is in scope in
 the then-branch of the expression.
 
 For example, in the code
-```dafny <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 predicate P(x: int) {
   x == 5 || x == -5
 }
@@ -1226,7 +1255,8 @@ quantified variables, namely those in the ``QuantifierDomain``.
 See [Section 2.6.5](#sec-quantifier-domains) for more details on quantifier domains.
 
 Here are some examples:
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 assert forall x : nat | x <= 5 :: x * x <= 25;
 (forall n :: 2 <= n ==> (exists d :: n < d < 2*n))
 assert forall x: nat | 0 <= x < |s|, y <- s[x] :: y < x;
@@ -1257,19 +1287,22 @@ need not be supplied, in which case it is as if it had been supplied
 and the expression consists solely of the quantified variable.
 That is,
 
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 set x : T | P(x)
 ```
 
 is equivalent to
 
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 set x : T | P(x) :: x
 ```
 
 For the full form
 
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 var S := set x1: T1 <- C1 | P1(x1),
              x2: T2 <- C2 | P2(x1, x2),
              ... 
@@ -1282,7 +1315,8 @@ domains) such that all predicates `P1(x1), P2(x1, x2), ...` hold.
 
 For example,
 
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 var S := set x:nat, y:nat | x < 2 && y < 2 :: (x, y)
 ```
 yields `S == {(0, 0), (0, 1), (1, 0), (1,1) }`
@@ -1299,7 +1333,8 @@ accepted.
 
 Set comprehensions involving reference types such as
 
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 set o: object
 ```
 
@@ -1316,7 +1351,8 @@ The universe in which set comprehensions are evaluated is the set of all
 _allocated_ objects, of the appropriate type and satisfying the given predicate.
 For example, given
 
-```dafny <!-- %check-resolve -->
+<!-- %check-resolve -->
+```dafny
 class I {
   var i: int
 }
@@ -1341,7 +1377,8 @@ A ``StmtInExpr`` is a kind of statement that is allowed to
 precede an expression in order to ensure that the expression
 can be evaluated without error. For example:
 
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 assume x != 0; 10/x
 ```
 
@@ -1371,7 +1408,8 @@ declaration except the scope of the variable only extends to the
 enclosed expression.
 
 For example:
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 var sum := x + y; sum * sum
 ```
 
@@ -1381,7 +1419,8 @@ type (which if missing is inferred from the rhs).
 The more complex case allows destructuring of constructor expressions.
 For example:
 
-```dafny <!-- %check-resolve -->
+<!-- %check-resolve -->
+```dafny
 datatype Stuff = SCons(x: int, y: int) | Other
 function GhostF(z: Stuff): int
   requires z.SCons?
@@ -1401,7 +1440,8 @@ immediate return from the method; expressions do not have side effects or immedi
 mechanisms.
 
 The expression `:- V; E` is desugared into the _expression_
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 var tmp := V;
 if tmp.IsFailure()
 then tmp.PropagateFailure()
@@ -1409,7 +1449,8 @@ else E
 ```
 
 The expression `var v :- V; E` is desugared into the _expression_
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 var tmp := V;
 if tmp.IsFailure()
 then tmp.PropagateFailure()
@@ -1417,7 +1458,8 @@ else var v := tmp.Extract(); E
 ```
 
 If the RHS is a list of expressions then the desugaring is similar. `var v, v1 :- V, V1; E` becomes
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 var tmp := V;
 if tmp.IsFailure()
 then tmp.PropagateFailure()
@@ -1448,7 +1490,8 @@ giving the mapped value using the expression following the "::".
 See [Section 2.6.5](#sec-quantifier-domains) for more details on quantifier domains.
 
 For example:
-```dafny <!-- %check-resolve -->
+<!-- %check-resolve -->
+```dafny
 function square(x : int) : int { x * x }
 method test()
 {
@@ -1464,7 +1507,8 @@ creation of an infinite map that gives the same results as a function.
 
 If the expression includes the `:=` token, that token separates
 domain values from range values. For example, in the following code
-```dafny <!-- %check-resolve -->
+<!-- %check-resolve -->
+```dafny
 method test()
 {
   var m := map x : int | 1 <= x <= 10 :: 2*x := 3*x;
@@ -1504,7 +1548,8 @@ list where k is the number of recursion levels.
 In the case where the `greatest lemma` is generic, the generic type
 argument is given before. Here is an example:
 
-```dafny <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 codatatype Stream<T> = Nil | Cons(head: int, stuff: T,
                                   tail: Stream<T>)
 
@@ -1606,7 +1651,8 @@ updated must have a value derived from that same constructor.
 
 Here is an example:
 
-```dafny <!-- %check-verify Expressions.4.expect -->
+<!-- %check-verify Expressions.4.expect -->
+```dafny
 datatype MyDataType = MyConstructor(myint:int, mybool:bool)
                     | MyOtherConstructor(otherbool:bool)
                     | MyNumericConstructor(42:int)
@@ -1790,7 +1836,8 @@ of the subset type: if the range is within 0 to less than 256, then an
 unsigned 8-bit representation can be used.
 
 To continue this example, suppose a new type is defined as
-```dafny <!-- %check-resolve -->
+<!-- %check-resolve -->
+```dafny
 const MAX := 47
 newtype mytype = x | 0 <= x < MAX*4
 ```

@@ -29,7 +29,8 @@ for zero in an array. What makes this problem interesting is that the array we a
 searching in has two special properties: all elements are non-negative, and each successive
 element decreases by at most one from the previous element. In code:
 
-```dafny <!-- %check-verify Lemmas.1.expect -->
+<!-- %check-verify Lemmas.1.expect -->
+```dafny
 method FindZero(a: array<int>) returns (index: int)
   requires forall i :: 0 <= i < a.Length ==> 0 <= a[i]
   requires forall i :: 0 < i < a.Length ==> a[i-1]-1 <= a[i]
@@ -43,7 +44,8 @@ Then we know that `6 <= a[j+1]`, `5 <= a[j+2]`, etc. In fact, the next zero can'
 be until 7 more elements in the array. So we don't even have to search for a zero until
 `a[j+a[j]]`. So we could write a loop like:
 
-```dafny <!-- %check-verify Lemmas.2.expect -->
+<!-- %check-verify Lemmas.2.expect -->
+```dafny
 method FindZero(a: array<int>) returns (index: int)
   requires forall i :: 0 <= i < a.Length ==> 0 <= a[i]
   requires forall i :: 0 < i < a.Length ==> a[i-1]-1 <= a[i]
@@ -79,7 +81,8 @@ on the verification of the
 program. You may think of lemmas as heavyweight assertions, in that they are only
 necessary to help the proof of the program along. A typical lemma might look like:
 
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 lemma Lemma(...)
   ensures (desirable property)
 {
@@ -91,7 +94,8 @@ For the zero search problem, the desirable property is that none of the elements
 `index` until `index + a[index]` can be zero. We take the array and the index
 to start from as parameters, with the usual requirements from `FindZero`:
 
-```dafny <!-- %check-verify Lemmas.3.expect -->
+<!-- %check-verify Lemmas.3.expect -->
+```dafny
 lemma SkippingLemma(a: array<int>, j: int)
   requires forall i :: 0 <= i < a.Length ==> 0 <= a[i]
   requires forall i :: 0 < i < a.Length ==> a[i-1]-1 <= a[i]
@@ -109,7 +113,8 @@ then do a crucial step: check that our lemma is sufficient to prove the loop inv
 By making this check before filling in the lemma body, we ensure that we are trying to
 prove the right thing. The `FindZero` method becomes:
 
-```dafny <!-- %check-verify Lemmas.4.expect  -->
+<!-- %check-verify Lemmas.4.expect  -->
+```dafny
 lemma SkippingLemma(a: array<int>, j: int)
   requires forall i :: 0 <= i < a.Length ==> 0 <= a[i]
   requires forall i :: 0 < i < a.Length ==> a[i-1]-1 <= a[i]
@@ -148,7 +153,8 @@ We start with the crucial property of the array, that it only decreases
 slowly. We can ask whether certain properties hold by using assertions. For
 example, we can see that Dafny knows:
 
-```dafny <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 lemma SkippingLemma(a: array<int>, j: int)
   requires forall i :: 0 <= i < a.Length ==> 0 <= a[i]
   requires forall i :: 0 < i < a.Length ==> a[i-1]-1 <= a[i]
@@ -173,7 +179,8 @@ together. We want to iterate from `j` to `j + a[j]`, keeping
 track of the lower bound as we go. We also keep track of the fact that all
 of the elements we have seen so far are not zero:
 
-```dafny <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 lemma SkippingLemma(a: array<int>, j: int)
   requires forall i :: 0 <= i < a.Length ==> 0 <= a[i]
   requires forall i :: 0 < i < a.Length ==> a[i-1]-1 <= a[i]
@@ -232,7 +239,8 @@ To see an example of this, we will consider the problem of counting.
 We will count the number of `true`s in a sequence of
 `bool`s, using the `count` function, given below:
 
-```dafny <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 function count(a: seq<bool>): nat
 {
   if |a| == 0 then 0 else
@@ -253,7 +261,8 @@ to requiring lemmas. There is a desirable property of count that we would like t
 able to use in verifying a program that uses this function: it distributes
 over addition. By this we mean:
 
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 forall a, b :: count(a + b) == count(a) + count(b)
 ```
 
@@ -281,7 +290,8 @@ is more work than proving the concrete, specific case, so we will tackle this ca
 Thus the lemma should take as arguments the sequences of interest, and the postcondition is
 as follows:
 
-```dafny <!-- %check-verify Lemmas.5.expect -->
+<!-- %check-verify Lemmas.5.expect -->
+```dafny
 lemma DistributiveLemma(a: seq<bool>, b: seq<bool>)
   ensures count(a + b) == count(a) + count(b)
 {
@@ -308,7 +318,8 @@ trait of lemmas. We notice that if `a == []`, then `a + b == b`, regardless of w
 `b` is. Lemmas handle cases using the same thing code does to handle cases: if statements. A short
 proof of the desirable property is given using asserts below.
 
-```dafny <!-- %check-verify Lemmas.6.expect -->
+<!-- %check-verify Lemmas.6.expect -->
+```dafny
 lemma DistributiveLemma(a: seq<bool>, b: seq<bool>)
   ensures count(a + b) == count(a) + count(b)
 {
@@ -339,7 +350,8 @@ Our goal is to relate `count(a + b)` to `count(a)` and `count(b)`. If `a`
 is not the empty sequence, then when we employ our trick of following the definition to expand
 `count(a + b)`, we get:
 
-```dafny <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 function count(a: seq<bool>): nat
 {
   if |a| == 0 then 0 else
@@ -356,7 +368,8 @@ method m2(a: seq<bool>, b:seq<bool>)
 Notice that we get `count([a[0]])` and `a[1..]`. These two terms would also appear
 if we expanded `count(a)`. Specifically:
 
-```dafny <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 method m2(a: seq<bool>, b:seq<bool>)
   requires |a| > 0
 {
@@ -372,7 +385,8 @@ function count(a: seq<bool>): nat
 Finally, we can substitute this definition for `count(a)` into the postcondition
 to get:
 
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
   assert count(a + b) == count(a) + count(b); // postcondition
   assert count(a + b) == count([a[0]]) + count(a[1..]) + count(b);
 ```
@@ -413,7 +427,8 @@ given the relationship between iteration and recursion as two means of achieving
 With this in mind, we can complete the lemma by calling the lemma recursively in the else branch of the
 if statement:
 
-```dafny <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 lemma DistributiveLemma(a: seq<bool>, b: seq<bool>)
   ensures count(a + b) == count(a) + count(b)
 {
@@ -443,7 +458,8 @@ A directed graph is composed
 of a number of `Node`s, each with some links to other `Node`s. These links are single directional,
 and the only restriction on them is that a node cannot link to itself. Nodes are defined as:
 
-```dafny <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 class Node
 {
   // a single field giving the nodes linked to
@@ -454,7 +470,8 @@ class Node
 We represent a graph as a set of Nodes that only point to other nodes in the graph, and not to itself.
 We call such a set of nodes *closed*:
 
-```dafny <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 class Node
 {
   // a single field giving the nodes linked to
@@ -472,7 +489,8 @@ We represent a path as a nonempty sequence of nodes, where each node is linked t
 path. We define two predicates, one that defines a valid path, and another that determines whether the given
 path is a valid one between two specific nodes in the graph:
 
-```dafny <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 class Node
 {
   // a single field giving the nodes linked to
@@ -507,7 +525,8 @@ of the nodes of the graph which also forms a graph. This sub-graph must be *clos
 outside of itself. If we have such a situation, then there cannot be a valid path from a node in the sub-graph
 to a node outside this sub-graph. We will call this fact the Closed Lemma, which we state in Dafny as follows:
 
-```dafny <!-- %check-verify Lemmas.7.expect -->
+<!-- %check-verify Lemmas.7.expect -->
+```dafny
 lemma ClosedLemma(subgraph: set<Node>, root: Node, goal: Node, graph: set<Node>)
   requires closed(subgraph) && closed(graph) && subgraph <= graph
   requires root in subgraph && goal in graph - subgraph
@@ -552,7 +571,8 @@ it cannot be a valid path. We can do this with, you guessed it, another lemma. T
 prove for any given sequence, that it cannot be a valid path from `root` to `goal`.
 The disproof of a path lemma looks like:
 
-```dafny <!-- %check-verify Lemmas.8.expect -->
+<!-- %check-verify Lemmas.8.expect -->
+```dafny
 lemma DisproofLemma(p: seq<Node>, subgraph: set<Node>,
                     root: Node, goal: Node, graph: set<Node>)
   requires closed(subgraph) && closed(graph) && subgraph <= graph
@@ -591,7 +611,8 @@ The preconditions are the same as `ClosedLemma`.  To use `DisproofLemma` in `Clo
 to invoke it once for every sequence of nodes.  This can be done with Dafny's `forall` statement,
 which aggregates the effect of its body for all values of the given bound variable.
 
-```dafny <!-- %check-verify Lemmas.9.expect -->
+<!-- %check-verify Lemmas.9.expect -->
+```dafny
 lemma ClosedLemma(subgraph: set<Node>, root: Node, goal: Node, graph: set<Node>)
   requires closed(subgraph) && closed(graph) && subgraph <= graph
   requires root in subgraph && goal in graph - subgraph
@@ -645,7 +666,8 @@ element needs to be `goal`. Because `root in subgraph` and `goal !in subgraph`, 
 have `root != goal`, so the sequence must have at least two elements. To check that Dafny sees this,
 we can temporarily put preconditions on our lemma as follows:
 
-```dafny <!-- %check-verify Lemmas.10.expect -->
+<!-- %check-verify Lemmas.10.expect -->
+```dafny
 lemma DisproofLemma(p: seq<Node>, subgraph: set<Node>,
                     root: Node, goal: Node, graph: set<Node>)
   requires closed(subgraph) && closed(graph) && subgraph <= graph
@@ -696,7 +718,8 @@ which means that Dafny is able to prove the postcondition in these circumstances
 prove that the path is invalid when these conditions do not hold. We can use an `if` statement to express
 this:
 
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 if 1 < |p| && p[0] == root && p[|p|-1] == goal {
   (further proof)
 }
@@ -718,7 +741,8 @@ counting example, Dafny can see that if the first to second node link is not val
 cannot be a path because this mirrors the definition of `path`. Thus we only have further work to do
 if the first link is valid. We can express this with another `if` statement:
 
-```dafny <!-- %no-check -->
+<!-- %no-check -->
+```dafny
 if 1 < |p| && p[0] == root && p[|p|-1] == goal {
   if p[1] in p[0].next {
     (yet further proof)
@@ -733,7 +757,8 @@ version of the same problem. We can just recursively call `DisproofLemma` to pro
 not a path. This means, per the definition of `path`, that `p` cannot be a path, and the second postcondition
 is satisfied. This can be implemented as:
 
-```dafny <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 lemma DisproofLemma(p: seq<Node>, subgraph: set<Node>,
                     root: Node, goal: Node, graph: set<Node>)
   requires closed(subgraph) && closed(graph) && subgraph <= graph
