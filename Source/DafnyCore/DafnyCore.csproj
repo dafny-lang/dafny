@@ -37,8 +37,4 @@
     <Content Include="DafnyPrelude.bpl" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Resolution" />
-  </ItemGroup>
-
 </Project>

@@ -4084,7 +4084,7 @@ namespace Microsoft.Dafny {
           e = Substitute(e, receiverReplacement, substMap);
         }
 
-        e = Resolver.FrameArrowToObjectSet(e, CurrentIdGenerator, program.BuiltIns);
+        e = ArrowType.FrameArrowToObjectSet(e, CurrentIdGenerator, program.BuiltIns);
 
         Bpl.Expr disjunct;
         var eType = e.Type.NormalizeExpand();
