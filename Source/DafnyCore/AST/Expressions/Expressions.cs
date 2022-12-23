@@ -2706,8 +2706,9 @@ public abstract class ConcreteSyntaxExpression : Expression {
     }
   }
 
+  // Protected so that ReflectiveUpdate can find it.
   [FilledInDuringResolution]
-  private Expression resolvedExpression;
+  protected Expression resolvedExpression;
 
   public Expression ResolvedExpression {
     get => resolvedExpression;

@@ -58,6 +58,7 @@ public class MatchDenester {
       if (node is ICallable callable) {
         resolutionContext = new ResolutionContext(callable, false);
       }
+      // TODO should switch away from this ReflectiveUpdater to something more robust. 
       ReflectiveUpdater.UpdateFieldsOfType<Statement>(node, stmt => {
         if (stmt is NestedMatchStmt nestedMatchStmt) {
           return CompileNestedMatchStmt(nestedMatchStmt);
