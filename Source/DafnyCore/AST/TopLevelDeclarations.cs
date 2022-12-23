@@ -1539,10 +1539,6 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType {
   }
 }
 
-public interface IASTVisitorContext {
-  ModuleDefinition EnclosingModule { get; }  // to be called only after signature-resolution is complete
-}
-
 /// <summary>
 /// An ICodeContext is an ICallable or a NoContext.
 /// </summary>
