@@ -4,28 +4,59 @@ title: If I have an assertion about a class and a loop that doesn't mention (rea
 
 ## Question
 
-If I have an assertion about a class and a loop that doesn't mention (read, modify) the class, why does dafny fail to establish the assertion after the loop?
+If I have an assertion about a class and a loop that doesn't mention (read, modify) the class, 
+why does dafny fail to establish the assertion after the loop?
 
 ## Answer
 
-The short answer is that you need an appropriate combination of modifies clause and loop invariants to prove assertions about the end result of a loop.
+The short answer is that you need an appropriate combination of modifies clause and 
+loop invariants to prove assertions about the end result of a loop.
 
-In Dafny's way of reasoning about a loop (which is typical of verifier systems), the loop invariant is the only thing you can assume at the top of every iteration. In other words, at the top of each loop iteration, it is as if all variables have arbitrary values, modulo the loop invariant. Sometimes, the word _havoc_ is used to describe this: the verifier havocs all variables, that is, gives all variables arbitrary values, and then assumes the loop invariant.
+In Dafny's way of reasoning about a loop (which is typical of verifier systems), 
+the loop invariant is the only thing you can assume at the top of every iteration. 
+In other words, at the top of each loop iteration, it is as if all variables have 
+arbitrary values, with the condition that the loop invariant is satisfied. 
+Sometimes, the word _havoc_ is used to describe this: the verifier havocs all variables, 
+that is, gives all variables arbitrary values, and then assumes the loop invariant.
 
-If that’s all the verifier did, life would be a pain, because you’d have to write a loop invariant about all variables in your program, even those that have nothing to do with the loop.
-The verifier actually does better. Instead of havocing all variables, it suffices to havoc the assignment targets within the body of the loop, including anything that might be modified by methods called in the loop body. That is, the verifier uses a simple syntactic scan of the loop body to see which variables may possibly be assigned, and then it havocs only those variables. This saves users from having to write loop invariants about all other variables. Only invariants about variables
-that are modified are needed.
+If that’s all the verifier did, life would be a pain, because you’d have to write a l
+oop invariant about all variables in your program, even those that have nothing to do with the loop.
+The verifier actually does better. Instead of havocing all variables, it suffices to havoc 
+the assignment targets within the body of the loop, including anything that might be modified by methods called in the loop body. 
+That is, the verifier uses a simple syntactic scan of the loop body to see which 
+variables may possibly be assigned, and then it havocs only those variables. 
+This saves users from having to write loop invariants about all other variables.
+Only invariants about variables that are modified are needed.
 
-What about the heap? For this purpose, the heap is considered to be one variable. So, the heap is either an assignment target of the loop or it isn’t. This means that if your loop body assigns to anything in the heap, the heap becomes an assignment target. Also, if the loop body allocates another object, that too is a change of the heap, so the heap becomes an assignment target. Furthermore, Dafny’s rule about a method is that a method is allowed to change the state of any object in the method’s modifies clause, and it is also allowed to allocate new objects and to modify their state. Therefore, if your loop body calls a method, then the heap may well become an assignment target.
- So, then, does this mean your loop invariant needs to speak about everything in the heap whenever the heap is an assignment target of the loop?
+What about the heap? For this purpose, the heap is considered to be one variable. 
+So, the heap is either an assignment target of the loop or it isn’t. 
+This means that if your loop body assigns to anything in the heap, the heap becomes an assignment target. 
+Also, if the loop body allocates another object, that too is a change of the heap, 
+so the heap becomes an assignment target. 
+Furthermore, Dafny’s rule about a method is that a method is allowed to change the 
+state of any object in the method’s modifies clause, 
+and it is also allowed to allocate new objects and to modify their state. 
+Therefore, if your loop body calls a method, then the heap may well become an assignment target.
 
-Again, no. Loops in Dafny have `modifies` clauses, just like methods do (and just like for methods, newly allocated objects are implicitly included in those `modifies` clauses). It would be a pain to even have to write `modifies` clauses for every loop, so if a loop does not have an explicit `modifies` clause, Dafny implicitly attaches the `modifies` clause of the enclosing method (or of the enclosing loop, in the case of nested loops). This default behavior turns out to be right in almost all cases in practice, which is why you normally don’t have to think about this issue.
+So, then, does this mean your loop invariant needs to speak about everything in the heap whenever the heap is an assignment target of the loop?
 
-But when it is not, you need to be explicit about the `modifies` clause and the loop invariants. In particular
-- write a `modifies` clause for the loop that includes all objects whose fields might be assigned in the loop body (or listed in the modifies clauses of anything the loop body calls)
+Again, no. Loops in Dafny have `modifies` clauses, just like methods do (and just like for methods, 
+newly allocated objects are implicitly included in those `modifies` clauses). 
+It would be a pain to even have to write `modifies` clauses for every loop, 
+so if a loop does not have an explicit `modifies` clause, Dafny implicitly attaches 
+the `modifies` clause of the enclosing method (or of the enclosing loop, in the case of nested loops). 
+This default behavior turns out to be right in almost all cases in practice, 
+which is why you normally don’t have to think about this issue.
+
+But when it is not, you need to be explicit about the `modifies` clause and the loop invariants. 
+In particular
+- write a `modifies` clause for the loop that includes all objects whose fields might be 
+assigned in the loop body (or listed in the modifies clauses of anything the loop body calls)
 - then write a loop invariant that includes assertions about any variable that is listed in the modifies clause
-or is an assignment target in the loop body. Very typically, the invariant will give a value for a havoced variable showing its relationship to the loop index.
-For example, a loop that sets the elements of an array to some initial value might loop like this:
+or is an assignment target in the loop body. 
+Very typically, the invariant will give a value for a havoced variable showing its relationship to the loop index.
+
+For example, a loop that sets the elements of an array to some initial value might look like this:
 ```dafny
 method init(a: array<int>) 
   modifies a
@@ -45,13 +76,15 @@ method init(a: array<int>)
 
 Note the following points:
 - The method specifies that it might modify the elements of the array `a`.
-- The loop says that it modifies the same array. In fact that modifies clause could be omitted
+- The loop says that it modifies the same array. 
+In fact that modifies clause could be omitted
 because it would be inherited from the enclosing context
 - The loop also modifies `i`, but as `i` is a local variable of non-reference type, it need not be listed in the modifies clause.
 - The loop also has an invariant, which has two conjuncts
    - One conjunct states what may be assumed about `i`. Even though `i` is not in the modifies clause 
     it is an assignment target, so we need to say what may be assumed about it (prior to the loop test)
-   - The other conjunct says what is known about the elem,ents of `a`, which depends on `i`, that is, omn how many iterations of the loop have been executed
+   - The other conjunct says what is known about the elements of `a`, which depends on `i`, 
+    that is, on how many iterations of the loop have been executed
 - And then from that loop invariant and the fact that the loop has now terminated (which implies that `i == a.Length`), Dafny can prove the method's postcondition. 
 
-Even when Dafny can infer an appropriate modifies clause, it cannot infer loop invariants. The user always needs to supply those (until verification technology improves) 
+Even when Dafny can infer an appropriate modifies clause, it cannot infer loop invariants. The user always needs to supply those (until verification technology improves). 
