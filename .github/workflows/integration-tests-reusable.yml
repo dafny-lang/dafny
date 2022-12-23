@@ -120,8 +120,6 @@ jobs:
       if: "!inputs.all_platforms"
       run: |
         chmod +x dafny/Binaries/z3/bin/z3
-    - name: Run FromSource DoubleRead
-      run: dotnet test dafny/Source/IntegrationTests/IntegrationTests.csproj --filter DisplayName~DoubleRead
     - name: Run integration tests
       if: runner.os == 'Windows'
       env:
