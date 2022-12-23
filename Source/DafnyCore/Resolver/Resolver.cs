@@ -6550,7 +6550,8 @@ namespace Microsoft.Dafny {
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();
         }
-      } else if (type.AsDatatype is TupleTypeDecl) {
+      } else if (type.AsDatatype is TupleTypeDecl tupleTypeDecl) {
+        // TODO why does we need custom code for tuples? :cry:
         var udt = type.NormalizeExpand() as UserDefinedType;
         if (!(pat is IdPattern)) {
           reporter.Error(MessageSource.Resolver, pat.Tok, "pattern doesn't correspond to a tuple");
@@ -6563,6 +6564,8 @@ namespace Microsoft.Dafny {
           CheckLinearVarPattern(udt, idpat, resolutionContext);
           return;
         }
+
+        idpat.Ctor = tupleTypeDecl.GroundingCtor;
 
         //We expect the number of arguments in the type of the matchee and the provided pattern to match, except if the pattern is a bound variable
         if (udt.TypeArgs.Count != idpat.Arguments.Count) {
@@ -6591,7 +6594,7 @@ namespace Microsoft.Dafny {
         IdPattern idpat = (IdPattern)pat;
 
         var dtd = type.AsDatatype;
-        Dictionary<string, DatatypeCtor> ctors = dtd.ConstructorsByName; ;
+        Dictionary<string, DatatypeCtor> ctors = dtd.ConstructorsByName;
         if (ctors == null) {
           Contract.Assert(false); throw new cce.UnreachableException();  // Datatype not found
         }
