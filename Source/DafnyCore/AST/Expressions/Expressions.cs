@@ -2759,8 +2759,8 @@ public class FrameExpression : INode, IHasUsages {
   public FrameExpression(IToken tok, Expression e, string fieldName) {
     Contract.Requires(tok != null);
     Contract.Requires(e != null);
-    Debug.Assert(!(e is WildcardExpr) || fieldName == null);
-    Debug.Assert(!(e is ImplicitThisExpr) || fieldName != null);
+    Debug.Assert(!(e is WildcardExpr) || fieldName == null || false);
+    Debug.Assert(!(e is ImplicitThisExpr) || fieldName != null || false);
     this.tok = tok;
     E = e;
     FieldName = fieldName;
