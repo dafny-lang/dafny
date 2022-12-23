@@ -133,6 +133,7 @@ jobs:
       env:
         XUNIT_SHARD: ${{ matrix.shard }}
         XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
+        DAFNY_RELEASE: ${{ github.workspace }}\unzippedRelease\dafny
       run: |
         dotnet test --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj
     # echo ${{ inputs.all_platforms }} | grep false && unset DAFNY_RELEASE
@@ -142,7 +143,6 @@ jobs:
         XUNIT_SHARD: ${{ matrix.shard }}
         XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
       run: |
-        printenv DAFNY_RELEASE
         export DAFNY_RELEASE="${{ github.workspace }}/unzippedRelease/dafny"
         printenv DAFNY_RELEASE
         dotnet test --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj
