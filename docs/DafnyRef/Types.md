@@ -3353,7 +3353,8 @@ befuddlement is to write `array<T>` instead of `T` after `new`.
 For example, consider the following:
 <!-- %check-resolve Types.17.expect -->
 ```dafny
-class A {
+type T(0)
+method m(n: nat) {
   var a := new array<T>;
   var b := new array<T>[n];
   var c := new array<T>(n);  // resolution error

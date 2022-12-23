@@ -1653,9 +1653,10 @@ FIdentType<out IToken/*!*/ id, out Type/*!*/ ty>
 = (.Contract.Ensures(Contract.ValueAtReturn(out id) != null); Contract.Ensures(Contract.ValueAtReturn(out ty) != null);
     id = Token.NoToken;
   .)
-  NoUSIdentOrDigits<out id> (. id = t; .)
-  ":"
-  Type<out ty>
+  NoUSIdentOrDigits<out id> (. id = t; ty = null; .)
+  ( ":" Type<out ty> 
+  | ( ":=" | "=" ) (. SemErr(la, "a field requires a type declaration and may not be initialized"); .)
+  )
   .
 
 CIdentType<out IToken/*!*/ id, out Type ty>

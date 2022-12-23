@@ -1,0 +1,3 @@
+git-issue-3187d.dfy(6,17): Error: field declarations may not be initialized
+git-issue-3187d.dfy(6,17): Error: rbrace expected
+2 parse errors detected in git-issue-3187d.dfy
