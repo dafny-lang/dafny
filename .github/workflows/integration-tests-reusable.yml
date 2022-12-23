@@ -137,7 +137,7 @@ jobs:
         DAFNY_RELEASE: ${{ github.workspace }}/unzippedRelease/dafny
       run: |
         printenv DAFNY_RELEASE
-        unset DAFNY_RELEASE
+        export DAFNY_RELEASE="${{ github.workspace }}/unzippedRelease/dafny"
         printenv DAFNY_RELEASE
         dotnet test --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj
     - uses: actions/upload-artifact@v2
