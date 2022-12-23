@@ -226,7 +226,7 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
     set { _inferredDecr = value; }
     get { return _inferredDecr; }
   }
-  ModuleDefinition ICodeContext.EnclosingModule { get { return this.EnclosingClass.EnclosingModuleDefinition; } }
+  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return this.EnclosingClass.EnclosingModuleDefinition; } }
   bool ICodeContext.MustReverify { get { return false; } }
 
   [Pure]
