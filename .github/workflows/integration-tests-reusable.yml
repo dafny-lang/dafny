@@ -126,7 +126,7 @@ jobs:
       with:
         dotnet-version: 6.0.x
     - name: Install dependencies
-      if: false
+      if: "!inputs.all_platforms"
       run: dotnet restore dafny/Source/Dafny.sln
     - name: Run integration tests
       if: runner.os == 'Windows'
