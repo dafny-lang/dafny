@@ -4678,7 +4678,7 @@ LetExprWithLHS<out Expression e, bool allowLemma, bool allowLambda, bool allowBi
                                        }
                                     .)
     | ":-"                          (. isLetOrFail = true; .)
-    | "=" (. SemErr(la, "a let declaration is initialized using ':=', ':-' or ':|', not '='"); .)
+    | "=" (. SemErr(la, "a variable in a let expression is initialized using ':=', ':-', or ':|', not '='"); .)
     )
     Expression<out e, false, true>        (. letRHSs.Add(e); .)
     { "," Expression<out e, false, true>  (. letRHSs.Add(e); .)
