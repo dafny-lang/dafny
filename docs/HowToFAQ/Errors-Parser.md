@@ -1,3 +1,6 @@
+<!-- %check-resolve %default -->
+
+<!-- Parser.cs, but not Deprecated warnings or syntactic errors -->
 
 ## Error: Duplicate declaration modifier: abstract
 
@@ -137,16 +140,30 @@ There are limitations on refining a newtype, namely that the base type cannot be
 ## Error: iterators don't have a 'returns' clause; did you mean 'yields'?
 
 ```dafny
-iterator Count {
-  TODO
+iterator Count(n: nat) returns (x: nat) {
+  var i := 0;
+  while i < n {
+    x := i;
+    yield;
+    i := i + 1;
+  }
 }
 ```
+
+An iterator is like a co-routine: its control flow produces (yields) a value, but the execution continues from that point (a yield statement) to go on to produce the next value, rather than exiting the method. 
+To accentuate this difference, a `yield` statement is used to say when the next value of the iterator is ready, rather than a `return` statement.
+In addition, the declaration does not use `returns` to state the out-parameter, as a method would. Rather it has a `yields` clause
+The example above is a valid example if `returns` is replaced by `yields`.
 
 ## Error: fields are not allowed to be declared at the module level; instead, wrap the field in a 'class' declaration
 
 ```dafny
-var c := 5
+var c: int
 ```
+
+`var` declarations are used to declare fields of classes, local variables in method bodies, and identifiers in let-expressions.
+But mutable field declarations are not permitted at the static module level, including in the (unnamed) toplevel module.
+Rather, you may want the declaration to be a `const` declaration or you may want the mutable field to be declared in the body of a class.
 
 ## Error: expected either a '{' or a 'refines' keyword here, found _token_
 
@@ -231,16 +248,39 @@ Least and greatest predicates are always ghost and do not have a compiled repres
 so it makes no sense to have a `by method` alternative implementation.
 
 
-## Error: to use a 'by method' implementation with a {what}, declare '{id.val}' using '{what}', not '{what} method'
+## Error: to use a 'by method' implementation with a _what_, declare _id_ using _what_, not '_what_ method'
 
-TODO
+```dafny
+function method m(): int {
+  42
+} by method {
+  return 42;
+}
+```
 
-## Error: a {adjective} {what} is supported only as ghost, not as a compiled {what}
+`by method` constructs copmbine a ghost function (or predicate) with a non-ghost method.
+The two parts ciompute the same result, and are verified to do so.
+Uses of the function are verified using the function body, but the method body is used when the function is compiled.
 
-TODO
+Thus the function part is always implicitly `ghost` and may not be explicitly declared `ghost`.
 
-## Error: a {what} is always ghost and is declared with '{what}'
+## Error: a _adjective_ _what_ is supported only as ghost, not as a compiled _what_
 
+```dafny
+twostate function method m(): int {
+  42
+}
+```
+
+The `twostate`, `least`, and `greatest` functions and predicates are always ghost and cannot be compiled, so they cannot be
+declared as a `function method` (v3 only).
+
+
+## Error: a _what_ is always ghost and is declared with '_what_'
+
+```dafny
+x
+```
 Prior to Dafny 4, a 
 TODO
 
@@ -273,14 +313,23 @@ From Dafny 4 on, a ghost function is declared `ghost function` and a non-ghost f
 
 See [the documentation here](../DafnyRef/DafnyRef#sec-function-syntax).
 
-## Error: a {what} must be declared as either 'ghost {what}' or '{what} method'
+## Error: a _what_ must be declared as either 'ghost _what_' or '_what_ method'
 
+```dafny
+x
+```
 TODO
 
 ## Error: formal cannot be declared 'ghost' in this context
 
-TODO
-IMPROVE
+```dafny
+function m(ghost i: int): int {
+  42
+}
+```
+
+If a method, function, or predicate is declared as ghost, then its formal parameters may not also be declared ghost.
+Any use of this construct will always be in ghost contexts.
 
 ## Error: constructors are allowed only in classes
 
@@ -290,7 +339,7 @@ module M {
 }
 ```
 
-Constructors are methods that initialize classe instances. That is, when a new instance of a class is being created, 
+Constructors are methods that initialize class instances. That is, when a new instance of a class is being created, 
 using the `new` object syntax, then some constructor of the class is called, perhaps a default anonymous one.
 So constructor declarations only make sense within classes.
 
@@ -304,7 +353,11 @@ A method declaration always requires an identifier between the `mehtod` keyword 
 This is the case even when, as in the example above, a name is specified using `:extern`. The extern name is only used in the
 compiled code; it is not the name used to refer to the method in Dafny code
 
-## Error: type of _k can only be specified for least and greatest lemmas
+## XError: type of _k_ can only be specified for least and greatest lemmas
+
+```dafny
+least predicate b[nat](i: int) { true }
+```
 
 TODO
 
@@ -325,24 +378,39 @@ and they may not be declared.
 (This is similar to constructors in other progrmaming languages, like Java.)
 
 
-## Error: formal cannot be declared 'ghost' in this context
+## XError: formal cannot be declared 'ghost' in this context
 
-TODO
+```dafny
+method m(i: int) returns (ghost r: int) {}
+```
+TODO - multiple instances
 
 ## Error: formal cannot be declared 'new' in this context
 
+```dafny
+method m(i: int) returns (new r: int) {}
+```
 TODO
 
 ## Error: formal cannot be declared 'nameonly' in this context
 
+```dafny
+method m(i: int) returns (nameonly r: int) {}
+```
 TODO
 
 ## Error: formal cannot be declared 'older' in this context
 
+```dafny
+method m(i: int) returns (older r: int) {}
+```
 TODO
 
 ## Error: invalid formal-parameter name in datatype constructor
 
+```dafny
+x
+```
 TODO
 
 ## XError: use of the 'nameonly' modifier must be accompanied with a parameter name
@@ -355,149 +423,415 @@ TODO
 
 ## Error: set type expects only one type argument
 
+```dafny
+const c: set<int,bool>
+```
+
+A `set` type has one type parameter, namely the type of the elements of the set.
+The error message states that the parser sees some number of type parameters different than one.
+
 TODOa - 2 instances
 
-## ERROR: multiset type expects only one type argument
+## Error: multiset type expects only one type argument
 
-TODO
+```dafny
+const c: multiset<int,bool>
+```
+
+A `multiset` type has one type parameter, namely the type of the elements of the multiset.
+The error message states that the parser sees some number of type parameters different than one.
 
 ## Error: seq type expects only one type argument
 
-TODO -- also in a disolay expresion
+```dafny
+const c: seq<int,bool>
+```
+
+A `seq` type has one type parameter, namely the type of the elements of the sequence.
+The error message states that the parser sees some number of type parameters different than one.
+
+TODO -- also in a display expresion
 
 ## Error: map type expects two type arguments
 
-TODO
+```dafny
+const m: map<int,bool,string>
+```
+
+A `map` type has two type parameters: the type of the keys and the type of the values.
+The error message states that the parser sees some number of type parameters different than two.
+
 
 ## Error: imap type expects two type arguments
 
-TODO
+```dafny
+const m: imap<int,bool,string>
+```
+
+A `imap` type has two type parameters: the type of the keys and the type of the values.
+The error message states that the parser sees some number of type parameters different than two.
 
 ## Error: arrow-type arguments may not be declared as 'ghost'
 
+```dafny
+x
+```
 TODO
 
 ## Error: out-parameters cannot have default-value expressions
 
-TODO
+```dafny
+method m(i: int) returns (j: int := 0) { return 42; }
+```
 
-## Error: unexpected type parameter option - should be == or 0 or !new
+Out-parameters of a method are declared (inside the parentheses after the `returns` keyword)
+with just an identifier and a type, separated by a colon. 
+No initializing value may be given. If a default value is needed, assign the out-parameter
+that value as a first statement in the body of the method.
 
+## XError: unexpected type parameter option - should be == or 0 or !new
+
+```dafny
+type T(^)
+```
 TODO
 
 ## Error: A 'decreases' clause that contains '*' is not allowed to contain any other expressions
 
+```dafny
+x
+```
 TODO
 
 ## Error: A 'reads' clause that contains '*' is not allowed to contain any other expressions
 
+```dafny
+x
+```
 TODO
 
 ## Error: A '*' frame expression is not permitted here
 
+```dafny
+x
+```
 TODO
 
-## Error: {name} return type should be bool, got {ty}
+## XError: _name_ return type should be bool, got _type_
+
+```dafny
+predicate b(): int { 4 }
+```
 
 TODO
 
 ## Error: {name}s do not have an explicitly declared return type; it is always bool. Unless you want to name the result: ': (result: bool)'
 
+```dafny
+x
+```
 TODO
 
-## Error: 'decreases' clauses are meaningless for least and greatest predicates, so they are not allowed
+## XError: 'decreases' clauses are meaningless for least and greatest predicates, so they are not allowed
+
+```dafny
+least predicate m(i: int)
+  decreases i
+{
+  true
+}
+```
+TODO
+
+## XError: A '*' expression is not allowed here
+
+```dafny
+const c := *
+```
+
 
 TODO
 
-## Error: A '*' expression is not allowed here
+## Error: invalid statement beginning here (is a 'label' keyword missing? or a 'const' or 'var' keyword?)
 
-TODO
+```dafny
+method m() {
+  x: int := 5;
+}
+```
 
-## Error: invalid statement (did you forget the 'label' keyword?)
+In this situation the parser sees the identifier (x) and the following colon.
+This is not a legal start to a statement. Most commonly either
+* a `var` or `const` keyword is missing, and the `x:` is the beginning of a declaration, or
+* a `label` keyword is missing and the identifier is the name of the label for the statement that follows.
+(The second error is somewhat common because in C/C++ and Java, there is no keyword introducing a label, just the identifier and the colon.)
 
-TODO
 
 ## Error: LHS of assign-such-that expression must be variables, not general patterns
 
+```dafny
+x
+```
 TODO
 
 ## Error: 'modifies' clauses are not allowed on refining loops
 
+```dafny
+x
+```
 TODO - deprecated?
 
 ## Error: the main operator of a calculation must be transitive
 
-TODO
+```dafny
+lemma abs(a: int, b: int, c: int)
+  ensures a + b + c == c + b + a
+{
+  calc != {
+    a + b + c;
+    a + c + b;
+    c + a + b;
+  }
+}
+```
+A [calc statement](../DafnyRef/DafnyRef#sec-calc-statement)
+contains a sequence of expressions interleaved by operators.
+Such a sequence aids the verifier in establishing a desired conclusion.
+But the sequence of operators must obey certain patterns similar to chaining expressions.
+In this case a default operator is stated (the `!=` between `calc` and `{`).
+This default operator is the implicit between each consaecutive pair of expressions
+in the body of the calc statement.
+
+But the operator has to be transitive: `!=` is not allowed; `==`, `<`, `<=`, '>' and '>=' asre allowed.
+
 
 ## Error: this operator cannot continue this calculation
 
-TODO
+```dafny
+lemma abs(a: int, b: int, c: int)
+  ensures a + b + c == c + b + a
+{
+  calc {
+    a + b + c;
+    !=
+    a + c + b;
+    !=
+    c + a + b;
+  }
+}
+```
+A [calc statement](../DafnyRef/DafnyRef#sec-calc-statement)
+contains a sequence of expressions interleaved by operators.
+Such a sequence aids the verifier in establishing a desired conclusion.
+But the sequence of operators must obey certain patterns similar to chaining expressions.
+
+In particular, this error message is complaining that it sees an unacceptable operator.
+In this case, the reason is that the seequence may contain only one `!=` operator;
+another reaons causing this message would be a combination of `<` and `>` operators.
 
 ## Error: a calculation cannot end with an operator
 
-TODO
+```dafny
+lemma abs(a: int, b: int, c: int)
+  ensures a + b + c == c + b + a
+{
+  calc {
+    a + b + c;
+    ==
+  }
+}
+```
+
+A [calc statement](../DafnyRef/DafnyRef#sec-calc-statement)
+contains a sequence of expressions interleaved by operators.
+Such a sequence aids the verifier in establishing a desired conclusion.
+But the sequence must begin and end with (semicolon-terminated) expressions.
+
+This error message is complaining that it sees an operating ending the sequence.
+This may be because there is no following expression or that the parser 
+does not recognize the material after the last operator as the ending expression.
 
 ## Error: a forall statement with an ensures clause must have a body
 
+```dafny
+x
+```
 TODO
 
-## Error: An initializing element display is allowed only for 1-dimensional arrays
+## XError: An initializing element display is allowed only for 1-dimensional arrays
 
+```dafny
+method m() {
+  var a := new int[] [[1,2, 3,4]]
+}
+```
 TODO
 
 ## Error: Expected 'to' or 'downto'
 
-TODO
+```dafny
+method m(n: nat) {
+  for i := n DownTo 0 {}
+}
+```
+
+A for loop can express a computation to be performed for each value of a _loop index_.
+In Dafny, the loop index is an int-based variable that is either 
+- incremented up from a starting value to just before an ending value: `3 to 7` means 3, 4, 5, and 6
+- or decremented from just below a starting value down to an ending value `7 downto 3` means 6, 5, 4, and 3.
+
+The contextual keywords `to` and `downto` indicate incrementing and decrementing, respectively.
+No other words are allowed here, including writing them with different case.
+
+These two words have special meaning only in this part of a for-loop; they are not reserved words elsewhere.
+That is, the code
+```
+method m() {
+  var to: int := 6;
+  var downto: int := 8;
+  for to := to to downto {}
+}
+```
+is legal, but is hardly recommended.
 
 ## Error: Ambiguous use of ==> and <==. Use parentheses to disambiguate.
+
+```dafny
+const b := true ==> false <== true;
+```
+
+The `==>` and `<==` operators have the same precedence but do not associate with each other.
+You must use parentheses to show how they are grouped. Write the above example as either
+`(true ==> false) <== true` or `true ==> (false <== true)`.
+
+By contract `p ==> q ==> r` is `p ==> (q ==> r)` and
+`p <== q <== r` is `(p <== q) <== r`.
+
+See [this section](../DafnyRef/DafnyRef#sec-implication-and-reverse-implication) for more information.
 
 TODO -- 2 instances
 
 ## Error: Ambiguous use of && and ||. Use parentheses to disambiguate.
 
+```dafny
+const b := true && false || true
+```
+
+The `&&` and `||` operators have the same precedence but do not associate with each other.
+You must use parentheses to show how they are grouped. Write the above example as either
+`(true && false) || true` or `true && (false || true)`.
+
 TODOa -- 4 instances
 
 ## Error: chaining not allowed from the previous operator
 
+```dafny
+x
+```
 TODO
 
 ## Error: a chain cannot have more than one != operator
 
-TODO
+```dafny
+const c := 1 != 2 != 3
+```
+
+[Chained operations](../DafnyRef/DafnyRef#sec-basic-types)
+are a sequence of binary operations without parentheses: _a op b op c op d op e_.
+But there are limitation on which operators can be in one chain together.
+
+In particular for this error message, one cannot have chains that include more than one `!=` operator.
 
 ## Error: this operator chain cannot continue with an ascending operator
 
-TODO
+```dafny
+const c := 4 > 3 < 2
+```
+
+[Chained operations](../DafnyRef/DafnyRef#sec-basic-types)
+are a sequence of binary operations without parentheses: _a op b op c op d op e_.
+But there are limitation on which operators can be in one chain together.
+
+In particular for this error message, one cannot have chains that include both
+less-than operations (either `<` or `<=`) and greter-than operations (either `>` or `>=`).
+
 
 ## Error: this operator chain cannot continue with a descending operator
 
-TODO
+```dafny
+const c := 2 < 3 > 4
+```
+
+[Chained operations](../DafnyRef/DafnyRef#sec-basic-types)
+are a sequence of binary operations without parentheses: _a op b op c op d op e_.
+But there are limitation on which operators can be in one chain together.
+
+In particular for this error message, one cannot have chains that include both
+less-than operations (either `<` or `<=`) and greter-than operations (either `>` or `>=`).
 
 ## Error: can only chain disjoint (!!) with itself
 
-TODO
+```dafny
+const c := 2 < 3 !! 4
+```
+
+[Chained operations](../DafnyRef/DafnyRef#sec-basic-types)
+are a sequence of binary operations without parentheses: _a op b op c op d op e_.
+But there are limitation on which operators can be in one chain together.
+In particular for this error message, a disjoint operator (`!!`) can appear in a chain
+only if all the operators in the chain are disjoint operators.
+
+As described [here](../DafnyRef/DafnyRef#sec-collection-types),
+`a !! b !! c !! d` means that `a`, `b`, `c`, and `d` are all mutually disjoint
+(which is a slightly different rewriting of the chain than for other operations).
 
 ## Error: this operator cannot be part of a chain
 
+```dafny
+x
+```
 TODO
 
 ## Error: invalid RelOp
 
+```dafny
+x
+```
 TODO - IMPROVE
 
 ## Error: invalid RelOp (perhaps you intended \"!!\" with no intervening whitespace?)
+
+```dafny
+x
+```
 
 TODO - IMPROVE
 
 ## Error: Ambiguous use of &, |, ^. Use parentheses to disambiguate.
 
+```dafny
+const i: int := 5 | 6 & 7
+```
+
+The bit-operators `&`, `|`, and `^` have the same precedence but do not associate with each other.
+So if they are used within the same expression, parentheses have to be used to show how they
+are grouped. The abvoe example should be written as either `(5 | 6) & 7` or `5 | (6 & 7)`.
+
 TODO - IMPROVE -- 3 instances
 
 ## Error: A forming expression must be a multiset
 
+```dafny
+x
+```
+
  TODO
 
 ## Error: too many characters in character literal
+
+```dafny
+x
+```
 
 TODO: If this can happen at all it is with an unusual unicode char
 
@@ -510,7 +844,14 @@ More detail is given [here](../DafnyRef/DafnyRef#sec-character-constant-token) a
 
 ## Error: binding not allowed in parenthesized expression
 
-TODO
+```dafny
+method m() {
+  var c := ( 4 := 5 );
+}
+```
+
+A binding of the form `x := y` is used in map-display expresions, in which case they are enclosed in square brackets,
+not parentheses. The above example should be `var c := [ 4 := 5 ]`
 
 ## Error: incorrectly formatted number
 
@@ -593,6 +934,7 @@ function test(): Outcome<int> {
 }
 ```
 
+Within a function, the `:-` operator is limited to a most one left-hand-side and one-right-hand-side.
 
 ## Error: ':-' must have exactly one right-hand side
 
@@ -624,6 +966,10 @@ only allow a single left-hand-side and a single-right-hand-side.
 
 
 ## Error: invalid DotSuffix
+
+```dafny
+x
+```
 
 TODO _ IMPROVE
 
