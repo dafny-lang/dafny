@@ -65,8 +65,9 @@ And some books:
 * Boro Sitnovski, 2022, [_Introducing Software Verification with Dafny Language_](https://link.springer.com/book/10.1007/978-1-4842-7978-6_)
 * Jason Koenig, K. Rustan M. Leino, 2016, [_Getting Started with Dafny: A Guide_](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/12/krml220.pdf)
 
-Preliminary notes about Dafny integration with code in other programming languages:
+Miscellaneous notes about compiling Dafny code
    * [Go](Compilation/Go)
-   * [C++](Compilation/Cpp)
+   * [Strings and Characters](StringsAndChars)
    * [Reference values](Compilation/ReferenceTypes)
    * [Automatic Initialization of Variables](Compilation/AutoInitialization)
+   * [Boogie](Compilation/Boogie)
