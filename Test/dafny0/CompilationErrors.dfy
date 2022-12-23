@@ -1,4 +1,4 @@
-// RUN: %dafny_0 "%s" > "%t"
+// RUN: %exits-with 3 %dafny "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 type MyType  // compile error: opaque type
@@ -10,6 +10,7 @@ class TestClass {
   {
     if g == 0 {
       assume true;  // compile error: assume
+      assume {:axiom} true;
     }
   }
   ghost var g: int;
@@ -20,14 +21,17 @@ function method H(): int  // compile error: body-less function method
 
 lemma Lemma() {
   assume false;  // compile error: assume
+  assume {:axiom} true;
 }
 ghost method GMethod() {
   assume false;  // compile error: assume
+  assume {:axiom} true;
 }
 
 function MyFunction(): int
 {
   assume false;  // compile error: assume
+  assume {:axiom} true;
   6
 }
 
@@ -36,10 +40,25 @@ function MyCalcFunction(): int
   calc <= {
     2;
     6;
-    { assume true; }  // compile error: assume
+    { assume true; // compile error: assume
+      assume {:axiom} true; }
     10;
   }
   12
+}
+
+datatype Result = Failure {
+  predicate method IsFailure() { true }
+  function method Extract() : () requires false { () }
+}
+method MyResultMethod() returns (r: Result) {
+  var x :- assume Failure(); // compile error: assume
+  var y :- assume {:axiom} Failure();
+}
+
+method MyAssignSuchThat() {
+  var x: int :| assume false; // compile error: assume
+  var y: int :| assume {:axiom} true;
 }
 
 // -------------------------- body-less loops

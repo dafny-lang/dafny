@@ -1,5 +1,5 @@
-git-issue-859b.dfy(29,8): Error: a ghost variable is allowed only in specification contexts
-git-issue-859b.dfy(29,12): Error: a ghost variable is allowed only in specification contexts
-git-issue-859b.dfy(35,8): Error: a ghost variable is allowed only in specification contexts
-git-issue-859b.dfy(35,12): Error: a ghost variable is allowed only in specification contexts
+git-issue-859b.dfy(29,8): Error: ghost variables such as ss are allowed only in specification contexts. ss was inferred to be ghost based on its declaration or initialization.
+git-issue-859b.dfy(29,12): Error: ghost variables such as sss are allowed only in specification contexts. sss was inferred to be ghost based on its declaration or initialization.
+git-issue-859b.dfy(35,8): Error: ghost variables such as s4 are allowed only in specification contexts. s4 was inferred to be ghost based on its declaration or initialization.
+git-issue-859b.dfy(35,12): Error: ghost variables such as s4 are allowed only in specification contexts. s4 was inferred to be ghost based on its declaration or initialization.
 4 resolution/type errors detected in git-issue-859b.dfy

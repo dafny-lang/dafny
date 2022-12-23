@@ -6,6 +6,7 @@ Sample math B: $a \to b$ or
  or \( a \top \) or \[ a \to \pi \]
 
 Colors
+<!-- %no-check -->
 ```dafny
 integer literal:  10
 hex literal:      0xDEAD
@@ -28,6 +29,7 @@ error:            $
 
 Syntax color tests:
 
+<!-- %no-check -->
 ```dafny
 integer: 0 00 20 01 0_1
 float:   .0 1.0 1. 0_1.1_0
@@ -57,7 +59,7 @@ literal:  true false null
 op:      - ! ~ x  -!~x
 op:      a + b - c * d / e % f a+b-c*d/e%f
 op:      <= >= < > == != b&&c || ==> <==> <==
-# 28. !=# !! in !in
+op:      !=# !! in !in
 op:      !in∆  !iné
 not op:  !inx
 punc:    . , :: | :| := ( ) [ ] { }

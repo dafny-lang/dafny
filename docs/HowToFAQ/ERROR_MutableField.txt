@@ -1,0 +1,2 @@
+ERROR_MutableField.dfy(5,19): Error: Cannot export mutable field 'x' without revealing its enclosing class 'A'
+1 resolution/type errors detected in ERROR_MutableField.dfy

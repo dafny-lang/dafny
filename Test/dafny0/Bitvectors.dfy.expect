@@ -4,9 +4,9 @@
 module _System {
   /* CALL GRAPH for module _System:
    * SCC at height 1:
-   *   RotateRight
-   * SCC at height 1:
    *   RotateLeft
+   * SCC at height 1:
+   *   RotateRight
    * SCC at height 0:
    *   nat
    */
@@ -100,62 +100,60 @@ module _System {
 */
 
 /* CALL GRAPH for module _module:
- * SCC at height 0:
- *   M
- * SCC at height 3:
+ * SCC at height 2:
  *   Main
- * SCC at height 2:
- *   Rotates
- * SCC at height 2:
- *   Shifts
- * SCC at height 0:
- *   Handful
- * SCC at height 2:
- *   TestCompilationTruncations
- * SCC at height 1:
- *   P2
- * SCC at height 1:
- *   M0
- * SCC at height 1:
- *   M1
- * SCC at height 1:
- *   M6
- * SCC at height 1:
- *   M8
- * SCC at height 1:
- *   M15
- * SCC at height 1:
- *   M16
- * SCC at height 1:
- *   M31
- * SCC at height 1:
- *   M32
- * SCC at height 1:
- *   M33
- * SCC at height 1:
- *   M53
- * SCC at height 1:
- *   M64
- * SCC at height 1:
- *   M67
- * SCC at height 0:
- *   Bv0Stuff
- * SCC at height 1:
- *   SummoTests
- * SCC at height 0:
- *   Unary
  * SCC at height 1:
  *   DoArith32
+ * SCC at height 1:
+ *   Rotates
+ * SCC at height 1:
+ *   Shifts
+ * SCC at height 1:
+ *   TestCompilationTruncations
  * SCC at height 0:
  *   Arithmetic
  * SCC at height 0:
  *   BitwiseOperations
- * SCC at height 1:
+ * SCC at height 0:
+ *   Bv0Stuff
+ * SCC at height 0:
+ *   Handful
+ * SCC at height 0:
+ *   M
+ * SCC at height 0:
+ *   M0
+ * SCC at height 0:
+ *   M1
+ * SCC at height 0:
+ *   M15
+ * SCC at height 0:
+ *   M16
+ * SCC at height 0:
+ *   M31
+ * SCC at height 0:
+ *   M32
+ * SCC at height 0:
+ *   M33
+ * SCC at height 0:
+ *   M53
+ * SCC at height 0:
+ *   M6
+ * SCC at height 0:
+ *   M64
+ * SCC at height 0:
+ *   M67
+ * SCC at height 0:
+ *   M8
+ * SCC at height 0:
+ *   P2
+ * SCC at height 0:
  *   PrintRotates
- * SCC at height 1:
+ * SCC at height 0:
  *   PrintShifts
  * SCC at height 0:
- *   string
+ *   SummoTests
+ * SCC at height 0:
+ *   Unary
  */
 newtype Handful = x: int
   | 0 <= x < 80

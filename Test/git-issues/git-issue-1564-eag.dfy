@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /functionSyntax:experimentalPredicateAlwaysGhost /env:0 /dprint:- "%s" > "%t"
+// RUN: %baredafny verify %args --function-syntax:experimentalPredicateAlwaysGhost --print:- "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 ghost function F0(): int

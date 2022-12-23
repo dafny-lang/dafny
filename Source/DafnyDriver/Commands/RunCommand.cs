@@ -1,22 +1,51 @@
 using System.Collections.Generic;
+using System.CommandLine;
+using System.CommandLine.Invocation;
 using System.Linq;
 
 namespace Microsoft.Dafny;
 
 class RunCommand : ICommandSpec {
-  public string Name => "run";
-  public string Description => "Run the program.";
+  private readonly Argument<IEnumerable<string>> userProgramArguments;
 
-  public IEnumerable<IOptionSpec> Options =>
-    new IOptionSpec[] {
-      TargetOption.Instance,
-      NoVerifyOption.Instance,
-    }.Concat(CommandRegistry.CommonOptions);
+  public static readonly Option<IEnumerable<string>> Inputs = new("--input", "Specify an additional input file.") {
+    ArgumentHelpName = "file"
+  };
 
-  public void PostProcess(DafnyOptions dafnyOptions, Options options) {
+  static RunCommand() {
+    DafnyOptions.RegisterLegacyBinding(Inputs, (options, files) => {
+      foreach (var file in files) {
+        options.AddFile(file);
+      }
+    });
+  }
+
+  public IEnumerable<Option> Options =>
+    new Option[] {
+      Inputs,
+    }.Concat(ICommandSpec.ExecutionOptions).
+      Concat(ICommandSpec.ConsoleOutputOptions).
+      Concat(ICommandSpec.CommonOptions);
+
+  public RunCommand() {
+    userProgramArguments = new Argument<IEnumerable<string>>("program-arguments", "arguments to the Dafny program");
+    userProgramArguments.SetDefaultValue(new List<string>());
+  }
+
+  public Command Create() {
+    var result = new Command("run", "Run the program.");
+    result.AddArgument(CommandRegistry.FileArgument);
+    result.AddArgument(userProgramArguments);
+    return result;
+  }
+
+  public void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context) {
+    dafnyOptions.MainArgs = context.ParseResult.GetValueForArgument(userProgramArguments).ToList();
+    var inputFile = context.ParseResult.GetValueForArgument(CommandRegistry.FileArgument);
+    dafnyOptions.AddFile(inputFile.FullName);
     dafnyOptions.Compile = true;
     dafnyOptions.RunAfterCompile = true;
-    dafnyOptions.ForceCompile = NoVerifyOption.Instance.Get(options);
+    dafnyOptions.ForceCompile = dafnyOptions.Get(BoogieOptionBag.NoVerify);
     dafnyOptions.CompileVerbose = false;
   }
 }

@@ -1,32 +1,48 @@
 // RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" --args csharp 1 >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:cpp "%s" --args cpp Yipee >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" --args java heya >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" --args javascript 2 >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" --args python 1 >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" --args "go go" 1 >> "%t"
-// RUN: %dafny /noVerify /compile:2 /compileTarget:cs "%s" /out:%s.dll
-// RUN: dotnet %s.dll "ellel" 2 >> "%t"
-// RUN: dotnet %s.dll "on the go" 1 >> "%t"
-// RUN: dotnet %s.dll "dll" "Aloha from" >> "%t"
+// RUN: %baredafny run %args --no-verify --target:cs "%s" Csharp 1 >> "%t"
+// RUN: %baredafny run %args --no-verify --target:cpp "%s" Cpp Yipee >> "%t"
+// RUN: %baredafny run %args --no-verify --target:java "%s" -- Java --heya >> "%t"
+// RUN: %baredafny run %args --no-verify --target:js "%s" -- Javascript 2 >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" --args Python 1 >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" --args "Go go" 1 >> "%t"
+// RUN: %baredafny build %args --no-verify --target:cs "%s" --output:%s.dll
+// RUN: dotnet %s.dll "dotnet" "howdy" >> "%t"
+// RUN: dotnet %s.dll "dotnet" "hello" >> "%t"
+// RUN: dotnet %s.dll "dotnet" "aloha" >> "%t"
+// RUN: %baredafny build %args --no-verify --target:js "%s" --output=%s.js
+// RUN: node %s.js "javascript" 2 >> "%t"
+// RUN: node %s.js "javascript" 1 >> "%t"
+// RUN: node %s.js "javascript" "aloha" >> "%t"
+// RUN: %baredafny build %args --no-verify --target:cpp "%s" --output=%s.exe
+// RUN: %s.exe "cpp" 2 >> "%t"
+// RUN: %s.exe "cpp" 1 >> "%t"
+// RUN: %s.exe "cpp" "aloha" >> "%t"
+// RUN: %baredafny build %args --no-verify --target:java "%s" >> "%t"
+// RUN: javac -cp %binaryDir/DafnyRuntime.jar:%S/CompileWithArguments-java %S/CompileWithArguments-java/CompileWithArguments.java %S/CompileWithArguments-java/*/*.java
+// RUN: java -cp %binaryDir/DafnyRuntime.jar:%S/CompileWithArguments-java CompileWithArguments Java 2 >> "%t"
+// RUN: java -cp %binaryDir/DafnyRuntime.jar:%S/CompileWithArguments-java CompileWithArguments Java 1 >> "%t"
+// RUN: java -cp %binaryDir/DafnyRuntime.jar:%S/CompileWithArguments-java CompileWithArguments Java aloha >> "%t"
+// RUN: %baredafny build %args --no-verify --target:py "%s" >> "%t"
+// RUN: python3 %S/CompileWithArguments-py/CompileWithArguments.py Python 2 >> "%t"
+// RUN: python3 %S/CompileWithArguments-py/CompileWithArguments.py Python 1 >> "%t"
+// RUN: python3 %S/CompileWithArguments-py/CompileWithArguments.py Python aloha >> "%t"
+// RUN: %baredafny build %args --no-verify --target:go "%s" >> "%t"
+// RUN: env GO111MODULE=auto GOPATH=%S/CompileWithArguments-go go run %S/CompileWithArguments-go/src/CompileWithArguments.go Go 2 >> "%t"
+// RUN: env GO111MODULE=auto GOPATH=%S/CompileWithArguments-go go run %S/CompileWithArguments-go/src/CompileWithArguments.go Go 1 >> "%t"
+// RUN: env GO111MODULE=auto GOPATH=%S/CompileWithArguments-go go run %S/CompileWithArguments-go/src/CompileWithArguments.go Go aloha >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main(args: seq<string>) {
   if |args| != 3 {
     print "Expected 3 arguments, got ", |args|;
   } else {
-    var executable := args[0];
-    if |executable| < 24 {
-      print executable, " says ";
-    } else {
-      print "Someone says ";
-    }
+    print args[1], " says ";
     if args[2] == "1" {
-      print "Hello ",args[1], "\n";
+      print "hello\n";
     } else if args[2] == "2" {
-      print "Howdy ", args[1], "\n";
+      print "howdy\n";
     } else {
-      print args[2], " ", args[1], "\n";
+      print args[2],"\n";
     }
   }
 }

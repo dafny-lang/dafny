@@ -1,2 +1,2 @@
-git-issue-452b.dfy(13,16): Error: a ghost variable is allowed only in specification contexts
+git-issue-452b.dfy(13,16): Error: ghost variables such as u are allowed only in specification contexts. u was inferred to be ghost based on its declaration or initialization.
 1 resolution/type errors detected in git-issue-452b.dfy

@@ -1,4 +1,4 @@
 git-issue96.dfy(14,21): Warning: For expression "0 <= i && i < j && j < 5 ==> s[_t#0] == s[i]":
-   /!\ No trigger covering all quantified variables found. In sub-expression at git-issue96.dfy(15,36)
+   /!\ No trigger covering all quantified variables found. In subexpression at git-issue96.dfy(15,23) [Related location] git-issue96.dfy(15,36)
 
 Dafny program verifier finished with 4 verified, 0 errors

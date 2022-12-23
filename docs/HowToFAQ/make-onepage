@@ -1,0 +1,15 @@
+#! /usr/bin/env bash
+
+## This script concatenates all the linked files in index.md, in the order
+## that they appear, with edits to make it a single markdown page
+
+D=$(dirname "${BASH_SOURCE[0]}")
+cd "$D"
+
+echo '---' > tmp
+echo 'title: How-to and FAQ Guide for Dafny users (one page)' >> tmp
+echo '---' >> tmp
+
+cat `cat index.md | grep -e '- \[' | sed -e 's/-.*[(]//' -e 's/[)]/.md/'` | sed -e 's/---//' -e 's/title:/#/' | cat tmp - > onepage.md
+
+rm tmp

@@ -16,8 +16,8 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [TestMethod]
     public async Task ChangingTheDocumentStopsOnChangeVerification() {
-      await SetUp(new Dictionary<string, string>() {
-        { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", "2" },
+      await SetUp(options => {
+        options.Set(BoogieOptionBag.Cores, 2);
       });
       var documentItem = CreateTestDocument(SlowToVerify2);
       client.OpenDocument(documentItem);
@@ -31,9 +31,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [TestMethod]
     public async Task ChangingTheDocumentStopsOnSaveVerification() {
-      await SetUp(new Dictionary<string, string>() {
-        { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", "2" },
-        { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.OnSave) }
+      await SetUp(options => {
+        options.Set(BoogieOptionBag.Cores, 2);
+        options.Set(ServerCommand.Verification, VerifyOnMode.Save);
       });
       var documentItem = CreateTestDocument(SlowToVerify2);
       client.OpenDocument(documentItem);
@@ -50,9 +50,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [TestMethod]
     public async Task ChangingTheDocumentStopsManualVerification() {
-      await SetUp(new Dictionary<string, string>() {
-        { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", "2" },
-        { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.OnSave) }
+      await SetUp(options => {
+        options.Set(BoogieOptionBag.Cores, 2);
+        options.Set(ServerCommand.Verification, VerifyOnMode.Save);
       });
       var documentItem = CreateTestDocument(SlowToVerify2);
       client.OpenDocument(documentItem);

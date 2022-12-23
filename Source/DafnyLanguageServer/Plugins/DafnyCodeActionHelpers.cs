@@ -132,16 +132,16 @@ public static class DafnyCodeActionHelpers {
     // Return the EndTok of them.
     foreach (var module in program.Modules()) {
       foreach (var topLevelDecl in module.TopLevelDecls) {
-        if (topLevelDecl is ClassDecl classDecl && (classDecl.StartToken.line == 0 || (classDecl.StartToken.Filename == documentUri && classDecl.StartToken.line <= line && line <= classDecl.EndToken.line))) {
+        if (topLevelDecl is ClassDecl classDecl && (classDecl.GetStartToken().line == 0 || (classDecl.GetStartToken().Filename == documentUri && classDecl.GetStartToken().line <= line && line <= classDecl.GetEndToken().line))) {
           foreach (var member in classDecl.Members) {
             if (member is Method method && method.tok.filename == documentUri && method.Body != null &&
-                method.StartToken.line <= line && line <= method.EndToken.line &&
+                method.GetStartToken().line <= line && line <= method.GetEndToken().line &&
                 GetMatchingEndToken(line, col, method.Body) is { } token) {
               return token;
             }
 
             if (member is Function { ByMethodBody: { } } function &&
-                function.StartToken.line <= line && line <= function.EndToken.line &&
+                function.GetStartToken().line <= line && line <= function.GetEndToken().line &&
                 GetMatchingEndToken(line, col, function.ByMethodBody) is { } token2) {
               return token2;
             }
@@ -156,7 +156,7 @@ public static class DafnyCodeActionHelpers {
   /// <summary>
   /// Given an opening brace and a statement, if the statement's token is openingBrace
   /// returns the closing brace token, else null.
-  /// Visit sub-statements recursively
+  /// Visit substatements recursively
   /// </summary>
   private static IToken? GetMatchingEndToken(int line, int col, Statement stmt) {
     // Look in methods for BlockStmt with the IToken as opening brace

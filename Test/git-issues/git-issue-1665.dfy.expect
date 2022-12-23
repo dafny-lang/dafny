@@ -4,9 +4,9 @@
 module _System {
   /* CALL GRAPH for module _System:
    * SCC at height 1:
-   *   RotateRight
-   * SCC at height 1:
    *   RotateLeft
+   * SCC at height 1:
+   *   RotateRight
    * SCC at height 0:
    *   nat
    */
@@ -104,18 +104,16 @@ module _System {
 
 module ConcreteModule {
   /* CALL GRAPH for module ConcreteModule:
-   * SCC at height 3:
+   * SCC at height 2:
    *   execute_external_method
-   * SCC at height 2:
+   * SCC at height 1:
    *   Func1
-   * SCC at height 2:
+   * SCC at height 1:
    *   Status.PropagateFailure
    * SCC at height 0:
-   *   Status.IsFailure
-   * SCC at height 1:
    *   Status
    * SCC at height 0:
-   *   nat
+   *   Status.IsFailure
    */
   datatype Status = Success | Failure(error: nat) {
     predicate method IsFailure()

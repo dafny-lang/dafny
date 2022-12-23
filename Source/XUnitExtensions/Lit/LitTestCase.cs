@@ -86,9 +86,9 @@ namespace XUnitExtensions.Lit {
 
         if (exitCode != 0) {
           outputHelper?.WriteLine("Previous command results:");
-          foreach (var (prevOutput, _) in results) {
+          foreach (var (prevOutput, prevError) in results) {
             outputHelper?.WriteLine($"Output:\n{prevOutput}");
-            outputHelper?.WriteLine($"Error:\n{error}");
+            outputHelper?.WriteLine($"Error:\n{prevError}");
           }
 
           throw new Exception(

@@ -3,7 +3,7 @@
   <Target Name="RunCoco" BeforeTargets="PreBuildEvent" Outputs="$(ProjectDir)Parser.cs;$(ProjectDir)Scanner.cs" Inputs="$(ProjectDir)Dafny.atg">
     <Exec Command="dotnet tool restore" />
     <Exec Command="dotnet --info" />
-    <Exec Command="dotnet tool run coco $(ProjectDir)Dafny.atg -namespace Microsoft.Dafny -frames &quot;$(ProjectDir)Coco&quot;" />
+    <Exec Command="dotnet tool run coco &quot;$(ProjectDir)Dafny.atg&quot; -namespace Microsoft.Dafny -frames &quot;$(ProjectDir)Coco&quot;" />
     <!-- Recompute files to build according to https://stackoverflow.com/a/44829863/93197 -->
     <ItemGroup>
       <Compile Include="**/*$(DefaultLanguageSourceExtension)" Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder);$(BaseIntermediateOutputPath)**;$(BaseOutputPath)**;@(Compile)" />
@@ -30,7 +30,7 @@
       <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
       <PackageReference Include="System.Runtime.Numerics" Version="4.3.0" />
       <PackageReference Include="System.Collections.Immutable" Version="1.7.0" />
-      <PackageReference Include="Boogie.ExecutionEngine" Version="2.15.7" />
+      <PackageReference Include="Boogie.ExecutionEngine" Version="2.16.0" />
   </ItemGroup>
 
   <ItemGroup>

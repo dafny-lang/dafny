@@ -41,6 +41,12 @@ The tool takes six arguments:
   and classes are supported, and within those only fields and properties are
   exported.
 
+Additionally, the tool supports an optional `--rewrite` flag, which may be
+repeated. `--rewrite A:B` indicates that the prefix `A` should be rewritten to
+`B` when translating names. This is useful when the template imports other
+modules, or when a model combines manually and automatically translated elements
+(see [the tutorial](../AutoExtern.Test/Tutorial/README.md) for an example).
+
 ## Example
 
 This example is from [`../AutoExtern.Test/Minimal`](../AutoExtern.Test/Minimal/)
