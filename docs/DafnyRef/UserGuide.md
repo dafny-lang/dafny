@@ -240,7 +240,7 @@ Various options control the translation process, in addition to all those descri
 
 - The translation results
    - `--output` (or `-o`) --- location (file or folder depending on the target) of the generated file(s)
-   - `--include-runtime` --- include the Dafny runtime as source or a library in the target language
+   - `--include-runtime` --- include the Dafny runtime for the target language in the generated artifacts
    - `--optimize-erasable-datatype-wrapper`
    - `--enforce-determinism`
 
@@ -2108,9 +2108,12 @@ periods.
   * `2` (default) - as in `1`, but resolve only methods that are defined
     in the current verification target file, not in included files.
 
-* `-useRuntimeLib` - refer to the pre-built `DafnyRuntime.dll` in the
+* `--include-runtime` - include the runtime library for the target language in
+  the generated artifacts. The legacy option `-useRuntimeLib` had the 
+  opposite effect: when enabled, the compiled assembly referred to
+  the pre-built `DafnyRuntime.dll` in the
   compiled assembly rather than including `DafnyRuntime.cs` in the build
-  process. TODO
+  process. 
 
 
 * `-testContracts:<mode>` - test certain function and method contracts
