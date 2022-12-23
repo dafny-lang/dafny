@@ -2719,18 +2719,40 @@ namespace Microsoft.Dafny {
             if (subsetTypeDecl.Witness != null) {
               CheckTypeInference(subsetTypeDecl.Witness, subsetTypeDecl);
             }
+
+          } else if (topd is IteratorDecl iteratorDecl) {
+            foreach (var formal in iteratorDecl.Ins.Where(formal => formal.DefaultValue != null)) {
+              CheckTypeInference(formal.DefaultValue, iteratorDecl);
+            }
+#if SEEMS_REDUNDANT // see CheckTypeInference_Member(member); below
+            iteratorDecl.Members.Iter(CheckTypeInference_Member);
+#endif
+            if (iteratorDecl.Body != null) {
+              CheckTypeInference(iteratorDecl.Body, iteratorDecl);
+            }
+
+          } else if (topd is DatatypeDecl) {
+            var dd = (DatatypeDecl)topd;
+            foreach (var ctor in dd.Ctors) {
+              foreach (var formal in ctor.Formals.Where(formal => formal.DefaultValue != null)) {
+                CheckTypeInference(formal.DefaultValue, dd);
+              }
+            }
           }
 
           if (topd is TopLevelDeclWithMembers cl) {
             foreach (var member in cl.Members) {
+              CheckTypeInference_Member(member);
+
               if (member is ConstantField field) {
                 if (!CheckTypeInference_Visitor.IsDetermined(field.Type.NormalizeExpand())) {
                   reporter.Error(MessageSource.Resolver, field.tok, "const field's type is not fully determined");
                 }
-
+#if SEEMS_REDUNDANT // see CheckTypeInference_Member(member); above
                 if (field.Rhs != null) {
                   CheckTypeInference(field.Rhs, field);
                 }
+#endif
               }
             }
           }
@@ -2767,23 +2789,11 @@ namespace Microsoft.Dafny {
         foreach (TopLevelDecl d in declarations) {
           if (d is IteratorDecl) {
             var iter = (IteratorDecl)d;
-            var prevErrCnt = reporter.Count(ErrorLevel.Error);
-            foreach (var formal in iter.Ins) {
-              if (formal.DefaultValue != null) {
-                CheckTypeInference(formal.DefaultValue, iter);
-              }
-            }
-            iter.Members.Iter(CheckTypeInference_Member);
-            if (prevErrCnt == reporter.Count(ErrorLevel.Error)) {
-              iter.SubExpressions.Iter(e => CheckExpression(e, this, iter));
-            }
+            iter.SubExpressions.Iter(e => CheckExpression(e, this, iter));
             CheckParameterDefaultValuesAreCompilable(iter.Ins, iter);
             if (iter.Body != null) {
-              CheckTypeInference(iter.Body, iter);
-              if (prevErrCnt == reporter.Count(ErrorLevel.Error)) {
-                ComputeGhostInterest(iter.Body, false, null, iter);
-                CheckExpression(iter.Body, this, iter);
-              }
+              ComputeGhostInterest(iter.Body, false, null, iter);
+              CheckExpression(iter.Body, this, iter);
             }
 
           } else if (d is SubsetTypeDecl subsetTypeDecl) {
@@ -2818,13 +2828,6 @@ namespace Microsoft.Dafny {
 
           } else if (d is DatatypeDecl) {
             var dd = (DatatypeDecl)d;
-            foreach (var ctor in dd.Ctors) {
-              foreach (var formal in ctor.Formals) {
-                if (formal.DefaultValue != null) {
-                  CheckTypeInference(formal.DefaultValue, dd);
-                }
-              }
-            }
             foreach (var member in classMembers[dd].Values) {
               var dtor = member as DatatypeDestructor;
               if (dtor != null) {
@@ -3484,7 +3487,6 @@ namespace Microsoft.Dafny {
     private void ResolveClassMembers_Pass1(TopLevelDeclWithMembers cl) {
       foreach (var member in cl.Members) {
         var prevErrCnt = reporter.Count(ErrorLevel.Error);
-        CheckTypeInference_Member(member);
         if (prevErrCnt == reporter.Count(ErrorLevel.Error)) {
           if (member is Method method) {
             CheckParameterDefaultValuesAreCompilable(method.Ins, method);
