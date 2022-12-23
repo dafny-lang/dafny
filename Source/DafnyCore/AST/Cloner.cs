@@ -16,9 +16,14 @@ namespace Microsoft.Dafny {
 
   public class Cloner {
     public bool CloneResolvedFields { get; }
+    private readonly Dictionary<Statement, Statement> statementClones = new();
     private readonly Dictionary<IVariable, IVariable> clones = new();
     private readonly Dictionary<MemberDecl, MemberDecl> memberClones = new();
 
+    public void AddStatementClone(Statement original, Statement clone) {
+      statementClones.Add(original, clone);
+    }
+    
     public Cloner(bool cloneResolvedFields = false) {
       this.CloneResolvedFields = cloneResolvedFields;
     }
@@ -503,6 +508,10 @@ namespace Microsoft.Dafny {
     public virtual Statement CloneStmt(Statement stmt) {
       if (stmt == null) {
         return null;
+      }
+
+      if (statementClones.TryGetValue(stmt, out var cachedResult)) {
+        return cachedResult;
       }
 
       if (stmt is ICloneable<Statement> cloneable) {
