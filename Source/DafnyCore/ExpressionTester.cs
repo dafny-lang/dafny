@@ -496,8 +496,9 @@ public class ExpressionTester {
     } else if (expr is ITEExpr) {
       ITEExpr e = (ITEExpr)expr;
       return UsesSpecFeatures(e.Test) || UsesSpecFeatures(e.Thn) || UsesSpecFeatures(e.Els);
-    } else if (expr is NestedMatchExpr) {
-      return expr.SubExpressions.Any(child => UsesSpecFeatures(child)); // TODO fix? ignores patterns
+    } else if (expr is NestedMatchExpr nestedMatchExpr) {
+      return nestedMatchExpr.Cases.SelectMany(caze => caze.Pat.DescendantsAndSelf.OfType<IdPattern>().Where(id => id.Ctor != null)).Any(id => id.Ctor.IsGhost) 
+             || expr.SubExpressions.Any(child => UsesSpecFeatures(child));
     } else if (expr is MatchExpr) {
       MatchExpr me = (MatchExpr)expr;
       if (UsesSpecFeatures(me.Source) || FirstCaseThatDependsOnGhostCtor(me.Cases) != null) {

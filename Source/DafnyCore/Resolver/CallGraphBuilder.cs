@@ -431,10 +431,17 @@ namespace Microsoft.Dafny {
         VisitStatement(stmtExpr.S, context);
 
       } else if (expr is MatchExpr matchExpr) {
+        // TODO remove?
         foreach (MatchCaseExpr mc in matchExpr.Cases) {
           foreach (BoundVar v in mc.Arguments) {
             VisitUserProvidedType(v.Type, context);
           }
+        }
+      } else if (expr is NestedMatchExpr nestedMatchExpr) {
+        foreach (IdPattern mc in nestedMatchExpr.Cases.
+                   SelectMany(c => c.Pat.DescendantsAndSelf).
+                   OfType<IdPattern>().Where(id => id.BoundVar != null)) {
+          VisitUserProvidedType(mc.BoundVar.Type, context);
         }
       }
 

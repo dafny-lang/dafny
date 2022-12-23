@@ -951,6 +951,7 @@ namespace Microsoft.Dafny {
         ConstrainSubtypeRelation(expr.Type, e.Els.Type, expr, "the two branches of an if-then-else expression must have the same type (got {0} and {1})", e.Thn.Type, e.Els.Type);
 
       } else if (expr is MatchExpr) {
+        // TODO remove?
         ResolveMatchExpr((MatchExpr)expr, resolutionContext);
       } else if (expr is NestedMatchExpr) {
         NestedMatchExpr e = (NestedMatchExpr)expr;
