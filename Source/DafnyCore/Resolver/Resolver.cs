@@ -2685,7 +2685,7 @@ namespace Microsoft.Dafny {
       ResolveNamesAndInferTypes(declarations, false);
 
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-        // Check if types have been determined, check if top-level components are suitably compilable, and discover bounds.
+        // Check if types have been determined
         foreach (TopLevelDecl topd in declarations) {
           TopLevelDecl d = topd is ClassDecl ? ((ClassDecl)topd).NonNullTypeDecl : topd;
           if (d is NewtypeDecl) {
@@ -2704,9 +2704,6 @@ namespace Microsoft.Dafny {
             if (dd.Witness != null) {
               var codeContext = new CodeContextWrapper(dd, dd.WitnessKind == SubsetTypeDecl.WKind.Ghost);
               CheckTypeInference(dd.Witness, dd);
-              if (dd.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-                ExpressionTester.CheckIsCompilable(this, dd.Witness, codeContext);
-              }
             }
 
           } else if (d is SubsetTypeDecl subsetTypeDecl) {
@@ -2718,16 +2715,9 @@ namespace Microsoft.Dafny {
             if (subsetTypeDecl.Constraint != null) {
               CheckTypeInference(subsetTypeDecl.Constraint, subsetTypeDecl);
             }
-            subsetTypeDecl.ConstraintIsCompilable =
-              ExpressionTester.CheckIsCompilable(null, subsetTypeDecl.Constraint, new CodeContextWrapper(subsetTypeDecl, true));
-            subsetTypeDecl.CheckedIfConstraintIsCompilable = true;
 
             if (subsetTypeDecl.Witness != null) {
-              var codeContext = new CodeContextWrapper(subsetTypeDecl, subsetTypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost);
               CheckTypeInference(subsetTypeDecl.Witness, subsetTypeDecl);
-              if (subsetTypeDecl.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-                ExpressionTester.CheckIsCompilable(this, subsetTypeDecl.Witness, codeContext);
-              }
             }
           }
 
@@ -2740,9 +2730,6 @@ namespace Microsoft.Dafny {
 
                 if (field.Rhs != null) {
                   CheckTypeInference(field.Rhs, field);
-                  if (!field.IsGhost) {
-                    ExpressionTester.CheckIsCompilable(this, field.Rhs, field);
-                  }
                 }
               }
             }
@@ -2790,7 +2777,7 @@ namespace Microsoft.Dafny {
             if (prevErrCnt == reporter.Count(ErrorLevel.Error)) {
               iter.SubExpressions.Iter(e => CheckExpression(e, this, iter));
             }
-            ResolveParameterDefaultValues_Pass1(iter.Ins, iter);
+            CheckParameterDefaultValuesAreCompilable(iter.Ins, iter);
             if (iter.Body != null) {
               CheckTypeInference(iter.Body, iter);
               if (prevErrCnt == reporter.Count(ErrorLevel.Error)) {
@@ -2798,27 +2785,37 @@ namespace Microsoft.Dafny {
                 CheckExpression(iter.Body, this, iter);
               }
             }
-          } else if (d is ClassDecl) {
-            var dd = (ClassDecl)d;
-            ResolveClassMembers_Pass1(dd);
-          } else if (d is SubsetTypeDecl) {
-            var dd = (SubsetTypeDecl)d;
-            Contract.Assert(dd.Constraint != null);
-            CheckExpression(dd.Constraint, this, new CodeContextWrapper(dd, true));
-            if (dd.Witness != null) {
-              CheckExpression(dd.Witness, this, new CodeContextWrapper(dd, dd.WitnessKind == SubsetTypeDecl.WKind.Ghost));
-            }
-          } else if (d is NewtypeDecl) {
-            var dd = (NewtypeDecl)d;
-            if (dd.Var != null) {
-              Contract.Assert(dd.Constraint != null);
-              CheckExpression(dd.Constraint, this, new CodeContextWrapper(dd, true));
-              if (dd.Witness != null) {
-                CheckExpression(dd.Witness, this, new CodeContextWrapper(dd, dd.WitnessKind == SubsetTypeDecl.WKind.Ghost));
+
+          } else if (d is SubsetTypeDecl subsetTypeDecl) {
+            Contract.Assert(subsetTypeDecl.Constraint != null);
+            CheckExpression(subsetTypeDecl.Constraint, this, new CodeContextWrapper(subsetTypeDecl, true));
+            subsetTypeDecl.ConstraintIsCompilable =
+              ExpressionTester.CheckIsCompilable(null, subsetTypeDecl.Constraint, new CodeContextWrapper(subsetTypeDecl, true));
+            subsetTypeDecl.CheckedIfConstraintIsCompilable = true;
+
+            if (subsetTypeDecl.Witness != null) {
+              CheckExpression(subsetTypeDecl.Witness, this, new CodeContextWrapper(subsetTypeDecl, subsetTypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost));
+              if (subsetTypeDecl.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
+                var codeContext = new CodeContextWrapper(subsetTypeDecl, subsetTypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost);
+                ExpressionTester.CheckIsCompilable(this, subsetTypeDecl.Witness, codeContext);
               }
             }
-            FigureOutNativeType(dd);
-            ResolveClassMembers_Pass1(dd);
+
+          } else if (d is NewtypeDecl newtypeDecl) {
+            if (newtypeDecl.Var != null) {
+              Contract.Assert(newtypeDecl.Constraint != null);
+              CheckExpression(newtypeDecl.Constraint, this, new CodeContextWrapper(newtypeDecl, true));
+              if (newtypeDecl.Witness != null) {
+                CheckExpression(newtypeDecl.Witness, this, new CodeContextWrapper(newtypeDecl, newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost));
+              }
+            }
+            if (newtypeDecl.Witness != null && newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
+              var codeContext = new CodeContextWrapper(newtypeDecl, newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost);
+              ExpressionTester.CheckIsCompilable(this, newtypeDecl.Witness, codeContext);
+            }
+
+            FigureOutNativeType(newtypeDecl);
+
           } else if (d is DatatypeDecl) {
             var dd = (DatatypeDecl)d;
             foreach (var ctor in dd.Ctors) {
@@ -2849,12 +2846,12 @@ namespace Microsoft.Dafny {
               }
             }
             foreach (var ctor in dd.Ctors) {
-              ResolveParameterDefaultValues_Pass1(ctor.Formals, dd);
+              CheckParameterDefaultValuesAreCompilable(ctor.Formals, dd);
             }
-            ResolveClassMembers_Pass1(dd);
-          } else if (d is OpaqueTypeDecl) {
-            var dd = (OpaqueTypeDecl)d;
-            ResolveClassMembers_Pass1(dd);
+          }
+
+          if (d is TopLevelDeclWithMembers cl) {
+            ResolveClassMembers_Pass1(cl);
           }
         }
       }
@@ -3489,26 +3486,24 @@ namespace Microsoft.Dafny {
         var prevErrCnt = reporter.Count(ErrorLevel.Error);
         CheckTypeInference_Member(member);
         if (prevErrCnt == reporter.Count(ErrorLevel.Error)) {
-          if (member is Method) {
-            var m = (Method)member;
-            ResolveParameterDefaultValues_Pass1(m.Ins, m);
-            if (m.Body != null) {
-              ComputeGhostInterest(m.Body, m.IsGhost, m.IsLemmaLike ? "a " + m.WhatKind : null, m);
-              CheckExpression(m.Body, this, m);
-              new TailRecursion(reporter).DetermineTailRecursion(m);
+          if (member is Method method) {
+            CheckParameterDefaultValuesAreCompilable(method.Ins, method);
+            if (method.Body != null) {
+              ComputeGhostInterest(method.Body, method.IsGhost, method.IsLemmaLike ? "a " + method.WhatKind : null, method);
+              CheckExpression(method.Body, this, method);
+              new TailRecursion(reporter).DetermineTailRecursion(method);
             }
-          } else if (member is Function) {
-            var f = (Function)member;
-            ResolveParameterDefaultValues_Pass1(f.Formals, f);
-            if (f.ByMethodBody == null) {
-              if (!f.IsGhost && f.Body != null) {
-                ExpressionTester.CheckIsCompilable(this, f.Body, f);
+          } else if (member is Function function) {
+            CheckParameterDefaultValuesAreCompilable(function.Formals, function);
+            if (function.ByMethodBody == null) {
+              if (!function.IsGhost && function.Body != null) {
+                ExpressionTester.CheckIsCompilable(this, function.Body, function);
               }
-              if (f.Body != null) {
-                new TailRecursion(reporter).DetermineTailRecursion(f);
+              if (function.Body != null) {
+                new TailRecursion(reporter).DetermineTailRecursion(function);
               }
             } else {
-              var m = f.ByMethodDecl;
+              var m = function.ByMethodDecl;
               if (m != null) {
                 Contract.Assert(!m.IsGhost);
                 ComputeGhostInterest(m.Body, false, null, m);
@@ -3520,7 +3515,10 @@ namespace Microsoft.Dafny {
                 Contract.Assert(reporter.ErrorCount > 0);
               }
             }
+          } else if (member is ConstantField field && field.Rhs != null && !field.IsGhost) {
+            ExpressionTester.CheckIsCompilable(this, field.Rhs, field);
           }
+
           if (prevErrCnt == reporter.Count(ErrorLevel.Error) && member is ICodeContext) {
             member.SubExpressions.Iter(e => CheckExpression(e, this, (ICodeContext)member));
           }
@@ -3531,7 +3529,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Check that default-value expressions are compilable, for non-ghost formals.
     /// </summary>
-    void ResolveParameterDefaultValues_Pass1(List<Formal> formals, ICodeContext codeContext) {
+    void CheckParameterDefaultValuesAreCompilable(List<Formal> formals, ICodeContext codeContext) {
       Contract.Requires(formals != null);
 
       foreach (var formal in formals.Where(f => f.DefaultValue != null)) {

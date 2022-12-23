@@ -3615,7 +3615,7 @@ namespace Microsoft.Dafny {
       // these fields; so, with no further ado, here we go
       ResolveAttributes(iter.Decreases, new ResolutionContext(iter, false));
       Contract.Assert(iter.Decreases.Expressions.Count == iter.DecreasesFields.Count);
-      for (int i = 0; i < iter.Decreases.Expressions.Count; i++) {
+      for (var i = 0; i < iter.Decreases.Expressions.Count; i++) {
         var e = iter.Decreases.Expressions[i];
         ResolveExpression(e, new ResolutionContext(iter, false));
         // any type is fine, but associate this type with the corresponding _decreases<n> field
