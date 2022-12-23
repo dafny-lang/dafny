@@ -54,6 +54,7 @@ namespace Microsoft.Dafny {
             Contract.Assert(newtypeDecl.Constraint != null);  // follows from NewtypeDecl invariant
 
             scope.PushMarker();
+            scope.AllowInstance = false;
             var added = scope.Push(newtypeDecl.Var.Name, newtypeDecl.Var);
             Contract.Assert(added == Scope<IVariable>.PushResult.Success);
             ResolveExpression(newtypeDecl.Constraint, new ResolutionContext(new CodeContextWrapper(newtypeDecl, true), false));
@@ -124,7 +125,10 @@ namespace Microsoft.Dafny {
       }
 
       if (!initialRound) {
+        scope.PushMarker();
+        scope.AllowInstance = currentClass != null && currentClass.AcceptThis;
         ResolveAttributes(topd, new ResolutionContext(new NoContext(topd.EnclosingModuleDefinition), false));
+        scope.PopMarker();
       }
 
       allTypeParameters.PopMarker();
@@ -3206,31 +3210,32 @@ namespace Microsoft.Dafny {
       currentClass = cl;
       foreach (MemberDecl member in cl.Members) {
         Contract.Assert(VisibleInScope(member));
-        if (member is ConstantField) {
-          if (initialRound) {
-            if (member is ConstantField constantField) {
-              var resolutionContext = new ResolutionContext(constantField, false);
-              ResolveAttributes(constantField, resolutionContext);
-              // Resolve the value expression
-              if (constantField.Rhs != null) {
-                var ec = reporter.Count(ErrorLevel.Error);
-                scope.PushMarker();
-                if (constantField.IsStatic || currentClass == null || !currentClass.AcceptThis) {
-                  scope.AllowInstance = false;
-                }
-                ResolveExpression(constantField.Rhs, resolutionContext);
-                scope.PopMarker();
-                AddAssignableConstraint(constantField.tok, constantField.Type, constantField.Rhs.Type,
-                  "type for constant '" + constantField.Name + "' is '{0}', but its initialization value type is '{1}'");
-              }
-              SolveAllTypeConstraints();
+        if (initialRound && member is ConstantField) {
+          var constantField = (ConstantField)member;
+          var resolutionContext = new ResolutionContext(constantField, false);
+          // Resolve the value expression
+          if (constantField.Rhs != null) {
+            var ec = reporter.Count(ErrorLevel.Error);
+            scope.PushMarker();
+            if (constantField.IsStatic || currentClass == null || !currentClass.AcceptThis) {
+              scope.AllowInstance = false;
             }
+            ResolveExpression(constantField.Rhs, resolutionContext);
+            scope.PopMarker();
+            AddAssignableConstraint(constantField.tok, constantField.Type, constantField.Rhs.Type,
+              "type for constant '" + constantField.Name + "' is '{0}', but its initialization value type is '{1}'");
           }
+          SolveAllTypeConstraints();
         } else if (initialRound) {
           // do nothing (because everything else in done in the next round)
         } else if (member is Field) {
           var resolutionContext = new ResolutionContext(new NoContext(currentClass.EnclosingModuleDefinition), false);
+          scope.PushMarker();
+          if (member.IsStatic) {
+            scope.AllowInstance = false;
+          }
           ResolveAttributes(member, resolutionContext);
+          scope.PopMarker();
         } else if (member is Function) {
           var f = (Function)member;
           var ec = reporter.Count(ErrorLevel.Error);

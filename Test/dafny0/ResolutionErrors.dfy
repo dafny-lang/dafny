@@ -3848,3 +3848,54 @@ module LabelRegressions {
       }
   }
 }
+
+// --------------- regressions: using "this" in places where there is no enclosing class/type ------------------------------
+
+module UseOfThis {
+  // The following uses of "this." once caused the resolver to crash.
+
+  type {:badUseOfThis this.K} OpaqueType { // error: cannot use "this" here
+    const K: int
+  }
+
+  newtype {:badUseOfThis this.x} Newtype = // error: cannot use "this" here
+    x: int | this.u // error: cannot use "this" here
+    witness this.u // error: cannot use "this" here
+  {
+    const K: int
+  }
+
+  type {:badUseOfThis this.x} SynonymType = int // error: cannot use "this" here
+
+  type {:badUseOfThis this.x} SubsetType = // error: cannot use "this" here
+    x: int | this.u // error: cannot use "this" here
+    witness this.u // error: cannot use "this" here
+
+  trait {:badUseOfThis this.K} MyTrait { // error: cannot use "this" here
+    const K: int
+  }
+
+  class {:badUseOfThis this.M} MyClass { // error: cannot use "this" here
+    const M: int
+
+    var {:goodUseOfThis this.M} I: int
+    const {:goodUseOfThis this.M} J := 3
+    method {:goodUseOfThis this.M} CM()
+      ensures {:goodUseOfThis this.M} true
+    function {:goodUseOfThis this.M} CF(): int
+      ensures {:goodUseOfThis this.M} true
+
+    static const {:badUseOfThis this.M} L := 3 // error: cannot use "this" here
+    static const N := this.M // error: cannot use "this" here
+    static method {:badUseOfThis this.M} SM() // error: cannot use "this" here
+      ensures {:badUseOfThis this.M} true // error: cannot use "this" here
+    static function {:badUseOfThis this.M} SF(): int // error: cannot use "this" here
+      ensures {:badUseOfThis this.M} true // error: cannot use "this" here
+  }
+
+  datatype Datatype =
+    | {:badUseOfThis this.K} DatatypeCtor // error: cannot use "this" here
+  {
+    const K: int
+  }
+}
