@@ -1655,7 +1655,7 @@ FIdentType<out IToken/*!*/ id, out Type/*!*/ ty>
   .)
   NoUSIdentOrDigits<out id> (. id = t; ty = null; .)
   ( ":" Type<out ty> 
-  | ( ":=" | "=" ) (. SemErr(la, "a field requires a type declaration and may not be initialized"); .)
+  | ( ":=" | "=" ) (. SemErr(la, "a mutable field must be declared with a type and may not have an initializer"); .)
   )
   .
 
