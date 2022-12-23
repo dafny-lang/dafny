@@ -1,38 +1,38 @@
-git-issue-032.dfy(28,35): Warning: this branch is redundant
-git-issue-032.dfy(27,34): Warning: this branch is redundant
 git-issue-032.dfy(18,35): Warning: this branch is redundant
+git-issue-032.dfy(27,34): Warning: this branch is redundant
+git-issue-032.dfy(28,35): Warning: this branch is redundant
 
 Dafny program verifier finished with 1 verified, 0 errors
-git-issue-032.dfy(28,35): Warning: this branch is redundant
-git-issue-032.dfy(27,34): Warning: this branch is redundant
 git-issue-032.dfy(18,35): Warning: this branch is redundant
+git-issue-032.dfy(27,34): Warning: this branch is redundant
+git-issue-032.dfy(28,35): Warning: this branch is redundant
 
 Dafny program verifier did not attempt verification
 OK3
 OK
 OKOK
 00
-git-issue-032.dfy(28,35): Warning: this branch is redundant
-git-issue-032.dfy(27,34): Warning: this branch is redundant
 git-issue-032.dfy(18,35): Warning: this branch is redundant
+git-issue-032.dfy(27,34): Warning: this branch is redundant
+git-issue-032.dfy(28,35): Warning: this branch is redundant
 
 Dafny program verifier did not attempt verification
 OK3
 OK
 OKOK
 00
-git-issue-032.dfy(28,35): Warning: this branch is redundant
-git-issue-032.dfy(27,34): Warning: this branch is redundant
 git-issue-032.dfy(18,35): Warning: this branch is redundant
+git-issue-032.dfy(27,34): Warning: this branch is redundant
+git-issue-032.dfy(28,35): Warning: this branch is redundant
 
 Dafny program verifier did not attempt verification
 OK3
 OK
 OKOK
 00
-git-issue-032.dfy(28,35): Warning: this branch is redundant
-git-issue-032.dfy(27,34): Warning: this branch is redundant
 git-issue-032.dfy(18,35): Warning: this branch is redundant
+git-issue-032.dfy(27,34): Warning: this branch is redundant
+git-issue-032.dfy(28,35): Warning: this branch is redundant
 
 Dafny program verifier did not attempt verification
 OK3
