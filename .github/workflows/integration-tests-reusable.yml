@@ -113,6 +113,17 @@ jobs:
       run: cat dafny/Test/concurrency/02-DoubleRead.dfy
     - name: Run Release DoubleRead
       run: ${{ github.workspace }}/unzippedRelease/dafny/dafny dafny/Test/concurrency/02-DoubleRead.dfy
+    - name: Load Z3
+      shell: pwsh
+      run: |
+        Invoke-WebRequest https://github.com/Z3Prover/z3/releases/download/Z3-4.8.5/z3-4.8.5-x64-ubuntu-16.04.zip -OutFile z3.zip
+        Expand-Archive z3.zip .
+        Remove-Item z3.zip
+        Copy-Item z3-4.8.5-x64-ubuntu-16.04 dafny/Binaries/z3 -Recurse
+    - name: Set Z3 Permissions
+      if: ${{matrix.chmod}}
+      run: |
+        chmod +x dafny/Binaries/z3/bin/z3
     - name: Run FromSource DoubleRead
       run: dotnet test dafny/Source/IntegrationTests/IntegrationTests.csproj --filter DisplayName~DoubleRead
     - name: Run integration tests
