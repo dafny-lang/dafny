@@ -5,6 +5,6 @@ module P {
   const c = 5
   method m() {
     var x = 5;
-    var z := ( var y = 5; y);
+    var z := (var y = 5; y);
   }
 }
