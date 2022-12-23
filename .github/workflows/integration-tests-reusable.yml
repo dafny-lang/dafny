@@ -128,6 +128,7 @@ jobs:
         DAFNY_RELEASE: ${{ github.workspace }}\unzippedRelease\dafny
       run: |
         dotnet test --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj
+    # echo ${{ inputs.all_platforms }} | grep false && unset DAFNY_RELEASE
     - name: Run integration tests
       if: runner.os != 'Windows'
       env:
@@ -135,7 +136,8 @@ jobs:
         XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
         DAFNY_RELEASE: ${{ github.workspace }}/unzippedRelease/dafny
       run: |
-        echo ${{ inputs.all_platforms }} | grep false && unset DAFNY_RELEASE
+        printenv DAFNY_RELEASE
+        unset DAFNY_RELEASE
         printenv DAFNY_RELEASE
         dotnet test --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj
     - uses: actions/upload-artifact@v2
