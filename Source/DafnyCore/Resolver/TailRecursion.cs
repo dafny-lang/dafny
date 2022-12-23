@@ -458,8 +458,22 @@ class TailRecursion {
       }
       return status;
 
+    } else if (expr is NestedMatchExpr nestedMatchExpr) {
+      var status = CheckHasNoRecursiveCall(nestedMatchExpr.Source, enclosingFunction, reportErrors);
+      var newError = reportErrors && status != Function.TailStatus.NotTailRecursive;
+      foreach (var kase in nestedMatchExpr.Cases) {
+        var s = CheckTailRecursiveExpr(kase.Body, enclosingFunction, allowAccumulator, reportErrors);
+        newError = newError && s != Function.TailStatus.NotTailRecursive;
+        status = TRES_Or(status, s);
+      }
+      if (status == Function.TailStatus.NotTailRecursive && newError) {
+        // see comments above for ITEExpr
+        // "newError" is "true" when: "reportErrors", and neither e.Source nor a kase.Body returned NotTailRecursive
+        reporter.Error(MessageSource.Resolver, expr, "cases have different accumulator needs for tail recursion");
+      }
+      return status;
     } else if (expr is MatchExpr) {
-      // TODO add nested match case????
+      // TODO remove MatchExpr case?
       var e = (MatchExpr)expr;
       var status = CheckHasNoRecursiveCall(e.Source, enclosingFunction, reportErrors);
       var newError = reportErrors && status != Function.TailStatus.NotTailRecursive;
