@@ -6475,14 +6475,6 @@ namespace Microsoft.Dafny {
               ConstrainSubtypeRelation(v.Type, st, s.Tok,
                 "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", v.Type, st);
               v.IsGhost = formal.IsGhost;
-
-              // update the type of the boundvars in the MatchCaseToken
-              if (v.tok is MatchCaseToken) {
-                MatchCaseToken mt = (MatchCaseToken)v.tok;
-                foreach (Tuple<IToken, BoundVar, bool> entry in mt.varList) {
-                  ConstrainSubtypeRelation(entry.Item2.Type, v.Type, entry.Item1, "incorrect type for bound match-case variable (expected {0}, got {1})", v.Type, entry.Item2.Type);
-                }
-              }
             }
             i++;
           }
@@ -7453,14 +7445,6 @@ namespace Microsoft.Dafny {
               ConstrainSubtypeRelation(v.Type, st, me,
                 "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", v.Type, st);
               v.IsGhost = formal.IsGhost;
-
-              // update the type of the boundvars in the MatchCaseToken
-              if (v.tok is MatchCaseToken) {
-                MatchCaseToken mt = (MatchCaseToken)v.tok;
-                foreach (Tuple<IToken, BoundVar, bool> entry in mt.varList) {
-                  ConstrainSubtypeRelation(entry.Item2.Type, v.Type, entry.Item1, "incorrect type for bound match-case variable (expected {0}, got {1})", v.Type, entry.Item2.Type);
-                }
-              }
             }
             i++;
           }
