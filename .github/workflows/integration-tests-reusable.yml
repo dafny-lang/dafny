@@ -98,7 +98,7 @@ jobs:
         submodules: true
     - run: rm dafny/Test/libraries/lit.site.cfg # we remove the lit configuration file in the library repo (a git submodule) to prevent override
     - name: Create release
-      if: "!inputs.all_platforms"
+      if: inputs.all_platforms
       run: |
         python dafny/Scripts/package.py 0.0.0-CI --os ${{ fromJson(needs.populate-matrix-dimensions.outputs.os-mapping)[matrix.os] }} --skip_manual=true --trial=true --github_secret=${{ secrets.GITHUB_TOKEN }} --out=CI.zip
     - if: runner.os == 'Windows' && inputs.all_platforms
