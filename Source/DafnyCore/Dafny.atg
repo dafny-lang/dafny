@@ -3110,7 +3110,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
       { Attribute<ref attrs> }
       LocalIdentTypeOptional<out d, isGhost>  (. lhss.Add(d); d.Attributes = attrs; attrs = null; .)
     }
-    [ ( ":=" | "=" (. SemErr(la, "a var declaration is initialized using ':=', ':-' or ':|', not '='"); .) )                         
+    [ ( ":=" | "=" (. SemErr(la, "a local variable is initialized using ':=', ':-', or ':|', not '='"); .) )                         
                                      (. assignTok = t; .)
       Rhs<out r>                     (. rhss.Add(r); .)
       { "," Rhs<out r>               (. rhss.Add(r); .)
