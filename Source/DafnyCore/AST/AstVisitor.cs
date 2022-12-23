@@ -253,13 +253,13 @@ namespace Microsoft.Dafny {
           }
         }
 
-        // Visit subexpressions
-        expr.SubExpressions.Iter(ee => VisitExpression(ee, context));
-
         // Visit substatements
         if (expr is StmtExpr stmtExpr) {
           VisitStatement(stmtExpr.S, context);
         }
+
+        // Visit subexpressions
+        expr.SubExpressions.Iter(ee => VisitExpression(ee, context));
       }
     }
 
