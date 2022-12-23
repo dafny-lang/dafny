@@ -1,4 +1,4 @@
-git-issue-3187a.dfy(5,12): Error: a const declaration s initialized using ':=', not '='
-git-issue-3187a.dfy(7,12): Error: a var declaration is initialized using ':=', ':-' or ':|', not '='
-git-issue-3187a.dfy(8,23): Error: a let declaration is initialized using ':=', ':-' or ':|', not '='
+git-issue-3187a.dfy(5,12): Error: a const field is initialized using ':=', not '='
+git-issue-3187a.dfy(7,12): Error: a local variable is initialized using ':=', ':-', or ':|', not '='
+git-issue-3187a.dfy(8,22): Error: a variable in a let expression is initialized using ':=', ':-', or ':|', not '='
 3 parse errors detected in git-issue-3187a.dfy
