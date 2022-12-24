@@ -121,7 +121,7 @@ jobs:
       run: |
         chmod +x dafny/Binaries/z3/bin/z3
     - name: Install dependencies
-      if: "!inputs.all_platforms"
+      if: false
       run: dotnet restore dafny/Source/Dafny.sln
     - name: Run integration tests
       if: runner.os == 'Windows'
