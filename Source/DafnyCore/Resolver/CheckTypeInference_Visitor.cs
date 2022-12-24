@@ -28,12 +28,23 @@ partial class Resolver {
           CheckTypeInference(formal.DefaultValue, m);
         }
       }
+      var errorCount = reporter.Count(ErrorLevel.Error);
       m.Req.Iter(mfe => CheckTypeInference_MaybeFreeExpression(mfe, m));
       m.Ens.Iter(mfe => CheckTypeInference_MaybeFreeExpression(mfe, m));
       CheckTypeInference_Specification_FrameExpr(m.Mod, m);
       CheckTypeInference_Specification_Expr(m.Decreases, m);
       if (m.Body != null) {
         CheckTypeInference(m.Body, m);
+      }
+      if (errorCount == reporter.Count(ErrorLevel.Error)) {
+        if (m is ExtremeLemma extremeLemma) {
+          // Note, when we get here, the body and full postconditions of the prefix lemmas have not yet been created
+          // (because doing so requires the call graph, which hasn't been built yet).
+          // So, the following call will check only what's available so far. In pass 2 of the resolver, when the remaining
+          // information has been filled in, there will be an additional call to CheckTypeInference_Member for the
+          // prefix lemma.
+          CheckTypeInference_Member(extremeLemma.PrefixLemma);
+        }
       }
     } else if (member is Function) {
       var f = (Function)member;
@@ -51,8 +62,8 @@ partial class Resolver {
         CheckTypeInference(f.Body, f);
       }
       if (errorCount == reporter.Count(ErrorLevel.Error)) {
-        if (f is ExtremePredicate cop) {
-          CheckTypeInference_Member(cop.PrefixPredicate);
+        if (f is ExtremePredicate extremePredicate) {
+          CheckTypeInference_Member(extremePredicate.PrefixPredicate);
         } else if (f.ByMethodDecl != null) {
           CheckTypeInference_Member(f.ByMethodDecl);
         }
