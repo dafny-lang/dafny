@@ -3937,7 +3937,9 @@ ImpliesExpliesExpression<out Expression e0, bool allowLemma, bool allowLambda, b
                                                                  e0.RangeToken = new RangeToken(startToken, t);
                                                               .)
       }
-      [ IF(IsImpliesOp()) ImpliesOp (. SemErr(t, "Ambiguous use of ==> and <==. Use parentheses to disambiguate."); .) ]
+      [ IF(IsImpliesOp()) ImpliesOp (. SemErr(t, "Ambiguous use of ==> and <==. Use parentheses to disambiguate."); .) 
+        LogicalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps> { ImpliesOp LogicalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps> } // resynch after error
+      ]
     )
   ]
   .
@@ -3953,6 +3955,7 @@ ImpliesExpression<out Expression e0, bool allowLemma, bool allowLambda, bool all
                                                                                  e0.RangeToken = new RangeToken(startToken, t);.)
   ]
   [ IF(IsExpliesOp()) ExpliesOp (. SemErr(t, "Ambiguous use of ==> and <==. Use parentheses to disambiguate."); .)
+    LogicalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps> { ExpliesOp LogicalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps> } // resynch after error
   ]
   .
 
@@ -3976,7 +3979,11 @@ LogicalExpression<out Expression e0, bool allowLemma, bool allowLambda, bool all
             e0.FormatTokens = new[] { firstOp };
          .)
     }
-    [ IF(IsOrOp()) OrOp (. SemErr(t, "Ambiguous use of && and ||. Use parentheses to disambiguate."); .) ]
+    [ IF(IsOrOp()) OrOp (. SemErr(t, "Ambiguous use of && and ||. Use parentheses to disambiguate."); .) 
+      RelationalExpression<out e0, allowLemma, allowLambda, allowBitwiseOps>
+      { (OrOp | AndOp) RelationalExpression<out e0, allowLemma, allowLambda, allowBitwiseOps> } // Resynching after error
+    ]
+
     (. e0.RangeToken = new RangeToken(firstOp, t);
        if (e0 == first) {
          // There was only one conjunct. To make sure that the type checker still checks it to
@@ -3996,7 +4003,10 @@ LogicalExpression<out Expression e0, bool allowLemma, bool allowLambda, bool all
             e0.RangeToken = new RangeToken(startToken, t);
             e0.FormatTokens = new[] { firstOp };
          .) }
-    [ IF(IsAndOp()) AndOp (. SemErr(t, "Ambiguous use of && and ||. Use parentheses to disambiguate."); .) ]
+    [ IF(IsAndOp()) AndOp (. SemErr(t, "Ambiguous use of && and ||. Use parentheses to disambiguate."); .) 
+      RelationalExpression<out e0, allowLemma, allowLambda, allowBitwiseOps>
+      { (OrOp | AndOp) RelationalExpression<out e0, allowLemma, allowLambda, allowBitwiseOps> } // Resynching after error
+    ]
     (. e0.RangeToken = new RangeToken(firstOp, t);
        if (e0 == first) {
          // There was only one disjunct. To make sure that the type checker still checks it to
@@ -4018,7 +4028,10 @@ LogicalExpression<out Expression e0, bool allowLemma, bool allowLambda, bool all
                                                                                      e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1);
                                                                                      e0.RangeToken = new RangeToken(startToken, t); .)
         }
-        [ IF(IsOrOp()) OrOp (. SemErr(t, "Ambiguous use of && and ||. Use parentheses to disambiguate."); .) ]
+        [ IF(IsOrOp()) OrOp (. SemErr(t, "Ambiguous use of && and ||. Use parentheses to disambiguate."); .) 
+          RelationalExpression<out e0, allowLemma, allowLambda, allowBitwiseOps>
+          { (OrOp | AndOp) RelationalExpression<out e0, allowLemma, allowLambda, allowBitwiseOps> } // Resynching after error
+        ]
       | OrOp                                                    (. x = t; .)
         RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>    (. startToken = e0.GetStartToken();
                                                                                      e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1);
@@ -4029,7 +4042,10 @@ LogicalExpression<out Expression e0, bool allowLemma, bool allowLambda, bool all
                                                                                      e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1);
                                                                                      e0.RangeToken = new RangeToken(startToken, t); .)
         }
-        [ IF(IsAndOp()) AndOp (. SemErr(t, "Ambiguous use of && and ||. Use parentheses to disambiguate."); .) ]
+        [ IF(IsAndOp()) AndOp (. SemErr(t, "Ambiguous use of && and ||. Use parentheses to disambiguate."); .) 
+           RelationalExpression<out e0, allowLemma, allowLambda, allowBitwiseOps>
+          { (OrOp | AndOp) RelationalExpression<out e0, allowLemma, allowLambda, allowBitwiseOps> } // Resynching after error
+        ]
       )
     ]
   )
@@ -4152,9 +4168,9 @@ RelOp<out IToken/*!*/ x, out BinaryExpr.Opcode op, out Expression k>
     [ IF(la.val == "!")
       "!"          (. y = t; .)
     ]              (. if (y == Token.NoToken) {
-                        SemErr(x, "invalid RelOp");
+                        SemErr(x, "invalid relational operator");
                       } else if (y.pos != x.pos + 1) {
-                        SemErr(x, "invalid RelOp (perhaps you intended \"!!\" with no intervening whitespace?)");
+                        SemErr(x, "invalid relational operator (perhaps you intended \"!!\" with no intervening whitespace?)");
                       } else {
                         x.val = "!!";
                         y.val = "";
@@ -4244,7 +4260,9 @@ BitvectorFactor<out Expression e0, bool allowLemma, bool allowLambda, bool allow
         "&"                                                           (. x = t; .)
         AsExpression<out e1, allowLemma, allowLambda, allowBitwiseOps> (. startToken = e0.GetStartToken(); e0 = new BinaryExpr(x, op, e0, e1); e0.RangeToken = new RangeToken(startToken, t); .)
       }
-      [ IF(IsBitwiseOp()) ( "|" | "^" )  (. SemErr(t, "Ambiguous use of &, |, ^. Use parentheses to disambiguate."); .) ]
+      [ IF(IsBitwiseOp()) ( "|" | "^" )  (. SemErr(t, "Ambiguous use of &, |, ^. Use parentheses to disambiguate."); .)
+        AsExpression<out e1, allowLemma, allowLambda, allowBitwiseOps> {( "|" | "&" | "^" ) AsExpression<out e1, allowLemma, allowLambda, allowBitwiseOps> } // resynching
+      ]
     | (. op = BinaryExpr.Opcode.BitwiseOr; .)
       "|"                                                             (. x = t; .)
       AsExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>   (. var startToken = e0.GetStartToken(); e0 = new BinaryExpr(x, op, e0, e1); e0.RangeToken = new RangeToken(startToken, t); .)
@@ -4252,7 +4270,9 @@ BitvectorFactor<out Expression e0, bool allowLemma, bool allowLambda, bool allow
         "|"                                                           (. x = t; .)
         AsExpression<out e1, allowLemma, allowLambda, allowBitwiseOps> (. startToken = e0.GetStartToken(); e0 = new BinaryExpr(x, op, e0, e1); e0.RangeToken = new RangeToken(startToken, t); .)
       }
-      [ IF(IsBitwiseOp()) ( "^" | "&" )  (. SemErr(t, "Ambiguous use of &, |, ^. Use parentheses to disambiguate."); .) ]
+      [ IF(IsBitwiseOp()) ( "^" | "&" )  (. SemErr(t, "Ambiguous use of &, |, ^. Use parentheses to disambiguate."); .)
+        AsExpression<out e1, allowLemma, allowLambda, allowBitwiseOps> {( "|" | "&" | "^" ) AsExpression<out e1, allowLemma, allowLambda, allowBitwiseOps> } // resynching
+      ]
     | (. op = BinaryExpr.Opcode.BitwiseXor; .)
       "^"                                                             (. x = t; .)
       AsExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>   (. var startToken = e0.GetStartToken(); e0 = new BinaryExpr(x, op, e0, e1); e0.RangeToken = new RangeToken(startToken, t); .)
@@ -4260,7 +4280,9 @@ BitvectorFactor<out Expression e0, bool allowLemma, bool allowLambda, bool allow
         "^"                                                           (. x = t; .)
         AsExpression<out e1, allowLemma, allowLambda, allowBitwiseOps> (. startToken = e0.GetStartToken(); e0 = new BinaryExpr(x, op, e0, e1); e0.RangeToken = new RangeToken(startToken, t); .)
       }
-      [ IF(IsBitwiseOp()) ( "&" | "|" )  (. SemErr(t, "Ambiguous use of &, |, ^. Use parentheses to disambiguate."); .) ]
+      [ IF(IsBitwiseOp()) ( "&" | "|" )  (. SemErr(t, "Ambiguous use of &, |, ^. Use parentheses to disambiguate."); .)
+        AsExpression<out e1, allowLemma, allowLambda, allowBitwiseOps> {( "|" | "&" | "^" ) AsExpression<out e1, allowLemma, allowLambda, allowBitwiseOps> } // resynching
+      ]
     )
   ]
   .

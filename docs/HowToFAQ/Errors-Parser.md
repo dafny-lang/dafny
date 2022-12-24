@@ -525,12 +525,15 @@ predicate b(): int { 4 }
 
 TODO
 
-## Error: {name}s do not have an explicitly declared return type; it is always bool. Unless you want to name the result: ': (result: bool)'
+## Error: _name_s do not have an explicitly declared return type; it is always bool. Unless you want to name the result: ': (result: bool)'
 
 ```dafny
-x
+predicate p(): bool { true } 
 ```
-TODO
+
+A `predicate` is simply a `function` that returns a `bool` value.
+Accordingly, the type is (required to be) omitted, unless the result is being named.
+So `predicate p(): (res: bool) { true }` is permitted
 
 ## XError: 'decreases' clauses are meaningless for least and greatest predicates, so they are not allowed
 
@@ -543,14 +546,19 @@ least predicate m(i: int)
 ```
 TODO
 
-## XError: A '*' expression is not allowed here
+## Error: A '*' expression is not allowed here
 
 ```dafny
-const c := *
+function method m(i: int): int
+  decreases *
+{
+  42
+}
 ```
 
+A method or loop with a `decreases *` clause is not checked for termination.
+This is only permitted for non-ghost methods and loops.
 
-TODO
 
 ## Error: invalid statement beginning here (is a 'label' keyword missing? or a 'const' or 'var' keyword?)
 
@@ -654,9 +662,13 @@ does not recognize the material after the last operator as the ending expression
 ## Error: a forall statement with an ensures clause must have a body
 
 ```dafny
-x
+predicate f(i: int) { true }
+method {:options "/noCheating:1"} m(a: seq<int>) {
+  forall i | 0 <= i < 10
+     ensures f(i)
+}
 ```
-TODO
+TODO -- needs /noCheating set
 
 ## XError: An initializing element display is allowed only for 1-dimensional arrays
 
@@ -685,14 +697,14 @@ No other words are allowed here, including writing them with different case.
 
 These two words have special meaning only in this part of a for-loop; they are not reserved words elsewhere.
 That is, the code
-```
+```dafny
 method m() {
   var to: int := 6;
   var downto: int := 8;
   for to := to to downto {}
 }
 ```
-is legal, but is hardly recommended.
+is legal, but not at all recommended.
 
 ## Error: Ambiguous use of ==> and <==. Use parentheses to disambiguate.
 
@@ -709,7 +721,7 @@ By contract `p ==> q ==> r` is `p ==> (q ==> r)` and
 
 See [this section](../DafnyRef/DafnyRef#sec-implication-and-reverse-implication) for more information.
 
-TODO -- 2 instances
+<!-- There are two instances of this error, one in which the first operator is ==> and one in which it is <== -->
 
 ## Error: Ambiguous use of && and ||. Use parentheses to disambiguate.
 
@@ -721,14 +733,20 @@ The `&&` and `||` operators have the same precedence but do not associate with e
 You must use parentheses to show how they are grouped. Write the above example as either
 `(true && false) || true` or `true && (false || true)`.
 
-TODOa -- 4 instances
+<!-- There are four instances of this error message, for the four different prefixes: e (&& e)* || , e (|| e)* && , (&& e)* || e , (|| e)* && -->
 
 ## Error: chaining not allowed from the previous operator
 
 ```dafny
-x
+const c := 1 in {1} == true
 ```
-TODO
+
+[Chained operations](../DafnyRef/DafnyRef#sec-basic-types)
+are a sequence of binary operations without parentheses: _a op b op c op d op e_.
+But there are limitation on which operators can be in one chain together.
+
+In particular, the relational operators `in` and `!in` may not be part of a chain.
+Use parentheses as necessary to group the operations.
 
 ## Error: a chain cannot have more than one != operator
 
@@ -788,24 +806,34 @@ As described [here](../DafnyRef/DafnyRef#sec-collection-types),
 ## Error: this operator cannot be part of a chain
 
 ```dafny
-x
+const c := 2 < 3 in 4
 ```
-TODO
 
-## Error: invalid RelOp
+The operators `in` and `!in` are relational operators, but they may not occur in a chain.
+Use parentheses if necessary. An expression like the above is not type-correct in any case.
+
+## Error: invalid relational operator
 
 ```dafny
-x
+const s : set<int>
+const r := s ! s
 ```
-TODO - IMPROVE
 
-## Error: invalid RelOp (perhaps you intended \"!!\" with no intervening whitespace?)
+The parser is expecting a relational expression, that is, two expressions separated by a relational operator
+(one of `==`, `!=`, `>`, `>=`, `<`, `<=`, `!!`, `in`, `!in`). But the parser saw just a `!` ,
+which could be the beginning of `!=`, `!!`, or `!in`, but is not continued as such.
+So perhaps there is extraneous white space or some else entirely is intended.
+
+## Error: invalid relational operator (perhaps you intended \"!!\" with no intervening whitespace?)
 
 ```dafny
-x
+const s : set<int>
+const r := s ! ! s
 ```
 
-TODO - IMPROVE
+The parser is expecting a relational expression, that is, two expressions separated by a relational operator
+(one of `==`, `!=`, `>`, `>=`, `<`, `<=`, `!!`, `in`, `!in`). But the parser saw two `!` separated by
+white space. This is possibly meant to be `!!` operator, but it could also just be an illegal expression.
 
 ## Error: Ambiguous use of &, |, ^. Use parentheses to disambiguate.
 
@@ -817,15 +845,17 @@ The bit-operators `&`, `|`, and `^` have the same precedence but do not associat
 So if they are used within the same expression, parentheses have to be used to show how they
 are grouped. The abvoe example should be written as either `(5 | 6) & 7` or `5 | (6 & 7)`.
 
-TODO - IMPROVE -- 3 instances
+<!-- There are three instances of this error message, one for each case of the three operators being the first operator in the sequence. -->
 
 ## Error: A forming expression must be a multiset
 
-```dafny
-x
-```
+A set/iset/multiset display expression can have two forms. 
+One example is show in the first line of the example: a list of values enclosed by curly braces.
+The other is the second line, which appears as a conversion operation.
+However, this second form can only be used to convert a set to a multiset.
 
- TODO
+In the current parser, however, this error message is unreachable.
+The tests that check for this error case are a;ready known to be false by previous testing.
 
 ## Error: too many characters in character literal
 
