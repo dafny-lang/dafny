@@ -120,11 +120,6 @@ jobs:
       if: "!inputs.all_platforms"
       run: |
         chmod +x dafny/Binaries/z3/bin/z3
-    - name: Setup .NET
-      if: "!inputs.all_platforms"
-      uses: actions/setup-dotnet@v1.9.0
-      with:
-        dotnet-version: 6.0.x
     - name: Install dependencies
       if: "!inputs.all_platforms"
       run: dotnet restore dafny/Source/Dafny.sln
@@ -143,7 +138,7 @@ jobs:
         XUNIT_SHARD: ${{ matrix.shard }}
         XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
       run: |
-        export DAFNY_RELEASE="${{ github.workspace }}/unzippedRelease/dafny"
+        ${{ inputs.all_platforms }} | grep true && export DAFNY_RELEASE="${{ github.workspace }}/unzippedRelease/dafny"
         printenv DAFNY_RELEASE
         dotnet test --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj
     - uses: actions/upload-artifact@v2
