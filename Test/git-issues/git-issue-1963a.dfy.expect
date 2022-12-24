@@ -1,2 +1,2 @@
-git-issue-1963a.dfy(12,15): Error: Refinement cannot change the base type of a `newtype`.  To refine `NT`, either omit this `...` or omit the `=` sign and the parent type's body.
+git-issue-1963a.dfy(12,15): Error: Refinement cannot change the base type of a `newtype`. To refine `NT`, either omit this `...` or omit the `=` sign and the parent type's body.
 1 parse errors detected in git-issue-1963a.dfy
