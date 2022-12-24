@@ -138,7 +138,7 @@ jobs:
         XUNIT_SHARD: ${{ matrix.shard }}
         XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
       run: |
-        echo "${{ inputs.all_platforms }}" | grep true && export DAFNY_RELEASE="${{ github.workspace }}/unzippedRelease/dafny"
+        echo ${{ inputs.all_platforms }} | grep true && export DAFNY_RELEASE="${{ github.workspace }}/unzippedRelease/dafny"
         printenv DAFNY_RELEASE || true
         dotnet test --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj
     - uses: actions/upload-artifact@v2
