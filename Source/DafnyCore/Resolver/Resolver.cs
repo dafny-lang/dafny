@@ -2676,37 +2676,37 @@ namespace Microsoft.Dafny {
       // determined.
       // ----------------------------------------------------------------------------
 
-      // Resolve the meat of classes and iterators, the definitions of type synonyms, and the type parameters of all top-level type declarations
-      // In the first two loops below, resolve the newtype/subset-type declarations and their constraint clauses and const definitions, including
-      // filling in .ResolvedOp fields.  This is needed for the resolution of the other declarations, because those other declarations may invoke
-      // DiscoverBounds, which looks at the .Constraint or .Rhs field of any such types involved.
-      // The third loop resolves the other declarations.  It also resolves any witness expressions of newtype/subset-type declarations.
+      // Resolve all names and infer types. These two are done together, because name resolution depends on having type information
+      // and type inference depends on having resolved names.
+      // The task is first performed for (the constraints of) newtype declarations, (the constraints of) subset type declarations, and
+      // (the right-hand sides of) const declarations, because type resolution sometimes needs to know the base type of newtypes and subset types
+      // and needs to know the type of const fields. Doing these declarations increases the chances the right information will be provided
+      // in time.
+      // Once the task is done for these newtype/subset-type/const parts, the task continues with everything else.
       ResolveNamesAndInferTypes(declarations, true);
       ResolveNamesAndInferTypes(declarations, false);
 
+      // Check that all types have been determined. During this process, fill in all .ResolvedOp fields.
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-        // Check if types have been determined
         foreach (TopLevelDecl topd in declarations) {
-          TopLevelDecl d = topd is ClassDecl ? ((ClassDecl)topd).NonNullTypeDecl : topd;
-          if (d is NewtypeDecl) {
-            var dd = (NewtypeDecl)d;
-            if (dd.Var != null) {
-              if (!CheckTypeInference_Visitor.IsDetermined(dd.BaseType.NormalizeExpand())) {
-                reporter.Error(MessageSource.Resolver, dd.tok, "newtype's base type is not fully determined; add an explicit type for '{0}'",
-                  dd.Var.Name);
+          if (topd is NewtypeDecl newtypeDecl) {
+            if (newtypeDecl.Var != null) {
+              if (!CheckTypeInference_Visitor.IsDetermined(newtypeDecl.BaseType.NormalizeExpand())) {
+                reporter.Error(MessageSource.Resolver, newtypeDecl.tok, "newtype's base type is not fully determined; add an explicit type for '{0}'",
+                  newtypeDecl.Var.Name);
               }
             }
 
-            if (dd.Constraint != null) {
-              CheckTypeInference(dd.Constraint, dd);
+            if (newtypeDecl.Constraint != null) {
+              CheckTypeInference(newtypeDecl.Constraint, newtypeDecl);
             }
 
-            if (dd.Witness != null) {
-              var codeContext = new CodeContextWrapper(dd, dd.WitnessKind == SubsetTypeDecl.WKind.Ghost);
-              CheckTypeInference(dd.Witness, dd);
+            if (newtypeDecl.Witness != null) {
+              var codeContext = new CodeContextWrapper(newtypeDecl, newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost);
+              CheckTypeInference(newtypeDecl.Witness, newtypeDecl);
             }
 
-          } else if (d is SubsetTypeDecl subsetTypeDecl) {
+          } else if (((topd as ClassDecl)?.NonNullTypeDecl ?? topd) is SubsetTypeDecl subsetTypeDecl) {
             if (!CheckTypeInference_Visitor.IsDetermined(subsetTypeDecl.Rhs.NormalizeExpand())) {
               reporter.Error(MessageSource.Resolver, subsetTypeDecl.tok,
                 "subset type's base type is not fully determined; add an explicit type for '{0}'", subsetTypeDecl.Var.Name);
@@ -2720,23 +2720,34 @@ namespace Microsoft.Dafny {
               CheckTypeInference(subsetTypeDecl.Witness, subsetTypeDecl);
             }
 
-          } else if (topd is IteratorDecl iteratorDecl) {
+          } else if (topd is DatatypeDecl datatypeDecl) {
+            foreach (var ctor in datatypeDecl.Ctors) {
+              foreach (var formal in ctor.Formals.Where(formal => formal.DefaultValue != null)) {
+                CheckTypeInference(formal.DefaultValue, datatypeDecl);
+              }
+            }
+
+            foreach (var member in classMembers[datatypeDecl].Values) {
+              if (member is DatatypeDestructor dtor) {
+                var rolemodel = dtor.CorrespondingFormals[0];
+                for (var i = 1; i < dtor.CorrespondingFormals.Count; i++) {
+                  var other = dtor.CorrespondingFormals[i];
+                  if (!Type.Equal_Improved(rolemodel.Type, other.Type)) {
+                    reporter.Error(MessageSource.Resolver, other,
+                      "shared destructors must have the same type, but '{0}' has type '{1}' in constructor '{2}' and type '{3}' in constructor '{4}'",
+                      rolemodel.Name, rolemodel.Type, dtor.EnclosingCtors[0].Name, other.Type, dtor.EnclosingCtors[i].Name);
+                  }
+                }
+              }
+            }
+          }
+
+          if (topd is IteratorDecl iteratorDecl) {
             foreach (var formal in iteratorDecl.Ins.Where(formal => formal.DefaultValue != null)) {
               CheckTypeInference(formal.DefaultValue, iteratorDecl);
             }
-#if SEEMS_REDUNDANT // see CheckTypeInference_Member(member); below
-            iteratorDecl.Members.Iter(CheckTypeInference_Member);
-#endif
             if (iteratorDecl.Body != null) {
               CheckTypeInference(iteratorDecl.Body, iteratorDecl);
-            }
-
-          } else if (topd is DatatypeDecl) {
-            var dd = (DatatypeDecl)topd;
-            foreach (var ctor in dd.Ctors) {
-              foreach (var formal in ctor.Formals.Where(formal => formal.DefaultValue != null)) {
-                CheckTypeInference(formal.DefaultValue, dd);
-              }
             }
           }
 
@@ -2748,15 +2759,17 @@ namespace Microsoft.Dafny {
                 if (!CheckTypeInference_Visitor.IsDetermined(field.Type.NormalizeExpand())) {
                   reporter.Error(MessageSource.Resolver, field.tok, "const field's type is not fully determined");
                 }
-#if SEEMS_REDUNDANT // see CheckTypeInference_Member(member); above
-                if (field.Rhs != null) {
-                  CheckTypeInference(field.Rhs, field);
-                }
-#endif
               }
             }
           }
         }
+      }
+
+      // Next, discover bounds. These are needed later to determine if certain things are ghost or compiled, and thus this should
+      // be done before building the call graph.
+      if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+        var boundsDiscoveryVisitor = new BoundsDiscoveryVisitor(reporter);
+        boundsDiscoveryVisitor.VisitDeclarations(declarations);
       }
 
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
@@ -2783,14 +2796,15 @@ namespace Microsoft.Dafny {
       // * determines/checks tail-recursion.
       // ----------------------------------------------------------------------------
 
+      // - compute and checks ghosts (this makes use of bounds discovery, as done above)
+      // - for newtypes, figure out native types
+      // - for datatypes, check that shared destructors are in agreement in ghost matters
+      // - for functions and methods, determine tail recursion
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-        // Check that type inference went well everywhere; this will also fill in the .ResolvedOp field in binary expressions
-        // Also, for each datatype, check that shared destructors are in agreement
         foreach (TopLevelDecl d in declarations) {
           if (d is IteratorDecl) {
             var iter = (IteratorDecl)d;
             iter.SubExpressions.Iter(e => CheckExpression(e, this, iter));
-            CheckParameterDefaultValuesAreCompilable(iter.Ins, iter);
             if (iter.Body != null) {
               ComputeGhostInterest(iter.Body, false, null, iter);
               CheckExpression(iter.Body, this, iter);
@@ -2834,11 +2848,7 @@ namespace Microsoft.Dafny {
                 var rolemodel = dtor.CorrespondingFormals[0];
                 for (int i = 1; i < dtor.CorrespondingFormals.Count; i++) {
                   var other = dtor.CorrespondingFormals[i];
-                  if (!Type.Equal_Improved(rolemodel.Type, other.Type)) {
-                    reporter.Error(MessageSource.Resolver, other,
-                      "shared destructors must have the same type, but '{0}' has type '{1}' in constructor '{2}' and type '{3}' in constructor '{4}'",
-                      rolemodel.Name, rolemodel.Type, dtor.EnclosingCtors[0].Name, other.Type, dtor.EnclosingCtors[i].Name);
-                  } else if (rolemodel.IsGhost != other.IsGhost) {
+                  if (rolemodel.IsGhost != other.IsGhost) {
                     reporter.Error(MessageSource.Resolver, other,
                       "shared destructors must agree on whether or not they are ghost, but '{0}' is {1} in constructor '{2}' and {3} in constructor '{4}'",
                       rolemodel.Name,

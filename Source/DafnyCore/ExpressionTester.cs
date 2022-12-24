@@ -230,33 +230,30 @@ public class ExpressionTester {
       return isCompilable;
     } else if (expr is LambdaExpr lambdaExpr) {
       return CheckIsCompilable(lambdaExpr.Body, codeContext);
-    } else if (expr is ComprehensionExpr comprehensionExpr) {
-      var uncompilableBoundVars = comprehensionExpr.UncompilableBoundVars();
+    } else if (expr is ComprehensionExpr) {
+      var e = (ComprehensionExpr)expr;
+      var uncompilableBoundVars = e.UncompilableBoundVars();
       if (uncompilableBoundVars.Count != 0) {
-        if (ReportErrors == false) {
-          return false;
-        }
-
         string what;
-        if (comprehensionExpr is SetComprehension comprehension) {
+        if (e is SetComprehension comprehension) {
           what = comprehension.Finite ? "set comprehensions" : "iset comprehensions";
-        } else if (comprehensionExpr is MapComprehension mapComprehension) {
+        } else if (e is MapComprehension mapComprehension) {
           what = mapComprehension.Finite ? "map comprehensions" : "imap comprehensions";
         } else {
-          Contract.Assume(comprehensionExpr is QuantifierExpr);  // otherwise, unexpected ComprehensionExpr (since LambdaExpr is handled separately above)
-          Contract.Assert(((QuantifierExpr)comprehensionExpr).SplitQuantifier == null); // No split quantifiers during resolution
+          Contract.Assume(e is QuantifierExpr);  // otherwise, unexpected ComprehensionExpr (since LambdaExpr is handled separately above)
+          Contract.Assert(((QuantifierExpr)e).SplitQuantifier == null); // No split quantifiers during resolution
           what = "quantifiers";
         }
         foreach (var bv in uncompilableBoundVars) {
-          reporter.Error(MessageSource.Resolver, comprehensionExpr, "{0} in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for '{1}'", what, bv.Name);
+          reporter?.Error(MessageSource.Resolver, e, "{0} in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for '{1}'", what, bv.Name);
+          isCompilable = false;
         }
-        return false;
       }
       // don't recurse down any attributes
-      if (comprehensionExpr.Range != null) {
-        isCompilable = CheckIsCompilable(comprehensionExpr.Range, codeContext) && isCompilable;
+      if (e.Range != null) {
+        isCompilable = CheckIsCompilable(e.Range, codeContext) && isCompilable;
       }
-      isCompilable = CheckIsCompilable(comprehensionExpr.Term, codeContext) && isCompilable;
+      isCompilable = CheckIsCompilable(e.Term, codeContext) && isCompilable;
       return isCompilable;
 
     } else if (expr is ChainingExpression chainingExpression) {

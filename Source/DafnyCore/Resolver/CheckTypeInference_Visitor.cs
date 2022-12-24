@@ -131,19 +131,10 @@ partial class Resolver {
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
         s.BoundVars.Iter(bv => CheckTypeIsDetermined(bv.tok, bv.Type, "bound variable"));
-        s.Bounds = DiscoverBestBounds_MultipleVars(s.BoundVars, s.Range, true, ComprehensionExpr.BoundedPool.PoolVirtues.Enumerable);
         s.BoundVars.Iter(bv => CheckTypeArgsContainNoOrdinal(bv.tok, bv.Type));
 
       } else if (stmt is AssignSuchThatStmt) {
         var s = (AssignSuchThatStmt)stmt;
-        if (s.AssumeToken == null) {
-          var varLhss = new List<IVariable>();
-          foreach (var lhs in s.Lhss) {
-            var ide = (IdentifierExpr)lhs.Resolved;  // successful resolution implies all LHS's are IdentifierExpr's
-            varLhss.Add(ide.Var);
-          }
-          s.Bounds = DiscoverBestBounds_MultipleVars(varLhss, s.Expr, true, ComprehensionExpr.BoundedPool.PoolVirtues.None);
-        }
         foreach (var lhs in s.Lhss) {
           var what = lhs is IdentifierExpr ? string.Format("variable '{0}'", ((IdentifierExpr)lhs).Name) : "LHS";
           CheckTypeArgsContainNoOrdinal(lhs.tok, lhs.Type);
@@ -197,49 +188,6 @@ partial class Resolver {
             resolver.reporter.Error(MessageSource.Resolver, bv.tok, "type of bound variable '{0}' could not be determined; please specify the type explicitly", bv.Name);
           } else if (codeContext is ExtremePredicate) {
             CheckContainsNoOrdinal(bv.tok, bv.Type, string.Format("type of bound variable '{0}' ('{1}') is not allowed to use type ORDINAL", bv.Name, bv.Type));
-          }
-        }
-        // apply bounds discovery to quantifiers, finite sets, and finite maps
-        string what = e.WhatKind;
-        Expression whereToLookForBounds = null;
-        var polarity = true;
-        if (e is QuantifierExpr quantifierExpr) {
-          whereToLookForBounds = quantifierExpr.LogicalBody();
-          polarity = quantifierExpr is ExistsExpr;
-        } else if (e is SetComprehension setComprehension) {
-          whereToLookForBounds = setComprehension.Range;
-        } else if (e is MapComprehension) {
-          whereToLookForBounds = e.Range;
-        } else {
-          Contract.Assume(e is LambdaExpr);  // otherwise, unexpected ComprehensionExpr
-        }
-        if (whereToLookForBounds != null) {
-          e.Bounds = DiscoverBestBounds_MultipleVars_AllowReordering(e.BoundVars, whereToLookForBounds, polarity, ComprehensionExpr.BoundedPool.PoolVirtues.None);
-          if (2 <= DafnyOptions.O.Allocated && (codeContext is Function || codeContext is ConstantField || CodeContextWrapper.Unwrap(codeContext) is RedirectingTypeDecl)) {
-            // functions are not allowed to depend on the set of allocated objects
-            foreach (var bv in ComprehensionExpr.BoundedPool.MissingBounds(e.BoundVars, e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc)) {
-              var msgFormat = "a {0} involved in a {3} definition is not allowed to depend on the set of allocated references, but values of '{1}' may contain references";
-              if (bv.Type.IsTypeParameter || bv.Type.IsOpaqueType) {
-                msgFormat += " (perhaps declare its type, '{2}', as '{2}(!new)')";
-              }
-              msgFormat += " (see documentation for 'older' parameters)";
-              var declKind = CodeContextWrapper.Unwrap(codeContext) is RedirectingTypeDecl redir ? redir.WhatKind : ((MemberDecl)codeContext).WhatKind;
-              resolver.reporter.Error(MessageSource.Resolver, e, msgFormat, what, bv.Name, bv.Type, declKind);
-            }
-          }
-          if ((e is SetComprehension && ((SetComprehension)e).Finite) || (e is MapComprehension && ((MapComprehension)e).Finite)) {
-            // the comprehension had better produce a finite set
-            if (e.Type.HasFinitePossibleValues) {
-              // This means the set is finite, regardless of if the Range is bounded.  So, we don't give any error here.
-              // However, if this expression is used in a non-ghost context (which is not yet known at this stage of
-              // resolution), the resolver will generate an error about that later.
-            } else {
-              // we cannot be sure that the set/map really is finite
-              foreach (var bv in ComprehensionExpr.BoundedPool.MissingBounds(e.BoundVars, e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.Finite)) {
-                resolver.reporter.Error(MessageSource.Resolver, e,
-                  "the result of a {0} must be finite, but Dafny's heuristics can't figure out how to produce a bounded set of values for '{1}'", what, bv.Name);
-              }
-            }
           }
         }
 

@@ -1153,16 +1153,16 @@ module MiscTrait {
 
 // ----- set comprehensions where the term type is finite -----
 
-module ObjectSetComprehensions {
+module ObjectSetComprehensionsNever {
   // the following set comprehensions are known to be finite
   function A() : set<object> { set o : object | true :: o }  // error: a function is not allowed to depend on the allocated state
-
   function method B() : set<object> { set o : object | true :: o }  // error: a function is not allowed to depend on the allocated state
-
+}
+module ObjectSetComprehensionsSometimes {
   // outside functions, the comprehension is permitted, but it cannot be compiled
   lemma C() { var x; x := set o : object | true :: o; }
 
-  method D() { var x; x := set o : object | true :: o; }  // error: not (easily) compilable
+  method D() { var x; x := set o : object | true :: o; }  // error: not (easily) compilable, so this is allowed only in ghost contexts
 }
 
 // ------ regression test for type checking of integer division -----
@@ -2347,14 +2347,14 @@ module Regression15 {
   }
 }
 
-module AllocDepend0 {
+module AllocDepend0a {
   class Class {
-    const z := if {} == set c: Class | true then 5 else 4  // error (x2): condition depends on alloc; not compilable
+    const z := if {} == set c: Class | true then 5 else 4  // error: condition depends on alloc (also not compilable, but that's not reported in the same pass)
   }
-  const y := if {} == set c: Class | true then 5 else 4  // error (x2): condition depends on alloc; not compilable
+  const y := if {} == set c: Class | true then 5 else 4  // error: condition depends on alloc (also not compilable, but that's not reported in the same pass)
   newtype byte = x | x < 5 || {} == set c: Class | true  // error: condition not allowed to depend on alloc
   type small = x | x < 5 || {} == set c: Class | true  // error: condition not allowed to depend on alloc
-}
+} module AllocDepend0b { class Class { }  method M() returns (y: int, z: int) {    z := if {} == set c: Class | true then 5 else 4; /* error: not compilable */    y := if {} == set c: Class | true then 5 else 4; /* error: not compilable */  }}
 module AllocDepend1 {
   class Class { }
   predicate method P(x: int) {
