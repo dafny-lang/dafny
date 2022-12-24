@@ -2670,10 +2670,10 @@ namespace Microsoft.Dafny {
       int prevErrorCount = reporter.Count(ErrorLevel.Error);
 
       // ---------------------------------- Pass 0 ----------------------------------
-      // This pass resolves names, introduces (and may solve) type constraints, and
-      // builds the module's call graph.
-      // For 'newtype' and subset-type declarations, it also checks that all types were fully
-      // determined.
+      // This pass:
+      // * resolves names, introduces (and may solve) type constraints
+      // * checks that all types were properly inferred
+      // * fills in .ResolvedOp fields
       // ----------------------------------------------------------------------------
 
       // Resolve all names and infer types. These two are done together, because name resolution depends on having type information
@@ -2765,41 +2765,30 @@ namespace Microsoft.Dafny {
         }
       }
 
-      // Next, discover bounds. These are needed later to determine if certain things are ghost or compiled, and thus this should
+      // ---------------------------------- Pass 1 ----------------------------------
+      // This pass does the following:
+      // * discovers bounds
+      // * builds the module's call graph.
+      // * compute and checks ghosts (this makes use of bounds discovery, as done above)
+      // * for newtypes, figure out native types
+      // * for datatypes, check that shared destructors are in agreement in ghost matters
+      // * for functions and methods, determine tail recursion
+      // * perform substitution for DefaultValueExpression's
+      // ----------------------------------------------------------------------------
+
+      // Discover bounds. These are needed later to determine if certain things are ghost or compiled, and thus this should
       // be done before building the call graph.
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         var boundsDiscoveryVisitor = new BoundsDiscoveryVisitor(reporter);
         boundsDiscoveryVisitor.VisitDeclarations(declarations);
       }
 
+      // Build call graph.
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         CallGraphBuilder.Build(declarations, reporter);
       }
 
-      // ---------------------------------- Pass 1 ----------------------------------
-      // This pass:
-      // * checks that type inference was able to determine all types
-      // * check that shared destructors in datatypes are in agreement
-      // * fills in the .ResolvedOp field of binary expressions
-      // * performs substitution for DefaultValueExpression's
-      // * discovers bounds for:
-      //     - forall statements
-      //     - set comprehensions
-      //     - map comprehensions
-      //     - quantifier expressions
-      //     - assign-such-that statements
-      //     - compilable let-such-that expressions
-      //     - newtype constraints
-      //     - subset-type constraints
-      // For each statement body that it successfully typed, this pass also:
-      // * computes ghost interests
-      // * determines/checks tail-recursion.
-      // ----------------------------------------------------------------------------
-
-      // - compute and checks ghosts (this makes use of bounds discovery, as done above)
-      // - for newtypes, figure out native types
-      // - for datatypes, check that shared destructors are in agreement in ghost matters
-      // - for functions and methods, determine tail recursion
+      // Compute ghost interests, figure out native types, check agreement among datatype destructors, and determine tail calls.
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         foreach (TopLevelDecl d in declarations) {
           if (d is IteratorDecl) {
@@ -2869,6 +2858,7 @@ namespace Microsoft.Dafny {
         }
       }
 
+      // Substitute for DefaultValueExpression's
       FillInDefaultValueExpressions();
 
       // ---------------------------------- Pass 2 ----------------------------------
