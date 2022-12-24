@@ -3970,7 +3970,7 @@ LogicalExpression<out Expression e0, bool allowLemma, bool allowLambda, bool all
   { IF(IsAndOp() || IsOrOp())  /* read a LogicalExpression as far as possible */
     ( AndOp | OrOp ) (. x = t; 
                         if (firstOp == null) firstOp = t; 
-                        if (firstOp != t) SemErr(t, "Ambiguous use of && and ||. Use parentheses to disambiguate.");
+                        if (firstOp.kind != t.kind) SemErr(t, "Ambiguous use of && and ||. Use parentheses to disambiguate.");
                      .)
     RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>
          (. startToken = e0.GetStartToken();
