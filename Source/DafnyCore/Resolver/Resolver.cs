@@ -2702,7 +2702,6 @@ namespace Microsoft.Dafny {
             }
 
             if (newtypeDecl.Witness != null) {
-              var codeContext = new CodeContextWrapper(newtypeDecl, newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost);
               CheckTypeInference(newtypeDecl.Witness, newtypeDecl);
             }
 

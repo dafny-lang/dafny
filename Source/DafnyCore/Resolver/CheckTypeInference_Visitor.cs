@@ -71,60 +71,60 @@ partial class Resolver {
     }
   }
 
-  private void CheckTypeInference_MaybeFreeExpression(AttributedExpression mfe, ICodeContext codeContext) {
+  private void CheckTypeInference_MaybeFreeExpression(AttributedExpression mfe, IASTVisitorContext context) {
     Contract.Requires(mfe != null);
-    Contract.Requires(codeContext != null);
+    Contract.Requires(context != null);
     foreach (var e in Attributes.SubExpressions(mfe.Attributes)) {
-      CheckTypeInference(e, codeContext);
+      CheckTypeInference(e, context);
     }
-    CheckTypeInference(mfe.E, codeContext);
+    CheckTypeInference(mfe.E, context);
   }
-  private void CheckTypeInference_Specification_Expr(Specification<Expression> spec, ICodeContext codeContext) {
+  private void CheckTypeInference_Specification_Expr(Specification<Expression> spec, IASTVisitorContext context) {
     Contract.Requires(spec != null);
-    Contract.Requires(codeContext != null);
+    Contract.Requires(context != null);
     foreach (var e in Attributes.SubExpressions(spec.Attributes)) {
-      CheckTypeInference(e, codeContext);
+      CheckTypeInference(e, context);
     }
-    spec.Expressions.Iter(e => CheckTypeInference(e, codeContext));
+    spec.Expressions.Iter(e => CheckTypeInference(e, context));
   }
-  private void CheckTypeInference_Specification_FrameExpr(Specification<FrameExpression> spec, ICodeContext codeContext) {
+  private void CheckTypeInference_Specification_FrameExpr(Specification<FrameExpression> spec, IASTVisitorContext context) {
     Contract.Requires(spec != null);
-    Contract.Requires(codeContext != null);
+    Contract.Requires(context != null);
     foreach (var e in Attributes.SubExpressions(spec.Attributes)) {
-      CheckTypeInference(e, codeContext);
+      CheckTypeInference(e, context);
     }
-    spec.Expressions.Iter(fe => CheckTypeInference(fe.E, codeContext));
+    spec.Expressions.Iter(fe => CheckTypeInference(fe.E, context));
   }
-  void CheckTypeInference(Expression expr, ICodeContext codeContext) {
+  void CheckTypeInference(Expression expr, IASTVisitorContext context) {
     Contract.Requires(expr != null);
-    Contract.Requires(codeContext != null);
+    Contract.Requires(context != null);
     PartiallySolveTypeConstraints(true);
-    var c = new CheckTypeInference_Visitor(this, codeContext);
+    var c = new CheckTypeInference_Visitor(this, context);
     c.Visit(expr);
   }
-  void CheckTypeInference(Type type, ICodeContext codeContext, IToken tok, string what) {
+  void CheckTypeInference(Type type, IASTVisitorContext context, IToken tok, string what) {
     Contract.Requires(type != null);
-    Contract.Requires(codeContext != null);
+    Contract.Requires(context != null);
     Contract.Requires(tok != null);
     Contract.Requires(what != null);
     PartiallySolveTypeConstraints(true);
-    var c = new CheckTypeInference_Visitor(this, codeContext);
+    var c = new CheckTypeInference_Visitor(this, context);
     c.CheckTypeIsDetermined(tok, type, what);
   }
-  void CheckTypeInference(Statement stmt, ICodeContext codeContext) {
+  void CheckTypeInference(Statement stmt, IASTVisitorContext context) {
     Contract.Requires(stmt != null);
-    Contract.Requires(codeContext != null);
+    Contract.Requires(context != null);
     PartiallySolveTypeConstraints(true);
-    var c = new CheckTypeInference_Visitor(this, codeContext);
+    var c = new CheckTypeInference_Visitor(this, context);
     c.Visit(stmt);
   }
   class CheckTypeInference_Visitor : ResolverBottomUpVisitor {
-    readonly ICodeContext codeContext;
-    public CheckTypeInference_Visitor(Resolver resolver, ICodeContext codeContext)
+    readonly IASTVisitorContext context;
+    public CheckTypeInference_Visitor(Resolver resolver, IASTVisitorContext context)
       : base(resolver) {
       Contract.Requires(resolver != null);
-      Contract.Requires(codeContext != null);
-      this.codeContext = codeContext;
+      Contract.Requires(context != null);
+      this.context = context;
     }
 
     protected override void VisitOneStmt(Statement stmt) {
@@ -197,7 +197,7 @@ partial class Resolver {
         foreach (var bv in e.BoundVars) {
           if (!IsDetermined(bv.Type.Normalize())) {
             resolver.reporter.Error(MessageSource.Resolver, bv.tok, "type of bound variable '{0}' could not be determined; please specify the type explicitly", bv.Name);
-          } else if (codeContext is ExtremePredicate) {
+          } else if (context is ExtremePredicate) {
             CheckContainsNoOrdinal(bv.tok, bv.Type, string.Format("type of bound variable '{0}' ('{1}') is not allowed to use type ORDINAL", bv.Name, bv.Type));
           }
         }
