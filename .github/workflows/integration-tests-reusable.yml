@@ -98,18 +98,18 @@ jobs:
         submodules: true
     - run: rm dafny/Test/libraries/lit.site.cfg # we remove the lit configuration file in the library repo (a git submodule) to prevent override
     - name: Create release
-      if: inputs.all_platforms
+      if: "!inputs.all_platforms"
       run: |
         python dafny/Scripts/package.py 0.0.0-CI --os ${{ fromJson(needs.populate-matrix-dimensions.outputs.os-mapping)[matrix.os] }} --skip_manual=true --trial=true --github_secret=${{ secrets.GITHUB_TOKEN }} --out=CI.zip
-    - if: runner.os == 'Windows' && inputs.all_platforms
+    - if: runner.os == 'Windows' && "!inputs.all_platforms"
       shell: pwsh
       run: |
         Expand-Archive dafny/Package/CI.zip unzippedRelease
-    - if: runner.os != 'Windows' && inputs.all_platforms
+    - if: runner.os != 'Windows' && "!inputs.all_platforms"
       run: |
         unzip dafny/Package/CI.zip -d unzippedRelease
     - name: Load Z3
-      if: "!inputs.all_platforms"
+      if: "!!inputs.all_platforms"
       shell: pwsh
       run: |
         Invoke-WebRequest https://github.com/Z3Prover/z3/releases/download/Z3-4.8.5/z3-4.8.5-x64-ubuntu-16.04.zip -OutFile z3.zip
@@ -117,7 +117,7 @@ jobs:
         Remove-Item z3.zip
         Copy-Item z3-4.8.5-x64-ubuntu-16.04 dafny/Binaries/z3 -Recurse
     - name: Set Z3 Permissions
-      if: "!inputs.all_platforms"
+      if: "!!inputs.all_platforms"
       run: |
         chmod +x dafny/Binaries/z3/bin/z3
     - name: Install dependencies
@@ -131,14 +131,14 @@ jobs:
         DAFNY_RELEASE: ${{ github.workspace }}\unzippedRelease\dafny
       run: |
         dotnet test --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj
-    # echo ${{ inputs.all_platforms }} | grep false && unset DAFNY_RELEASE
+    # echo ${{ !inputs.all_platforms }} | grep false && unset DAFNY_RELEASE
     - name: Run integration tests
       if: runner.os != 'Windows'
       env:
         XUNIT_SHARD: ${{ matrix.shard }}
         XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
       run: |
-        echo ${{ inputs.all_platforms }} | grep true && export DAFNY_RELEASE="${{ github.workspace }}/unzippedRelease/dafny"
+        echo ${{ !inputs.all_platforms }} | grep true && export DAFNY_RELEASE="${{ github.workspace }}/unzippedRelease/dafny"
         printenv DAFNY_RELEASE || true
         dotnet test --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj
     - uses: actions/upload-artifact@v2
