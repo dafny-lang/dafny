@@ -118,8 +118,7 @@ jobs:
         Copy-Item z3-4.8.5-x64-ubuntu-16.04 dafny/Binaries/z3 -Recurse
     - name: Set Z3 Permissions
       if: "!inputs.all_platforms"
-      run: |
-        chmod +x dafny/Binaries/z3/bin/z3
+      run: chmod +x dafny/Binaries/z3/bin/z3
     - name: Run integration tests
       if: runner.os == 'Windows'
       env:
