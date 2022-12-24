@@ -15,29 +15,27 @@ partial class Resolver {
   // does so for a MemberDecl) to make sure that all parts of types were fully inferred.
   #region CheckTypeInference
   private void CheckTypeInference_Member(MemberDecl member) {
-    if (member is ConstantField) {
-      var field = (ConstantField)member;
+    if (member is ConstantField field) {
       CheckTypeInference(field.Type, new NoContext(member.EnclosingClass.EnclosingModuleDefinition), field.tok, "const");
       if (field.Rhs != null) {
         CheckTypeInference(field.Rhs, new NoContext(member.EnclosingClass.EnclosingModuleDefinition));
       }
-    } else if (member is Method) {
-      var m = (Method)member;
-      foreach (var formal in m.Ins) {
+    } else if (member is Method method) {
+      foreach (var formal in method.Ins) {
         if (formal.DefaultValue != null) {
-          CheckTypeInference(formal.DefaultValue, m);
+          CheckTypeInference(formal.DefaultValue, method);
         }
       }
       var errorCount = reporter.Count(ErrorLevel.Error);
-      m.Req.Iter(mfe => CheckTypeInference_MaybeFreeExpression(mfe, m));
-      m.Ens.Iter(mfe => CheckTypeInference_MaybeFreeExpression(mfe, m));
-      CheckTypeInference_Specification_FrameExpr(m.Mod, m);
-      CheckTypeInference_Specification_Expr(m.Decreases, m);
-      if (m.Body != null) {
-        CheckTypeInference(m.Body, m);
+      method.Req.Iter(mfe => CheckTypeInference_MaybeFreeExpression(mfe, method));
+      method.Ens.Iter(mfe => CheckTypeInference_MaybeFreeExpression(mfe, method));
+      CheckTypeInference_Specification_FrameExpr(method.Mod, method);
+      CheckTypeInference_Specification_Expr(method.Decreases, method);
+      if (method.Body != null) {
+        CheckTypeInference(method.Body, method);
       }
       if (errorCount == reporter.Count(ErrorLevel.Error)) {
-        if (m is ExtremeLemma extremeLemma) {
+        if (method is ExtremeLemma extremeLemma) {
           // Note, when we get here, the body and full postconditions of the prefix lemmas have not yet been created
           // (because doing so requires the call graph, which hasn't been built yet).
           // So, the following call will check only what's available so far. In pass 2 of the resolver, when the remaining
@@ -46,26 +44,25 @@ partial class Resolver {
           CheckTypeInference_Member(extremeLemma.PrefixLemma);
         }
       }
-    } else if (member is Function) {
-      var f = (Function)member;
-      foreach (var formal in f.Formals) {
+    } else if (member is Function function) {
+      foreach (var formal in function.Formals) {
         if (formal.DefaultValue != null) {
-          CheckTypeInference(formal.DefaultValue, f);
+          CheckTypeInference(formal.DefaultValue, function);
         }
       }
       var errorCount = reporter.Count(ErrorLevel.Error);
-      f.Req.Iter(e => CheckTypeInference(e.E, f));
-      f.Ens.Iter(e => CheckTypeInference(e.E, f));
-      f.Reads.Iter(fe => CheckTypeInference(fe.E, f));
-      CheckTypeInference_Specification_Expr(f.Decreases, f);
-      if (f.Body != null) {
-        CheckTypeInference(f.Body, f);
+      function.Req.Iter(e => CheckTypeInference(e.E, function));
+      function.Ens.Iter(e => CheckTypeInference(e.E, function));
+      function.Reads.Iter(fe => CheckTypeInference(fe.E, function));
+      CheckTypeInference_Specification_Expr(function.Decreases, function);
+      if (function.Body != null) {
+        CheckTypeInference(function.Body, function);
       }
       if (errorCount == reporter.Count(ErrorLevel.Error)) {
-        if (f is ExtremePredicate extremePredicate) {
+        if (function is ExtremePredicate extremePredicate) {
           CheckTypeInference_Member(extremePredicate.PrefixPredicate);
-        } else if (f.ByMethodDecl != null) {
-          CheckTypeInference_Member(f.ByMethodDecl);
+        } else if (function.ByMethodDecl != null) {
+          CheckTypeInference_Member(function.ByMethodDecl);
         }
       }
     }
