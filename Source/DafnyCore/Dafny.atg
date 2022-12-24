@@ -328,7 +328,7 @@ bool IsParenIdentsColon() {
   }
   x = scanner.Peek();
   var oneOrMoreIdentifiers = false;
-  while(IsIdentifier(x.kind)) {
+  while(IsIdentifier(x.kind) || x.kind == _ghost) { /* ghost is illegal here, but checking for it allows better error messages and recovery */
     x = scanner.Peek();
     oneOrMoreIdentifiers = true;
   }
@@ -1350,7 +1350,7 @@ ClassMemberDecl<. DeclModifierData dmod, List<MemberDecl> mm, bool allowConstruc
          dmod.IsStatic = false;
        }
     .)
-    FieldDecl<dmod, isValueType, mm>
+    FieldDecl<dmod, !moduleLevelDecl && isValueType, mm> /* The !isModuleLevelDecl is just to prevent cascading errors */
   | ConstantFieldDecl<dmod, mm, moduleLevelDecl>
   | IF(IsFunctionDecl())
     (. if (moduleLevelDecl && dmod.StaticToken != null) {
@@ -1394,7 +1394,7 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
   (
   "="                                      (. bodyStart = t; .)
   [ ellipsis                               (. SemErr(t, // Help users adjust to the new syntax
-      $"Refinement cannot change the constructors of a `datatype`.  To refine `{id.val}`, either omit this `...` or omit the `=` sign and the datatype constructors."); .)
+      $"Refinement cannot change the constructors of a datatype. To refine '{id.val}', either omit this '...' or omit the '=' sign and the datatype constructors."); .)
   ]
   [ "|" ] DatatypeMemberDecl<ctors>
   { "|" DatatypeMemberDecl<ctors> }
@@ -1530,7 +1530,7 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
   (
   "="
   [ ellipsis                               (. SemErr(t, // Help users adjust to the new syntax
-      $"Refinement cannot change the base type of a `newtype`.  To refine `{id.val}`, either omit this `...` or omit the `=` sign and the parent type's body."); .)
+      $"Refinement cannot change the base type of a newtype. To refine '{id.val}', either omit this '...' or omit the '=' sign and the parent type's body."); .)
   ]
   ( IF(IsIdentColonOrBar())
     LocalVarName<out bvId>
@@ -1864,7 +1864,7 @@ TPCharOption<ref TypeParameter.TypeParameterCharacteristics characteristics>
                       characteristics.AutoInit = Microsoft.Dafny.Type.AutoInitInfo.Nonempty;
                     }
                   } else {
-                    SemErr(t, "unexpected type parameter option - should be == or 0 or !new");
+                    SemErr(t, "unexpected type parameter option - should be == or 0 or 00 or !new");
                   }
                .)
   | "!" "new"  (. characteristics.ContainsNoReferenceTypes = true; .)
@@ -2197,7 +2197,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
   | "iset"                          (. tok = t; startToken = t; .)
     OptGenericInstantiation<out gt, inExpressionContext>
                                     (. if (gt != null && gt.Count > 1) {
-                                         SemErr("set type expects only one type argument");
+                                         SemErr("iset type expects only one type argument");
                                        }
                                        ty = new SetType(false, gt != null ? gt[0] : null);
                                     .)
@@ -2406,7 +2406,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
    *           ghost function/predicate
    *                 function/predicate
    *                 function/predicate method
-   *       are allowed depends on the value of command-line option "/functionSyntax".
+   *       are allowed depends on the value of command-line option "--function-syntax".
    *
    * Because of when the various keywords and grammar elements are parsed, the parser reads one of the 4 schemas
    * above in its entirety before the code checks for legal combinations. So, up next is the parsing of each of
@@ -5252,7 +5252,8 @@ DotSuffix<out IToken x, out IToken y>
                       int exponent = x.val.IndexOf('e');
                       if (0 <= exponent) {
                         // this is not a legal field/destructor name
-                        SemErr(x, "invalid DotSuffix");
+                        // Also it is not currently reachable, because decimaldigits does not yet support exponents
+                        SemErr(x, "invalid name after a '.'");
                       } else {
                         int dot = x.val.IndexOf('.');
                         if (0 <= dot) {

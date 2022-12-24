@@ -106,8 +106,14 @@ overly long to resolve ([Issue #3180](https://github.com/dafny-lang/dafny/issues
 const _myconst := 5
 ```
 
-Identifiers beginning with underscores are reserved for internal use.
-A single-character underscore as a variable is permitted in matching expressions and statements as a wild identifier.
+User-declared identifiers may not begin with an underscore; such identifiers
+are reserved for internal use. 
+In match statements and expressions, an 
+identifier that is a single underscore is used as a wild-card match.
+
+<!-- There are two instances of this message. An example of the other message is
+     function m(): (_: int) {0}
+-->
 
 ## Error: There is no point to an export declaration at the top level
 
@@ -119,7 +125,7 @@ method M() {}
 Although all top-level declarations are contained in an implicit top-level module, there is no syntax to import that module. Such an import would likely cause
 a ciruclar module dependency error. If the module cannot be imported, there is no point to any export declarations.
 
-## Error: Refinement cannot change the constructors of a `datatype`.  To refine _id_, either omit this `...` or omit the `=` sign and the datatype constructors.
+## Error: Refinement cannot change the constructors of a datatype. To refine _id_, either omit this '...' or omit the '=' sign and the datatype constructors.
 
 ```dafny
 abstract module M { datatype D = A | B }
@@ -128,7 +134,7 @@ module N refines M { datatype D = ... Y | Z }
 
 There are limitations on refining a datatype, namely that the set of constructors cannot be changed.
 
-## Error: Refinement cannot change the base type of a `newtype`.  To refine _id_, either omit this `...` or omit the `=` sign and the parent type's body.
+## Error: Refinement cannot change the base type of a newtype. To refine _id_, either omit this '...' or omit the '=' sign and the parent type's body.
 
 ```dafny
 abstract module M { newtype T = int }
@@ -158,7 +164,9 @@ The example above is a valid example if `returns` is replaced by `yields`.
 ## Error: fields are not allowed to be declared at the module level; instead, wrap the field in a 'class' declaration
 
 ```dafny
-var c: int
+module M {
+  var c: int
+}
 ```
 
 `var` declarations are used to declare fields of classes, local variables in method bodies, and identifiers in let-expressions.
@@ -176,27 +184,19 @@ The [syntax for a module declaration](../DafnyRef/DafnyRef#sec-modules) is eithe
 `module M refines N { ... }` with optional attributes after the `module` keyword.
 This error message often occurs if the `refines` keyword is misspelled.
 
-## Error: cannot declare identifier beginning with underscore
-TODO  - this message found earlier also
 
-```dafny
-const _special := 6
-```
-
-User-declared identifiers may not begin with an underscore; such identifiers
-are reserved for internal use. 
-In match statements and expressions, an 
-identifier that is a single underscore is used as a wild-card match.
-
-## XError: type-parameter variance is not allowed to be specified in this context
+## Error: type-parameter variance is not allowed to be specified in this context
 
 ```dafny
 type List<T>
-method m<T>(i: int, list: List<T>) {}
+method m<+T>(i: int, list: List<T>) {}
 ```
 
-TODO - not yet working
-TODO - 2 instances
+[Type-parameter variance](../DafnyRef/DafnyRef#sec-type-parameter-variance) is specified by a 
+`+`, `-`, `*` or `!` before the type-parameter name.
+Such designations are allowed for type declarations but not for generic method, function, or predicate declarations.
+
+<!-- There are two instances of this error, one for the first item in a type parameter list, and one for subsequent items -->
 
 ## Error: mutable fields are not allowed in value types
 
@@ -279,10 +279,15 @@ declared as a `function method` (v3 only).
 ## Error: a _what_ is always ghost and is declared with '_what_'
 
 ```dafny
-x
+module {:options "--function-syntax:experimentalPredicateAlwaysGhost"} M {
+  predicate method p() { true }
+}
 ```
-Prior to Dafny 4, a 
-TODO
+
+This error only occurs when the `experimentalPredicateAlwaysGhost` option is chosen.
+It indicates that `predicates` are always ghost and cannot be declared with the (Dafny 3) syntax `predicate method`.
+- If you intend to predicate to be ghost, remove `method`.
+- If you intend the predicate to be non-ghost, you either cannot use `experimentalPredicateAlwaysGhost` or you should use `function` with a `bool` return type instead of `predicate`
 
 ## Error: the phrase '_what_ method' is not allowed; to declare a compiled _what_, use just '_what_'
 
@@ -292,7 +297,7 @@ module {:options "--function-syntax:4"} M {
 }
 ```
 
-In Dafny v4 on, the phrases `function method` and `predicate method` are no
+In Dafny 4 on, the phrases `function method` and `predicate method` are no
 longer accepted. Use `function` for compiled, non-ghost functions and
 `ghost function` for non-compiled, ghost functions, and similarly for predicates.
 
@@ -301,7 +306,7 @@ See [the documentation here](../DafnyRef/DafnyRef#sec-function-syntax).
 ## Error: there is no such thing as a 'ghost _what_ method'
 
 ```dafny
-module {:options "-functionSyntax:experimentalDefaultGhost"} M {
+module {:options "--function-syntax:experimentalDefaultGhost"} M {
   ghost function method f(): int { 42 }
 }
 ```
@@ -316,9 +321,13 @@ See [the documentation here](../DafnyRef/DafnyRef#sec-function-syntax).
 ## Error: a _what_ must be declared as either 'ghost _what_' or '_what_ method'
 
 ```dafny
-x
+module {:options "--function-syntax:migration3to4"} M {
+  function f(): int { 42 }
+}
 ```
-TODO
+
+This error occures only when using `migration3to4`. With this option, ghost functions are declared using `ghost function` and compiled functions using `function method`.
+Change `function` in the declaration to one of these.
 
 ## Error: formal cannot be declared 'ghost' in this context
 
@@ -353,13 +362,16 @@ A method declaration always requires an identifier between the `mehtod` keyword 
 This is the case even when, as in the example above, a name is specified using `:extern`. The extern name is only used in the
 compiled code; it is not the name used to refer to the method in Dafny code
 
-## XError: type of _k_ can only be specified for least and greatest lemmas
+## Error: type of _k_ can only be specified for least and greatest lemmas
 
 ```dafny
-least predicate b[nat](i: int) { true }
+lemma b[nat](i: int) { }
 ```
 
-TODO
+Least and greatest lemmas and predicates have a specil parameter named `k`.
+Its type is is specified in square brackets between the lemma/predicate name and the rest of the signature.
+The type may be either `nat` or `ORDINAL`.
+But this type is specified only for `least` and `greatest` constructs.
 
 ## Error: constructors cannot have out-parameters
 
@@ -378,48 +390,62 @@ and they may not be declared.
 (This is similar to constructors in other progrmaming languages, like Java.)
 
 
-## XError: formal cannot be declared 'ghost' in this context
+## Error: formal cannot be declared 'ghost' in this context
 
 ```dafny
-method m(i: int) returns (ghost r: int) {}
+predicate m(i: int): (ghost r: bool) { 0 }
 ```
-TODO - multiple instances
+
+The output of a predicate or function cannot be ghost.
 
 ## Error: formal cannot be declared 'new' in this context
 
 ```dafny
 method m(i: int) returns (new r: int) {}
 ```
-TODO
+
+The `new` modifier only applies to input parameters.
 
 ## Error: formal cannot be declared 'nameonly' in this context
 
 ```dafny
 method m(i: int) returns (nameonly r: int) {}
 ```
-TODO
+
+The `nameonly` modifier only applies to input parameters.
 
 ## Error: formal cannot be declared 'older' in this context
 
 ```dafny
 method m(i: int) returns (older r: int) {}
 ```
-TODO
+
+The `older` modifier only applies to input parameters.
 
 ## Error: invalid formal-parameter name in datatype constructor
 
 ```dafny
-x
+datatype D = Nil | D(int: uint8) 
 ```
-TODO
 
-## XError: use of the 'nameonly' modifier must be accompanied with a parameter name
+Datatype constructors can have formal parameters, declared with the usual syntax: 'name: type'.
+In datatype constructors the 'name :' is optional; one can just state the type.
+
+However, if there is a name, it name not be a typename, as in the failing example above.
+The formal parameter name should be a simple identifier that is not a reserved word.
+
+
+## Error: use of the 'nameonly' modifier must be accompanied with a parameter name
 
 ```dafny
-method m(i: int, nameonly : int) {}
+datatype D = D (i: int, nameonly int) {}
 ```
 
-TODO
+The parameters of a datatype constructor do not have to have names -- it is allowed to just give the type.
+However, if `nameonly` is used, meaning the constructor can be called using named parameters,
+then the name must be given, as in `datatype D = D (i: int, nameonly j: int) {}`
+
+More detail is given [here](../DafnyRef/DafnyRef#sec-parameter-bindings).
 
 ## Error: set type expects only one type argument
 
@@ -429,8 +455,17 @@ const c: set<int,bool>
 
 A `set` type has one type parameter, namely the type of the elements of the set.
 The error message states that the parser sees some number of type parameters different than one.
+The type parameters are listed in a comma-separated list between `<` and `>`, after the type name.
 
-TODOa - 2 instances
+## Error: iset type expects only one type argument
+
+```dafny
+const c: iset<int,bool>
+```
+
+A `iset` type has one type parameter, namely the type of the elements of the set.
+The error message states that the parser sees some number of type parameters different than one.
+The type parameters are listed in a comma-separated list between `<` and `>`, after the type name.
 
 ## Error: multiset type expects only one type argument
 
@@ -440,6 +475,7 @@ const c: multiset<int,bool>
 
 A `multiset` type has one type parameter, namely the type of the elements of the multiset.
 The error message states that the parser sees some number of type parameters different than one.
+The type parameters are listed in a comma-separated list between `<` and `>`, after the type name.
 
 ## Error: seq type expects only one type argument
 
@@ -449,8 +485,12 @@ const c: seq<int,bool>
 
 A `seq` type has one type parameter, namely the type of the elements of the sequence.
 The error message states that the parser sees some number of type parameters different than one.
+The type parameters are listed in a comma-separated list between `<` and `>`, after the type name.
 
-TODO -- also in a display expresion
+This error message can also result from an incorrrect type parameter list in a sequence display expression,
+as in `const s := seq<int,int>[1,2,3]`.
+
+<!-- There are two instances of this error. -->
 
 ## Error: map type expects two type arguments
 
@@ -474,9 +514,12 @@ The error message states that the parser sees some number of type parameters dif
 ## Error: arrow-type arguments may not be declared as 'ghost'
 
 ```dafny
-x
+const f: (ghost int, bool) -> int
 ```
-TODO
+
+[Arrow types](../DafnyRef/DafnyRef#sec-arrow-types) are the types of functions in Dafny.
+They are designated with the arrow syntax, as shown in the example,
+except that the types used cannot be declared as ghost.
 
 ## Error: out-parameters cannot have default-value expressions
 
@@ -489,41 +532,77 @@ with just an identifier and a type, separated by a colon.
 No initializing value may be given. If a default value is needed, assign the out-parameter
 that value as a first statement in the body of the method.
 
-## XError: unexpected type parameter option - should be == or 0 or !new
+## Error: unexpected type parameter option - should be == or 0 or 00 or !new
 
 ```dafny
-type T(^)
+type T(000)
 ```
-TODO
+
+[Type parameters](../DafnyRef/DafnyRef#sec-type-parameters), 
+indicated in parentheses after the type name, state properties of the otherwise uninterpreted or opaque type.
+The currently defined type parameters are designated by `==` (equality-supporting), `0` (auto-initializable), `00` (non-empty), and `!new` (non-reference).
 
 ## Error: A 'decreases' clause that contains '*' is not allowed to contain any other expressions
 
 ```dafny
-x
+method f(n: int) returns (r: int)
+  decreases *, n
+{
+  r := if n == 0 then n else -1-f(n-1);
+}
 ```
-TODO
+
+A `decreases` clause provides a metric that must decrease from one call to the next, 
+in order to assure termination of a sequence of recursive calls. 
+In loops it assures termination of the loop iteration.
+
+`decreases *` means to skip the termination check.
+So it does not make sense to both list a metric and to list '*'.
+Use one or the other.
 
 ## Error: A 'reads' clause that contains '*' is not allowed to contain any other expressions
 
 ```dafny
-x
+const a: object;
+function f(): int
+  reads a, *
+{
+  0
+}
 ```
-TODO
+
+A reads clause lists the objects whose fields the function is allowed to read (or expressions containing such objects).
+`reads *` means the function may read anything.
+So it does not make sense to list `*` along with something more specific.
+If you mean that the function should be able to read anything, just list '*'.
+Otherwise, omit the '*' and list expressions containing all the objects that are read.
 
 ## Error: A '*' frame expression is not permitted here
 
 ```dafny
-x
+iterator Gen(start: int) yields (x: int)
+  reads *
+{
+  var i := 0;
+  while i < 10 invariant |xs| == i {
+    x := start + i;
+    yield;
+    i := i + 1;
+  }
+}
 ```
-TODO
 
-## XError: _name_ return type should be bool, got _type_
+A `reads *` clause means the reads clause allows the functions it specifies to read anything.
+SUch a clause is not allowed in an iterator specification.
+
+## Error: _name_ return type should be bool, got _type_
 
 ```dafny
-predicate b(): int { 4 }
+predicate b(): (r: boolean) { 4 }
 ```
 
-TODO
+A predicate is a function that returns `bool`. The return type here is something else.
+If you mean to have a non-`bool` return type, use `function` instead of `predicate`.
 
 ## Error: _name_s do not have an explicitly declared return type; it is always bool. Unless you want to name the result: ': (result: bool)'
 
@@ -535,7 +614,7 @@ A `predicate` is simply a `function` that returns a `bool` value.
 Accordingly, the type is (required to be) omitted, unless the result is being named.
 So `predicate p(): (res: bool) { true }` is permitted
 
-## XError: 'decreases' clauses are meaningless for least and greatest predicates, so they are not allowed
+## Error: 'decreases' clauses are meaningless for least and greatest predicates, so they are not allowed
 
 ```dafny
 least predicate m(i: int)
@@ -544,7 +623,9 @@ least predicate m(i: int)
   true
 }
 ```
-TODO
+
+Least and greatest predicates are not checked for termination. In fact, unbounded recursion is part of being coinductive.
+Hence `decreases` clausess are inappropriate and not allowed.
 
 ## Error: A '*' expression is not allowed here
 
@@ -563,31 +644,35 @@ This is only permitted for non-ghost methods and loops.
 ## Error: invalid statement beginning here (is a 'label' keyword missing? or a 'const' or 'var' keyword?)
 
 ```dafny
-method m() {
-  x: int := 5;
+method m(n: nat) {
+  x: while (0 < n) { break x; }
 }
 ```
 
 In this situation the parser sees the identifier (x) and the following colon.
 This is not a legal start to a statement. Most commonly either
 * a `var` or `const` keyword is missing, and the `x:` is the beginning of a declaration, or
-* a `label` keyword is missing and the identifier is the name of the label for the statement that follows.
+* a `label` keyword is missing and the identifier is the label for the statement that follows.
 (The second error is somewhat common because in C/C++ and Java, there is no keyword introducing a label, just the identifier and the colon.)
 
 
 ## Error: LHS of assign-such-that expression must be variables, not general patterns
 
 ```dafny
-x
+datatype D = D(x: int, y: int)
+method m() {
+  var D(x,y) :| x + y == 5;
+}
 ```
-TODO
+
+The `:|` syntax is called 'assign-such-that': the variables on the left-hand-side are initiallized or assigned
+some non-deterministic values that saisfy the predicate on the right-hand-side.
+
+However, Dafny only allows a list of simple variables on the left, not datatype deconstructor patterns, as seen here.
 
 ## Error: 'modifies' clauses are not allowed on refining loops
 
-```dafny
-x
-```
-TODO - deprecated?
+_Refining statements, including loops, are deprecated._
 
 ## Error: the main operator of a calculation must be transitive
 
@@ -661,23 +746,34 @@ does not recognize the material after the last operator as the ending expression
 
 ## Error: a forall statement with an ensures clause must have a body
 
+<!-- TODO: This example does not yet work because there is no way to turn on /noCheating in the new CLI -->
+
 ```dafny
-predicate f(i: int) { true }
-method {:options "/noCheating:1"} m(a: seq<int>) {
-  forall i | 0 <= i < 10
-     ensures f(i)
+module  M {
+  predicate f(i: int) { true }
+  method  m(a: seq<int>) {
+    forall i | 0 <= i < 10
+       ensures f(i)
+  }
 }
 ```
-TODO -- needs /noCheating set
 
-## XError: An initializing element display is allowed only for 1-dimensional arrays
+A forall statement without a body is like an assume statement: the ensures clause is assumed in the following code.
+Assumptions like that are a risk to soundness because there is no check that the assumption is true.
+Thus in a context in which open assumptions are not allowed, body-less forall statements are also not allowed.
+
+## Error: An initializing element display is allowed only for 1-dimensional arrays
 
 ```dafny
 method m() {
-  var a := new int[] [[1,2, 3,4]]
+  var a := new int[2,2] [1,2,3,4];
 }
 ```
-TODO
+
+One-dimensional arrays can be initiallized like `var s := new int[][1,2,3,4];`,
+but multi-dimensional arrays cannot.The alternatives are to initialize the array
+in a loop after it is allocated, or to initialize with a function, as in
+`var a:= new int[2,2]((i: int, j: int)=>i+j)`.
 
 ## Error: Expected 'to' or 'downto'
 
@@ -860,10 +956,12 @@ The tests that check for this error case are a;ready known to be false by previo
 ## Error: too many characters in character literal
 
 ```dafny
-x
+const c := '\U{103456}';
 ```
 
-TODO: If this can happen at all it is with an unusual unicode char
+<!-- TODO: This needs an example, if it can occur at all; and it needs explanation -->
+
+
 
 A character literal consists of two `'` characters enclosing either
 - a single ASCII character (that is not a backslash)
@@ -995,15 +1093,10 @@ In contrast to the let expression (`:=`), which allows multiple parallel initial
 only allow a single left-hand-side and a single-right-hand-side.
 
 
-## Error: invalid DotSuffix
+## Error: invalid name after a '.'
 
-```dafny
-x
-```
-
-TODO _ IMPROVE
-
-
+This error message is not reachable in current Dafny.
+If it occurs, please report an internal bug (or obsolete documentation).
 
 
 
