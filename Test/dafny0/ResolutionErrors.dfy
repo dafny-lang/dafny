@@ -2354,7 +2354,14 @@ module AllocDepend0a {
   const y := if {} == set c: Class | true then 5 else 4  // error: condition depends on alloc (also not compilable, but that's not reported in the same pass)
   newtype byte = x | x < 5 || {} == set c: Class | true  // error: condition not allowed to depend on alloc
   type small = x | x < 5 || {} == set c: Class | true  // error: condition not allowed to depend on alloc
-} module AllocDepend0b { class Class { }  method M() returns (y: int, z: int) {    z := if {} == set c: Class | true then 5 else 4; /* error: not compilable */    y := if {} == set c: Class | true then 5 else 4; /* error: not compilable */  }}
+}
+module AllocDepend0b {
+  class Class { }
+  method M() returns (y: int, z: int) {
+    z := if {} == set c: Class | true then 5 else 4; // error: not compilable
+    y := if {} == set c: Class | true then 5 else 4; // error: not compilable
+  }
+}
 module AllocDepend1 {
   class Class { }
   predicate method P(x: int) {
