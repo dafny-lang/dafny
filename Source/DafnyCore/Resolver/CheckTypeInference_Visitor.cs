@@ -17,10 +17,10 @@ partial class Resolver {
   private void CheckTypeInference_Member(MemberDecl member) {
     if (member is ConstantField) {
       var field = (ConstantField)member;
+      CheckTypeInference(field.Type, new NoContext(member.EnclosingClass.EnclosingModuleDefinition), field.tok, "const");
       if (field.Rhs != null) {
         CheckTypeInference(field.Rhs, new NoContext(member.EnclosingClass.EnclosingModuleDefinition));
       }
-      CheckTypeInference(field.Type, new NoContext(member.EnclosingClass.EnclosingModuleDefinition), field.tok, "const");
     } else if (member is Method) {
       var m = (Method)member;
       foreach (var formal in m.Ins) {

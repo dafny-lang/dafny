@@ -2751,15 +2751,7 @@ namespace Microsoft.Dafny {
           }
 
           if (topd is TopLevelDeclWithMembers cl) {
-            foreach (var member in cl.Members) {
-              CheckTypeInference_Member(member);
-
-              if (member is ConstantField field) {
-                if (!CheckTypeInference_Visitor.IsDetermined(field.Type.NormalizeExpand())) {
-                  reporter.Error(MessageSource.Resolver, field.tok, "const field's type is not fully determined");
-                }
-              }
-            }
+            cl.Members.Iter(CheckTypeInference_Member);
           }
         }
       }
