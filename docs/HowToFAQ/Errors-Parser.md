@@ -138,7 +138,7 @@ The [syntax for a module declaration](../DafnyRef/DafnyRef#sec-modules) is eithe
 `module M refines N { ... }` with optional attributes after the `module` keyword.
 This error message often occurs if the `refines` keyword is misspelled.
 
-## **Error: no comma is allowed between provides and reveals clauses in an export declaration**
+## **Error: no comma is allowed between provides and reveals and extends clauses in an export declaration**
 
 <!-- There are four instances of this error message -->
 
@@ -153,8 +153,8 @@ module M {
 }
 ```
 
-An export declaration consists of one or more `reveals` and `provides` clauses. Each clause contains
-a comma-separated list of identifiers, but the two clauses themselves are not separated by any delimiter.
+An export declaration consists of one or more `reveals`, `provides`, and extends clauses. Each clause contains
+a comma-separated list of identifiers, but the clauses themselves are not separated by any delimiter.
 So in the example above, the comma after `a` is wrong in each export declaration. 
 This mistake is easy to make when the clauses are on the same line.
 

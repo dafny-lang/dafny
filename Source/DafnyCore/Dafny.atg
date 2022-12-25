@@ -950,6 +950,9 @@ TOKENS
   requires = "requires".
   ensures = "ensures".
   ghost = "ghost".
+  provides = "provides".
+  reveals = "reveals".
+  extends = "extends".
   new = "new".
   nameonly = "nameonly".
   older = "older". /* a keyword only when it appears as a modifier to a parameter of a non-extreme function */
@@ -1168,37 +1171,44 @@ ModuleExport<ModuleDefinition parent, out ModuleDecl submodule>
     bool isDefault = false;
     bool isRefining = false;
     ExportSignature exsig;
+    IToken laa;
   .)
   [ ExportId<out exportId> ]
   [ ellipsis  (. isRefining = true; .) ]
   {
-    "provides"
+  (  "provides"
     (
       ( ExportSignature<true, out exsig>        (. exports.Add(exsig); .)
-        {"," 
-             ( ExportSignature<true, out exsig>  (. exports.Add(exsig); .)
-             | "provides" (. SemErr(la, "no comma is allowed between provides and reveals clauses in an export declaration"); .)
-             | "reveals" (. SemErr(la, "no comma is allowed between provides and reveals clauses in an export declaration"); .)
-             )
+        (. scanner.ResetPeek(); laa = scanner.Peek(); .)
+        { 
+          IF( la.kind == _comma && laa.kind != _provides && laa.kind != _reveals && laa.kind != _extends )
+          "," 
+          ExportSignature<true, out exsig>  (. exports.Add(exsig); .)
+        (. scanner.ResetPeek(); laa = scanner.Peek(); .)
         }
-     )
+      )
     | "*" (. provideAll = true; .)
     )
   | "reveals"
     (
       ( ExportSignature<false, out exsig>       (. exports.Add(exsig); .)
-        {"," 
-             ( ExportSignature<false, out exsig>  (. exports.Add(exsig); .)
-             | "provides" (. SemErr(la, "no comma is allowed between provides and reveals clauses in an export declaration"); .)
-             | "reveals" (. SemErr(la, "no comma is allowed between provides and reveals clauses in an export declaration"); .)
-             )
+        (. scanner.ResetPeek(); laa = scanner.Peek(); .)
+        { IF( la.kind == _comma && laa.kind != _provides && laa.kind != _reveals && laa.kind != _extends )
+          "," 
+          ExportSignature<false, out exsig>  (. exports.Add(exsig); .)
+          (. scanner.ResetPeek(); laa = scanner.Peek(); .)
         }
       )
     | "*" (. revealAll = true; .)
     )
   | "extends"
     ExportId<out id>       (. extends.Add(id); .)
-    {"," ExportId<out id>  (. extends.Add(id); .) }
+    (. scanner.ResetPeek(); laa = scanner.Peek(); .)
+    { "," ExportId<out id>  (. extends.Add(id); .) 
+      (. scanner.ResetPeek(); laa = scanner.Peek(); .)
+    }
+  )
+  [ "," (. SemErr(t, "no comma is allowed between provides and reveals and extends clauses in an export declaration"); .) ]
   }
   (. if (exportId.val == "export" || exportId.val == parent.Name) {
        isDefault = true;
