@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using Microsoft.Boogie.Clustering;
 
 namespace Microsoft.Dafny {
   /// <summary>
@@ -282,10 +283,17 @@ namespace Microsoft.Dafny {
 
       } else if (expr is LetExpr letExpr) {
         newExpr = LetExpr(letExpr);
-      } else if (expr is NestedMatchExpr) {
+      } else if (expr is NestedMatchExpr nestedMatchExpr) {
+
+        // if (nestedMatchExpr.Denested != null) {
+        //   return Substitute(nestedMatchExpr.Denested);
+        // }
         var e = (NestedMatchExpr)expr;
         var src = Substitute(e.Source);
         bool anythingChanged = src != e.Source;
+        var denested = nestedMatchExpr.Denested == null ? null : Substitute(nestedMatchExpr.Denested);
+        anythingChanged |= denested != nestedMatchExpr.Denested;
+        
         var cases = new List<NestedMatchCaseExpr>();
         foreach (var mc in e.Cases) {
 
@@ -330,7 +338,9 @@ namespace Microsoft.Dafny {
           cases.Add(newCaseExpr);
         }
         if (anythingChanged) {
-          newExpr = new NestedMatchExpr(expr.tok, src, cases, e.UsesOptionalBraces);
+          newExpr = new NestedMatchExpr(expr.tok, src, cases, e.UsesOptionalBraces) {
+            Denested = denested
+          };
         }
 
       } else if (expr is MatchExpr) {

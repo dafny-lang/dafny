@@ -2455,6 +2455,8 @@ public class CasePattern<VT> : INode
   where VT : class, IVariable {
   public readonly string Id;
   // After successful resolution, exactly one of the following two fields is non-null.
+  
+  [FilledInDuringResolution]
   public DatatypeCtor Ctor;  // finalized by resolution (null if the pattern is a bound variable)
   public VT Var;  // finalized by resolution (null if the pattern is a constructor)  Invariant:  Var != null ==> Arguments == null
   public List<CasePattern<VT>> Arguments;
@@ -2474,6 +2476,7 @@ public class CasePattern<VT> : INode
 
     if (cloner.CloneResolvedFields) {
       Expr = cloner.CloneExpr(original.Expr);
+      Ctor = original.Ctor;
     }
 
     if (original.Arguments != null) {
