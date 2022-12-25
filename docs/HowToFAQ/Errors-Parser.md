@@ -189,20 +189,6 @@ The `var` declaration declares a mutable field, which is only permitted within
 classes, traits and iterators. 
 `const` declarations can be members of value-types, such as datatypes.
 
-## **Error: a mutable field is not allowed to have an initializer**
-
-```dafny
-class A {
-  var x: int := 6
-  var y: int, x: int := 6
-}
-```
-
-Dafny does not allow field declarations to have initializers. They are initialized in constructors.
-Local variable declarations (which also begin with `var`) may have initializers.
-
-<!-- There are two instances of this error message -->
-
 ## **Error: a const field is initialized using ':=', not '='**
 
 ```dafny
@@ -275,17 +261,6 @@ method m(i: int) returns (older r: int) {}
 
 The `older` modifier only applies to input parameters.
 
-## **Error: a mutable field must be declared with a type and may not have an initializer**
-
-```dafny
-class A {
-  var f = 5
-  const g := 5
-}
-```
-
-Mutable fields are not permitted to have initializers, and so they must have a type (as in `var f: int`).
-`const` declarations may have initializers; if they do they do not need an explicit type.
 
 ## **Error: a mutable field must be declared with a type**
 
@@ -298,6 +273,19 @@ class A {
 
 Because a mutable field does not have initializer, it must have a type (as in `var f: int`).
 `const` declarations may have initializers; if they do they do not need an explicit type.
+
+## **Error: a mutable field may not have an initializer**
+
+```dafny
+class A {
+  var x: int := 6
+  var y: int, x: int := 6, z: int
+}
+```
+
+Dafny does not allow field declarations to have initializers. They are initialized in constructors.
+Local variable declarations (which also begin with `var`) may have initializers.
+
 
 
 ## **Error: invalid formal-parameter name in datatype constructor**

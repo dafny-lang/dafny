@@ -1480,12 +1480,10 @@ FieldDecl<.DeclModifierData dmod, bool isValueType, List<MemberDecl> mm.>
   { Attribute<ref attrs> }
   FIdentType<out id, out ty>           (. var f = new Field(id, id.val, dmod.IsGhost, ty, attrs); f.RangeToken = new RangeToken(startToken, t); mm.Add(f); f.TokenWithTrailingDocString = t;
                                           f.RangeToken = new RangeToken(startToken, t); .)
-  [ ("="|":=") (. SemErr(la, "a mutable field is not allowed to have an initializer"); .) Expression<out e, true, true> ]
   { ","                                (. startToken = t; .)
     FIdentType<out id, out ty>         (.     f = new Field(id, id.val, dmod.IsGhost, ty, attrs); f.RangeToken = new RangeToken(startToken, t); mm.Add(f); f.TokenWithTrailingDocString = t;
                                               f.RangeToken = new RangeToken(startToken, t);
                                        .)
-    [ ("="|":=") (. SemErr(la, "a mutable field is not allowed to have an initializer"); .) Expression<out e, true, true> ]
   }
   OldSemi
   .
@@ -1666,9 +1664,9 @@ FIdentType<out IToken/*!*/ id, out Type/*!*/ ty>
   .)
   NoUSIdentOrDigits<out id> (. id = t; ty = null; .)
   ( ":" Type<out ty> 
-  | ( ":=" | "=" ) (. SemErr(t, "a mutable field must be declared with a type and may not have an initializer"); Expression e; .) Expression<out e, true, true>
   | (. SemErr(t, "a mutable field must be declared with a type"); .)
   )
+  [ ( ":=" | "=" ) (. SemErr(t, "a mutable field may not have an initializer"); Expression e; .) Expression<out e, true, true> ]
   .
 
 CIdentType<out IToken/*!*/ id, out Type ty>
@@ -3960,7 +3958,8 @@ ImpliesExpliesExpression<out Expression e0, bool allowLemma, bool allowLambda, b
 ImpliesExpression<out Expression e0, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1; .)
   LogicalExpression<out e0, allowLemma, allowLambda, allowBitwiseOps>
-  [ ( ImpliesOp | ExpliesOp (. SemErr(t, "Ambiguous use of ==> and <==. Use parentheses to disambiguate."); .) )
+  [ IF(IsImpliesOp() || IsExpliesOp())
+    ( ImpliesOp | ExpliesOp (. SemErr(t, "Ambiguous use of ==> and <==. Use parentheses to disambiguate."); .) )
     (. x = t; .)
     ImpliesExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>       (. var startToken = e0.GetStartToken();
                                                                                  e0 = new BinaryExpr(x, BinaryExpr.Opcode.Imp, e0, e1); 
