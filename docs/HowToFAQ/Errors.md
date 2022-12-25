@@ -16,7 +16,8 @@ that depends on the content.
 
 # **Command-line Errors and Warnings**
 
-{% include_relative Errors-CommandLine.md %}
+_This section is a work in progress_
+<!--  include_relative Errors-CommandLine.md--> 
 
 # **Parser Errors and Warnings**
 
