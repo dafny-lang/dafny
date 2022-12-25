@@ -11,8 +11,7 @@ layout: default
 <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript"></script>
 
 
-Italicized words in the given messages indicate variable content 
-that depends on the content.
+Italicized words in the given messages indicate variable content.
 
 # **Command-line Errors and Warnings**
 
