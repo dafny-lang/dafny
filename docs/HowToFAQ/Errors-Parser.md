@@ -427,8 +427,8 @@ function f(): int
 A reads clause lists the objects whose fields the function is allowed to read (or expressions containing such objects).
 `reads *` means the function may read anything.
 So it does not make sense to list `*` along with something more specific.
-If you mean that the function should be able to read anything, just list '*'.
-Otherwise, omit the '*' and list expressions containing all the objects that are read.
+If you mean that the function should be able to read anything, just list `*`.
+Otherwise, omit the `*` and list expressions containing all the objects that are read.
 
 ## **Error: out-parameters cannot have default-value expressions**
 
@@ -744,7 +744,7 @@ method m() {
 }
 ```
 
-The `:|` syntax is called 'assign-such-that': the variables on the left-hand-side are initiallized or assigned
+The `:|` syntax is called _assign-such-that_: the variables on the left-hand-side are initiallized or assigned
 some non-deterministic values that satisfy the predicate on the right-hand-side.
 
 However, Dafny only allows a list of simple variables on the left, not datatype deconstructor patterns, as seen here.
@@ -1081,7 +1081,7 @@ which is equivalent to `map x | 0 <= x < 5 :: x => x*3`. The missing expression 
 the `=>` is just the declared identifier.
 
 One can also have multiple variables involved as in `map x, y | 0 < x < y < < 5 :: 10*x+y => 10*y+x`,
-which defines the mappings `(12 => 21, 13=>31, 14=>41, 23=>32, 24=>42, 34=>43)`.
+which defines the mappings `(12=>21, 13=>31, 14=>41, 23=>32, 24=>42, 34=>43)`.
 
 But when there are multiple variables, one cannot abbreviate the `=>` syntax with just its right-hand expression,
 becuase it is not clear what the left-hand expression should be. 
