@@ -1474,7 +1474,7 @@ FieldDecl<.DeclModifierData dmod, bool isValueType, List<MemberDecl> mm.>
     FIdentType<out id, out ty>         (.     f = new Field(id, id.val, dmod.IsGhost, ty, attrs); f.RangeToken = new RangeToken(startToken, t); mm.Add(f); f.TokenWithTrailingDocString = t;
                                               f.RangeToken = new RangeToken(startToken, t);
                                        .)
-    [ ("="|":=") (. SemErr(la, "field declarations may not be initialized"); .)]
+    [ ("="|":=") (. SemErr(la, "a mutable field is not allowed to have an initializer"); .)]
   }
   OldSemi
   .
@@ -1655,7 +1655,7 @@ FIdentType<out IToken/*!*/ id, out Type/*!*/ ty>
   .)
   NoUSIdentOrDigits<out id> (. id = t; ty = null; .)
   ( ":" Type<out ty> 
-  | ( ":=" | "=" ) (. SemErr(la, "a mutable field must be declared with a type and may not have an initializer"); .)
+  | ( ":=" | "=" ) (. SemErr(t, "a mutable field must be declared with a type and may not have an initializer"); .)
   )
   .
 

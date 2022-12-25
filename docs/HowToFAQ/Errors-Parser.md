@@ -78,6 +78,21 @@ module {:options opt} M{}
 
 The value of an options attribute cannot be a computed expression. It must be a literal string.
 
+## **Error: cannot declare identifier beginning with underscore**
+
+```dafny
+const _myconst := 5
+```
+
+User-declared identifiers may not begin with an underscore; such identifiers
+are reserved for internal use. 
+In match statements and expressions, an 
+identifier that is a single underscore is used as a wild-card match.
+
+<!-- There are two instances of this message. An example of the other message is
+     function m(): (_: int) {0}
+-->
+
 ## **Error: sorry, bitvectors that wide (_number_) are not supported**
 
 ```dafny
@@ -100,21 +115,6 @@ dimensions up to the largest signed 32-bit integer (2147483647).
 In practice (as of v3.9.1) dimensions of more than a few can take 
 overly long to resolve ([Issue #3180](https://github.com/dafny-lang/dafny/issues/3180)).
 
-## **Error: cannot declare identifier beginning with underscore**
-
-```dafny
-const _myconst := 5
-```
-
-User-declared identifiers may not begin with an underscore; such identifiers
-are reserved for internal use. 
-In match statements and expressions, an 
-identifier that is a single underscore is used as a wild-card match.
-
-<!-- There are two instances of this message. An example of the other message is
-     function m(): (_: int) {0}
--->
-
 ## **Error: There is no point to an export declaration at the top level**
 
 ```dafny
@@ -125,6 +125,45 @@ method M() {}
 Although all top-level declarations are contained in an implicit top-level module, there is no syntax to import that module. Such an import would likely cause
 a ciruclar module dependency error. If the module cannot be imported, there is no point to any export declarations.
 
+## **Error: expected either a '{' or a 'refines' keyword here, found _token_**
+
+```dafny
+module M {}
+module N refine M {}
+```
+
+The [syntax for a module declaration](../DafnyRef/DafnyRef#sec-modules) is either `module M { ... }` or
+`module M refines N { ... }` with optional attributes after the `module` keyword.
+This error message often occurs if the `refines` keyword is misspelled.
+
+## **Error: no comma is allowed between provides and reveals clauses in an export declaration**
+
+```dafny
+module M {
+  export reveals b, a, provides b
+  const a: int
+  const b: int
+}
+
+An export declaration consists of one or more `reveals` and `provides` clauses. Each clause contains
+a comma-separated list of identifiers, but the two clauses themselves are not separated by any delimiter.
+So in the example above, the comma after 'a' is wrong. This mistake is easy to make when the clauses are
+on the same line.
+
+<!-- There are four instances of this error message -->
+
+## **Error: fields are not allowed to be declared at the module level; instead, wrap the field in a 'class' declaration**
+
+```dafny
+module M {
+  var c: int
+}
+```
+
+`var` declarations are used to declare fields of classes, local variables in method bodies, and identifiers in let-expressions.
+But mutable field declarations are not permitted at the static module level, including in the (unnamed) toplevel module.
+Rather, you may want the declaration to be a `const` declaration or you may want the mutable field to be declared in the body of a class.
+
 ## **Error: Refinement cannot change the constructors of a datatype. To refine _id_, either omit this '...' or omit the '=' sign and the datatype constructors.**
 
 ```dafny
@@ -134,6 +173,49 @@ module N refines M { datatype D = ... Y | Z }
 
 There are limitations on refining a datatype, namely that the set of constructors cannot be changed.
 
+## **Error: mutable fields are not allowed in value types**
+
+```dafny
+datatype D = A | B  { var c: D }
+```
+
+The `var` declaration declares a mutable field, which is only permitted within
+classes, traits and iterators. All members of value-types, such as datatypes,
+are constants (declared with `const`).
+
+## **Error: a mutable field is not allowed to have an initializer**
+
+```dafny
+class A {
+  var x: int := 6
+}
+```
+
+Dafny does not allow field declarations to have initializers. They are initialized in constructors.
+Local variable declarations (which also begin with `var`) may have initializers.
+
+<!-- There are two instances of this error message -->
+
+## **Error: a const field is initialized using ':=', not '='**
+
+```dafny
+const c: int = 5
+```
+
+Dafny's syntax for initialization uses `:=`, not `=` (like some other languages).
+In fact `=` is not used at all in Dafny.
+
+## **Error: a const declaration must have a type or a RHS value**
+
+```dafny
+const i
+```
+
+A `const` declaration needs its type indicated by either an explicit type
+or a right-hand-side expression, whose type is then the type of the 
+declared identifier. So use syntax either like `const i: int` or `const i:= 5`
+(or both together).
+
 ## **Error: Refinement cannot change the base type of a newtype. To refine _id_, either omit this '...' or omit the '=' sign and the parent type's body.**
 
 ```dafny
@@ -142,6 +224,87 @@ module N refines M { newtype T = ... int }
 ```
 
 There are limitations on refining a newtype, namely that the base type cannot be changed. You can change an opaque type into a newtype, however.
+
+## **Error: formal cannot be declared 'ghost' in this context**
+
+```dafny
+function m(ghost i: int): int {
+  42
+}
+```
+
+If a method, function, or predicate is declared as ghost, then its formal parameters may not also be declared ghost.
+Any use of this construct will always be in ghost contexts.
+
+## **Error: formal cannot be declared 'ghost' in this context**
+
+```dafny
+predicate m(i: int): (ghost r: bool) { 0 }
+```
+
+The output of a predicate or function cannot be ghost.
+
+## **Error: formal cannot be declared 'new' in this context**
+
+```dafny
+method m(i: int) returns (new r: int) {}
+```
+
+The `new` modifier only applies to input parameters.
+
+## **Error: formal cannot be declared 'nameonly' in this context**
+
+```dafny
+method m(i: int) returns (nameonly r: int) {}
+```
+
+The `nameonly` modifier only applies to input parameters.
+
+## **Error: formal cannot be declared 'older' in this context**
+
+```dafny
+method m(i: int) returns (older r: int) {}
+```
+
+The `older` modifier only applies to input parameters.
+
+## **Error: a mutable field must be declared with a type and may not have an initializer**
+
+```dafny
+class A {
+  var f
+  const g := 5
+}
+```
+
+Because a mutable field does not have initializer, it must have a type (as in `var f: int`).
+`const` declarations may have initializers; if they do they do not need an explicit type.
+
+
+## **Error: invalid formal-parameter name in datatype constructor**
+
+```dafny
+datatype D = Nil | D(int: uint8) 
+```
+
+Datatype constructors can have formal parameters, declared with the usual syntax: 'name: type'.
+In datatype constructors the 'name :' is optional; one can just state the type.
+
+However, if there is a name, it name not be a typename, as in the failing example above.
+The formal parameter name should be a simple identifier that is not a reserved word.
+
+
+## **Error: use of the 'nameonly' modifier must be accompanied with a parameter name**
+
+```dafny
+datatype D = D (i: int, nameonly int) {}
+```
+
+The parameters of a datatype constructor do not have to have names -- it is allowed to just give the type.
+However, if `nameonly` is used, meaning the constructor can be called using named parameters,
+then the name must be given, as in `datatype D = D (i: int, nameonly j: int) {}`
+
+More detail is given [here](../DafnyRef/DafnyRef#sec-parameter-bindings).
 
 ## **Error: iterators don't have a 'returns' clause; did you mean 'yields'?**
 
@@ -161,29 +324,6 @@ To accentuate this difference, a `yield` statement is used to say when the next 
 In addition, the declaration does not use `returns` to state the out-parameter, as a method would. Rather it has a `yields` clause
 The example above is a valid example if `returns` is replaced by `yields`.
 
-## **Error: fields are not allowed to be declared at the module level; instead, wrap the field in a 'class' declaration**
-
-```dafny
-module M {
-  var c: int
-}
-```
-
-`var` declarations are used to declare fields of classes, local variables in method bodies, and identifiers in let-expressions.
-But mutable field declarations are not permitted at the static module level, including in the (unnamed) toplevel module.
-Rather, you may want the declaration to be a `const` declaration or you may want the mutable field to be declared in the body of a class.
-
-## **Error: expected either a '{' or a 'refines' keyword here, found _token_**
-
-```dafny
-module M {}
-module N refine M {}
-```
-
-The [syntax for a module declaration](../DafnyRef/DafnyRef#sec-modules) is either `module M { ... }` or
-`module M refines N { ... }` with optional attributes after the `module` keyword.
-This error message often occurs if the `refines` keyword is misspelled.
-
 
 ## **Error: type-parameter variance is not allowed to be specified in this context**
 
@@ -198,147 +338,15 @@ Such designations are allowed for type declarations but not for generic method, 
 
 <!-- There are two instances of this error, one for the first item in a type parameter list, and one for subsequent items -->
 
-## **Error: mutable fields are not allowed in value types**
+## **Error: unexpected type parameter option - should be == or 0 or 00 or !new**
 
 ```dafny
-datatype D = A | B  { var c: D }
+type T(000)
 ```
 
-The `var` declaration declares a mutable field, which is only permitted within
-classes, traits and iterators. All members of value-types, such as datatypes,
-are constants (declared with `const`).
-
-## **Error: a const declaration must have a type or a RHS value**
-
-```dafny
-const i
-```
-
-A `const` declaration needs its type indicated by either an explicit type
-or a right-hand-side expression, whose type is then the type of the 
-declared identifier. So use syntax either like `const i: int` or `const i:= 5`
-(or both together).
-
-## **Error: a 'by method' implementation is not allowed on a twostate _what_**
-
-```dafny
-class Cell { var data: int  constructor(i: int) { data := i; } }
-twostate predicate Increasing(c: Cell)
-  reads c
-{
-  old(c.data) <= c.data
-} by method {
-  return old(c.data) <= c.data;
-}
-```
-
-Two state functions and  predicates are always ghost and do not have a compiled representation.
-Such functions use values from two different program (heap) states, which is not 
-something that can be implemented (at least with any degree of good performance) in conventional programming languages.
-
-Because there is no feasible compiled verion of a two-state function, it cannot have a `by method` block (which is always compiled).
-
-## **Error: a 'by method' implementation is not allowed on an extreme predicate**
-
-```dafny
-least predicate g() { 42 } by method { return 42; }
-```
-
-Least and greatest predicates are always ghost and do not have a compiled representation, 
-so it makes no sense to have a `by method` alternative implementation.
-
-
-## **Error: to use a 'by method' implementation with a _what_, declare _id_ using _what_, not '_what_ method'**
-
-```dafny
-function method m(): int {
-  42
-} by method {
-  return 42;
-}
-```
-
-`by method` constructs copmbine a ghost function (or predicate) with a non-ghost method.
-The two parts ciompute the same result, and are verified to do so.
-Uses of the function are verified using the function body, but the method body is used when the function is compiled.
-
-Thus the function part is always implicitly `ghost` and may not be explicitly declared `ghost`.
-
-## **Error: a _adjective_ _what_ is supported only as ghost, not as a compiled _what_**
-
-```dafny
-twostate function method m(): int {
-  42
-}
-```
-
-The `twostate`, `least`, and `greatest` functions and predicates are always ghost and cannot be compiled, so they cannot be
-declared as a `function method` (v3 only).
-
-
-## **Error: a _what_ is always ghost and is declared with '_what_'**
-
-```dafny
-module {:options "--function-syntax:experimentalPredicateAlwaysGhost"} M {
-  predicate method p() { true }
-}
-```
-
-This error only occurs when the `experimentalPredicateAlwaysGhost` option is chosen.
-It indicates that `predicates` are always ghost and cannot be declared with the (Dafny 3) syntax `predicate method`.
-- If you intend to predicate to be ghost, remove `method`.
-- If you intend the predicate to be non-ghost, you either cannot use `experimentalPredicateAlwaysGhost` or you should use `function` with a `bool` return type instead of `predicate`
-
-## **Error: the phrase '_what_ method' is not allowed; to declare a compiled _what_, use just '_what_'**
-
-```dafny
-module {:options "--function-syntax:4"} M {
-  function method f(): int { 42 }
-}
-```
-
-In Dafny 4 on, the phrases `function method` and `predicate method` are no
-longer accepted. Use `function` for compiled, non-ghost functions and
-`ghost function` for non-compiled, ghost functions, and similarly for predicates.
-
-See [the documentation here](../DafnyRef/DafnyRef#sec-function-syntax).
-
-## **Error: there is no such thing as a 'ghost _what_ method'**
-
-```dafny
-module {:options "--function-syntax:experimentalDefaultGhost"} M {
-  ghost function method f(): int { 42 }
-}
-```
-
-Pre-Dafny 4, a `function method` and a `predicate method` are explicitly
-non-ghost, compiled functions, and therefore cannot be declared `ghost` as well.If indeed the function or predicate is intended to be ghost, leave out `method`; if it is intended to be non-ghost, leave out `ghost`.
-
-From Dafny 4 on, a ghost function is declared `ghost function` and a non-ghost function is declared `function` and there is no longer any declaration of the form `function method`, and similarly for predicates. 
-
-See [the documentation here](../DafnyRef/DafnyRef#sec-function-syntax).
-
-## **Error: a _what_ must be declared as either 'ghost _what_' or '_what_ method'**
-
-```dafny
-module {:options "--function-syntax:migration3to4"} M {
-  function f(): int { 42 }
-}
-```
-
-This error occures only when using `migration3to4`. With this option, ghost functions are declared using `ghost function` and compiled functions using `function method`.
-Change `function` in the declaration to one of these.
-
-## **Error: formal cannot be declared 'ghost' in this context**
-
-```dafny
-function m(ghost i: int): int {
-  42
-}
-```
-
-If a method, function, or predicate is declared as ghost, then its formal parameters may not also be declared ghost.
-Any use of this construct will always be in ghost contexts.
+[Type parameters](../DafnyRef/DafnyRef#sec-type-parameters), 
+indicated in parentheses after the type name, state properties of the otherwise uninterpreted or opaque type.
+The currently defined type parameters are designated by `==` (equality-supporting), `0` (auto-initializable), `00` (non-empty), and `!new` (non-reference).
 
 ## **Error: constructors are allowed only in classes**
 
@@ -390,62 +398,34 @@ and they may not be declared.
 (This is similar to constructors in other progrmaming languages, like Java.)
 
 
-## **Error: formal cannot be declared 'ghost' in this context**
+## **Error: A 'reads' clause that contains '*' is not allowed to contain any other expressions**
 
 ```dafny
-predicate m(i: int): (ghost r: bool) { 0 }
+const a: object;
+function f(): int
+  reads a, *
+{
+  0
+}
 ```
 
-The output of a predicate or function cannot be ghost.
+A reads clause lists the objects whose fields the function is allowed to read (or expressions containing such objects).
+`reads *` means the function may read anything.
+So it does not make sense to list `*` along with something more specific.
+If you mean that the function should be able to read anything, just list '*'.
+Otherwise, omit the '*' and list expressions containing all the objects that are read.
 
-## **Error: formal cannot be declared 'new' in this context**
+## **Error: out-parameters cannot have default-value expressions**
 
 ```dafny
-method m(i: int) returns (new r: int) {}
+method m(i: int) returns (j: int := 0) { return 42; }
 ```
 
-The `new` modifier only applies to input parameters.
+Out-parameters of a method are declared (inside the parentheses after the `returns` keyword)
+with just an identifier and a type, separated by a colon. 
+No initializing value may be given. If a default value is needed, assign the out-parameter
+that value as a first statement in the body of the method.
 
-## **Error: formal cannot be declared 'nameonly' in this context**
-
-```dafny
-method m(i: int) returns (nameonly r: int) {}
-```
-
-The `nameonly` modifier only applies to input parameters.
-
-## **Error: formal cannot be declared 'older' in this context**
-
-```dafny
-method m(i: int) returns (older r: int) {}
-```
-
-The `older` modifier only applies to input parameters.
-
-## **Error: invalid formal-parameter name in datatype constructor**
-
-```dafny
-datatype D = Nil | D(int: uint8) 
-```
-
-Datatype constructors can have formal parameters, declared with the usual syntax: 'name: type'.
-In datatype constructors the 'name :' is optional; one can just state the type.
-
-However, if there is a name, it name not be a typename, as in the failing example above.
-The formal parameter name should be a simple identifier that is not a reserved word.
-
-
-## **Error: use of the 'nameonly' modifier must be accompanied with a parameter name**
-
-```dafny
-datatype D = D (i: int, nameonly int) {}
-```
-
-The parameters of a datatype constructor do not have to have names -- it is allowed to just give the type.
-However, if `nameonly` is used, meaning the constructor can be called using named parameters,
-then the name must be given, as in `datatype D = D (i: int, nameonly j: int) {}`
-
-More detail is given [here](../DafnyRef/DafnyRef#sec-parameter-bindings).
 
 ## **Error: set type expects only one type argument**
 
@@ -521,79 +501,131 @@ const f: (ghost int, bool) -> int
 They are designated with the arrow syntax, as shown in the example,
 except that the types used cannot be declared as ghost.
 
-## **Error: out-parameters cannot have default-value expressions**
+
+
+## **Error: a 'by method' implementation is not allowed on a twostate _what_**
 
 ```dafny
-method m(i: int) returns (j: int := 0) { return 42; }
-```
-
-Out-parameters of a method are declared (inside the parentheses after the `returns` keyword)
-with just an identifier and a type, separated by a colon. 
-No initializing value may be given. If a default value is needed, assign the out-parameter
-that value as a first statement in the body of the method.
-
-## **Error: unexpected type parameter option - should be == or 0 or 00 or !new**
-
-```dafny
-type T(000)
-```
-
-[Type parameters](../DafnyRef/DafnyRef#sec-type-parameters), 
-indicated in parentheses after the type name, state properties of the otherwise uninterpreted or opaque type.
-The currently defined type parameters are designated by `==` (equality-supporting), `0` (auto-initializable), `00` (non-empty), and `!new` (non-reference).
-
-## **Error: A 'decreases' clause that contains '*' is not allowed to contain any other expressions**
-
-```dafny
-method f(n: int) returns (r: int)
-  decreases *, n
+class Cell { var data: int  constructor(i: int) { data := i; } }
+twostate predicate Increasing(c: Cell)
+  reads c
 {
-  r := if n == 0 then n else -1-f(n-1);
+  old(c.data) <= c.data
+} by method {
+  return old(c.data) <= c.data;
 }
 ```
 
-A `decreases` clause provides a metric that must decrease from one call to the next, 
-in order to assure termination of a sequence of recursive calls. 
-In loops it assures termination of the loop iteration.
+Two state functions and  predicates are always ghost and do not have a compiled representation.
+Such functions use values from two different program (heap) states, which is not 
+something that can be implemented (at least with any degree of good performance) in conventional programming languages.
 
-`decreases *` means to skip the termination check.
-So it does not make sense to both list a metric and to list '*'.
-Use one or the other.
+Because there is no feasible compiled verion of a two-state function, it cannot have a `by method` block (which is always compiled).
 
-## **Error: A 'reads' clause that contains '*' is not allowed to contain any other expressions**
+## **Error: a 'by method' implementation is not allowed on an extreme predicate**
 
 ```dafny
-const a: object;
-function f(): int
-  reads a, *
-{
-  0
+least predicate g() { 42 } by method { return 42; }
+```
+
+Least and greatest predicates are always ghost and do not have a compiled representation, 
+so it makes no sense to have a `by method` alternative implementation.
+
+
+## **Error: to use a 'by method' implementation with a _what_, declare _id_ using _what_, not '_what_ method'**
+
+```dafny
+function method m(): int {
+  42
+} by method {
+  return 42;
 }
 ```
 
-A reads clause lists the objects whose fields the function is allowed to read (or expressions containing such objects).
-`reads *` means the function may read anything.
-So it does not make sense to list `*` along with something more specific.
-If you mean that the function should be able to read anything, just list '*'.
-Otherwise, omit the '*' and list expressions containing all the objects that are read.
+`by method` constructs copmbine a ghost function (or predicate) with a non-ghost method.
+The two parts compute the same result, and are verified to do so.
+Uses of the function are verified using the function body, but the method body is used when the function is compiled.
 
-## **Error: A '*' frame expression is not permitted here**
+Thus the function part is always implicitly `ghost` and may not be explicitly declared `ghost`.
+
+
+## **Error: a _adjective_ _what_ is supported only as ghost, not as a compiled _what_**
 
 ```dafny
-iterator Gen(start: int) yields (x: int)
-  reads *
-{
-  var i := 0;
-  while i < 10 invariant |xs| == i {
-    x := start + i;
-    yield;
-    i := i + 1;
-  }
+twostate function method m(): int {
+  42
 }
 ```
 
-A `reads *` clause means the reads clause allows the functions it specifies to read anything.
-SUch a clause is not allowed in an iterator specification.
+The `twostate`, `least`, and `greatest` functions and predicates are always ghost and cannot be compiled, so they cannot be
+declared as a `function method` (v3 only).
+
+
+## **Error: a _what_ is always ghost and is declared with '_what_'**
+
+```dafny
+module {:options "--function-syntax:experimentalPredicateAlwaysGhost"} M {
+  predicate method p() { true }
+}
+```
+
+This error only occurs when the `experimentalPredicateAlwaysGhost` option is chosen.
+It indicates that `predicates` are always ghost and cannot be declared with the (Dafny 3) syntax `predicate method`.
+- If you intend to predicate to be ghost, remove `method`.
+- If you intend the predicate to be non-ghost, you either cannot use `experimentalPredicateAlwaysGhost` or you should use `function` with a `bool` return type instead of `predicate`
+
+## **Error: the phrase '_what_ method' is not allowed; to declare a compiled _what_, use just '_what_'**
+
+```dafny
+module {:options "--function-syntax:4"} M {
+  function method f(): int { 42 }
+}
+```
+
+In Dafny 4 on, the phrases `function method` and `predicate method` are no
+longer accepted. Use `function` for compiled, non-ghost functions and
+`ghost function` for non-compiled, ghost functions, and similarly for predicates.
+
+See [the documentation here](../DafnyRef/DafnyRef#sec-function-syntax).
+
+## **Error: there is no such thing as a 'ghost _what_ method'**
+
+```dafny
+module {:options "--function-syntax:experimentalDefaultGhost"} M {
+  ghost function method f(): int { 42 }
+}
+```
+
+Pre-Dafny 4, a `function method` and a `predicate method` are explicitly
+non-ghost, compiled functions, and therefore cannot be declared `ghost` as well.If indeed the function or predicate is intended to be ghost, leave out `method`; if it is intended to be non-ghost, leave out `ghost`.
+
+From Dafny 4 on, a ghost function is declared `ghost function` and a non-ghost function is declared `function` and there is no longer any declaration of the form `function method`, and similarly for predicates. 
+
+See [the documentation here](../DafnyRef/DafnyRef#sec-function-syntax).
+
+## **Error: a _what_ must be declared as either 'ghost _what_' or '_what_ method'**
+
+```dafny
+module {:options "--function-syntax:migration3to4"} M {
+  function f(): int { 42 }
+}
+```
+
+This error occures only when using `migration3to4`. With this option, ghost functions are declared using `ghost function` and compiled functions using `function method`.
+Change `function` in the declaration to one of these.
+
+## **Error: 'decreases' clauses are meaningless for least and greatest predicates, so they are not allowed**
+
+```dafny
+least predicate m(i: int)
+  decreases i
+{
+  true
+}
+```
+
+Least and greatest predicates are not checked for termination. In fact, unbounded recursion is part of being coinductive.
+Hence `decreases` clausess are inappropriate and not allowed.
 
 ## **Error: _name_ return type should be bool, got _type_**
 
@@ -614,19 +646,6 @@ A `predicate` is simply a `function` that returns a `bool` value.
 Accordingly, the type is (required to be) omitted, unless the result is being named.
 So `predicate p(): (res: bool) { true }` is permitted
 
-## **Error: 'decreases' clauses are meaningless for least and greatest predicates, so they are not allowed**
-
-```dafny
-least predicate m(i: int)
-  decreases i
-{
-  true
-}
-```
-
-Least and greatest predicates are not checked for termination. In fact, unbounded recursion is part of being coinductive.
-Hence `decreases` clausess are inappropriate and not allowed.
-
 ## **Error: A '*' expression is not allowed here**
 
 ```dafny
@@ -640,6 +659,24 @@ function method m(i: int): int
 A method or loop with a `decreases *` clause is not checked for termination.
 This is only permitted for non-ghost methods and loops.
 
+
+## **Error: A '*' frame expression is not permitted here**
+
+```dafny
+iterator Gen(start: int) yields (x: int)
+  reads *
+{
+  var i := 0;
+  while i < 10 invariant |xs| == i {
+    x := start + i;
+    yield;
+    i := i + 1;
+  }
+}
+```
+
+A `reads *` clause means the reads clause allows the functions it specifies to read anything.
+Such a clause is not allowed in an iterator specification.
 
 ## **Error: invalid statement beginning here (is a 'label' keyword missing? or a 'const' or 'var' keyword?)**
 
@@ -655,6 +692,30 @@ This is not a legal start to a statement. Most commonly either
 * a `label` keyword is missing and the identifier is the label for the statement that follows.
 (The second error is somewhat common because in C/C++ and Java, there is no keyword introducing a label, just the identifier and the colon.)
 
+## **Error: An initializing element display is allowed only for 1-dimensional arrays**
+
+```dafny
+method m() {
+  var a := new int[2,2] [1,2,3,4];
+}
+```
+
+One-dimensional arrays can be initiallized like `var s := new int[][1,2,3,4];`,
+but multi-dimensional arrays cannot.The alternatives are to initialize the array
+in a loop after it is allocated, or to initialize with a function, as in
+`var a:= new int[2,2]((i: int, j: int)=>i+j)`.
+
+## **Error: a local variable is initialized using ':=', ':-', or ':|', not '='"**
+
+```dafny
+method m() {
+  var x = 5;
+}
+```
+
+Local variables are initialized with `:=` (and smetimes with `:-` or `:|`), but not
+with `=` as in some other languages.
+In fact, Dafny does not use the `=` operator anywhere.
 
 ## **Error: LHS of assign-such-that expression must be variables, not general patterns**
 
@@ -673,6 +734,72 @@ However, Dafny only allows a list of simple variables on the left, not datatype 
 ## **Error: 'modifies' clauses are not allowed on refining loops**
 
 _Refining statements, including loops, are deprecated._
+
+
+## **Error: Expected 'to' or 'downto'**
+
+```dafny
+method m(n: nat) {
+  for i := n DownTo 0 {}
+}
+```
+
+A for loop can express a computation to be performed for each value of a _loop index_.
+In Dafny, the loop index is an int-based variable that is either 
+- incremented up from a starting value to just before an ending value: `3 to 7` means 3, 4, 5, and 6
+- or decremented from just below a starting value down to an ending value `7 downto 3` means 6, 5, 4, and 3.
+
+The contextual keywords `to` and `downto` indicate incrementing and decrementing, respectively.
+No other words are allowed here, including writing them with different case.
+
+These two words have special meaning only in this part of a for-loop; they are not reserved words elsewhere.
+That is, the code
+```dafny
+method m() {
+  var to: int := 6;
+  var downto: int := 8;
+  for to := to to downto {}
+}
+```
+is legal, but not at all recommended.
+
+
+## **Error: A 'decreases' clause that contains '*' is not allowed to contain any other expressions**
+
+```dafny
+method f(n: int) returns (r: int)
+  decreases *, n
+{
+  r := if n == 0 then n else -1-f(n-1);
+}
+```
+
+A `decreases` clause provides a metric that must decrease from one call to the next, 
+in order to assure termination of a sequence of recursive calls. 
+In loops it assures termination of the loop iteration.
+
+`decreases *` means to skip the termination check.
+So it does not make sense to both list a metric and to list '*'.
+Use one or the other.
+
+## **Error: a forall statement with an ensures clause must have a body**
+
+<!-- TODO: This example does not yet work because there is no way to turn on /noCheating in the new CLI -->
+
+```dafny
+module  M {
+  predicate f(i: int) { true }
+  method  m(a: seq<int>) {
+    forall i | 0 <= i < 10
+       ensures f(i)
+  }
+}
+```
+
+A forall statement without a body is like an assume statement: the ensures clause is assumed in the following code.
+Assumptions like that are a risk to soundness because there is no check that the assumption is true.
+Thus in a context in which open assumptions are not allowed, body-less forall statements are also not allowed.
+
 
 ## **Error: the main operator of a calculation must be transitive**
 
@@ -744,64 +871,6 @@ This error message is complaining that it sees an operating ending the sequence.
 This may be because there is no following expression or that the parser 
 does not recognize the material after the last operator as the ending expression.
 
-## **Error: a forall statement with an ensures clause must have a body**
-
-<!-- TODO: This example does not yet work because there is no way to turn on /noCheating in the new CLI -->
-
-```dafny
-module  M {
-  predicate f(i: int) { true }
-  method  m(a: seq<int>) {
-    forall i | 0 <= i < 10
-       ensures f(i)
-  }
-}
-```
-
-A forall statement without a body is like an assume statement: the ensures clause is assumed in the following code.
-Assumptions like that are a risk to soundness because there is no check that the assumption is true.
-Thus in a context in which open assumptions are not allowed, body-less forall statements are also not allowed.
-
-## **Error: An initializing element display is allowed only for 1-dimensional arrays**
-
-```dafny
-method m() {
-  var a := new int[2,2] [1,2,3,4];
-}
-```
-
-One-dimensional arrays can be initiallized like `var s := new int[][1,2,3,4];`,
-but multi-dimensional arrays cannot.The alternatives are to initialize the array
-in a loop after it is allocated, or to initialize with a function, as in
-`var a:= new int[2,2]((i: int, j: int)=>i+j)`.
-
-## **Error: Expected 'to' or 'downto'**
-
-```dafny
-method m(n: nat) {
-  for i := n DownTo 0 {}
-}
-```
-
-A for loop can express a computation to be performed for each value of a _loop index_.
-In Dafny, the loop index is an int-based variable that is either 
-- incremented up from a starting value to just before an ending value: `3 to 7` means 3, 4, 5, and 6
-- or decremented from just below a starting value down to an ending value `7 downto 3` means 6, 5, 4, and 3.
-
-The contextual keywords `to` and `downto` indicate incrementing and decrementing, respectively.
-No other words are allowed here, including writing them with different case.
-
-These two words have special meaning only in this part of a for-loop; they are not reserved words elsewhere.
-That is, the code
-```dafny
-method m() {
-  var to: int := 6;
-  var downto: int := 8;
-  for to := to to downto {}
-}
-```
-is legal, but not at all recommended.
-
 ## **Error: Ambiguous use of ==> and <==. Use parentheses to disambiguate.**
 
 ```dafny
@@ -828,8 +897,6 @@ const b := true && false || true
 The `&&` and `||` operators have the same precedence but do not associate with each other.
 You must use parentheses to show how they are grouped. Write the above example as either
 `(true && false) || true` or `true && (false || true)`.
-
-<!-- There are four instances of this error message, for the four different prefixes: e (&& e)* || , e (|| e)* && , (&& e)* || e , (|| e)* && -->
 
 ## **Error: chaining not allowed from the previous operator**
 
@@ -941,18 +1008,6 @@ The bit-operators `&`, `|`, and `^` have the same precedence but do not associat
 So if they are used within the same expression, parentheses have to be used to show how they
 are grouped. The abvoe example should be written as either `(5 | 6) & 7` or `5 | (6 & 7)`.
 
-<!-- There are three instances of this error message, one for each case of the three operators being the first operator in the sequence. -->
-
-## **Error: A forming expression must be a multiset**
-
-A set/iset/multiset display expression can have two forms. 
-One example is show in the first line of the example: a list of values enclosed by curly braces.
-The other is the second line, which appears as a conversion operation.
-However, this second form can only be used to convert a set to a multiset.
-
-In the current parser, however, this error message is unreachable.
-The tests that check for this error case are a;ready known to be false by previous testing.
-
 ## **Error: too many characters in character literal**
 
 ```dafny
@@ -981,12 +1036,15 @@ method m() {
 A binding of the form `x := y` is used in map-display expresions, in which case they are enclosed in square brackets,
 not parentheses. The above example should be `var c := [ 4 := 5 ]`
 
-## **Error: incorrectly formatted number**
+## **Error: A forming expression must be a multiset**
 
-This error can only result from an internal bug in the Dafny parser.
-The parser should recognize a legitimate sequence of digits or sequence of hexdigits or
-a decimal number and then pass that string to a libary routine to create a BigInteger
-or BigDecimal. Given the parser logic, that parsing should never fail.
+A set/iset/multiset display expression can have two forms. 
+One example is show in the first line of the example: a list of values enclosed by curly braces.
+The other is the second line, which appears as a conversion operation.
+However, this second form can only be used to convert a set to a multiset.
+
+In the current parser, however, this error message is unreachable.
+The tests that check for this error case are a;ready known to be false by previous testing.
 
 ## **Error: a map comprehension with more than one bound variable must have a term expression of the form 'Expr := Expr'**
 
@@ -1010,23 +1068,6 @@ default left hand expression is just `x`.
 
 The failing example above as `const s := map x, y  | 0 <= x < y < 10 :: f(x,y) => x*y` for some `f(x,y)` that gives
 a unique value for each pair of `x,y` permitted by the range expression (here `0 <= x < y < 10 `).
-
-## **Error: a set comprehension with more than one bound variable must have a term expression**
-
-```dafny
-const s := set x, y  | 0 <= x < y < 10 
-```
-
-A set comprehension (1) declares one or more variables, (2) possibly states some limits on those variables, 
-and (3) states an expression over those variables that are the values in the set.
-
-If there is no expression, then the expression is taken to be just the _one_ declared variable.
-For instance one could write `set b: bool`, which is equivalent to `set b: bool :: b` and would be the set of all `bool` values.
-Another example is `set x: nat | x < 5, which is equivalent to `set x: nat | x < 5:: x` and would be the set `{0, 1, 2, 3, 4}`.
-
-But if more than one variable is declared, then there is no natural implicit expression to fill in if it is omitted, 
-so such an expression is required. The failing example above, for example, might use the expression `x * y`, as in 
-`set x, y  | 0 <= x < y < 10 :: x * y`, or any other expression over `x` and `y`.
 
 ## **Error: LHS of let-such-that expression must be variables, not general patterns**
 
@@ -1093,11 +1134,37 @@ In contrast to the let expression (`:=`), which allows multiple parallel initial
 only allow a single left-hand-side and a single-right-hand-side.
 
 
+
+## **Error: a set comprehension with more than one bound variable must have a term expression**
+
+```dafny
+const s := set x, y  | 0 <= x < y < 10 
+```
+
+A set comprehension (1) declares one or more variables, (2) possibly states some limits on those variables, 
+and (3) states an expression over those variables that are the values in the set.
+
+If there is no expression, then the expression is taken to be just the _one_ declared variable.
+For instance one could write `set b: bool`, which is equivalent to `set b: bool :: b` and would be the set of all `bool` values.
+Another example is `set x: nat | x < 5, which is equivalent to `set x: nat | x < 5:: x` and would be the set `{0, 1, 2, 3, 4}`.
+
+But if more than one variable is declared, then there is no natural implicit expression to fill in if it is omitted, 
+so such an expression is required. The failing example above, for example, might use the expression `x * y`, as in 
+`set x, y  | 0 <= x < y < 10 :: x * y`, or any other expression over `x` and `y`.
+
+
 ## **Error: invalid name after a '.'**
 
 This error message is not reachable in current Dafny.
 If it occurs, please report an internal bug (or obsolete documentation).
 
 
+## **Error: incorrectly formatted number**
 
+This error can only result from an internal bug in the Dafny parser.
+The parser should recognize a legitimate sequence of digits or sequence of hexdigits or
+a decimal number and then pass that string to a libary routine to create a BigInteger
+or BigDecimal. Given the parser logic, that parsing should never fail.
+
+<!-- There are three instances of this message, one for digits one for hexdigits, one for decimaldigits -->
 
