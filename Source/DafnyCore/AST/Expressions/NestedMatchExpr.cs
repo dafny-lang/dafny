@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class NestedMatchExpr : Expression {
+public class NestedMatchExpr : Expression, ICloneable<NestedMatchExpr> {
   public readonly Expression Source;
   public readonly List<NestedMatchCaseExpr> Cases;
   public readonly bool UsesOptionalBraces;
@@ -14,6 +14,15 @@ public class NestedMatchExpr : Expression {
   [FilledInDuringResolution]
   public Expression Denested { get; set; }
 
+  public NestedMatchExpr(Cloner cloner, NestedMatchExpr original) : base(cloner, original) {
+    this.Source = cloner.CloneExpr(original.Source);
+    this.Cases = original.Cases.Select(cloner.CloneNestedMatchCaseExpr).ToList();
+    this.UsesOptionalBraces = original.UsesOptionalBraces;
+    
+    // TODO hack
+    Denested = cloner.CloneExpr(original.Denested);
+  }
+  
   public NestedMatchExpr(IToken tok, Expression source, [Captured] List<NestedMatchCaseExpr> cases, bool usesOptionalBraces, Attributes attrs = null) : base(tok) {
     Contract.Requires(source != null);
     Contract.Requires(cce.NonNullElements(cases));
@@ -77,5 +86,9 @@ public class NestedMatchExpr : Expression {
       _case.Resolve(resolver, resolutionContext, subst, Type, sourceType);
       resolver.scope.PopMarker();
     }
+  }
+
+  public NestedMatchExpr Clone(Cloner cloner) {
+    return new NestedMatchExpr(cloner, this);
   }
 }

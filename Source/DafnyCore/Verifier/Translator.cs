@@ -5078,7 +5078,9 @@ namespace Microsoft.Dafny {
       } else if (expr is ConcreteSyntaxExpression) {
         var e = (ConcreteSyntaxExpression)expr;
         return CanCallAssumption(e.ResolvedExpression, etran);
-      } else if (expr is BoogieFunctionCall) {
+      } else if (expr is NestedMatchExpr nestedMatchExpr) {
+        return CanCallAssumption(nestedMatchExpr.Denested, etran);
+      }else if (expr is BoogieFunctionCall) {
         var e = (BoogieFunctionCall)expr;
         return CanCallAssumption(e.Args, etran);
       } else if (expr is MatchExpr) {

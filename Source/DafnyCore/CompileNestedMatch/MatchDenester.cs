@@ -45,7 +45,7 @@ public class MatchDenester : IRewriter {
     this.idGenerator = idGenerator;
   }
 
-  internal override void PostResolve(ModuleDefinition moduleDefinition) {
+  internal override void PostResolveIntermediate(ModuleDefinition moduleDefinition) {
 
     moduleDefinition.Visit(node => {
       if (node != moduleDefinition && node is ModuleDefinition) {

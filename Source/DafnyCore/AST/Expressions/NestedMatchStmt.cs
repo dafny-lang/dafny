@@ -34,6 +34,9 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt> {
     Source = cloner.CloneExpr(original.Source);
     Cases = original.Cases.ConvertAll(cloner.CloneNestedMatchCaseStmt);
     UsesOptionalBraces = original.UsesOptionalBraces;
+    
+    // TODO hack
+    Denested = cloner.CloneStmt(original.Denested);
   }
 
   public override IEnumerable<INode> Children => new[] { Source }.Concat<INode>(Cases);

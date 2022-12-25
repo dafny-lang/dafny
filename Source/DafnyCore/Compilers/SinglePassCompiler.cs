@@ -4883,7 +4883,9 @@ namespace Microsoft.Dafny.Compilers {
             EmitReturnExpr(e.Body, e.Body.Type, true, w);
           }
         }
-      } else if (expr is MatchExpr) {
+      } else if (expr is NestedMatchExpr nestedMatchExpr) {
+        TrExpr(nestedMatchExpr.Denested, wr, inLetExprBody, wStmts);
+      }else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
         // ((System.Func<SourceType, TargetType>)((SourceType _source) => {
         //   if (source.is_Ctor0) {
