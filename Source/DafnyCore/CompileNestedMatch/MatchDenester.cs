@@ -36,17 +36,16 @@ namespace Microsoft.Dafny;
 ///
 /// 
 /// </summary>
-public class MatchDenester {
-  private readonly ErrorReporter reporter;
+public class MatchDenester : IRewriter {
   private readonly FreshIdGenerator idGenerator;
   private ResolutionContext resolutionContext;
 
-  public MatchDenester(ErrorReporter reporter, FreshIdGenerator idGenerator) {
-    this.reporter = reporter;
+  public MatchDenester(ErrorReporter reporter, FreshIdGenerator idGenerator) 
+    : base(reporter) {
     this.idGenerator = idGenerator;
   }
 
-  public void Transform(ModuleDefinition moduleDefinition) {
+  internal override void PostResolve(ModuleDefinition moduleDefinition) {
 
     moduleDefinition.Visit(node => {
       if (node != moduleDefinition && node is ModuleDefinition) {
@@ -58,27 +57,17 @@ public class MatchDenester {
       if (node is ICallable callable) {
         resolutionContext = new ResolutionContext(callable, false);
       }
-      // TODO should switch away from this ReflectiveUpdater to something more robust. 
-      ReflectiveUpdater.UpdateFieldsOfType<Statement>(node, stmt => {
-        if (stmt is NestedMatchStmt nestedMatchStmt) {
-          return CompileNestedMatchStmt(nestedMatchStmt);
-        }
-        return stmt;
-      });
 
-      ReflectiveUpdater.UpdateFieldsOfType<Expression>(node, expr => {
-        if (expr is NestedMatchExpr nestedMatchExpr) {
-          return CompileNestedMatchExpr(nestedMatchExpr);
-        }
-        return expr;
-      });
+      if (node is NestedMatchStmt nestedMatchStmt) {
+        nestedMatchStmt.Denested = CompileNestedMatchStmt(nestedMatchStmt);
+      }
+
+      if (node is NestedMatchExpr nestedMatchExpr) {
+        nestedMatchExpr.Denested = CompileNestedMatchExpr(nestedMatchExpr);
+      }
+
       return true;
     });
-
-    // var tw = new StreamWriter("./debug.dfy");
-    // var pr = new Printer(tw, DafnyOptions.O.PrintMode);
-    // pr.PrintModuleDefinition(program, new VisibilityScope(),);
-    // tw.Close();
   }
 
   void ResolveMatchStmt(MatchStmt s) {
@@ -100,17 +89,17 @@ public class MatchDenester {
           ctorId = BuiltIns.TupleTypeCtorName(tuple.Dims);
         }
         if (!ctors.ContainsKey(ctorId)) {
-          // reporter.Error(MessageSource.Resolver, mc.tok, "member '{0}' does not exist in datatype '{1}'", ctorId, dtd.Name);
+          // Reporter.Error(MessageSource.Resolver, mc.tok, "member '{0}' does not exist in datatype '{1}'", ctorId, dtd.Name);
         } else {
           if (mc.Ctor.Formals.Count != mc.Arguments.Count) {
             if (s.Source.Type.AsDatatype is TupleTypeDecl) {
-              // reporter.Error(MessageSource.Resolver, mc.tok, "case arguments count does not match source arguments count");
+              // Reporter.Error(MessageSource.Resolver, mc.tok, "case arguments count does not match source arguments count");
             } else {
-              // reporter.Error(MessageSource.Resolver, mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", ctorId, mc.Arguments.Count, mc.Ctor.Formals.Count);
+              // Reporter.Error(MessageSource.Resolver, mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", ctorId, mc.Arguments.Count, mc.Ctor.Formals.Count);
             }
           }
           if (memberNamesUsed.Contains(ctorId)) {
-            // reporter.Error(MessageSource.Resolver, mc.tok, "member {0} appears in more than one case", mc.Ctor.Name);
+            // Reporter.Error(MessageSource.Resolver, mc.tok, "member {0} appears in more than one case", mc.Ctor.Name);
           } else {
             memberNamesUsed.Add(ctorId);  // add mc.Id to the set of names used
           }
@@ -119,7 +108,7 @@ public class MatchDenester {
     }
     if (dtd != null && memberNamesUsed.Count != dtd.Ctors.Count) {
       // We could complain about the syntactic omission of constructors:
-      //   reporter.Error(MessageSource.Resolver, stmt, "match statement does not cover all constructors");
+      //   Reporter.Error(MessageSource.Resolver, stmt, "match statement does not cover all constructors");
       // but instead we let the verifier do a semantic check.
       // So, for now, record the missing constructors:
       foreach (var ctr in dtd.Ctors) {
@@ -152,17 +141,17 @@ public class MatchDenester {
           ctorId = BuiltIns.TupleTypeCtorName(tuple.Dims);
         }
         if (!ctors.ContainsKey(ctorId)) {
-          // reporter.Error(MessageSource.Resolver, mc.tok, "member '{0}' does not exist in datatype '{1}'", ctorId, dtd.Name);
+          // Reporter.Error(MessageSource.Resolver, mc.tok, "member '{0}' does not exist in datatype '{1}'", ctorId, dtd.Name);
         } else {
           if (mc.Ctor.Formals.Count != mc.Arguments.Count) {
             if (me.Source.Type.AsDatatype is TupleTypeDecl) {
-              // reporter.Error(MessageSource.Resolver, mc.tok, "case arguments count does not match source arguments count");
+              // Reporter.Error(MessageSource.Resolver, mc.tok, "case arguments count does not match source arguments count");
             } else {
-              // reporter.Error(MessageSource.Resolver, mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", ctorId, mc.Arguments.Count, mc.Ctor.Formals.Count);
+              // Reporter.Error(MessageSource.Resolver, mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", ctorId, mc.Arguments.Count, mc.Ctor.Formals.Count);
             }
           }
           if (memberNamesUsed.Contains(ctorId)) {
-            // reporter.Error(MessageSource.Resolver, mc.tok, "member {0} appears in more than one case", mc.Ctor.Name);
+            // Reporter.Error(MessageSource.Resolver, mc.tok, "member {0} appears in more than one case", mc.Ctor.Name);
           } else {
             memberNamesUsed.Add(ctorId);  // add mc.Id to the set of names used
           }
@@ -171,7 +160,7 @@ public class MatchDenester {
     }
     if (dtd != null && memberNamesUsed.Count != dtd.Ctors.Count) {
       // We could complain about the syntactic omission of constructors:
-      //   reporter.Error(MessageSource.Resolver, expr, "match expression does not cover all constructors");
+      //   Reporter.Error(MessageSource.Resolver, expr, "match expression does not cover all constructors");
       // but instead we let the verifier do a semantic check.
       // So, for now, record the missing constructors:
       foreach (var ctr in dtd.Ctors) {
@@ -208,7 +197,7 @@ public class MatchDenester {
       var newME = ((CExpr)compiledMatch).Body;
       for (int id = 0; id < state.CaseCopyCount.Length; id++) {
         if (state.CaseCopyCount[id] <= 0) {
-          reporter.Warning(MessageSource.Resolver, state.CaseTok[id], "this branch is redundant"); // TODO change to "this case is redundant"
+          Reporter.Warning(MessageSource.Resolver, state.CaseTok[id], "this branch is redundant"); // TODO change to "this case is redundant"
           // resolver.scope.PushMarker();
           // //CheckLinearNestedMatchCase(e.Source.Type, cases.ElementAt(id), resolutionContext);
           // //ResolveExpression(cases.ElementAt(id).Body, resolutionContext);
@@ -249,7 +238,7 @@ public class MatchDenester {
       result.Attributes = (new ClonerKeepParensExpressions()).CloneAttributes(nestedMatchStmt.Attributes);
       for (int id = 0; id < state.CaseCopyCount.Length; id++) {
         if (state.CaseCopyCount[id] <= 0) {
-          reporter.Warning(MessageSource.Resolver, state.CaseTok[id], "this branch is redundant");
+          Reporter.Warning(MessageSource.Resolver, state.CaseTok[id], "this branch is redundant");
           // resolver.scope.PushMarker();
           // // CheckLinearNestedMatchCase(s.Source.Type, cases.ElementAt(id), resolutionContext);
           // // cases.ElementAt(id).Body.ForEach(s => ResolveStatement(s, resolutionContext));
@@ -257,7 +246,7 @@ public class MatchDenester {
         }
       }
 
-      new GhostInterestVisitor(resolutionContext.WithGhost(nestedMatchStmt.IsGhost).CodeContext, null, reporter, false).Visit(result, nestedMatchStmt.IsGhost, null);
+      new GhostInterestVisitor(resolutionContext.WithGhost(nestedMatchStmt.IsGhost).CodeContext, null, Reporter, false).Visit(result, nestedMatchStmt.IsGhost, null);
       return result;
     } else {
       Contract.Assert(false); throw new cce.UnreachableException(); // Returned container should be a StmtContainer
@@ -350,7 +339,7 @@ public class MatchDenester {
 
     // For each path, number of matchees (n) is the number of patterns held by the path
     if (!paths.TrueForAll(x => matchees.Count() == x.Patterns.Count)) {
-      reporter.Error(MessageSource.Resolver, state.Tok, "Match is malformed, make sure constructors are fully applied");
+      Reporter.Error(MessageSource.Resolver, state.Tok, "Match is malformed, make sure constructors are fully applied");
     }
 
     if (paths.Count == 0) {
@@ -360,7 +349,7 @@ public class MatchDenester {
         Console.WriteLine("\t{0} Potential exhaustiveness failure on context: {1}", state.Tok.line, context.AbstractAllHoles().ToString());
       }
       // (Semantics) exhaustiveness is checked by the verifier, so no need for a warning here
-      // reporter.Warning(MessageSource.Resolver, mti.Tok, "non-exhaustive case-statement");
+      // Reporter.Warning(MessageSource.Resolver, mti.Tok, "non-exhaustive case-statement");
       return null;
     }
 
@@ -446,7 +435,7 @@ public class MatchDenester {
             Contract.Assert(false);
             throw new cce.UnreachableException(); // non-nullary constructors of a non-datatype;
           } else {
-            reporter.Error(MessageSource.Resolver, currPattern.Tok,
+            Reporter.Error(MessageSource.Resolver, currPattern.Tok,
               "Type mismatch: expected constructor of type {0}.  Got {1}.", dtd.Name, currPattern.Id);
           }
         }
@@ -507,7 +496,7 @@ public class MatchDenester {
             // After making sure the constructor is applied to the right number of arguments
 
             if (!(idPattern.Arguments.Count.Equals(ctor.Formals.Count))) {
-              reporter.Error(MessageSource.Resolver, mti.CaseTok[tail.CaseId], "constructor {0} of arity {1} is applied to {2} argument(s)", ctor.Name, ctor.Formals.Count, idPattern.Arguments.Count);
+              Reporter.Error(MessageSource.Resolver, mti.CaseTok[tail.CaseId], "constructor {0} of arity {1} is applied to {2} argument(s)", ctor.Name, ctor.Formals.Count, idPattern.Arguments.Count);
             }
             for (int j = 0; j < idPattern.Arguments.Count; j++) {
               // mark patterns standing in for ghost field
@@ -527,7 +516,7 @@ public class MatchDenester {
 
             // make sure this potential bound var is not applied to anything, in which case it is likely a mispelled constructor
             if (idPattern.Arguments != null && idPattern.Arguments.Count != 0) {
-              reporter.Error(MessageSource.Resolver, mti.CaseTok[tail.CaseId], "bound variable {0} applied to {1} argument(s).", idPattern.Id, idPattern.Arguments.Count);
+              Reporter.Error(MessageSource.Resolver, mti.CaseTok[tail.CaseId], "bound variable {0} applied to {1} argument(s).", idPattern.Id, idPattern.Arguments.Count);
             }
 
             List<IdPattern> freshArgs = ctor.Formals.ConvertAll(x =>

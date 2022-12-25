@@ -10,6 +10,8 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt> {
   public readonly List<NestedMatchCaseStmt> Cases;
   public readonly bool UsesOptionalBraces;
 
+  [FilledInDuringResolution] public Statement Denested { get; set; }
+
   private void InitializeAttributes() {
     // Default case for match is false
     bool splitMatch = Attributes.Contains(this.Attributes, "split");

@@ -1324,8 +1324,6 @@ namespace Microsoft.Dafny.Compilers {
       OrganizeModules(program, out temp);
       program.CompileModules = temp;
       foreach (ModuleDefinition m in program.CompileModules) {
-        new MatchDenester(program.Reporter, Resolver.defaultTempVarIdGenerator).Transform(m);
-
         if (m.IsAbstract) {
           // the purpose of an abstract module is to skip compilation
           continue;
@@ -3335,6 +3333,8 @@ namespace Microsoft.Dafny.Compilers {
             EmitMultiSelect(s0, tupleTypeArgsList, wr, tup, L);
           }
         }
+      } else if (stmt is NestedMatchStmt nestedMatchStmt) {
+        TrStmt(nestedMatchStmt.Denested, wr, wStmts);
       } else if (stmt is MatchStmt) {
         MatchStmt s = (MatchStmt)stmt;
         // Type source = e;
