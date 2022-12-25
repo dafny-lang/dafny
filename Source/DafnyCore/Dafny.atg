@@ -1217,6 +1217,10 @@ ModuleExport<ModuleDefinition parent, out ModuleDecl submodule>
      submodule = new ModuleExportDecl(exportId, parent, exports, extends, provideAll, revealAll, isDefault, isRefining);
      submodule.RangeToken = new RangeToken(startToken, t);
   .)
+  // LL Warning: 'least' and 'greatest' are not keywords. They can be the identifier that is the last ExportId of the ModuleExport.
+  // Those words can also be the first word of a declaration (e.g. least predicate) that follows the MOduleExport.
+  // Hence the LL warning. The ambiguity always resolve in favor of the identifier being the last ExportID because it
+  // follows a comma and satisfies the semantic IF predicate. But I have not found a non-intrusive way of shutting up the warning.
   .
 
 /*------------------------------------------------------------------------*/
@@ -1706,7 +1710,12 @@ IdentTypeOptional<out BoundVar var>
      IToken id;  Type ty;  Type optType = null;
   .)
   WildIdent<out id, true>
-  [ ":" Type<out ty>             (. optType = ty; .)
+  [ IF( la.kind == _colon) ":" Type<out ty>             (. optType = ty; .)
+     // CoCo warns about this optional ':', because it is ambiguous with a ':' that follows the IdentTypeOptional.
+     // An IdentTypeOptional can be that last thing in an Expression (a SetComprehension)
+     // Also, a ':' can follow an Expression in a slices-by-length construct. So a ':' here might be the start
+     // of the ': type' or it might be the ':' in the slices-by-length. As the expression can always tbe parenthesized to 
+     // disambiguate. it makes sense to force the colon to consider the ': type' here. Hence the semantic predicate.
   ]
   (. var = new BoundVar(id, id.val, optType == null ? new InferredTypeProxy() : optType) {
        IsTypeExplicit = optType != null
@@ -5074,7 +5083,10 @@ QuantifierVariableDecl<.out QuantifiedVar qvar, ref Attributes attrs, bool allow
                                                         // so it can end an Expression
                                                         // But an Expression can be followed by {Attribute} as in VarDeclStatement, Rhs, UpdateStmt
   [ // Coco complains about this ambiguity, thinking that a "|" can follow a body-less forall statement; 
-    // I don't see how that's possible, but this IF is good and suppresses the reported ambiguity
+    // That can happen because the grammar allows a QuantifierDecl to end a QuantifierDomain, which can end
+    // a SetComprehensionExpr, and a Expression can be followed by a bitvector '|'. 
+    // The semantic predicate here resolves the ambiguity in favor of a such-that in this QuantifierVariableDecl.
+    // The other parse can be obtained by using appropriate parentheses.
     IF(la.kind == _verticalbar) 
     "|"
     Expression<out range, allowLemma, allowLambda, allowBitwiseOps>
