@@ -1191,20 +1191,21 @@ ModuleExport<ModuleDefinition parent, out ModuleDecl submodule>
     )
   | "reveals"
     (
-      ( ExportSignature<false, out exsig>       (. exports.Add(exsig); .)
+      ExportSignature<false, out exsig>       (. exports.Add(exsig); .)
+      (. scanner.ResetPeek(); laa = scanner.Peek(); .)
+      { IF( la.kind == _comma && laa.kind != _provides && laa.kind != _reveals && laa.kind != _extends )
+        "," 
+        ExportSignature<false, out exsig>  (. exports.Add(exsig); .)
         (. scanner.ResetPeek(); laa = scanner.Peek(); .)
-        { IF( la.kind == _comma && laa.kind != _provides && laa.kind != _reveals && laa.kind != _extends )
-          "," 
-          ExportSignature<false, out exsig>  (. exports.Add(exsig); .)
-          (. scanner.ResetPeek(); laa = scanner.Peek(); .)
-        }
-      )
+      }
     | "*" (. revealAll = true; .)
     )
   | "extends"
     ExportId<out id>       (. extends.Add(id); .)
     (. scanner.ResetPeek(); laa = scanner.Peek(); .)
-    { "," ExportId<out id>  (. extends.Add(id); .) 
+    { IF( la.kind == _comma && laa.kind != _provides && laa.kind != _reveals && laa.kind != _extends )
+      "," 
+      ExportId<out id>  (. extends.Add(id); .) 
       (. scanner.ResetPeek(); laa = scanner.Peek(); .)
     }
   )
@@ -1462,7 +1463,6 @@ TypeMembers<. ModuleDefinition/*!*/ module, List<MemberDecl> members .>
 FieldDecl<.DeclModifierData dmod, bool isValueType, List<MemberDecl> mm.>
 = (. Contract.Requires(cce.NonNullElements(mm));
      Attributes attrs = null;
-     Expression e;
      IToken/*!*/ id;  Type/*!*/ ty;
      CheckDeclModifiers(ref dmod, "field", AllowedDeclModifiers.Ghost);
      var startToken = dmod.FirstToken;
