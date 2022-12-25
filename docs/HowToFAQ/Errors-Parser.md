@@ -82,6 +82,7 @@ The value of an options attribute cannot be a computed expression. It must be a 
 
 ```dafny
 const _myconst := 5
+function m(): (_: int) {0}
 ```
 
 User-declared identifiers may not begin with an underscore; 
@@ -143,7 +144,10 @@ This error message often occurs if the `refines` keyword is misspelled.
 
 ```dafny
 module M {
-  export reveals b, a, provides b
+  export A reveals b, a, reveals b
+  export B reveals b, a, provides b
+  export C provides b, a, reveals b
+  export D provides b, a, provides b
   const a: int
   const b: int
 }
@@ -151,7 +155,7 @@ module M {
 
 An export declaration consists of one or more `reveals` and `provides` clauses. Each clause contains
 a comma-separated list of identifiers, but the two clauses themselves are not separated by any delimiter.
-So in the example above, the comma after `a` is wrong. 
+So in the example above, the comma after `a` is wrong in each export declaration. 
 This mistake is easy to make when the clauses are on the same line.
 
 ## **Error: fields are not allowed to be declared at the module level; instead, wrap the field in a 'class' declaration**
@@ -190,6 +194,7 @@ classes, traits and iterators.
 ```dafny
 class A {
   var x: int := 6
+  var y: int, x: int := 6
 }
 ```
 
@@ -345,6 +350,7 @@ The example above is a valid example if `returns` is replaced by `yields`.
 ```dafny
 type List<T>
 method m<+T>(i: int, list: List<T>) {}
+method m<T,-U>(i: int, list: List<T>) {}
 ```
 
 [Type-parameter variance](../DafnyRef/DafnyRef#sec-type-parameter-variance) is specified by a 
@@ -476,14 +482,12 @@ The type parameters are listed in a comma-separated list between `<` and `>`, af
 
 ```dafny
 const c: seq<int,bool>
+const s := seq<int,int>[1,2,3]
 ```
 
 A `seq` type has one type parameter, namely the type of the elements of the sequence.
 The error message states that the parser sees some number of type parameters different than one.
 The type parameters are listed in a comma-separated list between `<` and `>`, after the type name.
-
-This error message can also result from an incorrect type parameter list in a sequence display expression,
-as in `const s := seq<int,int>[1,2,3]`.
 
 <!-- There are two instances of this error. -->
 
@@ -1093,7 +1097,7 @@ a unique value for each pair of `x,y` permitted by the range expression (here `0
 
 ```dafny
 method m() {
-  var x = var y = 5; y*y;
+  var x := var y = 5; y*y;
 }
 ```
 
