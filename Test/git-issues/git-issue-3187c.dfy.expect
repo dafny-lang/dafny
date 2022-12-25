@@ -1,3 +1,2 @@
 git-issue-3187c.dfy(6,17): Error: a mutable field is not allowed to have an initializer
-git-issue-3187c.dfy(6,17): Error: rbrace expected
-2 parse errors detected in git-issue-3187c.dfy
+1 parse errors detected in git-issue-3187c.dfy
