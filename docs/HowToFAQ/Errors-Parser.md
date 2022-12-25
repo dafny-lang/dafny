@@ -482,7 +482,7 @@ The type parameters are listed in a comma-separated list between `<` and `>`, af
 
 ```dafny
 const c: seq<int,bool>
-const s := seq<int,int>[1,2,3]
+const s := seq<int,int>(3, i=>i+1)
 ```
 
 A `seq` type has one type parameter, namely the type of the elements of the sequence.

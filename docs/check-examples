@@ -212,12 +212,12 @@ do
           if [ "$useHeadings" == "1" ]; then
             act=`cat actual | grep Error | sed -e 's/^[^:]*: //'`
             if [ -n "$msg" ]; then
-              dif=`echo $act | sed -e "s/$msg//"`
+              dif=`echo $act | sed -e "s/$msg//g" | sed -e 's/[ ]*//'`
               if [ -n "$dif" ] ; then
                  echo NO MATCH 
-                 echo "$msg"
-                 echo "$act"
-                 echo "$dif"
+                 echo PAT "$msg"
+                 echo ACT "$act"
+                 echo DIF "$dif"
                  FAIL=1
               fi
               msg=
