@@ -13,7 +13,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Used to report errors and warnings, with positional information.
     /// </summary>
-    protected readonly ErrorReporter Reporter;
+    protected ErrorReporter Reporter;
 
     /// <summary>
     /// Constructor that accepts an ErrorReporter

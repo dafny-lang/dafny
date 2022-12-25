@@ -46,8 +46,14 @@ public class MatchDenester : IRewriter {
   }
 
   internal override void PostResolve(Program program) {
-    foreach (var compileModule in program.CompileModules.Concat(program.RawModules())) {
+    foreach (var compileModule in program.RawModules()) {
       DenestModule(compileModule);
+    }
+    foreach (var compileModule in program.CompileModules) {
+      var reporter = Reporter;
+      Reporter = new ErrorReporterSink();
+      DenestModule(compileModule);
+      Reporter = reporter;
     }
   }
 
