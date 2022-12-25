@@ -18,8 +18,8 @@ module M {
 }
 ```
 
-Only some kinds of declarations can be declared abstract. In the example,
-a const declaration cannot be abstract.
+Only some kinds of declarations can be declared abstract. 
+In the example, a const declaration cannot be abstract.
 
 ## **Error: a function-by-method has a ghost function body and a non-ghost method body; a function-by-method declaration does not use the 'ghost' keyword.**
 
@@ -84,8 +84,8 @@ The value of an options attribute cannot be a computed expression. It must be a 
 const _myconst := 5
 ```
 
-User-declared identifiers may not begin with an underscore; such identifiers
-are reserved for internal use. 
+User-declared identifiers may not begin with an underscore; 
+such identifiers are reserved for internal use. 
 In match statements and expressions, an 
 identifier that is a single underscore is used as a wild-card match.
 
@@ -122,8 +122,9 @@ export M
 method M() {}
 ```
 
-Although all top-level declarations are contained in an implicit top-level module, there is no syntax to import that module. Such an import would likely cause
-a ciruclar module dependency error. If the module cannot be imported, there is no point to any export declarations.
+Although all top-level declarations are contained in an implicit top-level module, there is no syntax to import that module.
+Such an import would likely cause a circular module dependency error.
+If the module cannot be imported, there is no point to any export declarations.
 
 ## **Error: expected either a '{' or a 'refines' keyword here, found _token_**
 
@@ -138,19 +139,20 @@ This error message often occurs if the `refines` keyword is misspelled.
 
 ## **Error: no comma is allowed between provides and reveals clauses in an export declaration**
 
+<!-- There are four instances of this error message -->
+
 ```dafny
 module M {
   export reveals b, a, provides b
   const a: int
   const b: int
 }
+```
 
 An export declaration consists of one or more `reveals` and `provides` clauses. Each clause contains
 a comma-separated list of identifiers, but the two clauses themselves are not separated by any delimiter.
-So in the example above, the comma after 'a' is wrong. This mistake is easy to make when the clauses are
-on the same line.
-
-<!-- There are four instances of this error message -->
+So in the example above, the comma after `a` is wrong. 
+This mistake is easy to make when the clauses are on the same line.
 
 ## **Error: fields are not allowed to be declared at the module level; instead, wrap the field in a 'class' declaration**
 
@@ -160,7 +162,7 @@ module M {
 }
 ```
 
-`var` declarations are used to declare fields of classes, local variables in method bodies, and identifiers in let-expressions.
+`var` declarations are used to declare mutable fields of classes, local variables in method bodies, and identifiers in let-expressions.
 But mutable field declarations are not permitted at the static module level, including in the (unnamed) toplevel module.
 Rather, you may want the declaration to be a `const` declaration or you may want the mutable field to be declared in the body of a class.
 
@@ -180,8 +182,8 @@ datatype D = A | B  { var c: D }
 ```
 
 The `var` declaration declares a mutable field, which is only permitted within
-classes, traits and iterators. All members of value-types, such as datatypes,
-are constants (declared with `const`).
+classes, traits and iterators. 
+`const` declarations can be members of value-types, such as datatypes.
 
 ## **Error: a mutable field is not allowed to have an initializer**
 
@@ -202,7 +204,7 @@ Local variable declarations (which also begin with `var`) may have initializers.
 const c: int = 5
 ```
 
-Dafny's syntax for initialization uses `:=`, not `=` (like some other languages).
+Dafny's syntax for initialization and assignment uses `:=`, not `=` (like some other languages).
 In fact `=` is not used at all in Dafny.
 
 ## **Error: a const declaration must have a type or a RHS value**
@@ -213,8 +215,8 @@ const i
 
 A `const` declaration needs its type indicated by either an explicit type
 or a right-hand-side expression, whose type is then the type of the 
-declared identifier. So use syntax either like `const i: int` or `const i:= 5`
-(or both together).
+declared identifier. 
+So use syntax either like `const i: int` or `const i:= 5` (or both together).
 
 ## **Error: Refinement cannot change the base type of a newtype. To refine _id_, either omit this '...' or omit the '=' sign and the parent type's body.**
 
@@ -228,6 +230,14 @@ There are limitations on refining a newtype, namely that the base type cannot be
 ## **Error: formal cannot be declared 'ghost' in this context**
 
 ```dafny
+predicate m(i: int): (ghost r: bool) { 0 }
+```
+
+The output of a predicate or function cannot be ghost.
+
+## **Error: formal cannot be declared 'ghost' in this context**
+
+```dafny
 function m(ghost i: int): int {
   42
 }
@@ -235,14 +245,6 @@ function m(ghost i: int): int {
 
 If a method, function, or predicate is declared as ghost, then its formal parameters may not also be declared ghost.
 Any use of this construct will always be in ghost contexts.
-
-## **Error: formal cannot be declared 'ghost' in this context**
-
-```dafny
-predicate m(i: int): (ghost r: bool) { 0 }
-```
-
-The output of a predicate or function cannot be ghost.
 
 ## **Error: formal cannot be declared 'new' in this context**
 
@@ -290,7 +292,7 @@ datatype D = Nil | D(int: uint8)
 Datatype constructors can have formal parameters, declared with the usual syntax: 'name: type'.
 In datatype constructors the 'name :' is optional; one can just state the type.
 
-However, if there is a name, it name not be a typename, as in the failing example above.
+However, if there is a name, it may not be a typename, as in the failing example above.
 The formal parameter name should be a simple identifier that is not a reserved word.
 
 
@@ -300,7 +302,7 @@ The formal parameter name should be a simple identifier that is not a reserved w
 datatype D = D (i: int, nameonly int) {}
 ```
 
-The parameters of a datatype constructor do not have to have names -- it is allowed to just give the type.
+The parameters of a datatype constructor do not need to have names -- it is allowed to just give the type.
 However, if `nameonly` is used, meaning the constructor can be called using named parameters,
 then the name must be given, as in `datatype D = D (i: int, nameonly j: int) {}`
 
@@ -319,9 +321,10 @@ iterator Count(n: nat) returns (x: nat) {
 }
 ```
 
-An iterator is like a co-routine: its control flow produces (yields) a value, but the execution continues from that point (a yield statement) to go on to produce the next value, rather than exiting the method. 
+An [iterator](../DafnyRef/DafnyRef#sec-iterator-types) is like a co-routine: 
+its control flow produces (yields) a value, but the execution continues from that point (a yield statement) to go on to produce the next value, rather than exiting the method. 
 To accentuate this difference, a `yield` statement is used to say when the next value of the iterator is ready, rather than a `return` statement.
-In addition, the declaration does not use `returns` to state the out-parameter, as a method would. Rather it has a `yields` clause
+In addition, the declaration does not use `returns` to state the out-parameter, as a method would. Rather it has a `yields` clause.
 The example above is a valid example if `returns` is replaced by `yields`.
 
 
@@ -334,7 +337,7 @@ method m<+T>(i: int, list: List<T>) {}
 
 [Type-parameter variance](../DafnyRef/DafnyRef#sec-type-parameter-variance) is specified by a 
 `+`, `-`, `*` or `!` before the type-parameter name.
-Such designations are allowed for type declarations but not for generic method, function, or predicate declarations.
+Such designations are allowed in generic type declarations but not in generic method, function, or predicate declarations.
 
 <!-- There are two instances of this error, one for the first item in a type parameter list, and one for subsequent items -->
 
@@ -357,7 +360,7 @@ module M {
 ```
 
 Constructors are methods that initialize class instances. That is, when a new instance of a class is being created, 
-using the `new` object syntax, then some constructor of the class is called, perhaps a default anonymous one.
+using the `new` object syntax, some constructor of the class is called, perhaps a default anonymous one.
 So constructor declarations only make sense within classes.
 
 ## **Error: a method must be given a name (expecting identifier)**
@@ -366,7 +369,7 @@ So constructor declarations only make sense within classes.
 method {:extern "M"} (i: int) {}
 ```
 
-A method declaration always requires an identifier between the `mehtod` keyword and the `(` that starts the formal parameter list.
+A method declaration always requires an identifier between the `method` keyword and the `(` that starts the formal parameter list.
 This is the case even when, as in the example above, a name is specified using `:extern`. The extern name is only used in the
 compiled code; it is not the name used to refer to the method in Dafny code
 
@@ -376,8 +379,8 @@ compiled code; it is not the name used to refer to the method in Dafny code
 lemma b[nat](i: int) { }
 ```
 
-Least and greatest lemmas and predicates have a specil parameter named `k`.
-Its type is is specified in square brackets between the lemma/predicate name and the rest of the signature.
+Least and greatest lemmas and predicates have a special parameter named `k`.
+Its type is specified in square brackets between the lemma/predicate name and the rest of the signature.
 The type may be either `nat` or `ORDINAL`.
 But this type is specified only for `least` and `greatest` constructs.
 
@@ -393,9 +396,9 @@ Constructors are used to initalize the state of an instance of a class.
 Thus they typically set the values of the fields of the class instance.
 Constructors are used in `new` object expressions, which return 
 a reference to the newly constructed object (as in `new C(42)`).
-There is no syntax to receive out-parameter values of a contructor
+There is no syntax to receive out-parameter values of a constructor
 and they may not be declared. 
-(This is similar to constructors in other progrmaming languages, like Java.)
+(This is similar to constructors in other programming languages, like Java.)
 
 
 ## **Error: A 'reads' clause that contains '*' is not allowed to contain any other expressions**
@@ -467,7 +470,7 @@ A `seq` type has one type parameter, namely the type of the elements of the sequ
 The error message states that the parser sees some number of type parameters different than one.
 The type parameters are listed in a comma-separated list between `<` and `>`, after the type name.
 
-This error message can also result from an incorrrect type parameter list in a sequence display expression,
+This error message can also result from an incorrect type parameter list in a sequence display expression,
 as in `const s := seq<int,int>[1,2,3]`.
 
 <!-- There are two instances of this error. -->
@@ -516,7 +519,7 @@ twostate predicate Increasing(c: Cell)
 }
 ```
 
-Two state functions and  predicates are always ghost and do not have a compiled representation.
+Two state functions and predicates are always ghost and do not have a compiled representation.
 Such functions use values from two different program (heap) states, which is not 
 something that can be implemented (at least with any degree of good performance) in conventional programming languages.
 
@@ -542,7 +545,7 @@ function method m(): int {
 }
 ```
 
-`by method` constructs copmbine a ghost function (or predicate) with a non-ghost method.
+`by method` constructs combine a ghost function (or predicate) with a non-ghost method.
 The two parts compute the same result, and are verified to do so.
 Uses of the function are verified using the function body, but the method body is used when the function is compiled.
 
@@ -597,9 +600,12 @@ module {:options "--function-syntax:experimentalDefaultGhost"} M {
 ```
 
 Pre-Dafny 4, a `function method` and a `predicate method` are explicitly
-non-ghost, compiled functions, and therefore cannot be declared `ghost` as well.If indeed the function or predicate is intended to be ghost, leave out `method`; if it is intended to be non-ghost, leave out `ghost`.
+non-ghost, compiled functions, and therefore cannot be declared `ghost` as well.
+If indeed the function or predicate is intended to be ghost, leave out `method`;
+ if it is intended to be non-ghost, leave out `ghost`.
 
-From Dafny 4 on, a ghost function is declared `ghost function` and a non-ghost function is declared `function` and there is no longer any declaration of the form `function method`, and similarly for predicates. 
+From Dafny 4 on, a ghost function is declared `ghost function` and a non-ghost function is declared `function` 
+and there is no longer any declaration of the form `function method`, and similarly for predicates. 
 
 See [the documentation here](../DafnyRef/DafnyRef#sec-function-syntax).
 
@@ -611,7 +617,7 @@ module {:options "--function-syntax:migration3to4"} M {
 }
 ```
 
-This error occures only when using `migration3to4`. With this option, ghost functions are declared using `ghost function` and compiled functions using `function method`.
+This error occurs only when using `migration3to4`. With this option, ghost functions are declared using `ghost function` and compiled functions using `function method`.
 Change `function` in the declaration to one of these.
 
 ## **Error: 'decreases' clauses are meaningless for least and greatest predicates, so they are not allowed**
@@ -625,7 +631,7 @@ least predicate m(i: int)
 ```
 
 Least and greatest predicates are not checked for termination. In fact, unbounded recursion is part of being coinductive.
-Hence `decreases` clausess are inappropriate and not allowed.
+Hence `decreases` clauses are inappropriate and not allowed.
 
 ## **Error: _name_ return type should be bool, got _type_**
 
@@ -701,11 +707,11 @@ method m() {
 ```
 
 One-dimensional arrays can be initiallized like `var s := new int[][1,2,3,4];`,
-but multi-dimensional arrays cannot.The alternatives are to initialize the array
+but multi-dimensional arrays cannot. The alternatives are to initialize the array
 in a loop after it is allocated, or to initialize with a function, as in
 `var a:= new int[2,2]((i: int, j: int)=>i+j)`.
 
-## **Error: a local variable is initialized using ':=', ':-', or ':|', not '='"**
+## **Error: a local variable is initialized using ':=', ':-', or ':|', not '='**
 
 ```dafny
 method m() {
@@ -713,8 +719,8 @@ method m() {
 }
 ```
 
-Local variables are initialized with `:=` (and smetimes with `:-` or `:|`), but not
-with `=` as in some other languages.
+Local variables are initialized with `:=` (and sometimes with `:-` or `:|`), but not
+with `=`, as in some other languages.
 In fact, Dafny does not use the `=` operator anywhere.
 
 ## **Error: LHS of assign-such-that expression must be variables, not general patterns**
@@ -727,9 +733,10 @@ method m() {
 ```
 
 The `:|` syntax is called 'assign-such-that': the variables on the left-hand-side are initiallized or assigned
-some non-deterministic values that saisfy the predicate on the right-hand-side.
+some non-deterministic values that satisfy the predicate on the right-hand-side.
 
 However, Dafny only allows a list of simple variables on the left, not datatype deconstructor patterns, as seen here.
+
 
 ## **Error: 'modifies' clauses are not allowed on refining loops**
 
@@ -747,7 +754,7 @@ method m(n: nat) {
 A for loop can express a computation to be performed for each value of a _loop index_.
 In Dafny, the loop index is an int-based variable that is either 
 - incremented up from a starting value to just before an ending value: `3 to 7` means 3, 4, 5, and 6
-- or decremented from just below a starting value down to an ending value `7 downto 3` means 6, 5, 4, and 3.
+- or decremented from just below a starting value down to an ending value: `7 downto 3` means 6, 5, 4, and 3.
 
 The contextual keywords `to` and `downto` indicate incrementing and decrementing, respectively.
 No other words are allowed here, including writing them with different case.
@@ -819,10 +826,10 @@ contains a sequence of expressions interleaved by operators.
 Such a sequence aids the verifier in establishing a desired conclusion.
 But the sequence of operators must obey certain patterns similar to chaining expressions.
 In this case a default operator is stated (the `!=` between `calc` and `{`).
-This default operator is the implicit between each consaecutive pair of expressions
+This default operator is the implicit operator between each consecutive pair of expressions
 in the body of the calc statement.
 
-But the operator has to be transitive: `!=` is not allowed; `==`, `<`, `<=`, '>' and '>=' asre allowed.
+But the operator has to be transitive: `!=` is not allowed; `==`, `<`, `<=`, '>' and '>=' are allowed.
 
 
 ## **Error: this operator cannot continue this calculation**
@@ -846,8 +853,8 @@ Such a sequence aids the verifier in establishing a desired conclusion.
 But the sequence of operators must obey certain patterns similar to chaining expressions.
 
 In particular, this error message is complaining that it sees an unacceptable operator.
-In this case, the reason is that the seequence may contain only one `!=` operator;
-another reaons causing this message would be a combination of `<` and `>` operators.
+In this case, the reason is that the sequence may contain only one `!=` operator;
+another reason causing this message would be a combination of `<` and `>` operators.
 
 ## **Error: a calculation cannot end with an operator**
 
@@ -867,9 +874,9 @@ contains a sequence of expressions interleaved by operators.
 Such a sequence aids the verifier in establishing a desired conclusion.
 But the sequence must begin and end with (semicolon-terminated) expressions.
 
-This error message is complaining that it sees an operating ending the sequence.
+This error message is complaining that it sees an operator ending the sequence.
 This may be because there is no following expression or that the parser 
-does not recognize the material after the last operator as the ending expression.
+does not recognize the material after the last operator as a legal ending expression.
 
 ## **Error: Ambiguous use of ==> and <==. Use parentheses to disambiguate.**
 
@@ -881,7 +888,7 @@ The `==>` and `<==` operators have the same precedence but do not associate with
 You must use parentheses to show how they are grouped. Write the above example as either
 `(true ==> false) <== true` or `true ==> (false <== true)`.
 
-By contract `p ==> q ==> r` is `p ==> (q ==> r)` and
+In contrast, `p ==> q ==> r` is `p ==> (q ==> r)` and
 `p <== q <== r` is `(p <== q) <== r`.
 
 See [this section](../DafnyRef/DafnyRef#sec-implication-and-reverse-implication) for more information.
@@ -906,7 +913,7 @@ const c := 1 in {1} == true
 
 [Chained operations](../DafnyRef/DafnyRef#sec-basic-types)
 are a sequence of binary operations without parentheses: _a op b op c op d op e_.
-But there are limitation on which operators can be in one chain together.
+But there are limitations on which operators can be in one chain together.
 
 In particular, the relational operators `in` and `!in` may not be part of a chain.
 Use parentheses as necessary to group the operations.
@@ -919,7 +926,7 @@ const c := 1 != 2 != 3
 
 [Chained operations](../DafnyRef/DafnyRef#sec-basic-types)
 are a sequence of binary operations without parentheses: _a op b op c op d op e_.
-But there are limitation on which operators can be in one chain together.
+But there are limitations on which operators can be in one chain together.
 
 In particular for this error message, one cannot have chains that include more than one `!=` operator.
 
@@ -931,10 +938,10 @@ const c := 4 > 3 < 2
 
 [Chained operations](../DafnyRef/DafnyRef#sec-basic-types)
 are a sequence of binary operations without parentheses: _a op b op c op d op e_.
-But there are limitation on which operators can be in one chain together.
+But there are limitations on which operators can be in one chain together.
 
 In particular for this error message, one cannot have chains that include both
-less-than operations (either `<` or `<=`) and greter-than operations (either `>` or `>=`).
+less-than operations (either `<` or `<=`) and greater-than operations (either `>` or `>=`).
 
 
 ## **Error: this operator chain cannot continue with a descending operator**
@@ -945,10 +952,10 @@ const c := 2 < 3 > 4
 
 [Chained operations](../DafnyRef/DafnyRef#sec-basic-types)
 are a sequence of binary operations without parentheses: _a op b op c op d op e_.
-But there are limitation on which operators can be in one chain together.
+But there are limitations on which operators can be in one chain together.
 
 In particular for this error message, one cannot have chains that include both
-less-than operations (either `<` or `<=`) and greter-than operations (either `>` or `>=`).
+less-than operations (either `<` or `<=`) and greater-than operations (either `>` or `>=`).
 
 ## **Error: can only chain disjoint (!!) with itself**
 
@@ -958,13 +965,14 @@ const c := 2 < 3 !! 4
 
 [Chained operations](../DafnyRef/DafnyRef#sec-basic-types)
 are a sequence of binary operations without parentheses: _a op b op c op d op e_.
-But there are limitation on which operators can be in one chain together.
+But there are limitations on which operators can be in one chain together.
+
 In particular for this error message, a disjoint operator (`!!`) can appear in a chain
 only if all the operators in the chain are disjoint operators.
 
 As described [here](../DafnyRef/DafnyRef#sec-collection-types),
 `a !! b !! c !! d` means that `a`, `b`, `c`, and `d` are all mutually disjoint
-(which is a slightly different rewriting of the chain than for other operations).
+(which is a different rewriting of the chain than for other operations).
 
 ## **Error: this operator cannot be part of a chain**
 
@@ -985,7 +993,7 @@ const r := s ! s
 The parser is expecting a relational expression, that is, two expressions separated by a relational operator
 (one of `==`, `!=`, `>`, `>=`, `<`, `<=`, `!!`, `in`, `!in`). But the parser saw just a `!` ,
 which could be the beginning of `!=`, `!!`, or `!in`, but is not continued as such.
-So perhaps there is extraneous white space or some else entirely is intended.
+So perhaps there is extraneous white space or something else entirely is intended.
 
 ## **Error: invalid relational operator (perhaps you intended \"!!\" with no intervening whitespace?)**
 
@@ -996,7 +1004,7 @@ const r := s ! ! s
 
 The parser is expecting a relational expression, that is, two expressions separated by a relational operator
 (one of `==`, `!=`, `>`, `>=`, `<`, `<=`, `!!`, `in`, `!in`). But the parser saw two `!` separated by
-white space. This is possibly meant to be `!!` operator, but it could also just be an illegal expression.
+white space. This is possibly meant to be a `!!` operator, but it could also just be an illegal expression.
 
 ## **Error: Ambiguous use of &, |, ^. Use parentheses to disambiguate.**
 
@@ -1006,7 +1014,7 @@ const i: int := 5 | 6 & 7
 
 The bit-operators `&`, `|`, and `^` have the same precedence but do not associate with each other.
 So if they are used within the same expression, parentheses have to be used to show how they
-are grouped. The abvoe example should be written as either `(5 | 6) & 7` or `5 | (6 & 7)`.
+are grouped. The above example should be written as either `(5 | 6) & 7` or `5 | (6 & 7)`.
 
 ## **Error: too many characters in character literal**
 
@@ -1039,12 +1047,12 @@ not parentheses. The above example should be `var c := [ 4 := 5 ]`
 ## **Error: A forming expression must be a multiset**
 
 A set/iset/multiset display expression can have two forms. 
-One example is show in the first line of the example: a list of values enclosed by curly braces.
-The other is the second line, which appears as a conversion operation.
+One form is a list of values enclosed by curly braces: `var c := multiset{1,2,2,3}`.
+The other appears as a conversion operation: `var c := multiset(s)`.
 However, this second form can only be used to convert a set to a multiset.
 
 In the current parser, however, this error message is unreachable.
-The tests that check for this error case are a;ready known to be false by previous testing.
+The tests that check for this error case are already known to be false by previous testing.
 
 ## **Error: a map comprehension with more than one bound variable must have a term expression of the form 'Expr := Expr'**
 
@@ -1057,17 +1065,29 @@ The full syntax for a map comprehension looks like `map x | 0 <= x < 5:: x*2 => 
 which maps the keys `0, 2, 4, 6, 8` to the values `0, 3, 6, 9, 12` respectively.
 
 One can abbreviate the above syntax to expressions like `map x | 0 <= x < 5 :: x*3`,
-which is equivalent to `map x | 0 <= x < 5 :: x => x*3`.
+which is equivalent to `map x | 0 <= x < 5 :: x => x*3`. The missing expression before
+the `=>` is just the declared identifier.
 
 One can also have multiple variables involved as in `map x, y | 0 < x < y < < 5 :: 10*x+y => 10*y+x`,
 which defines the mappings `(12 => 21, 13=>31, 14=>41, 23=>32, 24=>42, 34=>43)`.
 
-But when there are multiple variables, one cannot abbreviate the `=>` syntax with just itts right-hand expression,
-becuase it is not clear what the left-hand expression should be. If there is just one variable, say `x`, then the 
-default left hand expression is just `x`. 
+But when there are multiple variables, one cannot abbreviate the `=>` syntax with just its right-hand expression,
+becuase it is not clear what the left-hand expression should be. 
 
-The failing example above as `const s := map x, y  | 0 <= x < y < 10 :: f(x,y) => x*y` for some `f(x,y)` that gives
+Rewrite the failing example above as `const s := map x, y  | 0 <= x < y < 10 :: f(x,y) => x*y` for some `f(x,y)` that gives
 a unique value for each pair of `x,y` permitted by the range expression (here `0 <= x < y < 10 `).
+
+## **Error: a variable in a let expression is initialized using ':=', ':-', or ':|', not '='**
+
+```dafny
+method m() {
+  var x = var y = 5; y*y;
+}
+```
+
+Like local variables, let variables are initialized with `:=` (and sometimes with `:-` or `:|`), but not
+with `=`, as in some other languages.
+In fact, Dafny does not use the `=` operator anywhere.
 
 ## **Error: LHS of let-such-that expression must be variables, not general patterns**
 
@@ -1103,7 +1123,7 @@ function test(): Outcome<int> {
 }
 ```
 
-Within a function, the `:-` operator is limited to a most one left-hand-side and one-right-hand-side.
+Within a function, the `:-` operator is limited to a most one left-hand-side and exactly one-right-hand-side.
 
 ## **Error: ':-' must have exactly one right-hand side**
 
@@ -1131,7 +1151,7 @@ This error only occurs when using the elephant operator `:-` in conjunction with
 and in the context of a let-or-fail expression, as in the body of `test()` in the example above.
 
 In contrast to the let expression (`:=`), which allows multiple parallel initializations, the let-or-fail expression (`:-`) is implemented to
-only allow a single left-hand-side and a single-right-hand-side.
+only allow at most a single left-hand-side and a single-right-hand-side.
 
 
 
@@ -1148,8 +1168,8 @@ If there is no expression, then the expression is taken to be just the _one_ dec
 For instance one could write `set b: bool`, which is equivalent to `set b: bool :: b` and would be the set of all `bool` values.
 Another example is `set x: nat | x < 5, which is equivalent to `set x: nat | x < 5:: x` and would be the set `{0, 1, 2, 3, 4}`.
 
-But if more than one variable is declared, then there is no natural implicit expression to fill in if it is omitted, 
-so such an expression is required. The failing example above, for example, might use the expression `x * y`, as in 
+But if more than one variable is declared, then there is no natural implicit expression to fill in after the `::` if it is omitted, 
+so some expression is required. The failing example above, for example, might use the expression `x * y`, as in 
 `set x, y  | 0 <= x < y < 10 :: x * y`, or any other expression over `x` and `y`.
 
 
@@ -1162,8 +1182,8 @@ If it occurs, please report an internal bug (or obsolete documentation).
 ## **Error: incorrectly formatted number**
 
 This error can only result from an internal bug in the Dafny parser.
-The parser should recognize a legitimate sequence of digits or sequence of hexdigits or
-a decimal number and then pass that string to a libary routine to create a BigInteger
+The parser recognizes a legitimate sequence of digits or sequence of hexdigits or
+a decimal number and then passes that string to a libary routine to create a BigInteger
 or BigDecimal. Given the parser logic, that parsing should never fail.
 
 <!-- There are three instances of this message, one for digits one for hexdigits, one for decimaldigits -->

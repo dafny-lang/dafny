@@ -1452,6 +1452,7 @@ TypeMembers<. ModuleDefinition/*!*/ module, List<MemberDecl> members .>
 FieldDecl<.DeclModifierData dmod, bool isValueType, List<MemberDecl> mm.>
 = (. Contract.Requires(cce.NonNullElements(mm));
      Attributes attrs = null;
+     Expression e;
      IToken/*!*/ id;  Type/*!*/ ty;
      CheckDeclModifiers(ref dmod, "field", AllowedDeclModifiers.Ghost);
      var startToken = dmod.FirstToken;
@@ -1469,12 +1470,12 @@ FieldDecl<.DeclModifierData dmod, bool isValueType, List<MemberDecl> mm.>
   { Attribute<ref attrs> }
   FIdentType<out id, out ty>           (. var f = new Field(id, id.val, dmod.IsGhost, ty, attrs); f.RangeToken = new RangeToken(startToken, t); mm.Add(f); f.TokenWithTrailingDocString = t;
                                           f.RangeToken = new RangeToken(startToken, t); .)
-  [ ("="|":=") (. SemErr(la, "a mutable field is not allowed to have an initializer"); .)]
+  [ ("="|":=") (. SemErr(la, "a mutable field is not allowed to have an initializer"); .) Expression<out e, false, true> ]
   { ","                                (. startToken = t; .)
     FIdentType<out id, out ty>         (.     f = new Field(id, id.val, dmod.IsGhost, ty, attrs); f.RangeToken = new RangeToken(startToken, t); mm.Add(f); f.TokenWithTrailingDocString = t;
                                               f.RangeToken = new RangeToken(startToken, t);
                                        .)
-    [ ("="|":=") (. SemErr(la, "a mutable field is not allowed to have an initializer"); .)]
+    [ ("="|":=") (. SemErr(la, "a mutable field is not allowed to have an initializer"); .) Expression<out e, false, true> ]
   }
   OldSemi
   .

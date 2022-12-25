@@ -114,7 +114,7 @@ do
   ## For header lines, extract the error message from
   ## the header text (everything but the initial ##[ ]* )
   ( echo "$line" | grep -E -e '[#][#] ' > /dev/null ) \
-   && msg=`echo "$line" | sed -E -e 's/^##[ ]*//' -e 's/\\*/\\\\*/' -e 's/_[a-z]+_/.*/g'`
+   && msg=`echo "$line" | sed -E -e 's/^##[ ]*[*]*//' -e 's/[*]*$//' -e 's/\\*/\\\\*/' -e 's/_[a-z]+_/.*/g'`
 
   ## Check for the test command information
   echo "$line" | grep '^[ ]*<!-- [ ]*%' > /dev/null
