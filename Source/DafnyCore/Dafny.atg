@@ -1470,12 +1470,12 @@ FieldDecl<.DeclModifierData dmod, bool isValueType, List<MemberDecl> mm.>
   { Attribute<ref attrs> }
   FIdentType<out id, out ty>           (. var f = new Field(id, id.val, dmod.IsGhost, ty, attrs); f.RangeToken = new RangeToken(startToken, t); mm.Add(f); f.TokenWithTrailingDocString = t;
                                           f.RangeToken = new RangeToken(startToken, t); .)
-  [ ("="|":=") (. SemErr(la, "a mutable field is not allowed to have an initializer"); .) Expression<out e, false, true> ]
+  [ ("="|":=") (. SemErr(la, "a mutable field is not allowed to have an initializer"); .) Expression<out e, true, true> ]
   { ","                                (. startToken = t; .)
     FIdentType<out id, out ty>         (.     f = new Field(id, id.val, dmod.IsGhost, ty, attrs); f.RangeToken = new RangeToken(startToken, t); mm.Add(f); f.TokenWithTrailingDocString = t;
                                               f.RangeToken = new RangeToken(startToken, t);
                                        .)
-    [ ("="|":=") (. SemErr(la, "a mutable field is not allowed to have an initializer"); .) Expression<out e, false, true> ]
+    [ ("="|":=") (. SemErr(la, "a mutable field is not allowed to have an initializer"); .) Expression<out e, true, true> ]
   }
   OldSemi
   .
@@ -1656,7 +1656,8 @@ FIdentType<out IToken/*!*/ id, out Type/*!*/ ty>
   .)
   NoUSIdentOrDigits<out id> (. id = t; ty = null; .)
   ( ":" Type<out ty> 
-  | ( ":=" | "=" ) (. SemErr(t, "a mutable field must be declared with a type and may not have an initializer"); .)
+  | ( ":=" | "=" ) (. SemErr(t, "a mutable field must be declared with a type and may not have an initializer"); Expression e; .) Expression<out e, true, true>
+  | (. SemErr(t, "a mutable field must be declared with a type"); .)
   )
   .
 

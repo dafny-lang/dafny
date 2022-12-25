@@ -274,6 +274,18 @@ The `older` modifier only applies to input parameters.
 
 ```dafny
 class A {
+  var f = 5
+  const g := 5
+}
+```
+
+Mutable fields are not permitted to have initializers, and so they must have a type (as in `var f: int`).
+`const` declarations may have initializers; if they do they do not need an explicit type.
+
+## **Error: a mutable field must be declared with a type**
+
+```dafny
+class A {
   var f
   const g := 5
 }
