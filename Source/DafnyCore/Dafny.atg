@@ -5069,7 +5069,10 @@ QuantifierVariableDecl<.out QuantifiedVar qvar, ref Attributes attrs, bool allow
     // optional "| <Range>" suffix 
     Expression<out domain, allowLemma, allowLambda, false>
   ]
-  { Attribute<ref attrs> }
+  { IF( la.kind == _lbracecolon) Attribute<ref attrs> } // Ambiguity -- if the next optional block is not present, 
+                                                        // this {Attribute} ends a QuantifierVariableDecl so it can end a SetComprehensionExpr
+                                                        // so it can end an Expression
+                                                        // But an Expression can be followed by {Attribute} as in VarDeclStatement, Rhs, UpdateStmt
   [ // Coco complains about this ambiguity, thinking that a "|" can follow a body-less forall statement; 
     // I don't see how that's possible, but this IF is good and suppresses the reported ambiguity
     IF(la.kind == _verticalbar) 
