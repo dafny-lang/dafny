@@ -18,9 +18,9 @@ public class NestedMatchExpr : Expression, ICloneable<NestedMatchExpr> {
     this.Source = cloner.CloneExpr(original.Source);
     this.Cases = original.Cases.Select(cloner.CloneNestedMatchCaseExpr).ToList();
     this.UsesOptionalBraces = original.UsesOptionalBraces;
-    
-    // TODO hack
-    Denested = cloner.CloneExpr(original.Denested);
+    if (cloner.CloneResolvedFields) {
+      Denested = cloner.CloneExpr(original.Denested);
+    }
   }
   
   public NestedMatchExpr(IToken tok, Expression source, [Captured] List<NestedMatchCaseExpr> cases, bool usesOptionalBraces, Attributes attrs = null) : base(tok) {

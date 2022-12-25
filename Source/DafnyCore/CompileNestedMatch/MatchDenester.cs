@@ -45,24 +45,35 @@ public class MatchDenester : IRewriter {
     this.idGenerator = idGenerator;
   }
 
-  internal override void PostResolveIntermediate(ModuleDefinition moduleDefinition) {
+  internal override void PostResolve(Program program) {
+    foreach (var compileModule in program.CompileModules.Concat(program.RawModules())) {
+      DenestModule(compileModule);
+    }
+  }
 
-    moduleDefinition.Visit(node => {
-      if (node != moduleDefinition && node is ModuleDefinition) {
+  private void DenestModule(ModuleDefinition moduleDefinition)
+  {
+    moduleDefinition.Visit(node =>
+    {
+      if (node != moduleDefinition && node is ModuleDefinition)
+      {
         // The resolver clones module definitions for compilation, but also the top level module which also contains the uncloned definitions,
         // so this is to prevent recursion into the uncloned definitions. 
         return false;
       }
 
-      if (node is ICallable callable) {
+      if (node is ICallable callable)
+      {
         resolutionContext = new ResolutionContext(callable, false);
       }
 
-      if (node is NestedMatchStmt nestedMatchStmt) {
+      if (node is NestedMatchStmt nestedMatchStmt)
+      {
         nestedMatchStmt.Denested = CompileNestedMatchStmt(nestedMatchStmt);
       }
 
-      if (node is NestedMatchExpr nestedMatchExpr) {
+      if (node is NestedMatchExpr nestedMatchExpr)
+      {
         nestedMatchExpr.Denested = CompileNestedMatchExpr(nestedMatchExpr);
       }
 
