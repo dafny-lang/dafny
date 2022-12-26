@@ -1175,6 +1175,41 @@ ModuleExport<ModuleDefinition parent, out ModuleDecl submodule>
   .)
   [ ExportId<out exportId> ]
   [ ellipsis  (. isRefining = true; .) ]
+  // Must have at least one clause
+  (  "provides"
+    (
+      ( ExportSignature<true, out exsig>        (. exports.Add(exsig); .)
+        (. scanner.ResetPeek(); laa = scanner.Peek(); .)
+        { 
+          IF( la.kind == _comma && laa.kind != _provides && laa.kind != _reveals && laa.kind != _extends )
+          "," 
+          ExportSignature<true, out exsig>  (. exports.Add(exsig); .)
+        (. scanner.ResetPeek(); laa = scanner.Peek(); .)
+        }
+      )
+    | "*" (. provideAll = true; .)
+    )
+  | "reveals"
+    (
+      ExportSignature<false, out exsig>       (. exports.Add(exsig); .)
+      (. scanner.ResetPeek(); laa = scanner.Peek(); .)
+      { IF( la.kind == _comma && laa.kind != _provides && laa.kind != _reveals && laa.kind != _extends )
+        "," 
+        ExportSignature<false, out exsig>  (. exports.Add(exsig); .)
+        (. scanner.ResetPeek(); laa = scanner.Peek(); .)
+      }
+    | "*" (. revealAll = true; .)
+    )
+  | "extends"
+    ExportId<out id>       (. extends.Add(id); .)
+    (. scanner.ResetPeek(); laa = scanner.Peek(); .)
+    { IF( la.kind == _comma && laa.kind != _provides && laa.kind != _reveals && laa.kind != _extends )
+      "," 
+      ExportId<out id>  (. extends.Add(id); .) 
+      (. scanner.ResetPeek(); laa = scanner.Peek(); .)
+    }
+  )
+  [ "," (. SemErr(t, "no comma is allowed between provides and reveals and extends clauses in an export declaration"); .) ]
   {
   (  "provides"
     (
