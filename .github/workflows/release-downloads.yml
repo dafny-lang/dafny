@@ -17,9 +17,9 @@ jobs:
         os: [ ubuntu-latest, ubuntu-20.04, macos-latest, windows-2019 ]
         include:
         - os:  'ubuntu-latest'
-          osn: 'ubuntu\-16.04'
+          osn: 'ubuntu\-20.04'
         - os:  'ubuntu-20.04'
-          osn: 'ubuntu\-16.04'
+          osn: 'ubuntu\-20.04'
         - os:  'macos-latest'
           osn: 'osx-.*'
         - os:  'windows-2019'
