@@ -112,14 +112,17 @@ in groups of increasing binding power, with equality binding stronger
 than conjunction and disjunction, and weaker than negation.  Within
 each group, different operators do not associate, so parentheses need
 to be used.  For example,
+<!-- %no-check -->
 ```dafny
 A && B || C    // error
 ```
 would be ambiguous and instead has to be written as either
+<!-- %no-check -->
 ```dafny
 (A && B) || C
 ```
 or
+<!-- %no-check -->
 ```dafny
 A && (B || C)
 ```
@@ -129,22 +132,27 @@ depending on the intended meaning.
 The expressions `A <==> B` and `A == B` give the same value, but note
 that `<==>` is _associative_ whereas `==` is _chaining_ and they have
 different precedence.  So,
+<!-- %no-check -->
 ```dafny
 A <==> B <==> C
 ```
 is the same as
+<!-- %no-check -->
 ```dafny
 A <==> (B <==> C)
 ```
 and
+<!-- %no-check -->
 ```dafny
 (A <==> B) <==> C
 ```
 whereas
+<!-- %no-check -->
 ```dafny
 A == B == C
 ```
 is simply a shorthand for
+<!-- %no-check -->
 ```dafny
 A == B && B == C
 ```
@@ -167,6 +175,7 @@ order.  Consequently, reverse implication is _left associative_ and is
 short-circuiting from _right to left_.  To illustrate the
 associativity rules, each of the following four lines expresses the
 same property, for any `A`, `B`, and `C` of type `bool`:
+<!-- %no-check -->
 ```dafny
 A ==> B ==> C
 A ==> (B ==> C) // parentheses redundant, ==> is right associative
@@ -177,11 +186,13 @@ To illustrate the short-circuiting rules, note that the expression
 `a.Length` is defined for an array `a` only if `a` is not `null` (see
 [Section 6.2](#sec-reference-types)), which means the following two
 expressions are well-formed:
+<!-- %no-check -->
 ```dafny
 a != null ==> 0 <= a.Length
 0 <= a.Length <== a != null
 ```
 The contrapositives of these two expressions would be:
+<!-- %no-check -->
 ```dafny
 a.Length < 0 ==> a == null  // not well-formed
 a == null <== a.Length < 0  // not well-formed
@@ -193,10 +204,12 @@ to be well-formed by itself.
 Implication `A ==> B` is equivalent to the disjunction `!A || B`, but
 is sometimes (especially in specifications) clearer to read.  Since,
 `||` is short-circuiting from left to right, note that
+<!-- %no-check -->
 ```dafny
 a == null || 0 <= a.Length
 ```
 is well-formed, whereas
+<!-- %no-check -->
 ```dafny
 0 <= a.Length || a == null  // not well-formed
 ```
@@ -233,6 +246,7 @@ written as a decimal point with a nonempty sequence of decimal digits
 on both sides, optionally prefixed by a `-` character.
 For example, `1.0`, `1609.344`, `-12.5`, and `0.5772156649`.
 Real literals using exponents are not supported in Dafny. For now, you'd have to write your own function for that, e.g. 
+<!-- %check-verify -->
 ```dafny
 // realExp(2.37, 100) computes 2.37e100
 function method realExp(r: real, e: int): real decreases if e > 0 then e else -e {
@@ -240,17 +254,18 @@ function method realExp(r: real, e: int): real decreases if e > 0 then e else -e
   else if e < 0 then realExp(r/10.0, e+1)
   else realExp(r*10.0, e-1)
 }
-}
+```
 
 For integers (in both decimal and hexadecimal form) and reals,
 any two digits in a literal may be separated by an underscore in order
 to improve human readability of the literals.  For example:
+<!-- %check-verify -->
 ```dafny
-1_000_000        // easier to read than 1000000
-0_12_345_6789    // strange but legal formatting of 123456789
-0x8000_0000      // same as 0x80000000 -- hex digits are
-                 // often placed in groups of 4
-0.000_000_000_1  // same as 0.0000000001 -- 1 Angstrom
+const c1 := 1_000_000        // easier to read than 1000000
+const c2 := 0_12_345_6789    // strange but legal formatting of 123456789
+const c3 := 0x8000_0000      // same as 0x80000000 -- hex digits are
+                             // often placed in groups of 4
+const c4 := 0.000_000_000_1  // same as 0.0000000001 -- 1 Angstrom
 ```
 
 In addition to equality and disequality, numeric types
@@ -266,14 +281,17 @@ same precedence as equality:
 
 Like equality and disequality, these operators are chaining, as long
 as they are chained in the "same direction".  That is,
+<!-- %no-check -->
 ```dafny
 A <= B < C == D <= E
 ```
 is simply a shorthand for
+<!-- %no-check -->
 ```dafny
 A <= B && B < C && C == D && D <= E
 ```
 whereas
+<!-- %no-check -->
 ```dafny
 A < B > C
 ```
@@ -304,6 +322,7 @@ division and modulus are the _Euclidean division and modulus_.  This
 means that modulus always returns a non-negative value, regardless of the
 signs of the two operands.  More precisely, for any integer `a` and
 non-zero integer `b`,
+<!-- %no-check -->
 ```dafny
 a == a / b * b + a % b
 0 <= a % b < B
@@ -314,12 +333,15 @@ Real-based numeric types have a member `Floor` that returns the
 _floor_ of the real value (as an int value), that is, the largest integer not exceeding
 the real value.  For example, the following properties hold, for any
 `r` and `r'` of type `real`:
+<!-- %check-verify -->
 ```dafny
-3.14.Floor == 3
-(-2.5).Floor == -3
--2.5.Floor == -2 // This is -(2.5.Floor)
-r.Floor as real <= r
-r <= r' ==> r.Floor <= r'.Floor
+method m(r: real, r': real) {
+  assert 3.14.Floor == 3;
+  assert (-2.5).Floor == -3;
+  assert -2.5.Floor == -2; // This is -(2.5.Floor)
+  assert r.Floor as real <= r;
+  assert r <= r' ==> r.Floor <= r'.Floor;
+}
 ```
 Note in the third line that member access (like `.Floor`) binds
 stronger than unary minus.  The fourth line uses the conversion
@@ -342,8 +364,12 @@ The type `bv0` is also legal; it is a bit-vector type with no bits and just one 
 Constant literals of bit-vector types are given by integer literals converted automatically
 to the designated type, either by an implicit or explicit conversion operation or by initialization in a declaration.
 Dafny checks that the constant literal is in the correct range. For example,
+<!-- %check-resolve Types.1.expect -->
 ```dafny
-{% include_relative examples/Example-BV.dfy %}
+const i: bv1 := 1
+const j: bv8 := 195
+const k: bv2 := 5 // error - out of range
+const m := (194 as bv8) | (7 as bv8)
 ```
 
 Bit-vector values can be converted to and from `int` and other bit-vector types, as long as
@@ -392,22 +418,70 @@ and `(8 as bv4).RotateLeft(1) == (1 as bv4)`);
 `RotateRight` moves bits to lower bit positions, so `b.RotateLeft(n).RotateRight(n) == b`.
 
 Here are examples of the various operations (all the assertions are true except where indicated):
+<!-- %check-verify -->
 ```dafny
-{% include_relative examples/Example-BV2.dfy %}
+const i: bv4 := 9
+const j: bv4 := 3
+
+method m() {
+  assert (i & j) == (1 as bv4);
+  assert (i | j) == (11 as bv4);
+  assert (i ^ j) == (10 as bv4);
+  assert !i == (6 as bv4);
+  assert -i == (7 as bv4);
+  assert (i + i) == (2 as bv4);
+  assert (j - i) == (10 as bv4);
+  assert (i * j) == (11 as bv4);
+  assert (i as int) / (j as int) == 3;
+  assert (j << 1) == (6 as bv4);
+  assert (i << 1) == (2 as bv4);
+  assert (i >> 1) == (4 as bv4);
+  assert i == 9; // auto conversion of literal to bv4
+  assert i * 4 == j + 8 + 9; // arithmetic is modulo 16
+  assert i + j >> 1 == (i + j) >> 1; // + - bind tigher than << >>
+  assert i + j ^ 2 == i + (j^2);
+  assert i * j & 1 == i * (j&1); // & | ^ bind tighter than + - *
+}
 ```
 The following are incorrectly formed:
+<!-- %check-resolve Types.2.expect -->
 ```dafny
-{% include_relative examples/Example-BV3.dfy %}
-{% include_relative examples/Example-BV3a.dfy %}
+const i: bv4 := 9
+const j: bv4 := 3
+
+method m() {
+  assert i & 4 | j == 0 ; // parentheses required
+}
+```
+<!-- %check-resolve Types.3.expect -->
+```dafny
+const k: bv4 := 9
+
+method p() {
+  assert k as bv5 == 9 as bv6; // error: mismatched types
+}
 ```
 These produce assertion errors:
+<!-- %check-verify Types.4.expect -->
 ```dafny
-{% include_relative examples/Example-BV4.dfy %}
-{% include_relative examples/Example-BV4a.dfy %}
+const i: bv4 := 9
+
+method m() {
+  assert i as bv3 == 1; // error: i is out of range for bv3
+}
+```
+<!-- %check-resolve Types.5.expect -->
+```dafny
+const j: bv4 := 9
+
+method n() {
+  assert j == 25; // error: 25 is out of range for bv4
+}
 ```
 
 Bit-vector constants (like all constants) can be initialized using expressions, but pay attention
 to how type inference applies to such expressions. For example,
+<!-- %check-verify -->
 ```dafny
 const a: bv3 := -1
 ```
@@ -416,8 +490,9 @@ Consequently the `-` is `bv3` negation and the `1` is a `bv3` literal; the value
 the `bv3` value `7`, which is then the value of `a`.
 
 On the other hand,
+<!-- %check-resolve Types.6.expect -->
 ```dafny
-const b: bv3 = 6 & 11
+const b: bv3 := 6 & 11
 ```
 is illegal because, again, the `&` is `bv3` bit-wise-and and the numbers must be valid `bv3` literals.
 But `11` is not a valid `bv3` literal.
@@ -581,6 +656,7 @@ All types support equality in ghost contexts,
 as if, for some types, the equality function is ghost.
 
 For example,
+<!-- %check-verify -->
 ```dafny
 method Compare<T(==)>(a: T, b: T) returns (eq: bool)
 {
@@ -603,6 +679,7 @@ If no explicit initialization is given, then an arbitrary value is
 assumed by the verifier and supplied by the compiler,
 that is, the variable is _auto-initialized_.
 For example,
+<!-- %check-verify Types.7a.expect %options --relax-definite-assignment -->
 ```dafny
 method m() {
   var n: nat; // Auto-initialized to an arbitrary value of type `nat`
@@ -623,7 +700,8 @@ More detail on auto-initializing is in [this document](../Compilation/AutoInitia
 Dafny supports auto-init as a type characteristic.
 To restrict a type parameter to auto-init types, mark it with the
 `(0)` suffix. For example,
-``` dafny
+<!-- %check-verify Types.7b.expect %options --relax-definite-assignment -->
+```dafny
 method AutoInitExamples<A(0), X>() returns (a: A, x: X)
 {
   // 'a' does not require an explicit initialization, since A is auto-init
@@ -643,7 +721,8 @@ Auto-init types are important in compiled contexts. In ghost contexts, it
 may still be important to know that a type is nonempty. Dafny supports
 a type characteristic for nonempty types, written with the suffix `(00)`.
 For example,
-``` dafny
+<!-- %check-verify Types.8.expect %options --relax-definite-assignment -->
+```dafny
 method NonemptyExamples<B(00), X>() returns (b: B, ghost g: B, ghost h: X)
 {
   // error: non-ghost out-parameter 'b' has not been given a value
@@ -673,6 +752,7 @@ are heap-based or not. This is indicated by the mode suffix `(!new)`.
 A type parameter characterized by `(!new)` is _recursively_ independent
 of the allocation state. For example, a datatype is not a reference, but for
 a parameterized data type such as
+<!-- %check-resolve -->
 ```dafny
 datatype Result<T> = Failure(error: string) | Success(value: T)
 ```
@@ -684,8 +764,21 @@ verification and compilation.
 Also, opaque types at the topmost scope are always implicitly `(!new)`.
 
 Here are some examples:
+<!-- %check-resolve Types.9.expect -->
 ```dafny
-{% include_relative examples/Example-TP.dfy %}
+datatype Result<T> = Failure(error: string) | Success(v: T)
+datatype ResultN<T(!new)> = Failure(error: string) | Success(v: T)
+
+class C {}
+
+method m() {
+  var x1: Result<int>;
+  var x2: ResultN<int>;
+  var x3: Result<C>;
+  var x4: ResultN<C>; // error
+  var x5: Result<array<int>>;
+  var x6: ResultN<array<int>>; // error
+}
 ```
 
 ## 8.2. Type parameter variance {#sec-type-parameter-variance}
@@ -759,6 +852,7 @@ set of `T` values.
 A set can be formed using a _set display_ expression, which is a
 possibly empty, unordered, duplicate-insensitive list of expressions
 enclosed in curly braces.  To illustrate,
+<!-- %no-check -->
 ```dafny
 {}        {2, 7, 5, 3}        {4+2, 1+5, a*b}
 ```
@@ -796,11 +890,13 @@ arithmetic operators with the same names.  The expression `A !! B`,
 whose binding power is the same as equality (but which neither
 associates nor chains with equality), says that sets `A` and `B` have
 no elements in common, that is, it is equivalent to
+<!-- %no-check -->
 ```dafny
 A * B == {}
 ```
 However, the disjointness operator is chaining though in a slightly different way than other chaining operators:
  `A !! B !! C !! D` means that `A`, `B`, `C` and `D` are all mutually disjoint, that is
+<!-- %no-check -->
 ```dafny
 A * B == {} && (A + B) * C == {} && (A + B + C) * D == {}
 ```
@@ -836,6 +932,7 @@ is [equality supporting](#sec-equality-supporting).
 A multiset can be formed using a _multiset display_ expression, which
 is a possibly empty, unordered list of expressions enclosed in curly
 braces after the keyword `multiset`.  To illustrate,
+<!-- %no-check -->
 ```dafny
 multiset{}   multiset{0, 1, 1, 2, 3, 5}   multiset{4+2, 1+5, a*b}
 ```
@@ -877,6 +974,7 @@ multiplicity of the operands.
 The expression `A !! B`
 says that multisets `A` and `B` have no elements in common, that is,
 it is equivalent to
+<!-- %no-check -->
 ```dafny
 A * B == multiset{}
 ```
@@ -902,6 +1000,7 @@ the multiset update `s[e := 0]` results in a multiset like `s` but
 without any occurrences of `e` (whether or not `s` has occurrences of
 `e` in the first place).  As another example, note that
 `s - multiset{e}` is equivalent to:
+<!-- %no-check -->
 ```dafny
 if e in s then s[e := s[e] - 1] else s
 ```
@@ -919,6 +1018,7 @@ numbers (called _indices_) to `T` values.
 A sequence can be formed using a _sequence display_ expression, which
 is a possibly empty, ordered list of expressions enclosed in square
 brackets.  To illustrate,
+<!-- %no-check -->
 ```dafny
 []        [3, 1, 4, 1, 5, 9, 3]        [4+2, 1+5, a*b]
 ```
@@ -926,6 +1026,7 @@ are three examples of sequence displays.
 
   There is also a sequence
 comprehension expression ([Section 21.28](#sec-seq-comprehension)):
+<!-- %no-check -->
 ```dafny
 seq(5, i => i*i)
 ```
@@ -1001,8 +1102,18 @@ colon, then the length of the last slice extends until the end of `s`,
 that is, its length is `|s|` minus the sum of the given length
 designators.  For example, the following equalities hold, for any
 sequence `s` of length at least `10`:
+<!-- %check-verify -->
 ```dafny
-{% include_relative examples/Example-Seq.dfy %}
+method m(s: seq<int>) {
+  var t := [3.14, 2.7, 1.41, 1985.44, 100.0, 37.2][1:0:3];
+  assert |t| == 3 && t[0] == [3.14] && t[1] == [];
+  assert t[2] == [2.7, 1.41, 1985.44];
+  var u := [true, false, false, true][1:1:];
+  assert |u| == 3 && u[0][0] && !u[1][0] && u[2] == [false, true];
+  assume |s| > 10;
+  assert s[10:][0] == s[..10];
+  assert s[10:][1] == s[10..];
+}
 ```
 
 The operation `multiset(s)` yields the multiset of elements of
@@ -1041,6 +1152,7 @@ Even characters like newline can be written inside the string literal
 (hence spanning more than one line in the program text).
 
 For example, the following three expressions denote the same string:
+<!-- %no-check -->
 ```dafny
 "C:\\tmp.txt"
 @"C:\tmp.txt"
@@ -1079,6 +1191,7 @@ which is a possibly empty, ordered list of _maplets_, each maplet having the
 form `t := u` where `t` is an expression of type `T` and `u` is an
 expression of type `U`, enclosed in square brackets after the keyword
 `map`.  To illustrate,
+<!-- %no-check -->
 ```dafny
 map[]
 map[20 := true, 3 := false, 20 := false]
@@ -1138,6 +1251,7 @@ and similarly for `!in`.
 Here is a small example, where a map `cache` of type `map<int,real>`
 is used to cache computed values of Joule-Thomson coefficients for
 some fixed gas at a given temperature:
+<!-- %no-check -->
 ```dafny
 if K in cache {  // check if temperature is in domain of cache
   coeff := cache[K];  // read result in cache
@@ -1169,7 +1283,9 @@ detail can be found in this [power user note](http://leino.science/papers/krml27
 
 Sequences and arrays are indexable and have a length. So the idiom to
 iterate over the contents is well-known. For an array:
+<!-- %check-resolve -->
 ```dafny
+method m(a: array<int>) {
   var i := 0;
   var sum := 0;
   while i < a.Length {
@@ -1179,22 +1295,28 @@ iterate over the contents is well-known. For an array:
 }
 ```
 For a sequence, the only difference is the length operator:
+<!-- %check-resolve -->
 ```dafny
+method m(s: seq<int>) {
   var i := 0;
   var sum := 0;
   while i < |s| {
     sum := sum + s[i];
     i := i + 1;
   }
+}
 ```
 
 The `forall` statement ([Section 20.21](#sec-forall-statement)) can also be used
 with arrays where parallel assignment is needed:
+<!-- %check-resolve -->
 ```dafny
+method m(s: array<int>) {
   var rev := new int[s.Length];
   forall i | 0 <= i < s.Length {
     rev[i] := s[s.Length-i-1];
   }
+}
 ```
 
 See [Section 15.2](#sec-array-to-seq) on how to convert an array to a sequence.
@@ -1203,8 +1325,9 @@ See [Section 15.2](#sec-array-to-seq) on how to convert an array to a sequence.
 There is no intrinsic order to the elements of a set. Nevertheless, we can
 extract an arbitrary element of a nonempty set, performing an iteration
 as follows:
+<!-- %check-resolve -->
 ```dafny
-// s is a set<int>
+method m(s: set<int>) {
   var ss := s;
   while ss != {}
     decreases |ss|
@@ -1213,6 +1336,7 @@ as follows:
     ss := ss - {i};
     print i, "\n";
   }
+}
 ```
 
 Because `iset`s may be infinite, Dafny does not permit iteration over an `iset`.
@@ -1221,7 +1345,9 @@ Because `iset`s may be infinite, Dafny does not permit iteration over an `iset`.
 
 Iterating over the contents of a `map` uses the component sets: `Keys`, `Values`, and `Items`. The iteration loop follows the same patterns as for sets:
 
+<!-- %check-resolve -->
 ```dafny
+method m<T(==),U(==)> (m: map<T,U>) {
   var items := m.Items;
   while items != {}
     decreases |items|
@@ -1230,6 +1356,7 @@ Iterating over the contents of a `map` uses the component sets: `Keys`, `Values`
     items := items - { item };
     print item.0, " ", item.1, "\n";
   }
+}
 ```
 
 There are no mechanisms currently defined in Dafny for iterating over `imap`s.
@@ -1262,6 +1389,7 @@ SynonymTypeDecl_ =
 ````
 
 A _type synonym_ declaration:
+<!-- %no-check -->
 ```dafny
 type Y<T> = G
 ```
@@ -1280,6 +1408,7 @@ produced, between `Y<T>` and `G`.
 
 For example, the names of the following type synonyms may improve the
 readability of a program:
+<!-- %check-resolve -->
 ```dafny
 type Replacements<T> = map<T,T>
 type Vertex = int
@@ -1291,8 +1420,9 @@ inferred from the definition, if there is one.
 As already described in [Section 10.3.5](#sec-strings), `string` is a built-in
 type synonym for `seq<char>`, as if it would have been declared as
 follows:
+<!-- %check-resolve -->
 ```dafny
-type string(==,0,!new) = seq<char>
+type string_(==,0,!new) = seq<char>
 ```
 If the implicit declaration did not include the type characteristics, they would be inferred in any case.
 
@@ -1318,6 +1448,7 @@ TypeMembers =
 
 An opaque type is a special case of a type synonym that is underspecified.  Such
 a type is declared simply by:
+<!-- %check-resolve -->
 ```dafny
 type Y<T>
 ```
@@ -1329,12 +1460,14 @@ must be stated. If, in some refining module, a definition of the type is given, 
 type characteristics must match those of the new definition.
 
 For example, the declarations
+<!-- %check-resolve -->
 ```dafny
 type T
 function F(t: T): T
 ```
 can be used to model an uninterpreted function `F` on some
 arbitrary type `T`.  As another example,
+<!-- %check-resolve -->
 ```dafny
 type Monad<T>
 ```
@@ -1343,7 +1476,8 @@ can be used abstractly to represent an arbitrary parameterized monad.
 Even as an opaque type, the type
 may be given members such as constants, methods or functions.
 For example,
-```
+<!-- %check-resolve -->
+```dafny
 abstract module P {
   type T {
     function ToString(): string
@@ -1352,7 +1486,7 @@ abstract module P {
 
 module X refines P {
   newtype T = i | 0 <= i < 10 {
-    function ToString... {  "" }
+    function ToString(): string {  "" }
   }
 }
 ```
@@ -1409,13 +1543,15 @@ Dafny builds in three families of subset types, as described next.
 
 The built-in type `nat`, which represents the non-negative integers
 (that is, the natural numbers), is a subset type:
-``` dafny
+<!-- %no-check -->
+```dafny
 type nat = n: int | 0 <= n
 ```
 
 A simple example that
 puts subset type `nat` to good use is the standard Fibonacci
 function:
+<!-- %check-verify -->
 ```dafny
 function Fib(n: nat): nat
 {
@@ -1426,6 +1562,7 @@ An equivalent, but clumsy, formulation of this function (modulo the
 wording of any error messages produced at call sites) would be to use
 type `int` and to write the restricting predicate in pre- and
 postconditions:
+<!-- %check-verify -->
 ```dafny
 function Fib(n: int): int
   requires 0 <= n  // the function argument must be non-negative
@@ -1454,7 +1591,8 @@ In other words, `C` is the type of _non-null_ references to `C`
 objects.
 
 The type `C` is a subset type of `C?`:
-``` dafny
+<!-- %no-check -->
+```dafny
 type C = c: C? | c != null
 ```
 (It may be natural to think of the type `C?` as the union of
@@ -1505,7 +1643,8 @@ arrow.)
 
 The built-in partial arrow type is defined as follows (here shown
 for arrows with arity 1):
-``` dafny
+<!-- %no-check -->
+```dafny
 type A --> B = f: A ~> B | forall a :: f.reads(a) == {}
 ```
 (except that what is shown here left of the `=` is not legal Dafny syntax).
@@ -1513,7 +1652,8 @@ That is, the partial arrow type is defined as those functions `f`
 whose reads frame is empty for all inputs.
 More precisely, taking variance into account, the partial arrow type
 is defined as
-``` dafny
+<!-- %no-check -->
+```dafny
 type -A --> +B = f: A ~> B | forall a :: f.reads(a) == {}
 ```
 
@@ -1524,7 +1664,8 @@ values of type `(TT) -> U` are _total functions_, and the subset type
 
 The built-in total arrow type is defined as follows (here shown
 for arrows with arity 1):
-``` dafny
+<!-- %no-check -->
+```dafny
 type -A -> +B = f: A --> B | forall a :: f.requires(a)
 ```
 That is, the total arrow type is defined as those partial functions `f`
@@ -1558,14 +1699,17 @@ the `witness` clause must be a valid value for the type and assures Dafny
 that the type is non-empty.
 
 For example, 
+<!-- %check-verify Types.10.expect -->
 ```dafny
 type OddInt = x: int | x % 2 == 1
 ```
 will give an error message, but
+<!-- %check-verify -->
 ```dafny
 type OddInt = x: int | x % 2 == 1 witness 73
 ```
 does not. Here is another example:
+<!-- %check-verify -->
 ```dafny
 type NonEmptySeq = x: seq<int> | |x| > 0 witness [0]
 ```
@@ -1576,7 +1720,10 @@ is non-empty, but it will not be able to auto-initialize a variable of that
 type in compiled code.
 
 There is even room to do the following:
+<!-- %check-verify -->
 ```dafny
+type BaseType
+predicate RHS(x: BaseType)
 type MySubset = x: BaseType | RHS(x) ghost witness MySubsetWitness()
 
 function MySubsetWitness(): BaseType
@@ -1595,10 +1742,12 @@ If you are wrong, you have introduced an unsoundness into your program.
 In addition though, types are allowed to be empty or possibly empty.
 This is indicated by the clause `witness *`, which tells the verifier not to check for a satisfying witness.
 A declaration like this produces an empty type:
+<!-- %check-verify -->
 ```dafny
 type ReallyEmpty = x: int | false witness *
-```
+``` <!-- %save ReallyEmpty.tmp -->
 The type can be used in code like
+<!-- %check-verify %use ReallyEmpty.tmp -->
 ```dafny
 method M(x: ReallyEmpty) returns (seven: int)
   ensures seven == 7
@@ -1608,6 +1757,7 @@ method M(x: ReallyEmpty) returns (seven: int)
 ```
 which does verify. But the method can never be called because there is no value that
 can be supplied as the argument. Even this code
+<!-- %check-verify Types.10a.expect %use ReallyEmpty.tmp -->
 ```dafny
 method P() returns (seven: int)
   ensures seven == 7
@@ -1640,6 +1790,7 @@ name that is distinct from its base type. It also accepts an optional [`witness`
 
 A new type can be declared with the _newtype_
 declaration, for example:
+<!-- %no-check -->
 ```dafny
 newtype N = x: M | Q
 ```
@@ -1648,6 +1799,7 @@ use `x` as a free variable.  If `M` is an integer-based numeric type,
 then so is `N`; if `M` is real-based, then so is `N`.  If the type `M`
 can be inferred from `Q`, the "`: M`" can be omitted.  If `Q` is just
 `true`, then the declaration can be given simply as:
+<!-- %no-check -->
 ```dafny
 newtype N = M
 ```
@@ -1665,6 +1817,7 @@ newtype.
 
 For example, suppose `lo` and `hi` are integer-based numerics that
 satisfy `0 <= lo <= hi` and consider the following code fragment:
+<!-- %no-check -->
 ```dafny
 var mid := (lo + hi) / 2;
 ```
@@ -1672,12 +1825,14 @@ If `lo` and `hi` have type `int`, then the code fragment is legal; in
 particular, it never overflows, since `int` has no upper bound.  In
 contrast, if `lo` and `hi` are variables of a newtype `int32` declared
 as follows:
+<!-- %check-verify -->
 ```dafny
 newtype int32 = x | -0x8000_0000 <= x < 0x8000_0000
 ```
 then the code fragment is erroneous, since the result of the addition
 may fail to satisfy the predicate in the definition of `int32`.  The
 code fragment can be rewritten as
+<!-- %no-check -->
 ```dafny
 var mid := lo + (hi - lo) / 2;
 ```
@@ -1700,10 +1855,12 @@ Note that the bound variable `x` in `Q` has type `M`, not `N`.
 Consequently, it may not be possible to state `Q` about the `N`
 value.  For example, consider the following type of 8-bit 2's
 complement integers:
+<!-- %check-verify -->
 ```dafny
 newtype int8 = x: int | -128 <= x < 128
 ```
 and consider a variable `c` of type `int8`.  The expression
+<!-- %no-check -->
 ```dafny
 -128 <= c < 128
 ```
@@ -1712,6 +1869,7 @@ have type `int8`, which means the literal `128` is checked to be of
 type `int8`, which it is not.  A proper way to write this expression
 is to use a conversion operation, described in [Section 12.1](#sec-conversion), on `c` to
 convert it to the base type:
+<!-- %no-check -->
 ```dafny
 -128 <= c as int < 128
 ```
@@ -1742,12 +1900,14 @@ see [Section 7.2](#sec-numeric-types).)
 
 To illustrate using the example from above, if `lo` and `hi` have type
 `int32`, then the code fragment can legally be written as follows:
+<!-- %no-check -->
 ```dafny
 var mid := (lo as int + hi as int) / 2;
 ```
 where the type of `mid` is inferred to be `int`.  Since the result
 value of the division is a member of type `int32`, one can introduce
 yet another conversion operation to make the type of `mid` be `int32`:
+<!-- %no-check -->
 ```dafny
 var mid := ((lo as int + hi as int) / 2) as int32;
 ```
@@ -1801,6 +1961,7 @@ that are part of a class or trait declaration. If `moduleLevelDecl` is
 true ``FieldDecl``s are not allowed.
 
 A _class_ `C` is a reference type declared as follows:
+<!-- %no-check -->
 ```dafny
 class C<T> extends J1, ..., Jn
 {
@@ -1826,6 +1987,7 @@ However, in such places, members of `this` can also be mentioned
 without any qualification.  To illustrate, the qualified `this.f` and
 the unqualified `f` refer to the same field of the same object in the
 following example:
+<!-- %check-resolve -->
 ```dafny
 class C {
   var f: int
@@ -1847,6 +2009,7 @@ A `C` instance is created using `new`. There are three forms of `new`,
 depending on whether or not the class declares any _constructors_
 (see [Section 13.3.2](#sec-constructor-methods)):
 
+<!-- %no-check -->
 ```dafny
 c := new C;
 c := new C.Init(args);
@@ -1859,6 +2022,7 @@ its fields to values of their respective types (and initializing each `const` fi
 with a RHS to its specified value). The second form additionally invokes
 an _initialization method_ (here, named `Init`) on the newly allocated object
 and the given arguments. It is therefore a shorthand for
+<!-- %no-check -->
 ```dafny
 c := new C;
 c.Init(args);
@@ -1885,6 +2049,7 @@ some digits. Digits are used if you want to number your fields, e.g. "0",
 "1", etc.
 
 A field x of some type T is declared as:
+<!-- %no-check -->
 ```dafny
 var x: T
 ```
@@ -2007,6 +2172,7 @@ See [Section 5.2](#sec-method-specification) for a description of ``MethodSpec``
 A method declaration adheres to the ``MethodDecl`` grammar above.
 Here is an example of a method declaration.
 
+<!-- %no-check -->
 ```dafny
 method {:att1}{:att2} M<T1, T2>(a: A, b: B, c: C)
                                         returns (x: X, y: Y, z: Z)
@@ -2033,6 +2199,7 @@ method’s frame is the union of these sets, plus the set of objects
 allocated by the method body. For example, if `c` and `d` are parameters
 of a class type `C`, then
 
+<!-- %no-check -->
 ```dafny
 modifies {c, d}
 modifies {c} + {d}
@@ -2051,7 +2218,7 @@ An instance method has an implicit receiver parameter, `this`.
 A static method M in a class C can be invoked by `C.M(…)`.
 
 An ordinary method is declared with the `method` keyword;
-[the section about constructors](#sec-constructors) explains methods that instead use the
+[the section about constructors](#sec-constructor-methods) explains methods that instead use the
 `constructor` keyword; [the section about lemmas](#sec-lemmas) discusses methods that are
 declared with the `lemma` keyword. Methods declared with the
 `least lemma` or `greatest lemma` keyword phrases
@@ -2091,6 +2258,7 @@ of the constructor.
 
 For a class that declares no constructors, an instance of the class is
 created with
+<!-- %no-check -->
 ```dafny
 c := new C;
 ```
@@ -2115,18 +2283,21 @@ are declared in the same module as the use of `new`.
 The simple `new C` is allowed in ghost contexts. Also, unlike the forms of `new`
 that call a constructor or initialization method, it can be used in a simultaneous
 assignment; for example
+<!-- %no-check -->
 ```dafny
 c, d, e := new C, new C, 15;
 ```
 is legal.
 
 As a shorthand for writing
+<!-- %no-check -->
 ```dafny
 c := new C;
 c.Init(args);
 ```
 where `Init` is an initialization method (see the top of [the section about class types](#sec-class-types)),
 one can write
+<!-- %no-check -->
 ```dafny
 c := new C.Init(args);
 ```
@@ -2145,6 +2316,7 @@ Being able to name constructors promotes names like `InitFromList` or
 Unlike other members, one constructor is allowed to be _anonymous_;
 in other words, an _anonymous constructor_ is a constructor whose name is
 essentially the empty string.  For example:
+<!-- %check-resolve -->
 ```dafny
 class Item {
   constructor I(xy: int) // ...
@@ -2153,10 +2325,12 @@ class Item {
 }
 ```
 The named constructor is invoked as
+<!-- %no-check -->
 ```dafny
   i := new Item.I(42);
 ```
 The anonymous constructor is invoked as
+<!-- %no-check -->
 ```dafny
   m := new Item(45, 29);
 ```
@@ -2231,9 +2405,15 @@ is always ghost. It is appropriate to think of these two implicit heap parameter
 representing a "current" heap and an "old" heap.
 
 For example, the predicate
+<!-- %check-verify -->
 ```dafny
-{% include_relative examples/Example-TwoState-Increasing.dfy %}
-```
+class Cell { var data: int  constructor(i: int) { data := i; } }
+twostate predicate Increasing(c: Cell)
+  reads c
+{
+  old(c.data) <= c.data
+}
+``` <!-- %save Increasing.tmp -->
 returns `true` if the value of `c.data` has not been reduced from the old state to the
 current. Dereferences in the current heap are written as usual (e.g., `c.data`) and
 must, as usual, be accounted for in the function's `reads` clause. Dereferences in the
@@ -2254,8 +2434,18 @@ This is done by labeling a state in the caller and passing in the label, just li
 this is done with the built-in `old` function.
 
 For example, the following assertions all hold:
+<!-- %check-verify %use Increasing.tmp -->
 ```dafny
-{% include_relative examples/Example-TwoState-Caller.dfy %}
+method Caller(c: Cell)
+  modifies c
+{
+  c.data := c.data + 10;
+  label L:
+  assert Increasing(c);
+  c.data := c.data - 2;
+  assert Increasing(c);
+  assert !Increasing@L(c);
+}
 ```
 The first call to `Increasing` uses `Caller`'s initial state as the old-heap parameter,
 and so does the second call. The third call instead uses as the old-heap parameter
@@ -2275,15 +2465,38 @@ program point.
 Any parameter (including the receiver parameter, if any) passed to a two-state function
 must have been allocated already in the old state. For example, the second call to
 `Diff` in method `M` is illegal, since `d` was not allocated on entry to `M`:
+<!-- %check-verify Types.11.expect %use Increasing.tmp -->
 ```dafny
-{% include_relative examples/Example-TwoState-Diff.dfy %}
+twostate function Diff(c: Cell, d: Cell): int
+  reads d
+{
+  d.data - old(c.data)
+}
+
+method M(c: Cell) {
+  var d := new Cell(10);
+  label L:
+  ghost var x := Diff@L(c, d);
+  ghost var y := Diff(c, d); // error: d is not allocated in old state
+}
 ```
 
 A two-state function can declare that it only assumes a parameter to be allocated
 in the current heap. This is done by preceding the parameter with the `new` modifier,
 as illustrated in the following example, where the first call to `DiffAgain` is legal:
+<!-- %check-verify Types.12.expect %use Increasing.tmp -->
 ```dafny
-{% include_relative examples/Example-TwoState-DiffAgain.dfy %}
+twostate function DiffAgain(c: Cell, new d: Cell): int
+  reads d
+{
+  d.data - old(c.data)
+}
+
+method P(c: Cell) {
+  var d := new Cell(10);
+  ghost var x := DiffAgain(c, d);
+  ghost var y := DiffAgain(d, c); // error: d is not allocated in old state
+}
 ```
 
 A _two-state lemma_ works in an analogous way. It is a lemma with both a current-heap
@@ -2293,8 +2506,35 @@ use the `new` modifier, and the old-heap parameter is by default passed in as
 the caller's old heap, which can be changed by using an `@`-parameter.
 
 Here is an example of something useful that can be done with a two-state lemma:
+<!-- %check-verify %use Increasing.tmp -->
 ```dafny
-{% include_relative examples/Example-TwoState-SeqSum.dfy %}
+function SeqSum(s: seq<Cell>): int
+  reads s
+{
+  if s == [] then 0 else s[0].data + SeqSum(s[1..])
+}
+
+twostate lemma IncSumDiff(s: seq<Cell>)
+  requires forall c :: c in s ==> Increasing(c)
+  ensures old(SeqSum(s)) <= SeqSum(s)
+{
+  if s == [] {
+  } else {
+    calc {
+      old(SeqSum(s));
+    ==  // def. SeqSum
+      old(s[0].data + SeqSum(s[1..]));
+    ==  // distribute old
+      old(s[0].data) + old(SeqSum(s[1..]));
+    <=  { assert Increasing(s[0]); }
+      s[0].data + old(SeqSum(s[1..]));
+    <=  { IncSumDiff(s[1..]); }
+      s[0].data + SeqSum(s[1..]);
+    ==  // def. SeqSum
+      SeqSum(s);
+    }
+  }
+}
 ```
 
 A two-state function can be used as a first-class function value, where the receiver
@@ -2306,8 +2546,16 @@ support for giving the old-heap parameter explicitly. A caller can work
 around this restriction by using (fancy-word alert!) eta-expansion, meaning
 wrapping a lambda expression around the call, as in `x => p.F<int>@L(x)`.
 The following example illustrates using such an eta-expansion:
+<!-- %check-verify -->
 ```dafny
-{% include_relative examples/Example-TwoState-EtaExample.dfy %}
+class P {
+  twostate function F<X>(x: X): X
+}
+
+method EtaExample(p: P) returns (ghost f: int -> int) {
+  label L:
+  f := x => p.F<int>@L(x);
+}
 ```
 
 ## 13.4. Function Declarations {#sec-function-declarations}
@@ -2381,6 +2629,7 @@ mutable data structures, or if the implementation is done with a loop.
 For example, here is the standard definition of the Fibonacci function
 but with an efficient implementation that uses a loop:
 
+<!-- %check-verify -->
 ```dafny
 function Fib(n: nat): nat {
   if n < 2 then n else Fib(n - 2) + Fib(n - 1)
@@ -2428,6 +2677,7 @@ read memory that was specified in its `reads` expression but is not
 allowed to have any side effects.
 
 Here is an example function declaration:
+<!-- %no-check -->
 ```dafny
 function {:att1}{:att2} F<T1, T2>(a: A, b: B, c: C): T
   requires Pre
@@ -2457,6 +2707,7 @@ postcondition can be a convenient place to declare properties of the
 function that may require an inductive proof to establish, such as when
 the function is recursive. For example:
 
+<!-- %check-verify -->
 ```dafny
 function Factorial(n: int): int
   requires 0 <= n
@@ -2474,6 +2725,7 @@ a call of the function, such as `Factorial(n)` in the example above.
 Alternatively, a name for the function result can be given in the signature,
 as in the following rewrite of the example above.
 
+<!-- %check-verify -->
 ```dafny
 function Factorial(n: int): (f: int)
   requires 0 <= n
@@ -2557,11 +2809,12 @@ consider the following example, which specifies reachability between
 nodes in a directed graph. A `Node` is declared to have any number of
 children:
 
-```
+<!-- %check-verify -->
+```dafny
 class Node {
   var children: seq<Node>
 }
-```
+``` <!-- %save Node.tmp -->
 
 There are several ways one could specify reachability between
 nodes. One way (which is used in `Test/dafny1/SchorrWaite.dfy` in the
@@ -2569,7 +2822,8 @@ Dafny test suite) is to define a type `Path`, representing lists of
 `Node`s, and to define a predicate that checks if a given list of
 `Node`s is indeed a path between two given nodes:
 
-```
+<!-- %check-verify %use Node.tmp -->
+```dafny
 datatype Path = Empty | Extend(Path, Node)
 
 predicate ReachableVia(source: Node, p: Path, sink: Node, S: set<Node>)
@@ -2582,7 +2836,7 @@ predicate ReachableVia(source: Node, p: Path, sink: Node, S: set<Node>)
   case Extend(prefix, n) =>
     n in S && sink in n.children && ReachableVia(source, prefix, n, S)
 }
-```
+``` <!-- %save ReachableVia.tmp -->
 
 In a nutshell, the definition of `ReachableVia` says
 
@@ -2605,7 +2859,8 @@ is a list of nodes in `S` and `source` can reach `sink` via `p`.
 
 Using predicate `ReachableVia`, we can now define reachability in `S`:
 
-```
+<!-- %check-resolve Types.13.expect %use ReachableVia.tmp -->
+```dafny
 predicate Reachable(source: Node, sink: Node, S: set<Node>)
   reads S
 {
@@ -2636,7 +2891,8 @@ Often, it is easy to show that a quantifier is close-ended. In fact,
 if the type of a bound variable does not contain any object
 references, then the quantifier is trivially close-ended. For example,
 
-```
+<!-- %no-check -->
+```dafny
 forall x: int :: x <= Square(x)
 ```
 
@@ -2644,7 +2900,8 @@ is trivially close-ended.
 
 Another innocent-looking quantifier occurs in the following example:
 
-```
+<!-- %check-resolve Types.14.expect -->
+```dafny
 predicate IsCommutative<X>(r: (X, X) -> bool)
 {
   forall x, y :: r(x, y) == r(y, x) // error: open-ended quantifier
@@ -2657,7 +2914,8 @@ the quantifier would be open-ended. One way to fix this predicate is
 to restrict it to non-heap based types, which is indicated with the
 `(!new)` type characteristic (see [Section 8.1.4](#sec-non-heap-based)):
 
-```
+<!-- %check-verify -->
+```dafny
 predicate IsCommutative<X(!new)>(r: (X, X) -> bool) // X is restricted to non-heap types
 {
   forall x, y :: r(x, y) == r(y, x) // allowed
@@ -2668,7 +2926,8 @@ Another way to make `IsCommutative` close-ended is to constrain the values
 of the bound variables `x` and `y`. This can be done by adding a parameter
 to the predicate and limiting the quantified values to ones in the given set:
 
-```
+<!-- %check-verify -->
+```dafny
 predicate IsCommutativeInS<X>(r: (X, X) -> bool, S: set<X>)
 {
   forall x, y :: x in S && y in S ==> r(x, y) == r(y, x) // close-ended
@@ -2683,7 +2942,8 @@ quantifier in `IsCommutativeInS` is determined to be close-ended.
 Note, the `x in S` trick does not work for the motivating example,
 `Reachable`. If you try to write
 
-```
+<!-- %check-resolve Types.15.expect %use ReachableVia.tmp -->
+```dafny
 predicate Reachable(source: Node, sink: Node, S: set<Node>)
   reads S
 {
@@ -2702,7 +2962,8 @@ less cluttered example.
 
 Suppose we rewrite `IsCommutativeInS` using a programmer-defined predicate `In`:
 
-```
+<!-- %check-resolve Types.16.expect -->
+```dafny
 predicate In<X>(x: X, S: set<X>) {
   x in S
 }
@@ -2718,7 +2979,8 @@ here, because the `in` operator is relegated to the body of predicate
 `In`. To inform the analysis that `In` is a predicate that, in effect,
 is like `in`, you can mark parameter `x` with `older`:
 
-```
+<!-- %check-verify -->
+```dafny
 predicate In<X>(older x: X, S: set<X>) {
   x in S
 }
@@ -2737,14 +2999,21 @@ returns `false`.
 Finally, let's get back to the motivating example. To allow the quantifier
 in `Reachable`, mark parameter `p` of `ReachableVia` with `older`:
 
-```
+<!-- %check-verify -->
+```dafny
+class Node {
+  var children: seq<Node>
+}
+
+datatype Path = Empty | Extend(Path, Node)
+
 predicate Reachable(source: Node, sink: Node, S: set<Node>)
   reads S
 {
   exists p :: ReachableVia(source, p, sink, S) // allowed because of 'older p' on ReachableVia
 }
 
-predicate ReachableVia(source: Node, older p: Path<Node>, sink: Node, S: set<Node>)
+predicate ReachableVia(source: Node, older p: Path, sink: Node, S: set<Node>)
   reads S
   decreases p
 {
@@ -2788,6 +3057,7 @@ the trait). More specifically, algebraic datatypes cannot extend traits.[^fn-tra
 [^fn-traits]: Traits are new to Dafny and are likely to evolve for a while.
 
 The declaration of a trait is much like that of a class:
+<!-- %no-check -->
 ```dafny
 trait J
 {
@@ -2936,11 +3206,13 @@ they cannot both be extendees of the same class or trait.
 
 ## 14.3. Example of traits
 As an example, the following trait represents movable geometric shapes:
+<!-- %check-verify -->
 ```dafny
 trait Shape
 {
   function method Width(): real
     reads this
+    decreases 1
   method Move(dx: real, dy: real)
     modifies this
   method MoveH(dx: real)
@@ -2949,17 +3221,20 @@ trait Shape
     Move(dx, 0.0);
   }
 }
-```
+``` <!-- %save Shape.tmp -->
 Members `Width` and `Move` are _abstract_ (that is, body-less) and can
 be implemented differently by different classes that extend the trait.
 The implementation of method `MoveH` is given in the trait and thus
 is used by all classes that extend `Shape`.  Here are two classes
 that each extend `Shape`:
+<!-- %check-verify %use Shape.tmp -->
 ```dafny
 class UnitSquare extends Shape
 {
   var x: real, y: real
-  function method Width(): real {  // note the empty reads clause
+  function method Width(): real 
+    decreases 0
+  {  // note the empty reads clause
     1.0
   }
   method Move(dx: real, dy: real)
@@ -2974,6 +3249,7 @@ class LowerRightTriangle extends Shape
   var xNW: real, yNW: real, xSE: real, ySE: real
   function method Width(): real
     reads this
+    decreases 0
   {
     xSE - xNW
   }
@@ -2983,7 +3259,7 @@ class LowerRightTriangle extends Shape
     xNW, yNW, xSE, ySE := xNW + dx, yNW + dy, xSE + dx, ySE + dy;
   }
 }
-```
+``` <!-- %save UnitSquare.tmp -->
 Note that the classes can declare additional members, that they supply
 implementations for the abstract members of the trait,
 that they repeat the member signatures, and that they are responsible
@@ -2992,15 +3268,18 @@ corresponding specification in the trait and are satisfied by the
 provided body.
 Finally, here is some code that creates two class instances and uses
 them together as shapes:
+<!-- %check-verify %use UnitSquare.tmp -->
 ```dafny
-var myShapes: seq<Shape>;
-var A := new UnitSquare;
-myShapes := [A];
-var tri := new LowerRightTriangle;
-// myShapes contains two Shape values, of different classes
-myShapes := myShapes + [tri];
-// move shape 1 to the right by the width of shape 0
-myShapes[1].MoveH(myShapes[0].Width());
+method m() {
+  var myShapes: seq<Shape>;
+  var A := new UnitSquare;
+  myShapes := [A];
+  var tri := new LowerRightTriangle;
+  // myShapes contains two Shape values, of different classes
+  myShapes := myShapes + [tri];
+  // move shape 1 to the right by the width of shape 0
+  myShapes[1].MoveH(myShapes[0].Width());
+}
 ```
 
 <!--PDF NEWPAGE-->
@@ -3012,7 +3291,7 @@ ArrayType_ = arrayToken [ GenericInstantiation ]
 Dafny supports mutable fixed-length _array types_ of any positive
 dimension.  Array types are (heap-based) reference types.
 
-`arrayToken` is a kind of [reserved token](#sec-reserved-tokens),
+`arrayToken` is a kind of [reserved token](#sec-reserved-words),
 such as `array`, `array2`, `array3`, an so on (but not `array1`).
 The suffix giving the element type can be omitted if the element type can be inferred, though in that case it is likely that the `arrayToken` itself is also
 inferrable and can be omitted.
@@ -3023,28 +3302,36 @@ A one-dimensional array of `n` `T` elements may be initialized by
 any expression that returns a value of the desired type.
 Commonly, [array allocation expressions](#sec-array-allocation) are used.
 Some examples are shown here:
+<!-- %check-verify %options --relax-definite-assignment -->
 ```dafny
-a := new T[n];
-b: array<int> := new int[8];
-c: array := new T[9];
+type T(0)
+method m(n: nat) {
+  var a := new T[n];
+  var b: array<int> := new int[8];
+  var c: array := new T[9];
+}
 ```
 The initial values of the array elements are arbitrary values of type
 `T`. 
 A one-dimensional array value can also be assigned using an ordered list of expressions enclosed in square brackets, as follows:
+<!-- %no-check -->
 ```dafny
 a := new T[] [t1, t2, t3, t4];
 ```
 The initialization can also use an expression that returns a function of type `nat -> T`:
+<!-- %no-check -->
 ```dafny
 a := new int[5](i => i*i);
 ```
 In fact, the initializer can simply be a function name for the right type of function:
+<!-- %no-check -->
 ```dafny
 a := new int[5](Square);
 ```
 
 The length of an array is retrieved using the immutable `Length`
 member.  For example, the array allocated with `a := new T[n];` satisfies:
+<!-- %no-check -->
 ```dafny
 a.Length == n
 ```
@@ -3055,6 +3342,7 @@ the _array selection_ expression `a[i]` retrieves element `i` (that
 is, the element preceded by `i` elements in the array).  The
 element stored at `i` can be changed to a value `t` using the array
 update statement:
+<!-- %no-check -->
 ```dafny
 a[i] := t;
 ```
@@ -3063,11 +3351,15 @@ Caveat: The type of the array created by `new T[n]` is
 `array<T>`.  A mistake that is simple to make and that can lead to
 befuddlement is to write `array<T>` instead of `T` after `new`.
 For example, consider the following:
+<!-- %check-resolve Types.17.expect -->
 ```dafny
-var a := new array<T>;
-var b := new array<T>[n];
-var c := new array<T>(n);  // resolution error
-var d := new array(n);  // resolution error
+type T(0)
+method m(n: nat) {
+  var a := new array<T>;
+  var b := new array<T>[n];
+  var c := new array<T>(n);  // resolution error
+  var d := new array(n);  // resolution error
+}
 ```
 The first statement allocates an array of type `array<T>`, but of
 unknown length.  The second allocates an array of type
@@ -3112,15 +3404,18 @@ The subarray operations are especially useful in specifications.  For
 example, the loop invariant of a binary search algorithm that uses
 variables `lo` and `hi` to delimit the subarray where the search `key`
 may still be found can be expressed as follows:
+<!-- %no-check -->
 ```dafny
 key !in a[..lo] && key !in a[hi..]
 ```
 Another use is to say that a certain range of array elements have not
 been changed since the beginning of a method:
+<!-- %no-check -->
 ```dafny
 a[lo..hi] == old(a[lo..hi])
 ```
 or since the beginning of a loop:
+<!-- %no-check -->
 ```dafny
 ghost var prevElements := a[..];
 while // ...
@@ -3137,6 +3432,7 @@ array's elements are a permutation of the array's elements at the
 beginning of a method, as would be done in most sorting algorithms.
 Here, the subarray operation is combined with the sequence-to-multiset
 conversion:
+<!-- %no-check -->
 ```dafny
 multiset(a[..]) == multiset(old(a[..]))
 ```
@@ -3147,6 +3443,7 @@ An array of 2 or more dimensions is mostly like a one-dimensional
 array, except that `new` takes more length arguments (one for each
 dimension), and the array selection expression and the array update
 statement take more indices.  For example:
+<!-- %no-check -->
 ```dafny
 matrix := new T[m, n];
 matrix[i, j], matrix[x, y] := matrix[x, y], matrix[i, j];
@@ -3163,6 +3460,7 @@ The `new` operation above requires `m` and `n` to be non-negative
 integer-based numerics.  These lengths can be retrieved using the
 immutable fields `Length0` and `Length1`.  For example, the following
 holds for the array created above:
+<!-- %no-check -->
 ```dafny
 matrix.Length0 == m && matrix.Length1 == n
 ```
@@ -3170,6 +3468,7 @@ Higher-dimensional arrays are similar (`Length0`, `Length1`,
 `Length2`, ...).  The array selection expression and array update
 statement require that the indices are in bounds.  For example, the
 swap statement above is well-formed only if:
+<!-- %no-check -->
 ```dafny
 0 <= i < matrix.Length0 && 0 <= j < matrix.Length1 &&
 0 <= x < matrix.Length0 && 0 <= y < matrix.Length1
@@ -3205,6 +3504,7 @@ counter and control can be transferred into and out of the iterator
 body.
 
 An iterator is declared as follows:
+<!-- %no-check -->
 ```dafny
 iterator Iter<T>(_in-params_) yields (_yield-params_)
   _specification_
@@ -3228,6 +3528,7 @@ members, a simplified version of which is described next.
 
 The `Iter<T>` class contains an anonymous constructor whose parameters
 are the iterator's in-parameters:
+<!-- %no-check -->
 ```dafny
 predicate Valid()
 constructor (_in-params_)
@@ -3237,6 +3538,7 @@ constructor (_in-params_)
 An iterator is created using `new` and this anonymous constructor.
 For example, an iterator willing to return ten consecutive integers
 from `start` can be declared as follows:
+<!-- %check-verify -->
 ```dafny
 iterator Gen(start: int) yields (x: int)
   yield ensures |xs| <= 10 && x == start + |xs| - 1
@@ -3248,13 +3550,15 @@ iterator Gen(start: int) yields (x: int)
     i := i + 1;
   }
 }
-```
+``` <-- %save Gen.tmp -->
 An instance of this iterator is created using
+<!-- %no-check -->
 ```dafny
 iter := new Gen(30);
 ```
 It is used like this:
-```
+<!-- %check-verify %use Gen.tmp -->
+```dafny
 method Main() {
   var i := new Gen(30);
   while true
@@ -3271,6 +3575,7 @@ method Main() {
 The predicate `Valid()` says when the iterator is in a state where one
 can attempt to compute more elements.  It is a postcondition of the
 constructor and occurs in the specification of the `MoveNext` member:
+<!-- %no-check -->
 ```dafny
 method MoveNext() returns (more: bool)
   requires Valid()
@@ -3286,10 +3591,12 @@ iterator is allowed to keep returning elements forever.
 The in-parameters of the iterator are stored in immutable fields of
 the iterator class.  To illustrate in terms of the example above, the
 iterator class `Gen` contains the following field:
+<!-- %no-check -->
 ```dafny
 const start: int
 ```
 The yield-parameters also result in members of the iterator class:
+<!-- %no-check -->
 ```dafny
 var x: int
 ```
@@ -3303,6 +3610,7 @@ ghost members that keep the history of values returned by
 yield-parameters with an "`s`" appended to the name (to suggest
 plural).  Name checking rules make sure these names do not give rise
 to ambiguities.  The iterator class for `Gen` above thus contains:
+<!-- %no-check -->
 ```dafny
 ghost var xs: seq<int>
 ```
@@ -3312,6 +3620,7 @@ not assignable by user code.
 Finally, the iterator class contains some special fields for use in
 specifications.  In particular, the iterator specification is
 recorded in the following immutable fields:
+<!-- %no-check -->
 ```dafny
 ghost var _reads: set<object>
 ghost var _modifies: set<object>
@@ -3323,6 +3632,7 @@ where there is a `_decreases(`_i_`): T(`_i_`)` field for each
 component of the iterator's `decreases`
 clause.[^fn-iterator-field-names]
 In addition, there is a field:
+<!-- %no-check -->
 ```dafny
 ghost var _new: set<object>;
 ```
@@ -3346,25 +3656,27 @@ It is regrettably tricky to use iterators. The language really
 ought to have a `foreach` statement to make this easier.
 Here is an example showing a definition and use of an iterator.
 
+<!-- %check-verify -->
 ```dafny
-iterator Iter<T>(s: set<T>) yields (x: T)
+iterator Iter<T(0)>(s: set<T>) yields (x: T)
   yield ensures x in s && x !in xs[..|xs|-1];
   ensures s == set z | z in xs;
 {
   var r := s;
   while (r != {})
-    invariant forall z :: z in xs ==> x !in r;
-                                 // r and xs are disjoint
+    invariant r !! set z | z in xs
     invariant s == r + set z | z in xs;
   {
     var y :| y in r;
+    assert y !in xs;
     r, x := r - {y}, y;
+    assert y !in xs;
     yield;
     assert y == xs[|xs|-1]; // a lemma to help prove loop invariant
   }
 }
 
-method UseIterToCopy<T>(s: set<T>) returns (t: set<T>)
+method UseIterToCopy<T(0)>(s: set<T>) returns (t: set<T>)
   ensures s == t;
 {
   t := {};
@@ -3392,6 +3704,7 @@ evolution is _asynchronous methods_.  When an asynchronous method is
 called, it does not return values for the out-parameters, but instead
 returns an instance of an _async-task type_.  An asynchronous method
 declared in a class `C` with the following signature:
+<!-- %no-check -->
 ```dafny
 async method AM<T>(\(_in-params_\)) returns (\(_out-params_\))
 ```
@@ -3402,10 +3715,12 @@ with various members, a simplified version of which is described next.
 
 Each in-parameter `x` of type `X` of the asynchronous method gives
 rise to a immutable ghost field of the async-task type:
+<!-- %no-check -->
 ```dafny
 ghost var x: X;
 ```
 Each out-parameter `y` of type `Y` gives rise to a field
+<!-- %no-check -->
 ```dafny
 var y: Y;
 ```
@@ -3435,6 +3750,7 @@ Arrow types have the form `(TT) ~> U` where `TT` is a (possibly empty)
 comma-delimited list of types and `U` is a type.
 `TT` is called the function's _domain type(s)_ and `U` is its
 _range type_.  For example, the type of a function
+<!-- %check-resolve -->
 ```dafny
 function F(x: int, arr: array<bool>): real
   requires x < 1000
@@ -3451,6 +3767,7 @@ and the subset type `(TT) -> U` denotes total functions.
 
 A function declared without a `reads` clause is known by the type
 checker to be a partial function. For example, the type of
+<!-- %check-resolve -->
 ```dafny
 function F(x: int, b: bool): real
   requires x < 1000
@@ -3459,6 +3776,7 @@ is `(int, bool) --> real`.
 Similarly, a function declared with neither a `reads` clause nor a
 `requires` clause is known by the type checker to be a total function.
 For example, the type of
+<!-- %check-resolve -->
 ```dafny
 function F(x: int, b: bool): real
 ```
@@ -3475,6 +3793,7 @@ case where that one type is a tuple type, since tuple types are also
 written with enclosing parentheses.
 If the function takes a single argument that is a tuple, an additional
 set of parentheses is needed.  For example, the function
+<!-- %check-resolve -->
 ```dafny
 function G(pair: (int, bool)): real
 ```
@@ -3482,6 +3801,7 @@ has type `((int, bool)) -> real`.  Note the necessary double
 parentheses.  Similarly, a function that takes no arguments is
 different from one that takes a 0-tuple as an argument.  For instance,
 the functions
+<!-- %check-resolve -->
 ```dafny
 function NoArgs(): real
 function Z(unit: ()): real
@@ -3500,10 +3820,12 @@ then be thought of as being captured into the function definition.
 For example, suppose function `F` above is declared in a class `C` and
 that `c` references an object of type `C`; then, the following is type
 correct:
+<!-- %no-check -->
 ```dafny
 var f: (int, bool) -> real := c.F;
 ```
 whereas it would have been incorrect to have written something like:
+<!-- %no-check -->
 ```dafny
 var f': (C, int, bool) -> real := F;  // not correct
 ```
@@ -3512,7 +3834,8 @@ The arrow types themselves do not divide its parameters into ghost
 versus non-ghost. Instead, a function used as a first-class value is
 considered to be ghost if either the function or any of its arguments
 is ghost. The following example program illustrates:
-``` dafny
+<!-- %check-resolve Types.18.expect -->
+```dafny
 function method F(x: int, ghost y: int): int
 {
   x
@@ -3556,12 +3879,14 @@ Note that `f.reads` and `f.requires` are themselves functions.
 Suppose `f` has type `T ~> U` and `t` has type `T`.  Then, `f.reads`
 is a function of type `T ~> set<object?>` whose `reads` and `requires`
 properties are:
+<!-- %no-check -->
 ```dafny
 f.reads.reads(t) == f.reads(t)
 f.reads.requires(t) == true
 ```
 `f.requires` is a function of type `T ~> bool` whose `reads` and
 `requires` properties are:
+<!-- %no-check -->
 ```dafny
 f.requires.reads(t) == f.reads(t)
 f.requires.requires(t) == true
@@ -3582,6 +3907,7 @@ TupleType = "(" [ [ "ghost" ] Type { "," [ "ghost" ] Type } ] ")"
 Dafny builds in record types that correspond to tuples and gives these
 a convenient special syntax, namely parentheses.  For example, for what
 might have been declared as
+<!-- %check-resolve -->
 ```dafny
 datatype Pair<T,U> = Pair(0: T, 1: U)
 ```
@@ -3593,8 +3919,11 @@ Note that
 the destructor names are `0` and `1`, which are legal identifier names
 for members.  For example, showing the use of a tuple destructor, here
 is a property that holds of 2-tuples (that is, _pairs_):
+<!-- %check-verify -->
 ```dafny
-(5, true).1 == true
+method m(){
+  assert (5, true).1 == true;
+}
 ```
 
 Dafny declares _n_-tuples where _n_ is 0 or 2 or more.  There are no
@@ -3603,8 +3932,9 @@ no semantic meaning.  The 0-tuple type, `()`, is often known as the
 _unit type_ and its single value, also written `()`, is known as _unit_.
 
 The `ghost` modifier can be used to mark tuple components as being used for specification only:
+<!-- %check-resolve -->
 ```dafny
-var pair: (int, ghost int) := (1, ghost 2);
+const pair: (int, ghost int) := (1, ghost 2)
 ```
 
 <!--PDF NEWPAGE-->
@@ -3640,12 +3970,14 @@ inductive datatypes can be compared using Dafny's well-founded
 `<` ordering.
 
 An inductive datatype is declared as follows:
+<!-- %no-check -->
 ```dafny
 datatype D<T> = _Ctors_
 ```
 where _Ctors_ is a nonempty `|`-separated list of
 _(datatype) constructors_ for the datatype.  Each constructor has the
 form:
+<!-- %no-check -->
 ```dafny
 C(_params_)
 ```
@@ -3655,6 +3987,7 @@ preceded by the keyword `ghost`.  If a constructor has no parameters,
 the parentheses after the constructor name may be omitted.  If no
 constructor takes a parameter, the type is usually called an
 _enumeration_; for example:
+<!-- %check-resolve -->
 ```dafny
 datatype Friends = Agnes | Agatha | Jermaine | Jack
 ```
@@ -3666,14 +3999,19 @@ constructor `C`, Dafny defines a _destructor_ `p`, which is a member
 that returns the `p` parameter from the `C` call used to construct the
 datatype value; its use requires that `C?` holds.  For example, for
 the standard `List` type
+<!-- %check-resolve -->
 ```dafny
 datatype List<T> = Nil | Cons(head: T, tail: List<T>)
-```
+``` <!-- %save List.tmp -->
 the following holds:
+<!-- %check-verify %use List.tmp -->
 ```dafny
-Cons(5, Nil).Cons? && Cons(5, Nil).head == 5
+method m() {
+  assert Cons(5, Nil).Cons? && Cons(5, Nil).head == 5;
+}
 ```
 Note that the expression
+<!-- %no-check -->
 ```dafny
 Cons(5, Nil).tail.head
 ```
@@ -3685,6 +4023,7 @@ the enclosing datatype; this is especially useful for
 single-constructor datatypes, which are often called
 _record types_.  For example, a record type for black-and-white pixels
 might be represented as follows:
+<!-- %check-resolve -->
 ```dafny
 datatype Pixel = Pixel(x: int, y: int, on: bool)
 ```
@@ -3693,6 +4032,7 @@ To call a constructor, it is usually necessary only to mention the
 name of the constructor, but if this is ambiguous, it is always
 possible to qualify the name of constructor by the name of the
 datatype.  For example, `Cons(5, Nil)` above can be written
+<!-- %no-check -->
 ```dafny
 List.Cons(5, List.Nil)
 ```
@@ -3703,26 +4043,32 @@ given datatype value using the _datatype update_ expression.  For any
 `d` whose type is a datatype that includes a constructor `C` that has
 a parameter (destructor) named `f` of type `T`, and any expression `t`
 of type `T`,
+<!-- %no-check -->
 ```dafny
 d.(f := t)
 ```
 constructs a value like `d` but whose `f` parameter is `t`.  The
 operation requires that `d` satisfies `C?`.  For example, the
 following equality holds:
+<!-- %check-verify %use List.tmp -->
 ```dafny
-Cons(4, Nil).(tail := Cons(3, Nil)) == Cons(4, Cons(3, Nil))
+method m(){
+  assert Cons(4, Nil).(tail := Cons(3, Nil)) == Cons(4, Cons(3, Nil));
+}
 ```
 
 The datatype update expression also accepts multiple field
 names, provided these are distinct. For example, a node of some
 inductive datatype for trees may be updated as follows:
 
+<!-- %no-check -->
 ```dafny
 node.(left := L, right := R)
 ```
 
 The operator `<` is defined for two operands of the same datataype.
 It means _is properly contained in_. For example, in the code
+<!-- %check-verify Types.19.expect -->
 ```dafny
 datatype X = T(t: X) | I(i: int)
 method comp() {
@@ -3758,6 +4104,7 @@ using the keyword `codatatype`; other than that, it is declared and
 used like an inductive datatype.
 
 For example,
+<!-- %check-verify -->
 ```dafny
 codatatype IList<T> = Nil | Cons(head: T, tail: IList<T>)
 codatatype Stream<T> = More(head: T, tail: Stream<T>)
@@ -3804,6 +4151,7 @@ greatest and least lemmas provide a syntactic veneer around this approach.
 The following example gives a taste of how the coinductive features in
 Dafny come together to give straightforward definitions of infinite
 matters.
+<!-- %check-verify Types.20.expect -->
 ```dafny
 // infinite streams
 codatatype IStream<T> = ICons(head: T, tail: IStream<T>)
@@ -3909,11 +4257,13 @@ keyword `lemma` introduces such a method. Control flow statements
 correspond to proof techniques—case splits are introduced with if
 statements, recursion and loops are used for induction, and method calls
 for structuring the proof. Additionally, the statement:
+<!-- %no-check -->
 ```dafny
 forall x | P(x) { Lemma(x); }
 ```
 is used to invoke `Lemma(x)` on all `x` for which `P(x)` holds. If
 `Lemma(x)` ensures `Q(x)`, then the forall statement establishes
+<!-- %no-check -->
 ```dafny
 forall x :: P(x) ==> Q(x).
 ```
@@ -3930,6 +4280,7 @@ of a datatype, giving prominence to the constructors (following Coq). The
 following example defines a co-datatype Stream of possibly
 infinite lists.
 
+<!-- %check-verify -->
 ```dafny
 codatatype Stream<T> = SNil | SCons(head: T, tail: Stream)
 function Up(n: int): Stream<int> { SCons(n, Up(n+1)) }
@@ -3941,7 +4292,7 @@ function FivesUp(n: int): Stream<int>
   else
     FivesUp(n+1)
 }
-```
+``` <!-- %save Stream.tmp -->
 
 `Stream` is a coinductive datatype whose values are possibly infinite
 lists. Function `Up` returns a stream consisting of all integers upwards
@@ -4007,14 +4358,18 @@ liberty of making up a coordinating syntax for the signature of the
 automatically generated prefix predicate (which is not part of
 Dafny syntax).
 
+<!-- %check-resolve %use Stream.tmp -->
 ```dafny
-greatest predicate Pos(s: Stream<int>)
+greatest predicate Pos[nat](s: Stream<int>)
 {
   match s
   case SNil => true
   case SCons(x, rest) => x > 0 && Pos(rest)
 }
-// Automatically generated by the Dafny compiler:
+``` <!-- %save Pos.tmp -->
+The following code is automatically generated by the Dafny compiler:
+<!-- %no-check -->
+```dafny
 predicate Pos#[_k: nat](s: Stream<int>)
   decreases _k
 { if _k == 0 then true else
@@ -4090,6 +4445,7 @@ we take the time-honored approach of reducing coinduction to
 induction. More precisely, Dafny passes to the SMT solver an
 assumption `D(P)` for every greatest predicate `P`, where:
 
+<!-- %no-check -->
 ```dafny
 D(P) = forall x • P(x) <==> forall k • P#[k](x)
 ```
@@ -4102,6 +4458,7 @@ assumptions is given, provided the greatest predicates meet the continous
 restrictions. An example proof of `Pos(Up(n))` for every `n > 0` is
 shown here:
 
+<!-- %check-verify %use Pos.tmp -->
 ```dafny
 lemma UpPosLemma(n: int)
   requires n > 0
@@ -4138,6 +4495,7 @@ write explicit quantifications over `k`. The second benefit is that, in
 simple cases, the bodies of greatest lemmas can be understood as coinductive
 proofs directly. As an example consider the following greatest lemma.
 
+<!-- %no-check -->
 ```dafny
 greatest lemma UpPosLemma(n: int)
   requires n > 0

@@ -4,9 +4,9 @@
 module _System {
   /* CALL GRAPH for module _System:
    * SCC at height 1:
-   *   RotateRight
-   * SCC at height 1:
    *   RotateLeft
+   * SCC at height 1:
+   *   RotateRight
    * SCC at height 0:
    *   nat
    */
@@ -105,27 +105,25 @@ module _System {
 module OneModule {
   /* CALL GRAPH for module OneModule:
    * SCC at height 2:
-   *   C.NoBody
-   * SCC at height 2:
-   *   C.TL
+   *   C.F
    * SCC at height 2:
    *   C.L
    * SCC at height 2:
-   *   C.Query
-   * SCC at height 2:
    *   C.Mutating
+   * SCC at height 2:
+   *   C.NoBody
    * SCC at height 2:
    *   C.P
    * SCC at height 2:
-   *   C._ctor
+   *   C.Query
    * SCC at height 2:
-   *   C.F
+   *   C.TL
+   * SCC at height 2:
+   *   C._ctor
    * SCC at height 1:
    *   C.Valid
    * SCC at height 0:
    *   D.Valid
-   * SCC at height 0:
-   *   nat
    */
   class {:autocontracts} D {
     ghost var Repr: set<object?>
@@ -260,23 +258,23 @@ module OneModule {
 module N0 {
   /* CALL GRAPH for module N0:
    * SCC at height 1:
-   *   C.B
-   * SCC at height 1:
    *   C.A
+   * SCC at height 1:
+   *   C.B
    * SCC at height 1:
    *   C.C
    * SCC at height 1:
-   *   C.M
+   *   C.K
    * SCC at height 1:
    *   C.L
    * SCC at height 1:
-   *   C.K
+   *   C.M
    * SCC at height 1:
-   *   C.Z
+   *   C.X
    * SCC at height 1:
    *   C.Y
    * SCC at height 1:
-   *   C.X
+   *   C.Z
    * SCC at height 0:
    *   C.Valid
    */
@@ -354,23 +352,23 @@ module N0 {
 module N1 refines N0 {
   /* CALL GRAPH for module N1:
    * SCC at height 1:
-   *   C.M
-   * SCC at height 1:
-   *   C.L
-   * SCC at height 1:
-   *   C.K
-   * SCC at height 1:
-   *   C.C
+   *   C.A
    * SCC at height 1:
    *   C.B
    * SCC at height 1:
-   *   C.A
+   *   C.C
    * SCC at height 1:
-   *   C.Z
+   *   C.K
+   * SCC at height 1:
+   *   C.L
+   * SCC at height 1:
+   *   C.M
+   * SCC at height 1:
+   *   C.X
    * SCC at height 1:
    *   C.Y
    * SCC at height 1:
-   *   C.X
+   *   C.Z
    * SCC at height 0:
    *   C.Valid
    */
@@ -454,23 +452,23 @@ module N1 refines N0 {
 module N2 refines N1 {
   /* CALL GRAPH for module N2:
    * SCC at height 1:
-   *   C.M
-   * SCC at height 1:
-   *   C.L
-   * SCC at height 1:
-   *   C.K
-   * SCC at height 1:
-   *   C.C
+   *   C.A
    * SCC at height 1:
    *   C.B
    * SCC at height 1:
-   *   C.A
+   *   C.C
    * SCC at height 1:
-   *   C.Z
+   *   C.K
+   * SCC at height 1:
+   *   C.L
+   * SCC at height 1:
+   *   C.M
+   * SCC at height 1:
+   *   C.X
    * SCC at height 1:
    *   C.Y
    * SCC at height 1:
-   *   C.X
+   *   C.Z
    * SCC at height 0:
    *   C.Valid
    */

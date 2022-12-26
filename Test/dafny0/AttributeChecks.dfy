@@ -235,6 +235,143 @@ module JustAboutEverything {
   method ModifyStatement(s: set<object>) {
     modify {:myAttr false + 3} s; // error: false + 3 is ill-typed
   }
+
+  method LocalVariablesAndAssignments(opt: Option<int>, mustHave: MustHave<int>) returns (r: Option<int>) {
+    // variables declared with attributes
+    var
+      {:boolAttr false + 3} a: int, // error: false + 3 is ill-typed
+      {:boolAttr false + 3} b: int; // error: false + 3 is ill-typed
+
+    // simple assignments, where each RHS has an attribute
+    var x, y :=
+      10 {:boolAttr false + 3}, // error: false + 3 is ill-typed
+      20 {:boolAttr false + 3}; // error: false + 3 is ill-typed
+    x, y :=
+      10 {:boolAttr false + 3}, // error: false + 3 is ill-typed
+      20 {:boolAttr false + 3}; // error: false + 3 is ill-typed
+
+    // method call, where either the variable or the RHS has an attribute
+    var {:boolAttr false + 3} u0 := If(13); // error: false + 3 is ill-typed
+    var u1 := If(13) {:boolAttr false + 3}; // error: false + 3 is ill-typed
+    u1 := If(13) {:boolAttr false + 3}; // error: false + 3 is ill-typed
+
+    // arbitrary assignment, where either the variable or the RHS has an attribute
+    var {:boolAttr false + 3} k0: int := *; // error: false + 3 is ill-typed
+    var k1: int := * {:boolAttr false + 3}; // error: false + 3 is ill-typed
+    k1 := * {:boolAttr false + 3}; // error: false + 3 is ill-typed
+
+    // allocation, where either the variable or the RHS has an attribute
+    var {:boolAttr false + 3} c0 := new CClass; // error: false + 3 is ill-typed
+    var c1 := new CClass {:boolAttr false + 3}; // error: false + 3 is ill-typed
+    c1 := new CClass {:boolAttr false + 3}; // error: false + 3 is ill-typed
+    var {:boolAttr false + 3} d0 := new DClass(); // error: false + 3 is ill-typed
+    var d1 := new DClass() {:boolAttr false + 3}; // error: false + 3 is ill-typed
+    d1 := new DClass() {:boolAttr false + 3}; // error: false + 3 is ill-typed
+
+    // assign-such-that, where variable has an attribute
+    var s := {101};
+    var {:boolAttr false + 3} w0 :| w0 in s; // error: false + 3 is ill-typed
+    var
+      {:boolAttr false + 3} w1, // error: false + 3 is ill-typed
+      {:boolAttr false + 3} w2 // error: false + 3 is ill-typed
+      :| w1 in s && w2 in s;
+
+    // assign-such-that, where assume has an attribute
+    w1, w2 :| assume {:boolAttr false + 3} w1 in s && w2 in s; // error: false + 3 is ill-typed
+
+    // :- with expression RHS, where variable declarations have attributes
+    var {:boolAttr false + 3} f0 :- opt;
+    var
+      {:boolAttr false + 3} f1, // error: false + 3 is ill-typed
+      {:boolAttr false + 3} f2 // error: false + 3 is ill-typed
+      :- opt, true;
+    // :- with call RHS, where variable declarations have attributes
+    var {:boolAttr false + 3} f3 :- GiveOption();
+    var
+      {:boolAttr false + 3} f4, // error: false + 3 is ill-typed
+      {:boolAttr false + 3} f5 // error: false + 3 is ill-typed
+      :- GiveOptions();
+
+    // :- with expression RHS, where RHSs have attributes
+    var g0 :- opt {:boolAttr false + 3}; // error: false + 3 is ill-typed
+    var g1, g2 :-
+      opt {:boolAttr false + 3}, // error: false + 3 is ill-typed
+      true {:boolAttr false + 3}; // error: false + 3 is ill-typed
+    var g3, g4, g5 :-
+      opt {:boolAttr false + 3}, // error: false + 3 is ill-typed
+      true {:boolAttr false + 4}, // error: false + 4 is ill-typed
+      true {:boolAttr false + 5}; // error: false + 5 is ill-typed
+    // :- with call RHS, where variable declarations have attributes
+    var g6 :- GiveOption() {:boolAttr false + 3}; // error: false + 3 is ill-typed
+    var g7, g8 :- GiveOptions() {:boolAttr false + 3}; // error: false + 3 is ill-typed
+
+    :- mustHave {:boolAttr false + 3}; // error: false + 3 is ill-typed
+    :- GiveMustHave() {:boolAttr false + 3}; // error: false + 3 is ill-typed
+
+    // :- with expression RHS, where assert/assume/expect has attributes
+    var p0 :- assert {:boolAttr false + 3} opt; // error: false + 3 is ill-typed
+    var p1 :- assume {:boolAttr false + 3} opt; // error: false + 3 is ill-typed
+    var p2 :- expect {:boolAttr false + 3} opt; // error: false + 3 is ill-typed
+    p0 :- assert {:boolAttr false + 3} opt; // error: false + 3 is ill-typed
+    p1 :- assume {:boolAttr false + 3} opt; // error: false + 3 is ill-typed
+    p2 :- expect {:boolAttr false + 3} opt; // error: false + 3 is ill-typed
+
+    // :- with call RHS, where variable declarations have attributes
+    var q0 :- assert {:boolAttr false + 3} GiveOption(); // error: false + 3 is ill-typed
+    var q1 :- assume {:boolAttr false + 3} GiveOption(); // error: false + 3 is ill-typed
+    var q2 :- expect {:boolAttr false + 3} GiveOption(); // error: false + 3 is ill-tyqed
+    q0 :- assert {:boolAttr false + 3} GiveOption(); // error: false + 3 is ill-tyqed
+    q1 :- assume {:boolAttr false + 3} GiveOption(); // error: false + 3 is ill-tyqed
+    q2 :- expect {:boolAttr false + 3} GiveOption(); // error: false + 3 is ill-typed
+
+    // let-such-that with an attribute
+    var i := var
+      a, b {:boolAttr false + 3} :| a == 0 && b == 1; // error: false + 3 is ill-typed
+      100;
+  }
+
+  function ExtendedPrintExpr(): int {
+    var
+      a, b {:boolAttr false + 3} :| a == 0 && b == 1; // error: false + 3 is ill-typed
+      100
+  }
+
+  class CClass {
+  }
+  class DClass {
+    constructor () { }
+  }
+
+  method GiveOption() returns (r: Option<int>)
+  method GiveOptions() returns (r: Option<int>, s: int)
+  method GiveMustHave() returns (r: MustHave<int>)
+
+  datatype Option<+T> = None | Some(value: T) {
+    predicate method IsFailure() {
+      None?
+    }
+    function method PropagateFailure<U>(): Option<U>
+      requires None?
+    {
+      None
+    }
+    function method Extract(): T
+      requires Some?
+    {
+      value
+    }
+  }
+
+  datatype MustHave<+T> = HasIt | DoesNotHave(value: T) {
+    predicate method IsFailure() {
+      DoesNotHave?
+    }
+    function method PropagateFailure<U>(): Option<T>
+      requires DoesNotHave?
+    {
+      None
+    }
+  }
 }
 
 module

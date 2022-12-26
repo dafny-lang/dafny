@@ -3350,11 +3350,11 @@ namespace Microsoft.Dafny {
     }
 
     internal IToken GetToken(Expression expression) {
-      return flags.ReportRanges ? expression.RangeToken : expression.tok;
+      return flags.ReportRanges ? expression.GetRangeToken() : expression.tok;
     }
 
     internal IToken GetToken(Statement stmt) {
-      return flags.ReportRanges ? stmt.RangeToken : stmt.Tok;
+      return flags.ReportRanges ? stmt.GetRangeToken() : stmt.Tok;
     }
 
     void CheckDefiniteAssignment(IdentifierExpr expr, BoogieStmtListBuilder builder) {
@@ -5149,7 +5149,7 @@ namespace Microsoft.Dafny {
       return false;
     }
 
-    void CheckCasePatternShape<VT>(CasePattern<VT> pat, Bpl.Expr rhs, IToken rhsTok, Type rhsType, BoogieStmtListBuilder builder) where VT : IVariable {
+    void CheckCasePatternShape<VT>(CasePattern<VT> pat, Bpl.Expr rhs, IToken rhsTok, Type rhsType, BoogieStmtListBuilder builder) where VT : class, IVariable {
       Contract.Requires(pat != null);
       Contract.Requires(rhs != null);
       Contract.Requires(rhsTok != null);
@@ -9097,7 +9097,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(e != null);
       Contract.Requires(!e.Exact);
       Contract.Ensures(Contract.Result<Expression>() != null);
-      if (e.getTranslationDesugaring(this) == null) {
+      if (e.GetTranslationDesugaring(this) == null) {
         // For let-such-that expression:
         //   var x:X, y:Y :| P(x,y,g); F(...)
         // where
@@ -9174,7 +9174,7 @@ namespace Microsoft.Dafny {
           }
         }
       }
-      return e.getTranslationDesugaring(this);
+      return e.GetTranslationDesugaring(this);
     }
 
     private Bpl.Function AddLetSuchThatCanCallFunction(LetExpr e, LetSuchThatExprInfo info) {

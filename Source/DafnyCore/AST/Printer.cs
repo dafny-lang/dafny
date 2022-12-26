@@ -229,9 +229,29 @@ NoGhost - disable printing of functions, ghost methods, and proof
         // print call graph
         Indent(indent); wr.WriteLine("/* CALL GRAPH for module {0}:", module.Name);
         var SCCs = module.CallGraph.TopologicallySortedComponents();
-        SCCs.Reverse();
+        // Sort output SCCs in order of: descending height, then decreasing size of SCC, then alphabetical order of the name of
+        // the representative element. By being this specific, we reduce changes in output from minor changes in the code. (With
+        // more effort, we could be even more deterministic, if needed in the future.)
+        SCCs.Sort((m, n) => {
+          var mm = module.CallGraph.GetSCCRepresentativePredecessorCount(m);
+          var nn = module.CallGraph.GetSCCRepresentativePredecessorCount(n);
+          if (mm < nn) {
+            return 1;
+          } else if (mm > nn) {
+            return -1;
+          }
+          mm = module.CallGraph.GetSCCSize(m);
+          nn = module.CallGraph.GetSCCSize(n);
+          if (mm < nn) {
+            return 1;
+          } else if (mm > nn) {
+            return -1;
+          }
+          return string.CompareOrdinal(m.NameRelativeToModule, n.NameRelativeToModule);
+        });
         foreach (var clbl in SCCs) {
-          Indent(indent); wr.WriteLine(" * SCC at height {0}:", module.CallGraph.GetSCCRepresentativePredecessorCount(clbl));
+          Indent(indent);
+          wr.WriteLine(" * SCC at height {0}:", module.CallGraph.GetSCCRepresentativePredecessorCount(clbl));
           var r = module.CallGraph.GetSCC(clbl);
           foreach (var m in r) {
             Indent(indent);
@@ -1477,7 +1497,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
         Indent(indent);
         PrintStatement(s.ResolvedStatement, indent);
         wr.WriteLine();
-
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;
         if (DafnyOptions.O.DafnyPrintResolvedFile == null && s.OrigUnresolved != null) {
@@ -1666,13 +1685,24 @@ NoGhost - disable printing of functions, ghost methods, and proof
         var update = (AssignSuchThatStmt)s;
         wr.Write(":| ");
         if (update.AssumeToken != null) {
-          wr.Write("assume ");
+          wr.Write("assume");
+          PrintAttributes(update.AssumeToken.Attrs);
+          wr.Write(" ");
         }
         PrintExpression(update.Expr, true);
       } else if (s is AssignOrReturnStmt) {
         var stmt = (AssignOrReturnStmt)s;
-        wr.Write(":- ");
-        PrintExpression(stmt.Rhs, true);
+        wr.Write(":-");
+        if (stmt.KeywordToken != null) {
+          wr.Write($" {stmt.KeywordToken.Token.val}");
+          PrintAttributes(stmt.KeywordToken.Attrs);
+        }
+        wr.Write(" ");
+        PrintRhs(stmt.Rhs);
+        foreach (var rhs in stmt.Rhss) {
+          wr.Write(", ");
+          PrintRhs(rhs);
+        }
         if (DafnyOptions.O.DafnyPrintResolvedFile != null && stmt.ResolvedStatements.Count > 0) {
           wr.WriteLine();
           Indent(indent); wr.WriteLine("/*---------- desugared ----------");
@@ -2005,6 +2035,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         if (e.Exact) {
           wr.Write(" := ");
         } else {
+          PrintAttributes(e.Attributes);
           wr.Write(" :| ");
         }
         PrintExpressionList(e.RHSs, true);
@@ -2597,6 +2628,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         if (e.Exact) {
           wr.Write(" := ");
         } else {
+          PrintAttributes(e.Attributes);
           wr.Write(" :| ");
         }
         PrintExpressionList(e.RHSs, true);
@@ -2624,7 +2656,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       } else if (expr is QuantifierExpr) {
         QuantifierExpr e = (QuantifierExpr)expr;
 
-        if (DafnyOptions.O.DafnyPrintResolvedFile != null && e.SplitQuantifier != null) {
+        if (e.SplitQuantifier != null) {
           PrintExpr(e.SplitQuantifierExpression, contextBindingStrength, fragileContext, isRightmost, isFollowedBySemicolon, indent, keyword, resolv_count);
           return;
         }
@@ -2715,7 +2747,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
           readsPrefix = ", ";
         }
         wr.Write(" => ");
-        PrintExpression(e.Body, isFollowedBySemicolon);
+        PrintExpression(e.Term, isFollowedBySemicolon);
         if (parensNeeded) { wr.Write(")"); }
 
       } else if (expr is WildcardExpr) {
@@ -2842,7 +2874,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
       return parenPairs != 0 && (expr is NameSegment || expr is ExprDotName);
     }
 
-    void PrintCasePattern<VT>(CasePattern<VT> pat) where VT : IVariable {
+    void PrintCasePattern<VT>(CasePattern<VT> pat)
+      where VT : class, IVariable {
       Contract.Requires(pat != null);
       var v = pat.Var;
       if (v != null) {

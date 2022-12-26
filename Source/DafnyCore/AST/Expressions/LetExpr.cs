@@ -3,7 +3,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBearingExpression {
+public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBearingExpression, ICloneable<LetExpr> {
   public readonly List<CasePattern<BoundVar>> LHSs;
   public readonly List<Expression> RHSs;
   public readonly Expression Body;
@@ -25,11 +25,26 @@ public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBeari
     translationDesugaring = expr;
   }
 
-  public Expression getTranslationDesugaring(Translator trans) {
+  public Expression GetTranslationDesugaring(Translator trans) {
     if (lastTranslatorUsed == trans) {
       return translationDesugaring;
     } else {
       return null;
+    }
+  }
+
+  public LetExpr Clone(Cloner cloner) {
+    return new LetExpr(cloner, this);
+  }
+
+  public LetExpr(Cloner cloner, LetExpr original) : base(cloner, original) {
+    LHSs = original.LHSs.ConvertAll(cloner.CloneCasePattern);
+    RHSs = original.RHSs.ConvertAll(cloner.CloneExpr);
+    Body = cloner.CloneExpr(original.Body);
+    Exact = original.Exact;
+    Attributes = cloner.CloneAttributes(original.Attributes);
+    if (cloner.CloneResolvedFields) {
+      Constraint_Bounds = original.Constraint_Bounds;
     }
   }
 

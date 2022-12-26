@@ -48,6 +48,10 @@
 ##                  the output is just a success message
 ##              (2) if <expect> is non-empty. then the exit code is 2 and
 ##                  the actual output matches the content of the file <expect>
+##   %check-run <expect> : runs the command
+##              "dafny run --useBaseNameForFileName $F" and, 
+##              if <expect> is present, then the output matches the
+##              content of the file names <expect>
 ##   %check-error
 ##   check
 
@@ -58,7 +62,7 @@ defaultCommand=
 defaultExit=
 defaultLang=
 
-while getopts 'd:x:l:' opt; do
+while getopts 'md:x:l:' opt; do
   case "$opt" in
     "d") defaultCommand="$OPTARG";;
     "x") defaultExit="$OPTARG";;
@@ -75,6 +79,7 @@ ANYFAIL=0
 
 ## Loop over all remaining command-line arguments
 for file in $@ ; do
+dir=$(dirname "$file")
 
 ## Whether this file fails
 FAIL=0
@@ -83,45 +88,63 @@ n=0
 ## if inblock==1 we are in a ```-delimited block
 inblock=0
 
-command= 
-expect= 
 msg=
 checkingErrors=1
 ## Read and process each line of the file.  The file is input on stdin 
 ## by redirection after the 'done' corresponding to this while-do
+use=
+command=
+expect=
+options=
+default=0
 while IFS= read -r line
 do 
   let n++
 
-  ## For header lines (check-errors test), extract the error message from
+  ## For header lines, extract the error message from
   ## the header text (everything but the initial ##[ ]* )
   ( echo "$line" | grep -E -e '[#][#] ' > /dev/null ) \
    && msg=`echo "$line" | sed -E -e 's/^##[ ]*//' -e 's/_[a-z]+_/.*/g'`
 
-  ## Check for the marker
-  echo $line | grep -e '^```' > /dev/null
-  if [ "$?" == "0" ]; then
-    ##echo FOUND BACKTICKS IN $n "$line"
-    if [ "$inblock" == "0" ]; then
-      ## get language
-      lang=`echo "$line" | sed -e 's/^\`\`\`[\`]*//' -e 's/[ ].*$//'`
-      if [ -z "$lang" ]; then
-        lang=$defaultLang
-        if [ -z "$lang" ]; then
-          echo NO LANGUAGE LABEL $n "$line"
-          FAIL=1
-        fi
+  ## Check for the test command information
+  echo "$line" | grep '^[ ]*<!-- [ ]*%' > /dev/null
+  if [ "$?" == "0" ]; then 
+      ##echo COMMAND "$line"
+      contents=( `echo "$line" | sed -e 's/[^<]*<!--//' -e 's/-->//'` )
+      command=${contents[0]}
+      expect=${contents[1]}
+      if [ "$expect" == "%use" -o "$expect" == "%options" ]; then
+        expect=
       fi
-
-      command=
-      expect=
-      ( echo "$line" | grep -e '<!--' > /dev/null ) \
-          && action=( `echo "$line" | sed -e 's/[^<]*<!--//' -e 's/-->//'` ) \
-          && command=${action[0]} && expect=${action[1]}
+      options=
+      ( echo "$line" | grep -e '%options' > /dev/null ) \
+          && options=( `echo "$line" | sed -e 's/^.*%options//' -e 's/-->//'` )
+      if [ "${contents[1]}" == "%use" ]; then
+        use=${contents[2]}
+      fi
+      if [ "${contents[2]}" == "%use" ]; then
+        use=${contents[3]}
+      fi
       if [ "lang" == "dafny" -a -z "$command" ]; then
         command="$defaultCommand"
         if [ -z "$command" ]; then
           echo "NO COMMAND GIVEN $n $line"
+          FAIL=1
+        fi
+      fi
+      echo "$line" | grep -e '%default' > /dev/null
+      if [ "$?" == "0" ]; then default=1; fi
+  fi
+  ## Check for the marker
+  echo "$line" | grep -e '^[ ]*[`][`][`]' > /dev/null 
+  if [ "$?" == "0" ]; then
+    if [ "$inblock" == "0" ]; then
+      ## get language
+      lang=`echo "$line" | sed -e 's/^[ ]*\`\`\`[\`]*//' -e 's/[ ]*$//'`
+      if [ -z "$lang" ]; then
+        lang=$defaultLang
+        if [ -z "$lang" ]; then
+          echo NO LANGUAGE LABEL $n "$line"
           FAIL=1
         fi
       fi
@@ -132,12 +155,23 @@ do
     else
       ## End of backtick block, so check the text
       inblock=0
+      if [ -n "$use" ]; then
+        ##echo " " USING $use
+        cat "$use" >> $text
+      fi
+      echo $line | grep '%save' > /dev/null
+      if [ "$?" == "0" ]; then
+         rest=( `echo $line | sed -e 's/^[^%]*%save//'` )
+         save=${rest[0]}
+         ##echo " SAVING" $save
+         cp $text $save
+      fi
       if [ "$lang" == "dafny" -o "$lang" == "cli" ]; then
         echo TESTING $n $file $command $expect
       fi
       if [ "$command" == "%no-check" ]; then
         echo -n ""
-      elif [ "$command" == "%check-verify" -o "$command" == "%check-verify-warn" -o "$command" == "%check-resolve" ]; then
+      elif [ "$command" == "%check-verify" -o "$command" == "%check-verify-warn" -o "$command" == "%check-resolve" -o "$command" == "%check-run" ]; then
         if [ "$command" == "%check-verify" ]; then
           com=verify
           ec=4
@@ -147,12 +181,15 @@ do
         elif [ "$command" == "%check-resolve" ]; then
           com=resolve
           ec=2
+        elif [ "$command" == "%check-run" ]; then
+          com=run
+          ec=0
         fi
         if [ "$lang" != "dafny" ]; then
           echo EXPECTED A dafny BLOCK, NOT $lang
           FAIL=1
         else
-          "$dafny" $com --useBaseNameForFileName $text > actual
+          "$dafny" $com --useBaseNameForFileName $options $text > actual
           actualec=$?
           if [ -z "$expect" ]; then
             if [ "$actualec" != "0" ]; then
@@ -171,9 +208,9 @@ do
               echo EXPECTED EXIT CODE $ec, got $actualec
               FAIL=1
             fi
-            if [ -e "$expect" ]; then
-              diff actual "$expect"
-              if [ "$?" -ne "0" ]; then
+            if [ -e "$dir/$expect" ]; then
+              diff actual "$dir/$expect"
+              if [ "$?" != "0" ]; then
                 FAIL=1
                 echo Actual output differs from expected
                 echo "TEST FAILED" $file line $n  $command $expect
@@ -209,7 +246,7 @@ do
       elif [ "$command" == "%check-error" ]; then
         "$dafny" resolve -useBaseNameForFileName $text | head -1 | sed -e 's/[^:]*: //' > actual
         act=`cat actual`
-	dif=`echo $act | sed -e "s/$msg//"`
+	dif=`echo "$act" | sed -e "s/$msg//"`
         if [ -n "$dif" ] ; then
            echo NO MATCH "$msg" VS "$act"
            FAIL=1
@@ -219,19 +256,26 @@ do
          echo UNKNOWN TEST COMMAND $command
          FAIL=1
       fi
+      if [ "$default" == "0" ]; then
+        use=
+        command=
+        expect=
+        options=
+      fi
     fi
   elif [ "$inblock" == "1" ]; then
     ## If in a backtick block, save the text to the temporary file
-    echo "$line" | sed -e 's/\.\.\./   /' >> $text
+    echo "$line" | sed -e 's/^[ ]*\.\.\./   /' >> $text
   fi
 done < $file
+rm -rf *.tmp
 
 if [ "$inblock" == "1" ]; then
   echo UNCLOSED BACKTICK BLOCK
   FAIL=1
 fi
 
-if [ $FAIL -eq "1" ] ; then 
+if [ "$FAIL" == "1" ] ; then 
   echo Test Failure: $file
   ANYFAIL=1
 fi
