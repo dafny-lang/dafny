@@ -41,7 +41,7 @@ public static class BoogieOptionBag {
       }
     });
     DafnyOptions.RegisterLegacyBinding(Cores,
-      (o, f) => o.VcsCores = f == 0 ? System.Environment.ProcessorCount / 2 : (int)f);
+      (o, f) => o.VcsCores = f == 0 ? (1 + System.Environment.ProcessorCount) / 2 : (int)f);
     DafnyOptions.RegisterLegacyBinding(NoVerify, (o, f) => o.Verify = !f);
     DafnyOptions.RegisterLegacyBinding(VerificationTimeLimit, (o, f) => o.TimeLimit = f);
   }
