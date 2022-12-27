@@ -31,24 +31,27 @@ jobs:
         node --version
         java -version
     - name: Check
-      run: dafny verify a.dfy
+      run: dafny /compile:0 a.dfy
     - name: Check bad
-      run: dafny verify b.dfy || echo EXPECTED FAILURE
+      run: dafny /compile:0 b.dfy || echo EXPECTED FAILURE
     ## Check that a simple program compiles and runs on each supported platform
     - name: Check C# compile
       run: |
-        dafny run --target:cs a.dfy | tail -n +3 | diff expect.txt -
+        dafny /compileVerbose:0 /compile:3 /compileTarget:cs /spillTargetCode:3 a.dfy
     - name: Check Go compile
       run: |
-        dafny run --target:go a.dfy | tail -n +3 | diff expect.txt -
+        dafny /compile:3 /spillTargetCode:3 /compileTarget:go a.dfy
+        env GO111MODULE=auto GOPATH=$PWD/a-go go run a-go/src/a.go > actual.txt
+        diff expect.txt actual.txt
     - name: Check Javascript compile
       run: |
         npm install bignumber.js
-        dafny run --target:js a.dfy | tail -n +3 | diff expect.txt -
+        dafny /compile:3 /spillTargetCode:3 /compileTarget:js a.dfy
+        node a.js dafny/DafnyRuntime.js > actual.txt
+        diff expect.txt actual.txt
     - name: Check Java compile
       run: |
         (ls dafny/DafnyRuntime.jar || echo NO DafnyRuntime.jar )
-        dafny run --target:java a.dfy | tail -n +3 | diff expect.txt -
-    - name: Check Python compile
-      run: |
-        dafny run --target:py a.dfy | tail -n +3 | diff expect.txt -
+        #dafny /compile:3 /spillTargetCode:3 /compileTarget:java a.dfy
+        #java -cp a:dafny/DafnyRuntime.jar a > actual.txt
+        #diff expect.txt actual.txt
