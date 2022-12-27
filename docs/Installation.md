@@ -6,17 +6,17 @@ This page has instructions for installing Dafny, by typical users:
 
 * Using IDEs: [VSCode](#Visual-studio-code), [Emacs](#Emacs)
 * Installing a binary build ([Windows](#windows-binary), [Linux](#linux-binary), or [Mac](#Mac-binary))
-* Installing and building from source ([Windows](#windows-source), [Linux](#linux-source), or [Mac](#Mac-source))
 * [Installing the tools necessary to compile to other languages](#compiling-dafny)
 
 
-* Instructions for creating an environment in which to develop Dafny are in the [Dafny project wiki](https://github.com/dafny-lang/dafny/wiki/INSTALL)
+* Instructions for creating an environment in which to develop Dafny and compile it from source 
+are in the [Dafny project wiki](https://github.com/dafny-lang/dafny/wiki/INSTALL)
 
 Using an IDE
 ============
 
 The easiest way to get started with Dafny is using the Dafny IDEs, since they continuously run the verifier in
-the background. Be sure to check out the [Dafny tutorial](https://github.com/dafny-lang/dafny/blob/master/docs/OnlineTutorial/guide.md)!
+the background. Be sure to check out the [Dafny tutorial](https://dafny.org/latest/OnlineTutorial/guide)!
 
 For most users, we recommend using Dafny with VS Code, which has an easy installation, as explained next:
 
@@ -32,7 +32,7 @@ For most users, we recommend using Dafny with VS Code, which has an easy install
 
 ## Emacs
 
-The README at https://github.com/boogie-org/boogie-friends has plenty of
+The README at [https://github.com/boogie-org/boogie-friends](https://github.com/boogie-org/boogie-friends) has plenty of
 information on how to set-up Emacs to work with Dafny. In short, it boils down
 to running `[M-x package-install RET boogie-friends RET]` and adding the following
 to your `.emacs`:
@@ -114,7 +114,7 @@ The instructions here describe the dependencies needed to have the tools to comp
 and the procedure to use for simple programs.
 
 Note that a pure Dafny program (say `A.dfy`) can be compiled and run in one step using `dafny run A.dfy`
-(as described 
+and can be run for a particular programming language with the `--target` option. 
 
 ### C# (.Net)
 
@@ -123,9 +123,11 @@ Install .NET 6.0:
 * Linux) Install .NET 6.0. See: `https://docs.microsoft.com/dotnet/core/install/linux` or `sudo apt install dotnet-sdk-6.0`
 * Mac) Install .NET 6.0: `brew install dotnet-sdk` or from `https://docs.microsoft.com/dotnet/core/install/macos`
 
+<!--
 To separately compile and run your program for .NET:
 - `dafny build -t:cs MyProgram.dfy`
 - `MyProgram.exe`
+-->
 
 ### Javascript
 
@@ -133,10 +135,9 @@ To set up Dafny to compile to JavaScript (node.js):
 * Install node.js from [https://nodejs.org/en/download](https://nodejs.org/en/download) or
    * Linux: `sudo apt install nodejs npm` and make sure `node` and `npm` are on your path
    * Mac: `brew install node`
-* Install the bignumber.js package (see https://github.com/MikeMcl/bignumber.js) by running:
-  `npm install bignumber.js` inside the main `dafny/` directory. (Note the `.js` suffix in this package name.)
 
 To separately compile and run your program for JavaScript:
+- `npm install bignumber.js`
 - `dafny build -t:js MyProgram.dfy`
 - `node MyProgram.js`
 
@@ -149,11 +150,8 @@ To set up Dafny to compile to Go:
 * Make sure `go` is on your path
 
 To separately compile and run your program for Go:
-- `dafny /compileTarget:go MyProgram.dfy`
-- This creates a folder `MyProgram-go` with the target files. You must set the `GOPATH`
-    to point to this folder, and Go insists that the path you give is an absolute path
-    (including the `C:` on Windows).
-- After setting `GOPATH`, do `go run MyProgram-go/src/MyProgram.go`
+- `dafny build --target:go MyProgram.dfy`
+- `./MyProgram` or ``(cd MyProgram-go; GO111MODULE=auto GOPATH=`pwd` go run src/MyProgram.go )``
 
 ### Java
 
@@ -161,13 +159,12 @@ To set up Dafny to compile to Java:
 * Install Java (at least Java 8) from https://www.oracle.com/java/technologies/javase-downloads.html
   or install Amazon Corretto from https://docs.aws.amazon.com/corretto/latest/corretto-11-ug/what-is-corretto-11.html
   (see the platform-specific links on the left of that page)
+  or, on a Mac, `brew install java`
 * Install [gradle](https://gradle.org/) or, on a Mac, `brew install gradle`
 
 To separately compile and run your program for Java:
-- If you are compiling dafny from source, make sure the Java runtime library is built. This should be done automatically by building the
-    C# `DafnyRuntime` project, so just double-check that the `${DAFNY}/Binaries/DafnyRuntime.jar` exists.
-- `dafny /compileTarget:java MyProgram.dfy`
-- `java MyProgram ${DAFNY}/Binaries/DafnyRuntime.jar`
+- `dafny build -t:java MyProgram.dfy`
+- `java -cp "MyProgram-java:MyProgram-java/DafnyRuntime.jar`" MyProgram
 
 ### Python
 
@@ -175,8 +172,8 @@ To setup Dafny to compile to python3:
 * Install python3:
    * Windows)
    * Linux)
-   * Mac) 
+   * Mac) Likely already installed in the MacOS, but otherwise use `brew install python3`
 
 To separately compile and run your program for Python:
-
-
+- `dafny build -t:py MyProgram.dfy`
+- `python3 MyProgram-py/MyProgram.py

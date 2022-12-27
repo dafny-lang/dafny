@@ -1270,7 +1270,7 @@ The output folder  will also contain
 translations to java for any library modules that are used.
 
 The step of compiling Java files (using `javac`) requires the Dafny runtime library. That library is automatically included if dafny is doing the compilation,
-but not if dafny is only doing translation.
+but not if dafny is only doing translation (use the `--include-runtime` option to include it).
 
 Examples of how to integrate Java source code and libraries with Dafny source
 are contained in [this separate document](integration-java/IntegrationJava).
@@ -1299,7 +1299,7 @@ The build and run steps are
 - `./A`
 
 The uncompiled code can be compiled and run by `go` itself using
-- `(cd A-go; GO111MODULE=auto GOPATH=`pwd` go run A.go)`
+- ``(cd A-go; GO111MODULE=auto GOPATH=`pwd` go run src/A.go)``
 
 The one-step process is
 - `dafny run --target:go A.dfy`
