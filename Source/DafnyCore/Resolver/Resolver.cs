@@ -3284,7 +3284,7 @@ namespace Microsoft.Dafny {
             }
           }
 
-          if (d is RedirectingTypeDecl dd and not NonNullTypeDecl) {
+          if (d is RedirectingTypeDecl dd) {
             if (d.EnclosingModuleDefinition.CallGraph.GetSCCSize(dd) != 1) {
               var r = d.EnclosingModuleDefinition.CallGraph.GetSCCRepresentative(dd);
               if (cycleErrorHasBeenReported.Contains(r)) {
