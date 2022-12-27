@@ -121,7 +121,7 @@ method m5() { assert false; } //Remove4:
     var original = DafnyOptions.O.CreateSolver;
     DafnyOptions.O.CreateSolver = (_, _) =>
       new UnsatSolver(semaphoreSlim);
-    await SetUp(options => options.Set(BoogieOptionBag.Cores, 1));
+    await SetUp(options => options.Set(BoogieOptionBag.Cores, 1U));
 
     var (code, changes) = ExtractCodeAndChanges(codeAndChanges.TrimStart());
     var documentItem = CreateTestDocument(code);
