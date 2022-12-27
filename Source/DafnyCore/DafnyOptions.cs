@@ -117,7 +117,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       return Options.OptionArguments[option];
     }
 
-    public void Set(Option option, object value) {
+    public void SetUntyped(Option option, object value) {
       Options.OptionArguments[option] = value;
     }
 
@@ -798,7 +798,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public override void ApplyDefaultOptions() {
       foreach (var legacyUiOption in legacyUis) {
         if (!Options.OptionArguments.ContainsKey(legacyUiOption.Option)) {
-          Set(legacyUiOption.Option, legacyUiOption.DefaultValue);
+          Options.OptionArguments[legacyUiOption.Option] = legacyUiOption.DefaultValue;
         }
         if (legacyBindings.ContainsKey(legacyUiOption.Option)) {
           var value = Get(legacyUiOption.Option);

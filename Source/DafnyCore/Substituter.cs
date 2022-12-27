@@ -552,7 +552,7 @@ namespace Microsoft.Dafny {
     }
     CasePattern<VT> SubstituteCasePattern<VT>(CasePattern<VT> pat, bool forceSubstitutionOfBoundVars,
         Func<CasePattern<VT>, Type, VT, VT> cloneVt
-      ) where VT : IVariable {
+      ) where VT : class, IVariable {
       Contract.Requires(pat != null);
       if (pat.Var != null) {
         var bv = pat.Var;
@@ -773,7 +773,10 @@ namespace Microsoft.Dafny {
         } else {
           rr = new UpdateStmt(s.Tok, s.EndTok, s.Lhss.ConvertAll(Substitute), s.Rhss.ConvertAll(SubstRHS), s.CanMutateKnownState);
         }
-        rr.ResolvedStatements.AddRange(s.ResolvedStatements.ConvertAll(SubstStmt));
+
+        if (s.ResolvedStatements != null) {
+          rr.ResolvedStatements = s.ResolvedStatements.ConvertAll(SubstStmt);
+        }
         r = rr;
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;

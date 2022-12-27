@@ -42,116 +42,26 @@ namespace Microsoft.Dafny {
   /// </summary>
   public class CallGraphBuilder {
     public static void Build(List<TopLevelDecl> declarations, ErrorReporter reporter) {
-      new CallGraphBuilder(reporter).Build(declarations);
+      var astVisitor = new CallGraphASTVisitor(reporter);
+      astVisitor.VisitDeclarations(declarations);
     }
 
     public static void VisitFunction(Function function, ErrorReporter reporter) {
-      new CallGraphBuilder(reporter).VisitFunction(function);
+      var astVisitor = new CallGraphASTVisitor(reporter);
+      astVisitor.VisitFunction(function);
     }
 
     public static void VisitMethod(Method method, ErrorReporter reporter) {
-      new CallGraphBuilder(reporter).VisitMethod(method);
+      var astVisitor = new CallGraphASTVisitor(reporter);
+      astVisitor.VisitMethod(method);
     }
 
     public static void AddCallGraphEdge(ICodeContext callingContext, ICallable function, Expression e, ErrorReporter reporter) {
-      new CallGraphBuilder(reporter).AddCallGraphEdge(callingContext, function, e, false);
+      CallGraphASTVisitor.AddCallGraphEdge(CodeContextWrapper.Unwrap(callingContext), function, e, false);
     }
 
-    private readonly ErrorReporter reporter;
 
-    /// <summary>
-    /// The only reason there is a constructor for this class is to keep track of the "reporter" as an instance field.
-    /// </summary>
-    private CallGraphBuilder(ErrorReporter reporter) {
-      this.reporter = reporter;
-    }
-
-    private class CallGraphBuilderContext {
-      public readonly ICodeContext CodeContext;
-      public bool InFunctionPostcondition { get; init; }
-      public CallGraphBuilderContext(ICodeContext codeContext) {
-        CodeContext = codeContext;
-      }
-    }
-
-    /// <summary>
-    /// This method, the two AddCallGraphEdge methods, and AddTypeDependencyEdges are what the
-    /// CallGraphBuilder is all about. These two methods are called during the traversal of the
-    /// declarations given to the public Build method.
-    /// </summary>
-    private void AddCallGraphEdgeForField(ICodeContext callingContext, Field field, Expression e) {
-      Contract.Requires(callingContext != null);
-      Contract.Requires(field != null);
-      Contract.Requires(e != null);
-      if (field is ConstantField cf) {
-        if (cf == callingContext) {
-          // detect self-loops here, since they don't show up in the graph's SSC methods
-          reporter.Error(MessageSource.Resolver, cf.tok, "recursive dependency involving constant initialization: {0} -> {0}", cf.Name);
-        } else {
-          AddCallGraphEdge(callingContext, cf, e, false);
-        }
-      }
-    }
-
-    /// <summary>
-    /// See comment about AddCallGraphEdgeForField.
-    /// </summary>
-    private void AddCallGraphEdge(ICodeContext callingContext, ICallable callable, Expression e, bool isFunctionReturnValue) {
-      Contract.Requires(callingContext != null);
-      Contract.Requires(callable != null);
-      Contract.Requires(e != null);
-      ModuleDefinition callerModule = callingContext.EnclosingModule;
-      ModuleDefinition calleeModule = callable is SpecialFunction ? null : callable.EnclosingModule;
-      if (callerModule != calleeModule) {
-        // inter-module call; don't record in call graph
-        return;
-      }
-
-      // intra-module call; add edge in module's call graph
-      if (CodeContextWrapper.Unwrap(callingContext) is ICallable caller) {
-        callerModule.CallGraph.AddEdge(caller, callable);
-        if (caller is Function f) {
-          if (e is FunctionCallExpr ee) {
-            f.AllCalls.Add(ee);
-          }
-          // if the call denotes the function return value in the function postconditions, then we don't
-          // mark it as recursive.
-          if (caller == callable && !isFunctionReturnValue) {
-            f.IsRecursive = true;  // self recursion (mutual recursion is determined elsewhere)
-          }
-        }
-      }
-    }
-
-    /// <summary>
-    /// See comment about AddCallGraphEdgeForField.
-    /// </summary>
-    private void AddCallGraphEdge(CallStmt s, CallGraphBuilderContext context) {
-      Contract.Requires(s != null);
-      Contract.Requires(context != null);
-      var callee = s.Method;
-      ModuleDefinition callerModule = context.CodeContext.EnclosingModule;
-      ModuleDefinition calleeModule = ((ICodeContext)callee).EnclosingModule;
-      if (callerModule != calleeModule) {
-        // inter-module call; don't record in call graph
-        return;
-      }
-
-      // intra-module call; add edge in module's call graph
-      if (context.CodeContext is ICallable caller) {
-        if (caller is IteratorDecl iteratorDecl) {
-          // use the MoveNext() method as the caller
-          callerModule.CallGraph.AddEdge(iteratorDecl.Member_MoveNext, callee);
-        } else {
-          callerModule.CallGraph.AddEdge(caller, callee);
-          if (caller == callee) {
-            callee.IsRecursive = true; // self recursion (mutual recursion is determined elsewhere)
-          }
-        }
-      }
-    }
-
-    private void AddCallGraphEdgeRaw(ICallable caller, ICallable callee) {
+    private static void AddCallGraphEdgeRaw(ICallable caller, ICallable callee) {
       callee.EnclosingModule.CallGraph.AddEdge(caller, callee);
     }
 
@@ -159,7 +69,7 @@ namespace Microsoft.Dafny {
     /// Add edges to the call graph.
     /// See comment about AddCallGraphEdgeForField.
     /// </summary>
-    private void AddTypeDependencyEdges(ICodeContext context, Type type) {
+    private static void AddTypeDependencyEdges(IASTVisitorContext context, Type type) {
       Contract.Requires(type != null);
       Contract.Requires(context != null);
       if (context is ICallable caller && type is NonProxyType) {
@@ -171,440 +81,238 @@ namespace Microsoft.Dafny {
       }
     }
 
-    /// <summary>
-    /// This method builds the call graph for the given declarations. It assumes that all declarations have been
-    /// successfully resolved and type checked.
-    /// </summary>
-    private void Build(List<TopLevelDecl> declarations) {
-      foreach (var d in declarations) {
-        VisitAttributes(d, new CallGraphBuilderContext(new NoContext(d.EnclosingModuleDefinition)));
+    private class CallGraphBuilderContext : IASTVisitorContext {
+      public readonly IASTVisitorContext CodeContext;
+      public readonly bool InFunctionPostcondition;
 
-        if (d is RedirectingTypeDecl) {
-          var dd = (RedirectingTypeDecl)d;
-          var baseType = (d as NewtypeDecl)?.BaseType ?? ((TypeSynonymDeclBase)d).Rhs;
-          VisitUserProvidedType(baseType, new CallGraphBuilderContext(dd));
-          if (dd.Constraint != null) {
-            VisitExpression(dd.Constraint, new CallGraphBuilderContext(dd));
-          }
-          if (dd.Witness != null) {
-            VisitExpression(dd.Witness, new CallGraphBuilderContext(dd));
-          }
+      public CallGraphBuilderContext(IASTVisitorContext codeContext, bool inFunctionPostcondition) {
+        CodeContext = codeContext;
+        InFunctionPostcondition = inFunctionPostcondition;
+      }
 
-        } else if (d is IteratorDecl) {
-          var iter = (IteratorDecl)d;
-          VisitIterator(iter);
+      public ModuleDefinition EnclosingModule => CodeContext.EnclosingModule;
+    }
 
-        } else if (d is DatatypeDecl) {
-          var dt = (DatatypeDecl)d;
-          foreach (var ctor in dt.Ctors) {
-            VisitAttributes(ctor, new CallGraphBuilderContext(new NoContext(d.EnclosingModuleDefinition)));
+    private class CallGraphASTVisitor : ASTVisitor<CallGraphBuilderContext> {
+      private readonly ErrorReporter reporter;
+
+      public CallGraphASTVisitor(ErrorReporter reporter) {
+        this.reporter = reporter;
+      }
+
+      public override CallGraphBuilderContext GetContext(IASTVisitorContext astVisitorContext, bool inFunctionPostcondition) {
+        return new CallGraphBuilderContext(astVisitorContext, inFunctionPostcondition);
+      }
+
+      protected override void VisitOneDeclaration(TopLevelDecl decl) {
+        if (decl is DatatypeDecl datatypeDecl) {
+          foreach (var ctor in datatypeDecl.Ctors) {
             foreach (var formal in ctor.Formals) {
-              AddTypeDependencyEdges((ICallable)d, formal.Type);
+              AddTypeDependencyEdges(datatypeDecl, formal.Type);
             }
           }
-          foreach (var ctor in dt.Ctors) {
-            VisitDefaultParameterValues(ctor.Formals, new CallGraphBuilderContext(dt));
+        }
+
+        base.VisitOneDeclaration(decl);
+      }
+
+      public override void VisitFunction(Function f) {
+        if (f.OverriddenFunction != null) {
+          // add an edge from the trait function to that of the class/type
+          AddCallGraphEdgeRaw(f.OverriddenFunction, f);
+        }
+
+        if (f is PrefixPredicate prefixPredicate) {
+          // add an edge from P# to P, since this will have the desired effect of detecting unwanted cycles.
+          AddCallGraphEdgeRaw(prefixPredicate, prefixPredicate.ExtremePred);
+        }
+
+        base.VisitFunction(f);
+      }
+
+      public override void VisitMethod(Method method) {
+        if (method.OverriddenMethod != null) {
+          // add an edge from the trait method to that of the class/type
+          AddCallGraphEdgeRaw(method.OverriddenMethod, method);
+        }
+
+        if (method is PrefixLemma prefixLemma) {
+          // add an edge from M# to M, since this will have the desired effect of detecting unwanted cycles.
+          AddCallGraphEdgeRaw(prefixLemma, prefixLemma.ExtremeLemma);
+        }
+
+        base.VisitMethod(method);
+      }
+
+      protected override void VisitUserProvidedType(Type type, CallGraphBuilderContext context) {
+        AddTypeDependencyEdges(context.CodeContext, type);
+      }
+
+      protected override bool VisitOneExpression(Expression expr, CallGraphBuilderContext context) {
+        if (expr is DefaultValueExpression) {
+          // A DefaultValueExpression is a wrapper around the expression given as a default in the callee's declaration.
+          // It hasn't yet been resolved, so we can't process it here. But that's okay, because we will set up the necessary
+          // call graph edges when processing the callee's declaration.
+          return false;
+        }
+
+        if (expr is DatatypeValue dtv) {
+          var dt = dtv.Type.AsDatatype;
+          if (context.CodeContext is ICallable caller && caller.EnclosingModule == dt.EnclosingModuleDefinition) {
+            caller.EnclosingModule.CallGraph.AddEdge(caller, dt);
           }
-        }
 
-        if (d is TopLevelDeclWithMembers cl) {
-          VisitClassMemberBodies(cl);
-        }
-      }
-    }
-
-    private void VisitAttributes(IAttributeBearingDeclaration attributeHost, CallGraphBuilderContext context) {
-      foreach (var attr in attributeHost.Attributes.AsEnumerable()) {
-        if (attr.Args != null) {
-          foreach (var arg in attr.Args) {
-            VisitExpression(arg, context);
-          }
-        }
-      }
-    }
-
-    private void VisitClassMemberBodies(TopLevelDeclWithMembers cl) {
-      Contract.Requires(cl != null);
-
-      foreach (var member in cl.Members) {
-        if (member is ConstantField constantField) {
-          var context = new CallGraphBuilderContext(constantField);
-          VisitAttributes(constantField, context);
-          VisitUserProvidedType(constantField.Type, context);
-          if (constantField.Rhs != null) {
-            VisitExpression(constantField.Rhs, context);
-          }
-        } else if (member is Field field) {
-          var context = new CallGraphBuilderContext(new NoContext(cl.EnclosingModuleDefinition));
-          VisitAttributes(field, context);
-          VisitUserProvidedType(field.Type, context);
-        } else if (member is Function function) {
-          VisitFunction(function);
-        } else if (member is Method method) {
-          VisitMethod(method);
-        } else {
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member type
-        }
-      }
-    }
-
-    private void VisitIterator(IteratorDecl iter) {
-      Contract.Requires(iter != null);
-
-      var context = new CallGraphBuilderContext(iter); // single-state context
-
-      VisitAttributes(iter, context);
-      VisitDefaultParameterValues(iter.Ins, context);
-
-      VisitAttributes(iter.Decreases, context);
-      for (var i = 0; i < iter.Decreases.Expressions.Count; i++) {
-        var e = iter.Decreases.Expressions[i];
-        VisitExpression(e, context);
-      }
-      foreach (FrameExpression fe in iter.Reads.Expressions) {
-        VisitExpression(fe.E, new CallGraphBuilderContext(iter));
-      }
-      VisitAttributes(iter.Modifies, context);
-      foreach (FrameExpression fe in iter.Modifies.Expressions) {
-        VisitExpression(fe.E, new CallGraphBuilderContext(iter));
-      }
-      foreach (AttributedExpression e in iter.Requires) {
-        VisitAttributes(e, context);
-        VisitExpression(e.E, context);
-      }
-
-      foreach (AttributedExpression e in iter.YieldRequires) {
-        VisitAttributes(e, context);
-        VisitExpression(e.E, context);
-      }
-      foreach (AttributedExpression e in iter.YieldEnsures) {
-        VisitAttributes(e, new CallGraphBuilderContext(iter));
-        VisitExpression(e.E, new CallGraphBuilderContext(iter));
-      }
-      foreach (AttributedExpression e in iter.Ensures) {
-        VisitAttributes(e, new CallGraphBuilderContext(iter));
-        VisitExpression(e.E, new CallGraphBuilderContext(iter));
-      }
-
-      if (iter.Body != null) {
-        VisitStatement(iter.Body, new CallGraphBuilderContext(iter));
-      }
-    }
-
-    /// <summary>
-    /// Visits a function and its body.
-    /// </summary>
-    private void VisitFunction(Function f) {
-      VisitFunctionProper(f);
-
-      if (f.OverriddenFunction != null) {
-        // add an edge from the trait function to that of the class/type
-        AddCallGraphEdgeRaw(f.OverriddenFunction, f);
-      }
-
-      var prefixPredicate = (f as ExtremePredicate)?.PrefixPredicate;
-      if (prefixPredicate != null) {
-        // add an edge from P# to P, since this will have the desired effect of detecting unwanted cycles.
-        AddCallGraphEdgeRaw(prefixPredicate, f);
-        VisitFunctionProper(prefixPredicate);
-      }
-
-      if (f.ByMethodDecl != null) {
-        VisitMethod(f.ByMethodDecl);
-      }
-    }
-
-    private void VisitFunctionProper(Function f) {
-      VisitAttributes(f, new CallGraphBuilderContext(f));
-
-      foreach (var formal in f.Formals) {
-        VisitUserProvidedType(formal.Type, new CallGraphBuilderContext(f));
-      }
-      VisitUserProvidedType(f.ResultType, new CallGraphBuilderContext(f));
-
-      VisitDefaultParameterValues(f.Formals, new CallGraphBuilderContext(f));
-
-      foreach (AttributedExpression e in f.Req) {
-        VisitAttributes(e, new CallGraphBuilderContext(f));
-        VisitExpression(e.E, new CallGraphBuilderContext(f));
-      }
-      foreach (FrameExpression fr in f.Reads) {
-        VisitExpression(fr.E, new CallGraphBuilderContext(f));
-      }
-      foreach (AttributedExpression e in f.Ens) {
-        VisitAttributes(e, new CallGraphBuilderContext(f));
-        VisitExpression(e.E, new CallGraphBuilderContext(f) { InFunctionPostcondition = true });
-      }
-      VisitAttributes(f.Decreases, new CallGraphBuilderContext(f));
-      foreach (Expression r in f.Decreases.Expressions) {
-        VisitExpression(r, new CallGraphBuilderContext(f));
-      }
-
-      if (f.ByMethodBody != null) {
-        // The following conditions are assured by the parser and other callers of the Function constructor
-        Contract.Assert(f.Body != null);
-        Contract.Assert(!f.IsGhost);
-      }
-      if (f.Body != null) {
-        VisitExpression(f.Body, new CallGraphBuilderContext(f));
-      }
-    }
-
-    private void VisitExpression(Expression expr, CallGraphBuilderContext context) {
-      Contract.Requires(expr != null);
-      Contract.Requires(context != null);
-
-      if (expr is DefaultValueExpression) {
-        // A DefaultValueExpression is a wrapper around the expression given as a default in the callee's declaration.
-        // It hasn't yet been resolved, so we can't process it here. But that's okay, because we will set up the necessary
-        // call graph edges when processing the callee's declaration.
-        return;
-      }
-      expr = expr.Resolved;
-
-      if (expr is DatatypeValue dtv) {
-        var dt = dtv.Type.AsDatatype;
-        if (context.CodeContext is ICallable caller && caller.EnclosingModule == dt.EnclosingModuleDefinition) {
-          caller.EnclosingModule.CallGraph.AddEdge(caller, dt);
-        }
-
-      } else if (expr is MemberSelectExpr memberSelectExpr) {
-        if (memberSelectExpr.Member is Function function) {
-          AddCallGraphEdge(context.CodeContext, function, memberSelectExpr, false);
-        } else if (memberSelectExpr.Member is Field field) {
-          AddCallGraphEdgeForField(context.CodeContext, field, memberSelectExpr);
-        } else {
-          // Apparently, we're called on the CallStmt.MemberSelect expression. The call-graph edge is added by the
-          // handling of the CallStmt. Below, we will continue visiting the MemberSelectExpr.Obj subexpression.
-          Contract.Assert(memberSelectExpr.Member is Method);
-        }
-
-      } else if (expr is FunctionCallExpr functionCallExpr) {
-        var function = functionCallExpr.Function;
-        if (function is ExtremePredicate extremePredicate) {
-          extremePredicate.Uses.Add(functionCallExpr);
-        }
-        AddCallGraphEdge(context.CodeContext, function, functionCallExpr,
-          IsFunctionReturnValue(function, functionCallExpr.Receiver, functionCallExpr.Args, context));
-
-      } else if (expr is SeqConstructionExpr seqConstructionExpr) {
-        var userProvidedElementType = seqConstructionExpr.ExplicitElementType;
-        if (userProvidedElementType != null) {
-          VisitUserProvidedType(userProvidedElementType, context);
-        }
-
-      } else if (expr is TypeUnaryExpr typeUnaryExpr) {
-        VisitUserProvidedType(typeUnaryExpr.ToType, context);
-
-      } else if (expr is LetExpr letExpr) {
-        foreach (var lhs in letExpr.LHSs) {
-          foreach (var v in lhs.Vars) {
-            VisitUserProvidedType(v.SyntacticType, context);
-          }
-        }
-
-      } else if (expr is QuantifierExpr quantifierExpr) {
-        Contract.Assert(quantifierExpr.SplitQuantifier == null); // No split quantifiers during resolution
-        if (context.CodeContext is Function enclosingFunction) {
-          enclosingFunction.ContainsQuantifier = true;
-        }
-        foreach (BoundVar v in quantifierExpr.BoundVars) {
-          VisitUserProvidedType(v.Type, context);
-        }
-
-      } else if (expr is SetComprehension setComprehension) {
-        foreach (BoundVar v in setComprehension.BoundVars) {
-          VisitUserProvidedType(v.Type, context);
-        }
-
-      } else if (expr is MapComprehension mapComprehension) {
-        foreach (BoundVar v in mapComprehension.BoundVars) {
-          VisitUserProvidedType(v.Type, context);
-        }
-
-      } else if (expr is LambdaExpr lambdaExpr) {
-        foreach (BoundVar v in lambdaExpr.BoundVars) {
-          VisitUserProvidedType(v.Type, context);
-        }
-
-      } else if (expr is StmtExpr stmtExpr) {
-        VisitStatement(stmtExpr.S, context);
-
-      } else if (expr is MatchExpr matchExpr) {
-        foreach (MatchCaseExpr mc in matchExpr.Cases) {
-          foreach (BoundVar v in mc.Arguments) {
-            VisitUserProvidedType(v.Type, context);
-          }
-        }
-      }
-
-      foreach (var ee in expr.SubExpressions) {
-        VisitExpression(ee, context);
-      }
-    }
-
-    private void VisitDefaultParameterValues(List<Formal> formals, CallGraphBuilderContext context) {
-      Contract.Requires(formals != null);
-      Contract.Requires(context != null);
-
-      foreach (var formal in formals) {
-        var d = formal.DefaultValue;
-        if (d != null) {
-          VisitExpression(d, context);
-        }
-      }
-    }
-
-    /// <summary>
-    /// Return "true" only if the call to "fn" with arguments "receiver/args" in context "context"
-    /// denotes the function result value. (If so, the call is not a recursive call, but just a
-    /// way to refer to the function's result value.)
-    ///
-    /// If the call is in a function postcondition, it is calling itself, and the arguments match the
-    /// formal parameters, then it denotes a function return value. In general, matching the actuals with
-    /// formals requires verification. Here, the two are compared syntactically. Thus, this method may
-    /// return "false" even in some cases where the call denotes the function's result value.
-    /// </summary>
-    private bool IsFunctionReturnValue(Function fn, Expression receiver, List<Expression> args, CallGraphBuilderContext context) {
-      if (context.CodeContext == fn && context.InFunctionPostcondition) {
-        Contract.Assert(fn.Formals.Count == args.Count);
-        return
-          (fn.IsStatic || receiver.Resolved is ThisExpr) &&
-          Enumerable.Range(0, args.Count).All(i => (args[i].Resolved as IdentifierExpr)?.Var == fn.Formals[i]);
-      }
-      return false;
-    }
-
-    private void VisitMethod(Method m) {
-      VisitMethodProper(m);
-
-      if (m.OverriddenMethod != null) {
-        // add an edge from the trait method to that of the class/type
-        AddCallGraphEdgeRaw(m.OverriddenMethod, m);
-      }
-
-      var prefixLemma = (m as ExtremeLemma)?.PrefixLemma;
-      if (prefixLemma != null) {
-        // add an edge from M# to M, since this will have the desired effect of detecting unwanted cycles.
-        AddCallGraphEdgeRaw(prefixLemma, m);
-        VisitMethodProper(prefixLemma);
-      }
-    }
-
-    private void VisitMethodProper(Method m) {
-      Contract.Requires(m != null);
-
-      var context = new CallGraphBuilderContext(m);
-
-      VisitAttributes(m, context);
-
-      foreach (var p in m.Ins) {
-        VisitUserProvidedType(p.Type, context);
-      }
-      foreach (var p in m.Outs) {
-        VisitUserProvidedType(p.Type, context);
-      }
-
-      VisitDefaultParameterValues(m.Ins, context);
-
-      foreach (AttributedExpression e in m.Req) {
-        VisitAttributes(e, context);
-        VisitExpression(e.E, context);
-      }
-
-      VisitAttributes(m.Mod, context);
-      foreach (FrameExpression fe in m.Mod.Expressions) {
-        VisitExpression(fe.E, context);
-      }
-      VisitAttributes(m.Decreases, context);
-      foreach (Expression e in m.Decreases.Expressions) {
-        VisitExpression(e, context);
-      }
-
-      foreach (AttributedExpression e in m.Ens) {
-        VisitAttributes(e, context);
-        VisitExpression(e.E, context);
-      }
-
-      if (m.Body != null) {
-        VisitStatement(m.Body, context);
-      }
-    }
-
-    private void VisitStatement(Statement stmt, CallGraphBuilderContext context) {
-      Contract.Requires(stmt != null);
-      Contract.Requires(context != null);
-
-      if (stmt is RevealStmt revealStmt) {
-        foreach (var ss in revealStmt.ResolvedStatements) {
-          VisitStatement(ss, context);
-        }
-
-      } else if (stmt is VarDeclStmt varDeclStmt) {
-        foreach (var local in varDeclStmt.Locals) {
-          VisitUserProvidedType(local.OptionalType, context);
-        }
-
-      } else if (stmt is VarDeclPattern varDeclPattern) {
-        foreach (var local in varDeclPattern.LocalVars) {
-          VisitUserProvidedType(local.OptionalType, context);
-        }
-
-      } else if (stmt is AssignStmt assignStmt) {
-        if (assignStmt.Rhs is TypeRhs typeRhs) {
-          if (typeRhs.EType != null) {
-            VisitUserProvidedType(typeRhs.EType, context);
-          }
-        }
-
-        // check on assumption variables
-        if (context.CodeContext is Method currentMethod &&
-            (assignStmt.Lhs.Resolved as IdentifierExpr)?.Var is LocalVariable localVar &&
-            Attributes.Contains(localVar.Attributes, "assumption")) {
-          if ((assignStmt.Rhs as ExprRhs)?.Expr is BinaryExpr binaryExpr &&
-              binaryExpr.Op == BinaryExpr.Opcode.And &&
-              (binaryExpr.E0.Resolved as IdentifierExpr)?.Var == localVar &&
-              !currentMethod.AssignedAssumptionVariables.Contains(localVar)) {
-            currentMethod.AssignedAssumptionVariables.Add(localVar);
+        } else if (expr is MemberSelectExpr memberSelectExpr) {
+          if (memberSelectExpr.Member is Function function) {
+            AddCallGraphEdge(context.CodeContext, function, memberSelectExpr, false);
+          } else if (memberSelectExpr.Member is Field field) {
+            AddCallGraphEdgeForField(context.CodeContext, field, memberSelectExpr);
           } else {
-            reporter.Error(MessageSource.Resolver, stmt,
-              $"there may be at most one assignment to an assumption variable, the RHS of which must match the expression \"{localVar.Name} && <boolean expression>\"");
+            // Apparently, we're called on the CallStmt.MemberSelect expression. The call-graph edge is added by the
+            // handling of the CallStmt. Below, we will continue visiting the MemberSelectExpr.Obj subexpression.
+            Contract.Assert(memberSelectExpr.Member is Method);
+          }
+
+        } else if (expr is FunctionCallExpr functionCallExpr) {
+          var function = functionCallExpr.Function;
+          if (function is ExtremePredicate extremePredicate) {
+            extremePredicate.Uses.Add(functionCallExpr);
+          }
+          AddCallGraphEdge(context.CodeContext, function, functionCallExpr,
+            IsFunctionReturnValue(function, functionCallExpr.Receiver, functionCallExpr.Args, context));
+
+        } else if (expr is QuantifierExpr quantifierExpr) {
+          Contract.Assert(quantifierExpr.SplitQuantifier == null); // No split quantifiers during resolution
+          if (context.CodeContext is Function enclosingFunction) {
+            enclosingFunction.ContainsQuantifier = true;
+          }
+
+        }
+
+        return true;
+      }
+
+      /// <summary>
+      /// Return "true" only if the call to "fn" with arguments "receiver/args" in context "context"
+      /// denotes the function result value. (If so, the call is not a recursive call, but just a
+      /// way to refer to the function's result value.)
+      ///
+      /// If the call is in a function postcondition, it is calling itself, and the arguments match the
+      /// formal parameters, then it denotes a function return value. In general, matching the actuals with
+      /// formals requires verification. Here, the two are compared syntactically. Thus, this method may
+      /// return "false" even in some cases where the call denotes the function's result value.
+      /// </summary>
+      private bool IsFunctionReturnValue(Function fn, Expression receiver, List<Expression> args, CallGraphBuilderContext context) {
+        if (context.CodeContext == fn && context.InFunctionPostcondition) {
+          Contract.Assert(fn.Formals.Count == args.Count);
+          return
+            (fn.IsStatic || receiver.Resolved is ThisExpr) &&
+            Enumerable.Range(0, args.Count).All(i => (args[i].Resolved as IdentifierExpr)?.Var == fn.Formals[i]);
+        }
+        return false;
+      }
+
+      protected override bool VisitOneStatement(Statement stmt, CallGraphBuilderContext context) {
+        if (stmt is AssignStmt assignStmt) {
+          // check on assumption variables
+          if (context.CodeContext is Method currentMethod &&
+              (assignStmt.Lhs.Resolved as IdentifierExpr)?.Var is LocalVariable localVar &&
+              Attributes.Contains(localVar.Attributes, "assumption")) {
+            if ((assignStmt.Rhs as ExprRhs)?.Expr is BinaryExpr binaryExpr &&
+                binaryExpr.Op == BinaryExpr.Opcode.And &&
+                (binaryExpr.E0.Resolved as IdentifierExpr)?.Var == localVar &&
+                !currentMethod.AssignedAssumptionVariables.Contains(localVar)) {
+              currentMethod.AssignedAssumptionVariables.Add(localVar);
+            } else {
+              reporter.Error(MessageSource.Resolver, stmt,
+                $"there may be at most one assignment to an assumption variable, the RHS of which must match the expression \"{localVar.Name} && <boolean expression>\"");
+            }
+          }
+
+        } else if (stmt is CallStmt callStmt) {
+          AddCallGraphEdge(callStmt, context);
+
+        }
+
+        return true;
+      }
+
+      /// <summary>
+      /// This method, the two AddCallGraphEdge methods, and AddTypeDependencyEdges are what the
+      /// CallGraphBuilder is all about. These two methods are called during the traversal of the
+      /// declarations given to the public Build method.
+      /// </summary>
+      private void AddCallGraphEdgeForField(IASTVisitorContext callingContext, Field field, Expression e) {
+        Contract.Requires(callingContext != null);
+        Contract.Requires(field != null);
+        Contract.Requires(e != null);
+        if (field is ConstantField cf) {
+          if (cf == callingContext) {
+            // detect self-loops here, since they don't show up in the graph's SSC methods
+            reporter.Error(MessageSource.Resolver, cf.tok, "recursive dependency involving constant initialization: {0} -> {0}", cf.Name);
+          } else {
+            AddCallGraphEdge(callingContext, cf, e, false);
           }
         }
+      }
 
-      } else if (stmt is CallStmt callStmt) {
-        AddCallGraphEdge(callStmt, context);
-
-      } else if (stmt is OneBodyLoopStmt oneBodyLoopStmt) {
-        if (oneBodyLoopStmt is ForLoopStmt forLoopStmt) {
-          VisitUserProvidedType(forLoopStmt.LoopIndex.Type, context);
+      /// <summary>
+      /// See comment about AddCallGraphEdgeForField.
+      /// </summary>
+      private void AddCallGraphEdge(CallStmt s, CallGraphBuilderContext context) {
+        Contract.Requires(s != null);
+        Contract.Requires(context != null);
+        var callee = s.Method;
+        ModuleDefinition callerModule = context.CodeContext.EnclosingModule;
+        ModuleDefinition calleeModule = ((IASTVisitorContext)callee).EnclosingModule;
+        if (callerModule != calleeModule) {
+          // inter-module call; don't record in call graph
+          return;
         }
 
-      } else if (stmt is ForallStmt forallStmt) {
-        foreach (BoundVar v in forallStmt.BoundVars) {
-          VisitUserProvidedType(v.Type, context);
-        }
-
-      } else if (stmt is MatchStmt matchStmt) {
-        foreach (MatchCaseStmt mc in matchStmt.Cases) {
-          if (mc.Arguments != null) {
-            foreach (BoundVar v in mc.Arguments) {
-              VisitUserProvidedType(v.Type, context);
+        // intra-module call; add edge in module's call graph
+        if (context.CodeContext is ICallable caller) {
+          if (caller is IteratorDecl iteratorDecl) {
+            // use the MoveNext() method as the caller
+            callerModule.CallGraph.AddEdge(iteratorDecl.Member_MoveNext, callee);
+          } else {
+            callerModule.CallGraph.AddEdge(caller, callee);
+            if (caller == callee) {
+              callee.IsRecursive = true; // self recursion (mutual recursion is determined elsewhere)
             }
           }
         }
       }
 
-      foreach (var ee in stmt.SubExpressions) {
-        VisitExpression(ee, context);
-      }
-      foreach (var ss in stmt.SubStatements) {
-        VisitStatement(ss, context);
-      }
-    }
+      /// <summary>
+      /// See comment about AddCallGraphEdgeForField.
+      /// </summary>
+      public static void AddCallGraphEdge(IASTVisitorContext callingContext, ICallable callable, Expression e, bool isFunctionReturnValue) {
+        Contract.Requires(callingContext != null);
+        Contract.Requires(callable != null);
+        Contract.Requires(e != null);
+        ModuleDefinition callerModule = callingContext.EnclosingModule;
+        ModuleDefinition calleeModule = callable is SpecialFunction ? null : callable.EnclosingModule;
+        if (callerModule != calleeModule) {
+          // inter-module call; don't record in call graph
+          return;
+        }
 
-    private void VisitUserProvidedType(Type type, CallGraphBuilderContext context) {
-      AddTypeDependencyEdges(context.CodeContext, type);
+        // intra-module call; add edge in module's call graph
+        if (callingContext is ICallable caller) {
+          callerModule.CallGraph.AddEdge(caller, callable);
+          if (caller is Function f) {
+            if (e is FunctionCallExpr ee) {
+              f.AllCalls.Add(ee);
+            }
+            // if the call denotes the function return value in the function postconditions, then we don't
+            // mark it as recursive.
+            if (caller == callable && !isFunctionReturnValue) {
+              f.IsRecursive = true;  // self recursion (mutual recursion is determined elsewhere)
+            }
+          }
+        }
+      }
     }
   }
 }
