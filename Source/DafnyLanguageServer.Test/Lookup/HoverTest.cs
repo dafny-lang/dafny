@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System;
+using System.ComponentModel.DataAnnotations;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
@@ -14,10 +15,13 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   [TestClass]
   public class HoverTest : ClientBasedLanguageServerTest {
 
-    [TestInitialize]
-    public override async Task SetUp() {
-      DafnyOptions.Install(DafnyOptions.Create("-proverOpt:SOLVER=noop"));
-      await base.SetUp();
+    public override async Task SetUp(Action<DafnyOptions> modifyOptions = null) {
+      void ModifyOptions(DafnyOptions options) {
+        options.ProverOptions.Add("-proverOpt:SOLVER=noop");
+        modifyOptions?.Invoke(options);
+      }
+
+      await base.SetUp(ModifyOptions);
     }
 
     private Task<Hover> RequestHover(TextDocumentItem documentItem, Position position) {
@@ -83,6 +87,53 @@ method CallDoIt() returns () {
   var x := DoIt();
               ^[```dafny\nmethod DoIt() returns (x: int)\n```]
 }");
+    }
+
+
+    [TestMethod]
+    public async Task HoveringBoundVariablesFormalsLocalVariablesInMatchExprOrStatement() {
+      await AssertHover(@"
+datatype DT = A | B | C
+
+method M(dt: DT) {
+  match dt {
+    case C => 
+    case A | B => var x := (y => y)(1); assert x == 1;
+                      ^[```dafny\nx: int\n```]
+                            ^[```dafny\ny: int\n```]
+                                 ^[```dafny\ny: int\n```]
+  }
+}
+
+method M2(dt: DT) {
+  match dt {
+    case C => 
+    case _ => var x := (y => y)(1); assert x == 1;
+                  ^[```dafny\nx: int\n```]
+                        ^[```dafny\ny: int\n```]
+                             ^[```dafny\ny: int\n```]
+  }
+}
+
+function method F(dt: DT): int {
+  match dt {
+    case C => 0
+    case A | B => var x := (y => y)(1); assert x == 1; 0
+                      ^[```dafny\nx: int\n```]
+                            ^[```dafny\ny: int\n```]
+                                 ^[```dafny\ny: int\n```]
+  }
+}
+function method F2(dt: DT): int {
+  match dt {
+    case C => 0
+    case _ => var x := (y => y)(1); assert x == 1; 0
+                  ^[```dafny\nx: int\n```]
+                        ^[```dafny\ny: int\n```]
+                             ^[```dafny\ny: int\n```]
+  }
+}
+");
     }
 
     [TestMethod]

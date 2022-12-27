@@ -1,48 +1,43 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using System.Linq;
+using System.Net.Mime;
 using Microsoft.Extensions.Logging;
-using Serilog.Core;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Extensions.Options;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
-
   public class NotificationPublisher : INotificationPublisher {
     private readonly ILogger<NotificationPublisher> logger;
     private readonly ILanguageServerFacade languageServer;
-    private readonly VerifierOptions verifierOptions;
+    private readonly DafnyOptions options;
 
-    public NotificationPublisher(ILogger<NotificationPublisher> logger, ILanguageServerFacade languageServer, IOptions<VerifierOptions> verifierOptions) {
+    public NotificationPublisher(ILogger<NotificationPublisher> logger, ILanguageServerFacade languageServer, DafnyOptions options) {
       this.logger = logger;
       this.languageServer = languageServer;
-      this.verifierOptions = verifierOptions.Value;
+      this.options = options;
     }
 
-    public void PublishNotifications(DafnyDocument previous, DafnyDocument document) {
-      if (document.LoadCanceled) {
-        // We leave the responsibility to shift the error locations to the LSP clients.
-        // Therefore, we do not republish the errors when the document (re-)load was canceled.
-        return;
-      }
-
-      PublishVerificationStatus(previous, document);
-      PublishDocumentDiagnostics(previous, document);
-      PublishGhostDiagnostics(previous, document);
+    public void PublishNotifications(IdeState previousState, IdeState state) {
+      PublishVerificationStatus(previousState, state);
+      PublishDocumentDiagnostics(previousState, state);
+      PublishGhostDiagnostics(previousState, state);
     }
 
-    private void PublishVerificationStatus(DafnyDocument previousDocument, DafnyDocument document) {
-      var notification = GetFileVerificationStatus(document);
+    private void PublishVerificationStatus(IdeState previousState, IdeState state) {
+      var notification = GetFileVerificationStatus(state);
       if (notification == null) {
         // Do not publish verification status while resolving
         return;
       }
 
-      var previous = GetFileVerificationStatus(previousDocument);
+      var previous = GetFileVerificationStatus(previousState);
       if (previous != null && (previous.Version > notification.Version ||
           previous.NamedVerifiables.SequenceEqual(notification.NamedVerifiables))) {
         return;
@@ -51,12 +46,19 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       languageServer.TextDocument.SendNotification(DafnyRequestNames.VerificationSymbolStatus, notification);
     }
 
-    private static FileVerificationStatus? GetFileVerificationStatus(DafnyDocument document) {
-      if (document.ImplementationIdToView == null || document.VerificationTasks == null) {
+    private static FileVerificationStatus? GetFileVerificationStatus(IdeState state) {
+      if (!state.ImplementationsWereUpdated) {
+        /*
+         DocumentAfterResolution.Snapshot() gets migrated ImplementationViews.
+         It has to get migrated Diagnostics inside ImplementationViews, otherwise we get incorrect diagnostics.
+         However, migrating the ImplementationId's may mean we lose verifiable symbols, which we don't want at this point. TODO: why not?
+         To prevent publishing file verification status unless the current document has been translated,
+         the field ImplementationsWereUpdated was added.
+         */
         return null;
       }
-      return new FileVerificationStatus(document.Uri, document.Version,
-        GetNamedVerifiableStatuses(document.ImplementationIdToView));
+      return new FileVerificationStatus(state.TextDocumentItem.Uri, state.TextDocumentItem.Version,
+        GetNamedVerifiableStatuses(state.ImplementationIdToView));
     }
 
     private static List<NamedVerifiableStatus> GetNamedVerifiableStatuses(IReadOnlyDictionary<ImplementationId, ImplementationView> implementationViews) {
@@ -71,9 +73,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return new[] { first, second }.Min();
     }
 
-    private void PublishDocumentDiagnostics(DafnyDocument previousDocument, DafnyDocument document) {
-      var diagnosticParameters = GetPublishDiagnosticsParams(document);
-      var previousParams = GetPublishDiagnosticsParams(previousDocument);
+    private void PublishDocumentDiagnostics(IdeState previousState, IdeState state) {
+      var diagnosticParameters = GetPublishDiagnosticsParams(state);
+      var previousParams = GetPublishDiagnosticsParams(previousState);
       if (previousParams.Version > diagnosticParameters.Version ||
           previousParams.Diagnostics.SequenceEqual(diagnosticParameters.Diagnostics)) {
         return;
@@ -81,30 +83,25 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       languageServer.TextDocument.PublishDiagnostics(diagnosticParameters);
     }
 
-    private static PublishDiagnosticsParams GetPublishDiagnosticsParams(DafnyDocument document) {
+    private static PublishDiagnosticsParams GetPublishDiagnosticsParams(IdeState state) {
       return new PublishDiagnosticsParams {
-        Uri = document.Uri,
-        Version = document.Version,
-        Diagnostics = document.Diagnostics.ToArray(),
+        Uri = state.TextDocumentItem.Uri,
+        Version = state.TextDocumentItem.Version,
+        Diagnostics = state.Diagnostics.ToArray(),
       };
     }
 
-    public void PublishGutterIcons(DafnyDocument document, bool verificationStarted) {
-      if (!verifierOptions.GutterStatus) {
+    public void PublishGutterIcons(IdeState state, bool verificationStarted) {
+      if (!options.Get(ServerCommand.LineVerificationStatus)) {
         return;
       }
 
-      if (document.LoadCanceled) {
-        // We leave the responsibility to shift the error locations to the LSP clients.
-        // Therefore, we do not republish the errors when the document (re-)load was canceled.
-        return;
-      }
-      var errors = document.ParseAndResolutionDiagnostics.Where(x => x.Severity == DiagnosticSeverity.Error).ToList();
-      var linesCount = document.LinesCount;
+      var errors = state.ResolutionDiagnostics.Where(x => x.Severity == DiagnosticSeverity.Error).ToList();
+      var linesCount = state.TextDocumentItem.NumberOfLines;
       var verificationStatusGutter = VerificationStatusGutter.ComputeFrom(
-        document.Uri,
-        document.Version,
-        document.VerificationTree.Children.Select(child => child.GetCopyForNotification()).ToArray(),
+        state.Uri,
+        state.TextDocumentItem.Version!.Value,
+        state.VerificationTree.Children.Select(child => child.GetCopyForNotification()).ToArray(),
         errors,
         linesCount,
         verificationStarted
@@ -112,21 +109,21 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       languageServer.TextDocument.SendNotification(verificationStatusGutter);
     }
 
-    private void PublishGhostDiagnostics(DafnyDocument previousDocument, DafnyDocument document) {
+    private void PublishGhostDiagnostics(IdeState previousState, IdeState state) {
 
-      var newParams = GetGhostness(document);
-      var previousParams = GetGhostness(previousDocument);
+      var newParams = GetGhostness(state);
+      var previousParams = GetGhostness(previousState);
       if (previousParams.Diagnostics.SequenceEqual(newParams.Diagnostics)) {
         return;
       }
       languageServer.TextDocument.SendNotification(newParams);
     }
 
-    private static GhostDiagnosticsParams GetGhostness(DafnyDocument document) {
+    private static GhostDiagnosticsParams GetGhostness(IdeState state) {
       return new GhostDiagnosticsParams {
-        Uri = document.Uri,
-        Version = document.Version,
-        Diagnostics = document.GhostDiagnostics.ToArray(),
+        Uri = state.TextDocumentItem.Uri,
+        Version = state.TextDocumentItem.Version,
+        Diagnostics = state.GhostDiagnostics.ToArray(),
       };
     }
 

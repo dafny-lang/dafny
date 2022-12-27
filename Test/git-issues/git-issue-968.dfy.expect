@@ -1,2 +1,2 @@
-git-issue-968.dfy(11,14): Error: type of type parameter could not be determined; please specify the type explicitly
+git-issue-968.dfy(11,11): Error: type of type parameter could not be determined; please specify the type explicitly
 1 resolution/type errors detected in git-issue-968.dfy

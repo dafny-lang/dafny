@@ -1,4 +1,4 @@
 git-issue-968a.dfy(11,6): Error: the type of this variable is underspecified
-git-issue-968a.dfy(11,14): Error: type of type parameter could not be determined; please specify the type explicitly
+git-issue-968a.dfy(11,11): Error: type of type parameter could not be determined; please specify the type explicitly
 git-issue-968a.dfy(11,14): Error: the type of this expression is underspecified
 3 resolution/type errors detected in git-issue-968a.dfy

@@ -1,3 +1,4 @@
+git-issue-1252.dfy(41,2): Warning: the modify statement with a block statement is deprecated
 git-issue-1252.dfy(93,13): Error: target object might be null
 git-issue-1252.dfy(94,10): Error: target object might be null
 git-issue-1252.dfy(93,13): Error: target object might be null
@@ -11,8 +12,8 @@ git-issue-1252.dfy(70,15): Error: target object might be null
 git-issue-1252.dfy(81,15): Error: target object might be null
 git-issue-1252.dfy(87,13): Error: target object might be null
 git-issue-1252.dfy(100,25): Error: target object might be null
-git-issue-1252.dfy(106,21): Error: target object might be null
 git-issue-1252.dfy(106,21): Error: object might be null
 git-issue-1252.dfy(106,21): Error: object might not be allocated in the old-state of the 'unchanged' predicate
+git-issue-1252.dfy(106,21): Error: target object might be null
 
 Dafny program verifier finished with 4 verified, 16 errors

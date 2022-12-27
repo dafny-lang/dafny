@@ -14,12 +14,12 @@ jobs:
       fail-fast: false
       matrix:
         # This workflow breaks on windows-2022: https://github.com/dafny-lang/dafny/issues/1906
-        os: [ ubuntu-latest, ubuntu-18.04, macos-latest, windows-2019 ]
+        os: [ ubuntu-latest, ubuntu-20.04, macos-latest, windows-2019 ]
         include:
         - os:  'ubuntu-latest'
-          osn: 'ubuntu\-16.04'
-        - os:  'ubuntu-18.04'
-          osn: 'ubuntu\-16.04'
+          osn: 'ubuntu\-20.04'
+        - os:  'ubuntu-20.04'
+          osn: 'ubuntu\-20.04'
         - os:  'macos-latest'
           osn: 'osx-.*'
         - os:  'windows-2019'
@@ -81,6 +81,11 @@ jobs:
       if: runner.os == 'Windows'
       run: (dafny/Dafny.exe /compile:0 b.dfy || echo "EXPECTED FAILURE") ; exit 0
     ## Check that a simple program compiles and runs on each supported platform
+    - name: run quicktests
+      run: |
+        npm install bignumber.js
+        dafny/quicktest.sh > log.txt
+        diff log.txt dafny/quicktest.out
     - name: Check C# compile
       run: |
         dafny/dafny /compileVerbose:0 /compile:3 /compileTarget:cs /spillTargetCode:3 a.dfy
@@ -102,7 +107,6 @@ jobs:
         diff expect.txt actual.txt
     - name: Check Javascript compile
       run: |
-        npm install bignumber.js
         dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:js a.dfy
         node a.js dafny/DafnyRuntime.js > actual.txt
         diff expect.txt actual.txt

@@ -9,7 +9,7 @@ env:
 
 jobs:
   singletons:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
     - name: Setup dotnet
       uses: actions/setup-dotnet@v1.9.0
@@ -26,7 +26,7 @@ jobs:
       id: boogieVersion
       uses: QwerMike/xpath-action@v1
       with:
-        filename: 'dafny/Source/Dafny/DafnyPipeline.csproj'
+        filename: 'dafny/Source/DafnyCore/DafnyCore.csproj'
         expression: "//PackageReference[@Include='Boogie.ExecutionEngine']/@Version"
 
     - uses: actions-ecosystem/action-regex-match@v2
@@ -48,7 +48,7 @@ jobs:
       run: dotnet build Source/Dafny.sln
     - name: Check whitespace and style
       working-directory: dafny
-      run: dotnet tool run dotnet-format -w -s error --check Source/Dafny.sln --exclude Dafny/Scanner.cs --exclude Dafny/Parser.cs
+      run: dotnet tool run dotnet-format -w -s error --check Source/Dafny.sln --exclude DafnyCore/Scanner.cs --exclude DafnyCore/Parser.cs
     - name: Create NuGet package (just to make sure it works)
       run: dotnet pack --no-build dafny/Source/Dafny.sln
 

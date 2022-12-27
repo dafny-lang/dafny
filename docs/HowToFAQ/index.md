@@ -9,6 +9,8 @@ These pages are not intended to be a reference manual or an organized tutorial f
 
 If you have questions that are not addressed here, be sure to communicate them to the Dafny team.
 
+[All content on one page](onepage)
+
 # FAQs
 ## Dafny language
 
@@ -22,6 +24,15 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["Can I access the members of an outer module from its inner module?"](FAQNestedModule)
 - ["What is `-` on bitvectors?"](FAQBVNegation)
 - ["Is there a simple way to prove the termination of a recursive function?"](FAQRecursiveTermination)
+
+- ["Is there a way to use methods within expressions?"](FAQMethodSequence)
+- ["I can assert a condition right before a return, so why does the postcondition fail to verify?](FAQFailingPost)
+- ["How can I combine sequences of different types?"](FAQSeqTrait)
+- ["How do I disambiguate module names?](FAQModuleNames)
+- ["A function seems to work just once. How do I get it to apply a bunch of times?"](FAQFunctionUnroll)
+- ["Why do nested modules not see the imports of their enclosing modules?"](FAQModuleImport)
+- ["Is there a way to test that two types are the same?"](FAQTypeCompare)
+- ["When a lemma has multiple ensures clauses, I’m finding that they interact, when I expected them to be independent.  For example, commenting out one of them can make another one not verify.  How should I think about this?"](FAQMultClauses)
 
 - ["What is the difference between a lemma and a ghost method?"](FAQGhostMethod)
 - ["In an invariant, I want to say that once a boolean variable that starts false is set to true, it remains true forever.  Can I use old for this?"](FAQOld)
@@ -45,3 +56,64 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["What is the difference between `function`, `method`, `function method`, and `function by method`?"](FAQFunctionMethodDiffs)
 - ["Is it possible to restrict a type parameter to be a reference type? I see you can use T(!new) but I’m looking for the opposite."](FAQTypeParameterRestriction)
 - ["A `seq` is an object reference, right?"](FAQReferences)
+- ["How do I pattern match against a head and tail of a sequence or against a set?"](FAQMatchOnSet)
+- ["How do I create a new empty map (or set or sequence)?"](FAQMepSetSeq)
+- ["I have a module that exports a bunch of things. In another module I only need to use 1 thing. Is there a way to import only the thing that I want?"](FAQImportOneThing)
+- ["What is the difference between `modifies this`, `modifies this.x`, and ``modifies this`x``?](FAQModifiesThis)
+- ["How does one define a record?"](FAQRecord)
+- ["What does `forall v :: v in vals ==> false` evaluate to if vals is non-empty?"](FAQTriggers)
+- ["Why does Dafny complain about this use of a set constructor: `set i: int | Contains(i)`?"](FAQSetConstructor)
+- ["What's the syntax for paths in include directives? How do they get resolved?"](FAQIncludes)
+- ["How do `{:split_here}` and `{:focus}` work to divide up a proof?"](FAQSplitHere)
+- ["How does one declare a type to have a default initial value, say a type tagged with {:extern}?'](FAQDefaultInitialValue)
+- ["A module A has names from an `import opened` or another module B, but if C imports A, it does not get those names. Please explain."](FAQImportOpened)
+- ["Are there functional alternatives to recursive calls that are more efficient or use less stack space?"](FAQRecursiveCalls)
+- ["How do I read a file as a string?"](FAQReadFile)
+- ["Can I ask dafny to not check termination of a function?"](FAQNoTermCheck)
+- ["What does {:termination false} do on trait? It looks like it is required if I want to extend traits from other modules."](FAQTerminationFalse)
+- ["How do I make Dafny termination checking happy with this pattern of mutual recursion?"](FAQMutualRecursion)
+- ["Can it be proved that a class instance is not an instance of a trait?"](FAQTypeReasoning)
+- ["Is there a nice way to turn a set into a seq?"](FAQSetToSeq)
+- ["How do I declare a default value for a parameter of a method or function?"](FAQDefaultParameter)
+- ["I just realized that a function I was compiling had a type-error inside a match case.  Instead of giving a compile error I was getting a redundant clause warning for the second case. What is the reason for this?"](FAQRedundantCase)
+- ["Is there a way I can pass a variable with a generic type to a method with a concrete type?"](FAQ_GenericType)
+- ["How can ghost code call methods with side effects?"](FAQGhostSideEffects)
+- ["How do I create and use an iterator?](FAQIterator)
+- ["Can classes appear in specs?"](FAQClassInSpec)
+
+## Dafny tools
+
+- ["Is there a Dafny style? and a Dafny linter (style checker and bad smell warnings)?](FAQStyle)
+- ["Is Dafny available as a library, to be called from other software?](FAQDafnyAsLibrary)
+- ["How do I run boogie manually on the Dafny output?](FAQBoogie)
+- ["Does Dafny verify methods in parallel?"](FAQParallel)
+- ["Is there a doc generator for Dafny?"](FAQDocGenerator)
+- ["How can I improve automation and performance for programs with non-linear arithmetic?"](FAQNonlinearArith)
+- ["It looks like, when compiling to C#, my print statements don't show up if I don't have \n at the end of the string."](FAQNewline)
+- ["Is there a standard library for Dafny?"](FAQStandardLibrary)
+- ["Why do I need to use an old Z3?"](FAQZ3)
+- ["How do I ask a question or file a problem report or make a suggestion about Dafny?"](FAQIssues)
+- ["Any plans to release the language server as a NuGet package? Seems like it’s not part of the Dafny release."](FAQNuget)
+- ["What compiler target languages are in development?"](FAQCompileTargets)
+
+# Errors
+
+- ["'z3' cannot be opened because the developer cannot be verified."](ERROR_Z3)
+- ["rbrace expected"](ERROR_Rbrace)
+- ["closeparen expected"](ERROR_CloseParen)
+- ["cannot establish the existence of LHS values that satisfy the such-that predicate"](ERROR_NoLHS)
+- ["type parameter 0 (K) passed to type A must support no references"](ERROR_NoReferenceTypeParameter)
+- ["a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got map<int, A>)"](ERROR_ModifiesValue)
+- ["name of datatype (String) is used as a function"](ERROR_DataTypeName)
+- ["possible violation of function precondition for op(v)"](ERROR_FunctionPrecondition)
+- ["type ? does not have a member IsFailure"](ERROR_IsFailure)
+- ["value does not satisfy subset constraints of ?"](ERROR_Covariance)
+- ["function precondition might not hold"](ERROR_SeqComp)
+- ["insufficient reads clause to invoke function"](ERROR_InsufficientReads)
+- ["Cannot export mutable field 'x' without revealing its enclosing class 'A'"](ERROR_MutableField)
+- ["this symbol not expected in Dafny"](ERROR_PostconditionLemma)
+- [Prover error: Unexpected prover response (getting info about 'unknown' response): (:reason-unknown "Overflow encountered when expanding old_vector")](ERROR_ProverError1)
+- ["Warning: File contains no code: ..."](ERROR_NoCode)
+- ["Duplicate name of import: ..."](ERROR_DuplicateImportName)
+- ["Warning: /!\ No terms found to trigger on."](ERROR_NoTriggers)
+- ["Error: value does not satisfy the subset constraints of '(seq<uint8>, Materials.EncryptedDataKey) -> seq<uint8>' (possible cause: it may be partial or have read effects)"](ERROR_SubsetConstraints)

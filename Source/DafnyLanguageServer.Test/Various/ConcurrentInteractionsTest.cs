@@ -1,3 +1,4 @@
+using System;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
@@ -9,13 +10,12 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
-using Microsoft.Extensions.Configuration;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
   [TestClass]
   public class ConcurrentInteractionsTest : ClientBasedLanguageServerTest {
     // Implementation note: These tests assume that no diagnostics are published
-    // when a document (re-load) was canceled (DafnyDocument.LoadCanceled).
+    // when a document (re-load) was canceled.
     private const int MaxTestExecutionTimeMs = 240_000;
     private const int MaxRequestExecutionTimeMs = 180_000;
 
@@ -25,9 +25,8 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     private CancellationToken CancellationTokenWithHighTimeout => cancellationSource.Token;
 
-    [TestInitialize]
-    public override async Task SetUp() {
-      await base.SetUp();
+    public override async Task SetUp(Action<DafnyOptions> modifyOptions = null) {
+      await base.SetUp(modifyOptions);
 
       // We use a custom cancellation token with a higher timeout to clearly identify where the request got stuck.
       cancellationSource = new();
@@ -51,9 +50,7 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
   }
 }".TrimStart();
       var failSource = @"method Contradiction() { assert false; }";
-      await SetUp(new Dictionary<string, string>() {
-        { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.OnSave) }
-      });
+      await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Save));
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationTokenWithHighTimeout);
 

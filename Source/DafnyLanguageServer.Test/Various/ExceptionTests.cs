@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Server;
 using LanguageServerExtensions = Microsoft.Dafny.LanguageServer.Workspace.LanguageServerExtensions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
@@ -30,7 +31,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       .AddSingleton<IProgramVerifier>(serviceProvider => new CrashingVerifier(this,
         new DafnyProgramVerifier(
           serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>(),
-          serviceProvider.GetRequiredService<IOptions<VerifierOptions>>())
+          serviceProvider.GetRequiredService<DafnyOptions>())
     ));
   }
 
@@ -43,6 +44,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
     client.OpenDocument(documentItem);
     var crashDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.AreEqual(1, crashDiagnostics.Length);
+    Assert.AreEqual(new Range(0, 0, 0, 1), crashDiagnostics[0].Range);
     Assert.IsTrue(crashDiagnostics[0].Message.Contains("internal error"), crashDiagnostics[0].Message);
     CrashOnLoad = false;
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), " ");
@@ -97,7 +99,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       this.verifier = verifier;
     }
 
-    public Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(DafnyDocument document, CancellationToken cancellationToken) {
+    public Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(DocumentAfterResolution document, CancellationToken cancellationToken) {
 
       if (tests.CrashOnPrepareVerification) {
         throw new Exception("crash");
@@ -117,11 +119,11 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       this.loader = loader;
     }
 
-    public DafnyDocument CreateUnloaded(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
+    public IdeState CreateUnloaded(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
       return loader.CreateUnloaded(textDocument, cancellationToken);
     }
 
-    public Task<DafnyDocument> LoadAsync(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
+    public Task<DocumentAfterParsing> LoadAsync(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
       if (tests.CrashOnLoad) {
         throw new Exception("crash");
       }

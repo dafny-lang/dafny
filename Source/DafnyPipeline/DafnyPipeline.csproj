@@ -1,0 +1,59 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <AssemblyName>DafnyPipeline</AssemblyName>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <OutputPath>..\..\Binaries\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <TargetFramework>net6.0</TargetFramework>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net6.0|AnyCPU'">
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+  </PropertyGroup>
+
+  <!-- Working around some stange behavior in dotnet publish: https://github.com/dotnet/sdk/issues/10566 -->
+  <PropertyGroup Condition="$(RUNTIME_IDENTIFIER) != ''">
+    <RuntimeIdentifier>$(RUNTIME_IDENTIFIER)</RuntimeIdentifier>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <ProjectReference Include="..\DafnyCore\DafnyCore.csproj" />
+    <ProjectReference Include="..\DafnyRuntime\DafnyRuntime.csproj">
+      <!-- 
+      This reference is just to ensure that DafnyRuntime is built before this package,
+      so that each runtime artifact is built and can be embedded,
+      but we don't actually want to have a dependency on DafnyRuntime.dll.
+      In the long term we should not even embed each runtime here and should
+      fetch them as published artifacts through nuget/maven/npm/etc.
+      -->
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntime.cs">
+      <LogicalName>DafnyRuntime.cs</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntime.go">
+      <LogicalName>DafnyRuntime.go</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntime.h">
+      <LogicalName>DafnyRuntime.h</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeJava\build\libs\DafnyRuntime.jar">
+      <LogicalName>DafnyRuntime.jar</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntime.js">
+      <LogicalName>DafnyRuntime.js</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntime.py">
+      <LogicalName>DafnyRuntime.py</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+</Project>

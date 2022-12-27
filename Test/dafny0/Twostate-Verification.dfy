@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:3 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:3 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {
@@ -30,7 +30,7 @@ class A {
   }
 
   twostate lemma L2(a: A, b: A)
-    requires old(a != b)
+    requires old(a != b) // warning: old has no effect
   {}
 
   twostate lemma L3(a: A, new b: A)
@@ -653,33 +653,33 @@ module TwoStateAt {
     label Label:
 
     if * {
-      ghost var f0 := old(d0.value);
-      ghost var f1 := old(nt.value);
-      ghost var f2 := old(ot.value);
-      ghost var f3 := old(d1.value);  // error: receiver is not in old state
+      ghost var f0 := old(d0.value); // warning: old has no effect
+      ghost var f1 := old(nt.value); // warning: old has no effect
+      ghost var f2 := old(ot.value); // warning: old has no effect
+      ghost var f3 := old(d1.value);  // error: receiver is not in old state (warning: old has no effect)
     } else if * {
-      ghost var g0 := old(DT<Cell>.sc);
-      ghost var g1 := old(NT.sc);
-      ghost var g2 := old(OT<Cell>.sc);
+      ghost var g0 := old(DT<Cell>.sc); // warning: old has no effect
+      ghost var g1 := old(NT.sc); // warning: old has no effect
+      ghost var g2 := old(OT<Cell>.sc); // warning: old has no effect
     } else if * {
-      ghost var h0 := old(d0.sc);
-      ghost var h1 := old(nt.sc);
-      ghost var h2 := old(ot.sc);
-      ghost var h3 := old(d1.sc);  // this is also fine
+      ghost var h0 := old(d0.sc); // warning: old has no effect
+      ghost var h1 := old(nt.sc); // warning: old has no effect
+      ghost var h2 := old(ot.sc); // warning: old has no effect
+      ghost var h3 := old(d1.sc);  // this is also fine (warning: old has no effect)
     } else if * {
-      ghost var f0 := old@Label(d0.value);
-      ghost var f1 := old@Label(nt.value);
-      ghost var f2 := old@Label(ot.value);
-      ghost var f3 := old@Label(d1.value);  // fine
+      ghost var f0 := old@Label(d0.value); // warning: old has no effect
+      ghost var f1 := old@Label(nt.value); // warning: old has no effect
+      ghost var f2 := old@Label(ot.value); // warning: old has no effect
+      ghost var f3 := old@Label(d1.value);  // fine (warning: old has no effect)
     } else if * {
-      ghost var g0 := old@Label(DT<Cell>.sc);
-      ghost var g1 := old@Label(NT.sc);
-      ghost var g2 := old@Label(OT<Cell>.sc);
+      ghost var g0 := old@Label(DT<Cell>.sc); // warning: old has no effect
+      ghost var g1 := old@Label(NT.sc); // warning: old has no effect
+      ghost var g2 := old@Label(OT<Cell>.sc); // warning: old has no effect
     } else if * {
-      ghost var h0 := old@Label(d0.sc);
-      ghost var h1 := old@Label(nt.sc);
-      ghost var h2 := old@Label(ot.sc);
-      ghost var h3 := old@Label(d1.sc);
+      ghost var h0 := old@Label(d0.sc); // warning: old has no effect
+      ghost var h1 := old@Label(nt.sc); // warning: old has no effect
+      ghost var h2 := old@Label(ot.sc); // warning: old has no effect
+      ghost var h3 := old@Label(d1.sc); // warning: old has no effect
     }
   }
 }

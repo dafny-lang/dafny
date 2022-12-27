@@ -56,8 +56,9 @@ no fields and no implementations.
 
 The compilation of (non-reference) Dafny types to target types is many-to-one.
 For example, a subset type
-
-    type Odd = x: int | x % 2 == 1
+```dafny
+type Odd = x: int | x % 2 == 1
+```
 
 compiles to the same thing as the base type `int` does. For this reason,
 Dafny adds _run-time type descriptors_, which lets these types be distinguished
@@ -79,39 +80,40 @@ Compilation of traits
 ---------------------
 
 Consider a trait declared as
-
-    trait Trait<V> {
-      var a: X
-      const c: X
-      const d: X := E
-      function method F<U>(x: X): Y
-      function method G<U>(x: X): Y { E }
-      method M<U>(x: X) returns (y: Y)
-      method N<U>(x: X) returns (y: Y) { S }
-    }
+```dafny
+trait Trait<V> {
+  var a: X
+  const c: X
+  const d: X := E
+  function method F<U>(x: X): Y
+  function method G<U>(x: X): Y { E }
+  method M<U>(x: X) returns (y: Y)
+  method N<U>(x: X) returns (y: Y) { S }
+}
+```
 
 Note that a trait does not have any constructors.
 
 A trait gets compiled into one interface and one "companion" class. Using a
 Dafny-like syntax, the target of the compilation is:
+```dafny
+interface Trait<V> {
+  function method a(): X
+  method set_a(value: X)
+  function method c(): X
+  function method d(): X
+  function method F<U>(rtdU: RTD, x: X): Y
+  function method G<U>(rtdU: RTD, x: X): Y
+  method M<U>(rtdU: RTD, x: X) returns (y: Y)
+  method N<U>(rtdU: RTD, x: X) returns (y: Y)
+}
 
-    interface Trait<V> {
-      function method a(): X
-      method set_a(value: X)
-      function method c(): X
-      function method d(): X
-      function method F<U>(rtdU: RTD, x: X): Y
-      function method G<U>(rtdU: RTD, x: X): Y
-      method M<U>(rtdU: RTD, x: X) returns (y: Y)
-      method N<U>(rtdU: RTD, x: X) returns (y: Y)
-    }
-
-    class Companion_Trait<V> {
-      static function method d(rtdV: RTD, _this: Trait<V>) { E }
-      static function method G<U>(rtdV: RTD, rtdU: RTD, _this: Trait<V>, x: X): Y { E }
-      static method N<U>(rtdV: RTD, rtdU: RTD, _this: Trait<V>, x: X) returns (y: Y) { S }
-    }
-
+class Companion_Trait<V> {
+  static function method d(rtdV: RTD, _this: Trait<V>) { E }
+  static function method G<U>(rtdV: RTD, rtdU: RTD, _this: Trait<V>, x: X): Y { E }
+  static method N<U>(rtdV: RTD, rtdU: RTD, _this: Trait<V>, x: X) returns (y: Y) { S }
+}
+```
 There is no subtype relation between `Trait` and `Companion_Trait`.
 The companion class is used only as a "home" for the static methods.
 
@@ -144,44 +146,45 @@ class, since it is a static function with an parameter called `_this`.
 
 The C# target code uses some features of reflection instead of using explicit type-descriptor
 parameters.
+```
+interface Trait<V> {
+  property a: X { get; set; }
+  property c: X { get; }
+  property d: X { get; }
+  function method F<U>(x: X): Y
+  function method G<U>(x: X): Y
+  method M<U>(x: X) returns (y: Y)
+  method N<U>(x: X) returns (y: Y)
+}
 
-    interface Trait<V> {
-      property a: X { get; set; }
-      property c: X { get; }
-      property d: X { get; }
-      function method F<U>(x: X): Y
-      function method G<U>(x: X): Y
-      method M<U>(x: X) returns (y: Y)
-      method N<U>(x: X) returns (y: Y)
-    }
-
-    class Companion_Trait<V> {
-      static function method d(_this: Trait<V>) { E }
-      static function method G<U>(_this: Trait<V>, x: X): Y { E }
-      static method N<U>(_this: Trait<V>, x: X) returns (y: Y) { S }
-    }
-
+class Companion_Trait<V> {
+  static function method d(_this: Trait<V>) { E }
+  static function method G<U>(_this: Trait<V>, x: X): Y { E }
+  static method N<U>(_this: Trait<V>, x: X) returns (y: Y) { S }
+}
+```
 ## Java
 
 A static method in Java cannot use the type parameters of the enclosing class. Therefore,
 the companion class for Java instead adds these type parameter to the method.
+```java
+interface Trait<V> {
+  function method a(): X
+  method set_a(value: X)
+  function method c(): X
+  function method d(): X
+  function method F<U>(rtdU: RTD, x: X): Y
+  function method G<U>(rtdU: RTD, x: X): Y
+  method M<U>(rtdU: RTD, x: X) returns (y: Y)
+  method N<U>(rtdU: RTD, x: X) returns (y: Y)
+}
 
-    interface Trait<V> {
-      function method a(): X
-      method set_a(value: X)
-      function method c(): X
-      function method d(): X
-      function method F<U>(rtdU: RTD, x: X): Y
-      function method G<U>(rtdU: RTD, x: X): Y
-      method M<U>(rtdU: RTD, x: X) returns (y: Y)
-      method N<U>(rtdU: RTD, x: X) returns (y: Y)
-    }
-
-    class Companion_Trait {
-      static function method d<V>(rtdV: RTD, _this: Trait<V>) { E }
-      static function method G<V, U>(rtdV: RTD, rtdU: RTD, _this: Trait<V>, x: X): Y { E }
-      static method N<V, U>(rtdV: RTD, rtdU: RTD, _this: Trait<V>, x: X) returns (y: Y) { S }
-    }
+class Companion_Trait {
+  static function method d<V>(rtdV: RTD, _this: Trait<V>) { E }
+  static function method G<V, U>(rtdV: RTD, rtdU: RTD, _this: Trait<V>, x: X): Y { E }
+  static method N<V, U>(rtdV: RTD, rtdU: RTD, _this: Trait<V>, x: X) returns (y: Y) { S }
+}
+```
 
 ## JavaScript
 
@@ -196,12 +199,13 @@ Finally, since JavaScript is dynamicly typed, the language does not require (or 
 parameters. However, compilation still generates type descriptors.
 
 The result is thus organized as follows:
-
-    class Trait {
-      static function method d(rtdV, _this) { E }
-      static function method G(rtdV, rtdU, _this, x) { E }
-      static method N(rtdV, rtdU, _this, x) { S }
-    }
+```
+class Trait {
+  static function method d(rtdV, _this) { E }
+  static function method G(rtdV, rtdU, _this, x) { E }
+  static method N(rtdV, rtdU, _this, x) { S }
+}
+```
 
 The members without implementations (`a`, `c`, `F`, and `M`) are during object construction,
 as described in a later section.
@@ -209,52 +213,55 @@ as described in a later section.
 ## Go
 
 Go has no type parameters, so those are replaced by the empty interface type.
+```
+interface Trait {
+  function method a(): X
+  method set_a(value: X)
+  function method c(): X
+  function method d(): X
+  function method F(rtdU: RTD, x: X): Y
+  function method G(rtdU: RTD, x: X): Y
+  method M(rtdU: RTD, x: X) returns (y: Y)
+  method N(rtdU: RTD, x: X) returns (y: Y)
+}
 
-    interface Trait {
-      function method a(): X
-      method set_a(value: X)
-      function method c(): X
-      function method d(): X
-      function method F(rtdU: RTD, x: X): Y
-      function method G(rtdU: RTD, x: X): Y
-      method M(rtdU: RTD, x: X) returns (y: Y)
-      method N(rtdU: RTD, x: X) returns (y: Y)
-    }
-
-    class Companion_Trait {
-      static function method d(_this: Trait) { E }
-      static function method G(rtdV: RTD, rtdU: RTD, _this: Trait, x: X): Y { E }
-      static method N(rtdV: RTD, rtdU: RTD, _this: Trait, x: X) returns (y: Y) { S }
-    }
+class Companion_Trait {
+  static function method d(_this: Trait) { E }
+  static function method G(rtdV: RTD, rtdU: RTD, _this: Trait, x: X): Y { E }
+  static method N(rtdV: RTD, rtdU: RTD, _this: Trait, x: X) returns (y: Y) { S }
+}
+```
 
 Compilation of class members
 ----------------------------
 
 Consider a class declared as
-
-    class Class<V> {
-      var a: X
-      const c: X
-      const d: X := E
-      function method G<U>(x: X): Y { E }
-      method N<U>(x: X) returns (y: Y) { S }
-    }
+```dafny
+class Class<V> {
+  var a: X
+  const c: X
+  const d: X := E
+  function method G<U>(x: X): Y { E }
+  method N<U>(x: X) returns (y: Y) { S }
+}
+```
 
 Constructors of the class are considered in a later section. Note that all functions and
 methods of a class to be compiled have bodies.
 
 A class gets compiled into one target class. Using a Dafny-like syntax, the target of
 the compilation is:
-
-    class Class<V> {
-      var _rtdV: RTD
-      var a: X
-      var _c: X
-      function method c(): X { _c }
-      function method d(): X { E }
-      function method G<U>(rtdU: RTD, x: X): Y { E }
-      method N<U>(rtdU: RTD, x: X) returns (y: Y) { S }
-    }
+```
+class Class<V> {
+  var _rtdV: RTD
+  var a: X
+  var _c: X
+  function method c(): X { _c }
+  function method d(): X { E }
+  function method G<U>(rtdU: RTD, x: X): Y { E }
+  method N<U>(rtdU: RTD, x: X) returns (y: Y) { S }
+}
+```
 
 The type descriptor for `V` is passed into the constructor (not shown here, but see
 a later section) and stored in the field `_rtdV`. The functions and methods in the class
@@ -289,27 +296,29 @@ The compilation to C# does not use type descriptors, so the `_rtdV` field is not
 present and neither are the type-descriptor parameters.
 
 The functions for retrieving `c` and `d` are declared as getter properties.
-
-    class Class<V> {
-      var a: X
-      var _c: X
-      property c: X { get { _c } }
-      property d: X { get { E } }
-      function method G<U>(x: X): Y { E }
-      method N<U>(x: X) returns (y: Y) { S }
-    }
+```
+class Class<V> {
+  var a: X
+  var _c: X
+  property c: X { get { _c } }
+  property d: X { get { E } }
+  function method G<U>(x: X): Y { E }
+  method N<U>(x: X) returns (y: Y) { S }
+}
+```
 
 ## Java
-
-    class Class<V> {
-      var _rtdV: RTD
-      var a: X
-      var _c: X
-      function method c(): X { _c }
-      function method d(): X { E }
-      function method G<U>(rtdU: RTD, x: X): Y { E }
-      method N<U>(rtdU: RTD, x: X) returns (y: Y) { S }
-    }
+```java
+class Class<V> {
+  var _rtdV: RTD
+  var a: X
+  var _c: X
+  function method c(): X { _c }
+  function method d(): X { E }
+  function method G<U>(rtdU: RTD, x: X): Y { E }
+  method N<U>(rtdU: RTD, x: X) returns (y: Y) { S }
+}
+```
 
 ## JavaScript
 
@@ -319,30 +328,34 @@ The `_rtdV`, `a`, and `_c` fields are declared by virtue of being assigned in th
 constructor. In the following, they are nevertheless shown as explicit field
 declarations:
 
-    class Class<V> {
-      var _rtdV
-      var a
-      var _c
-      property c { get { _c } }
-      property d { get { E } }
-      function method G(rtdU, x) { E }
-      method N(rtdU, x) { S }
-    }
+```
+class Class<V> {
+  var _rtdV
+  var a
+  var _c
+  property c { get { _c } }
+  property d { get { E } }
+  function method G(rtdU, x) { E }
+  method N(rtdU, x) { S }
+}
+```
 
 ## Go
 
 Go doesn't have type parameters, but the compiler nevertheless generates type
 descriptors.
 
-    class Class {
-      var _rtdV: RTD
-      var a: X
-      var _c: X
-      function method c(): X { _c }
-      function method d(): X { E }
-      function method G(rtdU: RTD, x: X): Y { E }
-      method N(rtdU: RTD, x: X) returns (y: Y) { S }
-    }
+```go
+class Class {
+  var _rtdV: RTD
+  var a: X
+  var _c: X
+  function method c(): X { _c }
+  function method d(): X { E }
+  function method G(rtdU: RTD, x: X): Y { E }
+  method N(rtdU: RTD, x: X) returns (y: Y) { S }
+}
+```
 
 Inherited members
 -----------------
@@ -351,36 +364,38 @@ Here is a trait `Parent` and two types that extend it, a trait `Trait` and a cla
 Other than both extending `Parent`, types `Trait` and `Class` are unrelated.
 The extending types inherit all members of `Parent` and override `F` and `M` to give
 them implementations.
+```dafny
+trait Parent<V> {
+  var a: X
+  const c: X
+  const d := c
+  function method F<U>(x: X): X
+  function method G<U>(x: X): X { E }
+  method M<U>(x: X) returns (y: X)
+  method N<U>(x: X) returns (y: X) { S }
+}
 
-    trait Parent<V> {
-      var a: X
-      const c: X
-      const d := c
-      function method F<U>(x: X): X
-      function method G<U>(x: X): X { E }
-      method M<U>(x: X) returns (y: X)
-      method N<U>(x: X) returns (y: X) { S }
-    }
+trait Trait<V> extends Parent<W> {
+  function method F<U>(x: X): Y { E }
+  method M<U>(x: X) returns (y: Y) { S }
+}
 
-    trait Trait<V> extends Parent<W> {
-      function method F<U>(x: X): Y { E }
-      method M<U>(x: X) returns (y: Y) { S }
-    }
-
-    class Class<V> extends Parent<W> {
-      function method F<U>(x: X): Y { E }
-      method M<U>(x: X) returns (y: Y) { S }
-    }
+class Class<V> extends Parent<W> {
+  function method F<U>(x: X): Y { E }
+  method M<U>(x: X) returns (y: Y) { S }
+}
+```
 
 The compilation of `Trait` is as follows:
+```
+interface Trait<V> extends Parent<W> {
+}
 
-    interface Trait<V> extends Parent<W> {
-    }
-
-    class Companion_Trait<V> {
-      static function method F<U>(rtdV: RTD, rtdU: RTD, _this: Trait<V>, x: X): Y { E }
-      static method N<U>(rtdV: RTD, rtdU: RTD, _this: Trait<V>, x: X) returns (y: Y) { S }
-    }
+class Companion_Trait<V> {
+  static function method F<U>(rtdV: RTD, rtdU: RTD, _this: Trait<V>, x: X): Y { E }
+  static method N<U>(rtdV: RTD, rtdU: RTD, _this: Trait<V>, x: X) returns (y: Y) { S }
+}
+```
 
 The extending trait simply indicates its relationship to `Parent`. The overriding
 member implementations are placed in the companion class, where the type of their receiver
@@ -388,33 +403,34 @@ is `Trait<V>` and where the type-descriptor parameters correspond to the type pa
 `Trait` (not `Parent`) and the member itself.
 
 The compilation of `Class` is as follows:
+```
+class Class<V> extends Trait<W> {
+  var _rtdV: RTD
 
-    class Class<V> extends Trait<W> {
-      var _rtdV: RTD
+  var _a: X
+  function method a(): X { _a }
+  method set_a(value: X) { _a := value; }
 
-      var _a: X
-      function method a(): X { _a }
-      method set_a(value: X) { _a := value; }
+  var _c: X
+  function method c(): X { _c }
 
-      var _c: X
-      function method c(): X { _c }
+  function method d(): X {
+    Companion_Parent<W>.d(W(_rtdV), this)
+  }
 
-      function method d(): X {
-        Companion_Parent<W>.d(W(_rtdV), this)
-      }
+  function method F<U>(rtdU: RTD, x: X): Y { E }
 
-      function method F<U>(rtdU: RTD, x: X): Y { E }
+  function method G<U>(rtdU: RTD, x: X): Y {
+    Companion_Parent<W>.G(W(_rtdV), rtdU, this, x)
+  }
 
-      function method G<U>(rtdU: RTD, x: X): Y {
-        Companion_Parent<W>.G(W(_rtdV), rtdU, this, x)
-      }
+  method M<U>(x: X) returns (y: X) { S }
 
-      method M<U>(x: X) returns (y: X) { S }
-
-      method N<U>(rtdU: RTD, x: X) returns (y: Y) {
-        y := Companion_Parent<W>.N(W(_rtdV), rtdU, this, x);
-      }
-    }
+  method N<U>(rtdU: RTD, x: X) returns (y: Y) {
+    y := Companion_Parent<W>.N(W(_rtdV), rtdU, this, x);
+  }
+}
+```
 
 As shown in a section above, the class adds a field to hold the type descriptor for `V`.
 
@@ -463,43 +479,45 @@ In the following, `X` and `Y` refer to the types used in `Parent`, whereas `WX`
 and `WY` refer to those types with `Parent`'s type parameter `V` replaced by
 the type `W`. The Dafny-like `as` notation shows upcasts and downcasts.
 
-    class Class extends Trait {
-      var _rtdV: RTD
+```
+class Class extends Trait {
+  var _rtdV: RTD
 
-      var _a: WX
-      function method a(): X { _a as X }
-      method set_a(value: X) { _a := value as WX; }
+  var _a: WX
+  function method a(): X { _a as X }
+  method set_a(value: X) { _a := value as WX; }
 
-      var _c: WX
-      function method c(): X { _c as X }
+  var _c: WX
+  function method c(): X { _c as X }
 
-      function method d(): X {
-        Companion_Parent.d(W(_rtdV), this) as X
-      }
+  function method d(): X {
+    Companion_Parent.d(W(_rtdV), this) as X
+  }
 
-      function method F(rtdU: RTD, x: X): Y {
-        var x: WX := x;
-        E as Y
-      }
+  function method F(rtdU: RTD, x: X): Y {
+    var x: WX := x;
+    E as Y
+  }
 
-      function method G(rtdU: RTD, x: X): Y {
-        Companion_Parent.G(W(_rtdV), rtdU, this, x as WX) as WY
-      }
+  function method G(rtdU: RTD, x: X): Y {
+    Companion_Parent.G(W(_rtdV), rtdU, this, x as WX) as WY
+  }
 
-      method M(x: X) returns (y: Y) {
-        {
-          var x: WX := x;
-          var y: WY;
-          S
-          return y as Y;
-        }
-      }
-
-      method N(rtdU: RTD, x: X) returns (y: Y) {
-        var y: WY := Companion_Parent.N(W(_rtdV), rtdU, this, x as WY);
-        return y as Y;
-      }
+  method M(x: X) returns (y: Y) {
+    {
+      var x: WX := x;
+      var y: WY;
+      S
+      return y as Y;
     }
+  }
+
+  method N(rtdU: RTD, x: X) returns (y: Y) {
+    var y: WY := Companion_Parent.N(W(_rtdV), rtdU, this, x as WY);
+    return y as Y;
+  }
+}
+```
 
 There is no need to say `extends Trait` in Go, because trait membership is not nominal.
 Nevertheless, the compiler generates some code that will cause the Go compiler to
@@ -539,55 +557,58 @@ uses those only to the extent required by the target language. Each Dafny constr
 is compiled into a target-language method that performs the bulk of the work.
 
 Consider the following declarations of a class and its ancestor traits:
+```dafny
+trait A<V> {
+  var a: X
+  const c: X
+}
 
-    trait A<V> {
-      var a: X
-      const c: X
-    }
+trait B<V> extends A<W> {
+}
 
-    trait B<V> extends A<W> {
-    }
+trait C<V> extends A<W> {
+}
 
-    trait C<V> extends A<W> {
-    }
+class Class<V> extends B<W>, C<W> {
+  var k: X
 
-    class Class<V> extends B<W>, C<W> {
-      var k: X
-
-      constructor Init(x: X) {
-        a := x;
-        c := x;
-      }
-    }
+  constructor Init(x: X) {
+    a := x;
+    c := x;
+  }
+}
+```
 
 The class as follows, where the target-language constructor is indicated with the
 keyword `constructor` and the bulk of the work is done in a method:
 
-    class Class<V> extends A<W>, B<W>, C<W> {
-      var _rtdV: RTD
+```
+class Class<V> extends A<W>, B<W>, C<W> {
+  var _rtdV: RTD
 
-      var _a: X
-      function method a(): X { _a }
-      method set_a(value: X) { _a := value; }
+  var _a: X
+  function method a(): X { _a }
+  method set_a(value: X) { _a := value; }
 
-      var _c: X
-      function method c(): X { _c }
+  var _c: X
+  function method c(): X { _c }
 
-      var k: X
+  var k: X
 
-      constructor (rtdV: RTD) {
-        _rtdV := rtdV;
-        _a := 0;
-        _c := 0;
-        k := 0;
-      }
+  constructor (rtdV: RTD) {
+    _rtdV := rtdV;
+    _a := 0;
+    _c := 0;
+    k := 0;
+  }
 
-      method Init(x: X) {
-        _a := x;
-        _c := x;
-        k := x;
-      }
-    }
+  method Init(x: X) {
+    _a := x;
+    _c := x;
+    k := x;
+  }
+}
+```
 
 The target constructor assigns some initial values to `_a` and `_c` (to cover the
 case where these are not assigned explicitly in the Dafny constructor). The RHS `0`
@@ -605,57 +626,60 @@ descriptors are not used for C#. Second, the setters and getters make use of C#
 properties. Third, the initial assignments to the fields are done as part of the
 field declarations.
 
-    class Class<V> extends A<W>, B<W>, C<W> {
-      var _a: X := 0
-      property a: X {
-        get { _a }
-        set(value: X) { _a := value; }
-      }
+```
+class Class<V> extends A<W>, B<W>, C<W> {
+  var _a: X := 0
+  property a: X {
+    get { _a }
+    set(value: X) { _a := value; }
+  }
 
-      var _c: X := 0
-      property c: X {
-        get { _c }
-      }
+  var _c: X := 0
+  property c: X {
+    get { _c }
+  }
 
-      var k: X := 0
+  var k: X := 0
 
-      constructor () { }
+  constructor () { }
 
-      method Init(x: X) {
-        _a := x;
-        _c := x;
-        k := x;
-      }
-    }
+  method Init(x: X) {
+    _a := x;
+    _c := x;
+    k := x;
+  }
+}
+```
 
 ## Java
+```java
+class Class<V> extends A<W>, B<W>, C<W> {
+  var _rtdV: RTD
 
-    class Class<V> extends A<W>, B<W>, C<W> {
-      var _rtdV: RTD
+  var _a: X
+  function method a(): X { _a }
+  method set_a(value: X) { _a := value; }
 
-      var _a: X
-      function method a(): X { _a }
-      method set_a(value: X) { _a := value; }
+  var _c: X
+  function method c(): X { _c }
+  method set_c(value: X) { _c := value; }
 
-      var _c: X
-      function method c(): X { _c }
-      method set_c(value: X) { _c := value; }
+  var k: X
 
-      var k: X
+  constructor (rtdV: RTD) {
+    _rtdV := rtdV;
+    _a := 0;
+    _c := 0;
+    k := 0;
+  }
 
-      constructor (rtdV: RTD) {
-        _rtdV := rtdV;
-        _a := 0;
-        _c := 0;
-        k := 0;
-      }
-
-      method Init(x: X) {
-        _a := x;
-        _c := x;
-        k := x;
-      }
-    }
+  method Init(x: X) {
+    _a := x;
+    _c := x;
+    k := x;
+  }
+}
+```
 
 Note: Evidently, the Java target always uses setters when assigning to fields.
 

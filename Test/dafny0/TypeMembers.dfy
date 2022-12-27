@@ -1,4 +1,6 @@
-// RUN: %dafny /compile:3 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {
@@ -112,7 +114,7 @@ datatype Dt<A> = Blue | Bucket(diameter: real) | Business(trendy: bool, a: A)
   static method P(x: int) returns (y: int) {
     y := x + g;
   }
-  twostate predicate Toop() { old(this) == this }
+  twostate predicate Toop() { old(this) == this } // warning: old has no effect
   twostate lemma Tool() { }
   least predicate IndP() { true }
   greatest predicate CoP() { true }

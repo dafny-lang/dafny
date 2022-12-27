@@ -1,15 +1,17 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using IntervalTree;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
+using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
@@ -20,51 +22,59 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 public class DocumentManager {
   private readonly IRelocator relocator;
   private readonly ITextChangeProcessor textChangeProcessor;
-  private readonly INotificationPublisher notificationPublisher;
 
   private readonly IServiceProvider services;
-  private readonly DocumentOptions documentOptions;
-  private readonly VerifierOptions verifierOptions;
-  private readonly DocumentObserver observer;
-  public CompilationManager CompilationManager { get; private set; }
+  private readonly IdeStateObserver observer;
+  public Compilation Compilation { get; private set; }
   private IDisposable observerSubscription;
+  private readonly ILogger<DocumentManager> logger;
 
-  private bool VerifyOnOpen => documentOptions.Verify == AutoVerification.OnChange;
-  private bool VerifyOnChange => documentOptions.Verify == AutoVerification.OnChange;
-  private bool VerifyOnSave => documentOptions.Verify == AutoVerification.OnSave;
-  public Task<DafnyDocument> LastDocumentAsync => CompilationManager.LastDocument;
+  private bool VerifyOnOpen => options.Get(ServerCommand.Verification) == VerifyOnMode.Change;
+  private bool VerifyOnChange => options.Get(ServerCommand.Verification) == VerifyOnMode.Change;
+  private bool VerifyOnSave => options.Get(ServerCommand.Verification) == VerifyOnMode.Save;
+  public List<Position> ChangedVerifiables { get; set; } = new();
+  public List<Range> ChangedRanges { get; set; } = new();
+
+  private readonly SemaphoreSlim workCompletedForCurrentVersion = new(0);
+  private readonly DafnyOptions options;
 
   public DocumentManager(
     IServiceProvider services,
-    DocumentOptions documentOptions,
-    VerifierOptions verifierOptions,
     DocumentTextBuffer document) {
     this.services = services;
-    this.documentOptions = documentOptions;
-    this.verifierOptions = verifierOptions;
+    this.options = services.GetRequiredService<DafnyOptions>();
+    this.logger = services.GetRequiredService<ILogger<DocumentManager>>();
     this.relocator = services.GetRequiredService<IRelocator>();
-    this.notificationPublisher = services.GetRequiredService<INotificationPublisher>();
     this.textChangeProcessor = services.GetRequiredService<ITextChangeProcessor>();
 
-    observer = new DocumentObserver(services.GetRequiredService<ILogger<DocumentObserver>>(),
+    observer = new IdeStateObserver(services.GetRequiredService<ILogger<IdeStateObserver>>(),
       services.GetRequiredService<ITelemetryPublisher>(),
       services.GetRequiredService<INotificationPublisher>(),
       services.GetRequiredService<ITextDocumentLoader>(),
       document);
-    CompilationManager = new CompilationManager(services,
-      verifierOptions,
+    Compilation = new Compilation(
+      services,
       document,
-      null,
-      VerifyOnOpen,
-      ImmutableList.Create<Position>(),
       null);
-    observerSubscription = CompilationManager.DocumentUpdates.Subscribe(observer);
+
+    observerSubscription = Compilation.DocumentUpdates.Select(d => d.InitialIdeState()).Subscribe(observer);
+
+    if (VerifyOnOpen) {
+      var _ = VerifyEverythingAsync();
+    } else {
+      logger.LogDebug("Setting result for workCompletedForCurrentVersion");
+      workCompletedForCurrentVersion.Release();
+    }
+
+    Compilation.Start();
   }
 
+  private const int MaxRememberedChanges = 100;
+  private const int MaxRememberedChangedVerifiables = 5;
   public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
     // According to the LSP specification, document versions should increase monotonically but may be non-consecutive.
     // See: https://github.com/microsoft/language-server-protocol/blob/gh-pages/_specifications/specification-3-16.md?plain=1#L1195
-    var oldVer = CompilationManager.TextBuffer.Version;
+    var oldVer = Compilation.TextBuffer.Version;
     var newVer = documentChange.TextDocument.Version;
     var documentUri = documentChange.TextDocument.Uri;
     if (oldVer >= newVer) {
@@ -72,62 +82,49 @@ public class DocumentManager {
         $"the updates of document {documentUri} are out-of-order: {oldVer} -> {newVer}");
     }
 
-    CompilationManager.CancelPendingUpdates();
-    var updatedText = textChangeProcessor.ApplyChange(CompilationManager.TextBuffer, documentChange, CancellationToken.None);
+    logger.LogDebug("Clearing result for workCompletedForCurrentVersion");
+    var _1 = workCompletedForCurrentVersion.WaitAsync();
 
-    var lastPublishedDocument = observer.LastPublishedDocument;
-    var oldVerificationDiagnostics = lastPublishedDocument.ImplementationIdToView;
-    var migratedImplementationViews =
-      oldVerificationDiagnostics == null ? null : MigrateImplementationViews(documentChange, oldVerificationDiagnostics);
+    Compilation.CancelPendingUpdates();
+    var updatedText = textChangeProcessor.ApplyChange(Compilation.TextBuffer, documentChange, CancellationToken.None);
 
-    // TODO it would be simpler to store last touched positions at the DocumentState level, and always recompute the lastTouchedVerifiables from that.
-    // Then we don't need to touch lastPublishedDocument.LastTouchedVerifiables which seems unreliable.
-    var migratedLastTouchedVerifiables =
-      relocator.RelocatePositions(lastPublishedDocument.LastTouchedVerifiables, documentChange, CancellationToken.None);
 
+    var lastPublishedState = observer.LastPublishedState;
     var migratedVerificationTree =
-      relocator.RelocateVerificationTree(lastPublishedDocument.VerificationTree, updatedText.NumberOfLines, documentChange, CancellationToken.None);
+      relocator.RelocateVerificationTree(lastPublishedState.VerificationTree, updatedText.NumberOfLines, documentChange, CancellationToken.None);
+    lastPublishedState = lastPublishedState with {
+      ImplementationIdToView = MigrateImplementationViews(documentChange, lastPublishedState.ImplementationIdToView),
+      SignatureAndCompletionTable = relocator.RelocateSymbols(lastPublishedState.SignatureAndCompletionTable, documentChange, CancellationToken.None),
+      VerificationTree = migratedVerificationTree
+    };
 
-    var lastChange = documentChange.ContentChanges.Select(contentChange => contentChange.Range).LastOrDefault();
-
-    CompilationManager = new CompilationManager(
+    lock (ChangedRanges) {
+      ChangedRanges = documentChange.ContentChanges.Select(contentChange => contentChange.Range).Concat(
+        ChangedRanges.Select(range =>
+            relocator.RelocateRange(range, documentChange, CancellationToken.None))).
+          Where(r => r != null).Take(MaxRememberedChanges).ToList()!;
+    }
+    Compilation = new Compilation(
       services,
-      verifierOptions,
       updatedText,
-      lastChange,
-      VerifyOnChange,
-      migratedLastTouchedVerifiables,
       // TODO do not pass this to CompilationManager but instead use it in FillMissingStateUsingLastPublishedDocument
       migratedVerificationTree
     );
 
-    observerSubscription.Dispose();
-    var migratedUpdates = CompilationManager.DocumentUpdates.Select(document =>
-      FillMissingStateUsingLastPublishedDocument(documentChange, document, lastPublishedDocument, migratedImplementationViews));
-    observerSubscription = migratedUpdates.Subscribe(observer);
-  }
-
-  private DafnyDocument FillMissingStateUsingLastPublishedDocument(DidChangeTextDocumentParams documentChange,
-    DafnyDocument document, DafnyDocument lastPublishedDocument,
-    IReadOnlyDictionary<ImplementationId, ImplementationView>? migratedImplementationViews) {
-    if (!document.SymbolTable.Resolved) {
-      document = document with {
-        SymbolTable =
-        relocator.RelocateSymbols(lastPublishedDocument.SymbolTable, documentChange, CancellationToken.None)
-      };
+    if (VerifyOnChange) {
+      var _ = VerifyEverythingAsync();
+    } else {
+      logger.LogDebug("Setting result for workCompletedForCurrentVersion");
+      workCompletedForCurrentVersion.Release();
     }
 
-    var migratedViews = document.ImplementationIdToView?.Select(kv => {
-      var value = kv.Value.Status < PublishedVerificationStatus.Error
-        ? kv.Value with {
-          Diagnostics = migratedImplementationViews?.GetValueOrDefault(kv.Key)?.Diagnostics ?? kv.Value.Diagnostics
-        }
-        : kv.Value;
-      return new KeyValuePair<ImplementationId, ImplementationView>(kv.Key, value);
-    }) ?? migratedImplementationViews;
-    document.ImplementationIdToView = migratedViews == null ? null : new(migratedViews);
+    observerSubscription.Dispose();
+    var migratedUpdates = Compilation.DocumentUpdates.Select(document =>
+      document.ToIdeState(lastPublishedState));
+    observerSubscription = migratedUpdates.Subscribe(observer);
+    logger.LogDebug($"Finished processing document update for version {documentChange.TextDocument.Version}");
 
-    return document;
+    Compilation.Start();
   }
 
   private Dictionary<ImplementationId, ImplementationView> MigrateImplementationViews(DidChangeTextDocumentParams documentChange,
@@ -149,28 +146,87 @@ public class DocumentManager {
 
   public void Save() {
     if (VerifyOnSave) {
-      CompilationManager.VerifyAll();
+      logger.LogDebug("Clearing result for workCompletedForCurrentVersion");
+      var _1 = workCompletedForCurrentVersion.WaitAsync();
+      var _2 = VerifyEverythingAsync();
     }
   }
 
   public async Task CloseAsync() {
-    CompilationManager.CancelPendingUpdates();
+    Compilation.CancelPendingUpdates();
     try {
-      await CompilationManager.LastDocument;
+      await Compilation.LastDocument;
     } catch (TaskCanceledException) {
     }
   }
 
-  /// <summary>
-  /// Tries to resolve the current document and return it, and otherwise return the last document that was resolved.
-  /// </summary>
-  public async Task<DafnyDocument?> GetResolvedDocumentAsync() {
+  public async Task<DocumentAfterParsing> GetLastDocumentAsync() {
+    await workCompletedForCurrentVersion.WaitAsync();
+    workCompletedForCurrentVersion.Release();
+    return await Compilation.LastDocument;
+  }
+
+  public async Task<IdeState> GetSnapshotAfterResolutionAsync() {
     try {
-      var resolvedDocument = await CompilationManager.ResolvedDocument;
+      var resolvedDocument = await Compilation.ResolvedDocument;
+      logger.LogDebug($"GetSnapshotAfterResolutionAsync, resolvedDocument.Version = {resolvedDocument.Version}, " +
+                      $"observer.LastPublishedState.Version = {observer.LastPublishedState.Version}, threadId: {Thread.CurrentThread.ManagedThreadId}");
+    } catch (OperationCanceledException) {
+      logger.LogDebug("Caught OperationCanceledException in GetSnapshotAfterResolutionAsync");
+    }
+
+    return observer.LastPublishedState;
+  }
+
+  public async Task<IdeState> GetIdeStateAfterVerificationAsync() {
+    try {
+      await GetLastDocumentAsync();
     } catch (OperationCanceledException) {
     }
 
-    var result = observer.LastPublishedDocument;
-    return result;
+    return observer.LastPublishedState;
+  }
+
+  private async Task VerifyEverythingAsync() {
+    try {
+      var translatedDocument = await Compilation.TranslatedDocument;
+
+      var implementationTasks = translatedDocument.VerificationTasks;
+
+      if (!implementationTasks.Any()) {
+        Compilation.FinishedNotifications(translatedDocument);
+      }
+
+      lock (ChangedRanges) {
+        var freshlyChangedVerifiables = GetChangedVerifiablesFromRanges(translatedDocument, ChangedRanges);
+        ChangedVerifiables = freshlyChangedVerifiables.Concat(ChangedVerifiables).Distinct()
+          .Take(MaxRememberedChangedVerifiables).ToList();
+        ChangedRanges = new List<Range>();
+      }
+
+      var implementationOrder = ChangedVerifiables.Select((v, i) => (v, i)).ToDictionary(k => k.v, k => k.i);
+      var orderedTasks = implementationTasks.OrderBy(t => t.Implementation.Priority).CreateOrderedEnumerable(
+        t => implementationOrder.GetOrDefault(t.Implementation.tok.GetLspPosition(), () => int.MaxValue),
+        null, false).ToList();
+
+      foreach (var implementationTask in orderedTasks) {
+        Compilation.VerifyTask(translatedDocument, implementationTask);
+      }
+    }
+    finally {
+      logger.LogDebug("Setting result for workCompletedForCurrentVersion");
+      workCompletedForCurrentVersion.Release();
+    }
+  }
+
+  private IEnumerable<Position> GetChangedVerifiablesFromRanges(DocumentAfterResolution loaded, IEnumerable<Range> changedRanges) {
+    var tree = new DocumentVerificationTree(loaded.TextDocumentItem);
+    VerificationProgressReporter.UpdateTree(loaded, tree);
+    var intervalTree = new IntervalTree<Position, Position>();
+    foreach (var childTree in tree.Children) {
+      intervalTree.Add(childTree.Range.Start, childTree.Range.End, childTree.Position);
+    }
+
+    return changedRanges.SelectMany(changeRange => intervalTree.Query(changeRange.Start, changeRange.End));
   }
 }

@@ -20,11 +20,9 @@ namespace IntegrationTests {
     // causes errors when invoking the CLI in the same process on multiple inputs in sequence, much less in parallel.
     private const bool InvokeMainMethodsDirectly = false;
 
-    private static readonly Assembly DafnyDriverAssembly = typeof(DafnyDriver).Assembly;
+    private static readonly Assembly DafnyDriverAssembly = typeof(Dafny.Dafny).Assembly;
     private static readonly Assembly TestDafnyAssembly = typeof(TestDafny.TestDafny).Assembly;
     private static readonly Assembly DafnyServerAssembly = typeof(Server).Assembly;
-
-    private static readonly string[] DefaultDafny0Arguments = DafnyDriver.DefaultArgumentsForTesting.Prepend("/countVerificationErrors:0").ToArray();
 
     private static readonly LitTestConfiguration Config;
 
@@ -40,22 +38,17 @@ namespace IntegrationTests {
 
       var repositoryRoot = Path.GetFullPath("../../../../../"); // Up from Source/IntegrationTests/bin/Debug/net6.0/
 
-      var substitutions = new Dictionary<string, string> {
+      var substitutions = new Dictionary<string, object> {
         { "%diff", "diff" },
         { "%binaryDir", "." },
         { "%z3", Path.Join("z3", "bin", "z3") },
         { "%repositoryRoot", repositoryRoot.Replace(@"\", "/") },
-        { "%refmanexamples", Path.Join("TestFiles", "LitTests", "LitTest", "refman", "examples") }
       };
 
       var commands = new Dictionary<string, Func<IEnumerable<string>, LitTestConfiguration, ILitCommand>> {
         {
           "%baredafny", (args, config) =>
             MainMethodLitCommand.Parse(DafnyDriverAssembly, args, config, InvokeMainMethodsDirectly)
-        }, {
-          "%dafny_0", (args, config) =>
-            MainMethodLitCommand.Parse(DafnyDriverAssembly, AddExtraArgs(DefaultDafny0Arguments, args),
-              config, InvokeMainMethodsDirectly)
         }, {
           "%dafny", (args, config) =>
             MainMethodLitCommand.Parse(DafnyDriverAssembly, AddExtraArgs(DafnyDriver.DefaultArgumentsForTesting, args),
@@ -100,14 +93,13 @@ namespace IntegrationTests {
         throw new Exception($"Unsupported OS: {RuntimeInformation.OSDescription}");
       }
 
+      substitutions["%args"] = DafnyDriver.NewDefaultArgumentsForTesting;
+
       var dafnyReleaseDir = Environment.GetEnvironmentVariable("DAFNY_RELEASE");
       if (dafnyReleaseDir != null) {
         var dafnyCliPath = Path.Join(dafnyReleaseDir, "dafny");
         commands["%baredafny"] = (args, config) =>
           new ShellLitCommand(dafnyCliPath, args, config.PassthroughEnvironmentVariables);
-        commands["%dafny_0"] = (args, config) =>
-          new ShellLitCommand(dafnyCliPath,
-            AddExtraArgs(DefaultDafny0Arguments, args), config.PassthroughEnvironmentVariables);
         commands["%dafny"] = (args, config) =>
           new ShellLitCommand(dafnyCliPath,
             AddExtraArgs(DafnyDriver.DefaultArgumentsForTesting, args), config.PassthroughEnvironmentVariables);
@@ -131,7 +123,7 @@ namespace IntegrationTests {
 
     [FileTheory]
     [FileData(Includes = new[] { "**/*.dfy", "**/*.transcript" },
-              Excludes = new[] { "**/Inputs/**/*", "**/Output/**/*", "refman/examples/**/*",
+              Excludes = new[] { "**/Inputs/**/*", "**/Output/**/*",
                 "tutorial/AutoExtern", // This is tested separately in the unit tests of Source/AutoExtern
                 "tutorial/induction-principle",
               })]

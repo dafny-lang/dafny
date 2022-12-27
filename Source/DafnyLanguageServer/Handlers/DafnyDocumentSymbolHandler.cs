@@ -36,8 +36,8 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         logger.LogWarning("symbols requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
         return EmptySymbols;
       }
-      var visitor = new LspSymbolGeneratingVisitor(document.SymbolTable, cancellationToken);
-      var symbols = visitor.Visit(document.SymbolTable.CompilationUnit)
+      var visitor = new LspSymbolGeneratingVisitor(document.SignatureAndCompletionTable, cancellationToken);
+      var symbols = visitor.Visit(document.SignatureAndCompletionTable.CompilationUnit)
         .Select(symbol => new SymbolInformationOrDocumentSymbol(symbol))
         .ToArray();
       return symbols;

@@ -4,9 +4,9 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using DafnyTestGeneration;
 using Microsoft.Boogie.SMTLib;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -121,9 +121,7 @@ method m5() { assert false; } //Remove4:
     var original = DafnyOptions.O.CreateSolver;
     DafnyOptions.O.CreateSolver = (_, _) =>
       new UnsatSolver(semaphoreSlim);
-    await SetUp(new Dictionary<string, string> {
-    { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", "1" },
-    });
+    await SetUp(options => options.Set(BoogieOptionBag.Cores, 1U));
 
     var (code, changes) = ExtractCodeAndChanges(codeAndChanges.TrimStart());
     var documentItem = CreateTestDocument(code);

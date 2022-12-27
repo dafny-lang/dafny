@@ -21,24 +21,24 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   public class GhostStateDiagnosticCollector : IGhostStateDiagnosticCollector {
     private const string GhostStatementMessage = "Ghost statement";
 
-    private readonly GhostOptions options;
+    private readonly DafnyOptions options;
     private readonly ILogger<GhostStateDiagnosticCollector> logger;
-    public GhostStateDiagnosticCollector(IOptions<GhostOptions> options, ILogger<GhostStateDiagnosticCollector> logger) {
+    public GhostStateDiagnosticCollector(DafnyOptions options, ILogger<GhostStateDiagnosticCollector> logger) {
+      this.options = options;
       this.logger = logger;
-      this.options = options.Value;
     }
 
-    public IEnumerable<Diagnostic> GetGhostStateDiagnostics(SymbolTable symbolTable, CancellationToken cancellationToken) {
-      if (!options.MarkStatements) {
+    public IEnumerable<Diagnostic> GetGhostStateDiagnostics(SignatureAndCompletionTable signatureAndCompletionTable, CancellationToken cancellationToken) {
+      if (!options.Get(ServerCommand.GhostIndicators)) {
         return Enumerable.Empty<Diagnostic>();
       }
 
       try {
-        var visitor = new GhostStateSyntaxTreeVisitor(symbolTable.CompilationUnit.Program, cancellationToken);
-        visitor.Visit(symbolTable.CompilationUnit.Program);
+        var visitor = new GhostStateSyntaxTreeVisitor(signatureAndCompletionTable.CompilationUnit.Program, cancellationToken);
+        visitor.Visit(signatureAndCompletionTable.CompilationUnit.Program);
         return visitor.GhostDiagnostics;
       } catch (Exception e) {
-        logger.LogDebug(e, "encountered an exception while getting ghost state diagnostics of {Name}", symbolTable.CompilationUnit.Name);
+        logger.LogDebug(e, "encountered an exception while getting ghost state diagnostics of {Name}", signatureAndCompletionTable.CompilationUnit.Name);
         return new Diagnostic[] { };
       }
     }

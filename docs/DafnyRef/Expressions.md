@@ -1,4 +1,18 @@
 # 21. Expressions {#sec-expressions}
+
+Dafny expressions come in three flavors.
+- The bulk of expressions have no side-effects and can be used within
+methods, functions, and specifications, and in either compiled or ghost code.
+- Some expressions, called [right-hand-side expressions](#rhs-expression),
+do have side-effects and may only be used in specific syntactic locations,
+such as the right-hand-side of update (assignment) statements; 
+object allocation and method calls are two typical examples of [right-hand-side expressions](#rhs-expression). Note that method calls are syntactically
+indistinguishable from function calls; both are Expressions ([PrimaryExpressions](#sec-primary-expressions)
+with an [ArgumentList suffix](#argument-list-suffix)). However, method calls are semantically permitted
+only in right-hand-side expression locations.
+- Some expressions are allowed only in specifications and other ghost code,
+as listed [here](#sec-list-of-specification-expressions).
+
 The grammar of Dafny expressions follows a hierarchy that
 reflects the precedence of Dafny operators. The following
 table shows the Dafny operators and their precedence
@@ -17,9 +31,9 @@ in order of increasing binding power.
  `||`, `|`                | 3 | disjunction (or)
 --------------------------|------------------------------------
  `==`                     | 4 | equality
- `==#[k]`                 | 4 | prefix equality (co-inductive)
+ `==#[k]`                 | 4 | prefix equality (coinductive)
  `!=`                     | 4 | disequality
- `!=#[k]`                 | 4 | prefix disequality (co-inductive)
+ `!=#[k]`                 | 4 | prefix disequality (coinductive)
  `<`                      | 4 | less than
  `<=`                     | 4 | at most
  `>=`                     | 4 | at least
@@ -84,6 +98,7 @@ In the following example the `F_Fails` function fails to verify
 because the `Fact(n)` divisor may be zero. But preceding
 the expression by a lemma that ensures that the denominator
 is not zero allows function `F_Succeeds` to succeed.
+<!-- %check-verify Expressions.1.expect -->
 ```dafny
 function Fact(n: nat): nat
 {
@@ -158,12 +173,15 @@ LogicalExpression(allowLemma, allowLambda) =
 Note that the Dafny grammar allows a conjunction or disjunction to be
 _prefixed_ with `&&` or `||` respectively. This form simply allows a
 parallel structure to be written:
+<!-- %check-resolve -->
 ```dafny
-var b: bool :=
-  && x != null
-  && y != null
-  && z != null
-  ;
+method m(x: object?, y:object?, z: object?) {
+  var b: bool :=
+    && x != null
+    && y != null
+    && z != null
+    ;
+}
 ```
 This is purely a syntactic convenience allowing easy edits such as reordering
 lines or commenting out lines without having to check that the infix
@@ -203,7 +221,7 @@ The `!!` represents disjointness for sets and multisets as explained in
 [Section 10.1](#sec-sets) and [Section 10.2](#sec-multisets).
 
 Note that `x ==#[k] y` is the prefix equality operator that compares
-co-inductive values for equality to a nesting level of k, as
+coinductive values for equality to a nesting level of k, as
 explained in [the section about co-equality](#sec-co-equality).
 
 ## 21.6. Bit Shifts
@@ -331,11 +349,12 @@ type parameters of the LHS type. The last restriction is designed to make it
 possible to perform type tests without inspecting type parameters at run time.
 For example, consider the following types:
 
+<!-- %check-resolve -->
 ```dafny
 trait A { }
 trait B<X> { }
 class C<Y> extends B<Y> { }
-class D<Y> extends B<set<Y>> { }
+class D<Y(==)> extends B<set<Y>> { }
 class E extends B<int> { }
 class F<Z> extends A { }
 ```
@@ -368,7 +387,7 @@ numeric negation (`-` -- [Section 7.2](#sec-numeric-types)), or
 bit-vector negation (`-` -- [Section 7.3](#sec-bit-vector-types))
  to its operand.
 
-## 21.12. Primary Expressions
+## 21.12. Primary Expressions {#sec-primary-expressions}
 ````grammar
 PrimaryExpression(allowLemma, allowLambda) =
   ( NameSegment { Suffix }
@@ -406,6 +425,7 @@ In addition to named functions, Dafny supports expressions that define
 functions.  These are called _lambda (expression)s_ (some languages
 know them as _anonymous functions_).  A lambda expression has the
 form:
+<!-- %no-check -->
 ```dafny
 ( _params_ ) _specification_ => _body_
 ```
@@ -417,6 +437,7 @@ _params_ consists of a single parameter `x` (or `_`) without an
 explicit type, then the parentheses can be dropped; for example, the
 function that returns the successor of a given integer can be written
 as the following lambda expression:
+<!-- %no-check -->
 ```dafny
 x => x + 1
 ```
@@ -431,6 +452,7 @@ parameters that satisfy the precondition (just like the bodies of
 named functions and methods).  In some cases, this means it is
 necessary to write explicit `requires` and `reads` clauses.  For
 example, the lambda expression
+<!-- %no-check -->
 ```dafny
 x requires x != 0 => 100 / x
 ```
@@ -444,6 +466,7 @@ in such a way that the lambda expression is equivalent to `F`) would
 be written `x => F(x)`.  In Dafny, eta expansion must also account for
 the precondition and reads set of the function, so the eta expansion
 of `F` looks like:
+<!-- %no-check -->
 ```dafny
 x requires F.requires(x) reads F.reads(x) => F(x)
 ```
@@ -462,17 +485,19 @@ or an [Update with Failure Statement](#sec-update-failure).
 
 An example of the first (`NameSegment`) form is:
 
+<!-- %no-check -->
 ```dafny
     LibraryModule.F().x
 ```
 
 An example of the second (`ConstAtomExpression`) form is:
 
+<!-- %no-check -->
 ```dafny
     old(o.f).x
 ```
 
-## 21.15. Right-Hand-Side Expressions
+## 21.15. Right-Hand-Side Expressions {#rhs-expression}
 ````grammar
 Rhs =
   ( ArrayAllocation_
@@ -482,6 +507,11 @@ Rhs =
   )
   { Attribute }
 ````
+
+A Right-Hand-Side expression is an expression-like construct that may have 
+side-effects. Consequently such expressions
+ can only be used within certain statements
+within methods, and not as general expressions or within functions or specifications.
 
 An ``Rhs`` is either array allocation, an object allocation,
 an expression, or a havoc right-hand-side, optionally followed
@@ -505,23 +535,26 @@ ArrayAllocation_ =
   ]
 ````
 
-This expression allocates a new single or multi-dimensional array (cf. [Section 15](#sec-array-types)).
+This right-hand-side expression allocates a new single or multi-dimensional array (cf. [Section 15](#sec-array-types)).
 The initialization portion is optional. One form is an
 explicit list of values, in which case the dimension is optional:
+<!-- %no-check -->
 ```dafny
-var a := new int[5];
+var a := new int[5];  // valid only if definiteAssignment is not strict
 var b := new int[5][2,3,5,7,11];
 var c := new int[][2,3,5,7,11];
 var d := new int[3][4,5,6,7]; // error
 ```
 The comprehension form requires a dimension and uses a function of
 type `nat -> T` where `T` is the array element type:
+<!-- %no-check -->
 ```dafny
 var a := new int[5](i => i*i);
 ```
 
 To allocate a multi-dimensional array, simply give the sizes of
 each dimension. For example,
+<!-- %no-check -->
 ```dafny
 var m := new real[640, 480];
 ```
@@ -530,6 +563,7 @@ portion cannot give a display of elements like in the one-dimensional
 case, but it can use an initialization function. A function used to initialize
 a n-dimensional array requires a function from n `nat`s to a `T`, where `T`
 is element type of the array. Here is an example:
+<!-- %no-check -->
 ```dafny
 var diag := new int[30, 30]((i, j) => if i == j then 1 else 0);
 ```
@@ -546,7 +580,8 @@ ObjectAllocation_ = "new" Type [ "." TypeNameOrCtorSuffix ]
                                [ "(" [ Bindings ] ")" ]
 ````
 
-This allocates a new object of a class type as explained
+This right-hand-side expression 
+allocates a new object of a class type as explained
 in section [Class Types](#sec-class-types).
 
 ## 21.18. Havoc Right-Hand-Side
@@ -594,6 +629,7 @@ freshly allocated since the time of entry to the enclosing method,
 or since [`label L:`](#sec-labeled-stmt) in the variant `fresh@L(e)`.
 For example, consider this valid program:
 
+<!-- %check-verify -->
 ```dafny
 class C { constructor() {} }
 method f(c1: C) returns (r: C)
@@ -634,6 +670,7 @@ it could in principle have been the value of a variable in that state.
 
 For example, consider this valid program:
 
+<!-- %check-verify -->
 ```dafny
 class C { constructor() {} }
 datatype D = Nil | Cons(C, D)
@@ -683,6 +720,7 @@ The `unchanged` expression returns `true` if and only if every reference
 denoted by its arguments has the same value for all its fields in the
 old and current state. For example, if `c` is an object with two
 fields, `x` and `y`, then `unchanged(c)` is equivalent to
+<!-- %no-check -->
 ```dafny
 c.x == old(c.x) && c.y == old(c.y)
 ```
@@ -696,6 +734,7 @@ state.
 The optional `@`-label says to use it as the old-state instead of using
 the `old` state. That is, using the example `c` from above, the expression
 `unchanged@Lbl(c)` is equivalent to
+<!-- %no-check -->
 ```dafny
 c.x == old@Lbl(c.x) && c.y == old@Lbl(c.y)
 ```
@@ -729,6 +768,7 @@ If the value of an entire expression at a
 particular point in the method body is needed later on in the method body,
 the clearest means is to declare a ghost variable, initializing it to the
 expression in question.
+If the argument of `old` is a local variable or out-parameter. Dafny issues a warning.
 
 [^Old]: The semantics of `old` in Dafny differs from similar constructs in other specification languages like ACSL or JML.
 
@@ -738,15 +778,144 @@ or [`unchanged`](#sec-unchanged-expression) expressions,
 nor [two-state functions](#sec-two-state) or [two-state lemmas](#sec-two-state-lemma).
 
 Here are some explanatory examples. All `assert` statements verify to be true.
+<!-- %check-verify-warn Expressions.2.expect -->
 ```dafny
-{% include_relative examples/Example-Old.dfy %}
+class A {
+
+  var value: int
+
+  method m(i: int)
+    requires i == 6
+    requires value == 42
+    modifies this
+  {
+    var j: int := 17;
+    value := 43;
+    label L:
+    j := 18;
+    value := 44;
+    label M:
+    assert old(i) == 6; // i is local, but can't be changed anyway
+    assert old(j) == 18; // j is local and not affected by old
+    assert old@L(j) == 18; // j is local and not affected by old
+    assert old(value) == 42;
+    assert old@L(value) == 43;
+    assert old@M(value) == 44 && this.value == 44;
+    // value is this.value; 'this' is the same
+    // same reference in current and pre state but the
+    // values stored in the heap as its fields are different;
+    // '.value' evaluates to 42 in the pre-state, 43 at L,
+    // and 44 in the current state
+  }
+}
 ```
+<!-- %check-verify -->
 ```dafny
-{% include_relative examples/Example-Old2.dfy %}
+class A {
+  var value: int
+  constructor ()
+     ensures value == 10
+  {
+     value := 10;
+  }
+}
+
+class B {
+   var a: A
+   constructor () { a := new A(); }
+
+   method m()
+     requires a.value == 11
+     modifies this, this.a
+   {
+     label L:
+     a.value := 12;
+     label M:
+     a := new A(); // Line X
+     label N:
+     a.value := 20;
+     label P:
+
+     assert old(a.value) == 11;
+     assert old(a).value == 12; // this.a is from pre-state,
+                                // but .value in current state
+     assert old@L(a.value) == 11;
+     assert old@L(a).value == 12; // same as above
+     assert old@M(a.value) == 12; // .value in M state is 12
+     assert old@M(a).value == 12;
+     assert old@N(a.value) == 10; // this.a in N is the heap
+                                  // reference at Line X
+     assert old@N(a).value == 20; // .value in current state is 20
+     assert old@P(a.value) == 20;
+     assert old@P(a).value == 20;
+  }
+}
+```
+<!-- %check-verify -->
+```dafny
+class A {
+  var value: int
+  constructor ()
+     ensures value == 10
+  {
+     value := 10;
+  }
+}
+
+class B {
+   var a: A
+   constructor () { a := new A(); }
+
+   method m()
+     requires a.value == 11
+     modifies this, this.a
+   {
+     label L:
+     a.value := 12;
+     label M:
+     a := new A(); // Line X
+     label N:
+     a.value := 20;
+     label P:
+
+     assert old(a.value) == 11;
+     assert old(a).value == 12; // this.a is from pre-state,
+                                // but .value in current state
+     assert old@L(a.value) == 11;
+     assert old@L(a).value == 12; // same as above
+     assert old@M(a.value) == 12; // .value in M state is 12
+     assert old@M(a).value == 12;
+     assert old@N(a.value) == 10; // this.a in N is the heap
+                                  // reference at Line X
+     assert old@N(a).value == 20; // .value in current state is 20
+     assert old@P(a.value) == 20;
+     assert old@P(a).value == 20;
+  }
+}
 ```
 The next example demonstrates the interaction between `old` and array elements.
+<!-- %check-verify-warn Expressions.3.expect -->
 ```dafny
-{% include_relative examples/Example-Old3.dfy %}
+class A {
+  var z1: array<nat>
+  var z2: array<nat>
+
+  method mm()
+    requires z1.Length > 10 && z1[0] == 7
+    requires z2.Length > 10 && z2[0] == 17
+    modifies z2
+  {
+    var a: array<nat> := z1;
+    assert a[0] == 7;
+    a := z2;
+    assert a[0] == 17;
+    assert old(a[0]) == 17; // a is local with value z2
+    z2[0] := 27;
+    assert old(a[0]) == 17; // a is local, with current value of
+                            // z2; in pre-state z2[0] == 17
+    assert old(a)[0] == 27; // a is local, so old(a) has no effect
+  }
+}
 ```
 
 ## 21.26. Cardinality Expressions {#sec-cardinality-expression}
@@ -789,11 +958,13 @@ SeqDisplayExpr =
 A sequence display expression provides a way to construct
 a sequence with given values. For example
 
+<!-- %no-check -->
 ```dafny
 [1, 2, 3]
 ```
 is a sequence with three elements in it.
 
+<!-- %no-check -->
 ```dafny
 seq(k, n => n+1)
 ```
@@ -818,6 +989,7 @@ set (with the finite set of given elements) is constructed.
 
 For example
 
+<!-- %no-check -->
 ```dafny
 {1, 2, 3}
 ```
@@ -828,6 +1000,7 @@ sets.
 A multiset display expression provides a way of constructing
 a multiset with given elements and multiplicities. For example
 
+<!-- %no-check -->
 ```dafny
 multiset{1, 1, 2, 3}
 ```
@@ -837,6 +1010,7 @@ and the numbers 2 and 3 each have a multiplicity of 1.
 A multiset cast expression converts a set or a sequence
 into a multiset as shown here:
 
+<!-- %no-check -->
 ```dafny
 var s : set<int> := {1, 2, 3};
 var ms : multiset<int> := multiset(s);
@@ -865,6 +1039,7 @@ MapLiteralExpressions =
 A map display expression builds a finite or potentially infinite
 map from explicit ``MapLiteralExpressions``. For example:
 
+<!-- %no-check -->
 ```dafny
 var m := map[1 := "a", 2 := "b"];
 ghost var im := imap[1 := "a", 2 := "b"];
@@ -908,6 +1083,7 @@ expression following the `else` is evaluated and that is the result
 of the expression. It is important that only the selected expression
 is evaluated as the following example shows.
 
+<!-- %no-check -->
 ```dafny
 var k := 10 / x; // error, may divide by 0.
 var m := if x != 0 then 10 / x else 1; // ok, guarded
@@ -922,6 +1098,7 @@ bound to the given variable and that variable is in scope in
 the then-branch of the expression.
 
 For example, in the code
+<!-- %check-verify -->
 ```dafny
 predicate P(x: int) {
   x == 5 || x == -5
@@ -1037,7 +1214,7 @@ CaseExpression(allowLemma, allowLambda) =
 
 A ``MatchExpression`` is used to conditionally evaluate and select an
 expression depending on the value of an algebraic type, i.e. an inductive
-type, a co-inductive type, or a base type.
+type, a coinductive type, or a base type.
 
 The ``Expression`` following the `match` keyword is called the
 _selector_. The selector is evaluated and then matched against each ``CaseExpression`` in order until a matching clause is found, as described in
@@ -1078,6 +1255,7 @@ quantified variables, namely those in the ``QuantifierDomain``.
 See [Section 2.6.5](#sec-quantifier-domains) for more details on quantifier domains.
 
 Here are some examples:
+<!-- %no-check -->
 ```dafny
 assert forall x : nat | x <= 5 :: x * x <= 25;
 (forall n :: 2 <= n ==> (exists d :: n < d < 2*n))
@@ -1109,18 +1287,21 @@ need not be supplied, in which case it is as if it had been supplied
 and the expression consists solely of the quantified variable.
 That is,
 
+<!-- %no-check -->
 ```dafny
 set x : T | P(x)
 ```
 
 is equivalent to
 
+<!-- %no-check -->
 ```dafny
 set x : T | P(x) :: x
 ```
 
 For the full form
 
+<!-- %no-check -->
 ```dafny
 var S := set x1: T1 <- C1 | P1(x1),
              x2: T2 <- C2 | P2(x1, x2),
@@ -1134,6 +1315,7 @@ domains) such that all predicates `P1(x1), P2(x1, x2), ...` hold.
 
 For example,
 
+<!-- %no-check -->
 ```dafny
 var S := set x:nat, y:nat | x < 2 && y < 2 :: (x, y)
 ```
@@ -1151,6 +1333,7 @@ accepted.
 
 Set comprehensions involving reference types such as
 
+<!-- %no-check -->
 ```dafny
 set o: object
 ```
@@ -1168,6 +1351,7 @@ The universe in which set comprehensions are evaluated is the set of all
 _allocated_ objects, of the appropriate type and satisfying the given predicate.
 For example, given
 
+<!-- %check-resolve -->
 ```dafny
 class I {
   var i: int
@@ -1193,6 +1377,7 @@ A ``StmtInExpr`` is a kind of statement that is allowed to
 precede an expression in order to ensure that the expression
 can be evaluated without error. For example:
 
+<!-- %no-check -->
 ```dafny
 assume x != 0; 10/x
 ```
@@ -1223,6 +1408,7 @@ declaration except the scope of the variable only extends to the
 enclosed expression.
 
 For example:
+<!-- %no-check -->
 ```dafny
 var sum := x + y; sum * sum
 ```
@@ -1233,6 +1419,7 @@ type (which if missing is inferred from the rhs).
 The more complex case allows destructuring of constructor expressions.
 For example:
 
+<!-- %check-resolve -->
 ```dafny
 datatype Stuff = SCons(x: int, y: int) | Other
 function GhostF(z: Stuff): int
@@ -1253,6 +1440,7 @@ immediate return from the method; expressions do not have side effects or immedi
 mechanisms.
 
 The expression `:- V; E` is desugared into the _expression_
+<!-- %no-check -->
 ```dafny
 var tmp := V;
 if tmp.IsFailure()
@@ -1261,6 +1449,7 @@ else E
 ```
 
 The expression `var v :- V; E` is desugared into the _expression_
+<!-- %no-check -->
 ```dafny
 var tmp := V;
 if tmp.IsFailure()
@@ -1269,6 +1458,7 @@ else var v := tmp.Extract(); E
 ```
 
 If the RHS is a list of expressions then the desugaring is similar. `var v, v1 :- V, V1; E` becomes
+<!-- %no-check -->
 ```dafny
 var tmp := V;
 if tmp.IsFailure()
@@ -1300,6 +1490,7 @@ giving the mapped value using the expression following the "::".
 See [Section 2.6.5](#sec-quantifier-domains) for more details on quantifier domains.
 
 For example:
+<!-- %check-resolve -->
 ```dafny
 function square(x : int) : int { x * x }
 method test()
@@ -1316,6 +1507,7 @@ creation of an infinite map that gives the same results as a function.
 
 If the expression includes the `:=` token, that token separates
 domain values from range values. For example, in the following code
+<!-- %check-resolve -->
 ```dafny
 method test()
 {
@@ -1356,6 +1548,7 @@ list where k is the number of recursion levels.
 In the case where the `greatest lemma` is generic, the generic type
 argument is given before. Here is an example:
 
+<!-- %check-verify -->
 ```dafny
 codatatype Stream<T> = Nil | Cons(head: int, stuff: T,
                                   tail: Stream<T>)
@@ -1388,14 +1581,13 @@ greatest lemma {:induction false} Theorem0<T>(s: T)
   ensures atmost(zeros(s), ones(s))
 {
   // the following shows two equivalent ways to state the
-  // co-inductive hypothesis
+  // coinductive hypothesis
   if (*) {
     Theorem0#<T>[_k-1](s);
   } else {
     Theorem0(s);
   }
 }
-
 ```
 
 where the ``HashCall`` is `"Theorem0#<T>[_k-1](s);"`.
@@ -1459,8 +1651,8 @@ updated must have a value derived from that same constructor.
 
 Here is an example:
 
+<!-- %check-verify Expressions.4.expect -->
 ```dafny
-module NewSyntax {
 datatype MyDataType = MyConstructor(myint:int, mybool:bool)
                     | MyOtherConstructor(otherbool:bool)
                     | MyNumericConstructor(42:int)
@@ -1470,10 +1662,10 @@ method test(datum:MyDataType, x:int)
              ghi:MyDataType, jkl:MyDataType)
     requires datum.MyConstructor?
     ensures abc == datum.(myint := x + 2)
-    ensures def == datum.(otherbool := !datum.mybool)
+    ensures def == datum.(otherbool := !datum.mybool)  // error
     ensures ghi == datum.(myint := 2).(mybool := false)
     // Resolution error: no non_destructor in MyDataType
-    //ensures jkl == datum.(non_destructor := 5)
+    //ensures jkl == datum.(non_destructor := 5) // error
     ensures jkl == datum.(42 := 7)
 {
     abc := MyConstructor(x + 2, datum.mybool);
@@ -1483,7 +1675,6 @@ method test(datum:MyDataType, x:int)
     jkl := datum.(42 := 7);
 
     assert abc.(myint := abc.myint - 2) == datum.(myint := x);
-}
 }
 ```
 
@@ -1558,7 +1749,7 @@ type
 (this is one situation in which Dafny implements implicit
 conversion, as if an `as int` were appended to the index expression).
 
-### 21.43.7. Argument List Suffix
+### 21.43.7. Argument List Suffix {#argument-list-suffix}
 ````grammar
 ArgumentListSuffix_ = "(" [ Expressions ] ")"
 ````
@@ -1567,6 +1758,11 @@ An argument list suffix is a parenthesized list of expressions that
 are the arguments to pass to a method or function that is being
 called. Applying such a suffix causes the method or function
 to be called and the result is the result of the call.
+
+Note that method calls may only appear in [right-hand-side](#rhs-expression)
+locations, whereas function calls may appear in expressions and specifications;
+this distinction can be made oly during name and type resolution, not by the
+parser.
 
 ## 21.44. Expression Lists
 ````grammar
@@ -1640,7 +1836,8 @@ of the subset type: if the range is within 0 to less than 256, then an
 unsigned 8-bit representation can be used.
 
 To continue this example, suppose a new type is defined as
-```
+<!-- %check-resolve -->
+```dafny
 const MAX := 47
 newtype mytype = x | 0 <= x < MAX*4
 ```

@@ -1,4 +1,4 @@
-// RUN: %baredafny /compile:0 /spillTargetCode:2 "%s" > "%t"
+// RUN: %baredafny translate cs "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {

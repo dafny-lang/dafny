@@ -1,14 +1,15 @@
+ForbidNondeterminismCompile.dfy(52,2): Warning: the modify statement with a block statement is deprecated
 
 Dafny program verifier finished with 4 verified, 0 errors
-ForbidNondeterminismCompile.dfy(71,9): Error: since yield parameters are initialized arbitrarily, iterators are forbidden by /definiteAssignment:3 option
-ForbidNondeterminismCompile.dfy(17,7): Error: nondeterministic assignment forbidden by /definiteAssignment:3 option
-ForbidNondeterminismCompile.dfy(18,13): Error: nondeterministic assignment forbidden by /definiteAssignment:3 option
-ForbidNondeterminismCompile.dfy(19,4): Error: assign-such-that statement forbidden by /definiteAssignment:3 option
-ForbidNondeterminismCompile.dfy(20,2): Error: nondeterministic if statement forbidden by /definiteAssignment:3 option
-ForbidNondeterminismCompile.dfy(23,2): Error: case-based if statement forbidden by /definiteAssignment:3 option
-ForbidNondeterminismCompile.dfy(32,2): Error: binding if statement forbidden by /definiteAssignment:3 option
-ForbidNondeterminismCompile.dfy(35,2): Error: nondeterministic loop forbidden by /definiteAssignment:3 option
-ForbidNondeterminismCompile.dfy(40,2): Error: case-based loop forbidden by /definiteAssignment:3 option
-ForbidNondeterminismCompile.dfy(48,12): Error: nondeterministic assignment forbidden by /definiteAssignment:3 option
-ForbidNondeterminismCompile.dfy(50,2): Error: modify statement without a body forbidden by /definiteAssignment:3 option
-ForbidNondeterminismCompile.dfy(63,16): Error: nondeterministic assignment forbidden by /definiteAssignment:3 option
+ForbidNondeterminismCompile.dfy(71,9): Error: since yield parameters are initialized arbitrarily, iterators are forbidden by the --enforce-determinism option
+ForbidNondeterminismCompile.dfy(17,7): Error: nondeterministic assignment forbidden by the --enforce-determinism option
+ForbidNondeterminismCompile.dfy(18,13): Error: nondeterministic assignment forbidden by the --enforce-determinism option
+ForbidNondeterminismCompile.dfy(19,4): Error: assign-such-that statement forbidden by the --enforce-determinism option
+ForbidNondeterminismCompile.dfy(20,2): Error: nondeterministic if statement forbidden by the --enforce-determinism option
+ForbidNondeterminismCompile.dfy(23,2): Error: case-based if statement forbidden by the --enforce-determinism option
+ForbidNondeterminismCompile.dfy(32,2): Error: binding if statement forbidden by the --enforce-determinism option
+ForbidNondeterminismCompile.dfy(35,2): Error: nondeterministic loop forbidden by the --enforce-determinism option
+ForbidNondeterminismCompile.dfy(40,2): Error: case-based loop forbidden by the --enforce-determinism option
+ForbidNondeterminismCompile.dfy(48,12): Error: nondeterministic assignment forbidden by the --enforce-determinism option
+ForbidNondeterminismCompile.dfy(50,2): Error: modify statement without a body forbidden by the --enforce-determinism option
+ForbidNondeterminismCompile.dfy(63,16): Error: nondeterministic assignment forbidden by the --enforce-determinism option

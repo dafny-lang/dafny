@@ -127,9 +127,9 @@ module MoreDependencyCycles1 {
 }
 Variance.dfy(10,12): Error: formal type parameter 'E' is not used according to its variance specification
 Variance.dfy(12,33): Error: formal type parameter 'Y' is not used according to its variance specification
-Variance.dfy(12,36): Error: formal type parameter 'Z' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'Z' as '!Z')
-Variance.dfy(12,42): Error: formal type parameter 'Z' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'Z' as '!Z')
-Variance.dfy(13,37): Error: formal type parameter 'M' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'M' as '!M')
+Variance.dfy(12,36): Error: formal type parameter 'Z' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'Z' as '-Z' or '!Z')
+Variance.dfy(12,42): Error: formal type parameter 'Z' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'Z' as '-Z' or '!Z')
+Variance.dfy(13,37): Error: formal type parameter 'M' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'M' as '-M' or '!M')
 Variance.dfy(13,40): Error: formal type parameter 'N' is not used according to its variance specification
 Variance.dfy(13,50): Error: formal type parameter 'N' is not used according to its variance specification
 Variance.dfy(13,53): Error: formal type parameter 'N' is not used according to its variance specification
@@ -144,35 +144,35 @@ Variance.dfy(30,35): Error: formal type parameter 'A' is not used according to i
 Variance.dfy(33,29): Error: formal type parameter 'B' is not used according to its variance specification
 Variance.dfy(34,33): Error: formal type parameter 'B' is not used according to its variance specification
 Variance.dfy(35,37): Error: formal type parameter 'B' is not used according to its variance specification
-Variance.dfy(42,28): Error: formal type parameter 'D' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'D' as '!D')
-Variance.dfy(43,32): Error: formal type parameter 'D' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'D' as '!D')
-Variance.dfy(45,40): Error: formal type parameter 'D' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'D' as '!D')
+Variance.dfy(42,28): Error: formal type parameter 'D' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'D' as '-D' or '!D')
+Variance.dfy(43,32): Error: formal type parameter 'D' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'D' as '-D' or '!D')
+Variance.dfy(45,40): Error: formal type parameter 'D' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'D' as '-D' or '!D')
 Variance.dfy(46,21): Error: formal type parameter 'E' is not used according to its variance specification
 Variance.dfy(47,25): Error: formal type parameter 'E' is not used according to its variance specification
 Variance.dfy(48,29): Error: formal type parameter 'E' is not used according to its variance specification
 Variance.dfy(49,33): Error: formal type parameter 'E' is not used according to its variance specification
 Variance.dfy(51,17): Error: formal type parameter 'A' is not used according to its variance specification (it is used left of an arrow) (perhaps try changing the declaration from '+A' to '*A')
-Variance.dfy(54,17): Error: formal type parameter 'D' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'D' as '!D')
+Variance.dfy(54,17): Error: formal type parameter 'D' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'D' as '-D' or '!D')
 Variance.dfy(55,17): Error: formal type parameter 'E' is not used according to its variance specification
 Variance.dfy(60,15): Error: formal type parameter 'E' is not used according to its variance specification
 Variance.dfy(61,18): Error: formal type parameter 'A' is not used according to its variance specification (it is used left of an arrow) (perhaps try changing the declaration from '+A' to '*A')
 Variance.dfy(62,21): Error: formal type parameter 'E' is not used according to its variance specification
-Variance.dfy(64,18): Error: formal type parameter 'D' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'D' as '!D')
-Variance.dfy(69,17): Error: using the type being defined ('CheckRec') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
-Variance.dfy(71,16): Error: using the type being defined ('CheckRec') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
-Variance.dfy(74,22): Error: using the type being defined ('CheckRec') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
-Variance.dfy(75,27): Error: using the type being defined ('CheckRec') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
-Variance.dfy(77,37): Error: using the type being defined ('CheckRec') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
-Variance.dfy(80,13): Error: using the type being defined ('CheckRec2') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+Variance.dfy(64,18): Error: formal type parameter 'D' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'D' as '-D' or '!D')
+Variance.dfy(69,17): Error: using the type being defined ('CheckRec') here would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+Variance.dfy(71,16): Error: using the type being defined ('CheckRec') here would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+Variance.dfy(74,22): Error: using the type being defined ('CheckRec') here would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+Variance.dfy(75,27): Error: using the type being defined ('CheckRec') here would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+Variance.dfy(77,37): Error: using the type being defined ('CheckRec') here would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+Variance.dfy(80,13): Error: using the type being defined ('CheckRec2') here would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
 Variance.dfy(83,28): Error: class declarations only support non-variant type parameters
 Variance.dfy(83,38): Error: class declarations only support non-variant type parameters
 Variance.dfy(91,30): Error: iterator declarations only support non-variant type parameters
 Variance.dfy(91,40): Error: iterator declarations only support non-variant type parameters
-Variance.dfy(95,21): Error: using the type being defined ('Dt') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
-Variance.dfy(99,26): Error: using the type being defined ('U2') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
-Variance.dfy(101,21): Error: using the type being defined ('R2') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
-Variance.dfy(108,21): Error: using the type being defined ('W0') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
-Variance.dfy(110,21): Error: using the type being defined ('Z2') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+Variance.dfy(95,21): Error: using the type being defined ('Dt') here would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+Variance.dfy(99,26): Error: using the type being defined ('U2') here would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+Variance.dfy(101,21): Error: using the type being defined ('R2') here would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+Variance.dfy(108,21): Error: using the type being defined ('W0') here would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+Variance.dfy(110,21): Error: using the type being defined ('Z2') here would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
 Variance.dfy(116,7): Error: recursive constraint dependency involving a subset type: V0 -> V2 -> V1 -> V0
 Variance.dfy(122,7): Error: recursive constraint dependency involving a subset type: A -> B -> F -> A
 Variance.dfy(130,7): Error: recursive constraint dependency involving a subset type: R -> S -> G -> Q -> R

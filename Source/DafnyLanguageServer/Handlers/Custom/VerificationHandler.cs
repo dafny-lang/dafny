@@ -35,18 +35,18 @@ public class VerificationHandler : IJsonRpcRequestHandler<VerificationParams, bo
       return false;
     }
 
-    var translatedDocument = await documentManager.CompilationManager.TranslatedDocument;
+    var translatedDocument = await documentManager.Compilation.TranslatedDocument;
     var requestPosition = request.Position;
     var someTasksAreRunning = false;
     var tasksAtPosition = GetTasksAtPosition(translatedDocument, requestPosition);
     foreach (var taskToRun in tasksAtPosition) {
-      someTasksAreRunning |= documentManager.CompilationManager.VerifyTask(translatedDocument, taskToRun);
+      someTasksAreRunning |= documentManager.Compilation.VerifyTask(translatedDocument, taskToRun);
     }
     return someTasksAreRunning;
   }
 
-  private static IEnumerable<IImplementationTask> GetTasksAtPosition(DafnyDocument translatedDocument, Position requestPosition) {
-    return translatedDocument.VerificationTasks!.Where(t => {
+  private static IEnumerable<IImplementationTask> GetTasksAtPosition(DocumentAfterTranslation document, Position requestPosition) {
+    return document.VerificationTasks.Where(t => {
       var lspPosition = t.Implementation.tok.GetLspPosition();
       return lspPosition.Equals(requestPosition);
     });
@@ -58,7 +58,7 @@ public class VerificationHandler : IJsonRpcRequestHandler<VerificationParams, bo
       return false;
     }
 
-    var translatedDocument = await documentManager.CompilationManager.TranslatedDocument;
+    var translatedDocument = await documentManager.Compilation.TranslatedDocument;
     var requestPosition = request.Position;
     foreach (var taskToRun in GetTasksAtPosition(translatedDocument, requestPosition)) {
       taskToRun.Cancel();

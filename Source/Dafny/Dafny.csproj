@@ -1,0 +1,36 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+      <OutputType>Exe</OutputType>
+      <AssemblyName>Dafny</AssemblyName>
+      <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+      <DefineConstants>TRACE</DefineConstants>
+      <TargetFramework>net6.0</TargetFramework>
+      <OutputPath>..\..\Binaries\</OutputPath>
+      <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
+
+      <PackAsTool>true</PackAsTool>
+      <ToolCommandName>dafny</ToolCommandName>
+      <PackageLicenseExpression>MIT</PackageLicenseExpression>
+      <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net6.0|AnyCPU'">
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+  </PropertyGroup>
+
+  <!-- Working around some stange behavior in dotnet publish: https://github.com/dotnet/sdk/issues/10566 -->
+  <PropertyGroup Condition="$(RUNTIME_IDENTIFIER) != ''">
+    <RuntimeIdentifier>$(RUNTIME_IDENTIFIER)</RuntimeIdentifier>
+  </PropertyGroup>
+    
+  <ItemGroup>
+    <ProjectReference Include="..\DafnyDriver\DafnyDriver.csproj" />
+    <ProjectReference Include="..\DafnyPipeline\DafnyPipeline.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\"/>
+  </ItemGroup>
+</Project>

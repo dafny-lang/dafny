@@ -5,8 +5,8 @@
       <AssemblyName>DafnyServer</AssemblyName>
       <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
       <DefineConstants>TRACE</DefineConstants>
-      <PackageVersion>1.1.0</PackageVersion>
       <TargetFramework>net6.0</TargetFramework>
+      <OutputPath>..\..\Binaries\</OutputPath>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net6.0|AnyCPU'">
@@ -20,10 +20,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Dafny\DafnyPipeline.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Include="..\version.cs" />
+    <ProjectReference Include="..\DafnyLanguageServer\DafnyLanguageServer.csproj" />
+    <ProjectReference Include="..\DafnyPipeline\DafnyPipeline.csproj" />
   </ItemGroup>
 </Project>

@@ -1,3 +1,26 @@
+Twostate-Verification.dfy(656,22): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+Twostate-Verification.dfy(657,22): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+Twostate-Verification.dfy(658,22): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+Twostate-Verification.dfy(659,22): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+Twostate-Verification.dfy(661,22): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+Twostate-Verification.dfy(662,22): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+Twostate-Verification.dfy(663,22): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+Twostate-Verification.dfy(665,22): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+Twostate-Verification.dfy(666,22): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+Twostate-Verification.dfy(667,22): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+Twostate-Verification.dfy(668,22): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+Twostate-Verification.dfy(670,22): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+Twostate-Verification.dfy(671,22): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+Twostate-Verification.dfy(672,22): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+Twostate-Verification.dfy(673,22): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+Twostate-Verification.dfy(675,22): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+Twostate-Verification.dfy(676,22): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+Twostate-Verification.dfy(677,22): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+Twostate-Verification.dfy(679,22): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+Twostate-Verification.dfy(680,22): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+Twostate-Verification.dfy(681,22): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+Twostate-Verification.dfy(682,22): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+Twostate-Verification.dfy(33,13): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
 Twostate-Verification.dfy(271,13): Error: A postcondition might not hold on this return path.
 Twostate-Verification.dfy(263,24): Related location: This is the postcondition that might not hold.
 Twostate-Verification.dfy(277,4): Error: A postcondition might not hold on this return path.

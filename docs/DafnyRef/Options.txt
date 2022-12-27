@@ -1,4 +1,5 @@
 ```
+Use 'dafny --help' to see help for a newer Dafny CLI format.
 Usage: Dafny [ option ... ] [ filename ... ]
 
   ---- General options -------------------------------------------------------
@@ -25,146 +26,198 @@ Usage: Dafny [ option ... ] [ filename ... ]
   ---- Input configuration ---------------------------------------------------
   
   /dprelude:<file>
-      choose Dafny prelude file
+      Choose the Dafny prelude file.
+
   /stdin
       Read standard input and treat it as an input .dfy file.
   
   ---- Plugins ---------------------------------------------------------------
   
-  /plugin:<path to one assembly>[ <arguments>]
+  /plugin:<path-to-one-assembly[,argument]*>
+      
       (experimental) One path to an assembly that contains at least one
-      instantiatable class extending Microsoft.Dafny.Plugin.Rewriter.
-      It can also extend Microsoft.Dafny.Plugins.PluginConfiguration to receive arguments
-      More information about what plugins do and how define them:
+      instantiatable class extending Microsoft.Dafny.Plugin.Rewriter. It
+      can also extend Microsoft.Dafny.Plugins.PluginConfiguration to
+      receive arguments. More information about what plugins do and how
+      to define them:
+      
       https://github.com/dafny-lang/dafny/blob/master/Source/DafnyLanguageServer/README.md#about-plugins
-  
+
   ---- Overall reporting and printing ----------------------------------------
   
-  /stats        Print interesting statistics about the Dafny files supplied.
   /dprint:<file>
-      print Dafny program after parsing it
-      (use - as <file> to print to console)
-  /rprint:<file>
-      print Dafny program after resolving it
-      (use - as <file> to print to console)
+      Print Dafny program after parsing it.
+      (Use - as <file> to print to console.)
+
   /printMode:<Everything|DllEmbed|NoIncludes|NoGhost>
-      Everything is the default.
-      DllEmbed prints the source that will be included in a compiled dll.
-      NoIncludes disables printing of {:verify false} methods incorporated via the
-      include mechanism, as well as datatypes and fields included from other files.
-      NoGhost disables printing of functions, ghost methods, and proof statements in
-      implementation methods.  It also disables anything NoIncludes disables.
+      Everything (default) - Print everything listed below.
+      DllEmbed - print the source that will be included in a compiled dll.
+      NoIncludes - disable printing of {:verify false} methods
+          incorporated via the include mechanism, as well as datatypes and
+          fields included from other files.
+      NoGhost - disable printing of functions, ghost methods, and proof
+          statements in implementation methods. It also disables anything
+          NoIncludes disables.
+
+  /rprint:<file>
+      Print Dafny program after resolving it.
+      (use - as <file> to print to console.)
+
+  /showSnippets:<value>
+      0 (default) - Don't show source code snippets for Dafny messages.
+      1 - Show a source code snippet for each Dafny message.
+
+  /stats
+      Print interesting statistics about the Dafny files supplied.
+  
   /printIncludes:<None|Immediate|Transitive>
-      None is the default.
-      Immediate prints files included by files listed on the command line
-      Transitive recurses on the files printed by Immediate
+      None (default) - Print nothing.
+      Immediate - Print files included by files listed on the command line.
+      Transitive - Recurses on the files printed by Immediate.
+  
       Immediate and Transitive will exit after printing.
+  
   /view:<view1, view2>
-      print the filtered views of a module after it is resolved (/rprint).
-      If print before the module is resolved (/dprint), then everything in the module
-      is printed.
-      If no view is specified, then everything in the module is printed.
-  /showSnippets:<n>
-      0 (default) - don't show source code snippets for Dafny messages
-      1 - show a source code snippet for each Dafny message
-  /funcCallGraph Print out the function call graph.  Format is: func,mod=callee*
-  /pmtrace      print pattern-match compiler debug info
-  /titrace      print type-inference debug info
+      Print the filtered views of a module after it is resolved (/rprint).
+      If print before the module is resolved (/dprint), then everything in
+      the module is printed. If no view is specified, then everything in
+      the module is printed.
+  /funcCallGraph
+      Print out the function call graph. Format is: func,mod=callee*
+  
+  /pmtrace
+      Print pattern-match compiler debug info.
+  
+  /titrace
+      Print type-inference debug info.
+  
   /printTooltips
-      Dump additional positional information (displayed as mouse-over tooltips by
-      the VS plugin) to stdout as 'Info' messages.
+      Dump additional positional information (displayed as mouse-over
+      tooltips by the VS Code plugin) to stdout as 'Info' messages.
+  
   /diagnosticsFormat:<text|json>
       Choose how to report errors, warnings, and info messages.
-      text (default): Use human readable output
-      json: Print each message as a JSON object, one per line.
+      text (default) - Use human readable output
+      json - Print each message as a JSON object, one per line.
   
   ---- Language feature selection --------------------------------------------
   
-  /noIncludes   Ignore include directives
-  /noExterns    Ignore extern and dllimport attributes
+  /unicodeChar:<value>
+      0 (default) - The char type represents any UTF-16 code unit.
+      1 - The char type represents any Unicode scalar value.
+
+  /noIncludes
+      Ignore include directives.
+  
+  /noExterns
+      Ignore extern and dllimport attributes.
+  
   /functionSyntax:<version>
-      The syntax for functions is changing from Dafny version 3 to version 4.
-      This switch gives early access to the new syntax, and also provides a mode
-      to help with migration.
+      The syntax for functions is changing from Dafny version 3 to version
+      4. This switch gives early access to the new syntax, and also
+      provides a mode to help with migration.
+  
       3 (default) - Compiled functions are written `function method` and
-          `predicate method`. Ghost functions are written `function` and `predicate`.
-      4 - Compiled functions are written `function` and `predicate`. Ghost functions
-          are written `ghost function` and `ghost predicate`.
+          `predicate method`. Ghost functions are written `function` and
+          `predicate`.
+      4 - Compiled functions are written `function` and `predicate`. Ghost
+          functions are written `ghost function` and `ghost predicate`.
       migration3to4 - Compiled functions are written `function method` and
-          `predicate method`. Ghost functions are written `ghost function` and
-          `ghost predicate`. To migrate from version 3 to version 4, use this flag
-          on your version 3 program. This will give flag all occurrences of
-          `function` and `predicate` as parsing errors. These are ghost functions,
-          so change those into the new syntax `ghost function` and `ghost predicate`.
-          Then, start using /functionSyntax:4. This will flag all occurrences of
-          `function method` and `predicate method` as parsing errors. So, change
-          those to just `function` and `predicate`. Now, your program uses version 4
-          syntax and has the exact same meaning as your previous version 3 program.
-      experimentalDefaultGhost - like migration3to4, but allow `function` and
-          `predicate` as alternatives to declaring ghost functions and predicates,
-          respectively
-      experimentalDefaultCompiled - like migration3to4, but allow `function` and
-          `predicate` as alternatives to declaring compiled functions and predicates,
-          respectively
-      experimentalPredicateAlwaysGhost - Compiled functions are written `function`.
-          Ghost functions are written `ghost function`. Predicates are always ghost
-          and are written `predicate`.
+          `predicate method`. Ghost functions are written `ghost function`
+          and `ghost predicate`. To migrate from version 3 to version 4,
+          use this flag on your version 3 program. This will give flag all
+          occurrences of `function` and `predicate` as parsing errors.
+          These are ghost functions, so change those into the new syntax
+          `ghost function` and `ghost predicate`. Then, start using
+          /functionSyntax:4. This will flag all occurrences of `function
+          method` and `predicate method` as parsing errors. So, change
+          those to just `function` and `predicate`. Now, your program uses
+          version 4 syntax and has the exact same meaning as your previous
+          version 3 program.
+      experimentalDefaultGhost - Like migration3to4, but allow `function`
+          and `predicate` as alternatives to declaring ghost functions and
+          predicates, respectively.
+      experimentalDefaultCompiled - Like migration3to4, but allow
+          `function` and `predicate` as alternatives to declaring compiled
+          functions and predicates, respectively.
+      experimentalPredicateAlwaysGhost - Compiled functions are written
+          `function`. Ghost functions are written `ghost function`.
+          Predicates are always ghost and are written `predicate`.
+  
   /quantifierSyntax:<version>
-      The syntax for quantification domains is changing from Dafny version 3 to version 4,
-      more specifically where quantifier ranges (| <Range>) are allowed.
-      This switch gives early access to the new syntax.
-      3 (default) - Ranges are only allowed after all quantified variables are declared.
-          (e.g. set x, y | 0 <= x < |s| && y in s[x] && 0 <= y :: y)
+      The syntax for quantification domains is changing from Dafny version
+      3 to version 4, more specifically where quantifier ranges (|
+      <Range>) are allowed. This switch gives early access to the new
+      syntax.
+  
+      3 (default) - Ranges are only allowed after all quantified variables
+          are declared. (e.g. set x, y | 0 <= x < |s| && y in s[x] && 0 <=
+          y :: y)
       4 - Ranges are allowed after each quantified variable declaration.
           (e.g. set x | 0 <= x < |s|, y <- s[x] | 0 <= y :: y)
-      Note that quantifier variable domains (<- <Domain>) are available
-      in both syntax versions.
+  
+      Note that quantifier variable domains (<- <Domain>) are available in
+      both syntax versions.
+  
   /disableScopes
-      Treat all export sets as 'export reveal *'. i.e. don't hide function bodies
-      or type definitions during translation.
-  /allowGlobals Allow the implicit class '_default' to contain fields, instance functions,
-      and instance methods.  These class members are declared at the module scope,
-      outside of explicit classes.  This command-line option is provided to simplify
-      a transition from the behavior in the language prior to version 1.9.3, from
-      which point onward all functions and methods declared at the module scope are
-      implicitly static and fields declarations are not allowed at the module scope.
+      Treat all export sets as 'export reveal *'. i.e. don't hide function
+      bodies or type definitions during translation.
+  
+  /allowGlobals
+      Allow the implicit class '_default' to contain fields, instance
+      functions, and instance methods. These class members are declared at
+      the module scope, outside of explicit classes. This command-line
+      option is provided to simplify a transition from the behavior in the
+      language prior to version 1.9.3, from which point onward all
+      functions and methods declared at the module scope are implicitly
+      static and fields declarations are not allowed at the module scope.
   
   ---- Warning selection -----------------------------------------------------
   
-  /warnShadowing  Emits a warning if the name of a declared variable caused another variable
-      to be shadowed
-  /warnMissingConstructorParenthesis Emits a warning when a constructor name in a case pattern 
-      is not followed by parentheses
+  /warnShadowing
+      Emits a warning if the name of a declared variable caused another
+      variable to be shadowed.
+  
+  /warnMissingConstructorParenthesis
+      Emits a warning when a constructor name in a case pattern is not
+      followed by parentheses.
+  
   /deprecation:<n>
-      0 - don't give any warnings about deprecated features
-      1 (default) - show warnings about deprecated features
-      2 - also point out where there's new simpler syntax
+      0 - Don't give any warnings about deprecated features.
+      1 (default) - Show warnings about deprecated features.
+      2 - Also point out where there's new simpler syntax.
+  
   /warningsAsErrors
       Treat warnings as errors.
   
   ---- Verification options -------------------------------------------------
   
   /dafnyVerify:<n>
-      0 - stop after typechecking
-      1 - continue on to translation, verification, and compilation
+      0 - Stop after resolution and typechecking.
+      1 - Continue on to verification and compilation.
+  
   /verifyAllModules
-      Verify modules that come from an include directive
+      Verify modules that come from an include directive.
+  
   /separateModuleOutput
       Output verification results for each module separately, rather than
       aggregating them after they are all finished.
+  
   /verificationLogger:<configuration string>
-      Logs verification results to the given test result logger. The currently
-      supported loggers are `trx`, `csv`, and `text`. These are the
-      XML-based format commonly used for test results for .NET languages, a
-      custom CSV schema, and a textual format meant for human consumption. You
-      can provide configuration using the same string format as when using the
-      --logger option for dotnet test, such as:
+      Logs verification results to the given test result logger. The
+      currently supported loggers are `trx`, `csv`, and `text`. These are
+      the XML-based format commonly used for test results for .NET
+      languages, a custom CSV schema, and a textual format meant for human
+      consumption. You can provide configuration using the same string
+      format as when using the --logger option for dotnet test, such as:
+  
           /verificationLogger:trx;LogFileName=<...>.
+  
       The exact mapping of verification concepts to these formats is
       experimental and subject to change!
   
-      The `trx` and `csv` loggers automatically choose an output file
-      name by default, and print the name of this file to the console. The
+      The `trx` and `csv` loggers automatically choose an output file name
+      by default, and print the name of this file to the console. The
       `text` logger prints its output to the console by default, but can
       send output to a file given the `LogFileName` option.
   
@@ -173,212 +226,280 @@ Usage: Dafny [ option ... ] [ filename ... ]
       `/vcsSplitOnEveryAssert` option, it will provide approximate time
       and resource use costs for each assertion, allowing identification
       of especially expensive assertions.
-  /mimicVerificationOf:<Dafny version>
-      Let Dafny attempt to mimic the verification as it was in a previous version of Dafny.
-      Useful during migration to a newer version of Dafny when a Dafny program has proofs, such as methods or lemmas,
-      that are unstable in the sense that their verification may become slower or fail altogether
-      after logically irrelevant changes are made in the verification input.
   
-      Accepted versions are: 3.3 (note that this turns off features that prevent classes of verification instability)
+  /mimicVerificationOf:<Dafny version>
+      Let Dafny attempt to mimic the verification as it was in a previous
+      version of Dafny. Useful during migration to a newer version of
+      Dafny when a Dafny program has proofs, such as methods or lemmas,
+      that are unstable in the sense that their verification may become
+      slower or fail altogether after logically irrelevant changes are
+      made in the verification input.
+  
+      Accepted versions are: 3.3 (note that this turns off features that
+      prevent classes of verification instability)
+  
   /noCheating:<n>
-      0 (default) - allow assume statements and free invariants
-      1 - treat all assumptions as asserts, and drop free.
+      0 (default) - Allow assume statements and free invariants.
+      1 - Treat all assumptions as asserts, and drop free.
+  
   /induction:<n>
-      0 - never do induction, not even when attributes request it
-      1 - only apply induction when attributes request it
-      2 - apply induction as requested (by attributes) and also
-          for heuristically chosen quantifiers
-      3 - apply induction as requested, and for
-          heuristically chosen quantifiers and lemmas
-      4 (default) - apply induction as requested, and for lemmas
+      0 - Never do induction, not even when attributes request it.
+      1 - Only apply induction when attributes request it.
+      2 - Apply induction as requested (by attributes) and also for
+          heuristically chosen quantifiers.
+      3 - Apply induction as requested, and for heuristically chosen
+          quantifiers and lemmas.
+      4 (default) - Apply induction as requested, and for lemmas.
+  
   /inductionHeuristic:<n>
-      0 - least discriminating induction heuristic (that is, lean
-          toward applying induction more often)
-      1,2,3,4,5 - levels in between, ordered as follows as far as
-          how discriminating they are:  0 < 1 < 2 < (3,4) < 5 < 6
-      6 (default) - most discriminating
+      0 - Least discriminating induction heuristic (that is, lean toward
+          applying induction more often).
+      1,2,3,4,5 - Levels in between, ordered as follows as far as how
+          discriminating they are: 0 < 1 < 2 < (3,4) < 5 < 6.
+      6 (default) - Most discriminating.
+  
   /trackPrintEffects:<n>
-      0 (default) - Every compiled method, constructor, and iterator, whether or not
-         it bears a {:print} attribute, may have print effects.
-      1 - A compiled method, constructor, or iterator is allowed to have print effects
-         only if it is marked with {:print}.
+      0 (default) - Every compiled method, constructor, and iterator,
+         whether or not it bears a {:print} attribute, may have print
+         effects.
+      1 - A compiled method, constructor, or iterator is allowed to have
+         print effects only if it is marked with {:print}.
+  
   /allocated:<n>
       Specify defaults for where Dafny should assert and assume
-      allocated(x) for various parameters x, local variables x,
-      bound variables x, etc.  Lower <n> may require more manual
-      allocated(x) annotations and thus may be more difficult to use.
-      Warning: this option should be chosen consistently across
-      an entire project; it would be unsound to use different
-      defaults for different files or modules within a project.
-      And even so, modes /allocated:0 and /allocated:1 let functions
-      depend on the allocation state, which is not sound in general.
+      allocated(x) for various parameters x, local variables x, bound
+      variables x, etc. Lower <n> may require more manual allocated(x)
+      annotations and thus may be more difficult to use. Warning: this
+      option should be chosen consistently across an entire project; it
+      would be unsound to use different defaults for different files or
+      modules within a project. And even so, modes /allocated:0 and
+      /allocated:1 let functions depend on the allocation state, which is
+      not sound in general.
+  
       0 - Nowhere (never assume/assert allocated(x) by default).
       1 - Assume allocated(x) only for non-ghost variables and fields
-          (these assumptions are free, since non-ghost variables
-          always contain allocated values at run-time).  This option
-          may speed up verification relative to /allocated:2.
-      2 - Assert/assume allocated(x) on all variables,
-          even bound variables in quantifiers.  This option is
-          the easiest to use for heapful code.
+          (these assumptions are free, since non-ghost variables always
+          contain allocated values at run-time). This option may speed up
+          verification relative to /allocated:2.
+      2 - Assert/assume allocated(x) on all variables, even bound
+          variables in quantifiers. This option is the easiest to use for
+          heapful code.
       3 - (default) Frugal use of heap parameters.
-      4 - mode 3 but with alloc antecedents when ranges don't imply
+      4 - Mode 3 but with alloc antecedents when ranges don't imply
           allocatedness.
+  
   /definiteAssignment:<n>
-      0 - ignores definite-assignment rules; this mode is for testing only--it is
-          not sound
-      1 (default) - enforces definite-assignment rules for compiled variables and fields
-          whose types do not support auto-initialization and for ghost variables
-          and fields whose type is possibly empty
-      2 - enforces definite-assignment for all non-yield-parameter
-          variables and fields, regardless of their types
-      3 - like 2, but also performs checks in the compiler that no nondeterministic
-          statements are used; thus, a program that passes at this level 3 is one
-          that the language guarantees that values seen during execution will be
-          the same in every run of the program
-  /noAutoReq    Ignore autoReq attributes
+      0 - Ignores definite-assignment rules. This mode is for testing
+          only--it is not sound.
+      1 (default) - Enforces definite-assignment rules for compiled
+          variables and fields whose types do not support
+          auto-initialization and for ghost variables and fields whose
+          type is possibly empty.
+      2 - Enforces definite-assignment for all non-yield-parameter
+          variables and fields, regardless of their types.
+      3 - Like 2, but also performs checks in the compiler that no
+          nondeterministic statements are used; thus, a program that
+          passes at this level 3 is one that the language guarantees that
+          values seen during execution will be the same in every run of
+          the program.
+  
+  /noAutoReq
+      Ignore autoReq attributes.
+  
   /autoReqPrint:<file>
       Print out requirements that were automatically generated by autoReq.
-  /noNLarith    Reduce Z3's knowledge of non-linear arithmetic (*,/,%).
-      Results in more manual work, but also produces more predictable behavior.
-      (This switch will perhaps be replaced by /arith in the future.
-      For now, it takes precedence of /arith.)
-  /arith:<n>    (Experimental switch. Its options may change.)
+  
+  /noNLarith
+      Reduce Z3's knowledge of non-linear arithmetic (*,/,%).
+  
+      Results in more manual work, but also produces more predictable
+      behavior. (This switch will perhaps be replaced by /arith in the
+      future. For now, it takes precedence of /arith.)
+  
+  /arith:<n>
+      (experimental) Adjust how Dafny interprets arithmetic operations.
+  
       0 - Use Boogie/Z3 built-ins for all arithmetic operations.
       1 (default) - Like 0, but introduce symbolic synonyms for *,/,%, and
           allow these operators to be used in triggers.
       2 - Like 1, but introduce symbolic synonyms also for +,-.
-      3 - Turn off non-linear arithmetic in the SMT solver. Still,
-          use Boogie/Z3 built-in symbols for all arithmetic operations.
-      4 - Like 3, but introduce symbolic synonyms for *,/,%, and allow these
-          operators to be used in triggers.
+      3 - Turn off non-linear arithmetic in the SMT solver. Still, use
+          Boogie/Z3 built-in symbols for all arithmetic operations.
+      4 - Like 3, but introduce symbolic synonyms for *,/,%, and allow
+          these operators to be used in triggers.
       5 - Like 4, but introduce symbolic synonyms also for +,-.
       6 - Like 5, and introduce axioms that distribute + over *.
       7 - like 6, and introduce facts that associate literals arguments of *.
       8 - Like 7, and introduce axiom for the connection between *,/,%.
-      9 - Like 8, and introduce axioms for sign of multiplication
+      9 - Like 8, and introduce axioms for sign of multiplication.
       10 - Like 9, and introduce axioms for commutativity and
-          associativity of *
+          associativity of *.
+  
   /autoTriggers:<n>
-      0 - Do not generate {:trigger} annotations for user-level quantifiers.
-      1 (default) - Add a {:trigger} to each user-level quantifier. Existing
-                    annotations are preserved.
+      0 - Do not generate {:trigger} annotations for user-level
+          quantifiers.
+      1 (default) - Add a {:trigger} to each user-level quantifier.
+          Existing annotations are preserved.
+  
   /rewriteFocalPredicates:<n>
       0 - Don't rewrite predicates in the body of prefix lemmas.
-      1 (default) - In the body of prefix lemmas, rewrite any use of a focal predicate
-                    P to P#[_k-1].
+      1 (default) - In the body of prefix lemmas, rewrite any use of a
+          focal predicate P to P#[_k-1].
+  
   /extractCounterexample
-      If verification fails, report a detailed counterexample for the first
-      failing assertion. Requires specifying the /mv option as well as
-      /proverOpt:O:model_compress=false and /proverOpt:O:model.completion=true.
-  /countVerificationErrors:<n>
-      [ deprecated ]
-      0 - Set exit code to 0 regardless of the presence of any other errors.
-      1 (default) - Emit usual exit code (cf. beginning of the help message).
+      If verification fails, report a detailed counterexample for the
+      first failing assertion. Requires specifying the /mv:<file> option as well
+      as /proverOpt:O:model_compress=false (for z3 version < 4.8.7) or
+      /proverOpt:O:model.compact=false (for z3 version >= 4.8.7), and
+      /proverOpt:O:model.completion=true.
   
   ---- Test generation options -----------------------------------------------
   
-  
   /generateTestMode:<None|Block|Path>
-      None is the default and has no effect.
-      Block prints block-coverage tests for the given program.
-      Path prints path-coverage tests for the given program.
-      Using /definiteAssignment:3 and /loopUnroll is highly recommended when
-      generating tests.
+      None (default) - Has no effect.
+      Block - Prints block-coverage tests for the given program.
+      Path - Prints path-coverage tests for the given program.
+  
+      Using /definiteAssignment:3 and /loopUnroll is highly recommended
+      when generating tests.
+  
   /warnDeadCode
       Use block-coverage tests to warn about potential dead code.
+  
   /generateTestSeqLengthLimit:<n>
-      If /testMode is not None, using this argument adds an axiom that sets the
-      length of all sequences to be no greater than <n>. This is useful in
-      conjunction with loop unrolling.
+      If /testMode is not None, using this argument adds an axiom that
+      sets the length of all sequences to be no greater than <n>. This is
+      useful in conjunction with loop unrolling.
+  
   /generateTestTargetMethod:<methodName>
       If specified, only this method will be tested.
+  
   /generateTestInlineDepth:<n>
-      0 is the default. When used in conjunction with /testTargetMethod, this
-      argument specifies the depth up to which all non-tested methods should be
-      inlined.
+      0 is the default. When used in conjunction with /testTargetMethod,
+      this argument specifies the depth up to which all non-tested methods
+      should be inlined.
   
   ---- Compilation options ---------------------------------------------------
   
-  /compile:<n>  0 - do not compile Dafny program
-      1 (default) - upon successful verification of the Dafny
-          program, compile it to the designated target language
-          (/noVerify automatically counts as failed verification)
-      2 - always attempt to compile Dafny program to the target
-          language, regardless of verification outcome
-      3 - if there is a Main method and there are no verification
-          errors and /noVerify is not used, compiles program in
-          memory (i.e., does not write an output file) and runs it
-      4 - like (3), but attempts to compile and run regardless of
-          verification outcome
-  /compileTarget:<lang>
-      cs (default) - Compilation to .NET via C#
-      go - Compilation to Go
-      js - Compilation to JavaScript
-      java - Compilation to Java
-      py - Compilation to Python
-      cpp - Compilation to C++
-  
-      Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md).
-      This includes lack of support for BigIntegers (aka int), most higher order
-      functions, and advanced features like traits or co-inductive types.
-  /Main:<name>
-      The (fully-qualified) name of the method to use as the executable entry point.
-      Default is the method with the {:main} attribute, or else the method named 'Main'.
-  /runAllTests:<n> (experimental)
-      0 (default) - Annotates compiled methods with the {:test} attribute
-          such that they can be tested using a testing framework
-          in the target language (e.g. xUnit for C#).
-      1 - Emits a main method in the target language that will execute every method
-          in the program with the {:test} attribute.
-          Cannot be used if the program already contains a main method.
-          Note that /compile:3 or 4 must be provided as well to actually execute
-          this main method!
-  /compileVerbose:<n>
-      0 - don't print status of compilation to the console
-      1 (default) - print information such as files being written by
-          the compiler to the console
-  /spillTargetCode:<n>
-      This option concerns the textual representation of the target program.
-      This representation is of no interest when working with only Dafny code,
-      but may be of interest in cross-language situations.
-      0 (default) - Don't make any extra effort to write the textual target program
-          (but still compile it, if /compile indicates to do so).
-      1 - Write the textual target program, if it is being compiled.
-      2 - Write the textual target program, provided it passes the verifier (and
-          /noVerify is NOT used), regardless of /compile setting.
-      3 - Write the textual target program, regardless of verification outcome
-          and /compile setting.
-      Note, some compiler targets may (always or in some situations) write out the
-      textual target program as part of compilation, in which case /spillTargetCode:0
-      behaves the same way as /spillTargetCode:1.
-  /out:<file>
-      filename and location for the generated target language files
-  /coverage:<file>
-      The compiler emits branch-coverage calls and outputs into
-      <file> a legend that gives a description of each
-      source-location identifier used in the branch-coverage calls.
-      (use - as <file> to print to console)
-  /optimize     Produce optimized C# code, meaning:
-        - passes /optimize flag to csc.exe.
-  /optimizeResolution:<n>
-      0 - Resolve and translate all methods
-      1 - Translate methods only in the call graph of current verification target
-      2 (default) - As in 1, but only resolve method bodies in non-included Dafny sources
-  /useRuntimeLib
-      Refer to pre-built DafnyRuntime.dll in compiled assembly rather
-      than including DafnyRuntime.cs verbatim.
-  /library:<file>
+  /compileTarget:<language>
+      cs (default) - Compile to .NET via C#.
+      go - Compile to Go.
+      js - Compile to JavaScript.
+      java - Compile to Java.
+      py - Compile to Python.
+      cpp - Compile to C++.
+      
+      Note that the C++ backend has various limitations (see
+      Docs/Compilation/Cpp.md). This includes lack of support for
+      BigIntegers (aka int), most higher order functions, and advanced
+      features like traits or co-inductive types.
+
+  /library:<value>
       The contents of this file and any files it includes can be referenced from other files as if they were included. 
       However, these contents are skipped during code generation and verification.
       This option is useful in a diamond dependency situation, 
       to prevent code from the bottom dependency from being generated more than once.
+
+  /optimizeErasableDatatypeWrapper:<value>
+      0 - Include all non-ghost datatype constructors in the compiled code
+      1 (default) - In the compiled target code, transform any non-extern
+          datatype with a single non-ghost constructor that has a single
+          non-ghost parameter into just that parameter. For example, the type
+              datatype Record = Record(x: int)
+          is transformed into just 'int' in the target code.
+
+  /out:<file>
+      Specify the filename and location for the generated target language files.
+
+  /compile:<n>
+      0 - Do not compile Dafny program.
+      1 (default) - Upon successful verification of the Dafny program,
+          compile it to the designated target language. (/noVerify
+          automatically counts as a failed verification.)
+      2 - Always attempt to compile Dafny program to the target language,
+          regardless of verification outcome.
+      3 - If there is a Main method and there are no verification errors
+          and /noVerify is not used, compiles program in memory (i.e.,
+          does not write an output file) and runs it.
+      4 - Like (3), but attempts to compile and run regardless of
+          verification outcome.
+  /Main:<name>
+      Specify the (fully-qualified) name of the method to use as the executable entry point.
+      Default is the method with the {:main} attribute, or else the method named 'Main'.
+      A Main method can have at most one (non-ghost) argument of type `seq<string>`
+  --args <arg1> <arg2> ...
+      When running a Dafny file through /compile:3 or /compile:4, '--args' provides
+      all arguments after it to the Main function, at index starting at 1.
+      Index 0 is used to store the executable's name if it exists.
+  /runAllTests:<n> (experimental)
+      0 (default) - Annotates compiled methods with the {:test}
+          attribute such that they can be tested using a testing framework
+          in the target language (e.g. xUnit for C#).
+      1 - Emits a main method in the target language that will execute
+          every method in the program with the {:test} attribute. Cannot
+          be used if the program already contains a main method. Note that
+          /compile:3 or 4 must be provided as well to actually execute
+          this main method!
+  
+  /compileVerbose:<n>
+      0 - Don't print status of compilation to the console.
+      1 (default) - Print information such as files being written by the
+          compiler to the console.
+  
+  /spillTargetCode:<n>
+      Explicitly writes the code in the target language to one or more files.
+      This is not necessary to run a Dafny program, but may be of interest when
+      building multi-language programs or for debugging.
+  
+      0 (default) - Don't make any extra effort to write the textual
+          target program (but still compile it, if /compile indicates to
+          do so).
+      1 - Write the textual target program, if it is being compiled.
+      2 - Write the textual target program, provided it passes the
+          verifier (and /noVerify is NOT used), regardless of /compile
+          setting.
+      3 - Write the textual target program, regardless of verification
+          outcome and /compile setting.
+      Note, some compiler targets may (always or in some situations) write
+      out the textual target program as part of compilation, in which case
+      /spillTargetCode:0 behaves the same way as /spillTargetCode:1.
+  /coverage:<file>
+      The compiler emits branch-coverage calls and outputs into <file> a
+      legend that gives a description of each source-location identifier
+      used in the branch-coverage calls. (Use - as <file> to print to the
+      console.)
+  
+  /optimize
+      Produce optimized C# code by passing the /optimize flag to csc.exe.
+  
+  /optimizeResolution:<n>
+      0 - Resolve and translate all methods.
+      1 - Translate methods only in the call graph of current verification
+          target.
+      2 (default) - As in 1, but only resolve method bodies in
+          non-included Dafny sources.
+  /useRuntimeLib
+      Refer to a pre-built DafnyRuntime.dll in the compiled assembly
+      rather than including DafnyRuntime.cs verbatim.
+  
+  /testContracts:<Externs|TestedExterns>
+      Enable run-time testing of the compilable portions of certain function
+      or method contracts, at their call sites. The current implementation
+      focuses on {:extern} code but may support other code in the future.
+  
+      Externs - Check contracts on every call to a function or method marked
+          with the {:extern} attribute, regardless of where it occurs.
+      TestedExterns - Check contracts on every call to a function or method
+          marked with the {:extern} attribute when it occurs in a method
+          with the {:test} attribute, and warn if no corresponding test
+          exists for a given external declaration.
   
   ----------------------------------------------------------------------------
   
-  Dafny generally accepts Boogie options and passes these on to Boogie. However,
-  some Boogie options, like /loopUnroll, may not be sound for Dafny or may not
-  have the same meaning for a Dafny program as it would for a similar Boogie
-  program.
+  Dafny generally accepts Boogie options and passes these on to Boogie.
+  However, some Boogie options, like /loopUnroll, may not be sound for
+  Dafny or may not have the same meaning for a Dafny program as it would
+  for a similar Boogie program.
   
   ---- Boogie options --------------------------------------------------------
 
@@ -492,6 +613,8 @@ Usage: Dafny [ option ... ] [ filename ... ]
                 do not verify mover type annotations on atomic action declarations
   /trustNoninterference
                 do not perform noninterference checks
+  /trustRefinement
+                do not perform refinement checks
   /trustLayersUpto:<n>
                 do not verify layers <n> and below
   /trustLayersDownto:<n>

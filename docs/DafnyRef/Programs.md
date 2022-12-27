@@ -5,7 +5,7 @@ Dafny = { IncludeDirective_ } { TopDecl } EOF
 At the top level, a Dafny program (stored as files with extension `.dfy`)
 is a set of declarations. The declarations introduce (module-level)
 constants, methods, functions, lemmas, types (classes, traits, inductive and
-co-inductive datatypes, newtypes, type synonyms, opaque types, and
+coinductive datatypes, newtypes, type synonyms, opaque types, and
 iterators) and modules, where the order of introduction is irrelevant. A
 class also contains a set of declarations, introducing fields, methods,
 and functions.
@@ -15,7 +15,7 @@ Main() method. If a legal Main() method is found, the compiler will emit
 an executable appropriate to the target language; otherwise it will emit
 a library or individual files.
 The conditions for a legal Main() method are described in the User Guide
-([Section 25.8.1](#sec-user-guide-main)).
+([Section 25.7.1](#sec-user-guide-main)).
 If there is more than one Main(), Dafny will emit an error message.
 
 An invocation of Dafny may specify a number of source files.

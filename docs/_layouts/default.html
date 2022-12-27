@@ -1,7 +1,11 @@
 <!DOCTYPE html>
+<!-- This file is used by the Markdown processor, along with the included files head.html and footer.html.
+     The script tags below allow rendering of some kinds of inline math in the reference manual.
+  -->
+
 <html lang="{{ page.lang | default: site.lang | default: "en" }}">
 
-  {%- include head.html -%}
+{%- include head.html -%}
 
 <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript" ></script>
 <script type="text/x-mathjax-config">
@@ -9,17 +13,16 @@
         }});
 </script>
 
-  <body>
+<body>
 
+  <main class="page-content" aria-label="Content">
+    <div class="wrapper">
+      {{ content }}
+    </div>
+  </main>
 
-    <main class="page-content" aria-label="Content">
-      <div class="wrapper">
-        {{ content }}
-      </div>
-    </main>
+  {%- include footer.html -%}
 
-    {%- include footer.html -%}
-
-  </body>
+</body>
 
 </html>

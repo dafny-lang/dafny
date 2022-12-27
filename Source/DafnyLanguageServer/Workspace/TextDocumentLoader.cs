@@ -1,5 +1,4 @@
-﻿using IntervalTree;
-using Microsoft.Dafny.LanguageServer.Language;
+﻿using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -8,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Boogie;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
@@ -60,92 +60,72 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return new TextDocumentLoader(loggerFactory, parser, symbolResolver, symbolTableFactory, ghostStateDiagnosticCollector, statusPublisher, notificationPublisher);
     }
 
-    public DafnyDocument CreateUnloaded(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
-      var errorReporter = new DiagnosticErrorReporter(textDocument.Text, textDocument.Uri);
-      return CreateDocumentWithEmptySymbolTable(
-        loggerFactory.CreateLogger<SymbolTable>(),
-        textDocument,
+    public IdeState CreateUnloaded(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
+      return CreateDocumentWithEmptySymbolTable(textDocument,
         new[] { new Diagnostic {
           // This diagnostic never gets sent to the client,
           // instead it forces the first computed diagnostics for a document to always be sent.
           // The message here describes the implicit client state before the first diagnostics have been sent.
           Message = "Resolution diagnostics have not been computed yet."
-        }},
-        parser.CreateUnparsed(textDocument, errorReporter, cancellationToken),
-        wasResolved: false,
-        loadCanceled: true
+        }}
       );
     }
 
-    public async Task<DafnyDocument> LoadAsync(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
+    public async Task<DocumentAfterParsing> LoadAsync(DocumentTextBuffer textDocument,
+      CancellationToken cancellationToken) {
 #pragma warning disable CS1998
-      return await await Task.Factory.StartNew(async () => LoadInternal(textDocument, cancellationToken), cancellationToken,
+      return await await Task.Factory.StartNew(
+        async () => LoadInternal(textDocument, cancellationToken), cancellationToken,
 #pragma warning restore CS1998
         TaskCreationOptions.None, ResolverScheduler);
     }
 
-    private DafnyDocument LoadInternal(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
+    private DocumentAfterParsing LoadInternal(DocumentTextBuffer textDocument,
+      CancellationToken cancellationToken) {
       var errorReporter = new DiagnosticErrorReporter(textDocument.Text, textDocument.Uri);
       statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionStarted);
       var program = parser.Parse(textDocument, errorReporter, cancellationToken);
-      IncludePluginLoadErrors(errorReporter, program);
+      var documentAfterParsing = new DocumentAfterParsing(textDocument, program, errorReporter.GetDiagnostics(textDocument.Uri));
       if (errorReporter.HasErrors) {
         statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ParsingFailed);
-        return CreateDocumentWithEmptySymbolTable(loggerFactory.CreateLogger<SymbolTable>(), textDocument,
-          errorReporter.GetDiagnostics(textDocument.Uri), program,
-          wasResolved: false, loadCanceled: false);
+        return documentAfterParsing;
       }
 
-      var compilationUnit = symbolResolver.ResolveSymbols(textDocument, program, out var canDoVerification, cancellationToken);
+      var compilationUnit = symbolResolver.ResolveSymbols(textDocument, program, out _, cancellationToken);
       var symbolTable = symbolTableFactory.CreateFrom(program, compilationUnit, cancellationToken);
+
+      var newSymbolTable = errorReporter.HasErrors ? null : symbolTableFactory.CreateFrom(program, documentAfterParsing, cancellationToken);
       if (errorReporter.HasErrors) {
         statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionFailed);
       } else {
         statusPublisher.SendStatusNotification(textDocument, CompilationStatus.CompilationSucceeded);
       }
+
       var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(symbolTable, cancellationToken).ToArray();
 
-      return new DafnyDocument(textDocument,
-        errorReporter.GetDiagnostics(textDocument.Uri),
-        symbolTable,
-        canDoVerification,
-        ghostDiagnostics, program, WasResolved: !errorReporter.HasErrors);
-    }
-
-    private static void IncludePluginLoadErrors(DiagnosticErrorReporter errorReporter, Dafny.Program program) {
-      foreach (var error in DafnyLanguageServer.PluginLoadErrors) {
-        errorReporter.Error(MessageSource.Compiler, program.GetFirstTopLevelToken(), error);
-      }
-    }
-
-    private DafnyDocument CreateDocumentWithEmptySymbolTable(
-      ILogger<SymbolTable> logger,
-      DocumentTextBuffer textDocument,
-      IReadOnlyList<Diagnostic> diagnostics,
-      Dafny.Program program,
-      bool wasResolved,
-      bool loadCanceled
-    ) {
-      return new DafnyDocument(
-        textDocument,
-        diagnostics,
-        CreateEmptySymbolTable(program, logger),
-        false,
-        Array.Empty<Diagnostic>(),
+      return new DocumentAfterResolution(textDocument,
         program,
-        wasResolved,
-        loadCanceled
+        errorReporter.GetDiagnostics(textDocument.Uri),
+        newSymbolTable,
+        symbolTable,
+        ghostDiagnostics
       );
     }
 
-    private static SymbolTable CreateEmptySymbolTable(Dafny.Program program, ILogger<SymbolTable> logger) {
-      return new SymbolTable(
-        logger,
-        new CompilationUnit(program),
-        new Dictionary<object, ILocalizableSymbol>(),
-        new Dictionary<ISymbol, SymbolLocation>(),
-        new IntervalTree<Position, ILocalizableSymbol>(),
-        symbolsResolved: false
+    private IdeState CreateDocumentWithEmptySymbolTable(
+      DocumentTextBuffer textDocument,
+      IReadOnlyList<Diagnostic> diagnostics
+    ) {
+      return new IdeState(
+        textDocument,
+        diagnostics,
+        SymbolTable.Empty(),
+        SignatureAndCompletionTable.Empty(textDocument),
+        new Dictionary<ImplementationId, ImplementationView>(),
+        Array.Empty<Counterexample>(),
+        false,
+        Array.Empty<Diagnostic>(),
+        new DocumentVerificationTree(textDocument)
       );
     }
   }

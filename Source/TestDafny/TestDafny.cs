@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using CommandLine;
 using Microsoft.Dafny;
 using Microsoft.Dafny.Plugins;
@@ -27,7 +28,7 @@ public class FeaturesOptions {
 
 public class TestDafny {
 
-  private static readonly Assembly DafnyDriverAssembly = typeof(DafnyDriver).Assembly;
+  private static readonly Assembly DafnyAssembly = typeof(Dafny.Dafny).Assembly;
 
   public static int Main(string[] args) {
     var result = -1;
@@ -124,7 +125,7 @@ public class TestDafny {
     }
 
     // If we hit errors, check for known unsupported features for this compilation target
-    if (OnlyUnsupportedFeaturesErrors(compiler, output)) {
+    if (error == "" && OnlyUnsupportedFeaturesErrors(compiler, output)) {
       return 0;
     }
 
@@ -141,7 +142,7 @@ public class TestDafny {
     if (dafnyCLIPath != null) {
       command = new ShellLitCommand(dafnyCLIPath, argumentsWithDefaults, DafnyDriver.ReferencedEnvironmentVariables);
     } else {
-      var dotnetArguments = new[] { DafnyDriverAssembly.Location }.Concat(argumentsWithDefaults);
+      var dotnetArguments = new[] { DafnyAssembly.Location }.Concat(argumentsWithDefaults);
       command = new ShellLitCommand("dotnet", dotnetArguments, DafnyDriver.ReferencedEnvironmentVariables);
     }
     return command.Execute(null, null, null, null);
@@ -173,6 +174,12 @@ public class TestDafny {
 
     // This is output if the compiler emits any errors
     if (line.StartsWith("Wrote textual form of partial target program to")) {
+      return true;
+    }
+
+    // This is output if included files have errors,
+    // which is expected if we're including another test file and testing different CLI options
+    if (Regex.IsMatch(line, "Error: the included file .* contains error\\(s\\)")) {
       return true;
     }
 

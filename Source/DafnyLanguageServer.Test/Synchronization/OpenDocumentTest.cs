@@ -1,34 +1,26 @@
+using System;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.Workspace;
-using Microsoft.Extensions.Configuration;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.IO;
-using System.Threading;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
 
   [TestClass]
   public class OpenDocumentTest : DafnyLanguageServerTestBase {
     private ILanguageClient client;
-    private IDictionary<string, string> configuration;
 
     [TestInitialize]
     public Task SetUp() => SetUp(null);
 
-    public async Task SetUp(IDictionary<string, string> configuration) {
-      this.configuration = configuration;
-      client = await InitializeClient();
-    }
-
-    protected override IConfiguration CreateConfiguration() {
-      return configuration == null
-        ? base.CreateConfiguration()
-        : new ConfigurationBuilder().AddInMemoryCollection(configuration).Build();
+    public async Task SetUp(Action<DafnyOptions> modifyOptions) {
+      client = await InitializeClient(options => {
+      }, modifyOptions);
     }
 
     [TestMethod]
@@ -104,9 +96,7 @@ method Recurse(x: int) returns (r: int) {
         r := Recurse(x - 1);
     }
 }".Trim();
-      await SetUp(new Dictionary<string, string>() {
-        { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.Never) }
-      });
+      await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Never));
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);

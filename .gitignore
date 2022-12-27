@@ -33,11 +33,12 @@ Source/*/obj/
 Source/*/obj_core/
 Source/packages
 
-Source/Dafny/Parser.cs.old
-Source/Dafny/Scanner.cs.old
+Source/DafnyCore/Parser.cs.old
+Source/DafnyCore/Scanner.cs.old
 
 Source/DafnyRuntime/MSBuild_Logs/
 TestResults/
+Test/.lit_test_times.txt
 
 Docs/OnlineTutorial/DocumentationTransducer.exe
 Docs/OnlineTutorial/DocumentationTransducer.pdb

@@ -1,14 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
-using Xunit.Abstractions;
 
 namespace XUnitExtensions.Lit {
 
   // TODO: Make safely immutable
   public class LitTestConfiguration {
-    public readonly Dictionary<string, string> Substitutions;
+    // Values can be either a string or an IEnumerable<string>
+    public readonly Dictionary<string, object> Substitutions;
 
     public readonly Dictionary<string, Func<IEnumerable<string>, LitTestConfiguration, ILitCommand>> Commands;
 
@@ -16,7 +15,7 @@ namespace XUnitExtensions.Lit {
 
     public readonly IEnumerable<string> PassthroughEnvironmentVariables;
 
-    public LitTestConfiguration(Dictionary<string, string> substitutions,
+    public LitTestConfiguration(Dictionary<string, object> substitutions,
             Dictionary<string, Func<IEnumerable<string>, LitTestConfiguration, ILitCommand>> commands,
             string[] features,
             IEnumerable<string> passthroughEnvironmentVariables) {
@@ -26,14 +25,24 @@ namespace XUnitExtensions.Lit {
       PassthroughEnvironmentVariables = passthroughEnvironmentVariables;
     }
 
-    public string ApplySubstitutions(string s) {
-      foreach (var (key, value) in Substitutions) {
-        s = s.Replace(key, value);
+    public IEnumerable<string> ApplySubstitutions(string s) {
+      if (Substitutions.TryGetValue(s, out var result)) {
+        if (result is IEnumerable<string> enumerable) {
+          return enumerable;
+        }
+
+        return new[] { (string)result };
       }
-      return s;
+
+      foreach (var (key, value) in Substitutions) {
+        if (value is string stringValue) {
+          s = s.Replace(key, stringValue);
+        }
+      }
+      return new[] { s };
     }
 
-    public LitTestConfiguration WithSubstitutions(Dictionary<string, string> more) {
+    public LitTestConfiguration WithSubstitutions(Dictionary<string, object> more) {
       return new LitTestConfiguration(
         Substitutions.Concat(more).ToDictionary(pair => pair.Key, pair => pair.Value),
         Commands,

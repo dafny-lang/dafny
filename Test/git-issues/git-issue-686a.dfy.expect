@@ -1,4 +1,4 @@
-git-issue-686a.dfy(9,2): Warning: this branch is redundant 
+git-issue-686a.dfy(9,2): Warning: this branch is redundant
 git-issue-686a.dfy(10,11): Error: unresolved identifier: doesNotExist
 git-issue-686a.dfy(10,27): Error: unresolved identifier: TotallyBogus
 git-issue-686a.dfy(10,40): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
@@ -8,6 +8,6 @@ git-issue-686a.dfy(19,4): Error: unresolved identifier: doesNotExist
 git-issue-686a.dfy(19,20): Error: unresolved identifier: TotallyBogus
 git-issue-686a.dfy(19,33): Error: type of right argument to + (int) must agree with the result type (bool)
 git-issue-686a.dfy(19,33): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
-git-issue-686a.dfy(27,2): Warning: this branch is redundant 
+git-issue-686a.dfy(27,2): Warning: this branch is redundant
 git-issue-686a.dfy(34,2): Warning: this branch is redundant
 8 resolution/type errors detected in git-issue-686a.dfy

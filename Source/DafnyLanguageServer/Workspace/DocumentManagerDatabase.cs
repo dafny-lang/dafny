@@ -15,35 +15,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private readonly IServiceProvider services;
 
-    private VerifierOptions VerifierOptions { get; }
-    private readonly DocumentOptions documentOptions;
-
     private readonly Dictionary<DocumentUri, DocumentManager> documents = new();
 
-    public DocumentManagerDatabase(
-      IServiceProvider services,
-      DocumentOptions documentOptions,
-      VerifierOptions verifierOptions) {
+    public DocumentManagerDatabase(IServiceProvider services) {
+
       this.services = services;
-      this.documentOptions = documentOptions;
-      VerifierOptions = verifierOptions;
-
-      // TODO improve
-      // Initialises DafnyOptions.O
-      services.GetRequiredService<IDafnyParser>();
-
-      DafnyOptions.O.ProverOptions = GetProverOptions(this.documentOptions);
-    }
-
-    private static List<string> GetProverOptions(DocumentOptions options) {
-      return options.ProverOptions.Split(
-        new[] { " ", "\n", "\t" },
-        StringSplitOptions.RemoveEmptyEntries
-      ).ToList();
     }
 
     public void OpenDocument(DocumentTextBuffer document) {
-      documents.Add(document.Uri, new DocumentManager(services, documentOptions, VerifierOptions, document));
+      documents.Add(document.Uri, new DocumentManager(services, document));
     }
 
     public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
@@ -71,25 +51,25 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return false;
     }
 
-    public Task<DafnyDocument?> GetResolvedDocumentAsync(TextDocumentIdentifier documentId) {
+    public Task<IdeState?> GetResolvedDocumentAsync(TextDocumentIdentifier documentId) {
       if (documents.TryGetValue(documentId.Uri, out var state)) {
-        return state.GetResolvedDocumentAsync();
+        return state.GetSnapshotAfterResolutionAsync()!;
       }
-      return Task.FromResult<DafnyDocument?>(null);
+      return Task.FromResult<IdeState?>(null);
     }
 
-    public Task<DafnyDocument?> GetLastDocumentAsync(TextDocumentIdentifier documentId) {
+    public Task<DocumentAfterParsing?> GetLastDocumentAsync(TextDocumentIdentifier documentId) {
       if (documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
-        return databaseEntry.LastDocumentAsync!;
+        return databaseEntry.GetLastDocumentAsync()!;
       }
-      return Task.FromResult<DafnyDocument?>(null);
+      return Task.FromResult<DocumentAfterParsing?>(null);
     }
 
     public DocumentManager? GetDocumentManager(TextDocumentIdentifier documentId) {
       return documents.GetValueOrDefault(documentId.Uri);
     }
 
-    public IEnumerable<CompilationManager> Documents => documents.Values.Select(m => m.CompilationManager);
+    public IEnumerable<DocumentManager> Documents => documents.Values;
 
   }
 }

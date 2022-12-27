@@ -1,5 +1,152 @@
 # Upcoming
 
+See [docs/dev/news/](docs/dev/news/).
+
+# 3.10.0
+
+## New features
+
+- Emit warnings about possibly missing parentheses, based on operator precedence and unusual identation (https://github.com/dafny-lang/dafny/pull/2783)
+
+- The DafnyRuntime NuGet package is now compatible with the .NET Standard 2.0 and .NET Framework 4.5.2 frameworks. (https://github.com/dafny-lang/dafny/pull/2795)
+
+- Counterexamples involving sequences present elements in ascending order by index. (https://github.com/dafny-lang/dafny/pull/2975)
+
+- The definition of the `char` type will change in Dafny version 4, to represent any Unicode scalar value instead of any UTF-16 code unit.
+  The new command-line option `--unicode-char` allows early adoption of this mode.
+  See section [7.5](http://dafny.org/dafny/DafnyRef/DafnyRef#sec-characters) of the Reference Manual for more details.
+  (https://github.com/dafny-lang/dafny/pull/3016)
+
+- `dafny run` now consistently requests UTF-8 output from compiled code.
+  Use `chcp 65501` if you see garbled output on Windows.
+  (https://github.com/dafny-lang/dafny/pull/3049)
+
+- feat: support for traits as type arguments by fully allowing variance on datatypes in Java (https://github.com/dafny-lang/dafny/pull/3072)
+
+## Bug fixes
+
+- Function by method with the same name as a method won't crash resolver (https://github.com/dafny-lang/dafny/pull/2019)
+
+- Better reporting if 'this' used in a subset type - and no crash (https://github.com/dafny-lang/dafny/pull/2068)
+
+- Support for aliases in module resolution without crashing on imports (https://github.com/dafny-lang/dafny/pull/2108)
+
+- Added missing check to prevent crash during resolution (https://github.com/dafny-lang/dafny/pull/2111)
+
+- No more resolver crash on pattern match with incompatible types (https://github.com/dafny-lang/dafny/pull/2139)
+
+- Refinements get errors at the correct place in LSP (https://github.com/dafny-lang/dafny/pull/2402)
+
+- Resolution errors in the left-hand sign of an assign-such-that statement do not crash Dafny anymore (https://github.com/dafny-lang/dafny/pull/2496)
+
+- old() cannot be inferred as a trigger alone (https://github.com/dafny-lang/dafny/pull/2593)
+
+- Labels are no longer compiled in the case of variable declarations (https://github.com/dafny-lang/dafny/pull/2608)
+
+- No more mention of reveal lemmas when implementing opaque functions in traits (https://github.com/dafny-lang/dafny/pull/2612)
+
+- Verification of abstract modules not duplicated when imported (https://github.com/dafny-lang/dafny/pull/2703)
+
+- Dafny now compiles functions that mix tail- and non-tail-recursive calls without crashing (https://github.com/dafny-lang/dafny/pull/2726)
+
+- substitution of binding guards does not crash if splits present (https://github.com/dafny-lang/dafny/pull/2748)
+
+- No more crash when constraining type synonyms (https://github.com/dafny-lang/dafny/pull/2829)
+
+- Returning a tuple when it should be two variables does not crash Dafny anymore (https://github.com/dafny-lang/dafny/pull/2878)
+
+- Default generic values no longer cause compilation error (https://github.com/dafny-lang/dafny/pull/2885)
+
+- Now publishing Dafny Binary for MacOS Arm64 architecture (https://github.com/dafny-lang/dafny/pull/2889)
+
+- Added a missing case in the Translator (pattern matching for variable declarations) (https://github.com/dafny-lang/dafny/pull/2920)
+
+- The Python and Go backends now encode non-ASCII characters in string literals correctly (https://github.com/dafny-lang/dafny/pull/2926)
+
+- Added a missing case of TypeSynonymDecl in the resolver that caused a crash (https://github.com/dafny-lang/dafny/pull/2927)
+
+- Fix malformed Boogie generated for extreme predicates (https://github.com/dafny-lang/dafny/pull/2984)
+
+- Counter-examples with non-integer sequence indices do not crash Dafny anymore. (https://github.com/dafny-lang/dafny/pull/3048)
+
+- Use correct type for map update expression (https://github.com/dafny-lang/dafny/pull/3059)
+
+- Language server no longer crashing in special case (https://github.com/dafny-lang/dafny/pull/3062)
+
+- Resolved an instance in which the Dafny language server could enter a broken state. (https://github.com/dafny-lang/dafny/pull/3065)
+
+- Do not refer to an implicit assignment in error messages on return statements (https://github.com/dafny-lang/dafny/pull/3125)
+
+- Multiple exact same failing assertions do not crash the Boogie counter-example engine anymore (https://github.com/dafny-lang/dafny/pull/3136)
+
+- Duplicate declarations caused by resolver do not crash the language server anymore (https://github.com/dafny-lang/dafny/pull/3155)
+
+# 3.9.1
+
+## New features
+
+- The language server now supports all versions of z3 ≥ 4.8.5.  Dafny is still distributed with z3 4.8.5 and uses that version by default. (https://github.com/dafny-lang/dafny/pull/2820)
+
+## Bug fixes
+
+- Correct error highlighting on function called with default arguments (https://github.com/dafny-lang/dafny/pull/2826)
+
+- Crash in the LSP in some code that does not parse (https://github.com/dafny-lang/dafny/pull/2833)
+
+- A function used as a value in a non-ghost context must not have ghost parameters, and arrow types cannot have ghost parameters. (https://github.com/dafny-lang/dafny/pull/2847)
+
+- Compiled lambdas now close only on non-ghost variables (https://github.com/dafny-lang/dafny/pull/2854)
+
+- Previously, for a file printing the number of arguments, `dafny printing.dfy -compileTarget:js --args 1 2 3` would print 4: one for the executable, one for each argument.
+  But `dafny -compile:2 -compileTarget:js printing.dfy; node ./printing.js` would print 5: One for `node`, one for `./printing.js`, and one for each argument.
+  This fix ensures that `node ./printing.js` is considered as a single argument, and the first argument, to be consistent with every other language.
+  (https://github.com/dafny-lang/dafny/pull/2876)
+
+- Handle sequence-to-string equality correctly in the JavaScript runtime (https://github.com/dafny-lang/dafny/pull/2877)
+
+- don't crash on type synonyms and subset types of array types in LHSs of simultaneous assignments (https://github.com/dafny-lang/dafny/pull/2884)
+
+- Removed an bogus optimization on the Language Server (https://github.com/dafny-lang/dafny/pull/2890)
+
+- The Dafny-to-Java compiler will now fully-qualify type casts in pattern destructors, avoiding "reference to TYPE is ambiguous" errors from javac. (https://github.com/dafny-lang/dafny/pull/2904)
+
+- Variable declarations and formals in match cases do not trigger errors anymore. (https://github.com/dafny-lang/dafny/pull/2910)
+
+# 3.9.0
+
+- feat: Introduce a new Dafny CLI UI that complies with the POSIX standard and uses verbs to distinguish between use-cases. Run the Dafny CLI without arguments to view help for this new UI. (https://github.com/dafny-lang/dafny/pull/2823)
+- feat: Support for testing certain contracts at runtime with a new `/testContracts` flag (https://github.com/dafny-lang/dafny/pull/2712)
+- feat: Support for parsing Basic Multilingual Plane characters from UTF-8 in code and comments (https://github.com/dafny-lang/dafny/pull/2717)
+- feat: Command-line arguments are now available from `Main` in Dafny programs, using `Main(args: seq<string>)` (https://github.com/dafny-lang/dafny/pull/2594)
+- feat: Generate warning when 'old' has no effect (https://github.com/dafny-lang/dafny/pull/2610)
+- fix: Missing related position in failing precondition (https://github.com/dafny-lang/dafny/pull/2658)
+- fix: No more IDE crashing on the elephant operator (https://github.com/dafny-lang/dafny/pull/2668)
+- fix: Use the right comparison operators for bitvectors in Javascript (https://github.com/dafny-lang/dafny/pull/2716)
+- fix: Retain non-method-body block statements when cloning abstract signatures (https://github.com/dafny-lang/dafny/pull/2731)
+- fix: Correctly substitute variables introduced by a binding guard (https://github.com/dafny-lang/dafny/pull/2745)
+- fix: The CLI no longer attempts to load each DLL file passed to it. (https://github.com/dafny-lang/dafny/pull/2568)
+- fix: Improved hints and error messages regarding variance/cardinality preservation (https://github.com/dafny-lang/dafny/pull/2774)
+- feat: New behavior for `import opened M` where `M` contains a top-level declaration `M`, see PR for a full description (https://github.com/dafny-lang/dafny/pull/2355)
+- fix: The DafnyServer package is now published to NuGet as well, which fixes the previously-broken version of the DafnyLanguageServer package. (https://github.com/dafny-lang/dafny/pull/2787)
+- fix: Support for spaces in the path to Z3 (https://github.com/dafny-lang/dafny/pull/2812)
+- deprecate: Statement-level refinement syntax (e.g. `assert ...`) is deprecated (https://github.com/dafny-lang/dafny/pull/2756)
+- deprecate: The form of the modify statement with a block statement is deprecated
+- docs: The user documentation at https://dafny.org has a new landing page
+
+# 3.8.1
+
+- feat: Support for the `{:opaque}` attibute on `const` (https://github.com/dafny-lang/dafny/pull/2545)
+- feat: Support for plugin-based code actions on the IDE (https://github.com/dafny-lang/dafny/pull/2021)
+- fix: Fixed a crash when parsing `newtype` in the parser (https://github.com/dafny-lang/dafny/pull/2649)
+- fix: Added missing error reporting position on string prefix check (https://github.com/dafny-lang/dafny/pull/2652)
+- fix: Prevent LSP server from exiting when a crash occurs (https://github.com/dafny-lang/dafny/pull/2664)
+- fix: Fix bug where LSP server would not show diagnostics that referred to included files (https://github.com/dafny-lang/dafny/pull/2664)
+- fix: Check all compiled expressions to be compilable (https://github.com/dafny-lang/dafny/pull/2641)
+- fix: Better messages on hovering failing postconditions in IDE (https://github.com/dafny-lang/dafny/pull/2654)
+- fix: Better error reporting on counter-examples if an option is not provided (https://github.com/dafny-lang/dafny/pull/2650)
+- feat: Introduced ghost constructors in datatypes. One use of these is when working with uninitialized storage, see https://github.com/dafny-lang/rfcs/pull/11. (https://github.com/dafny-lang/dafny/pull/2666)
+
+
 # 3.8.0
 
 - fix: Use the right bitvector comparison in decrease checks
@@ -28,6 +175,7 @@
 - feat: Whitespaces and comments are kept in relevant parts of the AST (https://github.com/dafny-lang/dafny/pull/1801)
 - fix: NuGet packages no longer depend on specific patch releases of the .NET frameworks.
 
+
 # 3.7.2
 
 - fix: Hovering over variables and methods inside cases of nested match statements work again. (https://github.com/dafny-lang/dafny/pull/2334)
@@ -39,15 +187,17 @@
 - fix: Correctly infer type of numeric arguments, where the type is a subset type of a newtype. (https://github.com/dafny-lang/dafny/pull/2314)
 - fix: Fix concurrency bug that sometimes led to an exception during the production of verification logs. (https://github.com/dafny-lang/dafny/pull/2398)
 
+
 # 3.7.1
 
 - fix: The Dafny runtime library for C# is now compatible with .NET Standard 2.1, as it was before 3.7.0. Its version has been updated to 1.2.0 to reflect this. (https://github.com/dafny-lang/dafny/pull/2277)
 - fix: Methods produced by the test generation code can now be compiled directly to C# XUnit tests (https://github.com/dafny-lang/dafny/pull/2269)
 
+
 # 3.7.0
 
 - feat: The Dafny CLI, Dafny as a library, and the C# runtime are now available on NuGet. You can install the CLI with `dotnet tool install --global Dafny`. The library is available as `DafnyPipeline` and the runtime is available as `DafnyRuntime`. (https://github.com/dafny-lang/dafny/pull/2051)
-- feat: New syntax for quantified variables, allowing per-variable domains (`x <- C`) and ranges (`x | P(x), y | Q(x, y)`). See [the quantifier domain section](https://dafny.org/dafny/DafnyRef/DafnyRef#sec-quantifier-domains) of the Reference Manual. (https://github.com/dafny-lang/dafny/pull/2195)
+- feat: New syntax for quantified variables, allowing per-variable domains (`x <- C`) and ranges (`x | P(x), y | Q(x, y)`). See [the quantifier domain section](https://dafny.org/latest/DafnyRef/DafnyRef#sec-quantifier-domains) of the Reference Manual. (https://github.com/dafny-lang/dafny/pull/2195)
 - feat: The IDE will show verification errors for a method immediately after that method has been verified, instead of after all methods are verified. (https://github.com/dafny-lang/dafny/pull/2142)
 - feat: Added "Resolving..." message for IDE extensions (https://github.com/dafny-lang/dafny/pull/2234)
 - feat: Live verification diagnostics for the language server (https://github.com/dafny-lang/dafny/pull/1942)
@@ -56,6 +206,7 @@
 - fix: No more display of previous obsolete verification diagnostics if newer are available (https://github.com/dafny-lang/dafny/pull/2142)
 - fix: Prevent the language server from crashing and not responding on resolution or ghost diagnostics errors (https://github.com/dafny-lang/dafny/pull/2080)
 - fix: Various improvements to language server robustness (https://github.com/dafny-lang/dafny/pull/2254)
+
 
 # 3.6.0
 

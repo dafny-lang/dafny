@@ -216,3 +216,57 @@ true
 true
 1 1
 1 1
+
+Dafny program verifier did not attempt verification
+Sequences: [] [17, 82, 17, 82] [12, 17]
+  cardinality: 0 4 2
+  update: [42, 82, 17, 82] [42, 17]
+  index: 17 12
+  subsequence ([lo..hi]): [82, 17] [17]
+  subsequence ([lo..]): [82, 17, 82] [17]
+  subsequence ([..hi]): [17, 82, 17] [12, 17]
+  subsequence ([..]): [] [17, 82, 17, 82] [12, 17]
+  concatenation: [17, 82, 17, 82] [17, 82, 17, 82, 12, 17]
+  prefix: true false true
+  proper prefix: true false false
+  membership: false true true
+Sets: {} {17, 82} {12, 17}
+  cardinality: 0 2 2
+  comprehension: {82}
+  union: {17, 82} {12, 17, 82}
+  intersection: {} {17}
+  difference: {} {82}
+  subset: true false true
+  proper subset: true false false
+  membership: false true true
+Multisets: {} {17, 17, 82, 82} {12, 17}
+  cardinality: 0 4 2
+  update: {17, 17, 42, 42, 42} {12, 17, 42}
+  multiplicity: 2 0 20
+  union: {17, 17, 82, 82} {12, 17, 17, 17, 82, 82}
+  intersection: {} {17, 82, 82}
+  difference: {} {17, 82, 82}
+  subset: true false true
+  proper subset: true false false
+  membership: false true true
+Maps: {} {12 := 17, 17 := 82, 82 := 17} {12 := 17, 17 := 17}
+  cardinality: 0 3 2
+  update: {12 := 17, 17 := 82, 42 := 17, 82 := 17} {12 := 42, 17 := 17}
+  comprehension: {17 := 12, 82 := 12}
+  Keys: {12, 17, 82}
+  Values: {17, 82}
+  eq: false true true
+  eq: true true true true true true
+  eq: true true true true true true
+  eq: true false true false true false
+  eq: true false true false true false
+  eq: true true true true true true
+  eq: true true true true true true
+set: {20, 30}
+multiset: {20, 30}
+seq: [20, 30]
+map: {20 := 30, 30 := 20}
+true
+true
+1 1
+1 1

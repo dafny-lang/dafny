@@ -1,0 +1,2 @@
+text.dfy(1,20): Error: literal (11) is too large for the bitvector type bv3
+1 resolution/type errors detected in text.dfy

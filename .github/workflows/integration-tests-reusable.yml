@@ -24,15 +24,15 @@ jobs:
       - name: Populate OS list (all platforms)
         id: populate-os-list-all
         if: inputs.all_platforms
-        run: echo "::set-output name=os-list::[\"ubuntu-latest\", \"ubuntu-18.04\", \"macos-latest\", \"windows-2019\"]"
+        run: echo "::set-output name=os-list::[\"ubuntu-latest\", \"ubuntu-20.04\", \"macos-latest\", \"windows-2019\"]"
       - name: Populate OS list (one platform)
         id: populate-os-list-one
         if: "!inputs.all_platforms"
-        run: echo "::set-output name=os-list::[\"ubuntu-18.04\"]"
+        run: echo "::set-output name=os-list::[\"ubuntu-20.04\"]"
       - name: Populate OS mapping for package.py
         id: populate-os-mapping
         run: |
-          echo "::set-output name=os-mapping::{\"ubuntu-latest\": \"ubuntu\", \"ubuntu-18.04\": \"ubuntu\", \"macos-latest\": \"osx\", \"windows-2019\": \"win\"}"
+          echo "::set-output name=os-mapping::{\"ubuntu-latest\": \"ubuntu\", \"ubuntu-20.04\": \"ubuntu\", \"macos-latest\": \"osx\", \"windows-2019\": \"win\"}"
       - name: Populate target runtime version list (all platforms)
         id: populate-target-runtime-version-all
         if: inputs.all_platforms
@@ -66,12 +66,12 @@ jobs:
       uses: actions/setup-dotnet@v1.9.0
       with:
         dotnet-version: ${{ env.dotnet-version }}
-    - name: C++ for ubuntu 18.04
-      if: matrix.os == 'ubuntu-18.04'
+    - name: C++ for ubuntu 20.04
+      if: matrix.os == 'ubuntu-20.04'
       run: |
         sudo apt-get install -y build-essential
-    - name: Choose the right C++ for ubuntu 18.04
-      if: matrix.os == 'ubuntu-18.04'
+    - name: Choose the right C++ for ubuntu 20.04
+      if: matrix.os == 'ubuntu-20.04'
       run: |
         sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 60
     - uses: actions/setup-python@v1
@@ -114,7 +114,7 @@ jobs:
         XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
         DAFNY_RELEASE: ${{ github.workspace }}\unzippedRelease\dafny
       run: |
-        dotnet test -v:n --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj
+        dotnet test --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj
     - name: Run integration tests
       if: runner.os != 'Windows'
       env:
@@ -122,7 +122,7 @@ jobs:
         XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
         DAFNY_RELEASE: ${{ github.workspace }}/unzippedRelease/dafny
       run: |
-        dotnet test -v:n --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj
+        dotnet test --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj
     - uses: actions/upload-artifact@v2
       if: always()
       with:

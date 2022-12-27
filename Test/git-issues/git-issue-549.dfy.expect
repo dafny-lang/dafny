@@ -1,4 +1,10 @@
 
 Dafny program verifier finished with 2 verified, 0 errors
+
+Dafny program verifier did not attempt verification
+bar() = 1
+bar() = 1
+
+Dafny program verifier did not attempt verification
 bar() = 1
 bar() = 1

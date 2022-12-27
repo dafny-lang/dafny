@@ -30,10 +30,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
         DocumentUri uri,
         int version,
         VerificationTree[] verificationTrees,
-        Container<Diagnostic> diagnostics,
+        Container<Diagnostic> resolutionErrors,
         int linesCount,
         bool verificationStarted) {
-      var perLineStatus = RenderPerLineDiagnostics(uri, verificationTrees, linesCount, verificationStarted, diagnostics);
+      var perLineStatus = RenderPerLineDiagnostics(uri, verificationTrees, linesCount, verificationStarted, resolutionErrors);
       return new VerificationStatusGutter(uri, version, perLineStatus);
     }
 
@@ -322,7 +322,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       // Ensure that if this is an ImplementationVerificationTree, and children "painted" verified,
       // and this node is still pending
       // at least the first line should show pending.
-      if (range.Start.Line >= 0 && range.End.Line - range.Start.Line + 1 < perLineDiagnostics.Length) {
+      if (range.Start.Line >= 0 && range.End.Line < perLineDiagnostics.Length) {
         if (StatusCurrent == CurrentStatus.Verifying &&
             perLineDiagnostics.ToList().GetRange(range.Start.Line, range.End.Line - range.Start.Line + 1).All(
               line => line == LineVerificationStatus.Verified)) {
@@ -357,10 +357,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
   }
 
   public record DocumentVerificationTree(
-    string Identifier,
-    int Lines
-  ) : VerificationTree("Document", Identifier, Identifier, Identifier,
-    LinesToRange(Lines), new Position(0, 0)) {
+    DocumentTextBuffer TextDocumentItem
+  ) : VerificationTree("Document", TextDocumentItem.Uri.ToString(), TextDocumentItem.Uri.ToString(), TextDocumentItem.Uri.ToString(),
+    LinesToRange(TextDocumentItem.NumberOfLines), new Position(0, 0)) {
 
     public static Range LinesToRange(int lines) {
       return new Range(new Position(0, 0),

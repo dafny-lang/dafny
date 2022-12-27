@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" > "%t" || true
+// RUN: ! %testDafnyForEachCompiler "%s" > "%t"
 // RUN: %diff "%s.testdafny.expect" "%t"
 
 // A %testdafny test case expected to fail, since at the time of

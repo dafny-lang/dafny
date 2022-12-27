@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using DafnyServer.CounterexampleGeneration;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
+using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 using MapType = Microsoft.Dafny.MapType;
 using Type = Microsoft.Dafny.Type;
 

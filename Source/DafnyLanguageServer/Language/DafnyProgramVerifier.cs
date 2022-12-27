@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.Workspace;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
@@ -24,33 +25,24 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     public DafnyProgramVerifier(
       ILogger<DafnyProgramVerifier> logger,
-      IOptions<VerifierOptions> options
+      DafnyOptions options
       ) {
-      var engineOptions = DafnyOptions.O;
-      engineOptions.VcsCores = GetConfiguredCoreCount(options.Value);
-      engineOptions.TimeLimit = options.Value.TimeLimit;
-      engineOptions.VerifySnapshots = (int)options.Value.VerifySnapshots;
       // TODO This may be subject to change. See Microsoft.Boogie.Counterexample
       //      A dash means write to the textwriter instead of a file.
       // https://github.com/boogie-org/boogie/blob/b03dd2e4d5170757006eef94cbb07739ba50dddb/Source/VCGeneration/Couterexample.cs#L217
-      engineOptions.ModelViewFile = "-";
-      BatchObserver = new AssertionBatchCompletedObserver(logger, options.Value.GutterStatus);
+      options.ModelViewFile = "-";
+      BatchObserver = new AssertionBatchCompletedObserver(logger, true);
 
-      engineOptions.Printer = BatchObserver;
-      engine = new ExecutionEngine(engineOptions, cache);
-    }
-
-    private static int GetConfiguredCoreCount(VerifierOptions options) {
-      return options.VcsCores == 0
-        ? Math.Max(1, Environment.ProcessorCount / 2)
-        : Convert.ToInt32(options.VcsCores);
+      options.Printer = BatchObserver;
+      engine = new ExecutionEngine(options, cache);
     }
 
     private const int TranslatorMaxStackSize = 0x10000000; // 256MB
     static readonly ThreadTaskScheduler TranslatorScheduler = new(TranslatorMaxStackSize);
     public AssertionBatchCompletedObserver BatchObserver { get; }
 
-    public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(DafnyDocument document, CancellationToken cancellationToken) {
+    public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(DocumentAfterResolution document,
+      CancellationToken cancellationToken) {
       var program = document.Program;
       var errorReporter = (DiagnosticErrorReporter)program.Reporter;
 
@@ -63,17 +55,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
       cancellationToken.ThrowIfCancellationRequested();
 
-      var tasks = translated.SelectMany(t => {
+      return translated.SelectMany(t => {
         var (_, boogieProgram) = t;
         var results = engine.GetImplementationTasks(boogieProgram);
         return results;
-      });
-      return tasks.
-        OrderBy(t => t.Implementation.Priority).
-        CreateOrderedEnumerable(
-          t => document.LastTouchedVerifiables.IndexOf(t.Implementation.tok.GetLspPosition()),
-          null, true).
-        ToList();
+      }).ToList();
     }
 
     public IObservable<AssertionBatchResult> BatchCompletions => BatchObserver.CompletedBatches;

@@ -6,6 +6,11 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <!-- Turn off the Async suffix warning in testing code -->
+    <NoWarn>VSTHRD200</NoWarn>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="DiffPlex" Version="1.7.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.8.3" />

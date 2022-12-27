@@ -1,14 +1,44 @@
+ClassRefinement.dfy(73,9): Warning: the ... refinement feature in statements is deprecated
+ClassRefinement.dfy(74,13): Warning: the ... refinement feature in statements is deprecated
+ClassRefinement.dfy(79,9): Warning: the ... refinement feature in statements is deprecated
+ClassRefinement.dfy(80,13): Warning: the ... refinement feature in statements is deprecated
+ClassRefinement.dfy(82,6): Warning: the modify statement with a block statement is deprecated
+ClassRefinement.dfy(83,13): Warning: the ... refinement feature in statements is deprecated
 
 Dafny program verifier finished with 11 verified, 0 errors
+ClassRefinement.dfy(73,9): Warning: the ... refinement feature in statements is deprecated
+ClassRefinement.dfy(74,13): Warning: the ... refinement feature in statements is deprecated
+ClassRefinement.dfy(79,9): Warning: the ... refinement feature in statements is deprecated
+ClassRefinement.dfy(80,13): Warning: the ... refinement feature in statements is deprecated
+ClassRefinement.dfy(82,6): Warning: the modify statement with a block statement is deprecated
+ClassRefinement.dfy(83,13): Warning: the ... refinement feature in statements is deprecated
 
 Dafny program verifier did not attempt verification
 2 1
+ClassRefinement.dfy(73,9): Warning: the ... refinement feature in statements is deprecated
+ClassRefinement.dfy(74,13): Warning: the ... refinement feature in statements is deprecated
+ClassRefinement.dfy(79,9): Warning: the ... refinement feature in statements is deprecated
+ClassRefinement.dfy(80,13): Warning: the ... refinement feature in statements is deprecated
+ClassRefinement.dfy(82,6): Warning: the modify statement with a block statement is deprecated
+ClassRefinement.dfy(83,13): Warning: the ... refinement feature in statements is deprecated
 
 Dafny program verifier did not attempt verification
 2 1
+ClassRefinement.dfy(73,9): Warning: the ... refinement feature in statements is deprecated
+ClassRefinement.dfy(74,13): Warning: the ... refinement feature in statements is deprecated
+ClassRefinement.dfy(79,9): Warning: the ... refinement feature in statements is deprecated
+ClassRefinement.dfy(80,13): Warning: the ... refinement feature in statements is deprecated
+ClassRefinement.dfy(82,6): Warning: the modify statement with a block statement is deprecated
+ClassRefinement.dfy(83,13): Warning: the ... refinement feature in statements is deprecated
 
 Dafny program verifier did not attempt verification
 2 1
+ClassRefinement.dfy(73,9): Warning: the ... refinement feature in statements is deprecated
+ClassRefinement.dfy(74,13): Warning: the ... refinement feature in statements is deprecated
+ClassRefinement.dfy(79,9): Warning: the ... refinement feature in statements is deprecated
+ClassRefinement.dfy(80,13): Warning: the ... refinement feature in statements is deprecated
+ClassRefinement.dfy(82,6): Warning: the modify statement with a block statement is deprecated
+ClassRefinement.dfy(83,13): Warning: the ... refinement feature in statements is deprecated
 
 Dafny program verifier did not attempt verification
 2 1

@@ -1,4 +1,5 @@
 ﻿using System.Threading;
+using Microsoft.Dafny.LanguageServer.Workspace;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// <summary>
@@ -14,6 +15,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// <returns>A symbol table representing the provided compilation unit.</returns>
     /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
-    SymbolTable CreateFrom(Microsoft.Dafny.Program program, CompilationUnit compilationUnit, CancellationToken cancellationToken);
+    SignatureAndCompletionTable CreateFrom(Microsoft.Dafny.Program program, CompilationUnit compilationUnit, CancellationToken cancellationToken);
+    SymbolTable CreateFrom(Dafny.Program program, Document document, CancellationToken cancellationToken);
   }
 }

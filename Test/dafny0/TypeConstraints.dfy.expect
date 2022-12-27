@@ -26,9 +26,9 @@ TypeConstraints.dfy(457,8): Error: RHS (of type array<nat>) not assignable to LH
 module _System {
   /* CALL GRAPH for module _System:
    * SCC at height 1:
-   *   RotateRight
-   * SCC at height 1:
    *   RotateLeft
+   * SCC at height 1:
+   *   RotateRight
    * SCC at height 0:
    *   nat
    */
@@ -142,16 +142,14 @@ module _System {
 
 module Tests {
   /* CALL GRAPH for module Tests:
-   * SCC at height 2:
+   * SCC at height 1:
    *   CC.M
-   * SCC at height 1:
-   *   ChainOfAssignments
-   * SCC at height 1:
-   *   CC.N
-   * SCC at height 1:
+   * SCC at height 0:
    *   CC.F
    * SCC at height 0:
-   *   nat
+   *   CC.N
+   * SCC at height 0:
+   *   ChainOfAssignments
    */
   class CC {
     var f: nat
@@ -193,10 +191,6 @@ module Tests {
 
 module HereAreErrors {
   /* CALL GRAPH for module HereAreErrors:
-   * SCC at height 1:
-   *   Literals
-   * SCC at height 0:
-   *   MyInt
    */
   newtype MyInt = x: int
     | true
@@ -273,10 +267,6 @@ module PlusTests {
 
 module PlusTests' {
   /* CALL GRAPH for module PlusTests':
-   * SCC at height 1:
-   *   Plus5
-   * SCC at height 0:
-   *   MyInt
    */
   newtype MyInt = x: int
     | true
@@ -320,12 +310,6 @@ module PlusTests' {
 
 module MorePlusTests {
   /* CALL GRAPH for module MorePlusTests:
-   * SCC at height 1:
-   *   Plusses
-   * SCC at height 0:
-   *   C
-   * SCC at height 0:
-   *   MyInt
    */
   newtype MyInt = x: int
     | true
@@ -358,24 +342,6 @@ module MorePlusTests {
 
 module References {
   /* CALL GRAPH for module References:
-   * SCC at height 1:
-   *   M3
-   * SCC at height 1:
-   *   M2
-   * SCC at height 1:
-   *   M1
-   * SCC at height 1:
-   *   M0
-   * SCC at height 0:
-   *   M
-   * SCC at height 0:
-   *   K
-   * SCC at height 0:
-   *   object
-   * SCC at height 0:
-   *   R
-   * SCC at height 0:
-   *   C
    */
   class C extends K, M { }
   /*-- non-null type
@@ -432,13 +398,11 @@ module SimpleClassesAndTraits {
    * SCC at height 1:
    *   Infer
    * SCC at height 0:
+   *   C
+   * SCC at height 0:
    *   D
    * SCC at height 0:
    *   K
-   * SCC at height 0:
-   *   object
-   * SCC at height 0:
-   *   C
    */
   class C extends K, M { }
   /*-- non-null type
@@ -529,13 +493,13 @@ module TypeParameters {
 module Datatypes {
   /* CALL GRAPH for module Datatypes:
    * SCC at height 1:
+   *   M
+   * SCC at height 1:
    *   P
    * SCC at height 0:
-   *   Record
-   * SCC at height 1:
-   *   M
-   * SCC at height 0:
    *   Color
+   * SCC at height 0:
+   *   Record
    */
   datatype Color = Red | Green | Blue
 
@@ -571,11 +535,11 @@ module TraitStuff {
    * SCC at height 1:
    *   Aggregate._ctor
    * SCC at height 0:
-   *   PartZ
+   *   PartX
    * SCC at height 0:
    *   PartY
    * SCC at height 0:
-   *   PartX
+   *   PartZ
    */
   trait Part {
     var id: int
@@ -628,34 +592,30 @@ module TraitStuff {
 
 module OtherTraitsAndClasses {
   /* CALL GRAPH for module OtherTraitsAndClasses:
-   * SCC at height 0:
-   *   Q0
-   * SCC at height 0:
-   *   Basics
+   * SCC at height 1:
+   *   Displays
+   * SCC at height 1:
+   *   G
    * SCC at height 1:
    *   Q1
    * SCC at height 0:
-   *   MyClass
-   * SCC at height 1:
-   *   M
+   *   Basics
    * SCC at height 0:
-   *   nat
-   * SCC at height 1:
-   *   G
-   * SCC at height 0:
-   *   object
-   * SCC at height 1:
-   *   Displays
-   * SCC at height 0:
-   *   K
-   * SCC at height 0:
-   *   J
-   * SCC at height 0:
-   *   E
+   *   C
    * SCC at height 0:
    *   D
    * SCC at height 0:
-   *   C
+   *   E
+   * SCC at height 0:
+   *   J
+   * SCC at height 0:
+   *   K
+   * SCC at height 0:
+   *   M
+   * SCC at height 0:
+   *   MyClass
+   * SCC at height 0:
+   *   Q0
    */
   trait J { }
   /*-- non-null type
@@ -734,14 +694,14 @@ module OtherTraitsAndClasses {
 
 module LetPatterns {
   /* CALL GRAPH for module LetPatterns:
-   * SCC at height 0:
-   *   Q
-   * SCC at height 0:
-   *   P
    * SCC at height 1:
    *   M
    * SCC at height 0:
    *   MyDt
+   * SCC at height 0:
+   *   P
+   * SCC at height 0:
+   *   Q
    */
   datatype MyDt = AAA(x: int) | BBB(y: int)
 
@@ -769,12 +729,6 @@ module LetPatterns {
 
 module Arrays_and_SubsetTypes {
   /* CALL GRAPH for module Arrays_and_SubsetTypes:
-   * SCC at height 1:
-   *   M
-   * SCC at height 0:
-   *   array
-   * SCC at height 0:
-   *   nat
    */
   method M()
   {
@@ -803,12 +757,6 @@ module Arrays_and_SubsetTypes {
 
 module Arrays_and_SubsetTypesOK {
   /* CALL GRAPH for module Arrays_and_SubsetTypesOK:
-   * SCC at height 1:
-   *   M
-   * SCC at height 0:
-   *   array
-   * SCC at height 0:
-   *   nat
    */
   method M()
   {
@@ -839,10 +787,10 @@ module TypeArgumentPrintTests {
   /* CALL GRAPH for module TypeArgumentPrintTests:
    * SCC at height 1:
    *   B.H
-   * SCC at height 0:
-   *   A.F
    * SCC at height 1:
    *   Cl.M
+   * SCC at height 0:
+   *   A.F
    * SCC at height 0:
    *   Tr
    */
@@ -888,10 +836,10 @@ module TypeArgumentPrintTests {
 
 module PrettyPrintingBindingPowers {
   /* CALL GRAPH for module PrettyPrintingBindingPowers:
-   * SCC at height 0:
-   *   M
    * SCC at height 1:
    *   P
+   * SCC at height 0:
+   *   M
    * SCC at height 0:
    *   MyInt
    */
@@ -925,7 +873,7 @@ module PrettyPrintingBindingPowers {
 
 module SameSCC {
   /* CALL GRAPH for module SameSCC:
-   * SCC at height 1:
+   * SCC at height 0:
    *   G6
    *   G5
    *   G4
@@ -933,10 +881,6 @@ module SameSCC {
    *   G2
    *   G1
    *   G0
-   * SCC at height 0:
-   *   _tuple#2
-   * SCC at height 0:
-   *   array
    */
   type G0 = G1
 

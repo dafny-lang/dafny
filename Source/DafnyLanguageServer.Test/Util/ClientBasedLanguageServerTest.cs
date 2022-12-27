@@ -31,7 +31,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
   protected ILanguageClient client;
   protected TestNotificationReceiver<FileVerificationStatus> verificationStatusReceiver;
-  private IDictionary<string, string> configuration;
   protected DiagnosticsReceiver diagnosticsReceiver;
   protected TestNotificationReceiver<GhostDiagnosticsParams> ghostnessReceiver;
 
@@ -59,7 +58,9 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
 
   public async Task<Diagnostic[]> GetLastDiagnostics(TextDocumentItem documentItem, CancellationToken cancellationToken) {
     await client.WaitForNotificationCompletionAsync(documentItem.Uri, cancellationToken);
-    var document = await Documents.GetLastDocumentAsync(documentItem);
+    var document = (await Documents.GetLastDocumentAsync(documentItem))!;
+    Assert.IsNotNull(document, "Could not find document {0}", documentItem.Uri);
+    Assert.AreEqual(documentItem.Version, document.Version, "GetLastDocumentAsync version was: " + document.Version);
     Diagnostic[] result;
     do {
       result = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(cancellationToken);
@@ -68,25 +69,16 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
     return result;
   }
 
-  public async Task SetUp(IDictionary<string, string> configuration) {
-    this.configuration = configuration;
-    await SetUp();
-  }
-
-  protected override IConfiguration CreateConfiguration() {
-    return configuration == null
-      ? base.CreateConfiguration()
-      : new ConfigurationBuilder().AddInMemoryCollection(configuration).Build();
-  }
-
   [TestInitialize]
-  public virtual async Task SetUp() {
+  public async Task SetUp() {
+    await SetUp(null);
+  }
+
+  public virtual async Task SetUp(Action<DafnyOptions> modifyOptions) {
     diagnosticsReceiver = new();
     verificationStatusReceiver = new();
     ghostnessReceiver = new();
-    client = await InitializeClient(InitialiseClientHandler, serverOptions => {
-      ServerOptionsAction(serverOptions);
-    });
+    client = await InitializeClient(InitialiseClientHandler, modifyOptions);
   }
 
   protected virtual void InitialiseClientHandler(LanguageClientOptions options) {
@@ -95,13 +87,6 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
       NotificationHandler.For<GhostDiagnosticsParams>(ghostnessReceiver.NotificationReceived));
     options.AddHandler(DafnyRequestNames.VerificationSymbolStatus,
       NotificationHandler.For<FileVerificationStatus>(verificationStatusReceiver.NotificationReceived));
-  }
-
-  protected virtual IServiceCollection ServerOptionsAction(LanguageServerOptions serverOptions) {
-    return serverOptions.Services.AddSingleton<IProgramVerifier>(serviceProvider => new SlowVerifier(
-      serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>(),
-      serviceProvider.GetRequiredService<IOptions<VerifierOptions>>()
-    ));
   }
 
   protected void ApplyChange(ref TextDocumentItem documentItem, Range range, string text) {
@@ -123,7 +108,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
   public async Task AssertNoVerificationStatusIsComing(TextDocumentItem documentItem, CancellationToken cancellationToken) {
     foreach (var entry in Documents.Documents) {
       try {
-        await entry.LastDocument;
+        await entry.GetLastDocumentAsync();
       } catch (TaskCanceledException) {
 
       }
@@ -140,7 +125,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
   public async Task AssertNoGhostnessIsComing(CancellationToken cancellationToken) {
     foreach (var entry in Documents.Documents) {
       try {
-        await entry.LastDocument;
+        await entry.GetLastDocumentAsync();
       } catch (TaskCanceledException) {
 
       }
@@ -162,12 +147,12 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
   public async Task AssertNoDiagnosticsAreComing(CancellationToken cancellationToken) {
     foreach (var entry in Documents.Documents) {
       try {
-        await entry.LastDocument;
+        await entry.GetLastDocumentAsync();
       } catch (TaskCanceledException) {
 
       }
     }
-    var verificationDocumentItem = CreateTestDocument("class X {does not parse", $"verification{fileIndex++}.dfy");
+    var verificationDocumentItem = CreateTestDocument("class X {does not parse", $"AssertNoDiagnosticsAreComing{fileIndex++}.dfy");
     await client.OpenDocumentAndWaitAsync(verificationDocumentItem, CancellationToken.None);
     var resolutionReport = await diagnosticsReceiver.AwaitNextNotificationAsync(cancellationToken);
     Assert.AreEqual(verificationDocumentItem.Uri, resolutionReport.Uri,
@@ -185,5 +170,12 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
   protected async Task AssertNoResolutionErrors(TextDocumentItem documentItem) {
     var resolutionDiagnostics = (await Documents.GetResolvedDocumentAsync(documentItem))!.Diagnostics;
     Assert.AreEqual(0, resolutionDiagnostics.Count(d => d.Severity == DiagnosticSeverity.Error));
+  }
+
+  public async Task<PublishedVerificationStatus> PopNextStatus() {
+    var nextNotification = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    Assert.IsNotNull(nextNotification);
+    Assert.AreEqual(1, nextNotification.NamedVerifiables.Count);
+    return nextNotification.NamedVerifiables.Single().Status;
   }
 }

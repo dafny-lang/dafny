@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 2 %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // ---------------------- chaining operators -----------------------------------
@@ -260,3 +260,19 @@ module Older {
   function method C(a: A, ghost older older b: B, nameonly ghost older nameonly ghost c: C := "hello"): int
   twostate lemma L(nameonly older nameonly c: C := "hello") // error: 'older' is an identifier here
 }
+
+// ---------------------- ghost arguments of arrow types -----------------------------------
+
+module ArrowTypes {
+  const f: (ghost int, int) -> int // error: arrow-type arguments are not allowed to be ghost
+
+  method M() {
+    var g: (real, (ghost int, int), bool) -> int;
+    var h: ((ghost int, int)) -> int;
+    var i: (bool, ghost real, int, ghost bv6) -> ORDINAL; // error (x2): ghost not allowed
+  }
+}
+
+// ---------------------- invalid newtype definition -----------------------------------
+
+newtype T {} // error: newtype is expected to have an '='

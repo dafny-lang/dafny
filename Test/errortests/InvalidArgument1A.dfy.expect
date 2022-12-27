@@ -1,0 +1,8 @@
+Argument '2' not recognized. Must be one of:
+	'3'
+	'4'
+	'migration3to4'
+	'experimentalDefaultGhost'
+	'experimentalDefaultCompiled'
+	'experimentalPredicateAlwaysGhost'
+

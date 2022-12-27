@@ -1,0 +1,40 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Target Name="RunCoco" BeforeTargets="PreBuildEvent" Outputs="$(ProjectDir)Parser.cs;$(ProjectDir)Scanner.cs" Inputs="$(ProjectDir)Dafny.atg">
+    <Exec Command="dotnet tool restore" />
+    <Exec Command="dotnet --info" />
+    <Exec Command="dotnet tool run coco &quot;$(ProjectDir)Dafny.atg&quot; -namespace Microsoft.Dafny -frames &quot;$(ProjectDir)Coco&quot;" />
+    <!-- Recompute files to build according to https://stackoverflow.com/a/44829863/93197 -->
+    <ItemGroup>
+      <Compile Include="**/*$(DefaultLanguageSourceExtension)" Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder);$(BaseIntermediateOutputPath)**;$(BaseOutputPath)**;@(Compile)" />
+    </ItemGroup>
+  </Target>
+
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <AssemblyName>DafnyCore</AssemblyName>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <OutputPath>..\..\Binaries\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <TargetFramework>net6.0</TargetFramework>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    
+    <NoWarn>$(NoWarn);NU5104</NoWarn> <!-- Required because System.CommandLine is in beta. -->
+    <IsPackable>true</IsPackable>
+  </PropertyGroup>
+  
+  <ItemGroup>
+      <PackageReference Include="JetBrains.Annotations" Version="2021.1.0" />
+      <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.7.0" />
+      <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
+      <PackageReference Include="System.Runtime.Numerics" Version="4.3.0" />
+      <PackageReference Include="System.Collections.Immutable" Version="1.7.0" />
+      <PackageReference Include="Boogie.ExecutionEngine" Version="2.16.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="DafnyPrelude.bpl" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

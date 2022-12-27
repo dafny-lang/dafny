@@ -2,10 +2,9 @@
 // RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny_0 /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
-// To enable this in cs we needed to implement DowncastClone for datatypes.
-// Java avoids this problem by not even allowing traits in datatypes.
 
 datatype Co<+T> = Co(T) | C
 datatype ReCo<+T> = ReCo(T)
@@ -16,6 +15,13 @@ trait X {}
 
 class Y extends X {
   constructor () {}
+}
+
+class ClassWithFields {
+  var y: ReCo<Y>
+  constructor (y: ReCo<Y>) {
+    this.y := y;
+  }
 }
 
 method DowncastCo() {
@@ -32,6 +38,11 @@ method DowncastReCo() {
   var b: ReCo<Y>;
   b := a;
   print a, " and ", b, "\n";
+
+  var s := new ClassWithFields(a);
+  print s.y, " "; 
+  s.y := a;
+  print s.y, "\n";
 }
 
 method DowncastContra() {
@@ -64,6 +75,7 @@ method Main(){
   DowncastCo();
   DowncastReCo();
   DowncastContra();
+  DowncastReContra();
   DowncastFunc();
   print "Done\n";
 }

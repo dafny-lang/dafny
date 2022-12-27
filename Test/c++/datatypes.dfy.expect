@@ -1,10 +1,10 @@
 
 Dafny program verifier finished with 12 verified, 0 errors
 Case A: 42
-Case B: 1
+Case B: true
 This is expected
 42
-1
+true
 Got some:32
 Example1s are equal
 Example4s are equal

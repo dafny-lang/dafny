@@ -1,0 +1,3 @@
+Rustan Leino owns and manages the dafny.org domain,
+including the releated email addresses such as
+code-of-conduct@dafny.org and security@dafny.org.

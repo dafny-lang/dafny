@@ -1,5 +1,32 @@
+TypeMembers.dfy(117,30): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
 
 Dafny program verifier finished with 29 verified, 0 errors
+TypeMembers.dfy(117,30): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+
+Dafny program verifier did not attempt verification
+DaTy.Yes 10 26
+8 11 10 11 10 
+35 10 14
+22 22
+9 Dt.Business(false, 5)
+76 77
+19
+0 0
+19 82 83
+93 Co.Cobalt
+27 27
+18
+11 18 18 22
+15 30 29
+95 11
+162 165
+11 18 18 3
+15 30 29
+95 11
+162 165
+TypeMembers.dfy(117,30): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+
+Dafny program verifier did not attempt verification
 DaTy.Yes 10 26
 8 11 10 11 10 
 35 10 14

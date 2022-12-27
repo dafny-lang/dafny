@@ -14,4 +14,4 @@ No. The only restrictions available (as of version 3.7.3) are
 - `T(00)` - type is non-empty
 - `T(!new)` - type may **not** be a reference type or contain a reference type
 
-See the [appropriate section of the reference manual](https://dafny.org/dafny/DafnyRef/DafnyRef#sec-type-parameter-variance) for more information.
+See the [appropriate section of the reference manual](../DafnyRef/DafnyRef#sec-type-parameter-variance) for more information.

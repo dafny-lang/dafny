@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
@@ -23,7 +24,8 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
     var verificationDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
     Assert.AreEqual(1, verificationDiagnostics.Length);
     ApplyChange(ref documentItem, new Range(0, 47, 0, 47), "\n\n" + NeverVerifies);
-    await AssertNoDiagnosticsAreComing(CancellationToken);
+    var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+    Assert.AreEqual(Relocator.OutdatedPrefix + verificationDiagnostics[0].Message, resolutionDiagnostics[0].Message);
   }
 
   [TestMethod]
@@ -94,7 +96,7 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
 
     var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.AreEqual(verificationDiagnostics.Length, resolutionDiagnostics.Length);
-    Assert.AreEqual(verificationDiagnostics[0].Message, resolutionDiagnostics[0].Message);
+    Assert.AreEqual(Relocator.OutdatedPrefix + verificationDiagnostics[0].Message, resolutionDiagnostics[0].Message);
     Assert.AreEqual(verificationDiagnostics[0].RelatedInformation, resolutionDiagnostics[0].RelatedInformation);
     Assert.AreEqual(new Range(4, 7, 4, 13), resolutionDiagnostics[0].Range);
   }
@@ -129,9 +131,14 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
     Assert.AreEqual(1, verificationDiagnostics.Length);
 
     ApplyChange(ref documentItem, new Range(0, 7, 0, 7), "{:neverVerify}");
+    var resolutionDiagnostics1 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+    Assert.AreEqual(Relocator.OutdatedPrefix + verificationDiagnostics[0].Message, resolutionDiagnostics1[0].Message);
     ApplyChange(ref documentItem, new Range(3, 9, 3, 10), "2");
 
-    await AssertNoDiagnosticsAreComing(CancellationToken);
+    // Check that no other resolution diagnostics came in by fixing verification and getting new verification diagnostics.
+    ApplyChange(ref documentItem, new Range(0, 7, 0, 21), "");
+    var verificationDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+    Assert.AreEqual(0, verificationDiagnostics2.Length);
   }
 
   [TestMethod]
@@ -143,11 +150,15 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
     return;
   }");
     client.OpenDocument(documentItem);
-    var verificationDiagnostics1 = await GetLastDiagnostics(documentItem, CancellationToken);
-    Assert.AreEqual(1, verificationDiagnostics1.Length);
+    var verificationDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+    Assert.AreEqual(1, verificationDiagnostics.Length);
 
     ApplyChange(ref documentItem, new Range(3, 9, 3, 10), "3");
 
+    var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+    Assert.AreEqual(Relocator.OutdatedPrefix + verificationDiagnostics[0].Message, resolutionDiagnostics[0].Message);
+    var verificationDiagnostics2 = await GetLastDiagnostics(documentItem, CancellationToken);
+    Assert.AreEqual(verificationDiagnostics[0].Message, verificationDiagnostics2[0].Message);
     await AssertNoDiagnosticsAreComing(CancellationToken);
   }
 }
