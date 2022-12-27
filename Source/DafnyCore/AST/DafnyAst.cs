@@ -116,9 +116,8 @@ namespace Microsoft.Dafny {
               UpdateStartEndToken(node.GetEndToken());
             } else {
               UpdateStartEndToken(node.tok);
+              node.Children.Iter(UpdateStartEndTokRecursive);
             }
-
-            node.Children.Iter(UpdateStartEndTokRecursive);
           }
 
           UpdateStartEndTokRecursive(this);
