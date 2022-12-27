@@ -6,6 +6,13 @@ on:
   pull_request:
     branches: [ master ]
 
+## In the matrix:
+##  os - name of the Github actions runner
+##  suffix - name used in the description of the job
+##  z3 - name of the Z3 asset at the 'z3BaseUri' URL
+##  chmod - whether the Z3 download needs execute permissions added
+##  coverage -- unused?
+
 jobs:
   build:
     runs-on: ${{matrix.os}}
@@ -14,8 +21,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-18.04
-            suffix: ubuntu-18.04
+          - os: ubuntu-20.04
+            suffix: ubuntu-20.04
             z3: z3-4.8.5-x64-ubuntu-16.04
             chmod: true
             coverage: true
