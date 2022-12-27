@@ -3059,12 +3059,17 @@ namespace Microsoft.Dafny {
           if (d is IteratorDecl) {
             var iter = (IteratorDecl)d;
             var done = false;
-            foreach (var tp in iter.TypeArgs) {
+            var nonnullIter = iter.NonNullTypeDecl;
+            Contract.Assert(nonnullIter.TypeArgs.Count == iter.TypeArgs.Count);
+            for (var i = 0; i < iter.TypeArgs.Count; i++) {
+              var tp = iter.TypeArgs[i];
+              var correspondingNonnullIterTypeParameter = nonnullIter.TypeArgs[i];
               if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
                 // here's our chance to infer the need for equality support
                 foreach (var p in iter.Ins) {
                   if (InferRequiredEqualitySupport(tp, p.Type)) {
                     tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                    correspondingNonnullIterTypeParameter.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
                     done = true;
                     break;
                   }
@@ -3076,6 +3081,7 @@ namespace Microsoft.Dafny {
 
                   if (InferRequiredEqualitySupport(tp, p.Type)) {
                     tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                    correspondingNonnullIterTypeParameter.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
                     break;
                   }
                 }
