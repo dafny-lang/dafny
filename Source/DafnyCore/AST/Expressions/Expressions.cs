@@ -1500,6 +1500,8 @@ public class FunctionCallExpr : Expression, IHasUsages, ICloneable<FunctionCallE
       TypeApplication_JustFunction = original.TypeApplication_JustFunction;
       IsByMethodCall = original.IsByMethodCall;
       Function = original.Function;
+      CoCall = original.CoCall;
+      CoCallHint = original.CoCallHint;
     }
   }
 
