@@ -5,7 +5,7 @@ namespace Microsoft.Dafny;
 
 public class DeveloperOptionBag {
 
-  public static readonly Option<bool> UseBaseFileName = new("--useBaseNameForFileName",
+  public static readonly Option<bool> UseBaseFileName = new("--use-basename-for-filename",
     "When parsing use basename of file for tokens instead of the path supplied on the command line") {
     IsHidden = true
   };
