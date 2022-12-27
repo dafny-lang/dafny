@@ -36,20 +36,20 @@
 ##   %no-check : do nothing
 ##   %check-verify <expect> or
 ##   %check-verify-warn : runs the command 
-##              "dafny verify --useBaseNameForFileName $F" and checks 
+##              "dafny verify --use-basename-for-filename $F" and checks
 ##              (1) if <expect> is absent then the exit code is 0 and
 ##                  the output is just a success message
 ##              (2) if <expect> is non-empty. then the exit code is 4 and
 ##                  the actual output matches the content of the file <expect>
 ##                  if the command is %check-verify-warn, the exit code is 0
 ##   %check-resolve <expect> : runs the command
-##              "dafny resolve --useBaseNameForFileName $F" and checks
+##              "dafny resolve --use-basename-for-filename $F" and checks
 ##              (1) if <expect> is absent then the exit code is 0 and
 ##                  the output is just a success message
 ##              (2) if <expect> is non-empty. then the exit code is 2 and
 ##                  the actual output matches the content of the file <expect>
 ##   %check-run <expect> : runs the command
-##              "dafny run --useBaseNameForFileName $F" and, 
+##              "dafny run --use-basename-for-filename $F" and,
 ##              if <expect> is present, then the output matches the
 ##              content of the file names <expect>
 ##   %check-error
