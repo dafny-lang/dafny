@@ -5,13 +5,17 @@ namespace Microsoft.Dafny;
 
 public class DeveloperOptionBag {
 
+  public static readonly Option<bool> SpillTranslation = new("--spill-translation") {
+    IsHidden = true
+  };
+
   public static readonly Option<bool> UseBaseFileName = new("--useBaseNameForFileName",
     "When parsing use basename of file for tokens instead of the path supplied on the command line") {
     IsHidden = true
   };
 
   public static readonly Option<string> BoogiePrint = new("--bprint",
-    @"
+  @"
 Print Boogie program translated from Dafny
 (use - as <file> to print to console)".TrimStart()) {
     IsHidden = true,
@@ -33,6 +37,8 @@ Print Dafny program after resolving it.
   };
 
   static DeveloperOptionBag() {
+    DafnyOptions.RegisterLegacyBinding(SpillTranslation, (o, f) => o.SpillTargetCode = f ? 1U : 0U);
+
     DafnyOptions.RegisterLegacyBinding(ResolvedPrint, (options, value) => {
       options.DafnyPrintResolvedFile = value;
       options.ExpandFilename(options.DafnyPrintResolvedFile, x => options.DafnyPrintResolvedFile = x, options.LogPrefix,
