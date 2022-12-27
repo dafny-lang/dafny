@@ -1,5 +1,5 @@
-git-issue-2074.dfy(5,6): Error: the type of this variable is underspecified
-git-issue-2074.dfy(5,25): Error: the type of this variable is underspecified
-git-issue-2074.dfy(5,21): Error: type of bound variable 'x' could not be determined; please specify the type explicitly
+git-issue-2074.dfy(5,6): Error: the type of this local variable is underspecified
 git-issue-2074.dfy(5,11): Error: type of bound variable 'st' could not be determined; please specify the type explicitly
+git-issue-2074.dfy(5,21): Error: type of bound variable 'x' could not be determined; please specify the type explicitly
+git-issue-2074.dfy(5,25): Error: the type of this expression is underspecified
 4 resolution/type errors detected in git-issue-2074.dfy

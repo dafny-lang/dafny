@@ -7,5 +7,5 @@ ArrayElementInitResolution.dfy(79,36): Error: initial value must be assignable t
 ArrayElementInitResolution.dfy(86,30): Error: ghost variables such as g are allowed only in specification contexts. g was inferred to be ghost based on its declaration or initialization.
 ArrayElementInitResolution.dfy(99,29): Error: initial value must be assignable to array's elements (expected 'bool', got 'char')
 ArrayElementInitResolution.dfy(116,28): Error: initial value must be assignable to array's elements (expected 'bool', got 'char')
-ArrayElementInitResolution.dfy(126,8): Error: the type of this variable is underspecified
+ArrayElementInitResolution.dfy(126,8): Error: the type of this local variable is underspecified
 10 resolution/type errors detected in ArrayElementInitResolution.dfy

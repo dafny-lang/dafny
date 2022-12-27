@@ -18,7 +18,7 @@ CoResolution.dfy(145,30): Error: a recursive call from a greatest predicate can 
 CoResolution.dfy(153,4): Error: a recursive call from a greatest predicate can go only to other greatest predicates
 CoResolution.dfy(155,4): Error: a recursive call from a greatest predicate can go only to other greatest predicates
 CoResolution.dfy(171,13): Error: a recursive call from a greatest lemma can go only to other greatest lemmas and prefix lemmas
-CoResolution.dfy(206,12): Error: type parameter '_T0' (inferred to be '?') in the function call to 'A' could not be determined
 CoResolution.dfy(206,13): Error: the type of this expression is underspecified
+CoResolution.dfy(206,12): Error: type parameter '_T0' (inferred to be '?') in the function call to 'A' could not be determined
 CoResolution.dfy(206,19): Error: type parameter '_T0' (inferred to be '?') in the function call to 'S' could not be determined
 23 resolution/type errors detected in CoResolution.dfy

@@ -270,11 +270,7 @@ namespace Microsoft.Dafny {
         if (attr.Args != null) {
           foreach (var arg in attr.Args) {
             Contract.Assert(arg != null);
-            int prevErrors = reporter.Count(ErrorLevel.Error);
             ResolveExpression(arg, resolutionContext);
-            if (prevErrors == reporter.Count(ErrorLevel.Error)) {
-              CheckTypeInference(arg, resolutionContext.CodeContext);
-            }
           }
         }
       }
@@ -1777,7 +1773,7 @@ namespace Microsoft.Dafny {
           case "Assignable": {
               Contract.Assert(t == t.Normalize());  // it's already been normalized above
               var u = Types[1].NormalizeExpand();
-              if (CheckTypeInference_Visitor.IsDetermined(t) &&
+              if (CheckTypeInferenceVisitor.IsDetermined(t) &&
                   (fullstrength
                    || !ProxyWithNoSubTypeConstraint(u, resolver)
                    || (u is TypeProxy
@@ -1785,7 +1781,7 @@ namespace Microsoft.Dafny {
                        && (t0constrained.IsNonNullRefType || t0constrained.AsSubsetType != null)
                        && resolver.HasApplicableNullableRefTypeConstraint(new HashSet<TypeProxy>() { (TypeProxy)u })))) {
                 // This is the best case.  We convert Assignable(t, u) to the subtype constraint base(t) :> u.
-                if (CheckTypeInference_Visitor.IsDetermined(u) && t.IsSubtypeOf(u, false, true) && t.IsRefType) {
+                if (CheckTypeInferenceVisitor.IsDetermined(u) && t.IsSubtypeOf(u, false, true) && t.IsRefType) {
                   // But we also allow cases where the rhs is a proper supertype of the lhs, and let the verifier
                   // determine whether the rhs is provably an instance of the lhs.
                   resolver.ConstrainAssignable((NonProxyType)u, (NonProxyType)t, errorMsg, out moreXConstraints, fullstrength);
