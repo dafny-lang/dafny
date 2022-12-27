@@ -468,8 +468,8 @@ namespace Microsoft.Dafny {
         ResolveType(d.tok, d.Rhs, d, ResolveTypeOptionEnum.AllowPrefix, d.TypeArgs);
         allTypeParameters.PopMarker();
       }
-
-      ResolveTopLevelDecls_Core(systemModuleClassesWithNonNullTypes, new Graph<IndDatatypeDecl>(), new Graph<CoDatatypeDecl>());
+      ResolveTopLevelDecls_Core(ModuleDefinition.AllDeclarationsAndNonNullTypeDecls(systemModuleClassesWithNonNullTypes).ToList(),
+        new Graph<IndDatatypeDecl>(), new Graph<CoDatatypeDecl>());
 
       foreach (var rewriter in rewriters) {
         rewriter.PreResolve(prog);
@@ -1035,13 +1035,14 @@ namespace Microsoft.Dafny {
       ResolveOpenedImports(moduleInfo, m, useCompileSignatures, this); // opened imports do not persist
       var datatypeDependencies = new Graph<IndDatatypeDecl>();
       var codatatypeDependencies = new Graph<CoDatatypeDecl>();
+      var allDeclarations = ModuleDefinition.AllDeclarationsAndNonNullTypeDecls(m.TopLevelDecls).ToList();
       int prevErrorCount = reporter.Count(ErrorLevel.Error);
-      ResolveTopLevelDecls_Signatures(m, sig, m.TopLevelDecls, datatypeDependencies, codatatypeDependencies);
+      ResolveTopLevelDecls_Signatures(m, sig, allDeclarations, datatypeDependencies, codatatypeDependencies);
       Contract.Assert(AllTypeConstraints.Count == 0); // signature resolution does not add any type constraints
       ResolveAttributes(m, new ResolutionContext(new NoContext(m.EnclosingModule), false)); // Must follow ResolveTopLevelDecls_Signatures, in case attributes refer to members
       SolveAllTypeConstraints(); // solve any type constraints entailed by the attributes
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-        ResolveTopLevelDecls_Core(m.TopLevelDecls, datatypeDependencies, codatatypeDependencies, isAnExport);
+        ResolveTopLevelDecls_Core(allDeclarations, datatypeDependencies, codatatypeDependencies, isAnExport);
       }
 
       Type.PopScope(moduleInfo.VisibilityScope);
@@ -2572,7 +2573,7 @@ namespace Microsoft.Dafny {
       }*/
 
       var typeRedirectionDependencies = new Graph<RedirectingTypeDecl>();  // this concerns the type directions, not their constraints (which are checked for cyclic dependencies later)
-      foreach (TopLevelDecl d in ModuleDefinition.AllDeclarationsAndNonNullTypeDecls(declarations)) {
+      foreach (TopLevelDecl d in declarations) {
         Contract.Assert(d != null);
         allTypeParameters.PushMarker();
         ResolveTypeParameters(d.TypeArgs, true, d);
@@ -2688,72 +2689,8 @@ namespace Microsoft.Dafny {
 
       // Check that all types have been determined. During this process, fill in all .ResolvedOp fields.
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-        foreach (TopLevelDecl topd in declarations) {
-          if (topd is NewtypeDecl newtypeDecl) {
-            if (newtypeDecl.Var != null) {
-              if (!CheckTypeInference_Visitor.IsDetermined(newtypeDecl.BaseType.NormalizeExpand())) {
-                reporter.Error(MessageSource.Resolver, newtypeDecl.tok, "newtype's base type is not fully determined; add an explicit type for '{0}'",
-                  newtypeDecl.Var.Name);
-              }
-            }
-
-            if (newtypeDecl.Constraint != null) {
-              CheckTypeInference(newtypeDecl.Constraint, newtypeDecl);
-            }
-
-            if (newtypeDecl.Witness != null) {
-              CheckTypeInference(newtypeDecl.Witness, newtypeDecl);
-            }
-
-          } else if (((topd as ClassDecl)?.NonNullTypeDecl ?? topd) is SubsetTypeDecl subsetTypeDecl) {
-            if (!CheckTypeInference_Visitor.IsDetermined(subsetTypeDecl.Rhs.NormalizeExpand())) {
-              reporter.Error(MessageSource.Resolver, subsetTypeDecl.tok,
-                "subset type's base type is not fully determined; add an explicit type for '{0}'", subsetTypeDecl.Var.Name);
-            }
-
-            if (subsetTypeDecl.Constraint != null) {
-              CheckTypeInference(subsetTypeDecl.Constraint, subsetTypeDecl);
-            }
-
-            if (subsetTypeDecl.Witness != null) {
-              CheckTypeInference(subsetTypeDecl.Witness, subsetTypeDecl);
-            }
-
-          } else if (topd is DatatypeDecl datatypeDecl) {
-            foreach (var ctor in datatypeDecl.Ctors) {
-              foreach (var formal in ctor.Formals.Where(formal => formal.DefaultValue != null)) {
-                CheckTypeInference(formal.DefaultValue, datatypeDecl);
-              }
-            }
-
-            foreach (var member in classMembers[datatypeDecl].Values) {
-              if (member is DatatypeDestructor dtor) {
-                var rolemodel = dtor.CorrespondingFormals[0];
-                for (var i = 1; i < dtor.CorrespondingFormals.Count; i++) {
-                  var other = dtor.CorrespondingFormals[i];
-                  if (!Type.Equal_Improved(rolemodel.Type, other.Type)) {
-                    reporter.Error(MessageSource.Resolver, other,
-                      "shared destructors must have the same type, but '{0}' has type '{1}' in constructor '{2}' and type '{3}' in constructor '{4}'",
-                      rolemodel.Name, rolemodel.Type, dtor.EnclosingCtors[0].Name, other.Type, dtor.EnclosingCtors[i].Name);
-                  }
-                }
-              }
-            }
-          }
-
-          if (topd is IteratorDecl iteratorDecl) {
-            foreach (var formal in iteratorDecl.Ins.Where(formal => formal.DefaultValue != null)) {
-              CheckTypeInference(formal.DefaultValue, iteratorDecl);
-            }
-            if (iteratorDecl.Body != null) {
-              CheckTypeInference(iteratorDecl.Body, iteratorDecl);
-            }
-          }
-
-          if (topd is TopLevelDeclWithMembers cl) {
-            cl.Members.Iter(CheckTypeInference_Member);
-          }
-        }
+        var checkTypeInferenceVisitor = new CheckTypeInferenceVisitor(this);
+        checkTypeInferenceVisitor.VisitDeclarations(declarations);
       }
 
       // ---------------------------------- Pass 1 ----------------------------------
@@ -3001,7 +2938,7 @@ namespace Microsoft.Dafny {
           ResolveMethod(prefixLemma);
           allTypeParameters.PopMarker();
           currentClass = null;
-          CheckTypeInference_Member(prefixLemma);
+          new CheckTypeInferenceVisitor(this).VisitMethod(prefixLemma);
           CallGraphBuilder.VisitMethod(prefixLemma, reporter);
         }
       }
@@ -3341,8 +3278,7 @@ namespace Microsoft.Dafny {
             }
           }
 
-          if (d is RedirectingTypeDecl) {
-            var dd = (RedirectingTypeDecl)d;
+          if (d is RedirectingTypeDecl dd and not NonNullTypeDecl) {
             if (d.EnclosingModuleDefinition.CallGraph.GetSCCSize(dd) != 1) {
               var r = d.EnclosingModuleDefinition.CallGraph.GetSCCRepresentative(dd);
               if (cycleErrorHasBeenReported.Contains(r)) {

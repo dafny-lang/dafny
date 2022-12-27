@@ -7,6 +7,71 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny;
 
 partial class Resolver {
+  class CheckTypeInferenceVisitor : ASTVisitor<IASTVisitorContext> {
+    private readonly Resolver resolver;
+    private ErrorReporter reporter => resolver.reporter;
+
+    public CheckTypeInferenceVisitor(Resolver resolver) {
+      this.resolver = resolver;
+    }
+
+    public override IASTVisitorContext GetContext(IASTVisitorContext astVisitorContext, bool inFunctionPostcondition) {
+      return astVisitorContext;
+    }
+
+    protected override void VisitOneDeclaration(TopLevelDecl decl) {
+      if (decl is NewtypeDecl newtypeDecl) {
+        if (newtypeDecl.Var != null) {
+          if (!CheckTypeInference_Visitor.IsDetermined(newtypeDecl.BaseType.NormalizeExpand())) {
+            reporter.Error(MessageSource.Resolver, newtypeDecl.tok, "newtype's base type is not fully determined; add an explicit type for '{0}'",
+              newtypeDecl.Var.Name);
+          }
+        }
+
+      } else if (decl is SubsetTypeDecl subsetTypeDecl) {
+        if (!CheckTypeInference_Visitor.IsDetermined(subsetTypeDecl.Rhs.NormalizeExpand())) {
+          reporter.Error(MessageSource.Resolver, subsetTypeDecl.tok,
+            "subset type's base type is not fully determined; add an explicit type for '{0}'", subsetTypeDecl.Var.Name);
+        }
+
+      } else if (decl is DatatypeDecl datatypeDecl) {
+        foreach (var member in resolver.classMembers[datatypeDecl].Values) {
+          if (member is DatatypeDestructor dtor) {
+            var rolemodel = dtor.CorrespondingFormals[0];
+            for (var i = 1; i < dtor.CorrespondingFormals.Count; i++) {
+              var other = dtor.CorrespondingFormals[i];
+              if (!Type.Equal_Improved(rolemodel.Type, other.Type)) {
+                reporter.Error(MessageSource.Resolver, other,
+                  "shared destructors must have the same type, but '{0}' has type '{1}' in constructor '{2}' and type '{3}' in constructor '{4}'",
+                  rolemodel.Name, rolemodel.Type, dtor.EnclosingCtors[0].Name, other.Type, dtor.EnclosingCtors[i].Name);
+              }
+            }
+          }
+        }
+      }
+
+      base.VisitOneDeclaration(decl);
+    }
+
+    public override void VisitField(Field field) {
+      if (field is ConstantField constantField) {
+        resolver.CheckTypeInference(field.Type, new NoContext(constantField.EnclosingModule), field.tok, "const");
+      }
+
+      base.VisitField(field);
+    }
+
+    protected override bool VisitOneExpression(Expression expr, IASTVisitorContext context) {
+      resolver.CheckTypeInference(expr, context);
+      return false;
+    }
+
+    protected override bool VisitOneStatement(Statement stmt, IASTVisitorContext context) {
+      resolver.CheckTypeInference(stmt, context);
+      return false;
+    }
+  }
+
   // ------------------------------------------------------------------------------------------------------
   // ----- CheckTypeInference -----------------------------------------------------------------------------
   // ------------------------------------------------------------------------------------------------------
@@ -14,84 +79,7 @@ partial class Resolver {
   // CheckTypeInference(Expression) does so for an Expression and CheckTypeInference_Member(MemberDecl)
   // does so for a MemberDecl) to make sure that all parts of types were fully inferred.
   #region CheckTypeInference
-  private void CheckTypeInference_Member(MemberDecl member) {
-    if (member is ConstantField field) {
-      CheckTypeInference(field.Type, new NoContext(member.EnclosingClass.EnclosingModuleDefinition), field.tok, "const");
-      if (field.Rhs != null) {
-        CheckTypeInference(field.Rhs, new NoContext(member.EnclosingClass.EnclosingModuleDefinition));
-      }
-    } else if (member is Method method) {
-      foreach (var formal in method.Ins) {
-        if (formal.DefaultValue != null) {
-          CheckTypeInference(formal.DefaultValue, method);
-        }
-      }
-      var errorCount = reporter.Count(ErrorLevel.Error);
-      method.Req.Iter(mfe => CheckTypeInference_MaybeFreeExpression(mfe, method));
-      method.Ens.Iter(mfe => CheckTypeInference_MaybeFreeExpression(mfe, method));
-      CheckTypeInference_Specification_FrameExpr(method.Mod, method);
-      CheckTypeInference_Specification_Expr(method.Decreases, method);
-      if (method.Body != null) {
-        CheckTypeInference(method.Body, method);
-      }
-      if (errorCount == reporter.Count(ErrorLevel.Error)) {
-        if (method is ExtremeLemma extremeLemma) {
-          // Note, when we get here, the body and full postconditions of the prefix lemmas have not yet been created
-          // (because doing so requires the call graph, which hasn't been built yet).
-          // So, the following call will check only what's available so far. In pass 2 of the resolver, when the remaining
-          // information has been filled in, there will be an additional call to CheckTypeInference_Member for the
-          // prefix lemma.
-          CheckTypeInference_Member(extremeLemma.PrefixLemma);
-        }
-      }
-    } else if (member is Function function) {
-      foreach (var formal in function.Formals) {
-        if (formal.DefaultValue != null) {
-          CheckTypeInference(formal.DefaultValue, function);
-        }
-      }
-      var errorCount = reporter.Count(ErrorLevel.Error);
-      function.Req.Iter(e => CheckTypeInference(e.E, function));
-      function.Ens.Iter(e => CheckTypeInference(e.E, function));
-      function.Reads.Iter(fe => CheckTypeInference(fe.E, function));
-      CheckTypeInference_Specification_Expr(function.Decreases, function);
-      if (function.Body != null) {
-        CheckTypeInference(function.Body, function);
-      }
-      if (errorCount == reporter.Count(ErrorLevel.Error)) {
-        if (function is ExtremePredicate extremePredicate) {
-          CheckTypeInference_Member(extremePredicate.PrefixPredicate);
-        } else if (function.ByMethodDecl != null) {
-          CheckTypeInference_Member(function.ByMethodDecl);
-        }
-      }
-    }
-  }
 
-  private void CheckTypeInference_MaybeFreeExpression(AttributedExpression mfe, IASTVisitorContext context) {
-    Contract.Requires(mfe != null);
-    Contract.Requires(context != null);
-    foreach (var e in Attributes.SubExpressions(mfe.Attributes)) {
-      CheckTypeInference(e, context);
-    }
-    CheckTypeInference(mfe.E, context);
-  }
-  private void CheckTypeInference_Specification_Expr(Specification<Expression> spec, IASTVisitorContext context) {
-    Contract.Requires(spec != null);
-    Contract.Requires(context != null);
-    foreach (var e in Attributes.SubExpressions(spec.Attributes)) {
-      CheckTypeInference(e, context);
-    }
-    spec.Expressions.Iter(e => CheckTypeInference(e, context));
-  }
-  private void CheckTypeInference_Specification_FrameExpr(Specification<FrameExpression> spec, IASTVisitorContext context) {
-    Contract.Requires(spec != null);
-    Contract.Requires(context != null);
-    foreach (var e in Attributes.SubExpressions(spec.Attributes)) {
-      CheckTypeInference(e, context);
-    }
-    spec.Expressions.Iter(fe => CheckTypeInference(fe.E, context));
-  }
   void CheckTypeInference(Expression expr, IASTVisitorContext context) {
     Contract.Requires(expr != null);
     Contract.Requires(context != null);
@@ -115,6 +103,7 @@ partial class Resolver {
     var c = new CheckTypeInference_Visitor(this, context);
     c.Visit(stmt);
   }
+
   class CheckTypeInference_Visitor : ResolverBottomUpVisitor {
     readonly IASTVisitorContext context;
     public CheckTypeInference_Visitor(Resolver resolver, IASTVisitorContext context)
@@ -217,7 +206,7 @@ partial class Resolver {
             var tp = i < e.TypeApplication_AtEnclosingClass.Count ? e.Member.EnclosingClass.TypeArgs[i] : ((ICallable)e.Member).TypeArgs[i - e.TypeApplication_AtEnclosingClass.Count];
             if (!IsDetermined(p.Normalize())) {
               resolver.reporter.Error(MessageSource.Resolver, e.tok, "type parameter '{0}' (inferred to be '{1}') to the {2} '{3}' could not be determined", tp.Name, p, e.Member.WhatKind, e.Member.Name);
-            } else {
+            } else if (context is not PrefixPredicate) { // this check is done in extreme predicates, so no need to repeat it here for prefix predicates
               CheckContainsNoOrdinal(e.tok, p, string.Format("type parameter '{0}' (passed in as '{1}') to the {2} '{3}' is not allowed to use ORDINAL", tp.Name, p, e.Member.WhatKind, e.Member.Name));
             }
             i++;
@@ -234,7 +223,7 @@ partial class Resolver {
               ? ". If you are making an opaque function, make sure that the function can be called."
               : ""
             );
-          } else {
+          } else if (context is not PrefixPredicate) { // this check is done in extreme predicates, so no need to repeat it here for prefix predicates
             CheckContainsNoOrdinal(e.tok, p, string.Format("type parameter '{0}' (passed in as '{1}') to function call '{2}' is not allowed to use ORDINAL", tp.Name, p, e.Name));
           }
           i++;
@@ -426,8 +415,13 @@ partial class Resolver {
     public void CheckTypeArgsContainNoOrdinal(IToken tok, Type t) {
       Contract.Requires(tok != null);
       Contract.Requires(t != null);
-      t = t.NormalizeExpand();
-      t.TypeArgs.Iter(rg => CheckContainsNoOrdinal(tok, rg, "an ORDINAL type is not allowed to be used as a type argument"));
+      if (context is PrefixPredicate or PrefixLemma) {
+        // User-provided expressions in extreme predicates/lemmas are checked in the extreme declarations, so need
+        // need to do them here again for the prefix predicates/lemmas.
+      } else {
+        t = t.NormalizeExpand();
+        t.TypeArgs.Iter(rg => CheckContainsNoOrdinal(tok, rg, "an ORDINAL type is not allowed to be used as a type argument"));
+      }
     }
     public void CheckContainsNoOrdinal(IToken tok, Type t, string errMsg) {
       Contract.Requires(tok != null);

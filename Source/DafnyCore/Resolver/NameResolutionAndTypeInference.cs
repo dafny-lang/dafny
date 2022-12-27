@@ -31,10 +31,6 @@ namespace Microsoft.Dafny {
         Contract.Assert(AllTypeConstraints.Count == 0);
 
         ResolveNamesAndInferTypesForOneDeclaration(topd, initialRound);
-        var nonnullTypeDecl = (topd as ClassDecl)?.NonNullTypeDecl;
-        if (nonnullTypeDecl != null) {
-          ResolveNamesAndInferTypesForOneDeclaration(nonnullTypeDecl, initialRound);
-        }
 
         Contract.Assert(AllTypeConstraints.Count == 0);
       }

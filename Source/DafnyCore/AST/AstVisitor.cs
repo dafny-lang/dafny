@@ -57,7 +57,7 @@ namespace Microsoft.Dafny {
       }
 
       if (decl is TopLevelDeclWithMembers cl) {
-        cl.Members.Iter(member => VisitMember(cl, member));
+        cl.Members.Iter(VisitMember);
       }
     }
 
@@ -89,19 +89,9 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected virtual void VisitMember(TopLevelDeclWithMembers cl, MemberDecl member) {
-      if (member is ConstantField constantField) {
-        var context = GetContext(constantField, false);
-        VisitAttributes(constantField, constantField.EnclosingModule);
-        VisitUserProvidedType(constantField.Type, context);
-        if (constantField.Rhs != null) {
-          VisitExpression(constantField.Rhs, context);
-        }
-
-      } else if (member is Field field) {
-        var context = GetContext(new NoContext(cl.EnclosingModuleDefinition), false);
-        VisitAttributes(field, cl.EnclosingModuleDefinition);
-        VisitUserProvidedType(field.Type, context);
+    public void VisitMember(MemberDecl member) {
+      if (member is Field field) {
+        VisitField(field);
 
       } else if (member is Function function) {
         VisitFunction(function);
@@ -126,6 +116,18 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(false);
         throw new cce.UnreachableException(); // unexpected member type
+      }
+    }
+
+    public virtual void VisitField(Field field) {
+      var enclosingModule = field.EnclosingClass.EnclosingModuleDefinition;
+      VisitAttributes(field, enclosingModule);
+
+      var context = GetContext(field as IASTVisitorContext ?? new NoContext(enclosingModule), false);
+      VisitUserProvidedType(field.Type, context);
+
+      if (field is ConstantField { Rhs: { } rhs }) {
+        VisitExpression(rhs, context);
       }
     }
 
