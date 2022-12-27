@@ -47,17 +47,17 @@ public class MatchDenester : IRewriter {
 
   internal override void PostResolve(Program program) {
     foreach (var compileModule in program.RawModules()) {
-      DenestModule(compileModule);
+      DenestNode(compileModule);
     }
     foreach (var compileModule in program.CompileModules) {
       var reporter = Reporter;
       Reporter = new ErrorReporterSink();
-      DenestModule(compileModule);
+      DenestNode(compileModule);
       Reporter = reporter;
     }
   }
 
-  private void DenestModule(ModuleDefinition moduleDefinition)
+  private void DenestNode(INode moduleDefinition)
   {
     moduleDefinition.Visit(node =>
     {
@@ -76,11 +76,15 @@ public class MatchDenester : IRewriter {
       if (node is NestedMatchStmt nestedMatchStmt)
       {
         nestedMatchStmt.Denested = CompileNestedMatchStmt(nestedMatchStmt);
+        DenestNode(nestedMatchStmt.Denested);
+        return false;
       }
 
       if (node is NestedMatchExpr nestedMatchExpr)
       {
         nestedMatchExpr.Denested = CompileNestedMatchExpr(nestedMatchExpr);
+        DenestNode(nestedMatchExpr.Denested);
+        return false;
       }
 
       return true;
