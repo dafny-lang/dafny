@@ -189,7 +189,7 @@ do
           echo EXPECTED A dafny BLOCK, NOT $lang
           FAIL=1
         else
-          "$dafny" $com --useBaseNameForFileName $options $text > actual
+          "$dafny" $com --use-basename-for-filename $options $text > actual
           actualec=$?
           if [ -z "$expect" ]; then
             if [ "$actualec" != "0" ]; then
