@@ -5,7 +5,8 @@ namespace Microsoft.Dafny;
 
 public class DeveloperOptionBag {
 
-  public static readonly Option<bool> SpillTranslation = new("--spill-translation") {
+  public static readonly Option<bool> SpillTranslation = new("--spill-translation",
+    @"In case the Dafny source code is translated to another language, emit that translation.") {
     IsHidden = true
   };
 
