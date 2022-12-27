@@ -9,8 +9,8 @@ public class DeveloperOptionBag {
     @"In case the Dafny source code is translated to another language, emit that translation.") {
     IsHidden = true
   };
-
-  public static readonly Option<bool> UseBaseFileName = new("--useBaseNameForFileName",
+  
+  public static readonly Option<bool> UseBaseFileName = new("--use-basename-for-filename",
     "When parsing use basename of file for tokens instead of the path supplied on the command line") {
     IsHidden = true
   };
