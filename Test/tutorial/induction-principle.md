@@ -698,7 +698,7 @@ defined) by the induction principle: none of the proofs break.
 As expected, the `PureNoInductionPrinciple` proof requires the `Assign` and `Bind` cases
 to be updated.
 
-**Note:** if you look at the number of lines of code, you will notice that updating or
+**Note:** If you look at the number of lines of code, you will notice that updating or
 providing the definitions required by the induction principle forces us to modify more lines
 of code that updating the proofs when not using the induction principle. The question then
 is how straightforward it is to update or provide those definitions, compared to the cost
