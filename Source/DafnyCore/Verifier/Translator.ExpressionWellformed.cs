@@ -1161,7 +1161,8 @@ namespace Microsoft.Dafny {
         }
 
       } else if (expr is NestedMatchExpr nestedMatchExpr) {
-        CheckWellformed(nestedMatchExpr.Denested, options, locals, builder, etran);
+        CheckWellformedWithResult(nestedMatchExpr.Denested, options, result, resultType, locals, builder, etran);
+        result = null;
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
