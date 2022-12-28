@@ -425,10 +425,6 @@ namespace Microsoft.Dafny {
       } else if (expr is ParensExpression) {
         var e = (ParensExpression)expr;
         return CloneExpr(e.E); // skip the parentheses in the clone
-      } else if (expr is MatchExpr) {
-        var e = (MatchExpr)expr;
-        return new MatchExpr(Tok(e.tok), CloneExpr(e.Source), e.Cases.ConvertAll(CloneMatchCaseExpr),
-          e.UsesOptionalBraces);
       }
       if (expr is Resolver_IdentifierExpr resolverIdentifierExpr) {
         return new Resolver_IdentifierExpr(Tok(resolverIdentifierExpr.tok), resolverIdentifierExpr.Decl, resolverIdentifierExpr.TypeArgs);

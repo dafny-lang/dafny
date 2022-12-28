@@ -1,10 +1,11 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace Microsoft.Dafny; 
 
-public class MatchExpr : Expression {  // a MatchExpr is an "extended expression" and is only allowed in certain places
+public class MatchExpr : Expression, ICloneable<MatchExpr> {  // a MatchExpr is an "extended expression" and is only allowed in certain places
   private Expression source;
   private List<MatchCaseExpr> cases;
   public readonly MatchingContext Context;
@@ -27,7 +28,21 @@ public class MatchExpr : Expression {  // a MatchExpr is an "extended expression
     this.source = source;
     this.cases = cases;
     this.UsesOptionalBraces = usesOptionalBraces;
-    this.Context = context is null ? new HoleCtx() : context;
+    this.Context = context ?? new HoleCtx();
+  }
+  public MatchExpr(Cloner cloner, MatchExpr original)
+    : base(cloner, original) {
+    source = cloner.CloneExpr(original.Source);
+    cases = original.Cases.ConvertAll(cloner.CloneMatchCaseExpr);
+    UsesOptionalBraces = original.UsesOptionalBraces;
+    Context = original.Context;
+    if (cloner.CloneResolvedFields) {
+      MissingCases = original.MissingCases;
+    }
+  }
+
+  public MatchExpr Clone(Cloner cloner) {
+    return new MatchExpr(cloner, this);
   }
 
   public Expression Source => source;
