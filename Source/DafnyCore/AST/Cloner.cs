@@ -457,25 +457,17 @@ namespace Microsoft.Dafny {
 
     public virtual AssignmentRhs CloneRHS(AssignmentRhs rhs) {
       AssignmentRhs c;
+      if (rhs is ICloneable<AssignmentRhs> cloneable) {
+        return cloneable.Clone(this);
+      }
+      
       if (rhs is ExprRhs) {
         var r = (ExprRhs)rhs;
         c = new ExprRhs(CloneExpr(r.Expr), CloneAttributes(rhs.Attributes));
       } else if (rhs is HavocRhs) {
         c = new HavocRhs(Tok(rhs.Tok));
       } else {
-        var r = (TypeRhs)rhs;
-        if (r.ArrayDimensions != null) {
-          if (r.InitDisplay != null) {
-            Contract.Assert(r.ArrayDimensions.Count == 1);
-            c = new TypeRhs(Tok(r.Tok), CloneType(r.EType), CloneExpr(r.ArrayDimensions[0]), r.InitDisplay.ConvertAll(CloneExpr));
-          } else {
-            c = new TypeRhs(Tok(r.Tok), CloneType(r.EType), r.ArrayDimensions.ConvertAll(CloneExpr), CloneExpr(r.ElementInit));
-          }
-        } else if (r.Bindings == null) {
-          c = new TypeRhs(Tok(r.Tok), CloneType(r.EType));
-        } else {
-          c = new TypeRhs(Tok(r.Tok), CloneType(r.Path), r.Bindings.ArgumentBindings.ConvertAll(CloneActualBinding));
-        }
+        throw new cce.UnreachableException();
       }
       return c;
     }

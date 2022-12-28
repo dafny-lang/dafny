@@ -2232,11 +2232,11 @@ public class UserDefinedType : NonProxyType {
     }
     this.NamePath = namePath;
   }
-
   public UserDefinedType(Cloner cloner, UserDefinedType original)
     : this(cloner.Tok(original.tok), cloner.CloneExpr(original.NamePath)) {
     if (cloner.CloneResolvedFields) {
       ResolvedClass = original.ResolvedClass;
+      TypeArgs = original.TypeArgs.Select(cloner.CloneType).ToList();
     }
   }
 
