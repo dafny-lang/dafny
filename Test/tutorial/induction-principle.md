@@ -175,7 +175,7 @@ As a result, the proof above basically duplicates the code of the interpreter. T
 true for all the cases of `Expr`, and has to be done for all the lemmas we prove about the
 interpreter, leading to obvious scalability issues.
 
-**Note:** the full proof without the induction principle is defined in the [`PureNoInductionPrinciple`](induction-principle/PureNoInductionPrinciple.dfy)
+**Note:** The full proof without the induction principle is defined in the [`PureNoInductionPrinciple`](induction-principle/PureNoInductionPrinciple.dfy)
 module. It is particularly interesting in the context of incrementally expanding the language,
 to compare the effort needed to update the proofs, depending on whether those proofs use
 the induction principle or not (see the [corresponding section](#section-increments)).
