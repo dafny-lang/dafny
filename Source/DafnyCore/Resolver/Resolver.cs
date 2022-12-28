@@ -3426,13 +3426,16 @@ namespace Microsoft.Dafny {
         var prevErrCnt = reporter.Count(ErrorLevel.Error);
         if (prevErrCnt == reporter.Count(ErrorLevel.Error)) {
           if (member is Method method) {
+            CheckForUnnecessaryEqualitySupportDeclarations(method, method.TypeArgs);
             CheckParameterDefaultValuesAreCompilable(method.Ins, method);
             if (method.Body != null) {
               ComputeGhostInterest(method.Body, method.IsGhost, method.IsLemmaLike ? "a " + method.WhatKind : null, method);
               CheckExpression(method.Body, this, method);
               new TailRecursion(reporter).DetermineTailRecursion(method);
             }
+
           } else if (member is Function function) {
+            CheckForUnnecessaryEqualitySupportDeclarations(function, function.TypeArgs);
             CheckParameterDefaultValuesAreCompilable(function.Formals, function);
             if (function.ByMethodBody == null) {
               if (!function.IsGhost && function.Body != null) {
@@ -3454,6 +3457,7 @@ namespace Microsoft.Dafny {
                 Contract.Assert(reporter.ErrorCount > 0);
               }
             }
+
           } else if (member is ConstantField field && field.Rhs != null && !field.IsGhost) {
             ExpressionTester.CheckIsCompilable(this, field.Rhs, field);
           }
@@ -3461,6 +3465,15 @@ namespace Microsoft.Dafny {
           if (prevErrCnt == reporter.Count(ErrorLevel.Error) && member is ICodeContext) {
             member.SubExpressions.Iter(e => CheckExpression(e, this, (ICodeContext)member));
           }
+        }
+      }
+    }
+
+    void CheckForUnnecessaryEqualitySupportDeclarations(MemberDecl member, List<TypeParameter> typeParameters) {
+      if (member.IsGhost) {
+        foreach (var p in typeParameters.Where(p => p.SupportsEquality)) {
+          reporter.Warning(MessageSource.Resolver, p.tok,
+            $"type parameter {p.Name} of ghost {member.WhatKind} {member.Name} is declared (==), which is unnecessary because the {member.WhatKind} doesn't contain any compiled code");
         }
       }
     }
