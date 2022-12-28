@@ -262,16 +262,24 @@ namespace Microsoft.Dafny {
 
         // Visit subexpressions
         expr.SubExpressions.Iter(ee => VisitExpression(ee, context));
+
+        // Finish by calling the post-visitor method
+        PostVisitOneExpression(expr, context);
       }
     }
 
     /// <summary>
     /// Visits the given expression.
-    /// Returns "true" to request that the caller keeps visiting all user-provided types, subexpressions, and substatements of "expr", and
-    /// returns "false" to tell the caller not to.
+    /// Returns "true" to request that the caller
+    ///   - keeps visiting all user-provided types, subexpressions, and substatements of "expr", and
+    ///   - then calls PostVisitOneExpression.
+    /// Returns "false" to tell the caller not to do those things.
     /// </summary>
     protected virtual bool VisitOneExpression(Expression expr, VisitorContext context) {
       return true;
+    }
+
+    protected virtual void PostVisitOneExpression(Expression expr, VisitorContext context) {
     }
 
     protected virtual void VisitStatement(Statement stmt, VisitorContext context) {
@@ -319,16 +327,24 @@ namespace Microsoft.Dafny {
 
         // Visit substatements
         stmt.SubStatements.Iter(ss => VisitStatement(ss, context));
+
+        // Finish by calling the post-visitor method
+        PostVisitOneStatement(stmt, context);
       }
     }
 
     /// <summary>
     /// Visits the given statement.
-    /// Returns "true" to request that the caller keeps visiting all user-provided types, subexpressions, and substatements of "stmt", and
-    /// returns "false" to tell the caller not to.
+    /// Returns "true" to request that the caller
+    ///   - keeps visiting all user-provided types, subexpressions, and substatements of "stmt", and
+    ///   - then calls PostVisitOneStatement.
+    /// Returns "false" to tell the caller not to do those things.
     /// </summary>
     protected virtual bool VisitOneStatement(Statement stmt, VisitorContext context) {
       return true;
+    }
+
+    protected virtual void PostVisitOneStatement(Statement stmt, VisitorContext context) {
     }
   }
 
