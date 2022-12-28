@@ -2679,6 +2679,7 @@ namespace Microsoft.Dafny {
       // * resolves names, introduces (and may solve) type constraints
       // * checks that all types were properly inferred
       // * fills in .ResolvedOp fields
+      // * perform substitution for DefaultValueExpression's
       // ----------------------------------------------------------------------------
 
       // Resolve all names and infer types. These two are done together, because name resolution depends on having type information
@@ -2697,6 +2698,9 @@ namespace Microsoft.Dafny {
         checkTypeInferenceVisitor.VisitDeclarations(declarations);
       }
 
+      // Substitute for DefaultValueExpression's
+      FillInDefaultValueExpressions();
+
       // ---------------------------------- Pass 1 ----------------------------------
       // This pass does the following:
       // * discovers bounds
@@ -2705,7 +2709,6 @@ namespace Microsoft.Dafny {
       // * for newtypes, figure out native types
       // * for datatypes, check that shared destructors are in agreement in ghost matters
       // * for functions and methods, determine tail recursion
-      // * perform substitution for DefaultValueExpression's
       // ----------------------------------------------------------------------------
 
       // Discover bounds. These are needed later to determine if certain things are ghost or compiled, and thus this should
@@ -2789,9 +2792,6 @@ namespace Microsoft.Dafny {
           }
         }
       }
-
-      // Substitute for DefaultValueExpression's
-      FillInDefaultValueExpressions();
 
       // ---------------------------------- Pass 2 ----------------------------------
       // This pass fills in various additional information.
