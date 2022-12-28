@@ -664,8 +664,8 @@ non-trivial proofs (e.g., when studying variable inlining).
 ### Updating the proofs
 
 Interestingly, the proofs for `Pure`, and `EliminateMulZero` only require
-to introduce new definitions (for `Pes` for instance). They do not require to actually
-update broken proofs. In addition, proving the `InductExprs_Cons` lemma for `VarUnchanged`
+introducing new definitions (for `Pes` for instance). They do not require actually
+updating broken proofs. In addition, proving the `InductExprs_Cons` lemma for `VarUnchanged`
 also requires writing an assertion to help the SMT solver.
 
 The proof of correctness of `IsPure` which doesn't use the induction principle
