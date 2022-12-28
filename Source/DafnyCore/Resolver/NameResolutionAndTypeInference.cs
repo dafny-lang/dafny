@@ -3267,7 +3267,7 @@ namespace Microsoft.Dafny {
           ResolveTypeParameters(method.TypeArgs, false, method);
           ResolveMethod(method);
           allTypeParameters.PopMarker();
-          if (method is ExtremeLemma { PrefixLemma: {} prefixLemma } && ec == reporter.Count(ErrorLevel.Error)) {
+          if (method is ExtremeLemma { PrefixLemma: { } prefixLemma } && ec == reporter.Count(ErrorLevel.Error)) {
             allTypeParameters.PushMarker();
             ResolveTypeParameters(prefixLemma.TypeArgs, false, prefixLemma);
             ResolveMethod(prefixLemma);
@@ -3581,7 +3581,8 @@ namespace Microsoft.Dafny {
         scope.PopMarker();  // for the out-parameters and outermost-level locals
         scope.PopMarker();  // for the in-parameters
 
-      } finally {
+      }
+      finally {
         currentMethod = null;
       }
     }
