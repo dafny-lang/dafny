@@ -9,7 +9,7 @@ to be particularly useful when working on
 [Dafny-in-Dafny](https://github.com/dafny-lang/compiler-bootstrap),
 which we will use as a motivating example. The full code development can be found in the
 [`induction-principle`](induction-principle/) folder. The development with the preserved git
-history can be found in the [Dafny github project](https://github.com/dafny-lang//dafny) and the source code itself is [here](./induction-principle).
+history can be found in the [Dafny github project](https://github.com/dafny-lang//dafny) and the source code itself is [here](./induction-principle-code).
 
 ## Problem: proving lemmas about an interpreter
 
