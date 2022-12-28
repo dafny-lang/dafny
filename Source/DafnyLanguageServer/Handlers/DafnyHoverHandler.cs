@@ -71,8 +71,9 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     private string? GetDiagnosticsHover(IdeState state, Position position, out bool areMethodStatistics) {
       areMethodStatistics = false;
       if (state.Diagnostics.Any(diagnostic =>
+            diagnostic.Severity == DiagnosticSeverity.Error && (
             diagnostic.Source == MessageSource.Parser.ToString() ||
-            diagnostic.Source == MessageSource.Resolver.ToString())) {
+            diagnostic.Source == MessageSource.Resolver.ToString()))) {
         return null;
       }
       foreach (var node in state.VerificationTree.Children.OfType<TopLevelDeclMemberVerificationTree>()) {

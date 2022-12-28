@@ -243,6 +243,32 @@ Could not prove: i <= 0"
       );
     }
 
+    [TestMethod/*, Timeout(MaxTestExecutionTimeMs)*/]
+    public async Task DisplayWorksOnPreviouslyFailingExample() {
+      var documentItem = await GetDocumentItem(@"
+module ProblemModule {
+  datatype X =
+    | Cons(head: int, tail: X)
+    | Nil
+  {
+    predicate method Valid() {
+      this.Cons? && tail.Valid()
+    }
+  }
+}
+
+method Test() returns (j: int)
+  ensures j == 1
+{
+  return 2;
+}
+", "testfile2.dfy");
+      await AssertHoverMatches(documentItem, (14, 5),
+        @"**Error:**???A postcondition might not hold on this return path.???
+Could not prove: j == 1"
+      );
+    }
+
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
     public async Task DoNotDisplayVerificationIfSyntaxError() {
       var documentItem = await GetDocumentItem(@"
