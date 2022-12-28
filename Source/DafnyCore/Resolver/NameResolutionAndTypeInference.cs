@@ -29,10 +29,12 @@ namespace Microsoft.Dafny {
         Contract.Assert(topd != null);
         Contract.Assert(VisibleInScope(topd));
         Contract.Assert(AllTypeConstraints.Count == 0);
+        Contract.Assert(currentClass == null);
 
         ResolveNamesAndInferTypesForOneDeclaration(topd, initialRound);
 
         Contract.Assert(AllTypeConstraints.Count == 0);
+        Contract.Assert(currentClass == null);
       }
     }
 
@@ -109,9 +111,8 @@ namespace Microsoft.Dafny {
             scope.AllowInstance = false;
             ctor.Formals.ForEach(p => scope.Push(p.Name, p));
             ResolveParameterDefaultValues(ctor.Formals, ResolutionContext.FromCodeContext(dt));
-            scope.PopMarker();
-
             ResolveAttributes(ctor, new ResolutionContext(new NoContext(topd.EnclosingModuleDefinition), false), true);
+            scope.PopMarker();
           }
         }
       }
@@ -122,7 +123,11 @@ namespace Microsoft.Dafny {
 
       if (!initialRound) {
         scope.PushMarker();
-        scope.AllowInstance = currentClass != null && currentClass.AcceptThis;
+        Contract.Assert(currentClass == null);
+        scope.AllowInstance = false;
+        if (topd is IteratorDecl iter) {
+          iter.Ins.ForEach(p => scope.Push(p.Name, p));
+        }
         ResolveAttributes(topd, new ResolutionContext(new NoContext(topd.EnclosingModuleDefinition), false), true);
         scope.PopMarker();
       }

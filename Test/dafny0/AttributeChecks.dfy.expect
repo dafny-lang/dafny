@@ -4,9 +4,9 @@
 module JustAboutEverything {
   datatype List<T> = Nil | Cons(hd: T, tl: List<T>)
 
-  datatype {:dt 0} {:dt false + 3} Datatype = {:dt k} Blue | {:dt 50} Green
+  datatype {:dt 0} {:dt false + 3} Datatype = {:dt k, this} Blue | {:dt 50} Green
 
-  datatype {:dt 0} {:dt false + 3} AnotherDatatype = {:dt 50} Blue | {:dt k} Green
+  datatype {:dt 0} {:dt false + 3} AnotherDatatype = {:dt 50} Blue | {:dt k, this} Green
 
   iterator Iter(x: int) yields (y: int)
     requires {:myAttr false + 3} true
@@ -71,7 +71,7 @@ module JustAboutEverything {
       DoesNotHave?
     }
 
-    function method PropagateFailure<U>(): Option<T>
+    function method PropagateFailure(): Option<T>
       requires DoesNotHave?
     {
       None
@@ -372,10 +372,54 @@ module TwoStateAttributes {
     least lemma {:myAttr old(data), x} LL(x: int)
   }
 }
+
+module TopLevelAttributes {
+  iterator {:myAttr x} {:myAttr y} {:myAttr this} {:myAttr ys} {:myAttr old(arr[0])} Iterator(x: int, arr: array<int>) yields (y: int)
+    requires arr.Length != 0
+
+  type {:myAttr this} {:myAttr N} Opaque {
+    const N: int
+  }
+
+  type {:myAttr this} Subset = x: int
+    | true
+
+  type {:myAttr this} Synonym = int
+
+  newtype {:myAttr this} {:myAttr N} Newtype = x: int
+    | true
+  {
+    const N: int
+  }
+
+  trait {:myAttr this} {:myAttr x} Trait {
+    var x: int
+  }
+
+  class {:myAttr this} {:myAttr x} Class {
+    var x: int
+  }
+
+  datatype {:myAttr this} {:myAttr Ctor?} {:myAttr y} {:myAttr N} Datatype = Ctor(y: int) {
+    const N: int
+  }
+
+  codatatype {:myAttr this} {:myAttr Ctor?} {:myAttr y} {:myAttr N} CoDatatype = Ctor(y: int) {
+    const N: int
+  }
+}
+
+module TopLevelAttributesModule {
+
+  module {:myAttr this} Module {
+  }
+}
 AttributeChecks.dfy(104,9): Error: unresolved identifier: k
+AttributeChecks.dfy(104,12): Error: 'this' is not allowed in a 'static' context
 AttributeChecks.dfy(103,30): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
 AttributeChecks.dfy(103,30): Error: type of right argument to + (int) must agree with the result type (bool)
 AttributeChecks.dfy(107,27): Error: unresolved identifier: k
+AttributeChecks.dfy(107,30): Error: 'this' is not allowed in a 'static' context
 AttributeChecks.dfy(106,30): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
 AttributeChecks.dfy(106,30): Error: type of right argument to + (int) must agree with the result type (bool)
 AttributeChecks.dfy(211,29): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
@@ -582,4 +626,27 @@ AttributeChecks.dfy(393,19): Error: old expressions are not allowed in this cont
 AttributeChecks.dfy(397,20): Error: old expressions are not allowed in this context
 AttributeChecks.dfy(399,29): Error: old expressions are not allowed in this context
 AttributeChecks.dfy(401,25): Error: old expressions are not allowed in this context
-210 resolution/type errors detected in AttributeChecks.dfy
+AttributeChecks.dfy(414,13): Error: old expressions are not allowed in this context
+AttributeChecks.dfy(413,13): Error: unresolved identifier: ys
+AttributeChecks.dfy(412,13): Error: 'this' is not allowed in a 'static' context
+AttributeChecks.dfy(411,13): Error: unresolved identifier: y
+AttributeChecks.dfy(422,13): Error: unresolved identifier: N
+AttributeChecks.dfy(421,13): Error: 'this' is not allowed in a 'static' context
+AttributeChecks.dfy(430,16): Error: 'this' is not allowed in a 'static' context
+AttributeChecks.dfy(434,16): Error: 'this' is not allowed in a 'static' context
+AttributeChecks.dfy(440,13): Error: unresolved identifier: N
+AttributeChecks.dfy(439,13): Error: 'this' is not allowed in a 'static' context
+AttributeChecks.dfy(450,13): Error: unresolved identifier: x
+AttributeChecks.dfy(449,13): Error: 'this' is not allowed in a 'static' context
+AttributeChecks.dfy(460,13): Error: unresolved identifier: x
+AttributeChecks.dfy(459,13): Error: 'this' is not allowed in a 'static' context
+AttributeChecks.dfy(472,13): Error: unresolved identifier: N
+AttributeChecks.dfy(471,13): Error: unresolved identifier: y
+AttributeChecks.dfy(470,13): Error: unresolved identifier: Ctor?
+AttributeChecks.dfy(469,13): Error: 'this' is not allowed in a 'static' context
+AttributeChecks.dfy(484,13): Error: unresolved identifier: N
+AttributeChecks.dfy(483,13): Error: unresolved identifier: y
+AttributeChecks.dfy(482,13): Error: unresolved identifier: Ctor?
+AttributeChecks.dfy(481,13): Error: 'this' is not allowed in a 'static' context
+AttributeChecks.dfy(494,18): Error: 'this' is not allowed in a 'static' context
+235 resolution/type errors detected in AttributeChecks.dfy
