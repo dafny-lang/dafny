@@ -32,7 +32,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(currentClass == null);
 
         allTypeParameters.PushMarker();
-        ResolveTypeParameters(topd.TypeArgs, initialRound, topd);
+        ResolveTypeParameters(topd.TypeArgs, !initialRound, topd);
 
         if (initialRound) {
           ResolveNamesAndInferTypesForOneDeclarationInitial(topd);
