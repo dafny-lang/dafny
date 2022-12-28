@@ -3390,7 +3390,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private void AddTestCheckerIfNeeded(string name, Declaration decl, ConcreteSyntaxTree wr) {
-      if (DafnyOptions.O.RunAllTests || !Attributes.Contains(decl.Attributes, "test")) {
+      if (DafnyOptions.O.Compile || DafnyOptions.O.RunAllTests || !Attributes.Contains(decl.Attributes, "test")) {
         return;
       }
 

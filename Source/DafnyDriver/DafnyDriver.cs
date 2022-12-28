@@ -88,7 +88,7 @@ namespace Microsoft.Dafny {
       "--cores=2",
 
       // We do not want absolute or relative paths in error messages, just the basename of the file
-      "--useBaseNameForFileName",
+      "--use-basename-for-filename",
 
       // Set a default time limit, to catch cases where verification time runs off the rails
       "--verification-time-limit=300"
