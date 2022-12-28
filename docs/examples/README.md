@@ -11,6 +11,6 @@ the [examples folder of Dafny's github project](https://github.com/dafny-lang/da
 
 - [Simple Maximum method](https://github.com/dafny-lang/dafny/tree/master/Test/examples/maximum.dfy)
 - [Tutorial on parser combinators](https://github.com/dafny-lang/dafny/tree/master/Test/examples/parser_combinators.dfy)
-- [A simple compiler](https://github.com/dafny-lang/dafny/tree/master/Test/examples/Simple_compiler/README)
-- [An example of significant use of induction on a mini-compiler](https://github.com/dafny-lang/dafny/tree/master/Test/examples/induction-principle)
+- [A simple compiler](https://github.com/dafny-lang/dafny/tree/master/Test/examples/Simple_compiler/README.md)
+- [An example of significant use of induction on a mini-compiler](https://github.com/dafny-lang/dafny/tree/master/Test/examples/induction-principle.md)
 
