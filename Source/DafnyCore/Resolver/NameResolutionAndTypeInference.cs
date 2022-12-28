@@ -3893,6 +3893,287 @@ namespace Microsoft.Dafny {
       }
     }
 
+    /// <summary>
+    /// Resolve the actual arguments given in "bindings". Then, check that there is exactly one
+    /// actual for each formal, and impose assignable constraints.
+    /// "typeMap" is applied to the type of each formal.
+    /// This method should be called only once. That is, bindings.arguments is required to be null on entry to this method.
+    /// </summary>
+    void ResolveActualParameters(ActualBindings bindings, List<Formal> formals, IToken callTok, object context, ResolutionContext resolutionContext,
+      Dictionary<TypeParameter, Type> typeMap, Expression/*?*/ receiver) {
+      Contract.Requires(bindings != null);
+      Contract.Requires(formals != null);
+      Contract.Requires(callTok != null);
+      Contract.Requires(context is Method || context is Function || context is DatatypeCtor || context is ArrowType);
+      Contract.Requires(typeMap != null);
+      Contract.Requires(!bindings.WasResolved);
+
+      string whatKind;
+      string name;
+      if (context is Method cMethod) {
+        whatKind = cMethod.WhatKind;
+        name = $"{whatKind} '{cMethod.Name}'";
+      } else if (context is Function cFunction) {
+        whatKind = cFunction.WhatKind;
+        name = $"{whatKind} '{cFunction.Name}'";
+      } else if (context is DatatypeCtor cCtor) {
+        whatKind = "datatype constructor";
+        name = $"{whatKind} '{cCtor.Name}'";
+      } else {
+        var cArrowType = (ArrowType)context;
+        whatKind = "function application";
+        name = $"function type '{cArrowType}'";
+      }
+
+      // If all arguments are passed positionally, use simple error messages that talk about the count of arguments.
+      var onlyPositionalArguments = bindings.ArgumentBindings.TrueForAll(binding => binding.FormalParameterName == null);
+      var simpleErrorReported = false;
+      if (onlyPositionalArguments) {
+        var requiredParametersCount = formals.Count(f => f.DefaultValue == null);
+        var actualsCounts = bindings.ArgumentBindings.Count;
+        if (requiredParametersCount <= actualsCounts && actualsCounts <= formals.Count) {
+          // the situation is plausible
+        } else if (requiredParametersCount == formals.Count) {
+          // this is the common, classical case of no default parameter values; generate a straightforward error message
+          reporter.Error(MessageSource.Resolver, callTok, $"wrong number of arguments ({name} expects {formals.Count}, got {actualsCounts})");
+          simpleErrorReported = true;
+        } else if (actualsCounts < requiredParametersCount) {
+          reporter.Error(MessageSource.Resolver, callTok, $"wrong number of arguments ({name} expects at least {requiredParametersCount}, got {actualsCounts})");
+          simpleErrorReported = true;
+        } else {
+          reporter.Error(MessageSource.Resolver, callTok, $"wrong number of arguments ({name} expects at most {formals.Count}, got {actualsCounts})");
+          simpleErrorReported = true;
+        }
+      }
+
+      // resolve given arguments and populate the "namesToActuals" map
+      var namesToActuals = new Dictionary<string, ActualBinding>();
+      formals.ForEach(f => namesToActuals.Add(f.Name, null)); // a name mapping to "null" says it hasn't been filled in yet
+      var stillAcceptingPositionalArguments = true;
+      var bindingIndex = 0;
+      foreach (var binding in bindings.ArgumentBindings) {
+        var arg = binding.Actual;
+        // insert the actual into "namesToActuals" under an appropriate name, unless there is an error
+        if (binding.FormalParameterName != null) {
+          var pname = binding.FormalParameterName.val;
+          stillAcceptingPositionalArguments = false;
+          if (!namesToActuals.TryGetValue(pname, out var b)) {
+            reporter.Error(MessageSource.Resolver, binding.FormalParameterName, $"the binding named '{pname}' does not correspond to any formal parameter");
+          } else if (b == null) {
+            // all is good
+            namesToActuals[pname] = binding;
+          } else if (b.FormalParameterName == null) {
+            reporter.Error(MessageSource.Resolver, binding.FormalParameterName, $"the parameter named '{pname}' is already given positionally");
+          } else {
+            reporter.Error(MessageSource.Resolver, binding.FormalParameterName, $"duplicate binding for parameter name '{pname}'");
+          }
+        } else if (!stillAcceptingPositionalArguments) {
+          reporter.Error(MessageSource.Resolver, arg.tok, "a positional argument is not allowed to follow named arguments");
+        } else if (bindingIndex < formals.Count) {
+          // use the name of formal corresponding to this positional argument, unless the parameter is named-only
+          var formal = formals[bindingIndex];
+          var pname = formal.Name;
+          if (formal.IsNameOnly) {
+            reporter.Error(MessageSource.Resolver, arg.tok,
+              $"nameonly parameter '{pname}' must be passed using a name binding; it cannot be passed positionally");
+          }
+          Contract.Assert(namesToActuals[pname] == null); // we expect this, since we've only filled parameters positionally so far
+          namesToActuals[pname] = binding;
+        } else {
+          // too many positional arguments
+          if (onlyPositionalArguments) {
+            // error was reported before the "foreach" loop
+            Contract.Assert(simpleErrorReported);
+          } else if (formals.Count < bindingIndex) {
+            // error was reported on a previous iteration of this "foreach" loop
+          } else {
+            reporter.Error(MessageSource.Resolver, callTok,
+              $"wrong number of arguments ({name} expects {formals.Count}, got {bindings.ArgumentBindings.Count})");
+          }
+        }
+
+        // resolve argument
+        ResolveExpression(arg, resolutionContext);
+        bindingIndex++;
+      }
+
+      var actuals = new List<Expression>();
+      var formalIndex = 0;
+      var substMap = new Dictionary<IVariable, Expression>();
+      foreach (var formal in formals) {
+        var b = namesToActuals[formal.Name];
+        if (b != null) {
+          actuals.Add(b.Actual);
+          substMap.Add(formal, b.Actual);
+          var what = GetLocationInformation(formal,
+            bindings.ArgumentBindings.Count(), bindings.ArgumentBindings.IndexOf(b),
+            whatKind + (context is Method ? " in-parameter" : " parameter"));
+
+          AddAssignableConstraint(
+            callTok, formal.Type.Subst(typeMap), b.Actual.Type,
+            $"incorrect argument type {what} (expected {{0}}, found {{1}})");
+        } else if (formal.DefaultValue != null) {
+          // Note, in the following line, "substMap" is passed in, but it hasn't been fully filled in until the
+          // end of this foreach loop. Still, that's soon enough, because DefaultValueExpression won't use it
+          // until FillInDefaultValueExpressions at the end of Pass 1 of the Resolver.
+          var n = new DefaultValueExpression(callTok, formal, receiver, substMap, typeMap);
+          allDefaultValueExpressions.Add(n);
+          actuals.Add(n);
+          substMap.Add(formal, n);
+        } else {
+          // parameter has no value
+          if (onlyPositionalArguments) {
+            // a simple error message has already been reported
+            Contract.Assert(simpleErrorReported);
+          } else {
+            var formalDescription = whatKind + (context is Method ? " in-parameter" : " parameter");
+            var nameWithIndex = formal.HasName && formal is not ImplicitFormal ? "'" + formal.Name + "'" : "";
+            if (formals.Count > 1 || nameWithIndex == "") {
+              nameWithIndex += nameWithIndex == "" ? "" : " ";
+              nameWithIndex += $"at index {formalIndex}";
+            }
+            var message = $"{formalDescription} {nameWithIndex} requires an argument of type {formal.Type}";
+            reporter.Error(MessageSource.Resolver, callTok, message);
+          }
+        }
+        formalIndex++;
+      }
+
+      bindings.AcceptArgumentExpressionsAsExactParameterList(actuals);
+    }
+
+    private static string GetLocationInformation(Formal parameter, int bindingCount, int bindingIndex, string formalDescription) {
+      var displayName = parameter.HasName && parameter is not ImplicitFormal;
+      var description = "";
+      if (bindingCount > 1) {
+        description += $"at index {bindingIndex} ";
+      }
+
+      description += $"for {formalDescription}";
+
+      if (displayName) {
+        description += $" '{parameter.Name}'";
+      }
+
+      return description;
+    }
+
+    /// <summary>
+    /// To resolve "id" in expression "E . id", do:
+    ///  * If E denotes a module name M:
+    ///      0. Member of module M:  sub-module (including submodules of imports), class, datatype, etc.
+    ///         (if two imported types have the same name, an error message is produced here)
+    ///      1. Static member of M._default denoting an async task type
+    ///    (Note that in contrast to ResolveNameSegment_Type, imported modules, etc. are ignored)
+    ///  * If E denotes a type:
+    ///      2. a. Member of that type denoting an async task type, or:
+    ///         b. If allowDanglingDotName:
+    ///            Return the type "E" and the given "expr", letting the caller try to make sense of the final dot-name.
+    ///
+    /// Note: 1 and 2a are not used now, but they will be of interest when async task types are supported.
+    /// </summary>
+    ResolveTypeReturn ResolveDotSuffix_Type(ExprDotName expr, ResolutionContext resolutionContext, bool allowDanglingDotName, ResolveTypeOption option, List<TypeParameter> defaultTypeArguments) {
+      Contract.Requires(expr != null);
+      Contract.Requires(!expr.WasResolved());
+      Contract.Requires(expr.Lhs is NameSegment || expr.Lhs is ExprDotName);
+      Contract.Requires(resolutionContext != null);
+      Contract.Ensures(Contract.Result<ResolveTypeReturn>() == null || allowDanglingDotName);
+
+      // resolve the LHS expression
+      if (expr.Lhs is NameSegment) {
+        ResolveNameSegment_Type((NameSegment)expr.Lhs, resolutionContext, option, defaultTypeArguments);
+      } else {
+        ResolveDotSuffix_Type((ExprDotName)expr.Lhs, resolutionContext, false, option, defaultTypeArguments);
+      }
+
+      if (expr.OptTypeArguments != null) {
+        foreach (var ty in expr.OptTypeArguments) {
+          ResolveType(expr.tok, ty, resolutionContext, option, defaultTypeArguments);
+        }
+      }
+
+      Expression r = null;  // the resolved expression, if successful
+
+      var lhs = expr.Lhs.Resolved;
+      if (lhs != null && lhs.Type is Resolver_IdentifierExpr.ResolverType_Module) {
+        var ri = (Resolver_IdentifierExpr)lhs;
+        var sig = ((ModuleDecl)ri.Decl).AccessibleSignature(useCompileSignatures);
+        sig = GetSignature(sig);
+        // For 0:
+        TopLevelDecl decl;
+
+        if (sig.TopLevels.TryGetValue(expr.SuffixName, out decl)) {
+          // ----- 0. Member of the specified module
+          if (decl is AmbiguousTopLevelDecl) {
+            var ad = (AmbiguousTopLevelDecl)decl;
+            reporter.Error(MessageSource.Resolver, expr.tok, "The name {0} ambiguously refers to a type in one of the modules {1} (try qualifying the type name with the module name)", expr.SuffixName, ad.ModuleNames());
+          } else {
+            // We have found a module name or a type name.  We create a temporary expression that will never be seen by the compiler
+            // or verifier, just to have a placeholder where we can recorded what we have found.
+            r = CreateResolver_IdentifierExpr(expr.tok, expr.SuffixName, expr.OptTypeArguments, decl);
+          }
+#if ASYNC_TASK_TYPES
+        } else if (sig.StaticMembers.TryGetValue(expr.SuffixName, out member)) {
+          // ----- 1. static member of the specified module
+          Contract.Assert(member.IsStatic); // moduleInfo.StaticMembers is supposed to contain only static members of the module's implicit class _default
+          if (ReallyAmbiguousThing(ref member)) {
+            reporter.Error(MessageSource.Resolver, expr.tok, "The name {0} ambiguously refers to a static member in one of the modules {1} (try qualifying the member name with the module name)", expr.SuffixName, ((AmbiguousMemberDecl)member).ModuleNames());
+          } else {
+            var receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass);
+            r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts.resolutionContext, allowMethodCall);
+          }
+#endif
+        } else {
+          reporter.Error(MessageSource.Resolver, expr.tok, "module '{0}' does not declare a type '{1}'", ri.Decl.Name, expr.SuffixName);
+        }
+
+      } else if (lhs != null && lhs.Type is Resolver_IdentifierExpr.ResolverType_Type) {
+        var ri = (Resolver_IdentifierExpr)lhs;
+        // ----- 2. Look up name in type
+        var ty = new UserDefinedType(ri.tok, ri.Decl.Name, ri.Decl, ri.TypeArgs);
+        if (allowDanglingDotName && ty.IsRefType) {
+          return new ResolveTypeReturn(ty, expr);
+        }
+        if (r == null) {
+          reporter.Error(MessageSource.Resolver, expr.tok, "member '{0}' does not exist in type '{1}' or cannot be part of type name", expr.SuffixName, ri.Decl.Name);
+        }
+      }
+
+      if (r == null) {
+        // an error has been reported above; we won't fill in .ResolvedExpression, but we still must fill in .Type
+        expr.Type = new InferredTypeProxy();
+      } else {
+        expr.ResolvedExpression = r;
+        expr.Type = r.Type;
+      }
+      return null;
+    }
+
+    Resolver_IdentifierExpr CreateResolver_IdentifierExpr(IToken tok, string name, List<Type> optTypeArguments, TopLevelDecl decl) {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(decl != null);
+      Contract.Ensures(Contract.Result<Resolver_IdentifierExpr>() != null);
+
+      if (!moduleInfo.IsAbstract) {
+        if (decl is ModuleDecl md && md.Signature.IsAbstract) {
+          reporter.Error(MessageSource.Resolver, tok, "a compiled module is not allowed to use an abstract module ({0})", decl.Name);
+        }
+      }
+      var n = optTypeArguments == null ? 0 : optTypeArguments.Count;
+      if (optTypeArguments != null) {
+        // type arguments were supplied; they must be equal in number to those expected
+        if (n != decl.TypeArgs.Count) {
+          reporter.Error(MessageSource.Resolver, tok, "Wrong number of type arguments ({0} instead of {1}) passed to {2}: {3}", n, decl.TypeArgs.Count, decl.WhatKind, name);
+        }
+      }
+      List<Type> tpArgs = new List<Type>();
+      for (int i = 0; i < decl.TypeArgs.Count; i++) {
+        tpArgs.Add(i < n ? optTypeArguments[i] : new InferredTypeProxy());
+      }
+      return new Resolver_IdentifierExpr(tok, decl, tpArgs);
+    }
+
     private void ResolveAssignSuchThatStmt(AssignSuchThatStmt s, ResolutionContext resolutionContext) {
       Contract.Requires(s != null);
       Contract.Requires(resolutionContext != null);
@@ -6409,6 +6690,37 @@ namespace Microsoft.Dafny {
         expr.Type = r.Type;
       }
       return rWithArgs;
+    }
+
+    /// <summary>
+    /// Check whether the name we just resolved may have been resolved differently if we didn't allow member `M.M` of
+    /// module `M` to shadow `M` when the user writes `import opened M`.  Raising an error in that case allowed us to
+    /// change the behavior of `import opened` without silently changing the meaning of existing programs.
+    /// (https://github.com/dafny-lang/dafny/issues/1996)
+    ///
+    /// Note the extra care for the constructor case, which is needed because the constructors of datatype `M.M` are
+    /// exposed through both `M` and `M.M`, without ambiguity.
+    /// </summary>
+    private void CheckForAmbiguityInShadowedImportedModule(ModuleDecl moduleDecl, string name,
+      IToken tok, bool useCompileSignatures, bool isLastNameSegment) {
+      if (moduleDecl != null && NameConflictsWithModuleContents(moduleDecl, name, useCompileSignatures, isLastNameSegment)) {
+        reporter.Error(MessageSource.Resolver, tok,
+          "Reference to member '{0}' is ambiguous: name '{1}' shadows an import-opened module of the same name, and "
+          + "both have a member '{0}'. To solve this issue, give a different name to the imported module using "
+          + "`import opened XYZ = ...` instead of `import opened ...`.",
+          name, moduleDecl.Name);
+      }
+    }
+
+    private bool NameConflictsWithModuleContents(ModuleDecl moduleDecl, string name, bool useCompileSignatures, bool isLastNameSegment) {
+      var sig = GetSignature(moduleDecl.AccessibleSignature(useCompileSignatures));
+      return (
+        (isLastNameSegment
+         && sig.Ctors.GetValueOrDefault(name) is { Item1: var constructor, Item2: var ambiguous }
+         && !ambiguous && constructor.EnclosingDatatype.Name != moduleDecl.Name)
+        || sig.TopLevels.ContainsKey(name)
+        || sig.StaticMembers.ContainsKey(name)
+      );
     }
 
     Expression ResolveExprDotCall(IToken tok, Expression receiver, Type receiverTypeBound/*?*/,
