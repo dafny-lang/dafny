@@ -614,7 +614,7 @@ we now need to introduce `Pes`, `Pes_Succ` and `Pes_Fail`, to state properties a
 Similarly to the `P` predicates which manipulate values of type `V`, the `Pes` predicates
 manipulate sequences of values of type `VS`.
 
-**Note:** if you wonder why we parameterize the induction principle by `V` and `VS`,
+**Note:** If you wonder why we parameterize the induction principle by `V` and `VS`,
 see this [section](#pair-of-state).
 
 ```dafny
