@@ -49,7 +49,7 @@ forall e, st ::
       case Failure => true
 ```
 
-**Note:** we mention above that not all lemmas can be proved by induction over the syntax.
+**Note:** We mention above that not all lemmas can be proved by induction over the syntax.
 It is for instance the case if the AST contains loops, in which situation we often need to
 manipulate a notion of fuel when defining the interpreter: the lemmas then require doing
 the induction also on the fuel. Let's assume we can always do the induction on the syntax only
