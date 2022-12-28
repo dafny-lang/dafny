@@ -668,7 +668,7 @@ introducing new definitions (for `Pes` for instance). They do not require actual
 updating broken proofs. In addition, proving the `InductExprs_Cons` lemma for `VarUnchanged`
 also requires writing an assertion to help the SMT solver.
 
-The proof of correctness of `IsPure` which doesn't use the induction principle
+The proof of correctness of `IsPure` that doesn't use the induction principle
 (`PureNoInductionPrinciple`) is a bit more tedious, because it requires changing the `Seq`
 case and introducing a proof about `InterpExprs`.
 
