@@ -685,7 +685,7 @@ Bind(bvar: string, bval: Expr, body: Expr)   -->   Bind(bvars: seq<string>, bval
 Assign(avar: string, aval: Expr)             -->   Assign(avars: seq<string>, avals: seq<Expr>)
 ```
 
-**Note:** in the [code development](induction-principle/AST.dfy), we actually rename `Expr` to `Expr_Raw` and define
+**Note:** In the [code development](induction-principle/AST.dfy), we actually rename `Expr` to `Expr_Raw` and define
 `Expr` as a subset type of `Expr_Raw` to enforce the fact that in the `Assign` and `Bind`
 cases, we have the same number of variables in the left-hand side as of expressions in
 the righ-hand side.
