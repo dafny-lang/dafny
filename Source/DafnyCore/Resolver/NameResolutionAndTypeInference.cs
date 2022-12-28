@@ -3346,6 +3346,13 @@ namespace Microsoft.Dafny {
       Contract.Requires(AllTypeConstraints.Count == 0);
       Contract.Ensures(AllTypeConstraints.Count == 0);
 
+      // make note of the warnShadowing attribute
+      bool warnShadowingOption = DafnyOptions.O.WarnShadowing;  // save the original warnShadowing value
+      bool warnShadowing = false;
+      if (Attributes.ContainsBool(f.Attributes, "warnShadowing", ref warnShadowing)) {
+        DafnyOptions.O.WarnShadowing = warnShadowing;  // set the value according to the attribute
+      }
+
       scope.PushMarker();
       if (f.IsStatic) {
         scope.AllowInstance = false;
@@ -3362,13 +3369,6 @@ namespace Microsoft.Dafny {
 
       foreach (Formal p in f.Formals) {
         scope.Push(p.Name, p);
-      }
-
-      // take care of the warnShadowing attribute
-      bool warnShadowingOption = DafnyOptions.O.WarnShadowing;  // save the original warnShadowing value
-      bool warnShadowing = false;
-      if (Attributes.ContainsBool(f.Attributes, "warnShadowing", ref warnShadowing)) {
-        DafnyOptions.O.WarnShadowing = warnShadowing;  // set the value according to the attribute
       }
 
       ResolveParameterDefaultValues(f.Formals, ResolutionContext.FromCodeContext(f));
@@ -3490,9 +3490,9 @@ namespace Microsoft.Dafny {
       try {
         currentMethod = m;
 
+        // make note of the warnShadowing attribute
         bool warnShadowingOption = DafnyOptions.O.WarnShadowing;  // save the original warnShadowing value
         bool warnShadowing = false;
-        // take care of the warnShadowing attribute
         if (Attributes.ContainsBool(m.Attributes, "warnShadowing", ref warnShadowing)) {
           DafnyOptions.O.WarnShadowing = warnShadowing;  // set the value according to the attribute
         }
