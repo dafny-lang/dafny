@@ -654,7 +654,7 @@ lemma InductExprs_Cons(st: S, e: Expr, es: seq<Expr>)
   ensures forall st1, v, st2, vs :: P_Succ(st, e, st1, v) && Pes_Succ(st1, es, st2, vs) ==> Pes_Succ(st, [e] + es, st2, AppendValue(v, vs))
 ```
 
-**Note**: we grouped several cases in `InductExprs_Cons` and used forall quantifiers. The reason
+**Note**: We grouped several cases in `InductExprs_Cons` and used forall quantifiers. The reason
 is that those proofs are rarely a problem: they are very similar to the `if then else`
 case, in the sense that we often only need to have the induction hypotheses properly instantiated
 in the context, and the context often remains small. We do however want to split cases and control
