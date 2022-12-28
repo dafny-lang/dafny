@@ -703,7 +703,7 @@ providing the definitions required by the induction principle forces us to modif
 of code that updating the proofs when not using the induction principle. The question then
 is how straightforward it is to update or provide those definitions, compared to the cost
 of updating broken proofs when we don't use the induction principle. So far, we experienced
-more pain when updating the proofs. It is also worth mentionning the fact that, in the
+more pain when updating the proofs. It is also worth mentioning the fact that, in the
 Dafny-in-Dafny project, proving *any* theorem without the induction principle proved to
 be a big hassle, while the introduction of the induction principle drastically diminished
 the pain.
