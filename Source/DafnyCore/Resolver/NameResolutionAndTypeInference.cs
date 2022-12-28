@@ -3235,8 +3235,10 @@ namespace Microsoft.Dafny {
               "type for constant '" + constantField.Name + "' is '{0}', but its initialization value type is '{1}'");
           }
           SolveAllTypeConstraints();
+
         } else if (initialRound) {
           // do nothing (because everything else in done in the next round)
+
         } else if (member is Field) {
           var resolutionContext = new ResolutionContext(new NoContext(currentClass.EnclosingModuleDefinition), false);
           scope.PushMarker();
@@ -3245,33 +3247,30 @@ namespace Microsoft.Dafny {
           }
           ResolveAttributes(member, resolutionContext, true);
           scope.PopMarker();
-        } else if (member is Function) {
-          var f = (Function)member;
+
+        } else if (member is Function function) {
           var ec = reporter.Count(ErrorLevel.Error);
           allTypeParameters.PushMarker();
-          ResolveTypeParameters(f.TypeArgs, false, f);
-          ResolveFunction(f);
+          ResolveTypeParameters(function.TypeArgs, false, function);
+          ResolveFunction(function);
           allTypeParameters.PopMarker();
-          if (f is ExtremePredicate ef && ef.PrefixPredicate != null && ec == reporter.Count(ErrorLevel.Error)) {
-            var ff = ef.PrefixPredicate;
+          if (function is ExtremePredicate { PrefixPredicate: { } prefixPredicate } && ec == reporter.Count(ErrorLevel.Error)) {
             allTypeParameters.PushMarker();
-            ResolveTypeParameters(ff.TypeArgs, false, ff);
-            ResolveFunction(ff);
+            ResolveTypeParameters(prefixPredicate.TypeArgs, false, prefixPredicate);
+            ResolveFunction(prefixPredicate);
             allTypeParameters.PopMarker();
           }
 
-        } else if (member is Method) {
-          var m = (Method)member;
+        } else if (member is Method method) {
           var ec = reporter.Count(ErrorLevel.Error);
           allTypeParameters.PushMarker();
-          ResolveTypeParameters(m.TypeArgs, false, m);
-          ResolveMethod(m);
+          ResolveTypeParameters(method.TypeArgs, false, method);
+          ResolveMethod(method);
           allTypeParameters.PopMarker();
-          if (m is ExtremeLemma em && em.PrefixLemma != null && ec == reporter.Count(ErrorLevel.Error)) {
-            var mm = em.PrefixLemma;
+          if (method is ExtremeLemma { PrefixLemma: {} prefixLemma } && ec == reporter.Count(ErrorLevel.Error)) {
             allTypeParameters.PushMarker();
-            ResolveTypeParameters(mm.TypeArgs, false, mm);
-            ResolveMethod(mm);
+            ResolveTypeParameters(prefixLemma.TypeArgs, false, prefixLemma);
+            ResolveMethod(prefixLemma);
             allTypeParameters.PopMarker();
           }
 
