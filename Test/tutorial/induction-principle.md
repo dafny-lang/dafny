@@ -744,7 +744,7 @@ predicate EqValue_Closure(cv: Closure, cv': Closure)
 }
 ```
 
-**Note:** this predicate is simplified for the purpose of illustration. For the "real"
+**Note:** This predicate is simplified for the purpose of illustration. For the "real"
 predicate, see the full [Dafny-in-Dafny development](https://github.com/dafny-lang/compiler-bootstrap/blob/1493872f6a38f23ff83408333e25190d4829904c/src/Semantics/Equiv.dfy#L202).
 
 We now need to reason modulo this semantic equality. For instance, when proving that
