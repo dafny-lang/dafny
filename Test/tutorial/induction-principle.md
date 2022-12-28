@@ -363,7 +363,7 @@ lemma P_ExcludedMiddle(locals: set<string>, ctx: Context, e: Expr)
 
 <br>
 
-**Note:** in the generic induction principle, we actually don't request the property `P_ExcludedMiddle`
+**Note:** In the generic induction principle, we actually don't request the property `P_ExcludedMiddle`
 stated as above, but rather ask for the following function and lemmas. The reason is that
 SMT solvers can have unpredictable performance on resolving existential quantifiers.
 ```dafny
