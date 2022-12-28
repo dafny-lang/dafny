@@ -111,7 +111,7 @@ namespace Microsoft.Dafny {
             ResolveParameterDefaultValues(ctor.Formals, ResolutionContext.FromCodeContext(dt));
             scope.PopMarker();
 
-            ResolveAttributes(ctor, new ResolutionContext(new NoContext(topd.EnclosingModuleDefinition), false));
+            ResolveAttributes(ctor, new ResolutionContext(new NoContext(topd.EnclosingModuleDefinition), false), true);
           }
         }
       }
@@ -123,7 +123,7 @@ namespace Microsoft.Dafny {
       if (!initialRound) {
         scope.PushMarker();
         scope.AllowInstance = currentClass != null && currentClass.AcceptThis;
-        ResolveAttributes(topd, new ResolutionContext(new NoContext(topd.EnclosingModuleDefinition), false));
+        ResolveAttributes(topd, new ResolutionContext(new NoContext(topd.EnclosingModuleDefinition), false), true);
         scope.PopMarker();
       }
 
@@ -257,9 +257,17 @@ namespace Microsoft.Dafny {
       AllXConstraints.Clear();
     }
 
-    void ResolveAttributes(IAttributeBearingDeclaration attributeHost, ResolutionContext resolutionContext) {
+    /// <summary>
+    /// Adds type constraints for the expressions in the given attributes.
+    ///
+    /// If "solveConstraints" is "true", then the constraints are also solved. In this case, it is assumed on entry that there are no
+    /// prior type constraints. That is, the only type constraints being solved for are the ones in the given attributes.
+    /// </summary>
+    void ResolveAttributes(IAttributeBearingDeclaration attributeHost, ResolutionContext resolutionContext, bool solveConstraints = false) {
       Contract.Requires(resolutionContext != null);
       Contract.Requires(attributeHost != null);
+
+      Contract.Assume(!solveConstraints || AllTypeConstraints.Count == 0);
 
       // order does not matter much for resolution, so resolve them in reverse order
       foreach (var attr in attributeHost.Attributes.AsEnumerable()) {
@@ -273,6 +281,10 @@ namespace Microsoft.Dafny {
             ResolveExpression(arg, resolutionContext);
           }
         }
+      }
+
+      if (solveConstraints) {
+        SolveAllTypeConstraints();
       }
     }
 
@@ -3226,7 +3238,7 @@ namespace Microsoft.Dafny {
           if (member.IsStatic) {
             scope.AllowInstance = false;
           }
-          ResolveAttributes(member, resolutionContext);
+          ResolveAttributes(member, resolutionContext, true);
           scope.PopMarker();
         } else if (member is Function) {
           var f = (Function)member;
@@ -3334,9 +3346,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(AllTypeConstraints.Count == 0);
       Contract.Ensures(AllTypeConstraints.Count == 0);
 
-      bool warnShadowingOption = DafnyOptions.O.WarnShadowing;  // save the original warnShadowing value
-      bool warnShadowing = false;
-
       scope.PushMarker();
       if (f.IsStatic) {
         scope.AllowInstance = false;
@@ -3354,12 +3363,16 @@ namespace Microsoft.Dafny {
       foreach (Formal p in f.Formals) {
         scope.Push(p.Name, p);
       }
-      ResolveAttributes(f, new ResolutionContext(f, false));
+
       // take care of the warnShadowing attribute
+      bool warnShadowingOption = DafnyOptions.O.WarnShadowing;  // save the original warnShadowing value
+      bool warnShadowing = false;
       if (Attributes.ContainsBool(f.Attributes, "warnShadowing", ref warnShadowing)) {
         DafnyOptions.O.WarnShadowing = warnShadowing;  // set the value according to the attribute
       }
+
       ResolveParameterDefaultValues(f.Formals, ResolutionContext.FromCodeContext(f));
+
       foreach (AttributedExpression e in f.Req) {
         ResolveAttributes(e, new ResolutionContext(f, f is TwoStateFunction));
         Expression r = e.E;
@@ -3370,26 +3383,26 @@ namespace Microsoft.Dafny {
       foreach (FrameExpression fr in f.Reads) {
         ResolveFrameExpressionTopLevel(fr, FrameExpressionUse.Reads, f);
       }
+
+      scope.PushMarker();
+      if (f.Result != null) {
+        scope.Push(f.Result.Name, f.Result);  // function return only visible in post-conditions (and in function attributes)
+      }
       foreach (AttributedExpression e in f.Ens) {
         Expression r = e.E;
-        if (f.Result != null) {
-          scope.PushMarker();
-          scope.Push(f.Result.Name, f.Result);  // function return only visible in post-conditions
-        }
         ResolveAttributes(e, new ResolutionContext(f, f is TwoStateFunction));
         ResolveExpression(r, new ResolutionContext(f, f is TwoStateFunction) with { InFunctionPostcondition = true });
         Contract.Assert(r.Type != null);  // follows from postcondition of ResolveExpression
         ConstrainTypeExprBool(r, "Postcondition must be a boolean (got {0})");
-        if (f.Result != null) {
-          scope.PopMarker();
-        }
       }
+      scope.PopMarker(); // function result name
+
       ResolveAttributes(f.Decreases, new ResolutionContext(f, f is TwoStateFunction));
       foreach (Expression r in f.Decreases.Expressions) {
         ResolveExpression(r, new ResolutionContext(f, f is TwoStateFunction));
         // any type is fine
       }
-      SolveAllTypeConstraints();
+      SolveAllTypeConstraints(); // solve type constraints in the specification
 
       if (f.ByMethodBody != null) {
         // The following conditions are assured by the parser and other callers of the Function constructor
@@ -3416,7 +3429,14 @@ namespace Microsoft.Dafny {
         }
       }
 
-      scope.PopMarker();
+      scope.PushMarker();
+      if (f.Result != null) {
+        scope.Push(f.Result.Name, f.Result);  // function return only visible in post-conditions (and in function attributes)
+      }
+      ResolveAttributes(f, new ResolutionContext(f, f is TwoStateFunction), true);
+      scope.PopMarker(); // function result name
+
+      scope.PopMarker(); // formals
 
       DafnyOptions.O.WarnShadowing = warnShadowingOption; // restore the original warnShadowing value
     }
@@ -3546,7 +3566,7 @@ namespace Microsoft.Dafny {
           Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
           ConstrainTypeExprBool(e.E, "Postcondition must be a boolean (got {0})");
         }
-        SolveAllTypeConstraints();
+        SolveAllTypeConstraints(); // solve type constraints for specification
 
         // Resolve body
         if (m.Body != null) {
@@ -3574,13 +3594,13 @@ namespace Microsoft.Dafny {
         }
 
         // attributes are allowed to mention both in- and out-parameters (including the implicit _k, for greatest lemmas)
-        ResolveAttributes(m, new ResolutionContext(m, m is TwoStateLemma));
+        ResolveAttributes(m, new ResolutionContext(m, m is TwoStateLemma), true);
 
         DafnyOptions.O.WarnShadowing = warnShadowingOption; // restore the original warnShadowing value
         scope.PopMarker();  // for the out-parameters and outermost-level locals
         scope.PopMarker();  // for the in-parameters
-      }
-      finally {
+
+      } finally {
         currentMethod = null;
       }
     }

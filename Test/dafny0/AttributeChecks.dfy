@@ -381,3 +381,23 @@ module
   Modu
 {
 }
+
+module TwoStateAttributes {
+  class C {
+    var data: int
+
+    function {:myAttr old(data), x, r} F(x: int): (r: int) // error: old not allowed in this context
+
+    twostate function {:myAttr old(data), x, r} F2(x: int): (r: int) // old is allowed
+
+    lemma {:myAttr old(data), x, y} L(x: int) returns (y: int) // error: old not allowed in this context
+
+    twostate lemma {:myAttr old(data), x, y} L2(x: int) returns (y: int) // old is allowed
+
+    method {:myAttr old(data), x, y} M(x: int) returns (y: int) // error: old not allowed in this context
+
+    least predicate {:myAttr old(data), x} LP(x: int) // error: old not allowed in this context
+
+    least lemma {:myAttr old(data), x} LL(x: int) // error: old not allowed in this context
+  }
+}

@@ -1039,8 +1039,7 @@ namespace Microsoft.Dafny {
       int prevErrorCount = reporter.Count(ErrorLevel.Error);
       ResolveTopLevelDecls_Signatures(m, sig, allDeclarations, datatypeDependencies, codatatypeDependencies);
       Contract.Assert(AllTypeConstraints.Count == 0); // signature resolution does not add any type constraints
-      ResolveAttributes(m, new ResolutionContext(new NoContext(m.EnclosingModule), false)); // Must follow ResolveTopLevelDecls_Signatures, in case attributes refer to members
-      SolveAllTypeConstraints(); // solve any type constraints entailed by the attributes
+      ResolveAttributes(m, new ResolutionContext(new NoContext(m.EnclosingModule), false), true); // Must follow ResolveTopLevelDecls_Signatures, in case attributes refer to members
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         ResolveTopLevelDecls_Core(allDeclarations, datatypeDependencies, codatatypeDependencies, isAnExport);
       }
