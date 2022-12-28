@@ -571,7 +571,7 @@ forall x, ctx, e ::
 
 Because of the potential shadowing appearing in the `Bind` case, we actually can't use this
 property directly in the inductive proof. We actually have to make the `x` string optional
-(see the [code development](induction-principle/VarUnchanged.dfy) for the full details). Once this detail properly handled, all the
+(see the [code development](induction-principle/VarUnchanged.dfy) for the full details). Once this detail is properly handled, all the
 proofs go through automatically.
 
 
