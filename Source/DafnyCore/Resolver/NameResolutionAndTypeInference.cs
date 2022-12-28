@@ -4758,9 +4758,18 @@ namespace Microsoft.Dafny {
       }
     }
 
+    /// <summary>
+    /// Resolves the default-valued expression for each formal in "formals".
+    /// Solves the resulting type constraints.
+    /// Assumes these are the only type constraints to be solved.
+    ///
+    /// Reports an error for any cyclic dependency among the default-value expressions of the formals.
+    /// </summary>
     void ResolveParameterDefaultValues(List<Formal> formals, ResolutionContext resolutionContext) {
       Contract.Requires(formals != null);
       Contract.Requires(resolutionContext != null);
+
+      Contract.Assume(AllTypeConstraints.Count == 0);
 
       var dependencies = new Graph<IVariable>();
       var allowMoreRequiredParameters = true;
