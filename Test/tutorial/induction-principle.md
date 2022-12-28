@@ -588,9 +588,9 @@ principle and the proofs we have done so far.
 
 The first modification we do is to transform the `Seq` case from `Seq(e1: Expr, e2: Expr)`
 to `Seq(seq<Expr>)`. This requires adding a function to interpret sequences of expressions.
-Anticipating a bit on the next language extension we will implement (allowing assignments
+Anticipating a bit on the next language extension we will implement allowing assignments
 and let-bindings to update/declare a sequence of variables -
-see [next section](#section-increments-varseq)), we define this function so that it returns
+see [next section](#section-increments-varseq); we define this function so that it returns
 the *sequence* of the values the individual expressions evaluate to, rather than the value
 the *last* expression in the sequence evaluates to:
 
