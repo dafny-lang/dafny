@@ -22,7 +22,7 @@ terminates.
 
 Verifying the compiler then requires us to repeatedly state and prove lemmas about this
 `InterpExpr` function. For instance, given a transformation `TR: (Expr) -> Expr`, we might
-express the correctness of the transformation in the following way (which says that the new program fails no more often that
+express the correctness of the transformation in the following way (which says that the new program fails no more often than
 the original one, and evaluates to the same result):
 
 ```dafny
