@@ -3400,29 +3400,11 @@ namespace Microsoft.Dafny {
       }
       SolveAllTypeConstraints(); // solve type constraints in the specification
 
-      if (f.ByMethodBody != null) {
-        // The following conditions are assured by the parser and other callers of the Function constructor
-        Contract.Assert(f.Body != null);
-        Contract.Assert(!f.IsGhost);
-      }
       if (f.Body != null) {
-        var prevErrorCount = reporter.Count(ErrorLevel.Error);
         ResolveExpression(f.Body, new ResolutionContext(f, f is TwoStateFunction));
         Contract.Assert(f.Body.Type != null);  // follows from postcondition of ResolveExpression
         AddAssignableConstraint(f.tok, f.ResultType, f.Body.Type, "Function body type mismatch (expected {0}, got {1})");
         SolveAllTypeConstraints();
-
-        if (f.ByMethodBody != null) {
-          var method = f.ByMethodDecl;
-          if (method != null) {
-            ResolveMethod(method);
-          } else {
-            // method should have been filled in by now,
-            // unless there was a function by method and a method of the same name
-            // but then this error must have been reported.
-            Contract.Assert(reporter.ErrorCount > 0);
-          }
-        }
       }
 
       scope.PushMarker();
@@ -3433,6 +3415,19 @@ namespace Microsoft.Dafny {
       scope.PopMarker(); // function result name
 
       scope.PopMarker(); // formals
+
+      if (f.ByMethodBody != null) {
+        Contract.Assert(f.Body != null && !f.IsGhost); // assured by the parser and other callers of the Function constructor
+        var method = f.ByMethodDecl;
+        if (method != null) {
+          ResolveMethod(method);
+        } else {
+          // method should have been filled in by now,
+          // unless there was a function by method and a method of the same name
+          // but then this error must have been reported.
+          Contract.Assert(reporter.ErrorCount > 0);
+        }
+      }
 
       DafnyOptions.O.WarnShadowing = warnShadowingOption; // restore the original warnShadowing value
     }

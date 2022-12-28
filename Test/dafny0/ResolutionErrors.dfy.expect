@@ -79,9 +79,9 @@ ResolutionErrors.dfy(565,17): Error: type of case bodies do not agree (found Tre
 ResolutionErrors.dfy(577,24): Error: Wrong number of type arguments (0 instead of 2) passed to datatype: Tree
 ResolutionErrors.dfy(592,20): Error: unresolved identifier: w
 ResolutionErrors.dfy(611,8): Error: the type of this local variable is underspecified
-ResolutionErrors.dfy(612,18): Error: type of bound variable 'z' could not be determined; please specify the type explicitly
+ResolutionErrors.dfy(612,25): Error: the type of this variable is underspecified
 ResolutionErrors.dfy(612,23): Error: type parameter 'T' (inferred to be '?') in the function call to 'P' could not be determined
-ResolutionErrors.dfy(612,25): Error: the type of this expression is underspecified
+ResolutionErrors.dfy(612,18): Error: type of bound variable 'z' could not be determined; please specify the type explicitly
 ResolutionErrors.dfy(625,13): Error: a lemma is not allowed to use 'new'
 ResolutionErrors.dfy(626,9): Error: a lemma is not allowed to use 'new'
 ResolutionErrors.dfy(635,16): Error: only ghost methods can be called from this context
@@ -165,23 +165,23 @@ ResolutionErrors.dfy(1173,15): Error: arguments to / must be numeric or bitvecto
 ResolutionErrors.dfy(1180,20): Error: a call to a possibly non-terminating method is allowed only if the calling method is also declared (with 'decreases *') to be possibly non-terminating
 ResolutionErrors.dfy(1195,16): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
 ResolutionErrors.dfy(1260,13): Error: type parameter 'PT' (inferred to be '?') in the function call to 'P' could not be determined
-ResolutionErrors.dfy(1261,14): Error: the type of this local variable is underspecified
-ResolutionErrors.dfy(1261,20): Error: the type of this expression is underspecified
+ResolutionErrors.dfy(1261,14): Error: the type of this variable is underspecified
 ResolutionErrors.dfy(1261,19): Error: type parameter 'QT' (inferred to be '?') in the function call to 'Q' could not be determined
+ResolutionErrors.dfy(1261,20): Error: the type of this expression is underspecified
 ResolutionErrors.dfy(1262,4): Error: type parameter 'MT' (inferred to be '?') to the method 'M' could not be determined
-ResolutionErrors.dfy(1263,8): Error: the type of this local variable is underspecified
+ResolutionErrors.dfy(1263,8): Error: the type of this variable is underspecified
 ResolutionErrors.dfy(1263,13): Error: type parameter 'NT' (inferred to be '?') to the method 'N' could not be determined
-ResolutionErrors.dfy(1264,8): Error: the type of this local variable is underspecified
-ResolutionErrors.dfy(1265,8): Error: the type of this local variable is underspecified
+ResolutionErrors.dfy(1264,8): Error: the type of this variable is underspecified
+ResolutionErrors.dfy(1265,8): Error: the type of this variable is underspecified
 ResolutionErrors.dfy(1266,8): Error: the type of this local variable is underspecified
-ResolutionErrors.dfy(1267,8): Error: the type of this local variable is underspecified
+ResolutionErrors.dfy(1267,8): Error: the type of this variable is underspecified
 ResolutionErrors.dfy(1268,8): Error: the type of this local variable is underspecified
+ResolutionErrors.dfy(1272,26): Error: the type of this variable is underspecified
 ResolutionErrors.dfy(1272,21): Error: type of bound variable 's' could not be determined; please specify the type explicitly
-ResolutionErrors.dfy(1272,26): Error: the type of this expression is underspecified
+ResolutionErrors.dfy(1273,31): Error: the type of this variable is underspecified
 ResolutionErrors.dfy(1273,21): Error: type of bound variable 's' could not be determined; please specify the type explicitly
-ResolutionErrors.dfy(1273,31): Error: the type of this expression is underspecified
+ResolutionErrors.dfy(1274,30): Error: the type of this variable is underspecified
 ResolutionErrors.dfy(1274,21): Error: type of bound variable 'c' could not be determined; please specify the type explicitly
-ResolutionErrors.dfy(1274,30): Error: the type of this expression is underspecified
 ResolutionErrors.dfy(1281,8): Error: the type of this local variable is underspecified
 ResolutionErrors.dfy(1284,29): Error: type of bound variable 'c' could not be determined; please specify the type explicitly
 ResolutionErrors.dfy(1295,21): Error: Undeclared top-level type or type parameter: X (did you forget to qualify a name or declare a module import 'opened'?)
@@ -367,8 +367,6 @@ ResolutionErrors.dfy(2448,32): Error: an abstemious function is allowed to invok
 ResolutionErrors.dfy(2453,12): Error: an abstemious function is allowed to codatatype-match only on its parameters
 ResolutionErrors.dfy(2460,9): Error: an abstemious function is not only allowed to check codatatype equality
 ResolutionErrors.dfy(2462,14): Error: an abstemious function is not only allowed to check codatatype equality
-ResolutionErrors.dfy(2484,8): Error: an ORDINAL type is not allowed to be used as a type argument
-ResolutionErrors.dfy(2485,8): Error: an ORDINAL type is not allowed to be used as a type argument
 ResolutionErrors.dfy(2487,19): Error: type parameter 'G' (passed in as 'ORDINAL') to function call 'F' is not allowed to use ORDINAL
 ResolutionErrors.dfy(2488,13): Error: type parameter 'G' (passed in as 'ORDINAL') to function call 'F'' is not allowed to use ORDINAL
 ResolutionErrors.dfy(2489,13): Error: type parameter 'G' (passed in as '(char, ORDINAL)') to function call 'F'' is not allowed to use ORDINAL
@@ -377,20 +375,22 @@ ResolutionErrors.dfy(2491,4): Error: type parameter 'G' (passed in as 'ORDINAL')
 ResolutionErrors.dfy(2492,18): Error: type of bound variable 'r' ('ORDINAL') is not allowed to use type ORDINAL
 ResolutionErrors.dfy(2493,18): Error: type of bound variable 'r' ('(ORDINAL, int)') is not allowed to use type ORDINAL
 ResolutionErrors.dfy(2494,26): Error: type of bound variable 'r' ('ORDINAL') is not allowed to use type ORDINAL
-ResolutionErrors.dfy(2495,8): Error: an ORDINAL type is not allowed to be used as a type argument
 ResolutionErrors.dfy(2495,17): Error: type of bound variable 'r' ('ORDINAL') is not allowed to use type ORDINAL
 ResolutionErrors.dfy(2496,18): Error: type of bound variable 'r' ('ORDINAL') is not allowed to use type ORDINAL
-ResolutionErrors.dfy(2497,14): Error: an ORDINAL type is not allowed to be used as a type argument
 ResolutionErrors.dfy(2497,24): Error: type of bound variable 'r' ('ORDINAL') is not allowed to use type ORDINAL
-ResolutionErrors.dfy(2498,8): Error: an ORDINAL type is not allowed to be used as a type argument
-ResolutionErrors.dfy(2499,8): Error: an ORDINAL type is not allowed to be used as a type argument
-ResolutionErrors.dfy(2500,8): Error: an ORDINAL type is not allowed to be used as a type argument
-ResolutionErrors.dfy(2502,8): Error: an ORDINAL type is not allowed to be used as a type argument
-ResolutionErrors.dfy(2505,8): Error: an ORDINAL type is not allowed to be used as a type argument
-ResolutionErrors.dfy(2506,8): Error: an ORDINAL type is not allowed to be used as a type argument
-ResolutionErrors.dfy(2506,8): Error: an ORDINAL type is not allowed to be used as a type argument
 ResolutionErrors.dfy(2508,25): Error: an ORDINAL type is not allowed to be used as a type argument
 ResolutionErrors.dfy(2509,17): Error: type of bound variable 'yt' ('ORDINAL') is not allowed to use type ORDINAL
+ResolutionErrors.dfy(2506,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2506,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2505,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2502,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2500,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2499,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2498,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2497,14): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2495,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2485,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2484,8): Error: an ORDINAL type is not allowed to be used as a type argument
 ResolutionErrors.dfy(2624,23): Error: no label 'Treasure' in scope at this time
 ResolutionErrors.dfy(2625,19): Error: no label 'WonderfulLabel' in scope at this time
 ResolutionErrors.dfy(2627,23): Error: no label 'FutureLabel' in scope at this time
@@ -620,9 +620,10 @@ ResolutionErrors.dfy(3881,28): Error: type of the receiver is not fully determin
 ResolutionErrors.dfy(3895,32): Error: 'this' is not allowed in a 'static' context
 ResolutionErrors.dfy(3898,29): Error: 'this' is not allowed in a 'static' context
 ResolutionErrors.dfy(3897,33): Error: 'this' is not allowed in a 'static' context
-ResolutionErrors.dfy(3899,35): Error: 'this' is not allowed in a 'static' context
 ResolutionErrors.dfy(3900,29): Error: 'this' is not allowed in a 'static' context
+ResolutionErrors.dfy(3899,35): Error: 'this' is not allowed in a 'static' context
 ResolutionErrors.dfy(3885,23): Error: 'this' is not allowed in a 'static' context
 ResolutionErrors.dfy(3885,28): Error: type of the receiver is not fully determined at this program point
+ResolutionErrors.dfy(3904,21): Error: 'this' is not allowed in a 'static' context
 ResolutionErrors.dfy(3904,26): Error: type of the receiver is not fully determined at this program point
-622 resolution/type errors detected in ResolutionErrors.dfy
+623 resolution/type errors detected in ResolutionErrors.dfy

@@ -63,6 +63,21 @@ partial class Resolver {
     }
 
     protected override bool VisitOneStatement(Statement stmt, IASTVisitorContext context) {
+      if (stmt is CalcStmt calcStmt) {
+        // The resolution of the calc statement builds up .Steps and .Result, which are of the form E0 OP E1, where
+        // E0 and E1 are expressions from .Lines.  These additional expressions still need to have their .ResolvedOp
+        // fields filled in, so we visit them, rather than just the parsed .Lines.
+        Attributes.SubExpressions(calcStmt.Attributes).Iter(e => VisitExpression(e, context));
+        calcStmt.Steps.Iter(e => VisitExpression(e, context));
+        VisitExpression(calcStmt.Result, context);
+        calcStmt.Hints.Iter(hint => VisitStatement(hint, context));
+        return false; // we're done with all subcomponents of the CalcStmt
+      }
+
+      return base.VisitOneStatement(stmt, context);
+    }
+
+    protected override void PostVisitOneStatement(Statement stmt, IASTVisitorContext context) {
       if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
         foreach (var local in s.Locals) {
@@ -85,21 +100,12 @@ partial class Resolver {
           var what = lhs is IdentifierExpr ? $"variable '{((IdentifierExpr)lhs).Name}'" : "LHS";
           CheckTypeArgsContainNoOrdinal(lhs.tok, lhs.Type, context);
         }
-      } else if (stmt is CalcStmt calcStmt) {
-        // The resolution of the calc statement builds up .Steps and .Result, which are of the form E0 OP E1, where
-        // E0 and E1 are expressions from .Lines.  These additional expressions still need to have their .ResolvedOp
-        // fields filled in, so we visit them, rather than just the parsed .Lines.
-        Attributes.SubExpressions(calcStmt.Attributes).Iter(e => VisitExpression(e, context));
-        calcStmt.Steps.Iter(e => VisitExpression(e, context));
-        VisitExpression(calcStmt.Result, context);
-        calcStmt.Hints.Iter(hint => VisitStatement(hint, context));
-        return false; // we're done with all subcomponents of the CalcStmt
       }
 
-      return base.VisitOneStatement(stmt, context);
+      base.PostVisitOneStatement(stmt, context);
     }
 
-    protected override bool VisitOneExpression(Expression expr, IASTVisitorContext context) {
+    protected override void PostVisitOneExpression(Expression expr, IASTVisitorContext context) {
       if (expr is LiteralExpr) {
         var e = (LiteralExpr)expr;
         if (e.Type.IsBitVectorType || e.Type.IsBigOrdinalType) {
@@ -349,7 +355,7 @@ partial class Resolver {
         }
       }
 
-      return base.VisitOneExpression(expr, context);
+      base.VisitOneExpression(expr, context);
     }
 
     public static bool IsDetermined(Type t) {

@@ -1,8 +1,8 @@
-UserSpecifiedTypeParameters.dfy(26,10): Error: the type of this local variable is underspecified
+UserSpecifiedTypeParameters.dfy(26,10): Error: the type of this variable is underspecified
+UserSpecifiedTypeParameters.dfy(26,16): Error: type of type parameter could not be determined; please specify the type explicitly
+UserSpecifiedTypeParameters.dfy(26,16): Error: type of type parameter could not be determined; please specify the type explicitly
 UserSpecifiedTypeParameters.dfy(26,24): Error: type parameter 'T' (inferred to be '?') in the function call to 'H' could not be determined
 UserSpecifiedTypeParameters.dfy(26,24): Error: type parameter 'U' (inferred to be '?') in the function call to 'H' could not be determined
-UserSpecifiedTypeParameters.dfy(26,16): Error: type of type parameter could not be determined; please specify the type explicitly
-UserSpecifiedTypeParameters.dfy(26,16): Error: type of type parameter could not be determined; please specify the type explicitly
 UserSpecifiedTypeParameters.dfy(46,16): Error: wrong number of arguments (function 'F' expects 2, got 1)
 UserSpecifiedTypeParameters.dfy(46,22): Error: Undeclared top-level type or type parameter: b (did you forget to qualify a name or declare a module import 'opened'?)
 UserSpecifiedTypeParameters.dfy(46,26): Error: Undeclared top-level type or type parameter: c (did you forget to qualify a name or declare a module import 'opened'?)
