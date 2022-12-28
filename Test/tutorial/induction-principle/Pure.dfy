@@ -22,7 +22,7 @@ module Pure refines Induction {
       case Var(name) => true
       case Literal(n) => true
       case Bind(bvars, bvals, body) =>
-        IsPure_Es(bvals, locals)
+        && IsPure_Es(bvals, locals)
         && IsPure(body, (set x | x in bvars) + locals)
       case Assign(avars, avals) =>
         (forall x | x in avars :: x in locals) && IsPure_Es(avals, locals)
