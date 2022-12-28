@@ -318,7 +318,7 @@ module Pure refines Induction {
 
 ### Refined induction principle - verifying `Pure`
 
-Stating an induction principle the way we did above allows to factorize a lot of work,
+Stating an induction principle the way we did above enables factorizing a lot of work,
 but there are still some issues. First, the proof of `Induct_Seq` goes through
 automatically in this case, but other cases of the AST and other lemmas may need a bit
 of manual work, for instance by calling intermediate lemmas. In order to do so, we
