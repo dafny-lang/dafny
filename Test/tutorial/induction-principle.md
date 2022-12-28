@@ -77,7 +77,7 @@ predicate method IsPure(e: Expr, locals: set<string> := {})
     case Var(name) => true
     case Literal(n) => true
     case Bind(bvar, bval, body) =>
-      IsPure(bval, locals)
+      && IsPure(bval, locals)
       && IsPure(body, {bvar} + locals)
     case Assign(avar, aval) =>
       avar in locals && IsPure(aval, locals)
