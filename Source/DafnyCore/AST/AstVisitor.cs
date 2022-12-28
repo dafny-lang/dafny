@@ -263,7 +263,6 @@ namespace Microsoft.Dafny {
         // Visit subexpressions
         expr.SubExpressions.Iter(ee => VisitExpression(ee, context));
 
-        // Finish by calling the post-visitor method
         PostVisitOneExpression(expr, context);
       }
     }
@@ -328,7 +327,6 @@ namespace Microsoft.Dafny {
         // Visit substatements
         stmt.SubStatements.Iter(ss => VisitStatement(ss, context));
 
-        // Finish by calling the post-visitor method
         PostVisitOneStatement(stmt, context);
       }
     }

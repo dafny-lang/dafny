@@ -2718,7 +2718,6 @@ namespace Microsoft.Dafny {
         boundsDiscoveryVisitor.VisitDeclarations(declarations);
       }
 
-      // Build call graph.
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         CallGraphBuilder.Build(declarations, reporter);
       }
