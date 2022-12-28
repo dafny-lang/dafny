@@ -53,7 +53,7 @@ forall e, st ::
 It is for instance the case if the AST contains loops, in which situation we often need to
 manipulate a notion of fuel when defining the interpreter: the lemmas then require doing
 the induction also on the fuel. Let's assume we can always do the induction on the syntax only
-(and in particular that don't have loops).
+(and in particular that there are no loops).
 
 The issue we encounter here is that we have a lot of lemmas to prove about a single
 function, `InterpExpr`. However, whenever we need to prove such a lemma in Dafny, we need
