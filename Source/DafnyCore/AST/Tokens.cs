@@ -166,8 +166,20 @@ public class RangeToken : TokenWrapper {
     }
   }
 
-  public RangeToken(IToken startTok, IToken endTok) : base(startTok) {
-    this.endTok = endTok;
+  // If we don't ensure that the endToken is after the start token,
+  // then the rangeToken.val will cause an exception because it will try to create
+  // an string made of a negative number of spaces.
+  // There is at least one case in which the RangeToken is not set linearly
+  // because we assume that "tok" is before "endTok" in the statement constructor
+  // but that was at least not the case.
+  public RangeToken(IToken startTok, IToken endTok) : base(
+    endTok.pos < startTok.pos && startTok is RangeToken startRange ?
+        startRange.StartToken : startTok) {
+    if (endTok.pos < startTok.pos && startTok is RangeToken startRange2) {
+      this.endTok = startRange2.EndToken;
+    } else {
+      this.endTok = endTok;
+    }
   }
 
   public override IToken WithVal(string newVal) {
