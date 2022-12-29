@@ -1,7 +1,7 @@
-// RUN: ! %dafny /compile:3 /compileTarget:cs "%s" > "%t"
-// RUN: ! %dafny /compile:3 /compileTarget:go "%s" >> "%t"
-// RUN: ! %dafny /compile:3 /compileTarget:java "%s" >> "%t"
-// RUN: ! %dafny /compile:3 /compileTarget:js "%s" >> "%t"
+// RUN: ! %baredafny run %args --target=cs "%s" > "%t"
+// RUN: ! %baredafny run %args --target=go "%s" >> "%t"
+// RUN: ! %baredafny run %args --target=java "%s" >> "%t"
+// RUN: ! %baredafny run %args --target=js "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {

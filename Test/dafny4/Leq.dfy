@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:3 /rprint:"%t.rprint" "%s" > "%t"
+// RUN: %baredafny run %args "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Rustan Leino, 22 Sep 2015.

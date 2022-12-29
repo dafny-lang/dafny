@@ -1,8 +1,8 @@
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:cs "%s" > "%t"
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:java "%s" >> "%t"
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:py "%s" >> "%t"
+// RUN: %baredafny run %args --target=cs "%s" > "%t"
+// RUN: %baredafny run %args --target=js "%s" >> "%t"
+// RUN: %baredafny run %args --target=go "%s" >> "%t"
+// RUN: %baredafny run %args --target=java "%s" >> "%t"
+// RUN: %baredafny run %args --target=py "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method M() returns (x: int) {

@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:3 /compileTarget:js "%s" > "%t"
+// RUN: %baredafny run %args --target=js "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method GetNext(i: int) returns (j: int, possible: bool) {

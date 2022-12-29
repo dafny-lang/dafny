@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:3 "%s" /compileTarget:js > "%t"
+// RUN: %baredafny run %args --target=js "%s" > "%t"
 // note: putting /compileTarget:js after "%s" overrides user-provided option
 // RUN: %diff "%s.expect" "%t"
 

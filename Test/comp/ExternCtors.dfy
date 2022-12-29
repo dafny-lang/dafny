@@ -1,6 +1,6 @@
-// RUN: %dafny /compile:3 /compileTarget:cs "%s" %S/ExternCtors-externs/Library.cs > "%t"
-// RUN: %dafny /compile:3 /compileTarget:java "%s" %S/ExternCtors-externs/Class.java >> "%t"
-// RUN: %dafny /compile:3 /compileTarget:py "%s" %S/ExternCtors-externs/Library.py >> "%t"
+// RUN: %baredafny run %args --target=cs "%s" %S/ExternCtors-externs/Library.cs > "%t"
+// RUN: %baredafny run %args --target=java "%s" %S/ExternCtors-externs/Class.java >> "%t"
+// RUN: %baredafny run %args --target=py "%s" %S/ExternCtors-externs/Library.py >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // FIXME: Extern constructors are currently broken in Go and JavaScript,

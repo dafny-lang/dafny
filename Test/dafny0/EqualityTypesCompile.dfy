@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:3 /print:"%t.print" /rprint:"%t.rprint" "%s" > "%t"
+// RUN: %baredafny run %args "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype List<A> = Nil | Cons(A, List) | ICons(int, List)

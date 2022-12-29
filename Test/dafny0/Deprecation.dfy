@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:3 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %baredafny run %args "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This file contains tests for messags about various deprecated features.

@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:cs "%s" %S/CSharpStyling2.cs > "%t"
+// RUN: %baredafny run %args --target=cs "%s" %S/CSharpStyling2.cs > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {

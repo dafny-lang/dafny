@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /compile:3 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %baredafny run %args "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 

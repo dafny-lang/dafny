@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 /spillTargetCode:2 "%s" /compileTarget:go > "%t"
-// note: putting /compileTarget:go after "%s" overrides user-provided option
+// RUN: %baredafny run %args --target=go "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // "url" is a built-in package, so it should be accessible to the

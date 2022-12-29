@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:3 /compileTarget:java /spillTargetCode:3 "%s" > "%t"
+// RUN: %baredafny run %args --target=java "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {

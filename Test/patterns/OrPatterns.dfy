@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:3 /print:"%t.print" /rprint:"%t.dprint" "%s" > "%t"
+// RUN: %baredafny run %args "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype Enum = One | Two | Three {

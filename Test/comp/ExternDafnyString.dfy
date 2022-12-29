@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:3 /compileTarget:java "%s" %S/Conversions.java %S/ExternDafnyString.java > "%t"
+// RUN: %baredafny run %args --target=java "%s" %S/Conversions.java %S/ExternDafnyString.java > "%t"
 // RUN: %diff "%s.expect" "%t"
 // In this example, the extern method obtains a Java string and returns it as a Dafny string.
 

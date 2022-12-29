@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:3 "%s" %S/git-issue-1761-extern.cs > "%t"
+// RUN: %baredafny run %args "%s" %S/git-issue-1761-extern.cs > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class {:extern "ABC"} XYZ {
