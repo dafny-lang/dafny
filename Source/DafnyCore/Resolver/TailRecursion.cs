@@ -220,6 +220,18 @@ class TailRecursion {
         }
         return TailRecursionStatus.NotTailRecursive;
       }
+    } else if (stmt is NestedMatchStmt nestedMatchStmt) {
+      DisallowRecursiveCallsInExpressions(nestedMatchStmt.Source, enclosingMethod, reportErrors);
+      var status = TailRecursionStatus.CanBeFollowedByAnything;
+      foreach (var kase in nestedMatchStmt.Cases) {
+        var st = CheckTailRecursive(kase.Body, enclosingMethod, ref tailCall, reportErrors);
+        if (st == TailRecursionStatus.NotTailRecursive) {
+          return st;
+        } else if (st == TailRecursionStatus.TailCallSpent) {
+          status = st;
+        }
+      }
+      return status;
     } else if (stmt is MatchStmt) {
       var s = (MatchStmt)stmt;
       DisallowRecursiveCallsInExpressions(s.Source, enclosingMethod, reportErrors);
