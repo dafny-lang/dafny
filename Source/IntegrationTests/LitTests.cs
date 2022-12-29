@@ -125,6 +125,7 @@ namespace IntegrationTests {
     [FileData(Includes = new[] { "**/*.dfy", "**/*.transcript" },
               Excludes = new[] { "**/Inputs/**/*", "**/Output/**/*",
                 "tutorial/AutoExtern", // This is tested separately in the unit tests of Source/AutoExtern
+                "tutorial/induction-principle",
               })]
     public void LitTest(string path) {
       LitTestCase.Run(path, Config, output);
