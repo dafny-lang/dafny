@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %dafny /compile:0 "%s" > "%t"
+// RUN: %exits-with 2 %baredafny verify %args "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 /* This is a trimmed down version of the original bug. The original program can be found in Issue #227.
    This trimmed version is only for the purpose of testing the type-checking error messages. */

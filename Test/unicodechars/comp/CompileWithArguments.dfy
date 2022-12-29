@@ -1,6 +1,6 @@
 // Note that C++ is not supported yet
 
-// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %baredafny verify %args "%s" > "%t"
 // RUN: %baredafny run %args --unicode-char --no-verify --target:cs "%s" Csharp 1 >> "%t"
 // RUN: %baredafny run %args --unicode-char --no-verify --target:java "%s" -- Java --heya >> "%t"
 // RUN: %baredafny run %args --unicode-char --no-verify --target:js "%s" -- Javascript 2 >> "%t"

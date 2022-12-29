@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %baredafny verify %args "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 function{:opaque} MapSetToSet<X(!new), Y>(xs:set<X>, f:X~>Y):set<Y>

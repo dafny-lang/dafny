@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %baredafny verify %args "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 // Taken from https://github.com/dafny-lang/dafny/issues/2174
 lemma lm(val: bv16, idx: nat)

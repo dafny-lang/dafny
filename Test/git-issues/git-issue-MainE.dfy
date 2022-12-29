@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %baredafny verify %args "%s" > "%t"
 // RUN: %exits-with 3 %dafny /noVerify /compile:4 /Main:A.Test "%s" >> "%t"
 // RUN: %exits-with 3 %dafny /noVerify /compile:4 /Main:B.Test "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /Main:C.Test "%s" >> "%t"

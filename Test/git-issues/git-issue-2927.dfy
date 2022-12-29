@@ -1,4 +1,4 @@
-// RUN: %exits-with 0 %dafny /compile:0 "%s" > "%t"
+// RUN: %exits-with 0 %baredafny verify %args "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 include "../libraries/src/BoundedInts.dfy"

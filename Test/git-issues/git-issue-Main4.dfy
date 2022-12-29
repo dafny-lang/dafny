@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %baredafny verify %args "%s" > "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:cs /Main:A.AA.Test "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:js /Main:A.AA.Test "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:go /Main:A.AA.Test "%s" >> "%t"

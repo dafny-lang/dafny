@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %baredafny verify %args "%s" > "%t"
 // RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /optimizeErasableDatatypeWrapper:0 /compileTarget:cs "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /optimizeErasableDatatypeWrapper:0 /compileTarget:js "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /optimizeErasableDatatypeWrapper:0 /compileTarget:go "%s" >> "%t"

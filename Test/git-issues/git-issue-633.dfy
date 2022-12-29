@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 "%s" %S/git-issue-633A.dfy > "%t"
+// RUN: %baredafny verify %args "%s" %S/git-issue-633A.dfy > "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:cs /spillTargetCode:3 "%s" %S/git-issue-633A.dfy >> "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:js /spillTargetCode:3 "%s" %S/git-issue-633A.dfy >> "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:go /spillTargetCode:3 "%s" %S/git-issue-633A.dfy >> "%t"

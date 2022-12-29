@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /compile:0 "%s" > "%t"
+// RUN: %exits-with 4 %baredafny verify %args "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 const WITNESS := seq(10, i => 0)     // This line alone suffices to cause the original bug

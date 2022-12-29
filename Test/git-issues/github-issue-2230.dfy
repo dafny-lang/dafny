@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %baredafny verify %args "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 lemma MergeLShift(v: bv128, i: nat, j: nat)
   requires i <= 128 && j <= 128 && i + j <= 128

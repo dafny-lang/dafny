@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %baredafny verify %args "%s" > "%t"
 
 // RUN: %dafny /noVerify /compile:4 /Main:Cl.Static   /compileTarget:cs "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /Main:Cl.Instance /compileTarget:cs "%s" >> "%t"

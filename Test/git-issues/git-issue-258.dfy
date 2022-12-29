@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %baredafny verify %args "%s" > "%t"
 // RUN: %dafny /compile:3 /spillTargetCode:3 /compileTarget:cs "%s" >> "%t"
 // RUN: %dafny /compile:3 /spillTargetCode:3 /compileTarget:java "%s" >> "%t"
 // RUN: %dafny /compile:3 /spillTargetCode:3 /compileTarget:js "%s" >> "%t"
