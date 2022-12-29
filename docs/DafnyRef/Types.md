@@ -2716,7 +2716,7 @@ If a function definition does not have a body, the program that contains it may 
 The function itself has nothing to verify.
 However, any calls of a body-less function are treated as unverified assumptions by the caller,
 asserting the preconditions and assuming the postconditions.
-Because body-less functions  are unverified assumptions, programs containing them may not be compiled.
+Because body-less functions are unverified assumptions, Dafny cannot compile them and will complain if called by [`dafny translate`, `dafny build` or even `dafny run`](https://dafny.org/latest/DafnyRef/DafnyRef#256-using-dafny-from-the-command-line)
 
 ### 13.4.2. Predicates
 A function that returns a `bool` result is called a _predicate_. As an
