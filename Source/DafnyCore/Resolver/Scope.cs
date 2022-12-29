@@ -21,7 +21,7 @@ class Scope<Thing> where Thing : class {
   public bool AllowInstance {
     get { return scopeSizeWhereInstancesWereDisallowed == -1; }
     set {
-      Contract.Requires(AllowInstance && !value);  // only allowed to change from true to false (that's all that's currently needed in Dafny); Pop is what can make the change in the other direction
+      Contract.Assume(AllowInstance && !value);  // only allowed to change from true to false (that's all that's currently needed in Dafny); Pop is what can make the change in the other direction
       scopeSizeWhereInstancesWereDisallowed = names.Count;
     }
   }
