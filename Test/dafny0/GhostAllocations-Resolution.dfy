@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %dafny "%s" > "%t"
+// RUN: %exits-with 2 %baredafny verify %args "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // ------- A constructor-less class can be allocated as either ghost or non-ghost

@@ -1,4 +1,4 @@
-// RUN: %exits-with 3 %dafny "%s" > "%t"
+// RUN: %exits-with 3 %baredafny verify %args "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 include "../exceptions/VoidOutcomeDt.dfy"

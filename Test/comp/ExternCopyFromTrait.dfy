@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:4 /compileTarget:cs "%s" %S/ExternCopyFromTraitLibrary.cs > "%t"
+// RUN: %baredafny run %args --target=cs "%s" %S/ExternCopyFromTraitLibrary.cs > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 /// This file tests inheritance of `:extern` annotation in traits.

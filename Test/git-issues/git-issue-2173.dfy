@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:4 /compileTarget:cs "%s" >> "%t"
+// RUN: %baredafny run %args --target=cs "%s" >> "%t"
 
 datatype T = Leaf(x: int) | T(t: T) {
   function method {:tailrecursion} TR() : int {

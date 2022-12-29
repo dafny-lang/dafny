@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %dafny "%s" > "%t"
+// RUN: %exits-with 2 %baredafny verify %args "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // && and || have the same binding power and do not associate with each other.

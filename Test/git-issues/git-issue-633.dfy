@@ -1,8 +1,8 @@
 // RUN: %baredafny verify %args "%s" %S/git-issue-633A.dfy > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:cs /spillTargetCode:3 "%s" %S/git-issue-633A.dfy >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:js /spillTargetCode:3 "%s" %S/git-issue-633A.dfy >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:go /spillTargetCode:3 "%s" %S/git-issue-633A.dfy >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:java /spillTargetCode:3 "%s" %S/git-issue-633A.dfy  >> "%t"
+// RUN: %baredafny run %args --no-verify --target=cs "%s" %S/git-issue-633A.dfy >> "%t"
+// RUN: %baredafny run %args --no-verify --target=js "%s" %S/git-issue-633A.dfy >> "%t"
+// RUN: %baredafny run %args --no-verify --target=go "%s" %S/git-issue-633A.dfy >> "%t"
+// RUN: %baredafny run %args --no-verify --target=java "%s" %S/git-issue-633A.dfy  >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method m() {

@@ -1,4 +1,4 @@
-// RUN: %dafny "%s" > "%t"
+// RUN: %baredafny verify %args "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 predicate ContainsNothingBut5(s: set<int>)

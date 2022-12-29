@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %dafny /compile:4 /compileTarget:cs "%s" > "%t"
+// RUN: %exits-with 2 %baredafny run %args --target=cs "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module FromBugReport {

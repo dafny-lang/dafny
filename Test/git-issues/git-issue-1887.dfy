@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %dafny "%s" > "%t"
+// RUN: %exits-with 2 %baredafny verify %args "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 function method selectOneConstraint<T>(s: seq<T>): seq<string> {

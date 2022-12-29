@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:4 /compileTarget:cs "%s" > "%t"
+// RUN: %baredafny run %args --target=cs "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 trait Base {}

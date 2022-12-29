@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny "%s" > "%t"
+// RUN: %exits-with 4 %baredafny verify %args "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Issue 245 pointed out that trait override checks ignored the optional name of function results

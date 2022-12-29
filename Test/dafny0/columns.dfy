@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny "%s" > "%t"
+// RUN: %exits-with 4 %baredafny verify %args "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Dafny counts columns from 0, but Boogie from one, so for a while there were small bugs with that.

@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %dafny /print:"%t.print" "%s" > "%t"
+// RUN: %exits-with 2 %baredafny verify %args "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 newtype Lower = x | -2 <= x
