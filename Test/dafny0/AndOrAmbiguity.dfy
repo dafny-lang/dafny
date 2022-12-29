@@ -26,16 +26,16 @@ method M5() returns (A: bool, B: bool)
 // ---
 
 method N0() returns (A: bool, B: bool, C: bool)
-  ensures A ==> B <== A // error: plication ambiguity
+  ensures A ==> B <== A // error: implication/explicationn ambiguity
 
 method N1() returns (A: bool, B: bool, C: bool)
-  ensures A ==> B ==> C <== A // error: plication ambiguity
+  ensures A ==> B ==> C <== A // error: implication/explication ambiguity
 
 method N2() returns (A: bool, B: bool, C: bool)
-  ensures A <== B ==> A // error: plication ambiguity
+  ensures A <== B ==> A // error: implication/explication ambiguity
 
 method N3() returns (A: bool, B: bool, C: bool)
-  ensures A <== B <== C ==> A // error: plication ambiguity
+  ensures A <== B <== C ==> A // error: implication/explication ambiguity
 
 // ---
 
