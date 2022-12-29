@@ -167,7 +167,7 @@ module M {
 ```
 
 `var` declarations are used to declare mutable fields of classes, local variables in method bodies, and identifiers in let-expressions.
-But mutable field declarations are not permitted at the static module level, including in the (unnamed) toplevel module.
+But mutable field declarations are not permitted at the static module level, including in the (implicit) toplevel module.
 Rather, you may want the declaration to be a `const` declaration or you may want the mutable field to be declared in the body of a class.
 
 ## **Error: Refinement cannot change the constructors of a datatype. To refine _id_, either omit this '...' or omit the '=' sign and the datatype constructors.**
