@@ -23,7 +23,7 @@ namespace Microsoft.Dafny {
     public void AddStatementClone(Statement original, Statement clone) {
       statementClones.Add(original, clone);
     }
-    
+
     public Cloner(bool cloneResolvedFields = false) {
       this.CloneResolvedFields = cloneResolvedFields;
     }

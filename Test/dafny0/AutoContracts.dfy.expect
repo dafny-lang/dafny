@@ -8,7 +8,11 @@ module _System {
    * SCC at height 1:
    *   RotateRight
    * SCC at height 0:
+   *   array
+   * SCC at height 0:
    *   nat
+   * SCC at height 0:
+   *   object
    */
   type string(==,0) = seq<char>
 
@@ -122,6 +126,10 @@ module OneModule {
    *   C._ctor
    * SCC at height 1:
    *   C.Valid
+   * SCC at height 0:
+   *   C
+   * SCC at height 0:
+   *   D
    * SCC at height 0:
    *   D.Valid
    */
@@ -276,6 +284,8 @@ module N0 {
    * SCC at height 1:
    *   C.Z
    * SCC at height 0:
+   *   C
+   * SCC at height 0:
    *   C.Valid
    */
   class {:autocontracts} C {
@@ -369,6 +379,8 @@ module N1 refines N0 {
    *   C.Y
    * SCC at height 1:
    *   C.Z
+   * SCC at height 0:
+   *   C
    * SCC at height 0:
    *   C.Valid
    */
@@ -469,6 +481,8 @@ module N2 refines N1 {
    *   C.Y
    * SCC at height 1:
    *   C.Z
+   * SCC at height 0:
+   *   C
    * SCC at height 0:
    *   C.Valid
    */

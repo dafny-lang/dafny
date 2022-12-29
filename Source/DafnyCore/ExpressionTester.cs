@@ -10,7 +10,7 @@ public class ExpressionTester {
   [CanBeNull] private readonly ErrorReporter reporter; // if null, no errors will be reported
 
   // TODO figure out whether we can avoid this sometimes mutating behavior.
-  
+
   /// <summary>
   /// If "resolver" is non-null, CheckIsCompilable will update some fields in the resolver. In particular,
   ///   - .InCompiledContext in DatatypeUpdateExpr will be updated
@@ -235,10 +235,6 @@ public class ExpressionTester {
     } else if (expr is ComprehensionExpr comprehensionExpr) {
       var uncompilableBoundVars = comprehensionExpr.UncompilableBoundVars();
       if (uncompilableBoundVars.Count != 0) {
-        if (ReportErrors == false) {
-          return false;
-        }
-
         string what;
         if (comprehensionExpr is SetComprehension comprehension) {
           what = comprehension.Finite ? "set comprehensions" : "iset comprehensions";
@@ -250,9 +246,10 @@ public class ExpressionTester {
           what = "quantifiers";
         }
         foreach (var bv in uncompilableBoundVars) {
-          reporter.Error(MessageSource.Resolver, comprehensionExpr, "{0} in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for '{1}'", what, bv.Name);
+          reporter?.Error(MessageSource.Resolver, comprehensionExpr,
+            $"{what} in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for '{bv.Name}'");
+          isCompilable = false;
         }
-        return false;
       }
       // don't recurse down any attributes
       if (comprehensionExpr.Range != null) {
@@ -499,7 +496,7 @@ public class ExpressionTester {
       ITEExpr e = (ITEExpr)expr;
       return UsesSpecFeatures(e.Test) || UsesSpecFeatures(e.Thn) || UsesSpecFeatures(e.Els);
     } else if (expr is NestedMatchExpr nestedMatchExpr) {
-      return nestedMatchExpr.Cases.SelectMany(caze => caze.Pat.DescendantsAndSelf.OfType<IdPattern>().Where(id => id.Ctor != null)).Any(id => id.Ctor.IsGhost) 
+      return nestedMatchExpr.Cases.SelectMany(caze => caze.Pat.DescendantsAndSelf.OfType<IdPattern>().Where(id => id.Ctor != null)).Any(id => id.Ctor.IsGhost)
              || expr.SubExpressions.Any(child => UsesSpecFeatures(child));
     } else if (expr is MatchExpr) {
       MatchExpr me = (MatchExpr)expr;

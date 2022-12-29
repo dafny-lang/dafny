@@ -13,23 +13,23 @@ public class InductionRewriter : IRewriter {
     } else {
       foreach (var decl in m.TopLevelDecls) {
         if (decl is TopLevelDeclWithMembers) {
-          var cl = (TopLevelDeclWithMembers) decl;
+          var cl = (TopLevelDeclWithMembers)decl;
           foreach (var member in cl.Members) {
             if (member is ExtremeLemma) {
-              var method = (ExtremeLemma) member;
+              var method = (ExtremeLemma)member;
               ProcessMethodExpressions(method);
               ComputeLemmaInduction(method.PrefixLemma);
               ProcessMethodExpressions(method.PrefixLemma);
             } else if (member is Method) {
-              var method = (Method) member;
+              var method = (Method)member;
               ComputeLemmaInduction(method);
               ProcessMethodExpressions(method);
             } else if (member is ExtremePredicate) {
-              var function = (ExtremePredicate) member;
+              var function = (ExtremePredicate)member;
               ProcessFunctionExpressions(function);
               ProcessFunctionExpressions(function.PrefixPredicate);
             } else if (member is Function) {
-              var function = (Function) member;
+              var function = (Function)member;
               ProcessFunctionExpressions(function);
               if (function.ByMethodDecl != null) {
                 ProcessMethodExpressions(function.ByMethodDecl);
@@ -39,7 +39,7 @@ public class InductionRewriter : IRewriter {
         }
 
         if (decl is NewtypeDecl) {
-          var nt = (NewtypeDecl) decl;
+          var nt = (NewtypeDecl)decl;
           if (nt.Constraint != null) {
             var visitor = new Induction_Visitor(this);
             visitor.Visit(nt.Constraint);
@@ -104,9 +104,9 @@ public class InductionRewriter : IRewriter {
     } else if (args.Count == 0) {
       // {:induction} is treated the same as {:induction true}, which says to automatically infer induction variables
       // GO INFER below (all boundVars)
-    } else if (args.Count == 1 && args[0] is LiteralExpr && ((LiteralExpr) args[0]).Value is bool) {
+    } else if (args.Count == 1 && args[0] is LiteralExpr && ((LiteralExpr)args[0]).Value is bool) {
       // {:induction false} or {:induction true}
-      if (!(bool) ((LiteralExpr) args[0]).Value) {
+      if (!(bool)((LiteralExpr)args[0]).Value) {
         // we're told not to infer anything
         return;
       }
@@ -198,7 +198,7 @@ public class InductionRewriter : IRewriter {
     protected override void VisitOneExpr(Expression expr) {
       var q = expr as QuantifierExpr;
       if (q != null && q.SplitQuantifier == null) {
-        IndRewriter.ComputeInductionVariables(q.tok, q.BoundVars, new List<Expression>() {q.LogicalBody()}, null,
+        IndRewriter.ComputeInductionVariables(q.tok, q.BoundVars, new List<Expression>() { q.LogicalBody() }, null,
           ref q.Attributes);
       }
     }

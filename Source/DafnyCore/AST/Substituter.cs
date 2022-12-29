@@ -293,7 +293,7 @@ namespace Microsoft.Dafny {
         bool anythingChanged = src != e.Source;
         var denested = nestedMatchExpr.Denested == null ? null : Substitute(nestedMatchExpr.Denested);
         anythingChanged |= denested != nestedMatchExpr.Denested;
-        
+
         var cases = new List<NestedMatchCaseExpr>();
         foreach (var mc in e.Cases) {
 

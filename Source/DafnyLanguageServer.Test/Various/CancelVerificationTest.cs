@@ -17,7 +17,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     [TestMethod]
     public async Task ChangingTheDocumentStopsOnChangeVerification() {
       await SetUp(options => {
-        options.Set(BoogieOptionBag.Cores, 2);
+        options.Set(BoogieOptionBag.Cores, 2U);
       });
       var documentItem = CreateTestDocument(SlowToVerify2);
       client.OpenDocument(documentItem);
@@ -32,7 +32,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     [TestMethod]
     public async Task ChangingTheDocumentStopsOnSaveVerification() {
       await SetUp(options => {
-        options.Set(BoogieOptionBag.Cores, 2);
+        options.Set(BoogieOptionBag.Cores, 2U);
         options.Set(ServerCommand.Verification, VerifyOnMode.Save);
       });
       var documentItem = CreateTestDocument(SlowToVerify2);
@@ -51,7 +51,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     [TestMethod]
     public async Task ChangingTheDocumentStopsManualVerification() {
       await SetUp(options => {
-        options.Set(BoogieOptionBag.Cores, 2);
+        options.Set(BoogieOptionBag.Cores, 2U);
         options.Set(ServerCommand.Verification, VerifyOnMode.Save);
       });
       var documentItem = CreateTestDocument(SlowToVerify2);

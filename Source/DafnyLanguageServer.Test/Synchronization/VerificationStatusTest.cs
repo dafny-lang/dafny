@@ -300,7 +300,7 @@ method Bar() { assert false; }";
 method Bar() { assert false; }";
 
     await SetUp(options => {
-      options.Set(BoogieOptionBag.Cores, 1);
+      options.Set(BoogieOptionBag.Cores, 1U);
     });
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -349,7 +349,7 @@ method Bar() { assert false; }";
 method Bar() { assert true; }";
 
     await SetUp(options => {
-      options.Set(BoogieOptionBag.Cores, 1);
+      options.Set(BoogieOptionBag.Cores, 1U);
       options.Set(ServerCommand.VerifySnapshots, 1U);
     });
 

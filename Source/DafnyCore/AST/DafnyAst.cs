@@ -345,22 +345,21 @@ namespace Microsoft.Dafny {
     /// - if the attribute is {:nm true}, then value==true
     /// - if the attribute is {:nm false}, then value==false
     /// - if the attribute is anything else, then value returns as whatever it was passed in as.
+    /// This method does NOT use type information of the attribute arguments, so it can safely
+    /// be called very early during resolution before types are available and names have been resolved.
     /// </summary>
     [Pure]
     public static bool ContainsBool(Attributes attrs, string nm, ref bool value) {
       Contract.Requires(nm != null);
-      foreach (var attr in attrs.AsEnumerable()) {
-        if (attr.Name == nm) {
-          if (attr.Args.Count == 1) {
-            var arg = attr.Args[0] as LiteralExpr;
-            if (arg != null && arg.Value is bool) {
-              value = (bool)arg.Value;
-            }
-          }
-          return true;
-        }
+      var attr = attrs.AsEnumerable().FirstOrDefault(attr => attr.Name == nm);
+      if (attr == null) {
+        return false;
       }
-      return false;
+
+      if (attr.Args.Count == 1 && attr.Args[0] is LiteralExpr { Value: bool v }) {
+        value = v;
+      }
+      return true;
     }
 
     /// <summary>

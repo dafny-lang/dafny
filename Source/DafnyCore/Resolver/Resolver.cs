@@ -468,8 +468,8 @@ namespace Microsoft.Dafny {
         ResolveType(d.tok, d.Rhs, d, ResolveTypeOptionEnum.AllowPrefix, d.TypeArgs);
         allTypeParameters.PopMarker();
       }
-
-      ResolveTopLevelDecls_Core(systemModuleClassesWithNonNullTypes, new Graph<IndDatatypeDecl>(), new Graph<CoDatatypeDecl>());
+      ResolveTopLevelDecls_Core(ModuleDefinition.AllDeclarationsAndNonNullTypeDecls(systemModuleClassesWithNonNullTypes).ToList(),
+        new Graph<IndDatatypeDecl>(), new Graph<CoDatatypeDecl>());
 
       foreach (var rewriter in rewriters) {
         rewriter.PreResolve(prog);
@@ -724,7 +724,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    
+
 
     private void ResolveValuetypeDecls() {
       moduleInfo = systemNameInfo;
@@ -795,13 +795,18 @@ namespace Microsoft.Dafny {
       ResolveOpenedImports(moduleInfo, m, useCompileSignatures, this); // opened imports do not persist
       var datatypeDependencies = new Graph<IndDatatypeDecl>();
       var codatatypeDependencies = new Graph<CoDatatypeDecl>();
+      var allDeclarations = ModuleDefinition.AllDeclarationsAndNonNullTypeDecls(m.TopLevelDecls).ToList();
       int prevErrorCount = reporter.Count(ErrorLevel.Error);
-      ResolveTopLevelDecls_Signatures(m, sig, m.TopLevelDecls, datatypeDependencies, codatatypeDependencies);
+      ResolveTopLevelDecls_Signatures(m, sig, allDeclarations, datatypeDependencies, codatatypeDependencies);
       Contract.Assert(AllTypeConstraints.Count == 0); // signature resolution does not add any type constraints
-      ResolveAttributes(m, new ResolutionContext(new NoContext(m.EnclosingModule), false)); // Must follow ResolveTopLevelDecls_Signatures, in case attributes refer to members
-      SolveAllTypeConstraints(); // solve any type constraints entailed by the attributes
+
+      scope.PushMarker();
+      scope.AllowInstance = false;
+      ResolveAttributes(m, new ResolutionContext(new NoContext(m.EnclosingModule), false), true); // Must follow ResolveTopLevelDecls_Signatures, in case attributes refer to members
+      scope.PopMarker();
+
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-        ResolveTopLevelDecls_Core(m.TopLevelDecls, datatypeDependencies, codatatypeDependencies, isAnExport);
+        ResolveTopLevelDecls_Core(allDeclarations, datatypeDependencies, codatatypeDependencies, isAnExport);
       }
 
       Type.PopScope(moduleInfo.VisibilityScope);
@@ -2331,7 +2336,7 @@ namespace Microsoft.Dafny {
       }*/
 
       var typeRedirectionDependencies = new Graph<RedirectingTypeDecl>();  // this concerns the type directions, not their constraints (which are checked for cyclic dependencies later)
-      foreach (TopLevelDecl d in ModuleDefinition.AllDeclarationsAndNonNullTypeDecls(declarations)) {
+      foreach (TopLevelDecl d in declarations) {
         Contract.Assert(d != null);
         allTypeParameters.PushMarker();
         ResolveTypeParameters(d.TypeArgs, true, d);
@@ -2429,270 +2434,103 @@ namespace Microsoft.Dafny {
       int prevErrorCount = reporter.Count(ErrorLevel.Error);
 
       // ---------------------------------- Pass 0 ----------------------------------
-      // This pass resolves names, introduces (and may solve) type constraints, and
-      // builds the module's call graph.
-      // For 'newtype' and subset-type declarations, it also checks that all types were fully
-      // determined.
+      // This pass:
+      // * resolves names, introduces (and may solve) type constraints
+      // * checks that all types were properly inferred
+      // * fills in .ResolvedOp fields
+      // * perform substitution for DefaultValueExpression's
       // ----------------------------------------------------------------------------
 
-      // Resolve the meat of classes and iterators, the definitions of type synonyms, and the type parameters of all top-level type declarations
-      // In the first two loops below, resolve the newtype/subset-type declarations and their constraint clauses and const definitions, including
-      // filling in .ResolvedOp fields.  This is needed for the resolution of the other declarations, because those other declarations may invoke
-      // DiscoverBounds, which looks at the .Constraint or .Rhs field of any such types involved.
-      // The third loop resolves the other declarations.  It also resolves any witness expressions of newtype/subset-type declarations.
-      foreach (TopLevelDecl topd in declarations) {
-        Contract.Assert(topd != null);
-        Contract.Assert(VisibleInScope(topd));
-        TopLevelDecl d = topd is ClassDecl ? ((ClassDecl)topd).NonNullTypeDecl : topd;
-        if (d is NewtypeDecl) {
-          var dd = (NewtypeDecl)d;
-          ResolveAttributes(d, new ResolutionContext(new NoContext(d.EnclosingModuleDefinition), false));
-          // this check can be done only after it has been determined that the redirected types do not involve cycles
-          AddXConstraint(dd.tok, "NumericType", dd.BaseType, "newtypes must be based on some numeric type (got {0})");
-          // type check the constraint, if any
-          if (dd.Var == null) {
-            SolveAllTypeConstraints();
-          } else {
-            Contract.Assert(object.ReferenceEquals(dd.Var.Type, dd.BaseType));  // follows from NewtypeDecl invariant
-            Contract.Assert(dd.Constraint != null);  // follows from NewtypeDecl invariant
+      // Resolve all names and infer types. These two are done together, because name resolution depends on having type information
+      // and type inference depends on having resolved names.
+      // The task is first performed for (the constraints of) newtype declarations, (the constraints of) subset type declarations, and
+      // (the right-hand sides of) const declarations, because type resolution sometimes needs to know the base type of newtypes and subset types
+      // and needs to know the type of const fields. Doing these declarations increases the chances the right information will be provided
+      // in time.
+      // Once the task is done for these newtype/subset-type/const parts, the task continues with everything else.
+      ResolveNamesAndInferTypes(declarations, true);
+      ResolveNamesAndInferTypes(declarations, false);
 
-            scope.PushMarker();
-            var added = scope.Push(dd.Var.Name, dd.Var);
-            Contract.Assert(added == Scope<IVariable>.PushResult.Success);
-            ResolveExpression(dd.Constraint, new ResolutionContext(new CodeContextWrapper(dd, true), false));
-            Contract.Assert(dd.Constraint.Type != null);  // follows from postcondition of ResolveExpression
-            ConstrainTypeExprBool(dd.Constraint, "newtype constraint must be of type bool (instead got {0})");
-            SolveAllTypeConstraints();
-            if (!CheckTypeInferenceVisitor.IsDetermined(dd.BaseType.NormalizeExpand())) {
-              reporter.Error(MessageSource.Resolver, dd.tok, "newtype's base type is not fully determined; add an explicit type for '{0}'", dd.Var.Name);
-            }
-            scope.PopMarker();
-          }
-
-        } else if (d is SubsetTypeDecl) {
-          var dd = (SubsetTypeDecl)d;
-          allTypeParameters.PushMarker();
-          ResolveTypeParameters(d.TypeArgs, false, d);
-          ResolveAttributes(d, new ResolutionContext(new NoContext(d.EnclosingModuleDefinition), false));
-          // type check the constraint
-          Contract.Assert(object.ReferenceEquals(dd.Var.Type, dd.Rhs));  // follows from SubsetTypeDecl invariant
-          Contract.Assert(dd.Constraint != null);  // follows from SubsetTypeDecl invariant
-          scope.PushMarker();
-          scope.AllowInstance = false;
-          var added = scope.Push(dd.Var.Name, dd.Var);
-          Contract.Assert(added == Scope<IVariable>.PushResult.Success);
-          ResolveExpression(dd.Constraint, new ResolutionContext(new CodeContextWrapper(dd, true), false));
-          Contract.Assert(dd.Constraint.Type != null);  // follows from postcondition of ResolveExpression
-          ConstrainTypeExprBool(dd.Constraint, "subset-type constraint must be of type bool (instead got {0})");
-          SolveAllTypeConstraints();
-          if (!CheckTypeInferenceVisitor.IsDetermined(dd.Rhs.NormalizeExpand())) {
-            reporter.Error(MessageSource.Resolver, dd.tok, "subset type's base type is not fully determined; add an explicit type for '{0}'", dd.Var.Name);
-          }
-          dd.ConstraintIsCompilable = ExpressionTester.CheckIsCompilable(null, dd.Constraint, new CodeContextWrapper(dd, true));
-          dd.CheckedIfConstraintIsCompilable = true;
-
-          scope.PopMarker();
-          allTypeParameters.PopMarker();
-        }
-        if (topd is TopLevelDeclWithMembers) {
-          var cl = (TopLevelDeclWithMembers)topd;
-          currentClass = cl;
-          foreach (var member in cl.Members) {
-            Contract.Assert(VisibleInScope(member));
-            if (member is ConstantField) {
-              var field = (ConstantField)member;
-              var resolutionContext = new ResolutionContext(field, false);
-              ResolveAttributes(field, resolutionContext);
-              // Resolve the value expression
-              if (field.Rhs != null) {
-                var ec = reporter.Count(ErrorLevel.Error);
-                scope.PushMarker();
-                if (currentClass == null || !currentClass.AcceptThis) {
-                  scope.AllowInstance = false;
-                }
-                ResolveExpression(field.Rhs, resolutionContext);
-                scope.PopMarker();
-                AddAssignableConstraint(field.tok, field.Type, field.Rhs.Type, "type for constant '" + field.Name + "' is '{0}', but its initialization value type is '{1}'");
-              }
-              SolveAllTypeConstraints();
-              if (!CheckTypeInferenceVisitor.IsDetermined(field.Type.NormalizeExpand())) {
-                reporter.Error(MessageSource.Resolver, field.tok, "const field's type is not fully determined");
-              }
-            }
-          }
-          currentClass = null;
-        }
-      }
-      Contract.Assert(AllTypeConstraints.Count == 0);
+      // Check that all types have been determined. During this process, fill in all .ResolvedOp fields.
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-        // Check type inference, which also discovers bounds, in newtype/subset-type constraints and const declarations
-        foreach (TopLevelDecl topd in declarations) {
-          TopLevelDecl d = topd is ClassDecl ? ((ClassDecl)topd).NonNullTypeDecl : topd;
-          if (d is RedirectingTypeDecl dd && dd.Constraint != null) {
-            CheckTypeInference(dd.Constraint, dd);
-          }
-          if (topd is TopLevelDeclWithMembers cl) {
-            foreach (var member in cl.Members) {
-              if (member is ConstantField field && field.Rhs != null) {
-                CheckTypeInference(field.Rhs, field);
-                if (!field.IsGhost) {
-                  ExpressionTester.CheckIsCompilable(this, field.Rhs, field);
-                }
-              }
-            }
-          }
-        }
+        var checkTypeInferenceVisitor = new CheckTypeInferenceVisitor(this);
+        checkTypeInferenceVisitor.VisitDeclarations(declarations);
       }
-      // Now, we're ready for the other declarations, along with any witness clauses of newtype/subset-type declarations.
-      foreach (TopLevelDecl d in declarations) {
-        Contract.Assert(AllTypeConstraints.Count == 0);
-        allTypeParameters.PushMarker();
-        ResolveTypeParameters(d.TypeArgs, false, d);
-        if (d is NewtypeDecl || d is SubsetTypeDecl) {
-          // NewTypeDecl's and SubsetTypeDecl's were already processed in the loop above, except for any witness clauses
-          var dd = (RedirectingTypeDecl)d;
-          if (dd.Witness != null) {
-            var prevErrCnt = reporter.Count(ErrorLevel.Error);
-            var codeContext = new CodeContextWrapper(dd, dd.WitnessKind == SubsetTypeDecl.WKind.Ghost);
-            scope.PushMarker();
-            if (d is not TopLevelDeclWithMembers topLevelDecl || !topLevelDecl.AcceptThis) {
-              scope.AllowInstance = false;
-            }
-            ResolveExpression(dd.Witness, new ResolutionContext(codeContext, false));
-            scope.PopMarker();
-            ConstrainSubtypeRelation(dd.Var.Type, dd.Witness.Type, dd.Witness, "witness expression must have type '{0}' (got '{1}')", dd.Var.Type, dd.Witness.Type);
-            SolveAllTypeConstraints();
-            if (reporter.Count(ErrorLevel.Error) == prevErrCnt) {
-              CheckTypeInference(dd.Witness, dd);
-            }
-            if (reporter.Count(ErrorLevel.Error) == prevErrCnt && dd.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-              ExpressionTester.CheckIsCompilable(this, dd.Witness, codeContext);
-            }
-          }
-          if (d is TopLevelDeclWithMembers dm) {
-            ResolveClassMemberBodies(dm);
-          }
-        } else {
-          if (!(d is IteratorDecl)) {
-            // Note, attributes of iterators are resolved by ResolvedIterator, after registering any names in the iterator signature
-            ResolveAttributes(d, new ResolutionContext(new NoContext(d.EnclosingModuleDefinition), false));
-          }
-          if (d is IteratorDecl) {
-            var iter = (IteratorDecl)d;
-            ResolveIterator(iter);
-            ResolveClassMemberBodies(iter);  // resolve the automatically generated members
-          } else if (d is DatatypeDecl) {
-            var dt = (DatatypeDecl)d;
-            foreach (var ctor in dt.Ctors) {
-              ResolveAttributes(ctor, new ResolutionContext(new NoContext(d.EnclosingModuleDefinition), false));
-            }
-            // resolve any default parameters
-            foreach (var ctor in dt.Ctors) {
-              scope.PushMarker();
-              scope.AllowInstance = false;
-              ctor.Formals.ForEach(p => scope.Push(p.Name, p));
-              ResolveParameterDefaultValues(ctor.Formals, ResolutionContext.FromCodeContext(dt));
-              scope.PopMarker();
-            }
-            // resolve members
-            ResolveClassMemberBodies(dt);
-          } else if (d is TopLevelDeclWithMembers) {
-            var dd = (TopLevelDeclWithMembers)d;
-            ResolveClassMemberBodies(dd);
-          }
-        }
-        allTypeParameters.PopMarker();
+
+      // Substitute for DefaultValueExpression's
+      FillInDefaultValueExpressions();
+
+      // ---------------------------------- Pass 1 ----------------------------------
+      // This pass does the following:
+      // * discovers bounds
+      // * builds the module's call graph.
+      // * compute and checks ghosts (this makes use of bounds discovery, as done above)
+      // * for newtypes, figure out native types
+      // * for datatypes, check that shared destructors are in agreement in ghost matters
+      // * for functions and methods, determine tail recursion
+      // ----------------------------------------------------------------------------
+
+      // Discover bounds. These are needed later to determine if certain things are ghost or compiled, and thus this should
+      // be done before building the call graph.
+      if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+        var boundsDiscoveryVisitor = new BoundsDiscoveryVisitor(reporter);
+        boundsDiscoveryVisitor.VisitDeclarations(declarations);
       }
 
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         CallGraphBuilder.Build(declarations, reporter);
       }
 
-      // ---------------------------------- Pass 1 ----------------------------------
-      // This pass:
-      // * checks that type inference was able to determine all types
-      // * check that shared destructors in datatypes are in agreement
-      // * fills in the .ResolvedOp field of binary expressions
-      // * performs substitution for DefaultValueExpression's
-      // * discovers bounds for:
-      //     - forall statements
-      //     - set comprehensions
-      //     - map comprehensions
-      //     - quantifier expressions
-      //     - assign-such-that statements
-      //     - compilable let-such-that expressions
-      //     - newtype constraints
-      //     - subset-type constraints
-      // For each statement body that it successfully typed, this pass also:
-      // * computes ghost interests
-      // * determines/checks tail-recursion.
-      // ----------------------------------------------------------------------------
-
+      // Compute ghost interests, figure out native types, check agreement among datatype destructors, and determine tail calls.
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-        // Check that type inference went well everywhere; this will also fill in the .ResolvedOp field in binary expressions
-        // Also, for each datatype, check that shared destructors are in agreement
         foreach (TopLevelDecl d in declarations) {
           if (d is IteratorDecl) {
             var iter = (IteratorDecl)d;
-            var prevErrCnt = reporter.Count(ErrorLevel.Error);
-            foreach (var formal in iter.Ins) {
-              if (formal.DefaultValue != null) {
-                CheckTypeInference(formal.DefaultValue, iter);
-              }
-            }
-            iter.Members.Iter(CheckTypeInference_Member);
-            if (prevErrCnt == reporter.Count(ErrorLevel.Error)) {
-              iter.SubExpressions.Iter(e => CheckExpression(e, this, iter));
-            }
-            ResolveParameterDefaultValues_Pass1(iter.Ins, iter);
+            iter.SubExpressions.Iter(e => CheckExpression(e, this, iter));
             if (iter.Body != null) {
-              CheckTypeInference(iter.Body, iter);
-              if (prevErrCnt == reporter.Count(ErrorLevel.Error)) {
-                ComputeGhostInterest(iter.Body, false, null, iter);
-                CheckExpression(iter.Body, this, iter);
+              ComputeGhostInterest(iter.Body, false, null, iter);
+              CheckExpression(iter.Body, this, iter);
+            }
+
+          } else if (d is SubsetTypeDecl subsetTypeDecl) {
+            Contract.Assert(subsetTypeDecl.Constraint != null);
+            CheckExpression(subsetTypeDecl.Constraint, this, new CodeContextWrapper(subsetTypeDecl, true));
+            subsetTypeDecl.ConstraintIsCompilable =
+              ExpressionTester.CheckIsCompilable(null, subsetTypeDecl.Constraint, new CodeContextWrapper(subsetTypeDecl, true));
+            subsetTypeDecl.CheckedIfConstraintIsCompilable = true;
+
+            if (subsetTypeDecl.Witness != null) {
+              CheckExpression(subsetTypeDecl.Witness, this, new CodeContextWrapper(subsetTypeDecl, subsetTypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost));
+              if (subsetTypeDecl.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
+                var codeContext = new CodeContextWrapper(subsetTypeDecl, subsetTypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost);
+                ExpressionTester.CheckIsCompilable(this, subsetTypeDecl.Witness, codeContext);
               }
             }
-          } else if (d is ClassDecl) {
-            var dd = (ClassDecl)d;
-            ResolveClassMembers_Pass1(dd);
-          } else if (d is SubsetTypeDecl) {
-            var dd = (SubsetTypeDecl)d;
-            Contract.Assert(dd.Constraint != null);
-            CheckExpression(dd.Constraint, this, new CodeContextWrapper(dd, true));
-            if (dd.Witness != null) {
-              CheckExpression(dd.Witness, this, new CodeContextWrapper(dd, dd.WitnessKind == SubsetTypeDecl.WKind.Ghost));
-            }
-          } else if (d is NewtypeDecl) {
-            var dd = (NewtypeDecl)d;
-            if (dd.Var != null) {
-              Contract.Assert(dd.Constraint != null);
-              CheckExpression(dd.Constraint, this, new CodeContextWrapper(dd, true));
-              if (dd.Witness != null) {
-                CheckExpression(dd.Witness, this, new CodeContextWrapper(dd, dd.WitnessKind == SubsetTypeDecl.WKind.Ghost));
+
+          } else if (d is NewtypeDecl newtypeDecl) {
+            if (newtypeDecl.Var != null) {
+              Contract.Assert(newtypeDecl.Constraint != null);
+              CheckExpression(newtypeDecl.Constraint, this, new CodeContextWrapper(newtypeDecl, true));
+              if (newtypeDecl.Witness != null) {
+                CheckExpression(newtypeDecl.Witness, this, new CodeContextWrapper(newtypeDecl, newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost));
               }
             }
-            FigureOutNativeType(dd);
-            ResolveClassMembers_Pass1(dd);
+            if (newtypeDecl.Witness != null && newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
+              var codeContext = new CodeContextWrapper(newtypeDecl, newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost);
+              ExpressionTester.CheckIsCompilable(this, newtypeDecl.Witness, codeContext);
+            }
+
+            FigureOutNativeType(newtypeDecl);
+
           } else if (d is DatatypeDecl) {
             var dd = (DatatypeDecl)d;
-            foreach (var ctor in dd.Ctors) {
-              foreach (var formal in ctor.Formals) {
-                if (formal.DefaultValue != null) {
-                  CheckTypeInference(formal.DefaultValue, dd);
-                }
-              }
-            }
             foreach (var member in classMembers[dd].Values) {
               var dtor = member as DatatypeDestructor;
               if (dtor != null) {
                 var rolemodel = dtor.CorrespondingFormals[0];
                 for (int i = 1; i < dtor.CorrespondingFormals.Count; i++) {
                   var other = dtor.CorrespondingFormals[i];
-                  if (!Type.Equal_Improved(rolemodel.Type, other.Type)) {
-                    reporter.Error(MessageSource.Resolver, other,
-                      "shared destructors must have the same type, but '{0}' has type '{1}' in constructor '{2}' and type '{3}' in constructor '{4}'",
-                      rolemodel.Name, rolemodel.Type, dtor.EnclosingCtors[0].Name, other.Type, dtor.EnclosingCtors[i].Name);
-                  } else if (rolemodel.IsGhost != other.IsGhost) {
+                  if (rolemodel.IsGhost != other.IsGhost) {
                     reporter.Error(MessageSource.Resolver, other,
                       "shared destructors must agree on whether or not they are ghost, but '{0}' is {1} in constructor '{2}' and {3} in constructor '{4}'",
                       rolemodel.Name,
@@ -2703,17 +2541,15 @@ namespace Microsoft.Dafny {
               }
             }
             foreach (var ctor in dd.Ctors) {
-              ResolveParameterDefaultValues_Pass1(ctor.Formals, dd);
+              CheckParameterDefaultValuesAreCompilable(ctor.Formals, dd);
             }
-            ResolveClassMembers_Pass1(dd);
-          } else if (d is OpaqueTypeDecl) {
-            var dd = (OpaqueTypeDecl)d;
-            ResolveClassMembers_Pass1(dd);
+          }
+
+          if (d is TopLevelDeclWithMembers cl) {
+            ResolveClassMembers_Pass1(cl);
           }
         }
       }
-
-      FillInDefaultValueExpressions();
 
       // ---------------------------------- Pass 2 ----------------------------------
       // This pass fills in various additional information.
@@ -2864,7 +2700,7 @@ namespace Microsoft.Dafny {
           ResolveMethod(prefixLemma);
           allTypeParameters.PopMarker();
           currentClass = null;
-          CheckTypeInference_Member(prefixLemma);
+          new CheckTypeInferenceVisitor(this).VisitMethod(prefixLemma);
           CallGraphBuilder.VisitMethod(prefixLemma, reporter);
         }
       }
@@ -2985,12 +2821,17 @@ namespace Microsoft.Dafny {
           if (d is IteratorDecl) {
             var iter = (IteratorDecl)d;
             var done = false;
-            foreach (var tp in iter.TypeArgs) {
+            var nonnullIter = iter.NonNullTypeDecl;
+            Contract.Assert(nonnullIter.TypeArgs.Count == iter.TypeArgs.Count);
+            for (var i = 0; i < iter.TypeArgs.Count; i++) {
+              var tp = iter.TypeArgs[i];
+              var correspondingNonnullIterTypeParameter = nonnullIter.TypeArgs[i];
               if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
                 // here's our chance to infer the need for equality support
                 foreach (var p in iter.Ins) {
                   if (InferRequiredEqualitySupport(tp, p.Type)) {
                     tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                    correspondingNonnullIterTypeParameter.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
                     done = true;
                     break;
                   }
@@ -3002,6 +2843,7 @@ namespace Microsoft.Dafny {
 
                   if (InferRequiredEqualitySupport(tp, p.Type)) {
                     tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                    correspondingNonnullIterTypeParameter.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
                     break;
                   }
                 }
@@ -3204,8 +3046,7 @@ namespace Microsoft.Dafny {
             }
           }
 
-          if (d is RedirectingTypeDecl) {
-            var dd = (RedirectingTypeDecl)d;
+          if (d is RedirectingTypeDecl dd) {
             if (d.EnclosingModuleDefinition.CallGraph.GetSCCSize(dd) != 1) {
               var r = d.EnclosingModuleDefinition.CallGraph.GetSCCRepresentative(dd);
               if (cycleErrorHasBeenReported.Contains(r)) {
@@ -3341,28 +3182,28 @@ namespace Microsoft.Dafny {
     private void ResolveClassMembers_Pass1(TopLevelDeclWithMembers cl) {
       foreach (var member in cl.Members) {
         var prevErrCnt = reporter.Count(ErrorLevel.Error);
-        CheckTypeInference_Member(member);
         if (prevErrCnt == reporter.Count(ErrorLevel.Error)) {
-          if (member is Method) {
-            var m = (Method)member;
-            ResolveParameterDefaultValues_Pass1(m.Ins, m);
-            if (m.Body != null) {
-              ComputeGhostInterest(m.Body, m.IsGhost, m.IsLemmaLike ? "a " + m.WhatKind : null, m);
-              CheckExpression(m.Body, this, m);
-              new TailRecursion(reporter).DetermineTailRecursion(m);
+          if (member is Method method) {
+            CheckForUnnecessaryEqualitySupportDeclarations(method, method.TypeArgs);
+            CheckParameterDefaultValuesAreCompilable(method.Ins, method);
+            if (method.Body != null) {
+              ComputeGhostInterest(method.Body, method.IsGhost, method.IsLemmaLike ? "a " + method.WhatKind : null, method);
+              CheckExpression(method.Body, this, method);
+              new TailRecursion(reporter).DetermineTailRecursion(method);
             }
-          } else if (member is Function) {
-            var f = (Function)member;
-            ResolveParameterDefaultValues_Pass1(f.Formals, f);
-            if (f.ByMethodBody == null) {
-              if (!f.IsGhost && f.Body != null) {
-                ExpressionTester.CheckIsCompilable(this, f.Body, f);
+
+          } else if (member is Function function) {
+            CheckForUnnecessaryEqualitySupportDeclarations(function, function.TypeArgs);
+            CheckParameterDefaultValuesAreCompilable(function.Formals, function);
+            if (function.ByMethodBody == null) {
+              if (!function.IsGhost && function.Body != null) {
+                ExpressionTester.CheckIsCompilable(this, function.Body, function);
               }
-              if (f.Body != null) {
-                new TailRecursion(reporter).DetermineTailRecursion(f);
+              if (function.Body != null) {
+                new TailRecursion(reporter).DetermineTailRecursion(function);
               }
             } else {
-              var m = f.ByMethodDecl;
+              var m = function.ByMethodDecl;
               if (m != null) {
                 Contract.Assert(!m.IsGhost);
                 ComputeGhostInterest(m.Body, false, null, m);
@@ -3374,7 +3215,11 @@ namespace Microsoft.Dafny {
                 Contract.Assert(reporter.ErrorCount > 0);
               }
             }
+
+          } else if (member is ConstantField field && field.Rhs != null && !field.IsGhost) {
+            ExpressionTester.CheckIsCompilable(this, field.Rhs, field);
           }
+
           if (prevErrCnt == reporter.Count(ErrorLevel.Error) && member is ICodeContext) {
             member.SubExpressions.Iter(e => CheckExpression(e, this, (ICodeContext)member));
           }
@@ -3382,10 +3227,19 @@ namespace Microsoft.Dafny {
       }
     }
 
+    void CheckForUnnecessaryEqualitySupportDeclarations(MemberDecl member, List<TypeParameter> typeParameters) {
+      if (member.IsGhost) {
+        foreach (var p in typeParameters.Where(p => p.SupportsEquality)) {
+          reporter.Warning(MessageSource.Resolver, p.tok,
+            $"type parameter {p.Name} of ghost {member.WhatKind} {member.Name} is declared (==), which is unnecessary because the {member.WhatKind} doesn't contain any compiled code");
+        }
+      }
+    }
+
     /// <summary>
     /// Check that default-value expressions are compilable, for non-ghost formals.
     /// </summary>
-    void ResolveParameterDefaultValues_Pass1(List<Formal> formals, ICodeContext codeContext) {
+    void CheckParameterDefaultValuesAreCompilable(List<Formal> formals, ICodeContext codeContext) {
       Contract.Requires(formals != null);
 
       foreach (var formal in formals.Where(f => f.DefaultValue != null)) {
@@ -7340,318 +7194,6 @@ namespace Microsoft.Dafny {
           pat.AssembleExpr(udt.TypeArgs);
         }
       }
-    }
-
-    Resolver_IdentifierExpr CreateResolver_IdentifierExpr(IToken tok, string name, List<Type> optTypeArguments, TopLevelDecl decl) {
-      Contract.Requires(tok != null);
-      Contract.Requires(name != null);
-      Contract.Requires(decl != null);
-      Contract.Ensures(Contract.Result<Resolver_IdentifierExpr>() != null);
-
-      if (!moduleInfo.IsAbstract) {
-        if (decl is ModuleDecl md && md.Signature.IsAbstract) {
-          reporter.Error(MessageSource.Resolver, tok, "a compiled module is not allowed to use an abstract module ({0})", decl.Name);
-        }
-      }
-      var n = optTypeArguments == null ? 0 : optTypeArguments.Count;
-      if (optTypeArguments != null) {
-        // type arguments were supplied; they must be equal in number to those expected
-        if (n != decl.TypeArgs.Count) {
-          reporter.Error(MessageSource.Resolver, tok, "Wrong number of type arguments ({0} instead of {1}) passed to {2}: {3}", n, decl.TypeArgs.Count, decl.WhatKind, name);
-        }
-      }
-      List<Type> tpArgs = new List<Type>();
-      for (int i = 0; i < decl.TypeArgs.Count; i++) {
-        tpArgs.Add(i < n ? optTypeArguments[i] : new InferredTypeProxy());
-      }
-      return new Resolver_IdentifierExpr(tok, decl, tpArgs);
-    }
-
-    /// <summary>
-    /// Check whether the name we just resolved may have been resolved differently if we didn't allow member `M.M` of
-    /// module `M` to shadow `M` when the user writes `import opened M`.  Raising an error in that case allowed us to
-    /// change the behavior of `import opened` without silently changing the meaning of existing programs.
-    /// (https://github.com/dafny-lang/dafny/issues/1996)
-    ///
-    /// Note the extra care for the constructor case, which is needed because the constructors of datatype `M.M` are
-    /// exposed through both `M` and `M.M`, without ambiguity.
-    /// </summary>
-    private void CheckForAmbiguityInShadowedImportedModule(ModuleDecl moduleDecl, string name,
-      IToken tok, bool useCompileSignatures, bool isLastNameSegment) {
-      if (moduleDecl != null && NameConflictsWithModuleContents(moduleDecl, name, useCompileSignatures, isLastNameSegment)) {
-        reporter.Error(MessageSource.Resolver, tok,
-          "Reference to member '{0}' is ambiguous: name '{1}' shadows an import-opened module of the same name, and "
-          + "both have a member '{0}'. To solve this issue, give a different name to the imported module using "
-          + "`import opened XYZ = ...` instead of `import opened ...`.",
-          name, moduleDecl.Name);
-      }
-    }
-
-    private bool NameConflictsWithModuleContents(ModuleDecl moduleDecl, string name, bool useCompileSignatures, bool isLastNameSegment) {
-      var sig = GetSignature(moduleDecl.AccessibleSignature(useCompileSignatures));
-      return (
-        (isLastNameSegment
-         && sig.Ctors.GetValueOrDefault(name) is { Item1: var constructor, Item2: var ambiguous }
-         && !ambiguous && constructor.EnclosingDatatype.Name != moduleDecl.Name)
-        || sig.TopLevels.ContainsKey(name)
-        || sig.StaticMembers.ContainsKey(name)
-      );
-    }
-
-    /// <summary>
-    /// To resolve "id" in expression "E . id", do:
-    ///  * If E denotes a module name M:
-    ///      0. Member of module M:  sub-module (including submodules of imports), class, datatype, etc.
-    ///         (if two imported types have the same name, an error message is produced here)
-    ///      1. Static member of M._default denoting an async task type
-    ///    (Note that in contrast to ResolveNameSegment_Type, imported modules, etc. are ignored)
-    ///  * If E denotes a type:
-    ///      2. a. Member of that type denoting an async task type, or:
-    ///         b. If allowDanglingDotName:
-    ///            Return the type "E" and the given "expr", letting the caller try to make sense of the final dot-name.
-    ///
-    /// Note: 1 and 2a are not used now, but they will be of interest when async task types are supported.
-    /// </summary>
-    ResolveTypeReturn ResolveDotSuffix_Type(ExprDotName expr, ResolutionContext resolutionContext, bool allowDanglingDotName, ResolveTypeOption option, List<TypeParameter> defaultTypeArguments) {
-      Contract.Requires(expr != null);
-      Contract.Requires(!expr.WasResolved());
-      Contract.Requires(expr.Lhs is NameSegment || expr.Lhs is ExprDotName);
-      Contract.Requires(resolutionContext != null);
-      Contract.Ensures(Contract.Result<ResolveTypeReturn>() == null || allowDanglingDotName);
-
-      // resolve the LHS expression
-      if (expr.Lhs is NameSegment) {
-        ResolveNameSegment_Type((NameSegment)expr.Lhs, resolutionContext, option, defaultTypeArguments);
-      } else {
-        ResolveDotSuffix_Type((ExprDotName)expr.Lhs, resolutionContext, false, option, defaultTypeArguments);
-      }
-
-      if (expr.OptTypeArguments != null) {
-        foreach (var ty in expr.OptTypeArguments) {
-          ResolveType(expr.tok, ty, resolutionContext, option, defaultTypeArguments);
-        }
-      }
-
-      Expression r = null;  // the resolved expression, if successful
-
-      var lhs = expr.Lhs.Resolved;
-      if (lhs != null && lhs.Type is Resolver_IdentifierExpr.ResolverType_Module) {
-        var ri = (Resolver_IdentifierExpr)lhs;
-        var sig = ((ModuleDecl)ri.Decl).AccessibleSignature(useCompileSignatures);
-        sig = GetSignature(sig);
-        // For 0:
-        TopLevelDecl decl;
-
-        if (sig.TopLevels.TryGetValue(expr.SuffixName, out decl)) {
-          // ----- 0. Member of the specified module
-          if (decl is AmbiguousTopLevelDecl) {
-            var ad = (AmbiguousTopLevelDecl)decl;
-            reporter.Error(MessageSource.Resolver, expr.tok, "The name {0} ambiguously refers to a type in one of the modules {1} (try qualifying the type name with the module name)", expr.SuffixName, ad.ModuleNames());
-          } else {
-            // We have found a module name or a type name.  We create a temporary expression that will never be seen by the compiler
-            // or verifier, just to have a placeholder where we can recorded what we have found.
-            r = CreateResolver_IdentifierExpr(expr.tok, expr.SuffixName, expr.OptTypeArguments, decl);
-          }
-#if ASYNC_TASK_TYPES
-        } else if (sig.StaticMembers.TryGetValue(expr.SuffixName, out member)) {
-          // ----- 1. static member of the specified module
-          Contract.Assert(member.IsStatic); // moduleInfo.StaticMembers is supposed to contain only static members of the module's implicit class _default
-          if (ReallyAmbiguousThing(ref member)) {
-            reporter.Error(MessageSource.Resolver, expr.tok, "The name {0} ambiguously refers to a static member in one of the modules {1} (try qualifying the member name with the module name)", expr.SuffixName, ((AmbiguousMemberDecl)member).ModuleNames());
-          } else {
-            var receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass);
-            r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts.resolutionContext, allowMethodCall);
-          }
-#endif
-        } else {
-          reporter.Error(MessageSource.Resolver, expr.tok, "module '{0}' does not declare a type '{1}'", ri.Decl.Name, expr.SuffixName);
-        }
-
-      } else if (lhs != null && lhs.Type is Resolver_IdentifierExpr.ResolverType_Type) {
-        var ri = (Resolver_IdentifierExpr)lhs;
-        // ----- 2. Look up name in type
-        var ty = new UserDefinedType(ri.tok, ri.Decl.Name, ri.Decl, ri.TypeArgs);
-        if (allowDanglingDotName && ty.IsRefType) {
-          return new ResolveTypeReturn(ty, expr);
-        }
-        if (r == null) {
-          reporter.Error(MessageSource.Resolver, expr.tok, "member '{0}' does not exist in type '{1}' or cannot be part of type name", expr.SuffixName, ri.Decl.Name);
-        }
-      }
-
-      if (r == null) {
-        // an error has been reported above; we won't fill in .ResolvedExpression, but we still must fill in .Type
-        expr.Type = new InferredTypeProxy();
-      } else {
-        expr.ResolvedExpression = r;
-        expr.Type = r.Type;
-      }
-      return null;
-    }
-
-    /// <summary>
-    /// Resolve the actual arguments given in "bindings". Then, check that there is exactly one
-    /// actual for each formal, and impose assignable constraints.
-    /// "typeMap" is applied to the type of each formal.
-    /// This method should be called only once. That is, bindings.arguments is required to be null on entry to this method.
-    /// </summary>
-    void ResolveActualParameters(ActualBindings bindings, List<Formal> formals, IToken callTok, object context, ResolutionContext resolutionContext,
-      Dictionary<TypeParameter, Type> typeMap, Expression/*?*/ receiver) {
-      Contract.Requires(bindings != null);
-      Contract.Requires(formals != null);
-      Contract.Requires(callTok != null);
-      Contract.Requires(context is Method || context is Function || context is DatatypeCtor || context is ArrowType);
-      Contract.Requires(typeMap != null);
-      Contract.Requires(!bindings.WasResolved);
-
-      string whatKind;
-      string name;
-      if (context is Method cMethod) {
-        whatKind = cMethod.WhatKind;
-        name = $"{whatKind} '{cMethod.Name}'";
-      } else if (context is Function cFunction) {
-        whatKind = cFunction.WhatKind;
-        name = $"{whatKind} '{cFunction.Name}'";
-      } else if (context is DatatypeCtor cCtor) {
-        whatKind = "datatype constructor";
-        name = $"{whatKind} '{cCtor.Name}'";
-      } else {
-        var cArrowType = (ArrowType)context;
-        whatKind = "function application";
-        name = $"function type '{cArrowType}'";
-      }
-
-      // If all arguments are passed positionally, use simple error messages that talk about the count of arguments.
-      var onlyPositionalArguments = bindings.ArgumentBindings.TrueForAll(binding => binding.FormalParameterName == null);
-      var simpleErrorReported = false;
-      if (onlyPositionalArguments) {
-        var requiredParametersCount = formals.Count(f => f.DefaultValue == null);
-        var actualsCounts = bindings.ArgumentBindings.Count;
-        if (requiredParametersCount <= actualsCounts && actualsCounts <= formals.Count) {
-          // the situation is plausible
-        } else if (requiredParametersCount == formals.Count) {
-          // this is the common, classical case of no default parameter values; generate a straightforward error message
-          reporter.Error(MessageSource.Resolver, callTok, $"wrong number of arguments ({name} expects {formals.Count}, got {actualsCounts})");
-          simpleErrorReported = true;
-        } else if (actualsCounts < requiredParametersCount) {
-          reporter.Error(MessageSource.Resolver, callTok, $"wrong number of arguments ({name} expects at least {requiredParametersCount}, got {actualsCounts})");
-          simpleErrorReported = true;
-        } else {
-          reporter.Error(MessageSource.Resolver, callTok, $"wrong number of arguments ({name} expects at most {formals.Count}, got {actualsCounts})");
-          simpleErrorReported = true;
-        }
-      }
-
-      // resolve given arguments and populate the "namesToActuals" map
-      var namesToActuals = new Dictionary<string, ActualBinding>();
-      formals.ForEach(f => namesToActuals.Add(f.Name, null)); // a name mapping to "null" says it hasn't been filled in yet
-      var stillAcceptingPositionalArguments = true;
-      var bindingIndex = 0;
-      foreach (var binding in bindings.ArgumentBindings) {
-        var arg = binding.Actual;
-        // insert the actual into "namesToActuals" under an appropriate name, unless there is an error
-        if (binding.FormalParameterName != null) {
-          var pname = binding.FormalParameterName.val;
-          stillAcceptingPositionalArguments = false;
-          if (!namesToActuals.TryGetValue(pname, out var b)) {
-            reporter.Error(MessageSource.Resolver, binding.FormalParameterName, $"the binding named '{pname}' does not correspond to any formal parameter");
-          } else if (b == null) {
-            // all is good
-            namesToActuals[pname] = binding;
-          } else if (b.FormalParameterName == null) {
-            reporter.Error(MessageSource.Resolver, binding.FormalParameterName, $"the parameter named '{pname}' is already given positionally");
-          } else {
-            reporter.Error(MessageSource.Resolver, binding.FormalParameterName, $"duplicate binding for parameter name '{pname}'");
-          }
-        } else if (!stillAcceptingPositionalArguments) {
-          reporter.Error(MessageSource.Resolver, arg.tok, "a positional argument is not allowed to follow named arguments");
-        } else if (bindingIndex < formals.Count) {
-          // use the name of formal corresponding to this positional argument, unless the parameter is named-only
-          var formal = formals[bindingIndex];
-          var pname = formal.Name;
-          if (formal.IsNameOnly) {
-            reporter.Error(MessageSource.Resolver, arg.tok,
-              $"nameonly parameter '{pname}' must be passed using a name binding; it cannot be passed positionally");
-          }
-          Contract.Assert(namesToActuals[pname] == null); // we expect this, since we've only filled parameters positionally so far
-          namesToActuals[pname] = binding;
-        } else {
-          // too many positional arguments
-          if (onlyPositionalArguments) {
-            // error was reported before the "foreach" loop
-            Contract.Assert(simpleErrorReported);
-          } else if (formals.Count < bindingIndex) {
-            // error was reported on a previous iteration of this "foreach" loop
-          } else {
-            reporter.Error(MessageSource.Resolver, callTok,
-              $"wrong number of arguments ({name} expects {formals.Count}, got {bindings.ArgumentBindings.Count})");
-          }
-        }
-
-        // resolve argument
-        ResolveExpression(arg, resolutionContext);
-        bindingIndex++;
-      }
-
-      var actuals = new List<Expression>();
-      var formalIndex = 0;
-      var substMap = new Dictionary<IVariable, Expression>();
-      foreach (var formal in formals) {
-        var b = namesToActuals[formal.Name];
-        if (b != null) {
-          actuals.Add(b.Actual);
-          substMap.Add(formal, b.Actual);
-          var what = GetLocationInformation(formal,
-            bindings.ArgumentBindings.Count(), bindings.ArgumentBindings.IndexOf(b),
-            whatKind + (context is Method ? " in-parameter" : " parameter"));
-
-          AddAssignableConstraint(
-            callTok, formal.Type.Subst(typeMap), b.Actual.Type,
-            $"incorrect argument type {what} (expected {{0}}, found {{1}})");
-        } else if (formal.DefaultValue != null) {
-          // Note, in the following line, "substMap" is passed in, but it hasn't been fully filled in until the
-          // end of this foreach loop. Still, that's soon enough, because DefaultValueExpression won't use it
-          // until FillInDefaultValueExpressions at the end of Pass 1 of the Resolver.
-          var n = new DefaultValueExpression(callTok, formal, receiver, substMap, typeMap);
-          allDefaultValueExpressions.Add(n);
-          actuals.Add(n);
-          substMap.Add(formal, n);
-        } else {
-          // parameter has no value
-          if (onlyPositionalArguments) {
-            // a simple error message has already been reported
-            Contract.Assert(simpleErrorReported);
-          } else {
-            var formalDescription = whatKind + (context is Method ? " in-parameter" : " parameter");
-            var nameWithIndex = formal.HasName && formal is not ImplicitFormal ? "'" + formal.Name + "'" : "";
-            if (formals.Count > 1 || nameWithIndex == "") {
-              nameWithIndex += nameWithIndex == "" ? "" : " ";
-              nameWithIndex += $"at index {formalIndex}";
-            }
-            var message = $"{formalDescription} {nameWithIndex} requires an argument of type {formal.Type}";
-            reporter.Error(MessageSource.Resolver, callTok, message);
-          }
-        }
-        formalIndex++;
-      }
-
-      bindings.AcceptArgumentExpressionsAsExactParameterList(actuals);
-    }
-
-    private static string GetLocationInformation(Formal parameter, int bindingCount, int bindingIndex, string formalDescription) {
-      var displayName = parameter.HasName && parameter is not ImplicitFormal;
-      var description = "";
-      if (bindingCount > 1) {
-        description += $"at index {bindingIndex} ";
-      }
-
-      description += $"for {formalDescription}";
-
-      if (displayName) {
-        description += $" '{parameter.Name}'";
-      }
-
-      return description;
     }
 
     private List<DefaultValueExpression> allDefaultValueExpressions = new List<DefaultValueExpression>();
