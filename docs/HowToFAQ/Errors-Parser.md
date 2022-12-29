@@ -125,7 +125,7 @@ method M() {}
 
 Although all top-level declarations are contained in an implicit top-level module, there is no syntax to import that module.
 Such an import would likely cause a circular module dependency error.
-If the module cannot be imported, there is no point to any export declarations.
+If the implicit module cannot be imported, there is no point to any export declarations inside the implicit module.
 
 ## **Error: expected either a '{' or a 'refines' keyword here, found _token_**
 
