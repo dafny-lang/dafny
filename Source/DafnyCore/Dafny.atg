@@ -1169,7 +1169,11 @@ ModuleExport<ModuleDefinition parent, out ModuleDecl submodule>
     bool isRefining = false;
     ExportSignature exsig;
   .)
-  [ ExportId<out exportId> ]
+  [ IF(IsIdentifier(la.kind)) ExportId<out exportId>   // If the next token is 'least' or 'greatest' use it as the export id, 
+                                                       // not the beginning of a subsequent extreme predicate declaration
+    (. if (startToken.line != exportId.line) errors.Warning(exportId, "the id for the export declaration is on a different line than the 'export' keyword -- this looks suspicious or confusing");
+    .)
+  ]
   [ ellipsis  (. isRefining = true; .) ]
   {
     "provides"
@@ -2445,6 +2449,9 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
     MethodFunctionName<out id>
     (
       [ GenericParameters<typeArgs, false> ]
+      [ KType<ref kType> 
+        (. SemErr(t, "a formal [ ] declaration is only allowed for least and greatest predicates"); .)
+      ]
       [ Formals<true, true, isTwoState, true, formals>
       ]
       [ PredicateResult<"predicate", out result> ]

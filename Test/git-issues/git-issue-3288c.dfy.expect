@@ -1,0 +1,3 @@
+git-issue-3288c.dfy(6,2): Warning: the id for the export declaration is on a different line than the 'export' keyword -- this looks suspicious or confusing
+
+Dafny program verifier finished with 0 verified, 0 errors

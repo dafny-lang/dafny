@@ -1,0 +1,2 @@
+git-issue-3288b.dfy(5,30): Error: a formal [ ] declaration is only allowed for least and greatest predicates
+1 parse errors detected in git-issue-3288b.dfy
