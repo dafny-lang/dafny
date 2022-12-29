@@ -1446,22 +1446,22 @@ NoGhost - disable printing of functions, ghost methods, and proof
         // Print ResolvedStatement, if present, as comment
         var s = (NestedMatchStmt)stmt;
 
-        // if (s.ResolvedStatement != null && DafnyOptions.O.DafnyPrintResolvedFile != null) {
-        //   wr.WriteLine();
-        //   if (!printingDesugared) {
-        //     Indent(indent); wr.WriteLine("/*---------- desugared ----------");
-        //   }
-        //
-        //   var savedDesugarMode = printingDesugared;
-        //   printingDesugared = true;
-        //   Indent(indent); PrintStatement(s.ResolvedStatement, indent);
-        //   printingDesugared = savedDesugarMode;
-        //
-        //   if (!printingDesugared) {
-        //     Indent(indent); wr.WriteLine("---------- end desugared ----------*/");
-        //   }
-        //   Indent(indent);
-        // }
+        if (s.Denested != null && DafnyOptions.O.DafnyPrintResolvedFile != null) {
+          wr.WriteLine();
+          if (!printingDesugared) {
+            Indent(indent); wr.WriteLine("/*---------- denested ----------");
+          }
+        
+          var savedDesugarMode = printingDesugared;
+          printingDesugared = true;
+          Indent(indent); PrintStatement(s.Denested, indent);
+          printingDesugared = savedDesugarMode;
+        
+          if (!printingDesugared) {
+            Indent(indent); wr.WriteLine("---------- end denested ----------*/");
+          }
+          Indent(indent);
+        }
 
         if (!printingDesugared) {
           wr.Write("match");
@@ -1939,21 +1939,21 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
       } else if (expr is NestedMatchExpr) {
         var e = (NestedMatchExpr)expr;
-        // if (e.ResolvedExpression != null && DafnyOptions.O.DafnyPrintResolvedFile != null) {
-        //   wr.WriteLine();
-        //   if (!printingDesugared) {
-        //     Indent(indent); wr.WriteLine("/*---------- desugared ----------");
-        //   }
-        //
-        //   var savedDesugarMode = printingDesugared;
-        //   printingDesugared = true;
-        //   PrintExtendedExpr(e.ResolvedExpression, indent, isRightmost, endWithCloseParen);
-        //   printingDesugared = savedDesugarMode;
-        //
-        //   if (!printingDesugared) {
-        //     Indent(indent); wr.WriteLine("---------- end desugared ----------*/");
-        //   }
-        // }
+        if (e.Denested != null && DafnyOptions.O.DafnyPrintResolvedFile != null) {
+          wr.WriteLine();
+          if (!printingDesugared) {
+            Indent(indent); wr.WriteLine("/*---------- denested ----------");
+          }
+        
+          var savedDesugarMode = printingDesugared;
+          printingDesugared = true;
+          PrintExtendedExpr(e.Denested, indent, isRightmost, endWithCloseParen);
+          printingDesugared = savedDesugarMode;
+        
+          if (!printingDesugared) {
+            Indent(indent); wr.WriteLine("---------- end denested ----------*/");
+          }
+        }
         if (!printingDesugared) {
           Indent(indent);
           var parensNeeded = !isRightmost && !e.UsesOptionalBraces;
