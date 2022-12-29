@@ -1169,8 +1169,8 @@ ModuleExport<ModuleDefinition parent, out ModuleDecl submodule>
     bool isRefining = false;
     ExportSignature exsig;
   .)
-  [ IF(IsIdentifier(la.kind)) ExportId<out exportId>   // If the next token is 'least' or 'greatest' use it as the export id, 
-                                                       // not the beginning of a subsequent extreme predicate declaration
+  [ IF(IsIdentifier(la.kind) || la.kind==_digits) ExportId<out exportId>   // If the next token is 'least' or 'greatest' use it as the export id, 
+                                                                           // not the beginning of a subsequent extreme predicate declaration
     (. if (startToken.line != exportId.line) errors.Warning(exportId, "the id for the export declaration is on a different line than the 'export' keyword -- this looks suspicious or confusing");
     .)
   ]
