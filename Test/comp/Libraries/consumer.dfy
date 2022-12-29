@@ -1,4 +1,4 @@
-// RUN: %dafny /library:"%S/Inputs/directLibrary.dfy" /library:"%S/Inputs/secondLibrary.dfy" /compile:0 /spillTargetCode:3 "%s" > "%t"
+// RUN: %baredafny translate cs %args --library:"%S/Inputs/directLibrary.dfy" --library:"%S/Inputs/secondLibrary.dfy" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 // RUN: %OutputCheck "%s" --file-to-check="%S/consumer.cs"
 // CHECK-NOT: namespace GloballyUniqueProducer

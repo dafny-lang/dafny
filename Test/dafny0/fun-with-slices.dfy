@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %baredafny verify %args "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This test was contributed by Bryan. It has shown some instabilities in the past.

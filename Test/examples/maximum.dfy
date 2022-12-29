@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %baredafny verify %args "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This file shows how to specify and implement a function to compute the

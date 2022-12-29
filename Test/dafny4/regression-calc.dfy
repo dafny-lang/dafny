@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %baredafny verify %args "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // There is a bug in Dafny that causes the error from `L` to be reported at
