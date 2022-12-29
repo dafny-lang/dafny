@@ -57,7 +57,7 @@ namespace Microsoft.Dafny {
       }
 
       if (decl is TopLevelDeclWithMembers cl) {
-        cl.Members.Iter(member => VisitMember(cl, member));
+        cl.Members.Iter(VisitMember);
       }
     }
 
@@ -89,19 +89,9 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected virtual void VisitMember(TopLevelDeclWithMembers cl, MemberDecl member) {
-      if (member is ConstantField constantField) {
-        var context = GetContext(constantField, false);
-        VisitAttributes(constantField, constantField.EnclosingModule);
-        VisitUserProvidedType(constantField.Type, context);
-        if (constantField.Rhs != null) {
-          VisitExpression(constantField.Rhs, context);
-        }
-
-      } else if (member is Field field) {
-        var context = GetContext(new NoContext(cl.EnclosingModuleDefinition), false);
-        VisitAttributes(field, cl.EnclosingModuleDefinition);
-        VisitUserProvidedType(field.Type, context);
+    public void VisitMember(MemberDecl member) {
+      if (member is Field field) {
+        VisitField(field);
 
       } else if (member is Function function) {
         VisitFunction(function);
@@ -126,6 +116,18 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(false);
         throw new cce.UnreachableException(); // unexpected member type
+      }
+    }
+
+    public virtual void VisitField(Field field) {
+      var enclosingModule = field.EnclosingClass.EnclosingModuleDefinition;
+      VisitAttributes(field, enclosingModule);
+
+      var context = GetContext(field as IASTVisitorContext ?? new NoContext(enclosingModule), false);
+      VisitUserProvidedType(field.Type, context);
+
+      if (field is ConstantField { Rhs: { } rhs }) {
+        VisitExpression(rhs, context);
       }
     }
 
@@ -260,16 +262,23 @@ namespace Microsoft.Dafny {
 
         // Visit subexpressions
         expr.SubExpressions.Iter(ee => VisitExpression(ee, context));
+
+        PostVisitOneExpression(expr, context);
       }
     }
 
     /// <summary>
     /// Visits the given expression.
-    /// Returns "true" to request that the caller keeps visiting all user-provided types, subexpressions, and substatements of "expr", and
-    /// returns "false" to tell the caller not to.
+    /// Returns "true" to request that the caller
+    ///   - keeps visiting all user-provided types, subexpressions, and substatements of "expr", and
+    ///   - then calls PostVisitOneExpression.
+    /// Returns "false" to tell the caller not to do those things.
     /// </summary>
     protected virtual bool VisitOneExpression(Expression expr, VisitorContext context) {
       return true;
+    }
+
+    protected virtual void PostVisitOneExpression(Expression expr, VisitorContext context) {
     }
 
     protected virtual void VisitStatement(Statement stmt, VisitorContext context) {
@@ -317,16 +326,23 @@ namespace Microsoft.Dafny {
 
         // Visit substatements
         stmt.SubStatements.Iter(ss => VisitStatement(ss, context));
+
+        PostVisitOneStatement(stmt, context);
       }
     }
 
     /// <summary>
     /// Visits the given statement.
-    /// Returns "true" to request that the caller keeps visiting all user-provided types, subexpressions, and substatements of "stmt", and
-    /// returns "false" to tell the caller not to.
+    /// Returns "true" to request that the caller
+    ///   - keeps visiting all user-provided types, subexpressions, and substatements of "stmt", and
+    ///   - then calls PostVisitOneStatement.
+    /// Returns "false" to tell the caller not to do those things.
     /// </summary>
     protected virtual bool VisitOneStatement(Statement stmt, VisitorContext context) {
       return true;
+    }
+
+    protected virtual void PostVisitOneStatement(Statement stmt, VisitorContext context) {
     }
   }
 
