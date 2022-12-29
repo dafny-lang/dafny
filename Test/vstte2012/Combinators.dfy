@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %baredafny verify %args "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Problem 2 concerns an interpreter for the language of S and K combinators.

@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %baredafny verify %args "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype cmd = Inc | Seq(cmd, cmd) | Repeat(cmd)

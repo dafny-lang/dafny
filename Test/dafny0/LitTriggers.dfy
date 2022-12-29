@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %baredafny verify %args "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Imported from bug 76. LitInt would be triggered on, causing matching failures.
