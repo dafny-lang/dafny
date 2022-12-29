@@ -3371,7 +3371,7 @@ namespace Microsoft.Dafny {
       // make note of the warnShadowing attribute
       bool warnShadowingOption = DafnyOptions.O.WarnShadowing;  // save the original warnShadowing value
       bool warnShadowing = false;
-      if (Attributes.ContainsBool(f.Attributes, "warnShadowing", ref warnShadowing)) {
+      if (CheckWarnShadowing(f.Attributes, ref warnShadowing)) {
         DafnyOptions.O.WarnShadowing = warnShadowing;  // set the value according to the attribute
       }
 
@@ -3449,6 +3449,10 @@ namespace Microsoft.Dafny {
       DafnyOptions.O.WarnShadowing = warnShadowingOption; // restore the original warnShadowing value
     }
 
+    private static bool CheckWarnShadowing(Attributes attributes, ref bool warnShadowing) {
+      return Attributes.ContainsBool(attributes, "warnShadowing", ref warnShadowing) || Attributes.ContainsBool(attributes, "warn-shadowing", ref warnShadowing);
+    }
+
     void ResolveFrameExpressionTopLevel(FrameExpression fe, FrameExpressionUse use, ICodeContext codeContext) {
       ResolveFrameExpression(fe, use, new ResolutionContext(codeContext, false));
     }
@@ -3501,7 +3505,7 @@ namespace Microsoft.Dafny {
         // make note of the warnShadowing attribute
         bool warnShadowingOption = DafnyOptions.O.WarnShadowing;  // save the original warnShadowing value
         bool warnShadowing = false;
-        if (Attributes.ContainsBool(m.Attributes, "warnShadowing", ref warnShadowing)) {
+        if (CheckWarnShadowing(m.Attributes)) {
           DafnyOptions.O.WarnShadowing = warnShadowing;  // set the value according to the attribute
         }
 
