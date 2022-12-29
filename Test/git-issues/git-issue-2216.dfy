@@ -1,4 +1,4 @@
-// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
+// RUN: %baredafny run %args --no-verify --target=cs "%s" >> "%t"
 
 const REPEAT := 100_000
 

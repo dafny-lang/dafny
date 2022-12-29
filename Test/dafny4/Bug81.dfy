@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0  "%s" > "%t"
+// RUN: %baredafny verify %args "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 function {:opaque} RefineSeqToSeq<T,U>(s:seq<T>, refine_func:T~>U) : seq<U>

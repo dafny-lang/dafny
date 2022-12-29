@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0  "%s" > "%t"
+// RUN: %baredafny verify %args "%s" > "%t"
 // RUN: %dafny /compile:0 /proverOpt:PROVER_PATH="%z3" "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 // UNSUPPORTED: windows

@@ -2,7 +2,7 @@
 // Old way:
 
 // RUN: %exits-with 0 %baredafny verify %args "%s" > "%t"
-// RUN: %exits-with 0 %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
+// RUN: %exits-with 0 %baredafny run %args --no-verify --target=cs "%s" >> "%t"
 // RUN: %exits-with 0 %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
 // RUN: %exits-with 0 %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
 // RUN: %exits-with 3 %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"

@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /compile:0  "%s" > "%t"
+// RUN: %exits-with 4 %baredafny verify %args "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 function method inhabited(world: array2<bool>): bool

@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0  "%s" > "%t"
+// RUN: %baredafny verify %args "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 predicate R1(x:int, y:int) { x > 0 ==> R2(x - 1) }

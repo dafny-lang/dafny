@@ -1,7 +1,7 @@
 // RUN: %dafny /compile:4 /compileTarget:js "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
+// RUN: %baredafny run %args --no-verify --target=java "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /spillTargetCode:1 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
+// RUN: %baredafny run %args --no-verify --target=cs "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 trait Tr { }

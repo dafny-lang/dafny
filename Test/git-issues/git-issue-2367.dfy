@@ -1,5 +1,5 @@
-// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
+// RUN: %baredafny run %args --no-verify --target=cs "%s" > "%t"
+// RUN: %baredafny run %args --no-verify --target=java "%s" >> "%t"
 
 newtype IntSubset = i:int | true
 
