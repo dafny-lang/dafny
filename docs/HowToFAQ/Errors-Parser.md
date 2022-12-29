@@ -66,7 +66,7 @@ static module M {}
 ```
 
 Only some kinds of declarations can be declared 'static', most often 
-fields, constants, methods, and functions, and only within classes.
+fields, constants, methods, and functions, and only within classes. Modules are already always static.
 
 ## **Error: argument to :options attribute must be a literal string**
 
