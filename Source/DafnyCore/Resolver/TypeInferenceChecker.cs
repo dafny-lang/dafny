@@ -7,160 +7,105 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny;
 
 partial class Resolver {
-  // ------------------------------------------------------------------------------------------------------
-  // ----- CheckTypeInference -----------------------------------------------------------------------------
-  // ------------------------------------------------------------------------------------------------------
-  // The CheckTypeInference machinery visits every type in a given part of the AST (for example,
-  // CheckTypeInference(Expression) does so for an Expression and CheckTypeInference_Member(MemberDecl)
-  // does so for a MemberDecl) to make sure that all parts of types were fully inferred.
-  #region CheckTypeInference
-  private void CheckTypeInference_Member(MemberDecl member) {
-    if (member is ConstantField) {
-      var field = (ConstantField)member;
-      if (field.Rhs != null) {
-        CheckTypeInference(field.Rhs, new NoContext(member.EnclosingClass.EnclosingModuleDefinition));
-      }
-      CheckTypeInference(field.Type, new NoContext(member.EnclosingClass.EnclosingModuleDefinition), field.tok, "const");
-    } else if (member is Method) {
-      var m = (Method)member;
-      foreach (var formal in m.Ins) {
-        if (formal.DefaultValue != null) {
-          CheckTypeInference(formal.DefaultValue, m);
-        }
-      }
-      m.Req.Iter(mfe => CheckTypeInference_MaybeFreeExpression(mfe, m));
-      m.Ens.Iter(mfe => CheckTypeInference_MaybeFreeExpression(mfe, m));
-      CheckTypeInference_Specification_FrameExpr(m.Mod, m);
-      CheckTypeInference_Specification_Expr(m.Decreases, m);
-      if (m.Body != null) {
-        CheckTypeInference(m.Body, m);
-      }
-    } else if (member is Function) {
-      var f = (Function)member;
-      foreach (var formal in f.Formals) {
-        if (formal.DefaultValue != null) {
-          CheckTypeInference(formal.DefaultValue, f);
-        }
-      }
-      var errorCount = reporter.Count(ErrorLevel.Error);
-      f.Req.Iter(e => CheckTypeInference(e.E, f));
-      f.Ens.Iter(e => CheckTypeInference(e.E, f));
-      f.Reads.Iter(fe => CheckTypeInference(fe.E, f));
-      CheckTypeInference_Specification_Expr(f.Decreases, f);
-      if (f.Body != null) {
-        CheckTypeInference(f.Body, f);
-      }
-      if (errorCount == reporter.Count(ErrorLevel.Error)) {
-        if (f is ExtremePredicate cop) {
-          CheckTypeInference_Member(cop.PrefixPredicate);
-        } else if (f.ByMethodDecl != null) {
-          CheckTypeInference_Member(f.ByMethodDecl);
-        }
-      }
-    }
-  }
+  class CheckTypeInferenceVisitor : ASTVisitor<IASTVisitorContext> {
+    private readonly Resolver resolver;
+    private ErrorReporter reporter => resolver.reporter;
 
-  private void CheckTypeInference_MaybeFreeExpression(AttributedExpression mfe, ICodeContext codeContext) {
-    Contract.Requires(mfe != null);
-    Contract.Requires(codeContext != null);
-    foreach (var e in Attributes.SubExpressions(mfe.Attributes)) {
-      CheckTypeInference(e, codeContext);
-    }
-    CheckTypeInference(mfe.E, codeContext);
-  }
-  private void CheckTypeInference_Specification_Expr(Specification<Expression> spec, ICodeContext codeContext) {
-    Contract.Requires(spec != null);
-    Contract.Requires(codeContext != null);
-    foreach (var e in Attributes.SubExpressions(spec.Attributes)) {
-      CheckTypeInference(e, codeContext);
-    }
-    spec.Expressions.Iter(e => CheckTypeInference(e, codeContext));
-  }
-  private void CheckTypeInference_Specification_FrameExpr(Specification<FrameExpression> spec, ICodeContext codeContext) {
-    Contract.Requires(spec != null);
-    Contract.Requires(codeContext != null);
-    foreach (var e in Attributes.SubExpressions(spec.Attributes)) {
-      CheckTypeInference(e, codeContext);
-    }
-    spec.Expressions.Iter(fe => CheckTypeInference(fe.E, codeContext));
-  }
-  void CheckTypeInference(Expression expr, ICodeContext codeContext) {
-    Contract.Requires(expr != null);
-    Contract.Requires(codeContext != null);
-    PartiallySolveTypeConstraints(true);
-    var c = new CheckTypeInference_Visitor(this, codeContext);
-    c.Visit(expr);
-  }
-  void CheckTypeInference(Type type, ICodeContext codeContext, IToken tok, string what) {
-    Contract.Requires(type != null);
-    Contract.Requires(codeContext != null);
-    Contract.Requires(tok != null);
-    Contract.Requires(what != null);
-    PartiallySolveTypeConstraints(true);
-    var c = new CheckTypeInference_Visitor(this, codeContext);
-    c.CheckTypeIsDetermined(tok, type, what);
-  }
-  void CheckTypeInference(Statement stmt, ICodeContext codeContext) {
-    Contract.Requires(stmt != null);
-    Contract.Requires(codeContext != null);
-    PartiallySolveTypeConstraints(true);
-    var c = new CheckTypeInference_Visitor(this, codeContext);
-    c.Visit(stmt);
-  }
-  class CheckTypeInference_Visitor : ResolverBottomUpVisitor {
-    readonly ICodeContext codeContext;
-    public CheckTypeInference_Visitor(Resolver resolver, ICodeContext codeContext)
-      : base(resolver) {
-      Contract.Requires(resolver != null);
-      Contract.Requires(codeContext != null);
-      this.codeContext = codeContext;
+    public CheckTypeInferenceVisitor(Resolver resolver) {
+      this.resolver = resolver;
     }
 
-    protected override void VisitOneStmt(Statement stmt) {
+    public override IASTVisitorContext GetContext(IASTVisitorContext astVisitorContext, bool inFunctionPostcondition) {
+      return astVisitorContext;
+    }
+
+    protected override void VisitOneDeclaration(TopLevelDecl decl) {
+      if (decl is NewtypeDecl newtypeDecl) {
+        if (newtypeDecl.Var != null) {
+          if (!IsDetermined(newtypeDecl.BaseType.NormalizeExpand())) {
+            reporter.Error(MessageSource.Resolver, newtypeDecl.tok, "newtype's base type is not fully determined; add an explicit type for '{0}'",
+              newtypeDecl.Var.Name);
+          }
+        }
+
+      } else if (decl is SubsetTypeDecl subsetTypeDecl) {
+        if (!IsDetermined(subsetTypeDecl.Rhs.NormalizeExpand())) {
+          reporter.Error(MessageSource.Resolver, subsetTypeDecl.tok,
+            "subset type's base type is not fully determined; add an explicit type for '{0}'", subsetTypeDecl.Var.Name);
+        }
+
+      } else if (decl is DatatypeDecl datatypeDecl) {
+        foreach (var member in resolver.classMembers[datatypeDecl].Values) {
+          if (member is DatatypeDestructor dtor) {
+            var rolemodel = dtor.CorrespondingFormals[0];
+            for (var i = 1; i < dtor.CorrespondingFormals.Count; i++) {
+              var other = dtor.CorrespondingFormals[i];
+              if (!Type.Equal_Improved(rolemodel.Type, other.Type)) {
+                reporter.Error(MessageSource.Resolver, other,
+                  "shared destructors must have the same type, but '{0}' has type '{1}' in constructor '{2}' and type '{3}' in constructor '{4}'",
+                  rolemodel.Name, rolemodel.Type, dtor.EnclosingCtors[0].Name, other.Type, dtor.EnclosingCtors[i].Name);
+              }
+            }
+          }
+        }
+      }
+
+      base.VisitOneDeclaration(decl);
+    }
+
+    public override void VisitField(Field field) {
+      if (field is ConstantField constantField) {
+        resolver.PartiallySolveTypeConstraints(true);
+        CheckTypeIsDetermined(field.tok, field.Type, "const");
+      }
+
+      base.VisitField(field);
+    }
+
+    protected override bool VisitOneStatement(Statement stmt, IASTVisitorContext context) {
+      if (stmt is CalcStmt calcStmt) {
+        // The resolution of the calc statement builds up .Steps and .Result, which are of the form E0 OP E1, where
+        // E0 and E1 are expressions from .Lines.  These additional expressions still need to have their .ResolvedOp
+        // fields filled in, so we visit them, rather than just the parsed .Lines.
+        Attributes.SubExpressions(calcStmt.Attributes).Iter(e => VisitExpression(e, context));
+        calcStmt.Steps.Iter(e => VisitExpression(e, context));
+        VisitExpression(calcStmt.Result, context);
+        calcStmt.Hints.Iter(hint => VisitStatement(hint, context));
+        return false; // we're done with all subcomponents of the CalcStmt
+      }
+
+      return base.VisitOneStatement(stmt, context);
+    }
+
+    protected override void PostVisitOneStatement(Statement stmt, IASTVisitorContext context) {
       if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
         foreach (var local in s.Locals) {
           CheckTypeIsDetermined(local.Tok, local.Type, "local variable");
-          CheckTypeArgsContainNoOrdinal(local.Tok, local.type);
+          CheckTypeArgsContainNoOrdinal(local.Tok, local.type, context);
         }
       } else if (stmt is VarDeclPattern) {
         var s = (VarDeclPattern)stmt;
         s.LocalVars.Iter(local => CheckTypeIsDetermined(local.Tok, local.Type, "local variable"));
-        s.LocalVars.Iter(local => CheckTypeArgsContainNoOrdinal(local.Tok, local.Type));
+        s.LocalVars.Iter(local => CheckTypeArgsContainNoOrdinal(local.Tok, local.Type, context));
 
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
         s.BoundVars.Iter(bv => CheckTypeIsDetermined(bv.tok, bv.Type, "bound variable"));
-        s.Bounds = DiscoverBestBounds_MultipleVars(s.BoundVars, s.Range, true, ComprehensionExpr.BoundedPool.PoolVirtues.Enumerable);
-        s.BoundVars.Iter(bv => CheckTypeArgsContainNoOrdinal(bv.tok, bv.Type));
+        s.BoundVars.Iter(bv => CheckTypeArgsContainNoOrdinal(bv.tok, bv.Type, context));
 
       } else if (stmt is AssignSuchThatStmt) {
         var s = (AssignSuchThatStmt)stmt;
-        if (s.AssumeToken == null) {
-          var varLhss = new List<IVariable>();
-          foreach (var lhs in s.Lhss) {
-            var ide = (IdentifierExpr)lhs.Resolved;  // successful resolution implies all LHS's are IdentifierExpr's
-            varLhss.Add(ide.Var);
-          }
-          s.Bounds = DiscoverBestBounds_MultipleVars(varLhss, s.Expr, true, ComprehensionExpr.BoundedPool.PoolVirtues.None);
-        }
         foreach (var lhs in s.Lhss) {
-          var what = lhs is IdentifierExpr ? string.Format("variable '{0}'", ((IdentifierExpr)lhs).Name) : "LHS";
-          CheckTypeArgsContainNoOrdinal(lhs.tok, lhs.Type);
+          var what = lhs is IdentifierExpr ? $"variable '{((IdentifierExpr)lhs).Name}'" : "LHS";
+          CheckTypeArgsContainNoOrdinal(lhs.tok, lhs.Type, context);
         }
-      } else if (stmt is CalcStmt) {
-        var s = (CalcStmt)stmt;
-        // The resolution of the calc statement builds up .Steps and .Result, which are of the form E0 OP E1, where
-        // E0 and E1 are expressions from .Lines.  These additional expressions still need to have their .ResolvedOp
-        // fields filled in, so we visit them (but not their subexpressions) here.
-        foreach (var e in s.Steps) {
-          Visit(e);
-        }
-        Visit(s.Result);
       }
+
+      base.PostVisitOneStatement(stmt, context);
     }
 
-    protected override void VisitOneExpr(Expression expr) {
+    protected override void PostVisitOneExpression(Expression expr, IASTVisitorContext context) {
       if (expr is LiteralExpr) {
         var e = (LiteralExpr)expr;
         if (e.Type.IsBitVectorType || e.Type.IsBigOrdinalType) {
@@ -180,7 +125,7 @@ partial class Resolver {
 
         if (expr is StaticReceiverExpr stexpr) {
           if (stexpr.ObjectToDiscard != null) {
-            Visit(stexpr.ObjectToDiscard);
+            VisitExpression(stexpr.ObjectToDiscard, context);
           } else {
             foreach (Type t in stexpr.Type.TypeArgs) {
               if (t is InferredTypeProxy && ((InferredTypeProxy)t).T == null) {
@@ -194,52 +139,10 @@ partial class Resolver {
         var e = (ComprehensionExpr)expr;
         foreach (var bv in e.BoundVars) {
           if (!IsDetermined(bv.Type.Normalize())) {
-            resolver.reporter.Error(MessageSource.Resolver, bv.tok, "type of bound variable '{0}' could not be determined; please specify the type explicitly", bv.Name);
-          } else if (codeContext is ExtremePredicate) {
-            CheckContainsNoOrdinal(bv.tok, bv.Type, string.Format("type of bound variable '{0}' ('{1}') is not allowed to use type ORDINAL", bv.Name, bv.Type));
-          }
-        }
-        // apply bounds discovery to quantifiers, finite sets, and finite maps
-        string what = e.WhatKind;
-        Expression whereToLookForBounds = null;
-        var polarity = true;
-        if (e is QuantifierExpr quantifierExpr) {
-          whereToLookForBounds = quantifierExpr.LogicalBody();
-          polarity = quantifierExpr is ExistsExpr;
-        } else if (e is SetComprehension setComprehension) {
-          whereToLookForBounds = setComprehension.Range;
-        } else if (e is MapComprehension) {
-          whereToLookForBounds = e.Range;
-        } else {
-          Contract.Assume(e is LambdaExpr);  // otherwise, unexpected ComprehensionExpr
-        }
-        if (whereToLookForBounds != null) {
-          e.Bounds = DiscoverBestBounds_MultipleVars_AllowReordering(e.BoundVars, whereToLookForBounds, polarity, ComprehensionExpr.BoundedPool.PoolVirtues.None);
-          if (2 <= DafnyOptions.O.Allocated && (codeContext is Function || codeContext is ConstantField || CodeContextWrapper.Unwrap(codeContext) is RedirectingTypeDecl)) {
-            // functions are not allowed to depend on the set of allocated objects
-            foreach (var bv in ComprehensionExpr.BoundedPool.MissingBounds(e.BoundVars, e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc)) {
-              var msgFormat = "a {0} involved in a {3} definition is not allowed to depend on the set of allocated references, but values of '{1}' may contain references";
-              if (bv.Type.IsTypeParameter || bv.Type.IsOpaqueType) {
-                msgFormat += " (perhaps declare its type, '{2}', as '{2}(!new)')";
-              }
-              msgFormat += " (see documentation for 'older' parameters)";
-              var declKind = CodeContextWrapper.Unwrap(codeContext) is RedirectingTypeDecl redir ? redir.WhatKind : ((MemberDecl)codeContext).WhatKind;
-              resolver.reporter.Error(MessageSource.Resolver, e, msgFormat, what, bv.Name, bv.Type, declKind);
-            }
-          }
-          if ((e is SetComprehension && ((SetComprehension)e).Finite) || (e is MapComprehension && ((MapComprehension)e).Finite)) {
-            // the comprehension had better produce a finite set
-            if (e.Type.HasFinitePossibleValues) {
-              // This means the set is finite, regardless of if the Range is bounded.  So, we don't give any error here.
-              // However, if this expression is used in a non-ghost context (which is not yet known at this stage of
-              // resolution), the resolver will generate an error about that later.
-            } else {
-              // we cannot be sure that the set/map really is finite
-              foreach (var bv in ComprehensionExpr.BoundedPool.MissingBounds(e.BoundVars, e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.Finite)) {
-                resolver.reporter.Error(MessageSource.Resolver, e,
-                  "the result of a {0} must be finite, but Dafny's heuristics can't figure out how to produce a bounded set of values for '{1}'", what, bv.Name);
-              }
-            }
+            resolver.reporter.Error(MessageSource.Resolver, bv.tok,
+              $"type of bound variable '{bv.Name}' could not be determined; please specify the type explicitly");
+          } else if (context is ExtremePredicate) {
+            CheckContainsNoOrdinal(bv.tok, bv.Type, $"type of bound variable '{bv.Name}' ('{bv.Type}') is not allowed to use type ORDINAL");
           }
         }
 
@@ -258,11 +161,15 @@ partial class Resolver {
         if (e.Member is Function || e.Member is Method) {
           var i = 0;
           foreach (var p in Util.Concat(e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustMember)) {
-            var tp = i < e.TypeApplication_AtEnclosingClass.Count ? e.Member.EnclosingClass.TypeArgs[i] : ((ICallable)e.Member).TypeArgs[i - e.TypeApplication_AtEnclosingClass.Count];
+            var tp = i < e.TypeApplication_AtEnclosingClass.Count
+              ? e.Member.EnclosingClass.TypeArgs[i]
+              : ((ICallable)e.Member).TypeArgs[i - e.TypeApplication_AtEnclosingClass.Count];
             if (!IsDetermined(p.Normalize())) {
-              resolver.reporter.Error(MessageSource.Resolver, e.tok, "type parameter '{0}' (inferred to be '{1}') to the {2} '{3}' could not be determined", tp.Name, p, e.Member.WhatKind, e.Member.Name);
-            } else {
-              CheckContainsNoOrdinal(e.tok, p, string.Format("type parameter '{0}' (passed in as '{1}') to the {2} '{3}' is not allowed to use ORDINAL", tp.Name, p, e.Member.WhatKind, e.Member.Name));
+              resolver.reporter.Error(MessageSource.Resolver, e.tok,
+                $"type parameter '{tp.Name}' (inferred to be '{p}') to the {e.Member.WhatKind} '{e.Member.Name}' could not be determined");
+            } else if (context is not PrefixPredicate) { // this check is done in extreme predicates, so no need to repeat it here for prefix predicates
+              CheckContainsNoOrdinal(e.tok, p,
+                $"type parameter '{tp.Name}' (passed in as '{p}') to the {e.Member.WhatKind} '{e.Member.Name}' is not allowed to use ORDINAL");
             }
             i++;
           }
@@ -271,15 +178,18 @@ partial class Resolver {
         var e = (FunctionCallExpr)expr;
         var i = 0;
         foreach (var p in Util.Concat(e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustFunction)) {
-          var tp = i < e.TypeApplication_AtEnclosingClass.Count ? e.Function.EnclosingClass.TypeArgs[i] : e.Function.TypeArgs[i - e.TypeApplication_AtEnclosingClass.Count];
+          var tp = i < e.TypeApplication_AtEnclosingClass.Count
+            ? e.Function.EnclosingClass.TypeArgs[i]
+            : e.Function.TypeArgs[i - e.TypeApplication_AtEnclosingClass.Count];
           if (!IsDetermined(p.Normalize())) {
-            resolver.reporter.Error(MessageSource.Resolver, e.tok, "type parameter '{0}' (inferred to be '{1}') in the function call to '{2}' could not be determined{3}", tp.Name, p, e.Name,
-              (e.Name.StartsWith("reveal_"))
+            var hint = e.Name.StartsWith("reveal_")
               ? ". If you are making an opaque function, make sure that the function can be called."
-              : ""
-            );
-          } else {
-            CheckContainsNoOrdinal(e.tok, p, string.Format("type parameter '{0}' (passed in as '{1}') to function call '{2}' is not allowed to use ORDINAL", tp.Name, p, e.Name));
+              : "";
+            resolver.reporter.Error(MessageSource.Resolver, e.tok,
+              $"type parameter '{tp.Name}' (inferred to be '{p}') in the function call to '{e.Name}' could not be determined{hint}");
+          } else if (context is not PrefixPredicate) { // this check is done in extreme predicates, so no need to repeat it here for prefix predicates
+            CheckContainsNoOrdinal(e.tok, p,
+              $"type parameter '{tp.Name}' (passed in as '{p}') to function call '{e.Name}' is not allowed to use ORDINAL");
           }
           i++;
         }
@@ -288,9 +198,9 @@ partial class Resolver {
         foreach (var p in e.LHSs) {
           foreach (var x in p.Vars) {
             if (!IsDetermined(x.Type.Normalize())) {
-              resolver.reporter.Error(MessageSource.Resolver, x.tok, "the type of the bound variable '{0}' could not be determined", x.Name);
+              resolver.reporter.Error(MessageSource.Resolver, x.tok, $"the type of the bound variable '{x.Name}' could not be determined");
             } else {
-              CheckTypeArgsContainNoOrdinal(x.tok, x.Type);
+              CheckTypeArgsContainNoOrdinal(x.tok, x.Type, context);
             }
           }
         }
@@ -306,7 +216,8 @@ partial class Resolver {
             // looks good
           } else {
             resolver.reporter.Error(MessageSource.Resolver, e.tok,
-              "a type cast to a reference type ({0}) must be from a compatible type (got {1}); this cast could never succeed", e.ToType, fromType);
+              "a type cast to a reference type ({0}) must be from a compatible type (got {1}); this cast could never succeed",
+              e.ToType, fromType);
           }
         }
       } else if (expr is TypeTestExpr) {
@@ -351,12 +262,12 @@ partial class Resolver {
                     string hint = "";
                     other = other.Resolved;
                     if (other is IdentifierExpr) {
-                      name = string.Format("variable '{0}'", ((IdentifierExpr)other).Name);
+                      name = $"variable '{((IdentifierExpr)other).Name}'";
                     } else if (other is MemberSelectExpr) {
                       var field = ((MemberSelectExpr)other).Member as Field;
                       // The type of the field may be a formal type parameter, in which case the hint is omitted
                       if (field.Type.IsNonNullRefType) {
-                        name = string.Format("field '{0}'", field.Name);
+                        name = $"field '{field.Name}'";
                       }
                     }
                     if (name != null) {
@@ -370,11 +281,11 @@ partial class Resolver {
                       Contract.Assert(nonNullTypeDecl.TypeArgs.Count == nntUdf.TypeArgs.Count);
                       var ty = new UserDefinedType(nntUdf.tok, possiblyNullUdf.Name, possiblyNullTypeDecl, nntUdf.TypeArgs);
 
-                      hint = string.Format(" (to make it possible for {0} to have the value 'null', declare its type to be '{1}')", name, ty);
+                      hint = $" (to make it possible for {name} to have the value 'null', declare its type to be '{ty}')";
                     }
+                    var b = sense ? "false" : "true";
                     resolver.reporter.Warning(MessageSource.Resolver, e.tok,
-                      string.Format("the type of the other operand is a non-null type, so this comparison with 'null' will always return '{0}'{1}",
-                      sense ? "false" : "true", hint));
+                      $"the type of the other operand is a non-null type, so this comparison with 'null' will always return '{b}'{hint}");
                   }
                   break;
                 }
@@ -389,9 +300,10 @@ partial class Resolver {
                   var ty = other.Type.NormalizeExpand();
                   var what = ty is SetType ? "set" : ty is SeqType ? "seq" : "multiset";
                   if (((CollectionType)ty).Arg.IsNonNullRefType) {
+                    var non = sense ? "" : "non-";
+                    var b = sense ? "false" : "true";
                     resolver.reporter.Warning(MessageSource.Resolver, e.tok,
-                      string.Format("the type of the other operand is a {0} of non-null elements, so the {1}inclusion test of 'null' will always return '{2}'",
-                      what, sense ? "" : "non-", sense ? "false" : "true"));
+                      $"the type of the other operand is a {what} of non-null elements, so the {non}inclusion test of 'null' will always return '{b}'");
                   }
                   break;
                 }
@@ -400,9 +312,9 @@ partial class Resolver {
               case BinaryExpr.ResolvedOpcode.InMap: {
                   var ty = other.Type.NormalizeExpand();
                   if (((MapType)ty).Domain.IsNonNullRefType) {
+                    var b = sense ? "false" : "true";
                     resolver.reporter.Warning(MessageSource.Resolver, e.tok,
-                      string.Format("the type of the other operand is a map to a non-null type, so the inclusion test of 'null' will always return '{0}'",
-                      sense ? "false" : "true"));
+                      $"the type of the other operand is a map to a non-null type, so the inclusion test of 'null' will always return '{b}'");
                   }
                   break;
                 }
@@ -414,7 +326,8 @@ partial class Resolver {
           var e = (NegationExpression)expr;
           Expression resolved = null;
           if (e.E is LiteralExpr lit) { // note, not e.E.Resolved, since we don't want to do this for double negations
-                                        // For real-based types, integer-based types, and bi (but not bitvectors), "-" followed by a literal is just a literal expression with a negative value
+                                        // For real-based types, integer-based types, and bi (but not bitvectors), "-" followed by a literal is
+                                        // just a literal expression with a negative value
             if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
               var d = (BaseTypes.BigDec)lit.Value;
               Contract.Assert(!d.IsNegative);
@@ -441,14 +354,19 @@ partial class Resolver {
           e.ResolvedExpression = resolved;
         }
       }
+
+      base.VisitOneExpression(expr, context);
     }
+
     public static bool IsDetermined(Type t) {
       Contract.Requires(t != null);
       Contract.Requires(!(t is TypeProxy) || ((TypeProxy)t).T == null);
       // all other proxies indicate the type has not yet been determined, provided their type parameters have been
       return !(t is TypeProxy) && t.TypeArgs.All(tt => IsDetermined(tt.Normalize()));
     }
-    ISet<TypeProxy> UnderspecifiedTypeProxies = new HashSet<TypeProxy>();
+
+    readonly ISet<TypeProxy> UnderspecifiedTypeProxies = new HashSet<TypeProxy>();
+
     public bool CheckTypeIsDetermined(IToken tok, Type t, string what) {
       Contract.Requires(tok != null);
       Contract.Requires(t != null);
@@ -467,12 +385,19 @@ partial class Resolver {
       // Recurse on type arguments:
       return t.TypeArgs.All(rg => CheckTypeIsDetermined(tok, rg, what));
     }
-    public void CheckTypeArgsContainNoOrdinal(IToken tok, Type t) {
+
+    public void CheckTypeArgsContainNoOrdinal(IToken tok, Type t, IASTVisitorContext context) {
       Contract.Requires(tok != null);
       Contract.Requires(t != null);
-      t = t.NormalizeExpand();
-      t.TypeArgs.Iter(rg => CheckContainsNoOrdinal(tok, rg, "an ORDINAL type is not allowed to be used as a type argument"));
+      if (context is PrefixPredicate or PrefixLemma) {
+        // User-provided expressions in extreme predicates/lemmas are checked in the extreme declarations, so need
+        // need to do them here again for the prefix predicates/lemmas.
+      } else {
+        t = t.NormalizeExpand();
+        t.TypeArgs.Iter(rg => CheckContainsNoOrdinal(tok, rg, "an ORDINAL type is not allowed to be used as a type argument"));
+      }
     }
+
     public void CheckContainsNoOrdinal(IToken tok, Type t, string errMsg) {
       Contract.Requires(tok != null);
       Contract.Requires(t != null);
@@ -484,5 +409,4 @@ partial class Resolver {
       t.TypeArgs.Iter(rg => CheckContainsNoOrdinal(tok, rg, errMsg));
     }
   }
-  #endregion CheckTypeInference
 }
