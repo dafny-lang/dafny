@@ -102,7 +102,7 @@ namespace Microsoft.Dafny {
               }
             }
 
-            void updateStartEndTokRecursive(INode node) {
+            void UpdateStartEndTokRecursive(INode node) {
               if (node is null) {
                 return;
               }
@@ -117,10 +117,10 @@ namespace Microsoft.Dafny {
                 UpdateStartEndToken(node.tok);
               }
 
-              node.Children.Iter(updateStartEndTokRecursive);
+              node.Children.Iter(UpdateStartEndTokRecursive);
             }
 
-            updateStartEndTokRecursive(this);
+            UpdateStartEndTokRecursive(this);
 
             if (FormatTokens != null) {
               foreach (var token in FormatTokens) {
