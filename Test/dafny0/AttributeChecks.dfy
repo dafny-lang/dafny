@@ -101,10 +101,10 @@ module JustAboutEverything {
   }
 
   datatype {:dt 0} {:dt false + 3} Datatype = // error: false + 3 is ill-typed
-    {:dt k} Blue | {:dt 50} Green // error: k is unknown
+    {:dt k, this} Blue | {:dt 50} Green // error (x2): k is unknown, this is not allowed
 
   datatype {:dt 0} {:dt false + 3} AnotherDatatype = // error: false + 3 is ill-typed
-    | {:dt 50} Blue | {:dt k} Green // error: k is unknown
+    | {:dt 50} Blue | {:dt k, this} Green // error (x2): k is unknown, this is not allowed
 
   function FAttr(x: int): int
     requires {:myAttr false + 3} true // error: false + 3 is ill-typed
@@ -366,7 +366,7 @@ module JustAboutEverything {
     predicate method IsFailure() {
       DoesNotHave?
     }
-    function method PropagateFailure<U>(): Option<T>
+    function method PropagateFailure(): Option<T>
       requires DoesNotHave?
     {
       None
@@ -380,4 +380,117 @@ module
   {:myAttr k} // error: k is not in scope here
   Modu
 {
+}
+
+module TwoStateAttributes {
+  class C {
+    var data: int
+
+    function {:myAttr old(data), x, r} F(x: int): (r: int) // error: old not allowed in this context
+
+    twostate function {:myAttr old(data), x, r} F2(x: int): (r: int) // old is allowed
+
+    lemma {:myAttr old(data), x, y} L(x: int) returns (y: int) // error: old not allowed in this context
+
+    twostate lemma {:myAttr old(data), x, y} L2(x: int) returns (y: int) // old is allowed
+
+    method {:myAttr old(data), x, y} M(x: int) returns (y: int) // error: old not allowed in this context
+
+    least predicate {:myAttr old(data), x} LP(x: int) // error: old not allowed in this context
+
+    least lemma {:myAttr old(data), x} LL(x: int) // error: old not allowed in this context
+  }
+}
+
+module TopLevelAttributes {
+  // ---- iterator
+
+  // an attribute on an iterator is allowed to refer to the in-parameters of the iterator, but not to "this" or to the yield-parameters.
+  iterator
+    {:myAttr x}
+    {:myAttr y} // error: y is not allowed here
+    {:myAttr this} // error: this is not allowed here
+    {:myAttr ys} // error: ys is not allowed here (because "this" isn't)
+    {:myAttr old(arr[0])} // error: "old" is not allowed here
+    Iterator(x: int, arr: array<int>) yields (y: int)
+    requires arr.Length != 0
+
+  // ---- opaque type
+
+  type
+    {:myAttr this} // error: this is not allowed here
+    {:myAttr N} // error: N unresolved
+    Opaque
+  {
+    const N: int
+  }
+
+  // ---- subset type
+
+  type {:myAttr this} Subset = x: int | true // error: "this" is not allowed here
+
+  // ---- type synonym
+
+  type {:myAttr this} Synonym = int // error: "this" is not allowed here
+
+  // ---- newtype
+
+  newtype
+    {:myAttr this} // error: this is not allowed
+    {:myAttr N} // error: N unresolved
+    Newtype = x: int | true
+  {
+    const N: int
+  }
+
+  // ---- trait
+
+  trait
+    {:myAttr this} // error: this is not allowed
+    {:myAttr x} // error: x unresolved
+    Trait
+  {
+    var x: int
+  }
+
+  // ---- class
+
+  class
+    {:myAttr this} // error: this is not allowed
+    {:myAttr x} // error: x unresolved
+    Class
+  {
+    var x: int
+  }
+
+  // ---- datatype
+
+  datatype
+    {:myAttr this} // error: this is not allowed here
+    {:myAttr Ctor?} // error: Ctor? unresolved
+    {:myAttr y} // error: y unresolved
+    {:myAttr N} // error: N unresolved
+    Datatype = Ctor(y: int)
+  {
+    const N: int
+  }
+
+  // ---- codatatype
+
+  codatatype
+    {:myAttr this} // error: this is not allowed here
+    {:myAttr Ctor?} // error: Ctor? unresolved
+    {:myAttr y} // error: y unresolved
+    {:myAttr N} // error: N unresolved
+    CoDatatype = Ctor(y: int)
+  {
+    const N: int
+  }
+}
+
+module TopLevelAttributesModule {
+  // ---- module
+
+  module {:myAttr this} Module { // error: "this" is not allowed here
+  }
 }
