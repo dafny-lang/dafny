@@ -1451,12 +1451,12 @@ NoGhost - disable printing of functions, ghost methods, and proof
           if (!printingDesugared) {
             Indent(indent); wr.WriteLine("/*---------- denested ----------");
           }
-        
+
           var savedDesugarMode = printingDesugared;
           printingDesugared = true;
           Indent(indent); PrintStatement(s.Denested, indent);
           printingDesugared = savedDesugarMode;
-        
+
           if (!printingDesugared) {
             Indent(indent); wr.WriteLine("---------- end denested ----------*/");
           }
@@ -1944,12 +1944,12 @@ NoGhost - disable printing of functions, ghost methods, and proof
           if (!printingDesugared) {
             Indent(indent); wr.WriteLine("/*---------- denested ----------");
           }
-        
+
           var savedDesugarMode = printingDesugared;
           printingDesugared = true;
           PrintExtendedExpr(e.Denested, indent, isRightmost, endWithCloseParen);
           printingDesugared = savedDesugarMode;
-        
+
           if (!printingDesugared) {
             Indent(indent); wr.WriteLine("---------- end denested ----------*/");
           }

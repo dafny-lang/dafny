@@ -40,7 +40,7 @@ public class MatchDenester : IRewriter {
   private readonly FreshIdGenerator idGenerator;
   private ResolutionContext resolutionContext;
 
-  public MatchDenester(ErrorReporter reporter, FreshIdGenerator idGenerator) 
+  public MatchDenester(ErrorReporter reporter, FreshIdGenerator idGenerator)
     : base(reporter) {
     this.idGenerator = idGenerator;
   }
@@ -57,31 +57,25 @@ public class MatchDenester : IRewriter {
     }
   }
 
-  private void DenestNode(INode moduleDefinition)
-  {
-    moduleDefinition.Visit(node =>
-    {
-      if (node != moduleDefinition && node is ModuleDefinition)
-      {
+  private void DenestNode(INode moduleDefinition) {
+    moduleDefinition.Visit(node => {
+      if (node != moduleDefinition && node is ModuleDefinition) {
         // The resolver clones module definitions for compilation, but also the top level module which also contains the uncloned definitions,
         // so this is to prevent recursion into the uncloned definitions. 
         return false;
       }
 
-      if (node is ICallable callable)
-      {
+      if (node is ICallable callable) {
         resolutionContext = new ResolutionContext(callable, false);
       }
 
-      if (node is NestedMatchStmt nestedMatchStmt)
-      {
+      if (node is NestedMatchStmt nestedMatchStmt) {
         nestedMatchStmt.Denested = CompileNestedMatchStmt(nestedMatchStmt);
         DenestNode(nestedMatchStmt.Denested);
         return false;
       }
 
-      if (node is NestedMatchExpr nestedMatchExpr)
-      {
+      if (node is NestedMatchExpr nestedMatchExpr) {
         nestedMatchExpr.Denested = CompileNestedMatchExpr(nestedMatchExpr);
         DenestNode(nestedMatchExpr.Denested);
         return false;

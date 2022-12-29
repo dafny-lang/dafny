@@ -87,7 +87,7 @@ public abstract class QuantifierExpr : ComprehensionExpr, TypeParameter.ParentTy
       } else {
         foreach (var e in Attributes.SubExpressions(Attributes)) {
           yield return e;
-        }        
+        }
         foreach (var e in SplitQuantifier) {
           yield return e;
         }

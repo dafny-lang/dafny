@@ -23,7 +23,7 @@ namespace Microsoft.Dafny {
     public void AddStatementClone(Statement original, Statement clone) {
       statementClones.Add(original, clone);
     }
-    
+
     public Cloner(bool cloneResolvedFields = false) {
       this.CloneResolvedFields = cloneResolvedFields;
     }
@@ -460,7 +460,7 @@ namespace Microsoft.Dafny {
       if (rhs is ICloneable<AssignmentRhs> cloneable) {
         return cloneable.Clone(this);
       }
-      
+
       if (rhs is ExprRhs) {
         var r = (ExprRhs)rhs;
         c = new ExprRhs(CloneExpr(r.Expr), CloneAttributes(rhs.Attributes));

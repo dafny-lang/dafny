@@ -73,7 +73,7 @@ public class IdPattern : ExtendedPattern, IHasUsages {
     if (inDisjunctivePattern && ResolvedLit == null && Arguments == null && !IsWildcardPattern) {
       resolver.reporter.Error(MessageSource.Resolver, Tok, "Disjunctive patterns may not bind variables");
     }
-    
+
     Debug.Assert(Arguments != null || Type is InferredTypeProxy);
 
     if (Arguments == null) {

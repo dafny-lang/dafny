@@ -2457,7 +2457,7 @@ public class CasePattern<VT> : INode
   where VT : class, IVariable {
   public readonly string Id;
   // After successful resolution, exactly one of the following two fields is non-null.
-  
+
   [FilledInDuringResolution]
   public DatatypeCtor Ctor;  // finalized by resolution (null if the pattern is a bound variable)
   public VT Var;  // finalized by resolution (null if the pattern is a constructor)  Invariant:  Var != null ==> Arguments == null

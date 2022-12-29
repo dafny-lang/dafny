@@ -359,7 +359,7 @@ public abstract class AssignmentRhs : INode, IAttributeBearingDeclaration {
     Tok = cloner.Tok(original.tok);
     Attributes = cloner.CloneAttributes(original.Attributes);
   }
-  
+
   internal AssignmentRhs(IToken tok, Attributes attrs = null) {
     Tok = tok;
     Attributes = attrs;
@@ -478,7 +478,7 @@ public class TypeRhs : AssignmentRhs, ICloneable<TypeRhs> {
     return new TypeRhs(cloner, this);
   }
 
-  public TypeRhs(Cloner cloner, TypeRhs original) 
+  public TypeRhs(Cloner cloner, TypeRhs original)
     : base(cloner, original) {
     EType = cloner.CloneType(original.EType);
     if (original.ArrayDimensions != null) {

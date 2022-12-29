@@ -18,7 +18,7 @@ public class DisjunctivePattern : ExtendedPattern {
     if (inPattern) {
       resolver.reporter.Error(MessageSource.Resolver, Tok, "Disjunctive patterns are not allowed inside other patterns");
     }
-    
+
     foreach (var alternative in Alternatives) {
       alternative.Resolve(resolver, resolutionContext, subst, sourceType, isGhost, mutable, true, true);
     }

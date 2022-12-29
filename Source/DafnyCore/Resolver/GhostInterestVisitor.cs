@@ -429,7 +429,7 @@ class GhostInterestVisitor {
         SelectMany(caze => caze.Pat.DescendantsAndSelf)
         .OfType<IdPattern>().Any(idPattern => idPattern.Ctor != null && idPattern.Ctor.IsGhost);
       nestedMatchStmt.IsGhost = mustBeErasable || ExpressionTester.UsesSpecFeatures(nestedMatchStmt.Source) || hasGhostPattern;
-      
+
       if (!mustBeErasable && nestedMatchStmt.IsGhost) {
         reporter.Info(MessageSource.Resolver, nestedMatchStmt.Tok, "ghost match");
       }

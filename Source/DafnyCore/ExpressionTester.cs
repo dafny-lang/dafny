@@ -10,7 +10,7 @@ public class ExpressionTester {
   [CanBeNull] private readonly ErrorReporter reporter; // if null, no errors will be reported
 
   // TODO figure out whether we can avoid this sometimes mutating behavior.
-  
+
   /// <summary>
   /// If "resolver" is non-null, CheckIsCompilable will update some fields in the resolver. In particular,
   ///   - .InCompiledContext in DatatypeUpdateExpr will be updated
@@ -499,7 +499,7 @@ public class ExpressionTester {
       ITEExpr e = (ITEExpr)expr;
       return UsesSpecFeatures(e.Test) || UsesSpecFeatures(e.Thn) || UsesSpecFeatures(e.Els);
     } else if (expr is NestedMatchExpr nestedMatchExpr) {
-      return nestedMatchExpr.Cases.SelectMany(caze => caze.Pat.DescendantsAndSelf.OfType<IdPattern>().Where(id => id.Ctor != null)).Any(id => id.Ctor.IsGhost) 
+      return nestedMatchExpr.Cases.SelectMany(caze => caze.Pat.DescendantsAndSelf.OfType<IdPattern>().Where(id => id.Ctor != null)).Any(id => id.Ctor.IsGhost)
              || expr.SubExpressions.Any(child => UsesSpecFeatures(child));
     } else if (expr is MatchExpr) {
       MatchExpr me = (MatchExpr)expr;
