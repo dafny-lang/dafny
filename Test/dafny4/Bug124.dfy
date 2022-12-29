@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /noNLarith  "%s" > "%t"
+// RUN: %baredafny verify %args --disable-nonlinear-arithmetic  "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 function power(n:nat, e:nat) : int
