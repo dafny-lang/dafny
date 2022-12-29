@@ -453,6 +453,22 @@ in `B` nor as `Z.a` in C would be valid, because `a` is not in `Z`.
 The default export set is important in the resolution of qualified
 names, as described in [Section 4.8](#sec-name-resolution).
 
+There are a few unusual cases to be noted:
+- an export set can be completely empty, as in `export Nothing`
+- an anonymous export set can be completely empty, as in `export`
+- an export set declaration followed by an extreme predicate declaration looks like this:
+`export least predicate() { true }`
+In this case the `least` (or `greatest`) is the identifier naming the export set.
+Consequently, `export least predicate[nat]() { true }` is illegal because `[nat]` cannot be part of a non-extreme predicate.
+Also, it is not possible to declare an anonymous, empty export set immediately prior to a declaration of an extreme predicate,
+because the `least` or `greatest` is parsed as the export set identifier. The workaround for this situation is to reorder the declarations.
+- To avoid confusion, the code
+```dafny
+export
+least predicate m() { true}
+```
+provokes a warning telling the user that the `least` goes with the `export`.
+
 ### 4.5.1. Provided and revealed names {#sec-provided-and-revealed-names}
 
 Names can be exported from modules in two ways, designated by `provides`
