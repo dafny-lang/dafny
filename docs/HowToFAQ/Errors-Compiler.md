@@ -85,7 +85,7 @@ or as `function method` instead of `function` in Dafny 3.
 
 ## nondeterministic assignment forbidden by the --enforce-determinism option
 
--- this is the thrid occurrence
+-- this is the third occurrence
 
 ## compiler currently does not support assignments to more-than-6-dimensional arrays in forall statements
 
