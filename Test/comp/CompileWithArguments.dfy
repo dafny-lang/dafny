@@ -3,8 +3,8 @@
 // RUN: %baredafny run %args --no-verify --target:cpp "%s" Cpp Yipee >> "%t"
 // RUN: %baredafny run %args --no-verify --target:java "%s" -- Java --heya >> "%t"
 // RUN: %baredafny run %args --no-verify --target:js "%s" -- Javascript 2 >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" --args Python 1 >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" --args "Go go" 1 >> "%t"
+// RUN: %baredafny run %args --no-verify --target=py "%s" "%s" --args Python 1 >> "%t"
+// RUN: %baredafny run %args --no-verify --target=go "%s" --args "Go go" 1 >> "%t"
 // RUN: %baredafny build %args --no-verify --target:cs "%s" --output:%s.dll
 // RUN: dotnet %s.dll "dotnet" "howdy" >> "%t"
 // RUN: dotnet %s.dll "dotnet" "hello" >> "%t"

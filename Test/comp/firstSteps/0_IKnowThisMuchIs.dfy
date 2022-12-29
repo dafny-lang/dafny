@@ -1,5 +1,5 @@
 // RUN: %baredafny verify %args "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" >> "%t"
+// RUN: %baredafny run %args --no-verify --target=py "%s" "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 //
 // An extremely small program intended to be the first target input for

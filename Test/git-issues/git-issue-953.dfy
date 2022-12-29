@@ -3,7 +3,7 @@
 // RUN: %baredafny run %args --no-verify --target=js "%s" >> "%t"
 // RUN: %baredafny run %args --no-verify --target=go "%s" >> "%t"
 // RUN: %baredafny run %args --no-verify --target=java "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" >> "%t"
+// RUN: %baredafny run %args --no-verify --target=py "%s" "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module P {

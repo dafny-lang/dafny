@@ -4,7 +4,7 @@
 // RUN: %exits-with 3 %baredafny run %args --no-verify --target=js "%s" >> "%t"
 // RUN: %exits-with 3 %baredafny run %args --no-verify --target=go "%s" >> "%t"
 // RUN: %exits-with 3 %dafny /noVerify /compile:4 /compileTarget:cpp "%s" >> "%t"
-// RUN: %exits-with 3 %dafny /noVerify /compile:4 /compileTarget:py "%s" >> "%t"
+// RUN: %exits-with 3 %baredafny run %args --no-verify --target=py "%s" "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // The following example should produce a compilation error, since there's

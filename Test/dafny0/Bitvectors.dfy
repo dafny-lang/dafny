@@ -1,6 +1,6 @@
 // RUN: %dafny /compile:0 /print:"%t.print" /rprint:- /env:0 "%s" > "%t"
 // RUN: %baredafny run %args --no-verify --target=cs "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" >> "%t"
+// RUN: %baredafny run %args --no-verify --target=py "%s" "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method M(a: bv1, b: bv32) returns (c: bv32, d: bv1)

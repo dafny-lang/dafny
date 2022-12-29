@@ -1,9 +1,9 @@
 // RUN: %baredafny verify %args "%s" > "%t"
 // RUN: %baredafny run %args --no-verify --target=cs "%s" %S/Extern2.cs >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" %S/Extern3.js >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" %S/Extern4.go >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" %S/SingletonOptimization.java %S/LibClass.java %S/OtherClass.java %S/AllDafny.java %S/Mixed.java %S/AllExtern.java >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" %S/Extern5.py >> "%t"
+// RUN: %baredafny run %args --no-verify --target=js "%s" %S/Extern3.js >> "%t"
+// RUN: %baredafny run %args --no-verify --target=go "%s" %S/Extern4.go >> "%t"
+// RUN: %baredafny run %args --no-verify --target=java "%s" %S/SingletonOptimization.java %S/LibClass.java %S/OtherClass.java %S/AllDafny.java %S/Mixed.java %S/AllExtern.java >> "%t"
+// RUN: %baredafny run %args --no-verify --target=py "%s" "%s" %S/Extern5.py >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {
