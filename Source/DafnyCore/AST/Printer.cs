@@ -309,6 +309,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
             }
           }
           if (dd.Members.Count != 0) {
+            Indent(indent);
             wr.WriteLine("{");
             PrintMembers(dd.Members, indent + IndentAmount, fileBeingPrinted);
             Indent(indent);
