@@ -463,9 +463,12 @@ Consequently, `export least predicate[nat]() { true }` is illegal because `[nat]
 Also, it is not possible to declare an anonymous, empty export set immediately prior to a declaration of an extreme predicate,
 because the `least` or `greatest` is parsed as the export set identifier. The workaround for this situation is to reorder the declarations.
 - To avoid confusion, the code
+<!-- %check-verify-warn Modules.10.expect -->
 ```dafny
-export
-least predicate m() { true}
+module M {
+  export
+  least predicate m() { true}
+}
 ```
 provokes a warning telling the user that the `least` goes with the `export`.
 
