@@ -203,6 +203,74 @@ method f(x: int) {
     }
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    public async Task DoNotExtendPastExpressions2() {
+      var documentItem = await GetDocumentItem(@"
+function method Id<T>(t: T): T { t }
+datatype Test = Test(i: int)
+{
+  method Tester(other: Test) {
+    assert Valid(other);
+    assert CanAct(Id(other));
+  }
+  static predicate Valid(t: Test) {
+    t.i > 0
+  }
+  static predicate CanAct(t: Test) requires Valid(t) {
+    t.i > 1
+  }
+}
+", "testfile2.dfy");
+      await AssertHoverMatches(documentItem, (4, 20),
+        @"**Error:**???assertion might not hold???
+Could not prove: t.i > 0  "
+      );
+      await AssertHoverMatches(documentItem, (5, 20),
+        @"**Error:**???assertion might not hold???
+Could not prove: t.i > 1  "
+      );
+      await AssertHoverMatches(documentItem, (5, 20),
+        @"**Success:**???function precondition satisfied???
+Did prove: Valid(t)  
+Did prove: t.i > 0  "
+      );
+    }
+
+
+    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    public async Task DoNotExtendPastExpressions() {
+      var documentItem = await GetDocumentItem(@"
+datatype Test = Test(i: int)
+{
+  predicate Valid() {
+    i > 0
+  }
+  predicate CanAct() requires Valid() {
+    i > 1
+  }
+  method Tester(other: Test) {
+    assert other.Valid();
+    assert Id(other).CanAct();
+  }
+}
+function method Id<T>(t: T): T { t }
+
+", "testfile2.dfy");
+      await AssertHoverMatches(documentItem, (9, 20),
+        @"**Error:**???assertion might not hold???
+Could not prove: i > 0  "
+      );
+      await AssertHoverMatches(documentItem, (10, 20),
+        @"**Error:**???assertion might not hold???
+Could not prove: i > 1  "
+      );
+      await AssertHoverMatches(documentItem, (10, 20),
+        @"**Success:**???function precondition satisfied???
+Did prove: Valid()  
+Did prove: i > 0  "
+      );
+    }
+
+    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
     public async Task DisplayNestedFailingPostconditionsAndPreconditions() {
       var documentItem = await GetDocumentItem(@"
 predicate P(i: int) {
