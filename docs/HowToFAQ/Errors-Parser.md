@@ -66,7 +66,7 @@ static module M {}
 ```
 
 Only some kinds of declarations can be declared 'static', most often 
-fields, constants, methods, and functions, and only within classes.
+fields, constants, methods, and functions, and only within classes. Modules are already always static.
 
 ## **Error: argument to :options attribute must be a literal string**
 
@@ -125,7 +125,7 @@ method M() {}
 
 Although all top-level declarations are contained in an implicit top-level module, there is no syntax to import that module.
 Such an import would likely cause a circular module dependency error.
-If the module cannot be imported, there is no point to any export declarations.
+If the implicit module cannot be imported, there is no point to any export declarations inside the implicit module.
 
 ## **Error: expected either a '{' or a 'refines' keyword here, found _token_**
 
@@ -167,7 +167,7 @@ module M {
 ```
 
 `var` declarations are used to declare mutable fields of classes, local variables in method bodies, and identifiers in let-expressions.
-But mutable field declarations are not permitted at the static module level, including in the (unnamed) toplevel module.
+But mutable field declarations are not permitted at the static module level, including in the (implicit) toplevel module.
 Rather, you may want the declaration to be a `const` declaration or you may want the mutable field to be declared in the body of a class.
 
 ## **Error: Refinement cannot change the constructors of a datatype. To refine _id_, either omit this '...' or omit the '=' sign and the datatype constructors.**
