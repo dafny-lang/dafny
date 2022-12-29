@@ -1,2 +1,3 @@
+git-issue-3288b.dfy(5,9): Warning: the least token is the identifier for the export set, not an adjective for an extreme predicate
 git-issue-3288b.dfy(5,30): Error: a formal [ ] declaration is only allowed for least and greatest predicates
 1 parse errors detected in git-issue-3288b.dfy

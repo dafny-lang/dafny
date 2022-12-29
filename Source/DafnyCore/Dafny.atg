@@ -1171,7 +1171,8 @@ ModuleExport<ModuleDefinition parent, out ModuleDecl submodule>
   .)
   [ IF(IsIdentifier(la.kind) || la.kind==_digits) ExportId<out exportId>   // If the next token is 'least' or 'greatest' use it as the export id, 
                                                                            // not the beginning of a subsequent extreme predicate declaration
-    (. if (startToken.line != exportId.line) errors.Warning(exportId, "the id for the export declaration is on a different line than the 'export' keyword -- this looks suspicious or confusing");
+    (. if (exportId.line == la.line && (exportId.val == "least" || exportId.val == "greatest") && la.kind == _predicate)
+           errors.Warning(exportId, $"the {exportId.val} token is the identifier for the export set, not an adjective for an extreme predicate");
     .)
   ]
   [ ellipsis  (. isRefining = true; .) ]
