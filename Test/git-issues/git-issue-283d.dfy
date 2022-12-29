@@ -5,6 +5,42 @@
 // RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
+datatype Foo = R(v: int)
+
+method m(f: Foo) returns (x: int) {
+  x := 0;
+  match f {
+    case R(0) => x := 1;
+    case R(1) => x := 2;
+    case R(y) => x := -y;
+  }
+  assert f.v == 0 ==> x == 1;
+  assert f.v == 1 ==> x == 2;
+  assert f.v != 0 && f.v != 1 ==> x == -f.v;
+}
+
+const ZERO := 0
+const ONE := 1
+
+method m2(f: Foo) returns (x: int) {
+  x := 0;
+  match f {
+    case R(ZERO) => x := 1;
+    case R(ONE) => x := 2;
+    case R(y) => x := -y;
+  }
+  assert f.v == 0 ==> x == 1;
+  assert f.v == 1 ==> x == 2;
+  assert f.v != 0 && f.v != 1 ==> x == -f.v;
+}
+
+method Main() {
+  var x: int;
+  x := m(R(1));
+  expect x == 2;
+  x := m2(R(1));
+  expect x == 2;
+}
 
 datatype Cell<T> = Cell(value: T)
 
