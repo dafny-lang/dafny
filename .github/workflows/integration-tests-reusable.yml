@@ -111,7 +111,7 @@ jobs:
     - name: Load Z3
       if: "!inputs.all_platforms"
       run: |
-        sudo apt-get install -y libarchive-tools
+        sudo apt-get install -yqq libarchive-tools
         mkdir dafny/Binaries/z3
         wget -qO- https://github.com/Z3Prover/z3/releases/download/Z3-4.8.5/z3-4.8.5-x64-ubuntu-16.04.zip | bsdtar -xf - -C dafny/Binaries/z3 --strip-components=1
         chmod +x dafny/Binaries/z3/bin/z3
@@ -129,7 +129,7 @@ jobs:
         XUNIT_SHARD: ${{ matrix.shard }}
         XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
       run: |
-        true && export DAFNY_RELEASE="${{ github.workspace }}/unzippedRelease/dafny"
+        ${{ inputs.all_platforms }} && export DAFNY_RELEASE="${{ github.workspace }}/unzippedRelease/dafny"
         dotnet test --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj
     - uses: actions/upload-artifact@v2
       if: always()
