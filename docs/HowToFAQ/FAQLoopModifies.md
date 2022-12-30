@@ -69,7 +69,7 @@ method init(a: array<int>)
     invariant 0 <= i <= a.Length && forall j | 0 <= j < i :: a[j] == j;
   {
     a[i] := i;
-    i := i+1;
+    i := i + 1;
   }
 }
 ```
