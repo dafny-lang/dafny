@@ -66,7 +66,7 @@ method init(a: array<int>)
 
   while i < a.Length
     modifies a
-    invariant 0 <= i <= a.Length && forall j | 0 <= j < i :: a[j] == j;
+    invariant 0 <= i <= a.Length && forall j | 0 <= j < i :: a[j] == j
   {
     a[i] := i;
     i := i + 1;
