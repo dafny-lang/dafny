@@ -2913,8 +2913,8 @@ namespace Microsoft.Dafny {
               var recursiveCall = new CallStmt(com.tok, com.tok, new List<Expression>(), methodSel, recursiveCallArgs.ConvertAll(e => new ActualBinding(null, e)));
               recursiveCall.IsGhost = prefixLemma.IsGhost;  // resolve here
 
-              var range = smaller;  // The range will be strengthened later with the call's precondition, substituted
-                                    // appropriately (which can only be done once the precondition has been resolved).
+              var range = smaller; /* The range will be strengthened later with the call's precondition, substituted
+                                      appropriately (which can only be done once the precondition has been resolved).*/
               var attrs = new Attributes("_autorequires", new List<Expression>(), null);
 #if VERIFY_CORRECTNESS_OF_TRANSLATION_FORALL_STATEMENT_RANGE
               // don't add the :_trustWellformed attribute
