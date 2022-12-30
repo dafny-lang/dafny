@@ -114,13 +114,13 @@ method PrintHello() {
   print "hello\n";
 }
 ```
-The inner for-loop can be specified and the whole method verified in two different ways.
+The for-loop can be specified and the whole method verified in two different ways.
 
-First, suppose we do not include a modifies clause in the loop specifications of the inner loop.
+First, suppose we do not include a modifies clause in the loop specifications of the loop.
 Then dafny will use the enclosing modifies clause, which allows changing the
-state of `c`. In order for the outer loop to know that the inner loop has not 
-changed `c.n`, the inner loop needs the invariant `c.n == old(c.n)`.
+state of `c`. In order for the method body to know that the loop has not 
+changed `c.n`, the loop needs the invariant `c.n == old(c.n)`.
 
-Alternatively, the inner loop can specify its own modifies clause,
+Alternatively, the loop can specify its own modifies clause,
 `modifies {}`, saying it modifies nothing. Then it follows directly that
-`c.n` does not change in the inner loop, so no invariant is needed to carry out the proof.
+`c.n` does not change in the loop, so no invariant is needed to carry out the proof.
