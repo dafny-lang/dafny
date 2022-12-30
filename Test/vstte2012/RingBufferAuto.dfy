@@ -1,4 +1,4 @@
-// RUN: %baredafny verify %args "%s" > "%t"
+// RUN: %baredafny verify %args --relax-definite-assignment "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class {:autocontracts} RingBuffer<T(0)>

@@ -43,6 +43,7 @@ Print Dafny program after resolving it.
   };
 
   static DeveloperOptionBag() {
+    DafnyOptions.RegisterLegacyBinding(PrintTooltips, (o, v) => o.PrintTooltips = v);
     DafnyOptions.RegisterLegacyBinding(SpillTranslation, (o, f) => o.SpillTargetCode = f ? 1U : 0U);
 
     DafnyOptions.RegisterLegacyBinding(ResolvedPrint, (options, value) => {
