@@ -1,4 +1,4 @@
-// RUN: %baredafny verify %args "%s" > "%t"
+// RUN: %baredafny verify %args --relax-definite-assignment "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method MirrorImage<T>(m: array2<T>)

@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %baredafny verify %args "%s" > "%t"
+// RUN: %exits-with 4 %baredafny verify --relax-definite-assignment %args "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // -------- This is an example of what was once logically (although not trigger-ly) unsound ---

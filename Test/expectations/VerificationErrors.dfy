@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %baredafny verify %args "%s" /rprint:"%t.rprint" > "%t"
+// RUN: %exits-with 4 %baredafny verify %args "%s" --rprint="%t.rprint" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype Option<T> = None | Some(get: T)

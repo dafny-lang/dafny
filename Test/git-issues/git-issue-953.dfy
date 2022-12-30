@@ -1,4 +1,4 @@
-// RUN: %baredafny verify %args "%s" > "%t"
+// RUN: %baredafny verify %args --relax-definite-assignment "%s" > "%t"
 // RUN: %baredafny run %args --no-verify --target=cs "%s" >> "%t"
 // RUN: %baredafny run %args --no-verify --target=js "%s" >> "%t"
 // RUN: %baredafny run %args --no-verify --target=go "%s" >> "%t"

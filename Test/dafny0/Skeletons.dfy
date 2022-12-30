@@ -6,7 +6,7 @@ module A {
     requires p <= 30;
   {
     assume p < 100;
-    var x;
+    var x := *;
     assume x == p + 20;
     x := x + 1;
     while (*)

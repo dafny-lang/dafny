@@ -1,4 +1,4 @@
-// RUN: %baredafny run %args "%s" > "%t"
+// RUN: %baredafny run %args --relax-definite-assignment "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Minimum window-max problem.

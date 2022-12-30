@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %baredafny verify %args "%s" > "%t"
+// RUN: %exits-with 4 %baredafny verify %args --relax-definite-assignment "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 function method Twice<A>(f : A ~> A): A ~> A
