@@ -88,3 +88,39 @@ because it would be inherited from the enclosing context.
 - After the loop, Dafny uses the loop invariant and the negation of the loop guard to conclude i == a.Length, and from that and the invariant, Dafny can prove the method's postcondition.
 
 Even when Dafny can infer an appropriate modifies clause, it does not infer loop invariants, so the user always needs to supply those. 
+
+Here is another example:
+```dafny
+class Counter {
+  var n: nat
+}
+
+// print "hello" c.n times and then increment c.n
+method PrintAndIncrement(c: Counter)
+  modifies c
+  ensures c.n == old(c.n) + 1
+{
+  for _ := 0 to c.n
+    // To verify this method, the loop needs one of the following two lines:
+    invariant c.n == old(c.n)
+    modifies {} // empty modifies clause
+  {
+    PrintHello();
+  }
+  c.n := c.n + 1;
+}
+
+method PrintHello() {
+  print "hello\n";
+}
+```
+The inner for-loop can be specified and the whole method verified in two different ways.
+
+First, suppose we do not include a modifies clause in the loop specifications of the inner loop.
+Then dafny will use the enclosing modifies clause, which allows changing the
+state of `c`. In order for the outer loop to know that the inner loop has not 
+changed `c.n`, the inner loop needs the invariant `c.n == old(c.n)`.
+
+Alternatively, the inner loop can specify its own modifies clause,
+`modifies {}`, saying it modifies nothing. Then it follows directly that
+`c.n` does not change in the inner loop, so no invariant is needed to carry out the proof.
