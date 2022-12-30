@@ -2,5 +2,5 @@
 // RUN: %diff "%s.expect" "%t" 
 
 module M {
-  export least predicate p[nat]() { true} // error - the 'least' goes with export so the [nat] is illegal for a predicate
+  export least predicate p[nat]() { true } // error - the 'least' goes with export so the [nat] is illegal for a predicate
 }

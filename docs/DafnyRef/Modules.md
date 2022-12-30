@@ -455,11 +455,11 @@ names, as described in [Section 4.8](#sec-name-resolution).
 
 There are a few unusual cases to be noted:
 - an export set can be completely empty, as in `export Nothing`
-- an eponymous export set can be completely empty, as in `export`, which by default has the same name as the export set itself; this is a way to make the module completely private
+- an eponymous export set can be completely empty, as in `export`, which by default has the same name as the enclosing module; this is a way to make the module completely private
 - an export set declaration followed by an extreme predicate declaration looks like this:
-`export least predicate() { true }`
-In this case the `least` (or `greatest`) is the identifier naming the export set.
-Consequently, `export least predicate[nat]() { true }` is illegal because `[nat]` cannot be part of a non-extreme predicate.
+`export least predicate P() { true }`
+In this case, the `least` (or `greatest`) is the identifier naming the export set.
+Consequently, `export least predicate P[nat]() { true }` is illegal because `[nat]` cannot be part of a non-extreme predicate.
 Also, it is not possible to declare an eponymous, empty export set by omitting the export id immediately prior to a declaration of an extreme predicate,
 because the `least` or `greatest` token is parsed as the export set identifier. The workaround for this situation is to 
 either put the name of the module in explicitly as the export ID (not leaving it to the default) or reorder the declarations.
@@ -468,7 +468,7 @@ either put the name of the module in explicitly as the export ID (not leaving it
 ```dafny
 module M {
   export
-  least predicate m() { true}
+  least predicate P() { true }
 }
 ```
 provokes a warning telling the user that the `least` goes with the `export`.
