@@ -1,5 +1,5 @@
-// RUN: %exits-with 4 %baredafny verify %args "%s" > "%t"
-// RUN: %dafny /noVerify /compile:0 "%t.dprint.dfy" >> "%t"
+// RUN: %exits-with 4 %baredafny verify %args --print="%t.dprint.dfy" "%s" > "%t"
+// RUN: %baredafny resolve "%t.dprint.dfy" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method CalcTest0(s: seq<int>) {
