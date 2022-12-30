@@ -5124,7 +5124,7 @@ namespace Microsoft.Dafny {
     readonly Scope<TypeParameter>/*!*/ allTypeParameters = new Scope<TypeParameter>();
     readonly Scope<IVariable>/*!*/ scope = new Scope<IVariable>();
     Scope<Statement>/*!*/ enclosingStatementLabels = new Scope<Statement>();
-    readonly Scope<Label>/*!*/ dominatingStatementLabels = new Scope<Label>();
+    public readonly Scope<Label>/*!*/ DominatingStatementLabels = new Scope<Label>();
     List<Statement> loopStack = new List<Statement>();  // the enclosing loops (from which it is possible to break out)
 
     /// <summary>
@@ -6275,11 +6275,11 @@ namespace Microsoft.Dafny {
             i++;
           }
         }
-        dominatingStatementLabels.PushMarker();
+        DominatingStatementLabels.PushMarker();
         foreach (Statement ss in mc.Body) {
           ResolveStatementWithLabels(ss, resolutionContext);
         }
-        dominatingStatementLabels.PopMarker();
+        DominatingStatementLabels.PopMarker();
 
         scope.PopMarker();
       }
@@ -7871,7 +7871,7 @@ namespace Microsoft.Dafny {
       if (!resolutionContext.IsTwoState) {
         reporter.Error(MessageSource.Resolver, tok, $"{expressionDescription} expressions are not allowed in this context");
       } else if (labelName != null) {
-        label = dominatingStatementLabels.Find(labelName);
+        label = DominatingStatementLabels.Find(labelName);
         if (label == null) {
           reporter.Error(MessageSource.Resolver, tok, $"no label '{labelName}' in scope at this time");
         }
