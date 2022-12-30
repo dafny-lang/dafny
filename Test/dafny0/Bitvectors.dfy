@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /rprint:- /env:0 "%s" > "%t"
+// RUN: %baredafny verify %args --rprint:- --relax-definite-assignment "%s" > "%t"
 // RUN: %baredafny run %args --no-verify --target=cs "%s" >> "%t"
 // RUN: %baredafny run %args --no-verify --target=py "%s" "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
