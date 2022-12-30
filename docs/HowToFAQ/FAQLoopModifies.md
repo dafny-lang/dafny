@@ -4,7 +4,7 @@ title: If I have an assertion about an object (of class type) and a loop that do
 
 ## Question
 
-If I have an assertion about a class and a loop that doesn't mention (read, modify) the class, 
+If I have an assertion about an object and a loop that doesn't mention (read, modify) the class, 
 why does dafny fail to establish the assertion after the loop?
 
 ## Answer
