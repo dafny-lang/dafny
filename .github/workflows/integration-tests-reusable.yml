@@ -112,7 +112,7 @@ jobs:
       if: "!inputs.all_platforms"
       run: |
         mkdir dafny/Binaries/z3
-        wget -qO- https://github.com/Z3Prover/z3/releases/download/Z3-4.8.5/z3-4.8.5-x64-ubuntu-16.04.zip | tar -xC dafny/Binaries/z3 --strip-components=1
+        wget -qO- https://github.com/Z3Prover/z3/releases/download/Z3-4.8.5/z3-4.8.5-x64-ubuntu-16.04.zip | bsdtar -xC dafny/Binaries/z3 --strip-components=1
         chmod +x dafny/Binaries/z3/bin/z3
     - name: Run integration tests
       if: runner.os == 'Windows'
