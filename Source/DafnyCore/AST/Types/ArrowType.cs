@@ -5,7 +5,7 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public class ArrowType : UserDefinedType {
-  
+
   public static Expression FrameArrowToObjectSet(Expression e, FreshIdGenerator idGen, BuiltIns builtIns) {
     Contract.Requires(e != null);
     Contract.Requires(idGen != null);
@@ -42,7 +42,7 @@ public class ArrowType : UserDefinedType {
       return e;
     }
   }
-  
+
   public List<Type> Args {
     get { return TypeArgs.GetRange(0, Arity); }
   }

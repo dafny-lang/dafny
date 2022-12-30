@@ -724,7 +724,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    
+
 
     private void ResolveValuetypeDecls() {
       moduleInfo = systemNameInfo;
