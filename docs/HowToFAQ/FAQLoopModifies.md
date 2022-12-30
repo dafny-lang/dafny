@@ -81,9 +81,9 @@ In fact that modifies clause could be omitted
 because it would be inherited from the enclosing context.
 - The loop also modifies `i`, but as `i` is a local variable, it need not be listed in the modifies clause.
 - The loop also has an invariant, which has two conjuncts:
-   - One conjunct states what may be assumed about `i`. Even though `i` is not in the modifies clause 
-    it is an assignment target, so we need to say what may be assumed about it (prior to the loop test).
-   - The other conjunct says what is known about the elements of `a`, which depends on `i`, 
+   - One conjunct states about the local variable `i`. Even though `i` is not in the modifies clause 
+    it is an assignment target, so we need to say what is known about it (prior to the loop test).
+   - The other conjunct talks about the elements of `a`, which depend on `i`, 
     that is, on how many iterations of the loop have been executed.
 - After the loop, Dafny uses the loop invariant and the negation of the loop guard to conclude i == a.Length, and from that and the invariant, Dafny can prove the method's postcondition.
 
