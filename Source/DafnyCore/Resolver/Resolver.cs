@@ -4149,7 +4149,6 @@ namespace Microsoft.Dafny {
           e.Cases.Iter(kase => Visit(kase.Body, theCp));
           return false;
         } else if (expr is MatchExpr) {
-          // TODO remove?
           var e = (MatchExpr)expr;
           Visit(e.Source, CallingPosition.Neither);
           var theCp = cp;
@@ -7378,7 +7377,6 @@ namespace Microsoft.Dafny {
         }
         return s;
       } else if (expr is MatchExpr) {
-        // TODO remove?
         var e = (MatchExpr)expr;
         var s = FreeVariables(e.Source);
         foreach (MatchCaseExpr mc in e.Cases) {
@@ -7787,7 +7785,6 @@ namespace Microsoft.Dafny {
           CheckCoCalls(child, destructionLevel, coContext, coCandidates);
         }
       } else if (expr is MatchExpr) {
-        // TODO remove?
         var e = (MatchExpr)expr;
         CheckCoCalls(e.Source, int.MaxValue, null, coCandidates);
         foreach (var kase in e.Cases) {
@@ -7941,12 +7938,10 @@ namespace Microsoft.Dafny {
         var thn = GuaranteedCoCtorsAux(e.Thn);
         var els = GuaranteedCoCtorsAux(e.Els);
         return thn < els ? thn : els;
-      } else if (expr is NestedMatchExpr) {
-        var e = (NestedMatchExpr)expr;
-        var childValues = e.Cases.Select(child => GuaranteedCoCtorsAux(child.Body)).ToList();
+      } else if (expr is NestedMatchExpr nestedMatchExpr) {
+        var childValues = nestedMatchExpr.Cases.Select(child => GuaranteedCoCtorsAux(child.Body)).ToList();
         return childValues.Any() ? childValues.Min() : 0;
       } else if (expr is MatchExpr) {
-        // TODO remove?
         var e = (MatchExpr)expr;
         var min = int.MaxValue;
         foreach (var kase in e.Cases) {

@@ -1082,15 +1082,9 @@ namespace Microsoft.Dafny {
         ConstrainSubtypeRelation(expr.Type, e.Els.Type, expr, "the two branches of an if-then-else expression must have the same type (got {0} and {1})", e.Thn.Type, e.Els.Type);
 
       } else if (expr is MatchExpr) {
-        // TODO remove?
         ResolveMatchExpr((MatchExpr)expr, resolutionContext);
-      } else if (expr is NestedMatchExpr) {
-        NestedMatchExpr e = (NestedMatchExpr)expr;
-        ResolveNestedMatchExpr(e, resolutionContext);
-        // if (e.ResolvedExpression != null && e.ResolvedExpression.Type != null) {
-        //   // i.e. no error was thrown during compiling of the NextedMatchExpr or during resolution of the ResolvedExpression
-        //   expr.Type = e.ResolvedExpression.Type;
-        // }
+      } else if (expr is NestedMatchExpr nestedMatchExpr) {
+        ResolveNestedMatchExpr(nestedMatchExpr, resolutionContext);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }

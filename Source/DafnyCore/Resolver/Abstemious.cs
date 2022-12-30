@@ -47,7 +47,7 @@ public class Abstemious {
           return;
         }
       }
-    } else if (expr is MatchExpr) { // TODO remove?
+    } else if (expr is MatchExpr) {
       var e = (MatchExpr)expr;
       if (e.Source.Type.IsCoDatatype) {
         var ide = Expression.StripParens(e.Source).Resolved as IdentifierExpr;

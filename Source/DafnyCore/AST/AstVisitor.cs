@@ -248,7 +248,6 @@ namespace Microsoft.Dafny {
           }
 
         } else if (expr is MatchExpr matchExpr) {
-          // TODO remove?
           foreach (MatchCaseExpr mc in matchExpr.Cases) {
             foreach (BoundVar v in mc.Arguments) {
               VisitUserProvidedType(v.Type, context);
