@@ -87,4 +87,4 @@ because it would be inherited from the enclosing context
     that is, on how many iterations of the loop have been executed
 - And then from that loop invariant and the fact that the loop has now terminated (which implies that `i == a.Length`), Dafny can prove the method's postcondition. 
 
-Even when Dafny can infer an appropriate modifies clause, it cannot infer loop invariants. The user always needs to supply those (until verification technology improves). 
+Even when Dafny can infer an appropriate modifies clause, it does not infer loop invariants, so the user always needs to supply those. 
