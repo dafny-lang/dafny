@@ -1,0 +1,1 @@
+feat: support for traits as type arguments by fully allowing variance on datatypes in Java

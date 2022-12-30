@@ -82,14 +82,22 @@ public record Token : IToken {
 
   public string TrailingTrivia { get; set; } = "";
 
-  public bool IsValid => this.ActualFilename != null;
-
   public IToken Next { get; set; } // The next token
 
   public IToken Prev { get; set; } // The previous token
 
+  public bool IsValid => this.ActualFilename != null;
+
   public IToken WithVal(string val) {
     return this with { val = val };
+  }
+
+  public override int GetHashCode() {
+    return pos;
+  }
+
+  public override string ToString() {
+    return $"{Filename}@{pos} - @{line}:{col}";
   }
 }
 
@@ -104,14 +112,14 @@ public abstract class TokenWrapper : IToken {
 
   public virtual int col {
     get { return WrappedToken.col; }
-    set { throw new NotSupportedException(); }
+    set { WrappedToken.col = value; }
   }
 
   public string ActualFilename => WrappedToken.ActualFilename;
 
   public virtual string Filename {
     get { return WrappedToken.Filename; }
-    set { throw new NotSupportedException(); }
+    set { WrappedToken.filename = value; }
   }
 
   public bool IsValid {
@@ -127,11 +135,11 @@ public abstract class TokenWrapper : IToken {
   }
   public virtual int pos {
     get { return WrappedToken.pos; }
-    set { throw new NotSupportedException(); }
+    set { WrappedToken.pos = value; }
   }
   public virtual string val {
     get { return WrappedToken.val; }
-    set { throw new NotSupportedException(); }
+    set { WrappedToken.val = value; }
   }
   public virtual string LeadingTrivia {
     get { return WrappedToken.LeadingTrivia; }
@@ -155,7 +163,6 @@ public abstract class TokenWrapper : IToken {
 public class RangeToken : TokenWrapper {
   // The wrapped token is the startTok
   private IToken endTok;
-
   public IToken StartToken => WrappedToken;
   public IToken EndToken => endTok;
 

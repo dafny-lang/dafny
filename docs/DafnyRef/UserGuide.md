@@ -97,7 +97,7 @@ text editor. However, some tools provide syntax-aware features:
 Information about installing IDE extensions for Dafny is found
 on the [Dafny INSTALL page in the wiki](https://github.com/dafny-lang/dafny/wiki/INSTALL).
 
-## 25.6. Using Dafny From the Command Line
+## 25.6. Using Dafny From the Command Line {#command-line}
 
 `dafny` is a conventional command-line tool, operating just like other
 command-line tools in Windows and Unix-like systems.
@@ -914,9 +914,22 @@ namespace Externs_Compile {
 }
 ```
 
+This serves as an example of implementing an extern,
+but was only necessary to retrieve command line arguments historically,
+as `dafny` now supports capturing these arguments via a main method
+that accepts a `seq<string>` (see the section on the [Main method](#sec-user-guide-main)).
+
 Note that `dafny` does not check the arguments to `{:extern}`, so it is
 the user's responsibility to ensure that the provided names result in
 code that is well-formed in the target language.
+
+Also note that the interface the external code needs to implement
+may be affected by compilation flags. In this case, if `/unicodeChar:1`
+is provided, `dafny` will compile its `char` type to the `Dafny.Rune`
+C# type instead, so the references to the C# type `char` above
+would need to be changed accordingly. The reference to `charseq.FromString`
+would in turn need to be changed to `charseq.UnicodeFromString` to
+return the correct type.
 
 Most declarations, including those for modules, classes, traits, member
 variables, constructors, methods, function methods, and opaque types,
@@ -951,43 +964,116 @@ Types marked with `{:extern}` must be opaque. The name argument, if any,
 usually refers to the type name in the target language, but some
 compilers treat it differently.
 
+Detailed description of the `dafny build` and `dafny run` commands and 
+the `--input` option (needed when `dafny run` has more than one input file)
+is contained [in the section on command-line structure](#command-line).
+
 ### 25.8.3. C\#
 
-TO BE WRITTEN
+For a simple Dafny-only program, the translation step converts a `A.dfy` file into `A.cs`;
+the build step then produces a `A.dll`, which can be used as a library or as an executable (ran via `dotnet A.dll`).
+
+It is also possible to run the dafny files as part of a `csproj` project, with these steps:
+- create a dotnet project file with the command `dotnet new console`
+- delete the `Program.cs` file
+- build the dafny program: `dafny build A.dfy`
+- run the built program `dotnet A.dll`
+
+The last two steps can be combined:
+`dafny run A.dfy`
+
+Note that all input `.dfy` files and any needed runtime library code are combined into a single `.cs` file, which is then compiled by `dotnet` to a `.dll`.
+
+
+Examples of how to integrate C# libraries and source code with Dafny source code
+are contained in [this separate document](integration-cs/IntegrationCS).
 
 ### 25.8.4. Java
 
 The Dafny-to-Java compiler writes out the translated files of a file _A_`.dfy`
 to a directory _A_`-java`. The `-out` option can be used to choose a
-different output directory. The file _A_`.dfy` is translated to _A_`.java`,
-which is placed in the output directory along with helper files.
-If more than one `.dfy` file is listed on the command-line, then the output
-directory name is taken from the first file, and `.java` files are written
-for each of the `.dfy` files.
+different output directory. 
+The compiler produces a single wrapper method that then calls classes in 
+relevant other `.java` files. Because Java files must be named consistent
+with the class they contain, but Dafny files do not, there may be no relation
+between the Java file names and the Dafny file names.
+However, the wrapper class that contains the Java `main` method is named for
+the first `.dfy` file on the command-line.
+The output folder  will also contain
+translations to java for any library modules that are used.
 
-TO BE WRITTEN
+The step of compiling Java files (using `javac`) requires the Dafny runtime library. That library is automatically included if dafny is doing the compilation,
+but not if dafny is only doing translation.
+
+Examples of how to integrate Java source code and libraries with Dafny source
+are contained in [this separate document](integration-java/IntegrationJava).
 
 ### 25.8.5. Javascript
 
-TO BE WRITTEN
+The Dafny-to-Javascript compiler translates all the given `.dfy` files into a single `.js` file, which can then be run using `node`. (Javascript has no compilation step). 
+The build and run steps are simply
+- `dafny build --target:js A.dfy`
+- `node A.js`
+
+Or, in one step,
+- `dafny run A.dfy`
+
+Examples of how to integrate Javascript libraries and source code with Dafny source
+are contained in [this separate document](integration-js/IntegrationJS).
 
 ### 25.8.6. Go
 
-TO BE WRITTEN
+The Dafny-to-Go compiler translates all the given `.dfy` files into a single
+`.go` file in `A-go/src/A.go`; the output folder can be specified with the 
+`-out` option. For an input file `A.dfy` the default output folder is `A-go`. Then, Dafny compiles this program and creates an `A.exe` executable in the same folder as `A.dfy`.
+Some system runtime code is also placed in `A-go/src`.
+The build and run steps are
+- `dafny build --target:go A.dfy`
+- `./A`
 
-### 25.8.7. C++
+The uncompiled code can be compiled and run by `go` itself using
+- `(cd A-go; GO111MODULE=auto GOPATH=`pwd` go run A.go)`
+
+The one-step process is
+- `dafny run --target:go A.dfy`
+
+The `GO111MODULE` variable is used because Dafny translates to pre-module Go code.
+When the implementation changes to current Go, the above command-line will
+change, though the `./A` alternative will still be supported.
+
+Examples of how to integrate Go source code and libraries with Dafny source
+are contained in [this separate document](integration-go/IntegrationGo).
+
+### 25.8.7. Python
+
+The Dafny-to-Python compiler is still under development. However, simple
+Dafny programs can be built and run as follows. The Dafny-to-Python
+compiler translates the `.dfy` files into a single `.py` file along with 
+supporting runtime library code, all placed in the output location (`A-py` for an input file A.dfy, by default).
+
+The build and run steps are
+- `dafny build --target:py A.dfy`
+- `python A-py/A.py`
+
+In one step:
+- `dafny run --target:py A.dfy`
+
+Examples of how to integrate Python libraries and source code with Dafny source
+are contained in [this separate document](integration-py/IntegrationPython).
+
+### 25.8.8. C++
 
 The C++ backend was written assuming that it would primarily support writing
 C/C++ style code in Dafny, which leads to some limitations in the current
 implementation.
 
-- We do not support BigIntegers, so do not use `int`, or raw instances of
+- The C++ compiler does not support BigIntegers, so do not use `int`, or raw instances of
   `arr.Length`, or sequence length, etc. in executable code.  You can however,
   use `arr.Length as uint64` if you can prove your array is an appropriate
   size.  The compiler will report inappropriate integer use.
-- We do not support more advanced Dafny features like traits or coinductive
+- The C++ compiler does not support more advanced Dafny features like traits or coinductive
   types.
-- Very limited support for higher order functions even for array init.  Use
+- There is very limited support for higher order functions even for array initialization.  Use
   extern definitions like newArrayFill (see 
   [extern.dfy](https://github.com/dafny-lang/dafny/blob/master/Test/c++/extern.dfy)) or
   similar.  See also the example in [`functions.dfy`]
@@ -995,7 +1081,7 @@ implementation.
 - The current backend also assumes the use of C++17 in order to cleanly and
   performantly implement datatypes.
 
-### 25.8.8. Supported features by target language {#sec-supported-features-by-target-language}
+### 25.8.9. Supported features by target language {#sec-supported-features-by-target-language}
 
 Some Dafny features are not supported by every target language.
 The table below shows which features are supported by each backend.
@@ -1263,6 +1349,18 @@ older versions of Dafny.
   implicitly static and field declarations are not allowed at the
   module scope.
 
+* `-unicodeChar:<n>` - controls the meaning of the built-int `char`
+  type.
+
+  * `0` (default) - The `char` type represents any UTF-16 code unit.
+    This means any 16-bit value, including surrogate code points.
+    Allows `\uXXXX` escapes in string and character literals.
+  * `1` - The `char` type represents any Unicode scalar value.
+    This means any Unicode code point excluding surrogates.
+    Allows `\U{X..X}` escapes in string and character literals.
+
+  The default is currently `0`, but will be `1` in Dafny version 4.
+
 ### 25.9.6. Controlling warnings {#sec-controlling-warnings}
 
 These options control what warnings Dafny produces, and whether to treat
@@ -1514,10 +1612,6 @@ and what information it produces about the verification process.
   where to write the counterexample, as well as the
   `-proverOpt:O:model_compress=false` and
   `-proverOpt:O:model.completion=true` options.
-
-* `-countVerificationErrors:<n>` - if `0` then always exit with a 0 exit
-  code, regardless of whether errors are found. If `1` (default) then
-  use the appropriate exit code. This option is deprecated.
 
 ### 25.9.8. Controlling Boogie {#sec-controlling-boogie}
 

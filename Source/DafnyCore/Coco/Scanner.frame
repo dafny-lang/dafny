@@ -52,7 +52,7 @@ public class Buffer {
   //    b) part of stream in buffer
   // 2) non seekable stream (network, console)
 
-  public const int EOF = 65535 + 1; // char.MaxValue + 1;
+  public const int EOF = 0x11_0000; // Maximum Unicode codepoint + 1;
   const int MIN_BUFFER_LENGTH = 1024; // 1KB
   const int MAX_BUFFER_LENGTH = MIN_BUFFER_LENGTH * 64; // 64KB
   byte[]/*!*/ buf;         // input buffer
@@ -205,10 +205,16 @@ public class Buffer {
 // UTF8Buffer
 //-----------------------------------------------------------------------------------
 public class UTF8Buffer: Buffer {
+  private int pendingLowSurrogate = -1;
   public UTF8Buffer(Buffer/*!*/ b): base(b) {Contract.Requires(b != null);}
 
   public override int Read() {
     int ch;
+    if (pendingLowSurrogate != -1) {
+      ch = pendingLowSurrogate;
+      pendingLowSurrogate = -1;
+      return ch;
+    }
     do {
       ch = base.Read();
       // until we find a utf8 start (0xxxxxxx or 11xxxxxx)
@@ -234,6 +240,11 @@ public class UTF8Buffer: Buffer {
       int c1 = ch & 0x1F; ch = base.Read();
       int c2 = ch & 0x3F;
       ch = (c1 << 6) | c2;
+    }
+    if (0x10000 <= ch && ch < 0x11_0000) {
+      ch = ch - 0x10000; 
+      pendingLowSurrogate = 0xDC00 + (ch & 0x3FF);
+      ch = 0xD800 + ((ch >> 10) & 0x3FF);
     }
     return ch;
   }

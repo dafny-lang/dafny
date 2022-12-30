@@ -1,4 +1,3 @@
-#define TI_DEBUG_PRINT
 //-----------------------------------------------------------------------------
 //
 // Copyright (C) Microsoft Corporation.  All Rights Reserved.
@@ -10,6 +9,7 @@ using System;
 using System.Collections;
 using System.Text;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Linq;
@@ -24,7 +24,13 @@ namespace Microsoft.Dafny {
   [System.AttributeUsage(System.AttributeTargets.Field)]
   public class FilledInDuringResolutionAttribute : System.Attribute { }
 
-  public interface INode {
+  public abstract class INode {
+
+    public IToken tok = Token.NoToken;
+    public IToken Tok {
+      get => tok;
+      set => tok = value;
+    }
 
     /// <summary>
     /// These children should be such that they contain information produced by resolution such as inferred types
@@ -32,22 +38,126 @@ namespace Microsoft.Dafny {
     /// program is lost. As an example, the pattern matching compilation may deduplicate nodes from the original AST,
     /// losing source location information, so those transformed nodes should not be returned by this property.
     /// </summary>
-    IEnumerable<INode> Children { get; }
+    public abstract IEnumerable<INode> Children { get; }
 
     /// <summary>
     /// These children should match what was parsed before the resolution phase.
     /// That way, gathering all OwnedTokens of all recursive ConcreteChildren should result in a comprehensive
     /// coverage of the original program
     /// </summary>
-    IEnumerable<INode> ConcreteChildren { get; }
+    public abstract IEnumerable<INode> ConcreteChildren { get; }
+
+    protected RangeToken rangeToken = null;
+
+    // Contains tokens that did not make it in the AST but are part of the expression,
+    // Enables ranges to be correct.
+    // TODO: Re-add format tokens where needed until we put all the formatting to replace the tok of every expression
+    protected IToken[] FormatTokens = null;
+
+    public RangeToken RangeToken {
+      get {
+        if (rangeToken == null) {
+          if (tok is RangeToken tokAsRange) {
+            rangeToken = tokAsRange;
+          } else {
+            var startTok = tok;
+            var endTok = tok;
+
+            void UpdateStartEndToken(IToken token1) {
+              if (token1.Filename != tok.Filename) {
+                return;
+              }
+
+              if (token1.pos < startTok.pos) {
+                startTok = token1;
+              }
+
+              if (token1.pos + token1.val.Length > endTok.pos + endTok.val.Length) {
+                endTok = token1;
+              }
+            }
+
+            void updateStartEndTokRecursive(INode node) {
+              if (node.tok.Filename != tok.Filename || node is Expression { IsImplicit: true } ||
+                  node is DefaultValueExpression) {
+                // Ignore any auto-generated expressions.
+              } else if (node != this && node.RangeToken != null) {
+                UpdateStartEndToken(node.StartToken);
+                UpdateStartEndToken(node.EndToken);
+              } else {
+                UpdateStartEndToken(node.tok);
+              }
+
+              node.Children.Iter(updateStartEndTokRecursive);
+            }
+
+            updateStartEndTokRecursive(this);
+
+            if (FormatTokens != null) {
+              foreach (var token in FormatTokens) {
+                UpdateStartEndToken(token);
+              }
+            }
+
+            rangeToken = new RangeToken(startTok, endTok);
+          }
+        }
+
+        if (rangeToken.Filename == null) {
+          rangeToken.Filename = tok.Filename;
+        }
+
+        return rangeToken;
+      }
+      set => rangeToken = value;
+    }
+
+
+    public IToken StartToken => RangeToken?.StartToken;
+    public IToken EndToken => RangeToken?.EndToken;
+
+    protected IReadOnlyList<IToken> OwnedTokensCache;
 
     /// <summary>
-    /// These tokens are "owned" by the node, meaning 
+    /// A token is owned by a node if it was used to parse this node,
+    /// but is not owned by any of this Node's children
     /// </summary>
-    IEnumerable<IToken> OwnedTokens { get; }
+    public IEnumerable<IToken> OwnedTokens {
+      get {
+        if (OwnedTokensCache != null) {
+          return OwnedTokensCache;
+        }
+
+        var startToEndTokenNotOwned =
+          Children.Where(child => child.StartToken != null && child.EndToken != null)
+            .ToDictionary(child => child.StartToken!, child => child.EndToken!);
+
+        var result = new List<IToken>();
+        if (StartToken == null) {
+          Contract.Assume(EndToken == null);
+        } else {
+          Contract.Assume(EndToken != null);
+          var tmpToken = StartToken;
+          while (tmpToken != null && tmpToken != EndToken.Next) {
+            if (startToEndTokenNotOwned.TryGetValue(tmpToken, out var endNotOwnedToken)) {
+              tmpToken = endNotOwnedToken;
+            } else if (tmpToken.filename != null) {
+              result.Add(tmpToken);
+            }
+
+            tmpToken = tmpToken.Next;
+          }
+        }
+
+
+        OwnedTokensCache = result;
+
+        return OwnedTokensCache;
+      }
+    }
   }
 
-  public interface IDeclarationOrUsage : INode {
+  public interface IDeclarationOrUsage {
     IToken NameToken { get; }
   }
 
@@ -61,7 +171,6 @@ namespace Microsoft.Dafny {
       Contract.Invariant(FullName != null);
       Contract.Invariant(DefaultModule != null);
     }
-    public IEnumerable<IToken> OwnedTokens { get; set; } = new List<IToken>();
 
     public readonly string FullName;
     [FilledInDuringResolution] public Dictionary<ModuleDefinition, ModuleSignature> ModuleSigs;
@@ -135,18 +244,16 @@ namespace Microsoft.Dafny {
       return firstToken;
     }
 
-    public IEnumerable<INode> Children => new[] { DefaultModule };
+    public override IEnumerable<INode> Children => new[] { DefaultModule };
 
-    public IEnumerable<INode> ConcreteChildren => Children;
+    public override IEnumerable<INode> ConcreteChildren => Children;
   }
 
-  public class Include : IComparable {
-    public readonly IToken tok;
+  public class Include : INode, IComparable {
     public string IncluderFilename { get; }
     public string IncludedFilename { get; }
     public string CanonicalPath { get; }
     public bool CompileIncludedCode { get; }
-    public IEnumerable<IToken> OwnedTokens = new List<IToken>();
     public bool ErrorReported;
 
     public Include(IToken tok, string includer, string theFilename, bool compileIncludedCode) {
@@ -166,6 +273,9 @@ namespace Microsoft.Dafny {
         throw new NotImplementedException();
       }
     }
+
+    public override IEnumerable<INode> Children => Enumerable.Empty<INode>();
+    public override IEnumerable<INode> ConcreteChildren => Enumerable.Empty<INode>();
   }
 
   /// <summary>
@@ -184,7 +294,7 @@ namespace Microsoft.Dafny {
     Attributes Attributes { get; }
   }
 
-  public class Attributes {
+  public class Attributes : INode {
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Name != null);
@@ -194,9 +304,8 @@ namespace Microsoft.Dafny {
     public string Name;
     /*Frozen*/
     public readonly List<Expression> Args;
-    public readonly Attributes Prev;
-    public IEnumerable<IToken> OwnedTokens = new List<IToken>();
 
+    public readonly Attributes Prev;
     public Attributes(string name, [Captured] List<Expression> args, Attributes prev) {
       Contract.Requires(name != null);
       Contract.Requires(cce.NonNullElements(args));
@@ -354,6 +463,13 @@ namespace Microsoft.Dafny {
         return false;
       }
     }
+
+    public override IEnumerable<INode> Children => Args.Concat<INode>(
+      Prev == null
+        ? Enumerable.Empty<INode>()
+        : new List<INode> { Prev });
+
+    public override IEnumerable<INode> ConcreteChildren => Children;
   }
 
   public static class AttributesExtensions {
@@ -369,7 +485,6 @@ namespace Microsoft.Dafny {
   }
 
   public class UserSuppliedAttributes : Attributes {
-    public readonly IToken tok;  // may be null, if the attribute was constructed internally
     public readonly IToken OpenBrace;
     public readonly IToken CloseBrace;
     public bool Recognized;  // set to true to indicate an attribute that is processed by some part of Dafny; this allows it to be colored in the IDE
@@ -437,8 +552,7 @@ namespace Microsoft.Dafny {
     }
   }
   [ContractClassFor(typeof(IVariable))]
-  public abstract class IVariableContracts : IVariable {
-    public IEnumerable<IToken> OwnedTokens { get; set; } = new List<IToken>();
+  public abstract class IVariableContracts : INode, IVariable {
     public string Name {
       get {
         Contract.Ensures(Contract.Result<string>() != null);
@@ -499,27 +613,16 @@ namespace Microsoft.Dafny {
     public void MakeGhost() {
       throw new NotImplementedException();
     }
-    public IToken Tok {
-      get {
-        Contract.Ensures(Contract.Result<IToken>() != null);
-        throw new NotImplementedException();
-      }
-    }
     public string AssignUniqueName(FreshIdGenerator generator) {
       Contract.Ensures(Contract.Result<string>() != null);
       throw new NotImplementedException();
     }
 
-    public abstract IEnumerable<INode> Children { get; }
-    public abstract IEnumerable<INode> ConcreteChildren { get; }
-
     public abstract IToken NameToken { get; }
   }
 
-  public abstract class NonglobalVariable : IVariable {
-    public readonly IToken tok;
+  public abstract class NonglobalVariable : INode, IVariable {
     readonly string name;
-    public IEnumerable<IToken> OwnedTokens => new List<IToken>() { tok };
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -596,6 +699,7 @@ namespace Microsoft.Dafny {
       compileName ??= SanitizedName;
 
     Type type;
+    public bool IsTypeExplicit = false;
     public Type SyntacticType { get { return type; } }  // returns the non-normalized type
     public Type Type {
       get {
@@ -621,11 +725,6 @@ namespace Microsoft.Dafny {
     public void MakeGhost() {
       IsGhost = true;
     }
-    public IToken Tok {
-      get {
-        return tok;
-      }
-    }
 
     public NonglobalVariable(IToken tok, string name, Type type, bool isGhost) {
       Contract.Requires(tok != null);
@@ -638,8 +737,8 @@ namespace Microsoft.Dafny {
     }
 
     public IToken NameToken => tok;
-    public IEnumerable<INode> Children => Type.Nodes;
-    public IEnumerable<INode> ConcreteChildren => Type.Nodes;
+    public override IEnumerable<INode> Children => IsTypeExplicit ? Type.Nodes : Enumerable.Empty<INode>();
+    public override IEnumerable<INode> ConcreteChildren => Type.Nodes;
   }
 
   public class Formal : NonglobalVariable {
@@ -789,12 +888,9 @@ namespace Microsoft.Dafny {
     public readonly Expression Actual;
     public readonly bool IsGhost;
 
-    public IEnumerable<INode> Children => new List<INode> { Actual }.Where(x => x != null);
+    public override IEnumerable<INode> Children => new List<INode> { Actual }.Where(x => x != null);
 
-    public IEnumerable<INode> ConcreteChildren => Children;
-
-    // Names are owned by the method call
-    public IEnumerable<IToken> OwnedTokens => new List<IToken>();
+    public override IEnumerable<INode> ConcreteChildren => Children;
 
     public ActualBinding(IToken /*?*/ formalParameterName, Expression actual, bool isGhost = false) {
       Contract.Requires(actual != null);

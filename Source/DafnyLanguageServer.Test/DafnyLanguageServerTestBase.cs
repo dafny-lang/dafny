@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.CommandLine;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,6 +20,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using MediatR;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
+using Microsoft.Dafny.LanguageServer.Language;
 using OmniSharp.Extensions.LanguageServer.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Progress;
 
@@ -56,13 +59,49 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
     public DafnyLanguageServerTestBase() : base(new JsonRpcTestOptions(LoggerFactory.Create(
       builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning)))) { }
 
+    protected virtual IServiceCollection ServerOptionsAction(LanguageServerOptions serverOptions) {
+      return serverOptions.Services.AddSingleton<IProgramVerifier>(serviceProvider => new SlowVerifier(
+        serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>(),
+        serviceProvider.GetRequiredService<DafnyOptions>()
+      ));
+    }
+
     protected virtual async Task<ILanguageClient> InitializeClient(
       Action<LanguageClientOptions> clientOptionsAction = null,
-      [CanBeNull] Action<LanguageServerOptions> serverOptionsAction = null) {
-      var client = CreateClient(clientOptionsAction, serverOptionsAction);
+      Action<DafnyOptions> modifyOptions = null) {
+      var dafnyOptions = DafnyOptions.Create();
+      DafnyOptions.Install(dafnyOptions);
+      modifyOptions?.Invoke(dafnyOptions);
+
+      void NewServerOptionsAction(LanguageServerOptions options) {
+        ApplyDefaultOptionValues(dafnyOptions);
+
+        ServerCommand.ConfigureDafnyOptionsForServer(dafnyOptions);
+        options.Services.AddSingleton(dafnyOptions);
+        ServerOptionsAction(options);
+      }
+
+      var client = CreateClient(clientOptionsAction, NewServerOptionsAction);
       await client.Initialize(CancellationToken).ConfigureAwait(false);
 
       return client;
+    }
+
+    private static void ApplyDefaultOptionValues(DafnyOptions dafnyOptions) {
+      var testCommand = new System.CommandLine.Command("test");
+      foreach (var serverOption in new ServerCommand().Options) {
+        testCommand.AddOption(serverOption);
+      }
+
+      var result = testCommand.Parse("test");
+      foreach (var option in new ServerCommand().Options) {
+        if (!dafnyOptions.Options.OptionArguments.ContainsKey(option)) {
+          var value = result.GetValueForOption(option);
+          dafnyOptions.Set(option, value);
+        }
+
+        dafnyOptions.ApplyBinding(option);
+      }
     }
 
     protected virtual ILanguageClient CreateClient(
@@ -100,12 +139,11 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
       var serverPipe = new Pipe(TestOptions.DefaultPipeOptions);
       Server = OmniSharp.Extensions.LanguageServer.Server.LanguageServer.PreInit(
         options => {
-          var configuration = CreateConfiguration();
           options
             .WithInput(serverPipe.Reader)
             .WithOutput(clientPipe.Writer)
             .ConfigureLogging(SetupTestLogging)
-            .WithDafnyLanguageServer(configuration, () => { });
+            .WithDafnyLanguageServer(() => { });
           serverOptionsAction?.Invoke(options);
         });
       // This is the style used in the LSP implementation itself:
@@ -114,11 +152,6 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
       Server.Initialize(CancellationToken);
 #pragma warning restore VSTHRD110 // Observe result of async calls
       return (clientPipe.Reader.AsStream(), serverPipe.Writer.AsStream());
-    }
-
-    protected virtual IConfiguration CreateConfiguration() {
-      var configurationBuilder = new ConfigurationBuilder();
-      return configurationBuilder.Build();
     }
 
     private static void SetupTestLogging(ILoggingBuilder builder) {

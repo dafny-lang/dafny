@@ -32,10 +32,7 @@ typedef int64_t  int64;
 
 class DafnyHaltException : public std::runtime_error{
   public:
-  DafnyHaltException(const char* msg) : std::runtime_error(msg) {}
-  virtual const char* what() const throw() {
-      return exception::what();
-  }
+  DafnyHaltException(std::string msg) : std::runtime_error(msg) {}
 };
 
 // using boost::hash_combine
@@ -428,14 +425,17 @@ struct DafnySequence {
     }
 
     T* ptr() const { return start; }
-
-    // TODO: toString
 };
 
 inline DafnySequence<char> DafnySequenceFromString(std::string const& s) {
   DafnySequence<char> seq(s.size());
   memcpy(seq.ptr(), &s[0], s.size());
   return seq;
+}
+
+inline std::string ToVerbatimString(DafnySequence<char> s) {
+  std::string ret(s.start, s.len);
+  return ret;
 }
 
 template <typename T>

@@ -1,4 +1,18 @@
 # 21. Expressions {#sec-expressions}
+
+Dafny expressions come in three flavors.
+- The bulk of expressions have no side-effects and can be used within
+methods, functions, and specifications, and in either compiled or ghost code.
+- Some expressions, called [right-hand-side expressions](#rhs-expression),
+do have side-effects and may only be used in specific syntactic locations,
+such as the right-hand-side of update (assignment) statements; 
+object allocation and method calls are two typical examples of [right-hand-side expressions](#rhs-expression). Note that method calls are syntactically
+indistinguishable from function calls; both are Expressions ([PrimaryExpressions](#sec-primary-expressions)
+with an [ArgumentList suffix](#argument-list-suffix)). However, method calls are semantically permitted
+only in right-hand-side expression locations.
+- Some expressions are allowed only in specifications and other ghost code,
+as listed [here](#sec-list-of-specification-expressions).
+
 The grammar of Dafny expressions follows a hierarchy that
 reflects the precedence of Dafny operators. The following
 table shows the Dafny operators and their precedence
@@ -368,7 +382,7 @@ numeric negation (`-` -- [Section 7.2](#sec-numeric-types)), or
 bit-vector negation (`-` -- [Section 7.3](#sec-bit-vector-types))
  to its operand.
 
-## 21.12. Primary Expressions
+## 21.12. Primary Expressions {#primary-expressions}
 ````grammar
 PrimaryExpression(allowLemma, allowLambda) =
   ( NameSegment { Suffix }
@@ -472,7 +486,7 @@ An example of the second (`ConstAtomExpression`) form is:
     old(o.f).x
 ```
 
-## 21.15. Right-Hand-Side Expressions
+## 21.15. Right-Hand-Side Expressions {#rhs-expression}
 ````grammar
 Rhs =
   ( ArrayAllocation_
@@ -482,6 +496,11 @@ Rhs =
   )
   { Attribute }
 ````
+
+A Right-Hand-Side expression is an expression-like construct that may have 
+side-effects. Consequently such expressions
+ can only be used within certain statements
+within methods, and not as general expressions or within functions or specifications.
 
 An ``Rhs`` is either array allocation, an object allocation,
 an expression, or a havoc right-hand-side, optionally followed
@@ -505,7 +524,7 @@ ArrayAllocation_ =
   ]
 ````
 
-This expression allocates a new single or multi-dimensional array (cf. [Section 15](#sec-array-types)).
+This right-hand-side expression allocates a new single or multi-dimensional array (cf. [Section 15](#sec-array-types)).
 The initialization portion is optional. One form is an
 explicit list of values, in which case the dimension is optional:
 ```dafny
@@ -546,7 +565,8 @@ ObjectAllocation_ = "new" Type [ "." TypeNameOrCtorSuffix ]
                                [ "(" [ Bindings ] ")" ]
 ````
 
-This allocates a new object of a class type as explained
+This right-hand-side expression 
+allocates a new object of a class type as explained
 in section [Class Types](#sec-class-types).
 
 ## 21.18. Havoc Right-Hand-Side
@@ -1559,7 +1579,7 @@ type
 (this is one situation in which Dafny implements implicit
 conversion, as if an `as int` were appended to the index expression).
 
-### 21.43.7. Argument List Suffix
+### 21.43.7. Argument List Suffix {#argument-list-suffix}
 ````grammar
 ArgumentListSuffix_ = "(" [ Expressions ] ")"
 ````
@@ -1568,6 +1588,11 @@ An argument list suffix is a parenthesized list of expressions that
 are the arguments to pass to a method or function that is being
 called. Applying such a suffix causes the method or function
 to be called and the result is the result of the call.
+
+Note that method calls may only appear in [right-hand-side](#rhs-expression)
+locations, whereas function calls may appear in expressions and specifications;
+this distinction can be made oly during name and type resolution, not by the
+parser.
 
 ## 21.44. Expression Lists
 ````grammar

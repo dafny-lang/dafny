@@ -34,17 +34,23 @@ namespace Microsoft.Dafny {
 
       if (expr is StaticReceiverExpr) {
         var e = (StaticReceiverExpr)expr;
-        var ty = Resolver.SubstType(e.Type, typeMap);
+        var ty = e.Type.Subst(typeMap);
         return new StaticReceiverExpr(e.tok, ty, e.IsImplicit) { Type = ty };
       } else if (expr is LiteralExpr literalExpr) {
         if (literalExpr.Value == null) {
-          return new LiteralExpr(literalExpr.tok) { Type = Resolver.SubstType(literalExpr.Type, typeMap) };
+          var ty = literalExpr.Type.Subst(typeMap);
+          if (ty != literalExpr.Type) {
+            return new LiteralExpr(literalExpr.tok) { Type = ty };
+          }
         } else {
           // nothing to substitute
         }
       } else if (expr is Translator.BoogieWrapper) {
         var e = (Translator.BoogieWrapper)expr;
-        return new Translator.BoogieWrapper(e.Expr, Resolver.SubstType(e.Type, typeMap));
+        var ty = e.Type.Subst(typeMap);
+        if (ty != e.Type) {
+          return new Translator.BoogieWrapper(e.Expr, ty);
+        }
       } else if (expr is WildcardExpr) {
         // nothing to substitute
       } else if (expr is ThisExpr) {
@@ -74,7 +80,7 @@ namespace Microsoft.Dafny {
       } else if (expr is DisplayExpression) {
         DisplayExpression e = (DisplayExpression)expr;
         List<Expression> newElements = SubstituteExprList(e.Elements);
-        if (newElements != e.Elements || !Resolver.SubstType(e.Type, typeMap).Equals(e.Type)) {
+        if (newElements != e.Elements || e.Type.Subst(typeMap) != e.Type) {
           if (expr is SetDisplayExpr) {
             newExpr = new SetDisplayExpr(expr.tok, ((SetDisplayExpr)expr).Finite, newElements);
           } else if (expr is MultiSetDisplayExpr) {
@@ -95,19 +101,26 @@ namespace Microsoft.Dafny {
             anyChanges = true;
           }
         }
-        var ty = Resolver.SubstType(e.Type, typeMap);
-        if (anyChanges || !ty.Equals(e.Type)) {
+        var ty = e.Type.Subst(typeMap);
+        if (anyChanges || ty != e.Type) {
           newExpr = new MapDisplayExpr(expr.tok, e.Finite, elmts);
         }
       } else if (expr is MemberSelectExpr) {
         var mse = (MemberSelectExpr)expr;
-        Expression substE = Substitute(mse.Obj);
-        MemberSelectExpr fseNew = new MemberSelectExpr(mse.tok, substE, mse.MemberName);
-        fseNew.Member = mse.Member;
-        fseNew.TypeApplication_AtEnclosingClass = mse.TypeApplication_AtEnclosingClass.ConvertAll(t => Resolver.SubstType(t, typeMap));
-        fseNew.TypeApplication_JustMember = mse.TypeApplication_JustMember.ConvertAll(t => Resolver.SubstType(t, typeMap));
-        fseNew.AtLabel = mse.AtLabel ?? oldHeapLabel;
-        newExpr = fseNew;
+        var newObj = Substitute(mse.Obj);
+        var newTypeApplicationAtEnclosingClass = SubstituteTypeList(mse.TypeApplication_AtEnclosingClass);
+        var newTypeApplicationJustMember = SubstituteTypeList(mse.TypeApplication_JustMember);
+        if (newObj != mse.Obj ||
+            newTypeApplicationAtEnclosingClass != mse.TypeApplication_AtEnclosingClass ||
+            newTypeApplicationJustMember != mse.TypeApplication_JustMember) {
+          var fseNew = new MemberSelectExpr(mse.tok, newObj, mse.MemberName) {
+            Member = mse.Member,
+            TypeApplication_AtEnclosingClass = newTypeApplicationAtEnclosingClass,
+            TypeApplication_JustMember = newTypeApplicationJustMember,
+            AtLabel = mse.AtLabel ?? oldHeapLabel
+          };
+          newExpr = fseNew;
+        }
       } else if (expr is SeqSelectExpr) {
         SeqSelectExpr sse = (SeqSelectExpr)expr;
         Expression seq = Substitute(sse.Seq);
@@ -159,13 +172,14 @@ namespace Microsoft.Dafny {
         newExpr = new ApplyExpr(e.tok, fn, args, e.CloseParen);
 
       } else if (expr is DatatypeValue) {
-        DatatypeValue dtv = (DatatypeValue)expr;
+        var dtv = (DatatypeValue)expr;
         var newArguments = SubstituteExprList(dtv.Bindings.Arguments); // substitute into the expressions, but drop any binding names (since those are no longer needed)
-        if (newArguments != dtv.Bindings.Arguments) {
-          DatatypeValue newDtv = new DatatypeValue(dtv.tok, dtv.DatatypeName, dtv.MemberName, newArguments);
-          newDtv.Ctor = dtv.Ctor;  // resolve on the fly (and set newDtv.Type below, at end)
-          newDtv.InferredTypeArgs = Util.Map(dtv.InferredTypeArgs, tt => Resolver.SubstType(tt, typeMap));
-          // ^ Set the correct type arguments to the constructor
+        var newTypeArgs = SubstituteTypeList(dtv.InferredTypeArgs);
+        if (newArguments != dtv.Bindings.Arguments || newTypeArgs != dtv.InferredTypeArgs) {
+          var newDtv = new DatatypeValue(dtv.tok, dtv.DatatypeName, dtv.MemberName, newArguments) {
+            Ctor = dtv.Ctor,
+            InferredTypeArgs = newTypeArgs
+          };
           newExpr = newDtv;
         }
 
@@ -212,29 +226,39 @@ namespace Microsoft.Dafny {
       } else if (expr is BoxingCastExpr) {
         var e = (BoxingCastExpr)expr;
         var se = Substitute(e.E);
-        if (se != e.E) {
-          newExpr = new BoxingCastExpr(se, e.FromType, e.ToType);
+        var fromType = e.FromType.Subst(typeMap);
+        var toType = e.ToType.Subst(typeMap);
+        if (se != e.E || fromType != e.FromType || toType != e.ToType) {
+          newExpr = new BoxingCastExpr(se, fromType, toType);
         }
       } else if (expr is UnaryExpr) {
         var e = (UnaryExpr)expr;
-        Expression se = Substitute(e.E);
-        if (se != e.E) {
+        var se = Substitute(e.E);
+        if (e is TypeUnaryExpr typeUnaryExpr) {
+          var toType = typeUnaryExpr.ToType.Subst(typeMap);
+          if (se != e.E || toType != typeUnaryExpr.ToType) {
+            if (e is ConversionExpr) {
+              var ee = (ConversionExpr)e;
+              newExpr = new ConversionExpr(expr.tok, se, toType);
+            } else if (e is TypeTestExpr) {
+              var ee = (TypeTestExpr)e;
+              newExpr = new TypeTestExpr(expr.tok, se, toType);
+            } else {
+              Contract.Assert(false); // unexpected UnaryExpr subtype
+            }
+          }
+        } else if (se != e.E) {
           if (e is FreshExpr) {
             var ee = (FreshExpr)e;
             newExpr = new FreshExpr(expr.tok, se, ee.At) { AtLabel = ee.AtLabel ?? oldHeapLabel };
           } else if (e is UnaryOpExpr) {
             var ee = (UnaryOpExpr)e;
             newExpr = new UnaryOpExpr(expr.tok, ee.Op, se);
-          } else if (e is ConversionExpr) {
-            var ee = (ConversionExpr)e;
-            newExpr = new ConversionExpr(expr.tok, se, ee.ToType);
-          } else if (e is TypeTestExpr) {
-            var ee = (TypeTestExpr)e;
-            newExpr = new TypeTestExpr(expr.tok, se, ee.ToType);
           } else {
             Contract.Assert(false);  // unexpected UnaryExpr subtype
           }
         }
+
       } else if (expr is BinaryExpr) {
         BinaryExpr e = (BinaryExpr)expr;
         Expression e0 = Substitute(e.E0);
@@ -308,7 +332,7 @@ namespace Microsoft.Dafny {
         bool anythingChanged = false;
         var newTyArgs = new List<Type>();
         foreach (var arg in e.TyArgs) {
-          var newArg = Resolver.SubstType(arg, typeMap);
+          var newArg = arg.Subst(typeMap);
           if (newArg != arg) {
             anythingChanged = true;
           }
@@ -333,7 +357,7 @@ namespace Microsoft.Dafny {
       if (newExpr == null) {
         return expr;
       } else {
-        newExpr.Type = Resolver.SubstType(expr.Type, typeMap);  // resolve on the fly (any additional resolution must be done above)
+        newExpr.Type = expr.Type.Subst(typeMap);  // resolve on the fly (any additional resolution must be done above)
         return newExpr;
       }
     }
@@ -463,7 +487,7 @@ namespace Microsoft.Dafny {
       bool anythingChanged = false;
       var newBoundVars = new List<BoundVar>();
       foreach (var bv in vars) {
-        var tt = Resolver.SubstType(bv.Type, typeMap);
+        var tt = bv.Type.Subst(typeMap);
         if (!forceSubstitutionOfBoundVars && tt == bv.Type) {
           newBoundVars.Add(bv);
         } else {
@@ -490,7 +514,7 @@ namespace Microsoft.Dafny {
       bool anythingChanged = false;
       var newVars = new List<LocalVariable>();
       foreach (var v in vars) {
-        var tt = Resolver.SubstType(v.OptionalType, typeMap);
+        var tt = v.OptionalType.Subst(typeMap);
         if (!forceSubstitutionOfVars && tt == v.OptionalType) {
           newVars.Add(v);
         } else {
@@ -532,7 +556,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(pat != null);
       if (pat.Var != null) {
         var bv = pat.Var;
-        var tt = Resolver.SubstType(bv.Type, typeMap);
+        var tt = bv.Type.Subst(typeMap);
         if (forceSubstitutionOfBoundVars || tt != bv.Type) {
           var newBv = cloneVt(pat, tt, bv);
           // update substMap to reflect the new BoundVar substitutions
@@ -558,7 +582,7 @@ namespace Microsoft.Dafny {
           var patE = (DatatypeValue)pat.Expr;
           var newPat = new CasePattern<VT>(pat.tok, pat.Id, newArgs);
           newPat.Ctor = pat.Ctor;
-          newPat.AssembleExpr(patE.InferredTypeArgs.ConvertAll(tp => Resolver.SubstType(tp, typeMap)));
+          newPat.AssembleExpr(patE.InferredTypeArgs.ConvertAll(tp => tp.Subst(typeMap)));
           return newPat;
         }
       }
@@ -601,7 +625,7 @@ namespace Microsoft.Dafny {
       var newTmap = new Dictionary<TypeParameter, Type>();
       var i = 0;
       foreach (var maplet in tmap) {
-        var tt = Resolver.SubstType(maplet.Value, typeMap);
+        var tt = maplet.Value.Subst(typeMap);
         if (tt != maplet.Value) {
           anythingChanged = true;
         }
@@ -625,7 +649,7 @@ namespace Microsoft.Dafny {
       var newTypes = new List<Type>();
       var i = 0;
       foreach (var ty in types) {
-        var tt = Resolver.SubstType(ty, typeMap);
+        var tt = ty.Subst(typeMap);
         if (tt != ty) {
           anythingChanged = true;
         }

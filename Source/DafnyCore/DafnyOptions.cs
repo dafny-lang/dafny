@@ -1,8 +1,12 @@
 // Copyright by the contributors to the Dafny Project
 // SPDX-License-Identifier: MIT
 
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.CommandLine;
+using System.CommandLine.Binding;
+using System.CommandLine.Parsing;
 using System.Linq;
 using System.Diagnostics.Contracts;
 using System.IO;
@@ -15,26 +19,153 @@ using Microsoft.Dafny.Plugins;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
+  public enum FunctionSyntaxOptions {
+    Version3,
+    Migration3To4,
+    ExperimentalTreatUnspecifiedAsGhost,
+    ExperimentalTreatUnspecifiedAsCompiled,
+    ExperimentalPredicateAlwaysGhost,
+    Version4,
+  }
 
-  public record Options(IDictionary<IOptionSpec, object> OptionArguments);
+  public enum QuantifierSyntaxOptions {
+    Version3,
+    Version4,
+  }
+
+  public record Options(IDictionary<Option, object> OptionArguments);
 
   public class DafnyOptions : Bpl.CommandLineOptions {
+
+    static DafnyOptions() {
+      RegisterLegacyUi(CommonOptionBag.Target, ParseString, "Compilation options", "compileTarget", @"
+cs (default) - Compile to .NET via C#.
+go - Compile to Go.
+js - Compile to JavaScript.
+java - Compile to Java.
+py - Compile to Python.
+cpp - Compile to C++.
+
+Note that the C++ backend has various limitations (see
+Docs/Compilation/Cpp.md). This includes lack of support for
+BigIntegers (aka int), most higher order functions, and advanced
+features like traits or co-inductive types.".TrimStart(), "cs");
+
+      RegisterLegacyUi(CommonOptionBag.OptimizeErasableDatatypeWrapper, ParseBoolean, "Compilation options", "optimizeErasableDatatypeWrapper", @"
+0 - Include all non-ghost datatype constructors in the compiled code
+1 (default) - In the compiled target code, transform any non-extern
+    datatype with a single non-ghost constructor that has a single
+    non-ghost parameter into just that parameter. For example, the type
+        datatype Record = Record(x: int)
+    is transformed into just 'int' in the target code.".TrimStart(), defaultValue: true);
+
+      RegisterLegacyUi(CommonOptionBag.Output, ParseString, "Compilation options", "out");
+      RegisterLegacyUi(CommonOptionBag.UnicodeCharacters, ParseBoolean, "Language feature selection", "unicodeChar", @"
+0 (default) - The char type represents any UTF-16 code unit.
+1 - The char type represents any Unicode scalar value.".TrimStart());
+      RegisterLegacyUi(CommonOptionBag.Plugin, ParseStringElement, "Plugins", defaultValue: new List<string>());
+      RegisterLegacyUi(CommonOptionBag.Prelude, ParseString, "Input configuration", "dprelude");
+
+      RegisterLegacyUi(CommonOptionBag.Libraries, ParseStringElement, "Compilation options", defaultValue: new List<string>());
+      RegisterLegacyUi(DeveloperOptionBag.ResolvedPrint, ParseString, "Overall reporting and printing", "rprint");
+      RegisterLegacyUi(DeveloperOptionBag.Print, ParseString, "Overall reporting and printing", "dprint");
+
+      RegisterLegacyUi(DafnyConsolePrinter.ShowSnippets, ParseBoolean, "Overall reporting and printing", "showSnippets", @"
+0 (default) - Don't show source code snippets for Dafny messages.
+1 - Show a source code snippet for each Dafny message.".TrimStart());
+
+      RegisterLegacyUi(Microsoft.Dafny.Printer.PrintMode, ParsePrintMode, "Overall reporting and printing", "printMode", legacyDescription: @"
+Everything (default) - Print everything listed below.
+DllEmbed - print the source that will be included in a compiled dll.
+NoIncludes - disable printing of {:verify false} methods
+    incorporated via the include mechanism, as well as datatypes and
+    fields included from other files.
+NoGhost - disable printing of functions, ghost methods, and proof
+    statements in implementation methods. It also disables anything
+    NoIncludes disables.".TrimStart(),
+        argumentName: "Everything|DllEmbed|NoIncludes|NoGhost",
+        defaultValue: PrintModes.Everything);
+
+      void ParsePrintMode(Option<PrintModes> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
+        if (ps.ConfirmArgumentCount(1)) {
+          if (ps.args[ps.i].Equals("Everything")) {
+            options.Set(option, PrintModes.Everything);
+          } else if (ps.args[ps.i].Equals("NoIncludes")) {
+            options.Set(option, PrintModes.NoIncludes);
+          } else if (ps.args[ps.i].Equals("NoGhost")) {
+            options.Set(option, PrintModes.NoGhost);
+          } else if (ps.args[ps.i].Equals("DllEmbed")) {
+            options.Set(option, PrintModes.DllEmbed);
+          } else {
+            ps.Error("Invalid argument \"{0}\" to option {1}", ps.args[ps.i], option.Name);
+          }
+        }
+      }
+    }
+
+    public void ApplyBinding(Option option) {
+      if (legacyBindings.ContainsKey(option)) {
+        legacyBindings[option](this, Get(option));
+      }
+    }
+
+    public T Get<T>(Option<T> option) {
+      return (T)Options.OptionArguments.GetOrCreate(option, () => default(T));
+    }
+
+    public object Get(Option option) {
+      return Options.OptionArguments[option];
+    }
+
+    public void Set(Option option, object value) {
+      Options.OptionArguments[option] = value;
+    }
+
+    public void Set<T>(Option<T> option, T value) {
+      Options.OptionArguments[option] = value;
+    }
+
     public void AddFile(string file) => base.AddFile(file, null);
 
-    private static readonly ISet<ILegacyOption> AvailableNewStyleOptions = new HashSet<ILegacyOption>(
-      new ILegacyOption[] {
-        ShowSnippetsOption.Instance,
-        TargetOption.Instance,
-        PrintOption.Instance,
-        LibraryOption.Instance,
-        PreludeOption.Instance,
-        PrintModeOption.Instance,
-        ResolvedPrintOption.Instance,
-        OldCompileVerboseOption.Instance,
-        OutputOption.Instance,
-        PluginOption.Instance,
-        UseRuntimeLibOption.Instance
-      });
+    private static Dictionary<Option, Action<DafnyOptions, object>> legacyBindings = new();
+    public static void RegisterLegacyBinding<T>(Option<T> option, Action<DafnyOptions, T> bind) {
+      legacyBindings[option] = (options, o) => bind(options, (T)o);
+    }
+
+    public static void ParseString(Option<string> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
+      if (ps.ConfirmArgumentCount(1)) {
+        options.Set(option, ps.args[ps.i]);
+      }
+    }
+
+    public static void ParseStringElement(Option<IList<string>> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
+      var value = (IList<string>)options.Options.OptionArguments.GetOrCreate(option, () => new List<string>());
+      if (ps.ConfirmArgumentCount(1)) {
+        value.Add(ps.args[ps.i]);
+      }
+    }
+
+    public static void ParseBoolean(Option<bool> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
+      int result = 0;
+      if (ps.GetIntArgument(ref result, 2)) {
+        options.Set(option, result == 1);
+      }
+    }
+
+    private static readonly List<LegacyUiForOption> legacyUis = new();
+
+    public static void RegisterLegacyUi<T>(Option<T> option,
+      Action<Option<T>, Bpl.CommandLineParseState, DafnyOptions> parse,
+      string category, string legacyName = null, string legacyDescription = null, T defaultValue = default(T), string argumentName = null) {
+      legacyUis.Add(new LegacyUiForOption(
+        option,
+        (state, options) => parse(option, state, options),
+        category,
+        legacyName ?? option.Name,
+        legacyDescription ?? option.Description,
+        argumentName ?? option.ArgumentHelpName ?? "value",
+        defaultValue));
+    }
 
     public static DafnyOptions Create(params string[] arguments) {
       var result = new DafnyOptions();
@@ -69,11 +200,11 @@ namespace Microsoft.Dafny {
     public override string VersionNumber {
       get {
         return System.Diagnostics.FileVersionInfo
-          .GetVersionInfo(System.Reflection.Assembly.GetExecutingAssembly().Location).FileVersion;
+          .GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion;
       }
     }
 
-    public Options Options { get; set; } = new(new Dictionary<IOptionSpec, object>());
+    public Options Options { get; set; } = new(new Dictionary<Option, object>());
 
     public override string Version {
       get { return ToolName + VersionSuffix; }
@@ -82,6 +213,8 @@ namespace Microsoft.Dafny {
     public override string VersionSuffix {
       get { return " " + VersionNumber; }
     }
+
+    public bool RunLanguageServer { get; set; }
 
     private static DafnyOptions clo;
 
@@ -109,13 +242,6 @@ namespace Microsoft.Dafny {
     public string DafnyPrelude = null;
     public string DafnyPrintFile = null;
 
-    public enum PrintModes {
-      Everything,
-      DllEmbed,
-      NoIncludes,
-      NoGhost
-    }
-
     public enum ContractTestingMode {
       None,
       Externs,
@@ -131,6 +257,7 @@ namespace Microsoft.Dafny {
     public bool Format = false;
     public bool FormatCheck = false;
 
+    public string CompilerName;
     public Compiler Compiler;
     public bool CompileVerbose = true;
     public bool EnforcePrintEffects = false;
@@ -163,20 +290,6 @@ namespace Microsoft.Dafny {
     public HashSet<string> LibraryFiles { get; set; } = new();
     public ContractTestingMode TestContracts = ContractTestingMode.None;
 
-    public enum FunctionSyntaxOptions {
-      Version3,
-      Migration3To4,
-      ExperimentalTreatUnspecifiedAsGhost,
-      ExperimentalTreatUnspecifiedAsCompiled,
-      ExperimentalPredicateAlwaysGhost,
-      Version4,
-    }
-
-    public enum QuantifierSyntaxOptions {
-      Version3,
-      Version4,
-    }
-
     public bool ForbidNondeterminism { get; set; }
 
     public int DeprecationNoise = 1;
@@ -200,8 +313,46 @@ namespace Microsoft.Dafny {
     public bool ExtractCounterexample = false;
     public List<string> VerificationLoggerConfigs = new();
 
-    public static readonly ReadOnlyCollection<Plugin> DefaultPlugins = new(new[] { Compilers.SinglePassCompiler.Plugin });
-    public List<Plugin> Plugins = new(DefaultPlugins);
+    public static readonly ReadOnlyCollection<Plugin> DefaultPlugins = new(new[] { SinglePassCompiler.Plugin });
+    private IList<Plugin> cliPluginCache;
+    public IList<Plugin> Plugins => cliPluginCache ??= ComputePlugins();
+    public List<Plugin> AdditionalPlugins = new();
+    public IList<string> AdditionalPluginArguments = new List<string>();
+
+    IList<Plugin> ComputePlugins() {
+      var result = new List<Plugin>(DefaultPlugins.Concat(AdditionalPlugins));
+      foreach (var pluginAndArgument in AdditionalPluginArguments) {
+        try {
+          var pluginArray = pluginAndArgument.Split(',');
+          var pluginPath = pluginArray[0];
+          var arguments = Array.Empty<string>();
+          if (pluginArray.Length >= 2) {
+            // There are no commas in paths, but there can be in arguments
+            var argumentsString = string.Join(',', pluginArray.Skip(1));
+            // Parse arguments, accepting and remove double quotes that isolate long arguments
+            arguments = ParsePluginArguments(argumentsString);
+          }
+
+          result.Add(AssemblyPlugin.Load(pluginPath, arguments));
+        } catch (Exception e) {
+          result.Add(new ErrorPlugin(pluginAndArgument, e));
+        }
+      }
+
+      return result;
+    }
+
+    private static string[] ParsePluginArguments(string argumentsString) {
+      var splitter = new Regex(@"""(?<escapedArgument>(?:[^""\\]|\\\\|\\"")*)""|(?<rawArgument>[^ ]+)");
+      var escapedChars = new Regex(@"(?<escapedDoubleQuote>\\"")|\\\\");
+      return splitter.Matches(argumentsString).Select(
+        matchResult =>
+          matchResult.Groups["escapedArgument"].Success
+            ? escapedChars.Replace(matchResult.Groups["escapedArgument"].Value,
+              matchResult2 => matchResult2.Groups["escapedDoubleQuote"].Success ? "\"" : "\\")
+            : matchResult.Groups["rawArgument"].Value
+      ).ToArray();
+    }
 
     /// <summary>
     /// Automatic shallow-copy constructor
@@ -229,7 +380,7 @@ namespace Microsoft.Dafny {
         return true;
       }
 
-      foreach (var option in AvailableNewStyleOptions.Where(o => o.LegacyName == name)) {
+      foreach (var option in legacyUis.Where(o => o.Name == name)) {
         option.Parse(ps, this);
         return true;
       }
@@ -242,7 +393,7 @@ namespace Microsoft.Dafny {
     }
 
     public override string Help => "Use 'dafny --help' to see help for a newer Dafny CLI format.\n" +
-      ILegacyOption.GenerateHelp(base.Help, AvailableNewStyleOptions, true);
+      LegacyUiForOption.GenerateHelp(base.Help, legacyUis, true);
 
     protected bool ParseDafnySpecificOption(string name, Bpl.CommandLineParseState ps) {
       var args = ps.args; // convenient synonym
@@ -262,6 +413,15 @@ namespace Microsoft.Dafny {
               Compile = compile != 0;
               ForceCompile = compile == 2 || compile == 4;
               RunAfterCompile = compile == 3 || compile == 4;
+            }
+
+            return true;
+          }
+
+        case "compileVerbose": {
+            int verbosity = 0;
+            if (ps.GetIntArgument(ref verbosity, 2)) {
+              CompileVerbose = verbosity == 1;
             }
 
             return true;
@@ -553,6 +713,11 @@ namespace Microsoft.Dafny {
             return true;
           }
 
+        case "useRuntimeLib": {
+            UseRuntimeLib = true;
+            return true;
+          }
+
         case "disableScopes": {
             DisableScopes = true;
             return true;
@@ -635,9 +800,14 @@ namespace Microsoft.Dafny {
     }
 
     public override void ApplyDefaultOptions() {
-      foreach (var option in AvailableNewStyleOptions) {
-        Options.OptionArguments.GetOrCreate(option, () => option.DefaultValue);
-        option.PostProcess(this);
+      foreach (var legacyUiOption in legacyUis) {
+        if (!Options.OptionArguments.ContainsKey(legacyUiOption.Option)) {
+          Set(legacyUiOption.Option, legacyUiOption.DefaultValue);
+        }
+        if (legacyBindings.ContainsKey(legacyUiOption.Option)) {
+          var value = Get(legacyUiOption.Option);
+          legacyBindings[legacyUiOption.Option](this, value);
+        }
       }
 
       ApplyDefaultOptionsWithoutSettingsDefault();
@@ -914,11 +1084,11 @@ namespace Microsoft.Dafny {
         var isUnix = platform == 4 || platform == 6 || platform == 128;
 
         var z3binName = isUnix ? "z3" : "z3.exe";
-        var dafnyBinDir = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-        var z3BinDir = System.IO.Path.Combine(dafnyBinDir, "z3", "bin");
-        var z3BinPath = System.IO.Path.Combine(z3BinDir, z3binName);
+        var dafnyBinDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+        var z3BinDir = Path.Combine(dafnyBinDir, "z3", "bin");
+        var z3BinPath = Path.Combine(z3BinDir, z3binName);
 
-        if (System.IO.File.Exists(z3BinPath)) {
+        if (File.Exists(z3BinPath)) {
           // Let's use z3BinPath
           ProverOptions.Add($"{pp}{z3BinPath}");
         }
@@ -1256,11 +1426,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     /proverOpt:O:model.compact=false (for z3 version >= 4.8.7), and
     /proverOpt:O:model.completion=true.
 
-/countVerificationErrors:<n>
-    (deprecated)
-    0 - Set exit code to 0 regardless of the presence of any other errors.
-    1 (default) - Emit usual exit code (cf. beginning of the help message).
-
 ---- Test generation options -----------------------------------------------
 {TestGenOptions.Help}
 ---- Compilation options ---------------------------------------------------
@@ -1294,6 +1459,12 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
         be used if the program already contains a main method. Note that
         /compile:3 or 4 must be provided as well to actually execute
         this main method!
+
+/compileVerbose:<n>
+    0 - Don't print status of compilation to the console.
+    1 (default) - Print information such as files being written by the
+        compiler to the console.
+
 /spillTargetCode:<n>
     Explicitly writes the code in the target language to one or more files.
     This is not necessary to run a Dafny program, but may be of interest when
@@ -1326,12 +1497,9 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
         target.
     2 (default) - As in 1, but only resolve method bodies in
         non-included Dafny sources.
-/library:<file>
-    The contents of this file and any files it includes can be
-    referenced from other files as if they were included. However, these
-    contents are skipped during code generation and verification. This
-    option is useful in a diamond dependency situation, to prevent code
-    from the bottom dependency from being generated more than once.
+/useRuntimeLib
+    Refer to a pre-built DafnyRuntime.dll in the compiled assembly
+    rather than including DafnyRuntime.cs verbatim.
 
 /testContracts:<Externs|TestedExterns>
     Enable run-time testing of the compilable portions of certain function
@@ -1352,6 +1520,7 @@ However, some Boogie options, like /loopUnroll, may not be sound for
 Dafny or may not have the same meaning for a Dafny program as it would
 for a similar Boogie program.
 ".Replace("\n", "\n  ");
+
   }
 
 }
@@ -1387,7 +1556,7 @@ class DafnyAttributeOptions : DafnyOptions {
 
   public DafnyAttributeOptions(DafnyOptions opts, Errors errors) : base(opts) {
     this.errors = errors;
-    this.Token = null;
+    Token = null;
   }
 
   protected override Bpl.CommandLineParseState InitializeCommandLineParseState(string[] args) {

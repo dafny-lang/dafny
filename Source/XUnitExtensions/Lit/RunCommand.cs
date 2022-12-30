@@ -13,6 +13,11 @@ namespace XUnitExtensions.Lit {
         var operand = ParseArguments(tokens[1..], config);
         return new NotCommand(operand);
       }
+      if (tokens[0] == "%exits-with") {
+        var ec = Int32.Parse(tokens[1]);
+        var operand = ParseArguments(tokens[2..], config);
+        return new ExitCommand(ec, operand);
+      }
 
       // Just supporting || for now since it's a precise way to ignore an exit code
       var seqOperatorIndex = Array.IndexOf(tokens, "||");

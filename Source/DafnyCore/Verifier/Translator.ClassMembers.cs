@@ -1089,7 +1089,7 @@ namespace Microsoft.Dafny {
       // Add other arguments
       var typeMap = GetTypeArgumentSubstitutionMap(f, overridingFunction);
       foreach (Formal p in f.Formals) {
-        var pType = Resolver.SubstType(p.Type, typeMap);
+        var pType = p.Type.Subst(typeMap);
         var bv = new Boogie.BoundVariable(p.tok, new Boogie.TypedIdent(p.tok, p.AssignUniqueName(currentDeclaration.IdGenerator), TrType(pType)));
         forallFormals.Add(bv);
         var jfArg = new Boogie.IdentifierExpr(p.tok, bv);

@@ -6,7 +6,6 @@
 | [Function values](#sec-arrow-subset-types) |  X  |  X  |  X  |  X  |  X  |  |
 | [Iterators](#sec-iterator-types) |  X  |  X  |  X  |  |  X  |  |
 | [Collections with trait element types](#sec-collection-types) |  X  |  X  |  X  |  X  |  X  |  |
-| [User-defined types with traits as type parameters](#sec-trait-types) |  X  |  X  |  X  |  |  X  |  X  |
 | [External module names with only underscores](#sec-extern-decls) |  X  |  X  |  |  X  |  X  |  X  |
 | [Co-inductive datatypes](#sec-co-inductive-datatypes) |  X  |  X  |  X  |  X  |  X  |  |
 | [Multisets](#sec-multisets) |  X  |  X  |  X  |  X  |  X  |  |
@@ -39,6 +38,8 @@
 | [Auto-initialization of tuple variables](#sec-tuple-types) |  X  |  X  |  X  |  X  |  X  |  X  |
 | [Subtype constraints in quantifiers](#sec-quantifier-expression) |  X  |  X  |  X  |  X  |  X  |  X  |
 | [Tuples with more than 20 arguments](#sec-tuple-types) |  |  X  |  X  |  |  X  |  X  |
+| [Unicode chars](##sec-characters) |  X  |  X  |  X  |  X  |  X  |  |
+| [Converting values to strings](##sec-print-statement) |  X  |  X  |  X  |  X  |  X  |  |
 
 [^compiler-feature-forall-note]: 'Sequentializing' a `forall` statement refers to compiling it directly to a series of nested loops
     with the statement's body directly inside. The alternative, default compilation strategy
