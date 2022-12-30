@@ -421,7 +421,7 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
     Term = cloner.CloneExpr(original.Term);
 
     if (cloner.CloneResolvedFields) {
-      Bounds = original.Bounds?.Select(b => b.Clone(cloner)).ToList();
+      Bounds = original.Bounds?.Select(b => b?.Clone(cloner)).ToList();
     }
   }
   public override IEnumerable<INode> Children => (Attributes != null ? new List<INode> { Attributes } : Enumerable.Empty<INode>()).Concat(SubExpressions);

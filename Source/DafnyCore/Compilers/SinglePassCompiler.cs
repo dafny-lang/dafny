@@ -2637,6 +2637,8 @@ namespace Microsoft.Dafny.Compilers {
         }
         TrExprOpt(e.Els, resultType, els, accumulatorVar);
 
+      } else if (expr is NestedMatchExpr nestedMatchExpr) {
+        TrExprOpt(nestedMatchExpr.Denested, resultType, wr, accumulatorVar);
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
         //   var _source = E;

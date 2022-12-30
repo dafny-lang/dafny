@@ -355,6 +355,11 @@ public abstract class AssignmentRhs : INode, IAttributeBearingDeclaration {
     return Attributes != null;
   }
 
+  internal AssignmentRhs(Cloner cloner, AssignmentRhs original) {
+    Tok = cloner.Tok(original.tok);
+    Attributes = cloner.CloneAttributes(original.Attributes);
+  }
+
   internal AssignmentRhs(IToken tok, Attributes attrs = null) {
     Tok = tok;
     Attributes = attrs;
@@ -443,7 +448,7 @@ public class ExprRhs : AssignmentRhs {
 ///    or all of Path denotes a type
 ///      -- represents new C._ctor(EE), where _ctor is the anonymous constructor for class C
 /// </summary>
-public class TypeRhs : AssignmentRhs {
+public class TypeRhs : AssignmentRhs, ICloneable<TypeRhs> {
   /// <summary>
   /// If ArrayDimensions != null, then the TypeRhs represents "new EType[ArrayDimensions]",
   ///     ElementInit is non-null to represent "new EType[ArrayDimensions] (elementInit)",
@@ -466,6 +471,34 @@ public class TypeRhs : AssignmentRhs {
     get {
       Contract.Requires(Bindings != null);
       return Bindings.Arguments;
+    }
+  }
+
+  public TypeRhs Clone(Cloner cloner) {
+    return new TypeRhs(cloner, this);
+  }
+
+  public TypeRhs(Cloner cloner, TypeRhs original)
+    : base(cloner, original) {
+    EType = cloner.CloneType(original.EType);
+    if (original.ArrayDimensions != null) {
+      if (original.InitDisplay != null) {
+        Contract.Assert(original.ArrayDimensions.Count == 1);
+        ArrayDimensions = new List<Expression> { original.ArrayDimensions[0] };
+        InitDisplay = original.InitDisplay.ConvertAll(cloner.CloneExpr);
+      } else {
+        ArrayDimensions = original.ArrayDimensions.Select(cloner.CloneExpr).ToList();
+        ElementInit = cloner.CloneExpr(original.ElementInit);
+      }
+    } else if (original.Bindings == null) {
+    } else {
+      Path = cloner.CloneType(original.Path);
+      Bindings = new ActualBindings(cloner, original.Bindings);
+    }
+
+    if (cloner.CloneResolvedFields) {
+      InitCall = cloner.CloneStmt(original.InitCall) as CallStmt;
+      Type = cloner.CloneType(original.Type);
     }
   }
 

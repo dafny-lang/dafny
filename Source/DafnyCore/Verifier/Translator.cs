@@ -9946,7 +9946,8 @@ namespace Microsoft.Dafny {
       } else if (expr is ConcreteSyntaxExpression) {
         var e = (ConcreteSyntaxExpression)expr;
         return TrSplitExpr(e.ResolvedExpression, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
-
+      } else if (expr is NestedMatchExpr nestedMatchExpr) {
+        return TrSplitExpr(nestedMatchExpr.Denested, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
         if (!e.Exact) {

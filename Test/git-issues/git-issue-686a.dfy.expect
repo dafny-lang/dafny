@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-=======
-git-issue-686a.dfy(9,2): Warning: this branch is redundant
->>>>>>> master
 git-issue-686a.dfy(10,11): Error: unresolved identifier: doesNotExist
 git-issue-686a.dfy(10,27): Error: unresolved identifier: TotallyBogus
 git-issue-686a.dfy(10,40): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)

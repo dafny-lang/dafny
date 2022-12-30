@@ -35,7 +35,7 @@ Dafny program verifier finished with 6 verified, 0 errors
 32: BranchCoverage.dfy(145,5): then branch
 33: BranchCoverage.dfy(147,5): then branch
 34: BranchCoverage.dfy(147,5): else branch
-35: BranchCoverage.dfy(156,9): entry to function _module._default.Factorial
+35: BranchCoverage.dfy(156,3): entry to function _module._default.Factorial
 36: BranchCoverage.dfy(157,13): then branch
 37: BranchCoverage.dfy(157,13): else branch
 38: BranchCoverage.dfy(163,1): entry to method _module._default.ComputeFactorial
@@ -121,7 +121,7 @@ Dafny program verifier finished with 6 verified, 0 errors
 32: BranchCoverage.dfy(145,5): then branch
 33: BranchCoverage.dfy(147,5): then branch
 34: BranchCoverage.dfy(147,5): else branch
-35: BranchCoverage.dfy(156,9): entry to function _module._default.Factorial
+35: BranchCoverage.dfy(156,3): entry to function _module._default.Factorial
 36: BranchCoverage.dfy(157,13): then branch
 37: BranchCoverage.dfy(157,13): else branch
 38: BranchCoverage.dfy(163,1): entry to method _module._default.ComputeFactorial
@@ -207,7 +207,7 @@ Dafny program verifier finished with 6 verified, 0 errors
 32: BranchCoverage.dfy(145,5): then branch
 33: BranchCoverage.dfy(147,5): then branch
 34: BranchCoverage.dfy(147,5): else branch
-35: BranchCoverage.dfy(156,9): entry to function _module._default.Factorial
+35: BranchCoverage.dfy(156,3): entry to function _module._default.Factorial
 36: BranchCoverage.dfy(157,13): then branch
 37: BranchCoverage.dfy(157,13): else branch
 38: BranchCoverage.dfy(163,1): entry to method _module._default.ComputeFactorial
@@ -293,7 +293,7 @@ Dafny program verifier finished with 6 verified, 0 errors
 32: BranchCoverage.dfy(145,5): then branch
 33: BranchCoverage.dfy(147,5): then branch
 34: BranchCoverage.dfy(147,5): else branch
-35: BranchCoverage.dfy(156,9): entry to function _module._default.Factorial
+35: BranchCoverage.dfy(156,3): entry to function _module._default.Factorial
 36: BranchCoverage.dfy(157,13): then branch
 37: BranchCoverage.dfy(157,13): else branch
 38: BranchCoverage.dfy(163,1): entry to method _module._default.ComputeFactorial
@@ -379,7 +379,7 @@ Dafny program verifier finished with 6 verified, 0 errors
 32: BranchCoverage.dfy(145,5): then branch
 33: BranchCoverage.dfy(147,5): then branch
 34: BranchCoverage.dfy(147,5): else branch
-35: BranchCoverage.dfy(156,9): entry to function _module._default.Factorial
+35: BranchCoverage.dfy(156,3): entry to function _module._default.Factorial
 36: BranchCoverage.dfy(157,13): then branch
 37: BranchCoverage.dfy(157,13): else branch
 38: BranchCoverage.dfy(163,1): entry to method _module._default.ComputeFactorial
