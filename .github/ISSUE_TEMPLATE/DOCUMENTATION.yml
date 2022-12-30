@@ -1,5 +1,5 @@
 name: Documentation error or request
-description: Request change or addtion to Dafny documentation
+description: Request change or addition to Dafny documentation
 labels: ["part: documentation"]
 body:
   - type: markdown
