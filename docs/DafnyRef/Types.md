@@ -2618,52 +2618,6 @@ FunctionBody = "{" Expression(allowLemma: true, allowLambda: true)
                "}" [ "by" "method" BlockStmt ]
 ````
 
-A function with a `by method` clause declares a _function-by-method_.
-A function-by-method gives a way to implement a
-(deterministic, side-effect free) function by a method (whose body may be
-nondeterministic and may allocate objects that it modifies). This can
-be useful if the best implementation uses nondeterminism (for example,
-because it uses `:|` in a nondeterministic way) in a way that does not
-affect the result, or if the implementation temporarily makes use of some
-mutable data structures, or if the implementation is done with a loop.
-For example, here is the standard definition of the Fibonacci function
-but with an efficient implementation that uses a loop:
-
-<!-- %check-verify -->
-```dafny
-function Fib(n: nat): nat {
-  if n < 2 then n else Fib(n - 2) + Fib(n - 1)
-} by method {
-  var x, y := 0, 1;
-  for i := 0 to n
-    invariant x == Fib(i) && y == Fib(i + 1)
-  {
-    x, y := y, x + y;
-  }
-  return x;
-}
-```
-
-The `by method` clause is allowed only for non-ghost `function` or `predicate`
-declarations (without `twostate`, `least`, and `greatest`, but
-possibly with `static`); it inherits the in-parameters, attributes, and `requires` and `decreases`
-clauses of the function. The method also gets one out-parameter, corresponding
-to the function's result value (and the name of it, if present). Finally,
-the method gets an empty `modifies` clause and a postcondition
-`ensures r == F(args)`, where `r` is the name of the out-parameter and
-`F(args)` is the function with its arguments. In other words, the method
-body must compute and return exactly what the function says, and must
-do so without modifying any previously existing heap state.
-
-The function body of a function-by-method is allowed to be ghost, but the
-method body must be compilable. In non-ghost contexts, the compiler turns a
-call of the function-by-method into a call that leads to the method body.
-
-Note, the method body of a function-by-method may contain `print` statements.
-This means that the run-time evaluation of an expression may have print effects.
-Dafny does not track print effects, but this is the only situation that an
-expression can have a print effect.
-
 ### 13.4.1. Functions
 
 In the above productions, `allowGhostKeyword` is true if the optional
@@ -2758,13 +2712,67 @@ a ``...`` which means to copy the signature from
 (if `M0.F` does not provide one). It can also add `ensures`
 clauses.
 
+If a function definition does not have a body, the program that contains it may still be verified.
+The function itself has nothing to verify.
+However, any calls of a body-less function are treated as unverified assumptions by the caller,
+asserting the preconditions and assuming the postconditions.
+Because body-less functions are unverified assumptions, Dafny will not compile them and will complain if called by [`dafny translate`, `dafny build` or even `dafny run`](https://dafny.org/latest/DafnyRef/DafnyRef#256-using-dafny-from-the-command-line)
+
 ### 13.4.2. Predicates
 A function that returns a `bool` result is called a _predicate_. As an
 alternative syntax, a predicate can be declared by replacing the `function`
 keyword with the `predicate` keyword and possibly omitting a declaration of the
 return type (if it is not named).
 
-### 13.4.3. Function Transparency
+### 13.4.3. Function-by-method {#sec-function-by-method}
+
+A function with a `by method` clause declares a _function-by-method_.
+A function-by-method gives a way to implement a
+(deterministic, side-effect free) function by a method (whose body may be
+nondeterministic and may allocate objects that it modifies). This can
+be useful if the best implementation uses nondeterminism (for example,
+because it uses `:|` in a nondeterministic way) in a way that does not
+affect the result, or if the implementation temporarily makes use of some
+mutable data structures, or if the implementation is done with a loop.
+For example, here is the standard definition of the Fibonacci function
+but with an efficient implementation that uses a loop:
+
+<!-- %check-verify -->
+```dafny
+function Fib(n: nat): nat {
+  if n < 2 then n else Fib(n - 2) + Fib(n - 1)
+} by method {
+  var x, y := 0, 1;
+  for i := 0 to n
+    invariant x == Fib(i) && y == Fib(i + 1)
+  {
+    x, y := y, x + y;
+  }
+  return x;
+}
+```
+
+The `by method` clause is allowed only for non-ghost `function` or `predicate`
+declarations (without `twostate`, `least`, and `greatest`, but
+possibly with `static`); it inherits the in-parameters, attributes, and `requires` and `decreases`
+clauses of the function. The method also gets one out-parameter, corresponding
+to the function's result value (and the name of it, if present). Finally,
+the method gets an empty `modifies` clause and a postcondition
+`ensures r == F(args)`, where `r` is the name of the out-parameter and
+`F(args)` is the function with its arguments. In other words, the method
+body must compute and return exactly what the function says, and must
+do so without modifying any previously existing heap state.
+
+The function body of a function-by-method is allowed to be ghost, but the
+method body must be compilable. In non-ghost contexts, the compiler turns a
+call of the function-by-method into a call that leads to the method body.
+
+Note, the method body of a function-by-method may contain `print` statements.
+This means that the run-time evaluation of an expression may have print effects.
+Dafny does not track print effects, but this is the only situation that an
+expression can have a print effect.
+
+### 13.4.4. Function Transparency
 A function is said to be _transparent_ in a location if the
 body of the function is visible at that point.
 A function is said to be _opaque_ at a location if it is not
@@ -2792,11 +2800,11 @@ When `{:opaque}` is specified for function `g`, `g` is opaque,
 however the statement `reveal g();` is available to give the semantics
 of `g` whether in the defining module or outside.
 
-### 13.4.4. Extreme (Least or Greatest) Predicates and Lemmas
+### 13.4.5. Extreme (Least or Greatest) Predicates and Lemmas
 See [Section 24.5.3](#sec-friendliness) for descriptions
 of extreme predicates and lemmas.
 
-### 13.4.5. `older` parameters in predicates
+### 13.4.6. `older` parameters in predicates
 
 A parameter of any predicate (more precisely, of any
 boolean-returning, non-extreme function) can be marked as
@@ -3353,7 +3361,8 @@ befuddlement is to write `array<T>` instead of `T` after `new`.
 For example, consider the following:
 <!-- %check-resolve Types.17.expect -->
 ```dafny
-class A {
+type T(0)
+method m(n: nat) {
   var a := new array<T>;
   var b := new array<T>[n];
   var c := new array<T>(n);  // resolution error
