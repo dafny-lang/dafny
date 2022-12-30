@@ -110,15 +110,10 @@ jobs:
         unzip dafny/Package/CI.zip -d unzippedRelease
     - name: Load Z3
       if: "!inputs.all_platforms"
-      shell: pwsh
       run: |
-        Invoke-WebRequest https://github.com/Z3Prover/z3/releases/download/Z3-4.8.5/z3-4.8.5-x64-ubuntu-16.04.zip -OutFile z3.zip
-        Expand-Archive z3.zip .
-        Remove-Item z3.zip
-        Copy-Item z3-4.8.5-x64-ubuntu-16.04 dafny/Binaries/z3 -Recurse
-    - name: Set Z3 Permissions
-      if: "!inputs.all_platforms"
-      run: chmod +x dafny/Binaries/z3/bin/z3
+        mkdir dafny/Binaries/z3
+        wget -qO- https://github.com/Z3Prover/z3/releases/download/Z3-4.8.5/z3-4.8.5-x64-ubuntu-16.04.zip | tar -xC dafny/Binaries/z3 --strip-components=1
+        chmod +x dafny/Binaries/z3/bin/z3
     - name: Run integration tests
       if: runner.os == 'Windows'
       env:
@@ -133,7 +128,7 @@ jobs:
         XUNIT_SHARD: ${{ matrix.shard }}
         XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
       run: |
-        ${{ inputs.all_platforms }} && export DAFNY_RELEASE="${{ github.workspace }}/unzippedRelease/dafny"
+        true && export DAFNY_RELEASE="${{ github.workspace }}/unzippedRelease/dafny"
         dotnet test --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj
     - uses: actions/upload-artifact@v2
       if: always()
