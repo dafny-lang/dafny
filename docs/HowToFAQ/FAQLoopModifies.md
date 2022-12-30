@@ -85,7 +85,7 @@ because it would be inherited from the enclosing context.
     it is an assignment target, so we need to say what is known about it (prior to the loop test).
    - The other conjunct talks about the elements of `a`, which depend on `i`, 
     that is, on how many iterations of the loop have been executed.
-- After the loop, Dafny uses the loop invariant and the negation of the loop guard to conclude i == a.Length, and from that and the invariant, Dafny can prove the method's postcondition.
+- After the loop, Dafny uses the loop invariant and the negation of the loop guard to conclude `i == a.Length`, and from that and the invariant, Dafny can prove the method's postcondition.
 
 Even when Dafny can infer an appropriate modifies clause, it does not infer loop invariants, so the user always needs to supply those. 
 
