@@ -18,6 +18,7 @@ namespace Microsoft.Dafny {
   }
 
   public struct ErrorMessage {
+    public string errorID;
     public IToken token;
     public string message;
     public MessageSource source;
@@ -32,7 +33,7 @@ namespace Microsoft.Dafny {
     public int ErrorCountUntilResolver => CountExceptVerifierAndCompiler(ErrorLevel.Error);
 
 
-    public abstract bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg);
+    public abstract bool Message(MessageSource source, ErrorLevel level, string errorID, IToken tok, string msg);
 
     public void Error(MessageSource source, IToken tok, string msg) {
       Contract.Requires(tok != null);
@@ -43,11 +44,26 @@ namespace Microsoft.Dafny {
         IncludeToken includeToken = (IncludeToken)tok;
         Include include = includeToken.Include;
         if (!include.ErrorReported) {
-          Message(source, ErrorLevel.Error, include.tok, "the included file " + tok.Filename + " contains error(s)");
+          Message(source, ErrorLevel.Error, "", include.tok, "the included file " + tok.Filename + " contains error(s)");
           include.ErrorReported = true;
         }
       }
-      Message(source, ErrorLevel.Error, tok, msg);
+      Message(source, ErrorLevel.Error, "", tok, msg);
+    }
+    public void Error(MessageSource source, string errorID, IToken tok, string msg) {
+      Contract.Requires(tok != null);
+      Contract.Requires(msg != null);
+      // if the tok is IncludeToken, we need to indicate to the including file
+      // that there are errors in the included file.
+      if (tok is IncludeToken) {
+        IncludeToken includeToken = (IncludeToken)tok;
+        Include include = includeToken.Include;
+        if (!include.ErrorReported) {
+          Message(source, ErrorLevel.Error, "", include.tok, "the included file " + tok.Filename + " contains error(s)");
+          include.ErrorReported = true;
+        }
+      }
+      Message(source, ErrorLevel.Error, errorID, tok, msg);
     }
 
     public abstract int Count(ErrorLevel level);
@@ -101,7 +117,7 @@ namespace Microsoft.Dafny {
       if (DafnyOptions.O.WarningsAsErrors) {
         Error(source, tok, msg);
       } else {
-        Message(source, ErrorLevel.Warning, tok, msg);
+        Message(source, ErrorLevel.Warning, "", tok, msg);
       }
     }
 
@@ -133,7 +149,7 @@ namespace Microsoft.Dafny {
     public void Info(MessageSource source, IToken tok, string msg) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
-      Message(source, ErrorLevel.Info, tok, msg);
+      Message(source, ErrorLevel.Info, "", tok, msg);
     }
 
     public void Info(MessageSource source, IToken tok, string msg, params object[] args) {
@@ -164,12 +180,12 @@ namespace Microsoft.Dafny {
       };
     }
 
-    public override bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
+    public override bool Message(MessageSource source, ErrorLevel level, string errorID, IToken tok, string msg) {
       if (ErrorsOnly && level != ErrorLevel.Error) {
         // discard the message
         return false;
       }
-      AllMessages[level].Add(new ErrorMessage { token = tok, message = msg, source = source });
+      AllMessages[level].Add(new ErrorMessage { errorID = errorID, token = tok, message = msg, source = source });
       return true;
     }
 
@@ -197,14 +213,15 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public override bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
-      if (base.Message(source, level, tok, msg) && (DafnyOptions.O is { PrintTooltips: true } || level != ErrorLevel.Info)) {
+    public override bool Message(MessageSource source, ErrorLevel level, string errorID, IToken tok, string msg) {
+      if (base.Message(source, level, errorID, tok, msg) && (DafnyOptions.O is { PrintTooltips: true } || level != ErrorLevel.Info)) {
         // Extra indent added to make it easier to distinguish multiline error messages for clients that rely on the CLI
         msg = msg.Replace("\n", "\n ");
 
         ConsoleColor previousColor = Console.ForegroundColor;
         Console.ForegroundColor = ColorForLevel(level);
         var errorLine = ErrorToString(level, tok, msg);
+        if (errorID != "") errorLine += " (" + errorID + ")";
         while (tok is NestedToken nestedToken) {
           tok = nestedToken.Inner;
           if (tok.Filename == nestedToken.Filename &&
@@ -228,7 +245,7 @@ namespace Microsoft.Dafny {
   public class ErrorReporterSink : ErrorReporter {
     public ErrorReporterSink() { }
 
-    public override bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
+    public override bool Message(MessageSource source, ErrorLevel level, string errorID, IToken tok, string msg) {
       return false;
     }
 
@@ -251,9 +268,9 @@ namespace Microsoft.Dafny {
       this.WrappedReporter = reporter;
     }
 
-    public override bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
-      base.Message(source, level, tok, msg);
-      return WrappedReporter.Message(source, level, tok, msgPrefix + msg);
+    public override bool Message(MessageSource source, ErrorLevel level, string errorID, IToken tok, string msg) {
+      base.Message(source, level, errorID, tok, msg);
+      return WrappedReporter.Message(source, level, errorID, tok, msgPrefix + msg);
     }
   }
 }

@@ -77,6 +77,12 @@ public class Parser {
     errors.SemErr(tok, msg);
   }
 
+  public void SemErr(string errorID, IToken tok, string msg) {
+    Contract.Requires(tok != null);
+    Contract.Requires(msg != null);
+    errors.SemErr(errorID, tok, msg);
+  }
+
   void Get () {
     for (;;) {
       t = theVerifyThisFile ? la : new IncludeToken(theInclude, la);
@@ -167,6 +173,13 @@ public class Errors {
     Contract.Requires(msg != null);
     ErrorCount++;
     Reporting.Error(MessageSource.Parser, tok, msg);
+  }
+
+  public void SemErr(string errorID, IToken tok, string msg) {  // semantic errors
+    Contract.Requires(tok != null);
+    Contract.Requires(msg != null);
+    ErrorCount++;
+    Reporting.Error(MessageSource.Parser, errorID, tok, msg);
   }
 
   public void SemErr(string filename, int line, int col, string msg) {

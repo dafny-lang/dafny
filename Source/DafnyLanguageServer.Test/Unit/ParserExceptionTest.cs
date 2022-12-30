@@ -41,7 +41,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
     private class ParserExceptionSimulatingErrorReporter : ErrorReporter {
       private int numberOfErrors;
       public string LastMessage = "";
-      public override bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
+      public override bool Message(MessageSource source, ErrorLevel level, string errorID, IToken tok, string msg) {
         if (level != ErrorLevel.Error) {
           return false;
         }

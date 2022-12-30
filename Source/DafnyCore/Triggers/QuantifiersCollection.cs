@@ -341,7 +341,7 @@ namespace Microsoft.Dafny.Triggers {
 
       if (msg.Length > 0 && !Attributes.Contains(q.quantifier.Attributes, "auto_generated")) {
         var msgStr = msg.ToString().TrimEnd("\r\n ".ToCharArray());
-        reporter.Message(MessageSource.Rewriter, errorLevel, reportingToken, msgStr);
+        reporter.Message(MessageSource.Rewriter, errorLevel, "", reportingToken, msgStr);
       }
     }
 

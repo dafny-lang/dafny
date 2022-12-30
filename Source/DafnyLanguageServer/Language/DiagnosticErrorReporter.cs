@@ -137,7 +137,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       };
     }
 
-    public override bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
+    public override bool Message(MessageSource source, ErrorLevel level, string errorID, IToken tok, string msg) {
       if (ErrorsOnly && level != ErrorLevel.Error) {
         return false;
       }
@@ -149,6 +149,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         );
       }
       var item = new Diagnostic {
+        //ErrorID = errorID,
         Severity = ToSeverity(level),
         Message = msg,
         Range = tok.GetLspRange(),
