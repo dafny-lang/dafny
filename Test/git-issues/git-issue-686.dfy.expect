@@ -1,24 +1,24 @@
-git-issue-686.dfy(21,2): Warning: this branch is redundant
 git-issue-686.dfy(13,2): Warning: this branch is redundant
+git-issue-686.dfy(21,2): Warning: this branch is redundant
 
 Dafny program verifier finished with 1 verified, 0 errors
-git-issue-686.dfy(21,2): Warning: this branch is redundant
 git-issue-686.dfy(13,2): Warning: this branch is redundant
+git-issue-686.dfy(21,2): Warning: this branch is redundant
 
 Dafny program verifier did not attempt verification
 6 0
-git-issue-686.dfy(21,2): Warning: this branch is redundant
 git-issue-686.dfy(13,2): Warning: this branch is redundant
+git-issue-686.dfy(21,2): Warning: this branch is redundant
 
 Dafny program verifier did not attempt verification
 6 0
-git-issue-686.dfy(21,2): Warning: this branch is redundant
 git-issue-686.dfy(13,2): Warning: this branch is redundant
+git-issue-686.dfy(21,2): Warning: this branch is redundant
 
 Dafny program verifier did not attempt verification
 6 0
-git-issue-686.dfy(21,2): Warning: this branch is redundant
 git-issue-686.dfy(13,2): Warning: this branch is redundant
+git-issue-686.dfy(21,2): Warning: this branch is redundant
 
 Dafny program verifier did not attempt verification
 6 0
