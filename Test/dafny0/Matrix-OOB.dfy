@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /compile:0 /dprint:"%t.dprint" /printTooltips "%s" > "%t"
+// RUN: %exits-with 4 %baredafny verify %args --print-tooltips "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This is a regression test: OOB errors for matrices used to be reported on the

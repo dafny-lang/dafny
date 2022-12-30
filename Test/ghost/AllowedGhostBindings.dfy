@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /dprint:- "%s" /env:0 > "%t"
+// RUN: %baredafny verify %args --print=- "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Test1()

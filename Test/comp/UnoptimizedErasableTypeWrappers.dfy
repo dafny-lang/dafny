@@ -1,9 +1,9 @@
 // RUN: %baredafny verify %args "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /optimizeErasableDatatypeWrapper:0 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /optimizeErasableDatatypeWrapper:0 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /optimizeErasableDatatypeWrapper:0 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /optimizeErasableDatatypeWrapper:0 /compileTarget:java "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /optimizeErasableDatatypeWrapper:0 /compileTarget:py "%s" >> "%t"
+// RUN: %baredafny run %args --no-verify --optimize-erasable-datatype-wrapper=false --target=cs "%s" >> "%t"
+// RUN: %baredafny run %args --no-verify --optimize-erasable-datatype-wrapper=false --target=js "%s" >> "%t"
+// RUN: %baredafny run %args --no-verify --optimize-erasable-datatype-wrapper=false --target=go "%s" >> "%t"
+// RUN: %baredafny run %args --no-verify --optimize-erasable-datatype-wrapper=false --target=java "%s" >> "%t"
+// RUN: %baredafny run %args --no-verify --optimize-erasable-datatype-wrapper=false --target=py "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype SingletonRecord = SingletonRecord(u: int)

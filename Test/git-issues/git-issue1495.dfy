@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /rprint:"%t.rprint" "%s" > "%t"
+// RUN: %baredafny verify %args "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 include "../libraries/src/Wrappers.dfy"
 import opened Wrappers

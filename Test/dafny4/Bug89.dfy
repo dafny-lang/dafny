@@ -1,4 +1,4 @@
-// RUN: %dafny  /compile:3 "%s" > "%t"
+// RUN: %baredafny run %args "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method F() returns(x:int)

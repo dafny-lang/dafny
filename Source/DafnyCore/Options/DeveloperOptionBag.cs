@@ -5,6 +5,11 @@ namespace Microsoft.Dafny;
 
 public class DeveloperOptionBag {
 
+  public static readonly Option<bool> PrintTooltips = new("--print-tooltips",
+    @"Show internal Dafny compiler information that affects the language server.") {
+    IsHidden = true
+  };
+
   public static readonly Option<bool> SpillTranslation = new("--spill-translation",
     @"In case the Dafny source code is translated to another language, emit that translation.") {
     IsHidden = true

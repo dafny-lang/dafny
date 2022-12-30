@@ -1,4 +1,4 @@
-// RUN: %dafny /warnShadowing  /compile:0  "%s" > "%t"
+// RUN: %baredafny verify %args --warn-shadowing "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 function P(x:int):int

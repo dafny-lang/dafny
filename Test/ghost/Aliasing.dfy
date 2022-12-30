@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /print:"%t.print" "%s" > "%t"
+// RUN: %baredafny verify %args "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Test1(a: array<(int, int)>, b: array<(int, int, ghost int)>) {

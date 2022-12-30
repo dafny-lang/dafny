@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /rprint:"%t.rprint" "%s" > "%t"
+// RUN: %baredafny verify %args "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Tests that come down to comparing the bodies of (possibly nested) functions.

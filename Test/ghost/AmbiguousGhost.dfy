@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /dprint:- "%s" /env:0 > "%t"
+// RUN: %baredafny verify %args --print=- "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Test that the `IsTypeSequence` method of the parser allows tuples with ghost components.

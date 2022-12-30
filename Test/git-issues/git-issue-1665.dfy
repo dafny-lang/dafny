@@ -3,7 +3,7 @@
 // RUN: %diff "%s.expect" "%t".raw.dfy
 
 // Check that original program successfully verifies (exit code 0):
-// RUN: %dafny /env:0 /compile:0 "%s" > "%t".1
+// RUN: %baredafny verify %args "%s" > "%t".1
 
 // Check that produced rprinted program also successfuly verifies:
 // RUN: %dafny /env:0 /compile:0 "%t".raw.dfy > "%t".2

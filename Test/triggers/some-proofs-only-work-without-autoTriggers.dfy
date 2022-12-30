@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" /printTooltips "%s" > "%t"
+// RUN: %exits-with 4 %baredafny verify %args --print-tooltips "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // The examples below work nicely with /autoTriggers:0, but break when we use

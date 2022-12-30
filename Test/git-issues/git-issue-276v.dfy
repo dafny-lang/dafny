@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /printTooltips "%s" > "%t"
+// RUN: %baredafny verify %args --print-tooltips "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Testing constant folding of bit-vector operations

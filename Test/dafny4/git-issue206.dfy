@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /rprint:"%t.dprint" "%s" > "%t"
+// RUN: %baredafny verify %args "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype Foo = Bar(x: int)

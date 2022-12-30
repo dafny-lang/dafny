@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /rprint:"%t.rprint" "%s" > "%t"
+// RUN: %baredafny verify %args "%s" > "%t"
 // RUN: %baredafny run %args --no-verify --target=cs "%s" >> "%t"
 // RUN: %baredafny run %args --no-verify --target=py "%s" "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"

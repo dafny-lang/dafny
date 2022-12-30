@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %dafny /compile:0 /printTooltips "%s" > "%t"
+// RUN: %exits-with 2 %baredafny verify %args --print-tooltips "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // resolution errors
