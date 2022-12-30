@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %dafny /print:"%t.print" /dprint:- /compile:0 /env:0 "%s" > "%t"
+// RUN: %exits-with 2 %baredafny verify %args --print=- "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module JustAboutEverything {
