@@ -62,7 +62,7 @@ method init(a: array<int>)
   modifies a
   ensures forall j | 0 <= j < a.Length :: a[j] == j;
 {
-  var i: int := 0;
+  var i := 0;
 
   while (i < a.Length) 
     modifies a
