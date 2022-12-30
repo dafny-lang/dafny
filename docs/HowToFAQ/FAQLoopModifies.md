@@ -62,14 +62,14 @@ method init(a: array<int>)
   modifies a
   ensures forall j | 0 <= j < a.Length :: a[j] == j
 {
-  var i: int := 0;
+  var i := 0;
 
-  while (i < a.Length) 
+  while i < a.Length
     modifies a
-    invariant 0 <= i <= a.Length && forall j | 0 <= j < i :: a[j] == j;
+    invariant 0 <= i <= a.Length && forall j | 0 <= j < i :: a[j] == j
   {
     a[i] := i;
-    i := i+1;
+    i := i + 1;
   }
 }
 ```
@@ -87,4 +87,4 @@ because it would be inherited from the enclosing context.
     that is, on how many iterations of the loop have been executed.
 - After the loop, Dafny uses the loop invariant and the negation of the loop guard to conclude i == a.Length, and from that and the invariant, Dafny can prove the method's postcondition.
 
-Even when Dafny can infer an appropriate modifies clause, it cannot infer loop invariants. The user always needs to supply those (until verification technology improves). 
+Even when Dafny can infer an appropriate modifies clause, it does not infer loop invariants, so the user always needs to supply those. 
