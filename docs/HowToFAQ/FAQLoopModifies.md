@@ -1,5 +1,5 @@
 ---
-title: If I have an assertion about a object (of class type) and a loop that doesn't mention (read, modify) the object, why does dafny fail to establish the assertion after the loop?
+title: If I have an assertion about an object (of class type) and a loop that doesn't mention (read, modify) the object, why does dafny fail to establish the assertion after the loop?
 ---
 
 ## Question
