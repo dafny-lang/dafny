@@ -114,7 +114,11 @@ module _System {
    * SCC at height 1:
    *   RotateRight
    * SCC at height 0:
+   *   array
+   * SCC at height 0:
    *   nat
+   * SCC at height 0:
+   *   object
    */
   type string(==,0) = seq<char>
 

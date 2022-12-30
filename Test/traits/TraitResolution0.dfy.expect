@@ -8,7 +8,11 @@ module _System {
    * SCC at height 1:
    *   RotateRight
    * SCC at height 0:
+   *   array
+   * SCC at height 0:
    *   nat
+   * SCC at height 0:
+   *   object
    */
   type string(==,0) = seq<char>
 
@@ -123,6 +127,8 @@ module M0 {
    * SCC at height 1:
    *   Cl.M
    * SCC at height 0:
+   *   Cl
+   * SCC at height 0:
    *   Tr
    * SCC at height 0:
    *   Tr.F
@@ -157,6 +163,8 @@ module M1 {
    *   M
    * SCC at height 0:
    *   Cl
+   * SCC at height 0:
+   *   Tr
    */
   trait Tr<X(0)> {
     var w: X
@@ -183,6 +191,8 @@ module M2 {
    *   M
    * SCC at height 0:
    *   Cl
+   * SCC at height 0:
+   *   Tr
    * SCC at height 0:
    *   Tr.F
    */
@@ -215,7 +225,11 @@ module P0 {
    * SCC at height 1:
    *   Cl.M
    * SCC at height 0:
+   *   Cl
+   * SCC at height 0:
    *   Tr
+   * SCC at height 0:
+   *   TrX
    * SCC at height 0:
    *   TrX.F
    */
@@ -254,6 +268,10 @@ module P1 {
    *   M
    * SCC at height 0:
    *   Cl
+   * SCC at height 0:
+   *   Tr
+   * SCC at height 0:
+   *   TrX
    */
   trait TrX<X(0)> {
     var w: X
@@ -285,6 +303,10 @@ module P2 {
    *   M
    * SCC at height 0:
    *   Cl
+   * SCC at height 0:
+   *   Tr
+   * SCC at height 0:
+   *   TrX
    * SCC at height 0:
    *   TrX.F
    */
