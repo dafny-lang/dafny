@@ -1,5 +1,5 @@
 ---
-title: If I have an assertion about a class and a loop that doesn't mention (read, modify) the class, why does dafny fail to establish the assertion after the loop?
+title: If I have an assertion about a object (of class type) and a loop that doesn't mention (read, modify) the object, why does dafny fail to establish the assertion after the loop?
 ---
 
 ## Question
@@ -9,7 +9,7 @@ why does dafny fail to establish the assertion after the loop?
 
 ## Answer
 
-The short answer is that you need an appropriate combination of modifies clause and 
+The short answer is that you need an appropriate combination of modifies clauses and 
 loop invariants to prove assertions about the end result of a loop.
 
 In Dafny's way of reasoning about a loop (which is typical of verifier systems), 
@@ -19,8 +19,8 @@ arbitrary values, with the condition that the loop invariant is satisfied.
 Sometimes, the word _havoc_ is used to describe this: the verifier havocs all variables, 
 that is, gives all variables arbitrary values, and then assumes the loop invariant.
 
-If that’s all the verifier did, life would be a pain, because you’d have to write a l
-oop invariant about all variables in your program, even those that have nothing to do with the loop.
+If that’s all the verifier did, life would be a pain, because you’d have to write a
+loop invariant about all variables in your program, even those that have nothing to do with the loop.
 The verifier actually does better. Instead of havocing all variables, it suffices to havoc 
 the assignment targets within the body of the loop, including anything that might be modified by methods called in the loop body. 
 That is, the verifier uses a simple syntactic scan of the loop body to see which 
@@ -54,13 +54,13 @@ In particular
 assigned in the loop body (or listed in the modifies clauses of anything the loop body calls)
 - then write a loop invariant that includes assertions about any variable that is listed in the modifies clause
 or is an assignment target in the loop body. 
-Very typically, the invariant will give a value for a havoced variable showing its relationship to the loop index.
+Very typically, the invariant will give a value for ecah havoced variable showing its relationship to the loop index.
 
 For example, a loop that sets the elements of an array to some initial value might look like this:
 ```dafny
 method init(a: array<int>) 
   modifies a
-  ensures forall j | 0 <= j < a.Length :: a[j] == j;
+  ensures forall j | 0 <= j < a.Length :: a[j] == j
 {
   var i: int := 0;
 
@@ -78,13 +78,13 @@ Note the following points:
 - The method specifies that it might modify the elements of the array `a`.
 - The loop says that it modifies the same array. 
 In fact that modifies clause could be omitted
-because it would be inherited from the enclosing context
-- The loop also modifies `i`, but as `i` is a local variable of non-reference type, it need not be listed in the modifies clause.
-- The loop also has an invariant, which has two conjuncts
+because it would be inherited from the enclosing context.
+- The loop also modifies `i`, but as `i` is a local variable, it need not be listed in the modifies clause.
+- The loop also has an invariant, which has two conjuncts:
    - One conjunct states what may be assumed about `i`. Even though `i` is not in the modifies clause 
-    it is an assignment target, so we need to say what may be assumed about it (prior to the loop test)
+    it is an assignment target, so we need to say what may be assumed about it (prior to the loop test).
    - The other conjunct says what is known about the elements of `a`, which depends on `i`, 
-    that is, on how many iterations of the loop have been executed
-- And then from that loop invariant and the fact that the loop has now terminated (which implies that `i == a.Length`), Dafny can prove the method's postcondition. 
+    that is, on how many iterations of the loop have been executed.
+- After the loop, Dafny uses the loop invariant and the negation of the loop guard to conclude i == a.Length, and from that and the invariant, Dafny can prove the method's postcondition.
 
 Even when Dafny can infer an appropriate modifies clause, it cannot infer loop invariants. The user always needs to supply those (until verification technology improves). 
