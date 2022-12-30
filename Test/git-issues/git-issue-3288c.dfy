@@ -3,7 +3,7 @@
 
 module M {
   export 
-  greatest predicate p() { true} // Warning: the greatest goes with the export
+  greatest predicate p() { true } // Warning: the greatest goes with the export
 }
 
 module N {
