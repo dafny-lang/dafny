@@ -78,7 +78,6 @@ namespace Microsoft.Dafny {
     // TODO: Re-add format tokens where needed until we put all the formatting to replace the tok of every expression
     internal IToken[] FormatTokens = null;
 
-    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     public virtual RangeToken RangeToken {
       get {
         if (rangeToken == null) {
@@ -141,10 +140,8 @@ namespace Microsoft.Dafny {
       set => rangeToken = value;
     }
 
-    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     public IToken StartToken => RangeToken?.StartToken;
 
-    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     public IToken EndToken => RangeToken?.EndToken;
 
     protected IReadOnlyList<IToken> OwnedTokensCache;
@@ -153,7 +150,6 @@ namespace Microsoft.Dafny {
     /// A token is owned by a node if it was used to parse this node,
     /// but is not owned by any of this Node's children
     /// </summary>
-    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     public IEnumerable<IToken> OwnedTokens {
       get {
         if (OwnedTokensCache != null) {
