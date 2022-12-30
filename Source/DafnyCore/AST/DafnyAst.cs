@@ -14,12 +14,14 @@ using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Linq;
 using System.Diagnostics;
-using System.Reflection;
 using System.Threading;
 using Microsoft.Boogie;
+using Action = System.Action;
 
 namespace Microsoft.Dafny {
-  [System.AttributeUsage(System.AttributeTargets.Field)]
+  [System.AttributeUsage(System.AttributeTargets.Field | System.AttributeTargets.Property)]
+  public class FilledInDuringTranslationAttribute : System.Attribute { }
+  [System.AttributeUsage(System.AttributeTargets.Field | System.AttributeTargets.Property)]
   public class FilledInDuringResolutionAttribute : System.Attribute { }
 
   public abstract class INode {
@@ -38,6 +40,36 @@ namespace Microsoft.Dafny {
     /// </summary>
     public abstract IEnumerable<INode> Children { get; }
 
+    public ISet<INode> Visit(Func<INode, bool> beforeChildren = null, Action<INode> afterChildren = null) {
+      beforeChildren ??= node => true;
+      afterChildren ??= node => { };
+
+      var visited = new HashSet<INode>();
+      var toVisit = new Stack<INode>();
+      toVisit.Push(this);
+      while (toVisit.Any()) {
+        var current = toVisit.Pop();
+        if (!visited.Add(current)) {
+          continue;
+        }
+
+        if (!beforeChildren(current)) {
+          continue;
+        }
+
+        foreach (var child in current.Children) {
+          if (child == null) {
+            throw new InvalidOperationException($"Object of type {current.GetType()} has null child");
+          }
+          toVisit.Push(child);
+        }
+
+        afterChildren(current);
+      }
+
+      return visited;
+    }
+
     protected RangeToken rangeToken = null;
 
     // Contains tokens that did not make it in the AST but are part of the expression,
@@ -49,7 +81,7 @@ namespace Microsoft.Dafny {
       set => rangeToken = value;
     }
 
-    public RangeToken GetRangeToken() {
+    public virtual RangeToken GetRangeToken() {
       if (rangeToken == null) {
         if (tok is RangeToken tokAsRange) {
           rangeToken = tokAsRange;
@@ -108,7 +140,6 @@ namespace Microsoft.Dafny {
       return rangeToken;
     }
 
-
     public IToken GetStartToken() => GetRangeToken()?.StartToken;
     public IToken GetEndToken() => GetRangeToken()?.EndToken;
 
@@ -158,7 +189,6 @@ namespace Microsoft.Dafny {
   public interface IHasUsages : IDeclarationOrUsage {
     public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations();
   }
-
   public class Program : INode {
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -315,22 +345,21 @@ namespace Microsoft.Dafny {
     /// - if the attribute is {:nm true}, then value==true
     /// - if the attribute is {:nm false}, then value==false
     /// - if the attribute is anything else, then value returns as whatever it was passed in as.
+    /// This method does NOT use type information of the attribute arguments, so it can safely
+    /// be called very early during resolution before types are available and names have been resolved.
     /// </summary>
     [Pure]
     public static bool ContainsBool(Attributes attrs, string nm, ref bool value) {
       Contract.Requires(nm != null);
-      foreach (var attr in attrs.AsEnumerable()) {
-        if (attr.Name == nm) {
-          if (attr.Args.Count == 1) {
-            var arg = attr.Args[0] as LiteralExpr;
-            if (arg != null && arg.Value is bool) {
-              value = (bool)arg.Value;
-            }
-          }
-          return true;
-        }
+      var attr = attrs.AsEnumerable().FirstOrDefault(attr => attr.Name == nm);
+      if (attr == null) {
+        return false;
       }
-      return false;
+
+      if (attr.Args.Count == 1 && attr.Args[0] is LiteralExpr { Value: bool v }) {
+        value = v;
+      }
+      return true;
     }
 
     /// <summary>
@@ -786,11 +815,7 @@ namespace Microsoft.Dafny {
 
   [DebuggerDisplay("Bound<{name}>")]
   public class BoundVar : NonglobalVariable {
-    public override bool IsMutable {
-      get {
-        return false;
-      }
-    }
+    public override bool IsMutable => false;
 
     public BoundVar(IToken tok, string name, Type type)
       : base(tok, name, type, false) {
@@ -873,7 +898,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class ActualBindings {
+  public class ActualBindings : INode {
     public readonly List<ActualBinding> ArgumentBindings;
 
     public ActualBindings(List<ActualBinding> argumentBindings) {
@@ -881,27 +906,34 @@ namespace Microsoft.Dafny {
       ArgumentBindings = argumentBindings;
     }
 
+    public ActualBindings(Cloner cloner, ActualBindings original) {
+      ArgumentBindings = original.ArgumentBindings.Select(actualBinding => new ActualBinding(
+        actualBinding.FormalParameterName == null ? null : cloner.Tok(actualBinding.FormalParameterName),
+        cloner.CloneExpr(actualBinding.Actual))).ToList();
+      if (cloner.CloneResolvedFields) {
+        arguments = original.Arguments?.Select(cloner.CloneExpr).ToList();
+      }
+    }
+
     public ActualBindings(List<Expression> actuals) {
       Contract.Requires(actuals != null);
       ArgumentBindings = actuals.ConvertAll(actual => new ActualBinding(null, actual));
     }
 
+    [FilledInDuringResolution]
     private List<Expression> arguments; // set by ResolveActualParameters during resolution
 
     public bool WasResolved => arguments != null;
 
-    public List<Expression> Arguments {
-      get {
-        Contract.Requires(WasResolved);
-        return arguments;
-      }
-    }
+    public List<Expression> Arguments => arguments;
 
     public void AcceptArgumentExpressionsAsExactParameterList(List<Expression> args = null) {
       Contract.Requires(!WasResolved); // this operation should be done at most once
       Contract.Assume(ArgumentBindings.TrueForAll(arg => arg.Actual.WasResolved()));
       arguments = args ?? ArgumentBindings.ConvertAll(binding => binding.Actual);
     }
+
+    public override IEnumerable<INode> Children => arguments == null ? ArgumentBindings : arguments;
   }
 
   class QuantifiedVariableDomainCloner : Cloner {
@@ -920,7 +952,8 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class Specification<T> : IAttributeBearingDeclaration where T : class {
+  public class Specification<T> : INode, IAttributeBearingDeclaration
+    where T : INode {
     public readonly List<T> Expressions;
 
     [ContractInvariantMethod]
@@ -934,19 +967,13 @@ namespace Microsoft.Dafny {
       Attributes = attrs;
     }
 
-    private Attributes attributes;
-    public Attributes Attributes {
-      get {
-        return attributes;
-      }
-      set {
-        attributes = value;
-      }
-    }
+    public Attributes Attributes { get; set; }
 
     public bool HasAttributes() {
       return Attributes != null;
     }
+
+    public override IEnumerable<INode> Children => Expressions;
   }
 
   public class BottomUpVisitor {
@@ -1089,7 +1116,7 @@ namespace Microsoft.Dafny {
       }
       //TODO More?
     }
-    public void Visit(Method method, State st) {
+    public virtual void Visit(Method method, State st) {
       Visit(method.Ens, st);
       Visit(method.Req, st);
       Visit(method.Mod.Expressions, st);
@@ -1097,7 +1124,7 @@ namespace Microsoft.Dafny {
       if (method.Body != null) { Visit(method.Body, st); }
       //TODO More?
     }
-    public void Visit(Function function, State st) {
+    public virtual void Visit(Function function, State st) {
       Visit(function.Ens, st);
       Visit(function.Req, st);
       Visit(function.Reads, st);

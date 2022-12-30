@@ -75,7 +75,7 @@ class ExtremeLemmaSpecificationSubstituter : ExtremeCloner {
     Contract.Requires(expr is NameSegment || expr is ExprDotName);
     if (expr is NameSegment) {
       var e = (NameSegment)expr;
-      return new NameSegment(Tok(e.tok), e.Name, e.OptTypeArguments == null ? null : e.OptTypeArguments.ConvertAll(CloneType));
+      return new NameSegment(this, e);
     } else {
       var e = (ExprDotName)expr;
       return new ExprDotName(Tok(e.tok), CloneNamePathExpression(e.Lhs), e.SuffixName, e.OptTypeArguments == null ? null : e.OptTypeArguments.ConvertAll(CloneType));

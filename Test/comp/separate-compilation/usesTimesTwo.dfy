@@ -1,7 +1,7 @@
-// RUN: %baredafny translate --output=%S/Inputs/producer/timesTwo %S/Inputs/producer/timesTwo.dfy
+// RUN: %baredafny translate cs --output=%S/Inputs/producer/timesTwo %S/Inputs/producer/timesTwo.dfy
 // RUN: dotnet build %S/Inputs/producer
 
-// RUN: %baredafny translate --output=%S/consumer/usesTimesTwo --library=%S/Inputs/producer/timesTwo.dfy %s
+// RUN: %baredafny translate cs --output=%S/consumer/usesTimesTwo --library=%S/Inputs/producer/timesTwo.dfy %s
 // RUN: dotnet run --project %S/consumer > "%t"
 // RUN: %diff "%s.expect" "%t"
 

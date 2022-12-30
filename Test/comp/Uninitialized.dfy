@@ -1,6 +1,6 @@
 // RUN: %testDafnyForEachCompiler "%s"
 
-module {:options "/functionSyntax:4"} Stacks {
+module {:options "--function-syntax=4"} Stacks {
   export
     reveals Stack
     provides Stack.Valid, Stack.Repr, Stack.Elements

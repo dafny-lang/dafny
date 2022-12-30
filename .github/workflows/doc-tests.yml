@@ -56,8 +56,11 @@ jobs:
         chmod +x bin/z3*
     - name: Build Dafny
       run: dotnet build dafny/Source/Dafny.sln
-    - name: Check OnlineTutorial
+    - name: Check OnlineTutorial examples
       run: |
         cd dafny/docs
         PATH=../bin:$PATH ./check-examples OnlineTutorial/*.md || ( echo Tests Failed; exit 1 ) && echo Tests Succeeded
-        echo Complete
+    - name: Check Reference Manual examples
+      run: |
+        cd dafny/docs
+        PATH=../bin:$PATH ./check-examples DafnyRef/*.md || ( echo Tests Failed; exit 1 ) && echo Tests Succeeded

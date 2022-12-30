@@ -43,7 +43,6 @@ namespace IntegrationTests {
         { "%binaryDir", "." },
         { "%z3", Path.Join("z3", "bin", "z3") },
         { "%repositoryRoot", repositoryRoot.Replace(@"\", "/") },
-        { "%refmanexamples", Path.Join("TestFiles", "LitTests", "LitTest", "refman", "examples") }
       };
 
       var commands = new Dictionary<string, Func<IEnumerable<string>, LitTestConfiguration, ILitCommand>> {
@@ -124,8 +123,9 @@ namespace IntegrationTests {
 
     [FileTheory]
     [FileData(Includes = new[] { "**/*.dfy", "**/*.transcript" },
-              Excludes = new[] { "**/Inputs/**/*", "**/Output/**/*", "refman/examples/**/*",
+              Excludes = new[] { "**/Inputs/**/*", "**/Output/**/*",
                 "tutorial/AutoExtern", // This is tested separately in the unit tests of Source/AutoExtern
+                "tutorial/induction-principle",
               })]
     public void LitTest(string path) {
       LitTestCase.Run(path, Config, output);
