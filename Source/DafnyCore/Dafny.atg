@@ -1173,7 +1173,12 @@ ModuleExport<ModuleDefinition parent, out ModuleDecl submodule>
     ExportSignature exsig;
     IToken laa;
   .)
-  [ ExportId<out exportId> ]
+  [ IF(IsIdentifier(la.kind) || la.kind==_digits) ExportId<out exportId>   // If the next token is 'least' or 'greatest' use it as the export id, 
+                                                                           // not the beginning of a subsequent extreme predicate declaration
+    (. if (exportId.line == la.line && (exportId.val == "least" || exportId.val == "greatest") && la.kind == _predicate)
+           errors.Warning(exportId, $"the {exportId.val} token is the identifier for the export set, not an adjective for an extreme predicate");
+    .)
+  ]
   [ ellipsis  (. isRefining = true; .) ]
   {
   (  "provides"
@@ -2464,6 +2469,9 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
     MethodFunctionName<out id>
     (
       [ GenericParameters<typeArgs, false> ]
+      [ KType<ref kType> 
+        (. SemErr(t, "a formal [ ] declaration is only allowed for least and greatest predicates"); .)
+      ]
       [ Formals<true, true, isTwoState, true, formals>
       ]
       [ PredicateResult<"predicate", out result> ]

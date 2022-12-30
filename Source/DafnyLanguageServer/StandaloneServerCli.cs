@@ -30,7 +30,7 @@ namespace Microsoft.Dafny.LanguageServer {
       configuration.Bind(VerifierOptions.Section, verifierOptions);
       dafnyOptions.Set(ServerCommand.LineVerificationStatus, verifierOptions.GutterStatus);
       dafnyOptions.Set(BoogieOptionBag.VerificationTimeLimit, verifierOptions.TimeLimit);
-      dafnyOptions.Set(BoogieOptionBag.Cores, (int)verifierOptions.VcsCores);
+      dafnyOptions.Set(BoogieOptionBag.Cores, verifierOptions.VcsCores);
       dafnyOptions.Set(ServerCommand.VerifySnapshots, verifierOptions.VerifySnapshots);
 
       var ghostOptions = new GhostOptions();

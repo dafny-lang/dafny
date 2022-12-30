@@ -233,10 +233,6 @@ public class ExpressionTester {
     } else if (expr is ComprehensionExpr comprehensionExpr) {
       var uncompilableBoundVars = comprehensionExpr.UncompilableBoundVars();
       if (uncompilableBoundVars.Count != 0) {
-        if (ReportErrors == false) {
-          return false;
-        }
-
         string what;
         if (comprehensionExpr is SetComprehension comprehension) {
           what = comprehension.Finite ? "set comprehensions" : "iset comprehensions";
@@ -248,9 +244,10 @@ public class ExpressionTester {
           what = "quantifiers";
         }
         foreach (var bv in uncompilableBoundVars) {
-          reporter.Error(MessageSource.Resolver, comprehensionExpr, "{0} in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for '{1}'", what, bv.Name);
+          reporter?.Error(MessageSource.Resolver, comprehensionExpr,
+            $"{what} in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for '{bv.Name}'");
+          isCompilable = false;
         }
-        return false;
       }
       // don't recurse down any attributes
       if (comprehensionExpr.Range != null) {

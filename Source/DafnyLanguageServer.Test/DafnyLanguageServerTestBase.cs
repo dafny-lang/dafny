@@ -97,7 +97,8 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
       foreach (var option in new ServerCommand().Options) {
         if (!dafnyOptions.Options.OptionArguments.ContainsKey(option)) {
           var value = result.GetValueForOption(option);
-          dafnyOptions.Set(option, value);
+
+          dafnyOptions.SetUntyped(option, value);
         }
 
         dafnyOptions.ApplyBinding(option);
