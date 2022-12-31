@@ -3576,19 +3576,19 @@ namespace Microsoft.Dafny {
             scope.Push(k.Name, k);  // we expect no name conflict for _k
           }
 
-          dominatingStatementLabels.PushMarker();
+          DominatingStatementLabels.PushMarker();
           foreach (var req in m.Req) {
             if (req.Label != null) {
-              if (dominatingStatementLabels.Find(req.Label.Name) != null) {
+              if (DominatingStatementLabels.Find(req.Label.Name) != null) {
                 reporter.Error(MessageSource.Resolver, req.Label.Tok, "assert label shadows a dominating label");
               } else {
-                var rr = dominatingStatementLabels.Push(req.Label.Name, req.Label);
+                var rr = DominatingStatementLabels.Push(req.Label.Name, req.Label);
                 Contract.Assert(rr == Scope<Label>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
               }
             }
           }
           ResolveBlockStatement(m.Body, ResolutionContext.FromCodeContext(m));
-          dominatingStatementLabels.PopMarker();
+          DominatingStatementLabels.PopMarker();
           SolveAllTypeConstraints();
         }
 
@@ -3681,19 +3681,19 @@ namespace Microsoft.Dafny {
 
       // Resolve body
       if (iter.Body != null) {
-        dominatingStatementLabels.PushMarker();
+        DominatingStatementLabels.PushMarker();
         foreach (var req in iter.Requires) {
           if (req.Label != null) {
-            if (dominatingStatementLabels.Find(req.Label.Name) != null) {
+            if (DominatingStatementLabels.Find(req.Label.Name) != null) {
               reporter.Error(MessageSource.Resolver, req.Label.Tok, "assert label shadows a dominating label");
             } else {
-              var rr = dominatingStatementLabels.Push(req.Label.Name, req.Label);
+              var rr = DominatingStatementLabels.Push(req.Label.Name, req.Label);
               Contract.Assert(rr == Scope<Label>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
             }
           }
         }
         ResolveBlockStatement(iter.Body, ResolutionContext.FromCodeContext(iter));
-        dominatingStatementLabels.PopMarker();
+        DominatingStatementLabels.PopMarker();
         SolveAllTypeConstraints();
       }
 
@@ -3784,10 +3784,10 @@ namespace Microsoft.Dafny {
         } else {
           var r = enclosingStatementLabels.Push(lnode.Name, stmt);
           Contract.Assert(r == Scope<Statement>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
-          if (dominatingStatementLabels.Find(lnode.Name) != null) {
+          if (DominatingStatementLabels.Find(lnode.Name) != null) {
             reporter.Error(MessageSource.Resolver, lnode.Tok, "label shadows a dominating label");
           } else {
-            var rr = dominatingStatementLabels.Push(lnode.Name, lnode);
+            var rr = DominatingStatementLabels.Push(lnode.Name, lnode);
             Contract.Assert(rr == Scope<Label>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
           }
         }
@@ -3814,7 +3814,7 @@ namespace Microsoft.Dafny {
       }
       foreach (var alternative in alternatives) {
         scope.PushMarker();
-        dominatingStatementLabels.PushMarker();
+        DominatingStatementLabels.PushMarker();
         if (alternative.IsBindingGuard) {
           var exists = (ExistsExpr)alternative.Guard;
           foreach (var v in exists.BoundVars) {
@@ -3825,7 +3825,7 @@ namespace Microsoft.Dafny {
         foreach (Statement ss in alternative.Body) {
           ResolveStatementWithLabels(ss, resolutionContext);
         }
-        dominatingStatementLabels.PopMarker();
+        DominatingStatementLabels.PopMarker();
         scope.PopMarker();
       }
       if (loopToCatchBreaks != null) {
@@ -4370,10 +4370,10 @@ namespace Microsoft.Dafny {
         PredicateStmt s = (PredicateStmt)stmt;
         var assertStmt = stmt as AssertStmt;
         if (assertStmt != null && assertStmt.Label != null) {
-          if (dominatingStatementLabels.Find(assertStmt.Label.Name) != null) {
+          if (DominatingStatementLabels.Find(assertStmt.Label.Name) != null) {
             reporter.Error(MessageSource.Resolver, assertStmt.Label.Tok, "assert label shadows a dominating label");
           } else {
-            var rr = dominatingStatementLabels.Push(assertStmt.Label.Name, assertStmt.Label);
+            var rr = DominatingStatementLabels.Push(assertStmt.Label.Name, assertStmt.Label);
             Contract.Assert(rr == Scope<Label>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
           }
         }
@@ -4407,7 +4407,7 @@ namespace Microsoft.Dafny {
         var s = (RevealStmt)stmt;
         foreach (var expr in s.Exprs) {
           var name = RevealStmt.SingleName(expr);
-          var labeledAssert = name == null ? null : dominatingStatementLabels.Find(name) as AssertLabel;
+          var labeledAssert = name == null ? null : DominatingStatementLabels.Find(name) as AssertLabel;
           if (labeledAssert != null) {
             s.LabeledAsserts.Add(labeledAssert);
           } else {
@@ -4712,15 +4712,15 @@ namespace Microsoft.Dafny {
             ScopePushAndReport(scope, v, "bound-variable");
           }
         }
-        dominatingStatementLabels.PushMarker();
+        DominatingStatementLabels.PushMarker();
         ResolveBlockStatement(s.Thn, resolutionContext);
-        dominatingStatementLabels.PopMarker();
+        DominatingStatementLabels.PopMarker();
         scope.PopMarker();
 
         if (s.Els != null) {
-          dominatingStatementLabels.PushMarker();
+          DominatingStatementLabels.PushMarker();
           ResolveStatement(s.Els, resolutionContext);
-          dominatingStatementLabels.PopMarker();
+          DominatingStatementLabels.PopMarker();
         }
 
       } else if (stmt is AlternativeStmt) {
@@ -4772,9 +4772,9 @@ namespace Microsoft.Dafny {
 
         if (s.Body != null) {
           loopStack.Add(s);  // push
-          dominatingStatementLabels.PushMarker();
+          DominatingStatementLabels.PushMarker();
           ResolveStatement(s.Body, resolutionContext);
-          dominatingStatementLabels.PopMarker();
+          DominatingStatementLabels.PopMarker();
           loopStack.RemoveAt(loopStack.Count - 1);  // pop
         } else {
           Contract.Assert(s.BodySurrogate == null);  // .BodySurrogate is set only once
@@ -4963,9 +4963,9 @@ namespace Microsoft.Dafny {
           loopStack = new List<Statement>();
           foreach (var h in s.Hints) {
             foreach (var oneHint in h.Body) {
-              dominatingStatementLabels.PushMarker();
+              DominatingStatementLabels.PushMarker();
               ResolveStatement(oneHint, resolutionContext);
-              dominatingStatementLabels.PopMarker();
+              DominatingStatementLabels.PopMarker();
             }
           }
           enclosingStatementLabels = prevLblStmts;
@@ -6875,7 +6875,7 @@ namespace Microsoft.Dafny {
       }
       Label atLabel = null;
       if (e.AtTok != null) {
-        atLabel = dominatingStatementLabels.Find(e.AtTok.val);
+        atLabel = DominatingStatementLabels.Find(e.AtTok.val);
         if (atLabel == null) {
           reporter.Error(MessageSource.Resolver, e.AtTok, "no label '{0}' in scope at this time", e.AtTok.val);
         }
