@@ -25,7 +25,7 @@ jobs:
     - name: Get Boogie Version
       run: |
         sudo apt-get install -qq libxml2-utils
-        echo "{boogieVersion}={2.16.0}" >> $GITHUB_ENV
+        echo "boogieVersion=2.16.0" >> $GITHUB_ENV
     - name: Test
       run: echo "${{ env.boogieVersion }}"
     - name: Attempt custom Boogie patch
