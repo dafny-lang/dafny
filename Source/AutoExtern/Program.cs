@@ -135,7 +135,6 @@ internal class CSharpFile : PrettyPrintable {
 
     var project = workspace.OpenProjectAsync(projectPath).Result;
 
-    //var errors = workspace.Diagnostics.Select()
     if (!workspace.Diagnostics.IsEmpty) {
       foreach (var diagnostic in workspace.Diagnostics) {
         Console.Error.WriteLine("Error in project: {0}", diagnostic.Message);
@@ -144,9 +143,20 @@ internal class CSharpFile : PrettyPrintable {
     }
 
     var compilation = project.GetCompilationAsync().Result!;
+    var syntaxTrees = compilation.SyntaxTrees.ToDictionary(
+      st => Path.GetFullPath(st.FilePath),
+      st => st);
+
     return sourceFiles.Select(filePath => {
       var fullPath = Path.GetFullPath(filePath);
-      var syntax = compilation.SyntaxTrees.First(st => Path.GetFullPath(st.FilePath) == fullPath);
+      if (!syntaxTrees.TryGetValue(fullPath, out var syntax)) {
+        Console.WriteLine($"Error: No syntax tree found in project '{projectPath}' for file '{fullPath}'.");
+        Console.WriteLine($"Known paths in project ({syntaxTrees.Count} total):");
+        foreach (var key in syntaxTrees) {
+          Console.WriteLine($"  {key}");
+        }
+        throw new Exception("Unexpected errors while building project");
+      }
       var model = compilation.GetSemanticModel(syntax);
       return new CSharpFile(syntax, new SemanticModel(rootModule, nameRewriter, model));
     });
