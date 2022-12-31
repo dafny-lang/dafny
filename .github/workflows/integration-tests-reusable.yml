@@ -24,27 +24,25 @@ jobs:
       - name: Populate OS list (all platforms)
         id: populate-os-list-all
         if: inputs.all_platforms
-        run: echo "::set-output name=os-list::[\"ubuntu-latest\", \"ubuntu-20.04\", \"macos-latest\", \"windows-2019\"]"
+        run: echo "os-list=[\"ubuntu-latest\", \"ubuntu-20.04\", \"macos-latest\", \"windows-2019\"]" >> $GITHUB_OUTPUT
       - name: Populate OS list (one platform)
         id: populate-os-list-one
         if: "!inputs.all_platforms"
-        run: echo "::set-output name=os-list::[\"ubuntu-20.04\"]"
+        run: echo "os-list=[\"ubuntu-20.04\"]" >> $GITHUB_OUTPUT
       - name: Populate OS mapping for package.py
         id: populate-os-mapping
-        run: |
-          echo "::set-output name=os-mapping::{\"ubuntu-latest\": \"ubuntu\", \"ubuntu-20.04\": \"ubuntu\", \"macos-latest\": \"osx\", \"windows-2019\": \"win\"}"
+        run: echo "os-mapping={\"ubuntu-latest\": \"ubuntu\", \"ubuntu-20.04\": \"ubuntu\", \"macos-latest\": \"osx\", \"windows-2019\": \"win\"}" >> $GITHUB_OUTPUT
       - name: Populate target runtime version list (all platforms)
         id: populate-target-runtime-version-all
         if: inputs.all_platforms
-        run: echo "::set-output name=target-runtime-version::[\"oldest\", \"newest\"]"
+        run: echo "target-runtime-version=[\"oldest\", \"newest\"]" >> $GITHUB_OUTPUT
       - name: Populate target runtime version list (one platform)
         id: populate-target-runtime-version-one
         if: "!inputs.all_platforms"
-        run: echo "::set-output name=target-runtime-version::[\"oldest\"]"
+        run: echo "target-runtime-version=[\"oldest\"]" >> $GITHUB_OUTPUT
       - name: Populate shard list
         id: populate-shard-list
-        run: |
-          echo "::set-output name=shard-list::[" $(seq -s , 1 ${{ inputs.num_shards }}) "]"
+        run: echo "shard-list=[" $(seq -s , 1 ${{ inputs.num_shards }}) "]" >> $GITHUB_OUTPUT
     outputs:
       os-list: ${{ steps.populate-os-list-all.outputs.os-list }} ${{ steps.populate-os-list-one.outputs.os-list }}
       os-mapping: ${{ steps.populate-os-mapping.outputs.os-mapping }}
@@ -61,7 +59,6 @@ jobs:
     - name: Manually sync certs
       if: runner.os == 'Linux'
       run: cert-sync /etc/ssl/certs/ca-certificates.crt
-    - uses: actions/setup-python@v4
     - name: Setup dotnet
       uses: actions/setup-dotnet@v3
       with:
