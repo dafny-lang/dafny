@@ -16,5 +16,6 @@ jobs:
         uses: actions/setup-java@v3
         with:
           java-version: 18
+          distribution: corretto
       - name: Build and Test DafnyRuntime.jar
         run: ./Source/DafnyRuntime/DafnyRuntimeJava/gradlew -p ./Source/DafnyRuntime/DafnyRuntimeJava test
