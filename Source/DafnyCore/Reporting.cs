@@ -221,7 +221,9 @@ namespace Microsoft.Dafny {
         ConsoleColor previousColor = Console.ForegroundColor;
         Console.ForegroundColor = ColorForLevel(level);
         var errorLine = ErrorToString(level, tok, msg);
-        if (errorID != "") errorLine += " (" + errorID + ")";
+        if (errorID != "") {
+          errorLine += " (" + errorID + ")";
+        }
         while (tok is NestedToken nestedToken) {
           tok = nestedToken.Inner;
           if (tok.Filename == nestedToken.Filename &&
