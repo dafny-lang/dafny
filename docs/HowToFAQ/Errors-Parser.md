@@ -170,7 +170,7 @@ module M {
 But mutable field declarations are not permitted at the static module level, including in the (implicit) toplevel module.
 Rather, you may want the declaration to be a `const` declaration or you may want the mutable field to be declared in the body of a class.
 
-## **Error: Refinement cannot change the constructors of a datatype. To refine _id_, either omit this '...' or omit the '=' sign and the datatype constructors.**
+## **Error: in refining a datatype, the '...' replaces the '=' token and everything up to a left brace starting the declaration of the body; only members of the body may be changed in a datatype refinement**
 
 ```dafny
 abstract module M { datatype D = A | B }
@@ -189,7 +189,7 @@ The `var` declaration declares a mutable field, which is only permitted within
 classes, traits and iterators. 
 `const` declarations can be members of value-types, such as datatypes.
 
-## **Error: a const field is initialized using ':=', not '='**
+## **Error: a const field should be initialized using ':=', not '='**
 
 ```dafny
 const c: int = 5
@@ -209,7 +209,7 @@ or a right-hand-side expression, whose type is then the type of the
 declared identifier. 
 So use syntax either like `const i: int` or `const i:= 5` (or both together).
 
-## **Error: Refinement cannot change the base type of a newtype. To refine _id_, either omit this '...' or omit the '=' sign and the parent type's body.**
+## **Error: in refining a newtype, the '...' replaces the '=' token and everything up to the left brace starting the declaration of the newtype body (if any); a newtype refinement may not change the basae typeRefinement cannot change the base type of the newtype**
 
 ```dafny
 abstract module M { newtype T = int }
@@ -347,7 +347,7 @@ Such designations are allowed in generic type declarations but not in generic me
 
 <!-- There are two instances of this error, one for the first item in a type parameter list, and one for subsequent items -->
 
-## **Error: unexpected type parameter option - should be == or 0 or 00 or !new**
+## **Error: unexpected type parameter option: '000' should be one of == or 0 or 00 or !new**
 
 ```dafny
 type T(000)
@@ -715,7 +715,7 @@ but multi-dimensional arrays cannot. The alternatives are to initialize the arra
 in a loop after it is allocated, or to initialize with a function, as in
 `var a:= new int[2,2]((i: int, j: int)=>i+j)`.
 
-## **Error: a local variable is initialized using ':=', ':-', or ':|', not '='**
+## **Error: a local variable should be initialized using ':=', ':-', or ':|', not '='**
 
 ```dafny
 method m() {
@@ -1081,7 +1081,7 @@ becuase it is not clear what the left-hand expression should be.
 Rewrite the failing example above as `const s := map x, y  | 0 <= x < y < 10 :: f(x,y) => x*y` for some `f(x,y)` that gives
 a unique value for each pair of `x,y` permitted by the range expression (here `0 <= x < y < 10 `).
 
-## **Error: a variable in a let expression is initialized using ':=', ':-', or ':|', not '='**
+## **Error: a variable in a let expression should be initialized using ':=', ':-', or ':|', not '='**
 
 ```dafny
 method m() {

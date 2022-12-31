@@ -1414,7 +1414,7 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
   (
   "="                                      (. bodyStart = t; .)
   [ ellipsis                               (. SemErr(t, // Help users adjust to the new syntax
-      $"Refinement cannot change the constructors of a datatype. To refine '{id.val}', either omit this '...' or omit the '=' sign and the datatype constructors."); .)
+      $"in refining a datatype, the '...' replaces the '=' token and everything up to a left brace starting the declaration of the body; only members of the body may be changed in a datatype refinement"); .)
   ]
   [ "|" ] DatatypeMemberDecl<ctors>
   { "|" DatatypeMemberDecl<ctors> }
@@ -1548,7 +1548,7 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
   (
   "="
   [ ellipsis                               (. SemErr(t, // Help users adjust to the new syntax
-      $"Refinement cannot change the base type of a newtype. To refine '{id.val}', either omit this '...' or omit the '=' sign and the parent type's body."); .)
+      $"in refining a newtype, the '...' replaces the '=' token and everything up to the left brace starting the declaration of the newtype body (if any); a newtype refinement may not change the basae typeRefinement cannot change the base type of the newtype"); .)
   ]
   ( IF(IsIdentColonOrBar())
     LocalVarName<out bvId>
@@ -1888,7 +1888,7 @@ TPCharOption<ref TypeParameter.TypeParameterCharacteristics characteristics>
                       characteristics.AutoInit = Microsoft.Dafny.Type.AutoInitInfo.Nonempty;
                     }
                   } else {
-                    SemErr(t, "unexpected type parameter option: {{t.val}} should be one of == or 0 or 00 or !new");
+                    SemErr(t, $"unexpected type parameter option: '{t.val}' should be one of == or 0 or 00 or !new");
                   }
                .)
   | "!" "new"  (. characteristics.ContainsNoReferenceTypes = true; .)
