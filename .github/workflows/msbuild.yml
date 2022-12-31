@@ -26,8 +26,6 @@ jobs:
       run: |
         sudo apt-get install -qq libxml2-utils
         echo "boogieVersion=`xmllint --xpath "//PackageReference[@Include='Boogie.ExecutionEngine']/@Version" dafny/Source/DafnyCore/DafnyCore.csproj | grep -Po 'Version="\K.*?(?=")'`" >> $GITHUB_ENV
-    - name: Test
-      run: echo "${{ env.boogieVersion }}"
     - name: Attempt custom Boogie patch
       working-directory: dafny
       run: git apply customBoogie.patch

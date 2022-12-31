@@ -77,7 +77,7 @@ jobs:
       run: dotnet test --no-restore --verbosity normal --logger trx Source/AutoExtern.Test
     - name: Run DafnyRuntime Tests
       run: dotnet test --no-restore --verbosity normal --logger trx Source/DafnyRuntime.Tests
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       if: always()
       with:
         name: unit-test-results-${{ matrix.os }}
