@@ -34,7 +34,7 @@ jobs:
       with:
         repository: boogie-org/boogie
         path: dafny/boogie
-        ref: v${{ steps.boogieVersion }}
+        ref: v${{ boogieVersion }}
     - name: Build Dafny with local Boogie
       working-directory: dafny
       run: dotnet build Source/Dafny.sln
