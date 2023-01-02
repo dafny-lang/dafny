@@ -248,16 +248,11 @@ public class MatchDenester : IRewriter {
       ResolveMatchStmt(result);
       return result;
     } else if (compiledMatch is CStmt c) {
-      // Resolve s as desugared match
       var result = c.Body;
       result.Attributes = (new ClonerKeepParensExpressions()).CloneAttributes(nestedMatchStmt.Attributes);
       for (int id = 0; id < state.CaseCopyCount.Length; id++) {
         if (state.CaseCopyCount[id] <= 0) {
           Reporter.Warning(MessageSource.Resolver, state.CaseTok[id], "this branch is redundant");
-          // resolver.scope.PushMarker();
-          // // CheckLinearNestedMatchCase(s.Source.Type, cases.ElementAt(id), resolutionContext);
-          // // cases.ElementAt(id).Body.ForEach(s => ResolveStatement(s, resolutionContext));
-          // resolver.scope.PopMarker();
         }
       }
 

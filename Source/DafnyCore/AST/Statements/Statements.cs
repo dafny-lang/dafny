@@ -30,7 +30,6 @@ public abstract class Statement : INode, IAttributeBearingDeclaration {
   [FilledInDuringResolution] public bool IsGhost { get; set; }
 
   protected Statement(Cloner cloner, Statement original) {
-    // TODO consider replacing this mechanism with something like a cloner.AddDelayedAction
     cloner.AddStatementClone(original, this);
     this.Tok = cloner.Tok(original.Tok);
     this.EndTok = cloner.Tok(original.EndTok);

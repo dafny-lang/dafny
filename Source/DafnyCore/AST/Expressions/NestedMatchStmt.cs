@@ -92,11 +92,6 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt> {
     var dtd = sourceType.AsDatatype;
     var subst = new Dictionary<TypeParameter, Type>();
     if (dtd != null) {
-      Contract.Assert(sourceType != null); // dtd and sourceType are set together above
-      var ctors = dtd.ConstructorsByName;
-      Contract.Assert(ctors !=
-                      null); // dtd should have been inserted into datatypeCtors during a previous resolution stage
-
       // build the type-parameter substitution map for this use of the datatype
       subst = TypeParameter.SubstitutionMap(dtd.TypeArgs, sourceType.TypeArgs);
     }

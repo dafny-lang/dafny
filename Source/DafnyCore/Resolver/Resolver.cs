@@ -6018,9 +6018,6 @@ namespace Microsoft.Dafny {
       var errorCount = reporter.Count(ErrorLevel.Error);
       s.Resolve(this, resolutionContext);
       this.SolveAllTypeConstraints();
-      if (reporter.Count(ErrorLevel.Error) != errorCount) {
-        return;
-      }
     }
 
     void ResolveMatchStmt(MatchStmt s, ResolutionContext resolutionContext) {

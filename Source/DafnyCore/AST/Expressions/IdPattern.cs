@@ -78,8 +78,8 @@ public class IdPattern : ExtendedPattern, IHasUsages {
 
     if (Arguments == null) {
       Type substitutedSourceType = sourceType.Subst(subst);
+      // TODO investigate next comment
       Type = substitutedSourceType; // Only possible because we did a rewrite one level higher, which used the information from Type.
-      //BoundVar = new Formal(Tok, Id, substitutedSourceType, false, isGhost, null); 
       if (mutable) {
         var localVariable = new LocalVariable(Tok, Tok, Id, null, isGhost);
         localVariable.type = substitutedSourceType;
