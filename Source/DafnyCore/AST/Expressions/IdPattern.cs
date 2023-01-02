@@ -128,4 +128,53 @@ public class IdPattern : ExtendedPattern, IHasUsages {
   }
 
   public IToken NameToken => Tok;
+
+  public void CheckLinearVarPattern(Type type, ResolutionContext resolutionContext, Resolver resolver) {
+    if (Arguments != null) {
+      if (Id == BuiltIns.TupleTypeCtorName(1)) {
+        resolver.reporter.Error(MessageSource.Resolver, this.Tok, "parentheses are not allowed around a pattern");
+      } else {
+        resolver.reporter.Error(MessageSource.Resolver, this.Tok, "member {0} does not exist in type {1}", this.Id, type);
+      }
+      return;
+    }
+
+    if (resolver.scope.FindInCurrentScope(this.Id) != null) {
+      resolver.reporter.Error(MessageSource.Resolver, this.Tok, "Duplicate parameter name: {0}", this.Id);
+    } else if (IsWildcardPattern) {
+      // Wildcard, ignore
+      return;
+    } else {
+      NameSegment e = new NameSegment(this.Tok, this.Id, null);
+      resolver.ResolveNameSegment(e, true, null, resolutionContext, false, false);
+      if (e.ResolvedExpression == null) {
+        resolver.ScopePushAndReport(resolver.scope, new BoundVar(this.Tok, this.Id, type), "parameter");
+      } else {
+        // finds in full scope, not just current scope
+        if (e.Resolved is MemberSelectExpr mse) {
+          if (mse.Member.IsStatic && mse.Member is ConstantField cf) {
+            Expression c = cf.Rhs;
+            if (c is LiteralExpr lit) {
+              this.ResolvedLit = lit;
+              if (type.Equals(e.ResolvedExpression.Type)) {
+                // OK - type is correct
+              } else {
+                // may well be a proxy so add a type constraint
+                resolver.ConstrainSubtypeRelation(e.ResolvedExpression.Type, type, this.Tok,
+                  "the type of the pattern ({0}) does not agree with the match expression ({1})", e.ResolvedExpression.Type, type);
+              }
+            } else {
+              resolver.reporter.Error(MessageSource.Resolver, this.Tok, "{0} is not initialized as a constant literal", this.Id);
+              resolver.ScopePushAndReport(resolver.scope, new BoundVar(this.Tok, this.Id, type), "parameter");
+            }
+          } else {
+            // Not a static const, so just a variable
+            resolver.ScopePushAndReport(resolver.scope, new BoundVar(this.Tok, this.Id, type), "parameter");
+          }
+        } else {
+          resolver.ScopePushAndReport(resolver.scope, new BoundVar(this.Tok, this.Id, type), "parameter");
+        }
+      }
+    }
+  }
 }

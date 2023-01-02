@@ -56,7 +56,13 @@ public class NestedMatchExpr : Expression, ICloneable<NestedMatchExpr> {
       return;
     }
 
-    resolver.CheckLinearNestedMatchExpr(sourceType, this, resolutionContext);
+    foreach (NestedMatchCaseExpr mc in Cases) {
+      resolver.scope.PushMarker();
+      resolver.ResolveAttributes(mc, resolutionContext);
+      mc.CheckLinearNestedMatchCase(sourceType, resolutionContext, resolver);
+      resolver.scope.PopMarker();
+    }
+
     if (resolver.reporter.Count(ErrorLevel.Error) != errorCount) {
       return;
     }

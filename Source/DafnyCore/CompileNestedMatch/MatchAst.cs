@@ -195,6 +195,100 @@ public class MatchStmt : Statement, ICloneable<MatchStmt> {
       yield return Source;
     }
   }
+
+  public void ResolveMatchStmt(ResolutionContext resolutionContext, Resolver resolver) {
+    Contract.Requires(this != null);
+    Contract.Requires(resolutionContext != null);
+    Contract.Requires(this.OrigUnresolved == null);
+
+    // first, clone the original match statement
+    this.OrigUnresolved = (MatchStmt)new ClonerKeepParensExpressions().CloneStmt(this);
+    resolver.ResolveExpression(this.Source, resolutionContext);
+    Contract.Assert(this.Source.Type != null);  // follows from postcondition of ResolveExpression
+    var errorCount = resolver.reporter.Count(ErrorLevel.Error);
+    var sourceType = resolver.PartiallyResolveTypeForMemberSelection(this.Source.tok, this.Source.Type).NormalizeExpand();
+
+    var dtd = sourceType.AsDatatype;
+    var subst = new Dictionary<TypeParameter, Type>();
+    Dictionary<string, DatatypeCtor> ctors;
+
+    if (dtd == null) {
+      resolver.reporter.Error(MessageSource.Resolver, this.Source, "the type of the match source expression must be a datatype (instead found {0})", this.Source.Type);
+      ctors = null;
+    } else {
+      ctors = dtd.ConstructorsByName;
+      Contract.Assert(ctors != null);  // dtd should have been inserted into datatypeCtors during a previous resolution stage
+      subst = TypeParameter.SubstitutionMap(dtd.TypeArgs, sourceType.TypeArgs); // build the type-parameter substitution map for this use of the datatype
+    }
+
+    ISet<string> memberNamesUsed = new HashSet<string>();
+
+    foreach (MatchCaseStmt mc in this.Cases) {
+      if (ctors != null) {
+        Contract.Assert(dtd != null);
+        var ctorId = mc.Ctor.Name;
+        if (this.Source.Type.AsDatatype is TupleTypeDecl) {
+          var tuple = (TupleTypeDecl)this.Source.Type.AsDatatype;
+          ctorId = BuiltIns.TupleTypeCtorName(tuple.Dims);
+        }
+        if (!ctors.ContainsKey(ctorId)) {
+          resolver.reporter.Error(MessageSource.Resolver, mc.tok, "member '{0}' does not exist in datatype '{1}'", ctorId, dtd.Name);
+        } else {
+          if (mc.Ctor.Formals.Count != mc.Arguments.Count) {
+            if (this.Source.Type.AsDatatype is TupleTypeDecl) {
+              resolver.reporter.Error(MessageSource.Resolver, mc.tok, "case arguments count does not match source arguments count");
+            } else {
+              resolver.reporter.Error(MessageSource.Resolver, mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", ctorId, mc.Arguments.Count, mc.Ctor.Formals.Count);
+            }
+          }
+          if (memberNamesUsed.Contains(ctorId)) {
+            resolver.reporter.Error(MessageSource.Resolver, mc.tok, "member {0} appears in more than one case", mc.Ctor.Name);
+          } else {
+            memberNamesUsed.Add(ctorId);  // add mc.Id to the set of names used
+          }
+        }
+      }
+
+      resolver.scope.PushMarker();
+      int i = 0;
+      if (mc.Arguments != null) {
+
+        foreach (BoundVar v in mc.Arguments) {
+          resolver.scope.Push(v.Name, v);
+          resolver.ResolveType(v.tok, v.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+          if (i < mc.Ctor.Formals.Count) {
+            Formal formal = mc.Ctor.Formals[i];
+            Type st = formal.Type.Subst(subst);
+            resolver.ConstrainSubtypeRelation(v.Type, st, this.Tok,
+              "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", v.Type, st);
+            v.IsGhost = formal.IsGhost;
+          }
+          i++;
+        }
+      }
+
+      resolver.DominatingStatementLabels.PushMarker();
+      foreach (Statement ss in mc.Body) {
+        resolver.ResolveStatementWithLabels(ss, resolutionContext);
+      }
+
+      resolver.DominatingStatementLabels.PopMarker();
+
+      resolver.scope.PopMarker();
+    }
+    if (dtd != null && memberNamesUsed.Count != dtd.Ctors.Count) {
+      // We could complain about the syntactic omission of constructors:
+      //   reporter.Error(MessageSource.Resolver, stmt, "match statement does not cover all constructors");
+      // but instead we let the verifier do a semantic check.
+      // So, for now, record the missing constructors:
+      foreach (var ctr in dtd.Ctors) {
+        if (!memberNamesUsed.Contains(ctr.Name)) {
+          this.MissingCases.Add(ctr);
+        }
+      }
+      Contract.Assert(memberNamesUsed.Count + this.MissingCases.Count == dtd.Ctors.Count);
+    }
+  }
 }
 
 public class MatchCaseStmt : MatchCase {

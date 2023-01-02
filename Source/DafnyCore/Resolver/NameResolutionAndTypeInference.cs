@@ -4980,7 +4980,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(prevErrorCount != reporter.Count(ErrorLevel.Error) || s.Steps.Count == s.Hints.Count);
 
       } else if (stmt is MatchStmt) {
-        ResolveMatchStmt((MatchStmt)stmt, resolutionContext);
+        ((MatchStmt)stmt).ResolveMatchStmt(resolutionContext, this);
 
       } else if (stmt is NestedMatchStmt) {
         var s = (NestedMatchStmt)stmt;
@@ -6209,7 +6209,7 @@ namespace Microsoft.Dafny {
       return rewrite;
     }
 
-    Expression ResolveNameSegment(NameSegment expr, bool isLastNameSegment, List<ActualBinding> args,
+    public Expression ResolveNameSegment(NameSegment expr, bool isLastNameSegment, List<ActualBinding> args,
       ResolutionContext resolutionContext, bool allowMethodCall, bool complain = true) {
       return ResolveNameSegment(expr, isLastNameSegment, args, resolutionContext, allowMethodCall, complain, out _);
     }

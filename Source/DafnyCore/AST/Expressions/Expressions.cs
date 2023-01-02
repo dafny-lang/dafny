@@ -2540,17 +2540,6 @@ public class CasePattern<VT> : INode
   public override IEnumerable<INode> Children => Arguments ?? Enumerable.Empty<INode>();
 }
 
-public abstract class NestedMatchCase : INode {
-  public readonly ExtendedPattern Pat;
-
-  public NestedMatchCase(IToken tok, ExtendedPattern pat) {
-    Contract.Requires(tok != null);
-    Contract.Requires(pat != null);
-    this.Tok = tok;
-    this.Pat = pat;
-  }
-}
-
 public class BoxingCastExpr : Expression {  // a BoxingCastExpr is used only as a temporary placeholding during translation
   public readonly Expression E;
   public readonly Type FromType;

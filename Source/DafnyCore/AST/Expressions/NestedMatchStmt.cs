@@ -80,7 +80,7 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt> {
 
     var errorCount = resolver.reporter.Count(ErrorLevel.Error);
     var sourceType = resolver.PartiallyResolveTypeForMemberSelection(Source.tok, Source.Type).NormalizeExpand();
-    resolver.CheckLinearNestedMatchStmt(sourceType, this, resolutionContext);
+    this.CheckLinearNestedMatchStmt(sourceType, resolutionContext, resolver);
     if (resolver.reporter.Count(ErrorLevel.Error) != errorCount) {
       return;
     }
@@ -95,6 +95,15 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt> {
     foreach (var _case in Cases) {
       resolver.scope.PushMarker();
       _case.Resolve(resolver, resolutionContext, subst, sourceType);
+      resolver.scope.PopMarker();
+    }
+  }
+
+  public void CheckLinearNestedMatchStmt(Type dtd, ResolutionContext resolutionContext, Resolver resolver) {
+    foreach (NestedMatchCaseStmt mc in this.Cases) {
+      resolver.scope.PushMarker();
+      resolver.ResolveAttributes(mc, resolutionContext);
+      mc.CheckLinearNestedMatchCase(dtd, resolutionContext, resolver);
       resolver.scope.PopMarker();
     }
   }
