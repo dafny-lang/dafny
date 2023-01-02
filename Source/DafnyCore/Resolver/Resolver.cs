@@ -424,7 +424,7 @@ namespace Microsoft.Dafny {
       rewriters.Add(new TimeLimitRewriter(reporter));
       rewriters.Add(new ForallStmtRewriter(reporter));
       rewriters.Add(new ProvideRevealAllRewriter(this.reporter));
-      rewriters.Add(new MatchDenester(this.reporter, Resolver.defaultTempVarIdGenerator));
+      rewriters.Add(new MatchFlattener(this.reporter, Resolver.defaultTempVarIdGenerator));
 
       if (DafnyOptions.O.AutoTriggers) {
         rewriters.Add(new QuantifierSplittingRewriter(reporter));

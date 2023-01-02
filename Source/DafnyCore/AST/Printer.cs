@@ -1447,19 +1447,19 @@ NoGhost - disable printing of functions, ghost methods, and proof
         // Print ResolvedStatement, if present, as comment
         var s = (NestedMatchStmt)stmt;
 
-        if (s.Denested != null && DafnyOptions.O.DafnyPrintResolvedFile != null) {
+        if (s.Flattened != null && DafnyOptions.O.DafnyPrintResolvedFile != null) {
           wr.WriteLine();
           if (!printingDesugared) {
-            Indent(indent); wr.WriteLine("/*---------- denested ----------");
+            Indent(indent); wr.WriteLine("/*---------- flattened ----------");
           }
 
           var savedDesugarMode = printingDesugared;
           printingDesugared = true;
-          Indent(indent); PrintStatement(s.Denested, indent);
+          Indent(indent); PrintStatement(s.Flattened, indent);
           printingDesugared = savedDesugarMode;
 
           if (!printingDesugared) {
-            Indent(indent); wr.WriteLine("---------- end denested ----------*/");
+            Indent(indent); wr.WriteLine("---------- end flattened ----------*/");
           }
           Indent(indent);
         }
@@ -1940,19 +1940,19 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
       } else if (expr is NestedMatchExpr) {
         var e = (NestedMatchExpr)expr;
-        if (e.Denested != null && DafnyOptions.O.DafnyPrintResolvedFile != null) {
+        if (e.Flattened != null && DafnyOptions.O.DafnyPrintResolvedFile != null) {
           wr.WriteLine();
           if (!printingDesugared) {
-            Indent(indent); wr.WriteLine("/*---------- denested ----------");
+            Indent(indent); wr.WriteLine("/*---------- flattened ----------");
           }
 
           var savedDesugarMode = printingDesugared;
           printingDesugared = true;
-          PrintExtendedExpr(e.Denested, indent, isRightmost, endWithCloseParen);
+          PrintExtendedExpr(e.Flattened, indent, isRightmost, endWithCloseParen);
           printingDesugared = savedDesugarMode;
 
           if (!printingDesugared) {
-            Indent(indent); wr.WriteLine("---------- end denested ----------*/");
+            Indent(indent); wr.WriteLine("---------- end flattened ----------*/");
           }
         }
         if (!printingDesugared) {

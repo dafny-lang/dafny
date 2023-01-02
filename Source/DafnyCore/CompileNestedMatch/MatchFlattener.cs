@@ -36,11 +36,11 @@ namespace Microsoft.Dafny;
 ///
 /// 
 /// </summary>
-public class MatchDenester : IRewriter {
+public class MatchFlattener : IRewriter {
   private readonly FreshIdGenerator idGenerator;
   private ResolutionContext resolutionContext;
 
-  public MatchDenester(ErrorReporter reporter, FreshIdGenerator idGenerator)
+  public MatchFlattener(ErrorReporter reporter, FreshIdGenerator idGenerator)
     : base(reporter) {
     this.idGenerator = idGenerator;
   }
@@ -70,14 +70,14 @@ public class MatchDenester : IRewriter {
       }
 
       if (node is NestedMatchStmt nestedMatchStmt) {
-        nestedMatchStmt.Denested = CompileNestedMatchStmt(nestedMatchStmt);
-        DenestNode(nestedMatchStmt.Denested);
+        nestedMatchStmt.Flattened = CompileNestedMatchStmt(nestedMatchStmt);
+        DenestNode(nestedMatchStmt.Flattened);
         return false;
       }
 
       if (node is NestedMatchExpr nestedMatchExpr) {
-        nestedMatchExpr.Denested = CompileNestedMatchExpr(nestedMatchExpr);
-        DenestNode(nestedMatchExpr.Denested);
+        nestedMatchExpr.Flattened = CompileNestedMatchExpr(nestedMatchExpr);
+        DenestNode(nestedMatchExpr.Flattened);
         return false;
       }
 

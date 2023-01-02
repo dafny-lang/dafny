@@ -2699,7 +2699,6 @@ public abstract class ConcreteSyntaxExpression : Expression {
     }
   }
 
-  // Protected so that ReflectiveUpdate can find it.
   [FilledInDuringResolution] private Expression resolvedExpression;
 
   public Expression ResolvedExpression {

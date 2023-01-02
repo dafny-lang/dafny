@@ -284,18 +284,13 @@ namespace Microsoft.Dafny {
       } else if (expr is LetExpr letExpr) {
         newExpr = LetExpr(letExpr);
       } else if (expr is NestedMatchExpr nestedMatchExpr) {
-
-        // if (nestedMatchExpr.Denested != null) {
-        //   return Substitute(nestedMatchExpr.Denested);
-        // }
-        var e = (NestedMatchExpr)expr;
-        var src = Substitute(e.Source);
-        bool anythingChanged = src != e.Source;
-        var denested = nestedMatchExpr.Denested == null ? null : Substitute(nestedMatchExpr.Denested);
-        anythingChanged |= denested != nestedMatchExpr.Denested;
+        var src = Substitute(nestedMatchExpr.Source);
+        bool anythingChanged = src != nestedMatchExpr.Source;
+        var flattened = nestedMatchExpr.Flattened == null ? null : Substitute(nestedMatchExpr.Flattened);
+        anythingChanged |= flattened != nestedMatchExpr.Flattened;
 
         var cases = new List<NestedMatchCaseExpr>();
-        foreach (var mc in e.Cases) {
+        foreach (var mc in nestedMatchExpr.Cases) {
 
           List<BoundVar> discoveredBvs = new();
           ExtendedPattern SubstituteForPattern(ExtendedPattern pattern) {
@@ -339,7 +334,7 @@ namespace Microsoft.Dafny {
         }
         if (anythingChanged) {
           newExpr = new NestedMatchExpr(expr.tok, src, cases, e.UsesOptionalBraces) {
-            Denested = denested
+            Flattened = flattened
           };
         }
 

@@ -10,7 +10,7 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt> {
   public readonly List<NestedMatchCaseStmt> Cases;
   public readonly bool UsesOptionalBraces;
 
-  [FilledInDuringResolution] public Statement Denested { get; set; }
+  [FilledInDuringResolution] public Statement Flattened { get; set; }
 
   private void InitializeAttributes() {
     // Default case for match is false
@@ -35,7 +35,7 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt> {
     Cases = original.Cases.ConvertAll(cloner.CloneNestedMatchCaseStmt);
     UsesOptionalBraces = original.UsesOptionalBraces;
     if (cloner.CloneResolvedFields) {
-      Denested = cloner.CloneStmt(original.Denested);
+      Flattened = cloner.CloneStmt(original.Flattened);
     }
   }
 

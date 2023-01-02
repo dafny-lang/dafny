@@ -12,14 +12,14 @@ public class NestedMatchExpr : Expression, ICloneable<NestedMatchExpr> {
   public Attributes Attributes;
 
   [FilledInDuringResolution]
-  public Expression Denested { get; set; }
+  public Expression Flattened { get; set; }
 
   public NestedMatchExpr(Cloner cloner, NestedMatchExpr original) : base(cloner, original) {
     this.Source = cloner.CloneExpr(original.Source);
     this.Cases = original.Cases.Select(cloner.CloneNestedMatchCaseExpr).ToList();
     this.UsesOptionalBraces = original.UsesOptionalBraces;
     if (cloner.CloneResolvedFields) {
-      Denested = cloner.CloneExpr(original.Denested);
+      Flattened = cloner.CloneExpr(original.Flattened);
     }
   }
 

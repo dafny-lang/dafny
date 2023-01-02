@@ -2638,7 +2638,7 @@ namespace Microsoft.Dafny.Compilers {
         TrExprOpt(e.Els, resultType, els, accumulatorVar);
 
       } else if (expr is NestedMatchExpr nestedMatchExpr) {
-        TrExprOpt(nestedMatchExpr.Denested, resultType, wr, accumulatorVar);
+        TrExprOpt(nestedMatchExpr.Flattened, resultType, wr, accumulatorVar);
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
         //   var _source = E;
@@ -3336,7 +3336,7 @@ namespace Microsoft.Dafny.Compilers {
           }
         }
       } else if (stmt is NestedMatchStmt nestedMatchStmt) {
-        TrStmt(nestedMatchStmt.Denested, wr, wStmts);
+        TrStmt(nestedMatchStmt.Flattened, wr, wStmts);
       } else if (stmt is MatchStmt) {
         MatchStmt s = (MatchStmt)stmt;
         // Type source = e;
@@ -4886,7 +4886,7 @@ namespace Microsoft.Dafny.Compilers {
           }
         }
       } else if (expr is NestedMatchExpr nestedMatchExpr) {
-        TrExpr(nestedMatchExpr.Denested, wr, inLetExprBody, wStmts);
+        TrExpr(nestedMatchExpr.Flattened, wr, inLetExprBody, wStmts);
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
         // ((System.Func<SourceType, TargetType>)((SourceType _source) => {

@@ -5079,7 +5079,7 @@ namespace Microsoft.Dafny {
         var e = (ConcreteSyntaxExpression)expr;
         return CanCallAssumption(e.ResolvedExpression, etran);
       } else if (expr is NestedMatchExpr nestedMatchExpr) {
-        return CanCallAssumption(nestedMatchExpr.Denested, etran);
+        return CanCallAssumption(nestedMatchExpr.Flattened, etran);
       } else if (expr is BoogieFunctionCall) {
         var e = (BoogieFunctionCall)expr;
         return CanCallAssumption(e.Args, etran);
@@ -9947,7 +9947,7 @@ namespace Microsoft.Dafny {
         var e = (ConcreteSyntaxExpression)expr;
         return TrSplitExpr(e.ResolvedExpression, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
       } else if (expr is NestedMatchExpr nestedMatchExpr) {
-        return TrSplitExpr(nestedMatchExpr.Denested, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
+        return TrSplitExpr(nestedMatchExpr.Flattened, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
         if (!e.Exact) {

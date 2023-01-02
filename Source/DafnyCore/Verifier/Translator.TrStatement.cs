@@ -425,7 +425,7 @@ namespace Microsoft.Dafny {
         TrCalcStmt(calcStmt, builder, locals, etran);
 
       } else if (stmt is NestedMatchStmt nestedMatchStmt) {
-        TrStmt(nestedMatchStmt.Denested, builder, locals, etran);
+        TrStmt(nestedMatchStmt.Flattened, builder, locals, etran);
       } else if (stmt is MatchStmt matchStmt) {
         TrMatchStmt(matchStmt, builder, locals, etran);
       } else if (stmt is VarDeclStmt) {
