@@ -1495,40 +1495,38 @@ NoGhost - disable printing of functions, ghost methods, and proof
         }
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;
-        if (DafnyOptions.O.DafnyPrintResolvedFile == null && s.OrigUnresolved != null) {
-          PrintStatement(s.OrigUnresolved, indent);
-        } else {
-          wr.Write("match");
-          PrintAttributes(s.Attributes);
-          wr.Write(" ");
-          PrintExpression(s.Source, false);
-          if (s.UsesOptionalBraces) {
-            wr.Write(" {");
-          }
-          int caseInd = indent + (s.UsesOptionalBraces ? IndentAmount : 0);
-          foreach (MatchCaseStmt mc in s.Cases) {
-            wr.WriteLine();
-            Indent(caseInd);
-            wr.Write("case");
-            PrintAttributes(mc.Attributes);
-            wr.Write(" ");
-            if (!mc.Ctor.Name.StartsWith(BuiltIns.TupleTypeCtorNamePrefix)) {
-              wr.Write(mc.Ctor.Name);
-            }
+        wr.Write("match");
+        PrintAttributes(s.Attributes);
+        wr.Write(" ");
+        PrintExpression(s.Source, false);
+        if (s.UsesOptionalBraces) {
+          wr.Write(" {");
+        }
 
-            PrintMatchCaseArgument(mc);
-            wr.Write(" =>");
-            foreach (Statement bs in mc.Body) {
-              wr.WriteLine();
-              Indent(caseInd + IndentAmount);
-              PrintStatement(bs, caseInd + IndentAmount);
-            }
+        int caseInd = indent + (s.UsesOptionalBraces ? IndentAmount : 0);
+        foreach (MatchCaseStmt mc in s.Cases) {
+          wr.WriteLine();
+          Indent(caseInd);
+          wr.Write("case");
+          PrintAttributes(mc.Attributes);
+          wr.Write(" ");
+          if (!mc.Ctor.Name.StartsWith(BuiltIns.TupleTypeCtorNamePrefix)) {
+            wr.Write(mc.Ctor.Name);
           }
-          if (s.UsesOptionalBraces) {
+
+          PrintMatchCaseArgument(mc);
+          wr.Write(" =>");
+          foreach (Statement bs in mc.Body) {
             wr.WriteLine();
-            Indent(indent);
-            wr.Write("}");
+            Indent(caseInd + IndentAmount);
+            PrintStatement(bs, caseInd + IndentAmount);
           }
+        }
+
+        if (s.UsesOptionalBraces) {
+          wr.WriteLine();
+          Indent(indent);
+          wr.Write("}");
         }
 
       } else if (stmt is ConcreteUpdateStatement) {

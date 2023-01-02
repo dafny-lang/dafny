@@ -128,10 +128,6 @@ public class MatchStmt : Statement, Match, ICloneable<MatchStmt> {
   [FilledInDuringResolution] public List<DatatypeCtor> MissingCases { get; } = new();
   public readonly bool UsesOptionalBraces;
 
-  [FilledInDuringResolution]
-  // TODO remove field?
-  public MatchStmt OrigUnresolved; // the resolver makes this clone of the MatchStmt before it starts desugaring it
-
   public MatchStmt Clone(Cloner cloner) {
     return new MatchStmt(cloner, this);
   }
@@ -144,7 +140,6 @@ public class MatchStmt : Statement, Match, ICloneable<MatchStmt> {
 
     if (cloner.CloneResolvedFields) {
       MissingCases = original.MissingCases;
-      OrigUnresolved = original.OrigUnresolved;
     }
   }
 

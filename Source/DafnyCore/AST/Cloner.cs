@@ -916,14 +916,6 @@ namespace Microsoft.Dafny {
       return base.CloneExpr(expr);
     }
 
-    public override Statement CloneStmt(Statement stmt) {
-      var s = stmt as MatchStmt;
-      if (s != null && s.OrigUnresolved != null) {
-        return CloneStmt(s.OrigUnresolved);
-      }
-      return base.CloneStmt(stmt);
-    }
-
     public ModuleSignature CloneModuleSignature(ModuleSignature org, ModuleSignature newSig) {
       var sig = new ModuleSignature();
       sig.ModuleDef = newSig.ModuleDef;
