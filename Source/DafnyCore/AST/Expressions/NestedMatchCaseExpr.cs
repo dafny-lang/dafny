@@ -23,11 +23,10 @@ public class NestedMatchCaseExpr : NestedMatchCase, IAttributeBearingDeclaration
     Resolver resolver,
     ResolutionContext resolutionContext,
     Dictionary<TypeParameter, Type> subst,
-    Type caseType,
+    Type resultType,
     Type sourceType) {
     var beforeResolveErrorCount = resolver.reporter.ErrorCount;
 
-    // TODO see if I can replace this replacement with some resolution logic that only triggers when IdPattern.Type is not InferredTypeProxy.
     var boundVars = Pat.ReplaceTypesWithBoundVariables(resolver, resolutionContext).ToList();
     if (boundVars.Any()) {
       var lhss = boundVars.Select(b => new CasePattern<BoundVar>(Token.NoToken, b.var)).ToList();
@@ -36,13 +35,13 @@ public class NestedMatchCaseExpr : NestedMatchCase, IAttributeBearingDeclaration
       Body = new LetExpr(Token.NoToken, lhss, rhss, Body, true);
     }
 
-    Pat.Resolve(resolver, resolutionContext, subst, sourceType, false, false, false, false); // TODO: is this isGhost false correct?
+    Pat.Resolve(resolver, resolutionContext, subst, sourceType, false, false, false, false);
 
     resolver.ResolveAttributes(this, resolutionContext);
     var afterResolveErrorCount = resolver.reporter.ErrorCount;
     if (beforeResolveErrorCount == afterResolveErrorCount) {
       resolver.ResolveExpression(Body, resolutionContext);
-      resolver.ConstrainSubtypeRelation(caseType, Body.Type, Body.tok, "type of case bodies do not agree (found {0}, previous types {1})", Body.Type, caseType);
+      resolver.ConstrainSubtypeRelation(resultType, Body.Type, Body.tok, "type of case bodies do not agree (found {0}, previous types {1})", Body.Type, resultType);
     }
   }
 }
