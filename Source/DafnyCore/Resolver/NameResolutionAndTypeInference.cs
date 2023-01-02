@@ -1081,8 +1081,6 @@ namespace Microsoft.Dafny {
         ConstrainSubtypeRelation(expr.Type, e.Thn.Type, expr, "the two branches of an if-then-else expression must have the same type (got {0} and {1})", e.Thn.Type, e.Els.Type);
         ConstrainSubtypeRelation(expr.Type, e.Els.Type, expr, "the two branches of an if-then-else expression must have the same type (got {0} and {1})", e.Thn.Type, e.Els.Type);
 
-      } else if (expr is MatchExpr) {
-        ResolveMatchExpr((MatchExpr)expr, resolutionContext);
       } else if (expr is NestedMatchExpr nestedMatchExpr) {
         ResolveNestedMatchExpr(nestedMatchExpr, resolutionContext);
       } else {
@@ -4978,9 +4976,6 @@ namespace Microsoft.Dafny {
         ResolveExpression(s.Result, resolutionContext);
         Contract.Assert(s.Result != null);
         Contract.Assert(prevErrorCount != reporter.Count(ErrorLevel.Error) || s.Steps.Count == s.Hints.Count);
-
-      } else if (stmt is MatchStmt) {
-        ((MatchStmt)stmt).ResolveMatchStmt(resolutionContext, this);
 
       } else if (stmt is NestedMatchStmt) {
         var s = (NestedMatchStmt)stmt;

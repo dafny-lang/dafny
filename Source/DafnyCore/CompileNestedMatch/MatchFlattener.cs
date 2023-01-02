@@ -459,7 +459,7 @@ public class MatchFlattener : IRewriter {
     } else {
       var newMatchExpr = new MatchExpr(mti.Tok, headMatchee, newMatchCases.ConvertAll(x => (MatchCaseExpr)x), true, context);
       newMatchExpr.Type = ((NestedMatchExpr)mti.Match).Type;
-      ResolveMatchExpr(newMatchExpr);
+      FillMissingCases(newMatchExpr);
       return new CExpr(null, newMatchExpr);
     }
   }
@@ -713,7 +713,7 @@ public class MatchFlattener : IRewriter {
 
     public IToken Tok => Match switch {
       NestedMatchExpr matchExpr => matchExpr.tok,
-      NestedMatchStmt matchStmt => matchStmt.Tok,
+      NestedMatchStmt matchStmt => Tok,
       _ => throw new ArgumentOutOfRangeException(nameof(Match))
     };
 
