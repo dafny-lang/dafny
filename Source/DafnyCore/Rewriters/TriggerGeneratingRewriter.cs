@@ -1,3 +1,5 @@
+using System.Diagnostics.Contracts;
+
 namespace Microsoft.Dafny;
 
 // TODO should this move to a verifier folder?

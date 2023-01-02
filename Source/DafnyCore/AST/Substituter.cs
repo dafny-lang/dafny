@@ -333,7 +333,7 @@ namespace Microsoft.Dafny {
           cases.Add(newCaseExpr);
         }
         if (anythingChanged) {
-          newExpr = new NestedMatchExpr(expr.tok, src, cases, e.UsesOptionalBraces) {
+          newExpr = new NestedMatchExpr(expr.tok, src, cases, nestedMatchExpr.UsesOptionalBraces) {
             Flattened = flattened
           };
         }

@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
-using System.Text.RegularExpressions;
 
 namespace Microsoft.Dafny; 
 
@@ -81,8 +80,8 @@ public class MatchExpr : Expression, ICloneable<MatchExpr> {  // a MatchExpr is 
 }
 
 public abstract class MatchCase : INode, IHasUsages {
-  [FilledInDuringResolution] public DatatypeCtor Ctor;
-  public List<BoundVar> Arguments; // created by the resolver.
+  public DatatypeCtor Ctor;
+  public List<BoundVar> Arguments;
 
   [ContractInvariantMethod]
   void ObjectInvariant() {

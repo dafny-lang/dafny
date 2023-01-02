@@ -1,3 +1,5 @@
+using System.Diagnostics.Contracts;
+
 namespace Microsoft.Dafny;
 
 class ResolverBottomUpVisitor : BottomUpVisitor {

@@ -1,6 +1,8 @@
 // Copyright by the contributors to the Dafny Project
 // SPDX-License-Identifier: MIT
 
+using System.Diagnostics.Contracts;
+
 namespace Microsoft.Dafny {
   /// <summary>
   /// A class that plugins should extend, in order to provide an extra Rewriter to the pipeline.

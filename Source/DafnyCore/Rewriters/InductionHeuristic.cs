@@ -1,3 +1,5 @@
+using System.Diagnostics.Contracts;
+
 namespace Microsoft.Dafny; 
 
 public static class InductionHeuristic {
