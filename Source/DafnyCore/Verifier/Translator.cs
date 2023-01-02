@@ -4999,7 +4999,7 @@ namespace Microsoft.Dafny {
           subst[bv] = new BoogieWrapper(ve, bv.Type);
         }
 
-        var canCall = CanCallAssumption(Substitute(e.Term, null, subst), et);
+        var canCall = CanCallAssumption(Substitute(e.Body, null, subst), et);
         if (e.Range != null) {
           var range = Substitute(e.Range, null, subst);
           canCall = BplAnd(CanCallAssumption(range, etran), BplImp(etran.TrExpr(range), canCall));

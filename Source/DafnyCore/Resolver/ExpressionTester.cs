@@ -231,7 +231,7 @@ public class ExpressionTester {
       }
       return isCompilable;
     } else if (expr is LambdaExpr lambdaExpr) {
-      return CheckIsCompilable(lambdaExpr.Term, codeContext);
+      return CheckIsCompilable(lambdaExpr.Body, codeContext);
     } else if (expr is ComprehensionExpr comprehensionExpr) {
       var uncompilableBoundVars = comprehensionExpr.UncompilableBoundVars();
       if (uncompilableBoundVars.Count != 0) {

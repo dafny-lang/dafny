@@ -1346,7 +1346,7 @@ namespace Microsoft.Dafny.Compilers {
       var range = $"range({Expr(expr.N, inLetExprBody, wStmts)})";
       wr.Write(DafnySeqClass);
       if (expr.Initializer is LambdaExpr lam) {
-        valueExpression = Expr(lam.Term, inLetExprBody, wStmts);
+        valueExpression = Expr(lam.Body, inLetExprBody, wStmts);
         var binder = IdProtect(lam.BoundVars[0].CompileName);
         wr.Write($"([{valueExpression} for {binder} in {range}])");
       } else {

@@ -2657,7 +2657,7 @@ namespace Microsoft.Dafny.Compilers {
       ConcreteSyntaxTree wStmts) {
       if (expr.Initializer is LambdaExpr lam) {
         Contract.Assert(lam.BoundVars.Count == 1);
-        EmitSeqConstructionExprFromLambda(expr.N, lam.BoundVars[0], lam.Term, inLetExprBody, wr);
+        EmitSeqConstructionExprFromLambda(expr.N, lam.BoundVars[0], lam.Body, inLetExprBody, wr);
       } else {
         wr.Write($"{DafnySeqClass}<{TypeName(expr.Type.AsSeqType.Arg, wr, expr.tok)}>.Create");
         wr.Append(ParensList(Expr(expr.N, inLetExprBody, wStmts), Expr(expr.Initializer, inLetExprBody, wStmts)));

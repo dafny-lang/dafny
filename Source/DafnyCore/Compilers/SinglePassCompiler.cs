@@ -5046,12 +5046,12 @@ namespace Microsoft.Dafny.Compilers {
         var e = (LambdaExpr)expr;
 
         wr = CaptureFreeVariables(e, false, out var su, inLetExprBody, wr, ref wStmts);
-        wr = CreateLambda(e.BoundVars.ConvertAll(bv => bv.Type), Token.NoToken, e.BoundVars.ConvertAll(IdName), e.Term.Type, wr, wStmts);
+        wr = CreateLambda(e.BoundVars.ConvertAll(bv => bv.Type), Token.NoToken, e.BoundVars.ConvertAll(IdName), e.Body.Type, wr, wStmts);
         wStmts = wr.Fork();
         wr = EmitReturnExpr(wr);
         // May need an upcast or boxing conversion to coerce to the generic arrow result type
-        wr = EmitCoercionIfNecessary(e.Term.Type, TypeForCoercion(e.Type.AsArrowType.Result), e.Term.tok, wr);
-        TrExpr(su.Substitute(e.Term), wr, inLetExprBody, wStmts);
+        wr = EmitCoercionIfNecessary(e.Body.Type, TypeForCoercion(e.Type.AsArrowType.Result), e.Body.tok, wr);
+        TrExpr(su.Substitute(e.Body), wr, inLetExprBody, wStmts);
 
       } else if (expr is StmtExpr) {
         var e = (StmtExpr)expr;

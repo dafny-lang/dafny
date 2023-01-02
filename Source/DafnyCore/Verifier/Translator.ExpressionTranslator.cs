@@ -1484,8 +1484,8 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
         var ly = BplBoundVar(varNameGen.FreshId("#ly#"), predef.LayerType, lvars);
         et = et.WithLayer(ly);
 
-        var ebody = et.TrExpr(Translator.Substitute(e.Term, null, subst));
-        ebody = translator.BoxIfUnboxed(ebody, e.Term.Type);
+        var ebody = et.TrExpr(Translator.Substitute(e.Body, null, subst));
+        ebody = translator.BoxIfUnboxed(ebody, e.Body.Type);
 
         var isBoxes = BplAnd(ves.Zip(e.BoundVars, (ve, bv) => translator.MkIsBox(ve, bv.Type)));
         var reqbody = e.Range == null
