@@ -713,7 +713,7 @@ public class MatchFlattener : IRewriter {
 
     public IToken Tok => Match switch {
       NestedMatchExpr matchExpr => matchExpr.tok,
-      NestedMatchStmt matchStmt => Tok,
+      NestedMatchStmt matchStmt => matchStmt.Tok,
       _ => throw new ArgumentOutOfRangeException(nameof(Match))
     };
 

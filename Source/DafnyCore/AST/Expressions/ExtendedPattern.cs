@@ -77,7 +77,6 @@ public abstract class ExtendedPattern : INode {
         Contract.Assert(false); throw new cce.UnreachableException();
       }
     } else if (type.AsDatatype is TupleTypeDecl tupleTypeDecl) {
-      // TODO why does we need custom code for tuples? :cry:
       var udt = type.NormalizeExpand() as UserDefinedType;
       if (!(this is IdPattern)) {
         resolver.reporter.Error(MessageSource.Resolver, this.Tok, "pattern doesn't correspond to a tuple");
