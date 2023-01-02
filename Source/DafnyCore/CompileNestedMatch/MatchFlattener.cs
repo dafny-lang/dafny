@@ -86,39 +86,26 @@ public class MatchFlattener : IRewriter {
     });
   }
 
-  void ResolveMatchStmt(MatchStmt s) {
+  void FillMissingCases(Match s) {
     Contract.Requires(s != null);
     Contract.Requires(resolutionContext != null);
-    Contract.Requires(s.OrigUnresolved == null);
 
     var dtd = s.Source.Type.AsDatatype;
     Dictionary<string, DatatypeCtor> ctors = dtd.ConstructorsByName;
 
     ISet<string> memberNamesUsed = new HashSet<string>();
 
-    foreach (MatchCaseStmt mc in s.Cases) {
+    foreach (var matchCase in s.Cases) {
       if (ctors != null) {
         Contract.Assert(dtd != null);
-        var ctorId = mc.Ctor.Name;
+        var ctorId = matchCase.Ctor.Name;
         if (s.Source.Type.AsDatatype is TupleTypeDecl) {
           var tuple = (TupleTypeDecl)s.Source.Type.AsDatatype;
           ctorId = BuiltIns.TupleTypeCtorName(tuple.Dims);
         }
-        if (!ctors.ContainsKey(ctorId)) {
-          // Reporter.Error(MessageSource.Resolver, mc.tok, "member '{0}' does not exist in datatype '{1}'", ctorId, dtd.Name);
-        } else {
-          if (mc.Ctor.Formals.Count != mc.Arguments.Count) {
-            if (s.Source.Type.AsDatatype is TupleTypeDecl) {
-              // Reporter.Error(MessageSource.Resolver, mc.tok, "case arguments count does not match source arguments count");
-            } else {
-              // Reporter.Error(MessageSource.Resolver, mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", ctorId, mc.Arguments.Count, mc.Ctor.Formals.Count);
-            }
-          }
-          if (memberNamesUsed.Contains(ctorId)) {
-            // Reporter.Error(MessageSource.Resolver, mc.tok, "member {0} appears in more than one case", mc.Ctor.Name);
-          } else {
-            memberNamesUsed.Add(ctorId);  // add mc.Id to the set of names used
-          }
+
+        if (ctors.ContainsKey(ctorId)) {
+          memberNamesUsed.Add(ctorId); // add mc.Id to the set of names used
         }
       }
     }
@@ -136,54 +123,6 @@ public class MatchFlattener : IRewriter {
     }
   }
 
-  void ResolveMatchExpr(MatchExpr me) {
-    Contract.Requires(me != null);
-    Contract.Requires(resolutionContext != null);
-    Contract.Requires(me.OrigUnresolved == null);
-
-    var dtd = me.Source.Type.AsDatatype;
-    Dictionary<string, DatatypeCtor> ctors = dtd.ConstructorsByName;
-
-    ISet<string> memberNamesUsed = new HashSet<string>();
-    foreach (MatchCaseExpr mc in me.Cases) {
-      if (ctors != null) {
-        var ctorId = mc.Ctor.Name;
-        if (me.Source.Type.AsDatatype is TupleTypeDecl) {
-          var tuple = (TupleTypeDecl)me.Source.Type.AsDatatype;
-          ctorId = BuiltIns.TupleTypeCtorName(tuple.Dims);
-        }
-        if (!ctors.ContainsKey(ctorId)) {
-          // Reporter.Error(MessageSource.Resolver, mc.tok, "member '{0}' does not exist in datatype '{1}'", ctorId, dtd.Name);
-        } else {
-          if (mc.Ctor.Formals.Count != mc.Arguments.Count) {
-            if (me.Source.Type.AsDatatype is TupleTypeDecl) {
-              // Reporter.Error(MessageSource.Resolver, mc.tok, "case arguments count does not match source arguments count");
-            } else {
-              // Reporter.Error(MessageSource.Resolver, mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", ctorId, mc.Arguments.Count, mc.Ctor.Formals.Count);
-            }
-          }
-          if (memberNamesUsed.Contains(ctorId)) {
-            // Reporter.Error(MessageSource.Resolver, mc.tok, "member {0} appears in more than one case", mc.Ctor.Name);
-          } else {
-            memberNamesUsed.Add(ctorId);  // add mc.Id to the set of names used
-          }
-        }
-      }
-    }
-    if (dtd != null && memberNamesUsed.Count != dtd.Ctors.Count) {
-      // We could complain about the syntactic omission of constructors:
-      //   Reporter.Error(MessageSource.Resolver, expr, "match expression does not cover all constructors");
-      // but instead we let the verifier do a semantic check.
-      // So, for now, record the missing constructors:
-      foreach (var ctr in dtd.Ctors) {
-        if (!memberNamesUsed.Contains(ctr.Name)) {
-          me.MissingCases.Add(ctr);
-        }
-      }
-      Contract.Assert(memberNamesUsed.Count + me.MissingCases.Count == dtd.Ctors.Count);
-    }
-  }
-
   private Expression CompileNestedMatchExpr(NestedMatchExpr nestedMatchExpr) {
     var cases = nestedMatchExpr.Cases.SelectMany(FlattenNestedMatchCaseExpr).ToList();
     var state = new MatchCompilationState(nestedMatchExpr, cases, resolutionContext);
@@ -195,7 +134,7 @@ public class MatchFlattener : IRewriter {
       // Happens only if the match has no cases, create a Match with no cases as resolved expression and let ResolveMatchExpr handle it.
       var result = new MatchExpr(nestedMatchExpr.tok, nestedMatchExpr.Source, new List<MatchCaseExpr>(), nestedMatchExpr.UsesOptionalBraces);
       result.Type = nestedMatchExpr.Type;
-      ResolveMatchExpr(result);
+      FillMissingCases(result);
       return result;
     } else if (compiledMatch is CExpr) {
       var newME = ((CExpr)compiledMatch).Body;
@@ -220,7 +159,7 @@ public class MatchFlattener : IRewriter {
     if (compiledMatch is null) {
       // Happens only if the nested match has no cases, create a MatchStmt with no paths.
       var result = new MatchStmt(nestedMatchStmt.Tok, nestedMatchStmt.EndTok, nestedMatchStmt.Source, new List<MatchCaseStmt>(), nestedMatchStmt.UsesOptionalBraces, nestedMatchStmt.Attributes);
-      ResolveMatchStmt(result);
+      FillMissingCases(result);
       return result;
     } else if (compiledMatch is CStmt c) {
       var result = c.Body;
@@ -515,7 +454,7 @@ public class MatchFlattener : IRewriter {
       }
       var newMatchStmt = new MatchStmt(mti.Tok, nestedMatchStmt.EndTok, headMatchee, newMatchCaseStmts, true, mti.Attributes, context);
       newMatchStmt.IsGhost |= mti.CodeContext.IsGhost;
-      ResolveMatchStmt(newMatchStmt);
+      FillMissingCases(newMatchStmt);
       return new CStmt(null, newMatchStmt);
     } else {
       var newMatchExpr = new MatchExpr(mti.Tok, headMatchee, newMatchCases.ConvertAll(x => (MatchCaseExpr)x), true, context);

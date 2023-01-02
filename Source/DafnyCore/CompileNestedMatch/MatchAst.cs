@@ -4,11 +4,11 @@ using System.Linq;
 
 namespace Microsoft.Dafny; 
 
-public class MatchExpr : Expression, ICloneable<MatchExpr> {  // a MatchExpr is an "extended expression" and is only allowed in certain places
+public class MatchExpr : Expression, Match, ICloneable<MatchExpr> {  // a MatchExpr is an "extended expression" and is only allowed in certain places
   private Expression source;
   private List<MatchCaseExpr> cases;
   public readonly MatchingContext Context;
-  [FilledInDuringResolution] public readonly List<DatatypeCtor> MissingCases = new();
+  [FilledInDuringResolution] public List<DatatypeCtor> MissingCases { get; }= new();
   public readonly bool UsesOptionalBraces;
   public MatchExpr OrigUnresolved;  // the resolver makes this clone of the MatchExpr before it starts desugaring it
 
@@ -47,6 +47,8 @@ public class MatchExpr : Expression, ICloneable<MatchExpr> {  // a MatchExpr is 
   public Expression Source => source;
 
   public List<MatchCaseExpr> Cases => cases;
+
+  IEnumerable<MatchCase> Match.Cases => Cases;
 
   // should only be used in desugar in resolve to change the source and cases of the matchexpr
   public void UpdateSource(Expression source) {
@@ -105,7 +107,14 @@ public abstract class MatchCase : INode, IHasUsages {
   }
 }
 
-public class MatchStmt : Statement, ICloneable<MatchStmt> {
+interface Match {
+  IEnumerable<MatchCase> Cases { get; }
+  Expression Source { get; }
+
+  List<DatatypeCtor> MissingCases { get; }
+}
+
+public class MatchStmt : Statement, Match, ICloneable<MatchStmt> {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Source != null);
@@ -116,7 +125,7 @@ public class MatchStmt : Statement, ICloneable<MatchStmt> {
   private Expression source;
   private List<MatchCaseStmt> cases;
   public readonly MatchingContext Context;
-  [FilledInDuringResolution] public readonly List<DatatypeCtor> MissingCases = new();
+  [FilledInDuringResolution] public List<DatatypeCtor> MissingCases { get; } = new();
   public readonly bool UsesOptionalBraces;
 
   [FilledInDuringResolution]
