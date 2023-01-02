@@ -428,7 +428,6 @@ namespace Microsoft.Dafny.Triggers {
       return new TriggerAnnotation(true, CollectVariables(expr), terms, OnlyPrivateCandidates(terms, expr.BoundVars));
     }
 
-    // TODO can we move this to NestedMatchExpr?
     private TriggerAnnotation AnnotateNestedMatchExpr(NestedMatchExpr expr) {
       var candidateTerms = CollectExportedCandidates(expr);
       // collects that argument boundvar of matchcaseexpr

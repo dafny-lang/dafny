@@ -1305,16 +1305,6 @@ namespace Microsoft.Dafny.Compilers {
       modules = program.CompileModules;
     }
 
-    public static void MaybePrintProgram(Program program, string filename, bool afterResolver) {
-      if (filename == null) {
-        return;
-      }
-
-      var tw = filename == "-" ? Console.Out : new StreamWriter(filename);
-      var pr = new Printer(tw, DafnyOptions.O.PrintMode);
-      pr.PrintProgram(program, afterResolver);
-    }
-
     public override void Compile(Program program, ConcreteSyntaxTree wrx) {
       Contract.Requires(program != null);
 

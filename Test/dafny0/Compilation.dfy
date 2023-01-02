@@ -1,4 +1,4 @@
-// RUN: %dafny /spillTargetCode:2 /compile:3 /rprint:"%t.rprint" /autoTriggers:0 "%s" > "%t"
+// RUN: %dafny /compile:3 /autoTriggers:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // The tests in this file are designed to run through the compiler.  They contain

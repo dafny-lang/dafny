@@ -2793,9 +2793,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
         if (parensNeeded) { wr.Write(")"); }
       } else if (expr is NestedMatchExpr) {
         var e = (NestedMatchExpr)expr;
-        // if (e.ResolvedExpression != null) {
-        //   PrintExpr(e.ResolvedExpression, contextBindingStrength, fragileContext, isRightmost, isFollowedBySemicolon, indent);
-        // } else {
         var parensNeeded = !isRightmost && !e.UsesOptionalBraces;
         if (parensNeeded) { wr.Write("("); }
         wr.Write("match ");
