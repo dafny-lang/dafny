@@ -19,10 +19,8 @@ public class NestedMatchCaseExpr : NestedMatchCase, IAttributeBearingDeclaration
   public override IEnumerable<INode> Children =>
     (Attributes != null ? new INode[] { Attributes } : Enumerable.Empty<INode>()).Concat(new INode[] { Body, Pat });
 
-  public void Resolve(
-    Resolver resolver,
+  public void Resolve(Resolver resolver,
     ResolutionContext resolutionContext,
-    Dictionary<TypeParameter, Type> subst,
     Type resultType,
     Type sourceType) {
     var beforeResolveErrorCount = resolver.reporter.ErrorCount;
@@ -35,7 +33,7 @@ public class NestedMatchCaseExpr : NestedMatchCase, IAttributeBearingDeclaration
       Body = new LetExpr(Token.NoToken, lhss, rhss, Body, true);
     }
 
-    Pat.Resolve(resolver, resolutionContext, subst, sourceType, false, false, false, false);
+    Pat.Resolve(resolver, resolutionContext, sourceType, false, false, false, false);
 
     resolver.ResolveAttributes(this, resolutionContext);
     var afterResolveErrorCount = resolver.reporter.ErrorCount;

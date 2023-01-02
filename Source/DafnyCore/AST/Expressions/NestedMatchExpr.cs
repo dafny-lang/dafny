@@ -76,7 +76,7 @@ public class NestedMatchExpr : Expression, ICloneable<NestedMatchExpr> {
     Type = new InferredTypeProxy();
     foreach (var kase in Cases) {
       resolver.scope.PushMarker();
-      kase.Resolve(resolver, resolutionContext, subst, Type, sourceType);
+      kase.Resolve(resolver, resolutionContext, Type, sourceType);
       resolver.scope.PopMarker();
     }
   }

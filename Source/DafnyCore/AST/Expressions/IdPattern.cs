@@ -67,7 +67,7 @@ public class IdPattern : ExtendedPattern, IHasUsages {
   public override IEnumerable<INode> Children => Arguments ?? Enumerable.Empty<INode>();
 
   public override void Resolve(Resolver resolver, ResolutionContext resolutionContext,
-    IDictionary<TypeParameter, Type> subst, Type sourceType, bool isGhost, bool mutable,
+    Type sourceType, bool isGhost, bool mutable,
     bool inPattern, bool inDisjunctivePattern) {
 
     if (inDisjunctivePattern && ResolvedLit == null && Arguments == null && !IsWildcardPattern) {
@@ -77,15 +77,13 @@ public class IdPattern : ExtendedPattern, IHasUsages {
     Debug.Assert(Arguments != null || Type is InferredTypeProxy);
 
     if (Arguments == null) {
-      Type substitutedSourceType = sourceType.Subst(subst);
-      // TODO investigate next comment
-      Type = substitutedSourceType; // Only possible because we did a rewrite one level higher, which used the information from Type.
+      Type = sourceType; // Possible because we did a rewrite one level higher, which copied the syntactic type information to a let.
       if (mutable) {
         var localVariable = new LocalVariable(Tok, Tok, Id, null, isGhost);
-        localVariable.type = substitutedSourceType;
+        localVariable.type = sourceType;
         BoundVar = localVariable;
       } else {
-        var boundVar = new BoundVar(Tok, Id, substitutedSourceType);
+        var boundVar = new BoundVar(Tok, Id, sourceType);
         boundVar.IsGhost = isGhost;
         BoundVar = boundVar;
       }
@@ -95,11 +93,11 @@ public class IdPattern : ExtendedPattern, IHasUsages {
 
     } else {
       if (Ctor != null) {
-        subst = TypeParameter.SubstitutionMap(Ctor.EnclosingDatatype.TypeArgs, sourceType.NormalizeExpand().TypeArgs);
+        var subst = TypeParameter.SubstitutionMap(sourceType.AsDatatype.TypeArgs, sourceType.NormalizeExpand().TypeArgs);
         for (var index = 0; index < Arguments.Count; index++) {
           var argument = Arguments[index];
           var formal = Ctor.Formals[index];
-          argument.Resolve(resolver, resolutionContext, subst, formal.Type.Subst(subst), formal.IsGhost, mutable, true, inDisjunctivePattern);
+          argument.Resolve(resolver, resolutionContext, formal.Type.Subst(subst), formal.IsGhost, mutable, true, inDisjunctivePattern);
         }
       }
     }

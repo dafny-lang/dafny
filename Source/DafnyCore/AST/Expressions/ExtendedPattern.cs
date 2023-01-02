@@ -24,7 +24,7 @@ public abstract class ExtendedPattern : INode {
     new[] { this }.Concat(Children.OfType<ExtendedPattern>().SelectMany(c => c.DescendantsAndSelf));
 
   public abstract void Resolve(Resolver resolver, ResolutionContext resolutionContext,
-    IDictionary<TypeParameter, Type> subst, Type sourceType, bool isGhost, bool mutable,
+    Type sourceType, bool isGhost, bool mutable,
     bool inPattern, bool inDisjunctivePattern);
 
   public abstract IEnumerable<(BoundVar var, Expression usage)> ReplaceTypesWithBoundVariables(Resolver resolver,

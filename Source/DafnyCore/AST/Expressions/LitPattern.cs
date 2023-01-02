@@ -65,7 +65,7 @@ public class LitPattern : ExtendedPattern {
 
   public override void Resolve(Resolver resolver,
     ResolutionContext resolutionContext,
-    IDictionary<TypeParameter, Type> subst, Type sourceType, bool isGhost, bool mutable,
+    Type sourceType, bool isGhost, bool mutable,
     bool inPattern, bool inDisjunctivePattern) {
 
     var literal = OptimisticallyDesugaredLit;

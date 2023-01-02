@@ -37,7 +37,7 @@ public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration
       Body.Insert(0, varDecl);
     }
 
-    Pat.Resolve(resolver, resolutionContext, subst, sourceType, resolutionContext.IsGhost, true, false, false);
+    Pat.Resolve(resolver, resolutionContext, sourceType, resolutionContext.IsGhost, true, false, false);
     resolver.ResolveAttributes(this, resolutionContext);
     var afterResolveErrorCount = resolver.reporter.ErrorCount;
     if (beforeResolveErrorCount == afterResolveErrorCount) {

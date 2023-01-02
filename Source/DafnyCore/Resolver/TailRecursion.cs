@@ -485,7 +485,6 @@ class TailRecursion {
       }
       return status;
     } else if (expr is MatchExpr) {
-      // TODO remove MatchExpr case?
       var e = (MatchExpr)expr;
       var status = CheckHasNoRecursiveCall(e.Source, enclosingFunction, reportErrors);
       var newError = reportErrors && status != Function.TailStatus.NotTailRecursive;

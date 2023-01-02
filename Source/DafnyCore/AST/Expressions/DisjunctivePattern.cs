@@ -13,7 +13,7 @@ public class DisjunctivePattern : ExtendedPattern {
 
   public override IEnumerable<INode> Children => Alternatives;
   public override void Resolve(Resolver resolver, ResolutionContext resolutionContext,
-    IDictionary<TypeParameter, Type> subst, Type sourceType, bool isGhost, bool mutable,
+    Type sourceType, bool isGhost, bool mutable,
     bool inPattern, bool inDisjunctivePattern) {
 
     if (inPattern) {
@@ -21,7 +21,7 @@ public class DisjunctivePattern : ExtendedPattern {
     }
 
     foreach (var alternative in Alternatives) {
-      alternative.Resolve(resolver, resolutionContext, subst, sourceType, isGhost, mutable, true, true);
+      alternative.Resolve(resolver, resolutionContext, sourceType, isGhost, mutable, true, true);
     }
   }
 

@@ -9,8 +9,6 @@ public class ExpressionTester {
   private bool ReportErrors => reporter != null;
   [CanBeNull] private readonly ErrorReporter reporter; // if null, no errors will be reported
 
-  // TODO figure out whether we can avoid this sometimes mutating behavior.
-
   /// <summary>
   /// If "resolver" is non-null, CheckIsCompilable will update some fields in the resolver. In particular,
   ///   - .InCompiledContext in DatatypeUpdateExpr will be updated
