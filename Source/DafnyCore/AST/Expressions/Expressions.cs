@@ -2699,7 +2699,8 @@ public abstract class ConcreteSyntaxExpression : Expression {
     }
   }
 
-  [FilledInDuringResolution] private Expression resolvedExpression;
+  [FilledInDuringResolution]
+  private Expression resolvedExpression;
 
   public Expression ResolvedExpression {
     get => resolvedExpression;

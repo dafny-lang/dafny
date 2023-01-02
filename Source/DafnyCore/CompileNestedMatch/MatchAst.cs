@@ -8,7 +8,7 @@ public class MatchExpr : Expression, Match, ICloneable<MatchExpr> {  // a MatchE
   private Expression source;
   private List<MatchCaseExpr> cases;
   public readonly MatchingContext Context;
-  [FilledInDuringResolution] public List<DatatypeCtor> MissingCases { get; }= new();
+  [FilledInDuringResolution] public List<DatatypeCtor> MissingCases { get; } = new();
   public readonly bool UsesOptionalBraces;
   public MatchExpr OrigUnresolved;  // the resolver makes this clone of the MatchExpr before it starts desugaring it
 
