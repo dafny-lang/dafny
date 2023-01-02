@@ -139,10 +139,6 @@ public class MatchDenester : IRewriter {
     Contract.Requires(me != null);
     Contract.Requires(resolutionContext != null);
     Contract.Requires(me.OrigUnresolved == null);
-    bool debug = DafnyOptions.O.MatchCompilerDebug;
-    if (debug) {
-      Console.WriteLine("DEBUG: {0} In ResolvedMatchExpr");
-    }
 
     var dtd = me.Source.Type.AsDatatype;
     Dictionary<string, DatatypeCtor> ctors = dtd.ConstructorsByName;
@@ -185,18 +181,11 @@ public class MatchDenester : IRewriter {
       }
       Contract.Assert(memberNamesUsed.Count + me.MissingCases.Count == dtd.Ctors.Count);
     }
-    if (debug) {
-      Console.WriteLine("DEBUG: {0} ResolvedMatchExpr - DONE", me.tok.line);
-    }
   }
 
   private Expression CompileNestedMatchExpr(NestedMatchExpr nestedMatchExpr) {
-    if (DafnyOptions.O.MatchCompilerDebug) {
-      Console.WriteLine("DEBUG: CompileNestedMatchExpr for match at line {0}", nestedMatchExpr.tok.line);
-    }
-
     var cases = nestedMatchExpr.Cases.SelectMany(FlattenNestedMatchCaseExpr).ToList();
-    var state = new MatchCompilationState(nestedMatchExpr, cases, resolutionContext, DafnyOptions.O.MatchCompilerDebug);
+    var state = new MatchCompilationState(nestedMatchExpr, cases, resolutionContext);
 
     var paths = cases.Select((@case, index) => (PatternPath)new ExprPatternPath(index, @case, @case.Attributes)).ToList();
 
@@ -208,36 +197,21 @@ public class MatchDenester : IRewriter {
       ResolveMatchExpr(result);
       return result;
     } else if (compiledMatch is CExpr) {
-      // replace e with desugared expression
       var newME = ((CExpr)compiledMatch).Body;
       for (int id = 0; id < state.CaseCopyCount.Length; id++) {
         if (state.CaseCopyCount[id] <= 0) {
-          Reporter.Warning(MessageSource.Resolver, state.CaseTok[id], "this branch is redundant"); // TODO change to "this case is redundant"
-          // resolver.scope.PushMarker();
-          // //CheckLinearNestedMatchCase(e.Source.Type, cases.ElementAt(id), resolutionContext);
-          // //ResolveExpression(cases.ElementAt(id).Body, resolutionContext);
-          // resolver.scope.PopMarker();
+          Reporter.Warning(MessageSource.Resolver, state.CaseTok[id], "this branch is redundant");
         }
       }
       return newME;
     } else {
       Contract.Assert(false); throw new cce.UnreachableException(); // Returned container should be a CExpr
     }
-
-    // if (DafnyOptions.O.MatchCompilerDebug) {
-    //   Console.WriteLine("DEBUG: Done CompileNestedMatchExpr at line {0}", mti.Tok.line);
-    // }
-
   }
 
   private Statement CompileNestedMatchStmt(NestedMatchStmt nestedMatchStmt) {
-
-    if (DafnyOptions.O.MatchCompilerDebug) {
-      Console.WriteLine("DEBUG: CompileNestedMatchStmt for match at line {0}", nestedMatchStmt.Tok.line);
-    }
-
     var cases = nestedMatchStmt.Cases.SelectMany(FlattenNestedMatchCaseStmt).ToList();
-    var state = new MatchCompilationState(nestedMatchStmt, cases, resolutionContext.WithGhost(nestedMatchStmt.IsGhost), DafnyOptions.O.MatchCompilerDebug, nestedMatchStmt.Attributes);
+    var state = new MatchCompilationState(nestedMatchStmt, cases, resolutionContext.WithGhost(nestedMatchStmt.IsGhost), nestedMatchStmt.Attributes);
 
     var paths = cases.Select((@case, index) => (PatternPath)new StmtPatternPath(index, @case, @case.Attributes)).ToList();
 
@@ -261,10 +235,6 @@ public class MatchDenester : IRewriter {
     } else {
       Contract.Assert(false); throw new cce.UnreachableException(); // Returned container should be a StmtContainer
     }
-
-    // if (DafnyOptions.O.MatchCompilerDebug) {
-    //   Console.WriteLine("DEBUG: Done CompileNestedMatchStmt at line {0}.", mti.Tok.line);
-    // }
   }
 
   private IEnumerable<NestedMatchCaseStmt> FlattenNestedMatchCaseStmt(NestedMatchCaseStmt c) {
@@ -342,10 +312,6 @@ public class MatchDenester : IRewriter {
   ///     continue processing the matchees
   /// </summary>
   private SyntaxContainer CompilePatternPaths(MatchCompilationState state, MatchingContext context, LinkedList<Expression> matchees, List<PatternPath> paths) {
-    if (state.Debug) {
-      Console.WriteLine("DEBUG: In CompilePatternPaths:");
-      PrintPatternPaths(context, matchees, paths);
-    }
 
     // For each path, number of matchees (n) is the number of patterns held by the path
     if (!paths.TrueForAll(x => matchees.Count() == x.Patterns.Count)) {
@@ -354,10 +320,6 @@ public class MatchDenester : IRewriter {
 
     if (paths.Count == 0) {
       // ==[1]== If no path, then match is not syntactically exhaustive -- return null
-      if (state.Debug) {
-        Console.WriteLine("DEBUG: ===[1]=== No Path");
-        Console.WriteLine("\t{0} Potential exhaustiveness failure on context: {1}", state.Tok.line, context.AbstractAllHoles().ToString());
-      }
       // (Semantics) exhaustiveness is checked by the verifier, so no need for a warning here
       // Reporter.Warning(MessageSource.Resolver, mti.Tok, "non-exhaustive case-statement");
       return null;
@@ -368,11 +330,6 @@ public class MatchDenester : IRewriter {
     }
 
     // ==[2]== No more matchees to process, return the first path and decrement the count of dropped paths
-    if (state.Debug) {
-      Console.WriteLine("DEBUG: ===[2]=== No Matchee");
-      Console.WriteLine("\treturn Bid:{0}", paths.First().CaseId);
-    }
-
     for (int i = 1; i < paths.Count; i++) {
       state.UpdateCaseCopyCount(paths[i].CaseId, -1);
     }
@@ -413,23 +370,13 @@ public class MatchDenester : IRewriter {
     if (ctors != null && patternHeads.Exists(x =>
           x is IdPattern { Arguments: { } } pattern && ctors.ContainsKey(pattern.Id))) {
       // ==[3]== If dtd is a datatype and at least one of the pattern heads is a constructor, create a match on currMatchee
-      if (state.Debug) {
-        Console.WriteLine("DEBUG: ===[3]=== Constructor Case");
-      }
-
       return CompileHeadsContainingConstructor(state, context, consMatchees, subst, ctors, paths);
     } else if (dtd == null && patternHeads.Exists(x => (x is LitPattern || x is IdPattern { ResolvedLit: { } }))) {
       // ==[3**]== If dtd is a base type and at least one of the pattern is a constant, create an If-then-else construct on the constant
-      if (state.Debug) {
-        Console.WriteLine("DEBUG: ===[3**]=== Constant Case");
-      }
 
       return CompileHeadsContainingLiteralPattern(state, context, consMatchees, paths);
     } else {
       // ==[4]==  all head patterns are bound variables:
-      if (state.Debug) {
-        Console.WriteLine("DEBUG: ===[4]=== Variable Case");
-      }
 
       var tailPaths = paths.Select(path => {
         var (head, tail) = SplitPath(path);
@@ -453,10 +400,6 @@ public class MatchDenester : IRewriter {
         // Optimization: Don't let-bind if name is a wildcard, either in source or generated
         return LetBindNonWildCard(currPattern, currMatchee, tail);
       }).ToList();
-
-      if (state.Debug) {
-        Console.WriteLine("DEBUG: return");
-      }
 
       return CompilePatternPaths(state, context.AbstractHole(), consMatchees.Tail, tailPaths);
     }
@@ -482,9 +425,6 @@ public class MatchDenester : IRewriter {
     var ctorToFromBoundVar = new HashSet<string>();
 
     foreach (var ctor in constructorByName.Values) {
-      if (mti.Debug) {
-        Console.WriteLine("DEBUG: ===[3]>>>> Ctor {0}", ctor.Name);
-      }
 
       var constructorPaths = new List<PatternPath>();
 
@@ -837,17 +777,15 @@ public class MatchDenester : IRewriter {
       _ => throw new ArgumentOutOfRangeException(nameof(Match))
     };
 
-    public bool Debug;
     public readonly ResolutionContext CodeContext;
     public Attributes Attributes;
 
-    public MatchCompilationState(INode match, IReadOnlyList<NestedMatchCase> flattenedCases, ResolutionContext codeContext, bool debug = false,
+    public MatchCompilationState(INode match, IReadOnlyList<NestedMatchCase> flattenedCases, ResolutionContext codeContext,
       Attributes attrs = null) {
       this.Match = match;
       this.CaseTok = flattenedCases.Select(c => c.Tok).ToArray();
       this.CaseCopyCount = new int[flattenedCases.Count];
       Array.Fill(CaseCopyCount, 1);
-      this.Debug = debug;
       this.CodeContext = codeContext;
       this.Attributes = attrs;
     }

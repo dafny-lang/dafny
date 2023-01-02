@@ -41,12 +41,8 @@ public class NestedMatchExpr : Expression, ICloneable<NestedMatchExpr> {
 
     resolver.ResolveExpression(Source, resolutionContext);
 
-    bool debug = DafnyOptions.O.MatchCompilerDebug;
     if (Source.Type is TypeProxy) {
       resolver.PartiallySolveTypeConstraints(true);
-      if (debug) {
-        Console.WriteLine("DEBUG: Type of {0} was still a proxy, solving type constraints results in type {1}", Printer.ExprToString(Source), Source.Type.ToString());
-      }
 
       if (Source.Type is TypeProxy) {
         resolver.reporter.Error(MessageSource.Resolver, tok, "Could not resolve the type of the source of the match expression. Please provide additional typing annotations.");
@@ -60,9 +56,6 @@ public class NestedMatchExpr : Expression, ICloneable<NestedMatchExpr> {
       return;
     }
 
-    if (debug) {
-      Console.WriteLine("DEBUG: {0} ResolveNestedMatchExpr  1 - Checking Linearity of patterns", tok.line);
-    }
     resolver.CheckLinearNestedMatchExpr(sourceType, this, resolutionContext);
     if (resolver.reporter.Count(ErrorLevel.Error) != errorCount) {
       return;

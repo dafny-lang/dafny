@@ -69,12 +69,8 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt> {
 
     resolver.ResolveExpression(Source, resolutionContext);
 
-    bool debug = DafnyOptions.O.MatchCompilerDebug;
     if (Source.Type is TypeProxy) {
       resolver.PartiallySolveTypeConstraints(true);
-      if (debug) {
-        Console.WriteLine("DEBUG: Type of {0} was still a proxy, solving type constraints results in type {1}", Printer.ExprToString(Source), Source.Type.ToString());
-      }
 
       if (Source.Type is TypeProxy) {
         resolver.reporter.Error(MessageSource.Resolver, Tok, "Could not resolve the type of the source of the match expression. Please provide additional typing annotations.");

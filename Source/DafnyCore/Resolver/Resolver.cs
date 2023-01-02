@@ -6013,8 +6013,6 @@ namespace Microsoft.Dafny {
     void ResolveNestedMatchStmt(NestedMatchStmt s, ResolutionContext resolutionContext) {
       Contract.Requires(s != null);
 
-      bool debugMatch = DafnyOptions.O.MatchCompilerDebug;
-
       var errorCount = reporter.Count(ErrorLevel.Error);
       s.Resolve(this, resolutionContext);
       this.SolveAllTypeConstraints();
@@ -6967,31 +6965,18 @@ namespace Microsoft.Dafny {
     /// 2 - desugaring it into a decision tree of MatchExpr and ITEEXpr (for constant matching)
     /// 3 - resolving the generated (sub)expression.
     /// </summary>
-    void ResolveNestedMatchExpr(NestedMatchExpr me, ResolutionContext resolutionContext) {
-      Contract.Requires(me != null);
+    void ResolveNestedMatchExpr(NestedMatchExpr nestedMatchExpr, ResolutionContext resolutionContext) {
+      Contract.Requires(nestedMatchExpr != null);
       Contract.Requires(resolutionContext != null);
 
-      bool debug = DafnyOptions.O.MatchCompilerDebug;
-      var errorCount = reporter.Count(ErrorLevel.Error);
-      me.Resolve(this, resolutionContext);
+      nestedMatchExpr.Resolve(this, resolutionContext);
       this.SolveAllTypeConstraints();
-      if (reporter.Count(ErrorLevel.Error) != errorCount) {
-        return;
-      }
-
-      if (debug) {
-        Console.WriteLine("DEBUG: {0} ResolveNestedMatchExpr  2 - Compiling Nested Match", me.tok.line);
-      }
     }
 
     void ResolveMatchExpr(MatchExpr me, ResolutionContext resolutionContext) {
       Contract.Requires(me != null);
       Contract.Requires(resolutionContext != null);
       Contract.Requires(me.OrigUnresolved == null);
-      bool debug = DafnyOptions.O.MatchCompilerDebug;
-      if (debug) {
-        Console.WriteLine("DEBUG: {0} In ResolvedMatchExpr");
-      }
 
       // first, clone the original match expression
       me.OrigUnresolved = (MatchExpr)new ClonerKeepParensExpressions().CloneExpr(me);
@@ -7000,9 +6985,6 @@ namespace Microsoft.Dafny {
       Contract.Assert(me.Source.Type != null);  // follows from postcondition of ResolveExpression
 
       var sourceType = PartiallyResolveTypeForMemberSelection(me.Source.tok, me.Source.Type).NormalizeExpand();
-      if (debug) {
-        Console.WriteLine("DEBUG: {0} ResolvedMatchExpr - Done Resolving Source");
-      }
 
       var dtd = sourceType.AsDatatype;
       var subst = new Dictionary<TypeParameter, Type>();
@@ -7062,9 +7044,6 @@ namespace Microsoft.Dafny {
             i++;
           }
         }
-        if (debug) {
-          Console.WriteLine("DEBUG: {1} ResolvedMatchExpr - Resolving Body: {0}", Printer.ExprToString(mc.Body), mc.Body.tok.line);
-        }
 
         ResolveExpression(mc.Body, resolutionContext);
 
@@ -7083,9 +7062,6 @@ namespace Microsoft.Dafny {
           }
         }
         Contract.Assert(memberNamesUsed.Count + me.MissingCases.Count == dtd.Ctors.Count);
-      }
-      if (debug) {
-        Console.WriteLine("DEBUG: {0} ResolvedMatchExpr - DONE", me.tok.line);
       }
     }
 
