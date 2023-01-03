@@ -1,4 +1,4 @@
-// RUN: %baredafny verify --relax-definite-assignment %args "%s" > "%t"
+// RUN: %baredafny verify %args "%s" > "%t"
 // RUN: %baredafny run --no-verify --target=cs %args "%s" >> "%t"
 // RUN: %baredafny run --no-verify --target=js %args  "%s" >> "%t"
 // RUN: %baredafny run --no-verify --target=go %args  "%s" >> "%t"
@@ -10,11 +10,7 @@
  * fixed, Java is omitted from this file.
  *
  * Also, note, these tests mostly check that auto-initialized variables of array
- * types get proper values. Without --relax-definite-assignment (which is
- * our new, planned default), there will still be some way to ask the compiler
- * to generate these values (a plan is to change ":= *" to be evidence for a
- * definite assignments). At that time, the functionality tested in this
- * file will still be needed in the compilers.
+ * types get proper values.
  */
 
 method Main() {
@@ -28,31 +24,31 @@ datatype GenericSingletonRecord<X> = GenericSingletonRecord(x: X)
 class MyClass { }
 
 method TestDefaultArrayValues<X>() {
-  var arr: array<array<int>>;
-  var srr: array<SingletonRecord>;
-  var grr: array<GenericSingletonRecord<array<int>>>;
-  var xrr: array<array<X>>;
+  var arr: array<array<int>> := *;
+  var srr: array<SingletonRecord> := *;
+  var grr: array<GenericSingletonRecord<array<int>>> := *;
+  var xrr: array<array<X>> := *;
 
-  var arr2: array2<array<int>>;
-  var srr2: array2<SingletonRecord>;
-  var grr2: array2<GenericSingletonRecord<array<int>>>;
-  var xrr2: array2<array<X>>;
+  var arr2: array2<array<int>> := *;
+  var srr2: array2<SingletonRecord> := *;
+  var grr2: array2<GenericSingletonRecord<array<int>>> := *;
+  var xrr2: array2<array<X>> := *;
 
-  var arr22: array2<array2<int>>;
-  var xrr22: array2<array2<X>>;
+  var arr22: array2<array2<int>> := *;
+  var xrr22: array2<array2<X>> := *;
 
-  var arr12: array<array2<int>>;
-  var xrr12: array<array2<X>>;
+  var arr12: array<array2<int>> := *;
+  var xrr12: array<array2<X>> := *;
 
-  var xrr1111: array<array<array<array<X>>>>;
-  var xrr1112: array<array<array<array2<X>>>>;
-  var xrr1121: array<array<array2<array<X>>>>;
-  var xrr1212: array<array2<array<array2<X>>>>;
-  var xrr1221: array<array2<array2<array<X>>>>;
-  var xrr2212: array2<array2<array<array2<X>>>>;
-  var xrr2221: array2<array2<array2<array<X>>>>;
-  var xrr2112: array2<array<array<array2<X>>>>;
-  var xrr2111: array2<array<array<array<X>>>>;
+  var xrr1111: array<array<array<array<X>>>> := *;
+  var xrr1112: array<array<array<array2<X>>>> := *;
+  var xrr1121: array<array<array2<array<X>>>> := *;
+  var xrr1212: array<array2<array<array2<X>>>> := *;
+  var xrr1221: array<array2<array2<array<X>>>> := *;
+  var xrr2212: array2<array2<array<array2<X>>>> := *;
+  var xrr2221: array2<array2<array2<array<X>>>> := *;
+  var xrr2112: array2<array<array<array2<X>>>> := *;
+  var xrr2111: array2<array<array<array<X>>>> := *;
 
   var lengths := arr.Length + srr.Length + grr.Length + xrr.Length +
     MLen(arr2) + MLen(srr2) + MLen(grr2) + MLen(xrr2) +
@@ -67,13 +63,13 @@ function method MLen(m: array2): nat {
 }
 
 method MoreTests<X>() returns (r: array<array<X>>) {
-  var a: array<bool>;
-  var b: array<X>;
-  var c: array<MyClass>;
+  var a: array<bool> := *;
+  var b: array<X> := *;
+  var c: array<MyClass> := *;
   
-  var e: array<array<bool>>;
-  var d: array<array<X>>;
-  var f: array<array<MyClass>>;
+  var e: array<array<bool>> := *;
+  var d: array<array<X>> := *;
+  var f: array<array<MyClass>> := *;
   
   M(a);
   M(b);
