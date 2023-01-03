@@ -186,7 +186,7 @@ namespace Microsoft.Dafny {
         for (var i = 0; i < n; i++) {
           var body = nestedMatchExpr.Cases[i].Body;
           if (i == n - 1 && !nestedMatchExpr.UsesOptionalBraces) {
-            VisitRhsComponent(body.GetStartToken(), body, "case expression");
+            VisitRhsComponent(body.StartToken, body, "case expression");
           } else {
             VisitIndependentComponent(body);
           }
