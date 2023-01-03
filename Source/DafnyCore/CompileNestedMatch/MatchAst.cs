@@ -174,7 +174,7 @@ public class MatchStmt : Statement, Match, ICloneable<MatchStmt> {
   public List<MatchCaseStmt> Cases => cases;
   IEnumerable<MatchCase> Match.Cases => Cases;
 
-  public override IEnumerable<INode> Children => new[] {Source}.Concat<INode>(Cases);
+  public override IEnumerable<INode> Children => new[] { Source }.Concat<INode>(Cases);
 
   // should only be used in desugar in resolve to change the cases of the matchexpr
   public void UpdateSource(Expression source) {
