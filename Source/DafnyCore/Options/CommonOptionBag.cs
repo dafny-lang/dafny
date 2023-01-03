@@ -179,7 +179,6 @@ Functionality is still being expanded. Currently only checks contracts on every 
     DafnyOptions.RegisterLegacyBinding(DisableNonLinearArithmetic, (o, v) => o.DisableNLarith = v);
     DafnyOptions.RegisterLegacyBinding(EnforceDeterminism, (options, value) => {
       options.ForbidNondeterminism = value;
-      options.DefiniteAssignmentLevel = value ? 3 : 2;
     });
     RelaxDefiniteAssignment.AddValidator(optionResult => {
       var enforceDeterminismResult = optionResult.FindResultFor(EnforceDeterminism);
@@ -191,7 +190,7 @@ Functionality is still being expanded. Currently only checks contracts on every 
     DafnyOptions.RegisterLegacyBinding(RelaxDefiniteAssignment,
       (options, value) => {
         if (!options.Get(EnforceDeterminism)) {
-          options.DefiniteAssignmentLevel = value ? 1 : 2;
+          options.DefiniteAssignmentLevel = value ? 1 : 4;
         }
       });
   }
