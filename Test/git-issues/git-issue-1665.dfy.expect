@@ -138,7 +138,7 @@ module ConcreteModule {
     decreases n, m
   {
     
-    /*---------- denested ----------
+    /*---------- flattened ----------
     if n == 0 {
       :- Func1()
       /*---------- desugared ----------
@@ -165,7 +165,7 @@ module ConcreteModule {
       }      
     } else {
       return Success;
-    }    ---------- end denested ----------*/
+    }    ---------- end flattened ----------*/
     match n {
       case {:split false} 0 =>
         :- Func1()
@@ -178,7 +178,7 @@ module ConcreteModule {
         }
         ---------- end desugared ----------*/;
         
-        /*---------- denested ----------
+        /*---------- flattened ----------
         if m == 1 {
           :- Func1()
           /*---------- desugared ----------
@@ -191,7 +191,7 @@ module ConcreteModule {
           ---------- end desugared ----------*/;
         } else {
           return Success;
-        }        ---------- end denested ----------*/
+        }        ---------- end flattened ----------*/
         match m {
           case {:split false} 1 =>
             :- Func1()
