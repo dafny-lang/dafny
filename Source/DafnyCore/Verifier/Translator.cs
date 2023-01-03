@@ -8576,9 +8576,7 @@ namespace Microsoft.Dafny {
             if (rhs != null) {
               bldr.Add(Bpl.Cmd.SimpleAssign(tok, bLhs, rhs));
             }
-            if (!origRhsIsHavoc) {
-              MarkDefiniteAssignmentTracker(ie, bldr);
-            }
+            MarkDefiniteAssignmentTracker(ie, bldr);
           });
 
         } else if (lhs is MemberSelectExpr) {
@@ -8605,9 +8603,7 @@ namespace Microsoft.Dafny {
               if (rhs != null) {
                 bldr.Add(Bpl.Cmd.SimpleAssign(tok, bLhs, rhs));
               }
-              if (!origRhsIsHavoc) {
-                MarkDefiniteAssignmentTracker(lhs.tok, nm, bldr);
-              }
+              MarkDefiniteAssignmentTracker(lhs.tok, nm, bldr);
             });
           } else {
             bLhss.Add(null);
