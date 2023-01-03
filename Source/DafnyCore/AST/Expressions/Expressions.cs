@@ -2626,9 +2626,7 @@ public class AttributedExpression : INode, IAttributeBearingDeclaration {
     }
   }
 
-  public override RangeToken GetRangeToken() {
-    return E.GetRangeToken();
-  }
+  public override RangeToken RangeToken => E.RangeToken;
 
   public bool HasAttributes() {
     return Attributes != null;

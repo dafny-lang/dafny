@@ -198,9 +198,9 @@ namespace Microsoft.Dafny {
       var compilers = options.Plugins.SelectMany(p => p.GetCompilers()).ToList();
       var compiler = compilers.LastOrDefault(c => c.TargetId == nonOutOptions.CompilerName);
       if (compiler == null) {
-        if (options.Compile) {
+        if (nonOutOptions.CompilerName != null) {
           var known = String.Join(", ", compilers.Select(c => $"'{c.TargetId}' ({c.TargetLanguage})"));
-          options.Printer.ErrorWriteLine(Console.Error, $"No compiler found for compileTarget \"{options.CompilerName}\"; expecting one of {known}");
+          options.Printer.ErrorWriteLine(Console.Error, $"No compiler found for language \"{options.CompilerName}\"{(options.CompilerName.StartsWith("-t") || options.CompilerName.StartsWith("--") ? " (use just a language name, not a -t or --target option)" : "")}; expecting one of {known}");
           return CommandLineArgumentsResult.PREPROCESSING_ERROR;
         }
 
