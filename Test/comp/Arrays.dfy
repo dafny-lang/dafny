@@ -1,4 +1,4 @@
-// RUN: %baredafny verify %args --relax-definite-assignment "%s" > "%t"
+// RUN: %baredafny verify %args "%s" > "%t"
 // RUN: %baredafny run --no-verify --target=cs %args "%s" >> "%t"
 // RUN: %baredafny run --no-verify --target=js %args  "%s" >> "%t"
 // RUN: %baredafny run --no-verify --target=go %args  "%s" >> "%t"
@@ -199,7 +199,7 @@ method More() {
   var a3 := new nLong[5];
   PrintArray(a3);
 
-  var kitchenSink: (lowercase, BV10, Yes, nByte, nShort, nInt, nLong);
+  var kitchenSink: (lowercase, BV10, Yes, nByte, nShort, nInt, nLong) := *;
   if kitchenSink.0 == '\0' {
     kitchenSink := kitchenSink.(0 := 'a');  // don't print ugly '\0' characters into test output
   }
@@ -236,7 +236,7 @@ method MoreWithDefaults() {
   var a3 := new xnLong[5];
   PrintArray(a3);
 
-  var kitchenSink: (xchar, xBV10, xYes, xnByte, xnShort, xnInt, xnLong);
+  var kitchenSink: (xchar, xBV10, xYes, xnByte, xnShort, xnInt, xnLong) := *;
   if kitchenSink.0 == '\0' {
     kitchenSink := kitchenSink.(0 := 'a');  // don't print ugly '\0' characters into test output
   }
@@ -346,7 +346,7 @@ method CharValues() {
   }
   PrintArray(cc);  // r r r
 
-  var e0: char, e1: ychar, e2: zchar, ee: (char, ychar, zchar);
+  var e0: char, e1: ychar, e2: zchar, ee: (char, ychar, zchar) := *,*,*,*;
   print e0, " ", e1, " ", e2, " ", ee, "\n";  // D D r (D, D, r)
 
   var mm := new char[3, 3];

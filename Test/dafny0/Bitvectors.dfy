@@ -1,4 +1,4 @@
-// RUN: %baredafny verify %args --rprint:- --relax-definite-assignment "%s" > "%t"
+// RUN: %baredafny verify %args --rprint:- "%s" > "%t"
 // RUN: %baredafny run %args --no-verify --target=cs "%s" >> "%t"
 // RUN: %baredafny run %args --no-verify --target=py "%s" "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
@@ -17,7 +17,7 @@ method Main() {
   var x := 4000;
   var y := 4000;
   var z: bv32;
-  var w: bv32;
+  var w: bv32 := *;
   if x == y {
     z := x;
   } else {
@@ -34,7 +34,7 @@ method Main() {
 
   SummoTests();
 
-  var zz0;
+  var zz0 := *;
   var zz1 := Bv0Stuff(zz0, 0);
   print zz0, " ", zz1, "\n";
   print zz0 < zz1, " ", zz0 <= zz1, " ", zz0 >= zz1, " ", zz0 > zz1, "\n";
@@ -210,6 +210,7 @@ method Shifts()
 {
   var x: int, h: Handful, b67: bv67, w: bv32, seven: bv7, bb: bv2, noll: bv0;
   x, h := 3, 3;
+  noll := *;
 
   b67, w, seven := 5, 5, 5;
   PrintShifts("bv67", b67, 8 * b67, b67 << x, b67 << h);

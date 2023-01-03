@@ -1,4 +1,4 @@
-// RUN: %baredafny verify %args --relax-definite-assignment --quantifier-syntax:4 "%s" > "%t"
+// RUN: %baredafny verify %args --quantifier-syntax:4 "%s" > "%t"
 // RUN: %baredafny run %args --quantifier-syntax:4 --no-verify --target:cs "%s" >> "%t"
 // RUN: %baredafny run %args --quantifier-syntax:4 --no-verify --target:js "%s" >> "%t"
 // RUN: %baredafny run %args --quantifier-syntax:4 --no-verify --target:go "%s" >> "%t"
