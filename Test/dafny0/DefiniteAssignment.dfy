@@ -25,6 +25,11 @@ class MyClass<G> {
   {
     y := g;
   }  // error: x was never assigned, neither was oxA or oxB
+  constructor C4(g: G)
+  {
+    this.y := *;
+    x := y;
+  }
 }
 
 method M0<G>(x: int, a: G, b: G) returns (y: G)
@@ -82,7 +87,7 @@ method DontForgetHavoc<G>(a: G, h: int) returns (k: G) {
   if h < 10 {
     k := x;  // fine
   } else if h < 20 {
-    k := y;  // error: y has not yet been assigned
+    k := y;
   } else {
     z := *;
     return z;  // this is fine, since z was assigned before the havoc
@@ -140,7 +145,7 @@ method MM<G>(ghost x: int, g: G) returns (vv: G, ww: G)
   vv := v;  // fine
   var w: G := *;
   w := *;
-  ww := w;  // error: w is used before it is really assigned
+  ww := w;
 }
 
 // ----- iterators ----------------------------
