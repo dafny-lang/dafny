@@ -132,16 +132,16 @@ public static class DafnyCodeActionHelpers {
     // Return the EndTok of them.
     foreach (var module in program.Modules()) {
       foreach (var topLevelDecl in module.TopLevelDecls) {
-        if (topLevelDecl is ClassDecl classDecl && (classDecl.GetStartToken().line == 0 || (classDecl.GetStartToken().Filename == documentUri && classDecl.GetStartToken().line <= line && line <= classDecl.GetEndToken().line))) {
+        if (topLevelDecl is ClassDecl classDecl && (classDecl.StartToken.line == 0 || (classDecl.StartToken.Filename == documentUri && classDecl.StartToken.line <= line && line <= classDecl.EndToken.line))) {
           foreach (var member in classDecl.Members) {
             if (member is Method method && method.tok.filename == documentUri && method.Body != null &&
-                method.GetStartToken().line <= line && line <= method.GetEndToken().line &&
+                method.StartToken.line <= line && line <= method.EndToken.line &&
                 GetMatchingEndToken(line, col, method.Body) is { } token) {
               return token;
             }
 
             if (member is Function { ByMethodBody: { } } function &&
-                function.GetStartToken().line <= line && line <= function.GetEndToken().line &&
+                function.StartToken.line <= line && line <= function.EndToken.line &&
                 GetMatchingEndToken(line, col, function.ByMethodBody) is { } token2) {
               return token2;
             }

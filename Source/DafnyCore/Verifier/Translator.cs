@@ -3351,11 +3351,11 @@ namespace Microsoft.Dafny {
     }
 
     internal IToken GetToken(Expression expression) {
-      return flags.ReportRanges ? expression.GetRangeToken() : expression.tok;
+      return flags.ReportRanges ? expression.RangeToken : expression.tok;
     }
 
     internal IToken GetToken(Statement stmt) {
-      return flags.ReportRanges ? stmt.GetRangeToken() : stmt.Tok;
+      return flags.ReportRanges ? stmt.RangeToken : stmt.Tok;
     }
 
     void CheckDefiniteAssignment(IdentifierExpr expr, BoogieStmtListBuilder builder) {
