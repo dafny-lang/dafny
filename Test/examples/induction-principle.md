@@ -9,7 +9,8 @@ to be particularly useful when working on
 [Dafny-in-Dafny](https://github.com/dafny-lang/compiler-bootstrap),
 which we will use as a motivating example. The full code development can be found in the
 [`induction-principle`](induction-principle/) folder. The development with the preserved git
-history can be found in the [Dafny github project](https://github.com/dafny-lang//dafny) and the source code itself is [here](./induction-principle-code).
+history can be found in the [Dafny github project](https://github.com/dafny-lang//dafny) 
+and the source code itself is [here](./induction-principle-code).
 
 ## Problem: proving lemmas about an interpreter
 
@@ -22,8 +23,8 @@ terminates.
 
 Verifying the compiler then requires us to repeatedly state and prove lemmas about this
 `InterpExpr` function. For instance, given a transformation `TR: (Expr) -> Expr`, we might
-express the correctness of the transformation in the following way (which says that the new program fails no more often than
-the original one, and evaluates to the same result):
+express the correctness of the transformation in the following way (which says that the 
+new program fails no more often than the original one, and evaluates to the same result):
 
 ```dafny
 forall e, st :: InterpExpr(e, st).Success? ==> InterpExpr(e, st) == InterpExpr(TR(e), st)

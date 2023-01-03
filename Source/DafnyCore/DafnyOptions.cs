@@ -288,7 +288,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public bool DisallowConstructorCaseWithoutParentheses = false;
     public bool PrintFunctionCallGraph = false;
     public bool WarnShadowing = false;
-    public int DefiniteAssignmentLevel = 1; // [0..2]
+    public int DefiniteAssignmentLevel = 1; // [0..2] 2 and 3 have the same effect, 4 turns off an array initialisation check, unless --enforce-determinism is used.
     public FunctionSyntaxOptions FunctionSyntax = FunctionSyntaxOptions.Version3;
     public QuantifierSyntaxOptions QuantifierSyntax = QuantifierSyntaxOptions.Version3;
     public HashSet<string> LibraryFiles { get; set; } = new();
