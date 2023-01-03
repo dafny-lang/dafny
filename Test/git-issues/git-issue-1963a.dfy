@@ -9,7 +9,7 @@ module A {
 }
 
 module B refines A {
-  newtype NT = ... | x < 0 witness -1 // Error: Change (or repeat) a newtype body
+  newtype NT = ... x: int | x < 0 witness -1 // Error: Change (or repeat) a newtype body
 }
 
 method M() ensures false {

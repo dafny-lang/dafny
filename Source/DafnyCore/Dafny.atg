@@ -1717,10 +1717,11 @@ IdentTypeOptional<out BoundVar var>
   WildIdent<out id, true>
   [ IF( la.kind == _colon) ":" Type<out ty>             (. optType = ty; .)
      // CoCo warns about this optional ':', because it is ambiguous with a ':' that follows the IdentTypeOptional.
-     // An IdentTypeOptional can be that last thing in an Expression (a SetComprehension)
+     // An IdentTypeOptional can be the last thing in an Expression (a SetComprehension)
      // Also, a ':' can follow an Expression in a slices-by-length construct. So a ':' here might be the start
-     // of the ': type' or it might be the ':' in the slices-by-length. As the expression can always tbe parenthesized to 
-     // disambiguate. it makes sense to force the colon to consider the ': type' here. Hence the semantic predicate.
+     // of the ': type' just above or it might be the ':' in the slices-by-length. As the expression can always tbe parenthesized to 
+     // disambiguate, it makes sense to force the colon to consider the ': type' here. Hence the semantic predicate.
+     // Also a SetComprehension would be the wrong type in a slices-by-length construct.
   ]
   (. var = new BoundVar(id, id.val, optType == null ? new InferredTypeProxy() : optType) {
        IsTypeExplicit = optType != null
@@ -4219,7 +4220,7 @@ MulOp<out IToken x, out BinaryExpr.Opcode op>
 
 /*------------------------------------------------------------------------*/
 BitvectorFactor<out Expression e0, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
-= (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x=null;  Expression/*!*/ e1;  BinaryExpr.Opcode op; bool ambig = false; op = BinaryExpr.Opcode.BitwiseAnd; .)
+= (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x = null;  Expression/*!*/ e1;  BinaryExpr.Opcode op; bool ambig = false; op = BinaryExpr.Opcode.BitwiseAnd; .)
   AsExpression<out e0, allowLemma, allowLambda, allowBitwiseOps>
   [ IF(allowBitwiseOps && IsBitwiseOp())  /* read a BitvectorFactor as far as possible, but not in the context inside a |.| size expression */
     ( "&"                                                (. op = BinaryExpr.Opcode.BitwiseAnd; x = t; .)
@@ -5089,7 +5090,7 @@ QuantifierVariableDecl<.out QuantifiedVar qvar, ref Attributes attrs, bool allow
                                                         // this {Attribute} ends a QuantifierVariableDecl so it can end a SetComprehensionExpr
                                                         // so it can end an Expression
                                                         // But an Expression can be followed by {Attribute} as in VarDeclStatement, Rhs, UpdateStmt
-  [ // Coco complains about this ambiguity, thinking that a "|" can follow a body-less forall statement; 
+  [ // Coco complains about this ambiguity, thinking that a "|" can follow a body-less forall statement. 
     // That can happen because the grammar allows a QuantifierDecl to end a QuantifierDomain, which can end
     // a SetComprehensionExpr, and a Expression can be followed by a bitvector '|'. 
     // The semantic predicate here resolves the ambiguity in favor of a such-that in this QuantifierVariableDecl.
