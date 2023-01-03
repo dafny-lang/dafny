@@ -65,8 +65,8 @@ namespace Microsoft.Dafny {
             // clone it, using the source location of the original
             substExprFinal = new IdentifierExpr(expr.tok, substIdExpr.Var);
           } else {
-            if (substExpr.tok != e.GetRangeToken()) {
-              var substExprParens = new ParensExpression(expr.GetRangeToken(), substExpr);
+            if (substExpr.tok != e.RangeToken) {
+              var substExprParens = new ParensExpression(expr.RangeToken, substExpr);
               substExprParens.Type = substExpr.Type;
               substExprParens.ResolvedExpression = substExpr;
               substExprFinal = substExprParens;
