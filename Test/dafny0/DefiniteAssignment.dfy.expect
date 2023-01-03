@@ -15,19 +15,9 @@ DefiniteAssignment.dfy(438,13): Error: variable 'g', which is subject to definit
 DefiniteAssignment.dfy(441,2): Error: out-parameter 'r'', which is subject to definite-assignment rules, might be uninitialized at this return point
 DefiniteAssignment.dfy(449,2): Error: out-parameter 'r', which is subject to definite-assignment rules, might be uninitialized at this return point
 DefiniteAssignment.dfy(11,9): Error: field 'y', which is subject to definite-assignment rules, might be uninitialized here
-DefiniteAssignment.dfy(13,4): Error: field 'oxA', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
-DefiniteAssignment.dfy(13,4): Error: field 'oxB', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
-DefiniteAssignment.dfy(18,4): Error: field 'oxA', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
-DefiniteAssignment.dfy(18,4): Error: field 'oxB', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
 DefiniteAssignment.dfy(18,4): Error: field 'y', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
-DefiniteAssignment.dfy(23,2): Error: field 'oxA', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
-DefiniteAssignment.dfy(23,2): Error: field 'oxB', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
 DefiniteAssignment.dfy(23,2): Error: field 'y', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
-DefiniteAssignment.dfy(27,2): Error: field 'oxA', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
-DefiniteAssignment.dfy(27,2): Error: field 'oxB', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
 DefiniteAssignment.dfy(27,2): Error: field 'x', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
-DefiniteAssignment.dfy(32,2): Error: field 'oxA', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
-DefiniteAssignment.dfy(32,2): Error: field 'oxB', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
 DefiniteAssignment.dfy(281,13): Error: variable 'f', which is subject to definite-assignment rules, might be uninitialized here
 DefiniteAssignment.dfy(286,13): Error: variable 'f', which is subject to definite-assignment rules, might be uninitialized here
 DefiniteAssignment.dfy(294,13): Error: variable 'f', which is subject to definite-assignment rules, might be uninitialized here
@@ -40,9 +30,7 @@ DefiniteAssignment.dfy(99,5): Error: cannot establish the existence of LHS value
 DefiniteAssignment.dfy(99,14): Error: variable 'e1', which is subject to definite-assignment rules, might be uninitialized here
 DefiniteAssignment.dfy(132,7): Error: variable 'b', which is subject to definite-assignment rules, might be uninitialized here
 DefiniteAssignment.dfy(133,0): Error: out-parameter 'g', which is subject to definite-assignment rules, might be uninitialized at this return point
-DefiniteAssignment.dfy(138,7): Error: variable 'b', which is subject to definite-assignment rules, might be uninitialized here
-DefiniteAssignment.dfy(141,9): Error: variable 'c', which is subject to definite-assignment rules, might be uninitialized here
 DefiniteAssignment.dfy(242,12): Error: variable 'a', which is subject to definite-assignment rules, might be uninitialized here
 DefiniteAssignment.dfy(243,12): Error: variable 'b', which is subject to definite-assignment rules, might be uninitialized here
 
-Dafny program verifier finished with 15 verified, 46 errors
+Dafny program verifier finished with 17 verified, 34 errors

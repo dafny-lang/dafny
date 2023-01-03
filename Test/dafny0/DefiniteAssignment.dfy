@@ -1,7 +1,7 @@
 // RUN: %exits-with 4 %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-class MyClass<G> {
+class MyClass<G(00)> {
   const x: G
   var y: G
   ghost var oxA: G  // error (TODO: "ghosts never need to be assigned" applies if G were marked as nonempty)
@@ -82,7 +82,7 @@ method Main()
                     // previous assertion says, y were null
 }
 
-method DontForgetHavoc<G>(a: G, h: int) returns (k: G) {
+method DontForgetHavoc<G(00)>(a: G, h: int) returns (k: G) {
   var x:G, y:G, z:G := a, *, a;
   if h < 10 {
     k := x;  // fine
@@ -132,7 +132,7 @@ ghost method GM<G>() returns (g: G)
   a := b;  // error: since b has not been assigned
 }  // error: g was never assigned
 
-method MM<G>(ghost x: int, g: G) returns (vv: G, ww: G)
+method MM<G(00)>(ghost x: int, g: G) returns (vv: G, ww: G)
 {
   ghost var a: G, b: G;
   a := b;  // error: b has not been assigned
