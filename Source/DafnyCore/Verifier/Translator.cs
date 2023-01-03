@@ -5205,7 +5205,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(etran != null);
       Contract.Requires(predef != null);
 
-      if (!e.Type.IsRefType) {
+      if (!e.Type.IsRefType || e.Type.IsNonNullRefType) {
         // nothing to do
       } else if (e is ThisExpr) {
         // already known to be non-null
