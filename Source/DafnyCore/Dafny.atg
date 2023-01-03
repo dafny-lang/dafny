@@ -1548,7 +1548,7 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
   (
   "="
   [ ellipsis                               (. SemErr(t, // Help users adjust to the new syntax
-      $"in refining a newtype, the '...' replaces the '=' token and everything up to the left brace starting the declaration of the newtype body (if any); a newtype refinement may not change the basae typeRefinement cannot change the base type of the newtype"); .)
+      $"in refining a newtype, the '...' replaces the '=' token and everything up to the left brace starting the declaration of the newtype body (if any); a newtype refinement may not change the base type of the newtype"); .)
   ]
   ( IF(IsIdentColonOrBar())
     LocalVarName<out bvId>

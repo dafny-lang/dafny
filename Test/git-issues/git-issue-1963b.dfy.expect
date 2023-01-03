@@ -1,2 +1,2 @@
-git-issue-1963b.dfy(12,15): Error: Refinement cannot change the constructors of a datatype. To refine 'D', either omit this '...' or omit the '=' sign and the datatype constructors.
+git-issue-1963b.dfy(12,15): Error: in refining a datatype, the '...' replaces the '=' token and everything up to a left brace starting the declaration of the body; only members of the body may be changed in a datatype refinement
 1 parse errors detected in git-issue-1963b.dfy

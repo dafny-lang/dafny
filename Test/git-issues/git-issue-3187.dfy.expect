@@ -1,5 +1,5 @@
 git-issue-3187.dfy(6,20): Error: no comma is allowed between provides and reveals and extends clauses in an export declaration
-git-issue-3187.dfy(10,12): Error: a const field is initialized using ':=', not '='
+git-issue-3187.dfy(10,12): Error: a const field should be initialized using ':=', not '='
 git-issue-3187.dfy(12,8): Error: a mutable field must be declared with a type
 git-issue-3187.dfy(12,10): Error: a mutable field may not have an initializer
 4 parse errors detected in git-issue-3187.dfy
