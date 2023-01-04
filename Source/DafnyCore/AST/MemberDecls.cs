@@ -483,6 +483,14 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext {
       yield return AssumptionDescription.AssumeInBody;
     }
 
+    if (DeepChildren().Any(n => n is ForallStmt forallStmt && forallStmt.Body is null)) {
+      yield return AssumptionDescription.ForallWithoutBody;
+    }
+
+    if (DeepChildren().Any(n => n is OneBodyLoopStmt loopStmt && loopStmt.Body is null)) {
+      yield return AssumptionDescription.LoopWithoutBody;
+    }
+
     if (Body is null && HasPostcondition) {
       yield return AssumptionDescription.NoBody(IsGhost);
     }

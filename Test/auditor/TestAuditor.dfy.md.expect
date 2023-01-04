@@ -12,3 +12,5 @@
 | GenerateBytesWrapper | True | False | False | Definition has `assume` statement in body. | Replace with `assert` and prove or add `{:axiom}`. |
 | GenerateBytesNoGuarantee | True | False | True | Declaration with `{:extern}` has a requires clause. | Test external caller (maybe with `/testContracts`). |
 | DoesNotTerminate | True | False | False | Method may not terminate (uses `decreases *`). | Provide a valid `decreases` clause. |
+| ForallWithoutBody | False | False | False | Definition contains `forall` statement with no body. | Provide a body. |
+| LoopWithoutBody | True | False | False | Definition contains loop with no body. | Provide a body. |

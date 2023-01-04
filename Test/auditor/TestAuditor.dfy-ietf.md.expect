@@ -45,3 +45,11 @@
 ## Member `DoesNotTerminate`
 
 * Method may not terminate (uses `decreases *`). MUST provide a valid `decreases` clause.
+
+## Member `ForallWithoutBody`
+
+* Definition contains `forall` statement with no body. MUST provide a body.
+
+## Member `LoopWithoutBody`
+
+* Definition contains loop with no body. MUST provide a body.

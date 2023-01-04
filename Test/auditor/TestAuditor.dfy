@@ -80,3 +80,18 @@ method DoesNotTerminate()
 
 trait {:termination false} T {
 }
+
+lemma ForallWithoutBody()
+  ensures forall y : int :: y != y
+{
+    forall y : int
+      ensures y != y
+}
+
+method LoopWithoutBody(n: int)
+{
+    var i := 0;
+    while i < n
+      decreases n - i
+    assert true;
+}

@@ -45,6 +45,8 @@
 <tr><td>GenerateBytesWrapper</td><td>True</td><td>False</td><td>False</td><td>Definition has <code>assume</code> statement in body.</td><td>Replace with <code>assert</code> and prove or add <code>{:axiom}</code>.</td></tr>
 <tr><td>GenerateBytesNoGuarantee</td><td>True</td><td>False</td><td>True</td><td>Declaration with <code>{:extern}</code> has a requires clause.</td><td>Test external caller (maybe with <code>/testContracts</code>).</td></tr>
 <tr><td>DoesNotTerminate</td><td>True</td><td>False</td><td>False</td><td>Method may not terminate (uses <code>decreases *</code>).</td><td>Provide a valid <code>decreases</code> clause.</td></tr>
+<tr><td>ForallWithoutBody</td><td>False</td><td>False</td><td>False</td><td>Definition contains <code>forall</code> statement with no body.</td><td>Provide a body.</td></tr>
+<tr><td>LoopWithoutBody</td><td>True</td><td>False</td><td>False</td><td>Definition contains loop with no body.</td><td>Provide a body.</td></tr>
 </table>
 <script>$( "table" ).last().addClass( "sortable" );</script>
 </body>

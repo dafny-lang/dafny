@@ -33,6 +33,16 @@ public record AssumptionDescription(string issue, string mitigation, bool isExpl
     issue: "Trait method calls may not terminate (uses [{:termination false}]).",
     mitigation: "Remove if possible.",
     isExplicit: false);
+  public static AssumptionDescription ForallWithoutBody = new(
+    issue: "Definition contains [forall] statement with no body.",
+    mitigation: "Provide a body.",
+    isExplicit: false
+  );
+  public static AssumptionDescription LoopWithoutBody = new(
+    issue: "Definition contains loop with no body.",
+    mitigation: "Provide a body.",
+    isExplicit: false
+  );
 
   public static AssumptionDescription NoBody(bool isGhost) {
     return new(
