@@ -59,7 +59,7 @@ namespace Microsoft.Dafny {
           expr : new ParensExpression(expr.tok, receiverReplacement) {
             ResolvedExpression = receiverReplacement,
             RangeToken = expr.RangeToken,
-            Type = expr.Type
+            Type = receiverReplacement.Type
           };
       } else if (expr is IdentifierExpr) {
         IdentifierExpr e = (IdentifierExpr)expr;
@@ -389,7 +389,7 @@ namespace Microsoft.Dafny {
         return new ParensExpression(expr.tok, resolvedExpression) {
           ResolvedExpression = resolvedExpression,
           RangeToken = expr.RangeToken,
-          Type = expr.Type
+          Type = resolvedExpression.Type
         };
 
       } else if (expr is Translator.BoogieFunctionCall) {
