@@ -13,14 +13,12 @@ on:
 
 jobs:
   deep-integration-tests:
-    if: github.repository_owner == 'dafny-lang'
     uses: ./.github/workflows/integration-tests-reusable.yml
     with:
       all_platforms: true
       num_shards: 5
 
   determine-vars:
-    if: github.repository_owner == 'dafny-lang'
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout Dafny
@@ -42,7 +40,6 @@ jobs:
       name: nightly-${{ steps.date.outputs.date }}-${{ steps.short-sha.outputs.sha_short }}
 
   publish-release:
-    if: github.repository_owner == 'dafny-lang'
     uses: ./.github/workflows/publish-release-reusable.yml
     needs: [deep-integration-tests, determine-vars]
     with:
