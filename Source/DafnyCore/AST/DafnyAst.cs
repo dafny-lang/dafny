@@ -46,10 +46,11 @@ namespace Microsoft.Dafny {
       afterChildren ??= node => { };
 
       var visited = new HashSet<INode>();
-      var toVisit = new Stack<INode>();
-      toVisit.Push(this);
+      var toVisit = new LinkedList<INode>();
+      toVisit.AddFirst(this);
       while (toVisit.Any()) {
-        var current = toVisit.Pop();
+        var current = toVisit.First();
+        toVisit.RemoveFirst();
         if (!visited.Add(current)) {
           continue;
         }
@@ -58,11 +59,17 @@ namespace Microsoft.Dafny {
           continue;
         }
 
-        foreach (var child in current.Children.Reverse()) {
+        var first = toVisit.First;
+        foreach (var child in current.Children) {
           if (child == null) {
             throw new InvalidOperationException($"Object of type {current.GetType()} has null child");
           }
-          toVisit.Push(child);
+
+          if (first != null) {
+            toVisit.AddBefore(first, child);
+          } else {
+            toVisit.AddFirst(child);
+          }
         }
 
         afterChildren(current);
