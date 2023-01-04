@@ -12,6 +12,9 @@ boogie: ${DIR}/boogie/Binaries/Boogie.exe
 tests:
 	(cd ${DIR}; dotnet test Source/IntegrationTests)
 
+tests-verbose:
+	(cd ${DIR}; dotnet test --logger "console;verbosity=normal" Source/IntegrationTests )
+
 ${DIR}/boogie/Binaries/Boogie.exe:
 	(cd ${DIR}/boogie ; dotnet build -c Release Source/Boogie.sln )
 

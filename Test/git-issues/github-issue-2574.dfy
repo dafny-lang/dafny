@@ -1,4 +1,4 @@
-// RUN: %baredafny /countVerificationErrors:0 /compile:0 /showSnippets:1 "%s" > "%t.raw"
+// RUN: %exits-with 4 %baredafny /compile:0 /showSnippets:1 "%s" > "%t.raw"
 // RUN: %sed 's/^.*[\/\\]//' "%t".raw > "%t"
 // RUN: %diff %s.expect %t
 module Spec {

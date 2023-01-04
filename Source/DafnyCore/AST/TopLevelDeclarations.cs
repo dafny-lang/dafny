@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public abstract class Declaration : INamedRegion, IAttributeBearingDeclaration, IDeclarationOrUsage {
+public abstract class Declaration : INode, INamedRegion, IAttributeBearingDeclaration, IDeclarationOrUsage {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(tok != null);
@@ -17,11 +17,8 @@ public abstract class Declaration : INamedRegion, IAttributeBearingDeclaration, 
     return DafnyOptions.O.Compiler.PublicIdProtect(name);
   }
 
-  public IToken tok;
   public IToken BodyStartTok = Token.NoToken;
   public IToken BodyEndTok = Token.NoToken;
-  public IToken StartToken = Token.NoToken;
-  public IToken EndToken = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
   public string Name;
   public bool IsRefining;
@@ -133,11 +130,7 @@ public abstract class Declaration : INamedRegion, IAttributeBearingDeclaration, 
 
   internal FreshIdGenerator IdGenerator = new();
   public IToken NameToken => tok;
-  public virtual IEnumerable<INode> Children {
-    get {
-      return Enumerable.Empty<INode>();
-    }
-  }
+  public override IEnumerable<INode> Children => (Attributes != null ? new List<INode> { Attributes } : Enumerable.Empty<INode>());
 }
 
 public class TypeParameter : TopLevelDecl {
@@ -241,6 +234,7 @@ public class TypeParameter : TopLevelDecl {
 
   public enum EqualitySupportValue { Required, InferredRequired, Unspecified }
   public struct TypeParameterCharacteristics {
+    public IToken RangeToken = null;
     public EqualitySupportValue EqualitySupport;  // the resolver may change this value from Unspecified to InferredRequired (for some signatures that may immediately imply that equality support is required)
     public Type.AutoInitInfo AutoInit;
     public bool HasCompiledValue => AutoInit == Type.AutoInitInfo.CompilableValue;
@@ -385,8 +379,10 @@ public class LiteralModuleDecl : ModuleDecl {
   public LiteralModuleDecl(ModuleDefinition module, ModuleDefinition parent)
     : base(module.tok, module.Name, parent, false, false) {
     ModuleDef = module;
-    StartToken = module.StartToken;
+    RangeToken = module.RangeToken;
     TokenWithTrailingDocString = module.TokenWithTrailingDocString;
+    BodyStartTok = module.BodyStartTok;
+    BodyEndTok = module.BodyEndTok;
   }
   public override object Dereference() { return ModuleDef; }
 }
@@ -482,8 +478,7 @@ public class ModuleExportDecl : ModuleDecl {
 
 }
 
-public class ExportSignature : IHasUsages {
-  public readonly IToken Tok;
+public class ExportSignature : INode, IHasUsages {
   public readonly IToken ClassIdTok;
   public readonly bool Opaque;
   public readonly string ClassId;
@@ -508,6 +503,7 @@ public class ExportSignature : IHasUsages {
     ClassId = prefix;
     Id = id;
     Opaque = opaque;
+    OwnedTokensCache = new List<IToken>() { Tok, prefixTok };
   }
 
   public ExportSignature(IToken idTok, string id, bool opaque) {
@@ -516,6 +512,7 @@ public class ExportSignature : IHasUsages {
     Tok = idTok;
     Id = id;
     Opaque = opaque;
+    OwnedTokensCache = new List<IToken>() { Tok };
   }
 
   public override string ToString() {
@@ -526,7 +523,7 @@ public class ExportSignature : IHasUsages {
   }
 
   public IToken NameToken => Tok;
-  public IEnumerable<INode> Children => Enumerable.Empty<INode>();
+  public override IEnumerable<INode> Children => Enumerable.Empty<INode>();
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return new[] { Decl };
   }
@@ -630,11 +627,9 @@ public class ModuleQualifiedId {
   [FilledInDuringResolution] public ModuleSignature Sig; // the module signature corresponding to the full path
 }
 
-public class ModuleDefinition : IDeclarationOrUsage, INamedRegion, IAttributeBearingDeclaration {
-  public readonly IToken tok;
+public class ModuleDefinition : INode, IDeclarationOrUsage, INamedRegion, IAttributeBearingDeclaration {
   public IToken BodyStartTok = Token.NoToken;
   public IToken BodyEndTok = Token.NoToken;
-  public IToken StartToken = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
   public readonly string DafnyName; // The (not-qualified) name as seen in Dafny source code
   public readonly string Name; // (Last segment of the) module name
@@ -940,7 +935,7 @@ public class ModuleDefinition : IDeclarationOrUsage, INamedRegion, IAttributeBea
   }
 
   public IToken NameToken => tok;
-  public IEnumerable<INode> Children => TopLevelDecls;
+  public override IEnumerable<INode> Children => (Attributes != null ? new List<INode> { Attributes } : Enumerable.Empty<INode>()).Concat(TopLevelDecls);
 }
 
 public class DefaultModuleDecl : ModuleDefinition {
@@ -1345,6 +1340,8 @@ public class ArrowTypeDecl : ClassDecl {
 public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICallable {
   public override bool CanBeRevealed() { return true; }
   public readonly List<DatatypeCtor> Ctors;
+
+  [FilledInDuringResolution] public Dictionary<string, DatatypeCtor> ConstructorsByName { get; set; }
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(cce.NonNullElements(Ctors));
@@ -1385,7 +1382,7 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
   bool ICodeContext.IsGhost { get { return true; } }
   List<TypeParameter> ICodeContext.TypeArgs { get { return TypeArgs; } }
   List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
-  ModuleDefinition ICodeContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
+  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
   bool ICodeContext.MustReverify { get { return false; } }
   bool ICodeContext.AllowsNontermination { get { return false; } }
   IToken ICallable.Tok { get { return tok; } }
@@ -1402,6 +1399,9 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
     set { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
   }
 
+  /// <summary>
+  /// For information about the grounding constructor, see docs/Compilation/AutoInitialization.md.
+  /// </summary>
   public abstract DatatypeCtor GetGroundingCtor();
 
 
@@ -1542,11 +1542,10 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType {
 /// <summary>
 /// An ICodeContext is an ICallable or a NoContext.
 /// </summary>
-public interface ICodeContext {
+public interface ICodeContext : IASTVisitorContext {
   bool IsGhost { get; }
   List<TypeParameter> TypeArgs { get; }
   List<Formal> Ins { get; }
-  ModuleDefinition EnclosingModule { get; }  // to be called only after signature-resolution is complete
   bool MustReverify { get; }
   string FullSanitizedName { get; }
   bool AllowsNontermination { get; }
@@ -1660,7 +1659,7 @@ public class NoContext : ICodeContext {
   bool ICodeContext.IsGhost { get { return true; } }
   List<TypeParameter> ICodeContext.TypeArgs { get { return new List<TypeParameter>(); } }
   List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
-  ModuleDefinition ICodeContext.EnclosingModule { get { return Module; } }
+  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return Module; } }
   bool ICodeContext.MustReverify { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
   public string FullSanitizedName { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
   public bool AllowsNontermination { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
@@ -1808,7 +1807,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext {
     get { return _inferredDecr; }
   }
 
-  ModuleDefinition ICodeContext.EnclosingModule { get { return this.EnclosingModuleDefinition; } }
+  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return this.EnclosingModuleDefinition; } }
   bool ICodeContext.MustReverify { get { return false; } }
   public bool AllowsNontermination {
     get {
@@ -1844,6 +1843,8 @@ public interface RedirectingTypeDecl : ICallable {
   string Name { get; }
 
   IToken tok { get; }
+  IEnumerable<IToken> OwnedTokens { get; }
+  IToken StartToken { get; }
   Attributes Attributes { get; }
   ModuleDefinition Module { get; }
   BoundVar/*?*/ Var { get; }
@@ -1956,6 +1957,8 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
 
   string RedirectingTypeDecl.Name { get { return Name; } }
   IToken RedirectingTypeDecl.tok { get { return tok; } }
+  IEnumerable<IToken> RedirectingTypeDecl.OwnedTokens => OwnedTokens;
+  IToken RedirectingTypeDecl.StartToken => StartToken;
   Attributes RedirectingTypeDecl.Attributes { get { return Attributes; } }
   ModuleDefinition RedirectingTypeDecl.Module { get { return EnclosingModuleDefinition; } }
   BoundVar RedirectingTypeDecl.Var { get { return Var; } }
@@ -1969,7 +1972,7 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
   }
   List<TypeParameter> ICodeContext.TypeArgs { get { return new List<TypeParameter>(); } }
   List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
-  ModuleDefinition ICodeContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
+  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
   bool ICodeContext.MustReverify { get { return false; } }
   bool ICodeContext.AllowsNontermination { get { return false; } }
   IToken ICallable.Tok { get { return tok; } }
@@ -2048,6 +2051,8 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl {
 
   string RedirectingTypeDecl.Name { get { return Name; } }
   IToken RedirectingTypeDecl.tok { get { return tok; } }
+  IEnumerable<IToken> RedirectingTypeDecl.OwnedTokens => OwnedTokens;
+  IToken RedirectingTypeDecl.StartToken => StartToken;
   Attributes RedirectingTypeDecl.Attributes { get { return Attributes; } }
   ModuleDefinition RedirectingTypeDecl.Module { get { return EnclosingModuleDefinition; } }
   BoundVar RedirectingTypeDecl.Var { get { return null; } }
@@ -2061,7 +2066,7 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl {
   }
   List<TypeParameter> ICodeContext.TypeArgs { get { return TypeArgs; } }
   List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
-  ModuleDefinition ICodeContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
+  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
   bool ICodeContext.MustReverify { get { return false; } }
   bool ICodeContext.AllowsNontermination { get { return false; } }
   IToken ICallable.Tok { get { return tok; } }

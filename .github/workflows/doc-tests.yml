@@ -1,0 +1,66 @@
+name: Test documentation
+
+## Tests various aspects of documentation
+##  -- Examples are well-formed and verify when expected
+##  (Building the pdf is separately tested, in refman.yml)
+##
+## The tests only need to run on one OS -- Linux is used because the test scripts are bash
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            z3: z3-4.8.5-x64-ubuntu-16.04
+            chmod: true
+
+    env:
+      solutionPath: Source/Dafny.sln
+      z3BaseUri: https://github.com/Z3Prover/z3/releases/download/Z3-4.8.5
+      Logging__LogLevel__Microsoft: Debug
+    steps:
+    - name: OS
+      run: echo ${{ runner.os }} ${{ matrix.os }}
+    - uses: actions/setup-python@v1
+    - name: Setup dotnet
+      uses: actions/setup-dotnet@v1.9.0
+      with:
+        dotnet-version: 6.0.x
+    - name: Checkout Dafny
+      uses: actions/checkout@v2
+      with:
+        submodules: recursive
+        path: dafny
+    - name: Load Z3
+      shell: pwsh
+      run: |
+        Invoke-WebRequest ${{env.z3BaseUri}}/${{matrix.z3}}.zip -OutFile z3.zip
+        Expand-Archive z3.zip .
+        Remove-Item z3.zip
+    - name: Set Z3 location and permissions
+      if: ${{matrix.chmod}}
+      run: |
+        cd dafny
+        mkdir bin
+        mv ../${{matrix.z3}}/bin/z3* bin/
+        chmod +x bin/z3*
+    - name: Build Dafny
+      run: dotnet build dafny/Source/Dafny.sln
+    - name: Check OnlineTutorial examples
+      run: |
+        cd dafny/docs
+        PATH=../bin:$PATH ./check-examples OnlineTutorial/*.md || ( echo Tests Failed; exit 1 ) && echo Tests Succeeded
+    - name: Check Reference Manual examples
+      run: |
+        cd dafny/docs
+        PATH=../bin:$PATH ./check-examples DafnyRef/*.md || ( echo Tests Failed; exit 1 ) && echo Tests Succeeded

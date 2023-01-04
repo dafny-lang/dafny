@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 "%s" > "%t"
+// RUN: %exits-with 2 %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype Result<T> =
@@ -28,11 +28,11 @@ datatype Cell<T> = Cell(value: T)
 const Y := 1  // type of Y must be inferred
 method q() {
   var c: Cell;  // note, type argument omitted; it will eventually be inferred
-  match c {
-    case Cell(Y) =>     // Y is int, so C is Cell<int>
+  match c { // ERROR: expects Cell<real>
+    case Cell(Y) =>     // ERROR: Y is int, which doesn't agree with the inferred type Cell<real> of c
     case Cell(_) =>     // if Y is a const, then this case is not redundant
   }
-  c := Cell(1.2); // ERROR: type mismatch
+  c := Cell(1.2); // this determines the type of c to be Cell<real>
 }
 
 method qq() {

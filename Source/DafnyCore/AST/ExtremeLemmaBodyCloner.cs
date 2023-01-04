@@ -19,13 +19,14 @@ class ExtremeLemmaBodyCloner : ExtremeCloner {
     this.context = context;
     this.focalPredicates = focalPredicates;
   }
+
   public override Statement CloneStmt(Statement stmt) {
     if (stmt is ConcreteSyntaxStatement) {
       var s = (ConcreteSyntaxStatement)stmt;
       return CloneStmt(s.ResolvedStatement);
-    } else {
-      return base.CloneStmt(stmt);
     }
+
+    return base.CloneStmt(stmt);
   }
 
   public override Expression CloneExpr(Expression expr) {
@@ -33,9 +34,9 @@ class ExtremeLemmaBodyCloner : ExtremeCloner {
       if (expr is FunctionCallExpr) {
         var e = (FunctionCallExpr)expr;
 #if DEBUG_PRINT
-        if (e.Function.Name.EndsWith("#") && Contract.Exists(focalPredicates, p => e.Function.Name == p.Name + "#")) {
-          Console.WriteLine("{0}({1},{2}): DEBUG: Possible opportunity to rely on new rewrite: {3}", e.tok.filename, e.tok.line, e.tok.col, Printer.ExprToString(e));
-        }
+          if (e.Function.Name.EndsWith("#") && Contract.Exists(focalPredicates, p => e.Function.Name == p.Name + "#")) {
+            Console.WriteLine("{0}({1},{2}): DEBUG: Possible opportunity to rely on new rewrite: {3}", e.tok.filename, e.tok.line, e.tok.col, Printer.ExprToString(e));
+          }
 #endif
         // Note, we don't actually ever get here, because all calls will have been parsed as ApplySuffix.
         // However, if something changes in the future (for example, some rewrite that changing an ApplySuffix
@@ -44,9 +45,9 @@ class ExtremeLemmaBodyCloner : ExtremeCloner {
         var f = e.Function as ExtremePredicate;
         if (f != null && focalPredicates.Contains(f)) {
 #if DEBUG_PRINT
-          var r = CloneCallAndAddK(e);
-          Console.WriteLine("{0}({1},{2}): DEBUG: Rewrote extreme predicate into prefix predicate: {3}", e.tok.filename, e.tok.line, e.tok.col, Printer.ExprToString(r));
-          return r;
+            var r = CloneCallAndAddK(e);
+            Console.WriteLine("{0}({1},{2}): DEBUG: Rewrote extreme predicate into prefix predicate: {3}", e.tok.filename, e.tok.line, e.tok.col, Printer.ExprToString(r));
+            return r;
 #else
           return CloneCallAndAddK(e);
 #endif
@@ -65,16 +66,16 @@ class ExtremeLemmaBodyCloner : ExtremeCloner {
           var fce = apply.Resolved as FunctionCallExpr;
           if (fce != null) {
 #if DEBUG_PRINT
-            if (fce.Function.Name.EndsWith("#") && Contract.Exists(focalPredicates, p => fce.Function.Name == p.Name + "#")) {
-              Console.WriteLine("{0}({1},{2}): DEBUG: Possible opportunity to rely on new rewrite: {3}", fce.tok.filename, fce.tok.line, fce.tok.col, Printer.ExprToString(fce));
-            }
+              if (fce.Function.Name.EndsWith("#") && Contract.Exists(focalPredicates, p => fce.Function.Name == p.Name + "#")) {
+                Console.WriteLine("{0}({1},{2}): DEBUG: Possible opportunity to rely on new rewrite: {3}", fce.tok.filename, fce.tok.line, fce.tok.col, Printer.ExprToString(fce));
+              }
 #endif
             var f = fce.Function as ExtremePredicate;
             if (f != null && focalPredicates.Contains(f)) {
 #if DEBUG_PRINT
-              var r = CloneCallAndAddK(fce);
-              Console.WriteLine("{0}({1},{2}): DEBUG: Rewrote extreme predicate into prefix predicate: {3}", fce.tok.filename, fce.tok.line, fce.tok.col, Printer.ExprToString(r));
-              return r;
+                var r = CloneCallAndAddK(fce);
+                Console.WriteLine("{0}({1},{2}): DEBUG: Rewrote extreme predicate into prefix predicate: {3}", fce.tok.filename, fce.tok.line, fce.tok.col, Printer.ExprToString(r));
+                return r;
 #else
               return CloneCallAndAddK(fce);
 #endif
@@ -105,8 +106,9 @@ class ExtremeLemmaBodyCloner : ExtremeCloner {
         var args = new List<ActualBinding>();
         args.Add(new ActualBinding(null, k));
         apply.Bindings.ArgumentBindings.ForEach(arg => args.Add(CloneActualBinding(arg)));
-        var applyClone = new ApplySuffix(Tok(apply.tok), apply.AtTok == null ? null : Tok(apply.AtTok), lhsClone, args, Tok(apply.CloseParen));
-        var c = new ExprRhs(applyClone);
+        var applyClone = new ApplySuffix(Tok(apply.tok), apply.AtTok == null ? null : Tok(apply.AtTok),
+          lhsClone, args, Tok(apply.CloseParen));
+        var c = new ExprRhs(applyClone, CloneAttributes(rhs.Attributes));
         reporter.Info(MessageSource.Cloner, apply.Lhs.tok, mse.Member.Name + suffix);
         return c;
       }

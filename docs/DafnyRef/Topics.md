@@ -9,11 +9,15 @@ a generic type instance.
 
 However, those type parameters do not always have to be explicit; Dafny can often infer what they ought to be.
 For example, here is a fully parameterized function signature:
+<!-- %check-resolve -->
 ```dafny
+type List<T>
 function Elements<T>(list: List<T>): set<T>
 ```
 However, Dafny also accepts
+<!-- %check-resolve -->
 ```dafny
+type List<T>
 function Elements(list: List): set
 ```
 In the latter case, Dafny knows that the already defined types `set` and `List` each take one type parameter
@@ -21,7 +25,9 @@ so it fills in `<T>` (using some unique type parameter name) and then determines
 a type parameter `<T>` also.
 
 Dafny also accepts
+<!-- %check-resolve -->
 ```dafny
+type List<T>
 function Elements<T>(list: List): set
 ```
 In this case, the function already has a type parameter list. `List` and `set` are each known to need type parameters,
@@ -53,6 +59,7 @@ some notes about type inference:
   variable's type may be found after the variable has been declared
   and used. For example, the nonsensical program
 
+<!-- %check-resolve -->
     ```dafny
     method M(n: nat) returns (y: int)
     {
@@ -71,6 +78,7 @@ some notes about type inference:
 
   A more useful example is this:
 
+<!-- %check-verify -->
     ```dafny
     class Cell {
       var data: int
@@ -97,6 +105,7 @@ some notes about type inference:
   context before giving up on inference is when there is a member
   lookup. For example,
 
+<!-- %check-resolve Topics.1.expect -->
     ```dafny
     datatype List<T> = Nil | Cons(T, List<T>)
 
@@ -117,6 +126,7 @@ some notes about type inference:
 * If type parameters cannot be inferred, then they can be given
   explicitly in angle brackets. For example, in
 
+<!-- %check-resolve Topics.2.expect -->
     ```dafny
     datatype Option<T> = None | Some(T)
     
@@ -134,6 +144,7 @@ some notes about type inference:
 
   Here is another example:
 
+<!-- %check-resolve Topics.3.expect -->
     ```dafny
     function EmptySet<T>(): set<T> {
       {}
@@ -155,6 +166,7 @@ some notes about type inference:
 
 * Even the element type of `new` is optional, if it can be inferred. For example, in
 
+<!-- %check-resolve -->
     ```dafny
     method NewArrays()
     {
@@ -212,6 +224,7 @@ The following expressions are ghost, which is used in some of the tests above:
 Note that inferring ghostness can uncover other errors, such as updating non-ghost variables in ghost contexts.
 For example, if `f` is a ghost function, in the presence of the following code:
 
+<!-- %no-check -->
 ```dafny
 var x := 1;
 if(f(x)) {
@@ -726,6 +739,7 @@ explained in the previous section.
 Declarations of well-founded functions are unsurprising.  For example, the Fibonacci
 function is declared as follows:
 
+<!-- %check-verify -->
 ```dafny
 function fib(n: nat): nat
 {
@@ -758,6 +772,7 @@ Dafny has `lemma` declarations, as described in [Section 13.3.3](#sec-lemmas):
 lemmas can have pre- and postcondition specifications and their body is a code block.
 Here is the lemma we stated and proved in [the fib example](#sec-fib-example) in the previous section:
 
+<!-- %check-verify -->
 ```dafny
 lemma FibProperty(n: nat)
   ensures fib(n) % 2 == 0 <==> n % 3 == 0
@@ -766,6 +781,10 @@ lemma FibProperty(n: nat)
   } else {
     FibProperty(n-2); FibProperty(n-1);
   }
+}
+function fib(n: nat): nat
+{
+  if n < 2 then n else fib(n-2) + fib(n-1)
 }
 ```
 
@@ -786,6 +805,7 @@ Dafny features an aggregate statement using which it is possible to make (possib
 infinitely) many calls at once.  For example, the induction hypothesis can be called
 at once on all values `n'` smaller than `n`:
 
+<!-- %no-check -->
 ```dafny
 forall n' | 0 <= n' < n {
   FibProperty(n');
@@ -795,6 +815,7 @@ forall n' | 0 <= n' < n {
 For our purposes, this corresponds to _strong induction_.  More
 generally, the `forall` statement has the form
 
+<!-- %no-check -->
 ```dafny
 forall k | P(k)
   ensures Q(k)
@@ -812,10 +833,15 @@ Lemma `FibProperty` is simple enough that its whole body can be replaced by the 
 inserts such a `forall` statement at the beginning of every lemma [@Leino:induction].
 Thus, `FibProperty` can be declared and proved simply by:
 
+<!-- %check-verify -->
 ```dafny
 lemma FibProperty(n: nat)
   ensures fib(n) % 2 == 0 <==> n % 3 == 0
 { }
+function fib(n: nat): nat
+{
+  if n < 2 then n else fib(n-2) + fib(n-1)
+}
 ```
 
 Going in the other direction from universal introduction is existential elimination,
@@ -835,9 +861,10 @@ well-founded predicate.  The declarations for introducing extreme predicates are
 `least predicate` and `greatest predicate`.  Here is the definition of the least and
 greatest solutions of $g$ from above; let's call them `g` and `G`:
 
+<!-- %check-verify -->
 ```dafny
-least predicate g(x: int) { x == 0 || g(x-2) }
-greatest predicate G(x: int) { x == 0 || G(x-2) }
+least predicate g[nat](x: int) { x == 0 || g(x-2) }
+greatest predicate G[nat](x: int) { x == 0 || G(x-2) }
 ```
 
 When Dafny receives either of these definitions, it automatically declares the corresponding
@@ -850,6 +877,7 @@ Using a faux-syntax for illustrative purposes, here are the prefix
 predicates that Dafny defines automatically from the extreme
 predicates `g` and `G`:
 
+<!-- %no-check -->
 ```dafny
 predicate g#[_k: nat](x: int) { _k != 0 && (x == 0 || g#[_k-1](x-2)) }
 predicate G#[_k: nat](x: int) { _k != 0 ==> (x == 0 || G#[_k-1](x-2)) }
@@ -873,7 +901,10 @@ From what has been presented so far, we can do the formal proofs for
 [the example about the least solution](#sec-example-least-solution) and [the example about the greatest solution](#sec-example-greatest-solution).  Here is the
 former:
 
+<!-- %check-verify -->
 ```dafny
+least predicate g[nat](x: int) { x == 0 || g(x-2) }
+greatest predicate G[nat](x: int) { x == 0 || G(x-2) }
 lemma EvenNat(x: int)
   requires g(x)
   ensures 0 <= x && x % 2 == 0
@@ -903,6 +934,7 @@ done automatically.
 
 Because Dafny automatically inserts the statement
 
+<!-- %no-check -->
 ```dafny
 forall k', x' | 0 <= k' < k && g#[k'](x') {
   EvenNatAux(k', x');
@@ -914,7 +946,10 @@ completes the proof automatically.
 
 Here is the Dafny program that gives the proof from [the example of the greatest solution](#sec-example-greatest-solution):
 
+<!-- %check-verify -->
 ```dafny
+least predicate g[nat](x: int) { x == 0 || g(x-2) }
+greatest predicate G[nat](x: int) { x == 0 || G(x-2) }
 lemma Always(x: int)
   ensures G(x)
 { forall k: nat { AlwaysAux(k, x); } }
@@ -965,7 +1000,10 @@ extreme lemma's postcondition.
 Let us see what effect these rewrites have on how one can write proofs.  Here are the proofs
 of our running example:
 
+<!-- %check-verify -->
 ```dafny
+least predicate g(x: int) { x == 0 || g(x-2) }
+greatest predicate G(x: int) { x == 0 || G(x-2) }
 least lemma EvenNat(x: int)
   requires g(x)
   ensures 0 <= x && x % 2 == 0
@@ -1042,7 +1080,8 @@ are given in the following table:
 
 Also, there are a few relations between the rows in the table above. For example, a datatype value `x` sitting inside a set that sits inside another datatype value `X` is considered to be strictly below `X`. Here's an illustration of that order, in a program that verifies:
 
-``` dafny
+<!-- %check-verify -->
+```dafny
 datatype D = D(s: set<D>)
 
 method TestD(dd: D) {

@@ -1,12 +1,6 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:java "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:py "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s"
 
-module {:options "/functionSyntax:4"} Stacks {
+module {:options "--function-syntax=4"} Stacks {
   export
     reveals Stack
     provides Stack.Valid, Stack.Repr, Stack.Elements
@@ -104,6 +98,8 @@ method Main() {
 
   EnumerationTests.Test();
   DestructorTests.Test();
+
+  Arrays.Test();
 }
 
 module {:options "/functionSyntax:4"} EnumerationTests {
@@ -211,4 +207,69 @@ module ConstraintsAreGhost {
 
   datatype List = Nil | ghost Konstig(ghost head: int, tail: List)
   type RestrictedList = xs: List | xs.Konstig? ghost witness Konstig(0, Nil)
+}
+
+module Arrays {
+  datatype MaybeInitialized<T> = ghost Uninitialized | Initialized(value: T)
+  datatype Singleton<X> = Single(X)
+
+  type Synonym = MaybeInitialized<Class>
+  class Class { }
+
+  method Test() {
+    M<bv5>();
+
+    var st := new Stack(5 as bv5);
+    st.U(6);
+    Print(st.arr, " | ");
+    Print(st.trr, " | ");
+    Print(st.brr, "\n");
+  }
+
+  method M<T>() {
+    var arr := new MaybeInitialized<T>[20]; // no need to initialize the array at run time
+    var srr := new Singleton<MaybeInitialized<T>>[20]; // no need to initialize the array at run time
+    var yrr := new Synonym[20]; // no need to initialize the array at run time
+    var trr := new (ghost bool, ghost real, Singleton<MaybeInitialized<T>>, ghost int)[20]; // no need to initialize the array at run time
+    print arr.Length + srr.Length + yrr.Length + trr.Length, "\n"; // 80
+  }
+
+  method Print<X>(x: array<X>, suffix: string) {
+    if x.Length != 0 {
+      print x[x.Length / 2], suffix;
+    }
+  }
+
+  class Stack<T> {
+    var arr: array<MaybeInitialized<T>>
+    var trr: array<T>
+    var brr: array<bool>
+    var arr2: array2<MaybeInitialized<T>>
+    var trr2: array2<T>
+    var brr2: array2<bool>
+
+    constructor (t: T)
+      ensures fresh(arr) && fresh(trr) && fresh(brr)
+    {
+      arr := new [20];
+      trr := new [20](_ => t);
+      brr := new [20];
+    }
+    method U(t: T)
+      modifies this, arr, trr, brr
+    {
+      arr := Update(arr, Initialized(t));
+      trr := Update(trr, t);
+      brr := Update(brr, true);
+    }
+  }
+
+  method Update<T>(a: array<T>, t: T) returns (r: array<T>)
+    modifies a
+  {
+    if a.Length != 0 {
+      a[a.Length / 2] := t;
+    }
+    r := a;
+  }
 }

@@ -3,13 +3,24 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public class AssignStmt : Statement {
+public class AssignStmt : Statement, ICloneable<AssignStmt> {
   public readonly Expression Lhs;
   public readonly AssignmentRhs Rhs;
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Lhs != null);
     Contract.Invariant(Rhs != null);
+  }
+
+  public override IEnumerable<INode> Children => new INode[] { Lhs, Rhs };
+
+  public AssignStmt Clone(Cloner cloner) {
+    return new AssignStmt(cloner, this);
+  }
+
+  public AssignStmt(Cloner cloner, AssignStmt original) : base(cloner, original) {
+    Lhs = cloner.CloneExpr(original.Lhs);
+    Rhs = cloner.CloneRHS(original.Rhs);
   }
 
   public AssignStmt(IToken tok, IToken endTok, Expression lhs, AssignmentRhs rhs)
@@ -34,7 +45,16 @@ public class AssignStmt : Statement {
     get {
       foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
       yield return Lhs;
-      foreach (var ee in Rhs.SubExpressions) {
+      foreach (var ee in Rhs.NonSpecificationSubExpressions) {
+        yield return ee;
+      }
+    }
+  }
+
+  public override IEnumerable<Expression> SpecificationSubExpressions {
+    get {
+      foreach (var e in base.SpecificationSubExpressions) { yield return e; }
+      foreach (var ee in Rhs.SpecificationSubExpressions) {
         yield return ee;
       }
     }

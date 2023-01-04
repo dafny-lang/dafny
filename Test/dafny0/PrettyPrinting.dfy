@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /dprint:- /env:0 /noVerify "%s" > "%t"
+// RUN: %exits-with 2 %dafny /dprint:- /env:0 /noVerify "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module A {

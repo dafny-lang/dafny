@@ -1,9 +1,9 @@
 // RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %dafny_0 /noVerify /compile:4 /compileTarget:cs "%s" > "%t".abyss
-// RUN: %dafny_0 /noVerify /compile:4 /compileTarget:java "%s" > "%t".abyss
+// RUN: %exits-with 3 %dafny /noVerify /compile:4 /compileTarget:cs "%s" > "%t".abyss
+// RUN: %exits-with 3 %dafny /noVerify /compile:4 /compileTarget:java "%s" > "%t".abyss
 // RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" > "%t".abyss
-// RUN: %dafny_0 /noVerify /compile:4 /compileTarget:go "%s" > "%t".abyss
-// RUN: %dafny_0 /noVerify /compile:4 /compileTarget:cpp "%s" > "%t".abyss
+// RUN: %exits-with 3 %dafny /noVerify /compile:4 /compileTarget:go "%s" > "%t".abyss
+// RUN: %exits-with 3 %dafny /noVerify /compile:4 /compileTarget:cpp "%s" > "%t".abyss
 // RUN: %diff "%s.expect" "%t"
 
 // Without providing extern code for the :extern C, Dafny will output
