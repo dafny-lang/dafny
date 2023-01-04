@@ -3350,11 +3350,11 @@ namespace Microsoft.Dafny {
     }
 
     internal IToken GetToken(Expression expression) {
-      return flags.ReportRanges ? expression.GetRangeToken() : expression.tok;
+      return flags.ReportRanges ? expression.RangeToken : expression.tok;
     }
 
     internal IToken GetToken(Statement stmt) {
-      return flags.ReportRanges ? stmt.GetRangeToken() : stmt.Tok;
+      return flags.ReportRanges ? stmt.RangeToken : stmt.Tok;
     }
 
     void CheckDefiniteAssignment(IdentifierExpr expr, BoogieStmtListBuilder builder) {
@@ -4079,7 +4079,7 @@ namespace Microsoft.Dafny {
           e = Substitute(e, receiverReplacement, substMap);
         }
 
-        e = Resolver.FrameArrowToObjectSet(e, CurrentIdGenerator, program.BuiltIns);
+        e = ArrowType.FrameArrowToObjectSet(e, CurrentIdGenerator, program.BuiltIns);
 
         Bpl.Expr disjunct;
         var eType = e.Type.NormalizeExpand();
