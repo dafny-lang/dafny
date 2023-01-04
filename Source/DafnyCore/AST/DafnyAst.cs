@@ -59,16 +59,16 @@ namespace Microsoft.Dafny {
           continue;
         }
 
-        var first = toVisit.First;
+        var nodeAfterChildren = toVisit.First;
         foreach (var child in current.Children) {
           if (child == null) {
             throw new InvalidOperationException($"Object of type {current.GetType()} has null child");
           }
 
-          if (first != null) {
-            toVisit.AddBefore(first, child);
-          } else {
+          if (nodeAfterChildren == null) {
             toVisit.AddLast(child);
+          } else {
+            toVisit.AddBefore(nodeAfterChildren, child);
           }
         }
 
