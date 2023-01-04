@@ -472,7 +472,9 @@ public class ExpressionTester {
       }
     } else if (expr is QuantifierExpr) {
       var e = (QuantifierExpr)expr;
-      Contract.Assert(e.SplitQuantifier == null); // No split quantifiers during resolution
+      if (e.SplitQuantifier != null) {
+        return UsesSpecFeatures(e.SplitQuantifierExpression);
+      }
       return e.UncompilableBoundVars().Count != 0 || UsesSpecFeatures(e.LogicalBody());
     } else if (expr is SetComprehension) {
       var e = (SetComprehension)expr;
@@ -491,8 +493,9 @@ public class ExpressionTester {
     } else if (expr is ITEExpr) {
       ITEExpr e = (ITEExpr)expr;
       return UsesSpecFeatures(e.Test) || UsesSpecFeatures(e.Thn) || UsesSpecFeatures(e.Els);
-    } else if (expr is NestedMatchExpr) {
-      return UsesSpecFeatures(((NestedMatchExpr)expr).ResolvedExpression);
+    } else if (expr is NestedMatchExpr nestedMatchExpr) {
+      return nestedMatchExpr.Cases.SelectMany(caze => caze.Pat.DescendantsAndSelf.OfType<IdPattern>().Where(id => id.Ctor != null)).Any(id => id.Ctor.IsGhost)
+             || expr.SubExpressions.Any(child => UsesSpecFeatures(child));
     } else if (expr is MatchExpr) {
       MatchExpr me = (MatchExpr)expr;
       if (UsesSpecFeatures(me.Source) || FirstCaseThatDependsOnGhostCtor(me.Cases) != null) {

@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using System.Security.Policy;
 
 namespace Microsoft.Dafny;
 
@@ -29,16 +30,18 @@ public abstract class Statement : INode, IAttributeBearingDeclaration {
   [FilledInDuringResolution] public bool IsGhost { get; set; }
 
   protected Statement(Cloner cloner, Statement original) {
+    cloner.AddStatementClone(original, this);
     this.Tok = cloner.Tok(original.Tok);
     this.EndTok = cloner.Tok(original.EndTok);
     this.attributes = cloner.CloneAttributes(original.Attributes);
 
     if (cloner.CloneResolvedFields) {
       IsGhost = original.IsGhost;
+      Labels = original.Labels;
     }
   }
 
-  public Statement(IToken tok, IToken endTok, Attributes attrs) {
+  protected Statement(IToken tok, IToken endTok, Attributes attrs) {
     Contract.Requires(tok != null);
     Contract.Requires(endTok != null);
     this.Tok = tok;
@@ -47,7 +50,7 @@ public abstract class Statement : INode, IAttributeBearingDeclaration {
     this.attributes = attrs;
   }
 
-  public Statement(IToken tok, IToken endTok)
+  protected Statement(IToken tok, IToken endTok)
     : this(tok, endTok, null) {
     Contract.Requires(tok != null);
     Contract.Requires(endTok != null);
@@ -156,6 +159,7 @@ public abstract class Statement : INode, IAttributeBearingDeclaration {
       return $"couldn't print stmt because: {e.Message}";
     }
   }
+
   public override IEnumerable<INode> Children =>
     (Attributes != null ? new List<INode> { Attributes } : Enumerable.Empty<INode>()).Concat(
       SubStatements.Concat<INode>(SubExpressions));
@@ -350,6 +354,11 @@ public abstract class AssignmentRhs : INode, IAttributeBearingDeclaration {
     return Attributes != null;
   }
 
+  internal AssignmentRhs(Cloner cloner, AssignmentRhs original) {
+    Tok = cloner.Tok(original.tok);
+    Attributes = cloner.CloneAttributes(original.Attributes);
+  }
+
   internal AssignmentRhs(IToken tok, Attributes attrs = null) {
     Tok = tok;
     Attributes = attrs;
@@ -438,7 +447,7 @@ public class ExprRhs : AssignmentRhs {
 ///    or all of Path denotes a type
 ///      -- represents new C._ctor(EE), where _ctor is the anonymous constructor for class C
 /// </summary>
-public class TypeRhs : AssignmentRhs {
+public class TypeRhs : AssignmentRhs, ICloneable<TypeRhs> {
   /// <summary>
   /// If ArrayDimensions != null, then the TypeRhs represents "new EType[ArrayDimensions]",
   ///     ElementInit is non-null to represent "new EType[ArrayDimensions] (elementInit)",
@@ -461,6 +470,34 @@ public class TypeRhs : AssignmentRhs {
     get {
       Contract.Requires(Bindings != null);
       return Bindings.Arguments;
+    }
+  }
+
+  public TypeRhs Clone(Cloner cloner) {
+    return new TypeRhs(cloner, this);
+  }
+
+  public TypeRhs(Cloner cloner, TypeRhs original)
+    : base(cloner, original) {
+    EType = cloner.CloneType(original.EType);
+    if (original.ArrayDimensions != null) {
+      if (original.InitDisplay != null) {
+        Contract.Assert(original.ArrayDimensions.Count == 1);
+        ArrayDimensions = new List<Expression> { original.ArrayDimensions[0] };
+        InitDisplay = original.InitDisplay.ConvertAll(cloner.CloneExpr);
+      } else {
+        ArrayDimensions = original.ArrayDimensions.Select(cloner.CloneExpr).ToList();
+        ElementInit = cloner.CloneExpr(original.ElementInit);
+      }
+    } else if (original.Bindings == null) {
+    } else {
+      Path = cloner.CloneType(original.Path);
+      Bindings = new ActualBindings(cloner, original.Bindings);
+    }
+
+    if (cloner.CloneResolvedFields) {
+      InitCall = cloner.CloneStmt(original.InitCall) as CallStmt;
+      Type = cloner.CloneType(original.Type);
     }
   }
 
