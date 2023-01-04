@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 
 namespace Microsoft.Dafny;
 
@@ -344,14 +345,16 @@ public class AutoReqFunctionRewriter : IRewriter {
       reqs.AddRange(GenerateAutoReqs(e.Test));
       reqs.Add(Expression.CreateITE(e.Test, Andify(e.Thn.tok, GenerateAutoReqs(e.Thn)), Andify(e.Els.tok, GenerateAutoReqs(e.Els))));
     } else if (expr is NestedMatchExpr) {
-      // Generate autoReq on e.ResolvedExpression, but also on the unresolved body in case something (e.g. another cloner) clears the resolved expression
-      var e = (NestedMatchExpr)expr;
+      containsMatch = true;
 
-      var autoReqs = GenerateAutoReqs(e.ResolvedExpression);
-      var newMatch = new NestedMatchExpr(e.tok, e.Source, e.Cases, e.UsesOptionalBraces);
-      newMatch.ResolvedExpression = Andify(e.tok, autoReqs);
-      newMatch.Type = newMatch.ResolvedExpression.Type;
-      reqs.Add(newMatch);
+      var e = (NestedMatchExpr)expr;
+      reqs.AddRange(GenerateAutoReqs(e.Source));
+
+      var newCases = e.Cases.Select(cas =>
+        new NestedMatchCaseExpr(cas.Tok, cas.Pat, Andify(cas.Body.tok, GenerateAutoReqs(cas.Body)), cas.Attributes)).ToList();
+      var nestedMatchExpr = new NestedMatchExpr(e.tok, e.Source, newCases, e.UsesOptionalBraces);
+      nestedMatchExpr.Type = Type.Bool;
+      reqs.Add(nestedMatchExpr);
     } else if (expr is ConcreteSyntaxExpression) {
       var e = (ConcreteSyntaxExpression)expr;
       reqs.AddRange(GenerateAutoReqs(e.ResolvedExpression));

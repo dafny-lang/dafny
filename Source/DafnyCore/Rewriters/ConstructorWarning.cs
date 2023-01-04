@@ -15,20 +15,19 @@ using Microsoft.Dafny;
    */
 
 class ConstructorWarning : IRewriter {
-  internal override void PostResolve(Program program) {
-    base.PostResolve(program);
-    foreach (var moduleDefinition in program.Modules()) {
-      foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
-        foreach (var callable in topLevelDecl.Members.OfType<ICallable>()) {
-          var visitor = new ConstructorWarningVisitor(this.Reporter);
-          visitor.Visit(callable, Unit.Default);
-        }
+  internal override void PostResolve(ModuleDefinition moduleDefinition) {
+    foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
+      foreach (var callable in topLevelDecl.Members.OfType<ICallable>()) {
+        var visitor = new ConstructorWarningVisitor(this.Reporter);
+        visitor.Visit(callable, Unit.Default);
       }
     }
   }
+
   public ConstructorWarning(ErrorReporter reporter) : base(reporter) {
   }
 }
+
 class ConstructorWarningVisitor : TopDownVisitor<Unit> {
   private readonly ErrorReporter reporter;
   public ConstructorWarningVisitor(ErrorReporter reporter) {

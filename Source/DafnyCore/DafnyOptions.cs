@@ -244,7 +244,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public int Induction = 4;
     public int InductionHeuristic = 6;
     public bool TypeInferenceDebug = false;
-    public bool MatchCompilerDebug = false;
     public string DafnyPrelude = null;
     public string DafnyPrintFile = null;
 
@@ -514,10 +513,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
             return true;
           }
-
-        case "pmtrace":
-          MatchCompilerDebug = true;
-          return true;
 
         case "titrace":
           TypeInferenceDebug = true;

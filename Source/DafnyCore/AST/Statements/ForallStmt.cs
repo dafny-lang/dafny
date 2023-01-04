@@ -58,7 +58,7 @@ public class ForallStmt : Statement, ICloneable<ForallStmt> {
     if (cloner.CloneResolvedFields) {
       Bounds = original.Bounds;
       Kind = original.Kind;
-      ForallExpressions = original.ForallExpressions.Select(cloner.CloneExpr).ToList();
+      ForallExpressions = original.ForallExpressions?.Select(cloner.CloneExpr).ToList();
     }
   }
 

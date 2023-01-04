@@ -1774,7 +1774,7 @@ Expressions =
 The ``Expressions`` non-terminal represents a list of
 one or more expressions separated by commas.
 
-## 21.45. Parameter Bindings
+## 21.45. Parameter Bindings {#sec-parameter-bindings}
 
 Method calls, object-allocation calls (`new`), function calls, and
 datatype constructors can be called with both positional arguments
