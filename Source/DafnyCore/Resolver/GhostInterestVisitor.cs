@@ -8,31 +8,33 @@ namespace Microsoft.Dafny;
 class GhostInterestVisitor {
   readonly ICodeContext codeContext;
   readonly Resolver resolver;
+  private readonly ErrorReporter reporter;
   private readonly bool inConstructorInitializationPhase;
-  public GhostInterestVisitor(ICodeContext codeContext, Resolver resolver, bool inConstructorInitializationPhase) {
+  public GhostInterestVisitor(ICodeContext codeContext, Resolver resolver, ErrorReporter reporter, bool inConstructorInitializationPhase) {
     Contract.Requires(codeContext != null);
     Contract.Requires(resolver != null);
     this.codeContext = codeContext;
     this.resolver = resolver;
+    this.reporter = reporter;
     this.inConstructorInitializationPhase = inConstructorInitializationPhase;
   }
   protected void Error(Statement stmt, string msg, params object[] msgArgs) {
     Contract.Requires(stmt != null);
     Contract.Requires(msg != null);
     Contract.Requires(msgArgs != null);
-    resolver.reporter.Error(MessageSource.Resolver, stmt, msg, msgArgs);
+    reporter.Error(MessageSource.Resolver, stmt, msg, msgArgs);
   }
   protected void Error(Expression expr, string msg, params object[] msgArgs) {
     Contract.Requires(expr != null);
     Contract.Requires(msg != null);
     Contract.Requires(msgArgs != null);
-    resolver.reporter.Error(MessageSource.Resolver, expr, msg, msgArgs);
+    reporter.Error(MessageSource.Resolver, expr, msg, msgArgs);
   }
   protected void Error(IToken tok, string msg, params object[] msgArgs) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
     Contract.Requires(msgArgs != null);
-    resolver.reporter.Error(MessageSource.Resolver, tok, msg, msgArgs);
+    reporter.Error(MessageSource.Resolver, tok, msg, msgArgs);
   }
   /// <summary>
   /// There are three kinds of contexts for statements.
@@ -83,10 +85,10 @@ class GhostInterestVisitor {
       if (mustBeErasable) {
         Error(stmt, "expect statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
       } else {
-        ExpressionTester.CheckIsCompilable(resolver, s.Expr, codeContext);
+        ExpressionTester.CheckIsCompilable(resolver, reporter, s.Expr, codeContext);
         // If not provided, the message is populated with a default value in resolution
         Contract.Assert(s.Message != null);
-        ExpressionTester.CheckIsCompilable(resolver, s.Message, codeContext);
+        ExpressionTester.CheckIsCompilable(resolver, reporter, s.Message, codeContext);
       }
 
     } else if (stmt is PrintStmt) {
@@ -94,7 +96,7 @@ class GhostInterestVisitor {
       if (mustBeErasable) {
         Error(stmt, "print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
       } else {
-        s.Args.Iter(ee => ExpressionTester.CheckIsCompilable(resolver, ee, codeContext));
+        s.Args.Iter(ee => ExpressionTester.CheckIsCompilable(resolver, reporter, ee, codeContext));
       }
 
     } else if (stmt is RevealStmt) {
@@ -179,7 +181,7 @@ class GhostInterestVisitor {
             local.MakeGhost();
           }
         } else {
-          ExpressionTester.CheckIsCompilable(resolver, s.RHS, codeContext);
+          ExpressionTester.CheckIsCompilable(resolver, reporter, s.RHS, codeContext);
         }
         s.IsGhost = spec;
       }
@@ -203,12 +205,12 @@ class GhostInterestVisitor {
         int j;
         if (!callee.IsGhost) {
           // check in-parameters
-          ExpressionTester.CheckIsCompilable(resolver, s.Receiver, codeContext);
+          ExpressionTester.CheckIsCompilable(resolver, reporter, s.Receiver, codeContext);
           j = 0;
           foreach (var e in s.Args) {
             Contract.Assume(j < callee.Ins.Count);  // this should have already been checked by the resolver
             if (!callee.Ins[j].IsGhost) {
-              ExpressionTester.CheckIsCompilable(resolver, e, codeContext);
+              ExpressionTester.CheckIsCompilable(resolver, reporter, e, codeContext);
             }
             j++;
           }
@@ -246,7 +248,7 @@ class GhostInterestVisitor {
       var s = (BlockStmt)stmt;
       s.IsGhost = mustBeErasable;  // set .IsGhost before descending into substatements (since substatements may do a 'break' out of this block)
       if (s is DividedBlockStmt ds) {
-        var giv = new GhostInterestVisitor(this.codeContext, this.resolver, true);
+        var giv = new GhostInterestVisitor(this.codeContext, this.resolver, this.reporter, true);
         ds.BodyInit.Iter(ss => giv.Visit(ss, mustBeErasable, proofContext));
         ds.BodyProper.Iter(ss => Visit(ss, mustBeErasable, proofContext));
       } else {
@@ -258,7 +260,7 @@ class GhostInterestVisitor {
       var s = (IfStmt)stmt;
       s.IsGhost = mustBeErasable || (s.Guard != null && ExpressionTester.UsesSpecFeatures(s.Guard));
       if (!mustBeErasable && s.IsGhost) {
-        resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ghost if");
+        reporter.Info(MessageSource.Resolver, s.Tok, "ghost if");
       }
       Visit(s.Thn, s.IsGhost, proofContext);
       if (s.Els != null) {
@@ -269,14 +271,14 @@ class GhostInterestVisitor {
       if (!s.IsGhost && s.Guard != null) {
         // If there were features in the guard that are treated differently in ghost and non-ghost
         // contexts, make sure they get treated for non-ghost use.
-        ExpressionTester.CheckIsCompilable(resolver, s.Guard, codeContext);
+        ExpressionTester.CheckIsCompilable(resolver, reporter, s.Guard, codeContext);
       }
 
     } else if (stmt is AlternativeStmt) {
       var s = (AlternativeStmt)stmt;
       s.IsGhost = mustBeErasable || s.Alternatives.Exists(alt => ExpressionTester.UsesSpecFeatures(alt.Guard));
       if (!mustBeErasable && s.IsGhost) {
-        resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ghost if");
+        reporter.Info(MessageSource.Resolver, s.Tok, "ghost if");
       }
       s.Alternatives.Iter(alt => alt.Body.Iter(ss => Visit(ss, s.IsGhost, proofContext)));
       s.IsGhost = s.IsGhost || s.Alternatives.All(alt => alt.Body.All(ss => ss.IsGhost));
@@ -284,7 +286,7 @@ class GhostInterestVisitor {
         // If there were features in the guards that are treated differently in ghost and non-ghost
         // contexts, make sure they get treated for non-ghost use.
         foreach (var alt in s.Alternatives) {
-          ExpressionTester.CheckIsCompilable(resolver, alt.Guard, codeContext);
+          ExpressionTester.CheckIsCompilable(resolver, reporter, alt.Guard, codeContext);
         }
       }
 
@@ -296,7 +298,7 @@ class GhostInterestVisitor {
 
       s.IsGhost = mustBeErasable || (s.Guard != null && ExpressionTester.UsesSpecFeatures(s.Guard));
       if (!mustBeErasable && s.IsGhost) {
-        resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ghost while");
+        reporter.Info(MessageSource.Resolver, s.Tok, "ghost while");
       }
       if (s.IsGhost && s.Decreases.Expressions.Exists(e => e is WildcardExpr)) {
         Error(s, "'decreases *' is not allowed on ghost loops");
@@ -313,7 +315,7 @@ class GhostInterestVisitor {
       if (!s.IsGhost && s.Guard != null) {
         // If there were features in the guard that are treated differently in ghost and non-ghost
         // contexts, make sure they get treated for non-ghost use.
-        ExpressionTester.CheckIsCompilable(resolver, s.Guard, codeContext);
+        ExpressionTester.CheckIsCompilable(resolver, reporter, s.Guard, codeContext);
       }
 
     } else if (stmt is AlternativeLoopStmt) {
@@ -324,7 +326,7 @@ class GhostInterestVisitor {
 
       s.IsGhost = mustBeErasable || s.Alternatives.Exists(alt => ExpressionTester.UsesSpecFeatures(alt.Guard));
       if (!mustBeErasable && s.IsGhost) {
-        resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ghost while");
+        reporter.Info(MessageSource.Resolver, s.Tok, "ghost while");
       }
       if (s.IsGhost && s.Decreases.Expressions.Exists(e => e is WildcardExpr)) {
         Error(s, "'decreases *' is not allowed on ghost loops");
@@ -338,7 +340,7 @@ class GhostInterestVisitor {
         // If there were features in the guards that are treated differently in ghost and non-ghost
         // contexts, make sure they get treated for non-ghost use.
         foreach (var alt in s.Alternatives) {
-          ExpressionTester.CheckIsCompilable(resolver, alt.Guard, codeContext);
+          ExpressionTester.CheckIsCompilable(resolver, reporter, alt.Guard, codeContext);
         }
       }
 
@@ -350,7 +352,7 @@ class GhostInterestVisitor {
 
       s.IsGhost = mustBeErasable || ExpressionTester.UsesSpecFeatures(s.Start) || (s.End != null && ExpressionTester.UsesSpecFeatures(s.End));
       if (!mustBeErasable && s.IsGhost) {
-        resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ghost for-loop");
+        reporter.Info(MessageSource.Resolver, s.Tok, "ghost for-loop");
       }
       if (s.IsGhost) {
         if (s.Decreases.Expressions.Exists(e => e is WildcardExpr)) {
@@ -371,9 +373,9 @@ class GhostInterestVisitor {
       if (!s.IsGhost) {
         // If there were features in the bounds that are treated differently in ghost and non-ghost
         // contexts, make sure they get treated for non-ghost use.
-        ExpressionTester.CheckIsCompilable(resolver, s.Start, codeContext);
+        ExpressionTester.CheckIsCompilable(resolver, reporter, s.Start, codeContext);
         if (s.End != null) {
-          ExpressionTester.CheckIsCompilable(resolver, s.End, codeContext);
+          ExpressionTester.CheckIsCompilable(resolver, reporter, s.End, codeContext);
         }
       }
 
@@ -398,7 +400,7 @@ class GhostInterestVisitor {
 
         // If there were features in the range that are treated differently in ghost and non-ghost
         // contexts, make sure they get treated for non-ghost use.
-        ExpressionTester.CheckIsCompilable(resolver, s.Range, codeContext);
+        ExpressionTester.CheckIsCompilable(resolver, reporter, s.Range, codeContext);
       }
 
     } else if (stmt is ModifyStmt) {
@@ -422,24 +424,35 @@ class GhostInterestVisitor {
         Visit(h, true, "a hint");
       }
 
+    } else if (stmt is NestedMatchStmt nestedMatchStmt) {
+      var hasGhostPattern = nestedMatchStmt.Cases.
+        SelectMany(caze => caze.Pat.DescendantsAndSelf)
+        .OfType<IdPattern>().Any(idPattern => idPattern.Ctor != null && idPattern.Ctor.IsGhost);
+      nestedMatchStmt.IsGhost = mustBeErasable || ExpressionTester.UsesSpecFeatures(nestedMatchStmt.Source) || hasGhostPattern;
+
+      if (!mustBeErasable && nestedMatchStmt.IsGhost) {
+        reporter.Info(MessageSource.Resolver, nestedMatchStmt.Tok, "ghost match");
+      }
+      nestedMatchStmt.Cases.Iter(kase => kase.Body.Iter(ss => Visit(ss, nestedMatchStmt.IsGhost, proofContext)));
+      nestedMatchStmt.IsGhost = nestedMatchStmt.IsGhost || nestedMatchStmt.Cases.All(kase => kase.Body.All(ss => ss.IsGhost));
+      if (!nestedMatchStmt.IsGhost) {
+        // If there were features in the source expression that are treated differently in ghost and non-ghost
+        // contexts, make sure they get treated for non-ghost use.
+        ExpressionTester.CheckIsCompilable(resolver, reporter, nestedMatchStmt.Source, codeContext);
+      }
     } else if (stmt is MatchStmt) {
       var s = (MatchStmt)stmt;
       s.IsGhost = mustBeErasable || ExpressionTester.UsesSpecFeatures(s.Source) || ExpressionTester.FirstCaseThatDependsOnGhostCtor(s.Cases) != null;
       if (!mustBeErasable && s.IsGhost) {
-        resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ghost match");
+        reporter.Info(MessageSource.Resolver, s.Tok, "ghost match");
       }
       s.Cases.Iter(kase => kase.Body.Iter(ss => Visit(ss, s.IsGhost, proofContext)));
       s.IsGhost = s.IsGhost || s.Cases.All(kase => kase.Body.All(ss => ss.IsGhost));
       if (!s.IsGhost) {
         // If there were features in the source expression that are treated differently in ghost and non-ghost
         // contexts, make sure they get treated for non-ghost use.
-        ExpressionTester.CheckIsCompilable(resolver, s.Source, codeContext);
+        ExpressionTester.CheckIsCompilable(resolver, reporter, s.Source, codeContext);
       }
-
-    } else if (stmt is ConcreteSyntaxStatement) {
-      var s = (ConcreteSyntaxStatement)stmt;
-      Visit(s.ResolvedStatement, mustBeErasable, proofContext);
-      s.IsGhost = s.IsGhost || s.ResolvedStatement.IsGhost;
 
     } else if (stmt is SkeletonStatement) {
       var s = (SkeletonStatement)stmt;
@@ -508,27 +521,27 @@ class GhostInterestVisitor {
     } else {
       if (gk == AssignStmt.NonGhostKind.Field) {
         var mse = (MemberSelectExpr)lhs;
-        ExpressionTester.CheckIsCompilable(resolver, mse.Obj, codeContext);
+        ExpressionTester.CheckIsCompilable(resolver, reporter, mse.Obj, codeContext);
       } else if (gk == AssignStmt.NonGhostKind.ArrayElement) {
-        ExpressionTester.CheckIsCompilable(resolver, lhs, codeContext);
+        ExpressionTester.CheckIsCompilable(resolver, reporter, lhs, codeContext);
       }
 
       if (s.Rhs is ExprRhs) {
         var rhs = (ExprRhs)s.Rhs;
         if (!AssignStmt.LhsIsToGhost(lhs)) {
-          ExpressionTester.CheckIsCompilable(resolver, rhs.Expr, codeContext);
+          ExpressionTester.CheckIsCompilable(resolver, reporter, rhs.Expr, codeContext);
         }
       } else if (s.Rhs is HavocRhs) {
         // cool
       } else {
         var rhs = (TypeRhs)s.Rhs;
         if (rhs.ArrayDimensions != null) {
-          rhs.ArrayDimensions.ForEach(ee => ExpressionTester.CheckIsCompilable(resolver, ee, codeContext));
+          rhs.ArrayDimensions.ForEach(ee => ExpressionTester.CheckIsCompilable(resolver, reporter, ee, codeContext));
           if (rhs.ElementInit != null) {
-            ExpressionTester.CheckIsCompilable(resolver, rhs.ElementInit, codeContext);
+            ExpressionTester.CheckIsCompilable(resolver, reporter, rhs.ElementInit, codeContext);
           }
           if (rhs.InitDisplay != null) {
-            rhs.InitDisplay.ForEach(ee => ExpressionTester.CheckIsCompilable(resolver, ee, codeContext));
+            rhs.InitDisplay.ForEach(ee => ExpressionTester.CheckIsCompilable(resolver, reporter, ee, codeContext));
           }
         }
         if (rhs.InitCall != null) {
@@ -538,7 +551,7 @@ class GhostInterestVisitor {
           }
           for (var i = 0; i < rhs.InitCall.Args.Count; i++) {
             if (!callee.Ins[i].IsGhost) {
-              ExpressionTester.CheckIsCompilable(resolver, rhs.InitCall.Args[i], codeContext);
+              ExpressionTester.CheckIsCompilable(resolver, reporter, rhs.InitCall.Args[i], codeContext);
             }
           }
         }
