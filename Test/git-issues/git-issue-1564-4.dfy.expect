@@ -26,7 +26,7 @@ predicate R0()
   return true;
 }
 
-Dafny program verifier finished with 2 verified, 0 errors
+Dafny program verifier finished with 0 errors
 // git-issue-1564-4.dfy
 
 ghost function F0(): int
@@ -55,7 +55,7 @@ predicate R0()
   return true;
 }
 
-Dafny program verifier finished with 2 verified, 0 errors
+Dafny program verifier finished with 0 errors
 // git-issue-1564-4.dfy
 
 ghost function F0(): int
@@ -84,4 +84,4 @@ predicate R0()
   return true;
 }
 
-Dafny program verifier finished with 2 verified, 0 errors
+Dafny program verifier finished with 0 errors

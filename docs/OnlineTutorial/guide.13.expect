@@ -3,4 +3,4 @@ text.dfy(5,21): Related message: loop invariant violation
 text.dfy(5,21): Error: This loop invariant might not be maintained by the loop.
 text.dfy(5,21): Related message: loop invariant violation
 
-Dafny program verifier finished with 0 verified, 2 errors
+Dafny program verifier finished with 2 errors

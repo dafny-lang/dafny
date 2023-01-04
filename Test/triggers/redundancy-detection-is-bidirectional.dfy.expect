@@ -9,4 +9,4 @@ redundancy-detection-is-bidirectional.dfy(26,9): Info: Selected triggers: {SS(z,
 redundancy-detection-is-bidirectional.dfy(27,9): Info: Selected triggers: {SS(z, w), RR(y, v), QQ(x, u)}
 redundancy-detection-is-bidirectional.dfy(28,9): Info: Selected triggers: {SS(z, w), RR(y, v), QQ(x, u)}
 
-Dafny program verifier finished with 2 verified, 0 errors
+Dafny program verifier finished with 0 errors

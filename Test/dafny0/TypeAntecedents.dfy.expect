@@ -3,4 +3,4 @@ TypeAntecedents.dfy(58,0): Error: A postcondition might not hold on this return 
 TypeAntecedents.dfy(57,14): Related location: This is the postcondition that might not hold.
 TypeAntecedents.dfy(66,15): Error: assertion might not hold
 
-Dafny program verifier finished with 5 verified, 3 errors
+Dafny program verifier finished with 3 errors

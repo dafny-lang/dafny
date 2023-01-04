@@ -16,4 +16,4 @@ Superposition.dfy(27,25): Related location: This is the postcondition that might
 Verifying M1.C.M (correctness) ...
   [1 proof obligation]  verified
 
-Dafny program verifier finished with 2 verified, 2 errors
+Dafny program verifier finished with 2 errors

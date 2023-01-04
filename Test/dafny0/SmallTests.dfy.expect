@@ -53,7 +53,7 @@ SmallTests.dfy(701,9): Error: cannot establish the existence of LHS values that 
 SmallTests.dfy(703,9): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 SmallTests.dfy(716,8): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 
-Dafny program verifier finished with 56 verified, 48 errors
+Dafny program verifier finished with 48 errors
 SmallTests.dfy.tmp.dprint.dfy(803,12): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
 SmallTests.dfy.tmp.dprint.dfy(450,4): Warning: /!\ No trigger covering all quantified variables found.
 

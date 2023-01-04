@@ -2,4 +2,4 @@ set-construction-is-a-good-trigger.dfy(8,11): Info: Selected triggers: {[y]}
 set-construction-is-a-good-trigger.dfy(9,11): Info: Selected triggers: {{y}}
 set-construction-is-a-good-trigger.dfy(10,11): Info: Selected triggers: {multiset{y}}
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier finished with 0 errors

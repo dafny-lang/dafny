@@ -1,4 +1,4 @@
 git-issue-623.dfy(92,35): Error: value of expression (of type 'MyTrait') is not known to be an instance of type 'MyClass'
 git-issue-623.dfy(95,27): Error: value of expression (of type 'MyTrait') is not known to be an instance of type 'MyClass'
 
-Dafny program verifier finished with 3 verified, 2 errors
+Dafny program verifier finished with 2 errors

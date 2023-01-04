@@ -14,4 +14,4 @@ git-issue-370.dfy(45,0): Error: A postcondition might not hold on this return pa
 git-issue-370.dfy(44,7): Related location: This is the postcondition that might not hold.
 git-issue-370.dfy(32,9): Related location
 
-Dafny program verifier finished with 1 verified, 5 errors
+Dafny program verifier finished with 5 errors

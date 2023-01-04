@@ -14,7 +14,7 @@ LetExpr.dfy(313,11): Error: assertion might not hold
 LetExpr.dfy(323,11): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
 LetExpr.dfy(109,22): Error: assertion might not hold
 
-Dafny program verifier finished with 37 verified, 13 errors
+Dafny program verifier finished with 13 errors
 LetExpr.dfy.tmp.dprint.dfy(281,4): Warning: /!\ No terms found to trigger on.
 LetExpr.dfy.tmp.dprint.dfy(46,2): Warning: /!\ No terms found to trigger on.
 

@@ -7,4 +7,4 @@ git-issue-2301.dfy(42,17): Error: insufficient reads clause to read state of 'un
 git-issue-2301.dfy(44,8): Error: insufficient reads clause to read state of 'unchanged' multiset element
 git-issue-2301.dfy(46,8): Error: insufficient reads clause to read state of 'unchanged' sequence element
 
-Dafny program verifier finished with 3 verified, 7 errors
+Dafny program verifier finished with 7 errors

@@ -1,4 +1,4 @@
 
-Dafny program verifier finished with 11 verified, 0 errors
+Dafny program verifier finished with 0 errors
 Tree.Branch(100, List.Cons(Tree.Branch(50, List.Nil), List.Nil))
 Tree.Branch(100, List.Cons(Tree.Branch(50, List.Nil), List.Nil))

@@ -20,4 +20,4 @@ SchorrWaite-stages.dfy(262,9): Warning: the ... refinement feature in statements
 SchorrWaite-stages.dfy(263,16): Warning: the ... refinement feature in statements is deprecated
 SchorrWaite-stages.dfy(265,11): Warning: the ... refinement feature in statements is deprecated
 
-Dafny program verifier finished with 7 verified, 0 errors
+Dafny program verifier finished with 0 errors

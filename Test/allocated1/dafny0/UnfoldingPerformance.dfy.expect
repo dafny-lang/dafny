@@ -3,4 +3,4 @@ UnfoldingPerformance.dfy(30,11): Error: assertion might not hold
 UnfoldingPerformance.dfy(51,11): Error: assertion might not hold
 UnfoldingPerformance.dfy(61,11): Error: assertion might not hold
 
-Dafny program verifier finished with 4 verified, 4 errors
+Dafny program verifier finished with 4 errors

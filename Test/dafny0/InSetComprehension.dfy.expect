@@ -17,4 +17,4 @@ InSetComprehension.dfy(78,13): Info: Selected triggers: {y in ti}
 InSetComprehension.dfy(81,13): Info: Selected triggers: {n in si}
 InSetComprehension.dfy(82,5): Info: Selected triggers: {si[i]}
 
-Dafny program verifier finished with 8 verified, 0 errors
+Dafny program verifier finished with 0 errors

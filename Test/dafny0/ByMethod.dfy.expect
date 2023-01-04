@@ -23,4 +23,4 @@ ByMethod.dfy(148,11): Error: cannot prove termination; try supplying a decreases
 ByMethod.dfy(152,13): Error: cannot prove termination; try supplying a decreases clause
 ByMethod.dfy(175,13): Error: decreases clause might not decrease
 
-Dafny program verifier finished with 15 verified, 16 errors
+Dafny program verifier finished with 16 errors

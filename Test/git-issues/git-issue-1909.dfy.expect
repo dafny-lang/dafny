@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 1 verified, 0 errors
+Dafny program verifier finished with 0 errors
 ABC.ABC(19, 21, 23)
 ABC.ABC(19, 42, 23)
 ABC.ABC(100, 42, 90)

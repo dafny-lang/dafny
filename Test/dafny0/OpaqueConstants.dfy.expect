@@ -9,4 +9,4 @@ OpaqueConstants.dfy(84,24): Error: assertion might not hold
 OpaqueConstants.dfy(86,24): Error: assertion might not hold
 OpaqueConstants.dfy(99,47): Error: assertion might not hold
 
-Dafny program verifier finished with 3 verified, 10 errors
+Dafny program verifier finished with 10 errors

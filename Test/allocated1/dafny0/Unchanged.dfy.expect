@@ -7,4 +7,4 @@ Unchanged.dfy(47,35): Error: object might not be allocated in the old-state of t
 Unchanged.dfy(48,41): Error: object might not be allocated in the old-state of the 'unchanged' predicate
 Unchanged.dfy(49,35): Error: object might not be allocated in the old-state of the 'unchanged' predicate
 
-Dafny program verifier finished with 1 verified, 8 errors
+Dafny program verifier finished with 8 errors

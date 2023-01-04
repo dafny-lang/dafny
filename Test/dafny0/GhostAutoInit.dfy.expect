@@ -52,4 +52,4 @@ GhostAutoInit.dfy(331,19): Error: variable 'cell', which is subject to definite-
 GhostAutoInit.dfy(332,11): Error: value does not satisfy the subset constraints of 'nat'
 GhostAutoInit.dfy(335,19): Error: variable 'e', which is subject to definite-assignment rules, might be uninitialized here
 
-Dafny program verifier finished with 7 verified, 52 errors
+Dafny program verifier finished with 52 errors

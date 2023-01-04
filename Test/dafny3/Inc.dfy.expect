@@ -22,4 +22,4 @@ Inc.dfy(318,17): Error: cannot prove termination; try supplying a decreases clau
 Inc.dfy(318,17): Error: decreases expression at index 1 must be bounded below by 0
 Inc.dfy(303,26): Related location
 
-Dafny program verifier finished with 8 verified, 12 errors
+Dafny program verifier finished with 12 errors

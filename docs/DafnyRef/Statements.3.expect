@@ -2,4 +2,4 @@ text.dfy(12,2): Warning: note, this loop has no body (loop frame: i, a, $Heap)
 text.dfy(16,11): Error: assertion might not hold
 text.dfy(18,16): Error: assertion might not hold
 
-Dafny program verifier finished with 1 verified, 2 errors
+Dafny program verifier finished with 2 errors

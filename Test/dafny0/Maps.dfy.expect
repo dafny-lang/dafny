@@ -34,4 +34,4 @@ Maps.dfy(525,20): Error: assertion might not hold
 Maps.dfy(562,2): Error: decreases expression might not decrease
 Maps.dfy(576,2): Error: decreases expression might not decrease
 
-Dafny program verifier finished with 49 verified, 32 errors
+Dafny program verifier finished with 32 errors

@@ -8,4 +8,4 @@ LoopModifies.dfy(148,10): Error: assignment might update an array element not in
 LoopModifies.dfy(199,9): Error: assignment might update an array element not in the enclosing context's modifies clause
 LoopModifies.dfy(287,12): Error: assignment might update an array element not in the enclosing context's modifies clause
 
-Dafny program verifier finished with 21 verified, 9 errors
+Dafny program verifier finished with 9 errors

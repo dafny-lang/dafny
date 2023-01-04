@@ -15,4 +15,4 @@ Naked.dfy(60,13): Error: cannot use naked function in recursive setting. Possibl
 Naked.dfy(67,12): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
 Naked.dfy(102,20): Error: assertion might not hold
 
-Dafny program verifier finished with 5 verified, 15 errors
+Dafny program verifier finished with 15 errors

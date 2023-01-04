@@ -56,7 +56,7 @@ method SubsetTypes(a: Subset_NegIsOdd, b: Subset_NegIsOdd, x: Subset_Byte, z: Su
 git-issue228.dfy(42,15): Error: result of operation might violate newtype constraint for 'NegIsOdd'
 git-issue228.dfy(48,15): Error: result of operation might violate newtype constraint for 'Byte'
 
-Dafny program verifier finished with 8 verified, 2 errors
+Dafny program verifier finished with 2 errors
 // git-issue228.dfy
 
 /*
@@ -242,4 +242,4 @@ method SubsetTypes(a: Subset_NegIsOdd, b: Subset_NegIsOdd, x: Subset_Byte, z: Su
 git-issue228.dfy(42,15): Error: result of operation might violate newtype constraint for 'NegIsOdd'
 git-issue228.dfy(48,15): Error: result of operation might violate newtype constraint for 'Byte'
 
-Dafny program verifier finished with 8 verified, 2 errors
+Dafny program verifier finished with 2 errors

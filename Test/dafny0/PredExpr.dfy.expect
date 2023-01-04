@@ -3,4 +3,4 @@ PredExpr.dfy(39,14): Error: value does not satisfy the subset constraints of 'na
 PredExpr.dfy(52,16): Error: assertion might not hold
 PredExpr.dfy(77,13): Error: assertion might not hold
 
-Dafny program verifier finished with 6 verified, 4 errors
+Dafny program verifier finished with 4 errors

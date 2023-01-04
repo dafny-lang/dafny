@@ -4,4 +4,4 @@ git-issue-3243.dfy(10,16): Related message: loop invariant violation
 git-issue-3243.dfy(21,16): Error: This loop invariant might not hold on entry.
 git-issue-3243.dfy(21,16): Related message: loop invariant violation
 
-Dafny program verifier finished with 0 verified, 2 errors
+Dafny program verifier finished with 2 errors

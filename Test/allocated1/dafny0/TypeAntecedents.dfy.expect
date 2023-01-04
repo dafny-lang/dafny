@@ -5,4 +5,4 @@ TypeAntecedents.dfy(66,15): Error: assertion might not hold
 TypeAntecedents.dfy(80,47): Error: target object might not be allocated
 TypeAntecedents.dfy(82,52): Error: target object might not be allocated
 
-Dafny program verifier finished with 5 verified, 5 errors
+Dafny program verifier finished with 5 errors

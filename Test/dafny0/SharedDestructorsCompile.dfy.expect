@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 3 verified, 0 errors
+Dafny program verifier finished with 0 errors
 
 Dafny program verifier did not attempt verification
 Dt.A(10, 12.0):  x=10 y=12.0

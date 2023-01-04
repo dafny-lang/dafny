@@ -19,4 +19,4 @@ Basics.dfy(474,18): Error: assertion might not hold
 Basics.dfy(476,11): Error: assertion might not hold
 Basics.dfy(13,13): Error: variable 'g', which is subject to definite-assignment rules, might be uninitialized here
 
-Dafny program verifier finished with 48 verified, 20 errors
+Dafny program verifier finished with 20 errors

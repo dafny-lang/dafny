@@ -18,4 +18,4 @@ git-issue-2597-verification.dfy(8,18): Related location: This is the preconditio
 git-issue-2597-verification.dfy(133,20): Error: A precondition for this call might not hold.
 git-issue-2597-verification.dfy(8,18): Related location: This is the precondition that might not hold.
 
-Dafny program verifier finished with 1 verified, 11 errors
+Dafny program verifier finished with 11 errors
