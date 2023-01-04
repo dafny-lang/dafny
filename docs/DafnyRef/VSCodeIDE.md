@@ -55,7 +55,7 @@ the position of the parse or resolution error.
 ![image](https://user-images.githubusercontent.com/3601079/178068650-24c14da1-d247-4027-b784-2eb055242e6b.png)
 
 
-## 26.2. The Dafny Server {#sec-dafny-server}
+## 26.2. The Dafny Server {#sec-old-dafny-server}
 
 Before Dafny [implemented](https://github.com/dafny-lang/dafny/tree/master/Source/DafnyLanguageServer) the official [Language Server Protocol](https://microsoft.github.io/language-server-protocol/), it implemented its own protocol for [Emacs](https://github.com/boogie-org/boogie-friends), which resulted in a project called [DafnyServer](https://github.com/dafny-lang/dafny/tree/master/Source/DafnyServer).
 
@@ -108,6 +108,7 @@ by setting the 'sourceIsFile' flag to true.
 
 For example, if you compile and run `DafnyServer.exe`, you could paste the following command:
 
+<!-- %no-check -->
 ```dafny
 verify
 eyJhcmdzIjpbIi9jb21waWxlOjAiLCIvcHJpbnRUb29sdGlwcyIsIi90aW1lTGltaXQ6MjAiXSwi

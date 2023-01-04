@@ -3350,11 +3350,11 @@ namespace Microsoft.Dafny {
     }
 
     internal IToken GetToken(Expression expression) {
-      return flags.ReportRanges ? expression.GetRangeToken() : expression.tok;
+      return flags.ReportRanges ? expression.RangeToken : expression.tok;
     }
 
     internal IToken GetToken(Statement stmt) {
-      return flags.ReportRanges ? stmt.GetRangeToken() : stmt.Tok;
+      return flags.ReportRanges ? stmt.RangeToken : stmt.Tok;
     }
 
     void CheckDefiniteAssignment(IdentifierExpr expr, BoogieStmtListBuilder builder) {
@@ -4079,7 +4079,7 @@ namespace Microsoft.Dafny {
           e = Substitute(e, receiverReplacement, substMap);
         }
 
-        e = Resolver.FrameArrowToObjectSet(e, CurrentIdGenerator, program.BuiltIns);
+        e = ArrowType.FrameArrowToObjectSet(e, CurrentIdGenerator, program.BuiltIns);
 
         Bpl.Expr disjunct;
         var eType = e.Type.NormalizeExpand();
@@ -5149,7 +5149,7 @@ namespace Microsoft.Dafny {
       return false;
     }
 
-    void CheckCasePatternShape<VT>(CasePattern<VT> pat, Bpl.Expr rhs, IToken rhsTok, Type rhsType, BoogieStmtListBuilder builder) where VT : IVariable {
+    void CheckCasePatternShape<VT>(CasePattern<VT> pat, Bpl.Expr rhs, IToken rhsTok, Type rhsType, BoogieStmtListBuilder builder) where VT : class, IVariable {
       Contract.Requires(pat != null);
       Contract.Requires(rhs != null);
       Contract.Requires(rhsTok != null);
@@ -8576,7 +8576,8 @@ namespace Microsoft.Dafny {
             if (rhs != null) {
               bldr.Add(Bpl.Cmd.SimpleAssign(tok, bLhs, rhs));
             }
-            if (!origRhsIsHavoc) {
+
+            if (!origRhsIsHavoc || ie.Type.IsNonempty) {
               MarkDefiniteAssignmentTracker(ie, bldr);
             }
           });
@@ -8605,7 +8606,8 @@ namespace Microsoft.Dafny {
               if (rhs != null) {
                 bldr.Add(Bpl.Cmd.SimpleAssign(tok, bLhs, rhs));
               }
-              if (!origRhsIsHavoc) {
+
+              if (!origRhsIsHavoc || field.Type.IsNonempty) {
                 MarkDefiniteAssignmentTracker(lhs.tok, nm, bldr);
               }
             });
@@ -8793,7 +8795,9 @@ namespace Microsoft.Dafny {
             }
           } else if (DafnyOptions.O.DefiniteAssignmentLevel == 0) {
             // cool
-          } else if (2 <= DafnyOptions.O.DefiniteAssignmentLevel || !tRhs.EType.HasCompilableValue) {
+          } else if ((2 <= DafnyOptions.O.DefiniteAssignmentLevel && DafnyOptions.O.DefiniteAssignmentLevel != 4) ||
+                     DafnyOptions.O.Get(CommonOptionBag.EnforceDeterminism) ||
+                     !tRhs.EType.HasCompilableValue) {
             // this is allowed only if the array size is such that it has no elements
             Bpl.Expr zeroSize = Bpl.Expr.False;
             foreach (Expression dim in tRhs.ArrayDimensions) {
@@ -9097,7 +9101,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(e != null);
       Contract.Requires(!e.Exact);
       Contract.Ensures(Contract.Result<Expression>() != null);
-      if (e.getTranslationDesugaring(this) == null) {
+      if (e.GetTranslationDesugaring(this) == null) {
         // For let-such-that expression:
         //   var x:X, y:Y :| P(x,y,g); F(...)
         // where
@@ -9174,7 +9178,7 @@ namespace Microsoft.Dafny {
           }
         }
       }
-      return e.getTranslationDesugaring(this);
+      return e.GetTranslationDesugaring(this);
     }
 
     private Bpl.Function AddLetSuchThatCanCallFunction(LetExpr e, LetSuchThatExprInfo info) {
