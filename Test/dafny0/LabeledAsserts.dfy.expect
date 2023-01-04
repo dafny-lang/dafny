@@ -24,7 +24,7 @@ LabeledAsserts.dfy(211,15): Error: Could not prove assertion
 LabeledAsserts.dfy(224,20): Error: Could not prove assertion
 LabeledAsserts.dfy(226,11): Error: Could not prove assertion
 LabeledAsserts.dfy(232,11): Error: Could not prove assertion
-LabeledAsserts.dfy(252,6): Error: could not prove that the calculation step between the previous line and this line hold
+LabeledAsserts.dfy(252,6): Error: Could not prove that the calculation step between the previous line and this line hold
 LabeledAsserts.dfy(265,9): Error: Could not prove assertion
 
 Dafny program verifier finished with 11 verified, 26 errors

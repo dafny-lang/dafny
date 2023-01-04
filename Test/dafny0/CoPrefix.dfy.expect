@@ -3,8 +3,8 @@ CoPrefix.dfy(163,14): Related location: This is the postcondition that could not
 CoPrefix.dfy(169,2): Error: Could not prove a postcondition on this return path.
 CoPrefix.dfy(168,14): Related location: This is the postcondition that could not be proven.
 CoPrefix.dfy(176,10): Error: cannot prove termination; try supplying a decreases clause
-CoPrefix.dfy(205,6): Error: could not prove that the calculation step between the previous line and this line hold
-CoPrefix.dfy(207,6): Error: could not prove that the calculation step between the previous line and this line hold
+CoPrefix.dfy(205,6): Error: Could not prove that the calculation step between the previous line and this line hold
+CoPrefix.dfy(207,6): Error: Could not prove that the calculation step between the previous line and this line hold
 CoPrefix.dfy(220,12): Error: ORDINAL subtraction might underflow a limit ordinal (that is, RHS might be too large)
 CoPrefix.dfy(63,56): Error: decreases clause might not decrease
 CoPrefix.dfy(76,55): Error: cannot prove termination; try supplying a decreases clause
