@@ -167,7 +167,7 @@ A few options are not part of a command. In these cases any single-hyphen spelli
 The `dafny resolve` command checks the command-line and then parses and typechecks the given files and any included files.
 
 Note that a complete program must be presented to the dafny tool, either by listing all files on the command-line, or by using `include` directives,
-of by some combination. An incomplete program will likely result in errors because of unresolved names. A program need not include all implementations
+or by some combination. An incomplete program will likely result in errors because of unresolved names. A program need not include all implementations
 of all functions in order to verify parts of it, but will need all implementations in order to compile a working executable.
 
 The options relevant to this command are
@@ -190,7 +190,7 @@ The options relevant to this command are
 
 #### 25.5.1.3. `dafny verify` {#sec-dafny-verify}
 
-The `dafny verify` command performs the [`dafny resolve`](#sec-dafny-resolve) checks and then attempts to verify each method in the program.
+The `dafny verify` command performs the [`dafny resolve`](#sec-dafny-resolve) checks and then attempts to verify each declaration in the program.
 
 A guide to controlling and aiding the verification process is given in [a later section](#sec-verification)
 
