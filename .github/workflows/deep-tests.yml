@@ -1,6 +1,11 @@
 
 # This workflow includes more expensive tests than what is run on every PR, that are unlikely to break on most changes.
 # It also publishes a nightly release.
+#
+# The if at the beginning of each job terminates the workflow immediately on any repo (like a fork) that is not the main
+# dafny-lang/dafny repo. This stops such forks from running this workflow and failing (for lack of a secret) the attempt to
+# publish a nightly build themselves.
+
 name: Nightly test and release workflow
 
 on:
