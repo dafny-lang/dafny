@@ -29,8 +29,8 @@ function GetConstant2(): int {
       );
       var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
-      Assert.IsTrue(document.SymbolTable.Resolved);
-      Assert.AreEqual(2, document.SymbolTable.Locations.Keys.OfType<FunctionSymbol>().Count());
+      Assert.IsTrue(document.SignatureAndCompletionTable.Resolved);
+      Assert.AreEqual(2, document.SignatureAndCompletionTable.Locations.Keys.OfType<FunctionSymbol>().Count());
     }
 
     [TestMethod]
@@ -54,7 +54,6 @@ function GetConstant2(): int {
       );
       var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
-      Assert.IsFalse(document.SymbolTable.Resolved);
     }
 
     [TestMethod]
@@ -75,7 +74,6 @@ function GetConstant(): int {
       );
       var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
-      Assert.IsFalse(document.SymbolTable.Resolved);
     }
 
     [TestMethod]
@@ -99,8 +97,8 @@ method GetIt(x: int) returns (y: int) {
       );
       var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
-      Assert.IsTrue(document.SymbolTable.Resolved);
-      Assert.AreEqual(1, document.SymbolTable.Locations.Keys.OfType<MethodSymbol>().Count());
+      Assert.IsTrue(document.SignatureAndCompletionTable.Resolved);
+      Assert.AreEqual(1, document.SignatureAndCompletionTable.Locations.Keys.OfType<MethodSymbol>().Count());
     }
   }
 }

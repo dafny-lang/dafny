@@ -32,7 +32,7 @@ Modules0.dfy(319,11): Error: Undeclared top-level type or type parameter: LongLo
 Modules0.dfy(320,11): Error: Undeclared top-level type or type parameter: Wazzup (did you forget to qualify a name or declare a module import 'opened'?)
 Modules0.dfy(321,17): Error: module 'Q_Imp' does not declare a type 'Edon'
 Modules0.dfy(323,10): Error: new can be applied only to class types (got Q_Imp.List<?>)
-Modules0.dfy(324,30): Error: member 'Create' does not exist in class 'Klassy'
+Modules0.dfy(324,23): Error: member 'Create' does not exist in class 'Klassy'
 Modules0.dfy(324,10): Error: when allocating an object of type 'Klassy', one of its constructor methods must be called
 Modules0.dfy(318,13): Error: arguments must have comparable types (got Q_Imp.Node and Node)
 Modules0.dfy(349,11): Error: a datatype declaration (T) in a refinement module can only refine a datatype declaration or replace an opaque type declaration

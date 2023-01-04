@@ -96,29 +96,4 @@ Options provided through the command line have higher priority than the options 
 # For just the dafny executable, replace `--dafny:plugins:X` by `--plugin:` that you can repeat.
 ```
 
-#### About plugins
 
-*Plugins are experimental.
-The plugin API directly exposes the Dafny AST, which is constantly evolving.
-Hence, always recompile your plugin against the binary of Dafny that will be importing your plugin.*
-
-Plugins are libraries linked to a `Dafny.dll` of the same version than the language server.
-A plugin typically defines:
-
-* Zero or one class extending `Microsoft.Dafny.Plugins.Configuration` which receives plugins arguments in their method `ParseArguments`,
-  and returns a list of `Microsoft.Dafny.Plugins.Rewriter` when their method `GetRewriters()` is called by Dafny.
-* Zero or more classes extending `Microsoft.Dafny.Plugins.Rewriter`.
-  If a configuration class is provided, it is responsible for instantiating them and returning them in `GetRewriters()`.
-  If no configuration class is provided, an automatic configuration will load every defined `Rewriter`s automatically.
-
-The most important methods of the class `Rewriter` that plugins override are
-* (experimental) `PreResolve(ModuleDefinition)`: Here you can optionally modify the AST before it is resolved.
-* `PostResolve(ModuleDefinition)`: This method is repeatedly called with every resolved and type-checked module, before verification.
-  Plugins override this method typically to report additional diagnostics.
-* `PostResolve(Program)`: This method is called once after all `PostResolve(ModuleDefinition)` have been called.
-
-Plugins are typically used to report additional diagnostics such as unsupported constructs for specific compilers (through the methods `Èrror(...)` and `Warning(...)` of the field `Reporter` of the class `Rewriter`)
-
-Note that all plugin errors should use the original program's expressions' token and NOT `Token.NoToken`, else no error will be displayed in the IDE.
-
-Morover, plugins should not write anything to `stdout` as it interferes with the communication protocol with the IDE.

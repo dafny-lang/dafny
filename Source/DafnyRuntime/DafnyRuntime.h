@@ -32,10 +32,7 @@ typedef int64_t  int64;
 
 class DafnyHaltException : public std::runtime_error{
   public:
-  DafnyHaltException(const char* msg) : std::runtime_error(msg) {}
-  virtual const char* what() const throw() {
-      return exception::what();
-  }
+  DafnyHaltException(std::string msg) : std::runtime_error(msg) {}
 };
 
 // using boost::hash_combine
@@ -80,13 +77,19 @@ void dafny_print(T x) {
   std::cout << x;
 }
 
+// Special-case bool so that the C++ output matches that of other backends
+template<>
+void dafny_print<bool>(bool x) {
+  if (x) {
+    std::cout << "true";
+  } else {
+    std::cout << "false";
+  }
+}
+
 template<typename T>
 void dafny_print(T* x) {
-  if (x == nullptr) {
-    std::cout << "NULL";
-  } else {
-    std::cout << x;
-  }
+  std::cout << (x ? "true" : "false");
 }
 
 template<typename T>
@@ -422,14 +425,17 @@ struct DafnySequence {
     }
 
     T* ptr() const { return start; }
-
-    // TODO: toString
 };
 
 inline DafnySequence<char> DafnySequenceFromString(std::string const& s) {
   DafnySequence<char> seq(s.size());
   memcpy(seq.ptr(), &s[0], s.size());
   return seq;
+}
+
+inline std::string ToVerbatimString(DafnySequence<char> s) {
+  std::string ret(s.start, s.len);
+  return ret;
 }
 
 template <typename T>
@@ -758,3 +764,12 @@ struct std::hash<DafnyMap<T,U>> {
         return seed;
     }
 };
+
+DafnySequence<DafnySequence<char>> dafny_get_args(int argc, char* argv[]) {
+  DafnySequence<DafnySequence<char>> dafnyArgs((uint64)argc);
+  for(int i = 0; i < argc; i++) {
+    std::string s = argv[i];
+    dafnyArgs.start[i] = DafnySequenceFromString(s);
+  }
+  return dafnyArgs;
+}

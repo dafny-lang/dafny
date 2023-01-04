@@ -72,3 +72,21 @@ TheBigSubtract(100) = -12
 TailNat(10) = 50
 17 17 17
 2000000
+
+Dafny program verifier did not attempt verification
+2000000 2000000
+2000000 2000000
+1000000 1000000
+10 + 9 + 8 + 7 + 6 + 5 + 4 + 3 + 2 + 1 == 55
+TriangleNumber(10) = 55
+TriangleNumber_Real(10) = 55.0
+TriangleNumber_ORDINAL(10) = 55
+Factorial(5) = 120
+Union(8) = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+UpTo(10) = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+DownFrom(10) = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
+Sum(List.Cons(100, List.Cons(40, List.Cons(60, List.Nil)))) = 200
+TheBigSubtract(100) = -12
+TailNat(10) = 50
+17 17 17
+2000000

@@ -32,27 +32,13 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         logger.LogWarning("location requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
         return new LocationOrLocationLinks();
       }
-      if (!document.SymbolTable.TryGetSymbolAt(request.Position, out var symbol)) {
+
+      var result = document.SymbolTable.GetDeclaration(request.Position);
+      if (result == null) {
         logger.LogDebug("no symbol was found at {Position} in {Document}", request.Position, request.TextDocument);
         return new LocationOrLocationLinks();
       }
-      var location = GetLspLocation(document, symbol);
-      if (location == null) {
-        logger.LogDebug("failed to resolve the location of the symbol {SymbolName} at {Position} in {Document}",
-          symbol.Name, request.Position, request.TextDocument);
-        return new LocationOrLocationLinks();
-      }
-      return new[] { location };
-    }
-
-    private static LocationOrLocationLink? GetLspLocation(DafnyDocument document, ISymbol symbol) {
-      if (document.SymbolTable.TryGetLocationOf(symbol, out var location)) {
-        return new Location {
-          Uri = location.Uri,
-          Range = location.Name
-        };
-      }
-      return null;
+      return new[] { new LocationOrLocationLink(result) };
     }
   }
 }

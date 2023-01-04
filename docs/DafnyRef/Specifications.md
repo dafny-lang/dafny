@@ -1,4 +1,4 @@
-# 5. Specifications
+# 5. Specifications {#sec-specifications}
 Specifications describe logical properties of Dafny methods, functions,
 lambdas, iterators and loops. They specify preconditions, postconditions,
 invariants, what memory locations may be read or modified, and
@@ -24,7 +24,7 @@ that use them.
 Specification clauses typically appear in a sequence. They all begin with a 
 keyword and do not end with semicolons.
 
-## 5.1. Specification Clauses
+## 5.1. Specification Clauses {#sec-specification-clauses}
 
 
 Within expressions in specification clauses, you can use
@@ -103,6 +103,7 @@ presence of recursion. If more than one `decreases` clause is given
 it is as if a single `decreases` clause had been given with the
 collected list of arguments and a collected list of Attributes. That is,
 
+<!-- %no-check -->
 ```dafny
 decreases A, B
 decreases C, D
@@ -110,6 +111,7 @@ decreases C, D
 
 is equivalent to
 
+<!-- %no-check -->
 ```dafny
 decreases A, B, C, D
 ```
@@ -155,6 +157,7 @@ decreases clause is any prefix followed by the guess followed by $\top$.
 
 Here is a simple but interesting example: the Fibonacci function.
 
+<!-- %check-verify -->
 ```dafny
 function Fib(n: nat) : nat
 {
@@ -169,6 +172,7 @@ Let's take a look at the kind of example where a mysterious-looking
 decreases clause like "Rank, 0" is useful.
 
 Consider two mutually recursive methods, `A` and `B`:
+<!-- %check-verify Specifications.1.expect -->
 ```dafny
 method A(x: nat)
 {
@@ -195,13 +199,20 @@ first? Note, for example, that declaring both `A` and `B` with "decreases x"
 does not work, because that won't prove a strict decrease for the call
 from `A(x)` to `B(x)`.
 
-Here's one possibility (for brevity, we will omit the method bodies):
+Here's one possibility:
+<!-- %check-verify -->
 ```dafny
 method A(x: nat)
   decreases x, 1
+{
+  B(x);
+}
 
 method B(x: nat)
   decreases x, 0
+{
+  if x != 0 { A(x-1); }
+}
 ```
 
 For the call from `A(x)` to `B(x)`, the lexicographic tuple `"x, 0"` is
@@ -228,12 +239,19 @@ lexicographic tuple `"x-1, 1"` is strictly smaller than `"x, 0"`.
  $\top$ to the user-supplied decreases clause. For the A-and-B example,
  this lets us drop the constant from the `decreases` clause of A:
 
+<!-- %check-verify -->
 ```dafny
 method A(x: nat)
    decreases x
+{
+  B(x);
+}
 
 method B(x: nat)
   decreases x, 0
+{
+  if x != 0 { A(x-1); }
+}
 ```
 
 The effective decreases clause of `A` is $(x, \top)$ and the effective
@@ -246,6 +264,7 @@ Let's take a look at one more example that better illustrates the utility
 of $\top$. Consider again two mutually recursive methods, call them `Outer`
 and `Inner`, representing the recursive counterparts of what iteratively
 might be two nested loops:
+<!-- %check-verify -->
 ```dafny
 method Outer(x: nat)
 {
@@ -278,18 +297,32 @@ decreases clause of `Outer` to be $(x, \top)$ and the effective decreases
 clause for `Inner` to be $(x, y, \top)$, then we can show the strict
 decreases as required. Since $\top$ is implicitly appended, the two
 decreases clauses declared in the program text can be:
+<!-- %check-verify -->
 ```dafny
 method Outer(x: nat)
   decreases x
+{
+  // set y to an arbitrary non-negative integer
+  var y :| 0 <= y;
+  Inner(x, y);
+}
 
 method Inner(x: nat, y: nat)
-  decreases x, y
+  decreases x,y
+{
+  if y != 0 {
+    Inner(x, y-1);
+  } else if x != 0 {
+    Outer(x-1);
+  }
+}
 ```
 Moreover, remember that if a function or method has no user-declared
 `decreases` clause, Dafny will make a guess. The guess is (usually)
 the list of arguments of the function/method, in the order given. This is
 exactly the decreases clauses needed here. Thus, Dafny successfully
 verifies the program without any explicit `decreases` clauses:
+<!-- %check-verify -->
 ```dafny
 method Outer(x: nat)
 {
@@ -352,15 +385,46 @@ If the `FrameField` is not preceded by an expression then
 the frame expression is referring to that field of the current
 object. This form is only used within a method of a class or trait.
 
-The use of ``FrameField`` is discouraged as in practice it has not
-been shown to either be more concise or to perform better.
-Also, there's (unfortunately) no form of it for array
-elements---one could imagine
+A ``FrameField`` can be useful in the following case:
+When a method modifies only one field, rather than writing
 
+<!-- %check-verify -->
 ```dafny
-  modifies a`[j]
+class A {
+  var i: int
+  var x0: int
+  var x1: int
+  var x2: int
+  var x3: int
+  var x4: int
+  method M()
+    modifies this
+    ensures unchanged(`x0) && unchanged(`x1) && unchanged(`x2) && unchanged(`x3) && unchanged(`x4)
+  { i := i + 1; }
+}
 ```
-Also, ``FrameField`` is not taken into consideration for
+
+one can write the more concise:
+
+<!-- %check-verify -->
+```dafny
+class A {
+  var i: int
+  var x0: int
+  var x1: int
+  var x2: int
+  var x3: int
+  var x4: int
+  method M()
+    modifies `i
+  { i := i + 1; }
+}
+```
+
+There's (unfortunately) no form of it for array
+elements -- but to account for unchanged elements, you can always write
+`forall i | 0 <= i < |a| :: unchanged(a[i])`.
+A ``FrameField`` is not taken into consideration for
 lambda expressions.
 
 ### 5.1.5. Reads Clause {#sec-reads-clause}
@@ -401,6 +465,7 @@ lambda, or iterator may read. The memory locations are all the fields
 of all of the references given in the set specified in the frame expression
 and the single fields given in [`FrameField`](#sec-frame-expression) elements of the frame expression.
 For example, in
+<!-- %check-verify -->
 ```dafny
 class C {
   var x: int
@@ -433,6 +498,7 @@ a collection of references. Such an expression is converted to a set by taking t
 union of the function's image over all inputs. For example, if `F` is
 a function from `int` to `set<object>`, then `reads F` has the meaning
 
+<!-- %no-check -->
 ```dafny
 set x: int, o: object | o in F(x) :: o
 ```
@@ -441,6 +507,7 @@ This is particularly useful when wanting to specify the reads set of
 another function. For example, function `Sum` adds up the values of
 `f(i)` where `i` ranges from `lo` to `hi`:
 
+<!-- %check-verify -->
 ```dafny
 function Sum(f: int ~> real, lo: int, hi: int): real
   requires lo <= hi
@@ -489,14 +556,17 @@ Just as for a `reads` clause, the memory locations allowed to be modified
 in a method are all the fields of any object reference in the frame expression
 set and any specific field denoted by a [`FrameField`](#sec-frame-expression) in the `modifies` clause.
 For example, in
+<!-- %check-resolve -->
 ```dafny
 class C {
-  var next: C
+  var next: C?
   var value: int
 
   method M() 
     modifies next
-  { ... }
+  { 
+    ... 
+  }
 }
 ```
 method `M` is permitted to modify `this.next.next` and `this.next.value`
@@ -615,14 +685,15 @@ clauses apply to both of them. For the `requires` and `ensures`
 clauses, if `yield` is not present they apply to the constructor,
 but if `yield` is present they apply to the `MoveNext` method.
 
-TODO: What is the meaning of a `decreases` clause on an iterator?
-Does it apply to `MoveNext`? Make sure our description of
-iterators explains these.
+Examples of iterators, including iterator specifications, are given in
+[Section 16](#sec-iterator-types). Briefly
+- a requires clause gives a precondition for creating an iterator
+- a ensures clause gives a postcondition when the iterator exits (after all iterations are complete)
+- a decreases clause is used to show that the iterator will eventually terminate
+- a yield requires clause is a precondition for calling `MoveNext`
+- a yield ensures clause is a postcondition for calling `MoveNext`
 
-TODO: What is the relationship between the post condition and
-the `Valid()` predicate?
-
-## 5.6. Loop Specification
+## 5.6. Loop Specification {#sec-loop-specification}
 ````grammar
 LoopSpec =
   { InvariantClause_
@@ -639,4 +710,87 @@ The ``DecreasesClause`` clause is used to prove termination.
 
 ## 5.7. Auto-generated boilerplate specifications
 
-TO BE WRITTEN - {:autocontracts}
+AutoContracts is an experimental feature that inserts much of the dynamic-frames boilerplate
+into a class. The user simply
+- marks the class with `{:autocontracts}` and
+- declares a function (or predicate) called Valid().
+
+AutoContracts then
+
+- Declares, unless there already exist members with these names:
+<!-- %no-check -->
+```dafny
+  ghost var Repr: set(object)
+  predicate Valid()
+```
+
+- For function/predicate `Valid()`, inserts
+<!-- %no-check -->
+```dafny
+  reads this, Repr
+  ensures Valid() ==> this in Repr
+```
+- Into body of `Valid()`, inserts (at the beginning of the body)
+<!-- %no-check -->
+```dafny
+  this in Repr && null !in Repr
+```
+  and also inserts, for every array-valued field `A` declared in the class:
+<!-- %no-check -->
+```dafny
+  (A != null ==> A in Repr) &&
+```
+  and for every field `F` of a class type `T` where `T` has a field called `Repr`, also inserts
+<!-- %no-check -->
+```dafny
+  (F != null ==> F in Repr && F.Repr SUBSET Repr && this !in Repr && F.Valid())
+```
+  except, if `A` or `F` is declared with `{:autocontracts false}`, then the implication will not
+be added.
+- For every constructor, inserts
+<!-- %no-check -->
+```dafny
+  ensures Valid() && fresh(Repr)
+```
+- At the end of the body of the constructor, adds
+<!-- %no-check -->
+```dafny
+   Repr := {this};
+   if (A != null) { Repr := Repr + {A}; }
+   if (F != null) { Repr := Repr + {F} + F.Repr; }
+```
+
+In all the following cases, no `modifies` clause or `reads` clause is added if the user
+has given one.
+
+- For every non-static non-ghost method that is not a "simple query method",
+inserts
+<!-- %no-check -->
+```dafny
+   requires Valid()
+   modifies Repr
+   ensures Valid() && fresh(Repr - old(Repr))
+```
+- At the end of the body of the method, inserts
+<!-- %no-check -->
+```dafny
+   if (A != null && !(A in Repr)) { Repr := Repr + {A}; }
+   if (F != null && !(F in Repr && F.Repr SUBSET Repr)) { Repr := Repr + {F} + F.Repr; }
+```
+- For every non-static non-twostate method that is either ghost or is a "simple query method",
+add:
+<!-- %no-check -->
+```dafny
+   requires Valid()
+```
+- For every non-static twostate method, inserts
+<!-- %no-check -->
+```dafny
+   requires old(Valid())
+```
+- For every non-"Valid" non-static function, inserts
+<!-- %no-check -->
+```dafny
+   requires Valid()
+   reads Repr
+```

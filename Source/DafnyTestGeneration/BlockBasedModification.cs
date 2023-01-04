@@ -31,7 +31,7 @@ namespace DafnyTestGeneration {
       string? line;
       var stringReader = new StringReader(log);
       var newBlocksCovered = false;
-      while ((line = stringReader.ReadLine()) != null) {
+      while ((line = await stringReader.ReadLineAsync()) != null) {
         if (!line.StartsWith("Block |")) {
           continue;
         }

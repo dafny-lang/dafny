@@ -13,6 +13,9 @@
 // RUN: %dafny /compileVerbose:1 /compileTarget:cpp "%s" >> "%t"
 // RUN: %S/CompileAndThenRun.exe >> "%t"
 
+// RUN: %dafny /compileVerbose:1 /compileTarget:py "%s" >> "%t"
+// RUN: python3 %S/CompileAndThenRun-py/CompileAndThenRun.py >> "%t"
+
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {

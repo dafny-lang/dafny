@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /env:0 /print:"%t.print" /dprint:- "%s" > "%t"
+// RUN: %exits-with 2 %dafny /env:0 /print:"%t.print" /dprint:- "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module M0 {
@@ -478,13 +478,13 @@ module TwoStateAt {
   method UseOrdinaryOpaque() {
     label L:
     reveal OrdinaryOpaque();
-    reveal OrdinaryOpaque;  // error (admittedly, a poor error message)
+    reveal OrdinaryOpaque;  // error: missing parentheses
     reveal OrdinaryOpaque@K();  // error: label K not in scope
     reveal OrdinaryOpaque@L();  // error: @ can only be applied to something two-state (error message can be improved)
   }
   function FuncUseOrdinaryOpaque(): int {
     reveal OrdinaryOpaque();
-    reveal OrdinaryOpaque;  // error (admittedly, a poor error message)
+    reveal OrdinaryOpaque;  // error: missing parentheses
     reveal OrdinaryOpaque@K();  // error: label K not in scope
     10
   }
@@ -492,19 +492,19 @@ module TwoStateAt {
   method UseOpaque() {
     label L:
     reveal Opaque();
-    reveal Opaque;  // error (admittedly, a poor error message)
+    reveal Opaque;  // error: missing parentheses
     reveal Opaque@K();  // error: label K not in scope
     reveal Opaque@L();  // error: all parameters in a reveal must be implicit, including labels
   }
   function FuncUseOpaque(): int {
     reveal Opaque();  // error: cannot call two-state lemma in one-state function
-    reveal Opaque;  // error (admittedly, a poor error message)
+    reveal Opaque;  // error: missing parentheses
     reveal Opaque@K();  // error: label K not in scope
     10
   }
   twostate function TwoFuncUseOpaque(): int {
     reveal Opaque();
-    reveal Opaque;  // error (admittedly, a poor error message)
+    reveal Opaque;  // error: missing parentheses
     reveal Opaque@K();  // error: label K not in scope
     10
   }
@@ -559,4 +559,13 @@ module BadRefinement refines RefinementBase {
   predicate Q(a: C) { true } // error: cannot change older to non-older
   twostate predicate X(new a: C) { true } // error: cannot change non-new to new
   twostate predicate Y(a: C) { true } // error: cannot change new to non-new
+}
+
+module RevealInsideIterator {
+  function {:opaque} G(): int { 2 }
+
+  iterator Iter(x: int) yields (r: int)
+  {
+    reveal G();
+  }
 }

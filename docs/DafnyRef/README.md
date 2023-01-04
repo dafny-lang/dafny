@@ -24,11 +24,11 @@ other aspects that are dissimilar between the pdf and online versions.
 
 GitHub pages are rendered (converted from markdown to html) using Jekyll.
 The result is a single, long html page.
-There are a number of configuration files for Jekyll in the docs folder and
+There are a number of configuration files for Jekyll in the `docs` folder and
 subfolders. In order to render files locally you must
-* have ruby, bundler and jekyll installed on your machine
-* set the working directly (cd) to the docs folder (Windows or Ruby 3.0 users, see below for some tweaks)
-* run the jekyll server: bundle exec jekyll server
+* have `ruby`, `bundler` and `jekyll` installed on your machine
+* set the working directly (`cd`) to the `docs` folder (Windows or Ruby 3.0 users, see below for some tweaks)
+* run the jekyll server: `bundle exec jekyll server`
 * open a browser on the page http://localhost:4000 or directly to http://localhost:4000/DafnyRef/DafnyRef
 * the server rerenders when files are changed -- but not always quite completely. Sometimes one must kill the server process, delete all the files in the _saite folder, and restart the server.
 
@@ -37,6 +37,8 @@ In order to convert markdown to pdf, you must be able to execute the Makefile, w
 The Makefile does some preprocessing of the markdown files: it removes some
 markdown lines that are not interpreted by pandoc and adds some additional
 directives, such as page breaks.
+
+To re-generate `Options.txt`, run `make options` in the `DafnyRef` folder.
 
 ## Windows users or Ruby 3.0 users
 
@@ -85,8 +87,8 @@ time lag) uses the file to render code snippets.
 very active.]
 
 The mapping from tokens to actual colors is specified separately from the
-syntax definition. The on-line rendering uses the Github default.
-(TODO: Can this be changed?)
+syntax definition. The on-line rendering uses the Github default
+(which, at last investigation, was not changeable).
 
 Although the RM sources also contain grammar blocks, there is at present no
 rouge definition for these blocks.

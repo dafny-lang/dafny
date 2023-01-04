@@ -14,8 +14,8 @@ git-issue-356-errors.dfy(121,14): Error: the real-based number must be an intege
 git-issue-356-errors.dfy(135,14): Error: value to be converted might not fit in bv8
 git-issue-356-errors.dfy(141,14): Error: value to be converted might not fit in bv8
 git-issue-356-errors.dfy(153,14): Error: value to be converted might not fit in bv8
-git-issue-356-errors.dfy(170,14): Error: value to be converted might be bigger than every natural number
 git-issue-356-errors.dfy(170,14): Error: ORDINAL value to be converted might not fit in char
+git-issue-356-errors.dfy(170,14): Error: value to be converted might be bigger than every natural number
 git-issue-356-errors.dfy(176,14): Error: ORDINAL value to be converted might not fit in char
 git-issue-356-errors.dfy(189,13): Error: value to be converted might be bigger than every natural number
 git-issue-356-errors.dfy(189,13): Error: value to be converted might not fit in bv8

@@ -178,13 +178,13 @@ method M(heap: object)
       var sourceIndex = Array.FindLastIndex(parts, e => e == "Source");
       dafnyDirectory = Path.Combine(Path.GetPathRoot(testAssemblyPath)!, Path.Combine(parts.Take(sourceIndex).ToArray()));
       Console.WriteLine("dafnyDirectory: " + dafnyDirectory);
-      Console.WriteLine("DafnyDriverProjectFile: " + DafnyDriverProjectFile);
+      Console.WriteLine("DafnyProjectFile: " + DafnyProjectFile);
     }
 
     private static readonly string dafnyDirectory;
 
-    private static string DafnyDriverProjectFile => Path.Combine(dafnyDirectory, "Source", "DafnyDriver", "DafnyDriver.csproj");
-    private static string DefaultDafnyArgs => $"run --no-build --project {DafnyDriverProjectFile} -- -useBaseNameForFileName -countVerificationErrors:0 -compileVerbose:0 /errorTrace:0";
+    private static string DafnyProjectFile => Path.Combine(dafnyDirectory, "Source", "Dafny", "Dafny.csproj");
+    private static string DefaultDafnyArgs => $"run --no-build --project {DafnyProjectFile} -- -useBaseNameForFileName -compileVerbose:0 /errorTrace:0";
 
     string GetBoogie(string dafnyProgram, string optionalFileName = null) {
       string fileName = optionalFileName ?? Path.GetTempFileName() + ".dfy";
@@ -207,7 +207,7 @@ method M(heap: object)
         Console.Out.WriteLine(dafnyProcess.StandardError.ReadToEnd());
         Console.Out.Flush();
       }
-      Assert.Equal(0, dafnyProcess.ExitCode);
+      Assert.Equal(4, dafnyProcess.ExitCode);
       return result;
     }
   }

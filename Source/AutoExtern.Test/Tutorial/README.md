@@ -15,12 +15,15 @@ generator to save some modeling effort.
   separate project because `AutoExtern` needs to compile the project to extract
   semantic information from it.
 
-  `Groceries.cs`
-    C# type definitions used by `Interop/Main.cs`.
+  `LinkedLists.cs`
+  `LinkedLists.cs`
+    C# type definitions used by `Interop/Main.cs`.  The Dafny model for this part is generated automatically.
+
+  `ExactArithmetic.cs`
+    More C# code used by `Interop/Main.cs`.  The Dafny model for this part is written by hand (to give an example of `--rewrite`).
 
   `Library.csproj`
-    C# type definitions used by `Interop/Main.cs`.
-
+    C# project
 
 `ClientApp/`
   A client application written in C# + Dafny that uses `Library`.

@@ -20,17 +20,15 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <param name="options">The language server where the workspace services should be registered to.</param>
     /// <param name="configuration">The language server configuration.</param>
     /// <returns>The language server enriched with the dafny workspace services.</returns>
-    public static LanguageServerOptions WithDafnyLanguage(this LanguageServerOptions options, IConfiguration configuration) {
-      return options.WithServices(services => services.WithDafnyLanguage(configuration));
+    public static LanguageServerOptions WithDafnyLanguage(this LanguageServerOptions options) {
+      return options.WithServices(services => services.WithDafnyLanguage());
     }
 
-    private static IServiceCollection WithDafnyLanguage(this IServiceCollection services, IConfiguration configuration) {
+    private static IServiceCollection WithDafnyLanguage(this IServiceCollection services) {
       return services
-        .Configure<VerifierOptions>(configuration.GetSection(VerifierOptions.Section))
-        .Configure<GhostOptions>(configuration.GetSection(GhostOptions.Section))
         .AddSingleton<IDafnyParser>(serviceProvider => DafnyLangParser.Create(serviceProvider.GetRequiredService<ILogger<DafnyLangParser>>()))
         .AddSingleton<ISymbolResolver, DafnyLangSymbolResolver>()
-        .AddSingleton<IProgramVerifier>(CreateVerifier)
+        .AddSingleton(CreateVerifier)
         .AddSingleton<ISymbolTableFactory, SymbolTableFactory>()
         .AddSingleton<IGhostStateDiagnosticCollector, GhostStateDiagnosticCollector>();
     }
@@ -38,7 +36,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private static IProgramVerifier CreateVerifier(IServiceProvider serviceProvider) {
       return new DafnyProgramVerifier(
         serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>(),
-        serviceProvider.GetRequiredService<IOptions<VerifierOptions>>()
+        serviceProvider.GetRequiredService<DafnyOptions>()
       );
     }
   }

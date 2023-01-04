@@ -24,7 +24,7 @@ namespace DafnyPipeline.Test {
       foreach (Newlines newLinesType in Enum.GetValues(typeof(Newlines))) {
         currentNewlines = newLinesType;
         var programString = @"
-// Comment before
+// Comment ∈ before
 module Test // Module docstring
 {}
 
@@ -92,7 +92,10 @@ ensures true
         var f = defaultClass.Members[1];
         var g = defaultClass.Members[2];
         var m = defaultClass.Members[3];
-        AssertTrivia(moduleTest, "\n// Comment before\n", " // Module docstring\n");
+        Assert.NotNull(trait1.StartToken.Next);
+        Assert.Equal("Trait1", trait1.StartToken.Next.val);
+
+        AssertTrivia(moduleTest, "\n// Comment ∈ before\n", " // Module docstring\n");
         AssertTrivia(trait1, "/** Trait docstring */\n", " ");
         AssertTrivia(trait2, "// Just a comment\n", "\n// Trait docstring\n");
         AssertTrivia(subsetType, "// This is attached to n\n", "\n// This is attached to n as well\n\n");
@@ -101,7 +104,50 @@ ensures true
         AssertTrivia(f, "// This is attached to f\n", "\n// This is f docstring\n");
         AssertTrivia(g, "/** This is the docstring */\n", "\n// This is not the docstring\n");
         AssertTrivia(m, "// Just a regular comment\n", "\n// This is the docstring\n");
+
+        TestTokens(dafnyProgram);
       }
+    }
+
+    // Asserts that a token is owned by at most one node
+    // and that every token from start to end of every program child
+    // is owned by a node.
+    private void TestTokens(INode program) {
+      var allTokens = new HashSet<IToken>();
+
+      void Traverse(INode node, int depth = 0) {
+        if (depth == 2) {
+          depth = 2;
+        }
+        foreach (var ownedToken in node.OwnedTokens) {
+          Assert.DoesNotContain(ownedToken, allTokens);
+          allTokens.Add(ownedToken);
+        }
+        foreach (var child in node.Children) {
+          Traverse(child, depth + 1);
+        }
+      }
+
+      Traverse(program);
+
+      var count = 0;
+      void AreAllTokensOwned(INode node) {
+        if (node.StartToken is { filename: { } }) {
+          count++;
+          var t = node.StartToken;
+          while (t != null && t != node.EndToken) {
+            Assert.Contains(t, allTokens);
+            t = t.Next;
+          }
+        } else {
+          foreach (var child in node.Children) {
+            AreAllTokensOwned(child);
+          }
+        }
+      }
+
+      AreAllTokensOwned(program);
+      Assert.Equal(9, count); // Sanity check
     }
 
     private string AdjustNewlines(string programString) {

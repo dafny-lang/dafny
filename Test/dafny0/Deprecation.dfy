@@ -32,6 +32,3 @@ inductive lemma InductiveLemma()  // deprecation warning: "inductive lemma" has 
 colemma CoLemma()  // deprecation warning: "colemma" has been renamed to "greatest lemma"
 { }
 
-// ----------
-
-protected predicate ProtectedPredicate() { true }  // deprecation warning: "protected" is no longer supported

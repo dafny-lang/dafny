@@ -1,0 +1,10 @@
+git-issue-2597-resolution.dfy(8,13): Error: old expressions are not allowed in this context
+git-issue-2597-resolution.dfy(9,34): Error: old expressions are not allowed in this context
+git-issue-2597-resolution.dfy(11,21): Error: old expressions are not allowed in this context
+git-issue-2597-resolution.dfy(24,21): Error: old expressions are not allowed in this context
+git-issue-2597-resolution.dfy(32,13): Error: two-state function ('F2') can only be called in a two-state context
+git-issue-2597-resolution.dfy(35,19): Error: two-state function ('F2') can only be called in a two-state context
+git-issue-2597-resolution.dfy(40,21): Error: two-state function ('F2') can only be called in a two-state context
+git-issue-2597-resolution.dfy(53,21): Error: two-state function ('F2') can only be called in a two-state context
+git-issue-2597-resolution.dfy(62,11): Error: two-state function ('F2') can only be called in a two-state context
+9 resolution/type errors detected in git-issue-2597-resolution.dfy

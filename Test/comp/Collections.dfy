@@ -3,6 +3,7 @@
 // RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:js "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:go "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:java "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:py "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {
@@ -49,6 +50,100 @@ method Sets() {
 
 // -------------------------------------------------------------------------------------------
 
+abstract module Order {
+  type T(==)
+  method lt(a: T, b: T) returns (r: bool)
+}
+
+module CharOrder refines Order {
+  type T = char
+  method lt(a: T, b: T) returns (r: bool) {
+    r := a < b;
+  }
+}
+
+module CharSetSetOrder refines Order {
+  type T = set<char>
+
+  function method Pow2(i: nat) : nat {
+    if i == 0 then 1 else 2 * Pow2(i-1)
+  }
+
+  method SetAsInt(s: set<char>) returns (r: int) {
+    var ss := s;
+    var acc := 0;
+    while ss != {} {
+      var i: char :| i in ss;
+      ss := ss - {i};
+      acc := acc + Pow2(i as nat);
+    }
+    r := acc;
+  }
+
+  method lt(a: T, b: T) returns (r: bool) {
+    var aInt := SetAsInt(a);
+    var bInt := SetAsInt(b);
+    r := |a| < |b| || (|a| == |b| && aInt <= bInt);
+  }
+}
+
+abstract module PrintOrderedSet {
+  import O : Order
+
+  method PrintElem(e: O.T)
+
+  method Minimum(s: set<O.T>) returns (r: O.T)
+    requires |s| > 0
+    ensures r in s
+  {
+    var ss := s;
+    r :| r in ss;
+    ss := ss - {r};
+    while ss != {}
+      invariant ss <= s
+      invariant r in s
+    {
+      var i: O.T :| i in ss;
+      ss := ss - {i};
+      var lt := O.lt(i, r);
+      if lt {
+        r := i;
+      }
+    }
+  }
+
+  method Print(s: set<O.T>) {
+    var ss := s;
+    print "{";
+    var sep := "";
+    while ss != {} {
+      var bottom: O.T := Minimum(ss);
+      ss := ss - {bottom};
+      print sep;
+      PrintElem(bottom);
+      sep := ", ";
+    }
+    print "}";
+  }
+}
+
+module CharSetPrinter refines PrintOrderedSet {
+  import O = CharOrder
+
+  method PrintElem(e: O.T) {
+    print e;
+  }
+}
+
+module CharSetSetPrinter refines PrintOrderedSet {
+  import O = CharSetSetOrder
+  import P = CharSetPrinter
+
+  method PrintElem(e: O.T) {
+    P.Print(e);
+  }
+}
+
 method SubSets() {
   var s: set<char> := {'a', 'b', 'c', 'd'};
   var b0 := forall r | r <= s :: |r| == 2;
@@ -56,7 +151,8 @@ method SubSets() {
   print b0, " ", b1, "\n";
   var S := set r | r <= s && P(r);
   print "|s|=", |s|, " |S|=", |S|, "\n";
-  print S, "\n";
+  CharSetSetPrinter.Print(S);
+  print "\n";
 }
 
 predicate method P(r: set<char>) { true }
@@ -98,7 +194,7 @@ method zeroMultiplicity() {
   print "  printing: ", multiset{a, multiset{42}}, " ", a + d, "\n";
   print "  union: ", |a + d|, " ", |d + a|, " ", |e + f|, " ", |f + e|, "\n";
   print "  membership: ", 12 in a, " ", null in e, "\n";
-  print "  equality: ", a == b, " ", e == f, "\n";
+  print "  equality: ", a == b, " ", a == c, " ", e == f, "\n";
   print "  subset: ", a <= b, " ", a <= c, " ", c <= a, " ", e <= f, " ", f <= e, "\n";
   print "  strict subset: ", a < b, " ", a < c, " ", c < a, " ", e < f, " ", f < e, "\n";
   print "  disjoint: ", a !! d, " ", d !! a, " ", e !! f, " ", f !! e, "\n";

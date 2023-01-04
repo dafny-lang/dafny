@@ -4,11 +4,15 @@
 module _System {
   /* CALL GRAPH for module _System:
    * SCC at height 1:
-   *   RotateRight
-   * SCC at height 1:
    *   RotateLeft
+   * SCC at height 1:
+   *   RotateRight
+   * SCC at height 0:
+   *   array
    * SCC at height 0:
    *   nat
+   * SCC at height 0:
+   *   object
    */
   type string(==,0) = seq<char>
 
@@ -112,58 +116,56 @@ module _System {
 
   datatype {:compile false} /*_tuple#0*/ () = _#Make0
 }
-// bitvector types in use: bv7 bv137 bv0 bv10 bv60 bv67 bv32 bv2 bv5 bv8
+// bitvector types in use: bv7 bv137 bv0 bv10 bv60 bv67 bv32 bv2 bv5 bv8 bv6 bv3
 */
 
 /* CALL GRAPH for module _module:
+ * SCC at height 2:
+ *   Shifts0
+ * SCC at height 2:
+ *   Shifts1
+ * SCC at height 2:
+ *   Shifts2
+ * SCC at height 2:
+ *   Shifts3
+ * SCC at height 2:
+ *   Shifts4
+ * SCC at height 2:
+ *   Shifts5
+ * SCC at height 2:
+ *   Shifts6
+ * SCC at height 1:
+ *   PQ
+ * SCC at height 0:
+ *   EvenInt
+ * SCC at height 0:
+ *   Handful
+ * SCC at height 0:
+ *   M
+ * SCC at height 0:
+ *   N0
+ * SCC at height 0:
+ *   N1
+ * SCC at height 0:
+ *   N2
+ * SCC at height 0:
+ *   N3
+ * SCC at height 0:
+ *   N4
+ * SCC at height 0:
+ *   P
+ * SCC at height 0:
+ *   Q
+ * SCC at height 0:
+ *   R
+ * SCC at height 0:
+ *   Rotate
+ * SCC at height 0:
+ *   SmallReal
  * SCC at height 0:
  *   TestActualRotate
  * SCC at height 0:
  *   TestActualShifting
- * SCC at height 0:
- *   R
- * SCC at height 0:
- *   Q
- * SCC at height 0:
- *   P
- * SCC at height 0:
- *   N4
- * SCC at height 0:
- *   N3
- * SCC at height 0:
- *   N2
- * SCC at height 0:
- *   N1
- * SCC at height 0:
- *   N0
- * SCC at height 0:
- *   M
- * SCC at height 1:
- *   Rotate
- * SCC at height 2:
- *   Shifts6
- * SCC at height 2:
- *   Shifts5
- * SCC at height 2:
- *   Shifts4
- * SCC at height 2:
- *   Shifts3
- * SCC at height 2:
- *   Shifts2
- * SCC at height 2:
- *   Shifts1
- * SCC at height 2:
- *   Shifts0
- * SCC at height 1:
- *   PQ
- * SCC at height 0:
- *   Handful
- * SCC at height 0:
- *   SmallReal
- * SCC at height 0:
- *   EvenInt
- * SCC at height 0:
- *   nat
  */
 newtype EvenInt = x: int
   | x % 2 == 0
@@ -294,15 +296,15 @@ method Shifts0()
 {
   if {
     case x < 20 =>
-      b67 := b67 << x;
+      b67 := b67 << x as bv7;
     case 0 <= x =>
-      b67 := b67 << x;
+      b67 := b67 << x as bv7;
     case 0 <= x < 67 =>
-      b67 := b67 << x;
+      b67 := b67 << x as bv7;
     case true =>
-      b67 := b67 << n;
+      b67 := b67 << n as bv7;
     case true =>
-      b67 := b67 << h;
+      b67 := b67 << h as bv7;
   }
 }
 
@@ -312,11 +314,11 @@ method Shifts1()
 {
   if {
     case even <= 66 =>
-      b67 := b67 << even;
+      b67 := b67 << even as bv7;
     case 0 <= even =>
-      b67 := b67 << even;
+      b67 := b67 << even as bv7;
     case 0 <= even <= 66 =>
-      b67 := b67 << even;
+      b67 := b67 << even as bv7;
   }
 }
 
@@ -326,15 +328,15 @@ method Shifts2()
 {
   if {
     case true =>
-      b67 := b67 << b67;
+      b67 := b67 << b67 as bv7;
     case true =>
-      b67 := b67 << w;
+      b67 := b67 << w as bv7;
     case true =>
-      b67 := b67 << seven / 2;
+      b67 := b67 << (seven / 2) as bv7;
     case true =>
-      b67 := b67 << bb;
+      b67 := b67 << bb as bv7;
     case true =>
-      b67 := b67 << noll;
+      b67 := b67 << noll as bv7;
   }
 }
 
@@ -344,15 +346,15 @@ method Shifts3()
 {
   if {
     case true =>
-      w := w << b67;
+      w := w << b67 as bv6;
     case true =>
-      w := w << w;
+      w := w << w as bv6;
     case true =>
-      w := w << seven;
+      w := w << seven as bv6;
     case true =>
-      w := w << bb;
+      w := w << bb as bv6;
     case true =>
-      w := w << noll;
+      w := w << noll as bv6;
   }
 }
 
@@ -362,15 +364,15 @@ method Shifts4()
 {
   if {
     case true =>
-      seven := seven << b67;
+      seven := seven << b67 as bv3;
     case true =>
-      seven := seven << w;
+      seven := seven << w as bv3;
     case true =>
-      seven := seven << seven;
+      seven := seven << seven as bv3;
     case true =>
-      seven := seven << bb;
+      seven := seven << bb as bv3;
     case true =>
-      seven := seven << noll;
+      seven := seven << noll as bv3;
   }
 }
 
@@ -380,15 +382,15 @@ method Shifts5()
 {
   if {
     case true =>
-      bb := bb << b67;
+      bb := bb << b67 as bv2;
     case true =>
-      bb := bb << w;
+      bb := bb << w as bv2;
     case true =>
-      bb := bb << seven;
+      bb := bb << seven as bv2;
     case true =>
-      bb := bb << bb;
+      bb := bb << bb as bv2;
     case true =>
-      bb := bb << noll;
+      bb := bb << noll as bv2;
   }
 }
 
@@ -398,30 +400,30 @@ method Shifts6()
 {
   if {
     case true =>
-      noll := noll << b67;
+      noll := noll << b67 as bv0;
     case true =>
-      noll := noll << w;
+      noll := noll << w as bv0;
     case true =>
-      noll := noll << seven;
+      noll := noll << seven as bv0;
     case true =>
-      noll := noll << bb;
+      noll := noll << bb as bv0;
     case true =>
-      noll := noll << noll;
+      noll := noll << noll as bv0;
   }
 }
 
 method TestActualShifting()
 {
   var a: bv67 := 3;
-  assert a << 2 == 12;
-  assert a >> 0 == 3;
-  assert a >> 1 == 1;
-  assert a >> 2 == 0;
+  assert a << 2 as bv7 == 12;
+  assert a >> 0 as bv7 == 3;
+  assert a >> 1 as bv7 == 1;
+  assert a >> 2 as bv7 == 0;
   var b: bv5 := 24;
-  assert b << 1 == 16;
-  assert b >> 0 == 24;
-  assert b >> 1 == 12;
-  assert b >> 2 == 6;
+  assert b << 1 as bv3 == 16;
+  assert b >> 0 as bv3 == 24;
+  assert b >> 1 as bv3 == 12;
+  assert b >> 2 as bv3 == 6;
 }
 
 method Rotate() returns (x: nat, bb: bv5)
@@ -445,29 +447,36 @@ BitvectorsMore.dfy(21,13): Error: possible division by zero
 BitvectorsMore.dfy(25,13): Error: possible division by zero
 BitvectorsMore.dfy(30,15): Error: possible division by zero
 BitvectorsMore.dfy(32,15): Error: possible division by zero
-BitvectorsMore.dfy(104,34): Error: shift amount must be non-negative
+BitvectorsMore.dfy(104,37): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv7
 BitvectorsMore.dfy(105,35): Error: shift amount must not exceed the width of the result (67)
+BitvectorsMore.dfy(105,38): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv7
 BitvectorsMore.dfy(107,34): Error: shift amount must not exceed the width of the result (67)
-BitvectorsMore.dfy(108,34): Error: shift amount must not exceed the width of the result (67)
-BitvectorsMore.dfy(115,39): Error: shift amount must be non-negative
+BitvectorsMore.dfy(107,37): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv7
+BitvectorsMore.dfy(115,42): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv7
 BitvectorsMore.dfy(116,39): Error: shift amount must not exceed the width of the result (67)
+BitvectorsMore.dfy(116,42): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv7
 BitvectorsMore.dfy(124,28): Error: shift amount must not exceed the width of the result (67)
+BitvectorsMore.dfy(124,31): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv7
 BitvectorsMore.dfy(125,28): Error: shift amount must not exceed the width of the result (67)
+BitvectorsMore.dfy(125,31): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv7
 BitvectorsMore.dfy(135,24): Error: shift amount must not exceed the width of the result (32)
+BitvectorsMore.dfy(135,27): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv6
 BitvectorsMore.dfy(136,24): Error: shift amount must not exceed the width of the result (32)
-BitvectorsMore.dfy(137,24): Error: shift amount must not exceed the width of the result (32)
-BitvectorsMore.dfy(146,32): Error: shift amount must not exceed the width of the result (7)
-BitvectorsMore.dfy(147,32): Error: shift amount must not exceed the width of the result (7)
-BitvectorsMore.dfy(148,32): Error: shift amount must not exceed the width of the result (7)
+BitvectorsMore.dfy(136,27): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv6
+BitvectorsMore.dfy(137,27): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv6
+BitvectorsMore.dfy(146,35): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv3
+BitvectorsMore.dfy(147,35): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv3
+BitvectorsMore.dfy(148,35): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv3
 BitvectorsMore.dfy(157,26): Error: shift amount must not exceed the width of the result (2)
+BitvectorsMore.dfy(157,29): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv2
 BitvectorsMore.dfy(158,26): Error: shift amount must not exceed the width of the result (2)
-BitvectorsMore.dfy(159,26): Error: shift amount must not exceed the width of the result (2)
-BitvectorsMore.dfy(160,26): Error: shift amount must not exceed the width of the result (2)
-BitvectorsMore.dfy(168,30): Error: shift amount must not exceed the width of the result (0)
-BitvectorsMore.dfy(169,30): Error: shift amount must not exceed the width of the result (0)
-BitvectorsMore.dfy(170,30): Error: shift amount must not exceed the width of the result (0)
-BitvectorsMore.dfy(171,30): Error: shift amount must not exceed the width of the result (0)
+BitvectorsMore.dfy(158,29): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv2
+BitvectorsMore.dfy(159,29): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv2
+BitvectorsMore.dfy(168,33): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv0
+BitvectorsMore.dfy(169,33): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv0
+BitvectorsMore.dfy(170,33): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv0
+BitvectorsMore.dfy(171,33): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv0
 BitvectorsMore.dfy(193,26): Error: shift amount must not exceed the width of the result (5)
 BitvectorsMore.dfy(194,26): Error: shift amount must not exceed the width of the result (5)
 
-Dafny program verifier finished with 9 verified, 30 errors
+Dafny program verifier finished with 9 verified, 37 errors

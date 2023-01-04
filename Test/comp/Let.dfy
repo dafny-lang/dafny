@@ -29,6 +29,8 @@ method Main() {
   print y, " ", right.val, "\n";  // 5 7
   var (u0, u1) := var Node(Node(_, xy, xright), _, xRight) := t; (xy, xright);
   print u0, " ", u1.val, "\n";  // 5 7
+
+  Regressions.Test();
 }
 
 datatype Tree = Leaf | Node(Tree, val: int, Tree)
@@ -48,4 +50,51 @@ method InorderPrint(t: Tree) {
     print value, " ";
     InorderPrint(right);
   }
+}
+
+module Regressions {
+  method Test() {
+    var a := F(2);
+    var b := G(2);
+    var c := H(2);
+    var d := Gimmie<SoReal>();
+    print a, " ", b, " ", c, " ", d, "\n"; // 12.0 15.0 15.0 15.0
+  }
+
+  function method F(xyz: int): real
+  {
+    // Because the following let expression is at the top level of the function
+    // body, TrExprOpt is called (not TrExpr), and it converts these let variables
+    // into local variables. So, this case always worked.
+    var abc := 10;
+    var def := xyz;
+    12.0
+  }
+
+  // This one had problems:
+  function method G(xyz: int): real
+  {
+    3.0 +
+      var abc := 10;
+      // The use of "xyz" in the following line was not always adequately protected.
+      var def := xyz; // use of formal parameter in RHS of let inside another let
+      12.0
+  }
+
+  function method H(xyz: int): real
+  {
+    3.0 +
+      var abc := 10;
+      var def := abc; // was never a problem, since this is not a formal parameter
+      12.0
+  }
+
+  type SoReal = r: real | 10.0 <= r
+    witness
+      3.0 +
+        var abc := 10;
+        var def := abc; // was never a problem, since this is not a formal parameter
+        12.0
+
+  method Gimmie<T(0)>() returns (t: T) { }
 }

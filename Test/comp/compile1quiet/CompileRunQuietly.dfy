@@ -13,6 +13,9 @@
 // RUN: %dafny /compileTarget:cpp "%s" >> "%t"
 // RUN: %S/CompileRunQuietly.exe >> "%t"
 
+// RUN: %dafny /compileTarget:py "%s" >> "%t"
+// RUN: python3 %S/CompileRunQuietly-py/CompileRunQuietly.py >> "%t"
+
  // RUN: %diff "%s.expect" "%t"
 
 method Main() {

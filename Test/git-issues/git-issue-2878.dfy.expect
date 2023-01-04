@@ -1,0 +1,2 @@
+git-issue-2878.dfy(5,2): Error: number of return parameters does not match declaration (found 1, expected 2)
+1 resolution/type errors detected in git-issue-2878.dfy

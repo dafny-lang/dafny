@@ -1,0 +1,13 @@
+git-issue-1996.dfy(59,17): Error: The name M ambiguously refers to a type in one of the modules N, M (try qualifying the type name with the module name)
+git-issue-1996.dfy(68,17): Error: The name M ambiguously refers to a type in one of the modules N, O (try qualifying the type name with the module name)
+git-issue-1996.dfy(89,16): Error: member 'M' does not exist in datatype 'M'
+git-issue-1996.dfy(95,16): Error: member 'SomethingElse' does not exist in datatype 'M'
+git-issue-1996.dfy(105,16): Error: member 'M' does not exist in datatype 'M'
+git-issue-1996.dfy(111,16): Error: member 'SomethingElse' does not exist in datatype 'M'
+git-issue-1996.dfy(188,17): Error: expected type
+git-issue-1996.dfy(242,13): Error: the name 'Ctor' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'X.Ctor')
+git-issue-1996.dfy(310,19): Error: Reference to member 'a' is ambiguous: name 'Option' shadows an import-opened module of the same name, and both have a member 'a'. To solve this issue, give a different name to the imported module using `import opened XYZ = ...` instead of `import opened ...`.
+git-issue-1996.dfy(355,19): Error: Reference to member 'a' is ambiguous: name 'Option' shadows an import-opened module of the same name, and both have a member 'a'. To solve this issue, give a different name to the imported module using `import opened XYZ = ...` instead of `import opened ...`.
+git-issue-1996.dfy(373,19): Error: Reference to member 'a' is ambiguous: name 'Option' shadows an import-opened module of the same name, and both have a member 'a'. To solve this issue, give a different name to the imported module using `import opened XYZ = ...` instead of `import opened ...`.
+git-issue-1996.dfy(391,19): Error: Reference to member 'Record' is ambiguous: name 'Record' shadows an import-opened module of the same name, and both have a member 'Record'. To solve this issue, give a different name to the imported module using `import opened XYZ = ...` instead of `import opened ...`.
+12 resolution/type errors detected in git-issue-1996.dfy

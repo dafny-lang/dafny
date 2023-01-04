@@ -148,3 +148,40 @@ array?<bool>: null
 array2?<bool>: null
 int --> bool: null
 array?<int> ~> bool: null
+
+Dafny program verifier did not attempt verification
+int: 8 0
+bool: true false
+char: 'r' 'D'
+real: 1.618 0.0
+ORDINAL: 0
+bv0: 0 0
+bv21: 121 0
+bv32: 132 0
+bv191: 191 0
+set<int>: {7} {}
+multiset<int>: multiset{7, 7} multiset{}
+seq<int>: [7] []
+map<int, int>: map[2 := 7] map[]
+pos: 3 1
+Hundred: 6 0
+HundredOdd: 13 19
+JustOdd: 131 5
+(): () ()
+(int, real): (2, 3.2) (0, 0.0)
+(int, pos): (2, 3) (0, 1)
+AtomicShells<bool>: AtomicShells.Atom(true) AtomicShells.Atom(false)
+AtomicShells<AtomicShells<int>>: AtomicShells.Atom(AtomicShells.Atom(3)) AtomicShells.Atom(AtomicShells.Atom(0))
+AtomicShells<AtomicShells<pos>>: AtomicShells.Atom(AtomicShells.Atom(3)) AtomicShells.Atom(AtomicShells.Atom(1))
+Record<int, Class<int, int>, Class<real, real>>: Record.SimpleRecord(5) Record.SimpleRecord(0)
+Stream<int>: Stream.More
+A=int: 15 0
+B=int: 16 0
+datatype.B=: {14} {}
+object?: null
+Class?<pos, Stream<nat>>: null
+Trait?<seq<pos>>: null
+array?<bool>: null
+array2?<bool>: null
+int --> bool: null
+array?<int> ~> bool: null

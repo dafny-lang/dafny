@@ -9,25 +9,21 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 
 [TestClass]
 public class PluginsTestWithVerification : PluginsTestBase {
-  [TestInitialize]
-  public async Task SetUp() {
-    await SetUpPlugin();
-  }
 
   protected override string LibraryName =>
     "PluginsTestVerification";
 
   protected override string[] CommandLineArgument =>
-    new[] { $@"--dafny:plugins:0={LibraryPath},""because\\ \""whatever""" };
+    new[] { $@"{LibraryPath},""because\\ \""whatever""" };
 
   [TestMethod]
   public async Task EnsureItIsPossibleToLoadAPluginAndContinueVerification() {
     // This code will run with the plugin from PluginsAdvancedTest, but that plugin won't throw an exception on the code below.
     var documentItem = CreateTestDocument("function test(): nat { -1 }");
-    await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    var resolutionReport = await DiagnosticReceiver.AwaitNextNotificationAsync(CancellationToken.None);
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+    var resolutionReport = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken.None);
     Assert.AreEqual(documentItem.Uri, resolutionReport.Uri);
-    var verificationReport = await DiagnosticReceiver.AwaitNextNotificationAsync(CancellationToken.None);
+    var verificationReport = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken.None);
     Assert.AreEqual(documentItem.Uri, resolutionReport.Uri);
     var diagnostics = verificationReport.Diagnostics.ToArray();
     Assert.AreEqual(1 + DafnyOptions.DefaultPlugins.Count, DafnyOptions.O.Plugins.Count,
@@ -37,10 +33,5 @@ public class PluginsTestWithVerification : PluginsTestBase {
     Assert.AreEqual(new Range((0, 9), (0, 13)), diagnostics[0].Range);
     Assert.AreEqual("value does not satisfy the subset constraints of 'nat'", diagnostics[1].Message);
     Assert.AreEqual(new Range((0, 23), (0, 24)), diagnostics[1].Range);
-  }
-
-  [TestCleanup]
-  public void DoCleanup() {
-    CleanupPlugin();
   }
 }

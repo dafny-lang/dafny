@@ -1,5 +1,7 @@
 
-Dafny program verifier finished with 11 verified, 0 errors
+Dafny program verifier finished with 12 verified, 0 errors
+
+Dafny program verifier did not attempt verification
 List.Nil
 List.Cons(5, List.Nil)
 (List.Nil, List.Cons(5, List.Nil))
@@ -18,8 +20,12 @@ CoBerry.Hjortron true true false
 false
 42 q hello
 1701
+Record.Record(58, true)
+199
+800 801 802
+800 801 802
 
-Dafny program verifier finished with 11 verified, 0 errors
+Dafny program verifier did not attempt verification
 List.Nil
 List.Cons(5, List.Nil)
 (List.Nil, List.Cons(5, List.Nil))
@@ -38,8 +44,12 @@ CoBerry.Hjortron true true false
 false
 42 q hello
 1701
+Record.Record(58, true)
+199
+800 801 802
+800 801 802
 
-Dafny program verifier finished with 11 verified, 0 errors
+Dafny program verifier did not attempt verification
 List.Nil
 List.Cons(5, List.Nil)
 (List.Nil, List.Cons(5, List.Nil))
@@ -58,8 +68,12 @@ CoBerry.Hjortron true true false
 false
 42 q hello
 1701
+Record.Record(58, true)
+199
+800 801 802
+800 801 802
 
-Dafny program verifier finished with 11 verified, 0 errors
+Dafny program verifier did not attempt verification
 List.Nil
 List.Cons(5, List.Nil)
 (List.Nil, List.Cons(5, List.Nil))
@@ -78,3 +92,31 @@ CoBerry.Hjortron true true false
 false
 42 q hello
 1701
+Record.Record(58, true)
+199
+800 801 802
+800 801 802
+
+Dafny program verifier did not attempt verification
+List.Nil
+List.Cons(5, List.Nil)
+(List.Nil, List.Cons(5, List.Nil))
+(List.Cons(5, List.Nil), List.Nil)
+()
+(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)
+5 List.Nil
+List.Cons(0, List.Cons(1, List.Cons(2, List.Cons(3, List.Cons(4, List.Cons(5, List.Cons(6, List.Nil)))))))
+0 + 1 + 2 + 3 + 4 + 5 + 6 == 21 (once more, that's 21)
+List.Cons(0, List.Cons(1, List.Cons(2, List.Cons(3, List.Nil))))
+0 List.Cons(1, List.Cons(2, List.Cons(3, List.Nil)))
+Stream.Next
+Stream.Next
+{Berry.Hallon, Berry.Smultron, Berry.Jordgubb}
+CoBerry.Hjortron true true false
+false
+42 q hello
+1701
+Record.Record(58, true)
+199
+800 801 802
+800 801 802

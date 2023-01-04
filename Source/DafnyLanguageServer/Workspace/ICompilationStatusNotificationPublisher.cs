@@ -4,7 +4,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
   /// Implementations of this interface are responsible to publish the compilation
-  /// status of a <see cref="DafnyDocument"/> to the LSP client.
+  /// status of a <see cref="Document"/> to the LSP client.
   /// </summary>
   public interface ICompilationStatusNotificationPublisher {
     /// <summary>

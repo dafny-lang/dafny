@@ -1,0 +1,25 @@
+PrecedenceLinter.dfy(554,4): Warning: unusual indentation in body of let-expression (which ends at line 558, column 35); do you perhaps need parentheses?
+PrecedenceLinter.dfy(6,4): Warning: unusual indentation in left-hand operand of ==> (which starts at line 5, column 3); do you perhaps need parentheses?
+PrecedenceLinter.dfy(50,4): Warning: unusual indentation in left-hand operand of ==> (which starts at line 49, column 3); do you perhaps need parentheses?
+PrecedenceLinter.dfy(50,4): Warning: unusual indentation in right-hand operand of ==> (which ends at line 51, column 3); do you perhaps need parentheses?
+PrecedenceLinter.dfy(56,4): Warning: unusual indentation in left-hand operand of ==> (which starts at line 55, column 3); do you perhaps need parentheses?
+PrecedenceLinter.dfy(62,4): Warning: unusual indentation in left-hand operand of ==> (which starts at line 61, column 3); do you perhaps need parentheses?
+PrecedenceLinter.dfy(74,7): Warning: unusual indentation in left-hand operand of ==> (which starts at line 73, column 3); do you perhaps need parentheses?
+PrecedenceLinter.dfy(74,7): Warning: unusual indentation in right-hand operand of ==> (which ends at line 75, column 6); do you perhaps need parentheses?
+PrecedenceLinter.dfy(107,7): Warning: unusual indentation in left-hand operand of ==> (which starts at line 106, column 3); do you perhaps need parentheses?
+PrecedenceLinter.dfy(113,7): Warning: unusual indentation in left-hand operand of ==> (which starts at line 112, column 3); do you perhaps need parentheses?
+PrecedenceLinter.dfy(119,2): Warning: unusual indentation in right-hand operand of ==> (which ends at line 121, column 3); do you perhaps need parentheses?
+PrecedenceLinter.dfy(208,2): Warning: unusual indentation in body of forall (which ends at line 209, column 6); do you perhaps need parentheses?
+PrecedenceLinter.dfy(225,2): Warning: unusual indentation in body of exists (which ends at line 226, column 6); do you perhaps need parentheses?
+PrecedenceLinter.dfy(231,2): Warning: unusual indentation in body of exists (which ends at line 232, column 6); do you perhaps need parentheses?
+PrecedenceLinter.dfy(230,2): Warning: unusual indentation in body of exists (which ends at line 232, column 6); do you perhaps need parentheses?
+PrecedenceLinter.dfy(284,2): Warning: unusual indentation in else branch of if-then-else (which ends at line 285, column 13); do you perhaps need parentheses?
+PrecedenceLinter.dfy(313,28): Warning: unusual indentation in left-hand operand of <== (which starts at line 314, column 5); do you perhaps need parentheses?
+PrecedenceLinter.dfy(334,19): Warning: unusual indentation in right-hand operand of <==> (which ends at line 335, column 8); do you perhaps need parentheses?
+PrecedenceLinter.dfy(349,2): Warning: unusual indentation in else branch of if-then-else (which ends at line 353, column 5); do you perhaps need parentheses?
+PrecedenceLinter.dfy(365,2): Warning: unusual indentation in else branch of if-then-else (which ends at line 369, column 5); do you perhaps need parentheses?
+PrecedenceLinter.dfy(463,11): Warning: unusual indentation in else branch of if-then-else (which ends at line 464, column 20); do you perhaps need parentheses?
+PrecedenceLinter.dfy(478,17): Warning: unusual indentation in else branch of if-then-else (which ends at line 479, column 9); do you perhaps need parentheses?
+PrecedenceLinter.dfy(480,17): Warning: unusual indentation in else branch of if-then-else (which ends at line 481, column 13); do you perhaps need parentheses?
+
+Dafny program verifier finished with 17 verified, 0 errors

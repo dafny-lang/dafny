@@ -13,6 +13,7 @@ method Main() {
   SimpleReality();
   BitVectorTests();
   MoreBvTests();
+  NativeTypeTest();
   NewTypeTest();
   OrdinalTests();
   ZeroComparisonTests();
@@ -58,10 +59,10 @@ method Literals() {
   Print("C# uint.MaxValue", 0xFFFF_FFFF);  // uint.MaxValue
   Print("2^32", 0x1_0000_0000);  // uint.MaxValue + 1
 
-  Print("JavaScript Number.MAX_SAFE_INTEGER", 0x1F_FFFF_FFFF_FFFF_FFFF);  // 2^53 -  1
-  Print("2^53", 0x20_0000_0000_0000_0000);  // 2^53
-  Print("JavaScript Number.MAX_SAFE_INTEGER", - 0x1F_FFFF_FFFF_FFFF_FFFF);  // - (2^53 -  1)
-  Print("", - 0x20_0000_0000_0000_0000);  // - 2^53
+  Print("JavaScript Number.MAX_SAFE_INTEGER", 0x1F_FFFF_FFFF_FFFF);  // 2^53 -  1
+  Print("2^53", 0x20_0000_0000_0000);  // 2^53
+  Print("JavaScript Number.MIN_SAFE_INTEGER", - 0x1F_FFFF_FFFF_FFFF);  // - (2^53 -  1)
+  Print("", - 0x20_0000_0000_0000);  // - 2^53
 
   Print("C# long.MaxValue", 0x7FFF_ffff_FFFF_ffff);  // long.MaxValue
   Print("2^63", 0x8000_0000_0000_0000);  // long.MaxValue + 1
@@ -407,9 +408,9 @@ method MoreBvTests() {
   print u, "\n";  // as 0 as ever
 }
 
-newtype {:nativeType "number", "long"} MyNumber = x | -100 <= x < 0x10_0000_0000
+newtype {:nativeType "number", "long"} NativeType = x | -100 <= x < 0x10_0000_0000
 
-method NewTypeTest() {
+method NativeTypeTest() {
   var a, b := 200, 300;
   var r0 := M(a, b);
   var r1 := M(b, a);
@@ -418,7 +419,7 @@ method NewTypeTest() {
   print r0, " ", r1, " ", r2, "\n";
 }
 
-method M(m: MyNumber, n: MyNumber) returns (r: MyNumber) {
+method M(m: NativeType, n: NativeType) returns (r: NativeType) {
   if m < 0 || n < 0 {
     r := 18;
   } else if m < n {
@@ -426,6 +427,15 @@ method M(m: MyNumber, n: MyNumber) returns (r: MyNumber) {
   } else {
     r := m - n;
   }
+}
+
+newtype NewType = x: int | true
+
+method NewTypeTest() {
+  print var n: NewType := (-4) / (-2); n, "\n";
+  print var n: NewType := ( 4) / (-2); n, "\n";
+  print var n: NewType := (-4) / ( 2); n, "\n";
+  print var n: NewType := ( 4) / ( 2); n, "\n";
 }
 
 method OrdinalTests() {
@@ -449,11 +459,11 @@ method ZeroComparisonTests() {
   ZCIntTests(-0);
   ZCIntTests(23);
 
-  print "MyNumber:\n";
-  ZCMyNumberTests(-42);
-  ZCMyNumberTests(0);
-  ZCMyNumberTests(-0);
-  ZCMyNumberTests(23);
+  print "NativeType:\n";
+  ZCNativeTypeTests(-42);
+  ZCNativeTypeTests(0);
+  ZCNativeTypeTests(-0);
+  ZCNativeTypeTests(23);
 }
 
 function method YN(b : bool) : string {
@@ -471,7 +481,7 @@ method ZCIntTests(n : int) {
     "\n";
 }
 
-method ZCMyNumberTests(n : MyNumber) {
+method ZCNativeTypeTests(n : NativeType) {
   print n, "\t",
     " <0 ",  YN(n < 0),  " <=0 ", YN(n <= 0),
     " ==0 ", YN(n == 0), " !=0 ", YN(n != 0),

@@ -1,3 +1,4 @@
+LabelsOldAt.dfy(160,13): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
 LabelsOldAt.dfy(34,13): Error: assertion might not hold
 LabelsOldAt.dfy(56,11): Error: assertion might not hold
 LabelsOldAt.dfy(78,13): Error: assertion might not hold

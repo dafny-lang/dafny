@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 type Opaque {
@@ -23,7 +23,7 @@ type Opaque {
     ensures old(a[3] + y) == y
   {
     u := old(y + a[3]);
-    var f := old(F());
+    var f := old(F()); // warning: old has no effect (since F has no reads clause)
     var u' := y + a[3];
     var f' := F();
   }
@@ -61,7 +61,7 @@ type StaticOpaque {
     ensures old(a[3] + y) == y
   {
     u := old(y + a[3]);
-    var f := old(F());
+    var f := old(F()); // warning: old has no effect (since F has no reads clause)
     var u' := y + a[3];
     var f' := F();
   }
@@ -91,7 +91,7 @@ type OpaqueErrors {
     ensures old(a[3] + y) == y
   {
     u := old(y + a[2]);  // error: index out of bounds
-    var f := old(F());
+    var f := old(F()); // warning: old has no effect (since F has no reads clause)
     var u' := y + a[2];
     var f' := F();
   }

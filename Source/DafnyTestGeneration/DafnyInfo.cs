@@ -9,12 +9,14 @@ namespace DafnyTestGeneration {
 
     // method -> list of return types
     private readonly Dictionary<string, List<string>> returnTypes;
+    private readonly Dictionary<string, List<Type>> formalsTypes;
     private readonly HashSet<string> isStatic; // static methods
     // import required to access the code contained in the program
     public readonly HashSet<string> ToImport;
 
     public DafnyInfo(Program program) {
       returnTypes = new Dictionary<string, List<string>>();
+      formalsTypes = new Dictionary<string, List<Type>>();
       isStatic = new HashSet<string>();
       ToImport = new HashSet<string>();
       var visitor = new DafnyInfoExtractor(this);
@@ -23,6 +25,10 @@ namespace DafnyTestGeneration {
 
     public IList<string> GetReturnTypes(string method) {
       return returnTypes[method];
+    }
+
+    public IList<Type> GetFormalsTypes(string method) {
+      return formalsTypes[method];
     }
 
     public bool IsStatic(string method) {
@@ -106,8 +112,10 @@ namespace DafnyTestGeneration {
         if (m.HasStaticKeyword || !insideAClass) {
           info.isStatic.Add(methodName);
         }
-        var returnTypes = m.Outs.Select(arg => arg.Type.ToString()).ToList();
-        info.returnTypes[methodName] = returnTypes;
+
+        info.returnTypes[methodName] =
+          m.Outs.Select(arg => arg.Type.ToString()).ToList();
+        info.formalsTypes[methodName] = m.Ins.Select(arg => arg.Type).ToList();
       }
 
       private new void Visit(Function f) {
@@ -118,8 +126,11 @@ namespace DafnyTestGeneration {
         if (f.HasStaticKeyword || !insideAClass) {
           info.isStatic.Add(methodName);
         }
-        var returnTypes = new List<string> { f.ResultType.ToString() };
-        info.returnTypes[methodName] = returnTypes;
+
+        info.returnTypes[methodName] = new List<string>
+          { f.ResultType.ToString() };
+        info.formalsTypes[methodName] =
+          f.Formals.Select(arg => arg.Type).ToList();
       }
     }
   }

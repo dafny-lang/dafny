@@ -29,8 +29,24 @@ method LetExpr() {
   print (var a := A(0); var A(zero) := a; zero), "\n";
 }
 
+function method f(i: int): int {
+  i + 1
+}
+
+function method F(i: int): int -> int {
+  j => j + i + 1
+}
+
+method SequenceConstructionWithNamedFunction(){
+  var g := (i => i+1);
+  print seq(10, f), "\n";
+  print seq(10, g), "\n";
+  print seq(10, F(0)), "\n";
+}
+
 method Main() {
   Match((0,1));
   Countdown(1);
   LetExpr();
+  SequenceConstructionWithNamedFunction();
 }

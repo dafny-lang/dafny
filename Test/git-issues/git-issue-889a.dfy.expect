@@ -1,5 +1,5 @@
 git-issue-889a.dfy(137,4): Warning: this branch is redundant
-git-issue-889a.dfy(145,4): Warning: this branch is redundant 
+git-issue-889a.dfy(145,4): Warning: this branch is redundant
 git-issue-889a.dfy(38,15): Error: result of operation might violate newtype constraint for 'int8'
 git-issue-889a.dfy(41,14): Error: result of operation might violate newtype constraint for 'int8'
 git-issue-889a.dfy(43,12): Error: result of operation might violate newtype constraint for 'exactly5'

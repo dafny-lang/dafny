@@ -3,7 +3,7 @@ Dafny program verifier did not attempt verification
 Wrote textual form of target program to GroceryListPrinter.cs
 # Printing a grocery list
    (2 items in the list)
-## Apple: 3
+## Apple: 3 @ 1.00
    (2 item(s) left)
-## Pear: 2
+## Pear: 2 @ 1.50
    (1 item(s) left)

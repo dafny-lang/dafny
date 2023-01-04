@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -7,6 +8,7 @@ using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 
@@ -14,10 +16,172 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 public class VerificationStatusTest : ClientBasedLanguageServerTest {
 
   [TestMethod]
+  public async Task ManuallyRunMethodWithTwoUnderlyingTasks() {
+    var source = @"
+method Foo() returns (x: int) ensures x / 2 == 1; {
+  return 2;
+}";
+    await SetUp(options => {
+      options.Set(ServerCommand.Verification, VerifyOnMode.Never);
+    });
+    var documentItem = CreateTestDocument(source);
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+    var fooSymbol = (await RequestDocumentSymbol(documentItem)).Single();
+    var fooPosition = fooSymbol.SelectionRange.Start;
+    var runSuccess = await client.RunSymbolVerification(documentItem, fooPosition, CancellationToken);
+    Assert.IsTrue(runSuccess);
+    await WaitForStatus(fooSymbol.SelectionRange, PublishedVerificationStatus.Correct, CancellationToken);
+  }
+
+  [TestMethod]
+  public async Task FunctionByMethodIsSeenAsSingleVerifiable() {
+    var source = @"
+function MultiplyByPlus(x: nat, y: nat): nat {
+  x * y
+} by method {
+  var result: nat := 0;
+  for i := 0 to x 
+    invariant result == i * y {
+    result := result + y;
+  }
+  return result;
+}";
+    var documentItem = CreateTestDocument(source);
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+    var header = (await RequestDocumentSymbol(documentItem)).Single().SelectionRange;
+    var diagnostic = await GetLastDiagnostics(documentItem, CancellationToken);
+    Assert.AreEqual(0, diagnostic.Length);
+    await WaitForStatus(header, PublishedVerificationStatus.Running, CancellationToken);
+    await WaitForStatus(header, PublishedVerificationStatus.Correct, CancellationToken);
+  }
+
+  [TestMethod]
+  public async Task NoDuplicateStaleMessages() {
+    var source = "method m1() { assert false; }";
+    var documentItem = CreateTestDocument(source);
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+
+    var foundStale = false;
+    while (true) {
+      var statusNotification = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+      var status = statusNotification.NamedVerifiables.Single().Status;
+      if (status >= PublishedVerificationStatus.Error) {
+        break;
+      }
+
+      if (status == PublishedVerificationStatus.Stale) {
+        Assert.IsFalse(foundStale);
+        foundStale = true;
+      }
+    }
+  }
+
+  [TestMethod]
+  public async Task EmptyVerificationTaskListIsPublishedOnOpenAndChange() {
+    var source = "method m1() {}";
+    var documentItem = CreateTestDocument(source);
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+
+    DateTime? first = null;
+    DateTime? second = null;
+    DateTime? third = null;
+    try {
+      first = DateTime.Now;
+      var status1 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+      Assert.AreEqual(0, status1.NamedVerifiables.Count);
+
+      second = DateTime.Now;
+      ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "\n");
+
+      var status2 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+      Assert.AreEqual(0, status2.NamedVerifiables.Count);
+      third = DateTime.Now;
+    } catch (OperationCanceledException) {
+      Console.WriteLine($"first: {first}, second: {second}, third: {third}");
+      Console.WriteLine(verificationStatusReceiver.History.Stringify());
+      throw;
+    }
+  }
+
+  [TestMethod]
+  public async Task NoVerificationStatusPublishedForUnparsedDocument() {
+    var source = @"
+method m1() {
+  assert 3 == 55;
+}".TrimStart();
+    var documentItem = CreateTestDocument(source);
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+
+    await WaitUntilAllStatusAreCompleted(documentItem);
+    ApplyChange(ref documentItem, new Range(0, 11, 0, 11), "blargh");
+    ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "\n");
+
+    await AssertNoVerificationStatusIsComing(documentItem, CancellationToken);
+  }
+
+  [TestMethod]
+  public async Task NoVerificationStatusPublishedForUnresolvedDocument() {
+    var source = @"
+method m1() {
+  assert 3 == 55;
+}".TrimStart();
+    var documentItem = CreateTestDocument(source);
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+
+    await WaitUntilAllStatusAreCompleted(documentItem);
+    ApplyChange(ref documentItem, new Range(1, 9, 1, 10), "foo");
+    ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "\n");
+
+    await AssertNoVerificationStatusIsComing(documentItem, CancellationToken);
+  }
+
+  [TestMethod]
+  public async Task ManyConcurrentVerificationRuns() {
+    var source = @"
+method m1() {
+  assert fib(10) == 55;
+}
+method m2() {
+  assert fib(10) == 55;
+}
+method m3() {
+  assert fib(10) == 55;
+}
+method m4() {
+  assert fib(10) == 55;
+}
+method m5() {
+  assert fib(1) == 22322231212312;
+}
+function fib(n: nat): nat {
+  if (n <= 1) then n else fib(n - 1) + fib(n - 2)
+}".TrimStart();
+    await SetUp(options => {
+      options.Set(ServerCommand.Verification, VerifyOnMode.Never);
+    });
+    var documentItem = CreateTestDocument(source);
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+
+    var m1 = new Position(0, 7);
+    var m2 = new Position(3, 7);
+    var m3 = new Position(6, 7);
+    var m4 = new Position(9, 7);
+    var m5 = new Position(12, 7);
+    var fib = new Position(15, 9);
+    var textDocumentIdentifier = new TextDocumentIdentifier(documentItem.Uri);
+    foreach (var position in new List<Position>() { m1, m2, m3, m4, m5, fib }) {
+      var _ = client.RunSymbolVerification(textDocumentIdentifier, position, CancellationToken);
+    }
+
+    var finalStatus = await WaitUntilAllStatusAreCompleted(documentItem);
+    Assert.IsTrue(finalStatus.NamedVerifiables.All(s => s.Status >= PublishedVerificationStatus.Error));
+  }
+
+  [TestMethod]
   public async Task MigrateDeletedVerifiableSymbol() {
     var source = @"method Foo() { assert false; }";
-    await SetUp(new Dictionary<string, string> {
-      { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.Never) }
+    await SetUp(options => {
+      options.Set(ServerCommand.Verification, VerifyOnMode.Never);
     });
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -25,11 +189,8 @@ public class VerificationStatusTest : ClientBasedLanguageServerTest {
     var translatedStatusBefore = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.AreEqual(1, translatedStatusBefore.NamedVerifiables.Count);
 
-    // Delete the end of the Foo range
+    // Delete the end of the Foo range, so Foo() becomes F()
     ApplyChange(ref documentItem, new Range(0, 8, 0, 12), "()");
-
-    var resolutionStatusAfter = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    Assert.AreEqual(0, resolutionStatusAfter.NamedVerifiables.Count);
 
     var translatedStatusAfter = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.AreEqual(1, translatedStatusAfter.NamedVerifiables.Count);
@@ -37,8 +198,8 @@ public class VerificationStatusTest : ClientBasedLanguageServerTest {
 
   [TestMethod]
   public async Task ChangeRunSaveWithVerify() {
-    await SetUp(new Dictionary<string, string> {
-      { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.OnSave) }
+    await SetUp(options => {
+      options.Set(ServerCommand.Verification, VerifyOnMode.Save);
     });
     var source = @"method Foo() { assert true; }
 method Bar() { assert false; }";
@@ -58,8 +219,8 @@ method Bar() { assert false; }";
   [TestMethod]
   public async Task MigratedDiagnosticsAfterManualRun() {
     var source = @"method Foo() { assert false; }";
-    await SetUp(new Dictionary<string, string> {
-      { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.Never) }
+    await SetUp(options => {
+      options.Set(ServerCommand.Verification, VerifyOnMode.Never);
     });
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -82,8 +243,8 @@ method Bar() { assert false; }";
   [TestMethod]
   public async Task ManualRunCancelCancelRunRun() {
 
-    await SetUp(new Dictionary<string, string> {
-      { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.Never) }
+    await SetUp(options => {
+      options.Set(ServerCommand.Verification, VerifyOnMode.Never);
     });
     var documentItem = CreateTestDocument(SlowToVerify);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -117,8 +278,8 @@ method Bar() { assert false; }";
   public async Task SingleMethodGoesThroughAllPhasesExceptQueued() {
     var source = @"method Foo() { assert false; }";
 
-    await SetUp(new Dictionary<string, string> {
-      { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.OnSave) }
+    await SetUp(options => {
+      options.Set(ServerCommand.Verification, VerifyOnMode.Save);
     });
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -138,8 +299,8 @@ method Bar() { assert false; }";
     var source = @"method Foo() { assert false; }
 method Bar() { assert false; }";
 
-    await SetUp(new Dictionary<string, string>() {
-      { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", 1.ToString() }
+    await SetUp(options => {
+      options.Set(BoogieOptionBag.Cores, 1U);
     });
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -154,36 +315,13 @@ method Bar() { assert false; }";
     await WaitForStatus(barRange, PublishedVerificationStatus.Error, CancellationToken);
   }
 
-  /// <summary>
-  /// This is important for VSCode since once it marks a test item during a run as 'skipped' (which we use for stale),
-  /// the state can not be changed. This means we should only emit stale if that state will no longer change.
-  /// </summary>
-  [TestMethod]
-  public async Task OnceFirstIsRunningSecondShouldBeQueued() {
-    var source = @"method Foo() { assert false; }
-method Bar() { assert false; }";
-
-    await SetUp(new Dictionary<string, string>() {
-      { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", 1.ToString() }
-    });
-    var documentItem = CreateTestDocument(source);
-    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-
-    FileVerificationStatus status;
-    do {
-      status = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    } while (status.NamedVerifiables.All(v => v.Status != PublishedVerificationStatus.Running));
-
-    Assert.IsTrue(status.NamedVerifiables.All(v => v.Status != PublishedVerificationStatus.Stale), string.Join(", ", status.NamedVerifiables));
-  }
-
   [TestMethod]
   public async Task WhenUsingOnSaveMethodStaysStaleUntilSave() {
     var source = @"method Foo() { assert false; }
 ";
 
-    await SetUp(new Dictionary<string, string>() {
-      { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.OnSave) }
+    await SetUp(options => {
+      options.Set(ServerCommand.Verification, VerifyOnMode.Save);
     });
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -197,6 +335,7 @@ method Bar() { assert false; }";
 
     await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
 
+    var stale2 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     var running = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.AreEqual(PublishedVerificationStatus.Running, running.NamedVerifiables[0].Status);
 
@@ -209,9 +348,9 @@ method Bar() { assert false; }";
     var source = @"method Foo() { assert true; }
 method Bar() { assert true; }";
 
-    await SetUp(new Dictionary<string, string>() {
-      { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", 1.ToString() },
-      { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VerifySnapshots)}", 1.ToString() }
+    await SetUp(options => {
+      options.Set(BoogieOptionBag.Cores, 1U);
+      options.Set(ServerCommand.VerifySnapshots, 1U);
     });
 
     var documentItem = CreateTestDocument(source);
@@ -223,17 +362,19 @@ method Bar() { assert true; }";
     await AssertNoResolutionErrors(documentItem);
     var correct = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.AreEqual(PublishedVerificationStatus.Correct, correct.NamedVerifiables[0].Status);
-    Assert.AreEqual(PublishedVerificationStatus.Stale, correct.NamedVerifiables[1].Status);
+    Assert.IsTrue(correct.NamedVerifiables[1].Status < PublishedVerificationStatus.Error);
   }
 
-  private async Task WaitUntilAllStatusAreCompleted(TextDocumentIdentifier documentId) {
-    var lastDocument = await Documents.GetLastDocumentAsync(documentId);
+  private async Task<FileVerificationStatus> WaitUntilAllStatusAreCompleted(TextDocumentIdentifier documentId) {
+    var lastDocument = (DocumentAfterTranslation)(await Documents.GetLastDocumentAsync(documentId));
     var symbols = lastDocument!.ImplementationIdToView.Select(id => id.Key.NamedVerificationTask).ToHashSet();
     FileVerificationStatus beforeChangeStatus;
     do {
       beforeChangeStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     } while (beforeChangeStatus.NamedVerifiables.Count != symbols.Count ||
              beforeChangeStatus.NamedVerifiables.Any(method => method.Status < PublishedVerificationStatus.Error));
+
+    return beforeChangeStatus;
   }
 
   [TestMethod]

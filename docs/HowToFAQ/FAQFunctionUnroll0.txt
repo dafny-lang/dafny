@@ -1,0 +1,6 @@
+FAQFunctionUnroll0.dfy(16,0): Error: A postcondition might not hold on this return path.
+FAQFunctionUnroll0.dfy(15,17): Related location: This is the postcondition that might not hold.
+FAQFunctionUnroll0.dfy(24,0): Error: A postcondition might not hold on this return path.
+FAQFunctionUnroll0.dfy(23,17): Related location: This is the postcondition that might not hold.
+
+Dafny program verifier finished with 5 verified, 2 errors

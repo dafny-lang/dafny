@@ -1,21 +1,23 @@
-CompilationErrors.dfy(52,2): Warning: note, this loop has no body (loop frame: x)
-CompilationErrors.dfy(54,2): Warning: note, this loop has no body (loop frame: i, x)
-CompilationErrors.dfy(64,4): Warning: note, this loop has no body (loop frame: x)
-CompilationErrors.dfy(66,4): Warning: note, this loop has no body (loop frame: i, x)
+CompilationErrors.dfy(71,2): Warning: note, this loop has no body (loop frame: x)
+CompilationErrors.dfy(73,2): Warning: note, this loop has no body (loop frame: i, x)
+CompilationErrors.dfy(83,4): Warning: note, this loop has no body (loop frame: x)
+CompilationErrors.dfy(85,4): Warning: note, this loop has no body (loop frame: i, x)
 
-Dafny program verifier finished with 4 verified, 0 errors
+Dafny program verifier finished with 5 verified, 0 errors
 CompilationErrors.dfy(4,5): Error: Opaque type ('_module.MyType') cannot be compiled; perhaps make it a type synonym or use :extern.
 CompilationErrors.dfy(5,9): Error: Iterator _module.Iter has no body
-CompilationErrors.dfy(12,6): Error: an assume statement cannot be compiled
+CompilationErrors.dfy(12,6): Error: an assume statement without an {:axiom} attribute cannot be compiled
 CompilationErrors.dfy(6,13): Error: Method _module._default.M has no body
 CompilationErrors.dfy(7,7): Error: Method _module._default.P has no body
-CompilationErrors.dfy(18,9): Error: Function _module._default.F has no body
-CompilationErrors.dfy(19,16): Error: Function _module._default.H has no body
-CompilationErrors.dfy(22,2): Error: an assume statement cannot be compiled
-CompilationErrors.dfy(25,2): Error: an assume statement cannot be compiled
-CompilationErrors.dfy(30,2): Error: an assume statement cannot be compiled
-CompilationErrors.dfy(39,6): Error: an assume statement cannot be compiled
-CompilationErrors.dfy(52,2): Error: a loop without a body cannot be compiled
-CompilationErrors.dfy(54,2): Error: a loop without a body cannot be compiled
-CompilationErrors.dfy(64,4): Error: a loop without a body cannot be compiled
-CompilationErrors.dfy(66,4): Error: a loop without a body cannot be compiled
+CompilationErrors.dfy(19,9): Error: Function _module._default.F has no body
+CompilationErrors.dfy(20,16): Error: Function _module._default.H has no body
+CompilationErrors.dfy(23,2): Error: an assume statement without an {:axiom} attribute cannot be compiled
+CompilationErrors.dfy(27,2): Error: an assume statement without an {:axiom} attribute cannot be compiled
+CompilationErrors.dfy(33,2): Error: an assume statement without an {:axiom} attribute cannot be compiled
+CompilationErrors.dfy(43,6): Error: an assume statement without an {:axiom} attribute cannot be compiled
+CompilationErrors.dfy(55,8): Error: an assume statement without an {:axiom} attribute cannot be compiled
+CompilationErrors.dfy(60,13): Error: an assume statement without an {:axiom} attribute cannot be compiled
+CompilationErrors.dfy(71,2): Error: a loop without a body cannot be compiled
+CompilationErrors.dfy(73,2): Error: a loop without a body cannot be compiled
+CompilationErrors.dfy(83,4): Error: a loop without a body cannot be compiled
+CompilationErrors.dfy(85,4): Error: a loop without a body cannot be compiled

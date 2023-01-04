@@ -165,46 +165,46 @@ module SomeModule {
     }
 
     [Fact]
-    public async void EqualProverLogWhenReorderingProgram() {
+    public async Task EqualProverLogWhenReorderingProgram() {
       var options = DafnyOptions.Create();
       options.ProcsToCheck.Add("SomeMethod*");
       DafnyOptions.Install(options);
 
-      var reorderedProverLog = await GetProverLogForProgram(options, GetBoogie(reorderedProgram));
-      var regularProverLog = await GetProverLogForProgram(options, GetBoogie(originalProgram));
+      var reorderedProverLog = await GetProverLogForProgramAsync(options, GetBoogie(reorderedProgram));
+      var regularProverLog = await GetProverLogForProgramAsync(options, GetBoogie(originalProgram));
       Assert.Equal(regularProverLog, reorderedProverLog);
     }
 
     [Fact]
-    public async void EqualProverLogWhenRenamingProgram() {
+    public async Task EqualProverLogWhenRenamingProgram() {
       var options = DafnyOptions.Create();
       options.ProcsToCheck.Add("*SomeMethod*");
       DafnyOptions.Install(options);
 
-      var renamedProverLog = await GetProverLogForProgram(options, GetBoogie(renamedProgram));
-      var regularProverLog = await GetProverLogForProgram(options, GetBoogie(originalProgram));
+      var renamedProverLog = await GetProverLogForProgramAsync(options, GetBoogie(renamedProgram));
+      var regularProverLog = await GetProverLogForProgramAsync(options, GetBoogie(originalProgram));
       Assert.Equal(regularProverLog, renamedProverLog);
     }
 
     [Fact]
-    public async void EqualProverLogWhenAddingUnrelatedProgram() {
+    public async Task EqualProverLogWhenAddingUnrelatedProgram() {
 
       var options = DafnyOptions.Create();
       options.ProcsToCheck.Add("*SomeMethod *");
       DafnyOptions.Install(options);
 
-      var renamedProverLog = await GetProverLogForProgram(options, GetBoogie(renamedProgram + originalProgram));
-      var regularProverLog = await GetProverLogForProgram(options, GetBoogie(originalProgram));
+      var renamedProverLog = await GetProverLogForProgramAsync(options, GetBoogie(renamedProgram + originalProgram));
+      var regularProverLog = await GetProverLogForProgramAsync(options, GetBoogie(originalProgram));
       Assert.Equal(regularProverLog, renamedProverLog);
     }
 
-    private async Task<string> GetProverLogForProgram(ExecutionEngineOptions options, IEnumerable<Microsoft.Boogie.Program> boogiePrograms) {
-      var logs = await GetProverLogsForProgram(options, boogiePrograms).ToListAsync();
+    private async Task<string> GetProverLogForProgramAsync(ExecutionEngineOptions options, IEnumerable<Microsoft.Boogie.Program> boogiePrograms) {
+      var logs = await GetProverLogsForProgramAsync(options, boogiePrograms).ToListAsync();
       Assert.Single(logs);
       return logs[0];
     }
 
-    private async IAsyncEnumerable<string> GetProverLogsForProgram(ExecutionEngineOptions options,
+    private async IAsyncEnumerable<string> GetProverLogsForProgramAsync(ExecutionEngineOptions options,
       IEnumerable<BoogieProgram> boogiePrograms) {
       string directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
       Directory.CreateDirectory(directory);

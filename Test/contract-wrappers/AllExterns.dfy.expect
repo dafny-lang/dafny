@@ -1,0 +1,11 @@
+CheckExtern.dfy(20,13): Warning: The requires clause at this location cannot be compiled to be tested at runtime because it references ghost state.
+CheckExtern.dfy(22,12): Warning: The ensures clause at this location cannot be compiled to be tested at runtime because it references ghost state.
+
+Dafny program verifier did not attempt verification
+FooTest: FAILED
+	CheckExtern.dfy(3,12): Runtime failure of ensures clause from CheckExtern.dfy:3:13
+BarTest: FAILED
+	CheckExtern.dfy(21,12): Runtime failure of ensures clause from CheckExtern.dfy:21:13
+BazTest: PASSED
+[Program halted] CheckExtern.dfy(1,17): Test failures occurred: see above.
+

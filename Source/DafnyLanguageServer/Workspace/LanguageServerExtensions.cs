@@ -19,15 +19,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// <param name="options">The language server where the workspace services should be registered to.</param>
     /// <param name="configuration">The configuration object holding the server configuration.</param>
     /// <returns>The language server enriched with the dafny workspace services.</returns>
-    public static LanguageServerOptions WithDafnyWorkspace(this LanguageServerOptions options, IConfiguration configuration) {
-      return options.WithServices(services => services.WithDafnyWorkspace(configuration));
+    public static LanguageServerOptions WithDafnyWorkspace(this LanguageServerOptions options) {
+      return options.WithServices(services => services.WithDafnyWorkspace());
     }
 
-    private static IServiceCollection WithDafnyWorkspace(this IServiceCollection services, IConfiguration configuration) {
+    private static IServiceCollection WithDafnyWorkspace(this IServiceCollection services) {
       return services
-        .Configure<DocumentOptions>(configuration.GetSection(DocumentOptions.Section))
-        .Configure<DafnyPluginsOptions>(configuration.GetSection(DafnyPluginsOptions.Section))
-        .AddSingleton<IDocumentDatabase, DocumentDatabase>()
+        .AddSingleton<IDocumentDatabase>(serviceProvider => new DocumentManagerDatabase(serviceProvider))
         .AddSingleton<IDafnyParser>(serviceProvider => DafnyLangParser.Create(serviceProvider.GetRequiredService<ILogger<DafnyLangParser>>()))
         .AddSingleton<ITextDocumentLoader>(CreateTextDocumentLoader)
         .AddSingleton<INotificationPublisher, NotificationPublisher>()
@@ -42,13 +40,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return TextDocumentLoader.Create(
         services.GetRequiredService<IDafnyParser>(),
         services.GetRequiredService<ISymbolResolver>(),
-        services.GetRequiredService<IProgramVerifier>(),
         services.GetRequiredService<ISymbolTableFactory>(),
         services.GetRequiredService<IGhostStateDiagnosticCollector>(),
         services.GetRequiredService<ICompilationStatusNotificationPublisher>(),
         services.GetRequiredService<ILoggerFactory>(),
-        services.GetRequiredService<INotificationPublisher>(),
-        services.GetRequiredService<IOptions<VerifierOptions>>().Value
+        services.GetRequiredService<INotificationPublisher>()
       );
     }
   }

@@ -1,18 +1,24 @@
 
 Dafny program verifier finished with 1 verified, 0 errors
-git-issue-1151-more.dfy(11,5): Error: Opaque type ('_module.Opaque') cannot be compiled; perhaps make it a type synonym or use :extern.
 
-Dafny program verifier finished with 1 verified, 0 errors
-git-issue-1151-more.dfy(11,5): Error: Opaque type ('_module.Opaque') cannot be compiled; perhaps make it a type synonym or use :extern.
+Dafny program verifier did not attempt verification
+git-issue-1151-more.dfy(13,5): Error: Opaque type ('_module.Opaque') cannot be compiled; perhaps make it a type synonym or use :extern.
+
+Dafny program verifier did not attempt verification
+git-issue-1151-more.dfy(13,5): Error: Opaque type ('_module.Opaque') cannot be compiled; perhaps make it a type synonym or use :extern.
 Wrote textual form of partial target program to git-issue-1151-more-java/git_issue_1151_more.java
 
-Dafny program verifier finished with 1 verified, 0 errors
-git-issue-1151-more.dfy(11,5): Error: Opaque type ('_module.Opaque') cannot be compiled; perhaps make it a type synonym or use :extern.
+Dafny program verifier did not attempt verification
+git-issue-1151-more.dfy(13,5): Error: Opaque type ('_module.Opaque') cannot be compiled; perhaps make it a type synonym or use :extern.
 
-Dafny program verifier finished with 1 verified, 0 errors
-git-issue-1151-more.dfy(11,5): Error: Opaque type ('_module.Opaque') cannot be compiled; perhaps make it a type synonym or use :extern.
+Dafny program verifier did not attempt verification
+git-issue-1151-more.dfy(13,5): Error: Opaque type ('_module.Opaque') cannot be compiled; perhaps make it a type synonym or use :extern.
 Wrote textual form of partial target program to git-issue-1151-more-go/src/git-issue-1151-more.go
 
-Dafny program verifier finished with 1 verified, 0 errors
-git-issue-1151-more.dfy(11,5): Error: Opaque type ('_module.Opaque') cannot be compiled; perhaps make it a type synonym or use :extern.
+Dafny program verifier did not attempt verification
+git-issue-1151-more.dfy(13,5): Error: Opaque type ('_module.Opaque') cannot be compiled; perhaps make it a type synonym or use :extern.
 Wrote textual form of partial target program to git-issue-1151-more.cpp
+
+Dafny program verifier did not attempt verification
+git-issue-1151-more.dfy(13,5): Error: Opaque type ('_module.Opaque') cannot be compiled; perhaps make it a type synonym or use :extern.
+Wrote textual form of partial target program to git-issue-1151-more-py/git-issue-1151-more.py

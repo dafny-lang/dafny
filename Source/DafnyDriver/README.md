@@ -1,0 +1,1 @@
+Provides a Dafny CLI that does not include target language runtimes. Can be used to generate target language runtime files from Dafny sources.

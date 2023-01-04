@@ -1,0 +1,10 @@
+git-issue-2843.dfy(14,7): Error: a function with ghost parameters can be used as a value only in specification contexts
+git-issue-2843.dfy(20,7): Error: a ghost function is allowed only in specification contexts
+git-issue-2843.dfy(33,8): Error: ghost variables such as f are allowed only in specification contexts. f was inferred to be ghost based on its declaration or initialization.
+git-issue-2843.dfy(33,22): Error: ghost variables such as g are allowed only in specification contexts. g was inferred to be ghost based on its declaration or initialization.
+git-issue-2843.dfy(46,13): Error: a function with ghost parameters can be used as a value only in specification contexts
+git-issue-2843.dfy(46,20): Error: a ghost function is allowed only in specification contexts
+git-issue-2843.dfy(47,13): Error: ghost variables such as f are allowed only in specification contexts. f was inferred to be ghost based on its declaration or initialization.
+git-issue-2843.dfy(47,20): Error: ghost variables such as g are allowed only in specification contexts. g was inferred to be ghost based on its declaration or initialization.
+git-issue-2843.dfy(53,8): Error: ghost variables such as tuple3 are allowed only in specification contexts. tuple3 was inferred to be ghost based on its declaration or initialization.
+9 resolution/type errors detected in git-issue-2843.dfy

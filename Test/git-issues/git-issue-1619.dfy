@@ -1,4 +1,4 @@
-// RUN: %dafny_0 "%s" > "%t"
+// RUN: %exits-with 4 %dafny "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 predicate method {:opaque} P<W>(w: W) {
@@ -169,7 +169,7 @@ predicate G(m: MaybeEmpty)
 method G0() {
   var m: MaybeEmpty, other: int := *, *;
   assume G(m); // error: use before definition (note, execution continues after this check under the assumption that m really has been assigned)
-  assert exists m :: G(m); // this passes (see previous line)
+  assert exists m2 :: G(m2); // this passes (see previous line)
   assert false; // error: assertion violation
 }
 

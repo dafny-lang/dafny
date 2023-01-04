@@ -1,14 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.RegularExpressions;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
-using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
-using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
+using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
 
@@ -20,8 +14,31 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
   // the test will fail and give the correct output that can be use for the test
   // Add '//Next<n>:' to edit a line multiple times
 
-  [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+  [TestMethod]
+  public async Task NoGutterNotificationsReceivedWhenTurnedOff() {
+    var source = @"
+method Foo() ensures false { } ";
+    await SetUp(options => {
+      options.Set(ServerCommand.LineVerificationStatus, false);
+    });
+
+    var documentItem = CreateTestDocument(source);
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+    await GetLastDiagnostics(documentItem, CancellationToken);
+    Assert.IsFalse(verificationStatusGutterReceiver.HasPendingNotifications);
+  }
+
+  [TestMethod]
+  public async Task EnsureEmptyMethodDisplayVerified() {
+    await VerifyTrace(@"
+ .  | :method x() {
+ .  | :  // Nothing here
+ .  | :}");
+  }
+
+  [TestMethod/*, Timeout(MaxTestExecutionTimeMs)*/]
   public async Task EnsureVerificationGutterStatusIsWorking() {
+    await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
     await VerifyTrace(@"
  .  |  |  |  I  I  |  | :predicate Ok() {
  .  |  |  |  I  I  |  | :  true
@@ -116,22 +133,23 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
   [TestMethod/*, Timeout(MaxTestExecutionTimeMs)*/]
   public async Task EnsuresAddingNewlinesMigratesPositions() {
     await VerifyTrace(@"
- .  S [S][ ][I][S][S][ ][I][S][S][ ]:method f(x: int) {
- .  S [S][ ][I][S][S][ ][I][S][S][ ]:  //Next1:\n  //Next2:\n  
- .  S [=][=][I][S][S][ ][I][S][S][ ]:  assert x == 2; }
-            [-][~][=][=][I][S][S][ ]:
-                        [-][~][=][=]:");
+ .  S [S][ ][I][S][ ][I][S][ ]:method f(x: int) {
+ .  S [S][ ][I][S][ ][I][S][ ]:  //Next1:\n  //Next2:\n  
+ .  S [=][=][I][S][ ][I][S][ ]:  assert x == 2; }
+            [-][~][=][I][S][ ]:
+                     [-][~][=]:");
   }
 
   [TestMethod/*, Timeout(MaxTestExecutionTimeMs)*/]
   public async Task EnsuresWorkWithInformationsAsWell() {
+    await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
     await VerifyTrace(@"
  .  S [S][ ][I][S][S][ ]:method f(x: int) returns (y: int)
  .  S [S][ ][I][S][S][ ]:ensures
  .  S [=][=][-][~][=][=]:  x > 3 { y := x;
  .  S [S][ ][I][S][S][ ]:  //Next1:\n
  .  S [=][=][-][~][=][ ]:  while(y <= 1) invariant y >= 2 {
- .  S [S][ ][-][~][=][=]:    y := y + 1;
+ .  S [S][ ][-][~][~][=]:    y := y + 1;
  .  S [S][ ][I][S][S][ ]:  }
  .  S [S][ ][I][S][S][ ]:}
             [I][S][S][ ]:");
@@ -144,5 +162,42 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
  .  S [=][=]:  assert false
  .  S [=][=]:    || false;
  .  S [S][ ]:}");
+  }
+
+  [TestMethod]
+  public async Task EnsureBodylessMethodsAreCovered() {
+    await VerifyTrace(@"
+ .  |  |  | :method test() {
+ .  |  |  | :}
+    |  |  | :
+ .  S [S][ ]:method {:extern} test3(a: nat, b: nat)
+ .  S [S][ ]:  ensures true
+ .  S [=][=]:  ensures test2(a - b)
+ .  S [S][ ]:  ensures true
+ .  S [O][O]:  ensures test2(a - b)
+ .  S [S][ ]:  ensures true
+    |  |  | :
+ .  |  |  | :predicate method test2(x: nat) {
+ .  |  |  | :  true
+ .  |  |  | :}");
+  }
+
+
+  [TestMethod]
+  public async Task EnsureBodylessFunctionsAreCovered() {
+    await VerifyTrace(@"
+ .  |  |  | :method test() {
+ .  |  |  | :}
+    |  |  | :
+ .  S [S][ ]:function method {:extern} test4(a: nat, b: nat): nat
+ .  S [S][ ]:  ensures true
+ .  S [=][=]:  ensures test2(a - b)
+ .  S [S][ ]:  ensures true
+ .  S [O][O]:  ensures test2(a - b)
+ .  S [S][ ]:  ensures true
+    |  |  | :
+ .  |  |  | :predicate method test2(x: nat) {
+ .  |  |  | :  true
+ .  |  |  | :}");
   }
 }

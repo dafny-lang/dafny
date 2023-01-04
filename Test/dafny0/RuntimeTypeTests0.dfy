@@ -1,15 +1,15 @@
 // UNSUPPORTED: windows
 // RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny_0 /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 // The code in this file demonstrates complications in sorting out covariance in some
-// compilation target languages. Compilation support is currently spotty, where Java only
-// supports collection types (not datatypes), and only in the "upcast" direction.
+// compilation target languages.
 //
-// The solution in Java is to use Java's wildcard types: a "Dafny.Sequence<T>"" is assignable to
+// Part of the solution in Java is to use Java's wildcard types: a "Dafny.Sequence<T>"" is assignable to
 // a "Dafny.Sequence<? extends T>".
 //
 // Covariance is not a problem in JavaScript, since JavaScript has no static types. It's also
@@ -34,11 +34,11 @@ class Class0 extends Tr { var x: int }
 
 class Class1 extends Tr { var y: real }
 
-datatype Dt<+A> = Atom(get: A)
+datatype Dt<+A> = Atom(get: A, more: int)
 
 method H() {
   var c := new Class0;
-  var a: Dt<Class0> := Atom(c);
+  var a: Dt<Class0> := Atom(c, 10);
   var b: Dt<object>; // compilation error: compilation does not support trait types as a type parameter; consider introducing a ghost
   b := a;
   print a, " and ", b, "\n";
@@ -47,7 +47,7 @@ method H() {
 method I()
 {
   var c := new Class0;
-  var a: Dt<Class0> := Atom(c);
+  var a: Dt<Class0> := Atom(c, 10);
   var b: Dt<object>; // compilation error: compilation does not support trait types as a type parameter; consider introducing a ghost
   b := a;
   print a, " and ", b, "\n";

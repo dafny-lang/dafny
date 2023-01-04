@@ -1,5 +1,4 @@
 git-issue-283a.dfy(15,21): Error: tuple type does not match type string
 git-issue-283a.dfy(22,21): Error: member D does not exist in type C
 git-issue-283a.dfy(29,21): Error: constructor C2 of arity 1 is applied to 0 argument(s)
-git-issue-283a.dfy(37,8): Warning: this branch is redundant 
 3 resolution/type errors detected in git-issue-283a.dfy

@@ -1,8 +1,8 @@
-// RUN: %dafny /compile:3 /compileTarget:cs "%s" > "%t"
-// RUN: %dafny /compile:3 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /compile:3 /compileTarget:java "%s" >> "%t"
-// RUN: %dafny /compile:3 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /compile:3 /compileTarget:py "%s" >> "%t"
+// RUN: ! %baredafny run --target=cs %args "%s" > "%t"
+// RUN: ! %baredafny run --target=go %args "%s" >> "%t"
+// RUN: ! %baredafny run --target=java %args "%s" >> "%t"
+// RUN: ! %baredafny run --target=js %args "%s" >> "%t"
+// RUN: ! %baredafny run --target=py %args "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype OOAgent = | OO7 {

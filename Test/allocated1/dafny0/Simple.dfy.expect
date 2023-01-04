@@ -1,3 +1,5 @@
+Simple.dfy(98,7): Warning: the ... refinement feature in statements is deprecated
+Simple.dfy(101,7): Warning: the ... refinement feature in statements is deprecated
 // Simple.dfy
 
 lemma M(x: int)
@@ -105,5 +107,6 @@ module B refines A {
     ...;
   }
 }
+Simple.dfy(14,12): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
 
 Dafny program verifier did not attempt verification

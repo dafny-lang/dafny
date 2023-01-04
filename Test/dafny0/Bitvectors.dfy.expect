@@ -4,11 +4,15 @@
 module _System {
   /* CALL GRAPH for module _System:
    * SCC at height 1:
-   *   RotateRight
-   * SCC at height 1:
    *   RotateLeft
+   * SCC at height 1:
+   *   RotateRight
+   * SCC at height 0:
+   *   array
    * SCC at height 0:
    *   nat
+   * SCC at height 0:
+   *   object
    */
   type string(==,0) = seq<char>
 
@@ -96,66 +100,64 @@ module _System {
 
   datatype {:compile false} /*_tuple#0*/ () = _#Make0
 }
-// bitvector types in use: bv1 bv32 bv47 bv16 bv0 bv67 bv64 bv53 bv33 bv31 bv15 bv8 bv6 bv2 bv7 bv12
+// bitvector types in use: bv1 bv32 bv47 bv16 bv0 bv67 bv64 bv53 bv33 bv31 bv15 bv8 bv6 bv2 bv7 bv12 bv3
 */
 
 /* CALL GRAPH for module _module:
- * SCC at height 0:
- *   M
- * SCC at height 3:
+ * SCC at height 2:
  *   Main
- * SCC at height 2:
- *   Rotates
- * SCC at height 2:
- *   Shifts
- * SCC at height 0:
- *   Handful
- * SCC at height 2:
- *   TestCompilationTruncations
- * SCC at height 1:
- *   P2
- * SCC at height 1:
- *   M0
- * SCC at height 1:
- *   M1
- * SCC at height 1:
- *   M6
- * SCC at height 1:
- *   M8
- * SCC at height 1:
- *   M15
- * SCC at height 1:
- *   M16
- * SCC at height 1:
- *   M31
- * SCC at height 1:
- *   M32
- * SCC at height 1:
- *   M33
- * SCC at height 1:
- *   M53
- * SCC at height 1:
- *   M64
- * SCC at height 1:
- *   M67
- * SCC at height 0:
- *   Bv0Stuff
- * SCC at height 1:
- *   SummoTests
- * SCC at height 0:
- *   Unary
  * SCC at height 1:
  *   DoArith32
+ * SCC at height 1:
+ *   Rotates
+ * SCC at height 1:
+ *   Shifts
+ * SCC at height 1:
+ *   TestCompilationTruncations
  * SCC at height 0:
  *   Arithmetic
  * SCC at height 0:
  *   BitwiseOperations
- * SCC at height 1:
+ * SCC at height 0:
+ *   Bv0Stuff
+ * SCC at height 0:
+ *   Handful
+ * SCC at height 0:
+ *   M
+ * SCC at height 0:
+ *   M0
+ * SCC at height 0:
+ *   M1
+ * SCC at height 0:
+ *   M15
+ * SCC at height 0:
+ *   M16
+ * SCC at height 0:
+ *   M31
+ * SCC at height 0:
+ *   M32
+ * SCC at height 0:
+ *   M33
+ * SCC at height 0:
+ *   M53
+ * SCC at height 0:
+ *   M6
+ * SCC at height 0:
+ *   M64
+ * SCC at height 0:
+ *   M67
+ * SCC at height 0:
+ *   M8
+ * SCC at height 0:
+ *   P2
+ * SCC at height 0:
  *   PrintRotates
- * SCC at height 1:
+ * SCC at height 0:
  *   PrintShifts
  * SCC at height 0:
- *   string
+ *   SummoTests
+ * SCC at height 0:
+ *   Unary
  */
 newtype Handful = x: int
   | 0 <= x < 80
@@ -390,23 +392,23 @@ method Shifts()
   var x: int, h: Handful, b67: bv67, w: bv32, seven: bv7, bb: bv2, noll: bv0;
   x, h := 3, 3;
   b67, w, seven := 5, 5, 5;
-  PrintShifts("bv67", b67, 8 * b67, b67 << x, b67 << h);
-  PrintShifts("bv32", w, 8 * w, w << x, w << h);
-  PrintShifts("bv7", seven, 8 * seven, seven << x, seven << h);
+  PrintShifts("bv67", b67, 8 * b67, b67 << x as bv7, b67 << h as bv7);
+  PrintShifts("bv32", w, 8 * w, w << x as bv6, w << h as bv6);
+  PrintShifts("bv7", seven, 8 * seven, seven << x as bv3, seven << h as bv3);
   bb, x, h := 1, 1, 1;
-  PrintShifts("bv2", bb, 2 * bb, bb << x, bb << h);
+  PrintShifts("bv2", bb, 2 * bb, bb << x as bv2, bb << h as bv2);
   x, h := 0, 0;
-  PrintShifts("bv0", noll, 0 * noll, noll << x, noll << h);
+  PrintShifts("bv0", noll, 0 * noll, noll << x as bv0, noll << h as bv0);
   b67, w, bb, noll := 73786976294838206465, 1, 1, 0;
   var One67: bv67 := 1;
-  PrintShifts("bv67 again", b67 << One67, b67 << w, b67 << bb, b67 << noll);
+  PrintShifts("bv67 again", b67 << One67 as bv7, b67 << w as bv7, b67 << bb as bv7, b67 << noll as bv7);
   b67, w, bb, noll := 2, 3221225472 + 2000, 1, 0;
   var Two32: bv32 := 2;
-  PrintShifts("bv32 again", w << b67, w << Two32, w << bb, w << noll);
+  PrintShifts("bv32 again", w << b67 as bv6, w << Two32 as bv6, w << bb as bv6, w << noll as bv6);
   seven, b67, w, bb, noll := 127, 2, 2, 2, 0;
-  PrintShifts("bv7 again", seven << b67, seven << w, seven << bb, seven << noll);
+  PrintShifts("bv7 again", seven << b67 as bv3, seven << w as bv3, seven << bb as bv3, seven << noll as bv3);
   b67, w, bb := 0, 0, 0;
-  PrintShifts("bv0 again", noll << b67, noll << w, noll << bb, noll << noll);
+  PrintShifts("bv0 again", noll << b67 as bv0, noll << w as bv0, noll << bb as bv0, noll << noll as bv0);
 }
 
 method PrintShifts<T>(s: string, a: T, b: T, c: T, d: T)
@@ -439,6 +441,53 @@ method PrintRotates<T>(s: string, a: T, b: T)
 }
 
 Dafny program verifier finished with 11 verified, 0 errors
+
+Dafny program verifier did not attempt verification
+4000 4000 4000 0
+1 2053 1099
+185 55
+2 4
+Comparisons: true true false false
+bv16: 5 - 2 == 3
+bv16: 1 - 2 == 65535
+3 2
+0 0
+false true true false
+bv67:  147573952589676412927 + 3 == 2     - 3 == 147573952589676412925     !! 3 == ! 147573952589676412924 == 3
+bv64:  18446744073709551615 + 3 == 2     - 3 == 18446744073709551613     !! 3 == ! 18446744073709551612 == 3
+bv53:  9007199254740991 + 3 == 2     - 3 == 9007199254740989     !! 3 == ! 9007199254740988 == 3
+bv33:  8589934591 + 3 == 2     - 3 == 8589934589     !! 3 == ! 8589934588 == 3
+bv32:  4294967295 + 3 == 2     - 3 == 4294967293     !! 3 == ! 4294967292 == 3
+bv31:  2147483647 + 3 == 2     - 3 == 2147483645     !! 3 == ! 2147483644 == 3
+bv16:  65535 + 3 == 2     - 3 == 65533     !! 3 == ! 65532 == 3
+bv15:  32767 + 3 == 2     - 3 == 32765     !! 3 == ! 32764 == 3
+bv8:  255 + 3 == 2     - 3 == 253     !! 3 == ! 252 == 3
+bv6:  63 + 3 == 2     - 3 == 61     !! 3 == ! 60 == 3
+bv1:  1 + 1 == 0     - 1 == 1     !! 1 == ! 0 == 1
+bv0:  0 + 0 == 0     - 0 == 0     !! 0 == ! 0 == 0
+bv2:
+  3 + 2 == 1
+  3 - 2 == 1
+  3 * 2 == 2
+  3 / 2 == 1
+  3 % 2 == 1
+PrintShifts: bv67: 5 40 40 40
+PrintShifts: bv32: 5 40 40 40
+PrintShifts: bv7: 5 40 40 40
+PrintShifts: bv2: 1 2 2 2
+PrintShifts: bv0: 0 0 0 0
+PrintShifts: bv67 again: 2 2 2 73786976294838206465
+PrintShifts: bv32 again: 8000 8000 2147487648 3221227472
+PrintShifts: bv7 again: 124 124 124 127
+PrintShifts: bv0 again: 0 0 0 0
+PrintRotates: bv12: 5 5
+PrintRotates: bv7: 5 5
+PrintRotates: bv2: 1 1
+PrintRotates: bv0: 0 0
+PrintRotates: bv12 again: 976 976
+PrintRotates: bv7 again: 127 127
+
+Dafny program verifier did not attempt verification
 4000 4000 4000 0
 1 2053 1099
 185 55

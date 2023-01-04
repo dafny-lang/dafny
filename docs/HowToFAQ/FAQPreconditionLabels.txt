@@ -1,0 +1,3 @@
+FAQPreconditionLabels.dfy(12,11): Error: assertion might not hold
+
+Dafny program verifier finished with 2 verified, 1 error

@@ -1,7 +1,17 @@
-name: Test NuGet Tool Installation
+name: Test NuGet Packages
 
 on:
   release:
+    # This triggers in response to a GitHub release being published,
+    # which happens to work well because we do that well after first publishing
+    # to NuGet. That gives at least 10 or 15 minutes for the newly published versions
+    # of these packages to be available for download here.
+    #
+    # Unfortunately that also means this doesn't trigger on the nightly build release,
+    # since that ends up updating an existing "nightly-..." release rather than creating a new one.
+    # For now that's a good thing since these jobs only test the latest actual released version,
+    # but ideally we'd fix both of those issues so that we test the fully NuGet publishing
+    # workflow in the nightly build.
     types: [ published ]
   # For manual testing through the Actions UI
   workflow_dispatch:
@@ -11,20 +21,20 @@ env:
   z3BaseUri: https://github.com/Z3Prover/z3/releases/download/Z3-4.8.5
 
 jobs:
-  build:
+  test-dafny-cli-tool:
 
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         # This workflow breaks on windows-2022: https://github.com/dafny-lang/dafny/issues/1906
-        os: [ ubuntu-latest, ubuntu-18.04, macos-latest, windows-2019 ]
+        os: [ ubuntu-latest, ubuntu-20.04, macos-latest, windows-2019 ]
         include:
         - os:  'ubuntu-latest'
-          osn: 'ubuntu\-16.04'
+          osn: 'ubuntu\-20.04'
           z3: z3-4.8.5-x64-ubuntu-16.04
-        - os:  'ubuntu-18.04'
-          osn: 'ubuntu\-16.04'
+        - os:  'ubuntu-20.04'
+          osn: 'ubuntu\-20.04'
           z3: z3-4.8.5-x64-ubuntu-16.04
         - os:  'macos-latest'
           osn: 'osx-.*'
@@ -36,10 +46,10 @@ jobs:
     steps:
     - name: OS
       run: echo ${{ runner.os }} ${{ matrix.os }}
-    - name: Set up JDK 1.8
+    - name: Set up JDK 18
       uses: actions/setup-java@v1
       with:
-        java-version: 1.8
+        java-version: 18
     - name: Setup dotnet
       uses: actions/setup-dotnet@v1.9.0
       with:
@@ -99,22 +109,52 @@ jobs:
     - name: Running Go artifacts
       if: runner.os != 'Windows'
       run: |
-        GO111MODULE=auto GOPATH=$PWD/a-go go run a-go/src/a.go > actual.txt
-        diff expect.txt actual.txt
+        GO111MODULE=auto GOPATH=$PWD/a-go go run a-go/src/a.go | diff expect.txt -
     - name: Running Go artifacts - Windows
       shell: pwsh
       if: runner.os == 'Windows'
       run: |
         $Env:GO111MODULE="auto"
         $Env:GOPATH="$PWD/a-go"
-        go run a-go/src/a.go > actual.txt
-        diff expect.txt actual.txt
+        go run a-go/src/a.go | diff expect.txt -
     - name: Check Javascript compile
       run: |
         npm install bignumber.js
         dafny /compile:3 /spillTargetCode:3 /compileTarget:js a.dfy
-        node a.js dafny/DafnyRuntime.js > actual.txt
-        diff expect.txt actual.txt
+        node a.js dafny/DafnyRuntime.js | diff expect.txt -
     - name: Check Java compile
       run: |
-        dafny /compile:3 /spillTargetCode:3 /compileTarget:java a.dfy
+        dafny /compile:3 /spillTargetCode:3 /compileTarget:java a.dfy | diff expect.txt -
+
+  test-dafny-libraries:
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Hopefully we can automatically populate this list in the future,
+        # but note we need to skip Dafny since nuget install doesn't work for dotnet tools.
+        library-name: [ DafnyPipeline, DafnyServer, DafnyLanguageServer, DafnyRuntime, DafnyCore, DafnyDriver ]
+        # This workflow breaks on windows-2022: https://github.com/dafny-lang/dafny/issues/1906
+        os: [ ubuntu-latest, ubuntu-20.04, macos-latest, windows-2019 ]
+        include:
+        - os:  'ubuntu-latest'
+          osn: 'ubuntu\-20.04'
+          z3: z3-4.8.5-x64-ubuntu-16.04
+        - os:  'ubuntu-20.04'
+          osn: 'ubuntu\-20.04'
+          z3: z3-4.8.5-x64-ubuntu-16.04
+        - os:  'macos-latest'
+          osn: 'osx-.*'
+          z3: z3-4.8.5-x64-osx-10.14.2
+        - os:  'windows-2019'
+          osn: 'win'
+          z3: z3-4.8.5-x64-win
+
+    steps:
+    ## Verify that the dependencies of the libraries we publish (e.g. DafnyLanguageServer)
+    ## are also published through NuGet.
+    ## Ideally we would have a test project that actually uses part of the public API of each package.
+    - name: Check library dependencies
+      run: |
+        nuget install -Prerelease ${{ matrix.library-name }}

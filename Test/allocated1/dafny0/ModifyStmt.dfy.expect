@@ -1,3 +1,11 @@
+ModifyStmt.dfy(135,4): Warning: the modify statement with a block statement is deprecated
+ModifyStmt.dfy(143,4): Warning: the modify statement with a block statement is deprecated
+ModifyStmt.dfy(150,4): Warning: the modify statement with a block statement is deprecated
+ModifyStmt.dfy(162,10): Warning: the modify statement with a block statement is deprecated
+ModifyStmt.dfy(163,8): Warning: the modify statement with a block statement is deprecated
+ModifyStmt.dfy(164,6): Warning: the modify statement with a block statement is deprecated
+ModifyStmt.dfy(165,4): Warning: the modify statement with a block statement is deprecated
+ModifyStmt.dfy(180,4): Warning: the modify statement with a block statement is deprecated
 ModifyStmt.dfy(27,13): Error: assertion might not hold
 ModifyStmt.dfy(42,4): Error: modify statement might violate context's modifies clause
 ModifyStmt.dfy(48,4): Error: modify statement might violate context's modifies clause

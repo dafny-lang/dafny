@@ -1,7 +1,9 @@
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:cs "%s" > "%t"
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:java "%s" >> "%t"
+// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:cs "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:js "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:go "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:java "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:py "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype List = Nil | Cons(head: int, tail: List)
@@ -12,7 +14,7 @@ method Main() {
   var c := (a, b);
   var d := (c.1, c.0);
   var e := ();
-  var f := (1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19, 20);
+  var f := (1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20);
   print a, "\n";
   print b, "\n";
   print c, "\n";
@@ -34,6 +36,12 @@ method Main() {
   AllBerry();
   TestConflictingNames();
   TestModule();
+
+  var _, _ := UpdateRegression(6);
+
+  TestGhostDestructors();
+
+  TestNumericDestructorNames();
 }
 
 function method Up(m: nat, n: nat): List
@@ -135,4 +143,53 @@ method PrintMaybe(x : Module.OptionInt) {
   match x
   case Some(n) => print n, "\n";
   case None => print "None\n";
+}
+
+datatype Record = Record(ghost x: int, y: int, ghost z: bool, w: bool)
+
+method UpdateRegression(six: int) returns (eight: int, ten: int) {
+  eight, ten := 8, 10;
+
+  var r := Record(10, 20, true, true);
+  r := r.(z := false);
+  var twentytwo := 22;
+  // In the following, the local variable "twentytwo", in-parameter "six", and
+  // match-bound variable "yy" were once not adequately protected (in Java).
+  match r {
+    case Record(_, yy, _, _) =>
+      r := r.(y := twentytwo + ten + six + yy);
+  }
+  print r, "\n"; // Record.Record(58, true)
+
+  var f;
+  match r {
+    case Record(_, yy, _, _) =>
+      f := x => x + twentytwo + 3 + ten + six + yy;
+  }
+  print f(100), "\n"; // 199
+}
+
+datatype R = R(x: int, ghost g: int)
+
+method TestGhostDestructors() {
+  var a := R(10, 20);
+  var b := a.(x := a.x + 1);
+  var c := b.(x := b.x + 1, g := b.g + 1);
+  var d := c.(g := c.g + 1, x := c.x + 1);
+  var e := d.(g := d.g + 1);
+
+  assert e == R(13, 23);
+  expect e.x == 13;
+}
+
+datatype NumericDestructorNames = NumericDestructorNames(0: int, 0_3: int, 012: int)
+
+method TestNumericDestructorNames() {
+  // once, these were compiled incorrectly for Java
+  var j := NumericDestructorNames(800, 801, 802);
+  match j {
+    case NumericDestructorNames(a, b, c) =>
+      print a, " ", b, " ", c, "\n"; // 800 801 802
+  }
+  print j.0, " ", j.0_3, " ", j.012, "\n"; // 800 801 802
 }

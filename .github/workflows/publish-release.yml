@@ -33,10 +33,7 @@ jobs:
       sha: ${{ github.sha }}
       tag_name: ${{ github.ref }}
       draft: true
-      # Currently automated NuGet uploads have overly strict .NET
-      # version dependencies. Skipping until that's fixed. See here:
-      # https://github.com/dafny-lang/dafny/issues/2423
-      release_nuget: false
+      release_nuget: true
       # We can probably automate pulling this out of RELEASE_NOTES.md in the future
       release_notes: ""
     secrets:

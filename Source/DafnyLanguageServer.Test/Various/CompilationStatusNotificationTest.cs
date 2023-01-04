@@ -1,4 +1,5 @@
-﻿using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
+﻿using System;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
@@ -10,6 +11,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
+using Microsoft.Extensions.DependencyInjection;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
@@ -19,24 +21,16 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     private ILanguageClient client;
     private TestNotificationReceiver<CompilationStatusParams> notificationReceiver;
-    private IDictionary<string, string> configuration;
 
     [TestInitialize]
     public Task SetUp() => SetUp(null);
 
-    public async Task SetUp(IDictionary<string, string> configuration) {
-      this.configuration = configuration;
+    public async Task SetUp(Action<DafnyOptions> modifyOptions) {
       notificationReceiver = new();
       client = await InitializeClient(options => {
         options
           .AddHandler(DafnyRequestNames.CompilationStatus, NotificationHandler.For<CompilationStatusParams>(notificationReceiver.NotificationReceived));
-      });
-    }
-
-    protected override IConfiguration CreateConfiguration() {
-      return configuration == null
-        ? base.CreateConfiguration()
-        : new ConfigurationBuilder().AddInMemoryCollection(configuration).Build();
+      }, modifyOptions);
     }
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
@@ -97,10 +91,6 @@ method Abs(x: int) returns (y: int)
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await AssertProgress(documentItem, CompilationStatus.ResolutionStarted);
       await AssertProgress(documentItem, CompilationStatus.CompilationSucceeded);
-      await AssertProgress(documentItem, CompilationStatus.VerificationStarted);
-      await AssertProgress(documentItem, CompilationStatus.VerificationStarted, "0/1 Abs");
-      await AssertProgress(documentItem, CompilationStatus.VerificationStarted, "1/1 (Abs finished)");
-      await AssertProgress(documentItem, CompilationStatus.VerificationSucceeded);
     }
     private async Task AssertProgress(TextDocumentItem documentItem, CompilationStatus expectedStatus, [CanBeNull] string expectedMessage = null) {
       var lastResult = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
@@ -125,10 +115,6 @@ method Abs(x: int) returns (y: int)
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await AssertProgress(documentItem, CompilationStatus.ResolutionStarted);
       await AssertProgress(documentItem, CompilationStatus.CompilationSucceeded);
-      await AssertProgress(documentItem, CompilationStatus.VerificationStarted);
-      await AssertProgress(documentItem, CompilationStatus.VerificationStarted, "0/1 Abs");
-      await AssertProgress(documentItem, CompilationStatus.VerificationStarted, "1/1 (Abs finished)");
-      await AssertProgress(documentItem, CompilationStatus.VerificationFailed);
     }
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
@@ -137,25 +123,15 @@ method Abs(x: int) returns (y: int)
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await AssertProgress(documentItem, CompilationStatus.ResolutionStarted);
       await AssertProgress(documentItem, CompilationStatus.CompilationSucceeded);
-      await AssertProgress(documentItem, CompilationStatus.VerificationStarted);
-      await AssertProgress(documentItem, CompilationStatus.VerificationStarted, "0/1 SquareRoot2NotRational");
-      await AssertProgress(documentItem, CompilationStatus.VerificationStarted, "1/1 (SquareRoot2NotRational finished)");
-      await AssertProgress(documentItem, CompilationStatus.VerificationFailed);
     }
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
     public async Task DocumentWithOnlyConfiguredVerifierTimeoutSendsCompilationSucceededVerificationStartedAndVerificationFailedStatuses() {
-      await SetUp(new Dictionary<string, string>() {
-        { $"{VerifierOptions.Section}:{nameof(VerifierOptions.TimeLimit)}", "3" }
-      });
+      await SetUp(options => options.Set(BoogieOptionBag.VerificationTimeLimit, 3U));
       var documentItem = CreateTestDocument(SlowToVerify);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await AssertProgress(documentItem, CompilationStatus.ResolutionStarted);
       await AssertProgress(documentItem, CompilationStatus.CompilationSucceeded);
-      await AssertProgress(documentItem, CompilationStatus.VerificationStarted);
-      await AssertProgress(documentItem, CompilationStatus.VerificationStarted, "0/1 SquareRoot2NotRational");
-      await AssertProgress(documentItem, CompilationStatus.VerificationStarted, "1/1 (SquareRoot2NotRational finished)");
-      await AssertProgress(documentItem, CompilationStatus.VerificationFailed);
     }
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
@@ -167,9 +143,7 @@ method Abs(x: int) returns (y: int)
   return x;
 }
 ".TrimStart();
-      await SetUp(new Dictionary<string, string>() {
-        { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.OnSave) }
-      });
+      await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Save));
 
       // We load two documents. If no verification is executed, we should receive each
       // compilation status twice without any verification status inbetween.
@@ -185,34 +159,6 @@ method Abs(x: int) returns (y: int)
     }
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
-    public async Task DocumentSaveWithOnSaveVerificationSendsVerificationStatuses() {
-      var source = @"
-method Abs(x: int) returns (y: int)
-    ensures y >= 0
-{
-  return x;
-}
-".TrimStart();
-      await SetUp(new Dictionary<string, string>() {
-        { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.OnSave) }
-      });
-
-      var documentItem = CreateTestDocument(source, "test_1.dfy");
-      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
-
-      bool verificationStartedReceived = false;
-      bool verificationFailedReceived = false;
-      while (!verificationStartedReceived || !verificationFailedReceived) {
-        var notification = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
-        Assert.AreEqual(documentItem.Uri, notification.Uri);
-        Assert.AreEqual(documentItem.Version, notification.Version);
-        verificationStartedReceived = verificationStartedReceived || notification.Status == CompilationStatus.VerificationStarted;
-        verificationFailedReceived = verificationFailedReceived || notification.Status == CompilationStatus.VerificationFailed;
-      }
-    }
-
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
     public async Task DocumentLoadAndSaveWithNeverVerifySendsNoVerificationStatuses() {
       var source = @"
 method Abs(x: int) returns (y: int)
@@ -221,9 +167,7 @@ method Abs(x: int) returns (y: int)
   return x;
 }
 ".TrimStart();
-      await SetUp(new Dictionary<string, string>() {
-        { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.Never) }
-      });
+      await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Never));
 
       // We load two and save two documents. If no verification is executed, we should receive each
       // compilation status twice without any verification status inbetween.

@@ -1,0 +1,6 @@
+git-issue-2752.dfy(7,16): Error: value of expression (of type 'object?') is not known to be an instance of type 'Empty'
+git-issue-2752.dfy(8,17): Error: value of expression (of type 'object?') is not known to be an instance of type 'EmptyQ'
+git-issue-2752.dfy(9,13): Error: result of operation might violate subset type constraint for 'EmptyInt'
+git-issue-2752.dfy(14,2): Error: value of expression (of type 'object?') is not known to be an instance of type 'foo'
+
+Dafny program verifier finished with 0 verified, 4 errors

@@ -14,7 +14,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ macos-latest ]
-        ##os: [ macos-latest, ubuntu-18.04, ubuntu-latest ]
+        ##os: [ macos-latest, ubuntu-latest ]
 
     steps:
     - name: OS
@@ -71,7 +71,7 @@ jobs:
         pandoc -v
         which latex || echo NOT FOUND latex
         which xelatex || echo NOT FOUND xelatex
-        sudo gem install rouge
+        sudo gem install rouge -v 3.30.0
     - name: Build reference manual
       run: |
         eval "$(/usr/libexec/path_helper)"

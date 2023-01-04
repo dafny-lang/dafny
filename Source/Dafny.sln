@@ -3,20 +3,21 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30320.27
 MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dafny", "Dafny\Dafny.csproj", "{F3EB0F43-9CFB-44E1-B786-983DACE64313}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyCore", "DafnyCore\DafnyCore.csproj", "{ACBF62FD-19AC-4243-9019-056D30A130D6}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyRuntime", "DafnyRuntime\DafnyRuntime.csproj", "{09E25A18-19EA-42C4-B33F-69E3E6FD5698}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyPipeline", "Dafny\DafnyPipeline.csproj", "{45FFD363-CFE0-4ABC-984F-7EB58C8BEDE5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyRuntime.Tests", "DafnyRuntime.Tests\DafnyRuntime.Tests.csproj", "{86D16941-75D5-4D75-ADF3-955C7950F770}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyPipeline", "DafnyPipeline\DafnyPipeline.csproj", "{45FFD363-CFE0-4ABC-984F-7EB58C8BEDE5}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyPipeline.Test", "DafnyPipeline.Test\DafnyPipeline.Test.csproj", "{FA2A3A73-3035-497B-B9D7-B6BC4888A058}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyDriver", "DafnyDriver\DafnyDriver.csproj", "{4B74F970-8FEB-46A1-BD14-FBF2B5D5F285}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyServer", "DafnyServer\DafnyServer.csproj", "{71208DB9-31D6-4071-838B-8D44A37CF0F1}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{9542E008-355F-4A62-B262-A8DA314DA8C1}"
-	ProjectSection(SolutionItems) = preProject
-		version.cs = version.cs
-	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IntegrationTests", "IntegrationTests\IntegrationTests.csproj", "{A4BC2C77-3A48-4917-AA22-41978DFFE24E}"
 EndProject
@@ -36,12 +37,23 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoExtern", "AutoExtern\Au
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoExtern.Test", "AutoExtern.Test\AutoExtern.Test.csproj", "{A47E2F45-DEA3-4700-A82F-9506FEEB199A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyDriver.Test", "DafnyDriver.Test\DafnyDriver.Test.csproj", "{FD18CD43-4D20-42EB-93EF-12125C206D76}"
+EndProject
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{ACBF62FD-19AC-4243-9019-056D30A130D6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ACBF62FD-19AC-4243-9019-056D30A130D6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ACBF62FD-19AC-4243-9019-056D30A130D6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ACBF62FD-19AC-4243-9019-056D30A130D6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F3EB0F43-9CFB-44E1-B786-983DACE64313}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F3EB0F43-9CFB-44E1-B786-983DACE64313}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F3EB0F43-9CFB-44E1-B786-983DACE64313}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F3EB0F43-9CFB-44E1-B786-983DACE64313}.Release|Any CPU.Build.0 = Release|Any CPU
 		{09E25A18-19EA-42C4-B33F-69E3E6FD5698}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{09E25A18-19EA-42C4-B33F-69E3E6FD5698}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{09E25A18-19EA-42C4-B33F-69E3E6FD5698}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -86,18 +98,26 @@ Global
 		{896E7F24-FD59-4B34-A1BF-53C51DDBC9E9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{896E7F24-FD59-4B34-A1BF-53C51DDBC9E9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{896E7F24-FD59-4B34-A1BF-53C51DDBC9E9}.Release|Any CPU.Build.0 = Release|Any CPU
-        {FBE70430-9890-405C-A282-61D33259CE30}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-        {FBE70430-9890-405C-A282-61D33259CE30}.Debug|Any CPU.Build.0 = Debug|Any CPU
-        {FBE70430-9890-405C-A282-61D33259CE30}.Release|Any CPU.ActiveCfg = Release|Any CPU
-        {FBE70430-9890-405C-A282-61D33259CE30}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FBE70430-9890-405C-A282-61D33259CE30}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FBE70430-9890-405C-A282-61D33259CE30}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FBE70430-9890-405C-A282-61D33259CE30}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FBE70430-9890-405C-A282-61D33259CE30}.Release|Any CPU.Build.0 = Release|Any CPU
 		{F185BDC2-1327-47A4-A293-D3FCDC419867}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{F185BDC2-1327-47A4-A293-D3FCDC419867}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F185BDC2-1327-47A4-A293-D3FCDC419867}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F185BDC2-1327-47A4-A293-D3FCDC419867}.Release|Any CPU.Build.0 = Release|Any CPU
+		{86D16941-75D5-4D75-ADF3-955C7950F770}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{86D16941-75D5-4D75-ADF3-955C7950F770}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{86D16941-75D5-4D75-ADF3-955C7950F770}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{86D16941-75D5-4D75-ADF3-955C7950F770}.Release|Any CPU.Build.0 = Release|Any CPU
 		{A47E2F45-DEA3-4700-A82F-9506FEEB199A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{A47E2F45-DEA3-4700-A82F-9506FEEB199A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A47E2F45-DEA3-4700-A82F-9506FEEB199A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A47E2F45-DEA3-4700-A82F-9506FEEB199A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FD18CD43-4D20-42EB-93EF-12125C206D76}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FD18CD43-4D20-42EB-93EF-12125C206D76}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FD18CD43-4D20-42EB-93EF-12125C206D76}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FD18CD43-4D20-42EB-93EF-12125C206D76}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

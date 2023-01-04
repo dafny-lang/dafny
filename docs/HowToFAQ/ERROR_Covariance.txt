@@ -1,0 +1,3 @@
+ERROR_Covariance.dfy(24,11): Error: value does not satisfy the subset constraints of 'formula<real>'
+
+Dafny program verifier finished with 2 verified, 1 error

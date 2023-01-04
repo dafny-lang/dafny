@@ -25,7 +25,7 @@ public class PluginsTest {
     var compilation = CSharpCompilation.Create(name);
     var standardLibraries = new List<string>()
     {
-      "DafnyPipeline",
+      "DafnyCore",
       "System.Runtime",
       "Boogie.Core"
     };

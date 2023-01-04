@@ -14,8 +14,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
   public class TextDocumentLoaderTest {
     private Mock<IDafnyParser> parser;
     private Mock<ISymbolResolver> symbolResolver;
-    private Mock<IProgramVerifier> verifier;
-    private VerifierOptions verifierOptions;
     private Mock<ISymbolTableFactory> symbolTableFactory;
     private Mock<IGhostStateDiagnosticCollector> ghostStateDiagnosticCollector;
     private Mock<ICompilationStatusNotificationPublisher> notificationPublisher;
@@ -27,8 +25,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
     public void SetUp() {
       parser = new();
       symbolResolver = new();
-      verifier = new();
-      verifierOptions = new();
       symbolTableFactory = new();
       ghostStateDiagnosticCollector = new();
       notificationPublisher = new();
@@ -37,22 +33,20 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       textDocumentLoader = TextDocumentLoader.Create(
         parser.Object,
         symbolResolver.Object,
-        verifier.Object,
         symbolTableFactory.Object,
         ghostStateDiagnosticCollector.Object,
         notificationPublisher.Object,
         logger.Object,
-        diagnosticPublisher.Object,
-        verifierOptions
+        diagnosticPublisher.Object
       );
     }
 
     private static DocumentTextBuffer CreateTestDocument() {
-      return new DocumentTextBuffer(0) {
+      return new DocumentTextBuffer(new TextDocumentItem() {
         LanguageId = "dafny",
         Version = 1,
         Text = ""
-      };
+      });
     }
 
     [TestMethod]

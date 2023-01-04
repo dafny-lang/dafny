@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 56 verified, 0 errors
+Dafny program verifier finished with 58 verified, 0 errors
 
 Dafny program verifier did not attempt verification
 0
@@ -11,10 +11,10 @@ Dafny program verifier did not attempt verification
 2147483649
 4294967295 (aka C# uint.MaxValue)
 4294967296 (aka 2^32)
-590295810358705651711 (aka JavaScript Number.MAX_SAFE_INTEGER)
-590295810358705651712 (aka 2^53)
--590295810358705651711 (aka JavaScript Number.MAX_SAFE_INTEGER)
--590295810358705651712
+9007199254740991 (aka JavaScript Number.MAX_SAFE_INTEGER)
+9007199254740992 (aka 2^53)
+-9007199254740991 (aka JavaScript Number.MIN_SAFE_INTEGER)
+-9007199254740992
 9223372036854775807 (aka C# long.MaxValue)
 9223372036854775808 (aka 2^63)
 9223372036854775809
@@ -85,6 +85,10 @@ true false
 0
 200 300
 100 100 18
+2
+-2
+-2
+2
 0: IsNat: true, Offset: 0, IsLimit: true, IsSucc: false
 1: IsNat: true, Offset: 1, IsLimit: false, IsSucc: true
 42: IsNat: true, Offset: 42, IsLimit: false, IsSucc: true
@@ -93,7 +97,7 @@ int:
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
-MyNumber:
+NativeType:
 -42	 <0 Y <=0 Y ==0 N !=0 Y >0 N >=0 N 0< N 0<= N 0== N 0!= Y 0> Y 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
@@ -119,10 +123,10 @@ Dafny program verifier did not attempt verification
 2147483649
 4294967295 (aka C# uint.MaxValue)
 4294967296 (aka 2^32)
-590295810358705651711 (aka JavaScript Number.MAX_SAFE_INTEGER)
-590295810358705651712 (aka 2^53)
--590295810358705651711 (aka JavaScript Number.MAX_SAFE_INTEGER)
--590295810358705651712
+9007199254740991 (aka JavaScript Number.MAX_SAFE_INTEGER)
+9007199254740992 (aka 2^53)
+-9007199254740991 (aka JavaScript Number.MIN_SAFE_INTEGER)
+-9007199254740992
 9223372036854775807 (aka C# long.MaxValue)
 9223372036854775808 (aka 2^63)
 9223372036854775809
@@ -193,6 +197,10 @@ true false
 0
 200 300
 100 100 18
+2
+-2
+-2
+2
 0: IsNat: true, Offset: 0, IsLimit: true, IsSucc: false
 1: IsNat: true, Offset: 1, IsLimit: false, IsSucc: true
 42: IsNat: true, Offset: 42, IsLimit: false, IsSucc: true
@@ -201,7 +209,7 @@ int:
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
-MyNumber:
+NativeType:
 -42	 <0 Y <=0 Y ==0 N !=0 Y >0 N >=0 N 0< N 0<= N 0== N 0!= Y 0> Y 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
@@ -227,10 +235,10 @@ Dafny program verifier did not attempt verification
 2147483649
 4294967295 (aka C# uint.MaxValue)
 4294967296 (aka 2^32)
-590295810358705651711 (aka JavaScript Number.MAX_SAFE_INTEGER)
-590295810358705651712 (aka 2^53)
--590295810358705651711 (aka JavaScript Number.MAX_SAFE_INTEGER)
--590295810358705651712
+9007199254740991 (aka JavaScript Number.MAX_SAFE_INTEGER)
+9007199254740992 (aka 2^53)
+-9007199254740991 (aka JavaScript Number.MIN_SAFE_INTEGER)
+-9007199254740992
 9223372036854775807 (aka C# long.MaxValue)
 9223372036854775808 (aka 2^63)
 9223372036854775809
@@ -301,6 +309,10 @@ true false
 0
 200 300
 100 100 18
+2
+-2
+-2
+2
 0: IsNat: true, Offset: 0, IsLimit: true, IsSucc: false
 1: IsNat: true, Offset: 1, IsLimit: false, IsSucc: true
 42: IsNat: true, Offset: 42, IsLimit: false, IsSucc: true
@@ -309,7 +321,7 @@ int:
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
-MyNumber:
+NativeType:
 -42	 <0 Y <=0 Y ==0 N !=0 Y >0 N >=0 N 0< N 0<= N 0== N 0!= Y 0> Y 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
@@ -335,10 +347,10 @@ Dafny program verifier did not attempt verification
 2147483649
 4294967295 (aka C# uint.MaxValue)
 4294967296 (aka 2^32)
-590295810358705651711 (aka JavaScript Number.MAX_SAFE_INTEGER)
-590295810358705651712 (aka 2^53)
--590295810358705651711 (aka JavaScript Number.MAX_SAFE_INTEGER)
--590295810358705651712
+9007199254740991 (aka JavaScript Number.MAX_SAFE_INTEGER)
+9007199254740992 (aka 2^53)
+-9007199254740991 (aka JavaScript Number.MIN_SAFE_INTEGER)
+-9007199254740992
 9223372036854775807 (aka C# long.MaxValue)
 9223372036854775808 (aka 2^63)
 9223372036854775809
@@ -409,6 +421,10 @@ true false
 0
 200 300
 100 100 18
+2
+-2
+-2
+2
 0: IsNat: true, Offset: 0, IsLimit: true, IsSucc: false
 1: IsNat: true, Offset: 1, IsLimit: false, IsSucc: true
 42: IsNat: true, Offset: 42, IsLimit: false, IsSucc: true
@@ -417,7 +433,7 @@ int:
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
-MyNumber:
+NativeType:
 -42	 <0 Y <=0 Y ==0 N !=0 Y >0 N >=0 N 0< N 0<= N 0== N 0!= Y 0> Y 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
@@ -443,10 +459,10 @@ Dafny program verifier did not attempt verification
 2147483649
 4294967295 (aka C# uint.MaxValue)
 4294967296 (aka 2^32)
-590295810358705651711 (aka JavaScript Number.MAX_SAFE_INTEGER)
-590295810358705651712 (aka 2^53)
--590295810358705651711 (aka JavaScript Number.MAX_SAFE_INTEGER)
--590295810358705651712
+9007199254740991 (aka JavaScript Number.MAX_SAFE_INTEGER)
+9007199254740992 (aka 2^53)
+-9007199254740991 (aka JavaScript Number.MIN_SAFE_INTEGER)
+-9007199254740992
 9223372036854775807 (aka C# long.MaxValue)
 9223372036854775808 (aka 2^63)
 9223372036854775809
@@ -517,6 +533,10 @@ true false
 0
 200 300
 100 100 18
+2
+-2
+-2
+2
 0: IsNat: true, Offset: 0, IsLimit: true, IsSucc: false
 1: IsNat: true, Offset: 1, IsLimit: false, IsSucc: true
 42: IsNat: true, Offset: 42, IsLimit: false, IsSucc: true
@@ -525,7 +545,7 @@ int:
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
-MyNumber:
+NativeType:
 -42	 <0 Y <=0 Y ==0 N !=0 Y >0 N >=0 N 0< N 0<= N 0== N 0!= Y 0> Y 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y

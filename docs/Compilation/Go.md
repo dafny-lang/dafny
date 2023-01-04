@@ -49,7 +49,7 @@ Predefined Types
 | `int`         | `_dafny.Int`      | Immutable wrapper for `*big.Int`  |
 | `bv`          | `_dafny.BV`       | Synonym of `_dafny.Int`           |
 | `real`        | `_dafny.Real`     | Immutable wrapper for `*big.Real` |
-| `char`        | `_dafny.Char`     | Defined as `rune`                 |
+| `char`        | `_dafny.Char` (`/unicodeChar:0`)<br> `_dafny.CodePoint` (`/unicodeChar:1`) | Defined as `rune`                 |
 | `string`      | `_dafny.Seq`      |
 | `object`      | `*interface{}`    |
 | `array<X>`    | `*_dafny.Array`   |
@@ -77,29 +77,29 @@ a field in the struct, and an instance method becomes a method of that struct.
 
 ```dafny
 class Class {
-    var x: int
-    constructor(x: int) {
-        this.x := x;
-        ...
-    }
-    method Frob(z: string, c: Class) returns (a: int, b: char) {
-        ...
-    }
+  var x: int
+  constructor(x: int) {
+    this.x := x;
+    ...
+  }
+  method Frob(z: string, c: Class) returns (a: int, b: char) {
+    ...
+  }
 }
 ```
 
 ```go
 type Class struct {
-    X _dafny.Int
+  X _dafny.Int
 }
 
 func (_this *Class) Ctor__(x: _dafny.Int) {
-    _this.X = x
-    ...
+  _this.X = x
+  ...
 }
 
 func (_this *Class) Frob(z dafny.Seq, c *Class) (_dafny.Int, _dafny.Char) {
-    ...
+  ...
 }
 ```
 
@@ -126,12 +126,12 @@ The initializer will be called <code>New_*Class*_</code>:
 
 ```go
 func New_Class_() *Class {
-    _this := Class{}
+  _this := Class{}
 
-    _this.X = _dafny.Zero
-    _this.Y = _dafny.ZeroReal
+  _this.X = _dafny.Zero
+  _this.Y = _dafny.ZeroReal
 
-    return &_this
+  return &_this
 }
 ```
 
@@ -155,28 +155,28 @@ the same module can happily use the same name for a static member.  Therefore
 
 ```dafny
 class Class {
-    var x: int
-    static const y = 42.0;
-    static method Frob(z: string, c: Class) returns (a: int, b: char) {
-        ...
-    }
+  var x: int
+  static const y = 42.0;
+  static method Frob(z: string, c: Class) returns (a: int, b: char) {
+    ...
+  }
 }
 ```
 
 ```go
 type Class struct {
-    X _dafny.Int
+  X _dafny.Int
 }
 
 type CompanionStruct_Class_ struct {
-    Y _dafny.Real
+  Y _dafny.Real
 }
 var Companion_Class_ = CompanionStruct_Class_ {
-    Y: _dafny.RealOfString("42.0")
+  Y: _dafny.RealOfString("42.0")
 }
 
 func (_this *CompanionStruct_Class_) Frob(z _dafny.Seq, c *Class) (_dafny.Int, _dafny.Char) {
-    ...
+  ...
 }
 ```
 
@@ -187,7 +187,7 @@ then, are static methods of the *default class,* called `Default__`.
 
 ```dafny
 method Main() {
-    print "Hello world!\n";
+  print "Hello world!\n";
 }
 ```
 
@@ -200,7 +200,7 @@ type CompanionStruct_Default___ {
 var Companion_Default___ = CompanionStruct_Default___{}
 
 func (_this *CompanionStruct_Default___) Main() {
-    _dafny.Print(_dafny.SeqOfString("Hello world!"))
+  _dafny.Print(_dafny.SeqOfString("Hello world!"))
 }
 ```
 
@@ -280,11 +280,11 @@ datatype List = Nil | Cons(head: int, tail: List)
 
 ```go
 type List struct {
-    Data_List_
+  Data_List_
 }
 
 type Data_List_ interface {
-    isList()
+  isList()
 }
 ```
 
@@ -300,16 +300,16 @@ constructor function:
 type List_Nil struct {}
 func (List_Nil) isList() {}
 func Create_Nil_() List {
-    return List{List_Nil{}}
+  return List{List_Nil{}}
 }
 
 type List_Cons struct{
-    head _dafny.Int
-    tail List
+  head _dafny.Int
+  tail List
 }
 func (List_Cons) isList() {}
 func Create_Cons_(head _dafny.Int, tail List) List {
-    return List{List_Cons{head, tail}}
+  return List{List_Cons{head, tail}}
 }
 ```
 
@@ -317,13 +317,13 @@ Constructor-check predicates operate using type assertions:
 
 ```go
 func (_this List) Is_Nil() bool {
-    _, ok := _this.(List_Nil)
-    return ok
+  _, ok := _this.(List_Nil)
+  return ok
 }
 
 func (_this List) Is_Cons() bool {
-    _, ok := _this.(List_Cons)
-    return ok
+  _, ok := _this.(List_Cons)
+  return ok
 }
 ```
 
@@ -332,11 +332,11 @@ assertion:
 
 ```go
 func (_this List) Dtor_head() _dafny.Int {
-    return _this.(List_Cons).head
+  return _this.(List_Cons).head
 }
 
 func (_this List) Dtor_tail() List {
-    return _this.(List_Cons).tail
+  return _this.(List_Cons).tail
 }
 ```
 
@@ -354,11 +354,11 @@ codatatype Stream = Next(shead: int, stail: Stream)
 
 ```go
 type Stream struct {
-    Iface_Stream_
+  Iface_Stream_
 }
 
 type Iface_Stream_ {
-    Get() Data_Stream_
+  Get() Data_Stream_
 }
 ```
 
@@ -366,7 +366,7 @@ Then, in addition to the usual constructors, a lazy constructor is provided:
 
 ```go
 func (CompanionStruct_Stream_) Lazy_Stream_(f func () Stream) Stream {
-    ...
+  ...
 }
 ```
 
@@ -386,7 +386,7 @@ For example:
 
 ```dafny
 function method Head<A>(xs: seq<A>): A requires |xs| > 0 {
-    xs[0]
+  xs[0]
 }
 ```
 
@@ -425,8 +425,8 @@ would it return?  Thus the compiled method takes a *run-time type descriptor*
 
 ```go
 func GetDefault(A _dafny.Type) interface{} {
-    var a interface{} = A.Default()
-    return a
+  var a interface{} = A.Default()
+  return a
 }
 ```
 
@@ -435,7 +435,7 @@ allow for zero initialization in precisely such cases as these:
 
 ```go
 type Type interface {
-    Default() interface{}
+  Default() interface{}
 }
 ```
 
@@ -492,9 +492,9 @@ An interface can be imported in Dafny code by declaring it as a trait with an
 
 ```dafny
 module {:extern ""} Builtins {
-    trait {:extern} error {
-        method {:extern} Error() returns (s : string)
-    }
+  trait {:extern} error {
+    method {:extern} Error() returns (s : string)
+  }
 }
 ```
 
@@ -503,12 +503,12 @@ be imported as a module-level method:
 
 ```dafny
 module {:extern "bufio"} BufIO {
-    class {:extern} Scanner {
-        method {:extern} Scan() returns (ok: bool)
-        method {:extern} Text() returns (text: string)
-    }
+  class {:extern} Scanner {
+    method {:extern} Scan() returns (ok: bool)
+    method {:extern} Text() returns (text: string)
+  }
 
-    method {:extern} NewScanner(r: OS.Reader) returns (s: Scanner)
+  method {:extern} NewScanner(r: OS.Reader) returns (s: Scanner)
 }
 ```
 
@@ -524,11 +524,11 @@ Fortunately, there is a “cheat”:
 module {:extern "io"} IO { }
 
 module {:extern "os"} OS {
-    import Builtins
+  import Builtins
 
-    trait {:extern "io", "Reader"} Reader { }
-    class {:extern} File extends Reader { }
-    method {:extern} Open(name: string) returns (file:File, error: Builtins.error?)
+  trait {:extern "io", "Reader"} Reader { }
+  class {:extern} File extends Reader { }
+  method {:extern} Open(name: string) returns (file:File, error: Builtins.error?)
 }
 ```
 

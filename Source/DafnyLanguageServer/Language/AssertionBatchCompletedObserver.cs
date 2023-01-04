@@ -11,15 +11,15 @@ namespace Microsoft.Dafny.LanguageServer.Language;
 
 public class AssertionBatchCompletedObserver : OutputPrinter {
   private readonly ILogger logger;
-  private readonly bool reportVerificationDiagnostics;
+  private readonly bool reportCompletedBatches;
   private readonly Subject<AssertionBatchResult> completedBatches = new();
 
   public AssertionBatchCompletedObserver(
     ILogger logger,
-    bool reportVerificationDiagnostics
+    bool reportCompletedBatches
     ) {
     this.logger = logger;
-    this.reportVerificationDiagnostics = reportVerificationDiagnostics;
+    this.reportCompletedBatches = reportCompletedBatches;
   }
 
   public IObservable<AssertionBatchResult> CompletedBatches => completedBatches;
@@ -55,7 +55,7 @@ public class AssertionBatchCompletedObserver : OutputPrinter {
   }
 
   public void ReportSplitResult(Split split, VCResult vcResult) {
-    if (reportVerificationDiagnostics) {
+    if (reportCompletedBatches) {
       completedBatches.OnNext(new AssertionBatchResult(split.Implementation, vcResult));
     }
   }

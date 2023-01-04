@@ -1,0 +1,3 @@
+FAQModuleImport.dfy(9,13): Error: Undeclared top-level type or type parameter: D (did you forget to qualify a name or declare a module import 'opened'?)
+FAQModuleImport.dfy(13,13): Error: Undeclared top-level type or type parameter: D (did you forget to qualify a name or declare a module import 'opened'?)
+2 resolution/type errors detected in FAQModuleImport.dfy

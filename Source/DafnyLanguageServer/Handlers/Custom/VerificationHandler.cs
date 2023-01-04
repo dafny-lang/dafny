@@ -22,48 +22,43 @@ public record VerificationParams : TextDocumentPositionParams, IRequest<bool>;
 public record CancelVerificationParams : TextDocumentPositionParams, IRequest<bool>;
 
 public class VerificationHandler : IJsonRpcRequestHandler<VerificationParams, bool>, IJsonRpcRequestHandler<CancelVerificationParams, bool> {
-  private readonly ILogger logger;
   private readonly IDocumentDatabase documents;
-  private readonly ITextDocumentLoader documentLoader;
 
   public VerificationHandler(
-    ILogger<VerificationHandler> logger,
-    IDocumentDatabase documents,
-    ITextDocumentLoader documentLoader) {
-    this.logger = logger;
+    IDocumentDatabase documents) {
     this.documents = documents;
-    this.documentLoader = documentLoader;
   }
 
   public async Task<bool> Handle(VerificationParams request, CancellationToken cancellationToken) {
-    if (!documents.Documents.TryGetValue(request.TextDocument.Uri, out var documentEntry)) {
+    var documentManager = documents.GetDocumentManager(request.TextDocument);
+    if (documentManager == null) {
       return false;
     }
 
-    var translatedDocument = await documentEntry.TranslatedDocument;
+    var translatedDocument = await documentManager.Compilation.TranslatedDocument;
     var requestPosition = request.Position;
-    var tasks = GetTasksAtPosition(translatedDocument, requestPosition).ToList();
-    foreach (var taskToRun in tasks) {
-      var verifiedDocuments = documentLoader.Verify(translatedDocument, taskToRun, CancellationToken.None);
-      documentEntry.Observe(verifiedDocuments);
+    var someTasksAreRunning = false;
+    var tasksAtPosition = GetTasksAtPosition(translatedDocument, requestPosition);
+    foreach (var taskToRun in tasksAtPosition) {
+      someTasksAreRunning |= documentManager.Compilation.VerifyTask(translatedDocument, taskToRun);
     }
-
-    return !documentEntry.Idle;
+    return someTasksAreRunning;
   }
 
-  private static IEnumerable<IImplementationTask> GetTasksAtPosition(DafnyDocument translatedDocument, Position requestPosition) {
-    return translatedDocument.VerificationTasks!.Where(t => {
+  private static IEnumerable<IImplementationTask> GetTasksAtPosition(DocumentAfterTranslation document, Position requestPosition) {
+    return document.VerificationTasks.Where(t => {
       var lspPosition = t.Implementation.tok.GetLspPosition();
       return lspPosition.Equals(requestPosition);
     });
   }
 
   public async Task<bool> Handle(CancelVerificationParams request, CancellationToken cancellationToken) {
-    if (!documents.Documents.TryGetValue(request.TextDocument.Uri, out var documentEntry)) {
+    var documentManager = documents.GetDocumentManager(request.TextDocument);
+    if (documentManager == null) {
       return false;
     }
 
-    var translatedDocument = await documentEntry.TranslatedDocument;
+    var translatedDocument = await documentManager.Compilation.TranslatedDocument;
     var requestPosition = request.Position;
     foreach (var taskToRun in GetTasksAtPosition(translatedDocument, requestPosition)) {
       taskToRun.Cancel();

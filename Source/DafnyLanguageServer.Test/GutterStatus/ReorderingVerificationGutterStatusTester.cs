@@ -1,13 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Boogie.SMTLib;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Language;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
 
@@ -21,175 +25,210 @@ public class ReorderingVerificationGutterStatusTester : LinearVerificationGutter
 
   [TestMethod/*, Timeout(MaxTestExecutionTimeMs * 10)*/]
   public async Task EnsuresPriorityDependsOnEditing() {
-    await WithNoopSolver(async () => {
-      await TestPriorities(@"
+    await TestPriorities(@"
 method m1() {
-  assert fib(10) == 0;//Next2:  assert fib(10) == 0;
+  assert false;//Next2:  assert true;
 }
 method m2() {
-  assert fib(10) == 0;//Next1:  assert fib(10) == 0;
-}
-function fib(n: nat): nat {
-  if (n <= 1) then n else fib(n - 1) + fib(n - 2)
+  assert false;//Next1:  assert true;
 }
 ",
-        "m1 m2 fib\n" +
-        "m2 m1 fib\n" +
-        "m1 m2 fib"
-        );
-    });
+      "m1 m2\n" +
+      "m2 m1\n" +
+      "m1 m2"
+    );
   }
 
   [TestMethod]
   public async Task EnsuresPriorityDependsOnEditingWhileEditingSameMethod() {
-    await WithNoopSolver(async () => {
-      await TestPriorities(@"
+    await TestPriorities(@"
 method m1() {
-  assert fib(10) == 55;//Next7:  assert  fib(10) == 55;//Next8:  assert fib(10) == 55;
+  assert false;//Next7:  assert  true;//Next8:  assert false;
 }
 method m2() {
-  assert fib(10) == 55;//Next5:  assert  fib(10) == 55;
+  assert false;//Next5:  assert  true;
 }
 method m3() {
-  assert fib(10) == 55;//Next2:  assert  fib(10) == 55;//Next9:  assert fib(10) == 55;
+  assert false;//Next2:  assert  true;//Next9:  assert false;
 }
 method m4() {
-  assert fib(10) == 55;//Next3:  assert  fib(10) == 55;//Next4:  assert fib(10) == 55;
+  assert false;//Next3:  assert  true;//Next4:  assert false;
 }
 method m5() {
-  assert fib(10) == 55;//Next1:  assert  fib(10) == 55;//Next6:  assert fib(10) == 55;//Next10:  assert  fib(10) == 55;
+  assert false;//Next1:  assert  true;//Next6:  assert false;//Next10:  assert  true;
 }
-function fib(n: nat): nat {
-  if (n <= 1) then n else fib(n - 1) + fib(n - 2)
-}
-", "m1 m2 m3 m4 m5 fib\n" +
-          "m5 m1 m2 m3 m4 fib\n" +
-          "m3 m5 m1 m2 m4 fib\n" +
-          "m4 m3 m5 m1 m2 fib\n" +
-          "m4 m3 m5 m1 m2 fib\n" +
-          "m2 m4 m3 m5 m1 fib\n" +
-          "m5 m2 m4 m3 m1 fib\n" +
-          "m1 m5 m2 m4 m3 fib\n" +
-          "m1 m5 m2 m4 m3 fib\n" +
-          "m3 m1 m5 m2 m4 fib\n" +
-          "m5 m3 m1 m2 m4 fib"
-        );
-    });
+", "m1 m2 m3 m4 m5\n" +
+      "m5 m1 m2 m3 m4\n" +
+      "m3 m5 m1 m2 m4\n" +
+      "m4 m3 m5 m1 m2\n" +
+      "m4 m3 m5 m1 m2\n" +
+      "m2 m4 m3 m5 m1\n" +
+      "m5 m2 m4 m3 m1\n" +
+      "m1 m5 m2 m4 m3\n" +
+      "m1 m5 m2 m4 m3\n" +
+      "m3 m1 m5 m2 m4\n" +
+      "m5 m3 m1 m2 m4"
+    );
   }
 
   [TestMethod]
   public async Task EnsuresPriorityWorksEvenIfRemovingMethods() {
-    await WithNoopSolver(async () => {
-      await TestPriorities(@"
-method m1() { assert fib(10) == 55; }
-method m2() { assert fib(10) == 55; }
+    await TestPriorities(@"
+method m1() { assert false; }
+method m2() { assert false; }
 method m3() {
-  assert fib(10) == 55;//Next1:  assert  fib(10) == 55;
+  assert false;//Next1:  assert  true;
 } 
 method m4() {
-  assert fib(10) == 55;//Next2:  assert  fib(10) == 55;
+  assert false;//Next2:  assert  true;
 }
-function fib(n: nat): nat {
-  if (n <= 1) then n else fib(n - 1) + fib(n - 2)
-}
-method m5() { assert fib(10) == 55; } //Remove3:
+method m5() { assert false; } //Remove3:
 ",
-        "m1 m2 m3 m4 fib m5\n" +
-        "m3 m1 m2 m4 fib m5\n" +
-        "m4 m3 m1 m2 fib m5\n" +
-        "m1 m2 m3 m4 fib");
-    });
+      "m1 m2 m3 m4 m5\n" +
+      "m3 m1 m2 m4 m5\n" +
+      "m4 m3 m1 m2 m5\n" +
+      "m4 m3 m1 m2");
   }
-
 
   [TestMethod]
   public async Task EnsuresPriorityWorksEvenIfRemovingMethodsWhileTypo() {
-    await WithNoopSolver(async () => {
-      await TestPriorities(@"
-method m1() { assert fib(10) == 55; }
+    await TestPriorities(@"
+method m1() { assert false; }
 method m2() {
-  assert fib(10) == 55;//Next3:  typo//Next5:  assert fib(10) == 55;
+  assert false;//Next3:  typo//Next5:  assert true;
 }
 method m3() {
-  assert fib(10) == 55;//Next1:  assert  fib(10) == 55;
+  assert false;//Next1:  assert  true;
 } 
 method m4() {
-  assert fib(10) == 55;//Next2:  assert  fib(10) == 55;
+  assert false;//Next2:  assert  true;
 }
-function fib(n: nat): nat {
-  if (n <= 1) then n else fib(n - 1) + fib(n - 2)
-}
-method m5() { assert fib(10) == 55; } //Remove4:
+method m5() { assert false; } //Remove4:
 ",
-          "m1 m2 m3 m4 fib m5\n" +
-          "m3 m1 m2 m4 fib m5\n" +
-          "m4 m3 m1 m2 fib m5\n" +
-          "null\n" +
-          "m1 m2 m3 m4 fib\n" +
-          "m2 m4 m3 m1 fib"
-      );
-    });
-  }
-
-  private Position GetPositionOf(string code, string symbol) {
-    var regex = new Regex($"(function|method) (?<name>{symbol})");
-    var match = regex.Match(code);
-    if (!match.Success) {
-      throw new Exception("Could not find '" + symbol + "' in:\n" + code);
-    }
-
-    var pos = match.Groups["name"].Index;
-    var line = code.Take(pos).Count(c => c == '\n');
-    var character = 0;
-    while (character <= pos && code[pos - character] != '\n') {
-      character++;
-    }
-
-    character--;
-
-    return (line, character);
-  }
-
-  private IList<Position> GetPositions(string code, IList<string> symbols) {
-    return symbols.Select(symbol => GetPositionOf(code, symbol)).ToList();
+    "m1 m2 m3 m4 m5\n" +
+    "m3 m1 m2 m4 m5\n" +
+    "m4 m3 m1 m2 m5\n" +
+    "null\n" +
+    "null\n" +
+    "m2 m4 m3 m1"
+  );
   }
 
   // Requires changes to not change the position of symbols for now, as we are not applying the changes to the local code for now.
   private async Task TestPriorities(string codeAndChanges, string symbolsString) {
     var symbols = ExtractSymbols(symbolsString);
-    await SetUp(new Dictionary<string, string> {
-    { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", "1" },
-    });
+    var semaphoreSlim = new SemaphoreSlim(0);
+    var original = DafnyOptions.O.CreateSolver;
+    DafnyOptions.O.CreateSolver = (_, _) =>
+      new UnsatSolver(semaphoreSlim);
+    await SetUp(options => options.Set(BoogieOptionBag.Cores, 1U));
 
     var (code, changes) = ExtractCodeAndChanges(codeAndChanges.TrimStart());
     var documentItem = CreateTestDocument(code);
     client.OpenDocument(documentItem);
 
-    var initialOrder = await GetFlattenedPositionOrder(CancellationToken);
-    var initialPositions = GetPositions(code, symbols.First());
-    Assert.IsTrue(initialPositions.SequenceEqual(initialOrder),
-      $"Expected {string.Join(", ", initialPositions)} but got {string.Join(", ", initialOrder)}");
-    foreach (var (change, expectedSymbols) in Enumerable.Zip(changes, symbols.Skip(1))) {
+    var index = 0;
+    // ReSharper disable AccessToModifiedClosure
+    async Task CompareWithExpectation(List<string> expectedSymbols) {
+      try {
+        var orderAfterChange = await GetFlattenedPositionOrder(semaphoreSlim, CancellationToken);
+        var orderAfterChangeSymbols = GetSymbols(code, orderAfterChange).ToList();
+        Assert.IsTrue(expectedSymbols.SequenceEqual(orderAfterChangeSymbols),
+          $"Expected {string.Join(", ", expectedSymbols)} but got {string.Join(", ", orderAfterChangeSymbols)}." +
+          $"\nOld to new history was: {verificationStatusReceiver.History.Stringify()}");
+      } catch (OperationCanceledException) {
+        Console.WriteLine($"Operation cancelled for index {index} when expecting: {string.Join(", ", expectedSymbols)}");
+        throw;
+      }
+
+      index++;
+    }
+
+    await CompareWithExpectation(symbols.First());
+    foreach (var (change, expectedSymbols) in changes.Zip(symbols.Skip(1))) {
+      index++;
       ApplyChange(ref documentItem, change.changeRange, change.changeValue);
-      var expectedPositions = expectedSymbols == null ? null : GetPositions(code, expectedSymbols);
-      if (expectedPositions != null) {
-        var orderAfterChange = await GetFlattenedPositionOrder(CancellationToken);
-        Assert.IsTrue(expectedPositions.SequenceEqual(orderAfterChange),
-          $"Expected {string.Join(", ", expectedPositions)} but got {string.Join(", ", orderAfterChange)}." +
-          $"\nHistory was: {string.Join("\n", verificationStatusReceiver.History)}");
+      if (expectedSymbols != null) {
+        var migrated = expectedSymbols.Count == 0;
+        if (migrated) {
+          await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+          continue;
+        }
+
+        await CompareWithExpectation(expectedSymbols);
       }
     }
+
+    DafnyOptions.O.CreateSolver = original;
+  }
+
+  private IEnumerable<string> GetSymbols(string code, List<Position> positions) {
+    var lines = code.Split("\n");
+    return positions.Select(position => {
+      var line = lines[position.Line];
+      var word = line.Skip(position.Character).TakeWhile(c => !char.IsPunctuation(c)).ToArray();
+      return new string(word);
+    });
   }
 
   private static List<List<string>> ExtractSymbols(string symbolsString) {
     return symbolsString.Split("\n")
-      .Select(array => array == "null" ? null : array.Split(" ").ToList()).ToList();
+      .Select(array => array switch {
+        "null" => null,
+        "migrated" => new List<string> {
+          Capacity = 0
+        },
+        _ => array.Split(" ").ToList()
+      }).ToList();
   }
 
-  private async Task<List<Position>> GetFlattenedPositionOrder(CancellationToken cancellationToken) {
-    return (await GetRunningOrder(cancellationToken).ToListAsync(cancellationToken)).
+  private async Task<List<Position>> GetFlattenedPositionOrder(SemaphoreSlim semaphore, CancellationToken cancellationToken) {
+    return (await GetRunningOrder(semaphore, cancellationToken).ToListAsync(cancellationToken)).
       SelectMany(r => r).
       Select(r => r.Start).ToList();
+  }
+
+  public async IAsyncEnumerable<List<Range>> GetRunningOrder(SemaphoreSlim semaphore, [EnumeratorCancellation] CancellationToken cancellationToken) {
+    var alreadyReported = new HashSet<Range>();
+    FileVerificationStatus foundStatus = null;
+    int count = 0;
+    bool started = false;
+    do {
+      try {
+        foundStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
+        count++;
+
+      } catch (OperationCanceledException) {
+        Console.WriteLine("count: " + count);
+        Console.WriteLine("Found status before timeout: " + string.Join(", ", foundStatus!.NamedVerifiables));
+        Console.WriteLine($"\nOld to new history was: {verificationStatusReceiver.History.Stringify()}");
+        throw;
+      }
+
+      if (!started) {
+        if (foundStatus.NamedVerifiables.Any(v => v.Status == PublishedVerificationStatus.Running)) {
+          started = true;
+        } else {
+          continue;
+        }
+      }
+      var newlyDone = foundStatus.NamedVerifiables.Where(v => v.Status >= PublishedVerificationStatus.Error)
+        .Select(v => v.NameRange).Where(r => alreadyReported.Add(r));
+
+      var newlyRunning = foundStatus.NamedVerifiables.Where(v => v.Status == PublishedVerificationStatus.Running)
+        .Select(v => v.NameRange).Where(r => alreadyReported.Add(r));
+
+      var newlyReported = newlyDone.Concat(newlyRunning).ToList();
+      if (newlyReported.Count > 1) {
+        throw new Exception("semaphore throttling should only allow one newly running per notification.");
+      }
+
+      if (newlyReported.Count > 0) {
+        semaphore.Release(1);
+      }
+
+      yield return newlyReported.ToList();
+    } while (!started || foundStatus.NamedVerifiables.Any(v => v.Status < PublishedVerificationStatus.Error));
   }
 
   [TestCleanup]

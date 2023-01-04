@@ -15,24 +15,24 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       this.logger = logger;
     }
 
-    public bool TryGetSymbolBefore(DafnyDocument document, Position position, CancellationToken cancellationToken, [NotNullWhen(true)] out ISymbol? symbol) {
-      (symbol, _) = new Guesser(logger, document, cancellationToken).GetSymbolAndItsTypeBefore(position);
+    public bool TryGetSymbolBefore(IdeState state, Position position, CancellationToken cancellationToken, [NotNullWhen(true)] out ISymbol? symbol) {
+      (symbol, _) = new Guesser(logger, state, cancellationToken).GetSymbolAndItsTypeBefore(position);
       return symbol != null;
     }
 
-    public bool TryGetTypeBefore(DafnyDocument document, Position position, CancellationToken cancellationToken, [NotNullWhen(true)] out ISymbol? typeSymbol) {
-      (_, typeSymbol) = new Guesser(logger, document, cancellationToken).GetSymbolAndItsTypeBefore(position);
+    public bool TryGetTypeBefore(IdeState state, Position position, CancellationToken cancellationToken, [NotNullWhen(true)] out ISymbol? typeSymbol) {
+      (_, typeSymbol) = new Guesser(logger, state, cancellationToken).GetSymbolAndItsTypeBefore(position);
       return typeSymbol != null;
     }
 
     private class Guesser {
       private readonly ILogger logger;
-      private readonly DafnyDocument document;
+      private readonly IdeState state;
       private readonly CancellationToken cancellationToken;
 
-      public Guesser(ILogger logger, DafnyDocument document, CancellationToken cancellationToken) {
+      public Guesser(ILogger logger, IdeState state, CancellationToken cancellationToken) {
         this.logger = logger;
-        this.document = document;
+        this.state = state;
         this.cancellationToken = cancellationToken;
       }
 
@@ -59,7 +59,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       private (ISymbol? Designator, ISymbol? Type) GetSymbolAndTypeOfLastMember(Position position, string[] memberAccessChain) {
-        var enclosingSymbol = document.SymbolTable.GetEnclosingSymbol(position, cancellationToken);
+        var enclosingSymbol = state.SignatureAndCompletionTable.GetEnclosingSymbol(position, cancellationToken);
         ISymbol? currentDesignator = null;
         ISymbol? currentDesignatorType = null;
         for (int currentMemberAccess = 0; currentMemberAccess < memberAccessChain.Length; currentMemberAccess++) {
@@ -75,7 +75,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           } else {
             currentDesignator = FindSymbolWithName(currentDesignatorType!, currentDesignatorName);
           }
-          if (currentDesignator == null || !document.SymbolTable.TryGetTypeOf(currentDesignator, out currentDesignatorType)) {
+          if (currentDesignator == null || !state.SignatureAndCompletionTable.TryGetTypeOf(currentDesignator, out currentDesignatorType)) {
             logger.LogDebug("could not resolve the type of the designator {MemberName} of the member access chain '{Chain}'",
               currentMemberAccess, memberAccessChain);
             return (currentDesignator, null);
@@ -117,14 +117,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         // TODO This only works as long as Dafny does not support overloading.
         return containingSymbol.Children
           .WithCancellation(cancellationToken)
-          .Where(child => child.Name == name)
-          .FirstOrDefault();
+          .FirstOrDefault(child => child.Name == name);
       }
 
       private string[] GetMemberAccessChainEndingAt(Position position) {
-        var text = document.TextDocumentItem.Text;
-        var absolutePosition = position.ToAbsolutePosition(text, cancellationToken);
-        return new MemberAccessChainResolver(text, absolutePosition, cancellationToken).ResolveFromBehind().Reverse().ToArray();
+        var absolutePosition = state.TextDocumentItem.ToIndex(position);
+        return new MemberAccessChainResolver(state.TextDocumentItem.Text, absolutePosition, cancellationToken).ResolveFromBehind().Reverse().ToArray();
       }
     }
 
