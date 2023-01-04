@@ -3350,11 +3350,11 @@ namespace Microsoft.Dafny {
     }
 
     internal IToken GetToken(Expression expression) {
-      return flags.ReportRanges ? expression.GetRangeToken() : expression.tok;
+      return flags.ReportRanges ? expression.RangeToken : expression.tok;
     }
 
     internal IToken GetToken(Statement stmt) {
-      return flags.ReportRanges ? stmt.GetRangeToken() : stmt.Tok;
+      return flags.ReportRanges ? stmt.RangeToken : stmt.Tok;
     }
 
     void CheckDefiniteAssignment(IdentifierExpr expr, BoogieStmtListBuilder builder) {
@@ -8576,7 +8576,9 @@ namespace Microsoft.Dafny {
             if (rhs != null) {
               bldr.Add(Bpl.Cmd.SimpleAssign(tok, bLhs, rhs));
             }
-            MarkDefiniteAssignmentTracker(ie, bldr);
+            if (!origRhsIsHavoc || ie.Type.IsNonempty) {
+              MarkDefiniteAssignmentTracker(ie, bldr);
+            }
           });
 
         } else if (lhs is MemberSelectExpr) {
@@ -8603,7 +8605,9 @@ namespace Microsoft.Dafny {
               if (rhs != null) {
                 bldr.Add(Bpl.Cmd.SimpleAssign(tok, bLhs, rhs));
               }
-              MarkDefiniteAssignmentTracker(lhs.tok, nm, bldr);
+              if (!origRhsIsHavoc || field.Type.IsNonempty) {
+                MarkDefiniteAssignmentTracker(lhs.tok, nm, bldr);
+              }
             });
           } else {
             bLhss.Add(null);

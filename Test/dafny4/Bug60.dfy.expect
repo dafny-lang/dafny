@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier finished with 0 errors
 ({2, 3}, map[2 := 20, 3 := 30])
 (2, 2)
 {2, 3}

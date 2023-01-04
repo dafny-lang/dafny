@@ -90,4 +90,4 @@ SubsetTypes.dfy(450,15): Error: assertion might not hold
 SubsetTypes.dfy(457,15): Error: assertion might not hold
 SubsetTypes.dfy(462,13): Error: assertion might not hold
 
-Dafny program verifier finished with 13 verified, 91 errors
+Dafny program verifier finished with 91 errors

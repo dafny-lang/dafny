@@ -39,4 +39,4 @@ git-issue-1180b.dfy(135,21): Related location: This is the postcondition that mi
 git-issue-1180b.dfy(144,40): Error: A postcondition might not hold on this return path.
 git-issue-1180b.dfy(138,18): Related location: This is the postcondition that might not hold.
 
-Dafny program verifier finished with 13 verified, 20 errors
+Dafny program verifier finished with 20 errors

@@ -41,4 +41,4 @@ Iterators.dfy(414,21): Related message: loop invariant violation
 Iterators.dfy(415,21): Error: This loop invariant might not be maintained by the loop.
 Iterators.dfy(415,21): Related message: loop invariant violation
 
-Dafny program verifier finished with 35 verified, 30 errors
+Dafny program verifier finished with 30 errors

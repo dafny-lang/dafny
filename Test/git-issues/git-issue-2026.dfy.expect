@@ -3,7 +3,7 @@ git-issue-2026.dfy(11,18): Related message: loop invariant violation
 git-issue-2026.dfy(12,18): Error: This loop invariant might not be maintained by the loop.
 git-issue-2026.dfy(12,18): Related message: loop invariant violation
 
-Dafny program verifier finished with 0 verified, 2 errors
+Dafny program verifier finished with 2 errors
 Counterexample for first failing assertion: 
 git-issue-2026.dfy(5,0): initial state:
 	n : int = 5854

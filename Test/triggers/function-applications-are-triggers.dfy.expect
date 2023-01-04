@@ -6,4 +6,4 @@ function-applications-are-triggers.dfy(11,9): Info: Selected triggers:
 function-applications-are-triggers.dfy(12,5): Info: Selected triggers:
    {g(x)}, {f(x)}, {g.requires(x)}, {f.requires(x)}
 
-Dafny program verifier finished with 1 verified, 0 errors
+Dafny program verifier finished with 0 errors

@@ -12,7 +12,7 @@ InductionOptions.dfy(39,26): Related location: This is the postcondition that mi
 InductionOptions.dfy(44,9): Error: assertion might not hold
 InductionOptions.dfy(44,51): Related location
 
-Dafny program verifier finished with 1 verified, 6 errors
+Dafny program verifier finished with 6 errors
 InductionOptions.dfy(21,0): Error: A postcondition might not hold on this return path.
 InductionOptions.dfy(20,26): Related location: This is the postcondition that might not hold.
 InductionOptions.dfy(25,9): Error: assertion might not hold
@@ -23,13 +23,13 @@ InductionOptions.dfy(29,39): Related location
 InductionOptions.dfy(35,9): Error: assertion might not hold
 InductionOptions.dfy(35,38): Related location
 
-Dafny program verifier finished with 3 verified, 4 errors
+Dafny program verifier finished with 4 errors
 InductionOptions.dfy(21,0): Error: A postcondition might not hold on this return path.
 InductionOptions.dfy(20,26): Related location: This is the postcondition that might not hold.
 
 Dafny program verifier finished with 6 verified, 1 error
 
-Dafny program verifier finished with 7 verified, 0 errors
+Dafny program verifier finished with 0 errors
 InductionOptions.dfy(25,9): Error: assertion might not hold
 InductionOptions.dfy(25,38): Related location
 InductionOptions.dfy(30,0): Error: A postcondition might not hold on this return path.
@@ -38,4 +38,4 @@ InductionOptions.dfy(29,39): Related location
 InductionOptions.dfy(35,9): Error: assertion might not hold
 InductionOptions.dfy(35,38): Related location
 
-Dafny program verifier finished with 4 verified, 3 errors
+Dafny program verifier finished with 3 errors

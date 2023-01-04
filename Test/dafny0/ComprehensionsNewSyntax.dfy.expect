@@ -20,4 +20,4 @@ ComprehensionsNewSyntax.dfy(189,16): Error: value does not satisfy the subset co
 ComprehensionsNewSyntax.dfy(12,13): Error: assertion might not hold
 ComprehensionsNewSyntax.dfy(78,22): Error: assertion might not hold
 
-Dafny program verifier finished with 16 verified, 15 errors
+Dafny program verifier finished with 15 errors

@@ -1,4 +1,4 @@
 Regression5.dfy(9,9): Error: value to be converted might not fit in Syn
 Regression5.dfy(15,9): Error: value to be converted might not fit in bv8
 
-Dafny program verifier finished with 0 verified, 2 errors
+Dafny program verifier finished with 2 errors

@@ -52,4 +52,4 @@ Definedness.dfy(224,21): Error: target object might not be allocated
 Definedness.dfy(237,9): Error: A postcondition might not hold on this return path.
 Definedness.dfy(240,23): Related location: This is the postcondition that might not hold.
 
-Dafny program verifier finished with 9 verified, 38 errors
+Dafny program verifier finished with 38 errors

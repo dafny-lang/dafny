@@ -10,4 +10,4 @@ TraitsDecreases.dfy(72,9): Error: method's decreases clause must be below or equ
 TraitsDecreases.dfy(78,9): Error: method's decreases clause must be below or equal to that in the trait
 TraitsDecreases.dfy(88,9): Error: method's decreases clause must be below or equal to that in the trait
 
-Dafny program verifier finished with 12 verified, 11 errors
+Dafny program verifier finished with 11 errors

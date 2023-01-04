@@ -14,4 +14,4 @@ OpaqueTypeWithMembers.dfy(141,16): Error: function precondition might not hold
 OpaqueTypeWithMembers.dfy(115,13): Related location
 OpaqueTypeWithMembers.dfy(113,35): Related location
 
-Dafny program verifier finished with 15 verified, 9 errors
+Dafny program verifier finished with 9 errors

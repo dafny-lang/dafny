@@ -11,4 +11,4 @@ Parallel.dfy(182,11): Error: left-hand sides for different forall-statement boun
 Parallel.dfy(342,9): Error: assertion might not hold
 Parallel.dfy(329,26): Related location
 
-Dafny program verifier finished with 19 verified, 10 errors
+Dafny program verifier finished with 10 errors

@@ -7,4 +7,4 @@ Char.dfy(89,7): Error: char subtraction might underflow
 Char.dfy(97,13): Error: char addition might overflow
 Char.dfy(105,7): Error: char subtraction might underflow
 
-Dafny program verifier finished with 8 verified, 8 errors
+Dafny program verifier finished with 8 errors

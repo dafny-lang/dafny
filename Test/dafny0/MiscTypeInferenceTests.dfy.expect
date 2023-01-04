@@ -10,4 +10,4 @@ MiscTypeInferenceTests.dfy(110,18): Error: cannot establish the existence of LHS
 MiscTypeInferenceTests.dfy(143,15): Error: value does not satisfy the subset constraints of 'nat'
 MiscTypeInferenceTests.dfy(155,15): Error: value does not satisfy the subset constraints of 'nat'
 
-Dafny program verifier finished with 10 verified, 9 errors
+Dafny program verifier finished with 9 errors

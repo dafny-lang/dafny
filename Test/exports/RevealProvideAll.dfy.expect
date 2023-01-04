@@ -2,4 +2,4 @@ RevealProvideAll.dfy(25,45): Error: A postcondition might not hold on this retur
 RevealProvideAll.dfy(25,26): Related location: This is the postcondition that might not hold.
 RevealProvideAll.dfy(30,13): Error: assertion might not hold
 
-Dafny program verifier finished with 3 verified, 2 errors
+Dafny program verifier finished with 2 errors

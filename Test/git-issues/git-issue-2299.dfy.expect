@@ -16,4 +16,4 @@ git-issue-2299.dfy(81,11): Error: assertion might not hold
 git-issue-2299.dfy(27,32): Related location
 git-issue-2299.dfy(21,4): Related location
 
-Dafny program verifier finished with 7 verified, 7 errors
+Dafny program verifier finished with 7 errors

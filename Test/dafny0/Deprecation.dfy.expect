@@ -4,5 +4,5 @@ Deprecation.dfy(26,0): Warning: the old keyword 'copredicate' has been renamed t
 Deprecation.dfy(29,0): Warning: the old keyword phrase 'inductive lemma' has been renamed to 'least lemma'
 Deprecation.dfy(32,0): Warning: the old keyword 'colemma' has been renamed to the keyword phrase 'greatest lemma'
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier finished with 0 errors
 yet here we are

@@ -17,4 +17,4 @@ CoPrefix.dfy(117,22): Related location
 CoPrefix.dfy(151,0): Error: A postcondition might not hold on this return path.
 CoPrefix.dfy(150,10): Related location: This is the postcondition that might not hold.
 
-Dafny program verifier finished with 13 verified, 12 errors
+Dafny program verifier finished with 12 errors

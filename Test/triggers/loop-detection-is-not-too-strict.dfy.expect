@@ -12,4 +12,4 @@ loop-detection-is-not-too-strict.dfy(34,9): Info: Selected triggers: {Q(x)}
 loop-detection-is-not-too-strict.dfy(36,9): Info: Selected triggers: {Q(_t#0), Q(x)}
 loop-detection-is-not-too-strict.dfy(40,9): Info: Selected triggers: {Q(_t#0), Q(x)}
 
-Dafny program verifier finished with 1 verified, 0 errors
+Dafny program verifier finished with 0 errors

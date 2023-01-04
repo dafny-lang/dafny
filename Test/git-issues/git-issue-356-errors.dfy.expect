@@ -22,4 +22,4 @@ git-issue-356-errors.dfy(189,13): Error: value to be converted might not fit in 
 git-issue-356-errors.dfy(195,13): Error: value to be converted might not fit in bv8
 git-issue-356-errors.dfy(207,14): Error: bit-vector value to be converted might not fit in char
 
-Dafny program verifier finished with 14 verified, 23 errors
+Dafny program verifier finished with 23 errors

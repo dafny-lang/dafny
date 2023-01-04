@@ -2,4 +2,4 @@ git-issue-1604c.dfy(9,34): Error: value does not satisfy the subset constraints 
 git-issue-1604c.dfy(11,34): Error: value does not satisfy the subset constraints of 'nat'
 git-issue-1604c.dfy(12,29): Error: value does not satisfy the subset constraints of 'nat'
 
-Dafny program verifier finished with 1 verified, 3 errors
+Dafny program verifier finished with 3 errors

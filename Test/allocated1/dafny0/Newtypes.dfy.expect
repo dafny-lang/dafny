@@ -12,4 +12,4 @@ Newtypes.dfy(226,39): Error: result of operation might violate newtype constrain
 Newtypes.dfy(238,18): Error: result of operation might violate newtype constraint for 'N'
 Newtypes.dfy(278,18): Error: result of operation might violate newtype constraint for 'R'
 
-Dafny program verifier finished with 37 verified, 13 errors
+Dafny program verifier finished with 13 errors

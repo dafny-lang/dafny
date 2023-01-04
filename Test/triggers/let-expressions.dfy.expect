@@ -3,4 +3,4 @@ let-expressions.dfy(7,8): Info: Selected triggers: {s[i]}
 let-expressions.dfy(8,8): Info: Selected triggers: {s[_t#0], s[i]}
 let-expressions.dfy(9,8): Info: Selected triggers: {s[_t#0], s[i]}
 
-Dafny program verifier finished with 1 verified, 0 errors
+Dafny program verifier finished with 0 errors

@@ -5,4 +5,4 @@ ExpandedGuardednessNeg.dfy(13,16): Error: cannot prove termination; try supplyin
 ExpandedGuardednessNeg.dfy(13,16): Error: decreases expression must be bounded below by 0
 ExpandedGuardednessNeg.dfy(11,21): Related location
 
-Dafny program verifier finished with 0 verified, 4 errors
+Dafny program verifier finished with 4 errors

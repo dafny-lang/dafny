@@ -1,4 +1,4 @@
 git-issue75.dfy(12,7): Warning: /!\ No terms found to trigger on.
 git-issue75.dfy(17,7): Warning: /!\ No terms found to trigger on.
 
-Dafny program verifier finished with 2 verified, 0 errors
+Dafny program verifier finished with 0 errors

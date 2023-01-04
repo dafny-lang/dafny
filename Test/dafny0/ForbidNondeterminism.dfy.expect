@@ -4,7 +4,5 @@ ForbidNondeterminism.dfy(37,4): Error: out-parameter 's', which is subject to de
 ForbidNondeterminism.dfy(37,4): Error: out-parameter 't', which is subject to definite-assignment rules, might be uninitialized at this return point
 ForbidNondeterminism.dfy(39,17): Error: variable 's', which is subject to definite-assignment rules, might be uninitialized here
 ForbidNondeterminism.dfy(41,0): Error: out-parameter 't', which is subject to definite-assignment rules, might be uninitialized at this return point
-ForbidNondeterminism.dfy(60,11): Error: unless an initializer is provided for the array elements, a new array of 'int' must have empty size
-ForbidNondeterminism.dfy(61,11): Error: unless an initializer is provided for the array elements, a new array of 'bool' must have empty size
 
-Dafny program verifier finished with 2 verified, 8 errors
+Dafny program verifier finished with 6 errors

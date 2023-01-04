@@ -183,6 +183,6 @@ method Main()
   print r0.b, ", ", r1.b, "\n";
 }
 
-Dafny program verifier finished with 17 verified, 0 errors
+Dafny program verifier finished with 0 errors
 37, 17, 3.14
 false, true

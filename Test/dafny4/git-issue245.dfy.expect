@@ -11,4 +11,4 @@ git-issue245.dfy(93,19): Related location: This is the postcondition that might 
 git-issue245.dfy(96,18): Error: A postcondition might not hold on this return path.
 git-issue245.dfy(97,17): Related location: This is the postcondition that might not hold.
 
-Dafny program verifier finished with 28 verified, 8 errors
+Dafny program verifier finished with 8 errors

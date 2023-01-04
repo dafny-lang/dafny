@@ -361,4 +361,4 @@ TypeConversions.dfy(102,20): Error: result of operation might violate newtype co
 TypeConversions.dfy(115,28): Error: value to be converted might not fit in bv7
 TypeConversions.dfy(116,27): Error: value to be converted might not fit in bv0
 
-Dafny program verifier finished with 3 verified, 17 errors
+Dafny program verifier finished with 17 errors

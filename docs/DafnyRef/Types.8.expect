@@ -1,4 +1,4 @@
 text.dfy(6,0): Error: out-parameter 'b', which is subject to definite-assignment rules, might be uninitialized at this return point
 text.dfy(6,0): Error: out-parameter 'h', which is subject to definite-assignment rules, might be uninitialized at this return point
 
-Dafny program verifier finished with 0 verified, 2 errors
+Dafny program verifier finished with 2 errors

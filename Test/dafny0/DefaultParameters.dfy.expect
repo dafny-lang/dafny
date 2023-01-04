@@ -77,4 +77,4 @@ DefaultParameters.dfy(524,43): Error: insufficient reads clause to read field
 DefaultParameters.dfy(601,11): Error: assertion might not hold
 DefaultParameters.dfy(582,18): Related location
 
-Dafny program verifier finished with 73 verified, 74 errors
+Dafny program verifier finished with 74 errors

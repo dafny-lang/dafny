@@ -17,4 +17,4 @@ TypeParameters.dfy(175,37): Related location
 TypeParameters.dfy(44,21): Error: assertion might not hold
 TypeParameters.dfy(66,26): Error: assertion might not hold
 
-Dafny program verifier finished with 31 verified, 9 errors
+Dafny program verifier finished with 9 errors

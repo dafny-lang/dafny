@@ -1,6 +1,6 @@
 ForbidNondeterminismCompile.dfy(52,2): Warning: the modify statement with a block statement is deprecated
 
-Dafny program verifier finished with 4 verified, 0 errors
+Dafny program verifier finished with 0 errors
 ForbidNondeterminismCompile.dfy(71,9): Error: since yield parameters are initialized arbitrarily, iterators are forbidden by the --enforce-determinism option
 ForbidNondeterminismCompile.dfy(17,7): Error: nondeterministic assignment forbidden by the --enforce-determinism option
 ForbidNondeterminismCompile.dfy(18,13): Error: nondeterministic assignment forbidden by the --enforce-determinism option
