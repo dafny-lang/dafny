@@ -257,7 +257,6 @@ public abstract class Type : INode {
   /// </summary>
   public abstract Type Subst(IDictionary<TypeParameter, Type> subst);
 
-
   /// <summary>
   /// Return a type that is like "type", but with type arguments "arguments".
   /// </summary>
@@ -2233,11 +2232,11 @@ public class UserDefinedType : NonProxyType {
     }
     this.NamePath = namePath;
   }
-
   public UserDefinedType(Cloner cloner, UserDefinedType original)
     : this(cloner.Tok(original.tok), cloner.CloneExpr(original.NamePath)) {
     if (cloner.CloneResolvedFields) {
       ResolvedClass = original.ResolvedClass;
+      TypeArgs = original.TypeArgs.Select(cloner.CloneType).ToList();
     }
   }
 

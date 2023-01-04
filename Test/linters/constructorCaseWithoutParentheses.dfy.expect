@@ -1,14 +1,14 @@
-constructorCaseWithoutParentheses.dfy(23,6): Warning: this branch is redundant
-constructorCaseWithoutParentheses.dfy(24,6): Warning: this branch is redundant
-constructorCaseWithoutParentheses.dfy(29,6): Warning: this branch is redundant
-constructorCaseWithoutParentheses.dfy(30,6): Warning: this branch is redundant
-constructorCaseWithoutParentheses.dfy(38,9): Warning: this branch is redundant
-constructorCaseWithoutParentheses.dfy(39,9): Warning: this branch is redundant
 constructorCaseWithoutParentheses.dfy(11,11): Warning: Constructor name 'A' should be followed by parentheses
 constructorCaseWithoutParentheses.dfy(12,11): Warning: Constructor name 'B' should be followed by parentheses
 constructorCaseWithoutParentheses.dfy(17,20): Warning: Constructor name 'Blue' should be followed by parentheses
 constructorCaseWithoutParentheses.dfy(23,11): Warning: Constructor name 'Green' should be followed by parentheses
 constructorCaseWithoutParentheses.dfy(29,11): Warning: Constructor name 'Green' should be followed by parentheses
 constructorCaseWithoutParentheses.dfy(38,14): Warning: Constructor name 'Green' should be followed by parentheses
+constructorCaseWithoutParentheses.dfy(23,6): Warning: this branch is redundant
+constructorCaseWithoutParentheses.dfy(24,6): Warning: this branch is redundant
+constructorCaseWithoutParentheses.dfy(29,6): Warning: this branch is redundant
+constructorCaseWithoutParentheses.dfy(30,6): Warning: this branch is redundant
+constructorCaseWithoutParentheses.dfy(38,9): Warning: this branch is redundant
+constructorCaseWithoutParentheses.dfy(39,9): Warning: this branch is redundant
 
 Dafny program verifier finished with 0 errors
