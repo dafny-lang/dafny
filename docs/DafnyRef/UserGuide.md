@@ -85,19 +85,14 @@ on the command-line or referenced, recursively, by `include` directives
 within those files. It does not matter if files are repeated either as
 includes or on the command-line.[^fn-duplicate-files]
 
-Note however that although the complete set of files, command-line plus
-included files, make up the program, by default, only those files listed on
-the command-line are verified. To do a complete verification, each file
-must be verified; it may well happen that a verification failure in one
-file (which is not on the command-line and thus not checked) may hide a
-verification failure in a file that is being checked.
-Thus it is important to eventually check all files, preferably in an order
-in which the files without dependencies are checked first, then those that
-depend on them, etc., until all files are checked.
-The `--verify-included-files` option (`-verifyAllModules` in legacy mode) will cause all modules, whether the result of include directives or not,
-to be verified.
+All files recursively included are always parsed and type-checked.
+However, which files are verified, built, run, or processed by other
+dafny commands depends on the individual command. 
+These commands are described in [Section 25.5.1](#sec-dafny-commands).
 
-[^fn-duplicate-files]: File names are considered equal if they have the same absolute path, compared as case-sensitive strings (regardless of whether the underlying file-system is case sensitive).  Using symbolic links may make the same file have a different absolute path; this will generally cause duplicate declaration errors.
+
+[^fn-duplicate-files]: Files may be included more than once or both included and listed on the command line. Duplicate inclusions are detected and each file processed only once.
+For the purpose of detecting duplicates, file names are considered equal if they have the same absolute path, compared as case-sensitive strings (regardless of whether the underlying file-system is case sensitive).  Using symbolic links may make the same file have a different absolute path; this will generally cause duplicate declaration errors.
 
 
 ## 25.4. Dafny Code Style
@@ -171,6 +166,10 @@ A few options are not part of a command. In these cases any single-hyphen spelli
 
 The `dafny resolve` command checks the command-line and then parses and typechecks the given files and any included files.
 
+Note that a complete program must be presented to the dafny tool, either by listing all files on the command-line, or by using `include` directives,
+of by some combination. An incomplete program will likely result in errors because of unresolved names. A program need not include all implementations
+of all functions in order to verify parts of it, but will need all implementations in order to compile a working executable.
+
 The options relevant to this command are
 - those relevant to the command-line itself
    - `--warn-as-errors` --- turn all warnings into errors, which alters [dafny's exit code](#sec-exit-codes)
@@ -179,11 +178,11 @@ The options relevant to this command are
    - `--cores` --- set the number of cores dafny should use
    - `--show-snippets` --- emit a line or so of source code along with an error message
    - `--library` --- include this file in the program, but do not verify or compile it (multiple such library files can be listed using multiple instances of the `--library` option)
-- those that affect the syntax of dafny, such as
+- those that affect the syntax of Dafny, such as
    - `--prelude`
    - `--unicode-char`
-   - `--function-syntax`
-   - `--quantifier-syntax`
+   - `--function-syntax` <version>
+   - `--quantifier-syntax` <version>
    - `--track-print-effects`
    - `--warn-shadowing`
    - `--warn-missing-constructor-parentheses`
@@ -191,10 +190,26 @@ The options relevant to this command are
 
 #### 25.5.1.3. `dafny verify` {#sec-dafny-verify}
 
-The `dafny verify` command performs the [`dafny resolve`](#sec-dafny-resolve) checks and then attempts to verify each method in the files listed on the command line. Although the Dafny program being considered
-consists of the listed files and any included files (recursively), by default only listed files are verified.
+The `dafny verify` command performs the [`dafny resolve`](#sec-dafny-resolve) checks and then attempts to verify each method in the program.
 
 A guide to controlling and aiding the verification process is given in [a later section](#sec-verification)
+
+To be considered _verified_ all the methods in all the files in a program must be verified, with consistent sets of options,
+and with no unproven assumptions (see [`dafny audit`](#sec-dafny-audit) for a tool to help identify such assumptions).
+
+Dafny works _modularly_, meaning that each method is considered by itself, using only the specifications of other methods.
+So, when using the dafny tool, you can verify the program all at once or one file at a time or groups of files at a time.
+On a large program, verifying all files at once can take quite a while, with little feedback as to progress, though it does
+save a small amount of work by parsing all files just once. But, one way or another, to have a complete verification, all 
+implementations of all methods and functions must eventually be verified.
+
+- By default, only those files listed on the command-line are verified in a given invocation of the `dafny` tool.
+- The option `--verify-included-files` (`-verifyAllModules` in legacy mode) forces the contents of all non-library files to be verified, whether they are listed on the command-line or recursively included by files on the command-line.
+- The `--library` option marks files that are excluded from `--verify-included-files`. Such a file may also, but need not, be the target of an `include` directive in some file of the program; in any case, such files are included in the program but not in the set of files verified (or compiled). The intent of this option is to mark files that
+should be considered as libraries that are independently verified prior to being released for shared use.
+- Verifying files individually is equivalent to verifying them in groups, presuming no other changes
+It is also permitted to verify completely disjoint files or
+programs together in a single run of `dafny`.
 
 Various options control the verification process, in addition to all those described for [`dafny resolve`](#sec-dafny-resolve).
 
@@ -205,9 +220,11 @@ Various options control the verification process, in addition to all those descr
    - `--disable-nonlinear-arithmetic`
 
 - Control of the proof engine
+   - `--manual-lemma-induction`
    - `--verification-time-limit`
    - `--boogie`
    - `--boogie-filter`
+   - `--solver-path`
 
 
 #### 25.5.1.4. `dafny translate <language>` {#sec-dafny-translate}
@@ -322,7 +339,11 @@ The command emits exit codes of
 - 2 for parsing, type-checking or serious errors in running the auditor (e.g. failure to write a report or when report comparison fails)
 - 0 for normal operation, including operation that identifies audit findings
 
-#### 25.5.1.9. `dafny test` {#sec-dafny-test}
+#### 25.5.1.9. `dafny format` {#sec-dafny-format}
+
+This command is not yet released, but will be a command that formats source code to a consistent style.
+
+#### 25.5.1.10. `dafny test` {#sec-dafny-test}
  
 This _experimental_ command (verifies and compiles the program and) runs every method in the program that is annotated with the `{:test}` attribute.
 Verification can be disabled using the `--no-verify` option. `dafny test` also accepts all other options of the `dafny build` command. 
@@ -371,7 +392,7 @@ Hi!
 PASSED
 ```
 
-#### 25.5.1.10. `dafny generate-tests` {#sec-dafny-generate-tests}
+#### 25.5.1.11. `dafny generate-tests` {#sec-dafny-generate-tests}
 
 This _experimental_ command (verifies the program and) then generates unit test code (as Dafny source code) that provides
 complete coverage of the method.
@@ -380,23 +401,24 @@ Such methods must be static and have no input parameters.
 
 _This command is under development and not yet functional._
 
-#### 25.5.1.11. `dafny find-dead-code` {#sec-dafny-find-dead-code}
+#### 25.5.1.12. `dafny find-dead-code` {#sec-dafny-find-dead-code}
 
 This _experimental_ command finds dead code in a program, that is, code branches within a method that are not reachable by any inputs that satisfy 
 the method's preconditions.
 
 _This command is under development and not yet functional._
 
-#### 25.5.1.12. Plugins
+#### 25.5.1.13. Plugins
 
 This execution mode is not a command, per se, but rather a command-line option that enables executing plugins to the dafny tool.
+Plugins may be either standalone tools or be additions to existing commands.
 
-The form of the command-line is `dafny --plugin:<path-to-one-assembly[,argument]*>`
+The form of the command-line is `dafny --plugin:<path-to-one-assembly[,argument]*>` or `dafny <command> --plugin:<path-to-one-assembly[,argument]*>`
 where the argument to `--plugin` gives the path to the compiled assemply of the plugin and the arguments to be provided to the plugin.
 
 More on writing and building plugins can be found [in this section](#sec-plugins).
 
-#### 25.5.1.13. Legacy operation
+#### 25.5.1.14. Legacy operation
 
 Prior to implementing the command-based CLI, the `dafny` command-line simply took files and options and the arguments to options.
 That legacy mode of operation is still supported, though discouraged. The command `dafny -?` produces the list of legacy options.
