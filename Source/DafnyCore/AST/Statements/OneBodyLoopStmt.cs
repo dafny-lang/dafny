@@ -11,9 +11,11 @@ public abstract class OneBodyLoopStmt : LoopStmt {
   protected OneBodyLoopStmt(Cloner cloner, OneBodyLoopStmt original) : base(cloner, original) {
     Body = (BlockStmt)cloner.CloneStmt(original.Body);
     if (cloner.CloneResolvedFields) {
-      BodySurrogate = new WhileStmt.LoopBodySurrogate(
-        original.BodySurrogate.LocalLoopTargets.Select(v => cloner.CloneIVariable(v, true)).ToList(),
-        original.BodySurrogate.UsesHeap);
+      if (original.BodySurrogate != null) {
+        BodySurrogate = new WhileStmt.LoopBodySurrogate(
+          original.BodySurrogate.LocalLoopTargets.Select(v => cloner.CloneIVariable(v, true)).ToList(),
+          original.BodySurrogate.UsesHeap);
+      }
     }
   }
 
