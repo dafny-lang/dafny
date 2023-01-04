@@ -76,7 +76,7 @@ implicit top-level class and are implicitly `static` (but cannot be
 declared as static). In addition a ``ClassMemberDecl`` that appears at
 the top level cannot be a ``FieldDecl``.
 
-## 3.3. Declaration Modifiers
+## 3.3. Declaration Modifiers {#sec-declaration-modifiers}
 ````grammar
 DeclModifier = ( "abstract" | "ghost" | "static" )
 ````

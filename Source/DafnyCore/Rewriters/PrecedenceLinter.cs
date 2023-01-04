@@ -178,7 +178,6 @@ namespace Microsoft.Dafny {
         Visit(ternaryExpr.E2, st);
         return false; // indicate that we've already processed expr's subexpressions
 
-#if REVISIT_AFTER_PR_2734
       } else if (expr is NestedMatchExpr nestedMatchExpr) {
         // Handle each case like the "else" of an if-then-else
         Attributes.SubExpressions(nestedMatchExpr.Attributes).Iter(VisitIndependentComponent);
@@ -192,22 +191,8 @@ namespace Microsoft.Dafny {
             VisitIndependentComponent(body);
           }
         }
+
         return false; // indicate that we've already processed expr's subexpressions
-#else
-      } else if (expr is NestedMatchExpr nestedMatchExpr) {
-        // Handle each case like the "else" of an if-then-else
-        Attributes.SubExpressions(nestedMatchExpr.Attributes).Iter(VisitIndependentComponent);
-        VisitIndependentComponent(nestedMatchExpr.Source);
-        // Handle the cases via MatchExpr
-        Visit(nestedMatchExpr.ResolvedExpression, null);
-        return false; // indicate that we've already processed expr's subexpressions
-      } else if (expr is MatchExpr matchExpr) {
-        // The Source was already handled in NestedMatchExpr
-        foreach (var mc in matchExpr.Cases) {
-          VisitIndependentComponent(mc.Body);
-        }
-        return false; // indicate that we've already processed expr's subexpressions
-#endif
       }
 
       return base.VisitOneExpr(expr, ref st);
