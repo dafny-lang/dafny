@@ -36,4 +36,4 @@ BitvectorsMore.dfy(171,33): Error: when converting shift amount to a bit vector,
 BitvectorsMore.dfy(193,26): Error: shift amount must not exceed the width of the result (5)
 BitvectorsMore.dfy(194,26): Error: shift amount must not exceed the width of the result (5)
 
-Dafny program verifier finished with 9 verified, 37 errors
+Dafny program verifier finished with 37 errors

@@ -91,7 +91,7 @@ DirtyLoops.dfy(452,6): Error: loop modifies clause might violate context's modif
 DirtyLoops.dfy(468,6): Error: loop modifies clause might violate context's modifies clause
 DirtyLoops.dfy(485,6): Error: loop modifies clause might violate context's modifies clause
 
-Dafny program verifier finished with 22 verified, 46 errors
+Dafny program verifier finished with 46 errors
 DirtyLoops.dfy.tmp.dprint.dfy(446,4): Warning: note, this loop has no body (loop frame: $Heap)
 DirtyLoops.dfy.tmp.dprint.dfy(455,4): Warning: note, this loop has no body (loop frame: $Heap)
 DirtyLoops.dfy.tmp.dprint.dfy(471,6): Warning: note, this loop has no body (loop frame: i, $Heap)

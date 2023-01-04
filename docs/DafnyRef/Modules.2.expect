@@ -1,4 +1,4 @@
 text.dfy(9,6): Error: value does not satisfy the subset constraints of 'nat'
 text.dfy(12,21): Error: assertion might not hold
 
-Dafny program verifier finished with 1 verified, 2 errors
+Dafny program verifier finished with 2 errors

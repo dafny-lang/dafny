@@ -3,4 +3,4 @@ git-issue-1163.dfy(21,42): Error: receiver argument might not be allocated in th
 git-issue-1163.dfy(23,44): Error: argument might not be allocated in the state in which the function is invoked
 git-issue-1163.dfy(27,40): Error: receiver argument might not be allocated in the state in which the function is invoked
 
-Dafny program verifier finished with 2 verified, 3 errors
+Dafny program verifier finished with 3 errors

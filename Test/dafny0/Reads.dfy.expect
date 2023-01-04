@@ -11,4 +11,4 @@ Reads.dfy(122,35): Error: function precondition might not hold
 Reads.dfy(122,35): Error: insufficient reads clause to invoke function
 Reads.dfy(125,37): Error: insufficient reads clause to invoke function
 
-Dafny program verifier finished with 19 verified, 12 errors
+Dafny program verifier finished with 12 errors

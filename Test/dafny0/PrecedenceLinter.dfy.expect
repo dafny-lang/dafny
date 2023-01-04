@@ -22,4 +22,4 @@ PrecedenceLinter.dfy(463,11): Warning: unusual indentation in else branch of if-
 PrecedenceLinter.dfy(478,17): Warning: unusual indentation in else branch of if-then-else (which ends at line 479, column 9); do you perhaps need parentheses?
 PrecedenceLinter.dfy(480,17): Warning: unusual indentation in else branch of if-then-else (which ends at line 481, column 13); do you perhaps need parentheses?
 
-Dafny program verifier finished with 17 verified, 0 errors
+Dafny program verifier finished with 0 errors

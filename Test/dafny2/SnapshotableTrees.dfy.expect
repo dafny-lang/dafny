@@ -19,7 +19,7 @@ SnapshotableTrees.dfy(595,15): Related location: This is the precondition that m
 SnapshotableTrees.dfy(497,18): Related location
 SnapshotableTrees.dfy(518,9): Related location
 
-Dafny program verifier finished with 52 verified, 5 errors
+Dafny program verifier finished with 5 errors
 Main iterates on -15
 Main iterates on 0
 Main iterates on 1

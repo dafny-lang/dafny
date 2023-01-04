@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 11 verified, 0 errors
+Dafny program verifier finished with 0 errors
 ns = List.Cons(4, List.Cons(10, List.Nil))
 Sum(ns) = 14
 ns' = List.Cons(20, List.Nil)

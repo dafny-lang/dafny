@@ -4,4 +4,4 @@ git-issue-2605.dfy(7,13): Error: index out of range
 git-issue-2605.dfy(7,21): Error: index out of range
 git-issue-2605.dfy(9,11): Error: assertion might not hold
 
-Dafny program verifier finished with 0 verified, 5 errors
+Dafny program verifier finished with 5 errors

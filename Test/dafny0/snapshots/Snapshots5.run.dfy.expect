@@ -9,7 +9,7 @@ Processing command (at Snapshots5.v0.dfy(13,38)) assert (forall b#1: bool :: tru
 Processing command (at Snapshots5.v0.dfy(20,40)) assert (forall b#3_1: bool :: true ==> b#3_1 || !b#3_1) || 1 != 1;
   >>> DoNothingToAssert
 
-Dafny program verifier finished with 1 verified, 0 errors
+Dafny program verifier finished with 0 errors
 Snapshots5.v1.dfy(10,12): Warning: /!\ No terms found to trigger on.
 Snapshots5.v1.dfy(13,10): Warning: /!\ No terms found to trigger on.
 Snapshots5.v1.dfy(20,12): Warning: /!\ No terms found to trigger on.
@@ -24,4 +24,4 @@ Processing command (at Snapshots5.v1.dfy(20,37)) assert (exists b#3_1: bool :: L
 Processing command (at Snapshots5.v1.dfy(22,35)) assert (exists b#3: bool :: Lit(true)) || 5 != 5;
   >>> DoNothingToAssert
 
-Dafny program verifier finished with 1 verified, 0 errors
+Dafny program verifier finished with 0 errors

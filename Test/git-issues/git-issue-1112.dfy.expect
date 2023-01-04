@@ -21,4 +21,4 @@ git-issue-1112.dfy(99,16): Error: index 1 out of range
 git-issue-1112.dfy(107,11): Error: array might be null
 git-issue-1112.dfy(108,11): Error: array might be null
 
-Dafny program verifier finished with 5 verified, 22 errors
+Dafny program verifier finished with 22 errors

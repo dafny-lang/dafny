@@ -9,4 +9,4 @@ git-issue51.dfy(69,12): Error: parameter at index 0 ('a') might not be allocated
 git-issue51.dfy(75,15): Error: receiver might not be allocated in the state in which its fields are accessed
 git-issue51.dfy(79,11): Error: argument at index 0 ('a') might not be allocated in the two-state function's previous state
 
-Dafny program verifier finished with 2 verified, 10 errors
+Dafny program verifier finished with 10 errors

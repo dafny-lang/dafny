@@ -23,4 +23,4 @@ AutoContracts.dfy[N1](65,14): Related location
 AutoContracts.dfy(79,21): Error: A postcondition might not hold on this return path.
 AutoContracts.dfy(60,16): Related location: This is the postcondition that might not hold.
 
-Dafny program verifier finished with 37 verified, 9 errors
+Dafny program verifier finished with 9 errors

@@ -8,4 +8,4 @@ some-proofs-only-work-without-autoTriggers.dfy(20,11): Error: assertion might no
 some-proofs-only-work-without-autoTriggers.dfy(28,11): Error: assertion might not hold
 some-proofs-only-work-without-autoTriggers.dfy(33,11): Error: assertion might not hold
 
-Dafny program verifier finished with 0 verified, 3 errors
+Dafny program verifier finished with 3 errors

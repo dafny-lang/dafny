@@ -4,4 +4,4 @@ RealCompare.dfy(48,12): Related location
 RealCompare.dfy(141,11): Error: assertion might not hold
 RealCompare.dfy(156,11): Error: assertion might not hold
 
-Dafny program verifier finished with 10 verified, 4 errors
+Dafny program verifier finished with 4 errors

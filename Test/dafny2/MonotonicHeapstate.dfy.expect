@@ -4,4 +4,4 @@ MonotonicHeapstate.dfy(106,13): Warning: the ... refinement feature in statement
 MonotonicHeapstate.dfy(146,9): Warning: the ... refinement feature in statements is deprecated
 MonotonicHeapstate.dfy(147,13): Warning: the ... refinement feature in statements is deprecated
 
-Dafny program verifier finished with 24 verified, 0 errors
+Dafny program verifier finished with 0 errors

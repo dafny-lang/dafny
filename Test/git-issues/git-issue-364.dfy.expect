@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 4 verified, 0 errors
+Dafny program verifier finished with 0 errors
 NatOutcome.Success(55) false 55
 12 0
 NatOutcome.Failure(it could be worse) true NatOutcome.Failure(it could be worse)

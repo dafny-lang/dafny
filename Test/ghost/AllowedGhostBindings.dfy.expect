@@ -14,4 +14,4 @@ method Test2()
   assert tuple0 == tuple1;
 }
 
-Dafny program verifier finished with 2 verified, 0 errors
+Dafny program verifier finished with 0 errors

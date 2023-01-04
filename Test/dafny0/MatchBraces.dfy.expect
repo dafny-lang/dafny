@@ -124,7 +124,7 @@ method MoreDegenerateExamples(c: Color)
   }
 }
 
-Dafny program verifier finished with 5 verified, 0 errors
+Dafny program verifier finished with 0 errors
 
 Dafny program verifier did not attempt verification
 7 0.18 Color.Red 13 12

@@ -440,7 +440,7 @@ method PrintRotates<T>(s: string, a: T, b: T)
   print "PrintRotates: ", s, ": ", a, " ", b, "\n";
 }
 
-Dafny program verifier finished with 11 verified, 0 errors
+Dafny program verifier finished with 0 errors
 
 Dafny program verifier did not attempt verification
 4000 4000 4000 0

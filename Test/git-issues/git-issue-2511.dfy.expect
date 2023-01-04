@@ -2,4 +2,4 @@ git-issue-2511.dfy(14,11): Error: assertion might not hold
 git-issue-2511.dfy(24,12): Error: decreases clause might not decrease
 git-issue-2511.dfy(51,11): Error: method's decreases clause must be below or equal to that in the trait
 
-Dafny program verifier finished with 3 verified, 3 errors
+Dafny program verifier finished with 3 errors

@@ -3,4 +3,4 @@ FunctionEquality.dfy(13,26): Error: assertion might not hold
 FunctionEquality.dfy(15,26): Error: assertion might not hold
 FunctionEquality.dfy(19,13): Error: assertion might not hold
 
-Dafny program verifier finished with 0 verified, 4 errors
+Dafny program verifier finished with 4 errors

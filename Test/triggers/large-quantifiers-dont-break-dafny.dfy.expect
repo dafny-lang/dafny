@@ -1,4 +1,4 @@
 large-quantifiers-dont-break-dafny.dfy(60,9): Info: Selected triggers:
    {P49(x)}, {P48(x)}, {P47(x)}, {P46(x)}, {P45(x)}, {P44(x)}, {P43(x)}, {P42(x)}, {P41(x)}, {P40(x)}, {P39(x)}, {P38(x)}, {P37(x)}, {P36(x)}, {P35(x)}, {P34(x)}, {P33(x)}, {P32(x)}, {P31(x)}, {P30(x)}, {P29(x)}, {P28(x)}, {P27(x)}, {P26(x)}, {P25(x)}, {P24(x)}, {P23(x)}, {P22(x)}, {P21(x)}, {P20(x)}, {P19(x)}, {P18(x)}, {P17(x)}, {P16(x)}, {P15(x)}, {P14(x)}, {P13(x)}, {P12(x)}, {P11(x)}, {P10(x)}, {P9(x)}, {P8(x)}, {P7(x)}, {P6(x)}, {P5(x)}, {P4(x)}, {P3(x)}, {P2(x)}, {P1(x)}, {P0(x)}
 
-Dafny program verifier finished with 1 verified, 0 errors
+Dafny program verifier finished with 0 errors

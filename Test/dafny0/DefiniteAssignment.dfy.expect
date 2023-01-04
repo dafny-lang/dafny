@@ -33,4 +33,4 @@ DefiniteAssignment.dfy(133,0): Error: out-parameter 'g', which is subject to def
 DefiniteAssignment.dfy(242,12): Error: variable 'a', which is subject to definite-assignment rules, might be uninitialized here
 DefiniteAssignment.dfy(243,12): Error: variable 'b', which is subject to definite-assignment rules, might be uninitialized here
 
-Dafny program verifier finished with 17 verified, 34 errors
+Dafny program verifier finished with 34 errors

@@ -5,4 +5,4 @@ Simple.dfy(49,8): Error: function precondition might not hold
 Simple.dfy(61,9): Error: function precondition might not hold
 Simple.dfy(73,9): Error: assertion might not hold
 
-Dafny program verifier finished with 5 verified, 6 errors
+Dafny program verifier finished with 6 errors

@@ -7,4 +7,4 @@ git-issue-817c.dfy(75,17): Error: left-hand sides ccc.data and c.data might refe
 git-issue-817c.dfy(83,14): Error: left-hand sides aaa[2] and a[2] might refer to the same location
 git-issue-817c.dfy(91,14): Error: left-hand sides aaa[2] and a[2] might refer to the same location
 
-Dafny program verifier finished with 6 verified, 8 errors
+Dafny program verifier finished with 8 errors

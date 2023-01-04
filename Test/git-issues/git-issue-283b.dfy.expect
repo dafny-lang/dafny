@@ -1,4 +1,4 @@
 git-issue-283b.dfy(14,6): Error: missing case in match expression: Success(C2(_))
 git-issue-283b.dfy(22,6): Error: missing case in match expression: Success(C2(_))
 
-Dafny program verifier finished with 0 verified, 2 errors
+Dafny program verifier finished with 2 errors

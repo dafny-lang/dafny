@@ -3,7 +3,7 @@ CompilationErrors.dfy(73,2): Warning: note, this loop has no body (loop frame: i
 CompilationErrors.dfy(83,4): Warning: note, this loop has no body (loop frame: x)
 CompilationErrors.dfy(85,4): Warning: note, this loop has no body (loop frame: i, x)
 
-Dafny program verifier finished with 5 verified, 0 errors
+Dafny program verifier finished with 0 errors
 CompilationErrors.dfy(6,13): Error: Method _module._default.M has no body
 CompilationErrors.dfy(7,7): Error: Method _module._default.P has no body
 CompilationErrors.dfy(19,9): Error: Function _module._default.F has no body

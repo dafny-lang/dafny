@@ -30,4 +30,4 @@ CoinductiveProofs.dfy(209,0): Error: A postcondition might not hold on this retu
 CoinductiveProofs.dfy(208,21): Related location: This is the postcondition that might not hold.
 CoinductiveProofs.dfy(4,23): Related location
 
-Dafny program verifier finished with 23 verified, 12 errors
+Dafny program verifier finished with 12 errors

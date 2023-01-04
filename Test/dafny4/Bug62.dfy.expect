@@ -1,4 +1,4 @@
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier finished with 0 errors
 Bug62.dfy(13,9): Error: More than one method is declared as "Main". First declaration appeared at Bug62.dfy(6,9).
 Bug62.dfy(22,16): Error: More than one method is declared as "Main". First declaration appeared at Bug62.dfy(6,9).

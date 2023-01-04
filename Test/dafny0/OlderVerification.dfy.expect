@@ -12,4 +12,4 @@ OlderVerification.dfy(283,12): Error: an 'older' parameter might be newer than a
 OlderVerification.dfy(34,10): Error: the 'older' parameter might be newer than the other parameter when the predicate returns 'true'
 OlderVerification.dfy(42,10): Error: the 'older' parameter might be newer than the other parameter when the predicate returns 'true'
 
-Dafny program verifier finished with 19 verified, 13 errors
+Dafny program verifier finished with 13 errors

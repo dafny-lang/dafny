@@ -1,7 +1,7 @@
 Processing command (at Snapshots0.v0.dfy(4,10)) assert Lit(false);
   >>> DoNothingToAssert
 
-Dafny program verifier finished with 1 verified, 0 errors
+Dafny program verifier finished with 0 errors
 Processing call to procedure bar (call) in implementation foo (correctness) (at Snapshots0.v1.dfy(3,6)):
   >>> added axiom: (forall call0old#AT#$Heap: Heap, $Heap: Heap :: {:weight 30} { ##extracted_function##1(call0old#AT#$Heap, $Heap) } ##extracted_function##1(call0old#AT#$Heap, $Heap) == (true && Lit(false) && (forall $o: ref :: { $Heap[$o] } $o != null && read(call0old#AT#$Heap, $o, alloc) ==> $Heap[$o] == call0old#AT#$Heap[$o]) && $HeapSucc(call0old#AT#$Heap, $Heap)))
   >>> added after: a##cached##0 := a##cached##0 && ##extracted_function##1(call0old#AT#$Heap, $Heap);

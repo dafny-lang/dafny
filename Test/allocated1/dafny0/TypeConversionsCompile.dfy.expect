@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 8 verified, 0 errors
+Dafny program verifier finished with 0 errors
 3 4 5.0 5 6 -1.0 147573952589676412927 4294967295 127 0
 got 3, expected 3
 got 0, expected 0

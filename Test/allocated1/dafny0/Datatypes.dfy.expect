@@ -14,4 +14,4 @@ Datatypes.dfy(204,16): Error: destructor 'Car' can only be applied to datatype v
 Datatypes.dfy(225,16): Error: destructor 'c' can only be applied to datatype values constructed by 'T''
 Datatypes.dfy(48,21): Error: target object might not be allocated
 
-Dafny program verifier finished with 27 verified, 14 errors
+Dafny program verifier finished with 14 errors

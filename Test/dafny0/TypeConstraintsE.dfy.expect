@@ -1,4 +1,4 @@
 TypeConstraintsE.dfy(9,9): Error: value of expression (of type 'array<nat>') is not known to be an instance of type 'array<int>'
 TypeConstraintsE.dfy(27,13): Error: value of expression (of type 'array<nat>') is not known to be an instance of type 'array<int>'
 
-Dafny program verifier finished with 0 verified, 2 errors
+Dafny program verifier finished with 2 errors

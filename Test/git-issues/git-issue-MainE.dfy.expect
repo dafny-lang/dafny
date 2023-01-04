@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 1 verified, 0 errors
+Dafny program verifier finished with 0 errors
 
 Dafny program verifier did not attempt verification
 git-issue-MainE.dfy(20,9): Error: The method "A.Test" is not permitted as a main method (the method's non-ghost argument type should be an seq<string>, got int).

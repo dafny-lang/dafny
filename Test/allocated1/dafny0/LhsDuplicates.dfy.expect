@@ -5,4 +5,4 @@ LhsDuplicates.dfy(51,11): Error: left-hand sides c0.f and c0.f might refer to th
 LhsDuplicates.dfy(60,9): Error: left-hand sides a[i] and a[i] might refer to the same location
 LhsDuplicates.dfy(69,11): Error: left-hand sides a[i, j] and a[i, j] might refer to the same location
 
-Dafny program verifier finished with 1 verified, 6 errors
+Dafny program verifier finished with 6 errors

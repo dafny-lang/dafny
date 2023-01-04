@@ -1,6 +1,6 @@
 TypeMembers.dfy(117,30): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
 
-Dafny program verifier finished with 29 verified, 0 errors
+Dafny program verifier finished with 0 errors
 TypeMembers.dfy(117,30): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
 
 Dafny program verifier did not attempt verification

@@ -1,7 +1,7 @@
 Wellfounded.dfy(49,14): Warning: /!\ No terms found to trigger on.
 Wellfounded.dfy(77,5): Warning: /!\ No terms found to trigger on.
 
-Dafny program verifier finished with 3 verified, 0 errors
+Dafny program verifier finished with 0 errors
 M(d, d) = 10
 M(a1, d) = 10
 M(a2, d) = 10

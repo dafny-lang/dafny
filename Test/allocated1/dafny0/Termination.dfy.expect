@@ -23,4 +23,4 @@ Termination.dfy(1168,2): Error: cannot prove termination; try supplying a decrea
 Termination.dfy(361,46): Error: decreases clause might not decrease
 Termination.dfy(577,5): Error: cannot find witness that shows type is inhabited; try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
 
-Dafny program verifier finished with 95 verified, 23 errors
+Dafny program verifier finished with 23 errors

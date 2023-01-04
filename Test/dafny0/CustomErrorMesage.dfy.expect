@@ -15,4 +15,4 @@ CustomErrorMesage.dfy(42,63): Related message: position variable out of range
 CustomErrorMesage.dfy(43,63): Error: This loop invariant might not be maintained by the loop.
 CustomErrorMesage.dfy(43,63): Related message: output array doesn't match input arry
 
-Dafny program verifier finished with 1 verified, 9 errors
+Dafny program verifier finished with 9 errors

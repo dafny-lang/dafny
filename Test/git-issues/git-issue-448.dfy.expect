@@ -5,4 +5,4 @@ git-issue-448.dfy(25,6): Error: variable 'c', which is subject to definite-assig
 git-issue-448.dfy(27,13): Error: variable 'c', which is subject to definite-assignment rules, might be uninitialized here
 git-issue-448.dfy(40,8): Error: possible division by zero
 
-Dafny program verifier finished with 1 verified, 6 errors
+Dafny program verifier finished with 6 errors

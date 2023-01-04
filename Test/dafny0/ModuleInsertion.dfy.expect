@@ -417,7 +417,7 @@ module U {
   }
 }
 
-Dafny program verifier finished with 1 verified, 0 errors
+Dafny program verifier finished with 0 errors
 6 1 5 3
 20 17 22
 12 144 170

@@ -1,4 +1,4 @@
 regression-tests.dfy(15,4): Info: ==
 regression-tests.dfy(16,5): Warning: /!\ No terms found to trigger on.
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier finished with 0 errors

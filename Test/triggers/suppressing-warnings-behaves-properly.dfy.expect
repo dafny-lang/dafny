@@ -11,4 +11,4 @@ suppressing-warnings-behaves-properly.dfy(19,9): Warning: Selected triggers: {f(
  /!\ There is no warning here to suppress.
 suppressing-warnings-behaves-properly.dfy(20,9): Info: Not generating triggers for "(n != 0) == f(n) || true". Note that {:autotriggers false} can cause instabilities. Consider using {:nowarn}, {:matchingloop} (not great either), or a manual trigger instead.
 
-Dafny program verifier finished with 1 verified, 0 errors
+Dafny program verifier finished with 0 errors

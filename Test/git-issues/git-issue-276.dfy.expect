@@ -19,4 +19,4 @@ git-issue-276.dfy(25,17): Error: result of operation might violate newtype const
 git-issue-276.dfy(29,18): Error: result of operation might violate newtype constraint for 'b2'
 git-issue-276.dfy(32,18): Error: result of operation might violate newtype constraint for 'b3'
 
-Dafny program verifier finished with 18 verified, 3 errors
+Dafny program verifier finished with 3 errors

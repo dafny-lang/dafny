@@ -1,4 +1,4 @@
 
-Dafny program verifier finished with 2 verified, 0 errors
+Dafny program verifier finished with 0 errors
 RuntimeTypeTests2.dfy(15,4): Error: this assign-such-that statement is too advanced for the current compiler; Dafny's heuristics cannot find any bound for variable 'b'
 RuntimeTypeTests2.dfy(22,7): Error: this let-such-that expression is too advanced for the current compiler; Dafny's heuristics cannot find any bound for variable 'b'

@@ -4,4 +4,4 @@ Includee.dfy(24,17): Error: assertion might not hold
 Includee.dfy(6,0): Error: A postcondition might not hold on this return path.
 Includee.dfy(5,12): Related location: This is the postcondition that might not hold.
 
-Dafny program verifier finished with 1 verified, 3 errors
+Dafny program verifier finished with 3 errors
