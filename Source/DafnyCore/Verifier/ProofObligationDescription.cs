@@ -279,7 +279,7 @@ public class PreconditionSatisfied : ProofObligationDescription {
       : $"error is impossible: {customErrMsg}";
 
   public override string FailureDescription =>
-    customErrMsg ?? "Could not prove function precondition";
+    customErrMsg ?? "could not prove function precondition";
 
   public override string ShortDescription => "precondition";
 
@@ -297,7 +297,7 @@ public class AssertStatement : ProofObligationDescription {
       : $"error is impossible: {customErrMsg}";
 
   public override string FailureDescription =>
-    customErrMsg ?? "Could not prove assertion";
+    customErrMsg ?? "could not prove assertion";
 
   public override string ShortDescription => "assert statement";
 

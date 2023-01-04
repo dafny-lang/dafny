@@ -1,6 +1,6 @@
-sequences-literals.dfy(23,9): Error: Could not prove assertion
-sequences-literals.dfy(44,11): Error: Could not prove assertion
-sequences-literals.dfy(61,9): Error: Could not prove assertion
-sequences-literals.dfy(76,9): Error: Could not prove assertion
+sequences-literals.dfy(23,9): Error: could not prove assertion
+sequences-literals.dfy(44,11): Error: could not prove assertion
+sequences-literals.dfy(61,9): Error: could not prove assertion
+sequences-literals.dfy(76,9): Error: could not prove assertion
 
 Dafny program verifier finished with 4 verified, 4 errors

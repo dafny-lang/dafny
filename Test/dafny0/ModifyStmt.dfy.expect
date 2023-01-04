@@ -6,16 +6,16 @@ ModifyStmt.dfy(163,8): Warning: the modify statement with a block statement is d
 ModifyStmt.dfy(164,6): Warning: the modify statement with a block statement is deprecated
 ModifyStmt.dfy(165,4): Warning: the modify statement with a block statement is deprecated
 ModifyStmt.dfy(180,4): Warning: the modify statement with a block statement is deprecated
-ModifyStmt.dfy(27,13): Error: Could not prove assertion
+ModifyStmt.dfy(27,13): Error: could not prove assertion
 ModifyStmt.dfy(42,4): Error: modify statement might violate context's modifies clause
 ModifyStmt.dfy(48,4): Error: modify statement might violate context's modifies clause
 ModifyStmt.dfy(61,4): Error: modify statement might violate context's modifies clause
-ModifyStmt.dfy(70,13): Error: Could not prove assertion
-ModifyStmt.dfy(89,13): Error: Could not prove assertion
-ModifyStmt.dfy(99,13): Error: Could not prove assertion
-ModifyStmt.dfy(110,13): Error: Could not prove assertion
-ModifyStmt.dfy(122,15): Error: Could not prove assertion
+ModifyStmt.dfy(70,13): Error: could not prove assertion
+ModifyStmt.dfy(89,13): Error: could not prove assertion
+ModifyStmt.dfy(99,13): Error: could not prove assertion
+ModifyStmt.dfy(110,13): Error: could not prove assertion
+ModifyStmt.dfy(122,15): Error: could not prove assertion
 ModifyStmt.dfy(134,6): Error: assignment might update an object not in the enclosing context's modifies clause
-ModifyStmt.dfy(172,14): Error: Could not prove assertion
+ModifyStmt.dfy(172,14): Error: could not prove assertion
 
 Dafny program verifier finished with 11 verified, 11 errors

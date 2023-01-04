@@ -1,22 +1,22 @@
 Basics.dfy(623,17): Error: result of operation might violate newtype constraint for 'int8'
-Basics.dfy(45,13): Error: Could not prove assertion
-Basics.dfy(69,41): Error: Could not prove assertion
-Basics.dfy(93,13): Error: Could not prove assertion
-Basics.dfy(99,13): Error: Could not prove assertion
+Basics.dfy(45,13): Error: could not prove assertion
+Basics.dfy(69,41): Error: could not prove assertion
+Basics.dfy(93,13): Error: could not prove assertion
+Basics.dfy(99,13): Error: could not prove assertion
 Basics.dfy(112,27): Error: target object might be null
 Basics.dfy(114,13): Error: target object might be null
-Basics.dfy(148,15): Error: Could not prove assertion
+Basics.dfy(148,15): Error: could not prove assertion
 Basics.dfy(167,9): Error: when left-hand sides a[b[18]] and a[4] refer to the same location, they must be assigned the same value
 Basics.dfy(183,9): Error: when left-hand sides x.f and y.f refer to the same location, they must be assigned the same value
-Basics.dfy(195,18): Error: Could not prove assertion
+Basics.dfy(195,18): Error: could not prove assertion
 Basics.dfy(197,9): Error: assignment might update an object not in the enclosing context's modifies clause
 Basics.dfy(197,9): Error: target object might be null
 Basics.dfy(202,11): Error: left-hand sides m.x and m.x might refer to the same location
-Basics.dfy(213,14): Error: Could not prove assertion
+Basics.dfy(213,14): Error: could not prove assertion
 Basics.dfy(273,9): Error: when left-hand sides d.x and c.x refer to the same location, they must be assigned the same value
-Basics.dfy(463,11): Error: Could not prove assertion
-Basics.dfy(474,18): Error: Could not prove assertion
-Basics.dfy(476,11): Error: Could not prove assertion
+Basics.dfy(463,11): Error: could not prove assertion
+Basics.dfy(474,18): Error: could not prove assertion
+Basics.dfy(476,11): Error: could not prove assertion
 Basics.dfy(13,13): Error: variable 'g', which is subject to definite-assignment rules, might be uninitialized here
 
 Dafny program verifier finished with 48 verified, 20 errors

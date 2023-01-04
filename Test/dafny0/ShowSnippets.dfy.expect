@@ -1,9 +1,9 @@
-ShowSnippets.dfy(13,9): Error: Could not prove assertion
+ShowSnippets.dfy(13,9): Error: could not prove assertion
    |
 13 |   assert false;
    |          ^^^^^
 
-ShowSnippets.dfy(17,2): Error: Could not prove a precondition for this call.
+ShowSnippets.dfy(17,2): Error: could not prove a precondition for this call.
    |
 17 |   Never();
    |   ^^^^^^^^

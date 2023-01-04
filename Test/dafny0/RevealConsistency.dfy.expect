@@ -1,4 +1,4 @@
-RevealConsistency.dfy(7,9): Error: Could not prove a postcondition on this return path.
-RevealConsistency.dfy(8,14): Related location: This is the postcondition that could not be proven.
+RevealConsistency.dfy(7,9): Error: could not prove a postcondition on this return path.
+RevealConsistency.dfy(8,14): Related location: this is the postcondition that could not be proven.
 
 Dafny program verifier finished with 1 verified, 1 error

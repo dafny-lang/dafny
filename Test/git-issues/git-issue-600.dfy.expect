@@ -1,4 +1,4 @@
-git-issue-600.dfy(20,0): Error: Could not prove a postcondition on this return path.
-git-issue-600.dfy(19,10): Related location: This is the postcondition that could not be proven.
+git-issue-600.dfy(20,0): Error: could not prove a postcondition on this return path.
+git-issue-600.dfy(19,10): Related location: this is the postcondition that could not be proven.
 
 Dafny program verifier finished with 2 verified, 1 error

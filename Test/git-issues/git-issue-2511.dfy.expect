@@ -1,4 +1,4 @@
-git-issue-2511.dfy(14,11): Error: Could not prove assertion
+git-issue-2511.dfy(14,11): Error: could not prove assertion
 git-issue-2511.dfy(24,12): Error: decreases clause might not decrease
 git-issue-2511.dfy(51,11): Error: method's decreases clause must be below or equal to that in the trait
 

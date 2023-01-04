@@ -1,6 +1,6 @@
-FnRef.dfy(17,44): Error: Could not prove function precondition
-FnRef.dfy(32,7): Error: Could not prove function precondition
-FnRef.dfy(46,11): Error: Could not prove assertion
-FnRef.dfy(65,13): Error: Could not prove assertion
+FnRef.dfy(17,44): Error: could not prove function precondition
+FnRef.dfy(32,7): Error: could not prove function precondition
+FnRef.dfy(46,11): Error: could not prove assertion
+FnRef.dfy(65,13): Error: could not prove assertion
 
 Dafny program verifier finished with 0 verified, 4 errors

@@ -3,8 +3,8 @@ MiscTypeInferenceTests.dfy(95,16): Warning: the type of the other operand is a s
 MiscTypeInferenceTests.dfy(14,59): Error: value does not satisfy the subset constraints of 'neg'
 MiscTypeInferenceTests.dfy(24,11): Error: value does not satisfy the subset constraints of 'int -> int' (possible cause: it may be partial or have read effects)
 MiscTypeInferenceTests.dfy(27,11): Error: value does not satisfy the subset constraints of 'int ~> nat'
-MiscTypeInferenceTests.dfy(50,13): Error: Could not prove function precondition
-MiscTypeInferenceTests.dfy(50,16): Error: Could not prove assertion
+MiscTypeInferenceTests.dfy(50,13): Error: could not prove function precondition
+MiscTypeInferenceTests.dfy(50,16): Error: could not prove assertion
 MiscTypeInferenceTests.dfy(109,18): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 MiscTypeInferenceTests.dfy(110,18): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 MiscTypeInferenceTests.dfy(143,15): Error: value does not satisfy the subset constraints of 'nat'

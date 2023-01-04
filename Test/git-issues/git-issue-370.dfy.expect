@@ -1,17 +1,17 @@
-git-issue-370.dfy(45,0): Error: Could not prove a postcondition on this return path.
-git-issue-370.dfy(43,7): Related location: This is the postcondition that could not be proven.
+git-issue-370.dfy(45,0): Error: could not prove a postcondition on this return path.
+git-issue-370.dfy(43,7): Related location: this is the postcondition that could not be proven.
 git-issue-370.dfy(19,5): Related location
-git-issue-370.dfy(45,0): Error: Could not prove a postcondition on this return path.
-git-issue-370.dfy(44,7): Related location: This is the postcondition that could not be proven.
+git-issue-370.dfy(45,0): Error: could not prove a postcondition on this return path.
+git-issue-370.dfy(44,7): Related location: this is the postcondition that could not be proven.
 git-issue-370.dfy(29,9): Related location
-git-issue-370.dfy(45,0): Error: Could not prove a postcondition on this return path.
-git-issue-370.dfy(44,7): Related location: This is the postcondition that could not be proven.
+git-issue-370.dfy(45,0): Error: could not prove a postcondition on this return path.
+git-issue-370.dfy(44,7): Related location: this is the postcondition that could not be proven.
 git-issue-370.dfy(30,9): Related location
-git-issue-370.dfy(45,0): Error: Could not prove a postcondition on this return path.
-git-issue-370.dfy(44,7): Related location: This is the postcondition that could not be proven.
+git-issue-370.dfy(45,0): Error: could not prove a postcondition on this return path.
+git-issue-370.dfy(44,7): Related location: this is the postcondition that could not be proven.
 git-issue-370.dfy(31,9): Related location
-git-issue-370.dfy(45,0): Error: Could not prove a postcondition on this return path.
-git-issue-370.dfy(44,7): Related location: This is the postcondition that could not be proven.
+git-issue-370.dfy(45,0): Error: could not prove a postcondition on this return path.
+git-issue-370.dfy(44,7): Related location: this is the postcondition that could not be proven.
 git-issue-370.dfy(32,9): Related location
 
 Dafny program verifier finished with 1 verified, 5 errors

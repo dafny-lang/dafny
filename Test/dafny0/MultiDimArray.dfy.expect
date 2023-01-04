@@ -1,4 +1,4 @@
-MultiDimArray.dfy(53,20): Error: Could not prove assertion
-MultiDimArray.dfy(79,24): Error: Could not prove assertion
+MultiDimArray.dfy(53,20): Error: could not prove assertion
+MultiDimArray.dfy(79,24): Error: could not prove assertion
 
 Dafny program verifier finished with 5 verified, 2 errors

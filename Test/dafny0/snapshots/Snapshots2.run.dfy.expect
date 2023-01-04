@@ -18,7 +18,7 @@ Processing implementation Q (well-formedness) (at Snapshots2.v1.dfy(13,11)):
   >>> added after assuming the current precondition: a##cached##0 := a##cached##0 && false;
 Processing command (at Snapshots2.v1.dfy(4,10)) assert Lit(false);
   >>> DoNothingToAssert
-Snapshots2.v1.dfy(4,9): Error: Could not prove assertion
+Snapshots2.v1.dfy(4,9): Error: could not prove assertion
 Processing command (at Snapshots2.v1.dfy(11,11)) assert true;
   >>> DoNothingToAssert
 Processing command (at Snapshots2.v1.dfy(11,15)) assert _module.__default.P() <==> _module.__default.Q();

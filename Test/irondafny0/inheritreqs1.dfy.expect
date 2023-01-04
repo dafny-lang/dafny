@@ -1,4 +1,4 @@
-inheritreqs1.dfy(20,13): Error: Could not prove a precondition for this call.
+inheritreqs1.dfy(20,13): Error: could not prove a precondition for this call.
 inheritreqs1.dfy(15,17): Related location: This is the precondition that could not be proven.
 
 Dafny program verifier finished with 0 verified, 1 error

@@ -84,7 +84,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private readonly string entryDocumentsource;
 
     public static string FormatRelated(string related) {
-      return $"Could not prove: {related}";
+      return $"could not prove: {related}";
     }
 
     private IEnumerable<DiagnosticRelatedInformation> CreateDiagnosticRelatedInformationFor(IToken token, string message) {
@@ -93,7 +93,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         var rangeLength = range.EndToken.pos + range.EndToken.val.Length - range.StartToken.pos;
         if (message == PostConditionFailingMessage) {
           var postcondition = entryDocumentsource.Substring(range.StartToken.pos, rangeLength);
-          message = $"Could not prove this postcondition: {postcondition}";
+          message = $"could not prove this postcondition: {postcondition}";
         } else if (message == "Related location") {
           var tokenUri = tokenForMessage.GetDocumentUri();
           if (tokenUri == entryDocumentUri) {

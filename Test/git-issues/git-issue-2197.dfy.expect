@@ -1,9 +1,9 @@
-git-issue-2197.dfy(11,0): Error: Could not prove a postcondition on this return path.
+git-issue-2197.dfy(11,0): Error: could not prove a postcondition on this return path.
    |
 11 | {
    | ^
 
-git-issue-2197.dfy(10,10): Related location: This is the postcondition that could not be proven.
+git-issue-2197.dfy(10,10): Related location: this is the postcondition that could not be proven.
    |
 10 |   ensures Test(y)
    |           ^^^^^^^
@@ -13,17 +13,17 @@ git-issue-2197.dfy(6,2): Related location
 6 |   y >= 1
   |   ^^^^^^
 
-git-issue-2197.dfy(17,0): Error: Could not prove a postcondition on this return path.
+git-issue-2197.dfy(17,0): Error: could not prove a postcondition on this return path.
    |
 17 | {
    | ^
 
-git-issue-2197.dfy(16,30): Related location: This is the postcondition that could not be proven.
+git-issue-2197.dfy(16,30): Related location: this is the postcondition that could not be proven.
    |
 16 |   ensures 0 <= y < |test| ==> test[y]
    |                               ^^^^^^^
 
-git-issue-2197.dfy(22,2): Error: Could not prove a precondition for this call.
+git-issue-2197.dfy(22,2): Error: could not prove a precondition for this call.
    |
 22 |   Never();
    |   ^^^^^^^^

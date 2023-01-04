@@ -2,13 +2,13 @@ CustomErrorMesage.dfy(6,45): Error: m: x must be positive
 CustomErrorMesage.dfy(10,45): Error: f: x must be positive
 CustomErrorMesage.dfy(15,2): Error: when calling foo, you must supply a positive x
 CustomErrorMesage.dfy(19,71): Related location
-CustomErrorMesage.dfy(18,9): Error: Could not prove a postcondition on this return path.
+CustomErrorMesage.dfy(18,9): Error: could not prove a postcondition on this return path.
 CustomErrorMesage.dfy(20,85): Related location: cannot establish that return value of foo is always negative
-CustomErrorMesage.dfy(26,14): Error: Could not prove a precondition for this call.
+CustomErrorMesage.dfy(26,14): Error: could not prove a precondition for this call.
 CustomErrorMesage.dfy(30,71): Related location: when calling bar, you must supply a positive x
-CustomErrorMesage.dfy(32,0): Error: Could not prove a postcondition on this return path.
+CustomErrorMesage.dfy(32,0): Error: could not prove a postcondition on this return path.
 CustomErrorMesage.dfy(31,85): Related location: cannot establish that return value of bar is always negative
-CustomErrorMesage.dfy(42,63): Error: Could not prove this loop invariant on entry.
+CustomErrorMesage.dfy(42,63): Error: could not prove this loop invariant on entry.
 CustomErrorMesage.dfy(42,63): Related message: position variable out of range
 CustomErrorMesage.dfy(42,63): Error: This loop invariant might not be maintained by the loop.
 CustomErrorMesage.dfy(42,63): Related message: position variable out of range

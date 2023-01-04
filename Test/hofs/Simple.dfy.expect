@@ -1,8 +1,8 @@
 Simple.dfy(14,9): Error: possible division by zero
 Simple.dfy(27,9): Error: possible division by zero
-Simple.dfy(37,8): Error: Could not prove function precondition
-Simple.dfy(49,8): Error: Could not prove function precondition
-Simple.dfy(61,9): Error: Could not prove function precondition
-Simple.dfy(73,9): Error: Could not prove assertion
+Simple.dfy(37,8): Error: could not prove function precondition
+Simple.dfy(49,8): Error: could not prove function precondition
+Simple.dfy(61,9): Error: could not prove function precondition
+Simple.dfy(73,9): Error: could not prove assertion
 
 Dafny program verifier finished with 5 verified, 6 errors

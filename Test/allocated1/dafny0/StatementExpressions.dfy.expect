@@ -1,5 +1,5 @@
 StatementExpressions.dfy(55,11): Error: cannot prove termination; try supplying a decreases clause
-StatementExpressions.dfy(59,13): Error: Could not prove assertion
+StatementExpressions.dfy(59,13): Error: could not prove assertion
 StatementExpressions.dfy(77,5): Error: possible division by zero
 StatementExpressions.dfy(88,4): Error: value does not satisfy the subset constraints of 'nat'
 StatementExpressions.dfy(98,17): Error: cannot prove termination; try supplying a decreases clause

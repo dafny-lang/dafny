@@ -5,13 +5,13 @@ Verifying M0.C.M (correctness) ...
 
 Verifying M0.C.Q (well-formedness) ...
   [3 proof obligations]  error
-Superposition.dfy(20,14): Error: Could not prove a postcondition on this return path.
-Superposition.dfy(21,25): Related location: This is the postcondition that could not be proven.
+Superposition.dfy(20,14): Error: could not prove a postcondition on this return path.
+Superposition.dfy(21,25): Related location: this is the postcondition that could not be proven.
 
 Verifying M0.C.R (well-formedness) ...
   [3 proof obligations]  error
-Superposition.dfy(26,14): Error: Could not prove a postcondition on this return path.
-Superposition.dfy(27,25): Related location: This is the postcondition that could not be proven.
+Superposition.dfy(26,14): Error: could not prove a postcondition on this return path.
+Superposition.dfy(27,25): Related location: this is the postcondition that could not be proven.
 
 Verifying M1.C.M (correctness) ...
   [1 proof obligation]  verified

@@ -6,17 +6,17 @@ DTypes.dfy(231,14): Warning: the type of the other operand is a non-null type, s
 DTypes.dfy(232,14): Warning: the type of the other operand is a non-null type, so this comparison with 'null' will always return 'false' (to make it possible for variable 'c' to have the value 'null', declare its type to be 'Cell?<MyClass>')
 DTypes.dfy(233,14): Warning: the type of the other operand is a non-null type, so this comparison with 'null' will always return 'false' (to make it possible for variable 'd' to have the value 'null', declare its type to be 'Cell?<MyClass>')
 DTypes.dfy(64,13): Warning: the type of the other operand is a non-null type, so this comparison with 'null' will always return 'true' (to make it possible for variable 'a' to have the value 'null', declare its type to be 'CP?<int, C>')
-DTypes.dfy(179,2): Error: Could not prove a postcondition on this return path.
-DTypes.dfy(178,14): Related location: This is the postcondition that could not be proven.
-DTypes.dfy(18,13): Error: Could not prove assertion
-DTypes.dfy(56,17): Error: Could not prove assertion
-DTypes.dfy(121,11): Error: Could not prove assertion
+DTypes.dfy(179,2): Error: could not prove a postcondition on this return path.
+DTypes.dfy(178,14): Related location: this is the postcondition that could not be proven.
+DTypes.dfy(18,13): Error: could not prove assertion
+DTypes.dfy(56,17): Error: could not prove assertion
+DTypes.dfy(121,11): Error: could not prove assertion
 DTypes.dfy(93,29): Related location
-DTypes.dfy(127,11): Error: Could not prove assertion
+DTypes.dfy(127,11): Error: could not prove assertion
 DTypes.dfy(93,19): Related location
-DTypes.dfy(137,11): Error: Could not prove assertion
+DTypes.dfy(137,11): Error: could not prove assertion
 DTypes.dfy(132,4): Related location
 DTypes.dfy(93,19): Related location
-DTypes.dfy(156,11): Error: Could not prove assertion
+DTypes.dfy(156,11): Error: could not prove assertion
 
 Dafny program verifier finished with 21 verified, 7 errors

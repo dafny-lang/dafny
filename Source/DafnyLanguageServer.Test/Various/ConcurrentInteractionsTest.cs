@@ -102,7 +102,7 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       Assert.IsNotNull(document);
       Assert.AreEqual(documentItem.Version + 11, document.Version);
       Assert.AreEqual(1, document.Diagnostics.Count());
-      Assert.AreEqual("Could not prove assertion", document.Diagnostics.First().Message);
+      Assert.AreEqual("could not prove assertion", document.Diagnostics.First().Message);
     }
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]

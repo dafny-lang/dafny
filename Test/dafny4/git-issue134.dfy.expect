@@ -1,3 +1,3 @@
-git-issue134.dfy(13,21): Error: Could not prove assertion
+git-issue134.dfy(13,21): Error: could not prove assertion
 
 Dafny program verifier finished with 0 verified, 1 error

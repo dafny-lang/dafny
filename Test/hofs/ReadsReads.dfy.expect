@@ -2,17 +2,17 @@ ReadsReads.dfy(31,6): Error: insufficient reads clause to invoke function
 ReadsReads.dfy(36,4): Error: insufficient reads clause to invoke function
 ReadsReads.dfy(47,11): Error: insufficient reads clause to invoke function
 ReadsReads.dfy(58,6): Error: insufficient reads clause to invoke function
-ReadsReads.dfy(87,49): Error: Could not prove assertion
-ReadsReads.dfy(89,28): Error: Could not prove assertion
-ReadsReads.dfy(99,36): Error: Could not prove assertion
-ReadsReads.dfy(101,28): Error: Could not prove assertion
-ReadsReads.dfy(173,13): Error: Could not prove assertion
-ReadsReads.dfy(183,13): Error: Could not prove assertion
-ReadsReads.dfy(193,13): Error: Could not prove assertion
-ReadsReads.dfy(203,13): Error: Could not prove assertion
-ReadsReads.dfy(236,13): Error: Could not prove assertion
-ReadsReads.dfy(246,13): Error: Could not prove assertion
-ReadsReads.dfy(256,13): Error: Could not prove assertion
-ReadsReads.dfy(266,13): Error: Could not prove assertion
+ReadsReads.dfy(87,49): Error: could not prove assertion
+ReadsReads.dfy(89,28): Error: could not prove assertion
+ReadsReads.dfy(99,36): Error: could not prove assertion
+ReadsReads.dfy(101,28): Error: could not prove assertion
+ReadsReads.dfy(173,13): Error: could not prove assertion
+ReadsReads.dfy(183,13): Error: could not prove assertion
+ReadsReads.dfy(193,13): Error: could not prove assertion
+ReadsReads.dfy(203,13): Error: could not prove assertion
+ReadsReads.dfy(236,13): Error: could not prove assertion
+ReadsReads.dfy(246,13): Error: could not prove assertion
+ReadsReads.dfy(256,13): Error: could not prove assertion
+ReadsReads.dfy(266,13): Error: could not prove assertion
 
 Dafny program verifier finished with 16 verified, 16 errors
