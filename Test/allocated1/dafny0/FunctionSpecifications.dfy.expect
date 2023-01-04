@@ -15,4 +15,4 @@ FunctionSpecifications.dfy(146,2): Error: decreases clause might not decrease
 FunctionSpecifications.dfy(153,2): Error: decreases clause might not decrease
 FunctionSpecifications.dfy(158,2): Error: cannot prove termination; try supplying a decreases clause
 
-Dafny program verifier finished with 9 verified, 12 errors
+Dafny program verifier finished with 12 errors

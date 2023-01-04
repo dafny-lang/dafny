@@ -12,4 +12,4 @@ Modules1.dfy(56,8): Error: decreases expression must be bounded below by 0
 Modules1.dfy(54,12): Related location
 Modules1.dfy(62,8): Error: decreases clause might not decrease
 
-Dafny program verifier finished with 8 verified, 12 errors
+Dafny program verifier finished with 12 errors

@@ -14,7 +14,7 @@ LetExpr.dfy(311,41): Error: value does not satisfy the subset constraints of 'na
 LetExpr.dfy(313,11): Error: assertion might not hold
 LetExpr.dfy(323,11): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
 
-Dafny program verifier finished with 37 verified, 13 errors
+Dafny program verifier finished with 13 errors
 LetExpr.dfy.tmp.dprint.dfy(97,4): Warning: /!\ No terms found to trigger on.
 LetExpr.dfy.tmp.dprint.dfy(289,2): Warning: /!\ No terms found to trigger on.
 

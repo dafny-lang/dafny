@@ -96,4 +96,4 @@ AllocatedCommon.dfyi(301,26): Error: assertion might not hold
 AllocatedCommon.dfyi(302,26): Error: assertion might not hold
 AllocatedCommon.dfyi(310,9): Error: assertion might not hold
 
-Dafny program verifier finished with 15 verified, 97 errors
+Dafny program verifier finished with 97 errors

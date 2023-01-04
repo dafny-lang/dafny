@@ -5,4 +5,4 @@ method Test()
   var f: ((int, int)) -> int := (x: (int, int)) => 1;
 }
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier finished with 0 errors

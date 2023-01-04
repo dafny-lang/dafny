@@ -15,4 +15,4 @@ GhostDatatypeConstructors-Verification.dfy(143,9): Error: in a compiled context,
 GhostDatatypeConstructors-Verification.dfy(186,11): Error: in a compiled context, equality cannot be applied to a datatype value of a ghost variant (ghost constructor 'EnumA')
 GhostDatatypeConstructors-Verification.dfy(170,10): Error: in a compiled context, equality cannot be applied to a datatype value of a ghost variant (ghost constructor 'G0' or 'G1')
 
-Dafny program verifier finished with 4 verified, 16 errors
+Dafny program verifier finished with 16 errors

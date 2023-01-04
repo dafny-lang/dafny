@@ -31,4 +31,4 @@ LabelsOldAt.dfy(286,15): Error: some set element might not be allocated in the o
 LabelsOldAt.dfy(291,15): Error: some sequence element might be null
 LabelsOldAt.dfy(291,15): Error: some sequence element might not be allocated in the old-state of the 'unchanged' predicate
 
-Dafny program verifier finished with 3 verified, 31 errors
+Dafny program verifier finished with 31 errors

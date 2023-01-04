@@ -38,4 +38,4 @@ git-issue-276a.dfy(28,10): Error: cannot find witness that shows type is inhabit
 git-issue-276a.dfy(28,26): Related location
 git-issue-276a.dfy(28,35): Error: index out of range
 
-Dafny program verifier finished with 4 verified, 27 errors
+Dafny program verifier finished with 27 errors

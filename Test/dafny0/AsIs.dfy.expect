@@ -10,4 +10,4 @@ AsIs.dfy(139,15): Error: assertion might not hold
 AsIs.dfy(143,15): Error: assertion might not hold
 AsIs.dfy(148,15): Error: assertion might not hold
 
-Dafny program verifier finished with 7 verified, 11 errors
+Dafny program verifier finished with 11 errors

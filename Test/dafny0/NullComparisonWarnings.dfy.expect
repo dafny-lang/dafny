@@ -10,5 +10,5 @@ NullComparisonWarnings.dfy(38,12): Warning: the type of the other operand is a s
 NullComparisonWarnings.dfy(40,41): Warning: the type of the other operand is a non-null type, so this comparison with 'null' will always return 'true' (to make it possible for variable 'u' to have the value 'null', declare its type to be 'MyClass?')
 NullComparisonWarnings.dfy(45,12): Warning: the type of the other operand is a non-null type, so this comparison with 'null' will always return 'true'
 
-Dafny program verifier finished with 4 verified, 0 errors
+Dafny program verifier finished with 0 errors
 despite the warnings, the program still compiles

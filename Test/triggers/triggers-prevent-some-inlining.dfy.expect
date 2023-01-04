@@ -4,4 +4,4 @@ triggers-prevent-some-inlining.dfy(25,10): Info: Some instances of this call are
 triggers-prevent-some-inlining.dfy(24,10): Info: Some instances of this call are not inlined.
 triggers-prevent-some-inlining.dfy(25,10): Info: Some instances of this call are not inlined.
 
-Dafny program verifier finished with 1 verified, 0 errors
+Dafny program verifier finished with 0 errors

@@ -1,4 +1,4 @@
 MultiDimArray.dfy(53,20): Error: assertion might not hold
 MultiDimArray.dfy(79,24): Error: assertion might not hold
 
-Dafny program verifier finished with 5 verified, 2 errors
+Dafny program verifier finished with 2 errors

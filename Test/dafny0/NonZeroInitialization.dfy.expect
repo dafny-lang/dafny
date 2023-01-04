@@ -12,4 +12,4 @@ NonZeroInitialization.dfy(39,5): Error: cannot find witness that shows type is i
 NonZeroInitialization.dfy(53,0): Error: out-parameter 'g', which is subject to definite-assignment rules, might be uninitialized at this return point
 NonZeroInitialization.dfy(58,7): Error: unless an initializer is provided for the array elements, a new array of 'Yt<GW>' must have empty size
 
-Dafny program verifier finished with 11 verified, 13 errors
+Dafny program verifier finished with 13 errors

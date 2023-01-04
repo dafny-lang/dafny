@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 23 verified, 0 errors
+Dafny program verifier finished with 0 errors
 git-issue-663.dfy(239,10): Error: an assume statement without an {:axiom} attribute cannot be compiled
 git-issue-663.dfy(242,10): Error: an assume statement without an {:axiom} attribute cannot be compiled
 git-issue-663.dfy(245,16): Error: an assume statement without an {:axiom} attribute cannot be compiled

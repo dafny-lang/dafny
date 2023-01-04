@@ -25,4 +25,4 @@ loop-detection-messages--unit-tests.dfy(26,9): Warning: /!\ No trigger covering 
 loop-detection-messages--unit-tests.dfy(27,9): Info: Not generating triggers for "false ==> f(i) == f(i)". Note that {:autotriggers false} can cause instabilities. Consider using {:nowarn}, {:matchingloop} (not great either), or a manual trigger instead.
 loop-detection-messages--unit-tests.dfy(28,9): Info: Not generating triggers for "false ==> f(i) == f(i)".
 
-Dafny program verifier finished with 1 verified, 0 errors
+Dafny program verifier finished with 0 errors

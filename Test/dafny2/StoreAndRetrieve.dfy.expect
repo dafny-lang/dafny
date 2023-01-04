@@ -4,7 +4,7 @@ StoreAndRetrieve.dfy(71,13): Warning: the ... refinement feature in statements i
 StoreAndRetrieve.dfy(86,9): Warning: the ... refinement feature in statements is deprecated
 StoreAndRetrieve.dfy(97,9): Warning: the ... refinement feature in statements is deprecated
 
-Dafny program verifier finished with 19 verified, 0 errors
+Dafny program verifier finished with 0 errors
 StoreAndRetrieve.dfy(65,13): Warning: the ... refinement feature in statements is deprecated
 StoreAndRetrieve.dfy(70,9): Warning: the ... refinement feature in statements is deprecated
 StoreAndRetrieve.dfy(71,13): Warning: the ... refinement feature in statements is deprecated

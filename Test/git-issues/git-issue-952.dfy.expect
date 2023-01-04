@@ -5,4 +5,4 @@ git-issue-952.dfy(74,20): Error: assertion might not hold
 git-issue-952.dfy(100,15): Error: assertion might not hold
 git-issue-952.dfy(103,20): Error: assertion might not hold
 
-Dafny program verifier finished with 4 verified, 6 errors
+Dafny program verifier finished with 6 errors

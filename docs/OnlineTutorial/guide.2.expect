@@ -1,4 +1,4 @@
 text.dfy(4,0): Error: out-parameter 'less', which is subject to definite-assignment rules, might be uninitialized at this return point
 text.dfy(4,0): Error: out-parameter 'more', which is subject to definite-assignment rules, might be uninitialized at this return point
 
-Dafny program verifier finished with 0 verified, 2 errors
+Dafny program verifier finished with 2 errors

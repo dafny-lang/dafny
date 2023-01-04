@@ -12,4 +12,4 @@ NatTypes.dfy(164,34): Error: value does not satisfy the subset constraints of 'n
 NatTypes.dfy(184,16): Error: value does not satisfy the subset constraints of 'nat'
 NatTypes.dfy(35,11): Error: value does not satisfy the subset constraints of 'nat'
 
-Dafny program verifier finished with 7 verified, 13 errors
+Dafny program verifier finished with 13 errors

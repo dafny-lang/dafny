@@ -1,4 +1,4 @@
 auto-triggers-fix-an-issue-listed-in-the-ironclad-notebook.dfy(21,11): Info: Selected triggers:
    {HashtableLookup(h2, k)}, {HashtableLookup(h1, k)}
 
-Dafny program verifier finished with 1 verified, 0 errors
+Dafny program verifier finished with 0 errors

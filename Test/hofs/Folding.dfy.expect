@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 21 verified, 0 errors
+Dafny program verifier finished with 0 errors
 xs = List.Cons(57, List.Cons(100, List.Cons(-34, List.Cons(1, List.Cons(8, List.Nil)))))
 foldr = 264
 foldl = 264

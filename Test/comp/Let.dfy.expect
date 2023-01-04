@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 5 verified, 0 errors
+Dafny program verifier finished with 0 errors
 50 58
 Tree.Node(Tree.Node(Tree.Leaf, 5, Tree.Node(Tree.Leaf, 7, Tree.Leaf)), 9, Tree.Node(Tree.Leaf, 10, Tree.Node(Tree.Leaf, 12, Tree.Node(Tree.Leaf, 30, Tree.Leaf))))
 5 7 9 10 12 30 
@@ -7,7 +7,7 @@ Tree.Node(Tree.Node(Tree.Leaf, 5, Tree.Node(Tree.Leaf, 7, Tree.Leaf)), 9, Tree.N
 5 7
 12.0 15.0 15.0 15.0
 
-Dafny program verifier finished with 5 verified, 0 errors
+Dafny program verifier finished with 0 errors
 50 58
 Tree.Node(Tree.Node(Tree.Leaf, 5, Tree.Node(Tree.Leaf, 7, Tree.Leaf)), 9, Tree.Node(Tree.Leaf, 10, Tree.Node(Tree.Leaf, 12, Tree.Node(Tree.Leaf, 30, Tree.Leaf))))
 5 7 9 10 12 30 
@@ -15,7 +15,7 @@ Tree.Node(Tree.Node(Tree.Leaf, 5, Tree.Node(Tree.Leaf, 7, Tree.Leaf)), 9, Tree.N
 5 7
 12.0 15.0 15.0 15.0
 
-Dafny program verifier finished with 5 verified, 0 errors
+Dafny program verifier finished with 0 errors
 50 58
 Tree.Node(Tree.Node(Tree.Leaf, 5, Tree.Node(Tree.Leaf, 7, Tree.Leaf)), 9, Tree.Node(Tree.Leaf, 10, Tree.Node(Tree.Leaf, 12, Tree.Node(Tree.Leaf, 30, Tree.Leaf))))
 5 7 9 10 12 30 
@@ -23,7 +23,7 @@ Tree.Node(Tree.Node(Tree.Leaf, 5, Tree.Node(Tree.Leaf, 7, Tree.Leaf)), 9, Tree.N
 5 7
 12.0 15.0 15.0 15.0
 
-Dafny program verifier finished with 5 verified, 0 errors
+Dafny program verifier finished with 0 errors
 50 58
 Tree.Node(Tree.Node(Tree.Leaf, 5, Tree.Node(Tree.Leaf, 7, Tree.Leaf)), 9, Tree.Node(Tree.Leaf, 10, Tree.Node(Tree.Leaf, 12, Tree.Node(Tree.Leaf, 30, Tree.Leaf))))
 5 7 9 10 12 30 
@@ -31,7 +31,7 @@ Tree.Node(Tree.Node(Tree.Leaf, 5, Tree.Node(Tree.Leaf, 7, Tree.Leaf)), 9, Tree.N
 5 7
 12.0 15.0 15.0 15.0
 
-Dafny program verifier finished with 5 verified, 0 errors
+Dafny program verifier finished with 0 errors
 50 58
 Tree.Node(Tree.Node(Tree.Leaf, 5, Tree.Node(Tree.Leaf, 7, Tree.Leaf)), 9, Tree.Node(Tree.Leaf, 10, Tree.Node(Tree.Leaf, 12, Tree.Node(Tree.Leaf, 30, Tree.Leaf))))
 5 7 9 10 12 30 

@@ -4,4 +4,4 @@ git-issue-326.dfy(25,14): Error: upper bound below lower bound or above length o
 git-issue-326.dfy(29,14): Error: upper bound below lower bound or above length of sequence
 git-issue-326.dfy(33,14): Error: upper bound below lower bound or above length of sequence
 
-Dafny program verifier finished with 2 verified, 5 errors
+Dafny program verifier finished with 5 errors

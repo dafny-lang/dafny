@@ -20,4 +20,4 @@ Comprehensions.dfy(180,38): Error: value does not satisfy the subset constraints
 Comprehensions.dfy(186,30): Error: value does not satisfy the subset constraints of 'nat'
 Comprehensions.dfy(189,16): Error: value does not satisfy the subset constraints of 'nat'
 
-Dafny program verifier finished with 16 verified, 15 errors
+Dafny program verifier finished with 15 errors

@@ -4,4 +4,4 @@ Char.dfy(63,16): Error: assertion might not hold
 Char.dfy(81,13): Error: char addition might overflow
 Char.dfy(89,7): Error: char subtraction might underflow
 
-Dafny program verifier finished with 8 verified, 5 errors
+Dafny program verifier finished with 5 errors

@@ -14,4 +14,4 @@ ShowSnippets.dfy(10,32): Related location: This is the precondition that might n
    |                                 ^^^^^
 
 
-Dafny program verifier finished with 0 verified, 2 errors
+Dafny program verifier finished with 2 errors

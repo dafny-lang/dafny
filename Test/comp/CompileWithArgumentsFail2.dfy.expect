@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier finished with 0 errors
 
 Dafny program verifier did not attempt verification
 CompileWithArgumentsFail2.dfy(5,7): Error: This method "Main" is not permitted as a main method (the method has two or more non-ghost parameters).

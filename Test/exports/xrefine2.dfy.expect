@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 4 verified, 0 errors
+Dafny program verifier finished with 0 errors
 HI.foo(h1) => true
 HI.foo(h2) => true
 PI.orange(1) => 2
