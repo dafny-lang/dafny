@@ -1,12 +1,12 @@
 NatTypes.dfy(10,4): Error: value does not satisfy the subset constraints of 'nat'
 NatTypes.dfy(44,31): Error: value does not satisfy the subset constraints of 'nat'
-NatTypes.dfy(51,15): Error: could not prove assertion
-NatTypes.dfy(54,15): Error: could not prove assertion
+NatTypes.dfy(51,15): Error: assertion could not be proven
+NatTypes.dfy(54,15): Error: assertion could not be proven
 NatTypes.dfy(64,26): Error: value does not satisfy the subset constraints of 'nat'
-NatTypes.dfy(71,15): Error: could not prove assertion
-NatTypes.dfy(74,15): Error: could not prove assertion
-NatTypes.dfy(91,15): Error: could not prove assertion
-NatTypes.dfy(105,15): Error: could not prove assertion
+NatTypes.dfy(71,15): Error: assertion could not be proven
+NatTypes.dfy(74,15): Error: assertion could not be proven
+NatTypes.dfy(91,15): Error: assertion could not be proven
+NatTypes.dfy(105,15): Error: assertion could not be proven
 NatTypes.dfy(141,44): Error: value does not satisfy the subset constraints of 'nat'
 NatTypes.dfy(164,34): Error: value does not satisfy the subset constraints of 'nat'
 NatTypes.dfy(184,16): Error: value does not satisfy the subset constraints of 'nat'

@@ -1,9 +1,9 @@
 Calculations.dfy(7,5): Error: index out of range
 Calculations.dfy(12,14): Error: index out of range
-Calculations.dfy(12,18): Error: could not prove assertion
-Calculations.dfy(56,11): Error: could not prove assertion
+Calculations.dfy(12,18): Error: assertion could not be proven
+Calculations.dfy(56,11): Error: assertion could not be proven
 Calculations.dfy(79,14): Error: index out of range
-Calculations.dfy(79,18): Error: could not prove assertion
+Calculations.dfy(79,18): Error: assertion could not be proven
 
 Dafny program verifier finished with 3 verified, 6 errors
 

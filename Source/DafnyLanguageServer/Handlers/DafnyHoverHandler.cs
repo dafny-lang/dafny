@@ -204,7 +204,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
             if (currentlyHoveringPostcondition &&
                   (failureDescription == new PostconditionDescription().FailureDescription ||
                    failureDescription == new EnsuresDescription().FailureDescription)) {
-              failureDescription = "could not prove this postcondition on a return path.";
+              failureDescription = "this postcondition could not be proven on a return path.";
             }
             return $"{obsolescence}[**Error:**](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-debugging) " +
                    failureDescription;

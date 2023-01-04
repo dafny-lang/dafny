@@ -1,6 +1,6 @@
 columns.dfy(8,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
-columns.dfy(9,9): Error: could not prove assertion
-columns.dfy(10,11): Error: could not prove assertion
-columns.dfy(11,11): Error: could not prove assertion
+columns.dfy(9,9): Error: assertion could not be proven
+columns.dfy(10,11): Error: assertion could not be proven
+columns.dfy(11,11): Error: assertion could not be proven
 
 Dafny program verifier finished with 0 verified, 3 errors

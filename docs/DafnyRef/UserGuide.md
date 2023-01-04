@@ -446,7 +446,7 @@ In this section, we suggest a methodology to figure out [why Dafny cannot prove 
 
 ### 25.6.1. Verification debugging when verification fails {#sec-verification-debugging}
 
-Let's assume one assertion is failing ("could not prove assertion" or "could not prove postcondition"). What should you do next?
+Let's assume one assertion is failing ("assertion could not be proven" or "could not prove postcondition"). What should you do next?
 First, it's good to know that if an assertion is failing, it means that the assertion might not hold or that Dafny would requires more proof hints, which can be found in a mechanical way.
 
 The following section is textual description of the animation below, which illustrates the principle of debugging an assertion by computing the weakest precondition:  

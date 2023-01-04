@@ -293,13 +293,13 @@ lemma TestMultiset(Empty: multiset<int>, Nonempty: multiset<int>)
     multiset{};
   }
 }
-CalcDefaultMainOperator.dfy(9,4): Error: could not prove that the calculation step between the previous line and this line hold
-CalcDefaultMainOperator.dfy(14,4): Error: could not prove that the calculation step between the previous line and this line hold
-CalcDefaultMainOperator.dfy(20,4): Error: could not prove that the calculation step between the previous line and this line hold
-CalcDefaultMainOperator.dfy(24,4): Error: could not prove that the calculation step between the previous line and this line hold
-CalcDefaultMainOperator.dfy(34,4): Error: could not prove that the calculation step between the previous line and this line hold
-CalcDefaultMainOperator.dfy(40,4): Error: could not prove that the calculation step between the previous line and this line hold
-CalcDefaultMainOperator.dfy(49,4): Error: could not prove that the calculation step between the previous line and this line hold
-CalcDefaultMainOperator.dfy(55,4): Error: could not prove that the calculation step between the previous line and this line hold
+CalcDefaultMainOperator.dfy(9,4): Error: the calculation step between the previous line and this line could not be proven
+CalcDefaultMainOperator.dfy(14,4): Error: the calculation step between the previous line and this line could not be proven
+CalcDefaultMainOperator.dfy(20,4): Error: the calculation step between the previous line and this line could not be proven
+CalcDefaultMainOperator.dfy(24,4): Error: the calculation step between the previous line and this line could not be proven
+CalcDefaultMainOperator.dfy(34,4): Error: the calculation step between the previous line and this line could not be proven
+CalcDefaultMainOperator.dfy(40,4): Error: the calculation step between the previous line and this line could not be proven
+CalcDefaultMainOperator.dfy(49,4): Error: the calculation step between the previous line and this line could not be proven
+CalcDefaultMainOperator.dfy(55,4): Error: the calculation step between the previous line and this line could not be proven
 
 Dafny program verifier finished with 9 verified, 8 errors

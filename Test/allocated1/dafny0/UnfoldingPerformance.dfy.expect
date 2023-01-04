@@ -1,6 +1,6 @@
-UnfoldingPerformance.dfy(23,11): Error: could not prove assertion
-UnfoldingPerformance.dfy(30,11): Error: could not prove assertion
-UnfoldingPerformance.dfy(51,11): Error: could not prove assertion
-UnfoldingPerformance.dfy(61,11): Error: could not prove assertion
+UnfoldingPerformance.dfy(23,11): Error: assertion could not be proven
+UnfoldingPerformance.dfy(30,11): Error: assertion could not be proven
+UnfoldingPerformance.dfy(51,11): Error: assertion could not be proven
+UnfoldingPerformance.dfy(61,11): Error: assertion could not be proven
 
 Dafny program verifier finished with 4 verified, 4 errors

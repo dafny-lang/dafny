@@ -1,6 +1,6 @@
-Char.dfy(48,20): Error: could not prove assertion
-Char.dfy(52,20): Error: could not prove assertion
-Char.dfy(63,16): Error: could not prove assertion
+Char.dfy(48,20): Error: assertion could not be proven
+Char.dfy(52,20): Error: assertion could not be proven
+Char.dfy(63,16): Error: assertion could not be proven
 Char.dfy(81,7): Error: char subtraction might underflow
 Char.dfy(81,13): Error: char addition might overflow
 Char.dfy(89,7): Error: char subtraction might underflow

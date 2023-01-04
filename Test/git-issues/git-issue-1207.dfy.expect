@@ -3,24 +3,24 @@ git-issue-1207.dfy(29,9): Warning: /!\ No terms found to trigger on.
 git-issue-1207.dfy(41,9): Warning: /!\ No terms found to trigger on.
 git-issue-1207.dfy(47,9): Warning: /!\ No terms found to trigger on.
 git-issue-1207.dfy(48,9): Warning: /!\ No terms found to trigger on.
-git-issue-1207.dfy(10,9): Error: could not prove assertion
-git-issue-1207.dfy(11,9): Error: could not prove assertion
-git-issue-1207.dfy(14,9): Error: could not prove assertion
-git-issue-1207.dfy(15,9): Error: could not prove assertion
-git-issue-1207.dfy(16,9): Error: could not prove assertion
-git-issue-1207.dfy(22,9): Error: could not prove assertion
-git-issue-1207.dfy(23,9): Error: could not prove assertion
-git-issue-1207.dfy(24,9): Error: could not prove assertion
-git-issue-1207.dfy(26,9): Error: could not prove assertion
-git-issue-1207.dfy(27,9): Error: could not prove assertion
-git-issue-1207.dfy(34,9): Error: could not prove assertion
-git-issue-1207.dfy(35,9): Error: could not prove assertion
-git-issue-1207.dfy(38,9): Error: could not prove assertion
-git-issue-1207.dfy(39,9): Error: could not prove assertion
-git-issue-1207.dfy(40,9): Error: could not prove assertion
-git-issue-1207.dfy(47,9): Error: could not prove assertion
-git-issue-1207.dfy(48,9): Error: could not prove assertion
-git-issue-1207.dfy(49,9): Error: could not prove assertion
+git-issue-1207.dfy(10,9): Error: assertion could not be proven
+git-issue-1207.dfy(11,9): Error: assertion could not be proven
+git-issue-1207.dfy(14,9): Error: assertion could not be proven
+git-issue-1207.dfy(15,9): Error: assertion could not be proven
+git-issue-1207.dfy(16,9): Error: assertion could not be proven
+git-issue-1207.dfy(22,9): Error: assertion could not be proven
+git-issue-1207.dfy(23,9): Error: assertion could not be proven
+git-issue-1207.dfy(24,9): Error: assertion could not be proven
+git-issue-1207.dfy(26,9): Error: assertion could not be proven
+git-issue-1207.dfy(27,9): Error: assertion could not be proven
+git-issue-1207.dfy(34,9): Error: assertion could not be proven
+git-issue-1207.dfy(35,9): Error: assertion could not be proven
+git-issue-1207.dfy(38,9): Error: assertion could not be proven
+git-issue-1207.dfy(39,9): Error: assertion could not be proven
+git-issue-1207.dfy(40,9): Error: assertion could not be proven
+git-issue-1207.dfy(47,9): Error: assertion could not be proven
+git-issue-1207.dfy(48,9): Error: assertion could not be proven
+git-issue-1207.dfy(49,9): Error: assertion could not be proven
 git-issue-1207.dfy(50,49): Error: index out of range
 git-issue-1207.dfy(50,57): Error: index out of range
 

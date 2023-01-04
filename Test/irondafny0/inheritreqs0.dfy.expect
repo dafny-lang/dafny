@@ -1,4 +1,4 @@
-inheritreqs0.dfy(19,13): Error: could not prove a precondition for this call.
-inheritreqs0.dfy[Impl](6,17): Related location: This is the precondition that could not be proven.
+inheritreqs0.dfy(19,13): Error: a precondition for this call could not be proven.
+inheritreqs0.dfy[Impl](6,17): Related location: this is the precondition that could not be proven.
 
 Dafny program verifier finished with 0 verified, 1 error

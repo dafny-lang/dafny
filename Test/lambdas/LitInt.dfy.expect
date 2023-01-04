@@ -1,4 +1,4 @@
-LitInt.dfy(22,22): Error: could not prove assertion
-LitInt.dfy(32,26): Error: could not prove assertion
+LitInt.dfy(22,22): Error: assertion could not be proven
+LitInt.dfy(32,26): Error: assertion could not be proven
 
 Dafny program verifier finished with 2 verified, 2 errors

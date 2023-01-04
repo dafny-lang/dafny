@@ -4,23 +4,23 @@ Processing command (at Snapshots8.v0.dfy(3,12)) assert x#0 < 10;
   >>> DoNothingToAssert
 Processing command (at Snapshots8.v0.dfy(4,8)) assert LitInt(0) <= call0formal#AT#y#0;
   >>> DoNothingToAssert
-Snapshots8.v0.dfy(3,11): Error: could not prove assertion
-Snapshots8.v0.dfy(4,7): Error: could not prove a precondition for this call.
-Snapshots8.v0.dfy(8,13): Related location: This is the precondition that could not be proven.
+Snapshots8.v0.dfy(3,11): Error: assertion could not be proven
+Snapshots8.v0.dfy(4,7): Error: a precondition for this call could not be proven.
+Snapshots8.v0.dfy(8,13): Related location: this is the precondition that could not be proven.
 Processing command (at Snapshots8.v0.dfy(13,13)) assert LitInt(2) <= z#0;
   >>> DoNothingToAssert
 Snapshots8.v0.dfy(17,9): Error: could not prove a postcondition on this return path.
 Snapshots8.v0.dfy(13,12): Related location: this is the postcondition that could not be proven.
 Processing command (at Snapshots8.v0.dfy(23,12)) assert u#0 != 53;
   >>> DoNothingToAssert
-Snapshots8.v0.dfy(23,11): Error: could not prove assertion
+Snapshots8.v0.dfy(23,11): Error: assertion could not be proven
 Processing command (at Snapshots8.v0.dfy(28,10)) assert Lit(true);
   >>> DoNothingToAssert
 
 Dafny program verifier finished with 1 verified, 4 errors
 Processing command (at Snapshots8.v1.dfy(30,17)) assert u#0 != 53;
   >>> RecycleError
-Snapshots8.v1.dfy(30,16): Error: could not prove assertion
+Snapshots8.v1.dfy(30,16): Error: assertion could not be proven
 Processing command (at Snapshots8.v1.dfy(3,15)) assert x#0 < 20 || LitInt(10) <= x#0;
   >>> MarkAsFullyVerified
 Processing command (at Snapshots8.v1.dfy(5,17)) assert x#0 < 10;
@@ -29,10 +29,10 @@ Processing command (at Snapshots8.v1.dfy(6,8)) assert LitInt(0) <= call0formal#A
   >>> RecycleError
 Processing command (at Snapshots8.v1.dfy(7,12)) assert x#0 == LitInt(7);
   >>> DoNothingToAssert
-Snapshots8.v1.dfy(5,16): Error: could not prove assertion
-Snapshots8.v1.dfy(6,7): Error: could not prove a precondition for this call.
-Snapshots8.v1.dfy(12,20): Related location: This is the precondition that could not be proven.
-Snapshots8.v1.dfy(7,11): Error: could not prove assertion
+Snapshots8.v1.dfy(5,16): Error: assertion could not be proven
+Snapshots8.v1.dfy(6,7): Error: a precondition for this call could not be proven.
+Snapshots8.v1.dfy(12,20): Related location: this is the precondition that could not be proven.
+Snapshots8.v1.dfy(7,11): Error: assertion could not be proven
 Processing command (at Snapshots8.v1.dfy(23,12)) assert Lit(true);
   >>> DoNothingToAssert
 Processing command (at Snapshots8.v1.dfy(19,13)) assert LitInt(2) <= z#0;

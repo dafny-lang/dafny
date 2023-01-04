@@ -46,50 +46,50 @@ DirtyLoops.dfy(515,2): Warning: /!\ No terms found to trigger on.
 DirtyLoops.dfy(452,6): Error: loop modifies clause might violate context's modifies clause
 DirtyLoops.dfy(468,6): Error: loop modifies clause might violate context's modifies clause
 DirtyLoops.dfy(485,6): Error: loop modifies clause might violate context's modifies clause
-DirtyLoops.dfy(30,11): Error: could not prove assertion
-DirtyLoops.dfy(39,11): Error: could not prove assertion
-DirtyLoops.dfy(48,11): Error: could not prove assertion
-DirtyLoops.dfy(57,11): Error: could not prove assertion
-DirtyLoops.dfy(59,12): Error: could not prove assertion
-DirtyLoops.dfy(70,11): Error: could not prove assertion
-DirtyLoops.dfy(72,11): Error: could not prove assertion
-DirtyLoops.dfy(82,11): Error: could not prove assertion
-DirtyLoops.dfy(83,11): Error: could not prove assertion
-DirtyLoops.dfy(90,11): Error: could not prove assertion
-DirtyLoops.dfy(110,11): Error: could not prove assertion
-DirtyLoops.dfy(122,11): Error: could not prove assertion
-DirtyLoops.dfy(136,14): Error: could not prove assertion
-DirtyLoops.dfy(137,11): Error: could not prove assertion
-DirtyLoops.dfy(149,14): Error: could not prove assertion
-DirtyLoops.dfy(151,11): Error: could not prove assertion
-DirtyLoops.dfy(164,14): Error: could not prove assertion
-DirtyLoops.dfy(165,14): Error: could not prove assertion
-DirtyLoops.dfy(180,14): Error: could not prove assertion
-DirtyLoops.dfy(181,11): Error: could not prove assertion
-DirtyLoops.dfy(193,14): Error: could not prove assertion
-DirtyLoops.dfy(195,14): Error: could not prove assertion
-DirtyLoops.dfy(196,11): Error: could not prove assertion
-DirtyLoops.dfy(208,11): Error: could not prove assertion
-DirtyLoops.dfy(221,11): Error: could not prove assertion
-DirtyLoops.dfy(234,11): Error: could not prove assertion
-DirtyLoops.dfy(244,11): Error: could not prove assertion
-DirtyLoops.dfy(253,11): Error: could not prove assertion
-DirtyLoops.dfy(261,13): Error: could not prove assertion
-DirtyLoops.dfy(270,13): Error: could not prove assertion
-DirtyLoops.dfy(285,11): Error: could not prove assertion
-DirtyLoops.dfy(297,11): Error: could not prove assertion
-DirtyLoops.dfy(298,11): Error: could not prove assertion
-DirtyLoops.dfy(308,11): Error: could not prove assertion
-DirtyLoops.dfy(309,11): Error: could not prove assertion
-DirtyLoops.dfy(321,13): Error: could not prove assertion
-DirtyLoops.dfy(356,13): Error: could not prove assertion
-DirtyLoops.dfy(369,13): Error: could not prove assertion
-DirtyLoops.dfy(380,9): Error: could not prove assertion
-DirtyLoops.dfy(401,18): Error: could not prove this loop invariant on entry.
+DirtyLoops.dfy(30,11): Error: assertion could not be proven
+DirtyLoops.dfy(39,11): Error: assertion could not be proven
+DirtyLoops.dfy(48,11): Error: assertion could not be proven
+DirtyLoops.dfy(57,11): Error: assertion could not be proven
+DirtyLoops.dfy(59,12): Error: assertion could not be proven
+DirtyLoops.dfy(70,11): Error: assertion could not be proven
+DirtyLoops.dfy(72,11): Error: assertion could not be proven
+DirtyLoops.dfy(82,11): Error: assertion could not be proven
+DirtyLoops.dfy(83,11): Error: assertion could not be proven
+DirtyLoops.dfy(90,11): Error: assertion could not be proven
+DirtyLoops.dfy(110,11): Error: assertion could not be proven
+DirtyLoops.dfy(122,11): Error: assertion could not be proven
+DirtyLoops.dfy(136,14): Error: assertion could not be proven
+DirtyLoops.dfy(137,11): Error: assertion could not be proven
+DirtyLoops.dfy(149,14): Error: assertion could not be proven
+DirtyLoops.dfy(151,11): Error: assertion could not be proven
+DirtyLoops.dfy(164,14): Error: assertion could not be proven
+DirtyLoops.dfy(165,14): Error: assertion could not be proven
+DirtyLoops.dfy(180,14): Error: assertion could not be proven
+DirtyLoops.dfy(181,11): Error: assertion could not be proven
+DirtyLoops.dfy(193,14): Error: assertion could not be proven
+DirtyLoops.dfy(195,14): Error: assertion could not be proven
+DirtyLoops.dfy(196,11): Error: assertion could not be proven
+DirtyLoops.dfy(208,11): Error: assertion could not be proven
+DirtyLoops.dfy(221,11): Error: assertion could not be proven
+DirtyLoops.dfy(234,11): Error: assertion could not be proven
+DirtyLoops.dfy(244,11): Error: assertion could not be proven
+DirtyLoops.dfy(253,11): Error: assertion could not be proven
+DirtyLoops.dfy(261,13): Error: assertion could not be proven
+DirtyLoops.dfy(270,13): Error: assertion could not be proven
+DirtyLoops.dfy(285,11): Error: assertion could not be proven
+DirtyLoops.dfy(297,11): Error: assertion could not be proven
+DirtyLoops.dfy(298,11): Error: assertion could not be proven
+DirtyLoops.dfy(308,11): Error: assertion could not be proven
+DirtyLoops.dfy(309,11): Error: assertion could not be proven
+DirtyLoops.dfy(321,13): Error: assertion could not be proven
+DirtyLoops.dfy(356,13): Error: assertion could not be proven
+DirtyLoops.dfy(369,13): Error: assertion could not be proven
+DirtyLoops.dfy(380,9): Error: assertion could not be proven
+DirtyLoops.dfy(401,18): Error: this loop invariant could not be proven on entry.
 DirtyLoops.dfy(401,18): Related message: loop invariant violation
 DirtyLoops.dfy(414,16): Error: target object might be null
-DirtyLoops.dfy(506,22): Error: could not prove assertion
-DirtyLoops.dfy(533,11): Error: could not prove assertion
+DirtyLoops.dfy(506,22): Error: assertion could not be proven
+DirtyLoops.dfy(533,11): Error: assertion could not be proven
 
 Dafny program verifier finished with 22 verified, 46 errors
 DirtyLoops.dfy.tmp.dprint.dfy(19,4): Warning: note, this loop has no body (loop frame: $Heap)

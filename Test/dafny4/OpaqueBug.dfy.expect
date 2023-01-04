@@ -1,4 +1,4 @@
-OpaqueBug.dfy(13,13): Error: could not prove assertion
-OpaqueBug.dfy(23,13): Error: could not prove assertion
+OpaqueBug.dfy(13,13): Error: assertion could not be proven
+OpaqueBug.dfy(23,13): Error: assertion could not be proven
 
 Dafny program verifier finished with 0 verified, 2 errors

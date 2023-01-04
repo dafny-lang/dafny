@@ -1,4 +1,4 @@
-Classes.dfy(60,11): Error: could not prove assertion
+Classes.dfy(60,11): Error: assertion could not be proven
 Classes.dfy(38,5): Error: could not prove function precondition
 
 Dafny program verifier finished with 4 verified, 2 errors

@@ -5,17 +5,17 @@ AutoReq.dfy(13,2): Error: could not prove function precondition
 AutoReq.dfy(5,13): Related location
 AutoReq.dfy(25,2): Error: could not prove function precondition
 AutoReq.dfy(5,13): Related location
-AutoReq.dfy(38,11): Error: could not prove assertion
+AutoReq.dfy(38,11): Error: assertion could not be proven
 AutoReq.dfy(31,12): Related location
 AutoReq.dfy(7,4): Related location
 AutoReq.dfy(38,11): Error: could not prove function precondition
 AutoReq.dfy(5,13): Related location
-AutoReq.dfy(40,11): Error: could not prove assertion
+AutoReq.dfy(40,11): Error: assertion could not be proven
 AutoReq.dfy(31,26): Related location
 AutoReq.dfy(7,4): Related location
 AutoReq.dfy(40,11): Error: could not prove function precondition
 AutoReq.dfy(5,13): Related location
-AutoReq.dfy(45,11): Error: could not prove assertion
+AutoReq.dfy(45,11): Error: assertion could not be proven
 AutoReq.dfy(31,12): Related location
 AutoReq.dfy(7,4): Related location
 

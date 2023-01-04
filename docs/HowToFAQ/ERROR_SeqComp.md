@@ -1,5 +1,5 @@
 ---
-title: "Error: could not prove function precondition"
+title: "Error: function precondition could not be proven"
 ---
 
 This error can occur when trying to write a sequence comprehension expression like

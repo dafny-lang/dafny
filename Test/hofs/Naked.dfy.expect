@@ -13,6 +13,6 @@ Naked.dfy(49,10): Error: cannot use naked function in recursive setting. Possibl
 Naked.dfy(56,12): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
 Naked.dfy(60,13): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
 Naked.dfy(67,12): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
-Naked.dfy(102,20): Error: could not prove assertion
+Naked.dfy(102,20): Error: assertion could not be proven
 
 Dafny program verifier finished with 5 verified, 15 errors

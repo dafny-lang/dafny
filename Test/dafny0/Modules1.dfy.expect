@@ -1,12 +1,12 @@
-Modules1.dfy(82,15): Error: could not prove assertion
-Modules1.dfy(95,15): Error: could not prove assertion
-Modules1.dfy(97,18): Error: could not prove assertion
-Modules1.dfy(211,16): Error: could not prove assertion
-Modules1.dfy(212,22): Error: could not prove assertion
-Modules1.dfy(213,22): Error: could not prove assertion
-Modules1.dfy(219,16): Error: could not prove assertion
-Modules1.dfy(220,16): Error: could not prove assertion
-Modules1.dfy(221,16): Error: could not prove assertion
+Modules1.dfy(82,15): Error: assertion could not be proven
+Modules1.dfy(95,15): Error: assertion could not be proven
+Modules1.dfy(97,18): Error: assertion could not be proven
+Modules1.dfy(211,16): Error: assertion could not be proven
+Modules1.dfy(212,22): Error: assertion could not be proven
+Modules1.dfy(213,22): Error: assertion could not be proven
+Modules1.dfy(219,16): Error: assertion could not be proven
+Modules1.dfy(220,16): Error: assertion could not be proven
+Modules1.dfy(221,16): Error: assertion could not be proven
 Modules1.dfy(56,8): Error: decreases expression must be bounded below by 0
 Modules1.dfy(54,12): Related location
 Modules1.dfy(62,8): Error: decreases clause might not decrease

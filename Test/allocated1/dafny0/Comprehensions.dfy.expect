@@ -4,8 +4,8 @@ Comprehensions.dfy(24,7): Warning: /!\ No terms found to trigger on.
 Comprehensions.dfy(25,11): Warning: /!\ No terms found to trigger on.
 Comprehensions.dfy(32,11): Warning: /!\ No trigger covering all quantified variables found.
 Comprehensions.dfy(54,11): Warning: /!\ No terms found to trigger on.
-Comprehensions.dfy(12,13): Error: could not prove assertion
-Comprehensions.dfy(78,22): Error: could not prove assertion
+Comprehensions.dfy(12,13): Error: assertion could not be proven
+Comprehensions.dfy(78,22): Error: assertion could not be proven
 Comprehensions.dfy(99,4): Error: insufficient reads clause to invoke the function passed as an argument to the sequence constructor
 Comprehensions.dfy(107,4): Error: insufficient reads clause to invoke the function passed as an argument to the sequence constructor
 Comprehensions.dfy(115,40): Error: insufficient reads clause to read field

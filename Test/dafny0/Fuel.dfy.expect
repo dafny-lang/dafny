@@ -1,21 +1,21 @@
 Fuel.dfy(129,8): Error: Fuel can only increase within a given scope.
 Fuel.dfy(407,8): Error: Fuel can only increase within a given scope.
-Fuel.dfy(17,22): Error: could not prove assertion
-Fuel.dfy(65,27): Error: could not prove assertion
-Fuel.dfy(69,27): Error: could not prove assertion
-Fuel.dfy(92,22): Error: could not prove assertion
-Fuel.dfy(93,23): Error: could not prove assertion
-Fuel.dfy(94,22): Error: could not prove assertion
-Fuel.dfy(120,22): Error: could not prove assertion
-Fuel.dfy(121,23): Error: could not prove assertion
-Fuel.dfy(122,22): Error: could not prove assertion
-Fuel.dfy(132,26): Error: could not prove assertion
-Fuel.dfy(133,26): Error: could not prove assertion
-Fuel.dfy(157,22): Error: could not prove assertion
-Fuel.dfy(200,55): Error: could not prove assertion
-Fuel.dfy(245,22): Error: could not prove assertion
-Fuel.dfy(247,22): Error: could not prove assertion
-Fuel.dfy(280,26): Error: could not prove assertion
+Fuel.dfy(17,22): Error: assertion could not be proven
+Fuel.dfy(65,27): Error: assertion could not be proven
+Fuel.dfy(69,27): Error: assertion could not be proven
+Fuel.dfy(92,22): Error: assertion could not be proven
+Fuel.dfy(93,23): Error: assertion could not be proven
+Fuel.dfy(94,22): Error: assertion could not be proven
+Fuel.dfy(120,22): Error: assertion could not be proven
+Fuel.dfy(121,23): Error: assertion could not be proven
+Fuel.dfy(122,22): Error: assertion could not be proven
+Fuel.dfy(132,26): Error: assertion could not be proven
+Fuel.dfy(133,26): Error: assertion could not be proven
+Fuel.dfy(157,22): Error: assertion could not be proven
+Fuel.dfy(200,55): Error: assertion could not be proven
+Fuel.dfy(245,22): Error: assertion could not be proven
+Fuel.dfy(247,22): Error: assertion could not be proven
+Fuel.dfy(280,26): Error: assertion could not be proven
 Fuel.dfy(335,26): Error: could not prove function precondition
 Fuel.dfy(324,21): Related location
 Fuel.dfy(312,43): Related location
@@ -38,11 +38,11 @@ Fuel.dfy(335,49): Error: destructor 't' can only be applied to datatype values c
 Fuel.dfy(335,50): Error: index out of range
 Fuel.dfy(336,38): Error: index out of range
 Fuel.dfy(336,42): Error: destructor 'u' can only be applied to datatype values constructed by 'VUint64'
-Fuel.dfy(397,22): Error: could not prove assertion
-Fuel.dfy(398,22): Error: could not prove assertion
-Fuel.dfy(399,23): Error: could not prove assertion
-Fuel.dfy(435,22): Error: could not prove assertion
-Fuel.dfy(436,22): Error: could not prove assertion
-Fuel.dfy(437,23): Error: could not prove assertion
+Fuel.dfy(397,22): Error: assertion could not be proven
+Fuel.dfy(398,22): Error: assertion could not be proven
+Fuel.dfy(399,23): Error: assertion could not be proven
+Fuel.dfy(435,22): Error: assertion could not be proven
+Fuel.dfy(436,22): Error: assertion could not be proven
+Fuel.dfy(437,23): Error: assertion could not be proven
 
 Dafny program verifier finished with 30 verified, 32 errors

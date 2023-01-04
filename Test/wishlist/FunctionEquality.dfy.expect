@@ -1,6 +1,6 @@
-FunctionEquality.dfy(11,17): Error: could not prove assertion
-FunctionEquality.dfy(13,26): Error: could not prove assertion
-FunctionEquality.dfy(15,26): Error: could not prove assertion
-FunctionEquality.dfy(19,13): Error: could not prove assertion
+FunctionEquality.dfy(11,17): Error: assertion could not be proven
+FunctionEquality.dfy(13,26): Error: assertion could not be proven
+FunctionEquality.dfy(15,26): Error: assertion could not be proven
+FunctionEquality.dfy(19,13): Error: assertion could not be proven
 
 Dafny program verifier finished with 0 verified, 4 errors

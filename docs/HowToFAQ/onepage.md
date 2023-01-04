@@ -2213,7 +2213,7 @@ To declare `formula` as _contravariant_ use `formula<-T>`. Then `formula<U>` is 
 
 Type parameter characteristics are discussed in [the reference manual](../DafnyRef/DafnyRef.html#sec-type-parameter-variance)
 
-# "Error: Cannot prove function precondition"
+# "Error: function precondition could not be proven"
 
 
 This error can occur when trying to write a sequence comprehension expression like

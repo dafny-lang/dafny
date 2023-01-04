@@ -304,7 +304,7 @@ method AltSyntax9(x: int, y: int, c: Color)
 }
 BindingGuards.dfy(85,10): Error: could not prove a postcondition on this return path.
 BindingGuards.dfy(71,12): Related location: this is the postcondition that could not be proven.
-BindingGuards.dfy(134,9): Error: could not prove assertion
+BindingGuards.dfy(134,9): Error: assertion could not be proven
 BindingGuards.dfy(6,8): Related location
 BindingGuards.dfy(139,2): Error: alternative cases fail to cover all possibilties
 BindingGuards.dfy(147,2): Error: alternative cases fail to cover all possibilties

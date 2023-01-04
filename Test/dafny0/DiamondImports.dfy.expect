@@ -1,7 +1,7 @@
-DiamondImports.dfy(34,15): Error: could not prove assertion
-DiamondImports.dfy(50,15): Error: could not prove assertion
-DiamondImports.dfy(101,15): Error: could not prove assertion
-DiamondImports.dfy(120,15): Error: could not prove assertion
-DiamondImports.dfy(140,25): Error: could not prove assertion
+DiamondImports.dfy(34,15): Error: assertion could not be proven
+DiamondImports.dfy(50,15): Error: assertion could not be proven
+DiamondImports.dfy(101,15): Error: assertion could not be proven
+DiamondImports.dfy(120,15): Error: assertion could not be proven
+DiamondImports.dfy(140,25): Error: assertion could not be proven
 
 Dafny program verifier finished with 0 verified, 5 errors

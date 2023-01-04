@@ -1,4 +1,4 @@
-exists-b-exists-not-b.dfy(8,9): Error: could not prove assertion
-exists-b-exists-not-b.dfy(9,9): Error: could not prove assertion
+exists-b-exists-not-b.dfy(8,9): Error: assertion could not be proven
+exists-b-exists-not-b.dfy(9,9): Error: assertion could not be proven
 
 Dafny program verifier finished with 0 verified, 2 errors

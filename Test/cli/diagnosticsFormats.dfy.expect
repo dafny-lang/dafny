@@ -1,22 +1,22 @@
 diagnosticsFormats.dfy(11,0): Warning: module-level const declarations are always non-instance, so the 'static' keyword is not allowed here
 diagnosticsFormats.dfy(12,17): Error: result of operation might violate newtype constraint for 'byte'
-diagnosticsFormats.dfy(15,16): Error: could not prove a precondition for this call.
-diagnosticsFormats.dfy(14,35): Related location: This is the precondition that could not be proven.
+diagnosticsFormats.dfy(15,16): Error: a precondition for this call could not be proven.
+diagnosticsFormats.dfy(14,35): Related location: this is the precondition that could not be proven.
 
 Dafny program verifier finished with 1 verified, 2 errors
 {"location":{"filename":"diagnosticsFormats.dfy","range":{"start":{"line":11,"character":0}}},"severity":2,"message":"module-level const declarations are always non-instance, so the \u0027static\u0027 keyword is not allowed here","source":"Parser","relatedInformation":[]}
 {"location":{"filename":"diagnosticsFormats.dfy","range":{"start":{"line":12,"character":17}}},"severity":1,"message":"Error: result of operation might violate newtype constraint for \u0027byte\u0027","source":"Verifier","relatedInformation":[]}
-{"location":{"filename":"diagnosticsFormats.dfy","range":{"start":{"line":15,"character":16}}},"severity":1,"message":"Error: could not prove a precondition for this call.","source":"Verifier","relatedInformation":[{"location":{"filename":"diagnosticsFormats.dfy","range":{"start":{"line":14,"character":35}}},"message":"Related location: This is the precondition that could not be proven."}]}
+{"location":{"filename":"diagnosticsFormats.dfy","range":{"start":{"line":15,"character":16}}},"severity":1,"message":"Error: a precondition for this call could not be proven.","source":"Verifier","relatedInformation":[{"location":{"filename":"diagnosticsFormats.dfy","range":{"start":{"line":14,"character":35}}},"message":"Related location: this is the precondition that could not be proven."}]}
 
 Dafny program verifier finished with 1 verified, 2 errors
 {"location":{"filename":"diagnosticsFormats.dfy","range":{"start":{"line":11,"character":0}}},"severity":2,"message":"module-level const declarations are always non-instance, so the \u0027static\u0027 keyword is not allowed here","source":"Parser","relatedInformation":[]}
 {"location":{"filename":"diagnosticsFormats.dfy","range":{"start":{"line":10,"character":8}}},"severity":4,"message":"newtype byte resolves as {:nativeType \u0022byte\u0022} (Detected Range: 0 .. 256)","source":"Resolver","relatedInformation":[]}
 {"location":{"filename":"diagnosticsFormats.dfy","range":{"start":{"line":12,"character":17}}},"severity":1,"message":"Error: result of operation might violate newtype constraint for \u0027byte\u0027","source":"Verifier","relatedInformation":[]}
-{"location":{"filename":"diagnosticsFormats.dfy","range":{"start":{"line":15,"character":16}}},"severity":1,"message":"Error: could not prove a precondition for this call.","source":"Verifier","relatedInformation":[{"location":{"filename":"diagnosticsFormats.dfy","range":{"start":{"line":14,"character":35}}},"message":"Related location: This is the precondition that could not be proven."}]}
+{"location":{"filename":"diagnosticsFormats.dfy","range":{"start":{"line":15,"character":16}}},"severity":1,"message":"Error: a precondition for this call could not be proven.","source":"Verifier","relatedInformation":[{"location":{"filename":"diagnosticsFormats.dfy","range":{"start":{"line":14,"character":35}}},"message":"Related location: this is the precondition that could not be proven."}]}
 
 Dafny program verifier finished with 1 verified, 2 errors
 {"location":{"filename":"diagnosticsFormats.dfy","range":{"start":{"line":11,"character":0}}},"severity":2,"message":"module-level const declarations are always non-instance, so the \u0027static\u0027 keyword is not allowed here","source":"Parser","relatedInformation":[]}
 {"location":{"filename":"diagnosticsFormats.dfy","range":{"start":{"line":12,"character":17}}},"severity":1,"message":"Error: result of operation might violate newtype constraint for \u0027byte\u0027","source":"Verifier","relatedInformation":[]}
-{"location":{"filename":"diagnosticsFormats.dfy","range":{"start":{"line":15,"character":14},"end":{"line":15,"character":18}}},"severity":1,"message":"Error: could not prove a precondition for this call.","source":"Verifier","relatedInformation":[{"location":{"filename":"diagnosticsFormats.dfy","range":{"start":{"line":14,"character":35},"end":{"line":14,"character":35}}},"message":"Related location: This is the precondition that could not be proven."}]}
+{"location":{"filename":"diagnosticsFormats.dfy","range":{"start":{"line":15,"character":14},"end":{"line":15,"character":18}}},"severity":1,"message":"Error: a precondition for this call could not be proven.","source":"Verifier","relatedInformation":[{"location":{"filename":"diagnosticsFormats.dfy","range":{"start":{"line":14,"character":35},"end":{"line":14,"character":35}}},"message":"Related location: this is the precondition that could not be proven."}]}
 
 Dafny program verifier finished with 1 verified, 2 errors

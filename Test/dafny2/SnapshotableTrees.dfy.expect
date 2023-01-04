@@ -1,21 +1,21 @@
-SnapshotableTrees.dfy(71,25): Error: could not prove a precondition for this call.
-SnapshotableTrees.dfy(595,15): Related location: This is the precondition that could not be proven.
+SnapshotableTrees.dfy(71,25): Error: a precondition for this call could not be proven.
+SnapshotableTrees.dfy(595,15): Related location: this is the precondition that could not be proven.
 SnapshotableTrees.dfy(497,18): Related location
 SnapshotableTrees.dfy(515,10): Related location
-SnapshotableTrees.dfy(71,25): Error: could not prove a precondition for this call.
-SnapshotableTrees.dfy(595,15): Related location: This is the precondition that could not be proven.
+SnapshotableTrees.dfy(71,25): Error: a precondition for this call could not be proven.
+SnapshotableTrees.dfy(595,15): Related location: this is the precondition that could not be proven.
 SnapshotableTrees.dfy(497,18): Related location
 SnapshotableTrees.dfy(515,29): Related location
-SnapshotableTrees.dfy(71,25): Error: could not prove a precondition for this call.
-SnapshotableTrees.dfy(595,15): Related location: This is the precondition that could not be proven.
+SnapshotableTrees.dfy(71,25): Error: a precondition for this call could not be proven.
+SnapshotableTrees.dfy(595,15): Related location: this is the precondition that could not be proven.
 SnapshotableTrees.dfy(497,18): Related location
 SnapshotableTrees.dfy(515,43): Related location
-SnapshotableTrees.dfy(71,25): Error: could not prove a precondition for this call.
-SnapshotableTrees.dfy(595,15): Related location: This is the precondition that could not be proven.
+SnapshotableTrees.dfy(71,25): Error: a precondition for this call could not be proven.
+SnapshotableTrees.dfy(595,15): Related location: this is the precondition that could not be proven.
 SnapshotableTrees.dfy(497,18): Related location
 SnapshotableTrees.dfy(516,31): Related location
-SnapshotableTrees.dfy(71,25): Error: could not prove a precondition for this call.
-SnapshotableTrees.dfy(595,15): Related location: This is the precondition that could not be proven.
+SnapshotableTrees.dfy(71,25): Error: a precondition for this call could not be proven.
+SnapshotableTrees.dfy(595,15): Related location: this is the precondition that could not be proven.
 SnapshotableTrees.dfy(497,18): Related location
 SnapshotableTrees.dfy(518,9): Related location
 

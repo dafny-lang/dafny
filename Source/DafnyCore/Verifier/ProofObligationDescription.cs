@@ -297,7 +297,7 @@ public class AssertStatement : ProofObligationDescription {
       : $"error is impossible: {customErrMsg}";
 
   public override string FailureDescription =>
-    customErrMsg ?? "could not prove assertion";
+    customErrMsg ?? "assertion could not be proven";
 
   public override string ShortDescription => "assert statement";
 
@@ -331,7 +331,7 @@ public class CalculationStep : ProofObligationDescription {
     "the calculation step between the previous line and this line always holds";
 
   public override string FailureDescription =>
-    "could not prove that the calculation step between the previous line and this line hold";
+    "the calculation step between the previous line and this line could not be proven";
 
   public override string ShortDescription => "calc step";
 }
