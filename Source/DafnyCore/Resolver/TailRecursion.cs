@@ -220,6 +220,18 @@ class TailRecursion {
         }
         return TailRecursionStatus.NotTailRecursive;
       }
+    } else if (stmt is NestedMatchStmt nestedMatchStmt) {
+      DisallowRecursiveCallsInExpressions(nestedMatchStmt.Source, enclosingMethod, reportErrors);
+      var status = TailRecursionStatus.CanBeFollowedByAnything;
+      foreach (var kase in nestedMatchStmt.Cases) {
+        var st = CheckTailRecursive(kase.Body, enclosingMethod, ref tailCall, reportErrors);
+        if (st == TailRecursionStatus.NotTailRecursive) {
+          return st;
+        } else if (st == TailRecursionStatus.TailCallSpent) {
+          status = st;
+        }
+      }
+      return status;
     } else if (stmt is MatchStmt) {
       var s = (MatchStmt)stmt;
       DisallowRecursiveCallsInExpressions(s.Source, enclosingMethod, reportErrors);
@@ -233,9 +245,6 @@ class TailRecursion {
         }
       }
       return status;
-    } else if (stmt is ConcreteSyntaxStatement) {
-      var s = (ConcreteSyntaxStatement)stmt;
-      return CheckTailRecursive(s.ResolvedStatement, enclosingMethod, ref tailCall, reportErrors);
     } else if (stmt is AssignSuchThatStmt) {
     } else if (stmt is AssignOrReturnStmt) {
       // TODO this should be the conservative choice, but probably we can consider this to be tail-recursive
@@ -461,6 +470,20 @@ class TailRecursion {
       }
       return status;
 
+    } else if (expr is NestedMatchExpr nestedMatchExpr) {
+      var status = CheckHasNoRecursiveCall(nestedMatchExpr.Source, enclosingFunction, reportErrors);
+      var newError = reportErrors && status != Function.TailStatus.NotTailRecursive;
+      foreach (var kase in nestedMatchExpr.Cases) {
+        var s = CheckTailRecursiveExpr(kase.Body, enclosingFunction, allowAccumulator, reportErrors);
+        newError = newError && s != Function.TailStatus.NotTailRecursive;
+        status = TRES_Or(status, s);
+      }
+      if (status == Function.TailStatus.NotTailRecursive && newError) {
+        // see comments above for ITEExpr
+        // "newError" is "true" when: "reportErrors", and neither e.Source nor a kase.Body returned NotTailRecursive
+        reporter.Error(MessageSource.Resolver, expr, "cases have different accumulator needs for tail recursion");
+      }
+      return status;
     } else if (expr is MatchExpr) {
       var e = (MatchExpr)expr;
       var status = CheckHasNoRecursiveCall(e.Source, enclosingFunction, reportErrors);

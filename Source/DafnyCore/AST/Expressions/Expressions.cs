@@ -1500,6 +1500,8 @@ public class FunctionCallExpr : Expression, IHasUsages, ICloneable<FunctionCallE
       TypeApplication_JustFunction = original.TypeApplication_JustFunction;
       IsByMethodCall = original.IsByMethodCall;
       Function = original.Function;
+      CoCall = original.CoCall;
+      CoCallHint = original.CoCallHint;
     }
   }
 
@@ -2457,6 +2459,8 @@ public class CasePattern<VT> : INode
   where VT : class, IVariable {
   public readonly string Id;
   // After successful resolution, exactly one of the following two fields is non-null.
+
+  [FilledInDuringResolution]
   public DatatypeCtor Ctor;  // finalized by resolution (null if the pattern is a bound variable)
   public VT Var;  // finalized by resolution (null if the pattern is a constructor)  Invariant:  Var != null ==> Arguments == null
   public List<CasePattern<VT>> Arguments;
@@ -2476,6 +2480,7 @@ public class CasePattern<VT> : INode
 
     if (cloner.CloneResolvedFields) {
       Expr = cloner.CloneExpr(original.Expr);
+      Ctor = original.Ctor;
     }
 
     if (original.Arguments != null) {
@@ -2535,24 +2540,6 @@ public class CasePattern<VT> : INode
   }
 
   public override IEnumerable<INode> Children => Arguments ?? Enumerable.Empty<INode>();
-}
-
-/*
-ExtendedPattern is either:
-1 - A LitPattern of a LiteralExpr, representing a constant pattern
-2 - An IdPattern of a string and a list of ExtendedPattern, representing either
-    a bound variable or a constructor applied to n arguments or a symbolic constant
-*/
-
-public abstract class NestedMatchCase : INode {
-  public readonly ExtendedPattern Pat;
-
-  public NestedMatchCase(IToken tok, ExtendedPattern pat) {
-    Contract.Requires(tok != null);
-    Contract.Requires(pat != null);
-    this.Tok = tok;
-    this.Pat = pat;
-  }
 }
 
 public class BoxingCastExpr : Expression {  // a BoxingCastExpr is used only as a temporary placeholding during translation
@@ -2706,14 +2693,12 @@ public class FrameExpression : INode, IHasUsages {
 /// it gets "replaced" by the expression in "ResolvedExpression".
 /// </summary>
 public abstract class ConcreteSyntaxExpression : Expression {
-
-  // [FilledInDuringResolution] public Expression ResolvedExpression;  // after resolution, manipulation of "this" should proceed as with manipulating "this.ResolvedExpression"
-
   protected ConcreteSyntaxExpression(Cloner cloner, ConcreteSyntaxExpression original) : base(cloner, original) {
     if (cloner.CloneResolvedFields && original.ResolvedExpression != null) {
       ResolvedExpression = cloner.CloneExpr(original.ResolvedExpression);
     }
   }
+
   [FilledInDuringResolution]
   private Expression resolvedExpression;
 
@@ -2742,35 +2727,6 @@ public abstract class ConcreteSyntaxExpression : Expression {
   public override IEnumerable<Type> ComponentTypes => ResolvedExpression.ComponentTypes;
 }
 
-/// <summary>
-/// This class represents a piece of concrete syntax in the parse tree.  During resolution,
-/// it gets "replaced" by the statement in "ResolvedStatement".
-/// Adapted from ConcreteSyntaxStatement
-/// </summary>
-public abstract class ConcreteSyntaxStatement : Statement {
-  [FilledInDuringResolution] public Statement ResolvedStatement;  // after resolution, manipulation of "this" should proceed as with manipulating "this.ResolvedExpression"
-
-  public override IEnumerable<INode> Children =>
-    ResolvedStatement == null ? base.Children : new[] { ResolvedStatement };
-
-  public ConcreteSyntaxStatement(Cloner cloner, ConcreteSyntaxStatement original) : base(cloner, original) {
-    if (cloner.CloneResolvedFields) {
-      ResolvedStatement = cloner.CloneStmt(original.ResolvedStatement);
-    }
-  }
-
-  public ConcreteSyntaxStatement(IToken tok, IToken endtok)
-    : base(tok, endtok) {
-  }
-  public ConcreteSyntaxStatement(IToken tok, IToken endtok, Attributes attrs)
-    : base(tok, endtok, attrs) {
-  }
-  public override IEnumerable<Statement> SubStatements {
-    get {
-      yield return ResolvedStatement;
-    }
-  }
-}
 public class ParensExpression : ConcreteSyntaxExpression {
   public readonly Expression E;
   public ParensExpression(IToken tok, Expression e)

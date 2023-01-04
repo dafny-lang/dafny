@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using Microsoft.Boogie.Clustering;
 
 namespace Microsoft.Dafny {
   /// <summary>
@@ -285,6 +286,61 @@ namespace Microsoft.Dafny {
 
       } else if (expr is LetExpr letExpr) {
         newExpr = LetExpr(letExpr);
+      } else if (expr is NestedMatchExpr nestedMatchExpr) {
+        var src = Substitute(nestedMatchExpr.Source);
+        bool anythingChanged = src != nestedMatchExpr.Source;
+        var flattened = nestedMatchExpr.Flattened == null ? null : Substitute(nestedMatchExpr.Flattened);
+        anythingChanged |= flattened != nestedMatchExpr.Flattened;
+
+        var cases = new List<NestedMatchCaseExpr>();
+        foreach (var mc in nestedMatchExpr.Cases) {
+
+          List<BoundVar> discoveredBvs = new();
+          ExtendedPattern SubstituteForPattern(ExtendedPattern pattern) {
+            switch (pattern) {
+              case DisjunctivePattern disjunctivePattern:
+                return new DisjunctivePattern(disjunctivePattern.Tok,
+                  disjunctivePattern.Alternatives.Select(SubstituteForPattern).ToList(), disjunctivePattern.IsGhost);
+              case IdPattern idPattern:
+                if (idPattern.BoundVar == null) {
+                  return new IdPattern(idPattern.Tok, idPattern.Id, idPattern.Type,
+                    idPattern.Arguments.Select(SubstituteForPattern).ToList(), idPattern.IsGhost);
+                }
+
+                discoveredBvs.Add((BoundVar)idPattern.BoundVar);
+                var result = new IdPattern(idPattern.Tok, idPattern.Id, idPattern.Type, null, idPattern.IsGhost) {
+                  BoundVar = CreateBoundVarSubstitutions(new[] { (BoundVar)idPattern.BoundVar }.ToList(), false)[0]
+                };
+                if (idPattern.BoundVar != result.BoundVar) {
+                  anythingChanged = true;
+                }
+                return result;
+              case LitPattern litPattern:
+                return litPattern;
+              default:
+                throw new ArgumentOutOfRangeException(nameof(pattern));
+            }
+          }
+          var pattern = SubstituteForPattern(mc.Pat);
+          var body = Substitute(mc.Body);
+          // undo any changes to substMap (could be optimized to do this only if newBoundVars != mc.Arguments)
+          foreach (var bv in discoveredBvs) {
+            substMap.Remove(bv);
+          }
+          // Put things together
+          if (body != mc.Body) {
+            anythingChanged = true;
+          }
+
+          var newCaseExpr = new NestedMatchCaseExpr(mc.Tok, pattern, body, mc.Attributes);
+          cases.Add(newCaseExpr);
+        }
+        if (anythingChanged) {
+          newExpr = new NestedMatchExpr(expr.tok, src, cases, nestedMatchExpr.UsesOptionalBraces) {
+            Flattened = flattened
+          };
+        }
+
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
         var src = Substitute(e.Source);
@@ -761,9 +817,6 @@ namespace Microsoft.Dafny {
         rr.Steps.AddRange(s.Steps.ConvertAll(Substitute));
         rr.Result = Substitute(s.Result);
         r = rr;
-      } else if (stmt is ConcreteSyntaxStatement) {
-        var s = (ConcreteSyntaxStatement)stmt;
-        r = SubstStmt(s.ResolvedStatement);
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;
         var rr = new MatchStmt(s.Tok, s.EndTok, Substitute(s.Source), s.Cases.ConvertAll(SubstMatchCaseStmt), s.UsesOptionalBraces);
