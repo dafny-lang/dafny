@@ -48,17 +48,17 @@ public class MatchFlattener : IRewriter {
 
   internal override void PostResolve(Program program) {
     foreach (var compileModule in program.RawModules()) {
-      DenestNode(compileModule);
+      FlattenNode(compileModule);
     }
     foreach (var compileModule in program.CompileModules) {
       var reporter = Reporter;
       Reporter = new ErrorReporterSink();
-      DenestNode(compileModule);
+      FlattenNode(compileModule);
       Reporter = reporter;
     }
   }
 
-  private void DenestNode(INode moduleDefinition) {
+  private void FlattenNode(INode moduleDefinition) {
     moduleDefinition.Visit(node => {
       if (node != moduleDefinition && node is ModuleDefinition) {
         // The resolver clones module definitions for compilation, but also the top level module which also contains the uncloned definitions,
@@ -72,13 +72,13 @@ public class MatchFlattener : IRewriter {
 
       if (node is NestedMatchStmt nestedMatchStmt) {
         nestedMatchStmt.Flattened = CompileNestedMatchStmt(nestedMatchStmt);
-        DenestNode(nestedMatchStmt.Flattened);
+        FlattenNode(nestedMatchStmt.Flattened);
         return false;
       }
 
       if (node is NestedMatchExpr nestedMatchExpr) {
         nestedMatchExpr.Flattened = CompileNestedMatchExpr(nestedMatchExpr);
-        DenestNode(nestedMatchExpr.Flattened);
+        FlattenNode(nestedMatchExpr.Flattened);
         return false;
       }
 
@@ -224,7 +224,7 @@ public class MatchFlattener : IRewriter {
     }
   }
 
-  private void PrintPatternPaths(MatchingContext context, LinkedList<Expression> matchees, List<PatternPath> paths) {
+  private void PrintPatternPaths(MatchingContext context, SinglyLinkedList<Expression> matchees, List<PatternPath> paths) {
     Console.WriteLine("\t=-------=");
     Console.WriteLine("\tCurrent context:");
     Console.WriteLine("\t> {0}", context.ToString());
@@ -251,7 +251,7 @@ public class MatchFlattener : IRewriter {
   /// 4 - Otherwise, all head-patterns are variables, let-bind the head-matchee as the head-pattern in each of the bodypatterns,
   ///     continue processing the matchees
   /// </summary>
-  private SyntaxContainer CompilePatternPaths(MatchCompilationState state, MatchingContext context, LinkedList<Expression> matchees, List<PatternPath> paths) {
+  private SyntaxContainer CompilePatternPaths(MatchCompilationState state, MatchingContext context, SinglyLinkedList<Expression> matchees, List<PatternPath> paths) {
 
     // For each path, number of matchees (n) is the number of patterns held by the path
     if (!paths.TrueForAll(x => matchees.Count() == x.Patterns.Count)) {
@@ -283,12 +283,7 @@ public class MatchFlattener : IRewriter {
     Expression currMatchee = consMatchees.Head;
 
     // Get the datatype of the matchee
-    var currMatcheeType = currMatchee.Type
-    // resolver.PartiallyResolveTypeForMemberSelection(currMatchee.tok, currMatchee.Type)
-      .NormalizeExpand();
-    // if (currMatcheeType is TypeProxy) {
-    //   resolver.PartiallySolveTypeConstraints(true);
-    // }
+    var currMatcheeType = currMatchee.Type.NormalizeExpand();
 
     var dtd = currMatcheeType.AsDatatype;
 
@@ -298,7 +293,7 @@ public class MatchFlattener : IRewriter {
     if (dtd == null) {
       ctors = null;
     } else {
-      ctors = dtd.Ctors.ToDictionary(c => c.Name, c => c); //resolver.datatypeCtors[dtd];
+      ctors = dtd.Ctors.ToDictionary(c => c.Name, c => c);
       Contract.Assert(ctors != null); // dtd should have been inserted into datatypeCtors during a previous resolution stage
       subst = TypeParameter.SubstitutionMap(dtd.TypeArgs,
         currMatcheeType.TypeArgs); // Build the type-parameter substitution map for this use of the datatype

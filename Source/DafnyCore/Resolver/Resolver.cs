@@ -3942,26 +3942,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    // ------------------------------------------------------------------------------------------------------
-    // ----- Visitors ---------------------------------------------------------------------------------------
-    // ------------------------------------------------------------------------------------------------------
-    #region Visitors
-    class ResolverBottomUpVisitor : BottomUpVisitor {
-      protected Resolver resolver;
-      public ResolverBottomUpVisitor(Resolver resolver) {
-        Contract.Requires(resolver != null);
-        this.resolver = resolver;
-      }
-    }
-    abstract class ResolverTopDownVisitor<T> : TopDownVisitor<T> {
-      protected Resolver resolver;
-      public ResolverTopDownVisitor(Resolver resolver) {
-        Contract.Requires(resolver != null);
-        this.resolver = resolver;
-      }
-    }
-    #endregion Visitors
-
     /// <summary>
     /// Check that the 'older' modifier on parameters is used correctly and report any errors of the contrary.
     /// </summary>
