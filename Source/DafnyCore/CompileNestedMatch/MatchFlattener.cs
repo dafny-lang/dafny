@@ -730,33 +730,16 @@ public class MatchFlattener : IRewriter {
     }
   }
 
-  private abstract class PatternPath {
-    public readonly IToken Tok;
-    public int CaseId;
-    public List<ExtendedPattern> Patterns;
-
-    public PatternPath(IToken tok, int caseId, List<ExtendedPattern> patterns) {
-      Contract.Requires(patterns.All(p => !(p is DisjunctivePattern)));
-      this.Tok = tok;
-      this.CaseId = caseId;
-      this.Patterns = patterns;
-    }
+  private abstract record PatternPath(IToken Tok, int CaseId, List<ExtendedPattern> Patterns) {
   }
 
-  private class StmtPatternPath : PatternPath {
-    public IReadOnlyList<Statement> Body;
-    public Attributes Attributes;
+  private record StmtPatternPath(IToken Tok, int CaseId, List<ExtendedPattern> Patterns,
+    IReadOnlyList<Statement> Body, Attributes Attributes) : PatternPath(Tok, CaseId, Patterns) {
 
-    public StmtPatternPath(IToken tok, int caseId, List<ExtendedPattern> patterns, IReadOnlyList<Statement> body, Attributes attrs = null) : base(tok, caseId, patterns) {
-      this.Body = body;
-      this.Attributes = attrs;
-    }
-
-    public StmtPatternPath(int caseId, NestedMatchCaseStmt x, Attributes attrs = null) : base(x.Tok, caseId, new List<ExtendedPattern>()) {
+    public StmtPatternPath(int caseId, NestedMatchCaseStmt x, Attributes attrs = null) :
+      this(x.Tok, caseId, new List<ExtendedPattern>() { x.Pat },
+      new List<Statement>(x.Body), attrs) {
       Contract.Requires(!(x.Pat is DisjunctivePattern)); // No nested or patterns
-      this.Body = new List<Statement>(x.Body); // Resolving the body will insert new elements.
-      this.Attributes = attrs;
-      this.Patterns.Add(x.Pat);
     }
 
     public override string ToString() {
@@ -768,21 +751,11 @@ public class MatchFlattener : IRewriter {
     }
   }
 
-  // TODO use a record.
-  private class ExprPatternPath : PatternPath {
+  private record ExprPatternPath(IToken Tok, int CaseId, List<ExtendedPattern> Patterns,
+    Expression Body, Attributes Attributes) : PatternPath(Tok, CaseId, Patterns) {
 
-    public Expression Body;
-    public Attributes Attributes;
-
-    public ExprPatternPath(IToken tok, int caseId, List<ExtendedPattern> patterns, Expression body, Attributes attrs = null) : base(tok, caseId, patterns) {
-      this.Body = body;
-      this.Attributes = attrs;
-    }
-
-    public ExprPatternPath(int caseId, NestedMatchCaseExpr x, Attributes attrs = null) : base(x.Tok, caseId, new List<ExtendedPattern>()) {
-      this.Body = x.Body;
-      this.Patterns.Add(x.Pat);
-      this.Attributes = attrs;
+    public ExprPatternPath(int caseId, NestedMatchCaseExpr x, Attributes attrs = null) : this(x.Tok, caseId,
+      new List<ExtendedPattern>() { x.Pat }, x.Body, attrs) {
     }
 
     public override string ToString() {
