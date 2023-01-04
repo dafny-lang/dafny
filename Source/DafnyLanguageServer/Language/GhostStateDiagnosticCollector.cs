@@ -56,6 +56,12 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
       public override void VisitUnknown(object node, IToken token) { }
 
+      public override void Visit(Method method) {
+        if (method is not Lemma) {
+          base.Visit(method);
+        }
+      }
+
       public override void Visit(Statement statement) {
         cancellationToken.ThrowIfCancellationRequested();
         if (IsGhostStatementToMark(statement)) {

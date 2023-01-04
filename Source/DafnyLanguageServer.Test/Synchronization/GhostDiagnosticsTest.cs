@@ -48,6 +48,25 @@ class C {
     }
 
     [TestMethod]
+    public async Task OpeningFlawlessDocumentOnlyContainingLemmasWithGhostMarkStatementsDoesNotMarkAnything() {
+      var source = @"
+class C {
+  lemma Test(x: int) {
+    var y := 0;
+    y := x;
+  }
+}".TrimStart();
+      await SetUp(new Dictionary<string, string>() {
+        { $"{GhostOptions.Section}:{nameof(GhostOptions.MarkStatements)}", "true" }
+      });
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var report = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
+      var diagnostics = report.Diagnostics.ToArray();
+      Assert.AreEqual(0, diagnostics.Length);
+    }
+
+    [TestMethod]
     public async Task OpeningFlawlessDocumentWithGhostMarkStatementsMarksGhostVariableDeclarations() {
       var source = @"
 class C {
