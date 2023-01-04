@@ -4,6 +4,7 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
+/// write out the quantifier for ForallStmt
 public class ForallStmtRewriter : IRewriter {
   public ForallStmtRewriter(ErrorReporter reporter) : base(reporter) {
     Contract.Requires(reporter != null);

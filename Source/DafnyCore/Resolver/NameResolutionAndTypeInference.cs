@@ -277,7 +277,7 @@ namespace Microsoft.Dafny {
     /// If "solveConstraints" is "true", then the constraints are also solved. In this case, it is assumed on entry that there are no
     /// prior type constraints. That is, the only type constraints being solved for are the ones in the given attributes.
     /// </summary>
-    void ResolveAttributes(IAttributeBearingDeclaration attributeHost, ResolutionContext resolutionContext, bool solveConstraints = false) {
+    public void ResolveAttributes(IAttributeBearingDeclaration attributeHost, ResolutionContext resolutionContext, bool solveConstraints = false) {
       Contract.Requires(resolutionContext != null);
       Contract.Requires(attributeHost != null);
 
@@ -1081,15 +1081,8 @@ namespace Microsoft.Dafny {
         ConstrainSubtypeRelation(expr.Type, e.Thn.Type, expr, "the two branches of an if-then-else expression must have the same type (got {0} and {1})", e.Thn.Type, e.Els.Type);
         ConstrainSubtypeRelation(expr.Type, e.Els.Type, expr, "the two branches of an if-then-else expression must have the same type (got {0} and {1})", e.Thn.Type, e.Els.Type);
 
-      } else if (expr is MatchExpr) {
-        ResolveMatchExpr((MatchExpr)expr, resolutionContext);
-      } else if (expr is NestedMatchExpr) {
-        NestedMatchExpr e = (NestedMatchExpr)expr;
-        ResolveNestedMatchExpr(e, resolutionContext);
-        if (e.ResolvedExpression != null && e.ResolvedExpression.Type != null) {
-          // i.e. no error was thrown during compiling of the NextedMatchExpr or during resolution of the ResolvedExpression
-          expr.Type = e.ResolvedExpression.Type;
-        }
+      } else if (expr is NestedMatchExpr nestedMatchExpr) {
+        ResolveNestedMatchExpr(nestedMatchExpr, resolutionContext);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
@@ -1135,7 +1128,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(msg != null);  // expected to have a {0} part
       ConstrainSubtypeRelation(Type.Bool, e.Type, e, msg, e.Type);
     }
-    private bool ConstrainSubtypeRelation(Type super, Type sub, IToken tok, string msg, params object[] msgArgs) {
+
+    public bool ConstrainSubtypeRelation(Type super, Type sub, IToken tok, string msg, params object[] msgArgs) {
       Contract.Requires(sub != null);
       Contract.Requires(super != null);
       Contract.Requires(tok != null);
@@ -2329,7 +2323,7 @@ namespace Microsoft.Dafny {
     /// If "allowDecisions" is "false", then no decisions, only determined inferences, are made; this mode is
     /// appropriate for the partial solving that's done before a member lookup.
     /// </summary>
-    void PartiallySolveTypeConstraints(bool allowDecisions) {
+    public void PartiallySolveTypeConstraints(bool allowDecisions) {
       int state = 0;
       while (true) {
         if (2 <= state && !allowDecisions) {
@@ -3767,7 +3761,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void ResolveStatementWithLabels(Statement stmt, ResolutionContext resolutionContext) {
+    public void ResolveStatementWithLabels(Statement stmt, ResolutionContext resolutionContext) {
       Contract.Requires(stmt != null);
       Contract.Requires(resolutionContext != null);
 
@@ -4983,9 +4977,6 @@ namespace Microsoft.Dafny {
         Contract.Assert(s.Result != null);
         Contract.Assert(prevErrorCount != reporter.Count(ErrorLevel.Error) || s.Steps.Count == s.Hints.Count);
 
-      } else if (stmt is MatchStmt) {
-        ResolveMatchStmt((MatchStmt)stmt, resolutionContext);
-
       } else if (stmt is NestedMatchStmt) {
         var s = (NestedMatchStmt)stmt;
         ResolveNestedMatchStmt(s, resolutionContext);
@@ -5541,7 +5532,7 @@ namespace Microsoft.Dafny {
     /// but it may also be a type in a super- or subtype relation to "t".
     /// In some cases, it is necessary to make some inference decisions in order to figure out the type to return.
     /// </summary>
-    Type PartiallyResolveTypeForMemberSelection(IToken tok, Type t, string memberName = null, int strength = 0) {
+    public Type PartiallyResolveTypeForMemberSelection(IToken tok, Type t, string memberName = null, int strength = 0) {
       Contract.Requires(tok != null);
       Contract.Requires(t != null);
       Contract.Ensures(Contract.Result<Type>() != null);
@@ -6213,7 +6204,7 @@ namespace Microsoft.Dafny {
       return rewrite;
     }
 
-    Expression ResolveNameSegment(NameSegment expr, bool isLastNameSegment, List<ActualBinding> args,
+    public Expression ResolveNameSegment(NameSegment expr, bool isLastNameSegment, List<ActualBinding> args,
       ResolutionContext resolutionContext, bool allowMethodCall, bool complain = true) {
       return ResolveNameSegment(expr, isLastNameSegment, args, resolutionContext, allowMethodCall, complain, out _);
     }
@@ -6647,9 +6638,8 @@ namespace Microsoft.Dafny {
         if (ty.IsDatatype) {
           // ----- LHS is a datatype
           var dt = ty.AsDatatype;
-          Dictionary<string, DatatypeCtor> members;
           DatatypeCtor ctor;
-          if (datatypeCtors.TryGetValue(dt, out members) && members.TryGetValue(name, out ctor)) {
+          if (dt.ConstructorsByName != null && dt.ConstructorsByName.TryGetValue(name, out ctor)) {
             if (expr.OptTypeArguments != null) {
               reporter.Error(MessageSource.Resolver, expr.tok, "datatype constructor does not take any type parameters ('{0}')", name);
             }
@@ -6989,7 +6979,7 @@ namespace Microsoft.Dafny {
       dtv.Type = new UserDefinedType(dtv.tok, dt.Name, dt, gt);
 
       DatatypeCtor ctor;
-      if (!datatypeCtors[dt].TryGetValue(dtv.MemberName, out ctor)) {
+      if (!dt.ConstructorsByName.TryGetValue(dtv.MemberName, out ctor)) {
         ok = false;
         if (complain) {
           reporter.Error(MessageSource.Resolver, dtv.tok, "undeclared constructor {0} in datatype {1}", dtv.MemberName, dtv.DatatypeName);
