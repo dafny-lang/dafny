@@ -1,19 +1,19 @@
 ByMethod.dfy(38,18): Error: This loop invariant might not be maintained by the loop.
 ByMethod.dfy(38,18): Related message: loop invariant violation
-ByMethod.dfy(42,4): Error: A postcondition might not hold on this return path.
-ByMethod.dfy(35,7): Related location: This is the postcondition that might not hold.
-ByMethod.dfy(47,11): Error: A postcondition might not hold on this return path.
-ByMethod.dfy(48,12): Related location: This is the postcondition that might not hold.
-ByMethod.dfy(55,11): Error: A postcondition might not hold on this return path.
-ByMethod.dfy(56,12): Related location: This is the postcondition that might not hold.
-ByMethod.dfy(60,4): Error: A postcondition might not hold on this return path.
-ByMethod.dfy(59,7): Related location: This is the postcondition that might not hold.
-ByMethod.dfy(63,12): Error: A postcondition might not hold on this return path.
-ByMethod.dfy(64,27): Related location: This is the postcondition that might not hold.
-ByMethod.dfy(68,4): Error: A postcondition might not hold on this return path.
-ByMethod.dfy(67,7): Related location: This is the postcondition that might not hold.
-ByMethod.dfy(71,12): Error: A postcondition might not hold on this return path.
-ByMethod.dfy(72,27): Related location: This is the postcondition that might not hold.
+ByMethod.dfy(42,4): Error: Could not prove a postcondition on this return path.
+ByMethod.dfy(35,7): Related location: This is the postcondition that could not be proven.
+ByMethod.dfy(47,11): Error: Could not prove a postcondition on this return path.
+ByMethod.dfy(48,12): Related location: This is the postcondition that could not be proven.
+ByMethod.dfy(55,11): Error: Could not prove a postcondition on this return path.
+ByMethod.dfy(56,12): Related location: This is the postcondition that could not be proven.
+ByMethod.dfy(60,4): Error: Could not prove a postcondition on this return path.
+ByMethod.dfy(59,7): Related location: This is the postcondition that could not be proven.
+ByMethod.dfy(63,12): Error: Could not prove a postcondition on this return path.
+ByMethod.dfy(64,27): Related location: This is the postcondition that could not be proven.
+ByMethod.dfy(68,4): Error: Could not prove a postcondition on this return path.
+ByMethod.dfy(67,7): Related location: This is the postcondition that could not be proven.
+ByMethod.dfy(71,12): Error: Could not prove a postcondition on this return path.
+ByMethod.dfy(72,27): Related location: This is the postcondition that could not be proven.
 ByMethod.dfy(93,11): Error: decreases clause might not decrease
 ByMethod.dfy(102,11): Error: decreases clause might not decrease
 ByMethod.dfy(111,11): Error: decreases clause might not decrease

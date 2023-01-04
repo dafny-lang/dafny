@@ -1,4 +1,4 @@
-VerificationErrors.dfy(8,38): Error: assertion might not hold
-VerificationErrors.dfy(15,18): Error: assertion might not hold
+VerificationErrors.dfy(8,38): Error: Could not prove assertion
+VerificationErrors.dfy(15,18): Error: Could not prove assertion
 
 Dafny program verifier finished with 0 verified, 2 errors

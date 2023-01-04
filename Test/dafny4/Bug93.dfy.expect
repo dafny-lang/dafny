@@ -1,4 +1,4 @@
-Bug93.dfy(17,28): Error: assertion might not hold
-Bug93.dfy(34,28): Error: assertion might not hold
+Bug93.dfy(17,28): Error: Could not prove assertion
+Bug93.dfy(34,28): Error: Could not prove assertion
 
 Dafny program verifier finished with 0 verified, 2 errors

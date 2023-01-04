@@ -1,6 +1,6 @@
-NoReferencesVerification.dfy(26,11): Error: assertion might not hold
-NoReferencesVerification.dfy(33,11): Error: assertion might not hold
-NoReferencesVerification.dfy(49,9): Error: assertion might not hold
-NoReferencesVerification.dfy(16,9): Error: assertion might not hold
+NoReferencesVerification.dfy(26,11): Error: Could not prove assertion
+NoReferencesVerification.dfy(33,11): Error: Could not prove assertion
+NoReferencesVerification.dfy(49,9): Error: Could not prove assertion
+NoReferencesVerification.dfy(16,9): Error: Could not prove assertion
 
 Dafny program verifier finished with 2 verified, 4 errors

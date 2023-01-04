@@ -1,13 +1,13 @@
 Modules1.dfy(10,8): Error: target object might not be allocated
-Modules1.dfy(82,15): Error: assertion might not hold
-Modules1.dfy(95,15): Error: assertion might not hold
-Modules1.dfy(97,18): Error: assertion might not hold
-Modules1.dfy(211,16): Error: assertion might not hold
-Modules1.dfy(212,22): Error: assertion might not hold
-Modules1.dfy(213,22): Error: assertion might not hold
-Modules1.dfy(219,16): Error: assertion might not hold
-Modules1.dfy(220,16): Error: assertion might not hold
-Modules1.dfy(221,16): Error: assertion might not hold
+Modules1.dfy(82,15): Error: Could not prove assertion
+Modules1.dfy(95,15): Error: Could not prove assertion
+Modules1.dfy(97,18): Error: Could not prove assertion
+Modules1.dfy(211,16): Error: Could not prove assertion
+Modules1.dfy(212,22): Error: Could not prove assertion
+Modules1.dfy(213,22): Error: Could not prove assertion
+Modules1.dfy(219,16): Error: Could not prove assertion
+Modules1.dfy(220,16): Error: Could not prove assertion
+Modules1.dfy(221,16): Error: Could not prove assertion
 Modules1.dfy(56,8): Error: decreases expression must be bounded below by 0
 Modules1.dfy(54,12): Related location
 Modules1.dfy(62,8): Error: decreases clause might not decrease

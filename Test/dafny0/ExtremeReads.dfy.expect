@@ -1,36 +1,36 @@
-ExtremeReads.dfy(47,11): Error: assertion might not hold
+ExtremeReads.dfy(47,11): Error: Could not prove assertion
 ExtremeReads.dfy(13,20): Related location
-ExtremeReads.dfy(50,11): Error: assertion might not hold
+ExtremeReads.dfy(50,11): Error: Could not prove assertion
 ExtremeReads.dfy(13,20): Related location
-ExtremeReads.dfy(69,11): Error: assertion might not hold
+ExtremeReads.dfy(69,11): Error: Could not prove assertion
 ExtremeReads.dfy(20,20): Related location
-ExtremeReads.dfy(83,11): Error: assertion might not hold
+ExtremeReads.dfy(83,11): Error: Could not prove assertion
 ExtremeReads.dfy(26,2): Related location
-ExtremeReads.dfy(105,11): Error: assertion might not hold
+ExtremeReads.dfy(105,11): Error: Could not prove assertion
 ExtremeReads.dfy(89,2): Related location
-ExtremeReads.dfy(127,11): Error: assertion might not hold
+ExtremeReads.dfy(127,11): Error: Could not prove assertion
 ExtremeReads.dfy(9,19): Related location
-ExtremeReads.dfy(127,11): Error: assertion might not hold
+ExtremeReads.dfy(127,11): Error: Could not prove assertion
 ExtremeReads.dfy(13,20): Related location
-ExtremeReads.dfy(130,11): Error: assertion might not hold
+ExtremeReads.dfy(130,11): Error: Could not prove assertion
 ExtremeReads.dfy(9,19): Related location
-ExtremeReads.dfy(130,11): Error: assertion might not hold
+ExtremeReads.dfy(130,11): Error: Could not prove assertion
 ExtremeReads.dfy(13,20): Related location
-ExtremeReads.dfy(149,11): Error: assertion might not hold
+ExtremeReads.dfy(149,11): Error: Could not prove assertion
 ExtremeReads.dfy(16,19): Related location
-ExtremeReads.dfy(149,11): Error: assertion might not hold
+ExtremeReads.dfy(149,11): Error: Could not prove assertion
 ExtremeReads.dfy(20,20): Related location
-ExtremeReads.dfy(168,11): Error: assertion might not hold
+ExtremeReads.dfy(168,11): Error: Could not prove assertion
 ExtremeReads.dfy(23,19): Related location
-ExtremeReads.dfy(168,11): Error: assertion might not hold
+ExtremeReads.dfy(168,11): Error: Could not prove assertion
 ExtremeReads.dfy(26,2): Related location
-ExtremeReads.dfy(171,11): Error: assertion might not hold
+ExtremeReads.dfy(171,11): Error: Could not prove assertion
 ExtremeReads.dfy(23,19): Related location
-ExtremeReads.dfy(171,11): Error: assertion might not hold
+ExtremeReads.dfy(171,11): Error: Could not prove assertion
 ExtremeReads.dfy(26,2): Related location
-ExtremeReads.dfy(181,11): Error: assertion might not hold
+ExtremeReads.dfy(181,11): Error: Could not prove assertion
 ExtremeReads.dfy(86,16): Related location
-ExtremeReads.dfy(181,11): Error: assertion might not hold
+ExtremeReads.dfy(181,11): Error: Could not prove assertion
 ExtremeReads.dfy(89,2): Related location
 
 Dafny program verifier finished with 10 verified, 17 errors

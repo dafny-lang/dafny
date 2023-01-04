@@ -5,7 +5,7 @@ Skeletons.dfy(32,10): Warning: the ... refinement feature in statements is depre
 Skeletons.dfy(60,7): Warning: the ... refinement feature in statements is deprecated
 Skeletons.dfy(62,6): Warning: the ... refinement feature in statements is deprecated
 Skeletons.dfy(64,7): Warning: the ... refinement feature in statements is deprecated
-Skeletons.dfy(45,2): Error: A postcondition might not hold on this return path.
-Skeletons.dfy(44,14): Related location: This is the postcondition that might not hold.
+Skeletons.dfy(45,2): Error: Could not prove a postcondition on this return path.
+Skeletons.dfy(44,14): Related location: This is the postcondition that could not be proven.
 
 Dafny program verifier finished with 4 verified, 1 error

@@ -1,4 +1,4 @@
-OpaqueBug.dfy(13,13): Error: assertion might not hold
-OpaqueBug.dfy(23,13): Error: assertion might not hold
+OpaqueBug.dfy(13,13): Error: Could not prove assertion
+OpaqueBug.dfy(23,13): Error: Could not prove assertion
 
 Dafny program verifier finished with 0 verified, 2 errors

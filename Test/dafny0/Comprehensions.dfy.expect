@@ -17,7 +17,7 @@ Comprehensions.dfy(174,4): Error: all sequence indices must be in the domain of 
 Comprehensions.dfy(180,38): Error: value does not satisfy the subset constraints of 'nat'
 Comprehensions.dfy(186,30): Error: value does not satisfy the subset constraints of 'nat'
 Comprehensions.dfy(189,16): Error: value does not satisfy the subset constraints of 'nat'
-Comprehensions.dfy(12,13): Error: assertion might not hold
-Comprehensions.dfy(78,22): Error: assertion might not hold
+Comprehensions.dfy(12,13): Error: Could not prove assertion
+Comprehensions.dfy(78,22): Error: Could not prove assertion
 
 Dafny program verifier finished with 16 verified, 15 errors

@@ -237,7 +237,7 @@ function Postie3(c: Mountain): Mountain  // all is cool
 function Postie4(c: Mountain): Mountain
   requires allocated(c) && c.x <= 5; reads c;
   ensures allocated(Postie4(c)) && Postie4(c).x < 10;
-  ensures Postie4(c).x == 5;  // error: postcondition might not hold
+  ensures Postie4(c).x == 5;  // error: Could not prove postcondition
 {
   c
 }

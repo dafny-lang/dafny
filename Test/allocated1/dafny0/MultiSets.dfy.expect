@@ -1,9 +1,9 @@
 MultiSets.dfy(177,19): Error: new number of occurrences might be negative
-MultiSets.dfy(268,23): Error: assertion might not hold
-MultiSets.dfy(291,15): Error: assertion might not hold
-MultiSets.dfy(158,2): Error: A postcondition might not hold on this return path.
-MultiSets.dfy(157,14): Related location: This is the postcondition that might not hold.
-MultiSets.dfy(164,2): Error: A postcondition might not hold on this return path.
-MultiSets.dfy(163,14): Related location: This is the postcondition that might not hold.
+MultiSets.dfy(268,23): Error: Could not prove assertion
+MultiSets.dfy(291,15): Error: Could not prove assertion
+MultiSets.dfy(158,2): Error: Could not prove a postcondition on this return path.
+MultiSets.dfy(157,14): Related location: This is the postcondition that could not be proven.
+MultiSets.dfy(164,2): Error: Could not prove a postcondition on this return path.
+MultiSets.dfy(163,14): Related location: This is the postcondition that could not be proven.
 
 Dafny program verifier finished with 34 verified, 5 errors

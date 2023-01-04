@@ -3,9 +3,9 @@ ForLoops.dfy(342,2): Warning: note, this loop has no body (loop frame: i, j)
 ForLoops.dfy(351,2): Warning: note, this loop has no body (loop frame: i, j)
 ForLoops.dfy(360,2): Warning: note, this loop has no body (loop frame: i, j)
 ForLoops.dfy(369,2): Warning: note, this loop has no body (loop frame: i, x)
-ForLoops.dfy(19,13): Error: assertion might not hold
+ForLoops.dfy(19,13): Error: Could not prove assertion
 ForLoops.dfy(24,11): Error: lower bound must not exceed upper bound
-ForLoops.dfy(116,11): Error: assertion might not hold
+ForLoops.dfy(116,11): Error: Could not prove assertion
 ForLoops.dfy(150,17): Error: possible division by zero
 ForLoops.dfy(155,21): Error: lower bound must not exceed upper bound
 ForLoops.dfy(204,6): Error: entire range must be assignable to index variable, but some value does not satisfy the subset constraints of 'Even'
@@ -21,13 +21,13 @@ ForLoops.dfy(290,8): Error: entire range must be assignable to index variable, b
 ForLoops.dfy(298,22): Error: result of operation might violate newtype constraint for 'byte'
 ForLoops.dfy(306,17): Error: result of operation might violate newtype constraint for 'byte'
 ForLoops.dfy(311,16): Error: result of operation might violate newtype constraint for 'byte'
-ForLoops.dfy(344,11): Error: assertion might not hold
-ForLoops.dfy(362,11): Error: assertion might not hold
-ForLoops.dfy(372,11): Error: assertion might not hold
+ForLoops.dfy(344,11): Error: Could not prove assertion
+ForLoops.dfy(362,11): Error: Could not prove assertion
+ForLoops.dfy(372,11): Error: Could not prove assertion
 ForLoops.dfy(415,28): Error: This loop invariant might not be maintained by the loop.
 ForLoops.dfy(415,28): Related message: loop invariant violation
 ForLoops.dfy(434,26): Error: decreases expression must be bounded below by 0 at end of loop iteration
 ForLoops.dfy(443,18): Error: decreases expression must be bounded below by 0 at end of loop iteration
-ForLoops.dfy(457,9): Error: assertion might not hold
+ForLoops.dfy(457,9): Error: Could not prove assertion
 
 Dafny program verifier finished with 23 verified, 25 errors

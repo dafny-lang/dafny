@@ -1,8 +1,8 @@
-OpaqueFunctions.dfy(16,11): Error: A postcondition might not hold on this return path.
-OpaqueFunctions.dfy(17,14): Related location: This is the postcondition that might not hold.
-OpaqueFunctions.dfy(58,2): Error: A postcondition might not hold on this return path.
-OpaqueFunctions.dfy(57,16): Related location: This is the postcondition that might not hold.
-OpaqueFunctions.dfy(65,2): Error: A postcondition might not hold on this return path.
-OpaqueFunctions.dfy(64,16): Related location: This is the postcondition that might not hold.
+OpaqueFunctions.dfy(16,11): Error: Could not prove a postcondition on this return path.
+OpaqueFunctions.dfy(17,14): Related location: This is the postcondition that could not be proven.
+OpaqueFunctions.dfy(58,2): Error: Could not prove a postcondition on this return path.
+OpaqueFunctions.dfy(57,16): Related location: This is the postcondition that could not be proven.
+OpaqueFunctions.dfy(65,2): Error: Could not prove a postcondition on this return path.
+OpaqueFunctions.dfy(64,16): Related location: This is the postcondition that could not be proven.
 
 Dafny program verifier finished with 4 verified, 3 errors

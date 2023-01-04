@@ -48,7 +48,7 @@ method Abs(x: int) returns (y: int)
 ", "testFile.dfy");
       // When hovering the postcondition, it should display the position of the failing path
       await AssertHoverMatches(documentItem, (2, 15),
-        @"[**Error:**](???) This postcondition might not hold on a return path.  
+        @"[**Error:**](???) Could not prove this postcondition on a return path.  
 This is assertion #1 of 4 in method Abs  
 Resource usage: ??? RU  
 Return path: testFile.dfy(6, 5)"
@@ -56,12 +56,12 @@ Return path: testFile.dfy(6, 5)"
       // When hovering the failing path, it does not display the position of the failing postcondition
       // because the IDE extension already does it.
       await AssertHoverMatches(documentItem, (5, 4),
-        @"[**Error:**](???) A postcondition might not hold on this return path.  
+        @"[**Error:**](???) Could not prove a postcondition on this return path.  
 This is assertion #1 of 4 in method Abs  
 Resource usage: ??? RU"
       );
       await AssertHoverMatches(documentItem, (7, 11),
-        @"[**Error:**](???) assertion might not hold  
+        @"[**Error:**](???) Could not prove assertion  
 This is assertion #2 of 4 in method Abs  
 Resource usage: 9K RU"
       );
@@ -86,7 +86,7 @@ method {:vcs_split_on_every_assert} f(x: int) {
 }
 ", "testfile.dfy");
       await AssertHoverMatches(documentItem, (1, 12),
-        @"[**Error:**](???) assertion might not hold  
+        @"[**Error:**](???) Could not prove assertion  
 This is the only assertion in [batch](???) #??? of ??? in method f  
 [Batch](???) #??? resource usage: ??? RU"
       );
@@ -123,7 +123,7 @@ This is assertion #2 of 2 in [batch](???) #1 of 2 in function f
 [Batch](???) #1 resource usage: ??? RU"
       );
       await AssertHoverMatches(documentItem, (3, 26),
-        @"[**Error:**](???) assertion might not hold  
+        @"[**Error:**](???) Could not prove assertion  
 This is assertion #1 of 2 in [batch](???) #2 of 2 in function f  
 [Batch](???) #2 resource usage: ??? RU"
       );

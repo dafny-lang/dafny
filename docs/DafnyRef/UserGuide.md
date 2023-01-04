@@ -442,11 +442,12 @@ Most output from `dafny` is directed to the standard output of the shell invokin
 
 ## 25.6. Verification {#sec-verification}
 
-In this section, we suggest a methodology to figure out [why a single assertion might not hold](#sec-verification-debugging), we propose techniques to deal with [assertions that slow a proof down](#sec-verification-debugging-slow), we explain how to [verify assertions in parallel or in a focused way](#sec-assertion-batches), and we also give some more examples of [useful options and attributes to control verification](#sec-command-line-options-and-attributes-for-verification).
+In this section, we suggest a methodology to figure out [why Dafny cannot prove a single assertion](#sec-verification-debugging), we propose techniques to deal with [assertions that slow a proof down](#sec-verification-debugging-slow), we explain how to [verify assertions in parallel or in a focused way](#sec-assertion-batches), and we also give some more examples of [useful options and attributes to control verification](#sec-command-line-options-and-attributes-for-verification).
 
 ### 25.6.1. Verification debugging when verification fails {#sec-verification-debugging}
 
-Let's assume one assertion is failing ("assertion might not hold" or "postcondition might not hold"). What should you do next?
+Let's assume one assertion is failing ("Could not prove assertion" or "Could not prove postcondition"). What should you do next?
+First, it's good to know that if an assertion is failing, it means that the assertion might not hold or that Dafny would requires more proof hints, which can be found in a mechanical way.
 
 The following section is textual description of the animation below, which illustrates the principle of debugging an assertion by computing the weakest precondition:  
 ![weakestpreconditionDemo](https://user-images.githubusercontent.com/3601079/157976402-83fe4d37-8042-40fc-940f-bcfc235c7d2b.gif)
@@ -461,7 +462,7 @@ method FailingPostcondition(b: bool) returns (i: int)
   var j := if !b then 3 else 1;
   if b {
     return j;
-  }//^^^^^^^ a postcondition might not hold on this return path.
+  }//^^^^^^^ Could not prove a postcondition on this return path.
   i := 2;
 }
 ```
@@ -475,7 +476,7 @@ method FailingPostcondition(b: bool) returns (i: int)
   if b {
     i := j;
     return;
-  }//^^^^^^^ a postcondition might not hold on this return path.
+  }//^^^^^^^ Could not prove a postcondition on this return path.
   i := 2;
 }
 ```
@@ -488,7 +489,7 @@ method FailingPostcondition(b: bool) returns (i: int)
   var j := if !b then 3 else 1;
   if b {
     i := j;
-    assert 2 <= i; // This assertion might not hold
+    assert 2 <= i; // Could not prove this assertion
     return;
   }
   i := 2;
@@ -507,14 +508,14 @@ method FailingPostcondition(b: bool) returns (i: int)
   var j := if !b then 3 else 1;
   if b {
     i := j;
-    assert 2 <= i; // This assertion might not hold
+    assert 2 <= i; // Could not prove this assertion
     return;
   }
   i := 2;
 }
 ```
-To debug why this assert might not hold, we need to _move this assert up_, which is similar to [_computing the weakest precondition_](https://en.wikipedia.org/wiki/Predicate_transformer_semantics#Weakest_preconditions).
-For example, if we have `x := Y; assert F;` and the `assert F;` might not hold, the weakest precondition for it to hold before `x := Y;` can be written as the assertion `assert F[x:= Y];`, where we replace every occurence of `x` in `F` into `Y`.
+To debug why Dafny cannot prove this assert, we need to _move this assert up_, which is similar to [_computing the weakest precondition_](https://en.wikipedia.org/wiki/Predicate_transformer_semantics#Weakest_preconditions).
+For example, if we have `x := Y; assert F;` and Dafny cannot prove `assert F;`, the weakest precondition for it to hold before `x := Y;` can be written as the assertion `assert F[x:= Y];`, where we replace every occurence of `x` in `F` into `Y`.
 Let's do it in our example:
 <!-- %check-verify UserGuide.5.expect -->
 ```dafny
@@ -523,7 +524,7 @@ method FailingPostcondition(b: bool) returns (i: int)
 {
   var j := if !b then 3 else 1;
   if b {
-    assert 2 <= j; // This assertion might not hold
+    assert 2 <= j; // Could not prove this assertion
     i := j;
     assert 2 <= i;
     return;
@@ -540,7 +541,7 @@ method FailingPostcondition(b: bool) returns (i: int)
   ensures 2 <= i
 {
   var j := if !b then 3 else 1;
-  assert b  ==>  2 <= j;  // This assertion might not hold
+  assert b  ==>  2 <= j;  // Could not prove this assertion
   if b {
     assert 2 <= j;
     i := j;
@@ -557,7 +558,7 @@ Now, either the error is obvious, or we can one more time replace `j` by its val
 method FailingPostcondition(b: bool) returns (i: int)
   ensures 2 <= i
 {
-  assert b  ==>  2 <= (if !b then 3 else 1);  // This assertion might not hold
+  assert b  ==>  2 <= (if !b then 3 else 1);  // Could not prove this assertion
   var j := if !b then 3 else 1;
   assert b  ==>  2 <= j;
   if b {

@@ -1,6 +1,6 @@
-TypeAntecedents.dfy(35,12): Error: assertion might not hold
-TypeAntecedents.dfy(58,0): Error: A postcondition might not hold on this return path.
-TypeAntecedents.dfy(57,14): Related location: This is the postcondition that might not hold.
-TypeAntecedents.dfy(66,15): Error: assertion might not hold
+TypeAntecedents.dfy(35,12): Error: Could not prove assertion
+TypeAntecedents.dfy(58,0): Error: Could not prove a postcondition on this return path.
+TypeAntecedents.dfy(57,14): Related location: This is the postcondition that could not be proven.
+TypeAntecedents.dfy(66,15): Error: Could not prove assertion
 
 Dafny program verifier finished with 5 verified, 3 errors

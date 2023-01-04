@@ -7,11 +7,11 @@ Iterators.dfy(326,31): Error: cannot prove termination; try supplying a decrease
 Iterators.dfy(343,9): Error: decreases clause might not decrease
 Iterators.dfy(353,31): Error: cannot prove termination; try supplying a decreases clause
 Iterators.dfy(370,9): Error: decreases clause might not decrease
-Iterators.dfy(103,21): Error: assertion might not hold
-Iterators.dfy(106,13): Error: assertion might not hold
-Iterators.dfy(177,27): Error: assertion might not hold
+Iterators.dfy(103,21): Error: Could not prove assertion
+Iterators.dfy(106,13): Error: Could not prove assertion
+Iterators.dfy(177,27): Error: Could not prove assertion
 Iterators.dfy(208,6): Error: an assignment to _new is only allowed to shrink the set
-Iterators.dfy(212,20): Error: assertion might not hold
+Iterators.dfy(212,20): Error: Could not prove assertion
 Iterators.dfy(436,18): Error: This loop invariant might not be maintained by the loop.
 Iterators.dfy(436,18): Related message: loop invariant violation
 Iterators.dfy(437,23): Error: This loop invariant might not be maintained by the loop.
@@ -26,14 +26,14 @@ Iterators.dfy(461,21): Error: This loop invariant might not be maintained by the
 Iterators.dfy(461,21): Related message: loop invariant violation
 Iterators.dfy(470,4): Error: possible violation of yield-ensures condition
 Iterators.dfy(451,21): Related location
-Iterators.dfy(40,21): Error: A precondition for this call might not hold.
-Iterators.dfy(4,9): Related location: This is the precondition that might not hold.
-Iterators.dfy(89,13): Error: assertion might not hold
-Iterators.dfy(119,15): Error: assertion might not hold
-Iterators.dfy(150,15): Error: assertion might not hold
-Iterators.dfy(155,23): Error: A precondition for this call might not hold.
-Iterators.dfy(125,9): Related location: This is the precondition that might not hold.
-Iterators.dfy(234,20): Error: assertion might not hold
+Iterators.dfy(40,21): Error: Could not prove a precondition for this call.
+Iterators.dfy(4,9): Related location: This is the precondition that could not be proven.
+Iterators.dfy(89,13): Error: Could not prove assertion
+Iterators.dfy(119,15): Error: Could not prove assertion
+Iterators.dfy(150,15): Error: Could not prove assertion
+Iterators.dfy(155,23): Error: Could not prove a precondition for this call.
+Iterators.dfy(125,9): Related location: This is the precondition that could not be proven.
+Iterators.dfy(234,20): Error: Could not prove assertion
 Iterators.dfy(413,16): Error: This loop invariant might not be maintained by the loop.
 Iterators.dfy(413,16): Related message: loop invariant violation
 Iterators.dfy(414,21): Error: This loop invariant might not be maintained by the loop.

@@ -1,11 +1,11 @@
-Predicates.dfy(62,15): Error: assertion might not hold
-Predicates.dfy(66,13): Error: assertion might not hold
+Predicates.dfy(62,15): Error: Could not prove assertion
+Predicates.dfy(66,13): Error: Could not prove assertion
 Predicates.dfy(94,31): Error: target object might not be allocated
-Predicates.dfy(95,4): Error: A postcondition might not hold on this return path.
-Predicates.dfy(94,14): Related location: This is the postcondition that might not hold.
+Predicates.dfy(95,4): Error: Could not prove a postcondition on this return path.
+Predicates.dfy(94,14): Related location: This is the postcondition that could not be proven.
 Predicates.dfy(94,31): Related location
-Predicates.dfy(105,4): Error: A postcondition might not hold on this return path.
-Predicates.dfy(104,14): Related location: This is the postcondition that might not hold.
+Predicates.dfy(105,4): Error: Could not prove a postcondition on this return path.
+Predicates.dfy(104,14): Related location: This is the postcondition that could not be proven.
 Predicates.dfy(104,39): Related location
 Predicates.dfy(104,45): Related location
 

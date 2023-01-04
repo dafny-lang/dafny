@@ -6,49 +6,49 @@ Definedness.dfy(29,16): Error: possible division by zero
 Definedness.dfy(36,15): Error: target object might be null
 Definedness.dfy(45,15): Error: target object might be null
 Definedness.dfy(53,17): Error: target object might be null
-Definedness.dfy(54,2): Error: A postcondition might not hold on this return path.
-Definedness.dfy(53,21): Related location: This is the postcondition that might not hold.
+Definedness.dfy(54,2): Error: Could not prove a postcondition on this return path.
+Definedness.dfy(53,21): Related location: This is the postcondition that could not be proven.
 Definedness.dfy(60,17): Error: target object might be null
-Definedness.dfy(61,2): Error: A postcondition might not hold on this return path.
-Definedness.dfy(60,21): Related location: This is the postcondition that might not hold.
-Definedness.dfy(68,2): Error: A postcondition might not hold on this return path.
-Definedness.dfy(67,21): Related location: This is the postcondition that might not hold.
+Definedness.dfy(61,2): Error: Could not prove a postcondition on this return path.
+Definedness.dfy(60,21): Related location: This is the postcondition that could not be proven.
+Definedness.dfy(68,2): Error: Could not prove a postcondition on this return path.
+Definedness.dfy(67,21): Related location: This is the postcondition that could not be proven.
 Definedness.dfy(88,6): Error: target object might be null
-Definedness.dfy(89,4): Error: function precondition might not hold
+Definedness.dfy(89,4): Error: Could not prove function precondition
 Definedness.dfy(79,15): Related location
 Definedness.dfy(89,9): Error: assignment might update an object not in the enclosing context's modifies clause
 Definedness.dfy(89,9): Error: target object might be null
-Definedness.dfy(90,9): Error: function precondition might not hold
+Definedness.dfy(90,9): Error: Could not prove function precondition
 Definedness.dfy(79,15): Related location
 Definedness.dfy(95,13): Error: possible division by zero
 Definedness.dfy(95,22): Error: possible division by zero
 Definedness.dfy(96,14): Error: possible division by zero
 Definedness.dfy(101,11): Error: possible division by zero
 Definedness.dfy(108,14): Error: possible division by zero
-Definedness.dfy(117,22): Error: function precondition might not hold
+Definedness.dfy(117,22): Error: Could not prove function precondition
 Definedness.dfy(79,15): Related location
-Definedness.dfy(123,16): Error: function precondition might not hold
+Definedness.dfy(123,16): Error: Could not prove function precondition
 Definedness.dfy(79,15): Related location
-Definedness.dfy(133,16): Error: function precondition might not hold
+Definedness.dfy(133,16): Error: Could not prove function precondition
 Definedness.dfy(79,15): Related location
-Definedness.dfy(133,21): Error: This loop invariant might not hold on entry.
+Definedness.dfy(133,21): Error: Could not prove this loop invariant on entry.
 Definedness.dfy(133,21): Related message: loop invariant violation
-Definedness.dfy(134,16): Error: function precondition might not hold
+Definedness.dfy(134,16): Error: Could not prove function precondition
 Definedness.dfy(79,15): Related location
 Definedness.dfy(143,14): Error: possible division by zero
 Definedness.dfy(162,14): Error: possible division by zero
-Definedness.dfy(175,27): Error: This loop invariant might not hold on entry.
+Definedness.dfy(175,27): Error: Could not prove this loop invariant on entry.
 Definedness.dfy(175,27): Related message: loop invariant violation
-Definedness.dfy(181,16): Error: function precondition might not hold
+Definedness.dfy(181,16): Error: Could not prove function precondition
 Definedness.dfy(79,15): Related location
 Definedness.dfy(196,18): Error: possible division by zero
-Definedness.dfy(196,22): Error: This loop invariant might not hold on entry.
+Definedness.dfy(196,22): Error: Could not prove this loop invariant on entry.
 Definedness.dfy(196,22): Related message: loop invariant violation
 Definedness.dfy(196,27): Error: possible division by zero
-Definedness.dfy(215,9): Error: A postcondition might not hold on this return path.
-Definedness.dfy(217,45): Related location: This is the postcondition that might not hold.
+Definedness.dfy(215,9): Error: Could not prove a postcondition on this return path.
+Definedness.dfy(217,45): Related location: This is the postcondition that could not be proven.
 Definedness.dfy(224,21): Error: target object might be null
-Definedness.dfy(237,9): Error: A postcondition might not hold on this return path.
-Definedness.dfy(240,23): Related location: This is the postcondition that might not hold.
+Definedness.dfy(237,9): Error: Could not prove a postcondition on this return path.
+Definedness.dfy(240,23): Related location: This is the postcondition that could not be proven.
 
 Dafny program verifier finished with 9 verified, 37 errors

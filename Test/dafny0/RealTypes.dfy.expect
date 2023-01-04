@@ -1,7 +1,7 @@
 RealTypes.dfy(12,17): Error: the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)
-RealTypes.dfy(14,29): Error: assertion might not hold
+RealTypes.dfy(14,29): Error: Could not prove assertion
 RealTypes.dfy(21,11): Error: possible division by zero
-RealTypes.dfy(21,19): Error: assertion might not hold
-RealTypes.dfy(29,11): Error: assertion might not hold
+RealTypes.dfy(21,19): Error: Could not prove assertion
+RealTypes.dfy(29,11): Error: Could not prove assertion
 
 Dafny program verifier finished with 2 verified, 5 errors

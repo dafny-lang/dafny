@@ -1,7 +1,7 @@
 QuantificationNewSyntax.dfy(11,13): Warning: /!\ No trigger covering all quantified variables found.
 QuantificationNewSyntax.dfy(12,13): Warning: /!\ No trigger covering all quantified variables found.
 QuantificationNewSyntax.dfy(11,42): Error: possible division by zero
-QuantificationNewSyntax.dfy(13,36): Error: function precondition might not hold
+QuantificationNewSyntax.dfy(13,36): Error: Could not prove function precondition
 QuantificationNewSyntax.dfy(19,42): Related location
 QuantificationNewSyntax.dfy(15,54): Error: result of operation might violate subset type constraint for 'nat'
 

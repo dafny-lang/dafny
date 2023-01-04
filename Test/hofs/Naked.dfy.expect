@@ -3,7 +3,7 @@ Naked.dfy(12,7): Error: cannot use naked function in recursive setting. Possible
 Naked.dfy(17,52): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
 Naked.dfy(22,14): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
 Naked.dfy(26,15): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
-Naked.dfy(30,44): Error: function precondition might not hold
+Naked.dfy(30,44): Error: Could not prove function precondition
 Naked.dfy(32,13): Related location
 Naked.dfy(32,14): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
 Naked.dfy(38,10): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
@@ -13,6 +13,6 @@ Naked.dfy(49,10): Error: cannot use naked function in recursive setting. Possibl
 Naked.dfy(56,12): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
 Naked.dfy(60,13): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
 Naked.dfy(67,12): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
-Naked.dfy(102,20): Error: assertion might not hold
+Naked.dfy(102,20): Error: Could not prove assertion
 
 Dafny program verifier finished with 5 verified, 15 errors

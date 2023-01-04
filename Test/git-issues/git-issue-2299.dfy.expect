@@ -1,18 +1,18 @@
-git-issue-2299.dfy(37,11): Error: assertion might not hold
+git-issue-2299.dfy(37,11): Error: Could not prove assertion
 git-issue-2299.dfy(10,11): Related location
-git-issue-2299.dfy(48,11): Error: assertion might not hold
+git-issue-2299.dfy(48,11): Error: Could not prove assertion
 git-issue-2299.dfy(16,4): Related location
-git-issue-2299.dfy(58,11): Error: assertion might not hold
+git-issue-2299.dfy(58,11): Error: Could not prove assertion
 git-issue-2299.dfy(21,4): Related location
-git-issue-2299.dfy(67,13): Error: assertion might not hold
+git-issue-2299.dfy(67,13): Error: Could not prove assertion
 git-issue-2299.dfy(21,4): Related location
-git-issue-2299.dfy(81,11): Error: assertion might not hold
+git-issue-2299.dfy(81,11): Error: Could not prove assertion
 git-issue-2299.dfy(27,4): Related location
 git-issue-2299.dfy(10,11): Related location
-git-issue-2299.dfy(81,11): Error: assertion might not hold
+git-issue-2299.dfy(81,11): Error: Could not prove assertion
 git-issue-2299.dfy(27,18): Related location
 git-issue-2299.dfy(16,4): Related location
-git-issue-2299.dfy(81,11): Error: assertion might not hold
+git-issue-2299.dfy(81,11): Error: Could not prove assertion
 git-issue-2299.dfy(27,32): Related location
 git-issue-2299.dfy(21,4): Related location
 

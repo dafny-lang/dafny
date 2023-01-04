@@ -1,10 +1,10 @@
 DefaultParameters.dfy(55,30): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
 DefaultParameters.dfy(63,42): Error: default value might not be allocated in the two-state function's previous state
 DefaultParameters.dfy(67,38): Error: default value might not be allocated in the two-state lemma's previous state
-DefaultParameters.dfy(92,2): Error: A postcondition might not hold on this return path.
-DefaultParameters.dfy(91,16): Related location: This is the postcondition that might not hold.
-DefaultParameters.dfy(102,15): Error: assertion might not hold
-DefaultParameters.dfy(110,15): Error: assertion might not hold
+DefaultParameters.dfy(92,2): Error: Could not prove a postcondition on this return path.
+DefaultParameters.dfy(91,16): Related location: This is the postcondition that could not be proven.
+DefaultParameters.dfy(102,15): Error: Could not prove assertion
+DefaultParameters.dfy(110,15): Error: Could not prove assertion
 DefaultParameters.dfy(124,31): Error: insufficient reads clause to read field
 DefaultParameters.dfy(131,34): Error: insufficient reads clause to read field
 DefaultParameters.dfy(135,43): Error: possible division by zero
@@ -41,8 +41,8 @@ DefaultParameters.dfy(241,4): Error: decreases clause might not decrease
 DefaultParameters.dfy(251,25): Error: insufficient reads clause to read field
 DefaultParameters.dfy(258,34): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
 DefaultParameters.dfy(267,35): Error: possible division by zero
-DefaultParameters.dfy(320,39): Error: A precondition for this call might not hold.
-DefaultParameters.dfy(319,15): Related location: This is the precondition that might not hold.
+DefaultParameters.dfy(320,39): Error: Could not prove a precondition for this call.
+DefaultParameters.dfy(319,15): Related location: This is the precondition that could not be proven.
 DefaultParameters.dfy(326,36): Error: insufficient reads clause to read array element
 DefaultParameters.dfy(327,54): Error: insufficient reads clause to read array element
 DefaultParameters.dfy(360,38): Error: possible division by zero
@@ -68,13 +68,13 @@ DefaultParameters.dfy(453,32): Error: default-value expression is not allowed to
 DefaultParameters.dfy(481,32): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
 DefaultParameters.dfy(494,28): Error: value does not satisfy the subset constraints of 'nat'
 DefaultParameters.dfy(493,18): Error: value does not satisfy the subset constraints of 'nat'
-DefaultParameters.dfy(500,15): Error: A precondition for this call might not hold.
-DefaultParameters.dfy(503,13): Related location: This is the precondition that might not hold.
+DefaultParameters.dfy(500,15): Error: Could not prove a precondition for this call.
+DefaultParameters.dfy(503,13): Related location: This is the precondition that could not be proven.
 DefaultParameters.dfy(520,38): Error: insufficient reads clause to read field
 DefaultParameters.dfy(548,38): Error: insufficient reads clause to read field
 DefaultParameters.dfy(521,34): Error: insufficient reads clause to read field
 DefaultParameters.dfy(524,43): Error: insufficient reads clause to read field
-DefaultParameters.dfy(601,11): Error: assertion might not hold
+DefaultParameters.dfy(601,11): Error: Could not prove assertion
 DefaultParameters.dfy(582,18): Related location
 
 Dafny program verifier finished with 73 verified, 74 errors

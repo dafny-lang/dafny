@@ -1,5 +1,5 @@
 ---
-title: "Error: function precondition might not hold"
+title: "Error: Cannot prove function precondition"
 ---
 
 This error can occur when trying to write a sequence comprehension expression like

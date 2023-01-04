@@ -1,3 +1,3 @@
-sequences-s0-in-s.dfy(13,18): Error: assertion might not hold
+sequences-s0-in-s.dfy(13,18): Error: Could not prove assertion
 
 Dafny program verifier finished with 1 verified, 1 error

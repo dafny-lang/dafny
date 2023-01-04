@@ -10,7 +10,7 @@ module {:options "/quantifierSyntax:4"} NewSyntax {
     var numbers := [0, 1, 2, 3];
     var _ := set x <- numbers, y | y == 6 / x :: y;         // Error: possible division by zero
     var _ := set x <- numbers | 0 < x, y | y == 6 / x :: y; // Success
-    var _ := set x <- numbers, y <- F(x) :: y;          // Error: function precondition might not hold
+    var _ := set x <- numbers, y <- F(x) :: y;          // Error: Could not prove function precondition
     var _ := set x <- numbers | x < 3, y <- F(x) :: y;  // Success
     var _ := set x <- numbers | x < 3, y <- F(x) :: y as nat;          // Error: result of operation might violate subset type constraint for 'nat'
     var _ := set x <- numbers | x < 3, y <- F(x) | 0 <= y :: y as nat; // Success

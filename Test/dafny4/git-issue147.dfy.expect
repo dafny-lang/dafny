@@ -1,4 +1,4 @@
-git-issue147.dfy(7,0): Error: A postcondition might not hold on this return path.
-git-issue147.dfy(6,17): Related location: This is the postcondition that might not hold.
+git-issue147.dfy(7,0): Error: Could not prove a postcondition on this return path.
+git-issue147.dfy(6,17): Related location: This is the postcondition that could not be proven.
 
 Dafny program verifier finished with 2 verified, 1 error

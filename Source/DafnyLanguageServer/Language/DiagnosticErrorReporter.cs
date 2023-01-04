@@ -93,7 +93,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         var rangeLength = range.EndToken.pos + range.EndToken.val.Length - range.StartToken.pos;
         if (message == PostConditionFailingMessage) {
           var postcondition = entryDocumentsource.Substring(range.StartToken.pos, rangeLength);
-          message = $"This postcondition might not hold: {postcondition}";
+          message = $"Could not prove this postcondition: {postcondition}";
         } else if (message == "Related location") {
           var tokenUri = tokenForMessage.GetDocumentUri();
           if (tokenUri == entryDocumentUri) {

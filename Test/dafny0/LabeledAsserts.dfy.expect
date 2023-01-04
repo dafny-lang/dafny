@@ -1,30 +1,30 @@
 LabeledAsserts.dfy(63,9): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
 LabeledAsserts.dfy(63,30): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
-LabeledAsserts.dfy(25,11): Error: assertion might not hold
-LabeledAsserts.dfy(27,18): Error: assertion might not hold
-LabeledAsserts.dfy(28,18): Error: assertion might not hold
-LabeledAsserts.dfy(29,15): Error: assertion might not hold
-LabeledAsserts.dfy(32,11): Error: assertion might not hold
-LabeledAsserts.dfy(162,17): Error: assertion might not hold
-LabeledAsserts.dfy(172,15): Error: assertion might not hold
-LabeledAsserts.dfy(189,19): Error: assertion might not hold
-LabeledAsserts.dfy(193,13): Error: assertion might not hold
-LabeledAsserts.dfy(16,11): Error: assertion might not hold
-LabeledAsserts.dfy(42,18): Error: assertion might not hold
-LabeledAsserts.dfy(43,13): Error: assertion might not hold
-LabeledAsserts.dfy(91,13): Error: assertion might not hold
-LabeledAsserts.dfy(105,13): Error: assertion might not hold
-LabeledAsserts.dfy(107,13): Error: assertion might not hold
-LabeledAsserts.dfy(128,15): Error: assertion might not hold
-LabeledAsserts.dfy(142,19): Error: assertion might not hold
-LabeledAsserts.dfy(146,13): Error: assertion might not hold
-LabeledAsserts.dfy(206,20): Error: assertion might not hold
-LabeledAsserts.dfy(207,15): Error: assertion might not hold
-LabeledAsserts.dfy(211,15): Error: assertion might not hold
-LabeledAsserts.dfy(224,20): Error: assertion might not hold
-LabeledAsserts.dfy(226,11): Error: assertion might not hold
-LabeledAsserts.dfy(232,11): Error: assertion might not hold
-LabeledAsserts.dfy(252,6): Error: the calculation step between the previous line and this line might not hold
-LabeledAsserts.dfy(265,9): Error: assertion might not hold
+LabeledAsserts.dfy(25,11): Error: Could not prove assertion
+LabeledAsserts.dfy(27,18): Error: Could not prove assertion
+LabeledAsserts.dfy(28,18): Error: Could not prove assertion
+LabeledAsserts.dfy(29,15): Error: Could not prove assertion
+LabeledAsserts.dfy(32,11): Error: Could not prove assertion
+LabeledAsserts.dfy(162,17): Error: Could not prove assertion
+LabeledAsserts.dfy(172,15): Error: Could not prove assertion
+LabeledAsserts.dfy(189,19): Error: Could not prove assertion
+LabeledAsserts.dfy(193,13): Error: Could not prove assertion
+LabeledAsserts.dfy(16,11): Error: Could not prove assertion
+LabeledAsserts.dfy(42,18): Error: Could not prove assertion
+LabeledAsserts.dfy(43,13): Error: Could not prove assertion
+LabeledAsserts.dfy(91,13): Error: Could not prove assertion
+LabeledAsserts.dfy(105,13): Error: Could not prove assertion
+LabeledAsserts.dfy(107,13): Error: Could not prove assertion
+LabeledAsserts.dfy(128,15): Error: Could not prove assertion
+LabeledAsserts.dfy(142,19): Error: Could not prove assertion
+LabeledAsserts.dfy(146,13): Error: Could not prove assertion
+LabeledAsserts.dfy(206,20): Error: Could not prove assertion
+LabeledAsserts.dfy(207,15): Error: Could not prove assertion
+LabeledAsserts.dfy(211,15): Error: Could not prove assertion
+LabeledAsserts.dfy(224,20): Error: Could not prove assertion
+LabeledAsserts.dfy(226,11): Error: Could not prove assertion
+LabeledAsserts.dfy(232,11): Error: Could not prove assertion
+LabeledAsserts.dfy(252,6): Error: could not prove that the calculation step between the previous line and this line hold
+LabeledAsserts.dfy(265,9): Error: Could not prove assertion
 
 Dafny program verifier finished with 11 verified, 26 errors

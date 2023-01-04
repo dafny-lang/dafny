@@ -1,4 +1,4 @@
-Tuples.dfy(22,18): Error: assertion might not hold
+Tuples.dfy(22,18): Error: Could not prove assertion
 Tuples.dfy(24,20): Error: possible division by zero
 
 Dafny program verifier finished with 0 verified, 2 errors

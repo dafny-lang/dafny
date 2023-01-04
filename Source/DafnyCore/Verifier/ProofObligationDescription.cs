@@ -279,7 +279,7 @@ public class PreconditionSatisfied : ProofObligationDescription {
       : $"error is impossible: {customErrMsg}";
 
   public override string FailureDescription =>
-    customErrMsg ?? "function precondition might not hold";
+    customErrMsg ?? "Could not prove function precondition";
 
   public override string ShortDescription => "precondition";
 
@@ -297,7 +297,7 @@ public class AssertStatement : ProofObligationDescription {
       : $"error is impossible: {customErrMsg}";
 
   public override string FailureDescription =>
-    customErrMsg ?? "assertion might not hold";
+    customErrMsg ?? "Could not prove assertion";
 
   public override string ShortDescription => "assert statement";
 
@@ -331,7 +331,7 @@ public class CalculationStep : ProofObligationDescription {
     "the calculation step between the previous line and this line always holds";
 
   public override string FailureDescription =>
-    "the calculation step between the previous line and this line might not hold";
+    "could not prove that the calculation step between the previous line and this line hold";
 
   public override string ShortDescription => "calc step";
 }

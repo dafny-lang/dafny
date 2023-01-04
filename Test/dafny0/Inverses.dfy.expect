@@ -1,12 +1,12 @@
-Inverses.dfy(70,2): Error: A postcondition might not hold on this return path.
-Inverses.dfy(67,10): Related location: This is the postcondition that might not hold.
+Inverses.dfy(70,2): Error: Could not prove a postcondition on this return path.
+Inverses.dfy(67,10): Related location: This is the postcondition that could not be proven.
 Inverses.dfy(67,40): Related location
 Inverses.dfy(67,66): Related location
-Inverses.dfy(82,2): Error: A postcondition might not hold on this return path.
-Inverses.dfy(79,10): Related location: This is the postcondition that might not hold.
+Inverses.dfy(82,2): Error: Could not prove a postcondition on this return path.
+Inverses.dfy(79,10): Related location: This is the postcondition that could not be proven.
 Inverses.dfy(79,40): Related location
 Inverses.dfy(79,66): Related location
-Inverses.dfy(193,2): Error: A postcondition might not hold on this return path.
-Inverses.dfy(191,15): Related location: This is the postcondition that might not hold.
+Inverses.dfy(193,2): Error: Could not prove a postcondition on this return path.
+Inverses.dfy(191,15): Related location: This is the postcondition that could not be proven.
 
 Dafny program verifier finished with 31 verified, 3 errors

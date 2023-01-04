@@ -9,44 +9,44 @@ SmallTests.dfy(120,5): Error: call might violate context's modifies clause
 SmallTests.dfy(132,9): Error: call might violate context's modifies clause
 SmallTests.dfy(134,9): Error: call might violate context's modifies clause
 SmallTests.dfy(174,8): Error: assignment might update an object field not in the enclosing context's modifies clause
-SmallTests.dfy(196,25): Error: assertion might not hold
-SmallTests.dfy(197,25): Error: assertion might not hold
-SmallTests.dfy(199,25): Error: assertion might not hold
-SmallTests.dfy(209,25): Error: assertion might not hold
-SmallTests.dfy(211,25): Error: assertion might not hold
-SmallTests.dfy(212,30): Error: assertion might not hold
-SmallTests.dfy(214,30): Error: assertion might not hold
-SmallTests.dfy(223,25): Error: assertion might not hold
-SmallTests.dfy(225,30): Error: assertion might not hold
-SmallTests.dfy(236,25): Error: assertion might not hold
-SmallTests.dfy(239,25): Error: assertion might not hold
-SmallTests.dfy(240,30): Error: assertion might not hold
-SmallTests.dfy(243,30): Error: assertion might not hold
-SmallTests.dfy(253,25): Error: assertion might not hold
-SmallTests.dfy(255,30): Error: assertion might not hold
-SmallTests.dfy(303,23): Error: A precondition for this call might not hold.
-SmallTests.dfy(281,16): Related location: This is the precondition that might not hold.
-SmallTests.dfy(408,11): Error: assertion might not hold
-SmallTests.dfy(418,11): Error: assertion might not hold
+SmallTests.dfy(196,25): Error: Could not prove assertion
+SmallTests.dfy(197,25): Error: Could not prove assertion
+SmallTests.dfy(199,25): Error: Could not prove assertion
+SmallTests.dfy(209,25): Error: Could not prove assertion
+SmallTests.dfy(211,25): Error: Could not prove assertion
+SmallTests.dfy(212,30): Error: Could not prove assertion
+SmallTests.dfy(214,30): Error: Could not prove assertion
+SmallTests.dfy(223,25): Error: Could not prove assertion
+SmallTests.dfy(225,30): Error: Could not prove assertion
+SmallTests.dfy(236,25): Error: Could not prove assertion
+SmallTests.dfy(239,25): Error: Could not prove assertion
+SmallTests.dfy(240,30): Error: Could not prove assertion
+SmallTests.dfy(243,30): Error: Could not prove assertion
+SmallTests.dfy(253,25): Error: Could not prove assertion
+SmallTests.dfy(255,30): Error: Could not prove assertion
+SmallTests.dfy(303,23): Error: Could not prove a precondition for this call.
+SmallTests.dfy(281,16): Related location: This is the precondition that could not be proven.
+SmallTests.dfy(408,11): Error: Could not prove assertion
+SmallTests.dfy(418,11): Error: Could not prove assertion
 SmallTests.dfy(428,5): Error: cannot prove termination; try supplying a decreases clause
-SmallTests.dfy(733,13): Error: assertion might not hold
-SmallTests.dfy(754,13): Error: assertion might not hold
-SmallTests.dfy(757,13): Error: assertion might not hold
-SmallTests.dfy(338,2): Error: A postcondition might not hold on this return path.
-SmallTests.dfy(332,10): Related location: This is the postcondition that might not hold.
+SmallTests.dfy(733,13): Error: Could not prove assertion
+SmallTests.dfy(754,13): Error: Could not prove assertion
+SmallTests.dfy(757,13): Error: Could not prove assertion
+SmallTests.dfy(338,2): Error: Could not prove a postcondition on this return path.
+SmallTests.dfy(332,10): Related location: This is the postcondition that could not be proven.
 SmallTests.dfy(332,40): Related location
-SmallTests.dfy(379,11): Error: assertion might not hold
-SmallTests.dfy(386,9): Error: assertion might not hold
+SmallTests.dfy(379,11): Error: Could not prove assertion
+SmallTests.dfy(386,9): Error: Could not prove assertion
 SmallTests.dfy(396,3): Error: cannot prove termination; try supplying a decreases clause
-SmallTests.dfy(440,9): Error: A postcondition might not hold on this return path.
-SmallTests.dfy(443,40): Related location: This is the postcondition that might not hold.
-SmallTests.dfy(604,11): Error: assertion might not hold
+SmallTests.dfy(440,9): Error: Could not prove a postcondition on this return path.
+SmallTests.dfy(443,40): Related location: This is the postcondition that could not be proven.
+SmallTests.dfy(604,11): Error: Could not prove assertion
 SmallTests.dfy(618,19): Error: left-hand sides n.next and n.next.next might refer to the same location
 SmallTests.dfy(620,14): Error: left-hand sides a[j] and a[i] might refer to the same location
 SmallTests.dfy(627,24): Error: target object might be null
-SmallTests.dfy(640,9): Error: assertion might not hold
+SmallTests.dfy(640,9): Error: Could not prove assertion
 SmallTests.dfy(664,4): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-SmallTests.dfy(687,22): Error: assertion might not hold
+SmallTests.dfy(687,22): Error: Could not prove assertion
 SmallTests.dfy(701,9): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 SmallTests.dfy(703,9): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 SmallTests.dfy(716,8): Error: cannot establish the existence of LHS values that satisfy the such-that predicate

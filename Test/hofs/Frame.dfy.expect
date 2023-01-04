@@ -1,9 +1,9 @@
-Frame.dfy(23,15): Error: assertion might not hold
-Frame.dfy(37,13): Error: assertion might not hold
-Frame.dfy(63,22): Error: assertion might not hold
+Frame.dfy(23,15): Error: Could not prove assertion
+Frame.dfy(37,13): Error: Could not prove assertion
+Frame.dfy(63,22): Error: Could not prove assertion
 Frame.dfy(66,18): Error: insufficient reads clause to read array element
 Frame.dfy(68,27): Error: insufficient reads clause to read array element
-Frame.dfy(123,13): Error: function precondition might not hold
-Frame.dfy(123,18): Error: assertion might not hold
+Frame.dfy(123,13): Error: Could not prove function precondition
+Frame.dfy(123,18): Error: Could not prove assertion
 
 Dafny program verifier finished with 5 verified, 7 errors

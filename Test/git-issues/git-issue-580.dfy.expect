@@ -1,3 +1,3 @@
-git-issue-580.dfy(8,11): Error: assertion might not hold
+git-issue-580.dfy(8,11): Error: Could not prove assertion
 
 Dafny program verifier finished with 0 verified, 1 error

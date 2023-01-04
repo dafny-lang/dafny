@@ -1,6 +1,6 @@
 git-issue-2703.dfy(10,14): Error: possible division by zero
-git-issue-2703.dfy(10,23): Error: A postcondition might not hold on this return path.
-git-issue-2703.dfy(10,18): Related location: This is the postcondition that might not hold.
+git-issue-2703.dfy(10,23): Error: Could not prove a postcondition on this return path.
+git-issue-2703.dfy(10,18): Related location: This is the postcondition that could not be proven.
 git-issue-2703.dfy(16,24): Error: possible division by zero
 git-issue-2703.dfy(23,24): Error: possible division by zero
 

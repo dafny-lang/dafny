@@ -1,21 +1,21 @@
-AutoReq.dfy(247,4): Error: function precondition might not hold
+AutoReq.dfy(247,4): Error: Could not prove function precondition
 AutoReq.dfy(239,13): Related location
 AutoReq.dfy(239,35): Related location
-AutoReq.dfy(13,2): Error: function precondition might not hold
+AutoReq.dfy(13,2): Error: Could not prove function precondition
 AutoReq.dfy(5,13): Related location
-AutoReq.dfy(25,2): Error: function precondition might not hold
+AutoReq.dfy(25,2): Error: Could not prove function precondition
 AutoReq.dfy(5,13): Related location
-AutoReq.dfy(38,11): Error: assertion might not hold
+AutoReq.dfy(38,11): Error: Could not prove assertion
 AutoReq.dfy(31,12): Related location
 AutoReq.dfy(7,4): Related location
-AutoReq.dfy(38,11): Error: function precondition might not hold
+AutoReq.dfy(38,11): Error: Could not prove function precondition
 AutoReq.dfy(5,13): Related location
-AutoReq.dfy(40,11): Error: assertion might not hold
+AutoReq.dfy(40,11): Error: Could not prove assertion
 AutoReq.dfy(31,26): Related location
 AutoReq.dfy(7,4): Related location
-AutoReq.dfy(40,11): Error: function precondition might not hold
+AutoReq.dfy(40,11): Error: Could not prove function precondition
 AutoReq.dfy(5,13): Related location
-AutoReq.dfy(45,11): Error: assertion might not hold
+AutoReq.dfy(45,11): Error: Could not prove assertion
 AutoReq.dfy(31,12): Related location
 AutoReq.dfy(7,4): Related location
 

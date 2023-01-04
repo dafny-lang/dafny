@@ -1,14 +1,14 @@
-Datatypes.dfy(297,9): Error: A postcondition might not hold on this return path.
-Datatypes.dfy(295,14): Related location: This is the postcondition that might not hold.
+Datatypes.dfy(297,9): Error: Could not prove a postcondition on this return path.
+Datatypes.dfy(295,14): Related location: This is the postcondition that could not be proven.
 Datatypes.dfy(298,11): Error: missing case in match expression: Appendix(_)
 Datatypes.dfy(349,4): Error: missing case in match expression: Cons(_, _)
 Datatypes.dfy(349,4): Error: missing case in match expression: Nil
 Datatypes.dfy(356,7): Error: missing case in match expression: Cons(_, _)
 Datatypes.dfy(356,7): Error: missing case in match expression: Nil
 Datatypes.dfy(377,21): Error: RHS is not certain to look like the pattern 'AAA'
-Datatypes.dfy(82,19): Error: assertion might not hold
-Datatypes.dfy(170,15): Error: assertion might not hold
-Datatypes.dfy(172,15): Error: assertion might not hold
+Datatypes.dfy(82,19): Error: Could not prove assertion
+Datatypes.dfy(170,15): Error: Could not prove assertion
+Datatypes.dfy(172,15): Error: Could not prove assertion
 Datatypes.dfy(201,12): Error: destructor 'Car' can only be applied to datatype values constructed by 'XCons'
 Datatypes.dfy(204,16): Error: destructor 'Car' can only be applied to datatype values constructed by 'XCons'
 Datatypes.dfy(225,16): Error: destructor 'c' can only be applied to datatype values constructed by 'T''
