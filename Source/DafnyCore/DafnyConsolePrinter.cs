@@ -12,10 +12,6 @@ public class DafnyConsolePrinter : ConsolePrinter {
   private readonly ConcurrentDictionary<string, List<string>> fsCache = new();
   public ConcurrentBag<(Implementation, VerificationResult)> VerificationResults { get; } = new();
 
-  public override void WriteTrailer(TextWriter textWriter, PipelineStatistics stats) {
-    base.WriteTrailer(textWriter, stats);
-  }
-
   private string GetFileLine(string filename, int lineIndex) {
     List<string> lines = fsCache.GetOrAdd(filename, key => {
       try {
