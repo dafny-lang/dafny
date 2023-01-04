@@ -68,7 +68,7 @@ namespace Microsoft.Dafny {
           if (first != null) {
             toVisit.AddBefore(first, child);
           } else {
-            toVisit.AddFirst(child);
+            toVisit.AddLast(child);
           }
         }
 
