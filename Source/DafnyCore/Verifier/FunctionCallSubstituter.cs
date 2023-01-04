@@ -9,14 +9,15 @@ namespace Microsoft.Dafny {
       B = b;
     }
     public override Expression Substitute(Expression expr) {
-      if (expr is FunctionCallExpr) {
-        FunctionCallExpr e = (FunctionCallExpr)expr;
-        Expression receiver = Substitute(e.Receiver);
-        List<Expression> newArgs = SubstituteExprList(e.Args);
-        FunctionCallExpr newFce = new FunctionCallExpr(expr.tok, e.Name, receiver, e.OpenParen, e.CloseParen, newArgs, e.AtLabel);
-        if (e.Function == A) {
+      if (expr is FunctionCallExpr e) {
+        var receiver = Substitute(e.Receiver);
+        var newArgs = SubstituteExprList(e.Args);
+        var newFce = new FunctionCallExpr(e.tok, e.Name, receiver, e.OpenParen, e.CloseParen, newArgs, e.AtLabel);
+        if (e.Function == A && e.Receiver is ThisExpr && receiver is ThisExpr) {
           newFce.Function = B;
           newFce.Type = e.Type; // TODO: this may not work with type parameters.
+                                //update receiver type
+          receiver.Type = Resolver.GetThisType(B.tok, (TopLevelDeclWithMembers)B.EnclosingClass);
         } else {
           newFce.Function = e.Function;
           newFce.Type = e.Type;

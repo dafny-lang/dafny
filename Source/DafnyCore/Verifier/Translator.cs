@@ -3513,10 +3513,8 @@ namespace Microsoft.Dafny {
 
       //generating trait post-conditions with class variables
       foreach (var en in f.OverriddenFunction.Ens) {
-        var receiver = new ImplicitThisExpr(f.tok) { Type = Resolver.GetThisType(f.tok, (TopLevelDeclWithMembers)f.EnclosingClass) };
-        var sub = new FunctionCallSubstituter(receiver, substMap, typeMap, f.OverriddenFunction, f);
-        Expression postcond = sub.Substitute(en.E);
-        foreach (var s in TrSplitExpr(postcond, etran, false, out _).Where(s => s.IsChecked)) {
+        var sub = new FunctionCallSubstituter(null, substMap, typeMap, f.OverriddenFunction, f);
+        foreach (var s in TrSplitExpr(sub.Substitute(en.E), etran, false, out _).Where(s => s.IsChecked)) {
           builder.Add(Assert(f.tok, s.E, new PODesc.FunctionContractOverride(true)));
         }
       }
