@@ -555,7 +555,7 @@ public class MatchFlattener : IRewriter {
     List<(LiteralExpr, CaseBody)> blocks, CaseBody defaultBlock) {
 
     if (blocks.Count == 0) {
-      if (defaultBlock.Node is Statement stmt) {
+      if (defaultBlock?.Node is Statement stmt) {
         // Ensures the statements are wrapped in braces
         return new CaseBody(null, BlockStmtOfCStmt(stmt.Tok, stmt.EndTok, stmt));
       }
