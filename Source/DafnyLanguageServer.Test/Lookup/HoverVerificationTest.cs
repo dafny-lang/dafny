@@ -235,6 +235,35 @@ Did prove: t.i > 0  "
       );
     }
 
+    [TestMethod/*, Timeout(MaxTestExecutionTimeMs)*/]
+    public async Task DoNotExtendPastExpressions3() {
+      var documentItem = await GetDocumentItem(@"
+datatype ValidTester = Tester(next: ValidTester2) | Tester2(next: ValidTester2) | Test3(next: ValidTester2)
+{
+  predicate Valid() {
+    ((this.Tester? || this.Tester2?) && this.next.Valid()) || (this.Test3? && !this.next.Valid())
+  }
+
+  function method apply(): int requires Valid() {
+    2
+  }
+  static method Test(c: ValidTester) {
+    var x := c.apply();
+  }
+}
+
+datatype ValidTester2 = MoreTest(i: int, next: ValidTester2) | End {
+  predicate Valid(defaultValue: int := 0) {
+    0 <= defaultValue && (this.End? || (this.MoreTest? && this.next.Valid() && i > 0))
+  }
+}
+", "testfile2.dfy");
+      await AssertHoverMatches(documentItem, (10, 16),
+        @"**Error:**???function precondition might not hold???
+Could not prove: Valid()  
+Could not prove: ((this.Tester? || this.Tester2?) && this.next.Valid()) || (this.Test3? && !this.next.Valid())  "
+      );
+    }
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
     public async Task DoNotExtendPastExpressions() {

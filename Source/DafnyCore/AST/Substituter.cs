@@ -327,10 +327,14 @@ namespace Microsoft.Dafny {
         if (test != e.Test || thn != e.Thn || els != e.Els) {
           newExpr = new ITEExpr(expr.tok, e.IsBindingGuard, test, thn, els);
         }
-
       } else if (expr is ConcreteSyntaxExpression concreteSyntaxExpression) {
         Contract.Assert(concreteSyntaxExpression.ResolvedExpression != null);
-        return Substitute(concreteSyntaxExpression.ResolvedExpression);
+        var resolvedExpression = Substitute(concreteSyntaxExpression.ResolvedExpression);
+        return new ParensExpression(expr.tok, resolvedExpression) {
+          ResolvedExpression = resolvedExpression,
+          RangeToken = expr.RangeToken,
+          Type = expr.Type
+        };
 
       } else if (expr is Translator.BoogieFunctionCall) {
         var e = (Translator.BoogieFunctionCall)expr;
