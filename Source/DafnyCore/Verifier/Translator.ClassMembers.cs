@@ -879,7 +879,7 @@ namespace Microsoft.Dafny {
       // the procedure itself
       var req = new List<Boogie.Requires>();
       // free requires fh == FunctionContextHeight;
-      req.Add(Requires(f.tok, true, etran.HeightContext(f.OverriddenFunction, true), null, null));
+      req.Add(Requires(f.tok, true, etran.HeightContext(f, true), null, null));
       if (f is TwoStateFunction) {
         // free requires prevHeap == Heap && HeapSucc(prevHeap, currHeap) && IsHeap(currHeap)
         var a0 = Boogie.Expr.Eq(prevHeap, ordinaryEtran.HeapExpr);
