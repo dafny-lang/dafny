@@ -40,6 +40,7 @@ namespace IntegrationTests {
 
       var substitutions = new Dictionary<string, object> {
         { "%diff", "diff" },
+        { "%resolveargs", "--useBaseNameForFileName" },
         { "%binaryDir", "." },
         { "%z3", Path.Join("z3", "bin", "z3") },
         { "%repositoryRoot", repositoryRoot.Replace(@"\", "/") },

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 using System.Numerics;
 
 namespace Microsoft.Dafny;
@@ -61,4 +62,28 @@ public class LitPattern : ExtendedPattern {
   }
 
   public override IEnumerable<INode> Children => new[] { OrigLit };
+
+  public override void Resolve(Resolver resolver,
+    ResolutionContext resolutionContext,
+    Type sourceType, bool isGhost, bool mutable,
+    bool inPattern, bool inDisjunctivePattern) {
+
+    var literal = OptimisticallyDesugaredLit;
+    if (sourceType.IsBitVectorType || sourceType.IsBigOrdinalType) {
+      var n = (BigInteger)literal.Value;
+      var absN = n < 0 ? -n : n;
+
+      // For bitvectors and ORDINALs, check for a unary minus that, earlier, was mistaken for a negative literal
+      // This can happen only in `match` patterns (see comment by LitPattern.OptimisticallyDesugaredLit).
+      if (n < 0 || literal.tok.val == "-0") {
+        Contract.Assert(literal.tok.val == "-0");  // this and the "if" above tests that "n < 0" happens only when the token is "-0"
+        resolver.reporter.Error(MessageSource.Resolver, literal.tok, "unary minus (-{0}, type {1}) not allowed in case pattern", absN, sourceType);
+      }
+    }
+  }
+
+  public override IEnumerable<(BoundVar var, Expression usage)> ReplaceTypesWithBoundVariables(Resolver resolver,
+    ResolutionContext resolutionContext) {
+    return Enumerable.Empty<(BoundVar var, Expression usage)>();
+  }
 }

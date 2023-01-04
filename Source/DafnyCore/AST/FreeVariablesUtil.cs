@@ -153,6 +153,13 @@ namespace Microsoft.Dafny {
         foreach (var v in me.Cases.SelectMany(c => c.Arguments)) {
           fvs.Remove(v);
         }
+      } else if (expr is NestedMatchExpr nestedMatchExpr) {
+        foreach (var v in nestedMatchExpr.Cases.
+                   SelectMany(c => c.Pat.DescendantsAndSelf).
+                   OfType<IdPattern>().Where(id => id.Arguments == null).
+                   Select(id => id.BoundVar)) {
+          fvs.Remove(v);
+        }
       }
     }
   }
