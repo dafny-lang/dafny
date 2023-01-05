@@ -11,6 +11,91 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
   public partial class Resolver {
+    private class BoundsDiscoveryVisitor : ASTVisitor<IASTVisitorContext> {
+      private readonly ErrorReporter reporter;
+
+      public BoundsDiscoveryVisitor(ErrorReporter reporter) {
+        this.reporter = reporter;
+      }
+
+      public override IASTVisitorContext GetContext(IASTVisitorContext astVisitorContext, bool inFunctionPostcondition) {
+        return astVisitorContext;
+      }
+
+      protected override bool VisitOneStatement(Statement stmt, IASTVisitorContext context) {
+        if (stmt is ForallStmt forallStmt) {
+          forallStmt.Bounds = DiscoverBestBounds_MultipleVars(forallStmt.BoundVars, forallStmt.Range, true,
+            ComprehensionExpr.BoundedPool.PoolVirtues.Enumerable);
+        } else if (stmt is AssignSuchThatStmt assignSuchThatStmt) {
+          if (assignSuchThatStmt.AssumeToken == null) {
+            var varLhss = new List<IVariable>();
+            foreach (var lhs in assignSuchThatStmt.Lhss) {
+              var ide = (IdentifierExpr)lhs.Resolved;  // successful resolution implies all LHS's are IdentifierExpr's
+              varLhss.Add(ide.Var);
+            }
+            assignSuchThatStmt.Bounds = DiscoverBestBounds_MultipleVars(varLhss, assignSuchThatStmt.Expr, true,
+              ComprehensionExpr.BoundedPool.PoolVirtues.None);
+          }
+        }
+
+        return base.VisitOneStatement(stmt, context);
+      }
+
+      protected override bool VisitOneExpression(Expression expr, IASTVisitorContext context) {
+        if (expr is ComprehensionExpr) {
+          var e = (ComprehensionExpr)expr;
+          // apply bounds discovery to quantifiers, finite sets, and finite maps
+          string what = e.WhatKind;
+          Expression whereToLookForBounds = null;
+          var polarity = true;
+          if (e is QuantifierExpr quantifierExpr) {
+            whereToLookForBounds = quantifierExpr.LogicalBody();
+            polarity = quantifierExpr is ExistsExpr;
+          } else if (e is SetComprehension setComprehension) {
+            whereToLookForBounds = setComprehension.Range;
+          } else if (e is MapComprehension) {
+            whereToLookForBounds = e.Range;
+          } else {
+            Contract.Assume(e is LambdaExpr);  // otherwise, unexpected ComprehensionExpr
+          }
+          if (whereToLookForBounds != null) {
+            e.Bounds = DiscoverBestBounds_MultipleVars_AllowReordering(e.BoundVars, whereToLookForBounds, polarity, ComprehensionExpr.BoundedPool.PoolVirtues.None);
+            if (2 <= DafnyOptions.O.Allocated && (context is Function or ConstantField or RedirectingTypeDecl)) {
+              // functions are not allowed to depend on the set of allocated objects
+              foreach (var bv in ComprehensionExpr.BoundedPool.MissingBounds(e.BoundVars, e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc)) {
+                var msgFormat = "a {0} involved in a {3} definition is not allowed to depend on the set of allocated references, but values of '{1}' may contain references";
+                if (bv.Type.IsTypeParameter || bv.Type.IsOpaqueType) {
+                  msgFormat += " (perhaps declare its type, '{2}', as '{2}(!new)')";
+                }
+                msgFormat += " (see documentation for 'older' parameters)";
+                var declKind = context is RedirectingTypeDecl redir ? redir.WhatKind : ((MemberDecl)context).WhatKind;
+                reporter.Error(MessageSource.Resolver, e, msgFormat, e.WhatKind, bv.Name, bv.Type, declKind);
+              }
+            }
+
+            if ((e as SetComprehension)?.Finite == true || (e as MapComprehension)?.Finite == true) {
+              // the comprehension had better produce a finite set
+              if (e.Type.HasFinitePossibleValues) {
+                // This means the set is finite, regardless of if the Range is bounded.  So, we don't give any error here.
+                // However, if this expression is used in a non-ghost context (which is not yet known at this stage of
+                // resolution), the resolver will generate an error about that later.
+              } else {
+                // we cannot be sure that the set/map really is finite
+                foreach (var bv in ComprehensionExpr.BoundedPool.MissingBounds(e.BoundVars, e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.Finite)) {
+                  reporter.Error(MessageSource.Resolver, e,
+                    "the result of a {0} must be finite, but Dafny's heuristics can't figure out how to produce a bounded set of values for '{1}'",
+                    e.WhatKind, bv.Name);
+                }
+              }
+            }
+          }
+
+        }
+
+        return base.VisitOneExpression(expr, context);
+      }
+    }
+
     /// <summary>
     /// For a list of variables "bvars", returns a list of best bounds, subject to the constraint "requiredVirtues", for each respective variable.
     /// If no bound matching "requiredVirtues" is found for a variable "v", then the bound for "v" in the returned list is set to "null".

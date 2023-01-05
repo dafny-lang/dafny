@@ -7,11 +7,25 @@ namespace Microsoft.Dafny;
 
 class FormatCommand : ICommandSpec {
 
+  public static readonly Option<bool> Check = new("--check", () => false, @"
+Instead of formatting files, verify that all files are already
+formatted through and return a non-zero exit code if it is not the case".TrimStart());
+
   public IEnumerable<Option> Options => new Option[] {
+      Check,
+      CommonOptionBag.Plugin,
+      DeveloperOptionBag.UseBaseFileName,
+      DeveloperOptionBag.Print,
       BoogieOptionBag.BoogieFilter,
-    }.Concat(ICommandSpec.FormatOptions).
+    }.
     Concat(ICommandSpec.ConsoleOutputOptions).
     Concat(ICommandSpec.CommonOptions);
+
+  static FormatCommand() {
+    DafnyOptions.RegisterLegacyBinding(Check, (options, value) => {
+      options.FormatCheck = value;
+    });
+  }
 
   public Command Create() {
     var result = new Command("format", @"Format the dafny file in-place.

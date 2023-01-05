@@ -3,13 +3,23 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public class AlternativeStmt : Statement {
+public class AlternativeStmt : Statement, ICloneable<AlternativeStmt> {
   public readonly bool UsesOptionalBraces;
   public readonly List<GuardedAlternative> Alternatives;
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Alternatives != null);
   }
+
+  public AlternativeStmt Clone(Cloner cloner) {
+    return new AlternativeStmt(cloner, this);
+  }
+
+  public AlternativeStmt(Cloner cloner, AlternativeStmt original) : base(cloner, original) {
+    Alternatives = original.Alternatives.ConvertAll(cloner.CloneGuardedAlternative);
+    UsesOptionalBraces = original.UsesOptionalBraces;
+  }
+
   public AlternativeStmt(IToken tok, IToken endTok, List<GuardedAlternative> alternatives, bool usesOptionalBraces)
     : base(tok, endTok) {
     Contract.Requires(tok != null);

@@ -89,13 +89,11 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
   public override IEnumerable<INode> Children => new[] { ByMethodDecl }.Where(x => x != null).
     Concat<INode>(TypeArgs).
     Concat<INode>(Reads).
-    Concat<INode>(Req.Select(e => e.E)).
+    Concat<INode>(Req).
     Concat(Ens.Select(e => e.E)).
     Concat(Decreases.Expressions).
     Concat(Formals).Concat(ResultType.Nodes).
     Concat(Body == null ? Enumerable.Empty<INode>() : new[] { Body });
-
-  public override IEnumerable<INode> ConcreteChildren => Children;
 
   public override IEnumerable<Expression> SubExpressions {
     get {
@@ -229,7 +227,7 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
     set { _inferredDecr = value; }
     get { return _inferredDecr; }
   }
-  ModuleDefinition ICodeContext.EnclosingModule { get { return this.EnclosingClass.EnclosingModuleDefinition; } }
+  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return this.EnclosingClass.EnclosingModuleDefinition; } }
   bool ICodeContext.MustReverify { get { return false; } }
 
   [Pure]

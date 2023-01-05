@@ -2612,6 +2612,7 @@ method Test() {
       }
     }
 
+    // TODO unused. Delete?
     private void EnsureEveryTokenIsOwned(string programNotIndented, Program dafnyProgram) {
       var firstToken = dafnyProgram.GetFirstTopLevelToken();
       if (firstToken == null) {
@@ -2643,7 +2644,7 @@ method Test() {
           return;
         }
         ProcessOwnedTokens(node);
-        foreach (var child in node.ConcreteChildren) {
+        foreach (var child in node.Children) {
           ProcessNode(child);
         }
       }
@@ -2651,7 +2652,7 @@ method Test() {
 
       // Step 3: Report any token that was not removed
       if (tokensWithoutOwner.Count > 0) {
-        IToken? notOwnedToken = firstToken;
+        IToken notOwnedToken = firstToken;
         while (notOwnedToken != null && !tokensWithoutOwner.Contains(notOwnedToken.pos)) {
           notOwnedToken = notOwnedToken.Next;
         }

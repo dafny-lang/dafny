@@ -55,12 +55,12 @@ jobs:
       uses: actions/setup-dotnet@v1.9.0
       with:
         dotnet-version: ${{env.dotnet-version}}
-    - name: C++ for ubuntu 18.04
-      if: matrix.os == 'ubuntu-18.04'
+    - name: C++ for ubuntu 20.04
+      if: matrix.os == 'ubuntu-20.04'
       run: |
         sudo apt-get install -y build-essential
-    - name: Choose the right C++ for ubuntu 18.04
-      if: matrix.os == 'ubuntu-18.04'
+    - name: Choose the right C++ for ubuntu 20.04
+      if: matrix.os == 'ubuntu-20.04'
       run: |
         sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 60
     - uses: actions/setup-python@v1

@@ -24,15 +24,15 @@ jobs:
       - name: Populate OS list (all platforms)
         id: populate-os-list-all
         if: inputs.all_platforms
-        run: echo "::set-output name=os-list::[\"ubuntu-latest\", \"ubuntu-18.04\", \"macos-latest\", \"windows-2019\"]"
+        run: echo "::set-output name=os-list::[\"ubuntu-latest\", \"ubuntu-20.04\", \"macos-latest\", \"windows-2019\"]"
       - name: Populate OS list (one platform)
         id: populate-os-list-one
         if: "!inputs.all_platforms"
-        run: echo "::set-output name=os-list::[\"ubuntu-18.04\"]"
+        run: echo "::set-output name=os-list::[\"ubuntu-20.04\"]"
       - name: Populate OS mapping for package.py
         id: populate-os-mapping
         run: |
-          echo "::set-output name=os-mapping::{\"ubuntu-latest\": \"ubuntu\", \"ubuntu-18.04\": \"ubuntu\", \"macos-latest\": \"osx\", \"windows-2019\": \"win\"}"
+          echo "::set-output name=os-mapping::{\"ubuntu-latest\": \"ubuntu\", \"ubuntu-20.04\": \"ubuntu\", \"macos-latest\": \"osx\", \"windows-2019\": \"win\"}"
       - name: Populate target runtime version list (all platforms)
         id: populate-target-runtime-version-all
         if: inputs.all_platforms
@@ -66,12 +66,12 @@ jobs:
       uses: actions/setup-dotnet@v1.9.0
       with:
         dotnet-version: ${{ env.dotnet-version }}
-    - name: C++ for ubuntu 18.04
-      if: matrix.os == 'ubuntu-18.04'
+    - name: C++ for ubuntu 20.04
+      if: matrix.os == 'ubuntu-20.04'
       run: |
         sudo apt-get install -y build-essential
-    - name: Choose the right C++ for ubuntu 18.04
-      if: matrix.os == 'ubuntu-18.04'
+    - name: Choose the right C++ for ubuntu 20.04
+      if: matrix.os == 'ubuntu-20.04'
       run: |
         sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 60
     - uses: actions/setup-python@v1
@@ -98,15 +98,23 @@ jobs:
         submodules: true
     - run: rm dafny/Test/libraries/lit.site.cfg # we remove the lit configuration file in the library repo (a git submodule) to prevent override
     - name: Create release
+      if: inputs.all_platforms
       run: |
         python dafny/Scripts/package.py 0.0.0-CI --os ${{ fromJson(needs.populate-matrix-dimensions.outputs.os-mapping)[matrix.os] }} --skip_manual=true --trial=true --github_secret=${{ secrets.GITHUB_TOKEN }} --out=CI.zip
-    - if: runner.os == 'Windows'
+    - if: runner.os == 'Windows' && inputs.all_platforms
       shell: pwsh
       run: |
         Expand-Archive dafny/Package/CI.zip unzippedRelease
-    - if: runner.os != 'Windows'
+    - if: runner.os != 'Windows' && inputs.all_platforms
       run: |
         unzip dafny/Package/CI.zip -d unzippedRelease
+    - name: Load Z3
+      if: "!inputs.all_platforms"
+      run: |
+        sudo apt-get install -qq libarchive-tools
+        mkdir dafny/Binaries/z3
+        wget -qO- https://github.com/Z3Prover/z3/releases/download/Z3-4.8.5/z3-4.8.5-x64-ubuntu-16.04.zip | bsdtar -xf - -C dafny/Binaries/z3 --strip-components=1
+        chmod +x dafny/Binaries/z3/bin/z3
     - name: Run integration tests
       if: runner.os == 'Windows'
       env:
@@ -120,8 +128,8 @@ jobs:
       env:
         XUNIT_SHARD: ${{ matrix.shard }}
         XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
-        DAFNY_RELEASE: ${{ github.workspace }}/unzippedRelease/dafny
       run: |
+        ${{ inputs.all_platforms }} && export DAFNY_RELEASE="${{ github.workspace }}/unzippedRelease/dafny"
         dotnet test --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj
     - uses: actions/upload-artifact@v2
       if: always()

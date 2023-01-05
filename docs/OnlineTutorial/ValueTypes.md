@@ -32,16 +32,18 @@ sequences, sets are immutable value types. This allows them to be used easily
 in annotations, without involving the heap, as a set cannot be modified once
 it has been created. A set has the type:
 
+<!-- %no-check -->
 ```dafny
   set<int>
 ```
 
 for a set of integers, for example. In general, sets can be of almost any type, including objects. Concrete sets can be specified by using display notation:
 
+<!-- %check-verify -->
 ```dafny
-method()
+method m()
 {
-  var s1 := {}; // the empty set
+  var s1: set<int> := {}; // the empty set
   var s2 := {1, 2, 3}; // set contains exactly 1, 2, and 3
   assert s2 == {1,1,2,3,3,3,3}; // same as before
   var s3, s4 := {1,2}, {1,4};
@@ -53,10 +55,11 @@ the elements specified. Above we also see that equality is defined
 for sets. Two sets are equal if they have exactly the same elements.
 New sets can be created from existing ones using the common set operations:
 
+<!-- %check-verify -->
 ```dafny
 method m ()
 {
-  var s1 := {};
+  var s1: set<int> := {};
   var s2 := {1, 2, 3};
   var s3, s4 := {1,2}, {1,4};
   assert s2 + s4 == {1,2,3,4}; // set union
@@ -73,12 +76,13 @@ operators, the set operators are always defined. In addition to set
 forming operators, there are comparison operators with their usual
 meanings:
 
+<!-- %check-verify -->
 ```dafny
 method m()
 {
   assert {1} <= {1, 2} && {1, 2} <= {1, 2}; // subset
   assert {} < {1, 2} && !({1} < {1}); // strict, or proper, subset
-  assert !({1, 2} <= {1, 4}) && !({1, 4} <= {1, 4}); // no relation
+  assert !({1, 2} <= {1, 4}) && !({1, 4} <= {1}); // not subsets
   assert {1, 2} == {1, 2} && {1, 3} != {1, 2}; // equality and non-equality
 }
 ```
@@ -86,13 +90,14 @@ method m()
 Sets, like sequences, support the `in` and `!in` operators, to
 test element membership. For example:
 
+<!-- %check-verify-warn Sets.W1.expect -->
 ```dafny
 method m()
 {
   assert 5 in {1,3,4,5};
   assert 1 in {1,3,4,5};
   assert 2 !in {1,3,4,5};
-  assert forall x :: x !in {};
+  assert forall x: int :: x !in {};
 }
 ```
 
@@ -118,6 +123,7 @@ only if `s` has no elements.)
 A useful way to create sets is using a set comprehension. This defines a new set by including `f(x)`
 in the set for all `x` of type `T` that satisfy `p(x)`:
 
+<!-- %no-check -->
 ```dafny
   set x: T | p(x) :: f(x)
 ```
@@ -129,15 +135,17 @@ the type of the return value of `f(x)`. The values in the constructed set are th
 `x` itself acts only as a bridge between the predicate `p` and the function `f`. It
 usually has the same type as the resulting set, but it does not need to. As an example:
 
+<!-- %check-verify-warn Sets.W2.expect -->
 ```dafny
 method m()
 {
-  assert (set x | x in {0,1,2} :: x * 1) == {0,1,2};
+  assert (set x | x in {0,1,2} :: x + 0) == {0,1,2};
 }
 ```
 
 If the function is the identity, then the expression can be written with a particularly nice form:
 
+<!-- %check-verify-warn Sets.W3.expect -->
 ```dafny
 method m()
 {
@@ -148,10 +156,12 @@ method m()
 General, non-identity functions in set comprehensions confuse Dafny easily. For example,
 the following is true, but Dafny cannot prove it:
 
+<!-- %check-verify  Sets.1.expect -->
 ```dafny
 method m()
 {
-  assert (set x | x in {0,1,2} :: x + 1) == {1,2,3};
+  // assert {0*1, 1*1, 2*1} == {0,1,2};  // include this assertion as a lemma to prove the next line
+  assert (set x | x in {0,1,2} :: x * 1) == {0,1,2};
 }
 ```
 
@@ -163,7 +173,6 @@ variable to be in an existing set also works, as in `x in {0,1,2}` from above. T
 only when the inclusion part is conjuncted (`&&`'ed) with the rest of the predicate, as it
 needs to limit the possible values to consider.
 
-
 ## Sequences
 
 Sequences are a built-in Dafny type representing an ordered
@@ -173,6 +182,7 @@ modified once they are created. In this sense, they are similar to strings in
 languages like Java and Python, except they can be sequences of arbitrary
 types, rather than only characters. Sequence types are written:
 
+<!-- %no-check -->
 ```dafny
   seq<int>
 ```
@@ -180,6 +190,7 @@ types, rather than only characters. Sequence types are written:
 for a sequence of integers, for example. 
 For example, this function takes a sequence as a parameter:
 
+<!-- %check-verify -->
 ```dafny
 predicate sorted(s: seq<int>)
 {
@@ -197,6 +208,7 @@ manipulate them. For example, another way of expressing sorted-ness is
 recursive: if the first element is smaller than the rest, and the rest is
 sorted, then the whole array is sorted:
 
+<!-- %check-verify -->
 ```dafny
 predicate sorted2(s: seq<int>)
 {
@@ -214,6 +226,7 @@ the same order, except for the first one. This is similar to addition of
 integers in that the original values are not changed, just new ones created.
 The slice notation is:
 
+<!-- %no-check -->
 ```dafny
   s[i..j]
 ```
@@ -226,8 +239,11 @@ same half-open interval used for regular indexing.
 
 Sequences can also be constructed from their elements, using *display notation*:
 
+<!-- %check-verify -->
 ```dafny
+method m() {
   var s := [1, 2, 3];
+}
 ```
 
 Here we have a integer sequence variable in some imperative
@@ -235,6 +251,7 @@ code containing the elements 1, 2, and 3. Type inference has been used here to
 determine that the sequence is one of integers. This notation allows us to
 construct empty sequences and singleton sequences:
 
+<!-- %no-check -->
 ```dafny
   [] // the empty sequence, which can be a sequence of any type
   [true] // a singleton sequence of type seq<bool>
@@ -243,6 +260,7 @@ construct empty sequences and singleton sequences:
 Slice notation and display notation can be used to check
 properties of sequences:
 
+<!-- %check-verify -->
 ```dafny
 method m()
 {
@@ -261,6 +279,7 @@ element, as these are often used in recursive functions, such as `sorted2`
 above. In addition to being deconstructed by being accessed or sliced, sequences
 can also be concatenated, using the plus (`+`) symbol:
 
+<!-- %check-verify -->
 ```dafny
 method m()
 {
@@ -277,6 +296,7 @@ side and inclusive on the other, the `i`th element appears in the concatenation
 exactly once, as it should. Note that the concatenation operation is
 associative:
 
+<!-- %check-verify -->
 ```dafny
 method m()
 {
@@ -292,6 +312,7 @@ more information on why this is necessary).
 Sequences also support the `in` and `!in` operators, which test
 for containment within a sequence:
 
+<!-- %check-verify -->
 ```dafny
 method m()
 {
@@ -306,11 +327,12 @@ the elements of a sequence, when we don't care about the index. For example, we
 can require that a sequence only contains elements which are indices into the
 sequence:
 
+<!-- %check-verify -->
 ```dafny
 method m()
 {
-  var p := [2,3,1,0];
-  assert forall i :: i in p ==> 0 <= i < |s|;
+  var s := [2,3,1,0];
+  assert forall i :: i in s ==> 0 <= i < |s|;
 }
 ```
 
@@ -323,6 +345,7 @@ arrays using sequences. While we can't change the original sequence, we can
 create a new sequence with the same elements everywhere except for the updated
 element:
 
+<!-- %check-verify -->
 ```dafny
 method m()
 {
@@ -335,9 +358,10 @@ Of course, the index `i` has to be an index into the array. This syntax is just
 a shortcut for an operation that can be done with regular slicing and access operations.
 Can you fill in the code below that does this?
 
+<!-- %check-verify -->
 ```dafny
 function update(s: seq<int>, i: int, v: int): seq<int>
-  requires 0 <= index < |s|
+  requires 0 <= i < |s|
   ensures update(s, i, v) == s[i := v]
 {
   s[..i] + [v] + s[i+1..]
@@ -349,10 +373,11 @@ function update(s: seq<int>, i: int, v: int): seq<int>
 You can also form a sequence from the elements of an array. This is done
 using the same "slice" notation as above:
 
+<!-- %check-verify -->
 ```dafny
 method m()
 {
-  var a := new int[3]; // 3 element array of ints
+  var a := new int[][42,43,44]; // 3 element array of ints
   a[0], a[1], a[2] := 0, 3, -1;
   var s := a[..];
   assert s == [0, 3, -1];
@@ -362,10 +387,11 @@ method m()
 To extract just part of the array, the bounds can be given just like in a regular
 slicing operation:
 
+<!-- %check-verify -->
 ```dafny
 method m()
 {
-  var a := new int[3]; // 3 element array of ints
+  var a := new int[][42,43,44]; // 3 element array of ints
   a[0], a[1], a[2] := 0, 3, -1;
   assert a[1..] == [3, -1];
   assert a[..1] == [0];
@@ -376,24 +402,28 @@ method m()
 Because sequences support `in` and `!in`, this operation gives us
 an easy way to express the "element not in array" property, turning:
 
+<!-- %no-check -->
 ```dafny
 forall k :: 0 <= k < a.Length ==> elem != a[k]
 ```
 
 into:
 
+<!-- %no-check -->
 ```dafny
 elem !in a[..]
 ```
 
 Further, bounds are easily included:
 
+<!-- %no-check -->
 ```dafny
 forall k :: 0 <= k < i ==> elem != a[k]
 ```
 
 is the same as
 
+<!-- %no-check -->
 ```dafny
 elem !in a[..i]
 ```
@@ -405,12 +435,14 @@ many copies of each element they have. This makes them particularly useful for s
 the set of elements in an array, for example, where the number of copies of each element is the same.
 The multiset type is almost the same as sets:
 
+<!-- %no-check -->
 ```dafny
   multiset<int>
 ```
 
 Similarly, to give a multiset literal, you write curly braces, except preceeded by the `multiset` keyword:
 
+<!-- %no-check -->
 ```dafny
   multiset{3,5,7,3}
 ```
@@ -427,6 +459,7 @@ test whether some element is in a multiset (in means that it has at least one me
 union would have a total of three 3's. The multiset difference (`-`) works similarly, in that the duplicity of the elements
 (i.e. how many of each element are in the multiset) matters. So the following:
 
+<!-- %check-verify -->
 ```dafny
 method test()
 {
@@ -442,6 +475,7 @@ Also, two multisets are equal if they have exactly the same count of each elemen
 
 Finally, multisets can be created from both sequences and sets by using multiset with parentheses:
 
+<!-- %check-verify -->
 ```dafny
 method test()
 {
@@ -464,6 +498,7 @@ Maps in Dafny represent *associative arrays*. Unlike the other types so far, the
 the *key* type, and the *value* type.
 Values can be retrieved, or looked up, based on the key. A map type is written:
 
+<!-- %no-check -->
 ```dafny
   map<U, V>
 ```
@@ -473,6 +508,7 @@ to integers as `map<int, int>`. A literal of this type might be `map[4 := 5, 5 :
 associates 4 with 5 and 5 with 6. You can access the value for a given key with `m[key]`, if `m` is a
 map and `key` is a key. So we could write:
 
+<!-- %check-verify -->
 ```dafny
 method test() {
   var m := map[4 := 5, 5 := 6];
@@ -499,6 +535,7 @@ map equal keys to equal values. Also, the domain of a map must always be finite.
 
 Like sets, maps have a map comprehension. The syntax is almost the same as for sets:
 
+<!-- %no-check -->
 ```dafny
 map i: T | p(i) :: f(i)
 ```
@@ -506,6 +543,7 @@ map i: T | p(i) :: f(i)
 The difference is that `i` is the key, and it is mapped to `f(i)`. `p(i)` is used to determine what the domain
 of the new map is. So:
 
+<!-- %check-verify -->
 ```dafny
 method test() {
   var m := map i | 0 <= i < 10 :: 2*i;
@@ -515,6 +553,7 @@ method test() {
 is a map which takes the numbers 0-9 to their doubles. This is also how you can remove a key from a map. For example, this expression
 removes the key 3 from an `int` to `int` map `m`:
 
+<!-- %check-verify -->
 ```dafny
 method test() {
   var m := map[3 := 5, 4 := 6, 1 := 4];

@@ -151,7 +151,7 @@ public class Compilation {
 
     var translated = new DocumentAfterTranslation(services,
       loaded.TextDocumentItem, loaded.Program,
-      loaded.ParseAndResolutionDiagnostics, loaded.NewSymbolTable, loaded.SignatureAndCompletionTable, loaded.GhostDiagnostics, verificationTasks,
+      loaded.ParseAndResolutionDiagnostics, loaded.SymbolTable, loaded.SignatureAndCompletionTable, loaded.GhostDiagnostics, verificationTasks,
       new(),
       initialViews,
       migratedVerificationTree ?? new DocumentVerificationTree(loaded.TextDocumentItem));

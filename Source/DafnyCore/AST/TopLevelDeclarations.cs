@@ -131,7 +131,6 @@ public abstract class Declaration : INode, INamedRegion, IAttributeBearingDeclar
   internal FreshIdGenerator IdGenerator = new();
   public IToken NameToken => tok;
   public override IEnumerable<INode> Children => (Attributes != null ? new List<INode> { Attributes } : Enumerable.Empty<INode>());
-  public override IEnumerable<INode> ConcreteChildren => Children;
 }
 
 public class TypeParameter : TopLevelDecl {
@@ -377,7 +376,6 @@ public class LiteralModuleDecl : ModuleDecl {
   }
 
   public override IEnumerable<INode> Children => new[] { ModuleDef };
-  public override IEnumerable<INode> ConcreteChildren => Children;
 
   public LiteralModuleDecl(ModuleDefinition module, ModuleDefinition parent)
     : base(module.tok, module.Name, parent, false, false) {
@@ -439,7 +437,6 @@ public class ModuleExportDecl : ModuleDecl {
   public bool RevealAll; // only kept for initial rewriting, then discarded
   public bool ProvideAll;
   public override IEnumerable<INode> Children => Exports;
-  public override IEnumerable<INode> ConcreteChildren => Exports;
 
   public readonly VisibilityScope ThisScope;
   public ModuleExportDecl(IToken tok, ModuleDefinition parent,
@@ -529,7 +526,6 @@ public class ExportSignature : INode, IHasUsages {
 
   public IToken NameToken => Tok;
   public override IEnumerable<INode> Children => Enumerable.Empty<INode>();
-  public override IEnumerable<INode> ConcreteChildren => Enumerable.Empty<INode>();
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return new[] { Decl };
   }
@@ -957,7 +953,6 @@ public class ModuleDefinition : INode, IDeclarationOrUsage, INamedRegion, IAttri
 
   public IToken NameToken => tok;
   public override IEnumerable<INode> Children => (Attributes != null ? new List<INode> { Attributes } : Enumerable.Empty<INode>()).Concat(TopLevelDecls);
-  public override IEnumerable<INode> ConcreteChildren => TopLevelDecls;
 }
 
 public class DefaultModuleDecl : ModuleDefinition {
@@ -1174,8 +1169,6 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl {
     }
   }
 
-  public override IEnumerable<INode> ConcreteChildren => Children;
-
   /// <summary>
   /// Returns the set of transitive parent traits (not including "this" itself).
   /// This method assumes the .ParentTraits fields have been checked for various cycle restrictions.
@@ -1364,6 +1357,8 @@ public class ArrowTypeDecl : ClassDecl {
 public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICallable {
   public override bool CanBeRevealed() { return true; }
   public readonly List<DatatypeCtor> Ctors;
+
+  [FilledInDuringResolution] public Dictionary<string, DatatypeCtor> ConstructorsByName { get; set; }
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(cce.NonNullElements(Ctors));
@@ -1404,7 +1399,7 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
   bool ICodeContext.IsGhost { get { return true; } }
   List<TypeParameter> ICodeContext.TypeArgs { get { return TypeArgs; } }
   List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
-  ModuleDefinition ICodeContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
+  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
   bool ICodeContext.MustReverify { get { return false; } }
   bool ICodeContext.AllowsNontermination { get { return false; } }
   IToken ICallable.Tok { get { return tok; } }
@@ -1564,11 +1559,10 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType {
 /// <summary>
 /// An ICodeContext is an ICallable or a NoContext.
 /// </summary>
-public interface ICodeContext {
+public interface ICodeContext : IASTVisitorContext {
   bool IsGhost { get; }
   List<TypeParameter> TypeArgs { get; }
   List<Formal> Ins { get; }
-  ModuleDefinition EnclosingModule { get; }  // to be called only after signature-resolution is complete
   bool MustReverify { get; }
   string FullSanitizedName { get; }
   bool AllowsNontermination { get; }
@@ -1682,7 +1676,7 @@ public class NoContext : ICodeContext {
   bool ICodeContext.IsGhost { get { return true; } }
   List<TypeParameter> ICodeContext.TypeArgs { get { return new List<TypeParameter>(); } }
   List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
-  ModuleDefinition ICodeContext.EnclosingModule { get { return Module; } }
+  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return Module; } }
   bool ICodeContext.MustReverify { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
   public string FullSanitizedName { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
   public bool AllowsNontermination { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
@@ -1830,7 +1824,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext {
     get { return _inferredDecr; }
   }
 
-  ModuleDefinition ICodeContext.EnclosingModule { get { return this.EnclosingModuleDefinition; } }
+  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return this.EnclosingModuleDefinition; } }
   bool ICodeContext.MustReverify { get { return false; } }
   public bool AllowsNontermination {
     get {
@@ -1995,7 +1989,7 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
   }
   List<TypeParameter> ICodeContext.TypeArgs { get { return new List<TypeParameter>(); } }
   List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
-  ModuleDefinition ICodeContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
+  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
   bool ICodeContext.MustReverify { get { return false; } }
   bool ICodeContext.AllowsNontermination { get { return false; } }
   IToken ICallable.Tok { get { return tok; } }
@@ -2090,7 +2084,7 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl {
   }
   List<TypeParameter> ICodeContext.TypeArgs { get { return TypeArgs; } }
   List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
-  ModuleDefinition ICodeContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
+  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
   bool ICodeContext.MustReverify { get { return false; } }
   bool ICodeContext.AllowsNontermination { get { return false; } }
   IToken ICallable.Tok { get { return tok; } }

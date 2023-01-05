@@ -47,17 +47,12 @@ public interface IToken : Microsoft.Boogie.IToken {
 /// <summary>
 /// Has one-indexed line and column fields
 /// </summary>
-public record Token : IToken {
+public record Token(int line, int col) : IToken {
+
   public Token peekedTokens; // Used only internally by Coco when the scanner "peeks" tokens. Normallly null at the end of parsing
   public static readonly IToken NoToken = (IToken)new Token();
 
   public Token() : this(0, 0) { }
-
-  public Token(int linenum, int colnum) {
-    this.line = linenum;
-    this.col = colnum;
-    this.val = "";
-  }
 
   public int kind { get; set; } // Used by coco, so we can't rename it to Kind
 
@@ -69,14 +64,14 @@ public record Token : IToken {
   /// <summary>
   /// One-indexed
   /// </summary>
-  public int col { get; set; } // Used by coco, so we can't rename it to Col
+  public int col { get; set; } = col; // Used by coco, so we can't rename it to Col
 
   /// <summary>
   /// One-indexed
   /// </summary>
-  public int line { get; set; } // Used by coco, so we can't rename it to Line
+  public int line { get; set; } = line; // Used by coco, so we can't rename it to Line
 
-  public string val { get; set; } // Used by coco, so we can't rename it to Val
+  public string val { get; set; } = ""; // Used by coco, so we can't rename it to Val
 
   public string LeadingTrivia { get; set; } = "";
 
@@ -102,6 +97,7 @@ public record Token : IToken {
 }
 
 public abstract class TokenWrapper : IToken {
+
   public readonly IToken WrappedToken;
   protected TokenWrapper(IToken wrappedToken) {
     Contract.Requires(wrappedToken != null);
@@ -167,11 +163,7 @@ public class RangeToken : TokenWrapper {
   public IToken EndToken => endTok;
 
   // Used for range reporting
-  override public string val {
-    get {
-      return new string(' ', endTok.pos + endTok.val.Length - pos);
-    }
-  }
+  public override string val => new string(' ', endTok.pos + endTok.val.Length - pos);
 
   // If we don't ensure that the endToken is after the start token,
   // then the rangeToken.val will cause an exception because it will try to create

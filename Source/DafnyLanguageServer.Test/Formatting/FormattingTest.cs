@@ -1,4 +1,5 @@
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -9,14 +10,17 @@ using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Formatting;
 [TestClass]
 public class FormattingTest : ClientBasedLanguageServerTest {
   [TestInitialize]
-  public override async Task SetUp() {
-    DafnyOptions.Install(DafnyOptions.Create("-proverOpt:SOLVER=noop"));
-    await base.SetUp();
+  public override async Task SetUp(Action<DafnyOptions> modifyOptions) {
+    await base.SetUp(o => {
+      o.ProverOptions.Add("-proverOpt:SOLVER=noop");
+      modifyOptions(o);
+    });
   }
 
   [TestMethod]

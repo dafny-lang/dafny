@@ -73,7 +73,6 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
 
 
   private IndentationFormatter() {
-    preResolve = true;
   }
 
 
@@ -102,9 +101,7 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
   }
 
   protected IEnumerable<Expression> SubExpressions(Expression expr) {
-    return expr is ConcreteSyntaxExpression concreteSyntaxExpression
-      ? concreteSyntaxExpression.PreResolveSubExpressions
-      : expr.SubExpressions;
+    return expr.SubExpressions;
   }
 
 
@@ -206,10 +203,10 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
       case NestedMatchStmt:
         var i = unusedIndent;
         return SetIndentCases(indent, stmt.OwnedTokens, () => {
-          foreach (var e in stmt.PreResolveSubExpressions) {
+          foreach (var e in stmt.SubExpressions) {
             Visit(e, i);
           }
-          foreach (var s in stmt.PreResolveSubStatements) {
+          foreach (var s in stmt.SubStatements) {
             Visit(s, i);
           }
         });

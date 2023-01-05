@@ -21,7 +21,7 @@ jobs:
       - name: Publish Test Results
         uses: dorny/test-reporter@v1
         with:
-          artifact: integration-test-results-ubuntu-18.04
+          artifact: integration-test-results-ubuntu-20.04
           name: Build and Test Results
           path: "*.trx"
           reporter: dotnet-trx
