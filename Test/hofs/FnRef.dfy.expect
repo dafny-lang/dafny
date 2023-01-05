@@ -1,5 +1,5 @@
-FnRef.dfy(17,44): Error: could not prove function precondition
-FnRef.dfy(32,7): Error: could not prove function precondition
+FnRef.dfy(17,44): Error: function precondition could not be proven
+FnRef.dfy(32,7): Error: function precondition could not be proven
 FnRef.dfy(46,11): Error: assertion could not be proven
 FnRef.dfy(65,13): Error: assertion could not be proven
 

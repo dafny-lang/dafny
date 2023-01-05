@@ -462,7 +462,7 @@ method FailingPostcondition(b: bool) returns (i: int)
   var j := if !b then 3 else 1;
   if b {
     return j;
-  }//^^^^^^^ could not prove a postcondition on this return path.
+  }//^^^^^^^ a postcondition could not be proven on this return path
   i := 2;
 }
 ```
@@ -476,7 +476,7 @@ method FailingPostcondition(b: bool) returns (i: int)
   if b {
     i := j;
     return;
-  }//^^^^^^^ could not prove a postcondition on this return path.
+  }//^^^^^^^ a postcondition could not be proven on this return path
   i := 2;
 }
 ```

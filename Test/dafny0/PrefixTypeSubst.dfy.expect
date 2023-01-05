@@ -621,19 +621,19 @@ lemma /*{:_induction _k}*/ RstRst10#<alpha, beta, gamma>[_k: nat]()
   }
 }
 ***/
-PrefixTypeSubst.dfy(52,0): Error: could not prove a postcondition on this return path.
+PrefixTypeSubst.dfy(52,0): Error: a postcondition could not be proven on this return path
 PrefixTypeSubst.dfy(51,30): Related location: this is the postcondition that could not be proven.
 PrefixTypeSubst.dfy(19,17): Related location
-PrefixTypeSubst.dfy(58,0): Error: could not prove a postcondition on this return path.
+PrefixTypeSubst.dfy(58,0): Error: a postcondition could not be proven on this return path
 PrefixTypeSubst.dfy(57,30): Related location: this is the postcondition that could not be proven.
 PrefixTypeSubst.dfy(19,17): Related location
-PrefixTypeSubst.dfy(64,0): Error: could not prove a postcondition on this return path.
+PrefixTypeSubst.dfy(64,0): Error: a postcondition could not be proven on this return path
 PrefixTypeSubst.dfy(63,30): Related location: this is the postcondition that could not be proven.
 PrefixTypeSubst.dfy(19,17): Related location
-PrefixTypeSubst.dfy(70,0): Error: could not prove a postcondition on this return path.
+PrefixTypeSubst.dfy(70,0): Error: a postcondition could not be proven on this return path
 PrefixTypeSubst.dfy(69,30): Related location: this is the postcondition that could not be proven.
 PrefixTypeSubst.dfy(19,17): Related location
-PrefixTypeSubst.dfy(85,9): Error: could not prove a postcondition on this return path.
+PrefixTypeSubst.dfy(85,9): Error: a postcondition could not be proven on this return path
 PrefixTypeSubst.dfy(81,30): Related location: this is the postcondition that could not be proven.
 PrefixTypeSubst.dfy(19,17): Related location
 

@@ -562,30 +562,30 @@ module N2 refines N1 {
   type {:axiom} C(==) = c: C? | c != null /*special witness*/
   */
 }
-AutoContracts.dfy(17,4): Error: could not prove a postcondition on this return path.
+AutoContracts.dfy(17,4): Error: a postcondition could not be proven on this return path
 AutoContracts.dfy(17,4): Related location: this is the postcondition that could not be proven.
 AutoContracts.dfy(12,14): Related location
-AutoContracts.dfy(17,4): Error: could not prove a postcondition on this return path.
+AutoContracts.dfy(17,4): Error: a postcondition could not be proven on this return path
 AutoContracts.dfy(17,4): Related location: this is the postcondition that could not be proven.
-AutoContracts.dfy(17,4): Error: could not prove a postcondition on this return path.
-AutoContracts.dfy(17,4): Related location: this is the postcondition that could not be proven.
-AutoContracts.dfy(12,14): Related location
-AutoContracts.dfy(17,4): Error: could not prove a postcondition on this return path.
+AutoContracts.dfy(17,4): Error: a postcondition could not be proven on this return path
 AutoContracts.dfy(17,4): Related location: this is the postcondition that could not be proven.
 AutoContracts.dfy(12,14): Related location
-AutoContracts.dfy(17,4): Error: could not prove a postcondition on this return path.
+AutoContracts.dfy(17,4): Error: a postcondition could not be proven on this return path
+AutoContracts.dfy(17,4): Related location: this is the postcondition that could not be proven.
+AutoContracts.dfy(12,14): Related location
+AutoContracts.dfy(17,4): Error: a postcondition could not be proven on this return path
 AutoContracts.dfy(17,4): Related location: this is the postcondition that could not be proven.
 AutoContracts.dfy(12,14): Related location
 AutoContracts.dfy(5,25): Related location
-AutoContracts.dfy(50,4): Error: could not prove a postcondition on this return path.
+AutoContracts.dfy(50,4): Error: a postcondition could not be proven on this return path
 AutoContracts.dfy(49,24): Related location: this is the postcondition that could not be proven.
-AutoContracts.dfy(79,21): Error: could not prove a postcondition on this return path.
+AutoContracts.dfy(79,21): Error: a postcondition could not be proven on this return path
 AutoContracts.dfy(60,16): Related location: this is the postcondition that could not be proven.
 AutoContracts.dfy[N1](65,14): Related location
-AutoContracts.dfy(79,21): Error: could not prove a postcondition on this return path.
+AutoContracts.dfy(79,21): Error: a postcondition could not be proven on this return path
 AutoContracts.dfy(60,16): Related location: this is the postcondition that could not be proven.
 AutoContracts.dfy[N1](65,14): Related location
-AutoContracts.dfy(79,21): Error: could not prove a postcondition on this return path.
+AutoContracts.dfy(79,21): Error: a postcondition could not be proven on this return path
 AutoContracts.dfy(60,16): Related location: this is the postcondition that could not be proven.
 
 Dafny program verifier finished with 37 verified, 9 errors

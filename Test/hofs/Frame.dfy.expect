@@ -3,7 +3,7 @@ Frame.dfy(37,13): Error: assertion could not be proven
 Frame.dfy(63,22): Error: assertion could not be proven
 Frame.dfy(66,18): Error: insufficient reads clause to read array element
 Frame.dfy(68,27): Error: insufficient reads clause to read array element
-Frame.dfy(123,13): Error: could not prove function precondition
+Frame.dfy(123,13): Error: function precondition could not be proven
 Frame.dfy(123,18): Error: assertion could not be proven
 
 Dafny program verifier finished with 5 verified, 7 errors

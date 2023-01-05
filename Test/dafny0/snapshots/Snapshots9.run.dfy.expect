@@ -1,20 +1,20 @@
 Processing command (at Snapshots9.v0.dfy(2,11)) assert ok#0;
   >>> DoNothingToAssert
-Snapshots9.v0.dfy(4,7): Error: could not prove a postcondition on this return path.
+Snapshots9.v0.dfy(4,7): Error: a postcondition could not be proven on this return path
 Snapshots9.v0.dfy(2,10): Related location: this is the postcondition that could not be proven.
 Processing command (at Snapshots9.v0.dfy(12,11)) assert ok#0;
   >>> DoNothingToAssert
-Snapshots9.v0.dfy(13,0): Error: could not prove a postcondition on this return path.
+Snapshots9.v0.dfy(13,0): Error: a postcondition could not be proven on this return path
 Snapshots9.v0.dfy(12,10): Related location: this is the postcondition that could not be proven.
 
 Dafny program verifier finished with 0 verified, 2 errors
 Processing command (at Snapshots9.v1.dfy(6,11)) assert ok#0;
   >>> RecycleError
-Snapshots9.v1.dfy(8,7): Error: could not prove a postcondition on this return path.
+Snapshots9.v1.dfy(8,7): Error: a postcondition could not be proven on this return path
 Snapshots9.v1.dfy(6,10): Related location: this is the postcondition that could not be proven.
 Processing command (at Snapshots9.v1.dfy(19,11)) assert ok#0;
   >>> RecycleError
-Snapshots9.v1.dfy(21,0): Error: could not prove a postcondition on this return path.
+Snapshots9.v1.dfy(21,0): Error: a postcondition could not be proven on this return path
 Snapshots9.v1.dfy(19,10): Related location: this is the postcondition that could not be proven.
 
 Dafny program verifier finished with 0 verified, 2 errors

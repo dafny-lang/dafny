@@ -1,4 +1,4 @@
-Datatypes.dfy(297,9): Error: could not prove a postcondition on this return path.
+Datatypes.dfy(297,9): Error: a postcondition could not be proven on this return path
 Datatypes.dfy(295,14): Related location: this is the postcondition that could not be proven.
 Datatypes.dfy(298,11): Error: missing case in match expression: Appendix(_)
 Datatypes.dfy(349,4): Error: missing case in match expression: Cons(_, _)

@@ -5,9 +5,9 @@ Maps.dfy(220,36): Error: key expressions might be referring to the same value
 Maps.dfy(226,36): Error: key expressions might be referring to the same value
 Maps.dfy(232,37): Error: key expressions might be referring to the same value
 Maps.dfy(234,24): Error: key expressions might be referring to the same value
-Maps.dfy(241,41): Error: could not prove function precondition
+Maps.dfy(241,41): Error: function precondition could not be proven
 Maps.dfy(215,13): Related location
-Maps.dfy(243,36): Error: could not prove function precondition
+Maps.dfy(243,36): Error: function precondition could not be proven
 Maps.dfy(215,13): Related location
 Maps.dfy(243,37): Error: key expressions might be referring to the same value
 Maps.dfy(264,54): Error: assertion could not be proven

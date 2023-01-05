@@ -24,21 +24,21 @@ SmallTests.dfy(240,30): Error: assertion could not be proven
 SmallTests.dfy(243,30): Error: assertion could not be proven
 SmallTests.dfy(253,25): Error: assertion could not be proven
 SmallTests.dfy(255,30): Error: assertion could not be proven
-SmallTests.dfy(303,23): Error: a precondition for this call could not be proven.
-SmallTests.dfy(281,16): Related location: this is the precondition that could not be proven.
+SmallTests.dfy(303,23): Error: a precondition for this call could not be proven
+SmallTests.dfy(281,16): Related location: this is the precondition that could not be proven
 SmallTests.dfy(408,11): Error: assertion could not be proven
 SmallTests.dfy(418,11): Error: assertion could not be proven
 SmallTests.dfy(428,5): Error: cannot prove termination; try supplying a decreases clause
 SmallTests.dfy(733,13): Error: assertion could not be proven
 SmallTests.dfy(754,13): Error: assertion could not be proven
 SmallTests.dfy(757,13): Error: assertion could not be proven
-SmallTests.dfy(338,2): Error: could not prove a postcondition on this return path.
+SmallTests.dfy(338,2): Error: a postcondition could not be proven on this return path
 SmallTests.dfy(332,10): Related location: this is the postcondition that could not be proven.
 SmallTests.dfy(332,40): Related location
 SmallTests.dfy(379,11): Error: assertion could not be proven
 SmallTests.dfy(386,9): Error: assertion could not be proven
 SmallTests.dfy(396,3): Error: cannot prove termination; try supplying a decreases clause
-SmallTests.dfy(440,9): Error: could not prove a postcondition on this return path.
+SmallTests.dfy(440,9): Error: a postcondition could not be proven on this return path
 SmallTests.dfy(443,40): Related location: this is the postcondition that could not be proven.
 SmallTests.dfy(604,11): Error: assertion could not be proven
 SmallTests.dfy(618,19): Error: left-hand sides n.next and n.next.next might refer to the same location

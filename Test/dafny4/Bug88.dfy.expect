@@ -1,6 +1,6 @@
-Bug88.dfy(6,0): Error: could not prove a postcondition on this return path.
+Bug88.dfy(6,0): Error: a postcondition could not be proven on this return path
 Bug88.dfy(5,12): Related location: this is the postcondition that could not be proven.
-Bug88.dfy(14,0): Error: could not prove a postcondition on this return path.
+Bug88.dfy(14,0): Error: a postcondition could not be proven on this return path
 Bug88.dfy(13,10): Related location: this is the postcondition that could not be proven.
 
 Dafny program verifier finished with 0 verified, 2 errors

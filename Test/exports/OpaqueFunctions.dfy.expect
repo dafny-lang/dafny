@@ -1,8 +1,8 @@
-OpaqueFunctions.dfy(16,11): Error: could not prove a postcondition on this return path.
+OpaqueFunctions.dfy(16,11): Error: a postcondition could not be proven on this return path
 OpaqueFunctions.dfy(17,14): Related location: this is the postcondition that could not be proven.
-OpaqueFunctions.dfy(58,2): Error: could not prove a postcondition on this return path.
+OpaqueFunctions.dfy(58,2): Error: a postcondition could not be proven on this return path
 OpaqueFunctions.dfy(57,16): Related location: this is the postcondition that could not be proven.
-OpaqueFunctions.dfy(65,2): Error: could not prove a postcondition on this return path.
+OpaqueFunctions.dfy(65,2): Error: a postcondition could not be proven on this return path
 OpaqueFunctions.dfy(64,16): Related location: this is the postcondition that could not be proven.
 
 Dafny program verifier finished with 4 verified, 3 errors

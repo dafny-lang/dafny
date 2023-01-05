@@ -1,4 +1,4 @@
-zeroCores.dfy(4,27): Error: could not prove a postcondition on this return path.
+zeroCores.dfy(4,27): Error: a postcondition could not be proven on this return path
 zeroCores.dfy(4,21): Related location: this is the postcondition that could not be proven.
 
 Dafny program verifier finished with 0 verified, 1 error

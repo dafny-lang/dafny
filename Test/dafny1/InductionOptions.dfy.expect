@@ -1,30 +1,30 @@
-InductionOptions.dfy(21,0): Error: could not prove a postcondition on this return path.
+InductionOptions.dfy(21,0): Error: a postcondition could not be proven on this return path
 InductionOptions.dfy(20,26): Related location: this is the postcondition that could not be proven.
 InductionOptions.dfy(25,9): Error: assertion could not be proven
 InductionOptions.dfy(25,38): Related location
-InductionOptions.dfy(30,0): Error: could not prove a postcondition on this return path.
+InductionOptions.dfy(30,0): Error: a postcondition could not be proven on this return path
 InductionOptions.dfy(29,10): Related location: this is the postcondition that could not be proven.
 InductionOptions.dfy(29,39): Related location
 InductionOptions.dfy(35,9): Error: assertion could not be proven
 InductionOptions.dfy(35,38): Related location
-InductionOptions.dfy(40,0): Error: could not prove a postcondition on this return path.
+InductionOptions.dfy(40,0): Error: a postcondition could not be proven on this return path
 InductionOptions.dfy(39,26): Related location: this is the postcondition that could not be proven.
 InductionOptions.dfy(44,9): Error: assertion could not be proven
 InductionOptions.dfy(44,51): Related location
 
 Dafny program verifier finished with 1 verified, 6 errors
-InductionOptions.dfy(21,0): Error: could not prove a postcondition on this return path.
+InductionOptions.dfy(21,0): Error: a postcondition could not be proven on this return path
 InductionOptions.dfy(20,26): Related location: this is the postcondition that could not be proven.
 InductionOptions.dfy(25,9): Error: assertion could not be proven
 InductionOptions.dfy(25,38): Related location
-InductionOptions.dfy(30,0): Error: could not prove a postcondition on this return path.
+InductionOptions.dfy(30,0): Error: a postcondition could not be proven on this return path
 InductionOptions.dfy(29,10): Related location: this is the postcondition that could not be proven.
 InductionOptions.dfy(29,39): Related location
 InductionOptions.dfy(35,9): Error: assertion could not be proven
 InductionOptions.dfy(35,38): Related location
 
 Dafny program verifier finished with 3 verified, 4 errors
-InductionOptions.dfy(21,0): Error: could not prove a postcondition on this return path.
+InductionOptions.dfy(21,0): Error: a postcondition could not be proven on this return path
 InductionOptions.dfy(20,26): Related location: this is the postcondition that could not be proven.
 
 Dafny program verifier finished with 6 verified, 1 error
@@ -32,7 +32,7 @@ Dafny program verifier finished with 6 verified, 1 error
 Dafny program verifier finished with 7 verified, 0 errors
 InductionOptions.dfy(25,9): Error: assertion could not be proven
 InductionOptions.dfy(25,38): Related location
-InductionOptions.dfy(30,0): Error: could not prove a postcondition on this return path.
+InductionOptions.dfy(30,0): Error: a postcondition could not be proven on this return path
 InductionOptions.dfy(29,10): Related location: this is the postcondition that could not be proven.
 InductionOptions.dfy(29,39): Related location
 InductionOptions.dfy(35,9): Error: assertion could not be proven

@@ -1,4 +1,4 @@
-Regression8.dfy(14,16): Error: could not prove function precondition
+Regression8.dfy(14,16): Error: function precondition could not be proven
 Regression8.dfy(5,13): Related location
 
 Dafny program verifier finished with 0 verified, 1 error

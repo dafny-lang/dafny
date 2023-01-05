@@ -1,9 +1,9 @@
 splitting-triggers-yields-better-precondition-related-errors.dfy(7,11): Warning: /!\ No terms found to trigger on.
 splitting-triggers-yields-better-precondition-related-errors.dfy(15,11): Warning: /!\ No terms found to trigger on.
-splitting-triggers-yields-better-precondition-related-errors.dfy(11,3): Error: a precondition for this call could not be proven.
-splitting-triggers-yields-better-precondition-related-errors.dfy(7,11): Related location: this is the precondition that could not be proven.
+splitting-triggers-yields-better-precondition-related-errors.dfy(11,3): Error: a precondition for this call could not be proven
+splitting-triggers-yields-better-precondition-related-errors.dfy(7,11): Related location: this is the precondition that could not be proven
 splitting-triggers-yields-better-precondition-related-errors.dfy(7,25): Related location
-splitting-triggers-yields-better-precondition-related-errors.dfy(20,2): Error: could not prove function precondition
+splitting-triggers-yields-better-precondition-related-errors.dfy(20,2): Error: function precondition could not be proven
 splitting-triggers-yields-better-precondition-related-errors.dfy(15,11): Related location
 splitting-triggers-yields-better-precondition-related-errors.dfy(15,25): Related location
 

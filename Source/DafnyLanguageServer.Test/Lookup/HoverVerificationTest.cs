@@ -48,7 +48,7 @@ method Abs(x: int) returns (y: int)
 ", "testFile.dfy");
       // When hovering the postcondition, it should display the position of the failing path
       await AssertHoverMatches(documentItem, (2, 15),
-        @"[**Error:**](???) this postcondition could not be proven on a return path.  
+        @"[**Error:**](???) this postcondition could not be proven on a return path  
 This is assertion #1 of 4 in method Abs  
 Resource usage: ??? RU  
 Return path: testFile.dfy(6, 5)"
@@ -56,7 +56,7 @@ Return path: testFile.dfy(6, 5)"
       // When hovering the failing path, it does not display the position of the failing postcondition
       // because the IDE extension already does it.
       await AssertHoverMatches(documentItem, (5, 4),
-        @"[**Error:**](???) could not prove a postcondition on this return path.  
+        @"[**Error:**](???) a postcondition could not be proven on this return path  
 This is assertion #1 of 4 in method Abs  
 Resource usage: ??? RU"
       );

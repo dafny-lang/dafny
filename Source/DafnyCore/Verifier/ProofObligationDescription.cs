@@ -11,7 +11,7 @@ public abstract class ProofObligationDescription : Boogie.ProofObligationDescrip
 
 public class DivisorNonZero : ProofObligationDescription {
   public override string SuccessDescription =>
-    "divisor is always non-zero.";
+    "divisor is always non-zero";
 
   public override string FailureDescription =>
     "possible division by zero";
@@ -279,7 +279,7 @@ public class PreconditionSatisfied : ProofObligationDescription {
       : $"error is impossible: {customErrMsg}";
 
   public override string FailureDescription =>
-    customErrMsg ?? "could not prove function precondition";
+    customErrMsg ?? "function precondition could not be proven";
 
   public override string ShortDescription => "precondition";
 

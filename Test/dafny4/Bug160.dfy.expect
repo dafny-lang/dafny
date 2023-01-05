@@ -1,4 +1,4 @@
-Bug160.dfy(26,18): Error: could not prove a postcondition on this return path.
+Bug160.dfy(26,18): Error: a postcondition could not be proven on this return path
 Bug160.dfy(27,13): Related location: this is the postcondition that could not be proven.
 Bug160.dfy(27,29): Related location
 

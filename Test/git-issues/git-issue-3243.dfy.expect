@@ -1,7 +1,7 @@
 git-issue-3243.dfy(19,2): Warning: note, this loop has no body (loop frame: i)
-git-issue-3243.dfy(10,16): Error: this loop invariant could not be proven on entry.
+git-issue-3243.dfy(10,16): Error: this loop invariant could not be proven on entry
 git-issue-3243.dfy(10,16): Related message: loop invariant violation
-git-issue-3243.dfy(21,16): Error: this loop invariant could not be proven on entry.
+git-issue-3243.dfy(21,16): Error: this loop invariant could not be proven on entry
 git-issue-3243.dfy(21,16): Related message: loop invariant violation
 
 Dafny program verifier finished with 0 verified, 2 errors

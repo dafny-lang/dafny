@@ -1,4 +1,4 @@
 Twice.dfy(26,21): Error: assertion could not be proven
-Twice.dfy(34,31): Error: could not prove function precondition
+Twice.dfy(34,31): Error: function precondition could not be proven
 
 Dafny program verifier finished with 2 verified, 2 errors

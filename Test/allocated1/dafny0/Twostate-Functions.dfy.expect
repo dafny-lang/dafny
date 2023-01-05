@@ -15,8 +15,8 @@ Twostate-Functions.dfy(136,33): Error: target object might not be allocated
 Twostate-Functions.dfy(150,12): Error: target object might not be allocated
 Twostate-Functions.dfy(152,12): Error: target object might not be allocated
 Twostate-Functions.dfy(171,15): Error: argument ('d') might not be allocated in the two-state function's previous state
-Twostate-Functions.dfy(174,13): Error: could not prove function precondition
+Twostate-Functions.dfy(174,13): Error: function precondition could not be proven
 Twostate-Functions.dfy(192,15): Error: argument ('d') might not be allocated in the two-state function's previous state
-Twostate-Functions.dfy(195,13): Error: could not prove function precondition
+Twostate-Functions.dfy(195,13): Error: function precondition could not be proven
 
 Dafny program verifier finished with 18 verified, 18 errors

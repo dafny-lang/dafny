@@ -90,7 +90,7 @@ AllocatedCommon.dfyi(201,24): Error: assertion could not be proven
 AllocatedCommon.dfyi(202,27): Error: assertion could not be proven
 AllocatedCommon.dfyi(218,5): Error: insufficient reads clause to read field
 AllocatedCommon.dfyi(225,5): Error: insufficient reads clause to read field
-AllocatedCommon.dfyi(284,9): Error: could not prove function precondition
+AllocatedCommon.dfyi(284,9): Error: function precondition could not be proven
 AllocatedCommon.dfyi(284,15): Error: assertion could not be proven
 AllocatedCommon.dfyi(301,26): Error: assertion could not be proven
 AllocatedCommon.dfyi(302,26): Error: assertion could not be proven
