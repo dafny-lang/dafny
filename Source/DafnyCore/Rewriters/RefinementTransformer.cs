@@ -1681,7 +1681,7 @@ namespace Microsoft.Dafny {
 
   class RefinementCloner : Cloner {
     readonly ModuleDefinition moduleUnderConstruction;
-    private IToken? newDeclarationTok;
+    private IToken newDeclarationTok;
     private bool wrapWithRefinementToken = true;
     private bool wrapWithMethodToken = true;
 
@@ -1720,7 +1720,7 @@ namespace Microsoft.Dafny {
     }
 
     public override IToken Tok(IToken tok) {
-      if (wrapWithMethodToken) {
+      if (wrapWithMethodToken && newDeclarationTok != null) {
         tok = new NestedToken(newDeclarationTok, tok, "The refined position");
       }
       if (wrapWithRefinementToken) {

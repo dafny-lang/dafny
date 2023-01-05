@@ -22,6 +22,34 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   public class DiagnosticsTest : ClientBasedLanguageServerTest {
 
     [TestMethod]
+    public async Task GitIssue3329ModuleRefinementBreaksOutlineErrorReporting() {
+      var source = @"
+abstract module Test {
+  method Encrypt()
+    ensures false
+}
+
+module Ok refines Test {
+  function test(): int {
+    2
+  }
+  // Might not work as expected
+  method Encrypt() {
+  }
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      // Uncomment what you need.
+      var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(1, diagnostics.Length);
+      Assert.IsNotNull(diagnostics[0].RelatedInformation);
+      var relatedInformation = diagnostics[0].RelatedInformation.ToArray();
+      Assert.AreEqual(1, relatedInformation.Length);
+      Assert.AreEqual(2, relatedInformation[0].Location.Range.Start.Line);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
+    }
+
+    [TestMethod]
     public async Task GitIssue3155ItemWithSameKeyAlreadyBeenAdded() {
       var source = @"
 datatype Test =
