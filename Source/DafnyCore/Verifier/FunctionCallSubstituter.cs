@@ -16,7 +16,6 @@ namespace Microsoft.Dafny {
         if (e.Function == A && e.Receiver is ThisExpr && receiver is ThisExpr) {
           newFce.Function = B;
           newFce.Type = e.Type; // TODO: this may not work with type parameters.
-                                //update receiver type
           receiver.Type = Resolver.GetThisType(B.tok, (TopLevelDeclWithMembers)B.EnclosingClass);
         } else {
           newFce.Function = e.Function;
