@@ -3514,6 +3514,9 @@ namespace Microsoft.Dafny {
 
       //generating trait post-conditions with class variables
       foreach (var en in f.OverriddenFunction.Ens) {
+        // We replace all occurrences of the trait version of the function with the class version. This is only allowed
+        // if the receiver is `this`. We underapproximate this by looking for a `ThisExpr`, which misses more complex
+        // expressions that evaluate to one.
         var sub = new FunctionCallSubstituter(null, substMap, typeMap, f.OverriddenFunction, f);
         foreach (var s in TrSplitExpr(sub.Substitute(en.E), etran, false, out _).Where(s => s.IsChecked)) {
           builder.Add(Assert(f.tok, s.E, new PODesc.FunctionContractOverride(true)));
