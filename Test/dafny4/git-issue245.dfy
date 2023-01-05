@@ -62,19 +62,19 @@ class D extends T {
 class E extends T {
   // d does not name the result in either trait or class
   function method d(y: nat): nat
-    ensures d(y) < 20 + y
+    ensures d(y) < 20 + y  // error: specification is not weaker
   { 5 + y }
   // f names the result in both trait and class
   function method f(y: nat): (result: nat)
-    ensures result < 20 + y
+    ensures result < 20 + y  // error: specification is not weaker
   { 5 + y }
   // g names the result in just the class
   function method g(y: nat): (result: nat)
-    ensures result < 20 + y
+    ensures result < 20 + y  // error: specification is not weaker
   { 5 + y }
   // h names the result in just the trait
   function method h(y: nat): nat
-    ensures h(y) < 20 + y
+    ensures h(y) < 20 + y  // error: specification is not weaker
   { 5 + y }
 }
 
