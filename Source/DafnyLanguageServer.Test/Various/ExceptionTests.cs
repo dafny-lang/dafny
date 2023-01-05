@@ -124,11 +124,11 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       return loader.CreateUnloaded(textDocument, cancellationToken);
     }
 
-    public Task<DocumentAfterParsing> LoadAsync(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
+    public Task<DocumentAfterResolution> LoadAsync(DocumentAfterParsing parsing, CancellationToken cancellationToken) {
       if (tests.CrashOnLoad) {
         throw new IOException("crash");
       }
-      return loader.LoadAsync(textDocument, cancellationToken);
+      return loader.LoadAsync(parsing, cancellationToken);
     }
   }
 }
