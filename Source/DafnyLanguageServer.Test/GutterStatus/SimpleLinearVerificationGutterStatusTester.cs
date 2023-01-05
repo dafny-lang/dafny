@@ -15,6 +15,24 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
   // Add '//Next<n>:' to edit a line multiple times
 
   [TestMethod]
+  public async Task GitIssue3329ModuleRefinementBreaksOutlineErrorReporting() {
+    await VerifyTrace(@"
+ | :abstract module Test {
+ | :  method Encrypt()
+ | :    ensures false
+ | :}
+ | :
+ | :module Ok refines Test {
+ | :  function test(): int {
+ | :    2
+ | :  }
+ | :  // Might not work as expected
+[=]:  method Encrypt() {
+[ ]:  }
+   :}", intermediates: false);
+  }
+
+  [TestMethod]
   public async Task NoGutterNotificationsReceivedWhenTurnedOff() {
     var source = @"
 method Foo() ensures false { } ";
