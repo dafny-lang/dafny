@@ -86,14 +86,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       DocumentTextBuffer textDocumentItem,
       Dafny.Program program,
       IReadOnlyList<Diagnostic> parseAndResolutionDiagnostics,
-      SymbolTable? newSymbolTable,
+      SymbolTable? symbolTable,
       SignatureAndCompletionTable signatureAndCompletionTable,
       IReadOnlyList<Diagnostic> ghostDiagnostics,
       IReadOnlyList<IImplementationTask> verificationTasks,
       List<Counterexample> counterexamples,
       Dictionary<ImplementationId, ImplementationView> implementationIdToView,
       VerificationTree verificationTree)
-      : base(textDocumentItem, program, parseAndResolutionDiagnostics, newSymbolTable, signatureAndCompletionTable, ghostDiagnostics) {
+      : base(textDocumentItem, program, parseAndResolutionDiagnostics, symbolTable, signatureAndCompletionTable, ghostDiagnostics) {
       VerificationTree = verificationTree;
       VerificationTasks = verificationTasks;
       Counterexamples = counterexamples;

@@ -1419,6 +1419,8 @@ namespace Microsoft.Dafny {
           var e = (ConcreteSyntaxExpression)expr;
           return TrExpr(e.ResolvedExpression);
 
+        } else if (expr is NestedMatchExpr nestedMatchExpr) {
+          return TrExpr(nestedMatchExpr.Flattened);
         } else if (expr is BoxingCastExpr) {
           BoxingCastExpr e = (BoxingCastExpr)expr;
           return translator.CondApplyBox(GetToken(e), TrExpr(e.E), e.FromType, e.ToType);

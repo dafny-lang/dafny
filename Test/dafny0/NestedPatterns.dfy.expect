@@ -1,4 +1,3 @@
-NestedPatterns.dfy(67,2): Warning: this branch is redundant
 NestedPatterns.dfy(75,23): Error: Duplicate parameter name: h
 NestedPatterns.dfy(83,20): Error: Duplicate parameter name: h
 NestedPatterns.dfy(91,23): Error: Duplicate parameter name: e

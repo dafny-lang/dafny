@@ -1,3 +1,3 @@
-git-issue-3187b.dfy(6,13): Error: a mutable field must be declared with a type and may not have an initializer
-git-issue-3187b.dfy(6,13): Error: rbrace expected
+git-issue-3187b.dfy(6,8): Error: a mutable field must be declared with a type
+git-issue-3187b.dfy(6,10): Error: a mutable field may not have an initializer
 2 parse errors detected in git-issue-3187b.dfy

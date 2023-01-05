@@ -13,7 +13,7 @@ public abstract class PredicateStmt : Statement {
     Expr = cloner.CloneExpr(original.Expr);
   }
 
-  public PredicateStmt(IToken tok, IToken endTok, Expression expr, Attributes attrs)
+  protected PredicateStmt(IToken tok, IToken endTok, Expression expr, Attributes attrs)
     : base(tok, endTok, attrs) {
     Contract.Requires(tok != null);
     Contract.Requires(endTok != null);
@@ -21,7 +21,7 @@ public abstract class PredicateStmt : Statement {
     this.Expr = expr;
   }
 
-  public PredicateStmt(IToken tok, IToken endTok, Expression expr)
+  protected PredicateStmt(IToken tok, IToken endTok, Expression expr)
     : this(tok, endTok, expr, null) {
     Contract.Requires(tok != null);
     Contract.Requires(endTok != null);

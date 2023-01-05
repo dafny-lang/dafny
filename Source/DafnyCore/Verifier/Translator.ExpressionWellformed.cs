@@ -1153,7 +1153,9 @@ namespace Microsoft.Dafny {
         var e = (ConcreteSyntaxExpression)expr;
         CheckWellformedWithResult(e.ResolvedExpression, options, result, resultType, locals, builder, etran);
         result = null;
-
+      } else if (expr is NestedMatchExpr nestedMatchExpr) {
+        CheckWellformedWithResult(nestedMatchExpr.Flattened, options, result, resultType, locals, builder, etran);
+        result = null;
       } else if (expr is BoogieFunctionCall) {
         var e = (BoogieFunctionCall)expr;
         foreach (var arg in e.Args) {
