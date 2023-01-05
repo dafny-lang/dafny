@@ -1,4 +1,4 @@
-// RUN: %baredafny verify %args_0 "%s" > "%t"
+// RUN: %exits-with 1 %baredafny foobar.dll "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-method Test() {}
+method IrrelevantStartsOnlyFakeFoobarDll() {}

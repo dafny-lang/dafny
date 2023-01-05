@@ -259,7 +259,13 @@ namespace Microsoft.Dafny {
 
         var supportedExtensions = options.Compiler.SupportedExtensions;
         if (supportedExtensions.Contains(extension)) {
-          otherFiles.Add(file);
+          if (File.Exists(file)) {
+            otherFiles.Add(file);
+          } else {
+            options.Printer.ErrorWriteLine(Console.Out,
+              "*** Error: file " + file + " not found");
+            return CommandLineArgumentsResult.PREPROCESSING_ERROR;
+          }
         } else if (!isDafnyFile) {
           if (string.IsNullOrEmpty(extension) && file.Length > 0 && (file[0] == '/' || file[0] == '-')) {
             options.Printer.ErrorWriteLine(Console.Out,
