@@ -18,7 +18,7 @@ class Class extends M.Tr {
     // Missing: ensures True'()
   { false }
   function Other(x: nat, free: M.Tr): bool
-    // Different Receiver
+    // Different receiver
     ensures x != 0 && Other(x-1, free) ==> Other(x-1, free)
   { false }
 }
