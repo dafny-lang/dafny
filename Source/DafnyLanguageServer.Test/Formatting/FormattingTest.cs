@@ -15,11 +15,11 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 namespace Microsoft.Dafny.LanguageServer.Formatting;
 [TestClass]
 public class FormattingTest : ClientBasedLanguageServerTest {
-  [TestInitialize]
+
   public override async Task SetUp(Action<DafnyOptions> modifyOptions) {
     await base.SetUp(o => {
       o.ProverOptions.Add("-proverOpt:SOLVER=noop");
-      modifyOptions(o);
+      modifyOptions?.Invoke(o);
     });
   }
 

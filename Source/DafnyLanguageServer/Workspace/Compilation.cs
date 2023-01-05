@@ -34,6 +34,7 @@ public class Compilation {
   private readonly ICompilationStatusNotificationPublisher statusPublisher;
   private readonly INotificationPublisher notificationPublisher;
   private readonly IProgramVerifier verifier;
+  private readonly IDafnyParser parser;
 
   public DocumentTextBuffer TextBuffer { get; }
   private readonly IServiceProvider services;
@@ -47,7 +48,8 @@ public class Compilation {
   private readonly Subject<Document> documentUpdates = new();
   public IObservable<Document> DocumentUpdates => documentUpdates;
 
-  public Task<DocumentAfterParsing> ResolvedDocument { get; }
+  public Task<DocumentAfterParsing> ParsedDocument { get; }
+  public Task<DocumentAfterResolution> ResolvedDocument { get; }
   public Task<DocumentAfterTranslation> TranslatedDocument { get; }
 
   public Compilation(IServiceProvider services,
@@ -59,6 +61,7 @@ public class Compilation {
     notificationPublisher = services.GetRequiredService<INotificationPublisher>();
     verifier = services.GetRequiredService<IProgramVerifier>();
     statusPublisher = services.GetRequiredService<ICompilationStatusNotificationPublisher>();
+    parser = services.GetRequiredService<IDafnyParser>();
 
     TextBuffer = textBuffer;
     this.services = services;
@@ -67,6 +70,7 @@ public class Compilation {
 
     MarkVerificationFinished();
 
+    ParsedDocument = ParseAsync();
     ResolvedDocument = ResolveAsync();
     TranslatedDocument = TranslateAsync();
   }
@@ -75,22 +79,39 @@ public class Compilation {
     started.TrySetResult();
   }
 
-  private async Task<DocumentAfterParsing> ResolveAsync() {
+  private async Task<DocumentAfterParsing> ParseAsync() {
     try {
       await started.Task;
-      var documentAfterParsing = await documentLoader.LoadAsync(TextBuffer, cancellationSource.Token);
+
+      var errorReporter = new DiagnosticErrorReporter(TextBuffer.Text, TextBuffer.Uri);
+      statusPublisher.SendStatusNotification(TextBuffer, CompilationStatus.ResolutionStarted);
+      var program = parser.Parse(TextBuffer, errorReporter, cancellationSource.Token);
+      if (errorReporter.HasErrors) {
+        statusPublisher.SendStatusNotification(TextBuffer, CompilationStatus.ParsingFailed);
+      }
+      return new DocumentAfterParsing(TextBuffer, program, errorReporter.GetDiagnostics(TextBuffer.Uri));
+    } catch (Exception e) {
+      documentUpdates.OnError(e);
+      throw;
+    }
+  }
+
+  private async Task<DocumentAfterResolution> ResolveAsync() {
+    try {
+      var parsedDocument = await ParsedDocument;
+      var documentAfterResolution = await documentLoader.LoadAsync(parsedDocument, cancellationSource.Token);
 
       // TODO, let gutter icon publications also used the published CompilationView.
-      var state = documentAfterParsing.InitialIdeState();
+      var state = parsedDocument.InitialIdeState();
       state = state with {
         VerificationTree = migratedVerificationTree ?? state.VerificationTree
       };
       notificationPublisher.PublishGutterIcons(state, false);
 
       logger.LogDebug($"documentUpdates.HasObservers: {documentUpdates.HasObservers}, threadId: {Thread.CurrentThread.ManagedThreadId}");
-      documentUpdates.OnNext(documentAfterParsing);
-      logger.LogDebug($"Passed documentAfterParsing to documentUpdates.OnNext, resolving ResolvedDocument task for version {documentAfterParsing.Version}.");
-      return documentAfterParsing;
+      documentUpdates.OnNext(parsedDocument);
+      logger.LogDebug($"Passed documentAfterParsing to documentUpdates.OnNext, resolving ResolvedDocument task for version {parsedDocument.Version}.");
+      return documentAfterResolution;
 
     } catch (Exception e) {
       documentUpdates.OnError(e);
@@ -330,7 +351,7 @@ public class Compilation {
     verificationCompleted.TrySetResult();
   }
 
-  public Task<DocumentAfterParsing> LastDocument => TranslatedDocument.ContinueWith(
+  public Task<DocumentAfterResolution> LastDocument => TranslatedDocument.ContinueWith(
     t => {
       if (t.IsCompletedSuccessfully) {
 #pragma warning disable VSTHRD103
@@ -338,7 +359,7 @@ public class Compilation {
         return verificationCompleted.Task.ContinueWith(
           verificationCompletedTask => {
             logger.LogDebug($"verificationCompleted finished with status {verificationCompletedTask.Status}");
-            return Task.FromResult<DocumentAfterParsing>(t.Result);
+            return Task.FromResult<DocumentAfterResolution>(t.Result);
           }, TaskScheduler.Current).Unwrap();
 #pragma warning restore VSTHRD103
       }
@@ -347,8 +368,7 @@ public class Compilation {
     }, TaskScheduler.Current).Unwrap();
 
   public async Task<TextEditContainer?> GetTextEditToFormatCode() {
-    // TODO when available, use the parsed document rather than the resolved document
-    var parsedDocument = await ResolvedDocument;
+    var parsedDocument = await ParsedDocument;
     if (parsedDocument.Diagnostics.Any(diagnostic =>
           diagnostic.Severity == DiagnosticSeverity.Error &&
           diagnostic.Source == MessageSource.Parser.ToString()
