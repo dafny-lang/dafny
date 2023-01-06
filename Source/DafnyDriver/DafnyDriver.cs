@@ -259,7 +259,8 @@ namespace Microsoft.Dafny {
 
         var supportedExtensions = options.Compiler.SupportedExtensions;
         if (supportedExtensions.Contains(extension)) {
-          if (File.Exists(file)) {
+          // .h files are not part of the build, they are just emitted as includes
+          if (File.Exists(file) || extension == ".h") {
             otherFiles.Add(file);
           } else {
             options.Printer.ErrorWriteLine(Console.Out,
