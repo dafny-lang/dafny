@@ -1073,7 +1073,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         // However, by at least checking if the file exists, we can produce a better error message in common scenarios.
         // Unfortunately, there doesn't seem to be a portable way of checking whether it's executable.
         if (!File.Exists(proverPath)) {
-          throw new Bpl.ProverException($"Requested prover not found: '{proverPath}'");
+          return null;
         }
 
         confirmedProverPath = proverPath;
