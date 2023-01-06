@@ -3,4 +3,4 @@ git-issue-664.dfy(15,9): Error: possible division by zero
 git-issue-664.dfy(17,18): Error: possible division by zero
 git-issue-664.dfy(19,18): Error: possible division by zero
 
-Dafny program verifier finished with 0 verified, 4 errors
+Dafny program verifier finished with 4 errors

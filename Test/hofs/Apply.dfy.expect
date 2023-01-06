@@ -3,4 +3,4 @@ Apply.dfy(57,31): Error: argument might not be allocated in the state in which t
 Apply.dfy(58,31): Error: argument might not be allocated in the state in which the function is invoked
 Apply.dfy(61,31): Error: argument might not be allocated in the state in which the function is invoked
 
-Dafny program verifier finished with 4 verified, 4 errors
+Dafny program verifier finished with 4 errors

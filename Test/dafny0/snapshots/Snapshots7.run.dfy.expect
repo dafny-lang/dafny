@@ -1,7 +1,7 @@
 Processing command (at Snapshots7.v0.dfy(19,14)) assert false;
   >>> DoNothingToAssert
 
-Dafny program verifier finished with 1 verified, 0 errors
+Dafny program verifier finished with 0 errors
 Processing implementation Impl$$M1.C.Foo (at Snapshots7.v1.dfy[M1](5,12)):
   >>> added axiom: ##extracted_function##1() == (0 == $FunctionContextHeight && Lit(false))
   >>> added after assuming the current precondition: a##cached##0 := a##cached##0 && ##extracted_function##1();

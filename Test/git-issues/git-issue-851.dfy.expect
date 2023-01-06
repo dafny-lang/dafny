@@ -48,4 +48,4 @@ git-issue-851.dfy(266,7): Error: possible division by zero
 git-issue-851.dfy(272,7): Error: possible division by zero
 git-issue-851.dfy(278,7): Error: possible division by zero
 
-Dafny program verifier finished with 8 verified, 28 errors
+Dafny program verifier finished with 28 errors

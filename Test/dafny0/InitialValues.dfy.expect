@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 2 verified, 0 errors
+Dafny program verifier finished with 0 errors
 r= 0.0  s= 3.4
 a= 0.0  b= 3.4  z= 0.0
 a==z = true

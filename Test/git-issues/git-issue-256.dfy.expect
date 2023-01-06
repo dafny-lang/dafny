@@ -1,4 +1,4 @@
 git-issue-256.dfy(11,5): Error: missing case in match statement: _#Make2(Cons(_, _), _)
 git-issue-256.dfy(11,5): Error: missing case in match statement: _#Make2(Nil, Nil)
 
-Dafny program verifier finished with 0 verified, 2 errors
+Dafny program verifier finished with 2 errors

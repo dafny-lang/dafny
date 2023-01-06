@@ -2,4 +2,4 @@ git-issue-2384.dfy(11,9): Error: method might modify an object not in the parent
 git-issue-2384.dfy(14,12): Error: predicate might read an object not in the parent trait context's reads clause
 git-issue-2384.dfy(17,11): Error: function might read an object not in the parent trait context's reads clause
 
-Dafny program verifier finished with 0 verified, 3 errors
+Dafny program verifier finished with 3 errors

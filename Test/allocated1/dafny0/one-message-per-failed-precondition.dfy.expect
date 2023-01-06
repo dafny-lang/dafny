@@ -7,4 +7,4 @@ one-message-per-failed-precondition.dfy(17,13): Related location
 one-message-per-failed-precondition.dfy(20,27): Error: function precondition might not hold
 one-message-per-failed-precondition.dfy(18,13): Related location
 
-Dafny program verifier finished with 0 verified, 4 errors
+Dafny program verifier finished with 4 errors

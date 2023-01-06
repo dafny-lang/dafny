@@ -1,5 +1,5 @@
 Ackermann.dfy(163,4): Warning: /!\ No terms found to trigger on.
 Ackermann.dfy(181,4): Warning: /!\ No terms found to trigger on.
 
-Dafny program verifier finished with 14 verified, 0 errors
+Dafny program verifier finished with 0 errors
 Ack(3, 4) = 125

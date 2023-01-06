@@ -9,4 +9,4 @@ Inverses.dfy(79,66): Related location
 Inverses.dfy(193,2): Error: A postcondition might not hold on this return path.
 Inverses.dfy(191,15): Related location: This is the postcondition that might not hold.
 
-Dafny program verifier finished with 31 verified, 3 errors
+Dafny program verifier finished with 3 errors

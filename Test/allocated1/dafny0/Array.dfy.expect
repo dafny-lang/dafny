@@ -25,4 +25,4 @@ Array.dfy(257,12): Error: value does not satisfy the subset constraints of 'nat'
 Array.dfy(258,6): Error: value does not satisfy the subset constraints of 'nat'
 Array.dfy(260,4): Error: value does not satisfy the subset constraints of 'nat'
 
-Dafny program verifier finished with 37 verified, 23 errors
+Dafny program verifier finished with 23 errors

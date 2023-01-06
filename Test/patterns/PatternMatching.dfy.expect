@@ -1,6 +1,6 @@
 PatternMatching.dfy(102,4): Warning: this branch is redundant
 
-Dafny program verifier finished with 9 verified, 0 errors
+Dafny program verifier finished with 0 errors
 NestingTest([6]) = 6, should return 6
 NestedVariableTest([2::3::4::5::6]) = 0, should return 0
 ConstantTest([3::4::5::6]) = 2, should return 2

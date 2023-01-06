@@ -4,4 +4,4 @@ method Test(ghost c: (int, ghost (int, int)))
 {
 }
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier finished with 0 errors

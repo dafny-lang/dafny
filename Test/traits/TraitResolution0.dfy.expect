@@ -339,4 +339,4 @@ module P2 {
   }
 }
 
-Dafny program verifier finished with 6 verified, 0 errors
+Dafny program verifier finished with 0 errors

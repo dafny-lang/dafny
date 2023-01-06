@@ -2,4 +2,4 @@ text.dfy(26,0): Error: A postcondition might not hold on this return path.
 text.dfy(25,10): Related location: This is the postcondition that might not hold.
 text.dfy(10,9): Related location
 
-Dafny program verifier finished with 1 verified, 1 error
+Dafny program verifier finished with 1 error

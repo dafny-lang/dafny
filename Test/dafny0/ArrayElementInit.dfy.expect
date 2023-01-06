@@ -13,4 +13,4 @@ ArrayElementInit.dfy(152,21): Error: unless an initializer is provided for the a
 ArrayElementInit.dfy(154,21): Error: unless an initializer is provided for the array elements, a new array of 'D' must have empty size
 ArrayElementInit.dfy(158,21): Error: unless an initializer is provided for the array elements, a new array of 'D' must have empty size
 
-Dafny program verifier finished with 9 verified, 14 errors
+Dafny program verifier finished with 14 errors

@@ -17,4 +17,4 @@ InSetComprehension.dfy(51,25): Info: Selected triggers: {x in elems}
 InSetComprehension.dfy(67,24): Info: Selected triggers: {x in elems}
 InSetComprehension.dfy(65,25): Info: Selected triggers: {x in elems}
 
-Dafny program verifier finished with 8 verified, 0 errors
+Dafny program verifier finished with 0 errors

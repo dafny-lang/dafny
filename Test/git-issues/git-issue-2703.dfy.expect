@@ -4,4 +4,4 @@ git-issue-2703.dfy(10,18): Related location: This is the postcondition that migh
 git-issue-2703.dfy(16,24): Error: possible division by zero
 git-issue-2703.dfy(23,24): Error: possible division by zero
 
-Dafny program verifier finished with 0 verified, 4 errors
+Dafny program verifier finished with 4 errors

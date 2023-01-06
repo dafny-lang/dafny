@@ -19,4 +19,4 @@ DTypes.dfy(132,4): Related location
 DTypes.dfy(93,19): Related location
 DTypes.dfy(156,11): Error: assertion might not hold
 
-Dafny program verifier finished with 21 verified, 7 errors
+Dafny program verifier finished with 7 errors

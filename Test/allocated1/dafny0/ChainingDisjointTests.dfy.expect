@@ -5,4 +5,4 @@ ChainingDisjointTests.dfy(58,13): Error: assertion might not hold
 ChainingDisjointTests.dfy(58,18): Error: assertion might not hold
 ChainingDisjointTests.dfy(58,23): Error: assertion might not hold
 
-Dafny program verifier finished with 4 verified, 4 errors
+Dafny program verifier finished with 4 errors

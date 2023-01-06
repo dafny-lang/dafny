@@ -19,4 +19,4 @@ TypeSynonyms.dfy(155,2): Error: out-parameter 'x', which is subject to definite-
 TypeSynonyms.dfy(155,2): Error: out-parameter 'y', which is subject to definite-assignment rules, might be uninitialized at this return point
 TypeSynonyms.dfy(157,2): Error: out-parameter 'x', which is subject to definite-assignment rules, might be uninitialized at this return point
 
-Dafny program verifier finished with 2 verified, 20 errors
+Dafny program verifier finished with 20 errors

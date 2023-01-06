@@ -33,4 +33,4 @@ ExtremeReads.dfy(86,16): Related location
 ExtremeReads.dfy(181,11): Error: assertion might not hold
 ExtremeReads.dfy(89,2): Related location
 
-Dafny program verifier finished with 10 verified, 17 errors
+Dafny program verifier finished with 17 errors

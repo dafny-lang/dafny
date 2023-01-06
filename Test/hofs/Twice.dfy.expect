@@ -1,4 +1,4 @@
 Twice.dfy(26,21): Error: assertion might not hold
 Twice.dfy(34,31): Error: function precondition might not hold
 
-Dafny program verifier finished with 2 verified, 2 errors
+Dafny program verifier finished with 2 errors

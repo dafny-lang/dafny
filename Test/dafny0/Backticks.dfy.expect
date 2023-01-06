@@ -1,4 +1,4 @@
 Backticks.dfy(38,4): Error: insufficient reads clause to invoke function
 Backticks.dfy(77,7): Error: call might violate context's modifies clause
 
-Dafny program verifier finished with 12 verified, 2 errors
+Dafny program verifier finished with 2 errors

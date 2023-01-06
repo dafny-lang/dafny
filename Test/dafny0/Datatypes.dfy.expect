@@ -13,4 +13,4 @@ Datatypes.dfy(201,12): Error: destructor 'Car' can only be applied to datatype v
 Datatypes.dfy(204,16): Error: destructor 'Car' can only be applied to datatype values constructed by 'XCons'
 Datatypes.dfy(225,16): Error: destructor 'c' can only be applied to datatype values constructed by 'T''
 
-Dafny program verifier finished with 28 verified, 13 errors
+Dafny program verifier finished with 13 errors

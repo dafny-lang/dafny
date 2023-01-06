@@ -3,4 +3,4 @@ constructors-cause-matching-loops.dfy(10,9): Info: Selected triggers: {Succ(s)}
    {f(s)} (may loop with "f(Succ(s))")
    {f(Succ(s))} (more specific than {Succ(s)})
 
-Dafny program verifier finished with 1 verified, 0 errors
+Dafny program verifier finished with 0 errors

@@ -2,4 +2,4 @@ git-issue209.dfy(5,19): Error: index out of range
 git-issue209.dfy(5,31): Error: index out of range
 git-issue209.dfy(5,44): Error: index out of range
 
-Dafny program verifier finished with 0 verified, 3 errors
+Dafny program verifier finished with 3 errors

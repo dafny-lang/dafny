@@ -5,4 +5,4 @@ QuantificationNewSyntax.dfy(13,36): Error: function precondition might not hold
 QuantificationNewSyntax.dfy(19,42): Related location
 QuantificationNewSyntax.dfy(15,54): Error: result of operation might violate subset type constraint for 'nat'
 
-Dafny program verifier finished with 0 verified, 3 errors
+Dafny program verifier finished with 3 errors

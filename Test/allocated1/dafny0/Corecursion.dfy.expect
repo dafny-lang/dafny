@@ -7,4 +7,4 @@ Corecursion.dfy(103,14): Error: cannot prove termination; try supplying a decrea
 Corecursion.dfy(148,12): Error: decreases clause might not decrease (note that a call can be co-recursive only if all intra-cluster calls are in non-destructive contexts)
 Corecursion.dfy(161,12): Error: decreases clause might not decrease (note that a call can be co-recursive only if all intra-cluster calls are in non-destructive contexts)
 
-Dafny program verifier finished with 14 verified, 8 errors
+Dafny program verifier finished with 8 errors

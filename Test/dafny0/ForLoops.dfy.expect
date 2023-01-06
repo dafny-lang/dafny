@@ -30,4 +30,4 @@ ForLoops.dfy(434,26): Error: decreases expression must be bounded below by 0 at 
 ForLoops.dfy(443,18): Error: decreases expression must be bounded below by 0 at end of loop iteration
 ForLoops.dfy(457,9): Error: assertion might not hold
 
-Dafny program verifier finished with 23 verified, 25 errors
+Dafny program verifier finished with 25 errors

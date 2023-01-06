@@ -34,4 +34,4 @@ git-issue-2197.dfy(26,11): Related location: This is the precondition that might
    |            ^^^^^^
 
 
-Dafny program verifier finished with 1 verified, 3 errors
+Dafny program verifier finished with 3 errors

@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 5 verified, 0 errors
+Dafny program verifier finished with 0 errors
 true_true_true_Success=100
 VoidSuccess
 true_true_false_Failure

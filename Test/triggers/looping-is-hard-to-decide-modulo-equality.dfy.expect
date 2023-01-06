@@ -7,4 +7,4 @@ looping-is-hard-to-decide-modulo-equality.dfy(31,9): Info: Selected triggers:
    {old(f(f(c)))}, {f(c)}, {c in sc}
  Rejected triggers: {old(f(c))} (may loop with "old(f(f(c)))")
 
-Dafny program verifier finished with 3 verified, 0 errors
+Dafny program verifier finished with 0 errors

@@ -19,4 +19,4 @@ Twostate-Functions.dfy(174,13): Error: function precondition might not hold
 Twostate-Functions.dfy(192,15): Error: argument ('d') might not be allocated in the two-state function's previous state
 Twostate-Functions.dfy(195,13): Error: function precondition might not hold
 
-Dafny program verifier finished with 18 verified, 18 errors
+Dafny program verifier finished with 18 errors

@@ -4,4 +4,4 @@ RealTypes.dfy(21,11): Error: possible division by zero
 RealTypes.dfy(21,19): Error: assertion might not hold
 RealTypes.dfy(29,11): Error: assertion might not hold
 
-Dafny program verifier finished with 2 verified, 5 errors
+Dafny program verifier finished with 5 errors

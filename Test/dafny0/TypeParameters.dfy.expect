@@ -17,4 +17,4 @@ TypeParameters.dfy(175,37): Related location
 TypeParameters.dfy(175,14): Related message: loop invariant violation
 TypeParameters.dfy(175,37): Related location
 
-Dafny program verifier finished with 31 verified, 9 errors
+Dafny program verifier finished with 9 errors

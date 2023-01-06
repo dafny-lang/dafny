@@ -3,4 +3,4 @@ wf-checks-use-the-original-quantifier.dfy(26,11): Info: Selected triggers: {f(n)
 wf-checks-use-the-original-quantifier.dfy(27,11): Info: Selected triggers:
    {c'.x, c.x}, {c'.x, c in s}, {c.x, c' in s}, {c' in s, c in s}
 
-Dafny program verifier finished with 1 verified, 0 errors
+Dafny program verifier finished with 0 errors

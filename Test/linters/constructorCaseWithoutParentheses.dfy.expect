@@ -11,4 +11,4 @@ constructorCaseWithoutParentheses.dfy(30,6): Warning: this branch is redundant
 constructorCaseWithoutParentheses.dfy(38,9): Warning: this branch is redundant
 constructorCaseWithoutParentheses.dfy(39,9): Warning: this branch is redundant
 
-Dafny program verifier finished with 5 verified, 0 errors
+Dafny program verifier finished with 0 errors

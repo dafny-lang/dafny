@@ -10,4 +10,4 @@ PatternMatchingErrors.dfy(75,12): Related location: This is the postcondition th
 PatternMatchingErrors.dfy(99,33): Error: A postcondition might not hold on this return path.
 PatternMatchingErrors.dfy(96,12): Related location: This is the postcondition that might not hold.
 
-Dafny program verifier finished with 0 verified, 9 errors
+Dafny program verifier finished with 9 errors

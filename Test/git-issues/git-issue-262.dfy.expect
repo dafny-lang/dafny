@@ -1,9 +1,9 @@
 
-Dafny program verifier finished with 2 verified, 0 errors
+Dafny program verifier finished with 0 errors
 System.Func`2[System.Numerics.BigInteger,System.Numerics.BigInteger]
 System.Func`2[System.Numerics.BigInteger,System.Numerics.BigInteger]
 
-Dafny program verifier finished with 2 verified, 0 errors
+Dafny program verifier finished with 0 errors
 tst(x) {
       return (x).plus((_dafny.ONE));
     }
@@ -11,10 +11,10 @@ tst(x) {
       return (x).plus((_dafny.ONE));
     }
 
-Dafny program verifier finished with 2 verified, 0 errors
+Dafny program verifier finished with 0 errors
 func(dafny.Int) dafny.Int
 func(dafny.Int) dafny.Int
 
-Dafny program verifier finished with 2 verified, 0 errors
+Dafny program verifier finished with 0 errors
 Function
 Function

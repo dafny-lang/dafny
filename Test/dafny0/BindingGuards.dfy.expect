@@ -311,4 +311,4 @@ BindingGuards.dfy(147,2): Error: alternative cases fail to cover all possibiltie
 BindingGuards.dfy(272,2): Error: missing case in match statement: Blue
 BindingGuards.dfy(272,2): Error: missing case in match statement: Green
 
-Dafny program verifier finished with 10 verified, 6 errors
+Dafny program verifier finished with 6 errors

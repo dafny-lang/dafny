@@ -3,4 +3,4 @@ TraitOverride1.dfy(205,2): Error: A postcondition might not hold on this return 
 TraitOverride1.dfy(204,40): Related location: This is the postcondition that might not hold.
 TraitOverride1.dfy(188,26): Related location
 
-Dafny program verifier finished with 29 verified, 2 errors
+Dafny program verifier finished with 2 errors

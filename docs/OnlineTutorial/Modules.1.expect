@@ -1,4 +1,4 @@
 text.dfy(27,23): Error: assertion might not hold
 text.dfy(37,23): Error: assertion might not hold
 
-Dafny program verifier finished with 5 verified, 2 errors
+Dafny program verifier finished with 2 errors

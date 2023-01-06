@@ -11,4 +11,4 @@ git-issue-889a.dfy(57,9): Error: result of operation might violate newtype const
 git-issue-889a.dfy(97,11): Error: assertion might not hold
 git-issue-889a.dfy(121,4): Error: missing case in match statement: c: bv1 (not all possibilities for constant 'c' have been covered)
 
-Dafny program verifier finished with 9 verified, 10 errors
+Dafny program verifier finished with 10 errors

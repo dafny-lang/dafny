@@ -19,4 +19,4 @@ Basics.dfy(463,11): Error: assertion might not hold
 Basics.dfy(474,18): Error: assertion might not hold
 Basics.dfy(476,11): Error: assertion might not hold
 
-Dafny program verifier finished with 48 verified, 20 errors
+Dafny program verifier finished with 20 errors

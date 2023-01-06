@@ -18,4 +18,4 @@ AssertBy.dfy(6,11): Error: assertion might not hold
 AssertBy.dfy(7,11): Error: assertion might not hold
 AssertBy.dfy(16,11): Error: assertion might not hold
 
-Dafny program verifier finished with 0 verified, 3 errors
+Dafny program verifier finished with 3 errors

@@ -1,4 +1,4 @@
 JustWarnings.dfy(18,11): Warning: Shadowed type-parameter name: T
 JustWarnings.dfy(13,6): Warning: Shadowed local-variable name: x
 
-Dafny program verifier finished with 1 verified, 0 errors
+Dafny program verifier finished with 0 errors

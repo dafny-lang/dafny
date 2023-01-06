@@ -41,4 +41,4 @@ Refinement.dfy[Modify1](238,14): Related location: This is the postcondition tha
 Refinement.dfy(274,6): Error: A postcondition might not hold on this return path.
 Refinement.dfy[Modify1](244,14): Related location: This is the postcondition that might not hold.
 
-Dafny program verifier finished with 28 verified, 13 errors
+Dafny program verifier finished with 13 errors

@@ -7,7 +7,7 @@ Processing command (at Snapshots9.v0.dfy(12,11)) assert ok#0;
 Snapshots9.v0.dfy(13,0): Error: A postcondition might not hold on this return path.
 Snapshots9.v0.dfy(12,10): Related location: This is the postcondition that might not hold.
 
-Dafny program verifier finished with 0 verified, 2 errors
+Dafny program verifier finished with 2 errors
 Processing command (at Snapshots9.v1.dfy(6,11)) assert ok#0;
   >>> RecycleError
 Snapshots9.v1.dfy(8,7): Error: A postcondition might not hold on this return path.
@@ -17,4 +17,4 @@ Processing command (at Snapshots9.v1.dfy(19,11)) assert ok#0;
 Snapshots9.v1.dfy(21,0): Error: A postcondition might not hold on this return path.
 Snapshots9.v1.dfy(19,10): Related location: This is the postcondition that might not hold.
 
-Dafny program verifier finished with 0 verified, 2 errors
+Dafny program verifier finished with 2 errors

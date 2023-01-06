@@ -10,4 +10,4 @@ BigOrdinals.dfy(88,13): Error: assertion might not hold
 BigOrdinals.dfy(113,9): Error: value does not satisfy the subset constraints of 'ConstrainedOrdinal'
 BigOrdinals.dfy(120,9): Error: value does not satisfy the subset constraints of 'ConstrainedOrdinal'
 
-Dafny program verifier finished with 3 verified, 11 errors
+Dafny program verifier finished with 11 errors

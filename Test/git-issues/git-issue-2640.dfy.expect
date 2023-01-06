@@ -10,4 +10,4 @@ git-issue-2640.dfy(90,14): Error: to be compilable, the value of a let-such-that
 git-issue-2640.dfy(90,14): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
 git-issue-2640.dfy(112,14): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
 
-Dafny program verifier finished with 3 verified, 11 errors
+Dafny program verifier finished with 11 errors

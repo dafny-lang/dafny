@@ -3,4 +3,4 @@ ForallCompilationNewSyntax.dfy(35,4): Warning: /!\ No terms found to trigger on.
 ForallCompilationNewSyntax.dfy(44,4): Warning: /!\ No terms found to trigger on.
 ForallCompilationNewSyntax.dfy(64,4): Warning: /!\ No trigger covering all quantified variables found.
 
-Dafny program verifier finished with 14 verified, 0 errors
+Dafny program verifier finished with 0 errors

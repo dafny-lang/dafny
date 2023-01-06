@@ -6,4 +6,4 @@ ExportVerify.dfy(55,20): Error: assertion might not hold
 ExportVerify.dfy(56,15): Error: assertion might not hold
 ExportVerify.dfy(75,11): Error: assertion might not hold
 
-Dafny program verifier finished with 1 verified, 7 errors
+Dafny program verifier finished with 7 errors

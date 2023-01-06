@@ -91,7 +91,7 @@ DirtyLoops.dfy(414,16): Error: target object might be null
 DirtyLoops.dfy(506,22): Error: assertion might not hold
 DirtyLoops.dfy(533,11): Error: assertion might not hold
 
-Dafny program verifier finished with 22 verified, 46 errors
+Dafny program verifier finished with 46 errors
 DirtyLoops.dfy.tmp.dprint.dfy(19,4): Warning: note, this loop has no body (loop frame: $Heap)
 DirtyLoops.dfy.tmp.dprint.dfy(28,4): Warning: note, this loop has no body (loop frame: $Heap)
 DirtyLoops.dfy.tmp.dprint.dfy(44,6): Warning: note, this loop has no body (loop frame: i, $Heap)

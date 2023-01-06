@@ -7,4 +7,4 @@ splitting-triggers-yields-better-precondition-related-errors.dfy(20,2): Error: f
 splitting-triggers-yields-better-precondition-related-errors.dfy(15,11): Related location
 splitting-triggers-yields-better-precondition-related-errors.dfy(15,25): Related location
 
-Dafny program verifier finished with 0 verified, 2 errors
+Dafny program verifier finished with 2 errors

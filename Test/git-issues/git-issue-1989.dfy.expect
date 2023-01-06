@@ -28,4 +28,4 @@ git-issue-1989.dfy(221,24): Error: assertion might not hold
 git-issue-1989.dfy(233,17): Error: A precondition for this call might not hold.
 git-issue-1989.dfy(130,18): Related location: This is the precondition that might not hold.
 
-Dafny program verifier finished with 17 verified, 7 errors
+Dafny program verifier finished with 7 errors
