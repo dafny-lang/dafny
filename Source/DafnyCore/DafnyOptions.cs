@@ -1086,8 +1086,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       // Next, try looking in a directory relative to Dafny itself.
       if (confirmedProverPath is null) {
         var dafnyBinDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-        var z3BinDir = Path.Combine(dafnyBinDir, "z3", "bin");
-        var z3BinPath = Path.Combine(z3BinDir, z3binName);
+        var z3BinPath = Path.Combine(dafnyBinDir, "z3", "bin", z3binName);
 
         if (File.Exists(z3BinPath)) {
           confirmedProverPath = z3BinPath;
@@ -1096,14 +1095,11 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
       // Finally, try looking in the system PATH variable.
       if (confirmedProverPath is null) {
-        var z3InPATH = System.Environment
-          .GetEnvironmentVariable("PATH")!
+        confirmedProverPath = System.Environment
+          .GetEnvironmentVariable("PATH")?
           .Split(isUnix ? ':' : ';')
           .Select(s => Path.Combine(s, z3binName))
           .FirstOrDefault(File.Exists);
-        if (z3InPATH is not null) {
-          confirmedProverPath = z3InPATH;
-        }
       }
 
       if (confirmedProverPath is not null) {
