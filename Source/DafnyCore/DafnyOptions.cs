@@ -118,7 +118,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       return Options.OptionArguments[option];
     }
 
-    public void Set(Option option, object value) {
+    public void SetUntyped(Option option, object value) {
       Options.OptionArguments[option] = value;
     }
 
@@ -245,7 +245,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public int Induction = 4;
     public int InductionHeuristic = 6;
     public bool TypeInferenceDebug = false;
-    public bool MatchCompilerDebug = false;
     public string DafnyPrelude = null;
     public string DafnyPrintFile = null;
 
@@ -289,7 +288,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public bool DisallowConstructorCaseWithoutParentheses = false;
     public bool PrintFunctionCallGraph = false;
     public bool WarnShadowing = false;
-    public int DefiniteAssignmentLevel = 1; // [0..2]
+    public int DefiniteAssignmentLevel = 1; // [0..2] 2 and 3 have the same effect, 4 turns off an array initialisation check, unless --enforce-determinism is used.
     public FunctionSyntaxOptions FunctionSyntax = FunctionSyntaxOptions.Version3;
     public QuantifierSyntaxOptions QuantifierSyntax = QuantifierSyntaxOptions.Version3;
     public HashSet<string> LibraryFiles { get; set; } = new();
@@ -513,10 +512,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
             return true;
           }
-
-        case "pmtrace":
-          MatchCompilerDebug = true;
-          return true;
 
         case "titrace":
           TypeInferenceDebug = true;
@@ -799,7 +794,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public override void ApplyDefaultOptions() {
       foreach (var legacyUiOption in legacyUis) {
         if (!Options.OptionArguments.ContainsKey(legacyUiOption.Option)) {
-          Set(legacyUiOption.Option, legacyUiOption.DefaultValue);
+          Options.OptionArguments[legacyUiOption.Option] = legacyUiOption.DefaultValue;
         }
         if (legacyBindings.ContainsKey(legacyUiOption.Option)) {
           var value = Get(legacyUiOption.Option);

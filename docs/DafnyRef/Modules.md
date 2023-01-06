@@ -26,7 +26,8 @@ A new module is declared with the `module` keyword, followed by the name
 of the new module, and a pair of curly braces ({}) enclosing the body
 of the module:
 
-```dafny <!-- %check-resolve -->
+<!-- %check-resolve -->
+```dafny
 module Mod { 
    ...
 }
@@ -35,7 +36,8 @@ module Mod {
 A module body can consist of anything that you could put at the top
 level. This includes classes, datatypes, types, methods, functions, etc.
 
-```dafny <!-- %check-resolve -->
+<!-- %check-resolve -->
+```dafny
 module Mod {
   class C {
     var f: int
@@ -50,7 +52,8 @@ module Mod {
 
 You can also put a module inside another, in a nested fashion:
 
-```dafny <!-- %check-resolve -->
+<!-- %check-resolve -->
+```dafny
 module Mod {
   module Helpers {
     class C {
@@ -64,7 +67,8 @@ module Mod {
 Then you can refer to the members of the `Helpers` module within the
 `Mod` module by prefixing them with "Helpers.". For example:
 
-```dafny <!-- %check-resolve -->
+<!-- %check-resolve -->
+```dafny
 module Mod {
   module Helpers {
     class C {
@@ -86,7 +90,8 @@ classes, with just the module name prefixing them. They are also
 available in the methods and functions of the classes in the same
 module.
 
-```dafny <!-- %check-resolve -->
+<!-- %check-resolve -->
+```dafny
 module Mod {
   module Helpers {
     function method addOne(n: nat): nat {
@@ -109,14 +114,16 @@ of a single implicit unnamed global module.
 As described in the previous section, module declarations can be nested.
 It is also permitted to declare a nested module _outside_ of its
 "containing" module. So instead of
-```dafny <!-- %check-resolve -->
+<!-- %check-resolve -->
+```dafny
 module A {
   module B {
   }
 }
 ```
 one can write
-```dafny <!-- %check-resolve -->
+<!-- %check-resolve -->
+```dafny
 module A {
 }
 module A.B {
@@ -172,7 +179,8 @@ the import declaration; it does not create a global alias. For
 example, if `Helpers` was defined outside of `Mod`, then we could import
 it:
 
-```dafny <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 module Helpers {
   function method addOne(n: nat): nat {
     n + 1
@@ -215,7 +223,8 @@ Import statements may occur at the top-level of a program
 There they serve simply as a way to give a new name, perhaps a
 shorthand name, to a module. For example,
 
-```dafny <!-- %check-resolve Modules.1.expect -->
+<!-- %check-resolve Modules.1.expect -->
+```dafny
 module MyModule { } // declare MyModule
 import MyModule  // error: cannot add a module named MyModule
                  // because there already is one
@@ -231,7 +240,8 @@ which causes all of its members to be available without adding the
 module name. The `opened` keyword, if present, must immediately follow `import`.
 For example, we could write the previous example as:
 
-```dafny <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 module Helpers {
   function method addOne(n: nat): nat {
     n + 1
@@ -252,7 +262,8 @@ longer be available under that name. When modules are opened, the
 original name binding is still present however, so you can always use
 the name that was bound to get to anything that is hidden.
 
-```dafny <!-- %check-verify Modules.2.expect -->
+<!-- %check-verify Modules.2.expect -->
+```dafny
 module Helpers {
   function method addOne(n: nat): nat {
     n + 1
@@ -281,7 +292,8 @@ The `opened` keyword may be used with any kind of
 `import` declaration, including the module abstraction form.
 
 An `import opened` may occur at the top-level as well. For example,
-```dafny <!-- %check-resolve -->
+<!-- %check-resolve -->
+```dafny
 module MyModule {  } // declares MyModule
 import opened MyModule // does not declare a new module, but does
                        // make all names in MyModule available in
@@ -308,7 +320,8 @@ the `import opened` statement.
 
 This special-case behavior does give rise to a source of ambiguity. Consider
 the example
-```dafny <!-- %check-resolve Modules.3.expect -->
+<!-- %check-resolve Modules.3.expect -->
+```dafny
 module Option {
   const a := 1
   datatype Option = A|B { static const a := 2 }
@@ -402,7 +415,8 @@ locally declared names and can be listed in export set declarations.
 However, names brought into a module by `import opened` (either into a module
 or a refinement parent of a module) may
 not be further exported. For example,
-```dafny <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 module A {
   const a := 10;
   const z := 10;
@@ -439,6 +453,26 @@ in `B` nor as `Z.a` in C would be valid, because `a` is not in `Z`.
 The default export set is important in the resolution of qualified
 names, as described in [Section 4.8](#sec-name-resolution).
 
+There are a few unusual cases to be noted:
+- an export set can be completely empty, as in `export Nothing`
+- an eponymous export set can be completely empty, as in `export`, which by default has the same name as the enclosing module; this is a way to make the module completely private
+- an export set declaration followed by an extreme predicate declaration looks like this:
+`export least predicate P() { true }`
+In this case, the `least` (or `greatest`) is the identifier naming the export set.
+Consequently, `export least predicate P[nat]() { true }` is illegal because `[nat]` cannot be part of a non-extreme predicate.
+Also, it is not possible to declare an eponymous, empty export set by omitting the export id immediately prior to a declaration of an extreme predicate,
+because the `least` or `greatest` token is parsed as the export set identifier. The workaround for this situation is to 
+either put the name of the module in explicitly as the export ID (not leaving it to the default) or reorder the declarations.
+- To avoid confusion, the code
+<!-- %check-verify-warn Modules.10.expect -->
+```dafny
+module M {
+  export
+  least predicate P() { true }
+}
+```
+provokes a warning telling the user that the `least` goes with the `export`.
+
 ### 4.5.1. Provided and revealed names {#sec-provided-and-revealed-names}
 
 Names can be exported from modules in two ways, designated by `provides`
@@ -449,7 +483,8 @@ imported the name only the name is known, not the details of the
 name's declaration.
 
 For example, in the following code the constant `a` is exported as provided.
-```dafny <!-- %check-verify Modules.4.expect -->
+<!-- %check-verify Modules.4.expect -->
+```dafny
 module A {
   export provides a
   const a := 10;
@@ -471,7 +506,8 @@ because the value of `a` is not known in module `B`.
 
 In contrast, if `a` is exported as _revealed_, as shown in the next example,
 its value is known and the assertion can be proved.
-```dafny <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 module A {
   export reveals a
   const a := 10;
@@ -593,7 +629,8 @@ opaque type does not automatically export its members. Instead, any member
 to be exported must be listed explicitly. For example, consider the type
 declaration
 
-```dafny <!-- %check-resolve -->
+<!-- %check-resolve -->
+```dafny
 trait Tr {
   function F(x: int): int { 10 }
   function G(x: int): int { 12 }
@@ -603,7 +640,8 @@ trait Tr {
 
 An export set that contains only `reveals Tr` has the effect of exporting
 
-```dafny <!-- %check-resolve -->
+<!-- %check-resolve -->
+```dafny
 trait Tr {
 }
 ```
@@ -611,7 +649,8 @@ trait Tr {
 and an export set that contains only `provides Tr, Tr.F reveals Tr.H` has
 the effect of exporting
 
-```dafny <!-- %check-resolve -->
+<!-- %check-resolve -->
+```dafny
 type Tr {
   function F(x: int): int
   function H(x: int): int { 14 }
@@ -639,7 +678,8 @@ The effect of declaring an import as `opened` is confined to the importing modul
 is, the ability of use such imported names as unqualified is not passed on to further
 imports, as the following example illustrates:
 
-```dafny <!-- %check-resolve Modules.5.expect -->
+<!-- %check-resolve Modules.5.expect -->
+```dafny
 module Library {
   const xyz := 16
 }
@@ -692,7 +732,8 @@ one or more export set names from the same module containing the declaration
 The effect is to include in the declaration the union of all the names in
 the export sets in the extends list, along with any other names explicitly
 included in the declaration. So for example in
-```dafny <!-- %check-resolve -->
+<!-- %check-resolve -->
+```dafny
 module M {
   const a := 10;
   const b := 10;
@@ -717,7 +758,8 @@ definitions, classes with bodiless methods, or otherwise be unsuitable
 to use directly.  Because of the way refinement is defined, any
 refinement of `B` can be used safely. For example, if we start with:
 
-```dafny <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 module Interface {
   function method addSome(n: nat): nat
     ensures addSome(n) > n
@@ -735,7 +777,8 @@ exactly one. The following module has this behavior. Further, the
 postcondition is stronger, so this is actually a refinement of the
 Interface module.
 
-```dafny <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 module Implementation {
   function method addSome(n: nat): nat
     ensures addSome(n) == n + 1
@@ -748,7 +791,8 @@ module Implementation {
 We can then substitute `Implementation` for `A` in a new module, by
 declaring a refinement of `Mod` which defines  `A` to be `Implementation`.
 
-```dafny <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 module Interface {
   function method addSome(n: nat): nat
     ensures addSome(n) > n
@@ -793,7 +837,8 @@ the source text. Dafny will
 figure out that order for you, assuming you haven't made any circular
 references. For example, this is pretty clearly meaningless:
 
-```dafny <!-- %check-resolve Modules.6.expect -->
+<!-- %check-resolve Modules.6.expect -->
+```dafny
 import A = B
 import B = A // error: circular
 ```
@@ -801,7 +846,8 @@ import B = A // error: circular
 You can have import statements at the toplevel and you can import
 modules defined at the same level:
 
-```dafny <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 import A = B
 method m() {
   A.whatever();
@@ -820,7 +866,8 @@ module structures. Also, the imports and submodules are always
 considered to be before their containing module, even at the toplevel. This means that the
 following is not well formed:
 
-```dafny <!-- %check-resolve Modules.7.expect -->
+<!-- %check-resolve Modules.7.expect -->
+```dafny
 method doIt() { }
 module M {
   method m() {
@@ -919,7 +966,8 @@ resolution of qualified names this is not the case.
 
 This example shows that the resolution of the refinement parent does not
 use any local names:
-```dafny <!-- %check-verify -->
+<!-- %check-verify -->
+```dafny
 module A {
   const a := 10
 }

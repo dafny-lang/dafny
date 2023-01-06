@@ -26,8 +26,6 @@ public final class Array<T> implements Cloneable {
     private final Object array;
 
     private Array(TypeDescriptor<T> eltType, Object array) {
-        assert eltType.arrayType().isInstance(array);
-
         this.eltType = eltType;
         this.array = array;
     }
@@ -84,8 +82,6 @@ public final class Array<T> implements Cloneable {
     }
 
     public static <T> Array<T> wrap(TypeDescriptor<T> eltType, Object array) {
-        assert eltType.arrayType().isInstance(array);
-
         return new Array<T>(eltType, array);
     }
 

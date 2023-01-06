@@ -81,9 +81,9 @@ module {:options "/functionSyntax:4"} Match {
   }
 
   method P0(xy: XY) returns (r: int) {
-    // the following match statement is ghost, because it indirectly mentions a ghost constructor of type XY
+    // the following match statement is non-ghost, because it does not mention a ghost constructor of type XY
     match xy
-    case D0(_) => r := 0; // error: assignment to r in a ghost context
+    case D0(_) => r := 0;
     case any =>
   }
 
@@ -93,17 +93,25 @@ module {:options "/functionSyntax:4"} Match {
     case D0(_) =>
     case any =>
   }
+  
+  method P2(xy: XY) returns (r: int) {
+    // the following match statement is ghost, because it directly mentions a ghost constructor
+    match xy
+    case D0(_) =>
+    case G0 => r := 0; // error: assignment to r in a ghost context
+    case any =>
+  }
 
-  method P2(w: Wrapper<XY>) returns (r: int) {
+  method P3(w: Wrapper<XY>) returns (r: int) {
     match w
     case Wrapper(_) => r := 0;
   }
 
-  method P3(w: Wrapper<XY>) returns (r: int) {
-    // the following match statement is ghost, because it mentions a constructor of type XY
+  method P4(w: Wrapper<XY>) returns (r: int) {
+    // the following match statement is non-ghost
     match w
     case Wrapper(D0(_)) =>
-    case Wrapper(_) => r := 0; // error: assignment to r in a ghost context
+    case Wrapper(_) => r := 0;
   }
 
   function F0(xy: XY): int {
@@ -134,7 +142,7 @@ module {:options "/functionSyntax:4"} Match {
   function G0(xy: XY): int {
     match xy
     case D0(_) => 0
-    case _ => 0 // error: this case depends on a ghost constructor
+    case _ => 0
   }
 
   ghost function G1(xy: XY): int {
@@ -152,7 +160,7 @@ module {:options "/functionSyntax:4"} Match {
   function G3(w: Wrapper<XY>): int {
     match w
     case Wrapper(D0(_)) => 0
-    case Wrapper(_) => 0 // error: this case depends on a ghost constructor
+    case Wrapper(_) => 0
   }
 
   method H0(xy: XY) returns (r: int) {
@@ -161,7 +169,7 @@ module {:options "/functionSyntax:4"} Match {
       match xy
       case D0(_) => 0
       case _ => 0;
-    return a; // error: a is ghost
+    return a;
   }
 
   ghost method H1(xy: XY) returns (r: int) {
@@ -180,12 +188,12 @@ module {:options "/functionSyntax:4"} Match {
   }
 
   method H3(w: Wrapper<XY>) returns (r: int) {
-    // the following match expression is ghost, because it depends on a ghost constructor
+    
     var a :=
       match w
       case Wrapper(D0(_)) => 0
       case Wrapper(_) => 0;
-    return a; // error: a is ghost
+    return a;
   }
 
   method H4(xy: XY) returns (r: int) {

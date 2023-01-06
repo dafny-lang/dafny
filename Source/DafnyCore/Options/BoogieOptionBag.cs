@@ -17,8 +17,8 @@ public static class BoogieOptionBag {
     ArgumentHelpName = "arguments",
   };
 
-  public static readonly Option<int> Cores = new("--cores", () => 1,
-    "Run the Dafny CLI using <n> cores. Defaults to 1.") {
+  public static readonly Option<uint> Cores = new("--cores", () => 0,
+    "Run the Dafny CLI using <n> cores. Specifying 0 will use half of the available processor cores.") {
     ArgumentHelpName = "count"
   };
 
@@ -40,7 +40,8 @@ public static class BoogieOptionBag {
         o.Parse(SplitArguments(boogieOptions).ToArray());
       }
     });
-    DafnyOptions.RegisterLegacyBinding(Cores, (o, f) => o.VcsCores = f);
+    DafnyOptions.RegisterLegacyBinding(Cores,
+      (o, f) => o.VcsCores = f == 0 ? (1 + System.Environment.ProcessorCount) / 2 : (int)f);
     DafnyOptions.RegisterLegacyBinding(NoVerify, (o, f) => o.Verify = !f);
     DafnyOptions.RegisterLegacyBinding(VerificationTimeLimit, (o, f) => o.TimeLimit = f);
   }

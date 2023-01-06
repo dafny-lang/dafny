@@ -18,8 +18,8 @@ true - In the compiled target code, transform any non-extern
         datatype Record = Record(x: int)
     is transformed into just 'int' in the target code.".TrimStart());
 
-  public static readonly Option<bool> CompileVerbose = new("--compile-verbose",
-    "Print information such as files being written by the compiler to the console") {
+  public static readonly Option<bool> Verbose = new("--verbose",
+    "Print additional information such as which files are emitted where.") {
   };
 
   public static readonly Option<bool> DisableNonLinearArithmetic = new("--disable-nonlinear-arithmetic",
@@ -175,11 +175,11 @@ Functionality is still being expanded. Currently only checks contracts on every 
       (options, value) => { options.LibraryFiles = value.ToHashSet(); });
     DafnyOptions.RegisterLegacyBinding(Output, (options, value) => { options.DafnyPrintCompiledFile = value?.FullName; });
 
-    DafnyOptions.RegisterLegacyBinding(CompileVerbose, (o, v) => o.CompileVerbose = v);
+    DafnyOptions.RegisterLegacyBinding(Verbose, (o, v) => o.CompileVerbose = v);
     DafnyOptions.RegisterLegacyBinding(DisableNonLinearArithmetic, (o, v) => o.DisableNLarith = v);
     DafnyOptions.RegisterLegacyBinding(EnforceDeterminism, (options, value) => {
       options.ForbidNondeterminism = value;
-      options.DefiniteAssignmentLevel = value ? 2 : 1;
+      options.DefiniteAssignmentLevel = 4;
     });
     RelaxDefiniteAssignment.AddValidator(optionResult => {
       var enforceDeterminismResult = optionResult.FindResultFor(EnforceDeterminism);
@@ -189,8 +189,11 @@ Functionality is still being expanded. Currently only checks contracts on every 
       }
     });
     DafnyOptions.RegisterLegacyBinding(RelaxDefiniteAssignment,
-      (options, value) => { options.DefiniteAssignmentLevel = value ? 1 : 2; });
-
+      (options, value) => {
+        if (!options.Get(EnforceDeterminism)) {
+          options.DefiniteAssignmentLevel = value ? 1 : 4;
+        }
+      });
   }
 }
 

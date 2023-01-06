@@ -27,6 +27,7 @@ namespace Microsoft.Dafny {
   public abstract class INode {
 
     public IToken tok = Token.NoToken;
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     public IToken Tok {
       get => tok;
       set => tok = value;
@@ -45,10 +46,11 @@ namespace Microsoft.Dafny {
       afterChildren ??= node => { };
 
       var visited = new HashSet<INode>();
-      var toVisit = new Stack<INode>();
-      toVisit.Push(this);
+      var toVisit = new LinkedList<INode>();
+      toVisit.AddFirst(this);
       while (toVisit.Any()) {
-        var current = toVisit.Pop();
+        var current = toVisit.First();
+        toVisit.RemoveFirst();
         if (!visited.Add(current)) {
           continue;
         }
@@ -57,11 +59,17 @@ namespace Microsoft.Dafny {
           continue;
         }
 
+        var nodeAfterChildren = toVisit.First;
         foreach (var child in current.Children) {
           if (child == null) {
             throw new InvalidOperationException($"Object of type {current.GetType()} has null child");
           }
-          toVisit.Push(child);
+
+          if (nodeAfterChildren == null) {
+            toVisit.AddLast(child);
+          } else {
+            toVisit.AddBefore(nodeAfterChildren, child);
+          }
         }
 
         afterChildren(current);
@@ -77,71 +85,70 @@ namespace Microsoft.Dafny {
     // TODO: Re-add format tokens where needed until we put all the formatting to replace the tok of every expression
     internal IToken[] FormatTokens = null;
 
-    public RangeToken RangeToken {
+    public virtual RangeToken RangeToken {
+      get {
+        if (rangeToken == null) {
+          if (tok is RangeToken tokAsRange) {
+            rangeToken = tokAsRange;
+          } else {
+            var startTok = tok;
+            var endTok = tok;
+
+            void UpdateStartEndToken(IToken token1) {
+              if (token1.Filename != tok.Filename) {
+                return;
+              }
+
+              if (token1.pos < startTok.pos) {
+                startTok = token1;
+              }
+
+              if (token1.pos + token1.val.Length > endTok.pos + endTok.val.Length) {
+                endTok = token1;
+              }
+            }
+
+            void UpdateStartEndTokRecursive(INode node) {
+              if (node is null) {
+                return;
+              }
+
+              if (node.tok.Filename != tok.Filename || node is Expression { IsImplicit: true } ||
+                  node is DefaultValueExpression) {
+                // Ignore any auto-generated expressions.
+              } else if (node != this && node.RangeToken != null) {
+                UpdateStartEndToken(node.StartToken);
+                UpdateStartEndToken(node.EndToken);
+              } else {
+                UpdateStartEndToken(node.tok);
+                node.Children.Iter(UpdateStartEndTokRecursive);
+              }
+            }
+
+            UpdateStartEndTokRecursive(this);
+
+            if (FormatTokens != null) {
+              foreach (var token in FormatTokens) {
+                UpdateStartEndToken(token);
+              }
+            }
+
+            rangeToken = new RangeToken(startTok, endTok);
+          }
+        }
+
+        if (rangeToken.Filename == null) {
+          rangeToken.Filename = tok.Filename;
+        }
+
+        return rangeToken;
+      }
       set => rangeToken = value;
     }
 
-    public virtual RangeToken GetRangeToken() {
-      if (rangeToken == null) {
-        if (tok is RangeToken tokAsRange) {
-          rangeToken = tokAsRange;
-        } else {
-          var startTok = tok;
-          var endTok = tok;
+    public IToken StartToken => RangeToken?.StartToken;
 
-          void UpdateStartEndToken(IToken token1) {
-            if (token1.Filename != tok.Filename) {
-              return;
-            }
-
-            if (token1.pos < startTok.pos) {
-              startTok = token1;
-            }
-
-            if (token1.pos + token1.val.Length > endTok.pos + endTok.val.Length) {
-              endTok = token1;
-            }
-          }
-
-          void UpdateStartEndTokRecursive(INode node) {
-            if (node is null) {
-              return;
-            }
-
-            if (node.tok.Filename != tok.Filename || node is Expression { IsImplicit: true } ||
-                node is DefaultValueExpression) {
-              // Ignore any auto-generated expressions.
-            } else if (node != this && node.GetRangeToken() != null) {
-              UpdateStartEndToken(node.GetStartToken());
-              UpdateStartEndToken(node.GetEndToken());
-            } else {
-              UpdateStartEndToken(node.tok);
-            }
-
-            node.Children.Iter(UpdateStartEndTokRecursive);
-          }
-
-          UpdateStartEndTokRecursive(this);
-
-          if (FormatTokens != null) {
-            foreach (var token in FormatTokens) {
-              UpdateStartEndToken(token);
-            }
-          }
-
-          rangeToken = new RangeToken(startTok, endTok);
-        }
-      }
-
-      if (rangeToken.Filename == null) {
-        rangeToken.Filename = tok.Filename;
-      }
-
-      return rangeToken;
-    }
-
-    public IToken GetStartToken() => GetRangeToken()?.StartToken;
-    public IToken GetEndToken() => GetRangeToken()?.EndToken;
+    public IToken EndToken => RangeToken?.EndToken;
 
     protected IReadOnlyList<IToken> OwnedTokensCache;
 
@@ -149,36 +156,38 @@ namespace Microsoft.Dafny {
     /// A token is owned by a node if it was used to parse this node,
     /// but is not owned by any of this Node's children
     /// </summary>
-    public IEnumerable<IToken> GetOwnedTokens() {
-      if (OwnedTokensCache != null) {
+    public IEnumerable<IToken> OwnedTokens {
+      get {
+        if (OwnedTokensCache != null) {
+          return OwnedTokensCache;
+        }
+
+        var startToEndTokenNotOwned =
+          Children.Where(child => child.StartToken != null && child.EndToken != null)
+            .ToDictionary(child => child.StartToken!, child => child.EndToken!);
+
+        var result = new List<IToken>();
+        if (StartToken == null) {
+          Contract.Assume(EndToken == null);
+        } else {
+          Contract.Assume(EndToken != null);
+          var tmpToken = StartToken;
+          while (tmpToken != null && tmpToken != EndToken.Next) {
+            if (startToEndTokenNotOwned.TryGetValue(tmpToken, out var endNotOwnedToken)) {
+              tmpToken = endNotOwnedToken;
+            } else if (tmpToken.filename != null) {
+              result.Add(tmpToken);
+            }
+
+            tmpToken = tmpToken.Next;
+          }
+        }
+
+
+        OwnedTokensCache = result;
+
         return OwnedTokensCache;
       }
-
-      var startToEndTokenNotOwned =
-        Children.Where(child => child.GetStartToken() != null && child.GetEndToken() != null)
-          .ToDictionary(child => child.GetStartToken()!, child => child.GetEndToken()!);
-
-      var result = new List<IToken>();
-      if (GetStartToken() == null) {
-        Contract.Assume(GetEndToken() == null);
-      } else {
-        Contract.Assume(GetEndToken() != null);
-        var tmpToken = GetStartToken();
-        while (tmpToken != null && tmpToken != GetEndToken().Next) {
-          if (startToEndTokenNotOwned.TryGetValue(tmpToken, out var endNotOwnedToken)) {
-            tmpToken = endNotOwnedToken;
-          } else if (tmpToken.filename != null) {
-            result.Add(tmpToken);
-          }
-
-          tmpToken = tmpToken.Next;
-        }
-      }
-
-
-      OwnedTokensCache = result;
-
-      return OwnedTokensCache;
     }
   }
 
@@ -345,22 +354,21 @@ namespace Microsoft.Dafny {
     /// - if the attribute is {:nm true}, then value==true
     /// - if the attribute is {:nm false}, then value==false
     /// - if the attribute is anything else, then value returns as whatever it was passed in as.
+    /// This method does NOT use type information of the attribute arguments, so it can safely
+    /// be called very early during resolution before types are available and names have been resolved.
     /// </summary>
     [Pure]
     public static bool ContainsBool(Attributes attrs, string nm, ref bool value) {
       Contract.Requires(nm != null);
-      foreach (var attr in attrs.AsEnumerable()) {
-        if (attr.Name == nm) {
-          if (attr.Args.Count == 1) {
-            var arg = attr.Args[0] as LiteralExpr;
-            if (arg != null && arg.Value is bool) {
-              value = (bool)arg.Value;
-            }
-          }
-          return true;
-        }
+      var attr = attrs.AsEnumerable().FirstOrDefault(attr => attr.Name == nm);
+      if (attr == null) {
+        return false;
       }
-      return false;
+
+      if (attr.Args.Count == 1 && attr.Args[0] is LiteralExpr { Value: bool v }) {
+        value = v;
+      }
+      return true;
     }
 
     /// <summary>

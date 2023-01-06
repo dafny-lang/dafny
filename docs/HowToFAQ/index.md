@@ -26,6 +26,7 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["Is there a simple way to prove the termination of a recursive function?"](FAQRecursiveTermination)
 
 - ["Is there a way to use methods within expressions?"](FAQMethodSequence)
+- ["If I have an assertion about an object (of class type) and a loop that doesn't mention (read, modify) the object, why does dafny fail to establish the assertion after the loop?"](FAQLoopModifies)
 - ["I can assert a condition right before a return, so why does the postcondition fail to verify?](FAQFailingPost)
 - ["How can I combine sequences of different types?"](FAQSeqTrait)
 - ["How do I disambiguate module names?](FAQModuleNames)
