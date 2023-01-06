@@ -95,3 +95,8 @@ method LoopWithoutBody(n: int)
       decreases n - i
     assert true;
 }
+
+abstract module M {
+  method AbstractMethod(x: int) returns (y: int)
+    ensures y > x
+}

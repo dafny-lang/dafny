@@ -491,7 +491,7 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext {
       yield return AssumptionDescription.LoopWithoutBody;
     }
 
-    if (Body is null && HasPostcondition) {
+    if (Body is null && HasPostcondition && !EnclosingClass.EnclosingModuleDefinition.IsAbstract) {
       yield return AssumptionDescription.NoBody(IsGhost);
     }
 

@@ -52,7 +52,7 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
       yield return AssumptionDescription.AssumeInBody;
     }
 
-    if (Body is null && HasPostcondition) {
+    if (Body is null && HasPostcondition && !EnclosingClass.EnclosingModuleDefinition.IsAbstract) {
       yield return AssumptionDescription.NoBody(IsGhost);
     }
 
