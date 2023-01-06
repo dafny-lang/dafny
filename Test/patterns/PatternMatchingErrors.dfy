@@ -50,7 +50,7 @@ datatype Dt = Make(d: int)
 
 function method GetNat(dt: Dt): nat {
   match dt
-  case Make(y: nat) => y
+  case Make(y) => y
 }
 
 // postcondition might not hold on this return path (in least lemma)

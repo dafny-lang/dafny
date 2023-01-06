@@ -29,10 +29,10 @@ const Y := 1  // type of Y must be inferred
 method q() {
   var c: Cell;  // note, type argument omitted; it will eventually be inferred
   match c {
-    case Cell(Y) =>     // Y is int, so C is Cell<int>
+    case Cell(Y) =>
     case Cell(_) =>     // if Y is a const, then this case is not redundant
   }
-  c := Cell(1.2); // ERROR: type mismatch
+  c := Cell(1.2); // ERROR: 1.2 is real, which doesn't agree with the inferred type Cell<int> of c
 }
 
 method qq() {
@@ -46,8 +46,8 @@ method qq() {
 method qqq() {
   var c: Cell;
   match c {
-    case Cell(XX) =>     // XX is a variable
-    case Cell(_) =>     // WARNING so then this case is not redundant
+    case Cell(XX) =>    // XX is a variable
+    case Cell(_) =>     // redundant case warning not show because it's created post resolution
   }
 }
 
