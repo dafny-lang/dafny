@@ -24,6 +24,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
 
   public bool CrashOnPrepareVerification { get; set; }
   public bool CrashOnLoad { get; set; }
+  public bool CrashOnParse { get; set; }
 
   protected override IServiceCollection ServerOptionsAction(LanguageServerOptions serverOptions) {
     return serverOptions.Services
@@ -32,8 +33,9 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       .AddSingleton<IProgramVerifier>(serviceProvider => new CrashingVerifier(this,
         new DafnyProgramVerifier(
           serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>(),
-          serviceProvider.GetRequiredService<DafnyOptions>())
-    ));
+          serviceProvider.GetRequiredService<DafnyOptions>())))
+      .AddSingleton<IDafnyParser>(serviceProvider => new CrashingParser(this,
+        serviceProvider.GetRequiredService<ILogger<DafnyLangParser>>()));
   }
 
   [TestMethod]
@@ -89,6 +91,45 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
     var recoveredDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
     Assert.AreEqual(1, recoveredDiagnostics.Length);
     Assert.IsTrue(recoveredDiagnostics[0].Message.Contains("might not"), recoveredDiagnostics[0].Message);
+  }
+
+  [TestMethod]
+  public async Task ParseCrashRecover() {
+    var source = @"method Foo() { assert false; }";
+
+    CrashOnParse = true;
+    var documentItem = CreateTestDocument(source);
+    client.OpenDocument(documentItem);
+    var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+    Assert.AreEqual(1, resolutionDiagnostics.Length);
+    Assert.IsTrue(resolutionDiagnostics[0].Message.Contains("internal error"), resolutionDiagnostics[0].Message);
+    CrashOnParse = false;
+    ApplyChange(ref documentItem, new Range(0, 0, 0, 0), " ");
+    var recoveredDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+    Assert.AreEqual(1, recoveredDiagnostics.Length);
+    Assert.IsTrue(recoveredDiagnostics[0].Message.Contains("might not"), recoveredDiagnostics[0].Message);
+  }
+
+  class CrashingParser : IDafnyParser {
+    readonly DafnyLangParser parser;
+    private readonly ExceptionTests tests;
+
+    public CrashingParser(ExceptionTests tests, ILogger<DafnyLangParser> logger) {
+      this.tests = tests;
+      parser = DafnyLangParser.Create(logger);
+    }
+
+    public Program CreateUnparsed(TextDocumentItem textDocument, ErrorReporter errorReporter, CancellationToken cancellationToken) {
+      return parser.CreateUnparsed(textDocument, errorReporter, cancellationToken);
+    }
+
+    public Program Parse(TextDocumentItem textDocument, ErrorReporter errorReporter, CancellationToken cancellationToken) {
+      if (tests.CrashOnParse) {
+        throw new Exception("crash");
+      }
+
+      return parser.Parse(textDocument, errorReporter, cancellationToken);
+    }
   }
 
   class CrashingVerifier : IProgramVerifier {

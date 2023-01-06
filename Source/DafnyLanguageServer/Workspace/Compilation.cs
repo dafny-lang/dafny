@@ -86,10 +86,13 @@ public class Compilation {
       var errorReporter = new DiagnosticErrorReporter(TextBuffer.Text, TextBuffer.Uri);
       statusPublisher.SendStatusNotification(TextBuffer, CompilationStatus.ResolutionStarted);
       var program = parser.Parse(TextBuffer, errorReporter, cancellationSource.Token);
+      var documentAfterParsing = new DocumentAfterParsing(TextBuffer, program, errorReporter.GetDiagnostics(TextBuffer.Uri));
       if (errorReporter.HasErrors) {
+        documentUpdates.OnNext(documentAfterParsing);
         statusPublisher.SendStatusNotification(TextBuffer, CompilationStatus.ParsingFailed);
       }
-      return new DocumentAfterParsing(TextBuffer, program, errorReporter.GetDiagnostics(TextBuffer.Uri));
+
+      return documentAfterParsing;
     } catch (Exception e) {
       documentUpdates.OnError(e);
       throw;
@@ -97,8 +100,12 @@ public class Compilation {
   }
 
   private async Task<DocumentAfterResolution> ResolveAsync() {
+    var parsedDocument = await ParsedDocument;
+    if (parsedDocument.Diagnostics.Any()) {
+      throw new OperationCanceledException();
+    }
+
     try {
-      var parsedDocument = await ParsedDocument;
       var documentAfterResolution = await documentLoader.LoadAsync(parsedDocument, cancellationSource.Token);
 
       // TODO, let gutter icon publications also used the published CompilationView.
@@ -109,7 +116,7 @@ public class Compilation {
       notificationPublisher.PublishGutterIcons(state, false);
 
       logger.LogDebug($"documentUpdates.HasObservers: {documentUpdates.HasObservers}, threadId: {Thread.CurrentThread.ManagedThreadId}");
-      documentUpdates.OnNext(parsedDocument);
+      documentUpdates.OnNext(documentAfterResolution);
       logger.LogDebug($"Passed documentAfterParsing to documentUpdates.OnNext, resolving ResolvedDocument task for version {parsedDocument.Version}.");
       return documentAfterResolution;
 
@@ -120,9 +127,13 @@ public class Compilation {
   }
 
   private async Task<DocumentAfterTranslation> TranslateAsync() {
-    var parsedCompilation = await ResolvedDocument;
-    if (parsedCompilation is not DocumentAfterResolution resolvedCompilation) {
-      throw new OperationCanceledException();
+    var resolvedCompilation = await ResolvedDocument;
+
+    if (resolvedCompilation.ParseAndResolutionDiagnostics.Any(d =>
+          d.Severity == DiagnosticSeverity.Error &&
+          d.Source != MessageSource.Compiler.ToString() &&
+          d.Source != MessageSource.Verifier.ToString())) {
+      throw new TaskCanceledException();
     }
 
     try {
@@ -142,12 +153,6 @@ public class Compilation {
   public async Task<DocumentAfterTranslation> PrepareVerificationTasksAsync(
     DocumentAfterResolution loaded,
     CancellationToken cancellationToken) {
-    if (loaded.ParseAndResolutionDiagnostics.Any(d =>
-          d.Severity == DiagnosticSeverity.Error &&
-          d.Source != MessageSource.Compiler.ToString() &&
-          d.Source != MessageSource.Verifier.ToString())) {
-      throw new TaskCanceledException();
-    }
 
     var verificationTasks =
       await verifier.GetVerificationTasksAsync(loaded, cancellationToken);
