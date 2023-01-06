@@ -253,6 +253,11 @@ namespace Microsoft.Dafny {
               VisitUserProvidedType(v.Type, context);
             }
           }
+        } else if (expr is NestedMatchExpr nestedMatchExpr) {
+          foreach (IdPattern mc in nestedMatchExpr.Cases.SelectMany(c => c.Pat.DescendantsAndSelf).OfType<IdPattern>()
+                     .Where(id => id.BoundVar != null)) {
+            VisitUserProvidedType(mc.BoundVar.Type, context);
+          }
         }
 
         // Visit substatements

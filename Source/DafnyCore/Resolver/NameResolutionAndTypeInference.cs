@@ -277,7 +277,7 @@ namespace Microsoft.Dafny {
     /// If "solveConstraints" is "true", then the constraints are also solved. In this case, it is assumed on entry that there are no
     /// prior type constraints. That is, the only type constraints being solved for are the ones in the given attributes.
     /// </summary>
-    void ResolveAttributes(IAttributeBearingDeclaration attributeHost, ResolutionContext resolutionContext, bool solveConstraints = false) {
+    public void ResolveAttributes(IAttributeBearingDeclaration attributeHost, ResolutionContext resolutionContext, bool solveConstraints = false) {
       Contract.Requires(resolutionContext != null);
       Contract.Requires(attributeHost != null);
 
@@ -1081,15 +1081,8 @@ namespace Microsoft.Dafny {
         ConstrainSubtypeRelation(expr.Type, e.Thn.Type, expr, "the two branches of an if-then-else expression must have the same type (got {0} and {1})", e.Thn.Type, e.Els.Type);
         ConstrainSubtypeRelation(expr.Type, e.Els.Type, expr, "the two branches of an if-then-else expression must have the same type (got {0} and {1})", e.Thn.Type, e.Els.Type);
 
-      } else if (expr is MatchExpr) {
-        ResolveMatchExpr((MatchExpr)expr, resolutionContext);
-      } else if (expr is NestedMatchExpr) {
-        NestedMatchExpr e = (NestedMatchExpr)expr;
-        ResolveNestedMatchExpr(e, resolutionContext);
-        if (e.ResolvedExpression != null && e.ResolvedExpression.Type != null) {
-          // i.e. no error was thrown during compiling of the NextedMatchExpr or during resolution of the ResolvedExpression
-          expr.Type = e.ResolvedExpression.Type;
-        }
+      } else if (expr is NestedMatchExpr nestedMatchExpr) {
+        ResolveNestedMatchExpr(nestedMatchExpr, resolutionContext);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
@@ -1135,7 +1128,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(msg != null);  // expected to have a {0} part
       ConstrainSubtypeRelation(Type.Bool, e.Type, e, msg, e.Type);
     }
-    private bool ConstrainSubtypeRelation(Type super, Type sub, IToken tok, string msg, params object[] msgArgs) {
+
+    public bool ConstrainSubtypeRelation(Type super, Type sub, IToken tok, string msg, params object[] msgArgs) {
       Contract.Requires(sub != null);
       Contract.Requires(super != null);
       Contract.Requires(tok != null);
@@ -2329,7 +2323,7 @@ namespace Microsoft.Dafny {
     /// If "allowDecisions" is "false", then no decisions, only determined inferences, are made; this mode is
     /// appropriate for the partial solving that's done before a member lookup.
     /// </summary>
-    void PartiallySolveTypeConstraints(bool allowDecisions) {
+    public void PartiallySolveTypeConstraints(bool allowDecisions) {
       int state = 0;
       while (true) {
         if (2 <= state && !allowDecisions) {
@@ -3576,19 +3570,19 @@ namespace Microsoft.Dafny {
             scope.Push(k.Name, k);  // we expect no name conflict for _k
           }
 
-          dominatingStatementLabels.PushMarker();
+          DominatingStatementLabels.PushMarker();
           foreach (var req in m.Req) {
             if (req.Label != null) {
-              if (dominatingStatementLabels.Find(req.Label.Name) != null) {
+              if (DominatingStatementLabels.Find(req.Label.Name) != null) {
                 reporter.Error(MessageSource.Resolver, req.Label.Tok, "assert label shadows a dominating label");
               } else {
-                var rr = dominatingStatementLabels.Push(req.Label.Name, req.Label);
+                var rr = DominatingStatementLabels.Push(req.Label.Name, req.Label);
                 Contract.Assert(rr == Scope<Label>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
               }
             }
           }
           ResolveBlockStatement(m.Body, ResolutionContext.FromCodeContext(m));
-          dominatingStatementLabels.PopMarker();
+          DominatingStatementLabels.PopMarker();
           SolveAllTypeConstraints();
         }
 
@@ -3681,19 +3675,19 @@ namespace Microsoft.Dafny {
 
       // Resolve body
       if (iter.Body != null) {
-        dominatingStatementLabels.PushMarker();
+        DominatingStatementLabels.PushMarker();
         foreach (var req in iter.Requires) {
           if (req.Label != null) {
-            if (dominatingStatementLabels.Find(req.Label.Name) != null) {
+            if (DominatingStatementLabels.Find(req.Label.Name) != null) {
               reporter.Error(MessageSource.Resolver, req.Label.Tok, "assert label shadows a dominating label");
             } else {
-              var rr = dominatingStatementLabels.Push(req.Label.Name, req.Label);
+              var rr = DominatingStatementLabels.Push(req.Label.Name, req.Label);
               Contract.Assert(rr == Scope<Label>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
             }
           }
         }
         ResolveBlockStatement(iter.Body, ResolutionContext.FromCodeContext(iter));
-        dominatingStatementLabels.PopMarker();
+        DominatingStatementLabels.PopMarker();
         SolveAllTypeConstraints();
       }
 
@@ -3767,7 +3761,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void ResolveStatementWithLabels(Statement stmt, ResolutionContext resolutionContext) {
+    public void ResolveStatementWithLabels(Statement stmt, ResolutionContext resolutionContext) {
       Contract.Requires(stmt != null);
       Contract.Requires(resolutionContext != null);
 
@@ -3784,10 +3778,10 @@ namespace Microsoft.Dafny {
         } else {
           var r = enclosingStatementLabels.Push(lnode.Name, stmt);
           Contract.Assert(r == Scope<Statement>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
-          if (dominatingStatementLabels.Find(lnode.Name) != null) {
+          if (DominatingStatementLabels.Find(lnode.Name) != null) {
             reporter.Error(MessageSource.Resolver, lnode.Tok, "label shadows a dominating label");
           } else {
-            var rr = dominatingStatementLabels.Push(lnode.Name, lnode);
+            var rr = DominatingStatementLabels.Push(lnode.Name, lnode);
             Contract.Assert(rr == Scope<Label>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
           }
         }
@@ -3814,7 +3808,7 @@ namespace Microsoft.Dafny {
       }
       foreach (var alternative in alternatives) {
         scope.PushMarker();
-        dominatingStatementLabels.PushMarker();
+        DominatingStatementLabels.PushMarker();
         if (alternative.IsBindingGuard) {
           var exists = (ExistsExpr)alternative.Guard;
           foreach (var v in exists.BoundVars) {
@@ -3825,7 +3819,7 @@ namespace Microsoft.Dafny {
         foreach (Statement ss in alternative.Body) {
           ResolveStatementWithLabels(ss, resolutionContext);
         }
-        dominatingStatementLabels.PopMarker();
+        DominatingStatementLabels.PopMarker();
         scope.PopMarker();
       }
       if (loopToCatchBreaks != null) {
@@ -4370,10 +4364,10 @@ namespace Microsoft.Dafny {
         PredicateStmt s = (PredicateStmt)stmt;
         var assertStmt = stmt as AssertStmt;
         if (assertStmt != null && assertStmt.Label != null) {
-          if (dominatingStatementLabels.Find(assertStmt.Label.Name) != null) {
+          if (DominatingStatementLabels.Find(assertStmt.Label.Name) != null) {
             reporter.Error(MessageSource.Resolver, assertStmt.Label.Tok, "assert label shadows a dominating label");
           } else {
-            var rr = dominatingStatementLabels.Push(assertStmt.Label.Name, assertStmt.Label);
+            var rr = DominatingStatementLabels.Push(assertStmt.Label.Name, assertStmt.Label);
             Contract.Assert(rr == Scope<Label>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
           }
         }
@@ -4407,7 +4401,7 @@ namespace Microsoft.Dafny {
         var s = (RevealStmt)stmt;
         foreach (var expr in s.Exprs) {
           var name = RevealStmt.SingleName(expr);
-          var labeledAssert = name == null ? null : dominatingStatementLabels.Find(name) as AssertLabel;
+          var labeledAssert = name == null ? null : DominatingStatementLabels.Find(name) as AssertLabel;
           if (labeledAssert != null) {
             s.LabeledAsserts.Add(labeledAssert);
           } else {
@@ -4712,15 +4706,15 @@ namespace Microsoft.Dafny {
             ScopePushAndReport(scope, v, "bound-variable");
           }
         }
-        dominatingStatementLabels.PushMarker();
+        DominatingStatementLabels.PushMarker();
         ResolveBlockStatement(s.Thn, resolutionContext);
-        dominatingStatementLabels.PopMarker();
+        DominatingStatementLabels.PopMarker();
         scope.PopMarker();
 
         if (s.Els != null) {
-          dominatingStatementLabels.PushMarker();
+          DominatingStatementLabels.PushMarker();
           ResolveStatement(s.Els, resolutionContext);
-          dominatingStatementLabels.PopMarker();
+          DominatingStatementLabels.PopMarker();
         }
 
       } else if (stmt is AlternativeStmt) {
@@ -4772,9 +4766,9 @@ namespace Microsoft.Dafny {
 
         if (s.Body != null) {
           loopStack.Add(s);  // push
-          dominatingStatementLabels.PushMarker();
+          DominatingStatementLabels.PushMarker();
           ResolveStatement(s.Body, resolutionContext);
-          dominatingStatementLabels.PopMarker();
+          DominatingStatementLabels.PopMarker();
           loopStack.RemoveAt(loopStack.Count - 1);  // pop
         } else {
           Contract.Assert(s.BodySurrogate == null);  // .BodySurrogate is set only once
@@ -4963,9 +4957,9 @@ namespace Microsoft.Dafny {
           loopStack = new List<Statement>();
           foreach (var h in s.Hints) {
             foreach (var oneHint in h.Body) {
-              dominatingStatementLabels.PushMarker();
+              DominatingStatementLabels.PushMarker();
               ResolveStatement(oneHint, resolutionContext);
-              dominatingStatementLabels.PopMarker();
+              DominatingStatementLabels.PopMarker();
             }
           }
           enclosingStatementLabels = prevLblStmts;
@@ -4982,9 +4976,6 @@ namespace Microsoft.Dafny {
         ResolveExpression(s.Result, resolutionContext);
         Contract.Assert(s.Result != null);
         Contract.Assert(prevErrorCount != reporter.Count(ErrorLevel.Error) || s.Steps.Count == s.Hints.Count);
-
-      } else if (stmt is MatchStmt) {
-        ResolveMatchStmt((MatchStmt)stmt, resolutionContext);
 
       } else if (stmt is NestedMatchStmt) {
         var s = (NestedMatchStmt)stmt;
@@ -5541,7 +5532,7 @@ namespace Microsoft.Dafny {
     /// but it may also be a type in a super- or subtype relation to "t".
     /// In some cases, it is necessary to make some inference decisions in order to figure out the type to return.
     /// </summary>
-    Type PartiallyResolveTypeForMemberSelection(IToken tok, Type t, string memberName = null, int strength = 0) {
+    public Type PartiallyResolveTypeForMemberSelection(IToken tok, Type t, string memberName = null, int strength = 0) {
       Contract.Requires(tok != null);
       Contract.Requires(t != null);
       Contract.Ensures(Contract.Result<Type>() != null);
@@ -6213,7 +6204,7 @@ namespace Microsoft.Dafny {
       return rewrite;
     }
 
-    Expression ResolveNameSegment(NameSegment expr, bool isLastNameSegment, List<ActualBinding> args,
+    public Expression ResolveNameSegment(NameSegment expr, bool isLastNameSegment, List<ActualBinding> args,
       ResolutionContext resolutionContext, bool allowMethodCall, bool complain = true) {
       return ResolveNameSegment(expr, isLastNameSegment, args, resolutionContext, allowMethodCall, complain, out _);
     }
@@ -6647,9 +6638,8 @@ namespace Microsoft.Dafny {
         if (ty.IsDatatype) {
           // ----- LHS is a datatype
           var dt = ty.AsDatatype;
-          Dictionary<string, DatatypeCtor> members;
           DatatypeCtor ctor;
-          if (datatypeCtors.TryGetValue(dt, out members) && members.TryGetValue(name, out ctor)) {
+          if (dt.ConstructorsByName != null && dt.ConstructorsByName.TryGetValue(name, out ctor)) {
             if (expr.OptTypeArguments != null) {
               reporter.Error(MessageSource.Resolver, expr.tok, "datatype constructor does not take any type parameters ('{0}')", name);
             }
@@ -6875,7 +6865,7 @@ namespace Microsoft.Dafny {
       }
       Label atLabel = null;
       if (e.AtTok != null) {
-        atLabel = dominatingStatementLabels.Find(e.AtTok.val);
+        atLabel = DominatingStatementLabels.Find(e.AtTok.val);
         if (atLabel == null) {
           reporter.Error(MessageSource.Resolver, e.AtTok, "no label '{0}' in scope at this time", e.AtTok.val);
         }
@@ -6989,7 +6979,7 @@ namespace Microsoft.Dafny {
       dtv.Type = new UserDefinedType(dtv.tok, dt.Name, dt, gt);
 
       DatatypeCtor ctor;
-      if (!datatypeCtors[dt].TryGetValue(dtv.MemberName, out ctor)) {
+      if (!dt.ConstructorsByName.TryGetValue(dtv.MemberName, out ctor)) {
         ok = false;
         if (complain) {
           reporter.Error(MessageSource.Resolver, dtv.tok, "undeclared constructor {0} in datatype {1}", dtv.MemberName, dtv.DatatypeName);

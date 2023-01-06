@@ -26,6 +26,9 @@ public class BreakStmt : Statement, IHasUsages, ICloneable<BreakStmt> {
     TargetLabel = original.TargetLabel;
     IsContinue = original.IsContinue;
     BreakAndContinueCount = original.BreakAndContinueCount;
+    if (cloner.CloneResolvedFields) {
+      TargetStmt = cloner.CloneStmt(original.TargetStmt);
+    }
   }
 
   public BreakStmt(IToken tok, IToken endTok, IToken targetLabel, bool isContinue)

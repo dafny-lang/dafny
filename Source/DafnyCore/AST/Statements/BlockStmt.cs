@@ -26,9 +26,7 @@ public class BlockStmt : Statement, IRegion, ICloneable<BlockStmt> {
     this.Body = body;
   }
 
-  public override IEnumerable<Statement> SubStatements {
-    get { return Body; }
-  }
+  public override IEnumerable<Statement> SubStatements => Body;
 
   public virtual void AppendStmt(Statement s) {
     Contract.Requires(s != null);
