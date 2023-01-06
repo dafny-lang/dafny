@@ -1107,7 +1107,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         return GetZ3Version(confirmedProverPath);
       }
 
-      throw new Bpl.ProverException("Z3 not found in Dafny distribution or PATH environment variable.");
+      return null;
     }
 
     private static readonly Regex Z3VersionRegex = new Regex(@"Z3 version (?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)");
