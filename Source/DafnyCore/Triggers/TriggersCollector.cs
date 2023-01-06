@@ -384,13 +384,44 @@ namespace Microsoft.Dafny.Triggers {
 
         if (!children_contain_killers) {
           // Add only if the children are not killers; the head has been cleaned up into non-killer form
-          collected_terms.Add(new_term);
+          collected_terms.AddRange(CollectInSetOperations(new_expr, expr));
         }
       }
       Contract.Assert(new_term != null);  // this checks our assumption that "new_exprs" contains at least one value.
 
       // This new node is a killer if its children were killers, or if it's non-cleaned-up head is a killer
       return new TriggerAnnotation(children_contain_killers || expr_is_killer, new_term.Variables, collected_terms);
+    }
+
+    private IEnumerable<TriggerTerm> CollectInSetOperations(Expression new_expr, Expression original_expr) {
+      yield return new TriggerTerm { Expr = new_expr, OriginalExpr = original_expr, Variables = CollectVariables(original_expr) };
+      if (new_expr is BinaryExpr
+        {
+          ResolvedOp: BinaryExpr.ResolvedOpcode.InSet,
+          E0: var e0, E1: BinaryExpr
+          {
+            ResolvedOp: BinaryExpr.ResolvedOpcode.SetDifference or
+                          BinaryExpr.ResolvedOpcode.Union or
+                          BinaryExpr.ResolvedOpcode.Intersection,
+            E0: var e10,
+            E1: var e11
+          }
+        }) {
+        var newTriggerTerm1 = new BinaryExpr(new_expr.tok, BinaryExpr.Opcode.In, e0, e10) {
+          ResolvedOp = BinaryExpr.ResolvedOpcode.InSet,
+          Type = Type.Bool
+        };
+        foreach (var triggerTerm in CollectInSetOperations(newTriggerTerm1, original_expr)) {
+          yield return triggerTerm;
+        }
+        var newTriggerTerm2 = new BinaryExpr(new_expr.tok, BinaryExpr.Opcode.In, e0, e11) {
+          ResolvedOp = BinaryExpr.ResolvedOpcode.InSet,
+          Type = Type.Bool
+        };
+        foreach (var triggerTerm in CollectInSetOperations(newTriggerTerm2, original_expr)) {
+          yield return triggerTerm;
+        }
+      }
     }
 
     private TriggerAnnotation AnnotateApplySuffix(ApplySuffix expr) {
