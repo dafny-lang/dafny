@@ -320,7 +320,7 @@ namespace Microsoft.Dafny {
       var moduleId = (programId ?? "main_program_id") + "_" + moduleName;
 
       var proverPath = DafnyOptions.O.ProverOptions.Find(o => o.StartsWith("PROVER_PATH="));
-      if (proverPath is null) {
+      if (proverPath is null && DafnyOptions.O.Verify) {
         Console.WriteLine("Z3 not found in explicit --solver-path option, Dafny distribution, or PATH environment variable.");
         return (PipelineOutcome.FatalError, new PipelineStatistics());
       }
