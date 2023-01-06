@@ -67,12 +67,6 @@ public class NestedMatchExpr : Expression, ICloneable<NestedMatchExpr> {
       return;
     }
 
-    var dtd = sourceType.AsDatatype;
-    var subst = new Dictionary<TypeParameter, Type>();
-    if (dtd != null) {
-      subst = TypeParameter.SubstitutionMap(dtd.TypeArgs, sourceType.TypeArgs);
-    }
-
     Type = new InferredTypeProxy();
     foreach (var kase in Cases) {
       resolver.scope.PushMarker();
