@@ -65,6 +65,10 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         }
       }
 
+      if (error.Tok is NestedToken { Inner: var innerToken }) {
+        relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(innerToken, "Related location"));
+      }
+
       var uri = GetDocumentUriOrDefault(Translator.ToDafnyToken(error.Tok));
       var diagnostic = new Diagnostic {
         Severity = DiagnosticSeverity.Error,

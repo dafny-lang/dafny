@@ -40,6 +40,7 @@ namespace IntegrationTests {
 
       var substitutions = new Dictionary<string, object> {
         { "%diff", "diff" },
+        { "%resolveargs", "--useBaseNameForFileName" },
         { "%binaryDir", "." },
         { "%z3", Path.Join("z3", "bin", "z3") },
         { "%repositoryRoot", repositoryRoot.Replace(@"\", "/") },
@@ -124,8 +125,7 @@ namespace IntegrationTests {
     [FileTheory]
     [FileData(Includes = new[] { "**/*.dfy", "**/*.transcript" },
               Excludes = new[] { "**/Inputs/**/*", "**/Output/**/*",
-                "tutorial/AutoExtern", // This is tested separately in the unit tests of Source/AutoExtern
-                "tutorial/induction-principle",
+                "examples/induction-principle-code/*"
               })]
     public void LitTest(string path) {
       LitTestCase.Run(path, Config, output);

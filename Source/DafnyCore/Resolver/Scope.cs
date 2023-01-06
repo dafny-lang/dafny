@@ -3,7 +3,7 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-class Scope<Thing> where Thing : class {
+public class Scope<Thing> where Thing : class {
   [Rep]
   readonly List<string> names = new List<string>();  // a null means a marker
   [Rep]
