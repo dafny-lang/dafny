@@ -1647,6 +1647,8 @@ public class UnaryOpExpr : UnaryExpr {
     Contract.Requires(op != Opcode.Fresh || this is FreshExpr);
     this.Op = op;
   }
+
+  public override bool IsImplicit => Op == Opcode.Lit;
 }
 
 public class FreshExpr : UnaryOpExpr, ICloneable<FreshExpr> {
