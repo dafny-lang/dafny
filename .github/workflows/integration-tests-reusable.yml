@@ -43,7 +43,7 @@ jobs:
         run: echo "target-runtime-version=[\"oldest\"]" >> $GITHUB_OUTPUT
       - name: Populate shard list
         id: populate-shard-list
-        run: echo "shard-list=[`(seq -s , 1 ${{ inputs.num_shards }}`]" >> $GITHUB_OUTPUT
+        run: echo "shard-list=[`seq -s , 1 ${{ inputs.num_shards }}`]" >> $GITHUB_OUTPUT
     outputs:
       os-list: ${{ steps.populate-os-list-all.outputs.os-list }} ${{ steps.populate-os-list-one.outputs.os-list }}
       os-mapping: ${{ steps.populate-os-mapping.outputs.os-mapping }}
