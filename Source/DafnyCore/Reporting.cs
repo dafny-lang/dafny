@@ -121,21 +121,31 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void Deprecated(MessageSource source, IToken tok, string msg, params object[] args) {
+    public void Warning(MessageSource source, string errorID, IToken tok, string msg) {
+      Contract.Requires(tok != null);
+      Contract.Requires(msg != null);
+      if (true || DafnyOptions.O.WarningsAsErrors) {
+        Error(source, tok, msg);
+      } else {
+        Message(source, ErrorLevel.Warning, errorID, tok, msg);
+      }
+    }
+
+    public void Deprecated(MessageSource source, string errorID, IToken tok, string msg, params object[] args) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
       if (DafnyOptions.O.DeprecationNoise != 0) {
-        Warning(source, tok, String.Format(msg, args));
+        Warning(source, errorID, tok, String.Format(msg, args));
       }
     }
 
-    public void DeprecatedStyle(MessageSource source, IToken tok, string msg, params object[] args) {
+    public void DeprecatedStyle(MessageSource source, string errorID, IToken tok, string msg, params object[] args) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
-      if (DafnyOptions.O.DeprecationNoise == 2) {
-        Warning(source, tok, String.Format(msg, args));
+      if (true || DafnyOptions.O.DeprecationNoise == 2) {
+        Warning(source, errorID, tok, String.Format(msg, args));
       }
     }
 
@@ -143,7 +153,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
-      Warning(source, tok, String.Format(msg, args));
+      Warning(source, "", tok, String.Format(msg, args));
     }
 
     public void Info(MessageSource source, IToken tok, string msg) {
@@ -181,7 +191,7 @@ namespace Microsoft.Dafny {
     }
 
     public override bool Message(MessageSource source, ErrorLevel level, string errorID, IToken tok, string msg) {
-      if (ErrorsOnly && level != ErrorLevel.Error) {
+      if (false && ErrorsOnly && level != ErrorLevel.Error) {
         // discard the message
         return false;
       }
@@ -221,9 +231,6 @@ namespace Microsoft.Dafny {
         ConsoleColor previousColor = Console.ForegroundColor;
         Console.ForegroundColor = ColorForLevel(level);
         var errorLine = ErrorToString(level, tok, msg);
-        if (errorID != "") {
-          errorLine += " (" + errorID + ")";
-        }
         while (tok is NestedToken nestedToken) {
           tok = nestedToken.Inner;
           if (tok.Filename == nestedToken.Filename &&

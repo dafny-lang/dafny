@@ -18,8 +18,7 @@ module M {
 }
 ```
 
-Only some kinds of declarations can be declared abstract. 
-In the example, a const declaration cannot be abstract.
+Only modules may be declared abstract.
 
 ## **Error: a function-by-method has a ghost function body and a non-ghost method body; a function-by-method declaration does not use the 'ghost' keyword.**
 
@@ -66,7 +65,8 @@ static module M {}
 ```
 
 Only some kinds of declarations can be declared 'static', most often 
-fields, constants, methods, and functions, and only within classes. Modules are already always static.
+fields, constants, methods, and functions, and only within classes.
+Modules and the declarations within them are already always static.
 
 ## **Error: argument to :options attribute must be a literal string**
 
@@ -87,8 +87,8 @@ function m(): (_: int) {0}
 
 User-declared identifiers may not begin with an underscore; 
 such identifiers are reserved for internal use. 
-In match statements and expressions, an 
-identifier that is a single underscore is used as a wild-card match.
+In match statements and expressions, an identifier
+that is a single underscore is used as a wild-card match.
 
 <!-- There are two instances of this message. An example of the other message is
      function m(): (_: int) {0}

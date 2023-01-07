@@ -10,12 +10,12 @@ public static class ErrorDetail {
   // (which could be moderately lengthy)
 
   public class Info {
-    public Info(string description, Object actions, string explanation) {
+    public Info(string description, object actions, string explanation) {
       this.description = description;
       this.actions = actions;
       this.explanation = explanation;
     }
-    public Object actions;
+    public object actions;
     public string explanation;
     public string description;
   }
@@ -31,7 +31,7 @@ public static class ErrorDetail {
     initialized = true;
   }
   // Adds information into the distionary
-  public static void Add(string errorID, string description, Object actions, string detail) {
+  public static void Add(string errorID, string description, object actions, string detail) {
     errorDetailMap.Add(errorID, new Info(description, actions, detail));
   }
 
@@ -41,7 +41,7 @@ public static class ErrorDetail {
     //init();
     return errorDetailMap.ContainsKey(errorID) ? errorDetailMap[errorID].explanation : null;
   }
-  public static Object GetActions(string errorID) {
+  public static object GetActions(string errorID) {
     //init();
     return errorDetailMap.ContainsKey(errorID) ? errorDetailMap[errorID].actions : null;
   }

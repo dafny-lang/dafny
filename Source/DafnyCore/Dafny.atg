@@ -94,13 +94,13 @@ void CheckDeclModifiers(ref DeclModifierData dmod, string declCaption, AllowedDe
 {
   declCaption = (declCaption.StartsWith("i") || declCaption.StartsWith("o") ? "an " : "a ") + declCaption;
   if (dmod.IsAbstract && ((allowed & AllowedDeclModifiers.Abstract) == 0)) {
-    SemErr(dmod.AbstractToken, $"{declCaption} cannot be declared 'abstract'");
+    SemErr(ParserErrorDetail.p_abstract_not_allowed, Errors.NewLength(dmod.AbstractToken, "abstract ".Length), $"{declCaption} cannot be declared 'abstract'");
     dmod.IsAbstract = false;
   }
   if (dmod.IsGhost) {
     if ((allowed & AllowedDeclModifiers.AlreadyGhost) != 0) {
       if (declCaption.Contains("-by-method")) {
-        SemErr(dmod.GhostToken, $"{declCaption} has a ghost function body and a non-ghost method body; {declCaption} declaration does not use the 'ghost' keyword.");
+        SemErr(ParserErrorDetail.p_no_ghost_for_by_method, Errors.NewLength(dmod.GhostToken, "ghost ".Length), $"{declCaption} has a ghost function body and a non-ghost method body; {declCaption} declaration does not use the 'ghost' keyword.");
       } else {
         SemErr(dmod.GhostToken, $"{declCaption} cannot be declared 'ghost' (it is 'ghost' by default)");
       }
@@ -111,7 +111,7 @@ void CheckDeclModifiers(ref DeclModifierData dmod, string declCaption, AllowedDe
     }
   }
   if (dmod.IsStatic && ((allowed & AllowedDeclModifiers.Static) == 0)) {
-    SemErr(dmod.StaticToken, $"{declCaption} cannot be declared 'static'");
+    SemErr(ParserErrorDetail.p_no_static, Errors.NewLength(dmod.StaticToken, scanner.buffer.Match(dmod.StaticToken.pos, "static[ ]*")), $"{declCaption} cannot be declared 'static'");
     dmod.IsStatic = false;
   }
 }
@@ -5253,7 +5253,8 @@ DotSuffix<out IToken x, out IToken y>
 NoUSIdent<out IToken/*!*/ x>
 = (. Contract.Ensures(Contract.ValueAtReturn(out x) != null); .)
   Ident<out x>     (. if (x.val.StartsWith("_")) {
-                        SemErr("cannot declare identifier beginning with underscore");
+                        SemErr(ParserErrorDetail.p_no_leading_underscore, Errors.NewLength(x,1), 
+                          "cannot declare identifier beginning with underscore");
                       }
                    .)
   .
@@ -5310,7 +5311,7 @@ OldSemi  /* NOTE: Coco complains about "OldSemi deletable". That's okay. */
 = /* In the future, it may be that semi-colons will be neither needed nor allowed in certain places where,
    * in the past, they were required.  As a period of transition between the two, such semi-colons are optional.
    */
-  [ SYNC ";"    (. errors.DeprecatedStyle(t, "deprecated style: a semi-colon is not needed here"); .)
+  [ SYNC ";"    (. errors.DeprecatedStyle(ParserErrorDetail.p_deprecated_semicolon, t, "deprecated style: a semi-colon is not needed here"); .)
   ].
 
 /*------------------------------------------------------------------------*/
