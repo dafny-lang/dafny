@@ -14,7 +14,7 @@ using Microsoft.Dafny.LanguageServer.Plugins;
 using Newtonsoft.Json.Linq;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
-namespace Microsoft.Dafny.LanguageServer.Handlers; 
+namespace Microsoft.Dafny.LanguageServer.Handlers;
 
 public class DafnyCodeActionHandler : CodeActionHandlerBase {
   private readonly ILogger<DafnyCodeActionHandler> logger;
@@ -79,10 +79,30 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
     return new CommandOrCodeActionContainer(codeActions);
   }
 
+  // public static List<DafnyCodeAction> instantAction(string title, Range selection, string newText) {
+  //   var edit = new DafnyCodeActionEdit[] { new DafnyCodeActionEdit(selection, newText) };
+  //   var action = new InstantDafnyCodeAction(title, new List<Diagnostic> { diagnostic }, edit);
+  //   return new List<DafnyCodeAction> { action };
+  // }
+
+  public class ErrorMessageCodeActionProvider : DiagnosticDafnyCodeActionProvider {
+    protected override IEnumerable<DafnyCodeAction>? GetDafnyCodeActions(IDafnyCodeActionInput input, Diagnostic diagnostic, Range selection) {
+      var info = ErrorDetail.GetInfo(diagnostic.Code);
+      if (info == null) return new List<DafnyCodeAction> { };
+      var newText = (string)info.actions;
+      var edit = new DafnyCodeActionEdit[] { new DafnyCodeActionEdit(selection, newText) };
+      var action = new InstantDafnyCodeAction(info.description, new List<Diagnostic> { diagnostic }, edit);
+      return new List<DafnyCodeAction> { action };
+      //return (List<DafnyCodeAction>)ErrorDetail.GetActions(diagnostic.Code);
+    }
+  }
+
   private DafnyCodeActionProvider[] GetDafnyCodeActionProviders() {
     return new List<DafnyCodeActionProvider>() {
       new VerificationDafnyCodeActionProvider()
-    }.Concat(
+    }
+    .Concat(new List<DafnyCodeActionProvider> { new ErrorMessageCodeActionProvider() })
+    .Concat(
       DafnyOptions.O.Plugins.SelectMany(plugin =>
         plugin is ConfiguredPlugin { Configuration: PluginConfiguration configuration } ?
             configuration.GetDafnyCodeActionProviders() : new DafnyCodeActionProvider[] { })).ToArray();

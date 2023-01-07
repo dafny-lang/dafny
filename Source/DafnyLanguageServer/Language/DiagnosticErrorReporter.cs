@@ -153,7 +153,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         );
       }
       var item = new Diagnostic {
-        //ErrorID = errorID,
+        Code = errorID,
         Severity = ToSeverity(level),
         Message = msg,
         Range = tok.GetLspRange(),

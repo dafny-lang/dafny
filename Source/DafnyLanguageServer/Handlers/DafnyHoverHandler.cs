@@ -70,6 +70,10 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     private string? GetDiagnosticsHover(IdeState state, Position position, out bool areMethodStatistics) {
       areMethodStatistics = false;
+      foreach (var diagnostic in state.Diagnostics) {
+        var detail = ErrorDetail.GetDetail(diagnostic.Code);
+        if (detail != null) return detail;
+      }
       if (state.Diagnostics.Any(diagnostic =>
             diagnostic.Severity == DiagnosticSeverity.Error && (
             diagnostic.Source == MessageSource.Parser.ToString() ||
