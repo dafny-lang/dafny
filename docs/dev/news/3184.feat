@@ -1,1 +1,1 @@
-Add the `--solver-path` option to allow customising the SMT solver used when using the new Dafny CLI user interface.
+Add the `--solver-path` option to allow customizing the SMT solver used when using the new Dafny CLI user interface.
