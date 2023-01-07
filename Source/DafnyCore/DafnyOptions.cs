@@ -59,12 +59,12 @@ features like traits or co-inductive types.".TrimStart(), "cs");
         datatype Record = Record(x: int)
     is transformed into just 'int' in the target code.".TrimStart(), defaultValue: true);
 
-      RegisterLegacyUi(CommonOptionBag.Output, ParseString, "Compilation options", "out");
+      RegisterLegacyUi(CommonOptionBag.Output, ParseFileInfo, "Compilation options", "out");
       RegisterLegacyUi(CommonOptionBag.UnicodeCharacters, ParseBoolean, "Language feature selection", "unicodeChar", @"
 0 (default) - The char type represents any UTF-16 code unit.
 1 - The char type represents any Unicode scalar value.".TrimStart());
       RegisterLegacyUi(CommonOptionBag.Plugin, ParseStringElement, "Plugins", defaultValue: new List<string>());
-      RegisterLegacyUi(CommonOptionBag.Prelude, ParseString, "Input configuration", "dprelude");
+      RegisterLegacyUi(CommonOptionBag.Prelude, ParseFileInfo, "Input configuration", "dprelude");
 
       RegisterLegacyUi(CommonOptionBag.Libraries, ParseStringElement, "Compilation options", defaultValue: new List<string>());
       RegisterLegacyUi(DeveloperOptionBag.ResolvedPrint, ParseString, "Overall reporting and printing", "rprint");
@@ -117,7 +117,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       return Options.OptionArguments[option];
     }
 
-    public void Set(Option option, object value) {
+    public void SetUntyped(Option option, object value) {
       Options.OptionArguments[option] = value;
     }
 
@@ -130,6 +130,12 @@ NoGhost - disable printing of functions, ghost methods, and proof
     private static Dictionary<Option, Action<DafnyOptions, object>> legacyBindings = new();
     public static void RegisterLegacyBinding<T>(Option<T> option, Action<DafnyOptions, T> bind) {
       legacyBindings[option] = (options, o) => bind(options, (T)o);
+    }
+
+    public static void ParseFileInfo(Option<FileInfo> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
+      if (ps.ConfirmArgumentCount(1)) {
+        options.Set(option, new FileInfo(ps.args[ps.i]));
+      }
     }
 
     public static void ParseString(Option<string> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
@@ -238,7 +244,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public int Induction = 4;
     public int InductionHeuristic = 6;
     public bool TypeInferenceDebug = false;
-    public bool MatchCompilerDebug = false;
     public string DafnyPrelude = null;
     public string DafnyPrintFile = null;
 
@@ -282,7 +287,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public bool DisallowConstructorCaseWithoutParentheses = false;
     public bool PrintFunctionCallGraph = false;
     public bool WarnShadowing = false;
-    public int DefiniteAssignmentLevel = 1; // [0..2]
+    public int DefiniteAssignmentLevel = 1; // [0..2] 2 and 3 have the same effect, 4 turns off an array initialisation check, unless --enforce-determinism is used.
     public FunctionSyntaxOptions FunctionSyntax = FunctionSyntaxOptions.Version3;
     public QuantifierSyntaxOptions QuantifierSyntax = QuantifierSyntaxOptions.Version3;
     public HashSet<string> LibraryFiles { get; set; } = new();
@@ -506,10 +511,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
             return true;
           }
-
-        case "pmtrace":
-          MatchCompilerDebug = true;
-          return true;
 
         case "titrace":
           TypeInferenceDebug = true;
@@ -792,7 +793,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public override void ApplyDefaultOptions() {
       foreach (var legacyUiOption in legacyUis) {
         if (!Options.OptionArguments.ContainsKey(legacyUiOption.Option)) {
-          Set(legacyUiOption.Option, legacyUiOption.DefaultValue);
+          Options.OptionArguments[legacyUiOption.Option] = legacyUiOption.DefaultValue;
         }
         if (legacyBindings.ContainsKey(legacyUiOption.Option)) {
           var value = Get(legacyUiOption.Option);

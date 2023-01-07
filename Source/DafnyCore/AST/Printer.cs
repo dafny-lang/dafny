@@ -229,9 +229,29 @@ NoGhost - disable printing of functions, ghost methods, and proof
         // print call graph
         Indent(indent); wr.WriteLine("/* CALL GRAPH for module {0}:", module.Name);
         var SCCs = module.CallGraph.TopologicallySortedComponents();
-        SCCs.Reverse();
+        // Sort output SCCs in order of: descending height, then decreasing size of SCC, then alphabetical order of the name of
+        // the representative element. By being this specific, we reduce changes in output from minor changes in the code. (With
+        // more effort, we could be even more deterministic, if needed in the future.)
+        SCCs.Sort((m, n) => {
+          var mm = module.CallGraph.GetSCCRepresentativePredecessorCount(m);
+          var nn = module.CallGraph.GetSCCRepresentativePredecessorCount(n);
+          if (mm < nn) {
+            return 1;
+          } else if (mm > nn) {
+            return -1;
+          }
+          mm = module.CallGraph.GetSCCSize(m);
+          nn = module.CallGraph.GetSCCSize(n);
+          if (mm < nn) {
+            return 1;
+          } else if (mm > nn) {
+            return -1;
+          }
+          return string.CompareOrdinal(m.NameRelativeToModule, n.NameRelativeToModule);
+        });
         foreach (var clbl in SCCs) {
-          Indent(indent); wr.WriteLine(" * SCC at height {0}:", module.CallGraph.GetSCCRepresentativePredecessorCount(clbl));
+          Indent(indent);
+          wr.WriteLine(" * SCC at height {0}:", module.CallGraph.GetSCCRepresentativePredecessorCount(clbl));
           var r = module.CallGraph.GetSCC(clbl);
           foreach (var m in r) {
             Indent(indent);
@@ -289,6 +309,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
             }
           }
           if (dd.Members.Count != 0) {
+            Indent(indent);
             wr.WriteLine("{");
             PrintMembers(dd.Members, indent + IndentAmount, fileBeingPrinted);
             Indent(indent);
@@ -1426,19 +1447,19 @@ NoGhost - disable printing of functions, ghost methods, and proof
         // Print ResolvedStatement, if present, as comment
         var s = (NestedMatchStmt)stmt;
 
-        if (s.ResolvedStatement != null && DafnyOptions.O.DafnyPrintResolvedFile != null) {
+        if (s.Flattened != null && DafnyOptions.O.DafnyPrintResolvedFile != null) {
           wr.WriteLine();
           if (!printingDesugared) {
-            Indent(indent); wr.WriteLine("/*---------- desugared ----------");
+            Indent(indent); wr.WriteLine("/*---------- flattened ----------");
           }
 
           var savedDesugarMode = printingDesugared;
           printingDesugared = true;
-          Indent(indent); PrintStatement(s.ResolvedStatement, indent);
+          Indent(indent); PrintStatement(s.Flattened, indent);
           printingDesugared = savedDesugarMode;
 
           if (!printingDesugared) {
-            Indent(indent); wr.WriteLine("---------- end desugared ----------*/");
+            Indent(indent); wr.WriteLine("---------- end flattened ----------*/");
           }
           Indent(indent);
         }
@@ -1472,48 +1493,40 @@ NoGhost - disable printing of functions, ghost methods, and proof
             wr.Write("}");
           }
         }
-      } else if (stmt is ConcreteSyntaxStatement && ((ConcreteSyntaxStatement)stmt).ResolvedStatement != null) {
-        var s = (ConcreteSyntaxStatement)stmt;
-        Indent(indent);
-        PrintStatement(s.ResolvedStatement, indent);
-        wr.WriteLine();
-
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;
-        if (DafnyOptions.O.DafnyPrintResolvedFile == null && s.OrigUnresolved != null) {
-          PrintStatement(s.OrigUnresolved, indent);
-        } else {
-          wr.Write("match");
-          PrintAttributes(s.Attributes);
-          wr.Write(" ");
-          PrintExpression(s.Source, false);
-          if (s.UsesOptionalBraces) {
-            wr.Write(" {");
-          }
-          int caseInd = indent + (s.UsesOptionalBraces ? IndentAmount : 0);
-          foreach (MatchCaseStmt mc in s.Cases) {
-            wr.WriteLine();
-            Indent(caseInd);
-            wr.Write("case");
-            PrintAttributes(mc.Attributes);
-            wr.Write(" ");
-            if (!mc.Ctor.Name.StartsWith(BuiltIns.TupleTypeCtorNamePrefix)) {
-              wr.Write(mc.Ctor.Name);
-            }
+        wr.Write("match");
+        PrintAttributes(s.Attributes);
+        wr.Write(" ");
+        PrintExpression(s.Source, false);
+        if (s.UsesOptionalBraces) {
+          wr.Write(" {");
+        }
 
-            PrintMatchCaseArgument(mc);
-            wr.Write(" =>");
-            foreach (Statement bs in mc.Body) {
-              wr.WriteLine();
-              Indent(caseInd + IndentAmount);
-              PrintStatement(bs, caseInd + IndentAmount);
-            }
+        int caseInd = indent + (s.UsesOptionalBraces ? IndentAmount : 0);
+        foreach (MatchCaseStmt mc in s.Cases) {
+          wr.WriteLine();
+          Indent(caseInd);
+          wr.Write("case");
+          PrintAttributes(mc.Attributes);
+          wr.Write(" ");
+          if (!mc.Ctor.Name.StartsWith(BuiltIns.TupleTypeCtorNamePrefix)) {
+            wr.Write(mc.Ctor.Name);
           }
-          if (s.UsesOptionalBraces) {
+
+          PrintMatchCaseArgument(mc);
+          wr.Write(" =>");
+          foreach (Statement bs in mc.Body) {
             wr.WriteLine();
-            Indent(indent);
-            wr.Write("}");
+            Indent(caseInd + IndentAmount);
+            PrintStatement(bs, caseInd + IndentAmount);
           }
+        }
+
+        if (s.UsesOptionalBraces) {
+          wr.WriteLine();
+          Indent(indent);
+          wr.Write("}");
         }
 
       } else if (stmt is ConcreteUpdateStatement) {
@@ -1666,13 +1679,24 @@ NoGhost - disable printing of functions, ghost methods, and proof
         var update = (AssignSuchThatStmt)s;
         wr.Write(":| ");
         if (update.AssumeToken != null) {
-          wr.Write("assume ");
+          wr.Write("assume");
+          PrintAttributes(update.AssumeToken.Attrs);
+          wr.Write(" ");
         }
         PrintExpression(update.Expr, true);
       } else if (s is AssignOrReturnStmt) {
         var stmt = (AssignOrReturnStmt)s;
-        wr.Write(":- ");
-        PrintExpression(stmt.Rhs, true);
+        wr.Write(":-");
+        if (stmt.KeywordToken != null) {
+          wr.Write($" {stmt.KeywordToken.Token.val}");
+          PrintAttributes(stmt.KeywordToken.Attrs);
+        }
+        wr.Write(" ");
+        PrintRhs(stmt.Rhs);
+        foreach (var rhs in stmt.Rhss) {
+          wr.Write(", ");
+          PrintRhs(rhs);
+        }
         if (DafnyOptions.O.DafnyPrintResolvedFile != null && stmt.ResolvedStatements.Count > 0) {
           wr.WriteLine();
           Indent(indent); wr.WriteLine("/*---------- desugared ----------");
@@ -1914,19 +1938,19 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
       } else if (expr is NestedMatchExpr) {
         var e = (NestedMatchExpr)expr;
-        if (e.ResolvedExpression != null && DafnyOptions.O.DafnyPrintResolvedFile != null) {
+        if (e.Flattened != null && DafnyOptions.O.DafnyPrintResolvedFile != null) {
           wr.WriteLine();
           if (!printingDesugared) {
-            Indent(indent); wr.WriteLine("/*---------- desugared ----------");
+            Indent(indent); wr.WriteLine("/*---------- flattened ----------");
           }
 
           var savedDesugarMode = printingDesugared;
           printingDesugared = true;
-          PrintExtendedExpr(e.ResolvedExpression, indent, isRightmost, endWithCloseParen);
+          PrintExtendedExpr(e.Flattened, indent, isRightmost, endWithCloseParen);
           printingDesugared = savedDesugarMode;
 
           if (!printingDesugared) {
-            Indent(indent); wr.WriteLine("---------- end desugared ----------*/");
+            Indent(indent); wr.WriteLine("---------- end flattened ----------*/");
           }
         }
         if (!printingDesugared) {
@@ -2005,6 +2029,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         if (e.Exact) {
           wr.Write(" := ");
         } else {
+          PrintAttributes(e.Attributes);
           wr.Write(" :| ");
         }
         PrintExpressionList(e.RHSs, true);
@@ -2597,6 +2622,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         if (e.Exact) {
           wr.Write(" := ");
         } else {
+          PrintAttributes(e.Attributes);
           wr.Write(" :| ");
         }
         PrintExpressionList(e.RHSs, true);
@@ -2624,7 +2650,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       } else if (expr is QuantifierExpr) {
         QuantifierExpr e = (QuantifierExpr)expr;
 
-        if (DafnyOptions.O.DafnyPrintResolvedFile != null && e.SplitQuantifier != null) {
+        if (e.SplitQuantifier != null) {
           PrintExpr(e.SplitQuantifierExpression, contextBindingStrength, fragileContext, isRightmost, isFollowedBySemicolon, indent, keyword, resolv_count);
           return;
         }
@@ -2715,7 +2741,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
           readsPrefix = ", ";
         }
         wr.Write(" => ");
-        PrintExpression(e.Body, isFollowedBySemicolon);
+        PrintExpression(e.Term, isFollowedBySemicolon);
         if (parensNeeded) { wr.Write(")"); }
 
       } else if (expr is WildcardExpr) {
@@ -2765,24 +2791,21 @@ NoGhost - disable printing of functions, ghost methods, and proof
         if (parensNeeded) { wr.Write(")"); }
       } else if (expr is NestedMatchExpr) {
         var e = (NestedMatchExpr)expr;
-        if (e.ResolvedExpression != null) {
-          PrintExpr(e.ResolvedExpression, contextBindingStrength, fragileContext, isRightmost, isFollowedBySemicolon, indent);
-        } else {
-          var parensNeeded = !isRightmost && !e.UsesOptionalBraces;
-          if (parensNeeded) { wr.Write("("); }
-          wr.Write("match ");
-          PrintExpression(e.Source, isRightmost && e.Cases.Count == 0, !parensNeeded && isFollowedBySemicolon);
-          if (e.UsesOptionalBraces) { wr.Write(" {"); }
-          int i = 0;
-          foreach (var mc in e.Cases) {
-            bool isLastCase = i == e.Cases.Count - 1;
-            wr.Write(" case {0}", mc.Pat.ToString());
-            wr.Write(" => ");
-            PrintExpression(mc.Body, isRightmost && isLastCase, !parensNeeded && isFollowedBySemicolon);
-            i++;
-          }
-          if (e.UsesOptionalBraces) { wr.Write(" }"); } else if (parensNeeded) { wr.Write(")"); }
+        var parensNeeded = !isRightmost && !e.UsesOptionalBraces;
+        if (parensNeeded) { wr.Write("("); }
+        wr.Write("match ");
+        PrintExpression(e.Source, isRightmost && e.Cases.Count == 0, !parensNeeded && isFollowedBySemicolon);
+        if (e.UsesOptionalBraces) { wr.Write(" {"); }
+        int i = 0;
+        foreach (var mc in e.Cases) {
+          bool isLastCase = i == e.Cases.Count - 1;
+          wr.Write(" case {0}", mc.Pat.ToString());
+          wr.Write(" => ");
+          PrintExpression(mc.Body, isRightmost && isLastCase, !parensNeeded && isFollowedBySemicolon);
+          i++;
         }
+        if (e.UsesOptionalBraces) { wr.Write(" }"); } else if (parensNeeded) { wr.Write(")"); }
+        // }
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
         if (DafnyOptions.O.DafnyPrintResolvedFile == null && e.OrigUnresolved != null) {
@@ -2842,7 +2865,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
       return parenPairs != 0 && (expr is NameSegment || expr is ExprDotName);
     }
 
-    void PrintCasePattern<VT>(CasePattern<VT> pat) where VT : IVariable {
+    void PrintCasePattern<VT>(CasePattern<VT> pat)
+      where VT : class, IVariable {
       Contract.Requires(pat != null);
       var v = pat.Var;
       if (v != null) {

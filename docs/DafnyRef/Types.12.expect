@@ -1,0 +1,3 @@
+text.dfy(10,27): Error: argument at index 0 ('c') might not be allocated in the two-state function's previous state
+
+Dafny program verifier finished with 3 verified, 1 error

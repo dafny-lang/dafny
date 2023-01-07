@@ -31,13 +31,12 @@ jobs:
     steps:
     - name: OS
       run: echo ${{ runner.os }} ${{ matrix.os }}
-    - uses: actions/setup-python@v1
     - name: Setup dotnet
-      uses: actions/setup-dotnet@v1.9.0
+      uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 6.0.x
     - name: Checkout Dafny
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         submodules: recursive
         path: dafny
@@ -56,8 +55,11 @@ jobs:
         chmod +x bin/z3*
     - name: Build Dafny
       run: dotnet build dafny/Source/Dafny.sln
-    - name: Check
+    - name: Check OnlineTutorial examples
       run: |
         cd dafny/docs
-        PATH=../bin:$PATH ./check-examples OnlineTutorial/[MLTg]*.md || ( echo Tests Failed; exit 1 ) && echo Tests Succeeded
-        echo Complete
+        PATH=../bin:$PATH ./check-examples OnlineTutorial/*.md || ( echo Tests Failed; exit 1 ) && echo Tests Succeeded
+    - name: Check Reference Manual examples
+      run: |
+        cd dafny/docs
+        PATH=../bin:$PATH ./check-examples DafnyRef/*.md || ( echo Tests Failed; exit 1 ) && echo Tests Succeeded

@@ -43,7 +43,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         SymbolTable.Empty(), SignatureAndCompletionTable.Empty(TextDocumentItem), new Dictionary<ImplementationId, ImplementationView>(),
         Array.Empty<Counterexample>(),
         false, Array.Empty<Diagnostic>(),
-        new DocumentVerificationTree(TextDocumentItem)));
+        GetInitialDocumentVerificationTree()));
+    }
+
+    public virtual VerificationTree GetInitialDocumentVerificationTree() {
+      return new DocumentVerificationTree(TextDocumentItem);
     }
 
     /// <summary>
@@ -86,14 +90,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       DocumentTextBuffer textDocumentItem,
       Dafny.Program program,
       IReadOnlyList<Diagnostic> parseAndResolutionDiagnostics,
-      SymbolTable? newSymbolTable,
+      SymbolTable? symbolTable,
       SignatureAndCompletionTable signatureAndCompletionTable,
       IReadOnlyList<Diagnostic> ghostDiagnostics,
       IReadOnlyList<IImplementationTask> verificationTasks,
       List<Counterexample> counterexamples,
       Dictionary<ImplementationId, ImplementationView> implementationIdToView,
       VerificationTree verificationTree)
-      : base(textDocumentItem, program, parseAndResolutionDiagnostics, newSymbolTable, signatureAndCompletionTable, ghostDiagnostics) {
+      : base(textDocumentItem, program, parseAndResolutionDiagnostics, symbolTable, signatureAndCompletionTable, ghostDiagnostics) {
       VerificationTree = verificationTree;
       VerificationTasks = verificationTasks;
       Counterexamples = counterexamples;
@@ -103,6 +107,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         services.GetRequiredService<ILogger<VerificationProgressReporter>>(),
         this,
         services.GetRequiredService<INotificationPublisher>());
+    }
+
+    public override VerificationTree GetInitialDocumentVerificationTree() {
+      return VerificationTree;
     }
 
     public override IdeState ToIdeState(IdeState previousState) {

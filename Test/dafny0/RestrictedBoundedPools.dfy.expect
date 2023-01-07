@@ -7,18 +7,18 @@ RestrictedBoundedPools.dfy(113,4): Error: a forall expression involved in a pred
 RestrictedBoundedPools.dfy(123,4): Error: a forall expression involved in a predicate definition is not allowed to depend on the set of allocated references, but values of 'xs' may contain references (see documentation for 'older' parameters)
 RestrictedBoundedPools.dfy(133,4): Error: a forall expression involved in a predicate definition is not allowed to depend on the set of allocated references, but values of 'xs' may contain references (see documentation for 'older' parameters)
 RestrictedBoundedPools.dfy(155,17): Error: the result of a set comprehension must be finite, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'o'
-RestrictedBoundedPools.dfy(170,9): Error: iset comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'o'
-RestrictedBoundedPools.dfy(174,23): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references, but values of 'o' may contain references (perhaps declare its type, 'Opaque', as 'Opaque(!new)') (see documentation for 'older' parameters)
-RestrictedBoundedPools.dfy(186,23): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references, but values of 'xs' may contain references (see documentation for 'older' parameters)
-RestrictedBoundedPools.dfy(192,17): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references, but values of 'xs' may contain references (see documentation for 'older' parameters)
-RestrictedBoundedPools.dfy(198,23): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references, but values of 'xs' may contain references (see documentation for 'older' parameters)
-RestrictedBoundedPools.dfy(218,9): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'c'
-RestrictedBoundedPools.dfy(222,9): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'c'
-RestrictedBoundedPools.dfy(236,18): Error: a function definition is not allowed to depend on the set of allocated references
-RestrictedBoundedPools.dfy(241,4): Error: a function definition is not allowed to depend on the set of allocated references
-RestrictedBoundedPools.dfy(246,4): Error: a twostate function definition is not allowed to depend on the set of allocated references
+RestrictedBoundedPools.dfy(170,23): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references, but values of 'o' may contain references (perhaps declare its type, 'Opaque', as 'Opaque(!new)') (see documentation for 'older' parameters)
+RestrictedBoundedPools.dfy(182,23): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references, but values of 'xs' may contain references (see documentation for 'older' parameters)
+RestrictedBoundedPools.dfy(188,17): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references, but values of 'xs' may contain references (see documentation for 'older' parameters)
+RestrictedBoundedPools.dfy(194,23): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references, but values of 'xs' may contain references (see documentation for 'older' parameters)
+RestrictedBoundedPools.dfy(206,9): Error: iset comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'o'
+RestrictedBoundedPools.dfy(224,9): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'c'
+RestrictedBoundedPools.dfy(228,9): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'c'
+RestrictedBoundedPools.dfy(242,18): Error: a function definition is not allowed to depend on the set of allocated references
+RestrictedBoundedPools.dfy(247,4): Error: a function definition is not allowed to depend on the set of allocated references
 RestrictedBoundedPools.dfy(252,4): Error: a twostate function definition is not allowed to depend on the set of allocated references
-RestrictedBoundedPools.dfy(271,18): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'x'
-RestrictedBoundedPools.dfy(272,18): Error: map comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'x'
-RestrictedBoundedPools.dfy(286,4): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references, but values of 'zs' may contain references (see documentation for 'older' parameters)
+RestrictedBoundedPools.dfy(258,4): Error: a twostate function definition is not allowed to depend on the set of allocated references
+RestrictedBoundedPools.dfy(277,18): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'x'
+RestrictedBoundedPools.dfy(278,18): Error: map comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'x'
+RestrictedBoundedPools.dfy(292,4): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references, but values of 'zs' may contain references (see documentation for 'older' parameters)
 23 resolution/type errors detected in RestrictedBoundedPools.dfy

@@ -424,13 +424,10 @@ namespace Microsoft.Dafny {
       } else if (stmt is CalcStmt calcStmt) {
         TrCalcStmt(calcStmt, builder, locals, etran);
 
-      } else if (stmt is ConcreteSyntaxStatement) {
-        ConcreteSyntaxStatement s = (ConcreteSyntaxStatement)stmt;
-        TrStmt(s.ResolvedStatement, builder, locals, etran);
-
+      } else if (stmt is NestedMatchStmt nestedMatchStmt) {
+        TrStmt(nestedMatchStmt.Flattened, builder, locals, etran);
       } else if (stmt is MatchStmt matchStmt) {
         TrMatchStmt(matchStmt, builder, locals, etran);
-
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
         var newLocalIds = new List<Bpl.IdentifierExpr>();
@@ -773,7 +770,7 @@ namespace Microsoft.Dafny {
           }
           builder.Add(new Bpl.HavocCmd(stmt.Tok, havocIds));
         }
-        String missingStr = stmt.Context.FillHole(new IdCtx(new KeyValuePair<string, DatatypeCtor>(missingCtor.Name, missingCtor))).AbstractAllHoles()
+        String missingStr = stmt.Context.FillHole(new IdCtx(missingCtor)).AbstractAllHoles()
           .ToString();
         var desc = new PODesc.MatchIsComplete("statement", missingStr);
         b.Add(Assert(stmt.Tok, Bpl.Expr.False, desc));
@@ -1767,8 +1764,8 @@ namespace Microsoft.Dafny {
         }
         ins.Add(etran.TrExpr(receiver));
       } else if (receiver is StaticReceiverExpr stexpr) {
-        if (stexpr.OriginalResolved != null) {
-          TrStmt_CheckWellformed(stexpr.OriginalResolved, builder, locals, etran, true);
+        if (stexpr.ObjectToDiscard != null) {
+          TrStmt_CheckWellformed(stexpr.ObjectToDiscard, builder, locals, etran, true);
         }
       }
 

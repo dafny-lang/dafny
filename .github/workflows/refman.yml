@@ -14,18 +14,17 @@ jobs:
       fail-fast: false
       matrix:
         os: [ macos-latest ]
-        ##os: [ macos-latest, ubuntu-18.04, ubuntu-latest ]
+        ##os: [ macos-latest, ubuntu-latest ]
 
     steps:
     - name: OS
       run: echo ${{ runner.os }} ${{ matrix.os }}
-    - uses: actions/setup-python@v1
     - name: Setup dotnet
-      uses: actions/setup-dotnet@v1.9.0
+      uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 6.0.x
     - name: Checkout Dafny
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         submodules: recursive
         path: dafny
@@ -79,7 +78,7 @@ jobs:
         make -C dafny/docs/DafnyRef
     - name: Check
       run: ls -la dafny/docs/DafnyRef/DafnyRef.pdf
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       if: always()
       with:
         name: DafnyRef

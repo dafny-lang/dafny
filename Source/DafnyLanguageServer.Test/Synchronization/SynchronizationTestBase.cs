@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   public class SynchronizationTestBase : DafnyLanguageServerTestBase {
-    protected ILanguageClient Client { get; private set; }
+    protected ILanguageClient Client { get; set; }
 
     protected Task ApplyChangeAndWaitCompletionAsync(TextDocumentItem documentItem, Range range, string newText) {
       return ApplyChangesAndWaitCompletionAsync(
