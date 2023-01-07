@@ -238,7 +238,7 @@ module SomeModule {
     }
 
     IEnumerable<BoogieProgram> GetBoogie(string dafnyProgramText) {
-      var module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
+      var module = new LiteralModuleDecl(new DefaultModuleDef(), null);
       var fullFilePath = "foo";
       Microsoft.Dafny.Type.ResetScopes();
       var builtIns = new BuiltIns();

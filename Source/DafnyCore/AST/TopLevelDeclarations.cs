@@ -938,8 +938,8 @@ public class ModuleDefinition : INode, IDeclarationOrUsage, INamedRegion, IAttri
   public override IEnumerable<INode> Children => (Attributes != null ? new List<INode> { Attributes } : Enumerable.Empty<INode>()).Concat(TopLevelDecls);
 }
 
-public class DefaultModuleDecl : ModuleDefinition {
-  public DefaultModuleDecl()
+public class DefaultModuleDef : ModuleDefinition {
+  public DefaultModuleDef()
     : base(Token.NoToken, "_module", new List<IToken>(), false, false, null, null, null, true, true, true) {
   }
   public override bool IsDefaultModule {

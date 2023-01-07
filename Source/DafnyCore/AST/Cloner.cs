@@ -30,8 +30,8 @@ namespace Microsoft.Dafny {
 
     public virtual ModuleDefinition CloneModuleDefinition(ModuleDefinition m, string name) {
       ModuleDefinition nw;
-      if (m is DefaultModuleDecl) {
-        nw = new DefaultModuleDecl();
+      if (m is DefaultModuleDef) {
+        nw = new DefaultModuleDef();
       } else {
         nw = new ModuleDefinition(Tok(m.tok), name, m.PrefixIds, m.IsAbstract, m.IsFacade,
           m.RefinementQId, m.EnclosingModule, CloneAttributes(m.Attributes),

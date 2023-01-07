@@ -106,6 +106,7 @@ public class Compilation {
     }
 
     try {
+
       var documentAfterResolution = await documentLoader.LoadAsync(parsedDocument, cancellationSource.Token);
 
       // TODO, let gutter icon publications also used the published CompilationView.

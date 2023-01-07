@@ -16,7 +16,7 @@ namespace DafnyTestGeneration {
     /// Parse a string read (from a certain file) to a Dafny Program
     /// </summary>
     public static Program? Parse(string source, string fileName = "") {
-      ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
+      ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDef(), null);
       var builtIns = new BuiltIns();
       var reporter = new ConsoleErrorReporter();
       var success = Parser.Parse(source, fileName, fileName, null, module, builtIns,

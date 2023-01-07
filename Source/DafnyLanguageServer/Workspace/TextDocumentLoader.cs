@@ -84,13 +84,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       CancellationToken cancellationToken) {
 
       var textDocument = documentAfterParsing.TextDocumentItem;
-      var program = documentAfterParsing.Program;
+      var parsedProgram = documentAfterParsing.Program;
+      var clonedProgram = new Program(parsedProgram.Name,
+        new LiteralModuleDecl(new Cloner().CloneModuleDefinition(parsedProgram.DefaultModuleDef, "_default"), null),
+        parsedProgram.BuiltIns, parsedProgram.Reporter);
 
-      var compilationUnit = symbolResolver.ResolveSymbols(textDocument, program, out _, cancellationToken);
-      var symbolTable = symbolTableFactory.CreateFrom(program, compilationUnit, cancellationToken);
-      var errorReporter = (DiagnosticErrorReporter)program.Reporter;
+      var compilationUnit = symbolResolver.ResolveSymbols(textDocument, clonedProgram, out _, cancellationToken);
+      var symbolTable = symbolTableFactory.CreateFrom(clonedProgram, compilationUnit, cancellationToken);
+      var errorReporter = (DiagnosticErrorReporter)clonedProgram.Reporter;
 
-      var newSymbolTable = errorReporter.HasErrors ? null : symbolTableFactory.CreateFrom(program, documentAfterParsing, cancellationToken);
+      var newSymbolTable = errorReporter.HasErrors ? null : symbolTableFactory.CreateFrom(clonedProgram, documentAfterParsing, cancellationToken);
       if (errorReporter.HasErrors) {
         statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionFailed);
       } else {
@@ -100,7 +103,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(symbolTable, cancellationToken).ToArray();
 
       return new DocumentAfterResolution(textDocument,
-        program,
+        clonedProgram,
         errorReporter.GetDiagnostics(textDocument.Uri),
         newSymbolTable,
         symbolTable,

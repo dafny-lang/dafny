@@ -21,7 +21,7 @@ namespace DafnyPipeline.Test {
       DafnyOptions.Install(options);
 
       var programString = @"trait Trait<A, B> { }";
-      ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
+      ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDef(), null);
       Microsoft.Dafny.Type.ResetScopes();
       BuiltIns builtIns = new BuiltIns();
       Parser.Parse(programString, "virtual", "virtual", module, builtIns, reporter);

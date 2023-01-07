@@ -170,7 +170,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(programName != null);
       Contract.Requires(files != null);
       program = null;
-      ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
+      ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDef(), null);
       BuiltIns builtIns = new BuiltIns();
 
       foreach (DafnyFile dafnyFile in files) {
