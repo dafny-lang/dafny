@@ -2569,12 +2569,13 @@ namespace Microsoft.Dafny.Compilers {
       return !m.IsStatic || m.EnclosingClass.TypeArgs.Count != 0;
     }
 
-
-    void TrCasePatternOpt<VT>(CasePattern<VT> pat, Expression rhs, ConcreteSyntaxTree wr, bool inLetExprBody) where VT : IVariable {
+    void TrCasePatternOpt<VT>(CasePattern<VT> pat, Expression rhs, ConcreteSyntaxTree wr, bool inLetExprBody)
+      where VT : class, IVariable {
       TrCasePatternOpt(pat, rhs, null, rhs.Type, rhs.tok, wr, inLetExprBody);
     }
 
-    void TrCasePatternOpt<VT>(CasePattern<VT> pat, Expression rhs, string rhs_string, Type rhsType, IToken rhsTok, ConcreteSyntaxTree wr, bool inLetExprBody) where VT : IVariable {
+    void TrCasePatternOpt<VT>(CasePattern<VT> pat, Expression rhs, string rhs_string, Type rhsType, IToken rhsTok, ConcreteSyntaxTree wr, bool inLetExprBody)
+      where VT : class, IVariable {
       Contract.Requires(pat != null);
       Contract.Requires(pat.Var != null || rhs != null || rhs_string != null);
       Contract.Requires(rhs != null || rhs_string != null);
@@ -2672,6 +2673,8 @@ namespace Microsoft.Dafny.Compilers {
         }
         TrExprOpt(e.Els, resultType, els, accumulatorVar);
 
+      } else if (expr is NestedMatchExpr nestedMatchExpr) {
+        TrExprOpt(nestedMatchExpr.Flattened, resultType, wr, accumulatorVar);
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
         //   var _source = E;
@@ -3368,10 +3371,8 @@ namespace Microsoft.Dafny.Compilers {
             EmitMultiSelect(s0, tupleTypeArgsList, wr, tup, L);
           }
         }
-      } else if (stmt is ConcreteSyntaxStatement) {
-        var s = (ConcreteSyntaxStatement)stmt;
-        TrStmt(s.ResolvedStatement, wr);
-
+      } else if (stmt is NestedMatchStmt nestedMatchStmt) {
+        TrStmt(nestedMatchStmt.Flattened, wr, wStmts);
       } else if (stmt is MatchStmt) {
         MatchStmt s = (MatchStmt)stmt;
         // Type source = e;
@@ -3552,7 +3553,6 @@ namespace Microsoft.Dafny.Compilers {
         List<ComprehensionExpr.BoundedPool>/*?*/ bounds = null, List<BoundVar>/*?*/ boundVars = null, int boundIndex = 0) {
       Contract.Requires(bound != null);
       Contract.Requires(bounds == null || (boundVars != null && bounds.Count == boundVars.Count && 0 <= boundIndex && boundIndex < bounds.Count));
-      Contract.Requires(collectionWriter != null);
 
       collectionWriter = new ConcreteSyntaxTree();
 
@@ -5122,6 +5122,8 @@ namespace Microsoft.Dafny.Compilers {
             EmitReturnExpr(e.Body, e.Body.Type, true, w);
           }
         }
+      } else if (expr is NestedMatchExpr nestedMatchExpr) {
+        TrExpr(nestedMatchExpr.Flattened, wr, inLetExprBody, wStmts);
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
         // ((System.Func<SourceType, TargetType>)((SourceType _source) => {

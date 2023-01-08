@@ -3,13 +3,21 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public class UnchangedExpr : Expression {
+public class UnchangedExpr : Expression, ICloneable<UnchangedExpr> {
   public readonly List<FrameExpression> Frame;
   public readonly string/*?*/ At;
   [FilledInDuringResolution] public Label/*?*/ AtLabel;  // after that, At==null iff AtLabel==null
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Frame != null);
+  }
+
+  public UnchangedExpr Clone(Cloner cloner) {
+    var result = new UnchangedExpr(cloner.Tok(tok), Frame.ConvertAll(cloner.CloneFrameExpr), At);
+    if (cloner.CloneResolvedFields) {
+      result.AtLabel = AtLabel;
+    }
+    return result;
   }
 
   public UnchangedExpr(IToken tok, List<FrameExpression> frame, string/*?*/ at)

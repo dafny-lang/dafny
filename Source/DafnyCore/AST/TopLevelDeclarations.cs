@@ -379,7 +379,7 @@ public class LiteralModuleDecl : ModuleDecl {
   public LiteralModuleDecl(ModuleDefinition module, ModuleDefinition parent)
     : base(module.tok, module.Name, parent, false, false) {
     ModuleDef = module;
-    RangeToken = module.GetRangeToken();
+    RangeToken = module.RangeToken;
     TokenWithTrailingDocString = module.TokenWithTrailingDocString;
     BodyStartTok = module.BodyStartTok;
     BodyEndTok = module.BodyEndTok;
@@ -1340,6 +1340,8 @@ public class ArrowTypeDecl : ClassDecl {
 public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICallable {
   public override bool CanBeRevealed() { return true; }
   public readonly List<DatatypeCtor> Ctors;
+
+  [FilledInDuringResolution] public Dictionary<string, DatatypeCtor> ConstructorsByName { get; set; }
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(cce.NonNullElements(Ctors));
@@ -1380,7 +1382,7 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
   bool ICodeContext.IsGhost { get { return true; } }
   List<TypeParameter> ICodeContext.TypeArgs { get { return TypeArgs; } }
   List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
-  ModuleDefinition ICodeContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
+  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
   bool ICodeContext.MustReverify { get { return false; } }
   bool ICodeContext.AllowsNontermination { get { return false; } }
   IToken ICallable.Tok { get { return tok; } }
@@ -1540,11 +1542,10 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType {
 /// <summary>
 /// An ICodeContext is an ICallable or a NoContext.
 /// </summary>
-public interface ICodeContext {
+public interface ICodeContext : IASTVisitorContext {
   bool IsGhost { get; }
   List<TypeParameter> TypeArgs { get; }
   List<Formal> Ins { get; }
-  ModuleDefinition EnclosingModule { get; }  // to be called only after signature-resolution is complete
   bool MustReverify { get; }
   string FullSanitizedName { get; }
   bool AllowsNontermination { get; }
@@ -1658,7 +1659,7 @@ public class NoContext : ICodeContext {
   bool ICodeContext.IsGhost { get { return true; } }
   List<TypeParameter> ICodeContext.TypeArgs { get { return new List<TypeParameter>(); } }
   List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
-  ModuleDefinition ICodeContext.EnclosingModule { get { return Module; } }
+  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return Module; } }
   bool ICodeContext.MustReverify { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
   public string FullSanitizedName { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
   public bool AllowsNontermination { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
@@ -1806,7 +1807,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext {
     get { return _inferredDecr; }
   }
 
-  ModuleDefinition ICodeContext.EnclosingModule { get { return this.EnclosingModuleDefinition; } }
+  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return this.EnclosingModuleDefinition; } }
   bool ICodeContext.MustReverify { get { return false; } }
   public bool AllowsNontermination {
     get {
@@ -1956,8 +1957,8 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
 
   string RedirectingTypeDecl.Name { get { return Name; } }
   IToken RedirectingTypeDecl.tok { get { return tok; } }
-  IEnumerable<IToken> RedirectingTypeDecl.OwnedTokens => GetOwnedTokens();
-  IToken RedirectingTypeDecl.StartToken => GetStartToken();
+  IEnumerable<IToken> RedirectingTypeDecl.OwnedTokens => OwnedTokens;
+  IToken RedirectingTypeDecl.StartToken => StartToken;
   Attributes RedirectingTypeDecl.Attributes { get { return Attributes; } }
   ModuleDefinition RedirectingTypeDecl.Module { get { return EnclosingModuleDefinition; } }
   BoundVar RedirectingTypeDecl.Var { get { return Var; } }
@@ -1971,7 +1972,7 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
   }
   List<TypeParameter> ICodeContext.TypeArgs { get { return new List<TypeParameter>(); } }
   List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
-  ModuleDefinition ICodeContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
+  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
   bool ICodeContext.MustReverify { get { return false; } }
   bool ICodeContext.AllowsNontermination { get { return false; } }
   IToken ICallable.Tok { get { return tok; } }
@@ -2050,8 +2051,8 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl {
 
   string RedirectingTypeDecl.Name { get { return Name; } }
   IToken RedirectingTypeDecl.tok { get { return tok; } }
-  IEnumerable<IToken> RedirectingTypeDecl.OwnedTokens => GetOwnedTokens();
-  IToken RedirectingTypeDecl.StartToken => GetStartToken();
+  IEnumerable<IToken> RedirectingTypeDecl.OwnedTokens => OwnedTokens;
+  IToken RedirectingTypeDecl.StartToken => StartToken;
   Attributes RedirectingTypeDecl.Attributes { get { return Attributes; } }
   ModuleDefinition RedirectingTypeDecl.Module { get { return EnclosingModuleDefinition; } }
   BoundVar RedirectingTypeDecl.Var { get { return null; } }
@@ -2065,7 +2066,7 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl {
   }
   List<TypeParameter> ICodeContext.TypeArgs { get { return TypeArgs; } }
   List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
-  ModuleDefinition ICodeContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
+  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
   bool ICodeContext.MustReverify { get { return false; } }
   bool ICodeContext.AllowsNontermination { get { return false; } }
   IToken ICallable.Tok { get { return tok; } }
