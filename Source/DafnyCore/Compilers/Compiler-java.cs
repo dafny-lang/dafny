@@ -983,7 +983,12 @@ namespace Microsoft.Dafny.Compilers {
             if (targetType.IsBoolType) {
               typeDescriptorExpr = $"{DafnyTypeDescriptor}.booleanWithDefault({w ?? "false"})";
             } else if (targetType.IsCharType) {
-              typeDescriptorExpr = $"{DafnyTypeDescriptor}.charWithDefault({w ?? CharType.DefaultValueAsString})";
+              if (UnicodeCharEnabled) {
+                var defaultValue = w ?? $"dafny.CodePoint.valueOf({CharType.DefaultValueAsString})";
+                typeDescriptorExpr = $"{DafnyTypeDescriptor}.unicodeCharWithDefault({defaultValue})";
+              } else {
+                typeDescriptorExpr = $"{DafnyTypeDescriptor}.charWithDefault({w ?? CharType.DefaultValueAsString})";
+              }
             } else if (targetType.IsTypeParameter) {
               typeDescriptorExpr = TypeDescriptor(targetType, wr, enclosingTypeDecl.tok);
             } else {
