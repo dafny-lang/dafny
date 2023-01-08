@@ -58,6 +58,8 @@ namespace Microsoft.Dafny.Compilers {
     const string DafnySetClass = $"{DafnyRuntimeModule}.Set";
     const string DafnyMultiSetClass = $"{DafnyRuntimeModule}.MultiSet";
     const string DafnySeqClass = $"{DafnyRuntimeModule}.Seq";
+    private string DafnySeqMakerFunction => UnicodeCharEnabled ? $"{DafnyRuntimeModule}.SeqWithoutIsStrInference" : DafnySeqClass;
+
     const string DafnyArrayClass = $"{DafnyRuntimeModule}.Array";
     const string DafnyMapClass = $"{DafnyRuntimeModule}.Map";
     const string DafnyDefaults = $"{DafnyRuntimeModule}.defaults";
@@ -684,7 +686,7 @@ namespace Microsoft.Dafny.Compilers {
         case BoolType:
           return "False";
         case CharType:
-          return CharType.DefaultValueAsString;
+          return UnicodeCharEnabled ? $"{DafnyRuntimeModule}.CodePoint({CharType.DefaultValueAsString})" : CharType.DefaultValueAsString;
         case IntType or BigOrdinalType or BitvectorType:
           return "int(0)";
         case RealType:
@@ -1000,14 +1002,11 @@ namespace Microsoft.Dafny.Compilers {
           break;
         case StringLiteralExpr str:
           if (UnicodeCharEnabled) {
-            wr.Write($"{DafnyRuntimeModule}.Seq(map({DafnyRuntimeModule}.CodePoint, ");
+            wr.Write($"{DafnySeqMakerFunction}(map({DafnyRuntimeModule}.CodePoint, ");
             TrStringLiteral(str, wr);
-            // We pass str = None if --unicode-char is true because we no longer
-            // attempt to dynamically track what sequence values are actually strings
-            // with that flag enabled, and we don't want Seq trying to be clever about it.
-            wr.Write("), isStr = None)");
+            wr.Write("))");
           } else {
-            wr.Write($"{DafnyRuntimeModule}.Seq(");
+            wr.Write($"{DafnySeqMakerFunction}(");
             TrStringLiteral(str, wr);
             wr.Write(")");
           }
@@ -1328,19 +1327,20 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitSeqSelectRange(Expression source, Expression lo, Expression hi, bool fromArray,
       bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      wr.Write($"{DafnySeqClass}(");
+      wr.Write($"{DafnySeqMakerFunction}(");
       TrParenExpr(source, wr, inLetExprBody, wStmts);
       wr.Write("[");
       if (lo != null) { TrExpr(lo, wr, inLetExprBody, wStmts); }
       wr.Write(":");
       if (hi != null) { TrExpr(hi, wr, inLetExprBody, wStmts); }
+
       wr.Write(":])");
     }
 
     protected override void EmitSeqConstructionExpr(SeqConstructionExpr expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       ConcreteSyntaxTree valueExpression;
       var range = $"range({Expr(expr.N, inLetExprBody, wStmts)})";
-      wr.Write(DafnySeqClass);
+      wr.Write(DafnySeqMakerFunction);
       if (expr.Initializer is LambdaExpr lam) {
         valueExpression = Expr(lam.Body, inLetExprBody, wStmts);
         var binder = IdProtect(lam.BoundVars[0].CompileName);
@@ -1480,7 +1480,7 @@ namespace Microsoft.Dafny.Compilers {
         case BinaryExpr.ResolvedOpcode.Add:
         case BinaryExpr.ResolvedOpcode.Concat:
           if (resultType.IsCharType) {
-            staticCallString = $"{DafnyRuntimeModule}.plus_char";
+            staticCallString = UnicodeCharEnabled ? $"{DafnyRuntimeModule}.plus_unicode_char" : $"{DafnyRuntimeModule}.plus_char";
           } else {
             if (resultType.IsNumericBased() || resultType.IsBitVectorType || resultType.IsBigOrdinalType) {
               truncateResult = true;
@@ -1494,7 +1494,7 @@ namespace Microsoft.Dafny.Compilers {
         case BinaryExpr.ResolvedOpcode.MultiSetDifference:
         case BinaryExpr.ResolvedOpcode.MapSubtraction:
           if (resultType.IsCharType) {
-            staticCallString = $"{DafnyRuntimeModule}.minus_char";
+            staticCallString = UnicodeCharEnabled ? $"{DafnyRuntimeModule}.minus_unicode_char" : $"{DafnyRuntimeModule}.minus_char";
           } else {
             if (resultType.IsNumericBased() || resultType.IsBitVectorType || resultType.IsBigOrdinalType) {
               truncateResult = true;
@@ -1661,7 +1661,7 @@ namespace Microsoft.Dafny.Compilers {
         SeqType or MultiSetType => ("[", "]"),
         _ => ("{", "}")
       };
-      wr.Write(TypeHelperName(ct));
+      wr.Write(ct is SeqType ? DafnySeqMakerFunction : TypeHelperName(ct));
       wr.Write("(");
       wr.Write(open);
       TrExprList(elements, wr, inLetExprBody, wStmts, parens: false);

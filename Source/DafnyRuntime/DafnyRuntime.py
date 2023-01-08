@@ -106,7 +106,7 @@ class Seq(tuple):
         if __iterable is None:
             __iterable = []
         if isStr is None:
-            self.isStr = False
+            self.isStr = None
         else:
             self.isStr = isStr \
                         or isinstance(__iterable, str) \
@@ -137,7 +137,11 @@ class Seq(tuple):
         return '[' + ', '.join(map(string_of, self)) + ']'
 
     def __add__(self, other):
-        return Seq(super().__add__(other), isStr=self.isStr and other.isStr)
+        if self.isStr is None or other.isStr is None:
+            isStr = None
+        else:
+            isStr = self.isStr and other.isStr
+        return Seq(super().__add__(other), isStr=isStr)
 
     def __getitem__(self, key):
         if isinstance(key, slice):
@@ -158,6 +162,10 @@ class Seq(tuple):
 
     def __le__(self, other):
         return len(self) <= len(other) and self == other[:len(self)]
+
+# Convenience for translation when --unicode-char is enabled
+def SeqWithoutIsStrInference(__iterable = None):
+    return Seq(__iterable, isStr = None)
 
 class Array:
     def __init__(self, initValue, *dims):
@@ -393,6 +401,12 @@ def plus_char(a, b):
 
 def minus_char(a, b):
     return chr(ord(a) - ord(b))
+
+def plus_unicode_char(a, b):
+    return CodePoint(plus_char(a, b))
+
+def minus_unicode_char(a, b):
+    return CodePoint(minus_char(a, b))
 
 def euclidian_division(a, b):
     if 0 <= a:
