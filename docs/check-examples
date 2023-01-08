@@ -125,6 +125,14 @@ do
   if [ "$?" == "0" ]; then 
       ##echo COMMAND "$line"
       contents=( `echo "$line" | sed -e 's/[^<]*<!--//' -e 's/-->//'` )
+      echo "$line" | grep -e '%default' > /dev/null
+      if [ "$?" == "0" ]; then 
+        default=1; 
+        echo "$line" | grep -e '%useHeadings' > /dev/null
+        if [ "$?" == "0" ]; then useHeadings=1; fi
+        defaultCommand=${contents[0]}
+        continue
+      fi
       command=${contents[0]}
       expect=${contents[1]}
       if [ "$expect" == "%use" -o "$expect" == "%options" ]; then
@@ -138,19 +146,6 @@ do
       fi
       if [ "${contents[2]}" == "%use" ]; then
         use=${contents[3]}
-      fi
-      if [ -z "$command" ]; then
-        command="$defaultCommand"
-        if [ -z "$command" ]; then
-          echo "NO COMMAND GIVEN $n $line"
-          FAIL=1
-        fi
-      fi
-      echo "$line" | grep -e '%default' > /dev/null
-      if [ "$?" == "0" ]; then 
-        default=1; 
-        echo "$line" | grep -e '%useHeadings' > /dev/null
-        if [ "$?" == "0" ]; then useHeadings=1; fi
       fi
   fi
   ## Check for the marker
@@ -172,6 +167,13 @@ do
       touch $text
     else
       ## End of backtick block, so check the text
+      if [ -z "$command" ]; then
+        command="$defaultCommand"
+        if [ -z "$command" ]; then
+          echo "NO COMMAND GIVEN $n $line"
+          FAIL=1
+        fi
+      fi
       inblock=0
       if [ -n "$use" ]; then
         ##echo " " USING $use
@@ -213,6 +215,7 @@ do
           ec=0
           dOptions=$legacyOptions
           if [ "$useHeadings" == "1" ]; then ec=3; fi
+          if [ "$defaultCommand" == "%check-resolve" ]; then ec=2 ; fi
         fi
         if [ "$lang" != "dafny" ]; then
           echo EXPECTED A dafny BLOCK, NOT $lang
@@ -315,12 +318,10 @@ do
          echo UNKNOWN TEST COMMAND $command
          FAIL=1
       fi
-      if [ "$default" == "0" ]; then
-        use=
-        command=
-        expect=
-        options=( )
-      fi
+      use=
+      command=
+      expect=
+      options=( )
     fi
   elif [ "$inblock" == "1" ]; then
     ## If in a backtick block, save the text to the temporary file

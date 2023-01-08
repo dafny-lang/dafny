@@ -424,13 +424,10 @@ namespace Microsoft.Dafny {
       } else if (stmt is CalcStmt calcStmt) {
         TrCalcStmt(calcStmt, builder, locals, etran);
 
-      } else if (stmt is ConcreteSyntaxStatement) {
-        ConcreteSyntaxStatement s = (ConcreteSyntaxStatement)stmt;
-        TrStmt(s.ResolvedStatement, builder, locals, etran);
-
+      } else if (stmt is NestedMatchStmt nestedMatchStmt) {
+        TrStmt(nestedMatchStmt.Flattened, builder, locals, etran);
       } else if (stmt is MatchStmt matchStmt) {
         TrMatchStmt(matchStmt, builder, locals, etran);
-
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
         var newLocalIds = new List<Bpl.IdentifierExpr>();

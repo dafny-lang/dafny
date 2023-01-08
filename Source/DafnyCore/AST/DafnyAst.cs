@@ -46,10 +46,11 @@ namespace Microsoft.Dafny {
       afterChildren ??= node => { };
 
       var visited = new HashSet<INode>();
-      var toVisit = new Stack<INode>();
-      toVisit.Push(this);
+      var toVisit = new LinkedList<INode>();
+      toVisit.AddFirst(this);
       while (toVisit.Any()) {
-        var current = toVisit.Pop();
+        var current = toVisit.First();
+        toVisit.RemoveFirst();
         if (!visited.Add(current)) {
           continue;
         }
@@ -58,11 +59,17 @@ namespace Microsoft.Dafny {
           continue;
         }
 
+        var nodeAfterChildren = toVisit.First;
         foreach (var child in current.Children) {
           if (child == null) {
             throw new InvalidOperationException($"Object of type {current.GetType()} has null child");
           }
-          toVisit.Push(child);
+
+          if (nodeAfterChildren == null) {
+            toVisit.AddLast(child);
+          } else {
+            toVisit.AddBefore(nodeAfterChildren, child);
+          }
         }
 
         afterChildren(current);
@@ -114,9 +121,8 @@ namespace Microsoft.Dafny {
                 UpdateStartEndToken(node.EndToken);
               } else {
                 UpdateStartEndToken(node.tok);
+                node.Children.Iter(UpdateStartEndTokRecursive);
               }
-
-              node.Children.Iter(UpdateStartEndTokRecursive);
             }
 
             UpdateStartEndTokRecursive(this);
