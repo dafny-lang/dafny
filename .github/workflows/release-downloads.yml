@@ -26,15 +26,15 @@ jobs:
           osn: 'win'
     # There is no hosted environment for Unbuntu 14.04 or for debian
 
-    # Java is installed by default, but we need to select 18
+    # Java is installed by default, but we need to select 19
 
     steps:
     - name: OS
       run: echo ${{ runner.os }} ${{ matrix.os }}
-    - name: Set up JDK 18
+    - name: Set up JDK 19
       uses: actions/setup-java@v3
       with:
-        java-version: 18
+        java-version: 19
         distribution: corretto
     - name: Download ${{matrix.os}} releases
       uses: dsaltares/fetch-gh-release-asset@master

@@ -76,13 +76,13 @@ jobs:
       if: matrix.target-language-version == 'oldest'
       uses: actions/setup-java@v3
       with:
-        java-version: 1.8
+        java-version: 8
         distribution: corretto
     - name: Set up newest supported JDK
       if: matrix.target-language-version == 'newest'
       uses: actions/setup-java@v3
       with:
-        java-version: 18
+        java-version: 19
         distribution: corretto
     - name: Upgrade outdated pip
       run: python -m pip install --upgrade pip
