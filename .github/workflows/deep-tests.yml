@@ -1,6 +1,11 @@
 
 # This workflow includes more expensive tests than what is run on every PR, that are unlikely to break on most changes.
 # It also publishes a nightly release.
+#
+# The if at the beginning of each job terminates the workflow immediately on any repo (like a fork) that is not the main
+# dafny-lang/dafny repo. This stops such forks from running this workflow and failing (for lack of a secret) the attempt to
+# publish a nightly build themselves.
+
 name: Nightly test and release workflow
 
 on:
@@ -13,33 +18,32 @@ on:
 
 jobs:
   deep-integration-tests:
+    if: github.repository_owner == 'dafny-lang'
     uses: ./.github/workflows/integration-tests-reusable.yml
     with:
       all_platforms: true
       num_shards: 5
 
   determine-vars:
+    if: github.repository_owner == 'dafny-lang'
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout Dafny
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ inputs.sha }}
 
       - name: Get short sha
-        id: short-sha
-        run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
+        run: echo "sha_short=`git rev-parse --short HEAD`" >> $GITHUB_ENV
 
       - name: Get current date
-        id: date
-        run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
+        run: echo "date=`date +'%Y-%m-%d'`" >> $GITHUB_ENV
 
     outputs:
-      short-sha: ${{ steps.short-sha.outputs.sha_short }}
-      date: ${{ steps.date.outputs.date }}
-      name: nightly-${{ steps.date.outputs.date }}-${{ steps.short-sha.outputs.sha_short }}
+      name: nightly-${{ env.date }}-${{ env.sha_short }}
 
   publish-release:
+    if: github.repository_owner == 'dafny-lang'
     uses: ./.github/workflows/publish-release-reusable.yml
     needs: [deep-integration-tests, determine-vars]
     with:
@@ -48,7 +52,7 @@ jobs:
       tag_name: nightly
       release_nuget: true
       draft: false
-      release_notes: "This is an automatically published nightly release. This release is not as stable as versioned releases and does not contain release notes."
+      release_notes: "This is an automatically published nightly release. This release may not be as stable as versioned releases and does not contain release notes."
       prerelease: true
     secrets:
       nuget_api_key: ${{ secrets.NUGET_API_KEY }}
