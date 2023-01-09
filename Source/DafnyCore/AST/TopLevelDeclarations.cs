@@ -32,15 +32,15 @@ public abstract class Declaration : INode, INamedRegion, IAttributeBearingDeclar
 
   private bool scopeIsInherited = false;
 
-  public virtual IEnumerable<AssumptionDescription> Assumptions() {
+  public override IEnumerable<AssumptionDescription> Assumptions() {
     if (Attributes.Contains(Attributes, "axiom")) {
-      yield return AssumptionDescription.AxiomAttributeAssumption;
+      yield return AssumptionDescription.HasAxiomAttribute;
     }
 
     if (Attributes.Find(Attributes, "verify") is Attributes va &&
         va.Args.Count == 1 && Expression.IsBoolLiteral(va.Args[0], out var verify) &&
         verify == false) {
-      yield return AssumptionDescription.VerifyFalseAssumption;
+      yield return AssumptionDescription.HasVerifyFalseAttribute;
     }
   }
 
@@ -1216,7 +1216,7 @@ public class TraitDecl : ClassDecl {
     if (Attributes.Find(Attributes, "termination") is Attributes ta &&
         ta.Args.Count == 1 && Expression.IsBoolLiteral(ta.Args[0], out var termCheck) &&
         termCheck == false) {
-      yield return AssumptionDescription.TerminationFalse;
+      yield return AssumptionDescription.HasTerminationFalseAttribute;
     }
   }
 }

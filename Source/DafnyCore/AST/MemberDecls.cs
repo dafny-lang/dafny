@@ -479,18 +479,6 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext {
       yield return a;
     }
 
-    if (DeepChildren().Any(n => n is AssumeStmt)) {
-      yield return AssumptionDescription.AssumeInBody;
-    }
-
-    if (DeepChildren().Any(n => n is ForallStmt forallStmt && forallStmt.Body is null)) {
-      yield return AssumptionDescription.ForallWithoutBody;
-    }
-
-    if (DeepChildren().Any(n => n is OneBodyLoopStmt loopStmt && loopStmt.Body is null)) {
-      yield return AssumptionDescription.LoopWithoutBody;
-    }
-
     if (Body is null && HasPostcondition && !EnclosingClass.EnclosingModuleDefinition.IsAbstract) {
       yield return AssumptionDescription.NoBody(IsGhost);
     }
@@ -504,8 +492,15 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext {
     }
 
     if (AllowsNontermination) {
-      yield return AssumptionDescription.DecreasesStar;
+      yield return AssumptionDescription.MayNotTerminate;
     }
+
+    foreach (var c in Descendants()) {
+      foreach (var a in c.Assumptions()) {
+        yield return a;
+      }
+    }
+
   }
 
   public override IEnumerable<Expression> SubExpressions {

@@ -48,10 +48,6 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
       yield return a;
     }
 
-    if (DeepChildren().Any(n => n is AssumeStmt)) {
-      yield return AssumptionDescription.AssumeInBody;
-    }
-
     if (Body is null && HasPostcondition && !EnclosingClass.EnclosingModuleDefinition.IsAbstract) {
       yield return AssumptionDescription.NoBody(IsGhost);
     }
@@ -63,6 +59,13 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
     if (Attributes.Contains(Attributes, "extern") && HasPrecondition) {
       yield return AssumptionDescription.ExternWithPrecondition;
     }
+
+    foreach (var c in Descendants()) {
+      foreach (var a in c.Assumptions()) {
+        yield return a;
+      }
+    }
+
   }
 
   [FilledInDuringResolution] public bool IsRecursive;

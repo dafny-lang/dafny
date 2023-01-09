@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
@@ -31,6 +32,12 @@ public abstract class OneBodyLoopStmt : LoopStmt {
       if (Body != null) {
         yield return Body;
       }
+    }
+  }
+
+  public override IEnumerable<AssumptionDescription> Assumptions() {
+    if (Body is null) {
+      yield return AssumptionDescription.LoopWithoutBody;
     }
   }
 }

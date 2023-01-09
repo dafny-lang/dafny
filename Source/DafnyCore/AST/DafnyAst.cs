@@ -16,6 +16,7 @@ using System.Linq;
 using System.Diagnostics;
 using System.Threading;
 using Microsoft.Boogie;
+using Microsoft.Dafny.Auditor;
 using Action = System.Action;
 
 namespace Microsoft.Dafny {
@@ -41,8 +42,12 @@ namespace Microsoft.Dafny {
     /// </summary>
     public abstract IEnumerable<INode> Children { get; }
 
-    public IEnumerable<INode> DeepChildren() {
-      return Children.Concat(Children.SelectMany(n => n.DeepChildren()));
+    public IEnumerable<INode> Descendants() {
+      return Children.Concat(Children.SelectMany(n => n.Descendants()));
+    }
+
+    public virtual IEnumerable<AssumptionDescription> Assumptions() {
+      return Enumerable.Empty<AssumptionDescription>();
     }
 
     public ISet<INode> Visit(Func<INode, bool> beforeChildren = null, Action<INode> afterChildren = null) {

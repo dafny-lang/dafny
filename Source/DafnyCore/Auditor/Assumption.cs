@@ -5,11 +5,11 @@ using System.Runtime.CompilerServices;
 namespace Microsoft.Dafny.Auditor;
 
 public record AssumptionDescription(string issue, string mitigation, bool isExplicit) {
-  public static AssumptionDescription AxiomAttributeAssumption = new(
+  public static AssumptionDescription HasAxiomAttribute = new(
     issue: "Declaration has explicit [{:axiom}] attribute.",
     mitigation: "Provide a proof or test.",
     isExplicit: true);
-  public static AssumptionDescription VerifyFalseAssumption = new(
+  public static AssumptionDescription HasVerifyFalseAttribute = new(
     issue: "Declaration has [{:verify false}] attribute.",
     mitigation: "Remove and prove if possible.",
     isExplicit: false);
@@ -21,15 +21,15 @@ public record AssumptionDescription(string issue, string mitigation, bool isExpl
     issue: "Declaration with [{:extern}] has a ensures clause.",
     mitigation: "Test external callee (maybe with [/testContracts]).",
     isExplicit: false);
-  public static AssumptionDescription AssumeInBody = new(
+  public static AssumptionDescription AssumeStatement = new(
     issue: "Definition has [assume] statement in body.",
     mitigation: "Replace with [assert] and prove or add [{:axiom}].",
     isExplicit: false);
-  public static AssumptionDescription DecreasesStar = new(
+  public static AssumptionDescription MayNotTerminate = new(
     issue: "Method may not terminate (uses [decreases *]).",
     mitigation: "Provide a valid [decreases] clause.",
     isExplicit: false);
-  public static AssumptionDescription TerminationFalse = new(
+  public static AssumptionDescription HasTerminationFalseAttribute = new(
     issue: "Trait method calls may not terminate (uses [{:termination false}]).",
     mitigation: "Remove if possible.",
     isExplicit: false);
