@@ -195,7 +195,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     }
 
     public DafnyOptions()
-      : base("Dafny", "Dafny program verifier", new DafnyConsolePrinter()) {
+      : base("dafny", "Dafny program verifier", new DafnyConsolePrinter()) {
       ErrorTrace = 0;
       Prune = true;
       NormalizeNames = true;
@@ -315,6 +315,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
     [CanBeNull] private TestGenerationOptions testGenOptions = null;
     public bool ExtractCounterexample = false;
     public List<string> VerificationLoggerConfigs = new();
+
+    public bool AuditProgram = false;
 
     public static readonly ReadOnlyCollection<Plugin> DefaultPlugins = new(new[] { SinglePassCompiler.Plugin });
     private IList<Plugin> cliPluginCache;

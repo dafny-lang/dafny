@@ -35,6 +35,7 @@ static class CommandRegistry {
     AddCommand(new TestCommand());
     AddCommand(new GenerateTestsCommand());
     AddCommand(new DeadCodeCommand());
+    AddCommand(new AuditCommand());
 
     FileArgument = new Argument<FileInfo>("file", "input file");
   }
