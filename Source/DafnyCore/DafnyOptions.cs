@@ -1159,7 +1159,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       SetZ3Option("smt.qi.eager_threshold", "100"); // TODO: try lowering
       SetZ3Option("smt.delay_units", "true");
 
-      if (z3Version is not null && z3Version.Major == 4 && z3Version.Minor == 8 && z3Version.Build == 5) {
+      if (z3Version is not null && z3Version.CompareTo(new Version(4, 8, 5)) <= 0) {
         // These options tend to help with Z3 4.8.5 but hurt with newer versions of Z3.
         SetZ3Option("smt.case_split", "3");
         SetZ3Option("smt.arith.solver", "2");
