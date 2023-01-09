@@ -1080,7 +1080,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
 
       var platform = System.Environment.OSVersion.Platform;
-      var isUnix = platform == PlatformID.Unix || platform == PlatformID.MacOSX || (int)platform == 128;
+      var isUnix = platform == PlatformID.Unix || platform == PlatformID.MacOSX;
       var z3binName = isUnix ? "z3" : "z3.exe";
 
       // Next, try looking in a directory relative to Dafny itself.
