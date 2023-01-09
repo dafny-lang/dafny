@@ -46,10 +46,10 @@ jobs:
     steps:
     - name: OS
       run: echo ${{ runner.os }} ${{ matrix.os }}
-    - name: Set up JDK 19
+    - name: Set up JDK 18
       uses: actions/setup-java@v3
       with:
-        java-version: 19
+        java-version: 18
         distribution: corretto
     - name: Setup dotnet
       uses: actions/setup-dotnet@v3

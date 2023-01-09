@@ -82,7 +82,7 @@ jobs:
       if: matrix.target-language-version == 'newest'
       uses: actions/setup-java@v3
       with:
-        java-version: 19
+        java-version: 18
         distribution: corretto
     - name: Upgrade outdated pip
       run: python -m pip install --upgrade pip
