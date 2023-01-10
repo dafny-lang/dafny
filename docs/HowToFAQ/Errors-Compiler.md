@@ -1,8 +1,8 @@
 <!-- %default %useHeadings -->
 
-<-- DafnyCore/Compilers/SinglePassCompiler.cs -->
+<!-- DafnyCore/Compilers/SinglePassCompiler.cs -->
 
-## **Error: {0} Process exited with exit code {1}**
+## **Error: _process_ Process exited with exit code _code_**
 
 The dafny compiler prepares a representation of the Dafny program in the desired target programming
 language and then invokes the target language's compiler on those files as a subsidiary process.
@@ -29,11 +29,13 @@ such as the proper files not having the correct permissions.
 
 ## **Error: Error: '_feature_' is not an element of the _target_ compiler's UnsupportedFeatures set**
 
-TODO
+<!-- TODO -->
+_Documentation of unsupported features is in progress._
 
 ## **Error: Opaque type ('_type_') with extern attribute requires a compile hint.  Expected {:extern compile_type_hint}**
 
-TODO
+<!-- TODO -->
+_Documentation of extern and compile hints is i nprogress._
 
 ## **Error: Opaque type (_name_) cannot be compiled; perhaps make it a type synonym or use :extern.**
 <!-- %check-run -->
@@ -300,7 +302,7 @@ Hence this 'assign any legal value' (`... := *`) statement is not permitted with
 There are a few different forms of this kind of assignment:
 - `x := *;`
 - `x, y, z := 3, *, 42;`
-- `forall i | 0 <= i < a.Length { a[i] := *; }
+- `forall i | 0 <= i < a.Length { a[i] := *; }`
 
 ## **Error: assign-such-that statement forbidden by the --enforce-determinism option**
 
@@ -472,7 +474,7 @@ See the [reference manual section on {:synthesize}](../DafnyRef/DafnyRef#sec-syn
 
 <!-- DafnyCore/Compilers/Compiler-Csharp.cs -->
 
-# C#-specific compiler errors
+# Errors specific to the C# compiler
 
 ## **Error: Expected arguments are {:dllimport dllName} or {:dllimport dllName, entryPoint} where dllName and entryPoint are strings: _argument_**
 
@@ -514,13 +516,14 @@ class A {
 Only static methods may be associated with dlls.
 
 <!-- DafnyCore/Compilers/Compiler-go.cs -->
+# Errors specific to the Go compiler
 
 ## **Error: Unsupported field _name_ in extern trait**
 
-TODO
+<!-- TODO -->
+_Documentation of the Go compiler errors is in progress._
 
 ## **Error: Cannot convert from _type_ to _target-type_**
 
-TODO
-
-<!-- May not be feasible -->
+<!-- TODO - may not be feasible -->
+_Documentation of the Go compiler errors is in progress._
