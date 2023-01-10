@@ -7,6 +7,7 @@ using System.Collections.ObjectModel;
 using System.CommandLine;
 using System.CommandLine.Binding;
 using System.CommandLine.Parsing;
+using System.Diagnostics;
 using System.Linq;
 using System.Diagnostics.Contracts;
 using System.IO;
@@ -195,7 +196,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     }
 
     public DafnyOptions()
-      : base("Dafny", "Dafny program verifier", new DafnyConsolePrinter()) {
+      : base("dafny", "Dafny program verifier", new DafnyConsolePrinter()) {
       ErrorTrace = 0;
       Prune = true;
       NormalizeNames = true;
@@ -315,6 +316,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
     [CanBeNull] private TestGenerationOptions testGenOptions = null;
     public bool ExtractCounterexample = false;
     public List<string> VerificationLoggerConfigs = new();
+
+    public bool AuditProgram = false;
 
     public static readonly ReadOnlyCollection<Plugin> DefaultPlugins = new(new[] { SinglePassCompiler.Plugin });
     private IList<Plugin> cliPluginCache;
@@ -811,8 +814,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
       // expand macros in filenames, now that LogPrefix is fully determined
 
-      SetZ3ExecutablePath();
-      SetZ3Options();
+      if (!ProverOptions.Any(x => x.StartsWith("SOLVER=") && !x.EndsWith("=z3"))) {
+        var z3Version = SetZ3ExecutablePath();
+        SetZ3Options(z3Version);
+      }
 
       // Ask Boogie to perform abstract interpretation
       UseAbstractInterpretation = true;
@@ -1055,35 +1060,85 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     /// <summary>
     /// Dafny releases come with their own copy of Z3, to save users the trouble of having to install extra dependencies.
-    /// For this to work, Dafny looks for Z3 at the location where it is put by our release script (i.e., z3/bin/z3[.exe]).
-    /// If Z3 is not found there, Dafny relies on Boogie to locate Z3 (which also supports setting a path explicitly on the command line).
-    /// Developers (and people getting Dafny from source) need to install an appropriate version of Z3 themselves.
+    /// For this to work, Dafny first tries any prover path explicitly provided by the user, then looks for for the copy
+    /// distributed with Dafny, and finally looks in any directory in the system PATH environment variable.
     /// </summary>
-    private void SetZ3ExecutablePath() {
+    private Version SetZ3ExecutablePath() {
+      string confirmedProverPath = null;
+
+      // Try an explicitly provided prover path, if there is one.
       var pp = "PROVER_PATH=";
       var proverPathOption = ProverOptions.Find(o => o.StartsWith(pp));
       if (proverPathOption != null) {
         var proverPath = proverPathOption.Substring(pp.Length);
         // Boogie will perform the ultimate test to see if "proverPath" is real--it will attempt to run it.
         // However, by at least checking if the file exists, we can produce a better error message in common scenarios.
+        // Unfortunately, there doesn't seem to be a portable way of checking whether it's executable.
         if (!File.Exists(proverPath)) {
-          throw new Bpl.ProverException($"Requested prover not found: '{proverPath}'");
+          return null;
         }
-      } else {
-        var platform = (int)System.Environment.OSVersion.Platform;
 
-        var isUnix = platform == 4 || platform == 6 || platform == 128;
+        confirmedProverPath = proverPath;
+      }
 
-        var z3binName = isUnix ? "z3" : "z3.exe";
+      var platform = System.Environment.OSVersion.Platform;
+      var isUnix = platform == PlatformID.Unix || platform == PlatformID.MacOSX;
+      var z3binName = isUnix ? "z3" : "z3.exe";
+
+      // Next, try looking in a directory relative to Dafny itself.
+      if (confirmedProverPath is null) {
         var dafnyBinDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-        var z3BinDir = Path.Combine(dafnyBinDir, "z3", "bin");
-        var z3BinPath = Path.Combine(z3BinDir, z3binName);
+        var z3BinPath = Path.Combine(dafnyBinDir, "z3", "bin", z3binName);
 
         if (File.Exists(z3BinPath)) {
-          // Let's use z3BinPath
-          ProverOptions.Add($"{pp}{z3BinPath}");
+          confirmedProverPath = z3BinPath;
         }
       }
+
+      // Finally, try looking in the system PATH variable.
+      if (confirmedProverPath is null) {
+        confirmedProverPath = System.Environment
+          .GetEnvironmentVariable("PATH")?
+          .Split(isUnix ? ':' : ';')
+          .Select(s => Path.Combine(s, z3binName))
+          .FirstOrDefault(File.Exists);
+      }
+
+      if (confirmedProverPath is not null) {
+        ProverOptions.Add($"{pp}{confirmedProverPath}");
+        return GetZ3Version(confirmedProverPath);
+      }
+
+      return null;
+    }
+
+    private static readonly Regex Z3VersionRegex = new Regex(@"Z3 version (?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)");
+
+    [CanBeNull]
+    public static Version GetZ3Version(string proverPath) {
+      var z3Process = new ProcessStartInfo(proverPath, "-version") {
+        CreateNoWindow = true,
+        RedirectStandardError = true,
+        RedirectStandardOutput = true,
+        RedirectStandardInput = true
+      };
+      var run = Process.Start(z3Process);
+      if (run == null) {
+        return null;
+      }
+
+      var actualOutput = run.StandardOutput.ReadToEnd();
+      run.WaitForExit();
+      var versionMatch = Z3VersionRegex.Match(actualOutput);
+      if (!versionMatch.Success) {
+        // Might be another solver.
+        return null;
+      }
+
+      var major = int.Parse(versionMatch.Groups["major"].Value);
+      var minor = int.Parse(versionMatch.Groups["minor"].Value);
+      var patch = int.Parse(versionMatch.Groups["patch"].Value);
+      return new Version(major, minor, patch);
     }
 
     // Set a Z3 option, but only if it is not overwriting an existing option.
@@ -1093,7 +1148,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
     }
 
-    private void SetZ3Options() {
+    private void SetZ3Options(Version z3Version) {
       // Boogie sets the following Z3 options by default:
       // smt.mbqi = false
       // model.compact = false
@@ -1103,10 +1158,14 @@ NoGhost - disable printing of functions, ghost methods, and proof
       // Boogie also used to set the following options, but does not anymore.
       SetZ3Option("auto_config", "false");
       SetZ3Option("type_check", "true");
-      SetZ3Option("smt.case_split", "3"); // TODO: try removing
       SetZ3Option("smt.qi.eager_threshold", "100"); // TODO: try lowering
       SetZ3Option("smt.delay_units", "true");
-      SetZ3Option("smt.arith.solver", "2");
+
+      if (z3Version is not null && z3Version.CompareTo(new Version(4, 8, 5)) <= 0) {
+        // These options tend to help with Z3 4.8.5 but hurt with newer versions of Z3.
+        SetZ3Option("smt.case_split", "3");
+        SetZ3Option("smt.arith.solver", "2");
+      }
 
       if (DisableNLarith || 3 <= ArithMode) {
         SetZ3Option("smt.arith.nl", "false");
