@@ -130,7 +130,11 @@ jobs:
       run: |
         eval "$(/usr/libexec/path_helper)"
         make -C dafny/docs/DafnyRef
-
+    - name: Record existing assets
+      if: prerelease
+      run: gh api /repos/dafny-lang/dafny/releases/tags/nightly --jq '.assets.[].id' > assets.txt
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Create GitHub release
       uses: softprops/action-gh-release@v1
       with:
@@ -143,3 +147,11 @@ jobs:
           dafny/Package/dafny-${{ inputs.name }}*
           dafny/docs/DafnyRef/DafnyRef.pdf
         fail_on_unmatched_files: true
+    - name: Delete outdated assets
+      if: prerelease
+      run: |
+        while read line; do
+          gh api --method DELETE /repos/dafny-lang/dafny/releases/assets/$line
+        done < assets.txt
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
