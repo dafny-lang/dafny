@@ -62,6 +62,7 @@ public class LitPattern : ExtendedPattern {
   }
 
   public override IEnumerable<INode> Children => new[] { OrigLit };
+  public override IEnumerable<INode> ConcreteChildren => Children;
 
   public override void Resolve(Resolver resolver,
     ResolutionContext resolutionContext,

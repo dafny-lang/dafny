@@ -982,6 +982,7 @@ namespace Microsoft.Dafny {
     }
 
     public override IEnumerable<INode> Children => arguments == null ? ArgumentBindings : arguments;
+    public override IEnumerable<INode> ConcreteChildren => Children;
   }
 
   class QuantifiedVariableDomainCloner : Cloner {
@@ -1022,6 +1023,7 @@ namespace Microsoft.Dafny {
     }
 
     public override IEnumerable<INode> Children => Expressions;
+    public override IEnumerable<INode> ConcreteChildren => Children;
   }
 
   public class BottomUpVisitor {

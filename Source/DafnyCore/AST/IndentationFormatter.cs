@@ -2131,7 +2131,7 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
     var previousMatchWasSingleLineCommentToAlign = false;
 
     // Apply the given rules on a match of a (newline|beginning) + space + comment?
-    string ApplyIndentRules(Match match) {
+    string ApplyIndentRules(System.Text.RegularExpressions.Match match) {
       if (match.Groups["trailingWhitespace"].Success) {
         return HelperString.RemoveTrailingWhitespace ? "" : match.Groups["trailingWhitespace"].Value;
       }

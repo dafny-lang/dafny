@@ -62,7 +62,7 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
         yield return e;
       }
       if (Rhs != null) {
-        yield return Rhs;
+        yield return Rhs.Expr;
       }
       foreach (var rhs in Rhss) {
         foreach (var e in rhs.SubExpressions) {

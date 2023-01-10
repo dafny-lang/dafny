@@ -89,8 +89,16 @@ public class Token : IToken {
 
   public bool IsValid => this.ActualFilename != null;
 
-  public IToken WithVal(string val) {
-    return this with { val = val };
+  public IToken WithVal(string newVal) {
+    return new Token {
+      pos = pos,
+      line = line,
+      Prev = Prev,
+      Next = Next,
+      Filename = Filename,
+      kind = kind,
+      val = newVal
+    };
   }
 
   public override int GetHashCode() {
