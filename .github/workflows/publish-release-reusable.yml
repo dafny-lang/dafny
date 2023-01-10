@@ -150,8 +150,8 @@ jobs:
     - name: Delete outdated assets
       if: prerelease
       run: |
-        while read line; do
-          gh api --method DELETE /repos/dafny-lang/dafny/releases/assets/$line
+        while read ASSET_ID; do
+          gh api --method DELETE /repos/dafny-lang/dafny/releases/assets/$ASSET_ID
         done < assets.txt
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
