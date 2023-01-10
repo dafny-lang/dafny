@@ -1,0 +1,1 @@
+Go to definition now works reliably across all Dafny language constructs and across files.
