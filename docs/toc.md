@@ -28,9 +28,10 @@ This page contains links to Dafny documentation.
    * [Cheatsheet](DafnyCheatsheet.pdf)
    * Dafny [Quick Reference](./QuickReference)
    * [Getting started tutorial](./OnlineTutorial/guide), focusing mostly on simple imperative programs
-   * [FAQs and explanations of error messages](HowToFAQ/index)
 * Detailed documents for programmers
    * [**Dafny Reference Manual**](DafnyRef/DafnyRef)
+   * [FAQs](HowToFAQ/index)
+   * [Explanations of Error and Warning messages](HowToFAQ/Errors)
    * [**Style Guide for Dafny programs**](StyleGuide/Style-Guide)
    * Language reference for the [Dafny type system](http://leino.science/papers/krml243.html), which also describes available expressions for each type
    * [Miscellaneous Examples of Dafny programs](examples/README)
@@ -65,8 +66,9 @@ And some books:
 * Boro Sitnovski, 2022, [_Introducing Software Verification with Dafny Language_](https://link.springer.com/book/10.1007/978-1-4842-7978-6_)
 * Jason Koenig, K. Rustan M. Leino, 2016, [_Getting Started with Dafny: A Guide_](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/12/krml220.pdf)
 
-Preliminary notes about Dafny integration with code in other programming languages:
+Miscellaneous notes about compiling Dafny code
    * [Go](Compilation/Go)
-   * [C++](Compilation/Cpp)
+   * [Strings and Characters](Compilation/StringsAndChars)
    * [Reference values](Compilation/ReferenceTypes)
    * [Automatic Initialization of Variables](Compilation/AutoInitialization)
+   * [Boogie](Compilation/Boogie)

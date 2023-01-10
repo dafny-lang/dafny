@@ -175,14 +175,15 @@ namespace Microsoft.Dafny {
 
       foreach (DafnyFile dafnyFile in files) {
         Contract.Assert(dafnyFile != null);
-        if (DafnyOptions.O.XmlSink != null && DafnyOptions.O.XmlSink.IsOpen && !dafnyFile.UseStdin) {
+        if (DafnyOptions.O.XmlSink is { IsOpen: true } && !dafnyFile.UseStdin) {
           DafnyOptions.O.XmlSink.WriteFileFragment(dafnyFile.FilePath);
         }
         if (DafnyOptions.O.Trace) {
           Console.WriteLine("Parsing " + dafnyFile.FilePath);
         }
 
-        string err = ParseFile(dafnyFile, null, module, builtIns, new Errors(reporter), !dafnyFile.IsPrecompiled, !dafnyFile.IsPrecompiled);
+        var include = dafnyFile.IsPrecompiled ? new Include(Token.NoToken, null, dafnyFile.SourceFileName, false) : null;
+        var err = ParseFile(dafnyFile, include, module, builtIns, new Errors(reporter), !dafnyFile.IsPrecompiled, !dafnyFile.IsPrecompiled);
         if (err != null) {
           return err;
         }
@@ -317,6 +318,19 @@ namespace Microsoft.Dafny {
       string moduleName,
       Microsoft.Boogie.Program boogieProgram, string programId) {
       var moduleId = (programId ?? "main_program_id") + "_" + moduleName;
+      var z3NotFoundMessage = @"
+Z3 not found. Please either provide a path to the `z3` executable using
+the `--solver-path <path>` option, manually place the `z3` directory
+next to the `dafny` executable you are using (this directory should
+contain `bin/z3` or `bin/z3.exe`), or set the PATH environment variable
+to also include a directory containing the `z3` executable.
+";
+
+      var proverPath = DafnyOptions.O.ProverOptions.Find(o => o.StartsWith("PROVER_PATH="));
+      if (proverPath is null && DafnyOptions.O.Verify) {
+        Console.WriteLine(z3NotFoundMessage);
+        return (PipelineOutcome.FatalError, new PipelineStatistics());
+      }
 
       string bplFilename;
       if (DafnyOptions.O.PrintFile != null) {

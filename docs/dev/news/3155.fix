@@ -1,1 +1,0 @@
-Duplicate declarations caused by resolver do not crash the language server anymore

@@ -7,7 +7,7 @@ namespace Microsoft.Dafny;
 /// <summary>
 /// Class "BreakStmt" represents both "break" and "continue" statements.
 /// </summary>
-public class BreakStmt : Statement, IHasUsages {
+public class BreakStmt : Statement, IHasUsages, ICloneable<BreakStmt> {
   public readonly IToken TargetLabel;
   public readonly bool IsContinue;
   public string Kind => IsContinue ? "continue" : "break";
@@ -16,6 +16,19 @@ public class BreakStmt : Statement, IHasUsages {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(TargetLabel != null || 1 <= BreakAndContinueCount);
+  }
+
+  public BreakStmt Clone(Cloner cloner) {
+    return new BreakStmt(cloner, this);
+  }
+
+  public BreakStmt(Cloner cloner, BreakStmt original) : base(cloner, original) {
+    TargetLabel = original.TargetLabel;
+    IsContinue = original.IsContinue;
+    BreakAndContinueCount = original.BreakAndContinueCount;
+    if (cloner.CloneResolvedFields) {
+      TargetStmt = cloner.CloneStmt(original.TargetStmt);
+    }
   }
 
   public BreakStmt(IToken tok, IToken endTok, IToken targetLabel, bool isContinue)

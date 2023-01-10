@@ -47,7 +47,8 @@ public interface IToken : Microsoft.Boogie.IToken {
 /// <summary>
 /// Has one-indexed line and column fields
 /// </summary>
-public record Token : IToken {
+public class Token : IToken {
+
   public Token peekedTokens; // Used only internally by Coco when the scanner "peeks" tokens. Normallly null at the end of parsing
   public static readonly IToken NoToken = (IToken)new Token();
 
@@ -102,6 +103,7 @@ public record Token : IToken {
 }
 
 public abstract class TokenWrapper : IToken {
+
   public readonly IToken WrappedToken;
   protected TokenWrapper(IToken wrappedToken) {
     Contract.Requires(wrappedToken != null);
@@ -167,11 +169,7 @@ public class RangeToken : TokenWrapper {
   public IToken EndToken => endTok;
 
   // Used for range reporting
-  override public string val {
-    get {
-      return new string(' ', endTok.pos + endTok.val.Length - pos);
-    }
-  }
+  public override string val => new string(' ', endTok.pos + endTok.val.Length - pos);
 
   // If we don't ensure that the endToken is after the start token,
   // then the rangeToken.val will cause an exception because it will try to create

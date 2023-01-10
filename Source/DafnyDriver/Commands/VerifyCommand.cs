@@ -35,6 +35,6 @@ class ResolveCommand : ICommandSpec {
 
   public void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context) {
     dafnyOptions.Compile = false;
+    dafnyOptions.Verify = false;
   }
-
 }

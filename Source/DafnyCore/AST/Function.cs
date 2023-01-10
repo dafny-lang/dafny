@@ -1,8 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Numerics;
+using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
@@ -33,6 +35,37 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
 
   public override bool CanBeRevealed() {
     return true;
+  }
+
+  public bool HasPostcondition =>
+    Ens.Count > 0 || ResultType.AsSubsetType is not null;
+
+  public bool HasPrecondition =>
+    Req.Count > 0 || Formals.Any(f => f.Type.AsSubsetType is not null);
+
+  public override IEnumerable<AssumptionDescription> Assumptions() {
+    foreach (var a in base.Assumptions()) {
+      yield return a;
+    }
+
+    if (Body is null && HasPostcondition && !EnclosingClass.EnclosingModuleDefinition.IsAbstract) {
+      yield return AssumptionDescription.NoBody(IsGhost);
+    }
+
+    if (Attributes.Contains(Attributes, "extern") && HasPostcondition) {
+      yield return AssumptionDescription.ExternWithPostcondition;
+    }
+
+    if (Attributes.Contains(Attributes, "extern") && HasPrecondition) {
+      yield return AssumptionDescription.ExternWithPrecondition;
+    }
+
+    foreach (var c in Descendants()) {
+      foreach (var a in c.Assumptions()) {
+        yield return a;
+      }
+    }
+
   }
 
   [FilledInDuringResolution] public bool IsRecursive;
@@ -89,7 +122,7 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
   public override IEnumerable<INode> Children => new[] { ByMethodDecl }.Where(x => x != null).
     Concat<INode>(TypeArgs).
     Concat<INode>(Reads).
-    Concat<INode>(Req.Select(e => e.E)).
+    Concat<INode>(Req).
     Concat(Ens.Select(e => e.E)).
     Concat(Decreases.Expressions).
     Concat(Formals).Concat(ResultType.Nodes).
@@ -229,7 +262,7 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
     set { _inferredDecr = value; }
     get { return _inferredDecr; }
   }
-  ModuleDefinition ICodeContext.EnclosingModule { get { return this.EnclosingClass.EnclosingModuleDefinition; } }
+  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return this.EnclosingClass.EnclosingModuleDefinition; } }
   bool ICodeContext.MustReverify { get { return false; } }
 
   [Pure]
