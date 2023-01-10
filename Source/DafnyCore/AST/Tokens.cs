@@ -169,6 +169,10 @@ public class RangeToken : TokenWrapper {
   }
 }
 
+public class CodeActionToken : RangeToken {
+  public CodeActionToken(IToken startTok, IToken endTok): base(startTok, endTok) {}
+}
+
 public class NestedToken : TokenWrapper {
   public NestedToken(IToken outer, IToken inner, string message = null)
     : base(outer) {

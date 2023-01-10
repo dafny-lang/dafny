@@ -208,13 +208,33 @@ public class Errors {
 
   public static IToken NewLength(IToken t, int len) {
     Token x = (Token)t;
-    var y = new RangeToken(t, t);
+    var y = new CodeActionToken(t, t);
     y.val = len <= x.val.Length ? x.val.Substring(0, len) : x.val.PadRight(len, ' ');
     return y;
   }
 
-  public static IToken NewLength(IToken t, IToken next) {
-    return NewLength(t, next.pos - t.pos);
+  //public static IToken NewLength(IToken t, IToken next) {
+  //  return NewLength(t, next.pos - t.pos);
+  //}
+
+  // Nested range is up to, not including, the next token
+  public static IToken NestNewLength(IToken t, IToken next) {
+    return new NestedToken(t, NewLength(t, next.pos - t.pos));
+  }
+
+  public static IToken NestNewLength(IToken t, int len) {
+    return new NestedToken(t, NewLength(t, len));
+  }
+
+  public static IToken FindCodeActionRange(IToken toptok) {
+    var tok = toptok;
+    while (tok is NestedToken) {
+      NestedToken ntok = (NestedToken)tok;
+      if (ntok.Outer is CodeActionToken) return ntok.Outer;
+      tok = ntok.Inner; 
+    }
+    if (tok is CodeActionToken) return tok;
+    return toptok;
   }
 } // Errors
 

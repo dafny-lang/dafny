@@ -94,13 +94,13 @@ void CheckDeclModifiers(ref DeclModifierData dmod, string declCaption, AllowedDe
 {
   declCaption = (declCaption.StartsWith("i") || declCaption.StartsWith("o") ? "an " : "a ") + declCaption;
   if (dmod.IsAbstract && ((allowed & AllowedDeclModifiers.Abstract) == 0)) {
-    SemErr(ParserErrorDetail.p_abstract_not_allowed, Errors.NewLength(dmod.AbstractToken, dmod.AbstractToken.Next), $"{declCaption} cannot be declared 'abstract'");
+    SemErr(ParserErrorDetail.p_abstract_not_allowed, Errors.NestNewLength(dmod.AbstractToken, dmod.AbstractToken.Next), $"{declCaption} cannot be declared 'abstract'");
     dmod.IsAbstract = false;
   }
   if (dmod.IsGhost) {
     if ((allowed & AllowedDeclModifiers.AlreadyGhost) != 0) {
       if (declCaption.Contains("-by-method")) {
-        SemErr(ParserErrorDetail.p_no_ghost_for_by_method, Errors.NewLength(dmod.GhostToken, dmod.GhostToken.Next), $"{declCaption} has a ghost function body and a non-ghost method body; {declCaption} declaration does not use the 'ghost' keyword.");
+        SemErr(ParserErrorDetail.p_no_ghost_for_by_method, Errors.NestNewLength(dmod.GhostToken, dmod.GhostToken.Next), $"{declCaption} has a ghost function body and a non-ghost method body; {declCaption} declaration does not use the 'ghost' keyword.");
       } else {
         SemErr(dmod.GhostToken, $"{declCaption} cannot be declared 'ghost' (it is 'ghost' by default)");
       }
@@ -111,7 +111,7 @@ void CheckDeclModifiers(ref DeclModifierData dmod, string declCaption, AllowedDe
     }
   }
   if (dmod.IsStatic && ((allowed & AllowedDeclModifiers.Static) == 0)) {
-    SemErr(ParserErrorDetail.p_no_static, Errors.NewLength(dmod.StaticToken, dmod.StaticToken.Next), $"{declCaption} cannot be declared 'static'");
+    SemErr(ParserErrorDetail.p_no_static, Errors.NestNewLength(dmod.StaticToken, dmod.StaticToken.Next), $"{declCaption} cannot be declared 'static'");
     dmod.IsStatic = false;
   }
 }

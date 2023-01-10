@@ -152,6 +152,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
             nestedToken.Inner, nestedToken.Message ?? "Related location")
         );
       }
+
       var item = new Diagnostic {
         Code = errorID,
         Severity = ToSeverity(level),
@@ -159,6 +160,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         Range = tok.GetLspRange(),
         Source = source.ToString(),
         RelatedInformation = relatedInformation,
+        CodeDescription = errorID == "" ? null : new CodeDescription { Href = new System.Uri("https://dafny.org/dafny/docs/HowToFAQ/Errors#" + errorID) },
+        Data = Errors.FindCodeActionRange(tok).GetLspRange().ToString(),
       };
       AddDiagnosticForFile(item, source, GetDocumentUriOrDefault(tok));
       return true;

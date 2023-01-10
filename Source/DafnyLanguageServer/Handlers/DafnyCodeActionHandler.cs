@@ -81,11 +81,32 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
 
 
   public class ErrorMessageCodeActionProvider : DiagnosticDafnyCodeActionProvider {
+    private Range InterpretDataAsRangeOrDefault(JToken? data, Range def) {
+      if (data == null) return def;
+      try {
+        var start = data.First;
+        var end = data.Last;
+        var p1 = start.Values<Int32>().GetEnumerator();
+        p1.MoveNext();
+        var s1 = p1.Current;
+        p1.MoveNext();
+        var s2 = p1.Current;
+              //var t1 = (int)start.ToObject<Int32>(); // Int32.Parse(s1);
+              //int s2 = (int)t.First.Last;
+              //int s3 = (int)t.Last.First;
+              //int s4 = (int)t.Last.Last;
+              //r = new Range(s1, s2, s3, s4);
+      } catch (Exception e) {
+        return def;
+      }
+    }
+      
     protected override IEnumerable<DafnyCodeAction>? GetDafnyCodeActions(IDafnyCodeActionInput input, Diagnostic diagnostic, Range selection) {
       //if (diagnostic.Code == "") return new List<DafnyCodeAction> { };
       var action = DafnyCodeActions.GetAction(diagnostic.Code);
       if (action == null) return new List<DafnyCodeAction> { };
-      return action(diagnostic, diagnostic.Range);
+      Range range = InterpretDataAsRangeOrDefault(diagnostic.Data, diagnostic.Range);
+      return action(diagnostic, range);
     }
   }
 
