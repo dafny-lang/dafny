@@ -125,7 +125,7 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
     Concat<INode>(Req).
     Concat(Ens.Select(e => e.E)).
     Concat(Decreases.Expressions).
-    Concat(Formals).Concat(ResultType.Nodes).
+    Concat(Formals).Concat(ResultType != null ? new List<INode>() { ResultType } : new List<INode>()).
     Concat(Body == null ? Enumerable.Empty<INode>() : new[] { Body });
 
   public override IEnumerable<INode> ConcreteChildren => Children;

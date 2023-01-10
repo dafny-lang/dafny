@@ -180,8 +180,10 @@ namespace Microsoft.Dafny {
           return OwnedTokensCache;
         }
 
+        var childrenFiltered = Children.Where(child => child.StartToken != null && child.EndToken != null).ToList();
+
         var startToEndTokenNotOwned =
-          Children.Where(child => child.StartToken != null && child.EndToken != null)
+          childrenFiltered
             .ToDictionary(child => child.StartToken!, child => child.EndToken!);
 
         var result = new List<IToken>();

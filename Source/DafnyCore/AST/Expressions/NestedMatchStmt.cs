@@ -43,6 +43,10 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt> {
 
   public override IEnumerable<Statement> SubStatements => Cases.SelectMany(c => c.Body);
 
+  public override IEnumerable<Statement> PreResolveSubStatements {
+    get => this.Cases.SelectMany(oneCase => oneCase.Body);
+  }
+
   public override IEnumerable<Expression> NonSpecificationSubExpressions {
     get {
       foreach (var e in base.NonSpecificationSubExpressions) {
