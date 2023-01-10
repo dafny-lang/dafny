@@ -144,7 +144,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
-      if (true || DafnyOptions.O.DeprecationNoise == 2) {
+      if (DafnyOptions.O.DeprecationNoise == 2) {
         Warning(source, errorID, tok, String.Format(msg, args));
       }
     }
@@ -191,7 +191,7 @@ namespace Microsoft.Dafny {
     }
 
     public override bool Message(MessageSource source, ErrorLevel level, string errorID, IToken tok, string msg) {
-      if (false && ErrorsOnly && level != ErrorLevel.Error) {
+      if (ErrorsOnly && level != ErrorLevel.Error) {
         // discard the message
         return false;
       }

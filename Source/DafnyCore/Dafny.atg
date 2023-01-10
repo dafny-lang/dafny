@@ -111,8 +111,7 @@ void CheckDeclModifiers(ref DeclModifierData dmod, string declCaption, AllowedDe
     }
   }
   if (dmod.IsStatic && ((allowed & AllowedDeclModifiers.Static) == 0)) {
-    SemErr(ParserErrorDetail.p_no_static, dmod.StaticToken, $"{declCaption} cannot be declared 'static'");
-    //SemErr(ParserErrorDetail.p_no_static, Errors.NewLength(dmod.StaticToken, dmod.StaticToken.Next));
+    SemErr(ParserErrorDetail.p_no_static, Errors.NewLength(dmod.StaticToken, dmod.StaticToken.Next), $"{declCaption} cannot be declared 'static'");
     dmod.IsStatic = false;
   }
 }

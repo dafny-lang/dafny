@@ -45,6 +45,7 @@ public class DafnyCodeActions {
 
     codeActionMap.Add(ParserErrorDetail.p_bad_const_initialize_op, (Diagnostic diagnostic, Range range) => ReplacementAction("replace = with :=", diagnostic, range, ":="));
     codeActionMap.Add(ParserErrorDetail.p_abstract_not_allowed, (Diagnostic diagnostic, Range range) => RemoveAction("remove 'abstract'", diagnostic, range));
+    codeActionMap.Add(ParserErrorDetail.p_no_leading_underscore, (Diagnostic diagnostic, Range range) => RemoveAction("remove underscore", diagnostic, range));
 
   }
 }
