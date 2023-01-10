@@ -148,16 +148,6 @@ public class Buffer {
     return new String(buf, 0, len);
   }
 
-  public int Match(int beg, string pattern) {
-    string s = new String(buf, bufPos, bufLen-bufPos);
-    var rx = new Regex("^" + pattern);
-    MatchCollection matches = rx.Matches(s);
-    foreach (Match m in matches) {
-      if (m.Success) return m.Length;
-    }
-    return 0;
-  }
-
   public int Pos {
     get { return bufPos + bufStart; }
     set {

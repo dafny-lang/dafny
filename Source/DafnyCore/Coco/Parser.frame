@@ -208,14 +208,13 @@ public class Errors {
 
   public static IToken NewLength(IToken t, int len) {
     Token x = (Token)t;
-    var y = new Token();
-		y.pos = x.pos;
+    var y = new RangeToken(t, t);
 		y.val = len <= x.val.Length ? x.val.Substring(0, len) : x.val.PadRight(len, ' ');
-		y.col = x.col;
-		y.line = x.line;
-		y.Filename = x.Filename;
-		y.kind = x.kind;
     return y;
+  }
+
+  public static IToken NewLength(IToken t, IToken next) {
+    return NewLength(t, next.pos - t.pos);
   }
 } // Errors
 

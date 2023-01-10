@@ -79,21 +79,13 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
     return new CommandOrCodeActionContainer(codeActions);
   }
 
-  // public static List<DafnyCodeAction> instantAction(string title, Range selection, string newText) {
-  //   var edit = new DafnyCodeActionEdit[] { new DafnyCodeActionEdit(selection, newText) };
-  //   var action = new InstantDafnyCodeAction(title, new List<Diagnostic> { diagnostic }, edit);
-  //   return new List<DafnyCodeAction> { action };
-  // }
 
   public class ErrorMessageCodeActionProvider : DiagnosticDafnyCodeActionProvider {
     protected override IEnumerable<DafnyCodeAction>? GetDafnyCodeActions(IDafnyCodeActionInput input, Diagnostic diagnostic, Range selection) {
-      var info = ErrorDetail.GetInfo(diagnostic.Code);
-      if (info == null) return new List<DafnyCodeAction> { };
-      var newText = (string)info.actions;
-      var edit = new DafnyCodeActionEdit[] { new DafnyCodeActionEdit(selection, newText) };
-      var action = new InstantDafnyCodeAction(info.description, new List<Diagnostic> { diagnostic }, edit);
-      return new List<DafnyCodeAction> { action };
-      //return (List<DafnyCodeAction>)ErrorDetail.GetActions(diagnostic.Code);
+      //if (diagnostic.Code == "") return new List<DafnyCodeAction> { };
+      var action = DafnyCodeActions.GetAction(diagnostic.Code);
+      if (action == null) return new List<DafnyCodeAction> { };
+      return action(diagnostic, diagnostic.Range);
     }
   }
 

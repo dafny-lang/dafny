@@ -51,3 +51,5 @@ public class InstantDafnyCodeAction : DafnyCodeAction {
 /// <param name="Range">The range to replace. The start is given by the token's start, and the length is given by the val's length.</param>
 /// <param name="Replacement"></param>
 public record DafnyCodeActionEdit(Range Range, string Replacement = "");
+
+
