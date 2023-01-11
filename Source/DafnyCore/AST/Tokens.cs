@@ -170,7 +170,7 @@ public class RangeToken : TokenWrapper {
 }
 
 public class CodeActionToken : RangeToken {
-  public CodeActionToken(IToken startTok, IToken endTok): base(startTok, endTok) {}
+  public CodeActionToken(IToken startTok, IToken endTok) : base(startTok, endTok) { }
 }
 
 public class NestedToken : TokenWrapper {

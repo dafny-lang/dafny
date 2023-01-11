@@ -72,10 +72,12 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       areMethodStatistics = false;
       foreach (var diagnostic in state.Diagnostics) {
         if (diagnostic.Range.Contains(position)) {
-          var detail = ErrorDetail.GetDetail(diagnostic.Code);
-          if (detail != null) return detail;
+          string? code = diagnostic.Code;
+          string? detail = code ?? ErrorDetail.GetDetail(code); // Note: Can't convince C# not to warn about the argument being possibly null
+          if (detail is not null) return detail;
         }
       }
+
       if (state.Diagnostics.Any(diagnostic =>
             diagnostic.Severity == DiagnosticSeverity.Error && (
             diagnostic.Source == MessageSource.Parser.ToString() ||

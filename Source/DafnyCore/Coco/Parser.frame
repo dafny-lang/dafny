@@ -206,24 +206,25 @@ public class Errors {
     Reporting.Warning(MessageSource.Parser, tok, msg);
   }
 
-  public static IToken NewLength(IToken t, int len) {
+  // This is a RangeToken with the given length, but is a CodeActionToken
+  // so that it can be distinguished later
+  public static CodeActionToken NewCodeAction(IToken t, int len) {
     Token x = (Token)t;
-    var y = new CodeActionToken(t, t);
+    var y = new Token(x.line,x.col);
+    y.pos = x.pos;
+    y.kind = x.kind;
+    y.Filename = x.Filename;
     y.val = len <= x.val.Length ? x.val.Substring(0, len) : x.val.PadRight(len, ' ');
-    return y;
+    return new CodeActionToken(t, y);
   }
-
-  //public static IToken NewLength(IToken t, IToken next) {
-  //  return NewLength(t, next.pos - t.pos);
-  //}
 
   // Nested range is up to, not including, the next token
-  public static IToken NestNewLength(IToken t, IToken next) {
-    return new NestedToken(t, NewLength(t, next.pos - t.pos));
+  public static IToken NestCodeAction(IToken t, IToken next) {
+    return new NestedToken(t, NewCodeAction(t, next.pos - t.pos));
   }
 
-  public static IToken NestNewLength(IToken t, int len) {
-    return new NestedToken(t, NewLength(t, len));
+  public static IToken NestCodeAction(IToken t, int len) {
+    return new NestedToken(t, NewCodeAction(t, len));
   }
 
   public static IToken FindCodeActionRange(IToken toptok) {

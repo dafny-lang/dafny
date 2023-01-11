@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using VCGeneration;
+using Newtonsoft.Json.Linq;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   public class DiagnosticErrorReporter : ErrorReporter {
@@ -146,11 +147,16 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         return false;
       }
       var relatedInformation = new List<DiagnosticRelatedInformation>();
-      if (tok is NestedToken nestedToken) {
-        relatedInformation.AddRange(
-          CreateDiagnosticRelatedInformationFor(
-            nestedToken.Inner, nestedToken.Message ?? "Related location")
-        );
+      var ntok = tok;
+      while (ntok is NestedToken nestedToken) {
+        ntok = nestedToken.Inner;
+        if (!(ntok is CodeActionToken)) {
+          relatedInformation.AddRange(
+            CreateDiagnosticRelatedInformationFor(
+              ntok, nestedToken.Message ?? "Related location")
+          );
+          break;
+        }
       }
 
       var item = new Diagnostic {
@@ -161,11 +167,13 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         Source = source.ToString(),
         RelatedInformation = relatedInformation,
         CodeDescription = errorID == "" ? null : new CodeDescription { Href = new System.Uri("https://dafny.org/dafny/docs/HowToFAQ/Errors#" + errorID) },
-        Data = Errors.FindCodeActionRange(tok).GetLspRange().ToString(),
+        Data = JToken.FromObject(Errors.FindCodeActionRange(tok).GetLspRange()),
       };
       AddDiagnosticForFile(item, source, GetDocumentUriOrDefault(tok));
+      var v = Errors.FindCodeActionRange(tok);
       return true;
     }
+
 
     public override int Count(ErrorLevel level) {
       rwLock.EnterReadLock();

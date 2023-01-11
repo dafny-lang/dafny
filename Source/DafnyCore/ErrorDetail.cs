@@ -27,9 +27,11 @@ public static class ErrorDetail {
 
   // Returns the error detail for the given error ID;
   // result could be null if there is no such detail
-  public static string? GetDetail(string? errorID) {
+  #nullable enable
+  public static string? GetDetail(string errorID) {
     return errorDetailMap.ContainsKey(errorID) ? errorDetailMap[errorID] : null;
   }
+  #nullable disable
 }
 
 
