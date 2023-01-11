@@ -46,6 +46,7 @@ jobs:
       run: dotnet pack --no-build dafny/Source/Dafny.sln
 
   check-deep-tests:
+    if: github.repository_owner == 'dafny-lang'
     uses: ./.github/workflows/check-deep-tests-reusable.yml
     with:
       branch: master
