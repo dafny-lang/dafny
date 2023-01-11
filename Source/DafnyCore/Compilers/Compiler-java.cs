@@ -2349,13 +2349,10 @@ namespace Microsoft.Dafny.Compilers {
       psi.EnvironmentVariables["CLASSPATH"] = GetClassPath(targetFilename);
       bool compileIsSuccess = 0 == RunProcess(psi, outputWriter, "Error while compiling Java files.");
       if (compileIsSuccess) {
-        // create jar file
-        // Would like to make the following choice, but if UseRuntimeLib is true (--include-runtime is false) then
-        // the runtime is not present for compiling either
-        //if (!DafnyOptions.O.UseRuntimeLib || callToMain != null)
-        {
-          // Include the built-in runtime library in the jar if
-          // either this is an executable build or --include-runtime is an option
+        if (!DafnyOptions.O.UseRuntimeLib) {
+          // If the default runtime lib was not used for compiling, then we should not include it
+          // in the jar either.
+          // SHould we have an option to exclude it anyway if we are making a library jar
           psi = PrepareProcessStartInfo("jar", new List<String> { "xf", "DafnyRuntime.jar" });
           psi.WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
           compileIsSuccess = 0 == RunProcess(psi, outputWriter, "Error while creating jar file (unzipping runtime library).");

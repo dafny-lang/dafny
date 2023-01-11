@@ -123,7 +123,7 @@ true - The char type represents any Unicode scalar value.".TrimStart());
     "Emits a warning if the name of a declared variable caused another variable to be shadowed.");
 
   public static readonly Option<bool> IncludeRuntime = new("--include-runtime",
-    "Include the Dafny runtime in the target language artifacts.");
+    "Include the Dafny runtime as source in the target language.");
 
   public enum TestAssumptionsMode {
     None,
