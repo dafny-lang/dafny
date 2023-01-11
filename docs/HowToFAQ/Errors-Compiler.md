@@ -135,7 +135,7 @@ with `{:main}`. The error location is that of one of the methods and the error r
 The tool does not know which one to use. 
 The solution is to remove the `{:main}` attribute from all but one.
 
-Note that entry point that are intended as unit tests can be marked with `{:test}` instead.
+Note that entry points that are intended as unit tests can be marked with `{:test}` instead.
 
 ## **Error: This method marked '{:main}' is not permitted as a main method (_name_).**
 
