@@ -323,7 +323,7 @@ there may be no program statements that have an arbitrary, even if deterministic
 Hence this 'assign any value that satisfies the predicate' (`:|`) statement is not permitted with `--enforce-determinism`,
 even if there is only one such possible value.
 (The tool does not try to determine whether there is just one value and
-whether there is a reasonably way to compute it.)
+whether there is a reasonable way to compute it.)
 
 
 ## **Error: this assign-such-that statement is too advanced for the current compiler; Dafny's heuristics cannot find any bound for variable '_name_'**
