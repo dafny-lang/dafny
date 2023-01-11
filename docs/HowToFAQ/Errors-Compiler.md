@@ -130,7 +130,7 @@ method {:main} M(s: seq<string>) {}
 method {:main} P() {}
 ```
 
-In all the files in the program (including `include`d ones), dafny found more than one method marked
+When searching all the files in the program (including `include`d ones), dafny found more than one method marked
 with `{:main}`. The error location is that of one of the methods and the error refers to another.
 The tool does not know which one to use. 
 The solution is to remove the `{:main}` attribute from all but one.
