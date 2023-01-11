@@ -1,1 +1,1 @@
-*** ProverException: Requested prover not found: 'Output/binz/z3'
+Fatal Error: ProverException: Cannot find specified prover: Output/binz/z3

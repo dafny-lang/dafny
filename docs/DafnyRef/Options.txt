@@ -1,10 +1,10 @@
 ```
 Use 'dafny --help' to see help for a newer Dafny CLI format.
-Usage: Dafny [ option ... ] [ filename ... ]
+Usage: dafny [ option ... ] [ filename ... ]
 
   ---- General options -------------------------------------------------------
 
-  /version      print the Dafny version number
+  /version      print the dafny version number
   /help         print this message
   /attrHelp     print a message about supported declaration attributes
   /env:<n>      print command line arguments
