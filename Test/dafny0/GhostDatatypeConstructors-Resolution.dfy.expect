@@ -5,31 +5,24 @@ GhostDatatypeConstructors-Resolution.dfy(31,12): Error: field 'w' can be used on
 GhostDatatypeConstructors-Resolution.dfy(44,12): Error: field 'y' can be used only in specification contexts
 GhostDatatypeConstructors-Resolution.dfy(45,12): Error: field 'w' can be used only in specification contexts
 GhostDatatypeConstructors-Resolution.dfy(46,9): Error: ghost variables such as xy are allowed only in specification contexts. xy was inferred to be ghost based on its declaration or initialization.
-GhostDatatypeConstructors-Resolution.dfy(86,20): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
-GhostDatatypeConstructors-Resolution.dfy(106,25): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
-GhostDatatypeConstructors-Resolution.dfy(106,25): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
-GhostDatatypeConstructors-Resolution.dfy(106,25): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
-GhostDatatypeConstructors-Resolution.dfy(137,4): Error: match expression is not compilable, because it depends on a ghost constructor
-GhostDatatypeConstructors-Resolution.dfy(155,4): Error: match expression is not compilable, because it depends on a ghost constructor
-GhostDatatypeConstructors-Resolution.dfy(164,11): Error: ghost variables such as a are allowed only in specification contexts. a was inferred to be ghost based on its declaration or initialization.
-GhostDatatypeConstructors-Resolution.dfy(188,11): Error: ghost variables such as a are allowed only in specification contexts. a was inferred to be ghost based on its declaration or initialization.
-GhostDatatypeConstructors-Resolution.dfy(210,7): Error: type parameter (T) passed to function Eq must support equality (got XY)
-GhostDatatypeConstructors-Resolution.dfy(226,11): Error: ghost constructor is allowed only in specification contexts
-GhostDatatypeConstructors-Resolution.dfy(240,11): Error: ghost variables such as c are allowed only in specification contexts. c was inferred to be ghost based on its declaration or initialization.
-GhostDatatypeConstructors-Resolution.dfy(250,6): Error: ghost constructor is allowed only in specification contexts
-GhostDatatypeConstructors-Resolution.dfy(289,11): Error: field 'x' can be used only in specification contexts
-GhostDatatypeConstructors-Resolution.dfy(290,11): Error: field 'y' can be used only in specification contexts
-GhostDatatypeConstructors-Resolution.dfy(297,11): Error: in a compiled context, update of 'x' cannot be applied to a datatype value of a ghost variant (ghost constructor 'D3', 'D2', or 'D1')
-GhostDatatypeConstructors-Resolution.dfy(298,11): Error: in a compiled context, update of 'y' cannot be applied to a datatype value of a ghost variant (ghost constructor 'D3' or 'D2')
-GhostDatatypeConstructors-Resolution.dfy(300,11): Error: in a compiled context, update of 'c' and 'x' cannot be applied to a datatype value of a ghost variant (ghost constructor 'D3', 'D2', or 'D1')
-GhostDatatypeConstructors-Resolution.dfy(302,11): Error: in a compiled context, update of 'x' and 'y' cannot be applied to a datatype value of a ghost variant (ghost constructor 'D3' or 'D2')
-GhostDatatypeConstructors-Resolution.dfy(314,9): Error: ghost variables such as c are allowed only in specification contexts. c was inferred to be ghost based on its declaration or initialization.
-GhostDatatypeConstructors-Resolution.dfy(315,9): Error: ghost variables such as e are allowed only in specification contexts. e was inferred to be ghost based on its declaration or initialization.
-GhostDatatypeConstructors-Resolution.dfy(331,9): Error: ghost variables such as c are allowed only in specification contexts. c was inferred to be ghost based on its declaration or initialization.
-GhostDatatypeConstructors-Resolution.dfy(332,9): Error: ghost variables such as e are allowed only in specification contexts. e was inferred to be ghost based on its declaration or initialization.
-GhostDatatypeConstructors-Resolution.dfy(333,9): Error: ghost variables such as f are allowed only in specification contexts. f was inferred to be ghost based on its declaration or initialization.
-GhostDatatypeConstructors-Resolution.dfy(335,9): Error: ghost variables such as h are allowed only in specification contexts. h was inferred to be ghost based on its declaration or initialization.
-GhostDatatypeConstructors-Resolution.dfy(343,14): Error: ghost constructor is allowed only in specification contexts
-GhostDatatypeConstructors-Resolution.dfy(350,14): Error: ghost constructor is allowed only in specification contexts
-GhostDatatypeConstructors-Resolution.dfy(369,6): Error: == can only be applied to expressions of types that support equality (got TotallyGhost)
-34 resolution/type errors detected in GhostDatatypeConstructors-Resolution.dfy
+GhostDatatypeConstructors-Resolution.dfy(101,17): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+GhostDatatypeConstructors-Resolution.dfy(218,7): Error: type parameter (T) passed to function Eq must support equality (got XY)
+GhostDatatypeConstructors-Resolution.dfy(234,11): Error: ghost constructor is allowed only in specification contexts
+GhostDatatypeConstructors-Resolution.dfy(248,11): Error: ghost variables such as c are allowed only in specification contexts. c was inferred to be ghost based on its declaration or initialization.
+GhostDatatypeConstructors-Resolution.dfy(258,6): Error: ghost constructor is allowed only in specification contexts
+GhostDatatypeConstructors-Resolution.dfy(297,11): Error: field 'x' can be used only in specification contexts
+GhostDatatypeConstructors-Resolution.dfy(298,11): Error: field 'y' can be used only in specification contexts
+GhostDatatypeConstructors-Resolution.dfy(305,11): Error: in a compiled context, update of 'x' cannot be applied to a datatype value of a ghost variant (ghost constructor 'D3', 'D2', or 'D1')
+GhostDatatypeConstructors-Resolution.dfy(306,11): Error: in a compiled context, update of 'y' cannot be applied to a datatype value of a ghost variant (ghost constructor 'D3' or 'D2')
+GhostDatatypeConstructors-Resolution.dfy(308,11): Error: in a compiled context, update of 'c' and 'x' cannot be applied to a datatype value of a ghost variant (ghost constructor 'D3', 'D2', or 'D1')
+GhostDatatypeConstructors-Resolution.dfy(310,11): Error: in a compiled context, update of 'x' and 'y' cannot be applied to a datatype value of a ghost variant (ghost constructor 'D3' or 'D2')
+GhostDatatypeConstructors-Resolution.dfy(322,9): Error: ghost variables such as c are allowed only in specification contexts. c was inferred to be ghost based on its declaration or initialization.
+GhostDatatypeConstructors-Resolution.dfy(323,9): Error: ghost variables such as e are allowed only in specification contexts. e was inferred to be ghost based on its declaration or initialization.
+GhostDatatypeConstructors-Resolution.dfy(339,9): Error: ghost variables such as c are allowed only in specification contexts. c was inferred to be ghost based on its declaration or initialization.
+GhostDatatypeConstructors-Resolution.dfy(340,9): Error: ghost variables such as e are allowed only in specification contexts. e was inferred to be ghost based on its declaration or initialization.
+GhostDatatypeConstructors-Resolution.dfy(341,9): Error: ghost variables such as f are allowed only in specification contexts. f was inferred to be ghost based on its declaration or initialization.
+GhostDatatypeConstructors-Resolution.dfy(343,9): Error: ghost variables such as h are allowed only in specification contexts. h was inferred to be ghost based on its declaration or initialization.
+GhostDatatypeConstructors-Resolution.dfy(351,14): Error: ghost constructor is allowed only in specification contexts
+GhostDatatypeConstructors-Resolution.dfy(358,14): Error: ghost constructor is allowed only in specification contexts
+GhostDatatypeConstructors-Resolution.dfy(377,6): Error: == can only be applied to expressions of types that support equality (got TotallyGhost)
+27 resolution/type errors detected in GhostDatatypeConstructors-Resolution.dfy

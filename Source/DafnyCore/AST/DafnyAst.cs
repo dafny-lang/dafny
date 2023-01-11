@@ -16,6 +16,7 @@ using System.Linq;
 using System.Diagnostics;
 using System.Threading;
 using Microsoft.Boogie;
+using Microsoft.Dafny.Auditor;
 using Action = System.Action;
 
 namespace Microsoft.Dafny {
@@ -41,15 +42,24 @@ namespace Microsoft.Dafny {
     /// </summary>
     public abstract IEnumerable<INode> Children { get; }
 
+    public IEnumerable<INode> Descendants() {
+      return Children.Concat(Children.SelectMany(n => n.Descendants()));
+    }
+
+    public virtual IEnumerable<AssumptionDescription> Assumptions() {
+      return Enumerable.Empty<AssumptionDescription>();
+    }
+
     public ISet<INode> Visit(Func<INode, bool> beforeChildren = null, Action<INode> afterChildren = null) {
       beforeChildren ??= node => true;
       afterChildren ??= node => { };
 
       var visited = new HashSet<INode>();
-      var toVisit = new Stack<INode>();
-      toVisit.Push(this);
+      var toVisit = new LinkedList<INode>();
+      toVisit.AddFirst(this);
       while (toVisit.Any()) {
-        var current = toVisit.Pop();
+        var current = toVisit.First();
+        toVisit.RemoveFirst();
         if (!visited.Add(current)) {
           continue;
         }
@@ -58,11 +68,17 @@ namespace Microsoft.Dafny {
           continue;
         }
 
+        var nodeAfterChildren = toVisit.First;
         foreach (var child in current.Children) {
           if (child == null) {
             throw new InvalidOperationException($"Object of type {current.GetType()} has null child");
           }
-          toVisit.Push(child);
+
+          if (nodeAfterChildren == null) {
+            toVisit.AddLast(child);
+          } else {
+            toVisit.AddBefore(nodeAfterChildren, child);
+          }
         }
 
         afterChildren(current);
@@ -114,9 +130,8 @@ namespace Microsoft.Dafny {
                 UpdateStartEndToken(node.EndToken);
               } else {
                 UpdateStartEndToken(node.tok);
+                node.Children.Iter(UpdateStartEndTokRecursive);
               }
-
-              node.Children.Iter(UpdateStartEndTokRecursive);
             }
 
             UpdateStartEndTokRecursive(this);

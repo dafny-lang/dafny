@@ -1,5 +1,3 @@
-git-issue-889b.dfy(10,11): Error: literal (300) is too large for the bitvector type bv8
-git-issue-889b.dfy(18,12): Error: literal (300) is too large for the bitvector type bv8
 git-issue-889b.dfy(23,9): Error: unary minus (-3, type bv8) not allowed in case pattern
 git-issue-889b.dfy(24,9): Error: unary minus (-0, type bv8) not allowed in case pattern
 git-issue-889b.dfy(30,11): Error: unary minus (-3, type bv8) not allowed in case pattern
@@ -8,4 +6,4 @@ git-issue-889b.dfy(39,9): Error: unary minus (-0, type bv0) not allowed in case 
 git-issue-889b.dfy(46,10): Error: type of unary - must be of a numeric or bitvector type (instead got ORDINAL)
 git-issue-889b.dfy(54,9): Error: unary minus (-2, type ORDINAL) not allowed in case pattern
 git-issue-889b.dfy(55,9): Error: unary minus (-0, type ORDINAL) not allowed in case pattern
-10 resolution/type errors detected in git-issue-889b.dfy
+8 resolution/type errors detected in git-issue-889b.dfy

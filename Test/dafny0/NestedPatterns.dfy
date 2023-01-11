@@ -64,7 +64,7 @@ method MethodG<T>(xs: List<T>) returns (xxs: List<List<T>>)
   case Nil =>
     xxs := Cons(Nil, Nil);  // bugx here is now fixed
   case Cons(h, t) =>
-  case Cons(h, Cons(ht, tt)) =>    // ERROR: redundant
+  case Cons(h, Cons(ht, tt)) =>
 }
 
 method DuplicateIdentifierInPattern0<T>(xs: List<T>)

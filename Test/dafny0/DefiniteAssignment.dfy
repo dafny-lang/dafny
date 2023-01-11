@@ -90,7 +90,7 @@ method DontForgetHavoc<G(00)>(a: G, h: int) returns (k: G) {
     k := y;
   } else {
     z := *;
-    return z;  // this is fine, since z was assigned before the havoc
+    return z;  // this is fine, since z was explicitly assigned by the havoc
   }
 }
 

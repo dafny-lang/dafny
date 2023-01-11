@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
@@ -58,7 +59,7 @@ public class ForallStmt : Statement, ICloneable<ForallStmt> {
     if (cloner.CloneResolvedFields) {
       Bounds = original.Bounds;
       Kind = original.Kind;
-      ForallExpressions = original.ForallExpressions.Select(cloner.CloneExpr).ToList();
+      ForallExpressions = original.ForallExpressions?.Select(cloner.CloneExpr).ToList();
     }
   }
 
@@ -126,6 +127,12 @@ public class ForallStmt : Statement, ICloneable<ForallStmt> {
         foreach (var e in Attributes.SubExpressions(ee.Attributes)) { yield return e; }
         yield return ee.E;
       }
+    }
+  }
+
+  public override IEnumerable<AssumptionDescription> Assumptions() {
+    if (Body is null) {
+      yield return AssumptionDescription.ForallWithoutBody;
     }
   }
 
