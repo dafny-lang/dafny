@@ -366,7 +366,7 @@ but if so, the 'then' branch is executed with an arbitrary value that satisifies
 Because of this arbitrary selection, the if-with-binding-guard is not permitted with `--enforce-determinism`,
 even if there is exactly one value that satisfies the predicate.
 (The tool does not try to determine whether there is just one value and
-whether there is a reasonably way to compute it.)
+whether there is a reasonable way to compute it.)
 
 ## **Error: case-based if statement forbidden by the --enforce-determinism option**
 
