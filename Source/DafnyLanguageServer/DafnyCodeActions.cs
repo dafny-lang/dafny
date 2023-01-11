@@ -25,7 +25,7 @@ public class DafnyCodeActions {
   }
 
   public static Func<Diagnostic, Range, List<DafnyCodeAction>>? GetAction(string? errorId) {
-     return errorID == null ? null : codeActionMap.ContainsKey(errorId) ? codeActionMap[errorId] : null;
+     return errorId == null ? null : codeActionMap.ContainsKey(errorId) ? codeActionMap[errorId] : null;
   }
 
   public static List<DafnyCodeAction> ReplacementAction(string title, Diagnostic diagnostic, Range range, string newText) {
