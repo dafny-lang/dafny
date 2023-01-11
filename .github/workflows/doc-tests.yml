@@ -19,6 +19,7 @@ jobs:
       branch: master
 
   doctests:
+    needs: check-deep-tests
     if: always() && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests'))
     runs-on: ubuntu-latest
     env:
