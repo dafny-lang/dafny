@@ -165,7 +165,7 @@ class A {
 ```
 
 In the absence of any `{:main}` attributes, dafny chooses a method named `Main` as the main entry point.
-In all the files in the program (including `include`d ones), dafny found more than one method named `Main`.
+When searching all the files in the program (including `include`d ones), dafny found more than one method named `Main`.
 The error location is that of one of the methods and the error text refers to another.
 The solution is to mark one of them as `{:main}`.
 
@@ -322,6 +322,8 @@ The `--enforce-determinism` option requires a target program to be deterministic
 there may be no program statements that have an arbitrary, even if deterministic, result.
 Hence this 'assign any value that satisfies the predicate' (`:|`) statement is not permitted with `--enforce-determinism`,
 even if there is only one such possible value.
+(The tool does not try to determine whether there is just one value and
+whether there is a reasonably way to compute it.)
 
 
 ## **Error: this assign-such-that statement is too advanced for the current compiler; Dafny's heuristics cannot find any bound for variable '_name_'**
@@ -363,6 +365,8 @@ given predicate is satisfiable by some value. If not, then the 'else' branch is 
 but if so, the 'then' branch is executed with an arbitrary value that satisifies the predicate.
 Because of this arbitrary selection, the if-with-binding-guard is not permitted with `--enforce-determinism`,
 even if there is exactly one value that satisfies the predicate.
+(The tool does not try to determine whether there is just one value and
+whether there is a reasonably way to compute it.)
 
 ## **Error: case-based if statement forbidden by the --enforce-determinism option**
 
@@ -423,7 +427,7 @@ The case-based while statement allows the case guards to be evaluated in an arbi
 an arbitrary one of those found to be true is chosen to be executed.
 Hence the case-based loop is not permitted with `--enforce-determinism`.
 
-To enforce a deterministic order to the evaluation, use a a chain of if-then-else statements
+To enforce a deterministic order to the evaluation, use a chain of if-then-else statements
 or series of `if` statements in which the then-branch ends in a continue statement.
 
 ## **Error: compiler currently does not support assignments to more-than-6-dimensional arrays in forall statements**
