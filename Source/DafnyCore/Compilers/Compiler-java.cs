@@ -2347,25 +2347,39 @@ namespace Microsoft.Dafny.Compilers {
       var psi = PrepareProcessStartInfo("javac", new List<string> { "-encoding", "UTF8" }.Concat(files));
       psi.WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
       psi.EnvironmentVariables["CLASSPATH"] = GetClassPath(targetFilename);
-      bool compileIsSuccess = 0 == RunProcess(psi, outputWriter, "Error while compiling Java files (unzipping runtime library).");
+      bool compileIsSuccess = 0 == RunProcess(psi, outputWriter, "Error while compiling Java files.");
       if (compileIsSuccess) {
         // create jar file
-        psi = PrepareProcessStartInfo("jar", new List<String> { "xf", "DafnyRuntime.jar" });
-        psi.WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
-        compileIsSuccess = 0 == RunProcess(psi, outputWriter, "Error while creating jar file.");
+        // Would like to make the following choice, but if UseRuntimeLib is true (--include-runtime is false) then
+        // the runtime is not present for compiling either
+        //if (!DafnyOptions.O.UseRuntimeLib || callToMain != null)
+        {
+          // Include the built-in runtime library in the jar if
+          // either this is an executable build or --include-runtime is an option
+          psi = PrepareProcessStartInfo("jar", new List<String> { "xf", "DafnyRuntime.jar" });
+          psi.WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
+          compileIsSuccess = 0 == RunProcess(psi, outputWriter, "Error while creating jar file (unzipping runtime library).");
+        }
 
         var classfiles = new List<String>();
         foreach (string file in Directory.EnumerateFiles(targetDirectory, "*.class", SearchOption.AllDirectories)) {
           classfiles.Add(Path.GetRelativePath(targetDirectory, file));
         }
         string simpleName = Path.GetFileNameWithoutExtension(targetFilename);
-        string jarPath = "../" + simpleName + ".jar";
+        // Put the jar in the current working directory
+        string jarPath = Path.GetFullPath("./" + simpleName + ".jar");
         var args = callToMain == null ?
             new List<string> { "cf", jarPath }
             : new List<string> { "--create", "--main-class", simpleName, "--file", jarPath };
         psi = PrepareProcessStartInfo("jar", args.Concat(classfiles));
         psi.WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
         compileIsSuccess &= 0 == RunProcess(psi, outputWriter, "Error while creating jar file.");
+
+        // Keep the build artifacts if --spill-target-code is anything but 0
+        // But keep them for now if the option is 0, (because users and tests likely depend on it), but deprecate
+        if (false && DafnyOptions.O.SpillTargetCode == 0) {
+          System.IO.Directory.Delete(targetDirectory, true);
+        }
         if (compileIsSuccess && DafnyOptions.O.CompileVerbose) outputWriter.WriteLine("Wrote " + (callToMain != null ? "executable" : "library") + " jar " + (simpleName + ".jar"));
       }
       return compileIsSuccess;

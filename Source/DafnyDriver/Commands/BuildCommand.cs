@@ -9,6 +9,7 @@ class BuildCommand : ICommandSpec {
   public IEnumerable<Option> Options => new Option[] {
     CommonOptionBag.Output,
     CommonOptionBag.Verbose,
+    CommonOptionBag.IncludeRuntime,
   }.Concat(ICommandSpec.ExecutionOptions).
     Concat(ICommandSpec.ConsoleOutputOptions).
     Concat(ICommandSpec.CommonOptions);
