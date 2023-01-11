@@ -73,8 +73,10 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       foreach (var diagnostic in state.Diagnostics) {
         if (diagnostic.Range.Contains(position)) {
           string? code = diagnostic.Code;
-          string? detail = code ?? ErrorDetail.GetDetail(code); // Note: Can't convince C# not to warn about the argument being possibly null
-          if (detail is not null) return detail;
+          string? detail = code == null ? null : ErrorDetail.GetDetail(code); // Note: Can't convince C# not to warn about the argument being possibly null
+          if (detail is not null) {
+            return detail;
+          }
         }
       }
 

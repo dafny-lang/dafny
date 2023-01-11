@@ -16,9 +16,10 @@ public static class ErrorDetail {
 
   static bool initialized = false;
   public static void init() {
-    if (initialized) return;
-    ParserErrorDetail.init();
-    initialized = true;
+    if (!initialized) {
+      ParserErrorDetail.init();
+      initialized = true;
+    }
   }
   // Adds information into the dictionary
   public static void Add(string errorID, string detail) {
