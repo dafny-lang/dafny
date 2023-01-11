@@ -22,8 +22,6 @@ jobs:
     needs: check-deep-tests
     if: always() && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests'))
     runs-on: ubuntu-latest
-    env:
-      Logging__LogLevel__Microsoft: Debug
     steps:
     - name: Setup dotnet
       uses: actions/setup-dotnet@v3
