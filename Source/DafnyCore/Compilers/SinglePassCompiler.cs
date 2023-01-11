@@ -3220,7 +3220,7 @@ namespace Microsoft.Dafny.Compilers {
         var s0 = (AssignStmt)s.S0;
         if (s0.Rhs is HavocRhs) {
           if (DafnyOptions.O.ForbidNondeterminism) {
-            Error(s0.Rhs.Tok, "nondeterministic assignment forbidden by the --enforce-determinism", wr);
+            Error(s0.Rhs.Tok, "nondeterministic assignment forbidden by --enforce-determinism", wr);
           }
           // The forall statement says to havoc a bunch of things.  This can be efficiently compiled
           // into doing nothing.
