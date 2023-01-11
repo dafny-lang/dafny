@@ -10,7 +10,7 @@ abstract abstract module M {}
 
 No Dafny modifier, such as [`abstract`, `static`, `ghost`](../DafnyRef/DafnyRef#sec-declaration-modifiers) may be repeated. Such repetition would be superfluous even if allowed.
 
-## **Error: a _decl_ cannot be declared 'abstract'**
+## **Error: a _decl_ cannot be declared 'abstract'** {#p_abstract_not_allowed}
  
 ```dafny
 module M {
@@ -20,7 +20,7 @@ module M {
 
 Only modules may be declared abstract.
 
-## **Error: a function-by-method has a ghost function body and a non-ghost method body; a function-by-method declaration does not use the 'ghost' keyword.**
+## **Error: a function-by-method has a ghost function body and a non-ghost method body; a function-by-method declaration does not use the 'ghost' keyword.** {#p_no_ghost_for_by_method}
 
 ```dafny
 ghost function f(): int
@@ -58,7 +58,7 @@ ghost module M {}
 Only some kinds of declarations can be declared `ghost`, most often functions,
 fields, and local declarations. In the example, a `module` may not be `ghost`.
 
-## **Error: a _decl_ cannot be declared 'static'**
+## **Error: a _decl_ cannot be declared 'static'** {#p_no_static}
 
 ```dafny
 static module M {}
@@ -78,7 +78,7 @@ module {:options opt} M{}
 
 The value of an options attribute cannot be a computed expression. It must be a literal string.
 
-## **Error: cannot declare identifier beginning with underscore**
+## **Error: cannot declare identifier beginning with underscore** {#p_no_leading_underscore}
 
 ```dafny
 const _myconst := 5
@@ -189,7 +189,7 @@ The `var` declaration declares a mutable field, which is only permitted within
 classes, traits and iterators. 
 `const` declarations can be members of value-types, such as datatypes.
 
-## **Error: a const field should be initialized using ':=', not '='**
+## **Error: a const field should be initialized using ':=', not '='** {#p_bad_const_initialize_op}
 
 ```dafny
 const c: int = 5

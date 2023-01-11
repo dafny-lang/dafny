@@ -247,7 +247,6 @@ namespace Microsoft.Dafny {
           if (info != null) {
             errorLine += "\n" + info;
           }
-
         }
         Console.WriteLine(errorLine);
 

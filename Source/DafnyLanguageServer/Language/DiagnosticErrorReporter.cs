@@ -170,10 +170,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         Data = JToken.FromObject(Errors.FindCodeActionRange(tok).GetLspRange()),
       };
       AddDiagnosticForFile(item, source, GetDocumentUriOrDefault(tok));
-      var v = Errors.FindCodeActionRange(tok);
       return true;
     }
-
 
     public override int Count(ErrorLevel level) {
       rwLock.EnterReadLock();

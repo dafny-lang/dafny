@@ -83,6 +83,7 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
   public class ErrorMessageCodeActionProvider : DiagnosticDafnyCodeActionProvider {
     private Range InterpretDataAsRangeOrDefault(JToken? data, Range def) {
       if (data is null) return def;
+      // If the token provided does not have the format expected, just use the default
       try {
         var sl = data.First?.First?.First?.ToString();
         var sc = data.First?.First?.Last?.ToString();

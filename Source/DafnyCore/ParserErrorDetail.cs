@@ -33,7 +33,8 @@ Only modules may be declared abstract.
     ErrorDetail.Add(p_no_ghost_for_by_method,
     @"
 Functions with a [by method](../DafnyRef/DafnyRef#sec-function-declarations)
-section to their body can be used both in ghost contexts and in non-ghost contexts; in ghost contexts the function body is used and in compiled contexts
+section to their body can be used both in ghost contexts and in non-ghost contexts; 
+in ghost contexts the function body is used and in compiled contexts
 the by-method body is used. The `ghost` keyword is not permitted on the
 declaration.
 "
