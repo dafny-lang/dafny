@@ -13,7 +13,7 @@ This should not ordinarily happen. Some possible causes are
 - a bug in dafny whereby the source code it prepares for the compiler is faulty
 
 There may be additional error messages from the underlying compiler that can help debug this situation.
-One can also attempt to run the target prograomming language compiler manually in your system 
+You can also attempt to run the target programming language compiler manually in your system 
 to make sure it is functional.
 
 ## **Error: Unable to start _target_**
