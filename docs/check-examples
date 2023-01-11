@@ -87,7 +87,7 @@ done
 shift $(($OPTIND - 1))
 
 ## Temporary file
-text=tmptext.dfy
+text=text.dfy
 
 ## Tracks if there have been any failures
 ANYFAIL=0
@@ -167,7 +167,7 @@ do
       touch $text
     else
       ## End of backtick block, so check the text
-      if [ -z "$command" ]; then
+      if [ -z "$command" -a "$lang" == "dafny" ]; then
         command="$defaultCommand"
         if [ -z "$command" ]; then
           echo "NO COMMAND GIVEN $n $line"
