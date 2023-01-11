@@ -29,13 +29,17 @@ such as the proper files not having the correct permissions.
 
 ## **Error: Error: '_feature_' is not an element of the _target_ compiler's UnsupportedFeatures set**
 
-<!-- TODO -->
-_Documentation of unsupported features is in progress._
+This messages indicates two problems:
+- the given feature is not supported in the compiler for the target language but is present in the program,
+so the program will need to be revised to avoid this feature;
+- the feature is not listed in the in-tool list of unsupported features.
+The latter is a (minor) bug in the in-tool documentation. Please report this error message and the part of the
+program provoking it to the Dafny team's [issue tracker](https://github.com/davidcok/dafny/issues).
 
 ## **Error: Opaque type ('_type_') with extern attribute requires a compile hint.  Expected {:extern compile_type_hint}**
 
 <!-- TODO -->
-_Documentation of extern and compile hints is i nprogress._
+_Documentation of extern and compile hints is in progress._
 
 ## **Error: Opaque type (_name_) cannot be compiled; perhaps make it a type synonym or use :extern.**
 <!-- %check-run -->
@@ -322,7 +326,8 @@ even if there is only one such possible value.
 
 ## **Error: this assign-such-that statement is too advanced for the current compiler; Dafny's heuristics cannot find any bound for variable '_name_'**
 
-TODO
+<!-- TODO -->
+_The documentation of this problem is in progress._
 
 ## **Error: nondeterministic if statement forbidden by the --enforce-determinism option**
 
@@ -423,7 +428,8 @@ or series of `if` statements in which the then-branch ends in a continue stateme
 
 ## **Error: compiler currently does not support assignments to more-than-6-dimensional arrays in forall statements**
 
-TODO
+<!-- TODO -->
+_The documentation of this problem is in progress._
 
 ## **Error: modify statement without a body forbidden by the --enforce-determinism option**
 
@@ -452,7 +458,8 @@ Note that a `modify` statement with a body is deprecated.
 
 ## **Error: this let-such-that expression is too advanced for the current compiler; Dafny's heuristics cannot find any bound for variable '_name_'**
 
-TODO
+<!-- TODO -->
+_The documentation of this problem is in progress._
 
 ## **Error: Comparison of a handle can only be with another handle**
 
@@ -461,9 +468,12 @@ _The documentation of the {:handle} attribute is in progress._
 
 <!-- DafnyCore/Compilers/Synthesizer-Csharp.cs -->
 
-## **Error: '_feature_' is not an element of the _target_ compiler's UnsupportedFeatures set**
+## **Error: Post-conditions on function _function_ might be unsatisfied when synthesizing code for method _name_"
 
-TODO
+<!-- TODO: Example? Say more? Better documentation? -->
+
+This message relates to mocking methods in C# with the Moq framework. 
+See the [reference manual section on {:synthesize}](../DafnyRef/DafnyRef#sec-synthesize-attr) for more detail.
 
 ## **Error: Stubbing fields is not recommended (field _name_ of object _object_ inside method _method_)**
 
