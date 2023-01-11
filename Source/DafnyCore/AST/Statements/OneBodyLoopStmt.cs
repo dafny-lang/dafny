@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
@@ -11,9 +12,11 @@ public abstract class OneBodyLoopStmt : LoopStmt {
   protected OneBodyLoopStmt(Cloner cloner, OneBodyLoopStmt original) : base(cloner, original) {
     Body = (BlockStmt)cloner.CloneStmt(original.Body);
     if (cloner.CloneResolvedFields) {
-      BodySurrogate = new WhileStmt.LoopBodySurrogate(
-        original.BodySurrogate.LocalLoopTargets.Select(v => cloner.CloneIVariable(v, true)).ToList(),
-        original.BodySurrogate.UsesHeap);
+      if (original.BodySurrogate != null) {
+        BodySurrogate = new WhileStmt.LoopBodySurrogate(
+          original.BodySurrogate.LocalLoopTargets.Select(v => cloner.CloneIVariable(v, true)).ToList(),
+          original.BodySurrogate.UsesHeap);
+      }
     }
   }
 
@@ -29,6 +32,12 @@ public abstract class OneBodyLoopStmt : LoopStmt {
       if (Body != null) {
         yield return Body;
       }
+    }
+  }
+
+  public override IEnumerable<AssumptionDescription> Assumptions() {
+    if (Body is null) {
+      yield return AssumptionDescription.LoopWithoutBody;
     }
   }
 }

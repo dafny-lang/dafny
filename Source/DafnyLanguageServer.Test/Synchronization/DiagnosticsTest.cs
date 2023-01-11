@@ -92,6 +92,34 @@ function bullspec(s:seq<nat>, u:seq<nat>): (r: nat)
     }
 
     [TestMethod]
+    public async Task OpeningFailingFunctionPreconditionHasRelatedDiagnostics() {
+      var source = @"
+predicate P(i: int) {
+  i <= 0
+}
+
+function method Call(i: int): int
+  requires P(i)
+
+method Test(i: int) returns (j: int)
+  requires i > 0
+{
+  return Call(2/i);
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(1, diagnostics.Length);
+      Assert.IsNotNull(diagnostics[0].RelatedInformation);
+      var relatedInformation =
+        diagnostics[0].RelatedInformation.ToArray();
+      Assert.AreEqual(2, relatedInformation.Length);
+      Assert.AreEqual("Could not prove: P(i)", relatedInformation[0].Message);
+      Assert.AreEqual("Could not prove: i <= 0", relatedInformation[1].Message);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
+    }
+
+    [TestMethod]
     public async Task OpeningFlawlessDocumentReportsNoDiagnostics() {
       var source = @"
 method Multiply(x: int, y: int) returns (product: int)

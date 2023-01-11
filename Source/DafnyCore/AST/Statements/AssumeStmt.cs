@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
@@ -22,5 +23,9 @@ public class AssumeStmt : PredicateStmt, ICloneable<AssumeStmt> {
       foreach (var e in base.SpecificationSubExpressions) { yield return e; }
       yield return Expr;
     }
+  }
+
+  public override IEnumerable<AssumptionDescription> Assumptions() {
+    yield return AssumptionDescription.AssumeStatement;
   }
 }
