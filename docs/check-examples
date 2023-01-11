@@ -61,7 +61,7 @@
 ##                  the actual output matches the content of the file <expect>
 ##   %check-run <expect> : runs the command
 ##              "dafny run --use-basename-for-filename $F" and,
-##              if <expect> is present, then checks that the output matches the
+##              if <expect> is present, checks that the output matches the
 ##              content of the file names <expect>
 ##   %check-error
 ##   check
