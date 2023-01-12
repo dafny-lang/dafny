@@ -78,6 +78,9 @@ namespace Microsoft.Dafny {
     }
 
     private static string GetDafnySourceAttributeText(string dllPath) {
+      if (!File.Exists(dllPath)) {
+        throw new IllegalDafnyFile();
+      }
       using var dllFs = new FileStream(dllPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
       using var dllPeReader = new PEReader(dllFs);
       var dllMetadataReader = dllPeReader.GetMetadataReader();
