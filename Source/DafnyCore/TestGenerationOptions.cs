@@ -10,7 +10,7 @@ namespace Microsoft.Dafny {
     public enum Modes { None, Block, Path };
     public Modes Mode = Modes.None;
     [CanBeNull] public string TargetMethod = null;
-    public int SeqLengthLimit = -1;
+    public uint SeqLengthLimit = 0;
     public uint TestInlineDepth = 0;
     public bool Verbose = false;
     [CanBeNull] public string PrintBpl = null;
@@ -42,7 +42,7 @@ namespace Microsoft.Dafny {
         case "generateTestSeqLengthLimit":
           var limit = 0;
           if (ps.GetIntArgument(ref limit)) {
-            SeqLengthLimit = limit;
+            SeqLengthLimit = (uint)limit;
           }
           return true;
 
@@ -89,7 +89,7 @@ namespace Microsoft.Dafny {
     when generating tests.
 /generateTestSeqLengthLimit:<n>
     Add an axiom that sets the length of all sequences to be no greater 
-    than <n>. Negative value indicates no limit.
+    than <n>. 0 (default) indicates no limit.
 /generateTestTargetMethod:<methodName>
     If specified, only this method will be tested.
 /generateTestInlineDepth:<n>

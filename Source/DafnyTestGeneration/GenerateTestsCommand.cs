@@ -60,8 +60,8 @@ path - Prints path-coverage tests for the given program.");
   public static readonly Option<uint> TestInlineDepth = new("--inline-depth",
     "0 is the default. When used in conjunction with --target-method, this argument specifies the depth up to which all non-tested methods should be inlined.") {
   };
-  public static readonly Option<int> SequenceLengthLimit = new("--length-limit",
-    "Add an axiom that sets the length of all sequences to be no greater than <n>") {
+  public static readonly Option<uint> SequenceLengthLimit = new("--length-limit",
+    "Add an axiom that sets the length of all sequences to be no greater than <n>. 0 (default) indicates no limit.") {
   };
   public static readonly Option<int> LoopUnroll = new("--loop-unroll",
     "Higher values can improve accuracy of the analysis at the cost of taking longer to run.") {

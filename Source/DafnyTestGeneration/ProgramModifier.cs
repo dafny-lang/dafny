@@ -82,7 +82,7 @@ namespace DafnyTestGeneration {
     /// Add axioms necessary for counterexample generation to work efficiently
     /// </summary>
     private static void AddAxioms(Program program) {
-      if (DafnyOptions.O.TestGenOptions.SeqLengthLimit <= -1) {
+      if (DafnyOptions.O.TestGenOptions.SeqLengthLimit == 0) {
         return;
       }
       var limit = (uint)DafnyOptions.O.TestGenOptions.SeqLengthLimit;
