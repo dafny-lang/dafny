@@ -1031,7 +1031,7 @@ const c := '🚀';
 A character literal can only contain a single value of the built-in char type.
 When --unicode-char is disabled, the char type represents UTF-16 code units, 
 so this means a character literal can only contain a character that can be represented
-iwith a single such unit, i.e. characters in the Basic Multilingual Plane. 
+with a single such unit, i.e. characters in the Basic Multilingual Plane. 
 The rocket ship emoji above, however, is encoded with two surrogate code points.
 
 This can be fixed by enabling the --unicode-char mode, as that defines char as any
