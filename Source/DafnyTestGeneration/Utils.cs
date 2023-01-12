@@ -87,7 +87,7 @@ namespace DafnyTestGeneration {
     }
 
     /// <summary>
-    /// Deep clone a Boogie program.
+    /// Deep clone and re-resolve a Boogie program.
     /// </summary>
     public static Microsoft.Boogie.Program
       DeepCloneProgramAndReresolve(Microsoft.Boogie.Program program, DafnyOptions options) {
