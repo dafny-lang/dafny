@@ -928,7 +928,7 @@ has the same meaning as
 
 <!-- %no-check -->
 ```dafny
-if exists x :| P { var x :| P; S } else { T }
+if exists x :: P { var x :| P; S } else { T }
 ```
 
 The identifiers bound by ``BindingGuard`` are ghost variables
