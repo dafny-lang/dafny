@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Linq;
+using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
@@ -30,6 +31,18 @@ public abstract class Declaration : INode, INamedRegion, IAttributeBearingDeclar
   private VisibilityScope revealScope = new VisibilityScope();
 
   private bool scopeIsInherited = false;
+
+  public override IEnumerable<AssumptionDescription> Assumptions() {
+    if (Attributes.Contains(Attributes, "axiom")) {
+      yield return AssumptionDescription.HasAxiomAttribute;
+    }
+
+    if (Attributes.Find(Attributes, "verify") is Attributes va &&
+        va.Args.Count == 1 && Expression.IsBoolLiteral(va.Args[0], out var verify) &&
+        verify == false) {
+      yield return AssumptionDescription.HasVerifyFalseAttribute;
+    }
+  }
 
   public virtual bool CanBeExported() {
     return true;
@@ -1194,6 +1207,18 @@ public class TraitDecl : ClassDecl {
   public TraitDecl(IToken tok, string name, ModuleDefinition module,
     List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, bool isRefining, List<Type>/*?*/ traits)
     : base(tok, name, module, typeArgs, members, attributes, isRefining, traits) { }
+
+  public override IEnumerable<AssumptionDescription> Assumptions() {
+    foreach (var assumption in base.Assumptions()) {
+      yield return assumption;
+    }
+
+    if (Attributes.Find(Attributes, "termination") is Attributes ta &&
+        ta.Args.Count == 1 && Expression.IsBoolLiteral(ta.Args[0], out var termCheck) &&
+        termCheck == false) {
+      yield return AssumptionDescription.HasTerminationFalseAttribute;
+    }
+  }
 }
 
 public class ClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl {
