@@ -3,8 +3,7 @@
 [**Purpose**](#purpose) <br>
 [**General Approach**](#general-approach) <br>
 [**Implementation**](#implementation) <br>
-[**How to Generate Tests?**](#how-to-generate-tests) <br>
-[**How to Run Tests?**](#how-to-run-tests) <br>
+[**How to Generate and Run Tests?**](#how-to-generate-and-run-tests) <br>
 [**Dead Code Identification Example**](#dead-code-identification-example)
 
 ## Purpose
@@ -33,19 +32,11 @@ We currently provide no oracle against which to compare the result. In the futur
 - [BlockBasedModifier.cs](BlockBasedModifier.cs) and [PathBasedModifier.cs](PathBasedModifier.cs) - subclasses of `ProgramModifier` that generate instances of `ProgramModification` by inserting assertions that fail when a particular block is visited or a particular path is taken, respectively.
 - [DafnyInfo.cs](DafnyInfo.cs) - takes a Dafny Program and extracts certain information about it that is then used in `TestMethod.cs` and `Main.cs`
 
-## How to Generate Tests?
+## How to Generate and Run Tests?
 
-- Test generation currently works with all basic types, user-defined classes, sequences, sets, and maps. Not counting several edge cases, it also works with datatypes. It does not currently work on arrays or multisets. It is also not possible to generate tests for constructors. Please avoid top-level methods and wrap them inside classes or modules.
-- To generate block- or path-coverage tests use the `/generateTestMode:Block` or `/generateTestMode:Path` arguments respectively. Test generation relies on Dafny to generate Boogie implementations and Dafny does not generate a Boogie implementation when there are no proof obligations, so no tests will be generated in the latter scenario (so you might want to use /definiteAssignment:3).
-- If you wish to test a particular method rather than all the methods in a file, you can specify such a method with the `/generateTestTargetMethod` command line argument and providing the fully qualified method name.
-- If you are using `/generateTestTargetMethod` and would like to inline methods that are called from the method of interest, you can do so by setting `/generateTestInlineDepth` to something larger than zero (zero is the default). The `/verifyAllModules` argument might also be relevant if the methods to be inlined are defined in included files.
-- To deal with loops, you should use `/loopUnroll` and also `/generateTestSeqLengthLimit`. The latter argument adds an axiom that limits the length of any sequence to be no greater than some specified value. This restriction can be used to ensure that the number of loop unrolls is sufficient with respect to the length of any input sequence but it can also cause the program to miss certain corner cases.
-- The`/warnDeadCode` argument will make Dafny identify potential dead code in the specified file. Note that false negatives are possible if `/loopUnroll` is not used. False positives are also possible for a variety of reasons, such as `/loopUnroll` being assigned not high enough value.
-- You can use `/generateTestVerbose` and `/generateTestPrintBpl:FILENAME.bpl` for debugging purposes.
+Run `dafny generate-tests` to get the list of all supported options.
 
-## How to Run Tests?
-
-Suppose you have a file called `object.dfy` with the following code:
+To consider a simple example, suppose you have a file called `object.dfy` with the following code:
 ```dafny
 module M {
   class Value {
@@ -63,7 +54,7 @@ module M {
 ```
 The tests can be generated like this:
 
-```dafny /definiteAssignment:3 /generateTestMode:Block object.dfy ```
+```dafny generate-tests Block object.dfy```
 
 Dafny will give the following list of tests as output (tabulation added manually):
 ```dafny
@@ -124,25 +115,27 @@ Note that your `.csproj` file must include `xunit` and `Moq` libraries. You can 
 Suppose you have a file called "Sample.dfy" with the following code:
 
 ```dafny
-method m(a:int) returns (b:int)
-  requires a > 0
-{
-  if (a == 0) {
-    return 0;
+module M {
+  method m(a:int) returns (b:int)
+    requires a > 0
+  {
+    if (a == 0) {
+      return 0;
+    }
+    return 1;
   }
-  return 1;
 }
 ```
 
 Running dead code identification like this:
 
-`dafny /warnDeadCode /definiteAssignment:3 ../examples/Sample.dfy`
+`dafny find-dead-code Sample.dfy`
 
 Will give the following information:
 
 ```
-Code at ../examples/Sample.dfy(5,12) is potentially unreachable.
-Out of 5 basic blocks (3 capturedStates), 4 (2) are reachable.
+Code at Sample.dfy(6,14) is potentially unreachable.
+Out of 3 basic blocks (3 capturedStates), 2 (2) are reachable.
 There might be false negatives if you are not unrolling loops.
 False positives are always possible.
 ```
