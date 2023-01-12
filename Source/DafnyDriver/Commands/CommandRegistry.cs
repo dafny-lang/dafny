@@ -59,7 +59,7 @@ static class CommandRegistry {
     dafnyOptions.ShowEnv = ExecutionEngineOptions.ShowEnvironment.Never;
     dafnyOptions.Options = options;
 
-    ProjectFileTools.ProjectParser(dafnyOptions);
+
     foreach (var option in Commands.SelectMany(c => c.Options)) {
       if (!allowHidden) {
         option.IsHidden = false;
