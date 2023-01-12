@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 "%s" > "%t"
+// RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 codatatype Stream<X> = Nil | Cons(head: X, tail: Stream<X>)

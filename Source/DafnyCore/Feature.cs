@@ -57,13 +57,10 @@ public enum Feature {
   [FeatureDescription("Collections with trait element types", "sec-collection-types")]
   CollectionsOfTraits,
 
-  [FeatureDescription("User-defined types with traits as type parameters", "sec-trait-types")]
-  TraitTypeParameters,
-
   [FeatureDescription("External module names with only underscores", "sec-extern-decls")]
   AllUnderscoreExternalModuleNames,
 
-  [FeatureDescription("Co-inductive datatypes", "sec-co-inductive-datatypes")]
+  [FeatureDescription("Co-inductive datatypes", "sec-coinductive-datatypes")]
   Codatatypes,
 
   [FeatureDescription("Multisets", "sec-multisets")]

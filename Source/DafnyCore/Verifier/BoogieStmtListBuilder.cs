@@ -1,3 +1,4 @@
+using System.Linq;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
@@ -26,7 +27,14 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    public void Add(StructuredCmd scmd) { builder.Add(scmd); }
+
+    public void Add(StructuredCmd scmd) {
+      builder.Add(scmd);
+      if (scmd is Boogie.WhileCmd whyle && whyle.Invariants.Any(inv => inv is Boogie.AssertCmd)) {
+        tran.assertionCount++;
+      }
+    }
+
     public void Add(TransferCmd tcmd) { builder.Add(tcmd); }
     public void AddLabelCmd(string label) { builder.AddLabelCmd(label); }
     public void AddLocalVariable(string name) { builder.AddLocalVariable(name); }

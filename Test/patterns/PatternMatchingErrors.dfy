@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /errorLimit:15 "%s" > "%t"
+// RUN: %exits-with 4 %dafny /errorLimit:15 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 /*
@@ -50,7 +50,7 @@ datatype Dt = Make(d: int)
 
 function method GetNat(dt: Dt): nat {
   match dt
-  case Make(y: nat) => y
+  case Make(y) => y
 }
 
 // postcondition might not hold on this return path (in least lemma)

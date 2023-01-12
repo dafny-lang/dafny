@@ -24,8 +24,6 @@ namespace IntegrationTests {
     private static readonly Assembly TestDafnyAssembly = typeof(TestDafny.TestDafny).Assembly;
     private static readonly Assembly DafnyServerAssembly = typeof(Server).Assembly;
 
-    private static readonly string[] DefaultDafny0Arguments = DafnyDriver.DefaultArgumentsForTesting.Prepend("/countVerificationErrors:0").ToArray();
-
     private static readonly LitTestConfiguration Config;
 
     static LitTests() {
@@ -42,20 +40,16 @@ namespace IntegrationTests {
 
       var substitutions = new Dictionary<string, object> {
         { "%diff", "diff" },
+        { "%resolveargs", "--useBaseNameForFileName" },
         { "%binaryDir", "." },
         { "%z3", Path.Join("z3", "bin", "z3") },
         { "%repositoryRoot", repositoryRoot.Replace(@"\", "/") },
-        { "%refmanexamples", Path.Join("TestFiles", "LitTests", "LitTest", "refman", "examples") }
       };
 
       var commands = new Dictionary<string, Func<IEnumerable<string>, LitTestConfiguration, ILitCommand>> {
         {
           "%baredafny", (args, config) =>
             MainMethodLitCommand.Parse(DafnyDriverAssembly, args, config, InvokeMainMethodsDirectly)
-        }, {
-          "%dafny_0", (args, config) =>
-            MainMethodLitCommand.Parse(DafnyDriverAssembly, AddExtraArgs(DefaultDafny0Arguments, args),
-              config, InvokeMainMethodsDirectly)
         }, {
           "%dafny", (args, config) =>
             MainMethodLitCommand.Parse(DafnyDriverAssembly, AddExtraArgs(DafnyDriver.DefaultArgumentsForTesting, args),
@@ -107,9 +101,6 @@ namespace IntegrationTests {
         var dafnyCliPath = Path.Join(dafnyReleaseDir, "dafny");
         commands["%baredafny"] = (args, config) =>
           new ShellLitCommand(dafnyCliPath, args, config.PassthroughEnvironmentVariables);
-        commands["%dafny_0"] = (args, config) =>
-          new ShellLitCommand(dafnyCliPath,
-            AddExtraArgs(DefaultDafny0Arguments, args), config.PassthroughEnvironmentVariables);
         commands["%dafny"] = (args, config) =>
           new ShellLitCommand(dafnyCliPath,
             AddExtraArgs(DafnyDriver.DefaultArgumentsForTesting, args), config.PassthroughEnvironmentVariables);
@@ -133,8 +124,7 @@ namespace IntegrationTests {
 
     [FileTheory]
     [FileData(Includes = new[] { "**/*.dfy", "**/*.transcript" },
-              Excludes = new[] { "**/Inputs/**/*", "**/Output/**/*", "refman/examples/**/*",
-                "tutorial/AutoExtern", // This is tested separately in the unit tests of Source/AutoExtern
+              Excludes = new[] { "**/Inputs/**/*", "**/Output/**/*"
               })]
     public void LitTest(string path) {
       LitTestCase.Run(path, Config, output);

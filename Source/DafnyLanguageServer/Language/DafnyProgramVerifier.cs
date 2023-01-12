@@ -25,26 +25,16 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     public DafnyProgramVerifier(
       ILogger<DafnyProgramVerifier> logger,
-      IOptions<VerifierOptions> options
+      DafnyOptions options
       ) {
-      var engineOptions = DafnyOptions.O;
-      engineOptions.VcsCores = GetConfiguredCoreCount(options.Value);
-      engineOptions.TimeLimit = options.Value.TimeLimit;
-      engineOptions.VerifySnapshots = (int)options.Value.VerifySnapshots;
       // TODO This may be subject to change. See Microsoft.Boogie.Counterexample
       //      A dash means write to the textwriter instead of a file.
       // https://github.com/boogie-org/boogie/blob/b03dd2e4d5170757006eef94cbb07739ba50dddb/Source/VCGeneration/Couterexample.cs#L217
-      engineOptions.ModelViewFile = "-";
-      BatchObserver = new AssertionBatchCompletedObserver(logger, options.Value.GutterStatus);
+      options.ModelViewFile = "-";
+      BatchObserver = new AssertionBatchCompletedObserver(logger, true);
 
-      engineOptions.Printer = BatchObserver;
-      engine = new ExecutionEngine(engineOptions, cache);
-    }
-
-    private static int GetConfiguredCoreCount(VerifierOptions options) {
-      return options.VcsCores == 0
-        ? Math.Max(1, Environment.ProcessorCount / 2)
-        : Convert.ToInt32(options.VcsCores);
+      options.Printer = BatchObserver;
+      engine = new ExecutionEngine(options, cache);
     }
 
     private const int TranslatorMaxStackSize = 0x10000000; // 256MB

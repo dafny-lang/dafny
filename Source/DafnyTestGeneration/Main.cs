@@ -19,7 +19,7 @@ namespace DafnyTestGeneration {
     /// <returns></returns>
     public static async IAsyncEnumerable<string> GetDeadCodeStatistics(Program program) {
 
-      DafnyOptions.O.PrintMode = DafnyOptions.PrintModes.Everything;
+      DafnyOptions.O.PrintMode = PrintModes.Everything;
       ProgramModification.ResetStatistics();
       var modifications = GetModifications(program).ToList();
       var blocksReached = modifications.Count;
@@ -52,7 +52,7 @@ namespace DafnyTestGeneration {
     }
 
     public static async IAsyncEnumerable<string> GetDeadCodeStatistics(string sourceFile) {
-      DafnyOptions.O.PrintMode = DafnyOptions.PrintModes.Everything;
+      DafnyOptions.O.PrintMode = PrintModes.Everything;
       var source = await new StreamReader(sourceFile).ReadToEndAsync();
       var program = Utils.Parse(source, sourceFile);
       if (program == null) {
@@ -88,7 +88,7 @@ namespace DafnyTestGeneration {
     /// <returns></returns>
     public static async IAsyncEnumerable<TestMethod> GetTestMethodsForProgram(Program program) {
 
-      DafnyOptions.O.PrintMode = DafnyOptions.PrintModes.Everything;
+      DafnyOptions.O.PrintMode = PrintModes.Everything;
       ProgramModification.ResetStatistics();
       var dafnyInfo = new DafnyInfo(program);
       // Generate tests based on counterexamples produced from modifications
@@ -112,7 +112,7 @@ namespace DafnyTestGeneration {
     /// </summary>
     public static async IAsyncEnumerable<string> GetTestClassForProgram(string sourceFile) {
 
-      DafnyOptions.O.PrintMode = DafnyOptions.PrintModes.Everything;
+      DafnyOptions.O.PrintMode = PrintModes.Everything;
       TestMethod.ClearTypesToSynthesize();
       var source = new StreamReader(sourceFile).ReadToEnd();
       var program = Utils.Parse(source, sourceFile);

@@ -1,4 +1,0 @@
-Example-TwoState-Diff.dfy(11,25): Error: argument at index 1 ('d') might not be allocated in the two-state function's previous state
-Example-TwoState-DiffAgain.dfy(10,27): Error: argument at index 0 ('c') might not be allocated in the two-state function's previous state
-
-Dafny program verifier finished with 9 verified, 2 errors

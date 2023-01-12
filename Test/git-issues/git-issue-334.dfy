@@ -1,4 +1,4 @@
-// RUN: %dafny_0 "%s" > "%t"
+// RUN: %exits-with 4 %dafny "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 function method FromAtoB(a: seq<int>): seq<int> {

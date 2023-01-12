@@ -3,23 +3,8 @@ Dafny program verifier finished with 9 verified, 0 errors
 
 Dafny program verifier did not attempt verification
 {5, 7} and {5, 7}
-Dt.Atom(_module.Class0) and Dt.Atom(_module.Class0)
-Dt.Atom(_module.Class0) and Dt.Atom(_module.Class0)
-{_module.Class0} and {_module.Class0}
-[_module.Class0] and [_module.Class0]
-multiset{_module.Class0} and multiset{_module.Class0}
-map[7 := _module.Class0] and map[7 := _module.Class0]
-[_module.Class0, _module.Class0] and [_module.Class0, _module.Class0]
-
-Dafny program verifier did not attempt verification
-RuntimeTypeTests0.dfy(42,9): Error: compilation does not support trait types as a type parameter (got 'object'); consider introducing a ghost
-RuntimeTypeTests0.dfy(51,9): Error: compilation does not support trait types as a type parameter (got 'object'); consider introducing a ghost
-Wrote textual form of partial target program to RuntimeTypeTests0-java/RuntimeTypeTests0.java
-
-Dafny program verifier did not attempt verification
-{5, 7} and {5, 7}
-Dt.Atom(_module.Class0) and Dt.Atom(_module.Class0)
-Dt.Atom(_module.Class0) and Dt.Atom(_module.Class0)
+Dt.Atom(_module.Class0, 10) and Dt.Atom(_module.Class0, 10)
+Dt.Atom(_module.Class0, 10) and Dt.Atom(_module.Class0, 10)
 {_module.Class0} and {_module.Class0}
 [_module.Class0] and [_module.Class0]
 multiset{_module.Class0} and multiset{_module.Class0}
@@ -28,8 +13,38 @@ map[7 := _module.Class0] and map[7 := _module.Class0]
 
 Dafny program verifier did not attempt verification
 {5, 7} and {5, 7}
-Dt.Atom(_module.Class0) and Dt.Atom(_module.Class0)
-Dt.Atom(_module.Class0) and Dt.Atom(_module.Class0)
+Dt.Atom(_module.Class0, 10) and Dt.Atom(_module.Class0, 10)
+Dt.Atom(_module.Class0, 10) and Dt.Atom(_module.Class0, 10)
+{_module.Class0} and {_module.Class0}
+[_module.Class0] and [_module.Class0]
+multiset{_module.Class0} and multiset{_module.Class0}
+map[7 := _module.Class0] and map[7 := _module.Class0]
+[_module.Class0, _module.Class0] and [_module.Class0, _module.Class0]
+
+Dafny program verifier did not attempt verification
+{5, 7} and {5, 7}
+Dt.Atom(_module.Class0, 10) and Dt.Atom(_module.Class0, 10)
+Dt.Atom(_module.Class0, 10) and Dt.Atom(_module.Class0, 10)
+{_module.Class0} and {_module.Class0}
+[_module.Class0] and [_module.Class0]
+multiset{_module.Class0} and multiset{_module.Class0}
+map[7 := _module.Class0] and map[7 := _module.Class0]
+[_module.Class0, _module.Class0] and [_module.Class0, _module.Class0]
+
+Dafny program verifier did not attempt verification
+{5, 7} and {5, 7}
+Dt.Atom(_module.Class0, 10) and Dt.Atom(_module.Class0, 10)
+Dt.Atom(_module.Class0, 10) and Dt.Atom(_module.Class0, 10)
+{_module.Class0} and {_module.Class0}
+[_module.Class0] and [_module.Class0]
+multiset{_module.Class0} and multiset{_module.Class0}
+map[7 := _module.Class0] and map[7 := _module.Class0]
+[_module.Class0, _module.Class0] and [_module.Class0, _module.Class0]
+
+Dafny program verifier did not attempt verification
+{5, 7} and {5, 7}
+Dt.Atom(_module.Class0, 10) and Dt.Atom(_module.Class0, 10)
+Dt.Atom(_module.Class0, 10) and Dt.Atom(_module.Class0, 10)
 {_module.Class0} and {_module.Class0}
 [_module.Class0] and [_module.Class0]
 multiset{_module.Class0} and multiset{_module.Class0}

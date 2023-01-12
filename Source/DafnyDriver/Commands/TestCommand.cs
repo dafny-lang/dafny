@@ -6,10 +6,10 @@ using System.Linq;
 namespace Microsoft.Dafny; 
 
 public class TestCommand : ICommandSpec {
-  public IEnumerable<IOptionSpec> Options =>
-    new IOptionSpec[] {
-    }.Concat(ICommandSpec.VerificationOptions).
-      Concat(ICommandSpec.ExecutionOptions).
+  public IEnumerable<Option> Options =>
+    new Option[] {
+    }.Concat(ICommandSpec.ExecutionOptions).
+      Concat(ICommandSpec.ConsoleOutputOptions).
       Concat(ICommandSpec.CommonOptions);
 
   public Command Create() {
@@ -22,7 +22,7 @@ public class TestCommand : ICommandSpec {
     dafnyOptions.Compile = true;
     dafnyOptions.RunAfterCompile = true;
     dafnyOptions.RunAllTests = true;
-    dafnyOptions.ForceCompile = NoVerifyOption.Instance.Get(options);
+    dafnyOptions.ForceCompile = dafnyOptions.Get(BoogieOptionBag.NoVerify);
     dafnyOptions.CompileVerbose = false;
   }
 }

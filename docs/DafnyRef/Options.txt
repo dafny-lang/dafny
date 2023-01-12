@@ -1,10 +1,10 @@
 ```
 Use 'dafny --help' to see help for a newer Dafny CLI format.
-Usage: Dafny [ option ... ] [ filename ... ]
+Usage: dafny [ option ... ] [ filename ... ]
 
   ---- General options -------------------------------------------------------
 
-  /version      print the Dafny version number
+  /version      print the dafny version number
   /help         print this message
   /attrHelp     print a message about supported declaration attributes
   /env:<n>      print command line arguments
@@ -46,8 +46,8 @@ Usage: Dafny [ option ... ] [ filename ... ]
   ---- Overall reporting and printing ----------------------------------------
   
   /dprint:<file>
-      Print Dafny program after parsing it. (Use - as <file> to print
-      to console.)
+      Print Dafny program after parsing it.
+      (Use - as <file> to print to console.)
 
   /printMode:<Everything|DllEmbed|NoIncludes|NoGhost>
       Everything (default) - Print everything listed below.
@@ -60,8 +60,8 @@ Usage: Dafny [ option ... ] [ filename ... ]
           NoIncludes disables.
 
   /rprint:<file>
-      Print Dafny program after resolving it. (use - as <file> to print
-      to console.)
+      Print Dafny program after resolving it.
+      (use - as <file> to print to console.)
 
   /showSnippets:<value>
       0 (default) - Don't show source code snippets for Dafny messages.
@@ -353,11 +353,6 @@ Usage: Dafny [ option ... ] [ filename ... ]
       /proverOpt:O:model.compact=false (for z3 version >= 4.8.7), and
       /proverOpt:O:model.completion=true.
   
-  /countVerificationErrors:<n>
-      (deprecated)
-      0 - Set exit code to 0 regardless of the presence of any other errors.
-      1 (default) - Emit usual exit code (cf. beginning of the help message).
-  
   ---- Test generation options -----------------------------------------------
   
   /warnDeadCode
@@ -399,24 +394,22 @@ Usage: Dafny [ option ... ] [ filename ... ]
       BigIntegers (aka int), most higher order functions, and advanced
       features like traits or co-inductive types.
 
-  /compileVerbose:<value>
-      0 - Don't print status of compilation to the console.
-      1 (default) - Print information such as files being written by the
-          compiler to the console.
-
   /library:<value>
       The contents of this file and any files it includes can be referenced from other files as if they were included. 
       However, these contents are skipped during code generation and verification.
       This option is useful in a diamond dependency situation, 
       to prevent code from the bottom dependency from being generated more than once.
 
-  /out:<file>
-      Specify the filename and location for the generated target language
-      files.
+  /optimizeErasableDatatypeWrapper:<value>
+      0 - Include all non-ghost datatype constructors in the compiled code
+      1 (default) - In the compiled target code, transform any non-extern
+          datatype with a single non-ghost constructor that has a single
+          non-ghost parameter into just that parameter. For example, the type
+              datatype Record = Record(x: int)
+          is transformed into just 'int' in the target code.
 
-  /useRuntimeLib:<value>
-      Refer to pre-built DafnyRuntime.dll in compiled assembly rather
-      than including DafnyRuntime.cs verbatim.
+  /out:<file>
+      Specify the filename and location for the generated target language files.
 
   /compile:<n>
       0 - Do not compile Dafny program.
@@ -447,6 +440,12 @@ Usage: Dafny [ option ... ] [ filename ... ]
           be used if the program already contains a main method. Note that
           /compile:3 or 4 must be provided as well to actually execute
           this main method!
+  
+  /compileVerbose:<n>
+      0 - Don't print status of compilation to the console.
+      1 (default) - Print information such as files being written by the
+          compiler to the console.
+  
   /spillTargetCode:<n>
       Explicitly writes the code in the target language to one or more files.
       This is not necessary to run a Dafny program, but may be of interest when
@@ -479,12 +478,9 @@ Usage: Dafny [ option ... ] [ filename ... ]
           target.
       2 (default) - As in 1, but only resolve method bodies in
           non-included Dafny sources.
-  /library:<file>
-      The contents of this file and any files it includes can be
-      referenced from other files as if they were included. However, these
-      contents are skipped during code generation and verification. This
-      option is useful in a diamond dependency situation, to prevent code
-      from the bottom dependency from being generated more than once.
+  /useRuntimeLib
+      Refer to a pre-built DafnyRuntime.dll in the compiled assembly
+      rather than including DafnyRuntime.cs verbatim.
   
   /testContracts:<Externs|TestedExterns>
       Enable run-time testing of the compilable portions of certain function
@@ -617,6 +613,8 @@ Usage: Dafny [ option ... ] [ filename ... ]
                 do not verify mover type annotations on atomic action declarations
   /trustNoninterference
                 do not perform noninterference checks
+  /trustRefinement
+                do not perform refinement checks
   /trustLayersUpto:<n>
                 do not verify layers <n> and below
   /trustLayersDownto:<n>

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Language;
@@ -26,9 +27,9 @@ public class CachedLinearVerificationGutterStatusTester : LinearVerificationGutt
 
   [TestMethod, Timeout(MaxTestExecutionTimeMs)]
   public async Task EnsureCachingDoesNotMakeSquigglyLinesToRemain() {
-    await SetUp(new Dictionary<string, string>() {
-      { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VerifySnapshots)}", "1" },
-      { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", "1" },
+    await SetUp(options => {
+      options.Set(BoogieOptionBag.Cores, 1U);
+      options.Set(ServerCommand.VerifySnapshots, 1U);
     });
     await VerifyTrace(@"
  .  S  S  |  I  | :method test() {
@@ -39,9 +40,9 @@ public class CachedLinearVerificationGutterStatusTester : LinearVerificationGutt
 
   [TestMethod, Timeout(MaxTestExecutionTimeMs)]
   public async Task EnsureCachingDoesNotHideErrors() {
-    await SetUp(new Dictionary<string, string>() {
-      { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VerifySnapshots)}", "1" },
-      { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", "1" },
+    await SetUp(options => {
+      options.Set(BoogieOptionBag.Cores, 1U);
+      options.Set(ServerCommand.VerifySnapshots, 1U);
     });
     await VerifyTrace(@"
  .  S [S][ ][I][I][ ]:method test() {
