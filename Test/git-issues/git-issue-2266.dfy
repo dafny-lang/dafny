@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 /noVerify /print:%t.bpl "%s"
+// RUN: %dafny /compile:0 /noVerify /print:%t.bpl "%s"
 // RUN: %boogie "%t.bpl" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
