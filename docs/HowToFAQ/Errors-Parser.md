@@ -1034,7 +1034,7 @@ so this means a character literal can only contain a character that can be repre
 iwith a single such unit, i.e. characters in the Basic Multilingual Plane. 
 The rocket ship emoji above, however, is encoded with two surrogate code points.
 
-This can be fixed by enabling the --unicode-char mode, as that defines char as any i
+This can be fixed by enabling the --unicode-char mode, as that defines char as any
 Unicode scalar value, but be aware that it may change the meaning of your program.
 
 More detail is given [here](../DafnyRef/DafnyRef#sec-character-constant-token) and [here](../DafnyRef/DafnyRef#sec-escaped-characters).;
