@@ -71,3 +71,14 @@ class AllExtern:
     @staticmethod
     def P():
         _dafny.print(_dafny.string_of(_dafny.Seq("AllExtern.P\n")))
+
+class SingletonOptimization:
+    @staticmethod
+    def SingletonTuple(x):
+        return x + 1
+    @staticmethod
+    def NoWrapper(x):
+        return x + 1
+    @staticmethod
+    def GhostWrapper(x):
+        return x + 1

@@ -17,6 +17,13 @@ class Y extends X {
   constructor () {}
 }
 
+class ClassWithFields {
+  var y: ReCo<Y>
+  constructor (y: ReCo<Y>) {
+    this.y := y;
+  }
+}
+
 method DowncastCo() {
   var i := new Y();
   var a: Co<X> := Co(i);
@@ -31,6 +38,11 @@ method DowncastReCo() {
   var b: ReCo<Y>;
   b := a;
   print a, " and ", b, "\n";
+
+  var s := new ClassWithFields(a);
+  print s.y, " "; 
+  s.y := a;
+  print s.y, "\n";
 }
 
 method DowncastContra() {
@@ -63,6 +75,7 @@ method Main(){
   DowncastCo();
   DowncastReCo();
   DowncastContra();
+  DowncastReContra();
   DowncastFunc();
   print "Done\n";
 }

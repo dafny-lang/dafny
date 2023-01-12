@@ -12,6 +12,29 @@ public interface Plugin {
   public IEnumerable<IRewriter> GetRewriters(ErrorReporter reporter);
 }
 
+record ErrorPlugin(string AssemblyAndArgument, Exception Exception) : Plugin {
+  public IEnumerable<Compiler> GetCompilers() {
+    return Enumerable.Empty<Compiler>();
+  }
+
+  public IEnumerable<IRewriter> GetRewriters(ErrorReporter reporter) {
+    return new[] { new ErrorRewriter(reporter, this) };
+  }
+
+  class ErrorRewriter : IRewriter {
+    private readonly ErrorPlugin errorPlugin;
+
+    public ErrorRewriter(ErrorReporter reporter, ErrorPlugin errorPlugin) : base(reporter) {
+      this.errorPlugin = errorPlugin;
+    }
+
+    internal override void PreResolve(Program program) {
+      program.Reporter.Error(MessageSource.Resolver, Token.NoToken, $"Error while instantiating plugin '{errorPlugin.AssemblyAndArgument}':\n{errorPlugin.Exception}");
+      base.PreResolve(program);
+    }
+  }
+}
+
 public class ConfiguredPlugin : Plugin {
   public PluginConfiguration Configuration { get; }
 

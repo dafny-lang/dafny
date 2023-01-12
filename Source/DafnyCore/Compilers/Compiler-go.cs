@@ -633,6 +633,8 @@ namespace Microsoft.Dafny.Compilers {
       string companionTypeName = FormatCompanionTypeName(name);
       string dataName = FormatDatatypeInterfaceName(name);
       string ifaceName = FormatLazyInterfaceName(name);
+      var simplifiedType = DatatypeWrapperEraser.SimplifyType(UserDefinedType.FromTopLevelDecl(dt.tok, dt));
+      var simplifiedTypeName = TypeName(simplifiedType, wr, dt.tok);
 
       Func<DatatypeCtor, string> structOfCtor = ctor =>
         string.Format("{0}{1}_{2}", dt is CoDatatypeDecl ? "*" : "", name, ctor.CompileName);
@@ -735,11 +737,13 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write($"func ({companionTypeName}) Default(");
       wr.Write(Util.Comma(UsedTypeParameters(dt), tp => $"{FormatDefaultTypeParameterValue(tp)} interface{{}}"));
       {
-        var wDefault = wr.NewBlock($") {name}");
+        var wDefault = wr.NewBlock($") {simplifiedTypeName}");
         wDefault.Write("return ");
         var groundingCtor = dt.GetGroundingCtor();
         if (groundingCtor.IsGhost) {
-          wDefault.Write(ForcePlaceboValue(UserDefinedType.FromTopLevelDecl(dt.tok, dt), wDefault, dt.tok));
+          wDefault.Write(ForcePlaceboValue(simplifiedType, wDefault, dt.tok));
+        } else if (DatatypeWrapperEraser.GetInnerTypeOfErasableDatatypeWrapper(dt, out var innerType)) {
+          wDefault.Write(DefaultValue(innerType, wDefault, dt.tok));
         } else {
           var nonGhostFormals = groundingCtor.Formals.Where(f => !f.IsGhost).ToList();
           var arguments = Util.Comma(nonGhostFormals, f => DefaultValue(f.Type, wDefault, f.tok));
@@ -862,11 +866,12 @@ namespace Microsoft.Dafny.Compilers {
             if (!arg.IsGhost) {
               wCase.Write(" && ");
               string nm = DatatypeFieldName(arg, k);
-              if (IsDirectlyComparable(arg.Type)) {
+              var eqType = DatatypeWrapperEraser.SimplifyType(arg.Type);
+              if (IsDirectlyComparable(eqType)) {
                 wCase.Write("data1.{0} == data2.{0}", nm);
-              } else if (IsOrderedByCmp(arg.Type)) {
+              } else if (IsOrderedByCmp(eqType)) {
                 wCase.Write("data1.{0}.Cmp(data2.{0}) == 0", nm);
-              } else if (IsComparedByEquals(arg.Type)) {
+              } else if (IsComparedByEquals(eqType)) {
                 wCase.Write("data1.{0}.Equals(data2.{0})", nm);
               } else {
                 wCase.Write("_dafny.AreEqual(data1.{0}, data2.{0})", nm);
@@ -1273,7 +1278,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override string TypeDescriptor(Type type, ConcreteSyntaxTree wr, IToken tok) {
-      var xType = type.NormalizeExpandKeepConstraints();
+      var xType = DatatypeWrapperEraser.SimplifyType(type, true);
       if (xType is BoolType) {
         return "_dafny.BoolType";
       } else if (xType is CharType) {
@@ -1378,12 +1383,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
 
-      var xType = type.NormalizeExpand();
-      if (xType is TypeProxy) {
-        // unresolved proxy; just treat as ref, since no particular type information is apparently needed for this type
-        return "interface{}";
-      }
-
+      var xType = DatatypeWrapperEraser.SimplifyType(type);
       if (xType is SpecialNativeType snt) {
         return snt.Name;
       } else if (xType is BoolType) {
@@ -1417,10 +1417,10 @@ namespace Microsoft.Dafny.Compilers {
           return "ulong";
         } else if (xType is ArrowType at) {
           return string.Format("func ({0}) {1}", Util.Comma(at.Args, arg => TypeName(arg, wr, tok)), TypeName(at.Result, wr, tok));
-        } else if (cl is TupleTypeDecl) {
-          return "_dafny.Tuple";
         } else if (udt.IsTypeParameter) {
           return "interface{}";
+        } else if (cl is TupleTypeDecl tupleTypeDecl) {
+          return "_dafny.Tuple";
         }
         if (udt.IsTraitType && udt.ResolvedClass.IsExtern(out _, out _)) {
           // To use an external interface, we need to have values of the
@@ -2540,7 +2540,12 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ILvalue EmitMemberSelect(Action<ConcreteSyntaxTree> obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
       Type expectedType, string/*?*/ additionalCustomParameter = null, bool internalAccess = false) {
-      if (member is DatatypeDestructor dtor) {
+      var memberStatus = DatatypeWrapperEraser.GetMemberStatus(member);
+      if (memberStatus == DatatypeWrapperEraser.MemberCompileStatus.Identity) {
+        return SimpleLvalue(obj);
+      } else if (memberStatus == DatatypeWrapperEraser.MemberCompileStatus.AlwaysTrue) {
+        return SimpleLvalue(w => w.Write("true"));
+      } else if (member is DatatypeDestructor dtor) {
         return SimpleLvalue(wr => {
           wr = EmitCoercionIfNecessary(dtor.Type, expectedType, Token.NoToken, wr);
           if (dtor.EnclosingClass is TupleTypeDecl) {
@@ -2883,7 +2888,12 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
-      if (ctor.EnclosingDatatype is TupleTypeDecl) {
+      if (DatatypeWrapperEraser.IsErasableDatatypeWrapper(ctor.EnclosingDatatype, out var coreDtor)) {
+        Contract.Assert(coreDtor.CorrespondingFormals.Count == 1);
+        Contract.Assert(dtor == coreDtor.CorrespondingFormals[0]); // any other destructor is a ghost
+        wr.Write(source);
+      } else if (ctor.EnclosingDatatype is TupleTypeDecl tupleTypeDecl) {
+        Contract.Assert(tupleTypeDecl.NonGhostDims != 1); // such a tuple is an erasable-wrapper type, handled above
         wr.Write("(*({0}).IndexInt({1})).({2})", source, formalNonGhostIndex, TypeName(typeArgs[formalNonGhostIndex], wr, Token.NoToken));
       } else {
         var dtorName = DatatypeFieldName(dtor, formalNonGhostIndex);
@@ -3010,16 +3020,17 @@ namespace Microsoft.Dafny.Compilers {
           break;
 
         case BinaryExpr.ResolvedOpcode.EqCommon: {
+            var eqType = DatatypeWrapperEraser.SimplifyType(e0.Type);
             if (IsHandleComparison(tok, e0, e1, errorWr)) {
               opString = "==";
-            } else if (!EqualsUpToParameters(e0.Type, e1.Type)) {
+            } else if (!EqualsUpToParameters(eqType, DatatypeWrapperEraser.SimplifyType(e1.Type))) {
               staticCallString = "_dafny.AreEqual";
-            } else if (IsOrderedByCmp(e0.Type)) {
+            } else if (IsOrderedByCmp(eqType)) {
               callString = "Cmp";
               postOpString = " == 0";
-            } else if (IsComparedByEquals(e0.Type)) {
+            } else if (IsComparedByEquals(eqType)) {
               callString = "Equals";
-            } else if (IsDirectlyComparable(e0.Type)) {
+            } else if (IsDirectlyComparable(eqType)) {
               opString = "==";
             } else {
               staticCallString = "_dafny.AreEqual";
@@ -3027,19 +3038,20 @@ namespace Microsoft.Dafny.Compilers {
             break;
           }
         case BinaryExpr.ResolvedOpcode.NeqCommon: {
+            var eqType = DatatypeWrapperEraser.SimplifyType(e0.Type);
             if (IsHandleComparison(tok, e0, e1, errorWr)) {
               opString = "!=";
               postOpString = "/* handle */";
-            } else if (!EqualsUpToParameters(e0.Type, e1.Type)) {
+            } else if (!EqualsUpToParameters(eqType, DatatypeWrapperEraser.SimplifyType(e1.Type))) {
               preOpString = "!";
               staticCallString = "_dafny.AreEqual";
-            } else if (IsDirectlyComparable(e0.Type)) {
+            } else if (IsDirectlyComparable(eqType)) {
               opString = "!=";
               postOpString = "/* dircomp */";
-            } else if (IsOrderedByCmp(e0.Type)) {
+            } else if (IsOrderedByCmp(eqType)) {
               callString = "Cmp";
               postOpString = " != 0";
-            } else if (IsComparedByEquals(e0.Type)) {
+            } else if (IsComparedByEquals(eqType)) {
               preOpString = "!";
               callString = "Equals";
             } else {
@@ -3384,8 +3396,8 @@ namespace Microsoft.Dafny.Compilers {
         return wr;
       }
 
-      from = from?.NormalizeExpand();
-      to = to.NormalizeExpand();
+      from = from == null ? null : DatatypeWrapperEraser.SimplifyType(from);
+      to = DatatypeWrapperEraser.SimplifyType(to);
       if (from != null && from.IsArrowType && to.IsArrowType && !from.Equals(to)) {
         // Need to convert functions more often, so do this before the
         // EqualsUpToParameters check below
