@@ -21,6 +21,7 @@ Dafny program verifier finished with 0 verified, 0 errors
 Wrote textual form of target program to JustRun-java/JustRun.java
 Additional target code written to JustRun-java/_System/nat.java
 Additional target code written to JustRun-java/_System/__default.java
+Wrote executable jar JustRun.jar
 Running...
 
 hello, Dafny

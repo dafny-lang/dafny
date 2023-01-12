@@ -2377,7 +2377,9 @@ namespace Microsoft.Dafny.Compilers {
         if (false && DafnyOptions.O.SpillTargetCode == 0) {
           System.IO.Directory.Delete(targetDirectory, true);
         }
-        if (compileIsSuccess && DafnyOptions.O.CompileVerbose) outputWriter.WriteLine("Wrote " + (callToMain != null ? "executable" : "library") + " jar " + (simpleName + ".jar"));
+        if (compileIsSuccess && DafnyOptions.O.CompileVerbose) {
+          outputWriter.WriteLine("Wrote " + (callToMain != null ? "executable" : "library") + " jar " + (simpleName + ".jar"));
+        }
       }
       return compileIsSuccess;
     }
