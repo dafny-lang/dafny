@@ -1,0 +1,1 @@
+Nonexistent files passed on the CLI result in a graceful exit
