@@ -263,8 +263,7 @@ namespace Microsoft.Dafny {
           if (File.Exists(file) || extension == ".h") {
             otherFiles.Add(file);
           } else {
-            options.Printer.ErrorWriteLine(Console.Out,
-              "*** Error: file " + file + " not found");
+            options.Printer.ErrorWriteLine(Console.Out, $"*** Error: file {file} not found");
             return CommandLineArgumentsResult.PREPROCESSING_ERROR;
           }
         } else if (!isDafnyFile) {
