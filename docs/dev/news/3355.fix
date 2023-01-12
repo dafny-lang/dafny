@@ -1,10 +1,11 @@
 `dafny build` for Java now creates a library or executable jar file.
 - If there is a Main method, the jar is an executable jar. So a simple A.dfy can be built as `dafny build -t:java A.dfy`
 and then run as `java -jar A.jar`
-- If there is no Main entry point, all the generated class files are assembled into a library Jar file that can be used on the
+- If there is no Main entry point, all the generated class files are assembled into a library jar file that can be used on the
 classpath as a java library.
-- In both cases, the DafnyRuntime library is included in the generated jar (possibly allow control via an option as to whether to include the runtime library in the library jar)
-- The .java and .class artifacts are retained unless --spill-target-code:0, in which case retaining the artifacts is deprecated.
-- The jar file is placed in the current directory.
+- In both cases, the DafnyRuntime library is included in the generated jar.
+- With the old CLI, the new .jar file is placed in the output directory, along with the generated files.
+- With the new CLI, the new .jar file is placed in the output directory, but the generated files are in a temporary directory.
+- With the new CLI, the generated .java and .class artifacts are deleted unless --spill-translation=true.
 
 Having a library or executable jar simplifies the user's task in figuring out how to use the built artifacts.
