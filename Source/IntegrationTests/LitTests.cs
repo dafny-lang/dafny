@@ -23,7 +23,7 @@ namespace IntegrationTests {
     private static readonly Assembly DafnyDriverAssembly = typeof(Dafny.Dafny).Assembly;
     private static readonly Assembly TestDafnyAssembly = typeof(TestDafny.TestDafny).Assembly;
     private static readonly Assembly DafnyServerAssembly = typeof(Server).Assembly;
-    
+
     private static readonly string RepositoryRoot = Path.GetFullPath("../../../../../"); // Up from Source/IntegrationTests/bin/Debug/net6.0/
     private static readonly string[] DefaultBoogieArguments = new[] {
       "/infer:j",
@@ -35,7 +35,7 @@ namespace IntegrationTests {
       "/proverOpt:O:smt.arith.solver=2",
       "/proverOpt:PROVER_PATH:" + RepositoryRoot + "../unzippedRelease/dafny/z3/bin/z3"
     };
-    
+
     private static readonly LitTestConfiguration Config;
 
     static LitTests() {
