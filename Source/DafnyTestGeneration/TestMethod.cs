@@ -35,9 +35,9 @@ namespace DafnyTestGeneration {
     private readonly Type defaultType = Type.Int;
     // the DafnyModel that describes the inputs to this test method
     private readonly DafnyModel dafnyModel;
-    // Set of all types for which a {:synthesize} - annotated method is needed
+    // List of all types for which a {:synthesize} - annotated method is needed
     // These methods are used to get fresh instances of the corresponding types
-    private static readonly Dictionary<string, UserDefinedType> TypesToSynthesize = new();
+    private static readonly List<UserDefinedType> TypesToSynthesize = new();
     // is set to true whenever the tool encounters something it does not support
     private readonly List<string> errorMessages = new();
     // records parameters for GetDefaultValue call - this is used to to
@@ -78,23 +78,30 @@ namespace DafnyTestGeneration {
     /// </summary>
     public static string EmitSynthesizeMethods(DafnyInfo dafnyInfo) {
       var result = "";
-      foreach (var typ in TypesToSynthesize.Keys) {
-        var methodName = GetSynthesizeMethodName(typ);
+      // ensures that duplicate types in TypesToSynthesize are skipped:
+      HashSet<string> emittedTypes = new();
+      foreach (var typ in TypesToSynthesize) {
+        var typeString = typ.ToString();
+        if (emittedTypes.Contains(typeString)) {
+          continue;
+        }
+        emittedTypes.Add(typeString);
+        var methodName = GetSynthesizeMethodName(typeString);
         var returnName = "o";
-        if (dafnyInfo.IsTrait(TypesToSynthesize[typ])) {
-          var types = dafnyInfo.GetTypesForTrait(TypesToSynthesize[typ]);
+        if (dafnyInfo.IsTrait(typ)) {
+          var types = dafnyInfo.GetTypesForTrait(typ);
           int id = 0;
           var typeToNameDict = new Dictionary<string, string>();
           foreach (var resultTyp in types) {
             typeToNameDict[resultTyp.ToString()] = "o_res_" + id++;
           }
-          typeToNameDict[typ] = "o";
+          typeToNameDict[typeString] = "o";
           result += $"\nmethod {{:synthesize}} {methodName}(" +
                     $"{string.Join(",", types.ConvertAll(t => $"{typeToNameDict[t.ToString()]}:{t}"))})" +
-                    $"returns ({returnName}:{typ}) ensures fresh({returnName}) " +
-                    $"{string.Join(" ", dafnyInfo.GetEnsuresForTrait(TypesToSynthesize[typ], returnName, typeToNameDict))}";
+                    $"returns ({returnName}:{typeString}) ensures fresh({returnName}) " +
+                    $"{string.Join(" ", dafnyInfo.GetEnsuresForTrait(typ, returnName, typeToNameDict))}";
         } else {
-          var constFields = dafnyInfo.GetNonGhostFields(TypesToSynthesize[typ])
+          var constFields = dafnyInfo.GetNonGhostFields(typ)
             .Where(field => !field.mutable).ToList();
           while (constFields.Any(field => field.name == returnName)) {
             returnName += "o";
@@ -106,7 +113,7 @@ namespace DafnyTestGeneration {
             constFields.Select(field =>
               $"ensures {returnName}.{field.name}=={field.name}"));
           result += $"\nmethod {{:synthesize}} {methodName}({parameters}) " +
-                    $"returns ({returnName}:{typ}) ensures fresh({returnName}) " +
+                    $"returns ({returnName}:{typeString}) ensures fresh({returnName}) " +
                     $"{ensures}";
         }
       }
@@ -420,7 +427,7 @@ namespace DafnyTestGeneration {
       ValueCreation.Add(new(varId, type,
         $"{GetSynthesizeMethodName(type.ToString())}(" +
         $"{string.Join(", ", typesToInitialize.ConvertAll(typ => defaultValueForType[typ.ToString()]))})"));
-      TypesToSynthesize[type.ToString()] = type;
+      TypesToSynthesize.Add(type);
       return varId;
     }
 
@@ -470,7 +477,7 @@ namespace DafnyTestGeneration {
           constFieldValues.Add(GetFieldValue(field, variable));
         }
         ValueCreation.Add(new(varId, dafnyType, $"{GetSynthesizeMethodName(dafnyType.ToString())}({string.Join(", ", constFieldValues)})"));
-        TypesToSynthesize[dafnyType.ToString()] = dafnyType;
+        TypesToSynthesize.Add(dafnyType);
       }
       getClassTypeInstanceParams.Remove(dafnyType.ToString());
       if (variable != null) {
