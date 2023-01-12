@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 using VCGeneration;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
@@ -16,11 +15,14 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private const string RelatedLocationCategory = "Related location";
     private const string RelatedLocationMessage = RelatedLocationCategory;
 
+    private readonly string entryDocumentsource;
     private readonly DocumentUri entryDocumentUri;
     private readonly Dictionary<DocumentUri, List<Diagnostic>> diagnostics = new();
     private readonly Dictionary<DiagnosticSeverity, int> counts = new();
     private readonly Dictionary<DiagnosticSeverity, int> countsNotVerificationOrCompiler = new();
     private readonly ReaderWriterLockSlim rwLock = new();
+
+    private static readonly string PostConditionFailingMessage = new EnsuresDescription().FailureDescription;
 
     /// <summary>
     /// Creates a new instance with the given uri of the entry document.
@@ -84,39 +86,19 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       );
     }
 
-    public static readonly string PostConditionFailingMessage = new EnsuresDescription().FailureDescription;
-    private readonly string entryDocumentsource;
-
-    public static string FormatRelated(string related) {
-      return $"Could not prove: {related}";
-    }
 
     private IEnumerable<DiagnosticRelatedInformation> CreateDiagnosticRelatedInformationFor(IToken token, string message) {
       var (tokenForMessage, inner) = token is NestedToken nestedToken ? (nestedToken.Outer, nestedToken.Inner) : (token, null);
+
       if (tokenForMessage is RangeToken range) {
+        var tokenUri = tokenForMessage.GetDocumentUri();
         var rangeLength = range.EndToken.pos + range.EndToken.val.Length - range.StartToken.pos;
+        var expr = ReadAndExtractFromUri(tokenUri, range.StartToken.pos, rangeLength);
+
         if (message == PostConditionFailingMessage) {
-          var postcondition = entryDocumentsource.Substring(range.StartToken.pos, rangeLength);
-          message = $"This postcondition might not hold: {postcondition}";
-        } else if (message == "Related location") {
-          var tokenUri = tokenForMessage.GetDocumentUri();
-          if (tokenUri == entryDocumentUri) {
-            message = FormatRelated(entryDocumentsource.Substring(range.StartToken.pos, rangeLength));
-          } else {
-            var fileName = tokenForMessage.GetDocumentUri().GetFileSystemPath();
-            message = "";
-            try {
-              var content = File.ReadAllText(fileName);
-              message = FormatRelated(content.Substring(range.StartToken.pos, rangeLength));
-            } catch (IOException) {
-              message = message + "(could not open file " + fileName + ")";
-            } catch (ArgumentOutOfRangeException) {
-              message = "Related location (could not read position in file " + fileName + ")";
-            }
-            if (message == "") {
-              message = "Related location (could not read file " + fileName + ")";
-            }
-          }
+          message = $"This postcondition might not hold: {expr}";
+        } else if (message == RelatedLocationMessage) {
+          message = $"Could not prove: {expr}";
         }
       }
 
@@ -128,6 +110,28 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         foreach (var nestedInformation in CreateDiagnosticRelatedInformationFor(inner, RelatedLocationMessage)) {
           yield return nestedInformation;
         }
+      }
+    }
+
+    /**
+     * Returns the substring `[pos, pos + len)` from the given URI.  If the URI is the current entry
+     * document, use the cached source; otherwise, read it anew.  On I/O failure, returns a string
+     * representation of that error.
+     */
+    private string ReadAndExtractFromUri(DocumentUri uri, int pos, int len) {
+      if (uri == entryDocumentUri) {
+        return entryDocumentsource.Substring(pos, len);
+      }
+
+      var fileName = uri.GetFileSystemPath();
+
+      try {
+        var content = File.ReadAllText(fileName);
+        return content.Substring(pos, len);
+      } catch (IOException) {
+        return $"(could not open file {fileName})";
+      } catch (ArgumentOutOfRangeException) {
+        return $"(could not read position in {fileName})";
       }
     }
 
@@ -149,7 +153,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       if (tok is NestedToken nestedToken) {
         relatedInformation.AddRange(
           CreateDiagnosticRelatedInformationFor(
-            nestedToken.Inner, nestedToken.Message ?? "Related location")
+            nestedToken.Inner, nestedToken.Message ?? RelatedLocationMessage)
         );
       }
       var item = new Diagnostic {
