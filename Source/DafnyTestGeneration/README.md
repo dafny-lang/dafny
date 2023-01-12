@@ -35,7 +35,7 @@ We currently provide no oracle against which to compare the result. In the futur
 
 ## How to Generate Tests?
 
-- Test generation currently works with all basic types, user-defined classes, sequences, sets, and maps. Not counting several edge cases, it also works with datatypes. It does not currently work on arrays, and multisets. It is also not possible to generate tests for constructors. Please avoid top-level methods and wrap them inside classes or modules.
+- Test generation currently works with all basic types, user-defined classes, sequences, sets, and maps. Not counting several edge cases, it also works with datatypes. It does not currently work on arrays or multisets. It is also not possible to generate tests for constructors. Please avoid top-level methods and wrap them inside classes or modules.
 - To generate block- or path-coverage tests use the `/generateTestMode:Block` or `/generateTestMode:Path` arguments respectively. Test generation relies on Dafny to generate Boogie implementations and Dafny does not generate a Boogie implementation when there are no proof obligations, so no tests will be generated in the latter scenario (so you might want to use /definiteAssignment:3).
 - If you wish to test a particular method rather than all the methods in a file, you can specify such a method with the `/generateTestTargetMethod` command line argument and providing the fully qualified method name.
 - If you are using `/generateTestTargetMethod` and would like to inline methods that are called from the method of interest, you can do so by setting `/generateTestInlineDepth` to something larger than zero (zero is the default). The `/verifyAllModules` argument might also be relevant if the methods to be inlined are defined in included files.
