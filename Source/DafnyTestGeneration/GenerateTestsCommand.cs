@@ -66,16 +66,16 @@ path - Prints path-coverage tests for the given program.");
   public static readonly Option<int> LoopUnroll = new("--loop-unroll",
     "Higher values can improve accuracy of the analysis at the cost of taking longer to run.") {
   };
-  public static readonly Option<bool> Verbose = new("--verbose", 
+  public static readonly Option<bool> Verbose = new("--verbose",
     "Print various debugging info as comments for the generated tests.") {
-  }; 
+  };
   public static readonly Option<string> PrintBpl = new("--print-bpl",
     "Print the Boogie code used during test generation.") {
     ArgumentHelpName = "filename"
   };
-  public static readonly Option<bool> DisablePrune = new("--no-prune", 
+  public static readonly Option<bool> DisablePrune = new("--no-prune",
     "Disable axiom pruning that Dafny uses to speed up verification.") {
-  }; 
+  };
   static GenerateTestsCommand() {
     DafnyOptions.RegisterLegacyBinding(LoopUnroll, (options, value) => {
       options.LoopUnrollCount = value;

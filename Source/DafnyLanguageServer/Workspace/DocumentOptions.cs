@@ -17,6 +17,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// Gets or sets when the automatic verification should be applied.
     /// </summary>
     public AutoVerification Verify { get; set; } = AutoVerification.OnChange;
-    
+
   }
 }
