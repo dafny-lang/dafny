@@ -1027,12 +1027,15 @@ are grouped. The above example should be written as either `(5 | 6) & 7` or `5 |
 ```dafny
 const c := '🚀';
 ```
-<!-- TODO - this explanation needs review -->
 
-A character literal consists of two `'` characters enclosing either
-- a single ASCII character (that is not a backslash)
-- a backslash-escaped character
-- a sequence of characters designating a unicode character
+A character literal can only contain a single value of the built-in char type.
+When --unicode-char is disabled, the char type represents UTF-16 code units, 
+so this means a character literal can only contain a character that can be represented
+iwith a single such unit, i.e. characters in the Basic Multilingual Plane. 
+The rocket ship emoji above, however, is encoded with two surrogate code points.
+
+This can be fixed by enabling the --unicode-char mode, as that defines char as any i
+Unicode scalar value, but be aware that it may change the meaning of your program.
 
 More detail is given [here](../DafnyRef/DafnyRef#sec-character-constant-token) and [here](../DafnyRef/DafnyRef#sec-escaped-characters).;
 
