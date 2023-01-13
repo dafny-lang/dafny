@@ -94,7 +94,7 @@ void CheckDeclModifiers(ref DeclModifierData dmod, string declCaption, AllowedDe
 {
   declCaption = (declCaption.StartsWith("i") || declCaption.StartsWith("o") ? "an " : "a ") + declCaption;
   if (dmod.IsAbstract && ((allowed & AllowedDeclModifiers.Abstract) == 0)) {
-    SemErr(ParserErrorDetail.p_abstract_not_allowed, Errors.NestCodeAction(dmod.AbstractToken, dmod.AbstractToken.Next), $"{declCaption} cannot be declared 'abstract'");
+    SemErr(ParserErrorDetail.p_abstract_not_allowed, Errors.NestCodeAction(dmod.AbstractToken), $"{declCaption} cannot be declared 'abstract'");
     dmod.IsAbstract = false;
   }
   if (dmod.IsGhost) {
