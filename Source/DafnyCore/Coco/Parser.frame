@@ -219,7 +219,8 @@ public class Errors {
   }
 
   // Nested range is up to, not including, the next token
-  public static IToken NestCodeAction(IToken t, IToken next) {
+  public static IToken NestCodeAction(IToken t, IToken next = null) {
+    next = next ?? t.Next;
     return new NestedToken(t, NewCodeAction(t, next.pos - t.pos));
   }
 
