@@ -30,7 +30,10 @@ public static class ErrorDetail {
   // result could be null if there is no such detail
 #nullable enable
   public static string? GetDetail(string errorID) {
-    return errorDetailMap.ContainsKey(errorID) ? errorDetailMap[errorID] : null;
+    if(errorDetailMap.TryGetValue(errorID, out var result)) {
+      return result;
+    }
+    return null;
   }
 #nullable disable
 }
