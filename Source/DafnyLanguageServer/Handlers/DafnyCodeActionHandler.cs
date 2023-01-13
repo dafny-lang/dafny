@@ -82,7 +82,7 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
   private DafnyCodeActionProvider[] GetDafnyCodeActionProviders() {
     return new List<DafnyCodeActionProvider>() {
       new VerificationDafnyCodeActionProvider()
-    , new ErrorMessageCodeActionProvider()
+    , new ErrorMessageDafnyCodeActionProvider()
     }
     .Concat(
       DafnyOptions.O.Plugins.SelectMany(plugin =>
