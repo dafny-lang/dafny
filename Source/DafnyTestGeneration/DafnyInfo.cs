@@ -60,7 +60,8 @@ namespace DafnyTestGeneration {
         return new List<Type>
           { Utils.UseFullName(functions[callable].ResultType) };
       }
-      throw new Exception("Cannot identify callable " + callable);
+      DafnyOptions.O.Printer.ErrorWriteLine(Console.Error, $"*** Error: Cannot identify callable {callable}");
+      return new List<Type>();
     }
 
     public List<TypeParameter> GetTypeArgs(string callable) {
@@ -70,7 +71,8 @@ namespace DafnyTestGeneration {
       if (functions.ContainsKey(callable)) {
         return functions[callable].TypeArgs;
       }
-      throw new Exception("Cannot identify callable " + callable);
+      DafnyOptions.O.Printer.ErrorWriteLine(Console.Error, $"*** Error: Cannot identify callable {callable}");
+      return new List<TypeParameter>();
     }
 
     public List<TypeParameter> GetTypeArgsWithParents(string callable) {
@@ -83,7 +85,8 @@ namespace DafnyTestGeneration {
         result.AddRange(functions[callable].TypeArgs);
         clazz = functions[callable].EnclosingClass;
       } else {
-        throw new Exception("Cannot identify callable " + callable);
+        DafnyOptions.O.Printer.ErrorWriteLine(Console.Error, $"*** Error: Cannot identify callable {callable}");
+        return result;
       }
       result.AddRange(clazz.TypeArgs);
       return result;
@@ -98,7 +101,8 @@ namespace DafnyTestGeneration {
         return functions[callable].Formals.Select(arg =>
           Utils.UseFullName(arg.Type)).ToList(); ;
       }
-      throw new Exception("Cannot identify callable " + callable);
+      DafnyOptions.O.Printer.ErrorWriteLine(Console.Error, $"*** Error: Cannot identify callable {callable}");
+      return new List<Type>();
     }
 
     public bool IsStatic(string callable) {
@@ -108,7 +112,8 @@ namespace DafnyTestGeneration {
       if (functions.ContainsKey(callable)) {
         return functions[callable].IsStatic;
       }
-      throw new Exception("Cannot identify callable " + callable);
+      DafnyOptions.O.Printer.ErrorWriteLine(Console.Error, $"*** Error: Cannot identify callable {callable}");
+      return true;
     }
 
     public bool IsGhost(string callable) {
@@ -185,7 +190,8 @@ namespace DafnyTestGeneration {
             new ClonerWithSubstitution(this, subst, receiver).CloneValidOrNull(e.E))
           .Where(e => e != null);
       }
-      throw new Exception("Cannot identify callable " + callableName);
+      DafnyOptions.O.Printer.ErrorWriteLine(Console.Error, $"*** Error: Cannot identify callable {callableName}");
+      return new List<Expression>();
     }
 
     public IEnumerable<Expression> GetRequires(List<string> ins, string callableName, string receiver) {
@@ -206,7 +212,8 @@ namespace DafnyTestGeneration {
             new ClonerWithSubstitution(this, subst, receiver).CloneValidOrNull(e.E))
           .Where(e => e != null);
       }
-      throw new Exception("Cannot identify callable " + callableName);
+      DafnyOptions.O.Printer.ErrorWriteLine(Console.Error, $"*** Error: Cannot identify callable {callableName}");
+      return new List<Expression>();
     }
 
     public Expression/*?*/ GetTypeCondition(Type type, string name) {
@@ -222,8 +229,8 @@ namespace DafnyTestGeneration {
 
     public List<(string name, Type type, bool mutable, string/*?*/ defValue)> GetNonGhostFields(UserDefinedType/*?*/ type) {
       if (type == null || !classes.ContainsKey(type.Name)) {
-        throw new Exception("Cannot identify class " + type?.Name ??
-                            " (null) ");
+        DafnyOptions.O.Printer.ErrorWriteLine(Console.Error, $"*** Error: Cannot identify type {type?.Name ?? " (null) "}");
+        return new List<(string name, Type type, bool mutable, string/*?*/ defValue)>();
       }
 
       var relevantFields = classes[type.Name].Members.OfType<Field>()
@@ -251,8 +258,8 @@ namespace DafnyTestGeneration {
 
     public bool IsTrait(UserDefinedType/*?*/ type) {
       if (type == null || !classes.ContainsKey(type.Name)) {
-        throw new Exception("Cannot identify class " + type?.Name ??
-                            " (null) ");
+        DafnyOptions.O.Printer.ErrorWriteLine(Console.Error, $"*** Error: Cannot identify type {type?.Name ?? " (null) "}");
+        return true;
       }
       return classes[type.Name] is TraitDecl;
     }
@@ -312,16 +319,16 @@ namespace DafnyTestGeneration {
     }
     public bool IsExtern(UserDefinedType/*?*/ type) {
       if (type == null || !classes.ContainsKey(type.Name)) {
-        throw new Exception("Cannot identify class " + type?.Name ??
-                            " (null) ");
+        DafnyOptions.O.Printer.ErrorWriteLine(Console.Error, $"*** Error: Cannot identify type {type?.Name ?? " (null) "}");
+        return true;
       }
       return classes[type.Name].IsExtern(out _, out _);
     }
 
     public Constructor/*?*/ GetConstructor(UserDefinedType/*?*/ type) {
       if (type == null || !classes.ContainsKey(type.Name)) {
-        throw new Exception("Cannot identify class " + type?.Name ??
-                            " (null) ");
+        DafnyOptions.O.Printer.ErrorWriteLine(Console.Error, $"*** Error: Cannot identify type {type?.Name ?? " (null) "}");
+        return null;
       }
       return classes[type.Name].Members.OfType<Constructor>()
         .OrderBy(constructor => constructor.Ins.Count)
