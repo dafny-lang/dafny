@@ -36,19 +36,7 @@ namespace Microsoft.Dafny {
     public abstract bool Message(MessageSource source, ErrorLevel level, string errorID, IToken tok, string msg);
 
     public void Error(MessageSource source, IToken tok, string msg) {
-      Contract.Requires(tok != null);
-      Contract.Requires(msg != null);
-      // if the tok is IncludeToken, we need to indicate to the including file
-      // that there are errors in the included file.
-      if (tok is IncludeToken) {
-        IncludeToken includeToken = (IncludeToken)tok;
-        Include include = includeToken.Include;
-        if (!include.ErrorReported) {
-          Message(source, ErrorLevel.Error, "", include.tok, "the included file " + tok.Filename + " contains error(s)");
-          include.ErrorReported = true;
-        }
-      }
-      Message(source, ErrorLevel.Error, "", tok, msg);
+      Error(source, "", tok, msg);
     }
     public void Error(MessageSource source, string errorID, IToken tok, string msg) {
       Contract.Requires(tok != null);
