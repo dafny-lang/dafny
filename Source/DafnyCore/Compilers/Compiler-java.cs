@@ -2374,7 +2374,7 @@ namespace Microsoft.Dafny.Compilers {
       string jarPath = Path.GetFullPath(Path.ChangeExtension(dafnyProgramName, ".jar"));
       var args = callToMain == null ?
           new List<string> { "cf", jarPath }
-          : new List<string> { "--create", "--main-class", simpleProgramName, "--file", jarPath };
+          : new List<string> { "-c", "-e", simpleProgramName, "-f", jarPath };
       var jarCreationProcess = PrepareProcessStartInfo("jar", args.Concat(classfiles));
       jarCreationProcess.WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
       if (0 != RunProcess(jarCreationProcess, outputWriter, "Error while creating jar file: " + jarPath)) {
