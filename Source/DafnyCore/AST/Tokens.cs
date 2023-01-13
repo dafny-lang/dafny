@@ -17,6 +17,10 @@ public interface IToken : Microsoft.Boogie.IToken {
     set => Filename = value;
   }
 
+  RangeToken ToRange() {
+    return new RangeToken(this, this);
+  }
+
   public string ActualFilename { get; }
   string Filename { get; set; }
 

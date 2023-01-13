@@ -31,8 +31,6 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
 
   public IToken BodyStartTok = Token.NoToken;
   public IToken BodyEndTok = Token.NoToken;
-  IToken IRegion.BodyStartTok { get { return BodyStartTok; } }
-  IToken IRegion.BodyEndTok { get { return BodyEndTok; } }
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -398,7 +396,7 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
     return ComprehensionExpr.BoundedPool.MissingBounds(BoundVars, Bounds, v);
   }
 
-  public ComprehensionExpr(IToken tok, IToken endTok, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
+  public ComprehensionExpr(IToken tok, RangeToken rangeToken, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(cce.NonNullElements(bvars));
@@ -409,7 +407,7 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
     this.Term = term;
     this.Attributes = attrs;
     this.BodyStartTok = tok;
-    this.BodyEndTok = endTok;
+    this.RangeToken = rangeToken;
   }
 
   protected ComprehensionExpr(Cloner cloner, ComprehensionExpr original) : base(cloner, original) {
@@ -417,7 +415,7 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
     Range = cloner.CloneExpr(original.Range);
     Attributes = cloner.CloneAttributes(original.Attributes);
     BodyStartTok = cloner.Tok(original.BodyStartTok);
-    BodyEndTok = cloner.Tok(original.BodyEndTok);
+    BodyEndTok = cloner.Tok(original.RangeToken);
     Term = cloner.CloneExpr(original.Term);
 
     if (cloner.CloneResolvedFields) {

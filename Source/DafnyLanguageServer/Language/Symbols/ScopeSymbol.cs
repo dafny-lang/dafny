@@ -10,10 +10,10 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     public List<ISymbol> Symbols { get; } = new();
     public override IEnumerable<ISymbol> Children => Symbols;
 
-    public ScopeSymbol(ISymbol? scope, IRegion region) : base(scope, string.Empty) {
+    public ScopeSymbol(ISymbol? scope, IINode region) : base(scope, string.Empty) {
       Node = region;
-      BodyStartToken = region.BodyStartTok;
-      BodyEndToken = region.BodyEndTok;
+      BodyStartToken = region.RangeToken.StartToken;
+      BodyEndToken = region.RangeToken.EndToken;
     }
 
     public override TResult Accept<TResult>(ISymbolVisitor<TResult> visitor) {

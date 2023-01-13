@@ -32,7 +32,7 @@ public abstract class Statement : INode, IAttributeBearingDeclaration {
   protected Statement(Cloner cloner, Statement original) {
     cloner.AddStatementClone(original, this);
     this.Tok = cloner.Tok(original.Tok);
-    this.EndTok = cloner.Tok(original.EndTok);
+    this.RangeToken = cloner.Tok(original.RangeToken);
     this.attributes = cloner.CloneAttributes(original.Attributes);
 
     if (cloner.CloneResolvedFields) {
@@ -41,19 +41,17 @@ public abstract class Statement : INode, IAttributeBearingDeclaration {
     }
   }
 
-  protected Statement(IToken tok, IToken endTok, Attributes attrs) {
+  protected Statement(IToken tok, RangeToken rangeToken, Attributes attrs) {
     Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
     this.Tok = tok;
-    this.EndTok = endTok;
-    this.RangeToken = new RangeToken(tok, endTok);
+    this.RangeToken = rangeToken;
     this.attributes = attrs;
   }
 
-  protected Statement(IToken tok, IToken endTok)
-    : this(tok, endTok, null) {
+  protected Statement(IToken tok, RangeToken rangeToken)
+    : this(tok, rangeToken, null) {
     Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+    Contract.Requires(rangeToken != null);
   }
 
   /// <summary>
@@ -126,9 +124,9 @@ public abstract class Statement : INode, IAttributeBearingDeclaration {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
     Contract.Requires(type != null);
-    var variable = new LocalVariable(tok, tok, name, type, false);
+    var variable = new LocalVariable(tok, tok.ToRange(), name, type, false);
     variable.type = type;
-    return new VarDeclStmt(tok, tok, Util.Singleton(variable), null);
+    return new VarDeclStmt(tok, tok.ToRange(), Util.Singleton(variable), null);
   }
 
   /// <summary>
@@ -138,18 +136,20 @@ public abstract class Statement : INode, IAttributeBearingDeclaration {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
     Contract.Requires(value != null);
-    var variable = new LocalVariable(tok, tok, name, value.Type, false);
+    var rangeToken = new RangeToken(tok, tok);
+    var variable = new LocalVariable(tok, rangeToken, name, value.Type, false);
     variable.type = value.Type;
     Expression variableExpr = new IdentifierExpr(tok, variable);
-    var variableUpdateStmt = new UpdateStmt(tok, tok, Util.Singleton(variableExpr),
+    var variableUpdateStmt = new UpdateStmt(tok, rangeToken, Util.Singleton(variableExpr),
       Util.Singleton<AssignmentRhs>(new ExprRhs(value)));
-    var variableAssignStmt = new AssignStmt(tok, tok, variableUpdateStmt.Lhss[0], variableUpdateStmt.Rhss[0]);
+    var variableAssignStmt = new AssignStmt(tok, rangeToken, variableUpdateStmt.Lhss[0], variableUpdateStmt.Rhss[0]);
     variableUpdateStmt.ResolvedStatements = new List<Statement>() { variableAssignStmt };
-    return new VarDeclStmt(tok, tok, Util.Singleton(variable), variableUpdateStmt);
+    return new VarDeclStmt(tok, rangeToken, Util.Singleton(variable), variableUpdateStmt);
   }
 
   public static PrintStmt CreatePrintStmt(IToken tok, params Expression[] exprs) {
-    return new PrintStmt(tok, tok, exprs.ToList());
+    var rangeToken = new RangeToken(tok, tok);
+    return new PrintStmt(tok, rangeToken, exprs.ToList());
   }
 
   public override string ToString() {
@@ -248,10 +248,9 @@ public class RevealStmt : Statement, ICloneable<RevealStmt> {
     }
   }
 
-  public RevealStmt(IToken tok, IToken endTok, List<Expression> exprs)
-    : base(tok, endTok) {
+  public RevealStmt(IToken tok, RangeToken rangeToken, List<Expression> exprs)
+    : base(tok, rangeToken) {
     Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
     Contract.Requires(exprs != null);
     this.Exprs = exprs;
   }
@@ -282,10 +281,9 @@ public abstract class ProduceStmt : Statement {
     }
   }
 
-  public ProduceStmt(IToken tok, IToken endTok, List<AssignmentRhs> rhss)
-    : base(tok, endTok) {
+  public ProduceStmt(IToken tok, RangeToken rangeToken, List<AssignmentRhs> rhss)
+    : base(tok, rangeToken) {
     Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
     this.Rhss = rhss;
     HiddenUpdate = null;
   }
@@ -332,10 +330,9 @@ public class YieldStmt : ProduceStmt, ICloneable<YieldStmt> {
   public YieldStmt(Cloner cloner, YieldStmt original) : base(cloner, original) {
   }
 
-  public YieldStmt(IToken tok, IToken endTok, List<AssignmentRhs> rhss)
-    : base(tok, endTok, rhss) {
+  public YieldStmt(IToken tok, RangeToken rangeToken, List<AssignmentRhs> rhss)
+    : base(tok, rangeToken, rhss) {
     Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
   }
 }
 
@@ -627,10 +624,9 @@ public class VarDeclStmt : Statement, ICloneable<VarDeclStmt> {
     Update = (ConcreteUpdateStatement)cloner.CloneStmt(original.Update);
   }
 
-  public VarDeclStmt(IToken tok, IToken endTok, List<LocalVariable> locals, ConcreteUpdateStatement update)
-    : base(tok, endTok) {
+  public VarDeclStmt(IToken tok, RangeToken rangeToken, List<LocalVariable> locals, ConcreteUpdateStatement update)
+    : base(tok, rangeToken) {
     Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
     Contract.Requires(locals != null);
     Contract.Requires(locals.Count != 0);
 
@@ -671,8 +667,8 @@ public class VarDeclPattern : Statement, ICloneable<VarDeclPattern> {
     HasGhostModifier = original.HasGhostModifier;
   }
 
-  public VarDeclPattern(IToken tok, IToken endTok, CasePattern<LocalVariable> lhs, Expression rhs, bool hasGhostModifier)
-    : base(tok, endTok) {
+  public VarDeclPattern(IToken tok, RangeToken rangeToken, CasePattern<LocalVariable> lhs, Expression rhs, bool hasGhostModifier)
+    : base(tok, rangeToken) {
     LHS = lhs;
     RHS = rhs;
     HasGhostModifier = hasGhostModifier;
@@ -709,10 +705,9 @@ public abstract class ConcreteUpdateStatement : Statement {
     Lhss = original.Lhss.Select(cloner.CloneExpr).ToList();
   }
 
-  public ConcreteUpdateStatement(IToken tok, IToken endTok, List<Expression> lhss, Attributes attrs = null)
-    : base(tok, endTok, attrs) {
+  public ConcreteUpdateStatement(IToken tok, RangeToken rangeToken, List<Expression> lhss, Attributes attrs = null)
+    : base(tok, rangeToken, attrs) {
     Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
     Contract.Requires(cce.NonNullElements(lhss));
     Lhss = lhss;
   }
@@ -759,20 +754,18 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt> {
     }
   }
 
-  public UpdateStmt(IToken tok, IToken endTok, List<Expression> lhss, List<AssignmentRhs> rhss)
-    : base(tok, endTok, lhss) {
+  public UpdateStmt(IToken tok, RangeToken rangeToken, List<Expression> lhss, List<AssignmentRhs> rhss)
+    : base(tok, rangeToken, lhss) {
     Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
     Contract.Requires(cce.NonNullElements(lhss));
     Contract.Requires(cce.NonNullElements(rhss));
     Contract.Requires(lhss.Count != 0 || rhss.Count == 1);
     Rhss = rhss;
     CanMutateKnownState = false;
   }
-  public UpdateStmt(IToken tok, IToken endTok, List<Expression> lhss, List<AssignmentRhs> rhss, bool mutate)
-    : base(tok, endTok, lhss) {
+  public UpdateStmt(IToken tok, RangeToken rangeToken, List<Expression> lhss, List<AssignmentRhs> rhss, bool mutate)
+    : base(tok, rangeToken, lhss) {
     Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
     Contract.Requires(cce.NonNullElements(lhss));
     Contract.Requires(cce.NonNullElements(rhss));
     Contract.Requires(lhss.Count != 0 || rhss.Count == 1);
@@ -795,7 +788,7 @@ public class LocalVariable : INode, IVariable, IAttributeBearingDeclaration {
 
   public LocalVariable(Cloner clone, LocalVariable original) {
     Tok = clone.Tok(original.Tok);
-    EndTok = clone.Tok(original.EndTok);
+    EndTok = clone.Tok(original.RangeToken);
     name = original.Name;
     OptionalType = clone.CloneType(original.OptionalType);
     IsGhost = original.IsGhost;
@@ -804,14 +797,13 @@ public class LocalVariable : INode, IVariable, IAttributeBearingDeclaration {
       type = original.type;
     }
   }
-  public LocalVariable(IToken tok, IToken endTok, string name, Type type, bool isGhost) {
+  public LocalVariable(IToken tok, RangeToken rangeToken, string name, Type type, bool isGhost) {
     Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
     Contract.Requires(name != null);
     Contract.Requires(type != null);  // can be a proxy, though
 
     this.Tok = tok;
-    this.EndTok = endTok;
+    this.RangeToken = rangeToken;
     this.name = name;
     this.OptionalType = type;
     if (type is InferredTypeProxy) {
@@ -954,21 +946,19 @@ public class WhileStmt : OneBodyLoopStmt, ICloneable<WhileStmt> {
     Guard = cloner.CloneExpr(original.Guard);
   }
 
-  public WhileStmt(IToken tok, IToken endTok, Expression guard,
+  public WhileStmt(IToken tok, RangeToken rangeToken, Expression guard,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
     BlockStmt body)
-    : base(tok, endTok, invariants, decreases, mod, body, null) {
+    : base(tok, rangeToken, invariants, decreases, mod, body, null) {
     Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
     this.Guard = guard;
   }
 
-  public WhileStmt(IToken tok, IToken endTok, Expression guard,
+  public WhileStmt(IToken tok, RangeToken rangeToken, Expression guard,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
     BlockStmt body, Attributes attrs)
-    : base(tok, endTok, invariants, decreases, mod, body, attrs) {
+    : base(tok, rangeToken, invariants, decreases, mod, body, attrs) {
     Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
     this.Guard = guard;
   }
 
@@ -987,12 +977,11 @@ public class WhileStmt : OneBodyLoopStmt, ICloneable<WhileStmt> {
 /// merge.
 /// </summary>
 public class RefinedWhileStmt : WhileStmt {
-  public RefinedWhileStmt(IToken tok, IToken endTok, Expression guard,
+  public RefinedWhileStmt(IToken tok, RangeToken rangeToken, Expression guard,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
     BlockStmt body)
-    : base(tok, endTok, guard, invariants, decreases, mod, body) {
+    : base(tok, rangeToken, guard, invariants, decreases, mod, body) {
     Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
     Contract.Requires(body != null);
   }
 }
@@ -1034,14 +1023,14 @@ public class SkeletonStatement : Statement, ICloneable<SkeletonStatement> {
     BodyEllipsis = original.BodyEllipsis;
   }
 
-  public SkeletonStatement(IToken tok, IToken endTok)
-    : base(tok, endTok) {
+  public SkeletonStatement(IToken tok, RangeToken rangeToken)
+    : base(tok, rangeToken) {
     Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+    Contract.Requires(rangeToken != null);
     S = null;
   }
   public SkeletonStatement(Statement s, IToken conditionEllipsis, IToken bodyEllipsis)
-    : base(s.Tok, s.EndTok) {
+    : base(s.Tok, s.RangeToken) {
     Contract.Requires(s != null);
     S = s;
     ConditionEllipsis = conditionEllipsis;
@@ -1089,7 +1078,7 @@ public class TryRecoverStatement : Statement, ICloneable<TryRecoverStatement> {
   }
 
   public TryRecoverStatement(Statement tryBody, IVariable haltMessageVar, Statement recoverBody)
-    : base(tryBody.Tok, recoverBody.EndTok) {
+    : base(tryBody.Tok, recoverBody.RangeToken) {
     Contract.Requires(tryBody != null);
     Contract.Requires(haltMessageVar != null);
     Contract.Requires(recoverBody != null);

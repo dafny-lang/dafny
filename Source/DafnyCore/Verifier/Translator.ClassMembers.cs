@@ -600,7 +600,7 @@ namespace Microsoft.Dafny {
           methodSel.TypeApplication_AtEnclosingClass = m.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp));
           methodSel.TypeApplication_JustMember = m.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp));
           methodSel.Type = new InferredTypeProxy();
-          var recursiveCall = new CallStmt(m.tok, m.tok, new List<Expression>(), methodSel, recursiveCallArgs);
+          var recursiveCall = new CallStmt(m.tok, m.tok.ToRange(), new List<Expression>(), methodSel, recursiveCallArgs);
           recursiveCall.IsGhost = m.IsGhost;  // resolve here
 
           Expression parRange = new LiteralExpr(m.tok, true);
@@ -645,7 +645,7 @@ namespace Microsoft.Dafny {
         m.Outs.Iter(p => AddExistingDefiniteAssignmentTracker(p, m.IsGhost));
         // translate the body
         TrStmt(m.Body, builder, localVariables, etran);
-        m.Outs.Iter(p => CheckDefiniteAssignmentReturn(m.Body.EndTok, p, builder));
+        m.Outs.Iter(p => CheckDefiniteAssignmentReturn(m.Body.RangeToken, p, builder));
         stmts = builder.Collect(m.Body.Tok);
         // tear down definite-assignment trackers
         m.Outs.Iter(RemoveDefiniteAssignmentTracker);

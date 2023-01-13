@@ -278,7 +278,7 @@ namespace Microsoft.Dafny {
 
         // The "new;" translates into an allocation of "this"
         AddComment(builder, stmt, "new;");
-        fields.Iter(f => CheckDefiniteAssignmentSurrogate(s.SeparatorTok ?? s.EndTok, f, true, builder));
+        fields.Iter(f => CheckDefiniteAssignmentSurrogate(s.SeparatorTok ?? s.RangeToken, f, true, builder));
         fields.Iter(f => RemoveDefiniteAssignmentTrackerSurrogate(f));
         var th = new ThisExpr(cl);
         var bplThis = (Bpl.IdentifierExpr)etran.TrExpr(th);
@@ -578,7 +578,7 @@ namespace Microsoft.Dafny {
             var substMap = new Dictionary<IVariable, Expression>();
             foreach (var v in FreeVariablesUtil.ComputeFreeVariables(assertStmt.Expr)) {
               if (v is LocalVariable) {
-                var vcopy = new LocalVariable(stmt.Tok, stmt.Tok, string.Format("##{0}#{1}", name, v.Name), v.Type, v.IsGhost);
+                var vcopy = new LocalVariable(stmt.Tok, stmt.RangeToken, string.Format("##{0}#{1}", name, v.Name), v.Type, v.IsGhost);
                 vcopy.type = vcopy.OptionalType; // resolve local here
                 IdentifierExpr ie = new IdentifierExpr(vcopy.Tok, vcopy.AssignUniqueName(currentDeclaration.IdGenerator));
                 ie.Var = vcopy;
@@ -1776,7 +1776,7 @@ namespace Microsoft.Dafny {
       var substMap = new Dictionary<IVariable, Expression>();
       for (int i = 0; i < callee.Ins.Count; i++) {
         var formal = callee.Ins[i];
-        var local = new LocalVariable(formal.tok, formal.tok, formal.Name + "#", formal.Type.Subst(tySubst), formal.IsGhost);
+        var local = new LocalVariable(formal.tok, formal.RangeToken, formal.Name + "#", formal.Type.Subst(tySubst), formal.IsGhost);
         local.type = local.OptionalType;  // resolve local here
         var ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator));
         ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here

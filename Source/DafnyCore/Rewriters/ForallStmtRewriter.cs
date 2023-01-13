@@ -32,7 +32,7 @@ public class ForallStmtRewriter : IRewriter {
             term = new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.And, term, s.Ens[i].E);
           }
           List<Expression> exprList = new List<Expression>();
-          ForallExpr expr = new ForallExpr(s.Tok, s.EndTok, s.BoundVars, s.Range, term, s.Attributes);
+          ForallExpr expr = new ForallExpr(s.Tok, s.RangeToken, s.BoundVars, s.Range, term, s.Attributes);
           expr.Type = Type.Bool; // resolve here
           expr.Bounds = s.Bounds;
           exprList.Add(expr);
@@ -109,7 +109,7 @@ public class ForallStmtRewriter : IRewriter {
                       Printer.ExprToString(newRhs));
                     reporter.Info(MessageSource.Resolver, stmt.Tok, msg);
 
-                    var expr = new ForallExpr(s.Tok, s.EndTok, jList, val.Range, new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.EqCommon, lhs, newRhs), attributes);
+                    var expr = new ForallExpr(s.Tok, s.RangeToken, jList, val.Range, new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.EqCommon, lhs, newRhs), attributes);
                     expr.Type = Type.Bool; //resolve here
                     exprList.Add(expr);
                   }
@@ -117,7 +117,7 @@ public class ForallStmtRewriter : IRewriter {
                 }
               }
               if (!usedInversion) {
-                var expr = new ForallExpr(s.Tok, s.EndTok, s.BoundVars, s.Range, new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.EqCommon, lhs, rhs), s.Attributes);
+                var expr = new ForallExpr(s.Tok, s.RangeToken, s.BoundVars, s.Range, new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.EqCommon, lhs, rhs), s.Attributes);
                 expr.Type = Type.Bool; // resolve here
                 expr.Bounds = s.Bounds;
                 exprList.Add(expr);
@@ -148,7 +148,7 @@ public class ForallStmtRewriter : IRewriter {
             term = new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.And, term, substituter.Substitute(s0.Method.Ens[i].E));
           }
           List<Expression> exprList = new List<Expression>();
-          ForallExpr expr = new ForallExpr(s.Tok, s.EndTok, s.BoundVars, s.Range, term, s.Attributes);
+          ForallExpr expr = new ForallExpr(s.Tok, s.RangeToken, s.BoundVars, s.Range, term, s.Attributes);
           expr.Type = Type.Bool; // resolve here
           expr.Bounds = s.Bounds;
           exprList.Add(expr);

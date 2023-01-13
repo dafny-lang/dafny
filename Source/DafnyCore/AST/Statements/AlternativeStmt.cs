@@ -20,18 +20,16 @@ public class AlternativeStmt : Statement, ICloneable<AlternativeStmt> {
     UsesOptionalBraces = original.UsesOptionalBraces;
   }
 
-  public AlternativeStmt(IToken tok, IToken endTok, List<GuardedAlternative> alternatives, bool usesOptionalBraces)
-    : base(tok, endTok) {
+  public AlternativeStmt(IToken tok, RangeToken rangeToken, List<GuardedAlternative> alternatives, bool usesOptionalBraces)
+    : base(tok, rangeToken) {
     Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
     Contract.Requires(alternatives != null);
     this.Alternatives = alternatives;
     this.UsesOptionalBraces = usesOptionalBraces;
   }
-  public AlternativeStmt(IToken tok, IToken endTok, List<GuardedAlternative> alternatives, bool usesOptionalBraces, Attributes attrs)
-    : base(tok, endTok, attrs) {
+  public AlternativeStmt(IToken tok, RangeToken rangeToken, List<GuardedAlternative> alternatives, bool usesOptionalBraces, Attributes attrs)
+    : base(tok, rangeToken, attrs) {
     Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
     Contract.Requires(alternatives != null);
     this.Alternatives = alternatives;
     this.UsesOptionalBraces = usesOptionalBraces;

@@ -25,7 +25,7 @@ public class ArrowType : UserDefinedType {
       bvars.Add(oVar);
 
       return
-        new SetComprehension(e.tok, e.tok, true, bvars,
+        new SetComprehension(e.tok, e.RangeToken, true, bvars,
           new BinaryExpr(e.tok, BinaryExpr.Opcode.In, obj,
             new ApplyExpr(e.tok, e, bexprs, e.tok) {
               Type = new SetType(true, builtIns.ObjectQ())

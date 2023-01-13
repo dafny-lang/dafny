@@ -15,11 +15,6 @@ public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBeari
   private Expression translationDesugaring;  // filled in during translation, lazily; to be accessed only via Translation.LetDesugaring; always null when Exact==true
   private Translator lastTranslatorUsed; // avoid clashing desugaring between translators
 
-  public IToken BodyStartTok = Token.NoToken;
-  public IToken BodyEndTok = Token.NoToken;
-  IToken IRegion.BodyStartTok { get { return BodyStartTok; } }
-  IToken IRegion.BodyEndTok { get { return BodyEndTok; } }
-
   public void SetTranslationDesugaring(Translator trans, Expression expr) {
     lastTranslatorUsed = trans;
     translationDesugaring = expr;

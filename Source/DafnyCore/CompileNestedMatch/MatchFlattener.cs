@@ -157,7 +157,7 @@ public class MatchFlattener : IRewriter {
     var compiledMatch = CompilePatternPaths(state, new HoleCtx(), LinkedLists.Create(nestedMatchStmt.Source), paths);
     if (compiledMatch is null) {
       // Happens only if the nested match has no cases, create a MatchStmt with no paths.
-      var result = new MatchStmt(nestedMatchStmt.Tok, nestedMatchStmt.EndTok, nestedMatchStmt.Source, new List<MatchCaseStmt>(), nestedMatchStmt.UsesOptionalBraces, nestedMatchStmt.Attributes);
+      var result = new MatchStmt(nestedMatchStmt.Tok, nestedMatchStmt.RangeToken, nestedMatchStmt.Source, new List<MatchCaseStmt>(), nestedMatchStmt.UsesOptionalBraces, nestedMatchStmt.Attributes);
       FillMissingCases(result);
       return result;
     } else if (compiledMatch.Node is Statement statement) {
@@ -431,7 +431,7 @@ public class MatchFlattener : IRewriter {
         args.Add(literalExpr);
         c.Attributes = new Attributes("split", args, c.Attributes);
       }
-      var newMatchStmt = new MatchStmt(mti.Tok, nestedMatchStmt.EndTok, headMatchee, newMatchCaseStmts, true, mti.Attributes, context);
+      var newMatchStmt = new MatchStmt(mti.Tok, nestedMatchStmt.RangeToken, headMatchee, newMatchCaseStmts, true, mti.Attributes, context);
       newMatchStmt.IsGhost |= mti.CodeContext.IsGhost;
       FillMissingCases(newMatchStmt);
       return new CaseBody(null, newMatchStmt);
@@ -557,7 +557,7 @@ public class MatchFlattener : IRewriter {
     if (blocks.Count == 0) {
       if (defaultBlock?.Node is Statement stmt) {
         // Ensures the statements are wrapped in braces
-        return new CaseBody(null, BlockStmtOfCStmt(stmt.Tok, stmt.EndTok, stmt));
+        return new CaseBody(null, BlockStmtOfCStmt(stmt.Tok, stmt.RangeToken, stmt));
       }
 
       return defaultBlock;
@@ -567,7 +567,7 @@ public class MatchFlattener : IRewriter {
     blocks = blocks.Skip(1).ToList();
 
     IToken tok = matchee.tok;
-    IToken endtok = matchee.tok;
+    var endtok = matchee.tok.ToRange();
     BinaryExpr guard = new BinaryExpr(tok, BinaryExpr.Opcode.Eq, matchee, currBlock.Item1);
     guard.ResolvedOp = BinaryExpr.ResolvedOpcode.EqCommon;
     guard.Type = Type.Bool;
@@ -621,7 +621,7 @@ public class MatchFlattener : IRewriter {
 
   private CaseBody PackBody(IToken tok, PatternPath path) {
     if (path is StmtPatternPath br) {
-      return new CaseBody(tok, new BlockStmt(tok, tok, br.Body.ToList()), br.Attributes);
+      return new CaseBody(tok, new BlockStmt(tok, tok.ToRange(), br.Body.ToList()), br.Attributes);
     }
 
     if (path is ExprPatternPath) {
@@ -639,14 +639,14 @@ public class MatchFlattener : IRewriter {
     return new List<Statement>() { statement };
   }
 
-  private BlockStmt BlockStmtOfCStmt(IToken tok, IToken endTok, Statement stmt) {
+  private BlockStmt BlockStmtOfCStmt(IToken tok, RangeToken rangeToken, Statement stmt) {
     if (stmt is BlockStmt) {
       return (BlockStmt)stmt;
     }
 
     var stmts = new List<Statement>();
     stmts.Add(stmt);
-    return new BlockStmt(tok, endTok, stmts);
+    return new BlockStmt(tok, rangeToken, stmts);
   }
 
   private class MatchCompilationState {
@@ -748,11 +748,11 @@ public class MatchFlattener : IRewriter {
         return stmtPath;
       }
 
-      var caseLocal = new LocalVariable(var.Tok, var.Tok, name, type, isGhost);
+      var caseLocal = new LocalVariable(var.Tok, var.RangeToken, name, type, isGhost);
       caseLocal.type = type;
-      var casePattern = new CasePattern<LocalVariable>(caseLocal.EndTok, caseLocal);
+      var casePattern = new CasePattern<LocalVariable>(caseLocal.RangeToken, caseLocal);
       casePattern.AssembleExpr(new List<Type>());
-      var caseLet = new VarDeclPattern(caseLocal.Tok, caseLocal.Tok, casePattern, expr, false);
+      var caseLet = new VarDeclPattern(caseLocal.Tok, caseLocal.RangeToken, casePattern, expr, false);
       caseLet.IsGhost = isGhost;
 
       var substitutions = new Dictionary<IVariable, Expression>() {

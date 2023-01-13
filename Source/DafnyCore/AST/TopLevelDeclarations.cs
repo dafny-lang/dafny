@@ -7,7 +7,7 @@ using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
-public abstract class Declaration : INode, INamedRegion, IAttributeBearingDeclaration, IDeclarationOrUsage {
+public abstract class Declaration : INamedRegion, IAttributeBearingDeclaration, IDeclarationOrUsage {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(tok != null);
@@ -23,9 +23,6 @@ public abstract class Declaration : INode, INamedRegion, IAttributeBearingDeclar
   public IToken TokenWithTrailingDocString = Token.NoToken;
   public string Name;
   public bool IsRefining;
-  IToken IRegion.BodyStartTok { get { return BodyStartTok; } }
-  IToken IRegion.BodyEndTok { get { return BodyEndTok; } }
-  string INamedRegion.Name { get { return Name; } }
 
   private VisibilityScope opaqueScope = new VisibilityScope();
   private VisibilityScope revealScope = new VisibilityScope();
@@ -395,7 +392,7 @@ public class LiteralModuleDecl : ModuleDecl {
     RangeToken = module.RangeToken;
     TokenWithTrailingDocString = module.TokenWithTrailingDocString;
     BodyStartTok = module.BodyStartTok;
-    BodyEndTok = module.BodyEndTok;
+    BodyEndTok = module.RangeToken;
   }
   public override object Dereference() { return ModuleDef; }
 }
@@ -640,7 +637,7 @@ public class ModuleQualifiedId {
   [FilledInDuringResolution] public ModuleSignature Sig; // the module signature corresponding to the full path
 }
 
-public class ModuleDefinition : INode, IDeclarationOrUsage, INamedRegion, IAttributeBearingDeclaration {
+public class ModuleDefinition : INamedRegion, IDeclarationOrUsage, IAttributeBearingDeclaration {
   public IToken BodyStartTok = Token.NoToken;
   public IToken BodyEndTok = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
@@ -667,9 +664,6 @@ public class ModuleDefinition : INode, IDeclarationOrUsage, INamedRegion, IAttri
   }
   public readonly List<IToken> PrefixIds; // The qualified module name, except the last segment when a
                                           // nested module declaration is outside its enclosing module
-  IToken IRegion.BodyStartTok { get { return BodyStartTok; } }
-  IToken IRegion.BodyEndTok { get { return BodyEndTok; } }
-  string INamedRegion.Name { get { return Name; } }
   public ModuleDefinition EnclosingModule;  // readonly, except can be changed by resolver for prefix-named modules when the real parent is discovered
   public readonly Attributes Attributes;
   Attributes IAttributeBearingDeclaration.Attributes => Attributes;
@@ -1754,7 +1748,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext {
     OutsHistoryFields = new List<Field>();
     DecreasesFields = new List<Field>();
 
-    YieldCountVariable = new LocalVariable(tok, tok, "_yieldCount", new EverIncreasingType(), true);
+    YieldCountVariable = new LocalVariable(tok, tok.ToRange(), "_yieldCount", new EverIncreasingType(), true);
     YieldCountVariable.type = YieldCountVariable.OptionalType;  // resolve YieldCountVariable here
   }
 

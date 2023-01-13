@@ -25,7 +25,11 @@ namespace Microsoft.Dafny {
   [System.AttributeUsage(System.AttributeTargets.Field | System.AttributeTargets.Property)]
   public class FilledInDuringResolutionAttribute : System.Attribute { }
 
-  public abstract class INode {
+  public interface IINode {    
+    RangeToken RangeToken { get; }
+  }
+  
+  public abstract class INode : IINode {
 
     public IToken tok = Token.NoToken;
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -200,7 +204,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public interface IDeclarationOrUsage {
+  public interface IDeclarationOrUsage : IINode {
     IToken NameToken { get; }
   }
 
@@ -306,7 +310,7 @@ namespace Microsoft.Dafny {
   /// <summary>
   /// An expression introducting bound variables
   /// </summary>
-  public interface IBoundVarsBearingExpression : IRegion {
+  public interface IBoundVarsBearingExpression {
     public IEnumerable<BoundVar> AllBoundVars {
       get;
     }
@@ -522,15 +526,8 @@ namespace Microsoft.Dafny {
     }
   }
 
-  /// <summary>
-  /// This interface is used by the Dafny IDE.
-  /// </summary>
-  public interface IRegion {
-    IToken BodyStartTok { get; }
-    IToken BodyEndTok { get; }
-  }
 
-  public interface INamedRegion : IRegion {
+  public abstract class INamedRegion : INode {
     string Name { get; }
   }
 

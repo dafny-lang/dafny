@@ -466,7 +466,7 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext {
   public Method OverriddenMethod;
   public Method Original => OverriddenMethod == null ? this : OverriddenMethod.Original;
   public override bool IsOverrideThatAddsBody => base.IsOverrideThatAddsBody && Body != null;
-  private static BlockStmt emptyBody = new BlockStmt(Token.NoToken, Token.NoToken, new List<Statement>());
+  private static BlockStmt emptyBody = new BlockStmt(Token.NoToken, Token.NoToken.ToRange(), new List<Statement>());
 
   public bool HasPostcondition =>
     Ens.Count > 0 || Outs.Any(f => f.Type.AsSubsetType is not null);

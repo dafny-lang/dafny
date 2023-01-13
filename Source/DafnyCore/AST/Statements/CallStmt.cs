@@ -25,10 +25,10 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
   public Expression Receiver { get { return MethodSelect.Obj; } }
   public Method Method { get { return (Method)MethodSelect.Member; } }
 
-  public CallStmt(IToken tok, IToken endTok, List<Expression> lhs, MemberSelectExpr memSel, List<ActualBinding> args)
-    : base(tok, endTok) {
+  public CallStmt(IToken tok, RangeToken rangeToken, List<Expression> lhs, MemberSelectExpr memSel, List<ActualBinding> args)
+    : base(tok, rangeToken) {
     Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+    Contract.Requires(rangeToken != null);
     Contract.Requires(cce.NonNullElements(lhs));
     Contract.Requires(memSel != null);
     Contract.Requires(memSel.Member is Method);
@@ -53,8 +53,8 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
   /// This constructor is intended to be used when constructing a resolved CallStmt. The "args" are expected
   /// to be already resolved, and are all given positionally.
   /// </summary>
-  public CallStmt(IToken tok, IToken endTok, List<Expression> lhs, MemberSelectExpr memSel, List<Expression> args)
-    : this(tok, endTok, lhs, memSel, args.ConvertAll(e => new ActualBinding(null, e))) {
+  public CallStmt(IToken tok, RangeToken rangeToken, List<Expression> lhs, MemberSelectExpr memSel, List<Expression> args)
+    : this(tok, rangeToken, lhs, memSel, args.ConvertAll(e => new ActualBinding(null, e))) {
     Bindings.AcceptArgumentExpressionsAsExactParameterList();
   }
 
