@@ -81,7 +81,8 @@ static class CommandRegistry {
       var first = arguments[0];
       if (first != "--dev" && first != "--version" && first != "-h" && first != "--help" && !commandNames.Contains(first)) {
         var oldOptions = new DafnyOptions();
-        if (oldOptions.Parse(arguments)) {
+        var projectArgs = ProjectFileTools.ProjectParser();
+        if (oldOptions.Parse(projectArgs) && oldOptions.Parse(arguments)) {
           return new ParseArgumentSuccess(oldOptions);
         }
 

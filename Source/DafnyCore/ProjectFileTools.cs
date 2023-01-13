@@ -36,9 +36,7 @@ namespace Microsoft.Dafny {
     
     
     public static string[] ProjectParser() {
-      var ProjectOptions = new DafnyOptions();
-      var optionValues = new Dictionary<Option, object>();
-      string projectFile = File.ReadAllText("/Users/prvshah/Documents/prv-dafny/dafny/Test/comp/firstSteps/dafny.toml");
+      string projectFile = File.ReadAllText("dafny.toml");
       if (projectFile == null) {
           throw new Exception();
         }
@@ -48,7 +46,7 @@ namespace Microsoft.Dafny {
       string[] projectArgs = {};
       foreach (KeyValuePair<string, object> entry in (toml)) {
 
-          projectArgs = projectArgs.Append( "/" + entry.Key + ":" + entry.Value).ToArray();
+          projectArgs = projectArgs.Append("-" + entry.Key + ":" + entry.Value).ToArray();
       }
       return projectArgs;
     }

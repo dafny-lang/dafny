@@ -107,8 +107,7 @@ namespace Microsoft.Dafny {
 
     public static int ThreadMain(string[] args) {
       Contract.Requires(cce.NonNullElements(args));
-      var projectFileResult = ProcessProjectOptions(out var dafnyOptions);
-      var cliArgumentsResult = ProcessCommandLineArguments(args, out dafnyOptions, out var dafnyFiles, out var otherFiles);
+      var cliArgumentsResult = ProcessCommandLineArguments(args, out var dafnyOptions, out var dafnyFiles, out var otherFiles);
       DafnyOptions.Install(dafnyOptions);
       ExitValue exitValue;
 
@@ -167,32 +166,6 @@ namespace Microsoft.Dafny {
       PREPROCESSING_ERROR,
       /// Indicates that arguments were parsed successfully, but the program should exit without processing files.
       OK_EXIT_EARLY
-    }
-
-    public enum ProjectFileResult {
-      /// Indicates that arguments were parsed successfully.
-      OK,
-      /// Indicates that arguments were not parsed successfully.
-      PREPROCESSING_ERROR,
-      /// Indicates that arguments were parsed successfully, but the program should exit without processing files.
-      OK_EXIT_EARLY
-    }
-    
-//Reads project file and overrides default values with provided option values.
-    public static ProjectFileResult ProcessProjectOptions(out DafnyOptions options) {
-      options = new DafnyOptions();
-      
-      var projectArgs = ProjectFileTools.ProjectParser();
-      switch (CommandRegistry.Create(projectArgs)) {
-        case ParseArgumentSuccess success:
-          options = success.DafnyOptions;
-          break;
-        case ParseArgumentFailure failure:
-          options = null;
-          break;
-        default: throw new Exception("unreachable");
-      }
-      return ProjectFileResult.OK;
     }
 
     public static CommandLineArgumentsResult ProcessCommandLineArguments(string[] args, out DafnyOptions options, out List<DafnyFile> dafnyFiles, out List<string> otherFiles) {
