@@ -46,7 +46,7 @@ public static class BoogieOptionBag {
     result.ErrorMessage = $"Could not parse number {value}";
     return 1;
   }, true,
-    "Run the Dafny CLI using <n> cores, or using <XX%> of the machine's logical cores.") {
+    "Run the Dafny verifier using <n> cores, or using <XX%> of the machine's logical cores.") {
     ArgumentHelpName = "count"
   };
 
