@@ -179,8 +179,17 @@ namespace Microsoft.Dafny {
         if (OwnedTokensCache != null) {
           return OwnedTokensCache;
         }
+        // TODO: No concrete child should have a StartToken with a line of 0
+        var childrenFiltered = ConcreteChildren.Where(child => child.StartToken != null && child.EndToken != null && child.StartToken.line != 0).ToList();
 
-        var childrenFiltered = Children.Where(child => child.StartToken != null && child.EndToken != null).ToList();
+        // DEBUG: Detect duplicate children start tokens.
+        for (var i = 0; i < childrenFiltered.Count - 1; i++) {
+          for (var j = i + 1; j < childrenFiltered.Count; j++) {
+            if (childrenFiltered[i].StartToken.GetHashCode() == childrenFiltered[j].StartToken.GetHashCode()) {
+              Debugger.Break();
+            }
+          }
+        }
 
         var startToEndTokenNotOwned =
           childrenFiltered

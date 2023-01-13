@@ -5321,7 +5321,7 @@ TypeNameOrCtorSuffix<out IToken id>
 // Identifier, disallowing leading underscores, except possibly the "wildcard" identifier "_"
 WildIdent<out IToken x, bool allowWildcardId>
 = (. Contract.Ensures(Contract.ValueAtReturn(out x) != null); .)
-  Ident<out x>     (. t.val = UnwildIdent(t.val, allowWildcardId); .)
+  Ident<out x>     (. x = t.WithVal(UnwildIdent(t.val, allowWildcardId)); .)
   .
 
 /*------------------------------------------------------------------------*/
