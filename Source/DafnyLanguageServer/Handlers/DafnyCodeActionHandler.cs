@@ -121,8 +121,8 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
   private DafnyCodeActionProvider[] GetDafnyCodeActionProviders() {
     return new List<DafnyCodeActionProvider>() {
       new VerificationDafnyCodeActionProvider()
+    , new ErrorMessageCodeActionProvider()
     }
-    .Concat(new List<DafnyCodeActionProvider> { new ErrorMessageCodeActionProvider() })
     .Concat(
       DafnyOptions.O.Plugins.SelectMany(plugin =>
         plugin is ConfiguredPlugin { Configuration: PluginConfiguration configuration } ?
