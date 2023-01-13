@@ -2339,16 +2339,6 @@ namespace Microsoft.Dafny.Compilers {
         EmitRuntimeJar(targetDirectory);
       }
 
-      var tempDirectory = targetDirectory;
-      if (DafnyOptions.O.UsingNewCli) {
-        // clear and create the temp directory
-        tempDirectory + "/classes";
-        System.IO.Directory.Delete(tempDirectory, true);
-        System.IO.Directory.CreateDirectory(tempDirectory);
-
-      }
-      // Move the 
-
       var files = new List<string>();
       foreach (string file in Directory.EnumerateFiles(targetDirectory, "*.java", SearchOption.AllDirectories)) {
         files.Add(Path.GetFullPath(file));
@@ -2377,27 +2367,29 @@ namespace Microsoft.Dafny.Compilers {
         classfiles.Add(Path.GetRelativePath(targetDirectory, file));
       }
 
-      // Create the jar, in the specified output directory  
-      string simpleName = Path.GetFileNameWithoutExtension(targetFilename);
-      string jarPath = Path.GetFullPath("./" + simpleName + ".jar");
+      string simpleProgramName = Path.GetFileNameWithoutExtension(targetFilename);
+
+      // Create the jar, in the specified output directory (dafnyProgramName is an absolute path to the desired output file)
+      System.IO.Directory.CreateDirectory(Path.GetDirectoryName(dafnyProgramName));
+      string jarPath = Path.ChangeExtension(dafnyProgramName, ".jar");
       var args = callToMain == null ?
           new List<string> { "cf", jarPath }
-          : new List<string> { "--create", "--main-class", simpleName, "--file", jarPath };
+          : new List<string> { "--create", "--main-class", simpleProgramName, "--file", jarPath };
       var jarCreationProcess = PrepareProcessStartInfo("jar", args.Concat(classfiles));
       jarCreationProcess.WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
-      if (0 != RunProcess(jarCreationProcess, outputWriter, "Error while creating jar file.")) {
+      if (0 != RunProcess(jarCreationProcess, outputWriter, "Error while creating jar file: " + jarPath)) {
         return false;
       }
 
-      // Keep the build artifacts if --spill-target-code is anything but 0
-      // But keep them for now if the option is 0, (because users and tests likely depend on it), but deprecate
-      if (false && DafnyOptions.O.SpillTargetCode == 0) {
+      // Keep the build artifacts if --spill-translation is true
+      // But keep them for legacy CLI if the -spillTargetCode is 0, (because users and tests likely depend on it), but deprecate
+      if (DafnyOptions.O.UsingNewCli && DafnyOptions.O.SpillTargetCode == 0) {
         System.IO.Directory.Delete(targetDirectory, true);
       }
 
       // When verbose, report the generated artifact
-      if (compileIsSuccess && DafnyOptions.O.CompileVerbose) {
-        outputWriter.WriteLine("Wrote " + (callToMain != null ? "executable" : "library") + " jar " + (simpleName + ".jar"));
+      if (DafnyOptions.O.CompileVerbose) {
+        outputWriter.WriteLine("Wrote " + (callToMain != null ? "executable" : "library") + " jar " + jarPath);
       }
 
       return true;
