@@ -12,4 +12,4 @@ function method F(x: X): (Y, ghost Z)
 
 but it's then unfortunate that the compiled target code ends up with a wrapper around the `Y`.
 
-No more. This PR turns such would-be-singleton-tuples into just the component itself. For example, the second version of `F` above would be compiled in the same way as the first version of `F`.
+No more. This release turns such would-be-singleton-tuples into just the component itself. For example, the second version of `F` above would be compiled in the same way as the first version of `F`.
