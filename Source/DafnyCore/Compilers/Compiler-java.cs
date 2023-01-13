@@ -2378,7 +2378,7 @@ namespace Microsoft.Dafny.Compilers {
       var jarCreationProcess = PrepareProcessStartInfo("jar", args.Concat(classfiles));
       jarCreationProcess.WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
       if (0 != RunProcess(jarCreationProcess, outputWriter, "Error while creating jar file: " + jarPath)) {
-        //return false;
+        return false;
       }
 
       // Keep the build artifacts if --spill-translation is true
