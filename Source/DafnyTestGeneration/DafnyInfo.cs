@@ -51,33 +51,6 @@ namespace DafnyTestGeneration {
       visitor.Visit(program);
     }
 
-    public string GetCompiledName(string callable) {
-      if (methods.ContainsKey(callable)) {
-        return GetFullCompiledName(methods[callable]);
-      }
-      if (functions.ContainsKey(callable)) {
-        return GetFullCompiledName(functions[callable]);
-      }
-      throw new Exception("Cannot identify callable " + callable);
-    }
-
-    private static string GetFullCompiledName(MemberDecl decl) {
-      var fullCompiledName = decl.CompileName;
-      var enclosingClass = decl.EnclosingClass;
-      fullCompiledName = $"{enclosingClass.CompileName}.{fullCompiledName}";
-      var m = enclosingClass.EnclosingModuleDefinition;
-      while (!m.IsDefaultModule) {
-        if (Attributes.Contains(m.Attributes, "extern") &&
-            Attributes.FindExpressions(m.Attributes, "extern").Count > 0) {
-          fullCompiledName = $"{Printer.ExprToString(m.Attributes.Args[0]).Trim('"')}.{fullCompiledName}";
-          break;
-        }
-        fullCompiledName = $"{m.CompileName}_Compile.{fullCompiledName}";
-        m = m.EnclosingModule;
-      }
-      return fullCompiledName;
-    }
-
     public IList<Type> GetReturnTypes(string callable) {
       if (methods.ContainsKey(callable)) {
         return methods[callable].Outs.Select(arg =>
