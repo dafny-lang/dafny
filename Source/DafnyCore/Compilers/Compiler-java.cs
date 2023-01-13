@@ -2389,7 +2389,8 @@ namespace Microsoft.Dafny.Compilers {
 
       // When verbose, report the generated artifact
       if (DafnyOptions.O.CompileVerbose) {
-        outputWriter.WriteLine("Wrote " + (callToMain != null ? "executable" : "library") + " jar " + jarPath);
+        // For the sake of tests, just write out the filename and not the directory path
+        outputWriter.WriteLine("Wrote " + (callToMain != null ? "executable" : "library") + " jar " + Path.GetFileName(jarPath));
       }
 
       return true;
