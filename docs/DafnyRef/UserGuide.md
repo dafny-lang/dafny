@@ -256,7 +256,7 @@ Various options control the translation process, in addition to all those descri
    - `--verbose` --- print information about generated files
 
 - The translation results
-   - `--output` (or `-o`) --- location (file or folder depending on the target) of the generated file(s)
+   - `--output` (or `-o`) --- location of the generated file(s) (this specifies a file path and name; a folder location for artifacts is derived from this name)
    - `--include-runtime` --- include the Dafny runtime for the target language in the generated artifacts
    - `--optimize-erasable-datatype-wrapper`
    - `--enforce-determinism`
@@ -267,6 +267,8 @@ The `dafny build` command runs `dafny translate` and then compiles the result in
 such as a `.exe` or `.dll`. or executable `.jar`, or just the source code for an interpreted language.
 If the Dafny program does not have a Main entry point, then the build command creates a library, such as a `.dll` or `.jar`.
 As with `dafny translate`, all the previous phases are also executed, including verification (unless `--no-verify` is a command-line argument).
+By default, the generated file is in the same directory and has the same name with a different extension as the first
+.dfy file on the command line. This locaiton and name can be set by the `--output` option.
 
 There are no additional options for `dafny build` beyond those for `dafny translate` and the previous compiler phases.
 
