@@ -1,5 +1,5 @@
-// RUN: %baredafny build -t:java --output Q.jar "%s" > "%t"
-// RUN: java -jar Q.jar >>  "%t"
+// RUN: %baredafny build -t:java --output "%S/Q.jar" "%s" > "%t"
+// RUN: java -jar "%S/Q.jar" >>  "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {

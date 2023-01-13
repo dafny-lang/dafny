@@ -2397,19 +2397,24 @@ namespace Microsoft.Dafny.Compilers {
 
     public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string /*?*/ targetFilename,
      ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
+      string jarPath = Path.ChangeExtension(dafnyProgramName, ".jar"); // Must match that in CompileTargetProgram
       var psi = PrepareProcessStartInfo("java",
-        new List<string> { "-Dfile.encoding=UTF-8", Path.GetFileNameWithoutExtension(targetFilename) }
+        new List<string> { "-Dfile.encoding=UTF-8", "-jar", jarPath }
           .Concat(DafnyOptions.O.MainArgs));
-      psi.WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
-      psi.EnvironmentVariables["CLASSPATH"] = GetClassPath(targetFilename);
+      // Run the target program in the user's working directory and with the user's classpath
+      psi.EnvironmentVariables["CLASSPATH"] = GetClassPath(null);
       return 0 == RunProcess(psi, outputWriter);
     }
 
     protected string GetClassPath(string targetFilename) {
-      var targetDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
       var classpath = Environment.GetEnvironmentVariable("CLASSPATH"); // String.join converts null to ""
       // Note that the items in the CLASSPATH must have absolute paths because the compilation is performed in a subfolder of where the command-line is executed
-      return string.Join(Path.PathSeparator, ".", targetDirectory, Path.Combine(targetDirectory, "DafnyRuntime.jar"), classpath);
+      if (targetFilename != null) {
+        var targetDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
+        return string.Join(Path.PathSeparator, ".", targetDirectory, Path.Combine(targetDirectory, "DafnyRuntime.jar"), classpath);
+      } else {
+        return classpath;
+      }
     }
 
     static bool CopyExternLibraryIntoPlace(string externFilename, string mainProgram, TextWriter outputWriter) {
