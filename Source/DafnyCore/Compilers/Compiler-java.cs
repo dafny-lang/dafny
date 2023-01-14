@@ -984,7 +984,7 @@ namespace Microsoft.Dafny.Compilers {
               typeDescriptorExpr = $"{DafnyTypeDescriptor}.booleanWithDefault({w ?? "false"})";
             } else if (targetType.IsCharType) {
               if (UnicodeCharEnabled) {
-                var defaultValue = w ?? $"dafny.CodePoint.valueOf({CharType.DefaultValueAsString})";
+                var defaultValue = w ?? $"dafny.CodePoint.valueOf((int){CharType.DefaultValueAsString})";
                 typeDescriptorExpr = $"{DafnyTypeDescriptor}.unicodeCharWithDefault({defaultValue})";
               } else {
                 typeDescriptorExpr = $"{DafnyTypeDescriptor}.charWithDefault({w ?? CharType.DefaultValueAsString})";
@@ -3073,7 +3073,7 @@ namespace Microsoft.Dafny.Compilers {
       if (xType is BoolType) {
         return "false";
       } else if (xType is CharType) {
-        return UnicodeCharEnabled ? $"dafny.CodePoint.valueOf({CharType.DefaultValueAsString})" : CharType.DefaultValueAsString;
+        return UnicodeCharEnabled ? $"((int){CharType.DefaultValueAsString})" : CharType.DefaultValueAsString;
       } else if (xType is IntType || xType is BigOrdinalType) {
         return "java.math.BigInteger.ZERO";
       } else if (xType is RealType) {
@@ -3589,7 +3589,10 @@ namespace Microsoft.Dafny.Compilers {
         wBareArray = wr.Fork();
         wr.Write(")");
         if (mustInitialize) {
-          wr.Write($".fillThenReturn({DefaultValue(elementType, wr, tok, true)})");
+          wr.Write(".fillThenReturn(");
+          var coercedWr = EmitCoercionIfNecessary(elementType, NativeObjectType, tok, wr);
+          coercedWr.Write(DefaultValue(elementType, wr, tok, true));
+          wr.Write(")");
         }
       } else {
         wr.Write($"({ArrayTypeName(elementType, dimensions.Count, wr, tok, false)}) ");
@@ -3598,7 +3601,10 @@ namespace Microsoft.Dafny.Compilers {
         }
         wBareArray = wr.Fork();
         if (mustInitialize) {
-          wr.Write($", {DefaultValue(elementType, wr, tok, true)})");
+          wr.Write($", ");
+          var coercedWr = EmitCoercionIfNecessary(elementType, NativeObjectType, tok, wr);
+          coercedWr.Write(DefaultValue(elementType, wr, tok, true));
+          wr.Write(")");
         }
       }
 
