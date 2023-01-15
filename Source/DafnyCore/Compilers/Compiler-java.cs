@@ -3176,7 +3176,7 @@ namespace Microsoft.Dafny.Compilers {
           return $"({s}{typeargs})null";
         }
         var relevantTypeArgs = UsedTypeParameters(dt, udt.TypeArgs);
-        return $"{s}.{typeargs}Default({Util.Comma(relevantTypeArgs, ta => DefaultValue(ta.Actual, wr, tok, constructTypeParameterDefaultsFromTypeDescriptors))})";
+        return $"{s}.{typeargs}Default({Util.Comma(relevantTypeArgs, ta => DefaultValueCoercedIfNecessary(ta.Actual, wr, tok, constructTypeParameterDefaultsFromTypeDescriptors))})";
       } else {
         Contract.Assert(false);
         throw new cce.UnreachableException(); // unexpected type
@@ -3589,10 +3589,7 @@ namespace Microsoft.Dafny.Compilers {
         wBareArray = wr.Fork();
         wr.Write(")");
         if (mustInitialize) {
-          wr.Write(".fillThenReturn(");
-          var coercedWr = EmitCoercionIfNecessary(elementType, NativeObjectType, tok, wr);
-          coercedWr.Write(DefaultValue(elementType, wr, tok, true));
-          wr.Write(")");
+          wr.Write($".fillThenReturn({DefaultValueCoercedIfNecessary(elementType, wr, tok, true)})");
         }
       } else {
         wr.Write($"({ArrayTypeName(elementType, dimensions.Count, wr, tok, false)}) ");
@@ -3601,10 +3598,7 @@ namespace Microsoft.Dafny.Compilers {
         }
         wBareArray = wr.Fork();
         if (mustInitialize) {
-          wr.Write($", ");
-          var coercedWr = EmitCoercionIfNecessary(elementType, NativeObjectType, tok, wr);
-          coercedWr.Write(DefaultValue(elementType, wr, tok, true));
-          wr.Write(")");
+          wr.Write($", {DefaultValueCoercedIfNecessary(elementType, wr, tok, true)})");
         }
       }
 

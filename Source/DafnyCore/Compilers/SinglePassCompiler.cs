@@ -2941,6 +2941,15 @@ namespace Microsoft.Dafny.Compilers {
       return TypeInitializationValue(simplifiedType, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
     }
 
+    protected string DefaultValueCoercedIfNecessary(Type type, ConcreteSyntaxTree wr, IToken tok,
+      bool constructTypeParameterDefaultsFromTypeDescriptors = false) {
+
+      var tempWr = new ConcreteSyntaxTree();
+      var coercedWr = EmitCoercionIfNecessary(type, TypeForCoercion(type), tok, tempWr);
+      coercedWr.Write(DefaultValue(type, wr, tok, constructTypeParameterDefaultsFromTypeDescriptors));
+      return tempWr.ToString();
+    }
+
     // ----- Stmt ---------------------------------------------------------------------------------
 
     public class CheckHasNoAssumes_Visitor : BottomUpVisitor {
