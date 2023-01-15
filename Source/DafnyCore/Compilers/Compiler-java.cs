@@ -247,7 +247,7 @@ namespace Microsoft.Dafny.Compilers {
       var lhs = (SeqSelectExpr)s0.Lhs;
       ConcreteSyntaxTree wColl, wIndex, wValue;
       EmitIndexCollectionUpdate(lhs.Seq.Type, out wColl, out wIndex, out wValue, wr, nativeIndex: true);
-      var wCoerce = EmitCoercionIfNecessary(from: null, to: lhs.Seq.Type, tok: s0.Tok, wr: wColl);
+      var wCoerce = EmitCoercionIfNecessary(from: NativeObjectType, to: lhs.Seq.Type, tok: s0.Tok, wr: wColl);
       wCoerce.Write($"({TypeName(lhs.Seq.Type.NormalizeExpand(), wCoerce, s0.Tok)})");
       EmitTupleSelect(tup, 0, wCoerce);
       wColl.Write(")");
@@ -3719,6 +3719,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitApplyExpr(Type functionType, IToken tok, Expression function, List<Expression> arguments, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      wr = EmitCoercionIfNecessary(NativeObjectType, functionType.AsArrowType.Result, tok, wr);
       TrParenExpr(function, wr, inLetExprBody, wStmts);
       wr.Write(".apply");
       TrExprList(arguments, wr, inLetExprBody, wStmts);
@@ -3777,6 +3778,15 @@ namespace Microsoft.Dafny.Compilers {
       return type == NativeObjectType || type.IsTypeParameter;
     }
 
+    private bool IsCharBasedType(Type type) {
+      return type switch {
+        { IsCharType: true } => true,
+        UserDefinedType { ResolvedClass: SubsetTypeDecl std } => 
+          IsCharBasedType(std.RhsWithArgument(type.TypeArgs)),
+        _ => false
+      };
+    }
+
     protected override ConcreteSyntaxTree EmitCoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, IToken tok, ConcreteSyntaxTree wr) {
       from = from == null ? null : DatatypeWrapperEraser.SimplifyType(from);
       to = to == null ? null : DatatypeWrapperEraser.SimplifyType(to);
@@ -3784,14 +3794,14 @@ namespace Microsoft.Dafny.Compilers {
       if (UnicodeCharEnabled) {
         // Need to box from int to CodePoint, or unbox from CodePoint to int
 
-        if (IsObjectType(from) && to is { IsCharType: true }) {
+        if (IsObjectType(from) && IsCharBasedType(to)) {
           wr.Write($"((dafny.CodePoint)(");
           var w = wr.Fork();
           wr.Write(")).value()");
           return w;
         }
 
-        if (from is { IsCharType: true } && IsObjectType(to)) {
+        if (IsCharBasedType(from) && IsObjectType(to)) {
           wr.Write($"dafny.CodePoint.valueOf(");
           var w = wr.Fork();
           wr.Write(")");
@@ -4098,11 +4108,13 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void CreateIIFE(string bvName, Type bvType, IToken bvTok, Type bodyType, IToken bodyTok,
       ConcreteSyntaxTree wr, ref ConcreteSyntaxTree wStmts, out ConcreteSyntaxTree wrRhs, out ConcreteSyntaxTree wrBody) {
-      wr.Write("({0})", TypeName(bodyType, wr, bodyTok));
+      wr = EmitCoercionIfNecessary(NativeObjectType, bodyType, bvTok, wr);
       wr.Write("{0}.<{1}, {2}>Let(", DafnyHelpersClass, BoxedTypeName(bvType, wr, bvTok), BoxedTypeName(bodyType, wr, bodyTok));
       wrRhs = wr.Fork();
+      wrRhs = EmitCoercionIfNecessary(bvType, NativeObjectType, bvTok, wrRhs);
       wr.Write($", {bvName} -> ");
       wrBody = wr.Fork();
+      wrBody = EmitCoercionIfNecessary(bodyType, NativeObjectType, bodyTok, wrBody);
       wr.Write(")");
     }
 
