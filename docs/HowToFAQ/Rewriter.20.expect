@@ -1,0 +1,2 @@
+text.dfy(2,13): Error: a function-by-method is not allowed to call a method with print effects
+1 resolution/type errors detected in text.dfy

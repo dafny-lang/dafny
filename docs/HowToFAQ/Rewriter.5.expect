@@ -1,0 +1,3 @@
+text.dfy(1,18): Warning: invalid :induction attribute argument; expected 'false' or 'true' or lemma parameter; ignoring attribute
+
+Dafny program verifier did not attempt verification

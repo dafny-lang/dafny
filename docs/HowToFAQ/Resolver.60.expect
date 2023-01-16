@@ -1,0 +1,2 @@
+text.dfy(5,2): Error: 'decreases *' is not allowed on ghost loops
+1 resolution/type errors detected in text.dfy

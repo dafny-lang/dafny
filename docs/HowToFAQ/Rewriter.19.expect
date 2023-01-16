@@ -1,0 +1,2 @@
+text.dfy(1,13): Error: to use a print statement, the enclosing method must be marked with {:print}
+1 resolution/type errors detected in text.dfy

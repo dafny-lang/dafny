@@ -1,0 +1,2 @@
+text.dfy(4,19): Error: ghost constructor is allowed only in specification contexts
+1 resolution/type errors detected in text.dfy

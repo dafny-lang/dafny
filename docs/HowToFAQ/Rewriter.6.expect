@@ -1,0 +1,3 @@
+text.dfy(5,9): Warning: Constructor name 'A' should be followed by parentheses
+
+Dafny program verifier did not attempt verification

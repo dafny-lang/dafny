@@ -1,0 +1,2 @@
+text.dfy(3,9): Error: print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+1 resolution/type errors detected in text.dfy

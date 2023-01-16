@@ -1,0 +1,2 @@
+text.dfy(3,7): Error: unchanged expressions are allowed only in specification and ghost contexts
+1 resolution/type errors detected in text.dfy

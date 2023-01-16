@@ -183,7 +183,7 @@ do
       fi
       if [ "$command" == "%no-check" ]; then
         echo -n ""
-      elif [ "$command" == "%check-verify" -o "$command" == "%check-verify-warn" -o "$command" == "%check-resolve"  -o "$command" == "%check-run" -o "$command" == "%check-translate" ]; then
+      elif [ "$command" == "%check-verify" -o "$command" == "%check-verify-warn" -o "$command" == "%check-resolve"  -o "$command" == "%check-run" -o "$command" == "%check-translate" -o "$command" == "%check-test" -o "$command" == "%check-resolve-warn" ]; then
         capture=1
         if [ "$command" == "%check-verify" ]; then
           com=verify
@@ -194,12 +194,18 @@ do
         elif [ "$command" == "%check-resolve" ]; then
           com=resolve
           ec=2
+        elif [ "$command" == "%check-resolve-warn" ]; then
+          com=resolve
+          ec=0
         elif [ "$command" == "%check-translate" ]; then
           com=translate
           ec=3
         elif [ "$command" == "%check-run" ]; then
           com=run
           ec=0
+        elif [ "$command" == "%check-test" ]; then
+          com=test
+          ec=2
         fi
         if [ "$lang" != "dafny" ]; then
           echo EXPECTED A dafny BLOCK, NOT $lang

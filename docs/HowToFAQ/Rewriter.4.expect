@@ -1,0 +1,3 @@
+text.dfy(1,20): Warning: lemma parameters given as :induction arguments must be given in the same order as in the lemma; ignoring attribute
+
+Dafny program verifier did not attempt verification

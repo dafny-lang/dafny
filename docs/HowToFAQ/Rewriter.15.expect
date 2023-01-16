@@ -1,0 +1,2 @@
+text.dfy(1,22): Error: :print attribute is not allowed on ghost methods
+1 resolution/type errors detected in text.dfy

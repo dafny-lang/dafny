@@ -1,0 +1,2 @@
+text.dfy(6,18): Error: not allowed to override a non-printing method with a possibly printing method ('m')
+1 resolution/type errors detected in text.dfy
