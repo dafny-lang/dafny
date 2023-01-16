@@ -5,7 +5,8 @@
 
 ## Error: Invalid argument _argument_ to option _option_
 
-```bash <!-- %check-error -->
+<!-- %check-cli -->
+```bash 
 dafny resolve --function-syntax:2 mod.dfy
 ```
 
@@ -17,7 +18,8 @@ in the help document (`dafny -?` or `dafny <command> -h`).
 
 ## Error: Invalid argument _argument_ to option --quantifier-syntax
 
-```bash <!-- %check-error -->
+<!-- %check-cli -->
+```bash 
 dafny resolve --quantifier-syntax:2 null.dfy
 ```
 
