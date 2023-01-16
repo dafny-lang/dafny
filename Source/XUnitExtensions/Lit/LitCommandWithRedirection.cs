@@ -42,7 +42,7 @@ namespace XUnitExtensions.Lit {
       if (redirectErrorAppendIndex >= 0) {
         errorFile = config.ApplySubstitutions(argumentsList[redirectErrorAppendIndex + 1]).Single();
         appendOutput = true;
-        argumentsList.RemoveRange(redirectErrorIndex, 2);
+        argumentsList.RemoveRange(redirectErrorAppendIndex, 2);
       }
 
       var arguments = argumentsList.SelectMany(config.ApplySubstitutions);
