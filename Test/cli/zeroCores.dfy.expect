@@ -4,15 +4,19 @@ Could not parse number earga
 
 Could not parse percentage earga%
 
-zeroCores.dfy(9,27): Error: A postcondition might not hold on this return path.
-zeroCores.dfy(9,21): Related location: This is the postcondition that might not hold.
+zeroCores.dfy(10,27): Error: A postcondition might not hold on this return path.
+zeroCores.dfy(10,21): Related location: This is the postcondition that might not hold.
 
 Dafny program verifier finished with 0 verified, 1 error
-zeroCores.dfy(9,27): Error: A postcondition might not hold on this return path.
-zeroCores.dfy(9,21): Related location: This is the postcondition that might not hold.
+zeroCores.dfy(10,27): Error: A postcondition might not hold on this return path.
+zeroCores.dfy(10,21): Related location: This is the postcondition that might not hold.
 
 Dafny program verifier finished with 0 verified, 1 error
-zeroCores.dfy(9,27): Error: A postcondition might not hold on this return path.
-zeroCores.dfy(9,21): Related location: This is the postcondition that might not hold.
+zeroCores.dfy(10,27): Error: A postcondition might not hold on this return path.
+zeroCores.dfy(10,21): Related location: This is the postcondition that might not hold.
+
+Dafny program verifier finished with 0 verified, 1 error
+zeroCores.dfy(10,27): Error: A postcondition might not hold on this return path.
+zeroCores.dfy(10,21): Related location: This is the postcondition that might not hold.
 
 Dafny program verifier finished with 0 verified, 1 error

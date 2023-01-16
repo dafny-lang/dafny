@@ -75,7 +75,7 @@ namespace XUnitExtensions.Lit {
     public (int, string, string) Execute(ITestOutputHelper? outputHelper, TextReader? inReader, TextWriter? outWriter, TextWriter? errWriter) {
       var inputReader = inputFile != null ? new StreamReader(inputFile) : null;
       var outputWriter = outputFile != null ? new StreamWriter(outputFile, append) : null;
-      var errorWriter = errorFile != null ? new StreamWriter(errorFile, false) : null;
+      var errorWriter = errorFile != null ? new StreamWriter(errorFile, append) : null;
       var result = command.Execute(outputHelper, inputReader, outputWriter, errorWriter);
       inputReader?.Close();
       outputWriter?.Close();
