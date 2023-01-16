@@ -2361,39 +2361,48 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
 
-      // Find all .class files
-      var classfiles = new List<String>();
-      foreach (string file in Directory.EnumerateFiles(targetDirectory, "*.class", SearchOption.AllDirectories)) {
-        classfiles.Add(Path.GetRelativePath(targetDirectory, file));
-      }
+      var classFiles = Directory.EnumerateFiles(targetDirectory, "*.class", SearchOption.AllDirectories)
+          .Select(file => Path.GetRelativePath(targetDirectory, file)).ToList();
 
-      string simpleProgramName = Path.GetFileNameWithoutExtension(targetFilename);
 
-      // Create the jar, in the specified output directory (dafnyProgramName is an absolute path to the desired output file)
-      System.IO.Directory.CreateDirectory(Path.GetDirectoryName(dafnyProgramName));
-      string jarPath = Path.GetFullPath(Path.ChangeExtension(dafnyProgramName, ".jar"));
-      var args = callToMain == null ?
-          new List<string> { "cf", jarPath }
-          : new List<string> { "cfe", jarPath, simpleProgramName };
-      var jarCreationProcess = PrepareProcessStartInfo("jar", args.Concat(classfiles));
-      jarCreationProcess.WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
-      if (0 != RunProcess(jarCreationProcess, outputWriter, "Error while creating jar file: " + jarPath)) {
+      var simpleProgramName = Path.GetFileNameWithoutExtension(targetFilename);
+      var jarPath = Path.GetFullPath(Path.ChangeExtension(dafnyProgramName, ".jar"));
+      if (!createJar(callToMain == null ? null : simpleProgramName,
+                     jarPath,
+                     Path.GetFullPath(Path.GetDirectoryName(targetFilename)),
+                     classFiles,
+                     outputWriter)) {
         return false;
       }
 
       // Keep the build artifacts if --spill-translation is true
-      // But keep them for legacy CLI if the -spillTargetCode is 0, (because users and tests likely depend on it), but deprecate
-      if (DafnyOptions.O.UsingNewCli && DafnyOptions.O.SpillTargetCode == 0) {
-        System.IO.Directory.Delete(targetDirectory, true);
+      // But keep them for legacy CLI so as not to break old behavior
+      if (DafnyOptions.O.UsingNewCli) {
+        if (DafnyOptions.O.SpillTargetCode == 0) {
+          System.IO.Directory.Delete(targetDirectory, true);
+        } else {
+          classFiles.ForEach(f => System.IO.File.Delete(f));
+        }
       }
 
-      // When verbose, report the generated artifact
       if (DafnyOptions.O.CompileVerbose) {
         // For the sake of tests, just write out the filename and not the directory path
-        outputWriter.WriteLine("Wrote " + (callToMain != null ? "executable" : "library") + " jar " + Path.GetFileName(jarPath));
+        var fileKind = callToMain != null ? "executable" : "library";
+        outputWriter.WriteLine($"Wrote {0} jar {1}", fileKind, Path.GetFileName(jarPath));
       }
 
       return true;
+    }
+
+
+    public bool createJar(string/*?*/ entryPointName, string jarPath, string rootDirectory, List<string> files, TextWriter outputWriter) {
+      System.IO.Directory.CreateDirectory(Path.GetDirectoryName(jarPath));
+      var args = entryPointName == null ? // If null, then no entry point is added
+          new List<string> { "cf", jarPath }
+          : new List<string> { "cfe", jarPath, entryPointName };
+      var jarCreationProcess = PrepareProcessStartInfo("jar", args.Concat(files));
+      jarCreationProcess.WorkingDirectory = rootDirectory;
+      return 0 == RunProcess(jarCreationProcess, outputWriter, "Error while creating jar file: " + jarPath);
     }
 
     public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string /*?*/ targetFilename,
