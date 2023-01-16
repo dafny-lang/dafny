@@ -61,7 +61,7 @@ public static class BoogieOptionBag {
   };
 
   static BoogieOptionBag() {
-    Cores.SetDefaultValue((Environment.ProcessorCount + 1U) / 2U);
+    Cores.SetDefaultValue((uint)((Environment.ProcessorCount + 1) / 2));
 
     DafnyOptions.RegisterLegacyBinding(BoogieFilter, (o, f) => o.ProcsToCheck.AddRange(f));
     DafnyOptions.RegisterLegacyBinding(BoogieArguments, (o, boogieOptions) => {
