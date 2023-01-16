@@ -3752,6 +3752,20 @@ namespace Microsoft.Dafny.Compilers {
         var udtTo = (UserDefinedType)to.NormalizeExpand();
         return udtFrom.TypeArgs[0].IsTypeParameter && !udtTo.TypeArgs[0].IsTypeParameter;
       }
+      
+      if (from.IsArrowType && to.IsArrowType) {
+        ArrowType fat = from.AsArrowType, tat = to.AsArrowType;
+        if (IsCoercionNecessary(fat.Result, tat.Result)) {
+          return true;
+        }
+        for (int i = 0; i < fat.Args.Count; i++) {
+          if (IsCoercionNecessary(tat.Args[i], fat.Args[i])) {
+            return true;
+          }
+        }
+
+        return false;
+      }
 
       return false;
     }
@@ -3803,11 +3817,57 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
 
+      if (from is { IsArrowType: true } && to is { IsArrowType: true }) {
+        ArrowType fat = from.AsArrowType, tat = to.AsArrowType;
+        return EmitArrowCoercion(fat, tat, tok, wr);
+      }
+
       if (IsCoercionNecessary(from, to)) {
         return EmitDowncast(from, to, tok, wr);
       }
 
       return wr;
+    }
+
+    protected ConcreteSyntaxTree EmitArrowCoercion(ArrowType fat, ArrowType tat, IToken tok, ConcreteSyntaxTree wr) {
+      // We must wrap the whole conversion in an IIFE to avoid capturing the source expression
+      var bvName = idGenerator.FreshId("coer");
+      // // Nothing interesting should be written to wStmts
+      var blackHole = new ConcreteSyntaxTree();
+      CreateIIFE(bvName, fat, tok, tat, tok, wr, ref blackHole, out var ans, out wr);
+      
+      wr.Write("(");
+      var sep = "";
+      var args = new List<string>();
+      foreach (var toArgType in tat.Args) {
+        var arg = idGenerator.FreshId("arg");
+        args.Add(arg);
+        wr.Write("{0}{1} {2}", sep, TypeName(toArgType, wr, tok), arg);
+        sep = ", ";
+      }
+      wr.Write(") -> ");
+      var wBody = wr.NewExprBlock("");
+      ConcreteSyntaxTree wCall;
+      if (fat.Result == null) {
+        wCall = wBody;
+      } else {
+        wBody.Write("return ");
+        wCall = EmitCoercionIfNecessary(@from: fat.Result, to: tat.Result, tok: tok, wr: wBody);
+      }
+      wCall.Write($"{bvName}(");
+      Contract.Assert(fat.Args.Count == tat.Args.Count);
+      sep = "";
+      for (int i = 0; i < fat.Args.Count; i++) {
+        var fromArgType = fat.Args[i];
+        var toArgType = tat.Args[i];
+        wCall.Write(sep);
+        var w = EmitCoercionIfNecessary(@from: toArgType, to: fromArgType, tok: tok, wr: wCall);
+        w.Write(args[i]);
+        sep = ", ";
+      }
+      wCall.Write(");");
+      wBody.WriteLine();
+      return ans;
     }
 
     protected override ConcreteSyntaxTree EmitDowncast(Type from, Type to, IToken tok, ConcreteSyntaxTree wr) {
