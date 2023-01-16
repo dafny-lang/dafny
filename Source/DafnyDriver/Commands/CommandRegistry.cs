@@ -90,6 +90,7 @@ static class CommandRegistry {
         return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR);
       }
     }
+    dafnyOptions.UsingNewCli = true;
 
     var rootCommand = new RootCommand("The Dafny CLI enables working with Dafny, a verification-aware programming language. Use 'dafny /help' to see help for a previous CLI format.");
     foreach (var command in commandToSpec.Keys) {
