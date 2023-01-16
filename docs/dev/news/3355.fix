@@ -8,7 +8,8 @@ classpath as a java library.
 - In old and new CLIs, the path and name of the output jar file can be given by the --output option, with .jar added if necessary
 - As before, the compilation artifacts (.java and .class files) are placed in a directory whose name is the same as the jar file
 but without the .jar extension and with '-java' appended
-- With the new CLI, the generated .java and .class artifacts are deleted unless --spill-translation=true.
+- With the new CLI, the generated .java artifacts are deleted unless --spill-translation=true and the .class files are deleted in any case;
+  both kinds of files are retained with the legacy CLI for backwards compatibility.
 - If any other jar files are needed to compile the dafny/java program, they must be on the CLASSPATH;
   the same CLASSPATH used to compile the program is needed to run the program
 
