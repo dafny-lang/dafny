@@ -2367,7 +2367,7 @@ namespace Microsoft.Dafny.Compilers {
 
       var simpleProgramName = Path.GetFileNameWithoutExtension(targetFilename);
       var jarPath = Path.GetFullPath(Path.ChangeExtension(dafnyProgramName, ".jar"));
-      if (!createJar(callToMain == null ? null : simpleProgramName,
+      if (!CreateJar(callToMain == null ? null : simpleProgramName,
                      jarPath,
                      Path.GetFullPath(Path.GetDirectoryName(targetFilename)),
                      classFiles,
@@ -2379,23 +2379,23 @@ namespace Microsoft.Dafny.Compilers {
       // But keep them for legacy CLI so as not to break old behavior
       if (DafnyOptions.O.UsingNewCli) {
         if (DafnyOptions.O.SpillTargetCode == 0) {
-          System.IO.Directory.Delete(targetDirectory, true);
+          Directory.Delete(targetDirectory, true);
         } else {
-          classFiles.ForEach(f => System.IO.File.Delete(f));
+          classFiles.ForEach(f => File.Delete(f));
         }
       }
 
       if (DafnyOptions.O.CompileVerbose) {
         // For the sake of tests, just write out the filename and not the directory path
         var fileKind = callToMain != null ? "executable" : "library";
-        outputWriter.WriteLine($"Wrote {0} jar {1}", fileKind, Path.GetFileName(jarPath));
+        outputWriter.WriteLine($"Wrote {fileKind} jar {Path.GetFileName(jarPath)}");
       }
 
       return true;
     }
 
 
-    public bool createJar(string/*?*/ entryPointName, string jarPath, string rootDirectory, List<string> files, TextWriter outputWriter) {
+    public bool CreateJar(string/*?*/ entryPointName, string jarPath, string rootDirectory, List<string> files, TextWriter outputWriter) {
       System.IO.Directory.CreateDirectory(Path.GetDirectoryName(jarPath));
       var args = entryPointName == null ? // If null, then no entry point is added
           new List<string> { "cf", jarPath }
