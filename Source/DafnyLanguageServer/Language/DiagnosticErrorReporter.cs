@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using VCGeneration;
 using Newtonsoft.Json.Linq;
+using static Microsoft.Dafny.ErrorDetail;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   public class DiagnosticErrorReporter : ErrorReporter {
@@ -142,7 +143,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       };
     }
 
-    public override bool Message(MessageSource source, ErrorLevel level, string errorID, IToken tok, string msg) {
+    public override bool Message(MessageSource source, ErrorLevel level, ErrorID errorID, IToken tok, string msg) {
       if (ErrorsOnly && level != ErrorLevel.Error) {
         return false;
       }
@@ -160,13 +161,13 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
 
       var item = new Diagnostic {
-        Code = errorID,
+        Code = errorID.ToString(),
         Severity = ToSeverity(level),
         Message = msg,
         Range = tok.GetLspRange(),
         Source = source.ToString(),
         RelatedInformation = relatedInformation,
-        CodeDescription = errorID == "" ? null : new CodeDescription { Href = new System.Uri("https://dafny.org/dafny/docs/HowToFAQ/Errors#" + errorID) },
+        CodeDescription = errorID == ErrorID.None ? null : new CodeDescription { Href = new System.Uri("https://dafny.org/dafny/docs/HowToFAQ/Errors#" + errorID.ToString()) },
         Data = JToken.FromObject(Errors.FindCodeActionRange(tok).GetLspRange()),
       };
       AddDiagnosticForFile(item, source, GetDocumentUriOrDefault(tok));

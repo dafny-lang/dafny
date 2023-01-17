@@ -13,19 +13,20 @@ using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.Plugins;
 using Newtonsoft.Json.Linq;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
+using static Microsoft.Dafny.ErrorDetail;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers;
 
 public class DafnyCodeActions {
 
-  private static Dictionary<string, Func<Diagnostic, Range, List<DafnyCodeAction>>> codeActionMap =
-    new Dictionary<string, Func<Diagnostic, Range, List<DafnyCodeAction>>>();
+  private static Dictionary<ErrorID, Func<Diagnostic, Range, List<DafnyCodeAction>>> codeActionMap =
+    new Dictionary<ErrorID, Func<Diagnostic, Range, List<DafnyCodeAction>>>();
   static DafnyCodeActions() {
     init();
   }
 
-  public static Func<Diagnostic, Range, List<DafnyCodeAction>>? GetAction(string? errorId) {
-     return errorId == null ? null : codeActionMap.ContainsKey(errorId) ? codeActionMap[errorId] : null;
+  public static Func<Diagnostic, Range, List<DafnyCodeAction>>? GetAction(ErrorID errorId) {
+    return codeActionMap.ContainsKey(errorId) ? codeActionMap[errorId] : null;
   }
 
   public static List<DafnyCodeAction> ReplacementAction(string title, Diagnostic diagnostic, Range range, string newText) {
@@ -42,9 +43,9 @@ public class DafnyCodeActions {
 
   public static void init() {
 
-    codeActionMap.Add(ParserErrorDetail.p_bad_const_initialize_op, (Diagnostic diagnostic, Range range) => ReplacementAction("replace = with :=", diagnostic, range, ":="));
-    codeActionMap.Add(ParserErrorDetail.p_abstract_not_allowed, (Diagnostic diagnostic, Range range) => RemoveAction("remove 'abstract'", diagnostic, range));
-    codeActionMap.Add(ParserErrorDetail.p_no_leading_underscore, (Diagnostic diagnostic, Range range) => RemoveAction("remove underscore", diagnostic, range));
+    codeActionMap.Add(ErrorID.p_bad_const_initialize_op, (Diagnostic diagnostic, Range range) => ReplacementAction("replace = with :=", diagnostic, range, ":="));
+    codeActionMap.Add(ErrorID.p_abstract_not_allowed, (Diagnostic diagnostic, Range range) => RemoveAction("remove 'abstract'", diagnostic, range));
+    codeActionMap.Add(ErrorID.p_no_leading_underscore, (Diagnostic diagnostic, Range range) => RemoveAction("remove underscore", diagnostic, range));
 
   }
 }

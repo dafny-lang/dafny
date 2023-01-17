@@ -1,3 +1,13 @@
+using System;
+using System.Collections.Generic;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
+using Microsoft.Dafny.LanguageServer.Plugins;
+using Newtonsoft.Json.Linq;
+using Microsoft.Dafny.LanguageServer.Handlers;
+using static Microsoft.Dafny.ErrorDetail;
+
+namespace Microsoft.Dafny.LanguageServer;
 public class ErrorMessageDafnyCodeActionProvider : DiagnosticDafnyCodeActionProvider {
   private Range InterpretDataAsRangeOrDefault(JToken? data, Range def) {
     if (data is null) {
@@ -24,8 +34,9 @@ public class ErrorMessageDafnyCodeActionProvider : DiagnosticDafnyCodeActionProv
   }
 
   protected override IEnumerable<DafnyCodeAction>? GetDafnyCodeActions(IDafnyCodeActionInput input, Diagnostic diagnostic, Range selection) {
-    //if (diagnostic.Code == "") return new List<DafnyCodeAction> { };
-    var action = DafnyCodeActions.GetAction(diagnostic.Code);
+    ErrorID errorID = ErrorID.None;
+    bool ok = Enum.TryParse<ErrorID>(diagnostic.Code, out errorID);
+    var action = DafnyCodeActions.GetAction(errorID);
     if (action == null) {
       return new List<DafnyCodeAction> { };
     } else {

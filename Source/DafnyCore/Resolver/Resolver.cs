@@ -18,6 +18,7 @@ using Microsoft.BaseTypes;
 using Microsoft.Boogie;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Dafny.Plugins;
+using static Microsoft.Dafny.ErrorDetail;
 
 namespace Microsoft.Dafny {
   public partial class Resolver {
@@ -7639,9 +7640,9 @@ namespace Microsoft.Dafny {
       public bool Collected = false;
 
       public bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
-        return Message(source, level, "", tok, msg);
+        return Message(source, level, ErrorID.None, tok, msg);
       }
-      public override bool Message(MessageSource source, ErrorLevel level, string errorID, IToken tok, string msg) {
+      public override bool Message(MessageSource source, ErrorLevel level, ErrorID errorID, IToken tok, string msg) {
         if (!Collected && level == ErrorLevel.Error) {
           FirstCollectedMessage = msg;
           FirstCollectedToken = tok;

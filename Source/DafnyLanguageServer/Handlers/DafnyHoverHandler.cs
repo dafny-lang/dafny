@@ -73,7 +73,9 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       foreach (var diagnostic in state.Diagnostics) {
         if (diagnostic.Range.Contains(position)) {
           string? code = diagnostic.Code;
-          string? detail = code is null ? null : ErrorDetail.GetDetail(code);
+          ErrorDetail.ErrorID errorID = ErrorDetail.ErrorID.None;
+          Enum.TryParse<ErrorDetail.ErrorID>(code, out errorID);
+          string? detail = ErrorDetail.GetDetail(errorID);
           if (detail is not null) {
             return detail;
           }

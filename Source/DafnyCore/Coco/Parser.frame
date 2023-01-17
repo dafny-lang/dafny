@@ -33,6 +33,7 @@ Coco/R itself) does not fall under the GNU General Public License.
 
 using System;
 using System.Diagnostics.Contracts;
+using static Microsoft.Dafny.ErrorDetail;
 
 -->namespace
 
@@ -77,7 +78,7 @@ public class Parser {
     errors.SemErr(tok, msg);
   }
 
-  public void SemErr(string errorID, IToken tok, string msg) {
+  public void SemErr(ErrorID errorID, IToken tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
     errors.SemErr(errorID, tok, msg);
@@ -175,7 +176,7 @@ public class Errors {
     Reporting.Error(MessageSource.Parser, tok, msg);
   }
 
-  public void SemErr(string errorID, IToken tok, string msg) {  // semantic errors
+  public void SemErr(ErrorID errorID, IToken tok, string msg) {  // semantic errors
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
     ErrorCount++;
@@ -191,10 +192,10 @@ public class Errors {
   public void Deprecated(IToken tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
-    Reporting.Deprecated(MessageSource.Parser, "", tok, msg);
+    Reporting.Deprecated(MessageSource.Parser, ErrorID.None, tok, msg);
   }
 
-  public void DeprecatedStyle(string errorID, IToken tok, string msg) {
+  public void DeprecatedStyle(ErrorID errorID, IToken tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
     Reporting.DeprecatedStyle(MessageSource.Parser, errorID, tok, msg);

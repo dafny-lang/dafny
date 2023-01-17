@@ -4,33 +4,28 @@
 using System;
 using System.Numerics;
 using System.Globalization;
+using static Microsoft.Dafny.ErrorDetail;
 
 namespace Microsoft.Dafny;
 
 public class ParserErrorDetail {
 
-  public static string p_bad_const_initialize_op = "p_bad_const_initialize_op";
-  public static string p_deprecated_semicolon = "p_deprecated_semicolon";
-  public static string p_no_leading_underscore = "p_no_leading_underscore";
-  public static string p_abstract_not_allowed = "p_abstract_not_allowed";
-  public static string p_no_ghost_for_by_method = "p_no_ghost_for_by_method";
-  public static string p_no_static = "p_no_static";
   public static void init() {
 
-    ErrorDetail.Add(p_bad_const_initialize_op,
+    ErrorDetail.Add(ErrorID.p_bad_const_initialize_op,
     @"
 Dafny's syntax for initialization and assignment uses `:=`, not `=` (like some other languages).
 In fact `=` is not used at all in Dafny.
 "
     );
 
-    ErrorDetail.Add(p_abstract_not_allowed,
+    ErrorDetail.Add(ErrorID.p_abstract_not_allowed,
     @"
 Only modules may be declared abstract.
 "
     );
 
-    ErrorDetail.Add(p_no_ghost_for_by_method,
+    ErrorDetail.Add(ErrorID.p_no_ghost_for_by_method,
     @"
 Functions with a [by method](../DafnyRef/DafnyRef#sec-function-declarations)
 section to their body can be used both in ghost contexts and in non-ghost contexts; 
@@ -40,7 +35,7 @@ declaration.
 "
     );
 
-    ErrorDetail.Add(p_no_static,
+    ErrorDetail.Add(ErrorID.p_no_static,
     @"
 Only some kinds of declarations can be declared 'static', most often
 fields, constants, methods, and functions, and only within classes. 
@@ -48,13 +43,13 @@ Modules and the declarations within them are already always static.
 "
     );
 
-    ErrorDetail.Add(p_deprecated_semicolon,
+    ErrorDetail.Add(ErrorID.p_deprecated_semicolon,
   @"
 Semicolons are required after statements and declarations in method bodies,  
 but are deprecated after declarations within modules and types.
 ");
 
-    ErrorDetail.Add(p_no_leading_underscore,
+    ErrorDetail.Add(ErrorID.p_no_leading_underscore,
   @"
 User-declared identifiers may not begin with an underscore;
 such identifiers are reserved for internal use.
