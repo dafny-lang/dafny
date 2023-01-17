@@ -390,7 +390,7 @@ namespace DafnyTestGeneration {
         } else if (DafnyOptions.O.TestGenOptions.Verbose) {
           DafnyOptions.O.Printer.ErrorWriteLine(Console.Error, $"*** Error: Values of type {newTypeName} " +
                                                 $"will be assigned a default value of type " +
-                                                $"{baseType}, which may or may not match the " +
+                                                $"{baseType}, which may not match the " +
                                                 $"associated condition, if any");
           info.SetNonZeroExitCode = true;
         }
