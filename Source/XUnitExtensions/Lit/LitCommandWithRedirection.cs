@@ -38,6 +38,12 @@ namespace XUnitExtensions.Lit {
         errorFile = config.ApplySubstitutions(argumentsList[redirectErrorIndex + 1]).Single();
         argumentsList.RemoveRange(redirectErrorIndex, 2);
       }
+      var redirectErrorAppendIndex = argumentsList.IndexOf("2>>");
+      if (redirectErrorAppendIndex >= 0) {
+        errorFile = config.ApplySubstitutions(argumentsList[redirectErrorAppendIndex + 1]).Single();
+        appendOutput = true;
+        argumentsList.RemoveRange(redirectErrorAppendIndex, 2);
+      }
 
       var arguments = argumentsList.SelectMany(config.ApplySubstitutions);
 
@@ -69,7 +75,7 @@ namespace XUnitExtensions.Lit {
     public (int, string, string) Execute(ITestOutputHelper? outputHelper, TextReader? inReader, TextWriter? outWriter, TextWriter? errWriter) {
       var inputReader = inputFile != null ? new StreamReader(inputFile) : null;
       var outputWriter = outputFile != null ? new StreamWriter(outputFile, append) : null;
-      var errorWriter = errorFile != null ? new StreamWriter(errorFile, false) : null;
+      var errorWriter = errorFile != null ? new StreamWriter(errorFile, append) : null;
       var result = command.Execute(outputHelper, inputReader, outputWriter, errorWriter);
       inputReader?.Close();
       outputWriter?.Close();
