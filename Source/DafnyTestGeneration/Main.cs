@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.Dafny;
-using Microsoft.Dafny.LanguageServer;
 using Program = Microsoft.Dafny.Program;
 
 namespace DafnyTestGeneration {

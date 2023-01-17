@@ -388,10 +388,10 @@ namespace DafnyTestGeneration {
                                   $"{Printer.ExprToString(info.witnessForType[newTypeName])}");
           }
         } else if (DafnyOptions.O.TestGenOptions.Verbose) {
-          DafnyOptions.O.Printer.ErrorWriteLine(Console.Error, $"// Warning: Values of type {newTypeName} " +
+          DafnyOptions.O.Printer.ErrorWriteLine(Console.Error, $"*** Error: Values of type {newTypeName} " +
                                                 $"will be assigned a default value of type " +
                                                 $"{baseType}, which may or may not match the " +
-                                                $"associated condition");
+                                                $"associated condition, if any");
           info.SetNonZeroExitCode = true;
         }
         info.subsetToSuperset[newTypeName] = (typeArgs,
