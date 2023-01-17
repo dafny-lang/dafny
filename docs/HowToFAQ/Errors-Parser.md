@@ -1,4 +1,4 @@
-<!-- %check-resolve %default -->
+<!-- %check-resolve %default %useHeadings -->
 
 <!-- Parser.cs, but not Deprecated warnings or syntactic errors -->
 
@@ -209,7 +209,7 @@ or a right-hand-side expression, whose type is then the type of the
 declared identifier. 
 So use syntax either like `const i: int` or `const i:= 5` (or both together).
 
-## **Error: in refining a newtype, the '...' replaces the '=' token and everything up to the left brace starting the declaration of the newtype body (if any); a newtype refinement may not change the basae typeRefinement cannot change the base type of the newtype**
+## **Error: in refining a newtype, the '...' replaces the '=' token and everything up to the left brace starting the declaration of the newtype body (if any); a newtype refinement may not change the base type of the newtype**
 
 ```dafny
 abstract module M { newtype T = int }
@@ -795,8 +795,9 @@ Use one or the other.
 
 ## **Error: a forall statement with an ensures clause must have a body**
 
-<!-- TODO: This example does not yet work because there is no way to turn on /noCheating in the new CLI -->
+<!-- TODO: This example does not yet work in the new CLI because there is no way to turn on /noCheating in the new CLI -->
 
+<!-- %check-legacy %options -compile:0 -noCheating:1 -->
 ```dafny
 module  M {
   predicate f(i: int) { true }
@@ -1022,18 +1023,19 @@ are grouped. The above example should be written as either `(5 | 6) & 7` or `5 |
 
 ## **Error: too many characters in character literal**
 
+<!-- %check-resolve --unicode-char:false -->
 ```dafny
-const c := '\U{103456}';
+const c := '🚀';
 ```
 
-<!-- TODO: This needs an example, if it can occur at all; and it needs explanation -->
+A character literal can only contain a single value of the built-in char type.
+When --unicode-char is disabled, the char type represents UTF-16 code units, 
+so this means a character literal can only contain a character that can be represented
+with a single such unit, i.e. characters in the Basic Multilingual Plane. 
+The rocket ship emoji above, however, is encoded with two surrogate code points.
 
-
-
-A character literal consists of two `'` characters enclosing either
-- a single ASCII character (that is not a backslash)
-- a backslash-escaped character
-- a sequence of characters designating a unicode character
+This can be fixed by enabling the --unicode-char mode, as that defines char as any
+Unicode scalar value, but be aware that it may change the meaning of your program.
 
 More detail is given [here](../DafnyRef/DafnyRef#sec-character-constant-token) and [here](../DafnyRef/DafnyRef#sec-escaped-characters).;
 

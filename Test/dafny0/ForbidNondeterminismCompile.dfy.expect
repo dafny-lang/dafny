@@ -10,6 +10,6 @@ ForbidNondeterminismCompile.dfy(23,2): Error: case-based if statement forbidden 
 ForbidNondeterminismCompile.dfy(32,2): Error: binding if statement forbidden by the --enforce-determinism option
 ForbidNondeterminismCompile.dfy(35,2): Error: nondeterministic loop forbidden by the --enforce-determinism option
 ForbidNondeterminismCompile.dfy(40,2): Error: case-based loop forbidden by the --enforce-determinism option
-ForbidNondeterminismCompile.dfy(48,12): Error: nondeterministic assignment forbidden by the --enforce-determinism option
+ForbidNondeterminismCompile.dfy(48,12): Error: nondeterministic assignment forbidden by --enforce-determinism
 ForbidNondeterminismCompile.dfy(50,2): Error: modify statement without a body forbidden by the --enforce-determinism option
 ForbidNondeterminismCompile.dfy(63,16): Error: nondeterministic assignment forbidden by the --enforce-determinism option
