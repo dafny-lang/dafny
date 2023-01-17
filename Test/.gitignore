@@ -17,6 +17,7 @@
 
 # Java output
 **/*-java
+**/*.jar
 
 # C++ output
 **/*.h
