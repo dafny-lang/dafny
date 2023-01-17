@@ -1903,6 +1903,11 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
         SetIndentations(firstToken, binOpIndent, binOpIndent, binOpArgIndent);
         SetIndentations(secondToken, binOpIndent, binOpIndent, binOpArgIndent);
       } else if (ownedTokens.Count > 0) {
+        if (ownedTokens[0].val == "requires") { // Requirement conjunctions inside lambdas are separated by the keyword "requires"
+          if (binaryExpr.StartToken.Prev.val == "requires") {
+            binOpIndent = GetIndentBefore(binaryExpr.StartToken.Prev);
+          }
+        }
         if (binOpIndent > 0) {
           SetIndentations(ownedTokens[0], binOpIndent, binOpIndent, binOpArgIndent);
         } else {

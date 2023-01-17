@@ -2219,6 +2219,16 @@ type Opaque<
     [Fact]
     public void FormatterWorksForAdvancedClosures() {
       FormatterWorksFor(@"
+function method Compose<A,B,C>(f: B ~> C, g:A ~> B): A ~> C
+{
+  x reads g.reads(x)
+    reads if g.requires(x) then f.reads(g(x)) else {}
+    requires g.requires(x)
+    requires g.requires(x)
+    requires f.requires(g(x))
+  => f(g(x))
+}
+
 function method Twice<A>(f : A ~> A): A ~> A
 {
   x requires f.requires(x) && f.requires(f(x))
@@ -2231,15 +2241,6 @@ function method Apply'<A,B>(f: A ~> B) : A ~> B
   x reads f.reads(x)
     requires f.requires(x)
   => f(x)
-}
-
-function method Compose<A,B,C>(f: B ~> C, g:A ~> B): A ~> C
-{
-  x reads g.reads(x)
-    reads if g.requires(x) then f.reads(g(x)) else {}
-    requires g.requires(x)
-    requires f.requires(g(x))
-  => f(g(x))
 }
 
 method LRead() {
