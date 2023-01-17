@@ -198,7 +198,7 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
       case ForLoopStmt forLoopStmt:
         return SetIndentForLoopStmt(forLoopStmt, indent);
       case VarDeclStmt varDeclStmt:
-        return SetIndentVarDeclStmt(indent, varDeclStmt.OwnedTokens);
+        return SetIndentVarDeclStmt(indent, varDeclStmt.OwnedTokens.Concat(varDeclStmt.Update?.OwnedTokens ?? new List<IToken>()));
       case AssignSuchThatStmt:
       case AssignOrReturnStmt:
       case UpdateStmt:
@@ -1242,6 +1242,9 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
       stmt is AssignOrReturnStmt assignStmt && assignStmt.Lhss.Count == 0
         ? indent : indent + SpaceTab;
     foreach (var token in ownedTokens) {
+      if (posToIndentAfter.ContainsKey(token.pos)) { // Could have been handled by VarDecl already
+        continue;
+      }
       if (SetIndentLabelTokens(token, indent)) {
         continue;
       }
