@@ -9,7 +9,7 @@ using Program = Microsoft.Dafny.Program;
 namespace DafnyTestGeneration {
 
   public static class Main {
-    
+
     public static bool setNonZeroExitCode = false;
 
     /// <summary>
