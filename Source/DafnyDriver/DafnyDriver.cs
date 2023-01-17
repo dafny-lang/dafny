@@ -311,11 +311,17 @@ namespace Microsoft.Dafny {
         await foreach (var line in DafnyTestGeneration.Main.GetDeadCodeStatistics(dafnyFileNames[0])) {
           Console.WriteLine(line);
         }
+        if (DafnyTestGeneration.Main.setNonZeroExitCode) {
+          exitValue = ExitValue.DAFNY_ERROR;
+        }
         return exitValue;
       }
       if (DafnyOptions.O.TestGenOptions.Mode != TestGenerationOptions.Modes.None) {
         await foreach (var line in DafnyTestGeneration.Main.GetTestClassForProgram(dafnyFileNames[0])) {
           Console.WriteLine(line);
+        }
+        if (DafnyTestGeneration.Main.setNonZeroExitCode) {
+          exitValue = ExitValue.DAFNY_ERROR;
         }
         return exitValue;
       }

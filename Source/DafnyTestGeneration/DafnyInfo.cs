@@ -26,6 +26,7 @@ namespace DafnyTestGeneration {
     private readonly Dictionary<string, (IVariable variable, Expression expr)> conditionForType = new();
     // list of top level scopes accessible from the testing module
     private readonly List<VisibilityScope> scopes;
+    public bool SetNonZeroExitCode = false;
 
     public DafnyInfo(Program program) {
       subsetToSuperset["_System.string"] = new(
@@ -61,6 +62,7 @@ namespace DafnyTestGeneration {
           { Utils.UseFullName(functions[callable].ResultType) };
       }
       DafnyOptions.O.Printer.ErrorWriteLine(Console.Error, $"*** Error: Cannot identify callable {callable}");
+      SetNonZeroExitCode = true;
       return new List<Type>();
     }
 
@@ -72,6 +74,7 @@ namespace DafnyTestGeneration {
         return functions[callable].TypeArgs;
       }
       DafnyOptions.O.Printer.ErrorWriteLine(Console.Error, $"*** Error: Cannot identify callable {callable}");
+      SetNonZeroExitCode = true;
       return new List<TypeParameter>();
     }
 
@@ -86,6 +89,7 @@ namespace DafnyTestGeneration {
         clazz = functions[callable].EnclosingClass;
       } else {
         DafnyOptions.O.Printer.ErrorWriteLine(Console.Error, $"*** Error: Cannot identify callable {callable}");
+        SetNonZeroExitCode = true;
         return result;
       }
       result.AddRange(clazz.TypeArgs);
@@ -102,6 +106,7 @@ namespace DafnyTestGeneration {
           Utils.UseFullName(arg.Type)).ToList(); ;
       }
       DafnyOptions.O.Printer.ErrorWriteLine(Console.Error, $"*** Error: Cannot identify callable {callable}");
+      SetNonZeroExitCode = true;
       return new List<Type>();
     }
 
@@ -113,6 +118,7 @@ namespace DafnyTestGeneration {
         return functions[callable].IsStatic;
       }
       DafnyOptions.O.Printer.ErrorWriteLine(Console.Error, $"*** Error: Cannot identify callable {callable}");
+      SetNonZeroExitCode = true;
       return true;
     }
 
@@ -191,6 +197,7 @@ namespace DafnyTestGeneration {
           .Where(e => e != null);
       }
       DafnyOptions.O.Printer.ErrorWriteLine(Console.Error, $"*** Error: Cannot identify callable {callableName}");
+      SetNonZeroExitCode = true;
       return new List<Expression>();
     }
 
@@ -213,6 +220,7 @@ namespace DafnyTestGeneration {
           .Where(e => e != null);
       }
       DafnyOptions.O.Printer.ErrorWriteLine(Console.Error, $"*** Error: Cannot identify callable {callableName}");
+      SetNonZeroExitCode = true;
       return new List<Expression>();
     }
 
@@ -230,6 +238,7 @@ namespace DafnyTestGeneration {
     public List<(string name, Type type, bool mutable, string/*?*/ defValue)> GetNonGhostFields(UserDefinedType/*?*/ type) {
       if (type == null || !classes.ContainsKey(type.Name)) {
         DafnyOptions.O.Printer.ErrorWriteLine(Console.Error, $"*** Error: Cannot identify type {type?.Name ?? " (null) "}");
+        SetNonZeroExitCode = true;
         return new List<(string name, Type type, bool mutable, string/*?*/ defValue)>();
       }
 
@@ -259,6 +268,7 @@ namespace DafnyTestGeneration {
     public bool IsTrait(UserDefinedType/*?*/ type) {
       if (type == null || !classes.ContainsKey(type.Name)) {
         DafnyOptions.O.Printer.ErrorWriteLine(Console.Error, $"*** Error: Cannot identify type {type?.Name ?? " (null) "}");
+        SetNonZeroExitCode = true;
         return true;
       }
       return classes[type.Name] is TraitDecl;
@@ -320,6 +330,7 @@ namespace DafnyTestGeneration {
     public bool IsExtern(UserDefinedType/*?*/ type) {
       if (type == null || !classes.ContainsKey(type.Name)) {
         DafnyOptions.O.Printer.ErrorWriteLine(Console.Error, $"*** Error: Cannot identify type {type?.Name ?? " (null) "}");
+        SetNonZeroExitCode = true;
         return true;
       }
       return classes[type.Name].IsExtern(out _, out _);
@@ -328,6 +339,7 @@ namespace DafnyTestGeneration {
     public Constructor/*?*/ GetConstructor(UserDefinedType/*?*/ type) {
       if (type == null || !classes.ContainsKey(type.Name)) {
         DafnyOptions.O.Printer.ErrorWriteLine(Console.Error, $"*** Error: Cannot identify type {type?.Name ?? " (null) "}");
+        SetNonZeroExitCode = true;
         return null;
       }
       return classes[type.Name].Members.OfType<Constructor>()
@@ -376,10 +388,11 @@ namespace DafnyTestGeneration {
                                   $"{Printer.ExprToString(info.witnessForType[newTypeName])}");
           }
         } else if (DafnyOptions.O.TestGenOptions.Verbose) {
-          Console.Out.WriteLine($"// Warning: Values of type {newTypeName} " +
-                                $"will be assigned a default value of type " +
-                                $"{baseType}, which may or may not match the " +
-                                $"associated condition");
+          DafnyOptions.O.Printer.ErrorWriteLine(Console.Error, $"// Warning: Values of type {newTypeName} " +
+                                                $"will be assigned a default value of type " +
+                                                $"{baseType}, which may or may not match the " +
+                                                $"associated condition");
+          info.SetNonZeroExitCode = true;
         }
         info.subsetToSuperset[newTypeName] = (typeArgs,
           Utils.UseFullName(baseType));

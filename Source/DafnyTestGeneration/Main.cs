@@ -4,11 +4,14 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.Dafny;
+using Microsoft.Dafny.LanguageServer;
 using Program = Microsoft.Dafny.Program;
 
 namespace DafnyTestGeneration {
 
   public static class Main {
+    
+    public static bool setNonZeroExitCode = false;
 
     /// <summary>
     /// This method returns each capturedState that is unreachable, one by one,
@@ -66,6 +69,7 @@ namespace DafnyTestGeneration {
 
     private static IEnumerable<ProgramModification> GetModifications(Program program) {
       var dafnyInfo = new DafnyInfo(program);
+      setNonZeroExitCode = dafnyInfo.SetNonZeroExitCode || setNonZeroExitCode;
       // Translate the Program to Boogie:
       var oldPrintInstrumented = DafnyOptions.O.PrintInstrumented;
       DafnyOptions.O.PrintInstrumented = true;
@@ -91,6 +95,7 @@ namespace DafnyTestGeneration {
       DafnyOptions.O.PrintMode = PrintModes.Everything;
       ProgramModification.ResetStatistics();
       var dafnyInfo = new DafnyInfo(program);
+      setNonZeroExitCode = dafnyInfo.SetNonZeroExitCode || setNonZeroExitCode;
       // Generate tests based on counterexamples produced from modifications
 
       foreach (var modification in GetModifications(program)) {
@@ -105,6 +110,7 @@ namespace DafnyTestGeneration {
         }
         yield return testMethod;
       }
+      setNonZeroExitCode = dafnyInfo.SetNonZeroExitCode || setNonZeroExitCode;
     }
 
     /// <summary>
@@ -120,6 +126,7 @@ namespace DafnyTestGeneration {
         yield break;
       }
       var dafnyInfo = new DafnyInfo(program);
+      setNonZeroExitCode = dafnyInfo.SetNonZeroExitCode || setNonZeroExitCode;
       var rawName = Regex.Replace(sourceFile, "[^a-zA-Z0-9_]", "");
 
       string EscapeDafnyStringLiteral(string str) {
