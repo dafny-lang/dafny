@@ -239,6 +239,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       JSON,
     }
 
+    public bool UsingNewCli = false;
     public bool UnicodeOutput = false;
     public DiagnosticsFormats DiagnosticsFormat = DiagnosticsFormats.PlainText;
     public bool DisallowSoundnessCheating = false;
