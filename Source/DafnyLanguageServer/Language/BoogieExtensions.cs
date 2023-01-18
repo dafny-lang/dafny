@@ -37,7 +37,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <returns>The LSP range of the token.</returns>
     public static Range GetLspRange(this Boogie.IToken startToken, Boogie.IToken? endToken = null) {
       endToken ??= startToken;
-      endToken = endToken is RangeToken rangeToken ? rangeToken.EndToken : endToken;
+      endToken = endToken is BoogieRangeToken rangeToken ? rangeToken.EndToken : endToken;
       return new Range(
         GetLspPosition(startToken),
         ToLspPosition(endToken.line, endToken.col + endToken.val.Length)

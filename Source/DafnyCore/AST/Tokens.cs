@@ -181,13 +181,8 @@ public class BoogieRangeToken : TokenWrapper {
   public override string val => new string(' ', endTok.pos + endTok.val.Length - pos);
 
   public BoogieRangeToken(IToken startTok, IToken endTok) : base(
-    endTok.pos < startTok.pos && startTok is RangeToken startRange ?
-      startRange.StartToken : startTok) {
-    if (endTok.pos < startTok.pos && startTok is RangeToken startRange2) {
-      this.endTok = startRange2.EndToken;
-    } else {
-      this.endTok = endTok;
-    }
+    startTok) {
+    this.endTok = endTok;
   }
 }
 
