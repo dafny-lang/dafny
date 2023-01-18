@@ -1785,17 +1785,17 @@ namespace Microsoft.Dafny.Compilers {
       var wStmts = wr.Fork();
       if (isString && UnicodeCharEnabled) {
         wr.Write("_dafny.Print(");
-        TrExpr(arg, wr, false, wStmts);
+        wr.Append(TrExpr(arg, false, wStmts));
         wr.WriteLine(".VerbatimString(false))");
       } else if (!isString ||
                  (arg.Resolved is MemberSelectExpr mse &&
                   mse.Member.IsExtern(out _, out _))) {
         wr.Write("_dafny.Print(");
-        TrExpr(arg, wr, false, wStmts);
+        wr.Append(TrExpr(arg, false, wStmts));
         wr.WriteLine(")");
       } else {
         wr.Write("_dafny.Print((");
-        TrExpr(arg, wr, false, wStmts);
+        wr.Append(TrExpr(arg, false, wStmts));
         wr.Write(")");
         if (!UnicodeCharEnabled) {
           wr.Write(".SetString()");
@@ -1813,7 +1813,7 @@ namespace Microsoft.Dafny.Compilers {
       var w = EmitReturnExpr(wr);
       var fromType = thisContext == null ? expr.Type : expr.Type.Subst(thisContext.ParentFormalTypeParametersToActuals);
       w = EmitCoercionIfNecessary(fromType, resultType, expr.tok, w);
-      TrExpr(expr, w, inLetExprBody, wStmts);
+      w.Append(TrExpr(expr, inLetExprBody, wStmts));
     }
 
     protected void EmitReturnWithCoercions(List<Formal> outParams, List<Formal>/*?*/ overriddenOutParams, Dictionary<TypeParameter, Type>/*?*/ typeMap, ConcreteSyntaxTree wr) {
@@ -2062,7 +2062,7 @@ namespace Microsoft.Dafny.Compilers {
 
       foreach (Expression dim in dimensions) {
         wr.Write(sep);
-        TrExpr(dim, wr, false, wStmts);
+        wr.Append(TrExpr(dim, false, wStmts));
         sep = ", ";
       }
 
@@ -2241,8 +2241,8 @@ namespace Microsoft.Dafny.Compilers {
           wFirstArg = wr.Fork();
           wr.Write(").{0}(", isRotateLeft ? "Lrot" : "Rrot");
         }
-        TrExpr(e0, wFirstArg, inLetExprBody, wStmts);
-        TrExpr(e1, wr, inLetExprBody, wStmts);
+        wFirstArg.Append(TrExpr(e0, inLetExprBody, wStmts));
+        wr.Append(TrExpr(e1, inLetExprBody, wStmts));
         wr.Write(", {0})", bv.Width);
 
         if (needsCast) {
@@ -2449,13 +2449,13 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitITE(Expression guard, Expression thn, Expression els, Type resultType, bool inLetExprBody,
         ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       wr.Write("(func () {0} {{ if ", TypeName(resultType, wr, null));
-      TrExpr(guard, wr, inLetExprBody, wStmts);
+      wr.Append(TrExpr(guard, inLetExprBody, wStmts));
       wr.Write(" { return ");
       var wBranch = EmitCoercionIfNecessary(thn.Type, resultType, thn.tok, wr);
-      TrExpr(thn, wBranch, inLetExprBody, wStmts);
+      wBranch.Append(TrExpr(thn, inLetExprBody, wStmts));
       wr.Write(" }; return ");
       wBranch = EmitCoercionIfNecessary(els.Type, resultType, thn.tok, wr);
-      TrExpr(els, wBranch, inLetExprBody, wStmts);
+      wBranch.Append(TrExpr(els, inLetExprBody, wStmts));
       wr.Write(" })() ");
     }
 
@@ -2732,14 +2732,14 @@ namespace Microsoft.Dafny.Compilers {
       } else if (type is MultiSetType) {
         TrParenExpr(source, wr, inLetExprBody, wStmts);
         wr.Write(".Multiplicity(");
-        TrExpr(index, wr, inLetExprBody, wStmts);
+        wr.Append(TrExpr(index, inLetExprBody, wStmts));
         wr.Write(")");
       } else {
         Contract.Assert(type is MapType);
         // map or imap
         TrParenExpr(source, wr, inLetExprBody, wStmts);
         wr.Write(".Get(");
-        TrExpr(index, wr, inLetExprBody, wStmts);
+        wr.Append(TrExpr(index, inLetExprBody, wStmts));
         wr.Write(").({0})", TypeName(((MapType)type).Range, wr, null));
       }
     }
@@ -2751,9 +2751,9 @@ namespace Microsoft.Dafny.Compilers {
       if (source.Type.AsSeqType != null) {
         TrExprToBigInt(index, wIndex, inLetExprBody);
       } else {
-        TrExpr(index, wIndex, inLetExprBody, wSource);
+        wIndex.Append(TrExpr(index, inLetExprBody, wSource));
       }
-      TrExpr(value, wValue, inLetExprBody, wSource);
+      wValue.Append(TrExpr(value, inLetExprBody, wSource));
     }
 
     protected override void EmitIndexCollectionUpdate(out ConcreteSyntaxTree wSource, out ConcreteSyntaxTree wIndex, out ConcreteSyntaxTree wValue, ConcreteSyntaxTree wr, bool nativeIndex) {
@@ -3554,7 +3554,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Assume(ct is SetType || ct is MultiSetType);  // follows from precondition
       var wStmts = wr.Fork();
       wr.Write("{0}.Add(", collName);
-      TrExpr(elmt, wr, inLetExprBody, wStmts);
+      wr.Append(TrExpr(elmt, inLetExprBody, wStmts));
       wr.WriteLine(")");
     }
 
@@ -3563,7 +3563,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write("{0}.Add(", collName);
       var termLeftWriter = wr.Fork();
       wr.Write(",");
-      TrExpr(term, wr, inLetExprBody, wStmts);
+      wr.Append(TrExpr(term, inLetExprBody, wStmts));
       wr.WriteLine(")");
       return termLeftWriter;
     }

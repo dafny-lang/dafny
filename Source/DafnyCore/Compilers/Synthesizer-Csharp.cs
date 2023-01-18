@@ -189,7 +189,7 @@ public class CsharpSynthesizer {
       if (bound != null) { // if true, arg is a bound variable
         wr.Write(bound.Item2);
       } else {
-        compiler.TrExpr(arg, wr, false, wStmts);
+        compiler.wr.Append(TrExpr(arg, false, wStmts));
       }
       if (i != applySuffix.Args.Count - 1) {
         wr.Write(", ");

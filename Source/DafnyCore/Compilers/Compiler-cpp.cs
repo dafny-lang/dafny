@@ -1278,7 +1278,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
       var wStmts = wr.Fork();
       wr.Write("dafny_print(");
-      TrExpr(arg, wr, false, wStmts);
+      wr.Append(TrExpr(arg, false, wStmts));
       wr.WriteLine(");");
     }
 
@@ -1332,7 +1332,7 @@ namespace Microsoft.Dafny.Compilers {
 
       if (messageExpr.Type.IsStringType) {
         wr.Write("ToVerbatimString(");
-        TrExpr(messageExpr, wr, false, wStmts);
+        wr.Append(TrExpr(messageExpr, false, wStmts));
         wr.Write(")");
       } else {
         throw new UnsupportedFeatureException(tok, Feature.ConvertingValuesToStrings);
@@ -1849,7 +1849,7 @@ namespace Microsoft.Dafny.Compilers {
       var w = wr.Fork();
       foreach (var index in indices) {
         wr.Write(".at(");
-        TrExpr(index, wr, inLetExprBody, wStmts);
+        wr.Append(TrExpr(index, inLetExprBody, wStmts));
         wr.Write(")");
       }
       return w;
@@ -1872,12 +1872,12 @@ namespace Microsoft.Dafny.Compilers {
       if (source.Type.NormalizeExpand() is SeqType) {
         // seq
         wr.Write(".select(");
-        TrExpr(index, wr, inLetExprBody, wStmts);
+        wr.Append(TrExpr(index, inLetExprBody, wStmts));
         wr.Write(")");
       } else {
         // map or imap
         wr.Write(".get(");
-        TrExpr(index, wr, inLetExprBody, wStmts);
+        wr.Append(TrExpr(index, inLetExprBody, wStmts));
         wr.Write(")");
       }
     }
@@ -1886,9 +1886,9 @@ namespace Microsoft.Dafny.Compilers {
         CollectionType resultCollectionType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       TrParenExpr(source, wr, inLetExprBody, wStmts);
       wr.Write(".update(");
-      TrExpr(index, wr, inLetExprBody, wStmts);
+      wr.Append(TrExpr(index, inLetExprBody, wStmts));
       wr.Write(", ");
-      TrExpr(value, wr, inLetExprBody, wStmts);
+      wr.Append(TrExpr(value, inLetExprBody, wStmts));
       wr.Write(")");
     }
 
@@ -2454,7 +2454,7 @@ namespace Microsoft.Dafny.Compilers {
       }
       var wStmts = wr.Fork();
       wr.Write("{0}.set.emplace(", collName);
-      TrExpr(elmt, wr, inLetExprBody, wStmts);
+      wr.Append(TrExpr(elmt, inLetExprBody, wStmts));
       wr.WriteLine(");");
     }
 

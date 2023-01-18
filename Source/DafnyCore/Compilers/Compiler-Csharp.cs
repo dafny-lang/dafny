@@ -1900,7 +1900,7 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write(SymbolDisplay.FormatLiteral(ErrorReporter.TokenToString(tok) + ": ", true) + " + ");
       }
 
-      TrExpr(messageExpr, wr, false, wStmts);
+      wr.Append(TrExpr(messageExpr, false, wStmts));
       if (UnicodeCharEnabled && messageExpr.Type.IsStringType) {
         wr.Write(".ToVerbatimString(false)");
       }
@@ -2006,7 +2006,7 @@ namespace Microsoft.Dafny.Compilers {
     protected void TrExprAsInt(Expression expr, ConcreteSyntaxTree wr, bool inLetExprBody, ConcreteSyntaxTree wStmts,
         bool checkRange = false, string msg = null) {
       wr.Write($"{GetHelperModuleName()}.ToIntChecked(");
-      TrExpr(expr, wr, inLetExprBody, wStmts);
+      wr.Append(TrExpr(expr, inLetExprBody, wStmts));
       if (checkRange) {
         wr.Write(msg == null ? ", null" : $", \"{msg}\")");
       }
@@ -2606,9 +2606,9 @@ namespace Microsoft.Dafny.Compilers {
       var xType = source.Type.NormalizeExpand();
       if (xType is MapType) {
         var inner = wr.Write(TypeHelperName(xType, wr, source.tok) + ".Select").ForkInParens();
-        TrExpr(source, inner, inLetExprBody, wStmts);
+        inner.Append(TrExpr(source, inLetExprBody, wStmts));
         inner.Write(",");
-        TrExpr(index, inner, inLetExprBody, wStmts);
+        inner.Append(TrExpr(index, inLetExprBody, wStmts));
       } else {
         TrParenExpr(source, wr, inLetExprBody, wStmts);
         TrParenExpr(".Select", index, wr, inLetExprBody, wStmts);

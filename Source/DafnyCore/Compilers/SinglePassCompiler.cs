@@ -456,7 +456,7 @@ namespace Microsoft.Dafny.Compilers {
       var target = ProtectedFreshId("_lhs");
       wr.Write(GenerateLhsDecl(target, e.Type, wr, e.tok));
       wr.Write(" = ");
-      TrExpr(e, wr, false, wStmts);
+      wr.Append(TrExpr(e, false, wStmts));
       EndStmt(wr);
       return target;
     }
@@ -535,7 +535,7 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual void EmitReturnExpr(Expression expr, Type resultType, bool inLetExprBody, ConcreteSyntaxTree wr) {  // emits "return <expr>;" for function bodies
       var wStmts = wr.Fork();
       var w = EmitReturnExpr(wr);
-      TrExpr(expr, w, inLetExprBody, wStmts);
+      w.Append(TrExpr(expr, inLetExprBody, wStmts));
     }
     protected virtual void EmitReturnExpr(string returnExpr, ConcreteSyntaxTree wr) {  // emits "return <returnExpr>;" for function bodies
       var w = EmitReturnExpr(wr);
@@ -1070,7 +1070,7 @@ namespace Microsoft.Dafny.Compilers {
     }
     protected ConcreteSyntaxTree EmitArrayUpdate(List<string> indices, Expression rhs, ConcreteSyntaxTree wr) {
       var w = new ConcreteSyntaxTree(wr.RelativeIndentLevel);
-      TrExpr(rhs, w, false, wr);
+      w.Append(TrExpr(rhs, false, wr));
       return EmitArrayUpdate(indices, w.ToString(), rhs.Type, wr);
     }
     protected virtual string ArrayIndexToInt(string arrayIndex, Type fromType) {
@@ -1135,7 +1135,7 @@ namespace Microsoft.Dafny.Compilers {
       bool inLetExprBody, Type bodyType, IToken bodyTok, ConcreteSyntaxTree wr, ref ConcreteSyntaxTree wStmts) {
       var innerScope = wStmts.Fork();
       CreateIIFE(bvName, bvType, bvTok, bodyType, bodyTok, wr, ref wStmts, out var wrRhs, out var wrBody);
-      TrExpr(rhs, wrRhs, inLetExprBody, innerScope);
+      wrRhs.Append(TrExpr(rhs, inLetExprBody, innerScope));
       return wrBody;
     }
 
@@ -2551,7 +2551,7 @@ namespace Microsoft.Dafny.Compilers {
           var w = DeclareLocalVar(IdProtect(bv.CompileName), bv.Type, rhsTok, wr);
           if (rhs != null) {
             w = EmitCoercionIfNecessary(from: rhs.Type, to: bv.Type, tok: rhsTok, wr: w);
-            TrExpr(rhs, w, inLetExprBody, wStmts);
+            w.Append(TrExpr(rhs, inLetExprBody, wStmts));
           } else {
             w.Write(rhs_string);
           }
@@ -2743,8 +2743,8 @@ namespace Microsoft.Dafny.Compilers {
         ConcreteSyntaxTree wLhs, wRhs;
         var wStmts = wr.Fork();
         EmitAssignment(out wLhs, enclosingFunction.ResultType, out wRhs, enclosingFunction.ResultType, wr);
-        TrExpr(acc, wLhs, false, wStmts);
-        TrExpr(rhs, wRhs, false, wStmts);
+        wLhs.Append(TrExpr(acc, false, wStmts));
+        wRhs.Append(TrExpr(rhs, false, wStmts));
         TrExprOpt(tailTerm, resultType, wr, accumulatorVar);
 
       } else {
@@ -3069,7 +3069,7 @@ namespace Microsoft.Dafny.Compilers {
         ConcreteSyntaxTree bodyWriter = EmitIf(out guardWriter, false, wr);
         var negated = new UnaryOpExpr(s.Tok, UnaryOpExpr.Opcode.Not, s.Expr);
         negated.Type = Type.Bool;
-        TrExpr(negated, guardWriter, false, wStmts);
+        guardWriter.Append(TrExpr(negated, false, wStmts));
         EmitHalt(s.Tok, s.Message, bodyWriter);
 
       } else if (stmt is CallStmt) {
@@ -3425,7 +3425,7 @@ namespace Microsoft.Dafny.Compilers {
         }
 
         wrTuple.Write(", ");
-        TrExpr(rhs, wrTuple, false, wStmts);
+        wrTuple.Append(TrExpr(rhs, false, wStmts));
       }
 
       return wrOuter;
@@ -3815,7 +3815,7 @@ namespace Microsoft.Dafny.Compilers {
       ConcreteSyntaxTree guardWriter;
       var wStmtsIf = wr.Fork();
       var wBody = EmitIf(out guardWriter, false, wr);
-      TrExpr(constraint, guardWriter, inLetExprBody, wStmtsIf);
+      guardWriter.Append(TrExpr(constraint, inLetExprBody, wStmtsIf));
       EmitBreak(doneLabel, wBody);
       copyInstrWriters.Pop();
 
@@ -4517,7 +4517,7 @@ namespace Microsoft.Dafny.Compilers {
         } else {
           w = wr;
         }
-        TrExpr(e, w, inLetExprBody, wStmts);
+        w.Append(TrExpr(e, inLetExprBody, wStmts));
         sep = ", ";
       }
     }
@@ -4526,7 +4526,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected ConcreteSyntaxTree Expr(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
       var result = new ConcreteSyntaxTree();
-      TrExpr(expr, result, inLetExprBody, wStmts);
+      result.Append(TrExpr(expr, inLetExprBody, wStmts));
       return result;
     }
 
@@ -4679,7 +4679,7 @@ namespace Microsoft.Dafny.Compilers {
             Contract.Assert(Enumerable.Range(0, e.Members.Count).All(j => j == i || e.Members[j].IsGhost));
             Contract.Assert(e.Members.Count == e.Updates.Count);
             var rhs = e.Updates[i].Item3;
-            TrExpr(rhs, wr, inLetExprBody, wStmts);
+            wr.Append(TrExpr(rhs, inLetExprBody, wStmts));
             return;
           }
         }
@@ -4816,9 +4816,9 @@ namespace Microsoft.Dafny.Compilers {
           } else if (staticCallString != null) {
             wr.Write(preOpString);
             wr.Write("{0}(", staticCallString);
-            TrExpr(e0, wr, inLetExprBody, wStmts);
+            wr.Append(TrExpr(e0, inLetExprBody, wStmts));
             wr.Write(", ");
-            TrExpr(e1, wr, inLetExprBody, wStmts);
+            wr.Append(TrExpr(e1, inLetExprBody, wStmts));
             wr.Write(")");
             wr.Write(postOpString);
           }
@@ -4948,7 +4948,7 @@ namespace Microsoft.Dafny.Compilers {
           wBody.Write(')');
           wBody = newWBody;
         }
-        TrExpr(logicalBody, wBody, inLetExprBody, wStmts);
+        wBody.Append(TrExpr(logicalBody, inLetExprBody, wStmts));
 
       } else if (expr is SetComprehension) {
         var e = (SetComprehension)expr;
@@ -5160,7 +5160,7 @@ namespace Microsoft.Dafny.Compilers {
         var constraintInContext = subContract.Substitute(constraint);
         var wStmts = wr.Fork();
         var thenWriter = EmitIf(out var guardWriter, hasElse: isReturning, wr);
-        TrExpr(constraintInContext, guardWriter, inLetExprBody, wStmts);
+        guardWriter.Append(TrExpr(constraintInContext, inLetExprBody, wStmts));
         if (isReturning) {
           var elseBranch = wr;
           elseBranch = EmitBlock(elseBranch);
