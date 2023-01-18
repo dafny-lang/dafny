@@ -33,7 +33,12 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
-  public abstract class SinglePassCompiler : Plugins.Compiler {
+  public abstract class SinglePassCompiler : GenericSinglePassCompiler<ConcreteSyntaxTree, ConcreteSyntaxTree> {
+
+  }
+
+  public abstract class GenericSinglePassCompiler<TStatement, TExpression> : Plugins.Compiler
+    where TExpression : ICanRender {
     public static Plugin Plugin =
       new ConfiguredPlugin(InternalCompilersPluginConfiguration.Singleton);
 
@@ -365,7 +370,7 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual void DeclareLocalVar(string name, Type/*?*/ type, IToken/*?*/ tok, Expression rhs, bool inLetExprBody, ConcreteSyntaxTree wr) {
       var wStmts = wr.Fork();
       var w = DeclareLocalVar(name, type, tok, wr);
-      TrExpr(rhs, w, inLetExprBody, wStmts);
+      wr.Append(TrExpr(rhs, inLetExprBody, wStmts));
     }
 
     /// <summary>
@@ -436,7 +441,7 @@ namespace Microsoft.Dafny.Compilers {
     protected void EmitAssignmentRhs(Expression rhs, bool inLetExprBody, ConcreteSyntaxTree wr) {
       var wStmts = wr.Fork();
       var w = EmitAssignmentRhs(wr);
-      TrExpr(rhs, w, inLetExprBody, wStmts);
+      w.Append(TrExpr(rhs, inLetExprBody, wStmts));
     }
 
     protected virtual ConcreteSyntaxTree EmitAssignmentRhs(ConcreteSyntaxTree wr) {
@@ -710,7 +715,7 @@ namespace Microsoft.Dafny.Compilers {
     protected abstract void EmitNewArray(Type elmtType, IToken tok, List<Expression> dimensions,
       bool mustInitialize, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);
 
-    protected abstract void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e);
+    protected abstract TExpression EmitLiteralExpr(LiteralExpr e);
     protected abstract void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr);
     protected abstract ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, ConcreteSyntaxTree wr);
     protected delegate void FCE_Arg_Translator(Expression e, ConcreteSyntaxTree wr, bool inLetExpr, ConcreteSyntaxTree wStmts);
@@ -4529,14 +4534,12 @@ namespace Microsoft.Dafny.Compilers {
     /// Before calling TrExpr(expr), the caller must have spilled the let variables declared in "expr".
     /// In order to give the compiler a way to put supporting statements above the current one, wStmts must be passed.
     /// </summary>
-    protected internal void TrExpr(Expression expr, ConcreteSyntaxTree wr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
+    protected internal TExpression TrExpr(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
       Contract.Requires(expr != null);
-      Contract.Requires(wr != null);
 
       if (expr is LiteralExpr) {
         LiteralExpr e = (LiteralExpr)expr;
-        EmitLiteralExpr(wr, e);
-
+        return EmitLiteralExpr(e);
       } else if (expr is ThisExpr) {
         if (thisContext != null) {
           var instantiatedType = expr.Type.Subst(thisContext.ParentFormalTypeParametersToActuals);

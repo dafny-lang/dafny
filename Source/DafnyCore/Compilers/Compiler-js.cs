@@ -1332,7 +1332,7 @@ namespace Microsoft.Dafny.Compilers {
       return s;
     }
 
-    protected override void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e) {
+    protected override ConcreteSyntaxTree EmitLiteralExpr(LiteralExpr e) {
       if (e is StaticReceiverExpr) {
         wr.Write(TypeName(e.Type, wr, e.tok));
       } else if (e.Value == null) {
@@ -1849,9 +1849,9 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitSeqConstructionExpr(SeqConstructionExpr expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       var fromType = (ArrowType)expr.Initializer.Type.NormalizeExpand();
       wr.Write($"{DafnySeqClass}.Create(");
-      TrExpr(expr.N, wr, inLetExprBody, wStmts);
+      wr.Append(TrExpr(expr.N, inLetExprBody, wStmts));
       wr.Write(", ");
-      TrExpr(expr.Initializer, wr, inLetExprBody, wStmts);
+      wr.Append(TrExpr(expr.Initializer, inLetExprBody, wStmts));
       wr.Write(")");
       if (fromType.Result.IsCharType && !UnicodeCharEnabled) {
         wr.Write(".join('')");

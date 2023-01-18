@@ -141,19 +141,19 @@ public class CsharpSynthesizer {
     return new Tuple<IVariable, string>(variable, bounds[variable]);
   }
 
-  private void SynthesizeExpression(ConcreteSyntaxTree wr, Expression expr, ConcreteSyntaxTree wStmts) {
+  private ConcreteSyntaxTree SynthesizeExpression(Expression expr, ConcreteSyntaxTree wStmts) {
     switch (expr) {
       case LiteralExpr literalExpr:
-        compiler.TrExpr(literalExpr, wr, false, wStmts);
+        return compiler.TrExpr(literalExpr, false, wStmts);
         break;
       case ApplySuffix applySuffix:
-        SynthesizeExpression(wr, applySuffix, wStmts);
+        return SynthesizeExpression(applySuffix, wStmts);
         break;
       case BinaryExpr binaryExpr:
-        SynthesizeExpression(wr, binaryExpr, wStmts);
+        return SynthesizeExpression(binaryExpr, wStmts);
         break;
       case ForallExpr forallExpr:
-        SynthesizeExpression(wr, forallExpr, wStmts);
+        return SynthesizeExpression(forallExpr, wStmts);
         break;
       case FreshExpr:
         break;

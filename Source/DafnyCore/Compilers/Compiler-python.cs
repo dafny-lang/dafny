@@ -992,7 +992,7 @@ namespace Microsoft.Dafny.Compilers {
       return s;
     }
 
-    protected override void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e) {
+    protected override ConcreteSyntaxTree EmitLiteralExpr(LiteralExpr e) {
       switch (e) {
         case CharLiteralExpr:
           var escaped = TranslateEscapes((string)e.Value);

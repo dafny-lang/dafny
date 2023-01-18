@@ -2069,7 +2069,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(")");
     }
 
-    protected override void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e) {
+    protected override ConcreteSyntaxTree EmitLiteralExpr(LiteralExpr e) {
       if (e is StaticReceiverExpr) {
         wr.Write("{0}", TypeName_Companion(((UserDefinedType)e.Type).ResolvedClass, wr, e.tok));
       } else if (e.Value == null) {
