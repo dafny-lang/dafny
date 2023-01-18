@@ -33,7 +33,11 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
-  public abstract class GenericSinglePassCompiler<TExpression> : Plugins.Compiler
+  public interface ISinglePassCompiler {
+    void Error(IToken tok, string message, ConcreteSyntaxTree wr, params object[] args);
+  }
+
+  public abstract class SinglePassCompiler<TExpression> : Plugins.Compiler, ISinglePassCompiler
     where TExpression : ICanRender {
     public static Plugin Plugin =
       new ConfiguredPlugin(InternalCompilersPluginConfiguration.Singleton);
@@ -1328,7 +1332,7 @@ namespace Microsoft.Dafny.Compilers {
           }
         }
         var wr = CreateModule(m.CompileName, m.IsDefaultModule, moduleIsExtern, libraryName, wrx);
-        var v = new CheckHasNoAssumes_Visitor(this, wr);
+        var v = new CheckHasNoAssumesVisitor(this, wr);
         foreach (TopLevelDecl d in m.TopLevelDecls) {
           bool compileIt = true;
           if (Attributes.ContainsBool(d.Attributes, "compile", ref compileIt) && !compileIt) {
@@ -1802,7 +1806,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Ensures(thisContext == null);
 
       var errorWr = classWriter.ErrorWriter();
-      var v = new CheckHasNoAssumes_Visitor(this, errorWr);
+      var v = new CheckHasNoAssumesVisitor(this, errorWr);
 
       if (c is ClassDecl) {
         CheckHandleWellformed((ClassDecl)c, errorWr);
@@ -2894,38 +2898,6 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     // ----- Stmt ---------------------------------------------------------------------------------
-
-    public class CheckHasNoAssumes_Visitor : BottomUpVisitor {
-      readonly ConcreteSinglePassCompiler compiler;
-      ConcreteSyntaxTree wr;
-      public CheckHasNoAssumes_Visitor(ConcreteSinglePassCompiler c, ConcreteSyntaxTree wr) {
-        Contract.Requires(c != null);
-        compiler = c;
-        this.wr = wr;
-      }
-      private void RejectAssume(IToken tok, Attributes attributes, ConcreteSyntaxTree wr) {
-        if (!Attributes.Contains(attributes, "axiom")) {
-          compiler.Error(tok, "an assume statement without an {{:axiom}} attribute cannot be compiled", wr);
-        }
-      }
-      protected override void VisitOneStmt(Statement stmt) {
-        if (stmt is AssumeStmt) {
-          RejectAssume(stmt.Tok, stmt.Attributes, wr);
-        } else if (stmt is AssignSuchThatStmt { AssumeToken: { Attrs: var attrs } }) {
-          RejectAssume(stmt.Tok, attrs, wr);
-        } else if (stmt is ForallStmt) {
-          var s = (ForallStmt)stmt;
-          if (s.Body == null) {
-            compiler.Error(stmt.Tok, "a forall statement without a body cannot be compiled", wr);
-          }
-        } else if (stmt is OneBodyLoopStmt) {
-          var s = (OneBodyLoopStmt)stmt;
-          if (s.Body == null) {
-            compiler.Error(stmt.Tok, "a loop without a body cannot be compiled", wr);
-          }
-        }
-      }
-    }
 
     void TrStmtNonempty(Statement stmt, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts = null) {
       Contract.Requires(stmt != null);
@@ -5482,5 +5454,4 @@ namespace Microsoft.Dafny.Compilers {
       return true;
     }
   }
-
 }
