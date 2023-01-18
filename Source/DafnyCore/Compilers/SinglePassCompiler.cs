@@ -3828,16 +3828,16 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private class SimpleLvalueImpl : ILvalue {
-      private readonly ConcreteSinglePassCompiler Compiler;
+      private readonly SinglePassCompiler<TExpression> Compiler;
       private readonly Action<ConcreteSyntaxTree> LvalueAction, RvalueAction;
 
-      public SimpleLvalueImpl(ConcreteSinglePassCompiler compiler, Action<ConcreteSyntaxTree> action) {
+      public SimpleLvalueImpl(SinglePassCompiler<TExpression> compiler, Action<ConcreteSyntaxTree> action) {
         Compiler = compiler;
         LvalueAction = action;
         RvalueAction = action;
       }
 
-      public SimpleLvalueImpl(ConcreteSinglePassCompiler compiler, Action<ConcreteSyntaxTree> lvalueAction, Action<ConcreteSyntaxTree> rvalueAction) {
+      public SimpleLvalueImpl(SinglePassCompiler<TExpression> compiler, Action<ConcreteSyntaxTree> lvalueAction, Action<ConcreteSyntaxTree> rvalueAction) {
         Compiler = compiler;
         LvalueAction = lvalueAction;
         RvalueAction = rvalueAction;
@@ -3855,12 +3855,12 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private class CoercedLvalueImpl : ILvalue {
-      private readonly ConcreteSinglePassCompiler Compiler;
+      private readonly SinglePassCompiler<TExpression> Compiler;
       private readonly ILvalue lvalue;
       private readonly Type /*?*/ from;
       private readonly Type /*?*/ to;
 
-      public CoercedLvalueImpl(ConcreteSinglePassCompiler compiler, ILvalue lvalue, Type/*?*/ from, Type/*?*/ to) {
+      public CoercedLvalueImpl(SinglePassCompiler<TExpression> compiler, ILvalue lvalue, Type/*?*/ from, Type/*?*/ to) {
         Compiler = compiler;
         this.lvalue = lvalue;
         this.from = from;
