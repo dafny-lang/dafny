@@ -19,7 +19,7 @@ using System.Reflection;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
 namespace Microsoft.Dafny.Compilers {
-  public class JavaCompiler : SinglePassCompiler {
+  public class JavaCompiler : ConcreteSinglePassCompiler {
     public override void OnPreCompile(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
       base.OnPreCompile(reporter, otherFileNames);
       IntSelect = ",java.math.BigInteger";

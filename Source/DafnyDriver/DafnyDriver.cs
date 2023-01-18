@@ -675,7 +675,7 @@ namespace Microsoft.Dafny {
       DafnyOptions.O.Compiler.OnPreCompile(dafnyProgram.Reporter, otherFileNames);
       var compiler = DafnyOptions.O.Compiler;
 
-      var hasMain = Compilers.SinglePassCompiler.HasMain(dafnyProgram, out var mainMethod);
+      var hasMain = Compilers.ConcreteSinglePassCompiler.HasMain(dafnyProgram, out var mainMethod);
       if (hasMain) {
         mainMethod.IsEntryPoint = true;
         dafnyProgram.MainMethod = mainMethod;

@@ -606,7 +606,7 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext {
   public override string CompileName {
     get {
       var nm = base.CompileName;
-      if (nm == Dafny.Compilers.SinglePassCompiler.DefaultNameMain && IsStatic && !IsEntryPoint) {
+      if (nm == Dafny.Compilers.ConcreteSinglePassCompiler.DefaultNameMain && IsStatic && !IsEntryPoint) {
         // for a static method that is named "Main" but is not a legal "Main" method,
         // change its name.
         nm = EnclosingClass.Name + "_" + nm;

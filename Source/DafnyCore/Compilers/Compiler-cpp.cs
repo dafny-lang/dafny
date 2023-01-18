@@ -16,7 +16,7 @@ using System.Diagnostics;
 using JetBrains.Annotations;
 
 namespace Microsoft.Dafny.Compilers {
-  public class CppCompiler : SinglePassCompiler {
+  public class CppCompiler : ConcreteSinglePassCompiler {
     public override void OnPreCompile(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
       base.OnPreCompile(reporter, otherFileNames);
       datatypeDecls = new List<DatatypeDecl>();

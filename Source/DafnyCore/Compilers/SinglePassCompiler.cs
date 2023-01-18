@@ -33,10 +33,6 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
-  public abstract class SinglePassCompiler : GenericSinglePassCompiler<ConcreteSyntaxTree> {
-
-  }
-
   public abstract class GenericSinglePassCompiler<TExpression> : Plugins.Compiler
     where TExpression : ICanRender {
     public static Plugin Plugin =
@@ -141,12 +137,6 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual void EmitHeader(Program program, ConcreteSyntaxTree wr) { }
     protected virtual void EmitFooter(Program program, ConcreteSyntaxTree wr) { }
     protected virtual void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr) { }
-
-
-    public override void OnPreCompile(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
-      base.OnPreCompile(reporter, otherFileNames);
-      Coverage = new CoverageInstrumenter(this);
-    }
 
     public override void OnPostCompile() {
       base.OnPostCompile();
@@ -2906,9 +2896,9 @@ namespace Microsoft.Dafny.Compilers {
     // ----- Stmt ---------------------------------------------------------------------------------
 
     public class CheckHasNoAssumes_Visitor : BottomUpVisitor {
-      readonly SinglePassCompiler compiler;
+      readonly ConcreteSinglePassCompiler compiler;
       ConcreteSyntaxTree wr;
-      public CheckHasNoAssumes_Visitor(SinglePassCompiler c, ConcreteSyntaxTree wr) {
+      public CheckHasNoAssumes_Visitor(ConcreteSinglePassCompiler c, ConcreteSyntaxTree wr) {
         Contract.Requires(c != null);
         compiler = c;
         this.wr = wr;
@@ -3866,16 +3856,16 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private class SimpleLvalueImpl : ILvalue {
-      private readonly SinglePassCompiler Compiler;
+      private readonly ConcreteSinglePassCompiler Compiler;
       private readonly Action<ConcreteSyntaxTree> LvalueAction, RvalueAction;
 
-      public SimpleLvalueImpl(SinglePassCompiler compiler, Action<ConcreteSyntaxTree> action) {
+      public SimpleLvalueImpl(ConcreteSinglePassCompiler compiler, Action<ConcreteSyntaxTree> action) {
         Compiler = compiler;
         LvalueAction = action;
         RvalueAction = action;
       }
 
-      public SimpleLvalueImpl(SinglePassCompiler compiler, Action<ConcreteSyntaxTree> lvalueAction, Action<ConcreteSyntaxTree> rvalueAction) {
+      public SimpleLvalueImpl(ConcreteSinglePassCompiler compiler, Action<ConcreteSyntaxTree> lvalueAction, Action<ConcreteSyntaxTree> rvalueAction) {
         Compiler = compiler;
         LvalueAction = lvalueAction;
         RvalueAction = rvalueAction;
@@ -3893,12 +3883,12 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private class CoercedLvalueImpl : ILvalue {
-      private readonly SinglePassCompiler Compiler;
+      private readonly ConcreteSinglePassCompiler Compiler;
       private readonly ILvalue lvalue;
       private readonly Type /*?*/ from;
       private readonly Type /*?*/ to;
 
-      public CoercedLvalueImpl(SinglePassCompiler compiler, ILvalue lvalue, Type/*?*/ from, Type/*?*/ to) {
+      public CoercedLvalueImpl(ConcreteSinglePassCompiler compiler, ILvalue lvalue, Type/*?*/ from, Type/*?*/ to) {
         Compiler = compiler;
         this.lvalue = lvalue;
         this.from = from;
@@ -5493,83 +5483,4 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
-  public class CoverageInstrumenter {
-    private readonly SinglePassCompiler compiler;
-    private List<(IToken, string)>/*?*/ legend;  // non-null implies DafnyOptions.O.CoverageLegendFile is non-null
-
-    public CoverageInstrumenter(SinglePassCompiler compiler) {
-      this.compiler = compiler;
-      if (DafnyOptions.O.CoverageLegendFile != null) {
-        legend = new List<(IToken, string)>();
-      }
-    }
-
-    public bool IsRecording {
-      get => legend != null;
-    }
-
-    public void Instrument(IToken tok, string description, ConcreteSyntaxTree wr) {
-      Contract.Requires(tok != null);
-      Contract.Requires(description != null);
-      Contract.Requires(wr != null || !IsRecording);
-      if (legend != null) {
-        wr.Write("DafnyProfiling.CodeCoverage.Record({0})", legend.Count);
-        compiler.EndStmt(wr);
-        legend.Add((tok, description));
-      }
-    }
-
-    public void UnusedInstrumentationPoint(IToken tok, string description) {
-      Contract.Requires(tok != null);
-      Contract.Requires(description != null);
-      if (legend != null) {
-        legend.Add((tok, description));
-      }
-    }
-
-    public void InstrumentExpr(IToken tok, string description, bool resultValue, ConcreteSyntaxTree wr) {
-      Contract.Requires(tok != null);
-      Contract.Requires(description != null);
-      Contract.Requires(wr != null || !IsRecording);
-      if (legend != null) {
-        // The "Record" call always returns "true", so we negate it to get the value "false"
-        wr.Write("{1}DafnyProfiling.CodeCoverage.Record({0})", legend.Count, resultValue ? "" : "!");
-        legend.Add((tok, description));
-      }
-    }
-
-    /// <summary>
-    /// Should be called once "n" has reached its final value
-    /// </summary>
-    public void EmitSetup(ConcreteSyntaxTree wr) {
-      Contract.Requires(wr != null);
-      if (legend != null) {
-        wr.Write("DafnyProfiling.CodeCoverage.Setup({0})", legend.Count);
-        compiler.EndStmt(wr);
-      }
-    }
-
-    public void EmitTearDown(ConcreteSyntaxTree wr) {
-      Contract.Requires(wr != null);
-      if (legend != null) {
-        wr.Write("DafnyProfiling.CodeCoverage.TearDown()");
-        compiler.EndStmt(wr);
-      }
-    }
-
-    public void WriteLegendFile() {
-      if (legend != null) {
-        var filename = DafnyOptions.O.CoverageLegendFile;
-        Contract.Assert(filename != null);
-        TextWriter wr = filename == "-" ? System.Console.Out : new StreamWriter(new FileStream(Path.GetFullPath(filename), System.IO.FileMode.Create));
-        {
-          for (var i = 0; i < legend.Count; i++) {
-            var e = legend[i];
-            wr.WriteLine("{0}: {1}({2},{3}): {4}", i, e.Item1.Filename, e.Item1.line, e.Item1.col, e.Item2);
-          }
-        }
-        legend = null;
-      }
-    }
-  }
 }

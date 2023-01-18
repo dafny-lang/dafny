@@ -18,7 +18,7 @@ using JetBrains.Annotations;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
 namespace Microsoft.Dafny.Compilers {
-  public class GoCompiler : SinglePassCompiler {
+  public class GoCompiler : ConcreteSinglePassCompiler {
     public override void OnPreCompile(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
       base.OnPreCompile(reporter, otherFileNames);
       if (DafnyOptions.O.CoverageLegendFile != null) {

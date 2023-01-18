@@ -20,7 +20,7 @@ public class RunAllTestsMainMethod : IRewriter {
   /// </summary>
   internal override void PreResolve(Program program) {
     Method mainMethod;
-    var hasMain = Compilers.SinglePassCompiler.HasMain(program, out mainMethod);
+    var hasMain = Compilers.ConcreteSinglePassCompiler.HasMain(program, out mainMethod);
     if (hasMain) {
       Reporter.Error(MessageSource.Rewriter, mainMethod.tok, "Cannot use /runAllTests on a program with a main method");
       return;
@@ -202,7 +202,7 @@ public class RunAllTestsMainMethod : IRewriter {
 
     // Find the resolved main method to attach the body to (which will be a different instance
     // than the Method we added in PreResolve).
-    var hasMain = Compilers.SinglePassCompiler.HasMain(program, out var mainMethod);
+    var hasMain = Compilers.ConcreteSinglePassCompiler.HasMain(program, out var mainMethod);
     Contract.Assert(hasMain);
     mainMethod.Body = new BlockStmt(tok, tok, mainMethodStatements);
   }

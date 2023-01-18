@@ -18,7 +18,7 @@ using System.Threading.Tasks;
 using JetBrains.Annotations;
 
 namespace Microsoft.Dafny.Compilers {
-  public class JavaScriptCompiler : SinglePassCompiler {
+  public class JavaScriptCompiler : ConcreteSinglePassCompiler {
     public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".js" };
 
     public override string TargetLanguage => "JavaScript";

@@ -23,7 +23,7 @@ using Microsoft.BaseTypes;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
 namespace Microsoft.Dafny.Compilers {
-  public class CsharpCompiler : SinglePassCompiler {
+  public class CsharpCompiler : ConcreteSinglePassCompiler {
     public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".cs", ".dll" };
 
     public override string TargetLanguage => "C#";

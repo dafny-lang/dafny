@@ -320,7 +320,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     public bool AuditProgram = false;
 
-    public static readonly ReadOnlyCollection<Plugin> DefaultPlugins = new(new[] { SinglePassCompiler.Plugin });
+    public static readonly ReadOnlyCollection<Plugin> DefaultPlugins = new(new[] { ConcreteSinglePassCompiler.Plugin });
     private IList<Plugin> cliPluginCache;
     public IList<Plugin> Plugins => cliPluginCache ??= ComputePlugins();
     public List<Plugin> AdditionalPlugins = new();
