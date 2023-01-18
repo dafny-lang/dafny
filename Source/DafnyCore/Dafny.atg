@@ -3138,7 +3138,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
       { Attribute<ref attrs> }
       LocalIdentTypeOptional<out d, isGhost>  (. lhss.Add(d); d.Attributes = attrs; attrs = null; .)
     }
-    [ ( ":=" | "=" (. SemErr(la, "a local variable should be initialized using ':=', ':-', or ':|', not '='"); .) )                         
+    [ ( ":=" | "=" (. SemErr(t, "a local variable should be initialized using ':=', ':-', or ':|', not '='"); .) )                         
                                      (. assignTok = t; .)
       Rhs<out r>                     (. rhss.Add(r); .)
       { "," Rhs<out r>               (. rhss.Add(r); .)
@@ -4649,7 +4649,7 @@ LetExprWithLHS<out Expression e, bool allowLemma, bool allowLambda, bool allowBi
                                        }
                                     .)
     | ":-"                          (. isLetOrFail = true; .)
-    | "=" (. SemErr(la, "a variable in a let expression should be initialized using ':=', ':-', or ':|', not '='"); .)
+    | "=" (. SemErr(t, "a variable in a let expression should be initialized using ':=', ':-', or ':|', not '='"); .)
     )
     Expression<out e, false, true>        (. letRHSs.Add(e); .)
     { "," Expression<out e, false, true>  (. letRHSs.Add(e); .)

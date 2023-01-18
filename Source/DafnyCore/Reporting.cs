@@ -34,7 +34,7 @@ namespace Microsoft.Dafny {
     public int ErrorCountUntilResolver => CountExceptVerifierAndCompiler(ErrorLevel.Error);
 
 
-    public abstract bool Message(MessageSource source, ErrorLevel level, ErrorDetail.ErrorID errorID, IToken tok, string msg);
+    public abstract bool Message(MessageSource source, ErrorLevel level, ErrorID errorID, IToken tok, string msg);
 
     public void Error(MessageSource source, IToken tok, string msg) {
       Error(source, ErrorID.None, tok, msg);
@@ -113,7 +113,7 @@ namespace Microsoft.Dafny {
     public void Warning(MessageSource source, ErrorID errorID, IToken tok, string msg) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
-      if (true || DafnyOptions.O.WarningsAsErrors) {
+      if (DafnyOptions.O.WarningsAsErrors) {
         Error(source, tok, msg);
       } else {
         Message(source, ErrorLevel.Warning, errorID, tok, msg);
@@ -231,7 +231,7 @@ namespace Microsoft.Dafny {
           errorLine += $" {msg} {TokenToString(tok)}";
         }
 
-        if (DafnyOptions.O.CompileVerbose) {
+        if (DafnyOptions.O.CompileVerbose && false) { // Need to control tests better before we enable this
           var info = ErrorDetail.GetDetail(errorID);
           if (info != null) {
             errorLine += "\n" + info;
