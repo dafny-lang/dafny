@@ -7171,22 +7171,6 @@ namespace Microsoft.Dafny {
 
     // ----- Statement ----------------------------------------------------------------------------
 
-    /// <summary>
-    /// A ForceCheckToken is a token wrapper whose purpose is to hide inheritance.
-    /// </summary>
-    public class ForceCheckToken : TokenWrapper {
-      public ForceCheckToken(IToken tok)
-        : base(tok) {
-        Contract.Requires(tok != null);
-      }
-      public static IToken Unwrap(IToken tok) {
-        Contract.Requires(tok != null);
-        Contract.Ensures(Contract.Result<IToken>() != null);
-        var ftok = tok as ForceCheckToken;
-        return ftok != null ? ftok.WrappedToken : tok;
-      }
-    }
-
     Bpl.PredicateCmd Assert(IToken tok, Bpl.Expr condition, PODesc.ProofObligationDescription description, Bpl.QKeyValue kv = null) {
       return Assert(tok, condition, description, tok, kv);
     }
@@ -7200,7 +7184,7 @@ namespace Microsoft.Dafny {
         // produce an assume instead
         return TrAssumeCmd(tok, condition, kv);
       } else {
-        var cmd = TrAssertCmdDesc(ForceCheckToken.Unwrap(tok), condition, description, kv);
+        var cmd = TrAssertCmdDesc(tok, condition, description, kv);
         return cmd;
       }
     }
@@ -7219,7 +7203,6 @@ namespace Microsoft.Dafny {
         // produce a "skip" instead
         return TrAssumeCmd(tok, Bpl.Expr.True, kv);
       } else {
-        tok = ForceCheckToken.Unwrap(tok);
         var args = new List<object>();
         args.Add(Bpl.Expr.Literal(0));
         Bpl.AssertCmd cmd = TrAssertCmdDesc(tok, condition, desc, new Bpl.QKeyValue(tok, "subsumption", args, kv));
@@ -7232,7 +7215,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(condition != null);
       Contract.Ensures(Contract.Result<Bpl.Ensures>() != null);
 
-      Bpl.Ensures ens = new Bpl.Ensures(ForceCheckToken.Unwrap(tok), free, condition, comment);
+      Bpl.Ensures ens = new Bpl.Ensures(tok, free, condition, comment);
       ens.Description = new PODesc.AssertStatement(errorMessage ?? "This is the postcondition that might not hold.");
       return ens;
     }
@@ -7241,7 +7224,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(condition != null);
       Contract.Ensures(Contract.Result<Bpl.Requires>() != null);
-      Bpl.Requires req = new Bpl.Requires(ForceCheckToken.Unwrap(tok), free, condition, comment);
+      Bpl.Requires req = new Bpl.Requires(tok, free, condition, comment);
       req.Description = new PODesc.AssertStatement(errorMessage ?? "This is the precondition that might not hold.");
       return req;
     }
@@ -7809,10 +7792,6 @@ namespace Microsoft.Dafny {
       var types1 = new List<Type>();
       var callee = new List<Expr>();
       var caller = new List<Expr>();
-      if (RefinementToken.IsInherited(tok, currentModule) && contextDecreases.All(e => !RefinementToken.IsInherited(e.tok, currentModule))) {
-        // the call site is inherited but all the context decreases expressions are new
-        tok = new ForceCheckToken(tok);
-      }
       for (int i = 0; i < N; i++) {
         Expression e0 = Substitute(calleeDecreases[i], receiverReplacement, substMap, typeMap);
         Expression e1 = contextDecreases[i];
@@ -10071,7 +10050,7 @@ namespace Microsoft.Dafny {
           var A2 = etran2.TrExpr(e.E1);
           var B2 = etran2.TrExpr(e.E2);
           var needsTokenAdjust = TrSplitNeedsTokenAdjustment(expr);
-          var tok = needsTokenAdjust ? new ForceCheckToken(expr.tok) : expr.tok;
+          var tok = expr.tok;
           Bpl.Expr layer = etran.layerInterCluster.LayerN((int)FuelSetting.FuelAmount.HIGH);
           Bpl.Expr eqComponents = Bpl.Expr.True;
           foreach (var c in CoPrefixEquality(tok, codecl, e1type.TypeArgs, e2type.TypeArgs, kMinusOne, layer, A2, B2, true)) {
@@ -10207,7 +10186,7 @@ namespace Microsoft.Dafny {
           // or similar for existentials.
           var caseProduct = new List<Bpl.Expr>() {
             // make sure to include the correct token information (so, don't just use Bpl.Expr.True here)
-            new Bpl.LiteralExpr(TrSplitNeedsTokenAdjustment(expr) ? new ForceCheckToken(expr.tok) : expr.tok, true)
+            new Bpl.LiteralExpr(expr.tok, true)
           };
           var i = 0;
           foreach (var n in inductionVariables) {
@@ -10255,7 +10234,7 @@ namespace Microsoft.Dafny {
           var r = etranBoost.TrExpr(expr);
           var needsTokenAdjustment = TrSplitNeedsTokenAdjustment(expr);
           if (needsTokenAdjustment) {
-            r.tok = new ForceCheckToken(expr.tok);
+            r.tok = expr.tok;
           }
           if (etranBoost.Statistics_CustomLayerFunctionCount == 0) {
             // apparently, the LayerOffset(1) we did had no effect
@@ -10275,7 +10254,7 @@ namespace Microsoft.Dafny {
         var r = etran.TrExpr(expr);
         var needsTokenAdjustment = TrSplitNeedsTokenAdjustment(expr);
         if (needsTokenAdjustment) {
-          r.tok = new ForceCheckToken(expr.tok);
+          r.tok = expr.tok;
         }
         if (etran.Statistics_CustomLayerFunctionCount == 0) {
           // apparently, doesn't use layer
@@ -10299,7 +10278,7 @@ namespace Microsoft.Dafny {
         splitHappened = etran.Statistics_CustomLayerFunctionCount != 0;  // return true if the LayerOffset(1) came into play
       }
       if (TrSplitNeedsTokenAdjustment(expr)) {
-        translatedExpression.tok = new ForceCheckToken(expr.tok);
+        translatedExpression.tok = expr.tok;
         splitHappened = true;
       }
       splits.Add(new SplitExprInfo(SplitExprInfo.K.Both, translatedExpression));
@@ -10370,7 +10349,7 @@ namespace Microsoft.Dafny {
                 var unboxedConjunct = CondApplyUnbox(s.E.tok, s.E, typeSpecializedResultType, expr.Type);
                 var bodyOrConjunct = Bpl.Expr.Or(fargs, unboxedConjunct);
                 var tok = needsTokenAdjust
-                  ? (IToken)new ForceCheckToken(typeSpecializedBody.tok)
+                  ? (IToken)typeSpecializedBody.tok
                   : (IToken)new NestedToken(GetToken(fexp), s.Tok);
                 var p = Bpl.Expr.Binary(tok, BinaryOperator.Opcode.Imp, canCall, bodyOrConjunct);
                 splits.Add(new SplitExprInfo(SplitExprInfo.K.Checked, p));
