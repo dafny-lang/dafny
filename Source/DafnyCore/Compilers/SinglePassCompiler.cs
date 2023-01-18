@@ -709,7 +709,7 @@ namespace Microsoft.Dafny.Compilers {
     protected abstract void EmitNewArray(Type elmtType, IToken tok, List<Expression> dimensions,
       bool mustInitialize, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);
 
-    protected abstract void EmitLiteralExpr(LiteralExpr e, ConcreteSyntaxTree wr);
+    protected abstract TExpression EmitLiteralExpr(LiteralExpr e);
     protected abstract void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr);
     protected abstract ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, ConcreteSyntaxTree wr);
     protected delegate void FCE_Arg_Translator(Expression e, ConcreteSyntaxTree wr, bool inLetExpr, ConcreteSyntaxTree wStmts);
@@ -869,7 +869,7 @@ namespace Microsoft.Dafny.Compilers {
       return name;
     }
     protected abstract string FullTypeName(UserDefinedType udt, MemberDecl/*?*/ member = null);
-    protected abstract void EmitThis(ConcreteSyntaxTree wr);
+    protected abstract TExpression EmitThis();
     protected virtual void EmitNull(Type type, ConcreteSyntaxTree wr) {
       wr.Write("null");
     }
@@ -1838,7 +1838,7 @@ namespace Microsoft.Dafny.Compilers {
               var sw = EmitReturnExpr(w);
               sw = EmitCoercionIfNecessary(cfType, cf.Type, cf.tok, sw);
               // get { return this._{0}; }
-              EmitThis(sw);
+              sw.Append(EmitThis());
               sw.Write("._{0}", cf.CompileName);
             } else {
               EmitCallToInheritedConstRHS(cf, w);
@@ -1853,12 +1853,12 @@ namespace Microsoft.Dafny.Compilers {
               var sw = EmitReturnExpr(wGet);
               sw = EmitCoercionIfNecessary(fType, f.Type, f.tok, sw);
               // get { return this._{0}; }
-              EmitThis(sw);
+              sw.Append(EmitThis());
               sw.Write("._{0}", f.CompileName);
             }
             {
               // set { this._{0} = value; }
-              EmitThis(wSet);
+              wSet.Append(EmitThis());
               wSet.Write("._{0}", f.CompileName);
               var sw = EmitAssignmentRhs(wSet);
               sw = EmitCoercionIfNecessary(f.Type, fType, f.tok, sw);
@@ -1947,7 +1947,7 @@ namespace Microsoft.Dafny.Compilers {
                   var typeSubst = new Dictionary<TypeParameter, Type>();
                   cf.EnclosingClass.TypeArgs.ForEach(tp => typeSubst.Add(tp, (Type)new UserDefinedType(tp)));
                   var typeArgs = CombineAllTypeArguments(cf);
-                  EmitMemberSelect(EmitThis, UserDefinedType.FromTopLevelDecl(c.tok, c), cf,
+                  EmitMemberSelect(wr => wr.Append(EmitThis()), UserDefinedType.FromTopLevelDecl(c.tok, c), cf,
                     typeArgs, typeSubst, f.Type, internalAccess: true).EmitRead(sw);
                 } else {
                   EmitReturnExpr(PlaceboValue(cf.Type, wBody, cf.tok, true), wBody);
@@ -2104,7 +2104,7 @@ namespace Microsoft.Dafny.Compilers {
 
       wr.Write(sep);
       var w = EmitCoercionIfNecessary(UserDefinedType.FromTopLevelDecl(f.tok, thisContext), calleeReceiverType, f.tok, wr);
-      EmitThis(w);
+      w.Append(EmitThis());
       wr.Write(")");
     }
 
@@ -2140,7 +2140,7 @@ namespace Microsoft.Dafny.Compilers {
 
       wr.Write(sep);
       var w = EmitCoercionIfNecessary(UserDefinedType.FromTopLevelDecl(f.tok, thisContext), calleeReceiverType, f.tok, wr);
-      EmitThis(w);
+      w.Append(EmitThis());
       sep = ", ";
 
       for (int j = 0, l = 0; j < f.Formals.Count; j++) {
@@ -2202,7 +2202,7 @@ namespace Microsoft.Dafny.Compilers {
 
       wr.Write(sep);
       var w = EmitCoercionIfNecessary(UserDefinedType.FromTopLevelDecl(method.tok, thisContext), calleeReceiverType, method.tok, wr);
-      EmitThis(w);
+      w.Append(EmitThis());
       sep = ", ";
 
       for (int j = 0, l = 0; j < method.Ins.Count; j++) {
@@ -4501,14 +4501,15 @@ namespace Microsoft.Dafny.Compilers {
 
       if (expr is LiteralExpr) {
         LiteralExpr e = (LiteralExpr)expr;
-        return EmitLiteralExpr(e, wr);
+        return EmitLiteralExpr(e);
       } else if (expr is ThisExpr) {
+        var result = EmitThis();
         if (thisContext != null) {
           var instantiatedType = expr.Type.Subst(thisContext.ParentFormalTypeParametersToActuals);
-          wr = EmitCoercionIfNecessary(UserDefinedType.FromTopLevelDecl(expr.tok, thisContext), instantiatedType, expr.tok, wr);
+          result = EmitCoercionIfNecessary(UserDefinedType.FromTopLevelDecl(expr.tok, thisContext), instantiatedType, expr.tok, result);
         }
-        EmitThis(wr);
 
+        return result;
       } else if (expr is IdentifierExpr) {
         var e = (IdentifierExpr)expr;
         if (inLetExprBody && !(e.Var is BoundVar)) {

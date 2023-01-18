@@ -992,7 +992,8 @@ namespace Microsoft.Dafny.Compilers {
       return s;
     }
 
-    protected override void EmitLiteralExpr(LiteralExpr e, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree EmitLiteralExpr(LiteralExpr e) {
+      var wr = new ConcreteSyntaxTree();
       switch (e) {
         case CharLiteralExpr:
           var escaped = TranslateEscapes((string)e.Value);
@@ -1040,6 +1041,8 @@ namespace Microsoft.Dafny.Compilers {
           }
           break;
       }
+
+      return wr;
     }
 
     protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
@@ -1136,9 +1139,9 @@ namespace Microsoft.Dafny.Compilers {
       };
     }
 
-    protected override void EmitThis(ConcreteSyntaxTree wr) {
+    protected override ICanRender EmitThis() {
       var isTailRecursive = enclosingMethod is { IsTailRecursive: true } || enclosingFunction is { IsTailRecursive: true };
-      wr.Write(isTailRecursive ? "_this" : "self");
+      return new LineSegment(isTailRecursive ? "_this" : "self");
     }
 
     protected override void EmitNull(Type _, ConcreteSyntaxTree wr) {

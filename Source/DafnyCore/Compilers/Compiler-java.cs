@@ -1042,7 +1042,8 @@ namespace Microsoft.Dafny.Compilers {
       return s;
     }
 
-    protected override void EmitLiteralExpr(LiteralExpr e, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree EmitLiteralExpr(LiteralExpr e) {
+      var wr = new ConcreteSyntaxTree();
       if (e is StaticReceiverExpr) {
         wr.Write(TypeName(e.Type, wr, e.tok));
       } else if (e.Value == null) {
@@ -1091,6 +1092,8 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal
       }
+
+      return wr;
     }
 
     protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
@@ -1185,13 +1188,13 @@ namespace Microsoft.Dafny.Compilers {
       return type.IsBoolType || type.IsCharType || AsNativeType(type) != null;
     }
 
-    protected override void EmitThis(ConcreteSyntaxTree wr) {
+    protected override ICanRender EmitThis() {
       var custom =
         (enclosingMethod != null && (enclosingMethod.IsTailRecursive || NeedsCustomReceiver(enclosingMethod))) ||
         (enclosingFunction != null && (enclosingFunction.IsTailRecursive || NeedsCustomReceiver(enclosingFunction))) ||
         thisContext is NewtypeDecl ||
         thisContext is TraitDecl;
-      wr.Write(custom ? "_this" : "this");
+      return new LineSegment(custom ? "_this" : "this");
     }
 
     protected override void DeclareLocalVar(string name, Type /*?*/ type, IToken /*?*/ tok, bool leaveRoomForRhs,

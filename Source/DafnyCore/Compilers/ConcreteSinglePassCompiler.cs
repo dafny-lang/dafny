@@ -5,7 +5,7 @@ using System.IO;
 
 namespace Microsoft.Dafny.Compilers;
 
-public abstract class ConcreteSinglePassCompiler : SinglePassCompiler<ConcreteSyntaxTree> {
+public abstract class ConcreteSinglePassCompiler : SinglePassCompiler<ICanRender> {
   public override void OnPreCompile(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
     base.OnPreCompile(reporter, otherFileNames);
     Coverage = new CoverageInstrumenter(this);

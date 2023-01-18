@@ -1453,7 +1453,8 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitLiteralExpr(LiteralExpr e, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree EmitLiteralExpr(LiteralExpr e) {
+      var wr = new ConcreteSyntaxTree();
       if (e is StaticReceiverExpr) {
         wr.Write(TypeName(e.Type, wr, e.tok));
       } else if (e.Value == null) {
@@ -1481,6 +1482,8 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal
       }
+
+      return wr;
     }
     void EmitIntegerLiteral(BigInteger i, ConcreteSyntaxTree wr) {
       Contract.Requires(wr != null);
@@ -1677,8 +1680,8 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitThis(ConcreteSyntaxTree wr) {
-      wr.Write("this");
+    protected override ICanRender EmitThis() {
+      return new LineSegment("this");
     }
 
     protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, ConcreteSyntaxTree wr) {

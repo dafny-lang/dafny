@@ -2069,7 +2069,8 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(")");
     }
 
-    protected override void EmitLiteralExpr(LiteralExpr e, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree EmitLiteralExpr(LiteralExpr e) {
+      var wr = new ConcreteSyntaxTree();
       if (e is StaticReceiverExpr) {
         wr.Write("{0}", TypeName_Companion(((UserDefinedType)e.Type).ResolvedClass, wr, e.tok));
       } else if (e.Value == null) {
@@ -2096,6 +2097,8 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal
       }
+
+      return wr;
     }
     void EmitIntegerLiteral(BigInteger i, ConcreteSyntaxTree wr) {
       Contract.Requires(wr != null);
@@ -2432,8 +2435,8 @@ namespace Microsoft.Dafny.Compilers {
       return member != null && cl is ClassDecl cdecl && cdecl.IsDefaultClass && Attributes.Contains(cdecl.EnclosingModuleDefinition.Attributes, "extern") && member.IsExtern(out _, out _);
     }
 
-    protected override void EmitThis(ConcreteSyntaxTree wr) {
-      wr.Write("_this");
+    protected override ICanRender EmitThis() {
+      return new LineSegment("_this");
     }
 
     protected override void EmitNull(Type type, ConcreteSyntaxTree wr) {

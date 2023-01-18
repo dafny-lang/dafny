@@ -2079,7 +2079,8 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitLiteralExpr(LiteralExpr e, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree EmitLiteralExpr(LiteralExpr e) {
+      var wr = new ConcreteSyntaxTree();
       if (e is StaticReceiverExpr) {
         wr.Write(TypeName(e.Type, wr, e.tok));
       } else if (e.Value == null) {
@@ -2134,6 +2135,8 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal
       }
+
+      return wr;
     }
 
     void EmitIntegerLiteral(BigInteger i, ConcreteSyntaxTree wr) {
@@ -2389,13 +2392,13 @@ namespace Microsoft.Dafny.Compilers {
       return IdProtect(cl.EnclosingModuleDefinition.CompileName) + "." + IdProtect(cl.CompileName);
     }
 
-    protected override void EmitThis(ConcreteSyntaxTree wr) {
+    protected override ICanRender EmitThis() {
       var custom =
         (enclosingMethod != null && (enclosingMethod.IsTailRecursive || NeedsCustomReceiver(enclosingMethod))) ||
         (enclosingFunction != null && (enclosingFunction.IsTailRecursive || NeedsCustomReceiver(enclosingFunction))) ||
         thisContext is NewtypeDecl ||
         thisContext is TraitDecl;
-      wr.Write(custom ? "_this" : "this");
+      return new LineSegment(custom ? "_this" : "this");
     }
 
     protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, ConcreteSyntaxTree wr) {
