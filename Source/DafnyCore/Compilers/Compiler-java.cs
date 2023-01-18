@@ -984,8 +984,7 @@ namespace Microsoft.Dafny.Compilers {
               typeDescriptorExpr = $"{DafnyTypeDescriptor}.booleanWithDefault({w ?? "false"})";
             } else if (targetType.IsCharType) {
               if (UnicodeCharEnabled) {
-                var defaultValue = w ?? $"dafny.CodePoint.valueOf((int){CharType.DefaultValueAsString})";
-                typeDescriptorExpr = $"{DafnyTypeDescriptor}.unicodeCharWithDefault({defaultValue})";
+                typeDescriptorExpr = $"{DafnyTypeDescriptor}.unicodeCharWithDefault((int){w ?? CharType.DefaultValueAsString})";
               } else {
                 typeDescriptorExpr = $"{DafnyTypeDescriptor}.charWithDefault({w ?? CharType.DefaultValueAsString})";
               }
