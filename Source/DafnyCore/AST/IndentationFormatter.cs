@@ -124,9 +124,9 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
         return SetIndentVarDeclStmt(indent, expr.OwnedTokens, expr is LetOrFailExpr { Lhs: null });
       case ITEExpr iteExpr:
         return SetIndentITE(indent, iteExpr);
-      case NestedMatchExpr:
+      case NestedMatchExpr nestedMatchExpr:
         var i = unusedIndent;
-        return SetIndentCases(indent, expr.OwnedTokens, () => {
+        return SetIndentCases(indent, expr.OwnedTokens.Concat(nestedMatchExpr.Cases.SelectMany(oneCase => oneCase.OwnedTokens)), () => {
           foreach (var e in SubExpressions(expr)) {
             Visit(e, i);
           }
@@ -179,7 +179,7 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
       case SkeletonStatement:
         return true;
       case AlternativeStmt alternativeStmt:
-        return SetIndentCases(indent, alternativeStmt.OwnedTokens, () => {
+        return SetIndentCases(indent, alternativeStmt.OwnedTokens.Concat(alternativeStmt.Alternatives.SelectMany(alternative => alternative.OwnedTokens)), () => {
           VisitAlternatives(alternativeStmt.Alternatives, indent);
         });
       case ForallStmt forallStmt: {
@@ -1153,7 +1153,7 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
   }
 
   private bool SetIndentAlternativeLoopStmt(int indent, AlternativeLoopStmt alternativeLoopStmt) {
-    return SetIndentCases(indent, alternativeLoopStmt.OwnedTokens, () => {
+    return SetIndentCases(indent, alternativeLoopStmt.OwnedTokens.Concat(alternativeLoopStmt.Alternatives.SelectMany(alternative => alternative.OwnedTokens)), () => {
       foreach (var ens in alternativeLoopStmt.Invariants) {
         SetAttributedExpressionIndentation(ens, indent + SpaceTab);
       }
@@ -1348,11 +1348,13 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
 
   private bool SetIndentCalcStmt(int indent, CalcStmt calcStmt) {
     var inCalc = false;
+    var inOrdinal = false;
     var first = true;
     var innerCalcIndent = indent + SpaceTab;
     var extraHintIndent = 0;
+    var ownedTokens = calcStmt.OwnedTokens;
     // First phase: We get the alignment
-    foreach (var token in calcStmt.OwnedTokens) {
+    foreach (var token in ownedTokens) {
       if (SetIndentLabelTokens(token, indent)) {
         continue;
       }
@@ -1368,10 +1370,16 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
           }
         default: {
             if (inCalc) {
+              if (token.val == "[") {
+                inOrdinal = true;
+              }
+              if (token.val == "]") {
+                inOrdinal = false;
+              }
               if (!IsFollowedByNewline(token) &&
                   (token.val != "==" || token.Next.val != "#") &&
                   token.val != "#" &&
-                  token.val != "[") {
+                  !inOrdinal) {
                 if (token.Next.val != "{") {
                   SetIndentations(token, sameLineBefore: indent);
                   innerCalcIndent = Math.Max(innerCalcIndent, GetRightAlignIndentAfter(token, indent));

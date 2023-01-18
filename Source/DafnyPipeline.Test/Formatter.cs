@@ -2290,6 +2290,13 @@ module R1 refines Q {
       FormatterWorksFor(@"
 lemma Test() {
   calc {
+    1;
+  ==#[k]
+    1;
+  ==#[k]
+    1;
+  }
+  calc {
      1;
   <  3;
   == 4;
@@ -2325,14 +2332,6 @@ lemma Test() {
          1;
   ==#[k] 1+0;
   ==#[k] 0+1;
-  }
-
-  calc {
-    1;
-  ==#[k]
-    1;
-  ==#[k]
-    1;
   }
   calc {
        false;
