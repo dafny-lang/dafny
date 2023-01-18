@@ -3891,8 +3891,8 @@ Expression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwis
     /* here we parse the ";E" that is part of a "LemmaCall;E" expression (other "S;E" expressions are parsed elsewhere) */
     ";"                       (. endTok = t; .)
     Expression<out e0, allowLemma, allowLambda>
-    (. e = new StmtExpr(e.tok,
-             new UpdateStmt(e.tok, new RangeToken(e.StartToken, t), new List<Expression>(), new List<AssignmentRhs>() { new ExprRhs(e) }) {
+    (. e = new StmtExpr(e.StartToken,
+             new UpdateStmt(e.StartToken, new RangeToken(e.StartToken, t), new List<Expression>(), new List<AssignmentRhs>() { new ExprRhs(e) }) {
                RangeToken = e.RangeToken
              },
              e0);
