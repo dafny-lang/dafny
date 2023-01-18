@@ -218,7 +218,7 @@ public class CsharpSynthesizer {
                                 "(field {0} of object {1} inside method {2})",
         ErrorWriter, fieldName, obj.Name, lastSynthesizedMethod.Name);
       wr.Format($"{objectToMockName[obj]}.SetupGet({obj.CompileName} => {obj.CompileName}.@{fieldName}).Returns( ");
-      compiler.TrExpr(binaryExpr.E1, wr, false, wStmts);
+      compiler.wr.Append(TrExpr(binaryExpr.E1, false, wStmts));
       wr.WriteLine(");");
       return;
     }
@@ -244,7 +244,7 @@ public class CsharpSynthesizer {
       }
     }
     wr.Write(")=>");
-    compiler.TrExpr(binaryExpr.E1, wr, false, wStmts);
+    compiler.wr.Append(TrExpr(binaryExpr.E1, false, wStmts));
     wr.WriteLine(");");
   }
 
@@ -274,7 +274,7 @@ public class CsharpSynthesizer {
     switch (binaryExpr.Op) {
       case BinaryExpr.Opcode.Imp:
         wr.Write("\treturn ");
-        compiler.TrExpr(binaryExpr.E0, wr, false, wStmts);
+        compiler.wr.Append(TrExpr(binaryExpr.E0, false, wStmts));
         wr.WriteLine(";");
         binaryExpr = (BinaryExpr)binaryExpr.E1;
         break;

@@ -1332,7 +1332,7 @@ namespace Microsoft.Dafny.Compilers {
       return s;
     }
 
-    protected override ConcreteSyntaxTree EmitLiteralExpr(LiteralExpr e) {
+    protected override void EmitLiteralExpr(LiteralExpr e, ConcreteSyntaxTree wr) {
       if (e is StaticReceiverExpr) {
         wr.Write(TypeName(e.Type, wr, e.tok));
       } else if (e.Value == null) {
@@ -1764,7 +1764,7 @@ namespace Microsoft.Dafny.Compilers {
       var w = wr.Fork();
       if (indices.Count == 1) {
         wr.Write("[");
-        TrExpr(indices[0], wr, inLetExprBody, wStmts);
+        wr.Append(TrExpr(indices[0], inLetExprBody, wStmts));
         wr.Write("]");
       } else {
         wr.Write(".elmts");
@@ -2299,7 +2299,7 @@ namespace Microsoft.Dafny.Compilers {
           var toNative = AsNativeType(e.ToType);
           if (fromNative != null && toNative != null) {
             // from a native, to a native -- simple!
-            TrExpr(e.E, wr, inLetExprBody, wStmts);
+            wr.Append(TrExpr(e.E, inLetExprBody, wStmts));
           } else if (e.E.Type.IsCharType) {
             Contract.Assert(fromNative == null);
             if (toNative == null) {
@@ -2314,7 +2314,7 @@ namespace Microsoft.Dafny.Compilers {
             }
           } else if (fromNative == null && toNative == null) {
             // big-integer (int or bv) -> big-integer (int or bv or ORDINAL), so identity will do
-            TrExpr(e.E, wr, inLetExprBody, wStmts);
+            wr.Append(TrExpr(e.E, inLetExprBody, wStmts));
           } else if (fromNative != null && toNative == null) {
             // native (int or bv) -> big-integer (int or bv)
             wr.Write("new BigNumber");
@@ -2348,7 +2348,7 @@ namespace Microsoft.Dafny.Compilers {
         if (e.ToType.IsNumericBased(Type.NumericPersuasion.Real)) {
           // real -> real
           Contract.Assert(AsNativeType(e.ToType) == null);
-          TrExpr(e.E, wr, inLetExprBody, wStmts);
+          wr.Append(TrExpr(e.E, inLetExprBody, wStmts));
         } else if (e.ToType.IsCharType) {
           wr.Write($"{CharFromNumberMethodName()}(");
           TrParenExpr(e.E, wr, inLetExprBody, wStmts);
@@ -2366,7 +2366,7 @@ namespace Microsoft.Dafny.Compilers {
           wr.Write($"{CharFromNumberMethodName()}((");
         }
 
-        TrExpr(e.E, wr, inLetExprBody, wStmts);
+        wr.Append(TrExpr(e.E, inLetExprBody, wStmts));
         if (e.ToType.IsCharType) {
           wr.Write(").toNumber())");
         }
@@ -2444,9 +2444,9 @@ namespace Microsoft.Dafny.Compilers {
       foreach (ExpressionPair p in elements) {
         wr.Write(sep);
         wr.Write("[");
-        TrExpr(p.A, wr, inLetExprBody, wStmts);
+        wr.Append(TrExpr(p.A, inLetExprBody, wStmts));
         wr.Write(",");
-        TrExpr(p.B, wr, inLetExprBody, wStmts);
+        wr.Append(TrExpr(p.B, inLetExprBody, wStmts));
         wr.Write("]");
         sep = ", ";
       }

@@ -992,7 +992,7 @@ namespace Microsoft.Dafny.Compilers {
       return s;
     }
 
-    protected override ConcreteSyntaxTree EmitLiteralExpr(LiteralExpr e) {
+    protected override void EmitLiteralExpr(LiteralExpr e, ConcreteSyntaxTree wr) {
       switch (e) {
         case CharLiteralExpr:
           var escaped = TranslateEscapes((string)e.Value);
@@ -1640,7 +1640,7 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
       wr.Write(pre);
-      TrExpr(e.E, wr, inLetExprBody, wStmts);
+      wr.Append(TrExpr(e.E, inLetExprBody, wStmts));
       wr.Write(post);
     }
 
@@ -1689,9 +1689,9 @@ namespace Microsoft.Dafny.Compilers {
       var sep = "";
       foreach (var p in elements) {
         wr.Write(sep);
-        TrExpr(p.A, wr, inLetExprBody, wStmts);
+        wr.Append(TrExpr(p.A, inLetExprBody, wStmts));
         wr.Write(": ");
-        TrExpr(p.B, wr, inLetExprBody, wStmts);
+        wr.Append(TrExpr(p.B, inLetExprBody, wStmts));
         sep = ", ";
       }
       wr.Write("})");

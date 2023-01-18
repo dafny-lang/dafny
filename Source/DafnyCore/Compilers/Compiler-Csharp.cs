@@ -1095,7 +1095,7 @@ namespace Microsoft.Dafny.Compilers {
       if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var wrWitness = new ConcreteSyntaxTree();
         var wStmts = w.Fork();
-        TrExpr(nt.Witness, wrWitness, false, wStmts);
+        wrWitness.Append(TrExpr(nt.Witness, false, wStmts));
         var witness = wrWitness.ToString();
         string typeName;
         if (nt.NativeType == null) {
@@ -1115,7 +1115,7 @@ namespace Microsoft.Dafny.Compilers {
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var sw = new ConcreteSyntaxTree(cw.InstanceMemberWriter.RelativeIndentLevel);
         var wStmts = cw.InstanceMemberWriter.Fork();
-        TrExpr(sst.Witness, sw, false, wStmts);
+        sw.Append(TrExpr(sst.Witness, false, wStmts));
         var witness = sw.ToString();
         var typeName = TypeName(sst.Rhs, cw.StaticMemberWriter, sst.tok);
         if (sst.TypeArgs.Count == 0) {
@@ -2079,7 +2079,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override ConcreteSyntaxTree EmitLiteralExpr(LiteralExpr e) {
+    protected override void EmitLiteralExpr(LiteralExpr e, ConcreteSyntaxTree wr) {
       if (e is StaticReceiverExpr) {
         wr.Write(TypeName(e.Type, wr, e.tok));
       } else if (e.Value == null) {
@@ -3058,7 +3058,7 @@ namespace Microsoft.Dafny.Compilers {
               ConvertFromChar(e.E, wr, inLetExprBody, wStmts);
             } else {
               // big-integer (int or bv) -> big-integer (int or bv or ORDINAL), so identity will do
-              TrExpr(e.E, wr, inLetExprBody, wStmts);
+              wr.Append(TrExpr(e.E, inLetExprBody, wStmts));
             }
           } else if (fromNative != null && toNative == null) {
             // native (int or bv) -> big-integer (int or bv)
@@ -3104,7 +3104,7 @@ namespace Microsoft.Dafny.Compilers {
         if (e.ToType.IsNumericBased(Type.NumericPersuasion.Real)) {
           // real -> real
           Contract.Assert(AsNativeType(e.ToType) == null);
-          TrExpr(e.E, wr, inLetExprBody, wStmts);
+          wr.Append(TrExpr(e.E, inLetExprBody, wStmts));
         } else {
           // real -> (int or bv or char or ordinal)
           if (e.ToType.IsCharType) {
@@ -3117,7 +3117,7 @@ namespace Microsoft.Dafny.Compilers {
         }
       } else if (e.E.Type.IsBigOrdinalType) {
         if (e.ToType.IsNumericBased(Type.NumericPersuasion.Int) || e.ToType.IsBigOrdinalType) {
-          TrExpr(e.E, wr, inLetExprBody, wStmts);
+          wr.Append(TrExpr(e.E, inLetExprBody, wStmts));
         } else if (e.ToType.IsCharType) {
           wr.Write($"({CharTypeName})");
           TrParenExpr(e.E, wr, inLetExprBody, wStmts);
