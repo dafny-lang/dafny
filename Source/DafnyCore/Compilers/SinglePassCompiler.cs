@@ -5029,7 +5029,7 @@ namespace Microsoft.Dafny.Compilers {
 
       } else if (expr is ConcreteSyntaxExpression) {
         var e = (ConcreteSyntaxExpression)expr;
-        wr.Append(TrExpr(e.ResolvedExpression, inLetExprBody, wStmts));
+        return TrExpr(e.ResolvedExpression, inLetExprBody, wStmts);
 
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression

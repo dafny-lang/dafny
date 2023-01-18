@@ -141,7 +141,7 @@ public class CsharpSynthesizer {
     return new Tuple<IVariable, string>(variable, bounds[variable]);
   }
 
-  private ConcreteSyntaxTree SynthesizeExpression(Expression expr, ConcreteSyntaxTree wStmts) {
+  private ICanRender SynthesizeExpression(Expression expr, ConcreteSyntaxTree wStmts) {
     switch (expr) {
       case LiteralExpr literalExpr:
         return compiler.TrExpr(literalExpr, false, wStmts);
