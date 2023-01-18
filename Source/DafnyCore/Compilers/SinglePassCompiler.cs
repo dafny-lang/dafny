@@ -33,11 +33,11 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
-  public abstract class SinglePassCompiler : GenericSinglePassCompiler<ConcreteSyntaxTree, ConcreteSyntaxTree> {
+  public abstract class SinglePassCompiler : GenericSinglePassCompiler<ConcreteSyntaxTree> {
 
   }
 
-  public abstract class GenericSinglePassCompiler<TStatement, TExpression> : Plugins.Compiler
+  public abstract class GenericSinglePassCompiler<TExpression> : Plugins.Compiler
     where TExpression : ICanRender {
     public static Plugin Plugin =
       new ConfiguredPlugin(InternalCompilersPluginConfiguration.Singleton);
@@ -3114,7 +3114,7 @@ namespace Microsoft.Dafny.Compilers {
           ConcreteSyntaxTree guardWriter;
           var coverageForElse = Coverage.IsRecording && !(s.Els is IfStmt);
           var thenWriter = EmitIf(out guardWriter, s.Els != null || coverageForElse, wr);
-          TrExpr(s.IsBindingGuard ? Translator.AlphaRename((ExistsExpr)s.Guard, "eg_d") : s.Guard, guardWriter, false, wStmts);
+          guardWriter.Append(TrExpr(s.IsBindingGuard ? Translator.AlphaRename((ExistsExpr)s.Guard, "eg_d") : s.Guard, false, wStmts));
           // We'd like to do "TrStmt(s.Thn, indent)", except we want the scope of any existential variables to come inside the block
           if (s.IsBindingGuard) {
             IntroduceAndAssignBoundVars((ExistsExpr)s.Guard, thenWriter);
@@ -3143,7 +3143,7 @@ namespace Microsoft.Dafny.Compilers {
         foreach (var alternative in s.Alternatives) {
           ConcreteSyntaxTree guardWriter;
           var thn = EmitIf(out guardWriter, true, wr);
-          TrExpr(alternative.IsBindingGuard ? Translator.AlphaRename((ExistsExpr)alternative.Guard, "eg_d") : alternative.Guard, guardWriter, false, wStmts);
+          guardWriter.Append(TrExpr(alternative.IsBindingGuard ? Translator.AlphaRename((ExistsExpr)alternative.Guard, "eg_d") : alternative.Guard, false, wStmts));
           if (alternative.IsBindingGuard) {
             IntroduceAndAssignBoundVars((ExistsExpr)alternative.Guard, thn);
           }
@@ -3531,17 +3531,17 @@ namespace Microsoft.Dafny.Compilers {
           EmitNull(bv.Type, wLo);
         } else if (bounds != null) {
           var low = SubstituteBound(b, bounds, boundVars, boundIndex, true);
-          TrExpr(su.Substitute(low), wLo, inLetExprBody, wStmts);
+          wLo.Append(TrExpr(su.Substitute(low), inLetExprBody, wStmts));
         } else {
-          TrExpr(su.Substitute(b.LowerBound), wLo, inLetExprBody, wStmts);
+          wLo.Append(TrExpr(su.Substitute(b.LowerBound), inLetExprBody, wStmts));
         }
         if (b.UpperBound == null) {
           EmitNull(bv.Type, wHi);
         } else if (bounds != null) {
           var high = SubstituteBound(b, bounds, boundVars, boundIndex, false);
-          TrExpr(su.Substitute(high), wHi, inLetExprBody, wStmts);
+          wHi.Append(TrExpr(su.Substitute(high), inLetExprBody, wStmts));
         } else {
-          TrExpr(su.Substitute(b.UpperBound), wHi, inLetExprBody, wStmts);
+          wHi.Append(TrExpr(su.Substitute(b.UpperBound), inLetExprBody, wStmts));
         }
         return type;
       } else if (bound is AssignSuchThatStmt.WiggleWaggleBound) {
@@ -5114,7 +5114,7 @@ namespace Microsoft.Dafny.Compilers {
             wr = EmitBlock(wr);
             var wStmts = wr.Fork();
             wr = EmitReturnExpr(wr);
-            TrExpr(new LiteralExpr(tok, elseReturnValue), wr, inLetExprBody, wStmts);
+            wr.Append(TrExpr(new LiteralExpr(tok, elseReturnValue), inLetExprBody, wStmts));
           }
           wr = thenWriter;
         }
@@ -5166,7 +5166,7 @@ namespace Microsoft.Dafny.Compilers {
           elseBranch = EmitBlock(elseBranch);
           elseBranch = EmitReturnExpr(elseBranch);
           wStmts = elseBranch.Fork();
-          TrExpr(new LiteralExpr(tok, elseReturnValue), elseBranch, inLetExprBody, wStmts);
+          elseBranch.Append(TrExpr(new LiteralExpr(tok, elseReturnValue), inLetExprBody, wStmts));
         }
         wr = thenWriter;
       }

@@ -111,7 +111,7 @@ public class CsharpSynthesizer {
     foreach (var ensureClause in method.Ens) {
       bounds = new();
       var wStmts = wr.Fork();
-      SynthesizeExpression(wr, ensureClause.E, wStmts);
+      wr.Append(SynthesizeExpression(ensureClause.E, wStmts));
     }
 
     // Return the mocked objects:
@@ -156,6 +156,7 @@ public class CsharpSynthesizer {
         return SynthesizeExpression(forallExpr, wStmts);
         break;
       case FreshExpr:
+        return new ConcreteSyntaxTree();
         break;
       default:
         // TODO: Have the resolver reject all these unimplemented cases,
@@ -189,7 +190,7 @@ public class CsharpSynthesizer {
       if (bound != null) { // if true, arg is a bound variable
         wr.Write(bound.Item2);
       } else {
-        compiler.wr.Append(TrExpr(arg, false, wStmts));
+        wr.Append(compiler.TrExpr(arg, false, wStmts));
       }
       if (i != applySuffix.Args.Count - 1) {
         wr.Write(", ");
@@ -202,9 +203,9 @@ public class CsharpSynthesizer {
     if (binaryExpr.Op == BinaryExpr.Opcode.And) {
       Dictionary<IVariable, string> oldBounds = bounds
         .ToDictionary(entry => entry.Key, entry => entry.Value);
-      SynthesizeExpression(wr, binaryExpr.E0, wStmts);
+      wr.Append(SynthesizeExpression(binaryExpr.E0, wStmts));
       bounds = oldBounds;
-      SynthesizeExpression(wr, binaryExpr.E1, wStmts);
+      wr.Append(SynthesizeExpression(binaryExpr.E1, wStmts));
       return;
     }
     if (binaryExpr.Op != BinaryExpr.Opcode.Eq) {
@@ -218,7 +219,7 @@ public class CsharpSynthesizer {
                                 "(field {0} of object {1} inside method {2})",
         ErrorWriter, fieldName, obj.Name, lastSynthesizedMethod.Name);
       wr.Format($"{objectToMockName[obj]}.SetupGet({obj.CompileName} => {obj.CompileName}.@{fieldName}).Returns( ");
-      compiler.wr.Append(TrExpr(binaryExpr.E1, false, wStmts));
+      wr.Append(compiler.TrExpr(binaryExpr.E1, false, wStmts));
       wr.WriteLine(");");
       return;
     }
@@ -244,7 +245,7 @@ public class CsharpSynthesizer {
       }
     }
     wr.Write(")=>");
-    compiler.wr.Append(TrExpr(binaryExpr.E1, false, wStmts));
+    wr.Append(compiler.TrExpr(binaryExpr.E1, false, wStmts));
     wr.WriteLine(");");
   }
 
@@ -274,7 +275,7 @@ public class CsharpSynthesizer {
     switch (binaryExpr.Op) {
       case BinaryExpr.Opcode.Imp:
         wr.Write("\treturn ");
-        compiler.wr.Append(TrExpr(binaryExpr.E0, false, wStmts));
+        wr.Append(compiler.TrExpr(binaryExpr.E0, false, wStmts));
         wr.WriteLine(";");
         binaryExpr = (BinaryExpr)binaryExpr.E1;
         break;
