@@ -2025,6 +2025,8 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr> {
     this.Op = original.Op;
     this.E0 = cloner.CloneExpr(original.E0);
     this.E1 = cloner.CloneExpr(original.E1);
+    this.SecondArgumentIsQuantifiedVariableRange = original.SecondArgumentIsQuantifiedVariableRange;
+    this.SecondArgumentIsDomainOfQuantifiedVariable = original.SecondArgumentIsDomainOfQuantifiedVariable;
 
     if (cloner.CloneResolvedFields) {
       ResolvedOp = original.ResolvedOp;
