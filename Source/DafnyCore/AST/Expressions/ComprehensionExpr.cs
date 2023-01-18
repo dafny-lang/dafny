@@ -415,7 +415,7 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
     Range = cloner.CloneExpr(original.Range);
     Attributes = cloner.CloneAttributes(original.Attributes);
     BodyStartTok = cloner.Tok(original.BodyStartTok);
-    BodyEndTok = cloner.Tok(original.RangeToken);
+    RangeToken = cloner.Tok(original.RangeToken);
     Term = cloner.CloneExpr(original.Term);
 
     if (cloner.CloneResolvedFields) {

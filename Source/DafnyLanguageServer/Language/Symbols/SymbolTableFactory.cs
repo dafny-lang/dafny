@@ -305,8 +305,8 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           moduleSymbol,
           moduleSymbol.Declaration.tok,
           moduleSymbol.Declaration.tok.GetLspRange(),
-          new Range(moduleSymbol.Declaration.tok.GetLspPosition(), moduleSymbol.Declaration.RangeToken.GetLspPosition())
-        );
+          moduleSymbol.Declaration.RangeToken.ToLspRange()
+          );
         VisitChildren(moduleSymbol);
         return Unit.Value;
       }

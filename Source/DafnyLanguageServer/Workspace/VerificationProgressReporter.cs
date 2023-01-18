@@ -89,7 +89,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
             }
 
             if (member is Field) {
-              var constantHasNoBody = member.RangeToken.line == 0;
+              var constantHasNoBody = member.RangeToken.EndToken.line == 0;
               if (constantHasNoBody) {
                 continue; // Nothing to verify
               }
@@ -114,7 +114,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
                 member.tok.GetLspPosition());
               AddAndPossiblyMigrateVerificationTree(verificationTree);
               if (member is Function { ByMethodBody: { } } function) {
-                var verificationTreeRangeByMethod = function.ByMethodTok.GetLspRange(function.ByMethodBody.RangeToken);
+                var verificationTreeRangeByMethod = function.ByMethodBody.RangeToken.ToLspRange();
                 var verificationTreeByMethod = new TopLevelDeclMemberVerificationTree(
                   "by method part of function",
                   member.Name,

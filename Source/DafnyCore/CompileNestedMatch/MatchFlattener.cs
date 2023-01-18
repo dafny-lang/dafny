@@ -750,7 +750,7 @@ public class MatchFlattener : IRewriter {
 
       var caseLocal = new LocalVariable(var.Tok, var.RangeToken, name, type, isGhost);
       caseLocal.type = type;
-      var casePattern = new CasePattern<LocalVariable>(caseLocal.RangeToken, caseLocal);
+      var casePattern = new CasePattern<LocalVariable>(caseLocal.RangeToken.EndToken, caseLocal);
       casePattern.AssembleExpr(new List<Type>());
       var caseLet = new VarDeclPattern(caseLocal.Tok, caseLocal.RangeToken, casePattern, expr, false);
       caseLet.IsGhost = isGhost;

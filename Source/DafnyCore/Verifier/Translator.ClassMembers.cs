@@ -645,7 +645,7 @@ namespace Microsoft.Dafny {
         m.Outs.Iter(p => AddExistingDefiniteAssignmentTracker(p, m.IsGhost));
         // translate the body
         TrStmt(m.Body, builder, localVariables, etran);
-        m.Outs.Iter(p => CheckDefiniteAssignmentReturn(m.Body.RangeToken, p, builder));
+        m.Outs.Iter(p => CheckDefiniteAssignmentReturn(m.Body.RangeToken.EndToken, p, builder));
         stmts = builder.Collect(m.Body.Tok);
         // tear down definite-assignment trackers
         m.Outs.Iter(RemoveDefiniteAssignmentTracker);

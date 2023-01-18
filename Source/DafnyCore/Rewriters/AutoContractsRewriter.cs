@@ -289,7 +289,7 @@ public class AutoContractsRewriter : IRewriter {
             s.IsGhost = true;
             sbs.AppendStmt(s);
           }
-          AddSubobjectReprs(tok, ctor.RangeToken, subobjects, sbs, n, implicitSelf, Repr);
+          AddSubobjectReprs(tok, ctor.RangeToken.EndToken, subobjects, sbs, n, implicitSelf, Repr);
         }
 
       } else if (member is Method && !member.IsStatic && Valid != null) {
@@ -336,7 +336,7 @@ public class AutoContractsRewriter : IRewriter {
 
         if (addStatementsToUpdateRepr && m.Body != null) {
           var methodBody = (BlockStmt)m.Body;
-          AddSubobjectReprs(tok, methodBody.RangeToken, subobjects, methodBody, methodBody.Body.Count, implicitSelf, Repr);
+          AddSubobjectReprs(tok, methodBody.RangeToken.EndToken, subobjects, methodBody, methodBody.Body.Count, implicitSelf, Repr);
         }
       }
     }

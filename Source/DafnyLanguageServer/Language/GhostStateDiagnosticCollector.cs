@@ -93,7 +93,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         } else {
           startToken = updateStatement.Tok;
         }
-        return CreateRange(startToken, updateStatement.RangeToken);
+        return CreateRange(startToken, updateStatement.RangeToken.EndToken);
       }
 
       private static IToken GetStartTokenFromResolvedStatement(Statement resolvedStatement) {

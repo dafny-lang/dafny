@@ -3350,12 +3350,8 @@ namespace Microsoft.Dafny {
       }
     }
 
-    internal IToken GetToken(Expression expression) {
-      return flags.ReportRanges ? expression.RangeToken : expression.tok;
-    }
-
-    internal IToken GetToken(Statement stmt) {
-      return flags.ReportRanges ? stmt.RangeToken : stmt.Tok;
+    internal IToken GetToken(INode node) {
+      return flags.ReportRanges ? node.RangeToken.ToToken() : node.tok;
     }
 
     void CheckDefiniteAssignment(IdentifierExpr expr, BoogieStmtListBuilder builder) {

@@ -278,8 +278,8 @@ namespace Microsoft.Dafny {
 
         // The "new;" translates into an allocation of "this"
         AddComment(builder, stmt, "new;");
-        fields.Iter(f => CheckDefiniteAssignmentSurrogate(s.SeparatorTok ?? s.RangeToken, f, true, builder));
-        fields.Iter(f => RemoveDefiniteAssignmentTrackerSurrogate(f));
+        fields.Iter(f => CheckDefiniteAssignmentSurrogate(s.SeparatorTok ?? s.RangeToken.EndToken, f, true, builder));
+        fields.Iter(RemoveDefiniteAssignmentTrackerSurrogate);
         var th = new ThisExpr(cl);
         var bplThis = (Bpl.IdentifierExpr)etran.TrExpr(th);
         SelectAllocateObject(tok, bplThis, th.Type, false, builder, etran);

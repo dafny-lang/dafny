@@ -788,7 +788,7 @@ public class LocalVariable : INode, IVariable, IAttributeBearingDeclaration {
 
   public LocalVariable(Cloner clone, LocalVariable original) {
     Tok = clone.Tok(original.Tok);
-    EndTok = clone.Tok(original.RangeToken);
+    EndTok = clone.Tok(original.RangeToken.EndToken);
     name = original.Name;
     OptionalType = clone.CloneType(original.OptionalType);
     IsGhost = original.IsGhost;

@@ -1004,14 +1004,14 @@ namespace Microsoft.Dafny {
         }
         var bodyProper = MergeStmtList(sbsSkeleton.BodyProper, sbsOldStmt.BodyProper, out hoverText);
         if (hoverText.Length != 0) {
-          Reporter.Info(MessageSource.RefinementTransformer, sbsSkeleton.RangeToken, hoverText);
+          Reporter.Info(MessageSource.RefinementTransformer, sbsSkeleton.RangeToken.ToToken(), hoverText);
         }
         return new DividedBlockStmt(sbsSkeleton.Tok, sbsSkeleton.RangeToken, bodyInit, sbsSkeleton.SeparatorTok, bodyProper);
       } else {
         string hoverText;
         var body = MergeStmtList(skeleton.Body, oldStmt.Body, out hoverText);
         if (hoverText.Length != 0) {
-          Reporter.Info(MessageSource.RefinementTransformer, skeleton.RangeToken, hoverText);
+          Reporter.Info(MessageSource.RefinementTransformer, skeleton.RangeToken.ToToken(), hoverText);
         }
         return new BlockStmt(skeleton.Tok, skeleton.RangeToken, body);
       }

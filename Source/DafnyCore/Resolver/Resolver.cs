@@ -2693,9 +2693,9 @@ namespace Microsoft.Dafny {
               kk = new IdentifierExpr(k.tok, k.Name);
               els = null;
             }
-            var kPositive = new BinaryExpr(com.RangeToken, BinaryExpr.Opcode.Lt, new LiteralExpr(com.RangeToken, 0), kk);
+            var kPositive = new BinaryExpr(com.tok, BinaryExpr.Opcode.Lt, new LiteralExpr(com.tok, 0), kk);
             var condBody = new IfStmt(com.BodyStartTok, mainBody.RangeToken, false, kPositive, mainBody, els);
-            prefixLemma.Body = new BlockStmt(com.RangeToken, condBody.RangeToken, new List<Statement>() { condBody });
+            prefixLemma.Body = new BlockStmt(com.tok, condBody.RangeToken, new List<Statement>() { condBody });
           }
           // The prefix lemma now has all its components, so it's finally time we resolve it
           currentClass = (TopLevelDeclWithMembers)prefixLemma.EnclosingClass;
