@@ -955,18 +955,26 @@ namespace Microsoft.Dafny {
   }
 
   class QuantifiedVariableDomainCloner : Cloner {
-    public static readonly QuantifiedVariableDomainCloner Instance = new QuantifiedVariableDomainCloner();
+    public static readonly QuantifiedVariableDomainCloner Instance = new();
     private QuantifiedVariableDomainCloner() { }
-    public override IToken Tok(IToken tok) {
-      return new QuantifiedVariableDomainToken(tok);
+    public override Expression CloneExpr(Expression expr) {
+      var result = base.CloneExpr(expr);
+      if (result is BinaryExpr binaryExpr) {
+        binaryExpr.SecondArgumentIsDomainOfQuantifiedVariable = true;
+      }
+      return result;
     }
   }
 
   class QuantifiedVariableRangeCloner : Cloner {
-    public static readonly QuantifiedVariableRangeCloner Instance = new QuantifiedVariableRangeCloner();
+    public static readonly QuantifiedVariableRangeCloner Instance = new();
     private QuantifiedVariableRangeCloner() { }
-    public override IToken Tok(IToken tok) {
-      return new QuantifiedVariableRangeToken(tok);
+    public override Expression CloneExpr(Expression expr) {
+      var result = base.CloneExpr(expr);
+      if (result is BinaryExpr binaryExpr) {
+        binaryExpr.SecondArgumentIsQuantifiedVariableRange = true;
+      }
+      return result;
     }
   }
 

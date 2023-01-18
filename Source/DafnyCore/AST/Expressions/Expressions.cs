@@ -1711,6 +1711,8 @@ public class TypeTestExpr : TypeUnaryExpr {
 }
 
 public class BinaryExpr : Expression, ICloneable<BinaryExpr> {
+  public bool SecondArgumentIsDomainOfQuantifiedVariable { get; set; }
+  public bool SecondArgumentIsQuantifiedVariableRange { get; set; }
   public enum Opcode {
     Iff,
     Imp,
