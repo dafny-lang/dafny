@@ -4459,7 +4459,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(expr != null);
       Contract.Requires(wr != null);
       Contract.Requires(wStmts != null);
-      TrExpr(expr, wr.ForkInParens(), inLetExprBody, wStmts);
+      wr.ForkInParens().Append(TrExpr(expr, inLetExprBody, wStmts));
     }
 
     /// <summary>
