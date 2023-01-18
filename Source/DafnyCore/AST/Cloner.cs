@@ -659,7 +659,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       return tok;
     }
-    
+
     public virtual RangeToken Tok(RangeToken tok) {
       Contract.Requires(tok != null);
       return tok;

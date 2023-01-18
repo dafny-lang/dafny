@@ -393,7 +393,7 @@ public class LiteralModuleDecl : ModuleDecl {
     TokenWithTrailingDocString = module.TokenWithTrailingDocString;
     BodyStartTok = module.BodyStartTok;
   }
-  
+
   public override object Dereference() { return ModuleDef; }
 }
 

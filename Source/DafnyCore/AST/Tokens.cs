@@ -155,7 +155,7 @@ public abstract class TokenWrapper : IToken {
 
 public class RangeToken { // TODO rename to remove Token from the name
   public string Filename => StartToken.Filename;
-  
+
   // The wrapped token is the startTok
   private IToken endTok;
   public IToken StartToken { get; }

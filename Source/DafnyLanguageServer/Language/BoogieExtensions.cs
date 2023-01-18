@@ -28,7 +28,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         ToLspPosition(range.EndToken.line, range.EndToken.col + range.EndToken.val.Length)
       );
     }
-    
+
     /// <summary>
     /// Gets the LSP range of the specified token.
     /// </summary>
