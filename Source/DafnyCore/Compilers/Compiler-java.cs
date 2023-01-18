@@ -1355,7 +1355,11 @@ namespace Microsoft.Dafny.Compilers {
         GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, objType, out var compiledName, out _, out _);
         if (compiledName.Length != 0) {
           if (member.EnclosingClass is DatatypeDecl) {
-            return SuffixLvalue(obj, $".{compiledName}()");
+            if (member.EnclosingClass is TupleTypeDecl && IsCharBasedType(sf.Type.Subst(typeMap)) && UnicodeCharEnabled) {
+              return SuffixLvalue(obj, $".{compiledName}().value()");
+            } else {
+              return SuffixLvalue(obj, $".{compiledName}()");
+            }
           } else {
             return SuffixLvalue(obj, $".{compiledName}");
           }
@@ -1366,7 +1370,8 @@ namespace Microsoft.Dafny.Compilers {
       } else if (member is Function fn) {
         var wr = new ConcreteSyntaxTree();
         EmitNameAndActualTypeArgs(IdName(member), TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, member, false)), member.tok, wr);
-        if (typeArgs.Count == 0 && additionalCustomParameter == null) {
+        // TODO: needs to be ... && !AnyCoersionsNeeded(...)
+        if (typeArgs.Count == 0 && additionalCustomParameter == null && false) {
           var nameAndTypeArgs = wr.ToString();
           return SuffixLvalue(obj, $"::{nameAndTypeArgs}");
         } else {
@@ -1394,7 +1399,15 @@ namespace Microsoft.Dafny.Compilers {
           }
           prefixWr.Write(") -> ");
           wr.Write(")");
-          return EnclosedLvalue(prefixWr.ToString(), obj, $".{wr.ToString()}");
+          
+          // TODO: Need to check arguments as well. Probably could use something like EmitCoercionIfNecessary
+          // That works in this context too?
+          if (fn.ResultType.IsCharType && UnicodeCharEnabled) {
+            prefixWr.Write("dafny.CodePoint.valueOf(");
+            wr.Write(")");
+          }
+
+          return EnclosedLvalue(prefixWr.ToString(), obj, $".{wr}");
         }
       } else {
         var field = (Field)member;
@@ -3248,6 +3261,7 @@ namespace Microsoft.Dafny.Compilers {
       if (ctor.EnclosingDatatype is TupleTypeDecl tupleTypeDecl) {
         Contract.Assert(tupleTypeDecl.NonGhostDims != 1); // such a tuple is an erasable-wrapper type, handled above
         dtorName = $"dtor__{dtor.NameForCompilation}()";
+        wr = EmitCoercionIfNecessary(NativeObjectType, dtor.Type, dtor.tok, wr);
       } else {
         dtorName = FieldName(dtor, formalNonGhostIndex);
       }
@@ -3753,19 +3767,19 @@ namespace Microsoft.Dafny.Compilers {
         return udtFrom.TypeArgs[0].IsTypeParameter && !udtTo.TypeArgs[0].IsTypeParameter;
       }
       
-      if (from.IsArrowType && to.IsArrowType) {
-        ArrowType fat = from.AsArrowType, tat = to.AsArrowType;
-        if (IsCoercionNecessary(fat.Result, tat.Result)) {
-          return true;
-        }
-        for (int i = 0; i < fat.Args.Count; i++) {
-          if (IsCoercionNecessary(tat.Args[i], fat.Args[i])) {
-            return true;
-          }
-        }
-
-        return false;
-      }
+      // if (from.IsArrowType && to.IsArrowType) {
+      //   ArrowType fat = from.AsArrowType, tat = to.AsArrowType;
+      //   if (IsCoercionNecessary(fat.Result, tat.Result)) {
+      //     return true;
+      //   }
+      //   for (int i = 0; i < fat.Args.Count; i++) {
+      //     if (IsCoercionNecessary(tat.Args[i], fat.Args[i])) {
+      //       return true;
+      //     }
+      //   }
+      //
+      //   return false;
+      // }
 
       return false;
     }
@@ -3803,24 +3817,24 @@ namespace Microsoft.Dafny.Compilers {
         // Need to box from int to CodePoint, or unbox from CodePoint to int
 
         if (IsObjectType(from) && IsCharBasedType(to)) {
-          wr.Write($"((dafny.CodePoint)(");
+          wr.Write("((dafny.CodePoint)(");
           var w = wr.Fork();
           wr.Write(")).value()");
           return w;
         }
 
         if (IsCharBasedType(from) && IsObjectType(to)) {
-          wr.Write($"dafny.CodePoint.valueOf(");
+          wr.Write("dafny.CodePoint.valueOf(");
           var w = wr.Fork();
           wr.Write(")");
           return w;
         }
       }
 
-      if (from is { IsArrowType: true } && to is { IsArrowType: true }) {
-        ArrowType fat = from.AsArrowType, tat = to.AsArrowType;
-        return EmitArrowCoercion(fat, tat, tok, wr);
-      }
+      // if (from is { IsArrowType: true } && to is { IsArrowType: true }) {
+      //   ArrowType fat = from.AsArrowType, tat = to.AsArrowType;
+      //   return EmitArrowCoercion(fat, tat, tok, wr);
+      // }
 
       if (IsCoercionNecessary(from, to)) {
         return EmitDowncast(from, to, tok, wr);
@@ -3852,7 +3866,7 @@ namespace Microsoft.Dafny.Compilers {
         wCall = wBody;
       } else {
         wBody.Write("return ");
-        wCall = EmitCoercionIfNecessary(@from: fat.Result, to: tat.Result, tok: tok, wr: wBody);
+        wCall = EmitCoercionIfNecessary(from: fat.Result, to: tat.Result, tok: tok, wr: wBody);
       }
       wCall.Write($"{bvName}(");
       Contract.Assert(fat.Args.Count == tat.Args.Count);
@@ -3861,7 +3875,7 @@ namespace Microsoft.Dafny.Compilers {
         var fromArgType = fat.Args[i];
         var toArgType = tat.Args[i];
         wCall.Write(sep);
-        var w = EmitCoercionIfNecessary(@from: toArgType, to: fromArgType, tok: tok, wr: wCall);
+        var w = EmitCoercionIfNecessary(from: toArgType, to: fromArgType, tok: tok, wr: wCall);
         w.Write(args[i]);
         sep = ", ";
       }
@@ -4163,12 +4177,23 @@ namespace Microsoft.Dafny.Compilers {
     protected override void CreateIIFE(string bvName, Type bvType, IToken bvTok, Type bodyType, IToken bodyTok,
       ConcreteSyntaxTree wr, ref ConcreteSyntaxTree wStmts, out ConcreteSyntaxTree wrRhs, out ConcreteSyntaxTree wrBody) {
       wr = EmitCoercionIfNecessary(NativeObjectType, bodyType, bvTok, wr);
-      wr.Write("{0}.<{1}, {2}>Let(", DafnyHelpersClass, BoxedTypeName(bvType, wr, bvTok), BoxedTypeName(bodyType, wr, bodyTok));
+      var boxedBvType = BoxedTypeName(bvType, wr, bvTok);
+      wr.Write("{0}.<{1}, {2}>Let(", DafnyHelpersClass, boxedBvType, BoxedTypeName(bodyType, wr, bodyTok));
       wrRhs = wr.Fork();
       wrRhs = EmitCoercionIfNecessary(bvType, NativeObjectType, bvTok, wrRhs);
-      wr.Write($", {bvName} -> ");
-      wrBody = wr.Fork();
+      
+      var boxedBvName = idGenerator.FreshId("boxed");
+      wr.Write($", {boxedBvName} ->");
+      var wrBodyWithCoercion = wr.NewBlock();
+      wrBodyWithCoercion.Write($"{TypeName(bvType, wr, bvTok)} {bvName} = ");
+      var wrUnboxed = EmitCoercionIfNecessary(NativeObjectType, bvType, bvTok, wrBodyWithCoercion.Fork());
+      wrUnboxed.Write(boxedBvName);
+      wrBodyWithCoercion.WriteLine(";");
+
+      wrBodyWithCoercion.Write("return ");
+      wrBody = wrBodyWithCoercion.Fork();
       wrBody = EmitCoercionIfNecessary(bodyType, NativeObjectType, bodyTok, wrBody);
+      wrBodyWithCoercion.WriteLine(";");
       wr.Write(")");
     }
 

@@ -73,6 +73,21 @@ namespace Microsoft.Dafny {
       return this;
     }
 
+    public ConcreteSyntaxTree Comma<T>(IEnumerable<T> elements, Action<T> a) {
+      return Comma(", ", elements, a);
+    }
+    
+    public ConcreteSyntaxTree Comma<T>(string comma, IEnumerable<T> elements, Action<T> a) {
+      var sep = "";
+      foreach (var element in elements) {
+        Write(sep);
+        a(element);
+        sep = comma;
+      }
+
+      return this;
+    }
+
     [StringFormatMethod("format")]
     public ConcreteSyntaxTree Write(string format, params object[] args) {
       Write(string.Format(format, args));
