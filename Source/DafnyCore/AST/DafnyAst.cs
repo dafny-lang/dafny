@@ -24,14 +24,14 @@ namespace Microsoft.Dafny {
   [System.AttributeUsage(System.AttributeTargets.Field | System.AttributeTargets.Property)]
   public class FilledInDuringResolutionAttribute : System.Attribute { }
 
-  public interface IDeclarationOrUsage : IINode {
+  public interface IDeclarationOrUsage : INode {
     IToken NameToken { get; }
   }
 
   public interface IHasUsages : IDeclarationOrUsage {
     public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations();
   }
-  public class Program : INode {
+  public class Program : Node {
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(FullName != null);
@@ -94,12 +94,12 @@ namespace Microsoft.Dafny {
       return DefaultModuleDef.GetFirstTopLevelToken();
     }
 
-    public override IEnumerable<INode> Children => new[] { DefaultModule };
+    public override IEnumerable<Node> Children => new[] { DefaultModule };
 
-    public IEnumerable<INode> ConcreteChildren => Children;
+    public IEnumerable<Node> ConcreteChildren => Children;
   }
 
-  public class Include : INode, IComparable {
+  public class Include : Node, IComparable {
     public string IncluderFilename { get; }
     public string IncludedFilename { get; }
     public string CanonicalPath { get; }
@@ -124,7 +124,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public override IEnumerable<INode> Children => Enumerable.Empty<INode>();
+    public override IEnumerable<Node> Children => Enumerable.Empty<Node>();
   }
 
   /// <summary>
@@ -143,7 +143,7 @@ namespace Microsoft.Dafny {
     Attributes Attributes { get; }
   }
 
-  public class Attributes : INode {
+  public class Attributes : Node {
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Name != null);
@@ -312,10 +312,10 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public override IEnumerable<INode> Children => Args.Concat<INode>(
+    public override IEnumerable<Node> Children => Args.Concat<Node>(
       Prev == null
-        ? Enumerable.Empty<INode>()
-        : new List<INode> { Prev });
+        ? Enumerable.Empty<Node>()
+        : new List<Node> { Prev });
   }
 
   public static class AttributesExtensions {
@@ -347,7 +347,7 @@ namespace Microsoft.Dafny {
   }
 
 
-  public abstract class INamedRegion : INode {
+  public abstract class INamedRegion : Node {
     string Name { get; }
   }
 
@@ -391,7 +391,7 @@ namespace Microsoft.Dafny {
     }
   }
   [ContractClassFor(typeof(IVariable))]
-  public abstract class IVariableContracts : INode, IVariable {
+  public abstract class IVariableContracts : Node, IVariable {
     public string Name {
       get {
         Contract.Ensures(Contract.Result<string>() != null);
@@ -460,7 +460,7 @@ namespace Microsoft.Dafny {
     public abstract IToken NameToken { get; }
   }
 
-  public abstract class NonglobalVariable : INode, IVariable {
+  public abstract class NonglobalVariable : Node, IVariable {
     readonly string name;
 
     [ContractInvariantMethod]
@@ -576,7 +576,7 @@ namespace Microsoft.Dafny {
     }
 
     public IToken NameToken => tok;
-    public override IEnumerable<INode> Children => IsTypeExplicit ? Type.Nodes : Enumerable.Empty<INode>();
+    public override IEnumerable<Node> Children => IsTypeExplicit ? Type.Nodes : Enumerable.Empty<Node>();
   }
 
   public class Formal : NonglobalVariable {
@@ -717,12 +717,12 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class ActualBinding : INode {
+  public class ActualBinding : Node {
     public readonly IToken /*?*/ FormalParameterName;
     public readonly Expression Actual;
     public readonly bool IsGhost;
 
-    public override IEnumerable<INode> Children => new List<INode> { Actual }.Where(x => x != null);
+    public override IEnumerable<Node> Children => new List<Node> { Actual }.Where(x => x != null);
     // Names are owned by the method call
 
     public ActualBinding(IToken /*?*/ formalParameterName, Expression actual, bool isGhost = false) {
@@ -733,7 +733,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class ActualBindings : INode {
+  public class ActualBindings : Node {
     public readonly List<ActualBinding> ArgumentBindings;
 
     public ActualBindings(List<ActualBinding> argumentBindings) {
@@ -768,7 +768,7 @@ namespace Microsoft.Dafny {
       arguments = args ?? ArgumentBindings.ConvertAll(binding => binding.Actual);
     }
 
-    public override IEnumerable<INode> Children => arguments == null ? ArgumentBindings : arguments;
+    public override IEnumerable<Node> Children => arguments == null ? ArgumentBindings : arguments;
   }
 
   class QuantifiedVariableDomainCloner : Cloner {
@@ -787,8 +787,8 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class Specification<T> : INode, IAttributeBearingDeclaration
-    where T : INode {
+  public class Specification<T> : Node, IAttributeBearingDeclaration
+    where T : Node {
     public readonly List<T> Expressions;
 
     [ContractInvariantMethod]
@@ -808,7 +808,7 @@ namespace Microsoft.Dafny {
       return Attributes != null;
     }
 
-    public override IEnumerable<INode> Children => Expressions;
+    public override IEnumerable<Node> Children => Expressions;
   }
 
   public class BottomUpVisitor {

@@ -163,7 +163,7 @@ public class CalcStmt : Statement, ICloneable<CalcStmt> {
 
   public static readonly CalcOp DefaultOp = new BinaryCalcOp(BinaryExpr.Opcode.Eq);
 
-  public override IEnumerable<INode> Children => Steps.Concat(new INode[] { Result }).Concat(Hints);
+  public override IEnumerable<Node> Children => Steps.Concat(new Node[] { Result }).Concat(Hints);
 
   [ContractInvariantMethod]
   void ObjectInvariant() {

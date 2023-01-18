@@ -3350,7 +3350,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    internal IToken GetToken(INode node) {
+    internal IToken GetToken(Node node) {
       return flags.ReportRanges ? node.RangeToken.ToToken() : node.tok;
     }
 

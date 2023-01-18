@@ -7,7 +7,7 @@ using System.Security.Policy;
 
 namespace Microsoft.Dafny;
 
-public abstract class Statement : INode, IAttributeBearingDeclaration {
+public abstract class Statement : Node, IAttributeBearingDeclaration {
   public IToken EndTok { get; set; }  // typically a terminating semi-colon or end-curly-brace
   public LList<Label> Labels;  // mutable during resolution
 
@@ -160,9 +160,9 @@ public abstract class Statement : INode, IAttributeBearingDeclaration {
     }
   }
 
-  public override IEnumerable<INode> Children =>
-    (Attributes != null ? new List<INode> { Attributes } : Enumerable.Empty<INode>()).Concat(
-      SubStatements.Concat<INode>(SubExpressions));
+  public override IEnumerable<Node> Children =>
+    (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(
+      SubStatements.Concat<Node>(SubExpressions));
 }
 
 public class LList<T> {
@@ -288,8 +288,8 @@ public abstract class ProduceStmt : Statement {
     HiddenUpdate = null;
   }
 
-  public override IEnumerable<INode> Children =>
-    HiddenUpdate == null ? base.Children : new INode[] { HiddenUpdate }.Concat(base.Children);
+  public override IEnumerable<Node> Children =>
+    HiddenUpdate == null ? base.Children : new Node[] { HiddenUpdate }.Concat(base.Children);
 
   public override IEnumerable<Expression> NonSpecificationSubExpressions {
     get {
@@ -336,7 +336,7 @@ public class YieldStmt : ProduceStmt, ICloneable<YieldStmt> {
   }
 }
 
-public abstract class AssignmentRhs : INode, IAttributeBearingDeclaration {
+public abstract class AssignmentRhs : Node, IAttributeBearingDeclaration {
   private Attributes attributes;
   public Attributes Attributes {
     get {
@@ -414,7 +414,7 @@ public class ExprRhs : AssignmentRhs {
     }
   }
 
-  public override IEnumerable<INode> Children => new[] { Expr };
+  public override IEnumerable<Node> Children => new[] { Expr };
 }
 
 /// <summary>
@@ -583,7 +583,7 @@ public class TypeRhs : AssignmentRhs, ICloneable<TypeRhs> {
   }
 
   public IToken Start => Tok;
-  public override IEnumerable<INode> Children {
+  public override IEnumerable<Node> Children {
     get {
       if (ArrayDimensions == null) {
         if (InitCall != null) {
@@ -593,7 +593,7 @@ public class TypeRhs : AssignmentRhs, ICloneable<TypeRhs> {
         return EType.Nodes;
       }
 
-      return EType.Nodes.Concat(SubExpressions).Concat<INode>(SubStatements);
+      return EType.Nodes.Concat(SubExpressions).Concat<Node>(SubStatements);
     }
   }
 }
@@ -603,7 +603,7 @@ public class HavocRhs : AssignmentRhs {
     : base(tok) {
   }
   public override bool CanAffectPreviouslyKnownExpressions { get { return false; } }
-  public override IEnumerable<INode> Children => Enumerable.Empty<INode>();
+  public override IEnumerable<Node> Children => Enumerable.Empty<Node>();
 }
 
 public class VarDeclStmt : Statement, ICloneable<VarDeclStmt> {
@@ -649,7 +649,7 @@ public class VarDeclStmt : Statement, ICloneable<VarDeclStmt> {
     }
   }
 
-  public override IEnumerable<INode> Children => Locals.Concat<INode>(SubStatements);
+  public override IEnumerable<Node> Children => Locals.Concat<Node>(SubStatements);
 }
 
 public class VarDeclPattern : Statement, ICloneable<VarDeclPattern> {
@@ -683,8 +683,8 @@ public class VarDeclPattern : Statement, ICloneable<VarDeclPattern> {
     }
   }
 
-  public override IEnumerable<INode> Children =>
-    new List<INode> { LHS }.Concat(base.Children);
+  public override IEnumerable<Node> Children =>
+    new List<Node> { LHS }.Concat(base.Children);
 
   public IEnumerable<LocalVariable> LocalVars {
     get {
@@ -734,7 +734,7 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt> {
   [FilledInDuringResolution] public List<Statement> ResolvedStatements;
   public override IEnumerable<Statement> SubStatements => Children.OfType<Statement>();
 
-  public override IEnumerable<INode> Children => ResolvedStatements ?? Lhss.Concat<INode>(Rhss);
+  public override IEnumerable<Node> Children => ResolvedStatements ?? Lhss.Concat<Node>(Rhss);
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -774,7 +774,7 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt> {
   }
 }
 
-public class LocalVariable : INode, IVariable, IAttributeBearingDeclaration {
+public class LocalVariable : Node, IVariable, IAttributeBearingDeclaration {
   public readonly IToken EndTok;  // typically a terminating semi-colon or end-curly-brace
   readonly string name;
   public Attributes Attributes;
@@ -881,17 +881,17 @@ public class LocalVariable : INode, IVariable, IAttributeBearingDeclaration {
 
   public IToken NameToken => Tok;
   public bool IsTypeExplicit = false;
-  public override IEnumerable<INode> Children =>
-    (Attributes != null ? new List<INode> { Attributes } : Enumerable.Empty<INode>()).Concat(
-      IsTypeExplicit ? new List<INode>() { type } : Enumerable.Empty<INode>());
+  public override IEnumerable<Node> Children =>
+    (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(
+      IsTypeExplicit ? new List<Node>() { type } : Enumerable.Empty<Node>());
 }
 
-public class GuardedAlternative : INode, IAttributeBearingDeclaration {
+public class GuardedAlternative : Node, IAttributeBearingDeclaration {
   public readonly bool IsBindingGuard;
   public readonly Expression Guard;
   public readonly List<Statement> Body;
   public Attributes Attributes;
-  public override IEnumerable<INode> Children => (Attributes != null ? new List<INode> { Attributes } : Enumerable.Empty<INode>()).Concat(new List<INode>() { Guard }).Concat<INode>(Body);
+  public override IEnumerable<Node> Children => (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(new List<Node>() { Guard }).Concat<Node>(Body);
   Attributes IAttributeBearingDeclaration.Attributes => Attributes;
 
   [ContractInvariantMethod]

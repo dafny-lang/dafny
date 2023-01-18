@@ -15,7 +15,7 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
     Contract.Invariant(cce.NonNullElements(Args));
   }
 
-  public override IEnumerable<INode> Children => Lhs.Concat(new INode[] { MethodSelect, Bindings });
+  public override IEnumerable<Node> Children => Lhs.Concat(new Node[] { MethodSelect, Bindings });
   public readonly List<Expression> Lhs;
   public readonly MemberSelectExpr MethodSelect;
   public readonly ActualBindings Bindings;

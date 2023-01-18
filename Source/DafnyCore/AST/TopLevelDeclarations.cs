@@ -140,7 +140,7 @@ public abstract class Declaration : INamedRegion, IAttributeBearingDeclaration, 
 
   internal FreshIdGenerator IdGenerator = new();
   public IToken NameToken => tok;
-  public override IEnumerable<INode> Children => (Attributes != null ? new List<INode> { Attributes } : Enumerable.Empty<INode>());
+  public override IEnumerable<Node> Children => (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>());
 }
 
 public class TypeParameter : TopLevelDecl {
@@ -384,7 +384,7 @@ public class LiteralModuleDecl : ModuleDecl {
     return DefaultExport;
   }
 
-  public override IEnumerable<INode> Children => new[] { ModuleDef };
+  public override IEnumerable<Node> Children => new[] { ModuleDef };
 
   public LiteralModuleDecl(ModuleDefinition module, ModuleDefinition parent)
     : base(module.tok, module.Name, parent, false, false) {
@@ -489,7 +489,7 @@ public class ModuleExportDecl : ModuleDecl {
 
 }
 
-public class ExportSignature : INode, IHasUsages {
+public class ExportSignature : Node, IHasUsages {
   public readonly IToken ClassIdTok;
   public readonly bool Opaque;
   public readonly string ClassId;
@@ -534,7 +534,7 @@ public class ExportSignature : INode, IHasUsages {
   }
 
   public IToken NameToken => Tok;
-  public override IEnumerable<INode> Children => Enumerable.Empty<INode>();
+  public override IEnumerable<Node> Children => Enumerable.Empty<Node>();
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return new[] { Decl };
   }
@@ -943,7 +943,7 @@ public class ModuleDefinition : INamedRegion, IDeclarationOrUsage, IAttributeBea
   }
 
   public IToken NameToken => tok;
-  public override IEnumerable<INode> Children => (Attributes != null ? new List<INode> { Attributes } : Enumerable.Empty<INode>()).Concat(TopLevelDecls);
+  public override IEnumerable<Node> Children => (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(TopLevelDecls);
 }
 
 public class DefaultModuleDecl : ModuleDefinition {
@@ -1053,7 +1053,7 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
   }
 
   public bool AllowsAllocation => true;
-  public override IEnumerable<INode> Children => Enumerable.Empty<INode>();
+  public override IEnumerable<Node> Children => Enumerable.Empty<Node>();
 
   /// <summary>
   /// A top-level declaration is considered "essentially empty" if there is no way it could generate any resolution error
@@ -1154,7 +1154,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl {
     return types;
   }
 
-  public override IEnumerable<INode> Children {
+  public override IEnumerable<Node> Children {
     get {
       return Members.Concat(ParentTraits.SelectMany(parentTrait => parentTrait.Nodes));
     }
@@ -1368,7 +1368,7 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
     Contract.Invariant(1 <= Ctors.Count);
   }
 
-  public override IEnumerable<INode> Children => Ctors.Concat<INode>(base.Children);
+  public override IEnumerable<Node> Children => Ctors.Concat<Node>(base.Children);
 
   public DatatypeDecl(IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs,
     [Captured] List<DatatypeCtor> ctors, List<MemberDecl> members, Attributes attributes, bool isRefining)
@@ -1533,7 +1533,7 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType {
       Destructors.Count == Formals.Count);  // after resolution
   }
 
-  public override IEnumerable<INode> Children => base.Children.Concat(Formals);
+  public override IEnumerable<Node> Children => base.Children.Concat(Formals);
 
   // TODO: One could imagine having a precondition on datatype constructors
   [FilledInDuringResolution] public DatatypeDecl EnclosingDatatype;
@@ -2067,7 +2067,7 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl {
     }
   }
 
-  public override IEnumerable<INode> Children => base.Children.Concat(Rhs.Nodes);
+  public override IEnumerable<Node> Children => base.Children.Concat(Rhs.Nodes);
 
   string RedirectingTypeDecl.Name { get { return Name; } }
   IToken RedirectingTypeDecl.tok { get { return tok; } }
@@ -2154,7 +2154,7 @@ public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl {
     WitnessKind = witnessKind;
   }
 
-  public override IEnumerable<INode> Children => base.Children.Concat(new[] { Constraint });
+  public override IEnumerable<Node> Children => base.Children.Concat(new[] { Constraint });
 
   BoundVar RedirectingTypeDecl.Var { get { return Var; } }
   Expression RedirectingTypeDecl.Constraint { get { return Constraint; } }

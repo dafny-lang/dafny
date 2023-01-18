@@ -52,5 +52,5 @@ public class AlternativeStmt : Statement, ICloneable<AlternativeStmt> {
     }
   }
 
-  public override IEnumerable<INode> Children => Alternatives;
+  public override IEnumerable<Node> Children => Alternatives;
 }

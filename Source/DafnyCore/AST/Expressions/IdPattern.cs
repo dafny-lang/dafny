@@ -64,7 +64,7 @@ public class IdPattern : ExtendedPattern, IHasUsages {
     }
   }
 
-  public override IEnumerable<INode> Children => Arguments ?? Enumerable.Empty<INode>();
+  public override IEnumerable<Node> Children => Arguments ?? Enumerable.Empty<Node>();
 
   public override void Resolve(Resolver resolver, ResolutionContext resolutionContext,
     Type sourceType, bool isGhost, bool mutable,

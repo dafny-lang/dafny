@@ -58,7 +58,7 @@ public class MatchFlattener : IRewriter {
     }
   }
 
-  private void FlattenNode(INode moduleDefinition) {
+  private void FlattenNode(Node moduleDefinition) {
     moduleDefinition.Visit(node => {
       if (node != moduleDefinition && node is ModuleDefinition) {
         // The resolver clones module definitions for compilation, but also the top level module which also contains the uncloned definitions,
@@ -617,7 +617,7 @@ public class MatchFlattener : IRewriter {
     }
   }
 
-  record CaseBody(IToken Tok, INode Node, Attributes Attributes = null);
+  record CaseBody(IToken Tok, Node Node, Attributes Attributes = null);
 
   private CaseBody PackBody(IToken tok, PatternPath path) {
     if (path is StmtPatternPath br) {
@@ -650,7 +650,7 @@ public class MatchFlattener : IRewriter {
   }
 
   private class MatchCompilationState {
-    public INode Match { get; }
+    public Node Match { get; }
     public readonly IToken[] CaseTok;
     public readonly int[] CaseCopyCount;
 
@@ -663,7 +663,7 @@ public class MatchFlattener : IRewriter {
     public readonly ResolutionContext CodeContext;
     public Attributes Attributes;
 
-    public MatchCompilationState(INode match, IReadOnlyList<NestedMatchCase> flattenedCases, ResolutionContext codeContext,
+    public MatchCompilationState(Node match, IReadOnlyList<NestedMatchCase> flattenedCases, ResolutionContext codeContext,
       Attributes attrs = null) {
       this.Match = match;
       this.CaseTok = flattenedCases.Select(c => c.Tok).ToArray();

@@ -13,7 +13,7 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
     get { return ResolvedStatements; }
   }
 
-  public override IEnumerable<INode> Children => ResolvedStatements;
+  public override IEnumerable<Node> Children => ResolvedStatements;
 
   [ContractInvariantMethod]
   void ObjectInvariant() {

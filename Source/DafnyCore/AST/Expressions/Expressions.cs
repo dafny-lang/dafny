@@ -9,7 +9,7 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
-public abstract class Expression : INode {
+public abstract class Expression : Node {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(tok != null);
@@ -775,7 +775,7 @@ public abstract class Expression : INode {
     return le == null ? null : le.Value as string;
   }
 
-  public override IEnumerable<INode> Children => SubExpressions;
+  public override IEnumerable<Node> Children => SubExpressions;
 }
 
 public class LiteralExpr : Expression {
@@ -890,7 +890,7 @@ public class DatatypeValue : Expression, IHasUsages, ICloneable<DatatypeValue> {
   public readonly ActualBindings Bindings;
   public List<Expression> Arguments => Bindings.Arguments;
 
-  public override IEnumerable<INode> Children => new INode[] { Bindings };
+  public override IEnumerable<Node> Children => new Node[] { Bindings };
 
   [FilledInDuringResolution] public DatatypeCtor Ctor;
   [FilledInDuringResolution] public List<Type> InferredTypeArgs = new List<Type>();
@@ -1060,7 +1060,7 @@ public class IdentifierExpr : Expression, IHasUsages, ICloneable<IdentifierExpr>
   }
 
   public IToken NameToken => tok;
-  public override IEnumerable<INode> Children { get; } = Enumerable.Empty<INode>();
+  public override IEnumerable<Node> Children { get; } = Enumerable.Empty<Node>();
 }
 
 /// <summary>
@@ -1114,7 +1114,7 @@ class Resolver_IdentifierExpr : Expression, IHasUsages {
     Contract.Invariant(Type is ResolverType_Module || Type is ResolverType_Type);
   }
 
-  public override IEnumerable<INode> Children => TypeArgs.SelectMany(ta => ta.Nodes);
+  public override IEnumerable<Node> Children => TypeArgs.SelectMany(ta => ta.Nodes);
 
   public abstract class ResolverType : Type {
     public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl>/*?*/ visitedDatatypes) {
@@ -1681,7 +1681,7 @@ public abstract class TypeUnaryExpr : UnaryExpr {
     ToType = toType;
   }
 
-  public override IEnumerable<INode> Children => base.Children.Concat(ToType.Nodes);
+  public override IEnumerable<Node> Children => base.Children.Concat(ToType.Nodes);
 
   public override IEnumerable<Type> ComponentTypes {
     get {
@@ -2152,9 +2152,9 @@ public class LetOrFailExpr : ConcreteSyntaxExpression, ICloneable<LetOrFailExpr>
     Body = cloner.CloneExpr(original.Body);
   }
 
-  public override IEnumerable<INode> Children =>
+  public override IEnumerable<Node> Children =>
     (Lhs != null ?
-    new List<INode> { Lhs } : Enumerable.Empty<INode>()).Concat(base.Children);
+    new List<Node> { Lhs } : Enumerable.Empty<Node>()).Concat(base.Children);
 }
 
 public class ForallExpr : QuantifierExpr, ICloneable<ForallExpr> {
@@ -2455,7 +2455,7 @@ public class ITEExpr : Expression {
 /// which it is; in this case, Var is non-null, because this is the only place where Var.IsGhost
 /// is recorded by the parser.
 /// </summary>
-public class CasePattern<VT> : INode
+public class CasePattern<VT> : Node
   where VT : class, IVariable {
   public readonly string Id;
   // After successful resolution, exactly one of the following two fields is non-null.
@@ -2539,7 +2539,7 @@ public class CasePattern<VT> : INode
     }
   }
 
-  public override IEnumerable<INode> Children => Arguments ?? Enumerable.Empty<INode>();
+  public override IEnumerable<Node> Children => Arguments ?? Enumerable.Empty<Node>();
 }
 
 public class BoxingCastExpr : Expression {  // a BoxingCastExpr is used only as a temporary placeholding during translation
@@ -2596,7 +2596,7 @@ public class UnboxingCastExpr : Expression {  // an UnboxingCastExpr is used onl
   }
 }
 
-public class AttributedExpression : INode, IAttributeBearingDeclaration {
+public class AttributedExpression : Node, IAttributeBearingDeclaration {
   public readonly Expression E;
   public readonly AssertLabel/*?*/ Label;
 
@@ -2644,10 +2644,10 @@ public class AttributedExpression : INode, IAttributeBearingDeclaration {
     this.Attributes = new UserSuppliedAttributes(tok, openBrace, closeBrace, args, this.Attributes);
   }
 
-  public override IEnumerable<INode> Children => new List<INode>() { E };
+  public override IEnumerable<Node> Children => new List<Node>() { E };
 }
 
-public class FrameExpression : INode, IHasUsages {
+public class FrameExpression : Node, IHasUsages {
   public readonly Expression E;  // may be a WildcardExpr
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -2682,7 +2682,7 @@ public class FrameExpression : INode, IHasUsages {
   }
 
   public IToken NameToken => tok;
-  public override IEnumerable<INode> Children => new[] { E };
+  public override IEnumerable<Node> Children => new[] { E };
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return new[] { Field }.Where(x => x != null);
   }
@@ -2715,7 +2715,7 @@ public abstract class ConcreteSyntaxExpression : Expression {
   public ConcreteSyntaxExpression(IToken tok)
     : base(tok) {
   }
-  public override IEnumerable<INode> Children => ResolvedExpression == null ? Array.Empty<INode>() : new[] { ResolvedExpression };
+  public override IEnumerable<Node> Children => ResolvedExpression == null ? Array.Empty<Node>() : new[] { ResolvedExpression };
   public override IEnumerable<Expression> SubExpressions {
     get {
       if (ResolvedExpression != null) {
@@ -3042,7 +3042,7 @@ public abstract class SuffixExpr : ConcreteSyntaxExpression {
     Lhs = lhs;
   }
 
-  public override IEnumerable<INode> Children => ResolvedExpression == null ? new[] { Lhs } : base.Children;
+  public override IEnumerable<Node> Children => ResolvedExpression == null ? new[] { Lhs } : base.Children;
 }
 
 public class NameSegment : ConcreteSyntaxExpression, ICloneable<NameSegment> {
@@ -3078,7 +3078,7 @@ public class ExprDotName : SuffixExpr, ICloneable<ExprDotName> {
   /// Because the resolved expression only points to the final resolved declaration,
   /// but not the declaration of the Lhs, we must also include the Lhs.
   /// </summary>
-  public override IEnumerable<INode> Children => new[] { Lhs, ResolvedExpression };
+  public override IEnumerable<Node> Children => new[] { Lhs, ResolvedExpression };
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -3113,8 +3113,8 @@ public class ApplySuffix : SuffixExpr, ICloneable<ApplySuffix> {
   public readonly ActualBindings Bindings;
   public List<Expression> Args => Bindings.Arguments;
 
-  public override IEnumerable<INode> Children => ResolvedExpression == null
-    ? new[] { Lhs }.Concat(Args ?? Enumerable.Empty<INode>()) : new[] { ResolvedExpression };
+  public override IEnumerable<Node> Children => ResolvedExpression == null
+    ? new[] { Lhs }.Concat(Args ?? Enumerable.Empty<Node>()) : new[] { ResolvedExpression };
 
   [ContractInvariantMethod]
   void ObjectInvariant() {

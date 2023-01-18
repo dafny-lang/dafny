@@ -12,7 +12,7 @@ public class AssignStmt : Statement, ICloneable<AssignStmt> {
     Contract.Invariant(Rhs != null);
   }
 
-  public override IEnumerable<INode> Children => new INode[] { Lhs, Rhs };
+  public override IEnumerable<Node> Children => new Node[] { Lhs, Rhs };
 
   public AssignStmt Clone(Cloner cloner) {
     return new AssignStmt(cloner, this);

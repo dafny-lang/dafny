@@ -20,7 +20,7 @@ public class AssignSuchThatStmt : ConcreteUpdateStatement, ICloneable<AssignSuch
     }
   }
 
-  public override IEnumerable<INode> Children => Lhss.Concat<INode>(new[] { Expr });
+  public override IEnumerable<Node> Children => Lhss.Concat<Node>(new[] { Expr });
 
   public AssignSuchThatStmt Clone(Cloner cloner) {
     return new AssignSuchThatStmt(cloner, this);

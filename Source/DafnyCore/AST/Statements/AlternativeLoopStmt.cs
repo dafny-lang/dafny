@@ -70,5 +70,5 @@ public class AlternativeLoopStmt : LoopStmt, ICloneable<AlternativeLoopStmt> {
     }
   }
 
-  public override IEnumerable<INode> Children => SpecificationSubExpressions.Concat<INode>(Alternatives);
+  public override IEnumerable<Node> Children => SpecificationSubExpressions.Concat<Node>(Alternatives);
 }

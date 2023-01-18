@@ -8,11 +8,11 @@ using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
-public interface IINode { // TODO rename to INode   
+public interface INode {
   RangeToken RangeToken { get; }
 }
 
-public abstract class INode : IINode { // TODO Rename to remove I from the rename.
+public abstract class Node : INode {
 
   public IToken tok = Token.NoToken;
   [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -27,9 +27,9 @@ public abstract class INode : IINode { // TODO Rename to remove I from the renam
   /// program is lost. As an example, the pattern matching compilation may deduplicate nodes from the original AST,
   /// losing source location information, so those transformed nodes should not be returned by this property.
   /// </summary>
-  public abstract IEnumerable<INode> Children { get; }
+  public abstract IEnumerable<Node> Children { get; }
 
-  public IEnumerable<INode> Descendants() {
+  public IEnumerable<Node> Descendants() {
     return Children.Concat(Children.SelectMany(n => n.Descendants()));
   }
 
@@ -37,12 +37,12 @@ public abstract class INode : IINode { // TODO Rename to remove I from the renam
     return Enumerable.Empty<AssumptionDescription>();
   }
 
-  public ISet<INode> Visit(Func<INode, bool> beforeChildren = null, Action<INode> afterChildren = null) {
+  public ISet<Node> Visit(Func<Node, bool> beforeChildren = null, Action<Node> afterChildren = null) {
     beforeChildren ??= node => true;
     afterChildren ??= node => { };
 
-    var visited = new HashSet<INode>();
-    var toVisit = new LinkedList<INode>();
+    var visited = new HashSet<Node>();
+    var toVisit = new LinkedList<Node>();
     toVisit.AddFirst(this);
     while (toVisit.Any()) {
       var current = toVisit.First();
@@ -102,7 +102,7 @@ public abstract class INode : IINode { // TODO Rename to remove I from the renam
           }
         }
 
-        void UpdateStartEndTokRecursive(INode node) {
+        void UpdateStartEndTokRecursive(Node node) {
           if (node is null) {
             return;
           }
