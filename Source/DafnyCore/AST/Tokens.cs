@@ -211,35 +211,3 @@ public class IncludeToken : TokenWrapper {
   }
 
 }
-
-/// <summary>
-/// A token wrapper used to produce better type checking errors
-/// for quantified variables. See QuantifierVar.ExtractSingleRange()
-/// </summary>
-public class QuantifiedVariableDomainToken : TokenWrapper {
-  public QuantifiedVariableDomainToken(IToken wrappedToken)
-    : base(wrappedToken) {
-    Contract.Requires(wrappedToken != null);
-  }
-
-  public override string val {
-    get { return WrappedToken.val; }
-    set { WrappedToken.val = value; }
-  }
-}
-
-/// <summary>
-/// A token wrapper used to produce better type checking errors
-/// for quantified variables. See QuantifierVar.ExtractSingleRange()
-/// </summary>
-public class QuantifiedVariableRangeToken : TokenWrapper {
-  public QuantifiedVariableRangeToken(IToken wrappedToken)
-    : base(wrappedToken) {
-    Contract.Requires(wrappedToken != null);
-  }
-
-  public override string val {
-    get { return WrappedToken.val; }
-    set { WrappedToken.val = value; }
-  }
-}
