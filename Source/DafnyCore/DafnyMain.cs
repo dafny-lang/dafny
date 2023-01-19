@@ -78,17 +78,25 @@ namespace Microsoft.Dafny {
     }
 
     private static string GetDafnySourceAttributeText(string dllPath) {
+      if (!File.Exists(dllPath)) {
+        throw new IllegalDafnyFile();
+      }
       using var dllFs = new FileStream(dllPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
       using var dllPeReader = new PEReader(dllFs);
       var dllMetadataReader = dllPeReader.GetMetadataReader();
 
       foreach (var attrHandle in dllMetadataReader.CustomAttributes) {
         var attr = dllMetadataReader.GetCustomAttribute(attrHandle);
-        var constructor = dllMetadataReader.GetMemberReference((MemberReferenceHandle)attr.Constructor);
-        var attrType = dllMetadataReader.GetTypeReference((TypeReferenceHandle)constructor.Parent);
-        if (dllMetadataReader.GetString(attrType.Name) == "DafnySourceAttribute") {
-          var decoded = attr.DecodeValue(new StringOnlyCustomAttributeTypeProvider());
-          return (string)decoded.FixedArguments[0].Value;
+        try {
+          var constructor = dllMetadataReader.GetMemberReference((MemberReferenceHandle)attr.Constructor);
+          var attrType = dllMetadataReader.GetTypeReference((TypeReferenceHandle)constructor.Parent);
+          if (dllMetadataReader.GetString(attrType.Name) == "DafnySourceAttribute") {
+            var decoded = attr.DecodeValue(new StringOnlyCustomAttributeTypeProvider());
+            return (string)decoded.FixedArguments[0].Value;
+          }
+        } catch (InvalidCastException) {
+          // Ignore - the Handle casts are handled as custom explicit operators,
+          // and there's no way I can see to test if the cases will succeed ahead of time.
         }
       }
 
@@ -170,14 +178,15 @@ namespace Microsoft.Dafny {
 
       foreach (DafnyFile dafnyFile in files) {
         Contract.Assert(dafnyFile != null);
-        if (DafnyOptions.O.XmlSink != null && DafnyOptions.O.XmlSink.IsOpen && !dafnyFile.UseStdin) {
+        if (DafnyOptions.O.XmlSink is { IsOpen: true } && !dafnyFile.UseStdin) {
           DafnyOptions.O.XmlSink.WriteFileFragment(dafnyFile.FilePath);
         }
         if (DafnyOptions.O.Trace) {
           Console.WriteLine("Parsing " + dafnyFile.FilePath);
         }
 
-        string err = ParseFile(dafnyFile, null, module, builtIns, new Errors(reporter), !dafnyFile.IsPrecompiled, !dafnyFile.IsPrecompiled);
+        var include = dafnyFile.IsPrecompiled ? new Include(Token.NoToken, null, dafnyFile.SourceFileName, false) : null;
+        var err = ParseFile(dafnyFile, include, module, builtIns, new Errors(reporter), !dafnyFile.IsPrecompiled, !dafnyFile.IsPrecompiled);
         if (err != null) {
           return err;
         }
@@ -312,6 +321,19 @@ namespace Microsoft.Dafny {
       string moduleName,
       Microsoft.Boogie.Program boogieProgram, string programId) {
       var moduleId = (programId ?? "main_program_id") + "_" + moduleName;
+      var z3NotFoundMessage = @"
+Z3 not found. Please either provide a path to the `z3` executable using
+the `--solver-path <path>` option, manually place the `z3` directory
+next to the `dafny` executable you are using (this directory should
+contain `bin/z3` or `bin/z3.exe`), or set the PATH environment variable
+to also include a directory containing the `z3` executable.
+";
+
+      var proverPath = DafnyOptions.O.ProverOptions.Find(o => o.StartsWith("PROVER_PATH="));
+      if (proverPath is null && DafnyOptions.O.Verify) {
+        Console.WriteLine(z3NotFoundMessage);
+        return (PipelineOutcome.FatalError, new PipelineStatistics());
+      }
 
       string bplFilename;
       if (DafnyOptions.O.PrintFile != null) {

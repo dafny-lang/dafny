@@ -1,1 +1,0 @@
-A function used as a value in a non-ghost context must not have ghost parameters, and arrow types cannot have ghost parameters.

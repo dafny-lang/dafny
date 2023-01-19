@@ -13,6 +13,7 @@ using System.IO;
 using System.Diagnostics.Contracts;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Text;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 
@@ -52,7 +53,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       Coverage.EmitSetup(wr);
-      wr.WriteLine("_dafny.HandleHaltExceptions(() => {0}.{1}(_dafny.FromMainArguments(require('process').argv)));", mainMethod.EnclosingClass.FullCompileName, mainMethod.IsStatic ? IdName(mainMethod) : "Main");
+      wr.WriteLine($"_dafny.HandleHaltExceptions(() => {mainMethod.EnclosingClass.FullCompileName}.{(mainMethod.IsStatic ? IdName(mainMethod) : "Main")}(_dafny.{CharMethodQualifier}FromMainArguments(require('process').argv)));");
       Coverage.EmitTearDown(wr);
     }
 
@@ -318,6 +319,7 @@ namespace Microsoft.Dafny.Compilers {
 
       string DtT = dt.CompileName;
       string DtT_protected = IdProtect(DtT);
+      var simplifiedType = DatatypeWrapperEraser.SimplifyType(UserDefinedType.FromTopLevelDecl(dt.tok, dt));
 
       // from here on, write everything into the new block created here:
       var btw = wr.NewNamedBlock("$module.{0} = class {0}", DtT_protected);
@@ -447,7 +449,12 @@ namespace Microsoft.Dafny.Compilers {
           foreach (var arg in ctor.Formals) {
             if (!arg.IsGhost) {
               anyFormals = true;
-              cw.Write("{0}_dafny.toString(this.{1})", sep, FormalName(arg, k));
+              if (arg.Type.IsStringType && UnicodeCharEnabled) {
+                cw.Write("{0}this.{1}.toVerbatimString(true)", sep, FormalName(arg, k));
+              } else {
+                cw.Write("{0}_dafny.toString(this.{1})", sep, FormalName(arg, k));
+              }
+
               sep = " + \", \" + ";
               k++;
             }
@@ -481,7 +488,7 @@ namespace Microsoft.Dafny.Compilers {
           foreach (Formal arg in ctor.Formals) {
             if (!arg.IsGhost) {
               string nm = FormalName(arg, k);
-              if (IsDirectlyComparable(arg.Type)) {
+              if (IsDirectlyComparable(DatatypeWrapperEraser.SimplifyType(arg.Type))) {
                 guard.Write(" && this.{0} === other.{0}", nm);
               } else {
                 guard.Write(" && _dafny.areEqual(this.{0}, other.{0})", nm);
@@ -505,7 +512,9 @@ namespace Microsoft.Dafny.Compilers {
         wDefault.Write("return ");
         var groundingCtor = dt.GetGroundingCtor();
         if (groundingCtor.IsGhost) {
-          wDefault.Write(ForcePlaceboValue(UserDefinedType.FromTopLevelDecl(dt.tok, dt), wDefault, dt.tok));
+          wDefault.Write(ForcePlaceboValue(simplifiedType, wDefault, dt.tok));
+        } else if (DatatypeWrapperEraser.GetInnerTypeOfErasableDatatypeWrapper(dt, out var innerType)) {
+          wDefault.Write(DefaultValue(innerType, wDefault, dt.tok));
         } else {
           var nonGhostFormals = groundingCtor.Formals.Where(f => !f.IsGhost).ToList();
           var arguments = Util.Comma(nonGhostFormals, f => DefaultValue(f.Type, wDefault, f.tok));
@@ -727,12 +736,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(tok != null);
       Contract.Requires(wr != null);
 
-      var xType = type.NormalizeExpandKeepConstraints();
-      if (xType is TypeProxy) {
-        // unresolved proxy; just treat as bool, since no particular type information is apparently needed for this type
-        return "_dafny.Rtd_bool";
-      }
-
+      var xType = DatatypeWrapperEraser.SimplifyType(type, true);
       if (xType is BoolType) {
         return "_dafny.Rtd_bool";
       } else if (xType is CharType) {
@@ -836,16 +840,15 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine("continue TAIL_CALL_START;");
     }
 
+    private static string CharFromNumberMethodName() {
+      return UnicodeCharEnabled ? "new _dafny.CodePoint" : "String.fromCharCode";
+    }
+
     internal override string TypeName(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl /*?*/ member = null) {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
 
-      var xType = type.NormalizeExpand();
-      if (xType is TypeProxy) {
-        // unresolved proxy; just treat as ref, since no particular type information is apparently needed for this type
-        return "object";
-      }
-
+      var xType = DatatypeWrapperEraser.SimplifyType(type);
       if (xType is BoolType) {
         return "bool";
       } else if (xType is CharType) {
@@ -869,11 +872,9 @@ namespace Microsoft.Dafny.Compilers {
         ArrayClassDecl at = xType.AsArrayType;
         Contract.Assert(at != null);  // follows from type.IsArrayType
         Type elType = UserDefinedType.ArrayElementType(xType);
-        string typeNameSansBrackets, brackets;
-        TypeName_SplitArrayName(elType, wr, tok, out typeNameSansBrackets, out brackets);
+        TypeName_SplitArrayName(elType, wr, tok, out var typeNameSansBrackets, out var brackets);
         return typeNameSansBrackets + TypeNameArrayBrackets(at.Dims) + brackets;
-      } else if (xType is UserDefinedType) {
-        var udt = (UserDefinedType)xType;
+      } else if (xType is UserDefinedType udt) {
         var s = FullTypeName(udt, member);
         return TypeName_UDT(s, udt, wr, udt.tok);
       } else if (xType is SetType) {
@@ -1000,9 +1001,15 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override string TypeName_Companion(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl/*?*/ member) {
-      // Companion classes in JavaScript are just the same as the type
+      // Companion classes in JavaScript are just the same as the type, except for erasable type wrappers
       type = UserDefinedType.UpcastToMemberEnclosingType(type, member);
-      return TypeName(type, wr, tok, member);
+      if (type.NormalizeExpandKeepConstraints() is UserDefinedType udt && udt.ResolvedClass is DatatypeDecl dt &&
+          DatatypeWrapperEraser.IsErasableDatatypeWrapper(dt, out _)) {
+        var s = FullTypeName(udt, member);
+        return TypeName_UDT(s, udt, wr, udt.tok);
+      } else {
+        return TypeName(type, wr, tok, member);
+      }
     }
 
     // ----- Declarations -------------------------------------------------------------
@@ -1074,23 +1081,27 @@ namespace Microsoft.Dafny.Compilers {
     // ----- Statements -------------------------------------------------------------
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
-      bool isString = arg.Type.AsSeqType != null &&
-                      arg.Type.AsSeqType.Arg.IsCharType;
+      bool isString = arg.Type.IsStringType;
       bool isStringLiteral = arg is StringLiteralExpr;
       bool isGeneric = arg.Type.AsSeqType != null &&
                        arg.Type.AsSeqType.Arg.IsTypeParameter;
       var wStmts = wr.Fork();
-      if (isStringLiteral) {
+      if (isStringLiteral && !UnicodeCharEnabled) {
         // process.stdout.write(_dafny.toString(x));
         wr.Write("process.stdout.write(_dafny.toString(");
         TrExpr(arg, wr, false, wStmts);
         wr.WriteLine("));");
       } else if (isString) {
-        // isString && !isStringLiteral
-        wr.Write($"process.stdout.write(_dafny.toString({DafnySeqClass}.JoinIfPossible(");
-        TrExpr(arg, wr, false, wStmts);
-        wr.WriteLine(")));");
-      } else if (isGeneric) {
+        if (UnicodeCharEnabled) {
+          wr.Write($"process.stdout.write(");
+          TrParenExpr(arg, wr, false, wStmts);
+          wr.WriteLine(".toVerbatimString(false));");
+        } else {
+          wr.Write($"process.stdout.write(_dafny.toString({DafnySeqClass}.JoinIfPossible(");
+          TrExpr(arg, wr, false, wStmts);
+          wr.WriteLine(")));");
+        }
+      } else if (isGeneric && !UnicodeCharEnabled) {
         // try { process.stdout.write(_dafny.toString(((x) instanceof Array && typeof((x)[0]) == \"string\") ? (x).join("") : (x))); } catch (_error) { process.stdout.write(_dafny.toString(x)); }
         wr.Write("try { process.stdout.write(_dafny.toString(");
         wr.Write("(");
@@ -1163,7 +1174,10 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write("\"" + Dafny.ErrorReporter.TokenToString(tok) + ": \" + ");
       }
 
-      TrExpr(messageExpr, wr, false, wStmts);
+      TrParenExpr(messageExpr, wr, false, wStmts);
+      if (UnicodeCharEnabled && messageExpr.Type.IsStringType) {
+        wr.Write(".toVerbatimString(false)");
+      }
       wr.WriteLine(");");
     }
 
@@ -1310,6 +1324,14 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    protected string TranslateEscapes(string s) {
+      s = Util.ReplaceNullEscapesWithCharacterEscapes(s);
+
+      s = Util.UnicodeEscapesToLowercase(s);
+
+      return s;
+    }
+
     protected override void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e) {
       if (e is StaticReceiverExpr) {
         wr.Write(TypeName(e.Type, wr, e.tok));
@@ -1318,12 +1340,21 @@ namespace Microsoft.Dafny.Compilers {
       } else if (e.Value is bool) {
         wr.Write((bool)e.Value ? "true" : "false");
       } else if (e is CharLiteralExpr) {
-        var v = (string)e.Value;
-        wr.Write("'{0}'", v == "\\0" ? "\\u0000" : v);  // JavaScript doesn't have a \0
+        var escaped = TranslateEscapes((string)e.Value);
+        if (UnicodeCharEnabled) {
+          wr.Write($"new _dafny.CodePoint('{escaped}'.codePointAt(0))");
+        } else {
+          wr.Write($"'{escaped}'");
+        }
       } else if (e is StringLiteralExpr) {
         var str = (StringLiteralExpr)e;
-        // TODO: the string should be converted to a Dafny seq<char>
-        TrStringLiteral(str, wr);
+        if (UnicodeCharEnabled) {
+          wr.Write($"_dafny.Seq.UnicodeFromString(");
+          TrStringLiteral(str, wr);
+          wr.Write(")");
+        } else {
+          TrStringLiteral(str, wr);
+        }
       } else if (AsNativeType(e.Type) != null) {
         wr.Write(e.Value.ToString());
       } else if (e.Value is BigInteger) {
@@ -1363,7 +1394,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
       var n = str.Length;
       if (!isVerbatim) {
-        wr.Write("\"{0}\"", str);
+        wr.Write($"\"{TranslateEscapes(str)}\"");
       } else {
         wr.Write("\"");
         for (var i = 0; i < n; i++) {
@@ -1618,7 +1649,12 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ILvalue EmitMemberSelect(Action<ConcreteSyntaxTree> obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
       Type expectedType, string/*?*/ additionalCustomParameter, bool internalAccess = false) {
-      if (member is DatatypeDestructor dtor && dtor.EnclosingClass is TupleTypeDecl) {
+      var memberStatus = DatatypeWrapperEraser.GetMemberStatus(member);
+      if (memberStatus == DatatypeWrapperEraser.MemberCompileStatus.Identity) {
+        return SimpleLvalue(obj);
+      } else if (memberStatus == DatatypeWrapperEraser.MemberCompileStatus.AlwaysTrue) {
+        return SimpleLvalue(w => w.Write("true"));
+      } else if (member is DatatypeDestructor dtor && dtor.EnclosingClass is TupleTypeDecl) {
         Contract.Assert(dtor.CorrespondingFormals.Count == 1);
         var formal = dtor.CorrespondingFormals[0];
         return SuffixLvalue(obj, "[{0}]", formal.NameForCompilation);
@@ -1817,7 +1853,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(", ");
       TrExpr(expr.Initializer, wr, inLetExprBody, wStmts);
       wr.Write(")");
-      if (fromType.Result.IsCharType) {
+      if (fromType.Result.IsCharType && !UnicodeCharEnabled) {
         wr.Write(".join('')");
       }
     }
@@ -1843,7 +1879,12 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
-      if (ctor.EnclosingDatatype is TupleTypeDecl) {
+      if (DatatypeWrapperEraser.IsErasableDatatypeWrapper(ctor.EnclosingDatatype, out var coreDtor)) {
+        Contract.Assert(coreDtor.CorrespondingFormals.Count == 1);
+        Contract.Assert(dtor == coreDtor.CorrespondingFormals[0]); // any other destructor is a ghost
+        wr.Write(source);
+      } else if (ctor.EnclosingDatatype is TupleTypeDecl tupleTypeDecl) {
+        Contract.Assert(tupleTypeDecl.NonGhostDims != 1); // such a tuple is an erasable-wrapper type, handled above
         wr.Write("({0})[{1}]", source, formalNonGhostIndex);
       } else {
         var dtorName = FormalName(dtor, formalNonGhostIndex);
@@ -1920,7 +1961,7 @@ namespace Microsoft.Dafny.Compilers {
 
     bool IsDirectlyComparable(Type t) {
       Contract.Requires(t != null);
-      return t.IsBoolType || t.IsCharType || AsNativeType(t) != null || t.IsRefType;
+      return t.IsBoolType || (t.IsCharType && !UnicodeCharEnabled) || AsNativeType(t) != null || t.IsRefType;
     }
 
     bool IsRepresentedAsBigNumber(Type t) {
@@ -1997,13 +2038,14 @@ namespace Microsoft.Dafny.Compilers {
           break;
 
         case BinaryExpr.ResolvedOpcode.EqCommon: {
+            var eqType = DatatypeWrapperEraser.SimplifyType(e0.Type);
             if (IsHandleComparison(tok, e0, e1, errorWr)) {
               opString = "===";
-            } else if (IsDirectlyComparable(e0.Type)) {
+            } else if (IsDirectlyComparable(eqType)) {
               opString = "===";
-            } else if (e0.Type.IsIntegerType || e0.Type.IsBitVectorType) {
+            } else if (eqType.IsIntegerType || eqType.IsBitVectorType) {
               callString = "isEqualTo";
-            } else if (e0.Type.IsRealType) {
+            } else if (eqType.IsRealType) {
               callString = "equals";
             } else {
               staticCallString = "_dafny.areEqual";
@@ -2011,14 +2053,15 @@ namespace Microsoft.Dafny.Compilers {
             break;
           }
         case BinaryExpr.ResolvedOpcode.NeqCommon: {
+            var eqType = DatatypeWrapperEraser.SimplifyType(e0.Type);
             if (IsHandleComparison(tok, e0, e1, errorWr)) {
               opString = "!==";
-            } else if (IsDirectlyComparable(e0.Type)) {
+            } else if (IsDirectlyComparable(eqType)) {
               opString = "!==";
-            } else if (e0.Type.IsIntegerType) {
+            } else if (eqType.IsIntegerType) {
               preOpString = "!";
               callString = "isEqualTo";
-            } else if (e0.Type.IsRealType) {
+            } else if (eqType.IsRealType) {
               preOpString = "!";
               callString = "equals";
             } else {
@@ -2071,6 +2114,20 @@ namespace Microsoft.Dafny.Compilers {
             Contract.Assert(false); throw new cce.UnreachableException();
           }
           break;
+        case BinaryExpr.ResolvedOpcode.LtChar when UnicodeCharEnabled:
+          callString = "isLessThan";
+          break;
+        case BinaryExpr.ResolvedOpcode.LeChar when UnicodeCharEnabled:
+          callString = "isLessThanOrEqual";
+          break;
+        case BinaryExpr.ResolvedOpcode.GtChar when UnicodeCharEnabled:
+          callString = "isLessThan";
+          reverseArguments = true;
+          break;
+        case BinaryExpr.ResolvedOpcode.GeChar when UnicodeCharEnabled:
+          callString = "isLessThanOrEqual";
+          reverseArguments = true;
+          break;
         case BinaryExpr.ResolvedOpcode.LeftShift:
           if (AsNativeType(resultType) != null) {
             // JavaScript bitwise operators are weird (numeric operands are first converted into
@@ -2105,7 +2162,7 @@ namespace Microsoft.Dafny.Compilers {
           } else if (AsNativeType(resultType) != null) {
             opString = "+";
           } else if (resultType.IsCharType) {
-            staticCallString = "_dafny.PlusChar";
+            staticCallString = $"_dafny.{CharMethodQualifier}PlusChar";
           } else {
             callString = "plus"; truncateResult = true;
           }
@@ -2116,7 +2173,7 @@ namespace Microsoft.Dafny.Compilers {
           } else if (AsNativeType(resultType) != null) {
             opString = "-";
           } else if (resultType.IsCharType) {
-            staticCallString = "_dafny.MinusChar";
+            staticCallString = $"_dafny.{CharMethodQualifier}MinusChar";
           } else {
             callString = "minus"; truncateResult = true;
           }
@@ -2225,12 +2282,12 @@ namespace Microsoft.Dafny.Compilers {
 
           TrParenExpr(e.E, wr, inLetExprBody, wStmts);
           if (e.E.Type.IsCharType) {
-            wr.Write(".charCodeAt(0))");
+            wr.Write(UnicodeCharEnabled ? ".value)" : ".charCodeAt(0))");
           }
 
           wr.Write(", new BigNumber(1))");
         } else if (e.ToType.IsCharType) {
-          wr.Write("String.fromCharCode(");
+          wr.Write($"{CharFromNumberMethodName()}(");
           TrParenExpr(e.E, wr, inLetExprBody, wStmts);
           if (AsNativeType(e.E.Type) == null) {
             wr.Write(".toNumber()");
@@ -2249,11 +2306,11 @@ namespace Microsoft.Dafny.Compilers {
               // char -> big-integer (int or bv or ORDINAL)
               wr.Write("new BigNumber(");
               TrParenExpr(e.E, wr, inLetExprBody, wStmts);
-              wr.Write(".charCodeAt(0))");
+              wr.Write(UnicodeCharEnabled ? ".value)" : ".charCodeAt(0))");
             } else {
               // char -> native
               TrParenExpr(e.E, wr, inLetExprBody, wStmts);
-              wr.Write(".charCodeAt(0)");
+              wr.Write(UnicodeCharEnabled ? ".value" : ".charCodeAt(0)");
             }
           } else if (fromNative == null && toNative == null) {
             // big-integer (int or bv) -> big-integer (int or bv or ORDINAL), so identity will do
@@ -2293,7 +2350,7 @@ namespace Microsoft.Dafny.Compilers {
           Contract.Assert(AsNativeType(e.ToType) == null);
           TrExpr(e.E, wr, inLetExprBody, wStmts);
         } else if (e.ToType.IsCharType) {
-          wr.Write("String.fromCharCode(");
+          wr.Write($"{CharFromNumberMethodName()}(");
           TrParenExpr(e.E, wr, inLetExprBody, wStmts);
           wr.Write(".toBigNumber().toNumber())");
         } else {
@@ -2306,7 +2363,7 @@ namespace Microsoft.Dafny.Compilers {
         }
       } else if (e.E.Type.IsBigOrdinalType) {
         if (e.ToType.IsCharType) {
-          wr.Write("String.fromCharCode((");
+          wr.Write($"{CharFromNumberMethodName()}((");
         }
 
         TrExpr(e.E, wr, inLetExprBody, wStmts);
@@ -2360,7 +2417,7 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         Contract.Assert(ct is SeqType);  // follows from precondition
         ConcreteSyntaxTree wrElements;
-        if (ct.Arg.IsCharType) {
+        if (ct.Arg.IsCharType && !UnicodeCharEnabled) {
           // We're really constructing a string.
           // TODO: It may be that ct.Arg is a type parameter that may stand for char. We currently don't catch that case here.
           wr.Write("[");
@@ -2478,21 +2535,20 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
 
       var psi = new ProcessStartInfo("node", "") {
-        CreateNoWindow = true,
-        UseShellExecute = false,
         RedirectStandardInput = true,
+        StandardInputEncoding = Encoding.UTF8,
         RedirectStandardOutput = true,
         RedirectStandardError = true,
       };
 
       try {
-        Process nodeProcess = new Process { StartInfo = psi };
-        nodeProcess.Start();
+        Process nodeProcess = Process.Start(psi);
         foreach (var filename in otherFileNames) {
           WriteFromFile(filename, nodeProcess.StandardInput);
         }
         nodeProcess.StandardInput.Write(targetProgramText);
         if (callToMain != null && DafnyOptions.O.RunAfterCompile) {
+          nodeProcess.StandardInput.WriteLine("require('process').stdout.setEncoding(\"utf-8\");");
           nodeProcess.StandardInput.WriteLine("require('process').argv = [\"node\",\"stdin\", " + string.Join(",", DafnyOptions.O.MainArgs.Select(ToStringLiteral)) + "];");
           nodeProcess.StandardInput.Write(callToMain);
         }
@@ -2514,7 +2570,7 @@ namespace Microsoft.Dafny.Compilers {
 
     // We read character by character because we did not find a way to ensure
     // final newlines are kept when reading line by line
-    void PassthroughBuffer(StreamReader input, TextWriter output) {
+    private static void PassthroughBuffer(TextReader input, TextWriter output) {
       int current;
       while ((current = input.Read()) != -1) {
         output.Write((char)current);

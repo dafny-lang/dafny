@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import argparse
 import json
 import re
@@ -57,13 +57,40 @@ def unwrap(opt: Optional[A]) -> A:
     return opt
 
 class NewsFragment(NamedTuple):
-    pr: str
+    pr: Optional[int]
     contents: str
     path: Optional[Path]
 
+    PR_NUM_FORMAT = re.compile(r"[(]#(?P<num>[0-9]+)[)]$", re.MULTILINE)
+
+    @classmethod
+    def resolve_pr_from_git(cls, pth: Path) -> Optional[int]:
+        """Find the PR that introduced `pth`."""
+        proc = git("log", "--diff-filter=A", "--format=oneline", "--", str(pth))
+        if proc.returncode == 0:
+            if m := cls.PR_NUM_FORMAT.search(proc.stdout.strip()):
+                return int(m.group("num"))
+        return None
+
+    @classmethod
+    def resolve_pr(cls, pth: Path) -> Optional[int]:
+        if re.match("^[0-9]+$", pth.stem):
+            return int(pth.stem)
+        return cls.resolve_pr_from_git(pth)
+
     @classmethod
     def from_file(cls, pth: Path) -> "NewsFragment":
-        return NewsFragment(pth.stem, pth.read_text(encoding="utf-8"), pth)
+        return NewsFragment(cls.resolve_pr(pth), pth.read_text(encoding="utf-8"), pth)
+
+    @property
+    def link(self) -> str:
+        if self.pr is not None:
+            return f"(https://github.com/dafny-lang/dafny/pull/{self.pr})"
+        return ""
+
+    @property
+    def sortkey(self):
+        return self.pr, self.path
 
 class NewsFragments:
     r"""A collection of release note entries.
@@ -89,7 +116,8 @@ class NewsFragments:
     """
 
     IGNORED = {".gitignore", "README.md"}
-    KNOWN_EXTENSIONS = {".feat": "New features",
+    KNOWN_EXTENSIONS = {".break": "Breaking changes",
+                        ".feat": "New features",
                         ".fix": "Bug fixes"}
 
     def __init__(self) -> None:
@@ -122,11 +150,10 @@ class NewsFragments:
             if ext not in self.fragments:
                 continue
             rendered.append(f"## {title}")
-            for fr in sorted(self.fragments[ext], key=lambda f: f.pr):
-                link = f"(https://github.com/dafny-lang/dafny/pull/{fr.pr})"
+            for fr in sorted(self.fragments[ext], key=lambda f: f.sortkey):
                 contents = fr.contents.strip()
-                sep = "\n" if "\n" in contents else " "
-                entry = indent(f"- {contents}{sep}{link}", "  ").lstrip()
+                sep = "\n" if fr.link and "\n" in contents else " "
+                entry = indent(f"- {contents}{sep}{fr.link}", "  ").lstrip()
                 rendered.append(entry)
         return "\n\n".join(rendered)
 
@@ -393,8 +420,30 @@ class Release:
         progress("You can merge this branch by opening a PR at\n"
                  f"<{PR_URL}>.")
 
+class DryRunRelease(Release):
+    def _create_release_branch(self):
+        pass
+    def _consolidate_news_fragments(self):
+        pass
+    def _delete_news_fragments(self):
+        pass
+    def _commit_changes(self):
+        pass
+    def _push_release_branch(self):
+        pass
+    def _create_release_branch(self):
+        pass
+    def _tag_release(self):
+        pass
+    def _push_release_tag(self):
+        pass
+    def _push_release_tag(self):
+        pass
+
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Dafny release helper")
+    parser.add_argument("--dry-run", help="Do not make any modifications (no file updates, no git commands).",
+                        action="store_true")
     parser.add_argument("version", help="Version number for this release (A.B.C-xyz)")
     parser.add_argument("action", help="Which part of the release process to run",
                         choices=["prepare", "release"])
@@ -403,7 +452,7 @@ def parse_arguments() -> argparse.Namespace:
 def main() -> None:
     args = parse_arguments()
     try:
-        release = Release(args.version)
+        release = (DryRunRelease if args.dry_run else Release)(args.version)
         {"prepare": release.prepare,
          "release": release.release}[args.action]()
     except CannotReleaseError:

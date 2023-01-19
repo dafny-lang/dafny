@@ -4,11 +4,15 @@
 module _System {
   /* CALL GRAPH for module _System:
    * SCC at height 1:
-   *   RotateRight
-   * SCC at height 1:
    *   RotateLeft
+   * SCC at height 1:
+   *   RotateRight
+   * SCC at height 0:
+   *   array
    * SCC at height 0:
    *   nat
+   * SCC at height 0:
+   *   object
    */
   type string(==,0) = seq<char>
 
@@ -123,9 +127,11 @@ module M0 {
    * SCC at height 1:
    *   Cl.M
    * SCC at height 0:
-   *   Tr.F
+   *   Cl
    * SCC at height 0:
    *   Tr
+   * SCC at height 0:
+   *   Tr.F
    */
   trait Tr<X> {
     function F(x: X): int
@@ -157,6 +163,8 @@ module M1 {
    *   M
    * SCC at height 0:
    *   Cl
+   * SCC at height 0:
+   *   Tr
    */
   trait Tr<X(0)> {
     var w: X
@@ -182,9 +190,11 @@ module M2 {
    * SCC at height 1:
    *   M
    * SCC at height 0:
-   *   Tr.F
-   * SCC at height 0:
    *   Cl
+   * SCC at height 0:
+   *   Tr
+   * SCC at height 0:
+   *   Tr.F
    */
   trait Tr<X, W> {
     function method F(x: X, w: W): bv10
@@ -215,9 +225,13 @@ module P0 {
    * SCC at height 1:
    *   Cl.M
    * SCC at height 0:
-   *   TrX.F
+   *   Cl
    * SCC at height 0:
    *   Tr
+   * SCC at height 0:
+   *   TrX
+   * SCC at height 0:
+   *   TrX.F
    */
   trait TrX<X> {
     function F(x: X): int
@@ -254,6 +268,10 @@ module P1 {
    *   M
    * SCC at height 0:
    *   Cl
+   * SCC at height 0:
+   *   Tr
+   * SCC at height 0:
+   *   TrX
    */
   trait TrX<X(0)> {
     var w: X
@@ -284,9 +302,13 @@ module P2 {
    * SCC at height 1:
    *   M
    * SCC at height 0:
-   *   TrX.F
-   * SCC at height 0:
    *   Cl
+   * SCC at height 0:
+   *   Tr
+   * SCC at height 0:
+   *   TrX
+   * SCC at height 0:
+   *   TrX.F
    */
   trait TrX<X, W> {
     function method F(x: X, w: W): bv10

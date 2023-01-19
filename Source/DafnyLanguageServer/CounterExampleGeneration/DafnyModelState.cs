@@ -55,8 +55,8 @@ namespace DafnyServer.CounterexampleGeneration {
     /// depth.
     /// </summary>
     /// <param name="maxDepth">The maximum depth up to which to expand the
-    /// variable set. Can be null to indicate that there is no limit</param>
-    /// <returns>List of variables</returns>
+    /// variable set.</param>
+    /// <returns>Set of variables</returns>
     public HashSet<DafnyModelVariable> ExpandedVariableSet(int maxDepth) {
       HashSet<DafnyModelVariable> expandedSet = new();
       // The following is the queue for elements to be added to the set. The 2nd

@@ -1,3 +1,3 @@
 
 Dafny program verifier finished with 3 verified, 0 errors
-UI_Compile.Op.GetOp([true, true, false])
+[true, true, false] UI_Compile.Op2.GetOps([true, true, false], [true, true, false])

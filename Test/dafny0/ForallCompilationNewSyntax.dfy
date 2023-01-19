@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:3 /quantifierSyntax:4 /print:"%t.print" /dprint:"%t.dprint" /autoTriggers:0 "%s" > "%t"
+// RUN: %baredafny run %args --relax-definite-assignment --quantifier-syntax:4 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {

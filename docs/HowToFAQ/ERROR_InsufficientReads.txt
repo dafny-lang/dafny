@@ -1,0 +1,3 @@
+ERROR_InsufficientReads.dfy(17,48): Error: insufficient reads clause to invoke function
+
+Dafny program verifier finished with 3 verified, 1 error

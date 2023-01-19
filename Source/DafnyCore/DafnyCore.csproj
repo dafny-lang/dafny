@@ -30,11 +30,16 @@
       <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
       <PackageReference Include="System.Runtime.Numerics" Version="4.3.0" />
       <PackageReference Include="System.Collections.Immutable" Version="1.7.0" />
-      <PackageReference Include="Boogie.ExecutionEngine" Version="2.15.7" />
+      <PackageReference Include="Boogie.ExecutionEngine" Version="2.16.0" />
   </ItemGroup>
 
   <ItemGroup>
     <Content Include="DafnyPrelude.bpl" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="assets\audit_template.html">
+      <LogicalName>audit_template.html</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
 </Project>

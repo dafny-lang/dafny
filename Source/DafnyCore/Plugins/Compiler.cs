@@ -1,11 +1,9 @@
 ﻿// SPDX-License-Identifier: MIT
 #nullable enable
 
-using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
-using System.Reflection;
 
 namespace Microsoft.Dafny.Plugins;
 
@@ -76,6 +74,13 @@ public abstract class Compiler {
   /// Whether generated code can be compiled without being written to disk.
   /// </summary>
   public abstract bool SupportsInMemoryCompilation { get; }
+
+  /// <summary>
+  /// Whether or not the compiler turns
+  ///     datatype Record = R(oneThing: X)
+  /// into just X, including the case where "Record" is a tuple type with 1 non-ghost component.
+  /// </summary>
+  public virtual bool SupportsDatatypeWrapperErasure => true;
 
   /// <summary>
   /// Dafny features this compiler is known to not support.

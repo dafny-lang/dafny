@@ -14,12 +14,12 @@ jobs:
       fail-fast: false
       matrix:
         # This workflow breaks on windows-2022: https://github.com/dafny-lang/dafny/issues/1906
-        os: [ ubuntu-latest, ubuntu-18.04, macos-latest, windows-2019 ]
+        os: [ ubuntu-latest, ubuntu-20.04, macos-latest, windows-2019 ]
         include:
         - os:  'ubuntu-latest'
-          osn: 'ubuntu\-16.04'
-        - os:  'ubuntu-18.04'
-          osn: 'ubuntu\-16.04'
+          osn: 'ubuntu\-20.04'
+        - os:  'ubuntu-20.04'
+          osn: 'ubuntu\-20.04'
         - os:  'macos-latest'
           osn: 'osx-.*'
         - os:  'windows-2019'
@@ -32,9 +32,10 @@ jobs:
     - name: OS
       run: echo ${{ runner.os }} ${{ matrix.os }}
     - name: Set up JDK 18
-      uses: actions/setup-java@v1
+      uses: actions/setup-java@v3
       with:
         java-version: 18
+        distribution: corretto
     - name: Download ${{matrix.os}} releases
       uses: dsaltares/fetch-gh-release-asset@master
       with:
@@ -83,6 +84,7 @@ jobs:
     ## Check that a simple program compiles and runs on each supported platform
     - name: run quicktests
       run: |
+        npm install bignumber.js
         dafny/quicktest.sh > log.txt
         diff log.txt dafny/quicktest.out
     - name: Check C# compile
@@ -106,7 +108,6 @@ jobs:
         diff expect.txt actual.txt
     - name: Check Javascript compile
       run: |
-        npm install bignumber.js
         dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:js a.dfy
         node a.js dafny/DafnyRuntime.js > actual.txt
         diff expect.txt actual.txt

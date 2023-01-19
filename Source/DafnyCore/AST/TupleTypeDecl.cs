@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using JetBrains.Annotations;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
@@ -12,10 +13,12 @@ public class TupleTypeDecl : IndDatatypeDecl {
 
   public int NonGhostDims => ArgumentGhostness.Count(x => !x);
 
+  [CanBeNull] public TupleTypeDecl NonGhostTupleTypeDecl { get; }
+
   /// <summary>
   /// Construct a resolved built-in tuple type with "dim" arguments.  "systemModule" is expected to be the _System module.
   /// </summary>
-  public TupleTypeDecl(List<bool> argumentGhostness, ModuleDefinition systemModule, Attributes attributes)
+  public TupleTypeDecl(List<bool> argumentGhostness, ModuleDefinition systemModule, [CanBeNull] TupleTypeDecl nonGhostTupleTypeDecl, Attributes attributes)
     : this(systemModule, CreateCovariantTypeParameters(argumentGhostness.Count), argumentGhostness, attributes) {
     Contract.Requires(0 <= argumentGhostness.Count);
     Contract.Requires(systemModule != null);
@@ -27,6 +30,8 @@ public class TupleTypeDecl : IndDatatypeDecl {
       tp.Parent = this;
       tp.PositionalIndex = i;
     }
+
+    NonGhostTupleTypeDecl = nonGhostTupleTypeDecl;
   }
 
   private TupleTypeDecl(ModuleDefinition systemModule, List<TypeParameter> typeArgs, List<bool> argumentGhostness, Attributes attributes)
@@ -79,5 +84,5 @@ public class TupleTypeDecl : IndDatatypeDecl {
 
   public override string SanitizedName =>
     sanitizedName ??= $"Tuple{BuiltIns.ArgumentGhostnessToString(ArgumentGhostness)}";
-  public override string CompileName => $"Tuple{NonGhostDims}";
+  public override string CompileName => NonGhostTupleTypeDecl?.CompileName ?? $"Tuple{NonGhostDims}";
 }

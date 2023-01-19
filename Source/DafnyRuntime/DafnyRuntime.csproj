@@ -6,7 +6,7 @@
       <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
       <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
       <DefineConstants>TRACE;ISDAFNYRUNTIMELIB</DefineConstants>
-      <TargetFramework>net6.0</TargetFramework>
+      <TargetFrameworks>netstandard2.0;net452</TargetFrameworks>
       <OutputPath>..\..\Binaries\</OutputPath>
       <LangVersion>7.3</LangVersion>
       <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -44,8 +44,8 @@
     <Message Text="Compiling DafnyRuntimeJava to $(DafnyRuntimeJar)..." Importance="high" />
     <!-- For some reason the DafnyRuntime.jar was often not (yet?) created after this Target was run, leading to build failures. 
        We've removed the 'clean' step that was before 'build', so the DafnyRuntime.jar from a previous run can be used. -->
-    <Exec WorkingDirectory="DafnyRuntimeJava" Condition="!$([MSBuild]::IsOSPlatform('Windows'))" Command="./gradlew -q build" />
-    <Exec WorkingDirectory="DafnyRuntimeJava" Condition="$([MSBuild]::IsOSPlatform('Windows'))" Command="./gradlew.bat -q build" />
+    <Exec WorkingDirectory="DafnyRuntimeJava" Condition="!$([MSBuild]::IsOSPlatform('Windows'))" Command="./gradlew build" />
+    <Exec WorkingDirectory="DafnyRuntimeJava" Condition="$([MSBuild]::IsOSPlatform('Windows'))" Command="./gradlew.bat build" />
     <ItemGroup>
       <!-- Register the generated file to be deleted when cleaning -->
       <FileWrites Include="$(DafnyRuntimeJar)" />

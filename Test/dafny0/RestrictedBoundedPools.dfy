@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 2 %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Methods_EverythingGoes {
@@ -166,10 +166,6 @@ module OtherComprehensions {
       assert iset{} == iset o: OpaqueNoAlloc | R(o);  // fine
   }
 
-  method M2() returns (s: iset<OpaqueNoAlloc>) {
-    s := iset o: OpaqueNoAlloc | R(o);  // error: not compilable (too awkward)
-  }
-
   function F0(): int
     requires iset{} == iset o: Opaque | R(o)  // error: may involve references
   {
@@ -198,6 +194,16 @@ module OtherComprehensions {
     reads if iset{} == iset xs: List<G> | R(xs) then {c} else {}  // error: may involve references
   {
     15
+  }
+}
+
+module CompiledComprehensions {
+  predicate method R<Y>(y: Y) { true }
+
+  type OpaqueNoAlloc(!new)
+    
+  method M2() returns (s: iset<OpaqueNoAlloc>) {
+    s := iset o: OpaqueNoAlloc | R(o);  // error: not compilable (too awkward)
   }
 }
 

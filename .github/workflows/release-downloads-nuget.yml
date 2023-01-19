@@ -28,13 +28,13 @@ jobs:
       fail-fast: false
       matrix:
         # This workflow breaks on windows-2022: https://github.com/dafny-lang/dafny/issues/1906
-        os: [ ubuntu-latest, ubuntu-18.04, macos-latest, windows-2019 ]
+        os: [ ubuntu-latest, ubuntu-20.04, macos-latest, windows-2019 ]
         include:
         - os:  'ubuntu-latest'
-          osn: 'ubuntu\-16.04'
+          osn: 'ubuntu\-20.04'
           z3: z3-4.8.5-x64-ubuntu-16.04
-        - os:  'ubuntu-18.04'
-          osn: 'ubuntu\-16.04'
+        - os:  'ubuntu-20.04'
+          osn: 'ubuntu\-20.04'
           z3: z3-4.8.5-x64-ubuntu-16.04
         - os:  'macos-latest'
           osn: 'osx-.*'
@@ -47,11 +47,12 @@ jobs:
     - name: OS
       run: echo ${{ runner.os }} ${{ matrix.os }}
     - name: Set up JDK 18
-      uses: actions/setup-java@v1
+      uses: actions/setup-java@v3
       with:
         java-version: 18
+        distribution: corretto
     - name: Setup dotnet
-      uses: actions/setup-dotnet@v1.9.0
+      uses: actions/setup-dotnet@v3
       with:
         dotnet-version: ${{env.dotnet-version}}
     - name: Load Z3
@@ -109,25 +110,22 @@ jobs:
     - name: Running Go artifacts
       if: runner.os != 'Windows'
       run: |
-        GO111MODULE=auto GOPATH=$PWD/a-go go run a-go/src/a.go > actual.txt
-        diff expect.txt actual.txt
+        GO111MODULE=auto GOPATH=$PWD/a-go go run a-go/src/a.go | diff expect.txt -
     - name: Running Go artifacts - Windows
       shell: pwsh
       if: runner.os == 'Windows'
       run: |
         $Env:GO111MODULE="auto"
         $Env:GOPATH="$PWD/a-go"
-        go run a-go/src/a.go > actual.txt
-        diff expect.txt actual.txt
+        go run a-go/src/a.go | diff expect.txt -
     - name: Check Javascript compile
       run: |
         npm install bignumber.js
         dafny /compile:3 /spillTargetCode:3 /compileTarget:js a.dfy
-        node a.js dafny/DafnyRuntime.js > actual.txt
-        diff expect.txt actual.txt
+        node a.js dafny/DafnyRuntime.js | diff expect.txt -
     - name: Check Java compile
       run: |
-        dafny /compile:3 /spillTargetCode:3 /compileTarget:java a.dfy
+        dafny /compile:3 /spillTargetCode:3 /compileTarget:java a.dfy | diff expect.txt -
 
   test-dafny-libraries:
 
@@ -139,13 +137,13 @@ jobs:
         # but note we need to skip Dafny since nuget install doesn't work for dotnet tools.
         library-name: [ DafnyPipeline, DafnyServer, DafnyLanguageServer, DafnyRuntime, DafnyCore, DafnyDriver ]
         # This workflow breaks on windows-2022: https://github.com/dafny-lang/dafny/issues/1906
-        os: [ ubuntu-latest, ubuntu-18.04, macos-latest, windows-2019 ]
+        os: [ ubuntu-latest, ubuntu-20.04, macos-latest, windows-2019 ]
         include:
         - os:  'ubuntu-latest'
-          osn: 'ubuntu\-16.04'
+          osn: 'ubuntu\-20.04'
           z3: z3-4.8.5-x64-ubuntu-16.04
-        - os:  'ubuntu-18.04'
-          osn: 'ubuntu\-16.04'
+        - os:  'ubuntu-20.04'
+          osn: 'ubuntu\-20.04'
           z3: z3-4.8.5-x64-ubuntu-16.04
         - os:  'macos-latest'
           osn: 'osx-.*'
@@ -160,4 +158,4 @@ jobs:
     ## Ideally we would have a test project that actually uses part of the public API of each package.
     - name: Check library dependencies
       run: |
-        nuget install ${{ matrix.library-name }}
+        nuget install -Prerelease ${{ matrix.library-name }}

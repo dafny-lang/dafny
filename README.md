@@ -70,7 +70,7 @@ The language itself draws pieces of influence from:
 
 # Contributors
 
-Information and instructions for potential contributors are provided [here](CONTRIBUTING).
+Information and instructions for potential contributors are provided [here](CONTRIBUTING.md).
 
 # License
 

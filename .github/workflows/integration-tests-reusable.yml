@@ -24,27 +24,26 @@ jobs:
       - name: Populate OS list (all platforms)
         id: populate-os-list-all
         if: inputs.all_platforms
-        run: echo "::set-output name=os-list::[\"ubuntu-latest\", \"ubuntu-18.04\", \"macos-latest\", \"windows-2019\"]"
+        run: echo "os-list=[\"ubuntu-latest\", \"ubuntu-20.04\", \"macos-latest\", \"windows-2019\"]" >> $GITHUB_OUTPUT
       - name: Populate OS list (one platform)
         id: populate-os-list-one
         if: "!inputs.all_platforms"
-        run: echo "::set-output name=os-list::[\"ubuntu-18.04\"]"
+        run: echo "os-list=[\"ubuntu-20.04\"]" >> $GITHUB_OUTPUT
       - name: Populate OS mapping for package.py
         id: populate-os-mapping
         run: |
-          echo "::set-output name=os-mapping::{\"ubuntu-latest\": \"ubuntu\", \"ubuntu-18.04\": \"ubuntu\", \"macos-latest\": \"osx\", \"windows-2019\": \"win\"}"
+          echo "os-mapping={\"ubuntu-latest\": \"ubuntu\", \"ubuntu-20.04\": \"ubuntu\", \"macos-latest\": \"osx\", \"windows-2019\": \"win\"}" >> $GITHUB_OUTPUT
       - name: Populate target runtime version list (all platforms)
         id: populate-target-runtime-version-all
         if: inputs.all_platforms
-        run: echo "::set-output name=target-runtime-version::[\"oldest\", \"newest\"]"
+        run: echo "target-runtime-version=[\"oldest\", \"newest\"]" >> $GITHUB_OUTPUT
       - name: Populate target runtime version list (one platform)
         id: populate-target-runtime-version-one
         if: "!inputs.all_platforms"
-        run: echo "::set-output name=target-runtime-version::[\"oldest\"]"
+        run: echo "target-runtime-version=[\"oldest\"]" >> $GITHUB_OUTPUT
       - name: Populate shard list
         id: populate-shard-list
-        run: |
-          echo "::set-output name=shard-list::[" $(seq -s , 1 ${{ inputs.num_shards }}) "]"
+        run: echo "shard-list=[`seq -s , 1 ${{ inputs.num_shards }}`]" >> $GITHUB_OUTPUT
     outputs:
       os-list: ${{ steps.populate-os-list-all.outputs.os-list }} ${{ steps.populate-os-list-one.outputs.os-list }}
       os-mapping: ${{ steps.populate-os-mapping.outputs.os-mapping }}
@@ -63,52 +62,64 @@ jobs:
     - name: Manually sync certs
       if: runner.os == 'Linux'
       run: cert-sync /etc/ssl/certs/ca-certificates.crt
-    - uses: actions/setup-python@v1
     - name: Setup dotnet
-      uses: actions/setup-dotnet@v1.9.0
+      uses: actions/setup-dotnet@v3
       with:
         dotnet-version: ${{ env.dotnet-version }}
-    - name: C++ for ubuntu 18.04
-      if: matrix.os == 'ubuntu-18.04'
+    - name: C++ for ubuntu 20.04
+      if: matrix.os == 'ubuntu-20.04'
       run: |
         sudo apt-get install -y build-essential
-    - name: Choose the right C++ for ubuntu 18.04
-      if: matrix.os == 'ubuntu-18.04'
+    - name: Choose the right C++ for ubuntu 20.04
+      if: matrix.os == 'ubuntu-20.04'
       run: |
         sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 60
-    - uses: actions/setup-python@v1
     - name: Set up oldest supported JDK
       if: matrix.target-language-version == 'oldest'
-      uses: actions/setup-java@v1
+      uses: actions/setup-java@v3
       with:
-        java-version: 1.8
+        java-version: 8
+        distribution: corretto
     - name: Set up newest supported JDK
       if: matrix.target-language-version == 'newest'
-      uses: actions/setup-java@v1
+      uses: actions/setup-java@v3
       with:
         java-version: 18
+        distribution: corretto
     - name: Upgrade outdated pip
       run: python -m pip install --upgrade pip
     - name: Install lit
       run: pip install lit OutputCheck pyyaml
-    - uses: actions/setup-node@v1
+    - uses: actions/setup-node@v3
     - run: npm install bignumber.js
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with: 
+        python-version: '3.11'
     - name: Checkout Dafny
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         path: dafny
         submodules: true
     - run: rm dafny/Test/libraries/lit.site.cfg # we remove the lit configuration file in the library repo (a git submodule) to prevent override
     - name: Create release
+      if: inputs.all_platforms
       run: |
         python dafny/Scripts/package.py 0.0.0-CI --os ${{ fromJson(needs.populate-matrix-dimensions.outputs.os-mapping)[matrix.os] }} --skip_manual=true --trial=true --github_secret=${{ secrets.GITHUB_TOKEN }} --out=CI.zip
-    - if: runner.os == 'Windows'
+    - if: runner.os == 'Windows' && inputs.all_platforms
       shell: pwsh
       run: |
         Expand-Archive dafny/Package/CI.zip unzippedRelease
-    - if: runner.os != 'Windows'
+    - if: runner.os != 'Windows' && inputs.all_platforms
       run: |
         unzip dafny/Package/CI.zip -d unzippedRelease
+    - name: Load Z3
+      if: "!inputs.all_platforms"
+      run: |
+        sudo apt-get install -qq libarchive-tools
+        mkdir dafny/Binaries/z3
+        wget -qO- https://github.com/Z3Prover/z3/releases/download/Z3-4.8.5/z3-4.8.5-x64-ubuntu-16.04.zip | bsdtar -xf - -C dafny/Binaries/z3 --strip-components=1
+        chmod +x dafny/Binaries/z3/bin/z3
     - name: Run integration tests
       if: runner.os == 'Windows'
       env:
@@ -116,16 +127,16 @@ jobs:
         XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
         DAFNY_RELEASE: ${{ github.workspace }}\unzippedRelease\dafny
       run: |
-        dotnet test -v:n --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj
+        dotnet test --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj
     - name: Run integration tests
       if: runner.os != 'Windows'
       env:
         XUNIT_SHARD: ${{ matrix.shard }}
         XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
-        DAFNY_RELEASE: ${{ github.workspace }}/unzippedRelease/dafny
       run: |
-        dotnet test -v:n --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj
-    - uses: actions/upload-artifact@v2
+        ${{ inputs.all_platforms }} && export DAFNY_RELEASE="${{ github.workspace }}/unzippedRelease/dafny"
+        dotnet test --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj
+    - uses: actions/upload-artifact@v3
       if: always()
       with:
         name: integration-test-results-${{ matrix.os }}

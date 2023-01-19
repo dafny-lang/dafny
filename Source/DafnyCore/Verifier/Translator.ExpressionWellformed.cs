@@ -262,8 +262,8 @@ namespace Microsoft.Dafny {
       }
 
       if (expr is StaticReceiverExpr stexpr) {
-        if (stexpr.OriginalResolved != null) {
-          CheckWellformedWithResult(stexpr.OriginalResolved, options, null, null, locals, builder, etran);
+        if (stexpr.ObjectToDiscard != null) {
+          CheckWellformedWithResult(stexpr.ObjectToDiscard, options, null, null, locals, builder, etran);
         }
       } else if (expr is LiteralExpr) {
         CheckResultToBeInType(expr.tok, expr, expr.Type, locals, builder, etran);
@@ -566,7 +566,7 @@ namespace Microsoft.Dafny {
           }
           if (!e.Function.IsStatic && CommonHeapUse && !etran.UsesOldHeap) {
             // the argument can't be assumed to be allocated for the old heap
-            Type et = Resolver.SubstType(UserDefinedType.FromTopLevelDecl(e.tok, e.Function.EnclosingClass), e.GetTypeArgumentSubstitutions());
+            Type et = UserDefinedType.FromTopLevelDecl(e.tok, e.Function.EnclosingClass).Subst(e.GetTypeArgumentSubstitutions());
             builder.Add(new Bpl.CommentCmd("assume allocatedness for receiver argument to function"));
             builder.Add(TrAssumeCmd(e.Receiver.tok, MkIsAlloc(etran.TrExpr(e.Receiver), et, etran.HeapExpr)));
           }
@@ -582,7 +582,7 @@ namespace Microsoft.Dafny {
             Formal p = e.Function.Formals[i];
             // Note, in the following, the "##" makes the variable invisible in BVD.  An alternative would be to communicate
             // to BVD what this variable stands for and display it as such to the user.
-            Type et = Resolver.SubstType(p.Type, e.GetTypeArgumentSubstitutions());
+            Type et = p.Type.Subst(e.GetTypeArgumentSubstitutions());
             LocalVariable local = new LocalVariable(p.tok, p.tok, "##" + p.Name, et, p.IsGhost);
             local.type = local.OptionalType;  // resolve local here
             IdentifierExpr ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator));
@@ -756,7 +756,7 @@ namespace Microsoft.Dafny {
           foreach (var p in LinqExtender.Zip(dtv.Ctor.EnclosingDatatype.TypeArgs, dtv.InferredTypeArgs)) {
             su[p.Item1] = p.Item2;
           }
-          Type ty = Resolver.SubstType(formal.Type, su);
+          Type ty = formal.Type.Subst(su);
           CheckSubrange(arg.tok, etran.TrExpr(arg), arg.Type, ty, builder);
         }
       } else if (expr is SeqConstructionExpr) {
@@ -844,10 +844,14 @@ namespace Microsoft.Dafny {
               var e0 = FunctionCall(expr.tok, "char#ToInt", Bpl.Type.Int, etran.TrExpr(e.E0));
               var e1 = FunctionCall(expr.tok, "char#ToInt", Bpl.Type.Int, etran.TrExpr(e.E1));
               if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.Add) {
-                builder.Add(Assert(GetToken(expr), Bpl.Expr.Lt(Bpl.Expr.Binary(BinaryOperator.Opcode.Add, e0, e1), Bpl.Expr.Literal(65536)), new PODesc.CharOverflow()));
+                builder.Add(Assert(GetToken(expr),
+                  FunctionCall(Token.NoToken, BuiltinFunction.IsChar, null,
+                    Bpl.Expr.Binary(BinaryOperator.Opcode.Add, e0, e1)), new PODesc.CharOverflow()));
               } else {
                 Contract.Assert(e.ResolvedOp == BinaryExpr.ResolvedOpcode.Sub);  // .Mul is not supported for char
-                builder.Add(Assert(GetToken(expr), Bpl.Expr.Le(e1, e0), new PODesc.CharUnderflow()));
+                builder.Add(Assert(GetToken(expr),
+                  FunctionCall(Token.NoToken, BuiltinFunction.IsChar, null,
+                    Bpl.Expr.Binary(BinaryOperator.Opcode.Sub, e0, e1)), new PODesc.CharUnderflow()));
               }
             }
             CheckResultToBeInType(expr.tok, expr, expr.Type, locals, builder, etran);
@@ -918,7 +922,7 @@ namespace Microsoft.Dafny {
                 var ghostConstructors = dt.Ctors.Where(ctor => ctor.IsGhost).ToList();
                 Contract.Assert(ghostConstructors.Count != 0);
 
-                void checkOperand(Expression operand) {
+                void CheckOperand(Expression operand) {
                   var value = etran.TrExpr(operand);
                   var notGhostCtor = BplAnd(ghostConstructors.ConvertAll(
                     ctor => Bpl.Expr.Not(FunctionCall(expr.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, value))));
@@ -926,8 +930,8 @@ namespace Microsoft.Dafny {
                     new PODesc.NotGhostVariant("equality", ghostConstructors)));
                 }
 
-                checkOperand(e.E0);
-                checkOperand(e.E1);
+                CheckOperand(e.E0);
+                CheckOperand(e.E1);
               }
 
 
@@ -1108,7 +1112,7 @@ namespace Microsoft.Dafny {
             builder.Add(new Bpl.HavocCmd(me.tok, havocIds));
           }
 
-          String missingStr = me.Context.FillHole(new IdCtx(new KeyValuePair<string, DatatypeCtor>(missingCtor.Name, missingCtor))).AbstractAllHoles().ToString();
+          String missingStr = me.Context.FillHole(new IdCtx(missingCtor)).AbstractAllHoles().ToString();
           b.Add(Assert(GetToken(me), Bpl.Expr.False, new PODesc.MatchIsComplete("expression", missingStr)));
 
           Bpl.Expr guard = Bpl.Expr.Eq(src, r);
@@ -1149,7 +1153,9 @@ namespace Microsoft.Dafny {
         var e = (ConcreteSyntaxExpression)expr;
         CheckWellformedWithResult(e.ResolvedExpression, options, result, resultType, locals, builder, etran);
         result = null;
-
+      } else if (expr is NestedMatchExpr nestedMatchExpr) {
+        CheckWellformedWithResult(nestedMatchExpr.Flattened, options, result, resultType, locals, builder, etran);
+        result = null;
       } else if (expr is BoogieFunctionCall) {
         var e = (BoogieFunctionCall)expr;
         foreach (var arg in e.Args) {

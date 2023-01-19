@@ -56,7 +56,7 @@ module Test {
   method Main() {
     var y := Test(12);  // Basic function-method test
     CallTest();         // Function pointer tests
-    print y;
+    print y, "\n";
   }
 }
 

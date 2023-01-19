@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
@@ -31,7 +32,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       .AddSingleton<IProgramVerifier>(serviceProvider => new CrashingVerifier(this,
         new DafnyProgramVerifier(
           serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>(),
-          serviceProvider.GetRequiredService<IOptions<VerifierOptions>>())
+          serviceProvider.GetRequiredService<DafnyOptions>())
     ));
   }
 
@@ -125,7 +126,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
 
     public Task<DocumentAfterParsing> LoadAsync(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
       if (tests.CrashOnLoad) {
-        throw new Exception("crash");
+        throw new IOException("crash");
       }
       return loader.LoadAsync(textDocument, cancellationToken);
     }

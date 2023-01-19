@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.IO;
+using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Collections.ObjectModel;
 using JetBrains.Annotations;
@@ -64,6 +65,46 @@ namespace Microsoft.Dafny.Compilers {
 
     public CoverageInstrumenter Coverage;
 
+    public ProcessStartInfo PrepareProcessStartInfo(string programName, IEnumerable<string> args = null) {
+      var psi = new ProcessStartInfo(programName) {
+        UseShellExecute = false,
+        CreateNoWindow = false, // https://github.com/dotnet/runtime/issues/68259
+      };
+      foreach (var arg in args ?? Enumerable.Empty<string>()) {
+        psi.ArgumentList.Add(arg);
+      }
+      return psi;
+    }
+
+    public int WaitForExit(Process process, TextWriter outputWriter, string errorMessage = null) {
+      process.WaitForExit();
+      if (process.ExitCode != 0 && errorMessage != null) {
+        outputWriter.WriteLine("{0} Process exited with exit code {1}", errorMessage, process.ExitCode);
+      }
+      return process.ExitCode;
+    }
+
+    public Process StartProcess(ProcessStartInfo psi, TextWriter outputWriter) {
+      string additionalInfo = "";
+
+      try {
+        if (Process.Start(psi) is { } process) {
+          return process;
+        }
+      } catch (System.ComponentModel.Win32Exception e) {
+        additionalInfo = $": {e.Message}";
+      }
+
+      outputWriter.WriteLine($"Error: Unable to start {psi.FileName}{additionalInfo}");
+      return null;
+    }
+
+    public int RunProcess(ProcessStartInfo psi, TextWriter outputWriter, string errorMessage = null) {
+      return StartProcess(psi, outputWriter) is { } process ?
+         WaitForExit(process, outputWriter, errorMessage) : -1;
+    }
+
+
     protected static void ReportError(ErrorReporter reporter, IToken tok, string msg, ConcreteSyntaxTree/*?*/ wr, params object[] args) {
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
@@ -87,6 +128,10 @@ namespace Microsoft.Dafny.Compilers {
 
     protected string IntSelect = ",int";
     protected string LambdaExecute = "";
+
+    protected static bool UnicodeCharEnabled => DafnyOptions.O.Get(CommonOptionBag.UnicodeCharacters);
+
+    protected static string CharMethodQualifier => UnicodeCharEnabled ? "Unicode" : "";
 
     protected virtual void EmitHeader(Program program, ConcreteSyntaxTree wr) { }
     protected virtual void EmitFooter(Program program, ConcreteSyntaxTree wr) { }
@@ -691,8 +736,14 @@ namespace Microsoft.Dafny.Compilers {
 
     protected virtual bool NeedsCastFromTypeParameter => false;
 
+    protected virtual bool TargetSubtypingRequiresEqualTypeArguments(Type type) => false;
+
     protected virtual bool IsCoercionNecessary(Type /*?*/ from, Type /*?*/ to) {
       return NeedsCastFromTypeParameter;
+    }
+
+    protected virtual Type TypeForCoercion(Type type) {
+      return type;
     }
 
     /// <summary>
@@ -709,10 +760,14 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(tok != null);
       Contract.Requires(wr != null);
       if (from != null && to != null) {
+        from = DatatypeWrapperEraser.SimplifyType(from);
+        to = DatatypeWrapperEraser.SimplifyType(to);
         if (!IsTargetSupertype(to, from)) {
-          // The following assert is a sanity check. Note, in a language with NeedsCastFromTypeParameter, "to" and "from" may
-          // contain uninstantiated formal type parameters.
-          Contract.Assert(NeedsCastFromTypeParameter || IsTargetSupertype(from, to));
+          // By the way, it is tempting to think that IsTargetSupertype(from, to)) would hold here, but that's not true.
+          // For one, in a language with NeedsCastFromTypeParameter, "to" and "from" may contain uninstantiated formal type parameters.
+          // Also, it is possible (subject to a check enforced by the verifier) to assign Datatype<X> to Datatype<Y>,
+          // where Datatype is co-variant in its argument type and X and Y are two incomparable types with a common supertype.
+
           wr = EmitDowncast(from, to, tok, wr);
         }
       }
@@ -725,7 +780,7 @@ namespace Microsoft.Dafny.Compilers {
     /// This to similar to Type.IsSupertype and Type.Equals, respectively, but ignores subset types (that
     /// is, always uses the base type of any subset type).
     /// </summary>
-    public static bool IsTargetSupertype(Type to, Type from, bool typeEqualityOnly = false) {
+    public bool IsTargetSupertype(Type to, Type from, bool typeEqualityOnly = false) {
       Contract.Requires(from != null);
       Contract.Requires(to != null);
       to = to.NormalizeExpand();
@@ -737,7 +792,7 @@ namespace Microsoft.Dafny.Compilers {
         Contract.Assert(formalTypeParameters != null || to.TypeArgs.Count == 0 || to is CollectionType);
         for (var i = 0; i < to.TypeArgs.Count; i++) {
           bool okay;
-          if (typeEqualityOnly) {
+          if (typeEqualityOnly || TargetSubtypingRequiresEqualTypeArguments(to)) {
             okay = IsTargetSupertype(to.TypeArgs[i], from.TypeArgs[i], true);
           } else if (formalTypeParameters == null || formalTypeParameters[i].Variance == TypeParameter.TPVariance.Co) {
             okay = IsTargetSupertype(to.TypeArgs[i], from.TypeArgs[i]);
@@ -994,9 +1049,6 @@ namespace Microsoft.Dafny.Compilers {
     protected abstract ILvalue EmitMemberSelect(Action<ConcreteSyntaxTree> obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
       Type expectedType, string/*?*/ additionalCustomParameter = null, bool internalAccess = false);
 
-    protected void EmitArraySelect(string index, Type elmtType, ConcreteSyntaxTree wr) {
-      EmitArraySelect(new List<string>() { index }, elmtType, wr);
-    }
     protected abstract ConcreteSyntaxTree EmitArraySelect(List<string> indices, Type elmtType, ConcreteSyntaxTree wr);
     protected abstract ConcreteSyntaxTree EmitArraySelect(List<Expression> indices, Type elmtType, bool inLetExprBody,
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);
@@ -1316,6 +1368,8 @@ namespace Microsoft.Dafny.Compilers {
             var w = DeclareNewtype(nt, wr);
             v.Visit(nt);
             CompileClassMembers(program, nt, w);
+          } else if ((d as TupleTypeDecl)?.NonGhostDims == 1 && SupportsDatatypeWrapperErasure && DafnyOptions.O.Get(CommonOptionBag.OptimizeErasableDatatypeWrapper)) {
+            // ignore this type declaration
           } else if (d is DatatypeDecl) {
             var dt = (DatatypeDecl)d;
             CheckForCapitalizationConflicts(dt.Ctors);
@@ -1335,12 +1389,12 @@ namespace Microsoft.Dafny.Compilers {
           } else if (d is IteratorDecl) {
             var iter = (IteratorDecl)d;
             if (DafnyOptions.O.ForbidNondeterminism && iter.Outs.Count > 0) {
-              Error(iter.tok, "since yield parameters are initialized arbitrarily, iterators are forbidden by /definiteAssignment:3 option", wr);
+              Error(iter.tok, "since yield parameters are initialized arbitrarily, iterators are forbidden by the --enforce-determinism option", wr);
             }
 
             var wIter = CreateIterator(iter, wr);
             if (iter.Body == null) {
-              Error(iter.tok, "Iterator {0} has no body", wIter, iter.FullName);
+              Error(iter.tok, "iterator {0} has no body", wIter, iter.FullName);
             } else {
               TrStmtList(iter.Body.Body, wIter);
             }
@@ -1535,7 +1589,7 @@ namespace Microsoft.Dafny.Compilers {
                 if (member is Method m && member.FullDafnyName == name) {
                   mainMethod = m;
                   if (!IsPermittedAsMain(program, mainMethod, out string reason)) {
-                    ReportError(program.Reporter, mainMethod.tok, "The method \"{0}\" is not permitted as a main method ({1}).", null, name, reason);
+                    ReportError(program.Reporter, mainMethod.tok, "The method '{0}' is not permitted as a main method ({1}).", null, name, reason);
                     mainMethod = null;
                     return false;
                   } else {
@@ -1564,7 +1618,7 @@ namespace Microsoft.Dafny.Compilers {
                   hasMain = true;
                 } else {
                   // more than one main in the program
-                  ReportError(program.Reporter, m.tok, "More than one method is marked \"{{:main}}\". First declaration appeared at {0}.", null,
+                  ReportError(program.Reporter, m.tok, "More than one method is marked '{{:main}}'. First declaration appeared at {0}.", null,
                     ErrorReporter.TokenToString(mainMethod.tok));
                   hasMain = false;
                 }
@@ -1575,7 +1629,7 @@ namespace Microsoft.Dafny.Compilers {
       }
       if (hasMain) {
         if (!IsPermittedAsMain(program, mainMethod, out string reason)) {
-          ReportError(program.Reporter, mainMethod.tok, "This method marked \"{{:main}}\" is not permitted as a main method ({0}).", null, reason);
+          ReportError(program.Reporter, mainMethod.tok, "This method marked '{{:main}}' is not permitted as a main method ({0}).", null, reason);
           mainMethod = null;
           return false;
         } else {
@@ -1604,7 +1658,7 @@ namespace Microsoft.Dafny.Compilers {
                   hasMain = true;
                 } else {
                   // more than one main in the program
-                  ReportError(program.Reporter, m.tok, "More than one method is declared as \"{0}\". First declaration appeared at {1}.", null,
+                  ReportError(program.Reporter, m.tok, "More than one method is declared as '{0}'. First declaration appeared at {1}.", null,
                     DefaultNameMain, ErrorReporter.TokenToString(mainMethod.tok));
                   hasMain = false;
                 }
@@ -1616,7 +1670,7 @@ namespace Microsoft.Dafny.Compilers {
 
       if (hasMain) {
         if (!IsPermittedAsMain(program, mainMethod, out string reason)) {
-          ReportError(program.Reporter, mainMethod.tok, "This method \"Main\" is not permitted as a main method ({0}).", null, reason);
+          ReportError(program.Reporter, mainMethod.tok, "This method 'Main' is not permitted as a main method ({0}).", null, reason);
           return false;
         } else {
           return true;
@@ -1739,7 +1793,8 @@ namespace Microsoft.Dafny.Compilers {
         return member is ConstantField { Rhs: { } } or Function { Body: { } } or Method { Body: { } };
       } else if (member.EnclosingClass is DatatypeDecl datatypeDecl) {
         // An undefined value "o" cannot use this o.F(...) form in most languages.
-        return datatypeDecl.Ctors.Any(ctor => ctor.IsGhost);
+        // Also, an erasable wrapper type has a receiver that's not part of the enclosing target class.
+        return datatypeDecl.Ctors.Any(ctor => ctor.IsGhost) || DatatypeWrapperEraser.IsErasableDatatypeWrapper(datatypeDecl, out _);
       } else {
         return false;
       }
@@ -1773,7 +1828,7 @@ namespace Microsoft.Dafny.Compilers {
             RedeclareInheritedMember(member, classWriter);
           } else if (member is ConstantField) {
             var cf = (ConstantField)member;
-            var cfType = Resolver.SubstType(cf.Type, c.ParentFormalTypeParametersToActuals);
+            var cfType = cf.Type.Subst(c.ParentFormalTypeParametersToActuals);
             if (cf.Rhs == null) {
               Contract.Assert(!cf.IsStatic); // as checked above, only instance members can be inherited
               classWriter.DeclareField("_" + cf.CompileName, c, false, false, cfType, cf.tok, PlaceboValue(cfType, errorWr, cf.tok, true), cf);
@@ -1790,7 +1845,7 @@ namespace Microsoft.Dafny.Compilers {
               EmitCallToInheritedConstRHS(cf, w);
             }
           } else if (member is Field f) {
-            var fType = Resolver.SubstType(f.Type, c.ParentFormalTypeParametersToActuals);
+            var fType = f.Type.Subst(c.ParentFormalTypeParametersToActuals);
             // every field is inherited
             classWriter.DeclareField("_" + f.CompileName, c, false, false, fType, f.tok, PlaceboValue(fType, errorWr, f.tok, true), f);
             ConcreteSyntaxTree wSet;
@@ -2040,7 +2095,7 @@ namespace Microsoft.Dafny.Compilers {
       wr = EmitReturnExpr(wr);
       wr = EmitCoercionIfNecessary(f.Type, fOriginal.Type, f.tok, wr);
 
-      var calleeReceiverType = Resolver.SubstType(UserDefinedType.FromTopLevelDecl(f.tok, f.EnclosingClass), thisContext.ParentFormalTypeParametersToActuals);
+      var calleeReceiverType = UserDefinedType.FromTopLevelDecl(f.tok, f.EnclosingClass).Subst(thisContext.ParentFormalTypeParametersToActuals);
       wr.Write("{0}{1}", TypeName_Companion(calleeReceiverType, wr, f.tok, f), ModuleSeparator);
       var typeArgs = CombineAllTypeArguments(f, thisContext);
       EmitNameAndActualTypeArgs(IdName(f), TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, f, true)), f.tok, wr);
@@ -2076,7 +2131,7 @@ namespace Microsoft.Dafny.Compilers {
       wr = EmitReturnExpr(wr);
       wr = EmitCoercionIfNecessary(f.ResultType, f.Original.ResultType, f.tok, wr);
 
-      var calleeReceiverType = Resolver.SubstType(UserDefinedType.FromTopLevelDecl(f.tok, f.EnclosingClass), thisContext.ParentFormalTypeParametersToActuals);
+      var calleeReceiverType = UserDefinedType.FromTopLevelDecl(f.tok, f.EnclosingClass).Subst(thisContext.ParentFormalTypeParametersToActuals);
       wr.Write("{0}{1}", TypeName_Companion(calleeReceiverType, wr, f.tok, f), ModuleSeparator);
       var typeArgs = CombineAllTypeArguments(f, thisContext);
       EmitNameAndActualTypeArgs(IdName(f), TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, f, true)), f.tok, wr);
@@ -2136,7 +2191,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       var protectedName = IdName(method);
-      var calleeReceiverType = Resolver.SubstType(UserDefinedType.FromTopLevelDecl(method.tok, method.EnclosingClass), thisContext.ParentFormalTypeParametersToActuals);
+      var calleeReceiverType = UserDefinedType.FromTopLevelDecl(method.tok, method.EnclosingClass).Subst(thisContext.ParentFormalTypeParametersToActuals);
       wr.Write(TypeName_Companion(calleeReceiverType, wr, method.tok, method));
       wr.Write(ClassAccessor);
 
@@ -2468,12 +2523,13 @@ namespace Microsoft.Dafny.Compilers {
       return !m.IsStatic || m.EnclosingClass.TypeArgs.Count != 0;
     }
 
-
-    void TrCasePatternOpt<VT>(CasePattern<VT> pat, Expression rhs, ConcreteSyntaxTree wr, bool inLetExprBody) where VT : IVariable {
+    void TrCasePatternOpt<VT>(CasePattern<VT> pat, Expression rhs, ConcreteSyntaxTree wr, bool inLetExprBody)
+      where VT : class, IVariable {
       TrCasePatternOpt(pat, rhs, null, rhs.Type, rhs.tok, wr, inLetExprBody);
     }
 
-    void TrCasePatternOpt<VT>(CasePattern<VT> pat, Expression rhs, string rhs_string, Type rhsType, IToken rhsTok, ConcreteSyntaxTree wr, bool inLetExprBody) where VT : IVariable {
+    void TrCasePatternOpt<VT>(CasePattern<VT> pat, Expression rhs, string rhs_string, Type rhsType, IToken rhsTok, ConcreteSyntaxTree wr, bool inLetExprBody)
+      where VT : class, IVariable {
       Contract.Requires(pat != null);
       Contract.Requires(pat.Var != null || rhs != null || rhs_string != null);
       Contract.Requires(rhs != null || rhs_string != null);
@@ -2515,7 +2571,7 @@ namespace Microsoft.Dafny.Compilers {
         }
 
         var dtv = (DatatypeValue)pat.Expr;
-        var substMap = Resolver.TypeSubstitutionMap(ctor.EnclosingDatatype.TypeArgs, dtv.InferredTypeArgs);
+        var substMap = TypeParameter.SubstitutionMap(ctor.EnclosingDatatype.TypeArgs, dtv.InferredTypeArgs);
         var k = 0;  // number of non-ghost formals processed
         for (int i = 0; i < pat.Arguments.Count; i++) {
           var arg = pat.Arguments[i];
@@ -2526,7 +2582,7 @@ namespace Microsoft.Dafny.Compilers {
           } else {
             var sw = new ConcreteSyntaxTree(wr.RelativeIndentLevel);
             EmitDestructor(tmp_name, formal, k, ctor, dtv.InferredTypeArgs, arg.Expr.Type, sw);
-            Type targetType = Resolver.SubstType(formal.Type, substMap);
+            Type targetType = formal.Type.Subst(substMap);
             TrCasePatternOpt(arg, null, sw.ToString(), targetType, pat.Expr.tok, wr, inLetExprBody);
             k++;
           }
@@ -2571,6 +2627,8 @@ namespace Microsoft.Dafny.Compilers {
         }
         TrExprOpt(e.Els, resultType, els, accumulatorVar);
 
+      } else if (expr is NestedMatchExpr nestedMatchExpr) {
+        TrExprOpt(nestedMatchExpr.Flattened, resultType, wr, accumulatorVar);
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
         //   var _source = E;
@@ -2633,7 +2691,7 @@ namespace Microsoft.Dafny.Compilers {
           if (thisContext == null) {
             wRHS = wr;
           } else {
-            var instantiatedType = Resolver.SubstType(e.Receiver.Type, thisContext.ParentFormalTypeParametersToActuals);
+            var instantiatedType = e.Receiver.Type.Subst(thisContext.ParentFormalTypeParametersToActuals);
             wRHS = EmitCoercionIfNecessary(instantiatedType, UserDefinedType.FromTopLevelDecl(e.tok, thisContext), e.tok, wr);
           }
           wRHS.Write(inTmps[n]);
@@ -2650,10 +2708,10 @@ namespace Microsoft.Dafny.Compilers {
         // finally, the jump back to the head of the function
         EmitJumpToTailCallStart(wr);
 
-      } else if (expr is BinaryExpr bin && bin.AccumulatesForTailRecursion != BinaryExpr.AccumulationOperand.None) {
+      } else if (expr is BinaryExpr bin
+                 && bin.AccumulatesForTailRecursion != BinaryExpr.AccumulationOperand.None
+                 && enclosingFunction is { IsAccumulatorTailRecursive: true }) {
         Contract.Assert(accumulatorVar != null);
-        Contract.Assert(enclosingFunction != null);
-        Contract.Assert(enclosingFunction.IsAccumulatorTailRecursive);
         Expression tailTerm;
         Expression rhs;
         var acc = new IdentifierExpr(expr.tok, accumulatorVar);
@@ -2734,7 +2792,9 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(originalResultType != null);
       Contract.Requires(wr != null);
       Contract.Requires(accumulatorVar == null || (enclosingFunction != null && enclosingFunction.IsAccumulatorTailRecursive));
+      copyInstrWriters.Push(wr.Fork());
       TrExprOpt(body.Resolved, originalResultType, wr, accumulatorVar);
+      copyInstrWriters.Pop();
     }
 
     // ----- Type ---------------------------------------------------------------------------------
@@ -2759,31 +2819,33 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     /// <summary>
-    /// Note, C# reverses the order of brackets in array type names.
+    /// Note, C# and Java reverse the order of brackets in array type names.
     /// </summary>
     protected void TypeName_SplitArrayName(Type type, ConcreteSyntaxTree wr, IToken tok, out string typeNameSansBrackets, out string brackets) {
       Contract.Requires(type != null);
 
-      var xType = type.NormalizeExpand();
-      if (xType.IsArrayType) {
-        ArrayClassDecl at = xType.AsArrayType;
-        Contract.Assert(at != null);  // follows from type.IsArrayType
-        Type elType = UserDefinedType.ArrayElementType(xType);
-        TypeName_SplitArrayName(elType, wr, tok, out typeNameSansBrackets, out brackets);
+      TypeName_SplitArrayName(type, out var innermostElementType, out brackets);
+      typeNameSansBrackets = TypeName(innermostElementType, wr, tok);
+    }
+
+    protected virtual void TypeName_SplitArrayName(Type type, out Type innermostElementType, out string brackets) {
+      Contract.Requires(type != null);
+
+      type = DatatypeWrapperEraser.SimplifyType(type);
+      var at = type.AsArrayType;
+      if (at != null) {
+        var elementType = type.TypeArgs[0];
+        TypeName_SplitArrayName(elementType, out innermostElementType, out brackets);
         brackets = TypeNameArrayBrackets(at.Dims) + brackets;
       } else {
-        typeNameSansBrackets = TypeName(type, wr, tok);
+        innermostElementType = type;
         brackets = "";
       }
     }
 
     protected virtual string TypeNameArrayBrackets(int dims) {
       Contract.Requires(0 <= dims);
-      var name = "[";
-      for (int i = 1; i < dims; i++) {
-        name += ",";
-      }
-      return name + "]";
+      return $"[{Util.Repeat(dims - 1, ",")}]";
     }
 
     protected bool ComplicatedTypeParameterForCompilation(TypeParameter.TPVariance v, Type t) {
@@ -2814,8 +2876,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(tok != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
-      type = type.NormalizeExpandKeepConstraints();
-      Contract.Assert(type is NonProxyType);  // this should never happen, since all types should have been successfully resolved
+      type = DatatypeWrapperEraser.SimplifyType(type, true);
       return TypeInitializationValue(type, wr, tok, true, constructTypeParameterDefaultsFromTypeDescriptors);
     }
 
@@ -2825,10 +2886,16 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(tok != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
-      type = type.NormalizeExpandKeepConstraints();
-      Contract.Assert(type is NonProxyType);  // this should never happen, since all types should have been successfully resolved
-      var usePlaceboValue = type.AsDatatype?.GetGroundingCtor().IsGhost == true;
-      return TypeInitializationValue(type, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
+      // If "type" is a datatype with a ghost grounding constructor, then compile as a placebo for DatatypeWrapperEraser.SimplifyType(type, true).
+      // Otherwise, get default value for DatatypeWrapperEraser.SimplifyType(type, true), which may itself have a ghost grounding constructor, in
+      // which case the value we produce is a placebo.
+      bool HasGhostGroundingCtor(Type ty) {
+        return (ty.NormalizeExpandKeepConstraints() as UserDefinedType)?.ResolvedClass is DatatypeDecl dt && dt.GetGroundingCtor().IsGhost;
+      }
+
+      var simplifiedType = DatatypeWrapperEraser.SimplifyType(type, true);
+      var usePlaceboValue = HasGhostGroundingCtor(type) || HasGhostGroundingCtor(simplifiedType);
+      return TypeInitializationValue(simplifiedType, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
     }
 
     // ----- Stmt ---------------------------------------------------------------------------------
@@ -2841,14 +2908,16 @@ namespace Microsoft.Dafny.Compilers {
         compiler = c;
         this.wr = wr;
       }
+      private void RejectAssume(IToken tok, Attributes attributes, ConcreteSyntaxTree wr) {
+        if (!Attributes.Contains(attributes, "axiom")) {
+          compiler.Error(tok, "an assume statement without an {{:axiom}} attribute cannot be compiled", wr);
+        }
+      }
       protected override void VisitOneStmt(Statement stmt) {
         if (stmt is AssumeStmt) {
-          compiler.Error(stmt.Tok, "an assume statement cannot be compiled", wr);
-        } else if (stmt is AssignSuchThatStmt) {
-          var s = (AssignSuchThatStmt)stmt;
-          if (s.AssumeToken != null) {
-            compiler.Error(stmt.Tok, "an assume statement cannot be compiled", wr);
-          }
+          RejectAssume(stmt.Tok, stmt.Attributes, wr);
+        } else if (stmt is AssignSuchThatStmt { AssumeToken: { Attrs: var attrs } }) {
+          RejectAssume(stmt.Tok, attrs, wr);
         } else if (stmt is ForallStmt) {
           var s = (ForallStmt)stmt;
           if (s.Body == null) {
@@ -2897,9 +2966,9 @@ namespace Microsoft.Dafny.Compilers {
       } else if (stmt is ProduceStmt) {
         var s = (ProduceStmt)stmt;
         var isTailRecursiveResult = false;
-        if (s.hiddenUpdate != null) {
-          TrStmt(s.hiddenUpdate, wr);
-          var ss = s.hiddenUpdate.ResolvedStatements;
+        if (s.HiddenUpdate != null) {
+          TrStmt(s.HiddenUpdate, wr);
+          var ss = s.HiddenUpdate.ResolvedStatements;
           if (ss.Count == 1 && ss[0] is AssignStmt assign && assign.Rhs is ExprRhs eRhs && eRhs.Expr.Resolved is FunctionCallExpr fce && IsTailRecursiveByMethodCall(fce)) {
             isTailRecursiveResult = true;
           }
@@ -2928,7 +2997,7 @@ namespace Microsoft.Dafny.Compilers {
               var rhs = s.Rhss[i];
               if (rhs is HavocRhs) {
                 if (DafnyOptions.O.ForbidNondeterminism) {
-                  Error(rhs.Tok, "nondeterministic assignment forbidden by /definiteAssignment:3 option", wr);
+                  Error(rhs.Tok, "nondeterministic assignment forbidden by the --enforce-determinism option", wr);
                 }
               } else {
                 lhss.Add(lhs);
@@ -2955,7 +3024,7 @@ namespace Microsoft.Dafny.Compilers {
         Contract.Assert(s.Lhs is not SeqSelectExpr expr || expr.SelectOne);  // multi-element array assignments are not allowed
         if (s.Rhs is HavocRhs) {
           if (DafnyOptions.O.ForbidNondeterminism) {
-            Error(s.Rhs.Tok, "nondeterministic assignment forbidden by /definiteAssignment:3 option", wr);
+            Error(s.Rhs.Tok, "nondeterministic assignment forbidden by the --enforce-determinism option", wr);
           }
         } else if (s.Rhs is ExprRhs eRhs && eRhs.Expr.Resolved is FunctionCallExpr fce && IsTailRecursiveByMethodCall(fce)) {
           TrTailCallStmt(s.Tok, fce.Function.ByMethodDecl, fce.Receiver, fce.Args, null, wr);
@@ -2969,24 +3038,18 @@ namespace Microsoft.Dafny.Compilers {
       } else if (stmt is AssignSuchThatStmt) {
         var s = (AssignSuchThatStmt)stmt;
         if (DafnyOptions.O.ForbidNondeterminism) {
-          Error(s.Tok, "assign-such-that statement forbidden by /definiteAssignment:3 option", wr);
+          Error(s.Tok, "assign-such-that statement forbidden by the --enforce-determinism option", wr);
         }
-        if (s.AssumeToken != null) {
-          // Note, a non-ghost AssignSuchThatStmt may contain an assume
-          Error(s.AssumeToken, "an assume statement cannot be compiled", wr);
-        } else {
-          var lhss = s.Lhss.ConvertAll(lhs => ((IdentifierExpr)lhs.Resolved).Var);  // the resolver allows only IdentifierExpr left-hand sides
-          var missingBounds = ComprehensionExpr.BoundedPool.MissingBounds(lhss, s.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.Enumerable);
-          if (missingBounds.Count != 0) {
-            foreach (var bv in missingBounds) {
-              Error(s.Tok, "this assign-such-that statement is too advanced for the current compiler; Dafny's heuristics cannot find any bound for variable '{0}'", wr, bv.Name);
-            }
-          } else {
-            Contract.Assert(s.Bounds != null);
-            TrAssignSuchThat(lhss, s.Expr, s.Bounds, s.Tok.line, wr, false);
+        var lhss = s.Lhss.ConvertAll(lhs => ((IdentifierExpr)lhs.Resolved).Var);  // the resolver allows only IdentifierExpr left-hand sides
+        var missingBounds = ComprehensionExpr.BoundedPool.MissingBounds(lhss, s.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.Enumerable);
+        if (missingBounds.Count != 0) {
+          foreach (var bv in missingBounds) {
+            Error(s.Tok, "this assign-such-that statement is too advanced for the current compiler; Dafny's heuristics cannot find any bound for variable '{0}'", wr, bv.Name);
           }
+        } else {
+          Contract.Assert(s.Bounds != null);
+          TrAssignSuchThat(lhss, s.Expr, s.Bounds, s.Tok.line, wr, false);
         }
-
       } else if (stmt is AssignOrReturnStmt) {
         var s = (AssignOrReturnStmt)stmt;
         // TODO there's potential here to use target-language specific features such as exceptions
@@ -3016,7 +3079,7 @@ namespace Microsoft.Dafny.Compilers {
         IfStmt s = (IfStmt)stmt;
         if (s.Guard == null) {
           if (DafnyOptions.O.ForbidNondeterminism) {
-            Error(s.Tok, "nondeterministic if statement forbidden by /definiteAssignment:3 option", wr);
+            Error(s.Tok, "nondeterministic if statement forbidden by the --enforce-determinism option", wr);
           }
           // we can compile the branch of our choice
           ConcreteSyntaxTree guardWriter;
@@ -3041,7 +3104,7 @@ namespace Microsoft.Dafny.Compilers {
           }
         } else {
           if (s.IsBindingGuard && DafnyOptions.O.ForbidNondeterminism) {
-            Error(s.Tok, "binding if statement forbidden by /definiteAssignment:3 option", wr);
+            Error(s.Tok, "binding if statement forbidden by the --enforce-determinism option", wr);
           }
           ConcreteSyntaxTree guardWriter;
           var coverageForElse = Coverage.IsRecording && !(s.Els is IfStmt);
@@ -3070,7 +3133,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (stmt is AlternativeStmt) {
         var s = (AlternativeStmt)stmt;
         if (DafnyOptions.O.ForbidNondeterminism && 2 <= s.Alternatives.Count) {
-          Error(s.Tok, "case-based if statement forbidden by /definiteAssignment:3 option", wr);
+          Error(s.Tok, "case-based if statement forbidden by the --enforce-determinism option", wr);
         }
         foreach (var alternative in s.Alternatives) {
           ConcreteSyntaxTree guardWriter;
@@ -3092,7 +3155,7 @@ namespace Microsoft.Dafny.Compilers {
         }
         if (s.Guard == null) {
           if (DafnyOptions.O.ForbidNondeterminism) {
-            Error(s.Tok, "nondeterministic loop forbidden by /definiteAssignment:3 option", wr);
+            Error(s.Tok, "nondeterministic loop forbidden by the --enforce-determinism option", wr);
           }
           // This loop is allowed to stop iterating at any time. We choose to never iterate, but we still
           // emit a loop structure. The structure "while (false) { }" comes to mind, but that results in
@@ -3109,7 +3172,7 @@ namespace Microsoft.Dafny.Compilers {
 
       } else if (stmt is AlternativeLoopStmt loopStmt) {
         if (DafnyOptions.O.ForbidNondeterminism) {
-          Error(loopStmt.Tok, "case-based loop forbidden by /definiteAssignment:3 option", wr);
+          Error(loopStmt.Tok, "case-based loop forbidden by the --enforce-determinism option", wr);
         }
         if (loopStmt.Alternatives.Count != 0) {
           ConcreteSyntaxTree whileGuardWriter;
@@ -3157,7 +3220,7 @@ namespace Microsoft.Dafny.Compilers {
         var s0 = (AssignStmt)s.S0;
         if (s0.Rhs is HavocRhs) {
           if (DafnyOptions.O.ForbidNondeterminism) {
-            Error(s0.Rhs.Tok, "nondeterministic assignment forbidden by /definiteAssignment:3 option", wr);
+            Error(s0.Rhs.Tok, "nondeterministic assignment forbidden by --enforce-determinism", wr);
           }
           // The forall statement says to havoc a bunch of things.  This can be efficiently compiled
           // into doing nothing.
@@ -3262,10 +3325,8 @@ namespace Microsoft.Dafny.Compilers {
             EmitMultiSelect(s0, tupleTypeArgsList, wr, tup, L);
           }
         }
-      } else if (stmt is ConcreteSyntaxStatement) {
-        var s = (ConcreteSyntaxStatement)stmt;
-        TrStmt(s.ResolvedStatement, wr);
-
+      } else if (stmt is NestedMatchStmt nestedMatchStmt) {
+        TrStmt(nestedMatchStmt.Flattened, wr, wStmts);
       } else if (stmt is MatchStmt) {
         MatchStmt s = (MatchStmt)stmt;
         // Type source = e;
@@ -3303,7 +3364,7 @@ namespace Microsoft.Dafny.Compilers {
               hasRhs = true;
             }
           }
-          TrLocalVar(local, !hasRhs && local.Type.KnownToHaveToAValue(false), wr);
+          TrLocalVar(local, !hasRhs, wr);
           i++;
         }
         if (s.Update != null) {
@@ -3320,7 +3381,7 @@ namespace Microsoft.Dafny.Compilers {
         if (s.Body != null) {
           TrStmt(s.Body, wr);
         } else if (DafnyOptions.O.ForbidNondeterminism) {
-          Error(s.Tok, "modify statement without a body forbidden by /definiteAssignment:3 option", wr);
+          Error(s.Tok, "modify statement without a body forbidden by the --enforce-determinism option", wr);
         }
       } else if (stmt is TryRecoverStatement h) {
         EmitHaltRecoveryStmt(h.TryBody, h.HaltMessageVar.CompileName, h.RecoverBody, wr);
@@ -3446,7 +3507,6 @@ namespace Microsoft.Dafny.Compilers {
         List<ComprehensionExpr.BoundedPool>/*?*/ bounds = null, List<BoundVar>/*?*/ boundVars = null, int boundIndex = 0) {
       Contract.Requires(bound != null);
       Contract.Requires(bounds == null || (boundVars != null && bounds.Count == boundVars.Count && 0 <= boundIndex && boundIndex < bounds.Count));
-      Contract.Requires(collectionWriter != null);
 
       collectionWriter = new ConcreteSyntaxTree();
 
@@ -3457,7 +3517,7 @@ namespace Microsoft.Dafny.Compilers {
         collectionWriter.Write("{0}.AllBooleans()", GetHelperModuleName());
         return new BoolType();
       } else if (bound is ComprehensionExpr.CharBoundedPool) {
-        collectionWriter.Write("{0}.AllChars()", GetHelperModuleName());
+        collectionWriter.Write($"{GetHelperModuleName()}.All{CharMethodQualifier}Chars()");
         return new CharType();
       } else if (bound is ComprehensionExpr.IntBoundedPool) {
         var b = (ComprehensionExpr.IntBoundedPool)bound;
@@ -3745,11 +3805,15 @@ namespace Microsoft.Dafny.Compilers {
           EmitDecrementVar(varName, wr);
         }
       }
+
+      copyInstrWriters.Push(wr.Fork());
       ConcreteSyntaxTree guardWriter;
       var wStmtsIf = wr.Fork();
       var wBody = EmitIf(out guardWriter, false, wr);
       TrExpr(constraint, guardWriter, inLetExprBody, wStmtsIf);
       EmitBreak(doneLabel, wBody);
+      copyInstrWriters.Pop();
+
       // Java compiler throws unreachable error when absurd statement is written after unbounded for-loop, so we don't write it then.
       EmitAbsurd(string.Format("assign-such-that search produced no value (line {0})", debuginfoLine), wrOuter, needIterLimit);
     }
@@ -4044,7 +4108,7 @@ namespace Microsoft.Dafny.Compilers {
         return e.Var.Type;
       } else if (lhs is MemberSelectExpr) {
         var e = (MemberSelectExpr)lhs;
-        return Resolver.SubstType(((Field)e.Member).Type, e.TypeArgumentSubstitutionsWithParents());
+        return ((Field)e.Member).Type.Subst(e.TypeArgumentSubstitutionsWithParents());
       } else if (lhs is SeqSelectExpr) {
         var e = (SeqSelectExpr)lhs;
         return e.Seq.Type.NormalizeExpand().TypeArgs[0];
@@ -4100,7 +4164,7 @@ namespace Microsoft.Dafny.Compilers {
           if (!p.IsGhost) {
             string target = ProtectedFreshId("_out");
             outTmps.Add(target);
-            var instantiatedType = Resolver.SubstType(p.Type, s.MethodSelect.TypeArgumentSubstitutionsWithParents());
+            var instantiatedType = p.Type.Subst(s.MethodSelect.TypeArgumentSubstitutionsWithParents());
             Type type;
             if (NeedsCastFromTypeParameter && IsCoercionNecessary(p.Type, instantiatedType)) {
               //
@@ -4141,7 +4205,15 @@ namespace Microsoft.Dafny.Compilers {
               // functions to begin with (C#) or has dynamic typing so none of
               // this comes up (JavaScript), so we only do this if
               // NeedsCastFromTypeParameter is on.
-              type = p.Type;
+              //
+              // This used to just assign p.Type to type, but that was something of a hack
+              // that didn't work in all cases: if p.Type is indeed a type parameter,
+              // it won't be in scope on the caller side. That means you can't generally
+              // declare a local variable with that type; it happened to work for Go
+              // because it would just use interface{}, but Java would try to use the type
+              // parameter directly. The TypeForCoercion() hook was added as a place to
+              // explicitly swap in a target-language type such as java.lang.Object.
+              type = TypeForCoercion(p.Type);
             } else {
               type = instantiatedType;
             }
@@ -4168,7 +4240,7 @@ namespace Microsoft.Dafny.Compilers {
         }
         var wrOrig = wr;
         if (returnStyleOutCollector == null && outTmps.Count == 1 && returnStyleOuts) {
-          var instantiatedFromType = Resolver.SubstType(outFormalTypes[0], s.MethodSelect.TypeArgumentSubstitutionsWithParents());
+          var instantiatedFromType = outFormalTypes[0].Subst(s.MethodSelect.TypeArgumentSubstitutionsWithParents());
           var toType = outTypes[0];
           wr = EmitDowncastIfNecessary(instantiatedFromType, toType, s.Tok, wr);
         }
@@ -4206,7 +4278,7 @@ namespace Microsoft.Dafny.Compilers {
             wr.Write(sep);
             var fromType = s.Args[i].Type;
             var toType = s.Method.Ins[i].Type;
-            var instantiatedToType = Resolver.SubstType(toType, s.MethodSelect.TypeArgumentSubstitutionsWithParents());
+            var instantiatedToType = toType.Subst(s.MethodSelect.TypeArgumentSubstitutionsWithParents());
             // Order of coercions is important here: EmitCoercionToNativeForm may coerce into a type we're unaware of, so it *has* to be last
             var w = EmitCoercionIfNecessary(fromType, toType, s.Tok, wr);
             w = EmitDowncastIfNecessary(fromType, instantiatedToType, s.Tok, w);
@@ -4290,7 +4362,7 @@ namespace Microsoft.Dafny.Compilers {
         if (thisContext == null) {
           wRHS = wr;
         } else {
-          var instantiatedType = Resolver.SubstType(receiver.Type, thisContext.ParentFormalTypeParametersToActuals);
+          var instantiatedType = receiver.Type.Subst(thisContext.ParentFormalTypeParametersToActuals);
           wRHS = EmitCoercionIfNecessary(instantiatedType, UserDefinedType.FromTopLevelDecl(tok, thisContext), tok, wr);
         }
         wRHS.Write(inTmps[n]);
@@ -4318,7 +4390,7 @@ namespace Microsoft.Dafny.Compilers {
       if (tp.ArrayDimensions == null) {
         var initCall = tp.InitCall != null && tp.InitCall.Method is Constructor ? tp.InitCall : null;
         EmitNew(tp.EType, tp.Tok, initCall, wr, wStmts);
-      } else if (tp.ElementInit != null || tp.InitDisplay != null) {
+      } else if (tp.ElementInit != null || tp.InitDisplay != null || DatatypeWrapperEraser.CanBeLeftUninitialized(tp.EType)) {
         EmitNewArray(tp.EType, tp.Tok, tp.ArrayDimensions, false, wr, wStmts);
       } else {
         // If an initializer is not known, the only way the verifier would have allowed this allocation
@@ -4335,7 +4407,9 @@ namespace Microsoft.Dafny.Compilers {
         //   <prelude>   // filled via copyInstrWriters -- copies out-parameters used in letexpr to local variables
         //   ss          // translation of ss has side effect of filling the top copyInstrWriters
         var w = writer;
-        if (ss.Labels != null) {
+        if (ss.Labels != null && !(ss is VarDeclPattern or VarDeclStmt)) {
+          // We are not breaking out of VarDeclPattern or VarDeclStmt, so the labels there are useless
+          // They were useful for verification
           w = CreateLabeledCode(ss.Labels.Data.AssignUniqueId(idGenerator), false, w);
         }
         var prelude = w.Fork();
@@ -4359,7 +4433,7 @@ namespace Microsoft.Dafny.Compilers {
         // only emit non-ghosts (we get here only for local variables introduced implicitly by call statements)
         return;
       }
-      DeclareLocalVar(IdName(v), v.Type, v.Tok, false, alwaysInitialize ? DefaultValue(v.Type, wr, v.Tok, true) : null, wr);
+      DeclareLocalVar(IdName(v), v.Type, v.Tok, false, alwaysInitialize ? PlaceboValue(v.Type, wr, v.Tok, true) : null, wr);
     }
 
     ConcreteSyntaxTree MatchCasePrelude(string source, UserDefinedType sourceType, DatatypeCtor ctor, List<BoundVar> arguments, int caseIndex, int caseCount, ConcreteSyntaxTree wr) {
@@ -4465,18 +4539,18 @@ namespace Microsoft.Dafny.Compilers {
 
       } else if (expr is ThisExpr) {
         if (thisContext != null) {
-          var instantiatedType = Resolver.SubstType(expr.Type, thisContext.ParentFormalTypeParametersToActuals);
+          var instantiatedType = expr.Type.Subst(thisContext.ParentFormalTypeParametersToActuals);
           wr = EmitCoercionIfNecessary(UserDefinedType.FromTopLevelDecl(expr.tok, thisContext), instantiatedType, expr.tok, wr);
         }
         EmitThis(wr);
 
       } else if (expr is IdentifierExpr) {
         var e = (IdentifierExpr)expr;
-        if (e.Var is Formal && inLetExprBody && !((Formal)e.Var).InParam) {
-          // out param in letExpr body, need to copy it to a temp since
-          // letExpr body is translated to an anonymous function that doesn't
-          // allow out parameters
-          var name = string.Format("_pat_let_tv{0}", GetUniqueAstNumber(e));
+        if (inLetExprBody && !(e.Var is BoundVar)) {
+          // copy variable to a temp since
+          //   - C# doesn't allow out param in letExpr body, and
+          //   - Java doesn't allow any non-final variable in letExpr body.
+          var name = ProtectedFreshId("_pat_let_tv");
           wr.Write(name);
           DeclareLocalVar(name, null, null, false, IdName(e.Var), copyInstrWriters.Peek(), e.Type);
         } else {
@@ -4536,7 +4610,7 @@ namespace Microsoft.Dafny.Compilers {
             if (e.Member is Function && typeArgs.Count != 0) {
               // need to eta-expand wrap the receiver
               var etaReceiver = ProtectedFreshId("_eta_this");
-              wr = CreateIIFE_ExprBody(etaReceiver, e.Obj.Type, e.Obj.tok, e.Obj, inLetExprBody, Resolver.SubstType(e.Type, typeMap), e.tok, wr, ref wStmts);
+              wr = CreateIIFE_ExprBody(etaReceiver, e.Obj.Type, e.Obj.tok, e.Obj, inLetExprBody, e.Type.Subst(typeMap), e.tok, wr, ref wStmts);
               obj = w => w.Write(etaReceiver);
             } else {
               obj = w => TrExpr(e.Obj, w, inLetExprBody, wStmts);
@@ -4547,7 +4621,7 @@ namespace Microsoft.Dafny.Compilers {
             if (customReceiver && e.Member is Function) {
               // need to eta-expand wrap the receiver
               customReceiverName = ProtectedFreshId("_eta_this");
-              wr = CreateIIFE_ExprBody(customReceiverName, e.Obj.Type, e.Obj.tok, e.Obj, inLetExprBody, Resolver.SubstType(e.Type, typeMap), e.tok, wr, ref wStmts);
+              wr = CreateIIFE_ExprBody(customReceiverName, e.Obj.Type, e.Obj.tok, e.Obj, inLetExprBody, e.Type.Subst(typeMap), e.tok, wr, ref wStmts);
             }
             Action<ConcreteSyntaxTree> obj = w => w.Write(TypeName_Companion(e.Obj.Type, wr, e.tok, e.Member));
             EmitMemberSelect(obj, e.Obj.Type, e.Member, typeArgs, typeMap, expr.Type, customReceiverName).EmitRead(wr);
@@ -4587,6 +4661,27 @@ namespace Microsoft.Dafny.Compilers {
         var collectionType = e.Type.AsCollectionType;
         Contract.Assert(collectionType != null);
         EmitIndexCollectionUpdate(e.Seq, e.Index, e.Value, collectionType, inLetExprBody, wr, wStmts);
+      } else if (expr is DatatypeUpdateExpr) {
+        var e = (DatatypeUpdateExpr)expr;
+        if (e.Members.All(member => member.IsGhost)) {
+          // all fields to be updated are ghost, which doesn't change the value
+          TrExpr(e.Root, wr, inLetExprBody, wStmts);
+          return;
+        }
+        if (DatatypeWrapperEraser.IsErasableDatatypeWrapper(e.Root.Type.AsDatatype, out var dtor)) {
+          var i = e.Members.IndexOf(dtor);
+          if (0 <= i) {
+            // the datatype is an erasable wrapper and its core destructor is part of the update (which implies everything else must be a ghost),
+            // so proceed as with the rhs
+            Contract.Assert(Enumerable.Range(0, e.Members.Count).All(j => j == i || e.Members[j].IsGhost));
+            Contract.Assert(e.Members.Count == e.Updates.Count);
+            var rhs = e.Updates[i].Item3;
+            TrExpr(rhs, wr, inLetExprBody, wStmts);
+            return;
+          }
+        }
+        // the optimized cases don't apply, so proceed according to the desugaring
+        TrExpr(e.ResolvedExpression, wr, inLetExprBody, wStmts);
       } else if (expr is FunctionCallExpr) {
         FunctionCallExpr e = (FunctionCallExpr)expr;
         if (e.Function is SpecialFunction) {
@@ -4602,6 +4697,13 @@ namespace Microsoft.Dafny.Compilers {
       } else if (expr is DatatypeValue) {
         var dtv = (DatatypeValue)expr;
         Contract.Assert(dtv.Ctor != null);  // since dtv has been successfully resolved
+
+        if (DatatypeWrapperEraser.IsErasableDatatypeWrapper(dtv.Ctor.EnclosingDatatype, out var dtor)) {
+          var i = dtv.Ctor.Destructors.IndexOf(dtor);
+          Contract.Assert(0 <= i);
+          TrExpr(dtv.Arguments[i], wr, inLetExprBody, wStmts);
+          return;
+        }
 
         var wrArgumentList = new ConcreteSyntaxTree();
         string sep = "";
@@ -4773,6 +4875,8 @@ namespace Microsoft.Dafny.Compilers {
             EmitReturnExpr(e.Body, e.Body.Type, true, w);
           }
         }
+      } else if (expr is NestedMatchExpr nestedMatchExpr) {
+        TrExpr(nestedMatchExpr.Flattened, wr, inLetExprBody, wStmts);
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
         // ((System.Func<SourceType, TargetType>)((SourceType _source) => {
@@ -4841,7 +4945,7 @@ namespace Microsoft.Dafny.Compilers {
           wBody.Write(')');
           wBody = newWBody;
         }
-        TrExpr(logicalBody, wBody, true, wStmts);
+        TrExpr(logicalBody, wBody, inLetExprBody, wStmts);
 
       } else if (expr is SetComprehension) {
         var e = (SetComprehension)expr;
@@ -4945,6 +5049,8 @@ namespace Microsoft.Dafny.Compilers {
         wr = CreateLambda(e.BoundVars.ConvertAll(bv => bv.Type), Token.NoToken, e.BoundVars.ConvertAll(IdName), e.Body.Type, wr, wStmts);
         wStmts = wr.Fork();
         wr = EmitReturnExpr(wr);
+        // May need an upcast or boxing conversion to coerce to the generic arrow result type
+        wr = EmitCoercionIfNecessary(e.Body.Type, TypeForCoercion(e.Type.AsArrowType.Result), e.Body.tok, wr);
         TrExpr(su.Substitute(e.Body), wr, inLetExprBody, wStmts);
 
       } else if (expr is StmtExpr) {
@@ -5007,7 +5113,6 @@ namespace Microsoft.Dafny.Compilers {
             wr = EmitReturnExpr(wr);
             TrExpr(new LiteralExpr(tok, elseReturnValue), wr, inLetExprBody, wStmts);
           }
-
           wr = thenWriter;
         }
       }
@@ -5032,15 +5137,14 @@ namespace Microsoft.Dafny.Compilers {
           }) {
         if (variable.Type.NormalizeExpandKeepConstraints() is UserDefinedType
           {
-            ResolvedClass:
-              SubsetTypeDecl
+            ResolvedClass: SubsetTypeDecl
           } normalizedVariableType) {
           wr = MaybeInjectSubsetConstraint(boundVar, normalizedVariableType, collectionElementType,
-            inLetExprBody, tok, wr, isReturning, elseReturnValue, true);
+              inLetExprBody, tok, wr, isReturning, elseReturnValue, true);
         }
 
         var bvIdentifier = new IdentifierExpr(tok, boundVar);
-        var typeParameters = Resolver.TypeSubstitutionMap(typeParametersArgs, typeArgs);
+        var typeParameters = TypeParameter.SubstitutionMap(typeParametersArgs, typeArgs);
         var subContract = new Substituter(null,
           new Dictionary<IVariable, Expression>()
           {
@@ -5140,7 +5244,7 @@ namespace Microsoft.Dafny.Compilers {
       return result;
     }
 
-    protected void TrStringLiteral(StringLiteralExpr str, ConcreteSyntaxTree wr) {
+    protected virtual void TrStringLiteral(StringLiteralExpr str, ConcreteSyntaxTree wr) {
       Contract.Requires(str != null);
       Contract.Requires(wr != null);
       EmitStringLiteral((string)str.Value, str.IsVerbatim, wr);
@@ -5210,7 +5314,7 @@ namespace Microsoft.Dafny.Compilers {
         Contract.Assert(ctor != null);  // follows from successful resolution
         Contract.Assert(pat.Arguments.Count == ctor.Formals.Count);  // follows from successful resolution
         Contract.Assert(ctor.EnclosingDatatype.TypeArgs.Count == rhsType.NormalizeExpand().TypeArgs.Count);
-        var typeSubst = Resolver.TypeSubstitutionMap(ctor.EnclosingDatatype.TypeArgs, rhsType.NormalizeExpand().TypeArgs);
+        var typeSubst = TypeParameter.SubstitutionMap(ctor.EnclosingDatatype.TypeArgs, rhsType.NormalizeExpand().TypeArgs);
         var k = 0;  // number of non-ghost formals processed
         for (int i = 0; i < pat.Arguments.Count; i++) {
           var arg = pat.Arguments[i];
@@ -5221,7 +5325,7 @@ namespace Microsoft.Dafny.Compilers {
           } else {
             var sw = new ConcreteSyntaxTree(wr.RelativeIndentLevel);
             EmitDestructor(rhsString, formal, k, ctor, ((DatatypeValue)pat.Expr).InferredTypeArgs, arg.Expr.Type, sw);
-            wr = TrCasePattern(arg, sw.ToString(), Resolver.SubstType(formal.Type, typeSubst), bodyType, wr, ref wStmts);
+            wr = TrCasePattern(arg, sw.ToString(), formal.Type.Subst(typeSubst), bodyType, wr, ref wStmts);
             k++;
           }
         }
@@ -5249,7 +5353,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(tr != null);
       Function f = e.Function;
 
-      var toType = thisContext == null ? e.Type : Resolver.SubstType(e.Type, thisContext.ParentFormalTypeParametersToActuals);
+      var toType = thisContext == null ? e.Type : e.Type.Subst(thisContext.ParentFormalTypeParametersToActuals);
       wr = EmitCoercionIfNecessary(f.Original.ResultType, toType, e.tok, wr);
 
       var customReceiver = !(f.EnclosingClass is TraitDecl) && NeedsCustomReceiver(f);
@@ -5282,7 +5386,7 @@ namespace Microsoft.Dafny.Compilers {
           wr.Write(sep);
           var fromType = e.Args[i].Type;
           var w = EmitCoercionIfNecessary(fromType, e.Function.Formals[i].Type, tok: e.tok, wr: wr);
-          var instantiatedToType = Resolver.SubstType(e.Function.Formals[i].Type, e.TypeArgumentSubstitutionsWithParents());
+          var instantiatedToType = e.Function.Formals[i].Type.Subst(e.TypeArgumentSubstitutionsWithParents());
           w = EmitDowncastIfNecessary(fromType, instantiatedToType, e.tok, w);
           tr(e.Args[i], w, inLetExprBody, wStmts);
           sep = ", ";
