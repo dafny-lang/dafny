@@ -483,7 +483,7 @@ public class TypeRhs : AssignmentRhs, ICloneable<TypeRhs> {
     if (original.ArrayDimensions != null) {
       if (original.InitDisplay != null) {
         Contract.Assert(original.ArrayDimensions.Count == 1);
-        ArrayDimensions = new List<Expression> { original.ArrayDimensions[0] };
+        ArrayDimensions = new List<Expression> { cloner.CloneExpr(original.ArrayDimensions[0]) };
         InitDisplay = original.InitDisplay.ConvertAll(cloner.CloneExpr);
       } else {
         ArrayDimensions = original.ArrayDimensions.Select(cloner.CloneExpr).ToList();

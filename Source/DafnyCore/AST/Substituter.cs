@@ -55,7 +55,12 @@ namespace Microsoft.Dafny {
       } else if (expr is WildcardExpr) {
         // nothing to substitute
       } else if (expr is ThisExpr) {
-        return receiverReplacement ?? expr;
+        return receiverReplacement == null ?
+          expr : new ParensExpression(expr.tok, receiverReplacement) {
+            ResolvedExpression = receiverReplacement,
+            RangeToken = expr.RangeToken,
+            Type = receiverReplacement.Type
+          };
       } else if (expr is IdentifierExpr) {
         IdentifierExpr e = (IdentifierExpr)expr;
         Expression substExpr;
@@ -378,10 +383,14 @@ namespace Microsoft.Dafny {
         if (test != e.Test || thn != e.Thn || els != e.Els) {
           newExpr = new ITEExpr(expr.tok, e.IsBindingGuard, test, thn, els);
         }
-
       } else if (expr is ConcreteSyntaxExpression concreteSyntaxExpression) {
         Contract.Assert(concreteSyntaxExpression.ResolvedExpression != null);
-        return Substitute(concreteSyntaxExpression.ResolvedExpression);
+        var resolvedExpression = Substitute(concreteSyntaxExpression.ResolvedExpression);
+        return new ParensExpression(expr.tok, resolvedExpression) {
+          ResolvedExpression = resolvedExpression,
+          RangeToken = expr.RangeToken,
+          Type = resolvedExpression.Type
+        };
 
       } else if (expr is Translator.BoogieFunctionCall) {
         var e = (Translator.BoogieFunctionCall)expr;

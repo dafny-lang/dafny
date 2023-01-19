@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
@@ -466,6 +467,41 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext {
   public Method Original => OverriddenMethod == null ? this : OverriddenMethod.Original;
   public override bool IsOverrideThatAddsBody => base.IsOverrideThatAddsBody && Body != null;
   private static BlockStmt emptyBody = new BlockStmt(Token.NoToken, Token.NoToken, new List<Statement>());
+
+  public bool HasPostcondition =>
+    Ens.Count > 0 || Outs.Any(f => f.Type.AsSubsetType is not null);
+
+  public bool HasPrecondition =>
+    Req.Count > 0 || Ins.Any(f => f.Type.AsSubsetType is not null);
+
+  public override IEnumerable<AssumptionDescription> Assumptions() {
+    foreach (var a in base.Assumptions()) {
+      yield return a;
+    }
+
+    if (Body is null && HasPostcondition && !EnclosingClass.EnclosingModuleDefinition.IsAbstract) {
+      yield return AssumptionDescription.NoBody(IsGhost);
+    }
+
+    if (Attributes.Contains(Attributes, "extern") && HasPostcondition) {
+      yield return AssumptionDescription.ExternWithPostcondition;
+    }
+
+    if (Attributes.Contains(Attributes, "extern") && HasPrecondition) {
+      yield return AssumptionDescription.ExternWithPrecondition;
+    }
+
+    if (AllowsNontermination) {
+      yield return AssumptionDescription.MayNotTerminate;
+    }
+
+    foreach (var c in Descendants()) {
+      foreach (var a in c.Assumptions()) {
+        yield return a;
+      }
+    }
+
+  }
 
   public override IEnumerable<Expression> SubExpressions {
     get {

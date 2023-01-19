@@ -715,7 +715,7 @@ type parameter `A` is declared to be restricted to auto-init types,
 the program does not need to explicitly assign any value to the
 out-parameter `a`.
 
-### 8.1.3. Nonempty types: `T(00)`
+### 8.1.3. Nonempty types: `T(00)` {#sec-nonempty-types}
 
 Auto-init types are important in compiled contexts. In ghost contexts, it
 may still be important to know that a type is nonempty. Dafny supports

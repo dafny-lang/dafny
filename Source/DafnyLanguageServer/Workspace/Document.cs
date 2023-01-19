@@ -43,7 +43,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         SymbolTable.Empty(), SignatureAndCompletionTable.Empty(TextDocumentItem), new Dictionary<ImplementationId, ImplementationView>(),
         Array.Empty<Counterexample>(),
         false, Array.Empty<Diagnostic>(),
-        new DocumentVerificationTree(TextDocumentItem)));
+        GetInitialDocumentVerificationTree()));
+    }
+
+    public virtual VerificationTree GetInitialDocumentVerificationTree() {
+      return new DocumentVerificationTree(TextDocumentItem);
     }
 
     /// <summary>
@@ -103,6 +107,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         services.GetRequiredService<ILogger<VerificationProgressReporter>>(),
         this,
         services.GetRequiredService<INotificationPublisher>());
+    }
+
+    public override VerificationTree GetInitialDocumentVerificationTree() {
+      return VerificationTree;
     }
 
     public override IdeState ToIdeState(IdeState previousState) {
