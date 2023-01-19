@@ -46,7 +46,7 @@ public class ExpectContracts : IRewriter {
       msg += " (not compiled because it references ghost state)";
     }
     var msgExpr = Expression.CreateStringLiteral(tok, msg);
-    return new ExpectStmt(tok, expr.E.RangeToken, exprToCheck, msgExpr, null);
+    return new ExpectStmt(expr.E.RangeToken, exprToCheck, msgExpr, null);
   }
 
   /// <summary>
@@ -126,7 +126,7 @@ public class ExpectContracts : IRewriter {
       var body = MakeContractCheckingBody(origFunc.Req, origFunc.Ens, callStmt);
 
       if (origFunc.Result?.Name is null) {
-        body.AppendStmt(new ReturnStmt(tok, decl.RangeToken, new List<AssignmentRhs> { new ExprRhs(localExpr) }));
+        body.AppendStmt(new ReturnStmt(decl.RangeToken, new List<AssignmentRhs> { new ExprRhs(localExpr) }));
       }
       newFunc.ByMethodBody = body;
       newDecl = newFunc;

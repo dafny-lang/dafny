@@ -20,7 +20,7 @@ public abstract class OneBodyLoopStmt : LoopStmt {
     }
   }
 
-  public OneBodyLoopStmt(IToken tok, RangeToken rangeToken,
+  protected OneBodyLoopStmt(RangeToken rangeToken,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
     BlockStmt /*?*/ body, Attributes/*?*/ attrs)
     : base(rangeToken, invariants, decreases, mod, attrs) {

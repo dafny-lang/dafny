@@ -20,9 +20,8 @@ public abstract class PredicateStmt : Statement {
     this.Expr = expr;
   }
 
-  protected PredicateStmt(IToken tok, RangeToken rangeToken, Expression expr)
+  protected PredicateStmt(RangeToken rangeToken, Expression expr)
     : this(rangeToken, expr, null) {
-    Contract.Requires(tok != null);
     Contract.Requires(rangeToken != null);
     Contract.Requires(expr != null);
     this.Expr = expr;

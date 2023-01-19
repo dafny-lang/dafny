@@ -52,7 +52,7 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
   /// This constructor is intended to be used when constructing a resolved CallStmt. The "args" are expected
   /// to be already resolved, and are all given positionally.
   /// </summary>
-  public CallStmt(IToken tok, RangeToken rangeToken, List<Expression> lhs, MemberSelectExpr memSel, List<Expression> args)
+  public CallStmt(RangeToken rangeToken, List<Expression> lhs, MemberSelectExpr memSel, List<Expression> args)
     : this(rangeToken, lhs, memSel, args.ConvertAll(e => new ActualBinding(null, e))) {
     Bindings.AcceptArgumentExpressionsAsExactParameterList();
   }

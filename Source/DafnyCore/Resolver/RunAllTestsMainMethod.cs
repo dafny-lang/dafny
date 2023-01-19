@@ -144,7 +144,7 @@ public class RunAllTestsMainMethod : IRewriter {
               }
           }
 
-          var callStmt = new CallStmt(tok, tok.ToRange(), lhss, methodSelectExpr, new List<Expression>());
+          var callStmt = new CallStmt(tok.ToRange(), lhss, methodSelectExpr, new List<Expression>());
           tryBodyStatements.Add(callStmt);
 
           Statement passedStmt = Statement.CreatePrintStmt(tok, Expression.CreateStringLiteral(tok, "PASSED\n"));
@@ -196,7 +196,7 @@ public class RunAllTestsMainMethod : IRewriter {
     //
     // expect success, "Test failures occurred: see above.\n";
     // 
-    Statement expectSuccess = new ExpectStmt(tok, tok.ToRange(), successVarExpr,
+    Statement expectSuccess = new ExpectStmt(tok.ToRange(), successVarExpr,
       Expression.CreateStringLiteral(tok, "Test failures occurred: see above.\n"), null);
     mainMethodStatements.Add(expectSuccess);
 

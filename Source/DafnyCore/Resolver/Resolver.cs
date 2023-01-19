@@ -6366,11 +6366,11 @@ namespace Microsoft.Dafny {
         Statement ss = null;
         if (s.KeywordToken.Token.val == "expect") {
           // "expect !temp.IsFailure(), temp"
-          ss = new ExpectStmt(s.Tok, s.RangeToken, notFailureExpr, new IdentifierExpr(s.Tok, temp), s.KeywordToken.Attrs);
+          ss = new ExpectStmt(s.RangeToken, notFailureExpr, new IdentifierExpr(s.Tok, temp), s.KeywordToken.Attrs);
         } else if (s.KeywordToken.Token.val == "assume") {
-          ss = new AssumeStmt(s.Tok, s.RangeToken, notFailureExpr, s.KeywordToken.Attrs);
+          ss = new AssumeStmt(s.RangeToken, notFailureExpr, s.KeywordToken.Attrs);
         } else if (s.KeywordToken.Token.val == "assert") {
-          ss = new AssertStmt(s.Tok, s.RangeToken, notFailureExpr, null, null, s.KeywordToken.Attrs);
+          ss = new AssertStmt(s.RangeToken, notFailureExpr, null, null, s.KeywordToken.Attrs);
         } else {
           Contract.Assert(false, $"Invalid token in :- statement: {s.KeywordToken.Token.val}");
         }
@@ -6392,7 +6392,7 @@ namespace Microsoft.Dafny {
                 new List<Expression>() { ident },
                 new List<AssignmentRhs>() {new ExprRhs(VarDotMethod(s.Tok, temp, "PropagateFailure"))}
                 ),
-              new ReturnStmt(s.Tok, s.RangeToken, null),
+              new ReturnStmt(s.RangeToken, null),
             }),
             // ELSE: no else block
             null

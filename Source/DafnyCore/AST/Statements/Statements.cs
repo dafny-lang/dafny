@@ -322,9 +322,8 @@ public class YieldStmt : ProduceStmt, ICloneable<YieldStmt> {
   public YieldStmt(Cloner cloner, YieldStmt original) : base(cloner, original) {
   }
 
-  public YieldStmt(IToken tok, RangeToken rangeToken, List<AssignmentRhs> rhss)
+  public YieldStmt(RangeToken rangeToken, List<AssignmentRhs> rhss)
     : base(rangeToken, rhss) {
-    Contract.Requires(tok != null);
   }
 }
 
@@ -927,19 +926,17 @@ public class WhileStmt : OneBodyLoopStmt, ICloneable<WhileStmt> {
     Guard = cloner.CloneExpr(original.Guard);
   }
 
-  public WhileStmt(IToken tok, RangeToken rangeToken, Expression guard,
+  public WhileStmt(RangeToken rangeToken, Expression guard,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
     BlockStmt body)
-    : base(tok, rangeToken, invariants, decreases, mod, body, null) {
-    Contract.Requires(tok != null);
+    : base(rangeToken, invariants, decreases, mod, body, null) {
     this.Guard = guard;
   }
 
-  public WhileStmt(IToken tok, RangeToken rangeToken, Expression guard,
+  public WhileStmt(RangeToken rangeToken, Expression guard,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
     BlockStmt body, Attributes attrs)
-    : base(tok, rangeToken, invariants, decreases, mod, body, attrs) {
-    Contract.Requires(tok != null);
+    : base(rangeToken, invariants, decreases, mod, body, attrs) {
     this.Guard = guard;
   }
 
@@ -958,11 +955,10 @@ public class WhileStmt : OneBodyLoopStmt, ICloneable<WhileStmt> {
 /// merge.
 /// </summary>
 public class RefinedWhileStmt : WhileStmt {
-  public RefinedWhileStmt(IToken tok, RangeToken rangeToken, Expression guard,
+  public RefinedWhileStmt(RangeToken rangeToken, Expression guard,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
     BlockStmt body)
-    : base(tok, rangeToken, guard, invariants, decreases, mod, body) {
-    Contract.Requires(tok != null);
+    : base(rangeToken, guard, invariants, decreases, mod, body) {
     Contract.Requires(body != null);
   }
 }

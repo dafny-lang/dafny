@@ -1115,7 +1115,7 @@ namespace Microsoft.Dafny {
                 // that the condition is inherited.
                 var e = refinementCloner.CloneExpr(oldAssume.Expr);
                 var attrs = refinementCloner.MergeAttributes(oldAssume.Attributes, skel.Attributes);
-                body.Add(new AssertStmt(new Translator.ForceCheckToken(skel.Tok), skel.RangeToken,
+                body.Add(new AssertStmt(skel.RangeToken,
                   e, skel.Proof, skel.Label, new Attributes("_prependAssertToken", new List<Expression>(), attrs)));
                 Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, "assume->assert: " + Printer.ExprToString(e));
                 i++; j++;
@@ -1132,7 +1132,7 @@ namespace Microsoft.Dafny {
                 var e = refinementCloner.CloneExpr(oldExpect.Expr);
                 var message = refinementCloner.CloneExpr(oldExpect.Message);
                 var attrs = refinementCloner.MergeAttributes(oldExpect.Attributes, skel.Attributes);
-                body.Add(new ExpectStmt(skel.Tok, skel.RangeToken, e, message, attrs));
+                body.Add(new ExpectStmt(skel.RangeToken, e, message, attrs));
                 Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, Printer.ExprToString(e));
                 i++; j++;
               }
@@ -1147,7 +1147,7 @@ namespace Microsoft.Dafny {
               } else {
                 var e = refinementCloner.CloneExpr(oldAssume.Expr);
                 var attrs = refinementCloner.MergeAttributes(oldAssume.Attributes, skel.Attributes);
-                body.Add(new AssumeStmt(skel.Tok, skel.RangeToken, e, attrs));
+                body.Add(new AssumeStmt(skel.RangeToken, e, attrs));
                 Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, Printer.ExprToString(e));
                 i++; j++;
               }
@@ -1262,7 +1262,7 @@ namespace Microsoft.Dafny {
               i++; j++;
               if (addedAssert != null) {
                 var tok = new Translator.ForceCheckToken(addedAssert.tok);
-                body.Add(new AssertStmt(tok, addedAssert.RangeToken, addedAssert, null, null, null));
+                body.Add(new AssertStmt(addedAssert.RangeToken, addedAssert, null, null, null));
               }
             } else {
               MergeAddStatement(cur, body);
@@ -1319,7 +1319,7 @@ namespace Microsoft.Dafny {
                 stmtGenerated.Add(nw);
                 var addedAssert = refinementCloner.CloneExpr(s.Expr);
                 var tok = new Translator.ForceCheckToken(addedAssert.tok);
-                stmtGenerated.Add(new AssertStmt(tok, addedAssert.RangeToken, addedAssert, null, null, null));
+                stmtGenerated.Add(new AssertStmt(addedAssert.RangeToken, addedAssert, null, null, null));
               }
             }
             if (doMerge) {
@@ -1509,7 +1509,7 @@ namespace Microsoft.Dafny {
       } else {
         newBody = MergeBlockStmt(cNew.Body, cOld.Body);
       }
-      return new RefinedWhileStmt(cNew.Tok, cNew.RangeToken, guard, invs, decr, refinementCloner.CloneSpecFrameExpr(cOld.Mod), newBody);
+      return new RefinedWhileStmt(cNew.RangeToken, guard, invs, decr, refinementCloner.CloneSpecFrameExpr(cOld.Mod), newBody);
     }
 
     Statement MergeElse(Statement skeleton, Statement oldStmt) {
