@@ -660,9 +660,9 @@ namespace Microsoft.Dafny {
       return tok;
     }
 
-    public virtual RangeToken Tok(RangeToken tok) {
+    public RangeToken Tok(RangeToken tok) {
       Contract.Requires(tok != null);
-      return tok;
+      return new RangeToken(Tok(tok.StartToken), Tok(tok.EndToken));
     }
 
     public virtual AttributedToken AttributedTok(AttributedToken tok) {
