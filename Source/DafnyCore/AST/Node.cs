@@ -13,21 +13,21 @@ public interface INode {
 }
 
 public abstract class TokenNode : Node {
-  
+
   public IToken tok = Token.NoToken;
   [DebuggerBrowsable(DebuggerBrowsableState.Never)]
   public IToken Tok {
     get => tok;
     set => tok = value;
   }
-  
+
   protected RangeToken rangeToken = null;
 
   // Contains tokens that did not make it in the AST but are part of the expression,
   // Enables ranges to be correct.
   // TODO: Re-add format tokens where needed until we put all the formatting to replace the tok of every expression
   internal IToken[] FormatTokens = null;
-  
+
   public override RangeToken RangeToken {
     get {
       if (rangeToken == null) {
@@ -81,7 +81,7 @@ public abstract class TokenNode : Node {
 }
 
 public abstract class RangeNode : Node {
-  public override RangeToken RangeToken { get; set;  } // TODO remove set when TokenNode is gone.
+  public override RangeToken RangeToken { get; set; } // TODO remove set when TokenNode is gone.
 
   protected RangeNode(RangeToken rangeToken) {
     RangeToken = rangeToken;
@@ -90,7 +90,7 @@ public abstract class RangeNode : Node {
 
 
 public abstract class Node : INode {
-  
+
   /// <summary>
   /// These children should be such that they contain information produced by resolution such as inferred types
   /// and resolved references. However, they should not be so transformed that source location from the initial

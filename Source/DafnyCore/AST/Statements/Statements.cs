@@ -9,7 +9,7 @@ namespace Microsoft.Dafny;
 
 public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
   public IToken Tok => StartToken;
-  
+
   public LList<Label> Labels;  // mutable during resolution
 
   private Attributes attributes;
@@ -782,7 +782,7 @@ public class LocalVariable : TokenNode, IVariable, IAttributeBearingDeclaration 
       type = original.type;
     }
   }
-  
+
   public LocalVariable(RangeToken rangeToken, string name, Type type, bool isGhost) {
     Contract.Requires(name != null);
     Contract.Requires(type != null);  // can be a proxy, though
