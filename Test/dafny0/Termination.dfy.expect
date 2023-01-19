@@ -1,5 +1,5 @@
 Termination.dfy(450,7): Warning: the ... refinement feature in statements is deprecated
-Termination.dfy[TerminationRefinement1](441,5): Error: decreases clause might not decrease
+Termination.dfy[TerminationRefinement1](441,4): Error: decreases clause might not decrease
 Termination.dfy(361,46): Error: decreases clause might not decrease
 Termination.dfy(577,5): Error: cannot find witness that shows type is inhabited; try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
 Termination.dfy(108,2): Error: cannot prove termination; try supplying a decreases clause for the loop
