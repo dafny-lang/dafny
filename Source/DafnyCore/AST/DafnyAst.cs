@@ -347,8 +347,16 @@ namespace Microsoft.Dafny {
   }
 
 
-  public abstract class INamedRegion : TokenNode {
+  public abstract class INamedRegion : RangeNode {
     string Name { get; }
+
+    protected INamedRegion(Cloner cloner, RangeNode original) : base(cloner, original)
+    {
+    }
+
+    protected INamedRegion(RangeToken rangeToken) : base(rangeToken)
+    {
+    }
   }
 
   [ContractClass(typeof(IVariableContracts))]
@@ -460,7 +468,7 @@ namespace Microsoft.Dafny {
     public abstract IToken NameToken { get; }
   }
 
-  public abstract class NonglobalVariable : TokenNode, IVariable {
+  public abstract class NonglobalVariable : RangeNode, IVariable {
     readonly string name;
 
     [ContractInvariantMethod]
@@ -564,17 +572,17 @@ namespace Microsoft.Dafny {
       IsGhost = true;
     }
 
-    public NonglobalVariable(IToken tok, string name, Type type, bool isGhost) {
-      Contract.Requires(tok != null);
+    public IToken Tok => RangeToken.StartToken;
+
+    public NonglobalVariable(RangeToken rangeToken, string name, Type type, bool isGhost) : base(rangeToken) {
       Contract.Requires(name != null);
       Contract.Requires(type != null);
-      this.tok = tok;
       this.name = name;
       this.type = type;
       this.isGhost = isGhost;
     }
 
-    public IToken NameToken => tok;
+    public IToken NameToken => RangeToken.StartToken;
     public override IEnumerable<Node> Children => IsTypeExplicit ? Type.Nodes : Enumerable.Empty<Node>();
   }
 
@@ -591,10 +599,9 @@ namespace Microsoft.Dafny {
     public readonly bool IsOlder;
     public readonly string NameForCompilation;
 
-    public Formal(IToken tok, string name, Type type, bool inParam, bool isGhost, Expression defaultValue,
+    public Formal(RangeToken rangeToken, string name, Type type, bool inParam, bool isGhost, Expression defaultValue,
       bool isOld = false, bool isNameOnly = false, bool isOlder = false, string nameForCompilation = null)
-      : base(tok, name, type, isGhost) {
-      Contract.Requires(tok != null);
+      : base(rangeToken, name, type, isGhost) {
       Contract.Requires(name != null);
       Contract.Requires(type != null);
       Contract.Requires(inParam || defaultValue == null);
@@ -625,9 +632,9 @@ namespace Microsoft.Dafny {
   /// of each extreme lemma (for use in the extreme-method body only, not the specification).
   /// </summary>
   public class ImplicitFormal : Formal {
-    public ImplicitFormal(IToken tok, string name, Type type, bool inParam, bool isGhost)
-      : base(tok, name, type, inParam, isGhost, null) {
-      Contract.Requires(tok != null);
+    public ImplicitFormal(RangeToken rangeToken, string name, Type type, bool inParam, bool isGhost)
+      : base(rangeToken, name, type, inParam, isGhost, null) {
+      Contract.Requires(rangeToken != null);
       Contract.Requires(name != null);
       Contract.Requires(type != null);
     }
@@ -640,9 +647,9 @@ namespace Microsoft.Dafny {
   /// implementation.
   /// </summary>
   public class ThisSurrogate : ImplicitFormal {
-    public ThisSurrogate(IToken tok, Type type)
-      : base(tok, "this", type, true, false) {
-      Contract.Requires(tok != null);
+    public ThisSurrogate(RangeToken rangeToken, Type type)
+      : base(rangeToken, "this", type, true, false) {
+      Contract.Requires(rangeToken != null);
       Contract.Requires(type != null);
     }
   }
@@ -651,9 +658,8 @@ namespace Microsoft.Dafny {
   public class BoundVar : NonglobalVariable {
     public override bool IsMutable => false;
 
-    public BoundVar(IToken tok, string name, Type type)
-      : base(tok, name, type, false) {
-      Contract.Requires(tok != null);
+    public BoundVar(RangeToken rangeToken, string name, Type type)
+      : base(rangeToken, name, type, false) {
       Contract.Requires(name != null);
       Contract.Requires(type != null);
     }
@@ -670,9 +676,9 @@ namespace Microsoft.Dafny {
     public readonly Expression Domain;
     public readonly Expression Range;
 
-    public QuantifiedVar(IToken tok, string name, Type type, Expression domain, Expression range)
-      : base(tok, name, type) {
-      Contract.Requires(tok != null);
+    public QuantifiedVar(RangeToken rangeToken, string name, Type type, Expression domain, Expression range)
+      : base(rangeToken, name, type) {
+      Contract.Requires(rangeToken != null);
       Contract.Requires(name != null);
       Contract.Requires(type != null);
       Domain = domain;
@@ -697,20 +703,20 @@ namespace Microsoft.Dafny {
       range = null;
 
       foreach (var qvar in qvars) {
-        BoundVar bvar = new BoundVar(qvar.tok, qvar.Name, qvar.SyntacticType);
+        BoundVar bvar = new BoundVar(qvar.RangeToken, qvar.Name, qvar.SyntacticType);
         bvars.Add(bvar);
 
         if (qvar.Domain != null) {
           // Attach a token wrapper so we can produce a better error message if the domain is not a collection
           var domainWithToken = QuantifiedVariableDomainCloner.Instance.CloneExpr(qvar.Domain);
-          var inDomainExpr = new BinaryExpr(domainWithToken.tok, BinaryExpr.Opcode.In, new IdentifierExpr(bvar.tok, bvar), domainWithToken);
-          range = range == null ? inDomainExpr : new BinaryExpr(domainWithToken.tok, BinaryExpr.Opcode.And, range, inDomainExpr);
+          var inDomainExpr = new BinaryExpr(domainWithToken.RangeToken, BinaryExpr.Opcode.In, new IdentifierExpr(bvar.RangeToken, bvar), domainWithToken);
+          range = range == null ? inDomainExpr : new BinaryExpr(domainWithToken.RangeToken, BinaryExpr.Opcode.And, range, inDomainExpr);
         }
 
         if (qvar.Range != null) {
           // Attach a token wrapper so we can produce a better error message if the range is not a boolean expression
           var rangeWithToken = QuantifiedVariableRangeCloner.Instance.CloneExpr(qvar.Range);
-          range = range == null ? qvar.Range : new BinaryExpr(rangeWithToken.tok, BinaryExpr.Opcode.And, range, rangeWithToken);
+          range = range == null ? qvar.Range : new BinaryExpr(rangeWithToken.RangeToken, BinaryExpr.Opcode.And, range, rangeWithToken);
         }
       }
     }

@@ -24,7 +24,7 @@ public class OldExpr : Expression, ICloneable<OldExpr> {
   }
 
   [Captured]
-  public OldExpr(IToken tok, Expression expr, string at = null)
+  public OldExpr(RangeToken tok, Expression expr, string at = null)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(expr != null);

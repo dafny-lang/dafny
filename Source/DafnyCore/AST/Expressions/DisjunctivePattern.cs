@@ -6,7 +6,7 @@ namespace Microsoft.Dafny;
 
 public class DisjunctivePattern : ExtendedPattern {
   public readonly List<ExtendedPattern> Alternatives;
-  public DisjunctivePattern(IToken tok, List<ExtendedPattern> alternatives, bool isGhost = false) : base(tok, isGhost) {
+  public DisjunctivePattern(RangeToken rangeToken, List<ExtendedPattern> alternatives, bool isGhost = false) : base(rangeToken, isGhost) {
     Contract.Requires(alternatives != null && alternatives.Count > 0);
     this.Alternatives = alternatives;
   }
@@ -17,7 +17,7 @@ public class DisjunctivePattern : ExtendedPattern {
     bool inPattern, bool inDisjunctivePattern) {
 
     if (inPattern) {
-      resolver.reporter.Error(MessageSource.Resolver, Tok, "Disjunctive patterns are not allowed inside other patterns");
+      resolver.reporter.Error(MessageSource.Resolver, RangeToken.ToToken(), "Disjunctive patterns are not allowed inside other patterns");
     }
 
     foreach (var alternative in Alternatives) {

@@ -9470,9 +9470,9 @@ namespace Microsoft.Dafny {
       public Dictionary<IVariable, Expression> substMap;
       public Dictionary<TypeParameter, Type> typeMap;
 
-      public SubstLetExpr(IToken tok, List<CasePattern<BoundVar>> lhss, List<Expression> rhss, Expression body, bool exact,
+      public SubstLetExpr(IToken rangeToken, List<CasePattern<BoundVar>> lhss, List<Expression> rhss, Expression body, bool exact,
          LetExpr orgExpr, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap, List<ComprehensionExpr.BoundedPool>/*?*/ constraintBounds)
-        : base(tok, lhss, rhss, body, exact) {
+        : base(rangeToken, lhss, rhss, body, exact) {
         this.orgExpr = orgExpr;
         this.substMap = substMap;
         this.typeMap = typeMap;

@@ -19,30 +19,30 @@ public class BuiltIns {
   [FilledInDuringResolution] public SpecialField ORDINAL_Offset;  // used by the translator
 
   public readonly SubsetTypeDecl NatDecl;
-  public UserDefinedType Nat() { return new UserDefinedType(Token.NoToken, "nat", NatDecl, new List<Type>()); }
+  public UserDefinedType Nat() { return new UserDefinedType(RangeToken.NoToken, "nat", NatDecl, new List<Type>()); }
   public readonly TraitDecl ObjectDecl;
   public UserDefinedType ObjectQ() {
     Contract.Assume(ObjectDecl != null);
-    return new UserDefinedType(Token.NoToken, "object?", null) { ResolvedClass = ObjectDecl };
+    return new UserDefinedType(RangeToken.NoToken, "object?", null) { ResolvedClass = ObjectDecl };
   }
 
   public BuiltIns() {
     SystemModule.Height = -1;  // the system module doesn't get a height assigned later, so we set it here to something below everything else
     // create type synonym 'string'
-    var str = new TypeSynonymDecl(Token.NoToken, "string",
+    var str = new TypeSynonymDecl(RangeToken.NoToken, "string",
       new TypeParameter.TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, Type.AutoInitInfo.CompilableValue, false),
       new List<TypeParameter>(), SystemModule, new SeqType(new CharType()), null);
     SystemModule.TopLevelDecls.Add(str);
     // create subset type 'nat'
-    var bvNat = new BoundVar(Token.NoToken, "x", Type.Int);
+    var bvNat = new BoundVar(RangeToken.NoToken, "x", Type.Int);
     var natConstraint = Expression.CreateAtMost(Expression.CreateIntLiteral(Token.NoToken, 0), Expression.CreateIdentExpr(bvNat));
     var ax = AxiomAttribute();
-    NatDecl = new SubsetTypeDecl(Token.NoToken, "nat",
+    NatDecl = new SubsetTypeDecl(RangeToken.NoToken, "nat",
       new TypeParameter.TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, Type.AutoInitInfo.CompilableValue, false),
       new List<TypeParameter>(), SystemModule, bvNat, natConstraint, SubsetTypeDecl.WKind.CompiledZero, null, ax);
     SystemModule.TopLevelDecls.Add(NatDecl);
     // create trait 'object'
-    ObjectDecl = new TraitDecl(Token.NoToken, "object", SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), DontCompile(), false, null);
+    ObjectDecl = new TraitDecl(RangeToken.NoToken, "object", SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), DontCompile(), false, null);
     SystemModule.TopLevelDecls.Add(ObjectDecl);
     // add one-dimensional arrays, since they may arise during type checking
     // Arrays of other dimensions may be added during parsing as the parser detects the need for these
@@ -64,10 +64,10 @@ public class BuiltIns {
   public UserDefinedType ArrayType(int dims, Type arg, bool allowCreationOfNewClass) {
     Contract.Requires(1 <= dims);
     Contract.Requires(arg != null);
-    return ArrayType(Token.NoToken, dims, new List<Type>() { arg }, allowCreationOfNewClass);
+    return ArrayType(RangeToken.NoToken, dims, new List<Type>() { arg }, allowCreationOfNewClass);
   }
-  public UserDefinedType ArrayType(IToken tok, int dims, List<Type> optTypeArgs, bool allowCreationOfNewClass, bool useClassNameType = false) {
-    Contract.Requires(tok != null);
+  public UserDefinedType ArrayType(RangeToken rangeToken, int dims, List<Type> optTypeArgs, bool allowCreationOfNewClass, bool useClassNameType = false) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(1 <= dims);
     Contract.Requires(optTypeArgs == null || optTypeArgs.Count > 0);  // ideally, it is 1, but more will generate an error later, and null means it will be filled in automatically
     Contract.Ensures(Contract.Result<UserDefinedType>() != null);
@@ -88,7 +88,7 @@ public class BuiltIns {
       SystemModule.TopLevelDecls.Add(arrayClass);
       CreateArrowTypeDecl(dims);  // also create an arrow type with this arity, since it may be used in an initializing expression for the array
     }
-    UserDefinedType udt = new UserDefinedType(tok, arrayName, optTypeArgs);
+    UserDefinedType udt = new UserDefinedType(rangeToken, arrayName, optTypeArgs);
     return udt;
   }
 
@@ -108,24 +108,24 @@ public class BuiltIns {
   public void CreateArrowTypeDecl(int arity) {
     Contract.Requires(0 <= arity);
     if (!ArrowTypeDecls.ContainsKey(arity)) {
-      IToken tok = Token.NoToken;
+      var rangeToken = RangeToken.NoToken;
       var tps = Util.Map(Enumerable.Range(0, arity + 1), x => x < arity ?
-        new TypeParameter(tok, "T" + x, TypeParameter.TPVarianceSyntax.Contravariance) :
-        new TypeParameter(tok, "R", TypeParameter.TPVarianceSyntax.Covariant_Strict));
+        new TypeParameter(rangeToken, "T" + x, TypeParameter.TPVarianceSyntax.Contravariance) :
+        new TypeParameter(rangeToken, "R", TypeParameter.TPVarianceSyntax.Covariant_Strict));
       var tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
-      var args = Util.Map(Enumerable.Range(0, arity), i => new Formal(tok, "x" + i, tys[i], true, false, null));
+      var args = Util.Map(Enumerable.Range(0, arity), i => new Formal(rangeToken, "x" + i, tys[i], true, false, null));
       var argExprs = args.ConvertAll(a =>
-            (Expression)new IdentifierExpr(tok, a.Name) { Var = a, Type = a.Type });
-      var readsIS = new FunctionCallExpr(tok, "reads", new ImplicitThisExpr(tok), tok, tok, argExprs) {
+            (Expression)new IdentifierExpr(rangeToken, a.Name) { Var = a, Type = a.Type });
+      var readsIS = new FunctionCallExpr(rangeToken, "reads", new ImplicitThisExpr(rangeToken), Token.NoToken, Token.NoToken, argExprs) {
         Type = new SetType(true, ObjectQ()),
       };
-      var readsFrame = new List<FrameExpression> { new FrameExpression(tok, readsIS, null) };
-      var req = new Function(tok, "requires", false, true,
+      var readsFrame = new List<FrameExpression> { new FrameExpression(rangeToken, readsIS, null) };
+      var req = new Function(rangeToken, "requires", false, true,
         new List<TypeParameter>(), args, null, Type.Bool,
         new List<AttributedExpression>(), readsFrame, new List<AttributedExpression>(),
         new Specification<Expression>(new List<Expression>(), null),
         null, null, null, null, null);
-      var reads = new Function(tok, "reads", false, true,
+      var reads = new Function(rangeToken, "reads", false, true,
         new List<TypeParameter>(), args, null, new SetType(true, ObjectQ()),
         new List<AttributedExpression>(), readsFrame, new List<AttributedExpression>(),
         new Specification<Expression>(new List<Expression>(), null),
@@ -139,26 +139,26 @@ public class BuiltIns {
 
       // declaration of read-effect-free arrow-type, aka heap-independent arrow-type, aka partial-function arrow-type
       tps = Util.Map(Enumerable.Range(0, arity + 1), x => x < arity ?
-        new TypeParameter(tok, "T" + x, TypeParameter.TPVarianceSyntax.Contravariance) :
-        new TypeParameter(tok, "R", TypeParameter.TPVarianceSyntax.Covariant_Strict));
+        new TypeParameter(rangeToken, "T" + x, TypeParameter.TPVarianceSyntax.Contravariance) :
+        new TypeParameter(rangeToken, "R", TypeParameter.TPVarianceSyntax.Covariant_Strict));
       tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
-      var id = new BoundVar(tok, "f", new ArrowType(tok, arrowDecl, tys));
-      var partialArrow = new SubsetTypeDecl(tok, ArrowType.PartialArrowTypeName(arity),
+      var id = new BoundVar(rangeToken, "f", new ArrowType(rangeToken, arrowDecl, tys));
+      var partialArrow = new SubsetTypeDecl(rangeToken, ArrowType.PartialArrowTypeName(arity),
         new TypeParameter.TypeParameterCharacteristics(false), tps, SystemModule,
-        id, ArrowSubtypeConstraint(tok, tok.ToRange(), id, reads, tps, false), SubsetTypeDecl.WKind.Special, null, DontCompile());
+        id, ArrowSubtypeConstraint(rangeToken, id, reads, tps, false), SubsetTypeDecl.WKind.Special, null, DontCompile());
       PartialArrowTypeDecls.Add(arity, partialArrow);
       SystemModule.TopLevelDecls.Add(partialArrow);
 
       // declaration of total arrow-type
 
       tps = Util.Map(Enumerable.Range(0, arity + 1), x => x < arity ?
-        new TypeParameter(tok, "T" + x, TypeParameter.TPVarianceSyntax.Contravariance) :
-        new TypeParameter(tok, "R", TypeParameter.TPVarianceSyntax.Covariant_Strict));
+        new TypeParameter(rangeToken, "T" + x, TypeParameter.TPVarianceSyntax.Contravariance) :
+        new TypeParameter(rangeToken, "R", TypeParameter.TPVarianceSyntax.Covariant_Strict));
       tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
-      id = new BoundVar(tok, "f", new UserDefinedType(tok, partialArrow.Name, partialArrow, tys));
-      var totalArrow = new SubsetTypeDecl(tok, ArrowType.TotalArrowTypeName(arity),
+      id = new BoundVar(rangeToken, "f", new UserDefinedType(rangeToken, partialArrow.Name, partialArrow, tys));
+      var totalArrow = new SubsetTypeDecl(rangeToken, ArrowType.TotalArrowTypeName(arity),
         new TypeParameter.TypeParameterCharacteristics(false), tps, SystemModule,
-        id, ArrowSubtypeConstraint(tok, tok.ToRange(), id, req, tps, true), SubsetTypeDecl.WKind.Special, null, DontCompile());
+        id, ArrowSubtypeConstraint(rangeToken, id, req, tps, true), SubsetTypeDecl.WKind.Special, null, DontCompile());
       TotalArrowTypeDecls.Add(arity, totalArrow);
       SystemModule.TopLevelDecls.Add(totalArrow);
     }
@@ -170,12 +170,11 @@ public class BuiltIns {
   /// the built-in total-arrow type (if "total", in which case "member" is expected to denote the "requires" member).
   /// The given "id" is expected to be already resolved.
   /// </summary>
-  private Expression ArrowSubtypeConstraint(IToken tok, RangeToken rangeToken, BoundVar id, Function member, List<TypeParameter> tps, bool total) {
-    Contract.Requires(tok != null);
+  private Expression ArrowSubtypeConstraint(RangeToken rangeToken, BoundVar id, Function member, List<TypeParameter> tps, bool total) {
     Contract.Requires(id != null);
     Contract.Requires(member != null);
     Contract.Requires(tps != null && 1 <= tps.Count);
-    var f = new IdentifierExpr(tok, id);
+    var f = new IdentifierExpr(rangeToken, id);
     // forall x0,x1,x2 :: f.reads(x0,x1,x2) == {}
     // OR
     // forall x0,x1,x2 :: f.requires(x0,x1,x2)
@@ -183,26 +182,26 @@ public class BuiltIns {
     var args = new List<Expression>();
     var bounds = new List<ComprehensionExpr.BoundedPool>();
     for (int i = 0; i < tps.Count - 1; i++) {
-      var bv = new BoundVar(tok, "x" + i, new UserDefinedType(tps[i]));
+      var bv = new BoundVar(rangeToken, "x" + i, new UserDefinedType(tps[i]));
       bvs.Add(bv);
-      args.Add(new IdentifierExpr(tok, bv));
+      args.Add(new IdentifierExpr(rangeToken, bv));
       bounds.Add(new ComprehensionExpr.SpecialAllocIndependenceAllocatedBoundedPool());
     }
-    var fn = new MemberSelectExpr(tok, f, member.Name) {
+    var fn = new MemberSelectExpr(rangeToken, f, member.Name) {
       Member = member,
       TypeApplication_AtEnclosingClass = f.Type.TypeArgs,
       TypeApplication_JustMember = new List<Type>(),
       Type = GetTypeOfFunction(member, tps.ConvertAll(tp => (Type)new UserDefinedType(tp)), new List<Type>())
     };
-    Expression body = new ApplyExpr(tok, fn, args, tok);
+    Expression body = new ApplyExpr(rangeToken, fn, args, rangeToken.EndToken);
     body.Type = member.ResultType;  // resolve here
     if (!total) {
-      Expression emptySet = new SetDisplayExpr(tok, true, new List<Expression>());
+      Expression emptySet = new SetDisplayExpr(rangeToken, true, new List<Expression>());
       emptySet.Type = member.ResultType;  // resolve here
       body = Expression.CreateEq(body, emptySet, member.ResultType);
     }
     if (tps.Count > 1) {
-      body = new ForallExpr(tok, rangeToken, bvs, null, body, null) { Type = Type.Bool, Bounds = bounds };
+      body = new ForallExpr(rangeToken, bvs, null, body, null) { Type = Type.Bool, Bounds = bounds };
     }
     return body;
   }
@@ -220,7 +219,7 @@ public class BuiltIns {
     var formals = Util.Concat(f.EnclosingClass.TypeArgs, f.TypeArgs);
     var actuals = Util.Concat(typeArgumentsClass, typeArgumentsMember);
     var typeMap = TypeParameter.SubstitutionMap(formals, actuals);
-    return new ArrowType(f.tok, atd, f.Formals.ConvertAll(arg => arg.Type.Subst(typeMap)), f.ResultType.Subst(typeMap));
+    return new ArrowType(f.RangeToken, atd, f.Formals.ConvertAll(arg => arg.Type.Subst(typeMap)), f.ResultType.Subst(typeMap));
   }
 
   public TupleTypeDecl TupleType(IToken tok, int dims, bool allowCreationOfNewType, List<bool> argumentGhostness = null) {

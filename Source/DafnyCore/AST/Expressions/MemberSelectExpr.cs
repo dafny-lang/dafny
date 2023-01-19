@@ -162,9 +162,9 @@ public class MemberSelectExpr : Expression, IHasUsages, ICloneable<MemberSelectE
     }
   }
 
-  public MemberSelectExpr(IToken tok, Expression obj, string memberName)
-    : base(tok) {
-    Contract.Requires(tok != null);
+  public MemberSelectExpr(RangeToken rangeToken, Expression obj, string memberName)
+    : base(rangeToken) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(obj != null);
     Contract.Requires(memberName != null);
     this.Obj = obj;
@@ -174,9 +174,9 @@ public class MemberSelectExpr : Expression, IHasUsages, ICloneable<MemberSelectE
   /// <summary>
   /// Returns a resolved MemberSelectExpr for a field.
   /// </summary>
-  public MemberSelectExpr(IToken tok, Expression obj, Field field)
-    : this(tok, obj, field.Name) {
-    Contract.Requires(tok != null);
+  public MemberSelectExpr(RangeToken rangeToken, Expression obj, Field field)
+    : this(rangeToken, obj, field.Name) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(obj != null);
     Contract.Requires(field != null);
     Contract.Requires(obj.Type != null);  // "obj" is required to be resolved

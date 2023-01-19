@@ -66,7 +66,7 @@ class ExtremeLemmaSpecificationSubstituter : ExtremeCloner {
       var tt = (UserDefinedType)t;
       // We want syntactic cloning of the Expression that is tt.NamePath, unlike the semantic (that is, post-resolved)
       // cloning that CloneExpr is doing above.
-      return new UserDefinedType(Tok(tt.tok), CloneNamePathExpression(tt.NamePath));
+      return new UserDefinedType(Tok(tt.RangeToken), CloneNamePathExpression(tt.NamePath));
     } else {
       return base.CloneType(t);
     }
@@ -78,7 +78,7 @@ class ExtremeLemmaSpecificationSubstituter : ExtremeCloner {
       return new NameSegment(this, e);
     } else {
       var e = (ExprDotName)expr;
-      return new ExprDotName(Tok(e.tok), CloneNamePathExpression(e.Lhs), e.SuffixName, e.OptTypeArguments == null ? null : e.OptTypeArguments.ConvertAll(CloneType));
+      return new ExprDotName(Tok(e.RangeToken), CloneNamePathExpression(e.Lhs), e.SuffixName, e.OptTypeArguments == null ? null : e.OptTypeArguments.ConvertAll(CloneType));
     }
   }
 }

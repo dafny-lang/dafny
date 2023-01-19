@@ -23,7 +23,7 @@ public class NestedMatchExpr : Expression, ICloneable<NestedMatchExpr> {
     }
   }
 
-  public NestedMatchExpr(IToken tok, Expression source, [Captured] List<NestedMatchCaseExpr> cases, bool usesOptionalBraces, Attributes attrs = null) : base(tok) {
+  public NestedMatchExpr(RangeToken rangeToken, Expression source, [Captured] List<NestedMatchCaseExpr> cases, bool usesOptionalBraces, Attributes attrs = null) : base(rangeToken) {
     Contract.Requires(source != null);
     Contract.Requires(cce.NonNullElements(cases));
     this.Source = source;

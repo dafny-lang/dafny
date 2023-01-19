@@ -31,18 +31,18 @@ abstract class ExtremeCloner : Cloner {
     string name;
     if (e.Lhs is NameSegment ns) {
       name = ns.Name;
-      lhs = new NameSegment(Tok(ns.tok), name + "#", ns.OptTypeArguments?.ConvertAll(CloneType));
+      lhs = new NameSegment(Tok(ns.RangeToken), name + "#", ns.OptTypeArguments?.ConvertAll(CloneType));
     } else {
       var edn = (ExprDotName)e.Lhs;
       name = edn.SuffixName;
-      lhs = new ExprDotName(Tok(edn.tok), CloneExpr(edn.Lhs), name + "#", edn.OptTypeArguments?.ConvertAll(CloneType));
+      lhs = new ExprDotName(Tok(edn.RangeToken), CloneExpr(edn.Lhs), name + "#", edn.OptTypeArguments?.ConvertAll(CloneType));
     }
     var args = new List<ActualBinding>();
     args.Add(new ActualBinding(null, k));
     foreach (var arg in e.Bindings.ArgumentBindings) {
       args.Add(CloneActualBinding(arg));
     }
-    var apply = new ApplySuffix(Tok(e.tok), e.AtTok == null ? null : Tok(e.AtTok), lhs, args, Tok(e.CloseParen));
+    var apply = new ApplySuffix(Tok(e.RangeToken), e.AtTok == null ? null : Tok(e.AtTok), lhs, args, Tok(e.CloseParen));
     reporter.Info(MessageSource.Cloner, e.tok, name + suffix);
     return apply;
   }

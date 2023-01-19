@@ -396,8 +396,8 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
     return ComprehensionExpr.BoundedPool.MissingBounds(BoundVars, Bounds, v);
   }
 
-  public ComprehensionExpr(IToken tok, RangeToken rangeToken, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
-    : base(tok) {
+  protected ComprehensionExpr(RangeToken rangeToken, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
+    : base(rangeToken) {
     Contract.Requires(tok != null);
     Contract.Requires(cce.NonNullElements(bvars));
     Contract.Requires(term != null);
@@ -407,7 +407,6 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
     this.Term = term;
     this.Attributes = attrs;
     this.BodyStartTok = tok;
-    RangeToken = rangeToken;
   }
 
   protected ComprehensionExpr(Cloner cloner, ComprehensionExpr original) : base(cloner, original) {

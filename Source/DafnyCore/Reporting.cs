@@ -60,6 +60,13 @@ namespace Microsoft.Dafny {
       Error(source, tok, msg);
     }
 
+    public void Error(MessageSource source, RangeToken rangeToken, string msg, params object[] args) {
+      Contract.Requires(tok != null);
+      Contract.Requires(msg != null);
+      Contract.Requires(args != null);
+      Error(source, tok, String.Format(msg, args));
+    }
+    
     public void Error(MessageSource source, IToken tok, string msg, params object[] args) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
@@ -93,6 +100,10 @@ namespace Microsoft.Dafny {
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
       Error(source, e.tok, msg, args);
+    }
+
+    public void Warning(MessageSource source, RangeToken rangeToken, string msg) {
+
     }
 
     public void Warning(MessageSource source, IToken tok, string msg) {

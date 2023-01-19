@@ -58,18 +58,18 @@ public class ArrowType : UserDefinedType {
   /// <summary>
   /// Constructs a(n unresolved) arrow type.
   /// </summary>
-  public ArrowType(IToken tok, List<Type> args, Type result)
-    : base(tok, ArrowTypeName(args.Count), Util.Snoc(args, result)) {
-    Contract.Requires(tok != null);
+  public ArrowType(RangeToken rangeToken, List<Type> args, Type result)
+    : base(rangeToken, ArrowTypeName(args.Count), Util.Snoc(args, result)) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(args != null);
     Contract.Requires(result != null);
   }
   /// <summary>
   /// Constructs and returns a resolved arrow type.
   /// </summary>
-  public ArrowType(IToken tok, ArrowTypeDecl atd, List<Type> typeArgsAndResult)
-    : base(tok, ArrowTypeName(atd.Arity), atd, typeArgsAndResult) {
-    Contract.Requires(tok != null);
+  public ArrowType(RangeToken rangeToken, ArrowTypeDecl atd, List<Type> typeArgsAndResult)
+    : base(rangeToken, ArrowTypeName(atd.Arity), atd, typeArgsAndResult) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(atd != null);
     Contract.Requires(typeArgsAndResult != null);
     Contract.Requires(typeArgsAndResult.Count == atd.Arity + 1);
@@ -77,9 +77,9 @@ public class ArrowType : UserDefinedType {
   /// <summary>
   /// Constructs and returns a resolved arrow type.
   /// </summary>
-  public ArrowType(IToken tok, ArrowTypeDecl atd, List<Type> typeArgs, Type result)
-    : this(tok, atd, Util.Snoc(typeArgs, result)) {
-    Contract.Requires(tok != null);
+  public ArrowType(RangeToken rangeToken, ArrowTypeDecl atd, List<Type> typeArgs, Type result)
+    : this(rangeToken, atd, Util.Snoc(typeArgs, result)) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(atd != null);
     Contract.Requires(typeArgs != null);
     Contract.Requires(typeArgs.Count == atd.Arity);

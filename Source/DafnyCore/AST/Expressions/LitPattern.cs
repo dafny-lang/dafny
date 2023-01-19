@@ -37,14 +37,14 @@ public class LitPattern : ExtendedPattern {
       if (OrigLit is NegationExpression neg) {
         var lit = (LiteralExpr)neg.E;
         if (lit.Value is BaseTypes.BigDec d) {
-          return new LiteralExpr(neg.tok, -d);
+          return new LiteralExpr(neg.RangeToken, -d);
         } else {
           var n = (BigInteger)lit.Value;
           var tok = new Token(neg.tok.line, neg.tok.col) {
             Filename = neg.tok.Filename,
             val = "-0"
           };
-          return new LiteralExpr(tok, -n);
+          return new LiteralExpr(RangeToken, -n);
         }
       } else {
         return (LiteralExpr)OrigLit;
@@ -52,7 +52,7 @@ public class LitPattern : ExtendedPattern {
     }
   }
 
-  public LitPattern(IToken tok, Expression lit, bool isGhost = false) : base(tok, isGhost) {
+  public LitPattern(RangeToken rangeToken, Expression lit, bool isGhost = false) : base(rangeToken, isGhost) {
     Contract.Requires(lit is LiteralExpr || lit is NegationExpression);
     this.OrigLit = lit;
   }

@@ -7,7 +7,7 @@ using System.Threading;
 
 namespace Microsoft.Dafny;
 
-public abstract class Type : TokenNode {
+public abstract class Type : RangeNode {
   public static readonly BoolType Bool = new BoolType();
   public static readonly CharType Char = new CharType();
   public static readonly IntType Int = new IntType();
@@ -1741,6 +1741,14 @@ public abstract class Type : TokenNode {
     }
     return allGood;
   }
+
+  protected Type(Cloner cloner, RangeNode original) : base(cloner, original)
+  {
+  }
+
+  protected Type(RangeToken rangeToken) : base(rangeToken)
+  {
+  }
 }
 
 /// <summary>
@@ -1790,6 +1798,13 @@ public class RealVarietiesSupertype : ArtificialType {
 /// A NonProxy type is a fully constrained type.  It may contain members.
 /// </summary>
 public abstract class NonProxyType : Type {
+  protected NonProxyType(Cloner cloner, RangeNode original) : base(cloner, original)
+  {
+  }
+
+  protected NonProxyType(RangeToken rangeToken) : base(rangeToken)
+  {
+  }
 }
 
 public abstract class BasicType : NonProxyType {
@@ -2172,7 +2187,6 @@ public class MapType : CollectionType {
 public class UserDefinedType : NonProxyType {
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(tok != null);
     Contract.Invariant(Name != null);
     Contract.Invariant(cce.NonNullElements(TypeArgs));
     Contract.Invariant(NamePath is NameSegment || NamePath is ExprDotName);
@@ -2207,17 +2221,16 @@ public class UserDefinedType : NonProxyType {
 
   [FilledInDuringResolution] public TopLevelDecl ResolvedClass;  // if Name denotes a class/datatype/iterator and TypeArgs match the type parameters of that class/datatype/iterator
 
-  public UserDefinedType(IToken tok, string name, List<Type> optTypeArgs)
-    : this(tok, new NameSegment(tok, name, optTypeArgs)) {
-    Contract.Requires(tok != null);
+  public UserDefinedType(RangeToken rangeToken, string name, List<Type> optTypeArgs)
+    : this(rangeToken, new NameSegment(rangeToken, name, optTypeArgs)) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(optTypeArgs == null || optTypeArgs.Count > 0);  // this is what it means to be syntactically optional
   }
 
-  public UserDefinedType(IToken tok, Expression namePath) {
-    Contract.Requires(tok != null);
+  public UserDefinedType(RangeToken rangeToken, Expression namePath) : base(rangeToken) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(namePath is NameSegment || namePath is ExprDotName);
-    this.tok = tok;
     if (namePath is NameSegment) {
       var n = (NameSegment)namePath;
       this.Name = n.Name;
@@ -2233,7 +2246,7 @@ public class UserDefinedType : NonProxyType {
     this.NamePath = namePath;
   }
   public UserDefinedType(Cloner cloner, UserDefinedType original)
-    : this(cloner.Tok(original.tok), cloner.CloneExpr(original.NamePath)) {
+    : this(cloner.Tok(original.RangeToken), cloner.CloneExpr(original.NamePath)) {
     if (cloner.CloneResolvedFields) {
       ResolvedClass = original.ResolvedClass;
       TypeArgs = original.TypeArgs.Select(cloner.CloneType).ToList();
@@ -2248,17 +2261,17 @@ public class UserDefinedType : NonProxyType {
   /// If "typeArgs" is non-null, then its type parameters are used in constructing the returned type.
   /// If "typeArgs" is null, then the formal type parameters of "cd" are used.
   /// </summary>
-  public static UserDefinedType FromTopLevelDecl(IToken tok, TopLevelDecl cd, List<TypeParameter> typeArgs = null) {
-    Contract.Requires(tok != null);
+  public static UserDefinedType FromTopLevelDecl(RangeToken rangeToken, TopLevelDecl cd, List<TypeParameter> typeArgs = null) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(cd != null);
     Contract.Assert((cd is ArrowTypeDecl) == ArrowType.IsArrowTypeName(cd.Name));
     var args = (typeArgs ?? cd.TypeArgs).ConvertAll(tp => (Type)new UserDefinedType(tp));
     if (cd is ArrowTypeDecl) {
-      return new ArrowType(tok, (ArrowTypeDecl)cd, args);
+      return new ArrowType(rangeToken, (ArrowTypeDecl)cd, args);
     } else if (cd is ClassDecl && !(cd is DefaultClassDecl)) {
-      return new UserDefinedType(tok, cd.Name + "?", cd, args);
+      return new UserDefinedType(rangeToken, cd.Name + "?", cd, args);
     } else {
-      return new UserDefinedType(tok, cd.Name, cd, args);
+      return new UserDefinedType(rangeToken, cd.Name, cd, args);
     }
   }
 
@@ -2267,7 +2280,7 @@ public class UserDefinedType : NonProxyType {
     Contract.Requires(!(cd is ArrowTypeDecl));
 
     var typeArgs = cd.TypeArgs.ConvertAll(tp => (Type)Type.Bool);
-    return new UserDefinedType(cd.tok, cd.Name, cd, typeArgs);
+    return new UserDefinedType(cd.RangeToken, cd.Name, cd, typeArgs);
   }
 
   /// <summary>
@@ -2289,8 +2302,8 @@ public class UserDefinedType : NonProxyType {
   /// <summary>
   /// This constructor constructs a resolved class/datatype/iterator/subset-type/newtype type
   /// </summary>
-  public UserDefinedType(IToken tok, string name, TopLevelDecl cd, [Captured] List<Type> typeArgs, Expression/*?*/ namePath = null) {
-    Contract.Requires(tok != null);
+  public UserDefinedType(RangeToken rangeToken, string name, TopLevelDecl cd, [Captured] List<Type> typeArgs, Expression/*?*/ namePath = null) : base(rangeToken) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(cd != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
@@ -2301,13 +2314,12 @@ public class UserDefinedType : NonProxyType {
     //Contract.Requires(!(cd is ClassDecl) || cd is DefaultClassDecl || cd is ArrowTypeDecl || name == cd.Name + "?");
     Contract.Requires(!(cd is ArrowTypeDecl) || name == cd.Name);
     Contract.Requires(!(cd is DefaultClassDecl) || name == cd.Name);
-    this.tok = tok;
     this.Name = name;
     this.ResolvedClass = cd;
     this.TypeArgs = typeArgs;
     if (namePath == null) {
-      var ns = new NameSegment(tok, name, typeArgs.Count == 0 ? null : typeArgs);
-      var r = new Resolver_IdentifierExpr(tok, cd, typeArgs);
+      var ns = new NameSegment(rangeToken, name, typeArgs.Count == 0 ? null : typeArgs);
+      var r = new Resolver_IdentifierExpr(rangeToken, cd, typeArgs);
       ns.ResolvedExpression = r;
       ns.Type = r.Type;
       this.NamePath = ns;
@@ -2343,15 +2355,15 @@ public class UserDefinedType : NonProxyType {
   /// the .TheType of an opaque type -- use the (OpaqueType_AsParameter, OpaqueTypeDecl, List(Type))
   /// constructor for that).
   /// </summary>
-  public UserDefinedType(IToken tok, TypeParameter tp) {
-    Contract.Requires(tok != null);
+  public UserDefinedType(IToken rangeToken, TypeParameter tp) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(tp != null);
-    this.tok = tok;
+    this.tok = rangeToken;
     this.Name = tp.Name;
     this.TypeArgs = new List<Type>();
     this.ResolvedClass = tp;
-    var ns = new NameSegment(tok, tp.Name, null);
-    var r = new Resolver_IdentifierExpr(tok, tp);
+    var ns = new NameSegment(rangeToken, tp.Name, null);
+    var r = new Resolver_IdentifierExpr(rangeToken, tp);
     ns.ResolvedExpression = r;
     ns.Type = r.Type;
     this.NamePath = ns;

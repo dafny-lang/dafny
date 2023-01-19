@@ -6335,7 +6335,7 @@ namespace Microsoft.Dafny {
       var lhss = new List<LocalVariable>() { new LocalVariable(s.RangeToken, temp, new InferredTypeProxy(), false) };
       // "var temp ;"
       s.ResolvedStatements.Add(new VarDeclStmt(s.RangeToken, lhss, null));
-      var lhss2 = new List<Expression>() { new IdentifierExpr(s.Tok, temp) };
+      var lhss2 = new List<Expression>() { new IdentifierExpr(s.RangeToken, temp) };
       for (int k = (expectExtract ? 1 : 0); k < s.Lhss.Count; ++k) {
         lhss2.Add(s.Lhss[k]);
       }
@@ -6362,11 +6362,11 @@ namespace Microsoft.Dafny {
       s.ResolvedStatements.Add(up);
 
       if (s.KeywordToken != null) {
-        var notFailureExpr = new UnaryOpExpr(s.Tok, UnaryOpExpr.Opcode.Not, VarDotMethod(s.Tok, temp, "IsFailure"));
+        var notFailureExpr = new UnaryOpExpr(s.RangeToken, UnaryOpExpr.Opcode.Not, VarDotMethod(s.Tok, temp, "IsFailure"));
         Statement ss = null;
         if (s.KeywordToken.Token.val == "expect") {
           // "expect !temp.IsFailure(), temp"
-          ss = new ExpectStmt(s.RangeToken, notFailureExpr, new IdentifierExpr(s.Tok, temp), s.KeywordToken.Attrs);
+          ss = new ExpectStmt(s.RangeToken, notFailureExpr, new IdentifierExpr(s.RangeToken, temp), s.KeywordToken.Attrs);
         } else if (s.KeywordToken.Token.val == "assume") {
           ss = new AssumeStmt(s.RangeToken, notFailureExpr, s.KeywordToken.Attrs);
         } else if (s.KeywordToken.Token.val == "assert") {
@@ -6377,7 +6377,7 @@ namespace Microsoft.Dafny {
         s.ResolvedStatements.Add(ss);
       } else {
         var enclosingOutParameter = ((Method)resolutionContext.CodeContext).Outs[0];
-        var ident = new IdentifierExpr(s.Tok, enclosingOutParameter.Name);
+        var ident = new IdentifierExpr(s.RangeToken, enclosingOutParameter.Name);
         // resolve it here to avoid capture into more closely declared local variables
         Contract.Assert(enclosingOutParameter.Type != null);  // this confirms our belief that the out-parameter has already been resolved
         ident.Var = enclosingOutParameter;
@@ -6544,15 +6544,15 @@ namespace Microsoft.Dafny {
     }
 
     // TODO move
-    public static UserDefinedType GetThisType(IToken tok, TopLevelDeclWithMembers cl) {
-      Contract.Requires(tok != null);
+    public static UserDefinedType GetThisType(RangeToken rangeToken, TopLevelDeclWithMembers cl) {
+      Contract.Requires(rangeToken != null);
       Contract.Requires(cl != null);
       Contract.Ensures(Contract.Result<UserDefinedType>() != null);
 
       if (cl is ClassDecl cls && cls.NonNullTypeDecl != null) {
-        return UserDefinedType.FromTopLevelDecl(tok, cls.NonNullTypeDecl, cls.TypeArgs);
+        return UserDefinedType.FromTopLevelDecl(rangeToken, cls.NonNullTypeDecl, cls.TypeArgs);
       } else {
-        return UserDefinedType.FromTopLevelDecl(tok, cl, cl.TypeArgs);
+        return UserDefinedType.FromTopLevelDecl(rangeToken, cl, cl.TypeArgs);
       }
     }
 

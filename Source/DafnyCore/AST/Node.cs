@@ -81,8 +81,13 @@ public abstract class TokenNode : Node {
 }
 
 public abstract class RangeNode : Node {
+  public IToken tok => RangeToken.StartToken;
   public override RangeToken RangeToken { get; set; } // TODO remove set when TokenNode is gone.
 
+  protected RangeNode(Cloner cloner, RangeNode original) {
+    RangeToken = cloner.Tok(original.RangeToken);
+  }
+  
   protected RangeNode(RangeToken rangeToken) {
     RangeToken = rangeToken;
   }
