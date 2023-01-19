@@ -106,6 +106,7 @@ rename the identifier (if a fresh bound identifier is intended).
 
 ## **Warning: unusual indentation in _what_ (which starts at _location_); do you perhaps need parentheses?**
 
+<!-- %check-resolve-warn -->
 ```dafny
 function f(b: bool): bool
 {
@@ -122,6 +123,7 @@ to use parentheses or to redo the indentation.
 
 ## **Warning: unusual indentation in _what_ (which ends at _location_); do you perhaps need parentheses?**
 
+<!-- %check-resolve-warn -->
 ```dafny
 function f(b: bool): bool
 {

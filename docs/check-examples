@@ -212,10 +212,11 @@ do
         elif [ "$command" == "%check-run" ]; then
           com=run
           ec=0
+          if [ "$useHeadings" == "1" ]; then ec=3; fi
         elif [ "$command" == "%check-test" ]; then
           com=test
           ec=2
-          if [ "$useHeadings" == "1" ]; then ec=3; fi
+          ##if [ "$useHeadings" == "1" ]; then ec=3; fi
         elif [ "$command" == "%check-legacy" ]; then
           com=
           ec=0
