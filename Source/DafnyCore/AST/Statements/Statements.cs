@@ -650,7 +650,7 @@ public class TypeRhs : AssignmentRhs, ICloneable<TypeRhs> {
       .Concat<INode>(ArrayDimensions ?? Enumerable.Empty<INode>())
       .Concat<INode>(ElementInit != null ? new[] { ElementInit } : Enumerable.Empty<INode>())
       .Concat<INode>(InitDisplay ?? Enumerable.Empty<INode>())
-      .Concat<INode>(Bindings != null ? Arguments : Enumerable.Empty<INode>());
+      .Concat<INode>((Bindings != null ? Arguments : null) ?? Enumerable.Empty<INode>());
 
   public override IEnumerable<Statement> PreResolveSubStatements => Enumerable.Empty<Statement>();
 
