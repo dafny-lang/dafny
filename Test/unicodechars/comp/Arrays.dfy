@@ -2,6 +2,6 @@
 // RUN: %baredafny run --no-verify --target=js --unicode-char %args "%s" >> "%t"
 // RUN: %baredafny run --no-verify --target=go --unicode-char %args "%s" >> "%t"
 // this is not yet working: %baredafny run --no-verify --target=java --unicode-char %args "%s" >> "%t"
-// this is not printing characters correctly: %baredafny run --no-verify --target=py --unicode-char %args "%s" >> "%t"
+// RUN: %baredafny run --no-verify --target=py --unicode-char %args "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 include "../../comp/Arrays.dfy"
