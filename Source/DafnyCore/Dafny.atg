@@ -2354,7 +2354,7 @@ TupleType<.out Type ty, out IToken tok, out List<Type> tupleArgTypes, out List<I
 /*------------------------------------------------------------------------*/
 NamedType<.out Type ty, out IToken tok, bool inExpressionContext.> =
   (. Expression e; IToken startToken = null; .)
-  NameSegmentForTypeName<out e, inExpressionContext>  (. tok = t; startToken = t; .)
+  NameSegmentForTypeName<out e, inExpressionContext>  (. tok = t; startToken = e.StartToken; .)
   { "."
     TypeNameOrCtorSuffix<out tok>       (. List<Type> typeArgs; .)
     OptGenericInstantiation<out typeArgs, inExpressionContext>
@@ -4853,6 +4853,7 @@ NameSegmentForTypeName<out Expression e, bool inExpressionContext>
   Ident<out id>
   OptGenericInstantiation<out typeArgs, inExpressionContext>
   (. e = new NameSegment(id, id.val, typeArgs);
+     e.RangeToken = new RangeToken(id, t);
   .)
   .
 

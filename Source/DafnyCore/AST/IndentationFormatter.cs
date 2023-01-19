@@ -699,8 +699,9 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
     var parentTraitIndent = indent + SpaceTab;
     var commaIndent = indent;
     var extraIndent = 0;
+    var ownedTokens = classDecl.OwnedTokens;
 
-    foreach (var token in classDecl.OwnedTokens) {
+    foreach (var token in ownedTokens) {
       switch (token.val) {
         case "class": {
             classToken = token;
@@ -710,12 +711,17 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
             extendsToken = token;
             if (extendsToken.line != extendsToken.Next.line) {
               extraIndent = classToken != null && classToken.line == extendsToken.line ? 0 : SpaceTab;
+              commaIndent += extraIndent;
               SetIndentations(extendsToken, after: indent + SpaceTab + extraIndent);
+            } else {
+              extraIndent += 2;
+              commaIndent = indent + SpaceTab;
+              SetIndentations(extendsToken, after: indent + SpaceTab);
             }
             break;
           }
         case ",": {
-            SetIndentations(token, parentTraitIndent + extraIndent, commaIndent + extraIndent, parentTraitIndent + extraIndent);
+            SetIndentations(token, parentTraitIndent + extraIndent, commaIndent, parentTraitIndent + extraIndent);
             break;
           }
       }

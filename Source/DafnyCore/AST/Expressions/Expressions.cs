@@ -3144,6 +3144,8 @@ public class NameSegment : ConcreteSyntaxExpression, ICloneable<NameSegment> {
   public NameSegment Clone(Cloner cloner) {
     return new NameSegment(cloner, this);
   }
+
+  public override IEnumerable<INode> ConcreteChildren => OptTypeArguments;
 }
 
 /// <summary>

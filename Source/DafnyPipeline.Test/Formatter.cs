@@ -1981,6 +1981,17 @@ class W extends
   BB
 , CC {
 }
+
+class W
+  extends  AA1,
+    BB1
+  , CC1 {
+}
+
+class W extends  AA2,
+    BB2
+  , CC2 {
+}
 ");
     }
 

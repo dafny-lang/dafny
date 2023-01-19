@@ -1096,7 +1096,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl {
 
   // The following fields keep track of parent traits
   public readonly List<MemberDecl> InheritedMembers = new List<MemberDecl>();  // these are instance members declared in parent traits
-  public readonly List<Type> ParentTraits;  // these are the types that are parsed after the keyword 'extends'; note, for a successfully resolved program, these are UserDefinedType's where .ResolvedClas is NonNullTypeDecl
+  public readonly List<Type> ParentTraits;  // these are the types that are parsed after the keyword 'extends'; note, for a successfully resolved program, these are UserDefinedType's where .ResolvedClass is NonNullTypeDecl
   public readonly Dictionary<TypeParameter, Type> ParentFormalTypeParametersToActuals = new Dictionary<TypeParameter, Type>();  // maps parent traits' type parameters to actuals
 
   /// <summary>
@@ -1181,11 +1181,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl {
     return types;
   }
 
-  public override IEnumerable<INode> Children {
-    get {
-      return Members.Concat(ParentTraits.SelectMany(parentTrait => parentTrait.Nodes));
-    }
-  }
+  public override IEnumerable<INode> Children => ParentTraits.Concat<INode>(Members);
 
   public override IEnumerable<INode> ConcreteChildren => Children;
 
