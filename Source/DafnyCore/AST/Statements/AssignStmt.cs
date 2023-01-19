@@ -23,9 +23,8 @@ public class AssignStmt : Statement, ICloneable<AssignStmt> {
     Rhs = cloner.CloneRHS(original.Rhs);
   }
 
-  public AssignStmt(IToken tok, RangeToken rangeToken, Expression lhs, AssignmentRhs rhs)
-    : base(tok, rangeToken) {
-    Contract.Requires(tok != null);
+  public AssignStmt(RangeToken rangeToken, Expression lhs, AssignmentRhs rhs)
+    : base(rangeToken) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(lhs != null);
     Contract.Requires(rhs != null);

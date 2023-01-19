@@ -2403,7 +2403,7 @@ namespace Microsoft.Dafny.Compilers {
         IVariable accVar = null;
         if (f.IsTailRecursive) {
           if (f.IsAccumulatorTailRecursive) {
-            accVar = new LocalVariable(f.tok, f.RangeToken, "_accumulator", f.ResultType, false) {
+            accVar = new LocalVariable(f.RangeToken, "_accumulator", f.ResultType, false) {
               type = f.ResultType
             };
             Expression unit;
@@ -2485,7 +2485,7 @@ namespace Microsoft.Dafny.Compilers {
         var ty = UserDefinedType.FromTopLevelDeclWithAllBooleanTypeParameters(m.EnclosingClass);
         LocalVariable receiver = null;
         if (!m.IsStatic) {
-          receiver = new LocalVariable(m.tok, m.RangeToken, "b", ty, false) {
+          receiver = new LocalVariable(m.RangeToken, "b", ty, false) {
             type = ty
           };
           if (m.EnclosingClass is ClassDecl) {

@@ -1006,14 +1006,14 @@ namespace Microsoft.Dafny {
         if (hoverText.Length != 0) {
           Reporter.Info(MessageSource.RefinementTransformer, sbsSkeleton.RangeToken.ToToken(), hoverText);
         }
-        return new DividedBlockStmt(sbsSkeleton.Tok, sbsSkeleton.RangeToken, bodyInit, sbsSkeleton.SeparatorTok, bodyProper);
+        return new DividedBlockStmt(sbsSkeleton.RangeToken, bodyInit, sbsSkeleton.SeparatorTok, bodyProper);
       } else {
         string hoverText;
         var body = MergeStmtList(skeleton.Body, oldStmt.Body, out hoverText);
         if (hoverText.Length != 0) {
           Reporter.Info(MessageSource.RefinementTransformer, skeleton.RangeToken.ToToken(), hoverText);
         }
-        return new BlockStmt(skeleton.Tok, skeleton.RangeToken, body);
+        return new BlockStmt(skeleton.RangeToken, body);
       }
     }
 
@@ -1163,7 +1163,7 @@ namespace Microsoft.Dafny {
                 var resultingThen = MergeBlockStmt(skel.Thn, oldIf.Thn);
                 var resultingElse = MergeElse(skel.Els, oldIf.Els);
                 var e = refinementCloner.CloneExpr(oldIf.Guard);
-                var r = new IfStmt(skel.Tok, skel.RangeToken, oldIf.IsBindingGuard, e, resultingThen, resultingElse);
+                var r = new IfStmt(skel.RangeToken, oldIf.IsBindingGuard, e, resultingThen, resultingElse);
                 body.Add(r);
                 Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, Printer.GuardToString(oldIf.IsBindingGuard, e));
                 i++; j++;
@@ -1209,14 +1209,14 @@ namespace Microsoft.Dafny {
                   // Note, it is important to call MergeBlockStmt here (rather than just setting "mbody" to "skel.Body"), even
                   // though we're passing in an empty block as its second argument. The reason for this is that MergeBlockStmt
                   // also sets ".ReverifyPost" to "true" for any "return" statements.
-                  mbody = MergeBlockStmt(skel.Body, new BlockStmt(oldModifyStmt.Tok, oldModifyStmt.RangeToken, new List<Statement>()));
+                  mbody = MergeBlockStmt(skel.Body, new BlockStmt(oldModifyStmt.RangeToken, new List<Statement>()));
                 } else if (skel.Body == null) {
                   Reporter.Error(MessageSource.RefinementTransformer, cur.Tok, "modify template must have a body if the inherited modify statement does");
                   mbody = null;
                 } else {
                   mbody = MergeBlockStmt(skel.Body, oldModifyStmt.Body);
                 }
-                body.Add(new ModifyStmt(skel.Tok, skel.RangeToken, mod.Expressions, mod.Attributes, mbody));
+                body.Add(new ModifyStmt(skel.RangeToken, mod.Expressions, mod.Attributes, mbody));
                 Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, Printer.FrameExprListToString(mod.Expressions));
                 i++; j++;
               }
@@ -1335,7 +1335,7 @@ namespace Microsoft.Dafny {
             var cNew = (IfStmt)cur;
             var cOld = oldS as IfStmt;
             if (cOld != null && cOld.Guard == null) {
-              var r = new IfStmt(cNew.Tok, cNew.RangeToken, cNew.IsBindingGuard, cNew.Guard, MergeBlockStmt(cNew.Thn, cOld.Thn), MergeElse(cNew.Els, cOld.Els));
+              var r = new IfStmt(cNew.RangeToken, cNew.IsBindingGuard, cNew.Guard, MergeBlockStmt(cNew.Thn, cOld.Thn), MergeElse(cNew.Els, cOld.Els));
               body.Add(r);
               i++; j++;
             } else {
@@ -1502,7 +1502,7 @@ namespace Microsoft.Dafny {
       if (cOld.Body == null && cNew.Body == null) {
         newBody = null;
       } else if (cOld.Body == null) {
-        newBody = MergeBlockStmt(cNew.Body, new BlockStmt(cOld.Tok, cOld.RangeToken, new List<Statement>()));
+        newBody = MergeBlockStmt(cNew.Body, new BlockStmt(cOld.RangeToken, new List<Statement>()));
       } else if (cNew.Body == null) {
         Reporter.Error(MessageSource.RefinementTransformer, cNew.Tok, "while template must have a body if the inherited while statement does");
         newBody = null;
@@ -1520,15 +1520,15 @@ namespace Microsoft.Dafny {
         return refinementCloner.CloneStmt(oldStmt);
       } else if (skeleton is IfStmt || skeleton is SkeletonStatement) {
         // wrap a block statement around the if statement
-        skeleton = new BlockStmt(skeleton.Tok, skeleton.RangeToken, new List<Statement>() { skeleton });
+        skeleton = new BlockStmt(skeleton.RangeToken, new List<Statement>() { skeleton });
       }
 
       if (oldStmt == null) {
         // make it into an empty block statement
-        oldStmt = new BlockStmt(skeleton.Tok, skeleton.RangeToken, new List<Statement>());
+        oldStmt = new BlockStmt(skeleton.RangeToken, new List<Statement>());
       } else if (oldStmt is IfStmt || oldStmt is SkeletonStatement) {
         // wrap a block statement around the if statement
-        oldStmt = new BlockStmt(oldStmt.Tok, skeleton.RangeToken, new List<Statement>() { oldStmt });
+        oldStmt = new BlockStmt(skeleton.RangeToken, new List<Statement>() { oldStmt });
       }
 
       Contract.Assert(skeleton is BlockStmt && oldStmt is BlockStmt);

@@ -407,7 +407,7 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
     this.Term = term;
     this.Attributes = attrs;
     this.BodyStartTok = tok;
-    this.RangeToken = rangeToken;
+    RangeToken = rangeToken;
   }
 
   protected ComprehensionExpr(Cloner cloner, ComprehensionExpr original) : base(cloner, original) {

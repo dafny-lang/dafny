@@ -2,7 +2,7 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public abstract class NestedMatchCase : Node {
+public abstract class NestedMatchCase : TokenNode {
   public readonly ExtendedPattern Pat;
 
   public NestedMatchCase(IToken tok, ExtendedPattern pat) {

@@ -25,9 +25,8 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
   public Expression Receiver { get { return MethodSelect.Obj; } }
   public Method Method { get { return (Method)MethodSelect.Member; } }
 
-  public CallStmt(IToken tok, RangeToken rangeToken, List<Expression> lhs, MemberSelectExpr memSel, List<ActualBinding> args)
-    : base(tok, rangeToken) {
-    Contract.Requires(tok != null);
+  public CallStmt(RangeToken rangeToken, List<Expression> lhs, MemberSelectExpr memSel, List<ActualBinding> args)
+    : base(rangeToken) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(cce.NonNullElements(lhs));
     Contract.Requires(memSel != null);
@@ -54,7 +53,7 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
   /// to be already resolved, and are all given positionally.
   /// </summary>
   public CallStmt(IToken tok, RangeToken rangeToken, List<Expression> lhs, MemberSelectExpr memSel, List<Expression> args)
-    : this(tok, rangeToken, lhs, memSel, args.ConvertAll(e => new ActualBinding(null, e))) {
+    : this(rangeToken, lhs, memSel, args.ConvertAll(e => new ActualBinding(null, e))) {
     Bindings.AcceptArgumentExpressionsAsExactParameterList();
   }
 

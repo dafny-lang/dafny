@@ -17,7 +17,7 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt> {
   }
 
   public AssertStmt(IToken tok, RangeToken rangeToken, Expression expr, BlockStmt/*?*/ proof, AssertLabel/*?*/ label, Attributes attrs)
-    : base(tok, rangeToken, expr, attrs) {
+    : base(rangeToken, expr, attrs) {
     Contract.Requires(tok != null);
     Contract.Requires(rangeToken != null);
     Contract.Requires(expr != null);

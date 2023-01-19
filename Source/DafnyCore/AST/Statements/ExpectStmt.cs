@@ -15,7 +15,7 @@ public class ExpectStmt : PredicateStmt, ICloneable<ExpectStmt> {
   }
 
   public ExpectStmt(IToken tok, RangeToken rangeToken, Expression expr, Expression message, Attributes attrs)
-    : base(tok, rangeToken, expr, attrs) {
+    : base(rangeToken, expr, attrs) {
     Contract.Requires(tok != null);
     Contract.Requires(rangeToken != null);
     Contract.Requires(expr != null);

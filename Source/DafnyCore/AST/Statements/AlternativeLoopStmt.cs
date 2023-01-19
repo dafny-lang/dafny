@@ -24,7 +24,7 @@ public class AlternativeLoopStmt : LoopStmt, ICloneable<AlternativeLoopStmt> {
   public AlternativeLoopStmt(IToken tok, RangeToken rangeToken,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
     List<GuardedAlternative> alternatives, bool usesOptionalBraces)
-    : base(tok, rangeToken, invariants, decreases, mod) {
+    : base(rangeToken, invariants, decreases, mod) {
     Contract.Requires(tok != null);
     Contract.Requires(alternatives != null);
     this.Alternatives = alternatives;
@@ -33,7 +33,7 @@ public class AlternativeLoopStmt : LoopStmt, ICloneable<AlternativeLoopStmt> {
   public AlternativeLoopStmt(IToken tok, RangeToken rangeToken,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
     List<GuardedAlternative> alternatives, bool usesOptionalBraces, Attributes attrs)
-    : base(tok, rangeToken, invariants, decreases, mod, attrs) {
+    : base(rangeToken, invariants, decreases, mod, attrs) {
     Contract.Requires(tok != null);
     Contract.Requires(rangeToken != null);
     Contract.Requires(alternatives != null);

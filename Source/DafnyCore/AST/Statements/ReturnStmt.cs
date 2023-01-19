@@ -15,7 +15,7 @@ public class ReturnStmt : ProduceStmt, ICloneable<ReturnStmt> {
   }
 
   public ReturnStmt(IToken tok, RangeToken rangeToken, List<AssignmentRhs> rhss)
-    : base(tok, rangeToken, rhss) {
+    : base(rangeToken, rhss) {
     Contract.Requires(tok != null);
     Contract.Requires(rangeToken != null);
   }

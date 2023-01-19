@@ -41,7 +41,7 @@ public class AssignSuchThatStmt : ConcreteUpdateStatement, ICloneable<AssignSuch
   /// If "assumeToken" is non-null, then it should denote the "assume" keyword used in the statement.
   /// </summary>
   public AssignSuchThatStmt(IToken tok, RangeToken rangeToken, List<Expression> lhss, Expression expr, AttributedToken assumeToken, Attributes attrs)
-    : base(tok, rangeToken, lhss, attrs) {
+    : base(rangeToken, lhss, attrs) {
     Contract.Requires(tok != null);
     Contract.Requires(rangeToken != null);
     Contract.Requires(cce.NonNullElements(lhss));
