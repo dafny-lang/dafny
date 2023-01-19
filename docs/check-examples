@@ -61,7 +61,7 @@
 ##                  the actual output matches the content of the file <expect>
 ##   %check-run <expect> : runs the command
 ##              "dafny run --use-basename-for-filename $F" and,
-##              if <expect> is present, then the output matches the
+##              if <expect> is present, checks that the output matches the
 ##              content of the file names <expect>
 ##   %check-error
 ##   check
@@ -73,6 +73,8 @@ defaultCommand=
 defaultExit=
 defaultLang=
 useHeadings=0
+defOptions="--use-basename-for-filename --unicode-char:false"
+legacyOptions="-useBaseNameForFileName"
 
 while getopts 'md:x:l:' opt; do
   case "$opt" in
@@ -107,7 +109,7 @@ msg=
 use=
 command=
 expect=
-options=
+options=( )
 default=0
 while IFS= read -r line
 do 
@@ -123,12 +125,20 @@ do
   if [ "$?" == "0" ]; then 
       ##echo COMMAND "$line"
       contents=( `echo "$line" | sed -e 's/[^<]*<!--//' -e 's/-->//'` )
+      echo "$line" | grep -e '%default' > /dev/null
+      if [ "$?" == "0" ]; then 
+        default=1; 
+        echo "$line" | grep -e '%useHeadings' > /dev/null
+        if [ "$?" == "0" ]; then useHeadings=1; fi
+        defaultCommand=${contents[0]}
+        continue
+      fi
       command=${contents[0]}
       expect=${contents[1]}
       if [ "$expect" == "%use" -o "$expect" == "%options" ]; then
         expect=
       fi
-      options=
+      options=( )
       ( echo "$line" | grep -e '%options' > /dev/null ) \
           && options=( `echo "$line" | sed -e 's/^.*%options//' -e 's/-->//'` )
       if [ "${contents[1]}" == "%use" ]; then
@@ -137,15 +147,6 @@ do
       if [ "${contents[2]}" == "%use" ]; then
         use=${contents[3]}
       fi
-      if [ -z "$command" ]; then
-        command="$defaultCommand"
-        if [ -z "$command" ]; then
-          echo "NO COMMAND GIVEN $n $line"
-          FAIL=1
-        fi
-      fi
-      echo "$line" | grep -e '%default' > /dev/null
-      if [ "$?" == "0" ]; then default=1; fi
   fi
   ## Check for the marker
   echo "$line" | grep -e '^[ ]*[`][`][`]' > /dev/null 
@@ -166,6 +167,13 @@ do
       touch $text
     else
       ## End of backtick block, so check the text
+      if [ -z "$command" -a "$lang" == "dafny" ]; then
+        command="$defaultCommand"
+        if [ -z "$command" ]; then
+          echo "NO COMMAND GIVEN $n $line"
+          FAIL=1
+        fi
+      fi
       inblock=0
       if [ -n "$use" ]; then
         ##echo " " USING $use
@@ -183,8 +191,9 @@ do
       fi
       if [ "$command" == "%no-check" ]; then
         echo -n ""
-      elif [ "$command" == "%check-verify" -o "$command" == "%check-verify-warn" -o "$command" == "%check-resolve"  -o "$command" == "%check-run" -o "$command" == "%check-translate" -o "$command" == "%check-test" -o "$command" == "%check-resolve-warn" ]; then
+      elif [ "$command" == "%check-verify" -o "$command" == "%check-verify-warn" -o "$command" == "%check-resolve"  -o "$command" == "%check-run" -o "$command" == "%check-translate" -o "$command" == "%check-test" -o "$command" == "%check-resolve-warn"  -o "$command" == "%check-legacy" ]; then
         capture=1
+        dOptions=$defOptions
         if [ "$command" == "%check-verify" ]; then
           com=verify
           ec=4
@@ -206,15 +215,22 @@ do
         elif [ "$command" == "%check-test" ]; then
           com=test
           ec=2
+          if [ "$useHeadings" == "1" ]; then ec=3; fi
+        elif [ "$command" == "%check-legacy" ]; then
+          com=
+          ec=0
+          dOptions=$legacyOptions
+          if [ "$useHeadings" == "1" ]; then ec=3; fi
+          if [ "$defaultCommand" == "%check-resolve" ]; then ec=2 ; fi
         fi
         if [ "$lang" != "dafny" ]; then
           echo EXPECTED A dafny BLOCK, NOT $lang
           FAIL=1
         else
           if [ "$capture" == "2" ]; then
-            "$dafny" $com --use-basename-for-filename --unicode-char:true $options $text 2> actual > /dev/null
+            "$dafny" $com $dOptions ${options[@]} $text 2> actual > /dev/null
           else
-            "$dafny" $com --use-basename-for-filename --unicode-char:true $options $text > actual
+            "$dafny" $com $dOptions ${options[@]} $text > actual
           fi
           actualec=$?
           if [ "$useHeadings" == "1" ]; then
@@ -308,19 +324,17 @@ do
          echo UNKNOWN TEST COMMAND $command
          FAIL=1
       fi
-      if [ "$default" == "0" ]; then
-        use=
-        command=
-        expect=
-        options=
-      fi
+      use=
+      command=
+      expect=
+      options=( )
     fi
   elif [ "$inblock" == "1" ]; then
     ## If in a backtick block, save the text to the temporary file
     echo "$line" | sed -e 's/^[ ]*\.\.\./   /' >> $text
   fi
 done < $file
-rm -rf *.tmp
+rm -rf *.tmp $text.*
 
 if [ "$inblock" == "1" ]; then
   echo UNCLOSED BACKTICK BLOCK
