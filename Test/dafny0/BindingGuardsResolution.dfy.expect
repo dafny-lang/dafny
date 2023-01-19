@@ -159,10 +159,10 @@ BindingGuardsResolution.dfy(19,6): Error: LHS of assignment must denote a mutabl
 BindingGuardsResolution.dfy(39,8): Error: Duplicate local-variable name: x
 BindingGuardsResolution.dfy(84,8): Error: LHS of assignment must denote a mutable variable
 BindingGuardsResolution.dfy(109,7): Error: type of bound variable 'x' could not be determined; please specify the type explicitly
-BindingGuardsResolution.dfy(130,8): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
-BindingGuardsResolution.dfy(132,8): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
-BindingGuardsResolution.dfy(140,8): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
-BindingGuardsResolution.dfy(142,8): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
-BindingGuardsResolution.dfy(146,8): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+BindingGuardsResolution.dfy(130,6): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+BindingGuardsResolution.dfy(132,6): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+BindingGuardsResolution.dfy(140,6): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+BindingGuardsResolution.dfy(142,6): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+BindingGuardsResolution.dfy(146,6): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
 BindingGuardsResolution.dfy(149,37): Error: a call to a ghost predicate is allowed only in specification contexts (consider declaring the predicate with 'predicate method')
 11 resolution/type errors detected in BindingGuardsResolution.dfy

@@ -5,8 +5,8 @@ MiscTypeInferenceTests.dfy(24,11): Error: value does not satisfy the subset cons
 MiscTypeInferenceTests.dfy(27,11): Error: value does not satisfy the subset constraints of 'int ~> nat'
 MiscTypeInferenceTests.dfy(50,13): Error: function precondition might not hold
 MiscTypeInferenceTests.dfy(50,16): Error: assertion might not hold
-MiscTypeInferenceTests.dfy(109,18): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-MiscTypeInferenceTests.dfy(110,18): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+MiscTypeInferenceTests.dfy(109,4): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+MiscTypeInferenceTests.dfy(110,4): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 MiscTypeInferenceTests.dfy(143,15): Error: value does not satisfy the subset constraints of 'nat'
 MiscTypeInferenceTests.dfy(155,15): Error: value does not satisfy the subset constraints of 'nat'
 

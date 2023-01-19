@@ -3,7 +3,7 @@ ConstantErrors.dfy(12,8): Error: const definition contains a cycle: five -> six 
 ConstantErrors.dfy(21,6): Error: 'this' is not allowed in a 'static' context
 ConstantErrors.dfy(32,6): Error: a ghost const field is allowed only in specification contexts
 ConstantErrors.dfy(33,6): Error: a ghost const field is allowed only in specification contexts
-ConstantErrors.dfy(44,7): Error: RHS (of type int) not assignable to LHS (of type SmallInt)
+ConstantErrors.dfy(44,4): Error: RHS (of type int) not assignable to LHS (of type SmallInt)
 ConstantErrors.dfy(67,10): Error: const field 'x0' is inherited from trait 'Trait' and is not allowed to be re-declared
 ConstantErrors.dfy(68,10): Error: const field 'x1' is inherited from trait 'Trait' and is not allowed to be re-declared
 ConstantErrors.dfy(69,10): Error: const field 'x2' is inherited from trait 'Trait' and is not allowed to be re-declared

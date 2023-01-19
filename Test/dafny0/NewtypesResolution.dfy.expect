@@ -15,12 +15,12 @@ NewtypesResolution.dfy(101,24): Error: Wrong number of type arguments (1 instead
 NewtypesResolution.dfy(105,10): Error: recursive constraint dependency involving a newtype: Cycle -> BadLemma -> Cycle
 NewtypesResolution.dfy(114,10): Error: recursive constraint dependency involving a newtype: SelfCycle -> SelfCycle
 NewtypesResolution.dfy(120,21): Error: name of type (N9) is used as a variable
-NewtypesResolution.dfy(139,6): Error: RHS (of type int) not assignable to LHS (of type Int)
-NewtypesResolution.dfy(140,6): Error: RHS (of type AnotherInt) not assignable to LHS (of type Int)
+NewtypesResolution.dfy(139,4): Error: RHS (of type int) not assignable to LHS (of type Int)
+NewtypesResolution.dfy(140,4): Error: RHS (of type AnotherInt) not assignable to LHS (of type Int)
 NewtypesResolution.dfy(156,9): Error: name of type (B) is used as a variable
 NewtypesResolution.dfy(157,11): Error: name of type (Syn) is used as a variable
 NewtypesResolution.dfy(162,8): Error: member 'U' does not exist in type synonym 'Y'
-NewtypesResolution.dfy(162,9): Error: expected method call, found expression
+NewtypesResolution.dfy(162,4): Error: expected method call, found expression
 NewtypesResolution.dfy(188,56): Error: incorrect argument type at index 0 for datatype constructor parameter (expected int, found bool)
 NewtypesResolution.dfy(221,13): Error: arguments to < must have a common supertype (got Even and nat)
 NewtypesResolution.dfy(223,13): Error: arguments to < must have a common supertype (got Even and int)

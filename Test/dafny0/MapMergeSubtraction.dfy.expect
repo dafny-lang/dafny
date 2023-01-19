@@ -6,5 +6,5 @@ MapMergeSubtraction.dfy(49,19): Error: type of right argument to + (map<bool, re
 MapMergeSubtraction.dfy(51,15): Error: map subtraction expects right-hand operand to have type set<bool> (instead got set<int>) (covariant type parameter would require int <: bool)
 MapMergeSubtraction.dfy(65,15): Error: map subtraction expects right-hand operand to have type set<int> (instead got iset<int>)
 MapMergeSubtraction.dfy(67,15): Error: map subtraction expects right-hand operand to have type set<int> (instead got iset<int>)
-MapMergeSubtraction.dfy(84,7): Error: RHS (of type set<int>) not assignable to LHS (of type map<int, real>)
+MapMergeSubtraction.dfy(84,2): Error: RHS (of type set<int>) not assignable to LHS (of type map<int, real>)
 9 resolution/type errors detected in MapMergeSubtraction.dfy

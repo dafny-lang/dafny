@@ -1,4 +1,4 @@
-inheritreqs1.dfy(20,13): Error: A precondition for this call might not hold.
+inheritreqs1.dfy(20,8): Error: A precondition for this call might not hold.
 inheritreqs1.dfy(15,17): Related location: This is the precondition that might not hold.
 
 Dafny program verifier finished with 0 verified, 1 error

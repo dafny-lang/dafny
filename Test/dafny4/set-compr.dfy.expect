@@ -9,6 +9,6 @@ set-compr.dfy(53,26): Error: a function definition is not allowed to depend on t
 set-compr.dfy(52,33): Error: a function definition is not allowed to depend on the set of allocated references
 set-compr.dfy(54,30): Error: a function definition is not allowed to depend on the set of allocated references
 set-compr.dfy(56,28): Error: a function definition is not allowed to depend on the set of allocated references
-set-compr.dfy(74,8): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
-set-compr.dfy(88,8): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+set-compr.dfy(74,6): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+set-compr.dfy(88,6): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
 13 resolution/type errors detected in set-compr.dfy

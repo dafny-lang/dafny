@@ -1,5 +1,5 @@
-LhsDuplicates.dfy(21,9): Error: left-hand sides for different forall-statement bound variables might refer to the same location
-LhsDuplicates.dfy(36,11): Error: left-hand sides for different forall-statement bound variables might refer to the same location
+LhsDuplicates.dfy(21,4): Error: left-hand sides for different forall-statement bound variables might refer to the same location
+LhsDuplicates.dfy(36,4): Error: left-hand sides for different forall-statement bound variables might refer to the same location
 LhsDuplicates.dfy(42,5): Error: left-hand sides a and a refer to the same location
 LhsDuplicates.dfy(51,11): Error: left-hand sides c0.f and c0.f might refer to the same location
 LhsDuplicates.dfy(60,9): Error: left-hand sides a[i] and a[i] might refer to the same location

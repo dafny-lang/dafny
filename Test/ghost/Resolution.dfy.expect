@@ -1,2 +1,2 @@
-Resolution.dfy(8,3): Error: type parameter (T) passed to method M must support equality (got (int, int, ghost int))
+Resolution.dfy(8,2): Error: type parameter (T) passed to method M must support equality (got (int, int, ghost int))
 1 resolution/type errors detected in Resolution.dfy

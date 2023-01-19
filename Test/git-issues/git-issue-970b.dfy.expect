@@ -1,5 +1,5 @@
 git-issue-970b.dfy(7,7): Error: unresolved identifier: Pind
-git-issue-970b.dfy(7,4): Error: The type of the first expression to the right of ':-' could not be determined to be a failure type (got '?')
-git-issue-970b.dfy(13,4): Error: number of lhs (1) must be one less than number of rhs (1) for a rhs type (Status) without member Extract
-git-issue-970b.dfy(19,4): Error: wrong number of method result arguments (got 1, expected 0) for a rhs type (Status) without member Extract
+git-issue-970b.dfy(7,2): Error: The type of the first expression to the right of ':-' could not be determined to be a failure type (got '?')
+git-issue-970b.dfy(13,2): Error: number of lhs (1) must be one less than number of rhs (1) for a rhs type (Status) without member Extract
+git-issue-970b.dfy(19,2): Error: wrong number of method result arguments (got 1, expected 0) for a rhs type (Status) without member Extract
 4 resolution/type errors detected in git-issue-970b.dfy

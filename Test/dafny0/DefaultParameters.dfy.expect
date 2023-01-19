@@ -41,7 +41,7 @@ DefaultParameters.dfy(241,4): Error: decreases clause might not decrease
 DefaultParameters.dfy(251,25): Error: insufficient reads clause to read field
 DefaultParameters.dfy(258,34): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
 DefaultParameters.dfy(267,35): Error: possible division by zero
-DefaultParameters.dfy(320,39): Error: A precondition for this call might not hold.
+DefaultParameters.dfy(320,34): Error: A precondition for this call might not hold.
 DefaultParameters.dfy(319,15): Related location: This is the precondition that might not hold.
 DefaultParameters.dfy(326,36): Error: insufficient reads clause to read array element
 DefaultParameters.dfy(327,54): Error: insufficient reads clause to read array element
@@ -57,18 +57,18 @@ DefaultParameters.dfy(388,34): Error: value does not satisfy the subset constrai
 DefaultParameters.dfy(390,35): Error: value does not satisfy the subset constraints of 'nat'
 DefaultParameters.dfy(386,31): Error: value does not satisfy the subset constraints of 'nat'
 DefaultParameters.dfy(387,29): Error: value does not satisfy the subset constraints of 'nat'
-DefaultParameters.dfy(416,28): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
+DefaultParameters.dfy(416,27): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
 DefaultParameters.dfy(417,23): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
-DefaultParameters.dfy(418,24): Error: cannot prove termination; try supplying a decreases clause
-DefaultParameters.dfy(419,21): Error: cannot prove termination; try supplying a decreases clause
+DefaultParameters.dfy(418,23): Error: cannot prove termination; try supplying a decreases clause
+DefaultParameters.dfy(419,20): Error: cannot prove termination; try supplying a decreases clause
 DefaultParameters.dfy(438,27): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
-DefaultParameters.dfy(443,28): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
-DefaultParameters.dfy(447,5): Error: cannot prove termination; try supplying a decreases clause
-DefaultParameters.dfy(453,32): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
-DefaultParameters.dfy(481,32): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
+DefaultParameters.dfy(443,27): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
+DefaultParameters.dfy(447,4): Error: cannot prove termination; try supplying a decreases clause
+DefaultParameters.dfy(453,27): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
+DefaultParameters.dfy(481,27): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
 DefaultParameters.dfy(494,27): Error: value does not satisfy the subset constraints of 'nat'
 DefaultParameters.dfy(493,18): Error: value does not satisfy the subset constraints of 'nat'
-DefaultParameters.dfy(500,15): Error: A precondition for this call might not hold.
+DefaultParameters.dfy(500,14): Error: A precondition for this call might not hold.
 DefaultParameters.dfy(503,13): Related location: This is the precondition that might not hold.
 DefaultParameters.dfy(520,38): Error: insufficient reads clause to read field
 DefaultParameters.dfy(548,38): Error: insufficient reads clause to read field

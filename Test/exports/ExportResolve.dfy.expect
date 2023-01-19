@@ -97,12 +97,12 @@ ExportResolve.dfy(298,19): Error: member '_ctor' has not been imported in this s
 ExportResolve.dfy(342,15): Error: unresolved identifier: reveal_OpaqueFunction
 ExportResolve.dfy(342,29): Error: expression has no reveal lemma
 ExportResolve.dfy(414,15): Error: member 'Q' has not been imported in this scope and cannot be accessed here
-ExportResolve.dfy(410,8): Error: RHS (of type C.X) not assignable to LHS (of type C.Z)
-ExportResolve.dfy(411,8): Error: RHS (of type A.T) not assignable to LHS (of type C.Z)
-ExportResolve.dfy(412,8): Error: RHS (of type int) not assignable to LHS (of type A.T)
+ExportResolve.dfy(410,6): Error: RHS (of type C.X) not assignable to LHS (of type C.Z)
+ExportResolve.dfy(411,6): Error: RHS (of type A.T) not assignable to LHS (of type C.Z)
+ExportResolve.dfy(412,6): Error: RHS (of type int) not assignable to LHS (of type A.T)
 ExportResolve.dfy(436,15): Error: member 'Q' has not been imported in this scope and cannot be accessed here
-ExportResolve.dfy(432,8): Error: RHS (of type C.X) not assignable to LHS (of type C.Z)
-ExportResolve.dfy(433,8): Error: RHS (of type A.T) not assignable to LHS (of type C.Z)
+ExportResolve.dfy(432,6): Error: RHS (of type C.X) not assignable to LHS (of type C.Z)
+ExportResolve.dfy(433,6): Error: RHS (of type A.T) not assignable to LHS (of type C.Z)
 ExportResolve.dfy(457,15): Error: member 'Q' has not been imported in this scope and cannot be accessed here
 ExportResolve.dfy(473,15): Error: Cannot export mutable field 'u' without revealing its enclosing class 'C'
 ExportResolve.dfy(475,15): Error: Cannot export constructor 'FromInt' without revealing its enclosing class 'C'
@@ -111,11 +111,11 @@ ExportResolve.dfy(506,9): Error: This export set is not consistent: ProvideAllAn
 ExportResolve.dfy(582,16): Error: member 'u' has not been imported in this scope and cannot be accessed here
 ExportResolve.dfy(590,16): Error: member 'u' has not been imported in this scope and cannot be accessed here
 ExportResolve.dfy(595,19): Error: member 'FromInt' does not exist in type 'F' or cannot be part of type name
-ExportResolve.dfy(595,8): Error: new can be applied only to class types (got S.F.FromInt)
+ExportResolve.dfy(595,6): Error: new can be applied only to class types (got S.F.FromInt)
 ExportResolve.dfy(599,18): Error: member 'u' has not been imported in this scope and cannot be accessed here
-ExportResolve.dfy(619,6): Error: when allocating an object of type 'D', one of its constructor methods must be called
-ExportResolve.dfy(622,10): Error: when allocating an object of imported type 'E', one of its constructor methods must be called
+ExportResolve.dfy(619,4): Error: when allocating an object of type 'D', one of its constructor methods must be called
+ExportResolve.dfy(622,4): Error: when allocating an object of imported type 'E', one of its constructor methods must be called
 ExportResolve.dfy(627,19): Error: member 'FromInt' does not exist in type 'F' or cannot be part of type name
-ExportResolve.dfy(627,8): Error: new can be applied only to class types (got S.F.FromInt)
+ExportResolve.dfy(627,6): Error: new can be applied only to class types (got S.F.FromInt)
 ExportResolve.dfy(631,18): Error: member 'u' has not been imported in this scope and cannot be accessed here
 120 resolution/type errors detected in ExportResolve.dfy

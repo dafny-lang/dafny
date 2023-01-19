@@ -1,2 +1,2 @@
-git-issue-321.dfy(19,20): Error: type array<int> is not assignable to LHS (of type array<nat>) (nonvariance for type parameter expects nat = int)
+git-issue-321.dfy(19,2): Error: type array<int> is not assignable to LHS (of type array<nat>) (nonvariance for type parameter expects nat = int)
 1 resolution/type errors detected in git-issue-321.dfy

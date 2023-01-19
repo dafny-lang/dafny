@@ -1,21 +1,21 @@
-git-issue-2597-verification.dfy(27,18): Error: A precondition for this call might not hold.
+git-issue-2597-verification.dfy(27,12): Error: A precondition for this call might not hold.
 git-issue-2597-verification.dfy(8,18): Related location: This is the precondition that might not hold.
-git-issue-2597-verification.dfy(36,18): Error: A precondition for this call might not hold.
+git-issue-2597-verification.dfy(36,12): Error: A precondition for this call might not hold.
 git-issue-2597-verification.dfy(8,18): Related location: This is the precondition that might not hold.
-git-issue-2597-verification.dfy(46,16): Error: A precondition for this call might not hold.
+git-issue-2597-verification.dfy(46,10): Error: A precondition for this call might not hold.
 git-issue-2597-verification.dfy(8,18): Related location: This is the precondition that might not hold.
-git-issue-2597-verification.dfy(54,16): Error: A precondition for this call might not hold.
+git-issue-2597-verification.dfy(54,10): Error: A precondition for this call might not hold.
 git-issue-2597-verification.dfy(8,18): Related location: This is the precondition that might not hold.
 git-issue-2597-verification.dfy(61,11): Error: assertion might not hold
 git-issue-2597-verification.dfy(77,27): Error: assertion might not hold
 git-issue-2597-verification.dfy(84,32): Error: assertion might not hold
-git-issue-2597-verification.dfy(97,18): Error: A precondition for this call might not hold.
+git-issue-2597-verification.dfy(97,12): Error: A precondition for this call might not hold.
 git-issue-2597-verification.dfy(8,18): Related location: This is the precondition that might not hold.
-git-issue-2597-verification.dfy(111,20): Error: A precondition for this call might not hold.
+git-issue-2597-verification.dfy(111,14): Error: A precondition for this call might not hold.
 git-issue-2597-verification.dfy(8,18): Related location: This is the precondition that might not hold.
-git-issue-2597-verification.dfy(124,20): Error: A precondition for this call might not hold.
+git-issue-2597-verification.dfy(124,14): Error: A precondition for this call might not hold.
 git-issue-2597-verification.dfy(8,18): Related location: This is the precondition that might not hold.
-git-issue-2597-verification.dfy(133,20): Error: A precondition for this call might not hold.
+git-issue-2597-verification.dfy(133,14): Error: A precondition for this call might not hold.
 git-issue-2597-verification.dfy(8,18): Related location: This is the precondition that might not hold.
 
 Dafny program verifier finished with 1 verified, 11 errors

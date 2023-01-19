@@ -22,13 +22,13 @@ PrintEffects.dfy(55,2): Error: to use a print statement, the enclosing iterator 
 PrintEffects.dfy(67,4): Error: to use a print statement, the enclosing constructor must be marked with {:print}
 PrintEffects.dfy(81,4): Error: to use a print statement, the enclosing method must be marked with {:print}
 PrintEffects.dfy(6,2): Error: to use a print statement, the enclosing method must be marked with {:print}
-PrintEffects.dfy(7,3): Error: to call a method with print effects, the enclosing method must be marked with {:print}
-PrintEffects.dfy(11,25): Error: to call a method with print effects, the enclosing method must be marked with {:print}
-PrintEffects.dfy(13,20): Error: to call a method with print effects, the enclosing method must be marked with {:print}
-PrintEffects.dfy(36,29): Error: to call a method with print effects, the enclosing method must be marked with {:print}
+PrintEffects.dfy(7,2): Error: to call a method with print effects, the enclosing method must be marked with {:print}
+PrintEffects.dfy(11,2): Error: to call a method with print effects, the enclosing method must be marked with {:print}
+PrintEffects.dfy(13,2): Error: to call a method with print effects, the enclosing method must be marked with {:print}
+PrintEffects.dfy(36,2): Error: to call a method with print effects, the enclosing method must be marked with {:print}
 PrintEffects.dfy(41,2): Error: to use a print statement, the enclosing method must be marked with {:print}
 PrintEffects.dfy(47,2): Error: a function-by-method is not allowed to use print statements
-PrintEffects.dfy(102,12): Error: to call a method with print effects, the enclosing method must be marked with {:print}
-PrintEffects.dfy(103,16): Error: to call a method with print effects, the enclosing method must be marked with {:print}
-PrintEffects.dfy(106,16): Error: to call a method with print effects, the enclosing method must be marked with {:print}
+PrintEffects.dfy(102,2): Error: to call a method with print effects, the enclosing method must be marked with {:print}
+PrintEffects.dfy(103,2): Error: to call a method with print effects, the enclosing method must be marked with {:print}
+PrintEffects.dfy(106,2): Error: to call a method with print effects, the enclosing method must be marked with {:print}
 14 resolution/type errors detected in PrintEffects.dfy

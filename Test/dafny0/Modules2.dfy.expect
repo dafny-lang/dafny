@@ -1,5 +1,5 @@
 Modules2.dfy(47,17): Error: The name C ambiguously refers to a type in one of the modules A, B (try qualifying the type name with the module name)
-Modules2.dfy(47,10): Error: new can be applied only to class types (got C)
+Modules2.dfy(47,4): Error: new can be applied only to class types (got C)
 Modules2.dfy(50,14): Error: the name 'E' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'D.E')
 Modules2.dfy(51,14): Error: The name D ambiguously refers to a type in one of the modules A, B (try qualifying the type name with the module name)
 Modules2.dfy(53,11): Error: The name f ambiguously refers to a static member in one of the modules A, B (try qualifying the member name with the module name)

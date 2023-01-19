@@ -1,9 +1,9 @@
 git-issue-817d.dfy(17,5): Error: cannot assign to a range of array elements (try the 'forall' statement)
-git-issue-817d.dfy(17,15): Error: Element ranges not allowed as l-values
+git-issue-817d.dfy(17,4): Error: Element ranges not allowed as l-values
 git-issue-817d.dfy(18,5): Error: cannot assign to a range of array elements (try the 'forall' statement)
-git-issue-817d.dfy(18,15): Error: Element ranges not allowed as l-values
+git-issue-817d.dfy(18,4): Error: Element ranges not allowed as l-values
 git-issue-817d.dfy(19,5): Error: cannot assign to a range of array elements (try the 'forall' statement)
-git-issue-817d.dfy(19,15): Error: Element ranges not allowed as l-values
+git-issue-817d.dfy(19,4): Error: Element ranges not allowed as l-values
 git-issue-817d.dfy(20,5): Error: cannot assign to a range of array elements (try the 'forall' statement)
-git-issue-817d.dfy(20,15): Error: Element ranges not allowed as l-values
+git-issue-817d.dfy(20,4): Error: Element ranges not allowed as l-values
 8 resolution/type errors detected in git-issue-817d.dfy

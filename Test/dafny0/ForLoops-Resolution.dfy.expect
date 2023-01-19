@@ -1,7 +1,7 @@
 ForLoops-Resolution.dfy(6,18): Error: unresolved identifier: i
 ForLoops-Resolution.dfy(11,13): Error: unresolved identifier: i
-ForLoops-Resolution.dfy(32,8): Error: RHS (of type Nat) not assignable to LHS (of type nat)
-ForLoops-Resolution.dfy(38,8): Error: RHS (of type int) not assignable to LHS (of type Nat)
+ForLoops-Resolution.dfy(32,6): Error: RHS (of type Nat) not assignable to LHS (of type nat)
+ForLoops-Resolution.dfy(38,6): Error: RHS (of type int) not assignable to LHS (of type Nat)
 ForLoops-Resolution.dfy(78,4): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating (or you can add a 'decreases' clause to this 'for' loop if you want to prove that it does indeed terminate)
 ForLoops-Resolution.dfy(86,4): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating (or you can add a 'decreases' clause to this 'for' loop if you want to prove that it does indeed terminate)
 ForLoops-Resolution.dfy(95,16): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
@@ -25,12 +25,12 @@ ForLoops-Resolution.dfy(321,18): Error: break label is undefined or not in scope
 ForLoops-Resolution.dfy(332,11): Error: unresolved identifier: i
 ForLoops-Resolution.dfy(353,24): Error: break label is undefined or not in scope: A
 ForLoops-Resolution.dfy(355,18): Error: a 'break break' statement is allowed only in contexts with 2 enclosing loops, but the current context only has 1
-ForLoops-Resolution.dfy(390,10): Error: assignment to non-ghost field is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
-ForLoops-Resolution.dfy(412,10): Error: assignment to non-ghost field is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
-ForLoops-Resolution.dfy(434,10): Error: assignment to non-ghost field is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
-ForLoops-Resolution.dfy(446,10): Error: assignment to non-ghost field is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
-ForLoops-Resolution.dfy(457,10): Error: assignment to non-ghost field is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
-ForLoops-Resolution.dfy(479,8): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+ForLoops-Resolution.dfy(390,6): Error: assignment to non-ghost field is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+ForLoops-Resolution.dfy(412,6): Error: assignment to non-ghost field is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+ForLoops-Resolution.dfy(434,6): Error: assignment to non-ghost field is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+ForLoops-Resolution.dfy(446,6): Error: assignment to non-ghost field is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+ForLoops-Resolution.dfy(457,6): Error: assignment to non-ghost field is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+ForLoops-Resolution.dfy(479,6): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
 ForLoops-Resolution.dfy(490,16): Error: return statement is not allowed in this context (because it is guarded by a specification-only expression)
 ForLoops-Resolution.dfy(503,6): Error: return statement is not allowed in this context (because it is guarded by a specification-only expression)
 ForLoops-Resolution.dfy(510,4): Error: a ghost loop must be terminating; make the end-expression specific or add a 'decreases' clause

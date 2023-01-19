@@ -1,31 +1,31 @@
 TraitResolution1.dfy(65,22): Error: the type of in-parameter 'x' is different from the type of the corresponding in-parameter in trait method ('int' instead of '(Y, B)')
-TraitResolution1.dfy(89,11): Error: new can be applied only to class types (got A?)
-TraitResolution1.dfy(90,11): Error: new can be applied only to class types (got ASynonym)
-TraitResolution1.dfy(93,11): Error: new can be applied only to class types (got B?)
-TraitResolution1.dfy(93,11): Error: when allocating an object of type 'B', one of its constructor methods must be called
-TraitResolution1.dfy(96,11): Error: new can be applied only to class types (got C?<A>)
-TraitResolution1.dfy(98,11): Error: new can be applied only to class types (got C?<A?>)
-TraitResolution1.dfy(101,11): Error: new can be applied only to class types (got D?<A>)
-TraitResolution1.dfy(101,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
-TraitResolution1.dfy(103,11): Error: new can be applied only to class types (got D?<A?>)
-TraitResolution1.dfy(103,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
-TraitResolution1.dfy(105,11): Error: new can be applied only to class types (got D<A>)
-TraitResolution1.dfy(105,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
-TraitResolution1.dfy(107,11): Error: new can be applied only to class types (got D<A?>)
-TraitResolution1.dfy(107,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
-TraitResolution1.dfy(108,11): Error: new can be applied only to class types (got DSynonym<A?>)
-TraitResolution1.dfy(108,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
-TraitResolution1.dfy(109,11): Error: new can be applied only to class types (got DSynonym<A?>)
-TraitResolution1.dfy(109,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
-TraitResolution1.dfy(112,11): Error: new can be applied only to class types (got object?)
-TraitResolution1.dfy(113,11): Error: new can be applied only to class types (got ObjectSynonym)
-TraitResolution1.dfy(114,11): Error: new can be applied only to class types (got ObjectWithConstraint)
-TraitResolution1.dfy(117,13): Error: new can be applied only to class types (got array?<int>)
-TraitResolution1.dfy(119,11): Error: new can be applied only to class types (got int)
-TraitResolution1.dfy(121,11): Error: new can be applied only to class types (got Tr<int>)
-TraitResolution1.dfy(122,11): Error: new can be applied only to class types (got Tr?<int>)
-TraitResolution1.dfy(123,11): Error: new can be applied only to class types (got Tr<int>)
-TraitResolution1.dfy(124,11): Error: new can be applied only to class types (got Tr<int>)
+TraitResolution1.dfy(89,4): Error: new can be applied only to class types (got A?)
+TraitResolution1.dfy(90,4): Error: new can be applied only to class types (got ASynonym)
+TraitResolution1.dfy(93,4): Error: new can be applied only to class types (got B?)
+TraitResolution1.dfy(93,4): Error: when allocating an object of type 'B', one of its constructor methods must be called
+TraitResolution1.dfy(96,4): Error: new can be applied only to class types (got C?<A>)
+TraitResolution1.dfy(98,4): Error: new can be applied only to class types (got C?<A?>)
+TraitResolution1.dfy(101,4): Error: new can be applied only to class types (got D?<A>)
+TraitResolution1.dfy(101,4): Error: when allocating an object of type 'D', one of its constructor methods must be called
+TraitResolution1.dfy(103,4): Error: new can be applied only to class types (got D?<A?>)
+TraitResolution1.dfy(103,4): Error: when allocating an object of type 'D', one of its constructor methods must be called
+TraitResolution1.dfy(105,4): Error: new can be applied only to class types (got D<A>)
+TraitResolution1.dfy(105,4): Error: when allocating an object of type 'D', one of its constructor methods must be called
+TraitResolution1.dfy(107,4): Error: new can be applied only to class types (got D<A?>)
+TraitResolution1.dfy(107,4): Error: when allocating an object of type 'D', one of its constructor methods must be called
+TraitResolution1.dfy(108,4): Error: new can be applied only to class types (got DSynonym<A?>)
+TraitResolution1.dfy(108,4): Error: when allocating an object of type 'D', one of its constructor methods must be called
+TraitResolution1.dfy(109,4): Error: new can be applied only to class types (got DSynonym<A?>)
+TraitResolution1.dfy(109,4): Error: when allocating an object of type 'D', one of its constructor methods must be called
+TraitResolution1.dfy(112,4): Error: new can be applied only to class types (got object?)
+TraitResolution1.dfy(113,4): Error: new can be applied only to class types (got ObjectSynonym)
+TraitResolution1.dfy(114,4): Error: new can be applied only to class types (got ObjectWithConstraint)
+TraitResolution1.dfy(117,4): Error: new can be applied only to class types (got array?<int>)
+TraitResolution1.dfy(119,4): Error: new can be applied only to class types (got int)
+TraitResolution1.dfy(121,4): Error: new can be applied only to class types (got Tr<int>)
+TraitResolution1.dfy(122,4): Error: new can be applied only to class types (got Tr?<int>)
+TraitResolution1.dfy(123,4): Error: new can be applied only to class types (got Tr<int>)
+TraitResolution1.dfy(124,4): Error: new can be applied only to class types (got Tr<int>)
 TraitResolution1.dfy(136,8): Error: class 'P' inherits a member named 'data' from both traits 'A' and 'B'
 TraitResolution1.dfy(139,8): Error: duplicate trait parents with the same head type must also have the same type arguments; got C<Even> and C<int>
 TraitResolution1.dfy(140,8): Error: duplicate trait parents with the same head type must also have the same type arguments; got C<int> and C<real>

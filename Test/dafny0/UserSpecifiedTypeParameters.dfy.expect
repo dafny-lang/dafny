@@ -8,6 +8,6 @@ UserSpecifiedTypeParameters.dfy(46,22): Error: Undeclared top-level type or type
 UserSpecifiedTypeParameters.dfy(46,26): Error: Undeclared top-level type or type parameter: c (did you forget to qualify a name or declare a module import 'opened'?)
 UserSpecifiedTypeParameters.dfy(46,18): Error: variable 'a' does not take any type parameters
 UserSpecifiedTypeParameters.dfy(46,30): Error: non-function expression (of type int) is called with parameters
-UserSpecifiedTypeParameters.dfy(77,15): Error: incorrect argument type for lemma in-parameter 'y' (expected A, found int)
+UserSpecifiedTypeParameters.dfy(77,6): Error: incorrect argument type for lemma in-parameter 'y' (expected A, found int)
 UserSpecifiedTypeParameters.dfy(89,14): Error: incorrect argument type for function parameter 'y' (expected A, found int)
 12 resolution/type errors detected in UserSpecifiedTypeParameters.dfy

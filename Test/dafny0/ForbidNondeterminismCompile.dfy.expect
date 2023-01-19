@@ -4,7 +4,7 @@ Dafny program verifier finished with 4 verified, 0 errors
 ForbidNondeterminismCompile.dfy(71,9): Error: since yield parameters are initialized arbitrarily, iterators are forbidden by the --enforce-determinism option
 ForbidNondeterminismCompile.dfy(17,7): Error: nondeterministic assignment forbidden by the --enforce-determinism option
 ForbidNondeterminismCompile.dfy(18,13): Error: nondeterministic assignment forbidden by the --enforce-determinism option
-ForbidNondeterminismCompile.dfy(19,4): Error: assign-such-that statement forbidden by the --enforce-determinism option
+ForbidNondeterminismCompile.dfy(19,2): Error: assign-such-that statement forbidden by the --enforce-determinism option
 ForbidNondeterminismCompile.dfy(20,2): Error: nondeterministic if statement forbidden by the --enforce-determinism option
 ForbidNondeterminismCompile.dfy(23,2): Error: case-based if statement forbidden by the --enforce-determinism option
 ForbidNondeterminismCompile.dfy(32,2): Error: binding if statement forbidden by the --enforce-determinism option
