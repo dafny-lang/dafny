@@ -1,2 +1,0 @@
-text.dfy(1,14): Error: to call a method with print effects, the enclosing method must be marked with {:print}
-1 resolution/type errors detected in text.dfy

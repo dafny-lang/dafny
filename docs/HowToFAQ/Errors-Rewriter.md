@@ -1,15 +1,23 @@
 
+<!-- %check-resolve %default %useHeadings -->
+
 <!-- ./DafnyCore/Rewriters/TimeLimitRewriter.cs -->
 
 ## **Warning: timeLimitMultiplier annotation overrides " + name + " annotation**
 
-<!-- TODO -->
+```ddafny
+method {:timeLimitMultiplier 10} {:timeLimit 5} m() {}
+```
+
+The {:timeLimitMultiplier n} attribute tells the prover to use a time limit that is the given number times
+the time limit otherwise sepcified by the options. The {:timeLimit n} attribute simply sets a new value
+for the time limit. It does not make sense to have both of them. One or the other should be removed.
 
 <!-- ./DafnyCore/Rewriters/UselessOldLinter.cs -->
 
 ## **Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect**
 
-<!-- %check-resolve-warn Rewriter.2.expect -->
+<!-- %check-resolve-warn -->
 ```dafny
 method m(i: int) 
 {
@@ -30,38 +38,48 @@ the value of the local variable in a previous state using an otherwise unused gh
 
 <!-- ./DafnyCore/Rewriters/InductionRewriter.cs-->
 
-## **_item_s given as :induction arguments must be given in the same order as in the _expr_; ignoring attribute**
+## **_item_s given as :induction arguments must be given in the same order as in the quantifier; ignoring attribute**
 
-<!-- TODO -->
+<!-- %check-resolve-warn -->
+```dafny
+predicate g(i: int, j: int)
+function f(): int
+  ensures forall i: int, j: int {:induction j,i} | true :: g(i,j)
+{ 0 }
+```
+
+
+The `{:induction}` attribute gives some guidance to the prover as to how to construct the induction argument that 
+proves the lemma. The heuristics that infer an induction proof require that the arguments of the attribute must be in the
+same order as the bound variables of the quantifier. If not, the :induction attribute is ignored.
 
 ## **lemma parameters given as :induction arguments must be given in the same order as in the lemma; ignoring attribute**
 
-<!-- %check-resolve-warn Rewriter.4.expect -->
+<!-- %check-resolve-warn -->
 ```dafny
 lemma {:induction j,i} m(i: int, j: int) ensures i + j == j + i {}
 ```
 
 The `{:induction}` attribute gives some guidance to the prover as to how to construct the induction argument that 
-proves the lemma. Purely for convenience of implementation, the arguments of the attribute must be in the
-same order as the parameters of the lemma.
+proves the lemma. The heuristics that infer an induction proof require that the arguments of the attribute must be in the
+same order as the parameters of the lemma. If not, the :induction attribute is ignored.
 
 ## **invalid :induction attribute argument; expected _what_; ignoring attribute**
 
-<!-- %check-resolve-warn Rewriter.5.expect -->
+<!-- %check-resolve-warn -->
 ```dafny
 lemma {:induction 42} m(i: int, j: int) ensures i + j == j + i {} 
 ```
 
 The arguments of the `:induction` attribute can be any of the lemma parameters (if the declaration is for a lemma),
-the `this` keyword, or true or false.
-
-<!-- TODO , consider non-lemma case -->
+the `this` keyword, or true or false. For a quantifier, the arguments can be any of the bound variables of the
+quantifier.
 
 <!-- ./DafnyCore/Rewriters/ConstructorWarning.cs -->
 
 ## **Constructor name '_pattern_' should be followed by parentheses**
 
-<!-- %check-resolve-warn Rewriter.6.expect %options --warn-missing-constructor-parentheses -->
+<!-- %check-resolve-warn %options --warn-missing-constructor-parentheses -->
 ```dafny
 datatype D = A | B
 
@@ -84,15 +102,41 @@ The `--warn-missing-constructor-parentheses` option will warn (as in this exampl
 used without paraentheses. The solution is to either add parentheses (if a constructor is intended) or
 rename the identifier (if a fresh bound identifier is intended).
 
-<!-- ./DafnyCore/PrecedenceLinter.cs-->
+<!-- ./DafnyCore/RewritersPrecedenceLinter.cs-->
 
 ## **Warning: unusual indentation in _what_ (which starts at _location_); do you perhaps need parentheses?**
 
-<!-- TODO -->
+```dafny
+function f(b: bool): bool
+{
+  b &&
+  b ==> b // this parses as (b &&b) ==> b, but reads as b && (b ==> b)
+}
+```
+
+Long expressions are best split up across multiple lines; readers often use indentation as a guide
+to the nesting of subexpressions. For example, parallel conjuncts or disjuncts may be written with 
+the same indentation. This warning occurs when the observed indentation is likely to cause
+a misunderstanding of the code, particularly of the precedence of operations. It is suggested
+to use parentheses or to redo the indentation.
 
 ## **Warning: unusual indentation in _what_ (which ends at _location_); do you perhaps need parentheses?**
 
-<!-- TODO -->
+```dafny
+function f(b: bool): bool
+{
+  b ==> b && 
+  b          // this parses as b ==> (b && b), but reads as (b ==> b) && b
+}
+```
+
+Long expressions are best split up across multiple lines; readers often use indentation as a guide
+to the nesting of subexpressions. For example, parallel conjuncts or disjuncts may be written with 
+the same indentation. This warning occurs when the observed indentation is likely to cause
+a misunderstanding of the code, particularly of the precedence of operations. It is suggested
+to use parentheses or to redo the indentation.
+
+
 
 <!-- ./DafnyCore/Resolver/RunAllTestsMainMethod.cs -->
 
@@ -106,9 +150,9 @@ where a Main method is already present in the program. With this
 option dafny synthesizes a Main method that calls all the test routines,
 which then conflicts with the existing Main method.
 
-## **Methods with the {:test} attribute can have at most one return value**
+## **Error: Methods with the {:test} attribute can have at most one return value**
 
-<!-- %check-test Rewriter.10.expect -->
+<!-- %check-test -->
 ```dafny
 method {:test} m(i: int) returns (j: int, k: int) 
 {
@@ -118,18 +162,28 @@ method {:test} m(i: int) returns (j: int, k: int)
 
 This error only occurs when using `dafny test`. That command executes all methods attributed with `{:test}`,
 but such test methods are limited to methods with only one output parameter.
+This is purely an implementation limitation.
 
-<!-- TODO - Why? -->
 
 <!-- ./DafnyCore/Resolver/ExpectContracts.cs-->
 
-## **Warning: The {exprType} clause at this location cannot be compiled to be tested at runtime because it references ghost state.**
-
+## **Warning: The _kind_ clause at this location cannot be compiled to be tested at runtime because it references ghost state.**
 <!-- TODO -->
+<!-- %no-check %check-test %options --test-assumptions:Externs -->
+```dafny
+method {:extern} m(i: int, ghost j: int) 
+  requires j == 1
+```
 
+The `--test-assumptions` option inserts tests of various implicit assumptions in a Dafny method, such
+as the requires and ensures clauses. However, because these inserted tests are compiled into the
+target program as runtime checks, they cannot refer to any ghost variables.
+ 
 ## **Warning: Internal: no wrapper for _name_**
 
 <!-- TODO -->
+This message indicates a bug within dafny. Plrease report the program that
+triggered the message to [the Github issues site](https://www.github.com/dafny-lang/dafny/issues).
 
 ## **Warning: No :test code calls _name_**
 
@@ -139,7 +193,7 @@ but such test methods are limited to methods with only one output parameter.
 
 ## **Error: :print attribute is not allowed on functions**
 
-<!-- %check-resolve Rewriter.14.expect -->
+<!-- %check-resolve -->
 ```dafny
 function method {:print} f(): int { 0 }
 ```
@@ -152,7 +206,7 @@ Thus Dafny forbids (ghost or compiled) functions from declaring that they have a
 
 ## **Error: :print attribute is not allowed on ghost methods**
 
-<!-- %check-resolve Rewriter.15.expect -->
+<!-- %check-resolve -->
 ```dafny
 ghost method {:print} f() { }
 ```
@@ -166,7 +220,7 @@ So Dafny forbids ghost methods from declaring that they have a print side-effect
 
 ## **Error: not allowed to override a non-printing method with a possibly printing method (_name_)**
 
-<!-- %check-resolve Rewriter.16.expect -->
+<!-- %check-resolve -->
 ```dafny
 trait T {
   method m()
@@ -186,7 +240,7 @@ printing something, by bgiving it a `{:print}` attribute --- even if it does not
 
 ## **Error: :print attribute does not take any arguments**
 
-<!-- %check-resolve Rewriter.17.expect -->
+<!-- %check-resolve -->
 ```dafny
 method {:print 42} f() { }
 ```
@@ -196,7 +250,7 @@ No arguments to the attribute are needed or allowed.
 
 ## **Error: a function-by-method is not allowed to use print statements**
 
-<!-- %check-resolve Rewriter.18.expect %options --track-print-effects -->
+<!-- %check-resolve %options --track-print-effects -->
 ```dafny
 function f(): int {42 }
 by method {
@@ -219,7 +273,7 @@ the option is disabled by default.
 
 ## **Error: to use a print statement, the enclosing _method_ must be marked with {:print}**
 
-<!-- %check-resolve Rewriter.19.expect %options --track-print-effects -->
+<!-- %check-resolve %options --track-print-effects -->
 ```dafny
 method m() { print 42; }
 ```
@@ -236,7 +290,7 @@ the option is disabled by default.
 
 ## **Error: a function-by-method is not allowed to call a method with print effects**
 
-<!-- %check-resolve Rewriter.20.expect %options --track-print-effects -->
+<!-- %check-resolve %options --track-print-effects -->
 ```dafny
 function m(): int { 42 }
 by method { p(); return 42; }
@@ -260,7 +314,7 @@ the option is disabled by default.
 
 ## **Error: to call a method with print effects, the enclosing _method_ must be marked with {:print}**
 
-<!-- %check-resolve Rewriter.21.expect %options --track-print-effects
+<!-- %check-resolve %options --track-print-effects
 ```dafny
 method m() { p(); }
 

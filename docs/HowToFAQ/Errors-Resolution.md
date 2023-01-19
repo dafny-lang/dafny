@@ -1,10 +1,10 @@
-
+<!-- %check-resolve %default %useHeadings -->
 
 <!-- DafnyCore/Resolver/ExpressionTester.cs -->
 
-## **ghost variables such as _name_ are allowed only in specification contexts. _name_ was inferred to be ghost based on its declaration or initialization.**
+## **Error: ghost variables such as _name_ are allowed only in specification contexts. _name_ was inferred to be ghost based on its declaration or initialization.**
 
-<!-- %check-resolve Resolver.1.expect -->
+<!-- %check-resolve -->
 ```dafny
 method m() {
   ghost var i := 6;
@@ -46,9 +46,9 @@ or because they are initialized with a value that is derived from a ghost expres
 
 <!-- TODO -->
 
-## **ghost constructor is allowed only in specification contexts**
+## **Error: ghost constructor is allowed only in specification contexts**
 
-<!-- %check-resolve Resolver.9.expect -->
+<!-- %check-resolve -->
 ```dafny
 datatype D = A | ghost C
 method m(i: int) returns (r: D){
@@ -62,9 +62,9 @@ may only be used in ghost contexts.
 For example, a ghost constructor cannot be assigned to a non-ghost out-parameter
 or used in the then- or else-branch of a non-ghost if statment.
 
-## **old expressions are allowed only in specification and ghost contexts**
+## **Error: old expressions are allowed only in specification and ghost contexts**
 
-<!-- %check-resolve Resolver.10.expect -->
+<!-- %check-resolve -->
 ```dafny
 class A {}
 method m(a: A) returns (r: A){
@@ -82,9 +82,9 @@ non-ghost formal parameter, then `old` cannot be used.
 
 <!-- TODO -->
 
-## **fresh expressions are allowed only in specification and ghost contexts**
+## **Error: fresh expressions are allowed only in specification and ghost contexts**
 
-<!-- %check-resolve Resolver.13.expect -->
+<!-- %check-resolve -->
 ```dafny
 class A {}
 method m(a: A) returns (b: bool){
@@ -98,9 +98,9 @@ But in situations where it is definitely not a ghost context, such as
 assiging to a non-ghost out-parameter or the actual argument for a
 non-ghost formal parameter, then `old` cannot be used.
 
-## **unchanged expressions are allowed only in specification and ghost contexts**
+## **Error: unchanged expressions are allowed only in specification and ghost contexts**
 
-<!-- %check-resolve Resolver.14.expect -->
+<!-- %check-resolve -->
 ```dafny
 class A {}
 method m(a: A) returns (b: bool){
@@ -257,9 +257,9 @@ non-ghost formal parameter, then `unchanged` cannot be used.
 
 <!-- ./DafnyCore/Resolver/GhostInterestVisitor.cs-->
 
-## **expect statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)**
+## **Error: expect statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)**
 
-<!-- %check-resolve Resolver.48.expect -->
+<!-- %check-resolve -->
 ```dafny
 method m(ghost b: bool)
 {
@@ -274,9 +274,9 @@ But a ghost context can also be implicit, and not so obvious: if part of a state
 such as the condition of an if statement or loop or the expression being matched in a match 
 statement, is ghost the rest of the statement may be required to be ghost.
 
-## **print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)**
+## **Error: print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)**
 
-<!-- %check-resolve Resolver.49.expect -->
+<!-- %check-resolve -->
 ```dafny
 method m(ghost b: bool)
 {
@@ -326,13 +326,13 @@ statement, is ghost the rest of the statement may be required to be ghost.
 
 <!-- TODO array update -->
 
-## **a loop in {proofContext} is not allowed to use 'modifies' clauses**
+## **a loop in _context_ is not allowed to use 'modifies' clauses**
 
 <!-- TODO -->
 
 ## **Error: 'decreases *' is not allowed on ghost loops**
 
-<!-- %check-resolve Resolver.60.expect -->
+<!-- %check-resolve -->
 ```dafny
 method m()
   decreases *

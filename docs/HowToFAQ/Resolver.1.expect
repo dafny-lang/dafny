@@ -1,2 +1,0 @@
-text.dfy(4,8): Error: ghost variables such as j are allowed only in specification contexts. j was inferred to be ghost based on its declaration or initialization.
-1 resolution/type errors detected in text.dfy

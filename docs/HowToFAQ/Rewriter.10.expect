@@ -1,2 +1,0 @@
-text.dfy(1,15): Error: Methods with the {:test} attribute can have at most one return value
-1 resolution/type errors detected in text.dfy
