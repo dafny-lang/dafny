@@ -1,0 +1,2 @@
+- Havoc assignments now count as assignments for definite-assignment checks.
+- Unless `--enforce-determinism` is used, no errors are given for arrays that are allocated without being initialized.

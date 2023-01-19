@@ -94,3 +94,101 @@ true true
 false false
 false false
 true true
+
+Dafny program verifier did not attempt verification
+0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 
+17
+[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
+[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+[20, 21, 22]
+[0, 1, 2, 3, 4, 5, 6, 7]
+[0, 1, 2, 3, 4, 5, 6, 7]
+'d' 'd' 'd' 
+'h' 'e' 'l' 'l' 'o' 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+1 0 0 0 0 
+0 1 0 0 0 
+0 0 1 0 0 
+cube dims: 3 0 4
+[] [0] [0, 0] [0, 0, 0] [0, 0, 0, 0] 
+It's null
+hi hello tjena hej hola
+hi hello tjena hej hola
+hi hello tjena hej hola
+'d' 'd' 'd' 
+'h' 'e' 'l' 'l' 'o' 
+8 8 8 8 
+true true true 
+1 1 1 1 1 
+2 2 2 2 2 
+3 3 3 3 3 
+4 4 4 4 4 
+('d', 8, true, 1, 2, 3, 4)
+'D' 'D' 'D' 
+0 0 0 0 
+false false false 
+0 0 0 0 0 
+0 0 0 0 0 
+0 0 0 0 0 
+0 0 0 0 0 
+('D', 0, false, 0, 0, 0, 0)
+8 0
+false 0 null null
+8 8
+8 8
+8 8
+8 8
+'D' 'D' 'D' 
+'D' 'D' 'D' 
+'D' 'D' 'D' 
+'D' 'D' 'r' ('D', 'D', 'r')
+'D' 'D' 'r'
+[19, 18, 9, 8]
+ true
+ false
+ true
+ false
+ false
+ false
+ true
+ true
+ false
+ true
+ false
+ true
+ true
+ false
+hello there
+false false
+true true
+false false
+false false
+uninitialized bytes: array[0, 0, 0]
+bytes from display: array[7, 8, 9]
+bytes from lambda: array[20, 21, 22]
+uninitialized 1bytes: array[1, 1, 1]
+1bytes from display: array[7, 8, 9]
+1bytes from lambda: array[20, 21, 22]
+17 19 18 20
+100 200 300 120 38
+hello [0, 1, 2, 3, 4] [2, 2, 2, 2, 2]
+[77, 77, 77, 77, 77, 20, 21, 22, 23, 24, 20, 21, 22, 23, 24, 78, 78, 78, 78, 78]
+[77, 77, 77, 77, 77, 20, 21, 22, 23, 24, 20, 21, 22, 23, 24, 78, 78, 78, 78, 78]
+[99, 99, 99, 99, 99, 20, 21, 22, 23, 24, 20, 21, 22, 23, 24, 82, 82, 82, 82, 82]
+[0, 0, 0, 0, 0, 20, 21, 22, 23, 24, 20, 21, 22, 23, 24, 60, 60, 60, 60, 60]
+[0, 0, 0, 0, 0, 20, 21, 22, 23, 24, 20, 21, 22, 23, 24, 60, 60, 60, 60, 60]
+DDDDDabcdeabcdeggggg
+['D', 'D', 'D', 'D', 'D', 'a', 'b', 'c', 'd', 'e', 'a', 'b', 'c', 'd', 'e', 'g', 'g', 'g', 'g', 'g']
+[77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 50, 78, 78, 78, 78, 78, 50, 78, 78, 78]
+[77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 50, 78, 78, 78, 78, 78, 50, 78, 78, 78]
+[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 50, 60, 60, 60, 60, 60, 50, 60, 60, 60]
+['D', 'D', 'D', 'D', 'D', 'D', 'D', 'D', 'D', 'D', 'a', 'g', 'g', 'g', 'g', 'g', 'a', 'g', 'g', 'g']
+0 69 50
+0 69 50
+'D' 'k' 'n'
+false false
+true true
+false false
+false false
+true true

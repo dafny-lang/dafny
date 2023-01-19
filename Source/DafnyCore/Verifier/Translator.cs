@@ -857,7 +857,6 @@ namespace Microsoft.Dafny {
       Type.ResetScopes();
 
       foreach (ModuleDefinition outerModule in VerifiableModules(p)) {
-
         var translator = new Translator(reporter, flags);
 
         if (translator.sink == null || translator.sink == null) {
@@ -1654,7 +1653,9 @@ namespace Microsoft.Dafny {
 
     void AddEnsures(List<Bpl.Ensures> list, Bpl.Ensures ens) {
       list.Add(ens);
-      if (!ens.Free) { this.assertionCount++; }
+      if (!ens.Free) {
+        this.assertionCount++;
+      }
     }
 
     void AddWellformednessCheck(IteratorDecl iter, Procedure proc) {
@@ -3350,11 +3351,11 @@ namespace Microsoft.Dafny {
     }
 
     internal IToken GetToken(Expression expression) {
-      return flags.ReportRanges ? expression.GetRangeToken() : expression.tok;
+      return flags.ReportRanges ? expression.RangeToken : expression.tok;
     }
 
     internal IToken GetToken(Statement stmt) {
-      return flags.ReportRanges ? stmt.GetRangeToken() : stmt.Tok;
+      return flags.ReportRanges ? stmt.RangeToken : stmt.Tok;
     }
 
     void CheckDefiniteAssignment(IdentifierExpr expr, BoogieStmtListBuilder builder) {
@@ -4079,7 +4080,7 @@ namespace Microsoft.Dafny {
           e = Substitute(e, receiverReplacement, substMap);
         }
 
-        e = Resolver.FrameArrowToObjectSet(e, CurrentIdGenerator, program.BuiltIns);
+        e = ArrowType.FrameArrowToObjectSet(e, CurrentIdGenerator, program.BuiltIns);
 
         Bpl.Expr disjunct;
         var eType = e.Type.NormalizeExpand();
@@ -5077,6 +5078,8 @@ namespace Microsoft.Dafny {
       } else if (expr is ConcreteSyntaxExpression) {
         var e = (ConcreteSyntaxExpression)expr;
         return CanCallAssumption(e.ResolvedExpression, etran);
+      } else if (expr is NestedMatchExpr nestedMatchExpr) {
+        return CanCallAssumption(nestedMatchExpr.Flattened, etran);
       } else if (expr is BoogieFunctionCall) {
         var e = (BoogieFunctionCall)expr;
         return CanCallAssumption(e.Args, etran);
@@ -5149,7 +5152,8 @@ namespace Microsoft.Dafny {
       return false;
     }
 
-    void CheckCasePatternShape<VT>(CasePattern<VT> pat, Bpl.Expr rhs, IToken rhsTok, Type rhsType, BoogieStmtListBuilder builder) where VT : IVariable {
+    void CheckCasePatternShape<VT>(CasePattern<VT> pat, Bpl.Expr rhs, IToken rhsTok, Type rhsType, BoogieStmtListBuilder builder)
+      where VT : class, IVariable {
       Contract.Requires(pat != null);
       Contract.Requires(rhs != null);
       Contract.Requires(rhsTok != null);
@@ -8576,7 +8580,8 @@ namespace Microsoft.Dafny {
             if (rhs != null) {
               bldr.Add(Bpl.Cmd.SimpleAssign(tok, bLhs, rhs));
             }
-            if (!origRhsIsHavoc) {
+
+            if (!origRhsIsHavoc || ie.Type.IsNonempty) {
               MarkDefiniteAssignmentTracker(ie, bldr);
             }
           });
@@ -8605,7 +8610,8 @@ namespace Microsoft.Dafny {
               if (rhs != null) {
                 bldr.Add(Bpl.Cmd.SimpleAssign(tok, bLhs, rhs));
               }
-              if (!origRhsIsHavoc) {
+
+              if (!origRhsIsHavoc || field.Type.IsNonempty) {
                 MarkDefiniteAssignmentTracker(lhs.tok, nm, bldr);
               }
             });
@@ -8793,7 +8799,9 @@ namespace Microsoft.Dafny {
             }
           } else if (DafnyOptions.O.DefiniteAssignmentLevel == 0) {
             // cool
-          } else if (2 <= DafnyOptions.O.DefiniteAssignmentLevel || !tRhs.EType.HasCompilableValue) {
+          } else if ((2 <= DafnyOptions.O.DefiniteAssignmentLevel && DafnyOptions.O.DefiniteAssignmentLevel != 4) ||
+                     DafnyOptions.O.Get(CommonOptionBag.EnforceDeterminism) ||
+                     !tRhs.EType.HasCompilableValue) {
             // this is allowed only if the array size is such that it has no elements
             Bpl.Expr zeroSize = Bpl.Expr.False;
             foreach (Expression dim in tRhs.ArrayDimensions) {
@@ -9097,7 +9105,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(e != null);
       Contract.Requires(!e.Exact);
       Contract.Ensures(Contract.Result<Expression>() != null);
-      if (e.getTranslationDesugaring(this) == null) {
+      if (e.GetTranslationDesugaring(this) == null) {
         // For let-such-that expression:
         //   var x:X, y:Y :| P(x,y,g); F(...)
         // where
@@ -9174,7 +9182,7 @@ namespace Microsoft.Dafny {
           }
         }
       }
-      return e.getTranslationDesugaring(this);
+      return e.GetTranslationDesugaring(this);
     }
 
     private Bpl.Function AddLetSuchThatCanCallFunction(LetExpr e, LetSuchThatExprInfo info) {
@@ -9942,7 +9950,8 @@ namespace Microsoft.Dafny {
       } else if (expr is ConcreteSyntaxExpression) {
         var e = (ConcreteSyntaxExpression)expr;
         return TrSplitExpr(e.ResolvedExpression, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
-
+      } else if (expr is NestedMatchExpr nestedMatchExpr) {
+        return TrSplitExpr(nestedMatchExpr.Flattened, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
         if (!e.Exact) {

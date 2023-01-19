@@ -14,7 +14,11 @@ public class ExitCommand : ILitCommand {
 
   public (int, string, string) Execute(ITestOutputHelper? outputHelper, TextReader? inputReader, TextWriter? outputWriter, TextWriter? errorWriter) {
     var (exitCode, output, error) = operand.Execute(outputHelper, inputReader, outputWriter, errorWriter);
-    return (exitCode != expectedExitCode ? 1 : 0, output, error);
+    if (exitCode == expectedExitCode) {
+      return (0, output, error);
+    } else {
+      return (1, output, error + $"\nMoreover the expected exit code was {expectedExitCode} but got {exitCode}");
+    }
   }
 
   public override string ToString() {

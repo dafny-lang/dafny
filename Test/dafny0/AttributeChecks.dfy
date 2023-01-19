@@ -101,10 +101,10 @@ module JustAboutEverything {
   }
 
   datatype {:dt 0} {:dt false + 3} Datatype = // error: false + 3 is ill-typed
-    {:dt k} Blue | {:dt 50} Green // error: k is unknown
+    {:dt k, this} Blue | {:dt 50} Green // error (x2): k is unknown, this is not allowed
 
   datatype {:dt 0} {:dt false + 3} AnotherDatatype = // error: false + 3 is ill-typed
-    | {:dt 50} Blue | {:dt k} Green // error: k is unknown
+    | {:dt 50} Blue | {:dt k, this} Green // error (x2): k is unknown, this is not allowed
 
   function FAttr(x: int): int
     requires {:myAttr false + 3} true // error: false + 3 is ill-typed
@@ -235,6 +235,143 @@ module JustAboutEverything {
   method ModifyStatement(s: set<object>) {
     modify {:myAttr false + 3} s; // error: false + 3 is ill-typed
   }
+
+  method LocalVariablesAndAssignments(opt: Option<int>, mustHave: MustHave<int>) returns (r: Option<int>) {
+    // variables declared with attributes
+    var
+      {:boolAttr false + 3} a: int, // error: false + 3 is ill-typed
+      {:boolAttr false + 3} b: int; // error: false + 3 is ill-typed
+
+    // simple assignments, where each RHS has an attribute
+    var x, y :=
+      10 {:boolAttr false + 3}, // error: false + 3 is ill-typed
+      20 {:boolAttr false + 3}; // error: false + 3 is ill-typed
+    x, y :=
+      10 {:boolAttr false + 3}, // error: false + 3 is ill-typed
+      20 {:boolAttr false + 3}; // error: false + 3 is ill-typed
+
+    // method call, where either the variable or the RHS has an attribute
+    var {:boolAttr false + 3} u0 := If(13); // error: false + 3 is ill-typed
+    var u1 := If(13) {:boolAttr false + 3}; // error: false + 3 is ill-typed
+    u1 := If(13) {:boolAttr false + 3}; // error: false + 3 is ill-typed
+
+    // arbitrary assignment, where either the variable or the RHS has an attribute
+    var {:boolAttr false + 3} k0: int := *; // error: false + 3 is ill-typed
+    var k1: int := * {:boolAttr false + 3}; // error: false + 3 is ill-typed
+    k1 := * {:boolAttr false + 3}; // error: false + 3 is ill-typed
+
+    // allocation, where either the variable or the RHS has an attribute
+    var {:boolAttr false + 3} c0 := new CClass; // error: false + 3 is ill-typed
+    var c1 := new CClass {:boolAttr false + 3}; // error: false + 3 is ill-typed
+    c1 := new CClass {:boolAttr false + 3}; // error: false + 3 is ill-typed
+    var {:boolAttr false + 3} d0 := new DClass(); // error: false + 3 is ill-typed
+    var d1 := new DClass() {:boolAttr false + 3}; // error: false + 3 is ill-typed
+    d1 := new DClass() {:boolAttr false + 3}; // error: false + 3 is ill-typed
+
+    // assign-such-that, where variable has an attribute
+    var s := {101};
+    var {:boolAttr false + 3} w0 :| w0 in s; // error: false + 3 is ill-typed
+    var
+      {:boolAttr false + 3} w1, // error: false + 3 is ill-typed
+      {:boolAttr false + 3} w2 // error: false + 3 is ill-typed
+      :| w1 in s && w2 in s;
+
+    // assign-such-that, where assume has an attribute
+    w1, w2 :| assume {:boolAttr false + 3} w1 in s && w2 in s; // error: false + 3 is ill-typed
+
+    // :- with expression RHS, where variable declarations have attributes
+    var {:boolAttr false + 3} f0 :- opt;
+    var
+      {:boolAttr false + 3} f1, // error: false + 3 is ill-typed
+      {:boolAttr false + 3} f2 // error: false + 3 is ill-typed
+      :- opt, true;
+    // :- with call RHS, where variable declarations have attributes
+    var {:boolAttr false + 3} f3 :- GiveOption();
+    var
+      {:boolAttr false + 3} f4, // error: false + 3 is ill-typed
+      {:boolAttr false + 3} f5 // error: false + 3 is ill-typed
+      :- GiveOptions();
+
+    // :- with expression RHS, where RHSs have attributes
+    var g0 :- opt {:boolAttr false + 3}; // error: false + 3 is ill-typed
+    var g1, g2 :-
+      opt {:boolAttr false + 3}, // error: false + 3 is ill-typed
+      true {:boolAttr false + 3}; // error: false + 3 is ill-typed
+    var g3, g4, g5 :-
+      opt {:boolAttr false + 3}, // error: false + 3 is ill-typed
+      true {:boolAttr false + 4}, // error: false + 4 is ill-typed
+      true {:boolAttr false + 5}; // error: false + 5 is ill-typed
+    // :- with call RHS, where variable declarations have attributes
+    var g6 :- GiveOption() {:boolAttr false + 3}; // error: false + 3 is ill-typed
+    var g7, g8 :- GiveOptions() {:boolAttr false + 3}; // error: false + 3 is ill-typed
+
+    :- mustHave {:boolAttr false + 3}; // error: false + 3 is ill-typed
+    :- GiveMustHave() {:boolAttr false + 3}; // error: false + 3 is ill-typed
+
+    // :- with expression RHS, where assert/assume/expect has attributes
+    var p0 :- assert {:boolAttr false + 3} opt; // error: false + 3 is ill-typed
+    var p1 :- assume {:boolAttr false + 3} opt; // error: false + 3 is ill-typed
+    var p2 :- expect {:boolAttr false + 3} opt; // error: false + 3 is ill-typed
+    p0 :- assert {:boolAttr false + 3} opt; // error: false + 3 is ill-typed
+    p1 :- assume {:boolAttr false + 3} opt; // error: false + 3 is ill-typed
+    p2 :- expect {:boolAttr false + 3} opt; // error: false + 3 is ill-typed
+
+    // :- with call RHS, where variable declarations have attributes
+    var q0 :- assert {:boolAttr false + 3} GiveOption(); // error: false + 3 is ill-typed
+    var q1 :- assume {:boolAttr false + 3} GiveOption(); // error: false + 3 is ill-typed
+    var q2 :- expect {:boolAttr false + 3} GiveOption(); // error: false + 3 is ill-tyqed
+    q0 :- assert {:boolAttr false + 3} GiveOption(); // error: false + 3 is ill-tyqed
+    q1 :- assume {:boolAttr false + 3} GiveOption(); // error: false + 3 is ill-tyqed
+    q2 :- expect {:boolAttr false + 3} GiveOption(); // error: false + 3 is ill-typed
+
+    // let-such-that with an attribute
+    var i := var
+      a, b {:boolAttr false + 3} :| a == 0 && b == 1; // error: false + 3 is ill-typed
+      100;
+  }
+
+  function ExtendedPrintExpr(): int {
+    var
+      a, b {:boolAttr false + 3} :| a == 0 && b == 1; // error: false + 3 is ill-typed
+      100
+  }
+
+  class CClass {
+  }
+  class DClass {
+    constructor () { }
+  }
+
+  method GiveOption() returns (r: Option<int>)
+  method GiveOptions() returns (r: Option<int>, s: int)
+  method GiveMustHave() returns (r: MustHave<int>)
+
+  datatype Option<+T> = None | Some(value: T) {
+    predicate method IsFailure() {
+      None?
+    }
+    function method PropagateFailure<U>(): Option<U>
+      requires None?
+    {
+      None
+    }
+    function method Extract(): T
+      requires Some?
+    {
+      value
+    }
+  }
+
+  datatype MustHave<+T> = HasIt | DoesNotHave(value: T) {
+    predicate method IsFailure() {
+      DoesNotHave?
+    }
+    function method PropagateFailure(): Option<T>
+      requires DoesNotHave?
+    {
+      None
+    }
+  }
 }
 
 module
@@ -243,4 +380,117 @@ module
   {:myAttr k} // error: k is not in scope here
   Modu
 {
+}
+
+module TwoStateAttributes {
+  class C {
+    var data: int
+
+    function {:myAttr old(data), x, r} F(x: int): (r: int) // error: old not allowed in this context
+
+    twostate function {:myAttr old(data), x, r} F2(x: int): (r: int) // old is allowed
+
+    lemma {:myAttr old(data), x, y} L(x: int) returns (y: int) // error: old not allowed in this context
+
+    twostate lemma {:myAttr old(data), x, y} L2(x: int) returns (y: int) // old is allowed
+
+    method {:myAttr old(data), x, y} M(x: int) returns (y: int) // error: old not allowed in this context
+
+    least predicate {:myAttr old(data), x} LP(x: int) // error: old not allowed in this context
+
+    least lemma {:myAttr old(data), x} LL(x: int) // error: old not allowed in this context
+  }
+}
+
+module TopLevelAttributes {
+  // ---- iterator
+
+  // an attribute on an iterator is allowed to refer to the in-parameters of the iterator, but not to "this" or to the yield-parameters.
+  iterator
+    {:myAttr x}
+    {:myAttr y} // error: y is not allowed here
+    {:myAttr this} // error: this is not allowed here
+    {:myAttr ys} // error: ys is not allowed here (because "this" isn't)
+    {:myAttr old(arr[0])} // error: "old" is not allowed here
+    Iterator(x: int, arr: array<int>) yields (y: int)
+    requires arr.Length != 0
+
+  // ---- opaque type
+
+  type
+    {:myAttr this} // error: this is not allowed here
+    {:myAttr N} // error: N unresolved
+    Opaque
+  {
+    const N: int
+  }
+
+  // ---- subset type
+
+  type {:myAttr this} Subset = x: int | true // error: "this" is not allowed here
+
+  // ---- type synonym
+
+  type {:myAttr this} Synonym = int // error: "this" is not allowed here
+
+  // ---- newtype
+
+  newtype
+    {:myAttr this} // error: this is not allowed
+    {:myAttr N} // error: N unresolved
+    Newtype = x: int | true
+  {
+    const N: int
+  }
+
+  // ---- trait
+
+  trait
+    {:myAttr this} // error: this is not allowed
+    {:myAttr x} // error: x unresolved
+    Trait
+  {
+    var x: int
+  }
+
+  // ---- class
+
+  class
+    {:myAttr this} // error: this is not allowed
+    {:myAttr x} // error: x unresolved
+    Class
+  {
+    var x: int
+  }
+
+  // ---- datatype
+
+  datatype
+    {:myAttr this} // error: this is not allowed here
+    {:myAttr Ctor?} // error: Ctor? unresolved
+    {:myAttr y} // error: y unresolved
+    {:myAttr N} // error: N unresolved
+    Datatype = Ctor(y: int)
+  {
+    const N: int
+  }
+
+  // ---- codatatype
+
+  codatatype
+    {:myAttr this} // error: this is not allowed here
+    {:myAttr Ctor?} // error: Ctor? unresolved
+    {:myAttr y} // error: y unresolved
+    {:myAttr N} // error: N unresolved
+    CoDatatype = Ctor(y: int)
+  {
+    const N: int
+  }
+}
+
+module TopLevelAttributesModule {
+  // ---- module
+
+  module {:myAttr this} Module { // error: "this" is not allowed here
+  }
 }

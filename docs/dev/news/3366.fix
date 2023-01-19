@@ -1,0 +1,1 @@
+Proper warning that 'new' cannot be used in expressions, instead of a parse error

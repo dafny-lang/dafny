@@ -839,7 +839,7 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         wr.Write($"{DafnyRuntimeModule}.string_of(");
         TrExpr(arg, wr, false, wStmts);
-        wr.WriteLine(")");
+        wr.Write(")");
       }
     }
 

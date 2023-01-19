@@ -35,6 +35,7 @@ static class CommandRegistry {
     AddCommand(new TestCommand());
     AddCommand(new GenerateTestsCommand());
     AddCommand(new DeadCodeCommand());
+    AddCommand(new AuditCommand());
 
     FileArgument = new Argument<FileInfo>("file", "input file");
   }
@@ -76,10 +77,11 @@ static class CommandRegistry {
       command.SetHandler(CommandHandler);
     }
 
-    var commandNames = commandToSpec.Keys.Select(c => c.Name).ToHashSet();
     if (arguments.Length != 0) {
       var first = arguments[0];
-      if (first != "--dev" && first != "--version" && first != "-h" && first != "--help" && !commandNames.Contains(first)) {
+      var keywordForNewMode = commandToSpec.Keys.Select(c => c.Name).
+        Union(new[] { "--dev", "--version", "-h", "--help", "[parse]", "[suggest]" });
+      if (!keywordForNewMode.Contains(first)) {
         var oldOptions = new DafnyOptions();
         if (oldOptions.Parse(arguments)) {
           return new ParseArgumentSuccess(oldOptions);
@@ -88,6 +90,7 @@ static class CommandRegistry {
         return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR);
       }
     }
+    dafnyOptions.UsingNewCli = true;
 
     var rootCommand = new RootCommand("The Dafny CLI enables working with Dafny, a verification-aware programming language. Use 'dafny /help' to see help for a previous CLI format.");
     foreach (var command in commandToSpec.Keys) {

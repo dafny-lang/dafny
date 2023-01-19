@@ -1,0 +1,4 @@
+text.dfy(5,0): Error: A postcondition might not hold on this return path.
+text.dfy(4,12): Related location: This is the postcondition that might not hold.
+
+Dafny program verifier finished with 0 verified, 1 error

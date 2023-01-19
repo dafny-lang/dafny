@@ -9,18 +9,18 @@ public class DocumentAfterResolution : DocumentAfterParsing {
   public DocumentAfterResolution(DocumentTextBuffer textDocumentItem,
     Dafny.Program program,
     IReadOnlyList<Diagnostic> parseAndResolutionDiagnostics,
-    SymbolTable? newSymbolTable,
+    SymbolTable? symbolTable,
     SignatureAndCompletionTable signatureAndCompletionTable,
     IReadOnlyList<Diagnostic> ghostDiagnostics) :
     base(textDocumentItem, program, ArraySegment<Diagnostic>.Empty) {
     ParseAndResolutionDiagnostics = parseAndResolutionDiagnostics;
-    NewSymbolTable = newSymbolTable;
+    SymbolTable = symbolTable;
     SignatureAndCompletionTable = signatureAndCompletionTable;
     GhostDiagnostics = ghostDiagnostics;
   }
 
   public IReadOnlyList<Diagnostic> ParseAndResolutionDiagnostics { get; }
-  public SymbolTable? NewSymbolTable { get; }
+  public SymbolTable? SymbolTable { get; }
   public SignatureAndCompletionTable SignatureAndCompletionTable { get; }
   public IReadOnlyList<Diagnostic> GhostDiagnostics { get; }
 
@@ -31,7 +31,7 @@ public class DocumentAfterResolution : DocumentAfterParsing {
       TextDocumentItem = TextDocumentItem,
       ImplementationsWereUpdated = false,
       ResolutionDiagnostics = ParseAndResolutionDiagnostics,
-      SymbolTable = NewSymbolTable ?? previousState.SymbolTable,
+      SymbolTable = SymbolTable ?? previousState.SymbolTable,
       SignatureAndCompletionTable = SignatureAndCompletionTable.Resolved ? SignatureAndCompletionTable : previousState.SignatureAndCompletionTable,
       GhostDiagnostics = GhostDiagnostics
     };
