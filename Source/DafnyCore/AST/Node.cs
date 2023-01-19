@@ -57,17 +57,13 @@ public abstract class TokenNode : Node {
           if (node.RangeToken.Filename != tok.Filename || node is Expression { IsImplicit: true } ||
               node is DefaultValueExpression) {
             // Ignore any auto-generated expressions.
-          } else if (node != this && node.RangeToken != null) {
+          } else {
             UpdateStartEndToken(node.StartToken);
             UpdateStartEndToken(node.EndToken);
-          } else {
-            throw new NotSupportedException();
-            // UpdateStartEndToken(node.tok);
-            // node.Children.Iter(UpdateStartEndTokRecursive);
           }
         }
 
-        UpdateStartEndTokRecursive(this);
+        Children.Iter(UpdateStartEndTokRecursive);
 
         if (FormatTokens != null) {
           foreach (var token in FormatTokens) {

@@ -787,7 +787,7 @@ public class LocalVariable : TokenNode, IVariable, IAttributeBearingDeclaration 
     Contract.Requires(name != null);
     Contract.Requires(type != null);  // can be a proxy, though
 
-    this.Tok = base.rangeToken.StartToken;
+    this.Tok = rangeToken.StartToken;
     RangeToken = rangeToken;
     this.name = name;
     this.OptionalType = type;
