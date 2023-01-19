@@ -1,4 +1,4 @@
 text.dfy(4,4): Error: unresolved identifier: doIt
-text.dfy(4,8): Error: expected method call, found expression
+text.dfy(4,4): Error: expected method call, found expression
 text.dfy(2,7): Error: not resolving module '_module' because there were errors in resolving its nested module 'M'
 3 resolution/type errors detected in text.dfy

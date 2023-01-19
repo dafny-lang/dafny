@@ -1,4 +1,4 @@
-text.dfy(15,17): Error: A precondition for this call might not hold.
+text.dfy(15,4): Error: A precondition for this call might not hold.
 text.dfy(5,35): Related location: This is the precondition that might not hold.
 
 Dafny program verifier finished with 6 verified, 1 error
