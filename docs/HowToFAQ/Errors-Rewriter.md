@@ -9,9 +9,10 @@
 method {:timeLimitMultiplier 10} {:timeLimit 5} m() {}
 ```
 
-The {:timeLimitMultiplier n} attribute tells the prover to use a time limit that is the given number times
-the time limit otherwise sepcified by the options. The {:timeLimit n} attribute simply sets a new value
-for the time limit. It does not make sense to have both of them. One or the other should be removed.
+The {:timeLimitMultiplier n} attribute tells the prover to use a time limit that is the given number
+times the time limit otherwise specified by the options. The {:timeLimit n} attribute simply sets a new
+value for the time limit. It does not make sense to have both attributes on the same declaration. 
+One or the other should be removed.
 
 <!-- ./DafnyCore/Rewriters/UselessOldLinter.cs -->
 
@@ -29,16 +30,16 @@ method m(i: int)
 }
 ```
 
-The `old` function, used in specifications and ghost code, indicates that the argument (an expression) is to be evaluated in some previous heap state.
-So if the argument does not depend on the heap, the `old` has no effect and is likely to lead to misunderstanding.
-Consequently, Dafny says that it is an error to do so.
-For example, it is illegal to apply `old` to a local variable; instead one should capture
+The `old` function, used in specifications and ghost code, indicates that the argument (an expression) 
+is to be evaluated in some previous heap state. So if the argument does not depend on the heap, the `old` 
+has no effect and is likely to lead to misunderstanding. Consequently, Dafny warns against doing so.
+For example, it has no effect to apply `old` to a local variable; instead one should capture
 the value of the local variable in a previous state using an otherwise unused ghost variable.
 
 
 <!-- ./DafnyCore/Rewriters/InductionRewriter.cs-->
 
-## **_item_s given as :induction arguments must be given in the same order as in the quantifier; ignoring attribute**
+## **Warning: _item_s given as :induction arguments must be given in the same order as in the quantifier; ignoring attribute**
 
 <!-- %check-resolve-warn -->
 ```dafny
@@ -48,12 +49,11 @@ function f(): int
 { 0 }
 ```
 
-
 The `{:induction}` attribute gives some guidance to the prover as to how to construct the induction argument that 
-proves the lemma. The heuristics that infer an induction proof require that the arguments of the attribute must be in the
+proves the lemma. The heuristics that infer an induction proof require that the arguments of the attribute be in the
 same order as the bound variables of the quantifier. If not, the :induction attribute is ignored.
 
-## **lemma parameters given as :induction arguments must be given in the same order as in the lemma; ignoring attribute**
+## **Warning: lemma parameters given as :induction arguments must be given in the same order as in the lemma; ignoring attribute**
 
 <!-- %check-resolve-warn -->
 ```dafny
@@ -61,23 +61,22 @@ lemma {:induction j,i} m(i: int, j: int) ensures i + j == j + i {}
 ```
 
 The `{:induction}` attribute gives some guidance to the prover as to how to construct the induction argument that 
-proves the lemma. The heuristics that infer an induction proof require that the arguments of the attribute must be in the
+proves the lemma. The heuristics that infer an induction proof require that the arguments of the attribute be in the
 same order as the parameters of the lemma. If not, the :induction attribute is ignored.
 
-## **invalid :induction attribute argument; expected _what_; ignoring attribute**
+## **Warning: invalid :induction attribute argument; expected _what_; ignoring attribute**
 
 <!-- %check-resolve-warn -->
 ```dafny
 lemma {:induction 42} m(i: int, j: int) ensures i + j == j + i {} 
 ```
 
-The arguments of the `:induction` attribute can be any of the lemma parameters (if the declaration is for a lemma),
-the `this` keyword, or true or false. For a quantifier, the arguments can be any of the bound variables of the
-quantifier.
+The arguments of the `:induction` attribute can be any of the lemma parameters (for a lemma)
+or bound quantifiers (for a quantifier expression), the `this` keyword, or true or false.
 
 <!-- ./DafnyCore/Rewriters/ConstructorWarning.cs -->
 
-## **Constructor name '_pattern_' should be followed by parentheses**
+## **Warning: Constructor name '_pattern_' should be followed by parentheses**
 
 <!-- %check-resolve-warn %options --warn-missing-constructor-parentheses -->
 ```dafny
@@ -92,14 +91,16 @@ method m(d: D) {
 ```
 
 The pattern following a `case` keyword can be a constructor possibly without arguments or it can be 
-new variable to be bound to the match expression. If a simple identifier matches a parameter-less
-constructor (if there is one of the right type) in preference to a new bound identifier.
+new variable to be bound to the match expression. A parameter-less costructor may be written
+without parentheses. A simple identifier that happens to be a constructor of right type 
+will be matched in preference to a new bound identifier.
 
-This can lead to surprises if there is a matching constructor that the writer or the reader of the software
-is unaware of. So it is useful to always write constructors with parentheses, to visually distinguish them
-from simple identifiers.
-The `--warn-missing-constructor-parentheses` option will warn (as in this example) if a constructor is
-used without paraentheses. The solution is to either add parentheses (if a constructor is intended) or
+This can lead to surprises if there is a matching constructor that the writer or the reader of the
+software is unaware of. So it is useful to always write constructors with parentheses, to visually
+distinguish them from simple identifiers.
+
+The `--warn-missing-constructor-parentheses` option will warn if a constructor is used without
+parentheses. The solution is to either add parentheses (if a constructor is intended) or
 rename the identifier (if a fresh bound identifier is intended).
 
 <!-- ./DafnyCore/RewritersPrecedenceLinter.cs-->
@@ -119,7 +120,7 @@ Long expressions are best split up across multiple lines; readers often use inde
 to the nesting of subexpressions. For example, parallel conjuncts or disjuncts may be written with 
 the same indentation. This warning occurs when the observed indentation is likely to cause
 a misunderstanding of the code, particularly of the precedence of operations. It is suggested
-to use parentheses or to redo the indentation.
+to use parentheses or to redo the indentation to make the structure of the expression clearer.
 
 ## **Warning: unusual indentation in _what_ (which ends at _location_); do you perhaps need parentheses?**
 
@@ -136,21 +137,20 @@ Long expressions are best split up across multiple lines; readers often use inde
 to the nesting of subexpressions. For example, parallel conjuncts or disjuncts may be written with 
 the same indentation. This warning occurs when the observed indentation is likely to cause
 a misunderstanding of the code, particularly of the precedence of operations. It is suggested
-to use parentheses or to redo the indentation.
-
+to use parentheses or to redo the indentation to make the structure of the expression clearer.
 
 
 <!-- ./DafnyCore/Resolver/RunAllTestsMainMethod.cs -->
 
-## **Cannot use /runAllTests on a program with a main method**
+## **Error: Cannot use /runAllTests on a program with a main method**
 
-<!-- TODO - haven't been able to trigger this error -->
+<!-- TODO - this won't be triggered until Issue 3381 is fixed -->
 
-The `/runAllTests` option is obsolete. Use `dafny test` instead.
-This error message only occurs with the legacy interface and in the situation
-where a Main method is already present in the program. With this 
-option dafny synthesizes a Main method that calls all the test routines,
+This error message when using `dafny test` and in the situation
+where a Main method is already present in the program.  
+`dafny test` synthesizes a Main method that calls all the test routines,
 which then conflicts with the existing Main method.
+(The `/runAllTests` option has been replaced by `dafny test`.)
 
 ## **Error: Methods with the {:test} attribute can have at most one return value**
 
@@ -162,8 +162,8 @@ method {:test} m(i: int) returns (j: int, k: int)
 }
 ```
 
-This error only occurs when using `dafny test`. That command executes all methods attributed with `{:test}`,
-but such test methods are limited to methods with only one output parameter.
+This error only occurs when using `dafny test`. That command executes all methods attributed
+with `{:test}`, but such test methods are limited to methods with only one output parameter.
 This is purely an implementation limitation.
 
 
@@ -178,9 +178,10 @@ method {:extern} m(i: int, ghost j: int)
 ```
 
 The `--test-assumptions` option inserts tests of various contracts and implicit assumptions 
-in a Dafny method, such as the requires and ensures clauses. 
+in a Dafny method, such as the requires and ensures clauses.
 However, because these inserted tests are compiled into the target
 program as runtime checks, they cannot refer to any ghost variables.
+(This mechanism implements Dafny's runtime-assertion checking.)
  
 ## **Warning: Internal: no wrapper for _name_**
 
@@ -204,11 +205,12 @@ It is likely to be removed in a future version of dafny.
 function method {:print} f(): int { 0 }
 ```
 
-The `{:print}` attribute is used to mark methods that have a side-effect of printing something,
-that is, they modify the external environment.
+The `{:print}` attribute is used to mark methods that have a side-effect of
+printing something, that is, they modify the external environment.
 Functions, whether ghost or compiled, are intended to have no side-effects at all.
-Thus Dafny forbids (ghost or compiled) functions from declaring that they have a print side-effect
-(whether or not print effects are being tracked with --track-print-effects).
+Thus Dafny forbids (ghost or compiled) functions from declaring that they have
+a print side-effect (whether or not print effects are being tracked with 
+`--track-print-effects`).
 
 ## **Error: :print attribute is not allowed on ghost methods**
 
@@ -217,12 +219,12 @@ Thus Dafny forbids (ghost or compiled) functions from declaring that they have a
 ghost method {:print} f() { }
 ```
 
-The `{:print}` attribute is used to mark methods that have a side-effect of printing something,
-that is, they modify the external environment.
+The `{:print}` attribute is used to mark methods that have a side-effect of
+printing something, that is, they modify the external environment.
 A program's ghost code is not allowed to modify the actual execution of a program.
 Thus ghost code should not contain print statements.
 So Dafny forbids ghost methods from declaring that they have a print side-effect
-(whether or not print effects are being tracked with --track-print-effects).
+(whether or not print effects are being tracked with `--track-print-effects`).
 
 ## **Error: not allowed to override a non-printing method with a possibly printing method (_name_)**
 
@@ -237,12 +239,12 @@ class C extends T {
 }
 ```
 
-The `{:print}` attribute is used to mark methods that have a side-effect of printing something,
-that is, they modify the external environment.
+The `{:print}` attribute is used to mark methods that have a side-effect of
+printing something, that is, they modify the external environment.
 If a trait declares a method without a `{:print}` attribute, then any implementation 
-of that method may not do any printing.
+of that method may not do any printing, as it must obey the trait's specification.
 Thus a class implementing that method by an override cannot declare the method as possibly
-printing something, by bgiving it a `{:print}` attribute --- even if it does not actually do any printing.
+printing something, by giving it a `{:print}` attribute --- even if it does not actually do any printing.
 
 ## **Error: :print attribute does not take any arguments**
 
@@ -265,8 +267,8 @@ by method {
 }
 ```
 
-The `{:print}` attribute is used to mark methods that have a side-effect of printing something,
-that is, they modify the external environment.
+The `{:print}` attribute is used to mark methods that have a side-effect of
+printing something, that is, they modify the external environment.
 Functions, whether ghost or compiled, are intended to have no side-effects at all.
 A function-by-method has a method body that is intended to be a compiled way of computing 
 what the function body expresses. But as a function may not have side-effects,
@@ -284,10 +286,11 @@ the option is disabled by default.
 method m() { print 42; }
 ```
 
-The `{:print}` attribute is used to mark methods that have a side-effect of printing something,
-that is, they modify the external environment. 
+The `{:print}` attribute is used to mark methods that have a side-effect of
+printing something, that is, they modify the external environment.
 So a method that prints something (even transitively) should be marked with `{:print}`.
-This error indicates that such an attribute is missing -- either add the attribute or remove the print statement.
+This error indicates that such an attribute is missing -- either add the attribute 
+or remove the print statement.
 
 This tracking of print statements (and thus the possibility of this error message)
 only happens when the `--track-print-effects` option is enabled;
@@ -304,12 +307,13 @@ by method { p(); return 42; }
 method {:print} p() {}
 ```
 
-The `{:print}` attribute is used to mark methods that have a side-effect of printing something,
-that is, they modify the external environment.
+The `{:print}` attribute is used to mark methods that have a side-effect of
+printing something, that is, they modify the external environment.
 Functions, whether ghost or compiled, are intended to have no side-effects at all.
 A function-by-method has a method body that is intended to be a compiled way of computing 
 what the function body expresses. But as a function may not have side-effects,
 the method body should not have any print statements.
+
 In this case, the method body might print something because a method that is called in the body
 is attributed with `{:print}` (whether or not it actually does print something).
 
@@ -327,11 +331,11 @@ method m() { p(); }
 method {:print} p() {}
 ```
 
-The `{:print}` attribute is used to mark methods that have a side-effect of printing something,
-that is, they modify the external environment.
+The `{:print}` attribute is used to mark methods that have a side-effect of
+printing something, that is, they modify the external environment.
 In this case, the method body might print something because a method that is called in the body
 is attributed with `{:print}` (whether or not it actually does print something).
-So the claling methd must be marked with `{:print}` as well.
+So the calling method must be marked with `{:print}` as well.
 
 This tracking of print statements (and thus the possibility of this error message)
 only happens when the `--track-print-effects` option is enabled;

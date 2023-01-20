@@ -235,9 +235,13 @@ do
           fi
           actualec=$?
           if [ "$useHeadings" == "1" ]; then
-            act=`cat actual | grep Error | sed -e 's/^[^:]*: //'`
+            act=`cat actual | grep -E '(Error|Warning)' | sed -e 's/^[^:]*: //'`
             if [ -n "$msg" ]; then
               dif=`echo $act | sed -e "s/$msg//g" | sed -e 's/[ ]*//'`
+              if [ -z "$act" ] ; then
+                 echo NO ERROR MESSAGE FOUND
+                 FAIL=1
+              fi
               if [ -n "$dif" ] ; then
                  echo NO MATCH 
                  echo PAT "$msg"
