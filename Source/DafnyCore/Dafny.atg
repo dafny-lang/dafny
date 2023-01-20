@@ -3890,7 +3890,7 @@ Expression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwis
     ";"                       (. semiToken = t; .)
     Expression<out e0, allowLemma, allowLambda>
     (. var startToken = e.StartToken;
-       e = new StmtExpr(e0.StartToken,
+       e = new StmtExpr(e0.Tok,
              new UpdateStmt(startToken, e.RangeToken, new List<Expression>(), new List<AssignmentRhs>() { new ExprRhs(e) }),
              e0);
        e.RangeToken = new RangeToken(startToken, e0.EndToken);
