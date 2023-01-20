@@ -779,6 +779,8 @@ public abstract class ExtremeLemma : Method {
 
   public override IEnumerable<INode> Children => base.Children.Concat(new[] { PrefixLemma });
 
+  public override IEnumerable<INode> ConcreteChildren => base.Children;
+
   public ExtremeLemma(IToken tok, string name,
     bool hasStaticKeyword, ExtremePredicate.KType typeOfK,
     List<TypeParameter> typeArgs,

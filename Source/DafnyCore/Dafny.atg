@@ -1843,17 +1843,20 @@ GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs, bool allowVariance.>
      TypeParameter.TypeParameterCharacteristics characteristics;
      TypeParameter.TPVarianceSyntax variance = TypeParameter.TPVarianceSyntax.NonVariant_Strict;  // assignment is to please compiler
      characteristics = new TypeParameter.TypeParameterCharacteristics(false);
+     IToken varianceToken = null;
   .)
   // If a "<" combined with a Variance symbol could be a new token, then the parser here will need to be more complex,
   // since, for example, a < followed immediately by a Variance symbol would scan as the wrong token.
   // Fortunately that is not currently the case.
   // (Only because we parse the new "<-" symbol as separate "<" "-" tokens precisely to avoid this issue :)
   "<"
-  [ Variance<out variance>  (. if (!allowVariance) { SemErr(t, "type-parameter variance is not allowed to be specified in this context"); } .)
+  [ Variance<out variance>  (. if (!allowVariance) { SemErr(t, "type-parameter variance is not allowed to be specified in this context"); }
+    varianceToken = t;
+  .)
   ]
   TypeVariableName<out id>
   { TypeParameterCharacteristics<ref characteristics> }
-  (. typeArgs.Add(new TypeParameter(id, id.val, variance, characteristics)); .)
+  (. typeArgs.Add(new TypeParameter(id, id.val, variance, characteristics) { RangeToken = new RangeToken(varianceToken != null ? varianceToken : id, characteristics.RangeToken != null ? characteristics.RangeToken.EndToken : id) }); .)
   { ","
     (. variance = TypeParameter.TPVarianceSyntax.NonVariant_Strict;
        characteristics = new TypeParameter.TypeParameterCharacteristics(false);
@@ -1862,7 +1865,7 @@ GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs, bool allowVariance.>
     ]
     TypeVariableName<out id>
     { TypeParameterCharacteristics<ref characteristics> }
-    (. typeArgs.Add(new TypeParameter(id, id.val, variance, characteristics)); .)
+    (. typeArgs.Add(new TypeParameter(id, id.val, variance, characteristics) { RangeToken = new RangeToken(varianceToken != null ? varianceToken : id, characteristics.RangeToken != null ? characteristics.RangeToken.EndToken : id) }); .)
   }
   ">"
   .

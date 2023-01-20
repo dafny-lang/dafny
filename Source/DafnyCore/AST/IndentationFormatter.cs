@@ -147,7 +147,7 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
           int reindent;
           if (ReduceBlockiness && applySuffix.StartToken.Prev.val is "=>" or ":=" or ":-" or ":|" && applySuffix.StartToken.Prev.line == applySuffix.StartToken.line) {
             var offset = applySuffix.StartToken.Prev.line == applySuffix.StartToken.Prev.Prev.line ? -SpaceTab : 0;
-            reindent = Math.Max(GetIndentBefore(applySuffix.StartToken.Prev) + offset, 0);
+            reindent = Math.Max(GetIndentAfter(applySuffix.StartToken.Prev) + offset, 0);
           } else {
             reindent = GetNewTokenVisualIndent(applySuffix.StartToken, indent);
           }
@@ -197,12 +197,22 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
         return SetIndentAlternativeLoopStmt(indent, alternativeLoopStmt);
       case ForLoopStmt forLoopStmt:
         return SetIndentForLoopStmt(forLoopStmt, indent);
-      case VarDeclStmt varDeclStmt:
-        return SetIndentVarDeclStmt(indent, varDeclStmt.OwnedTokens.Concat(varDeclStmt.Update?.OwnedTokens ?? new List<IToken>()));
-      case AssignSuchThatStmt:
-      case AssignOrReturnStmt:
-      case UpdateStmt:
-        return SetIndentUpdateStmt(stmt, indent);
+      case VarDeclStmt varDeclStmt: {
+          var result = SetIndentVarDeclStmt(indent,
+            varDeclStmt.OwnedTokens.Concat(varDeclStmt.Update?.OwnedTokens ?? new List<IToken>()));
+          if (varDeclStmt.Update != null) {
+            SetIndentUpdateStmt(varDeclStmt.Update, indent + SpaceTab, true);
+            foreach (var node in varDeclStmt.Update.PreResolveSubExpressions) {
+              Visit(node, indent);
+            }
+            return false;
+          }
+
+          return result;
+        }
+      case ConcreteUpdateStatement concreteUpdateStatement: {
+          return SetIndentUpdateStmt(concreteUpdateStatement, indent + SpaceTab, false);
+        }
       case NestedMatchStmt:
         var i = unusedIndent;
         return SetIndentCases(indent, stmt.OwnedTokens, () => {
@@ -1240,8 +1250,8 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
     return true;
   }
 
-  private bool SetIndentUpdateStmt(Statement stmt, int indent) {
-    var ownedTokens = stmt.OwnedTokens;
+  private bool SetIndentUpdateStmt(ConcreteUpdateStatement stmt, int indent, bool inner) {
+    var ownedTokens = stmt.OwnedTokens.ToList();
     var rightIndent = indent + SpaceTab;
     var commaIndent = indent + SpaceTab;
     var opIndentDefault =
@@ -1285,9 +1295,10 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
       }
     }
 
-    if (!ownedTokens.Any()) {
-      // Here it means all the tokens are owned by the surrounding variable declaration.
-      // We still need to recover the rightIndent in this case:
+    if (ReduceBlockiness) {
+      // Here it means that this is an inner variable update 
+      // We still need to recover the rightIndent in this case,
+      // but we can reduce the indentation 
       if (!IsFollowedByNewline(stmt.Tok)) {
         rightIndent = Math.Max(0, indent - 2);
       } else {
@@ -1300,10 +1311,12 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
 
     foreach (var rhs in rhss) {
       var localIndent = rightIndent;
-      if (rhs is TypeRhs && !ReduceBlockiness && rhs.OwnedTokens.Any()) {
+      if (rhs is TypeRhs or ExprRhs { Expr: ApplySuffix } && !ReduceBlockiness && rhs.OwnedTokens.Any()) {
         localIndent = GetNewTokenVisualIndent(rhs.OwnedTokens.First(), localIndent);
       }
-      SetIndentParensExpression(localIndent, rhs.OwnedTokens);
+      SetIndentParensExpression(localIndent,
+        rhs is ExprRhs { Expr: ApplySuffix x } ? x.OwnedTokens :
+        rhs.OwnedTokens);
     }
 
     return true;

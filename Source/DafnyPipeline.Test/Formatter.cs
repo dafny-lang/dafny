@@ -1835,6 +1835,11 @@ function Test(): int {
     public void FormatterWorksForObjectCreation() {
       FormatterWorksFor(@"
 method Test() {
+  g := new ClassName.ConstructorName(
+    argument1b,
+    argument2b,
+    argument3b
+  );
   var g := new ClassName.ConstructorName(
     argument1,
     argument2,
@@ -1844,6 +1849,11 @@ method Test() {
     argumenta,
     argumentb,
     argumentc
+  );
+  g := Datatype.ConstructorName(
+    argumenta2,
+    argumentb2,
+    argumentc2
   );
   :- Module.Need(
     arg1,
@@ -1856,11 +1866,23 @@ method Test() {
       argumente,
       argumentf
     );
+  g :=
+    Datatype.ConstructorName(
+      argumentd2,
+      argumente2,
+      argumentf2
+    );
   var h :=
     new ClassName.ConstructorName2(
       argument4,
       argument5,
       argument6
+    );
+  h :=
+    new ClassName.ConstructorName2(
+      argument4b,
+      argument5b,
+      argument6b
     );
 }
 ", reduceBlockiness: true);
