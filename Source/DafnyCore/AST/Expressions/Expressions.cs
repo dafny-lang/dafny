@@ -1666,6 +1666,7 @@ public class FreshExpr : UnaryOpExpr, ICloneable<FreshExpr> {
     var result = new FreshExpr(cloner.Tok(tok), cloner.CloneExpr(E), At);
     if (cloner.CloneResolvedFields) {
       result.AtLabel = AtLabel;
+      result.Type = Type;
     }
     return result;
   }
