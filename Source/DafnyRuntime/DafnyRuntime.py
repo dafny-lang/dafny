@@ -143,11 +143,7 @@ class Seq(tuple):
         return '[' + ', '.join(map(string_of, self)) + ']'
 
     def __add__(self, other):
-        if self.isStr is None or other.isStr is None:
-            isStr = None
-        else:
-            isStr = self.isStr and other.isStr
-        return Seq(super().__add__(other), isStr=isStr)
+        return Seq(super().__add__(other), isStr=self.isStr and other.isStr)
 
     def __getitem__(self, key):
         if isinstance(key, slice):
