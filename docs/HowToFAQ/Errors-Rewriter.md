@@ -324,7 +324,7 @@ the option is disabled by default.
 
 ## **Error: to call a method with print effects, the enclosing _method_ must be marked with {:print}**
 
-<!-- %check-resolve %options --track-print-effects
+<!-- %check-resolve %options --track-print-effects -->
 ```dafny
 method m() { p(); }
 
@@ -340,5 +340,4 @@ So the calling method must be marked with `{:print}` as well.
 This tracking of print statements (and thus the possibility of this error message)
 only happens when the `--track-print-effects` option is enabled;
 the option is disabled by default.
-
 
