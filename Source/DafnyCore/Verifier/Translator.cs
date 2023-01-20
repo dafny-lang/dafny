@@ -2158,8 +2158,8 @@ namespace Microsoft.Dafny {
         pre = BplAnd(pre, etran.TrExpr(Substitute(req.E, null, substMap)));
       }
       // useViaContext: fh < FunctionContextHeight
-      var visibilityLevel = f.EnclosingClass.EnclosingModuleDefinition.CallGraph.GetSCCRepresentativePredecessorCount(f);
-      Expr useViaContext = !InVerificationScope(f) ? Bpl.Expr.True : Expr.Lt(MkFunctionHeight(visibilityLevel), etran.FunctionContextHeight());
+      var visibilityLevel = f.EnclosingClass.EnclosingModuleDefinition.CallGraph.GetSCCRepresentativePredecessorCount(f.OverriddenFunction ?? f);
+      Expr useViaContext = Expr.Lt(MkFunctionHeight(visibilityLevel), etran.FunctionContextHeight());
       // useViaCanCall: f#canCall(args)
       Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
       Bpl.Expr useViaCanCall = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(canCallFuncID), Concat(tyargs, args));
