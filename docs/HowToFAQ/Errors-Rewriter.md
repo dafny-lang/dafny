@@ -5,7 +5,7 @@
 
 ## **Warning: timeLimitMultiplier annotation overrides " + name + " annotation**
 
-```ddafny
+```dafny
 method {:timeLimitMultiplier 10} {:timeLimit 5} m() {}
 ```
 
