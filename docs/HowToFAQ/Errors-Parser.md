@@ -196,7 +196,7 @@ const c: int = 5
 ```
 
 Dafny's syntax for initialization and assignment uses `:=`, not `=` (like some other languages).
-In fact `=` is not used at all in Dafny.
+In Dafny, `=` is  only used in type definitions.
 
 ## **Error: a const declaration must have a type or a RHS value**
 
@@ -725,7 +725,7 @@ method m() {
 
 Local variables are initialized with `:=` (and sometimes with `:-` or `:|`), but not
 with `=`, as in some other languages.
-In fact, Dafny does not use the `=` operator anywhere.
+In Dafny, `=` is  only used in type definitions.
 
 ## **Error: LHS of assign-such-that expression must be variables, not general patterns**
 
@@ -1093,7 +1093,7 @@ method m() {
 
 Like local variables, let variables are initialized with `:=` (and sometimes with `:-` or `:|`), but not
 with `=`, as in some other languages.
-In fact, Dafny does not use the `=` operator anywhere.
+In Dafny, `=` is  only used in type definitions.
 
 ## **Error: LHS of let-such-that expression must be variables, not general patterns**
 

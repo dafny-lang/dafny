@@ -170,26 +170,30 @@ This is purely an implementation limitation.
 <!-- ./DafnyCore/Resolver/ExpectContracts.cs-->
 
 ## **Warning: The _kind_ clause at this location cannot be compiled to be tested at runtime because it references ghost state.**
-<!-- TODO -->
+<!-- TODO - requires a companion target program file to run successfully -->
 <!-- %no-check %check-test %options --test-assumptions:Externs -->
 ```dafny
 method {:extern} m(i: int, ghost j: int) 
   requires j == 1
 ```
 
-The `--test-assumptions` option inserts tests of various implicit assumptions in a Dafny method, such
-as the requires and ensures clauses. However, because these inserted tests are compiled into the
-target program as runtime checks, they cannot refer to any ghost variables.
+The `--test-assumptions` option inserts tests of various contracts and implicit assumptions 
+in a Dafny method, such as the requires and ensures clauses. 
+However, because these inserted tests are compiled into the target
+program as runtime checks, they cannot refer to any ghost variables.
  
 ## **Warning: Internal: no wrapper for _name_**
 
-<!-- TODO -->
-This message indicates a bug within dafny. Plrease report the program that
+This message indicates a bug within dafny. Please report the program that
 triggered the message to [the Github issues site](https://www.github.com/dafny-lang/dafny/issues).
 
 ## **Warning: No :test code calls _name_**
 
-<!-- TODO -->
+This warning indicates that some method marked with {:extern} is not called
+by any method marked with {:test}. The intention is to check coverage of
+the programmed unit tests. The warning only appears when using
+`/testContracts:TestedExterns` with the legacy CLI.
+It is likely to be removed in a future version of dafny.
 
 <!-- ./DafnyCore/Resolver/PrintEffectEnforcement.cs-->
 

@@ -1578,7 +1578,8 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       if (name != null && name != "") {
-        foreach (var module in program.CompileModules) {
+        // HasMain is called before resolution, so CompileModules is not yet filled in
+        foreach (var module in program.RawModules()) {
           if (module.IsAbstract) {
             // the purpose of an abstract module is to skip compilation
             continue;
@@ -1602,7 +1603,7 @@ namespace Microsoft.Dafny.Compilers {
         }
         ReportError(program.Reporter, program.DefaultModule.tok, "Could not find the method named by the -Main option: {0}", null, name);
       }
-      foreach (var module in program.CompileModules) {
+      foreach (var module in program.RawModules()) {
         if (module.IsAbstract) {
           // the purpose of an abstract module is to skip compilation
           continue;
@@ -1642,7 +1643,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       mainMethod = null;
-      foreach (var module in program.CompileModules) {
+      foreach (var module in program.RawModules()) {
         if (module.IsAbstract) {
           // the purpose of an abstract module is to skip compilation
           continue;

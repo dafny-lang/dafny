@@ -189,39 +189,74 @@ non-ghost formal parameter, then `unchanged` cannot be used.
 
 <!-- TODO -->
 
-## **the type of the bound variable '{x.Name}' could not be determined**
+## **the type of the bound variable '_var_' could not be determined**
 
 <!-- TODO -->
 
-## **a type cast to a reference type ({0}) must be from a compatible type (got {1}); this cast could never succeed**
+## **a type cast to a reference type (_type_) must be from a compatible type (got _type_); this cast could never succeed**
 
 <!-- TODO -->
 
-## **a type test to '{0}' must be from a compatible type (got '{1}')**
+## **a type test to '_type_' must be from a compatible type (got '_type_')**
 
 <!-- TODO -->
 
-## **a non-trivial type test is allowed only for reference types (tried to test if '{1}' is a '{0}')**
+## **a non-trivial type test is allowed only for reference types (tried to test if '_type_' is a '_type_')**
 
 <!-- TODO -->
 
-## **Warning: the type of the other operand is a non-null type, so this comparison with 'null' will always return '{b}'**
+## **Warning: the type of the other operand is a non-null type, so this comparison with 'null' will always return '_bool_'**
+
+```dafny
+class C {}
+function f(): C
+method m(c: C) {
+  var b: bool := f() != null;
+}
+```
+
+Dafny does have a `null` value and expressions of types that include `null` can have a `null` value.
+But in Dafny, for each class type `C` there is a corresponding type `C?`; `C` does not include `null`,
+whereas `C?` does. So if an expression `e` having type `C` is comared against `null`, as in `e == null`,
+that comparison will always be `false`. If the logic of the program allows `e` to be sometimes `null`,
+then it should be declared with a type like `C?`.
+
+## **Warning: the type of the other operand is a non-null type, so this comparison with 'null' will always return '_bool_' (to make it possible for _name_ to have the value 'null', declare its type to be '_type_')**
+
+```dafny
+class C {}
+method m(c: C) {
+  var b: bool := c != null;
+}
+```
+
+Dafny does have a `null` value and variables of types that include `null` can have a `null` value.
+But in Dafny, for each class type `C` there is a corresponding type `C?`; `C` does not include `null`,
+whereas `C?` does. So if a variable `v` declared as type `C` is comared against `null`, as in `v == null`,
+that comparison will always be `false`. If the logic of the program allows `v` to be sometimes `null`,
+then it should be declared with a type like `C?`.
+
+
+## **Warning: the type of the other operand is a _what_ of non-null elements, so the _non_inclusion test of 'null' will always return '_bool_'**
+
+```dafny
+class C {}
+method m(c: seq<C>, cc: seq<C?>) {
+  var bb := null in cc;  // OK
+  var b  := null in c;   // Warning
+}
+```
+
+This error refers to the `in` (or `!in`) operation and notes that the test is whether `null` is in the given container.
+But the elements of the container are of a type that does not include `null`, so the given test will always
+be `false` (or `true`).  Either the type of the container's elements should be a nullable type (a `C?` instead of a `C`)
+or the test is unnecessary. 
+
+## **Warning: the type of the other operand is a map to a non-null type, so the inclusion test of 'null' will always return '_bool_'**
 
 <!-- TODO -->
 
-## **Warning: the type of the other operand is a non-null type, so this comparison with 'null' will always return '{b}' (to make it possible for {name} to have the value 'null', declare its type to be '{ty}')**
-<!-- TODO -->
-
-
-## **Warning: the type of the other operand is a {what} of non-null elements, so the {non}inclusion test of 'null' will always return '{b}'**
-
-<!-- TODO -->
-
-## **Warning: the type of the other operand is a map to a non-null type, so the inclusion test of 'null' will always return '{b}'**
-
-<!-- TODO -->
-
-## **the type of this {0} is underspecified**
+## **the type of this _var_ is underspecified**
 
 <!-- TODO -->
 
