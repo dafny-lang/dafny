@@ -126,7 +126,7 @@ For instance. a method `m` in a (top-level) module `M` is named `M.m`
 or in a class `C` in a module `M` is named `M.C.m`.
 This error message indicates that dafny does not recognize the name given as the name of a method.
 
-## **Error: More than one method is marked '{:main}'. First declaration appeared at _location_.**
+## **Error: More than one method is marked '{{:main}}'. First declaration appeared at _location_.**
 
 <!-- %check-run -->
 ```dafny
@@ -141,7 +141,7 @@ The solution is to remove the `{:main}` attribute from all but one.
 
 Note that entry points that are intended as unit tests can be marked with `{:test}` instead.
 
-## **Error: This method marked '{:main}' is not permitted as a main method (_name_).**
+## **Error: This method marked '{{:main}}' is not permitted as a main method (_name_).**
 
 <!-- %check-run -->
 ```dafny
@@ -229,12 +229,12 @@ To be part of a compiled program, each method must have a body.
 Ghost methods are the equivalent of unchecked assumptions
 so they too must have bodies.
 
-## **Error: _kind_ '_name' is marked as :handle, so all the traits it extends must be be marked as :handle as well: _trait_**
+## **Error: _kind_ '_name_' is marked as :handle, so all the traits it extends must be be marked as :handle as well: _trait_**
 
 <!-- TODO -->
 _The documentation of the {:handle} attribute is in progress._
 
-## **Error: _kind '_name' is marked as :handle, so all its non-static members must be ghost: _trait_**
+## **Error: _kind '_name_' is marked as :handle, so all its non-static members must be ghost: _trait_**
 
 <!-- TODO -->
 _The documentation of the {:handle} attribute is in progress._
