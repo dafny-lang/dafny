@@ -126,7 +126,7 @@ For instance. a method `m` in a (top-level) module `M` is named `M.m`
 or in a class `C` in a module `M` is named `M.C.m`.
 This error message indicates that dafny does not recognize the name given as the name of a method.
 
-## **Error: More than one method is marked '{{:main}}'. First declaration appeared at _location_.**
+## **Error: More than one method is marked {:main}. First declaration appeared at _location_.**
 
 <!-- %check-run -->
 ```dafny
@@ -141,7 +141,7 @@ The solution is to remove the `{:main}` attribute from all but one.
 
 Note that entry points that are intended as unit tests can be marked with `{:test}` instead.
 
-## **Error: This method marked '{{:main}}' is not permitted as a main method (_name_).**
+## **Error: This method marked {:main} is not permitted as a main method (_name_).**
 
 <!-- %check-run -->
 ```dafny

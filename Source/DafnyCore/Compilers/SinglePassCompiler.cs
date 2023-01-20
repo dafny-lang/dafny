@@ -1618,7 +1618,7 @@ namespace Microsoft.Dafny.Compilers {
                   hasMain = true;
                 } else {
                   // more than one main in the program
-                  ReportError(program.Reporter, m.tok, "More than one method is marked {:main}. First declaration appeared at {0}.", null,
+                  ReportError(program.Reporter, m.tok, "More than one method is marked {{:main}}. First declaration appeared at {0}.", null,
                     ErrorReporter.TokenToString(mainMethod.tok));
                   hasMain = false;
                 }
@@ -1629,7 +1629,7 @@ namespace Microsoft.Dafny.Compilers {
       }
       if (hasMain) {
         if (!IsPermittedAsMain(program, mainMethod, out string reason)) {
-          ReportError(program.Reporter, mainMethod.tok, "This method marked {:main} is not permitted as a main method ({0}).", null, reason);
+          ReportError(program.Reporter, mainMethod.tok, "This method marked {{:main}} is not permitted as a main method ({0}).", null, reason);
           mainMethod = null;
           return false;
         } else {
