@@ -3889,11 +3889,11 @@ Expression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwis
     /* here we parse the ";E" that is part of a "LemmaCall;E" expression (other "S;E" expressions are parsed elsewhere) */
     ";"                       (. semiToken = t; .)
     Expression<out e0, allowLemma, allowLambda>
-    (. e = new StmtExpr(e0.StartToken,
-             new UpdateStmt(e.StartToken, new RangeToken(e.StartToken, t), new List<Expression>(), new List<AssignmentRhs>() { new ExprRhs(e) }) {
-               RangeToken = e.RangeToken
-             },
+    (. var startToken = e.StartToken;
+       e = new StmtExpr(e0.StartToken,
+             new UpdateStmt(startToken, e.RangeToken, new List<Expression>(), new List<AssignmentRhs>() { new ExprRhs(e) }),
              e0);
+       e.RangeToken = new RangeToken(startToken, e0.EndToken);
     .)
   ]
   .
