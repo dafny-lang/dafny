@@ -229,7 +229,7 @@ To be part of a compiled program, each method must have a body.
 Ghost methods are the equivalent of unchecked assumptions
 so they too must have bodies.
 
-## **Error: _kind_ '_name_' is marked as :handle, so all the traits it extends must be be marked as :handle as well: _trait_**
+## **Error: _kind_ '_name_' is marked as :handle, so all the traits it extends must be marked as :handle as well: _trait_**
 
 <!-- TODO -->
 _The documentation of the {:handle} attribute is in progress._
