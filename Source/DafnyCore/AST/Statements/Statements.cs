@@ -761,7 +761,7 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt> {
   }
 }
 
-public class LocalVariable : TokenNode, IVariable, IAttributeBearingDeclaration {
+public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration {
   readonly string name;
   public Attributes Attributes;
   Attributes IAttributeBearingDeclaration.Attributes => Attributes;
@@ -772,23 +772,24 @@ public class LocalVariable : TokenNode, IVariable, IAttributeBearingDeclaration 
     Contract.Invariant(OptionalType != null);
   }
 
-  public LocalVariable(Cloner clone, LocalVariable original) {
-    RangeToken = original.RangeToken;
+  public IToken Tok => RangeToken.StartToken;
+
+  public LocalVariable(Cloner cloner, LocalVariable original)
+    : base(cloner, original) {
     name = original.Name;
-    OptionalType = clone.CloneType(original.OptionalType);
+    OptionalType = cloner.CloneType(original.OptionalType);
     IsGhost = original.IsGhost;
 
-    if (clone.CloneResolvedFields) {
+    if (cloner.CloneResolvedFields) {
       type = original.type;
     }
   }
 
-  public LocalVariable(RangeToken rangeToken, string name, Type type, bool isGhost) {
+  public LocalVariable(RangeToken rangeToken, string name, Type type, bool isGhost)
+    : base(rangeToken) {
     Contract.Requires(name != null);
     Contract.Requires(type != null);  // can be a proxy, though
 
-    this.Tok = rangeToken.StartToken;
-    RangeToken = rangeToken;
     this.name = name;
     this.OptionalType = type;
     if (type is InferredTypeProxy) {
