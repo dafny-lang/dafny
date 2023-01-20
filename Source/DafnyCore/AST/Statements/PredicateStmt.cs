@@ -13,18 +13,18 @@ public abstract class PredicateStmt : Statement {
     Expr = cloner.CloneExpr(original.Expr);
   }
 
-  protected PredicateStmt(IToken tok, IToken endTok, Expression expr, Attributes attrs)
-    : base(tok, endTok, attrs) {
+  protected PredicateStmt(IToken tok, RangeToken rangeToken, Expression expr, Attributes attrs)
+    : base(tok, rangeToken, attrs) {
     Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+    Contract.Requires(rangeToken != null);
     Contract.Requires(expr != null);
     this.Expr = expr;
   }
 
-  protected PredicateStmt(IToken tok, IToken endTok, Expression expr)
-    : this(tok, endTok, expr, null) {
+  protected PredicateStmt(IToken tok, RangeToken rangeToken, Expression expr)
+    : this(tok, rangeToken, expr, null) {
     Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+    Contract.Requires(rangeToken != null);
     Contract.Requires(expr != null);
     this.Expr = expr;
   }
