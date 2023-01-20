@@ -1587,6 +1587,10 @@ public abstract class UnaryExpr : Expression {
     this.E = e;
   }
 
+  public UnaryExpr(Cloner cloner, UnaryExpr original) : base(cloner, original) {
+    E = cloner.CloneExpr(original.E);
+  }
+
   public override IEnumerable<Expression> SubExpressions {
     get { yield return E; }
   }
@@ -1648,6 +1652,10 @@ public class UnaryOpExpr : UnaryExpr {
     this.Op = op;
   }
 
+  public UnaryOpExpr(Cloner cloner, UnaryOpExpr original) : base(cloner, original) {
+    Op = original.Op;
+  }
+
   public override bool IsImplicit => Op == Opcode.Lit;
 }
 
@@ -1662,14 +1670,14 @@ public class FreshExpr : UnaryOpExpr, ICloneable<FreshExpr> {
     this.At = at;
   }
 
-  public FreshExpr Clone(Cloner cloner) {
-    var result = new FreshExpr(cloner.Tok(tok), cloner.CloneExpr(E), At);
+  public FreshExpr(Cloner cloner, FreshExpr original) : base(cloner, original) {
+    At = original.At;
     if (cloner.CloneResolvedFields) {
-      result.AtLabel = AtLabel;
-      result.Type = Type;
+      AtLabel = original.AtLabel;
     }
-    return result;
   }
+
+  public FreshExpr Clone(Cloner cloner) { return new FreshExpr(cloner, this); }
 }
 
 public abstract class TypeUnaryExpr : UnaryExpr {
