@@ -22,9 +22,22 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <param name="startToken">The token to get the range of.</param>
     /// <param name="endToken">An optional other token to get the end of the range of.</param>
     /// <returns>The LSP range of the token.</returns>
+    public static Range ToLspRange(this RangeToken range) {
+      return new Range(
+        GetLspPosition(range.StartToken),
+        ToLspPosition(range.EndToken.line, range.EndToken.col + range.EndToken.val.Length)
+      );
+    }
+
+    /// <summary>
+    /// Gets the LSP range of the specified token.
+    /// </summary>
+    /// <param name="startToken">The token to get the range of.</param>
+    /// <param name="endToken">An optional other token to get the end of the range of.</param>
+    /// <returns>The LSP range of the token.</returns>
     public static Range GetLspRange(this Boogie.IToken startToken, Boogie.IToken? endToken = null) {
       endToken ??= startToken;
-      endToken = endToken is RangeToken rangeToken ? rangeToken.EndToken : endToken;
+      endToken = endToken is BoogieRangeToken rangeToken ? rangeToken.EndToken : endToken;
       return new Range(
         GetLspPosition(startToken),
         ToLspPosition(endToken.line, endToken.col + endToken.val.Length)

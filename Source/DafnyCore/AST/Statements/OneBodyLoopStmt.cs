@@ -20,10 +20,10 @@ public abstract class OneBodyLoopStmt : LoopStmt {
     }
   }
 
-  public OneBodyLoopStmt(IToken tok, IToken endTok,
+  public OneBodyLoopStmt(IToken tok, RangeToken rangeToken,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
     BlockStmt /*?*/ body, Attributes/*?*/ attrs)
-    : base(tok, endTok, invariants, decreases, mod, attrs) {
+    : base(tok, rangeToken, invariants, decreases, mod, attrs) {
     Body = body;
   }
 

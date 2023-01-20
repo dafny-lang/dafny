@@ -285,11 +285,11 @@ public class AutoContractsRewriter : IRewriter {
             // Repr := {this};
             var e = new SetDisplayExpr(tok, true, new List<Expression>() { self });
             e.Type = new SetType(true, builtIns.ObjectQ());
-            Statement s = new AssignStmt(tok, tok, Repr, new ExprRhs(e));
+            Statement s = new AssignStmt(tok, member.RangeToken, Repr, new ExprRhs(e));
             s.IsGhost = true;
             sbs.AppendStmt(s);
           }
-          AddSubobjectReprs(tok, ctor.BodyEndTok, subobjects, sbs, n, implicitSelf, Repr);
+          AddSubobjectReprs(tok, ctor.RangeToken.EndToken, subobjects, sbs, n, implicitSelf, Repr);
         }
 
       } else if (member is Method && !member.IsStatic && Valid != null) {
@@ -336,7 +336,7 @@ public class AutoContractsRewriter : IRewriter {
 
         if (addStatementsToUpdateRepr && m.Body != null) {
           var methodBody = (BlockStmt)m.Body;
-          AddSubobjectReprs(tok, methodBody.EndTok, subobjects, methodBody, methodBody.Body.Count, implicitSelf, Repr);
+          AddSubobjectReprs(tok, methodBody.RangeToken.EndToken, subobjects, methodBody, methodBody.Body.Count, implicitSelf, Repr);
         }
       }
     }
@@ -376,13 +376,13 @@ public class AutoContractsRewriter : IRewriter {
         nguard = Expression.CreateAnd(nguard, ng);
       }
       // Repr := Repr + ...;
-      Statement s = new AssignStmt(tok, tok, Repr, new ExprRhs(rhs));
+      Statement s = new AssignStmt(tok, tok.ToRange(), Repr, new ExprRhs(rhs));
       s.IsGhost = true;
       // wrap if statement around s
       e = Expression.CreateAnd(IsNotNull(tok, F), Expression.CreateNot(tok, nguard));
-      var thn = new BlockStmt(tok, tok, new List<Statement>() { s });
+      var thn = new BlockStmt(tok, tok.ToRange(), new List<Statement>() { s });
       thn.IsGhost = true;
-      s = new IfStmt(tok, tok, false, e, thn, null);
+      s = new IfStmt(tok, tok.ToRange(), false, e, thn, null);
       s.IsGhost = true;
       // finally, add s to the block
       block.AppendStmt(s);
