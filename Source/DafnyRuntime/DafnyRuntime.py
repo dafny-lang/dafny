@@ -89,6 +89,12 @@ class CodePoint(str):
     def __dafnystr__(self):
         return f"'{self.__escaped__()}'"
 
+    def __add__(self, other):
+        return CodePoint(plus_char(self, other))
+
+    def __sub__(self, other):
+        return CodePoint(minus_char(self, other))
+
 class Seq(tuple):
     def __init__(self, __iterable = None, isStr = False):
         '''
@@ -401,12 +407,6 @@ def plus_char(a, b):
 
 def minus_char(a, b):
     return chr(ord(a) - ord(b))
-
-def plus_unicode_char(a, b):
-    return CodePoint(plus_char(a, b))
-
-def minus_unicode_char(a, b):
-    return CodePoint(minus_char(a, b))
 
 def euclidian_division(a, b):
     if 0 <= a:
