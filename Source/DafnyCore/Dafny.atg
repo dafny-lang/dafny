@@ -2874,6 +2874,7 @@ LabeledStmt<out Statement s>
   LabelName<out id> ":" (. colonToken = t; .)
   OneStmt<out s>
   (. s.Labels = new LList<Label>(new Label(id, id.val), s.Labels);
+     s.PostLabelToken = s.StartToken;
      s.RangeToken = new RangeToken(labelToken, t);
   .)
   .

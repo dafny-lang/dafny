@@ -8,7 +8,8 @@ using System.Security.Policy;
 namespace Microsoft.Dafny;
 
 public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
-  public override IToken Tok => StartToken;
+  public override IToken Tok => PostLabelToken ?? StartToken;
+  public IToken PostLabelToken { get; set; }
 
   public LList<Label> Labels;  // mutable during resolution
 
