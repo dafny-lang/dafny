@@ -3797,7 +3797,7 @@ CalcStmt<out Statement s>
       | CalcStmt<out subCalc>                     (. hintEnd = subCalc.EndToken; subhints.Add(subCalc); .)
       )
     }
-    (. var h = new BlockStmt(hintStart, new RangeToken(hintStart, hintEnd), subhints); // if the hint is empty, hintStart is the first token of the next line, but it doesn't matter because the block statement is just used as a container
+    (. var h = new BlockStmt(new RangeToken(hintStart, hintEnd), subhints); // if the hint is empty, hintStart is the first token of the next line, but it doesn't matter because the block statement is just used as a container
        hints.Add(h);
        if (h.Body.Count != 0) { danglingOperator = null; }
     .)
@@ -3886,16 +3886,9 @@ Expression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwis
     /* here we parse the ";E" that is part of a "LemmaCall;E" expression (other "S;E" expressions are parsed elsewhere) */
     ";"                       (. semiToken = t; .)
     Expression<out e0, allowLemma, allowLambda>
-<<<<<<< HEAD
-    (. e = new StmtExpr(e.StartToken,
-             new UpdateStmt(new RangeToken(e.StartToken, t), new List<Expression>(), new List<AssignmentRhs>() { new ExprRhs(e) }) {
-               RangeToken = e.RangeToken
-             },
-=======
     (. var startToken = e.StartToken;
        e = new StmtExpr(e0.Tok,
-             new UpdateStmt(startToken, e.RangeToken, new List<Expression>(), new List<AssignmentRhs>() { new ExprRhs(e) }),
->>>>>>> fork/noBodyEndTok
+             new UpdateStmt(e.RangeToken, new List<Expression>(), new List<AssignmentRhs>() { new ExprRhs(e) }),
              e0);
        e.RangeToken = new RangeToken(startToken, e0.EndToken);
     .)
