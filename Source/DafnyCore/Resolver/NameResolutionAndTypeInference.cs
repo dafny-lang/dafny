@@ -348,7 +348,7 @@ namespace Microsoft.Dafny {
         var e = (NegationExpression)expr;
         ResolveExpression(e.E, resolutionContext);
         e.Type = e.E.Type;
-        AddXConstraint(e.E.tok, "NumericOrBitvector", e.E.Type, "type of unary - must be of a numeric or bitvector type (instead got {0})");
+        AddXConstraint(e.E.tok, "NumericOrBitvector", e.E.Type, "type of argument of a unary - must be of a numeric or bitvector type (instead got {0})");
         // Note, e.ResolvedExpression will be filled in during CheckTypeInference, at which time e.Type has been determined
 
       } else if (expr is LiteralExpr) {
