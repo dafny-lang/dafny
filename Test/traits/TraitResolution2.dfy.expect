@@ -1,31 +1,31 @@
 TraitResolution2.dfy(70,22): Error: the type of in-parameter 'x' is different from the type of the corresponding in-parameter in trait method ('int' instead of '(Y, B)')
-TraitResolution2.dfy(94,4): Error: new can be applied only to class types (got A?)
-TraitResolution2.dfy(95,4): Error: new can be applied only to class types (got ASynonym)
-TraitResolution2.dfy(98,4): Error: new can be applied only to class types (got B?)
-TraitResolution2.dfy(98,4): Error: when allocating an object of type 'B', one of its constructor methods must be called
-TraitResolution2.dfy(101,4): Error: new can be applied only to class types (got C?<A>)
-TraitResolution2.dfy(103,4): Error: new can be applied only to class types (got C?<A?>)
-TraitResolution2.dfy(106,4): Error: new can be applied only to class types (got D?<A>)
-TraitResolution2.dfy(106,4): Error: when allocating an object of type 'D', one of its constructor methods must be called
-TraitResolution2.dfy(108,4): Error: new can be applied only to class types (got D?<A?>)
-TraitResolution2.dfy(108,4): Error: when allocating an object of type 'D', one of its constructor methods must be called
-TraitResolution2.dfy(110,4): Error: new can be applied only to class types (got D<A>)
-TraitResolution2.dfy(110,4): Error: when allocating an object of type 'D', one of its constructor methods must be called
-TraitResolution2.dfy(112,4): Error: new can be applied only to class types (got D<A?>)
-TraitResolution2.dfy(112,4): Error: when allocating an object of type 'D', one of its constructor methods must be called
-TraitResolution2.dfy(113,4): Error: new can be applied only to class types (got DSynonym<A?>)
-TraitResolution2.dfy(113,4): Error: when allocating an object of type 'D', one of its constructor methods must be called
-TraitResolution2.dfy(114,4): Error: new can be applied only to class types (got DSynonym<A?>)
-TraitResolution2.dfy(114,4): Error: when allocating an object of type 'D', one of its constructor methods must be called
-TraitResolution2.dfy(117,4): Error: new can be applied only to class types (got object?)
-TraitResolution2.dfy(118,4): Error: new can be applied only to class types (got ObjectSynonym)
-TraitResolution2.dfy(119,4): Error: new can be applied only to class types (got ObjectWithConstraint)
-TraitResolution2.dfy(122,4): Error: new can be applied only to class types (got array?<int>)
-TraitResolution2.dfy(124,4): Error: new can be applied only to class types (got int)
-TraitResolution2.dfy(126,4): Error: new can be applied only to class types (got Tr<int>)
-TraitResolution2.dfy(127,4): Error: new can be applied only to class types (got Tr?<int>)
-TraitResolution2.dfy(128,4): Error: new can be applied only to class types (got Tr<int>)
-TraitResolution2.dfy(129,4): Error: new can be applied only to class types (got Tr<int>)
+TraitResolution2.dfy(94,11): Error: new can be applied only to class types (got A?)
+TraitResolution2.dfy(95,11): Error: new can be applied only to class types (got ASynonym)
+TraitResolution2.dfy(98,11): Error: new can be applied only to class types (got B?)
+TraitResolution2.dfy(98,11): Error: when allocating an object of type 'B', one of its constructor methods must be called
+TraitResolution2.dfy(101,11): Error: new can be applied only to class types (got C?<A>)
+TraitResolution2.dfy(103,11): Error: new can be applied only to class types (got C?<A?>)
+TraitResolution2.dfy(106,11): Error: new can be applied only to class types (got D?<A>)
+TraitResolution2.dfy(106,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
+TraitResolution2.dfy(108,11): Error: new can be applied only to class types (got D?<A?>)
+TraitResolution2.dfy(108,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
+TraitResolution2.dfy(110,11): Error: new can be applied only to class types (got D<A>)
+TraitResolution2.dfy(110,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
+TraitResolution2.dfy(112,11): Error: new can be applied only to class types (got D<A?>)
+TraitResolution2.dfy(112,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
+TraitResolution2.dfy(113,11): Error: new can be applied only to class types (got DSynonym<A?>)
+TraitResolution2.dfy(113,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
+TraitResolution2.dfy(114,11): Error: new can be applied only to class types (got DSynonym<A?>)
+TraitResolution2.dfy(114,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
+TraitResolution2.dfy(117,11): Error: new can be applied only to class types (got object?)
+TraitResolution2.dfy(118,11): Error: new can be applied only to class types (got ObjectSynonym)
+TraitResolution2.dfy(119,11): Error: new can be applied only to class types (got ObjectWithConstraint)
+TraitResolution2.dfy(122,13): Error: new can be applied only to class types (got array?<int>)
+TraitResolution2.dfy(124,11): Error: new can be applied only to class types (got int)
+TraitResolution2.dfy(126,11): Error: new can be applied only to class types (got Tr<int>)
+TraitResolution2.dfy(127,11): Error: new can be applied only to class types (got Tr?<int>)
+TraitResolution2.dfy(128,11): Error: new can be applied only to class types (got Tr<int>)
+TraitResolution2.dfy(129,11): Error: new can be applied only to class types (got Tr<int>)
 TraitResolution2.dfy(181,8): Error: field 'civ' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution2.dfy(182,14): Error: field 'giv' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution2.dfy(183,10): Error: const field 'cic' is inherited from trait 'Tr' and is not allowed to be re-declared

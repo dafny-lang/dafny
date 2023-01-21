@@ -1,3 +1,3 @@
-Regression13.dfy(11,4): Error: cannot prove termination; try supplying a decreases clause
+Regression13.dfy(11,5): Error: cannot prove termination; try supplying a decreases clause
 
 Dafny program verifier finished with 1 verified, 1 error

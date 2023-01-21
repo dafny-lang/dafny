@@ -1,7 +1,7 @@
-TailCalls.dfy(110,6): Error: the recursive call to '_ctor' is not tail recursive, because the assignment of the LHS happens after the call
-TailCalls.dfy(126,6): Error: the recursive call to 'Compute' is not tail recursive because the actual type parameter is not the formal type parameter 'G'
-TailCalls.dfy(139,6): Error: the recursive call to 'Run' is not tail recursive because the actual type parameter 1 is not the formal type parameter 'G'
-TailCalls.dfy(21,4): Error: this recursive call is not recognized as being tail recursive, because it is followed by non-ghost code
+TailCalls.dfy(110,14): Error: the recursive call to '_ctor' is not tail recursive, because the assignment of the LHS happens after the call
+TailCalls.dfy(126,19): Error: the recursive call to 'Compute' is not tail recursive because the actual type parameter is not the formal type parameter 'G'
+TailCalls.dfy(139,17): Error: the recursive call to 'Run' is not tail recursive because the actual type parameter 1 is not the formal type parameter 'G'
+TailCalls.dfy(21,16): Error: this recursive call is not recognized as being tail recursive, because it is followed by non-ghost code
 TailCalls.dfy(38,24): Error: sorry, tail-call optimizations are not supported for mutually recursive methods
 TailCalls.dfy(43,24): Error: sorry, tail-call optimizations are not supported for mutually recursive methods
 TailCalls.dfy(171,13): Error: to be tail recursive, every use of this function must be part of a tail call or a simple accumulating tail call
@@ -16,14 +16,14 @@ TailCalls.dfy(288,14): Error: to be tail recursive, every use of this function m
 TailCalls.dfy(310,19): Error: to be tail recursive, every use of this function must be part of a tail call or a simple accumulating tail call
 TailCalls.dfy(316,24): Error: to be tail recursive, every use of this function must be part of a tail call or a simple accumulating tail call
 TailCalls.dfy(323,33): Error: to be tail recursive, every use of this function must be part of a tail call or a simple accumulating tail call
-TailCalls.dfy(338,4): Error: this recursive call is not recognized as being tail recursive, because it is followed by non-ghost code
-TailCalls.dfy(369,4): Error: this recursive call is not recognized as being tail recursive, because it is followed by non-ghost code
+TailCalls.dfy(338,22): Error: this recursive call is not recognized as being tail recursive, because it is followed by non-ghost code
+TailCalls.dfy(369,21): Error: this recursive call is not recognized as being tail recursive, because it is followed by non-ghost code
 TailCalls.dfy(380,31): Error: a recursive call in this context is not recognized as a tail call
 TailCalls.dfy(416,31): Error: a recursive call in this context is not recognized as a tail call
 TailCalls.dfy(416,48): Error: a recursive call in this context is not recognized as a tail call
-TailCalls.dfy(425,4): Error: the recursive call to 'FBM2' is not tail recursive because the actual out-parameter is not the formal out-parameter
+TailCalls.dfy(425,10): Error: the recursive call to 'FBM2' is not tail recursive because the actual out-parameter is not the formal out-parameter
 TailCalls.dfy(425,13): Error: a recursive call in this context is not recognized as a tail call
-TailCalls.dfy(437,4): Error: the recursive call to 'FBM3' is not tail recursive because the actual out-parameter is not the formal out-parameter 'r'
+TailCalls.dfy(437,10): Error: the recursive call to 'FBM3' is not tail recursive because the actual out-parameter is not the formal out-parameter 'r'
 TailCalls.dfy(437,13): Error: a recursive call in this context is not recognized as a tail call
 TailCalls.dfy(449,14): Error: a recursive call in this context is not recognized as a tail call
 TailCalls.dfy(451,19): Error: a recursive call in this context is not recognized as a tail call

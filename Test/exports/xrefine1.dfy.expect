@@ -1,4 +1,4 @@
-xrefine1.dfy(64,8): Error: A precondition for this call might not hold.
+xrefine1.dfy(64,12): Error: A precondition for this call might not hold.
 xrefine1.dfy(49,32): Related location: This is the precondition that might not hold.
 
 Dafny program verifier finished with 3 verified, 1 error

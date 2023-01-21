@@ -1,2 +1,2 @@
-git-issue-216.dfy(23,4): Error: RHS (of type CC.C.Comparator) not assignable to LHS (of type ADT.C.Comparator)
+git-issue-216.dfy(23,32): Error: RHS (of type CC.C.Comparator) not assignable to LHS (of type ADT.C.Comparator)
 1 resolution/type errors detected in git-issue-216.dfy

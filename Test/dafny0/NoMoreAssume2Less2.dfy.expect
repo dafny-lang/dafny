@@ -18,7 +18,7 @@ NoMoreAssume2Less2.dfy(119,19): Error: assertion might not hold
 NoMoreAssume2Less2.dfy(135,16): Error: This loop invariant might not hold on entry.
 NoMoreAssume2Less2.dfy(135,16): Related message: loop invariant violation
 NoMoreAssume2Less2.dfy(140,11): Error: assertion might not hold
-NoMoreAssume2Less2.dfy(146,4): Error: A precondition for this call might not hold.
+NoMoreAssume2Less2.dfy(146,12): Error: A precondition for this call might not hold.
 NoMoreAssume2Less2.dfy(162,11): Related location: This is the precondition that might not hold.
 NoMoreAssume2Less2.dfy(149,11): Error: assertion might not hold
 NoMoreAssume2Less2.dfy(158,11): Error: assertion might not hold

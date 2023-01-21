@@ -2,7 +2,7 @@ Processing command (at Snapshots1.v0.dfy(4,10)) assert Lit(false);
   >>> DoNothingToAssert
 
 Dafny program verifier finished with 1 verified, 0 errors
-Processing call to procedure N (call) in implementation M (correctness) (at Snapshots1.v1.dfy(3,3)):
+Processing call to procedure N (call) in implementation M (correctness) (at Snapshots1.v1.dfy(3,4)):
   >>> added after: a##cached##0 := a##cached##0 && false;
 Processing command (at Snapshots1.v1.dfy(4,10)) assert Lit(false);
   >>> DoNothingToAssert

@@ -14,7 +14,7 @@ GhostAutoInit.dfy(125,21): Error: variable 'a', which is subject to definite-ass
 GhostAutoInit.dfy(138,21): Error: variable 'a', which is subject to definite-assignment rules, might be uninitialized here
 GhostAutoInit.dfy(140,21): Error: variable 'b', which is subject to definite-assignment rules, might be uninitialized here
 GhostAutoInit.dfy(153,2): Error: out-parameter 'e', which is subject to definite-assignment rules, might be uninitialized at this return point
-GhostAutoInit.dfy(161,4): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+GhostAutoInit.dfy(161,21): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 GhostAutoInit.dfy(162,2): Error: out-parameter 'e', which is subject to definite-assignment rules, might be uninitialized at this return point
 GhostAutoInit.dfy(174,2): Error: out-parameter 'c', which is subject to definite-assignment rules, might be uninitialized at this return point
 GhostAutoInit.dfy(174,2): Error: out-parameter 'd', which is subject to definite-assignment rules, might be uninitialized at this return point

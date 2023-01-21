@@ -2,19 +2,19 @@ CoResolution.dfy(18,11): Error: member 'Undeclared#' does not exist in class 'Te
 CoResolution.dfy(19,6): Error: unresolved identifier: Undeclared#
 CoResolution.dfy(22,9): Error: unresolved identifier: _k
 CoResolution.dfy(41,8): Error: == can only be applied to expressions of types that support equality (got Stream<_T0>)
-CoResolution.dfy(52,6): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+CoResolution.dfy(52,8): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
 CoResolution.dfy(76,33): Error: a greatest predicate is not allowed to declare any ensures clause
 CoResolution.dfy(86,27): Error: a recursive call from a greatest predicate can go only to other greatest predicates
 CoResolution.dfy(90,27): Error: a recursive call from a greatest predicate can go only to other greatest predicates
-CoResolution.dfy(99,4): Error: a recursive call from a greatest lemma can go only to other greatest lemmas and prefix lemmas
+CoResolution.dfy(99,5): Error: a recursive call from a greatest lemma can go only to other greatest lemmas and prefix lemmas
 CoResolution.dfy(113,13): Error: a recursive call from a greatest lemma can go only to other greatest lemmas and prefix lemmas
 CoResolution.dfy(114,13): Error: a recursive call from a greatest lemma can go only to other greatest lemmas and prefix lemmas
-CoResolution.dfy(119,17): Error: a recursive call from a greatest predicate can go only to other greatest predicates
-CoResolution.dfy(125,17): Error: a recursive call from a greatest predicate can go only to other greatest predicates
+CoResolution.dfy(119,24): Error: a recursive call from a greatest predicate can go only to other greatest predicates
+CoResolution.dfy(125,28): Error: a recursive call from a greatest predicate can go only to other greatest predicates
 CoResolution.dfy(133,13): Error: a recursive call from a greatest lemma can go only to other greatest lemmas and prefix lemmas
 CoResolution.dfy(134,13): Error: a recursive call from a greatest lemma can go only to other greatest lemmas and prefix lemmas
-CoResolution.dfy(139,17): Error: a recursive call from a greatest predicate can go only to other greatest predicates
-CoResolution.dfy(145,17): Error: a recursive call from a greatest predicate can go only to other greatest predicates
+CoResolution.dfy(139,26): Error: a recursive call from a greatest predicate can go only to other greatest predicates
+CoResolution.dfy(145,30): Error: a recursive call from a greatest predicate can go only to other greatest predicates
 CoResolution.dfy(153,4): Error: a recursive call from a greatest predicate can go only to other greatest predicates
 CoResolution.dfy(155,4): Error: a recursive call from a greatest predicate can go only to other greatest predicates
 CoResolution.dfy(171,13): Error: a recursive call from a greatest lemma can go only to other greatest lemmas and prefix lemmas

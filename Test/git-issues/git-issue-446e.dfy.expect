@@ -1,5 +1,5 @@
-git-issue-446e.dfy(23,2): Error: wrong number of method result arguments (got 3, expected 2) for a rhs type (Result<int>) with member Extract
-git-issue-446e.dfy(24,2): Error: wrong number of method result arguments (got 1, expected 2) for a rhs type (Result<int>) with member Extract
-git-issue-446e.dfy(29,2): Error: wrong number of method result arguments (got 3, expected 2) for a rhs type (Result<int>) with member Extract
-git-issue-446e.dfy(30,2): Error: wrong number of method result arguments (got 1, expected 2) for a rhs type (Result<int>) with member Extract
+git-issue-446e.dfy(23,14): Error: wrong number of method result arguments (got 3, expected 2) for a rhs type (Result<int>) with member Extract
+git-issue-446e.dfy(24,9): Error: wrong number of method result arguments (got 1, expected 2) for a rhs type (Result<int>) with member Extract
+git-issue-446e.dfy(29,14): Error: wrong number of method result arguments (got 3, expected 2) for a rhs type (Result<int>) with member Extract
+git-issue-446e.dfy(30,9): Error: wrong number of method result arguments (got 1, expected 2) for a rhs type (Result<int>) with member Extract
 4 resolution/type errors detected in git-issue-446e.dfy

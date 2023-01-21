@@ -1,5 +1,5 @@
-git-issue-750.dfy(8,2): Error: RHS (of type array<nat>) not assignable to LHS (of type array<int>) (nonvariance for type parameter expects int = nat)
-git-issue-750.dfy(9,2): Error: RHS (of type array<int>) not assignable to LHS (of type array<nat>) (nonvariance for type parameter expects nat = int)
-git-issue-750.dfy(10,2): Error: incorrect argument type at index 0 for method in-parameter 'x' (expected array<nat>, found array<int>) (nonvariance for type parameter expects nat = int)
-git-issue-750.dfy(10,2): Error: incorrect argument type at index 1 for method in-parameter 'y' (expected array<int>, found array<nat>) (nonvariance for type parameter expects int = nat)
+git-issue-750.dfy(8,4): Error: RHS (of type array<nat>) not assignable to LHS (of type array<int>) (nonvariance for type parameter expects int = nat)
+git-issue-750.dfy(9,4): Error: RHS (of type array<int>) not assignable to LHS (of type array<nat>) (nonvariance for type parameter expects nat = int)
+git-issue-750.dfy(10,4): Error: incorrect argument type at index 0 for method in-parameter 'x' (expected array<nat>, found array<int>) (nonvariance for type parameter expects nat = int)
+git-issue-750.dfy(10,4): Error: incorrect argument type at index 1 for method in-parameter 'y' (expected array<int>, found array<nat>) (nonvariance for type parameter expects int = nat)
 4 resolution/type errors detected in git-issue-750.dfy

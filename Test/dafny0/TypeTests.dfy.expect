@@ -2,9 +2,9 @@ TypeTests.dfy(9,14): Error: incorrect argument type at index 0 for function para
 TypeTests.dfy(9,14): Error: incorrect argument type at index 1 for function parameter 'd' (expected D, found C)
 TypeTests.dfy(10,14): Error: incorrect argument type at index 0 for function parameter 'c' (expected C, found int)
 TypeTests.dfy(10,14): Error: incorrect argument type at index 1 for function parameter 'd' (expected D, found int)
-TypeTests.dfy(16,4): Error: incorrect argument type for method in-parameter 'x' (expected int, found bool)
-TypeTests.dfy(16,4): Error: incorrect return type at index 1 for method out-parameter 'c' (expected C, got int)
-TypeTests.dfy(17,4): Error: incorrect return type at index 1 for method out-parameter 'c' (expected C, got int)
+TypeTests.dfy(16,16): Error: incorrect argument type for method in-parameter 'x' (expected int, found bool)
+TypeTests.dfy(16,16): Error: incorrect return type at index 1 for method out-parameter 'c' (expected C, got int)
+TypeTests.dfy(17,12): Error: incorrect return type at index 1 for method out-parameter 'c' (expected C, got int)
 TypeTests.dfy(45,6): Error: Duplicate local-variable name: z
 TypeTests.dfy(47,6): Error: Duplicate local-variable name: x
 TypeTests.dfy(50,8): Error: Duplicate local-variable name: x
@@ -15,7 +15,7 @@ TypeTests.dfy(62,29): Error: unresolved identifier: w1
 TypeTests.dfy(62,47): Error: unresolved identifier: w0
 TypeTests.dfy(65,28): Error: unresolved identifier: e
 TypeTests.dfy(80,17): Error: object initialization must denote an initializing method or constructor (F)
-TypeTests.dfy(81,2): Error: a method called as an initialization method must not have any result arguments
+TypeTests.dfy(81,17): Error: a method called as an initialization method must not have any result arguments
 TypeTests.dfy(90,3): Error: cannot assign to a range of array elements (try the 'forall' statement)
 TypeTests.dfy(91,3): Error: cannot assign to a range of array elements (try the 'forall' statement)
 TypeTests.dfy(92,3): Error: cannot assign to a range of array elements (try the 'forall' statement)
@@ -29,7 +29,7 @@ TypeTests.dfy(180,9): Error: cannot assign to non-ghost variable in a ghost cont
 TypeTests.dfy(198,10): Error: incorrect argument type for datatype constructor parameter (expected int -> Dt<int>, found int -> int) (covariant type parameter 1 would require int <: Dt<int>)
 TypeTests.dfy(204,10): Error: incorrect argument type for datatype constructor parameter (expected ? -> Dt<?>, found Dt<?> -> Dt<?>) (contravariance for type parameter at index 0 expects ? <: Dt<?>)
 TypeTests.dfy(211,10): Error: incorrect argument type for function parameter 'x' (expected ?, found set<?>)
-TypeTests.dfy(222,4): Error: assignment to array element is not allowed in this context, because this is a ghost method
+TypeTests.dfy(222,9): Error: assignment to array element is not allowed in this context, because this is a ghost method
 TypeTests.dfy(229,11): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'A' can be constructed
 TypeTests.dfy(230,11): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'B' can be constructed
 TypeTests.dfy(232,11): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'Cycle' can be constructed

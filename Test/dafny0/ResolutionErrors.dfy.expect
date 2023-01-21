@@ -22,13 +22,13 @@ ResolutionErrors.dfy(68,16): Error: member 'z' does not exist in non-null type '
 ResolutionErrors.dfy(116,11): Error: ghost variables such as g are allowed only in specification contexts. g was inferred to be ghost based on its declaration or initialization.
 ResolutionErrors.dfy(117,11): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function with 'function method')
 ResolutionErrors.dfy(121,13): Error: ghost variables such as g are allowed only in specification contexts. g was inferred to be ghost based on its declaration or initialization.
-ResolutionErrors.dfy(122,6): Error: actual out-parameter is required to be a ghost variable
+ResolutionErrors.dfy(122,12): Error: actual out-parameter is required to be a ghost variable
 ResolutionErrors.dfy(129,17): Error: ghost variables such as gg are allowed only in specification contexts. gg was inferred to be ghost based on its declaration or initialization.
 ResolutionErrors.dfy(133,25): Error: ghost variables such as g are allowed only in specification contexts. g was inferred to be ghost based on its declaration or initialization.
 ResolutionErrors.dfy(140,6): Error: ghost variables such as y are allowed only in specification contexts. y was inferred to be ghost based on its declaration or initialization.
 ResolutionErrors.dfy(144,23): Error: ghost variables such as gg are allowed only in specification contexts. gg was inferred to be ghost based on its declaration or initialization.
 ResolutionErrors.dfy(145,37): Error: ghost variables such as gg are allowed only in specification contexts. gg was inferred to be ghost based on its declaration or initialization.
-ResolutionErrors.dfy(154,6): Error: only ghost methods can be called from this context
+ResolutionErrors.dfy(154,12): Error: only ghost methods can be called from this context
 ResolutionErrors.dfy(244,29): Error: ghost-context break statement is not allowed to break out of non-ghost structure
 ResolutionErrors.dfy(267,14): Error: ghost-context break statement is not allowed to break out of non-ghost loop
 ResolutionErrors.dfy(281,14): Error: ghost-context break statement is not allowed to break out of non-ghost loop
@@ -36,14 +36,14 @@ ResolutionErrors.dfy(286,10): Error: return statement is not allowed in this con
 ResolutionErrors.dfy(306,12): Error: label shadows an enclosing label
 ResolutionErrors.dfy(311,10): Error: duplicate label
 ResolutionErrors.dfy(313,10): Error: label shadows a dominating label
-ResolutionErrors.dfy(337,4): Error: when allocating an object of type 'ClassWithConstructor', one of its constructor methods must be called
-ResolutionErrors.dfy(338,4): Error: when allocating an object of type 'ClassWithConstructor', one of its constructor methods must be called
-ResolutionErrors.dfy(340,4): Error: a constructor is allowed to be called only when an object is being allocated
+ResolutionErrors.dfy(337,6): Error: when allocating an object of type 'ClassWithConstructor', one of its constructor methods must be called
+ResolutionErrors.dfy(338,6): Error: when allocating an object of type 'ClassWithConstructor', one of its constructor methods must be called
+ResolutionErrors.dfy(340,11): Error: a constructor is allowed to be called only when an object is being allocated
 ResolutionErrors.dfy(356,27): Error: arguments must have comparable types (got bool and int)
 ResolutionErrors.dfy(354,18): Error: arguments must have comparable types (got int and DTD_List)
 ResolutionErrors.dfy(355,18): Error: arguments must have comparable types (got DTD_List and int)
 ResolutionErrors.dfy(369,17): Error: ghost variables such as b are allowed only in specification contexts. b was inferred to be ghost based on its declaration or initialization.
-ResolutionErrors.dfy(393,4): Error: incorrect argument type at index 1 for method in-parameter 'b' (expected GenericClass<int>, found GenericClass<bool>) (non-variant type parameter would require int = bool)
+ResolutionErrors.dfy(393,7): Error: incorrect argument type at index 1 for method in-parameter 'b' (expected GenericClass<int>, found GenericClass<bool>) (non-variant type parameter would require int = bool)
 ResolutionErrors.dfy(407,13): Error: incorrect argument type at index 0 for datatype constructor parameter 'hd' (expected _T0, found int)
 ResolutionErrors.dfy(408,9): Error: incorrect argument type at index 0 for datatype constructor parameter 'hd' (expected _T0, found int)
 ResolutionErrors.dfy(417,8): Error: all lines in a calculation must have the same type (got int after bool)
@@ -65,16 +65,16 @@ ResolutionErrors.dfy(416,8): Error: arguments must have comparable types (got bo
 ResolutionErrors.dfy(416,8): Error: arguments must have comparable types (got bool and int)
 ResolutionErrors.dfy(420,8): Error: arguments must have comparable types (got bool and int)
 ResolutionErrors.dfy(420,8): Error: arguments must have comparable types (got bool and int)
-ResolutionErrors.dfy(454,10): Error: in a hint, calls are allowed only to lemmas
+ResolutionErrors.dfy(454,13): Error: in a hint, calls are allowed only to lemmas
 ResolutionErrors.dfy(456,10): Error: a hint is not allowed to make heap updates
 ResolutionErrors.dfy(458,10): Error: a hint is not allowed to update a variable it doesn't declare
 ResolutionErrors.dfy(479,4): Error: More than one anonymous constructor
-ResolutionErrors.dfy(485,6): Error: when allocating an object of type 'Y', one of its constructor methods must be called
-ResolutionErrors.dfy(490,6): Error: when allocating an object of type 'Luci', one of its constructor methods must be called
-ResolutionErrors.dfy(491,6): Error: when allocating an object of type 'Luci', one of its constructor methods must be called
+ResolutionErrors.dfy(485,8): Error: when allocating an object of type 'Y', one of its constructor methods must be called
+ResolutionErrors.dfy(490,8): Error: when allocating an object of type 'Luci', one of its constructor methods must be called
+ResolutionErrors.dfy(491,8): Error: when allocating an object of type 'Luci', one of its constructor methods must be called
 ResolutionErrors.dfy(493,15): Error: class Lamb does not have an anonymous constructor
-ResolutionErrors.dfy(546,4): Error: RHS (of type List<A>) not assignable to LHS (of type List<B>) (covariant type parameter would require A <: B)
-ResolutionErrors.dfy(551,4): Error: RHS (of type List<A>) not assignable to LHS (of type List<B>) (covariant type parameter would require A <: B)
+ResolutionErrors.dfy(546,7): Error: RHS (of type List<A>) not assignable to LHS (of type List<B>) (covariant type parameter would require A <: B)
+ResolutionErrors.dfy(551,7): Error: RHS (of type List<A>) not assignable to LHS (of type List<B>) (covariant type parameter would require A <: B)
 ResolutionErrors.dfy(565,23): Error: type of case bodies do not agree (found Tree<_T1, _T0>, previous types Tree<_T0, _T1>) (covariant type parameter 0 would require _T1 <: _T0)
 ResolutionErrors.dfy(577,24): Error: Wrong number of type arguments (0 instead of 2) passed to datatype: Tree
 ResolutionErrors.dfy(592,20): Error: unresolved identifier: w
@@ -84,26 +84,26 @@ ResolutionErrors.dfy(612,23): Error: type parameter 'T' (inferred to be '?') in 
 ResolutionErrors.dfy(612,18): Error: type of bound variable 'z' could not be determined; please specify the type explicitly
 ResolutionErrors.dfy(625,13): Error: a lemma is not allowed to use 'new'
 ResolutionErrors.dfy(626,9): Error: a lemma is not allowed to use 'new'
-ResolutionErrors.dfy(635,6): Error: only ghost methods can be called from this context
-ResolutionErrors.dfy(642,6): Error: only ghost methods can be called from this context
+ResolutionErrors.dfy(635,16): Error: only ghost methods can be called from this context
+ResolutionErrors.dfy(642,15): Error: only ghost methods can be called from this context
 ResolutionErrors.dfy(652,17): Error: a hint is not allowed to use 'new'
 ResolutionErrors.dfy(667,14): Error: new allocation not supported in aggregate assignments
 ResolutionErrors.dfy(674,14): Error: a forall statement is not allowed to use 'new'
-ResolutionErrors.dfy(674,6): Error: assignment to array element is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+ResolutionErrors.dfy(674,11): Error: assignment to array element is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
 ResolutionErrors.dfy(690,26): Error: second argument to "in" must be a set, multiset, or sequence with elements of type int, or a map with domain int (instead got bool)
 ResolutionErrors.dfy(685,18): Error: second argument to "in" must be a set, multiset, or sequence with elements of type int, or a map with domain int (instead got ?)
 ResolutionErrors.dfy(702,13): Error: lemmas are not allowed to have modifies clauses
 ResolutionErrors.dfy(729,22): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
 ResolutionErrors.dfy(762,22): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
-ResolutionErrors.dfy(795,4): Error: wrong number of method result arguments (got 0, expected 1)
+ResolutionErrors.dfy(795,17): Error: wrong number of method result arguments (got 0, expected 1)
 ResolutionErrors.dfy(816,4): Error: ghost variables such as y are allowed only in specification contexts. y was inferred to be ghost based on its declaration or initialization.
 ResolutionErrors.dfy(827,40): Error: ghost variables such as y are allowed only in specification contexts. y was inferred to be ghost based on its declaration or initialization.
-ResolutionErrors.dfy(850,4): Error: RHS (of type B) not assignable to LHS (of type object)
-ResolutionErrors.dfy(852,4): Error: RHS (of type B) not assignable to LHS (of type object)
-ResolutionErrors.dfy(857,4): Error: RHS (of type G) not assignable to LHS (of type object)
-ResolutionErrors.dfy(858,4): Error: RHS (of type Dt) not assignable to LHS (of type object)
-ResolutionErrors.dfy(859,4): Error: RHS (of type CoDt) not assignable to LHS (of type object)
-ResolutionErrors.dfy(851,4): Error: RHS (of type int) not assignable to LHS (of type object)
+ResolutionErrors.dfy(850,6): Error: RHS (of type B) not assignable to LHS (of type object)
+ResolutionErrors.dfy(852,6): Error: RHS (of type B) not assignable to LHS (of type object)
+ResolutionErrors.dfy(857,6): Error: RHS (of type G) not assignable to LHS (of type object)
+ResolutionErrors.dfy(858,6): Error: RHS (of type Dt) not assignable to LHS (of type object)
+ResolutionErrors.dfy(859,6): Error: RHS (of type CoDt) not assignable to LHS (of type object)
+ResolutionErrors.dfy(851,6): Error: RHS (of type int) not assignable to LHS (of type object)
 ResolutionErrors.dfy(871,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got int)
 ResolutionErrors.dfy(875,16): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (x)
 ResolutionErrors.dfy(887,14): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (x)
@@ -123,9 +123,9 @@ ResolutionErrors.dfy(955,11): Error: unresolved identifier: s
 ResolutionErrors.dfy(974,18): Error: member '3' does not exist in datatype '_tuple#3'
 ResolutionErrors.dfy(974,28): Error: member 'x' does not exist in datatype '_tuple#2'
 ResolutionErrors.dfy(973,18): Error: condition is expected to be of type bool, but is int
-ResolutionErrors.dfy(967,4): Error: RHS (of type (int, real, int)) not assignable to LHS (of type (int, real, int, real))
-ResolutionErrors.dfy(966,4): Error: RHS (of type (int, int, real)) not assignable to LHS (of type (int, real, int)) (covariant type parameter 1 would require int <: real)
-ResolutionErrors.dfy(966,4): Error: RHS (of type (int, int, real)) not assignable to LHS (of type (int, real, int)) (covariant type parameter 2 would require real <: int)
+ResolutionErrors.dfy(967,39): Error: RHS (of type (int, real, int)) not assignable to LHS (of type (int, real, int, real))
+ResolutionErrors.dfy(966,34): Error: RHS (of type (int, int, real)) not assignable to LHS (of type (int, real, int)) (covariant type parameter 1 would require int <: real)
+ResolutionErrors.dfy(966,34): Error: RHS (of type (int, int, real)) not assignable to LHS (of type (int, real, int)) (covariant type parameter 2 would require real <: int)
 ResolutionErrors.dfy(998,12): Error: type of left argument to % (int) must agree with the result type (real)
 ResolutionErrors.dfy(998,12): Error: arguments to % must be integer-numeric or bitvector types (got real)
 ResolutionErrors.dfy(997,19): Error: type of right argument to / (int) must agree with the result type (real)
@@ -150,19 +150,19 @@ ResolutionErrors.dfy(1089,21): Error: unresolved identifier: x
 ResolutionErrors.dfy(1092,21): Error: unresolved identifier: x
 ResolutionErrors.dfy(1099,35): Error: Wrong number of type arguments (2 instead of 1) passed to opaque type: P
 ResolutionErrors.dfy(1111,13): Error: Undeclared top-level type or type parameter: BX (did you forget to qualify a name or declare a module import 'opened'?)
-ResolutionErrors.dfy(1121,4): Error: RHS (of type P<int>) not assignable to LHS (of type P<bool>) (non-variant type parameter would require bool = int)
-ResolutionErrors.dfy(1126,4): Error: RHS (of type P<A>) not assignable to LHS (of type P<B>) (non-variant type parameter would require B = A)
-ResolutionErrors.dfy(1131,4): Error: RHS (of type P<A>) not assignable to LHS (of type P<int>) (non-variant type parameter would require int = A)
-ResolutionErrors.dfy(1132,4): Error: RHS (of type P<int>) not assignable to LHS (of type P<A>) (non-variant type parameter would require A = int)
+ResolutionErrors.dfy(1121,6): Error: RHS (of type P<int>) not assignable to LHS (of type P<bool>) (non-variant type parameter would require bool = int)
+ResolutionErrors.dfy(1126,6): Error: RHS (of type P<A>) not assignable to LHS (of type P<B>) (non-variant type parameter would require B = A)
+ResolutionErrors.dfy(1131,6): Error: RHS (of type P<A>) not assignable to LHS (of type P<int>) (non-variant type parameter would require int = A)
+ResolutionErrors.dfy(1132,6): Error: RHS (of type P<int>) not assignable to LHS (of type P<A>) (non-variant type parameter would require A = int)
 ResolutionErrors.dfy(1137,13): Error: arguments must have comparable types (got P<int> and P<X>)
 ResolutionErrors.dfy(1138,13): Error: arguments must have comparable types (got P<bool> and P<X>)
 ResolutionErrors.dfy(1139,13): Error: arguments must have comparable types (got P<int> and P<bool>)
-ResolutionErrors.dfy(1150,4): Error: new can be applied only to class types (got JJ)
+ResolutionErrors.dfy(1150,10): Error: new can be applied only to class types (got JJ)
 ResolutionErrors.dfy(1158,31): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references, but values of 'o' may contain references (see documentation for 'older' parameters)
 ResolutionErrors.dfy(1159,38): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references, but values of 'o' may contain references (see documentation for 'older' parameters)
 ResolutionErrors.dfy(1165,27): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'o'
 ResolutionErrors.dfy(1173,15): Error: arguments to / must be numeric or bitvector types (got set<bool>)
-ResolutionErrors.dfy(1180,4): Error: a call to a possibly non-terminating method is allowed only if the calling method is also declared (with 'decreases *') to be possibly non-terminating
+ResolutionErrors.dfy(1180,20): Error: a call to a possibly non-terminating method is allowed only if the calling method is also declared (with 'decreases *') to be possibly non-terminating
 ResolutionErrors.dfy(1195,16): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
 ResolutionErrors.dfy(1260,13): Error: type parameter 'PT' (inferred to be '?') in the function call to 'P' could not be determined
 ResolutionErrors.dfy(1261,14): Error: the type of this variable is underspecified
@@ -211,20 +211,20 @@ ResolutionErrors.dfy(1433,13): Error: type of RHS of assign-such-that statement 
 ResolutionErrors.dfy(1436,15): Error: type of left argument to + (int) must agree with the result type (bool)
 ResolutionErrors.dfy(1436,15): Error: type of right argument to + (int) must agree with the result type (bool)
 ResolutionErrors.dfy(1436,15): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
-ResolutionErrors.dfy(1479,10): Error: in a hint, calls are allowed only to lemmas
-ResolutionErrors.dfy(1488,10): Error: in a hint, calls are allowed only to lemmas
-ResolutionErrors.dfy(1501,10): Error: assignment to non-ghost field is not allowed in this context, because this is a ghost function
+ResolutionErrors.dfy(1479,20): Error: in a hint, calls are allowed only to lemmas
+ResolutionErrors.dfy(1488,24): Error: in a hint, calls are allowed only to lemmas
+ResolutionErrors.dfy(1501,18): Error: assignment to non-ghost field is not allowed in this context, because this is a ghost function
 ResolutionErrors.dfy(1502,10): Error: a hint is not allowed to make heap updates
-ResolutionErrors.dfy(1503,10): Error: in a hint, calls are allowed only to lemmas
+ResolutionErrors.dfy(1503,20): Error: in a hint, calls are allowed only to lemmas
 ResolutionErrors.dfy(1506,21): Error: a loop in a hint is not allowed to use 'modifies' clauses
-ResolutionErrors.dfy(1523,10): Error: in a hint, calls are allowed only to lemmas
-ResolutionErrors.dfy(1530,10): Error: assignment to non-ghost field is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+ResolutionErrors.dfy(1523,24): Error: in a hint, calls are allowed only to lemmas
+ResolutionErrors.dfy(1530,18): Error: assignment to non-ghost field is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
 ResolutionErrors.dfy(1531,10): Error: a hint is not allowed to make heap updates
-ResolutionErrors.dfy(1532,10): Error: in a hint, calls are allowed only to lemmas
+ResolutionErrors.dfy(1532,11): Error: in a hint, calls are allowed only to lemmas
 ResolutionErrors.dfy(1535,21): Error: a loop in a hint is not allowed to use 'modifies' clauses
-ResolutionErrors.dfy(1452,20): Error: in a hint, calls are allowed only to lemmas
-ResolutionErrors.dfy(1454,8): Error: in a hint, calls are allowed only to lemmas
-ResolutionErrors.dfy(1558,6): Error: in a statement expression, calls are allowed only to lemmas
+ResolutionErrors.dfy(1452,29): Error: in a hint, calls are allowed only to lemmas
+ResolutionErrors.dfy(1454,17): Error: in a hint, calls are allowed only to lemmas
+ResolutionErrors.dfy(1558,29): Error: in a statement expression, calls are allowed only to lemmas
 ResolutionErrors.dfy(1570,16): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
 ResolutionErrors.dfy(1588,12): Error: a 'break break break' statement is allowed only in contexts with 3 enclosing loops, but the current context only has 2
 ResolutionErrors.dfy(1600,20): Error: a ghost field is allowed only in specification contexts
@@ -237,14 +237,14 @@ ResolutionErrors.dfy(1647,10): Error: the type of the bound variable 't' could n
 ResolutionErrors.dfy(1647,10): Error: the type of the bound variable 't' could not be determined
 ResolutionErrors.dfy(1647,10): Error: the type of the bound variable 't' could not be determined
 ResolutionErrors.dfy(1665,15): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (x)
-ResolutionErrors.dfy(1667,6): Error: assignment to non-ghost field is not allowed in this context, because this is a ghost method
+ResolutionErrors.dfy(1667,10): Error: assignment to non-ghost field is not allowed in this context, because this is a ghost method
 ResolutionErrors.dfy(1692,15): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (x)
-ResolutionErrors.dfy(1694,23): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
-ResolutionErrors.dfy(1695,33): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+ResolutionErrors.dfy(1694,25): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+ResolutionErrors.dfy(1695,35): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
 ResolutionErrors.dfy(1705,4): Error: 'decreases *' is not allowed on ghost loops
-ResolutionErrors.dfy(1709,6): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+ResolutionErrors.dfy(1709,8): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
 ResolutionErrors.dfy(1719,4): Error: 'decreases *' is not allowed on ghost loops
-ResolutionErrors.dfy(1723,27): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+ResolutionErrors.dfy(1723,29): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
 ResolutionErrors.dfy(1731,21): Error: the type of the bound variable 'u' could not be determined
 ResolutionErrors.dfy(1732,23): Error: the type of the bound variable 'u' could not be determined
 ResolutionErrors.dfy(1735,27): Error: the type of the bound variable 'u' could not be determined
@@ -275,16 +275,16 @@ ResolutionErrors.dfy(1860,14): Error: in the first division of the constructor b
 ResolutionErrors.dfy(1891,15): Error: 'this' is not allowed in a 'static' context
 ResolutionErrors.dfy(1893,16): Error: 'this' is not allowed in a 'static' context
 ResolutionErrors.dfy(1909,8): Error: return statement is not allowed before 'new;' in a constructor
-ResolutionErrors.dfy(1935,4): Error: type parameter (G) passed to method P must support auto-initialization (got F) (perhaps try declaring type parameter 'F' on line 1928 as 'F(0)', which says it can only be instantiated with a type that supports auto-initialization)
-ResolutionErrors.dfy(1937,4): Error: type parameter (G) passed to method P must support auto-initialization (got Y) (perhaps try declaring opaque type 'Y' on line 1925 as 'Y(0)', which says it can only be instantiated with a type that supports auto-initialization)
-ResolutionErrors.dfy(1974,4): Error: type parameter (G) passed to method P must support auto-initialization (got SixOrMore)
-ResolutionErrors.dfy(1975,4): Error: type parameter (G) passed to method P must support auto-initialization (got AnotherSixOrMore)
-ResolutionErrors.dfy(1976,4): Error: type parameter (G) passed to method P must support auto-initialization (got MySixOrMore)
-ResolutionErrors.dfy(1977,4): Error: type parameter (G) passed to method P must support auto-initialization (got UnclearA)
-ResolutionErrors.dfy(1993,4): Error: type parameter (G) passed to method P must support auto-initialization (got SSixOrMore)
-ResolutionErrors.dfy(1994,4): Error: type parameter (G) passed to method P must support auto-initialization (got SAnotherSixOrMore)
-ResolutionErrors.dfy(1995,4): Error: type parameter (G) passed to method P must support auto-initialization (got SMySixOrMore)
-ResolutionErrors.dfy(1996,4): Error: type parameter (G) passed to method P must support auto-initialization (got SUnclearA)
+ResolutionErrors.dfy(1935,5): Error: type parameter (G) passed to method P must support auto-initialization (got F) (perhaps try declaring type parameter 'F' on line 1928 as 'F(0)', which says it can only be instantiated with a type that supports auto-initialization)
+ResolutionErrors.dfy(1937,5): Error: type parameter (G) passed to method P must support auto-initialization (got Y) (perhaps try declaring opaque type 'Y' on line 1925 as 'Y(0)', which says it can only be instantiated with a type that supports auto-initialization)
+ResolutionErrors.dfy(1974,5): Error: type parameter (G) passed to method P must support auto-initialization (got SixOrMore)
+ResolutionErrors.dfy(1975,5): Error: type parameter (G) passed to method P must support auto-initialization (got AnotherSixOrMore)
+ResolutionErrors.dfy(1976,5): Error: type parameter (G) passed to method P must support auto-initialization (got MySixOrMore)
+ResolutionErrors.dfy(1977,5): Error: type parameter (G) passed to method P must support auto-initialization (got UnclearA)
+ResolutionErrors.dfy(1993,17): Error: type parameter (G) passed to method P must support auto-initialization (got SSixOrMore)
+ResolutionErrors.dfy(1994,24): Error: type parameter (G) passed to method P must support auto-initialization (got SAnotherSixOrMore)
+ResolutionErrors.dfy(1995,19): Error: type parameter (G) passed to method P must support auto-initialization (got SMySixOrMore)
+ResolutionErrors.dfy(1996,16): Error: type parameter (G) passed to method P must support auto-initialization (got SUnclearA)
 ResolutionErrors.dfy(2026,7): Error: type 'B2', which does not support auto-initialization, is used to refine an opaque type that expects auto-initialization
 ResolutionErrors.dfy(2027,7): Error: type 'B3', which does not support auto-initialization, is used to refine an opaque type that expects auto-initialization
 ResolutionErrors.dfy(2031,7): Error: type 'C3', which may be empty, is used to refine an opaque type expected to be nonempty
@@ -296,7 +296,7 @@ ResolutionErrors.dfy(2056,7): Error: type declaration 'C0' is not allowed to cha
 ResolutionErrors.dfy(2057,7): Error: type declaration 'C1' is not allowed to change the requirement of supporting auto-initialization
 ResolutionErrors.dfy(2061,4): Error: type parameter 'Q' is not allowed to change the requirement of supporting auto-initialization
 ResolutionErrors.dfy(2064,4): Error: type parameter 'R' is not allowed to change the requirement of supporting auto-initialization
-ResolutionErrors.dfy(2047,4): Error: type parameter (G) passed to method P must support auto-initialization (got Z.XYZ)
+ResolutionErrors.dfy(2047,5): Error: type parameter (G) passed to method P must support auto-initialization (got Z.XYZ)
 ResolutionErrors.dfy(2110,33): Error: type of yield-parameter must support auto-initialization (got 'T')
 ResolutionErrors.dfy(2118,13): Error: a ghost function is allowed only in specification contexts
 ResolutionErrors.dfy(2132,8): Error: an ORDINAL type is not allowed to be used as a type argument
@@ -403,7 +403,7 @@ ResolutionErrors.dfy(2651,13): Error: no label 'FutureLabel' in scope at this ti
 ResolutionErrors.dfy(2541,11): Error: no label 'L' in scope at this time
 ResolutionErrors.dfy(2544,10): Error: label shadows a dominating label
 ResolutionErrors.dfy(2552,10): Error: label shadows a dominating label
-ResolutionErrors.dfy(2680,4): Error: type parameter (G) passed to method GimmieOne must support auto-initialization (got Yt<GW>)
+ResolutionErrors.dfy(2680,26): Error: type parameter (G) passed to method GimmieOne must support auto-initialization (got Yt<GW>)
 ResolutionErrors.dfy(2693,50): Error: type of the receiver is not fully determined at this program point
 ResolutionErrors.dfy(2719,11): Error: name of type (Cache) is used as a variable
 ResolutionErrors.dfy(2719,17): Error: incorrect type for selection into ? (got X)
@@ -439,15 +439,15 @@ ResolutionErrors.dfy(2916,13): Error: arguments must be of a set or multiset typ
 ResolutionErrors.dfy(2926,4): Error: expect statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
 ResolutionErrors.dfy(2932,11): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'i'
 ResolutionErrors.dfy(2933,21): Error: ghost variables such as g are allowed only in specification contexts. g was inferred to be ghost based on its declaration or initialization.
-ResolutionErrors.dfy(2944,6): Error: RHS (of type X) not assignable to LHS (of type X)
+ResolutionErrors.dfy(2944,15): Error: RHS (of type X) not assignable to LHS (of type X)
 ResolutionErrors.dfy(2948,10): Error: type of corresponding source/RHS (X) does not match type of bound variable (X)
 ResolutionErrors.dfy(2976,16): Error: sequence update requires the value to have the element type of the sequence (got Trait)
 ResolutionErrors.dfy(2980,11): Error: multiset update requires domain element to be of type Elem (got Trait)
 ResolutionErrors.dfy(2985,13): Error: map update requires domain element to be of type Elem (got Trait)
 ResolutionErrors.dfy(2987,18): Error: map update requires the value to have the range type Elem (got Trait)
-ResolutionErrors.dfy(3012,4): Error: type parameter (F) passed to method Q must support auto-initialization (got Y) (perhaps try declaring type parameter 'Y' on line 3007 as 'Y(0)', which says it can only be instantiated with a type that supports auto-initialization)
-ResolutionErrors.dfy(3015,4): Error: type parameter (F) passed to method Q must support auto-initialization (got Z) (perhaps try declaring type parameter 'Z' on line 3007 as 'Z(0)', which says it can only be instantiated with a type that supports auto-initialization)
-ResolutionErrors.dfy(3016,4): Error: type parameter (G) passed to method P must support nonempty (got Z) (perhaps try declaring type parameter 'Z' on line 3007 as 'Z(00)', which says it can only be instantiated with a nonempty type)
+ResolutionErrors.dfy(3012,5): Error: type parameter (F) passed to method Q must support auto-initialization (got Y) (perhaps try declaring type parameter 'Y' on line 3007 as 'Y(0)', which says it can only be instantiated with a type that supports auto-initialization)
+ResolutionErrors.dfy(3015,5): Error: type parameter (F) passed to method Q must support auto-initialization (got Z) (perhaps try declaring type parameter 'Z' on line 3007 as 'Z(0)', which says it can only be instantiated with a type that supports auto-initialization)
+ResolutionErrors.dfy(3016,5): Error: type parameter (G) passed to method P must support nonempty (got Z) (perhaps try declaring type parameter 'Z' on line 3007 as 'Z(00)', which says it can only be instantiated with a nonempty type)
 ResolutionErrors.dfy(3025,9): Error: type parameter (F) passed to function FQ must support auto-initialization (got Y) (perhaps try declaring type parameter 'Y' on line 3020 as 'Y(0)', which says it can only be instantiated with a type that supports auto-initialization)
 ResolutionErrors.dfy(3028,9): Error: type parameter (F) passed to function FQ must support auto-initialization (got Z) (perhaps try declaring type parameter 'Z' on line 3020 as 'Z(0)', which says it can only be instantiated with a type that supports auto-initialization)
 ResolutionErrors.dfy(3029,9): Error: type parameter (G) passed to function FP must support nonempty (got Z) (perhaps try declaring type parameter 'Z' on line 3020 as 'Z(00)', which says it can only be instantiated with a nonempty type)

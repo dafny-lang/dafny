@@ -16,13 +16,13 @@ TypeInstantiations.dfy(57,15): Error: type parameters are not allowed to be rena
 TypeInstantiations.dfy(34,11): Error: type 'C', which does not support equality, is used to refine an opaque type with equality support
 TypeInstantiations.dfy(35,7): Error: type 'D', which does not support equality, is used to refine an opaque type with equality support
 TypeInstantiations.dfy(48,7): Error: type 'N', which does not support equality, is used to refine an opaque type with equality support
-TypeInstantiations.dfy(69,4): Error: RHS (of type List<int>) not assignable to LHS (of type MyList.List<real>) (non-variant type parameter would require real = int)
+TypeInstantiations.dfy(69,29): Error: RHS (of type List<int>) not assignable to LHS (of type MyList.List<real>) (non-variant type parameter would require real = int)
 TypeInstantiations.dfy(81,8): Error: the type of this variable is underspecified
 TypeInstantiations.dfy(82,8): Error: the type of this variable is underspecified
-TypeInstantiations.dfy(96,4): Error: RHS (of type List<int>) not assignable to LHS (of type List<real>) (non-variant type parameter would require real = int)
+TypeInstantiations.dfy(96,22): Error: RHS (of type List<int>) not assignable to LHS (of type List<real>) (non-variant type parameter would require real = int)
 TypeInstantiations.dfy(108,8): Error: the type of this variable is underspecified
 TypeInstantiations.dfy(109,8): Error: the type of this variable is underspecified
-TypeInstantiations.dfy(127,4): Error: RHS (of type int) not assignable to LHS (of type C.Classic<real>)
+TypeInstantiations.dfy(127,27): Error: RHS (of type int) not assignable to LHS (of type C.Classic<real>)
 TypeInstantiations.dfy(137,8): Error: the type of this variable is underspecified
 TypeInstantiations.dfy(137,15): Error: type of type parameter could not be determined; please specify the type explicitly
 TypeInstantiations.dfy(137,23): Error: type parameter 'A' (inferred to be '?') in the function call to 'F' could not be determined

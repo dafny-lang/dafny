@@ -13,7 +13,7 @@ Coinductive.dfy(106,17): Error: a greatest predicate can be called recursively o
 Coinductive.dfy(116,24): Error: a greatest predicate can be called recursively only in positive positions
 Coinductive.dfy(122,15): Error: a greatest predicate can be called recursively only in positive positions
 Coinductive.dfy(123,10): Error: a greatest predicate can be called recursively only in positive positions
-Coinductive.dfy(148,5): Error: a recursive call from a greatest predicate can go only to other greatest predicates
+Coinductive.dfy(148,21): Error: a recursive call from a greatest predicate can go only to other greatest predicates
 Coinductive.dfy(204,8): Error: a least predicate can be called recursively only in positive positions
 Coinductive.dfy(205,8): Error: a least predicate can be called recursively only in positive positions
 Coinductive.dfy(206,8): Error: a least predicate can be called recursively only in positive positions
@@ -27,13 +27,13 @@ Coinductive.dfy(243,17): Error: a least predicate can be called recursively only
 Coinductive.dfy(253,12): Error: a least predicate can be called recursively only in positive positions
 Coinductive.dfy(259,15): Error: a least predicate can be called recursively only in positive positions
 Coinductive.dfy(260,10): Error: a least predicate can be called recursively only in positive positions
-Coinductive.dfy(280,5): Error: a recursive call from a least predicate can go only to other least predicates
+Coinductive.dfy(280,21): Error: a recursive call from a least predicate can go only to other least predicates
 Coinductive.dfy(296,4): Error: this call does not type check, because the context uses a _k parameter of type ORDINAL whereas the callee uses a _k parameter of type nat
 Coinductive.dfy(299,4): Error: this call does not type check, because the context uses a _k parameter of type nat whereas the callee uses a _k parameter of type ORDINAL
 Coinductive.dfy(307,13): Error: this call does not type check, because the context uses a _k parameter of type nat whereas the callee uses a _k parameter of type ORDINAL
 Coinductive.dfy(313,13): Error: this call does not type check, because the context uses a _k parameter of type ORDINAL whereas the callee uses a _k parameter of type nat
-Coinductive.dfy(323,4): Error: incorrect argument type at index 0 for prefix lemma in-parameter (expected nat, found ORDINAL)
-Coinductive.dfy(329,4): Error: incorrect argument type at index 0 for prefix lemma in-parameter (expected ORDINAL, found int)
+Coinductive.dfy(323,5): Error: incorrect argument type at index 0 for prefix lemma in-parameter (expected nat, found ORDINAL)
+Coinductive.dfy(329,5): Error: incorrect argument type at index 0 for prefix lemma in-parameter (expected ORDINAL, found int)
 Coinductive.dfy(355,19): Error: a greatest predicate can be called recursively only in positive positions and cannot sit inside an unbounded existential quantifier
 Coinductive.dfy(355,44): Error: a greatest predicate can be called recursively only in positive positions and cannot sit inside an unbounded existential quantifier
 Coinductive.dfy(358,19): Error: a greatest predicate can be called recursively only in positive positions and cannot sit inside an unbounded existential quantifier

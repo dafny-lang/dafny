@@ -1,3 +1,3 @@
 CallStmtTests.dfy(7,4): Error: LHS of assignment must denote a mutable variable
-CallStmtTests.dfy(20,4): Error: actual out-parameter is required to be a ghost variable
+CallStmtTests.dfy(20,11): Error: actual out-parameter is required to be a ghost variable
 2 resolution/type errors detected in CallStmtTests.dfy

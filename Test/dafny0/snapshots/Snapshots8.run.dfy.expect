@@ -2,10 +2,10 @@ Processing command (at Snapshots8.v0.dfy(2,37)) assert x#0 < 20 || LitInt(10) <=
   >>> DoNothingToAssert
 Processing command (at Snapshots8.v0.dfy(3,12)) assert x#0 < 10;
   >>> DoNothingToAssert
-Processing command (at Snapshots8.v0.dfy(4,3)) assert LitInt(0) <= call0formal#AT#y#0;
+Processing command (at Snapshots8.v0.dfy(4,8)) assert LitInt(0) <= call0formal#AT#y#0;
   >>> DoNothingToAssert
 Snapshots8.v0.dfy(3,11): Error: assertion might not hold
-Snapshots8.v0.dfy(4,2): Error: A precondition for this call might not hold.
+Snapshots8.v0.dfy(4,7): Error: A precondition for this call might not hold.
 Snapshots8.v0.dfy(8,13): Related location: This is the precondition that might not hold.
 Processing command (at Snapshots8.v0.dfy(13,13)) assert LitInt(2) <= z#0;
   >>> DoNothingToAssert
@@ -25,12 +25,12 @@ Processing command (at Snapshots8.v1.dfy(3,15)) assert x#0 < 20 || LitInt(10) <=
   >>> MarkAsFullyVerified
 Processing command (at Snapshots8.v1.dfy(5,17)) assert x#0 < 10;
   >>> RecycleError
-Processing command (at Snapshots8.v1.dfy(6,3)) assert LitInt(0) <= call0formal#AT#y#0;
+Processing command (at Snapshots8.v1.dfy(6,8)) assert LitInt(0) <= call0formal#AT#y#0;
   >>> RecycleError
 Processing command (at Snapshots8.v1.dfy(7,12)) assert x#0 == LitInt(7);
   >>> DoNothingToAssert
 Snapshots8.v1.dfy(5,16): Error: assertion might not hold
-Snapshots8.v1.dfy(6,2): Error: A precondition for this call might not hold.
+Snapshots8.v1.dfy(6,7): Error: A precondition for this call might not hold.
 Snapshots8.v1.dfy(12,20): Related location: This is the precondition that might not hold.
 Snapshots8.v1.dfy(7,11): Error: assertion might not hold
 Processing command (at Snapshots8.v1.dfy(23,12)) assert Lit(true);

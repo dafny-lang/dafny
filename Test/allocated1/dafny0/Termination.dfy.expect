@@ -1,5 +1,5 @@
 Termination.dfy(450,7): Warning: the ... refinement feature in statements is deprecated
-Termination.dfy[TerminationRefinement1](441,4): Error: decreases clause might not decrease
+Termination.dfy[TerminationRefinement1](441,5): Error: decreases clause might not decrease
 Termination.dfy(108,2): Error: cannot prove termination; try supplying a decreases clause for the loop
 Termination.dfy(125,2): Error: decreases expression might not decrease
 Termination.dfy(126,16): Error: decreases expression must be bounded below by 0 at end of loop iteration

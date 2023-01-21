@@ -13,8 +13,8 @@ ErrorsInRelatedModules.dfy(95,9): Error: not resolving module 'ClientOfErroneous
 ErrorsInRelatedModules.dfy(101,9): Error: not resolving module 'ClientOfErroneousModule2'3' because there were errors in resolving its import 'ModuleWithErrors'
 ErrorsInRelatedModules.dfy(106,9): Error: not resolving module 'ClientOfErroneousModule3' because there were errors in resolving its import 'ModuleWithErrors'
 ErrorsInRelatedModules.dfy(121,9): Error: not resolving module 'ClientOfErroneousModule3''' because there were errors in resolving its import 'ModuleWithErrors'
-ErrorsInRelatedModules.dfy(129,6): Error: RHS (of type bool) not assignable to LHS (of type int)
-ErrorsInRelatedModules.dfy(138,6): Error: RHS (of type bool) not assignable to LHS (of type int)
+ErrorsInRelatedModules.dfy(129,17): Error: RHS (of type bool) not assignable to LHS (of type int)
+ErrorsInRelatedModules.dfy(138,17): Error: RHS (of type bool) not assignable to LHS (of type int)
 ErrorsInRelatedModules.dfy(135,9): Error: not resolving module 'ClientOfErroneousModule5' because there were errors in resolving its import 'ModuleWithErrors'
 ErrorsInRelatedModules.dfy(151,8): Error: duplicate name of top-level declaration: EverythingHasTheSameName
 ErrorsInRelatedModules.dfy(152,11): Error: duplicate name of top-level declaration: EverythingHasTheSameName

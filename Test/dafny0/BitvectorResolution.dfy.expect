@@ -2,10 +2,10 @@ BitvectorResolution.dfy(9,13): Error: literal (5000) is too large for the bitvec
 BitvectorResolution.dfy(15,9): Error: literal (1) is too large for the bitvector type bv0
 BitvectorResolution.dfy(18,9): Error: literal (4294967296) is too large for the bitvector type bv32
 BitvectorResolution.dfy(24,12): Error: literal (1) is too large for the bitvector type bv0
-BitvectorResolution.dfy(35,4): Error: RHS (of type bv67) not assignable to LHS (of type int)
-BitvectorResolution.dfy(36,4): Error: RHS (of type bv67) not assignable to LHS (of type int)
-BitvectorResolution.dfy(38,4): Error: RHS (of type bv67) not assignable to LHS (of type int)
-BitvectorResolution.dfy(39,4): Error: RHS (of type bv67) not assignable to LHS (of type int)
+BitvectorResolution.dfy(35,6): Error: RHS (of type bv67) not assignable to LHS (of type int)
+BitvectorResolution.dfy(36,6): Error: RHS (of type bv67) not assignable to LHS (of type int)
+BitvectorResolution.dfy(38,6): Error: RHS (of type bv67) not assignable to LHS (of type int)
+BitvectorResolution.dfy(39,6): Error: RHS (of type bv67) not assignable to LHS (of type int)
 BitvectorResolution.dfy(40,15): Error: type of right argument to << (real) must be an integer-numeric or bitvector type
 BitvectorResolution.dfy(41,15): Error: type of right argument to << (SmallReal) must be an integer-numeric or bitvector type
 BitvectorResolution.dfy(42,25): Error: incorrect argument type for function parameter 'w' (expected nat, found real)

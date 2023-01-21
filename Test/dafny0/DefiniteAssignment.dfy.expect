@@ -1,9 +1,9 @@
-DefiniteAssignment.dfy(305,4): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-DefiniteAssignment.dfy(310,4): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-DefiniteAssignment.dfy(315,4): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-DefiniteAssignment.dfy(321,4): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-DefiniteAssignment.dfy(334,4): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-DefiniteAssignment.dfy(341,4): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+DefiniteAssignment.dfy(305,13): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+DefiniteAssignment.dfy(310,13): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+DefiniteAssignment.dfy(315,6): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+DefiniteAssignment.dfy(321,6): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+DefiniteAssignment.dfy(334,13): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+DefiniteAssignment.dfy(341,6): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 DefiniteAssignment.dfy(356,4): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 DefiniteAssignment.dfy(375,11): Error: field 'y', which is subject to definite-assignment rules, might be uninitialized here
 DefiniteAssignment.dfy(382,6): Error: field 'y', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
@@ -26,7 +26,7 @@ DefiniteAssignment.dfy(53,9): Error: variable 'z', which is subject to definite-
 DefiniteAssignment.dfy(61,15): Error: variable 'j', which is subject to definite-assignment rules, might be uninitialized here
 DefiniteAssignment.dfy(64,4): Error: out-parameter 'y', which is subject to definite-assignment rules, might be uninitialized at this return point
 DefiniteAssignment.dfy(68,0): Error: out-parameter 'z', which is subject to definite-assignment rules, might be uninitialized at this return point
-DefiniteAssignment.dfy(99,2): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+DefiniteAssignment.dfy(99,5): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 DefiniteAssignment.dfy(99,14): Error: variable 'e1', which is subject to definite-assignment rules, might be uninitialized here
 DefiniteAssignment.dfy(132,7): Error: variable 'b', which is subject to definite-assignment rules, might be uninitialized here
 DefiniteAssignment.dfy(133,0): Error: out-parameter 'g', which is subject to definite-assignment rules, might be uninitialized at this return point

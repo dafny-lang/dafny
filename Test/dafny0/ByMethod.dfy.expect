@@ -17,9 +17,9 @@ ByMethod.dfy(72,27): Related location: This is the postcondition that might not 
 ByMethod.dfy(93,11): Error: decreases clause might not decrease
 ByMethod.dfy(102,11): Error: decreases clause might not decrease
 ByMethod.dfy(111,11): Error: decreases clause might not decrease
-ByMethod.dfy(126,4): Error: cannot prove termination; try supplying a decreases clause
+ByMethod.dfy(126,10): Error: cannot prove termination; try supplying a decreases clause
 ByMethod.dfy(132,13): Error: cannot prove termination; try supplying a decreases clause
-ByMethod.dfy(148,4): Error: cannot prove termination; try supplying a decreases clause
+ByMethod.dfy(148,11): Error: cannot prove termination; try supplying a decreases clause
 ByMethod.dfy(152,13): Error: cannot prove termination; try supplying a decreases clause
 ByMethod.dfy(175,13): Error: decreases clause might not decrease
 

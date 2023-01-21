@@ -1,12 +1,12 @@
-Iterators.dfy(251,6): Error: decreases clause might not decrease
-Iterators.dfy(274,6): Error: decreases clause might not decrease
-Iterators.dfy(284,6): Error: decreases clause might not decrease
-Iterators.dfy(296,6): Error: cannot prove termination; try supplying a decreases clause
-Iterators.dfy(317,6): Error: cannot prove termination; try supplying a decreases clause
-Iterators.dfy(326,6): Error: cannot prove termination; try supplying a decreases clause
-Iterators.dfy(343,6): Error: decreases clause might not decrease
-Iterators.dfy(353,6): Error: cannot prove termination; try supplying a decreases clause
-Iterators.dfy(370,6): Error: decreases clause might not decrease
+Iterators.dfy(251,9): Error: decreases clause might not decrease
+Iterators.dfy(274,9): Error: decreases clause might not decrease
+Iterators.dfy(284,31): Error: decreases clause might not decrease
+Iterators.dfy(296,9): Error: cannot prove termination; try supplying a decreases clause
+Iterators.dfy(317,9): Error: cannot prove termination; try supplying a decreases clause
+Iterators.dfy(326,31): Error: cannot prove termination; try supplying a decreases clause
+Iterators.dfy(343,9): Error: decreases clause might not decrease
+Iterators.dfy(353,31): Error: cannot prove termination; try supplying a decreases clause
+Iterators.dfy(370,9): Error: decreases clause might not decrease
 Iterators.dfy(103,21): Error: assertion might not hold
 Iterators.dfy(106,13): Error: assertion might not hold
 Iterators.dfy(177,27): Error: assertion might not hold
@@ -26,12 +26,12 @@ Iterators.dfy(461,21): Error: This loop invariant might not be maintained by the
 Iterators.dfy(461,21): Related message: loop invariant violation
 Iterators.dfy(470,4): Error: possible violation of yield-ensures condition
 Iterators.dfy(451,21): Related location
-Iterators.dfy(40,4): Error: A precondition for this call might not hold.
+Iterators.dfy(40,21): Error: A precondition for this call might not hold.
 Iterators.dfy(4,9): Related location: This is the precondition that might not hold.
 Iterators.dfy(89,13): Error: assertion might not hold
 Iterators.dfy(119,15): Error: assertion might not hold
 Iterators.dfy(150,15): Error: assertion might not hold
-Iterators.dfy(155,2): Error: A precondition for this call might not hold.
+Iterators.dfy(155,23): Error: A precondition for this call might not hold.
 Iterators.dfy(125,9): Related location: This is the precondition that might not hold.
 Iterators.dfy(234,20): Error: assertion might not hold
 Iterators.dfy(413,16): Error: This loop invariant might not be maintained by the loop.

@@ -1,15 +1,15 @@
 
 Dafny program verifier finished with 0 verified, 0 errors
-[Program halted] ExpectAndExceptions.dfy(17,4): NatOutcome.NatFailure("Kaboom!")
+[Program halted] ExpectAndExceptions.dfy(17,19): NatOutcome.NatFailure("Kaboom!")
 
 Dafny program verifier finished with 0 verified, 0 errors
-[Program halted] ExpectAndExceptions.dfy(17,4): NatOutcome.NatFailure("Kaboom!")
+[Program halted] ExpectAndExceptions.dfy(17,19): NatOutcome.NatFailure("Kaboom!")
 
 Dafny program verifier finished with 0 verified, 0 errors
-[Program halted] ExpectAndExceptions.dfy(17,4): NatOutcome.NatFailure("Kaboom!")
+[Program halted] ExpectAndExceptions.dfy(17,19): NatOutcome.NatFailure("Kaboom!")
 
 Dafny program verifier finished with 0 verified, 0 errors
-[Program halted] ExpectAndExceptions.dfy(17,4): NatOutcome.NatFailure("Kaboom!")
+[Program halted] ExpectAndExceptions.dfy(17,19): NatOutcome.NatFailure("Kaboom!")
 
 Dafny program verifier finished with 0 verified, 0 errors
-[Program halted] ExpectAndExceptions.dfy(17,4): NatOutcome.NatFailure("Kaboom!")
+[Program halted] ExpectAndExceptions.dfy(17,19): NatOutcome.NatFailure("Kaboom!")

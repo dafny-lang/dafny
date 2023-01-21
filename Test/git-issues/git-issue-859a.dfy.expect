@@ -1,7 +1,7 @@
 git-issue-859a.dfy(28,2): Error: The Extract member may not be ghost unless the initial LHS is ghost
-git-issue-859a.dfy(28,2): Error: The IsFailure member may not be ghost (type FailureCompatible used in :- statement)
-git-issue-859a.dfy(28,2): Error: The PropagateFailure member may not be ghost (type FailureCompatible used in :- statement)
+git-issue-859a.dfy(28,4): Error: The IsFailure member may not be ghost (type FailureCompatible used in :- statement)
+git-issue-859a.dfy(28,4): Error: The PropagateFailure member may not be ghost (type FailureCompatible used in :- statement)
 git-issue-859a.dfy(33,2): Error: The Extract member may not be ghost unless the initial LHS is ghost
-git-issue-859a.dfy(44,2): Error: The IsFailure member may not be ghost (type FailureCompatible used in :- statement)
-git-issue-859a.dfy(44,2): Error: The PropagateFailure member may not be ghost (type FailureCompatible used in :- statement)
+git-issue-859a.dfy(44,9): Error: The IsFailure member may not be ghost (type FailureCompatible used in :- statement)
+git-issue-859a.dfy(44,9): Error: The PropagateFailure member may not be ghost (type FailureCompatible used in :- statement)
 6 resolution/type errors detected in git-issue-859a.dfy

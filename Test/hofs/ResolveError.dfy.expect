@@ -1,5 +1,5 @@
-ResolveError.dfy(7,2): Error: the number of left-hand sides (1) and right-hand sides (2) must match for a multi-assignment
-ResolveError.dfy(8,2): Error: the number of left-hand sides (1) and right-hand sides (2) must match for a multi-assignment
+ResolveError.dfy(7,9): Error: the number of left-hand sides (1) and right-hand sides (2) must match for a multi-assignment
+ResolveError.dfy(8,9): Error: the number of left-hand sides (1) and right-hand sides (2) must match for a multi-assignment
 ResolveError.dfy(21,6): Error: LHS of assignment must denote a mutable field
 ResolveError.dfy(32,12): Error: wrong number of arguments (function type 'int ~> int' expects 1, got 2)
 ResolveError.dfy(36,21): Error: wrong number of arguments (function 'requires' expects 1, got 2)
@@ -16,8 +16,8 @@ ResolveError.dfy(56,9): Error: condition is expected to be of type bool, but is 
 ResolveError.dfy(59,42): Error: type of 'null' is a reference type, but it is used as A -> B
 ResolveError.dfy(62,11): Error: arguments must have comparable types (got A -> B and object)
 ResolveError.dfy(68,24): Error: unresolved identifier: _
-ResolveError.dfy(86,4): Error: RHS (of type ((int, bool)) -> real) not assignable to LHS (of type (int, bool) -> real)
-ResolveError.dfy(101,4): Error: RHS (of type (()) -> real) not assignable to LHS (of type () -> real)
-ResolveError.dfy(102,4): Error: RHS (of type () -> real) not assignable to LHS (of type (()) -> real)
-ResolveError.dfy(91,4): Error: incorrect argument type at index 0 for method in-parameter 'r' (expected int -> ?, found (int, bool) -> real)
+ResolveError.dfy(86,6): Error: RHS (of type ((int, bool)) -> real) not assignable to LHS (of type (int, bool) -> real)
+ResolveError.dfy(101,6): Error: RHS (of type (()) -> real) not assignable to LHS (of type () -> real)
+ResolveError.dfy(102,6): Error: RHS (of type () -> real) not assignable to LHS (of type (()) -> real)
+ResolveError.dfy(91,15): Error: incorrect argument type at index 0 for method in-parameter 'r' (expected int -> ?, found (int, bool) -> real)
 22 resolution/type errors detected in ResolveError.dfy

@@ -734,11 +734,11 @@ Twostate-Resolution.dfy(184,21): Error: 'this' is not allowed in a 'static' cont
 Twostate-Resolution.dfy(165,31): Error: two-state function ('P') can only be called in a two-state context
 Twostate-Resolution.dfy(166,34): Error: two-state function ('Sp') can only be called in a two-state context
 Twostate-Resolution.dfy(167,7): Error: two-state function ('P') can only be called in a two-state context
-Twostate-Resolution.dfy(218,4): Error: two-state lemmas can only be used in two-state contexts
+Twostate-Resolution.dfy(218,6): Error: two-state lemmas can only be used in two-state contexts
 Twostate-Resolution.dfy(229,9): Error: a call to a twostate predicate is allowed only in specification contexts
 Twostate-Resolution.dfy(230,30): Error: a twostate predicate is allowed only in specification contexts
 Twostate-Resolution.dfy(242,26): Error: two-state function ('F') can only be called in a two-state context
-Twostate-Resolution.dfy(243,26): Error: two-state lemmas can only be used in two-state contexts
+Twostate-Resolution.dfy(243,27): Error: two-state lemmas can only be used in two-state contexts
 Twostate-Resolution.dfy(244,26): Error: unchanged expressions are not allowed in this context
 Twostate-Resolution.dfy(246,26): Error: fresh expressions are not allowed in this context
 Twostate-Resolution.dfy(248,26): Error: old expressions are not allowed in this context
@@ -767,7 +767,7 @@ Twostate-Resolution.dfy(502,18): Error: no label 'K' in scope at this time
 Twostate-Resolution.dfy(502,19): Error: a two-state function can only be revealed in a two-state context
 Twostate-Resolution.dfy(507,11): Error: to reveal a function (Opaque), append parentheses
 Twostate-Resolution.dfy(508,18): Error: no label 'K' in scope at this time
-Twostate-Resolution.dfy(515,4): Error: two-state lemmas can only be used in two-state contexts
+Twostate-Resolution.dfy(515,11): Error: two-state lemmas can only be used in two-state contexts
 Twostate-Resolution.dfy(535,22): Error: parameter 'a' of function P cannot be changed, compared to in the overridden function, from non-older to older
 Twostate-Resolution.dfy(536,16): Error: parameter 'a' of function Q cannot be changed, compared to in the overridden function, from older to non-older
 Twostate-Resolution.dfy(537,29): Error: parameter 'a' of function X cannot be changed, compared to in the overridden function, from non-new to new

@@ -4,7 +4,7 @@ CustomErrorMesage.dfy(15,2): Error: when calling foo, you must supply a positive
 CustomErrorMesage.dfy(19,71): Related location
 CustomErrorMesage.dfy(18,9): Error: A postcondition might not hold on this return path.
 CustomErrorMesage.dfy(20,85): Related location: cannot establish that return value of foo is always negative
-CustomErrorMesage.dfy(26,2): Error: A precondition for this call might not hold.
+CustomErrorMesage.dfy(26,14): Error: A precondition for this call might not hold.
 CustomErrorMesage.dfy(30,71): Related location: when calling bar, you must supply a positive x
 CustomErrorMesage.dfy(32,0): Error: A postcondition might not hold on this return path.
 CustomErrorMesage.dfy(31,85): Related location: cannot establish that return value of bar is always negative

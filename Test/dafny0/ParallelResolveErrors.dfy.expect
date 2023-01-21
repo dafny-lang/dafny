@@ -13,7 +13,7 @@ ParallelResolveErrors.dfy(280,10): Warning: the ... refinement feature in statem
 ParallelResolveErrors.dfy(281,13): Warning: the ... refinement feature in statements is deprecated
 ParallelResolveErrors.dfy(287,6): Warning: the modify statement with a block statement is deprecated
 ParallelResolveErrors.dfy(288,9): Warning: the ... refinement feature in statements is deprecated
-ParallelResolveErrors.dfy(26,6): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+ParallelResolveErrors.dfy(26,8): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
 ParallelResolveErrors.dfy(8,6): Error: a forall statement is not allowed to update a variable it doesn't declare
 ParallelResolveErrors.dfy(25,6): Error: a forall statement is not allowed to update a variable it doesn't declare
 ParallelResolveErrors.dfy(26,6): Error: a forall statement is not allowed to update a variable it doesn't declare
@@ -27,21 +27,21 @@ ParallelResolveErrors.dfy(73,24): Error: a 'break break' statement is allowed on
 ParallelResolveErrors.dfy(74,30): Error: break label is undefined or not in scope: OutsideLoop
 ParallelResolveErrors.dfy(85,26): Error: a 'break break' statement is allowed only in contexts with 2 enclosing loops, but the current context only has 1
 ParallelResolveErrors.dfy(86,32): Error: break label is undefined or not in scope: WhileOutsideForall
-ParallelResolveErrors.dfy(105,6): Error: assignment to non-ghost field is not allowed in this context, because this is a ghost method
+ParallelResolveErrors.dfy(105,11): Error: assignment to non-ghost field is not allowed in this context, because this is a ghost method
 ParallelResolveErrors.dfy(129,15): Error: a forall statement is not allowed to use 'new'
 ParallelResolveErrors.dfy(130,15): Error: a forall statement is not allowed to use 'new'
-ParallelResolveErrors.dfy(130,6): Error: in a forall statement, calls are allowed only to lemmas
+ParallelResolveErrors.dfy(130,21): Error: in a forall statement, calls are allowed only to lemmas
 ParallelResolveErrors.dfy(131,15): Error: a forall statement is not allowed to use 'new'
-ParallelResolveErrors.dfy(131,6): Error: in a forall statement, calls are allowed only to lemmas
+ParallelResolveErrors.dfy(131,21): Error: in a forall statement, calls are allowed only to lemmas
 ParallelResolveErrors.dfy(132,15): Error: a forall statement is not allowed to use 'new'
-ParallelResolveErrors.dfy(132,6): Error: in a forall statement, calls are allowed only to lemmas
-ParallelResolveErrors.dfy(133,6): Error: in a forall statement, calls are allowed only to lemmas
-ParallelResolveErrors.dfy(134,6): Error: in a forall statement, calls are allowed only to lemmas
+ParallelResolveErrors.dfy(132,21): Error: in a forall statement, calls are allowed only to lemmas
+ParallelResolveErrors.dfy(133,24): Error: in a forall statement, calls are allowed only to lemmas
+ParallelResolveErrors.dfy(134,22): Error: in a forall statement, calls are allowed only to lemmas
 ParallelResolveErrors.dfy(143,7): Error: cannot assign to array element in a ghost context
-ParallelResolveErrors.dfy(149,6): Error: in a forall statement, calls are allowed only to lemmas
-ParallelResolveErrors.dfy(154,6): Error: in a forall statement, calls are allowed only to lemmas
+ParallelResolveErrors.dfy(149,31): Error: in a forall statement, calls are allowed only to lemmas
+ParallelResolveErrors.dfy(154,31): Error: in a forall statement, calls are allowed only to lemmas
 ParallelResolveErrors.dfy(162,6): Error: print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
-ParallelResolveErrors.dfy(178,6): Error: in a forall statement, calls are allowed only to lemmas
+ParallelResolveErrors.dfy(178,12): Error: in a forall statement, calls are allowed only to lemmas
 ParallelResolveErrors.dfy(174,6): Error: a forall statement is not allowed to update a variable it doesn't declare
 ParallelResolveErrors.dfy(176,6): Error: a forall statement is not allowed to update a variable it doesn't declare
 ParallelResolveErrors.dfy(178,6): Error: a forall statement is not allowed to update a variable it doesn't declare

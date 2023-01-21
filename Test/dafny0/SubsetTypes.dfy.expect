@@ -2,8 +2,8 @@ SubsetTypes.dfy(7,18): Error: value does not satisfy the subset constraints of '
 SubsetTypes.dfy(8,9): Error: value does not satisfy the subset constraints of 'nat'
 SubsetTypes.dfy(10,23): Error: value does not satisfy the subset constraints of 'nat'
 SubsetTypes.dfy(11,9): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-SubsetTypes.dfy(15,4): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-SubsetTypes.dfy(16,4): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+SubsetTypes.dfy(15,15): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+SubsetTypes.dfy(16,6): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 SubsetTypes.dfy(19,11): Error: value does not satisfy the subset constraints of 'nat'
 SubsetTypes.dfy(21,15): Error: value does not satisfy the subset constraints of 'nat'
 SubsetTypes.dfy(23,8): Error: value does not satisfy the subset constraints of 'nat'
@@ -18,8 +18,8 @@ SubsetTypes.dfy(63,23): Error: value does not satisfy the subset constraints of 
 SubsetTypes.dfy(64,9): Error: value does not satisfy the subset constraints of 'set<nat>'
 SubsetTypes.dfy(66,28): Error: value does not satisfy the subset constraints of 'set<nat>'
 SubsetTypes.dfy(67,9): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-SubsetTypes.dfy(71,4): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-SubsetTypes.dfy(72,4): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+SubsetTypes.dfy(71,20): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+SubsetTypes.dfy(72,6): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 SubsetTypes.dfy(75,11): Error: value does not satisfy the subset constraints of 'set<nat>'
 SubsetTypes.dfy(77,15): Error: value does not satisfy the subset constraints of 'set<nat>'
 SubsetTypes.dfy(79,8): Error: value does not satisfy the subset constraints of 'set<nat>'
@@ -40,7 +40,7 @@ SubsetTypes.dfy(143,25): Error: value does not satisfy the subset constraints of
 SubsetTypes.dfy(144,25): Error: value does not satisfy the subset constraints of 'int ~> nat'
 SubsetTypes.dfy(157,25): Error: value does not satisfy the subset constraints of 'nat ~> nat'
 SubsetTypes.dfy(159,25): Error: value does not satisfy the subset constraints of 'nat ~> nat'
-SubsetTypes.dfy(169,4): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+SubsetTypes.dfy(169,20): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 SubsetTypes.dfy(182,11): Error: value does not satisfy the subset constraints of 'int ~> nat'
 SubsetTypes.dfy(199,25): Error: value of expression (of type 'Person?') is not known to be an instance of type 'Person', because it might be null
 SubsetTypes.dfy(204,23): Error: value of expression (of type 'Person?') is not known to be an instance of type 'Person', because it might be null
