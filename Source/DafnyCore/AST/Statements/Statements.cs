@@ -160,7 +160,7 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
       SubStatements.Concat<Node>(SubExpressions));
 }
 
-public class LList<T> { // TODO merge with SinglyLinkedList
+public class LList<T> {
   public readonly T Data;
   public readonly LList<T> Next;
 
