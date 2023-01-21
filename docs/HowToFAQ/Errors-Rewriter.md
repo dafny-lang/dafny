@@ -5,14 +5,18 @@
 
 ## **Warning: timeLimitMultiplier annotation overrides " + name + " annotation**
 
-```ddafny
+```dafny
 method {:timeLimitMultiplier 10} {:timeLimit 5} m() {}
 ```
 
 The {:timeLimitMultiplier n} attribute tells the prover to use a time limit that is the given number
 times the time limit otherwise specified by the options. The {:timeLimit n} attribute simply sets a new
 value for the time limit. It does not make sense to have both attributes on the same declaration. 
+<<<<<<< HEAD
 One or the other should be removed.
+=======
+One or the other should be removed. If they are both present, just the {:timeLimitMultiplier} is used.
+>>>>>>> cok-3181a
 
 <!-- ./DafnyCore/Rewriters/UselessOldLinter.cs -->
 
@@ -164,7 +168,11 @@ method {:test} m(i: int) returns (j: int, k: int)
 
 This error only occurs when using `dafny test`. That command executes all methods attributed
 with `{:test}`, but such test methods are limited to methods with only one output parameter.
+<<<<<<< HEAD
 This is purely an implementation limitation.
+=======
+This is purely an implementation limitation. (cf. [Issue 3387](https://github.com/dafny-lang/dafny/issues/3387))
+>>>>>>> cok-3181a
 
 
 <!-- ./DafnyCore/Resolver/ExpectContracts.cs-->
@@ -185,7 +193,11 @@ program as runtime checks, they cannot refer to any ghost variables.
  
 ## **Warning: Internal: no wrapper for _name_**
 
+<<<<<<< HEAD
 This message indicates a bug within dafny. Please report the program that
+=======
+This message indicates a bug within the `dafny` tool. Please report the program that
+>>>>>>> cok-3181a
 triggered the message to [the Github issues site](https://www.github.com/dafny-lang/dafny/issues).
 
 ## **Warning: No :test code calls _name_**
@@ -194,7 +206,11 @@ This warning indicates that some method marked with {:extern} is not called
 by any method marked with {:test}. The intention is to check coverage of
 the programmed unit tests. The warning only appears when using
 `/testContracts:TestedExterns` with the legacy CLI.
+<<<<<<< HEAD
 It is likely to be removed in a future version of dafny.
+=======
+It is likely to be removed in a future version of `dafny`.
+>>>>>>> cok-3181a
 
 <!-- ./DafnyCore/Resolver/PrintEffectEnforcement.cs-->
 
@@ -324,7 +340,11 @@ the option is disabled by default.
 
 ## **Error: to call a method with print effects, the enclosing _method_ must be marked with {:print}**
 
+<<<<<<< HEAD
 <!-- %check-resolve %options --track-print-effects
+=======
+<!-- %check-resolve %options --track-print-effects -->
+>>>>>>> cok-3181a
 ```dafny
 method m() { p(); }
 
@@ -341,4 +361,7 @@ This tracking of print statements (and thus the possibility of this error messag
 only happens when the `--track-print-effects` option is enabled;
 the option is disabled by default.
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> cok-3181a
