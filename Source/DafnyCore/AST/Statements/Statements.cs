@@ -8,7 +8,7 @@ using System.Security.Policy;
 namespace Microsoft.Dafny;
 
 public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
-  public IToken Tok => StartToken;
+  public override IToken Tok => StartToken;
 
   public LList<Label> Labels;  // mutable during resolution
 
@@ -343,12 +343,12 @@ public abstract class AssignmentRhs : TokenNode, IAttributeBearingDeclaration {
   }
 
   internal AssignmentRhs(Cloner cloner, AssignmentRhs original) {
-    Tok = cloner.Tok(original.tok);
+    tok = cloner.Tok(original.tok);
     Attributes = cloner.CloneAttributes(original.Attributes);
   }
 
   internal AssignmentRhs(IToken tok, Attributes attrs = null) {
-    Tok = tok;
+    this.tok = tok;
     Attributes = attrs;
   }
   public abstract bool CanAffectPreviouslyKnownExpressions { get; }
@@ -772,7 +772,7 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
     Contract.Invariant(OptionalType != null);
   }
 
-  public IToken Tok => RangeToken.StartToken;
+  public override IToken Tok => RangeToken.StartToken;
 
   public LocalVariable(Cloner cloner, LocalVariable original)
     : base(cloner, original) {
@@ -887,7 +887,7 @@ public class GuardedAlternative : TokenNode, IAttributeBearingDeclaration {
     Contract.Requires(guard != null);
     Contract.Requires(!isBindingGuard || (guard is ExistsExpr && ((ExistsExpr)guard).Range == null));
     Contract.Requires(body != null);
-    this.Tok = tok;
+    this.tok = tok;
     this.IsBindingGuard = isBindingGuard;
     this.Guard = guard;
     this.Body = body;
@@ -898,7 +898,7 @@ public class GuardedAlternative : TokenNode, IAttributeBearingDeclaration {
     Contract.Requires(guard != null);
     Contract.Requires(!isBindingGuard || (guard is ExistsExpr && ((ExistsExpr)guard).Range == null));
     Contract.Requires(body != null);
-    this.Tok = tok;
+    this.tok = tok;
     this.IsBindingGuard = isBindingGuard;
     this.Guard = guard;
     this.Body = body;

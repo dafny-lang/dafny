@@ -509,7 +509,7 @@ public class ExportSignature : TokenNode, IHasUsages {
     Contract.Requires(prefix != null);
     Contract.Requires(idTok != null);
     Contract.Requires(id != null);
-    Tok = idTok;
+    tok = idTok;
     ClassIdTok = prefixTok;
     ClassId = prefix;
     Id = id;
@@ -520,7 +520,7 @@ public class ExportSignature : TokenNode, IHasUsages {
   public ExportSignature(IToken idTok, string id, bool opaque) {
     Contract.Requires(idTok != null);
     Contract.Requires(id != null);
-    Tok = idTok;
+    tok = idTok;
     Id = id;
     Opaque = opaque;
     OwnedTokensCache = new List<IToken>() { Tok };

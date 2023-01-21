@@ -8,7 +8,7 @@ public abstract class NestedMatchCase : TokenNode {
   public NestedMatchCase(IToken tok, ExtendedPattern pat) {
     Contract.Requires(tok != null);
     Contract.Requires(pat != null);
-    this.Tok = tok;
+    this.tok = tok;
     this.Pat = pat;
   }
 

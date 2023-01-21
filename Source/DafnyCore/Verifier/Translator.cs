@@ -3351,11 +3351,7 @@ namespace Microsoft.Dafny {
     }
 
     internal IToken GetToken(Node node) {
-      return flags.ReportRanges ? node.RangeToken.ToToken() : node switch {
-        TokenNode tokenNode => tokenNode.Tok,
-        RangeNode rangeToken => rangeToken.StartToken,
-        _ => throw new cce.UnreachableException()
-      };
+      return flags.ReportRanges ? node.RangeToken.ToToken() : node.Tok;
     }
 
     void CheckDefiniteAssignment(IdentifierExpr expr, BoogieStmtListBuilder builder) {

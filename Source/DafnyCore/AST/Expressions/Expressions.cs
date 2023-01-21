@@ -2634,7 +2634,7 @@ public class AttributedExpression : TokenNode, IAttributeBearingDeclaration {
     E = e;
     Label = label;
     Attributes = attrs;
-    this.Tok = e.Tok;
+    this.tok = e.Tok;
   }
 
   public void AddCustomizedErrorMessage(IToken tok, string s) {

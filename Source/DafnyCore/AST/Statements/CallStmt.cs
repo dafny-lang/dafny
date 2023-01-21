@@ -8,6 +8,9 @@ namespace Microsoft.Dafny;
 /// A CallStmt is always resolved.  It is typically produced as a resolved counterpart of the syntactic AST note ApplySuffix.
 /// </summary>
 public class CallStmt : Statement, ICloneable<CallStmt> {
+  public override IToken Tok => 
+    MethodSelect.EndToken.Next;
+
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(MethodSelect.Member is Method);

@@ -16,9 +16,8 @@ public abstract class TokenNode : Node {
 
   public IToken tok = Token.NoToken;
   [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-  public IToken Tok {
+  public override IToken Tok {
     get => tok;
-    set => tok = value;
   }
 
   protected RangeToken rangeToken = null;
@@ -95,6 +94,8 @@ public abstract class RangeNode : Node {
 
 public abstract class Node : INode {
 
+  public abstract IToken Tok { get; }
+  
   /// <summary>
   /// These children should be such that they contain information produced by resolution such as inferred types
   /// and resolved references. However, they should not be so transformed that source location from the initial
