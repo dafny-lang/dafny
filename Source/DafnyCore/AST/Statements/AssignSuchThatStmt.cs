@@ -8,6 +8,8 @@ public class AssignSuchThatStmt : ConcreteUpdateStatement, ICloneable<AssignSuch
   public readonly Expression Expr;
   public readonly AttributedToken AssumeToken;
 
+  public override IToken Tok => Expr.StartToken.Prev;
+
   [FilledInDuringResolution] public List<ComprehensionExpr.BoundedPool> Bounds;  // null for a ghost statement
   // invariant Bounds == null || Bounds.Count == BoundVars.Count;
   [FilledInDuringResolution] public List<IVariable> MissingBounds;  // remains "null" if bounds can be found
