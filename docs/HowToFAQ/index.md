@@ -34,8 +34,8 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["Why do nested modules not see the imports of their enclosing modules?"](FAQModuleImport)
 - ["Is there a way to test that two types are the same?"](FAQTypeCompare)
 - ["When a lemma has multiple ensures clauses, I’m finding that they interact, when I expected them to be independent.  For example, commenting out one of them can make another one not verify.  How should I think about this?"](FAQMultClauses)
-
 - ["What is the difference between a lemma and a ghost method?"](FAQGhostMethod)
+
 - ["In an invariant, I want to say that once a boolean variable that starts false is set to true, it remains true forever.  Can I use old for this?"](FAQOld)
 - ["When proving an iff (<==>), is there a nice way to prove this by proving each side of the implication separately without making 2 different lemmas?"](FAQIff)
 - ["Is there a way to do partial application for functions?"](FAQCurry)
@@ -46,6 +46,7 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["Is there a way to prevent 'Warning: note, this forall statement has no body' from occurring? I have a forall loop with no body that results in the lemma verifying, but if I add a body (even an empty body) the lemma doesn't verify."](FAQNoBody)
 - ["Is there a way to disable termination checks for recursive predicate definitions that I know to be logically consistent?"](FAQTermination)
 - ["Is there a way to specify that all fields of an object, except a given one, don’t change?"](FAQModifiesOne)
+
 - ["How do labels in preconditions work?"](FAQPreconditionLabels)
 - ["Where are attributes documented?"](FAQAttribute)
 - ["Is there a way to ask Dafny to die on its first verification failure?"](FAQDie)
@@ -56,6 +57,7 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["What is the meaning of and differences among `->`, `-->`, `~>`?"](FAQFunctionTypes)
 - ["What is the difference between `function`, `method`, `function method`, and `function by method`?"](FAQFunctionMethodDiffs)
 - ["Is it possible to restrict a type parameter to be a reference type? I see you can use T(!new) but I’m looking for the opposite."](FAQTypeParameterRestriction)
+
 - ["A `seq` is an object reference, right?"](FAQReferences)
 - ["How do I pattern match against a head and tail of a sequence or against a set?"](FAQMatchOnSet)
 - ["How do I create a new empty map (or set or sequence)?"](FAQMepSetSeq)
@@ -66,6 +68,7 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["Why does Dafny complain about this use of a set constructor: `set i: int | Contains(i)`?"](FAQSetConstructor)
 - ["What's the syntax for paths in include directives? How do they get resolved?"](FAQIncludes)
 - ["How do `{:split_here}` and `{:focus}` work to divide up a proof?"](FAQSplitHere)
+
 - ["How does one declare a type to have a default initial value, say a type tagged with {:extern}?'](FAQDefaultInitialValue)
 - ["A module A has names from an `import opened` or another module B, but if C imports A, it does not get those names. Please explain."](FAQImportOpened)
 - ["Are there functional alternatives to recursive calls that are more efficient or use less stack space?"](FAQRecursiveCalls)
@@ -76,6 +79,7 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["Can it be proved that a class instance is not an instance of a trait?"](FAQTypeReasoning)
 - ["Is there a nice way to turn a set into a seq?"](FAQSetToSeq)
 - ["How do I declare a default value for a parameter of a method or function?"](FAQDefaultParameter)
+
 - ["I just realized that a function I was compiling had a type-error inside a match case.  Instead of giving a compile error I was getting a redundant clause warning for the second case. What is the reason for this?"](FAQRedundantCase)
 - ["Is there a way I can pass a variable with a generic type to a method with a concrete type?"](FAQ_GenericType)
 - ["How can ghost code call methods with side effects?"](FAQGhostSideEffects)
@@ -95,10 +99,12 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["Is there a standard library for Dafny?"](FAQStandardLibrary)
 - ["Why do I need to use an old Z3?"](FAQZ3)
 - ["How do I ask a question or file a problem report or make a suggestion about Dafny?"](FAQIssues)
+
 - ["Any plans to release the language server as a NuGet package? Seems like it’s not part of the Dafny release."](FAQNuget)
 - ["What compiler target languages are in development?"](FAQCompileTargets)
 
 # Errors
+Also see [the error catalog](./Errors) for a complete, searchable list of error messages with explanations.
 
 - ["'z3' cannot be opened because the developer cannot be verified."](ERROR_Z3)
 - ["rbrace expected"](ERROR_Rbrace)
@@ -110,6 +116,7 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["possible violation of function precondition for op(v)"](ERROR_FunctionPrecondition)
 - ["type ? does not have a member IsFailure"](ERROR_IsFailure)
 - ["value does not satisfy subset constraints of ?"](ERROR_Covariance)
+
 - ["function precondition might not hold"](ERROR_SeqComp)
 - ["insufficient reads clause to invoke function"](ERROR_InsufficientReads)
 - ["Cannot export mutable field 'x' without revealing its enclosing class 'A'"](ERROR_MutableField)
