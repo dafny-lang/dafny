@@ -231,14 +231,11 @@ so they too must have bodies.
 
 ## **Error: _kind_ '_name_' is marked as :handle, so all the traits it extends must be marked as :handle as well: _trait_**
 
-<!-- TODO -->
-_The documentation of the {:handle} attribute is in progress._
+The `{:handle}` attribute is no longer supported.
 
 ## **Error: _kind '_name_' is marked as :handle, so all its non-static members must be ghost: _trait_**
 
-<!-- TODO -->
-_The documentation of the {:handle} attribute is in progress._
-
+The `{:handle}` attribute is no longer supported.
 
 ## **Error: an assume statement without an {:axiom} attribute cannot be compiled**
 
@@ -467,8 +464,7 @@ _The documentation of this problem is in progress._
 
 ## **Error: Comparison of a handle can only be with another handle**
 
-<!-- TODO -->
-_The documentation of the {:handle} attribute is in progress._
+The `{:handle}` attribute is no longer supported.
 
 <!-- DafnyCore/Compilers/Synthesizer-Csharp.cs -->
 
