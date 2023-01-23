@@ -12,10 +12,10 @@ public class AssumeStmt : PredicateStmt, ICloneable<AssumeStmt> {
   public AssumeStmt(Cloner cloner, AssumeStmt original) : base(cloner, original) {
   }
 
-  public AssumeStmt(IToken tok, IToken endTok, Expression expr, Attributes attrs)
-    : base(tok, endTok, expr, attrs) {
+  public AssumeStmt(IToken tok, RangeToken rangeToken, Expression expr, Attributes attrs)
+    : base(tok, rangeToken, expr, attrs) {
     Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+    Contract.Requires(rangeToken != null);
     Contract.Requires(expr != null);
   }
   public override IEnumerable<Expression> SpecificationSubExpressions {

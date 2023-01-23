@@ -26,10 +26,10 @@ public class IfStmt : Statement, ICloneable<IfStmt> {
     Els = cloner.CloneStmt(original.Els);
   }
 
-  public IfStmt(IToken tok, IToken endTok, bool isBindingGuard, Expression guard, BlockStmt thn, Statement els)
-    : base(tok, endTok) {
+  public IfStmt(IToken tok, RangeToken rangeToken, bool isBindingGuard, Expression guard, BlockStmt thn, Statement els)
+    : base(tok, rangeToken) {
     Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+    Contract.Requires(rangeToken != null);
     Contract.Requires(!isBindingGuard || (guard is ExistsExpr && ((ExistsExpr)guard).Range == null));
     Contract.Requires(thn != null);
     Contract.Requires(els == null || els is BlockStmt || els is IfStmt || els is SkeletonStatement);
@@ -38,10 +38,10 @@ public class IfStmt : Statement, ICloneable<IfStmt> {
     this.Thn = thn;
     this.Els = els;
   }
-  public IfStmt(IToken tok, IToken endTok, bool isBindingGuard, Expression guard, BlockStmt thn, Statement els, Attributes attrs)
-    : base(tok, endTok, attrs) {
+  public IfStmt(IToken tok, RangeToken rangeToken, bool isBindingGuard, Expression guard, BlockStmt thn, Statement els, Attributes attrs)
+    : base(tok, rangeToken, attrs) {
     Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+    Contract.Requires(rangeToken != null);
     Contract.Requires(!isBindingGuard || (guard is ExistsExpr && ((ExistsExpr)guard).Range == null));
     Contract.Requires(thn != null);
     Contract.Requires(els == null || els is BlockStmt || els is IfStmt || els is SkeletonStatement);
