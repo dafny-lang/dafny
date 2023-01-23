@@ -1,6 +1,6 @@
 TypeConstraints.dfy(42,6): Error: RHS (of type int) not assignable to LHS (of type bool)
 TypeConstraints.dfy(49,6): Error: RHS (of type int) not assignable to LHS (of type bool)
-TypeConstraints.dfy(56,9): Error: RHS (of type int) not assignable to LHS (of type bool)
+TypeConstraints.dfy(56,13): Error: RHS (of type int) not assignable to LHS (of type bool)
 TypeConstraints.dfy(65,6): Error: RHS (of type bool) not assignable to LHS (of type int)
 TypeConstraints.dfy(80,6): Error: RHS (of type MyInt) not assignable to LHS (of type int)
 TypeConstraints.dfy(81,6): Error: RHS (of type int) not assignable to LHS (of type MyInt)
