@@ -19,6 +19,7 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["Can datatypes extend traits?"](FAQTraitsForDatatypes)
 - ["What is the difference between a type and a newtype?"](FAQNewtype)
 - ["Why can compiled modules contain but not import abstract modules?"](FAQImportAbstractModule)
+
 - ["Why does Dafny need an obvious assert?"](FAQNeedsAssert)
 - ["Why do I need a witness clause when I define a subset type or newtype?"](FAQWitness)
 - ["Can I access the members of an outer module from its inner module?"](FAQNestedModule)
@@ -30,6 +31,7 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["I can assert a condition right before a return, so why does the postcondition fail to verify?](FAQFailingPost)
 - ["How can I combine sequences of different types?"](FAQSeqTrait)
 - ["How do I disambiguate module names?](FAQModuleNames)
+
 - ["A function seems to work just once. How do I get it to apply a bunch of times?"](FAQFunctionUnroll)
 - ["Why do nested modules not see the imports of their enclosing modules?"](FAQModuleImport)
 - ["Is there a way to test that two types are the same?"](FAQTypeCompare)
@@ -41,6 +43,7 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["Is there a way to do partial application for functions?"](FAQCurry)
 - ["Why can a ghost const not be used as a witness? Does the compiler need to use the witness as an initial value?"](FAQGhostConstAsWitness)
 - ["How do I use forall statements and expressions in a lemma?"](FAQForall)
+
 - ["Is there any difference between a method without a modifies clause and a function method with a reads this clause?  I know that the latter you can use in expressions, but otherwise.  Is there anything the former can do that the latter can’t, for example?"](FAQFunctionMethod)
 - ["Dafny doesn’t like when a type and a module have the same name. How can I fix this?"](FAQNameConflict)
 - ["Is there a way to prevent 'Warning: note, this forall statement has no body' from occurring? I have a forall loop with no body that results in the lemma verifying, but if I add a body (even an empty body) the lemma doesn't verify."](FAQNoBody)
@@ -52,6 +55,7 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["Is there a way to ask Dafny to die on its first verification failure?"](FAQDie)
 - ["I can define a trait with some type parameters say trait `Test<A, B, C>`. When I use this trait is there a way to get Dafny to infer these types for me?"](FAQTypeInference)
 - ["Does Dafny have monadic error handling?"](FAQMonadic)
+
 - ["What is the `:-` operator?"](FAQElephant)
 - ["How does `:-` work? I'm getting an unexpected failure."](FAQElephant)
 - ["What is the meaning of and differences among `->`, `-->`, `~>`?"](FAQFunctionTypes)
@@ -63,6 +67,7 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["How do I create a new empty map (or set or sequence)?"](FAQMepSetSeq)
 - ["I have a module that exports a bunch of things. In another module I only need to use 1 thing. Is there a way to import only the thing that I want?"](FAQImportOneThing)
 - ["What is the difference between `modifies this`, `modifies this.x`, and ``modifies this`x``?](FAQModifiesThis)
+
 - ["How does one define a record?"](FAQRecord)
 - ["What does `forall v :: v in vals ==> false` evaluate to if vals is non-empty?"](FAQTriggers)
 - ["Why does Dafny complain about this use of a set constructor: `set i: int | Contains(i)`?"](FAQSetConstructor)
@@ -74,6 +79,7 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["Are there functional alternatives to recursive calls that are more efficient or use less stack space?"](FAQRecursiveCalls)
 - ["How do I read a file as a string?"](FAQReadFile)
 - ["Can I ask dafny to not check termination of a function?"](FAQNoTermCheck)
+
 - ["What does {:termination false} do on trait? It looks like it is required if I want to extend traits from other modules."](FAQTerminationFalse)
 - ["How do I make Dafny termination checking happy with this pattern of mutual recursion?"](FAQMutualRecursion)
 - ["Can it be proved that a class instance is not an instance of a trait?"](FAQTypeReasoning)
@@ -85,6 +91,7 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["How can ghost code call methods with side effects?"](FAQGhostSideEffects)
 - ["How do I create and use an iterator?](FAQIterator)
 - ["Can classes appear in specs?"](FAQClassInSpec)
+
 - ["How do I write specifications for a lambda expression in a sequence constructor?"](FAQLambdaSpecifications)
 
 ## Dafny tools
@@ -94,6 +101,7 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["How do I run boogie manually on the Dafny output?](FAQBoogie)
 - ["Does Dafny verify methods in parallel?"](FAQParallel)
 - ["Is there a doc generator for Dafny?"](FAQDocGenerator)
+
 - ["How can I improve automation and performance for programs with non-linear arithmetic?"](FAQNonlinearArith)
 - ["It looks like, when compiling to C#, my print statements don't show up if I don't have \n at the end of the string."](FAQNewline)
 - ["Is there a standard library for Dafny?"](FAQStandardLibrary)
@@ -111,6 +119,7 @@ Also see [the error catalog](./Errors) for a complete, searchable list of error 
 - ["closeparen expected"](ERROR_CloseParen)
 - ["cannot establish the existence of LHS values that satisfy the such-that predicate"](ERROR_NoLHS)
 - ["type parameter 0 (K) passed to type A must support no references"](ERROR_NoReferenceTypeParameter)
+
 - ["a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got map<int, A>)"](ERROR_ModifiesValue)
 - ["name of datatype (String) is used as a function"](ERROR_DataTypeName)
 - ["possible violation of function precondition for op(v)"](ERROR_FunctionPrecondition)
@@ -123,6 +132,7 @@ Also see [the error catalog](./Errors) for a complete, searchable list of error 
 - ["this symbol not expected in Dafny"](ERROR_PostconditionLemma)
 - [Prover error: Unexpected prover response (getting info about 'unknown' response): (:reason-unknown "Overflow encountered when expanding old_vector")](ERROR_ProverError1)
 - ["Warning: File contains no code: ..."](ERROR_NoCode)
+
 - ["Duplicate name of import: ..."](ERROR_DuplicateImportName)
 - ["Warning: /!\ No terms found to trigger on."](ERROR_NoTriggers)
 - ["Error: value does not satisfy the subset constraints of '(seq<uint8>, Materials.EncryptedDataKey) -> seq<uint8>' (possible cause: it may be partial or have read effects)"](ERROR_SubsetConstraints)
