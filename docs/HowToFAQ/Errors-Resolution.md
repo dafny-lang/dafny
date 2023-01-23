@@ -97,7 +97,7 @@ method m(i: int) returns (r: D){
 }
 ```
 
-A datatype can have a mix of non-ghot and ghost constructors, but the ghost constructors
+A datatype can have a mix of non-ghost and ghost constructors, but the ghost constructors
 may only be used in ghost contexts.
 For example, a ghost constructor cannot be assigned to a non-ghost out-parameter
 or used in the then- or else-branch of a non-ghost if statment.
@@ -190,7 +190,17 @@ enough hints to construct a compiled version of the program.
 
 ## **Error: match expression is not compilable, because it depends on a ghost constructor**
 
-<!-- TODO cf. issue 3389 -->
+```dafny
+datatype D = A | ghost B
+method m(dd: D) 
+{
+  print match dd { case A => 0 case B => 1 };
+}
+```
+
+If one of the cases in a match expression uses a ghost constructor, then the whole
+match expression is ghost. That match expression cannot then be used in a compiled
+context, such as a print statement.
 
 <!-- ./DafnyCore/Resolver/NameResolutionAndTypeInference.cs -->
 
@@ -1234,7 +1244,7 @@ method m() returns (a: A)
 }
 ```
 
-Classes may have ghost constructors alog with regular, non-ghost constructors.
+Classes may have ghost constructors along with regular, non-ghost constructors.
 However, ghost constructors may only be called in ghost context, including that
 the newly allocated object be assigned to a ghost location (such as a ghost variable). 
 
