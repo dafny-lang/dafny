@@ -1960,7 +1960,7 @@ function method Firsts0(cs: seq<C>): seq<int> {
 }
 ```
 
-and the reads complaint by a `reads` clause that states what objects will be read.
+and the reads complaint by a `reads` clause that states which objects will be read.
 In this case, it is the objects `cs[i]` that have their `p` field read.
 If the element type of `cs` were a value type instead of a reference type, this
 `reads` clause would be unnneccessary.
