@@ -2,9 +2,7 @@ Should succeed
 
 Dafny program verifier finished with 1 verified, 0 errors
 Should fail
-b.dfy(1,24): Error: assertion violation
-Execution trace:
-    (0,0): anon0
+b.dfy(1,24): Error: assertion might not hold
 
 Dafny program verifier finished with 0 verified, 1 error
 Compiling on C#
