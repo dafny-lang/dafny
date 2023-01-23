@@ -120,11 +120,11 @@ public abstract class TokenWrapper : IToken {
   }
   public int kind {
     get { return WrappedToken.kind; }
-    set { throw new NotSupportedException(); }
+    set { WrappedToken.kind = value; }
   }
   public int line {
     get { return WrappedToken.line; }
-    set { throw new NotSupportedException(); }
+    set { WrappedToken.line = value; }
   }
   public int pos {
     get { return WrappedToken.pos; }
