@@ -81,6 +81,7 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["How can ghost code call methods with side effects?"](FAQGhostSideEffects)
 - ["How do I create and use an iterator?](FAQIterator)
 - ["Can classes appear in specs?"](FAQClassInSpec)
+- ["How do I write specifications for a lambda expression in a sequence constructor?"](FAQLambdaSpecifications)
 
 ## Dafny tools
 
