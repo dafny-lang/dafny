@@ -12,7 +12,7 @@ public class AssignStmt : Statement, ICloneable<AssignStmt> {
     Contract.Invariant(Rhs != null);
   }
 
-  public override IEnumerable<INode> Children => new INode[] { Lhs, Rhs };
+  public override IEnumerable<Node> Children => new Node[] { Lhs, Rhs };
 
   public AssignStmt Clone(Cloner cloner) {
     return new AssignStmt(cloner, this);
@@ -23,10 +23,10 @@ public class AssignStmt : Statement, ICloneable<AssignStmt> {
     Rhs = cloner.CloneRHS(original.Rhs);
   }
 
-  public AssignStmt(IToken tok, IToken endTok, Expression lhs, AssignmentRhs rhs)
-    : base(tok, endTok) {
+  public AssignStmt(IToken tok, RangeToken rangeToken, Expression lhs, AssignmentRhs rhs)
+    : base(tok, rangeToken) {
     Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+    Contract.Requires(rangeToken != null);
     Contract.Requires(lhs != null);
     Contract.Requires(rhs != null);
     this.Lhs = lhs;

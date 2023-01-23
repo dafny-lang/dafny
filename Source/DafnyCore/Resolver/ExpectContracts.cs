@@ -46,7 +46,7 @@ public class ExpectContracts : IRewriter {
       msg += " (not compiled because it references ghost state)";
     }
     var msgExpr = Expression.CreateStringLiteral(tok, msg);
-    return new ExpectStmt(tok, expr.E.EndToken, exprToCheck, msgExpr, null);
+    return new ExpectStmt(tok, expr.E.RangeToken, exprToCheck, msgExpr, null);
   }
 
   /// <summary>
@@ -66,7 +66,7 @@ public class ExpectContracts : IRewriter {
       CreateContractExpectStatement(ens, "ensures"));
     var callStmtList = new List<Statement>() { callStmt };
     var bodyStatements = expectRequiresStmts.Concat(callStmtList).Concat(expectEnsuresStmts);
-    return new BlockStmt(callStmt.Tok, callStmt.EndTok, bodyStatements.ToList());
+    return new BlockStmt(callStmt.Tok, callStmt.RangeToken, bodyStatements.ToList());
   }
 
   private bool ShouldGenerateWrapper(MemberDecl decl) {
@@ -97,7 +97,7 @@ public class ExpectContracts : IRewriter {
       var outs = newMethod.Outs.Select(Expression.CreateIdentExpr).ToList();
       var applyExpr = ApplySuffix.MakeRawApplySuffix(tok, origMethod.Name, args);
       var applyRhs = new ExprRhs(applyExpr);
-      var callStmt = new UpdateStmt(tok, tok, outs, new List<AssignmentRhs>() { applyRhs });
+      var callStmt = new UpdateStmt(tok, decl.RangeToken, outs, new List<AssignmentRhs>() { applyRhs });
 
       var body = MakeContractCheckingBody(origMethod.Req, origMethod.Ens, callStmt);
       newMethod.Body = body;
@@ -111,7 +111,7 @@ public class ExpectContracts : IRewriter {
       newFunc.Body = callExpr;
 
       var localName = origFunc.Result?.Name ?? "__result";
-      var local = new LocalVariable(tok, tok, localName, origFunc.ResultType, false);
+      var local = new LocalVariable(tok, decl.RangeToken, localName, origFunc.ResultType, false);
       var localExpr = new IdentifierExpr(tok, localName);
       var callRhs = new ExprRhs(callExpr);
 
@@ -120,13 +120,13 @@ public class ExpectContracts : IRewriter {
       var rhss = new List<AssignmentRhs> { callRhs };
 
       Statement callStmt = origFunc.Result?.Name is null
-        ? new VarDeclStmt(tok, tok, locs, new UpdateStmt(tok, tok, lhss, rhss))
-        : new UpdateStmt(tok, tok, lhss, rhss);
+        ? new VarDeclStmt(tok, decl.RangeToken, locs, new UpdateStmt(tok, decl.RangeToken, lhss, rhss))
+        : new UpdateStmt(tok, decl.RangeToken, lhss, rhss);
 
       var body = MakeContractCheckingBody(origFunc.Req, origFunc.Ens, callStmt);
 
       if (origFunc.Result?.Name is null) {
-        body.AppendStmt(new ReturnStmt(tok, tok, new List<AssignmentRhs> { new ExprRhs(localExpr) }));
+        body.AppendStmt(new ReturnStmt(tok, decl.RangeToken, new List<AssignmentRhs> { new ExprRhs(localExpr) }));
       }
       newFunc.ByMethodBody = body;
       newDecl = newFunc;

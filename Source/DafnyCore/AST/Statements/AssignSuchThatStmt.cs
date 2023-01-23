@@ -20,7 +20,7 @@ public class AssignSuchThatStmt : ConcreteUpdateStatement, ICloneable<AssignSuch
     }
   }
 
-  public override IEnumerable<INode> Children => Lhss.Concat<INode>(new[] { Expr });
+  public override IEnumerable<Node> Children => Lhss.Concat<Node>(new[] { Expr });
 
   public AssignSuchThatStmt Clone(Cloner cloner) {
     return new AssignSuchThatStmt(cloner, this);
@@ -40,10 +40,10 @@ public class AssignSuchThatStmt : ConcreteUpdateStatement, ICloneable<AssignSuch
   /// "assumeToken" is allowed to be "null", in which case the verifier will check that a RHS value exists.
   /// If "assumeToken" is non-null, then it should denote the "assume" keyword used in the statement.
   /// </summary>
-  public AssignSuchThatStmt(IToken tok, IToken endTok, List<Expression> lhss, Expression expr, AttributedToken assumeToken, Attributes attrs)
-    : base(tok, endTok, lhss, attrs) {
+  public AssignSuchThatStmt(IToken tok, RangeToken rangeToken, List<Expression> lhss, Expression expr, AttributedToken assumeToken, Attributes attrs)
+    : base(tok, rangeToken, lhss, attrs) {
     Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+    Contract.Requires(rangeToken != null);
     Contract.Requires(cce.NonNullElements(lhss));
     Contract.Requires(lhss.Count != 0);
     Contract.Requires(expr != null);
