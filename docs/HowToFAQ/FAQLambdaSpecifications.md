@@ -25,7 +25,7 @@ Both of these need specifications, but where are they to be written.
 The specifications in a lamda function expression are written after the formal aarguments
 but before the `=>`.
 
-The array index problem is solved by an appropriate `requires` clause:
+The array index problem is solved by a `requires` clause that limits the range of the index::
 ```dafny
 class C {
   var p: (int, int);
@@ -36,7 +36,10 @@ function method Firsts0(cs: seq<C>): seq<int> {
 }
 ```
 
-and the reads problem by an appropriate `reads` clause:
+and the reads complaint by a `reads` clause that states what objects will be read.
+In this case, it is the objects `cs[i]` that have their `p` field read.
+If the element type of `cs` were a value type instead of a reference type, this
+`reads` clause would be unnneccessary.
 
 ```dafny
 class C {
