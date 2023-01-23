@@ -8,7 +8,16 @@ public class AssignSuchThatStmt : ConcreteUpdateStatement, ICloneable<AssignSuch
   public readonly Expression Expr;
   public readonly AttributedToken AssumeToken;
 
-  public override IToken Tok => Expr.StartToken.Prev;
+  public override IToken Tok {
+    get {
+      var result = Expr.StartToken.Prev;
+      if(char.IsLetter(result.val[0])) {
+        // Jump to operator if we're on an assume keyword.
+        result = result.Prev;
+      }
+      return result;
+    }
+  }
 
   [FilledInDuringResolution] public List<ComprehensionExpr.BoundedPool> Bounds;  // null for a ghost statement
   // invariant Bounds == null || Bounds.Count == BoundVars.Count;

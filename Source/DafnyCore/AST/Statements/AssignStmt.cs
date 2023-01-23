@@ -12,7 +12,7 @@ public class AssignStmt : Statement, ICloneable<AssignStmt> {
     Contract.Invariant(Rhs != null);
   }
 
-  public override IToken Tok => Lhs.EndToken.Next;
+  public override IToken Tok => Rhs.StartToken.Prev;
   
   public override IEnumerable<Node> Children => new Node[] { Lhs, Rhs };
 

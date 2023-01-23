@@ -10,7 +10,16 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
   public readonly AttributedToken KeywordToken;
   [FilledInDuringResolution] public readonly List<Statement> ResolvedStatements = new List<Statement>();
   public override IEnumerable<Statement> SubStatements => ResolvedStatements;
-  public override IToken Tok => Rhs.StartToken.Prev;
+  public override IToken Tok {
+    get {
+      var result = Rhs.StartToken.Prev;
+      if(char.IsLetter(result.val[0])) {
+        // Jump to operator if we're on an assume/expect/assert keyword.
+        result = result.Prev;
+      }
+      return result;
+    }
+  }
 
   public override IEnumerable<Node> Children => ResolvedStatements;
 
