@@ -4,11 +4,15 @@
 module _System {
   /* CALL GRAPH for module _System:
    * SCC at height 1:
-   *   RotateRight
-   * SCC at height 1:
    *   RotateLeft
+   * SCC at height 1:
+   *   RotateRight
+   * SCC at height 0:
+   *   array
    * SCC at height 0:
    *   nat
+   * SCC at height 0:
+   *   object
    */
   type string(==,0) = seq<char>
 
@@ -100,32 +104,26 @@ module _System {
 */
 
 /* CALL GRAPH for module _module:
- * SCC at height 3:
+ * SCC at height 2:
  *   Main
  * SCC at height 1:
- *   OrdinalTests
- * SCC at height 0:
- *   array
- * SCC at height 0:
- *   int64
- * SCC at height 0:
- *   Abundance
- * SCC at height 2:
  *   Difficult
- * SCC at height 1:
- *   PrintExpected
  * SCC at height 1:
  *   Print
  * SCC at height 0:
- *   string
- * SCC at height 0:
- *   SmallReal
+ *   Abundance
  * SCC at height 0:
  *   EvenInt
  * SCC at height 0:
  *   Handful
  * SCC at height 0:
- *   nat
+ *   OrdinalTests
+ * SCC at height 0:
+ *   PrintExpected
+ * SCC at height 0:
+ *   SmallReal
+ * SCC at height 0:
+ *   int64
  */
 newtype Handful = x: int
   | 0 <= x < 32768

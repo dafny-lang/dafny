@@ -1394,7 +1394,7 @@ namespace Microsoft.Dafny.Compilers {
 
             var wIter = CreateIterator(iter, wr);
             if (iter.Body == null) {
-              Error(iter.tok, "Iterator {0} has no body", wIter, iter.FullName);
+              Error(iter.tok, "iterator {0} has no body", wIter, iter.FullName);
             } else {
               TrStmtList(iter.Body.Body, wIter);
             }
@@ -1589,7 +1589,7 @@ namespace Microsoft.Dafny.Compilers {
                 if (member is Method m && member.FullDafnyName == name) {
                   mainMethod = m;
                   if (!IsPermittedAsMain(program, mainMethod, out string reason)) {
-                    ReportError(program.Reporter, mainMethod.tok, "The method \"{0}\" is not permitted as a main method ({1}).", null, name, reason);
+                    ReportError(program.Reporter, mainMethod.tok, "The method '{0}' is not permitted as a main method ({1}).", null, name, reason);
                     mainMethod = null;
                     return false;
                   } else {
@@ -1618,7 +1618,7 @@ namespace Microsoft.Dafny.Compilers {
                   hasMain = true;
                 } else {
                   // more than one main in the program
-                  ReportError(program.Reporter, m.tok, "More than one method is marked \"{{:main}}\". First declaration appeared at {0}.", null,
+                  ReportError(program.Reporter, m.tok, "More than one method is marked {{:main}}. First declaration appeared at {0}.", null,
                     ErrorReporter.TokenToString(mainMethod.tok));
                   hasMain = false;
                 }
@@ -1629,7 +1629,7 @@ namespace Microsoft.Dafny.Compilers {
       }
       if (hasMain) {
         if (!IsPermittedAsMain(program, mainMethod, out string reason)) {
-          ReportError(program.Reporter, mainMethod.tok, "This method marked \"{{:main}}\" is not permitted as a main method ({0}).", null, reason);
+          ReportError(program.Reporter, mainMethod.tok, "This method marked {{:main}} is not permitted as a main method ({0}).", null, reason);
           mainMethod = null;
           return false;
         } else {
@@ -1658,7 +1658,7 @@ namespace Microsoft.Dafny.Compilers {
                   hasMain = true;
                 } else {
                   // more than one main in the program
-                  ReportError(program.Reporter, m.tok, "More than one method is declared as \"{0}\". First declaration appeared at {1}.", null,
+                  ReportError(program.Reporter, m.tok, "More than one method is declared as '{0}'. First declaration appeared at {1}.", null,
                     DefaultNameMain, ErrorReporter.TokenToString(mainMethod.tok));
                   hasMain = false;
                 }
@@ -1670,7 +1670,7 @@ namespace Microsoft.Dafny.Compilers {
 
       if (hasMain) {
         if (!IsPermittedAsMain(program, mainMethod, out string reason)) {
-          ReportError(program.Reporter, mainMethod.tok, "This method \"Main\" is not permitted as a main method ({0}).", null, reason);
+          ReportError(program.Reporter, mainMethod.tok, "This method 'Main' is not permitted as a main method ({0}).", null, reason);
           return false;
         } else {
           return true;
@@ -2403,7 +2403,7 @@ namespace Microsoft.Dafny.Compilers {
         IVariable accVar = null;
         if (f.IsTailRecursive) {
           if (f.IsAccumulatorTailRecursive) {
-            accVar = new LocalVariable(f.tok, f.tok, "_accumulator", f.ResultType, false) {
+            accVar = new LocalVariable(f.tok, f.RangeToken, "_accumulator", f.ResultType, false) {
               type = f.ResultType
             };
             Expression unit;
@@ -2485,7 +2485,7 @@ namespace Microsoft.Dafny.Compilers {
         var ty = UserDefinedType.FromTopLevelDeclWithAllBooleanTypeParameters(m.EnclosingClass);
         LocalVariable receiver = null;
         if (!m.IsStatic) {
-          receiver = new LocalVariable(m.tok, m.tok, "b", ty, false) {
+          receiver = new LocalVariable(m.tok, m.RangeToken, "b", ty, false) {
             type = ty
           };
           if (m.EnclosingClass is ClassDecl) {
@@ -2523,12 +2523,13 @@ namespace Microsoft.Dafny.Compilers {
       return !m.IsStatic || m.EnclosingClass.TypeArgs.Count != 0;
     }
 
-
-    void TrCasePatternOpt<VT>(CasePattern<VT> pat, Expression rhs, ConcreteSyntaxTree wr, bool inLetExprBody) where VT : IVariable {
+    void TrCasePatternOpt<VT>(CasePattern<VT> pat, Expression rhs, ConcreteSyntaxTree wr, bool inLetExprBody)
+      where VT : class, IVariable {
       TrCasePatternOpt(pat, rhs, null, rhs.Type, rhs.tok, wr, inLetExprBody);
     }
 
-    void TrCasePatternOpt<VT>(CasePattern<VT> pat, Expression rhs, string rhs_string, Type rhsType, IToken rhsTok, ConcreteSyntaxTree wr, bool inLetExprBody) where VT : IVariable {
+    void TrCasePatternOpt<VT>(CasePattern<VT> pat, Expression rhs, string rhs_string, Type rhsType, IToken rhsTok, ConcreteSyntaxTree wr, bool inLetExprBody)
+      where VT : class, IVariable {
       Contract.Requires(pat != null);
       Contract.Requires(pat.Var != null || rhs != null || rhs_string != null);
       Contract.Requires(rhs != null || rhs_string != null);
@@ -2626,6 +2627,8 @@ namespace Microsoft.Dafny.Compilers {
         }
         TrExprOpt(e.Els, resultType, els, accumulatorVar);
 
+      } else if (expr is NestedMatchExpr nestedMatchExpr) {
+        TrExprOpt(nestedMatchExpr.Flattened, resultType, wr, accumulatorVar);
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
         //   var _source = E;
@@ -3217,7 +3220,7 @@ namespace Microsoft.Dafny.Compilers {
         var s0 = (AssignStmt)s.S0;
         if (s0.Rhs is HavocRhs) {
           if (DafnyOptions.O.ForbidNondeterminism) {
-            Error(s0.Rhs.Tok, "nondeterministic assignment forbidden by the --enforce-determinism option", wr);
+            Error(s0.Rhs.Tok, "nondeterministic assignment forbidden by --enforce-determinism", wr);
           }
           // The forall statement says to havoc a bunch of things.  This can be efficiently compiled
           // into doing nothing.
@@ -3322,10 +3325,8 @@ namespace Microsoft.Dafny.Compilers {
             EmitMultiSelect(s0, tupleTypeArgsList, wr, tup, L);
           }
         }
-      } else if (stmt is ConcreteSyntaxStatement) {
-        var s = (ConcreteSyntaxStatement)stmt;
-        TrStmt(s.ResolvedStatement, wr);
-
+      } else if (stmt is NestedMatchStmt nestedMatchStmt) {
+        TrStmt(nestedMatchStmt.Flattened, wr, wStmts);
       } else if (stmt is MatchStmt) {
         MatchStmt s = (MatchStmt)stmt;
         // Type source = e;
@@ -3506,7 +3507,6 @@ namespace Microsoft.Dafny.Compilers {
         List<ComprehensionExpr.BoundedPool>/*?*/ bounds = null, List<BoundVar>/*?*/ boundVars = null, int boundIndex = 0) {
       Contract.Requires(bound != null);
       Contract.Requires(bounds == null || (boundVars != null && bounds.Count == boundVars.Count && 0 <= boundIndex && boundIndex < bounds.Count));
-      Contract.Requires(collectionWriter != null);
 
       collectionWriter = new ConcreteSyntaxTree();
 
@@ -4875,6 +4875,8 @@ namespace Microsoft.Dafny.Compilers {
             EmitReturnExpr(e.Body, e.Body.Type, true, w);
           }
         }
+      } else if (expr is NestedMatchExpr nestedMatchExpr) {
+        TrExpr(nestedMatchExpr.Flattened, wr, inLetExprBody, wStmts);
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
         // ((System.Func<SourceType, TargetType>)((SourceType _source) => {
@@ -5111,7 +5113,6 @@ namespace Microsoft.Dafny.Compilers {
             wr = EmitReturnExpr(wr);
             TrExpr(new LiteralExpr(tok, elseReturnValue), wr, inLetExprBody, wStmts);
           }
-
           wr = thenWriter;
         }
       }
@@ -5136,11 +5137,10 @@ namespace Microsoft.Dafny.Compilers {
           }) {
         if (variable.Type.NormalizeExpandKeepConstraints() is UserDefinedType
           {
-            ResolvedClass:
-              SubsetTypeDecl
+            ResolvedClass: SubsetTypeDecl
           } normalizedVariableType) {
           wr = MaybeInjectSubsetConstraint(boundVar, normalizedVariableType, collectionElementType,
-            inLetExprBody, tok, wr, isReturning, elseReturnValue, true);
+              inLetExprBody, tok, wr, isReturning, elseReturnValue, true);
         }
 
         var bvIdentifier = new IdentifierExpr(tok, boundVar);

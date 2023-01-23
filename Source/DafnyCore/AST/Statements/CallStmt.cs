@@ -1,12 +1,13 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 
 namespace Microsoft.Dafny;
 
 /// <summary>
 /// A CallStmt is always resolved.  It is typically produced as a resolved counterpart of the syntactic AST note ApplySuffix.
 /// </summary>
-public class CallStmt : Statement {
+public class CallStmt : Statement, ICloneable<CallStmt> {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(MethodSelect.Member is Method);
@@ -14,6 +15,7 @@ public class CallStmt : Statement {
     Contract.Invariant(cce.NonNullElements(Args));
   }
 
+  public override IEnumerable<Node> Children => Lhs.Concat(new Node[] { MethodSelect, Bindings });
   public readonly List<Expression> Lhs;
   public readonly MemberSelectExpr MethodSelect;
   public readonly ActualBindings Bindings;
@@ -23,10 +25,10 @@ public class CallStmt : Statement {
   public Expression Receiver { get { return MethodSelect.Obj; } }
   public Method Method { get { return (Method)MethodSelect.Member; } }
 
-  public CallStmt(IToken tok, IToken endTok, List<Expression> lhs, MemberSelectExpr memSel, List<ActualBinding> args)
-    : base(tok, endTok) {
+  public CallStmt(IToken tok, RangeToken rangeToken, List<Expression> lhs, MemberSelectExpr memSel, List<ActualBinding> args)
+    : base(tok, rangeToken) {
     Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+    Contract.Requires(rangeToken != null);
     Contract.Requires(cce.NonNullElements(lhs));
     Contract.Requires(memSel != null);
     Contract.Requires(memSel.Member is Method);
@@ -37,12 +39,22 @@ public class CallStmt : Statement {
     this.Bindings = new ActualBindings(args);
   }
 
+  public CallStmt Clone(Cloner cloner) {
+    return new CallStmt(cloner, this);
+  }
+
+  public CallStmt(Cloner cloner, CallStmt original) : base(cloner, original) {
+    MethodSelect = (MemberSelectExpr)cloner.CloneExpr(original.MethodSelect);
+    Lhs = original.Lhs.Select(cloner.CloneExpr).ToList();
+    Bindings = new ActualBindings(cloner, original.Bindings);
+  }
+
   /// <summary>
   /// This constructor is intended to be used when constructing a resolved CallStmt. The "args" are expected
   /// to be already resolved, and are all given positionally.
   /// </summary>
-  public CallStmt(IToken tok, IToken endTok, List<Expression> lhs, MemberSelectExpr memSel, List<Expression> args)
-    : this(tok, endTok, lhs, memSel, args.ConvertAll(e => new ActualBinding(null, e))) {
+  public CallStmt(IToken tok, RangeToken rangeToken, List<Expression> lhs, MemberSelectExpr memSel, List<Expression> args)
+    : this(tok, rangeToken, lhs, memSel, args.ConvertAll(e => new ActualBinding(null, e))) {
     Bindings.AcceptArgumentExpressionsAsExactParameterList();
   }
 

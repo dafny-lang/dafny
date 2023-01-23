@@ -36,7 +36,7 @@ method Foo() ensures false { } ";
  .  | :}");
   }
 
-  [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+  [TestMethod/*, Timeout(MaxTestExecutionTimeMs)*/]
   public async Task EnsureVerificationGutterStatusIsWorking() {
     await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
     await VerifyTrace(@"

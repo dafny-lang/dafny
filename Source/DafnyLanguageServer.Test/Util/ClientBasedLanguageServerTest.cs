@@ -59,6 +59,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
   public async Task<Diagnostic[]> GetLastDiagnostics(TextDocumentItem documentItem, CancellationToken cancellationToken) {
     await client.WaitForNotificationCompletionAsync(documentItem.Uri, cancellationToken);
     var document = (await Documents.GetLastDocumentAsync(documentItem))!;
+    Assert.IsNotNull(document, "Could not find document {0}", documentItem.Uri);
     Assert.AreEqual(documentItem.Version, document.Version, "GetLastDocumentAsync version was: " + document.Version);
     Diagnostic[] result;
     do {

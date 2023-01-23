@@ -3,7 +3,7 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public class IfStmt : Statement {
+public class IfStmt : Statement, ICloneable<IfStmt> {
   public readonly bool IsBindingGuard;
   public readonly Expression Guard;
   public readonly BlockStmt Thn;
@@ -14,10 +14,22 @@ public class IfStmt : Statement {
     Contract.Invariant(Thn != null);
     Contract.Invariant(Els == null || Els is BlockStmt || Els is IfStmt || Els is SkeletonStatement);
   }
-  public IfStmt(IToken tok, IToken endTok, bool isBindingGuard, Expression guard, BlockStmt thn, Statement els)
-    : base(tok, endTok) {
+
+  public IfStmt Clone(Cloner cloner) {
+    return new IfStmt(cloner, this);
+  }
+
+  public IfStmt(Cloner cloner, IfStmt original) : base(cloner, original) {
+    IsBindingGuard = original.IsBindingGuard;
+    Guard = cloner.CloneExpr(original.Guard);
+    Thn = cloner.CloneBlockStmt(original.Thn);
+    Els = cloner.CloneStmt(original.Els);
+  }
+
+  public IfStmt(IToken tok, RangeToken rangeToken, bool isBindingGuard, Expression guard, BlockStmt thn, Statement els)
+    : base(tok, rangeToken) {
     Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+    Contract.Requires(rangeToken != null);
     Contract.Requires(!isBindingGuard || (guard is ExistsExpr && ((ExistsExpr)guard).Range == null));
     Contract.Requires(thn != null);
     Contract.Requires(els == null || els is BlockStmt || els is IfStmt || els is SkeletonStatement);
@@ -26,10 +38,10 @@ public class IfStmt : Statement {
     this.Thn = thn;
     this.Els = els;
   }
-  public IfStmt(IToken tok, IToken endTok, bool isBindingGuard, Expression guard, BlockStmt thn, Statement els, Attributes attrs)
-    : base(tok, endTok, attrs) {
+  public IfStmt(IToken tok, RangeToken rangeToken, bool isBindingGuard, Expression guard, BlockStmt thn, Statement els, Attributes attrs)
+    : base(tok, rangeToken, attrs) {
     Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+    Contract.Requires(rangeToken != null);
     Contract.Requires(!isBindingGuard || (guard is ExistsExpr && ((ExistsExpr)guard).Range == null));
     Contract.Requires(thn != null);
     Contract.Requires(els == null || els is BlockStmt || els is IfStmt || els is SkeletonStatement);

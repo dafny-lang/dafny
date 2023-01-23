@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
@@ -102,7 +103,7 @@ public class Field : MemberDecl {
     Contract.Invariant(!IsUserMutable || IsMutable);  // IsUserMutable ==> IsMutable
   }
 
-  public override IEnumerable<INode> Children => Type.Nodes;
+  public override IEnumerable<Node> Children => Type.Nodes;
 
   public Field(IToken tok, string name, bool isGhost, Type type, Attributes attributes)
     : this(tok, name, false, isGhost, true, true, type, attributes) {
@@ -132,7 +133,7 @@ public class SpecialFunction : Function, ICodeContext, ICallable {
     : base(tok, name, hasStaticKeyword, isGhost, typeArgs, formals, null, resultType, req, reads, ens, decreases, body, null, null, attributes, signatureEllipsis) {
     Module = module;
   }
-  ModuleDefinition ICodeContext.EnclosingModule { get { return this.Module; } }
+  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return this.Module; } }
   string ICallable.NameRelativeToModule { get { return Name; } }
 }
 
@@ -275,7 +276,6 @@ public class ConstantField : SpecialField, ICallable {
   public ModuleDefinition EnclosingModule { get { return this.EnclosingClass.EnclosingModuleDefinition; } }
   public bool MustReverify { get { return false; } }
   public bool AllowsNontermination { get { throw new cce.UnreachableException(); } }
-  public IToken Tok { get { return tok; } }
   public string NameRelativeToModule {
     get {
       if (EnclosingClass is DefaultClassDecl) {
@@ -292,7 +292,7 @@ public class ConstantField : SpecialField, ICallable {
   }
   public bool AllowsAllocation => true;
 
-  public override IEnumerable<INode> Children => base.Children.Concat(new[] { Rhs }.Where(x => x != null));
+  public override IEnumerable<Node> Children => base.Children.Concat(new[] { Rhs }.Where(x => x != null));
 }
 
 public class Predicate : Function {
@@ -346,6 +346,8 @@ public abstract class ExtremePredicate : Function {
   }
   [FilledInDuringResolution] public readonly List<FunctionCallExpr> Uses = new List<FunctionCallExpr>();  // used by verifier
   [FilledInDuringResolution] public PrefixPredicate PrefixPredicate;  // (name registration)
+
+  public override IEnumerable<Node> Children => base.Children.Concat(new[] { PrefixPredicate });
 
   public ExtremePredicate(IToken tok, string name, bool hasStaticKeyword, KType typeOfK,
     List<TypeParameter> typeArgs, List<Formal> formals, Formal result,
@@ -440,9 +442,9 @@ public class TwoStatePredicate : TwoStateFunction {
 }
 
 public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext {
-  public override IEnumerable<INode> Children => (Body?.SubStatements ?? Enumerable.Empty<INode>()).Concat<INode>(Ins).Concat(Outs).Concat(TypeArgs).
-    Concat(Req.Select(r => r.E)).Concat(Ens.Select(r => r.E)).Concat(Mod.Expressions).Concat(Decreases.Expressions).
-    Concat(Attributes?.Args ?? Enumerable.Empty<INode>());
+  public override IEnumerable<Node> Children => new Node[] { Body, Decreases }.
+    Where(x => x != null).Concat(Ins).Concat(Outs).Concat(TypeArgs).
+    Concat(Req).Concat(Ens).Concat(Mod.Expressions);
 
   public override string WhatKind => "method";
   public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }
@@ -464,7 +466,42 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext {
   public Method OverriddenMethod;
   public Method Original => OverriddenMethod == null ? this : OverriddenMethod.Original;
   public override bool IsOverrideThatAddsBody => base.IsOverrideThatAddsBody && Body != null;
-  private static BlockStmt emptyBody = new BlockStmt(Token.NoToken, Token.NoToken, new List<Statement>());
+  private static BlockStmt emptyBody = new BlockStmt(Token.NoToken, Token.NoToken.ToRange(), new List<Statement>());
+
+  public bool HasPostcondition =>
+    Ens.Count > 0 || Outs.Any(f => f.Type.AsSubsetType is not null);
+
+  public bool HasPrecondition =>
+    Req.Count > 0 || Ins.Any(f => f.Type.AsSubsetType is not null);
+
+  public override IEnumerable<AssumptionDescription> Assumptions() {
+    foreach (var a in base.Assumptions()) {
+      yield return a;
+    }
+
+    if (Body is null && HasPostcondition && !EnclosingClass.EnclosingModuleDefinition.IsAbstract) {
+      yield return AssumptionDescription.NoBody(IsGhost);
+    }
+
+    if (Attributes.Contains(Attributes, "extern") && HasPostcondition) {
+      yield return AssumptionDescription.ExternWithPostcondition;
+    }
+
+    if (Attributes.Contains(Attributes, "extern") && HasPrecondition) {
+      yield return AssumptionDescription.ExternWithPrecondition;
+    }
+
+    if (AllowsNontermination) {
+      yield return AssumptionDescription.MayNotTerminate;
+    }
+
+    foreach (var c in Descendants()) {
+      foreach (var a in c.Assumptions()) {
+        yield return a;
+      }
+    }
+
+  }
 
   public override IEnumerable<Expression> SubExpressions {
     get {
@@ -553,7 +590,7 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext {
 
   public virtual bool AllowsAllocation => true;
 
-  ModuleDefinition ICodeContext.EnclosingModule {
+  ModuleDefinition IASTVisitorContext.EnclosingModule {
     get {
       Contract.Assert(this.EnclosingClass != null);  // this getter is supposed to be called only after signature-resolution is complete
       return this.EnclosingClass.EnclosingModuleDefinition;
@@ -736,6 +773,8 @@ public abstract class ExtremeLemma : Method {
     }
   }
   [FilledInDuringResolution] public PrefixLemma PrefixLemma;  // (name registration)
+
+  public override IEnumerable<Node> Children => base.Children.Concat(new[] { PrefixLemma });
 
   public ExtremeLemma(IToken tok, string name,
     bool hasStaticKeyword, ExtremePredicate.KType typeOfK,

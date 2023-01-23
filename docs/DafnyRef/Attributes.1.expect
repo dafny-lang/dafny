@@ -1,0 +1,2 @@
+text.dfy(2,29): Error: Dafny's heuristics failed to confirm 'byte' to be a compatible native type.  Hint: try writing a newtype constraint of the form 'i:int | lowerBound <= i < upperBound && (...any additional constraints...)'
+1 resolution/type errors detected in text.dfy

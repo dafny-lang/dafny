@@ -7,6 +7,7 @@ using System.Collections.ObjectModel;
 using System.CommandLine;
 using System.CommandLine.Binding;
 using System.CommandLine.Parsing;
+using System.Diagnostics;
 using System.Linq;
 using System.Diagnostics.Contracts;
 using System.IO;
@@ -59,12 +60,12 @@ features like traits or co-inductive types.".TrimStart(), "cs");
         datatype Record = Record(x: int)
     is transformed into just 'int' in the target code.".TrimStart(), defaultValue: true);
 
-      RegisterLegacyUi(CommonOptionBag.Output, ParseString, "Compilation options", "out");
+      RegisterLegacyUi(CommonOptionBag.Output, ParseFileInfo, "Compilation options", "out");
       RegisterLegacyUi(CommonOptionBag.UnicodeCharacters, ParseBoolean, "Language feature selection", "unicodeChar", @"
 0 (default) - The char type represents any UTF-16 code unit.
 1 - The char type represents any Unicode scalar value.".TrimStart());
       RegisterLegacyUi(CommonOptionBag.Plugin, ParseStringElement, "Plugins", defaultValue: new List<string>());
-      RegisterLegacyUi(CommonOptionBag.Prelude, ParseString, "Input configuration", "dprelude");
+      RegisterLegacyUi(CommonOptionBag.Prelude, ParseFileInfo, "Input configuration", "dprelude");
 
       RegisterLegacyUi(CommonOptionBag.Libraries, ParseStringElement, "Compilation options", defaultValue: new List<string>());
       RegisterLegacyUi(DeveloperOptionBag.ResolvedPrint, ParseString, "Overall reporting and printing", "rprint");
@@ -117,7 +118,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       return Options.OptionArguments[option];
     }
 
-    public void Set(Option option, object value) {
+    public void SetUntyped(Option option, object value) {
       Options.OptionArguments[option] = value;
     }
 
@@ -130,6 +131,12 @@ NoGhost - disable printing of functions, ghost methods, and proof
     private static Dictionary<Option, Action<DafnyOptions, object>> legacyBindings = new();
     public static void RegisterLegacyBinding<T>(Option<T> option, Action<DafnyOptions, T> bind) {
       legacyBindings[option] = (options, o) => bind(options, (T)o);
+    }
+
+    public static void ParseFileInfo(Option<FileInfo> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
+      if (ps.ConfirmArgumentCount(1)) {
+        options.Set(option, new FileInfo(ps.args[ps.i]));
+      }
     }
 
     public static void ParseString(Option<string> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
@@ -189,7 +196,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     }
 
     public DafnyOptions()
-      : base("Dafny", "Dafny program verifier", new DafnyConsolePrinter()) {
+      : base("dafny", "Dafny program verifier", new DafnyConsolePrinter()) {
       ErrorTrace = 0;
       Prune = true;
       NormalizeNames = true;
@@ -232,13 +239,13 @@ NoGhost - disable printing of functions, ghost methods, and proof
       JSON,
     }
 
+    public bool UsingNewCli = false;
     public bool UnicodeOutput = false;
     public DiagnosticsFormats DiagnosticsFormat = DiagnosticsFormats.PlainText;
     public bool DisallowSoundnessCheating = false;
     public int Induction = 4;
     public int InductionHeuristic = 6;
     public bool TypeInferenceDebug = false;
-    public bool MatchCompilerDebug = false;
     public string DafnyPrelude = null;
     public string DafnyPrintFile = null;
 
@@ -282,7 +289,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public bool DisallowConstructorCaseWithoutParentheses = false;
     public bool PrintFunctionCallGraph = false;
     public bool WarnShadowing = false;
-    public int DefiniteAssignmentLevel = 1; // [0..2]
+    public int DefiniteAssignmentLevel = 1; // [0..2] 2 and 3 have the same effect, 4 turns off an array initialisation check, unless --enforce-determinism is used.
     public FunctionSyntaxOptions FunctionSyntax = FunctionSyntaxOptions.Version3;
     public QuantifierSyntaxOptions QuantifierSyntax = QuantifierSyntaxOptions.Version3;
     public HashSet<string> LibraryFiles { get; set; } = new();
@@ -310,6 +317,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
     [CanBeNull] private TestGenerationOptions testGenOptions = null;
     public bool ExtractCounterexample = false;
     public List<string> VerificationLoggerConfigs = new();
+
+    public bool AuditProgram = false;
 
     public static readonly ReadOnlyCollection<Plugin> DefaultPlugins = new(new[] { SinglePassCompiler.Plugin });
     private IList<Plugin> cliPluginCache;
@@ -506,10 +515,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
             return true;
           }
-
-        case "pmtrace":
-          MatchCompilerDebug = true;
-          return true;
 
         case "titrace":
           TypeInferenceDebug = true;
@@ -792,7 +797,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public override void ApplyDefaultOptions() {
       foreach (var legacyUiOption in legacyUis) {
         if (!Options.OptionArguments.ContainsKey(legacyUiOption.Option)) {
-          Set(legacyUiOption.Option, legacyUiOption.DefaultValue);
+          Options.OptionArguments[legacyUiOption.Option] = legacyUiOption.DefaultValue;
         }
         if (legacyBindings.ContainsKey(legacyUiOption.Option)) {
           var value = Get(legacyUiOption.Option);
@@ -810,8 +815,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
       // expand macros in filenames, now that LogPrefix is fully determined
 
-      SetZ3ExecutablePath();
-      SetZ3Options();
+      if (!ProverOptions.Any(x => x.StartsWith("SOLVER=") && !x.EndsWith("=z3"))) {
+        var z3Version = SetZ3ExecutablePath();
+        SetZ3Options(z3Version);
+      }
 
       // Ask Boogie to perform abstract interpretation
       UseAbstractInterpretation = true;
@@ -1054,35 +1061,85 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     /// <summary>
     /// Dafny releases come with their own copy of Z3, to save users the trouble of having to install extra dependencies.
-    /// For this to work, Dafny looks for Z3 at the location where it is put by our release script (i.e., z3/bin/z3[.exe]).
-    /// If Z3 is not found there, Dafny relies on Boogie to locate Z3 (which also supports setting a path explicitly on the command line).
-    /// Developers (and people getting Dafny from source) need to install an appropriate version of Z3 themselves.
+    /// For this to work, Dafny first tries any prover path explicitly provided by the user, then looks for for the copy
+    /// distributed with Dafny, and finally looks in any directory in the system PATH environment variable.
     /// </summary>
-    private void SetZ3ExecutablePath() {
+    private Version SetZ3ExecutablePath() {
+      string confirmedProverPath = null;
+
+      // Try an explicitly provided prover path, if there is one.
       var pp = "PROVER_PATH=";
       var proverPathOption = ProverOptions.Find(o => o.StartsWith(pp));
       if (proverPathOption != null) {
         var proverPath = proverPathOption.Substring(pp.Length);
         // Boogie will perform the ultimate test to see if "proverPath" is real--it will attempt to run it.
         // However, by at least checking if the file exists, we can produce a better error message in common scenarios.
+        // Unfortunately, there doesn't seem to be a portable way of checking whether it's executable.
         if (!File.Exists(proverPath)) {
-          throw new Bpl.ProverException($"Requested prover not found: '{proverPath}'");
+          return null;
         }
-      } else {
-        var platform = (int)System.Environment.OSVersion.Platform;
 
-        var isUnix = platform == 4 || platform == 6 || platform == 128;
+        confirmedProverPath = proverPath;
+      }
 
-        var z3binName = isUnix ? "z3" : "z3.exe";
+      var platform = System.Environment.OSVersion.Platform;
+      var isUnix = platform == PlatformID.Unix || platform == PlatformID.MacOSX;
+      var z3binName = isUnix ? "z3" : "z3.exe";
+
+      // Next, try looking in a directory relative to Dafny itself.
+      if (confirmedProverPath is null) {
         var dafnyBinDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-        var z3BinDir = Path.Combine(dafnyBinDir, "z3", "bin");
-        var z3BinPath = Path.Combine(z3BinDir, z3binName);
+        var z3BinPath = Path.Combine(dafnyBinDir, "z3", "bin", z3binName);
 
         if (File.Exists(z3BinPath)) {
-          // Let's use z3BinPath
-          ProverOptions.Add($"{pp}{z3BinPath}");
+          confirmedProverPath = z3BinPath;
         }
       }
+
+      // Finally, try looking in the system PATH variable.
+      if (confirmedProverPath is null) {
+        confirmedProverPath = System.Environment
+          .GetEnvironmentVariable("PATH")?
+          .Split(isUnix ? ':' : ';')
+          .Select(s => Path.Combine(s, z3binName))
+          .FirstOrDefault(File.Exists);
+      }
+
+      if (confirmedProverPath is not null) {
+        ProverOptions.Add($"{pp}{confirmedProverPath}");
+        return GetZ3Version(confirmedProverPath);
+      }
+
+      return null;
+    }
+
+    private static readonly Regex Z3VersionRegex = new Regex(@"Z3 version (?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)");
+
+    [CanBeNull]
+    public static Version GetZ3Version(string proverPath) {
+      var z3Process = new ProcessStartInfo(proverPath, "-version") {
+        CreateNoWindow = true,
+        RedirectStandardError = true,
+        RedirectStandardOutput = true,
+        RedirectStandardInput = true
+      };
+      var run = Process.Start(z3Process);
+      if (run == null) {
+        return null;
+      }
+
+      var actualOutput = run.StandardOutput.ReadToEnd();
+      run.WaitForExit();
+      var versionMatch = Z3VersionRegex.Match(actualOutput);
+      if (!versionMatch.Success) {
+        // Might be another solver.
+        return null;
+      }
+
+      var major = int.Parse(versionMatch.Groups["major"].Value);
+      var minor = int.Parse(versionMatch.Groups["minor"].Value);
+      var patch = int.Parse(versionMatch.Groups["patch"].Value);
+      return new Version(major, minor, patch);
     }
 
     // Set a Z3 option, but only if it is not overwriting an existing option.
@@ -1092,7 +1149,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
     }
 
-    private void SetZ3Options() {
+    private void SetZ3Options(Version z3Version) {
       // Boogie sets the following Z3 options by default:
       // smt.mbqi = false
       // model.compact = false
@@ -1102,10 +1159,14 @@ NoGhost - disable printing of functions, ghost methods, and proof
       // Boogie also used to set the following options, but does not anymore.
       SetZ3Option("auto_config", "false");
       SetZ3Option("type_check", "true");
-      SetZ3Option("smt.case_split", "3"); // TODO: try removing
       SetZ3Option("smt.qi.eager_threshold", "100"); // TODO: try lowering
       SetZ3Option("smt.delay_units", "true");
-      SetZ3Option("smt.arith.solver", "2");
+
+      if (z3Version is not null && z3Version.CompareTo(new Version(4, 8, 5)) <= 0) {
+        // These options tend to help with Z3 4.8.5 but hurt with newer versions of Z3.
+        SetZ3Option("smt.case_split", "3");
+        SetZ3Option("smt.arith.solver", "2");
+      }
 
       if (DisableNLarith || 3 <= ArithMode) {
         SetZ3Option("smt.arith.nl", "false");
@@ -1415,11 +1476,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     as /proverOpt:O:model_compress=false (for z3 version < 4.8.7) or
     /proverOpt:O:model.compact=false (for z3 version >= 4.8.7), and
     /proverOpt:O:model.completion=true.
-
-/countVerificationErrors:<n>
-    (deprecated)
-    0 - Set exit code to 0 regardless of the presence of any other errors.
-    1 (default) - Emit usual exit code (cf. beginning of the help message).
 
 ---- Test generation options -----------------------------------------------
 {TestGenOptions.Help}

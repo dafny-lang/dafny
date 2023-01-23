@@ -22,6 +22,27 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   public class DiagnosticsTest : ClientBasedLanguageServerTest {
 
     [TestMethod]
+    public async Task GitIssue3155ItemWithSameKeyAlreadyBeenAdded() {
+      var source = @"
+datatype Test =
+    | A(field: int)
+    | B(field: int)
+
+
+predicate updateTest(test: Test, test': Test)
+{
+    test' == test.(field := 1)
+}
+".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+
+      var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(0, diagnostics.Length);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
+    }
+
+    [TestMethod]
     public async Task GitIssue3062CrashOfLanguageServer() {
       var source = @"
 function bullspec(s:seq<nat>, u:seq<nat>): (r: nat)
@@ -68,6 +89,34 @@ function bullspec(s:seq<nat>, u:seq<nat>): (r: nat)
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
       Assert.AreEqual(new Range(0, 0, 0, 0), diagnostics[0].Range);
+    }
+
+    [TestMethod]
+    public async Task OpeningFailingFunctionPreconditionHasRelatedDiagnostics() {
+      var source = @"
+predicate P(i: int) {
+  i <= 0
+}
+
+function method Call(i: int): int
+  requires P(i)
+
+method Test(i: int) returns (j: int)
+  requires i > 0
+{
+  return Call(2/i);
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(1, diagnostics.Length);
+      Assert.IsNotNull(diagnostics[0].RelatedInformation);
+      var relatedInformation =
+        diagnostics[0].RelatedInformation.ToArray();
+      Assert.AreEqual(2, relatedInformation.Length);
+      Assert.AreEqual("Could not prove: P(i)", relatedInformation[0].Message);
+      Assert.AreEqual("Could not prove: i <= 0", relatedInformation[1].Message);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
     [TestMethod]
@@ -670,7 +719,7 @@ method t7() { assert false; }
 method t8() { assert false; }
 method t9() { assert false; }
 method t10() { assert false; }".TrimStart();
-      await SetUp(options => options.Set(BoogieOptionBag.Cores, 4));
+      await SetUp(options => options.Set(BoogieOptionBag.Cores, 4U));
       for (int i = 0; i < 10; i++) {
         diagnosticsReceiver.ClearHistory();
         var documentItem = CreateTestDocument(source, $"test_{i}.dfy");
@@ -723,7 +772,7 @@ module Parser {
     }
   }
 }".TrimStart();
-      await SetUp(options => options.Set(BoogieOptionBag.Cores, 1));
+      await SetUp(options => options.Set(BoogieOptionBag.Cores, 1U));
       diagnosticsReceiver.ClearHistory();
       var documentItem = CreateTestDocument(source, $"test1.dfy");
       client.OpenDocument(documentItem);
@@ -849,7 +898,7 @@ method test()
   assert false;
 }
 ".TrimStart();
-      await SetUp(options => options.Set(BoogieOptionBag.Cores, 1));
+      await SetUp(options => options.Set(BoogieOptionBag.Cores, 1U));
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
       var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken.None, documentItem);
@@ -871,7 +920,7 @@ method test(x: int) {
   assert x != 3;
 }
 ".TrimStart();
-      await SetUp(options => options.Set(BoogieOptionBag.Cores, 1));
+      await SetUp(options => options.Set(BoogieOptionBag.Cores, 1U));
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
       var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken.None, documentItem);
@@ -892,7 +941,7 @@ method test2() {
   assert false;
 }
 ".TrimStart();
-      await SetUp(options => options.Set(BoogieOptionBag.Cores, 1));
+      await SetUp(options => options.Set(BoogieOptionBag.Cores, 1U));
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
       var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
@@ -927,7 +976,7 @@ method test() {
   assert false;
 }
 ".TrimStart() + SlowToVerify;
-      await SetUp(options => options.Set(BoogieOptionBag.Cores, 1));
+      await SetUp(options => options.Set(BoogieOptionBag.Cores, 1U));
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
       var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
@@ -960,7 +1009,7 @@ method test2() {
   assert false;
 }
 ".TrimStart();
-      await SetUp(options => options.Set(BoogieOptionBag.Cores, 1));
+      await SetUp(options => options.Set(BoogieOptionBag.Cores, 1U));
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
       var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
@@ -998,7 +1047,7 @@ method test()
   assert false;
 }
 ".TrimStart();
-      await SetUp(options => options.Set(BoogieOptionBag.Cores, 1));
+      await SetUp(options => options.Set(BoogieOptionBag.Cores, 1U));
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
       var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);

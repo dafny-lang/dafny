@@ -1,10 +1,11 @@
 using System.Collections.Generic;
 using System.CommandLine;
 using System.Diagnostics.Contracts;
+using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class PrintStmt : Statement {
+public class PrintStmt : Statement, ICloneable<PrintStmt> {
   public readonly List<Expression> Args;
 
   public static readonly Option<bool> TrackPrintEffectsOption = new("--track-print-effects",
@@ -20,10 +21,18 @@ public class PrintStmt : Statement {
     Contract.Invariant(cce.NonNullElements(Args));
   }
 
-  public PrintStmt(IToken tok, IToken endTok, List<Expression> args)
-    : base(tok, endTok) {
+  public PrintStmt Clone(Cloner cloner) {
+    return new PrintStmt(cloner, this);
+  }
+
+  public PrintStmt(Cloner cloner, PrintStmt original) : base(cloner, original) {
+    Args = original.Args.Select(cloner.CloneExpr).ToList();
+  }
+
+  public PrintStmt(IToken tok, RangeToken rangeToken, List<Expression> args)
+    : base(tok, rangeToken) {
     Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+    Contract.Requires(rangeToken != null);
     Contract.Requires(cce.NonNullElements(args));
 
     Args = args;

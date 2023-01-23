@@ -23,8 +23,7 @@ class RunCommand : ICommandSpec {
   public IEnumerable<Option> Options =>
     new Option[] {
       Inputs,
-    }.Concat(ICommandSpec.VerificationOptions).
-      Concat(ICommandSpec.ExecutionOptions).
+    }.Concat(ICommandSpec.ExecutionOptions).
       Concat(ICommandSpec.ConsoleOutputOptions).
       Concat(ICommandSpec.CommonOptions);
 

@@ -14,10 +14,21 @@ public abstract class LoopStmt : Statement, IDeclarationOrUsage {
     Contract.Invariant(Decreases != null);
     Contract.Invariant(Mod != null);
   }
-  public LoopStmt(IToken tok, IToken endTok, List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod)
-    : base(tok, endTok) {
+
+  protected LoopStmt(Cloner cloner, LoopStmt original) : base(cloner, original) {
+    Invariants = original.Invariants.ConvertAll(cloner.CloneAttributedExpr);
+    Decreases = cloner.CloneSpecExpr(original.Decreases);
+    Mod = cloner.CloneSpecFrameExpr(original.Mod);
+
+    if (cloner.CloneResolvedFields) {
+      InferredDecreases = original.InferredDecreases;
+    }
+  }
+
+  public LoopStmt(IToken tok, RangeToken rangeToken, List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod)
+    : base(tok, rangeToken) {
     Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+    Contract.Requires(rangeToken != null);
     Contract.Requires(cce.NonNullElements(invariants));
     Contract.Requires(decreases != null);
     Contract.Requires(mod != null);
@@ -26,10 +37,10 @@ public abstract class LoopStmt : Statement, IDeclarationOrUsage {
     this.Decreases = decreases;
     this.Mod = mod;
   }
-  public LoopStmt(IToken tok, IToken endTok, List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod, Attributes attrs)
-    : base(tok, endTok, attrs) {
+  public LoopStmt(IToken tok, RangeToken rangeToken, List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod, Attributes attrs)
+    : base(tok, rangeToken, attrs) {
     Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+    Contract.Requires(rangeToken != null);
     Contract.Requires(cce.NonNullElements(invariants));
     Contract.Requires(decreases != null);
     Contract.Requires(mod != null);

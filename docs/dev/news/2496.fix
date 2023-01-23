@@ -1,1 +1,0 @@
-Resolution errors in the left-hand sign of an assign-such-that statement do not crash Dafny anymore
