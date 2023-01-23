@@ -422,7 +422,7 @@ In particular
 assigned in the loop body (or listed in the modifies clauses of anything the loop body calls)
 - then write a loop invariant that includes assertions about any variable that is listed in the modifies clause
 or is an assignment target in the loop body. 
-Very typically, the invariant will give a value for ecah havoced variable showing its relationship to the loop index.
+Very typically, the invariant will give a value for each havoced variable showing its relationship to the loop index.
 
 For example, a loop that sets the elements of an array to some initial value might look like this:
 ```dafny
@@ -1963,7 +1963,7 @@ function method Firsts0(cs: seq<C>): seq<int> {
 and the reads complaint by a `reads` clause that states which objects will be read.
 In this case, it is the objects `cs[i]` that have their `p` field read.
 If the element type of `cs` were a value type instead of a reference type, this
-`reads` clause would be unnneccessary.
+`reads` clause would be unnecessary.
 
 ```dafny
 class C {
