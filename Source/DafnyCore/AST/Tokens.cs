@@ -17,6 +17,10 @@ public interface IToken : Microsoft.Boogie.IToken {
     set => Filename = value;
   }
 
+  RangeToken ToRange() {
+    return new RangeToken(this, this);
+  }
+
   public string ActualFilename { get; }
   string Filename { get; set; }
 
@@ -149,7 +153,25 @@ public abstract class TokenWrapper : IToken {
 
 }
 
-public class RangeToken : TokenWrapper {
+public class RangeToken { // TODO rename to remove Token from the name
+  public string Filename => StartToken.Filename;
+
+  // The wrapped token is the startTok
+  private IToken endTok;
+  public IToken StartToken { get; }
+  public IToken EndToken => endTok;
+
+  public RangeToken(IToken startTok, IToken endTok) {
+    StartToken = startTok;
+    this.endTok = endTok;
+  }
+
+  public BoogieRangeToken ToToken() {
+    return new BoogieRangeToken(StartToken, EndToken);
+  }
+}
+
+public class BoogieRangeToken : TokenWrapper {
   // The wrapped token is the startTok
   private IToken endTok;
   public IToken StartToken => WrappedToken;
@@ -158,14 +180,9 @@ public class RangeToken : TokenWrapper {
   // Used for range reporting
   public override string val => new string(' ', endTok.pos + endTok.val.Length - pos);
 
-  public RangeToken(IToken startTok, IToken endTok) : base(
-    endTok.pos < startTok.pos && startTok is RangeToken startRange ?
-        startRange.StartToken : startTok) {
-    if (endTok.pos < startTok.pos && startTok is RangeToken startRange2) {
-      this.endTok = startRange2.EndToken;
-    } else {
-      this.endTok = endTok;
-    }
+  public BoogieRangeToken(IToken startTok, IToken endTok) : base(
+    startTok) {
+    this.endTok = endTok;
   }
 }
 

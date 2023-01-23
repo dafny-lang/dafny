@@ -16,10 +16,10 @@ public class ModifyStmt : Statement, ICloneable<ModifyStmt> {
     Body = cloner.CloneBlockStmt(original.Body);
   }
 
-  public ModifyStmt(IToken tok, IToken endTok, List<FrameExpression> mod, Attributes attrs, BlockStmt body)
-    : base(tok, endTok) {
+  public ModifyStmt(IToken tok, RangeToken rangeToken, List<FrameExpression> mod, Attributes attrs, BlockStmt body)
+    : base(tok, rangeToken) {
     Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+    Contract.Requires(rangeToken != null);
     Contract.Requires(mod != null);
     Mod = new Specification<FrameExpression>(mod, attrs);
     Body = body;
