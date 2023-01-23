@@ -13,7 +13,7 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
   public override IToken Tok {
     get {
       var result = Rhs.StartToken.Prev;
-      if(char.IsLetter(result.val[0])) {
+      if (char.IsLetter(result.val[0])) {
         // Jump to operator if we're on an assume/expect/assert keyword.
         result = result.Prev;
       }

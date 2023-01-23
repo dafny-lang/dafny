@@ -11,7 +11,7 @@ public class AssignSuchThatStmt : ConcreteUpdateStatement, ICloneable<AssignSuch
   public override IToken Tok {
     get {
       var result = Expr.StartToken.Prev;
-      if(char.IsLetter(result.val[0])) {
+      if (char.IsLetter(result.val[0])) {
         // Jump to operator if we're on an assume keyword.
         result = result.Prev;
       }

@@ -13,7 +13,7 @@ public class AssignStmt : Statement, ICloneable<AssignStmt> {
   }
 
   public override IToken Tok => Rhs.StartToken.Prev;
-  
+
   public override IEnumerable<Node> Children => new Node[] { Lhs, Rhs };
 
   public AssignStmt Clone(Cloner cloner) {
