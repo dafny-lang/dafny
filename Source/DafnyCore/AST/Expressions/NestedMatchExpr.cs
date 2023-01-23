@@ -35,7 +35,7 @@ public class NestedMatchExpr : Expression, ICloneable<NestedMatchExpr> {
   public override IEnumerable<Expression> SubExpressions =>
     new[] { Source }.Concat(Cases.Select(c => c.Body));
 
-  public override IEnumerable<INode> Children => new[] { Source }.Concat<INode>(Cases);
+  public override IEnumerable<Node> Children => new[] { Source }.Concat<Node>(Cases);
 
   public void Resolve(Resolver resolver, ResolutionContext resolutionContext) {
 
@@ -65,12 +65,6 @@ public class NestedMatchExpr : Expression, ICloneable<NestedMatchExpr> {
 
     if (resolver.reporter.Count(ErrorLevel.Error) != errorCount) {
       return;
-    }
-
-    var dtd = sourceType.AsDatatype;
-    var subst = new Dictionary<TypeParameter, Type>();
-    if (dtd != null) {
-      subst = TypeParameter.SubstitutionMap(dtd.TypeArgs, sourceType.TypeArgs);
     }
 
     Type = new InferredTypeProxy();

@@ -41,11 +41,12 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     private Process StartLanguageServer() {
       var serverBinary = Path.Join(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "DafnyLanguageServer.dll");
 
-      var processInfo = new ProcessStartInfo("dotnet", serverBinary) {
+      var processInfo = new ProcessStartInfo("dotnet") {
         RedirectStandardOutput = true,
         RedirectStandardError = true,
         RedirectStandardInput = true,
-        UseShellExecute = false
+        UseShellExecute = false,
+        ArgumentList = { serverBinary }
       };
 
       return Process.Start(processInfo)!;

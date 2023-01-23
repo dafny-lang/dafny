@@ -275,7 +275,7 @@ Various options control the translation process, in addition to all those descri
    - `--verbose` --- print information about generated files
 
 - The translation results
-   - `--output` (or `-o`) --- location (file or folder depending on the target) of the generated file(s)
+   - `--output` (or `-o`) --- location of the generated file(s) (this specifies a file path and name; a folder location for artifacts is derived from this name)
    - `--include-runtime` --- include the Dafny runtime for the target language in the generated artifacts
    - `--optimize-erasable-datatype-wrapper`
    - `--enforce-determinism`
@@ -284,11 +284,16 @@ Various options control the translation process, in addition to all those descri
 
 The `dafny build` command runs `dafny translate` and then compiles the result into an executable artifact for the target platform,
 such as a `.exe` or `.dll`. or executable `.jar`, or just the source code for an interpreted language.
+If the Dafny program does not have a Main entry point, then the build command creates a library, such as a `.dll` or `.jar`.
 As with `dafny translate`, all the previous phases are also executed, including verification (unless `--no-verify` is a command-line argument).
+By default, the generated file is in the same directory and has the same name with a different extension as the first
+.dfy file on the command line. This locaiton and name can be set by the `--output` option.
 
 There are no additional options for `dafny build` beyond those for `dafny translate` and the previous compiler phases.
 
 Note that `dafny build` may do optimizations that `dafny run` does not.
+
+Details for specific target platforms are described [in Section 25.7](#sec-compilation).
 
 <!-- TODO: OLD TEXT: The command has options that enable being specific about the build platform and architecture. -->
 
@@ -1298,19 +1303,21 @@ are contained in [this separate document](integration-cs/IntegrationCS).
 
 ### 25.7.4. Java
 
-The Dafny-to-Java compiler writes out the translated files of a file _A_`.dfy`
-to a directory _A_`-java`. The `-out` option can be used to choose a
-different output directory. 
+The Dafny-to-Java compiler translation phase writes out the translated files of a file _A_`.dfy`
+to a directory _A_`-java`. 
+The build phase writes out a library or executable jar file.
+The `--output` option (`-out` in the legacy CLI) can be used to choose a
+different jar file path and name and correspondingly different directory for .java and .class files. 
+
 The compiler produces a single wrapper method that then calls classes in 
 relevant other `.java` files. Because Java files must be named consistent
 with the class they contain, but Dafny files do not, there may be no relation
 between the Java file names and the Dafny file names.
 However, the wrapper class that contains the Java `main` method is named for
 the first `.dfy` file on the command-line.
-The output folder  will also contain
-translations to java for any library modules that are used.
 
-The step of compiling Java files (using `javac`) requires the Dafny runtime library. That library is automatically included if dafny is doing the compilation,
+The step of compiling Java files (using `javac`) requires the Dafny runtime library. 
+That library is automatically included if dafny is doing the compilation,
 but not if dafny is only doing translation.
 
 Examples of how to integrate Java source code and libraries with Dafny source

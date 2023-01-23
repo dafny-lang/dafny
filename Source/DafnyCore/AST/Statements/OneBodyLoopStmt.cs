@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
@@ -19,10 +20,10 @@ public abstract class OneBodyLoopStmt : LoopStmt {
     }
   }
 
-  public OneBodyLoopStmt(IToken tok, IToken endTok,
+  public OneBodyLoopStmt(IToken tok, RangeToken rangeToken,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
     BlockStmt /*?*/ body, Attributes/*?*/ attrs)
-    : base(tok, endTok, invariants, decreases, mod, attrs) {
+    : base(tok, rangeToken, invariants, decreases, mod, attrs) {
     Body = body;
   }
 
@@ -31,6 +32,12 @@ public abstract class OneBodyLoopStmt : LoopStmt {
       if (Body != null) {
         yield return Body;
       }
+    }
+  }
+
+  public override IEnumerable<AssumptionDescription> Assumptions() {
+    if (Body is null) {
+      yield return AssumptionDescription.LoopWithoutBody;
     }
   }
 }

@@ -2,19 +2,19 @@
 Dafny program verifier finished with 0 verified, 0 errors
 
 Dafny program verifier did not attempt verification
-git-issue-Main.dfy(16,18): Error: More than one method is declared as "Main". First declaration appeared at git-issue-Main.dfy(10,11).
-git-issue-Main.dfy(20,7): Error: More than one method is declared as "Main". First declaration appeared at git-issue-Main.dfy(10,11).
+git-issue-Main.dfy(16,18): Error: More than one method is declared as 'Main'. First declaration appeared at git-issue-Main.dfy(10,11).
+git-issue-Main.dfy(20,7): Error: More than one method is declared as 'Main'. First declaration appeared at git-issue-Main.dfy(10,11).
 
 Dafny program verifier did not attempt verification
-git-issue-Main.dfy(16,18): Error: More than one method is declared as "Main". First declaration appeared at git-issue-Main.dfy(10,11).
-git-issue-Main.dfy(20,7): Error: More than one method is declared as "Main". First declaration appeared at git-issue-Main.dfy(10,11).
+git-issue-Main.dfy(16,18): Error: More than one method is declared as 'Main'. First declaration appeared at git-issue-Main.dfy(10,11).
+git-issue-Main.dfy(20,7): Error: More than one method is declared as 'Main'. First declaration appeared at git-issue-Main.dfy(10,11).
 
 Dafny program verifier did not attempt verification
-git-issue-Main.dfy(16,18): Error: More than one method is declared as "Main". First declaration appeared at git-issue-Main.dfy(10,11).
-git-issue-Main.dfy(20,7): Error: More than one method is declared as "Main". First declaration appeared at git-issue-Main.dfy(10,11).
+git-issue-Main.dfy(16,18): Error: More than one method is declared as 'Main'. First declaration appeared at git-issue-Main.dfy(10,11).
+git-issue-Main.dfy(20,7): Error: More than one method is declared as 'Main'. First declaration appeared at git-issue-Main.dfy(10,11).
 Wrote textual form of partial target program to git-issue-Main-go/src/git-issue-Main.go
 
 Dafny program verifier did not attempt verification
-git-issue-Main.dfy(16,18): Error: More than one method is declared as "Main". First declaration appeared at git-issue-Main.dfy(10,11).
-git-issue-Main.dfy(20,7): Error: More than one method is declared as "Main". First declaration appeared at git-issue-Main.dfy(10,11).
+git-issue-Main.dfy(16,18): Error: More than one method is declared as 'Main'. First declaration appeared at git-issue-Main.dfy(10,11).
+git-issue-Main.dfy(20,7): Error: More than one method is declared as 'Main'. First declaration appeared at git-issue-Main.dfy(10,11).
 Wrote textual form of partial target program to git-issue-Main-java/git_issue_Main.java
