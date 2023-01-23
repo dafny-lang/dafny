@@ -64,15 +64,15 @@ method Test() {
       FormatterWorksFor(@"
 method Test()
 {
-  me(func(arg(3,
-              4)));
-
   me(func(arg(5,
               6
              ,7
           )
      )
   );
+
+  me(func(arg(3,
+              4)));
 
   me(func(arg(
             8, 9)));
@@ -365,6 +365,19 @@ method topLevel(
   {
     assert true;
   }
+}
+// Trailing comments
+");
+    }
+
+    [Fact]
+    public void FormatterWorksForVarAssignments() {
+      FormatterWorksFor(@"
+method Test() {
+  var y,
+      z
+    := x,
+       1;
   var x :=
     2;
   var
@@ -387,10 +400,6 @@ method topLevel(
     ,
     5
     ;
-  var y,
-      z
-    := x,
-       1;
   var b
     , c
     := d
@@ -408,7 +417,6 @@ method topLevel(
   var w :|
     true;
 }
-// Trailing comments
 ");
     }
 
@@ -1835,31 +1843,20 @@ function Test(): int {
     public void FormatterWorksForObjectCreation() {
       FormatterWorksFor(@"
 method Test() {
-  g := new ClassName.ConstructorName(
-    argument1b,
-    argument2b,
-    argument3b
-  );
-  var g := new ClassName.ConstructorName(
-    argument1,
-    argument2,
-    argument3
-  );
-  var g := Datatype.ConstructorName(
-    argumenta,
-    argumentb,
-    argumentc
-  );
-  g := Datatype.ConstructorName(
-    argumenta2,
-    argumentb2,
-    argumentc2
-  );
-  :- Module.Need(
-    arg1,
-    arg2
-  );
-
+  var g, h := Datatype.ConstructorName1(
+      argumentaz
+    ),
+    Datatype.ConstructorName2(
+      argumentaw
+    )
+    ;
+  g, h := Datatype.ConstructorName1(
+      argumentbz
+    ),
+    Datatype.ConstructorName2(
+      argumentbw
+    )
+    ;
   var g :=
     Datatype.ConstructorName(
       argumentd,
@@ -1872,6 +1869,30 @@ method Test() {
       argumente2,
       argumentf2
     );
+  :- Module.Need(
+    arg1,
+    arg2
+  );
+  var g := Datatype.ConstructorName(
+    argumenta,
+    argumentb,
+    argumentc
+  );
+  g := new ClassName.ConstructorName(
+    argument1b,
+    argument2b,
+    argument3b
+  );
+  var g := new ClassName.ConstructorName(
+    argument1,
+    argument2,
+    argument3
+  );
+  g := Datatype.ConstructorName(
+    argumenta2,
+    argumentb2,
+    argumentc2
+  );
   var h :=
     new ClassName.ConstructorName2(
       argument4,
@@ -2252,6 +2273,16 @@ type Opaque<
     [Fact]
     public void FormatterWorksForAdvancedClosures() {
       FormatterWorksFor(@"
+method LRead() {
+  var o : object?;
+  var f : Ref<() ~> bool>;
+  f := new Ref<() ~> bool>;
+  f.val := () reads f
+              reads f.val.reads()
+              reads if o in f.val.reads() then {} else {o}
+           => true;
+}
+
 function method Compose<A,B,C>(f: B ~> C, g:A ~> B): A ~> C
 {
   x reads g.reads(x)
@@ -2274,16 +2305,6 @@ function method Apply'<A,B>(f: A ~> B) : A ~> B
   x reads f.reads(x)
     requires f.requires(x)
   => f(x)
-}
-
-method LRead() {
-  var o : object?;
-  var f : Ref<() ~> bool>;
-  f := new Ref<() ~> bool>;
-  f.val := () reads f
-              reads f.val.reads()
-              reads if o in f.val.reads() then {} else {o}
-           => true;
 }
 
 function method TreeMapZ<A,B>(t0: Tree<A>, f: A ~> B): Tree<B>

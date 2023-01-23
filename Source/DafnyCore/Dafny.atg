@@ -1659,20 +1659,21 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
 
 /*------------------------------------------------------------------------*/
 GIdentType<bool allowGhostKeyword, bool allowNewKeyword, bool allowNameOnlyKeyword, bool allowOlderKeyword,
-           out IToken/*!*/ id, out Type/*!*/ ty, out bool isGhost, out bool isOld, out bool isNameOnly, out bool isOlder>
+           out IToken/*!*/ id, out Type/*!*/ ty, out bool isGhost, out bool isOld, out bool isNameOnly, out bool isOlder, out IToken startToken>
 /* isGhost always returns as false if allowGhostKeyword is false */
 = (. Contract.Ensures(Contract.ValueAtReturn(out id)!=null);
      Contract.Ensures(Contract.ValueAtReturn(out ty)!=null);
      isGhost = false; isOld = allowNewKeyword; isNameOnly = false; isOlder = false;
+     startToken = null;
   .)
   { IF(IsKeywordForFormal())
     ( "ghost"                    (. if (allowGhostKeyword) { isGhost = true; } else { SemErr(t, "formal cannot be declared 'ghost' in this context"); } .)
     | "new"                      (. if (allowNewKeyword) { isOld = false; } else { SemErr(t, "formal cannot be declared 'new' in this context"); } .)
     | "nameonly"                 (. if (allowNameOnlyKeyword) { isNameOnly = true; } else { SemErr(t, "formal cannot be declared 'nameonly' in this context"); } .)
     | "older"                    (. if (allowOlderKeyword) { isOlder = true; } else { SemErr(t, "formal cannot be declared 'older' in this context"); } .)
-    )
+    )                            (. startToken = t; .)
   }
-  IdentType<out id, out ty, false>
+  IdentType<out id, out ty, false>  (. startToken = startToken ?? id; .)
   .
 
 FIdentType<out IToken/*!*/ id, out Type/*!*/ ty>
@@ -2153,15 +2154,16 @@ Formals<.bool incoming, bool allowGhostKeyword, bool allowNewKeyword, bool allow
      Expression defaultValue;
      bool isNameOnly;
      bool isOlder;
+     IToken formalStartToken;
   .)
   "("
   [
-    GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out id, out ty, out isGhost, out isOld, out isNameOnly, out isOlder>
+    GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out id, out ty, out isGhost, out isOld, out isNameOnly, out isOlder, out formalStartToken>
     ParameterDefaultValue<incoming, out defaultValue>
-                 (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost, defaultValue, isOld, isNameOnly, isOlder)); .)
-    { "," GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out id, out ty, out isGhost, out isOld, out isNameOnly, out isOlder>
+                 (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost, defaultValue, isOld, isNameOnly, isOlder) { RangeToken = new RangeToken(formalStartToken, t) }); .)
+    { "," GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out id, out ty, out isGhost, out isOld, out isNameOnly, out isOlder, out formalStartToken>
     ParameterDefaultValue<incoming, out defaultValue>
-                 (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost, defaultValue, isOld, isNameOnly, isOlder)); .)
+                 (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost, defaultValue, isOld, isNameOnly, isOlder) { RangeToken = new RangeToken(formalStartToken, t) }); .)
     }
   ]
   ")"
@@ -2463,9 +2465,9 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
       ":"
       (  IF(IsParenIdentsColon())
          "("
-           GIdentType<false, false, false, false, out var resultId, out var ty, out var resultIsGhost, out var isOld, out var isNameOnly, out var isOlder>
+           GIdentType<false, false, false, false, out var resultId, out var ty, out var resultIsGhost, out var isOld, out var isNameOnly, out var isOlder, out var formalStartToken>
            (. Contract.Assert(!resultIsGhost && !isOld && !isNameOnly && !isOlder);
-              result = new Formal(resultId, resultId.val, ty, false, false, null, false);
+              result = new Formal(resultId, resultId.val, ty, false, false, null, false) { RangeToken = new RangeToken(formalStartToken, t) };
            .)
          ")"
          | Type<out returnType>
@@ -2736,12 +2738,12 @@ PredicateResult<string name, out Formal result>
   ":"
   (  IF(IsParenIdentsColon())
      "("
-       GIdentType<false, false, false, false, out var resultId, out var ty, out var resultIsGhost, out var isOld, out var isNameOnly, out var isOlder>
+       GIdentType<false, false, false, false, out var resultId, out var ty, out var resultIsGhost, out var isOld, out var isNameOnly, out var isOlder, out var formalStartToken>
        (. Contract.Assert(!resultIsGhost && !isOld && !isNameOnly && !isOlder);
           if(ty is not BoolType) {
             SemErr(t, $"{name} return type should be bool, got {ty}");
           }
-          result = new Formal(resultId, resultId.val, ty, false, false, null, false);
+          result = new Formal(resultId, resultId.val, ty, false, false, null, false) { RangeToken = new RangeToken(formalStartToken, t) };
        .)
      ")"
      | Type<out returnType> (. SemErr(t, $"{name}s do not have an explicitly declared return type; it is always bool. Unless you want to name the result: ': (result: bool)'"); .)
@@ -4174,9 +4176,19 @@ ShiftTerm<out Expression e0, bool allowLemma, bool allowLambda, bool allowBitwis
   Term<out e0, allowLemma, allowLambda, allowBitwiseOps>
   { IF(IsShiftOp())  /* read a Term as far as possible */
     ( "<"            (. x = t;  op = BinaryExpr.Opcode.LeftShift; .)
-      "<"            (. x.val = "<<";  Contract.Assert(t.pos == x.pos + 1); .)
+      "<"            (. t.val = "<<";
+                        t.pos = x.pos;
+                        t.col = x.col;
+                        t.Prev = x.Prev;
+                        x.Prev.Next = t;
+                        x = t; .)
     | ">"            (. x = t;  op = BinaryExpr.Opcode.RightShift; .)
-      ">"            (. x.val = "<<";  Contract.Assert(t.pos == x.pos + 1); .)
+      ">"            (. t.val = ">>";
+                        t.pos = x.pos;
+                        t.col = x.col;
+                        t.Prev = x.Prev;
+                        x.Prev.Next = t;
+                        x = t; .)
     )
     Term<out e1, allowLemma, allowLambda, allowBitwiseOps> (.
       var startToken = e0.StartToken;
