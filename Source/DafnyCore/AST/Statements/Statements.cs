@@ -721,6 +721,8 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt> {
   public readonly bool CanMutateKnownState;
   public Expression OriginalInitialLhs = null;
 
+  public override IToken Tok => Rhss.FirstOrDefault()?.StartToken.Prev ?? base.Tok;
+
   [FilledInDuringResolution] public List<Statement> ResolvedStatements;
   public override IEnumerable<Statement> SubStatements => Children.OfType<Statement>();
 

@@ -9,9 +9,8 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
   public readonly List<AssignmentRhs> Rhss;
   public readonly AttributedToken KeywordToken;
   [FilledInDuringResolution] public readonly List<Statement> ResolvedStatements = new List<Statement>();
-  public override IEnumerable<Statement> SubStatements {
-    get { return ResolvedStatements; }
-  }
+  public override IEnumerable<Statement> SubStatements => ResolvedStatements;
+  public override IToken Tok => Rhs.StartToken.Prev;
 
   public override IEnumerable<Node> Children => ResolvedStatements;
 
