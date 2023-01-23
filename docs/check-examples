@@ -117,8 +117,9 @@ do
 
   ## For header lines, extract the error message from
   ## the header text (everything but the initial ##[ ]* )
+  ## Using @ to delimit sed patterns because it seems the caracter least likely to be in an error message
   ( echo "$line" | grep -E -e '[#][#] ' > /dev/null ) \
-   && msg=`echo "$line" | sed -E -e 's/^##[ ]*[*]*//' -e 's/[*]*$//' -e 's/\\*/\\\\*/' -e 's/_[a-z]+_/.*/g'`
+   && msg=`echo "$line" | sed -E -e 's@^##[ ]*[*]*@@' -e 's@[*]*$@@' -e 's@\\*@\\\\*@' -e 's@_[a-z]+_@.*@g'`
 
   ## Check for the test command information
   echo "$line" | grep '^[ ]*<!-- [ ]*%' > /dev/null
@@ -237,7 +238,7 @@ do
           if [ "$useHeadings" == "1" ]; then
             act=`cat actual | grep -E '(Error|Warning)' | sed -e 's/^[^:]*: //'`
             if [ -n "$msg" ]; then
-              dif=`echo $act | sed -e "s/$msg//g" | sed -e 's/[ ]*//'`
+              dif=`echo $act | sed -e "s@$msg@@g" | sed -e 's/[ ]*//'`
               if [ -z "$act" ] ; then
                  echo NO ERROR MESSAGE FOUND
                  FAIL=1
@@ -249,7 +250,6 @@ do
                  echo DIF "$dif"
                  FAIL=1
               fi
-              msg=
               if [ "$actualec" != "$ec" ]; then
                 echo EXPECTED EXIT CODE $ec, got $actualec
                 FAIL=1
