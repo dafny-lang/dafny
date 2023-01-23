@@ -4343,7 +4343,7 @@ namespace Microsoft.Dafny {
           foreach (var ll in update.Lhss) {
             resolvedLhss.Add(ll.Resolved);
           }
-          CallStmt a = new CallStmt(update.RangeToken, resolvedLhss, methodCallInfo.Callee, methodCallInfo.ActualParameters);
+          CallStmt a = new CallStmt(update.RangeToken, resolvedLhss, methodCallInfo.Callee, methodCallInfo.ActualParameters, methodCallInfo.Tok);
           a.OriginalInitialLhs = update.OriginalInitialLhs;
           update.ResolvedStatements.Add(a);
         }
@@ -4417,7 +4417,7 @@ namespace Microsoft.Dafny {
                 Contract.Assert(methodCallInfo.Callee.Member is TwoStateLemma);
                 reporter.Error(MessageSource.Resolver, methodCallInfo.Tok, "to reveal a two-state function, do not list any parameters or @-labels");
               } else {
-                var call = new CallStmt(s.RangeToken, new List<Expression>(), methodCallInfo.Callee, methodCallInfo.ActualParameters);
+                var call = new CallStmt(s.RangeToken, new List<Expression>(), methodCallInfo.Callee, methodCallInfo.ActualParameters, methodCallInfo.Tok);
                 s.ResolvedStatements.Add(call);
               }
             } else if (expr is NameSegment or ExprDotName) {
@@ -4432,7 +4432,7 @@ namespace Microsoft.Dafny {
                 //The revealed member is a function
                 reporter.Error(MessageSource.Resolver, callee.tok, "to reveal a function ({0}), append parentheses", callee.Member.ToString().Substring(7));
               } else {
-                var call = new CallStmt(s.RangeToken, new List<Expression>(), callee, new List<ActualBinding>());
+                var call = new CallStmt(s.RangeToken, new List<Expression>(), callee, new List<ActualBinding>(), expr.tok);
                 s.ResolvedStatements.Add(call);
               }
             } else {
@@ -5425,7 +5425,7 @@ namespace Microsoft.Dafny {
                 Contract.Assert(callLhs.ResolvedExpression is MemberSelectExpr);  // since ResolveApplySuffix succeeded and call.Lhs denotes an expression (not a module or a type)
                 var methodSel = (MemberSelectExpr)callLhs.ResolvedExpression;
                 if (methodSel.Member is Method) {
-                  rr.InitCall = new CallStmt(stmt.RangeToken, new List<Expression>(), methodSel, rr.Bindings.ArgumentBindings);
+                  rr.InitCall = new CallStmt(stmt.RangeToken, new List<Expression>(), methodSel, rr.Bindings.ArgumentBindings, initCallTok);
                   ResolveCallStmt(rr.InitCall, resolutionContext, rr.EType);
                   if (rr.InitCall.Method is Constructor) {
                     callsConstructor = true;

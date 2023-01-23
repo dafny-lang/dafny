@@ -8,8 +8,8 @@ namespace Microsoft.Dafny;
 /// A CallStmt is always resolved.  It is typically produced as a resolved counterpart of the syntactic AST note ApplySuffix.
 /// </summary>
 public class CallStmt : Statement, ICloneable<CallStmt> {
-  public override IToken Tok =>
-    MethodSelect.EndToken.Next;
+  // OverrideToken is required because MethodSelect.EndToken can be incorrect.
+  public override IToken Tok => overrideToken ?? MethodSelect.EndToken.Next;
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -21,6 +21,7 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
   public override IEnumerable<Node> Children => Lhs.Concat(new Node[] { MethodSelect, Bindings });
   public readonly List<Expression> Lhs;
   public readonly MemberSelectExpr MethodSelect;
+  private readonly IToken overrideToken;
   public readonly ActualBindings Bindings;
   public List<Expression> Args => Bindings.Arguments;
   public Expression OriginalInitialLhs = null;
@@ -28,7 +29,7 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
   public Expression Receiver { get { return MethodSelect.Obj; } }
   public Method Method { get { return (Method)MethodSelect.Member; } }
 
-  public CallStmt(RangeToken rangeToken, List<Expression> lhs, MemberSelectExpr memSel, List<ActualBinding> args)
+  public CallStmt(RangeToken rangeToken, List<Expression> lhs, MemberSelectExpr memSel, List<ActualBinding> args, IToken overrideToken = null)
     : base(rangeToken) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(cce.NonNullElements(lhs));
@@ -38,6 +39,7 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
 
     this.Lhs = lhs;
     this.MethodSelect = memSel;
+    this.overrideToken = overrideToken;
     this.Bindings = new ActualBindings(args);
   }
 
@@ -49,6 +51,7 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
     MethodSelect = (MemberSelectExpr)cloner.CloneExpr(original.MethodSelect);
     Lhs = original.Lhs.Select(cloner.CloneExpr).ToList();
     Bindings = new ActualBindings(cloner, original.Bindings);
+    overrideToken = original.overrideToken;
   }
 
   /// <summary>

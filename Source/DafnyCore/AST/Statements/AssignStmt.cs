@@ -12,6 +12,8 @@ public class AssignStmt : Statement, ICloneable<AssignStmt> {
     Contract.Invariant(Rhs != null);
   }
 
+  public override IToken Tok => Lhs.EndToken.Next;
+  
   public override IEnumerable<Node> Children => new Node[] { Lhs, Rhs };
 
   public AssignStmt Clone(Cloner cloner) {
