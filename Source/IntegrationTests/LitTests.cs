@@ -74,6 +74,9 @@ namespace IntegrationTests {
         }, {
           "%OutputCheck", (args, config) =>
             OutputCheckCommand.Parse(args, config)
+        }, {
+          "%Executeatpath", (args, config) =>
+            Executeatpath.Parse(args.ToArray())
         }
       };
 

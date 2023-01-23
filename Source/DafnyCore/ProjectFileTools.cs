@@ -3,23 +3,10 @@
 
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Collections.ObjectModel;
-using System.CommandLine;
 using System.Linq;
-using System.Diagnostics.Contracts;
 using System.IO;
-using System.Reflection;
-using System.Text.RegularExpressions;
-using JetBrains.Annotations;
-using Microsoft.Dafny;
-using Microsoft.Dafny.Compilers;
-using Microsoft.Dafny.Plugins;
-using Microsoft.VisualBasic.CompilerServices;
 using Tomlyn;
-using Tomlyn.Helpers;
 using Tomlyn.Model;
-using Tomlyn.Parsing;
 using Tomlyn.Syntax;
 using Bpl = Microsoft.Boogie;
 
@@ -36,17 +23,26 @@ namespace Microsoft.Dafny {
     
     
     public static string[] ProjectParser() {
-      string projectFile = File.ReadAllText("dafny.toml");
-      if (projectFile == null) {
-          throw new Exception();
+      string projectFile = String.Empty;
+      try {
+        projectFile = File.ReadAllText("dafny.toml");
+      }
+      catch {
+        return null;
+      }
+      var model = Toml.Parse(projectFile).ToModel();
+      string[] projectArgs = Array.Empty<string>();
+      try {
+        var commandTable = (TomlTable) (model["Command"]);
+        foreach (KeyValuePair<string, object> entry in (commandTable)) {
+          projectArgs = projectArgs.Append("" + entry.Value).ToArray();
         }
-      DocumentSyntax syntax = Toml.Parse(projectFile);
-      var model = syntax.ToModel(); 
-      var toml = (TomlTable) (model["Options"]);
-      string[] projectArgs = {};
-      foreach (KeyValuePair<string, object> entry in (toml)) {
-
-          projectArgs = projectArgs.Append("-" + entry.Key + ":" + entry.Value).ToArray();
+        var ArgTable = (TomlTable) (model["Arguments"]);
+        foreach (KeyValuePair<string, object> entry in (ArgTable)) {
+          projectArgs = projectArgs.Append("--" + entry.Key + ":" + entry.Value).ToArray();
+        }
+      } catch {
+        projectArgs = null;
       }
       return projectArgs;
     }

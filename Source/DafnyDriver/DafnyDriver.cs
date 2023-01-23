@@ -25,7 +25,6 @@ using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 using System.Diagnostics;
 using Microsoft.Dafny.Plugins;
-using Tomlyn;
 
 namespace Microsoft.Dafny {
 
@@ -171,7 +170,13 @@ namespace Microsoft.Dafny {
     public static CommandLineArgumentsResult ProcessCommandLineArguments(string[] args, out DafnyOptions options, out List<DafnyFile> dafnyFiles, out List<string> otherFiles) {
       dafnyFiles = new List<DafnyFile>();
       otherFiles = new List<string>();
-
+      
+      var projectArgs = ProjectFileTools.ProjectParser();
+      if (projectArgs != null)
+      {
+        args = projectArgs.Concat(args).ToArray();
+      }
+      
       try {
         switch (CommandRegistry.Create(args)) {
           case ParseArgumentSuccess success:
