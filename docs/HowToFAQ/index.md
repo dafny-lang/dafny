@@ -117,5 +117,5 @@ Also see [the error catalog](./Errors) for a complete, searchable list of error 
 - ["Warning: File contains no code: ..."](ERROR_NoCode)
 - ["Duplicate name of import: ..."](ERROR_DuplicateImportName)
 - ["Warning: /!\ No terms found to trigger on."](ERROR_NoTriggers)
-- ["Error: value does not satisfy the subset constraints of '(seq<uint8>, Materials.EncryptedDataKey) - > seq<uint8>' (possible cause: it may be partial or have read effects)"](ERROR_SubsetConstraints)
+- ["Error: value does not satisfy the subset constraints of '(seq\<uint8>, Materials.EncryptedDataKey) -> seq\<uint8>' (possible cause: it may be partial or have read effects)"](ERROR_SubsetConstraints)
 
