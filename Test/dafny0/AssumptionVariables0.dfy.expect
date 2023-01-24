@@ -1,5 +1,5 @@
 AssumptionVariables0.dfy(7,31): Error: there may be at most one assignment to an assumption variable, the RHS of which must match the expression "a0 && <boolean expression>"
-AssumptionVariables0.dfy(8,42): Error: there may be at most one assignment to an assumption variable, the RHS of which must match the expression "a2 && <boolean expression>"
+AssumptionVariables0.dfy(8,44): Error: there may be at most one assignment to an assumption variable, the RHS of which must match the expression "a2 && <boolean expression>"
 AssumptionVariables0.dfy(16,7): Error: there may be at most one assignment to an assumption variable, the RHS of which must match the expression "a3 && <boolean expression>"
 AssumptionVariables0.dfy(18,7): Error: there may be at most one assignment to an assumption variable, the RHS of which must match the expression "a3 && <boolean expression>"
 AssumptionVariables0.dfy(28,7): Error: there may be at most one assignment to an assumption variable, the RHS of which must match the expression "a0 && <boolean expression>"
