@@ -14,9 +14,13 @@ public class AssignStmt : Statement, ICloneable<AssignStmt> {
 
   public override IToken Tok {
     get {
-      // If there was a single assignment, report on the operator, otherwise on the RHS.
-      if (Rhs.StartToken.Prev.val == ":=") {
-        return Rhs.StartToken.Prev;
+      var previous = Rhs.StartToken.Prev;
+      // If there was a single assignment, report on the operator.
+      var singleAssignment = previous.val == ":="; 
+      // If there was an implicit return assignment, report on the return
+      var implicitAssignment = previous.val == "return";
+      if (singleAssignment || implicitAssignment) {
+        return previous;
       }
       return Rhs.StartToken;
     }
