@@ -25,14 +25,14 @@ refman-release:
 	make -C ${DIR}/docs/DafnyRef release
 
 z3-mac:
-	wget https://github.com/Z3Prover/z3/releases/download/Z3-4.8.5/z3-4.8.5-x64-osx-10.14.2.zip
-	unzip z3-4.8.5-x64-osx-10.14.2.zip
-	mv z3-4.8.5-x64-osx-10.14.2 ${DIR}/Binaries/z3
+	wget https://github.com/Z3Prover/z3/releases/download/z3-4.11.2/z3-4.11.2-x64-osx-10.16.zip
+	unzip z3-4.11.2-x64-osx-10.16.zip
+	mv z3-4.11.2-x64-osx-10.16 ${DIR}/Binaries/z3
 
 z3-ubuntu:
-	wget https://github.com/Z3Prover/z3/releases/download/Z3-4.8.5/z3-4.8.5-x64-ubuntu-16.04.zip
-	unzip z3-4.8.5-x64-ubuntu-16.04.zip
-	mv z3-4.8.5-x64-ubuntu-16.04 ${DIR}/Binaries/z3
+	wget https://github.com/Z3Prover/z3/releases/download/z3-4.11.2/z3-4.11.2-x64-glibc-2.31.zip
+	unzip z3-4.11.2-x64-glibc-2.31.zip
+	mv z3-4.11.2-x64-glibc-2.31 ${DIR}/Binaries/z3
 
 format:
 	dotnet tool run dotnet-format -w -s error Source/Dafny.sln --exclude DafnyCore/Scanner.cs --exclude DafnyCore/Parser.cs

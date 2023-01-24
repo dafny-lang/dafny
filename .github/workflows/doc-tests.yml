@@ -21,12 +21,12 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            z3: z3-4.8.5-x64-ubuntu-16.04
+            z3: z3-4.11.2-x64-glibc-2.31
             chmod: true
 
     env:
       solutionPath: Source/Dafny.sln
-      z3BaseUri: https://github.com/Z3Prover/z3/releases/download/Z3-4.8.5
+      z3BaseUri: https://github.com/Z3Prover/z3/releases/download/Z3-4.11.2
       Logging__LogLevel__Microsoft: Debug
     steps:
     - name: OS
