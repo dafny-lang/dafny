@@ -54,7 +54,7 @@ In particular
 assigned in the loop body (or listed in the modifies clauses of anything the loop body calls)
 - then write a loop invariant that includes assertions about any variable that is listed in the modifies clause
 or is an assignment target in the loop body. 
-Very typically, the invariant will give a value for ecah havoced variable showing its relationship to the loop index.
+Very typically, the invariant will give a value for each havoced variable showing its relationship to the loop index.
 
 For example, a loop that sets the elements of an array to some initial value might look like this:
 ```dafny
