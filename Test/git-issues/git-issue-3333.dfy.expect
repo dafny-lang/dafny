@@ -1,0 +1,2 @@
+git-issue-3333.dfy(8,18): Error: Function body type mismatch (expected uint16, got int)
+1 resolution/type errors detected in git-issue-3333.dfy

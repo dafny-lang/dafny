@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.Linq;
+using System.Transactions;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
@@ -17,8 +19,34 @@ public static class BoogieOptionBag {
     ArgumentHelpName = "arguments",
   };
 
-  public static readonly Option<int> Cores = new("--cores", () => 1,
-    "Run the Dafny CLI using <n> cores. Defaults to 1.") {
+  public static readonly Option<uint> Cores = new("--cores", result => {
+    if (result.Tokens.Count != 1) {
+      result.ErrorMessage = $"Expected only one value for option {Cores.Name}";
+      return 1;
+    }
+
+    var value = result.Tokens[0].Value;
+    if (value.EndsWith('%')) {
+      if (double.TryParse(value.Substring(0, value.Length - 1), out var percentage)) {
+        return Math.Max(1U, (uint)(percentage / 100.0 * Environment.ProcessorCount));
+      }
+
+      result.ErrorMessage = $"Could not parse percentage {value}";
+      return 1;
+    }
+
+    if (uint.TryParse(value, out var number)) {
+      if (number > 0) {
+        return number;
+      }
+
+      result.ErrorMessage = $"Number of cores to use must be greater than 0";
+      return 1;
+    }
+    result.ErrorMessage = $"Could not parse number {value}";
+    return 1;
+  }, true,
+    "Run the Dafny verifier using <n> cores, or using <XX%> of the machine's logical cores.") {
     ArgumentHelpName = "count"
   };
 
@@ -33,6 +61,8 @@ public static class BoogieOptionBag {
   };
 
   static BoogieOptionBag() {
+    Cores.SetDefaultValue((uint)((Environment.ProcessorCount + 1) / 2));
+
     DafnyOptions.RegisterLegacyBinding(BoogieFilter, (o, f) => o.ProcsToCheck.AddRange(f));
     DafnyOptions.RegisterLegacyBinding(BoogieArguments, (o, boogieOptions) => {
 
@@ -40,7 +70,8 @@ public static class BoogieOptionBag {
         o.Parse(SplitArguments(boogieOptions).ToArray());
       }
     });
-    DafnyOptions.RegisterLegacyBinding(Cores, (o, f) => o.VcsCores = f);
+    DafnyOptions.RegisterLegacyBinding(Cores,
+      (o, f) => o.VcsCores = f == 0 ? (1 + System.Environment.ProcessorCount) / 2 : (int)f);
     DafnyOptions.RegisterLegacyBinding(NoVerify, (o, f) => o.Verify = !f);
     DafnyOptions.RegisterLegacyBinding(VerificationTimeLimit, (o, f) => o.TimeLimit = f);
   }

@@ -1,6 +1,6 @@
 TypeConstraints.dfy(42,6): Error: RHS (of type int) not assignable to LHS (of type bool)
 TypeConstraints.dfy(49,6): Error: RHS (of type int) not assignable to LHS (of type bool)
-TypeConstraints.dfy(56,9): Error: RHS (of type int) not assignable to LHS (of type bool)
+TypeConstraints.dfy(56,15): Error: RHS (of type int) not assignable to LHS (of type bool)
 TypeConstraints.dfy(65,6): Error: RHS (of type bool) not assignable to LHS (of type int)
 TypeConstraints.dfy(80,6): Error: RHS (of type MyInt) not assignable to LHS (of type int)
 TypeConstraints.dfy(81,6): Error: RHS (of type int) not assignable to LHS (of type MyInt)
@@ -30,7 +30,11 @@ module _System {
    * SCC at height 1:
    *   RotateRight
    * SCC at height 0:
+   *   array
+   * SCC at height 0:
    *   nat
+   * SCC at height 0:
+   *   object
    */
   type string(==,0) = seq<char>
 
@@ -144,6 +148,8 @@ module Tests {
   /* CALL GRAPH for module Tests:
    * SCC at height 1:
    *   CC.M
+   * SCC at height 0:
+   *   CC
    * SCC at height 0:
    *   CC.F
    * SCC at height 0:
@@ -403,6 +409,10 @@ module SimpleClassesAndTraits {
    *   D
    * SCC at height 0:
    *   K
+   * SCC at height 0:
+   *   M
+   * SCC at height 0:
+   *   R
    */
   class C extends K, M { }
   /*-- non-null type
@@ -534,6 +544,12 @@ module TraitStuff {
   /* CALL GRAPH for module TraitStuff:
    * SCC at height 1:
    *   Aggregate._ctor
+   * SCC at height 0:
+   *   Aggregate
+   * SCC at height 0:
+   *   Motorized
+   * SCC at height 0:
+   *   Part
    * SCC at height 0:
    *   PartX
    * SCC at height 0:
@@ -790,7 +806,13 @@ module TypeArgumentPrintTests {
    * SCC at height 1:
    *   Cl.M
    * SCC at height 0:
+   *   A
+   * SCC at height 0:
    *   A.F
+   * SCC at height 0:
+   *   B
+   * SCC at height 0:
+   *   Cl
    * SCC at height 0:
    *   Tr
    */

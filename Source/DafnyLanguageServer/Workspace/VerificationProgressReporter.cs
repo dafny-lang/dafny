@@ -68,7 +68,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
               destructor => destructor.CorrespondingFormals).Any(
               formal => formal.DefaultValue != null);
             if (aFormalHasADefaultValue) {
-              var verificationTreeRange = ctor.GetStartToken().GetLspRange(ctor.GetEndToken());
+              var verificationTreeRange = ctor.StartToken.GetLspRange(ctor.EndToken);
               var verificationTree = new TopLevelDeclMemberVerificationTree(
                 "datatype",
                 ctor.Name,
@@ -89,12 +89,12 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
             }
 
             if (member is Field) {
-              var constantHasNoBody = member.BodyEndTok.line == 0;
+              var constantHasNoBody = member.RangeToken.EndToken.line == 0;
               if (constantHasNoBody) {
                 continue; // Nothing to verify
               }
 
-              var verificationTreeRange = member.GetStartToken().GetLspRange(member.GetEndToken());
+              var verificationTreeRange = member.StartToken.GetLspRange(member.EndToken);
               var verificationTree = new TopLevelDeclMemberVerificationTree(
                 "constant",
                 member.Name,
@@ -104,7 +104,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
                 member.tok.GetLspPosition());
               AddAndPossiblyMigrateVerificationTree(verificationTree);
             } else if (member is Method or Function) {
-              var verificationTreeRange = member.GetStartToken().GetLspRange(member.GetEndToken());
+              var verificationTreeRange = member.StartToken.GetLspRange(member.EndToken);
               var verificationTree = new TopLevelDeclMemberVerificationTree(
                 (member is Method ? "method" : "function"),
                 member.Name,
@@ -114,7 +114,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
                 member.tok.GetLspPosition());
               AddAndPossiblyMigrateVerificationTree(verificationTree);
               if (member is Function { ByMethodBody: { } } function) {
-                var verificationTreeRangeByMethod = function.ByMethodTok.GetLspRange(function.ByMethodBody.EndTok);
+                var verificationTreeRangeByMethod = function.ByMethodBody.RangeToken.ToLspRange();
                 var verificationTreeByMethod = new TopLevelDeclMemberVerificationTree(
                   "by method part of function",
                   member.Name,
@@ -133,7 +133,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
             continue;
           }
 
-          var verificationTreeRange = subsetTypeDecl.GetStartToken().GetLspRange(subsetTypeDecl.GetEndToken());
+          var verificationTreeRange = subsetTypeDecl.StartToken.GetLspRange(subsetTypeDecl.EndToken);
           var verificationTree = new TopLevelDeclMemberVerificationTree(
             $"subset type",
             subsetTypeDecl.Name,

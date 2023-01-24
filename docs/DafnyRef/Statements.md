@@ -928,7 +928,7 @@ has the same meaning as
 
 <!-- %no-check -->
 ```dafny
-if exists x :| P { var x :| P; S } else { T }
+if exists x :: P { var x :| P; S } else { T }
 ```
 
 The identifiers bound by ``BindingGuard`` are ghost variables
@@ -1077,9 +1077,12 @@ place to put it.
 
 The _body_ of the loop is usually a block statement, but it can also
 be missing altogether.
-TODO: Wouldn't a missing body cause problems? Isn't it clearer to have
-a block statement with no statements inside?
--->
+A loop with a missing body may still pass verification, but any attempt
+to compile the containing program will result in an error message.
+When verifying a loop with a missing body, the verifier will skip attempts
+to prove loop invariants and decreases assertions that would normally be
+asserted at the end of the loop body.
+
 The form that used `...` (a refinement feature) as the guard is deprecated.
 
 The second form uses the `AlternativeBlock`. It is similar to the
@@ -1243,6 +1246,13 @@ that are declared with `decreases *`.
 The directions `to` or `downto` are contextual keywords. That is, these two
 words are part of the syntax of the `for` loop, but they are not reserved
 keywords elsewhere.
+
+Just like for while loops, the body of a for-loop may be omitted during
+verification. This suppresses attempts to check assertions (like invariants)
+that would occur at the end of the loop. Eventually, however a body must
+be provided; the compiler will not compile a method containing a body-less
+for-loop.
+
 
 ## 20.14. Loop Specifications {#sec-loop-specifications}
 For some simple loops, such as those mentioned previously, Dafny can figure

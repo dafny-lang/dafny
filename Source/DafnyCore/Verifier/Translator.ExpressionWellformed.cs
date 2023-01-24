@@ -583,7 +583,7 @@ namespace Microsoft.Dafny {
             // Note, in the following, the "##" makes the variable invisible in BVD.  An alternative would be to communicate
             // to BVD what this variable stands for and display it as such to the user.
             Type et = p.Type.Subst(e.GetTypeArgumentSubstitutions());
-            LocalVariable local = new LocalVariable(p.tok, p.tok, "##" + p.Name, et, p.IsGhost);
+            LocalVariable local = new LocalVariable(p.RangeToken, "##" + p.Name, et, p.IsGhost);
             local.type = local.OptionalType;  // resolve local here
             IdentifierExpr ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator));
             ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
@@ -1153,7 +1153,9 @@ namespace Microsoft.Dafny {
         var e = (ConcreteSyntaxExpression)expr;
         CheckWellformedWithResult(e.ResolvedExpression, options, result, resultType, locals, builder, etran);
         result = null;
-
+      } else if (expr is NestedMatchExpr nestedMatchExpr) {
+        CheckWellformedWithResult(nestedMatchExpr.Flattened, options, result, resultType, locals, builder, etran);
+        result = null;
       } else if (expr is BoogieFunctionCall) {
         var e = (BoogieFunctionCall)expr;
         foreach (var arg in e.Args) {

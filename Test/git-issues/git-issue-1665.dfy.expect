@@ -8,7 +8,11 @@ module _System {
    * SCC at height 1:
    *   RotateRight
    * SCC at height 0:
+   *   array
+   * SCC at height 0:
    *   nat
+   * SCC at height 0:
+   *   object
    */
   type string(==,0) = seq<char>
 
@@ -134,7 +138,7 @@ module ConcreteModule {
     decreases n, m
   {
     
-    /*---------- desugared ----------
+    /*---------- flattened ----------
     if n == 0 {
       :- Func1()
       /*---------- desugared ----------
@@ -161,13 +165,44 @@ module ConcreteModule {
       }      
     } else {
       return Success;
-    }    ---------- end desugared ----------*/
+    }    ---------- end flattened ----------*/
     match n {
       case {:split false} 0 =>
-        :- Func1();
+        :- Func1()
+        /*---------- desugared ----------
+        var valueOrError0: Status;
+        valueOrError0 := Func1();
+        if valueOrError0.IsFailure() {
+          r := valueOrError0.PropagateFailure();
+          return;
+        }
+        ---------- end desugared ----------*/;
+        
+        /*---------- flattened ----------
+        if m == 1 {
+          :- Func1()
+          /*---------- desugared ----------
+          var valueOrError1: Status;
+          valueOrError1 := Func1();
+          if valueOrError1.IsFailure() {
+            r := valueOrError1.PropagateFailure();
+            return;
+          }
+          ---------- end desugared ----------*/;
+        } else {
+          return Success;
+        }        ---------- end flattened ----------*/
         match m {
           case {:split false} 1 =>
-            :- Func1();
+            :- Func1()
+            /*---------- desugared ----------
+            var valueOrError1: Status;
+            valueOrError1 := Func1();
+            if valueOrError1.IsFailure() {
+              r := valueOrError1.PropagateFailure();
+              return;
+            }
+            ---------- end desugared ----------*/;
           case {:split false} _ =>
             return Success;
         }

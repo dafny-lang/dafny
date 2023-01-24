@@ -857,7 +857,6 @@ namespace Microsoft.Dafny {
       Type.ResetScopes();
 
       foreach (ModuleDefinition outerModule in VerifiableModules(p)) {
-
         var translator = new Translator(reporter, flags);
 
         if (translator.sink == null || translator.sink == null) {
@@ -1654,7 +1653,9 @@ namespace Microsoft.Dafny {
 
     void AddEnsures(List<Bpl.Ensures> list, Bpl.Ensures ens) {
       list.Add(ens);
-      if (!ens.Free) { this.assertionCount++; }
+      if (!ens.Free) {
+        this.assertionCount++;
+      }
     }
 
     void AddWellformednessCheck(IteratorDecl iter, Procedure proc) {
@@ -2723,7 +2724,7 @@ namespace Microsoft.Dafny {
         if (pp.ExtremePred is GreatestPredicate) {
           // forall k':ORDINAL | _k' LESS _k :: pp(_k', args)
           var smaller = Expression.CreateLess(kprime, k);
-          limitCalls = new ForallExpr(pp.tok, pp.BodyEndTok, new List<BoundVar> { kprimeVar }, smaller, ppCall, triggerAttr);
+          limitCalls = new ForallExpr(pp.tok, pp.RangeToken, new List<BoundVar> { kprimeVar }, smaller, ppCall, triggerAttr);
           limitCalls.Type = Type.Bool;  // resolve here
         } else {
           // exists k':ORDINAL | _k' LESS _k :: pp(_k', args)
@@ -2734,7 +2735,7 @@ namespace Microsoft.Dafny {
             ResolvedOp = BinaryExpr.ResolvedOpcode.LessThanLimit,
             Type = Type.Bool
           };
-          limitCalls = new ExistsExpr(pp.tok, pp.BodyEndTok, new List<BoundVar> { kprimeVar }, smaller, ppCall, triggerAttr);
+          limitCalls = new ExistsExpr(pp.tok, pp.RangeToken, new List<BoundVar> { kprimeVar }, smaller, ppCall, triggerAttr);
           limitCalls.Type = Type.Bool;  // resolve here
         }
         var a = Expression.CreateImplies(kIsPositive, body);
@@ -3349,12 +3350,8 @@ namespace Microsoft.Dafny {
       }
     }
 
-    internal IToken GetToken(Expression expression) {
-      return flags.ReportRanges ? expression.GetRangeToken() : expression.tok;
-    }
-
-    internal IToken GetToken(Statement stmt) {
-      return flags.ReportRanges ? stmt.GetRangeToken() : stmt.Tok;
+    internal IToken GetToken(Node node) {
+      return flags.ReportRanges ? node.RangeToken.ToToken() : node.Tok;
     }
 
     void CheckDefiniteAssignment(IdentifierExpr expr, BoogieStmtListBuilder builder) {
@@ -4079,7 +4076,7 @@ namespace Microsoft.Dafny {
           e = Substitute(e, receiverReplacement, substMap);
         }
 
-        e = Resolver.FrameArrowToObjectSet(e, CurrentIdGenerator, program.BuiltIns);
+        e = ArrowType.FrameArrowToObjectSet(e, CurrentIdGenerator, program.BuiltIns);
 
         Bpl.Expr disjunct;
         var eType = e.Type.NormalizeExpand();
@@ -5077,6 +5074,8 @@ namespace Microsoft.Dafny {
       } else if (expr is ConcreteSyntaxExpression) {
         var e = (ConcreteSyntaxExpression)expr;
         return CanCallAssumption(e.ResolvedExpression, etran);
+      } else if (expr is NestedMatchExpr nestedMatchExpr) {
+        return CanCallAssumption(nestedMatchExpr.Flattened, etran);
       } else if (expr is BoogieFunctionCall) {
         var e = (BoogieFunctionCall)expr;
         return CanCallAssumption(e.Args, etran);
@@ -5149,7 +5148,8 @@ namespace Microsoft.Dafny {
       return false;
     }
 
-    void CheckCasePatternShape<VT>(CasePattern<VT> pat, Bpl.Expr rhs, IToken rhsTok, Type rhsType, BoogieStmtListBuilder builder) where VT : class, IVariable {
+    void CheckCasePatternShape<VT>(CasePattern<VT> pat, Bpl.Expr rhs, IToken rhsTok, Type rhsType, BoogieStmtListBuilder builder)
+      where VT : class, IVariable {
       Contract.Requires(pat != null);
       Contract.Requires(rhs != null);
       Contract.Requires(rhsTok != null);
@@ -7400,7 +7400,7 @@ namespace Microsoft.Dafny {
       var range = exists.Range == null ? null : s.Substitute(exists.Range);
       var term = s.Substitute(exists.Term);
       var attrs = s.SubstAttributes(exists.Attributes);
-      var ex = new ExistsExpr(exists.tok, exists.BodyEndTok, bvars, range, term, attrs);
+      var ex = new ExistsExpr(exists.tok, exists.RangeToken, bvars, range, term, attrs);
       ex.Type = Type.Bool;
       ex.Bounds = s.SubstituteBoundedPoolList(exists.Bounds);
       return ex;
@@ -7690,7 +7690,7 @@ namespace Microsoft.Dafny {
       typeAntecedent = Bpl.Expr.True;
       var substMap = new Dictionary<IVariable, Expression>();
       foreach (BoundVar bv in boundVars) {
-        LocalVariable local = new LocalVariable(bv.tok, bv.tok, nameSuffix == null ? bv.Name : bv.Name + nameSuffix, bv.Type, bv.IsGhost);
+        LocalVariable local = new LocalVariable(bv.RangeToken, nameSuffix == null ? bv.Name : bv.Name + nameSuffix, bv.Type, bv.IsGhost);
         local.type = local.OptionalType;  // resolve local here
         IdentifierExpr ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator));
         ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
@@ -7735,7 +7735,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
 
-      var local = new LocalVariable(v.Tok, v.Tok, v.Name, v.Type, v.IsGhost);
+      var local = new LocalVariable(v.RangeToken, v.Name, v.Type, v.IsGhost);
       local.type = local.OptionalType;  // resolve local here
       var ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator));
       ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
@@ -8576,7 +8576,8 @@ namespace Microsoft.Dafny {
             if (rhs != null) {
               bldr.Add(Bpl.Cmd.SimpleAssign(tok, bLhs, rhs));
             }
-            if (!origRhsIsHavoc) {
+
+            if (!origRhsIsHavoc || ie.Type.IsNonempty) {
               MarkDefiniteAssignmentTracker(ie, bldr);
             }
           });
@@ -8605,7 +8606,8 @@ namespace Microsoft.Dafny {
               if (rhs != null) {
                 bldr.Add(Bpl.Cmd.SimpleAssign(tok, bLhs, rhs));
               }
-              if (!origRhsIsHavoc) {
+
+              if (!origRhsIsHavoc || field.Type.IsNonempty) {
                 MarkDefiniteAssignmentTracker(lhs.tok, nm, bldr);
               }
             });
@@ -8793,7 +8795,9 @@ namespace Microsoft.Dafny {
             }
           } else if (DafnyOptions.O.DefiniteAssignmentLevel == 0) {
             // cool
-          } else if (2 <= DafnyOptions.O.DefiniteAssignmentLevel || !tRhs.EType.HasCompilableValue) {
+          } else if ((2 <= DafnyOptions.O.DefiniteAssignmentLevel && DafnyOptions.O.DefiniteAssignmentLevel != 4) ||
+                     DafnyOptions.O.Get(CommonOptionBag.EnforceDeterminism) ||
+                     !tRhs.EType.HasCompilableValue) {
             // this is allowed only if the array size is such that it has no elements
             Bpl.Expr zeroSize = Bpl.Expr.False;
             foreach (Expression dim in tRhs.ArrayDimensions) {
@@ -9942,7 +9946,8 @@ namespace Microsoft.Dafny {
       } else if (expr is ConcreteSyntaxExpression) {
         var e = (ConcreteSyntaxExpression)expr;
         return TrSplitExpr(e.ResolvedExpression, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
-
+      } else if (expr is NestedMatchExpr nestedMatchExpr) {
+        return TrSplitExpr(nestedMatchExpr.Flattened, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
         if (!e.Exact) {

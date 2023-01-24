@@ -34,7 +34,8 @@ public interface ICommandSpec {
   }.Concat(VerificationOptions).ToList();
 
   public static IReadOnlyList<Option> ExecutionOptions = new Option[] {
-    CommonOptionBag.Target
+    CommonOptionBag.Target,
+    DeveloperOptionBag.SpillTranslation
   }.Concat(TranslationOptions).ToList();
 
   public static IReadOnlyList<Option> ConsoleOutputOptions = new List<Option>(new Option[] {

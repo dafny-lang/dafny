@@ -2,13 +2,13 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 
-namespace Microsoft.Dafny;
+namespace Microsoft.Dafny; 
 
-public class MatchExpr : Expression {  // a MatchExpr is an "extended expression" and is only allowed in certain places
+public class MatchExpr : Expression, Match, ICloneable<MatchExpr> {  // a MatchExpr is an "extended expression" and is only allowed in certain places
   private Expression source;
   private List<MatchCaseExpr> cases;
   public readonly MatchingContext Context;
-  [FilledInDuringResolution] public readonly List<DatatypeCtor> MissingCases = new();
+  [FilledInDuringResolution] public List<DatatypeCtor> MissingCases { get; } = new();
   public readonly bool UsesOptionalBraces;
   public MatchExpr OrigUnresolved;  // the resolver makes this clone of the MatchExpr before it starts desugaring it
 
@@ -27,12 +27,28 @@ public class MatchExpr : Expression {  // a MatchExpr is an "extended expression
     this.source = source;
     this.cases = cases;
     this.UsesOptionalBraces = usesOptionalBraces;
-    this.Context = context is null ? new HoleCtx() : context;
+    this.Context = context ?? new HoleCtx();
+  }
+  public MatchExpr(Cloner cloner, MatchExpr original)
+    : base(cloner, original) {
+    source = cloner.CloneExpr(original.Source);
+    cases = original.Cases.ConvertAll(cloner.CloneMatchCaseExpr);
+    UsesOptionalBraces = original.UsesOptionalBraces;
+    Context = original.Context;
+    if (cloner.CloneResolvedFields) {
+      MissingCases = original.MissingCases;
+    }
+  }
+
+  public MatchExpr Clone(Cloner cloner) {
+    return new MatchExpr(cloner, this);
   }
 
   public Expression Source => source;
 
   public List<MatchCaseExpr> Cases => cases;
+
+  IEnumerable<MatchCase> Match.Cases => Cases;
 
   // should only be used in desugar in resolve to change the source and cases of the matchexpr
   public void UpdateSource(Expression source) {
@@ -43,7 +59,7 @@ public class MatchExpr : Expression {  // a MatchExpr is an "extended expression
     this.cases = cases;
   }
 
-  public override IEnumerable<INode> Children => new[] { source }.Concat<INode>(cases);
+  public override IEnumerable<Node> Children => new[] { source }.Concat<Node>(cases);
 
   public override IEnumerable<Expression> SubExpressions {
     get {
@@ -65,9 +81,9 @@ public class MatchExpr : Expression {  // a MatchExpr is an "extended expression
   }
 }
 
-public abstract class MatchCase : INode, IHasUsages {
-  [FilledInDuringResolution] public DatatypeCtor Ctor;
-  public List<BoundVar> Arguments; // created by the resolver.
+public abstract class MatchCase : TokenNode, IHasUsages {
+  public DatatypeCtor Ctor;
+  public List<BoundVar> Arguments;
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -91,7 +107,14 @@ public abstract class MatchCase : INode, IHasUsages {
   }
 }
 
-public class MatchStmt : Statement, ICloneable<MatchStmt> {
+interface Match {
+  IEnumerable<MatchCase> Cases { get; }
+  Expression Source { get; }
+
+  List<DatatypeCtor> MissingCases { get; }
+}
+
+public class MatchStmt : Statement, Match, ICloneable<MatchStmt> {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Source != null);
@@ -102,12 +125,8 @@ public class MatchStmt : Statement, ICloneable<MatchStmt> {
   private Expression source;
   private List<MatchCaseStmt> cases;
   public readonly MatchingContext Context;
-  [FilledInDuringResolution] public readonly List<DatatypeCtor> MissingCases = new();
+  [FilledInDuringResolution] public List<DatatypeCtor> MissingCases { get; } = new();
   public readonly bool UsesOptionalBraces;
-
-  [FilledInDuringResolution]
-  // TODO remove field?
-  public MatchStmt OrigUnresolved;  // the resolver makes this clone of the MatchStmt before it starts desugaring it
 
   public MatchStmt Clone(Cloner cloner) {
     return new MatchStmt(cloner, this);
@@ -121,25 +140,13 @@ public class MatchStmt : Statement, ICloneable<MatchStmt> {
 
     if (cloner.CloneResolvedFields) {
       MissingCases = original.MissingCases;
-      OrigUnresolved = original.OrigUnresolved;
     }
   }
 
-  public MatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<MatchCaseStmt> cases, bool usesOptionalBraces, MatchingContext context = null)
-    : base(tok, endTok) {
-    Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
-    Contract.Requires(source != null);
-    Contract.Requires(cce.NonNullElements(cases));
-    this.source = source;
-    this.cases = cases;
-    this.UsesOptionalBraces = usesOptionalBraces;
-    this.Context = context is null ? new HoleCtx() : context;
-  }
-  public MatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<MatchCaseStmt> cases, bool usesOptionalBraces, Attributes attrs, MatchingContext context = null)
-    : base(tok, endTok, attrs) {
-    Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+  public MatchStmt(RangeToken rangeToken, Expression source, [Captured] List<MatchCaseStmt> cases,
+    bool usesOptionalBraces, MatchingContext context = null)
+    : base(rangeToken) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(source != null);
     Contract.Requires(cce.NonNullElements(cases));
     this.source = source;
@@ -148,13 +155,24 @@ public class MatchStmt : Statement, ICloneable<MatchStmt> {
     this.Context = context is null ? new HoleCtx() : context;
   }
 
-  public Expression Source {
-    get { return source; }
+  public MatchStmt(RangeToken rangeToken, Expression source, [Captured] List<MatchCaseStmt> cases,
+    bool usesOptionalBraces, Attributes attrs, MatchingContext context = null)
+    : base(rangeToken, attrs) {
+    Contract.Requires(rangeToken != null);
+    Contract.Requires(source != null);
+    Contract.Requires(cce.NonNullElements(cases));
+    this.source = source;
+    this.cases = cases;
+    this.UsesOptionalBraces = usesOptionalBraces;
+    this.Context = context is null ? new HoleCtx() : context;
   }
+
+  public Expression Source => source;
 
   public List<MatchCaseStmt> Cases => cases;
+  IEnumerable<MatchCase> Match.Cases => Cases;
 
-  public override IEnumerable<INode> Children => new[] { Source }.Concat<INode>(Cases);
+  public override IEnumerable<Node> Children => new[] { Source }.Concat<Node>(Cases);
 
   // should only be used in desugar in resolve to change the cases of the matchexpr
   public void UpdateSource(Expression source) {
@@ -174,9 +192,13 @@ public class MatchStmt : Statement, ICloneable<MatchStmt> {
       }
     }
   }
+
   public override IEnumerable<Expression> NonSpecificationSubExpressions {
     get {
-      foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
+      foreach (var e in base.NonSpecificationSubExpressions) {
+        yield return e;
+      }
+
       yield return Source;
     }
   }
@@ -208,10 +230,11 @@ public class MatchCaseStmt : MatchCase {
     Contract.Invariant(cce.NonNullElements(Body));
   }
 
-  public override IEnumerable<INode> Children => body;
+  public override IEnumerable<Node> Children => body;
 
-  public MatchCaseStmt(IToken tok, DatatypeCtor ctor, bool fromBoundVar, [Captured] List<BoundVar> arguments, [Captured] List<Statement> body, Attributes attrs = null)
-    : base(tok, ctor, arguments) {
+  public MatchCaseStmt(RangeToken rangeToken, DatatypeCtor ctor, bool fromBoundVar, [Captured] List<BoundVar> arguments, [Captured] List<Statement> body, Attributes attrs = null)
+    : base(rangeToken.StartToken, ctor, arguments) {
+    RangeToken = rangeToken;
     Contract.Requires(tok != null);
     Contract.Requires(ctor != null);
     Contract.Requires(cce.NonNullElements(arguments));
@@ -240,7 +263,7 @@ public class MatchCaseExpr : MatchCase {
     Contract.Invariant(body != null);
   }
 
-  public override IEnumerable<INode> Children => Arguments.Concat<INode>(new[] { body });
+  public override IEnumerable<Node> Children => Arguments.Concat<Node>(new[] { body });
 
   public MatchCaseExpr(IToken tok, DatatypeCtor ctor, bool FromBoundVar, [Captured] List<BoundVar> arguments, Expression body, Attributes attrs = null)
     : base(tok, ctor, arguments) {

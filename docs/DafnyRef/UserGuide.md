@@ -30,7 +30,8 @@ are described on the Dafny wiki:
 [https://github.com/dafny-lang/dafny/wiki/INSTALL](https://github.com/dafny-lang/dafny/wiki/INSTALL).
 They are not repeated here to avoid replicating information that
 easily becomes inconsistent and out of date.
-The dafny tool can also be installed using `dotnet install`.
+The dafny tool can also be installed using `dotnet tool install --global dafny`
+(given that `dotnet` is already installed on your system).
 
 Most users will find it most convenient to install the pre-built Dafny binaries available on the project release site.
 As is typical for Open Source projects, dafny can also be built directly from the source files maintained in the github project.
@@ -85,19 +86,14 @@ on the command-line or referenced, recursively, by `include` directives
 within those files. It does not matter if files are repeated either as
 includes or on the command-line.[^fn-duplicate-files]
 
-Note however that although the complete set of files, command-line plus
-included files, make up the program, by default, only those files listed on
-the command-line are verified. To do a complete verification, each file
-must be verified; it may well happen that a verification failure in one
-file (which is not on the command-line and thus not checked) may hide a
-verification failure in a file that is being checked.
-Thus it is important to eventually check all files, preferably in an order
-in which the files without dependencies are checked first, then those that
-depend on them, etc., until all files are checked.
-The `--verify-included-files` option (`-verifyAllModules` in legacy mode) will cause all modules, whether the result of include directives or not,
-to be verified.
+All files recursively included are always parsed and type-checked.
+However, which files are verified, built, run, or processed by other
+dafny commands depends on the individual command. 
+These commands are described in [Section 25.5.1](#sec-dafny-commands).
 
-[^fn-duplicate-files]: File names are considered equal if they have the same absolute path, compared as case-sensitive strings (regardless of whether the underlying file-system is case sensitive).  Using symbolic links may make the same file have a different absolute path; this will generally cause duplicate declaration errors.
+
+[^fn-duplicate-files]: Files may be included more than once or both included and listed on the command line. Duplicate inclusions are detected and each file processed only once.
+For the purpose of detecting duplicates, file names are considered equal if they have the same absolute path, compared as case-sensitive strings (regardless of whether the underlying file-system is case sensitive).  Using symbolic links may make the same file have a different absolute path; this will generally cause duplicate declaration errors.
 
 
 ## 25.4. Dafny Code Style
@@ -171,6 +167,28 @@ A few options are not part of a command. In these cases any single-hyphen spelli
 
 The `dafny resolve` command checks the command-line and then parses and typechecks the given files and any included files.
 
+The set of files considered by `dafny` are those listed on the command-line,
+including those named in a `--library` option, and all files that are
+named, recursively, in `include` directives in files in the set being considered by the tool.
+
+The set of files presented to an invocation of the `dafny` tool must 
+contain all the declarations needed to resolve all names and types, 
+else name or type resolution errors will be emitted.
+
+`dafny` can parse and verify sets of files that do not form a 
+complete program because they are missing the implementations of 
+some constructs such as functions, lemmas, and loop bodies.[^incomplete]
+However, `dafny` will need all implementations in order to compile a working executable.
+
+[^incomplete]: Unlike some languages, Dafny does not allow separation of 
+declaration and implementation of methods, functions and types in separate files, nor, for that matter,
+separation of specification and declaration. Implementations can be 
+omitted simply by leaving them out of the declaration (or a lemma, for example).
+However, a combination of [`traits`](#sec-trait-types) and
+[`classes`](#sec-class-types) can achieve a separation of interface
+and specification from
+implementation.
+
 The options relevant to this command are
 - those relevant to the command-line itself
    - `--warn-as-errors` --- turn all warnings into errors, which alters [dafny's exit code](#sec-exit-codes)
@@ -179,11 +197,11 @@ The options relevant to this command are
    - `--cores` --- set the number of cores dafny should use
    - `--show-snippets` --- emit a line or so of source code along with an error message
    - `--library` --- include this file in the program, but do not verify or compile it (multiple such library files can be listed using multiple instances of the `--library` option)
-- those that affect the syntax of dafny, such as
+- those that affect the syntax of Dafny, such as
    - `--prelude`
    - `--unicode-char`
-   - `--function-syntax`
-   - `--quantifier-syntax`
+   - `--function-syntax` <version>
+   - `--quantifier-syntax` <version>
    - `--track-print-effects`
    - `--warn-shadowing`
    - `--warn-missing-constructor-parentheses`
@@ -191,10 +209,26 @@ The options relevant to this command are
 
 #### 25.5.1.3. `dafny verify` {#sec-dafny-verify}
 
-The `dafny verify` command performs the [`dafny resolve`](#sec-dafny-resolve) checks and then attempts to verify each method in the files listed on the command line. Although the Dafny program being considered
-consists of the listed files and any included files (recursively), by default only listed files are verified.
+The `dafny verify` command performs the [`dafny resolve`](#sec-dafny-resolve) checks and then attempts to verify each declaration in the program.
 
 A guide to controlling and aiding the verification process is given in [a later section](#sec-verification)
+
+To be considered _verified_ all the methods in all the files in a program must be verified, with consistent sets of options,
+and with no unproven assumptions (see [`dafny audit`](#sec-dafny-audit) for a tool to help identify such assumptions).
+
+Dafny works _modularly_, meaning that each method is considered by itself, using only the specifications of other methods.
+So, when using the dafny tool, you can verify the program all at once or one file at a time or groups of files at a time.
+On a large program, verifying all files at once can take quite a while, with little feedback as to progress, though it does
+save a small amount of work by parsing all files just once. But, one way or another, to have a complete verification, all 
+implementations of all methods and functions must eventually be verified.
+
+- By default, only those files listed on the command-line are verified in a given invocation of the `dafny` tool.
+- The option `--verify-included-files` (`-verifyAllModules` in legacy mode) forces the contents of all non-library files to be verified, whether they are listed on the command-line or recursively included by files on the command-line.
+- The `--library` option marks files that are excluded from `--verify-included-files`. Such a file may also, but need not, be the target of an `include` directive in some file of the program; in any case, such files are included in the program but not in the set of files verified (or compiled). The intent of this option is to mark files that
+should be considered as libraries that are independently verified prior to being released for shared use.
+- Verifying files individually is equivalent to verifying them in groups, presuming no other changes.
+It is also permitted to verify completely disjoint files or
+programs together in a single run of `dafny`.
 
 Various options control the verification process, in addition to all those described for [`dafny resolve`](#sec-dafny-resolve).
 
@@ -205,9 +239,11 @@ Various options control the verification process, in addition to all those descr
    - `--disable-nonlinear-arithmetic`
 
 - Control of the proof engine
+   - `--manual-lemma-induction`
    - `--verification-time-limit`
    - `--boogie`
    - `--boogie-filter`
+   - `--solver-path`
 
 
 #### 25.5.1.4. `dafny translate <language>` {#sec-dafny-translate}
@@ -239,8 +275,8 @@ Various options control the translation process, in addition to all those descri
    - `--verbose` --- print information about generated files
 
 - The translation results
-   - `--output` (or `-o`) --- location (file or folder depending on the target) of the generated file(s)
-   - `--include-runtime` --- include the Dafny runtime as source or a library in the target language
+   - `--output` (or `-o`) --- location of the generated file(s) (this specifies a file path and name; a folder location for artifacts is derived from this name)
+   - `--include-runtime` --- include the Dafny runtime for the target language in the generated artifacts
    - `--optimize-erasable-datatype-wrapper`
    - `--enforce-determinism`
 
@@ -248,11 +284,16 @@ Various options control the translation process, in addition to all those descri
 
 The `dafny build` command runs `dafny translate` and then compiles the result into an executable artifact for the target platform,
 such as a `.exe` or `.dll`. or executable `.jar`, or just the source code for an interpreted language.
+If the Dafny program does not have a Main entry point, then the build command creates a library, such as a `.dll` or `.jar`.
 As with `dafny translate`, all the previous phases are also executed, including verification (unless `--no-verify` is a command-line argument).
+By default, the generated file is in the same directory and has the same name with a different extension as the first
+.dfy file on the command line. This locaiton and name can be set by the `--output` option.
 
 There are no additional options for `dafny build` beyond those for `dafny translate` and the previous compiler phases.
 
 Note that `dafny build` may do optimizations that `dafny run` does not.
+
+Details for specific target platforms are described [in Section 25.7](#sec-compilation).
 
 <!-- TODO: OLD TEXT: The command has options that enable being specific about the build platform and architecture. -->
 
@@ -322,7 +363,11 @@ The command emits exit codes of
 - 2 for parsing, type-checking or serious errors in running the auditor (e.g. failure to write a report or when report comparison fails)
 - 0 for normal operation, including operation that identifies audit findings
 
-#### 25.5.1.9. `dafny test` {#sec-dafny-test}
+#### 25.5.1.9. `dafny format` {#sec-dafny-format}
+
+This command is not yet released, but will be a command that formats source code to a consistent style.
+
+#### 25.5.1.10. `dafny test` {#sec-dafny-test}
  
 This _experimental_ command (verifies and compiles the program and) runs every method in the program that is annotated with the `{:test}` attribute.
 Verification can be disabled using the `--no-verify` option. `dafny test` also accepts all other options of the `dafny build` command. 
@@ -371,7 +416,7 @@ Hi!
 PASSED
 ```
 
-#### 25.5.1.10. `dafny generate-tests` {#sec-dafny-generate-tests}
+#### 25.5.1.11. `dafny generate-tests` {#sec-dafny-generate-tests}
 
 This _experimental_ command (verifies the program and) then generates unit test code (as Dafny source code) that provides
 complete coverage of the method.
@@ -380,23 +425,24 @@ Such methods must be static and have no input parameters.
 
 _This command is under development and not yet functional._
 
-#### 25.5.1.11. `dafny find-dead-code` {#sec-dafny-find-dead-code}
+#### 25.5.1.12. `dafny find-dead-code` {#sec-dafny-find-dead-code}
 
 This _experimental_ command finds dead code in a program, that is, code branches within a method that are not reachable by any inputs that satisfy 
 the method's preconditions.
 
 _This command is under development and not yet functional._
 
-#### 25.5.1.12. Plugins
+#### 25.5.1.13. Plugins
 
 This execution mode is not a command, per se, but rather a command-line option that enables executing plugins to the dafny tool.
+Plugins may be either standalone tools or be additions to existing commands.
 
-The form of the command-line is `dafny --plugin:<path-to-one-assembly[,argument]*>`
+The form of the command-line is `dafny --plugin:<path-to-one-assembly[,argument]*>` or `dafny <command> --plugin:<path-to-one-assembly[,argument]*>`
 where the argument to `--plugin` gives the path to the compiled assemply of the plugin and the arguments to be provided to the plugin.
 
 More on writing and building plugins can be found [in this section](#sec-plugins).
 
-#### 25.5.1.13. Legacy operation
+#### 25.5.1.14. Legacy operation
 
 Prior to implementing the command-based CLI, the `dafny` command-line simply took files and options and the arguments to options.
 That legacy mode of operation is still supported, though discouraged. The command `dafny -?` produces the list of legacy options.
@@ -1257,20 +1303,22 @@ are contained in [this separate document](integration-cs/IntegrationCS).
 
 ### 25.7.4. Java
 
-The Dafny-to-Java compiler writes out the translated files of a file _A_`.dfy`
-to a directory _A_`-java`. The `-out` option can be used to choose a
-different output directory. 
+The Dafny-to-Java compiler translation phase writes out the translated files of a file _A_`.dfy`
+to a directory _A_`-java`. 
+The build phase writes out a library or executable jar file.
+The `--output` option (`-out` in the legacy CLI) can be used to choose a
+different jar file path and name and correspondingly different directory for .java and .class files. 
+
 The compiler produces a single wrapper method that then calls classes in 
 relevant other `.java` files. Because Java files must be named consistent
 with the class they contain, but Dafny files do not, there may be no relation
 between the Java file names and the Dafny file names.
 However, the wrapper class that contains the Java `main` method is named for
 the first `.dfy` file on the command-line.
-The output folder  will also contain
-translations to java for any library modules that are used.
 
-The step of compiling Java files (using `javac`) requires the Dafny runtime library. That library is automatically included if dafny is doing the compilation,
-but not if dafny is only doing translation (use the `--include-runtime` option to include it).
+The step of compiling Java files (using `javac`) requires the Dafny runtime library. 
+That library is automatically included if dafny is doing the compilation,
+but not if dafny is only doing translation.
 
 Examples of how to integrate Java source code and libraries with Dafny source
 are contained in [this separate document](integration-java/IntegrationJava).
@@ -2108,9 +2156,12 @@ periods.
   * `2` (default) - as in `1`, but resolve only methods that are defined
     in the current verification target file, not in included files.
 
-* `-useRuntimeLib` - refer to the pre-built `DafnyRuntime.dll` in the
+* `--include-runtime` - include the runtime library for the target language in
+  the generated artifacts. The legacy option `-useRuntimeLib` had the 
+  opposite effect: when enabled, the compiled assembly referred to
+  the pre-built `DafnyRuntime.dll` in the
   compiled assembly rather than including `DafnyRuntime.cs` in the build
-  process. TODO
+  process. 
 
 
 * `-testContracts:<mode>` - test certain function and method contracts

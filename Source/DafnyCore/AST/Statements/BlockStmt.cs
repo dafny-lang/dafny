@@ -4,11 +4,8 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class BlockStmt : Statement, IRegion, ICloneable<BlockStmt> {
+public class BlockStmt : Statement, ICloneable<BlockStmt> {
   public readonly List<Statement> Body;
-
-  IToken IRegion.BodyStartTok => Tok;
-  IToken IRegion.BodyEndTok => EndTok;
 
   public BlockStmt Clone(Cloner cloner) {
     return new BlockStmt(cloner, this);
@@ -18,17 +15,14 @@ public class BlockStmt : Statement, IRegion, ICloneable<BlockStmt> {
     Body = original.Body.Select(cloner.CloneStmt).ToList();
   }
 
-  public BlockStmt(IToken tok, IToken endTok, [Captured] List<Statement> body)
-    : base(tok, endTok) {
-    Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+  public BlockStmt(RangeToken rangeToken, [Captured] List<Statement> body)
+    : base(rangeToken) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(cce.NonNullElements(body));
     this.Body = body;
   }
 
-  public override IEnumerable<Statement> SubStatements {
-    get { return Body; }
-  }
+  public override IEnumerable<Statement> SubStatements => Body;
 
   public virtual void AppendStmt(Statement s) {
     Contract.Requires(s != null);

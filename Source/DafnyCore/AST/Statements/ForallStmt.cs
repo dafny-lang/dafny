@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
@@ -58,14 +59,13 @@ public class ForallStmt : Statement, ICloneable<ForallStmt> {
     if (cloner.CloneResolvedFields) {
       Bounds = original.Bounds;
       Kind = original.Kind;
-      ForallExpressions = original.ForallExpressions.Select(cloner.CloneExpr).ToList();
+      ForallExpressions = original.ForallExpressions?.Select(cloner.CloneExpr).ToList();
     }
   }
 
-  public ForallStmt(IToken tok, IToken endTok, List<BoundVar> boundVars, Attributes attrs, Expression range, List<AttributedExpression> ens, Statement body)
-    : base(tok, endTok, attrs) {
-    Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+  public ForallStmt(RangeToken rangeToken, List<BoundVar> boundVars, Attributes attrs, Expression range, List<AttributedExpression> ens, Statement body)
+    : base(rangeToken, attrs) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(cce.NonNullElements(boundVars));
     Contract.Requires(range != null);
     Contract.Requires(boundVars.Count != 0 || LiteralExpr.IsTrue(range));
@@ -126,6 +126,12 @@ public class ForallStmt : Statement, ICloneable<ForallStmt> {
         foreach (var e in Attributes.SubExpressions(ee.Attributes)) { yield return e; }
         yield return ee.E;
       }
+    }
+  }
+
+  public override IEnumerable<AssumptionDescription> Assumptions() {
+    if (Body is null) {
+      yield return AssumptionDescription.ForallWithoutBody;
     }
   }
 

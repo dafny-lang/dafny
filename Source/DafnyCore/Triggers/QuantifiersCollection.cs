@@ -250,11 +250,11 @@ namespace Microsoft.Dafny.Triggers {
           if (q.quantifier is ForallExpr) {
             ForallExpr quantifier = (ForallExpr)q.quantifier;
             Expression expr = QuantifiersToExpression(quantifier.tok, BinaryExpr.ResolvedOpcode.And, group.expressions);
-            q.quantifier = new ForallExpr(quantifier.tok, quantifier.BodyEndTok, quantifier.BoundVars, quantifier.Range, expr, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
+            q.quantifier = new ForallExpr(quantifier.tok, quantifier.RangeToken, quantifier.BoundVars, quantifier.Range, expr, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
           } else if (q.quantifier is ExistsExpr) {
             ExistsExpr quantifier = (ExistsExpr)q.quantifier;
             Expression expr = QuantifiersToExpression(quantifier.tok, BinaryExpr.ResolvedOpcode.Or, group.expressions);
-            q.quantifier = new ExistsExpr(quantifier.tok, quantifier.BodyEndTok, quantifier.BoundVars, quantifier.Range, expr, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
+            q.quantifier = new ExistsExpr(quantifier.tok, quantifier.RangeToken, quantifier.BoundVars, quantifier.Range, expr, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
           }
           list.Add(q);
           splits.Add(q.quantifier);
