@@ -2220,14 +2220,14 @@ namespace Microsoft.Dafny.Compilers {
       if (truncate) {
         wr = EmitBitvectorTruncation(bv, true, wr);
       }
-      tr(e0, wr, inLetExprBody, wStmts);
+      wr.Append(tr(e0, inLetExprBody, wStmts));
       wr.Write(" {0} ", op);
       if (!firstOp) {
         wr = wr.ForkInParens().Write("{0} - ", bv.Width);
       }
 
       wr.Write("(int)");
-      tr(e1, wr.ForkInParens(), inLetExprBody, wStmts);
+      wr.ForkInParens().Append(tr(e1, inLetExprBody, wStmts));
     }
 
     protected override bool CompareZeroUsingSign(Type type) {

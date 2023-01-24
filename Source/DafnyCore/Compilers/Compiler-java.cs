@@ -1714,13 +1714,13 @@ namespace Microsoft.Dafny.Compilers {
       if (truncate) {
         wr = EmitBitvectorTruncation(bv, true, wr);
       }
-      tr(e0, wr, inLetExprBody, wStmts);
+      wr.Append(tr(e0, inLetExprBody, wStmts));
       wr.Write($" {op} ");
       if (!firstOp) {
         wr.Write($"({bv.Width} - ");
       }
       wr.Write("((");
-      tr(e1, wr, inLetExprBody, wStmts);
+      wr.Append(tr(e1, inLetExprBody, wStmts));
       wr.Write(")");
       if (AsNativeType(e1.Type) == null) {
         wr.Write(".intValue()");

@@ -2232,7 +2232,7 @@ namespace Microsoft.Dafny.Compilers {
 
       var bv = e0.Type.AsBitVectorType;
       if (bv.Width == 0) {
-        tr(e0, wr, inLetExprBody, wStmts);
+        wr.Append(tr(e0, inLetExprBody, wStmts));
       } else {
         ConcreteSyntaxTree wFirstArg;
         if (bv.NativeType != null) {

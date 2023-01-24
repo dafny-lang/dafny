@@ -1454,12 +1454,12 @@ namespace Microsoft.Dafny.Compilers {
 
       var bv = e0.Type.AsBitVectorType;
       if (bv.Width == 0) {
-        tr(e0, wr, inLetExprBody, wStmts);
+        wr.Append(tr(e0, inLetExprBody, wStmts));
       } else {
         wr.Write("_dafny.{0}(", isRotateLeft ? "RotateLeft" : "RotateRight");
-        tr(e0, wr, inLetExprBody, wStmts);
+        wr.Append(tr(e0, inLetExprBody, wStmts));
         wr.Write(", (");
-        tr(e1, wr, inLetExprBody, wStmts);
+        wr.Append(tr(e1, inLetExprBody, wStmts));
         wr.Write(").toNumber(), {0})", bv.Width);
         if (needsCast) {
           wr.Write(".toNumber()");

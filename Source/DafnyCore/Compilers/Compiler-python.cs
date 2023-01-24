@@ -1090,13 +1090,13 @@ namespace Microsoft.Dafny.Compilers {
       if (truncate) {
         wr = EmitBitvectorTruncation(bv, true, wr);
       }
-      tr(e0, wr, inLetExprBody, wStmts);
+      wr.Append(tr(e0, inLetExprBody, wStmts));
       wr.Write($" {op} ");
       if (!firstOp) {
         wr = wr.ForkInParens().Write($"{bv.Width} - ");
       }
 
-      tr(e1, wr.ForkInParens(), inLetExprBody, wStmts);
+      wr.ForkInParens().Append(tr(e1, inLetExprBody, wStmts));
     }
 
     protected override void EmitEmptyTupleList(string tupleTypeArgs, ConcreteSyntaxTree wr) {
