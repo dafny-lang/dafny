@@ -178,9 +178,8 @@ public class CalcStmt : Statement, ICloneable<CalcStmt> {
     Contract.Invariant(StepOps.Count == Hints.Count);
   }
 
-  public CalcStmt(IToken tok, RangeToken rangeToken, CalcOp userSuppliedOp, List<Expression> lines, List<BlockStmt> hints, List<CalcOp/*?*/> stepOps, Attributes attrs)
-    : base(tok, rangeToken) {
-    Contract.Requires(tok != null);
+  public CalcStmt(RangeToken rangeToken, CalcOp userSuppliedOp, List<Expression> lines, List<BlockStmt> hints, List<CalcOp/*?*/> stepOps, Attributes attrs)
+    : base(rangeToken) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(lines != null);
     Contract.Requires(hints != null);

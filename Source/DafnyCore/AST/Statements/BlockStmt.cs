@@ -15,9 +15,8 @@ public class BlockStmt : Statement, ICloneable<BlockStmt> {
     Body = original.Body.Select(cloner.CloneStmt).ToList();
   }
 
-  public BlockStmt(IToken tok, RangeToken rangeToken, [Captured] List<Statement> body)
-    : base(tok, rangeToken) {
-    Contract.Requires(tok != null);
+  public BlockStmt(RangeToken rangeToken, [Captured] List<Statement> body)
+    : base(rangeToken) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(cce.NonNullElements(body));
     this.Body = body;
