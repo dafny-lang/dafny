@@ -9,8 +9,16 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
   public readonly List<AssignmentRhs> Rhss;
   public readonly AttributedToken KeywordToken;
   [FilledInDuringResolution] public readonly List<Statement> ResolvedStatements = new List<Statement>();
-  public override IEnumerable<Statement> SubStatements {
-    get { return ResolvedStatements; }
+  public override IEnumerable<Statement> SubStatements => ResolvedStatements;
+  public override IToken Tok {
+    get {
+      var result = Rhs.StartToken.Prev;
+      if (char.IsLetter(result.val[0])) {
+        // Jump to operator if we're on an assume/expect/assert keyword.
+        result = result.Prev;
+      }
+      return result;
+    }
   }
 
   public override IEnumerable<Node> Children => ResolvedStatements;
@@ -39,9 +47,8 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
     }
   }
 
-  public AssignOrReturnStmt(IToken tok, RangeToken rangeToken, List<Expression> lhss, ExprRhs rhs, AttributedToken keywordToken, List<AssignmentRhs> rhss = null)
-    : base(tok, rangeToken, lhss) {
-    Contract.Requires(tok != null);
+  public AssignOrReturnStmt(RangeToken rangeToken, List<Expression> lhss, ExprRhs rhs, AttributedToken keywordToken, List<AssignmentRhs> rhss = null)
+    : base(rangeToken, lhss) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(lhss != null);
     Contract.Requires(lhss.Count <= 1);

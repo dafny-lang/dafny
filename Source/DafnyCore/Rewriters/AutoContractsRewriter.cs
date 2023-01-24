@@ -285,7 +285,7 @@ public class AutoContractsRewriter : IRewriter {
             // Repr := {this};
             var e = new SetDisplayExpr(tok, true, new List<Expression>() { self });
             e.Type = new SetType(true, builtIns.ObjectQ());
-            Statement s = new AssignStmt(tok, member.RangeToken, Repr, new ExprRhs(e));
+            Statement s = new AssignStmt(member.RangeToken, Repr, new ExprRhs(e));
             s.IsGhost = true;
             sbs.AppendStmt(s);
           }
@@ -376,13 +376,13 @@ public class AutoContractsRewriter : IRewriter {
         nguard = Expression.CreateAnd(nguard, ng);
       }
       // Repr := Repr + ...;
-      Statement s = new AssignStmt(tok, tok.ToRange(), Repr, new ExprRhs(rhs));
+      Statement s = new AssignStmt(tok.ToRange(), Repr, new ExprRhs(rhs));
       s.IsGhost = true;
       // wrap if statement around s
       e = Expression.CreateAnd(IsNotNull(tok, F), Expression.CreateNot(tok, nguard));
-      var thn = new BlockStmt(tok, tok.ToRange(), new List<Statement>() { s });
+      var thn = new BlockStmt(tok.ToRange(), new List<Statement>() { s });
       thn.IsGhost = true;
-      s = new IfStmt(tok, tok.ToRange(), false, e, thn, null);
+      s = new IfStmt(tok.ToRange(), false, e, thn, null);
       s.IsGhost = true;
       // finally, add s to the block
       block.AppendStmt(s);
