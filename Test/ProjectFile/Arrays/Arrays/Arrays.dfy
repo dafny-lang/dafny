@@ -1,4 +1,3 @@
-// RUN: %Executeatpath "%S"
 // RUN: %baredafny  Arrays.dfy > "%t"
 // RUN: %diff Arrays.dfy.expect "%t"
 
