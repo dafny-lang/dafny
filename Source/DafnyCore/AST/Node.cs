@@ -12,86 +12,6 @@ public interface INode {
   RangeToken RangeToken { get; }
 }
 
-public abstract class TokenNode : Node {
-
-  public IToken tok = Token.NoToken;
-  [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-  public override IToken Tok {
-    get => tok;
-  }
-
-  protected RangeToken rangeToken = null;
-
-  // Contains tokens that did not make it in the AST but are part of the expression,
-  // Enables ranges to be correct.
-  // TODO: Re-add format tokens where needed until we put all the formatting to replace the tok of every expression
-  internal IToken[] FormatTokens = null;
-
-  public override RangeToken RangeToken {
-    get {
-      if (rangeToken == null) {
-
-        var startTok = tok;
-        var endTok = tok;
-
-        void UpdateStartEndToken(IToken token1) {
-          if (token1.Filename != tok.Filename) {
-            return;
-          }
-
-          if (token1.pos < startTok.pos) {
-            startTok = token1;
-          }
-
-          if (token1.pos + token1.val.Length > endTok.pos + endTok.val.Length) {
-            endTok = token1;
-          }
-        }
-
-        void UpdateStartEndTokRecursive(Node node) {
-          if (node is null) {
-            return;
-          }
-
-          if (node.RangeToken.Filename != tok.Filename || node is Expression { IsImplicit: true } ||
-              node is DefaultValueExpression) {
-            // Ignore any auto-generated expressions.
-          } else {
-            UpdateStartEndToken(node.StartToken);
-            UpdateStartEndToken(node.EndToken);
-          }
-        }
-
-        Children.Iter(UpdateStartEndTokRecursive);
-
-        if (FormatTokens != null) {
-          foreach (var token in FormatTokens) {
-            UpdateStartEndToken(token);
-          }
-        }
-
-        rangeToken = new RangeToken(startTok, endTok);
-      }
-
-      return rangeToken;
-    }
-    set => rangeToken = value;
-  }
-}
-
-public abstract class RangeNode : Node {
-  public override RangeToken RangeToken { get; set; } // TODO remove set when TokenNode is gone.
-
-  protected RangeNode(Cloner cloner, RangeNode original) {
-    RangeToken = cloner.Tok(original.RangeToken);
-  }
-
-  protected RangeNode(RangeToken rangeToken) {
-    RangeToken = rangeToken;
-  }
-}
-
-
 public abstract class Node : INode {
 
   public abstract IToken Tok { get; }
@@ -195,4 +115,83 @@ public abstract class Node : INode {
   }
 
   public abstract RangeToken RangeToken { get; set; }
+}
+
+public abstract class TokenNode : Node {
+
+  public IToken tok = Token.NoToken;
+  [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+  public override IToken Tok {
+    get => tok;
+  }
+
+  protected RangeToken rangeToken = null;
+
+  // Contains tokens that did not make it in the AST but are part of the expression,
+  // Enables ranges to be correct.
+  // TODO: Re-add format tokens where needed until we put all the formatting to replace the tok of every expression
+  internal IToken[] FormatTokens = null;
+
+  public override RangeToken RangeToken {
+    get {
+      if (rangeToken == null) {
+
+        var startTok = tok;
+        var endTok = tok;
+
+        void UpdateStartEndToken(IToken token1) {
+          if (token1.Filename != tok.Filename) {
+            return;
+          }
+
+          if (token1.pos < startTok.pos) {
+            startTok = token1;
+          }
+
+          if (token1.pos + token1.val.Length > endTok.pos + endTok.val.Length) {
+            endTok = token1;
+          }
+        }
+
+        void UpdateStartEndTokRecursive(Node node) {
+          if (node is null) {
+            return;
+          }
+
+          if (node.RangeToken.Filename != tok.Filename || node is Expression { IsImplicit: true } ||
+              node is DefaultValueExpression) {
+            // Ignore any auto-generated expressions.
+          } else {
+            UpdateStartEndToken(node.StartToken);
+            UpdateStartEndToken(node.EndToken);
+          }
+        }
+
+        Children.Iter(UpdateStartEndTokRecursive);
+
+        if (FormatTokens != null) {
+          foreach (var token in FormatTokens) {
+            UpdateStartEndToken(token);
+          }
+        }
+
+        rangeToken = new RangeToken(startTok, endTok);
+      }
+
+      return rangeToken;
+    }
+    set => rangeToken = value;
+  }
+}
+
+public abstract class RangeNode : Node {
+  public override RangeToken RangeToken { get; set; } // TODO remove set when TokenNode is gone.
+
+  protected RangeNode(Cloner cloner, RangeNode original) {
+    RangeToken = cloner.Tok(original.RangeToken);
+  }
+
+  protected RangeNode(RangeToken rangeToken) {
+    RangeToken = rangeToken;
+  }
 }

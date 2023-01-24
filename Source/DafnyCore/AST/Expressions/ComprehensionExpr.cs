@@ -402,11 +402,11 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
     Contract.Requires(cce.NonNullElements(bvars));
     Contract.Requires(term != null);
 
-    this.BoundVars = bvars;
-    this.Range = range;
-    this.Term = term;
-    this.Attributes = attrs;
-    this.BodyStartTok = tok;
+    BoundVars = bvars;
+    Range = range;
+    Term = term;
+    Attributes = attrs;
+    BodyStartTok = tok;
     RangeToken = rangeToken;
   }
 
