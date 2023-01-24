@@ -6662,7 +6662,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(resolutionContext != null);
 
       nestedMatchExpr.Resolve(this, resolutionContext);
-      this.SolveAllTypeConstraints();
     }
 
     void ResolveMatchExpr(MatchExpr me, ResolutionContext resolutionContext) {
