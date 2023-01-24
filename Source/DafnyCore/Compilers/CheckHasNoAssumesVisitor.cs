@@ -3,9 +3,9 @@ using System.Diagnostics.Contracts;
 namespace Microsoft.Dafny.Compilers;
 
 public class CheckHasNoAssumesVisitor : BottomUpVisitor {
-  readonly ISinglePassCompiler compiler;
+  readonly ConcreteSinglePassCompiler compiler;
   ConcreteSyntaxTree wr;
-  public CheckHasNoAssumesVisitor(ISinglePassCompiler c, ConcreteSyntaxTree wr) {
+  public CheckHasNoAssumesVisitor(ConcreteSinglePassCompiler c, ConcreteSyntaxTree wr) {
     Contract.Requires(c != null);
     compiler = c;
     this.wr = wr;
