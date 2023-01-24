@@ -7,12 +7,12 @@ using System.Threading;
 
 namespace Microsoft.Dafny;
 
-public abstract class Type : INode {
+public abstract class Type : TokenNode {
   public static readonly BoolType Bool = new BoolType();
   public static readonly CharType Char = new CharType();
   public static readonly IntType Int = new IntType();
   public static readonly RealType Real = new RealType();
-  public override IEnumerable<INode> Children { get; } = new List<INode>();
+  public override IEnumerable<Node> Children { get; } = new List<Node>();
   public static Type Nat() { return new UserDefinedType(Token.NoToken, "nat", null); }  // note, this returns an unresolved type
   public static Type String() { return new UserDefinedType(Token.NoToken, "string", null); }  // note, this returns an unresolved type
   public static readonly BigOrdinalType BigOrdinal = new BigOrdinalType();
@@ -23,7 +23,7 @@ public abstract class Type : INode {
   [ThreadStatic]
   private static bool scopesEnabled = false;
 
-  public virtual IEnumerable<INode> Nodes => Enumerable.Empty<INode>();
+  public virtual IEnumerable<Node> Nodes => Enumerable.Empty<Node>();
 
   public static void PushScope(VisibilityScope scope) {
     Scopes.Add(scope);
@@ -1793,7 +1793,7 @@ public abstract class NonProxyType : Type {
 }
 
 public abstract class BasicType : NonProxyType {
-  public override IEnumerable<INode> Children => Enumerable.Empty<INode>();
+  public override IEnumerable<Node> Children => Enumerable.Empty<Node>();
   public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl>/*?*/ visitedDatatypes) {
     return false;
   }
@@ -1946,7 +1946,7 @@ public class SelfType : NonProxyType {
 
 public abstract class CollectionType : NonProxyType {
   public abstract string CollectionTypeName { get; }
-  public override IEnumerable<INode> Nodes => TypeArgs.SelectMany(ta => ta.Nodes);
+  public override IEnumerable<Node> Nodes => TypeArgs.SelectMany(ta => ta.Nodes);
 
   public override string TypeName(ModuleDefinition context, bool parseAble) {
     Contract.Ensures(Contract.Result<string>() != null);
@@ -2452,7 +2452,7 @@ public class UserDefinedType : NonProxyType {
     return udt.TypeArgs[0];
   }
 
-  public override IEnumerable<INode> Nodes => new[] { this }.Concat(TypeArgs.SelectMany(t => t.Nodes));
+  public override IEnumerable<Node> Nodes => new[] { this }.Concat(TypeArgs.SelectMany(t => t.Nodes));
 
   [Pure]
   public override string TypeName(ModuleDefinition context, bool parseAble) {
@@ -2630,11 +2630,11 @@ public class UserDefinedType : NonProxyType {
   }
 
   public IToken NameToken => tok;
-  public override IEnumerable<INode> Children => base.Children.Concat(new[] { NamePath });
+  public override IEnumerable<Node> Children => base.Children.Concat(new[] { NamePath });
 }
 
 public abstract class TypeProxy : Type {
-  public override IEnumerable<INode> Children => Enumerable.Empty<INode>();
+  public override IEnumerable<Node> Children => Enumerable.Empty<Node>();
   [FilledInDuringResolution] public Type T;
   public readonly List<TypeConstraint> SupertypeConstraints = new List<TypeConstraint>();
   public readonly List<TypeConstraint> SubtypeConstraints = new List<TypeConstraint>();
@@ -2844,7 +2844,7 @@ public class InferredTypeProxy : TypeProxy {
 /// This proxy stands for any type, but it originates from an instantiated type parameter.
 /// </summary>
 public class ParamTypeProxy : TypeProxy {
-  public override IEnumerable<INode> Children => Enumerable.Empty<INode>();
+  public override IEnumerable<Node> Children => Enumerable.Empty<Node>();
   public TypeParameter orig;
   [ContractInvariantMethod]
   void ObjectInvariant() {

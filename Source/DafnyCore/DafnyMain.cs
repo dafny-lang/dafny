@@ -78,6 +78,9 @@ namespace Microsoft.Dafny {
     }
 
     private static string GetDafnySourceAttributeText(string dllPath) {
+      if (!File.Exists(dllPath)) {
+        throw new IllegalDafnyFile();
+      }
       using var dllFs = new FileStream(dllPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
       using var dllPeReader = new PEReader(dllFs);
       var dllMetadataReader = dllPeReader.GetMetadataReader();
@@ -318,6 +321,19 @@ namespace Microsoft.Dafny {
       string moduleName,
       Microsoft.Boogie.Program boogieProgram, string programId) {
       var moduleId = (programId ?? "main_program_id") + "_" + moduleName;
+      var z3NotFoundMessage = @"
+Z3 not found. Please either provide a path to the `z3` executable using
+the `--solver-path <path>` option, manually place the `z3` directory
+next to the `dafny` executable you are using (this directory should
+contain `bin/z3` or `bin/z3.exe`), or set the PATH environment variable
+to also include a directory containing the `z3` executable.
+";
+
+      var proverPath = DafnyOptions.O.ProverOptions.Find(o => o.StartsWith("PROVER_PATH="));
+      if (proverPath is null && DafnyOptions.O.Verify) {
+        Console.WriteLine(z3NotFoundMessage);
+        return (PipelineOutcome.FatalError, new PipelineStatistics());
+      }
 
       string bplFilename;
       if (DafnyOptions.O.PrintFile != null) {

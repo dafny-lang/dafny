@@ -416,6 +416,11 @@ namespace Microsoft.Dafny {
       }
 
       rewriters = new List<IRewriter>();
+
+      if (DafnyOptions.O.AuditProgram) {
+        rewriters.Add(new Auditor.Auditor(reporter));
+      }
+
       refinementTransformer = new RefinementTransformer(prog);
       rewriters.Add(refinementTransformer);
       rewriters.Add(new AutoContractsRewriter(reporter, builtIns));
@@ -2669,7 +2674,7 @@ namespace Microsoft.Dafny {
               methodSel.TypeApplication_AtEnclosingClass = prefixLemma.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp));
               methodSel.TypeApplication_JustMember = prefixLemma.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp));
               methodSel.Type = new InferredTypeProxy();
-              var recursiveCall = new CallStmt(com.tok, com.tok, new List<Expression>(), methodSel, recursiveCallArgs.ConvertAll(e => new ActualBinding(null, e)));
+              var recursiveCall = new CallStmt(com.RangeToken, new List<Expression>(), methodSel, recursiveCallArgs.ConvertAll(e => new ActualBinding(null, e)));
               recursiveCall.IsGhost = prefixLemma.IsGhost;  // resolve here
 
               var range = smaller;  // The range will be strengthened later with the call's precondition, substituted
@@ -2681,16 +2686,16 @@ namespace Microsoft.Dafny {
               attrs = new Attributes("_trustWellformed", new List<Expression>(), attrs);
 #endif
               attrs = new Attributes("auto_generated", new List<Expression>(), attrs);
-              var forallBody = new BlockStmt(com.tok, com.tok, new List<Statement>() { recursiveCall });
-              var forallStmt = new ForallStmt(com.tok, com.tok, bvs, attrs, range, new List<AttributedExpression>(), forallBody);
-              els = new BlockStmt(com.BodyStartTok, mainBody.EndTok, new List<Statement>() { forallStmt });
+              var forallBody = new BlockStmt(com.RangeToken, new List<Statement>() { recursiveCall });
+              var forallStmt = new ForallStmt(com.RangeToken, bvs, attrs, range, new List<AttributedExpression>(), forallBody);
+              els = new BlockStmt(new RangeToken(com.BodyStartTok, mainBody.RangeToken.EndToken), new List<Statement>() { forallStmt });
             } else {
               kk = new IdentifierExpr(k.tok, k.Name);
               els = null;
             }
             var kPositive = new BinaryExpr(com.tok, BinaryExpr.Opcode.Lt, new LiteralExpr(com.tok, 0), kk);
-            var condBody = new IfStmt(com.BodyStartTok, mainBody.EndTok, false, kPositive, mainBody, els);
-            prefixLemma.Body = new BlockStmt(com.tok, condBody.EndTok, new List<Statement>() { condBody });
+            var condBody = new IfStmt(new RangeToken(com.BodyStartTok, mainBody.RangeToken.EndToken), false, kPositive, mainBody, els);
+            prefixLemma.Body = new BlockStmt(new RangeToken(com.BodyStartTok, condBody.EndToken), new List<Statement>() { condBody });
           }
           // The prefix lemma now has all its components, so it's finally time we resolve it
           currentClass = (TopLevelDeclWithMembers)prefixLemma.EnclosingClass;
@@ -6169,13 +6174,13 @@ namespace Microsoft.Dafny {
 
     private Expression makeTemp(String prefix, AssignOrReturnStmt s, ResolutionContext resolutionContext, Expression ex) {
       var temp = FreshTempVarName(prefix, resolutionContext.CodeContext);
-      var locvar = new LocalVariable(s.Tok, s.Tok, temp, ex.Type, false);
+      var locvar = new LocalVariable(s.RangeToken, temp, ex.Type, false);
       var id = new IdentifierExpr(s.Tok, temp);
       var idlist = new List<Expression>() { id };
       var lhss = new List<LocalVariable>() { locvar };
       var rhss = new List<AssignmentRhs>() { new ExprRhs(ex) };
-      var up = new UpdateStmt(s.Tok, s.Tok, idlist, rhss);
-      s.ResolvedStatements.Add(new VarDeclStmt(s.Tok, s.Tok, lhss, up));
+      var up = new UpdateStmt(s.RangeToken, idlist, rhss);
+      s.ResolvedStatements.Add(new VarDeclStmt(s.RangeToken, lhss, up));
       return id;
     }
 
@@ -6327,9 +6332,9 @@ namespace Microsoft.Dafny {
         }
       }
       var temp = FreshTempVarName("valueOrError", resolutionContext.CodeContext);
-      var lhss = new List<LocalVariable>() { new LocalVariable(s.Tok, s.Tok, temp, new InferredTypeProxy(), false) };
+      var lhss = new List<LocalVariable>() { new LocalVariable(s.RangeToken, temp, new InferredTypeProxy(), false) };
       // "var temp ;"
-      s.ResolvedStatements.Add(new VarDeclStmt(s.Tok, s.Tok, lhss, null));
+      s.ResolvedStatements.Add(new VarDeclStmt(s.RangeToken, lhss, null));
       var lhss2 = new List<Expression>() { new IdentifierExpr(s.Tok, temp) };
       for (int k = (expectExtract ? 1 : 0); k < s.Lhss.Count; ++k) {
         lhss2.Add(s.Lhss[k]);
@@ -6350,7 +6355,7 @@ namespace Microsoft.Dafny {
         }
       }
       // " temp, ... := MethodOrExpression, ...;"
-      UpdateStmt up = new UpdateStmt(s.Tok, s.Tok, lhss2, rhss2);
+      UpdateStmt up = new UpdateStmt(s.RangeToken, lhss2, rhss2);
       if (expectExtract) {
         up.OriginalInitialLhs = s.Lhss.Count == 0 ? null : s.Lhss[0];
       }
@@ -6361,11 +6366,11 @@ namespace Microsoft.Dafny {
         Statement ss = null;
         if (s.KeywordToken.Token.val == "expect") {
           // "expect !temp.IsFailure(), temp"
-          ss = new ExpectStmt(s.Tok, s.Tok, notFailureExpr, new IdentifierExpr(s.Tok, temp), s.KeywordToken.Attrs);
+          ss = new ExpectStmt(new RangeToken(s.Tok, s.EndToken), notFailureExpr, new IdentifierExpr(s.Tok, temp), s.KeywordToken.Attrs);
         } else if (s.KeywordToken.Token.val == "assume") {
-          ss = new AssumeStmt(s.Tok, s.Tok, notFailureExpr, s.KeywordToken.Attrs);
+          ss = new AssumeStmt(new RangeToken(s.Tok, s.EndToken), notFailureExpr, s.KeywordToken.Attrs);
         } else if (s.KeywordToken.Token.val == "assert") {
-          ss = new AssertStmt(s.Tok, s.Tok, notFailureExpr, null, null, s.KeywordToken.Attrs);
+          ss = new AssertStmt(new RangeToken(s.Tok, s.EndToken), notFailureExpr, null, null, s.KeywordToken.Attrs);
         } else {
           Contract.Assert(false, $"Invalid token in :- statement: {s.KeywordToken.Token.val}");
         }
@@ -6380,14 +6385,14 @@ namespace Microsoft.Dafny {
 
         s.ResolvedStatements.Add(
           // "if temp.IsFailure()"
-          new IfStmt(s.Tok, s.Tok, false, VarDotMethod(s.Tok, temp, "IsFailure"),
+          new IfStmt(s.RangeToken, false, VarDotMethod(s.Tok, temp, "IsFailure"),
             // THEN: { out := temp.PropagateFailure(); return; }
-            new BlockStmt(s.Tok, s.Tok, new List<Statement>() {
-              new UpdateStmt(s.Tok, s.Tok,
+            new BlockStmt(s.RangeToken, new List<Statement>() {
+              new UpdateStmt(s.RangeToken,
                 new List<Expression>() { ident },
                 new List<AssignmentRhs>() {new ExprRhs(VarDotMethod(s.Tok, temp, "PropagateFailure"))}
                 ),
-              new ReturnStmt(s.Tok, s.Tok, null),
+              new ReturnStmt(s.RangeToken, null),
             }),
             // ELSE: no else block
             null
@@ -6398,7 +6403,7 @@ namespace Microsoft.Dafny {
         // "y := temp.Extract();"
         var lhs = s.Lhss[0];
         s.ResolvedStatements.Add(
-          new UpdateStmt(s.Tok, s.Tok,
+          new UpdateStmt(s.RangeToken,
             new List<Expression>() { lhsExtract },
             new List<AssignmentRhs>() { new ExprRhs(VarDotMethod(s.Tok, temp, "Extract")) }
           ));

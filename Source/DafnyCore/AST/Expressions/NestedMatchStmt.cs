@@ -39,7 +39,7 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt> {
     }
   }
 
-  public override IEnumerable<INode> Children => new[] { Source }.Concat<INode>(Cases);
+  public override IEnumerable<Node> Children => new[] { Source }.Concat<Node>(Cases);
 
   public override IEnumerable<Statement> SubStatements => Cases.SelectMany(c => c.Body);
 
@@ -51,8 +51,8 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt> {
       yield return Source;
     }
   }
-  public NestedMatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<NestedMatchCaseStmt> cases, bool usesOptionalBraces, Attributes attrs = null)
-    : base(tok, endTok, attrs) {
+  public NestedMatchStmt(RangeToken rangeToken, Expression source, [Captured] List<NestedMatchCaseStmt> cases, bool usesOptionalBraces, Attributes attrs = null)
+    : base(rangeToken, attrs) {
     Contract.Requires(source != null);
     Contract.Requires(cce.NonNullElements(cases));
     this.Source = source;
