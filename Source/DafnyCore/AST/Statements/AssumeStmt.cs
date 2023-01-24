@@ -12,9 +12,8 @@ public class AssumeStmt : PredicateStmt, ICloneable<AssumeStmt> {
   public AssumeStmt(Cloner cloner, AssumeStmt original) : base(cloner, original) {
   }
 
-  public AssumeStmt(IToken tok, RangeToken rangeToken, Expression expr, Attributes attrs)
-    : base(tok, rangeToken, expr, attrs) {
-    Contract.Requires(tok != null);
+  public AssumeStmt(RangeToken rangeToken, Expression expr, Attributes attrs)
+    : base(rangeToken, expr, attrs) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(expr != null);
   }

@@ -243,7 +243,6 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
   bool ICodeContext.IsGhost { get { return this.IsGhost; } }
   List<TypeParameter> ICodeContext.TypeArgs { get { return this.TypeArgs; } }
   List<Formal> ICodeContext.Ins { get { return this.Formals; } }
-  IToken ICallable.Tok { get { return this.tok; } }
   string ICallable.NameRelativeToModule {
     get {
       if (EnclosingClass is DefaultClassDecl) {

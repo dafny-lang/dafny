@@ -51,8 +51,8 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt> {
       yield return Source;
     }
   }
-  public NestedMatchStmt(IToken tok, RangeToken rangeToken, Expression source, [Captured] List<NestedMatchCaseStmt> cases, bool usesOptionalBraces, Attributes attrs = null)
-    : base(tok, rangeToken, attrs) {
+  public NestedMatchStmt(RangeToken rangeToken, Expression source, [Captured] List<NestedMatchCaseStmt> cases, bool usesOptionalBraces, Attributes attrs = null)
+    : base(rangeToken, attrs) {
     Contract.Requires(source != null);
     Contract.Requires(cce.NonNullElements(cases));
     this.Source = source;

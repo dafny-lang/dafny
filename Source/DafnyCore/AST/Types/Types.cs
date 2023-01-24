@@ -7,7 +7,7 @@ using System.Threading;
 
 namespace Microsoft.Dafny;
 
-public abstract class Type : Node {
+public abstract class Type : TokenNode {
   public static readonly BoolType Bool = new BoolType();
   public static readonly CharType Char = new CharType();
   public static readonly IntType Int = new IntType();

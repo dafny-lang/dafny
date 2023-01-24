@@ -8,6 +8,17 @@ public class AssignSuchThatStmt : ConcreteUpdateStatement, ICloneable<AssignSuch
   public readonly Expression Expr;
   public readonly AttributedToken AssumeToken;
 
+  public override IToken Tok {
+    get {
+      var result = Expr.StartToken.Prev;
+      if (char.IsLetter(result.val[0])) {
+        // Jump to operator if we're on an assume keyword.
+        result = result.Prev;
+      }
+      return result;
+    }
+  }
+
   [FilledInDuringResolution] public List<ComprehensionExpr.BoundedPool> Bounds;  // null for a ghost statement
   // invariant Bounds == null || Bounds.Count == BoundVars.Count;
   [FilledInDuringResolution] public List<IVariable> MissingBounds;  // remains "null" if bounds can be found
@@ -40,9 +51,8 @@ public class AssignSuchThatStmt : ConcreteUpdateStatement, ICloneable<AssignSuch
   /// "assumeToken" is allowed to be "null", in which case the verifier will check that a RHS value exists.
   /// If "assumeToken" is non-null, then it should denote the "assume" keyword used in the statement.
   /// </summary>
-  public AssignSuchThatStmt(IToken tok, RangeToken rangeToken, List<Expression> lhss, Expression expr, AttributedToken assumeToken, Attributes attrs)
-    : base(tok, rangeToken, lhss, attrs) {
-    Contract.Requires(tok != null);
+  public AssignSuchThatStmt(RangeToken rangeToken, List<Expression> lhss, Expression expr, AttributedToken assumeToken, Attributes attrs)
+    : base(rangeToken, lhss, attrs) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(cce.NonNullElements(lhss));
     Contract.Requires(lhss.Count != 0);

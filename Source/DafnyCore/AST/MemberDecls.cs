@@ -466,7 +466,7 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext {
   public Method OverriddenMethod;
   public Method Original => OverriddenMethod == null ? this : OverriddenMethod.Original;
   public override bool IsOverrideThatAddsBody => base.IsOverrideThatAddsBody && Body != null;
-  private static BlockStmt emptyBody = new BlockStmt(Token.NoToken, Token.NoToken.ToRange(), new List<Statement>());
+  private static BlockStmt emptyBody = new BlockStmt(Token.NoToken.ToRange(), new List<Statement>());
 
   public bool HasPostcondition =>
     Ens.Count > 0 || Outs.Any(f => f.Type.AsSubsetType is not null);
@@ -571,7 +571,6 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext {
   List<Formal> ICodeContext.Ins { get { return this.Ins; } }
   List<Formal> IMethodCodeContext.Outs { get { return this.Outs; } }
   Specification<FrameExpression> IMethodCodeContext.Modifies { get { return Mod; } }
-  IToken ICallable.Tok { get { return this.tok; } }
   string ICallable.NameRelativeToModule {
     get {
       if (EnclosingClass is DefaultClassDecl) {

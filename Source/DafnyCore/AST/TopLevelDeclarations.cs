@@ -489,7 +489,7 @@ public class ModuleExportDecl : ModuleDecl {
 
 }
 
-public class ExportSignature : Node, IHasUsages {
+public class ExportSignature : TokenNode, IHasUsages {
   public readonly IToken ClassIdTok;
   public readonly bool Opaque;
   public readonly string ClassId;
@@ -509,7 +509,7 @@ public class ExportSignature : Node, IHasUsages {
     Contract.Requires(prefix != null);
     Contract.Requires(idTok != null);
     Contract.Requires(id != null);
-    Tok = idTok;
+    tok = idTok;
     ClassIdTok = prefixTok;
     ClassId = prefix;
     Id = id;
@@ -520,7 +520,7 @@ public class ExportSignature : Node, IHasUsages {
   public ExportSignature(IToken idTok, string id, bool opaque) {
     Contract.Requires(idTok != null);
     Contract.Requires(id != null);
-    Tok = idTok;
+    tok = idTok;
     Id = id;
     Opaque = opaque;
     OwnedTokensCache = new List<IToken>() { Tok };
@@ -1405,7 +1405,6 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
   ModuleDefinition IASTVisitorContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
   bool ICodeContext.MustReverify { get { return false; } }
   bool ICodeContext.AllowsNontermination { get { return false; } }
-  IToken ICallable.Tok { get { return tok; } }
   string ICallable.NameRelativeToModule { get { return Name; } }
   Specification<Expression> ICallable.Decreases {
     get {
@@ -1603,7 +1602,7 @@ public class CodeContextWrapper : ICodeContext {
 /// <summary>
 /// An ICallable is a Function, Method, IteratorDecl, or (less fitting for the name ICallable) RedirectingTypeDecl or DatatypeDecl.
 /// </summary>
-public interface ICallable : ICodeContext {
+public interface ICallable : ICodeContext, INode {
   IToken Tok { get; }
   string WhatKind { get; }
   string NameRelativeToModule { get; }
@@ -1640,6 +1639,7 @@ public class CallableWrapper : CodeContextWrapper, ICallable {
   }
 
   public bool AllowsAllocation => cwInner.AllowsAllocation;
+  public RangeToken RangeToken => cwInner.RangeToken;
 }
 
 public class DontUseICallable : ICallable {
@@ -1659,7 +1659,9 @@ public class DontUseICallable : ICallable {
     set { throw new cce.UnreachableException(); }
   }
   public bool AllowsAllocation => throw new cce.UnreachableException();
+  public RangeToken RangeToken => throw new cce.UnreachableException();
 }
+
 /// <summary>
 /// An IMethodCodeContext is a Method or IteratorDecl.
 /// </summary>
@@ -1749,7 +1751,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext {
     OutsHistoryFields = new List<Field>();
     DecreasesFields = new List<Field>();
 
-    YieldCountVariable = new LocalVariable(tok, tok.ToRange(), "_yieldCount", new EverIncreasingType(), true);
+    YieldCountVariable = new LocalVariable(tok.ToRange(), "_yieldCount", new EverIncreasingType(), true);
     YieldCountVariable.type = YieldCountVariable.OptionalType;  // resolve YieldCountVariable here
   }
 
@@ -1818,7 +1820,6 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext {
   List<Formal> ICodeContext.Ins { get { return this.Ins; } }
   List<Formal> IMethodCodeContext.Outs { get { return this.Outs; } }
   Specification<FrameExpression> IMethodCodeContext.Modifies { get { return this.Modifies; } }
-  IToken ICallable.Tok { get { return this.tok; } }
   string ICallable.NameRelativeToModule { get { return this.Name; } }
   Specification<Expression> ICallable.Decreases { get { return this.Decreases; } }
   bool _inferredDecr;
@@ -1995,7 +1996,6 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
   ModuleDefinition IASTVisitorContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
   bool ICodeContext.MustReverify { get { return false; } }
   bool ICodeContext.AllowsNontermination { get { return false; } }
-  IToken ICallable.Tok { get { return tok; } }
   string ICallable.NameRelativeToModule { get { return Name; } }
   Specification<Expression> ICallable.Decreases {
     get {
@@ -2089,7 +2089,6 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl {
   ModuleDefinition IASTVisitorContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
   bool ICodeContext.MustReverify { get { return false; } }
   bool ICodeContext.AllowsNontermination { get { return false; } }
-  IToken ICallable.Tok { get { return tok; } }
   string ICallable.NameRelativeToModule { get { return Name; } }
   Specification<Expression> ICallable.Decreases {
     get {
