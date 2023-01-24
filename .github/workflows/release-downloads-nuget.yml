@@ -18,7 +18,7 @@ on:
 
 env:
   dotnet-version: 6.0.x # SDK Version for running Dafny (TODO: should this be an older version?)
-  z3BaseUri: https://github.com/Z3Prover/z3/releases/download/Z3-4.11.2
+  z3BaseUri: https://github.com/Z3Prover/z3/releases/download/z3-4.11.2
 
 jobs:
   test-dafny-cli-tool:

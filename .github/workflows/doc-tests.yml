@@ -26,7 +26,7 @@ jobs:
 
     env:
       solutionPath: Source/Dafny.sln
-      z3BaseUri: https://github.com/Z3Prover/z3/releases/download/Z3-4.11.2
+      z3BaseUri: https://github.com/Z3Prover/z3/releases/download/z3-4.11.2
       Logging__LogLevel__Microsoft: Debug
     steps:
     - name: OS
