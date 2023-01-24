@@ -77,10 +77,14 @@ public class Parser {
     errors.SemErr(tok, msg);
   }
 
-  void Get () {
-    for (;;) {
-      t = theVerifyThisFile ? la : new IncludeToken(theInclude, la);
+  void Get() {
+    for (; ; ) {
+      var tmp = la;
       la = scanner.Scan();
+      la = theVerifyThisFile ? la : new IncludeToken(theInclude, la);
+      tmp.Next = la;
+      la.Prev = tmp;
+      t = tmp;
       if (la.kind <= maxT) { ++errDist; break; }
 -->pragmas
       la = t;

@@ -16,9 +16,8 @@ public class ModifyStmt : Statement, ICloneable<ModifyStmt> {
     Body = cloner.CloneBlockStmt(original.Body);
   }
 
-  public ModifyStmt(IToken tok, RangeToken rangeToken, List<FrameExpression> mod, Attributes attrs, BlockStmt body)
-    : base(tok, rangeToken) {
-    Contract.Requires(tok != null);
+  public ModifyStmt(RangeToken rangeToken, List<FrameExpression> mod, Attributes attrs, BlockStmt body)
+    : base(rangeToken) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(mod != null);
     Mod = new Specification<FrameExpression>(mod, attrs);

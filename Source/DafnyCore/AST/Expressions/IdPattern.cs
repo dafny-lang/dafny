@@ -79,7 +79,7 @@ public class IdPattern : ExtendedPattern, IHasUsages {
     if (Arguments == null) {
       Type = sourceType; // Possible because we did a rewrite one level higher, which copied the syntactic type information to a let.
       if (mutable) {
-        var localVariable = new LocalVariable(Tok, Tok.ToRange(), Id, null, isGhost);
+        var localVariable = new LocalVariable(RangeToken, Id, null, isGhost);
         localVariable.type = sourceType;
         BoundVar = localVariable;
       } else {

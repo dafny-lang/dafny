@@ -9,7 +9,7 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
-public abstract class Expression : Node {
+public abstract class Expression : TokenNode {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(tok != null);
@@ -740,7 +740,7 @@ public abstract class Expression : Node {
   /// </summary>
   public static Expression CreateIdentExpr(IVariable v) {
     Contract.Requires(v != null);
-    var e = new IdentifierExpr(v.Tok, v.Name);
+    var e = new IdentifierExpr(v.RangeToken.StartToken, v.Name);
     e.Var = v;  // resolve here
     e.type = v.Type;  // resolve here
     return e;
@@ -1587,6 +1587,10 @@ public abstract class UnaryExpr : Expression {
     this.E = e;
   }
 
+  public UnaryExpr(Cloner cloner, UnaryExpr original) : base(cloner, original) {
+    E = cloner.CloneExpr(original.E);
+  }
+
   public override IEnumerable<Expression> SubExpressions {
     get { yield return E; }
   }
@@ -1648,6 +1652,10 @@ public class UnaryOpExpr : UnaryExpr {
     this.Op = op;
   }
 
+  public UnaryOpExpr(Cloner cloner, UnaryOpExpr original) : base(cloner, original) {
+    Op = original.Op;
+  }
+
   public override bool IsImplicit => Op == Opcode.Lit;
 }
 
@@ -1662,13 +1670,14 @@ public class FreshExpr : UnaryOpExpr, ICloneable<FreshExpr> {
     this.At = at;
   }
 
-  public FreshExpr Clone(Cloner cloner) {
-    var result = new FreshExpr(cloner.Tok(tok), cloner.CloneExpr(E), At);
+  public FreshExpr(Cloner cloner, FreshExpr original) : base(cloner, original) {
+    At = original.At;
     if (cloner.CloneResolvedFields) {
-      result.AtLabel = AtLabel;
+      AtLabel = original.AtLabel;
     }
-    return result;
   }
+
+  public FreshExpr Clone(Cloner cloner) { return new FreshExpr(cloner, this); }
 }
 
 public abstract class TypeUnaryExpr : UnaryExpr {
@@ -2455,7 +2464,7 @@ public class ITEExpr : Expression {
 /// which it is; in this case, Var is non-null, because this is the only place where Var.IsGhost
 /// is recorded by the parser.
 /// </summary>
-public class CasePattern<VT> : Node
+public class CasePattern<VT> : TokenNode
   where VT : class, IVariable {
   public readonly string Id;
   // After successful resolution, exactly one of the following two fields is non-null.
@@ -2596,7 +2605,7 @@ public class UnboxingCastExpr : Expression {  // an UnboxingCastExpr is used onl
   }
 }
 
-public class AttributedExpression : Node, IAttributeBearingDeclaration {
+public class AttributedExpression : TokenNode, IAttributeBearingDeclaration {
   public readonly Expression E;
   public readonly AssertLabel/*?*/ Label;
 
@@ -2634,7 +2643,7 @@ public class AttributedExpression : Node, IAttributeBearingDeclaration {
     E = e;
     Label = label;
     Attributes = attrs;
-    this.Tok = e.Tok;
+    this.tok = e.Tok;
   }
 
   public void AddCustomizedErrorMessage(IToken tok, string s) {
@@ -2647,7 +2656,7 @@ public class AttributedExpression : Node, IAttributeBearingDeclaration {
   public override IEnumerable<Node> Children => new List<Node>() { E };
 }
 
-public class FrameExpression : Node, IHasUsages {
+public class FrameExpression : TokenNode, IHasUsages {
   public readonly Expression E;  // may be a WildcardExpr
   [ContractInvariantMethod]
   void ObjectInvariant() {
