@@ -3,17 +3,104 @@
 The Dafny parser is generated from a grammar definition file, `Dafny.atg` by the [CoCo/r](https://ssw.jku.at/Research/Projects/Coco/)
 parser generator.
 
+The grammar has a traditional structure: a scanner tokenizes the textual input into a sequence of tokens; the parser consumes the tokens
+to produce an AST. The AST is then passed on for name and type resolution and further processing.
+
+
 ## 29.1. Dafny Syntax
 
 
 ## 29.2. Dafny Grammar productions
 
+### 29.2.1. Programs {#g-program}
+
+````grammar
+Dafny = { IncludeDirective_ } { TopDecl } EOF
+````
+
+#### 29.2.1.1. Include directives {#g-include-directive}
+
+````grammar
+IncludeDirective_ = "include" stringToken
+````
+
+#### 29.2.1.1. Top-level declarations {g-top-level-declaration}
+
+````grammar
+TopDecl =
+  { DeclModifier }
+  ( SubModuleDecl
+  | ClassDecl
+  | DatatypeDecl
+  | NewtypeDecl
+  | SynonymTypeDecl  // includes opaque types
+  | IteratorDecl
+  | TraitDecl
+  | ClassMemberDecl(moduleLevelDecl: true)
+  )
+````
+
+#### 29.2.1.1. Declaration modifiers {#g-declaration-modifiers}
+
+````grammar
+DeclModifier = ( "abstract" | "ghost" | "static" )
+````
+
+### 29.2.1. Modules {#g-module}
+
+````grammar
+SubModuleDecl = ( ModuleDefinition | ModuleImport | ModuleExport )
+````
+
+#### 29.2.1.1. Module Definitions {#g-module-definition}
+
+````grammar
+ModuleDefinition = "module" { Attribute } ModuleQualifiedName
+        [ "refines" ModuleQualifiedName ]
+        "{" { TopDecl } "}"
+````
+
+#### 29.2.1.1. Module Imports {#g-module-import}
+
+````grammar
+ModuleImport =
+    "import"
+    [ "opened" ]
+    ( QualifiedModuleExport
+    | ModuleName "=" QualifiedModuleExport
+    | ModuleName ":" QualifiedModuleExport
+    )
+
+QualifiedModuleExport =
+    ModuleQualifiedName [ "`" ModuleExportSuffix ]
+
+ModuleExportSuffix =
+    ( ExportId
+    | "{" ExportId { "," ExportId } "}"
+    )
+````
+
+#### 29.2.1.3. Module Export Definitions {#g-module-export}
+
+````grammar
+ModuleExport =
+  "export"
+  [ ExportId ]
+  [ "..." ]
+  {
+    "extends"  ExportId { "," ExportId }
+  | "provides" ( ExportSignature { "," ExportSignature } | "*" )
+  | "reveals"  ( ExportSignature { "," ExportSignature } | "*" )
+  }
+
+ExportSignature = TypeNameOrCtorSuffix [ "." TypeNameOrCtorSuffix ]
+````
 
 
 
 ### 29.2.1. Expressions
 
-#### 29.2.1.1. Top-level expression {#top-level-expression}
+#### 29.2.1.1. Top-level expression {#g-top-level-expression}
 
 ````grammar
 Expression(allowLemma, allowLambda) =

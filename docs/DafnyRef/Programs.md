@@ -1,7 +1,6 @@
 # 3. Programs
-````grammar
-Dafny = { IncludeDirective_ } { TopDecl } EOF
-````
+({grammar](#g-program))
+
 At the top level, a Dafny program (stored as files with extension `.dfy`)
 is a set of declarations. The declarations introduce (module-level)
 constants, methods, functions, lemmas, types (classes, traits, inductive and
@@ -21,13 +20,19 @@ If there is more than one Main(), Dafny will emit an error message.
 An invocation of Dafny may specify a number of source files.
 Each Dafny file follows the grammar of the ``Dafny`` non-terminal.
 
-A file consists of a sequence of optional _include_ directives followed by top
-level declarations followed by the end of the file.
+A file consists of 
+- a sequence of optional _include_ directives, followed by 
+- top level declarations, followed by 
+- the end of the file.
 
-## 3.1. Include Directives
-````grammar
-IncludeDirective_ = "include" stringToken
-````
+## 3.1. Include Directives {#sec-include-directives}
+([grammar](#g-include-directive))
+
+Examples:
+```dafny
+include "MyProgram.dfy"
+include @"/home/me/MyFile.dfy"
+```
 
 Include directives have the form ``"include" stringToken`` where
 the string token is either a normal string token or a
@@ -45,46 +50,54 @@ the underlying file system relative to the current working directory (the
 one in which the dafny tool is invoked). Paths beginning with a device
 designator (e.g., `C:`) are only permitted on Windows systems.
 
-## 3.2. Top Level Declarations
-````grammar
-TopDecl =
-  { DeclModifier }
-  ( SubModuleDecl
-  | ClassDecl
-  | DatatypeDecl
-  | NewtypeDecl
-  | SynonymTypeDecl  // includes opaque types
-  | IteratorDecl
-  | TraitDecl
-  | ClassMemberDecl(moduleLevelDecl: true)
-  )
-````
+## 3.2. Top Level Declarations {#sec-top-level-declaration}
+([grammar](#g-top-level-declaration)
+
+Examples:
+```dafny
+module M { }
+trait R { }
+abstract class C { }
+dataype D = A | B
+newtype pos = i: int | i >= 0
+type T = i: int | 0 <= i < 100
+static method m() {}
+function f(): int
+const c: bool
+```
+
 Top-level declarations may appear either at the top level of a Dafny file,
-or within a ``SubModuleDecl``. A top-level declaration is one of
+or within a (sub)module declaration. A top-level declaration is one of
 various kinds of declarations described later. Top-level declarations are
 implicitly members of a default (unnamed) top-level module.
 
 Declarations within a module or at the top-level all begin with reserved keywords and do not end with semicolons.
 
-The ``ClassDecl``, ``DatatypeDecl``, ``NewtypeDecl``,
-``SynonymTypeDecl``, ``IteratorDecl``, and ``TraitDecl`` declarations are
-type declarations and are described in [Section 6](#sec-types) and
-the following sections. Ordinarily
-``ClassMemberDecl``s appear in class declarations but they can also
-appear at the top level. In that case they are included as part of an
-implicit top-level class and are implicitly `static` (but cannot be
-declared as static). In addition a ``ClassMemberDecl`` that appears at
-the top level cannot be a ``FieldDecl``.
+These declarations are one of these kinds:
+- methods and functions, encapsulating computations or actions
+- const declarations, which are names (of a given type) initialized to an unchanging value
+  (declarations of variables are not allowed at the module level)
+- type declarations of various kinds ([Section 6](#sec-types) and the following sections)
 
-## 3.3. Declaration Modifiers
-````grammar
-DeclModifier = ( "abstract" | "ghost" | "static" )
-````
+Methods, functions and const declarations are placed in an implicit class declaration
+that is in the top-level implicit module. These declarations are all implicitly
+`static` (but may not be declared explicitly static).
+
+## 3.3. Declaration Modifiers {sec-declaration-modifiers}
+([grammar](#g-declaration-modifier))
+
+Examples:
+```dafny
+abstract module M {}
+static method m() {}
+ghost function f(): int { 0 }
+opaque type T = int
+```
 
 Top level declarations may be preceded by zero or more declaration
 modifiers. Not all of these are allowed in all contexts.
 
-The `abstract` modifiers may only be used for module declarations.
+The `abstract` modifier may only be used for module declarations.
 An abstract module can leave some entities underspecified.
 Abstract modules are not compiled.
 
@@ -93,7 +106,11 @@ specification only, not for compilation to code.
 
 The `static` modifier is used for class members that
 are associated with the class as a whole rather than with
-an instance of the class.
+an instance of the class. This modifier may not be used with
+declarations that are implicitly static, as are members of the 
+top-level, unnamed implicit class.
+
+<!-- TBD - opaque ? --> 
 
 The following table shows modifiers that are available
 for each of the kinds of declaration. In the table
@@ -108,7 +125,7 @@ implicitly ghost (non-ghost).
  class                    | -
  trait                    | -
  datatype or codatatype   | -
- field                    | ghost
+ field (const)            | ghost
  newtype                  | -
  synonym types            | -
  iterators                | -
@@ -116,11 +133,13 @@ implicitly ghost (non-ghost).
  lemma                    | already-ghost static
  least lemma              | already-ghost static
  greatest lemma           | already-ghost static
- constructor              | -
- function (non-method)    | already-ghost static
- function method          | already-non-ghost static
- predicate (non-method)   | already-ghost static
- predicate method         | already-non-ghost static
+ constructor              | ghost
+ function                 | ghost static             (Dafny 4)
+ function method          | already-non-ghost static (Dafny 3)
+ function (non-method)    | already-ghost static     (Dafny 3)
+ predicate                | ghost static             (Dafny 4)
+ predicate method         | already-non-ghost static (Dafny 3)
+ predicate (non-method)   | already-ghost static     (Dafny 3)
  least predicate          | already-ghost static
  greatest predicate       | already-ghost static
 
