@@ -35,7 +35,7 @@ internal class InternalCompilersPluginConfiguration : Plugins.PluginConfiguratio
 }
 
 public abstract class GenericSinglePassCompiler<TExpression> : Plugins.Compiler // TODO remove generic from the name
-  where TExpression : ICanRender {
+  {
 
   protected internal abstract TExpression TrExpr(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wStmts);
   protected abstract TExpression EmitThis();
