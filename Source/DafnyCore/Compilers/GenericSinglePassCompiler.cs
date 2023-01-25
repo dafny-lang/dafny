@@ -38,21 +38,21 @@ public abstract class GenericSinglePassCompiler<TExpression, TStatements, TState
   internal abstract TType TypeName(Type type, IToken tok, MemberDecl/*?*/ member = null);
   
   protected internal abstract TExpression TrExpr(Expression expr, bool inLetExprBody, TStatements wStmts);
-  protected abstract TExpression EmitThis();
+  protected abstract TExpression This();
 
-  protected abstract TExpression EmitLiteralExpr(LiteralExpr e);
+  protected abstract TExpression LiteralExpr(LiteralExpr e);
   protected delegate TExpression FCE_Arg_Translator(Expression e, bool inLetExpr, TStatements wStmts);
 
-  protected abstract TExpression EmitArraySelect(List<Expression> indices, Type elementType, bool inLetExprBody, TExpression array, TStatements wStmts);
+  protected abstract TExpression ArraySelect(List<Expression> indices, Type elementType, bool inLetExprBody, TExpression array, TStatements wStmts);
 
-  protected abstract TExpression EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
+  protected abstract TExpression IndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
     TStatements wStmts);
 
   /// <summary>
   /// If "fromArray" is false, then "source" is a sequence.
   /// If "fromArray" is true, then "source" is an array.
   /// </summary>
-  protected abstract TExpression EmitSeqSelectRange(Expression source, Expression lo /*?*/, Expression hi /*?*/,
+  protected abstract TExpression SeqSelectRange(Expression source, Expression lo /*?*/, Expression hi /*?*/,
     bool fromArray, bool inLetExprBody, TStatements wStmts);
 
   protected abstract TExpression TrParenExpr(Expression expr, bool inLetExprBody, TStatements wStmts);
@@ -254,20 +254,20 @@ public abstract class GenericSinglePassCompiler<TExpression, TStatements, TState
     Contract.Assert(e.Seq.Type != null);
     if (e.Seq.Type.IsArrayType) {
       if (!e.SelectOne) {
-        return EmitSeqSelectRange(e.Seq, e.E0, e.E1, true, inLetExprBody, wStmts);
+        return SeqSelectRange(e.Seq, e.E0, e.E1, true, inLetExprBody, wStmts);
       }
 
       Contract.Assert(e.E0 != null && e.E1 == null);
       var array = TrParenExpr(e.Seq, inLetExprBody, wStmts);
-      return EmitArraySelect(new List<Expression> { e.E0 }, e.Type, inLetExprBody, array, wStmts);
+      return ArraySelect(new List<Expression> { e.E0 }, e.Type, inLetExprBody, array, wStmts);
     }
 
     if (e.SelectOne) {
       Contract.Assert(e.E0 != null && e.E1 == null);
-      return EmitIndexCollectionSelect(e.Seq, e.E0, inLetExprBody, wStmts);
+      return IndexCollectionSelect(e.Seq, e.E0, inLetExprBody, wStmts);
     }
 
-    return EmitSeqSelectRange(e.Seq, e.E0, e.E1, false, inLetExprBody, wStmts);
+    return SeqSelectRange(e.Seq, e.E0, e.E1, false, inLetExprBody, wStmts);
   }
 
 }

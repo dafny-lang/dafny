@@ -1332,7 +1332,7 @@ namespace Microsoft.Dafny.Compilers {
       return s;
     }
 
-    protected override ConcreteSyntaxTree EmitLiteralExpr(LiteralExpr e) {
+    protected override ConcreteSyntaxTree LiteralExpr(LiteralExpr e) {
 
       var wr = new ConcreteSyntaxTree();
       if (e is StaticReceiverExpr) {
@@ -1553,7 +1553,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override ICanRender EmitThis() {
+    protected override ICanRender This() {
       return new LineSegment("_this");
     }
 

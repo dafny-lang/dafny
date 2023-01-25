@@ -1692,7 +1692,7 @@ namespace Microsoft.Dafny.Compilers {
               var sw = EmitReturnExpr(w);
               sw = EmitCoercionIfNecessary(cfType, cf.Type, cf.tok, sw);
               // get { return this._{0}; }
-              sw.Append(EmitThis());
+              sw.Append(This());
               sw.Write("._{0}", cf.CompileName);
             } else {
               EmitCallToInheritedConstRHS(cf, w);
@@ -1707,12 +1707,12 @@ namespace Microsoft.Dafny.Compilers {
               var sw = EmitReturnExpr(wGet);
               sw = EmitCoercionIfNecessary(fType, f.Type, f.tok, sw);
               // get { return this._{0}; }
-              sw.Append(EmitThis());
+              sw.Append(This());
               sw.Write("._{0}", f.CompileName);
             }
             {
               // set { this._{0} = value; }
-              wSet.Append(EmitThis());
+              wSet.Append(This());
               wSet.Write("._{0}", f.CompileName);
               var sw = EmitAssignmentRhs(wSet);
               sw = EmitCoercionIfNecessary(f.Type, fType, f.tok, sw);
@@ -1801,7 +1801,7 @@ namespace Microsoft.Dafny.Compilers {
                   var typeSubst = new Dictionary<TypeParameter, Type>();
                   cf.EnclosingClass.TypeArgs.ForEach(tp => typeSubst.Add(tp, (Type)new UserDefinedType(tp)));
                   var typeArgs = CombineAllTypeArguments(cf);
-                  sw.Append(EmitMemberSelect(wr => wr.Append(EmitThis()), UserDefinedType.FromTopLevelDecl(c.tok, c), cf,
+                  sw.Append(EmitMemberSelect(wr => wr.Append(This()), UserDefinedType.FromTopLevelDecl(c.tok, c), cf,
                     typeArgs, typeSubst, f.Type, internalAccess: true).Read());
                 } else {
                   EmitReturnExpr(PlaceboValue(cf.Type, wBody, cf.tok, true), wBody);
@@ -1958,7 +1958,7 @@ namespace Microsoft.Dafny.Compilers {
 
       wr.Write(sep);
       var w = EmitCoercionIfNecessary(UserDefinedType.FromTopLevelDecl(f.tok, thisContext), calleeReceiverType, f.tok, wr);
-      w.Append(EmitThis());
+      w.Append(This());
       wr.Write(")");
     }
 
@@ -1994,7 +1994,7 @@ namespace Microsoft.Dafny.Compilers {
 
       wr.Write(sep);
       var w = EmitCoercionIfNecessary(UserDefinedType.FromTopLevelDecl(f.tok, thisContext), calleeReceiverType, f.tok, wr);
-      w.Append(EmitThis());
+      w.Append(This());
       sep = ", ";
 
       for (int j = 0, l = 0; j < f.Formals.Count; j++) {
@@ -2056,7 +2056,7 @@ namespace Microsoft.Dafny.Compilers {
 
       wr.Write(sep);
       var w = EmitCoercionIfNecessary(UserDefinedType.FromTopLevelDecl(method.tok, thisContext), calleeReceiverType, method.tok, wr);
-      w.Append(EmitThis());
+      w.Append(This());
       sep = ", ";
 
       for (int j = 0, l = 0; j < method.Ins.Count; j++) {
@@ -4354,7 +4354,7 @@ namespace Microsoft.Dafny.Compilers {
       var wr = result;
       if (expr is LiteralExpr) {
         LiteralExpr e = (LiteralExpr)expr;
-        return EmitLiteralExpr(e);
+        return LiteralExpr(e);
       } else if (expr is ThisExpr) {
         var thisWriter = wr;
         if (thisContext != null) {
@@ -4362,7 +4362,7 @@ namespace Microsoft.Dafny.Compilers {
           thisWriter = EmitCoercionIfNecessary(UserDefinedType.FromTopLevelDecl(expr.tok, thisContext), instantiatedType, expr.tok, wr);
         }
 
-        thisWriter.Append(EmitThis());
+        thisWriter.Append(This());
 
         return wr;
       } else if (expr is IdentifierExpr) {
@@ -4877,17 +4877,17 @@ namespace Microsoft.Dafny.Compilers {
       return result;
     }
 
-    protected override ICanRender EmitArraySelect(List<Expression> indices, Type elementType, bool inLetExprBody, ICanRender array,
+    protected override ICanRender ArraySelect(List<Expression> indices, Type elementType, bool inLetExprBody, ICanRender array,
       ConcreteSyntaxTree wStmts) {
       return ConvertFromWriter(array, outer => EmitArraySelect(indices, elementType, inLetExprBody, outer, wStmts));
     }
 
-    protected override ICanRender EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
+    protected override ICanRender IndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
       ConcreteSyntaxTree wStmts) {
       return ConvertFromWriter(outer => EmitIndexCollectionSelect(source, index, inLetExprBody, outer, wStmts));
     }
 
-    protected override ICanRender EmitSeqSelectRange(Expression source, Expression lo, Expression hi, bool fromArray, bool inLetExprBody,
+    protected override ICanRender SeqSelectRange(Expression source, Expression lo, Expression hi, bool fromArray, bool inLetExprBody,
       ConcreteSyntaxTree wStmts) {
       return ConvertFromWriter(result => EmitSeqSelectRange(source, lo, hi, fromArray, inLetExprBody, result, wStmts));
     }

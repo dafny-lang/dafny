@@ -1042,7 +1042,7 @@ namespace Microsoft.Dafny.Compilers {
       return s;
     }
 
-    protected override ConcreteSyntaxTree EmitLiteralExpr(LiteralExpr e) {
+    protected override ConcreteSyntaxTree LiteralExpr(LiteralExpr e) {
       var wr = new ConcreteSyntaxTree();
       if (e is StaticReceiverExpr) {
         wr.Write(TypeName(e.Type, wr, e.tok));
@@ -1188,7 +1188,7 @@ namespace Microsoft.Dafny.Compilers {
       return type.IsBoolType || type.IsCharType || AsNativeType(type) != null;
     }
 
-    protected override ICanRender EmitThis() {
+    protected override ICanRender This() {
       var custom =
         (enclosingMethod != null && (enclosingMethod.IsTailRecursive || NeedsCustomReceiver(enclosingMethod))) ||
         (enclosingFunction != null && (enclosingFunction.IsTailRecursive || NeedsCustomReceiver(enclosingFunction))) ||

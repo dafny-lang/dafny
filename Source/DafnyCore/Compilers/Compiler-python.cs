@@ -992,7 +992,7 @@ namespace Microsoft.Dafny.Compilers {
       return s;
     }
 
-    protected override ConcreteSyntaxTree EmitLiteralExpr(LiteralExpr e) {
+    protected override ConcreteSyntaxTree LiteralExpr(LiteralExpr e) {
       var wr = new ConcreteSyntaxTree();
       switch (e) {
         case CharLiteralExpr:
@@ -1139,7 +1139,7 @@ namespace Microsoft.Dafny.Compilers {
       };
     }
 
-    protected override ICanRender EmitThis() {
+    protected override ICanRender This() {
       var isTailRecursive = enclosingMethod is { IsTailRecursive: true } || enclosingFunction is { IsTailRecursive: true };
       return new LineSegment(isTailRecursive ? "_this" : "self");
     }

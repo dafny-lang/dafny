@@ -2070,7 +2070,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(")");
     }
 
-    protected override ConcreteSyntaxTree EmitLiteralExpr(LiteralExpr e) {
+    protected override ConcreteSyntaxTree LiteralExpr(LiteralExpr e) {
       var wr = new ConcreteSyntaxTree();
       if (e is StaticReceiverExpr) {
         wr.Write("{0}", TypeName_Companion(((UserDefinedType)e.Type).ResolvedClass, wr, e.tok));
@@ -2436,7 +2436,7 @@ namespace Microsoft.Dafny.Compilers {
       return member != null && cl is ClassDecl cdecl && cdecl.IsDefaultClass && Attributes.Contains(cdecl.EnclosingModuleDefinition.Attributes, "extern") && member.IsExtern(out _, out _);
     }
 
-    protected override ICanRender EmitThis() {
+    protected override ICanRender This() {
       return new LineSegment("_this");
     }
 
