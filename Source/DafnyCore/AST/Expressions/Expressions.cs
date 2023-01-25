@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Numerics;
@@ -3196,7 +3197,7 @@ public class ApplySuffix : SuffixExpr, ICloneable<ApplySuffix> {
 
   public override IEnumerable<INode> Children => ResolvedExpression == null
     ? base.Children.Concat(Bindings == null ? new List<INode>() : Args ?? Enumerable.Empty<INode>()) : new[] { ResolvedExpression };
-  public override IEnumerable<INode> ConcreteChildren => base.ConcreteChildren.Concat(Bindings != null && Bindings.ArgumentBindings != null ? Bindings.ArgumentBindings : Enumerable.Empty<INode>());
+  public override IEnumerable<INode> ConcreteChildren => new List<INode> { Lhs, Bindings };
 
   [ContractInvariantMethod]
   void ObjectInvariant() {

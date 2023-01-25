@@ -378,11 +378,6 @@ method Test() {
       z
     := x,
        1;
-  var x :=
-    2;
-  var
-    x :=
-    2;
   var
     x
     ,
@@ -392,6 +387,11 @@ method Test() {
     ,
     3
     ;
+  var x :=
+    2;
+  var
+    x :=
+    2;
   var z
     , 
       w
@@ -542,7 +542,7 @@ method Test(z: int) {
            case 5
              => var x := 6;
                 x
-          );
+  );
   var x :=
     match z {
       case 1 => 2
@@ -1690,10 +1690,10 @@ module Test {
   {
     if i == 0 {
     } else if condition || TestIf(
-                             a,
-                             b,
-                             c
-                           ) {
+                a,
+                b,
+                c
+              ) {
       assert false;
     }
   }
@@ -1843,6 +1843,31 @@ function Test(): int {
     public void FormatterWorksForObjectCreation() {
       FormatterWorksFor(@"
 method Test() {
+  g := new ClassName.ConstructorName(
+    argument1b,
+    argument2b,
+    argument3b
+  );
+  var g := new ClassName.ConstructorName(
+    argument1,
+    argument2,
+    argument3
+  );
+  g :=
+    Datatype.ConstructorName(
+      argumentd2,
+      argumente2,
+      argumentf2
+    );
+  var g := Datatype.ConstructorName(
+    argumenta,
+    argumentb,
+    argumentc
+  );
+  :- Module.Need(
+    arg1,
+    arg2
+  );
   var g, h := Datatype.ConstructorName1(
       argumentaz
     ),
@@ -1863,31 +1888,6 @@ method Test() {
       argumente,
       argumentf
     );
-  g :=
-    Datatype.ConstructorName(
-      argumentd2,
-      argumente2,
-      argumentf2
-    );
-  :- Module.Need(
-    arg1,
-    arg2
-  );
-  var g := Datatype.ConstructorName(
-    argumenta,
-    argumentb,
-    argumentc
-  );
-  g := new ClassName.ConstructorName(
-    argument1b,
-    argument2b,
-    argument3b
-  );
-  var g := new ClassName.ConstructorName(
-    argument1,
-    argument2,
-    argument3
-  );
   g := Datatype.ConstructorName(
     argumenta2,
     argumentb2,
@@ -1907,8 +1907,15 @@ method Test() {
     );
 }
 ", reduceBlockiness: true);
+    }
+    [Fact]
+    public void FormatterWorksForObjectCreationBlockly() {
       FormatterWorksFor(@"
 method Test() {
+  :- Module.Need(
+       arg3,
+       arg4
+     );
   var g := new ClassName.ConstructorName(
              argument1,
              argument2,
@@ -1919,10 +1926,6 @@ method Test() {
              argumentb,
              argumentc
            );
-  :- Module.Need(
-       arg3,
-       arg4
-     );
 
   var g :=
     Datatype.ConstructorName(
@@ -1960,6 +1963,16 @@ datatype C = C(
     public void FormatterWorksForUsualMatchCasePatterns() {
       FormatterWorksFor(@"
 method test() {
+  match x {
+    case 1 => Bring(
+      [ 1
+      , 2]
+    );
+    case 2 => match x {
+      case 1 =>
+      case 2 =>
+    }
+  }
   var longName := match x {
     case 1 => Hello(
       arg1,
@@ -1970,12 +1983,6 @@ method test() {
       case 2 => c
     }
   };
-  match x {
-    case 1 => Bring(
-      [ 1
-      , 2]
-    );
-  }
 }
 ", reduceBlockiness: true);
       FormatterWorksFor(@"
@@ -2280,7 +2287,12 @@ method LRead() {
   f.val := () reads f
               reads f.val.reads()
               reads if o in f.val.reads() then {} else {o}
-           => true;
+    => true;
+  f.val := ()
+    reads f
+    reads f.val.reads()
+    reads if o in f.val.reads() then {} else {o}
+    => true;
 }
 
 function method Compose<A,B,C>(f: B ~> C, g:A ~> B): A ~> C

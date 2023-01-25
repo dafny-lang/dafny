@@ -170,6 +170,20 @@ namespace Microsoft.Dafny {
 
     protected IReadOnlyList<IToken> OwnedTokensCache;
 
+    // Nodes like DefaultClassDecl have children but no OwnedTokens as they are not "physical"
+    // Therefore, we have to find all the concrete children by unwrapping such nodes.
+    private IEnumerable<INode> GetConcreteChildren() {
+      foreach (var child in ConcreteChildren) {
+        if (child.StartToken != null && child.EndToken != null && child.StartToken.line != 0) {
+          yield return child;
+        } else {
+          foreach (var subNode in child.GetConcreteChildren()) {
+            yield return subNode;
+          }
+        }
+      }
+    }
+
     /// <summary>
     /// A token is owned by a node if it was used to parse this node,
     /// but is not owned by any of this Node's children
@@ -179,8 +193,8 @@ namespace Microsoft.Dafny {
         if (OwnedTokensCache != null) {
           return OwnedTokensCache;
         }
-        // TODO: No concrete child should have a StartToken with a line of 0
-        var childrenFiltered = ConcreteChildren.Where(child => child.StartToken != null && child.EndToken != null && child.StartToken.line != 0).ToList();
+
+        var childrenFiltered = GetConcreteChildren().ToList();
 
         // DEBUG: Detect duplicate children start tokens.
         for (var i = 0; i < childrenFiltered.Count - 1; i++) {

@@ -126,7 +126,7 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
         return SetIndentITE(indent, iteExpr);
       case NestedMatchExpr nestedMatchExpr:
         var i = unusedIndent;
-        return SetIndentCases(indent, expr.OwnedTokens.Concat(nestedMatchExpr.Cases.SelectMany(oneCase => oneCase.OwnedTokens)), () => {
+        return SetIndentCases(indent, expr.OwnedTokens.Concat(nestedMatchExpr.Cases.SelectMany(oneCase => oneCase.OwnedTokens)).OrderBy(token => token.pos), () => {
           foreach (var e in SubExpressions(expr)) {
             Visit(e, i);
           }
@@ -144,14 +144,8 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
       case SetDisplayExpr:
         return SetIndentParensExpression(indent, expr.OwnedTokens);
       case ApplySuffix applySuffix: {
-          int reindent;
-          if (ReduceBlockiness && applySuffix.StartToken.Prev.val is "=>" or ":=" or ":-" or ":|" && applySuffix.StartToken.Prev.line == applySuffix.StartToken.line) {
-            var offset = applySuffix.StartToken.Prev.line == applySuffix.StartToken.Prev.Prev.line ? -SpaceTab : 0;
-            reindent = Math.Max(GetIndentAfter(applySuffix.StartToken.Prev) + offset, 0);
-          } else {
-            reindent = GetNewTokenVisualIndent(applySuffix.StartToken, indent);
-          }
-
+          var reindent = ReduceBlockiness ? indent
+            : GetNewTokenVisualIndent(applySuffix.StartToken, indent);
           return SetIndentParensExpression(reindent, expr.OwnedTokens);
         }
       case StmtExpr stmtExpr: {
@@ -166,7 +160,7 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
     if (stmt == null) {
       return false;
     }
-    var firstToken = stmt.Tok;
+    var firstToken = stmt.StartToken;
     var indent = GetIndentBefore(firstToken);
     // Every function returns if traverse needs to occur (true) or if it already happened (false) 
     switch (stmt) {
@@ -179,7 +173,7 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
       case SkeletonStatement:
         return true;
       case AlternativeStmt alternativeStmt:
-        return SetIndentCases(indent, alternativeStmt.OwnedTokens.Concat(alternativeStmt.Alternatives.SelectMany(alternative => alternative.OwnedTokens)), () => {
+        return SetIndentCases(indent, alternativeStmt.OwnedTokens.Concat(alternativeStmt.Alternatives.SelectMany(alternative => alternative.OwnedTokens)).OrderBy(token => token.pos), () => {
           VisitAlternatives(alternativeStmt.Alternatives, indent);
         });
       case ForallStmt forallStmt: {
@@ -197,6 +191,10 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
         return SetIndentAlternativeLoopStmt(indent, alternativeLoopStmt);
       case ForLoopStmt forLoopStmt:
         return SetIndentForLoopStmt(forLoopStmt, indent);
+      case VarDeclPattern varDeclPattern: {
+          SetIndentVarDeclStmt(indent, varDeclPattern.OwnedTokens, false, true);
+          return true;
+        }
       case VarDeclStmt varDeclStmt: {
           var result = SetIndentVarDeclStmt(indent, varDeclStmt.OwnedTokens, false, false);
           if (varDeclStmt.Update != null) {
@@ -208,13 +206,13 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
       case ConcreteUpdateStatement concreteUpdateStatement: {
           return SetIndentUpdateStmt(concreteUpdateStatement, indent, false);
         }
-      case NestedMatchStmt:
+      case NestedMatchStmt nestedMatchStmt:
         var i = unusedIndent;
-        return SetIndentCases(indent, stmt.OwnedTokens, () => {
+        return SetIndentCases(indent, stmt.OwnedTokens.Concat(nestedMatchStmt.Cases.SelectMany(oneCase => oneCase.OwnedTokens)).OrderBy(token => token.pos), () => {
           foreach (var e in stmt.PreResolveSubExpressions) {
             Visit(e, i);
           }
-          foreach (var s in stmt.PreResolveSubStatements) {
+          foreach (var s in nestedMatchStmt.PreResolveSubStatements) {
             Visit(s, i);
           }
         });
@@ -802,7 +800,7 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
   }
 
   private void SetLiteralModuleDeclIndent(LiteralModuleDecl moduleDecl, int indent) {
-    var innerIndent = SetModuleDeclIndent(moduleDecl.OwnedTokens, indent);
+    var innerIndent = SetModuleDeclIndent(moduleDecl.ModuleDef.OwnedTokens, indent);
     foreach (var decl2 in moduleDecl.ModuleDef.TopLevelDecls) {
       SetDeclIndentation(decl2, innerIndent);
     }
@@ -985,7 +983,10 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
     if (noExtraIndent) {
       rightOfVerticalBarIndent = indent;
     }
-    foreach (var token in datatypeDecl.OwnedTokens) {
+
+    var ownedTokens = datatypeDecl.OwnedTokens.Concat(datatypeDecl.Ctors.SelectMany(ctor => ctor.OwnedTokens))
+      .OrderBy(token => token.pos);
+    foreach (var token in ownedTokens) {
       switch (token.val) {
         case "datatype": {
             SetOpeningIndentedRegion(token, indent);
@@ -1220,6 +1221,7 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
     var ownedTokens = stmt.OwnedTokens;
     var commaIndent = indent + SpaceTab;
     var innerIndent = indent + SpaceTab;
+    var afterSemicolonIndent = indent;
     foreach (var token in ownedTokens) {
       if (SetIndentLabelTokens(token, indent)) {
         continue;
@@ -1232,12 +1234,14 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
           } else {
             SetAlign(indent, token, out innerIndent, out commaIndent);
           }
+          afterSemicolonIndent = GetNewTokenVisualIndent(token, indent);
+
           break;
         case ",":
           SetIndentations(token, innerIndent, commaIndent, innerIndent);
           break;
         case ";":
-          SetClosingIndentedRegionInside(token, indent);
+          SetClosingIndentedRegionInside(token, afterSemicolonIndent);
           break;
       }
     }
@@ -1251,11 +1255,11 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
       stmt is AssignOrReturnStmt assignStmt && assignStmt.Lhss.Count == 0
         ? indent : indent + SpaceTab;
     var startToken = stmt.StartToken;
-    int startIndent = inner ? indent + SpaceTab : indent;
+    int startAssignmentIndent = inner ? indent + SpaceTab : indent;
     int afterStartIndent = indent + SpaceTab;
     var rightIndent = indent + SpaceTab;
     var commaIndent = indent + SpaceTab;
-    SetIndentations(startToken, startIndent, startIndent, afterStartIndent);
+    SetIndentations(startToken, startAssignmentIndent, startAssignmentIndent, afterStartIndent);
 
     var rhss = stmt is UpdateStmt updateStmt ? updateStmt.Rhss
       : stmt is AssignOrReturnStmt assignOrReturnStmt ?
@@ -1266,20 +1270,40 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
     // we can even further decrease the indent so that the last parenthesis
     // is aligned with the beginning of the declaration. 
     var singleRhs = rhss.Count == 1;
+    var firstRhsOneSingleLine = rhss.Count >= 1 && rhss[0].StartToken.line == rhss[0].EndToken.line;
+    var assignmentOperator = ownedTokens.Find(token => token.val == ":=" || token.val == ":-" || token.val == ":|");
+    if (assignmentOperator == null) {
+      rightIndent = startAssignmentIndent;
+    }
 
     void InferRightIndentFromRhs() {
-      if (rhss.Any()) {
-        var rhs = rhss[0];
-        rightIndent = GetNewTokenVisualIndent(rhs.RangeToken.StartToken, rightIndent);
-        if (rhs is TypeRhs or ExprRhs { Expr: ApplySuffix } && ReduceBlockiness) {
-          rightIndent = afterStartIndent;
-          commaIndent = rightIndent - SpaceTab;
-          if (singleRhs && (
-                rhs.StartToken.line == rhs.StartToken.Prev?.line
-                || stmt.Lhss.Count == 0)) {
-            rightIndent -= SpaceTab;
-          }
-        }
+      // TODO: Implement the simple rule:
+      // - No change of indentation if no assignment of operator present
+      // - RHS indentation is the same as the visual indentation of the StartToken of the update
+      //   (or the var keyword), if it's on the same line and ReduceBlockiness is true
+      // - RHS indentation is the one that aligns to the right of the update operator if it's on the same line if ReduceBlockiness is false
+      // - RHS indentation is indented of two compared to the StartToken if there is a newline after the update operator.
+      if (!rhss.Any()) {
+        return;
+      }
+
+      var rhs = rhss[0];
+      if (ReduceBlockiness) {
+        rightIndent = indent;
+        return;
+      }
+
+      rightIndent = GetNewTokenVisualIndent(rhs.RangeToken.StartToken, rightIndent);
+      if (rhs is not (TypeRhs or ExprRhs { Expr: ApplySuffix }) || !ReduceBlockiness) {
+        return;
+      }
+
+      rightIndent = afterStartIndent;
+      commaIndent = rightIndent - SpaceTab;
+      if (singleRhs && (
+            rhs.StartToken.line == rhs.StartToken.Prev?.line
+            || stmt.Lhss.Count == 0)) {
+        rightIndent -= SpaceTab;
       }
     }
 
@@ -1288,7 +1312,7 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
     }
 
     foreach (var token in ownedTokens) {
-      if (SetIndentLabelTokens(token, startIndent)) {
+      if (SetIndentLabelTokens(token, startAssignmentIndent)) {
         continue;
       }
       switch (token.val) {
@@ -1298,27 +1322,23 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
         case ":|":
         case ":-":
         case ":=": {
-            if (IsFollowedByNewline(token)) {
-              if (startToken == token && !inner) {
-                // True if it did not have a LHS
-                SetOpeningIndentedRegion(token, indent);
+            if (!IsFollowedByNewline(assignmentOperator)) {
+              if (ReduceBlockiness && !firstRhsOneSingleLine) {
+                if (rhss.Count == 1 && rhss[0] is not ExprRhs { Expr: LambdaExpr }) {
+                  rightIndent = indent;
+                  commaIndent = indent;
+                } else {
+                  rightIndent = indent + SpaceTab;
+                  commaIndent = indent = SpaceTab;
+                }
+                SetIndentations(assignmentOperator, afterStartIndent, opIndentDefault, rightIndent);
               } else {
-                SetDelimiterSpeciallyIndentedRegions(token, afterStartIndent, afterStartIndent);
+                SetAlign(opIndentDefault, assignmentOperator, out rightIndent, out commaIndent);
               }
             } else {
-              var opIndent = posToIndentLineBefore.ContainsKey(token.pos)
-                ? posToIndentLineBefore[token.pos]
-                : opIndentDefault;
-              /*if (ReduceBlockiness) {
-                commaIndent = indent + SpaceTab;
-                rightIndent = commaIndent;
-              } else {*/
-              SetAlign(opIndent, token, out rightIndent, out commaIndent);
-              //}
+              rightIndent = afterStartIndent;
+              SetIndentations(assignmentOperator, afterStartIndent, opIndentDefault, rightIndent);
             }
-
-            InferRightIndentFromRhs();
-
             break;
           }
 
@@ -1330,16 +1350,12 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
     }
 
     foreach (var rhs in rhss) {
-      if (rhs is ExprRhs { Expr: ApplySuffix x }) {
-        SetIndentParensExpression(rightIndent, x.OwnedTokens);
-        foreach (var node in x.PreResolveSubExpressions) {
-          Visit(node, rightIndent);
-        }
-      } else {
+      if (rhs.OwnedTokens.Any(token => token.val == "(")) {
         SetIndentParensExpression(rightIndent, rhs.OwnedTokens);
-        foreach (var node in rhs.PreResolveSubExpressions) {
-          Visit(node, rightIndent);
-        }
+      }
+
+      foreach (var node in rhs.PreResolveSubExpressions) {
+        Visit(node, rightIndent);
       }
     }
 
@@ -1521,7 +1537,7 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
             break;
           }
         case ")": {
-            SetIndentations(token, itemIndent, indent, itemIndent);
+            SetIndentations(token, itemIndent, indent, indent);
             break;
           }
         case ",": {
@@ -1582,7 +1598,10 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
             break;
           }
         case ":=": {
-            SetIndentations(token, itemIndent, itemIndent, itemIndent + SpaceTab);
+            SetIndentations(token, itemIndent, itemIndent,
+                IsFollowedByNewline(token) ?
+                itemIndent + SpaceTab : itemIndent);
+
             break;
           }
         case "]":
@@ -1681,15 +1700,15 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
           SetOpeningIndentedRegion(token, caseIndent);
           break;
         case "=>":
-          if (token.Next.val == "{" || token.Next.val == "(") {
-            // The block will already indent this
-            SetIndentations(token, caseIndent, caseIndent, caseIndent);
-          } else if (IsFollowedByNewline(token)) {
-            SetIndentations(token, afterArrowIndent, afterArrowIndent, afterArrowIndent);
+          if (!IsFollowedByNewline(token)) {
+            if (ReduceBlockiness) {
+              SetIndentations(token, afterArrowIndent, afterArrowIndent, caseIndent);
+            } else {
+              SetAlign(afterArrowIndent, token, out _, out _);
+            }
           } else {
-            SetAlign(afterArrowIndent, token, out _, out _);
+            SetIndentations(token, afterArrowIndent, afterArrowIndent, afterArrowIndent);
           }
-
           break;
         case ",": { // For decreases clauses
             SetIndentations(token, decreasesElemIndent, commaIndent, decreasesElemIndent);
@@ -2019,9 +2038,11 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
             case "<==>":
             case "!=": {
                 var selfIndent = IsFollowedByNewline(token) ? itemIndent : Math.Max(itemIndent - token.val.Length - 1, 0);
-                if (GetNewTokenVisualIndent(startToken.Prev, itemIndent) < selfIndent) {
-                  SetIndentations(token, itemIndent, selfIndent, itemIndent);
+                if (selfIndent <= GetNewTokenVisualIndent(startToken.Prev, itemIndent)) {
+                  // There could be a visual ambiguity if this token is aligned with the enclosing token.
+                  selfIndent = itemIndent;
                 }
+                SetIndentations(token, itemIndent, selfIndent, itemIndent);
 
                 break;
               }
