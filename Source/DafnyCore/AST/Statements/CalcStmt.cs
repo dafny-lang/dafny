@@ -101,9 +101,9 @@ public class CalcStmt : Statement, ICloneable<CalcStmt> {
     public override Expression StepExpr(Expression line0, Expression line1) {
       if (Op == BinaryExpr.Opcode.Exp) {
         // The order of operands is reversed so that it can be turned into implication during resolution
-        return new BinaryExpr(line0.tok, Op, line1, line0);
+        return new BinaryExpr(line0.RangeToken, Op, line1, line0);
       } else {
-        return new BinaryExpr(line0.tok, Op, line0, line1);
+        return new BinaryExpr(line0.RangeToken, Op, line0, line1);
       }
     }
 
@@ -135,7 +135,7 @@ public class CalcStmt : Statement, ICloneable<CalcStmt> {
       } else if (other is TernaryCalcOp) {
         var a = Index;
         var b = ((TernaryCalcOp)other).Index;
-        var minIndex = new ITEExpr(a.tok, false, new BinaryExpr(a.tok, BinaryExpr.Opcode.Le, a, b), a, b);
+        var minIndex = new ITEExpr(a.RangeToken, false, new BinaryExpr(a.RangeToken, BinaryExpr.Opcode.Le, a, b), a, b);
         return new TernaryCalcOp(minIndex); // ToDo: if we could compare expressions for syntactic equalty, we could use this here to optimize
       } else {
         Contract.Assert(false);
@@ -144,7 +144,7 @@ public class CalcStmt : Statement, ICloneable<CalcStmt> {
     }
 
     public override Expression StepExpr(Expression line0, Expression line1) {
-      return new TernaryExpr(line0.tok, TernaryExpr.Opcode.PrefixEqOp, Index, line0, line1);
+      return new TernaryExpr(line0.RangeToken, TernaryExpr.Opcode.PrefixEqOp, Index, line0, line1);
     }
 
     public override string ToString() {

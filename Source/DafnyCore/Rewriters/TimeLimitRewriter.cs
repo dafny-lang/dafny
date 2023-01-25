@@ -38,7 +38,7 @@ public class TimeLimitRewriter : IRewriter {
                         current_limit = DafnyOptions.O.TimeLimit > 0 ? DafnyOptions.O.TimeLimit : 10;  // Default to 10 seconds
                         name = "timeLimit";
                       }
-                      Expression newArg = new LiteralExpr(attr.Args[0].tok, value * current_limit);
+                      Expression newArg = new LiteralExpr(attr.Args[0].RangeToken, value * current_limit);
                       member.Attributes = new Attributes("_" + name, new List<Expression>() { newArg }, attrs);
                       if (Attributes.Contains(attrs, name)) {
                         Reporter.Warning(MessageSource.Rewriter, member.tok, "timeLimitMultiplier annotation overrides " + name + " annotation");

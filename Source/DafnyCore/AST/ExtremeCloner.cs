@@ -59,7 +59,7 @@ abstract class ExtremeCloner : Cloner {
     foreach (var binding in e.Bindings.ArgumentBindings) {
       args.Add(CloneActualBinding(binding));
     }
-    var fexp = new FunctionCallExpr(Tok(e.tok), e.Name + "#", receiver, e.OpenParen, e.CloseParen, args, e.AtLabel);
+    var fexp = new FunctionCallExpr(Tok(e.RangeToken), e.Name + "#", receiver, e.OpenParen, e.CloseParen, args, e.AtLabel);
     reporter.Info(MessageSource.Cloner, e.tok, e.Name + suffix);
     return fexp;
   }

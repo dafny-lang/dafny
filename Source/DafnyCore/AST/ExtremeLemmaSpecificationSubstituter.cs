@@ -53,7 +53,7 @@ class ExtremeLemmaSpecificationSubstituter : ExtremeCloner {
         var op = e.ResolvedOp == BinaryExpr.ResolvedOpcode.EqCommon ? TernaryExpr.Opcode.PrefixEqOp : TernaryExpr.Opcode.PrefixNeqOp;
         var A = CloneExpr(e.E0);
         var B = CloneExpr(e.E1);
-        var teq = new TernaryExpr(Tok(e.tok), op, k, A, B);
+        var teq = new TernaryExpr(Tok(e.RangeToken), op, k, A, B);
         var opString = op == TernaryExpr.Opcode.PrefixEqOp ? "==" : "!=";
         reporter.Info(MessageSource.Cloner, e.tok, opString + suffix);
         return teq;

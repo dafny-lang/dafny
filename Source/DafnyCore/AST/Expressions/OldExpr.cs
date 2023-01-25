@@ -15,7 +15,7 @@ public class OldExpr : Expression, ICloneable<OldExpr> {
   }
 
   public OldExpr Clone(Cloner cloner) {
-    var result = new OldExpr(cloner.Tok(tok), cloner.CloneExpr(E), At);
+    var result = new OldExpr(cloner.Tok(RangeToken), cloner.CloneExpr(E), At);
     if (cloner.CloneResolvedFields) {
       result.AtLabel = AtLabel;
       result.Useless = Useless;

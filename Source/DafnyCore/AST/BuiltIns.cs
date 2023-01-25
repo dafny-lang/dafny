@@ -7,7 +7,7 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny;
 
 public class BuiltIns {
-  public readonly ModuleDefinition SystemModule = new ModuleDefinition(Token.NoToken, "_System", new List<IToken>(), false, false, null, null, null, true, true, true);
+  public readonly ModuleDefinition SystemModule = new ModuleDefinition(RangeToken.NoToken, "_System", new List<IToken>(), false, false, null, null, null, true, true, true);
   readonly Dictionary<int, ClassDecl> arrayTypeDecls = new Dictionary<int, ClassDecl>();
   public readonly Dictionary<int, ArrowTypeDecl> ArrowTypeDecls = new Dictionary<int, ArrowTypeDecl>();
   public readonly Dictionary<int, SubsetTypeDecl> PartialArrowTypeDecls = new Dictionary<int, SubsetTypeDecl>();  // same keys as arrowTypeDecl
@@ -35,7 +35,7 @@ public class BuiltIns {
     SystemModule.TopLevelDecls.Add(str);
     // create subset type 'nat'
     var bvNat = new BoundVar(RangeToken.NoToken, "x", Type.Int);
-    var natConstraint = Expression.CreateAtMost(Expression.CreateIntLiteral(Token.NoToken, 0), Expression.CreateIdentExpr(bvNat));
+    var natConstraint = Expression.CreateAtMost(Expression.CreateIntLiteral(RangeToken.NoToken, 0), Expression.CreateIdentExpr(bvNat));
     var ax = AxiomAttribute();
     NatDecl = new SubsetTypeDecl(RangeToken.NoToken, "nat",
       new TypeParameter.TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, Type.AutoInitInfo.CompilableValue, false),
@@ -53,7 +53,7 @@ public class BuiltIns {
   }
 
   private Attributes DontCompile() {
-    var flse = Expression.CreateBoolLiteral(Token.NoToken, false);
+    var flse = Expression.CreateBoolLiteral(RangeToken.NoToken, false);
     return new Attributes("compile", new List<Expression>() { flse }, null);
   }
 
@@ -80,7 +80,7 @@ public class BuiltIns {
       ArrayClassDecl arrayClass = new ArrayClassDecl(dims, SystemModule, DontCompile());
       for (int d = 0; d < dims; d++) {
         string name = dims == 1 ? "Length" : "Length" + d;
-        Field len = new SpecialField(Token.NoToken, name, SpecialField.ID.ArrayLength, dims == 1 ? null : (object)d, false, false, false, Type.Int, null);
+        Field len = new SpecialField(RangeToken.NoToken, name, SpecialField.ID.ArrayLength, dims == 1 ? null : (object)d, false, false, false, Type.Int, null);
         len.EnclosingClass = arrayClass;  // resolve here
         arrayClass.Members.Add(len);
       }

@@ -639,7 +639,7 @@ namespace Microsoft.Dafny.Compilers {
       bool needsCastAfterArithmetic;
       GetNativeInfo(nt.NativeType.Sel, out nt_name, out literalSuffice, out needsCastAfterArithmetic);
       var wDefault = w.NewBlock(string.Format("static {0} get_Default()", nt_name));
-      var udt = new UserDefinedType(nt.tok, nt.Name, nt, new List<Type>());
+      var udt = new UserDefinedType(nt.RangeToken, nt.Name, nt, new List<Type>());
       var d = TypeInitializationValue(udt, wr, nt.tok, false, false);
       wDefault.WriteLine("return {0};", d);
 
@@ -671,7 +671,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       var wDefault = w.NewBlock(String.Format("static {0}{1} get_Default()", IdName(sst), InstantiateTemplate(sst.TypeArgs)));
-      var udt = new UserDefinedType(sst.tok, sst.Name, sst,
+      var udt = new UserDefinedType(sst.RangeToken, sst.Name, sst,
         sst.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp)));
       var d = TypeInitializationValue(udt, wr, sst.tok, false, false);
       wDefault.WriteLine("return {0};", d);

@@ -2754,7 +2754,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public static void RecursiveCallParameters(IToken tok, MemberDecl member, List<TypeParameter> typeParams, List<Formal> ins,
+    public static void RecursiveCallParameters(RangeToken tok, MemberDecl member, List<TypeParameter> typeParams, List<Formal> ins,
       Expression receiverSubst, Dictionary<IVariable, Expression> substMap,
       out Expression receiver, out List<Expression> arguments) {
       Contract.Requires(tok != null);
@@ -3351,11 +3351,7 @@ namespace Microsoft.Dafny {
     }
 
     internal IToken GetToken(Node node) {
-      return flags.ReportRanges ? node.RangeToken.ToToken() : node switch {
-        TokenNode tokenNode => tokenNode.Tok,
-        RangeNode rangeToken => rangeToken.StartToken,
-        _ => throw new cce.UnreachableException()
-      };
+      return flags.ReportRanges ? node.RangeToken.ToToken() : node.Tok;
     }
 
     void CheckDefiniteAssignment(IdentifierExpr expr, BoogieStmtListBuilder builder) {
@@ -6349,9 +6345,9 @@ namespace Microsoft.Dafny {
               ==> $Box($Unbox(bx): DatatypeType) == bx
                && $Is($Unbox(bx): DatatypeType, List(T)));
       */
-      if (!ModeledAsBoxType(UserDefinedType.FromTopLevelDecl(td.tok, td))) {
+      if (!ModeledAsBoxType(UserDefinedType.FromTopLevelDecl(td.RangeToken, td))) {
         var args = MkTyParamBinders(td.TypeArgs, out var argExprs);
-        var ty_repr = TrType(UserDefinedType.FromTopLevelDecl(td.tok, td));
+        var ty_repr = TrType(UserDefinedType.FromTopLevelDecl(td.RangeToken, td));
         var typeTerm = FunctionCall(tok, name, predef.Ty, argExprs);
         AddBoxUnboxAxiom(tok, name, typeTerm, ty_repr, args);
       }
@@ -7392,10 +7388,10 @@ namespace Microsoft.Dafny {
       var var4var = new Dictionary<BoundVar, BoundVar>();
       var bvars = new List<BoundVar>();
       foreach (var bv in exists.BoundVars) {
-        var newBv = new BoundVar(bv.tok, prefix + bv.Name, bv.Type);
+        var newBv = new BoundVar(bv.RangeToken, prefix + bv.Name, bv.Type);
         bvars.Add(newBv);
         var4var.Add(bv, newBv);
-        var ie = new IdentifierExpr(newBv.tok, newBv.Name);
+        var ie = new IdentifierExpr(newBv.RangeToken, newBv.Name);
         ie.Var = newBv;  // resolve here
         ie.Type = newBv.Type;  // resolve here
         substMap.Add(bv, ie);
@@ -7404,7 +7400,7 @@ namespace Microsoft.Dafny {
       var range = exists.Range == null ? null : s.Substitute(exists.Range);
       var term = s.Substitute(exists.Term);
       var attrs = s.SubstAttributes(exists.Attributes);
-      var ex = new ExistsExpr(exists.tok, exists.RangeToken, bvars, range, term, attrs);
+      var ex = new ExistsExpr(exists.RangeToken, exists.RangeToken, bvars, range, term, attrs);
       ex.Type = Type.Bool;
       ex.Bounds = s.SubstituteBoundedPoolList(exists.Bounds);
       return ex;
@@ -7417,7 +7413,7 @@ namespace Microsoft.Dafny {
     ///   assume YieldRequires;
     ///   $_OldIterHeap := Heap;
     /// </summary>
-    void YieldHavoc(IToken tok, IteratorDecl iter, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
+    void YieldHavoc(RangeToken tok, IteratorDecl iter, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
       Contract.Requires(tok != null);
       Contract.Requires(iter != null);
       Contract.Requires(builder != null);

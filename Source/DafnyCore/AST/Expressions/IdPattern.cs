@@ -107,9 +107,9 @@ public class IdPattern : ExtendedPattern, IHasUsages {
     ResolutionContext resolutionContext) {
     if (Arguments == null && Type is not InferredTypeProxy) {
       var freshName = resolver.FreshTempVarName(Id, resolutionContext.CodeContext);
-      var boundVar = new BoundVar(RangeToken.StartToken, Id, Type);
+      var boundVar = new BoundVar(RangeToken, Id, Type);
       boundVar.IsGhost = IsGhost;
-      yield return (boundVar, new IdentifierExpr(RangeToken.StartToken, freshName));
+      yield return (boundVar, new IdentifierExpr(RangeToken, freshName));
       Id = freshName;
       Type = new InferredTypeProxy();
     }
@@ -143,10 +143,10 @@ public class IdPattern : ExtendedPattern, IHasUsages {
       // Wildcard, ignore
       return;
     } else {
-      NameSegment e = new NameSegment(RangeToken.StartToken, this.Id, null);
+      NameSegment e = new NameSegment(RangeToken, this.Id, null);
       resolver.ResolveNameSegment(e, true, null, resolutionContext, false, false);
       if (e.ResolvedExpression == null) {
-        resolver.ScopePushAndReport(resolver.scope, new BoundVar(RangeToken.StartToken, this.Id, type), "parameter");
+        resolver.ScopePushAndReport(resolver.scope, new BoundVar(RangeToken, this.Id, type), "parameter");
       } else {
         // finds in full scope, not just current scope
         if (e.Resolved is MemberSelectExpr mse) {
@@ -163,7 +163,7 @@ public class IdPattern : ExtendedPattern, IHasUsages {
               }
             } else {
               resolver.reporter.Error(MessageSource.Resolver, RangeToken, "{0} is not initialized as a constant literal", this.Id);
-              resolver.ScopePushAndReport(resolver.scope, new BoundVar(RangeToken.StartToken, this.Id, type), "parameter");
+              resolver.ScopePushAndReport(resolver.scope, new BoundVar(RangeToken, this.Id, type), "parameter");
             }
           } else {
             // Not a static const, so just a variable

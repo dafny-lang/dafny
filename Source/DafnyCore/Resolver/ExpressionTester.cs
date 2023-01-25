@@ -303,7 +303,7 @@ public class ExpressionTester {
     // then the mapping from B<T> to A<U> is unique, which means the mapping frmo B<Y> to A<X> is unique, which means we can check if an
     // A<X> value is a B<Y> value by checking if the value is of type B<...>.
     var B = ((UserDefinedType)tte.ToType.NormalizeExpandKeepConstraints()).ResolvedClass; // important to keep constraints here, so no type parameters are lost
-    var B_T = UserDefinedType.FromTopLevelDecl(tte.tok, B);
+    var B_T = UserDefinedType.FromTopLevelDecl(tte.RangeToken, B);
     var tps = new HashSet<TypeParameter>(); // There are going to be the type parameters of fromType (that is, T in the discussion above)
     if (fromType.TypeArgs.Count != 0) {
       // we need this "if" statement, because if "fromType" is "object" or "object?", then it isn't a UserDefinedType

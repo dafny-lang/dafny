@@ -235,7 +235,7 @@ public abstract class Expression : RangeNode {
 
   private static Expression CastIfNeeded(Expression expr, Type toType) {
     if (!expr.Type.Equals(toType)) {
-      var cast = new ConversionExpr(expr.tok, expr, toType);
+      var cast = new ConversionExpr(expr.RangeToken, expr, toType);
       cast.Type = toType;
       return cast;
     } else {
@@ -276,7 +276,7 @@ public abstract class Expression : RangeNode {
     if (LiteralExpr.IsEmptySet(e0) || LiteralExpr.IsEmptySet(e1)) {
       return e0;
     }
-    var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Sub, e0, e1) {
+    var s = new BinaryExpr(e0.RangeToken, BinaryExpr.Opcode.Sub, e0, e1) {
       ResolvedOp = BinaryExpr.ResolvedOpcode.SetDifference,
       Type = e0.Type.NormalizeExpand() // important to remove any constraints
     };
@@ -330,7 +330,7 @@ public abstract class Expression : RangeNode {
     if (n == 0) {
       return e;
     }
-    var nn = CreateIntLiteral(e.tok, n);
+    var nn = CreateIntLiteral(e.RangeToken, n);
     return CreateAdd(e, nn);
   }
 
@@ -345,14 +345,14 @@ public abstract class Expression : RangeNode {
     if (n == 0) {
       return e;
     }
-    var nn = CreateIntLiteral(e.tok, n);
+    var nn = CreateIntLiteral(e.RangeToken, n);
     return CreateSubtract(e, nn);
   }
 
   /// <summary>
   /// Create a resolved expression of the form "n"
   /// </summary>
-  public static Expression CreateIntLiteral(IToken tok, int n) {
+  public static Expression CreateIntLiteral(RangeToken tok, int n) {
     Contract.Requires(tok != null);
     Contract.Requires(n != int.MinValue);
     if (0 <= n) {
@@ -367,7 +367,7 @@ public abstract class Expression : RangeNode {
   /// <summary>
   /// Create a resolved expression of the form "x"
   /// </summary>
-  public static Expression CreateRealLiteral(IToken tok, BaseTypes.BigDec x) {
+  public static Expression CreateRealLiteral(RangeToken tok, BaseTypes.BigDec x) {
     Contract.Requires(tok != null);
     var nn = new LiteralExpr(tok, x);
     nn.Type = Type.Real;
@@ -377,7 +377,7 @@ public abstract class Expression : RangeNode {
   /// <summary>
   /// Create a resolved expression of the form "n", for either type "int" or type "ORDINAL".
   /// </summary>
-  public static Expression CreateNatLiteral(IToken tok, int n, Type ty) {
+  public static Expression CreateNatLiteral(RangeToken tok, int n, Type ty) {
     Contract.Requires(tok != null);
     Contract.Requires(0 <= n);
     Contract.Requires(ty.IsNumericBased(Type.NumericPersuasion.Int) || ty is BigOrdinalType);
@@ -389,7 +389,7 @@ public abstract class Expression : RangeNode {
   /// <summary>
   /// Create a resolved expression for a bool b
   /// </summary>
-  public static LiteralExpr CreateBoolLiteral(IToken tok, bool b) {
+  public static LiteralExpr CreateBoolLiteral(RangeToken tok, bool b) {
     Contract.Requires(tok != null);
     var lit = new LiteralExpr(tok, b);
     lit.Type = Type.Bool;  // resolve here
@@ -399,7 +399,7 @@ public abstract class Expression : RangeNode {
   /// <summary>
   /// Create a resolved expression for a string s
   /// </summary>
-  public static LiteralExpr CreateStringLiteral(IToken tok, string s) {
+  public static LiteralExpr CreateStringLiteral(RangeToken tok, string s) {
     Contract.Requires(tok != null);
     Contract.Requires(s != null);
     var lit = new StringLiteralExpr(tok, s, true);
@@ -457,7 +457,7 @@ public abstract class Expression : RangeNode {
   /// <summary>
   /// Create a resolved ParensExpression around a given resolved expression "e".
   /// </summary>
-  public static Expression CreateParensExpression(IToken tok, Expression e) {
+  public static Expression CreateParensExpression(RangeToken tok, Expression e) {
     return new ParensExpression(tok, e) { Type = e.Type, ResolvedExpression = e };
   }
 
@@ -532,7 +532,7 @@ public abstract class Expression : RangeNode {
       (e0.Type.IsCharType && e1.Type.IsCharType) ||
       (e0.Type.IsBigOrdinalType && e1.Type.IsBigOrdinalType));
     Contract.Ensures(Contract.Result<Expression>() != null);
-    return new BinaryExpr(e0.tok, BinaryExpr.Opcode.Lt, e0, e1) {
+    return new BinaryExpr(e0.RangeToken, BinaryExpr.Opcode.Lt, e0, e1) {
       ResolvedOp = e0.Type.IsCharType ? BinaryExpr.ResolvedOpcode.LtChar : BinaryExpr.ResolvedOpcode.Lt,
       Type = Type.Bool
     };
@@ -552,7 +552,7 @@ public abstract class Expression : RangeNode {
       (e0.Type.IsCharType && e1.Type.IsCharType) ||
       (e0.Type.IsBigOrdinalType && e1.Type.IsBigOrdinalType));
     Contract.Ensures(Contract.Result<Expression>() != null);
-    return new BinaryExpr(e0.tok, BinaryExpr.Opcode.Le, e0, e1) {
+    return new BinaryExpr(e0.RangeToken, BinaryExpr.Opcode.Le, e0, e1) {
       ResolvedOp = e0.Type.IsCharType ? BinaryExpr.ResolvedOpcode.LeChar : BinaryExpr.ResolvedOpcode.Le,
       Type = Type.Bool
     };
@@ -562,7 +562,7 @@ public abstract class Expression : RangeNode {
     Contract.Requires(e0 != null);
     Contract.Requires(e1 != null);
     Contract.Requires(ty != null);
-    var eq = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Eq, e0, e1);
+    var eq = new BinaryExpr(e0.RangeToken, BinaryExpr.Opcode.Eq, e0, e1);
     if (ty is SetType) {
       eq.ResolvedOp = BinaryExpr.ResolvedOpcode.SetEq;
     } else if (ty is SeqType) {
@@ -591,7 +591,7 @@ public abstract class Expression : RangeNode {
     } else if (allowSimplification && LiteralExpr.IsTrue(b)) {
       return a;
     } else {
-      var and = new BinaryExpr(a.tok, BinaryExpr.Opcode.And, a, b);
+      var and = new BinaryExpr(a.RangeToken, BinaryExpr.Opcode.And, a, b);
       and.ResolvedOp = BinaryExpr.ResolvedOpcode.And;  // resolve here
       and.Type = Type.Bool;  // resolve here
       return and;
@@ -609,7 +609,7 @@ public abstract class Expression : RangeNode {
     if (allowSimplification && (LiteralExpr.IsTrue(a) || LiteralExpr.IsTrue(b))) {
       return b;
     } else {
-      var imp = new BinaryExpr(a.tok, BinaryExpr.Opcode.Imp, a, b);
+      var imp = new BinaryExpr(a.RangeToken, BinaryExpr.Opcode.Imp, a, b);
       imp.ResolvedOp = BinaryExpr.ResolvedOpcode.Imp;  // resolve here
       imp.Type = Type.Bool;  // resolve here
       return imp;
@@ -629,7 +629,7 @@ public abstract class Expression : RangeNode {
     } else if (allowSimplification && LiteralExpr.IsTrue(b)) {
       return b;
     } else {
-      var or = new BinaryExpr(a.tok, BinaryExpr.Opcode.Or, a, b);
+      var or = new BinaryExpr(a.RangeToken, BinaryExpr.Opcode.Or, a, b);
       or.ResolvedOp = BinaryExpr.ResolvedOpcode.Or;  // resolve here
       or.Type = Type.Bool;  // resolve here
       return or;
@@ -645,7 +645,7 @@ public abstract class Expression : RangeNode {
     Contract.Requires(e1 != null);
     Contract.Requires(test.Type.IsBoolType && e0.Type.Equals(e1.Type));
     Contract.Ensures(Contract.Result<Expression>() != null);
-    var ite = new ITEExpr(test.tok, false, test, e0, e1);
+    var ite = new ITEExpr(test.RangeToken, false, test, e0, e1);
     ite.Type = e0.type;  // resolve here
     return ite;
   }
@@ -662,7 +662,7 @@ public abstract class Expression : RangeNode {
     var newVars = old_case.Arguments.ConvertAll(bv => cloner.CloneBoundVar(bv, false));
     new_body = VarSubstituter(old_case.Arguments.ConvertAll<NonglobalVariable>(x => (NonglobalVariable)x), newVars, new_body);
 
-    var new_case = new MatchCaseExpr(old_case.tok, old_case.Ctor, old_case.FromBoundVar, newVars, new_body, old_case.Attributes);
+    var new_case = new MatchCaseExpr(old_case.RangeToken, old_case.Ctor, old_case.FromBoundVar, newVars, new_body, old_case.Attributes);
 
     new_case.Ctor = old_case.Ctor; // resolve here
     return new_case;
@@ -671,7 +671,7 @@ public abstract class Expression : RangeNode {
   /// <summary>
   /// Create a match expression with a resolved type
   /// </summary>
-  public static Expression CreateMatch(IToken tok, Expression src, List<MatchCaseExpr> cases, Type type) {
+  public static Expression CreateMatch(RangeToken tok, Expression src, List<MatchCaseExpr> cases, Type type) {
     MatchExpr e = new MatchExpr(tok, src, cases, false);
     e.Type = type;  // resolve here
 
@@ -681,7 +681,7 @@ public abstract class Expression : RangeNode {
   /// <summary>
   /// Create a let expression with a resolved type and fresh variables
   /// </summary>
-  public static Expression CreateLet(IToken tok, List<CasePattern<BoundVar>> LHSs, List<Expression> RHSs, Expression body, bool exact) {
+  public static Expression CreateLet(RangeToken tok, List<CasePattern<BoundVar>> LHSs, List<Expression> RHSs, Expression body, bool exact) {
     Contract.Requires(tok != null);
     Contract.Requires(LHSs != null && RHSs != null);
     Contract.Requires(LHSs.Count == RHSs.Count);
@@ -719,9 +719,9 @@ public abstract class Expression : RangeNode {
 
     QuantifierExpr q;
     if (forall) {
-      q = new ForallExpr(expr.tok, expr.RangeToken, newVars, expr.Range, body, expr.Attributes);
+      q = new ForallExpr(expr.RangeToken, newVars, expr.Range, body, expr.Attributes);
     } else {
-      q = new ExistsExpr(expr.tok, expr.RangeToken, newVars, expr.Range, body, expr.Attributes);
+      q = new ExistsExpr(expr.RangeToken, newVars, expr.Range, body, expr.Attributes);
     }
     q.Type = Type.Bool;
 
@@ -733,7 +733,7 @@ public abstract class Expression : RangeNode {
   /// </summary>
   public static Expression CreateIdentExpr(IVariable v) {
     Contract.Requires(v != null);
-    var e = new IdentifierExpr(v.RangeToken.StartToken, v.Name);
+    var e = new IdentifierExpr(v.RangeToken, v.Name);
     e.Var = v;  // resolve here
     e.type = v.Type;  // resolve here
     return e;
@@ -749,7 +749,7 @@ public abstract class Expression : RangeNode {
     }
 
     for (int i = 0; i < oldVars.Count; i++) {
-      var id = new IdentifierExpr(newVars[i].tok, newVars[i].Name);
+      var id = new IdentifierExpr(newVars[i].RangeToken, newVars[i].Name);
       id.Var = newVars[i];    // Resolve here manually
       id.Type = newVars[i].Type;  // Resolve here manually
       substMap.Add(oldVars[i], id);
@@ -959,7 +959,7 @@ public class ThisExpr : Expression {
     Contract.Requires(m.tok != null);
     Contract.Requires(m.EnclosingClass != null);
     Contract.Requires(!m.IsStatic);
-    Type = Resolver.GetReceiverType(m.tok, m);
+    Type = Resolver.GetReceiverType(m.RangeToken, m);
   }
 
   /// <summary>
@@ -1145,6 +1145,7 @@ class Resolver_IdentifierExpr : Expression, IHasUsages {
     {
     }
   }
+  
   public class ResolverType_Type : ResolverType {
     [Pure]
     public override string TypeName(ModuleDefinition context, bool parseAble) {
@@ -1171,7 +1172,7 @@ class Resolver_IdentifierExpr : Expression, IHasUsages {
     Contract.Requires(typeArgs != null && typeArgs.Count == decl.TypeArgs.Count);
     Decl = decl;
     TypeArgs = typeArgs;
-    Type = decl is ModuleDecl ? (Type)new ResolverType_Module() : new ResolverType_Type();
+    Type = decl is ModuleDecl ? (Type)new ResolverType_Module(rangeToken) : new ResolverType_Type(rangeToken);
   }
   public Resolver_IdentifierExpr(RangeToken rangeToken, TypeParameter tp)
     : this(rangeToken, tp, new List<Type>()) {
@@ -1601,6 +1602,10 @@ public abstract class UnaryExpr : Expression {
     this.E = e;
   }
 
+  public UnaryExpr(Cloner cloner, UnaryExpr original) : base(cloner, original) {
+    E = cloner.CloneExpr(original.E);
+  }
+
   public override IEnumerable<Expression> SubExpressions {
     get { yield return E; }
   }
@@ -1661,6 +1666,10 @@ public class UnaryOpExpr : UnaryExpr {
     this.Op = op;
   }
 
+  public UnaryOpExpr(Cloner cloner, UnaryOpExpr original) : base(cloner, original) {
+    Op = original.Op;
+  }
+
   public override bool IsImplicit => Op == Opcode.Lit;
 }
 
@@ -1675,13 +1684,14 @@ public class FreshExpr : UnaryOpExpr, ICloneable<FreshExpr> {
     this.At = at;
   }
 
-  public FreshExpr Clone(Cloner cloner) {
-    var result = new FreshExpr(cloner.Tok(RangeToken), cloner.CloneExpr(E), At);
+  public FreshExpr(Cloner cloner, FreshExpr original) : base(cloner, original) {
+    At = original.At;
     if (cloner.CloneResolvedFields) {
-      result.AtLabel = AtLabel;
+      AtLabel = original.AtLabel;
     }
-    return result;
   }
+
+  public FreshExpr Clone(Cloner cloner) { return new FreshExpr(cloner, this); }
 }
 
 public abstract class TypeUnaryExpr : UnaryExpr {
@@ -1706,7 +1716,7 @@ public abstract class TypeUnaryExpr : UnaryExpr {
 
 public class ConversionExpr : TypeUnaryExpr {
   public readonly string messagePrefix;
-  public ConversionExpr(IToken tok, Expression expr, Type toType, string messagePrefix = "")
+  public ConversionExpr(RangeToken tok, Expression expr, Type toType, string messagePrefix = "")
     : base(tok, expr, toType) {
     Contract.Requires(tok != null);
     Contract.Requires(expr != null);
@@ -1716,7 +1726,7 @@ public class ConversionExpr : TypeUnaryExpr {
 }
 
 public class TypeTestExpr : TypeUnaryExpr {
-  public TypeTestExpr(IToken tok, Expression expr, Type toType)
+  public TypeTestExpr(RangeToken tok, Expression expr, Type toType)
     : base(tok, expr, toType) {
     Contract.Requires(tok != null);
     Contract.Requires(expr != null);
@@ -2468,7 +2478,7 @@ public class ITEExpr : Expression {
 /// which it is; in this case, Var is non-null, because this is the only place where Var.IsGhost
 /// is recorded by the parser.
 /// </summary>
-public class CasePattern<VT> : TokenNode
+public class CasePattern<VT> : RangeNode
   where VT : class, IVariable {
   public readonly string Id;
   // After successful resolution, exactly one of the following two fields is non-null.
@@ -2484,8 +2494,7 @@ public class CasePattern<VT> : TokenNode
     this.Arguments = new List<CasePattern<VT>>();
   }
 
-  public CasePattern(Cloner cloner, CasePattern<VT> original) {
-    tok = cloner.Tok(original.tok);
+  public CasePattern(Cloner cloner, CasePattern<VT> original) : base(cloner, original) {
     Id = original.Id;
     if (original.Var != null) {
       Var = cloner.CloneIVariable(original.Var, false);
@@ -2501,18 +2510,16 @@ public class CasePattern<VT> : TokenNode
     }
   }
 
-  public CasePattern(IToken tok, string id, [Captured] List<CasePattern<VT>> arguments) {
+  public CasePattern(RangeToken range, string id, [Captured] List<CasePattern<VT>> arguments) : base(range) {
     Contract.Requires(tok != null);
     Contract.Requires(id != null);
-    this.tok = tok;
     Id = id;
     Arguments = arguments;
   }
 
-  public CasePattern(IToken tok, VT bv) {
+  public CasePattern(RangeToken range, VT bv) : base(range) {
     Contract.Requires(tok != null);
     Contract.Requires(bv != null);
-    this.tok = tok;
     Id = bv.Name;
     Var = bv;
   }
@@ -2647,7 +2654,7 @@ public class AttributedExpression : TokenNode, IAttributeBearingDeclaration {
     E = e;
     Label = label;
     Attributes = attrs;
-    this.Tok = e.RangeToken.StartToken;
+    this.tok = e.Tok;
   }
 
   // public void AddCustomizedErrorMessage(IToken tok, string s) {
@@ -2843,9 +2850,9 @@ public class AutoGeneratedExpression : ParensExpression, ICloneable<AutoGenerate
   /// This maker method takes a resolved expression "e" and wraps a resolved AutoGeneratedExpression
   /// around it.
   /// </summary>
-  public static AutoGeneratedExpression Create(Expression e, IToken token = null) {
+  public static AutoGeneratedExpression Create(Expression e, RangeToken token = null) {
     Contract.Requires(e != null);
-    var a = new AutoGeneratedExpression(token ?? e.tok, e);
+    var a = new AutoGeneratedExpression(token ?? e.RangeToken, e);
     a.type = e.Type;
     a.ResolvedExpression = e;
     return a;

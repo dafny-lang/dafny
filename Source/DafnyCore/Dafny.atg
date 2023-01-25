@@ -1814,7 +1814,6 @@ IteratorDecl<DeclModifierData dmod, ModuleDefinition module, out IteratorDecl/*!
                              req, ens, yieldReq, yieldEns,
                              body, attrs, signatureEllipsis);
      iter.BodyStartTok = bodyStart;
-     // iter.BodyEndTok = bodyEnd;
      iter.RangeToken = new RangeToken(dmod.FirstToken, t);
  .)
   .
@@ -2003,7 +2002,6 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
                       req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
      }
      m.BodyStartTok = bodyStart;
-     // m.BodyEndTok = bodyEnd;
      m.RangeToken = new RangeToken(dmod.FirstToken, t);
      m.TokenWithTrailingDocString = tokenWithTrailingDocString;
  .)
@@ -2680,7 +2678,6 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
                         attrs, signatureEllipsis);
      }
      f.BodyStartTok = bodyStart;
-     // f.BodyEndTok = bodyEnd;
      f.RangeToken = new RangeToken(dmod.FirstToken, t);
      f.TokenWithTrailingDocString = tokenWithTrailingDocString;
      theBuiltIns.CreateArrowTypeDecl(formals.Count);
@@ -2874,6 +2871,7 @@ LabeledStmt<out Statement s>
   LabelName<out id> ":" (. colonToken = t; .)
   OneStmt<out s>
   (. s.Labels = new LList<Label>(new Label(id, id.val), s.Labels);
+     s.PostLabelToken = s.StartToken;
      s.RangeToken = new RangeToken(labelToken, t);
   .)
   .
@@ -3788,7 +3786,7 @@ CalcStmt<out Statement s>
 
     /* now for the hint, which we build up as a possibly empty sequence of statements placed into one BlockStmt */
     (. var subhints = new List<Statement>();
-       IToken hintStart = la;  IToken hintEnd = hintStart;
+       IToken hintStart = la;  IToken hintEnd = hintStart.Prev;
        IToken t0, t1;
        BlockStmt subBlock; Statement subCalc;
     .)
@@ -3799,7 +3797,7 @@ CalcStmt<out Statement s>
       | CalcStmt<out subCalc>                     (. hintEnd = subCalc.EndToken; subhints.Add(subCalc); .)
       )
     }
-    (. var h = new BlockStmt(hintEnd == null ? new RangeToken(hintStart, hintStart) : new RangeToken(hintStart, hintEnd), subhints); // if the hint is empty, hintStart is the first token of the next line, but it doesn't matter because the block statement is just used as a container
+    (. var h = new BlockStmt(new RangeToken(hintStart, hintEnd), subhints); // if the hint is empty, hintStart is the first token of the next line, but it doesn't matter because the block statement is just used as a container
        hints.Add(h);
        if (h.Body.Count != 0) { danglingOperator = null; }
     .)
@@ -3881,18 +3879,18 @@ QSep = "::" | '\u2022'.
  * cardinality brackets, that is, "|expr|".
  */
 Expression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwiseOps = true>
-= (. Expression e0; IToken endTok; .)
+= (. Expression e0; IToken semiToken; .)
   [ "new" (. SemErr(t, "Side-effect methods calls such as constructors are not allowed in expressions."); .) ]
   EquivExpression<out e, allowLemma, allowLambda, allowBitwiseOps>
   [ IF(SemiFollowsCall(allowLemma, e))
     /* here we parse the ";E" that is part of a "LemmaCall;E" expression (other "S;E" expressions are parsed elsewhere) */
-    ";"                       (. endTok = t; .)
+    ";"                       (. semiToken = t; .)
     Expression<out e0, allowLemma, allowLambda>
-    (. e = new StmtExpr(e.StartToken,
-             new UpdateStmt(new RangeToken(e.StartToken, t), new List<Expression>(), new List<AssignmentRhs>() { new ExprRhs(e) }) {
-               RangeToken = e.RangeToken
-             },
+    (. var startToken = e.StartToken;
+       e = new StmtExpr(e0.Tok,
+             new UpdateStmt(e.RangeToken, new List<Expression>(), new List<AssignmentRhs>() { new ExprRhs(e) }),
              e0);
+       e.RangeToken = new RangeToken(startToken, e0.EndToken);
     .)
   ]
   .

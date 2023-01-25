@@ -340,7 +340,7 @@ namespace Microsoft.Dafny {
                 Contract.Assert(nw is IndDatatypeDecl || nw is TypeSynonymDecl);
                 // Here, we need to figure out if the new type supports equality.  But we won't know about that until resolution has
                 // taken place, so we defer it until the PostResolveIntermediate phase.
-                var udt = UserDefinedType.FromTopLevelDecl(nw.tok, nw);
+                var udt = UserDefinedType.FromTopLevelDecl(nw.RangeToken, nw);
                 postTasks.Enqueue(() => {
                   if (!udt.SupportsEquality) {
                     Reporter.Error(MessageSource.RefinementTransformer, udt.tok, "type '{0}', which does not support equality, is used to refine an opaque type with equality support", udt.Name);
@@ -351,7 +351,7 @@ namespace Microsoft.Dafny {
             if (od.Characteristics.HasCompiledValue) {
               // We need to figure out if the new type supports auto-initialization.  But we won't know about that until resolution has
               // taken place, so we defer it until the PostResolveIntermediate phase.
-              var udt = UserDefinedType.FromTopLevelDecl(nw.tok, nw);
+              var udt = UserDefinedType.FromTopLevelDecl(nw.RangeToken, nw);
               postTasks.Enqueue(() => {
                 if (!udt.HasCompilableValue) {
                   Reporter.Error(MessageSource.RefinementTransformer, udt.tok, "type '{0}', which does not support auto-initialization, is used to refine an opaque type that expects auto-initialization", udt.Name);
@@ -360,7 +360,7 @@ namespace Microsoft.Dafny {
             } else if (od.Characteristics.IsNonempty) {
               // We need to figure out if the new type is nonempty.  But we won't know about that until resolution has
               // taken place, so we defer it until the PostResolveIntermediate phase.
-              var udt = UserDefinedType.FromTopLevelDecl(nw.tok, nw);
+              var udt = UserDefinedType.FromTopLevelDecl(nw.RangeToken, nw);
               postTasks.Enqueue(() => {
                 if (!udt.IsNonempty) {
                   Reporter.Error(MessageSource.RefinementTransformer, udt.tok, "type '{0}', which may be empty, is used to refine an opaque type expected to be nonempty", udt.Name);
@@ -528,7 +528,7 @@ namespace Microsoft.Dafny {
       moduleUnderConstruction = null;
     }
 
-    Function CloneFunction(IToken tok, Function f, bool isGhost, List<AttributedExpression> moreEnsures, Formal moreResult, Expression moreBody, Expression replacementBody, bool checkPrevPostconditions, Attributes moreAttributes) {
+    Function CloneFunction(RangeToken tok, Function f, bool isGhost, List<AttributedExpression> moreEnsures, Formal moreResult, Expression moreBody, Expression replacementBody, bool checkPrevPostconditions, Attributes moreAttributes) {
       Contract.Requires(tok != null);
       Contract.Requires(moreBody == null || f is Predicate);
       Contract.Requires(moreBody == null || replacementBody == null);
@@ -562,7 +562,7 @@ namespace Microsoft.Dafny {
           body = moreBody;
           bodyOrigin = Predicate.BodyOriginKind.DelayedDefinition;
         } else {
-          body = new BinaryExpr(f.tok, BinaryExpr.Opcode.And, refinementCloner.CloneExpr(f.Body), moreBody);
+          body = new BinaryExpr(f.RangeToken, BinaryExpr.Opcode.And, refinementCloner.CloneExpr(f.Body), moreBody);
           bodyOrigin = Predicate.BodyOriginKind.Extension;
         }
       } else {
@@ -1115,7 +1115,7 @@ namespace Microsoft.Dafny {
                 // that the condition is inherited.
                 var e = refinementCloner.CloneExpr(oldAssume.Expr);
                 var attrs = refinementCloner.MergeAttributes(oldAssume.Attributes, skel.Attributes);
-                body.Add(new AssertStmt(skel.RangeToken,
+                body.Add(new AssertStmt(new RangeToken(new Translator.ForceCheckToken(skel.RangeToken.StartToken), skel.RangeToken.EndToken),
                   e, skel.Proof, skel.Label, new Attributes("_prependAssertToken", new List<Expression>(), attrs)));
                 Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, "assume->assert: " + Printer.ExprToString(e));
                 i++; j++;
@@ -1261,8 +1261,8 @@ namespace Microsoft.Dafny {
               body.Add(cNew);
               i++; j++;
               if (addedAssert != null) {
-                var tok = new Translator.ForceCheckToken(addedAssert.tok);
-                body.Add(new AssertStmt(addedAssert.RangeToken, addedAssert, null, null, null));
+                var tok = new Translator.ForceCheckToken(addedAssert.RangeToken.StartToken);
+                body.Add(new AssertStmt(new RangeToken(tok, addedAssert.RangeToken.EndToken), addedAssert, null, null, null));
               }
             } else {
               MergeAddStatement(cur, body);
@@ -1318,8 +1318,8 @@ namespace Microsoft.Dafny {
                 doMerge = true;
                 stmtGenerated.Add(nw);
                 var addedAssert = refinementCloner.CloneExpr(s.Expr);
-                var tok = new Translator.ForceCheckToken(addedAssert.tok);
-                stmtGenerated.Add(new AssertStmt(addedAssert.RangeToken, addedAssert, null, null, null));
+                var tok = new RangeToken(addedAssert.RangeToken.StartToken, addedAssert.RangeToken.EndToken);
+                stmtGenerated.Add(new AssertStmt(tok, addedAssert, null, null, null));
               }
             }
             if (doMerge) {

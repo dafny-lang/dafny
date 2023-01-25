@@ -398,15 +398,14 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
 
   protected ComprehensionExpr(RangeToken rangeToken, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
     : base(rangeToken) {
-    Contract.Requires(tok != null);
     Contract.Requires(cce.NonNullElements(bvars));
     Contract.Requires(term != null);
 
-    this.BoundVars = bvars;
-    this.Range = range;
-    this.Term = term;
-    this.Attributes = attrs;
-    this.BodyStartTok = tok;
+    BoundVars = bvars;
+    Range = range;
+    Term = term;
+    Attributes = attrs;
+    BodyStartTok = Tok;
   }
 
   protected ComprehensionExpr(Cloner cloner, ComprehensionExpr original) : base(cloner, original) {

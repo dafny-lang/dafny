@@ -13,7 +13,7 @@ namespace Microsoft.Dafny {
         FunctionCallExpr e = (FunctionCallExpr)expr;
         Expression receiver = Substitute(e.Receiver);
         List<Expression> newArgs = SubstituteExprList(e.Args);
-        FunctionCallExpr newFce = new FunctionCallExpr(expr.tok, e.Name, receiver, e.OpenParen, e.CloseParen, newArgs, e.AtLabel);
+        FunctionCallExpr newFce = new FunctionCallExpr(expr.RangeToken, e.Name, receiver, e.OpenParen, e.CloseParen, newArgs, e.AtLabel);
         if (e.Function == A) {
           newFce.Function = B;
           newFce.Type = e.Type; // TODO: this may not work with type parameters.

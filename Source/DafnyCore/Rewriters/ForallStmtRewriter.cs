@@ -27,12 +27,12 @@ public class ForallStmtRewriter : IRewriter {
       if (stmt is ForallStmt && ((ForallStmt)stmt).CanConvert) {
         ForallStmt s = (ForallStmt)stmt;
         if (s.Kind == ForallStmt.BodyKind.Proof) {
-          Expression term = s.Ens.Count != 0 ? s.Ens[0].E : Expression.CreateBoolLiteral(s.Tok, true);
+          Expression term = s.Ens.Count != 0 ? s.Ens[0].E : Expression.CreateBoolLiteral(s.RangeToken, true);
           for (int i = 1; i < s.Ens.Count; i++) {
-            term = new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.And, term, s.Ens[i].E);
+            term = new BinaryExpr(s.RangeToken, BinaryExpr.ResolvedOpcode.And, term, s.Ens[i].E);
           }
           List<Expression> exprList = new List<Expression>();
-          ForallExpr expr = new ForallExpr(s.Tok, s.RangeToken, s.BoundVars, s.Range, term, s.Attributes);
+          ForallExpr expr = new ForallExpr(s.RangeToken, s.BoundVars, s.Range, term, s.Attributes);
           expr.Type = Type.Bool; // resolve here
           expr.Bounds = s.Bounds;
           exprList.Add(expr);
@@ -56,7 +56,7 @@ public class ForallStmtRewriter : IRewriter {
                   var ll = (MemberSelectExpr)lhs;
                   Fi = ll.Obj;
                   lhsBuilder = e => {
-                    var l = new MemberSelectExpr(ll.tok, e, ll.MemberName);
+                    var l = new MemberSelectExpr(ll.RangeToken, e, ll.MemberName);
                     l.Member = ll.Member;
                     l.TypeApplication_AtEnclosingClass = ll.TypeApplication_AtEnclosingClass;
                     l.TypeApplication_JustMember = ll.TypeApplication_JustMember;
@@ -68,17 +68,17 @@ public class ForallStmtRewriter : IRewriter {
                   Contract.Assert(ll.SelectOne);
                   if (!FreeVariablesUtil.ContainsFreeVariable(ll.Seq, false, i)) {
                     Fi = ll.E0;
-                    lhsBuilder = e => { var l = new SeqSelectExpr(ll.tok, true, ll.Seq, e, null, ll.CloseParen); l.Type = ll.Type; return l; };
+                    lhsBuilder = e => { var l = new SeqSelectExpr(ll.RangeToken, true, ll.Seq, e, null, ll.CloseParen); l.Type = ll.Type; return l; };
                   } else if (!FreeVariablesUtil.ContainsFreeVariable(ll.E0, false, i)) {
                     Fi = ll.Seq;
-                    lhsBuilder = e => { var l = new SeqSelectExpr(ll.tok, true, e, ll.E0, null, ll.CloseParen); l.Type = ll.Type; return l; };
+                    lhsBuilder = e => { var l = new SeqSelectExpr(ll.RangeToken, true, e, ll.E0, null, ll.CloseParen); l.Type = ll.Type; return l; };
                   }
                 }
               }
               var rhs = ((ExprRhs)s0.Rhs).Expr;
               bool usedInversion = false;
               if (Fi != null) {
-                var j = new BoundVar(i.tok, i.Name + "#inv", Fi.Type);
+                var j = new BoundVar(i.RangeToken, i.Name + "#inv", Fi.Type);
                 var jj = Expression.CreateIdentExpr(j);
                 var jList = new List<BoundVar>() { j };
                 var range = Expression.CreateAnd(Resolver.GetImpliedTypeConstraint(i, i.Type), s.Range);
@@ -109,7 +109,7 @@ public class ForallStmtRewriter : IRewriter {
                       Printer.ExprToString(newRhs));
                     reporter.Info(MessageSource.Resolver, stmt.Tok, msg);
 
-                    var expr = new ForallExpr(s.Tok, s.RangeToken, jList, val.Range, new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.EqCommon, lhs, newRhs), attributes);
+                    var expr = new ForallExpr(s.RangeToken, jList, val.Range, new BinaryExpr(s.RangeToken, BinaryExpr.ResolvedOpcode.EqCommon, lhs, newRhs), attributes);
                     expr.Type = Type.Bool; //resolve here
                     exprList.Add(expr);
                   }
@@ -117,7 +117,7 @@ public class ForallStmtRewriter : IRewriter {
                 }
               }
               if (!usedInversion) {
-                var expr = new ForallExpr(s.Tok, s.RangeToken, s.BoundVars, s.Range, new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.EqCommon, lhs, rhs), s.Attributes);
+                var expr = new ForallExpr(s.RangeToken, s.BoundVars, s.Range, new BinaryExpr(s.RangeToken, BinaryExpr.ResolvedOpcode.EqCommon, lhs, rhs), s.Attributes);
                 expr.Type = Type.Bool; // resolve here
                 expr.Bounds = s.Bounds;
                 exprList.Add(expr);
@@ -143,12 +143,12 @@ public class ForallStmtRewriter : IRewriter {
             s.Range = range;
           }
           // substitute the call's actuals for the method's formals
-          Expression term = s0.Method.Ens.Count != 0 ? substituter.Substitute(s0.Method.Ens[0].E) : Expression.CreateBoolLiteral(s.Tok, true);
+          Expression term = s0.Method.Ens.Count != 0 ? substituter.Substitute(s0.Method.Ens[0].E) : Expression.CreateBoolLiteral(s.RangeToken, true);
           for (int i = 1; i < s0.Method.Ens.Count; i++) {
-            term = new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.And, term, substituter.Substitute(s0.Method.Ens[i].E));
+            term = new BinaryExpr(s.RangeToken, BinaryExpr.ResolvedOpcode.And, term, substituter.Substitute(s0.Method.Ens[i].E));
           }
           List<Expression> exprList = new List<Expression>();
-          ForallExpr expr = new ForallExpr(s.Tok, s.RangeToken, s.BoundVars, s.Range, term, s.Attributes);
+          ForallExpr expr = new ForallExpr(s.RangeToken, s.BoundVars, s.Range, term, s.Attributes);
           expr.Type = Type.Bool; // resolve here
           expr.Bounds = s.Bounds;
           exprList.Add(expr);
@@ -218,7 +218,7 @@ public class ForallStmtRewriter : IRewriter {
       if (!FreeVariablesUtil.ContainsFreeVariable(F, false, i)) {
         // We're looking at R(i) && j == K.
         // We cannot invert j == K, but if we're lucky, R(i) contains a conjunct i==G.
-        Expression r = Expression.CreateBoolLiteral(R.tok, true);
+        Expression r = Expression.CreateBoolLiteral(R.RangeToken, true);
         Expression G = null;
         foreach (var c in Expression.Conjuncts(R)) {
           if (G == null && c is BinaryExpr) {
@@ -296,7 +296,7 @@ public class ForallStmtRewriter : IRewriter {
         var r = Expression.CreateAnd(R, ife.Test);
         var valsThen = InvertExpression(i, j, r, ife.Thn);
         if (valsThen != null) {
-          r = Expression.CreateAnd(R, Expression.CreateNot(ife.tok, ife.Test));
+          r = Expression.CreateAnd(R, Expression.CreateNot(ife.RangeToken, ife.Test));
           var valsElse = InvertExpression(i, j, r, ife.Els);
           if (valsElse != null) {
             foreach (var val in valsThen) { yield return val; }

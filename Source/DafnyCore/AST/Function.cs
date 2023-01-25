@@ -155,7 +155,7 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
     Contract.Requires(atd.Arity == Formals.Count);
 
     // Note, the following returned type can contain type parameters from the function and its enclosing class
-    return new ArrowType(tok, atd, Formals.ConvertAll(f => f.Type), ResultType);
+    return new ArrowType(RangeToken, atd, Formals.ConvertAll(f => f.Type), ResultType);
   }
 
   public bool AllowsNontermination {

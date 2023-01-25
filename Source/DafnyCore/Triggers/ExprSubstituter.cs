@@ -54,18 +54,18 @@ namespace Microsoft.Dafny {
 
         // conjoin all the new equalities to the range of the quantifier
         foreach (var entry in usedSubstMap) {
-          var eq = new BinaryExpr(e.tok, BinaryExpr.ResolvedOpcode.EqCommon, entry.Item2, entry.Item1);
-          newRange = newRange == null ? eq : new BinaryExpr(e.tok, BinaryExpr.ResolvedOpcode.And, eq, newRange);
+          var eq = new BinaryExpr(e.RangeToken, BinaryExpr.ResolvedOpcode.EqCommon, entry.Item2, entry.Item1);
+          newRange = newRange == null ? eq : new BinaryExpr(e.RangeToken, BinaryExpr.ResolvedOpcode.And, eq, newRange);
           newBoundVars.Add((BoundVar)entry.Item2.Var);
           newBounds.Add(new ComprehensionExpr.ExactBoundedPool(entry.Item1));
         }
 
         QuantifierExpr newExpr;
         if (expr is ForallExpr) {
-          newExpr = new ForallExpr(e.tok, e.RangeToken, newBoundVars, newRange, newTerm, newAttrs) { Bounds = newBounds };
+          newExpr = new ForallExpr(e.RangeToken, newBoundVars, newRange, newTerm, newAttrs) { Bounds = newBounds };
         } else {
           Contract.Assert(expr is ExistsExpr);
-          newExpr = new ExistsExpr(e.tok, e.RangeToken, newBoundVars, newRange, newTerm, newAttrs) { Bounds = newBounds };
+          newExpr = new ExistsExpr(e.RangeToken, newBoundVars, newRange, newTerm, newAttrs) { Bounds = newBounds };
         }
         usedSubstMap.Clear();
 

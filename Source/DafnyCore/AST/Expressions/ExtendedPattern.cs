@@ -104,7 +104,7 @@ public abstract class ExtendedPattern : RangeNode {
       var pairTP = udt.TypeArgs.Zip(idpat.Arguments, (x, y) => new Tuple<Type, ExtendedPattern>(x, y));
 
       foreach (var tp in pairTP) {
-        var t = resolver.PartiallyResolveTypeForMemberSelection(this.RangeToken, tp.Item1).NormalizeExpand();
+        var t = resolver.PartiallyResolveTypeForMemberSelection(Tok, tp.Item1).NormalizeExpand();
         tp.Item2.CheckLinearExtendedPattern(t, resolutionContext, resolver);
       }
       return;

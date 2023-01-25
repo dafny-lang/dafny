@@ -24,7 +24,7 @@ namespace DafnyServer.CounterexampleGeneration {
     // Used to distinguish between class types and algebraic datatypes
     public class DatatypeType : UserDefinedType {
       public DatatypeType(UserDefinedType type)
-        : base(new Token(), type.Name, type.TypeArgs) { }
+        : base(RangeToken.NoToken, type.Name, type.TypeArgs) { }
     }
 
     public static Type GetNonNullable(Type type) {
@@ -32,7 +32,7 @@ namespace DafnyServer.CounterexampleGeneration {
         return type;
       }
 
-      var newType = new UserDefinedType(new Token(),
+      var newType = new UserDefinedType(RangeToken.NoToken,
         userType.Name.TrimEnd('?'), userType.TypeArgs);
       if (type is DatatypeType) {
         return new DatatypeType(newType);
@@ -61,7 +61,7 @@ namespace DafnyServer.CounterexampleGeneration {
       }
       // The copying above is required to update the NamePath so it takes into
       // account the changes to TypeArgs made above
-      newUserType = new UserDefinedType(newUserType.tok, newUserType.Name,
+      newUserType = new UserDefinedType(newUserType.RangeToken, newUserType.Name,
         newUserType.TypeArgs);
       if (newType is DatatypeType) {
         return new DatatypeType(newUserType);
@@ -79,7 +79,7 @@ namespace DafnyServer.CounterexampleGeneration {
       newName = newName.Split("@")[0];
       // The code below converts every "__" to "_":
       newName = UnderscoreRemovalRegex.Replace(newName, "_");
-      var newType = new UserDefinedType(new Token(), newName,
+      var newType = new UserDefinedType(RangeToken.NoToken, newName,
         type.TypeArgs.ConvertAll(t => TransformType(t, GetInDafnyFormat)));
       if (type is DatatypeType) {
         return new DatatypeType(newType);
@@ -105,7 +105,7 @@ namespace DafnyServer.CounterexampleGeneration {
         case MultiSetType multiSetType:
           return new MultiSetType(TransformType(multiSetType, transform));
         case ArrowType arrowType:
-          return new ArrowType(new Token(),
+          return new ArrowType(RangeToken.NoToken,
             arrowType.Args.Select(t => TransformType(t, transform)).ToList(),
             TransformType(arrowType.Result, transform));
         case UserDefinedType userDefinedType:

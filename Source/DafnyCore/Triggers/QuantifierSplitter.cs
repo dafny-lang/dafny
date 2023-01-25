@@ -35,7 +35,7 @@ namespace Microsoft.Dafny.Triggers {
     //   forall x :: P(x) ==> (Q(x) && R(x))
 
     private static UnaryOpExpr Not(Expression expr) {
-      return new UnaryOpExpr(expr.tok, UnaryOpExpr.Opcode.Not, expr) { Type = expr.Type };
+      return new UnaryOpExpr(expr.RangeToken, UnaryOpExpr.Opcode.Not, expr) { Type = expr.Type };
     }
 
     internal static IEnumerable<Expression> SplitExpr(Expression expr, BinaryExpr.Opcode separator) {

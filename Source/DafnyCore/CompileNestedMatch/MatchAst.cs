@@ -19,7 +19,7 @@ public class MatchExpr : Expression, Match, ICloneable<MatchExpr> {  // a MatchE
     Contract.Invariant(cce.NonNullElements(MissingCases));
   }
 
-  public MatchExpr(IToken tok, Expression source, [Captured] List<MatchCaseExpr> cases, bool usesOptionalBraces, MatchingContext context = null)
+  public MatchExpr(RangeToken tok, Expression source, [Captured] List<MatchCaseExpr> cases, bool usesOptionalBraces, MatchingContext context = null)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(source != null);
@@ -81,7 +81,7 @@ public class MatchExpr : Expression, Match, ICloneable<MatchExpr> {  // a MatchE
   }
 }
 
-public abstract class MatchCase : TokenNode, IHasUsages {
+public abstract class MatchCase : RangeNode, IHasUsages {
   public DatatypeCtor Ctor;
   public List<BoundVar> Arguments;
 
@@ -92,11 +92,10 @@ public abstract class MatchCase : TokenNode, IHasUsages {
     Contract.Invariant(cce.NonNullElements(Arguments));
   }
 
-  public MatchCase(IToken tok, DatatypeCtor ctor, [Captured] List<BoundVar> arguments) {
+  public MatchCase(RangeToken tok, DatatypeCtor ctor, [Captured] List<BoundVar> arguments) : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(ctor != null);
     Contract.Requires(cce.NonNullElements(arguments));
-    this.tok = tok;
     this.Ctor = ctor;
     this.Arguments = arguments;
   }
@@ -233,7 +232,7 @@ public class MatchCaseStmt : MatchCase {
   public override IEnumerable<Node> Children => body;
 
   public MatchCaseStmt(RangeToken rangeToken, DatatypeCtor ctor, bool fromBoundVar, [Captured] List<BoundVar> arguments, [Captured] List<Statement> body, Attributes attrs = null)
-    : base(rangeToken.StartToken, ctor, arguments) {
+    : base(rangeToken, ctor, arguments) {
     RangeToken = rangeToken;
     Contract.Requires(tok != null);
     Contract.Requires(ctor != null);
@@ -265,7 +264,7 @@ public class MatchCaseExpr : MatchCase {
 
   public override IEnumerable<Node> Children => Arguments.Concat<Node>(new[] { body });
 
-  public MatchCaseExpr(IToken tok, DatatypeCtor ctor, bool FromBoundVar, [Captured] List<BoundVar> arguments, Expression body, Attributes attrs = null)
+  public MatchCaseExpr(RangeToken tok, DatatypeCtor ctor, bool FromBoundVar, [Captured] List<BoundVar> arguments, Expression body, Attributes attrs = null)
     : base(tok, ctor, arguments) {
     Contract.Requires(tok != null);
     Contract.Requires(ctor != null);

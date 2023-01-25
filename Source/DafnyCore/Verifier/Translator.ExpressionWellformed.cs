@@ -546,7 +546,7 @@ namespace Microsoft.Dafny {
           Expression wrap = new BoogieWrapper(
             FunctionCall(e.tok, Reads(arity), TrType(objset), args),
             objset);
-          var reads = new FrameExpression(e.tok, wrap, null);
+          var reads = new FrameExpression(e.RangeToken, wrap, null);
           CheckFrameSubset(expr.tok, new List<FrameExpression> { reads }, null, null,
             etran, options.AssertSink(this, builder), new PODesc.FrameSubset("invoke function", false), options.AssertKv);
         }
@@ -566,7 +566,7 @@ namespace Microsoft.Dafny {
           }
           if (!e.Function.IsStatic && CommonHeapUse && !etran.UsesOldHeap) {
             // the argument can't be assumed to be allocated for the old heap
-            Type et = UserDefinedType.FromTopLevelDecl(e.tok, e.Function.EnclosingClass).Subst(e.GetTypeArgumentSubstitutions());
+            Type et = UserDefinedType.FromTopLevelDecl(e.RangeToken, e.Function.EnclosingClass).Subst(e.GetTypeArgumentSubstitutions());
             builder.Add(new Bpl.CommentCmd("assume allocatedness for receiver argument to function"));
             builder.Add(TrAssumeCmd(e.Receiver.tok, MkIsAlloc(etran.TrExpr(e.Receiver), et, etran.HeapExpr)));
           }
@@ -585,7 +585,7 @@ namespace Microsoft.Dafny {
             Type et = p.Type.Subst(e.GetTypeArgumentSubstitutions());
             LocalVariable local = new LocalVariable(p.RangeToken, "##" + p.Name, et, p.IsGhost);
             local.type = local.OptionalType;  // resolve local here
-            IdentifierExpr ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator));
+            IdentifierExpr ie = new IdentifierExpr(local.RangeToken, local.AssignUniqueName(currentDeclaration.IdGenerator));
             ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
             substMap.Add(p, ie);
             locals.Add(new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), TrType(local.Type))));

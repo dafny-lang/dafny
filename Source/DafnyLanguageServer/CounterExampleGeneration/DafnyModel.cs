@@ -27,7 +27,7 @@ namespace DafnyServer.CounterexampleGeneration {
     public readonly Model Model;
     public readonly List<DafnyModelState> States = new();
     public static readonly UserDefinedType UnknownType =
-      new(new Token(), "?", null);
+      new(RangeToken.NoToken, "?", null);
     private readonly Model.Func fSetSelect, fSeqLength, fSeqIndex, fBox,
       fDim, fIndexField, fMultiIndexField, fDtype, fCharToInt, fTag, fBv, fType,
       fChar, fNull, fSetUnion, fSetIntersection, fSetDifference, fSetUnionOne,
@@ -519,7 +519,7 @@ namespace DafnyServer.CounterexampleGeneration {
       }
       var fullName = GetTrueName(typeElement);
       if (fullName != null && fullName.Length > 7 && fullName[..7].Equals("Tclass.")) {
-        return new UserDefinedType(new Token(), fullName[7..], null);
+        return new UserDefinedType(RangeToken.NoToken, fullName[7..], null);
       }
       switch (fullName) {
         case "TInt":
@@ -537,7 +537,7 @@ namespace DafnyServer.CounterexampleGeneration {
 
       Type fallBackType = UnknownType; // to be returned in the event all else fails
       if (fullName != null) { // this means this is a type variable
-        fallBackType = new UserDefinedType(new Token(), fullName, null);
+        fallBackType = new UserDefinedType(RangeToken.NoToken, fullName, null);
       }
       var tagElement = fTag.OptEval(typeElement);
       if (tagElement == null) {
@@ -557,7 +557,7 @@ namespace DafnyServer.CounterexampleGeneration {
           new DafnyModelTypeUtils.DatatypeType((ReconstructType(e) as UserDefinedType) ?? UnknownType) :
           ReconstructType(e)).ToList();
       if (typeArgs == null) {
-        return new UserDefinedType(new Token(), tagName.Substring(9), null);
+        return new UserDefinedType(RangeToken.NoToken, tagName.Substring(9), null);
       }
 
       switch (tagName) {
@@ -572,10 +572,10 @@ namespace DafnyServer.CounterexampleGeneration {
           if (tagName.StartsWith("_System.___hFunc") ||
               tagName.StartsWith("_System.___hTotalFunc") ||
               tagName.StartsWith("_System.___hPartialFunc")) {
-            return new ArrowType(new Token(), typeArgs.SkipLast(1).ToList(),
+            return new ArrowType(RangeToken.NoToken, typeArgs.SkipLast(1).ToList(),
               typeArgs.Last());
           }
-          return new UserDefinedType(new Token(), tagName, typeArgs);
+          return new UserDefinedType(RangeToken.NoToken, tagName, typeArgs);
       }
     }
 
