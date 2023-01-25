@@ -258,12 +258,11 @@ namespace Microsoft.Dafny {
         return new Boogie.IdentifierExpr(Token.NoToken, "$FunctionContextHeight", Boogie.Type.Int);
       }
 
-      public Boogie.Expr HeightContext(ICallable m) {
+      public Boogie.Expr HeightContext(ICallable m, bool intermediateScope = false) {
         Contract.Requires(m != null);
         // free requires fh == FunctionContextHeight;
-        var module = m.EnclosingModule;
-        Boogie.Expr context =
-          Boogie.Expr.Eq(Boogie.Expr.Literal(module.CallGraph.GetSCCRepresentativePredecessorCount(m)), FunctionContextHeight());
+        var visibilityLevel = m.EnclosingModule.CallGraph.GetSCCRepresentativePredecessorCount(m);
+        Boogie.Expr context = Boogie.Expr.Eq(MkFunctionHeight(visibilityLevel, intermediateScope), FunctionContextHeight());
         return context;
       }
 

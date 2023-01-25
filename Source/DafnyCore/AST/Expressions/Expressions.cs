@@ -15,7 +15,7 @@ public abstract class Expression : TokenNode {
     Contract.Invariant(tok != null);
   }
 
-  [Pure]
+  [System.Diagnostics.Contracts.Pure]
   public bool WasResolved() {
     return Type != null;
   }
@@ -343,7 +343,7 @@ public abstract class Expression : TokenNode {
   /// <summary>
   /// Create a resolved expression of the form "e - n"
   /// </summary>
-  public static Expression CreateDecrement(Expression e, int n) {
+  public static Expression CreateDecrement(Expression e, int n, Type ty = null) {
     Contract.Requires(e != null);
     Contract.Requires(e.Type.IsNumericBased(Type.NumericPersuasion.Int));
     Contract.Requires(0 <= n);
@@ -351,22 +351,22 @@ public abstract class Expression : TokenNode {
     if (n == 0) {
       return e;
     }
-    var nn = CreateIntLiteral(e.tok, n);
+    var nn = CreateIntLiteral(e.tok, n, ty);
     return CreateSubtract(e, nn);
   }
 
   /// <summary>
   /// Create a resolved expression of the form "n"
   /// </summary>
-  public static Expression CreateIntLiteral(IToken tok, int n) {
+  public static Expression CreateIntLiteral(IToken tok, int n, Type ty = null) {
     Contract.Requires(tok != null);
     Contract.Requires(n != int.MinValue);
     if (0 <= n) {
       var nn = new LiteralExpr(tok, n);
-      nn.Type = Type.Int;
+      nn.Type = ty ?? Type.Int;
       return nn;
     } else {
-      return CreateDecrement(CreateIntLiteral(tok, 0), -n);
+      return CreateDecrement(CreateIntLiteral(tok, 0, ty), -n, ty);
     }
   }
 
@@ -427,6 +427,22 @@ public abstract class Expression : TokenNode {
     }
   }
 
+  /// <summary>
+  /// Returns "expr", but with all outer layers of parentheses and casts removed.
+  /// This method can be called before resolution.
+  /// </summary>
+  public static Expression StripParensAndCasts(Expression expr) {
+    while (true) {
+      if (expr is ParensExpression parens) {
+        expr = parens.E;
+      } else if (expr is ConversionExpr cast) {
+        expr = cast.E;
+      } else {
+        return expr;
+      }
+    }
+  }
+
   public static ThisExpr AsThis(Expression expr) {
     Contract.Requires(expr != null);
     return StripParens(expr) as ThisExpr;
@@ -445,6 +461,26 @@ public abstract class Expression : TokenNode {
       return true;
     } else {
       value = false;  // to please compiler
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// If "expr" denotes an integer literal "x", then return "true" and set "value" to "x".
+  /// Otherwise, return "false" (and the value of "value" should not be used by the caller).
+  /// This method can be called before resolution.
+  /// </summary>
+  public static bool IsIntLiteral(Expression expr, out BigInteger value) {
+    Contract.Requires(expr != null);
+    var e = StripParens(expr) as LiteralExpr;
+    if (e != null && e.Value is int x) {
+      value = new BigInteger(x);
+      return true;
+    } else if (e != null && e.Value is BigInteger xx) {
+      value = xx;
+      return true;
+    } else {
+      value = BigInteger.Zero; // to please compiler
       return false;
     }
   }
@@ -801,7 +837,7 @@ public class LiteralExpr : Expression {
   /// </summary>
   public readonly object Value;
 
-  [Pure]
+  [System.Diagnostics.Contracts.Pure]
   public static bool IsTrue(Expression e) {
     Contract.Requires(e != null);
     return Expression.IsBoolLiteral(e, out var value) && value;
@@ -1129,7 +1165,7 @@ class Resolver_IdentifierExpr : Expression, IHasUsages {
     }
   }
   public class ResolverType_Module : ResolverType {
-    [Pure]
+    [System.Diagnostics.Contracts.Pure]
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       Contract.Assert(parseAble == false);
       return "#module";
@@ -1139,7 +1175,7 @@ class Resolver_IdentifierExpr : Expression, IHasUsages {
     }
   }
   public class ResolverType_Type : ResolverType {
-    [Pure]
+    [System.Diagnostics.Contracts.Pure]
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       Contract.Assert(parseAble == false);
       return "#type";
