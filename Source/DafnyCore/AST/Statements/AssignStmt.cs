@@ -7,8 +7,8 @@ namespace Microsoft.Dafny;
 public class AssignStmt : Statement, ICloneable<AssignStmt> {
   public readonly Expression Lhs;
   public readonly AssignmentRhs Rhs;
-  public override IEnumerable<INode> Children => new List<INode> { Lhs, Rhs }.Where(x => x != null);
-  public override IEnumerable<INode> ConcreteChildren => Children;
+  public override IEnumerable<Node> Children => new List<Node> { Lhs, Rhs }.Where(x => x != null);
+  public override IEnumerable<Node> ConcreteChildren => Children;
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Lhs != null);

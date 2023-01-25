@@ -24,6 +24,28 @@ public abstract class Node : INode {
   /// </summary>
   public abstract IEnumerable<Node> Children { get; }
 
+  /// <summary>
+  /// These children should match what was parsed before the resolution phase.
+  /// That way, gathering all OwnedTokens of all recursive ConcreteChildren should result in a comprehensive
+  /// coverage of the original program
+  /// </summary>
+  public abstract IEnumerable<Node> ConcreteChildren { get; }
+
+  // Nodes like DefaultClassDecl have children but no OwnedTokens as they are not "physical"
+  // Therefore, we have to find all the concrete children by unwrapping such nodes.
+  private IEnumerable<Node> GetConcreteChildren() {
+    foreach (var child in ConcreteChildren) {
+      if (child.StartToken != null && child.EndToken != null && child.StartToken.line != 0) {
+        yield return child;
+      } else {
+        foreach (var subNode in child.GetConcreteChildren()) {
+          yield return subNode;
+        }
+      }
+    }
+  }
+
+
   public IEnumerable<Node> Descendants() {
     return Children.Concat(Children.SelectMany(n => n.Descendants()));
   }
@@ -86,8 +108,19 @@ public abstract class Node : INode {
         return OwnedTokensCache;
       }
 
+      var childrenFiltered = GetConcreteChildren().ToList();
+
+      // DEBUG: Detect duplicate children start tokens.
+      for (var i = 0; i < childrenFiltered.Count - 1; i++) {
+        for (var j = i + 1; j < childrenFiltered.Count; j++) {
+          if (childrenFiltered[i].StartToken.GetHashCode() == childrenFiltered[j].StartToken.GetHashCode()) {
+            Debugger.Break();
+          }
+        }
+      }
+
       var startToEndTokenNotOwned =
-        Children.Where(child => child.StartToken != null && child.EndToken != null)
+        childrenFiltered
           .ToDictionary(child => child.StartToken!, child => child.EndToken!);
 
       var result = new List<IToken>();

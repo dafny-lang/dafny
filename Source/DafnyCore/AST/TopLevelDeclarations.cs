@@ -141,7 +141,7 @@ public abstract class Declaration : INamedRegion, IAttributeBearingDeclaration, 
   internal FreshIdGenerator IdGenerator = new();
   public IToken NameToken => tok;
   public override IEnumerable<Node> Children => (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>());
-  public override IEnumerable<INode> ConcreteChildren => Children;
+  public override IEnumerable<Node> ConcreteChildren => Children;
 }
 
 public class TypeParameter : TopLevelDecl {
@@ -387,7 +387,7 @@ public class LiteralModuleDecl : ModuleDecl {
   }
 
   public override IEnumerable<Node> Children => new[] { ModuleDef };
-  public override IEnumerable<INode> ConcreteChildren => Children;
+  public override IEnumerable<Node> ConcreteChildren => Children;
 
   public LiteralModuleDecl(ModuleDefinition module, ModuleDefinition parent)
     : base(module.tok, module.Name, parent, false, false) {
@@ -449,8 +449,8 @@ public class ModuleExportDecl : ModuleDecl {
   [FilledInDuringResolution] public readonly HashSet<Tuple<Declaration, bool>> ExportDecls = new HashSet<Tuple<Declaration, bool>>();
   public bool RevealAll; // only kept for initial rewriting, then discarded
   public bool ProvideAll;
-  public override IEnumerable<INode> Children => Exports;
-  public override IEnumerable<INode> ConcreteChildren => Exports;
+  public override IEnumerable<Node> Children => Exports;
+  public override IEnumerable<Node> ConcreteChildren => Exports;
 
   public readonly VisibilityScope ThisScope;
   public ModuleExportDecl(IToken tok, ModuleDefinition parent,
@@ -540,7 +540,7 @@ public class ExportSignature : TokenNode, IHasUsages {
 
   public IToken NameToken => Tok;
   public override IEnumerable<Node> Children => Enumerable.Empty<Node>();
-  public override IEnumerable<INode> ConcreteChildren => Enumerable.Empty<INode>();
+  public override IEnumerable<Node> ConcreteChildren => Enumerable.Empty<Node>();
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return new[] { Decl };
   }
@@ -965,7 +965,7 @@ public class ModuleDefinition : INamedRegion, IDeclarationOrUsage, IAttributeBea
 
   public IToken NameToken => tok;
   public override IEnumerable<Node> Children => (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(TopLevelDecls);
-  public override IEnumerable<INode> ConcreteChildren => TopLevelDecls;
+  public override IEnumerable<Node> ConcreteChildren => TopLevelDecls;
 }
 
 public class DefaultModuleDecl : ModuleDefinition {
@@ -1176,9 +1176,9 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl {
     return types;
   }
 
-  public override IEnumerable<Node> Children => ParentTraits.Concat<INode>(Members);
+  public override IEnumerable<Node> Children => ParentTraits.Concat<Node>(Members);
 
-  public override IEnumerable<INode> ConcreteChildren => Children;
+  public override IEnumerable<Node> ConcreteChildren => Children;
 
   /// <summary>
   /// Returns the set of transitive parent traits (not including "this" itself).
@@ -2088,7 +2088,7 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl {
   }
 
   public override IEnumerable<Node> Children => base.Children.Concat(
-    Rhs != null ? new List<INode>() { Rhs } : Enumerable.Empty<INode>());
+    Rhs != null ? new List<Node>() { Rhs } : Enumerable.Empty<Node>());
 
   string RedirectingTypeDecl.Name { get { return Name; } }
   IToken RedirectingTypeDecl.tok { get { return tok; } }

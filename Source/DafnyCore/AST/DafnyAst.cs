@@ -142,7 +142,7 @@ namespace Microsoft.Dafny {
     }
 
     public override IEnumerable<Node> Children => Enumerable.Empty<Node>();
-    public override IEnumerable<INode> ConcreteChildren => Enumerable.Empty<INode>();
+    public override IEnumerable<Node> ConcreteChildren => Enumerable.Empty<Node>();
   }
 
   /// <summary>
@@ -194,7 +194,7 @@ namespace Microsoft.Dafny {
     /// Returns first occurrence of an attribute named <c>nm</c>, or <c>null</c> if there is no such
     /// attribute.
     /// </summary>
-    [Pure]
+    [System.Diagnostics.Contracts.Pure]
     public static Attributes/*?*/ Find(Attributes attrs, string nm) {
       Contract.Requires(nm != null);
       return attrs.AsEnumerable().FirstOrDefault(attr => attr.Name == nm);
@@ -208,7 +208,7 @@ namespace Microsoft.Dafny {
     /// This method does NOT use type information of the attribute arguments, so it can safely
     /// be called very early during resolution before types are available and names have been resolved.
     /// </summary>
-    [Pure]
+    [System.Diagnostics.Contracts.Pure]
     public static bool ContainsBool(Attributes attrs, string nm, ref bool value) {
       Contract.Requires(nm != null);
       var attr = attrs.AsEnumerable().FirstOrDefault(attr => attr.Name == nm);
@@ -335,7 +335,7 @@ namespace Microsoft.Dafny {
         ? Enumerable.Empty<Node>()
         : new List<Node> { Prev });
 
-    public override IEnumerable<INode> ConcreteChildren => Children;
+    public override IEnumerable<Node> ConcreteChildren => Children;
   }
 
   public static class AttributesExtensions {
@@ -596,7 +596,7 @@ namespace Microsoft.Dafny {
 
     public IToken NameToken => tok;
     public override IEnumerable<Node> Children => IsTypeExplicit ? Type.Nodes : Enumerable.Empty<Node>();
-    public override IEnumerable<INode> ConcreteChildren => Type.Nodes;
+    public override IEnumerable<Node> ConcreteChildren => Type.Nodes;
   }
 
   public class Formal : NonglobalVariable {
@@ -744,7 +744,7 @@ namespace Microsoft.Dafny {
 
     public override IEnumerable<Node> Children => new List<Node> { Actual }.Where(x => x != null);
 
-    public override IEnumerable<INode> ConcreteChildren => Children;
+    public override IEnumerable<Node> ConcreteChildren => Children;
 
     public ActualBinding(IToken /*?*/ formalParameterName, Expression actual, bool isGhost = false) {
       Contract.Requires(actual != null);
@@ -790,7 +790,7 @@ namespace Microsoft.Dafny {
     }
 
     public override IEnumerable<Node> Children => arguments == null ? ArgumentBindings : arguments;
-    public override IEnumerable<INode> ConcreteChildren => Children;
+    public override IEnumerable<Node> ConcreteChildren => Children;
   }
 
   class QuantifiedVariableDomainCloner : Cloner {
@@ -831,7 +831,7 @@ namespace Microsoft.Dafny {
     }
 
     public override IEnumerable<Node> Children => Expressions;
-    public override IEnumerable<INode> ConcreteChildren => Children;
+    public override IEnumerable<Node> ConcreteChildren => Children;
   }
 
   public class BottomUpVisitor {

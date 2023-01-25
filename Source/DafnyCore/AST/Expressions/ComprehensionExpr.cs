@@ -444,7 +444,7 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
     }
   }
   public override IEnumerable<Node> Children => (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(SubExpressions);
-  public override IEnumerable<INode> ConcreteChildren => Children;
+  public override IEnumerable<Node> ConcreteChildren => Children;
 
   public override IEnumerable<Expression> SubExpressions {
     get {

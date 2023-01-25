@@ -2759,7 +2759,7 @@ method Test() {
       }
       // Step 1: Collect all the tokens of the program
       var tokensWithoutOwner = new HashSet<int>();
-      var posToOwnerNode = new Dictionary<int, List<INode>>();
+      var posToOwnerNode = new Dictionary<int, List<Node>>();
 
       var t = firstToken;
       while (t != null) {
@@ -2770,15 +2770,15 @@ method Test() {
         t = t.Next;
       }
 
-      void ProcessOwnedTokens(INode node) {
+      void ProcessOwnedTokens(Node node) {
         var ownedTokens = node.OwnedTokens;
         foreach (var token in ownedTokens) {
           tokensWithoutOwner.Remove(token.pos);
-          posToOwnerNode.GetOrCreate(token.pos, () => new List<INode>()).Add(node);
+          posToOwnerNode.GetOrCreate(token.pos, () => new List<Node>()).Add(node);
         }
       }
 
-      void ProcessNode(INode node) {
+      void ProcessNode(Node node) {
         if (node == null) {
           return;
         }

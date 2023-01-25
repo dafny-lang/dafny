@@ -181,7 +181,7 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
             SetAttributedExpressionIndentation(ens, indent + SpaceTab);
           }
 
-          SetClosingIndentedRegion(forallStmt.EndTok, indent);
+          SetClosingIndentedRegion(forallStmt.EndToken, indent);
           return false;
         }
       case WhileStmt whileStmt:
@@ -228,7 +228,7 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
 
       default:
         SetMethodLikeIndent(stmt.Tok, stmt.OwnedTokens, indent);
-        SetIndentations(stmt.EndTok, -1, -1, indent);
+        SetIndentations(stmt.EndToken, -1, -1, indent);
         break;
     }
 
@@ -519,7 +519,7 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
 
     if (function.ByMethodBody is { } byMethodBody) {
       SetDelimiterIndentedRegions(byMethodBody.StartToken, indent);
-      SetClosingIndentedRegion(byMethodBody.EndTok, indent);
+      SetClosingIndentedRegion(byMethodBody.EndToken, indent);
       SetStatementIndentation(byMethodBody);
     }
 
@@ -1140,8 +1140,8 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
       SetDecreasesExpressionIndentation(dec, indent + SpaceTab);
     }
 
-    if (whileStmt.EndTok.val == "}") {
-      SetClosingIndentedRegion(whileStmt.EndTok, indent);
+    if (whileStmt.EndToken.val == "}") {
+      SetClosingIndentedRegion(whileStmt.EndToken, indent);
     }
 
     return false;
@@ -1158,8 +1158,8 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
       }
 
       VisitAlternatives(alternativeLoopStmt.Alternatives, indent);
-      if (alternativeLoopStmt.EndTok.val == "}") {
-        SetClosingIndentedRegion(alternativeLoopStmt.EndTok, indent);
+      if (alternativeLoopStmt.EndToken.val == "}") {
+        SetClosingIndentedRegion(alternativeLoopStmt.EndToken, indent);
       }
     });
   }
@@ -1196,7 +1196,7 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
     }
 
     VisitBody(forLoopStmt.Body, indent);
-    SetClosingIndentedRegion(forLoopStmt.EndTok, indent);
+    SetClosingIndentedRegion(forLoopStmt.EndToken, indent);
     return false;
   }
 
@@ -1453,7 +1453,7 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
 
     foreach (var hint in calcStmt.Hints) {
       // This block
-      if (hint.Tok.pos != hint.EndTok.pos) {
+      if (hint.Tok.pos != hint.EndToken.pos) {
         foreach (var hintStep in hint.Body) {
           SetOpeningIndentedRegion(hintStep.StartToken, indent + SpaceTab + extraHintIndent);
         }
@@ -1481,7 +1481,7 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
       return;
     }
     SetDelimiterIndentedRegions(body.Tok, indent);
-    SetClosingIndentedRegion(body.EndTok, indent);
+    SetClosingIndentedRegion(body.EndToken, indent);
     Visit(body, indent);
   }
 
@@ -1536,7 +1536,7 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
 
   private bool SetIndentStmtExpr(int indent, StmtExpr stmtExpr) {
     Visit(stmtExpr.S, indent);
-    SetIndentations(stmtExpr.S.EndTok, after: indent);
+    SetIndentations(stmtExpr.S.EndToken, after: indent);
     Visit(stmtExpr.E, indent);
     return false;
   }
@@ -1897,8 +1897,8 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
 
     if (body != null) {
       SetDelimiterIndentedRegions(body.Tok, indent);
-      if (body.EndTok.val == "}") {
-        SetClosingIndentedRegion(body.EndTok, indent);
+      if (body.EndToken.val == "}") {
+        SetClosingIndentedRegion(body.EndToken, indent);
       }
 
       Visit(body, indent);

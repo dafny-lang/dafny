@@ -294,7 +294,7 @@ public class ConstantField : SpecialField, ICallable {
 
   public override IEnumerable<Node> Children => base.Children.Concat(new[] { Rhs }.Where(x => x != null));
 
-  public override IEnumerable<INode> ConcreteChildren => Children;
+  public override IEnumerable<Node> ConcreteChildren => Children;
 }
 
 public class Predicate : Function {
@@ -447,7 +447,7 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext {
   public override IEnumerable<Node> Children => new Node[] { Body, Decreases }.
     Where(x => x != null).Concat(Ins).Concat(Outs).Concat(TypeArgs).
     Concat(Req).Concat(Ens).Concat(Mod.Expressions);
-  public override IEnumerable<INode> ConcreteChildren => Children;
+  public override IEnumerable<Node> ConcreteChildren => Children;
 
   public override string WhatKind => "method";
   public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }
@@ -778,7 +778,7 @@ public abstract class ExtremeLemma : Method {
 
   public override IEnumerable<Node> Children => base.Children.Concat(new[] { PrefixLemma });
 
-  public override IEnumerable<INode> ConcreteChildren => base.Children;
+  public override IEnumerable<Node> ConcreteChildren => base.Children;
 
   public ExtremeLemma(IToken tok, string name,
     bool hasStaticKeyword, ExtremePredicate.KType typeOfK,

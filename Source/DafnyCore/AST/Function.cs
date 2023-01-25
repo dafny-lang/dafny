@@ -120,15 +120,15 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
   }
 
   public override IEnumerable<Node> Children => new[] { ByMethodDecl }.Where(x => x != null).
-    Concat<INode>(TypeArgs).
+    Concat<Node>(TypeArgs).
     Concat<Node>(Reads).
     Concat<Node>(Req).
     Concat(Ens.Select(e => e.E)).
     Concat(Decreases.Expressions).
-    Concat(Formals).Concat(ResultType != null ? new List<INode>() { ResultType } : new List<INode>()).
+    Concat(Formals).Concat(ResultType != null ? new List<Node>() { ResultType } : new List<Node>()).
     Concat(Body == null ? Enumerable.Empty<Node>() : new[] { Body });
 
-  public override IEnumerable<INode> ConcreteChildren => Children;
+  public override IEnumerable<Node> ConcreteChildren => Children;
 
   public override IEnumerable<Expression> SubExpressions {
     get {
