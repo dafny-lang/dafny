@@ -2345,7 +2345,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       // Compile the generated source to .class files, adding the output directory to the classpath
-      var compileProcess = PrepareProcessStartInfo("javac", new List<string> { "-encoding", "UTF8" }.Concat(files));
+      var compileProcess = PrepareProcessStartInfo("javac", new List<string> { "-encoding", "UTF8", "--release", "8" }.Concat(files));
       compileProcess.WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
       compileProcess.EnvironmentVariables["CLASSPATH"] = GetClassPath(targetFilename);
       if (0 != RunProcess(compileProcess, outputWriter, "Error while compiling Java files.")) {

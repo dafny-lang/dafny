@@ -69,10 +69,11 @@ jobs:
         distribution: corretto
     - uses: actions/setup-node@v3
     - run: npm install bignumber.js
+    # Using Python 3.7 to catch any non-3.7 syntax, as 3.7 is what we tell users we generate
     - name: Set up Python
       uses: actions/setup-python@v4
       with: 
-       python-version: '3.11'
+       python-version: '3.7'
     - name: Build Dafny
       run: |
         dotnet build dafny/Source/Dafny.sln

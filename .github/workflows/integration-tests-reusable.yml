@@ -24,7 +24,7 @@ jobs:
       - name: Populate OS list (all platforms)
         id: populate-os-list-all
         if: inputs.all_platforms
-        run: echo "os-list=[\"ubuntu-latest\", \"ubuntu-20.04\", \"macos-latest\", \"windows-2019\"]" >> $GITHUB_OUTPUT
+        run: echo "os-list=[\"ubuntu-latest\", \"ubuntu-20.04\", \"macos-11\", \"macos-latest\", \"windows-latest\", \"windows-2019\"]" >> $GITHUB_OUTPUT
       - name: Populate OS list (one platform)
         id: populate-os-list-one
         if: "!inputs.all_platforms"
@@ -32,7 +32,7 @@ jobs:
       - name: Populate OS mapping for package.py
         id: populate-os-mapping
         run: |
-          echo "os-mapping={\"ubuntu-latest\": \"ubuntu\", \"ubuntu-20.04\": \"ubuntu\", \"macos-latest\": \"osx\", \"windows-2019\": \"win\"}" >> $GITHUB_OUTPUT
+          echo "os-mapping={\"ubuntu-latest\": \"ubuntu\", \"ubuntu-20.04\": \"ubuntu\", \"macos-latest\": \"osx\", \"macos-11\": \"osx", \"windows-latest\": \"win\", \"windows-2019\": \"win\"}" >> $GITHUB_OUTPUT
       - name: Populate target runtime version list (all platforms)
         id: populate-target-runtime-version-all
         if: inputs.all_platforms
@@ -93,7 +93,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with: 
-        python-version: '3.11'
+        python-version: '3.7'
     - name: Checkout Dafny
       uses: actions/checkout@v3
       with:

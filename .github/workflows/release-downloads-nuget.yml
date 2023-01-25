@@ -28,7 +28,7 @@ jobs:
       fail-fast: false
       matrix:
         # This workflow breaks on windows-2022: https://github.com/dafny-lang/dafny/issues/1906
-        os: [ ubuntu-latest, ubuntu-20.04, macos-latest, windows-2019 ]
+        os: [ ubuntu-latest, ubuntu-20.04, macos-11, macos-latest, windows-latest, windows-2019 ]
         include:
         - os:  'ubuntu-latest'
           osn: 'ubuntu\-20.04'
@@ -36,9 +36,15 @@ jobs:
         - os:  'ubuntu-20.04'
           osn: 'ubuntu\-20.04'
           z3: z3-4.8.5-x64-ubuntu-16.04
+        - os:  'macos-11'
+          osn: 'osx-.*'
+          z3: z3-4.8.5-x64-osx-10.14.2
         - os:  'macos-latest'
           osn: 'osx-.*'
           z3: z3-4.8.5-x64-osx-10.14.2
+        - os:  'windows-latest'
+          osn: 'win'
+          z3: z3-4.8.5-x64-win
         - os:  'windows-2019'
           osn: 'win'
           z3: z3-4.8.5-x64-win
@@ -145,9 +151,15 @@ jobs:
         - os:  'ubuntu-20.04'
           osn: 'ubuntu\-20.04'
           z3: z3-4.8.5-x64-ubuntu-16.04
+        - os:  'macos-11'
+          osn: 'osx-.*'
+          z3: z3-4.8.5-x64-osx-10.14.2
         - os:  'macos-latest'
           osn: 'osx-.*'
           z3: z3-4.8.5-x64-osx-10.14.2
+        - os:  'windows-latest'
+          osn: 'win'
+          z3: z3-4.8.5-x64-win
         - os:  'windows-2019'
           osn: 'win'
           z3: z3-4.8.5-x64-win

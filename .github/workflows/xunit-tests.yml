@@ -26,10 +26,20 @@ jobs:
             z3: z3-4.8.5-x64-ubuntu-16.04
             chmod: true
             coverage: true
+          - os: windows-latest
+            suffix: win
+            z3: z3-4.8.5-x64-win
+            chmod: false
+            coverage: false
           - os: windows-2019
             suffix: win
             z3: z3-4.8.5-x64-win
             chmod: false
+            coverage: false
+          - os: macos-11
+            suffix: osx
+            z3: z3-4.8.5-x64-osx-10.14.2
+            chmod: true
             coverage: false
           - os: macos-latest
             suffix: osx

@@ -14,14 +14,18 @@ jobs:
       fail-fast: false
       matrix:
         # This workflow breaks on windows-2022: https://github.com/dafny-lang/dafny/issues/1906
-        os: [ ubuntu-latest, ubuntu-20.04, macos-latest, windows-2019 ]
+        os: [ ubuntu-latest, ubuntu-20.04, macos-11, macos-latest, windows-latest, windows-2019 ]
         include:
         - os:  'ubuntu-latest'
           osn: 'ubuntu\-20.04'
         - os:  'ubuntu-20.04'
           osn: 'ubuntu\-20.04'
+        - os:  'macos-11'
+          osn: 'osx-.*'
         - os:  'macos-latest'
           osn: 'osx-.*'
+        - os:  'windows-latest'
+          osn: 'win'
         - os:  'windows-2019'
           osn: 'win'
     # There is no hosted environment for Unbuntu 14.04 or for debian

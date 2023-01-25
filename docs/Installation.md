@@ -12,6 +12,66 @@ This page has instructions for installing Dafny, by typical users:
 * Instructions for creating an environment in which to develop Dafny and compile it from source 
 are in the [Dafny project wiki](https://github.com/dafny-lang/dafny/wiki/INSTALL)
 
+System Requirements
+===================
+
+The `dafny tool` is a .NET 6.0 artifact, but it compiles to native executables on supported platforms.
+That and the Z3 tool are all that ns needed to use dafny for verification; additional tools are 
+need for compilation, as described below.
+
+## Operating Systems
+
+In addition to running dafny, the host OS must also be able to run the Z3 executable that is bundled with dafny.
+(The Dafny tools are tested using github runners, which limits the set of platforms that can be tested.)
+
+- Linux: `dafny` is tested on Ubuntu 20.04 and 22.04.
+- MacOS: `dafny` is tested on MacOS 11 (Big Sur) and MacOS 12 (Monterey)
+- Windows: `dafny` is tested on Windows 2019 and Windows 2022
+
+## Compilers
+
+The Dafny compiler performs two tasks:
+- It translates a Dafny program into a target (source) programming language. This action requires only
+the Dafny tool.
+- The tool launches external processes, including the target language tools installed on the host OS,
+to compile and run the previously generated source code.
+
+In addition, the Dafny toolkit supplies runtime libraries, either in source form or compiled for the target programming language.
+
+### C#
+
+- Dafny targeting C# produces C#10-compatible source code.
+- Only the .NET 6.0 set of tools (which includes the C# compiler) is needed to compile and run the generated C# code.
+- The Dafny runtime library is included as C# source along with the generated C# code, so the user can compile those sources
+and any user code in one project.
+
+### Java
+
+- Dafny targeting Java produces Java 8-compatible source.
+- The 'javac', 'jar, and 'java' executables are needed on the host system to compile and run Dafny-generated Java source code.
+- A Dafny-produced Java program must be run with the supplied DafnyRuntime.jar. This jar is compiled to run with TBD????
+
+### Javascript
+
+- Dafny targeting Javascript produces 
+TBD
+
+### Python
+
+- Dafny targeting Python produces targets Python 3.7 source.
+- Only the python executable is needed to compile and run Dafny-generated Python source code.
+- The Dafny runtime library is included as source, so both the generated code, the library and any user python code can be compiled together
+with the user's choice of python tool (that compiles at least 3.7).
+
+### Go
+
+TBD
+
+### C++
+
+C++ has only rudimentary special purpose support at present.
+
+
 Using an IDE
 ============
 
