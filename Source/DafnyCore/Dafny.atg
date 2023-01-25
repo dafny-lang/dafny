@@ -4577,7 +4577,7 @@ MapComprehensionExpr<out Expression e, bool allowLemma, bool allowLambda, bool a
        SemErr(t, "a map comprehension with more than one bound variable must have a term expression of the form 'Expr := Expr'");
        e = dummyExpr;
      } else {
-       e = new MapComprehension(mapToken, t, finite, bvars, range ?? new LiteralExpr(mapToken, true), bodyLeft, bodyRight, attrs);
+       e = new MapComprehension(mapToken, t, finite, bvars, range ?? new LiteralExpr(Token.NoToken, true), bodyLeft, bodyRight, attrs);
      }
      e.RangeToken = new RangeToken(mapToken, t);
   .)
@@ -5155,7 +5155,7 @@ SetComprehensionExpr<out Expression q, bool allowLemma, bool allowLambda, bool a
        }
        q = new SetComprehension(setToken, t, finite, bvars, range, body, attrs);
      }
-     q.RangeToken = new RangeToken(t, t);
+     q.RangeToken = new RangeToken(setToken, t);
   .)
   .
 

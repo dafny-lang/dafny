@@ -706,7 +706,7 @@ iterator Iter(x: int) yields (y: int)
     }
 
     [Fact]
-    public void FormatWorksForTypes() {
+    public void FormatWorksForDataTypes() {
       FormatterWorksFor(@"
 include ""test1""
 include
@@ -753,6 +753,13 @@ datatype D =
   | D3(x: LongType< int,
                     int
        >)
+
+");
+    }
+
+    [Fact]
+    public void FormatWorksForTypes() {
+      FormatterWorksFor(@"
 type NoWitness_EffectlessArrow<!A(!new), B> = f: A ~> B  // error: cannot find witness
   | forall a :: f.reads(a) == {}
  
@@ -776,6 +783,12 @@ type Z =
       i == 3
   witness 2
 
+");
+    }
+
+    [Fact]
+    public void FormatWorksForNewTypes() {
+      FormatterWorksFor(@"
 newtype X
   = i : int
   | || i == 2
@@ -792,6 +805,12 @@ newtype Y
     var x := 2;
     x
 
+");
+    }
+
+    [Fact]
+    public void FormatWorksForModules() {
+      FormatterWorksFor(@"
 module AM { class A {}
             class B {} }
 
@@ -865,37 +884,92 @@ trait X {
 abstract module Abs {
   function X(): int
 }
+");
+    }
+
+    [Fact]
+    public void FormatWorksForComprehensions() {
+      FormatterWorksFor(@"
 method comprehensions() {
-  var x := imap i: int :: i % 2 == 0 := 1;
+  c := imap i: int |
+    i % 9 == 0
+    :: i % 10 == 0
+    := 11;
 
   var a := imap
-             t: int ::  t % 2
-                     == 0
-                    := 1;
+    t: int ::  t % 3
+            == 4
+           := 5;
+  var a :=
+    imap
+      t: int ::  t % 3
+              == 4
+             := 5;
+
+  var x := imap i: int :: i % 2 == 0 := 1;
+
+  b := imap
+    i: int
+    ::
+      i % 6 == 7
+    :=
+      8;
+
+  b := imap
+    i: int ::
+    i % 6 == 7 :=
+    8;
+
+  d := imap i: int
+    |  i % 12 == 0
+    :: i % 13 == 0
+    := 14;
+
+  e := imap i: int |  i % 15 == 0
+    ::  
+      // comment
+      i % 16 == 0
+    :=  17;
+}
+");
+      FormatterWorksFor(@"
+method comprehensions() {
+  var a := imap
+             t: int ::  t % 3
+                     == 4
+                    := 5;
+
+  var x := imap i: int :: i % 2 == 0 := 1;
 
   b := imap
          i: int
        ::
-         i % 2 == 0
+         i % 6 == 7
        :=
-         1;
+         8;
 
   c := imap i: int |
-         i % 4 == 0
-       :: i % 2 == 0
-       := 1;
+         i % 9 == 0
+       :: i % 10 == 0
+       := 11;
 
   d := imap i: int
-         |  i % 5 == 0
-       :: i % 2 == 0
-       := 1;
+         |  i % 12 == 0
+       :: i % 13 == 0
+       := 14;
 
-  e := imap i: int |  i % 6 == 0
+  e := imap i: int |  i % 15 == 0
        ::  
          // comment
-         i % 2 == 0
-       :=  1;
+         i % 16 == 0
+       :=  17;
 }
+", reduceBlockiness: false);
+    }
+
+    [Fact]
+    public void FormatWorksForSimpleIterator() {
+      FormatterWorksFor(@"
 iterator Gen(start: int) yields (x: int)
   yield ensures |xs| <= 10 && x == start + |xs| - 1
 {
@@ -2050,7 +2124,7 @@ class W extends  AA2,
       FormatterWorksFor(@"
 function test(): int {
   | set i: nat
-      | i < 10
+    | i < 10
     :: i |
 }
 ");
