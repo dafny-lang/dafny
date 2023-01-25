@@ -8,12 +8,14 @@ public abstract record IExpression;
 
 public abstract record IStatement;
 
+public abstract record IType;
+
 public record ILiteral(object Literal) : IExpression;
 
 /// <summary>
 /// TrSeqSelectExpr from GenericSinglePassCompiler can be used.
 /// </summary>
-public abstract class IntermediateLanguageCompiler : GenericSinglePassCompiler<IExpression, IList<IStatement>> {
+public abstract class IntermediateLanguageCompiler : GenericSinglePassCompiler<IExpression, IList<IStatement>, IStatement, IType> {
 
   protected override IExpression EmitThis() {
     throw new System.NotImplementedException();

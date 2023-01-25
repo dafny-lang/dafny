@@ -1841,7 +1841,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree EmitArraySelect(List<string> indices, Type elmtType, ConcreteSyntaxTree wr) {
       var w = wr.Fork();
       foreach (var index in indices) {
-        wr.Write(".at({0})", index);
+        wr.Write($".at({index})");
       }
       return w;
     }

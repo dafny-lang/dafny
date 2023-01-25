@@ -2578,7 +2578,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write("[");
       var sep = "";
       foreach (var index in indices) {
-        wr.Write("{0}(int)({1})", sep, index);
+        wr.Write($"{sep}(int)({index})");
         sep = ", ";
       }
       wr.Write("]");

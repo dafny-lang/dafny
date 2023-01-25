@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IO;
@@ -15,7 +16,7 @@ namespace Microsoft.Dafny {
     NewlineBrace
   }
 
-  public class ConcreteSyntaxTree : ICanRender {
+  public class ConcreteSyntaxTree : ICanRender, IList<ICanRender> {
     public ConcreteSyntaxTree(int relativeIndent = 0) {
       RelativeIndentLevel = relativeIndent;
     }
@@ -32,11 +33,31 @@ namespace Microsoft.Dafny {
       return result;
     }
 
+    void ICollection<ICanRender>.Add(ICanRender item) {
+      _nodes.Add(item);
+    }
+
     public void Clear() {
       while (_nodes.Any()) {
         _nodes.RemoveAt(0);
       }
     }
+
+    bool ICollection<ICanRender>.Contains(ICanRender item) {
+      return _nodes.Contains(item);
+    }
+
+    void ICollection<ICanRender>.CopyTo(ICanRender[] array, int arrayIndex) {
+      _nodes.CopyTo(array, arrayIndex);
+    }
+
+    bool ICollection<ICanRender>.Remove(ICanRender item) {
+      return _nodes.Remove(item);
+    }
+
+    int ICollection<ICanRender>.Count => _nodes.Count;
+
+    bool ICollection<ICanRender>.IsReadOnly => _nodes.IsReadOnly;
 
     public T Prepend<T>(T node)
       where T : ICanRender {
@@ -165,6 +186,10 @@ namespace Microsoft.Dafny {
 
     // ----- Collection ------------------------------
 
+    IEnumerator<ICanRender> IEnumerable<ICanRender>.GetEnumerator() {
+      return _nodes.GetEnumerator();
+    }
+
     public override string ToString() {
       var sw = new StringWriter();
       var files = new Queue<FileSyntax>();
@@ -178,10 +203,31 @@ namespace Microsoft.Dafny {
       return sw.ToString();
     }
 
+    IEnumerator IEnumerable.GetEnumerator() {
+      return ((IEnumerable) _nodes).GetEnumerator();
+    }
+
     public void Render(TextWriter writer, int indentation, WriterState writerState, Queue<FileSyntax> files, int indentSize = 2) {
       foreach (var node in _nodes) {
         node.Render(writer, indentation + RelativeIndentLevel * indentSize, writerState, files, indentSize);
       }
+    }
+
+    int IList<ICanRender>.IndexOf(ICanRender item) {
+      return _nodes.IndexOf(item);
+    }
+
+    void IList<ICanRender>.Insert(int index, ICanRender item) {
+      _nodes.Insert(index, item);
+    }
+
+    void IList<ICanRender>.RemoveAt(int index) {
+      _nodes.RemoveAt(index);
+    }
+
+    ICanRender IList<ICanRender>.this[int index] {
+      get => _nodes[index];
+      set => _nodes[index] = value;
     }
   }
 }

@@ -274,7 +274,7 @@ namespace Microsoft.Dafny.Compilers {
         wIndex.Write(")");
         indices.Add(wIndex.ToString());
       }
-      var lv = EmitArraySelectAsLvalue(array, indices, tupleTypeArgsList[L - 1]);
+      var lv = ArraySelectAsLvalue(array, indices, tupleTypeArgsList[L - 1]);
       var wrRhs = EmitAssignment(lv, tupleTypeArgsList[L - 1], null, wr, s0.Tok);
       wrRhs.Write($"(({TypeName(tupleTypeArgsList[L - 1], wrRhs, s0.Tok)})");
       EmitTupleSelect(tup, L - 1, wrRhs);
@@ -1450,7 +1450,7 @@ namespace Microsoft.Dafny.Compilers {
       var w = EmitArraySelect(indices.Count, out wIndices, elmtType, wr);
       for (int i = 0; i < indices.Count; i++) {
         if (!int.TryParse(indices[i], out _)) {
-          wIndices[i].Write($"{DafnyHelpersClass}.toInt({indices[i]})");
+          wIndices[i].Format($"{DafnyHelpersClass}.toInt({indices[i]})");
         } else {
           wIndices[i].Write(indices[i]);
         }
@@ -1538,13 +1538,13 @@ namespace Microsoft.Dafny.Compilers {
       return w;
     }
 
-    protected override ILvalue EmitArraySelectAsLvalue(string array, List<string> indices, Type elmtType) {
+    protected override ILvalue ArraySelectAsLvalue(string array, List<string> indices, Type elmtType) {
       elmtType = DatatypeWrapperEraser.SimplifyType(elmtType);
       if (elmtType.IsTypeParameter) {
         return new GenericArrayElementLvalue(this, array, indices, elmtType.AsTypeParameter);
       } else {
         return SimpleLvalue(wr => {
-          var wArray = EmitArraySelect(indices, elmtType, wr);
+          var wArray = EmitArraySelect(indices.Select(i => i.ToString()).ToList(), elmtType, wr);
           wArray.Write(array);
         });
       }
@@ -1563,24 +1563,26 @@ namespace Microsoft.Dafny.Compilers {
         ElmtTypeParameter = elmtTypeParameter;
       }
 
-      public void EmitRead(ConcreteSyntaxTree wr) {
+      public ICanRender Read() {
+        var wr = new ConcreteSyntaxTree();
         var wArray = Compiler.EmitArraySelect(Indices, new UserDefinedType(ElmtTypeParameter), wr);
         wArray.Write(Array);
+        return wr;
       }
 
-      public ConcreteSyntaxTree EmitWrite(ConcreteSyntaxTree wr) {
-        ConcreteSyntaxTree w;
+      public ICanRender Write(ICanRender value) {
+        var wr = new ConcreteSyntaxTree();
         if (Indices.Count == 1) {
           wr.Write($"{FormatTypeDescriptorVariable(ElmtTypeParameter)}.setArrayElement({Array}, {Indices[0]},");
-          w = wr.Fork();
+          wr.Append(value);
           wr.Write(")");
         } else {
           wr.Write($"{Array}.set({Util.Comma("", Indices, ix => $"[{DafnyHelpersClass}.toInt({ix})]")}), ");
-          w = wr.Fork();
+          wr.Append(value);
           wr.Write(")");
         }
         Compiler.EndStmt(wr);
-        return w;
+        return wr;
       }
     }
 

@@ -69,7 +69,7 @@ public class CsharpSynthesizer {
   /// }
   /// </summary>
   public ConcreteSyntaxTree SynthesizeMethod(Method method,
-    List<ConcreteSinglePassCompiler.TypeArgumentInstantiation> typeArgs, bool createBody,
+    List<TypeArgumentInstantiation> typeArgs, bool createBody,
     ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
 
     lastSynthesizedMethod = method;
@@ -79,7 +79,7 @@ public class CsharpSynthesizer {
                          compiler.NeedsCustomReceiver(method);
     var keywords = compiler.Keywords(true, true);
     var returnType = compiler.GetTargetReturnTypeReplacement(method, wr);
-    var typeParameters = compiler.TypeParameters(ConcreteSinglePassCompiler.TypeArgumentInstantiation.
+    var typeParameters = compiler.TypeParameters(TypeArgumentInstantiation.
       ToFormals(compiler.ForTypeParameters(typeArgs, method, lookasideBody)));
     var parameters = compiler
       .GetMethodParameters(method, typeArgs, lookasideBody, customReceiver, returnType);

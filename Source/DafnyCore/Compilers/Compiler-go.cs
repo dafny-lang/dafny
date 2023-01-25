@@ -1079,9 +1079,10 @@ namespace Microsoft.Dafny.Compilers {
         var tok = field.tok;
         var lvalue = Compiler.EmitMemberSelect(w => w.Write("_this"), UserDefinedType.FromTopLevelDecl(tok, enclosingClass), field,
         new List<TypeArgumentInstantiation>(), enclosingClass.ParentFormalTypeParametersToActuals, instantiatedFieldType);
-        var wRHS = lvalue.EmitWrite(FieldInitWriter(false));
-        Compiler.EmitCoercionIfNecessary(instantiatedFieldType, field.Type, tok, wRHS);
-        wRHS.Write(Compiler.PlaceboValue(instantiatedFieldType, ErrorWriter(), tok));
+        var rhs = new ConcreteSyntaxTree();
+        FieldInitWriter(false).Append(lvalue.Write(rhs));
+        Compiler.EmitCoercionIfNecessary(instantiatedFieldType, field.Type, tok, rhs);
+        rhs.Write(Compiler.PlaceboValue(instantiatedFieldType, ErrorWriter(), tok));
       }
 
       public ConcreteSyntaxTree/*?*/ ErrorWriter() => ConcreteMethodWriter;
@@ -1767,7 +1768,7 @@ namespace Microsoft.Dafny.Compilers {
 
     // ----- Statements -------------------------------------------------------------
 
-    protected override void EmitMultiAssignment(List<Expression> lhsExprs, List<ILvalue> wLhss, List<Type> lhsTypes, out List<ConcreteSyntaxTree> wRhss, List<Type> rhsTypes, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree MultiAssignment(List<Expression> lhsExprs, List<ILvalue> lhss, List<Type> lhsTypes, IReadOnlyList<ICanRender> values, List<Type> rhsTypes) {
       // TODO Go actually supports multi-assignment, but that will only work
       // in the simple (but very typical) case where an lvalue represents an
       // actual lvalue that is written via an assignment statement.  (Actually,
@@ -1777,7 +1778,7 @@ namespace Microsoft.Dafny.Compilers {
       // Given a way to inquire whether a given lvalue is an actual lvalue in
       // the target, we could implement multi-assignment for the special case
       // where all lvalues are real lvalues.
-      base.EmitMultiAssignment(lhsExprs, wLhss, lhsTypes, out wRhss, rhsTypes, wr);
+      return base.MultiAssignment(lhsExprs, lhss, lhsTypes, values, rhsTypes);
     }
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
@@ -2700,9 +2701,9 @@ namespace Microsoft.Dafny.Compilers {
       return w;
     }
 
-    protected override ILvalue EmitArraySelectAsLvalue(string array, List<string> indices, Type elmtType) {
+    protected override ILvalue ArraySelectAsLvalue(string array, List<ICanRender> indices, Type elmtType) {
       return SimpleLvalue(wr =>
-        wr.Write("*({0}.Index({1}))", array, Util.Comma(indices, IntOfAny))
+        wr.Write("*({0}.Index({1}))", array, Util.Comma(indices.Select(i => i.ToString()).ToList(), IntOfAny))
       );
     }
 
