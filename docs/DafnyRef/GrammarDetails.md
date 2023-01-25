@@ -97,6 +97,152 @@ ExportSignature = TypeNameOrCtorSuffix [ "." TypeNameOrCtorSuffix ]
 ````
 
 
+### 29.3.1. Specifications
+
+#### 29.3.1.1. Method specifications {#g-method-specification}
+
+````grammar
+MethodSpec =
+  { ModifiesClause(allowLambda: false)
+  | RequiresClause(allowLabel: true)
+  | EnsuresClause(allowLambda: false)
+  | DecreasesClause(allowWildcard: true, allowLambda: false)
+  }
+````
+
+#### 29.3.1.1. Function specifications {#g-function-specification}
+
+````grammar
+FunctionSpec =
+  { RequiresClause(allowLabel: true)
+  | ReadsClause(allowLemma: false, allowLambda: false, allowWild: true)
+  | EnsuresClause(allowLambda: false)
+  | DecreasesClause(allowWildcard: false, allowLambda: false)
+  }
+````
+
+#### 29.3.1.1. Lambda function specifications {#g-lambda-specification}
+
+````grammar
+LambdaSpec =
+  { ReadsClause(allowLemma: true, allowLambda: false, allowWild: true)
+  | "requires" Expression(allowLemma: false, allowLambda: false)
+  }
+````
+
+#### 29.3.1.1. Iterator specifications {#g-iterator-specification}
+
+````grammar
+IteratorSpec =
+  { ReadsClause(allowLemma: false, allowLambda: false,
+                                  allowWild: false)
+  | ModifiesClause(allowLambda: false)
+  | [ "yield" ] RequiresClause(allowLabel: !isYield)
+  | [ "yield" ] EnsuresClause(allowLambda: false)
+  | DecreasesClause(allowWildcard: false, allowLambda: false)
+  }
+````
+
+#### 29.3.1.1. Loop specifications {#g-loop-specification}
+
+````grammar
+LoopSpec =
+  { InvariantClause_
+  | DecreasesClause(allowWildcard: true, allowLambda: true)
+  | ModifiesClause(allowLambda: true)
+  }
+````
+
+
+
+#### 29.3.1.1. Requires clauses {#g-requires-clause}
+
+````grammar
+RequiresClause(allowLabel) =
+  "requires" { Attribute }
+  [ LabelName ":" ]  // Label allowed only if allowLabel is true
+  Expression(allowLemma: false, allowLambda: false)
+````
+
+#### 29.3.1.2. Ensures clauses {#g-ensures-clause}
+
+````grammar
+EnsuresClause(allowLambda) =
+  "ensures" { Attribute } Expression(allowLemma: false, allowLambda)
+````
+
+#### 29.3.1.3. Decreases clauses {#g-decreases-clause}
+
+````grammar
+DecreasesClause(allowWildcard, allowLambda) =
+  "decreases" { Attribute } DecreasesList(allowWildcard, allowLambda)
+
+DecreasesList(allowWildcard, allowLambda) =
+  PossiblyWildExpression(allowLambda, allowWildcard)
+  { "," PossiblyWildExpression(allowLambda, allowWildcard) }
+
+PossiblyWildExpression(allowLambda, allowWild) =
+  ( "*"  // if allowWild is false, using '*' provokes an error
+  | Expression(allowLemma: false, allowLambda)
+  )
+````
+
+#### 29.3.1.4. Reads clauses {#g-reads-clause}
+
+````grammar
+ReadsClause(allowLemma, allowLambda, allowWild) =
+  "reads"
+  { Attribute }
+  PossiblyWildFrameExpression(allowLemma, allowLambda, allowWild)
+  { "," PossiblyWildFrameExpression(allowLemma, allowLambda, allowWild) }
+````
+
+#### 29.3.1.5. Modifies clauses {#g-modifies-clause}
+
+````grammar
+ModifiesClause(allowLambda) =
+  "modifies" { Attribute }
+  FrameExpression(allowLemma: false, allowLambda)
+  { "," FrameExpression(allowLemma: false, allowLambda) }
+````
+
+#### 29.3.1.6. Invariant clauses {#g-invariant-clause}
+
+````grammar
+InvariantClause_ =
+  "invariant" { Attribute }
+  Expression(allowLemma: false, allowLambda: true)
+````
+
+#### 29.3.1.4. Frame expressions {#g-frame-expression}
+
+````grammar
+FrameExpression(allowLemma, allowLambda) =
+  ( Expression(allowLemma, allowLambda) [ FrameField ]
+  | FrameField
+  )
+
+FrameField = "`" IdentOrDigits
+
+PossiblyWildFrameExpression(allowLemma, allowLambda, allowWild) =
+  ( "*"  // error if !allowWild and '*'
+  | FrameExpression(allowLemma, allowLambda)
+  )
+````
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ### 29.2.1. Expressions
 
@@ -249,19 +395,6 @@ PrimaryExpression(allowLemma, allowLambda) =
   )
 ````
 
-#### 99. Name segment {#g-name-segment}
-````grammar
-NameSegment = Ident [ GenericInstantiation | HashCall ]
-````
-
-#### 99. Hash call {#g-hash-call}
-````grammar
-HashCall = "#" [ GenericInstantiation ]
-  "[" Expression(allowLemma: true, allowLambda: true) "]"
-  "(" [ Bindings ] ")"
-````
-
-
 #### 29.2.1.13. Lambda expression {#g-lambda-expression}
 ````grammar
 LambdaExpression(allowLemma) =
@@ -281,7 +414,7 @@ Lhs =
   )
 ````
 
-#### 29.2.1.14. Right-hand-side expression {#g-rhs-expression}
+#### Right-hand-side expression {#g-rhs-expression}
 <pre>
 Rhs =
   ( <a href="#g-array-allocation-expression">ArrayAllocation_</a>
@@ -292,7 +425,7 @@ Rhs =
   { Attribute }
 </pre>
 
-#### 29.2.1.15 Array allocation right-hand-side expression {#g-array-allocation-expression}
+#### Array allocation right-hand-side expression {#g-array-allocation-expression}
 ````grammar
 ArrayAllocation_ =
   "new" [ Type ] "[" [ Expressions ] "]"
@@ -301,269 +434,14 @@ ArrayAllocation_ =
   ]
 ````
 
-#### 29.2.1.16 Object allocation right-hand-side expression {#g-object-allocation-expression}
+#### Object allocation right-hand-side expression {#g-object-allocation-expression}
 ````grammar
 ObjectAllocation_ = "new" Type [ "." TypeNameOrCtorSuffix ]
                                [ "(" [ Bindings ] ")" ]
 ````
 
-#### 29.2.1.17 Havoc right-hand-side expression {#g-havoc-expression}
+#### Havoc right-hand-side expression (#g-havoc-expression}
 ````grammar
 HavocRhs_ = "*"
-````
-
-#### 99. Constant or Atomic expression {#g-atomic-expression}
-````grammar
-ConstAtomExpression =
-  ( LiteralExpression
-  | ThisExpression_
-  | FreshExpression_
-  | AllocatedExpression_
-  | UnchangedExpression_
-  | OldExpression_
-  | CardinalityExpression_
-  | ParensExpression
-  )
-````
-
-#### 99. Literal expression {#g-literal-expression}
-````grammar
-LiteralExpression =
- ( "false" | "true" | "null" | Nat | Dec |
-   charToken | stringToken )
-````
-
-#### 99. `this` expression {#g-this-expression}
-````grammar
-ThisExpression_ = "this"
-````
-
-#### 99. Old expression {#g-old-expression}
-````grammar
-OldExpression_ =
-  "old" [ "@" LabelName ]
-  "(" Expression(allowLemma: true, allowLambda: true) ")"
-````
-
-#### 99. Fresh expression {#g-fresh-expression}
-````grammar
-FreshExpression_ =
-  "fresh" [ "@" LabelName ]
-  "(" Expression(allowLemma: true, allowLambda: true) ")"
-````
-
-#### 99. Allocated expression {#g-allocated-expression}
-
-````grammar
-AllocatedExpression_ =
-  "allocated" "(" Expression(allowLemma: true, allowLambda: true) ")"
-````
-
-#### 99. Unchanged expression {#g-unchanged-expression}
-````grammar
-UnchangedExpression_ =
-  "unchanged" [ "@" LabelName ]
-  "(" FrameExpression(allowLemma: true, allowLambda: true)
-      { "," FrameExpression(allowLemma: true, allowLambda: true) }
-  ")"
-````
-
-#### 99. Cardinality expression {#g-cardinality-expression}
-````grammar
-CardinalityExpression_ =
-  "|" Expression(allowLemma: true, allowLambda: true) "|"
-````
-
-#### 99. Parenthesized expression {#g-parenthesized-expression}
-````grammar
-ParensExpression =
-  "(" [ Expressions ] ")"
-````
-
-#### 99. Sequence Display expression {#g-sequence-display-expression}
-````grammar
-SeqDisplayExpr =
-  ( "[" [ Expressions ] "]"
-  | "seq" [ GenericInstantiation ]
-    "(" Expression(allowLemma: true, allowLambda: true)
-    "," Expression(allowLemma: true, allowLambda: true)
-    ")"
-  )
-````
-
-#### 99. Set Display expression {#g-set-display-expression}
-````grammar
-SetDisplayExpr =
-  ( [ "iset" | "multiset" ] "{" [ Expressions ] "}"
-  | "multiset" "(" Expression(allowLemma: true,
-                              allowLambda: true) ")"
-  )
-````
-
-#### 99. Map Display expression {#g-map-display-expression}
-````grammar
-MapDisplayExpr =
-  ("map" | "imap" ) "[" [ MapLiteralExpressions ] "]"
-
-MapLiteralExpressions =
-  Expression(allowLemma: true, allowLambda: true)
-  ":=" Expression(allowLemma: true, allowLambda: true)
-  { "," Expression(allowLemma: true, allowLambda: true)
-        ":=" Expression(allowLemma: true, allowLambda: true)
-  }
-````
-
-#### 99. Endless expression {#g-endless-expression}
-````grammar
-EndlessExpression(allowLemma, allowLambda) =
-  ( IfExpression(allowLemma, allowLambda)
-  | MatchExpression(allowLemma, allowLambda)
-  | QuantifierExpression(allowLemma, allowLambda)
-  | SetComprehensionExpr(allowLemma, allowLambda)
-  | StmtInExpr Expression(allowLemma, allowLambda)
-  | LetExpression(allowLemma, allowLambda)
-  | MapComprehensionExpr(allowLemma, allowLambda)
-  )
-````
-
-#### 99. If expression {#g-if-expression}
-````grammar
-IfExpression(allowLemma, allowLambda) =
-    "if" ( BindingGuard(allowLambda: true)
-         | Expression(allowLemma: true, allowLambda: true)
-         )
-    "then" Expression(allowLemma: true, allowLambda: true)
-    "else" Expression(allowLemma, allowLambda)
-````
-
-#### 99. Pattern {#g-pattern}
-````grammar
-CasePattern =
-  ( IdentTypeOptional
-  | [Ident] "(" [ CasePattern { "," CasePattern } ] ")"
-  )
-
-SingleExtendedPattern =
-  ( PossiblyNegatedLiteralExpression
-  | IdentTypeOptional
-  | [ Ident ] "(" [ SingleExtendedPattern { "," SingleExtendedPattern } ] ")"
-  )
-
-ExtendedPattern =
-  ( [ "|" ] SingleExtendedPattern { "|" SingleExtendedPattern } )
-
-PossiblyNegatedLiteralExpression =
-  ( "-" ( Nat | Dec )
-  | LiteralExpression
-  )
-````
-
-#### 99. Match expression {#g-match-expression}
-````grammar
-MatchExpression(allowLemma, allowLambda) =
-  "match" Expression(allowLemma, allowLambda)
-  ( "{" { CaseExpression(allowLemma: true, allowLambda: true) } "}"
-  | { CaseExpression(allowLemma, allowLambda) }
-  )
-
-CaseExpression(allowLemma, allowLambda) =
-  "case" { Attribute } ExtendedPattern "=>" Expression(allowLemma, allowLambda)
-````
-
-#### 99. Quantifier expression {#g-quantifier-expression}
-````grammar
-QuantifierExpression(allowLemma, allowLambda) =
-    ( "forall" | "exists" ) QuantifierDomain "::"
-    Expression(allowLemma, allowLambda)
-````
-
-#### 99. Set comprehension expression {#g-set-comprehension-expression}
-````grammar
-SetComprehensionExpr(allowLemma, allowLambda) =
-  [ "set" | "iset" ]
-  QuantifierDomain(allowLemma, allowLambda)
-  [ "::" Expression(allowLemma, allowLambda) ]
-````
-
-#### 99. Statement in an expression {#g-statement-in-expression}
-````grammar
-StmtInExpr = ( AssertStmt | AssumeStmt | ExpectStmt
-             | RevealStmt | CalcStmt
-             )
-````
-
-#### 99. Let expression {#g-let-expression}
-````grammar
-LetExpression(allowLemma, allowLambda) =
-  (
-    [ "ghost" ] "var" CasePattern { "," CasePattern }
-    ( ":=" | ":-" | { Attribute } ":|" )
-    Expression(allowLemma: false, allowLambda: true)
-    { "," Expression(allowLemma: false, allowLambda: true) }
-  |
-    ":-"
-    Expression(allowLemma: false, allowLambda: true)
-  )
-  ";"
-  Expression(allowLemma, allowLambda)
-````
-
-#### 99. Map comprehension expression {#g-map-comprehension-expression}
-````grammar
-MapComprehensionExpr(allowLemma, allowLambda) =
-  ( "map" | "imap" )
-  QuantifierDomain(allowLemma, allowLambda)
-  "::"
-  Expression(allowLemma, allowLambda)
-  [ ":=" Expression(allowLemma, allowLambda) ]
-````
-
-#### 99. Expression suffixes {#g-suffix}
-````grammar
-Suffix =
-  ( AugmentedDotSuffix_
-  | DatatypeUpdateSuffix_
-  | SubsequenceSuffix_
-  | SlicesByLengthSuffix_
-  | SequenceUpdateSuffix_
-  | SelectionSuffix_
-  | ArgumentListSuffix_
-  )
-````
-
-#### 99. Augmented Dot suffix {#g-augmented-dot-suffix}
-````grammar
-AugmentedDotSuffix_ = "." DotSuffix
-                      [ GenericInstantiation | HashCall ]
-````
-
-#### 99. Datatype update suffix {g-datatype-update-suffix}
-````grammar
-DatatypeUpdateSuffix_ =
-  "." "(" MemberBindingUpdate { "," MemberBindingUpdate } ")"
-
-MemberBindingUpdate =
-  ( ident | digits )
-  ":=" Expression(allowLemma: true, allowLambda: true)
-````
-
-#### 99. Subsequence suffix {#g-subseequence-suffix}
-````grammar
-SubsequenceSuffix_ =
-  "[" [ Expression(allowLemma: true, allowLambda: true) ]
-      ".." [ Expression(allowLemma: true, allowLambda: true) ]
-  "]"
-````
-
-#### 99. Subsequence Slices suffix {#g-subsequence-slices-suffix}
-````grammar
-SlicesByLengthSuffix_ =
-  "[" Expression(allowLemma: true, allowLambda: true) ":"
-      [
-        Expression(allowLemma: true, allowLambda: true)
-        { ":" Expression(allowLemma: true, allowLambda: true) }
-        [ ":" ]
-      ]
-  "]"
 ````
 
