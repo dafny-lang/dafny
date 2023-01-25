@@ -145,19 +145,14 @@ public class CsharpSynthesizer {
     switch (expr) {
       case LiteralExpr literalExpr:
         return compiler.TrExpr(literalExpr, false, wStmts);
-        break;
       case ApplySuffix applySuffix:
         return SynthesizeExpression(applySuffix, wStmts);
-        break;
       case BinaryExpr binaryExpr:
         return SynthesizeExpression(binaryExpr, wStmts);
-        break;
       case ForallExpr forallExpr:
         return SynthesizeExpression(forallExpr, wStmts);
-        break;
       case FreshExpr:
         return new ConcreteSyntaxTree();
-        break;
       default:
         // TODO: Have the resolver reject all these unimplemented cases,
         // or convert them to UnsupportedFeatureExceptions
