@@ -5032,7 +5032,7 @@ namespace Microsoft.Dafny.Compilers {
       writer(result);
       return result;
     }
-    
+
     /// <summary>
     /// When inside an enumeration like this:
     /// 

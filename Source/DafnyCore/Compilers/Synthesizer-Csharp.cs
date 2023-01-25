@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Operations;
 
 namespace Microsoft.Dafny.Compilers;
 
@@ -142,15 +143,19 @@ public class CsharpSynthesizer {
   }
 
   private ICanRender SynthesizeExpression(Expression expr, ConcreteSyntaxTree wStmts) {
+    var wr = new ConcreteSyntaxTree();
     switch (expr) {
       case LiteralExpr literalExpr:
         return compiler.TrExpr(literalExpr, false, wStmts);
       case ApplySuffix applySuffix:
-        return SynthesizeExpression(applySuffix, wStmts);
+        SynthesizeApplySuffix(wr, applySuffix, wStmts);
+        break;
       case BinaryExpr binaryExpr:
-        return SynthesizeExpression(binaryExpr, wStmts);
+        SynthesizeBinaryExpr(wr, binaryExpr, wStmts);
+        break;
       case ForallExpr forallExpr:
-        return SynthesizeExpression(forallExpr, wStmts);
+        SynthesizeForallExpr(wr, forallExpr, wStmts);
+        break;
       case FreshExpr:
         return new ConcreteSyntaxTree();
       default:
@@ -158,9 +163,11 @@ public class CsharpSynthesizer {
         // or convert them to UnsupportedFeatureExceptions
         throw new NotImplementedException();
     }
+
+    return wr;
   }
 
-  private void SynthesizeExpression(ConcreteSyntaxTree wr, ApplySuffix applySuffix, ConcreteSyntaxTree wStmts) {
+  private void SynthesizeApplySuffix(ConcreteSyntaxTree wr, ApplySuffix applySuffix, ConcreteSyntaxTree wStmts) {
 
     var methodApp = (ExprDotName)applySuffix.Lhs;
     var receiver = ((IdentifierExpr)methodApp.Lhs.Resolved).Var;
@@ -194,7 +201,7 @@ public class CsharpSynthesizer {
     wr.Write("))");
   }
 
-  private void SynthesizeExpression(ConcreteSyntaxTree wr, BinaryExpr binaryExpr, ConcreteSyntaxTree wStmts) {
+  private void SynthesizeBinaryExpr(ConcreteSyntaxTree wr, BinaryExpr binaryExpr, ConcreteSyntaxTree wStmts) {
     if (binaryExpr.Op == BinaryExpr.Opcode.And) {
       Dictionary<IVariable, string> oldBounds = bounds
         .ToDictionary(entry => entry.Key, entry => entry.Value);
@@ -221,7 +228,7 @@ public class CsharpSynthesizer {
     if (binaryExpr.E0 is not ApplySuffix applySuffix) {
       throw new NotImplementedException();
     }
-    SynthesizeExpression(wr, applySuffix, wStmts);
+    SynthesizeApplySuffix(wr, applySuffix, wStmts);
     wr.Write(".Returns(");
     wr.Write("(");
     for (int i = 0; i < applySuffix.Args.Count; i++) {
@@ -244,7 +251,7 @@ public class CsharpSynthesizer {
     wr.WriteLine(");");
   }
 
-  private void SynthesizeExpression(ConcreteSyntaxTree wr, ForallExpr forallExpr, ConcreteSyntaxTree wStmts) {
+  private void SynthesizeForallExpr(ConcreteSyntaxTree wr, ForallExpr forallExpr, ConcreteSyntaxTree wStmts) {
     if (forallExpr.Term is not BinaryExpr binaryExpr) {
       throw new NotImplementedException();
     }
@@ -281,7 +288,7 @@ public class CsharpSynthesizer {
         throw new NotImplementedException();
     }
     wr.WriteLine("});");
-    SynthesizeExpression(wr, binaryExpr, wStmts);
+    SynthesizeBinaryExpr(wr, binaryExpr, wStmts);
   }
 
   /// <summary>

@@ -42,12 +42,12 @@ public abstract class GenericSinglePassCompiler<TExpression> : Plugins.Compiler 
 
   protected abstract TExpression EmitLiteralExpr(LiteralExpr e);
   protected delegate TExpression FCE_Arg_Translator(Expression e, bool inLetExpr, ConcreteSyntaxTree wStmts);
-  
+
   protected abstract TExpression EmitArraySelect(List<Expression> indices, Type elementType, bool inLetExprBody, TExpression array, ConcreteSyntaxTree wStmts);
 
   protected abstract TExpression EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
     ConcreteSyntaxTree wStmts);
-  
+
   /// <summary>
   /// If "fromArray" is false, then "source" is a sequence.
   /// If "fromArray" is true, then "source" is an array.
@@ -57,8 +57,7 @@ public abstract class GenericSinglePassCompiler<TExpression> : Plugins.Compiler 
 
   protected abstract TExpression TrParenExpr(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wStmts);
 
-  protected TExpression TrSeqSelectExpr(bool inLetExprBody, ConcreteSyntaxTree wStmts, SeqSelectExpr e)
-  {
+  protected TExpression TrSeqSelectExpr(bool inLetExprBody, ConcreteSyntaxTree wStmts, SeqSelectExpr e) {
     Contract.Assert(e.Seq.Type != null);
     if (e.Seq.Type.IsArrayType) {
       if (!e.SelectOne) {
@@ -67,11 +66,10 @@ public abstract class GenericSinglePassCompiler<TExpression> : Plugins.Compiler 
 
       Contract.Assert(e.E0 != null && e.E1 == null);
       var array = TrParenExpr(e.Seq, inLetExprBody, wStmts);
-      return EmitArraySelect(new List<Expression> {e.E0}, e.Type, inLetExprBody, array, wStmts);
+      return EmitArraySelect(new List<Expression> { e.E0 }, e.Type, inLetExprBody, array, wStmts);
     }
 
-    if (e.SelectOne)
-    {
+    if (e.SelectOne) {
       Contract.Assert(e.E0 != null && e.E1 == null);
       return EmitIndexCollectionSelect(e.Seq, e.E0, inLetExprBody, wStmts);
     }
