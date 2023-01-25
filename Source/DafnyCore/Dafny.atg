@@ -116,6 +116,12 @@ void CheckDeclModifiers(ref DeclModifierData dmod, string declCaption, AllowedDe
   }
 }
 
+void CheckAttribute(Errors errors, IToken attr) {
+  if (attr.val == "dllimport" || attr.val == "handle") {
+    errors.Deprecated(attr, $"Attribute :{attr.val} is deprecated and will be removed in Dafny 4.0");
+  }
+}
+
 bool IsAssumeTypeKeyword(IToken la) {
   return la.kind == _assume || la.kind == _assert || la.kind == _expect;
 }
@@ -5136,7 +5142,8 @@ Attribute<ref Attributes attrs>
   AttributeName<out x>
   [ Expressions<args> ]
   "}"                         (. closeBrace = t; .)
-  (. attrs = new UserSuppliedAttributes(x, openBrace, closeBrace, args, attrs);
+  (. CheckAttribute(errors, x);
+     attrs = new UserSuppliedAttributes(x, openBrace, closeBrace, args, attrs);
      attrs.RangeToken = new RangeToken(openBrace, t);
   .)
   .
