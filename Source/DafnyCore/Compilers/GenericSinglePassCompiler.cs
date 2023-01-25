@@ -28,15 +28,14 @@ internal class InternalCompilersPluginConfiguration : Plugins.PluginConfiguratio
 }
 
 public abstract class GenericSinglePassCompiler<TExpression, TStatements, TStatement, TType> // TODO remove generic from the name
-  where TStatements : IList<TStatement>
-{
+  where TStatements : IList<TStatement> {
   protected internal readonly FreshIdGenerator idGenerator = new();
   protected TopLevelDeclWithMembers thisContext;  // non-null when type members are being translated
   protected Method enclosingMethod;  // non-null when a method body is being translated
   protected Function enclosingFunction;  // non-null when a function body is being translated
 
   internal abstract TType TypeName(Type type, IToken tok, MemberDecl/*?*/ member = null);
-  
+
   protected internal abstract TExpression TrExpr(Expression expr, bool inLetExprBody, TStatements wStmts);
   protected abstract TExpression This();
 
@@ -63,11 +62,11 @@ public abstract class GenericSinglePassCompiler<TExpression, TStatements, TState
     Contract.Requires(name != null);
     return name;
   }
-  
+
   protected abstract TStatement VariableDeclaration(string name, Type type, IToken token, TExpression initialValue);
 
   protected abstract TStatement AsStatement(TExpression expression);
-  
+
   protected virtual TExpression Downcast(Type from, Type to, IToken tok, TExpression value) {
     Contract.Requires(from != null);
     Contract.Requires(to != null);
@@ -76,7 +75,7 @@ public abstract class GenericSinglePassCompiler<TExpression, TStatements, TState
     Contract.Requires(!IsTargetSupertype(to, from));
     return value;
   }
-  
+
   protected virtual TExpression CoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, IToken tok, TExpression value) {
     return value;
   }
@@ -98,7 +97,7 @@ public abstract class GenericSinglePassCompiler<TExpression, TStatements, TState
     }
     return value;
   }
-  
+
   /// <summary>
   /// Determine if "to" is a supertype of "from" in the target language, if "!typeEqualityOnly".
   /// Determine if "to" is equal to "from" in the target language, if "typeEqualityOnly".
@@ -139,7 +138,7 @@ public abstract class GenericSinglePassCompiler<TExpression, TStatements, TState
       return from.ParentTypes().Any(fromParentType => IsTargetSupertype(to, fromParentType));
     }
   }
-  
+
 
   protected virtual bool TargetSubtypingRequiresEqualTypeArguments(Type type) => false;
 
@@ -152,7 +151,7 @@ public abstract class GenericSinglePassCompiler<TExpression, TStatements, TState
   protected abstract string EmitAssignmentLhs(Expression e, TStatements wStmts); // TODO implement using others?
 
   protected abstract TStatements CreateStatementList();
-  
+
   /// <summary>
   /// The "additionalCustomParameter" is used when the member is an instance function that requires customer-receiver support.
   /// This parameter is then to be added between any run-time type descriptors and the "normal" arguments. The caller will
@@ -160,24 +159,24 @@ public abstract class GenericSinglePassCompiler<TExpression, TStatements, TState
   /// </summary>
   protected abstract ILvalue MemberSelect(TExpression obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
     Type expectedType, string/*?*/ additionalCustomParameter = null, bool internalAccess = false);
-  
+
   protected abstract TExpression Variable(string name);
 
   protected abstract ILvalue ArraySelectAsLvalue(string array, List<TExpression> indices, Type elementType);
-  
+
   protected virtual TExpression ArrayIndexToNativeInt(TExpression arrayIndex, Type fromType) {
     Contract.Requires(arrayIndex != null);
     Contract.Requires(fromType != null);
     return arrayIndex;
   }
-  
+
   protected virtual TStatements MultiAssignment(List<Expression> lhsExprs, List<ILvalue> lhss, List<Type> lhsTypes, IReadOnlyList<TExpression> values,
     List<Type> rhsTypes) {
     Contract.Assert(lhss.Count == lhsTypes.Count);
     Contract.Assert(lhsTypes.Count == rhsTypes.Count);
 
     var statements = CreateStatementList();
-    
+
     var rhsVars = new List<string>();
     for (var index = 0; index < rhsTypes.Count; index++) {
       var rhsType = rhsTypes[index];
@@ -249,7 +248,7 @@ public abstract class GenericSinglePassCompiler<TExpression, TStatements, TState
     /// of EmitAssignment that takes an ILvalue.
     TExpression Write(TExpression value);
   }
-  
+
   protected TExpression TrSeqSelectExpr(bool inLetExprBody, TStatements wStmts, SeqSelectExpr e) {
     Contract.Assert(e.Seq.Type != null);
     if (e.Seq.Type.IsArrayType) {

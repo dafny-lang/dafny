@@ -204,7 +204,7 @@ namespace Microsoft.Dafny {
     }
 
     IEnumerator IEnumerable.GetEnumerator() {
-      return ((IEnumerable) _nodes).GetEnumerator();
+      return ((IEnumerable)_nodes).GetEnumerator();
     }
 
     public void Render(TextWriter writer, int indentation, WriterState writerState, Queue<FileSyntax> files, int indentSize = 2) {

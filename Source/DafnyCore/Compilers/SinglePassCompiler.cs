@@ -23,14 +23,14 @@ namespace Microsoft.Dafny.Compilers {
     public abstract string TargetExtension { get; }
     public abstract string PublicIdProtect(string name);
     public abstract bool TextualTargetIsExecutable { get; }
-    public abstract bool SupportsInMemoryCompilation { get; }  
+    public abstract bool SupportsInMemoryCompilation { get; }
     public virtual int TargetIndentSize => 2;
     public virtual string TargetId => TargetExtension;
     public virtual IReadOnlySet<Feature> UnsupportedFeatures => ImmutableHashSet<Feature>.Empty;
 
     public virtual IReadOnlySet<string> SupportedNativeTypes =>
       new HashSet<string> { "byte", "sbyte", "ushort", "short", "uint", "int", "ulong", "long" };
-    
+
     public virtual string GetCompileName(bool isDefaultModule, string moduleName, string compileName) =>
       $"{PublicIdProtect(moduleName)}.{PublicIdProtect(compileName)}";
 
@@ -38,9 +38,9 @@ namespace Microsoft.Dafny.Compilers {
     public virtual string TargetBasename(string dafnyProgramName) => Path.GetFileNameWithoutExtension(dafnyProgramName);
 
     public virtual void CleanSourceDirectory(string sourceDirectory) { }
-    
+
     public virtual bool SupportsDatatypeWrapperErasure => true;
-    
+
     public virtual bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
       bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
       Contract.Requires(dafnyProgramName != null);
@@ -64,7 +64,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(outputWriter != null);
       return true;
     }
-    
+
     public virtual void OnPreCompile(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
       Reporter = reporter;
       OtherFileNames = otherFileNames;
@@ -339,7 +339,7 @@ namespace Microsoft.Dafny.Compilers {
       TypeName(type, result, tok, member);
       return result;
     }
-    
+
     internal abstract string TypeName(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl/*?*/ member = null);
     // For cases where a type looks different when it's an argument, such as (*sigh*) Java primitives
     protected virtual string TypeArgumentName(Type type, ConcreteSyntaxTree wr, IToken tok) {
@@ -895,18 +895,18 @@ namespace Microsoft.Dafny.Compilers {
     protected abstract ConcreteSyntaxTree EmitArraySelect(List<string> indices, Type elmtType, ConcreteSyntaxTree wr);
     protected abstract ConcreteSyntaxTree EmitArraySelect(List<Expression> indices, Type elmtType, bool inLetExprBody,
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);
-    
+
     protected override ILvalue ArraySelectAsLvalue(string array, List<ICanRender> indices, Type elmtType) {
       return ArraySelectAsLvalue(array, indices.Select(i => i.ToString()).ToList(), elmtType);
     }
-    
+
     protected virtual ILvalue ArraySelectAsLvalue(string array, List<string> indices, Type elmtType) {
       return SimpleLvalue(wr => {
         wr.Write(array);
         EmitArraySelect(indices.Select(i => i.ToString()).ToList(), elmtType, wr);
       });
     }
-    
+
     protected virtual ConcreteSyntaxTree EmitArrayUpdate(List<string> indices, string rhs, Type elmtType, ConcreteSyntaxTree wr) {
       var w = EmitArraySelect(indices, elmtType, wr);
       wr.Write(" = {0}", rhs);
@@ -4896,13 +4896,13 @@ namespace Microsoft.Dafny.Compilers {
       return ConvertFromWriter(result => TrParenExpr(expr, result, inLetExprBody, wStmts));
     }
 
-    
+
     private ConcreteSyntaxTree ConvertToWriter(ConcreteSyntaxTree outer, Func<ICanRender, ICanRender> getter) {
       var inner = new ConcreteSyntaxTree();
       outer.Append(getter(inner));
       return inner;
     }
-    
+
     private ICanRender ConvertFromWriter(ICanRender inner, Func<ConcreteSyntaxTree, ConcreteSyntaxTree> writer) {
       var result = new ConcreteSyntaxTree();
       var innerWriter = writer(result);

@@ -39,7 +39,7 @@ public class CoreLanguageCompiler : GenericSinglePassCompiler<CoreExpression, IL
   protected override CoreExpression TrParenExpr(Expression expr, bool inLetExprBody, IList<CoreStatement> wStmts) {
     return TrExpr(expr, inLetExprBody, wStmts);
   }
-  
+
   protected override CoreExpression LiteralExpr(LiteralExpr e) {
     return new CoreLiteral(e.Value);
   }
@@ -55,7 +55,7 @@ public class CoreLanguageCompiler : GenericSinglePassCompiler<CoreExpression, IL
   protected override IList<CoreStatement> CreateStatementList() {
     return new List<CoreStatement>();
   }
-  
+
   internal override CoreType TypeName(Type type, IToken tok, MemberDecl member = null) {
     throw new System.NotImplementedException();
   }
