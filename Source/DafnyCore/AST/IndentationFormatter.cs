@@ -1252,7 +1252,6 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
     // For single Rhs that are of the form [new] X(args....),
     // we can even further decrease the indent so that the last parenthesis
     // is aligned with the beginning of the declaration. 
-    var singleRhs = rhss.Count == 1;
     var firstRhsOneSingleLine = rhss.Count >= 1 && rhss[0].StartToken.line == rhss[0].EndToken.line;
     var assignmentOperator = ownedTokens.Find(token => token.val == ":=" || token.val == ":-" || token.val == ":|");
     if (assignmentOperator == null) {
@@ -1260,12 +1259,6 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
     }
 
     void InferRightIndentFromRhs() {
-      // TODO: Implement the simple rule:
-      // - No change of indentation if no assignment of operator present
-      // - RHS indentation is the same as the visual indentation of the StartToken of the update
-      //   (or the var keyword), if it's on the same line and ReduceBlockiness is true
-      // - RHS indentation is the one that aligns to the right of the update operator if it's on the same line if ReduceBlockiness is false
-      // - RHS indentation is indented of two compared to the StartToken if there is a newline after the update operator.
       if (!rhss.Any()) {
         return;
       }
@@ -1277,17 +1270,6 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
       }
 
       rightIndent = GetNewTokenVisualIndent(rhs.RangeToken.StartToken, rightIndent);
-      if (rhs is not (TypeRhs or ExprRhs { Expr: ApplySuffix }) || !ReduceBlockiness) {
-        return;
-      }
-
-      rightIndent = afterStartIndent;
-      commaIndent = rightIndent - SpaceTab;
-      if (singleRhs && (
-            rhs.StartToken.line == rhs.StartToken.Prev?.line
-            || stmt.Lhss.Count == 0)) {
-        rightIndent -= SpaceTab;
-      }
     }
 
     if (!ownedTokens.Any(token => token.val == ":=" || token.val == ":-" || token.val == ":|")) {
