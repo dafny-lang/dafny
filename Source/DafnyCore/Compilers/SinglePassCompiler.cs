@@ -342,7 +342,7 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual void DeclareLocalVar(string name, Type/*?*/ type, IToken/*?*/ tok, Expression rhs, bool inLetExprBody, ConcreteSyntaxTree wr) {
       var wStmts = wr.Fork();
       var w = DeclareLocalVar(name, type, tok, wr);
-      wr.Append(TrExpr(rhs, inLetExprBody, wStmts));
+      w.Append(TrExpr(rhs, inLetExprBody, wStmts));
     }
 
     /// <summary>
@@ -4474,7 +4474,8 @@ namespace Microsoft.Dafny.Compilers {
     protected internal override ICanRender TrExpr(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
       Contract.Requires(expr != null);
 
-      var wr = new ConcreteSyntaxTree();
+      var result = new ConcreteSyntaxTree();
+      var wr = result;
       if (expr is LiteralExpr) {
         LiteralExpr e = (LiteralExpr)expr;
         return EmitLiteralExpr(e);
@@ -4997,7 +4998,7 @@ namespace Microsoft.Dafny.Compilers {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
 
-      return wr;
+      return result;
     }
 
     protected override ICanRender EmitArraySelect(List<Expression> indices, Type elementType, bool inLetExprBody, ICanRender array,
