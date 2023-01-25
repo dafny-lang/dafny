@@ -683,8 +683,7 @@ namespace Microsoft.Dafny {
       string targetProgramText;
       var otherFiles = new Dictionary<string, string>();
       {
-        var output = new ConcreteSyntaxTree();
-        compiler.Compile(dafnyProgram, output);
+        var output = compiler.Compile(dafnyProgram);
         var writerOptions = new WriterState();
         var targetProgramTextWriter = new StringWriter();
         var files = new Queue<FileSyntax>();
@@ -753,30 +752,64 @@ namespace Microsoft.Dafny {
   }
 
   class NoCompiler : Compiler {
-    public override IReadOnlySet<string> SupportedExtensions => new HashSet<string>();
-    public override string TargetLanguage => throw new NotSupportedException();
-    public override string TargetExtension => throw new NotSupportedException();
-    public override string PublicIdProtect(string name) {
+    public IReadOnlySet<string> SupportedExtensions => new HashSet<string>();
+    public string TargetLanguage => throw new NotSupportedException();
+    public string TargetExtension => throw new NotSupportedException();
+    public string TargetId { get; }
+    public int TargetIndentSize { get; }
+    public string TargetBasename(string dafnyProgramName) {
       throw new NotSupportedException();
     }
 
-    public override bool TextualTargetIsExecutable => throw new NotSupportedException();
-
-    public override bool SupportsInMemoryCompilation => throw new NotSupportedException();
-    public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
+    public string TargetBaseDir(string dafnyProgramName) {
       throw new NotSupportedException();
     }
 
-    public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree callToMainTree) {
+    public string PublicIdProtect(string name) {
       throw new NotSupportedException();
     }
 
-    public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string pathsFilename,
+    public string GetCompileName(bool isDefaultModule, string moduleName, string compileName) {
+      throw new NotSupportedException();
+    }
+
+    public IReadOnlySet<string> SupportedNativeTypes { get; }
+
+    public bool TextualTargetIsExecutable => throw new NotSupportedException();
+
+    public bool SupportsInMemoryCompilation => throw new NotSupportedException();
+    public bool SupportsDatatypeWrapperErasure { get; }
+    public IReadOnlySet<Feature> UnsupportedFeatures { get; }
+    public void OnPreCompile(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
+      throw new NotImplementedException();
+    }
+
+    public void OnPostCompile() {
+      throw new NotSupportedException();
+    }
+
+    public void CleanSourceDirectory(string sourceDirectory) {
+      throw new NotSupportedException();
+    }
+
+    public ICanRender Compile(Program dafnyProgram) {
+      throw new NotSupportedException();
+    }
+
+    public void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
+      throw new NotSupportedException();
+    }
+
+    public void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree callToMainTree) {
+      throw new NotSupportedException();
+    }
+
+    public bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string pathsFilename,
       ReadOnlyCollection<string> otherFileNames, bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
       throw new NotSupportedException();
     }
 
-    public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string pathsFilename,
+    public bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string pathsFilename,
       ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
       throw new NotSupportedException();
     }

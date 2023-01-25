@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
@@ -11,9 +12,62 @@ using Microsoft.BaseTypes;
 
 namespace Microsoft.Dafny.Compilers {
 
-  public abstract class ConcreteSinglePassCompiler : GenericSinglePassCompiler<ICanRender> {
-    public override void OnPreCompile(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
-      base.OnPreCompile(reporter, otherFileNames);
+  public abstract class ConcreteSinglePassCompiler : GenericSinglePassCompiler<ICanRender>, Plugins.Compiler {
+
+    // The following two fields are not initialized until OnPreCompile
+    protected ErrorReporter Reporter;
+    protected ReadOnlyCollection<string> OtherFileNames;
+
+    public abstract IReadOnlySet<string> SupportedExtensions { get; }
+    public abstract string TargetLanguage { get; }
+    public abstract string TargetExtension { get; }
+    public abstract string PublicIdProtect(string name);
+    public abstract bool TextualTargetIsExecutable { get; }
+    public abstract bool SupportsInMemoryCompilation { get; }  
+    public virtual int TargetIndentSize => 2;
+    public virtual string TargetId => TargetExtension;
+    public virtual IReadOnlySet<Feature> UnsupportedFeatures => ImmutableHashSet<Feature>.Empty;
+
+    public virtual IReadOnlySet<string> SupportedNativeTypes =>
+      new HashSet<string> { "byte", "sbyte", "ushort", "short", "uint", "int", "ulong", "long" };
+    
+    public virtual string GetCompileName(bool isDefaultModule, string moduleName, string compileName) =>
+      $"{PublicIdProtect(moduleName)}.{PublicIdProtect(compileName)}";
+
+    public virtual string TargetBaseDir(string dafnyProgramName) => "";
+    public virtual string TargetBasename(string dafnyProgramName) => Path.GetFileNameWithoutExtension(dafnyProgramName);
+
+    public virtual void CleanSourceDirectory(string sourceDirectory) { }
+    
+    public virtual bool SupportsDatatypeWrapperErasure => true;
+    
+    public virtual bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
+      bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
+      Contract.Requires(dafnyProgramName != null);
+      Contract.Requires(targetProgramText != null);
+      Contract.Requires(otherFileNames != null);
+      Contract.Requires(otherFileNames.Count == 0 || targetFilename != null);
+      Contract.Requires(this.SupportsInMemoryCompilation || targetFilename != null);
+      Contract.Requires(!runAfterCompile || callToMain != null);
+      Contract.Requires(outputWriter != null);
+
+      compilationResult = null;
+      return true;
+    }
+
+    public virtual bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
+      object compilationResult, TextWriter outputWriter) {
+      Contract.Requires(dafnyProgramName != null);
+      Contract.Requires(targetProgramText != null);
+      Contract.Requires(otherFileNames != null);
+      Contract.Requires(otherFileNames.Count == 0 || targetFilename != null);
+      Contract.Requires(outputWriter != null);
+      return true;
+    }
+    
+    public virtual void OnPreCompile(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
+      Reporter = reporter;
+      OtherFileNames = otherFileNames;
       Coverage = new CoverageInstrumenter(this);
     }
 
@@ -120,8 +174,7 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual void EmitFooter(Program program, ConcreteSyntaxTree wr) { }
     protected virtual void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr) { }
 
-    public override void OnPostCompile() {
-      base.OnPostCompile();
+    public void OnPostCompile() {
       Coverage.WriteLegendFile();
     }
 
@@ -1278,9 +1331,10 @@ namespace Microsoft.Dafny.Compilers {
       modules = program.CompileModules;
     }
 
-    public override void Compile(Program program, ConcreteSyntaxTree wrx) {
+    public ICanRender Compile(Program program) {
       Contract.Requires(program != null);
 
+      var wrx = new ConcreteSyntaxTree();
       EmitHeader(program, wrx);
       EmitBuiltInDecls(program.BuiltIns, wrx);
       var temp = new List<ModuleDefinition>();
@@ -1414,7 +1468,10 @@ namespace Microsoft.Dafny.Compilers {
         FinishModule();
       }
       EmitFooter(program, wrx);
+      return wrx;
     }
+
+    public abstract void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree callToMainTree);
 
     public ISet<(ModuleDefinition, string)> DeclaredDatatypes { get; } = new HashSet<(ModuleDefinition, string)>();
 

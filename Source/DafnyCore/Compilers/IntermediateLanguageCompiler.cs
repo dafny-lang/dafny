@@ -9,18 +9,6 @@ public abstract record IExpression;
 public record ILiteral(object Literal) : IExpression;
 
 public abstract class IntermediateLanguageCompiler : GenericSinglePassCompiler<IExpression> {
-  
-  public override string PublicIdProtect(string name) {
-    return name;
-  }
-  
-  public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
-    throw new System.NotImplementedException();
-  }
-
-  public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree callToMainTree) {
-    throw new System.NotImplementedException();
-  }
 
   protected internal override IExpression TrExpr(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
     return expr switch {

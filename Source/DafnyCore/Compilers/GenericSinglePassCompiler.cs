@@ -34,8 +34,8 @@ internal class InternalCompilersPluginConfiguration : Plugins.PluginConfiguratio
   }
 }
 
-public abstract class GenericSinglePassCompiler<TExpression> : Plugins.Compiler // TODO remove generic from the name
-  {
+public abstract class GenericSinglePassCompiler<TExpression> // TODO remove generic from the name
+{
 
   protected internal abstract TExpression TrExpr(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wStmts);
   protected abstract TExpression EmitThis();
@@ -77,27 +77,4 @@ public abstract class GenericSinglePassCompiler<TExpression> : Plugins.Compiler 
     return EmitSeqSelectRange(e.Seq, e.E0, e.E1, false, inLetExprBody, wStmts);
   }
 
-  public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
-    bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
-    Contract.Requires(dafnyProgramName != null);
-    Contract.Requires(targetProgramText != null);
-    Contract.Requires(otherFileNames != null);
-    Contract.Requires(otherFileNames.Count == 0 || targetFilename != null);
-    Contract.Requires(this.SupportsInMemoryCompilation || targetFilename != null);
-    Contract.Requires(!runAfterCompile || callToMain != null);
-    Contract.Requires(outputWriter != null);
-
-    compilationResult = null;
-    return true;
-  }
-
-  public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
-    object compilationResult, TextWriter outputWriter) {
-    Contract.Requires(dafnyProgramName != null);
-    Contract.Requires(targetProgramText != null);
-    Contract.Requires(otherFileNames != null);
-    Contract.Requires(otherFileNames.Count == 0 || targetFilename != null);
-    Contract.Requires(outputWriter != null);
-    return true;
-  }
 }
