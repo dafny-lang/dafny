@@ -1,5 +1,5 @@
-// RUN: %baredafny  Arrays.dfy > "%t"
-// RUN: %diff Arrays.dfy.expect "%t"
+// RUN: %baredafny "%s" > "%t"
+// RUN: %diff "%s".expect "%t"
 
 method LinearSearch(a: array<int>, key: int) returns (n: nat)
   ensures 0 <= n <= a.Length
