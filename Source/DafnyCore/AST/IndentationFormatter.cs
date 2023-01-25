@@ -734,7 +734,6 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
   }
 
   private void SetModuleExportDeclIndentation(ModuleExportDecl moduleDecl, int indent) {
-    var indentedFirst = false;
     var innerIndent = indent + SpaceTab;
     var revealExportIndent = innerIndent + SpaceTab;
     var commaIndent = innerIndent;
@@ -765,22 +764,8 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
   }
 
   private void SetAliasModuleDeclIndent(AliasModuleDecl moduleDecl, int indent) {
-    var indentedFirst = false;
-    foreach (var token in moduleDecl.OwnedTokens) {
-      switch (token.val) {
-        case "import":
-        case "opened": {
-            if (!indentedFirst) {
-              SetOpeningIndentedRegion(token, indent);
-              indentedFirst = true;
-            }
-
-            break;
-          }
-        case "=": {
-            break;
-          }
-      }
+    if (moduleDecl.OwnedTokens.FirstOrDefault() is { } theToken) {
+      SetOpeningIndentedRegion(theToken, indent);
     }
   }
 
@@ -810,16 +795,14 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
 
   private int SetModuleDeclIndent(IEnumerable<IToken> ownedTokens, int indent) {
     var innerIndent = indent + SpaceTab;
-    var indentedFirst = false;
-    foreach (var token in ownedTokens) {
+    var allTokens = ownedTokens.ToList();
+    if (allTokens.Any()) {
+      SetOpeningIndentedRegion(allTokens[0], indent);
+    }
+    foreach (var token in allTokens) {
       switch (token.val) {
         case "abstract":
         case "module": {
-            if (!indentedFirst) {
-              SetOpeningIndentedRegion(token, indent);
-              indentedFirst = true;
-            }
-
             break;
           }
         case "{": {
