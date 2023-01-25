@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Formatting;
-using Microsoft.VisualBasic;
 
 namespace Microsoft.Dafny;
 
@@ -46,7 +45,7 @@ namespace Microsoft.Dafny;
  * Z
  * ```
  */
-public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentationFormatter {
+public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
 
   /* If true, the indentation will be
    * var name := method(
@@ -460,8 +459,9 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
     }
   }
 
+  // ReSharper disable once UnusedParameter.Local
   void SetAttributeIndentation(Attributes attributes) {
-    // Do attributes need special indentation rules
+    // If we ever need multiline attributes, here is the place to format them appropriatedly
   }
 
   void SetDecreasesExpressionIndentation(Expression expression, int indent) {
@@ -699,7 +699,6 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
 
   private void SetClassDeclIndent(int indent, ClassDecl classDecl) {
     IToken classToken = null;
-    IToken extendsToken = null;
     var parentTraitIndent = indent + SpaceTab;
     var commaIndent = indent;
     var extraIndent = 0;
@@ -712,15 +711,14 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
             break;
           }
         case "extends": {
-            extendsToken = token;
-            if (extendsToken.line != extendsToken.Next.line) {
-              extraIndent = classToken != null && classToken.line == extendsToken.line ? 0 : SpaceTab;
+            if (token.line != token.Next.line) {
+              extraIndent = classToken != null && classToken.line == token.line ? 0 : SpaceTab;
               commaIndent += extraIndent;
-              SetIndentations(extendsToken, after: indent + SpaceTab + extraIndent);
+              SetIndentations(token, after: indent + SpaceTab + extraIndent);
             } else {
               extraIndent += 2;
               commaIndent = indent + SpaceTab;
-              SetIndentations(extendsToken, after: indent + SpaceTab);
+              SetIndentations(token, after: indent + SpaceTab);
             }
             break;
           }
@@ -1621,7 +1619,6 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
   private bool SetIndentComprehensionExpr(int indent, IEnumerable<IToken> ownedTokens) {
     var alreadyAligned = false;
     var assignOpIndent = indent;
-    var afterAssignIndent = assignOpIndent + SpaceTab;
 
     foreach (var token in ownedTokens) {
       switch (token.val) {
@@ -1638,7 +1635,7 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
           }
         case ":=":
         case "::": {
-            afterAssignIndent = ReduceBlockiness && token.Prev.line == token.line || token.line == token.Next.line ? assignOpIndent : assignOpIndent + SpaceTab;
+            var afterAssignIndent = ReduceBlockiness && token.Prev.line == token.line || token.line == token.Next.line ? assignOpIndent : assignOpIndent + SpaceTab;
             if (alreadyAligned) {
               SetIndentations(token, afterAssignIndent, assignOpIndent, afterAssignIndent);
             } else {
@@ -1666,7 +1663,8 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
     var commaIndent = decreasesElemIndent;
     // Need to ensure that the "case" is at least left aligned with the match/if/while keyword
     IToken decisionToken = null;
-    foreach (var token in ownedTokens) {
+    var allTokens = ownedTokens as IToken[] ?? ownedTokens.ToArray();
+    foreach (var token in allTokens) {
       if (SetIndentLabelTokens(token, indent)) {
         continue;
       }
@@ -1737,7 +1735,7 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
     indentInside();
 
     // Ensure comments just before a "case" are aligned with this case.
-    foreach (var token in ownedTokens) {
+    foreach (var token in allTokens) {
       switch (token.val) {
         case "case":
           SetIndentations(token.Prev, after: caseIndent);
@@ -2112,15 +2110,15 @@ public class IndentationFormatter : TopDownVisitor<int>, Formatting.IIndentation
     SetIndentations(token, indent + SpaceTab, indent + SpaceTab, indent + SpaceTab);
   }
 
-  /// For example, a closing brace
-  ///
-  /// var x: map<   T
-  ///           ,
-  ///               U
-  ///               // beforeIndent
-  ///           >   // this line indent's
-  ///           //  after liene indent
-  /// // not indented
+  // For example, a closing brace
+  //
+  // var x: map<   T
+  //           ,
+  //               U
+  //               // beforeIndent
+  //           >   // this line indent's
+  //           //  after liene indent
+  // // not indented
   private void SetClosingIndentedRegionAligned(IToken token, int beforeIndent, int indent) {
     SetIndentations(token, beforeIndent, indent, indent);
   }
