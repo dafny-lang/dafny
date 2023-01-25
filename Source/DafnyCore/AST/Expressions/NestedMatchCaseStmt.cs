@@ -9,7 +9,8 @@ public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration
   public readonly List<Statement> Body;
   public Attributes Attributes;
   Attributes IAttributeBearingDeclaration.Attributes => Attributes;
-  public NestedMatchCaseStmt(IToken tok, ExtendedPattern pat, List<Statement> body) : base(tok, pat) {
+  public NestedMatchCaseStmt(RangeToken rangeToken, ExtendedPattern pat, List<Statement> body) : base(rangeToken.StartToken, pat) {
+    RangeToken = rangeToken;
     Contract.Requires(body != null);
     this.Body = body;
     this.Attributes = null;
@@ -20,7 +21,7 @@ public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration
     this.Attributes = attrs;
   }
 
-  public override IEnumerable<INode> Children => new[] { Pat }.Concat<INode>(Body).Concat(Attributes?.Args ?? Enumerable.Empty<INode>());
+  public override IEnumerable<Node> Children => new[] { Pat }.Concat<Node>(Body).Concat(Attributes?.Args ?? Enumerable.Empty<Node>());
 
   public void Resolve(
     Resolver resolver,
@@ -31,9 +32,9 @@ public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration
 
     var boundVars = Pat.ReplaceTypesWithBoundVariables(resolver, resolutionContext).ToList();
     foreach (var boundVar in boundVars) {
-      var localVariable = new LocalVariable(boundVar.var.Tok, boundVar.var.Tok, boundVar.var.Name, boundVar.var.Type, boundVar.var.IsGhost);
-      var casePattern = new CasePattern<LocalVariable>(localVariable.EndTok, localVariable);
-      var varDecl = new VarDeclPattern(localVariable.Tok, localVariable.Tok, casePattern, boundVar.usage, false);
+      var localVariable = new LocalVariable(boundVar.var.RangeToken, boundVar.var.Name, boundVar.var.Type, boundVar.var.IsGhost);
+      var casePattern = new CasePattern<LocalVariable>(localVariable.RangeToken.EndToken, localVariable);
+      var varDecl = new VarDeclPattern(localVariable.Tok.ToRange(), casePattern, boundVar.usage, false);
       Body.Insert(0, varDecl);
     }
 

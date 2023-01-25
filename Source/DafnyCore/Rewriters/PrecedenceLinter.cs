@@ -248,7 +248,7 @@ namespace Microsoft.Dafny {
         Visit(expr, st);
         if (st.Column < rightMargin) {
           this.reporter.Warning(MessageSource.Rewriter, errorToken,
-            $"unusual indentation in {what} (which ends at {LineCol(expr.EndToken)}); do you perhaps need parentheses?");
+            $"unusual indentation in {what} (which ends at {LineCol(expr.RangeToken.EndToken)}); do you perhaps need parentheses?");
         }
       }
     }
