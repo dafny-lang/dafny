@@ -63,10 +63,9 @@ public class ForallStmt : Statement, ICloneable<ForallStmt> {
     }
   }
 
-  public ForallStmt(IToken tok, IToken endTok, List<BoundVar> boundVars, Attributes attrs, Expression range, List<AttributedExpression> ens, Statement body)
-    : base(tok, endTok, attrs) {
-    Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+  public ForallStmt(RangeToken rangeToken, List<BoundVar> boundVars, Attributes attrs, Expression range, List<AttributedExpression> ens, Statement body)
+    : base(rangeToken, attrs) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(cce.NonNullElements(boundVars));
     Contract.Requires(range != null);
     Contract.Requires(boundVars.Count != 0 || LiteralExpr.IsTrue(range));

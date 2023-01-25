@@ -191,7 +191,7 @@ do
       fi
       if [ "$command" == "%no-check" ]; then
         echo -n ""
-      elif [ "$command" == "%check-verify" -o "$command" == "%check-verify-warn" -o "$command" == "%check-resolve"  -o "$command" == "%check-run" -o "$command" == "%check-translate" -o "$command" == "%check-legacy" ]; then
+      elif [ "$command" == "%check-verify" -o "$command" == "%check-verify-warn" -o "$command" == "%check-resolve"  -o "$command" == "%check-run" -o "$command" == "%check-translate" -o "$command" == "%check-test" -o "$command" == "%check-resolve-warn"  -o "$command" == "%check-legacy" ]; then
         capture=1
         dOptions=$defOptions
         if [ "$command" == "%check-verify" ]; then
@@ -203,6 +203,9 @@ do
         elif [ "$command" == "%check-resolve" ]; then
           com=resolve
           ec=2
+        elif [ "$command" == "%check-resolve-warn" ]; then
+          com=resolve
+          ec=0
         elif [ "$command" == "%check-translate" ]; then
           com=translate
           ec=3
@@ -210,6 +213,10 @@ do
           com=run
           ec=0
           if [ "$useHeadings" == "1" ]; then ec=3; fi
+        elif [ "$command" == "%check-test" ]; then
+          com=test
+          ec=2
+          ##if [ "$useHeadings" == "1" ]; then ec=3; fi
         elif [ "$command" == "%check-legacy" ]; then
           com=
           ec=0
@@ -228,9 +235,13 @@ do
           fi
           actualec=$?
           if [ "$useHeadings" == "1" ]; then
-            act=`cat actual | grep Error | sed -e 's/^[^:]*: //'`
+            act=`cat actual | grep -E '(Error|Warning)' | sed -e 's/^[^:]*: //'`
             if [ -n "$msg" ]; then
               dif=`echo $act | sed -e "s/$msg//g" | sed -e 's/[ ]*//'`
+              if [ -z "$act" ] ; then
+                 echo NO ERROR MESSAGE FOUND
+                 FAIL=1
+              fi
               if [ -n "$dif" ] ; then
                  echo NO MATCH 
                  echo PAT "$msg"

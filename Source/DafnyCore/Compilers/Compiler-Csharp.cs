@@ -1475,6 +1475,7 @@ namespace Microsoft.Dafny.Compilers {
     // To improve readability
     private static bool CharIsRune => UnicodeCharEnabled;
     private static string CharTypeName => UnicodeCharEnabled ? "Dafny.Rune" : "char";
+    private static string CharTypeDescriptorName => DafnyHelpersClass + (UnicodeCharEnabled ? ".RUNE" : ".CHAR");
 
     private void ConvertFromChar(Expression e, ConcreteSyntaxTree wr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
       if (e.Type.IsCharType && UnicodeCharEnabled) {
@@ -1529,7 +1530,7 @@ namespace Microsoft.Dafny.Compilers {
       if (xType is BoolType) {
         return "false";
       } else if (xType is CharType) {
-        return CharType.DefaultValueAsString;
+        return UnicodeCharEnabled ? $"new {CharTypeName}({CharType.DefaultValueAsString})" : CharType.DefaultValueAsString;
       } else if (xType is IntType || xType is BigOrdinalType) {
         return "BigInteger.Zero";
       } else if (xType is RealType) {
@@ -1650,7 +1651,7 @@ namespace Microsoft.Dafny.Compilers {
       if (type is BoolType) {
         return "Dafny.Helpers.BOOL";
       } else if (type is CharType) {
-        return "Dafny.Helpers.CHAR";
+        return CharTypeDescriptorName;
       } else if (type is IntType || type is BigOrdinalType) {
         return "Dafny.Helpers.INT";
       } else if (type is RealType) {
@@ -1930,8 +1931,9 @@ namespace Microsoft.Dafny.Compilers {
       return startWr;
     }
 
-    protected override ConcreteSyntaxTree CreateForLoop(string indexVar, string bound, ConcreteSyntaxTree wr) {
-      return wr.NewNamedBlock("for (var {0} = 0; {0} < {1}; {0}++)", indexVar, bound);
+    protected override ConcreteSyntaxTree CreateForLoop(string indexVar, string bound, ConcreteSyntaxTree wr, string start = null) {
+      start = start ?? "0";
+      return wr.NewNamedBlock("for (var {0} = {2}; {0} < {1}; {0}++)", indexVar, bound, start);
     }
 
     protected override ConcreteSyntaxTree CreateDoublingForLoop(string indexVar, int start, ConcreteSyntaxTree wr) {
@@ -2000,37 +2002,30 @@ namespace Microsoft.Dafny.Compilers {
       arguments.Write(ConstructorArguments(initCall, wStmts, ctor, sep));
     }
 
-    // if checkRange is false, msg is ignored
-    // if checkRange is true and msg is null and the value is out of range, a generic message is emitted
-    // if checkRange is true and msg is not null and the value is out of range, msg is emitted in the error message
-    protected void TrExprAsInt(Expression expr, ConcreteSyntaxTree wr, bool inLetExprBody, ConcreteSyntaxTree wStmts,
-        bool checkRange = false, string msg = null) {
-      wr.Write($"{GetHelperModuleName()}.ToIntChecked(");
-      TrExpr(expr, wr, inLetExprBody, wStmts);
-      if (checkRange) {
-        wr.Write(msg == null ? ", null" : $", \"{msg}\")");
-      }
-    }
-
-    protected override void EmitNewArray(Type elmtType, IToken tok, List<Expression> dimensions,
-        bool mustInitialize, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      var wrs = EmitNewArray(elmtType, tok, dimensions.Count, mustInitialize, wr);
+    protected override void EmitNewArray(Type elementType, IToken tok, List<string> dimensions,
+        bool mustInitialize, [CanBeNull] string exampleElement, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      var wrs = EmitNewArray(elementType, tok, dimensions.Count, mustInitialize, wr);
       for (var i = 0; i < wrs.Count; i++) {
-        TrExprAsInt(dimensions[i], wrs[i], inLetExprBody: false, wStmts, true, "C# arrays may not be larger than the max 32-bit integer");
+        wrs[i].Write(dimensions[i]);
       }
     }
 
     private List<ConcreteSyntaxTree> EmitNewArray(Type elmtType, IToken tok, int dimCount, bool mustInitialize, ConcreteSyntaxTree wr) {
+      ConcreteSyntaxTree EmitSizeCheckWrapper(ConcreteSyntaxTree w) {
+        w.Write($"{DafnyHelpersClass}.ToIntChecked(");
+        var wSize = w.Fork();
+        w.Write(", \"array size exceeds memory limit\")");
+        return wSize;
+      }
+
       var wrs = new List<ConcreteSyntaxTree>();
       if (!mustInitialize || HasSimpleZeroInitializer(elmtType)) {
         TypeName_SplitArrayName(elmtType, wr, tok, out string typeNameSansBrackets, out string brackets);
         wr.Write("new {0}", typeNameSansBrackets);
         string prefix = "[";
         for (var d = 0; d < dimCount; d++) {
-          wr.Write($"{prefix}{DafnyHelpersClass}.ToIntChecked(");
-          var w = wr.Fork();
-          wrs.Add(w);
-          wr.Write(",\"C# array size must not be larger than max 32-bit int\")");
+          wr.Write(prefix);
+          wrs.Add(EmitSizeCheckWrapper(wr));
           prefix = ", ";
         }
         wr.Write("]{0}", brackets);
@@ -2040,8 +2035,7 @@ namespace Microsoft.Dafny.Compilers {
         inParens.Write(DefaultValue(elmtType, inParens, tok, true));
         for (var d = 0; d < dimCount; d++) {
           inParens.Write(", ");
-          var w = inParens.Fork();
-          wrs.Add(w);
+          wrs.Add(EmitSizeCheckWrapper(inParens));
         }
       }
       return wrs;
@@ -2109,9 +2103,10 @@ namespace Microsoft.Dafny.Compilers {
       } else if (e is StringLiteralExpr str) {
         wr.Format($"{DafnySeqClass}<{CharTypeName}>.{CharMethodQualifier}FromString({StringLiteral(str)})");
       } else if (AsNativeType(e.Type) != null) {
-        string nativeName = null, literalSuffix = null;
-        bool needsCastAfterArithmetic = false;
-        GetNativeInfo(AsNativeType(e.Type).Sel, out nativeName, out literalSuffix, out needsCastAfterArithmetic);
+        GetNativeInfo(AsNativeType(e.Type).Sel, out var nativeName, out var literalSuffix, out var needsCastAfterArithmetic);
+        if (needsCastAfterArithmetic) {
+          wr = wr.Write($"({nativeName})").ForkInParens();
+        }
         wr.Write((BigInteger)e.Value + literalSuffix);
       } else if (e.Value is BigInteger bigInteger) {
         EmitIntegerLiteral(bigInteger, wr);
@@ -2159,9 +2154,8 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, ConcreteSyntaxTree wr) {
       string nativeName = null, literalSuffix = null;
-      bool needsCastAfterArithmetic = false;
       if (bvType.NativeType != null) {
-        GetNativeInfo(bvType.NativeType.Sel, out nativeName, out literalSuffix, out needsCastAfterArithmetic);
+        GetNativeInfo(bvType.NativeType.Sel, out nativeName, out literalSuffix, out var needsCastAfterArithmetic);
       }
 
       // --- Before
@@ -2597,7 +2591,7 @@ namespace Microsoft.Dafny.Compilers {
       return w;
     }
 
-    protected override void EmitExprAsInt(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    protected override void EmitExprAsNativeInt(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       TrParenExpr("(int)", expr, wr, inLetExprBody, wStmts);
     }
 
@@ -2710,7 +2704,7 @@ namespace Microsoft.Dafny.Compilers {
         ixVar, TypeName(indexType, wrLoopBody, body.tok), intIxVar);
       var wrArrName = EmitArrayUpdate(new List<string> { ixVar }, body, wrLoopBody);
       wrArrName.Write(arrVar);
-      wrLoopBody.WriteLine(";");
+      EndStmt(wrLoopBody);
 
       wrLamBody.WriteLine("return {0}<{1}>.FromArray({2});", DafnySeqClass, TypeName(body.Type, wr, body.tok), arrVar);
     }

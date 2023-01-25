@@ -30,6 +30,8 @@ _This section is a work in progress_
 
 # **Name and Type Resolution Errors and Warnings**
 
+{% include_relative Errors-Rewriter.md %}
+
 _This section is a work in progress_
 
 # **Verification Errors**

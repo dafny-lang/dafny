@@ -204,9 +204,7 @@ namespace Microsoft.Dafny.Compilers {
     protected abstract void DeclareSubsetType(SubsetTypeDecl sst, ConcreteSyntaxTree wr);
     protected string GetNativeTypeName(NativeType nt) {
       Contract.Requires(nt != null);
-      string nativeName = null, literalSuffix = null;
-      bool needsCastAfterArithmetic = false;
-      GetNativeInfo(nt.Sel, out nativeName, out literalSuffix, out needsCastAfterArithmetic);
+      GetNativeInfo(nt.Sel, out var nativeName, out _, out _);
       return nativeName;
     }
     protected abstract void GetNativeInfo(NativeType.Selection sel, out string name, out string literalSuffix, out bool needsCastAfterArithmetic);
@@ -478,34 +476,35 @@ namespace Microsoft.Dafny.Compilers {
           ILvalue lhs = lhss[i];
           if (lexpr is IdentifierExpr) {
             lhssn.Add(lhs);
-          } else if (lexpr is MemberSelectExpr) {
-            var resolved = (MemberSelectExpr)lexpr;
-            string target = EmitAssignmentLhs(resolved.Obj, wr);
-            var typeArgs = TypeArgumentInstantiation.ListFromMember(resolved.Member, null, resolved.TypeApplication_JustMember);
-            ILvalue newLhs = EmitMemberSelect(w => w.Write(target), resolved.Obj.Type, resolved.Member, typeArgs, resolved.TypeArgumentSubstitutionsWithParents(), resolved.Type, internalAccess: enclosingMethod is Constructor);
+
+          } else if (lexpr is MemberSelectExpr memberSelectExpr) {
+            string target = EmitAssignmentLhs(memberSelectExpr.Obj, wr);
+            var typeArgs = TypeArgumentInstantiation.ListFromMember(memberSelectExpr.Member,
+              null, memberSelectExpr.TypeApplication_JustMember);
+            ILvalue newLhs = EmitMemberSelect(w => w.Write(target), memberSelectExpr.Obj.Type, memberSelectExpr.Member, typeArgs,
+              memberSelectExpr.TypeArgumentSubstitutionsWithParents(), memberSelectExpr.Type, internalAccess: enclosingMethod is Constructor);
             lhssn.Add(newLhs);
-          } else if (lexpr is SeqSelectExpr) {
-            var seqExpr = (SeqSelectExpr)lexpr;
-            string targetArray = EmitAssignmentLhs(seqExpr.Seq, wr);
-            string targetIndex = EmitAssignmentLhs(seqExpr.E0, wr);
-            if (seqExpr.Seq.Type.IsArrayType || seqExpr.Seq.Type.AsSeqType != null) {
-              targetIndex = ArrayIndexToNativeInt(targetIndex, seqExpr.E0.Type);
+
+          } else if (lexpr is SeqSelectExpr selectExpr) {
+            string targetArray = EmitAssignmentLhs(selectExpr.Seq, wr);
+            string targetIndex = EmitAssignmentLhs(selectExpr.E0, wr);
+            if (selectExpr.Seq.Type.IsArrayType || selectExpr.Seq.Type.AsSeqType != null) {
+              targetIndex = ArrayIndexToNativeInt(targetIndex, selectExpr.E0.Type);
             }
-            ILvalue newLhs = EmitArraySelectAsLvalue(targetArray,
-              new List<string>() { targetIndex }, lhsTypes[i]);
+            ILvalue newLhs = new ArrayLvalueImpl(this, targetArray, new List<string>() { targetIndex }, lhsTypes[i]);
             lhssn.Add(newLhs);
-          } else if (lexpr is MultiSelectExpr) {
-            var seqExpr = (MultiSelectExpr)lexpr;
-            Expression array = seqExpr.Array;
-            List<Expression> indices = seqExpr.Indices;
-            string targetArray = EmitAssignmentLhs(array, wr);
+
+          } else if (lexpr is MultiSelectExpr multiSelectExpr) {
+            string targetArray = EmitAssignmentLhs(multiSelectExpr.Array, wr);
             var targetIndices = new List<string>();
-            foreach (var index in indices) {
+            foreach (var index in multiSelectExpr.Indices) {
               string targetIndex = EmitAssignmentLhs(index, wr);
+              targetIndex = ArrayIndexToNativeInt(targetIndex, index.Type);
               targetIndices.Add(targetIndex);
             }
-            ILvalue newLhs = EmitArraySelectAsLvalue(targetArray, targetIndices, lhsTypes[i]);
+            ILvalue newLhs = new ArrayLvalueImpl(this, targetArray, targetIndices, lhsTypes[i]);
             lhssn.Add(newLhs);
+
           } else {
             Contract.Assert(false); // Unknown kind of expression
             lhssn.Add(lhs);
@@ -598,7 +597,11 @@ namespace Microsoft.Dafny.Compilers {
       var wBody = wr.NewBlock(")");
       return wBody;
     }
-    protected abstract ConcreteSyntaxTree CreateForLoop(string indexVar, string bound, ConcreteSyntaxTree wr);
+
+    /// <summary>
+    /// Create a for loop where the type of the index variable, along with "start" and "bound", is the native array-index type.
+    /// </summary>
+    protected abstract ConcreteSyntaxTree CreateForLoop(string indexVar, string bound, ConcreteSyntaxTree wr, string start = null);
     protected abstract ConcreteSyntaxTree CreateDoublingForLoop(string indexVar, int start, ConcreteSyntaxTree wr);
     protected abstract void EmitIncrementVar(string varName, ConcreteSyntaxTree wr);  // increments a BigInteger by 1
     protected abstract void EmitDecrementVar(string varName, ConcreteSyntaxTree wr);  // decrements a BigInteger by 1
@@ -707,8 +710,42 @@ namespace Microsoft.Dafny.Compilers {
       }
       return (arguments.Any() ? sep : "") + arguments.Comma();
     }
-    protected abstract void EmitNewArray(Type elmtType, IToken tok, List<Expression> dimensions,
-      bool mustInitialize, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);
+
+    protected virtual bool DeterminesArrayTypeFromExampleElement => false;
+
+    protected virtual string ArrayIndexLiteral(int x) => x.ToString();
+
+    /// <summary>
+    /// Allocates a new array with element type "elementType" and lengths "dimensions" in each dimension.
+    /// Note that "elementType" may denote a type parameter.
+    ///
+    /// Each string in "dimensions" is generated as a Dafny "int" (that is, a BigInteger).
+    ///
+    /// If "mustInitialize" is true, then fills each array element with a default value of type "elementType".
+    /// In this case, "exampleElement" must be null.
+    ///
+    /// If "mustInitialize" is false, then the array's elements are left uninitialized.
+    /// In this case, "exampleElement" may be non-null as a guide to figuring out what run-time type the array should have.
+    /// Note that "exampleElement" is not written to the array.
+    ///
+    /// "exampleElement" is always null if "DeterminesArrayTypeFromExampleElement" is false.
+    /// </summary>
+    protected abstract void EmitNewArray(Type elementType, IToken tok, List<string> dimensions,
+      bool mustInitialize, [CanBeNull] string exampleElement, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);
+
+    /// <summary>
+    /// Same as the EmitNewArray overload above, except that "dimensions" is "List<Expression>" instead of "List<string>".
+    /// </summary>
+    protected void EmitNewArray(Type elementType, IToken tok, List<Expression> dimensions,
+      bool mustInitialize, [CanBeNull] string exampleElement, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+
+      var dimStrings = dimensions.ConvertAll(expr => {
+        var wrDim = new ConcreteSyntaxTree();
+        TrExpr(expr, ExprToInt(expr.Type, wrDim), false, wStmts);
+        return wrDim.ToString();
+      });
+      EmitNewArray(elementType, tok, dimStrings, mustInitialize, exampleElement, wr, wStmts);
+    }
 
     protected abstract void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e);
     protected abstract void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr);
@@ -1049,42 +1086,51 @@ namespace Microsoft.Dafny.Compilers {
     protected abstract ILvalue EmitMemberSelect(Action<ConcreteSyntaxTree> obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
       Type expectedType, string/*?*/ additionalCustomParameter = null, bool internalAccess = false);
 
+    /// <summary>
+    /// The "indices" are expected to already be of the native array-index type.
+    /// </summary>
     protected abstract ConcreteSyntaxTree EmitArraySelect(List<string> indices, Type elmtType, ConcreteSyntaxTree wr);
     protected abstract ConcreteSyntaxTree EmitArraySelect(List<Expression> indices, Type elmtType, bool inLetExprBody,
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);
-    protected virtual ILvalue EmitArraySelectAsLvalue(string array, List<string> indices, Type elmtType) {
-      return SimpleLvalue(wr => {
-        wr.Write(array);
-        EmitArraySelect(indices, elmtType, wr);
-      });
-    }
-    protected virtual ConcreteSyntaxTree EmitArrayUpdate(List<string> indices, string rhs, Type elmtType, ConcreteSyntaxTree wr) {
-      var w = EmitArraySelect(indices, elmtType, wr);
-      wr.Write(" = {0}", rhs);
-      return w;
+
+    /// <summary>
+    /// The "indices" are expected to already be of the native array-index type.
+    /// </summary>
+    protected virtual (ConcreteSyntaxTree wArray, ConcreteSyntaxTree wRhs) EmitArrayUpdate(List<string> indices, Type elementType, ConcreteSyntaxTree wr) {
+      var wArray = EmitArraySelect(indices, elementType, wr);
+      wr.Write(" = ");
+      var wRhs = wr.Fork();
+      return (wArray, wRhs);
     }
     protected ConcreteSyntaxTree EmitArrayUpdate(List<string> indices, Expression rhs, ConcreteSyntaxTree wr) {
-      var w = new ConcreteSyntaxTree(wr.RelativeIndentLevel);
-      TrExpr(rhs, w, false, wr);
-      return EmitArrayUpdate(indices, w.ToString(), rhs.Type, wr);
+      var (wArray, wRhs) = EmitArrayUpdate(indices, rhs.Type, wr);
+      TrExpr(rhs, wRhs, false, wr);
+      return wArray;
     }
-    protected virtual string ArrayIndexToInt(string arrayIndex, Type fromType) {
+    /// <summary>
+    /// Given a target-language expression "arrayIndex" that of the target array-index type, return an
+    /// expression that denotes "arrayIndex" as a Dafny "int" (that is, a BigInteger).
+    /// </summary>
+    protected virtual string ArrayIndexToInt(string arrayIndex) {
       Contract.Requires(arrayIndex != null);
-      Contract.Requires(fromType != null);
       return arrayIndex;
+    }
+
+    protected virtual ConcreteSyntaxTree ExprToInt(Type fromType, ConcreteSyntaxTree wr) {
+      return wr;
     }
     protected virtual string ArrayIndexToNativeInt(string arrayIndex, Type fromType) {
       Contract.Requires(arrayIndex != null);
       Contract.Requires(fromType != null);
       return arrayIndex;
     }
-    protected abstract void EmitExprAsInt(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr,
+    protected abstract void EmitExprAsNativeInt(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr,
       ConcreteSyntaxTree wStmts);
     protected abstract void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);
     protected abstract void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value,
       CollectionType resultCollectionType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);
-    protected virtual void EmitIndexCollectionUpdate(out ConcreteSyntaxTree wSource, out ConcreteSyntaxTree wIndex, out ConcreteSyntaxTree wValue, ConcreteSyntaxTree wr, bool nativeIndex) {
+    protected virtual void EmitIndexCollectionUpdate(Type sourceType, out ConcreteSyntaxTree wSource, out ConcreteSyntaxTree wIndex, out ConcreteSyntaxTree wValue, ConcreteSyntaxTree wr, bool nativeIndex) {
       wSource = wr.Fork();
       wr.Write('[');
       wIndex = wr.Fork();
@@ -1618,7 +1664,7 @@ namespace Microsoft.Dafny.Compilers {
                   hasMain = true;
                 } else {
                   // more than one main in the program
-                  ReportError(program.Reporter, m.tok, "More than one method is marked '{{:main}}'. First declaration appeared at {0}.", null,
+                  ReportError(program.Reporter, m.tok, "More than one method is marked {{:main}}. First declaration appeared at {0}.", null,
                     ErrorReporter.TokenToString(mainMethod.tok));
                   hasMain = false;
                 }
@@ -1629,7 +1675,7 @@ namespace Microsoft.Dafny.Compilers {
       }
       if (hasMain) {
         if (!IsPermittedAsMain(program, mainMethod, out string reason)) {
-          ReportError(program.Reporter, mainMethod.tok, "This method marked '{{:main}}' is not permitted as a main method ({0}).", null, reason);
+          ReportError(program.Reporter, mainMethod.tok, "This method marked {{:main}} is not permitted as a main method ({0}).", null, reason);
           mainMethod = null;
           return false;
         } else {
@@ -2403,7 +2449,7 @@ namespace Microsoft.Dafny.Compilers {
         IVariable accVar = null;
         if (f.IsTailRecursive) {
           if (f.IsAccumulatorTailRecursive) {
-            accVar = new LocalVariable(f.tok, f.tok, "_accumulator", f.ResultType, false) {
+            accVar = new LocalVariable(f.RangeToken, "_accumulator", f.ResultType, false) {
               type = f.ResultType
             };
             Expression unit;
@@ -2485,7 +2531,7 @@ namespace Microsoft.Dafny.Compilers {
         var ty = UserDefinedType.FromTopLevelDeclWithAllBooleanTypeParameters(m.EnclosingClass);
         LocalVariable receiver = null;
         if (!m.IsStatic) {
-          receiver = new LocalVariable(m.tok, m.tok, "b", ty, false) {
+          receiver = new LocalVariable(m.RangeToken, "b", ty, false) {
             type = ty
           };
           if (m.EnclosingClass is ClassDecl) {
@@ -3409,13 +3455,13 @@ namespace Microsoft.Dafny.Compilers {
           var lhs = (SeqSelectExpr)s0.Lhs;
           TrExpr(lhs.Seq, wrTuple, false, wStmts);
           wrTuple.Write(", ");
-          EmitExprAsInt(lhs.E0, false, wrTuple, wStmts);
+          EmitExprAsNativeInt(lhs.E0, false, wrTuple, wStmts);
         } else {
           var lhs = (MultiSelectExpr)s0.Lhs;
           TrExpr(lhs.Array, wrTuple, false, wStmts);
           for (int i = 0; i < lhs.Indices.Count; i++) {
             wrTuple.Write(", ");
-            EmitExprAsInt(lhs.Indices[i], false, wrTuple, wStmts);
+            EmitExprAsNativeInt(lhs.Indices[i], false, wrTuple, wStmts);
           }
         }
 
@@ -3448,7 +3494,7 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual void EmitSeqSelect(AssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup) {
       var lhs = (SeqSelectExpr)s0.Lhs;
       ConcreteSyntaxTree wColl, wIndex, wValue;
-      EmitIndexCollectionUpdate(out wColl, out wIndex, out wValue, wr, nativeIndex: true);
+      EmitIndexCollectionUpdate(lhs.Seq.Type, out wColl, out wIndex, out wValue, wr, nativeIndex: true);
       var wCoerce = EmitCoercionIfNecessary(from: null, to: lhs.Seq.Type, tok: s0.Tok, wr: wColl);
       EmitTupleSelect(tup, 0, wCoerce);
       var wCast = EmitCoercionToNativeInt(wIndex);
@@ -3466,12 +3512,12 @@ namespace Microsoft.Dafny.Compilers {
       var indices = new List<string>();
       for (int i = 0; i < lhs.Indices.Count; i++) {
         var wIndex = new ConcreteSyntaxTree();
-        EmitTupleSelect(tup, i + 1, wIndex);
+        EmitTupleSelect(tup, i + 1, EmitCoercionToNativeInt(wIndex));
         indices.Add(wIndex.ToString());
       }
-      var lvalue = EmitArraySelectAsLvalue(array, indices, tupleTypeArgsList[L - 1]);
-      var wRhs = lvalue.EmitWrite(wr);
-      EmitTupleSelect(tup, L - 1, wRhs);
+      var (wrArray, wrRhs) = EmitArrayUpdate(indices, tupleTypeArgsList[L - 1], wr);
+      EmitTupleSelect(tup, L - 1, wrRhs);
+      wrArray.Write(array);
       EndStmt(wr);
     }
 
@@ -3935,6 +3981,35 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    private class ArrayLvalueImpl : ILvalue {
+      private readonly SinglePassCompiler compiler;
+      private readonly string array;
+      private readonly List<string> indices;
+      private readonly Type lhsType;
+
+      /// <summary>
+      /// The "indices" are expected to already be of the native array-index type.
+      /// </summary>
+      public ArrayLvalueImpl(SinglePassCompiler compiler, string array, List<string> indices, Type lhsType) {
+        this.compiler = compiler;
+        this.array = array;
+        this.indices = indices;
+        this.lhsType = lhsType;
+      }
+
+      public void EmitRead(ConcreteSyntaxTree wr) {
+        var wrArray = compiler.EmitArraySelect(indices, lhsType, wr);
+        wrArray.Write(array);
+      }
+
+      public ConcreteSyntaxTree EmitWrite(ConcreteSyntaxTree wr) {
+        var (wrArray, wrRhs) = compiler.EmitArrayUpdate(indices, lhsType, wr);
+        wrArray.Write(array);
+        compiler.EndStmt(wr);
+        return wrRhs;
+      }
+    }
+
     ILvalue CreateLvalue(Expression lhs, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       Contract.Requires(lhs != null);
       Contract.Requires(wr != null);
@@ -3943,6 +4018,7 @@ namespace Microsoft.Dafny.Compilers {
       if (lhs is IdentifierExpr) {
         var ll = (IdentifierExpr)lhs;
         return StringLvalue(IdName(ll.Var));
+
       } else if (lhs is MemberSelectExpr) {
         var ll = (MemberSelectExpr)lhs;
         Contract.Assert(!ll.Member.IsInstanceIndependentConstant);  // instance-independent const's don't have assignment statements
@@ -3950,6 +4026,7 @@ namespace Microsoft.Dafny.Compilers {
         var typeArgs = TypeArgumentInstantiation.ListFromMember(ll.Member, null, ll.TypeApplication_JustMember);
         return EmitMemberSelect(w => w.Write(obj), ll.Obj.Type, ll.Member, typeArgs, ll.TypeArgumentSubstitutionsWithParents(), lhs.Type,
           internalAccess: enclosingMethod is Constructor);
+
       } else if (lhs is SeqSelectExpr) {
         var ll = (SeqSelectExpr)lhs;
         var arr = StabilizeExpr(ll.Seq, "_arr", wr, wStmts);
@@ -3957,7 +4034,8 @@ namespace Microsoft.Dafny.Compilers {
         if (ll.Seq.Type.IsArrayType || ll.Seq.Type.AsSeqType != null) {
           index = ArrayIndexToNativeInt(index, ll.E0.Type);
         }
-        return EmitArraySelectAsLvalue(arr, new List<string>() { index }, ll.Type);
+        return new ArrayLvalueImpl(this, arr, new List<string>() { index }, ll.Type);
+
       } else {
         var ll = (MultiSelectExpr)lhs;
         string arr = StabilizeExpr(ll.Array, "_arr", wr, wStmts);
@@ -3969,7 +4047,7 @@ namespace Microsoft.Dafny.Compilers {
           indices.Add(index);
           i++;
         }
-        return EmitArraySelectAsLvalue(arr, indices, ll.Type);
+        return new ArrayLvalueImpl(this, arr, indices, ll.Type);
       }
     }
 
@@ -4050,54 +4128,242 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(!(rhs is HavocRhs));
       Contract.Requires(wr != null);
 
-      var tRhs = rhs as TypeRhs;
+      var typeRhs = rhs as TypeRhs;
 
-      if (tRhs == null) {
-        var eRhs = (ExprRhs)rhs;  // it's not HavocRhs (by the precondition) or TypeRhs (by the "if" test), so it's gotta be ExprRhs
+      if (typeRhs == null) {
+        var eRhs = (ExprRhs)rhs; // it's not HavocRhs (by the precondition) or TypeRhs (by the "if" test), so it's gotta be ExprRhs
         TrExpr(eRhs.Expr, wr, false, wStmts);
-      } else {
-        var nw = ProtectedFreshId("_nw");
-        var pwStmts = wStmts.Fork();
-        var wRhs = DeclareLocalVar(nw, tRhs.Type, rhs.Tok, wStmts);
-        TrTypeRhs(tRhs, wRhs, pwStmts);
 
+      } else if (typeRhs.ArrayDimensions != null) {
+        var nw = ProtectedFreshId("_nw");
+        TrRhsArray(typeRhs, nw, wr, wStmts);
+        wr.Write(nw);
+
+      } else {
+        // Allocate and initialize a new object
+        var nw = ProtectedFreshId("_nw");
+        var wRhs = DeclareLocalVar(nw, typeRhs.Type, rhs.Tok, wStmts);
+        var constructor = typeRhs.InitCall?.Method as Constructor;
+        EmitNew(typeRhs.EType, typeRhs.Tok, constructor != null ? typeRhs.InitCall : null, wRhs, wStmts);
         // Proceed with initialization
-        if (tRhs.InitCall != null) {
-          string q, n;
-          if (tRhs.InitCall.Method is Constructor && tRhs.InitCall.Method.IsExtern(out q, out n)) {
+        if (typeRhs.InitCall != null) {
+          if (constructor != null && constructor.IsExtern(out _, out _)) {
             // initialization was done at the time of allocation
           } else {
-            TrCallStmt(tRhs.InitCall, nw, wStmts);
-          }
-        } else if (tRhs.ElementInit != null) {
-          // Compute the array-initializing function once and for all (as required by the language definition)
-          var f = ProtectedFreshId("_arrayinit");
-          DeclareLocalVar(f, tRhs.ElementInit.Type, tRhs.ElementInit.tok, tRhs.ElementInit, false, wStmts);
-          // Build a loop nest that will call the initializer for all indices
-          var indices = Util.Map(Enumerable.Range(0, tRhs.ArrayDimensions.Count), ii => ProtectedFreshId("_arrayinit_" + ii));
-          var w = wStmts;
-          for (var d = 0; d < tRhs.ArrayDimensions.Count; d++) {
-            string len, pre, post;
-            GetSpecialFieldInfo(SpecialField.ID.ArrayLength, tRhs.ArrayDimensions.Count == 1 ? null : d, tRhs.Type, out len, out pre, out post);
-            var bound = $"{pre}{nw}{(len == "" ? "" : "." + len)}{post}";
-            w = CreateForLoop(indices[d], bound, w);
-          }
-          var eltRhs = string.Format("{0}{2}({1})", f, indices.Comma(idx => ArrayIndexToInt(idx, Type.Int)), LambdaExecute);
-          var wArray = EmitArrayUpdate(indices, eltRhs, tRhs.EType, w);
-          wArray.Write(nw);
-          EndStmt(w);
-        } else if (tRhs.InitDisplay != null) {
-          var ii = 0;
-          foreach (var v in tRhs.InitDisplay) {
-            var wArray = EmitArrayUpdate(new List<string> { ii.ToString() }, v, wStmts);
-            wArray.Write(nw);
-            EndStmt(wStmts);
-            ii++;
+            TrCallStmt(typeRhs.InitCall, nw, wStmts);
           }
         }
-
         // Assign to the final LHS
         wr.Write(nw);
+      }
+    }
+
+    /// <summary>
+    /// Translate the right-hand side of an assignment.
+    /// </summary>
+    /// <param name="rhs">The RHS to translate</param>
+    /// <param name="nw">Name of the variable to hold the array to be allocated</param>
+    /// <param name="wr">The writer at the position for the translated RHS</param>
+    /// <param name="wStmts">A writer at an earlier position where extra statements may be written</param>
+    void TrRhsArray(TypeRhs typeRhs, string nw, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      Contract.Requires(typeRhs.ArrayDimensions != null);
+
+      if (typeRhs.ElementInit == null &&
+          (typeRhs.InitDisplay == null || typeRhs.InitDisplay.Count == 0)) {
+        // This is either
+        //   * an array with an auto-init element type, where no other initialization is given, or
+        //   * a 0-length array (as evidenced by the given 0-length .InitDisplay or as confirmed by the verifier for a non-auto-init element type).
+        var pwStmts = wStmts.Fork();
+        var wRhs = DeclareLocalVar(nw, typeRhs.Type, typeRhs.Tok, wStmts);
+        EmitNewArray(typeRhs.EType, typeRhs.Tok, typeRhs.ArrayDimensions,
+          typeRhs.EType.HasCompilableValue && !DatatypeWrapperEraser.CanBeLeftUninitialized(typeRhs.EType),
+          null, wRhs, pwStmts);
+        return;
+      }
+
+      if (typeRhs.ElementInit == null) {
+        Contract.Assert((typeRhs.InitDisplay != null && typeRhs.InitDisplay.Count != 0) || DatatypeWrapperEraser.CanBeLeftUninitialized(typeRhs.EType));
+
+        string nwElement0;
+        if (DeterminesArrayTypeFromExampleElement) {
+          // We use the first element of the array as an "example" for the array to be allocated
+          nwElement0 = ProtectedFreshId("_nwElement0_");
+          var wrElement0 = DeclareLocalVar(nwElement0, typeRhs.EType, typeRhs.InitDisplay[0].tok, wStmts);
+          TrExpr(typeRhs.InitDisplay[0], wrElement0, false, wStmts);
+        } else {
+          nwElement0 = null;
+        }
+
+        var pwStmts = wStmts.Fork();
+        var wRhs = DeclareLocalVar(nw, typeRhs.Type, typeRhs.Tok, wStmts);
+        EmitNewArray(typeRhs.EType, typeRhs.Tok, typeRhs.ArrayDimensions, false, nwElement0, wRhs, pwStmts);
+
+        var ii = 0;
+        foreach (var v in typeRhs.InitDisplay) {
+          pwStmts = wStmts.Fork();
+          var (wArray, wElement) = EmitArrayUpdate(new List<string> { ii.ToString() }, v.Type, wStmts);
+          if (ii == 0 && nwElement0 != null) {
+            wElement.Write(nwElement0);
+          } else {
+            TrExpr(v, wElement, false, pwStmts);
+          }
+          wArray.Write(nw);
+          EndStmt(wStmts);
+          ii++;
+        }
+
+      } else if (DeterminesArrayTypeFromExampleElement) {
+        // For a 3-dimensional array allocation
+        //     m := new X[e0, e1, e2](InitFunction);
+        // generate:
+        //     var _len0 := e0;
+        //     var _len1 := e1;
+        //     var _len2 := e2;
+        //     var _nw;
+        //     if e0 == 0 || e1 == 0 || e2 == 0 {
+        //       _nw := NewArray(X, _len0, _len1, _len2);
+        //     } else {
+        //       var _init := InitFunction;
+        //       var _element0 := _init(0, 0, 0);
+        //       _nw := NewArrayFromExample(X, _element0, _len0, _len1, _len2);
+        //       ArrayUpdate(_nw, _element0, 0, 0, 0);
+        //       var _nativeLen0 := IntToArrayIndex(_len0);
+        //       var _nativeLen1 := IntToArrayIndex(_len1);
+        //       var _nativeLen2 := IntToArrayIndex(_len2);
+        //       var _start := 1;
+        //       for (var _i0 := 0; _i0 < _nativeLen0; _i0++) {
+        //         for (var _i1 := 0; _i1 < _nativeLen1; _i1++) {
+        //           for (var _i2 := _start; _i2 < _nativeLen2; _i2++) {
+        //             ArrayUpdate(_nw, _init(_i0, _i1, _i2), _i0, _i1, _i2);
+        //           }
+        //           _start := 0; // omit, if there's only one dimension
+        //         }
+        //       }
+        //     }
+        // Put the array dimensions into local variables
+        var dimNames = new List<string>();
+        for (var d = 0; d < typeRhs.ArrayDimensions.Count; d++) {
+          var dim = typeRhs.ArrayDimensions[d];
+          var dimName = ProtectedFreshId($"_len{d}_");
+          dimNames.Add(dimName);
+          var wrDim = DeclareLocalVar(dimName, Type.Int, dim.tok, wStmts);
+          wrDim = ExprToInt(dim.Type, wrDim);
+          TrExpr(dim, wrDim, false, wStmts);
+        }
+
+        // Declare the _nw variable
+        DeclareLocalVar(nw, typeRhs.Type, typeRhs.Tok, false, null, wStmts);
+
+        // Generate if statement
+        var wThen = EmitIf(out var guardWriter, true, wStmts);
+        for (var d = 0; d < typeRhs.ArrayDimensions.Count; d++) {
+          if (d != 0) {
+            guardWriter.Write(" || ");
+          }
+          EmitIsZero(dimNames[d], guardWriter);
+        }
+        var wRhs = new ConcreteSyntaxTree();
+        EmitNewArray(typeRhs.EType, typeRhs.Tok, dimNames, false, null, wRhs, wThen);
+        EmitAssignment(nw, typeRhs.Type, wRhs.ToString(), typeRhs.Type, wThen);
+
+        var wElse = EmitBlock(wStmts);
+
+        // Put the array-initializing function into a local variable
+        string init = ProtectedFreshId("_init");
+        DeclareLocalVar(init, typeRhs.ElementInit.Type, typeRhs.ElementInit.tok, typeRhs.ElementInit, false, wElse);
+
+        // var _element0 := _init(0, 0, 0);
+        var initFunctionType = typeRhs.ElementInit.Type.AsArrowType;
+        Contract.Assert(initFunctionType != null && initFunctionType.Arity == typeRhs.ArrayDimensions.Count);
+        var element0 = ProtectedFreshId($"_element0_");
+        wRhs = DeclareLocalVar(element0, null, typeRhs.Tok, wElse);
+        wRhs.Write("{0}{1}({2})", init, LambdaExecute, initFunctionType.Args.Comma(argumentType => {
+          var zero = Expression.CreateIntLiteral(typeRhs.Tok, 0, argumentType);
+          return Expr(zero, false, wElse).ToString();
+        }));
+
+        // _nw := NewArrayFromExample(X, _element0, _len0, _len1, _len2);
+        wRhs = new ConcreteSyntaxTree();
+        EmitNewArray(typeRhs.EType, typeRhs.Tok, dimNames, false, element0, wRhs, wElse);
+        EmitAssignment(nw, typeRhs.Type, wRhs.ToString(), typeRhs.Type, wElse);
+
+        // _nw[0, 0, 0] := _element0;
+        var indices = Util.Map(Enumerable.Range(0, typeRhs.ArrayDimensions.Count), _ => ArrayIndexLiteral(0));
+        var (wArray, wrRhs) = EmitArrayUpdate(indices, typeRhs.EType, wElse);
+        wrRhs.Write(element0);
+        wArray.Write(nw);
+        EndStmt(wElse);
+
+        // Compute native array dimensions
+        var nativeDimNames = new List<string>();
+        for (var d = 0; d < typeRhs.ArrayDimensions.Count; d++) {
+          var dim = typeRhs.ArrayDimensions[d];
+          var nativeDimName = ProtectedFreshId($"_nativeLen{d}_");
+          nativeDimNames.Add(nativeDimName);
+          var wrDim = DeclareLocalVar(nativeDimName, null, dim.tok, wElse);
+          wrDim.Write(ArrayIndexToNativeInt(dimNames[d], Type.Int));
+        }
+
+        // var _start := 1;
+        string startName;
+        if (typeRhs.ArrayDimensions.Count == 1) {
+          startName = ArrayIndexLiteral(1);
+        } else {
+          startName = ProtectedFreshId($"_start");
+          DeclareLocalVar(startName, null, typeRhs.Tok, false, ArrayIndexLiteral(1), wElse);
+        }
+
+        // Build a nested loop that will call the initializer for all indices
+        indices = Util.Map(Enumerable.Range(0, typeRhs.ArrayDimensions.Count), ii => ProtectedFreshId($"_i{ii}_"));
+        var w = wElse;
+        for (var d = 0; d < typeRhs.ArrayDimensions.Count; d++) {
+          var innerMostLoop = d == typeRhs.ArrayDimensions.Count - 1;
+          var wLoopBody = CreateForLoop(indices[d], nativeDimNames[d], w, innerMostLoop ? startName : null);
+          if (typeRhs.ArrayDimensions.Count != 1 && innerMostLoop) {
+            EmitAssignment(startName, Type.Int, ArrayIndexLiteral(0), Type.Int, w);
+          }
+          w = wLoopBody;
+        }
+        (wArray, wrRhs) = EmitArrayUpdate(indices, typeRhs.EType, w);
+        wrRhs.Write("{0}{1}({2})", init, LambdaExecute, Enumerable.Range(0, indices.Count).Comma(idx => ArrayIndexToInt(indices[idx])));
+        wArray.Write(nw);
+        EndStmt(w);
+
+      } else {
+        // For a 3-dimensional array allocation
+        //     m := new X[e0, e1, e2](InitFunction);
+        // generate:
+        //     var _init := InitFunction;
+        //     var _nw := NewArray(X, e0, e1, e2);
+        //     for (var _i0 := 0; _i0 < _nw.Length0; _i0++) {
+        //       for (var _i1 := 0; _i1 < _nw.Length1; _i1++) {
+        //         for (var _i2 := 0; _i2 < _nw.Length2; _i2++) {
+        //           ArrayUpdate(_nw, _init(_i0, _i1, _i2), _i0, _i1, _i2);
+        //         }
+        //       }
+        //     }
+
+        // Put the array-initializing function into a local variable
+        string init = ProtectedFreshId("_init");
+        DeclareLocalVar(init, typeRhs.ElementInit.Type, typeRhs.ElementInit.tok, typeRhs.ElementInit, false, wStmts);
+
+        var pwStmts = wStmts.Fork();
+        var wRhs = DeclareLocalVar(nw, typeRhs.Type, typeRhs.Tok, wStmts);
+        EmitNewArray(typeRhs.EType, typeRhs.Tok, typeRhs.ArrayDimensions, false, null, wRhs, pwStmts);
+
+        // Build a nested loop that will call the initializer for all indices
+        var indices = Util.Map(Enumerable.Range(0, typeRhs.ArrayDimensions.Count), ii => ProtectedFreshId($"_i{ii}_"));
+        var w = wStmts;
+        for (var d = 0; d < typeRhs.ArrayDimensions.Count; d++) {
+          GetSpecialFieldInfo(SpecialField.ID.ArrayLength, typeRhs.ArrayDimensions.Count == 1 ? null : d, typeRhs.Type,
+            out var len, out var pre, out var post);
+          var bound = $"{pre}{nw}{(len == "" ? "" : "." + len)}{post}";
+          w = CreateForLoop(indices[d], bound, w);
+        }
+        var (wArray, wrRhs) = EmitArrayUpdate(indices, typeRhs.EType, w);
+        wrRhs.Write("{0}{1}({2})", init, LambdaExecute, indices.Comma(idx => ArrayIndexToInt(idx)));
+        wArray.Write(nw);
+        EndStmt(w);
       }
     }
 
@@ -4178,7 +4444,7 @@ namespace Microsoft.Dafny.Compilers {
               // The method Gimme will be compiled down to Go (or JavaScript)
               // as a function which returns any value (some details omitted):
               //
-              //   func Gimmie(ty _dafny.Type) interface{} {
+              //   func Gimmie(ty _dafny.Type) any {
               //     return ty.Default()
               //   }
               //
@@ -4192,7 +4458,7 @@ namespace Microsoft.Dafny.Compilers {
               // returned.  Therefore what we want to do is this:
               //
               //   var lhs dafny.Int
-              //   var _out interface{}
+              //   var _out any
               //
               //   _out = Gimmie(dafny.IntType)
               //
@@ -4378,25 +4644,6 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Assert(n == inTmps.Count);
       // finally, the jump back to the head of the method
       EmitJumpToTailCallStart(wr);
-    }
-
-    /// <summary>
-    /// Before calling TrAssignmentRhs(rhs), the caller must have spilled the let variables declared in "tp".
-    /// </summary>
-    void TrTypeRhs(TypeRhs tp, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      Contract.Requires(tp != null);
-      Contract.Requires(wr != null);
-
-      if (tp.ArrayDimensions == null) {
-        var initCall = tp.InitCall != null && tp.InitCall.Method is Constructor ? tp.InitCall : null;
-        EmitNew(tp.EType, tp.Tok, initCall, wr, wStmts);
-      } else if (tp.ElementInit != null || tp.InitDisplay != null || DatatypeWrapperEraser.CanBeLeftUninitialized(tp.EType)) {
-        EmitNewArray(tp.EType, tp.Tok, tp.ArrayDimensions, false, wr, wStmts);
-      } else {
-        // If an initializer is not known, the only way the verifier would have allowed this allocation
-        // is if the requested size is 0.
-        EmitNewArray(tp.EType, tp.Tok, tp.ArrayDimensions, tp.EType.HasCompilableValue, wr, wStmts);
-      }
     }
 
     protected virtual void TrStmtList(List<Statement> stmts, ConcreteSyntaxTree writer) {
@@ -4794,7 +5041,7 @@ namespace Microsoft.Dafny.Compilers {
             TrParenExpr(e0, inner, inLetExprBody, wStmts);
             inner.Write(" {0} ", opString);
             if (convertE1_to_int) {
-              EmitExprAsInt(e1, inLetExprBody, inner, wStmts);
+              EmitExprAsNativeInt(e1, inLetExprBody, inner, wStmts);
             } else {
               TrParenExpr(e1, inner, inLetExprBody, wStmts);
             }
@@ -4804,7 +5051,7 @@ namespace Microsoft.Dafny.Compilers {
             TrParenExpr(e0, wr, inLetExprBody, wStmts);
             wr.Write(".{0}(", callString);
             if (convertE1_to_int) {
-              EmitExprAsInt(e1, inLetExprBody, wr, wStmts);
+              EmitExprAsNativeInt(e1, inLetExprBody, wr, wStmts);
             } else {
               TrParenExpr(e1, wr, inLetExprBody, wStmts);
             }
