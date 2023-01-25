@@ -64,9 +64,8 @@ public class IdPattern : ExtendedPattern, IHasUsages {
     }
   }
 
-  public override IEnumerable<INode> Children => Arguments ?? Enumerable.Empty<INode>();
+  public override IEnumerable<Node> Children => Arguments ?? Enumerable.Empty<Node>();
   public override IEnumerable<INode> ConcreteChildren => Children;
-
 
   public override void Resolve(Resolver resolver, ResolutionContext resolutionContext,
     Type sourceType, bool isGhost, bool mutable,
@@ -81,7 +80,7 @@ public class IdPattern : ExtendedPattern, IHasUsages {
     if (Arguments == null) {
       Type = sourceType; // Possible because we did a rewrite one level higher, which copied the syntactic type information to a let.
       if (mutable) {
-        var localVariable = new LocalVariable(Tok, Tok, Id, null, isGhost);
+        var localVariable = new LocalVariable(RangeToken, Id, null, isGhost);
         localVariable.type = sourceType;
         BoundVar = localVariable;
       } else {

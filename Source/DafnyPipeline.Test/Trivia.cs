@@ -113,10 +113,10 @@ ensures true
     // Asserts that a token is owned by at most one node
     // and that every token from start to end of every program child
     // is owned by a node.
-    private void TestTokens(INode program) {
+    private void TestTokens(Node program) {
       var allTokens = new HashSet<IToken>();
 
-      void Traverse(INode node, int depth = 0) {
+      void Traverse(Node node, int depth = 0) {
         if (depth == 2) {
           depth = 2;
         }
@@ -132,7 +132,7 @@ ensures true
       Traverse(program);
 
       var count = 0;
-      void AreAllTokensOwned(INode node) {
+      void AreAllTokensOwned(Node node) {
         if (node.StartToken is { filename: { } }) {
           count++;
           var t = node.StartToken;

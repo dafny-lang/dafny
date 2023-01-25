@@ -55,8 +55,8 @@ public abstract class QuantifierExpr : ComprehensionExpr, TypeParameter.ParentTy
     cp.Parent = this;
     return cp;
   }
-  public QuantifierExpr(IToken tok, IToken endTok, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
-    : base(tok, endTok, bvars, range, term, attrs) {
+  public QuantifierExpr(IToken tok, RangeToken rangeToken, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
+    : base(tok, rangeToken, bvars, range, term, attrs) {
     Contract.Requires(tok != null);
     Contract.Requires(cce.NonNullElements(bvars));
     Contract.Requires(term != null);

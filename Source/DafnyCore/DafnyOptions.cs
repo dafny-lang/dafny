@@ -239,6 +239,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       JSON,
     }
 
+    public bool UsingNewCli = false;
     public bool UnicodeOutput = false;
     public DiagnosticsFormats DiagnosticsFormat = DiagnosticsFormats.PlainText;
     public bool DisallowSoundnessCheating = false;
@@ -1171,11 +1172,14 @@ NoGhost - disable printing of functions, ghost methods, and proof
       SetZ3Option("smt.qi.eager_threshold", "100"); // TODO: try lowering
       SetZ3Option("smt.delay_units", "true");
 
-      if (z3Version is not null && z3Version.CompareTo(new Version(4, 8, 5)) <= 0) {
-        // These options tend to help with Z3 4.8.5 but hurt with newer versions of Z3.
-        SetZ3Option("smt.case_split", "3");
-        SetZ3Option("smt.arith.solver", "2");
-      }
+      // This option helps avoid "time travelling triggers".
+      // See: https://github.com/dafny-lang/dafny/discussions/3362
+      SetZ3Option("smt.case_split", "3");
+
+      // This option tends to lead to the best all-around arithmetic
+      // performance, though some programs can be verified more quickly
+      // (or verified at all) using a different solver.
+      SetZ3Option("smt.arith.solver", "2");
 
       if (DisableNLarith || 3 <= ArithMode) {
         SetZ3Option("smt.arith.nl", "false");

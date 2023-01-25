@@ -103,7 +103,7 @@ public class Field : MemberDecl {
     Contract.Invariant(!IsUserMutable || IsMutable);  // IsUserMutable ==> IsMutable
   }
 
-  public override IEnumerable<INode> Children => Type.Nodes;
+  public override IEnumerable<Node> Children => Type.Nodes;
 
   public Field(IToken tok, string name, bool isGhost, Type type, Attributes attributes)
     : this(tok, name, false, isGhost, true, true, type, attributes) {
@@ -292,7 +292,7 @@ public class ConstantField : SpecialField, ICallable {
   }
   public bool AllowsAllocation => true;
 
-  public override IEnumerable<INode> Children => base.Children.Concat(new[] { Rhs }.Where(x => x != null));
+  public override IEnumerable<Node> Children => base.Children.Concat(new[] { Rhs }.Where(x => x != null));
 
   public override IEnumerable<INode> ConcreteChildren => Children;
 }
@@ -349,7 +349,7 @@ public abstract class ExtremePredicate : Function {
   [FilledInDuringResolution] public readonly List<FunctionCallExpr> Uses = new List<FunctionCallExpr>();  // used by verifier
   [FilledInDuringResolution] public PrefixPredicate PrefixPredicate;  // (name registration)
 
-  public override IEnumerable<INode> Children => base.Children.Concat(new[] { PrefixPredicate });
+  public override IEnumerable<Node> Children => base.Children.Concat(new[] { PrefixPredicate });
 
   public ExtremePredicate(IToken tok, string name, bool hasStaticKeyword, KType typeOfK,
     List<TypeParameter> typeArgs, List<Formal> formals, Formal result,
@@ -444,7 +444,7 @@ public class TwoStatePredicate : TwoStateFunction {
 }
 
 public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext {
-  public override IEnumerable<INode> Children => new INode[] { Body, Decreases }.
+  public override IEnumerable<Node> Children => new Node[] { Body, Decreases }.
     Where(x => x != null).Concat(Ins).Concat(Outs).Concat(TypeArgs).
     Concat(Req).Concat(Ens).Concat(Mod.Expressions);
   public override IEnumerable<INode> ConcreteChildren => Children;
@@ -469,7 +469,7 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext {
   public Method OverriddenMethod;
   public Method Original => OverriddenMethod == null ? this : OverriddenMethod.Original;
   public override bool IsOverrideThatAddsBody => base.IsOverrideThatAddsBody && Body != null;
-  private static BlockStmt emptyBody = new BlockStmt(Token.NoToken, Token.NoToken, new List<Statement>());
+  private static BlockStmt emptyBody = new BlockStmt(Token.NoToken.ToRange(), new List<Statement>());
 
   public bool HasPostcondition =>
     Ens.Count > 0 || Outs.Any(f => f.Type.AsSubsetType is not null);
@@ -574,7 +574,6 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext {
   List<Formal> ICodeContext.Ins { get { return this.Ins; } }
   List<Formal> IMethodCodeContext.Outs { get { return this.Outs; } }
   Specification<FrameExpression> IMethodCodeContext.Modifies { get { return Mod; } }
-  IToken ICallable.Tok { get { return this.tok; } }
   string ICallable.NameRelativeToModule {
     get {
       if (EnclosingClass is DefaultClassDecl) {
@@ -777,7 +776,7 @@ public abstract class ExtremeLemma : Method {
   }
   [FilledInDuringResolution] public PrefixLemma PrefixLemma;  // (name registration)
 
-  public override IEnumerable<INode> Children => base.Children.Concat(new[] { PrefixLemma });
+  public override IEnumerable<Node> Children => base.Children.Concat(new[] { PrefixLemma });
 
   public override IEnumerable<INode> ConcreteChildren => base.Children;
 

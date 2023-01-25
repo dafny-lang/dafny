@@ -56,7 +56,7 @@ class B {
       Assert.IsNotNull(document);
       Assert.IsTrue(TryFindSymbolDeclarationByName(document, "A", out var location));
       Assert.AreEqual(new Range((0, 6), (0, 7)), location.Name);
-      Assert.AreEqual(new Range((0, 6), (1, 0)), location.Declaration);
+      Assert.AreEqual(new Range((0, 0), (1, 0)), location.Declaration);
     }
 
     [TestMethod]
@@ -83,7 +83,7 @@ class C {
       Assert.IsNotNull(document);
       Assert.IsTrue(TryFindSymbolDeclarationByName(document, "A", out var location));
       Assert.AreEqual(new Range((0, 6), (0, 7)), location.Name);
-      Assert.AreEqual(new Range((0, 6), (1, 0)), location.Declaration);
+      Assert.AreEqual(new Range((0, 0), (1, 0)), location.Declaration);
     }
 
     [TestMethod]
@@ -116,7 +116,7 @@ class B {
       Assert.IsNotNull(document);
       Assert.IsTrue(TryFindSymbolDeclarationByName(document, "C", out var location));
       Assert.AreEqual(new Range((10, 6), (10, 7)), location.Name);
-      Assert.AreEqual(new Range((10, 6), (11, 0)), location.Declaration);
+      Assert.AreEqual(new Range((10, 0), (11, 0)), location.Declaration);
     }
 
     [TestMethod]
@@ -143,7 +143,7 @@ class C {
       Assert.IsNotNull(document);
       Assert.IsTrue(TryFindSymbolDeclarationByName(document, "C", out var location));
       Assert.AreEqual(new Range((5, 6), (5, 7)), location.Name);
-      Assert.AreEqual(new Range((5, 6), (6, 0)), location.Declaration);
+      Assert.AreEqual(new Range((5, 0), (6, 0)), location.Declaration);
     }
 
     [TestMethod]
@@ -170,7 +170,7 @@ class A {
       Assert.IsNotNull(document);
       Assert.IsTrue(TryFindSymbolDeclarationByName(document, "GetX", out var location));
       Assert.AreEqual(new Range((3, 11), (3, 15)), location.Name);
-      Assert.AreEqual(new Range((3, 11), (5, 2)), location.Declaration);
+      Assert.AreEqual(new Range((3, 2), (5, 2)), location.Declaration);
     }
 
     [TestMethod]
@@ -194,7 +194,7 @@ class A {
       Assert.IsNotNull(document);
       Assert.IsTrue(TryFindSymbolDeclarationByName(document, "A", out var location));
       Assert.AreEqual(new Range((0, 6), (0, 7)), location.Name);
-      Assert.AreEqual(new Range((0, 6), (4, 0)), location.Declaration);
+      Assert.AreEqual(new Range((0, 0), (4, 0)), location.Declaration);
     }
 
     [TestMethod]
@@ -212,7 +212,7 @@ class A {
       Assert.IsNotNull(document);
       Assert.IsTrue(TryFindSymbolDeclarationByName(document, "A", out var location));
       Assert.AreEqual(new Range((0, 6), (0, 7)), location.Name);
-      Assert.AreEqual(new Range((0, 6), (0, 38)), location.Declaration);
+      Assert.AreEqual(new Range((0, 0), (0, 38)), location.Declaration);
     }
 
     [TestMethod]
@@ -268,7 +268,7 @@ class A {
       Assert.IsNotNull(document);
       Assert.IsTrue(TryFindSymbolDeclarationByName(document, "B", out var bLocation));
       Assert.AreEqual(new Range((4, 6), (4, 7)), bLocation.Name);
-      Assert.AreEqual(new Range((4, 6), (7, 0)), bLocation.Declaration);
+      Assert.AreEqual(new Range((4, 0), (7, 0)), bLocation.Declaration);
       Assert.IsTrue(TryFindSymbolDeclarationByName(document, "y", out var yLocation));
       Assert.AreEqual(new Range((6, 6), (6, 7)), yLocation.Name);
       Assert.AreEqual(new Range((6, 6), (6, 7)), yLocation.Declaration);

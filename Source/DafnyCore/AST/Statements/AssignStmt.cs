@@ -15,6 +15,20 @@ public class AssignStmt : Statement, ICloneable<AssignStmt> {
     Contract.Invariant(Rhs != null);
   }
 
+  public override IToken Tok {
+    get {
+      var previous = Rhs.StartToken.Prev;
+      // If there was a single assignment, report on the operator.
+      var singleAssignment = previous.val == ":=";
+      // If there was an implicit return assignment, report on the return.
+      var implicitAssignment = previous.val == "return";
+      if (singleAssignment || implicitAssignment) {
+        return previous;
+      }
+      return Rhs.StartToken;
+    }
+  }
+
   public AssignStmt Clone(Cloner cloner) {
     return new AssignStmt(cloner, this);
   }
@@ -24,10 +38,9 @@ public class AssignStmt : Statement, ICloneable<AssignStmt> {
     Rhs = cloner.CloneRHS(original.Rhs);
   }
 
-  public AssignStmt(IToken tok, IToken endTok, Expression lhs, AssignmentRhs rhs)
-    : base(tok, endTok) {
-    Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+  public AssignStmt(RangeToken rangeToken, Expression lhs, AssignmentRhs rhs)
+    : base(rangeToken) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(lhs != null);
     Contract.Requires(rhs != null);
     this.Lhs = lhs;

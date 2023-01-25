@@ -18,6 +18,10 @@ public interface IToken : Microsoft.Boogie.IToken {
     set => Filename = value;
   }
 
+  RangeToken ToRange() {
+    return new RangeToken(this, this);
+  }
+
   public string ActualFilename { get; }
   string Filename { get; set; }
 
@@ -137,11 +141,11 @@ public abstract class TokenWrapper : IToken {
   }
   public int kind {
     get { return WrappedToken.kind; }
-    set { throw new NotSupportedException(); }
+    set { WrappedToken.kind = value; }
   }
   public virtual int line {
     get { return WrappedToken.line; }
-    set { throw new NotSupportedException(); }
+    set { WrappedToken.line = value; }
   }
   public virtual int pos {
     get { return WrappedToken.pos; }
@@ -170,7 +174,25 @@ public abstract class TokenWrapper : IToken {
 
 }
 
-public class RangeToken : TokenWrapper {
+public class RangeToken { // TODO rename to remove Token from the name
+  public string Filename => StartToken.Filename;
+
+  // The wrapped token is the startTok
+  private IToken endTok;
+  public IToken StartToken { get; }
+  public IToken EndToken => endTok;
+
+  public RangeToken(IToken startTok, IToken endTok) {
+    StartToken = startTok;
+    this.endTok = endTok;
+  }
+
+  public BoogieRangeToken ToToken() {
+    return new BoogieRangeToken(StartToken, EndToken);
+  }
+}
+
+public class BoogieRangeToken : TokenWrapper {
   // The wrapped token is the startTok
   private IToken endTok;
   public IToken StartToken => WrappedToken;
@@ -185,14 +207,9 @@ public class RangeToken : TokenWrapper {
   // There is at least one case in which the RangeToken is not set linearly
   // because we assume that "tok" is before "endTok" in the statement constructor
   // but that was at least not the case.
-  public RangeToken(IToken startTok, IToken endTok) : base(
-    endTok.pos < startTok.pos && startTok is RangeToken startRange ?
-        startRange.StartToken : startTok) {
-    if (endTok.pos < startTok.pos && startTok is RangeToken startRange2) {
-      this.endTok = startRange2.EndToken;
-    } else {
-      this.endTok = endTok;
-    }
+  public BoogieRangeToken(IToken startTok, IToken endTok) : base(
+    startTok) {
+    this.endTok = endTok;
   }
 
   public override IToken WithVal(string newVal) {

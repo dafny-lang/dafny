@@ -25,7 +25,7 @@ public class ArrowType : UserDefinedType {
       bvars.Add(oVar);
 
       return
-        new SetComprehension(e.tok, e.tok, true, bvars,
+        new SetComprehension(e.tok, e.RangeToken, true, bvars,
           new BinaryExpr(e.tok, BinaryExpr.Opcode.In, obj,
             new ApplyExpr(e.tok, e, bexprs, e.tok) {
               Type = new SetType(true, builtIns.ObjectQ())
@@ -175,6 +175,6 @@ public class ArrowType : UserDefinedType {
     }
   }
 
-  public override IEnumerable<INode> Children => Args.Concat(new List<INode>() { Result });
+  public override IEnumerable<Node> Children => Args.Concat(new List<Node>() { Result });
   public override IEnumerable<INode> ConcreteChildren => Args.Concat(new List<INode>() { Result });
 }

@@ -740,7 +740,7 @@ namespace Microsoft.Dafny.Compilers {
       if (xType is BoolType) {
         return "_dafny.Rtd_bool";
       } else if (xType is CharType) {
-        return "_dafny.Rtd_char";
+        return UnicodeCharEnabled ? "_dafny.Rtd_codepoint" : "_dafny.Rtd_char";
       } else if (xType is IntType) {
         return "_dafny.Rtd_int";
       } else if (xType is BigOrdinalType) {
@@ -903,7 +903,7 @@ namespace Microsoft.Dafny.Compilers {
       if (xType is BoolType) {
         return "false";
       } else if (xType is CharType) {
-        return CharType.DefaultValueAsString;
+        return $"{CharFromNumberMethodName()}({CharType.DefaultValueAsString}.codePointAt(0))";
       } else if (xType is IntType || xType is BigOrdinalType) {
         return IntegerLiteral(0);
       } else if (xType is RealType) {
@@ -963,7 +963,7 @@ namespace Microsoft.Dafny.Compilers {
             if (arrayClass.Dims == 1) {
               return "[]";
             } else {
-              return string.Format("_dafny.newArray(undefined, {0})", Util.Comma(arrayClass.Dims, _ => "0"));
+              return string.Format("_dafny.newArray(undefined, {0})", Util.Comma(arrayClass.Dims, _ => "_dafny.ZERO"));
             }
           } else {
             // non-null (non-array) type
@@ -1225,8 +1225,9 @@ namespace Microsoft.Dafny.Compilers {
       return startWr;
     }
 
-    protected override ConcreteSyntaxTree CreateForLoop(string indexVar, string bound, ConcreteSyntaxTree wr) {
-      return wr.NewNamedBlock("for (let {0} = 0; {0} < {1}; {0}++)", indexVar, bound);
+    protected override ConcreteSyntaxTree CreateForLoop(string indexVar, string bound, ConcreteSyntaxTree wr, string start = null) {
+      start = start ?? "0";
+      return wr.NewNamedBlock("for (let {0} = {2}; {0} < {1}; {0}++)", indexVar, bound, start);
     }
 
     protected override ConcreteSyntaxTree CreateDoublingForLoop(string indexVar, int start, ConcreteSyntaxTree wr) {
@@ -1301,26 +1302,18 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitNewArray(Type elmtType, IToken tok, List<Expression> dimensions,
-        bool mustInitialize, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      var initValue = mustInitialize ? DefaultValue(elmtType, wr, tok, true) : null;
+    protected override void EmitNewArray(Type elementType, IToken tok, List<string> dimensions,
+        bool mustInitialize, [CanBeNull] string exampleElement, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      var initValue = mustInitialize ? DefaultValue(elementType, wr, tok, true) : null;
       if (dimensions.Count == 1) {
         // handle the common case of 1-dimensional arrays separately
-        wr.Write("Array(");
-        TrParenExpr(dimensions[0], wr, false, wStmts);
-        wr.Write(".toNumber())");
+        wr.Write($"Array(({dimensions[0]}).toNumber())");
         if (initValue != null) {
           wr.Write(".fill({0})", initValue);
         }
       } else {
         // the general case
-        wr.Write("_dafny.newArray({0}", initValue ?? "undefined");
-        foreach (var dim in dimensions) {
-          wr.Write(", ");
-          TrParenExpr(dim, wr, false, wStmts);
-          wr.Write(".toNumber()");
-        }
-        wr.Write(")");
+        wr.Write("_dafny.newArray({0}, {1})", initValue ?? "undefined", dimensions.Comma(s => s));
       }
     }
 
@@ -1745,6 +1738,14 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    protected override ConcreteSyntaxTree ExprToInt(Type fromType, ConcreteSyntaxTree wr) {
+      if (AsNativeType(fromType) == null) {
+        return wr;
+      }
+      wr.Write("BigNumber");
+      return wr.ForkInParens();
+    }
+
     protected override ConcreteSyntaxTree EmitArraySelect(List<string> indices, Type elmtType, ConcreteSyntaxTree wr) {
       var w = wr.Fork();
       if (indices.Count == 1) {
@@ -1777,11 +1778,9 @@ namespace Microsoft.Dafny.Compilers {
       return w;
     }
 
-    protected override string ArrayIndexToInt(string arrayIndex, Type fromType) {
-      return string.Format("new BigNumber({0})", arrayIndex);
-    }
+    protected override string ArrayIndexToInt(string arrayIndex) => $"new BigNumber({arrayIndex})";
 
-    protected override void EmitExprAsInt(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    protected override void EmitExprAsNativeInt(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       TrParenExpr(expr, wr, inLetExprBody, wStmts);
       if (AsNativeType(expr.Type) == null) {
         wr.Write(".toNumber()");
@@ -2536,9 +2535,9 @@ namespace Microsoft.Dafny.Compilers {
 
       var psi = new ProcessStartInfo("node", "") {
         RedirectStandardInput = true,
-        StandardInputEncoding = Encoding.UTF8,
         RedirectStandardOutput = true,
         RedirectStandardError = true,
+        StandardInputEncoding = Encoding.UTF8,
       };
 
       try {

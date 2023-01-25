@@ -61,7 +61,7 @@ public class LitPattern : ExtendedPattern {
     return Printer.ExprToString(OrigLit);
   }
 
-  public override IEnumerable<INode> Children => new[] { OrigLit };
+  public override IEnumerable<Node> Children => new[] { OrigLit };
   public override IEnumerable<INode> ConcreteChildren => Children;
 
   public override void Resolve(Resolver resolver,

@@ -163,7 +163,7 @@ public class CalcStmt : Statement, ICloneable<CalcStmt> {
 
   public static readonly CalcOp DefaultOp = new BinaryCalcOp(BinaryExpr.Opcode.Eq);
 
-  public override IEnumerable<INode> Children => Steps.Concat(Result != null ? new INode[] { Result } : new INode[] { }).Concat(Hints);
+  public override IEnumerable<Node> Children => Steps.Concat(Result != null ? new Node[] { Result } : new INode[] { }).Concat(Hints);
   public override IEnumerable<INode> ConcreteChildren => Lines.Take(Lines.Count > 0 ? Lines.Count - 1 : 0).Concat<INode>(Hints.Where(hintBatch => hintBatch.Body.Count() != 0));
 
   [ContractInvariantMethod]
@@ -179,10 +179,9 @@ public class CalcStmt : Statement, ICloneable<CalcStmt> {
     Contract.Invariant(StepOps.Count == Hints.Count);
   }
 
-  public CalcStmt(IToken tok, IToken endTok, CalcOp userSuppliedOp, List<Expression> lines, List<BlockStmt> hints, List<CalcOp/*?*/> stepOps, Attributes attrs)
-    : base(tok, endTok) {
-    Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+  public CalcStmt(RangeToken rangeToken, CalcOp userSuppliedOp, List<Expression> lines, List<BlockStmt> hints, List<CalcOp/*?*/> stepOps, Attributes attrs)
+    : base(rangeToken) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(lines != null);
     Contract.Requires(hints != null);
     Contract.Requires(stepOps != null);

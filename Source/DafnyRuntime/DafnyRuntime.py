@@ -8,7 +8,6 @@ from collections.abc import Iterable
 from functools import reduce
 from types import GeneratorType, FunctionType
 from itertools import chain, combinations, count
-import copy
 
 class classproperty(property):
     def __get__(self, instance, owner):
@@ -90,6 +89,12 @@ class CodePoint(str):
     def __dafnystr__(self):
         return f"'{self.__escaped__()}'"
 
+    def __add__(self, other):
+        return CodePoint(plus_char(self, other))
+
+    def __sub__(self, other):
+        return CodePoint(minus_char(self, other))
+
 class Seq(tuple):
     def __init__(self, __iterable = None, isStr = False):
         '''
@@ -107,7 +112,7 @@ class Seq(tuple):
         if __iterable is None:
             __iterable = []
         if isStr is None:
-            self.isStr = False
+            self.isStr = None
         else:
             self.isStr = isStr \
                         or isinstance(__iterable, str) \
@@ -160,19 +165,19 @@ class Seq(tuple):
     def __le__(self, other):
         return len(self) <= len(other) and self == other[:len(self)]
 
-class Array:
-    class Box(list):
-        def __dafnystr__(self) -> str:
-            return '[' + ', '.join(map(string_of, self)) + ']'
+# Convenience for translation when --unicode-char is enabled
+def SeqWithoutIsStrInference(__iterable = None):
+    return Seq(__iterable, isStr = None)
 
+class Array:
     def __init__(self, initValue, *dims):
-        self.arr = initValue
+        def create_structure(initValue, *dims):
+            return [initValue if len(dims) <= 1 else create_structure(initValue, *dims[1:]) for _ in range(dims[0])]
         self.dims = list(dims)
-        for i in reversed(self.dims):
-            self.arr = Array.Box([copy.copy(self.arr) for _ in range(i)])
+        self.arr = create_structure(initValue, *dims)
 
     def __dafnystr__(self) -> str:
-        return '[' + ', '.join(map(string_of, self.arr)) + ']'
+        return f'array{self.dims}'
 
     def __str__(self):
         return self.__dafnystr__()
@@ -461,6 +466,7 @@ class Doubler:
 class defaults:
     bool = staticmethod(lambda: False)
     char = staticmethod(lambda: 'D')
+    codepoint = staticmethod(lambda: CodePoint(defaults.char()))
     int = staticmethod(lambda: 0)
     real = staticmethod(BigRational)
     pointer = staticmethod(lambda: None)
