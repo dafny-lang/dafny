@@ -145,7 +145,7 @@ public class BuiltIns {
       var id = new BoundVar(tok, "f", new ArrowType(tok, arrowDecl, tys));
       var partialArrow = new SubsetTypeDecl(tok, ArrowType.PartialArrowTypeName(arity),
         new TypeParameter.TypeParameterCharacteristics(false), tps, SystemModule,
-        id, ArrowSubtypeConstraint(tok, tok, id, reads, tps, false), SubsetTypeDecl.WKind.Special, null, DontCompile());
+        id, ArrowSubtypeConstraint(tok, tok.ToRange(), id, reads, tps, false), SubsetTypeDecl.WKind.Special, null, DontCompile());
       PartialArrowTypeDecls.Add(arity, partialArrow);
       SystemModule.TopLevelDecls.Add(partialArrow);
 
@@ -158,7 +158,7 @@ public class BuiltIns {
       id = new BoundVar(tok, "f", new UserDefinedType(tok, partialArrow.Name, partialArrow, tys));
       var totalArrow = new SubsetTypeDecl(tok, ArrowType.TotalArrowTypeName(arity),
         new TypeParameter.TypeParameterCharacteristics(false), tps, SystemModule,
-        id, ArrowSubtypeConstraint(tok, tok, id, req, tps, true), SubsetTypeDecl.WKind.Special, null, DontCompile());
+        id, ArrowSubtypeConstraint(tok, tok.ToRange(), id, req, tps, true), SubsetTypeDecl.WKind.Special, null, DontCompile());
       TotalArrowTypeDecls.Add(arity, totalArrow);
       SystemModule.TopLevelDecls.Add(totalArrow);
     }
@@ -170,9 +170,8 @@ public class BuiltIns {
   /// the built-in total-arrow type (if "total", in which case "member" is expected to denote the "requires" member).
   /// The given "id" is expected to be already resolved.
   /// </summary>
-  private Expression ArrowSubtypeConstraint(IToken tok, IToken endTok, BoundVar id, Function member, List<TypeParameter> tps, bool total) {
+  private Expression ArrowSubtypeConstraint(IToken tok, RangeToken rangeToken, BoundVar id, Function member, List<TypeParameter> tps, bool total) {
     Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
     Contract.Requires(id != null);
     Contract.Requires(member != null);
     Contract.Requires(tps != null && 1 <= tps.Count);
@@ -203,7 +202,7 @@ public class BuiltIns {
       body = Expression.CreateEq(body, emptySet, member.ResultType);
     }
     if (tps.Count > 1) {
-      body = new ForallExpr(tok, endTok, bvs, null, body, null) { Type = Type.Bool, Bounds = bounds };
+      body = new ForallExpr(tok, rangeToken, bvs, null, body, null) { Type = Type.Bool, Bounds = bounds };
     }
     return body;
   }
@@ -233,7 +232,20 @@ public class BuiltIns {
     argumentGhostness ??= new bool[dims].Select(_ => false).ToList();
     if (!tupleTypeDecls.TryGetValue(argumentGhostness, out var tt)) {
       Contract.Assume(allowCreationOfNewType);  // the parser should ensure that all needed tuple types exist by the time of resolution
-      tt = new TupleTypeDecl(argumentGhostness, SystemModule, DontCompile());
+
+      // A tuple type with ghost components is represented as the shorter tuple type with the ghost components erased, except
+      // possibly when that shorter tuple type is a 1-tuple. Ordinarily, such a 1-tuple is optimized into its component, so
+      // there's no reason to create it here; but if either the compiler doesn't support datatype wrapper erasure or if
+      // the user has disabled this optimization, then we still create the 1-tuple here.
+      var nonGhostDims = argumentGhostness.Count(x => !x);
+      TupleTypeDecl nonGhostTupleTypeDecl = null;
+      if (nonGhostDims != dims &&
+          (nonGhostDims != 1 || !DafnyOptions.O.Compiler.SupportsDatatypeWrapperErasure || !DafnyOptions.O.Get(CommonOptionBag.OptimizeErasableDatatypeWrapper))) {
+        // make sure the corresponding non-ghost tuple type also exists
+        nonGhostTupleTypeDecl = TupleType(tok, nonGhostDims, allowCreationOfNewType);
+      }
+
+      tt = new TupleTypeDecl(argumentGhostness, SystemModule, nonGhostTupleTypeDecl, DontCompile());
       if (tt.NonGhostDims > MaxNonGhostTupleSizeUsed) {
         MaxNonGhostTupleSizeToken = tok;
         MaxNonGhostTupleSizeUsed = tt.NonGhostDims;

@@ -92,7 +92,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public void PublishGutterIcons(IdeState state, bool verificationStarted) {
-      if (!LineVerificationStatusOption.Instance.Get(options)) {
+      if (!options.Get(ServerCommand.LineVerificationStatus)) {
         return;
       }
 
@@ -120,6 +120,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private static GhostDiagnosticsParams GetGhostness(IdeState state) {
+
       return new GhostDiagnosticsParams {
         Uri = state.TextDocumentItem.Uri,
         Version = state.TextDocumentItem.Version,

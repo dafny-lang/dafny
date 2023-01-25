@@ -4,11 +4,15 @@
 module _System {
   /* CALL GRAPH for module _System:
    * SCC at height 1:
-   *   RotateRight
-   * SCC at height 1:
    *   RotateLeft
+   * SCC at height 1:
+   *   RotateRight
+   * SCC at height 0:
+   *   array
    * SCC at height 0:
    *   nat
+   * SCC at height 0:
+   *   object
    */
   type string(==,0) = seq<char>
 
@@ -132,86 +136,84 @@ module _System {
 */
 
 /* CALL GRAPH for module _module:
- * SCC at height 2:
- *   RstRst10#
- * SCC at height 1:
- *   RstRst10
- * SCC at height 2:
- *   RstRst9
- *   RstRst9#
- * SCC at height 2:
- *   RstRst8
- *   RstRst8#
  * SCC at height 4:
  *   RstRst7#
  * SCC at height 3:
+ *   MyClass.M#
+ * SCC at height 3:
  *   RstRst7
  * SCC at height 2:
- *   RstRst6
- *   RstRst6#
- * SCC at height 2:
- *   RstRst5
  *   RstRst5#
+ *   RstRst5
  * SCC at height 2:
- *   RstRst4#
- * SCC at height 1:
- *   RstRst4
+ *   RstRst6#
+ *   RstRst6
  * SCC at height 2:
- *   RstRst3#
- * SCC at height 1:
- *   RstRst3
+ *   RstRst8#
+ *   RstRst8
  * SCC at height 2:
- *   RstRst2#
- * SCC at height 1:
- *   RstRst2
+ *   RstRst9#
+ *   RstRst9
  * SCC at height 2:
- *   RstRst1#
- * SCC at height 1:
- *   RstRst1
- * SCC at height 2:
- *   RstRst0#
- * SCC at height 1:
- *   RstRst0
- * SCC at height 2:
- *   O#
- * SCC at height 1:
- *   O
- * SCC at height 2:
- *   N#
- * SCC at height 1:
- *   N
- * SCC at height 0:
- *   MyClass
- * SCC at height 3:
- *   MyClass.M#
+ *   MyClass.L#
  * SCC at height 2:
  *   MyClass.M
  * SCC at height 2:
- *   MyClass.L#
+ *   N#
+ * SCC at height 2:
+ *   O#
+ * SCC at height 2:
+ *   RstRst0#
+ * SCC at height 2:
+ *   RstRst1#
+ * SCC at height 2:
+ *   RstRst10#
+ * SCC at height 2:
+ *   RstRst2#
+ * SCC at height 2:
+ *   RstRst3#
+ * SCC at height 2:
+ *   RstRst4#
  * SCC at height 1:
  *   MyClass.L
  * SCC at height 1:
- *   MyClass.RST_Nat#
- * SCC at height 0:
- *   nat
- * SCC at height 0:
- *   MyClass.RST_Nat
- * SCC at height 1:
- *   MyClass.RST#
- * SCC at height 0:
- *   MyClass.RST
- * SCC at height 1:
- *   MyClass.S#
- * SCC at height 0:
- *   MyClass.S
+ *   MyClass.P#
  * SCC at height 1:
  *   MyClass.R#
- * SCC at height 0:
- *   MyClass.R
  * SCC at height 1:
- *   MyClass.P#
+ *   MyClass.RST#
+ * SCC at height 1:
+ *   MyClass.RST_Nat#
+ * SCC at height 1:
+ *   MyClass.S#
+ * SCC at height 1:
+ *   N
+ * SCC at height 1:
+ *   O
+ * SCC at height 1:
+ *   RstRst0
+ * SCC at height 1:
+ *   RstRst1
+ * SCC at height 1:
+ *   RstRst10
+ * SCC at height 1:
+ *   RstRst2
+ * SCC at height 1:
+ *   RstRst3
+ * SCC at height 1:
+ *   RstRst4
+ * SCC at height 0:
+ *   MyClass
  * SCC at height 0:
  *   MyClass.P
+ * SCC at height 0:
+ *   MyClass.R
+ * SCC at height 0:
+ *   MyClass.RST
+ * SCC at height 0:
+ *   MyClass.RST_Nat
+ * SCC at height 0:
+ *   MyClass.S
  */
 class MyClass<A, B> {
   greatest predicate P<X, Y>(x: X, y: Y)

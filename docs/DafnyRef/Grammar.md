@@ -232,6 +232,7 @@ Comments are in two forms.
 Comments may be nested,
 but note that the nesting of multi-line comments is behavior that is different
 from most programming languages. In Dafny,
+<!-- %check-resolve -->
 ```dafny
 method m() {
   /* comment
@@ -248,6 +249,7 @@ the contents of a comment are not interpreted.
 Comments may contain any characters.
 
 Note that the nesting is not fool-proof. In
+<!-- %check-resolve Grammar.1.expect -->
 ```dafny
 method m() {
   /* var i: int;
@@ -257,6 +259,7 @@ method m() {
 }
 ```
 and
+<!-- %check-resolve Grammar.2.expect -->
 ```dafny
 method m() {
   /* var i: int;
@@ -410,7 +413,7 @@ later be inserted through refinement or is already present in a parent declarati
 
 ## 2.6. Low Level Grammar Productions {#sec-grammar}
 
-### 2.6.1. Identifier Variations
+### 2.6.1. Identifier Variations {#sec-identifier-variations}
 
 ````grammar
 Ident = ident
@@ -607,7 +610,7 @@ For example, in the quantifier domain `i | 0 <= i < |s|, y <- s[i] | i < y`, the
 because the range attached to `i` ensures `i` is a valid index in the sequence `s`.
 
 Allowing per-variable ranges is not fully backwards compatible, and so it is not yet allowed by default;
-the `/quantifierSyntax:4` option needs to be provided to enable this feature (See [Section 25.9.5](#sec-controlling-language)).
+the `/quantifierSyntax:4` option needs to be provided to enable this feature (See [Section 25.8.5](#sec-controlling-language)).
 
 The general production for quantifier domains is:
 

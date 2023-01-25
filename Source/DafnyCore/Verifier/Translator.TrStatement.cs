@@ -278,8 +278,8 @@ namespace Microsoft.Dafny {
 
         // The "new;" translates into an allocation of "this"
         AddComment(builder, stmt, "new;");
-        fields.Iter(f => CheckDefiniteAssignmentSurrogate(s.SeparatorTok ?? s.EndTok, f, true, builder));
-        fields.Iter(f => RemoveDefiniteAssignmentTrackerSurrogate(f));
+        fields.Iter(f => CheckDefiniteAssignmentSurrogate(s.SeparatorTok ?? s.RangeToken.EndToken, f, true, builder));
+        fields.Iter(RemoveDefiniteAssignmentTrackerSurrogate);
         var th = new ThisExpr(cl);
         var bplThis = (Bpl.IdentifierExpr)etran.TrExpr(th);
         SelectAllocateObject(tok, bplThis, th.Type, false, builder, etran);
@@ -424,13 +424,10 @@ namespace Microsoft.Dafny {
       } else if (stmt is CalcStmt calcStmt) {
         TrCalcStmt(calcStmt, builder, locals, etran);
 
-      } else if (stmt is ConcreteSyntaxStatement) {
-        ConcreteSyntaxStatement s = (ConcreteSyntaxStatement)stmt;
-        TrStmt(s.ResolvedStatement, builder, locals, etran);
-
+      } else if (stmt is NestedMatchStmt nestedMatchStmt) {
+        TrStmt(nestedMatchStmt.Flattened, builder, locals, etran);
       } else if (stmt is MatchStmt matchStmt) {
         TrMatchStmt(matchStmt, builder, locals, etran);
-
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
         var newLocalIds = new List<Bpl.IdentifierExpr>();
@@ -581,7 +578,7 @@ namespace Microsoft.Dafny {
             var substMap = new Dictionary<IVariable, Expression>();
             foreach (var v in FreeVariablesUtil.ComputeFreeVariables(assertStmt.Expr)) {
               if (v is LocalVariable) {
-                var vcopy = new LocalVariable(stmt.Tok, stmt.Tok, string.Format("##{0}#{1}", name, v.Name), v.Type, v.IsGhost);
+                var vcopy = new LocalVariable(stmt.RangeToken, string.Format("##{0}#{1}", name, v.Name), v.Type, v.IsGhost);
                 vcopy.type = vcopy.OptionalType; // resolve local here
                 IdentifierExpr ie = new IdentifierExpr(vcopy.Tok, vcopy.AssignUniqueName(currentDeclaration.IdGenerator));
                 ie.Var = vcopy;
@@ -773,7 +770,7 @@ namespace Microsoft.Dafny {
           }
           builder.Add(new Bpl.HavocCmd(stmt.Tok, havocIds));
         }
-        String missingStr = stmt.Context.FillHole(new IdCtx(new KeyValuePair<string, DatatypeCtor>(missingCtor.Name, missingCtor))).AbstractAllHoles()
+        String missingStr = stmt.Context.FillHole(new IdCtx(missingCtor)).AbstractAllHoles()
           .ToString();
         var desc = new PODesc.MatchIsComplete("statement", missingStr);
         b.Add(Assert(stmt.Tok, Bpl.Expr.False, desc));
@@ -1767,8 +1764,8 @@ namespace Microsoft.Dafny {
         }
         ins.Add(etran.TrExpr(receiver));
       } else if (receiver is StaticReceiverExpr stexpr) {
-        if (stexpr.OriginalResolved != null) {
-          TrStmt_CheckWellformed(stexpr.OriginalResolved, builder, locals, etran, true);
+        if (stexpr.ObjectToDiscard != null) {
+          TrStmt_CheckWellformed(stexpr.ObjectToDiscard, builder, locals, etran, true);
         }
       }
 
@@ -1779,7 +1776,7 @@ namespace Microsoft.Dafny {
       var substMap = new Dictionary<IVariable, Expression>();
       for (int i = 0; i < callee.Ins.Count; i++) {
         var formal = callee.Ins[i];
-        var local = new LocalVariable(formal.tok, formal.tok, formal.Name + "#", formal.Type.Subst(tySubst), formal.IsGhost);
+        var local = new LocalVariable(formal.RangeToken, formal.Name + "#", formal.Type.Subst(tySubst), formal.IsGhost);
         local.type = local.OptionalType;  // resolve local here
         var ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator));
         ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here

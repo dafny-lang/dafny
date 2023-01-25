@@ -55,7 +55,7 @@ namespace Microsoft.Dafny {
         DafnyOptions.O.VcsCores = Math.Max(1, System.Environment.ProcessorCount / 2); // Don't use too many cores
         DafnyOptions.O.PrintTooltips = true; // Dump tooltips (ErrorLevel.Info) to stdout
         //DafnyOptions.O.UnicodeOutput = true; // Use pretty warning signs
-        ShowSnippetsOption.Instance.Set(DafnyOptions.O, false); // Server sometimes has filename == null, which crashes showSnippets
+        DafnyOptions.O.Set(DafnyConsolePrinter.ShowSnippets, false); // Server sometimes has filename == null, which crashes showSnippets
         DafnyOptions.O.TraceProofObligations = true; // Show which method is being verified, but don't show duration of verification
       } else {
         throw new ServerException("Invalid command line options");

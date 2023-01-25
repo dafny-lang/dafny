@@ -14,7 +14,7 @@ Main() method. If a legal Main() method is found, the compiler will emit
 an executable appropriate to the target language; otherwise it will emit
 a library or individual files.
 The conditions for a legal Main() method are described in the User Guide
-([Section 25.8.1](#sec-user-guide-main)).
+([Section 25.7.1](#sec-user-guide-main)).
 If there is more than one Main(), Dafny will emit an error message.
 
 An invocation of Dafny may specify a number of source files.
@@ -87,11 +87,11 @@ that is in the top-level implicit module. These declarations are all implicitly
 ([grammar](#g-declaration-modifier))
 
 Examples:
+,!-- %check-resolve -->
 ```dafny
 abstract module M {}
 static method m() {}
 ghost function f(): int { 0 }
-opaque type T = int
 ```
 
 Top level declarations may be preceded by zero or more declaration
@@ -110,7 +110,7 @@ an instance of the class. This modifier may not be used with
 declarations that are implicitly static, as are members of the 
 top-level, unnamed implicit class.
 
-<!-- TBD - opaque ? --> 
+<!-- TBD - opaque ? Add example above when it is implemented --> 
 
 The following table shows modifiers that are available
 for each of the kinds of declaration. In the table

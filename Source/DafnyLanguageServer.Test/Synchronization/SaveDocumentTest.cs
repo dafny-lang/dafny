@@ -31,7 +31,7 @@ function GetConstant(): int {
 function GetConstant(): int {
   1
 }".Trim();
-      await SetUp(options => VerificationOption.Instance.Set(options, VerifyOnMode.Never));
+      await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Never));
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await GetLastDiagnostics(documentItem, CancellationToken);
@@ -45,7 +45,7 @@ function GetConstant(): int {
 function GetConstant() int {
   1
 }".Trim();
-      await SetUp(options => VerificationOption.Instance.Set(options, VerifyOnMode.Save));
+      await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Save));
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await GetLastDiagnostics(documentItem, CancellationToken);
@@ -59,7 +59,7 @@ function GetConstant() int {
 function GetConstant(): int {
   d
 }".Trim();
-      await SetUp(options => VerificationOption.Instance.Set(options, VerifyOnMode.Save));
+      await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Save));
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await GetLastDiagnostics(documentItem, CancellationToken);
@@ -73,7 +73,7 @@ function GetConstant(): int {
 function GetConstant(): int {
   1
 }".Trim();
-      await SetUp(options => VerificationOption.Instance.Set(options, VerifyOnMode.Save));
+      await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Save));
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await GetLastDiagnostics(documentItem, CancellationToken);
@@ -87,7 +87,7 @@ function GetConstant(): int {
 method DoIt() {
   assert false;
 }".Trim();
-      await SetUp(options => VerificationOption.Instance.Set(options, VerifyOnMode.Save));
+      await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Save));
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await GetLastDiagnostics(documentItem, CancellationToken);

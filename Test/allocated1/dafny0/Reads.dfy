@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /verifyAllModules /allocated:1 /compile:0 "%s" > "%t"
+// RUN: %exits-with 4 %dafny /verifyAllModules /allocated:1 /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Checking that the reads clause also is checked over requires
@@ -134,5 +134,18 @@ class DynamicFramesIdiom {
   {
     this in Repr  // this says that the predicate returns true if "this in Repr", but the
                   // predicate can also be invoked in a state where its body will evaluate to false
+  }
+}
+
+class ConstInitializers {
+  var x: int
+
+  const u: int := x // error: insufficient reads clause
+
+  const v: int := F() // error: insufficient reads clause
+  function method F(): int
+    reads this
+  {
+    x + x
   }
 }

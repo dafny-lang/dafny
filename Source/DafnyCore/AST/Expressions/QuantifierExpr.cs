@@ -55,11 +55,20 @@ public abstract class QuantifierExpr : ComprehensionExpr, TypeParameter.ParentTy
     cp.Parent = this;
     return cp;
   }
-  public QuantifierExpr(IToken tok, IToken endTok, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
-    : base(tok, endTok, bvars, range, term, attrs) {
+  public QuantifierExpr(IToken tok, RangeToken rangeToken, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
+    : base(tok, rangeToken, bvars, range, term, attrs) {
     Contract.Requires(tok != null);
     Contract.Requires(cce.NonNullElements(bvars));
     Contract.Requires(term != null);
+    this.UniqueId = FreshQuantId();
+  }
+
+  protected QuantifierExpr(Cloner cloner, QuantifierExpr original) : base(cloner, original) {
+    if (cloner.CloneResolvedFields) {
+      if (original.SplitQuantifier != null) {
+        SplitQuantifier = original.SplitQuantifier.Select(cloner.CloneExpr).ToList();
+      }
+    }
     this.UniqueId = FreshQuantId();
   }
 

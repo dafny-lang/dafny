@@ -37,7 +37,11 @@ method Main() {
   TestConflictingNames();
   TestModule();
 
+  var _, _ := UpdateRegression(6);
+
   TestGhostDestructors();
+
+  TestNumericDestructorNames();
 }
 
 function method Up(m: nat, n: nat): List
@@ -141,6 +145,30 @@ method PrintMaybe(x : Module.OptionInt) {
   case None => print "None\n";
 }
 
+datatype Record = Record(ghost x: int, y: int, ghost z: bool, w: bool)
+
+method UpdateRegression(six: int) returns (eight: int, ten: int) {
+  eight, ten := 8, 10;
+
+  var r := Record(10, 20, true, true);
+  r := r.(z := false);
+  var twentytwo := 22;
+  // In the following, the local variable "twentytwo", in-parameter "six", and
+  // match-bound variable "yy" were once not adequately protected (in Java).
+  match r {
+    case Record(_, yy, _, _) =>
+      r := r.(y := twentytwo + ten + six + yy);
+  }
+  print r, "\n"; // Record.Record(58, true)
+
+  var f;
+  match r {
+    case Record(_, yy, _, _) =>
+      f := x => x + twentytwo + 3 + ten + six + yy;
+  }
+  print f(100), "\n"; // 199
+}
+
 datatype R = R(x: int, ghost g: int)
 
 method TestGhostDestructors() {
@@ -152,4 +180,16 @@ method TestGhostDestructors() {
 
   assert e == R(13, 23);
   expect e.x == 13;
+}
+
+datatype NumericDestructorNames = NumericDestructorNames(0: int, 0_3: int, 012: int)
+
+method TestNumericDestructorNames() {
+  // once, these were compiled incorrectly for Java
+  var j := NumericDestructorNames(800, 801, 802);
+  match j {
+    case NumericDestructorNames(a, b, c) =>
+      print a, " ", b, " ", c, "\n"; // 800 801 802
+  }
+  print j.0, " ", j.0_3, " ", j.012, "\n"; // 800 801 802
 }
