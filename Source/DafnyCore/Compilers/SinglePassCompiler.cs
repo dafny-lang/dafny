@@ -336,7 +336,7 @@ namespace Microsoft.Dafny.Compilers {
 
     internal override ICanRender TypeName(Type type, IToken tok, MemberDecl /*?*/ member = null) {
       var result = new ConcreteSyntaxTree();
-      TypeName(type, result, tok, member);
+      result.Write(TypeName(type, result, tok, member));
       return result;
     }
 
@@ -728,7 +728,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected ConcreteSyntaxTree EmitDowncastIfNecessary(Type /*?*/ from, Type /*?*/ to, IToken tok, ConcreteSyntaxTree wr) {
-      return ConvertToWriter(wr, value => Downcast(from, to, tok, value));
+      return ConvertToWriter(wr, value => DowncastIfNecessary(from, to, tok, value));
     }
 
     protected override ConcreteSyntaxTree Downcast(Type from, Type to, IToken tok, ICanRender expression) {
