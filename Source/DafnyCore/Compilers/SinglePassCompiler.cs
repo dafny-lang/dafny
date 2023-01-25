@@ -4571,23 +4571,8 @@ namespace Microsoft.Dafny.Compilers {
             EmitMemberSelect(obj, e.Obj.Type, e.Member, typeArgs, typeMap, expr.Type, customReceiverName).EmitRead(wr);
           }
         }
-      } else if (expr is SeqSelectExpr) {
-        SeqSelectExpr e = (SeqSelectExpr)expr;
-        Contract.Assert(e.Seq.Type != null);
-        if (e.Seq.Type.IsArrayType) {
-          if (e.SelectOne) {
-            Contract.Assert(e.E0 != null && e.E1 == null);
-            var w = EmitArraySelect(new List<Expression>() { e.E0 }, e.Type, inLetExprBody, wr, wStmts);
-            TrParenExpr(e.Seq, w, inLetExprBody, wStmts);
-          } else {
-            EmitSeqSelectRange(e.Seq, e.E0, e.E1, true, inLetExprBody, wr, wStmts);
-          }
-        } else if (e.SelectOne) {
-          Contract.Assert(e.E0 != null && e.E1 == null);
-          EmitIndexCollectionSelect(e.Seq, e.E0, inLetExprBody, wr, wStmts);
-        } else {
-          EmitSeqSelectRange(e.Seq, e.E0, e.E1, false, inLetExprBody, wr, wStmts);
-        }
+      } else if (expr is SeqSelectExpr seqSelectExpr) {
+        return TrSeqSelectExpr(inLetExprBody, wStmts, seqSelectExpr);
       } else if (expr is SeqConstructionExpr) {
         var e = (SeqConstructionExpr)expr;
         EmitSeqConstructionExpr(e, inLetExprBody, wr, wStmts);
@@ -5015,6 +5000,38 @@ namespace Microsoft.Dafny.Compilers {
       return wr;
     }
 
+    protected override ICanRender EmitArraySelect(List<Expression> indices, Type elementType, bool inLetExprBody, ICanRender array,
+      ConcreteSyntaxTree wStmts) {
+      return ConvertFromWriter(array, outer => EmitArraySelect(indices, elementType, inLetExprBody, outer, wStmts));
+    }
+
+    protected override ICanRender EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
+      ConcreteSyntaxTree wStmts) {
+      return ConvertFromWriter(outer => EmitIndexCollectionSelect(source, index, inLetExprBody, outer, wStmts));
+    }
+
+    protected override ICanRender EmitSeqSelectRange(Expression source, Expression lo, Expression hi, bool fromArray, bool inLetExprBody,
+      ConcreteSyntaxTree wStmts) {
+      return ConvertFromWriter(result => EmitSeqSelectRange(source, lo, hi, fromArray, inLetExprBody, result, wStmts));
+    }
+
+    protected override ICanRender TrParenExpr(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
+      return ConvertFromWriter(result => TrParenExpr(expr, result, inLetExprBody, wStmts));
+    }
+
+    private ICanRender ConvertFromWriter(ICanRender inner, Func<ConcreteSyntaxTree, ConcreteSyntaxTree> writer) {
+      var result = new ConcreteSyntaxTree();
+      var innerWriter = writer(result);
+      innerWriter.Append(inner);
+      return result;
+    }
+
+    private ICanRender ConvertFromWriter(Action<ConcreteSyntaxTree> writer) {
+      var result = new ConcreteSyntaxTree();
+      writer(result);
+      return result;
+    }
+    
     /// <summary>
     /// When inside an enumeration like this:
     /// 
