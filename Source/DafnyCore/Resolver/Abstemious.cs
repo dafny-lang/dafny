@@ -22,6 +22,7 @@ public class Abstemious {
       }
     }
   }
+
   private void CheckDestructsAreAbstemiousCompliant(Expression expr) {
     Contract.Assert(expr != null);
     expr = expr.Resolved;
@@ -35,6 +36,16 @@ public class Abstemious {
           reporter.Error(MessageSource.Resolver, expr, "an abstemious function is allowed to invoke a codatatype destructor only on its parameters");
         }
         return;
+      }
+    } else if (expr is NestedMatchExpr nestedMatchExpr) {
+      if (nestedMatchExpr.Source.Type.IsCoDatatype) {
+        var ide = Expression.StripParens(nestedMatchExpr.Source).Resolved as IdentifierExpr;
+        if (ide != null && ide.Var is Formal) {
+          // cool; fall through to check match branches
+        } else {
+          reporter.Error(MessageSource.Resolver, nestedMatchExpr.Source, "an abstemious function is allowed to codatatype-match only on its parameters");
+          return;
+        }
       }
     } else if (expr is MatchExpr) {
       var e = (MatchExpr)expr;

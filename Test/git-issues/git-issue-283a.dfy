@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 "%s" > "%t"
+// RUN: %exits-with 2 %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype Result<T> =
@@ -34,7 +34,7 @@ trait Foo
     ensures
       match r {
         case Success(C1()) => true
-        case Success(C1) => true // ERROR - duplicate constructor
+        case Success(C1) => true // ERROR - duplicate constructor, not shown because this warning is created post resolution.
         case Failure(e) => true
       }
 }

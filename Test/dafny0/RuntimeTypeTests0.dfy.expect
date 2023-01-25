@@ -3,8 +3,8 @@ Dafny program verifier finished with 9 verified, 0 errors
 
 Dafny program verifier did not attempt verification
 {5, 7} and {5, 7}
-Dt.Atom(_module.Class0) and Dt.Atom(_module.Class0)
-Dt.Atom(_module.Class0) and Dt.Atom(_module.Class0)
+Dt.Atom(_module.Class0, 10) and Dt.Atom(_module.Class0, 10)
+Dt.Atom(_module.Class0, 10) and Dt.Atom(_module.Class0, 10)
 {_module.Class0} and {_module.Class0}
 [_module.Class0] and [_module.Class0]
 multiset{_module.Class0} and multiset{_module.Class0}
@@ -13,8 +13,8 @@ map[7 := _module.Class0] and map[7 := _module.Class0]
 
 Dafny program verifier did not attempt verification
 {5, 7} and {5, 7}
-Dt.Atom(_module.Class0) and Dt.Atom(_module.Class0)
-Dt.Atom(_module.Class0) and Dt.Atom(_module.Class0)
+Dt.Atom(_module.Class0, 10) and Dt.Atom(_module.Class0, 10)
+Dt.Atom(_module.Class0, 10) and Dt.Atom(_module.Class0, 10)
 {_module.Class0} and {_module.Class0}
 [_module.Class0] and [_module.Class0]
 multiset{_module.Class0} and multiset{_module.Class0}
@@ -23,8 +23,8 @@ map[7 := _module.Class0] and map[7 := _module.Class0]
 
 Dafny program verifier did not attempt verification
 {5, 7} and {5, 7}
-Dt.Atom(_module.Class0) and Dt.Atom(_module.Class0)
-Dt.Atom(_module.Class0) and Dt.Atom(_module.Class0)
+Dt.Atom(_module.Class0, 10) and Dt.Atom(_module.Class0, 10)
+Dt.Atom(_module.Class0, 10) and Dt.Atom(_module.Class0, 10)
 {_module.Class0} and {_module.Class0}
 [_module.Class0] and [_module.Class0]
 multiset{_module.Class0} and multiset{_module.Class0}
@@ -33,8 +33,8 @@ map[7 := _module.Class0] and map[7 := _module.Class0]
 
 Dafny program verifier did not attempt verification
 {5, 7} and {5, 7}
-Dt.Atom(_module.Class0) and Dt.Atom(_module.Class0)
-Dt.Atom(_module.Class0) and Dt.Atom(_module.Class0)
+Dt.Atom(_module.Class0, 10) and Dt.Atom(_module.Class0, 10)
+Dt.Atom(_module.Class0, 10) and Dt.Atom(_module.Class0, 10)
 {_module.Class0} and {_module.Class0}
 [_module.Class0] and [_module.Class0]
 multiset{_module.Class0} and multiset{_module.Class0}
@@ -43,8 +43,8 @@ map[7 := _module.Class0] and map[7 := _module.Class0]
 
 Dafny program verifier did not attempt verification
 {5, 7} and {5, 7}
-Dt.Atom(_module.Class0) and Dt.Atom(_module.Class0)
-Dt.Atom(_module.Class0) and Dt.Atom(_module.Class0)
+Dt.Atom(_module.Class0, 10) and Dt.Atom(_module.Class0, 10)
+Dt.Atom(_module.Class0, 10) and Dt.Atom(_module.Class0, 10)
 {_module.Class0} and {_module.Class0}
 [_module.Class0] and [_module.Class0]
 multiset{_module.Class0} and multiset{_module.Class0}

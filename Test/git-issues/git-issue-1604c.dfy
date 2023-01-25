@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:1 /errorLimit:0 "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:1 /errorLimit:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 predicate EvenNat(n: nat) { n % 2 == 0 }
 predicate TrueInt(x: int) { true }

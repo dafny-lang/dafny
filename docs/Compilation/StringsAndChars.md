@@ -1,3 +1,5 @@
+<p></p> <!-- avoids duplicate title -->
+
 # Strings and Characters
 
 This document describes how the built-in Dafny types `string` and `char`

@@ -18,6 +18,7 @@ This is often easier than writing the code, because annotations are shorter and
 more direct. For example, the following fragment of annotation in Dafny says
 that every element of the array is strictly positive:
 
+<!-- %no-check -->
 ```dafny
 forall k: int :: 0 <= k < a.Length ==> 0 < a[k]
 ```
@@ -47,6 +48,7 @@ might be called procedures, or functions, but in Dafny the term "function" is
 reserved for a different concept that we will cover later. A method is declared
 in the following way:
 
+<!-- %check-verify guide.1.expect -->
 ```dafny
 method Abs(x: int) returns (y: int)
 {
@@ -61,6 +63,7 @@ are required for each parameter and return value, and follow each name after a
 colon (`:`). Also, the return values are named, and there
 can be multiple return values, as in this code:
 
+<!-- %check-verify guide.2.expect -->
 ```dafny
 method MultipleReturns(x: int, y: int) returns (more: int, less: int)
 {
@@ -76,6 +79,7 @@ assignments, `if` statements, loops, other method calls, `return` statements, et
 For example, the `MultipleReturns` method may be
 implemented as:
 
+<!-- %check-verify -->
 ```dafny
 method MultipleReturns(x: int, y: int) returns (more: int, less: int)
 {
@@ -99,6 +103,7 @@ parameters are used), or they can take a list of values to return. There are
 also compound statements, such as `if` statements. `if` statements do not require
 parentheses around the boolean condition, and act as one would expect:
 
+<!-- %check-verify -->
 ```dafny
 method Abs(x: int) returns (y: int)
 {
@@ -144,6 +149,7 @@ condition and most specifications, a postcondition is always a boolean
 expression: something that can be *true* or *false*. In
 the case of the `Abs` method, a reasonable postcondition is the following:
 
+<!-- %check-verify -->
 ```dafny
 method Abs(x: int) returns (y: int)
   ensures 0 <= y
@@ -172,6 +178,7 @@ latter is basically the same as the former, but it separates distinct
 properties. For example, the return value names from the `MultipleReturns`
 method might lead one to guess the following postconditions:
 
+<!-- %check-verify guide.3.expect -->
 ```dafny
 method MultipleReturns(x: int, y: int) returns (more: int, less: int)
   ensures less < x
@@ -184,6 +191,7 @@ method MultipleReturns(x: int, y: int) returns (more: int, less: int)
 
 The postcondition can also be written:
 
+<!-- %check-verify guide.4.expect -->
 ```dafny
 method MultipleReturns(x: int, y: int) returns (more: int, less: int)
   ensures less < x && x < more
@@ -195,6 +203,7 @@ method MultipleReturns(x: int, y: int) returns (more: int, less: int)
 
 or even:
 
+<!-- %check-verify guide.5.expect -->
 ```dafny
 method MultipleReturns(x: int, y: int) returns (more: int, less: int)
   ensures less < x < more
@@ -243,6 +252,7 @@ Preconditions have their own keyword, `requires`.
 We can give the necessary precondition to `MultipleReturns`
 as below:
 
+<!-- %check-verify -->
 ```dafny
 method MultipleReturns(x: int, y: int) returns (more: int, less: int)
   requires 0 < y
@@ -268,6 +278,7 @@ is correct.
   their maximum. Add appropriate annotations and make sure your code
   verifies.*
 
+<!-- %check-verify guide.6.expect -->
 ```dafny
 method Max(a: int, b: int) returns (c: int)
   // What postcondition should go here, so that the function operates as expected?
@@ -294,6 +305,7 @@ statements. An assertion says that a particular
 expression always holds when control reaches that part of the code. For
 example, the following is a trivial use of an assertion inside a dummy method:
 
+<!-- %check-verify -->
 ```dafny
 method Testing()
 {
@@ -319,6 +331,7 @@ declarations. Unlike method parameters, where types are required, Dafny can
 infer the types of local variables in almost all situations. This is an example
 of an initialized, explicitly typed variable declaration:
 
+<!-- %check-verify -->
 ```dafny
 method m()
 {
@@ -328,6 +341,7 @@ method m()
 
 The type annotation can be dropped in this case:
 
+<!-- %check-verify -->
 ```dafny
 method m()
 {
@@ -337,6 +351,7 @@ method m()
 
 Multiple variables can be declared at once:
 
+<!-- %check-verify -->
 ```dafny
 method m()
 {
@@ -353,6 +368,7 @@ method. We cannot put `Abs` inside a specification directly, as the method could
 change memory state, among other problems. So we capture the return value of a
 call to `Abs` as follows:
 
+<!-- %check-verify -->
 ```dafny
 method Abs(x: int) returns (y: int)
   ensures 0 <= y
@@ -384,6 +400,7 @@ non-negative after the call to `Abs`.
   *Write a test method that calls your `Max` method from Exercise 0
   and then asserts something about the result.*
 
+<!-- %check-resolve -->
 ```dafny
 method Max(a: int, b:int) returns (c: int)
   // Use your code from Exercise 0
@@ -398,6 +415,7 @@ particular, for non-negative `x`, `Abs(x) == x`. Specifically, in the
 above program, the value of `v` is 3. If we try adding an assertion (or
 changing the existing one) to say:
 
+<!-- %check-verify guide.7.expect -->
 ```dafny
 method Abs(x: int) returns (y: int)
   ensures 0 <= y
@@ -437,6 +455,7 @@ return values) as fixing the behavior of the method. Everywhere the method is
 used, we assume that it is any one of the conceivable method(s) that satisfies the pre- and
 postconditions. In the `Abs` case, we might have written:
 
+<!-- %check-verify guide.8.expect -->
 ```dafny
 method Abs(x: int) returns (y: int)
   ensures 0 <= y
@@ -447,7 +466,7 @@ method Testing()
 {
   var v := Abs(3);
   assert 0 <= v;
-  // this stil does not verify, but now it is actually not true:
+  // this still does not verify, but now it is actually not true:
   assert v == 3;
 }
 ```
@@ -455,6 +474,7 @@ method Testing()
 This method satisfies the postconditions, but clearly the
 program fragment:
 
+<!-- %check-verify guide.9.expect -->
 ```dafny
 method Abs(x: int) returns (y: int)
   ensures 0 <= y
@@ -476,6 +496,7 @@ constant, for example. We need stronger postconditions to eliminate these
 other possibilities, and "fix" the method down to exactly the one we want. We
 can partially do this with the following:
 
+<!-- %check-verify -->
 ```dafny
 method Abs(x: int) returns (y: int)
   ensures 0 <= y
@@ -506,6 +527,7 @@ negative is that the result, `y`, is positive. But this
 is still not enough to fix the method, so we must add another postcondition,
 to make the following complete annotation covering all cases:
 
+<!-- %check-verify -->
 ```dafny
 method Abs(x: int) returns (y: int)
   ensures 0 <= y
@@ -525,6 +547,7 @@ actually computes the absolute value of `x`. These postconditions are
 not the only way to express this property. For example, this is a different,
 and somewhat shorter, way of saying the same thing:
 
+<!-- %check-verify -->
 ```dafny
 method Abs(x: int) returns (y: int)
   ensures 0 <= y && (y == x || y == -x)
@@ -551,6 +574,7 @@ of doing this: functions.
   negative values. Simplify the body of `Abs` into just one return
   statement and make sure the method still verifies.*
 
+<!-- %check-verify -->
 ```dafny
 method Abs(x: int) returns (y: int)
   // Add a precondition here.
@@ -574,6 +598,7 @@ method Abs(x: int) returns (y: int)
   through? What precondition do you need if the body is `y := x + 1`?
   What does that precondition say about when you can call the method?*
 
+<!-- %check-verify guide.10.expect -->
 ```dafny
 method Abs(x: int) returns (y: int)
   // Add a precondition here so that the method verifies.
@@ -597,6 +622,7 @@ method Abs2(x: int) returns (y: int)
 
 ## Functions
 
+<!-- %no-check -->
 ```dafny
 function abs(x: int): int
 {
@@ -612,6 +638,7 @@ correct type. Here our body must be an integer expression. In order to
 implement the absolute value function, we need to use an *`if` expression*. An `if`
 expression is like the ternary operator in other languages.
 
+<!-- %check-verify -->
 ```dafny
 function abs(x: int): int
 {
@@ -625,6 +652,7 @@ bother with functions, if they are so limited compared to methods. The power of
 functions comes from the fact that they can be *used directly in specifications*.
 So we can write:
 
+<!-- %check-verify -->
 ```dafny
 function abs(x: int): int
 {
@@ -650,10 +678,11 @@ actually `3`.
   integer parameters. Write a test method using an `assert` that
   checks that your function is correct.*
 
+<!-- %check-resolve -->
 ```dafny
 function max(a: int, b: int): int
 {
-  // Fill in an expression here.
+  0 // Fill in an expression here.
 }
 method Testing() {
   // Add assertions to check max here.
@@ -663,6 +692,7 @@ method Testing() {
 One caveat of functions is that not only can they appear in
 annotations, they can only appear in annotations. One cannot write:
 
+<!-- %no-check -->
 ```dafny
   var v := abs(3);
 ```
@@ -680,13 +710,15 @@ reference for details).
   the variable. Dafny will reject this program because you are calling
   `max` from real code. Fix this problem using a `function method`.*
 
+<!-- %check-resolve -->
 ```dafny
 function max(a: int, b: int): int
 {
-  // Use your code from Exercise 4
+  0 // Use your code from Exercise 4
 }
 method Testing() returns (r: int) {
   // Add assertions to check max here. Be sure to capture it to the out-parameter
+  r := 0;
 }
 ```
 
@@ -697,6 +729,7 @@ method Testing() returns (r: int) {
   this, you will realize there is not much point in having a method
   that does exactly the same thing as a function method.)*
 
+<!-- %check-verify -->
 ```dafny
 function abs(x: int): int
 {
@@ -717,6 +750,7 @@ method Abs(x: int) returns (y: int)
 Unlike methods, functions can appear in expressions. Thus we
 can do something like implement the mathematical Fibonacci function:
 
+<!-- %check-verify -->
 ```dafny
 function fib(n: nat): nat
 {
@@ -738,6 +772,7 @@ the guarantee of correctness and the performance we want.
 
 We can start by defining a method like the following:
 
+<!-- %check-verify guide.11.expect -->
 ```dafny
 function fib(n: nat): nat
 {
@@ -748,7 +783,7 @@ function fib(n: nat): nat
 method ComputeFib(n: nat) returns (b: nat)
   ensures b == fib(n)
 {
-  // ...
+  ...
 }
 ```
 
@@ -758,6 +793,7 @@ Fibonacci number. The basic idea is to keep a counter and repeatedly calculate a
 of Fibonacci numbers until the desired number is reached. To do this, we need a loop. In Dafny, this is done
 via a *`while` loop*. A while loop looks like the following:
 
+<!-- %check-verify -->
 ```dafny
 method m(n: nat)
 {
@@ -790,6 +826,7 @@ expressions we have seen. For example, we see in the above loop that if `i`
 starts off positive, then it stays positive. So we can add the invariant, using
 its own keyword, to the loop:
 
+<!-- %check-verify -->
 ```dafny
 method m(n: nat)
 {
@@ -818,6 +855,7 @@ we exit the loop, we will have that `i == n`, because `i` will stop being
 incremented when it reaches `n`. We can use our assertion trick to check to see if Dafny
 sees this fact as well:
 
+<!-- %check-verify guide.12.expect -->
 ```dafny
 method m(n: nat)
 {
@@ -841,6 +879,7 @@ Somehow we need to eliminate the possibility of `i`
 exceeding `n`. One first guess for solving this problem
 might be the following:
 
+<!-- %check-verify guide.13.expect -->
 ```dafny
 method m(n: nat)
 {
@@ -862,6 +901,7 @@ guard holds, in the last iteration `i` goes from `n - 1` to `n`, but does not in
 further, as the loop exits. Thus, we have only omitted exactly one case from
 our invariant, and repairing it is relatively easy:
 
+<!-- %check-verify -->
 ```dafny
 method m(n: nat)
 {
@@ -885,6 +925,7 @@ has executed.
   *Change the loop invariant to `0 <= i <= n+2`. Does the loop still
   verify? Does the assertion `i == n` after the loop still verify?*
 
+<!-- %check-verify -->
 ```dafny
 method m(n: nat)
 {
@@ -904,6 +945,7 @@ method m(n: nat)
   `i < n` to `i != n`. Do the loop and the assertion after the loop
   still verify? Why or why not?*
 
+<!-- %check-verify -->
 ```dafny
 method m(n: nat)
 {
@@ -935,6 +977,7 @@ reach another number, often an argument or the length of an array or sequence.
 So we have that the variable `b`, which is conveniently
 our out parameter, will be the current Fibonacci number:
 
+<!-- %no-check -->
 ```dafny
   invariant b == fib(i)
 ```
@@ -945,6 +988,7 @@ number. So we want a way of tracking the previous Fibonacci number, which we
 will call `a`. Another invariant will express that
 number's relation to the loop counter. The invariants are:
 
+<!-- %no-check -->
 ```dafny
   invariant a == fib(i - 1)
 ```
@@ -953,6 +997,7 @@ At each step of the loop, the two values are summed to get
 the next leading number, while the trailing number is the old leading number.
 Using a parallel assignment, we can write a loop that performs this operation:
 
+<!-- %check-verify guide.14.expect -->
 ```dafny
 function fib(n: nat): nat
 {
@@ -992,6 +1037,7 @@ the loop. The only problem is when `n` is zero. This can
 be eliminated as a special case, by testing for this condition at the beginning
 of the loop. The completed Fibonacci method becomes:
 
+<!-- %check-verify -->
 ```dafny
 function fib(n: nat): nat
 {
@@ -1029,6 +1075,7 @@ and `b == fib(i)`, which together imply the postcondition, `b == fib(n)`.
   variable `c` that succeeds `b`. Verify your program is correct
   according to the mathematical definition of Fibonacci.*
 
+<!-- %check-verify -->
 ```dafny
 function fib(n: nat): nat
 {
@@ -1063,6 +1110,7 @@ method ComputeFib(n: nat) returns (b: nat)
   `0`.  Verify this new program by adjusting the loop invariants to
   match the new behavior.*
 
+<!-- %check-verify guide.15.expect -->
 ```dafny
 function fib(n: nat): nat
 {
@@ -1116,6 +1164,7 @@ details.) In the case of integers, the bound is assumed to be zero. For
 example, the following is a proper use of `decreases` on a loop (with its own
 keyword, of course):
 
+<!-- %check-verify -->
 ```dafny
 method m ()
 {
@@ -1136,6 +1185,7 @@ which tend to count up instead of down. In this case, what decreases is not the
 counter itself, but rather the distance between the counter and the upper
 bound. A simple trick for dealing with this situation is given below:
 
+<!-- %check-verify -->
 ```dafny
 method m()
 {
@@ -1167,6 +1217,7 @@ each other, and neither is fixed.
   and delete the invariant annotation. Does the program verify? What
   happened?*
 
+<!-- %check-verify guide.16.expect -->
 ```dafny
 method m()
 {
@@ -1186,6 +1237,7 @@ original caller. When Dafny is not able to guess the termination condition, an
 explicit decreases clause can be given along with pre- and postconditions, as
 in the unnecessary annotation for the fib function:
 
+<!-- %check-verify -->
 ```dafny
 function fib(n: nat): nat
   decreases n
@@ -1234,6 +1286,7 @@ search, with a different correctness condition for each. If the algorithm
 returns an index (i.e. non-negative integer), then the key should be present at
 that index. This might be expressed as follows:
 
+<!-- %check-resolve -->
 ```dafny
 method Find(a: array<int>, key: int) returns (index: int)
   ensures 0 <= index ==> index < a.Length && a[index] == key
@@ -1270,6 +1323,7 @@ name suggests, this expression is true if some property holds for all elements
 of some set. For now, we will consider the set of integers. An example
 universal quantifier, wrapped in an assertion, is given below:
 
+<!-- %check-verify-warn guide.17.expect -->
 ```dafny
 method m()
 {
@@ -1292,6 +1346,7 @@ used to quantify over all elements in an array or data structure. We do this
 for arrays by using the implication operator to make the quantified property
 trivially true for values which are not indices:
 
+<!-- %no-check -->
 ```dafny
   assert forall k :: 0 <= k < a.Length ==> ...a[k]...;
 ```
@@ -1305,12 +1360,14 @@ set of integers it must consider to only those that are indices into the array.
 With a quantifier, saying the key is not in the array is
 straightforward:
 
+<!-- %no-check -->
 ```dafny
   forall k :: 0 <= k < a.Length ==> a[k] != key
 ```
 
 Thus our method postconditions become:
 
+<!-- %check-resolve -->
 ```dafny
 method Find(a: array<int>, key: int) returns (index: int)
   ensures 0 <= index ==> index < a.Length && a[index] == key
@@ -1325,6 +1382,7 @@ Note that because `a` has type `array<int>`, it is implicitly non-null.
 We can fill in the body of this method in a number of ways,
 but perhaps the easiest is a linear search, implemented below:
 
+<!-- %check-verify guide.18.expect -->
 ```dafny
 method Find(a: array<int>, key: int) returns (index: int)
   ensures 0 <= index ==> index < a.Length && a[index] == key
@@ -1348,6 +1406,7 @@ we have to write an invariant that says that everything before the current
 index has already been looked at (and are not the key). Just like the
 postcondition, we can use a quantifier to express this property:
 
+<!-- %check-verify guide.19.expect -->
 ```dafny
 method Find(a: array<int>, key: int) returns (index: int)
   ensures 0 <= index ==> index < a.Length && a[index] == key
@@ -1386,6 +1445,7 @@ is one past the end of a growing range is a common pattern when working with
 arrays, where it is often used to build a property up one element at a time.
 The complete method is given below:
 
+<!-- %check-verify -->
 ```dafny
 method Find(a: array<int>, key: int) returns (index: int)
   ensures 0 <= index ==> index < a.Length && a[index] == key
@@ -1410,6 +1470,7 @@ method Find(a: array<int>, key: int) returns (index: int)
   postconditions that state the intent of the method, and annotate its
   body with loop invariant to verify it.*
 
+<!-- %check-resolve -->
 ```dafny
 method FindMax(a: array<int>) returns (i: int)
   // Annotate this method with pre- and postconditions
@@ -1443,6 +1504,7 @@ predicate, but the easiest is to use a quantifier over the indices of the
 array. We can write a quantifier that expresses the property, "if `x` is before
 `y` in the array, then `x <= y`," as a quantifier over two bound variables:
 
+<!-- %no-check -->
 ```dafny
   forall j, k :: 0 <= j < k < a.Length ==> a[j] <= a[k]
 ```
@@ -1455,9 +1517,9 @@ says that they are ordered properly with respect to one another. Quantifiers are
 a type of boolean valued expression in Dafny, so we can write the sorted predicate
 as:
 
+<!-- %check-verify guide.20.expect -->
 ```dafny
 predicate sorted(a: array<int>)
-  requires a != null
 {
   forall j, k :: 0 <= j < k < a.Length ==> a[j] <= a[k]
 }
@@ -1484,9 +1546,9 @@ sorted. While we might be able to give invariants to preserve it in this case,
 it gets even more complex when manipulating data structures. In this case,
 framing is essential to making the verification process feasible.
 
+<!-- %check-verify -->
 ```dafny
 predicate sorted(a: array<int>)
-  requires a != null
   reads a
 {
   forall j, k :: 0 <= j < k < a.Length ==> a[j] <= a[k]
@@ -1534,22 +1596,23 @@ distinction between the reference itself and the value it points to.)
   true exactly when the array is sorted and all its elements are
   distinct.*
 
+<!-- %check-resolve -->
 ```dafny
 predicate sorted(a: array<int>)
-  requires a != null
   reads a
 {
-  // Fill in a new body here.
+  false // Fill in a new body here.
 }
 ```
 
 **Exercise 14.**
-  *What happens if you remove the precondition `a != null`? Change the
-  definition of `sorted` so that it allows its argument to be null but
+  *Change the definition of `sorted` so that it allows its argument to be 
+  null (using a nullable array type) but
   returns false if it is.*
 
+<!-- %check-verify -->
 ```dafny
-predicate sorted(a: array<int>)
+predicate sorted(a: array<int>) // Change the type
   reads a
 {
   // Change this definition to treat null arrays as "not sorted".
@@ -1562,15 +1625,15 @@ predicate sorted(a: array<int>)
 
 Predicates are usually used to make other annotations clearer:
 
+<!-- %check-resolve -->
 ```dafny
 predicate sorted(a: array<int>)
-  requires a != null
   reads a
 {
   forall j, k :: 0 <= j < k < a.Length ==> a[j] <= a[k]
 }
 method BinarySearch(a: array<int>, value: int) returns (index: int)
-  requires a != null && 0 <= a.Length && sorted(a)
+  requires 0 <= a.Length && sorted(a)
   ensures 0 <= index ==> index < a.Length && a[index] == value
   ensures index < 0 ==> forall k :: 0 <= k < a.Length ==> a[k] != value
 {
@@ -1584,15 +1647,15 @@ is sorted. Because Dafny can unwrap functions, inside the body of the method it
 knows this too. We can then use that property to prove the correctness of the
 search. The method body is given below:
 
+<!-- %check-verify -->
 ```dafny
 predicate sorted(a: array<int>)
-  requires a != null
   reads a
 {
   forall j, k :: 0 <= j < k < a.Length ==> a[j] <= a[k]
 }
 method BinarySearch(a: array<int>, value: int) returns (index: int)
-  requires a != null && 0 <= a.Length && sorted(a)
+  requires 0 <= a.Length && sorted(a)
   ensures 0 <= index ==> index < a.Length && a[index] == value
   ensures index < 0 ==> forall k :: 0 <= k < a.Length ==> a[k] != value
 {
@@ -1634,6 +1697,7 @@ when `low == high`, the loop exits. But this means that
 no elements are left in the search range, so the key was not found. This can be
 deduced from the loop invariant:
 
+<!-- %no-check -->
 ```dafny
   invariant forall i ::
     0 <= i < a.Length && !(low <= i < high) ==> a[i] != value
@@ -1654,15 +1718,15 @@ ourselves.
   to `mid` or to set `high` to `mid - 1`. In each case, what goes
   wrong?*
 
+<!-- %check-verify -->
 ```dafny
 predicate sorted(a: array<int>)
-  requires a != null
   reads a
 {
   forall j, k :: 0 <= j < k < a.Length ==> a[j] <= a[k]
 }
 method BinarySearch(a: array<int>, value: int) returns (index: int)
-  requires a != null && 0 <= a.Length && sorted(a)
+  requires 0 <= a.Length && sorted(a)
   ensures 0 <= index ==> index < a.Length && a[index] == value
   ensures index < 0 ==> forall k :: 0 <= k < a.Length ==> a[k] != value
 {

@@ -221,6 +221,8 @@ namespace Microsoft.Dafny.Triggers {
           annotation = AnnotateApplySuffix((ApplySuffix)expr);
         } else if (expr is MatchExpr) {
           annotation = AnnotateMatchExpr((MatchExpr)expr);
+        } else if (expr is NestedMatchExpr nestedMatchExpr) {
+          annotation = AnnotateNestedMatchExpr(nestedMatchExpr);
         } else if (expr is ComprehensionExpr) {
           annotation = AnnotateComprehensionExpr((ComprehensionExpr)expr);
         } else if (expr is ConcreteSyntaxExpression ||
@@ -424,6 +426,16 @@ namespace Microsoft.Dafny.Triggers {
     private TriggerAnnotation AnnotateComprehensionExpr(ComprehensionExpr expr) {
       var terms = CollectExportedCandidates(expr);
       return new TriggerAnnotation(true, CollectVariables(expr), terms, OnlyPrivateCandidates(terms, expr.BoundVars));
+    }
+
+    private TriggerAnnotation AnnotateNestedMatchExpr(NestedMatchExpr expr) {
+      var candidateTerms = CollectExportedCandidates(expr);
+      // collects that argument boundvar of matchcaseexpr
+      var variables = expr.Cases.SelectMany(e => e.Pat.DescendantsAndSelf).
+        OfType<IdPattern>().Select(id => id.BoundVar).Where(b => b != null).ToList();
+      // remove terms that mentions argument boundvar of matchcaseexpr
+      var terms = candidateTerms.Where(term => variables.Any(x => !term.Variables.Contains(x))).ToList();
+      return new TriggerAnnotation(true, CollectVariables(expr), terms);
     }
 
     private TriggerAnnotation AnnotateMatchExpr(MatchExpr expr) {

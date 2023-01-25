@@ -1,1 +1,0 @@
-Resolved an instance in which the Dafny language server could enter a broken state.

@@ -37,7 +37,7 @@ public class GhostStateDiagnosticCollectorTest {
   [TestInitialize]
   public void SetUp() {
     var options = new DafnyOptions();
-    GhostIndicatorsOption.Instance.Set(options, true);
+    options.Set(ServerCommand.GhostIndicators, true);
     ghostStateDiagnosticCollector = new GhostStateDiagnosticCollector(
       options,
       new DummyLogger());

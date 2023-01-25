@@ -3,7 +3,7 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public class AssignStmt : Statement {
+public class AssignStmt : Statement, ICloneable<AssignStmt> {
   public readonly Expression Lhs;
   public readonly AssignmentRhs Rhs;
   [ContractInvariantMethod]
@@ -12,10 +12,34 @@ public class AssignStmt : Statement {
     Contract.Invariant(Rhs != null);
   }
 
-  public AssignStmt(IToken tok, IToken endTok, Expression lhs, AssignmentRhs rhs)
-    : base(tok, endTok) {
-    Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+  public override IToken Tok {
+    get {
+      var previous = Rhs.StartToken.Prev;
+      // If there was a single assignment, report on the operator.
+      var singleAssignment = previous.val == ":=";
+      // If there was an implicit return assignment, report on the return.
+      var implicitAssignment = previous.val == "return";
+      if (singleAssignment || implicitAssignment) {
+        return previous;
+      }
+      return Rhs.StartToken;
+    }
+  }
+
+  public override IEnumerable<Node> Children => new Node[] { Lhs, Rhs };
+
+  public AssignStmt Clone(Cloner cloner) {
+    return new AssignStmt(cloner, this);
+  }
+
+  public AssignStmt(Cloner cloner, AssignStmt original) : base(cloner, original) {
+    Lhs = cloner.CloneExpr(original.Lhs);
+    Rhs = cloner.CloneRHS(original.Rhs);
+  }
+
+  public AssignStmt(RangeToken rangeToken, Expression lhs, AssignmentRhs rhs)
+    : base(rangeToken) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(lhs != null);
     Contract.Requires(rhs != null);
     this.Lhs = lhs;
@@ -34,7 +58,16 @@ public class AssignStmt : Statement {
     get {
       foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
       yield return Lhs;
-      foreach (var ee in Rhs.SubExpressions) {
+      foreach (var ee in Rhs.NonSpecificationSubExpressions) {
+        yield return ee;
+      }
+    }
+  }
+
+  public override IEnumerable<Expression> SpecificationSubExpressions {
+    get {
+      foreach (var e in base.SpecificationSubExpressions) { yield return e; }
+      foreach (var ee in Rhs.SpecificationSubExpressions) {
         yield return ee;
       }
     }

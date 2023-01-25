@@ -1,12 +1,13 @@
 
 <!--PDF NEWPAGE-->
-# Syntax tests
+# 29. Testing syntax rendering
 
 Sample math B: $a \to b$ or
 <p style="text-align: center;">$$ a \to \pi $$</p>
  or \( a \top \) or \[ a \to \pi \]
 
 Colors
+<!-- %no-check -->
 ```dafny
 integer literal:  10
 hex literal:      0xDEAD
@@ -29,6 +30,7 @@ error:            $
 
 Syntax color tests:
 
+<!-- %no-check -->
 ```dafny
 integer: 0 00 20 01 0_1
 float:   .0 1.0 1. 0_1.1_0

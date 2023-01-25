@@ -3,14 +3,22 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public class ModifyStmt : Statement {
+public class ModifyStmt : Statement, ICloneable<ModifyStmt> {
   public readonly Specification<FrameExpression> Mod;
   public readonly BlockStmt Body;
 
-  public ModifyStmt(IToken tok, IToken endTok, List<FrameExpression> mod, Attributes attrs, BlockStmt body)
-    : base(tok, endTok) {
-    Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+  public ModifyStmt Clone(Cloner cloner) {
+    return new ModifyStmt(cloner, this);
+  }
+
+  public ModifyStmt(Cloner cloner, ModifyStmt original) : base(cloner, original) {
+    Mod = cloner.CloneSpecFrameExpr(original.Mod);
+    Body = cloner.CloneBlockStmt(original.Body);
+  }
+
+  public ModifyStmt(RangeToken rangeToken, List<FrameExpression> mod, Attributes attrs, BlockStmt body)
+    : base(rangeToken) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(mod != null);
     Mod = new Specification<FrameExpression>(mod, attrs);
     Body = body;

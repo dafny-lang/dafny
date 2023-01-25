@@ -9,14 +9,46 @@ namespace Microsoft.Dafny.LanguageServer;
 
 public class ServerCommand : ICommandSpec {
 
-  public IEnumerable<IOptionSpec> Options => new IOptionSpec[] {
-    VerificationOption.Instance,
-    GhostIndicatorsOption.Instance,
-    LineVerificationStatusOption.Instance,
-    VerifySnapshotsOption.Instance,
-    VerificationTimeLimitOption.Instance,
-    EnforceDeterminismOption.Instance,
-  }.Concat(ICommandSpec.CommonOptions);
+  static ServerCommand() {
+    DafnyOptions.RegisterLegacyBinding(VerifySnapshots, (options, u) => options.VerifySnapshots = (int)u);
+  }
+
+  public static readonly Option<bool> GhostIndicators = new("--notify-ghostness",
+    @"
+(experimental, API will change)
+Send notifications that indicate which lines are ghost.".TrimStart());
+
+  public static readonly Option<VerifyOnMode> Verification = new("--verify-on", () => VerifyOnMode.Change, @"
+(experimental)
+Determine when to automatically verify the program. Choose from: Never, OnChange or OnSave.".TrimStart()) {
+    ArgumentHelpName = "event"
+  };
+
+  public static readonly Option<bool> LineVerificationStatus = new("--notify-line-verification-status", @"
+(experimental, API will change)
+Send notifications about the verification status of each line in the program.
+".TrimStart());
+
+  public static readonly Option<uint> VerifySnapshots = new("--cache-verification", @"
+(experimental)
+0 - do not use any verification result caching (default)
+1 - use the basic verification result caching
+2 - use the more advanced verification result caching
+3 - use the more advanced caching and report errors according
+  to the new source locations for errors and their
+  related locations
+".TrimStart()) {
+    ArgumentHelpName = "level"
+  };
+
+  public IEnumerable<Option> Options => new Option[] {
+    Verification,
+    GhostIndicators,
+    LineVerificationStatus,
+    VerifySnapshots,
+    CommonOptionBag.EnforceDeterminism,
+  }.Concat(ICommandSpec.VerificationOptions).
+    Concat(ICommandSpec.CommonOptions);
 
   public Command Create() {
     var command = new Command("server", "Start the Dafny language server");
@@ -29,7 +61,7 @@ public class ServerCommand : ICommandSpec {
 
   public static void ConfigureDafnyOptionsForServer(DafnyOptions dafnyOptions) {
     dafnyOptions.RunLanguageServer = true;
-    ShowSnippetsOption.Instance.Set(dafnyOptions, true);
+    dafnyOptions.Set(DafnyConsolePrinter.ShowSnippets, true);
     dafnyOptions.PrintIncludesMode = DafnyOptions.IncludesModes.None;
     dafnyOptions.ProverOptions.AddRange(new List<string>()
     {
@@ -37,76 +69,5 @@ public class ServerCommand : ICommandSpec {
       "O:model.completion=true",
       "O:model_evaluator.completion=true"
     });
-  }
-}
-
-public class VerificationOption : CommandLineOption<VerifyOnMode> {
-  public static readonly VerificationOption Instance = new();
-
-  public override object DefaultValue => VerifyOnMode.Change;
-
-  public override string LongName => "verify-on";
-
-  public override string ArgumentName => "event";
-
-  public override string Description => @"
-(experimental)
-Determine when to automatically verify the program. Choose from: Never, OnChange or OnSave.";
-
-  public override void Parse(CommandLineParseState ps, DafnyOptions options) {
-    throw new System.NotImplementedException();
-  }
-
-  public override string PostProcess(DafnyOptions options) {
-    return null!;
-  }
-}
-
-public class LineVerificationStatusOption : BooleanOption {
-  public static readonly LineVerificationStatusOption Instance = new();
-  public override string LongName => "notify-line-verification-status";
-
-  public override string Description => @"
-(experimental, API will change)
-Send notifications about the verification status of each line in the program.
-".TrimStart();
-
-  public override object DefaultValue => false;
-
-  public override string PostProcess(DafnyOptions options) {
-    return null!;
-  }
-}
-
-public class GhostIndicatorsOption : BooleanOption {
-  public static readonly GhostIndicatorsOption Instance = new();
-  public override string LongName => "notify-ghostness";
-  public override string Description => @"
-(experimental, API will change)
-Send notifications that indicate which lines are ghost.".TrimStart();
-  public override string PostProcess(DafnyOptions options) {
-    return null!;
-  }
-}
-
-public class VerifySnapshotsOption : NaturalNumberOption {
-  public static readonly VerifySnapshotsOption Instance = new();
-  public override object DefaultValue => 0U;
-  public override bool Hidden => true;
-  public override string LongName => "cache-verification";
-  public override string ArgumentName => "level";
-
-  public override string Description => @"
-(experimental)
-0 - do not use any verification result caching (default)
-1 - use the basic verification result caching
-2 - use the more advanced verification result caching
-3 - use the more advanced caching and report errors according
-    to the new source locations for errors and their
-    related locations
-".TrimStart();
-  public override string PostProcess(DafnyOptions options) {
-    options.VerifySnapshots = (int)Get(options);
-    return null!;
   }
 }

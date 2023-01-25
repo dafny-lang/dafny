@@ -17,6 +17,7 @@ Dafny program verifier finished with 0 verified, 0 errors
 Wrote textual form of target program to CompileAndThenRun-java/CompileAndThenRun.java
 Additional target code written to CompileAndThenRun-java/_System/nat.java
 Additional target code written to CompileAndThenRun-java/_System/__default.java
+Wrote executable jar CompileAndThenRun.jar
 hello, Dafny
 
 Dafny program verifier finished with 0 verified, 0 errors

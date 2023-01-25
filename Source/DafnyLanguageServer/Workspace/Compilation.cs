@@ -151,7 +151,7 @@ public class Compilation {
 
     var translated = new DocumentAfterTranslation(services,
       loaded.TextDocumentItem, loaded.Program,
-      loaded.ParseAndResolutionDiagnostics, loaded.NewSymbolTable, loaded.SignatureAndCompletionTable, loaded.GhostDiagnostics, verificationTasks,
+      loaded.ParseAndResolutionDiagnostics, loaded.SymbolTable, loaded.SignatureAndCompletionTable, loaded.GhostDiagnostics, verificationTasks,
       new(),
       initialViews,
       migratedVerificationTree ?? new DocumentVerificationTree(loaded.TextDocumentItem));
@@ -278,7 +278,7 @@ public class Compilation {
     documentUpdates.OnNext(document);
   }
 
-  private bool ReportGutterStatus => LineVerificationStatusOption.Instance.Get(options);
+  private bool ReportGutterStatus => options.Get(ServerCommand.LineVerificationStatus);
 
   private List<Diagnostic> GetDiagnosticsFromResult(Document document, VerificationResult result) {
     var errorReporter = new DiagnosticErrorReporter(document.TextDocumentItem.Text, document.Uri);

@@ -1,0 +1,1 @@
+Settings `--cores=0` will cause Dafny to use half of the available cores.

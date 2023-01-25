@@ -6,12 +6,13 @@ using System.Linq;
 namespace Microsoft.Dafny; 
 
 public class DeadCodeCommand : ICommandSpec {
-  public IEnumerable<IOptionSpec> Options =>
-    new IOptionSpec[] {
-      LoopUnrollOption.Instance,
-      SequenceLengthLimitOption.Instance,
-      VerificationTimeLimitOption.Instance,
-    }.Concat(ICommandSpec.CommonOptions);
+  public IEnumerable<Option> Options =>
+    new Option[] {
+      GenerateTestsCommand.LoopUnroll,
+      GenerateTestsCommand.SequenceLengthLimit,
+      BoogieOptionBag.VerificationTimeLimit,
+    }.Concat(ICommandSpec.ConsoleOutputOptions).
+      Concat(ICommandSpec.CommonOptions);
 
   public Command Create() {
     var result = new Command("find-dead-code", "(Experimental) Use counterexample generation to warn about potential dead code.");

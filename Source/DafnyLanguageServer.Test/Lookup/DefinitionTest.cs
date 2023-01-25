@@ -159,24 +159,20 @@ method Bar([>value<]: Identity<Colors>) returns (x: bool) {
       var matchSource = (await RequestDefinition(documentItem, positions[0]).AsTask()).Single();
       Assert.AreEqual(ranges[2], matchSource.Location!.Range);
 
-      // TODO doesn't work right now because we use post match compilation information.
-      // var identity = (await RequestDefinition(documentItem, positions[1]).AsTask()).Single();
-      // Assert.AreEqual(ranges[0], identity.Location!.Range);
+      var identity = (await RequestDefinition(documentItem, positions[1]).AsTask()).Single();
+      Assert.AreEqual(new Range((0, 23), (0, 31)), identity.Location!.Range);
 
-      // TODO doesn't work right now because we use post match compilation information.
-      // var green = (await RequestDefinition(documentItem, positions[2]).AsTask()).Single();
-      // Assert.AreEqual(ranges[1], green.Location!.Range);
+      var green = (await RequestDefinition(documentItem, positions[2]).AsTask()).Single();
+      Assert.AreEqual(new Range((1, 24), (1, 29)), green.Location!.Range);
 
       var matchSourceStmt = (await RequestDefinition(documentItem, positions[3]).AsTask()).Single();
       Assert.AreEqual(ranges[3], matchSourceStmt.Location!.Range);
 
-      // TODO doesn't work right now because we use post match compilation information.
-      // var identityStmt = (await RequestDefinition(documentItem, positions[4]).AsTask()).Single();
-      // Assert.AreEqual(ranges[0], identity.Location!.Range);
+      var identityStmt = (await RequestDefinition(documentItem, positions[4]).AsTask()).Single();
+      Assert.AreEqual(new Range((0, 23), (0, 31)), identityStmt.Location!.Range);
 
-      // TODO doesn't work right now because we use post match compilation information.
-      // var greenStmt = (await RequestDefinition(documentItem, positions[5]).AsTask()).Single();
-      // Assert.AreEqual(ranges[1], green.Location!.Range);
+      var greenStmt = (await RequestDefinition(documentItem, positions[5]).AsTask()).Single();
+      Assert.AreEqual(new Range((1, 24), (1, 29)), greenStmt.Location!.Range);
     }
 
     [TestMethod]

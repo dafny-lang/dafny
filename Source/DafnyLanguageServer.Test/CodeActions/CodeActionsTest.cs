@@ -169,7 +169,7 @@ const x := 1;
 
     private async Task TestIfCodeAction(string source, Range requestPosition, string expectedDafnyCodeActionTitle, string expectedDafnyCodeAction,
       Range expectedDafnyCodeActionRange) {
-      await SetUp(o => RelaxDefiniteAssignment.Instance.Set(o, true));
+      await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var verificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);

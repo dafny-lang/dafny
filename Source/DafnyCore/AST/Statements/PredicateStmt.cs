@@ -9,18 +9,20 @@ public abstract class PredicateStmt : Statement {
     Contract.Invariant(Expr != null);
   }
 
-  public PredicateStmt(IToken tok, IToken endTok, Expression expr, Attributes attrs)
-    : base(tok, endTok, attrs) {
-    Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+  protected PredicateStmt(Cloner cloner, PredicateStmt original) : base(cloner, original) {
+    Expr = cloner.CloneExpr(original.Expr);
+  }
+
+  protected PredicateStmt(RangeToken rangeToken, Expression expr, Attributes attrs)
+    : base(rangeToken, attrs) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(expr != null);
     this.Expr = expr;
   }
 
-  public PredicateStmt(IToken tok, IToken endTok, Expression expr)
-    : this(tok, endTok, expr, null) {
-    Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+  protected PredicateStmt(RangeToken rangeToken, Expression expr)
+    : this(rangeToken, expr, null) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(expr != null);
     this.Expr = expr;
   }

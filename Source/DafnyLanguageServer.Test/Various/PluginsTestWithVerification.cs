@@ -34,9 +34,4 @@ public class PluginsTestWithVerification : PluginsTestBase {
     Assert.AreEqual("value does not satisfy the subset constraints of 'nat'", diagnostics[1].Message);
     Assert.AreEqual(new Range((0, 23), (0, 24)), diagnostics[1].Range);
   }
-
-  [TestCleanup]
-  public void DoCleanup() {
-    CleanupPlugin();
-  }
 }
