@@ -2535,9 +2535,9 @@ namespace Microsoft.Dafny.Compilers {
 
       var psi = new ProcessStartInfo("node", "") {
         RedirectStandardInput = true,
-        StandardInputEncoding = Encoding.UTF8,
         RedirectStandardOutput = true,
         RedirectStandardError = true,
+        StandardInputEncoding = Encoding.UTF8,
       };
 
       try {
