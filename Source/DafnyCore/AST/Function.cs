@@ -119,13 +119,13 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
     AccumulateRight_Concat,
   }
 
-  public override IEnumerable<INode> Children => new[] { ByMethodDecl }.Where(x => x != null).
-    Concat<INode>(Reads).
-    Concat<INode>(Req).
+  public override IEnumerable<Node> Children => new[] { ByMethodDecl }.Where(x => x != null).
+    Concat<Node>(Reads).
+    Concat<Node>(Req).
     Concat(Ens.Select(e => e.E)).
     Concat(Decreases.Expressions).
     Concat(Formals).Concat(ResultType.Nodes).
-    Concat(Body == null ? Enumerable.Empty<INode>() : new[] { Body });
+    Concat(Body == null ? Enumerable.Empty<Node>() : new[] { Body });
 
   public override IEnumerable<Expression> SubExpressions {
     get {
@@ -243,7 +243,6 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
   bool ICodeContext.IsGhost { get { return this.IsGhost; } }
   List<TypeParameter> ICodeContext.TypeArgs { get { return this.TypeArgs; } }
   List<Formal> ICodeContext.Ins { get { return this.Formals; } }
-  IToken ICallable.Tok { get { return this.tok; } }
   string ICallable.NameRelativeToModule {
     get {
       if (EnclosingClass is DefaultClassDecl) {
