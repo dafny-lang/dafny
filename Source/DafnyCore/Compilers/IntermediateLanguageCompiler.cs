@@ -6,41 +6,39 @@ namespace Microsoft.Dafny.Compilers;
 
 public abstract record IExpression;
 
+public abstract record IStatement;
+
 public record ILiteral(object Literal) : IExpression;
 
-public abstract class IntermediateLanguageCompiler : GenericSinglePassCompiler<IExpression> {
-
-  protected internal override IExpression TrExpr(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
-    return expr switch {
-      LiteralExpr literalExpr => new ILiteral(literalExpr.Value),
-      _ => throw new NotImplementedException()
-    };
-  }
+/// <summary>
+/// TrSeqSelectExpr from GenericSinglePassCompiler can be used.
+/// </summary>
+public abstract class IntermediateLanguageCompiler : GenericSinglePassCompiler<IExpression, IList<IStatement>> {
 
   protected override IExpression EmitThis() {
     throw new System.NotImplementedException();
   }
 
   protected override IExpression EmitLiteralExpr(LiteralExpr e) {
-    throw new System.NotImplementedException();
+    return new ILiteral(e.Value);
   }
 
   protected override IExpression EmitArraySelect(List<Expression> indices, Type elementType, bool inLetExprBody, IExpression array,
-    ConcreteSyntaxTree wStmts) {
+    IList<IStatement> wStmts) {
     throw new System.NotImplementedException();
   }
 
   protected override IExpression EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
-    ConcreteSyntaxTree wStmts) {
+    IList<IStatement> wStmts) {
     throw new System.NotImplementedException();
   }
 
   protected override IExpression EmitSeqSelectRange(Expression source, Expression lo, Expression hi, bool fromArray, bool inLetExprBody,
-    ConcreteSyntaxTree wStmts) {
+    IList<IStatement> wStmts) {
     throw new System.NotImplementedException();
   }
 
-  protected override IExpression TrParenExpr(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
+  protected override IExpression TrParenExpr(Expression expr, bool inLetExprBody, IList<IStatement> wStmts) {
     throw new System.NotImplementedException();
   }
 }

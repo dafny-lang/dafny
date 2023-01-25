@@ -34,30 +34,30 @@ internal class InternalCompilersPluginConfiguration : Plugins.PluginConfiguratio
   }
 }
 
-public abstract class GenericSinglePassCompiler<TExpression> // TODO remove generic from the name
+public abstract class GenericSinglePassCompiler<TExpression, TStatements> // TODO remove generic from the name
 {
 
-  protected internal abstract TExpression TrExpr(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wStmts);
+  protected internal abstract TExpression TrExpr(Expression expr, bool inLetExprBody, TStatements wStmts);
   protected abstract TExpression EmitThis();
 
   protected abstract TExpression EmitLiteralExpr(LiteralExpr e);
-  protected delegate TExpression FCE_Arg_Translator(Expression e, bool inLetExpr, ConcreteSyntaxTree wStmts);
+  protected delegate TExpression FCE_Arg_Translator(Expression e, bool inLetExpr, TStatements wStmts);
 
-  protected abstract TExpression EmitArraySelect(List<Expression> indices, Type elementType, bool inLetExprBody, TExpression array, ConcreteSyntaxTree wStmts);
+  protected abstract TExpression EmitArraySelect(List<Expression> indices, Type elementType, bool inLetExprBody, TExpression array, TStatements wStmts);
 
   protected abstract TExpression EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
-    ConcreteSyntaxTree wStmts);
+    TStatements wStmts);
 
   /// <summary>
   /// If "fromArray" is false, then "source" is a sequence.
   /// If "fromArray" is true, then "source" is an array.
   /// </summary>
   protected abstract TExpression EmitSeqSelectRange(Expression source, Expression lo /*?*/, Expression hi /*?*/,
-    bool fromArray, bool inLetExprBody, ConcreteSyntaxTree wStmts);
+    bool fromArray, bool inLetExprBody, TStatements wStmts);
 
-  protected abstract TExpression TrParenExpr(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wStmts);
+  protected abstract TExpression TrParenExpr(Expression expr, bool inLetExprBody, TStatements wStmts);
 
-  protected TExpression TrSeqSelectExpr(bool inLetExprBody, ConcreteSyntaxTree wStmts, SeqSelectExpr e) {
+  protected TExpression TrSeqSelectExpr(bool inLetExprBody, TStatements wStmts, SeqSelectExpr e) {
     Contract.Assert(e.Seq.Type != null);
     if (e.Seq.Type.IsArrayType) {
       if (!e.SelectOne) {

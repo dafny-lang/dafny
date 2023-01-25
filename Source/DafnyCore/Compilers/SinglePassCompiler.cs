@@ -12,7 +12,7 @@ using Microsoft.BaseTypes;
 
 namespace Microsoft.Dafny.Compilers {
 
-  public abstract class ConcreteSinglePassCompiler : GenericSinglePassCompiler<ICanRender>, Plugins.Compiler {
+  public abstract class ConcreteSinglePassCompiler : GenericSinglePassCompiler<ICanRender, ConcreteSyntaxTree>, Plugins.Compiler {
 
     // The following two fields are not initialized until OnPreCompile
     protected ErrorReporter Reporter;
