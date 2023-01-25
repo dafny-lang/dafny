@@ -16,7 +16,7 @@
 [Command]
 Command = "run"
 [Arguments]
-"--no-verify" = true
+"no-verify" = true
 "target" = "cs"
 
 
