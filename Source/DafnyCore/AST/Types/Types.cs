@@ -2769,7 +2769,7 @@ public abstract class TypeProxy : Type {
     }
   }
 
-  internal TypeProxy() {
+  internal TypeProxy() : base(RangeToken.NoToken) {
   }
 
 #if TI_DEBUG_PRINT
