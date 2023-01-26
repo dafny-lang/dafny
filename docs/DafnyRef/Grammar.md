@@ -52,12 +52,19 @@ For the rest of this document, we consider Dafny programs as sequences of tokens
 
 ## 2.3. Character Classes {#sec-character-classes}
 This section defines character classes used later in the token definitions.
-In this section a backslash is used to start an escape sequence; so for example
-`'\n'` denotes the single linefeed character. Also in this section, double quotes
-enclose the set of characters constituting a character class; enclosing single
-quotes are used when there is just one character in the class. `+` indicates
-the union of two character classes; `-` is the set-difference between the
-two classes. `ANY` designates all [unicode characters](#sec-unicode).
+In this section 
+* a backslash is used to start an escape sequence (so for example
+`'\n'` denotes the single linefeed character)
+* double quotes
+enclose the set of characters constituting a character class
+* enclosing single
+quotes are used when there is just one character in the class
+(perhaps expressed with a `\` escape character)
+* `+` indicates
+the union of two character classes
+* `-` is the set-difference between the
+two classes
+* `ANY` designates all [unicode characters](#sec-unicode).
 
  name | description
 ----------------------------|---------------------------
@@ -66,38 +73,22 @@ digit | base-ten digit (0-9)
 posDigit | digits, excluding 0 (1-9)
 posDigitFrom2 | digits excluding 0 and 1 (2-9)
 hexdigit | normal hex digits (0-9a-fA-F)
-special | ' ? or _
+special | `'` `?` or `_`
 cr      | carriage return character ('\r')
 lf      | line feed character ('\n')
 tab     | tab character ('\t')
 space   | space character (' ')
+        |
+nondigitIdChar | characters allowed in an identifier, except digits (letter + special)
+idchar  | characters allowed in an identifier (nondigitIdChar + digits)
+nonidchar | characters not in identifiers (ANY - idchar)
+charChar | characters allowed in a character constant (ANY - '\'' - '\\' - cr - lf)
+stringChar | characters allowed in a string constant (ANY - '"' - '\\' - cr - lf)
+verbatimStringChar | characters allowed in a verbatim string constant (ANY - '"')
 
 
-````grammar
-letter = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-````
-At present, a letter is an ASCII upper or lowercase letter. Other Unicode letters
-are not supported.
 
-````grammar
-digit = "0123456789"
-````
-A digit is just one of the base-10 digits.
 
-````grammar
-posDigit = "123456789"
-posDigitFrom2 = "23456789"
-````
-A ``posDigit`` is a digit, excluding 0. ``posDigitFrom2`` excludes both 0 and 1.
-
-````grammar
-hexdigit = "0123456789ABCDEFabcdef"
-````
-A ``hexdigit`` character is a digit or one of the letters from 'A' to 'F' in either case.
-
-````grammar
-special = "'_?"
-````
 The _special_ characters are the characters in addition to alphanumeric characters
 that are allowed to appear in a Dafny identifier. These are
 
@@ -107,59 +98,13 @@ that are allowed to appear in a Dafny identifier. These are
 * `?` because it is useful to have `?` at the end of names of predicates,
   e.g., "Cons?".
 
-````grammar
-cr        = '\r'
-````
-A carriage return character.
-
-````grammar
-lf        = '\n'
-````
-A line feed character.
-
-````grammar
-tab       = '\t'
-````
-A tab character.
-
-````grammar
-space     = ' '
-````
-A space character.
-
-````grammar
-nondigitIdChar = letter + special
-````
-The characters that can be used in an identifier minus the digits.
-
-````grammar
-idchar = nondigitIdChar + digit
-````
-The characters that can be used in an identifier.
-
-````grammar
-nonidchar = ANY - idchar
-````
-Any character except those that can be used in an identifier.
+A `nonidchar` is any character except those that can be used in an identifier.
 Here the scanner generator will interpret `ANY` as any unicode character.
 However, `nonidchar` is used only to mark the end of the `!in` token;
 in this context any character other than [whitespace or printable ASCII](#sec-unicode)
 will trigger a subsequent scanning or parsing error.
 
-````grammar
-charChar = ANY - '\'' - '\\' - cr - lf
-````
-Characters that can appear in a character constant.
 
-````grammar
-stringChar = ANY - '"' - '\\' - cr - lf
-````
-Characters that can appear in a string constant.
-
-````grammar
-verbatimStringChar = ANY - '"'
-````
-Characters that can appear in a verbatim string.
 
 ## 2.4. Comments {#sec-comments}
 Comments are in two forms.

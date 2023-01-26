@@ -1,106 +1,45 @@
 # 29. Dafny Grammar {#sec-grammar-details}
 
-The Dafny parser is generated from a grammar definition file, `Dafny.atg` by the [CoCo/r](https://ssw.jku.at/Research/Projects/Coco/)
-parser generator.
-
-The grammar has a traditional structure: a scanner tokenizes the textual input into a sequence of tokens; the parser consumes the tokens
+The Dafny grammar has a traditional structure: a scanner tokenizes the textual input into a sequence of tokens; the parser consumes the tokens
 to produce an AST. The AST is then passed on for name and type resolution and further processing.
 
 Dafny uses the Coco/R lexer and parser generator for its lexer and parser
 (<http://www.ssw.uni-linz.ac.at/Research/Projects/Coco>)[@Linz:Coco].
+See the [Coco/R Reference
+manual](http://www.ssw.uni-linz.ac.at/Research/Projects/Coco/Doc/UserManual.pdf)
+for details.
 The Dafny input file to Coco/R is the `Dafny.atg` file in the source tree.
-A Coco/R input file consists of code written in the target language
-(C\# for the `dafny` tool) intermixed with these special sections:
 
-0. The [Characters section](#sec-character-classes)
-    which defines classes of characters that are used
-   in defining the lexer.
-1. The [Tokens section](#sec-tokens) which defines the lexical tokens.
-2. The [Productions section](#sec-grammar)
- which defines the grammar. The grammar productions
-are distributed in the later parts of this document in the places where
-those constructs are explained.
+The grammar is an _attributed extended BNF_ grammar.
+The _attributed_ adjective indicates that the BNF productions are
+parameterized by boolean parameters that control variations of the 
+production rules, such as whether a particular alternative is permitted or
+not. Using such attributes allows combining non-terminals with quite
+similar production rules, making a simpler, more compact and more
+readable grammer.
 
-The grammar presented in this document was derived from the `Dafny.atg`
-file but has been simplified by removing details that, though needed by
-the parser, are not needed to understand the grammar. In particular, the
-following transformations have been performed.
-
-* The semantics actions, enclosed by "(." and ".)", were removed.
-* There are some elements in the grammar used for error recovery
-  ("SYNC"). These were removed.
-* There are some elements in the grammar for resolving conflicts
-  ("IF(b)"). These have been removed.
-* Some comments related to Coco/R parsing details have been removed.
-* A Coco/R grammar is an attributed grammar where the attributes enable
-  the productions to have input and output parameters. These attributes
-  were removed except that boolean input parameters that affect
-  the parsing are kept.
-  * In our representation we represent these
-    in a definition by giving the names of the parameters following
-    the non-terminal name. For example `entity1(allowsX)`.
-  * In the case of uses of the parameter, the common case is that the
-    parameter is just passed to a lower-level non-terminal. In that
-    case we just give the name, e.g. `entity2(allowsX)`.
-  * If we want to give an explicit value to a parameter, we specify it in
-    a keyword notation like this: `entity2(allowsX: true)`.
-  * In some cases the value to be passed depends on the grammatical context.
-    In such cases we give a description of the conditions under which the
-    parameter is true, enclosed in parenthesis. For example:
-
-      `FunctionSignatureOrEllipsis_(allowGhostKeyword: ("method" present))`
-
-    means that the `allowGhostKeyword` parameter is true if the
-    "method" keyword was given in the associated ``FunctionDecl``.
-  * Where a parameter affects the parsing of a non-terminal we will
-    explain the effect of the parameter.
+The grammar rules presented here replicate those in the source
+code, but omit semantic actions, error recovery markers, and
+conflict resolution syntax. Some uses of the attribute
+parameters are described informally.
 
 The names of character sets and tokens start with a lower case
 letter; the names of grammar non-terminals start with
 an upper-case letter.
 
-The grammar uses Extended BNF notation. See the [Coco/R Referenced
-manual](http://www.ssw.uni-linz.ac.at/Research/Projects/Coco/Doc/UserManual.pdf)
-for details. In summary:
 
-* identifiers starting with a lower case letter denote
-terminal symbols
-* identifiers starting with an upper case letter denote nonterminal
-symbols
-* strings (a sequence of characters enclosed by double quote characters)
-denote the sequence of enclosed characters
-* `=` separates the sides of a production, e.g. `A = a b c`
-* in the Coco grammars "." terminates a production, but for readability
-  in this document a production starts with the defined identifier in
-  the left margin and may be continued on subsequent lines if they
-  are indented
-* `|` separates alternatives, e.g. `a b | c | d e` means `a b` or `c` or `d e`
-* `(` `)` groups alternatives, e.g. `(a | b) c` means `a c` or `b c`
-* `[ ]` option, e.g. `[a] b` means `a b` or `b`
-* `{ }` iteration (0 or more times), e.g. `{a} b` means `b` or `a b` or `a a b` or ...
-* We allow `|` inside `[ ]` and `{ }`. So `[a | b]` is short for `[(a | b)]`
-  and `{a | b}` is short for `{(a | b)}`.
-* The first production defines the name of the grammar, in this case `Dafny`.
-
-In addition to the Coco rules, for the sake of readability we have adopted
-these additional conventions.
-
-* We allow `-` to be used. `a - b` means it matches if it matches `a` but not `b`.
-* To aid in explaining the grammar we have added some additional productions
-that are not present in the original grammar. We name these with a trailing
-underscore. If you inline these where they are referenced, the result should
-let you reconstruct the original grammar.
 
 
 ## 29.1. Dafny Syntax
 
-This section gives the definitions of Dafny tokens. The program text is divided into
-a sequence of tokens, which is then assembled by the parser into an 
-abstract syntax tree representing the program.
+This section gives the definitions of Dafny tokens.
 
 ### 29.1.1. Classes of characters
 
 These definitions define some names as representing subsets of the set of characters.
+Here double quotes enclose the set of characters constituting the class, single quotes 
+enclose a single character (perhaps an escaped representation using `\`), the 
+binary `-` indicates set difference, and `ANY` indicates the set of all (unicode) characters.
 
 ````grammar
 letter = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
@@ -127,6 +66,12 @@ nondigitIdChar = letter + special
 idchar = nondigitIdChar + digit
 
 nonidchar = ANY - idchar
+
+charChar = ANY - '\'' - '\\' - cr - lf
+
+stringChar = ANY - '"' - '\\' - cr - lf
+
+verbatimStringChar = ANY - '"'
 ````
 
 A `nonidchar` is any character except those that can be used in an identifier.
@@ -134,14 +79,6 @@ Here the scanner generator will interpret `ANY` as any unicode character.
 However, `nonidchar` is used only to mark the end of the `!in` token;
 in this context any character other than [whitespace or printable ASCII](#sec-unicode)
 will trigger a subsequent scanning or parsing error.
-
-````grammar
-charChar = ANY - '\'' - '\\' - cr - lf
-
-stringChar = ANY - '"' - '\\' - cr - lf
-
-verbatimStringChar = ANY - '"'
-````
 
 ### 29.1.2. Definitions of tokens
 
@@ -205,49 +142,34 @@ stringToken =
 ellipsis = "..."
 ````
 
-### 29.1.3. Identifier Variations {#g-identifier}
-
-````grammar
-Ident = ident
-
-DotSuffix = ( ident | digits | "requires" | "reads" )
-
-NoUSIdent = ident - "_" { idchar }
-
-WildIdent = NoUSIdent | "_"
-
-IdentOrDigits = Ident | digits
-NoUSIdentOrDigits = NoUSIdent | digits
-ModuleName = NoUSIdent
-ClassName = NoUSIdent    // also traits
-DatatypeName = NoUSIdent
-DatatypeMemberName = NoUSIdentOrDigits
-NewtypeName = NoUSIdent
-SynonymTypeName = NoUSIdent
-IteratorName = NoUSIdent
-TypeVariableName = NoUSIdent
-MethodFunctionName = NoUSIdentOrDigits
-LabelName = NoUSIdentOrDigits
-AttributeName = NoUSIdent
-ExportId = NoUSIdentOrDigits
-TypeNameOrCtorSuffix = NoUSIdentOrDigits
-````
-
-
-
 ## 29.2. Dafny Grammar productions
 
 The grammar productions are presented in the following Extended BNF syntax:
-* terminals are 
-   - character sequences enclosed in double quotes, or
-   - the names of tokens defined in the previous section, enclosed in angle brackets (< >)
-* non-terminals are names enclosed in angle brackets
-* parentheses designate grouping
-* a vertical bar indicates alternatives
-* square brackets indicate optional material
-* curly braces indicate 0-or-more reptitions of its contents
-* each production is given by a non-terminal, followed by '=',
-  followed by the definition of the non-terminal, follwed by a period.
+
+* identifiers starting with a lower case letter denote
+terminal symbols (tokens)
+* identifiers starting with an upper case letter denote nonterminal
+symbols
+* strings (a sequence of characters enclosed by double quote characters)
+denote the sequence of enclosed characters
+* `=` separates the sides of a production, e.g. `A = a b c`
+* `|` separates alternatives, e.g. `a b | c | d e` means `a b` or `c` or `d e`
+* `(` `)` groups alternatives, e.g. `(a | b) c` means `a c` or `b c`
+* `[ ]` option, e.g. `[a] b` means `a b` or `b`
+* `{ }` iteration (0 or more times), e.g. `{a} b` means `b` or `a b` or `a a b` or ...
+* We allow `|` inside `[ ]` and `{ }`. So `[a | b]` is short for `[(a | b)]`
+  and `{a | b}` is short for `{(a | b)}`.
+* The first production defines the name of the grammar, in this case `Dafny`.
+
+In addition to the Coco rules, for the sake of readability we have adopted
+these additional conventions.
+
+* We allow `-` to be used. `a - b` means it matches if it matches `a` but not `b`.
+* We omit the `.` that marks the end of a CoC/R production.
+
+To aid in explaining the grammar we have added some additional productions
+that are not present in the original grammar. We name these with a trailing
+underscore. Inlining these where they are referenced will reconstruct the original grammar.
 
 ### 29.2.1. Programs {#g-program}
 
@@ -261,7 +183,7 @@ Dafny = { IncludeDirective_ } { TopDecl } EOF
 IncludeDirective_ = "include" stringToken
 ````
 
-#### 29.2.1.2. Top-level declarations {g-top-level-declaration}
+#### 29.2.1.2. Top-level declarations {#g-top-level-declaration}
 
 ````grammar
 TopDecl =
@@ -549,7 +471,7 @@ ReturnStmt = "return" [ Rhs { "," Rhs } ] ";"
 YieldStmt = "yield" [ Rhs { "," Rhs } ] ";"
 ````
 
-#### 29.2.6.7. Update and call staetment {#g-update-and-call-statement}
+#### 29.2.6.7. Update and call statement {#g-update-and-call-statement}
 
 ````grammar
 UpdateStmt =
@@ -565,7 +487,7 @@ UpdateStmt =
     )
 ````
 
-#### 29.2.6.8. Update with failure statement {#g-update-with-failure-statement)
+#### 29.2.6.8. Update with failure statement {#g-update-with-failure-statement}
 
 ````grammar
 UpdateFailureStmt  =
@@ -626,7 +548,7 @@ BindingGuard(allowLambda) =
   Expression(allowLemma: true, allowLambda)
 ````
 
-#### 29.2.6.12. If statement {#g-if-statement)
+#### 29.2.6.12. If statement {#g-if-statement}
 
 ````grammar
 IfStmt = "if"
@@ -742,7 +664,7 @@ PrintStmt =
     ";"
 ````
 
-#### 29.2.6.20. Reveal statement {#g-reveal-staetment}
+#### 29.2.6.20. Reveal statement {#g-reveal-statement}
 
 ````grammar
 RevealStmt =
@@ -751,7 +673,7 @@ RevealStmt =
     { "," Expression(allowLemma: false, allowLambda: true) }
     ";"
 ````
-#### 29.2.6.21. Forall stastement {#g-forall-statement}
+#### 29.2.6.21. Forall statement {#g-forall-statement}
 
 ````grammar
 ForallStmt =
@@ -959,7 +881,7 @@ LambdaExpression(allowLemma) =
   Expression(allowLemma, allowLambda: true)
 ````
 
-#### 29.2.7.14. Left-hand-side expression {g-lhs-expression}
+#### 29.2.7.14. Left-hand-side expression {#g-lhs-expression}
 ````grammar
 Lhs =
   ( NameSegment { Suffix }
@@ -993,7 +915,7 @@ ObjectAllocation_ = "new" Type [ "." TypeNameOrCtorSuffix ]
                                [ "(" [ Bindings ] ")" ]
 ````
 
-#### 29.2.7.18. Havoc right-hand-side expression (#g-havoc-expression}
+#### 29.2.7.18. Havoc right-hand-side expression {#g-havoc-expression}
 ````grammar
 HavocRhs_ = "*"
 ````
@@ -1001,7 +923,31 @@ HavocRhs_ = "*"
 
 #### 29.2.7.19. Basic name and type combinations
 
-```grammar
+````grammar
+Ident = ident
+
+DotSuffix = ( ident | digits | "requires" | "reads" )
+
+NoUSIdent = ident - "_" { idchar }
+
+WildIdent = NoUSIdent | "_"
+
+IdentOrDigits = Ident | digits
+NoUSIdentOrDigits = NoUSIdent | digits
+ModuleName = NoUSIdent
+ClassName = NoUSIdent    // also traits
+DatatypeName = NoUSIdent
+DatatypeMemberName = NoUSIdentOrDigits
+NewtypeName = NoUSIdent
+SynonymTypeName = NoUSIdent
+IteratorName = NoUSIdent
+TypeVariableName = NoUSIdent
+MethodFunctionName = NoUSIdentOrDigits
+LabelName = NoUSIdentOrDigits
+AttributeName = NoUSIdent
+ExportId = NoUSIdentOrDigits
+TypeNameOrCtorSuffix = NoUSIdentOrDigits
+
 ModuleQualifiedName = ModuleName { "." ModuleName }
 
 IdentType = WildIdent ":" Type
