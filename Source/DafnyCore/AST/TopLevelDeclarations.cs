@@ -446,9 +446,9 @@ public class ModuleExportDecl : ModuleDecl {
   public bool ProvideAll;
 
   public readonly VisibilityScope ThisScope;
-  public ModuleExportDecl(IToken rangeToken, ModuleDefinition parent,
+  public ModuleExportDecl(RangeToken rangeToken, ModuleDefinition parent,
     List<ExportSignature> exports, List<IToken> extends, bool provideAll, bool revealAll, bool isDefault, bool isRefining)
-    : base(rangeToken, (isDefault || rangeToken.val == "export") ? parent.Name : rangeToken.val, parent, false, isRefining) {
+    : base(rangeToken, (isDefault || rangeToken.StartToken.val == "export") ? parent.Name : rangeToken.StartToken.val, parent, false, isRefining) {
     Contract.Requires(exports != null);
     IsDefault = isDefault;
     Exports = exports;
@@ -458,7 +458,7 @@ public class ModuleExportDecl : ModuleDecl {
     ThisScope = new VisibilityScope(this.FullSanitizedName);
   }
 
-  public ModuleExportDecl(IToken rangeToken, string name, ModuleDefinition parent,
+  public ModuleExportDecl(RangeToken rangeToken, string name, ModuleDefinition parent,
     List<ExportSignature> exports, List<IToken> extends, bool provideAll, bool revealAll, bool isDefault, bool isRefining)
     : base(rangeToken, name, parent, false, isRefining) {
     Contract.Requires(exports != null);
@@ -945,7 +945,7 @@ public class ModuleDefinition : INamedRegion, IDeclarationOrUsage, IAttributeBea
 
 public class DefaultModuleDecl : ModuleDefinition {
   public DefaultModuleDecl()
-    : base(Token.NoToken, "_module", new List<IToken>(), false, false, null, null, null, true, true, true) {
+    : base(RangeToken.NoToken, "_module", new List<IToken>(), false, false, null, null, null, true, true, true) {
   }
   public override bool IsDefaultModule {
     get {
@@ -1339,7 +1339,7 @@ public class ArrowTypeDecl : ClassDecl {
   public readonly Function Reads;
 
   public ArrowTypeDecl(List<TypeParameter> tps, Function req, Function reads, ModuleDefinition module, Attributes attributes)
-    : base(Token.NoToken, ArrowType.ArrowTypeName(tps.Count - 1), module, tps,
+    : base(RangeToken.NoToken, ArrowType.ArrowTypeName(tps.Count - 1), module, tps,
       new List<MemberDecl> { req, reads }, attributes, false) {
     Contract.Requires(tps != null && 1 <= tps.Count);
     Contract.Requires(req != null);
@@ -1491,14 +1491,14 @@ public class ValuetypeDecl : TopLevelDecl {
   readonly Func<List<Type>, Type>/*?*/ typeCreator;
 
   public ValuetypeDecl(string name, ModuleDefinition module, int typeParameterCount, Func<Type, bool> typeTester, Func<List<Type>, Type>/*?*/ typeCreator)
-    : base(Token.NoToken, name, module, new List<TypeParameter>(), null, false) {
+    : base(RangeToken.NoToken, name, module, new List<TypeParameter>(), null, false) {
     Contract.Requires(name != null);
     Contract.Requires(module != null);
     Contract.Requires(0 <= typeParameterCount);
     Contract.Requires(typeTester != null);
     // fill in the type parameters
     for (int i = 0; i < typeParameterCount; i++) {
-      TypeArgs.Add(new TypeParameter(Token.NoToken, ((char)('T' + i)).ToString(), i, this));
+      TypeArgs.Add(new TypeParameter(RangeToken.NoToken, ((char)('T' + i)).ToString(), i, this));
     }
     this.typeTester = typeTester;
     this.typeCreator = typeCreator;
@@ -1749,7 +1749,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext {
     OutsHistoryFields = new List<Field>();
     DecreasesFields = new List<Field>();
 
-    YieldCountVariable = new LocalVariable(rangeToken.ToRange(), "_yieldCount", new EverIncreasingType(), true);
+    YieldCountVariable = new LocalVariable(rangeToken, "_yieldCount", new EverIncreasingType(), true);
     YieldCountVariable.type = YieldCountVariable.OptionalType;  // resolve YieldCountVariable here
   }
 

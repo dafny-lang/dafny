@@ -1825,6 +1825,14 @@ public abstract class BasicType : NonProxyType {
   public override Type ReplaceTypeArguments(List<Type> arguments) {
     return this;
   }
+
+  protected BasicType(Cloner cloner, RangeNode original) : base(cloner, original)
+  {
+  }
+
+  protected BasicType() : base(RangeToken.NoToken)
+  {
+  }
 }
 
 public class BoolType : BasicType {
@@ -1931,8 +1939,8 @@ public class BitvectorType : BasicType {
 public class SelfType : NonProxyType {
   public TypeParameter TypeArg;
   public Type ResolvedType;
-  public SelfType() : base() {
-    TypeArg = new TypeParameter(Token.NoToken, "selfType", TypeParameter.TPVarianceSyntax.NonVariant_Strict);
+  public SelfType() : base(RangeToken.NoToken) {
+    TypeArg = new TypeParameter(RangeToken.NoToken, "selfType", TypeParameter.TPVarianceSyntax.NonVariant_Strict);
   }
 
   [Pure]
@@ -2010,14 +2018,14 @@ public abstract class CollectionType : NonProxyType {
   /// <summary>
   /// This constructor is a collection types with 1 type argument
   /// </summary>
-  protected CollectionType(Type arg) {
+  protected CollectionType(Type arg) : base(RangeToken.NoToken) {
     this.arg = arg;
     this.TypeArgs = new List<Type> { arg };
   }
   /// <summary>
   /// This constructor is a collection types with 2 type arguments
   /// </summary>
-  protected CollectionType(Type arg, Type other) {
+  protected CollectionType(Type arg, Type other) : base(RangeToken.NoToken) {
     this.arg = arg;
     this.TypeArgs = new List<Type> { arg, other };
   }
