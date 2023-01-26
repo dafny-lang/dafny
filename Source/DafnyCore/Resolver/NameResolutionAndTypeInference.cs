@@ -3912,7 +3912,7 @@ namespace Microsoft.Dafny {
     /// "typeMap" is applied to the type of each formal.
     /// This method should be called only once. That is, bindings.arguments is required to be null on entry to this method.
     /// </summary>
-    void ResolveActualParameters(ActualBindings bindings, List<Formal> formals, IToken callTok, object context, ResolutionContext resolutionContext,
+    void ResolveActualParameters(ActualBindings bindings, List<Formal> formals, RangeToken callTok, object context, ResolutionContext resolutionContext,
       Dictionary<TypeParameter, Type> typeMap, Expression/*?*/ receiver) {
       Contract.Requires(bindings != null);
       Contract.Requires(formals != null);
@@ -4143,7 +4143,7 @@ namespace Microsoft.Dafny {
       } else if (lhs != null && lhs.Type is Resolver_IdentifierExpr.ResolverType_Type) {
         var ri = (Resolver_IdentifierExpr)lhs;
         // ----- 2. Look up name in type
-        var ty = new UserDefinedType(ri.tok, ri.Decl.Name, ri.Decl, ri.TypeArgs);
+        var ty = new UserDefinedType(ri.RangeToken, ri.Decl.Name, ri.Decl, ri.TypeArgs);
         if (allowDanglingDotName && ty.IsRefType) {
           return new ResolveTypeReturn(ty, expr);
         }
@@ -4162,7 +4162,7 @@ namespace Microsoft.Dafny {
       return null;
     }
 
-    Resolver_IdentifierExpr CreateResolver_IdentifierExpr(IToken tok, string name, List<Type> optTypeArguments, TopLevelDecl decl) {
+    Resolver_IdentifierExpr CreateResolver_IdentifierExpr(RangeToken tok, string name, List<Type> optTypeArguments, TopLevelDecl decl) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(decl != null);
@@ -4170,7 +4170,7 @@ namespace Microsoft.Dafny {
 
       if (!moduleInfo.IsAbstract) {
         if (decl is ModuleDecl md && md.Signature.IsAbstract) {
-          reporter.Error(MessageSource.Resolver, tok, "a compiled module is not allowed to use an abstract module ({0})", decl.Name);
+          reporter.Error(MessageSource.Resolver, tok.StartToken, "a compiled module is not allowed to use an abstract module ({0})", decl.Name);
         }
       }
       var n = optTypeArguments == null ? 0 : optTypeArguments.Count;
@@ -4387,7 +4387,7 @@ namespace Microsoft.Dafny {
         var expectStmt = stmt as ExpectStmt;
         if (expectStmt != null) {
           if (expectStmt.Message == null) {
-            expectStmt.Message = new StringLiteralExpr(s.Tok, "expectation violation", false);
+            expectStmt.Message = new StringLiteralExpr(s.RangeToken, "expectation violation", false);
           }
           ResolveExpression(expectStmt.Message, resolutionContext);
           Contract.Assert(expectStmt.Message.Type != null);  // follows from postcondition of ResolveExpression
@@ -4497,14 +4497,14 @@ namespace Microsoft.Dafny {
             foreach (Formal f in cmc.Outs) {
               Expression produceLhs;
               if (stmt is ReturnStmt) {
-                var ident = new ImplicitIdentifierExpr(f.tok, f.Name);
+                var ident = new ImplicitIdentifierExpr(f.RangeToken, f.Name);
                 // resolve it here to avoid capture into more closely declared local variables
                 ident.Var = f;
                 ident.Type = ident.Var.Type;
                 Contract.Assert(f.Type != null);
                 produceLhs = ident;
               } else {
-                var yieldIdent = new MemberSelectExpr(f.tok, new ImplicitThisExpr(f.tok), f.Name);
+                var yieldIdent = new MemberSelectExpr(f.RangeToken, new ImplicitThisExpr(f.RangeToken), f.Name);
                 ResolveExpression(yieldIdent, resolutionContext);
                 produceLhs = yieldIdent;
               }
@@ -4971,7 +4971,7 @@ namespace Microsoft.Dafny {
           var resultOp = s.StepOps.Aggregate(s.Op, (op0, op1) => op1 == null ? op0 : op0.ResultOp(op1));
           s.Result = resultOp.StepExpr(s.Lines.First(), s.Lines.Last());
         } else {
-          s.Result = CalcStmt.DefaultOp.StepExpr(Expression.CreateIntLiteral(s.Tok, 0), Expression.CreateIntLiteral(s.Tok, 0));
+          s.Result = CalcStmt.DefaultOp.StepExpr(Expression.CreateIntLiteral(s.RangeToken, 0), Expression.CreateIntLiteral(s.RangeToken, 0));
         }
         ResolveExpression(s.Result, resolutionContext);
         Contract.Assert(s.Result != null);
@@ -5261,7 +5261,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Adds to "typeArgs" a list of "n" type arguments, possibly extending "defaultTypeArguments".
     /// </summary>
-    static void FillInTypeArguments(IToken tok, int n, List<Type> typeArgs, List<TypeParameter> defaultTypeArguments, ResolveTypeOption option) {
+    static void FillInTypeArguments(RangeToken tok, int n, List<Type> typeArgs, List<TypeParameter> defaultTypeArguments, ResolveTypeOption option) {
       Contract.Requires(tok != null);
       Contract.Requires(0 <= n);
       Contract.Requires(typeArgs != null && typeArgs.Count == 0);
@@ -5358,7 +5358,7 @@ namespace Microsoft.Dafny {
             for (int ii = 0; ii < rr.ArrayDimensions.Count; ii++) {
               args.Add(builtIns.Nat());
             }
-            var arrowType = new ArrowType(rr.ElementInit.tok, builtIns.ArrowTypeDecls[rr.ArrayDimensions.Count], args, rr.EType);
+            var arrowType = new ArrowType(rr.ElementInit.RangeToken, builtIns.ArrowTypeDecls[rr.ArrayDimensions.Count], args, rr.EType);
             var lambdaType = rr.ElementInit.Type.AsArrowType;
             if (lambdaType != null && lambdaType.TypeArgs[0] is InferredTypeProxy) {
               (lambdaType.TypeArgs[0] as InferredTypeProxy).KeepConstraints = true;
@@ -5390,7 +5390,7 @@ namespace Microsoft.Dafny {
             }
           } else {
             string initCallName = null;
-            IToken initCallTok = null;
+            RangeToken initCallTok = null;
             // Resolve rr.Path and do one of three things:
             // * If rr.Path denotes a type, then set EType,initCallName to rr.Path,"_ctor", which sets up a call to the anonymous constructor.
             // * If the all-but-last components of rr.Path denote a type, then do EType,initCallName := allButLast(EType),last(EType)
@@ -5400,7 +5400,7 @@ namespace Microsoft.Dafny {
               // The all-but-last components of rr.Path denote a type (namely, ret.ReplacementType).
               rr.EType = ret.ReplacementType;
               initCallName = ret.LastComponent.SuffixName;
-              initCallTok = ret.LastComponent.tok;
+              initCallTok = ret.LastComponent.RangeToken;
             } else {
               // Either rr.Path resolved correctly as a type or there was no way to drop a last component to make it into something that looked
               // like a type.  In either case, set EType,initCallName to Path,"_ctor" and continue.
@@ -5419,7 +5419,7 @@ namespace Microsoft.Dafny {
               // We want to create a MemberSelectExpr for the initializing method.  To do that, we create a throw-away receiver of the appropriate
               // type, create an dot-suffix expression around this receiver, and then resolve it in the usual way for dot-suffix expressions.
               var lhs = new ImplicitThisExpr_ConstructorCall(initCallTok) { Type = rr.EType };
-              var callLhs = new ExprDotName(((UserDefinedType)rr.EType).tok, lhs, initCallName, ret == null ? null : ret.LastComponent.OptTypeArguments);
+              var callLhs = new ExprDotName(((UserDefinedType)rr.EType).RangeToken, lhs, initCallName, ret == null ? null : ret.LastComponent.OptTypeArguments);
               ResolveDotSuffix(callLhs, true, rr.Bindings.ArgumentBindings, resolutionContext, true);
               if (prevErrorCount == reporter.Count(ErrorLevel.Error)) {
                 Contract.Assert(callLhs.ResolvedExpression is MemberSelectExpr);  // since ResolveApplySuffix succeeded and call.Lhs denotes an expression (not a module or a type)
@@ -5532,7 +5532,7 @@ namespace Microsoft.Dafny {
     /// but it may also be a type in a super- or subtype relation to "t".
     /// In some cases, it is necessary to make some inference decisions in order to figure out the type to return.
     /// </summary>
-    public Type PartiallyResolveTypeForMemberSelection(IToken tok, Type t, string memberName = null, int strength = 0) {
+    public Type PartiallyResolveTypeForMemberSelection(RangeToken tok, Type t, string memberName = null, int strength = 0) {
       Contract.Requires(tok != null);
       Contract.Requires(t != null);
       Contract.Ensures(Contract.Result<Type>() != null);
@@ -6048,7 +6048,7 @@ namespace Microsoft.Dafny {
     /// desugaring during resolution, because then the desugaring can be constructed as a non-resolved expression on which ResolveExpression
     /// is called--this is easier than constructing an already-resolved expression.
     /// </summary>
-    (Expression, Expression) ResolveDatatypeUpdate(IToken tok, Expression root, DatatypeDecl dt, List<Tuple<IToken, string, Expression>> memberUpdates,
+    (Expression, Expression) ResolveDatatypeUpdate(RangeToken tok, Expression root, DatatypeDecl dt, List<Tuple<IToken, string, Expression>> memberUpdates,
       ResolutionContext resolutionContext, out List<MemberDecl> members, out List<DatatypeCtor> legalSourceConstructors) {
       Contract.Requires(tok != null);
       Contract.Requires(root != null);
@@ -6091,8 +6091,8 @@ namespace Microsoft.Dafny {
                 rhsBindings.Add(destructor_str, new Tuple<BoundVar, IdentifierExpr, Expression>(null, null, entry.Item3));
               } else {
                 var xName = FreshTempVarName(string.Format("dt_update#{0}#", destructor_str), resolutionContext.CodeContext);
-                var xVar = new BoundVar(new AutoGeneratedToken(tok), xName, destructor.Type.Subst(subst));
-                var x = new IdentifierExpr(new AutoGeneratedToken(tok), xVar);
+                var xVar = new BoundVar(tok.MakeAutoGenerated(), xName, destructor.Type.Subst(subst));
+                var x = new IdentifierExpr(tok.MakeAutoGenerated(), xVar);
                 rhsBindings.Add(destructor_str, new Tuple<BoundVar, IdentifierExpr, Expression>(xVar, x, entry.Item3));
               }
             }
@@ -6144,7 +6144,7 @@ namespace Microsoft.Dafny {
     ///     else
     ///       CandidateResultConstructorN(x, y, ..., d.k0, d.k1, ...)
     /// </summary>
-    private Expression DesugarDatatypeUpdate(IToken tok, Expression root, DatatypeDecl dt, List<DatatypeCtor> candidateResultCtors,
+    private Expression DesugarDatatypeUpdate(RangeToken tok, Expression root, DatatypeDecl dt, List<DatatypeCtor> candidateResultCtors,
       Dictionary<string, Tuple<BoundVar, IdentifierExpr, Expression>> rhsBindings, ResolutionContext resolutionContext) {
 
       if (candidateResultCtors.Count == 0) {
@@ -6153,8 +6153,8 @@ namespace Microsoft.Dafny {
       Expression rewrite = null;
       // Create a unique name for d', the variable we introduce in the let expression
       var dName = FreshTempVarName("dt_update_tmp#", resolutionContext.CodeContext);
-      var dVar = new BoundVar(new AutoGeneratedToken(tok), dName, root.Type);
-      var d = new IdentifierExpr(new AutoGeneratedToken(tok), dVar);
+      var dVar = new BoundVar(tok.MakeAutoGenerated(), dName, root.Type);
+      var d = new IdentifierExpr(tok.MakeAutoGenerated(), dVar);
       Expression body = null;
       candidateResultCtors.Reverse();
       foreach (var crc in candidateResultCtors) {

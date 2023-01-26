@@ -2436,7 +2436,7 @@ public class UserDefinedType : NonProxyType {
         return this;
       } else {
         // Note, even if t.NamePath is non-null, we don't care to keep that syntactic part of the expression in what we return here
-        return new UserDefinedType(tok, Name, resolvedClass, newArgs);
+        return new UserDefinedType(RangeToken, Name, resolvedClass, newArgs);
       }
     } else {
       // there's neither a resolved param nor a resolved class, which means the UserDefinedType wasn't
@@ -2446,7 +2446,7 @@ public class UserDefinedType : NonProxyType {
   }
 
   public override Type ReplaceTypeArguments(List<Type> arguments) {
-    return new UserDefinedType(tok, Name, ResolvedClass, arguments);
+    return new UserDefinedType(RangeToken, Name, ResolvedClass, arguments);
   }
 
   /// <summary>

@@ -285,7 +285,7 @@ namespace Microsoft.Dafny {
         SelectAllocateObject(tok, bplThis, th.Type, false, builder, etran);
         for (int i = 0; i < fields.Count; i++) {
           // assume $Heap[this, f] == this.f;
-          var mse = new MemberSelectExpr(tok, th, fields[i]);
+          var mse = new MemberSelectExpr(tok.ToRange(), th, fields[i]);
           Bpl.Expr surr = new Bpl.IdentifierExpr(tok, localSurrogates[i]);
           surr = CondApplyUnbox(tok, surr, fields[i].Type, mse.Type);
           builder.Add(new Bpl.AssumeCmd(tok, Bpl.Expr.Eq(etran.TrExpr(mse), surr)));
