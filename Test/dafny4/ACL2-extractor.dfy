@@ -139,8 +139,6 @@ lemma EqualElementsMakeEqualLists<T(00)>(xs: List, ys: List)
 
 // here is the theorem, but applied to the ith element
 
-// TODO: re-enable
-/*
 lemma ExtractorLemma<T(00)>(i: int, xs: List)
   requires 0 <= i < length(xs);
   ensures nth(i, xtr(nats(length(xs)), xs)) == nth(i, rev(xs));
@@ -150,14 +148,14 @@ lemma ExtractorLemma<T(00)>(i: int, xs: List)
     { NatsLength(length(xs));
       NthXtr(i, nats(length(xs)), xs); }
     nth(nth(i, nats(length(xs))), xs);
-    { NthNats(i, length(xs)); }
-    // TODO: can't prove step between previous and next line
+   { NthNats(i, length(xs));
+     // Concretely instantiate the postcondition
+     assert nth(i, nats(length(xs))) == length(xs) - 1 - i; }
     nth(length(xs) - 1 - i, xs);
     { RevLength(xs); NthRev(i, xs); }
     nth(i, rev(xs));
   }
 }
-*/
 
 // lemmas about what nth gives on certain lists
 
