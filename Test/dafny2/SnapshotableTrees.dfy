@@ -60,7 +60,7 @@ module SnapTreeTestHarness {
    *  into a tree that is being iterated, use of the associated iterator can no longer be
    *  proved to be correct.
    */
-  method {:vcs_split_on_every_assert} TestConcurrentModification(t: SnapTree.Tree)
+  method TestConcurrentModification(t: SnapTree.Tree)
     requires t.Valid() && !t.IsReadonly
     modifies t.MutableRepr
   {
@@ -90,7 +90,7 @@ module SnapTree {
     var root: Node?
     var reprIsShared: bool
 
-    predicate Valid()
+    predicate {:opaque} Valid()
       reads this, Repr
       ensures Valid() ==> this in Repr && MutableRepr <= Repr
       ensures Valid() ==> IsSorted(Contents)
@@ -145,6 +145,7 @@ module SnapTree {
       ensures MutableRepr <= Repr && fresh(Repr)
     {
       new;
+      reveal Valid();
       Contents := [];
       IsReadonly := false;
       MutableRepr := {this};
@@ -166,6 +167,7 @@ module SnapTree {
       // representation of the snapshot consists of new things of things from the previous tree (that are now immutable)
       ensures fresh(snapshot.Repr - old(Repr))
     {
+      reveal Valid();
       // from now on, only "this" is mutable; the rest of the representation is immutable
       Repr := Repr + MutableRepr;
       MutableRepr := {this};
@@ -192,6 +194,7 @@ module SnapTree {
         0 <= pos < |Contents| == |old(Contents)| + 1 &&
         Contents == old(Contents[..pos] + [x] + Contents[pos..])
     {
+      reveal Valid();
       if reprIsShared {
         root, pos := Node.FunctionalInsert(root, x);
         Contents := root.Contents;
@@ -216,6 +219,7 @@ module SnapTree {
       ensures iter.Valid() && fresh(iter.IterRepr)
       ensures iter.T == this && iter.Contents == Contents && iter.N == -1
     {
+      reveal Valid();
       iter := new Iterator.Init(this);
     }
 
@@ -225,6 +229,7 @@ module SnapTree {
       ensures Valid() && fresh(Repr - old(Repr))
       ensures Contents == old(Contents) && IsReadonly == old(IsReadonly)
     {
+      reveal Valid();
       var s;
       if IsReadonly {
         s := this;
@@ -484,7 +489,7 @@ module SnapTree {
     var initialized: bool
     var stack: List
 
-    predicate Valid()
+    predicate {:opaque} Valid()
       reads this, IterRepr, T
       reads if T != null then T.Repr else {}
       ensures Valid() ==> T != null && IterRepr !! T.Repr
@@ -505,7 +510,7 @@ module SnapTree {
     //  * for Cons(p, rest), fragment [p.data]+p.right.Contents
     // In each case, R(wlist,n,C,Nodes) implies that the fragment wlist proper is a prefix of C[n..].
     // Nodes is (an overapproximation of) the set of nodes read by R.
-    static predicate R(wlist: List, n: int, C: seq<int>, Nodes: set<object>)
+    static predicate {:opaque} R(wlist: List, n: int, C: seq<int>, Nodes: set<object>)
       reads Nodes
       decreases wlist
     {
@@ -525,6 +530,9 @@ module SnapTree {
       ensures T == t && Contents == t.Contents && N == -1
     {
       new;
+      reveal Valid();
+      reveal t.Valid();
+      reveal R();
       Init_Aux(t);
     }
     method Init_Aux(t: Tree)
@@ -538,6 +546,8 @@ module SnapTree {
       ensures fresh(IterRepr - {this})
       ensures T == t && Contents == t.Contents && N == -1
     {
+      reveal Valid();
+      reveal R();
       T := t;
       IterRepr := {this};
       Contents := T.Contents;
@@ -551,6 +561,8 @@ module SnapTree {
       requires Valid()
       modifies IterRepr
     {
+      reveal Valid();
+      reveal R();
       print "Tree:";
       var more := MoveNext();
       while more
@@ -577,6 +589,7 @@ module SnapTree {
     {
       st := Cons(p, stIn);
 
+      reveal R();
       reveal p.NodeValid();
       if p.left != null {
         st := Push(st, n, p.left, C, Nodes);
@@ -587,6 +600,8 @@ module SnapTree {
       requires Valid() && 0 <= N < |Contents|
       ensures x == Contents[N]
     {
+      reveal Valid();
+      reveal R();
       match (stack)
       case Cons(y, rest) => x := y.data;
     }
@@ -600,6 +615,8 @@ module SnapTree {
       ensures old(N) == |Contents| ==> N == old(N)
       ensures hasCurrent <==> 0 <= N < |Contents|
     {
+      reveal Valid();
+      reveal R();
       if !initialized {
         initialized, N := true, 0;
         hasCurrent := stack != Nil;
@@ -615,6 +632,7 @@ module SnapTree {
           stack, N := rest, N+1;
 
           if p.right != null {
+            reveal R();
             assert p.right.Contents <= Contents[N..];
             stack := Push(stack, N, p.right, Contents, T.Repr);
           }
