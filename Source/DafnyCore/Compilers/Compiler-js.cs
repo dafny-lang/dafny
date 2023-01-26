@@ -660,7 +660,7 @@ namespace Microsoft.Dafny.Compilers {
       WriteRuntimeTypeDescriptorsFormals(ForTypeDescriptors(typeArgs, m.EnclosingClass, m, lookasideBody), wr, ref sep, tp => $"rtd$_{tp.CompileName}");
       if (customReceiver) {
         var nt = m.EnclosingClass;
-        var receiverType = UserDefinedType.FromTopLevelDecl(m.tok, nt);
+        var receiverType = UserDefinedType.FromTopLevelDecl(m.RangeToken, nt);
         DeclareFormal(sep, "_this", receiverType, m.tok, true, wr);
         sep = ", ";
       }
@@ -679,7 +679,7 @@ namespace Microsoft.Dafny.Compilers {
       return beforeReturnBlock;
     }
 
-    protected ConcreteSyntaxTree/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, RangeToken tok, bool isStatic, bool createBody, MemberDecl member, ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
+    protected ConcreteSyntaxTree/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, IToken tok, bool isStatic, bool createBody, MemberDecl member, ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
       if (!createBody) {
         return null;
       }
@@ -690,7 +690,7 @@ namespace Microsoft.Dafny.Compilers {
       var nTypes = WriteRuntimeTypeDescriptorsFormals(ForTypeDescriptors(typeArgs, member.EnclosingClass, member, lookasideBody), wr, ref sep, tp => $"rtd$_{tp.CompileName}");
       if (customReceiver) {
         var nt = member.EnclosingClass;
-        var receiverType = UserDefinedType.FromTopLevelDecl(tok, nt);
+        var receiverType = UserDefinedType.FromTopLevelDecl(tok.ToRange(), nt);
         DeclareFormal(sep, "_this", receiverType, tok, true, wr);
         sep = ", ";
       }
