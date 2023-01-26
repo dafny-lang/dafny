@@ -19,8 +19,7 @@ using JetBrains.Annotations;
 
 namespace Microsoft.Dafny.Compilers {
   class JavaScriptCompiler : SinglePassCompiler {
-    public JavaScriptCompiler(ErrorReporter reporter) : base(reporter)
-    {
+    public JavaScriptCompiler(ErrorReporter reporter) : base(reporter) {
     }
 
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {

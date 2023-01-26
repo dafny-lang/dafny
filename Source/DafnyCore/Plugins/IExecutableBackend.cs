@@ -81,7 +81,7 @@ public abstract class IExecutableBackend {
   /// into just X, including the case where "Record" is a tuple type with 1 non-ghost component.
   /// </summary>
   public virtual bool SupportsDatatypeWrapperErasure => true;
-  
+
   /// <summary>
   /// Dafny features this compiler is known to not support.
   /// </summary>

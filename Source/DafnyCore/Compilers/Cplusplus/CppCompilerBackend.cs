@@ -9,7 +9,7 @@ public class CppCompilerBackend : ExecutableBackend {
   protected override SinglePassCompiler CreateCompiler() {
     return new CppCompiler(Reporter, OtherFileNames);
   }
-    
+
   private string ComputeExeName(string targetFilename) {
     return Path.ChangeExtension(Path.GetFullPath(targetFilename), "exe");
   }
@@ -45,7 +45,7 @@ public class CppCompilerBackend : ExecutableBackend {
     return 0 == RunProcess(psi, outputWriter);
   }
 
-  public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> {".h"};
+  public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".h" };
 
   public override string TargetLanguage => "C++";
   public override string TargetExtension => "cpp";

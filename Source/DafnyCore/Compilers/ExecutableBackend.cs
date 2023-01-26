@@ -10,12 +10,14 @@ namespace Microsoft.Dafny.Compilers;
 public abstract class ExecutableBackend : Plugins.IExecutableBackend {
   protected SinglePassCompiler compiler;
 
+  public override IReadOnlySet<Feature> UnsupportedFeatures => compiler.UnsupportedFeatures;
+
   public override bool SupportsDatatypeWrapperErasure => compiler.SupportsDatatypeWrapperErasure;
 
   public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
     compiler.Compile(dafnyProgram, output);
   }
-  
+
   public override void OnPreCompile(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
     base.OnPreCompile(reporter, otherFileNames);
     compiler = CreateCompiler();
@@ -74,7 +76,7 @@ public abstract class ExecutableBackend : Plugins.IExecutableBackend {
     outputWriter.WriteLine($"Error: Unable to start {psi.FileName}{additionalInfo}");
     return null;
   }
-    
+
   public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
     bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
     Contract.Requires(dafnyProgramName != null);

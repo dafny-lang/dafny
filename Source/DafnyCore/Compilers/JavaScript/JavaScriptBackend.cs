@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 namespace Microsoft.Dafny.Compilers;
 
 public class JavaScriptBackend : ExecutableBackend {
-  public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> {".js"};
+  public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".js" };
 
   public override string TargetLanguage => "JavaScript";
   public override string TargetExtension => "js";
@@ -20,77 +20,77 @@ public class JavaScriptBackend : ExecutableBackend {
   public override bool TextualTargetIsExecutable => true;
 
   public override IReadOnlySet<string> SupportedNativeTypes =>
-    new HashSet<string>(new List<string> {"number"});
+    new HashSet<string>(new List<string> { "number" });
 
   protected override SinglePassCompiler CreateCompiler() {
     return new JavaScriptCompiler(Reporter);
   }
-  
-    public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
-      bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
-      compilationResult = null;
-      if (runAfterCompile) {
-        Contract.Assert(callToMain != null);  // this is part of the contract of CompileTargetProgram
-        // Since the program is to be run soon, nothing further is done here. Any compilation errors (that is, any errors
-        // in the emitted program--this should never happen if the compiler itself is correct) will be reported as 'node'
-        // will run the program.
-        return true;
-      } else {
-        // compile now
-        return SendToNewNodeProcess(dafnyProgramName, targetProgramText, null, targetFilename, otherFileNames, outputWriter);
-      }
+
+  public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
+    bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
+    compilationResult = null;
+    if (runAfterCompile) {
+      Contract.Assert(callToMain != null);  // this is part of the contract of CompileTargetProgram
+                                            // Since the program is to be run soon, nothing further is done here. Any compilation errors (that is, any errors
+                                            // in the emitted program--this should never happen if the compiler itself is correct) will be reported as 'node'
+                                            // will run the program.
+      return true;
+    } else {
+      // compile now
+      return SendToNewNodeProcess(dafnyProgramName, targetProgramText, null, targetFilename, otherFileNames, outputWriter);
     }
+  }
 
-    public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string targetFilename, ReadOnlyCollection<string> otherFileNames,
-      object compilationResult, TextWriter outputWriter) {
+  public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string targetFilename, ReadOnlyCollection<string> otherFileNames,
+    object compilationResult, TextWriter outputWriter) {
 
-      return SendToNewNodeProcess(dafnyProgramName, targetProgramText, callToMain, targetFilename, otherFileNames, outputWriter);
-    }
+    return SendToNewNodeProcess(dafnyProgramName, targetProgramText, callToMain, targetFilename, otherFileNames, outputWriter);
+  }
 
-    bool SendToNewNodeProcess(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string targetFilename, ReadOnlyCollection<string> otherFileNames,
-      TextWriter outputWriter) {
-      Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
+  bool SendToNewNodeProcess(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string targetFilename, ReadOnlyCollection<string> otherFileNames,
+    TextWriter outputWriter) {
+    Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
 
-      var psi = new ProcessStartInfo("node", "") {
-        RedirectStandardInput = true,
-        RedirectStandardOutput = true,
-        RedirectStandardError = true,
-        StandardInputEncoding = Encoding.UTF8,
-      };
+    var psi = new ProcessStartInfo("node", "") {
+      RedirectStandardInput = true,
+      RedirectStandardOutput = true,
+      RedirectStandardError = true,
+      StandardInputEncoding = Encoding.UTF8,
+    };
 
-      try {
-        Process nodeProcess = Process.Start(psi);
-        foreach (var filename in otherFileNames) {
+    try {
+      Process nodeProcess = Process.Start(psi);
+      foreach (var filename in otherFileNames) {
         WriteFromFile(filename, nodeProcess.StandardInput);
-        }
-        nodeProcess.StandardInput.Write(targetProgramText);
-        if (callToMain != null && DafnyOptions.O.RunAfterCompile) {
-          nodeProcess.StandardInput.WriteLine("require('process').stdout.setEncoding(\"utf-8\");");
-          nodeProcess.StandardInput.WriteLine("require('process').argv = [\"node\",\"stdin\", " + string.Join(",", DafnyOptions.O.MainArgs.Select(((JavaScriptCompiler)compiler).ToStringLiteral)) + "];");
-          nodeProcess.StandardInput.Write(callToMain);
-        }
-        nodeProcess.StandardInput.Flush();
-        nodeProcess.StandardInput.Close();
-        // Fixes a problem of Node on Windows, where Node does not prints to the parent console its standard outputs.
-        var errorProcessing = Task.Run(() => {
-          PassthroughBuffer(nodeProcess.StandardError, Console.Error);
-        });
-        PassthroughBuffer(nodeProcess.StandardOutput, Console.Out);
-        nodeProcess.WaitForExit();
-        errorProcessing.Wait();
-        return nodeProcess.ExitCode == 0;
-      } catch (System.ComponentModel.Win32Exception e) {
-        outputWriter.WriteLine("Error: Unable to start node.js ({0}): {1}", psi.FileName, e.Message);
-        return false;
       }
+      nodeProcess.StandardInput.Write(targetProgramText);
+      if (callToMain != null && DafnyOptions.O.RunAfterCompile) {
+        nodeProcess.StandardInput.WriteLine("require('process').stdout.setEncoding(\"utf-8\");");
+        nodeProcess.StandardInput.WriteLine("require('process').argv = [\"node\",\"stdin\", " + string.Join(",", DafnyOptions.O.MainArgs.Select(((JavaScriptCompiler)compiler).ToStringLiteral)) + "];");
+        nodeProcess.StandardInput.Write(callToMain);
+      }
+      nodeProcess.StandardInput.Flush();
+      nodeProcess.StandardInput.Close();
+      // Fixes a problem of Node on Windows, where Node does not prints to the parent console its standard outputs.
+      var errorProcessing = Task.Run(() => {
+        PassthroughBuffer(nodeProcess.StandardError, Console.Error);
+      });
+      PassthroughBuffer(nodeProcess.StandardOutput, Console.Out);
+      nodeProcess.WaitForExit();
+      errorProcessing.Wait();
+      return nodeProcess.ExitCode == 0;
+    } catch (System.ComponentModel.Win32Exception e) {
+      outputWriter.WriteLine("Error: Unable to start node.js ({0}): {1}", psi.FileName, e.Message);
+      return false;
     }
+  }
 
-    // We read character by character because we did not find a way to ensure
-    // final newlines are kept when reading line by line
-    private static void PassthroughBuffer(TextReader input, TextWriter output) {
-      int current;
-      while ((current = input.Read()) != -1) {
-        output.Write((char)current);
-      }
+  // We read character by character because we did not find a way to ensure
+  // final newlines are kept when reading line by line
+  private static void PassthroughBuffer(TextReader input, TextWriter output) {
+    int current;
+    while ((current = input.Read()) != -1) {
+      output.Write((char)current);
     }
+  }
 }

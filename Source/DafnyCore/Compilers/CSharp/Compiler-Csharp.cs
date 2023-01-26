@@ -25,9 +25,8 @@ namespace Microsoft.Dafny.Compilers {
       Feature.SubsetTypeTests,
       Feature.TuplesWiderThan20
     };
-    
-    public CsharpCompiler(ErrorReporter reporter) : base(reporter)
-    {
+
+    public CsharpCompiler(ErrorReporter reporter) : base(reporter) {
     }
 
     const string DafnyISet = "Dafny.ISet";

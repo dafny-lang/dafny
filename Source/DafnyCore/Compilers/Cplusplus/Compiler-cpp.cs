@@ -56,7 +56,7 @@ namespace Microsoft.Dafny.Compilers {
       Feature.UnicodeChars,
       Feature.ConvertingValuesToStrings
     };
-    
+
     private List<DatatypeDecl> datatypeDecls = new();
     private List<string> classDefaults = new();
 
@@ -1552,7 +1552,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override string IdProtect(string name) {
       return PublicIdProtect(name);
     }
-    
+
     public override string PublicIdProtect(string name) {
       Contract.Requires(name != null);
       switch (name) {

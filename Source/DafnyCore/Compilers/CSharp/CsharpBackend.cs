@@ -16,7 +16,7 @@ public class CsharpBackend : ExecutableBackend {
     return new CsharpCompiler(Reporter);
   }
 
-  public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> {".cs", ".dll"};
+  public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".cs", ".dll" };
 
   public override string TargetLanguage => "C#";
   public override string TargetExtension => "cs";
@@ -31,7 +31,7 @@ public class CsharpBackend : ExecutableBackend {
 
   public override bool SupportsInMemoryCompilation => true;
   public override bool TextualTargetIsExecutable => false;
-    
+
   public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
     bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
 
@@ -61,7 +61,7 @@ public class CsharpBackend : ExecutableBackend {
       "System.Collections.Immutable",
       "System.Console"
     };
-    compilation = compilation.AddReferences(standardLibraries.Select(fileName => MetadataReference.CreateFromFile(Assembly.Load((string) fileName).Location)));
+    compilation = compilation.AddReferences(standardLibraries.Select(fileName => MetadataReference.CreateFromFile(Assembly.Load((string)fileName).Location)));
 
     if (DafnyOptions.O.Optimize) {
       compilation = compilation.WithOptions(compilation.Options.WithOptimizationLevel(

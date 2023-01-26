@@ -21,7 +21,7 @@ public class GoBackend : ExecutableBackend {
   protected override SinglePassCompiler CreateCompiler() {
     return new GoCompiler(Reporter);
   }
-  
+
   public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
     bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
     compilationResult = null;

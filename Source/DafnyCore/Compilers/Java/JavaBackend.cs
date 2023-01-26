@@ -10,7 +10,7 @@ namespace Microsoft.Dafny.Compilers;
 
 public class JavaBackend : ExecutableBackend {
 
-  public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> {".java"};
+  public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".java" };
 
   public override string TargetLanguage => "Java";
   public override string TargetExtension => "java";
@@ -34,7 +34,7 @@ public class JavaBackend : ExecutableBackend {
   protected override SinglePassCompiler CreateCompiler() {
     return new JavaCompiler(Reporter);
   }
-  
+
   private void EmitRuntimeJar(string targetDirectory) {
     // Since DafnyRuntime.jar is binary, we can't use ReadRuntimeSystem
     var jarName = "DafnyRuntime.jar";
