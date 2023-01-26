@@ -1,4 +1,4 @@
-// RUN: cd %s; %baredafny %args "%s" >> "%t"
+// RUN: %baredafny "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method LinearSearch(a: array<int>, key: int) returns (n: nat)
