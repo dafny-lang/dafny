@@ -13,7 +13,7 @@ namespace Microsoft.Dafny.Compilers;
 
 public class CsharpBackend : ExecutableBackend {
   protected override SinglePassCompiler CreateCompiler() {
-    return new RealCsharpCompiler(Reporter);
+    return new CsharpCompiler(Reporter);
   }
 
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> {".cs", ".dll"};

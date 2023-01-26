@@ -240,7 +240,7 @@ public class BuiltIns {
       var nonGhostDims = argumentGhostness.Count(x => !x);
       TupleTypeDecl nonGhostTupleTypeDecl = null;
       if (nonGhostDims != dims &&
-          (nonGhostDims != 1 || !DafnyOptions.O.Compiler.SupportsDatatypeWrapperErasure || !DafnyOptions.O.Get(CommonOptionBag.OptimizeErasableDatatypeWrapper))) {
+          (nonGhostDims != 1 || !DafnyOptions.O.Backend.SupportsDatatypeWrapperErasure || !DafnyOptions.O.Get(CommonOptionBag.OptimizeErasableDatatypeWrapper))) {
         // make sure the corresponding non-ghost tuple type also exists
         nonGhostTupleTypeDecl = TupleType(tok, nonGhostDims, allowCreationOfNewType);
       }

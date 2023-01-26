@@ -18,7 +18,7 @@ using Microsoft.BaseTypes;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
 namespace Microsoft.Dafny.Compilers {
-  class RealCsharpCompiler : SinglePassCompiler {
+  public class CsharpCompiler : SinglePassCompiler {
     protected bool Synthesize = false;
 
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
@@ -26,7 +26,7 @@ namespace Microsoft.Dafny.Compilers {
       Feature.TuplesWiderThan20
     };
     
-    public RealCsharpCompiler(ErrorReporter reporter) : base(reporter)
+    public CsharpCompiler(ErrorReporter reporter) : base(reporter)
     {
     }
 
@@ -1167,13 +1167,13 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected class ClassWriter : IClassWriter {
-      public readonly RealCsharpCompiler Compiler;
+      public readonly CsharpCompiler Compiler;
       public readonly ConcreteSyntaxTree InstanceMemberWriter;
       public readonly ConcreteSyntaxTree StaticMemberWriter;
       public readonly ConcreteSyntaxTree CtorBodyWriter;
       private readonly CsharpSynthesizer csharpSynthesizer;
 
-      public ClassWriter(RealCsharpCompiler compiler, ConcreteSyntaxTree instanceMemberWriter, ConcreteSyntaxTree/*?*/ ctorBodyWriter, ConcreteSyntaxTree/*?*/ staticMemberWriter = null) {
+      public ClassWriter(CsharpCompiler compiler, ConcreteSyntaxTree instanceMemberWriter, ConcreteSyntaxTree/*?*/ ctorBodyWriter, ConcreteSyntaxTree/*?*/ staticMemberWriter = null) {
         Contract.Requires(compiler != null);
         Contract.Requires(instanceMemberWriter != null);
         this.Compiler = compiler;

@@ -7,8 +7,10 @@ using System.Linq;
 
 namespace Microsoft.Dafny.Compilers;
 
-public abstract class ExecutableBackend : Plugins.Compiler {
-  private SinglePassCompiler compiler;
+public abstract class ExecutableBackend : Plugins.IExecutableBackend {
+  protected SinglePassCompiler compiler;
+
+  public override bool SupportsDatatypeWrapperErasure => compiler.SupportsDatatypeWrapperErasure;
 
   public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
     compiler.Compile(dafnyProgram, output);
@@ -17,6 +19,11 @@ public abstract class ExecutableBackend : Plugins.Compiler {
   public override void OnPreCompile(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
     base.OnPreCompile(reporter, otherFileNames);
     compiler = CreateCompiler();
+  }
+
+  public override void OnPostCompile() {
+    base.OnPostCompile();
+    compiler.Coverage.WriteLegendFile();
   }
 
   protected abstract SinglePassCompiler CreateCompiler();
@@ -38,11 +45,6 @@ public abstract class ExecutableBackend : Plugins.Compiler {
       psi.ArgumentList.Add(arg);
     }
     return psi;
-  }
-
-  public override void OnPostCompile() {
-    base.OnPostCompile();
-    Coverage.WriteLegendFile();
   }
 
   public int RunProcess(ProcessStartInfo psi, TextWriter outputWriter, string errorMessage = null) {
@@ -95,5 +97,10 @@ public abstract class ExecutableBackend : Plugins.Compiler {
     Contract.Requires(otherFileNames.Count == 0 || targetFilename != null);
     Contract.Requires(outputWriter != null);
     return true;
+  }
+
+  protected static void WriteFromFile(string inputFilename, TextWriter outputWriter) {
+    var rd = new StreamReader(new FileStream(inputFilename, FileMode.Open, FileAccess.Read));
+    SinglePassCompiler.WriteFromStream(rd, outputWriter);
   }
 }

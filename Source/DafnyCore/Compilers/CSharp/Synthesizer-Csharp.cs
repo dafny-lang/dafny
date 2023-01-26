@@ -28,7 +28,7 @@ namespace Microsoft.Dafny.Compilers;
 /// </summary>
 public class CsharpSynthesizer {
 
-  private readonly RealCsharpCompiler compiler;
+  private readonly CsharpCompiler compiler;
   private readonly ConcreteSyntaxTree ErrorWriter;
   // maps identifiers to the names of the corresponding mock:
   private Dictionary<IVariable, string> objectToMockName = new();
@@ -36,7 +36,7 @@ public class CsharpSynthesizer {
   private Dictionary<IVariable, string> bounds = new();
   private Method lastSynthesizedMethod = null;
 
-  public CsharpSynthesizer(RealCsharpCompiler compiler, ConcreteSyntaxTree errorWriter) {
+  public CsharpSynthesizer(CsharpCompiler compiler, ConcreteSyntaxTree errorWriter) {
     this.compiler = compiler;
     ErrorWriter = errorWriter;
   }

@@ -13,7 +13,7 @@ namespace Microsoft.Dafny.Plugins;
 /// If the plugin defines no PluginConfiguration, then Dafny will instantiate every sub-class
 /// of Compiler from the plugin.
 /// </summary>
-public abstract class Compiler {
+public abstract class IExecutableBackend {
   /// <summary>
   /// Supported file extensions for additional compilation units (e.g. <c>.cs</c> for C#).
   /// </summary>
@@ -75,6 +75,13 @@ public abstract class Compiler {
   /// </summary>
   public abstract bool SupportsInMemoryCompilation { get; }
 
+  /// <summary>
+  /// Whether or not the compiler turns
+  ///     datatype Record = R(oneThing: X)
+  /// into just X, including the case where "Record" is a tuple type with 1 non-ghost component.
+  /// </summary>
+  public virtual bool SupportsDatatypeWrapperErasure => true;
+  
   /// <summary>
   /// Dafny features this compiler is known to not support.
   /// </summary>

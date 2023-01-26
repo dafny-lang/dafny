@@ -16,7 +16,8 @@ using JetBrains.Annotations;
 namespace Microsoft.Dafny.Compilers {
   class CppCompiler : SinglePassCompiler {
 
-    private ReadOnlyCollection<string> headers;
+    private readonly ReadOnlyCollection<string> headers;
+
     public CppCompiler(ErrorReporter reporter, ReadOnlyCollection<string> headers) : base(reporter) {
       this.headers = headers;
     }
