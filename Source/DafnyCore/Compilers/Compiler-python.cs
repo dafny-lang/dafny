@@ -24,7 +24,7 @@ namespace ExtensionMethods {
 }
 
 namespace Microsoft.Dafny.Compilers {
-  public class PythonCompiler : SinglePassCompiler {
+  public class PythonCompiler : ExecutableBackend {
     public override void OnPreCompile(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
       base.OnPreCompile(reporter, otherFileNames);
       if (DafnyOptions.O.CoverageLegendFile != null) {
