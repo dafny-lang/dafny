@@ -421,5 +421,5 @@ Note that type refinements are not required to include the `...` indicator that 
 
 ## 22.10. Statements
 
-The refinment syntax (`...`) in statements is deprecated.
+The refinement syntax (`...`) in statements is deprecated.
 

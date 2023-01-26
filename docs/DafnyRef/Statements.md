@@ -1686,7 +1686,7 @@ In this case it is not needed because Dafny is able to deduce that
 coinductive this would not have been possible since `x` might have been
 infinite.
 
-## 20.16. Assert Statement {#sec-assert-statement}
+## 20.16. Assert statement {#sec-assert-statement}
 ([grammar](#g-assert-statement))
 
 Examples:
@@ -1723,6 +1723,8 @@ their purpose -- to assist in proving the given assertion -- is manifest in the 
 Examples of this form of assert are given in the section of the [`reveal`](#sec-reveal-statement) statement and in [_Different Styles of Proof_](http://leino.science/papers/krml276.html)
 
 An assert statement may have a label. whose use is explained in [Section 0.0.0](#sec-reveal-assertions).
+
+The attributes recognized for assert statements are discussed in [Section 0.0](#sec-verification-attributes-on-assertions).
 
 Using `...` as the argument of the statement is deprecated.
 

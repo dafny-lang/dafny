@@ -1,89 +1,13 @@
 # 2. Lexical and Low Level Grammar {#sec-lexical-grammar}
-Dafny uses the Coco/R lexer and parser generator for its lexer and parser
-(<http://www.ssw.uni-linz.ac.at/Research/Projects/Coco>)[@Linz:Coco].
-The Dafny input file to Coco/R is the `Dafny.atg` file in the source tree.
-A Coco/R input file consists of code written in the target language
-(C\# for the `dafny` tool) intermixed with these special sections:
 
-0. The [Characters section](#sec-character-classes)
-    which defines classes of characters that are used
-   in defining the lexer.
-1. The [Tokens section](#sec-tokens) which defines the lexical tokens.
-2. The [Productions section](#sec-grammar)
- which defines the grammar. The grammar productions
-are distributed in the later parts of this document in the places where
-those constructs are explained.
+The Dafny grammar is designed as an _attributed grammar_, which is a 
+conventional BNF-style set of productions, but in which the productions can
+have arguments. The arguments control some alternatives within
+the productions, such as whether an alternative is allowed or not in a specific context.
+These arguments allow for a more compact and understandable grammar.
 
-The grammar presented in this document was derived from the `Dafny.atg`
-file but has been simplified by removing details that, though needed by
-the parser, are not needed to understand the grammar. In particular, the
-following transformations have been performed.
-
-* The semantics actions, enclosed by "(." and ".)", were removed.
-* There are some elements in the grammar used for error recovery
-  ("SYNC"). These were removed.
-* There are some elements in the grammar for resolving conflicts
-  ("IF(b)"). These have been removed.
-* Some comments related to Coco/R parsing details have been removed.
-* A Coco/R grammar is an attributed grammar where the attributes enable
-  the productions to have input and output parameters. These attributes
-  were removed except that boolean input parameters that affect
-  the parsing are kept.
-  * In our representation we represent these
-    in a definition by giving the names of the parameters following
-    the non-terminal name. For example `entity1(allowsX)`.
-  * In the case of uses of the parameter, the common case is that the
-    parameter is just passed to a lower-level non-terminal. In that
-    case we just give the name, e.g. `entity2(allowsX)`.
-  * If we want to give an explicit value to a parameter, we specify it in
-    a keyword notation like this: `entity2(allowsX: true)`.
-  * In some cases the value to be passed depends on the grammatical context.
-    In such cases we give a description of the conditions under which the
-    parameter is true, enclosed in parenthesis. For example:
-
-      `FunctionSignatureOrEllipsis_(allowGhostKeyword: ("method" present))`
-
-    means that the `allowGhostKeyword` parameter is true if the
-    "method" keyword was given in the associated ``FunctionDecl``.
-  * Where a parameter affects the parsing of a non-terminal we will
-    explain the effect of the parameter.
-
-
-The names of character sets and tokens start with a lower case
-letter; the names of grammar non-terminals start with
-an upper-case letter.
-
-The grammar uses Extended BNF notation. See the [Coco/R Referenced
-manual](http://www.ssw.uni-linz.ac.at/Research/Projects/Coco/Doc/UserManual.pdf)
-for details. In summary:
-
-* identifiers starting with a lower case letter denote
-terminal symbols
-* identifiers starting with an upper case letter denote nonterminal
-symbols
-* strings (a sequence of characters enclosed by double quote characters)
-denote the sequence of enclosed characters
-* `=` separates the sides of a production, e.g. `A = a b c`
-* in the Coco grammars "." terminates a production, but for readability
-  in this document a production starts with the defined identifier in
-  the left margin and may be continued on subsequent lines if they
-  are indented
-* `|` separates alternatives, e.g. `a b | c | d e` means `a b` or `c` or `d e`
-* `(` `)` groups alternatives, e.g. `(a | b) c` means `a c` or `b c`
-* `[ ]` option, e.g. `[a] b` means `a b` or `b`
-* `{ }` iteration (0 or more times), e.g. `{a} b` means `b` or `a b` or `a a b` or ...
-* We allow `|` inside `[ ]` and `{ }`. So `[a | b]` is short for `[(a | b)]`
-  and `{a | b}` is short for `{(a | b)}`.
-* The first production defines the name of the grammar, in this case `Dafny`.
-
-In addition to the Coco rules, for the sake of readability we have adopted
-these additional conventions.
-
-* We allow `-` to be used. `a - b` means it matches if it matches `a` but not `b`.
-* To aid in explaining the grammar we have added some additional productions
-that are not present in the original grammar. We name these with a trailing
-underscore. If you inline these where they are referenced, the result should
-let you reconstruct the original grammar.
+The precise, technical details of the grammar are combined in [Section 30.](#sec-grammar-details).
+The expository parts of this manual present the language structure less formally.
 
 ## 2.1. Dafny Input {#sec-unicode}
 
@@ -103,7 +27,7 @@ The characters used in a Dafny program fall into four groups:
 
 Each Dafny token consists of a sequence of consecutive characters from just one of these
 groups, excluding white-space. White-space is ignored except that it
-separates tokens.
+separates tokens, except in the bodies of character and string literals.
 
 A sequence of alphanumeric characters (with no preceding or following additional
 alphanumeric characters) is a _single_ token. This is true even if the token
@@ -134,6 +58,20 @@ enclose the set of characters constituting a character class; enclosing single
 quotes are used when there is just one character in the class. `+` indicates
 the union of two character classes; `-` is the set-difference between the
 two classes. `ANY` designates all [unicode characters](#sec-unicode).
+
+ name | description
+----------------------------|---------------------------
+letter | ASCII upper or lower case letter (a-zA-Z); no unicode characters
+digit | base-ten digit (0-9)
+posDigit | digits, excluding 0 (1-9)
+posDigitFrom2 | digits excluding 0 and 1 (2-9)
+hexdigit | normal hex digits (0-9a-fA-F)
+special | ' ? or _
+cr      | carriage return character ('\r')
+lf      | line feed character ('\n')
+tab     | tab character ('\t')
+space   | space character (' ')
+
 
 ````grammar
 letter = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"

@@ -531,7 +531,7 @@ options revert to their previous values.
 Only a small subset of Dafny's command line options is supported.  Use the
 `/attrHelp` flag to see which ones.
 
-## 23.3. Attributes on assertions, preconditions and postconditions {#sec-verification-attributes-on-assert-statements}
+## 23.3. Attributes on assertions, preconditions and postconditions {#sec-verification-attributes-on-assertions}
 
 
 ### 23.3.1. `{:focus}` {#sec-focus}

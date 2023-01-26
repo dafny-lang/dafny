@@ -1,4 +1,4 @@
-# 29. Dafny Grammar
+# 29. Dafny Grammar {#sec-grammar-details}
 
 The Dafny parser is generated from a grammar definition file, `Dafny.atg` by the [CoCo/r](https://ssw.jku.at/Research/Projects/Coco/)
 parser generator.
@@ -6,11 +6,248 @@ parser generator.
 The grammar has a traditional structure: a scanner tokenizes the textual input into a sequence of tokens; the parser consumes the tokens
 to produce an AST. The AST is then passed on for name and type resolution and further processing.
 
+Dafny uses the Coco/R lexer and parser generator for its lexer and parser
+(<http://www.ssw.uni-linz.ac.at/Research/Projects/Coco>)[@Linz:Coco].
+The Dafny input file to Coco/R is the `Dafny.atg` file in the source tree.
+A Coco/R input file consists of code written in the target language
+(C\# for the `dafny` tool) intermixed with these special sections:
+
+0. The [Characters section](#sec-character-classes)
+    which defines classes of characters that are used
+   in defining the lexer.
+1. The [Tokens section](#sec-tokens) which defines the lexical tokens.
+2. The [Productions section](#sec-grammar)
+ which defines the grammar. The grammar productions
+are distributed in the later parts of this document in the places where
+those constructs are explained.
+
+The grammar presented in this document was derived from the `Dafny.atg`
+file but has been simplified by removing details that, though needed by
+the parser, are not needed to understand the grammar. In particular, the
+following transformations have been performed.
+
+* The semantics actions, enclosed by "(." and ".)", were removed.
+* There are some elements in the grammar used for error recovery
+  ("SYNC"). These were removed.
+* There are some elements in the grammar for resolving conflicts
+  ("IF(b)"). These have been removed.
+* Some comments related to Coco/R parsing details have been removed.
+* A Coco/R grammar is an attributed grammar where the attributes enable
+  the productions to have input and output parameters. These attributes
+  were removed except that boolean input parameters that affect
+  the parsing are kept.
+  * In our representation we represent these
+    in a definition by giving the names of the parameters following
+    the non-terminal name. For example `entity1(allowsX)`.
+  * In the case of uses of the parameter, the common case is that the
+    parameter is just passed to a lower-level non-terminal. In that
+    case we just give the name, e.g. `entity2(allowsX)`.
+  * If we want to give an explicit value to a parameter, we specify it in
+    a keyword notation like this: `entity2(allowsX: true)`.
+  * In some cases the value to be passed depends on the grammatical context.
+    In such cases we give a description of the conditions under which the
+    parameter is true, enclosed in parenthesis. For example:
+
+      `FunctionSignatureOrEllipsis_(allowGhostKeyword: ("method" present))`
+
+    means that the `allowGhostKeyword` parameter is true if the
+    "method" keyword was given in the associated ``FunctionDecl``.
+  * Where a parameter affects the parsing of a non-terminal we will
+    explain the effect of the parameter.
+
+The names of character sets and tokens start with a lower case
+letter; the names of grammar non-terminals start with
+an upper-case letter.
+
+The grammar uses Extended BNF notation. See the [Coco/R Referenced
+manual](http://www.ssw.uni-linz.ac.at/Research/Projects/Coco/Doc/UserManual.pdf)
+for details. In summary:
+
+* identifiers starting with a lower case letter denote
+terminal symbols
+* identifiers starting with an upper case letter denote nonterminal
+symbols
+* strings (a sequence of characters enclosed by double quote characters)
+denote the sequence of enclosed characters
+* `=` separates the sides of a production, e.g. `A = a b c`
+* in the Coco grammars "." terminates a production, but for readability
+  in this document a production starts with the defined identifier in
+  the left margin and may be continued on subsequent lines if they
+  are indented
+* `|` separates alternatives, e.g. `a b | c | d e` means `a b` or `c` or `d e`
+* `(` `)` groups alternatives, e.g. `(a | b) c` means `a c` or `b c`
+* `[ ]` option, e.g. `[a] b` means `a b` or `b`
+* `{ }` iteration (0 or more times), e.g. `{a} b` means `b` or `a b` or `a a b` or ...
+* We allow `|` inside `[ ]` and `{ }`. So `[a | b]` is short for `[(a | b)]`
+  and `{a | b}` is short for `{(a | b)}`.
+* The first production defines the name of the grammar, in this case `Dafny`.
+
+In addition to the Coco rules, for the sake of readability we have adopted
+these additional conventions.
+
+* We allow `-` to be used. `a - b` means it matches if it matches `a` but not `b`.
+* To aid in explaining the grammar we have added some additional productions
+that are not present in the original grammar. We name these with a trailing
+underscore. If you inline these where they are referenced, the result should
+let you reconstruct the original grammar.
+
 
 ## 29.1. Dafny Syntax
 
+This section gives the definitions of Dafny tokens. The program text is divided into
+a sequence of tokens, which is then assembled by the parser into an 
+abstract syntax tree representing the program.
+
+### 29.1.1. Classes of characters
+
+These definitions define some names as representing subsets of the set of characters.
+
+````grammar
+letter = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+
+digit = "0123456789"
+
+posDigit = "123456789"
+posDigitFrom2 = "23456789"
+
+hexdigit = "0123456789ABCDEFabcdef"
+
+special = "'_?"
+
+cr        = '\r'
+
+lf        = '\n'
+
+tab       = '\t'
+
+space     = ' '
+
+nondigitIdChar = letter + special
+
+idchar = nondigitIdChar + digit
+
+nonidchar = ANY - idchar
+````
+
+A `nonidchar` is any character except those that can be used in an identifier.
+Here the scanner generator will interpret `ANY` as any unicode character.
+However, `nonidchar` is used only to mark the end of the `!in` token;
+in this context any character other than [whitespace or printable ASCII](#sec-unicode)
+will trigger a subsequent scanning or parsing error.
+
+````grammar
+charChar = ANY - '\'' - '\\' - cr - lf
+
+stringChar = ANY - '"' - '\\' - cr - lf
+
+verbatimStringChar = ANY - '"'
+````
+
+### 29.1.2. Definitions of tokens
+
+These definitions use 
+- double-quotes to indicate a verbatim string
+- vertical bar to indicate alternatives
+- square brackets to indicate an optional part
+- curly braces to incdicate 0-or-more repetitions
+- parentheses to indicate grouping
+- a '-' sign to indicate set difference: any character sequence matched by the left operand except character sequences matched by the right operand
+- ANY to indicate any (unicode) character
+
+````grammar
+reservedword =
+    "abstract" | "allocated" | "as" | "assert" | "assume" |
+    "bool" | "break" | "by" |
+    "calc" | "case" | "char" | "class" | "codatatype" |
+    "const" | "constructor" |
+    "datatype" | "decreases" |
+    "else" | "ensures" | "exists" | "export" | "extends" |
+    "false" | "forall" | "fresh" | "function" | "ghost" |
+    "if" | "imap" | "import" | "in" | "include" |
+    "int" | "invariant" | "is" | "iset" | "iterator" |
+    "label" | "lemma" | "map" | "match" | "method" |
+    "modifies" | "modify" | "module" | "multiset" |
+    "nameonly" | "nat" | "new" | "newtype" | "null" |
+    "object" | "object?" | "old" | "opened" | "ORDINAL"
+    "predicate" | "print" | "provides" |
+    "reads" | "real" | "refines" | "requires" | "return" |
+    "returns" | "reveal" | "reveals" |
+    "seq" | "set" | "static" | "string" |
+    "then" | "this" | "trait" | "true" | "twostate" | "type" |
+    "unchanged" | "var" | "while" | "witness" |
+    "yield" | "yields" |
+    arrayToken | bvToken
+
+arrayToken = "array" [ posDigitFrom2 | posDigit digit { digit }]["?"]
+
+bvToken = "bv" ( 0 | posDigit { digit } )
+
+ident = nondigitIdChar { idchar } - charToken - reservedword
+
+digits = digit {['_'] digit}
+
+hexdigits = "0x" hexdigit {['_'] hexdigit}
+
+decimaldigits = digit {['_'] digit} '.' digit {['_'] digit}
+
+escapedChar =
+    ( "\'" | "\"" | "\\" | "\0" | "\n" | "\r" | "\t"
+      | "\u" hexdigit hexdigit hexdigit hexdigit
+      | "\U{" hexdigit { hexdigit } "}"
+    )
+
+charToken = "'" ( charChar | escapedChar ) "'"
+
+stringToken =
+    '"' { stringChar | escapedChar }  '"'
+  | '@' '"' { verbatimStringChar | '"' '"' } '"'
+
+ellipsis = "..."
+````
+
+### 2.6.1. Identifier Variations {#g-identifier}
+
+````grammar
+Ident = ident
+
+DotSuffix = ( ident | digits | "requires" | "reads" )
+
+NoUSIdent = ident - "_" { idchar }
+
+WildIdent = NoUSIdent | "_"
+
+IdentOrDigits = Ident | digits
+NoUSIdentOrDigits = NoUSIdent | digits
+ModuleName = NoUSIdent
+ClassName = NoUSIdent    // also traits
+DatatypeName = NoUSIdent
+DatatypeMemberName = NoUSIdentOrDigits
+NewtypeName = NoUSIdent
+SynonymTypeName = NoUSIdent
+IteratorName = NoUSIdent
+TypeVariableName = NoUSIdent
+MethodFunctionName = NoUSIdentOrDigits
+LabelName = NoUSIdentOrDigits
+AttributeName = NoUSIdent
+ExportId = NoUSIdentOrDigits
+TypeNameOrCtorSuffix = NoUSIdentOrDigits
+````
+
+
 
 ## 29.2. Dafny Grammar productions
+
+The grammar productions are presented in the following Extended BNF syntax:
+* terminals are 
+   - character sequences enclosed in double quotes, or
+   - the names of tokens defined in the previous section, enclosed in angle brackets (< >)
+* non-terminals are names enclosed in angle brackets
+* parentheses designate grouping
+* a vertical bar indicates alternatives
+* square brackets indicate optional material
+* curly braces indicate 0-or-more reptitions of its contents
+* each production is given by a non-terminal, followed by '=',
+  followed by the definition of the non-terminal, follwed by a period.
 
 ### 29.2.1. Programs {#g-program}
 
@@ -95,6 +332,33 @@ ModuleExport =
 
 ExportSignature = TypeNameOrCtorSuffix [ "." TypeNameOrCtorSuffix ]
 ````
+
+### 29.2.3. Types {#g-type}
+
+#### 29.2.4.1. Basic types {#g-basic-type}
+
+#### 29.2.5.1. Generic types {#g-generic-type}
+
+#### 29.2.6.1. Type parameter {#g-type-parameter}
+
+#### 29.2.7.1. Collection types {#g-collection-type}
+
+
+#### 29.2.8.1. Type definitions {#g-type-definition}
+
+#### 29.2.8.1. Classe type {#g-class-type}
+
+#### 29.1.8.1. Traits {#g-trait} 
+
+#### 29.1.8.1. Iterator types {#g-iterator-type}
+
+#### 29.1.8.1. Arrow types {#g-arrow-type}
+
+#### 29.1.8.1. Tuples type {#g-tuple-type}
+
+#### 29.1.8.1. Datatypes {#g-datatype}
+
+### 29.2.4. Method, Functions, and Constructors {#g-executable}
 
 
 ### 29.2.3. Specifications
@@ -732,4 +996,33 @@ ObjectAllocation_ = "new" Type [ "." TypeNameOrCtorSuffix ]
 #### 29.2.4.18. Havoc right-hand-side expression (#g-havoc-expression}
 ````grammar
 HavocRhs_ = "*"
+````
+
+
+#### 29.2.99. Basic name and type combinations
+
+```grammar
+ModuleQualifiedName = ModuleName { "." ModuleName }
+
+IdentType = WildIdent ":" Type
+
+FIdentType = NoUSIdentOrDigits ":" Type
+
+CIdentType = NoUSIdentOrDigits [ ":" Type ]
+
+GIdentType(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, allowNameOnlyKeyword, allowDefault) =
+    { "ghost" | "new" | "nameonly" | "older" } IdentType
+    [ ":=" Expression(allowLemma: true, allowLambda: true) ]
+
+LocalIdentTypeOptional = WildIdent [ ":" Type ]
+
+IdentTypeOptional = WildIdent [ ":" Type ]
+
+TypeIdentOptional =
+    { "ghost" | "nameonly" } [ NoUSIdentOrDigits ":" ] Type
+    [ ":=" Expression(allowLemma: true, allowLambda: true) ]
+
+FormalsOptionalIds = "(" [ TypeIdentOptional
+                           { "," TypeIdentOptional } ] ")"
+
 ````
