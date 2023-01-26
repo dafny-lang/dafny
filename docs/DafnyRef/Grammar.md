@@ -6,7 +6,7 @@ have arguments. The arguments control some alternatives within
 the productions, such as whether an alternative is allowed or not in a specific context.
 These arguments allow for a more compact and understandable grammar.
 
-The precise, technical details of the grammar are combined in [Section 30.](#sec-grammar-details).
+The precise, technical details of the grammar are combined in [Section 29](#sec-grammar-details).
 The expository parts of this manual present the language structure less formally.
 
 ## 2.1. Dafny Input {#sec-unicode}

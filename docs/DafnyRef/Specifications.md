@@ -61,7 +61,7 @@ of all the given Attributes. The order of conjunctions
 can be important: earlier conjuncts can set conditions that
 establish that later conjuncts are well-defined.
 
-The attributes recognized for requires clauses are discussed in [Section 0.0](#sec-verification-attributes-on-assertions).
+The attributes recognized for requires clauses are discussed in [Section 23.3](#sec-verification-attributes-on-assertions).
 
 ### 5.1.2. Ensures Clause {#sec-ensures-clause}
 ([grammar](#g-ensures-clause))
@@ -90,7 +90,7 @@ The order of conjunctions
 can be important: earlier conjuncts can set conditions that
 establish that later conjuncts are well-defined.
 
-The attributes recognized for ensures clauses are discussed in [Section 0.0](#sec-verification-attributes-on-assertions).
+The attributes recognized for ensures clauses are discussed in [Section 23.3](#sec-verification-attributes-on-assertions).
 
 ### 5.1.3. Decreases Clause {#sec-decreases-clause}
 ([grammar](#g-decreases-clause))

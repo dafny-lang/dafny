@@ -1143,7 +1143,7 @@ to compile the containing program will result in an error message.
 When verifying a loop with a missing body, the verifier will skip attempts
 to prove loop invariants and decreases assertions that would normally be
 asserted at the end of the loop body.
-There is more discussion about bodyless loops in [Section 20.14.5](#sec-bodyless-constructs).
+There is more discussion about bodyless loops in [Section 20.14.4](#sec-bodyless-constructs).
 
 The second form uses the `AlternativeBlock`. It is similar to the
 `do ... od` construct used in the book "A Discipline of Programming" by
@@ -1310,7 +1310,7 @@ Just like for while loops, the body of a for-loop may be omitted during
 verification. This suppresses attempts to check assertions (like invariants)
 that would occur at the end of the loop. Eventually, however a body must
 be provided; the compiler will not compile a method containing a body-less
-for-loop. There is more discussion about bodyless loops in [Section 20.14.5](#sec-bodyless-constructs).
+for-loop. There is more discussion about bodyless loops in [Section 20.14.4](#sec-bodyless-constructs).
 
 
 ## 20.14. Loop Specifications {#sec-loop-specifications}
@@ -1722,9 +1722,9 @@ their purpose -- to assist in proving the given assertion -- is manifest in the 
 
 Examples of this form of assert are given in the section of the [`reveal`](#sec-reveal-statement) statement and in [_Different Styles of Proof_](http://leino.science/papers/krml276.html)
 
-An assert statement may have a label. whose use is explained in [Section 0.0.0](#sec-reveal-assertions).
+An assert statement may have a label. whose use is explained in [Section 20.20.1](#sec-reveal-assertions).
 
-The attributes recognized for assert statements are discussed in [Section 0.0](#sec-verification-attributes-on-assertions).
+The attributes recognized for assert statements are discussed in [Section 23.3](#sec-verification-attributes-on-assertions).
 
 Using `...` as the argument of the statement is deprecated.
 
