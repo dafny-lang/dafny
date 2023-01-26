@@ -1,4 +1,4 @@
-// RUN: %baredafny %args "%s" >> "%t"
+// RUN: %baredafny "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {
