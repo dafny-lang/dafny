@@ -26,7 +26,7 @@ namespace ExtensionMethods {
 namespace Microsoft.Dafny.Compilers {
   class PythonCompiler : SinglePassCompiler {
     public PythonCompiler(ErrorReporter reporter) : base(reporter) {
-      if (DafnyOptions.O.CoverageLegendFile != null) {
+      if (DafnyOptions.O?.CoverageLegendFile != null) {
         Imports.Add("DafnyProfiling");
       }
     }

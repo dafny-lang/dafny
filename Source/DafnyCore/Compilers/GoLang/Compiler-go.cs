@@ -18,7 +18,7 @@ using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 namespace Microsoft.Dafny.Compilers {
   class GoCompiler : SinglePassCompiler {
     public GoCompiler(ErrorReporter reporter) : base(reporter) {
-      if (DafnyOptions.O.CoverageLegendFile != null) {
+      if (DafnyOptions.O?.CoverageLegendFile != null) {
         Imports.Add(new Import { Name = "DafnyProfiling", Path = "DafnyProfiling" });
       }
     }
