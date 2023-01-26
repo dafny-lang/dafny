@@ -3181,14 +3181,15 @@ VarDeclStatement<.out Statement/*!*/ s.>
          }
        }
        var rangeToken = new RangeToken(startToken, t);
+       var updateRangeToken = new RangeToken(assignTok, t);
        if (suchThat != null) {
-         update = new AssignSuchThatStmt(rangeToken, lhsExprs, suchThat, suchThatAssume, attrs);
+         update = new AssignSuchThatStmt(updateRangeToken, lhsExprs, suchThat, suchThatAssume, attrs);
        } else if (exceptionRhs != null) {
-         update = new AssignOrReturnStmt(rangeToken, lhsExprs, exceptionRhs, keywordToken, rhss);
+         update = new AssignOrReturnStmt(updateRangeToken, lhsExprs, exceptionRhs, keywordToken, rhss);
        } else if (rhss.Count == 0) {
          update = null;
        } else {
-         update = new UpdateStmt(rangeToken, lhsExprs, rhss);
+         update = new UpdateStmt(updateRangeToken, lhsExprs, rhss);
        }
        s = new VarDeclStmt(rangeToken, lhss, update);
     .)
