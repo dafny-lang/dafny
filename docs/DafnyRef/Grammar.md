@@ -6,7 +6,7 @@ have arguments. The arguments control some alternatives within
 the productions, such as whether an alternative is allowed or not in a specific context.
 These arguments allow for a more compact and understandable grammar.
 
-The precise, technical details of the grammar are combined in [Section 29](#sec-grammar-details).
+The precise, technical details of the grammar are presented together in [Section 29](#sec-grammar-details).
 The expository parts of this manual present the language structure less formally.
 
 ## 2.1. Dafny Input {#sec-unicode}
@@ -15,19 +15,20 @@ Dafny source code files are readable text encoded in UTF-8.
 All program text other than the contents of comments, character, string and verbatim string literals
 consists of printable and white-space ASCII characters,
 that is, ASCII characters in the range `!` to `~`, plus space, tab, 
-carriage return and newline (ASCII, 9, 10, 13, 32) characters.
+carriage return and newline (ASCII 9, 10, 13, 32) characters.
 
 ## 2.2. Tokens and whitespace {#sec-token-types}
 The characters used in a Dafny program fall into four groups:
 
-* White space characters
+* White space characters: space, tab, carriage return and newline
 * alphanumerics: letters, digits, underscore (`_`), apostrophe (`'`), and question mark (`?`)
 * punctuation: ``(){}[],.`;``
 * operator characters (the other printable characters)
 
-Each Dafny token consists of a sequence of consecutive characters from just one of these
+Except for string and character literals, each Dafny token consists of a 
+sequence of consecutive characters from just one of these
 groups, excluding white-space. White-space is ignored except that it
-separates tokens, except in the bodies of character and string literals.
+separates tokens and except in the bodies of character and string literals.
 
 A sequence of alphanumeric characters (with no preceding or following additional
 alphanumeric characters) is a _single_ token. This is true even if the token
@@ -47,10 +48,11 @@ sequence `==>` is always one token; even if it were invalid in its context,
 separating it into `==` and `>` would always still be invalid.
 
 In summary, except for required white space between alphanumeric tokens,
-adding white space between tokens or removing white space can never result in changing the meaning of a Dafny program.
-For the rest of this document, we consider Dafny programs as sequences of tokens.
+adding or removing white space between tokens can never result in changing the meaning of a Dafny program.
+For most of this document, we consider Dafny programs as sequences of tokens.
 
 ## 2.3. Character Classes {#sec-character-classes}
+
 This section defines character classes used later in the token definitions.
 In this section 
 * a backslash is used to start an escape sequence (so for example
@@ -68,11 +70,11 @@ two classes
 
  name | description
 ----------------------------|---------------------------
-letter | ASCII upper or lower case letter (a-zA-Z); no unicode characters
-digit | base-ten digit (0-9)
-posDigit | digits, excluding 0 (1-9)
-posDigitFrom2 | digits excluding 0 and 1 (2-9)
-hexdigit | normal hex digits (0-9a-fA-F)
+letter | ASCII upper or lower case letter; no unicode characters
+digit | base-ten digit ("0123456789")
+posDigit | digits, excluding ("123456789")
+posDigitFrom2 | digits excluding 0 and 1 ("23456789")
+hexdigit | normal hex digits ("0123456789abcdefABCDEF")
 special | `'` `?` or `_`
 cr      | carriage return character ('\r')
 lf      | line feed character 

@@ -39,6 +39,7 @@ This section gives the definitions of Dafny tokens.
 These definitions define some names as representing subsets of the set of characters.
 Here double quotes enclose the set of characters constituting the class, single quotes 
 enclose a single character (perhaps an escaped representation using `\`), the 
+binary `+` indicates set union, 
 binary `-` indicates set difference, and `ANY` indicates the set of all (unicode) characters.
 
 ````grammar
@@ -80,16 +81,18 @@ However, `nonidchar` is used only to mark the end of the `!in` token;
 in this context any character other than [whitespace or printable ASCII](#sec-unicode)
 will trigger a subsequent scanning or parsing error.
 
-### 29.1.2. Definitions of tokens
+### 29.1.2. Definitions of tokens {#sec-g-tokens}
 
 These definitions use 
-- double-quotes to indicate a verbatim string
+- double-quotes to indicate a verbatim string (with no escaping of characters)
+- `'"'` to indicate a literal double-quote character
 - vertical bar to indicate alternatives
 - square brackets to indicate an optional part
-- curly braces to incdicate 0-or-more repetitions
+- curly braces to indicate 0-or-more repetitions
 - parentheses to indicate grouping
-- a '-' sign to indicate set difference: any character sequence matched by the left operand except character sequences matched by the right operand
+- a `-` sign to indicate set difference: any character sequence matched by the left operand except character sequences matched by the right operand
 - ANY to indicate any (unicode) character
+- a sequence of any of the above indicates concatentation (without whitespace)
 
 ````grammar
 reservedword =
@@ -121,11 +124,11 @@ bvToken = "bv" ( 0 | posDigit { digit } )
 
 ident = nondigitIdChar { idchar } - charToken - reservedword
 
-digits = digit {['_'] digit}
+digits = digit {["_"] digit}
 
-hexdigits = "0x" hexdigit {['_'] hexdigit}
+hexdigits = "0x" hexdigit {["_"] hexdigit}
 
-decimaldigits = digit {['_'] digit} '.' digit {['_'] digit}
+decimaldigits = digit {["_"] digit} '.' digit {["_"] digit}
 
 escapedChar =
     ( "\'" | "\"" | "\\" | "\0" | "\n" | "\r" | "\t"
@@ -137,7 +140,7 @@ charToken = "'" ( charChar | escapedChar ) "'"
 
 stringToken =
     '"' { stringChar | escapedChar }  '"'
-  | '@' '"' { verbatimStringChar | '"' '"' } '"'
+  | "@" '"' { verbatimStringChar | '"' '"' } '"'
 
 ellipsis = "..."
 ````
@@ -147,7 +150,7 @@ ellipsis = "..."
 The grammar productions are presented in the following Extended BNF syntax:
 
 * identifiers starting with a lower case letter denote
-terminal symbols (tokens)
+terminal symbols (tokens) as defined in the [previous subsection](#sec-g-tokens)
 * identifiers starting with an upper case letter denote nonterminal
 symbols
 * strings (a sequence of characters enclosed by double quote characters)
@@ -159,13 +162,15 @@ denote the sequence of enclosed characters
 * `{ }` iteration (0 or more times), e.g. `{a} b` means `b` or `a b` or `a a b` or ...
 * We allow `|` inside `[ ]` and `{ }`. So `[a | b]` is short for `[(a | b)]`
   and `{a | b}` is short for `{(a | b)}`.
+* `//` in a line introduces a comment that extends to the end-of-the line, but does not terminate the production
 * The first production defines the name of the grammar, in this case `Dafny`.
 
 In addition to the Coco rules, for the sake of readability we have adopted
 these additional conventions.
 
 * We allow `-` to be used. `a - b` means it matches if it matches `a` but not `b`.
-* We omit the `.` that marks the end of a CoC/R production.
+* We omit the `.` that marks the end of a CoCo/R production.
+* we omit deprecated features.
 
 To aid in explaining the grammar we have added some additional productions
 that are not present in the original grammar. We name these with a trailing
@@ -214,29 +219,30 @@ SubModuleDecl = ( ModuleDefinition | ModuleImport | ModuleExport )
 #### 29.2.2.1. Module Definitions {#g-module-definition}
 
 ````grammar
-ModuleDefinition = "module" { Attribute } ModuleQualifiedName
-        [ "refines" ModuleQualifiedName ]
-        "{" { TopDecl } "}"
+ModuleDefinition = 
+  "module" { Attribute } ModuleQualifiedName
+  [ "refines" ModuleQualifiedName ]
+  "{" { TopDecl } "}"
 ````
 
 #### 29.2.2.2. Module Imports {#g-module-import}
 
 ````grammar
 ModuleImport =
-    "import"
-    [ "opened" ]
-    ( QualifiedModuleExport
-    | ModuleName "=" QualifiedModuleExport
-    | ModuleName ":" QualifiedModuleExport
-    )
+  "import"
+  [ "opened" ]
+  ( QualifiedModuleExport
+  | ModuleName "=" QualifiedModuleExport
+  | ModuleName ":" QualifiedModuleExport
+  )
 
 QualifiedModuleExport =
     ModuleQualifiedName [ "`" ModuleExportSuffix ]
 
 ModuleExportSuffix =
-    ( ExportId
-    | "{" ExportId { "," ExportId } "}"
-    )
+  ( ExportId
+  | "{" ExportId { "," ExportId } "}"
+  )
 ````
 
 #### 29.2.2.3. Module Export Definitions {#g-module-export}
@@ -373,16 +379,6 @@ PossiblyWildExpression(allowLambda, allowWild) =
   )
 ````
 
-#### 29.2.5.9. Reads clauses {#g-reads-clause}
-
-````grammar
-ReadsClause(allowLemma, allowLambda, allowWild) =
-  "reads"
-  { Attribute }
-  PossiblyWildFrameExpression(allowLemma, allowLambda, allowWild)
-  { "," PossiblyWildFrameExpression(allowLemma, allowLambda, allowWild) }
-````
-
 #### 29.2.5.10. Modifies clauses {#g-modifies-clause}
 
 ````grammar
@@ -398,6 +394,16 @@ ModifiesClause(allowLambda) =
 InvariantClause_ =
   "invariant" { Attribute }
   Expression(allowLemma: false, allowLambda: true)
+````
+
+#### 29.2.5.9. Reads clauses {#g-reads-clause}
+
+````grammar
+ReadsClause(allowLemma, allowLambda, allowWild) =
+  "reads"
+  { Attribute }
+  PossiblyWildFrameExpression(allowLemma, allowLambda, allowWild)
+  { "," PossiblyWildFrameExpression(allowLemma, allowLambda, allowWild) }
 ````
 
 #### 29.2.5.12. Frame expressions {#g-frame-expression}
@@ -566,11 +572,12 @@ AlternativeBlock(allowBindingGuards) =
   )
 
 AlternativeBlockCase(allowBindingGuards) =
-      { "case"
-      (
-        BindingGuard(allowLambda: false) // permitted iff allowBindingGuards == true
-      | Expression(allowLemma: true, allowLambda: false)
-      ) "=>" { Stmt } } .
+  { "case"
+    (
+    BindingGuard(allowLambda: false) // permitted iff allowBindingGuards == true
+    | Expression(allowLemma: true, allowLambda: false)
+    ) "=>" { Stmt }
+  }
 ````
 
 #### 29.2.6.13. While Statement {#g-while-statement}
@@ -583,7 +590,7 @@ WhileStmt =
   | Guard
     LoopSpec
     ( BlockStmt
-    | /* go body-less */
+    |           // no body
     )
   )
 ````
@@ -593,15 +600,13 @@ WhileStmt =
 ````grammar
 ForLoopStmt =
   "for" IdentTypeOptional ":="
-    Expression(allowLemma: false, allowLambda: false)
-    ( "to" | "downto" )
-    ( Expression(allowLemma: false, allowLambda: false)
-    | "*"
-    )
-    LoopSpec
-    ( BlockStmt
-    | /* go body-less */
-    )
+  Expression(allowLemma: false, allowLambda: false)
+  ( "to" | "downto" )
+  ( "*" | Expression(allowLemma: false, allowLambda: false)
+  )
+  LoopSpec
+  ( BlockStmt
+  |           // no body
   )
 ````
 
@@ -622,56 +627,54 @@ CaseStmt = "case" ExtendedPattern "=>" { Stmt }
 
 ````grammar
 AssertStmt =
-    "assert"
-    { Attribute }
-    [ LabelName ":" ]
-    Expression(allowLemma: false, allowLambda: true)
-    ( ";"
-    | "by" BlockStmt
-    )
+  "assert"
+  { Attribute }
+  [ LabelName ":" ]
+  Expression(allowLemma: false, allowLambda: true)
+  ( ";"
+  | "by" BlockStmt
+  )
 ````
 
 #### 29.2.6.17. Assume statement {#g-assume-statement}
 
 ````grammar
 AssumeStmt =
-    "assume"
-    { Attribute }
-    ( Expression(allowLemma: false, allowLambda: true)
-    )
-    ";"
+  "assume"
+  { Attribute }
+  Expression(allowLemma: false, allowLambda: true)
+  ";"
 ````
 
 #### 29.2.6.18. Expect statement {#g-expect-statement}
 
 ````grammar
 ExpectStmt =
-    "expect"
-    { Attribute }
-    ( Expression(allowLemma: false, allowLambda: true)
-    )
-    [ "," Expression(allowLemma: false, allowLambda: true) ]
-    ";"
+  "expect"
+  { Attribute }
+  Expression(allowLemma: false, allowLambda: true)
+  [ "," Expression(allowLemma: false, allowLambda: true) ]
+  ";"
 ````
 
 #### 29.2.6.19. Print statement {#g-print-statement}
 
 ````grammar
 PrintStmt =
-    "print"
-    Expression(allowLemma: false, allowLambda: true)
-    { "," Expression(allowLemma: false, allowLambda: true) }
-    ";"
+  "print"
+  Expression(allowLemma: false, allowLambda: true)
+  { "," Expression(allowLemma: false, allowLambda: true) }
+  ";"
 ````
 
 #### 29.2.6.20. Reveal statement {#g-reveal-statement}
 
 ````grammar
 RevealStmt =
-    "reveal"
-    Expression(allowLemma: false, allowLambda: true)
-    { "," Expression(allowLemma: false, allowLambda: true) }
-    ";"
+  "reveal"
+  Expression(allowLemma: false, allowLambda: true)
+  { "," Expression(allowLemma: false, allowLambda: true) }
+  ";"
 ````
 #### 29.2.6.21. Forall statement {#g-forall-statement}
 
@@ -725,8 +728,8 @@ CalcOp =
 
 ````grammar
 Expression(allowLemma, allowLambda) =
-    EquivExpression(allowLemma, allowLambda)
-    [ ";" Expression(allowLemma, allowLambda) ]
+  EquivExpression(allowLemma, allowLambda)
+  [ ";" Expression(allowLemma, allowLambda) ]
 ````
 
 The "allowLemma" argument says whether or not the expression
