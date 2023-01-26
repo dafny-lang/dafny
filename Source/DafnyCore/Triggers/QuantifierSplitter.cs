@@ -64,7 +64,9 @@ namespace Microsoft.Dafny.Triggers {
       foreach (var e1 in SplitExpr(pair.E1, separator)) {
         // Notice the token. This makes triggers/splitting-picks-the-right-tokens.dfy possible
         var nestedToken = new NestedToken(pair.tok, e1.tok);
-        yield return new BinaryExpr(nestedToken, pair.Op, pair.E0, e1) { ResolvedOp = pair.ResolvedOp, Type = pair.Type };
+        var result = new BinaryExpr(pair.RangeToken, pair.Op, pair.E0, e1) { ResolvedOp = pair.ResolvedOp, Type = pair.Type };
+        result.OverrideToken = nestedToken;
+        yield return result;
       }
     }
 
