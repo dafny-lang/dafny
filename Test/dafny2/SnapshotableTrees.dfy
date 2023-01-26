@@ -60,7 +60,7 @@ module SnapTreeTestHarness {
    *  into a tree that is being iterated, use of the associated iterator can no longer be
    *  proved to be correct.
    */
-  method TestConcurrentModification(t: SnapTree.Tree)
+  method {:vcs_split_on_every_assert} TestConcurrentModification(t: SnapTree.Tree)
     requires t.Valid() && !t.IsReadonly
     modifies t.MutableRepr
   {
@@ -591,7 +591,7 @@ module SnapTree {
       case Cons(y, rest) => x := y.data;
     }
 
-    method MoveNext() returns (hasCurrent: bool)
+    method {:vcs_split_on_every_assert} MoveNext() returns (hasCurrent: bool)
       requires Valid() && N <= |Contents|
       modifies IterRepr
       ensures Valid() && fresh(IterRepr - old(IterRepr)) && T.Repr == old(T.Repr)
