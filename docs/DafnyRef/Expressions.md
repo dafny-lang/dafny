@@ -655,8 +655,7 @@ true
 A literal expression is a boolean literal, a null object reference,
 an integer or real literal, a character or string literal.
 
-## 21.21. `this` Expression
-
+## 21.21. `this` Expression {#sec-this-expression}
 ([grammar](#g-this-expression))
 
 Examples:
@@ -667,128 +666,8 @@ this
 The `this` token denotes the current object in the context of 
 a constructor, instance method, or instance function.
 
-## 21.22. Fresh Expressions {#sec-fresh-expression}
 
-`fresh(e)` returns a boolean value that is true if
-the objects denoted by expression `e` were all
-freshly allocated since the time of entry to the enclosing method,
-or since [`label L:`](#sec-labeled-stmt) in the variant `fresh@L(e)`.
-For example, consider this valid program:
-
-<!-- %check-verify -->
-```dafny
-class C { constructor() {} }
-method f(c1: C) returns (r: C)
-  ensures fresh(r)
-{
-  assert !fresh(c1);
-  var c2 := new C();
-  label AfterC2:
-  var c3 := new C();
-  assert fresh(c2) && fresh(c3);
-  assert fresh({c2, c3});
-  assert !fresh@AfterC2(c2) && fresh@AfterC2(c3);
-  r := c2;
-}
-```
-
-The `L` in the variant `fresh@L(e)` must denote a [label](#sec-labeled-stmt) that, in the
-enclosing method's control flow, [dominates the expression](#sec-labeled-stmt). In this
-case, `fresh@L(e)` returns `true` if the objects denoted by `e` were all
-freshly allocated since control flow reached label `L`.
-
-The argument of `fresh` must be either an [`object`](#sec-object-type) reference
-or a set or sequence of object references.
-In this case, `fresh(e)` (respectively `fresh@L(e)` with a label)
-is a synonym of [`old(!allocated(e))`](#sec-allocated-expression)
-(respectively [`old@L(!allocated(e))`](#sec-allocated-expression))
-
-````grammar
-FreshExpression_ =
-  "fresh" [ "@" LabelName ]
-  "(" Expression(allowLemma: true, allowLambda: true) ")"
-````
-
-## 21.23. Allocated Expressions {#sec-allocated-expression}
-For any expression `e`, the expression `allocated(e)` evaluates to `true`
-in a state if the value of `e` is available in that state, meaning that
-it could in principle have been the value of a variable in that state.
-
-For example, consider this valid program:
-
-<!-- %check-verify -->
-```dafny
-class C { constructor() {} }
-datatype D = Nil | Cons(C, D)
-method f() {
-  var d1, d2 := Nil, Nil;
-  var c1 := new C();
-  label L1:
-  var c2 := new C();
-  label L2:
-  assert old(allocated(d1) && allocated(d2));
-  d1 := Cons(c1, Nil);
-  assert old(!allocated(d1) && allocated(d2));
-  d2 := Cons(c2, Nil);
-  assert old(!allocated(d1) && !allocated(d2));
-  assert allocated(d1) && allocated(d2);
-  assert old@L1(allocated(d1) && !allocated(d2));
-  assert old@L2(allocated(d1) && allocated(d2));
-  d1 := Nil;
-  assert old(allocated(d1) && !allocated(d2));
-}
-```
-
-This can be useful when, for example, `allocated(e)` is evaluated in an
-[`old`](#sec-old-expression) state. Like in the example, where `d1` is a local variable holding a datatype value
-`Cons(c1, Nil)` where `c1` is an object that was allocated in the enclosing
-method, then [`old(allocated(d))`](#sec-old-expression) is `false`.
-
-If the expression `e` is of a reference type, then `!old(allocated(e))`
-is the same as [`fresh(e)`](#sec-fresh-expression).
-
-````grammar
-AllocatedExpression_ =
-  "allocated" "(" Expression(allowLemma: true, allowLambda: true) ")"
-````
-
-## 21.24. Unchanged Expressions {#sec-unchanged-expression}
-
-````grammar
-UnchangedExpression_ =
-  "unchanged" [ "@" LabelName ]
-  "(" FrameExpression(allowLemma: true, allowLambda: true)
-      { "," FrameExpression(allowLemma: true, allowLambda: true) }
-  ")"
-````
-
-The `unchanged` expression returns `true` if and only if every reference
-denoted by its arguments has the same value for all its fields in the
-old and current state. For example, if `c` is an object with two
-fields, `x` and `y`, then `unchanged(c)` is equivalent to
-<!-- %no-check -->
-```dafny
-c.x == old(c.x) && c.y == old(c.y)
-```
-
-Each argument to `unchanged` can be a reference, a set of references, or
-a sequence of references. If it is a reference, it can be followed by
-`` `f``, where `f` is a field of the reference. This form expresses that `f`,
-not necessarily all fields, has the same value in the old and current
-state.
-
-The optional `@`-label says to use it as the old-state instead of using
-the `old` state. That is, using the example `c` from above, the expression
-`unchanged@Lbl(c)` is equivalent to
-<!-- %no-check -->
-```dafny
-c.x == old@Lbl(c.x) && c.y == old@Lbl(c.y)
-```
-
-Each reference denoted by the arguments of `unchanged` must be non-null and
-must be allocated in the old-state of the expression.
-
-## 21.25. Old and Old@ Expressions {#sec-old-expression}
+## 21.22. Old and Old@ Expressions {#sec-old-expression}
 ([grammar](#g-old-expression))
 
 Examples:
@@ -964,8 +843,7 @@ class A {
   }
 }
 ```
-
-## 21.26. Fresh Expressions {#sec-fresh-expression}
+## 21.23. Fresh Expressions {#sec-fresh-expression}
 
 ([grammar](#g-fresh-expression))
 
@@ -1009,7 +887,7 @@ is a synonym of [`old(!allocated(e))`](#sec-allocated-expression)
 (respectively [`old@L(!allocated(e))`](#sec-allocated-expression))
 
 
-## 21.27. Allocated Expressions {#sec-allocated-expression}
+## 21.24. Allocated Expressions {#sec-allocated-expression}
 ([grammar](#g-allocated-expression))
 
 Examples:
@@ -1056,7 +934,7 @@ If the expression `e` is of a reference type, then `!old(allocated(e))`
 is the same as [`fresh(e)`](#sec-fresh-expression).
 
 
-## 21.28. Unchanged Expressions {#sec-unchanged-expression}
+## 21.25. Unchanged Expressions {#sec-unchanged-expression}
 ([grammar](#g-unchanged-expression))
 
 Examples:
@@ -1090,7 +968,8 @@ c.x == old@Lbl(c.x) && c.y == old@Lbl(c.y)
 Each reference denoted by the arguments of `unchanged` must be non-null and
 must be allocated in the old-state of the expression.
 
-## 21.29. Cardinality Expressions {#sec-cardinality-expression}
+
+## 21.26. Cardinality Expressions {#sec-cardinality-expression}
 ([grammar](#g-cardinality-expression))
 
 Examples:
@@ -1105,7 +984,7 @@ elements. For a finite map, the cardinality is the cardinality of the
 domain of the map. Cardinality is not defined for infinite sets or infinite maps.
 For more information, see [Section 10](#sec-collection-types).
 
-## 21.30. Parenthesized Expression
+## 21.27. Parenthesized Expression
 ([grammar](#g-parenthesized-expression))
 
 A parenthesized expression is a list of zero or more expressions
@@ -1117,7 +996,7 @@ the value of that expression.
 If there are zero or more than one, the result is a `tuple` value.
 See [Section 18](#sec-tuple-types).
 
-## 21.31. Sequence Display Expression {#sec-seq-comprehension}
+## 21.28. Sequence Display Expression {#sec-seq-comprehension}
 ([grammar](#g-sequence-display-expression))
 
 Examples:
@@ -1147,7 +1026,7 @@ second argument (a function) on the indices 0 up to k.
 See [this section](#sec-sequences) for more information on
 sequences.
 
-## 21.32. Set Display Expression
+## 21.29. Set Display Expression
 ([grammar](#g-set-display-expression))
 
 Examples:
@@ -1199,7 +1078,7 @@ assert ms == ms2;
 See [Section 10.2](#sec-multisets) for more information on
 multisets.
 
-## 21.33. Map Display Expression {#sec-map-display-expression}
+## 21.30. Map Display Expression {#sec-map-display-expression}
 ([grammar](#g-map-display-expression))
 
 Examples:
@@ -1220,7 +1099,7 @@ ghost var im := imap[1 := "a", 2 := "b"];
 
 See [Section 10.4](#sec-maps) for more details on maps and imaps.
 
-## 21.34. Endless Expression
+## 21.31. Endless Expression
 ([grammar](#g-endless-expression))
 
 ``EndlessExpression`` gets it name from the fact that all its alternate
@@ -1228,7 +1107,7 @@ productions have no terminating symbol to end them, but rather they
 all end with an ``Expression`` at the end. The various
 ``EndlessExpression`` alternatives are described below.
 
-### 21.34.1. If Expression
+### 21.31.1. If Expression
 ([grammar](#g-if-expression))
 
 Examples:
@@ -1283,7 +1162,7 @@ In the example given, the binder for `x` has no constraining range, so the expre
 if a range is given, such as `var y := if x: int :| 0 <= x < 10 && P(x) then x else 0;`,
 then the `if` and `y` are no longer ghost, and `y` could be used, for example, in a `print` statement.
 
-### 21.34.2. Case and Extended Patterns {#sec-case-pattern}
+### 21.31.2. Case and Extended Patterns {#sec-case-pattern}
 ([grammar](#g-pattern))
 
 Examples: TODO
@@ -1349,7 +1228,7 @@ They are bound to the corresponding values in the value being
 matched. (Thus, for example, one cannot repeat a bound variable to
 attempt to match a constructor that has two identical arguments.)
 
-### 21.34.3. Match Expression {#sec-match-expression}
+### 21.31.3. Match Expression {#sec-match-expression}
 ([grammar](#g-match-expression))
 
 Examples:
@@ -1383,7 +1262,7 @@ Those braces are required if lemma or lambda expressions are used in the
 body of any match alternative; they may also be needed for disambiguation if
 there are nested match expressions.
 
-### 21.34.4. Quantifier Expression {#sec-quantifier-expression}
+### 21.31.4. Quantifier Expression {#sec-quantifier-expression}
 ([grammar])(#g-quantifier-expression))
 
 Examples:
@@ -1416,7 +1295,7 @@ attempts to infer their types from the context of the expressions.
 It this is not possible, the program is in error.
 
 
-### 21.34.5. Set Comprehension Expressions {#sec-set-comprehension-expression}
+### 21.31.5. Set Comprehension Expressions {#sec-set-comprehension-expression}
 ([grammar](#g-set-comprehension-expression))
 
 TODO  example using <-
@@ -1517,7 +1396,7 @@ at the point in program execution that `test` is evaluated. This could be
 no instances, one per value of `x.i` in the stated range, multiple instances
 of `I` for each value of `x.i`, or any other combination.
 
-### 21.34.6. Statements in an Expression {#sec-statement-in-an-expression}
+### 21.31.6. Statements in an Expression {#sec-statement-in-an-expression}
 ([grammar](#g-statement-in-expression))
 
 TODO Example of calc stastement
@@ -1542,7 +1421,7 @@ assume x != 0; 10/x
 
 `Assert`, `assume`, `expect`, `reveal` and `calc` statements can be used in this way.
 
-### 21.34.7. Let and Let or Fail Expression {#sec-let-expression}
+### 21.31.7. Let and Let or Fail Expression {#sec-let-expression}
 ([grammar](#g-let-expression))
 
 TODO Example of destructor, discussion of :|
@@ -1623,7 +1502,7 @@ else var v, v1 := tmp.Extract(), V1; E
 So, if tmp is a failure value, then a corresponding failure value is propagated along; otherwise, the expression
 is evaluated as normal.
 
-### 21.34.8. Map Comprehension Expression {#sec-map-comprehension-expression}
+### 21.31.8. Map Comprehension Expression {#sec-map-comprehension-expression}
 ([grammar](#g-map-comprehension-expression}
 
 Examples:
@@ -1665,7 +1544,7 @@ method test()
 ```
 `m` maps `2` to `3`, `4` to `6`, and so on.
 
-## 21.35. Name Segment {#sec-name-segment}
+## 21.32. Name Segment {#sec-name-segment}
 ````grammar
 NameSegment = Ident [ GenericInstantiation | HashCall ]
 ````
@@ -1745,7 +1624,7 @@ greatest lemma {:induction false} Theorem0<T>(s: T)
 where the ``HashCall`` is `"Theorem0#<T>[_k-1](s);"`.
 See [Section 19.3.4](#sec-copredicates) and [Section 19.3.5.3](#sec-prefix-lemmas).
 
-## 21.36. Suffix {#sec-suffix}
+## 21.33. Suffix {#sec-suffix}
 ([grammar](#g-suffix))
 
 
@@ -1753,7 +1632,7 @@ The ``Suffix`` non-terminal describes ways of deriving a new value from
 the entity to which the suffix is appended. The several kinds
 of suffixes are described below.
 
-### 21.36.1. Augmented Dot Suffix
+### 21.33.1. Augmented Dot Suffix
 ([grammar](#g-augmented-dot-suffix))
 
 Examples: (expression with suffix)
@@ -1773,7 +1652,7 @@ selected by the ``DotSuffix`` is generic), or
   or prefix lemma. The result is the result of calling the prefix predicate
   or prefix lemma.
 
-### 21.36.2. Datatype Update Suffix {#sec-datatype-update-suffix}
+### 21.33.2. Datatype Update Suffix {#sec-datatype-update-suffix}
 ([grammar](#g-datatype-update-suffix)]
 
 Examples: (expression with suffix)
@@ -1829,7 +1708,7 @@ module NewSyntax {
 
 
 
-### 21.36.3. Subsequence Suffix
+### 21.33.3. Subsequence Suffix
 ([grammar](#g-subsequence-suffix))
 
 Examples: (with leading expression)
@@ -1846,7 +1725,7 @@ example, expression `s[lo..hi]` for sequence `s`, and integer-based
 numerics `lo` and `hi` satisfying `0 <= lo <= hi <= |s|`. See
 [the section about other sequence expressions](#sec-other-sequence-expressions) for details.
 
-### 21.36.4. Subsequence Slices Suffix
+### 21.33.4. Subsequence Slices Suffix
 ([grammar](#g-subsequence-slices-suffix))
 
 Examples: (with leading expression)
@@ -1860,7 +1739,7 @@ Applying a _subsequence slices suffix_ to a sequence produces a
 sequence of subsequences of the original sequence.
 See [the section about other sequence expressions](#sec-other-sequence-expressions) for details.
 
-### 21.36.5. Sequence Update Suffix
+### 21.33.5. Sequence Update Suffix
 ````grammar
 SequenceUpdateSuffix_ =
   "[" Expression(allowLemma: true, allowLambda: true)
@@ -1878,7 +1757,7 @@ The index `i` can have any integer- or bit-vector-based type
 conversion, as if an `as int` were appended to the index expression).
 The expression `s[i := v]` has the same type as `s`.
 
-### 21.36.6. Selection Suffix
+### 21.33.6. Selection Suffix
 ````grammar
 SelectionSuffix_ =
   "[" Expression(allowLemma: true, allowLambda: true)
@@ -1900,7 +1779,7 @@ type
 (this is one situation in which Dafny implements implicit
 conversion, as if an `as int` were appended to the index expression).
 
-### 21.36.7. Argument List Suffix {#argument-list-suffix}
+### 21.33.7. Argument List Suffix {#argument-list-suffix}
 ````grammar
 ArgumentListSuffix_ = "(" [ Expressions ] ")"
 ````
@@ -1915,7 +1794,7 @@ locations, whereas function calls may appear in expressions and specifications;
 this distinction can be made oly during name and type resolution, not by the
 parser.
 
-## 21.37. Expression Lists
+## 21.34. Expression Lists
 ````grammar
 Expressions =
     Expression(allowLemma: true, allowLambda: true)
@@ -1925,7 +1804,7 @@ Expressions =
 The ``Expressions`` non-terminal represents a list of
 one or more expressions separated by commas.
 
-## 21.38. Parameter Bindings {#sec-parameter-bindings}
+## 21.35. Parameter Bindings {#sec-parameter-bindings}
 
 Method calls, object-allocation calls (`new`), function calls, and
 datatype constructors can be called with both positional arguments
@@ -1952,7 +1831,7 @@ value for each optional parameter, and must never name
 non-existent formals. Any optional parameter that is not given a value
 takes on the default value declared in the callee for that optional parameter.
 
-## 21.39. Formal Parameters and Default-Value Expressions
+## 21.36. Formal Parameters and Default-Value Expressions
 
 The formal parameters of a method, constructor in a class, iterator,
 function, or datatype constructor can be declared with an expression
@@ -1977,7 +1856,7 @@ expressions may not read anything. A default-value expression may not be
 involved in any recursive or mutually recursive calls with the enclosing
 declaration.
 
-## 21.40. Compile-Time Constants {#sec-compile-time-constants}
+## 21.37. Compile-Time Constants {#sec-compile-time-constants}
 
 In certain situations in Dafny it is helpful to know what the value of a
 constant is during program analysis, before verification or execution takes
@@ -2018,7 +1897,7 @@ In Dafny, the following expressions are compile-time constants[^CTC], recursivel
 
 [^CTC]: This set of operations that are constant-folded may be enlarged in future versions of `dafny`.
 
-## 21.41. List of specification expressions {#sec-list-of-specification-expressions}
+## 21.38. List of specification expressions {#sec-list-of-specification-expressions}
 
 The following is a list of expressions that can only appear in specification contexts or in ghost blocks.
 

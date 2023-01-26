@@ -75,7 +75,7 @@ posDigitFrom2 | digits excluding 0 and 1 (2-9)
 hexdigit | normal hex digits (0-9a-fA-F)
 special | `'` `?` or `_`
 cr      | carriage return character ('\r')
-lf      | line feed character ('\n')
+lf      | line feed character 
 tab     | tab character ('\t')
 space   | space character (' ')
         |
