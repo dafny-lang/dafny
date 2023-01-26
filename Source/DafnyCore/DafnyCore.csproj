@@ -25,6 +25,7 @@
   </PropertyGroup>
   
   <ItemGroup>
+      <PackageReference Include="dafny.msbuild" Version="1.0.0" />
       <PackageReference Include="JetBrains.Annotations" Version="2021.1.0" />
       <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.7.0" />
       <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />

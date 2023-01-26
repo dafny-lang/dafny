@@ -40,6 +40,7 @@ public interface IToken : Microsoft.Boogie.IToken {
   /// ```
   /// </summary>
   string TrailingTrivia { get; set; }
+
   string LeadingTrivia { get; set; }
   IToken Next { get; set; } // The next token
   IToken Prev { get; set; } // The previous token
@@ -80,9 +81,9 @@ public class Token : IToken {
 
   public string val { get; set; } // Used by coco, so we can't rename it to Val
 
-  public string LeadingTrivia { get; set; }
+  public string LeadingTrivia { get; set; } = "";
 
-  public string TrailingTrivia { get; set; }
+  public string TrailingTrivia { get; set; } = "";
 
   public IToken Next { get; set; } // The next token
 
