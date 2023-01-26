@@ -10,9 +10,9 @@ namespace Microsoft.Dafny.Compilers;
 public abstract class ExecutableBackend : Plugins.IExecutableBackend {
   protected SinglePassCompiler compiler;
 
-  public override IReadOnlySet<Feature> UnsupportedFeatures => compiler.UnsupportedFeatures;
+  public override IReadOnlySet<Feature> UnsupportedFeatures => CreateCompiler().UnsupportedFeatures;
 
-  public override bool SupportsDatatypeWrapperErasure => CreateCompiler().SupportsDatatypeWrapperErasure;
+  public override bool SupportsDatatypeWrapperErasure => compiler.SupportsDatatypeWrapperErasure;
 
   public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
     compiler.Compile(dafnyProgram, output);
