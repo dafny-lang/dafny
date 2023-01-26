@@ -214,4 +214,58 @@ method topLevel(
 ");
   }
 
+  [Fact]
+  public void FormatterWorksForMethodBeforeAClass() {
+    FormatterWorksFor(@"
+method Test()
+  ensures true || false
+  // comment should be between ensures and not attached to true/false
+  ensures false
+{
+  assert A !! B; // should not print !!!
+
+  var wr := new WriterStream;
+  var definition := r.get;
+ 
+  // write term with a html anchor
+  wr.PutWordInsideTag(term, term);
+
+  var i := 0;
+
+  wr.Create();
+ 
+  while 0 < |q.contents|
+  
+  while (n < N)
+    invariant n <= N;
+    invariant (forall B: seq<int> ::
+                 // For any board 'B' with 'N' queens, each placed in an existing row
+                 |B| == N && (forall i :: 0 <= i && i < N ==> 0 <= B[i] && B[i] < N) &&
+                 // ... where 'B' is an extension of 'boardSoFar'
+                 boardSoFar <= B &&
+                 // ... and the first column to extend 'boardSoFar' has a queen in one of
+                 // the first 'n' rows
+                 0 <= B[pos] && B[pos] < n
+                 ==>
+                   // ... the board 'B' is not entirely consistent
+                   (exists p :: 0 <= p && p < N && !IsConsistent(B, p)))
+    // comments here
+  {
+  }
+}
+
+function canProveFalse(): bool {
+  if 1 == 2 then true
+  // Otherwise, we have to make difficult choices
+  else if 3 == 4 then true
+  // Still not? We give up
+  else false
+}
+
+class TestClass {
+}
+");
+  }
+
+
 }

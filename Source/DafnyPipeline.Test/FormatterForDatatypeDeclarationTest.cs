@@ -82,7 +82,7 @@ datatype T = Test
   }
 
   [Fact]
-  public void FormatterworksForIteratorsAfterDatatypes() {
+  public void FormatterWorksForIteratorsAfterDatatypes() {
     FormatterWorksFor(@"
 datatype MG5 =  MG5(ghost x: int, y: int := FG(x), ghost z: int := FC(x), w: int := FC(x)) // error: call to FC passes in a ghost expression
 iterator        MG6(      x: int, y: int := FG(x), ghost z: int := FC(x), w: int := FC(x))

@@ -27,14 +27,15 @@ static class CommandRegistry {
   static CommandRegistry() {
     AddCommand(new ResolveCommand());
     AddCommand(new VerifyCommand());
+    AddCommand(new RunCommand());
     AddCommand(new TranslateCommand());
+    AddCommand(new FormatCommand());
     AddCommand(new MeasureComplexityCommand());
     AddCommand(new ServerCommand());
     AddCommand(new TestCommand());
     AddCommand(new GenerateTestsCommand());
     AddCommand(new DeadCodeCommand());
     AddCommand(new AuditCommand());
-    AddCommand(new FormatCommand());
 
     FileArgument = new Argument<FileInfo>("file", "input file");
   }

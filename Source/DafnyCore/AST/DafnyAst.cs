@@ -15,7 +15,6 @@ using System.Numerics;
 using System.Linq;
 using System.Diagnostics;
 using System.Threading;
-using JetBrains.Annotations;
 using Microsoft.Boogie;
 using Action = System.Action;
 
@@ -91,8 +90,8 @@ namespace Microsoft.Dafny {
       }
     }
 
-    // Get the firs token that is in the same file as the DefaultModule.RootToken.FileName
-    // (skips included tokens)
+    /// Get the first token that is in the same file as the DefaultModule.RootToken.FileName
+    /// (skips included tokens)
     public IToken GetFirstTopLevelToken() {
       if (DefaultModule.RootToken.Next == null) {
         return null;
@@ -194,7 +193,7 @@ namespace Microsoft.Dafny {
     /// Returns first occurrence of an attribute named <c>nm</c>, or <c>null</c> if there is no such
     /// attribute.
     /// </summary>
-    [System.Diagnostics.Contracts.Pure]
+    [Pure]
     public static Attributes/*?*/ Find(Attributes attrs, string nm) {
       Contract.Requires(nm != null);
       return attrs.AsEnumerable().FirstOrDefault(attr => attr.Name == nm);
@@ -208,7 +207,7 @@ namespace Microsoft.Dafny {
     /// This method does NOT use type information of the attribute arguments, so it can safely
     /// be called very early during resolution before types are available and names have been resolved.
     /// </summary>
-    [System.Diagnostics.Contracts.Pure]
+    [Pure]
     public static bool ContainsBool(Attributes attrs, string nm, ref bool value) {
       Contract.Requires(nm != null);
       var attr = attrs.AsEnumerable().FirstOrDefault(attr => attr.Name == nm);
@@ -595,8 +594,8 @@ namespace Microsoft.Dafny {
     }
 
     public IToken NameToken => tok;
-    public override IEnumerable<Node> Children => IsTypeExplicit ? Type.Nodes : Enumerable.Empty<Node>();
-    public override IEnumerable<Node> ConcreteChildren => Type.Nodes;
+    public override IEnumerable<Node> Children => IsTypeExplicit ? new List<Node>() { Type } : Enumerable.Empty<Node>();
+    public override IEnumerable<Node> ConcreteChildren => IsTypeExplicit ? new List<Node>() { Type } : Enumerable.Empty<Node>();
   }
 
   public class Formal : NonglobalVariable {

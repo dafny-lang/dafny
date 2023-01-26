@@ -3191,7 +3191,7 @@ public class NameSegment : ConcreteSyntaxExpression, ICloneable<NameSegment> {
     return new NameSegment(cloner, this);
   }
 
-  public override IEnumerable<Node> ConcreteChildren => OptTypeArguments;
+  public override IEnumerable<Node> ConcreteChildren => OptTypeArguments ?? new List<Type>();
 }
 
 /// <summary>

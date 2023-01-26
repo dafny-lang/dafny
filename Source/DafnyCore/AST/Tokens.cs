@@ -96,6 +96,7 @@ public class Token : IToken {
   public IToken WithVal(string newVal) {
     return new Token {
       pos = pos,
+      col = col,
       line = line,
       Prev = Prev,
       Next = Next,
@@ -199,14 +200,8 @@ public class BoogieRangeToken : TokenWrapper {
   public IToken EndToken => endTok;
 
   // Used for range reporting
-  public override string val => new string(' ', endTok.pos + endTok.val.Length - pos);
+  public override string val => new string(' ', Math.Max(endTok.pos + endTok.val.Length - pos, 1));
 
-  // If we don't ensure that the endToken is after the start token,
-  // then the rangeToken.val will cause an exception because it will try to create
-  // an string made of a negative number of spaces.
-  // There is at least one case in which the RangeToken is not set linearly
-  // because we assume that "tok" is before "endTok" in the statement constructor
-  // but that was at least not the case.
   public BoogieRangeToken(IToken startTok, IToken endTok) : base(
     startTok) {
     this.endTok = endTok;

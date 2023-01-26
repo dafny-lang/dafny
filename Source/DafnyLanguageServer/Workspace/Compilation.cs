@@ -347,7 +347,7 @@ public class Compilation {
     }, TaskScheduler.Current).Unwrap();
 
   public async Task<TextEditContainer?> GetTextEditToFormatCode() {
-    // TODO when available, use the parsed document rather than the resolved document
+    // TODO https://github.com/dafny-lang/dafny/issues/3416
     var parsedDocument = await ResolvedDocument;
     if (parsedDocument.Diagnostics.Any(diagnostic =>
           diagnostic.Severity == DiagnosticSeverity.Error &&
@@ -363,7 +363,7 @@ public class Compilation {
     var result = Formatting.__default.ReindentProgramFromFirstToken(firstToken,
       IndentationFormatter.ForProgram(parsedDocument.Program));
 
-    // Could we return locally formatted elements instead?
+    // TODO: https://github.com/dafny-lang/dafny/issues/3415
     return new TextEditContainer(new TextEdit[] {
       new() {NewText = result, Range = parsedDocument.TextDocumentItem.Range}
     });

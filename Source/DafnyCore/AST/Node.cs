@@ -110,18 +110,9 @@ public abstract class Node : INode {
 
       var childrenFiltered = GetConcreteChildren().ToList();
 
-      // DEBUG: Detect duplicate children start tokens.
-      for (var i = 0; i < childrenFiltered.Count - 1; i++) {
-        for (var j = i + 1; j < childrenFiltered.Count; j++) {
-          if (childrenFiltered[i].StartToken.GetHashCode() == childrenFiltered[j].StartToken.GetHashCode()) {
-            Debugger.Break();
-          }
-        }
-      }
-
       var startToEndTokenNotOwned =
         childrenFiltered
-          .ToDictionary(child => child.StartToken!, child => child.EndToken!);
+          .ToDictionary(child => child.StartToken.pos, child => child.EndToken!);
 
       var result = new List<IToken>();
       if (StartToken == null) {
@@ -130,7 +121,7 @@ public abstract class Node : INode {
         Contract.Assume(EndToken != null);
         var tmpToken = StartToken;
         while (tmpToken != null && tmpToken != EndToken.Next) {
-          if (startToEndTokenNotOwned.TryGetValue(tmpToken, out var endNotOwnedToken)) {
+          if (startToEndTokenNotOwned.TryGetValue(tmpToken.pos, out var endNotOwnedToken)) {
             tmpToken = endNotOwnedToken;
           } else if (tmpToken.filename != null) {
             result.Add(tmpToken);

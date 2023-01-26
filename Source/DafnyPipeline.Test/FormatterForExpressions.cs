@@ -83,7 +83,7 @@ method SmallOdd(i: int) returns (j: bool) {
   }
 
   [Fact]
-  public void FormatterworksForMatchStatementsAndExpressions() {
+  public void FormatterWorksForMatchStatementsAndExpressions() {
     FormatterWorksFor(@"
 method Test(z: int) {
   match

@@ -17,7 +17,7 @@ public class GenerateTestsCommand : ICommandSpec {
       TestInlineDepth,
       BoogieOptionBag.VerificationTimeLimit,
     }.Concat(ICommandSpec.ConsoleOutputOptions).
-      Concat(ICommandSpec.CommonOptions);
+      Concat(ICommandSpec.ResolverOptions);
 
   enum Mode {
     Path,

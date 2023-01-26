@@ -124,7 +124,7 @@ ensures true
           Assert.DoesNotContain(ownedToken, allTokens);
           allTokens.Add(ownedToken);
         }
-        foreach (var child in node.Children) {
+        foreach (var child in node.ConcreteChildren) {
           Traverse(child, depth + 1);
         }
       }
@@ -141,7 +141,7 @@ ensures true
             t = t.Next;
           }
         } else {
-          foreach (var child in node.Children) {
+          foreach (var child in node.ConcreteChildren) {
             AreAllTokensOwned(child);
           }
         }

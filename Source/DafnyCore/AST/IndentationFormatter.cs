@@ -404,10 +404,11 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
           break;
         case "reads" or "modifies" or "decreases" or "requires" or "ensures" or "invariant" or "yield": {
             if (IsFollowedByNewline(token)) {
+              // In the future, we might want to use this if reducing blockiness as well
+              // However, it has some undesirable side-effects which would need to be fixed
               SetOpeningIndentedRegion(token, indent2);
             } else {
               SetAlign(indent2, token, out rightIndent, out commaIndent);
-              //SetIndentations(token, indent2, indent2, indent2 + token.val.Length + 1);
             }
 
             commaIndent = indent2;

@@ -11,7 +11,7 @@ class FormatCommand : ICommandSpec {
       BoogieOptionBag.BoogieFilter,
     }.Concat(ICommandSpec.FormatOptions).
     Concat(ICommandSpec.ConsoleOutputOptions).
-    Concat(ICommandSpec.CommonOptions);
+    Concat(ICommandSpec.ResolverOptions);
 
   public Command Create() {
     var result = new Command("format", @"Format the dafny file in-place.
