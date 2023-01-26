@@ -232,12 +232,12 @@ public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, Include include, ModuleD
   : this(scanner, errors)  // the real work
 {
   // initialize readonly fields
-  dummyExpr = new LiteralExpr(Token.NoToken);
+  dummyExpr = new LiteralExpr(RangeToken.NoToken);
   dummyRhs = new ExprRhs(dummyExpr);
-  dummyFrameExpr = new FrameExpression(dummyExpr.tok, dummyExpr, null);
-  dummyStmt = new ReturnStmt(Token.NoToken.ToRange(), null);
-  var dummyBlockStmt = new BlockStmt(Token.NoToken.ToRange(), new List<Statement>());
-  dummyIfStmt = new IfStmt(Token.NoToken.ToRange(), false, null, dummyBlockStmt, null);
+  dummyFrameExpr = new FrameExpression(dummyExpr.RangeToken, dummyExpr, null);
+  dummyStmt = new ReturnStmt(RangeToken.NoToken, null);
+  var dummyBlockStmt = new BlockStmt(RangeToken.NoToken, new List<Statement>());
+  dummyIfStmt = new IfStmt(RangeToken.NoToken, false, null, dummyBlockStmt, null);
   theInclude = include; // the "include" that includes this file
   theModule = module;
   theBuiltIns = builtIns;
@@ -1276,12 +1276,12 @@ ModuleExportSuffix<. List<IToken> exports.>
   .
 
 /*------------------------------------------------------------------------*/
-ClassName<out IToken id> = NoUSIdent<out id> .
+ClassName<out Name name> = Name<out name> .
 
 ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevelDecl/*!*/ c>
 = (. Contract.Requires(module != null);
      Contract.Ensures(Contract.ValueAtReturn(out c) != null);
-     IToken/*!*/ id;
+     Name/*!*/ name;
      IToken tokenWithTrailingDocString = Token.NoToken;
      Type parentTrait;
      List<Type> parentTraits = new List<Type>();
@@ -1296,7 +1296,7 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
   SYNC
   "class" (. CheckAndSetTokenOnce(ref dmodClass.FirstToken); .)
   { Attribute<ref attrs> }
-  ClassName<out id>                     (. tokenWithTrailingDocString = t; .)
+  ClassName<out name>                     (. tokenWithTrailingDocString = t; .)
   [ GenericParameters<typeArgs, true> ] (. tokenWithTrailingDocString = t; .)
   [ "extends"
     Type<out parentTrait>       (. parentTraits.Add(parentTrait); tokenWithTrailingDocString = t; .)
@@ -1310,9 +1310,7 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
       ClassMemberDecl<dmod, members, true, false, false>
     }
   "}"
-  (. c = new ClassDecl(id, id.val, module, typeArgs, members, attrs, isRefining, parentTraits);
-     c.BodyStartTok = bodyStart;
-     c.RangeToken = new RangeToken(dmodClass.FirstToken, t);
+  (. c = new ClassDecl(new RangeToken(dmodClass.FirstToken, t), name.val, module, typeArgs, members, attrs, isRefining, parentTraits);
      c.TokenWithTrailingDocString = tokenWithTrailingDocString;
   .)
   .
@@ -1386,12 +1384,12 @@ ClassMemberDecl<. DeclModifierData dmod, List<MemberDecl> mm, bool allowConstruc
   .
 
 /*------------------------------------------------------------------------*/
-DatatypeName<out IToken id> = NoUSIdent<out id> .
+DatatypeName<out Name name> = Name<out id> .
 
 DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDecl/*!*/ dt>
 = (. Contract.Requires(module != null);
      Contract.Ensures(Contract.ValueAtReturn(out dt)!=null);
-     IToken/*!*/ id;
+     Name/*!*/ name;
      Attributes attrs = null;
      List<TypeParameter/*!*/> typeArgs = new List<TypeParameter/*!*/>();
      List<DatatypeCtor/*!*/> ctors = new List<DatatypeCtor/*!*/>();
@@ -1406,7 +1404,7 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
   | "codatatype"     (. co = true; .)
   )                                        (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   { Attribute<ref attrs> }
-  DatatypeName<out id>
+  DatatypeName<out name>
   [ GenericParameters<typeArgs, true> ]
   (
   "="                                      (. bodyStart = t; .)
@@ -1419,12 +1417,10 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
   )
   [ TypeMembers<module, members> ]
   (. if (co) {
-       dt = new CoDatatypeDecl(id, id.val, module, typeArgs, ctors, members, attrs, isRefining);
+       dt = new CoDatatypeDecl(new RangeToken(dmod.FirstToken, t), name, module, typeArgs, ctors, members, attrs, isRefining);
      } else {
-       dt = new IndDatatypeDecl(id, id.val, module, typeArgs, ctors, members, attrs, isRefining);
+       dt = new IndDatatypeDecl(new RangeToken(dmod.FirstToken, t), module, typeArgs, ctors, members, attrs, isRefining);
      }
-     dt.BodyStartTok = bodyStart;
-     dt.RangeToken = new RangeToken(dmod.FirstToken, t);
      dt.TokenWithTrailingDocString = bodyStart;
   .)
   .
@@ -1446,8 +1442,8 @@ DatatypeMemberDecl<.List<DatatypeCtor/*!*/>/*!*/ ctors.>
   { Attribute<ref attrs> }
   DatatypeMemberName<out id>
   [ FormalsOptionalIds<formals> ]
-  (. var ctor = new DatatypeCtor(id, id.val, isGhost, formals, attrs);
-     ctor.RangeToken = new RangeToken(id, t);
+  (. var name = new Name(id, id);
+     var ctor = new DatatypeCtor(new RangeToken(id, t), name, isGhost, formals, attrs);
      ctors.Add(ctor); .)
   .
 
@@ -1482,11 +1478,12 @@ FieldDecl<.DeclModifierData dmod, bool isValueType, List<MemberDecl> mm.>
                                                        }
                                                     .)
   { Attribute<ref attrs> }
-  FIdentType<out id, out ty>           (. var f = new Field(id, id.val, dmod.IsGhost, ty, attrs); f.RangeToken = new RangeToken(startToken, t); mm.Add(f); f.TokenWithTrailingDocString = t;
-                                          f.RangeToken = new RangeToken(startToken, t); .)
+  FIdentType<out name, out ty>           (. var f = new Field(new RangeToken(startToken, t), name, dmod.IsGhost, ty, attrs); 
+                                             mm.Add(f); f.TokenWithTrailingDocString = t;
+                                           .)
   { ","                                (. startToken = t; .)
-    FIdentType<out id, out ty>         (.     f = new Field(id, id.val, dmod.IsGhost, ty, attrs); f.RangeToken = new RangeToken(startToken, t); mm.Add(f); f.TokenWithTrailingDocString = t;
-                                              f.RangeToken = new RangeToken(startToken, t);
+    FIdentType<out name, out ty>         (. f = new Field(new RangeToken(startToken, t), name, dmod.IsGhost, ty, attrs); 
+                                            mm.Add(f); f.TokenWithTrailingDocString = t;
                                        .)
   }
   OldSemi
@@ -1514,19 +1511,16 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
                                              (. if (e == null && ty is InferredTypeProxy) {
                                                   SemErr(id, "a const declaration must have a type or a RHS value");
                                                 }
-                                                var c = new ConstantField(id, id.val, e, dmod.IsStatic, dmod.IsGhost, ty, attrs);
-                                                if (e != null) {
-                                                  // c.BodyEndTok = t; // Until we have proper ranges
-                                                }
+                                                var c = new ConstantField(new RangeToken(dmod.FirstToken, t), new Name(id, id), e, dmod.IsStatic, dmod.IsGhost, ty, attrs);
                                                 mm.Add(c);
                                              .)
-  OldSemi                                    (. c.TokenWithTrailingDocString = t; c.RangeToken = new RangeToken(dmod.FirstToken, t); .)
+  OldSemi                                    (. c.TokenWithTrailingDocString = t; .)
   .
 
 /*------------------------------------------------------------------------*/
-NewtypeName<out IToken id> = NoUSIdent<out id> .
+NewtypeName<out Name name> = Name<out name> .
 LocalVarName<out IToken id> = NoUSIdent<out id> .
-
+  
 NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
 = (. IToken id, bvId;
      Attributes attrs = null;
@@ -1561,21 +1555,19 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
       )
     ]
     [ TypeMembers<module, members> ]
-    (. td = new NewtypeDecl(id, id.val, module, new BoundVar(bvId, bvId.val, baseType){ IsTypeExplicit = true }, constraint, witnessKind, witness, members, attrs, isRefining: false);
+    (. td = new NewtypeDecl(new RangeToken(dmod.FirstToken, t), id, module, new BoundVar(new RangeToken(bvId, bvId), bvId.val, baseType){ IsTypeExplicit = true }, constraint, witnessKind, witness, members, attrs, isRefining: false);
     .)
   | Type<out baseType>
     [ TypeMembers<module, members> ]
-    (. td = new NewtypeDecl(id, id.val, module, baseType, members, attrs, isRefining: false); .)
+    (. td = new NewtypeDecl(new RangeToken(dmod.FirstToken, t), id, module, baseType, members, attrs, isRefining: false); .)
   )
   | ellipsis
     [ TypeMembers<module, members> ]
     (. baseType = null; // Base type is not known yet
-       td = new NewtypeDecl(id, id.val, module, baseType, members, attrs, isRefining: true);
-       td.RangeToken = new RangeToken(dmod.FirstToken, t);
+       td = new NewtypeDecl(new RangeToken(dmod.FirstToken, t), id, module, baseType, members, attrs, isRefining: true);
     .)
   )  (. if (td != null) {
           td.TokenWithTrailingDocString = t; 
-          td.RangeToken = new RangeToken(dmod.FirstToken, t);
         }   .)
   .
 
@@ -1661,11 +1653,8 @@ GIdentType<bool allowGhostKeyword, bool allowNewKeyword, bool allowNameOnlyKeywo
   IdentType<out id, out ty, false>
   .
 
-FIdentType<out IToken/*!*/ id, out Type/*!*/ ty>
-= (.Contract.Ensures(Contract.ValueAtReturn(out id) != null); Contract.Ensures(Contract.ValueAtReturn(out ty) != null);
-    id = Token.NoToken;
-  .)
-  NoUSIdentOrDigits<out id> (. id = t; ty = null; .)
+FIdentType<out Name/*!*/ name, out Type/*!*/ ty>
+= NoUSIdentOrDigits<out id> (. name = new Name(t, t); ty = null; .)
   ( ":" Type<out ty> 
   | (. SemErr(t, "a mutable field must be declared with a type"); .)
   )
@@ -5215,6 +5204,11 @@ DotSuffix<out IToken x, out IToken y>
   .
 
 /*------------------------------------------------------------------------*/
+Name<out Name x>
+= (. Token t; .)
+  NoUSIdent<out t> (. x = new Name(new RangeToken(t, t)); .)
+  .
+  
 // Identifier, disallowing leading underscores
 NoUSIdent<out IToken/*!*/ x>
 = (. Contract.Ensures(Contract.ValueAtReturn(out x) != null); .)

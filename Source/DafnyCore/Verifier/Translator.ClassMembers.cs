@@ -586,7 +586,7 @@ namespace Microsoft.Dafny {
               receiverSubst = ie;
             } else {
               IdentifierExpr ie;
-              CloneVariableAsBoundVar(iv.tok, iv, "$ih#" + iv.Name, out bv, out ie);
+              CloneVariableAsBoundVar(iv.RangeToken, iv, "$ih#" + iv.Name, out bv, out ie);
               substMap.Add(iv, ie);
             }
             parBoundVars.Add(bv);

@@ -10,6 +10,9 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny;
 
 public abstract class Expression : RangeNode {
+  public IToken OverrideToken { get; set; }
+  public override IToken Tok => OverrideToken ?? base.Tok;
+  
   [ContractInvariantMethod]
   void ObjectInvariant() {
   }
@@ -1735,8 +1738,6 @@ public class TypeTestExpr : TypeUnaryExpr {
 }
 
 public class BinaryExpr : Expression, ICloneable<BinaryExpr> {
-  public IToken OverrideToken { get; set; }
-  public override IToken Tok => OverrideToken ?? base.Tok;
   
   public enum Opcode {
     Iff,

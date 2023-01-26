@@ -2688,14 +2688,14 @@ namespace Microsoft.Dafny {
               attrs = new Attributes("auto_generated", new List<Expression>(), attrs);
               var forallBody = new BlockStmt(com.RangeToken, new List<Statement>() { recursiveCall });
               var forallStmt = new ForallStmt(com.RangeToken, bvs, attrs, range, new List<AttributedExpression>(), forallBody);
-              els = new BlockStmt(new RangeToken(com.BodyStartTok, mainBody.RangeToken.EndToken), new List<Statement>() { forallStmt });
+              els = new BlockStmt(new RangeToken(com.StartToken, mainBody.RangeToken.EndToken), new List<Statement>() { forallStmt });
             } else {
               kk = new IdentifierExpr(k.RangeToken, k.Name);
               els = null;
             }
             var kPositive = new BinaryExpr(com.RangeToken, BinaryExpr.Opcode.Lt, new LiteralExpr(com.RangeToken, 0), kk);
-            var condBody = new IfStmt(new RangeToken(com.BodyStartTok, mainBody.RangeToken.EndToken), false, kPositive, mainBody, els);
-            prefixLemma.Body = new BlockStmt(new RangeToken(com.BodyStartTok, condBody.EndToken), new List<Statement>() { condBody });
+            var condBody = new IfStmt(new RangeToken(com.StartToken, mainBody.RangeToken.EndToken), false, kPositive, mainBody, els);
+            prefixLemma.Body = new BlockStmt(new RangeToken(com.StartToken, condBody.EndToken), new List<Statement>() { condBody });
           }
           // The prefix lemma now has all its components, so it's finally time we resolve it
           currentClass = (TopLevelDeclWithMembers)prefixLemma.EnclosingClass;

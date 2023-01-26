@@ -41,7 +41,7 @@ public abstract class MemberDecl : Declaration {
     return false;
   }
 
-  public MemberDecl(RangeToken rangeToken, string name, bool hasStaticKeyword, bool isGhost, Attributes attributes, bool isRefining)
+  public MemberDecl(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isGhost, Attributes attributes, bool isRefining)
     : base(rangeToken, name, attributes, isRefining) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
@@ -105,14 +105,14 @@ public class Field : MemberDecl {
 
   public override IEnumerable<Node> Children => Type.Nodes;
 
-  public Field(RangeToken rangeToken, string name, bool isGhost, Type type, Attributes attributes)
+  public Field(RangeToken rangeToken, Name name, bool isGhost, Type type, Attributes attributes)
     : this(rangeToken, name, false, isGhost, true, true, type, attributes) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(type != null);
   }
 
-  public Field(RangeToken rangeToken, string name, bool hasStaticKeyword, bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
+  public Field(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
     : base(rangeToken, name, hasStaticKeyword, isGhost, attributes, false) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
@@ -165,7 +165,7 @@ public class SpecialField : Field {
     Contract.Requires(type != null);
   }
 
-  public SpecialField(RangeToken rangeToken, string name, ID specialId, object idParam,
+  public SpecialField(RangeToken rangeToken, Name name, ID specialId, object idParam,
     bool hasStaticKeyword, bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
     : base(rangeToken, name, hasStaticKeyword, isGhost, isMutable, isUserMutable, type, attributes) {
     Contract.Requires(rangeToken != null);
@@ -257,8 +257,8 @@ public class DatatypeDestructor : SpecialField {
 public class ConstantField : SpecialField, ICallable {
   public override string WhatKind => "const field";
   public readonly Expression Rhs;
-  public ConstantField(RangeToken rangeToken, string name, Expression/*?*/ rhs, bool hasStaticKeyword, bool isGhost, Type type, Attributes attributes)
-    : base(rangeToken, name, SpecialField.ID.UseIdParam, NonglobalVariable.SanitizeName(name), hasStaticKeyword, isGhost, false, false, type, attributes) {
+  public ConstantField(RangeToken rangeToken, Name name, Expression/*?*/ rhs, bool hasStaticKeyword, bool isGhost, Type type, Attributes attributes)
+    : base(rangeToken, name, ID.UseIdParam, NonglobalVariable.SanitizeName(name.Value), hasStaticKeyword, isGhost, false, false, type, attributes) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(type != null);
