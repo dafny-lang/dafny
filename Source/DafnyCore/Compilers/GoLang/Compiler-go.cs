@@ -3660,8 +3660,5 @@ namespace Microsoft.Dafny.Compilers {
       TrStmt(body, funcBlock);
       wr.WriteLine("()");
     }
-
-    // ----- Target compilation and execution -------------------------------------------------------------
-
   }
 }

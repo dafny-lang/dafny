@@ -2460,8 +2460,5 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitHaltRecoveryStmt(Statement body, string haltMessageVarName, Statement recoveryBody, ConcreteSyntaxTree wr) {
       throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
     }
-
-
-    // ----- Target compilation and execution -------------------------------------------------------------
   }
 }
