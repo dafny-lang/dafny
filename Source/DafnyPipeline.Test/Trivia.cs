@@ -116,16 +116,13 @@ ensures true
     private void TestTokens(Node program) {
       var allTokens = new HashSet<IToken>();
 
-      void Traverse(Node node, int depth = 0) {
-        if (depth == 2) {
-          depth = 2;
-        }
+      void Traverse(Node node) {
         foreach (var ownedToken in node.OwnedTokens) {
           Assert.DoesNotContain(ownedToken, allTokens);
           allTokens.Add(ownedToken);
         }
         foreach (var child in node.ConcreteChildren) {
-          Traverse(child, depth + 1);
+          Traverse(child);
         }
       }
 

@@ -20,7 +20,7 @@ namespace DafnyPipeline.Test {
   // Advanced test cases consist of passing the program and its expected result after indentation
   //
   // Every test is performed with all three newline styles
-  // Every formatter program is formatted again to verify that it stays the same.
+  // Every formatted program is formatted again to verify that it stays the same.
   public class FormatterBaseTest {
     enum Newlines {
       LF,
@@ -65,17 +65,11 @@ namespace DafnyPipeline.Test {
           Assert.False(true, "Did not find a first token");
         }
 
-        //TODO(Mikael) Make sure every token is owned.
-        //EnsureEveryTokenIsOwned(programNotIndented, dafnyProgram);
         var reprinted = firstToken != null && firstToken.line > 0
           ? Formatting.__default.ReindentProgramFromFirstToken(firstToken,
             IndentationFormatter.ForProgram(dafnyProgram, reduceBlockiness))
           : programString;
-        if (expectedProgram != reprinted) {
-          Console.Write("Double formatting is not stable:\n");
-          Console.Write(reprinted);
-        }
-
+        EnsureEveryTokenIsOwned(programNotIndented, dafnyProgram);
         Assert.Equal(expectedProgram, reprinted);
 
         // Verify that the formatting is stable.
@@ -90,6 +84,9 @@ namespace DafnyPipeline.Test {
           ? Formatting.__default.ReindentProgramFromFirstToken(firstToken,
             IndentationFormatter.ForProgram(dafnyProgram, reduceBlockiness))
           : reprinted;
+        if (reprinted != reprinted2) {
+          Console.Write("Double formatting is not stable:\n");
+        }
         Assert.Equal(reprinted, reprinted2);
       }
     }
@@ -100,9 +97,52 @@ namespace DafnyPipeline.Test {
         return;
       }
 
-      // Step 1: Collect all the tokens of the program
+      // We compute a set of int instead of a set of tokens because otherwise memory crash occurred
+      var tokensWithoutOwner = CollectTokensWithoutOwner(dafnyProgram, firstToken, out var posToOwnerNode);
+      if (tokensWithoutOwner.Count == 0) {
+        return;
+      }
+
+      var notOwnedToken = GetFirstNotOwnedToken(firstToken, tokensWithoutOwner);
+      if (notOwnedToken == null) {
+        return;
+      }
+
+      ReportNotOwnedToken(programNotIndented, notOwnedToken, posToOwnerNode);
+    }
+
+    private static void ReportNotOwnedToken(string programNotIndented, IToken? notOwnedToken, Dictionary<int, List<Node>> posToOwnerNode) {
+      var nextOwnedToken = notOwnedToken.Next;
+      while (nextOwnedToken != null && !posToOwnerNode.ContainsKey(nextOwnedToken.pos)) {
+        nextOwnedToken = nextOwnedToken.Next;
+      }
+
+      var before = programNotIndented.Substring(0, notOwnedToken.pos);
+      var after = programNotIndented.Substring(notOwnedToken.pos + notOwnedToken.val.Length);
+      var beforeContextLength = Math.Min(before.Length, 50);
+      var wrappedToken = "[[[" + notOwnedToken.val + "]]]";
+      var errorString = before.Substring(before.Length - beforeContextLength) + wrappedToken + after;
+      errorString = errorString.Substring(0,
+        Math.Min(errorString.Length, beforeContextLength + wrappedToken.Length + 50));
+
+      Assert.False(true, $"The token '{notOwnedToken.val}' (L" + notOwnedToken.line + ", C" +
+                         (notOwnedToken.col + 1) + ") or (P" + notOwnedToken.pos + ") is not owned:\n" +
+                         errorString
+      );
+    }
+
+    private static IToken? GetFirstNotOwnedToken(IToken firstToken, HashSet<int> tokensWithoutOwner) {
+      IToken? notOwnedToken = firstToken;
+      while (notOwnedToken != null && !tokensWithoutOwner.Contains(notOwnedToken.pos)) {
+        notOwnedToken = notOwnedToken.Next;
+      }
+
+      return notOwnedToken;
+    }
+
+    private static HashSet<int> CollectTokensWithoutOwner(Program dafnyProgram, IToken firstToken, out Dictionary<int, List<Node>> posToOwnerNode) {
       var tokensWithoutOwner = new HashSet<int>();
-      var posToOwnerNode = new Dictionary<int, List<Node>>();
+      var posToOwnerNodeInner = new Dictionary<int, List<Node>>();
 
       var t = firstToken;
       while (t != null) {
@@ -117,7 +157,7 @@ namespace DafnyPipeline.Test {
         var ownedTokens = node.OwnedTokens;
         foreach (var token in ownedTokens) {
           tokensWithoutOwner.Remove(token.pos);
-          posToOwnerNode.GetOrCreate(token.pos, () => new List<Node>()).Add(node);
+          posToOwnerNodeInner.GetOrCreate(token.pos, () => new List<Node>()).Add(node);
         }
       }
 
@@ -134,38 +174,8 @@ namespace DafnyPipeline.Test {
 
       ProcessNode(dafnyProgram);
 
-      // Step 3: Report any token that was not removed
-      if (tokensWithoutOwner.Count > 0) {
-        IToken? notOwnedToken = firstToken;
-        while (notOwnedToken != null && !tokensWithoutOwner.Contains(notOwnedToken.pos)) {
-          notOwnedToken = notOwnedToken.Next;
-        }
-
-        if (notOwnedToken == null) {
-          return;
-        }
-
-        var prevOwnedToken = notOwnedToken.Prev;
-        var nextOwnedToken = notOwnedToken.Next;
-        while (nextOwnedToken != null && !posToOwnerNode.ContainsKey(nextOwnedToken.pos)) {
-          nextOwnedToken = nextOwnedToken.Next;
-        }
-
-        var prevNodeOwning = posToOwnerNode[prevOwnedToken.pos];
-        var nextNodeOwning = nextOwnedToken != null ? posToOwnerNode[nextOwnedToken.pos] : null;
-        var before = programNotIndented.Substring(0, notOwnedToken.pos);
-        var after = programNotIndented.Substring(notOwnedToken.pos + notOwnedToken.val.Length);
-        var beforeContextLength = Math.Min(before.Length, 50);
-        var wrappedToken = "[[[" + notOwnedToken.val + "]]]";
-        var errorString = before.Substring(before.Length - beforeContextLength) + wrappedToken + after;
-        errorString = errorString.Substring(0,
-          Math.Min(errorString.Length, beforeContextLength + wrappedToken.Length + 50));
-
-        Assert.False(true, $"The token '{notOwnedToken.val}' (L" + notOwnedToken.line + ", C" +
-                           (notOwnedToken.col + 1) + ") or (P" + notOwnedToken.pos + ") is not owned:\n" +
-                           errorString
-        );
-      }
+      posToOwnerNode = posToOwnerNodeInner;
+      return tokensWithoutOwner;
     }
 
     private string AdjustNewlines(string programString) {

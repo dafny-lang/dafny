@@ -84,17 +84,14 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
     var indentationFormatter = new IndentationFormatter {
       ReduceBlockiness = reduceBlockiness
     };
-    foreach (var include in program.DefaultModuleDef.Includes) {
-      if (include.OwnedTokens.Any()) {
-        indentationFormatter.SetOpeningIndentedRegion(include.OwnedTokens.First(), 0);
+    foreach (var child in program.DefaultModuleDef.ConcreteChildren) {
+      if (child is TopLevelDecl topLevelDecl) {
+        indentationFormatter.SetDeclIndentation(topLevelDecl, 0);
+      } else if (child is Include include) {
+        if (include.OwnedTokens.Any()) {
+          indentationFormatter.SetOpeningIndentedRegion(include.OwnedTokens.First(), 0);
+        }
       }
-    }
-
-    foreach (var decl in program.DefaultModuleDef.TopLevelDecls) {
-      indentationFormatter.SetDeclIndentation(decl, 0);
-    }
-    foreach (var decl in program.DefaultModuleDef.PrefixNamedModules) {
-      indentationFormatter.SetDeclIndentation(decl.Item2, 0);
     }
 
     return indentationFormatter;
@@ -2165,14 +2162,99 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
   }
 
   #region Override for implementing IIndentationFormatter
-  /// Given a space around a token (input),
-  /// * precededByNewline means it's a leading space that was preceded by a newline
-  /// or a trailing (isLeadingSpace==false)
-  /// changes the indentation so that on the lines before, it uses indentationBefore,
-  /// and on the last line it uses lastIndentation
-  /// If it's a trailing space, no indentation is added after the last \n because it would be handled by the next leading space.
+  /// This method implements IIndentationFormatter.Reindent and is called by Formatter.dfy
+  /// It considers the space (trivia) before a token (if trailingTrivia == false)
+  /// or the space after a token (if trailingTrivia == true)
+  /// and add or remove spaces after every newline to adjust the indentation.
+  ///
+  /// It uses indentationBefore to fix the indentation everywhere, except if
+  /// the space is a leading trivia (trailingTrivia == false)
+  /// and it's the last consecutive space without newlines before the token,
+  /// in which case it uses lastIndentation
+  ///
+  /// Options:
+  /// * If precededByNewline == true, it means that it's possible
+  /// to add/remove spaces at the beginning of the string. Used only for leading trivia.
+  /// * if trailingTrivia == true, then no indentation is added after
+  ///   the eventual last newline  `\n`. Instead, when formatting the leading trivia.
+  ///   of the next token, precededByNewline will be set to true.
+  ///
+  /// # Example
   /// 
-  /// This function implements IIndentationFormatter.Reindent and is called by Formatter.dfy
+  /// For example, consider the consecutive tokens ')' and 'const' in the following unformatted code,
+  /// as well as the token 'b' and the final token '}' 
+  ///
+  /// ```
+  /// module X {
+  /// datatype A =
+  ///     C()
+  ///   // Comment
+  ///         // continued
+  ///
+  ///       // Comment here
+  ///  const b := 1
+  ///
+  /// // One last word
+  ///   }
+  /// ```
+  ///
+  /// 1. The trailing trivia of the token `)` is
+  /// "\n  // Comment\n        // continued\n\n"
+  ///
+  /// That trivia will be processed with the options
+  /// * trailingTrivia == true
+  /// * precededByNewline == false (irrelevant, a trailing trivia is preceded by a token)
+  /// * indentationBefore == "    " (4 spaces)
+  /// * lastIndentation == "    " (irrelevant)
+  /// The method will return:
+  /// "\n    // Comment\n    // continued\n\n"
+  ///
+  /// 2. The leading trivia of the token `const` is
+  /// "      // Comment here\n "
+  /// That trivia will be processed with the options
+  /// * trailingTrivia == false
+  /// * precededByNewline == true
+  /// * indentationBefore == "  " (2 spaces, it's indentation for any comment before the constant)
+  /// * lastIndentation == "  " (2 spaces, it's the indentation in front of the "const" token if it's on its own line)
+  /// The method will return:
+  /// "  // Comment here\n  "
+  ///
+  /// 3. The leading trivia of the token `b``is
+  /// " "
+  /// That trivia will be processed with the options
+  /// * trailingTrivia == false
+  /// * precededByNewline == false
+  /// * indentationBefore == "    "
+  /// * lastIndentation == "    "
+  /// However, because there are no newlines and it's not preceded
+  /// by a newline, the method will return the same:
+  /// " "
+  /// 
+  /// 4. The leading trivia of the token `}` is
+  /// "// One last word\n"
+  /// That trivia will be processed with the options
+  /// * trailingTrivia == false
+  /// * precededByNewline == true
+  /// * indentationBefore == "  "
+  /// * lastIndentation == ""
+  /// This is an example where a comment before this token should not
+  /// be aligned with that token, the method will return:
+  /// "  // One last word\n"
+  ///
+  /// After all these formattings, the final result will be the expected one
+  /// ```
+  /// module X {
+  ///   datatype A =
+  ///     C()
+  ///     // Comment
+  ///     // continued
+  ///
+  ///   // Comment here
+  ///   const b := 1
+  ///
+  ///   // One last word
+  /// }
+  /// ```
   public string Reindent(IToken token, bool trailingTrivia, bool precededByNewline, string indentationBefore, string lastIndentation) {
     var input = trailingTrivia ? token.TrailingTrivia : token.LeadingTrivia;
     var commentExtra = "";
