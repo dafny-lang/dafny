@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt> {
+public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt>, ICanFormat {
   public readonly Expression Source;
   public readonly List<NestedMatchCaseStmt> Cases;
   public readonly bool UsesOptionalBraces;
@@ -106,5 +106,16 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt> {
       mc.CheckLinearNestedMatchCase(dtd, resolutionContext, resolver);
       resolver.scope.PopMarker();
     }
+  }
+
+  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+    return formatter.SetIndentCases(indentBefore, OwnedTokens.Concat(Cases.SelectMany(oneCase => oneCase.OwnedTokens)).OrderBy(token => token.pos), () => {
+      foreach (var e in PreResolveSubExpressions) {
+        formatter.Visit(e, indentBefore);
+      }
+      foreach (var s in PreResolveSubStatements) {
+        formatter.Visit(s, indentBefore);
+      }
+    });
   }
 }

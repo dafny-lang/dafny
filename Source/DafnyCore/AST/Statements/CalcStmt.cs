@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class CalcStmt : Statement, ICloneable<CalcStmt> {
+public class CalcStmt : Statement, ICloneable<CalcStmt>, ICanFormat {
   public abstract class CalcOp {
     /// <summary>
     /// Resulting operator "x op z" if "x this y" and "y other z".
@@ -284,5 +284,102 @@ public class CalcStmt : Statement, ICloneable<CalcStmt> {
     } else {
       return ((TernaryExpr)step).E2;
     }
+  }
+
+  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+    var inCalc = false;
+    var inOrdinal = false;
+    var first = true;
+    var innerCalcIndent = indentBefore + formatter.SpaceTab;
+    var extraHintIndent = 0;
+    var ownedTokens = this.OwnedTokens;
+    // First phase: We get the alignment
+    foreach (var token in ownedTokens) {
+      if (formatter.SetIndentLabelTokens(token, indentBefore)) {
+        continue;
+      }
+      switch (token.val) {
+        case "calc":
+        case ";":
+        case "}": {
+            break;
+          }
+        case "{": {
+            inCalc = true;
+            break;
+          }
+        default: {
+            if (inCalc) {
+              if (token.val == "[") {
+                inOrdinal = true;
+              }
+              if (token.val == "]") {
+                inOrdinal = false;
+              }
+              if (!IndentationFormatter.IsFollowedByNewline(token) &&
+                  (token.val != "==" || token.Next.val != "#") &&
+                  token.val != "#" &&
+                  !inOrdinal) {
+                if (token.Next.val != "{") {
+                  formatter.SetIndentations(token, sameLineBefore: indentBefore);
+                  innerCalcIndent = Math.Max(innerCalcIndent, formatter.GetRightAlignIndentAfter(token, indentBefore));
+                } else {// It's an hint! If there is no comment and no newline between them, we align the hints as well.
+                  if ((token.TrailingTrivia + token.Next.LeadingTrivia).Trim() == "" &&
+                      token.line == token.Next.line) {
+                    extraHintIndent = Math.Max(extraHintIndent, formatter.GetRightAlignIndentAfter(token, indentBefore) - (indentBefore + formatter.SpaceTab));
+                  }
+                }
+              }
+            }
+
+            break;
+          }
+      }
+    }
+
+    inCalc = false;
+    foreach (var token in OwnedTokens) {
+      switch (token.val) {
+        case "calc": {
+            break;
+          }
+        case "{": {
+            formatter.SetIndentations(token, indentBefore, indentBefore, innerCalcIndent);
+            inCalc = true;
+            break;
+          }
+        case "}": {
+            formatter.SetIndentations(token, innerCalcIndent, indentBefore, indentBefore);
+            break;
+          }
+        case ";": {
+            formatter.SetDelimiterInsideIndentedRegions(token, indentBefore);
+            break;
+          }
+        default: {
+            // It has to be an operator
+            if (inCalc) {
+              formatter.SetIndentations(token, innerCalcIndent, indentBefore, innerCalcIndent);
+            }
+
+            break;
+          }
+      }
+    }
+
+    foreach (var hint in this.Hints) {
+      // This block
+      if (hint.Tok.pos != hint.EndToken.pos) {
+        foreach (var hintStep in hint.Body) {
+          formatter.SetOpeningIndentedRegion(hintStep.StartToken, indentBefore + formatter.SpaceTab + extraHintIndent);
+        }
+      }
+    }
+
+    foreach (var expression in this.Lines) {
+      formatter.SetIndentations(expression.StartToken, innerCalcIndent, innerCalcIndent, innerCalcIndent);
+    }
+
+    return true;
   }
 }

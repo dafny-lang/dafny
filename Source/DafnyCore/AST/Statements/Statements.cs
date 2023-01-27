@@ -230,7 +230,7 @@ public class AssertLabel : Label {
   }
 }
 
-public class RevealStmt : Statement, ICloneable<RevealStmt> {
+public class RevealStmt : Statement, ICloneable<RevealStmt>, ICanFormat {
   public readonly List<Expression> Exprs;
   [FilledInDuringResolution] public readonly List<AssertLabel> LabeledAsserts = new List<AssertLabel>();  // to indicate that "Expr" denotes a labeled assertion
   [FilledInDuringResolution] public readonly List<Statement> ResolvedStatements = new List<Statement>();
@@ -272,6 +272,10 @@ public class RevealStmt : Statement, ICloneable<RevealStmt> {
     } else {
       return null;
     }
+  }
+
+  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+    return formatter.SetIndentPrintRevealStmt(indentBefore, OwnedTokens);
   }
 }
 
@@ -343,7 +347,7 @@ public abstract class ProduceStmt : Statement {
   }
 }
 
-public class YieldStmt : ProduceStmt, ICloneable<YieldStmt> {
+public class YieldStmt : ProduceStmt, ICloneable<YieldStmt>, ICanFormat {
   public YieldStmt Clone(Cloner cloner) {
     return new YieldStmt(cloner, this);
   }
@@ -353,6 +357,10 @@ public class YieldStmt : ProduceStmt, ICloneable<YieldStmt> {
 
   public YieldStmt(RangeToken rangeToken, List<AssignmentRhs> rhss)
     : base(rangeToken, rhss) {
+  }
+
+  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+    return formatter.SetIndentAssertLikeStatement(this, indentBefore);
   }
 }
 
@@ -655,7 +663,7 @@ public class HavocRhs : AssignmentRhs {
   public override IEnumerable<Node> ConcreteChildren => Enumerable.Empty<Node>();
 }
 
-public class VarDeclStmt : Statement, ICloneable<VarDeclStmt> {
+public class VarDeclStmt : Statement, ICloneable<VarDeclStmt>, ICanFormat {
   public readonly List<LocalVariable> Locals;
   public readonly ConcreteUpdateStatement Update;
   [ContractInvariantMethod]
@@ -706,9 +714,13 @@ public class VarDeclStmt : Statement, ICloneable<VarDeclStmt> {
   public override IEnumerable<Node> Children => Locals.Concat<Node>(SubStatements);
 
   public override IEnumerable<Node> ConcreteChildren => Children;
+  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+    var result = formatter.SetIndentVarDeclStmt(indentBefore, OwnedTokens, false, false);
+    return Update != null ? formatter.SetIndentUpdateStmt(Update, indentBefore, true) : result;
+  }
 }
 
-public class VarDeclPattern : Statement, ICloneable<VarDeclPattern> {
+public class VarDeclPattern : Statement, ICloneable<VarDeclPattern>, ICanFormat {
   public readonly CasePattern<LocalVariable> LHS;
   public readonly Expression RHS;
   public bool HasGhostModifier;
@@ -749,12 +761,16 @@ public class VarDeclPattern : Statement, ICloneable<VarDeclPattern> {
       }
     }
   }
+
+  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+    return formatter.SetIndentVarDeclStmt(indentBefore, OwnedTokens, false, true);
+  }
 }
 
 /// <summary>
 /// Common superclass of UpdateStmt, AssignSuchThatStmt and AssignOrReturnStmt
 /// </summary>
-public abstract class ConcreteUpdateStatement : Statement {
+public abstract class ConcreteUpdateStatement : Statement, ICanFormat {
   public readonly List<Expression> Lhss;
 
   protected ConcreteUpdateStatement(Cloner cloner, ConcreteUpdateStatement original) : base(cloner, original) {
@@ -777,6 +793,10 @@ public abstract class ConcreteUpdateStatement : Statement {
         yield return lhs;
       }
     }
+  }
+
+  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+    return formatter.SetIndentUpdateStmt(this, indentBefore, false);
   }
 }
 
@@ -1016,7 +1036,7 @@ public class GuardedAlternative : TokenNode, IAttributeBearingDeclaration {
   }
 }
 
-public class WhileStmt : OneBodyLoopStmt, ICloneable<WhileStmt> {
+public class WhileStmt : OneBodyLoopStmt, ICloneable<WhileStmt>, ICanFormat {
   public readonly Expression/*?*/ Guard;
 
   public class LoopBodySurrogate {
@@ -1059,6 +1079,23 @@ public class WhileStmt : OneBodyLoopStmt, ICloneable<WhileStmt> {
       }
     }
   }
+
+  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+    formatter.SetIndentLikeLoop(OwnedTokens, Body, indentBefore);
+    foreach (var ens in Invariants) {
+      formatter.SetAttributedExpressionIndentation(ens, indentBefore + formatter.SpaceTab);
+    }
+
+    foreach (var dec in Decreases.Expressions) {
+      formatter.SetDecreasesExpressionIndentation(dec, indentBefore + formatter.SpaceTab);
+    }
+
+    if (EndToken.val == "}") {
+      formatter.SetClosingIndentedRegion(EndToken, indentBefore);
+    }
+
+    return false;
+  }
 }
 
 /// <summary>
@@ -1094,7 +1131,7 @@ public class RefinedWhileStmt : WhileStmt {
 /// * modify ... { Stmt }
 ///   ConditionOmitted == true && BodyOmitted == false
 /// </summary>
-public class SkeletonStatement : Statement, ICloneable<SkeletonStatement> {
+public class SkeletonStatement : Statement, ICloneable<SkeletonStatement>, ICanFormat {
   public readonly Statement S;
   public bool ConditionOmitted { get { return ConditionEllipsis != null; } }
   public readonly IToken ConditionEllipsis;
@@ -1141,6 +1178,10 @@ public class SkeletonStatement : Statement, ICloneable<SkeletonStatement> {
     get {
       yield return S;
     }
+  }
+
+  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+    return true;
   }
 }
 

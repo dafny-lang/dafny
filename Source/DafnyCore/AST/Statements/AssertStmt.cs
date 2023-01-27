@@ -3,7 +3,7 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public class AssertStmt : PredicateStmt, ICloneable<AssertStmt> {
+public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
   public readonly BlockStmt Proof;
   public readonly AssertLabel Label;
 
@@ -42,5 +42,9 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt> {
       foreach (var e in base.SpecificationSubExpressions) { yield return e; }
       yield return Expr;
     }
+  }
+
+  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+    return formatter.SetIndentAssertLikeStatement(this, indentBefore);
   }
 }
