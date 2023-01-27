@@ -27,7 +27,7 @@ public class IdPattern : ExtendedPattern, IHasUsages {
   }
 
   public IdPattern(Cloner cloner, IdPattern original) : base(cloner.Tok(original.RangeToken), original.IsGhost) {
-    Id = original.Id;
+    Name = original.Name.Clone(cloner);
     Arguments = original.Arguments?.Select(cloner.CloneExtendedPattern).ToList();
     HasParenthesis = original.HasParenthesis;
     if (cloner.CloneResolvedFields) {
@@ -111,7 +111,7 @@ public class IdPattern : ExtendedPattern, IHasUsages {
       var boundVar = new BoundVar(RangeToken, Id, Type);
       boundVar.IsGhost = IsGhost;
       yield return (boundVar, new IdentifierExpr(RangeToken, freshName));
-      Id = freshName;
+      Name.Value = freshName;
       Type = new InferredTypeProxy();
     }
 

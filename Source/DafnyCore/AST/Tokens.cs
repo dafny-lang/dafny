@@ -5,6 +5,8 @@ using System.Diagnostics.Contracts;
 namespace Microsoft.Dafny;
 
 public interface IToken : Microsoft.Boogie.IToken {
+  public RangeToken To(IToken end) => new RangeToken(this, end);
+  
   /*
   int kind { get; set; }
   int pos { get; set; }

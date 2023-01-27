@@ -214,7 +214,7 @@ public class RunAllTestsMainMethod : IRewriter {
       failureValueExpr,
       Expression.CreateStringLiteral(tok, "\n"));
     var failSuiteStmt =
-      new AssignStmt(tok, successVarExpr, new ExprRhs(tok, Expression.CreateBoolLiteral(tok, false)));
+      new AssignStmt(tok, successVarExpr, new ExprRhs(Expression.CreateBoolLiteral(tok, false)));
     return new BlockStmt(tok, Util.List<Statement>(failedPrintStmt, failSuiteStmt));
   }
 }

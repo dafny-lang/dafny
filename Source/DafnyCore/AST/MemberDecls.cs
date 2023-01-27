@@ -303,7 +303,7 @@ public class Predicate : Function {
     Extension  // this predicate extends the definition of a predicate with a body in a module being refined
   }
   public readonly BodyOriginKind BodyOrigin;
-  public Predicate(RangeToken rangeToken, string name, bool hasStaticKeyword, bool isGhost,
+  public Predicate(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isGhost,
     List<TypeParameter> typeArgs, List<Formal> formals,
     Formal result,
     List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
@@ -349,7 +349,7 @@ public abstract class ExtremePredicate : Function {
 
   public override IEnumerable<Node> Children => base.Children.Concat(new[] { PrefixPredicate });
 
-  public ExtremePredicate(RangeToken rangeToken, string name, bool hasStaticKeyword, KType typeOfK,
+  public ExtremePredicate(RangeToken rangeToken, Name name, bool hasStaticKeyword, KType typeOfK,
     List<TypeParameter> typeArgs, List<Formal> formals, Formal result,
     List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens,
     Expression body, Attributes attributes, IToken signatureEllipsis)
@@ -382,7 +382,7 @@ public abstract class ExtremePredicate : Function {
 
 public class LeastPredicate : ExtremePredicate {
   public override string WhatKind => "least predicate";
-  public LeastPredicate(RangeToken rangeToken, string name, bool hasStaticKeyword, KType typeOfK,
+  public LeastPredicate(RangeToken rangeToken, Name name, bool hasStaticKeyword, KType typeOfK,
     List<TypeParameter> typeArgs, List<Formal> formals, Formal result,
     List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens,
     Expression body, Attributes attributes, IToken signatureEllipsis)
@@ -393,7 +393,7 @@ public class LeastPredicate : ExtremePredicate {
 
 public class GreatestPredicate : ExtremePredicate {
   public override string WhatKind => "greatest predicate";
-  public GreatestPredicate(RangeToken rangeToken, string name, bool hasStaticKeyword, KType typeOfK,
+  public GreatestPredicate(RangeToken rangeToken, Name name, bool hasStaticKeyword, KType typeOfK,
     List<TypeParameter> typeArgs, List<Formal> formals, Formal result,
     List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens,
     Expression body, Attributes attributes, IToken signatureEllipsis)
@@ -405,7 +405,7 @@ public class GreatestPredicate : ExtremePredicate {
 public class TwoStateFunction : Function {
   public override string WhatKind => "twostate function";
   public override string WhatKindMentionGhost => WhatKind;
-  public TwoStateFunction(RangeToken rangeToken, string name, bool hasStaticKeyword,
+  public TwoStateFunction(RangeToken rangeToken, Name name, bool hasStaticKeyword,
     List<TypeParameter> typeArgs, List<Formal> formals, Formal result, Type resultType,
     List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
     Expression body, Attributes attributes, IToken signatureEllipsis)
@@ -425,7 +425,7 @@ public class TwoStateFunction : Function {
 
 public class TwoStatePredicate : TwoStateFunction {
   public override string WhatKind => "twostate predicate";
-  public TwoStatePredicate(RangeToken rangeToken, string name, bool hasStaticKeyword,
+  public TwoStatePredicate(RangeToken rangeToken, Name name, bool hasStaticKeyword,
     List<TypeParameter> typeArgs, List<Formal> formals, Formal result,
     List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
     Expression body, Attributes attributes, IToken signatureEllipsis)

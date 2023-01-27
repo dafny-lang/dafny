@@ -774,6 +774,7 @@ public abstract class Expression : RangeNode {
   public override IEnumerable<Node> Children => SubExpressions;
 }
 
+// TODO consider letting the constructors take IToken instead of RangeToken
 public class LiteralExpr : Expression {
   /// <summary>
   /// One of the following:
@@ -2380,9 +2381,9 @@ public class LambdaExpr : ComprehensionExpr, ICloneable<LambdaExpr> {
 }
 
 public class WildcardExpr : Expression {  // a WildcardExpr can occur only in reads clauses and a loop's decreases clauses (with different meanings)
-  public WildcardExpr(RangeToken rangeToken)
-    : base(rangeToken) {
-    Contract.Requires(rangeToken != null);
+  public WildcardExpr(IToken token)
+    : base(token.ToRange()) {
+    Contract.Requires(token != null);
   }
 }
 

@@ -415,7 +415,7 @@ namespace Microsoft.Dafny {
         var e = (TernaryExpr)expr;
         return new TernaryExpr(Tok(e.RangeToken), e.Op, CloneExpr(e.E0), CloneExpr(e.E1), CloneExpr(e.E2));
       } else if (expr is WildcardExpr) {
-        return new WildcardExpr(Tok(expr.RangeToken));
+        return new WildcardExpr(Tok(expr.Tok));
       } else if (expr is StmtExpr) {
         var e = (StmtExpr)expr;
         return new StmtExpr(Tok(e.RangeToken), CloneStmt(e.S), CloneExpr(e.E));
@@ -463,7 +463,7 @@ namespace Microsoft.Dafny {
 
       if (rhs is ExprRhs) {
         var r = (ExprRhs)rhs;
-        c = new ExprRhs(Tok(r.RangeToken), CloneExpr(r.Expr), CloneAttributes(rhs.Attributes));
+        c = new ExprRhs(CloneExpr(r.Expr), CloneAttributes(rhs.Attributes));
       } else if (rhs is HavocRhs) {
         c = new HavocRhs(Tok(rhs.RangeToken));
       } else {
@@ -520,7 +520,7 @@ namespace Microsoft.Dafny {
     public ExtendedPattern CloneExtendedPattern(ExtendedPattern pat) {
       switch (pat) {
         case LitPattern p:
-          return new LitPattern(p.RangeToken, CloneExpr(p.OrigLit));
+          return new LitPattern(CloneExpr(p.OrigLit));
         case IdPattern p:
           return new IdPattern(this, p);
         case DisjunctivePattern p:

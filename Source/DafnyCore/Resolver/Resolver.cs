@@ -6178,7 +6178,7 @@ namespace Microsoft.Dafny {
       var id = new IdentifierExpr(s.RangeToken, temp);
       var idlist = new List<Expression>() { id };
       var lhss = new List<LocalVariable>() { locvar };
-      var rhss = new List<AssignmentRhs>() { new ExprRhs(ex.RangeToken, ex) };
+      var rhss = new List<AssignmentRhs>() { new ExprRhs(ex) };
       var up = new UpdateStmt(s.RangeToken, idlist, rhss);
       s.ResolvedStatements.Add(new VarDeclStmt(s.RangeToken, lhss, up));
       return id;
@@ -6390,7 +6390,7 @@ namespace Microsoft.Dafny {
             new BlockStmt(s.RangeToken, new List<Statement>() {
               new UpdateStmt(s.RangeToken,
                 new List<Expression>() { ident },
-                new List<AssignmentRhs>() {new ExprRhs(s.RangeToken, VarDotMethod(s.RangeToken, temp, "PropagateFailure"))}
+                new List<AssignmentRhs>() {new ExprRhs(VarDotMethod(s.RangeToken, temp, "PropagateFailure"))}
                 ),
               new ReturnStmt(s.RangeToken, null),
             }),
@@ -6405,7 +6405,7 @@ namespace Microsoft.Dafny {
         s.ResolvedStatements.Add(
           new UpdateStmt(s.RangeToken,
             new List<Expression>() { lhsExtract },
-            new List<AssignmentRhs>() { new ExprRhs(s.RangeToken, VarDotMethod(s.RangeToken, temp, "Extract")) }
+            new List<AssignmentRhs>() { new ExprRhs(VarDotMethod(s.RangeToken, temp, "Extract")) }
           ));
         // The following check is not necessary, because the ghost mismatch is caught later.
         // However the error message here is much clearer.

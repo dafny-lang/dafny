@@ -1641,7 +1641,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
 GIdentType<bool allowGhostKeyword, bool allowNewKeyword, bool allowNameOnlyKeyword, bool allowOlderKeyword,
            out RangeToken range, out Name/*!*/ name, out Type/*!*/ ty, out bool isGhost, out bool isOld, out bool isNameOnly, out bool isOlder>
 /* isGhost always returns as false if allowGhostKeyword is false */
-= (. Contract.Ensures(Contract.ValueAtReturn(out id)!=null);
+= (. Contract.Ensures(Contract.ValueAtReturn(out name)!=null);
      Contract.Ensures(Contract.ValueAtReturn(out ty)!=null);
      isGhost = false; isOld = allowNewKeyword; isNameOnly = false; isOlder = false;
   .)
@@ -1666,7 +1666,7 @@ FIdentType<out Name/*!*/ name, out Type/*!*/ ty>
   .
 
 CIdentType<out Name/*!*/ name, out Type ty>
-= (.Contract.Ensures(Contract.ValueAtReturn(out id) != null);
+= (.Contract.Ensures(Contract.ValueAtReturn(out name) != null);
     ty = null;
   .)
   NoDigitName<out name>
@@ -1697,9 +1697,9 @@ LocalIdentTypeOptional<out LocalVariable var, bool isGhost, bool allowWild=true>
 
 IdentTypeOptional<out BoundVar var>
 = (. Contract.Ensures(Contract.ValueAtReturn(out var) != null);
-     IToken id;  Type ty;  Type optType = null;
+     Type ty;  Type optType = null;
   .)
-  WildIdent<out id, true>
+  WildIdentN<out var name, true>
   [ IF( la.kind == _colon) ":" Type<out ty>             (. optType = ty; .)
      // CoCo warns about this optional ':', because it is ambiguous with a ':' that follows the IdentTypeOptional.
      // An IdentTypeOptional can be the last thing in an Expression (a SetComprehension)
@@ -1708,45 +1708,48 @@ IdentTypeOptional<out BoundVar var>
      // disambiguate, it makes sense to force the colon to consider the ': type' here. Hence the semantic predicate.
      // Also a SetComprehension would be the wrong type in a slices-by-length construct.
   ]
-  (. var = new BoundVar(id, id.val, optType == null ? new InferredTypeProxy() : optType) {
+  (. var = new BoundVar(name.StartToken.To(t), name, optType == null ? new InferredTypeProxy() : optType) {
        IsTypeExplicit = optType != null
      }; .)
   .
 
-TypeIdentOptional<out IToken/*!*/ id, out string/*!*/ identName, out Type/*!*/ ty, out bool isGhost, out Expression defaultValue, out bool isNameOnly>
+TypeIdentOptional<out RangeToken/*!*/ range, out Name/*!*/ identName, out Type/*!*/ ty, out bool isGhost, out Expression defaultValue, out bool isNameOnly>
 = (.Contract.Ensures(Contract.ValueAtReturn(out id)!=null);
      Contract.Ensures(Contract.ValueAtReturn(out ty)!=null);
      Contract.Ensures(Contract.ValueAtReturn(out identName)!=null);
-     string name = null; id = Token.NoToken; ty = new BoolType()/*dummy*/; isGhost = false;
+     var nameToken = null; ty = new BoolType()/*dummy*/; isGhost = false;
      IToken nameonlyToken = null;
+     identName = null;
      defaultValue = null;
   .)
+  (. var startToken = t; .)
   { "ghost"                            (. isGhost = true; .)
   | "nameonly"                         (. nameonlyToken = t; .)
   }
-  ( TypeAndToken<out id, out ty, false>
+  ( TypeAndToken<out nameToken, out ty, false>
     [ ":"
       (. /* try to convert ty to an identifier */
          UserDefinedType udt = ty as UserDefinedType;
          if (udt != null && udt.TypeArgs.Count == 0) {
            name = udt.Name;
          } else {
-           SemErr(id, "invalid formal-parameter name in datatype constructor");
+           SemErr(nameToken, "invalid formal-parameter name in datatype constructor");
          }
       .)
       Type<out ty>
       ParameterDefaultValue<true, out defaultValue>
     ]
-  | digits         (. id = t; name = id.val;.)
+  | digits         (. nameToken = t; .)
     ":"
     Type<out ty>
     ParameterDefaultValue<true, out defaultValue>
   )
-  (. if (name != null) {
-       identName = name;
+  (. range = new RangeToken(startToken, t);
+     if (nameToken != null) {
+       identName = new Name(nameToken);
        isNameOnly = nameonlyToken != null;
      } else {
-       identName = "#" + anonymousIds++;
+       identName = new Name(range, "#" + anonymousIds++);
        if (nameonlyToken != null) {
          SemErr(nameonlyToken, "use of the 'nameonly' modifier must be accompanied with a parameter name");
        }
@@ -2125,13 +2128,15 @@ Formals<.bool incoming, bool allowGhostKeyword, bool allowNewKeyword, bool allow
      Expression defaultValue;
      bool isNameOnly;
      bool isOlder;
+     RangeToken range;
+     Name name;
   .)
   "("
   [
-    GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out var range, out var name, out ty, out isGhost, out isOld, out isNameOnly, out isOlder>
+    GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out range, out name, out ty, out isGhost, out isOld, out isNameOnly, out isOlder>
     ParameterDefaultValue<incoming, out defaultValue>
                  (. formals.Add(new Formal(range, name, ty, incoming, isGhost, defaultValue, isOld, isNameOnly, isOlder)); .)
-    { "," GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out var range, out var name, out ty, out isGhost, out isOld, out isNameOnly, out isOlder>
+    { "," GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out range, out name, out ty, out isGhost, out isOld, out isNameOnly, out isOlder>
     ParameterDefaultValue<incoming, out defaultValue>
                  (. formals.Add(new Formal(range, name, ty, incoming, isGhost, defaultValue, isOld, isNameOnly, isOlder)); .)
     }
@@ -2188,7 +2193,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
   ( "bool"                          (. tok = t; startToken = t; .)
   | "char"                          (. tok = t; startToken = t;  ty = new CharType(); .)
   | "int"                           (. tok = t; startToken = t;  ty = new IntType(); .)
-  | "nat"                           (. tok = t; startToken = t;  ty = new UserDefinedType(tok, tok.val, null); .)
+  | "nat"                           (. tok = t; startToken = t;  ty = new UserDefinedType(tok.ToRange(), tok.val, null); .)
   | "real"                          (. tok = t; startToken = t;  ty = new RealType(); .)
   | "ORDINAL"                       (. tok = t; startToken = t;  ty = new BigOrdinalType(); .)
   | bvToken                         (. tok = t; startToken = t;
@@ -2223,9 +2228,9 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
                                        }
                                        ty = new SeqType(gt != null ? gt[0] : null);
                                     .)
-  | "string"                        (. tok = t; startToken = t;  ty = new UserDefinedType(tok, tok.val, null); .)
-  | "object"                        (. tok = t; startToken = t;  ty = new UserDefinedType(tok, tok.val, null); .)
-  | "object?"                       (. tok = t; startToken = t;  ty = new UserDefinedType(tok, tok.val, null); .)
+  | "string"                        (. tok = t; startToken = t;  ty = new UserDefinedType(tok.ToRange(), tok.val, null); .)
+  | "object"                        (. tok = t; startToken = t;  ty = new UserDefinedType(tok.ToRange(), tok.val, null); .)
+  | "object?"                       (. tok = t; startToken = t;  ty = new UserDefinedType(tok.ToRange(), tok.val, null); .)
   | "map"                           (. tok = t; startToken = t; .)
     OptGenericInstantiation<out gt, inExpressionContext>
                                     (. if (gt == null) {
@@ -2255,7 +2260,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
                                        // Extracting the dimension out of array2 or array10?
                                        var dimString = tokString.Substring(5, tokString.Length - (q?6:5)); // 5 is length of "array"
                                        int dims = StringToInt(dimString, 1, "arrays of that many dimensions");
-                                       ty = theBuiltIns.ArrayType(tok, dims, gt, true, q);
+                                       ty = theBuiltIns.ArrayType(tok.To(t), dims, gt, true, q);
                                     .)
   | TupleType<out ty, out tok, out tupleArgTypes, out argumentGhostTokens>
   | NamedType<out ty, out tok, inExpressionContext>
@@ -2321,7 +2326,7 @@ TupleType<.out Type ty, out IToken tok, out List<Type> tupleArgTypes, out List<I
                                        var dims = tupleArgTypes.Count;
                                        var argumentGhostness = argumentGhostTokens.ConvertAll(tok => tok != null);
                                        var tmp = theBuiltIns.TupleType(tok, dims, true, argumentGhostness);  // make sure the tuple type exists
-                                       ty = new UserDefinedType(tok, BuiltIns.TupleTypeName(argumentGhostness), dims == 0 ? null : tupleArgTypes);
+                                       ty = new UserDefinedType(new RangeToken(tok, t), BuiltIns.TupleTypeName(argumentGhostness), dims == 0 ? null : tupleArgTypes);
                                      }
                                   .)
   .
@@ -2333,7 +2338,7 @@ NamedType<.out Type ty, out IToken tok, bool inExpressionContext.> =
   { "."
     TypeNameOrCtorSuffix<out tok>       (. List<Type> typeArgs; .)
     OptGenericInstantiation<out typeArgs, inExpressionContext>
-    (. e = new ExprDotName(tok, e, tok.val, typeArgs); .)
+    (. e = new ExprDotName(new RangeToken(e.StartToken, t), e, tok.val, typeArgs); .)
   }
   (. ty = new UserDefinedType(new RangeToken(startToken, t), e);
    .)
@@ -2434,9 +2439,9 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
       ":"
       (  IF(IsParenIdentsColon())
          "("
-           GIdentType<false, false, false, false, out var resultId, out var ty, out var resultIsGhost, out var isOld, out var isNameOnly, out var isOlder>
+           GIdentType<false, false, false, false, out var range, out var resultName, out var ty, out var resultIsGhost, out var isOld, out var isNameOnly, out var isOlder>
            (. Contract.Assert(!resultIsGhost && !isOld && !isNameOnly && !isOlder);
-              result = new Formal(resultId, resultId.val, ty, false, false, null, false);
+              result = new Formal(range, resultName, ty, false, false, null, false);
            .)
          ")"
          | Type<out returnType>
@@ -2743,7 +2748,7 @@ PossiblyWildFrameExpression<out FrameExpression fe, bool allowLemma,
    * any use of the function.  Nevertheless, as an experimental feature, the
    * language allows it (and it is sound).
    */
-  ( "*"                        (. fe = new FrameExpression(t, new WildcardExpr(t), null);
+  ( "*"                        (. fe = new FrameExpression(t.ToRange(), new WildcardExpr(t), null);
                                   if (!allowWild) {
                                      SemErr(t, "A '*' frame expression is not permitted here");
                                   }
@@ -2765,10 +2770,11 @@ FrameExpression<out FrameExpression fe, bool allowLemma, bool allowLambda>
   .)
   ( Expression<out e, allowLemma, allowLambda>   (. feTok = e.tok; .)
     [ FrameField<out id>        (. fieldName = id.val;  feTok = id; .)
-    ]                           (. fe = new FrameExpression(feTok, e, fieldName); .)
+    ]                           (. fe = new FrameExpression(new RangeToken(feTok, t), e, fieldName); .)
   |
     FrameField<out id>          (. fieldName = id.val; .)
-                                (. fe = new FrameExpression(id, new ImplicitThisExpr(id), fieldName); .)
+                                (. var range = new RangeToken(id, t);
+                                   fe = new FrameExpression(range, new ImplicitThisExpr(range), fieldName); .)
   )
   .
 
@@ -3280,7 +3286,7 @@ AlternativeBlockCase<.bool allowBindingGuards, out GuardedAlternative alt.>
     Stmt<body>
     SYNC  /* see comment about SYNC above */
   }
-  (. alt = new GuardedAlternative(new StartToken(startToken, t), isBindingGuard, e, body, attrs); .)
+  (. alt = new GuardedAlternative(new RangeToken(startToken, t), isBindingGuard, e, body, attrs); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -3466,11 +3472,12 @@ SingleExtendedPattern<.out ExtendedPattern pat.>
       [ ExtendedPattern<out pat>           (. arguments.Add(pat); .)
       { "," ExtendedPattern<out pat>       (. arguments.Add(pat); .)
       }]
-    ")"                                    (. // make sure the tuple type exists
-                                              theBuiltIns.TupleType(id, arguments.Count, true);
+    ")"                                    (. var range = new RangeToken(startToken, t);
+                                              // make sure the tuple type exists
+                                              theBuiltIns.TupleType(range, arguments.Count, true);
                                               //use the TupleTypeCtors
                                               string ctor = BuiltIns.TupleTypeCtorName(arguments.Count);
-                                              pat = new IdPattern(new StartToken(startToken, t), Name(ctor), arguments);
+                                              pat = new IdPattern(range, new Name(ctor), arguments);
                                            .)
   | IF(IsIdentParen())
     IName<out var name>                          (. arguments = new List<ExtendedPattern>(); .)
@@ -3486,7 +3493,7 @@ SingleExtendedPattern<.out ExtendedPattern pat.>
   )
   (. // In case of parsing errors, make sure 'pat' still returns as non-null
     if (pat == null) {
-      pat = new IdPattern(t, "_ParseError", null);
+      pat = new IdPattern(RangeToken.NoToken, "_ParseError", null);
     }
   .)
   .
@@ -3499,7 +3506,7 @@ ExtendedPattern<.out ExtendedPattern pat.>
   { "|"                                    (. branches ??= new() { branch }; .)
     SingleExtendedPattern<out branch>      (. branches.Add(branch); .)
   }
-  (. pat = branches == null ? branch : new DisjunctivePattern(branches[0].Tok, branches); .)
+  (. pat = branches == null ? branch : new DisjunctivePattern(branches[0].RangeToken, branches); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -3575,6 +3582,7 @@ AssertStmt<out Statement/*!*/ s, bool inExprContext>
     ";"
   )
   (. if (dotdotdot != null) {
+  
        s = new AssertStmt(new RangeToken(startToken, t), new LiteralExpr(x.ToRange(), true), null, null, attrs);
        s = new SkeletonStatement(s, dotdotdot, null);
      } else {
@@ -4310,8 +4318,8 @@ PossiblyNegatedLiteralExpr<out Expression e>
      e = dummyExpr;
   .)
   ( "-"                                        (. var x = t; .)
-    ( Nat<out n>                               (. e = new NegationExpression(x, new LiteralExpr(t, n)); .)
-    | Dec<out d>                               (. e = new NegationExpression(x, new LiteralExpr(t, d)); .)
+    ( Nat<out n>                               (. e = new NegationExpression(x, new LiteralExpr(new RangeToken(t), n)); .)
+    | Dec<out d>                               (. e = new NegationExpression(x, new LiteralExpr(new RangeToken(t), d)); .)
     )
   | LiteralExpression<out e>
   )
@@ -4789,10 +4797,10 @@ NameSegment<out Expression e>
 /*------------------------------------------------------------------------*/
 /* NameSegmentForTypeName is like the production NameSegment, except that it does not allow HashCall */
 NameSegmentForTypeName<out Expression e, bool inExpressionContext>
-= (. IToken id;  List<Type> typeArgs; .)
-  Ident<out id>
+= (. List<Type> typeArgs; .)
+  IName<out var name>
   OptGenericInstantiation<out typeArgs, inExpressionContext>
-  (. e = new NameSegment(id, id.val, typeArgs);
+  (. e = new NameSegment(new RangeToken(name.StartToken, t), name, typeArgs);
   .)
   .
 
@@ -5208,8 +5216,8 @@ IdentOrDigits<out IToken id>
 
 /*------------------------------------------------------------------------*/
 NoDigitName<out Name x>
-       = (. Token t; .)
-         NoUSIdentOrDigits<out t> (. x = new Name(new RangeToken(t, t)); .)
+       = (. IToken t; .)
+         NoUSIdentOrDigits<out t> (. x = new Name(t); .)
          .
          
 NoUSIdentOrDigits<out IToken id>
@@ -5234,7 +5242,7 @@ LabelName<out IToken id>
 
 /*------------------------------------------------------------------------*/
 MethodFunctionName<out Name name>
-= NoDigitName<out id>
+= NoDigitName<out name>
   .
 
 /*------------------------------------------------------------------------*/
@@ -5246,7 +5254,7 @@ TypeNameOrCtorSuffix<out IToken id>
 /*------------------------------------------------------------------------*/
 // Identifier, disallowing leading underscores, except possibly the "wildcard" identifier "_"
 WildIdentN<out Name name, bool allowWildcardId>
-= WildIdent<out var x>     (. name = new Name(x); .)
+= WildIdent<out var x>     (. name = new Name(x); .) .
   
 // Identifier, disallowing leading underscores, except possibly the "wildcard" identifier "_"
 WildIdent<out IToken x, bool allowWildcardId>

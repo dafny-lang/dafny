@@ -189,7 +189,7 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
     Contract.Invariant(Decreases != null);
   }
 
-  public Function(RangeToken rangeToken, string name, bool hasStaticKeyword, bool isGhost,
+  public Function(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isGhost,
     List<TypeParameter> typeArgs, List<Formal> formals, Formal result, Type resultType,
     List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
     Expression/*?*/ body, IToken/*?*/ byMethodTok, BlockStmt/*?*/ byMethodBody,

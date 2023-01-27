@@ -96,7 +96,7 @@ public class ExpectContracts : IRewriter {
       var args = newMethod.Ins.Select(Expression.CreateIdentExpr).ToList();
       var outs = newMethod.Outs.Select(Expression.CreateIdentExpr).ToList();
       var applyExpr = ApplySuffix.MakeRawApplySuffix(decl.RangeToken, origMethod.Name, args);
-      var applyRhs = new ExprRhs(decl.RangeToken, applyExpr);
+      var applyRhs = new ExprRhs(applyExpr);
       var callStmt = new UpdateStmt(decl.RangeToken, outs, new List<AssignmentRhs>() { applyRhs });
 
       var body = MakeContractCheckingBody(origMethod.Req, origMethod.Ens, callStmt);
@@ -113,7 +113,7 @@ public class ExpectContracts : IRewriter {
       var localName = origFunc.Result?.Name ?? "__result";
       var local = new LocalVariable(decl.RangeToken, localName, origFunc.ResultType, false);
       var localExpr = new IdentifierExpr(decl.RangeToken, localName);
-      var callRhs = new ExprRhs(decl.RangeToken, callExpr);
+      var callRhs = new ExprRhs(callExpr);
 
       var lhss = new List<Expression> { localExpr };
       var locs = new List<LocalVariable> { local };
@@ -126,7 +126,7 @@ public class ExpectContracts : IRewriter {
       var body = MakeContractCheckingBody(origFunc.Req, origFunc.Ens, callStmt);
 
       if (origFunc.Result?.Name is null) {
-        body.AppendStmt(new ReturnStmt(decl.RangeToken, new List<AssignmentRhs> { new ExprRhs(decl.RangeToken, localExpr) }));
+        body.AppendStmt(new ReturnStmt(decl.RangeToken, new List<AssignmentRhs> { new ExprRhs(localExpr) }));
       }
       newFunc.ByMethodBody = body;
       newDecl = newFunc;

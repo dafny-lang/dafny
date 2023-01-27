@@ -1228,8 +1228,11 @@ public class Name : RangeNode {
     Value = original.Value;
   }
 
-  public Name(IToken token) : base(new RangeToken(token, token)) {
-    this.Value = token.val;
+  public Name(RangeToken range, string value) : base(range) {
+    this.Value = value;
+  }
+  
+  public Name(IToken token) : this(new RangeToken(token, token), token.val) {
   }
   
   public Name(string value) : base(RangeToken.NoToken) {
