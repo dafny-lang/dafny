@@ -408,6 +408,26 @@ NewtypeDecl = "newtype" { Attribute } NewtypeName "="
 
 #### 29.2.3.6. Class type {#g-class-type}
 
+````grammar
+ClassDecl = "class" { Attribute } ClassName [ GenericParameters ]
+  ["extends" Type {"," Type} | ellipsis ]
+  "{" { { DeclModifier }
+        ClassMemberDecl(allowConstructors: true,
+                        isValueType: false,
+                        moduleLevelDecl: false,
+                        isWithinAbstractModule: false) }
+  "}"
+
+ClassMemberDecl(allowConstructors, isValueType,
+                moduleLevelDecl, isWithinAbstractModule) =
+  ( FieldDecl(isValueType) // allowed iff moduleLevelDecl is false
+  | ConstantFieldDecl(moduleLevelDecl)
+  | FunctionDecl(isWithinAbstractModule)
+  | MethodDecl(isGhost: "ghost" was present,
+               allowConstructors, isWithinAbstractModule)
+  )
+````
+
 #### 29.2.3.7. Traits {#g-trait} 
 
 #### 29.2.3.8. Iterator types {#g-iterator-type}
@@ -418,8 +438,51 @@ NewtypeDecl = "newtype" { Attribute } NewtypeName "="
 
 #### 29.2.3.11. Datatypes {#g-datatype}
 
-### 29.2.4. Method, Functions, and Constructors {#g-executable}
+### 29.2.4. Type members {#g-member-declaration}
 
+#### 29.2.4.1. Fields {#g-field-declaration}
+
+````grammar
+FieldDecl(isValueType) =
+  "var" { Attribute } FIdentType { "," FIdentType }
+````
+A `FieldDecl` is not permitted if `isValueType` is true.
+
+#### 29.2.4.2. Constant fields {#g-const-declaration}
+
+````grammar
+ConstantFieldDecl(moduleLevelDecl) =
+  "const" { Attribute } CIdentType [ ellipsis ]
+   [ ":=" Expression(allowLemma: false, allowLambda:true) ]
+````
+
+If `moduleLevelDecl` is true, then the `static` modifier is not permitted
+(the constant field is static implicitly).
+
+#### 29.2.4.3. Methods {#g-method-declaration}
+
+````grammar
+MethodDecl(isGhost, allowConstructors, isWithinAbstractModule) =
+  MethodKeyword_ { Attribute } [ MethodFunctionName ]
+  ( MethodSignature_(isGhost, isExtreme: true iff this is a least
+                                   or greatest lemma declaration)
+  | ellipsis
+  )
+  MethodSpec(isConstructor: true iff
+                       this is a constructor declaration)
+  [ BlockStmt ]
+
+MethodKeyword_ = ( "method"
+                 | "constructor"
+                 | "lemma"
+                 | "twostate" "lemma"
+                 | "least" "lemma"
+                 | "greatest" "lemma"
+                 )
+````
+
+If `isWithinAbstractModule` is false, then the method must have
+a body for the program that contains the declaration to be compiled.
 
 ### 29.2.5. Specifications
 

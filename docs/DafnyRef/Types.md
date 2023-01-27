@@ -1346,7 +1346,11 @@ type abstractly. There are several mechanisms in Dafny to do this:
 
 ## 11.1. Type synonyms {#sec-synonym-type}
 ([grammar](#g-type-definition))
-
+<!-- %check-resolve -->
+```dafny
+type T = int
+type SS<T> = set<set<T>>
+```
 
 A _type synonym_ declaration:
 <!-- %no-check -->
@@ -1388,6 +1392,13 @@ If the implicit declaration did not include the type characteristics, they would
 
 ## 11.2. Opaque types {#sec-opaque-types}
 ([grammar](#g-type-definition))
+
+Examples:
+<!-- check-resolve -->
+```dafny
+type T
+type Q { function method toString(t: T): string }
+```
 
 An opaque type is a special case of a type synonym that is underspecified.  Such
 a type is declared simply by:
@@ -1441,6 +1452,15 @@ type synonyms may not have members.
 
 ## 11.3. Subset types {#sec-subset-types}
 ([grammar](#g-type-definition))
+
+Examples:
+<!-- check-resolve -->
+```dafny
+type Pos = i: int | i > 0 witness 1
+type PosReal = r | r > 0.0 witness 1.0
+type Empty = n: nat | n < 0 witness *
+type Big = n: nat | n > 1000 ghost witness 10000
+```
 
 A _subset type_ is a restricted use of an existing type, called
 the _base type_ of the subset type.  A subset type is like a
@@ -1698,6 +1718,14 @@ The postcondition in `P` does not verify, but not because of the empty type.
 # 12. Newtypes {#sec-newtypes}
 ([grammar](#sec-type-definition))
 
+Examples:
+<!-- %check-resolve -->
+```dafny
+newtype I = int
+newtype D = i: int | 0 <= i < 10
+newtype uint8 = i | 0 <= i < 256
+```
+
 A newtype is like a type synonym or subset type except that it declares a wholly new type
 name that is distinct from its base type. It also accepts an optional [`witness` clause](#sec-witness).
 
@@ -1844,28 +1872,24 @@ tests whether a value is valid for a given type.
 
 <!--PDF NEWPAGE-->
 # 13. Class types {#sec-class-types}
+([grammar](#g-class-type))
 
-````grammar
-ClassDecl = "class" { Attribute } ClassName [ GenericParameters ]
-  ["extends" Type {"," Type} | ellipsis ]
-  "{" { { DeclModifier }
-        ClassMemberDecl(allowConstructors: true,
-                        isValueType: false,
-                        moduleLevelDecl: false,
-                        isWithinAbstractModule: false) }
-  "}"
+Examples:
+<!-- %check-resolve -->
+```dafny
+trait T {}
+class A {}
+class B extends T {
+  const b: B?
+  var v: int
+  constructor (vv: int) { v := vv; b := null; }
+  function toString(): string { "a B" }
+  method m(i: int) { var x := new B(0); }
+  static method q() {}
+}
+```
 
-ClassMemberDecl(allowConstructors, isValueType,
-                moduleLevelDecl, isWithinAbstractModule) =
-  ( FieldDecl(isValueType) // allowed iff moduleLevelDecl is false
-  | ConstantFieldDecl(moduleLevelDecl)
-  | FunctionDecl(isWithinAbstractModule)
-  | MethodDecl(isGhost: "ghost" was present,
-               allowConstructors, isWithinAbstractModule)
-  )
-````
-
-Declarations within a class all begin with reserved keywords and do not end with semicolons.
+Declarations within a class all begin with keywords and do not end with semicolons.
 
 The ``ClassMemberDecl`` parameter `moduleLevelDecl` will be true if
 the member declaration is at the top level or directly within a
@@ -1950,16 +1974,24 @@ The third form is the same as the second, but invokes the _anonymous constructor
 of the class (that is, a constructor declared with the empty-string name).
 
 ## 13.1. Field Declarations {#sec-field-declarations}
-````grammar
-FieldDecl(isValueType) =
-  "var" { Attribute } FIdentType { "," FIdentType }
-````
-A `FieldDecl` is not permitted in a value type (i.e., if `isValueType` is true).
+([grammar](#g-field-declaration))
 
-An ``FIdentType`` is used to declare a field. The field name is either an
+Examples:
+<!-- %check-resolve -->
+```dafny
+class C {
+  var c: int  // no initialization
+  ghost var 123: bv10  // name may be a sequence of digits
+  var d: nat, e: real  // type is required
+}
+```
+A field declaration is not permitted in a value type.
+
+The field name is either an
 identifier (that is not allowed to start with a leading underscore) or
 some digits. Digits are used if you want to number your fields, e.g. "0",
-"1", etc.
+"1", etc. The digits do not denote numbers but sequences of digits,
+so 0, 00, 0_0 are all different.
 
 A field x of some type T is declared as:
 <!-- %no-check -->
@@ -1984,12 +2016,18 @@ not in code that will be compiled into executable code.
 Fields may not be declared static.
 
 ## 13.2. Constant Field Declarations {#sec-constant-field-declarations}
-````grammar
-ConstantFieldDecl(moduleLeavelDecl) =
-  "const" { Attribute } CIdentType [ ellipsis ]
-   [ ":=" Expression(allowLemma: false, allowLambda:true) ]
-````
+([grammar](#g-const-declaration))
 
+Examples:
+<!-- %check-resolve -->
+```dafny
+const c: int
+ghost const d := 5
+class A {
+  const e: bool
+  static const f: int
+}
+```
 A `const` declaration declares a name bound to a value,
 which value is fixed after initialization.
 
@@ -2009,17 +2047,26 @@ modifier may be omitted.
 before or after this declaration, but circular references are not allowed.
 
 ## 13.3. Method Declarations {#sec-method-declarations}
-````grammar
-MethodDecl(isGhost, allowConstructors, isWithinAbstractModule) =
-  MethodKeyword_ { Attribute } [ MethodFunctionName ]
-  ( MethodSignature_(isGhost, isExtreme: true iff this is a least
-                                   or greatest lemma declaration)
-  | ellipsis
-  )
-  MethodSpec(isConstructor: true iff
-                       this is a constructor declaration)
-  [ BlockStmt ]
-````
+([grammar](#g-method-declaration))
+
+Examples:
+<!-- %check-resolve -->
+```dafny
+method m(i: int) {}
+method p() returns (r: int) { r := 0; }
+method q() returns (r: int, s: int, t: nat) { r := 0; s := 1; t := 2; }
+ghost method g() {}
+class A {
+  method f() {}
+  constructor Init() {}
+  static method g<T>(t: T) {}
+}
+lemma L(p: bool) ensures p || !p {}
+twostate lemma TL(p: bool) ensures p || !p {}
+least lemma LL(p: bool) ensures p || !p {}
+greatest lemma GL(p: bool) ensures p || !p {}
+```
+
 The `isGhost` parameter is true iff the `ghost` keyword
 preceded the method declaration.
 
