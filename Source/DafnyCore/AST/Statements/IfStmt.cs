@@ -3,7 +3,7 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public class IfStmt : Statement, ICloneable<IfStmt> {
+public class IfStmt : Statement, ICloneable<IfStmt>, ICanFormat {
   public readonly bool IsBindingGuard;
   public readonly Expression Guard;
   public readonly BlockStmt Thn;
@@ -63,5 +63,27 @@ public class IfStmt : Statement, ICloneable<IfStmt> {
         yield return Guard;
       }
     }
+  }
+
+  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+    foreach (var token in OwnedTokens) {
+      if (formatter.SetIndentLabelTokens(token, indentBefore)) {
+        continue;
+      }
+      switch (token.val) {
+        case "if": {
+            formatter.SetOpeningIndentedRegion(token, indentBefore);
+            formatter.Visit(Guard, indentBefore);
+            formatter.SetIndentBody(Thn, indentBefore);
+            break;
+          }
+        case "else": {
+            formatter.SetKeywordWithoutSurroundingIndentation(token, indentBefore);
+            formatter.SetIndentBody(Els, indentBefore);
+            break;
+          }
+      }
+    }
+    return false;
   }
 }

@@ -128,8 +128,6 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
     }
     // Every function returns if traverse needs to occur (true) or if it already happened (false) 
     switch (stmt) {
-      case IfStmt ifStmt:
-        return SetIndentIfStmt(ifStmt, indentBefore);
       case CalcStmt calcStmt:
         return SetIndentCalcStmt(indentBefore, calcStmt);
       case SkeletonStatement:
@@ -1002,28 +1000,6 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
 
   // All SetIndent* methods
 
-  private bool SetIndentIfStmt(IfStmt ifStmt, int indent) {
-    foreach (var token in ifStmt.OwnedTokens) {
-      if (SetIndentLabelTokens(token, indent)) {
-        continue;
-      }
-      switch (token.val) {
-        case "if": {
-            SetOpeningIndentedRegion(token, indent);
-            Visit(ifStmt.Guard, indent);
-            VisitBody(ifStmt.Thn, indent);
-            break;
-          }
-        case "else": {
-            SetKeywordWithoutSurroundingIndentation(token, indent);
-            VisitBody(ifStmt.Els, indent);
-            break;
-          }
-      }
-    }
-    return false;
-  }
-
   private bool SetIndentModifyStatement(ModifyStmt stmt, int indent) {
     var ownedTokens = stmt.OwnedTokens;
     var commaIndent = indent + SpaceTab;
@@ -1159,9 +1135,19 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
       SetAttributedExpressionIndentation(ens, indent + SpaceTab);
     }
 
-    VisitBody(forLoopStmt.Body, indent);
+    SetIndentBody(forLoopStmt.Body, indent);
     SetClosingIndentedRegion(forLoopStmt.EndToken, indent);
     return false;
+  }
+
+
+  public void SetIndentBody(Statement body, int indent) {
+    if (body == null) {
+      return;
+    }
+    SetDelimiterIndentedRegions(body.StartToken, indent);
+    SetClosingIndentedRegion(body.EndToken, indent);
+    Visit(body, indent);
   }
 
   private bool SetIndentPrintRevealStmt(int indent, Statement stmt) {
@@ -1395,22 +1381,6 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
         Visit(bodyStmt, indent + SpaceTab);
       }
     }
-  }
-
-  private void VisitBody(Statement body, int indent) {
-    if (body == null) {
-      return;
-    }
-    SetDelimiterIndentedRegions(body.Tok, indent);
-    SetClosingIndentedRegion(body.EndToken, indent);
-    Visit(body, indent);
-  }
-
-  private bool SetIndentStmtExpr(int indent, StmtExpr stmtExpr) {
-    Visit(stmtExpr.S, indent);
-    SetIndentations(stmtExpr.S.EndToken, after: indent);
-    Visit(stmtExpr.E, indent);
-    return false;
   }
 
   public bool SetIndentParensExpression(int indent, IEnumerable<IToken> ownedTokens) {
@@ -1753,7 +1723,7 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
   ///   // indented
   /// } // not indented
   /// // not indented
-  private void SetClosingIndentedRegion(IToken token, int indent) {
+  public void SetClosingIndentedRegion(IToken token, int indent) {
     SetIndentations(token, indent + SpaceTab, indent, indent);
   }
 
@@ -1778,7 +1748,7 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
   /// {
   /// }
   /// // not indented
-  private void SetKeywordWithoutSurroundingIndentation(IToken token, int indent) {
+  public void SetKeywordWithoutSurroundingIndentation(IToken token, int indent) {
     SetIndentations(token, indent, indent, indent);
   }
 
