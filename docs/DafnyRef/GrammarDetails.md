@@ -268,18 +268,145 @@ ExportSignature = TypeNameOrCtorSuffix [ "." TypeNameOrCtorSuffix ]
 
 ### 29.2.3. Types {#g-type}
 
-#### 29.2.3.1. Basic types {#g-basic-type}
+````grammar
+Type = DomainType_ | ArrowType_
 
-#### 29.2.3.2. Generic types {#g-generic-type}
+DomainType_ =
+  ( BoolType_ | CharType_ | IntType_ | RealType_
+  | OrdinalType_ | BitVectorType_ | ObjectType_
+  | FiniteSetType_ | InfiniteSetType_
+  | MultisetType_
+  | FiniteMapType_ | InfiniteMapType_
+  | SequenceType_
+  | NatType_
+  | StringType_
+  | ArrayType_
+  | TupleType
+  | NamedType
+  )
+````
+
+````grammar
+NamedType = NameSegmentForTypeName { "." NameSegmentForTypeName }
+````
+
+````grammar
+NameSegmentForTypeName = Ident [ GenericInstantiation ]
+````
+
+
+#### 29.2.3.1. Basic types {#g-basic-type}
+````grammar
+BoolType_ = "bool"
+IntType_ = "int"
+RealType_ = "real"
+BitVectorType_ = bvToken
+OrdinalType_ = "ORDINAL"
+CharType_ = "char"
+````
+
+
+#### 29.2.3.2. Generic instantiation {#g-generic-instantiation}
+
+````grammar
+GenericInstantiation = "<" Type { "," Type } ">"
+````
 
 #### 29.2.3.3. Type parameter {#g-type-parameter}
 
-#### 29.2.3.4. Collection types {#g-collection-type}
+````grammar
+GenericParameters(allowVariance) =
+  "<" [ Variance ] TypeVariableName { TypeParameterCharacteristics }
+  { "," [ Variance ] TypeVariableName { TypeParameterCharacteristics } }
+  ">"
 
+// The optional Variance indicator is permitted only if allowVariance is true
+Variance = ( "*" | "+" | "!" | "-" )
+
+TypeParameterCharacteristics = "(" TPCharOption { "," TPCharOption } ")"
+
+TPCharOption = ( "==" | "0" | "00" | "!" "new" )
+````
+
+#### 29.2.3.4. Collection types {#g-collection-type}
+````grammar
+FiniteSetType_ = "set" [ GenericInstantiation ]
+
+InfiniteSetType_ = "iset" [ GenericInstantiation ]
+
+MultisetType_ = "multiset" [ GenericInstantiation ]
+
+SequenceType_ = "seq" [ GenericInstantiation ]
+
+StringType_ = "string"
+
+FiniteMapType_ = "map" [ GenericInstantiation ]
+
+InfiniteMapType_ = "imap" [ GenericInstantiation ]
+````
 
 #### 29.2.3.5. Type definitions {#g-type-definition}
 
-#### 29.2.3.6. Classe type {#g-class-type}
+````grammar
+SynonymTypeDecl =
+  SynonymTypeDecl_ | OpaqueTypeDecl_ | SubsetTypeDecl_
+
+SynonymTypeName = NoUSIdent
+
+SynonymTypeDecl_ =
+  "type" { Attribute } SynonymTypeName
+   { TypeParameterCharacteristics }
+   [ GenericParameters ]
+   "=" Type
+
+OpaqueTypeDecl_ =
+  "type" { Attribute } SynonymTypeName
+   { TypeParameterCharacteristics }
+   [ GenericParameters ]
+   [ TypeMembers ]
+
+TypeMembers =
+  "{"
+  {
+    { DeclModifier }
+    ClassMemberDecl(allowConstructors: false,
+                    isValueType: true,
+                    moduleLevelDecl: false,
+                    isWithinAbstractModule: module.IsAbstract)
+  }
+  "}"
+
+SubsetTypeDecl_ =
+  "type"
+  { Attribute }
+  SynonymTypeName [ GenericParameters ]
+  "="
+  LocalIdentTypeOptional
+  "|"
+  Expression(allowLemma: false, allowLambda: true)
+  [ "ghost" "witness" Expression(allowLemma: false, allowLambda: true)
+  | "witness" Expression((allowLemma: false, allowLambda: true)
+  | "witness" "*"
+  ]
+
+NatType_ = "nat"
+
+NewtypeDecl = "newtype" { Attribute } NewtypeName "="
+  [ ellipsis ]
+  ( LocalIdentTypeOptional
+    "|"
+    Expression(allowLemma: false, allowLambda: true)
+    [ "ghost" "witness" Expression(allowLemma: false, allowLambda: true)
+    | "witness" Expression((allowLemma: false, allowLambda: true)
+    | "witness" "*"
+    ]
+  | Type
+  )
+  [ TypeMembers ]
+````
+
+
+#### 29.2.3.6. Class type {#g-class-type}
 
 #### 29.2.3.7. Traits {#g-trait} 
 

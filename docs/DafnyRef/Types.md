@@ -1,28 +1,14 @@
 # 6. Types {#sec-types}
-````grammar
-Type = DomainType_ | ArrowType_
-````
+
 A Dafny type is a domain type (i.e., a type that can be the domain of an
 arrow type) optionally followed by an arrow and a range type.
 
-````grammar
-DomainType_ =
-  ( BoolType_ | CharType_ | IntType_ | RealType_
-  | OrdinalType_ | BitVectorType_ | ObjectType_
-  | FiniteSetType_ | InfiniteSetType_
-  | MultisetType_
-  | FiniteMapType_ | InfiniteMapType_
-  | SequenceType_
-  | NatType_
-  | StringType_
-  | ArrayType_
-  | TupleType
-  | NamedType
-  )
-````
-The domain types comprise the builtin scalar types, the builtin
-collection types, tuple types (including as a special case
-a parenthesized type) and reference types.
+The domain types comprise the 
+* builtin scalar types, 
+* the builtin collection types, 
+* tuple types (including as a special case a parenthesized type) 
+* and reference types,
+all described in the following subsections.
 
 Dafny types may be categorized as either value types or reference types.
 
@@ -55,18 +41,14 @@ Dafny supports both reference types that contain the special `null` value
 (_nullable types_) and reference types that do not (_non-null types_).
 
 ## 6.3. Named Types
-````grammar
-NamedType = NameSegmentForTypeName { "." NameSegmentForTypeName }
-````
+([grammar](#g-type))
 
-A ``NamedType`` is used to specify a user-defined type by name
+A _Named Type_ is used to specify a user-defined type by name
 (possibly module-qualified). Named types are introduced by
 class, trait, inductive, coinductive, synonym and opaque
 type declarations. They are also used to refer to type variables.
+A Named Type is denoted by a dot-separated sequence of `NameSegmentForTypeName`s
 
-````grammar
-NameSegmentForTypeName = Ident [ GenericInstantiation ]
-````
 A ``NameSegmentForTypeName`` is a type name optionally followed by a
 ``GenericInstantiation``, which supplies type parameters to a generic
 type, if needed. It is a special case of a ``NameSegment``
@@ -83,9 +65,7 @@ characters, `int` and `nat` for integers, `real` for reals,
 `ORDINAL`, and bit-vector types.
 
 ## 7.1. Booleans {#sec-booleans}
-````grammar
-BoolType_ = "bool"
-````
+([grammar](#g-basic-type))
 
 There are two boolean values and each has a corresponding literal in
 the language:  `false` and `true`.
@@ -129,6 +109,7 @@ A && (B || C)
 depending on the intended meaning.
 
 ### 7.1.1. Equivalence Operator {#sec-equivalence-operator}
+
 The expressions `A <==> B` and `A == B` give the same value, but note
 that `<==>` is _associative_ whereas `==` is _chaining_ and they have
 different precedence.  So,
@@ -158,6 +139,7 @@ A == B && B == C
 ```
 
 ### 7.1.2. Conjunction and Disjunction {#sec-conjunction-and-disjunction}
+
 Conjunction and disjunction are associative.  These operators are
 _short circuiting (from left to right)_, meaning that their second
 argument is evaluated only if the evaluation of the first operand does
@@ -168,6 +150,7 @@ meaning is the same as the ordinary, symmetric mathematical
 conjunction `&`.  The same holds for `||` and `|`.
 
 ### 7.1.3. Implication and  Reverse Implication {#sec-implication-and-reverse-implication}
+
 Implication is _right associative_ and is short-circuiting from left
 to right.  Reverse implication `B <== A` is exactly the same as
 `A ==> B`, but gives the ability to write the operands in the opposite
@@ -219,11 +202,8 @@ In addition, booleans support _logical quantifiers_ (forall and
 exists), described in [Section 21.31.4](#sec-quantifier-expression).
 
 ## 7.2. Numeric Types {#sec-numeric-types}
+([grammar](#g-basic-type))
 
-````grammar
-IntType_ = "int"
-RealType_ = "real"
-````
 
 Dafny supports _numeric types_ of two kinds, _integer-based_, which
 includes the basic type `int` of all integers, and _real-based_, which
@@ -349,9 +329,7 @@ function `as real` from `int` to `real`, as described in
 [Section 21.10](#sec-as-expression).
 
 ## 7.3. Bit-vector Types {#sec-bit-vector-types}
-````grammar
-BitVectorType_ = bvToken
-````
+([grammar](#g-basic-type))
 
 Dafny includes a family of bit-vector types, each type having a specific,
 constant length, the number of bits in its values.
@@ -500,9 +478,7 @@ But `11` is not a valid `bv3` literal.
 [^binding]: The binding power of shift and bit-wise operations is different than in C-like languages.
 
 ## 7.4. Ordinal type {#sec-ordinals}
-````grammar
-OrdinalType_ = "ORDINAL"
-````
+([grammar](#g-basic-type))
 
 Values of type `ORDINAL` behave like `nat`s in many ways, with one important difference:
 there are `ORDINAL` values that are larger than any `nat`. The smallest of these non-nat ordinals is
@@ -533,10 +509,7 @@ In addition,
 In Dafny, `ORDINAL`s are used primarily in conjunction with [extreme functions and lemmas](#sec-extreme).
 
 ## 7.5. Characters {#sec-characters}
-
-````grammar
-CharType_ = "char"
-````
+([grammar](#g-basic-type))
 
 Dafny supports a type `char` of _characters_.  
 Its exact meaning is controlled by the command-line switch `--unicode-char:true|false`.
@@ -608,6 +581,10 @@ when used as a parameter of a `print` statement.
 
 <!--PDF NEWPAGE-->
 # 8. Type parameters {#sec-type-parameters}
+([grammar](#g-type-parameter))
+
+
+TODO _ rewerite
 
 ````grammar
 GenericParameters(allowVariance) =
@@ -819,12 +796,13 @@ A more detailed explanation of these topics is [here](http://leino.science/paper
 
 <!--PDF NEWPAGE-->
 # 9. Generic Instantiation
-````grammar
-GenericInstantiation = "<" Type { "," Type } ">"
-````
-When a generic entity is used, actual types must be specified for each
-generic parameter. This is done using a ``GenericInstantiation``.
-If the `GenericInstantiation` is omitted, type inference will try
+([grammar](#g-generic-instantiation))
+
+A generic instantiation consists of a comma-separated list of 1 or more Types,
+enclosed in angle brackets (`<` `>`),
+providing actual types to be used in place of the type parameters of the 
+declaration of the generic type.
+If there is no instantion for a generic type, type inference will try
 to fill these in (cf. [Section 24.2](#sec-type-inference)).
 
 <!--PDF NEWPAGE-->
@@ -833,11 +811,7 @@ to fill these in (cf. [Section 24.2](#sec-type-inference)).
 Dafny offers several built-in collection types.
 
 ## 10.1. Sets {#sec-sets}
-````grammar
-FiniteSetType_ = "set" [ GenericInstantiation ]
-
-InfiniteSetType_ = "iset" [ GenericInstantiation ]
-````
+([grammar](#g-collection-type))
 
 For any type `T`, each value of type `set<T>` is a finite set of
 `T` values.
@@ -849,7 +823,7 @@ so `set<T>` can be used in a non-ghost context only if `T` is
 For any type `T`, each value of type `iset<T>` is a potentially infinite
 set of `T` values.
 
-A set can be formed using a _set display_ expression, which is a
+A set can be formed using a [_set display_ expression](#sec-set-display-expression), which is a
 possibly empty, unordered, duplicate-insensitive list of expressions
 enclosed in curly braces.  To illustrate,
 <!-- %no-check -->
@@ -862,6 +836,8 @@ expression (with a binder, like in logical quantifications), described in
 
 In addition to equality and disequality, set types
 support the following relational operations:
+
+TODO _ fill in precedence
 
  operator        | description
 -----------------|------------------------------------
@@ -913,9 +889,7 @@ expression `e` of type `T`, sets support the following operations:
 The expression `e !in s` is a syntactic shorthand for `!(e in s)`.
 
 ## 10.2. Multisets {#sec-multisets}
-````grammar
-MultisetType_ = "multiset" [ GenericInstantiation ]
-````
+([grammar](#g-collection-type))
 
 A _multiset_ is similar to a set, but keeps track of the multiplicity
 of each element, not just its presence or absence.  For any type `T`,
@@ -941,6 +915,8 @@ comprehension expression.
 
 In addition to equality and disequality, multiset types
 support the following relational operations:
+
+TODO _ fill in precednece
 
  operator          | description
 -------------------|-----------------------------------
@@ -1006,9 +982,7 @@ if e in s then s[e := s[e] - 1] else s
 ```
 
 ## 10.3. Sequences {#sec-sequences}
-````grammar
-SequenceType_ = "seq" [ GenericInstantiation ]
-````
+([grammar](#g-collection-type))
 
 For any type `T`, a value of type `seq<T>` denotes a _sequence_ of `T`
 elements, that is, a mapping from a finite downward-closed set of natural
@@ -1035,6 +1009,8 @@ is equivalent to `[0, 1, 4, 9, 16]`.
 ### 10.3.2. Sequence Relational Operators
 In addition to equality and disequality, sequence types
 support the following relational operations:
+
+TODO _ precedece
 
  operator        | description
 -----------------|------------------------------------
@@ -1121,9 +1097,7 @@ sequence `s`.  It is allowed in non-ghost contexts only if the element
 type `T` is [equality supporting](#sec-equality-supporting).
 
 ### 10.3.5. Strings {#sec-strings}
-````grammar
-StringType_ = "string"
-````
+([grammar](#g-collection-type))
 
 A special case of a sequence type is `seq<char>`, for which Dafny
 provides a synonym: `string`.  Strings are like other sequences, but
@@ -1166,11 +1140,7 @@ alphabetic comparison as might be desirable, for example, when
 sorting strings.
 
 ## 10.4. Finite and Infinite Maps {#sec-maps}
-````grammar
-FiniteMapType_ = "map" [ GenericInstantiation ]
-
-InfiniteMapType_ = "imap" [ GenericInstantiation ]
-````
+([grammar](#g-collection-type))
 
 For any types `T` and `U`, a value of type `map<T,U>` denotes a
 _(finite) map_
@@ -1364,11 +1334,8 @@ There are no mechanisms currently defined in Dafny for iterating over `imap`s.
 
 <!--PDF NEWPAGE-->
 # 11. Types that stand for other types
+([grammar](#g-type-definition))
 
-````grammar
-SynonymTypeDecl =
-  SynonymTypeDecl_ | OpaqueTypeDecl_ | SubsetTypeDecl_
-````
 
 It is sometimes useful to know a type by several names or to treat a
 type abstractly. There are several mechanisms in Dafny to do this:
@@ -1378,15 +1345,8 @@ type abstractly. There are several mechanisms in Dafny to do this:
 * ([Section 11.3](#sec-subset-types)) A _subset type_, in which a new type name is given to a subset of the values of a given type
 
 ## 11.1. Type synonyms {#sec-synonym-type}
-````grammar
-SynonymTypeName = NoUSIdent
+([grammar](#g-type-definition))
 
-SynonymTypeDecl_ =
-  "type" { Attribute } SynonymTypeName
-   { TypeParameterCharacteristics }
-   [ GenericParameters ]
-   "=" Type
-````
 
 A _type synonym_ declaration:
 <!-- %no-check -->
@@ -1427,24 +1387,7 @@ type string_(==,0,!new) = seq<char>
 If the implicit declaration did not include the type characteristics, they would be inferred in any case.
 
 ## 11.2. Opaque types {#sec-opaque-types}
-````grammar
-OpaqueTypeDecl_ =
-  "type" { Attribute } SynonymTypeName
-   { TypeParameterCharacteristics }
-   [ GenericParameters ]
-   [ TypeMembers ]
-
-TypeMembers =
-  "{"
-  {
-    { DeclModifier }
-    ClassMemberDecl(allowConstructors: false,
-                    isValueType: true,
-                    moduleLevelDecl: false,
-                    isWithinAbstractModule: module.IsAbstract)
-  }
-  "}"
-````
+([grammar](#g-type-definition))
 
 An opaque type is a special case of a type synonym that is underspecified.  Such
 a type is declared simply by:
@@ -1497,25 +1440,7 @@ It would be an error to refine `P.T` as a simple type synonym or subset type in 
 type synonyms may not have members.
 
 ## 11.3. Subset types {#sec-subset-types}
-
-````grammar
-SubsetTypeDecl_ =
-  "type"
-  { Attribute }
-  SynonymTypeName [ GenericParameters ]
-  "="
-  LocalIdentTypeOptional
-  "|"
-  Expression(allowLemma: false, allowLambda: true)
-  [ "ghost" "witness" Expression(allowLemma: false, allowLambda: true)
-  | "witness" Expression((allowLemma: false, allowLambda: true)
-  | "witness" "*"
-  ]
-````
-
-````grammar
-NatType_ = "nat"
-````
+([grammar](#g-type-definition))
 
 A _subset type_ is a restricted use of an existing type, called
 the _base type_ of the subset type.  A subset type is like a
@@ -1771,20 +1696,8 @@ The postcondition in `P` does not verify, but not because of the empty type.
 
 <!--PDF NEWPAGE-->
 # 12. Newtypes {#sec-newtypes}
-````grammar
-NewtypeDecl = "newtype" { Attribute } NewtypeName "="
-  [ ellipsis ]
-  ( LocalIdentTypeOptional
-    "|"
-    Expression(allowLemma: false, allowLambda: true)
-    [ "ghost" "witness" Expression(allowLemma: false, allowLambda: true)
-    | "witness" Expression((allowLemma: false, allowLambda: true)
-    | "witness" "*"
-    ]
-  | Type
-  )
-  [ TypeMembers ]
-````
+([grammar](#sec-type-definition))
+
 A newtype is like a type synonym or subset type except that it declares a wholly new type
 name that is distinct from its base type. It also accepts an optional [`witness` clause](#sec-witness).
 
