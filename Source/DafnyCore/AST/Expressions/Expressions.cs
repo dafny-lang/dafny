@@ -1396,9 +1396,7 @@ public class ApplyExpr : Expression {
 
 public class FunctionCallExpr : Expression, IHasUsages, ICloneable<FunctionCallExpr> {
   
-  public override IToken Tok => Name.StartToken == StartToken 
-    ? StartToken // in A(), return A
-    : Name.StartToken; // in A.B(), return B
+  public override IToken Tok => Name.StartToken;
   
   public Name Name;
   public readonly Expression Receiver;
