@@ -23,22 +23,22 @@ jobs:
         include:
           - os: ubuntu-20.04
             suffix: ubuntu-20.04
-            z3: z3-4.11.2-x64-glibc-2.31
+            z3: z3-4.12.1-x64-glibc-2.31
             chmod: true
             coverage: true
           - os: windows-2019
             suffix: win
-            z3: z3-4.11.2-x64-win
+            z3: z3-4.12.1-x64-win
             chmod: false
             coverage: false
           - os: macos-latest
             suffix: osx
-            z3: z3-4.11.2-x64-osx-10.16
+            z3: z3-4.12.1-x64-osx-10.16
             chmod: true
             coverage: false
     env:
       solutionPath: Source/Dafny.sln
-      z3BaseUri: https://github.com/Z3Prover/z3/releases/download/z3-4.11.2
+      z3BaseUri: https://github.com/Z3Prover/z3/releases/download/z3-4.12.1
       Logging__LogLevel__Microsoft: Debug
     steps:
     - uses: actions/checkout@v3
