@@ -3,7 +3,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBearingExpression, ICloneable<LetExpr> {
+public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBearingExpression, ICloneable<LetExpr>, ICanFormat {
   public readonly List<CasePattern<BoundVar>> LHSs;
   public readonly List<Expression> RHSs;
   public readonly Expression Body;
@@ -81,4 +81,8 @@ public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBeari
     (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>())
     .Concat(LHSs)
     .Concat(base.Children);
+
+  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+    return formatter.SetIndentVarDeclStmt(indentBefore, OwnedTokens, false, true);
+  }
 }

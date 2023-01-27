@@ -97,7 +97,7 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
     return indentationFormatter;
   }
 
-  protected IEnumerable<Expression> SubExpressions(Expression expr) {
+  public IEnumerable<Expression> SubExpressions(Expression expr) {
     return expr is ConcreteSyntaxExpression concreteSyntaxExpression
       ? concreteSyntaxExpression.PreResolveSubExpressions
       : expr.SubExpressions;
@@ -109,41 +109,9 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
       return false;
     }
     var firstToken = expr.StartToken;
-    var indent = GetIndentBefore(firstToken);
+    var indentBefore = GetIndentBefore(firstToken);
     if (expr is ICanFormat canFormatNode) {
-      return canFormatNode.SetIndent(indent, this);
-    }
-    switch (expr) {
-      case LetOrFailExpr:
-      case LetExpr:
-        return SetIndentVarDeclStmt(indent, expr.OwnedTokens, expr is LetOrFailExpr { Lhs: null }, true);
-      case NestedMatchExpr nestedMatchExpr:
-        var i = unusedIndent;
-        return SetIndentCases(indent, expr.OwnedTokens.Concat(nestedMatchExpr.Cases.SelectMany(oneCase => oneCase.OwnedTokens)).OrderBy(token => token.pos), () => {
-          foreach (var e in SubExpressions(expr)) {
-            Visit(e, i);
-          }
-        });
-      case LambdaExpr lambaExpression:
-        return SetIndentLambdaExpr(indent, lambaExpression);
-      case ComprehensionExpr:
-        return SetIndentComprehensionExpr(indent, expr.OwnedTokens);
-      case UnaryExpr:
-      case OldExpr:
-      case UnchangedExpr:
-      case ParensExpression:
-      case SeqDisplayExpr:
-      case MapDisplayExpr:
-      case SetDisplayExpr:
-        return SetIndentParensExpression(indent, expr.OwnedTokens);
-      case ApplySuffix applySuffix: {
-          var reindent = ReduceBlockiness ? indent
-            : GetNewTokenVisualIndent(applySuffix.StartToken, indent);
-          return SetIndentParensExpression(reindent, expr.OwnedTokens);
-        }
-      case StmtExpr stmtExpr: {
-          return SetIndentStmtExpr(indent, stmtExpr);
-        }
+      return canFormatNode.SetIndent(indentBefore, this);
     }
 
     return true;
@@ -412,7 +380,7 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
     }
   }
 
-  void SetTypeIndentation(Type type) {
+  public void SetTypeIndentation(Type type) {
     var tokens = type.OwnedTokens.ToList();
     if (!tokens.Any()) {
       return;
@@ -1480,55 +1448,6 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
     Visit(body, indent);
   }
 
-  private bool SetIndentLambdaExpr(int indent, LambdaExpr lambdaExpr) {
-    var itemIndent = indent + SpaceTab;
-    var commaIndent = indent;
-    var firstSpec = true;
-    var specIndent = indent + SpaceTab;
-    foreach (var token in lambdaExpr.OwnedTokens) {
-      switch (token.val) {
-        case "(": {
-            if (IsFollowedByNewline(token)) {
-              SetIndentations(token, indent, indent, itemIndent);
-            } else {
-              SetAlign(indent, token, out itemIndent, out commaIndent);
-            }
-
-            break;
-          }
-        case ")": {
-            SetIndentations(token, itemIndent, indent, indent);
-            break;
-          }
-        case ",": {
-            SetIndentations(token, itemIndent, commaIndent, itemIndent);
-            break;
-          }
-        case "requires":
-        case "reads": {
-            if (firstSpec) {
-              specIndent = GetNewTokenVisualIndent(token, indent);
-              firstSpec = false;
-            }
-            SetIndentations(token, specIndent, specIndent, specIndent + SpaceTab);
-            break;
-          }
-        case "=>": {
-            SetIndentations(token, itemIndent, indent, indent + SpaceTab);
-            break;
-          }
-      }
-    }
-
-    foreach (var bv in lambdaExpr.BoundVars) {
-      if (bv.SyntacticType != null) {
-        SetTypeIndentation(bv.SyntacticType);
-      }
-    }
-
-    return true;
-  }
-
   private bool SetIndentStmtExpr(int indent, StmtExpr stmtExpr) {
     Visit(stmtExpr.S, indent);
     SetIndentations(stmtExpr.S.EndToken, after: indent);
@@ -1536,7 +1455,7 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
     return false;
   }
 
-  private bool SetIndentParensExpression(int indent, IEnumerable<IToken> ownedTokens) {
+  public bool SetIndentParensExpression(int indent, IEnumerable<IToken> ownedTokens) {
     var itemIndent = indent + SpaceTab;
     var commaIndent = indent;
 
@@ -1576,46 +1495,7 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
     return true;
   }
 
-  private bool SetIndentComprehensionExpr(int indent, IEnumerable<IToken> ownedTokens) {
-    var alreadyAligned = false;
-    var assignOpIndent = indent;
-
-    foreach (var token in ownedTokens) {
-      switch (token.val) {
-        case "forall":
-        case "exists":
-        case "map":
-        case "set":
-        case "imap":
-        case "iset": {
-            indent = ReduceBlockiness ? indent : GetNewTokenVisualIndent(token, indent);
-            assignOpIndent = ReduceBlockiness ? indent + SpaceTab : indent;
-            SetOpeningIndentedRegion(token, indent);
-            break;
-          }
-        case ":=":
-        case "::": {
-            var afterAssignIndent = ReduceBlockiness && token.Prev.line == token.line || token.line == token.Next.line ? assignOpIndent : assignOpIndent + SpaceTab;
-            if (alreadyAligned) {
-              SetIndentations(token, afterAssignIndent, assignOpIndent, afterAssignIndent);
-            } else {
-              if (IsFollowedByNewline(token)) {
-                SetIndentations(token, afterAssignIndent, assignOpIndent, afterAssignIndent);
-              } else {
-                alreadyAligned = true;
-                SetAlign(assignOpIndent, token, out afterAssignIndent, out assignOpIndent);
-                assignOpIndent -= 1; // because "::" or ":=" has one more char than a comma 
-              }
-            }
-            break;
-          }
-      }
-    }
-
-    return true;
-  }
-
-  private bool SetIndentCases(int indent, IEnumerable<IToken> ownedTokens, Action indentInside) {
+  public bool SetIndentCases(int indent, IEnumerable<IToken> ownedTokens, Action indentInside) {
     var matchCaseNoIndent = false;
     var caseIndent = indent;
     var afterArrowIndent = indent + SpaceTab;
@@ -1706,7 +1586,7 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
     return false;
   }
 
-  private bool SetIndentVarDeclStmt(int indent, IEnumerable<IToken> ownedTokens, bool noLHS, bool isLetExpr) {
+  public bool SetIndentVarDeclStmt(int indent, IEnumerable<IToken> ownedTokens, bool noLHS, bool isLetExpr) {
     var rightIndent = indent + SpaceTab;
     var commaIndent = indent + SpaceTab;
     var afterSemicolonIndent = indent;

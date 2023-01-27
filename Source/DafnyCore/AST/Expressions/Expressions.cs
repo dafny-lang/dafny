@@ -1225,13 +1225,17 @@ public abstract class DisplayExpression : Expression {
   public override IEnumerable<Expression> SubExpressions => Elements;
 }
 
-public class SetDisplayExpr : DisplayExpression {
+public class SetDisplayExpr : DisplayExpression, ICanFormat {
   public bool Finite;
   public SetDisplayExpr(IToken tok, bool finite, List<Expression> elements)
     : base(tok, elements) {
     Contract.Requires(tok != null);
     Contract.Requires(cce.NonNullElements(elements));
     Finite = finite;
+  }
+
+  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+    return formatter.SetIndentParensExpression(indentBefore, OwnedTokens);
   }
 }
 
@@ -1242,7 +1246,7 @@ public class MultiSetDisplayExpr : DisplayExpression {
   }
 }
 
-public class MapDisplayExpr : Expression {
+public class MapDisplayExpr : Expression, ICanFormat {
   public bool Finite;
   public List<ExpressionPair> Elements;
   public MapDisplayExpr(IToken tok, bool finite, List<ExpressionPair> elements)
@@ -1260,12 +1264,20 @@ public class MapDisplayExpr : Expression {
       }
     }
   }
+
+  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+    return formatter.SetIndentParensExpression(indentBefore, OwnedTokens);
+  }
 }
-public class SeqDisplayExpr : DisplayExpression {
+public class SeqDisplayExpr : DisplayExpression, ICanFormat {
   public SeqDisplayExpr(IToken tok, List<Expression> elements)
     : base(tok, elements) {
     Contract.Requires(cce.NonNullElements(elements));
     Contract.Requires(tok != null);
+  }
+
+  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+    return formatter.SetIndentParensExpression(indentBefore, OwnedTokens);
   }
 }
 
@@ -1609,7 +1621,7 @@ public class MultiSetFormingExpr : Expression {
   }
 }
 
-public abstract class UnaryExpr : Expression {
+public abstract class UnaryExpr : Expression, ICanFormat {
   public readonly Expression E;
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -1629,6 +1641,10 @@ public abstract class UnaryExpr : Expression {
 
   public override IEnumerable<Expression> SubExpressions {
     get { yield return E; }
+  }
+
+  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+    return formatter.SetIndentParensExpression(indentBefore, OwnedTokens);
   }
 }
 
@@ -2281,7 +2297,7 @@ public class TernaryExpr : Expression {
   }
 }
 
-public class LetOrFailExpr : ConcreteSyntaxExpression, ICloneable<LetOrFailExpr> {
+public class LetOrFailExpr : ConcreteSyntaxExpression, ICloneable<LetOrFailExpr>, ICanFormat {
   public readonly CasePattern<BoundVar>/*?*/ Lhs; // null means void-error handling: ":- E; F", non-null means "var pat :- E; F"
   public readonly Expression Rhs;
   public readonly Expression Body;
@@ -2312,6 +2328,10 @@ public class LetOrFailExpr : ConcreteSyntaxExpression, ICloneable<LetOrFailExpr>
   public override IEnumerable<Node> Children =>
     (Lhs != null ?
     new List<Node> { Lhs } : Enumerable.Empty<Node>()).Concat(base.Children);
+
+  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+    return formatter.SetIndentVarDeclStmt(indentBefore, OwnedTokens, Lhs == null, true);
+  }
 }
 
 public class ForallExpr : QuantifierExpr, ICloneable<ForallExpr> {
@@ -2475,7 +2495,7 @@ public class MapComprehension : ComprehensionExpr, ICloneable<MapComprehension> 
   }
 }
 
-public class LambdaExpr : ComprehensionExpr, ICloneable<LambdaExpr> {
+public class LambdaExpr : ComprehensionExpr, ICloneable<LambdaExpr>, ICanFormat {
   public override string WhatKind => "lambda";
 
   public Expression Body => Term;
@@ -2507,6 +2527,55 @@ public class LambdaExpr : ComprehensionExpr, ICloneable<LambdaExpr> {
   public LambdaExpr Clone(Cloner cloner) {
     return new LambdaExpr(cloner, this);
   }
+
+  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+    var itemIndent = indentBefore + formatter.SpaceTab;
+    var commaIndent = indentBefore;
+    var firstSpec = true;
+    var specIndent = indentBefore + formatter.SpaceTab;
+    foreach (var token in OwnedTokens) {
+      switch (token.val) {
+        case "(": {
+            if (IndentationFormatter.IsFollowedByNewline(token)) {
+              formatter.SetIndentations(token, indentBefore, indentBefore, itemIndent);
+            } else {
+              formatter.SetAlign(indentBefore, token, out itemIndent, out commaIndent);
+            }
+
+            break;
+          }
+        case ")": {
+            formatter.SetIndentations(token, itemIndent, indentBefore, indentBefore);
+            break;
+          }
+        case ",": {
+            formatter.SetIndentations(token, itemIndent, commaIndent, itemIndent);
+            break;
+          }
+        case "requires":
+        case "reads": {
+            if (firstSpec) {
+              specIndent = formatter.GetNewTokenVisualIndent(token, indentBefore);
+              firstSpec = false;
+            }
+            formatter.SetIndentations(token, specIndent, specIndent, specIndent + formatter.SpaceTab);
+            break;
+          }
+        case "=>": {
+            formatter.SetIndentations(token, itemIndent, indentBefore, indentBefore + formatter.SpaceTab);
+            break;
+          }
+      }
+    }
+
+    foreach (var bv in BoundVars) {
+      if (bv.SyntacticType != null) {
+        formatter.SetTypeIndentation(bv.SyntacticType);
+      }
+    }
+
+    return true;
+  }
 }
 
 public class WildcardExpr : Expression {  // a WildcardExpr can occur only in reads clauses and a loop's decreases clauses (with different meanings)
@@ -2521,7 +2590,7 @@ public class WildcardExpr : Expression {  // a WildcardExpr can occur only in re
 /// The expression S;E evaluates to whatever E evaluates to, but its well-formedness comes down to
 /// executing S (which itself must be well-formed) and then checking the well-formedness of E.
 /// </summary>
-public class StmtExpr : Expression {
+public class StmtExpr : Expression, ICanFormat {
   public readonly Statement S;
   public readonly Expression E;
   [ContractInvariantMethod]
@@ -2566,6 +2635,13 @@ public class StmtExpr : Expression {
     } else {
       Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
     }
+  }
+
+  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+    formatter.Visit(S, indentBefore);
+    formatter.SetIndentations(S.EndToken, after: indentBefore);
+    formatter.Visit(E, indentBefore);
+    return false;
   }
 }
 
@@ -2947,7 +3023,7 @@ public abstract class ConcreteSyntaxExpression : Expression {
   public override IEnumerable<Type> ComponentTypes => ResolvedExpression.ComponentTypes;
 }
 
-public class ParensExpression : ConcreteSyntaxExpression {
+public class ParensExpression : ConcreteSyntaxExpression, ICanFormat {
   public readonly Expression E;
   public ParensExpression(IToken tok, Expression e)
     : base(tok) {
@@ -2972,6 +3048,10 @@ public class ParensExpression : ConcreteSyntaxExpression {
     get {
       yield return E;
     }
+  }
+
+  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+    return formatter.SetIndentParensExpression(indentBefore, OwnedTokens);
   }
 }
 
@@ -3415,7 +3495,7 @@ public class ExprDotName : SuffixExpr, ICloneable<ExprDotName> {
 /// <summary>
 /// An ApplySuffix desugars into either an ApplyExpr or a FunctionCallExpr
 /// </summary>
-public class ApplySuffix : SuffixExpr, ICloneable<ApplySuffix> {
+public class ApplySuffix : SuffixExpr, ICloneable<ApplySuffix>, ICanFormat {
   public readonly IToken/*?*/ AtTok;
   public readonly IToken CloseParen;
   public readonly ActualBindings Bindings;
@@ -3477,5 +3557,11 @@ public class ApplySuffix : SuffixExpr, ICloneable<ApplySuffix> {
     var nameExpr = new NameSegment(tok, name, null);
     var argBindings = args.ConvertAll(arg => new ActualBinding(null, arg));
     return new ApplySuffix(tok, null, nameExpr, argBindings, tok);
+  }
+
+  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+    var reindent = formatter.ReduceBlockiness ? indentBefore
+      : formatter.GetNewTokenVisualIndent(StartToken, indentBefore);
+    return formatter.SetIndentParensExpression(reindent, OwnedTokens);
   }
 }

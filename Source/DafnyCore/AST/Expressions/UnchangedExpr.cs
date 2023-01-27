@@ -3,7 +3,7 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public class UnchangedExpr : Expression, ICloneable<UnchangedExpr> {
+public class UnchangedExpr : Expression, ICloneable<UnchangedExpr>, ICanFormat {
   public readonly List<FrameExpression> Frame;
   public readonly string/*?*/ At;
   [FilledInDuringResolution] public Label/*?*/ AtLabel;  // after that, At==null iff AtLabel==null
@@ -34,5 +34,9 @@ public class UnchangedExpr : Expression, ICloneable<UnchangedExpr> {
         yield return fe.E;
       }
     }
+  }
+
+  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+    return formatter.SetIndentParensExpression(indentBefore, OwnedTokens);
   }
 }
