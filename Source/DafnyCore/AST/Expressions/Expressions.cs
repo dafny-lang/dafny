@@ -2999,7 +2999,7 @@ public class NegationExpression : ConcreteSyntaxExpression, ICloneable<NegationE
   }
 }
 
-public class ChainingExpression : ConcreteSyntaxExpression, ICloneable<ChainingExpression> {
+public class ChainingExpression : ConcreteSyntaxExpression, ICloneable<ChainingExpression>, ICanFormat {
   public readonly List<Expression> Operands;
   public readonly List<BinaryExpr.Opcode> Operators;
   public readonly List<IToken> OperatorLocs;
@@ -3099,6 +3099,28 @@ public class ChainingExpression : ConcreteSyntaxExpression, ICloneable<ChainingE
         }
       }
     }
+  }
+
+  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+    // Chaining expressions try to align their values if possible
+    var itemIndent = formatter.GetNewTokenVisualIndent(
+      Operands[0].StartToken, indentBefore);
+
+    foreach (var token in OwnedTokens) {
+      switch (token.val) {
+        case "[":
+          break;
+        case "#":
+          break;
+        case "]":
+          break;
+        default:
+          formatter.SetIndentations(token, itemIndent, Math.Max(itemIndent - token.val.Length - 1, 0), itemIndent);
+          break;
+      }
+    }
+
+    return true;
   }
 }
 

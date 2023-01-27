@@ -110,9 +110,10 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
     }
     var firstToken = expr.StartToken;
     var indent = GetIndentBefore(firstToken);
+    if (expr is ICanFormat canFormatNode) {
+      return canFormatNode.SetIndent(indent, this);
+    }
     switch (expr) {
-      case ChainingExpression chainingExpr:
-        return SetChainingExprIndent(indent, chainingExpr);
       case BinaryExpr binaryExpr:
         return SetBinaryExprIndent(indent, binaryExpr);
       case LetOrFailExpr:
@@ -270,7 +271,7 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
   // Get the precise column this token will be at after reformatting.
   // Requires all tokens before to have been formatted.
 
-  private int GetNewTokenVisualIndent(IToken token, int defaultIndent) {
+  public int GetNewTokenVisualIndent(IToken token, int defaultIndent) {
     var previousTrivia = token.Prev != null ? token.Prev.TrailingTrivia : "";
     previousTrivia += token.LeadingTrivia;
     var lastNL = previousTrivia.LastIndexOf('\n');
@@ -328,7 +329,7 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
   // 'before' is the hypothetical indentation of a comment before that token, and of the previous token if it does not have a set indentation
   // 'sameLineBefore' is the hypothetical indentation of this token if it was on its own line
   // 'after' is the hypothetical indentation of a comment after that token, and of the next token if it does not have a set indentation
-  private void SetIndentations(IToken token, int before = -1, int sameLineBefore = -1, int after = -1) {
+  public void SetIndentations(IToken token, int before = -1, int sameLineBefore = -1, int after = -1) {
     if (token is IncludeToken || token.line == 0 && token.col == 0) { // Just ignore this token.
       return;
     }
@@ -1901,27 +1902,6 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
 
       Visit(body, indent);
     }
-  }
-
-  private bool SetChainingExprIndent(int indent, ChainingExpression chainingExpression) {
-    // Chaining expressions try to align their values if possible
-    var itemIndent = GetNewTokenVisualIndent(chainingExpression.Operands[0].StartToken, indent);
-
-    foreach (var token in chainingExpression.OwnedTokens) {
-      switch (token.val) {
-        case "[":
-          break;
-        case "#":
-          break;
-        case "]":
-          break;
-        default:
-          SetIndentations(token, itemIndent, Math.Max(itemIndent - token.val.Length - 1, 0), itemIndent);
-          break;
-      }
-    }
-
-    return true;
   }
 
   private bool SetBinaryExprIndent(int indent, BinaryExpr binaryExpr) {

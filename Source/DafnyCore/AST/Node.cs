@@ -12,6 +12,10 @@ public interface INode {
   RangeToken RangeToken { get; }
 }
 
+public interface ICanFormat : INode {
+  bool SetIndent(int indentBefore, IndentationFormatter formatter);
+}
+
 public abstract class Node : INode {
 
   public abstract IToken Tok { get; }
