@@ -65,7 +65,7 @@ After doing these steps once, for other PRs, one only needs to re-run deep check
 ### How can I write portions of Dafny in Dafny itself?
 
 Since https://github.com/dafny-lang/dafny/pull/2399, it is possible to add \*.dfy files next to other source files.
-The plugin `dafny-msbuild` takes all the dafny files and compile them into a single file `Source/DafnyCore/obj/Debug/net6.0/GeneratedFromDafny.cs`
+The plugin `dafny-msbuild` takes all the dafny files and compiles them into a single file `Source/DafnyCore/obj/Debug/net6.0/GeneratedFromDafny.cs`
 that is automatically included in the build process. This file contains also the Dafny run-time in C#.
 One example of such file is `Source/DafnyCore/AST/Formatting.dfy`, and you can use it as a starting point.
 
