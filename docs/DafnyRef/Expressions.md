@@ -8,7 +8,7 @@ do have side-effects and may only be used in specific syntactic locations,
 such as the right-hand-side of update (assignment) statements; 
 object allocation and method calls are two typical examples of [right-hand-side expressions](#rhs-expression). Note that method calls are syntactically
 indistinguishable from function calls; both are Expressions ([PrimaryExpressions](#sec-primary-expressions)
-with an [ArgumentList suffix](#argument-list-suffix)). However, method calls are semantically permitted
+with an [ArgumentList suffix](#sec-argument-list-suffix)). However, method calls are semantically permitted
 only in right-hand-side expression locations.
 - Some expressions are allowed only in specifications and other ghost code,
 as listed [here](#sec-list-of-specification-expressions).
@@ -25,10 +25,10 @@ in order of increasing binding power.
  `<==>`                   | 1 | [equivalence (if and only if)](#sec-equivalence)
 --------------------------|------------------------------------
  `==>`                    | 2 | [implication (implies)](#sec-implication)
- `<==`                    | 2 | reverse implication (follows from)
+ `<==`                    | 2 | [reverse implication (follows from)](#sec-implication)
 --------------------------|------------------------------------
- `&&`, `&`                | 3 | conjunction (and)
- `||`, `|`                | 3 | disjunction (or)
+ `&&`, `&`                | 3 | [conjunction (and)](#sec-logical-expressions)
+ `||`, `|`                | 3 | [disjunction (or)](#sec-logical-expressions)
 --------------------------|------------------------------------
  `==`                     | 4 | equality
  `==#[k]`                 | 4 | prefix equality (coinductive)
@@ -64,14 +64,6 @@ in order of increasing binding power.
 --------------------------|------------------------------------
  Primary Expressions      | 11 |
 
-We are calling the ``UnaryExpression``s that are neither
-arithmetic nor logical negation the _primary expressions_.
-They are the most tightly bound.
-
-In the grammar entries below we explain the meaning when the
-operator for that precedence level is present. If the
-operator is not present then we just descend to the
-next precedence level.
 
 ## 21.1. Top-level expressions {#sec-top-level-expression}
 ([grammar](#top-level-expression))
@@ -218,7 +210,7 @@ The `!!` represents disjointness for sets and multisets as explained in
 coinductive values for equality to a nesting level of k, as
 explained in [the section about co-equality](#sec-co-equality).
 
-## 21.6. Bit Shifts
+## 21.6. Bit Shifts {#sec-bit-shift-expression}
 ([grammar](#g-bit-shift-expression))
 
 Examples:
@@ -235,7 +227,7 @@ bits in the bit-vector type, inclusive.
 
 The operations are left-associative: `a << i >> j` is `(a << i) >> j`.
 
-## 21.7. Terms
+## 21.7. Terms {#sec-addition-expression}
 ([grammar](#g-term))
 
 Examples:
@@ -260,7 +252,7 @@ Subtraction is
 Addition is commutative (except concatenation) and associative. Subtraction is neither: it groups to the left as expected:
 `x - y -z` is `(x - y) -z`.
 
-## 21.8. Factors
+## 21.8. Factors {#sec-multiplication-expression}
 ([grammar](#g-factor))
 
 Examples:
@@ -282,7 +274,7 @@ intersection as explained in [Section 10.1](#sec-sets) and [Section 10.2](#sec-m
 
 `*` is commutative and associative; `/` and `%` are neither but do group to the left.
 
-## 21.9. Bit-vector Operations
+## 21.9. Bit-vector Operations {#sec-bitvector-expression}
 ([grammar](#g-bit-vector-expression))
 
 Examples:
@@ -381,7 +373,7 @@ For an expression `e` and type `t`, `e is t` is the condition determining whethe
 
 *The repertoire of types allowed in `is` tests may be expanded in the future.*
 
-## 21.11. Unary Expressions
+## 21.11. Unary Expressions {#sec-unary-expression}
 ([grammar](#g-unary-expression))
 
 Examples:
@@ -984,7 +976,7 @@ elements. For a finite map, the cardinality is the cardinality of the
 domain of the map. Cardinality is not defined for infinite sets or infinite maps.
 For more information, see [Section 10](#sec-collection-types).
 
-## 21.27. Parenthesized Expression
+## 21.27. Parenthesized Expression {#sec-parenthesized-expression}
 ([grammar](#g-parenthesized-expression))
 
 A parenthesized expression is a list of zero or more expressions
@@ -1026,7 +1018,7 @@ second argument (a function) on the indices 0 up to k.
 See [this section](#sec-sequences) for more information on
 sequences.
 
-## 21.29. Set Display Expression
+## 21.29. Set Display Expression {#sec-set-display-expression}
 ([grammar](#g-set-display-expression))
 
 Examples:
@@ -1099,7 +1091,7 @@ ghost var im := imap[1 := "a", 2 := "b"];
 
 See [Section 10.4](#sec-maps) for more details on maps and imaps.
 
-## 21.31. Endless Expression
+## 21.31. Endless Expression {#sec-endless-expression}
 ([grammar](#g-endless-expression))
 
 ``EndlessExpression`` gets it name from the fact that all its alternate
@@ -1545,9 +1537,7 @@ method test()
 `m` maps `2` to `3`, `4` to `6`, and so on.
 
 ## 21.32. Name Segment {#sec-name-segment}
-````grammar
-NameSegment = Ident [ GenericInstantiation | HashCall ]
-````
+([grammar](#g-name-segment))
 
 Examples:
 ```dafny
@@ -1632,7 +1622,7 @@ The ``Suffix`` non-terminal describes ways of deriving a new value from
 the entity to which the suffix is appended. The several kinds
 of suffixes are described below.
 
-### 21.33.1. Augmented Dot Suffix
+### 21.33.1. Augmented Dot Suffix {#sec-augmented-dot-suffix}
 ([grammar](#g-augmented-dot-suffix))
 
 Examples: (expression with suffix)
@@ -1708,7 +1698,7 @@ module NewSyntax {
 
 
 
-### 21.33.3. Subsequence Suffix
+### 21.33.3. Subsequence Suffix {#sec-subsequence-suffix}
 ([grammar](#g-subsequence-suffix))
 
 Examples: (with leading expression)
@@ -1725,7 +1715,7 @@ example, expression `s[lo..hi]` for sequence `s`, and integer-based
 numerics `lo` and `hi` satisfying `0 <= lo <= hi <= |s|`. See
 [the section about other sequence expressions](#sec-other-sequence-expressions) for details.
 
-### 21.33.4. Subsequence Slices Suffix
+### 21.33.4. Subsequence Slices Suffix {#sec-subsequence-slices-suffix}
 ([grammar](#g-subsequence-slices-suffix))
 
 Examples: (with leading expression)
@@ -1739,13 +1729,11 @@ Applying a _subsequence slices suffix_ to a sequence produces a
 sequence of subsequences of the original sequence.
 See [the section about other sequence expressions](#sec-other-sequence-expressions) for details.
 
-### 21.33.5. Sequence Update Suffix
-````grammar
-SequenceUpdateSuffix_ =
-  "[" Expression(allowLemma: true, allowLambda: true)
-      ":=" Expression(allowLemma: true, allowLambda: true)
-  "]"
-````
+### 21.33.5. Sequence Update Suffix {#sec-sequence-update-suffix}
+([grammar](#g-sequence-update-suffix))
+
+Examples:
+TODO
 
 For a sequence `s` and expressions `i` and `v`, the expression
 `s[i := v]` is the same as the sequence `s` except that at
@@ -1757,13 +1745,10 @@ The index `i` can have any integer- or bit-vector-based type
 conversion, as if an `as int` were appended to the index expression).
 The expression `s[i := v]` has the same type as `s`.
 
-### 21.33.6. Selection Suffix
-````grammar
-SelectionSuffix_ =
-  "[" Expression(allowLemma: true, allowLambda: true)
-      { "," Expression(allowLemma: true, allowLambda: true) }
-  "]"
-````
+### 21.33.6. Selection Suffix {#sec-selection-suffix}
+([grammar](#g-selection-suffix))
+
+Examples: TODO
 
 If a ``SelectionSuffix_`` has only one expression in it, it is a
 zero-based index that may be used to select a single element of a
@@ -1779,11 +1764,16 @@ type
 (this is one situation in which Dafny implements implicit
 conversion, as if an `as int` were appended to the index expression).
 
-### 21.33.7. Argument List Suffix {#argument-list-suffix}
-````grammar
-ArgumentListSuffix_ = "(" [ Expressions ] ")"
-````
+### 21.33.7. Argument List Suffix {#sec-argument-list-suffix}
+([grammar](#g-argument-list-suffix))
 
+Examples:
+<!--no-check -->
+```dafny
+()
+(a)
+(a, b)
+```
 An argument list suffix is a parenthesized list of expressions that
 are the arguments to pass to a method or function that is being
 called. Applying such a suffix causes the method or function
@@ -1794,30 +1784,34 @@ locations, whereas function calls may appear in expressions and specifications;
 this distinction can be made oly during name and type resolution, not by the
 parser.
 
-## 21.34. Expression Lists
-````grammar
-Expressions =
-    Expression(allowLemma: true, allowLambda: true)
-    { "," Expression(allowLemma: true, allowLambda: true) }
-````
+## 21.34. Expression Lists {#sec-expression-list}
+([grammar](#g-expression-list))
+
+Examples:
+<!--no-check -->
+```dafny
+                // empty list
+a
+a, b
+```
 
 The ``Expressions`` non-terminal represents a list of
 one or more expressions separated by commas.
 
 ## 21.35. Parameter Bindings {#sec-parameter-bindings}
+([grammar](#g-parameter-bindings))
+
+Examples: 
+<!--no-check -->
+```dafny
+a
+a, b
+a, optimze := b
+```
 
 Method calls, object-allocation calls (`new`), function calls, and
 datatype constructors can be called with both positional arguments
 and named arguments.
-````grammar
-ActualBindings =
-    ActualBinding
-    { "," ActualBinding }
-
-ActualBinding =
-    [ NoUSIdentOrDigits ":=" ]
-    Expression(allowLemma: true, allowLambda: true)
-````
 
 Positional arguments must be given before any named arguments.
 Positional arguments are passed to the formals in the corresponding

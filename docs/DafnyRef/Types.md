@@ -2804,7 +2804,7 @@ of `g` whether in the defining module or outside.
 See [Section 24.5.3](#sec-friendliness) for descriptions
 of extreme predicates and lemmas.
 
-### 13.4.6. `older` parameters in predicates
+### 13.4.6. `older` parameters in predicates {#sec-older-parameters}
 
 A parameter of any predicate (more precisely, of any
 boolean-returning, non-extreme function) can be marked as

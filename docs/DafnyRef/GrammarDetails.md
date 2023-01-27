@@ -145,6 +145,11 @@ stringToken =
 ellipsis = "..."
 ````
 
+There are a few words that have a special meaning in certain contexts, but are not 
+reserved words and can be used as identifiers outside of those contexts:
+* `least` and `greatest` are recognized as adjectives to the keyword `predicate` (cf. [Section 0.0.0](#sec-extreme)).
+* `older` is a modifier for parameters of non-extreme predicates (cf. [Section 0.0.0](#sec-older-parameters)).
+
 ## 29.2. Dafny Grammar productions
 
 The grammar productions are presented in the following Extended BNF syntax:
@@ -530,7 +535,7 @@ VarDeclStatement =
   )
   ";"
 
-CasePatternLocal = ( [ Ident ] "(" CasePatternLocsl { "," CasePatternLocal } ")"
+CasePatternLocal = ( [ Ident ] "(" CasePatternLocal { "," CasePatternLocal } ")"
                    | LocalIdentTypeOptional
                    )
 ````
@@ -921,6 +926,357 @@ ObjectAllocation_ = "new" Type [ "." TypeNameOrCtorSuffix ]
 #### 29.2.7.18. Havoc right-hand-side expression {#g-havoc-expression}
 ````grammar
 HavocRhs_ = "*"
+````
+
+#### 29.2.7.19. Atomic expressions {#g-atomic-expression}
+
+````grammar
+ConstAtomExpression =
+  ( LiteralExpression
+  | "this"
+  | FreshExpression_
+  | AllocatedExpression_
+  | UnchangedExpression_
+  | OldExpression_
+  | CardinalityExpression_
+  | ParensExpression
+  )
+````
+
+#### 29.2.7.19. Literal expressions {#g-literal-expression}
+
+````grammar
+LiteralExpression =
+ ( "false" | "true" | "null" | Nat | Dec |
+   charToken | stringToken )
+
+Nat = ( digits | hexdigits )
+
+Dec = decimaldigits
+````
+
+#### 29.2.7.19. Old and Old@ Expressions {#g-old-expression}
+
+````grammar
+OldExpression_ =
+  "old" [ "@" LabelName ]
+  "(" Expression(allowLemma: true, allowLambda: true) ")"
+````
+
+#### 29.2.7.19. Fresh Expressions {#g-fresh-expression}
+
+````grammar
+FreshExpression_ =
+  "fresh" [ "@" LabelName ]
+  "(" Expression(allowLemma: true, allowLambda: true) ")"
+````
+
+#### 29.2.7.19. Allocated Expressions {#g-allocated-expression}
+
+````grammar
+AllocatedExpression_ =
+  "allocated" "(" Expression(allowLemma: true, allowLambda: true) ")"
+````
+
+#### 29.2.7.19. Unchanged Expressions {#g-unchanged-expression}
+
+````grammar
+UnchangedExpression_ =
+  "unchanged" [ "@" LabelName ]
+  "(" FrameExpression(allowLemma: true, allowLambda: true)
+      { "," FrameExpression(allowLemma: true, allowLambda: true) }
+  ")"
+````
+
+#### 29.2.7.19. Cardinality Expressions {#g-cardinality-expression}
+
+````grammar
+CardinalityExpression_ =
+  "|" Expression(allowLemma: true, allowLambda: true) "|"
+````
+
+#### 29.2.7.19. Parenthesized Expression {#g-parenthesized-expression}
+
+````grammar
+ParensExpression =
+  "(" [ Expressions ] ")"
+````
+
+#### 29.2.7.19. Sequence Display Expression {#g-sequence-display-expression}
+
+````grammar
+SeqDisplayExpr =
+  ( "[" [ Expressions ] "]"
+  | "seq" [ GenericInstantiation ]
+    "(" Expression(allowLemma: true, allowLambda: true)
+    "," Expression(allowLemma: true, allowLambda: true)
+    ")"
+  )
+````
+
+#### 29.2.7.19. Set Display Expression {#g-set-display-expression}
+
+````grammar
+SetDisplayExpr =
+  ( [ "iset" | "multiset" ] "{" [ Expressions ] "}"
+  | "multiset" "(" Expression(allowLemma: true,
+                              allowLambda: true) ")"
+  )
+````
+
+#### 29.2.7.19. Map Display Expression {#g-map-display-expression}
+
+````grammar
+MapDisplayExpr =
+  ("map" | "imap" ) "[" [ MapLiteralExpressions ] "]"
+
+MapLiteralExpressions =
+  Expression(allowLemma: true, allowLambda: true)
+  ":=" Expression(allowLemma: true, allowLambda: true)
+  { "," Expression(allowLemma: true, allowLambda: true)
+        ":=" Expression(allowLemma: true, allowLambda: true)
+  }
+````
+
+#### 29.2.7.19. Endless Expression {#g-endless-expression}
+
+````grammar
+EndlessExpression(allowLemma, allowLambda) =
+  ( IfExpression(allowLemma, allowLambda)
+  | MatchExpression(allowLemma, allowLambda)
+  | QuantifierExpression(allowLemma, allowLambda)
+  | SetComprehensionExpr(allowLemma, allowLambda)
+  | StmtInExpr Expression(allowLemma, allowLambda)
+  | LetExpression(allowLemma, allowLambda)
+  | MapComprehensionExpr(allowLemma, allowLambda)
+  )
+````
+
+#### 29.2.7.19. If expression {#g-if-expression}
+
+````grammar
+IfExpression(allowLemma, allowLambda) =
+    "if" ( BindingGuard(allowLambda: true)
+         | Expression(allowLemma: true, allowLambda: true)
+         )
+    "then" Expression(allowLemma: true, allowLambda: true)
+    "else" Expression(allowLemma, allowLambda)
+````
+
+#### 29.2.7.19. Match Expression {#g-match-expression}
+
+````grammar
+MatchExpression(allowLemma, allowLambda) =
+  "match" Expression(allowLemma, allowLambda)
+  ( "{" { CaseExpression(allowLemma: true, allowLambda: true) } "}"
+  | { CaseExpression(allowLemma, allowLambda) }
+  )
+
+CaseExpression(allowLemma, allowLambda) =
+  "case" { Attribute } ExtendedPattern "=>" Expression(allowLemma, allowLambda)
+````
+
+#### 29.2.7.19. Case and Extended Patterns {#g-pattern}
+
+````grammar
+CasePattern =
+  ( IdentTypeOptional
+  | [Ident] "(" [ CasePattern { "," CasePattern } ] ")"
+  )
+
+SingleExtendedPattern =
+  ( PossiblyNegatedLiteralExpression
+  | IdentTypeOptional
+  | [ Ident ] "(" [ SingleExtendedPattern { "," SingleExtendedPattern } ] ")"
+  )
+
+ExtendedPattern =
+  ( [ "|" ] SingleExtendedPattern { "|" SingleExtendedPattern } )
+
+PossiblyNegatedLiteralExpression =
+  ( "-" ( Nat | Dec )
+  | LiteralExpression
+  )
+````
+
+#### 29.2.9.19. Quantifier expression {#g-quantifier-expression}
+
+````grammar
+QuantifierExpression(allowLemma, allowLambda) =
+    ( "forall" | "exists" ) QuantifierDomain "::"
+    Expression(allowLemma, allowLambda)
+````
+
+#### 29.2.7.19. Set Comprehension Expressions {#g-set-comprehension-expression}
+
+````grammar
+SetComprehensionExpr(allowLemma, allowLambda) =
+  [ "set" | "iset" ]
+  QuantifierDomain(allowLemma, allowLambda)
+  [ "::" Expression(allowLemma, allowLambda) ]
+````
+
+
+#### 29.2.7.19. Statements in an Expression {#g-statement-in-expression}
+
+````grammar
+StmtInExpr = ( AssertStmt | AssumeStmt | ExpectStmt
+             | RevealStmt | CalcStmt
+             )
+````
+
+#### 29.2.7.19. Let and Let or Fail Expression {#g-let-expression}
+
+````grammar
+LetExpression(allowLemma, allowLambda) =
+  (
+    [ "ghost" ] "var" CasePattern { "," CasePattern }
+    ( ":=" | ":-" | { Attribute } ":|" )
+    Expression(allowLemma: false, allowLambda: true)
+    { "," Expression(allowLemma: false, allowLambda: true) }
+  |
+    ":-"
+    Expression(allowLemma: false, allowLambda: true)
+  )
+  ";"
+  Expression(allowLemma, allowLambda)
+````
+
+#### 29.2.7.19. Map Comprehension Expression {#g-map-comprehension-expression}
+
+````grammar
+MapComprehensionExpr(allowLemma, allowLambda) =
+  ( "map" | "imap" )
+  QuantifierDomain(allowLemma, allowLambda)
+  "::"
+  Expression(allowLemma, allowLambda)
+  [ ":=" Expression(allowLemma, allowLambda) ]
+````
+
+#### 29.2.7.19. Name Segment {#g-name-segment}
+
+````grammar
+NameSegment = Ident [ GenericInstantiation | HashCall ]
+````
+
+#### 29.2.7.19. Hash Call {#g-hash-call}
+
+````grammar
+HashCall = "#" [ GenericInstantiation ]
+  "[" Expression(allowLemma: true, allowLambda: true) "]"
+  "(" [ Bindings ] ")"
+````
+
+#### 29.2.7.19. Suffix {#g-suffix}
+
+````grammar
+Suffix =
+  ( AugmentedDotSuffix_
+  | DatatypeUpdateSuffix_
+  | SubsequenceSuffix_
+  | SlicesByLengthSuffix_
+  | SequenceUpdateSuffix_
+  | SelectionSuffix_
+  | ArgumentListSuffix_
+  )
+````
+
+#### 29.2.7.19. Augmented Dot Suffix {#g-augmented-dot-suffix}
+
+````grammar
+AugmentedDotSuffix_ = "." DotSuffix
+                      [ GenericInstantiation | HashCall ]
+````
+
+#### 29.2.7.19. Datatype Update Suffix {#g-datatype-update-suffix}
+
+````grammar
+DatatypeUpdateSuffix_ =
+  "." "(" MemberBindingUpdate { "," MemberBindingUpdate } ")"
+
+MemberBindingUpdate =
+  ( ident | digits )
+  ":=" Expression(allowLemma: true, allowLambda: true)
+````
+
+#### 29.2.7.19. Subsequence Suffix {#g-subsequence-suffix}
+
+````grammar
+SubsequenceSuffix_ =
+  "[" [ Expression(allowLemma: true, allowLambda: true) ]
+      ".." [ Expression(allowLemma: true, allowLambda: true) ]
+  "]"
+````
+
+#### 29.2.7.19. Subsequence Slices Suffix {#g-subsequence-slices-suffix}
+
+````grammar
+SlicesByLengthSuffix_ =
+  "[" Expression(allowLemma: true, allowLambda: true) ":"
+      [
+        Expression(allowLemma: true, allowLambda: true)
+        { ":" Expression(allowLemma: true, allowLambda: true) }
+        [ ":" ]
+      ]
+  "]"
+````
+
+#### 29.2.7.19. Sequence Update Suffix {#g-sequence-update-suffix}
+
+````grammar
+SequenceUpdateSuffix_ =
+  "[" Expression(allowLemma: true, allowLambda: true)
+      ":=" Expression(allowLemma: true, allowLambda: true)
+  "]"
+````
+
+#### 29.2.7.19. Selection Suffix {#g-selection-suffix}
+
+````grammar
+SelectionSuffix_ =
+  "[" Expression(allowLemma: true, allowLambda: true)
+      { "," Expression(allowLemma: true, allowLambda: true) }
+  "]"
+````
+
+#### 29.2.7.19. Argument List Suffix {#g-argument-list-suffix}
+
+````grammar
+ArgumentListSuffix_ = "(" [ Expressions ] ")"
+````
+
+#### 29.2.7.19. Expression Lists {#g-expression-list}
+
+````grammar
+Expressions =
+    Expression(allowLemma: true, allowLambda: true)
+    { "," Expression(allowLemma: true, allowLambda: true) }
+````
+
+#### 29.2.7.19. Parameter Bindings {#g-parameter-bindings}
+
+````grammar
+ActualBindings =
+    ActualBinding
+    { "," ActualBinding }
+
+ActualBinding =
+    [ NoUSIdentOrDigits ":=" ]
+    Expression(allowLemma: true, allowLambda: true)
+````
+
+#### 29.2.7.19. Quantifier domains {#g-quantifier-domain}
+
+````grammar
+QuantifierDomain(allowLemma, allowLambda) =
+    QuantifierVarDecl(allowLemma, allowLambda) 
+    { "," QuantifierVarDecl(allowLemma, allowLambda) }
+
+QuantifierVarDecl(allowLemma, allowLambda) =
+    IdentTypeOptional
+    [ <- Expression(allowLemma, allowLambda) ]
+    { Attribute }
+    [ | Expression(allowLemma, allowLambda) ]
 ````
 
 
