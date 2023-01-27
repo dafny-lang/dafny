@@ -1109,9 +1109,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         /* Then, extract the number of non-integral indexed sequences from the repro case... */
         .Count(IsNegativeIndexedSeq);
 
+      // With more recent Z3 versions (at least 4.11+, but maybe going back farther), this situation doesn't seem
+      // to arise anymore. So this test now just confirms that the test file it loads can be verified without
+      // crashing.
+      /*
       Assert.IsTrue(nonIntegralIndexedSeqs > 0, "If we do not see at least one non-integral index in " +
                                                 "this test case, then the backend changed " +
                                                 "The indices being returned to the Language Server.");
+                                                */
     }
 
     /* Helper for the NonIntegerSeqIndices test. */
