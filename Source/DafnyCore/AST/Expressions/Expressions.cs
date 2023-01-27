@@ -2148,10 +2148,9 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr>, ICanFormat {
   }
 
   public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
-    var binaryExpr = this;
     var indent = indentBefore;
-    if (binaryExpr.Op is BinaryExpr.Opcode.And or BinaryExpr.Opcode.Or) {
-      var ownedTokens = binaryExpr.OwnedTokens.ToList();
+    if (Op is Opcode.And or Opcode.Or) {
+      var ownedTokens = OwnedTokens.ToList();
       // Alignment required.
       if (ownedTokens.Count == 2) {
         var firstToken = ownedTokens[0];
@@ -2169,27 +2168,27 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr>, ICanFormat {
         formatter.SetIndentations(secondToken, formatter.binOpIndent, formatter.binOpIndent, formatter.binOpArgIndent);
       } else if (ownedTokens.Count > 0) {
         if (ownedTokens[0].val == "requires") { // Requirement conjunctions inside lambdas are separated by the keyword "requires"
-          if (binaryExpr.StartToken.Prev.val == "requires") {
-            formatter.binOpIndent = formatter.GetIndentBefore(binaryExpr.StartToken.Prev);
+          if (this.StartToken.Prev.val == "requires") {
+            formatter.binOpIndent = formatter.GetIndentBefore(this.StartToken.Prev);
           }
         }
         if (formatter.binOpIndent > 0) {
           formatter.SetIndentations(ownedTokens[0], formatter.binOpIndent, formatter.binOpIndent, formatter.binOpArgIndent);
         } else {
-          var startToken = binaryExpr.StartToken;
+          var startToken = this.StartToken;
           var newIndent = formatter.GetNewTokenVisualIndent(startToken, formatter.GetIndentBefore(startToken));
           formatter.SetIndentations(ownedTokens[0], newIndent, newIndent, newIndent);
         }
       }
 
-      if (formatter.binOpIndent > 0 && (binaryExpr.E0 is not BinaryExpr { Op: var op } || op != binaryExpr.Op)) {
+      if (formatter.binOpIndent > 0 && (this.E0 is not BinaryExpr { Op: var op } || op != this.Op)) {
         formatter.binOpIndent = -1;
         formatter.binOpArgIndent = -1;
       }
 
       return true; // Default indentation
-    } else if (binaryExpr.Op is BinaryExpr.Opcode.Imp or BinaryExpr.Opcode.Exp) {
-      foreach (var token in binaryExpr.OwnedTokens) {
+    } else if (Op is Opcode.Imp or Opcode.Exp) {
+      foreach (var token in this.OwnedTokens) {
         switch (token.val) {
           case "==>": {
               formatter.SetOpeningIndentedRegion(token, indent);
@@ -2201,21 +2200,21 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr>, ICanFormat {
             }
         }
       }
-      formatter.Visit(binaryExpr.E0, indent);
-      formatter.Visit(binaryExpr.E1, binaryExpr.Op is BinaryExpr.Opcode.Exp ? indent : indent + formatter.SpaceTab);
-      formatter.SetIndentations(binaryExpr.EndToken, after: indent);
+      formatter.Visit(this.E0, indent);
+      formatter.Visit(this.E1, this.Op is BinaryExpr.Opcode.Exp ? indent : indent + formatter.SpaceTab);
+      formatter.SetIndentations(this.EndToken, after: indent);
       return false;
-    } else if (binaryExpr.Op is BinaryExpr.Opcode.Eq or BinaryExpr.Opcode.Le or BinaryExpr.Opcode.Lt or BinaryExpr.Opcode.Ge or BinaryExpr.Opcode.Gt or BinaryExpr.Opcode.Iff or BinaryExpr.Opcode.Neq) {
+    } else if (Op is Opcode.Eq or Opcode.Le or Opcode.Lt or Opcode.Ge or Opcode.Gt or Opcode.Iff or Opcode.Neq) {
       var itemIndent = formatter.GetNewTokenVisualIndent(
-          binaryExpr.E0.StartToken, indent);
+          E0.StartToken, indent);
       var item2Indent = itemIndent;
-      var startToken = binaryExpr.E0.StartToken;
+      var startToken = this.E0.StartToken;
       if (startToken.Prev.line == startToken.line) {
         // like assert E0
         //          == E1
         // Careful: The binaryExpr.op's first column should be greater than the
         // token's first column before E0.StartToken. 
-        foreach (var token in binaryExpr.OwnedTokens) {
+        foreach (var token in this.OwnedTokens) {
           switch (token.val) {
             case "==":
             case "<=":
@@ -2231,24 +2230,24 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr>, ICanFormat {
                   selfIndent = itemIndent;
                 }
                 formatter.SetIndentations(token, itemIndent, selfIndent);
-                item2Indent = followedByNewline ? itemIndent : formatter.GetNewTokenVisualIndent(binaryExpr.E1.StartToken, itemIndent);
+                item2Indent = followedByNewline ? itemIndent : formatter.GetNewTokenVisualIndent(this.E1.StartToken, itemIndent);
                 formatter.SetIndentations(token, after: item2Indent);
                 break;
               }
           }
         }
       }
-      formatter.Visit(binaryExpr.E0, itemIndent);
-      formatter.Visit(binaryExpr.E1, item2Indent);
-      formatter.SetIndentations(binaryExpr.EndToken, after: indent);
+      formatter.Visit(E0, itemIndent);
+      formatter.Visit(E1, item2Indent);
+      formatter.SetIndentations(EndToken, after: indent);
       return false;
     } else {
-      foreach (var token in binaryExpr.OwnedTokens) {
+      foreach (var token in OwnedTokens) {
         formatter.SetIndentations(token, indent, indent, indent);
       }
-      formatter.Visit(binaryExpr.E0, indent);
-      formatter.Visit(binaryExpr.E1, indent);
-      formatter.SetIndentations(binaryExpr.EndToken, after: indent);
+      formatter.Visit(E0, indent);
+      formatter.Visit(E1, indent);
+      formatter.SetIndentations(EndToken, after: indent);
       return false;
     }
   }
@@ -2570,7 +2569,7 @@ public class StmtExpr : Expression {
   }
 }
 
-public class ITEExpr : Expression {
+public class ITEExpr : Expression, ICanFormat {
   public readonly bool IsBindingGuard;
   public readonly Expression Test;
   public readonly Expression Thn;
@@ -2600,6 +2599,60 @@ public class ITEExpr : Expression {
       yield return Thn;
       yield return Els;
     }
+  }
+
+  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+    var lineThen = 0;
+    var colThen = 0;
+    IToken thenToken = null;
+    foreach (var token in OwnedTokens) {
+      switch (token.val) {
+        case "if": {
+            if (IndentationFormatter.IsFollowedByNewline(token)) {
+              formatter.SetOpeningIndentedRegion(token, indentBefore);
+            } else {
+              formatter.SetAlignOpen(token, indentBefore);
+            }
+            formatter.Visit(Test, indentBefore);
+            break;
+          }
+        case "then": {
+            lineThen = token.line;
+            colThen = token.col;
+            thenToken = token;
+            if (IndentationFormatter.IsFollowedByNewline(token)) {
+              formatter.SetOpeningIndentedRegion(token, indentBefore);
+            } else {
+              var rightIndent = formatter.GetRightAlignIndentAfter(token, indentBefore);
+              formatter.SetIndentations(token, indentBefore, indentBefore, rightIndent);
+            }
+            formatter.Visit(Thn, indentBefore + formatter.SpaceTab);            // Override the last indentation so that comments are on the same column as "else"
+            formatter.SetIndentations(token.Prev, after: indentBefore);
+
+            break;
+          }
+        case "else": {
+            if (token.col == colThen) {
+              // We keep the alignment.
+              var newElseIndent = formatter.GetNewTokenVisualIndent(thenToken, indentBefore);
+              formatter.SetDelimiterIndentedRegions(token, newElseIndent);
+            } else if (token.Next.val == "if" || token.line == lineThen) { // Don't indent the subexpression
+              formatter.SetIndentations(token, before: indentBefore, sameLineBefore: indentBefore, after: indentBefore);
+            } else if (IndentationFormatter.IsFollowedByNewline(token)) {
+              formatter.SetOpeningIndentedRegion(token, indentBefore);
+            } else {
+              formatter.SetAlign(indentBefore, token, out _, out _);
+            }
+
+            formatter.Visit(Els, indentBefore + formatter.SpaceTab);
+            // Override the last indentation so that comments are on the same column as "else"
+            formatter.SetIndentations(token.Prev, after: indentBefore);
+            break;
+          }
+      }
+    }
+
+    return false;
   }
 }
 

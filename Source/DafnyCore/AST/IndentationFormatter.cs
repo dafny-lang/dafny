@@ -117,8 +117,6 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
       case LetOrFailExpr:
       case LetExpr:
         return SetIndentVarDeclStmt(indent, expr.OwnedTokens, expr is LetOrFailExpr { Lhs: null }, true);
-      case ITEExpr iteExpr:
-        return SetIndentITE(indent, iteExpr);
       case NestedMatchExpr nestedMatchExpr:
         var i = unusedIndent;
         return SetIndentCases(indent, expr.OwnedTokens.Concat(nestedMatchExpr.Cases.SelectMany(oneCase => oneCase.OwnedTokens)).OrderBy(token => token.pos), () => {
@@ -309,7 +307,7 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
 
   // Given a token such as `var ` immediately followed by another token
   // returns the indent so that everything after it is aligned with the first token.
-  private int GetRightAlignIndentAfter(IToken token, int indentFallback) {
+  public int GetRightAlignIndentAfter(IToken token, int indentFallback) {
     var trailingSpace = GetTrailingSpace(token);
     return GetNewTokenVisualIndent(token, indentFallback) + token.val.Length + trailingSpace;
   }
@@ -1708,61 +1706,6 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
     return false;
   }
 
-  private bool SetIndentITE(int indent, ITEExpr iteExpr) {
-    var lineThen = 0;
-    var colThen = 0;
-    IToken thenToken = null;
-    foreach (var token in iteExpr.OwnedTokens) {
-      switch (token.val) {
-        case "if": {
-            if (IsFollowedByNewline(token)) {
-              SetOpeningIndentedRegion(token, indent);
-            } else {
-              SetAlignOpen(token, indent);
-            }
-            Visit(iteExpr.Test, indent);
-            break;
-          }
-        case "then": {
-            lineThen = token.line;
-            colThen = token.col;
-            thenToken = token;
-            if (IsFollowedByNewline(token)) {
-              SetOpeningIndentedRegion(token, indent);
-            } else {
-              var rightIndent = GetRightAlignIndentAfter(token, indent);
-              SetIndentations(token, indent, indent, rightIndent);
-            }
-            Visit(iteExpr.Thn, indent + SpaceTab);            // Override the last indentation so that comments are on the same column as "else"
-            SetIndentations(token.Prev, after: indent);
-
-            break;
-          }
-        case "else": {
-            if (token.col == colThen) {
-              // We keep the alignment.
-              var newElseIndent = GetNewTokenVisualIndent(thenToken, indent);
-              SetDelimiterIndentedRegions(token, newElseIndent);
-            } else if (token.Next.val == "if" || token.line == lineThen) { // Don't indent the subexpression
-              SetIndentations(token, before: indent, sameLineBefore: indent, after: indent);
-            } else if (IsFollowedByNewline(token)) {
-              SetOpeningIndentedRegion(token, indent);
-            } else {
-              SetAlign(indent, token, out _, out _);
-            }
-
-            Visit(iteExpr.Els, indent + SpaceTab);
-            // Override the last indentation so that comments are on the same column as "else"
-            SetIndentations(token.Prev, after: indent);
-            break;
-          }
-      }
-    }
-
-    return false;
-  }
-
-
   private bool SetIndentVarDeclStmt(int indent, IEnumerable<IToken> ownedTokens, bool noLHS, bool isLetExpr) {
     var rightIndent = indent + SpaceTab;
     var commaIndent = indent + SpaceTab;
@@ -1902,111 +1845,6 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
     }
   }
 
-  private bool SetBinaryExprIndent(int indent, BinaryExpr binaryExpr) {
-    if (binaryExpr.Op is BinaryExpr.Opcode.And or BinaryExpr.Opcode.Or) {
-      var ownedTokens = binaryExpr.OwnedTokens.ToList();
-      // Alignment required.
-      if (ownedTokens.Count == 2) {
-        var firstToken = ownedTokens[0];
-        var secondToken = ownedTokens[1];
-        indent = GetNewTokenVisualIndent(firstToken, GetIndentBefore(firstToken));
-        var c = 0;
-        while (c < firstToken.TrailingTrivia.Length && firstToken.TrailingTrivia[c] == ' ') {
-          c++;
-        }
-
-        var conjunctExtraIndent = c + SpaceTab;
-        binOpIndent = indent;
-        binOpArgIndent = indent + conjunctExtraIndent;
-        SetIndentations(firstToken, binOpIndent, binOpIndent, binOpArgIndent);
-        SetIndentations(secondToken, binOpIndent, binOpIndent, binOpArgIndent);
-      } else if (ownedTokens.Count > 0) {
-        if (ownedTokens[0].val == "requires") { // Requirement conjunctions inside lambdas are separated by the keyword "requires"
-          if (binaryExpr.StartToken.Prev.val == "requires") {
-            binOpIndent = GetIndentBefore(binaryExpr.StartToken.Prev);
-          }
-        }
-        if (binOpIndent > 0) {
-          SetIndentations(ownedTokens[0], binOpIndent, binOpIndent, binOpArgIndent);
-        } else {
-          var startToken = binaryExpr.StartToken;
-          var newIndent = GetNewTokenVisualIndent(startToken, GetIndentBefore(startToken));
-          SetIndentations(ownedTokens[0], newIndent, newIndent, newIndent);
-        }
-      }
-
-      if (binOpIndent > 0 && (binaryExpr.E0 is not BinaryExpr { Op: var op } || op != binaryExpr.Op)) {
-        binOpIndent = -1;
-        binOpArgIndent = -1;
-      }
-
-      return true; // Default indentation
-    } else if (binaryExpr.Op is BinaryExpr.Opcode.Imp or BinaryExpr.Opcode.Exp) {
-      foreach (var token in binaryExpr.OwnedTokens) {
-        switch (token.val) {
-          case "==>": {
-              SetOpeningIndentedRegion(token, indent);
-              break;
-            }
-          case "<==": {
-              SetIndentations(token, indent, indent, indent);
-              break;
-            }
-        }
-      }
-      Visit(binaryExpr.E0, indent);
-      Visit(binaryExpr.E1, binaryExpr.Op is BinaryExpr.Opcode.Exp ? indent : indent + SpaceTab);
-      SetIndentations(binaryExpr.EndToken, after: indent);
-      return false;
-    } else if (binaryExpr.Op is BinaryExpr.Opcode.Eq or BinaryExpr.Opcode.Le or BinaryExpr.Opcode.Lt or BinaryExpr.Opcode.Ge or BinaryExpr.Opcode.Gt or BinaryExpr.Opcode.Iff or BinaryExpr.Opcode.Neq) {
-      var itemIndent = GetNewTokenVisualIndent(
-          binaryExpr.E0.StartToken, indent);
-      var item2Indent = itemIndent;
-      var startToken = binaryExpr.E0.StartToken;
-      if (startToken.Prev.line == startToken.line) {
-        // like assert E0
-        //          == E1
-        // Careful: The binaryExpr.op's first column should be greater than the
-        // token's first column before E0.StartToken. 
-        foreach (var token in binaryExpr.OwnedTokens) {
-          switch (token.val) {
-            case "==":
-            case "<=":
-            case "<":
-            case ">=":
-            case ">":
-            case "<==>":
-            case "!=": {
-                var followedByNewline = IsFollowedByNewline(token);
-                var selfIndent = followedByNewline ? itemIndent : Math.Max(itemIndent - token.val.Length - 1, 0);
-                if (selfIndent <= GetNewTokenVisualIndent(startToken.Prev, itemIndent)) {
-                  // There could be a visual ambiguity if this token is aligned with the enclosing token.
-                  selfIndent = itemIndent;
-                }
-                SetIndentations(token, itemIndent, selfIndent);
-                item2Indent = followedByNewline ? itemIndent : GetNewTokenVisualIndent(binaryExpr.E1.StartToken, itemIndent);
-                SetIndentations(token, after: item2Indent);
-                break;
-              }
-          }
-        }
-      }
-      Visit(binaryExpr.E0, itemIndent);
-      Visit(binaryExpr.E1, item2Indent);
-      SetIndentations(binaryExpr.EndToken, after: indent);
-      return false;
-    } else {
-      foreach (var token in binaryExpr.OwnedTokens) {
-        SetIndentations(token, indent, indent, indent);
-      }
-      Visit(binaryExpr.E0, indent);
-      Visit(binaryExpr.E1, indent);
-      SetIndentations(binaryExpr.EndToken, after: indent);
-      return false;
-    }
-  }
-
-
   /// For example, the "if" keyword in the context of a statement
   ///
   /// // Not indented
@@ -2035,7 +1873,7 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
   ///   // indented
   /// else     // line not indented
   ///   x == 2 // Line indented
-  private void SetDelimiterIndentedRegions(IToken token, int indent) {
+  public void SetDelimiterIndentedRegions(IToken token, int indent) {
     SetIndentations(token, indent + SpaceTab, indent, indent + SpaceTab);
   }
 
@@ -2107,7 +1945,7 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
   ///                ^rightIndent
   ///           ^commaIndent
   /// 
-  private void SetAlign(int indent, IToken token, out int rightIndent, out int commaIndent) {
+  public void SetAlign(int indent, IToken token, out int rightIndent, out int commaIndent) {
     SetIndentations(token, indent, indent);
     rightIndent = GetRightAlignIndentAfter(token, indent);
     commaIndent = GetNewTokenVisualIndent(token, indent) + token.val.Length - 1;
@@ -2123,7 +1961,7 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
   ///        ^ rightIndent
   /// else Z
   /// 
-  private void SetAlignOpen(IToken token, int indent) {
+  public void SetAlignOpen(IToken token, int indent) {
     var rightIndent = GetRightAlignIndentAfter(token, indent);
     SetIndentations(token, indent, indent, rightIndent);
   }
