@@ -17,7 +17,7 @@
 "Command" = "run"
 [Arguments]
 "no-verify" = true
-"target" = "py"
+"target" = "cs"
 
 
 # Default values for some of the Dafny CLI options is mentioned below, chnage it to remove "#" before that for configuration engine to override the variable.
