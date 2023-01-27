@@ -1395,10 +1395,13 @@ public class ApplyExpr : Expression {
 }
 
 public class FunctionCallExpr : Expression, IHasUsages, ICloneable<FunctionCallExpr> {
-  public string Name;
+  
+  public override IToken Tok => Name.StartToken == StartToken 
+    ? StartToken // in A(), return A
+    : Name.StartToken; // in A.B(), return B
+  
+  public Name Name;
   public readonly Expression Receiver;
-  public readonly IToken OpenParen;  // can be null if Args.Count == 0
-  public readonly IToken CloseParen;
   public readonly Label/*?*/ AtLabel;
   public readonly ActualBindings Bindings;
   public List<Expression> Args => Bindings.Arguments;
@@ -1465,29 +1468,25 @@ public class FunctionCallExpr : Expression, IHasUsages, ICloneable<FunctionCallE
 
   [FilledInDuringResolution] public Function Function;
 
-  public FunctionCallExpr(RangeToken rangeToken, string fn, Expression receiver, IToken openParen, IToken closeParen, [Captured] List<ActualBinding> args, Label/*?*/ atLabel = null)
-    : this(rangeToken, fn, receiver, openParen, closeParen, new ActualBindings(args), atLabel) {
+  public FunctionCallExpr(RangeToken rangeToken, Name fn, Expression receiver, [Captured] List<ActualBinding> args, Label/*?*/ atLabel = null)
+    : this(rangeToken, fn, receiver, new ActualBindings(args), atLabel) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(fn != null);
     Contract.Requires(receiver != null);
     Contract.Requires(cce.NonNullElements(args));
-    Contract.Requires(openParen != null || args.Count == 0);
     Contract.Ensures(type == null);
   }
 
-  public FunctionCallExpr(RangeToken rangeToken, string fn, Expression receiver, IToken openParen, IToken closeParen, [Captured] ActualBindings bindings, Label/*?*/ atLabel = null)
+  public FunctionCallExpr(RangeToken rangeToken, Name fn, Expression receiver, [Captured] ActualBindings bindings, Label/*?*/ atLabel = null)
     : base(rangeToken) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(fn != null);
     Contract.Requires(receiver != null);
     Contract.Requires(bindings != null);
-    Contract.Requires(openParen != null);
     Contract.Ensures(type == null);
 
     this.Name = fn;
     this.Receiver = receiver;
-    this.OpenParen = openParen;
-    this.CloseParen = closeParen;
     this.AtLabel = atLabel;
     this.Bindings = bindings;
     // this.FormatTokens = closeParen != null ? new[] { closeParen } : null;
@@ -1497,9 +1496,9 @@ public class FunctionCallExpr : Expression, IHasUsages, ICloneable<FunctionCallE
   /// This constructor is intended to be used when constructing a resolved FunctionCallExpr. The "args" are expected
   /// to be already resolved, and are all given positionally.
   /// </summary>
-  public FunctionCallExpr(RangeToken rangeToken, string fn, Expression receiver, IToken openParen, IToken closeParen, [Captured] List<Expression> args,
+  public FunctionCallExpr(RangeToken rangeToken, Name fn, Expression receiver, [Captured] List<Expression> args,
     Label /*?*/ atLabel = null)
-    : this(rangeToken, fn, receiver, openParen, closeParen, args.ConvertAll(e => new ActualBinding(null, e)), atLabel) {
+    : this(rangeToken, fn, receiver, args.ConvertAll(e => new ActualBinding(null, e)), atLabel) {
     Bindings.AcceptArgumentExpressionsAsExactParameterList();
   }
 
@@ -1510,8 +1509,6 @@ public class FunctionCallExpr : Expression, IHasUsages, ICloneable<FunctionCallE
   public FunctionCallExpr(Cloner cloner, FunctionCallExpr original) : base(cloner, original) {
     Name = original.Name;
     Receiver = cloner.CloneExpr(original.Receiver);
-    OpenParen = original.OpenParen == null ? null : cloner.Tok(original.OpenParen);
-    CloseParen = original.CloseParen == null ? null : cloner.Tok(original.CloseParen);
     Bindings = new ActualBindings(cloner, original.Bindings);
     AtLabel = original.AtLabel;
 
@@ -1739,7 +1736,8 @@ public class TypeTestExpr : TypeUnaryExpr {
 }
 
 public class BinaryExpr : Expression, ICloneable<BinaryExpr> {
-  
+  public override IToken Tok => E1.EndToken.Prev;
+
   public enum Opcode {
     Iff,
     Imp,
@@ -3098,7 +3096,8 @@ public class NameSegment : ConcreteSyntaxExpression, ICloneable<NameSegment> {
 /// An ExprDotName desugars into either an IdentifierExpr (if the Lhs is a static name) or a MemberSelectExpr (if the Lhs is a computed expression).
 /// </summary>
 public class ExprDotName : SuffixExpr, ICloneable<ExprDotName> {
-  public readonly string SuffixName;
+  public readonly Name SuffixNameNode;
+  public string SuffixName => SuffixNameNode.Value;
   public readonly List<Type> OptTypeArguments;
 
   /// <summary>
@@ -3117,16 +3116,16 @@ public class ExprDotName : SuffixExpr, ICloneable<ExprDotName> {
   }
 
   public ExprDotName(Cloner cloner, ExprDotName original) : base(cloner, original) {
-    SuffixName = original.SuffixName;
+    SuffixNameNode = original.SuffixNameNode.Clone(cloner);
     OptTypeArguments = original.OptTypeArguments?.ConvertAll(cloner.CloneType);
   }
 
-  public ExprDotName(RangeToken rangeToken, Expression obj, string suffixName, List<Type> optTypeArguments)
+  public ExprDotName(RangeToken rangeToken, Expression obj, Name suffixName, List<Type> optTypeArguments)
     : base(rangeToken, obj) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(obj != null);
     Contract.Requires(suffixName != null);
-    this.SuffixName = suffixName;
+    this.SuffixNameNode = suffixName;
     OptTypeArguments = optTypeArguments;
   }
 }
@@ -3135,6 +3134,8 @@ public class ExprDotName : SuffixExpr, ICloneable<ExprDotName> {
 /// An ApplySuffix desugars into either an ApplyExpr or a FunctionCallExpr
 /// </summary>
 public class ApplySuffix : SuffixExpr, ICloneable<ApplySuffix> {
+  public override IToken Tok => Lhs.EndToken.Next;
+  
   public readonly IToken/*?*/ AtTok;
   public readonly IToken CloseParen;
   public readonly ActualBindings Bindings;

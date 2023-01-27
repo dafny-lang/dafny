@@ -234,7 +234,7 @@ public class ExpectContracts : IRewriter {
           var newTarget = newRedirections[m];
           var resolved = (MemberSelectExpr)cs.MethodSelect.Resolved;
           resolved.Member = newTarget;
-          resolved.MemberName = newTarget.Name;
+          resolved.MemberNameNode.Value = newTarget.Name;
           calledWrappers.Add(newTarget);
         }
       }

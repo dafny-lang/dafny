@@ -6,7 +6,8 @@ namespace Microsoft.Dafny;
 
 public class MemberSelectExpr : Expression, IHasUsages, ICloneable<MemberSelectExpr> {
   public readonly Expression Obj;
-  public string MemberName;
+  public string MemberName => MemberNameNode.Value;
+  public Name MemberNameNode;
   [FilledInDuringResolution] public MemberDecl Member;    // will be a Field or Function
   [FilledInDuringResolution] public Label /*?*/ AtLabel;  // non-null for a two-state selection
   [FilledInDuringResolution] public bool InCompiledContext;
@@ -151,7 +152,7 @@ public class MemberSelectExpr : Expression, IHasUsages, ICloneable<MemberSelectE
 
   public MemberSelectExpr(Cloner cloner, MemberSelectExpr original) : base(cloner, original) {
     Obj = cloner.CloneExpr(original.Obj);
-    MemberName = original.MemberName;
+    MemberNameNode = original.MemberNameNode.Clone(cloner);
 
     if (cloner.CloneResolvedFields) {
       Member = cloner.CloneMember(original.Member, true);
@@ -162,13 +163,13 @@ public class MemberSelectExpr : Expression, IHasUsages, ICloneable<MemberSelectE
     }
   }
 
-  public MemberSelectExpr(RangeToken rangeToken, Expression obj, string memberName)
+  public MemberSelectExpr(RangeToken rangeToken, Expression obj, Name memberName)
     : base(rangeToken) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(obj != null);
     Contract.Requires(memberName != null);
     this.Obj = obj;
-    this.MemberName = memberName;
+    this.MemberNameNode = memberName;
   }
 
   /// <summary>

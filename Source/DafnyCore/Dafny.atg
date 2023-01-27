@@ -1090,7 +1090,6 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
      IToken tokenWithTrailingDocString;
      var prefixIds = new List<IToken>();
      List<MemberDecl/*!*/> namedModuleDefaultClassMembers = new List<MemberDecl>();;
-     List<IToken> idQualified = null;
      List<Name> idRefined = null;
      ModuleDefinition module;
      submodule = null; // appease compiler
@@ -1101,7 +1100,7 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
    { Attribute<ref attrs> }            (. ApplyOptionsFromAttributes(attrs); .)
    ModuleQualifiedName<out var names>
    (. var name = names[^1];
-      prefixIds = idQualified.GetRange(0,idQualified.Count-1);
+      prefixIds = names.GetRange(0,names.Count-1).Select(n => n.StartToken).ToList();
    .)
 
    [ "refines" ModuleQualifiedName<out idRefined>
@@ -1490,7 +1489,7 @@ FieldDecl<.DeclModifierData dmod, bool isValueType, List<MemberDecl> mm.>
 ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool moduleLevelDecl.>
 = (. Contract.Requires(cce.NonNullElements(mm));
      Attributes attrs = null;
-     IToken/*!*/ id;  Type/*!*/ ty;
+     Type/*!*/ ty;
      Expression e = null;
      if (moduleLevelDecl && dmod.StaticToken != null) {
        errors.Warning(dmod.StaticToken, "module-level const declarations are always non-instance, so the 'static' keyword is not allowed here");
@@ -2337,7 +2336,7 @@ NamedType<.out Type ty, out IToken tok, bool inExpressionContext.> =
   { "."
     TypeNameOrCtorSuffix<out tok>       (. List<Type> typeArgs; .)
     OptGenericInstantiation<out typeArgs, inExpressionContext>
-    (. e = new ExprDotName(new RangeToken(e.StartToken, t), e, tok.val, typeArgs); .)
+    (. e = new ExprDotName(new RangeToken(e.StartToken, t), e, new Name(tok), typeArgs); .)
   }
   (. ty = new UserDefinedType(new RangeToken(startToken, t), e);
    .)
@@ -4768,8 +4767,7 @@ CasePatternLocal<.out CasePattern<LocalVariable> pat, bool isGhost.>
 
 /*------------------------------------------------------------------------*/
 NameSegment<out Expression e>
-= (. IToken id;
-     IToken openParen = null; IToken atLabel = null;
+= (. IToken openParen = null; IToken atLabel = null;
      List<Type> typeArgs = null; List<ActualBinding> args = null;
   .)
   IName<out var name>
@@ -4854,7 +4852,7 @@ Suffix<ref Expression e>
       (. e = new DatatypeUpdateExpr(new RangeToken(startToken, t), e, updates); .)
     | DotSuffix<out id, out x>                 (. if (x != null) {
                                                     // process id as a Suffix in its own right
-                                                    e = new ExprDotName(new RangeToken(startToken, t), e, id.val, null);
+                                                    e = new ExprDotName(new RangeToken(startToken, t), e, new Name(id), null);
                                                     id = x;  // move to the next Suffix
                                                   }
                                                   IToken openParen = null;  List<Type> typeArgs = null;
@@ -4869,7 +4867,7 @@ Suffix<ref Expression e>
       | HashCall<id, out openParen, out typeArgs, out args>
       | [ AtCall<out atLabel, out openParen, out args> ]
       )
-      (. e = new ExprDotName(new RangeToken(startToken, id), e, id.val, typeArgs);
+      (. e = new ExprDotName(new RangeToken(startToken, id), e, new Name(id), typeArgs);
          if (openParen != null) {
            e = new ApplySuffix(new RangeToken(startToken, t), atLabel, e, args, t);
          } else {

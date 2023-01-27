@@ -2123,7 +2123,7 @@ namespace Microsoft.Dafny {
       var resultVar = f.Result ?? new Formal(tok, "#result", f.ResultType, false, false, null);
       var r = Expression.CreateIdentExpr(resultVar);
       var receiver = f.IsStatic ? (Expression)new StaticReceiverExpr(tok, cl, true) : new ImplicitThisExpr(tok);
-      var fn = new FunctionCallExpr(tok, f.Name, receiver, tok.StartToken, tok.StartToken, f.Formals.ConvertAll(Expression.CreateIdentExpr));
+      var fn = new FunctionCallExpr(tok, f.Name, receiver, f.Formals.ConvertAll(Expression.CreateIdentExpr));
       var post = new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq, r, fn));
       var method = new Method(f.RangeToken, f.Name, f.HasStaticKeyword, false, f.TypeArgs,
         f.Formals, new List<Formal>() { resultVar },
@@ -5839,7 +5839,7 @@ namespace Microsoft.Dafny {
           new MemberSelectExpr(p.RangeToken, new ThisExpr(p.RangeToken), p.Name), new SeqDisplayExpr(p.RangeToken, new List<Expression>()))));
       }
       // ensures this.Valid();
-      var valid_call = new FunctionCallExpr(tok, "Valid", new ThisExpr(tok), iter.tok, iter.tok, new List<ActualBinding>());
+      var valid_call = new FunctionCallExpr(tok, "Valid", new ThisExpr(tok), new List<ActualBinding>());
       ens.Add(new AttributedExpression(valid_call));
       // ensures this._reads == old(ReadsClause);
       var modSetSingletons = new List<Expression>();
@@ -5893,7 +5893,7 @@ namespace Microsoft.Dafny {
       // ---------- here comes method MoveNext() ----------
       // requires this.Valid();
       var req = iter.Member_MoveNext.Req;
-      valid_call = new FunctionCallExpr(tok, "Valid", new ThisExpr(tok), iter.tok, iter.tok, new List<ActualBinding>());
+      valid_call = new FunctionCallExpr(tok, "Valid", new ThisExpr(tok), new List<ActualBinding>());
       req.Add(new AttributedExpression(valid_call));
       // requires YieldRequires;
       req.AddRange(iter.YieldRequires);
@@ -5913,7 +5913,7 @@ namespace Microsoft.Dafny {
         new LiteralExpr(tok),
         new MemberSelectExpr(tok, new ThisExpr(tok), "_new"))));
       // ensures more ==> this.Valid();
-      valid_call = new FunctionCallExpr(tok, "Valid", new ThisExpr(tok), iter.tok, iter.tok, new List<ActualBinding>());
+      valid_call = new FunctionCallExpr(tok, "Valid", new ThisExpr(tok), new List<ActualBinding>());
       ens.Add(new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Imp,
         new IdentifierExpr(tok, "more"),
         valid_call)));
@@ -7483,7 +7483,7 @@ namespace Microsoft.Dafny {
           }
         }
         // Second, investigate the possibility that this call itself may be a candidate co-call
-        if (e.Name != "requires" && ModuleDefinition.InSameSCC(currentFunction, e.Function)) {
+        if (e.Name.Value != "requires" && ModuleDefinition.InSameSCC(currentFunction, e.Function)) {
           // This call goes to another function in the same recursive cluster
           if (destructionLevel != 0 && GuaranteedCoCtors(e.Function) <= destructionLevel) {
             // a potentially destructive context

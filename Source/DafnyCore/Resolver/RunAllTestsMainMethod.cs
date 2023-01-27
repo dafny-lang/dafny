@@ -153,7 +153,7 @@ public class RunAllTestsMainMethod : IRewriter {
 
           if (resultVarExpr != null) {
             var failureGuardExpr =
-              new FunctionCallExpr(tok, "IsFailure", resultVarExpr, tok.StartToken, tok.EndToken, new List<Expression>());
+              new FunctionCallExpr(tok, "IsFailure", resultVarExpr, new List<Expression>());
             var resultClass = (TopLevelDeclWithMembers)((UserDefinedType)resultVarExpr.Type).ResolvedClass;
             var isFailureMember = resultClass.Members.First(m => m.Name == "IsFailure");
             failureGuardExpr.Function = (Function)isFailureMember;

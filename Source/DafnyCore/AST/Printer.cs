@@ -2366,9 +2366,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
           wr.Write("]");
         }
         */
-        if (e.OpenParen == null && e.Args.Count == 0) {
+        if (e.Args.Count == 0) {
         } else {
-          PrintActualArguments(e.Bindings, e.Name, null);
+          PrintActualArguments(e.Bindings, e.Name.Value, null);
         }
         if (parensNeeded) { wr.Write(")"); }
 

@@ -53,8 +53,13 @@ public interface IToken : Microsoft.Boogie.IToken {
 public class Token : IToken {
 
   public Token peekedTokens; // Used only internally by Coco when the scanner "peeks" tokens. Normallly null at the end of parsing
-  public static readonly IToken NoToken = (IToken)new Token();
+  public static readonly IToken NoToken = new Token();
 
+  static Token() {
+    NoToken.Next = NoToken;
+    NoToken.Prev = NoToken;
+  }
+  
   public Token() : this(0, 0) { }
 
   public Token(int linenum, int colnum) {
@@ -165,7 +170,7 @@ public class RangeToken { // TODO rename to remove Token from the name
     return new RangeToken(new RefinementToken(StartToken, module), EndToken);
   }
   
-  public static RangeToken NoToken = null; // TODO fix
+  public static RangeToken NoToken = new(Token.NoToken, Token.NoToken);
   public string Filename => StartToken.Filename;
 
   // The wrapped token is the startTok

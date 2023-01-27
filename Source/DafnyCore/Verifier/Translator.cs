@@ -1709,7 +1709,7 @@ namespace Microsoft.Dafny {
         new List<Bpl.IdentifierExpr>()));
 
       // assume the automatic yield-requires precondition (which is always well-formed):  this.Valid()
-      var validCall = new FunctionCallExpr(iter.RangeToken, "Valid", th, iter.tok, iter.tok, new List<Expression>());
+      var validCall = new FunctionCallExpr(iter.RangeToken, "Valid", th, new List<Expression>());
       validCall.Function = iter.Member_Valid;  // resolve here
       validCall.Type = Type.Bool;  // resolve here
       validCall.TypeApplication_AtEnclosingClass = iter.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));  // resolve here
@@ -2713,7 +2713,7 @@ namespace Microsoft.Dafny {
         Expression recursiveCallReceiver;
         List<Expression> recursiveCallArgs;
         RecursiveCallParameters(pp.RangeToken, pp, pp.TypeArgs, pp.Formals, null, substMap, out recursiveCallReceiver, out recursiveCallArgs);
-        var ppCall = new FunctionCallExpr(pp.RangeToken, pp.Name, recursiveCallReceiver, pp.tok, pp.tok, recursiveCallArgs);
+        var ppCall = new FunctionCallExpr(pp.RangeToken, pp.Name, recursiveCallReceiver, recursiveCallArgs);
         ppCall.Function = pp;
         ppCall.Type = Type.Bool;
         ppCall.TypeApplication_AtEnclosingClass = pp.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));

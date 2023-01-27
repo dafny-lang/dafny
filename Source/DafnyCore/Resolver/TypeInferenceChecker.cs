@@ -182,7 +182,7 @@ partial class Resolver {
             ? e.Function.EnclosingClass.TypeArgs[i]
             : e.Function.TypeArgs[i - e.TypeApplication_AtEnclosingClass.Count];
           if (!IsDetermined(p.Normalize())) {
-            var hint = e.Name.StartsWith("reveal_")
+            var hint = e.Name.Value.StartsWith("reveal_")
               ? ". If you are making an opaque function, make sure that the function can be called."
               : "";
             resolver.reporter.Error(MessageSource.Resolver, e.tok,

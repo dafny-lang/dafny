@@ -6263,7 +6263,8 @@ namespace Microsoft.Dafny {
       // For 3:
       TopLevelDecl decl;
 
-      var name = resolutionContext.InReveal ? "reveal_" + expr.Name : expr.Name;
+      var nameNode = resolutionContext.InReveal ? "reveal_" + expr.MyName : expr.MyName;
+      var name = nameNode.Value;
       v = scope.Find(name);
       if (v != null) {
         // ----- 0. local variable, parameter, or bound variable
@@ -6294,7 +6295,7 @@ namespace Microsoft.Dafny {
           receiver = new ImplicitThisExpr(expr.RangeToken);
           receiver.Type = GetThisType(expr.RangeToken, currentClass);  // resolve here
         }
-        r = ResolveExprDotCall(expr.RangeToken, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
+        r = ResolveExprDotCall(expr.RangeToken, nameNode, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
       } else if (isLastNameSegment && moduleInfo.Ctors.TryGetValue(name, out pair)) {
         // ----- 2. datatype constructor
         if (ResolveDatatypeConstructor(expr, args, resolutionContext, complain, pair, name, ref r, ref rWithArgs)) {
@@ -6347,7 +6348,7 @@ namespace Microsoft.Dafny {
           }
         } else {
           var receiver = new StaticReceiverExpr(expr.RangeToken, (ClassDecl)member.EnclosingClass, true);
-          r = ResolveExprDotCall(expr.RangeToken, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
+          r = ResolveExprDotCall(expr.RangeToken, nameNode, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
         }
 
       } else if (!isLastNameSegment && moduleInfo.Ctors.TryGetValue(name, out pair)) {
@@ -6624,7 +6625,7 @@ namespace Microsoft.Dafny {
           } else {
             var receiver = new StaticReceiverExpr(expr.Lhs.RangeToken, (ClassDecl)member.EnclosingClass, false);
             receiver.ContainerExpression = expr.Lhs;
-            r = ResolveExprDotCall(expr.RangeToken, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
+            r = ResolveExprDotCall(expr.RangeToken, expr.SuffixNameNode, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           }
         } else {
           reporter.Error(MessageSource.Resolver, expr.tok, "unresolved identifier: {0}", name);
@@ -6667,7 +6668,7 @@ namespace Microsoft.Dafny {
             }
             var receiver = new StaticReceiverExpr(expr.Lhs.RangeToken, (UserDefinedType)ty.NormalizeExpand(), (TopLevelDeclWithMembers)member.EnclosingClass, false);
             receiver.ContainerExpression = expr.Lhs;
-            r = ResolveExprDotCall(expr.RangeToken, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
+            r = ResolveExprDotCall(expr.RangeToken, expr.SuffixNameNode, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           }
         }
         if (r == null) {
@@ -6682,10 +6683,10 @@ namespace Microsoft.Dafny {
           if (!member.IsStatic) {
             receiver = expr.Lhs;
             AddAssignableConstraint(expr.tok, tentativeReceiverType, receiver.Type, "receiver type ({1}) does not have a member named " + name);
-            r = ResolveExprDotCall(expr.RangeToken, receiver, tentativeReceiverType, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
+            r = ResolveExprDotCall(expr.RangeToken, expr.SuffixNameNode, receiver, tentativeReceiverType, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           } else {
             receiver = new StaticReceiverExpr(expr.RangeToken, (UserDefinedType)tentativeReceiverType, (TopLevelDeclWithMembers)member.EnclosingClass, false, lhs);
-            r = ResolveExprDotCall(expr.RangeToken, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
+            r = ResolveExprDotCall(expr.RangeToken, expr.SuffixNameNode, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           }
         }
       }
@@ -6732,7 +6733,7 @@ namespace Microsoft.Dafny {
       );
     }
 
-    Expression ResolveExprDotCall(RangeToken tok, Expression receiver, Type receiverTypeBound/*?*/,
+    Expression ResolveExprDotCall(RangeToken tok, Name name, Expression receiver, Type receiverTypeBound/*?*/,
       MemberDecl member, List<ActualBinding> args, List<Type> optTypeArguments, ResolutionContext resolutionContext, bool allowMethodCall) {
       Contract.Requires(tok != null);
       Contract.Requires(receiver != null);
@@ -6740,7 +6741,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(member != null);
       Contract.Requires(resolutionContext != null && resolutionContext.CodeContext != null);
 
-      var rr = new MemberSelectExpr(tok, receiver, member.Name);
+      var rr = new MemberSelectExpr(tok, receiver, new Name(name.RangeToken, member.Name));
       rr.Member = member;
 
       // Now, fill in rr.Type.  This requires taking into consideration the type parameters passed to the receiver's type as well as any type
@@ -6915,7 +6916,7 @@ namespace Microsoft.Dafny {
           }
           if (callee != null) {
             // produce a FunctionCallExpr instead of an ApplyExpr(MemberSelectExpr)
-            var rr = new FunctionCallExpr(e.Lhs.RangeToken, callee.Name, mse.Obj, e.tok, e.CloseParen, e.Bindings, atLabel) {
+            var rr = new FunctionCallExpr(e.Lhs.RangeToken, mse.MemberNameNode, mse.Obj, e.Bindings, atLabel) {
               Function = callee,
               TypeApplication_AtEnclosingClass = mse.TypeApplication_AtEnclosingClass,
               TypeApplication_JustFunction = mse.TypeApplication_JustMember
@@ -7009,7 +7010,7 @@ namespace Microsoft.Dafny {
       Contract.Assert(e.Receiver.Type != null);  // follows from postcondition of ResolveExpression
 
       NonProxyType tentativeReceiverType;
-      var member = ResolveMember(e.tok, e.Receiver.Type, e.Name, out tentativeReceiverType);
+      var member = ResolveMember(e.tok, e.Receiver.Type, e.Name.Value, out tentativeReceiverType);
 #if !NO_WORK_TO_BE_DONE
       var ctype = (UserDefinedType)tentativeReceiverType;
 #endif

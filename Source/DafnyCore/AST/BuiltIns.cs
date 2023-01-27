@@ -116,7 +116,7 @@ public class BuiltIns {
       var args = Util.Map(Enumerable.Range(0, arity), i => new Formal(rangeToken, "x" + i, tys[i], true, false, null));
       var argExprs = args.ConvertAll(a =>
             (Expression)new IdentifierExpr(rangeToken, a.Name) { Var = a, Type = a.Type });
-      var readsIS = new FunctionCallExpr(rangeToken, "reads", new ImplicitThisExpr(rangeToken), Token.NoToken, Token.NoToken, argExprs) {
+      var readsIS = new FunctionCallExpr(rangeToken, "reads", new ImplicitThisExpr(rangeToken), argExprs) {
         Type = new SetType(true, ObjectQ()),
       };
       var readsFrame = new List<FrameExpression> { new FrameExpression(rangeToken, readsIS, null) };

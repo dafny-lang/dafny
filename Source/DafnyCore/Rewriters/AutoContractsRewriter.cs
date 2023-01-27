@@ -113,7 +113,7 @@ public class AutoContractsRewriter : IRewriter {
         valid.Reads.Add(new FrameExpression(tok, r1, null));
         // ensures Valid() ==> this in Repr
         var post = new BinaryExpr(tok, BinaryExpr.Opcode.Imp,
-          new FunctionCallExpr(tok, "Valid", new ImplicitThisExpr(tok), tok.StartToken, tok.EndToken, new List<ActualBinding>()),
+          new FunctionCallExpr(tok, "Valid", new ImplicitThisExpr(tok), new List<ActualBinding>()),
           new BinaryExpr(tok, BinaryExpr.Opcode.In,
             new ThisExpr(tok),
             new MemberSelectExpr(tok, new ImplicitThisExpr(tok), "Repr")));
@@ -127,7 +127,7 @@ public class AutoContractsRewriter : IRewriter {
       } else if (member is Function && !member.IsStatic) {
         var f = (Function)member;
         // requires Valid()
-        var valid = new FunctionCallExpr(tok, "Valid", new ImplicitThisExpr(tok), tok.StartToken, tok.EndToken, new List<ActualBinding>());
+        var valid = new FunctionCallExpr(tok, "Valid", new ImplicitThisExpr(tok), new List<ActualBinding>());
         f.Req.Insert(0, new AttributedExpression(valid));
         var format = "requires {0}";
         var repr = new MemberSelectExpr(tok, new ImplicitThisExpr(tok), "Repr");
@@ -140,7 +140,7 @@ public class AutoContractsRewriter : IRewriter {
       } else if (member is Constructor) {
         var ctor = (Constructor)member;
         // ensures Valid();
-        var valid = new FunctionCallExpr(tok, "Valid", new ImplicitThisExpr(tok), tok.StartToken, tok.EndToken, new List<ActualBinding>());
+        var valid = new FunctionCallExpr(tok, "Valid", new ImplicitThisExpr(tok), new List<ActualBinding>());
         ctor.Ens.Insert(0, new AttributedExpression(valid));
         // ensures fresh(Repr);
         var freshness = new FreshExpr(tok,
@@ -468,7 +468,7 @@ public class AutoContractsRewriter : IRewriter {
     Contract.Requires(callingContext != null);
     Contract.Requires(receiver.Type.NormalizeExpand() is UserDefinedType && ((UserDefinedType)receiver.Type.NormalizeExpand()).ResolvedClass == Valid.EnclosingClass);
     Contract.Requires(receiver.Type.NormalizeExpand().TypeArgs.Count == Valid.EnclosingClass.TypeArgs.Count);
-    var call = new FunctionCallExpr(tok, Valid.Name, receiver, tok.StartToken, tok.EndToken, new List<Expression>());
+    var call = new FunctionCallExpr(tok, Valid.Name, receiver, new List<Expression>());
     call.Function = Valid;
     call.Type = Type.Bool;
     call.TypeApplication_AtEnclosingClass = receiver.Type.TypeArgs;
