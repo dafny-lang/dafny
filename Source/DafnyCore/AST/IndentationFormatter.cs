@@ -122,54 +122,55 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
       return false;
     }
     var firstToken = stmt.StartToken;
-    var indent = GetIndentBefore(firstToken);
+    var indentBefore = GetIndentBefore(firstToken);
+    if (stmt is ICanFormat canFormatNode) {
+      return canFormatNode.SetIndent(indentBefore, this);
+    }
     // Every function returns if traverse needs to occur (true) or if it already happened (false) 
     switch (stmt) {
-      case BlockStmt blockStmt:
-        return SetIndentBlockStmt(indent, blockStmt);
       case IfStmt ifStmt:
-        return SetIndentIfStmt(ifStmt, indent);
+        return SetIndentIfStmt(ifStmt, indentBefore);
       case CalcStmt calcStmt:
-        return SetIndentCalcStmt(indent, calcStmt);
+        return SetIndentCalcStmt(indentBefore, calcStmt);
       case SkeletonStatement:
         return true;
       case AlternativeStmt alternativeStmt:
-        return SetIndentCases(indent, alternativeStmt.OwnedTokens.Concat(alternativeStmt.Alternatives.SelectMany(alternative => alternative.OwnedTokens)).OrderBy(token => token.pos), () => {
-          VisitAlternatives(alternativeStmt.Alternatives, indent);
+        return SetIndentCases(indentBefore, alternativeStmt.OwnedTokens.Concat(alternativeStmt.Alternatives.SelectMany(alternative => alternative.OwnedTokens)).OrderBy(token => token.pos), () => {
+          VisitAlternatives(alternativeStmt.Alternatives, indentBefore);
         });
       case ForallStmt forallStmt: {
-          SetIndentLikeLoop(forallStmt.OwnedTokens, forallStmt.Body, indent);
+          SetIndentLikeLoop(forallStmt.OwnedTokens, forallStmt.Body, indentBefore);
           foreach (var ens in forallStmt.Ens) {
-            SetAttributedExpressionIndentation(ens, indent + SpaceTab);
+            SetAttributedExpressionIndentation(ens, indentBefore + SpaceTab);
           }
 
-          SetClosingIndentedRegion(forallStmt.EndToken, indent);
+          SetClosingIndentedRegion(forallStmt.EndToken, indentBefore);
           return false;
         }
       case WhileStmt whileStmt:
-        return SetIndentWhileStmt(whileStmt, indent);
+        return SetIndentWhileStmt(whileStmt, indentBefore);
       case AlternativeLoopStmt alternativeLoopStmt:
-        return SetIndentAlternativeLoopStmt(indent, alternativeLoopStmt);
+        return SetIndentAlternativeLoopStmt(indentBefore, alternativeLoopStmt);
       case ForLoopStmt forLoopStmt:
-        return SetIndentForLoopStmt(forLoopStmt, indent);
+        return SetIndentForLoopStmt(forLoopStmt, indentBefore);
       case VarDeclPattern varDeclPattern: {
-          SetIndentVarDeclStmt(indent, varDeclPattern.OwnedTokens, false, true);
+          SetIndentVarDeclStmt(indentBefore, varDeclPattern.OwnedTokens, false, true);
           return true;
         }
       case VarDeclStmt varDeclStmt: {
-          var result = SetIndentVarDeclStmt(indent, varDeclStmt.OwnedTokens, false, false);
+          var result = SetIndentVarDeclStmt(indentBefore, varDeclStmt.OwnedTokens, false, false);
           if (varDeclStmt.Update != null) {
-            return SetIndentUpdateStmt(varDeclStmt.Update, indent, true);
+            return SetIndentUpdateStmt(varDeclStmt.Update, indentBefore, true);
           }
 
           return result;
         }
       case ConcreteUpdateStatement concreteUpdateStatement: {
-          return SetIndentUpdateStmt(concreteUpdateStatement, indent, false);
+          return SetIndentUpdateStmt(concreteUpdateStatement, indentBefore, false);
         }
       case NestedMatchStmt nestedMatchStmt:
         var i = unusedIndent;
-        return SetIndentCases(indent, stmt.OwnedTokens.Concat(nestedMatchStmt.Cases.SelectMany(oneCase => oneCase.OwnedTokens)).OrderBy(token => token.pos), () => {
+        return SetIndentCases(indentBefore, stmt.OwnedTokens.Concat(nestedMatchStmt.Cases.SelectMany(oneCase => oneCase.OwnedTokens)).OrderBy(token => token.pos), () => {
           foreach (var e in stmt.PreResolveSubExpressions) {
             Visit(e, i);
           }
@@ -179,18 +180,18 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
         });
       case RevealStmt:
       case PrintStmt:
-        return SetIndentPrintRevealStmt(indent, stmt);
+        return SetIndentPrintRevealStmt(indentBefore, stmt);
       case AssumeStmt:
       case ExpectStmt:
       case AssertStmt:
       case YieldStmt:
-        return SetIndentAssertLikeStatement(stmt, indent);
+        return SetIndentAssertLikeStatement(stmt, indentBefore);
       case ModifyStmt modifyStmt:
-        return SetIndentModifyStatement(modifyStmt, indent);
+        return SetIndentModifyStatement(modifyStmt, indentBefore);
 
       default:
-        SetMethodLikeIndent(stmt.Tok, stmt.OwnedTokens, indent);
-        SetIndentations(stmt.EndToken, -1, -1, indent);
+        SetMethodLikeIndent(stmt.Tok, stmt.OwnedTokens, indentBefore);
+        SetIndentations(stmt.EndToken, -1, -1, indentBefore);
         break;
     }
 
@@ -1290,49 +1291,6 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
     return false;
   }
 
-  private bool SetIndentBlockStmt(int indent, BlockStmt blockStmt) {
-    var braceIndent = indent;
-    var innerBlockIndent = indent + SpaceTab;
-    foreach (var token in blockStmt.OwnedTokens) {
-      if (SetIndentLabelTokens(token, indent)) {
-        continue;
-      }
-      switch (token.val) {
-        case "{": {
-            if (!posToIndentLineBefore.ContainsKey(token.pos)) {
-              SetDelimiterIndentedRegions(token, braceIndent);
-            } else {
-              braceIndent = posToIndentLineBefore[token.pos];
-              if (!posToIndentBefore.ContainsKey(token.pos)) {
-                SetDelimiterIndentedRegions(token, braceIndent);
-              }
-
-              if (!IsFollowedByNewline(token)) {
-                // Align statements
-                SetAlign(indent, token, out innerBlockIndent, out braceIndent);
-              }
-            }
-
-            break;
-          }
-        case "}": {
-            SetIndentations(token, braceIndent + SpaceTab, braceIndent, indent);
-            break;
-          }
-      }
-    }
-
-    foreach (var blockStmtBody in blockStmt.Body) {
-      if (blockStmtBody is not BlockStmt && blockStmt.OwnedTokens.Any()) {
-        SetIndentations(blockStmtBody.StartToken, innerBlockIndent, innerBlockIndent);
-      }
-
-      Visit(blockStmtBody, indent + SpaceTab);
-    }
-
-    return false;
-  }
-
   private bool SetIndentCalcStmt(int indent, CalcStmt calcStmt) {
     var inCalc = false;
     var inOrdinal = false;
@@ -1654,7 +1612,7 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
     return true;
   }
 
-  private bool SetIndentLabelTokens(IToken token, int indent) {
+  public bool SetIndentLabelTokens(IToken token, int indent) {
     if (token.val == "label") {
       SetOpeningIndentedRegion(token, indent);
     } else if (token.val == ":" && token.Prev.Prev.val == "label") {
@@ -1723,6 +1681,13 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
 
       Visit(body, indent);
     }
+  }
+
+  public bool TryGetIndentBefore(IToken token, out int indent) {
+    return posToIndentBefore.TryGetValue(token.pos, out indent);
+  }
+  public bool TryGetIndentLineBefore(IToken token, out int indent) {
+    return posToIndentLineBefore.TryGetValue(token.pos, out indent);
   }
 
   /// For example, the "if" keyword in the context of a statement
