@@ -60,15 +60,15 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
    */
   public bool ReduceBlockiness = true;
 
-  private readonly int SpaceTab = 2;
+  public readonly int SpaceTab = 2;
 
   private readonly Dictionary<int, int> posToIndentBefore = new();
   private readonly Dictionary<int, int> posToIndentLineBefore = new();
   private readonly Dictionary<int, int> posToIndentAfter = new();
 
   // Used for bullet points && and ||
-  private int binOpIndent = -1;
-  private int binOpArgIndent = -1;
+  public int binOpIndent = -1;
+  public int binOpArgIndent = -1;
 
 
   private IndentationFormatter() {
@@ -114,8 +114,6 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
       return canFormatNode.SetIndent(indent, this);
     }
     switch (expr) {
-      case BinaryExpr binaryExpr:
-        return SetBinaryExprIndent(indent, binaryExpr);
       case LetOrFailExpr:
       case LetExpr:
         return SetIndentVarDeclStmt(indent, expr.OwnedTokens, expr is LetOrFailExpr { Lhs: null }, true);
@@ -257,7 +255,7 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
     return GetIndentAfter(token.Prev);
   }
 
-  private int GetIndentBefore(IToken token) {
+  public int GetIndentBefore(IToken token) {
     if (posToIndentLineBefore.TryGetValue(token.pos, out var indentation)) {
       return indentation;
     }
@@ -318,7 +316,7 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
 
   private static readonly Regex FollowedByNewlineRegex = new Regex("^[ \t]*([\r\n]|//)");
 
-  private static bool IsFollowedByNewline(IToken token) {
+  public static bool IsFollowedByNewline(IToken token) {
     return FollowedByNewlineRegex.IsMatch(token.TrailingTrivia);
   }
 
@@ -2014,7 +2012,7 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
   /// // Not indented
   /// if       // line not indented
   ///   x == 2 // Line indented
-  private void SetOpeningIndentedRegion(IToken token, int indent) {
+  public void SetOpeningIndentedRegion(IToken token, int indent) {
     SetIndentations(token, indent, indent, indent + SpaceTab);
   }
 

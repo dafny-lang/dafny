@@ -1755,7 +1755,7 @@ public class TypeTestExpr : TypeUnaryExpr {
   }
 }
 
-public class BinaryExpr : Expression, ICloneable<BinaryExpr> {
+public class BinaryExpr : Expression, ICloneable<BinaryExpr>, ICanFormat {
   public enum Opcode {
     Iff,
     Imp,
@@ -2144,6 +2144,112 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr> {
     get {
       yield return E0;
       yield return E1;
+    }
+  }
+
+  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+    var binaryExpr = this;
+    var indent = indentBefore;
+    if (binaryExpr.Op is BinaryExpr.Opcode.And or BinaryExpr.Opcode.Or) {
+      var ownedTokens = binaryExpr.OwnedTokens.ToList();
+      // Alignment required.
+      if (ownedTokens.Count == 2) {
+        var firstToken = ownedTokens[0];
+        var secondToken = ownedTokens[1];
+        indent = formatter.GetNewTokenVisualIndent(firstToken, formatter.GetIndentBefore(firstToken));
+        var c = 0;
+        while (c < firstToken.TrailingTrivia.Length && firstToken.TrailingTrivia[c] == ' ') {
+          c++;
+        }
+
+        var conjunctExtraIndent = c + formatter.SpaceTab;
+        formatter.binOpIndent = indent;
+        formatter.binOpArgIndent = indent + conjunctExtraIndent;
+        formatter.SetIndentations(firstToken, formatter.binOpIndent, formatter.binOpIndent, formatter.binOpArgIndent);
+        formatter.SetIndentations(secondToken, formatter.binOpIndent, formatter.binOpIndent, formatter.binOpArgIndent);
+      } else if (ownedTokens.Count > 0) {
+        if (ownedTokens[0].val == "requires") { // Requirement conjunctions inside lambdas are separated by the keyword "requires"
+          if (binaryExpr.StartToken.Prev.val == "requires") {
+            formatter.binOpIndent = formatter.GetIndentBefore(binaryExpr.StartToken.Prev);
+          }
+        }
+        if (formatter.binOpIndent > 0) {
+          formatter.SetIndentations(ownedTokens[0], formatter.binOpIndent, formatter.binOpIndent, formatter.binOpArgIndent);
+        } else {
+          var startToken = binaryExpr.StartToken;
+          var newIndent = formatter.GetNewTokenVisualIndent(startToken, formatter.GetIndentBefore(startToken));
+          formatter.SetIndentations(ownedTokens[0], newIndent, newIndent, newIndent);
+        }
+      }
+
+      if (formatter.binOpIndent > 0 && (binaryExpr.E0 is not BinaryExpr { Op: var op } || op != binaryExpr.Op)) {
+        formatter.binOpIndent = -1;
+        formatter.binOpArgIndent = -1;
+      }
+
+      return true; // Default indentation
+    } else if (binaryExpr.Op is BinaryExpr.Opcode.Imp or BinaryExpr.Opcode.Exp) {
+      foreach (var token in binaryExpr.OwnedTokens) {
+        switch (token.val) {
+          case "==>": {
+              formatter.SetOpeningIndentedRegion(token, indent);
+              break;
+            }
+          case "<==": {
+              formatter.SetIndentations(token, indent, indent, indent);
+              break;
+            }
+        }
+      }
+      formatter.Visit(binaryExpr.E0, indent);
+      formatter.Visit(binaryExpr.E1, binaryExpr.Op is BinaryExpr.Opcode.Exp ? indent : indent + formatter.SpaceTab);
+      formatter.SetIndentations(binaryExpr.EndToken, after: indent);
+      return false;
+    } else if (binaryExpr.Op is BinaryExpr.Opcode.Eq or BinaryExpr.Opcode.Le or BinaryExpr.Opcode.Lt or BinaryExpr.Opcode.Ge or BinaryExpr.Opcode.Gt or BinaryExpr.Opcode.Iff or BinaryExpr.Opcode.Neq) {
+      var itemIndent = formatter.GetNewTokenVisualIndent(
+          binaryExpr.E0.StartToken, indent);
+      var item2Indent = itemIndent;
+      var startToken = binaryExpr.E0.StartToken;
+      if (startToken.Prev.line == startToken.line) {
+        // like assert E0
+        //          == E1
+        // Careful: The binaryExpr.op's first column should be greater than the
+        // token's first column before E0.StartToken. 
+        foreach (var token in binaryExpr.OwnedTokens) {
+          switch (token.val) {
+            case "==":
+            case "<=":
+            case "<":
+            case ">=":
+            case ">":
+            case "<==>":
+            case "!=": {
+                var followedByNewline = IndentationFormatter.IsFollowedByNewline(token);
+                var selfIndent = followedByNewline ? itemIndent : Math.Max(itemIndent - token.val.Length - 1, 0);
+                if (selfIndent <= formatter.GetNewTokenVisualIndent(startToken.Prev, itemIndent)) {
+                  // There could be a visual ambiguity if this token is aligned with the enclosing token.
+                  selfIndent = itemIndent;
+                }
+                formatter.SetIndentations(token, itemIndent, selfIndent);
+                item2Indent = followedByNewline ? itemIndent : formatter.GetNewTokenVisualIndent(binaryExpr.E1.StartToken, itemIndent);
+                formatter.SetIndentations(token, after: item2Indent);
+                break;
+              }
+          }
+        }
+      }
+      formatter.Visit(binaryExpr.E0, itemIndent);
+      formatter.Visit(binaryExpr.E1, item2Indent);
+      formatter.SetIndentations(binaryExpr.EndToken, after: indent);
+      return false;
+    } else {
+      foreach (var token in binaryExpr.OwnedTokens) {
+        formatter.SetIndentations(token, indent, indent, indent);
+      }
+      formatter.Visit(binaryExpr.E0, indent);
+      formatter.Visit(binaryExpr.E1, indent);
+      formatter.SetIndentations(binaryExpr.EndToken, after: indent);
+      return false;
     }
   }
 }
