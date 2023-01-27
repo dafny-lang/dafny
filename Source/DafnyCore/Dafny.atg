@@ -233,7 +233,7 @@ public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, Include include, ModuleD
 {
   // initialize readonly fields
   dummyExpr = new LiteralExpr(RangeToken.NoToken);
-  dummyRhs = new ExprRhs(RangeToken.NoToken, dummyExpr);
+  dummyRhs = new ExprRhs(dummyExpr);
   dummyFrameExpr = new FrameExpression(dummyExpr.RangeToken, dummyExpr, null);
   dummyStmt = new ReturnStmt(RangeToken.NoToken, null);
   var dummyBlockStmt = new BlockStmt(RangeToken.NoToken, new List<Statement>());
@@ -1218,7 +1218,7 @@ ModuleExport<ModuleDefinition parent, out ModuleDecl submodule>
   (. if (exportId.val == "export" || exportId.val == parent.Name) {
        isDefault = true;
      }
-     submodule = new ModuleExportDecl(new RangeToken(startToken, t), exportId, parent, exports, extends, provideAll, revealAll, isDefault, isRefining);
+     submodule = new ModuleExportDecl(new RangeToken(startToken, t), new Name(exportId), parent, exports, extends, provideAll, revealAll, isDefault, isRefining);
   .)
   // LL Warning: 'least' and 'greatest' are not keywords. They can be the identifier that is the last ExportId of the ModuleExport.
   // Those words can also be the first word of a declaration (e.g. least predicate) that follows the MOduleExport.
@@ -1381,7 +1381,7 @@ ClassMemberDecl<. DeclModifierData dmod, List<MemberDecl> mm, bool allowConstruc
   .
 
 /*------------------------------------------------------------------------*/
-DatatypeName<out Name name> = Name<out id> .
+DatatypeName<out Name name> = Name<out name> .
 
 DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDecl/*!*/ dt>
 = (. Contract.Requires(module != null);
@@ -1439,8 +1439,7 @@ DatatypeMemberDecl<.List<DatatypeCtor/*!*/>/*!*/ ctors.>
   { Attribute<ref attrs> }
   DatatypeMemberName<out id>
   [ FormalsOptionalIds<formals> ]
-  (. var name = new Name(id, id);
-     var ctor = new DatatypeCtor(new RangeToken(id, t), name, isGhost, formals, attrs);
+  (. var ctor = new DatatypeCtor(new RangeToken(id, t), new Name(id), isGhost, formals, attrs);
      ctors.Add(ctor); .)
   .
 
@@ -1460,7 +1459,8 @@ TypeMembers<. ModuleDefinition/*!*/ module, List<MemberDecl> members .>
 FieldDecl<.DeclModifierData dmod, bool isValueType, List<MemberDecl> mm.>
 = (. Contract.Requires(cce.NonNullElements(mm));
      Attributes attrs = null;
-     IToken/*!*/ id;  Type/*!*/ ty;
+     Type/*!*/ ty;
+     Name name;
      CheckDeclModifiers(ref dmod, "field", AllowedDeclModifiers.Ghost);
      var startToken = dmod.FirstToken;
      if (isValueType) {
@@ -1475,11 +1475,11 @@ FieldDecl<.DeclModifierData dmod, bool isValueType, List<MemberDecl> mm.>
                                                        }
                                                     .)
   { Attribute<ref attrs> }
-  FIdentType<out var name, out ty>           (. var f = new Field(new RangeToken(startToken, t), name, dmod.IsGhost, ty, attrs); 
+  FIdentType<out name, out ty>           (. var f = new Field(new RangeToken(startToken, t), name, dmod.IsGhost, ty, attrs); 
                                              mm.Add(f); f.TokenWithTrailingDocString = t;
                                            .)
   { ","                                (. startToken = t; .)
-    FIdentType<out var name, out ty>         (. f = new Field(new RangeToken(startToken, t), name, dmod.IsGhost, ty, attrs); 
+    FIdentType<out name, out ty>         (. f = new Field(new RangeToken(startToken, t), name, dmod.IsGhost, ty, attrs); 
                                             mm.Add(f); f.TokenWithTrailingDocString = t;
                                        .)
   }
@@ -1501,14 +1501,14 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
   SYNC
   "const"                                    (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   { Attribute<ref attrs> }
-  CIdentType<out id, out ty>                 (. if (ty == null) { ty = new InferredTypeProxy(); } .)
+  CIdentType<out var name, out ty>                 (. if (ty == null) { ty = new InferredTypeProxy(); } .)
   [ ellipsis ]
   [ ( ":=" | "=" (. SemErr(la, "a const field should be initialized using ':=', not '='"); .) )
     Expression<out e, false, true> ]
                                              (. if (e == null && ty is InferredTypeProxy) {
-                                                  SemErr(id, "a const declaration must have a type or a RHS value");
+                                                  SemErr(name.StartToken, "a const declaration must have a type or a RHS value");
                                                 }
-                                                var c = new ConstantField(new RangeToken(dmod.FirstToken, t), new Name(id, id), e, dmod.IsStatic, dmod.IsGhost, ty, attrs);
+                                                var c = new ConstantField(new RangeToken(dmod.FirstToken, t), name, e, dmod.IsStatic, dmod.IsGhost, ty, attrs);
                                                 mm.Add(c);
                                              .)
   OldSemi                                    (. c.TokenWithTrailingDocString = t; .)
@@ -1708,16 +1708,16 @@ IdentTypeOptional<out BoundVar var>
      // disambiguate, it makes sense to force the colon to consider the ': type' here. Hence the semantic predicate.
      // Also a SetComprehension would be the wrong type in a slices-by-length construct.
   ]
-  (. var = new BoundVar(name.StartToken.To(t), name, optType == null ? new InferredTypeProxy() : optType) {
+  (. var = new BoundVar(name.StartToken.To(t), name.Value, optType == null ? new InferredTypeProxy() : optType) {
        IsTypeExplicit = optType != null
      }; .)
   .
 
 TypeIdentOptional<out RangeToken/*!*/ range, out Name/*!*/ identName, out Type/*!*/ ty, out bool isGhost, out Expression defaultValue, out bool isNameOnly>
-= (.Contract.Ensures(Contract.ValueAtReturn(out id)!=null);
+= (.Contract.Ensures(Contract.ValueAtReturn(out range)!=null);
      Contract.Ensures(Contract.ValueAtReturn(out ty)!=null);
      Contract.Ensures(Contract.ValueAtReturn(out identName)!=null);
-     var nameToken = null; ty = new BoolType()/*dummy*/; isGhost = false;
+     IToken nameToken = null; ty = new BoolType()/*dummy*/; isGhost = false;
      IToken nameonlyToken = null;
      identName = null;
      defaultValue = null;
@@ -1731,7 +1731,6 @@ TypeIdentOptional<out RangeToken/*!*/ range, out Name/*!*/ identName, out Type/*
       (. /* try to convert ty to an identifier */
          UserDefinedType udt = ty as UserDefinedType;
          if (udt != null && udt.TypeArgs.Count == 0) {
-           name = udt.Name;
          } else {
            SemErr(nameToken, "invalid formal-parameter name in datatype constructor");
          }
@@ -1818,7 +1817,8 @@ GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs, bool allowVariance.>
      TypeParameter.TypeParameterCharacteristics characteristics;
      TypeParameter.TPVarianceSyntax variance = TypeParameter.TPVarianceSyntax.NonVariant_Strict;  // assignment is to please compiler
      characteristics = new TypeParameter.TypeParameterCharacteristics(false);
-     IToken startToken;
+     IToken startToken = t;
+     Name name;
   .)
   // If a "<" combined with a Variance symbol could be a new token, then the parser here will need to be more complex,
   // since, for example, a < followed immediately by a Variance symbol would scan as the wrong token.
@@ -1826,23 +1826,22 @@ GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs, bool allowVariance.>
   // (Only because we parse the new "<-" symbol as separate "<" "-" tokens precisely to avoid this issue :)
   "<"
   [ Variance<out variance>  (.
-            startToken = t; 
             if (!allowVariance) { SemErr(t, "type-parameter variance is not allowed to be specified in this context"); } 
         .)
   ]
-  TypeVariableName<out var name>
+  TypeVariableName<out name>
   { TypeParameterCharacteristics<ref characteristics> }
   (. typeArgs.Add(new TypeParameter(new RangeToken(startToken, t), name, variance, characteristics)); .)
   { ","
     (. variance = TypeParameter.TPVarianceSyntax.NonVariant_Strict;
        characteristics = new TypeParameter.TypeParameterCharacteristics(false);
+       startToken = t; 
     .)
     [ Variance<out variance>  (. 
-            startToken = t; 
             if (!allowVariance) { SemErr(t, "type-parameter variance is not allowed to be specified in this context"); } 
         .)
     ]
-    TypeVariableName<out var name>
+    TypeVariableName<out name>
     { TypeParameterCharacteristics<ref characteristics> }
     (. typeArgs.Add(new TypeParameter(new RangeToken(startToken, t), name, variance, characteristics)); .)
   }
@@ -1889,7 +1888,9 @@ TPCharOption<ref TypeParameter.TypeParameterCharacteristics characteristics>
 /*------------------------------------------------------------------------*/
 MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
 = (. Contract.Ensures(Contract.ValueAtReturn(out m) !=null);
-     bool hasName = false;  IToken keywordToken;
+     bool hasName = false;
+     Name name = null; // Please compiler  
+     IToken keywordToken;
      Attributes attrs = null;
      List<TypeParameter/*!*/>/*!*/ typeArgs = new List<TypeParameter/*!*/>();
      List<Formal/*!*/> ins = new List<Formal/*!*/>();
@@ -1952,7 +1953,6 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
   [ MethodFunctionName<out name>               (. hasName = true; .)
   ]
   (. if (!hasName) {
-       id = keywordToken;
        if (!isConstructor) {
          SemErr(la, "a method must be given a name (expecting identifier)");
        }
@@ -1977,8 +1977,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
     (. body = dividedBody; .)
   | BlockStmt<out body, out bodyStart, out bodyEnd>
   ]
-  (. IToken tok = id;
-     var range = new RangeToken(dmod.FirstToken, t);
+  (. var range = new RangeToken(dmod.FirstToken, t);
      if (isConstructor) {
        m = new Constructor(range, hasName ? name : new Name(RangeToken.NoToken, "_ctor"), dmod.IsGhost, typeArgs, ins,
                            req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), (DividedBlockStmt)body, attrs, signatureEllipsis);
@@ -2160,15 +2159,15 @@ ParameterDefaultValue<bool incoming, out Expression defaultValue>
 /*------------------------------------------------------------------------*/
 FormalsOptionalIds<.List<Formal/*!*/>/*!*/ formals.>
 = (. Contract.Requires(cce.NonNullElements(formals));
-     IToken/*!*/ id;  Type/*!*/ ty;  string/*!*/ name;  bool isGhost;  Expression/*?*/ defaultValue;
+     RangeToken/*!*/ range;  Type/*!*/ ty;  Name/*!*/ name;  bool isGhost;  Expression/*?*/ defaultValue;
      bool isNameOnly;
   .)
   "("
   [
-    TypeIdentOptional<out id, out name, out ty, out isGhost, out defaultValue, out isNameOnly>
-            (. formals.Add(new Formal(id, name, ty, true, isGhost, defaultValue, false, isNameOnly)); .)
-    { "," TypeIdentOptional<out id, out name, out ty, out isGhost, out defaultValue, out isNameOnly>
-            (. formals.Add(new Formal(id, name, ty, true, isGhost, defaultValue, false, isNameOnly)); .)
+    TypeIdentOptional<out range, out name, out ty, out isGhost, out defaultValue, out isNameOnly>
+            (. formals.Add(new Formal(range, name, ty, true, isGhost, defaultValue, false, isNameOnly)); .)
+    { "," TypeIdentOptional<out range, out name, out ty, out isGhost, out defaultValue, out isNameOnly>
+            (. formals.Add(new Formal(range, name, ty, true, isGhost, defaultValue, false, isNameOnly)); .)
     }
   ]
   ")"
@@ -2367,7 +2366,7 @@ GenericInstantiation<.List<Type> gt.>
 FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
 = (. Contract.Ensures(Contract.ValueAtReturn(out f) != null);
      Attributes attrs = null;
-     Name name; // To please compiler
+     Name name = null; // To please compiler
      List<TypeParameter> typeArgs = new List<TypeParameter>();
      List<Formal> formals = new List<Formal>();
      Formal/*!*/ result = null;
@@ -2439,9 +2438,9 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
       ":"
       (  IF(IsParenIdentsColon())
          "("
-           GIdentType<false, false, false, false, out var range, out var resultName, out var ty, out var resultIsGhost, out var isOld, out var isNameOnly, out var isOlder>
+           GIdentType<false, false, false, false, out var range2, out var resultName, out var ty, out var resultIsGhost, out var isOld, out var isNameOnly, out var isOlder>
            (. Contract.Assert(!resultIsGhost && !isOld && !isNameOnly && !isOlder);
-              result = new Formal(range, resultName, ty, false, false, null, false);
+              result = new Formal(range2, resultName, ty, false, false, null, false);
            .)
          ")"
          | Type<out returnType>
@@ -2535,7 +2534,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
         */
        if (functionMethodToken != null) {
          SemErr(functionMethodToken,
-           $"to use a 'by method' implementation with a {what}, declare '{id.val}' using '{what}', not '{what} method'");
+           $"to use a 'by method' implementation with a {what}, declare '{name.Value}' using '{what}', not '{what} method'");
          functionMethodToken = null;
        }
        AllowedDeclModifiers allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static;
@@ -2644,7 +2643,6 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
       */
 
      var range = new RangeToken(dmod.FirstToken, t);
-     IToken tok = id;
      if (isTwoState && isPredicate) {
        Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
        f = new TwoStatePredicate(range, name, dmod.IsStatic, typeArgs, formals, result,
@@ -2710,12 +2708,12 @@ PredicateResult<string name, out Formal result>
   ":"
   (  IF(IsParenIdentsColon())
      "("
-       GIdentType<false, false, false, false, out var resultId, out var ty, out var resultIsGhost, out var isOld, out var isNameOnly, out var isOlder>
+       GIdentType<false, false, false, false, out var range, out var nameId, out var ty, out var resultIsGhost, out var isOld, out var isNameOnly, out var isOlder>
        (. Contract.Assert(!resultIsGhost && !isOld && !isNameOnly && !isOlder);
           if(ty is not BoolType) {
             SemErr(t, $"{name} return type should be bool, got {ty}");
           }
-          result = new Formal(resultId, resultId.val, ty, false, false, null, false);
+          result = new Formal(range, nameId, ty, false, false, null, false);
        .)
      ")"
      | Type<out returnType> (. SemErr(t, $"{name}s do not have an explicitly declared return type; it is always bool. Unless you want to name the result: ': (result: bool)'"); .)
@@ -2964,7 +2962,7 @@ UpdateStmt<out Statement/*!*/ s>
   .)
 ( Lhs<out e>                       (. x = e.tok; startToken = e.StartToken; endToken = t; .)
   ( { Attribute<ref attrs> }       (. endToken = t; .)
-    ";"                            (. endTok = t; rhss.Add(new ExprRhs(new RangeToken(e.StartToken, endToken), e, attrs)); .)
+    ";"                            (. endTok = t; rhss.Add(new ExprRhs(e, attrs)); .)
   |                                (. lhss.Add(e); .)
     { "," Lhs<out e>               (. lhss.Add(e); .)
     }
@@ -3474,7 +3472,7 @@ SingleExtendedPattern<.out ExtendedPattern pat.>
       }]
     ")"                                    (. var range = new RangeToken(startToken, t);
                                               // make sure the tuple type exists
-                                              theBuiltIns.TupleType(range, arguments.Count, true);
+                                              theBuiltIns.TupleType(startToken, arguments.Count, true);
                                               //use the TupleTypeCtors
                                               string ctor = BuiltIns.TupleTypeCtorName(arguments.Count);
                                               pat = new IdPattern(range, new Name(ctor), arguments);
@@ -3553,7 +3551,7 @@ CaseStmt<out NestedMatchCaseStmt/*!*/ c>
       Stmt<body>
       SYNC  /* see comment about SYNC above */
     }
-  (. c = new NestedMatchCaseStmt(x, pat, body, attrs); .)
+  (. c = new NestedMatchCaseStmt(x.To(t), pat, body, attrs); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -3608,7 +3606,7 @@ ExpectStmt<out Statement/*!*/ s>
   [ "," Expression<out m, false, true> ]
   ";"
   (. if (dotdotdot != null) {
-       s = new ExpectStmt(new RangeToken(startToken, t), new LiteralExpr(x, true), m, attrs);
+       s = new ExpectStmt(new RangeToken(startToken, t), new LiteralExpr(x.ToRange(), true), m, attrs);
        s = new SkeletonStatement(s, dotdotdot, null);
      } else {
        s = new ExpectStmt(new RangeToken(startToken, t), e, m, attrs);
@@ -3632,7 +3630,7 @@ AssumeStmt<out Statement/*!*/ s>
   )
   ";"
   (. if (dotdotdot != null) {
-       s = new AssumeStmt(new RangeToken(startToken, t), new LiteralExpr(x, true), attrs);
+       s = new AssumeStmt(new RangeToken(startToken, t), new LiteralExpr(x.ToRange(), true), attrs);
        s = new SkeletonStatement(s, dotdotdot, null);
      } else {
        s = new AssumeStmt(new RangeToken(startToken, t), e, attrs);
@@ -3971,16 +3969,14 @@ LogicalExpression<out Expression e0, bool allowLemma, bool allowLambda, bool all
     RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>
          (. startToken = e0.StartToken;
             e0 = new BinaryExpr(new RangeToken(startToken, t), firstOp.val == "&&" ? BinaryExpr.Opcode.And : BinaryExpr.Opcode.Or, e0, e1);
-            e0.FormatTokens = new[] { firstOp };
          .)
   }
   (.
        if (e0 == first && firstOp != null) {
          // There was only one conjunct. To make sure that the type checker still checks it to
          // be a boolean, we conjoin "true" of "false" to its left.
-         if (firstOp.val == "&&") e0 = new BinaryExpr(new RangeToken(firstOp, t), BinaryExpr.Opcode.And, new LiteralExpr(new AutoGeneratedToken(x), true), e0);
-         else e0 = new BinaryExpr(new RangeToken(firstOp, t), BinaryExpr.Opcode.Or, new LiteralExpr(new AutoGeneratedToken(x), false), e0);
-         e0.FormatTokens = new[] { firstOp };
+         if (firstOp.val == "&&") e0 = new BinaryExpr(new RangeToken(firstOp, t), BinaryExpr.Opcode.And, new LiteralExpr(RangeToken.NoToken, true), e0);
+         else e0 = new BinaryExpr(new RangeToken(firstOp, t), BinaryExpr.Opcode.Or, new LiteralExpr(RangeToken.NoToken, false), e0);
        }
   .)
   .
@@ -4317,9 +4313,9 @@ PossiblyNegatedLiteralExpr<out Expression e>
 = (. BigInteger n; BaseTypes.BigDec d;
      e = dummyExpr;
   .)
-  ( "-"                                        (. var x = t; .)
-    ( Nat<out n>                               (. e = new NegationExpression(x, new LiteralExpr(new RangeToken(t), n)); .)
-    | Dec<out d>                               (. e = new NegationExpression(x, new LiteralExpr(new RangeToken(t), d)); .)
+  ( "-"                                        (. var startToken = t; .)
+    ( Nat<out n>                               (. e = new NegationExpression(startToken.To(t), new LiteralExpr(startToken.To(t), n)); .)
+    | Dec<out d>                               (. e = new NegationExpression(startToken.To(t), new LiteralExpr(startToken.To(t), d)); .)
     )
   | LiteralExpression<out e>
   )
@@ -4328,13 +4324,13 @@ PossiblyNegatedLiteralExpr<out Expression e>
 /*------------------------------------------------------------------------*/
 LambdaExpression<out Expression e, bool allowLemma, bool allowBitwiseOps>
 = (. IToken x = Token.NoToken;
-     IToken id;  BoundVar bv;
+     BoundVar bv;
      var bvs = new List<BoundVar>();
      var reads = new List<FrameExpression>();
      Expression req = null;
      Expression body = null;
   .)
-  ( WildIdentN<out name, true>               (. x = t; bvs.Add(new BoundVar(name.RangeToken, name, new InferredTypeProxy())); .)
+  ( WildIdentN<out var name, true>               (. x = t; bvs.Add(new BoundVar(name.RangeToken, name.Value, new InferredTypeProxy())); .)
   | "("                                      (. x = t; .)
       [
         IdentTypeOptional<out bv>            (. bvs.Add(bv); .)
@@ -4514,7 +4510,7 @@ MapComprehensionExpr<out Expression e, bool allowLemma, bool allowLambda, bool a
        SemErr(t, "a map comprehension with more than one bound variable must have a term expression of the form 'Expr := Expr'");
        e = dummyExpr;
      } else {
-       e = new MapComprehension(mapToken, new RangeToken(mapToken, t), finite, bvars, range ?? new LiteralExpr(new RangeToken(mapToken, t), true), bodyLeft, bodyRight, attrs);
+       e = new MapComprehension(new RangeToken(mapToken, t), finite, bvars, range ?? new LiteralExpr(new RangeToken(mapToken, t), true), bodyLeft, bodyRight, attrs);
      }
   .)
   .
@@ -4949,7 +4945,7 @@ Suffix<ref Expression e>
       .)
   | "("                                    (. IToken openParen = t; var args = new List<ActualBinding>(); .)
     [ ActualBindings<args> ]
-    ")"                                    (. e = new ApplySuffix(new RangeToken(startToken, t), openParen, null, e, args, t);
+    ")"                                    (. e = new ApplySuffix(new RangeToken(startToken, t), null, e, args, t);
                                            .)
   )
   .
@@ -5194,7 +5190,7 @@ DotSuffix<out IToken x, out IToken y>
 
 /*------------------------------------------------------------------------*/
 Name<out Name name>
-= NoUSIdent<out var t> (. name = new Name(new RangeToken(t, t)); .)
+= NoUSIdent<out var t> (. name = new Name(t); .)
   .
   
 // Identifier, disallowing leading underscores
@@ -5254,7 +5250,7 @@ TypeNameOrCtorSuffix<out IToken id>
 /*------------------------------------------------------------------------*/
 // Identifier, disallowing leading underscores, except possibly the "wildcard" identifier "_"
 WildIdentN<out Name name, bool allowWildcardId>
-= WildIdent<out var x>     (. name = new Name(x); .) .
+= WildIdent<out var x, allowWildcardId>     (. name = new Name(x); .) .
   
 // Identifier, disallowing leading underscores, except possibly the "wildcard" identifier "_"
 WildIdent<out IToken x, bool allowWildcardId>

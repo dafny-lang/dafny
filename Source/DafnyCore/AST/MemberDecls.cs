@@ -534,7 +534,7 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext {
     Contract.Invariant(Decreases != null);
   }
 
-  public Method(RangeToken rangeToken, string name,
+  public Method(RangeToken rangeToken, Name name,
     bool hasStaticKeyword, bool isGhost,
     [Captured] List<TypeParameter> typeArgs,
     [Captured] List<Formal> ins, [Captured] List<Formal> outs,
@@ -644,7 +644,7 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext {
 public class Lemma : Method {
   public override string WhatKind => "lemma";
   public override string WhatKindMentionGhost => WhatKind;
-  public Lemma(RangeToken rangeToken, string name,
+  public Lemma(RangeToken rangeToken, Name name,
     bool hasStaticKeyword,
     [Captured] List<TypeParameter> typeArgs,
     [Captured] List<Formal> ins, [Captured] List<Formal> outs,
@@ -663,7 +663,7 @@ public class TwoStateLemma : Method {
   public override string WhatKind => "twostate lemma";
   public override string WhatKindMentionGhost => WhatKind;
 
-  public TwoStateLemma(RangeToken rangeToken, string name,
+  public TwoStateLemma(RangeToken rangeToken, Name name,
     bool hasStaticKeyword,
     [Captured] List<TypeParameter> typeArgs,
     [Captured] List<Formal> ins, [Captured] List<Formal> outs,
@@ -712,7 +712,7 @@ public class Constructor : Method {
       }
     }
   }
-  public Constructor(RangeToken rangeToken, string name,
+  public Constructor(RangeToken rangeToken, Name name,
     bool isGhost,
     List<TypeParameter> typeArgs,
     List<Formal> ins,
@@ -775,7 +775,7 @@ public abstract class ExtremeLemma : Method {
 
   public override IEnumerable<Node> Children => base.Children.Concat(new[] { PrefixLemma });
 
-  public ExtremeLemma(RangeToken rangeToken, string name,
+  public ExtremeLemma(RangeToken rangeToken, Name name,
     bool hasStaticKeyword, ExtremePredicate.KType typeOfK,
     List<TypeParameter> typeArgs,
     List<Formal> ins, [Captured] List<Formal> outs,
@@ -803,7 +803,7 @@ public abstract class ExtremeLemma : Method {
 public class LeastLemma : ExtremeLemma {
   public override string WhatKind => "least lemma";
 
-  public LeastLemma(RangeToken rangeToken, string name,
+  public LeastLemma(RangeToken rangeToken, Name name,
     bool hasStaticKeyword, ExtremePredicate.KType typeOfK,
     List<TypeParameter> typeArgs,
     List<Formal> ins, [Captured] List<Formal> outs,
@@ -828,7 +828,7 @@ public class LeastLemma : ExtremeLemma {
 public class GreatestLemma : ExtremeLemma {
   public override string WhatKind => "greatest lemma";
 
-  public GreatestLemma(RangeToken rangeToken, string name,
+  public GreatestLemma(RangeToken rangeToken, Name name,
     bool hasStaticKeyword, ExtremePredicate.KType typeOfK,
     List<TypeParameter> typeArgs,
     List<Formal> ins, [Captured] List<Formal> outs,
