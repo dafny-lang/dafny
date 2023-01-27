@@ -52,7 +52,7 @@ public class LitPattern : ExtendedPattern {
     }
   }
 
-  public LitPattern(RangeToken rangeToken, Expression lit, bool isGhost = false) : base(rangeToken, isGhost) {
+  public LitPattern(Expression lit, bool isGhost = false) : base(lit.RangeToken, isGhost) {
     Contract.Requires(lit is LiteralExpr || lit is NegationExpression);
     this.OrigLit = lit;
   }

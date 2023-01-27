@@ -10,7 +10,8 @@ namespace Microsoft.Dafny;
 
 public class IdPattern : ExtendedPattern, IHasUsages {
   public bool HasParenthesis { get; }
-  public String Id;
+  public String Id => Name.Value;
+  public Name Name;
   public Type Type; // This is the syntactic type, ExtendedPatterns dissapear during resolution.
   public IVariable BoundVar { get; set; }
   public List<ExtendedPattern> Arguments; // null if just an identifier; possibly empty argument list if a constructor call
@@ -37,19 +38,19 @@ public class IdPattern : ExtendedPattern, IHasUsages {
     }
   }
 
-  public IdPattern(RangeToken rangeToken, String id, List<ExtendedPattern> arguments, bool isGhost = false, bool hasParenthesis = false) : base(rangeToken, isGhost) {
-    Contract.Requires(id != null);
+  public IdPattern(RangeToken rangeToken, Name name, List<ExtendedPattern> arguments, bool isGhost = false, bool hasParenthesis = false) : base(rangeToken, isGhost) {
+    Contract.Requires(name != null);
     Contract.Requires(arguments != null); // Arguments can be empty, but shouldn't be null
     HasParenthesis = hasParenthesis;
-    this.Id = id;
+    this.Name = name;
     this.Type = new InferredTypeProxy();
     this.Arguments = arguments;
   }
 
-  public IdPattern(RangeToken rangeToken, String id, Type type, List<ExtendedPattern> arguments, bool isGhost = false) : base(rangeToken, isGhost) {
-    Contract.Requires(id != null);
+  public IdPattern(RangeToken rangeToken, Name name, Type type, List<ExtendedPattern> arguments, bool isGhost = false) : base(rangeToken, isGhost) {
+    Contract.Requires(name != null);
     Contract.Requires(arguments != null); // Arguments can be empty, but shouldn't be null
-    this.Id = id;
+    Name = name;
     this.Type = type == null ? new InferredTypeProxy() : type;
     this.Arguments = arguments;
     this.IsGhost = isGhost;

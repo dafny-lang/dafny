@@ -3034,19 +3034,20 @@ Rhs<out AssignmentRhs r>
         ")"
       ]
     )
-    (. if (ee != null) {
+    (. var range = new RangeToken(newToken, t);
+       if (ee != null) {
          if (display != null) {
-           r = new TypeRhs(newToken, ty, ee[0], display);
+           r = new TypeRhs(range, ty, ee[0], display);
          } else {
-           r = new TypeRhs(newToken, ty, ee, arrayElementInit);
+           r = new TypeRhs(range, ty, ee, arrayElementInit);
          }
        } else if (args != null) {
-         r = new TypeRhs(newToken, ty, args);
+         r = new TypeRhs(range, ty, args);
        } else {
-         r = new TypeRhs(newToken, ty);
+         r = new TypeRhs(range, ty);
        }
     .)
-  | "*"                                (. r = new HavocRhs(t); startToken = t; .)
+  | "*"                                (. r = new HavocRhs(RangeToken.NoToken); startToken = t; .)
   | Expression<out e, false, true>     (. r = new ExprRhs(e); startToken = e.StartToken; .)
   )
   { Attribute<ref attrs> }             (. r.Attributes = attrs;
@@ -3065,7 +3066,7 @@ NewArray<. out List<Expression> ee, out Expression arrayElementInit, out List<Ex
     "["                              (. display = new List<Expression>(); .)
     [ Expressions<display> ]
     "]"                              (. // we fill in the size
-                                        ee.Add(new LiteralExpr(x, display.Count));
+                                        ee.Add(new LiteralExpr(new RangeToken(x, t), display.Count));
                                      .)
   | Expressions<ee>
     "]"                              (. // make sure an array class with this dimensionality exists
@@ -3084,7 +3085,7 @@ NewArray<. out List<Expression> ee, out Expression arrayElementInit, out List<Ex
   )
   (. if (ee.Count == 0) {
        // an error occurred while parsing, but we still want to make sure to return a nonempty "ee"
-       ee.Add(new LiteralExpr(x, 0));
+       ee.Add(new LiteralExpr(RangeToken.NoToken, 0));
      }
   .)
   .
@@ -3259,12 +3260,11 @@ AlternativeBlock<.bool allowBindingGuards, out List<GuardedAlternative> alternat
 
 /*------------------------------------------------------------------------*/
 AlternativeBlockCase<.bool allowBindingGuards, out GuardedAlternative alt.>
-= (. IToken x;
-     Expression e; bool isBindingGuard;
+= (. Expression e; bool isBindingGuard;
      List<Statement> body;
      Attributes attrs = null;
   .)
-  "case"                             (. x = t; isBindingGuard = false; e = dummyExpr; .)
+  "case"                             (. var startToken = t; isBindingGuard = false; e = dummyExpr; .)
   { Attribute<ref attrs> }
   ( IF(allowBindingGuards && IsBindingGuard())
     BindingGuard<out e, false >  (. isBindingGuard = true; .)  // NB: don't allow lambda here
@@ -3280,7 +3280,7 @@ AlternativeBlockCase<.bool allowBindingGuards, out GuardedAlternative alt.>
     Stmt<body>
     SYNC  /* see comment about SYNC above */
   }
-  (. alt = new GuardedAlternative(x, isBindingGuard, e, body, attrs); .)
+  (. alt = new GuardedAlternative(new StartToken(startToken, t), isBindingGuard, e, body, attrs); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -3457,11 +3457,11 @@ BindingGuard<out Expression e, bool allowLambda>
 
 /*------------------------------------------------------------------------*/
 SingleExtendedPattern<.out ExtendedPattern pat.>
-= (. IToken id; List<ExtendedPattern> arguments;
+= (. List<ExtendedPattern> arguments;
     Expression lit; BoundVar bv;
     pat = null;
   .)
-  ( "("                                    (. id = t;
+  ( "("                                    (. var startToken = t;
                                               arguments = new List<ExtendedPattern>(); .)
       [ ExtendedPattern<out pat>           (. arguments.Add(pat); .)
       { "," ExtendedPattern<out pat>       (. arguments.Add(pat); .)
@@ -3470,19 +3470,19 @@ SingleExtendedPattern<.out ExtendedPattern pat.>
                                               theBuiltIns.TupleType(id, arguments.Count, true);
                                               //use the TupleTypeCtors
                                               string ctor = BuiltIns.TupleTypeCtorName(arguments.Count);
-                                              pat = new IdPattern(id, ctor, arguments);
+                                              pat = new IdPattern(new StartToken(startToken, t), Name(ctor), arguments);
                                            .)
   | IF(IsIdentParen())
-    Ident<out id>                          (. arguments = new List<ExtendedPattern>(); .)
+    IName<out var name>                          (. arguments = new List<ExtendedPattern>(); .)
     "("
       [ ExtendedPattern<out pat>           (. arguments.Add(pat); .)
         { "," ExtendedPattern<out pat>     (. arguments.Add(pat); .)
         }
       ]
      ")"
-                                           (. pat = new IdPattern(id, id.val, arguments, false, true); .)
-  | PossiblyNegatedLiteralExpr<out lit>    (. pat = new LitPattern(lit.tok, lit); .)
-  | IdentTypeOptional<out bv>              (. pat = new IdPattern(bv.tok, bv.Name, bv.SyntacticType, null); .)
+                                           (. pat = new IdPattern(new RangeToken(name.StartToken, t), name, arguments, false, true); .)
+  | PossiblyNegatedLiteralExpr<out lit>    (. pat = new LitPattern(lit); .)
+  | IdentTypeOptional<out bv>              (. pat = new IdPattern(bv.RangeToken, bv.Name, bv.SyntacticType, null); .)
   )
   (. // In case of parsing errors, make sure 'pat' still returns as non-null
     if (pat == null) {
@@ -3575,7 +3575,7 @@ AssertStmt<out Statement/*!*/ s, bool inExprContext>
     ";"
   )
   (. if (dotdotdot != null) {
-       s = new AssertStmt(new RangeToken(startToken, t), new LiteralExpr(x, true), null, null, attrs);
+       s = new AssertStmt(new RangeToken(startToken, t), new LiteralExpr(x.ToRange(), true), null, null, attrs);
        s = new SkeletonStatement(s, dotdotdot, null);
      } else {
        s = new AssertStmt(new RangeToken(startToken, t), e, proof, lbl == null ? null : new AssertLabel(lbl, lbl.val), attrs);
@@ -3685,7 +3685,7 @@ ForallStmt<out Statement/*!*/ s>
         ]
   )
   (. if (bvars == null) { bvars = new List<BoundVar>(); }
-     if (range == null) { range = new LiteralExpr(x, true); }
+     if (range == null) { range = new LiteralExpr(x.ToRange(), true); }
   .)
 
   {
@@ -4064,7 +4064,7 @@ RelationalExpression<out Expression e, bool allowLemma, bool allowLambda, bool a
     }
   ]
   (. if (chain != null && kind != 3) {
-       e = new ChainingExpression(opLocs[0], chain, ops, opLocs, prefixLimits);
+       e = new ChainingExpression(new RangeToken(chain[0].StartToken, chain[^1].EndToken), chain, ops, opLocs, prefixLimits);
      }
      e.RangeToken = new RangeToken(startToken, t);
   .)
@@ -4326,7 +4326,7 @@ LambdaExpression<out Expression e, bool allowLemma, bool allowBitwiseOps>
      Expression req = null;
      Expression body = null;
   .)
-  ( WildIdent<out id, true>                  (. x = t; bvs.Add(new BoundVar(id, id.val, new InferredTypeProxy())); .)
+  ( WildIdentN<out name, true>               (. x = t; bvs.Add(new BoundVar(name.RangeToken, name, new InferredTypeProxy())); .)
   | "("                                      (. x = t; .)
       [
         IdentTypeOptional<out bv>            (. bvs.Add(bv); .)
@@ -4338,7 +4338,7 @@ LambdaExpression<out Expression e, bool allowLemma, bool allowBitwiseOps>
   LambdaSpec<ref reads, ref req>
   "=>"
   Expression<out body, allowLemma, true, allowBitwiseOps>
-  (. e = new LambdaExpr(x, new RangeToken(x, t), bvs, req, reads, body);
+  (. e = new LambdaExpr(new RangeToken(x, t), bvs, req, reads, body);
      theBuiltIns.CreateArrowTypeDecl(bvs.Count);
   .)
   .
@@ -4752,7 +4752,7 @@ CasePatternLocal<.out CasePattern<LocalVariable> pat, bool isGhost.>
                                           // later if resolution finds the CasePattern to denote a parameter-less constructor), because this
                                           // (in particular, local.IsGhost) is the place where a LetExpr records whether or not the "ghost"
                                           // keyword was used in the declaration.
-                                          pat = new CasePattern<LocalVariable>(local.Tok, local);
+                                          pat = new CasePattern<LocalVariable>(local.RangeToken, local);
                                        .)
   )
   (. // In case of parsing errors, make sure 'pat' still returns as non-null
@@ -4779,7 +4779,7 @@ NameSegment<out Expression e>
   /* Note, since HashCall updates id.val, we make sure not to use id.val until after the possibility of calling HashCall. */
   (. e = new NameSegment(new RangeToken(name.StartToken, t), name, typeArgs);
      if (openParen != null) {
-       e = new ApplySuffix(new RangeToken(name.StartToken, t), openParen, atLabel, e, args, t);
+       e = new ApplySuffix(new RangeToken(name.StartToken, t), atLabel, e, args, t);
      } else {
        Contract.Assert(atLabel == null);
      }
@@ -4865,13 +4865,9 @@ Suffix<ref Expression e>
       | HashCall<id, out openParen, out typeArgs, out args>
       | [ AtCall<out atLabel, out openParen, out args> ]
       )
-      (. e = new ExprDotName(id, e, id.val, typeArgs) {
-           RangeToken = new RangeToken(startToken, id)
-         };
+      (. e = new ExprDotName(new RangeToken(startToken, id), e, id.val, typeArgs);
          if (openParen != null) {
-           e = new ApplySuffix(openParen, atLabel, e, args, t) {
-             RangeToken = new RangeToken(startToken, t)
-           };
+           e = new ApplySuffix(new RangeToken(startToken, t), atLabel, e, args, t);
          } else {
            Contract.Assert(atLabel == null);
          }
@@ -4910,7 +4906,7 @@ Suffix<ref Expression e>
       )
     "]"
       (. if (multipleIndices != null) {
-           e = new MultiSelectExpr(x, e, multipleIndices);
+           e = new MultiSelectExpr(new RangeToken(startToken, t), e, multipleIndices);
            // make sure an array class with this dimensionality exists
            var tmp = theBuiltIns.ArrayType(multipleIndices.Count, new IntType(), true);
          } else {
@@ -4921,7 +4917,7 @@ Suffix<ref Expression e>
            Contract.Assert(anyDots || e0 != null);
            if (anyDots) {
              //Contract.Assert(e0 != null || e1 != null);
-             e = new SeqSelectExpr(x, false, e, e0, e1, t);
+             e = new SeqSelectExpr(new RangeToken(startToken, t), false, e, e0, e1, t);
            } else if (multipleLengths != null) {
              Expression prev = null;
              List<Expression> seqs = new List<Expression>();
@@ -5248,6 +5244,10 @@ TypeNameOrCtorSuffix<out IToken id>
   .
 
 /*------------------------------------------------------------------------*/
+// Identifier, disallowing leading underscores, except possibly the "wildcard" identifier "_"
+WildIdentN<out Name name, bool allowWildcardId>
+= WildIdent<out var x>     (. name = new Name(x); .)
+  
 // Identifier, disallowing leading underscores, except possibly the "wildcard" identifier "_"
 WildIdent<out IToken x, bool allowWildcardId>
 = (. Contract.Ensures(Contract.ValueAtReturn(out x) != null); .)

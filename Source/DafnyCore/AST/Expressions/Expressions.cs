@@ -2943,7 +2943,7 @@ public class NegationExpression : ConcreteSyntaxExpression, ICloneable<NegationE
 public class ChainingExpression : ConcreteSyntaxExpression, ICloneable<ChainingExpression> {
   public readonly List<Expression> Operands;
   public readonly List<BinaryExpr.Opcode> Operators;
-  public readonly List<RangeToken> OperatorLocs;
+  public readonly List<IToken> OperatorLocs;
   public readonly List<Expression/*?*/> PrefixLimits;
   public readonly Expression E;
 
@@ -2959,7 +2959,9 @@ public class ChainingExpression : ConcreteSyntaxExpression, ICloneable<ChainingE
     E = ComputeDesugaring(Operands, Operators, OperatorLocs, PrefixLimits);
   }
 
-  public ChainingExpression(RangeToken rangeToken, List<Expression> operands, List<BinaryExpr.Opcode> operators, List<RangeToken> operatorLocs, List<Expression/*?*/> prefixLimits)
+  public override IToken Tok => OperatorLocs[0];
+
+  public ChainingExpression(RangeToken rangeToken, List<Expression> operands, List<BinaryExpr.Opcode> operators, List<IToken> operatorLocs, List<Expression/*?*/> prefixLimits)
     : base(rangeToken) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(operands != null);
@@ -2979,18 +2981,18 @@ public class ChainingExpression : ConcreteSyntaxExpression, ICloneable<ChainingE
     E = ComputeDesugaring(operands, operators, operatorLocs, prefixLimits);
   }
 
-  private static Expression ComputeDesugaring(List<Expression> operands, List<BinaryExpr.Opcode> operators, List<RangeToken> operatorLocs, List<Expression> prefixLimits) {
+  private static Expression ComputeDesugaring(List<Expression> operands, List<BinaryExpr.Opcode> operators, List<IToken> operatorLocs, List<Expression> prefixLimits) {
     Expression desugaring;
     // Compute the desugaring
     if (operators[0] == BinaryExpr.Opcode.Disjoint) {
       Expression acc = operands[0]; // invariant:  "acc" is the union of all operands[j] where j <= i
-      desugaring = new BinaryExpr(operatorLocs[0], operators[0], operands[0], operands[1]);
+      desugaring = new BinaryExpr(new RangeToken(operands[0].StartToken, operands[1].EndToken), operators[0], operands[0], operands[1]);
       for (int i = 0; i < operators.Count; i++) {
         Contract.Assume(operators[i] == BinaryExpr.Opcode.Disjoint);
         var opTok = operatorLocs[i];
-        var e = new BinaryExpr(opTok, BinaryExpr.Opcode.Disjoint, acc, operands[i + 1]);
-        desugaring = new BinaryExpr(opTok, BinaryExpr.Opcode.And, desugaring, e);
-        acc = new BinaryExpr(opTok, BinaryExpr.Opcode.Add, acc, operands[i + 1]);
+        var e = new BinaryExpr(new RangeToken(opTok, operands[i + 1].EndToken) , BinaryExpr.Opcode.Disjoint, acc, operands[i + 1]);
+        desugaring = new BinaryExpr(desugaring.RangeToken, BinaryExpr.Opcode.And, desugaring, e);
+        acc = new BinaryExpr(new RangeToken(opTok, operands[i + 1].EndToken), BinaryExpr.Opcode.Add, acc, operands[i + 1]);
       }
     } else {
       desugaring = null;
@@ -3004,14 +3006,14 @@ public class ChainingExpression : ConcreteSyntaxExpression, ICloneable<ChainingE
         var e1 = operands[i + 1];
         Expression e;
         if (k == null) {
-          e = new BinaryExpr(opTok, op, e0, e1);
+          e = new BinaryExpr(new RangeToken(e0.StartToken, e1.EndToken), op, e0, e1);
         } else {
-          e = new TernaryExpr(opTok,
+          e = new TernaryExpr(new RangeToken(e0.StartToken, e1.EndToken),
             op == BinaryExpr.Opcode.Eq ? TernaryExpr.Opcode.PrefixEqOp : TernaryExpr.Opcode.PrefixNeqOp, k, e0,
             e1);
         }
 
-        desugaring = desugaring == null ? e : new BinaryExpr(opTok, BinaryExpr.Opcode.And, desugaring, e);
+        desugaring = desugaring == null ? e : new BinaryExpr(desugaring.RangeToken, BinaryExpr.Opcode.And, desugaring, e);
       }
     }
 
@@ -3072,7 +3074,7 @@ public class NameSegment : ConcreteSyntaxExpression, ICloneable<NameSegment> {
   public readonly Name MyName;
   public string Name => MyName.Value;
   public readonly List<Type> OptTypeArguments;
-  public NameSegment(RangeToken rangeToken, string name, List<Type> optTypeArguments)
+  public NameSegment(RangeToken rangeToken, Name name, List<Type> optTypeArguments)
     : base(rangeToken) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);

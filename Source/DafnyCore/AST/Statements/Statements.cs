@@ -391,6 +391,8 @@ public class ExprRhs : AssignmentRhs {
     Contract.Invariant(Expr != null);
   }
 
+  public ExprRhs(Expression expr) : this(expr.RangeToken, expr) { }
+  
   public ExprRhs(RangeToken rangeToken, Expression expr, Attributes attrs = null)
     : base(rangeToken, attrs) {
     Contract.Requires(expr != null);
