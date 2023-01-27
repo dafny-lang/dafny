@@ -18,9 +18,8 @@ public interface ICommandSpec {
 
   public static IEnumerable<Option> FormatOptions => new Option[] {
     CommonOptionBag.Check,
-    CommonOptionBag.Plugin,
-    DeveloperOptionBag.UseBaseFileName,
-    DeveloperOptionBag.Print
+    CommonOptionBag.FormatPrint,
+    DeveloperOptionBag.UseBaseFileName
   }.Concat(ParserOptions);
 
   public static IReadOnlyList<Option> VerificationOptions = new Option[] {

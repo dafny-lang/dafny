@@ -174,6 +174,10 @@ Functionality is still being expanded. Currently only checks contracts on every 
       options.FormatCheck = value;
     });
 
+    DafnyOptions.RegisterLegacyBinding(FormatPrint, (options, value) => {
+      options.DafnyPrintFile = value ? "-" : null;
+    });
+
     DafnyOptions.RegisterLegacyBinding(Prelude, (options, value) => {
       options.DafnyPrelude = value?.FullName;
       options.ExpandFilename(options.DafnyPrelude, x => options.DafnyPrelude = x, options.LogPrefix,
@@ -203,5 +207,10 @@ Functionality is still being expanded. Currently only checks contracts on every 
         }
       });
   }
+
+
+  public static readonly Option<bool> FormatPrint = new("--print", @"
+Print Dafny program to stdout after formatting it instead of altering the files.".TrimStart()) {
+  };
 }
 

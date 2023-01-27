@@ -457,7 +457,7 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
   }
 
   public override IEnumerable<Type> ComponentTypes => BoundVars.Select(bv => bv.Type);
-  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+  public virtual bool SetIndent(int indentBefore, IndentationFormatter formatter) {
     var alreadyAligned = false;
     var assignOpIndent = indentBefore;
 

@@ -2528,7 +2528,7 @@ public class LambdaExpr : ComprehensionExpr, ICloneable<LambdaExpr>, ICanFormat 
     return new LambdaExpr(cloner, this);
   }
 
-  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+  public override bool SetIndent(int indentBefore, IndentationFormatter formatter) {
     var itemIndent = indentBefore + formatter.SpaceTab;
     var commaIndent = indentBefore;
     var firstSpec = true;

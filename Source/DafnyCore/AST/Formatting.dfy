@@ -127,7 +127,7 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
           requires token.Valid()
           ensures token.allTokens == old(token.allTokens)
 
-        // Given a token (including leading and trailing trivia), the current indentation, and whether the last trivia 
+        // Given a token (including leading and trailing trivia), the current indentation, and whether the last trivia
         // was ending with a newline, returns the two new leading and trailing trivia of the token,
         // the new current indentation and whether the last trailing trivia ended with a newline
         method GetNewLeadingTrailingTrivia(token: IToken, currentIndent: CsString, previousTrailingTriviaEndedWithNewline: bool)
@@ -187,7 +187,7 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
               newTrailingTrivia,
               newCurrentIndent,
               newEndedWithNewline :=
-              reindent.GetNewLeadingTrailingTrivia(token, currentIndent, leadingTriviaWasPreceededByNewline);
+            reindent.GetNewLeadingTrailingTrivia(token, currentIndent, leadingTriviaWasPreceededByNewline);
           leadingTriviaWasPreceededByNewline := newEndedWithNewline;
           currentIndent := newCurrentIndent;
           ghost var sPrev := sb.built;

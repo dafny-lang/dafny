@@ -7,11 +7,7 @@ namespace Microsoft.Dafny;
 
 class FormatCommand : ICommandSpec {
 
-  public IEnumerable<Option> Options => new Option[] {
-      BoogieOptionBag.BoogieFilter,
-    }.Concat(ICommandSpec.FormatOptions).
-    Concat(ICommandSpec.ConsoleOutputOptions).
-    Concat(ICommandSpec.ResolverOptions);
+  public IEnumerable<Option> Options => ICommandSpec.FormatOptions;
 
   public Command Create() {
     var result = new Command("format", @"Format the dafny file in-place.
