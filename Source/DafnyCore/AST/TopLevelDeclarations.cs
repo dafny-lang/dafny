@@ -19,6 +19,10 @@ public abstract class Declaration : INamedRegion, IAttributeBearingDeclaration, 
 
   public IToken TokenWithTrailingDocString = Token.NoToken;
   public Name MyName;
+
+  public override IToken Tok => MyName.StartToken;
+  public IToken NameToken => MyName.StartToken;
+  
   public string Name => MyName.Value;
   public bool IsRefining;
 
@@ -136,7 +140,6 @@ public abstract class Declaration : INamedRegion, IAttributeBearingDeclaration, 
   }
 
   internal FreshIdGenerator IdGenerator = new();
-  public IToken NameToken => tok;
   public override IEnumerable<Node> Children => (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>());
 }
 
@@ -398,8 +401,8 @@ public class AliasModuleDecl : ModuleDecl, IHasUsages {
   public readonly List<IToken> Exports; // list of exports sets
   [FilledInDuringResolution] public bool ShadowsLiteralModule;  // initialized early during Resolution (and used not long after that); true for "import opened A = A" where "A" is a literal module in the same scope
 
-  public AliasModuleDecl(ModuleQualifiedId path, RangeToken rangeToken, IToken name, ModuleDefinition parent, bool opened, List<IToken> exports)
-    : base(rangeToken, name.val, parent, opened, false) {
+  public AliasModuleDecl(RangeToken rangeToken, ModuleQualifiedId path, Name name, ModuleDefinition parent, bool opened, List<IToken> exports)
+    : base(rangeToken, name, parent, opened, false) {
     Contract.Requires(path != null && path.Path.Count > 0);
     Contract.Requires(exports != null);
     Contract.Requires(exports.Count == 0 || path.Path.Count == 1);
@@ -421,8 +424,8 @@ public class AbstractModuleDecl : ModuleDecl {
   public ModuleDecl CompileRoot;
   public ModuleSignature OriginalSignature;
 
-  public AbstractModuleDecl(ModuleQualifiedId qid, RangeToken rangeToken, IToken name, ModuleDefinition parent, bool opened, List<IToken> exports)
-    : base(rangeToken, name.val, parent, opened, false) {
+  public AbstractModuleDecl(RangeToken rangeToken, ModuleQualifiedId qid, Name name, ModuleDefinition parent, bool opened, List<IToken> exports)
+    : base(rangeToken, name, parent, opened, false) {
     Contract.Requires(qid != null && qid.Path.Count > 0);
     Contract.Requires(exports != null);
 
@@ -564,9 +567,9 @@ public class ModuleSignature {
 }
 
 public class ModuleQualifiedId {
-  public readonly List<IToken> Path; // Path != null && Path.Count > 0
+  public readonly List<Name> Path; // Path != null && Path.Count > 0
 
-  public ModuleQualifiedId(List<IToken> path) {
+  public ModuleQualifiedId(List<Name> path) {
     Contract.Assert(path != null && path.Count > 0);
     this.Path = path; // note that the list is aliased -- not to be modified after construction
   }
@@ -574,7 +577,7 @@ public class ModuleQualifiedId {
   // Creates a clone, including a copy of the list;
   // if the argument is true, resolution information is included
   public ModuleQualifiedId Clone(bool includeResInfo) {
-    List<IToken> newlist = new List<IToken>(Path);
+    var newlist = new List<Name>(Path);
     ModuleQualifiedId cl = new ModuleQualifiedId(newlist);
     if (includeResInfo) {
       cl.Root = this.Root;
@@ -587,17 +590,17 @@ public class ModuleQualifiedId {
   }
 
   public string rootName() {
-    return Path[0].val;
+    return Path[0].Value;
   }
 
   public IToken rootToken() {
-    return Path[0];
+    return Path[0].StartToken;
   }
 
-  override public string ToString() {
-    string s = Path[0].val;
+  public override string ToString() {
+    string s = Path[0].Value;
     for (int i = 1; i < Path.Count; ++i) {
-      s = s + "." + Path[i].val;
+      s = s + "." + Path[i].Value;
     }
 
     return s;
@@ -638,7 +641,8 @@ public class ModuleDefinition : INamedRegion, IDeclarationOrUsage, IAttributeBea
   public IToken BodyEndTok = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
   public readonly string DafnyName; // The (not-qualified) name as seen in Dafny source code
-  public readonly string Name; // (Last segment of the) module name
+  public readonly Name MyName; // (Last segment of the) module name
+  public string Name => MyName.Value;
   public string FullDafnyName {
     get {
       if (EnclosingModule == null) {
@@ -686,13 +690,13 @@ public class ModuleDefinition : INamedRegion, IDeclarationOrUsage, IAttributeBea
     Contract.Invariant(CallGraph != null);
   }
 
-  public ModuleDefinition(RangeToken tok, string name, List<IToken> prefixIds, bool isAbstract, bool isFacade,
+  public ModuleDefinition(RangeToken tok, Name name, List<IToken> prefixIds, bool isAbstract, bool isFacade,
     ModuleQualifiedId refinementQId, ModuleDefinition parent, Attributes attributes, bool isBuiltinName,
     bool isToBeVerified, bool isToBeCompiled) : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
     this.DafnyName = tok.StartToken.val; // TODO what??
-    this.Name = name;
+    this.MyName = name;
     this.PrefixIds = prefixIds;
     this.Attributes = attributes;
     this.EnclosingModule = parent;
@@ -1210,8 +1214,13 @@ public class TraitDecl : ClassDecl {
   }
 }
 
+/// <summary>
+/// Contains a string value and a range
+/// Why not just store an IToken and use the value from there instead of storing a separate string?
+/// Because generated names don't have an associated token
+/// </summary>
 public class Name : RangeNode {
-  public static implicit operator Name(string value) => new Name(RangeToken.NoToken, value);
+  public static implicit operator Name(string value) => new( value);
     
   public string Value { get; set; }
 
@@ -1219,15 +1228,19 @@ public class Name : RangeNode {
     Value = original.Value;
   }
 
-  public Name(IToken token) : this(new RangeToken(token, token), token.val)
-  {
+  public Name(IToken token) : base(new RangeToken(token, token)) {
+    this.Value = token.val;
   }
   
-  public Name(RangeToken rangeToken, string value) : base(rangeToken) {
+  public Name(string value) : base(RangeToken.NoToken) {
     this.Value = value;
   }
 
   public override IEnumerable<Node> Children => Enumerable.Empty<Node>();
+
+  public Name Clone(Cloner cloner) {
+    throw new NotImplementedException();
+  }
 }
 
 public class ClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl {

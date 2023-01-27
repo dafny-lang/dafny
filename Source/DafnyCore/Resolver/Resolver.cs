@@ -1364,7 +1364,7 @@ namespace Microsoft.Dafny {
     private bool ResolveQualifiedModuleIdRootRefines(ModuleDefinition context, ModuleBindings bindings, ModuleQualifiedId qid,
       out ModuleDecl result) {
       Contract.Assert(qid != null);
-      IToken root = qid.Path[0];
+      IToken root = qid.Path[0].StartToken;
       result = null;
       bool res = bindings.TryLookupFilter(root, out result, m => m.EnclosingModuleDefinition != context);
       qid.Root = result;
@@ -1378,7 +1378,7 @@ namespace Microsoft.Dafny {
     private bool ResolveQualifiedModuleIdRootImport(AliasModuleDecl context, ModuleBindings bindings, ModuleQualifiedId qid,
       out ModuleDecl result) {
       Contract.Assert(qid != null);
-      IToken root = qid.Path[0];
+      IToken root = qid.Path[0].StartToken;
       result = null;
       bool res = bindings.TryLookupFilter(root, out result,
         m => context != m && ((context.EnclosingModuleDefinition == m.EnclosingModuleDefinition && context.Exports.Count == 0) || m is LiteralModuleDecl));
@@ -1389,7 +1389,7 @@ namespace Microsoft.Dafny {
     private bool ResolveQualifiedModuleIdRootAbstract(AbstractModuleDecl context, ModuleBindings bindings, ModuleQualifiedId qid,
       out ModuleDecl result) {
       Contract.Assert(qid != null);
-      IToken root = qid.Path[0];
+      IToken root = qid.Path[0].StartToken;
       result = null;
       bool res = bindings.TryLookupFilter(root, out result,
         m => context != m && ((context.EnclosingModuleDefinition == m.EnclosingModuleDefinition && context.Exports.Count == 0) || m is LiteralModuleDecl));
@@ -1458,12 +1458,12 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private static string ModuleNotFoundErrorMessage(int i, List<IToken> path, string tail = "") {
+    private static string ModuleNotFoundErrorMessage(int i, List<Name> path, string tail = "") {
       Contract.Requires(path != null);
       Contract.Requires(0 <= i && i < path.Count);
-      return "module " + path[i].val + " does not exist" +
+      return "module " + path[i].Value + " does not exist" +
              (1 < path.Count
-               ? " (position " + i.ToString() + " in path " + Util.Comma(".", path, x => x.val) + ")" + tail
+               ? " (position " + i.ToString() + " in path " + Util.Comma(".", path, x => x.Value) + ")" + tail
                : "");
     }
 
@@ -2187,7 +2187,7 @@ namespace Microsoft.Dafny {
         var abs = (AbstractModuleDecl)d;
         var sig = MakeAbstractSignature(abs.OriginalSignature, Name + "." + abs.Name, abs.Height, mods,
           compilationModuleClones);
-        var a = new AbstractModuleDecl(abs.QId, abs.RangeToken, abs.Tok, m, abs.Opened, abs.Exports);
+        var a = new AbstractModuleDecl(abs.RangeToken, abs.QId, abs.MyName, m, abs.Opened, abs.Exports);
         a.Signature = sig;
         a.OriginalSignature = abs.OriginalSignature;
         return a;
@@ -2204,14 +2204,14 @@ namespace Microsoft.Dafny {
       Contract.Requires(qid != null);
       Contract.Requires(qid.Path.Count > 0);
 
-      List<IToken> Path = qid.Path;
+      var Path = qid.Path;
       ModuleDecl decl = root;
       ModuleSignature p;
       for (int k = 1; k < Path.Count; k++) {
         if (decl is LiteralModuleDecl) {
           p = ((LiteralModuleDecl)decl).DefaultExport;
           if (p == null) {
-            reporter.Error(MessageSource.Resolver, Path[k],
+            reporter.Error(MessageSource.Resolver, Path[k].StartToken,
               ModuleNotFoundErrorMessage(k, Path, $" because {decl.Name} does not have a default export"));
             return null;
           }
@@ -2219,13 +2219,13 @@ namespace Microsoft.Dafny {
           p = decl.Signature;
         }
 
-        var tld = p.TopLevels.GetValueOrDefault(Path[k].val, null);
+        var tld = p.TopLevels.GetValueOrDefault(Path[k].Value, null);
         if (!(tld is ModuleDecl dd)) {
           if (decl.Signature.ModuleDef == null) {
-            reporter.Error(MessageSource.Resolver, Path[k],
+            reporter.Error(MessageSource.Resolver, Path[k].StartToken,
               ModuleNotFoundErrorMessage(k, Path, " because of previous error"));
           } else {
-            reporter.Error(MessageSource.Resolver, Path[k], ModuleNotFoundErrorMessage(k, Path));
+            reporter.Error(MessageSource.Resolver, Path[k].StartToken, ModuleNotFoundErrorMessage(k, Path));
           }
           return null;
         }
@@ -6178,7 +6178,7 @@ namespace Microsoft.Dafny {
       var id = new IdentifierExpr(s.RangeToken, temp);
       var idlist = new List<Expression>() { id };
       var lhss = new List<LocalVariable>() { locvar };
-      var rhss = new List<AssignmentRhs>() { new ExprRhs(ex) };
+      var rhss = new List<AssignmentRhs>() { new ExprRhs(ex.RangeToken, ex) };
       var up = new UpdateStmt(s.RangeToken, idlist, rhss);
       s.ResolvedStatements.Add(new VarDeclStmt(s.RangeToken, lhss, up));
       return id;
@@ -6390,7 +6390,7 @@ namespace Microsoft.Dafny {
             new BlockStmt(s.RangeToken, new List<Statement>() {
               new UpdateStmt(s.RangeToken,
                 new List<Expression>() { ident },
-                new List<AssignmentRhs>() {new ExprRhs(VarDotMethod(s.RangeToken, temp, "PropagateFailure"))}
+                new List<AssignmentRhs>() {new ExprRhs(s.RangeToken, VarDotMethod(s.RangeToken, temp, "PropagateFailure"))}
                 ),
               new ReturnStmt(s.RangeToken, null),
             }),
@@ -6405,7 +6405,7 @@ namespace Microsoft.Dafny {
         s.ResolvedStatements.Add(
           new UpdateStmt(s.RangeToken,
             new List<Expression>() { lhsExtract },
-            new List<AssignmentRhs>() { new ExprRhs(VarDotMethod(s.RangeToken, temp, "Extract")) }
+            new List<AssignmentRhs>() { new ExprRhs(s.RangeToken, VarDotMethod(s.RangeToken, temp, "Extract")) }
           ));
         // The following check is not necessary, because the ghost mismatch is caught later.
         // However the error message here is much clearer.

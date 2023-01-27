@@ -130,10 +130,10 @@ namespace Microsoft.Dafny {
           };
         } else if (d is AliasModuleDecl) {
           var a = (AliasModuleDecl)d;
-          return new AliasModuleDecl(a.TargetQId?.Clone(false), a.RangeToken, a.tok, m, a.Opened, a.Exports);
+          return new AliasModuleDecl(a.RangeToken, a.TargetQId?.Clone(false), a.MyName, m, a.Opened, a.Exports);
         } else if (d is AbstractModuleDecl) {
           var a = (AbstractModuleDecl)d;
-          return new AbstractModuleDecl(a.QId?.Clone(false), a.RangeToken, a.tok, m, a.Opened, a.Exports);
+          return new AbstractModuleDecl(a.RangeToken, a.QId?.Clone(false), a.MyName, m, a.Opened, a.Exports);
         } else if (d is ModuleExportDecl) {
           var a = (ModuleExportDecl)d;
           return new ModuleExportDecl(a.RangeToken, a.Name, m, a.Exports, a.Extends, a.ProvideAll, a.RevealAll, a.IsDefault, a.IsRefining);
@@ -463,7 +463,7 @@ namespace Microsoft.Dafny {
 
       if (rhs is ExprRhs) {
         var r = (ExprRhs)rhs;
-        c = new ExprRhs(CloneExpr(r.Expr), CloneAttributes(rhs.Attributes));
+        c = new ExprRhs(Tok(r.RangeToken), CloneExpr(r.Expr), CloneAttributes(rhs.Attributes));
       } else if (rhs is HavocRhs) {
         c = new HavocRhs(Tok(rhs.RangeToken));
       } else {

@@ -61,10 +61,9 @@ namespace Microsoft.Dafny {
     }
 
     public void Error(MessageSource source, RangeToken rangeToken, string msg, params object[] args) {
-      Contract.Requires(tok != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
-      Error(source, tok, String.Format(msg, args));
+      Error(source, rangeToken.StartToken, msg, args);
     }
     
     public void Error(MessageSource source, IToken tok, string msg, params object[] args) {

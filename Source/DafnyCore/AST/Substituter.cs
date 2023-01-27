@@ -944,7 +944,7 @@ namespace Microsoft.Dafny {
       AssignmentRhs c;
       if (rhs is ExprRhs) {
         var r = (ExprRhs)rhs;
-        c = new ExprRhs(Substitute(r.Expr));
+        c = new ExprRhs(r.RangeToken, Substitute(r.Expr));
       } else if (rhs is HavocRhs) {
         c = new HavocRhs(rhs.RangeToken);
       } else {

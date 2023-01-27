@@ -2484,7 +2484,9 @@ public class ITEExpr : Expression {
 /// </summary>
 public class CasePattern<VT> : RangeNode
   where VT : class, IVariable {
-  public readonly string Id;
+  public readonly Name Name;
+
+  public string Id => Name.Value;
   // After successful resolution, exactly one of the following two fields is non-null.
 
   [FilledInDuringResolution]
@@ -2499,7 +2501,7 @@ public class CasePattern<VT> : RangeNode
   }
 
   public CasePattern(Cloner cloner, CasePattern<VT> original) : base(cloner, original) {
-    Id = original.Id;
+    Name = original.Name.Clone(cloner);
     if (original.Var != null) {
       Var = cloner.CloneIVariable(original.Var, false);
     }
@@ -2514,17 +2516,17 @@ public class CasePattern<VT> : RangeNode
     }
   }
 
-  public CasePattern(RangeToken range, string id, [Captured] List<CasePattern<VT>> arguments) : base(range) {
+  public CasePattern(RangeToken range, Name name, [Captured] List<CasePattern<VT>> arguments) : base(range) {
     Contract.Requires(tok != null);
-    Contract.Requires(id != null);
-    Id = id;
+    Contract.Requires(name != null);
+    Name = name;
     Arguments = arguments;
   }
 
   public CasePattern(RangeToken range, VT bv) : base(range) {
     Contract.Requires(tok != null);
     Contract.Requires(bv != null);
-    Id = bv.Name;
+    Name = bv.Name;
     Var = bv;
   }
 
@@ -3067,19 +3069,20 @@ public abstract class SuffixExpr : ConcreteSyntaxExpression {
 }
 
 public class NameSegment : ConcreteSyntaxExpression, ICloneable<NameSegment> {
-  public readonly string Name;
+  public readonly Name MyName;
+  public string Name => MyName.Value;
   public readonly List<Type> OptTypeArguments;
   public NameSegment(RangeToken rangeToken, string name, List<Type> optTypeArguments)
     : base(rangeToken) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(optTypeArguments == null || optTypeArguments.Count > 0);
-    Name = name;
+    MyName = name;
     OptTypeArguments = optTypeArguments;
   }
 
   public NameSegment(Cloner cloner, NameSegment original) : base(cloner, original) {
-    Name = original.Name;
+    MyName = original.MyName.Clone(cloner);
     OptTypeArguments = original.OptTypeArguments?.ConvertAll(cloner.CloneType);
   }
 

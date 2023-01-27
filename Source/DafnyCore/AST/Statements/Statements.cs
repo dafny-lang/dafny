@@ -136,7 +136,7 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
     variable.type = value.Type;
     Expression variableExpr = new IdentifierExpr(rangeToken, variable);
     var variableUpdateStmt = new UpdateStmt(rangeToken, Util.Singleton(variableExpr),
-      Util.Singleton<AssignmentRhs>(new ExprRhs(value)));
+      Util.Singleton<AssignmentRhs>(new ExprRhs(value.RangeToken, value)));
     var variableAssignStmt = new AssignStmt(rangeToken, variableUpdateStmt.Lhss[0], variableUpdateStmt.Rhss[0]);
     variableUpdateStmt.ResolvedStatements = new List<Statement>() { variableAssignStmt };
     return new VarDeclStmt(rangeToken, Util.Singleton(variable), variableUpdateStmt);
@@ -391,8 +391,8 @@ public class ExprRhs : AssignmentRhs {
     Contract.Invariant(Expr != null);
   }
 
-  public ExprRhs(Expression expr, Attributes attrs = null)
-    : base(expr.RangeToken, attrs) {
+  public ExprRhs(RangeToken rangeToken, Expression expr, Attributes attrs = null)
+    : base(rangeToken, attrs) {
     Contract.Requires(expr != null);
     Expr = expr;
   }

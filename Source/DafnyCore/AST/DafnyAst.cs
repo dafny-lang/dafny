@@ -469,7 +469,11 @@ namespace Microsoft.Dafny {
   }
 
   public abstract class NonglobalVariable : RangeNode, IVariable {
-    readonly string name;
+    readonly Name name;
+
+    public override IToken Tok => name.StartToken;
+
+    public IToken NameToken => name.StartToken;
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -480,7 +484,7 @@ namespace Microsoft.Dafny {
     public string Name {
       get {
         Contract.Ensures(Contract.Result<string>() != null);
-        return name;
+        return name.Value;
       }
     }
     public string DisplayName =>
@@ -572,17 +576,13 @@ namespace Microsoft.Dafny {
       IsGhost = true;
     }
 
-    public IToken Tok => RangeToken.StartToken;
-
-    public NonglobalVariable(RangeToken rangeToken, string name, Type type, bool isGhost) : base(rangeToken) {
+    public NonglobalVariable(RangeToken rangeToken, Name name, Type type, bool isGhost) : base(rangeToken) {
       Contract.Requires(name != null);
       Contract.Requires(type != null);
       this.name = name;
       this.type = type;
       this.isGhost = isGhost;
     }
-
-    public IToken NameToken => RangeToken.StartToken;
     public override IEnumerable<Node> Children => IsTypeExplicit ? Type.Nodes : Enumerable.Empty<Node>();
   }
 
@@ -599,19 +599,19 @@ namespace Microsoft.Dafny {
     public readonly bool IsOlder;
     public readonly string NameForCompilation;
 
-    public Formal(RangeToken rangeToken, string name, Type type, bool inParam, bool isGhost, Expression defaultValue,
+    public Formal(RangeToken rangeToken, Name name, Type type, bool inParam, bool isGhost, Expression defaultValue,
       bool isOld = false, bool isNameOnly = false, bool isOlder = false, string nameForCompilation = null)
       : base(rangeToken, name, type, isGhost) {
       Contract.Requires(name != null);
       Contract.Requires(type != null);
       Contract.Requires(inParam || defaultValue == null);
-      Contract.Requires(!isNameOnly || (inParam && !name.StartsWith("#")));
+      Contract.Requires(!isNameOnly || (inParam && !name.Value.StartsWith("#")));
       InParam = inParam;
       IsOld = isOld;
       DefaultValue = defaultValue;
       IsNameOnly = isNameOnly;
       IsOlder = isOlder;
-      NameForCompilation = nameForCompilation ?? name;
+      NameForCompilation = nameForCompilation ?? name.Value;
     }
 
     public bool HasName {
@@ -658,6 +658,10 @@ namespace Microsoft.Dafny {
   public class BoundVar : NonglobalVariable {
     public override bool IsMutable => false;
 
+    public BoundVar(IToken token, Type type) : this(new RangeToken(token ,token), token.val, type) {
+      
+    }
+    
     public BoundVar(RangeToken rangeToken, string name, Type type)
       : base(rangeToken, name, type, false) {
       Contract.Requires(name != null);
