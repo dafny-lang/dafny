@@ -22,10 +22,10 @@ in order of increasing binding power.
 --------------------------|:----------:|-----------------------
  `;`                      | 0 | That is [LemmaCall; Expression](#sec-top-level-expression)
 --------------------------|------------------------------------
- `<==>`                   | 1 | [equivalence (if and only if)](#sec-equivalence)
+ `<==>`                   | 1 | [equivalence (if and only if)](#sec-equivalence-expression)
 --------------------------|------------------------------------
- `==>`                    | 2 | [implication (implies)](#sec-implication)
- `<==`                    | 2 | [reverse implication (follows from)](#sec-implication)
+ `==>`                    | 2 | [implication (implies)](#sec-implies-expression)
+ `<==`                    | 2 | [reverse implication (follows from)](#sec-implies-expression)
 --------------------------|------------------------------------
  `&&`, `&`                | 3 | [conjunction (and)](#sec-logical-expressions)
  `||`, `|`                | 3 | [disjunction (or)](#sec-logical-expressions)
@@ -112,7 +112,7 @@ as in the expressions that are the body of a lambda expression itself, function,
 and if and while statements with guarded alternatives.
 
 
-## 21.2. Equivalence Expressions {#sec-equivalence}
+## 21.2. Equivalence Expressions {#sec-equivalence-expression}
 ([grammar](#g-equivalence-expression))
 
 Examples:
@@ -134,7 +134,7 @@ See [Section 7.1.1](#sec-equivalence-operator) for an explanation of the
 The `<==>` operator is commutative and associative: `A <==> B <==> C` and `(A <==> B) <==> C` and `A <==> (B <==> C)` and `C <==> B <==> A`
 are all equivalent and are all true iff an even number of operands are false.
 
-## 21.3. Implies or Explies Expressions {#sec-implication}
+## 21.3. Implies or Explies Expressions {#sec-implies-expression}
 ([grammar](#g-implies-expression))
 
 Examples:
@@ -180,7 +180,7 @@ Note also that `&&` and `||` cannot be mixed without using parentheses:
 See [Section 7.1.2](#sec-conjunction-and-disjunction) for an explanation
 of the `&&` and `||` operators.
 
-## 21.5. Relational Expressions {#sec-relational-expressions}
+## 21.5. Relational Expressions {#sec-relational-expression}
 ([grammar](#g-relational-expression))
 
 Examples:
@@ -302,7 +302,7 @@ remedied: just enclose E in parentheses, as in `|(E)|`.
 The only type-correct way this can happen is if the expression is
 a comprehension, as in `| set x: int :: x | 0x101 |`.
 
-## 21.10. As (Conversion) and Is (type test) Expressions {#sec-as-expression}
+## 21.10. As (Conversion) and Is (type test) Expressions {#sec-as-is-expression}
 ([grammar](#g-as-is-expression))
 
 Examples:
@@ -474,7 +474,7 @@ of `F` looks like:
 x requires F.requires(x) reads F.reads(x) => F(x)
 ```
 
-## 21.14. Left-Hand-Side Expressions
+## 21.14. Left-Hand-Side Expressions {#sec-lhs-expression}
 ([grammar](#g-lhs-expression))
 
 Examples: TODO
@@ -502,7 +502,7 @@ An example of the second (`ConstAtomExpression`) form is:
     old(o.f).x
 ```
 
-## 21.15. Right-Hand-Side Expressions {#rhs-expression}
+## 21.15. Right-Hand-Side Expressions {#sec-rhs-expression}
 ([grammar](#g-rhs-expression))
 
 Examples: 
@@ -597,7 +597,7 @@ This right-hand-side expression
 allocates a new object of a class type as explained
 in section [Class Types](#sec-class-types).
 
-## 21.18. Havoc Right-Hand-Side
+## 21.18. Havoc Right-Hand-Side {#sec-havoc-expression}
 ([grammar](#g-havoc-expression))
 
 Examples:
@@ -609,7 +609,7 @@ It produces an arbitrary value of its associated
 type. To obtain a more constrained arbitrary value the "assign-such-that"
 operator (`:|`) can be used. See [Section 20.6](#sec-update-and-call-statement).
 
-## 21.19. Constant Or Atomic Expressions
+## 21.19. Constant Or Atomic Expressions {#sec-atomic-expression}
 ([grammar](#g-atomic-expression))
 
 Examples:
@@ -632,7 +632,7 @@ fresh(e)
 These expressions represent either a constant of some type (a literal), or an
 atomic expression. They are neve l-values.
 
-## 21.20. Literal Expressions
+## 21.20. Literal Expressions {#sec-literal-expression}
 ([grammar](#g-literal-expression)}
 
 Examples:
@@ -1099,7 +1099,7 @@ productions have no terminating symbol to end them, but rather they
 all end with an ``Expression`` at the end. The various
 ``EndlessExpression`` alternatives are described below.
 
-### 21.31.1. If Expression
+### 21.31.1. If Expression {#sec-if-expression}
 ([grammar](#g-if-expression))
 
 Examples:

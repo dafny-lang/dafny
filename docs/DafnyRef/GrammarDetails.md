@@ -1052,7 +1052,7 @@ CalcOp =
 
 ### 29.2.7. Expressions
 
-#### 29.2.7.1. Top-level expression {#g-top-level-expression}
+#### 29.2.7.1. Top-level expression ([discussion](#sec-top-level-expression)) {#g-top-level-expression}
 
 ````grammar
 Expression(allowLemma, allowLambda) =
@@ -1073,7 +1073,7 @@ or `=>`) only if "allowLambda" is true.  This affects function/method/iterator
 specifications, if/while statements with guarded alternatives, and expressions
 in the specification of a lambda expression itself.
 
-#### 29.2.7.2. Equivalence expression {#g-equivalence-expression}
+#### 29.2.7.2. Equivalence expression ([discussion](#sec-equivalence-expression)) {#g-equivalence-expression}
 
 ````grammar
 EquivExpression(allowLemma, allowLambda) =
@@ -1081,7 +1081,7 @@ EquivExpression(allowLemma, allowLambda) =
   { "<==>" ImpliesExpliesExpression(allowLemma, allowLambda) }
 ````
 
-#### 29.2.7.3. Implies expression {#g-implies-expression}
+#### 29.2.7.3. Implies expression ( [discussion](#sec-implies-expression)){#g-implies-expression}
 
 ````grammar
 ImpliesExpliesExpression(allowLemma, allowLambda) =
@@ -1097,7 +1097,7 @@ ImpliesExpression(allowLemma, allowLambda) =
   [  "==>" ImpliesExpression(allowLemma, allowLambda) ]
 ````
 
-#### 29.2.7.4. Logical expression {#g-logical-expression}
+#### 29.2.7.4. Logical expression ([discussion](#sec-logical-expression)) {#g-logical-expression}
 
 ````grammar
 LogicalExpression(allowLemma, allowLambda) =
@@ -1114,7 +1114,7 @@ LogicalExpression(allowLemma, allowLambda) =
 
 TODO - check the above
 
-#### 29.2.7.5. Relational expression {#g-relational-expression}
+#### 29.2.7.5. Relational expression ([discussion](#sec-relational-expression)) {#g-relational-expression}
 
 ````grammar
 RelationalExpression(allowLemma, allowLambda) =
@@ -1133,7 +1133,7 @@ RelOp =
   )
 ````
 
-#### 29.2.7.6. Bit-shift expression {#g-bit-shift-expression}
+#### 29.2.7.6. Bit-shift expression ([discussion](#sec-bit-shift-expression)) {#g-bit-shift-expression}
 
 ````grammar
 ShiftTerm(allowLemma, allowLambda) =
@@ -1143,7 +1143,7 @@ ShiftTerm(allowLemma, allowLambda) =
 ShiftOp = ( "<<" | ">>" )
 ````
 
-#### 29.2.7.7. Term (addition operations) {#g-term}
+#### 29.2.7.7. Term (addition operations) ([discussion](#sec-addition-expression)) {#g-term}
 
 ````grammar
 Term(allowLemma, allowLambda) =
@@ -1153,7 +1153,7 @@ Term(allowLemma, allowLambda) =
 AddOp = ( "+" | "-" )
 ````
 
-#### 29.2.7.8. Factor (multiplication operations) {#g-factor}
+#### 29.2.7.8. Factor (multiplication operations) ([discussion](#sec-multiplication-expression)) {#g-factor}
 
 ````grammar
 Factor(allowLemma, allowLambda) =
@@ -1163,7 +1163,7 @@ Factor(allowLemma, allowLambda) =
 MulOp = ( "*" | "/" | "%" )
 ````
 
-#### 29.2.7.9. Bit-vector expression {#g-bit-vector-expression}
+#### 29.2.7.9. Bit-vector expression ([discussion](#sec-bitvector-expression)) {#g-bit-vector-expression}
 
 ````grammar
 BitvectorFactor(allowLemma, allowLambda) =
@@ -1173,7 +1173,7 @@ BitvectorFactor(allowLemma, allowLambda) =
 BVOp = ( "|" | "&" | "^" )
 ````
 
-#### 29.2.7.10. As/Is expression {#g-as-is-expression}
+#### 29.2.7.10. As/Is expression ([discussion](#sec-as-is-expression)) {#g-as-is-expression}
 
 ````grammar
 AsExpression(allowLemma, allowLambda) =
@@ -1181,7 +1181,7 @@ AsExpression(allowLemma, allowLambda) =
   { ( "as" | "is" ) Type }
 ````
 
-#### 29.2.7.11. Unary expression {#g-unary-expression}
+#### 29.2.7.11. Unary expression ([discussion](#sec-unary-expression)) {#g-unary-expression}
 ````grammar
 UnaryExpression(allowLemma, allowLambda) =
   ( "-" UnaryExpression(allowLemma, allowLambda)
@@ -1190,7 +1190,7 @@ UnaryExpression(allowLemma, allowLambda) =
   )
 ````
 
-#### 29.2.7.12. Primary expression {#g-primary-expression}
+#### 29.2.7.12. Primary expression ([discussion](#sec-primary-expression)) {#g-primary-expression}
 ````grammar
 PrimaryExpression(allowLemma, allowLambda) =
   ( NameSegment { Suffix }
@@ -1203,7 +1203,7 @@ PrimaryExpression(allowLemma, allowLambda) =
   )
 ````
 
-#### 29.2.7.13. Lambda expression {#g-lambda-expression}
+#### 29.2.7.13. Lambda expression ([discussion](#sec-lambda-expression)) {#g-lambda-expression}
 ````grammar
 LambdaExpression(allowLemma) =
   ( WildIdent
@@ -1214,7 +1214,7 @@ LambdaExpression(allowLemma) =
   Expression(allowLemma, allowLambda: true)
 ````
 
-#### 29.2.7.14. Left-hand-side expression {#g-lhs-expression}
+#### 29.2.7.14. Left-hand-side expression ([discussion](#sec-lhs-expression)) {#g-lhs-expression}
 ````grammar
 Lhs =
   ( NameSegment { Suffix }
@@ -1222,7 +1222,7 @@ Lhs =
   )
 ````
 
-#### 29.2.7.15. Right-hand-side expression {#g-rhs-expression}
+#### 29.2.7.15. Right-hand-side expression ([discussion](#sec-rhs-expression)) {#g-rhs-expression}
 <pre>
 Rhs =
   ( <a href="#g-array-allocation-expression">ArrayAllocation_</a>
@@ -1233,7 +1233,7 @@ Rhs =
   { Attribute }
 </pre>
 
-#### 29.2.7.16. Array allocation right-hand-side expression {#g-array-allocation-expression}
+#### 29.2.7.16. Array allocation right-hand-side expression ([discussion](#sec-array-allocation)) {#g-array-allocation-expression}
 ````grammar
 ArrayAllocation_ =
   "new" [ Type ] "[" [ Expressions ] "]"
@@ -1242,18 +1242,18 @@ ArrayAllocation_ =
   ]
 ````
 
-#### 29.2.7.17. Object allocation right-hand-side expression {#g-object-allocation-expression}
+#### 29.2.7.17. Object allocation right-hand-side expression ([discussion](#sec-object-allocation)) {#g-object-allocation-expression}
 ````grammar
 ObjectAllocation_ = "new" Type [ "." TypeNameOrCtorSuffix ]
                                [ "(" [ Bindings ] ")" ]
 ````
 
-#### 29.2.7.18. Havoc right-hand-side expression {#g-havoc-expression}
+#### 29.2.7.18. Havoc right-hand-side expression ([discussion](#sec-havoc-expression)) {#g-havoc-expression}
 ````grammar
 HavocRhs_ = "*"
 ````
 
-#### 29.2.7.19. Atomic expressions {#g-atomic-expression}
+#### 29.2.7.19. Atomic expressions ([discussion](#sec-atomic-expression)) {#g-atomic-expression}
 
 ````grammar
 ConstAtomExpression =
@@ -1280,14 +1280,13 @@ Nat = ( digits | hexdigits )
 Dec = decimaldigits
 ````
 
-#### 29.2.7.21. This expression {#g-this-expression}
-([discussion](#sec-this-expression))
+#### 29.2.7.21. This expression ([discussion](#sec-this-expression)) {#g-this-expression}
 
 ````grammar
 ThisExpression_ = "this"
 ````
 
-#### 29.2.7.22. Old and Old@ Expressions {#g-old-expression}
+#### 29.2.7.22. Old and Old@ Expressions ([discussion](#sec-old-expression)) {#g-old-expression}
 
 ````grammar
 OldExpression_ =
@@ -1295,7 +1294,7 @@ OldExpression_ =
   "(" Expression(allowLemma: true, allowLambda: true) ")"
 ````
 
-#### 29.2.7.23. Fresh Expressions {#g-fresh-expression}
+#### 29.2.7.23. Fresh Expressions ([discussion](#sec-fresh-expression)) {#g-fresh-expression}
 
 ````grammar
 FreshExpression_ =
@@ -1303,14 +1302,14 @@ FreshExpression_ =
   "(" Expression(allowLemma: true, allowLambda: true) ")"
 ````
 
-#### 29.2.7.24. Allocated Expressions {#g-allocated-expression}
+#### 29.2.7.24. Allocated Expressions ([discussion](#sec-allocated-expression)) {#g-allocated-expression}
 
 ````grammar
 AllocatedExpression_ =
   "allocated" "(" Expression(allowLemma: true, allowLambda: true) ")"
 ````
 
-#### 29.2.7.25. Unchanged Expressions {#g-unchanged-expression}
+#### 29.2.7.25. Unchanged Expressions ([discussion](#sec-unchanged-expression)) {#g-unchanged-expression}
 
 ````grammar
 UnchangedExpression_ =
@@ -1320,21 +1319,21 @@ UnchangedExpression_ =
   ")"
 ````
 
-#### 29.2.7.26. Cardinality Expressions {#g-cardinality-expression}
+#### 29.2.7.26. Cardinality Expressions ([discussion](#sec-cardinality-expression)) {#g-cardinality-expression}
 
 ````grammar
 CardinalityExpression_ =
   "|" Expression(allowLemma: true, allowLambda: true) "|"
 ````
 
-#### 29.2.7.27. Parenthesized Expression {#g-parenthesized-expression}
+#### 29.2.7.27. Parenthesized Expression ([discussion](#sec-parenthesized-expression)) {#g-parenthesized-expression}
 
 ````grammar
 ParensExpression =
   "(" [ Expressions ] ")"
 ````
 
-#### 29.2.7.28. Sequence Display Expression {#g-sequence-display-expression}
+#### 29.2.7.28. Sequence Display Expression ([discussion](#sec-seq-comprehension)) {#g-sequence-display-expression}
 
 ````grammar
 SeqDisplayExpr =
@@ -1346,7 +1345,7 @@ SeqDisplayExpr =
   )
 ````
 
-#### 29.2.7.29. Set Display Expression {#g-set-display-expression}
+#### 29.2.7.29. Set Display Expression ([discussion](#sec-set-display-expression)) {#g-set-display-expression}
 
 ````grammar
 SetDisplayExpr =
@@ -1356,7 +1355,7 @@ SetDisplayExpr =
   )
 ````
 
-#### 29.2.7.30. Map Display Expression {#g-map-display-expression}
+#### 29.2.7.30. Map Display Expression ([discussion](#sec-map-display-expression)) {#g-map-display-expression}
 
 ````grammar
 MapDisplayExpr =
@@ -1370,7 +1369,7 @@ MapLiteralExpressions =
   }
 ````
 
-#### 29.2.7.31. Endless Expression {#g-endless-expression}
+#### 29.2.7.31. Endless Expression ([discussion](#sec-endless-expression)) {#g-endless-expression}
 
 ````grammar
 EndlessExpression(allowLemma, allowLambda) =
@@ -1384,7 +1383,7 @@ EndlessExpression(allowLemma, allowLambda) =
   )
 ````
 
-#### 29.2.7.32. If expression {#g-if-expression}
+#### 29.2.7.32. If expression ([discussion](#sec-if-expression)) {#g-if-expression}
 
 ````grammar
 IfExpression(allowLemma, allowLambda) =
@@ -1395,7 +1394,7 @@ IfExpression(allowLemma, allowLambda) =
     "else" Expression(allowLemma, allowLambda)
 ````
 
-#### 29.2.7.33. Match Expression {#g-match-expression}
+#### 29.2.7.33. Match Expression ([discussion](#sec-match-expression)) {#g-match-expression}
 
 ````grammar
 MatchExpression(allowLemma, allowLambda) =
@@ -1408,7 +1407,7 @@ CaseExpression(allowLemma, allowLambda) =
   "case" { Attribute } ExtendedPattern "=>" Expression(allowLemma, allowLambda)
 ````
 
-#### 29.2.7.34. Case and Extended Patterns {#g-pattern}
+#### 29.2.7.34. Case and Extended Patterns ([discussion](#sec-case-pattern)) {#g-pattern}
 
 ````grammar
 CasePattern =
@@ -1431,7 +1430,7 @@ PossiblyNegatedLiteralExpression =
   )
 ````
 
-#### 29.2.7.35. Quantifier expression {#g-quantifier-expression}
+#### 29.2.7.35. Quantifier expression ([discussion](#sec-quantifier-expression)) {#g-quantifier-expression}
 
 ````grammar
 QuantifierExpression(allowLemma, allowLambda) =
@@ -1439,7 +1438,7 @@ QuantifierExpression(allowLemma, allowLambda) =
   Expression(allowLemma, allowLambda)
 ````
 
-#### 29.2.7.36. Set Comprehension Expressions {#g-set-comprehension-expression}
+#### 29.2.7.36. Set Comprehension Expressions ([discussion](#sec-set-comprehension-expression)) {#g-set-comprehension-expression}
 
 ````grammar
 SetComprehensionExpr(allowLemma, allowLambda) =
@@ -1448,8 +1447,19 @@ SetComprehensionExpr(allowLemma, allowLambda) =
   [ "::" Expression(allowLemma, allowLambda) ]
 ````
 
+#### 29.2.7.37. Map Comprehension Expression ([discussion](#sec-map-comprehension-expression)) {#g-map-comprehension-expression}
 
-#### 29.2.7.37. Statements in an Expression {#g-statement-in-expression}
+````grammar
+MapComprehensionExpr(allowLemma, allowLambda) =
+  ( "map" | "imap" )
+  QuantifierDomain(allowLemma, allowLambda)
+  "::"
+  Expression(allowLemma, allowLambda)
+  [ ":=" Expression(allowLemma, allowLambda) ]
+````
+
+
+#### 29.2.7.38. Statements in an Expression ([discussion](#sec-statement-in-an-expression)) {#g-statement-in-expression}
 
 ````grammar
 StmtInExpr = ( AssertStmt | AssumeStmt | ExpectStmt
@@ -1457,7 +1467,7 @@ StmtInExpr = ( AssertStmt | AssumeStmt | ExpectStmt
              )
 ````
 
-#### 29.2.7.38. Let and Let or Fail Expression {#g-let-expression}
+#### 29.2.7.39. Let and Let or Fail Expression ([discussion](#sec-let-expression)) {#g-let-expression}
 
 ````grammar
 LetExpression(allowLemma, allowLambda) =
@@ -1474,24 +1484,13 @@ LetExpression(allowLemma, allowLambda) =
   Expression(allowLemma, allowLambda)
 ````
 
-#### 29.2.7.39. Map Comprehension Expression {#g-map-comprehension-expression}
-
-````grammar
-MapComprehensionExpr(allowLemma, allowLambda) =
-  ( "map" | "imap" )
-  QuantifierDomain(allowLemma, allowLambda)
-  "::"
-  Expression(allowLemma, allowLambda)
-  [ ":=" Expression(allowLemma, allowLambda) ]
-````
-
-#### 29.2.7.40. Name Segment {#g-name-segment}
+#### 29.2.7.40. Name Segment ([discussion](#sec-name-segment)) {#g-name-segment}
 
 ````grammar
 NameSegment = Ident [ GenericInstantiation | HashCall ]
 ````
 
-#### 29.2.7.41. Hash Call {#g-hash-call}
+#### 29.2.7.41. Hash Call ([discussion](#sec-name-segment)) {#g-hash-call}
 
 ````grammar
 HashCall = "#" [ GenericInstantiation ]
@@ -1499,7 +1498,7 @@ HashCall = "#" [ GenericInstantiation ]
   "(" [ Bindings ] ")"
 ````
 
-#### 29.2.7.42. Suffix {#g-suffix}
+#### 29.2.7.42. Suffix ([discussion](#sec-suffix)) {#g-suffix}
 
 ````grammar
 Suffix =
@@ -1513,14 +1512,14 @@ Suffix =
   )
 ````
 
-#### 29.2.7.43. Augmented Dot Suffix {#g-augmented-dot-suffix}
+#### 29.2.7.43. Augmented Dot Suffix ([discussion](#sec-augmented-dot-suffix))  {#g-augmented-dot-suffix}
 
 ````grammar
 AugmentedDotSuffix_ = "." DotSuffix
                       [ GenericInstantiation | HashCall ]
 ````
 
-#### 29.2.7.44. Datatype Update Suffix {#g-datatype-update-suffix}
+#### 29.2.7.44. Datatype Update Suffix ([discussion](#sec-datatype-update-suffix))  {#g-datatype-update-suffix}
 
 ````grammar
 DatatypeUpdateSuffix_ =
@@ -1531,7 +1530,7 @@ MemberBindingUpdate =
   ":=" Expression(allowLemma: true, allowLambda: true)
 ````
 
-#### 29.2.7.45. Subsequence Suffix {#g-subsequence-suffix}
+#### 29.2.7.45. Subsequence Suffix ([discussion](#sec-subsequence-suffix))  {#g-subsequence-suffix}
 
 ````grammar
 SubsequenceSuffix_ =
@@ -1540,7 +1539,7 @@ SubsequenceSuffix_ =
   "]"
 ````
 
-#### 29.2.7.46. Subsequence Slices Suffix {#g-subsequence-slices-suffix}
+#### 29.2.7.46. Subsequence Slices Suffix ([discussion](#sec-subsequence-slices-suffix)) {#g-subsequence-slices-suffix}
 
 ````grammar
 SlicesByLengthSuffix_ =
@@ -1553,7 +1552,7 @@ SlicesByLengthSuffix_ =
   "]"
 ````
 
-#### 29.2.7.47. Sequence Update Suffix {#g-sequence-update-suffix}
+#### 29.2.7.47. Sequence Update Suffix ([discussion](#sec-sequence-update-suffix)) {#g-sequence-update-suffix}
 
 ````grammar
 SequenceUpdateSuffix_ =
@@ -1562,7 +1561,7 @@ SequenceUpdateSuffix_ =
   "]"
 ````
 
-#### 29.2.7.48. Selection Suffix {#g-selection-suffix}
+#### 29.2.7.48. Selection Suffix ([discussion](#sec-selection-suffix)) {#g-selection-suffix}
 
 ````grammar
 SelectionSuffix_ =
@@ -1571,13 +1570,13 @@ SelectionSuffix_ =
   "]"
 ````
 
-#### 29.2.7.49. Argument List Suffix {#g-argument-list-suffix}
+#### 29.2.7.49. Argument List Suffix ([discussion](#sec-argument-list-suffix)) {#g-argument-list-suffix}
 
 ````grammar
 ArgumentListSuffix_ = "(" [ Expressions ] ")"
 ````
 
-#### 29.2.7.50. Expression Lists {#g-expression-list}
+#### 29.2.7.50. Expression Lists ([discussion](#sec-expression-list)) {#g-expression-list}
 
 ````grammar
 Expressions =
@@ -1585,7 +1584,7 @@ Expressions =
   { "," Expression(allowLemma: true, allowLambda: true) }
 ````
 
-#### 29.2.7.51. Parameter Bindings {#g-parameter-bindings}
+#### 29.2.7.51. Parameter Bindings ([discussion](#sec-parameter-bindings)) {#g-parameter-bindings}
 
 ````grammar
 ActualBindings =
