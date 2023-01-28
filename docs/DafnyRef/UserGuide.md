@@ -942,7 +942,7 @@ For every method (or function, constructor, etc.), `dafny` extracts _assertions_
 
 * Every [division](#sec-numeric-types) yields an _assertion_ that the divisor is never zero.
 * Every [bounded number operation](#sec-numeric-types) yields an _assertion_ that the result will be within the same bounds (no overflow, no underflows).
-* Every [conversion](#sec-as-expression) yields an _assertion_ that conversion is compatible.
+* Every [conversion](#sec-as-is-expression) yields an _assertion_ that conversion is compatible.
 * Every [bitvector shift](#sec-bit-vector-types) yields an _assertion_ that the shift amount is never negative, and that the shift amount is within the width of the value.
 
 **Object assertions:**

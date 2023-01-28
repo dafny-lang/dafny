@@ -295,7 +295,7 @@ each other in the two groups.
 The groups are listed in order of
 increasing binding power, with equality binding less strongly than any of these operators.
 There is no implicit conversion between `int` and `real`: use `as int` or
-`as real` conversions to write an explicit conversion (cf. [Section 21.10](#sec-as-expression)).
+`as real` conversions to write an explicit conversion (cf. [Section 21.10](#sec-as-is-expression)).
 
 Modulus is supported only for integer-based numeric types.  Integer
 division and modulus are the _Euclidean division and modulus_.  This
@@ -326,7 +326,7 @@ method m(r: real, r': real) {
 Note in the third line that member access (like `.Floor`) binds
 stronger than unary minus.  The fourth line uses the conversion
 function `as real` from `int` to `real`, as described in
-[Section 21.10](#sec-as-expression).
+[Section 21.10](#sec-as-is-expression).
 
 ## 7.3. Bit-vector Types {#sec-bit-vector-types}
 ([grammar](#g-basic-type))
@@ -1478,7 +1478,7 @@ satisfies the predicate defining the receiving subset type.
 (Note, in contrast, assignments between a newtype and its base type
 are never allowed, even if the value assigned is a value of the target
 type.  For such assignments, an explicit conversion must be used, see
-[Section 21.10](#sec-as-expression).)
+[Section 21.10](#sec-as-is-expression).)
 
 The declaration of a subset type permits an optional [`witness` clause](#sec-witness), to declare default values that the compiler can use to initialize variables of the subset type, or to assert the non-emptiness of the subset type.
 
@@ -1715,8 +1715,7 @@ does not complain about `x` unless `x` is actually used, in which case it must h
 The postcondition in `P` does not verify, but not because of the empty type.
 
 <!--PDF NEWPAGE-->
-# 12. Newtypes {#sec-newtypes}
-([grammar](#sec-type-definition))
+# 12. Newtypes ([grammar](#g-type-definition)) {#sec-newtypes}
 
 Examples:
 <!-- %check-resolve -->
@@ -1825,12 +1824,12 @@ Furthermore, for the compiler to be able to make an appropriate choice of
 representation, the constants in the defining expression as shown above must be
 known constants at compile-time. They need not be numeric literals; combinations
 of basic operations and symbolic constants are also allowed as described
-in [Section 21.37](#sec-compile-time-constants).
+in [Section 21.38](#sec-compile-time-constants).
 
 ## 12.1. Conversion operations {#sec-conversion}
 
 For every type `N`, there is a conversion operation with the
-name `as N`, described more fully in [Section 21.10](#sec-as-expression).
+name `as N`, described more fully in [Section 21.10](#sec-as-is-expression).
 It is a partial function defined when the
 given value, which can be of any type, is a member of the type
 converted to.  When the conversion is from a real-based numeric type
@@ -1867,7 +1866,7 @@ and `o is C` is a downcast. A downcast requires the LHS expression to
 have the RHS type, as is enforced by the verifier.
 
 For some types (in particular, reference types), there is also a
-corresponding `is` operation ([Section 21.10](#sec-as-expression)) that
+corresponding `is` operation ([Section 21.10](#sec-as-is-expression)) that
 tests whether a value is valid for a given type.
 
 <!--PDF NEWPAGE-->
@@ -3645,7 +3644,7 @@ function F(x: int, b: bool): real
 ```
 is `(int, bool) -> real`.
 In addition to functions declared by name, Dafny also supports anonymous
-functions by means of _lambda expressions_ (see [Section 21.13](#sec-lambda-expressions)).
+functions by means of _lambda expressions_ (see [Section 21.13](#sec-lambda-expression)).
 
 To simplify the appearance of the basic case where a function's
 domain consists of a list of exactly one non-function, non-tuple type, the parentheses around
@@ -3759,7 +3758,7 @@ then the type of `f.reads` is `T -> set<object?>` and the type
 of `f.requires` is `T -> bool`.
 
 Dafny also supports anonymous functions by means of
-_lambda expressions_. See [Section 21.13](#sec-lambda-expressions).
+_lambda expressions_. See [Section 21.13](#sec-lambda-expression).
 
 <!--PDF NEWPAGE-->
 # 18.  Tuple types {#sec-tuple-types}

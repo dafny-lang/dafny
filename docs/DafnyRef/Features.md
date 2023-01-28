@@ -25,8 +25,8 @@
 | [Integer range constraints in quantifiers (e.g. `a <= x <= b`)](#sec-quantifier-domains) |  X  |  X  |  X  |  X  |  X  |  X  |
 | [Exact value constraints in quantifiers (`x == C`)](#sec-quantifier-domains) |  X  |  X  |  X  |  X  |  X  |  |
 | [Sequence displays of characters](#sec-sequence-displays)[^compiler-sequence-display-of-characters-note] |  X  |  X  |  X  |  X  |  X  |  |
-| [Type test expressions (`x is T`)](#sec-as-expression) |  X  |  X  |  X  |  X  |  X  |  |
-| [Type test expressions on subset types](#sec-as-expression) |  |  |  |  |  |  |
+| [Type test expressions (`x is T`)](#sec-as-is-expression) |  X  |  X  |  X  |  X  |  X  |  |
+| [Type test expressions on subset types](#sec-as-is-expression) |  |  |  |  |  |  |
 | [Quantifiers](#sec-quantifier-expression) |  X  |  X  |  X  |  X  |  X  |  |
 | [Bitvector RotateLeft/RotateRight functions](#sec-bit-vector-types) |  X  |  X  |  X  |  X  |  X  |  |
 | [`for` loops](#sec-for-loops) |  X  |  X  |  X  |  X  |  X  |  X  |

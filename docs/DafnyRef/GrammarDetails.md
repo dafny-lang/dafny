@@ -1490,7 +1490,7 @@ LetExpression(allowLemma, allowLambda) =
 NameSegment = Ident [ GenericInstantiation | HashCall ]
 ````
 
-#### 29.2.7.41. Hash Call ([discussion](#sec-name-segment)) {#g-hash-call}
+#### 29.2.7.41. Hash Call ([discussion](#sec-hash-call)) {#g-hash-call}
 
 ````grammar
 HashCall = "#" [ GenericInstantiation ]
