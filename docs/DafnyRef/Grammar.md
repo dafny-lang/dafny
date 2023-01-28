@@ -328,7 +328,7 @@ Wild identifiers may be used in these contexts:
 - LHS of update statements 
 
 
-### 2.6.3. Qualified Names
+### 2.6.2. Qualified Names
 
 A qualified name starts with the name of a top-level entity and then is followed by
 zero or more ``DotSuffix``s which denote a component. Examples:
@@ -340,7 +340,7 @@ zero or more ``DotSuffix``s which denote a component. Examples:
 
 
 
-### 2.6.4. Identifier-Type Combinations
+### 2.6.3. Identifier-Type Combinations
 
 Identifiers are typically declared in combination with a type, as in
 ```dafny
@@ -359,7 +359,7 @@ This is allowed in defining algebraic datatypes.
 In some other situations a wild identifier can be used, as described [above](#sec-wild-identifier).
 
 
-### 2.6.5. Quantifier Domains {#sec-quantifier-domains}
+### 2.6.4. Quantifier Domains {#sec-quantifier-domains}
 ([grammar](#g-quantifier-domain))
 
 Several Dafny constructs bind one or more variables to a range of possible values.
@@ -407,7 +407,7 @@ Allowing per-variable ranges is not fully backwards compatible, and so it is not
 the `/quantifierSyntax:4` option needs to be provided to enable this feature (See [Section 25.8.5](#sec-controlling-language)).
 
 
-### 2.6.6. Numeric Literals {#sec-numeric-literals}
+### 2.6.5. Numeric Literals {#sec-numeric-literals}
 ([grammar](#g-literal-expression))
 
 Integer and bitvector literals may be expressed in either decimal or hexadecimal (`digits` or `hexdigits`).

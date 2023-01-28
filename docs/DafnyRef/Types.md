@@ -2052,47 +2052,30 @@ before or after this declaration, but circular references are not allowed.
 Examples:
 <!-- %check-resolve -->
 ```dafny
-method m(i: int) {}
+method m(i: int) requires i > 0 {}
 method p() returns (r: int) { r := 0; }
-method q() returns (r: int, s: int, t: nat) { r := 0; s := 1; t := 2; }
+method q() returns (r: int, s: int, t: nat) ensures r < s < t { r := 0; s := 1; t := 2; }
 ghost method g() {}
 class A {
   method f() {}
   constructor Init() {}
   static method g<T>(t: T) {}
 }
+method m ... { }
 lemma L(p: bool) ensures p || !p {}
 twostate lemma TL(p: bool) ensures p || !p {}
-least lemma LL(p: bool) ensures p || !p {}
+least lemma LL[nat](p: bool) ensures p || !p {}
 greatest lemma GL(p: bool) ensures p || !p {}
 ```
 
-The `isGhost` parameter is true iff the `ghost` keyword
-preceded the method declaration.
+Method declarations include a variety of related types of methods:
+- method
+- constructor
+- lemma
+- twostate lemma
+- least lemma
+- greatest lemma
 
-If the `allowConstructor` parameter is false then
-the ``MethodDecl`` must not be a `constructor`
-declaration.
-
-````grammar
-MethodKeyword_ = ( "method"
-                 | "constructor"
-                 | "lemma"
-                 | "twostate" "lemma"
-                 | "least" "lemma"
-                 | "greatest" "lemma"
-                 )
-````
-The method keyword is used to specify special kinds of methods
-as explained below.
-
-````grammar
-MethodSignature_(isGhost, isExtreme) =
-  [ GenericParameters ]
-  [ KType ]    // permitted only if isExtreme == true
-  Formals(allowGhostKeyword: !isGhost, allowNewKeyword: isTwostateLemma, allowOlderKeyword: false, allowDefault: true))
-  [ "returns" Formals(allowGhostKeyword: !isGhost, allowNewKeyword: false, allowOlderKeyword: false, allowDefault: false) ]
-````
 A method signature specifies the method generic parameters,
 input parameters and return parameters.
 The formal parameters are not allowed to have `ghost` specified
@@ -2110,26 +2093,8 @@ Dafny does not support method or function overloading, so the
 name of the class method uniquely identifies it without the
 signature.
 
-````grammar
-KType = "[" ( "nat" | "ORDINAL" ) "]"
-````
-The _KType_ may be specified only for least and greatest lemmas and is described
-in [Section 24.5.3](#sec-friendliness) and subsequent sections.
+See [Section 5.2](#sec-method-specification) for a description of the method specification.
 
-````grammar
-Formals(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, allowDefault) =
-  "(" [ GIdentType(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, allowNameOnlyKeyword: true, allowDefault)
-        { "," GIdentType(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, allowNameOnlyKeyword: true, allowDefault) }
-      ]
-  ")"
-````
-The ``Formals`` specifies the names and types of the method input or
-output parameters.
-
-
-See [Section 5.2](#sec-method-specification) for a description of ``MethodSpec``.
-
-A method declaration adheres to the ``MethodDecl`` grammar above.
 Here is an example of a method declaration.
 
 <!-- %no-check -->
@@ -2168,6 +2133,11 @@ modifies c, d
 ```
 
 all mean the same thing.
+
+If the method is an _extreme lemma_ ( a `least` or `greatest` lemma), then the 
+method signature may also state the type of the _k_ parameter as either `nat` or `ORDINAL`.
+These are described
+in [Section 24.5.3](#sec-friendliness) and subsequent sections.
 
 ### 13.3.1. Ordinary methods
 
@@ -2520,71 +2490,17 @@ method EtaExample(p: P) returns (ghost f: int -> int) {
 
 ## 13.4. Function Declarations {#sec-function-declarations}
 
-````grammar
-FunctionDecl(isWithinAbstractModule) =
-  ( [ "twostate" ] "function" [ "method" ] { Attribute }
-    MethodFunctionName
-    FunctionSignatureOrEllipsis_(allowGhostKeyword:
-                                           ("method" present),
-                                 allowNewKeyword:
-                                           "twostate" present)
-  | "predicate" [ "method" ] { Attribute }
-    MethodFunctionName
-    PredicateSignatureOrEllipsis_(allowGhostKeyword:
-                                           ("method" present),
-                                  allowNewKeyword:
-                                           "twostate" present,
-                                  allowOlderKeyword: true)
-  | ( "least" | "greatest" ) "predicate" { Attribute }
-    MethodFunctionName
-    PredicateSignatureOrEllipsis_(allowGhostKeyword: false,
-                         allowNewKeyword: "twostate" present,
-                         allowOlderKeyword: false))
-  )
-  FunctionSpec
-  [ FunctionBody ]
-
-FunctionSignatureOrEllipsis_(allowGhostKeyword) =
-  FunctionSignature_(allowGhostKeyword) | ellipsis
-
-FunctionSignature_(allowGhostKeyword, allowNewKeyword) =
-  [ GenericParameters ]
-  Formals(allowGhostKeyword, allowNewKeyword, allowOlderKeyword: true, allowDefault: true)
-  ":"
-  ( Type
-  | "(" GIdentType(allowGhostKeyword: false,
-                   allowNewKeyword: false,
-                   allowOlderKeyword: false,
-                   allowNameOnlyKeyword: false,
-                   allowDefault: false)
-    ")"
-  )
-
-PredicateSignatureOrEllipsis_(allowGhostKeyword, allowNewKeyword, allowOlderKeyword) =
-  PredicateSignature_(allowGhostKeyword, allowNewKeyword, allowOlderKeyword) | ellipsis
-
-PredicateSignature_(allowGhostKeyword, allowNewKeyword, allowOlderKeyword) =
-  [ GenericParameters ]
-  [ KType ]
-  Formals(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, allowDefault: true)
-  [
-    ":"
-    ( Type
-    | "(" Ident ":" "bool" ")"
-    )
-  ]
-
-FunctionBody = "{" Expression(allowLemma: true, allowLambda: true)
-               "}" [ "by" "method" BlockStmt ]
-````
-
 ### 13.4.1. Functions
+([grammar](#g-function-declaration))
 
-In the above productions, `allowGhostKeyword` is true if the optional
-`method` keyword was specified. This allows some of the
-formal parameters of a function method to be specified as `ghost`.
+Examples:
+TODO
 
-See [Section 5.3](#sec-function-specification) for a description of ``FunctionSpec``.
+Functions may be declared as ghost. If so, all the formal parameters and
+return values are ghost; if it is not a ghost function, then 
+individual parameters may be declared ghost as desired.
+
+See [Section 5.3](#sec-function-specification) for a description of the function specifcication.
 
 A Dafny function is a pure mathematical function. It is allowed to
 read memory that was specified in its `reads` expression but is not
@@ -2736,7 +2652,7 @@ expression can have a print effect.
 A function is said to be _transparent_ in a location if the
 body of the function is visible at that point.
 A function is said to be _opaque_ at a location if it is not
-transparent. However the ``FunctionSpec`` of a function
+transparent. However the specification of a function
 is always available.
 
 A function is usually transparent up to some unrolling level (up to
@@ -3005,17 +2921,7 @@ as some object reference in another parameter to the predicate.
 
 <!--PDF NEWPAGE-->
 # 14. Trait types {#sec-trait-types}
-````grammar
-TraitDecl =
-  "trait" { Attribute } ClassName [ GenericParameters ]
-  [ "extends" Type { "," Type } | ellipsis ]
-  "{"
-   { { DeclModifier } ClassMemberDecl(allowConstructors: true,
-                                      isValueType: false,
-                                      moduleLevelDecl: false,
-                                      isWithinAbstractModule: false) }
-  "}"
-````
+([grammar](#g-trait-type))
 
 A _trait_ is an abstract superclass, similar to an "interface" or
 "mixin". A trait can be _extended_ only by another trait or
@@ -3054,9 +2960,7 @@ objects of a class `C` that implement a trait `J`, and a reference to
 such a `C` object can be used as a value of type `J`.
 
 ## 14.1. Type `object` {#sec-object-type}
-````grammar
-ObjectType_ = "object" | "object?"
-````
+([grammar](#g-object-type))
 
 There is a built-in trait `object` that is implicitly extended by all classes and traits.
 It produces two types: the type `object?` that is a supertype of all
@@ -3252,16 +3156,14 @@ method m() {
 
 <!--PDF NEWPAGE-->
 # 15. Array types {#sec-array-types}
-````grammar
-ArrayType_ = arrayToken [ GenericInstantiation ]
-````
+([grammar](#g-array-type))
 
 Dafny supports mutable fixed-length _array types_ of any positive
 dimension.  Array types are (heap-based) reference types.
 
 `arrayToken` is a kind of [reserved token](#sec-reserved-words),
-such as `array`, `array2`, `array3`, an so on (but not `array1`).
-The suffix giving the element type can be omitted if the element type can be inferred, though in that case it is likely that the `arrayToken` itself is also
+such as `array`, `array?`, `array2`, `array2?`, `array3`, and so on (but not `array1`).
+The type parameter suffix giving the element type can be omitted if the element type can be inferred, though in that case it is likely that the `arrayToken` itself is also
 inferrable and can be omitted.
 
 ## 15.1. One-dimensional arrays
@@ -3452,18 +3354,9 @@ using a function: see [Section 21.16](#sec-array-allocation).
 
 <!--PDF NEWPAGE-->
 # 16. Iterator types {#sec-iterator-types}
-````grammar
-IteratorDecl = "iterator" { Attribute } IteratorName
-  ( [ GenericParameters ]
-    Formals(allowGhostKeyword: true, allowNewKeyword: false, allowOlderKeyword: false)
-    [ "yields" Formals(allowGhostKeyword: true, allowNewKeyword: false, allowOlderKeyword: false) ]
-  | ellipsis
-  )
-  IteratorSpec
-  [ BlockStmt ]
-````
+([grammar](#g-iterator-type))
 
-See [Section 5.5](#sec-iterator-specification) for a description of ``IteratorSpec``.
+See [Section 5.5](#sec-iterator-specification) for a description of iterator specifications.
 
 An _iterator_ provides a programming abstraction for writing code that
 iteratively returns elements.  These CLU-style iterators are
@@ -3704,13 +3597,15 @@ design of asynchronous methods evolves.
 
 <!--PDF NEWPAGE-->
 # 17. Arrow types {#sec-arrow-types}
+([grammar](#g-arrow-type))
 
-````grammar
-ArrowType_ = ( DomainType_ "~>" Type
-             | DomainType_ "-->" Type
-             | DomainType_ "->" Type
-             )
-````
+Examples:
+<!-- %no-check -->
+```dafny
+(int) -> int
+(bool,int) ~> bool
+() --> object?
+```
 
 Functions are first-class values in Dafny. The types of function values
 are called _arrow types_ (aka, _function types_).
@@ -3907,20 +3802,7 @@ const pair: (int, ghost int) := (1, ghost 2)
 
 <!--PDF NEWPAGE-->
 # 19. Algebraic Datatypes {#sec-algebraic-datatype}
-
-````grammar
-DatatypeDecl =
-  ( "datatype" | "codatatype" )
-  { Attribute }
-  DatatypeName [ GenericParameters ]
-  "=" [ ellipsis ]
-      [ "|" ] DatatypeMemberDecl
-      { "|" DatatypeMemberDecl }
-      [ TypeMembers ]
-
-DatatypeMemberDecl =
-  { Attribute } DatatypeMemberName [ FormalsOptionalIds ]
-````
+([grammar](#g-datatype))
 
 Dafny offers two kinds of algebraic datatypes, those defined
 inductively (with `datatype`)  and those defined coinductively (with `codatatype`).
