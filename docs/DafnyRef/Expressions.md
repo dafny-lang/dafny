@@ -961,8 +961,7 @@ Each reference denoted by the arguments of `unchanged` must be non-null and
 must be allocated in the old-state of the expression.
 
 
-## 21.26. Cardinality Expressions {#sec-cardinality-expression}
-([grammar](#g-cardinality-expression))
+## 21.26. Cardinality Expressions ([grammar](#g-cardinality-expression)) {#sec-cardinality-expression}
 
 Examples:
 ```dafny
