@@ -209,7 +209,7 @@ TopDecl =
   )
 ````
 
-#### 29.2.1.3. Declaration modifiers {#g-declaration-modifiers}
+#### 29.2.1.3. Declaration modifiers {#g-declaration-modifier}
 
 ````grammar
 DeclModifier = ( "abstract" | "ghost" | "static" )
@@ -484,10 +484,11 @@ DatatypeDecl =
   ( "datatype" | "codatatype" )
   { Attribute }
   DatatypeName [ GenericParameters ]
-  "=" [ ellipsis ]
-      [ "|" ] DatatypeMemberDecl
-      { "|" DatatypeMemberDecl }
-      [ TypeMembers ]
+  "=" 
+  [ ellipsis ]
+  [ "|" ] DatatypeMemberDecl
+  { "|" DatatypeMemberDecl }
+  [ TypeMembers ]
 
 DatatypeMemberDecl =
   { Attribute } DatatypeMemberName [ FormalsOptionalIds ]
@@ -523,8 +524,7 @@ MethodDecl(isGhost, allowConstructors, isWithinAbstractModule) =
                                    or greatest lemma declaration)
   | ellipsis
   )
-  MethodSpec(isConstructor: true iff
-                       this is a constructor declaration)
+  MethodSpec(isConstructor: true iff this is a constructor declaration)
   [ BlockStmt ]
 
 MethodKeyword_ = ( "method"
@@ -554,7 +554,7 @@ Formals(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, allowDefault) =
 If `isWithinAbstractModule` is false, then the method must have
 a body for the program that contains the declaration to be compiled.
 
-The _KType_ may be specified only for least and greatest lemmas.
+The `KType` may be specified only for least and greatest lemmas.
 
 #### 29.2.4.4. Function declarations {#g-function-declaration}
 
@@ -809,28 +809,28 @@ YieldStmt = "yield" [ Rhs { "," Rhs } ] ";"
 
 ````grammar
 UpdateStmt =
-    Lhs
-    ( {Attribute} ";"
-    |
-     { "," Lhs }
-     ( ":=" Rhs { "," Rhs }
-     | ":|" [ "assume" ]
+  Lhs
+  ( {Attribute} ";"
+  |
+    { "," Lhs }
+    ( ":=" Rhs { "," Rhs }
+    | ":|" [ "assume" ]
                Expression(allowLemma: false, allowLambda: true)
-     )
-     ";"
     )
+    ";"
+  )
 ````
 
 #### 29.2.6.8. Update with failure statement {#g-update-with-failure-statement}
 
 ````grammar
 UpdateFailureStmt  =
-    [ Lhs { "," Lhs } ]
-    ":-"
-    [ "expect"  | "assert" | "assume" ]
-    Expression(allowLemma: false, allowLambda: false)
-    { "," Rhs }
-    ";"
+  [ Lhs { "," Lhs } ]
+  ":-"
+  [ "expect"  | "assert" | "assume" ]
+  Expression(allowLemma: false, allowLambda: false)
+  { "," Rhs }
+  ";"
 ````
 
 #### 29.2.6.9. Variable declaration statement {#g-variable-declaration-statement}
@@ -1112,6 +1112,8 @@ LogicalExpression(allowLemma, allowLambda) =
   | { "||" RelationalExpression(allowLemma, allowLambda) }
 ````
 
+TODO - check the above
+
 #### 29.2.7.5. Relational expression {#g-relational-expression}
 
 ````grammar
@@ -1188,7 +1190,7 @@ UnaryExpression(allowLemma, allowLambda) =
   )
 ````
 
-#### 29.2.7.12. Primary expression {#g-primary-expresson}
+#### 29.2.7.12. Primary expression {#g-primary-expression}
 ````grammar
 PrimaryExpression(allowLemma, allowLambda) =
   ( NameSegment { Suffix }
@@ -1256,7 +1258,7 @@ HavocRhs_ = "*"
 ````grammar
 ConstAtomExpression =
   ( LiteralExpression
-  | "this"
+  | ThisExpression_
   | FreshExpression_
   | AllocatedExpression_
   | UnchangedExpression_
@@ -1266,7 +1268,7 @@ ConstAtomExpression =
   )
 ````
 
-#### 29.2.7.20. Literal expressions {#g-literal-expression}
+#### 29.2.7.20. Literal expressions ([discussion](#sec-literal-expression)) {#g-literal-expression}
 
 ````grammar
 LiteralExpression =
@@ -1276,6 +1278,13 @@ LiteralExpression =
 Nat = ( digits | hexdigits )
 
 Dec = decimaldigits
+````
+
+#### 29.2.7.20. This expression {#g-this-expression}
+([discussion](#sec-this-expression))
+
+````grammar
+ThisExpression_ = "this"
 ````
 
 #### 29.2.7.21. Old and Old@ Expressions {#g-old-expression}
@@ -1426,8 +1435,8 @@ PossiblyNegatedLiteralExpression =
 
 ````grammar
 QuantifierExpression(allowLemma, allowLambda) =
-    ( "forall" | "exists" ) QuantifierDomain "::"
-    Expression(allowLemma, allowLambda)
+  ( "forall" | "exists" ) QuantifierDomain "::"
+  Expression(allowLemma, allowLambda)
 ````
 
 #### 29.2.7.35. Set Comprehension Expressions {#g-set-comprehension-expression}
@@ -1572,34 +1581,34 @@ ArgumentListSuffix_ = "(" [ Expressions ] ")"
 
 ````grammar
 Expressions =
-    Expression(allowLemma: true, allowLambda: true)
-    { "," Expression(allowLemma: true, allowLambda: true) }
+  Expression(allowLemma: true, allowLambda: true)
+  { "," Expression(allowLemma: true, allowLambda: true) }
 ````
 
 #### 29.2.7.50. Parameter Bindings {#g-parameter-bindings}
 
 ````grammar
 ActualBindings =
-    ActualBinding
-    { "," ActualBinding }
+  ActualBinding
+  { "," ActualBinding }
 
 ActualBinding =
-    [ NoUSIdentOrDigits ":=" ]
-    Expression(allowLemma: true, allowLambda: true)
+  [ NoUSIdentOrDigits ":=" ]
+  Expression(allowLemma: true, allowLambda: true)
 ````
 
 #### 29.2.7.51. Quantifier domains {#g-quantifier-domain}
 
 ````grammar
 QuantifierDomain(allowLemma, allowLambda) =
-    QuantifierVarDecl(allowLemma, allowLambda) 
-    { "," QuantifierVarDecl(allowLemma, allowLambda) }
+  QuantifierVarDecl(allowLemma, allowLambda) 
+  { "," QuantifierVarDecl(allowLemma, allowLambda) }
 
 QuantifierVarDecl(allowLemma, allowLambda) =
-    IdentTypeOptional
-    [ <- Expression(allowLemma, allowLambda) ]
-    { Attribute }
-    [ | Expression(allowLemma, allowLambda) ]
+  IdentTypeOptional
+  [ <- Expression(allowLemma, allowLambda) ]
+  { Attribute }
+  [ | Expression(allowLemma, allowLambda) ]
 ````
 
 
@@ -1639,16 +1648,16 @@ FIdentType = NoUSIdentOrDigits ":" Type
 CIdentType = NoUSIdentOrDigits [ ":" Type ]
 
 GIdentType(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, allowNameOnlyKeyword, allowDefault) =
-    { "ghost" | "new" | "nameonly" | "older" } IdentType
-    [ ":=" Expression(allowLemma: true, allowLambda: true) ]
+  { "ghost" | "new" | "nameonly" | "older" } IdentType
+  [ ":=" Expression(allowLemma: true, allowLambda: true) ]
 
 LocalIdentTypeOptional = WildIdent [ ":" Type ]
 
 IdentTypeOptional = WildIdent [ ":" Type ]
 
 TypeIdentOptional =
-    { "ghost" | "nameonly" } [ NoUSIdentOrDigits ":" ] Type
-    [ ":=" Expression(allowLemma: true, allowLambda: true) ]
+  { "ghost" | "nameonly" } [ NoUSIdentOrDigits ":" ] Type
+  [ ":=" Expression(allowLemma: true, allowLambda: true) ]
 
 FormalsOptionalIds = "(" [ TypeIdentOptional
                            { "," TypeIdentOptional } ] ")"
