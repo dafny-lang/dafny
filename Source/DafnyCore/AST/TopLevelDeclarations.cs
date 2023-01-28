@@ -637,10 +637,8 @@ public class ModuleQualifiedId {
 }
 
 public class ModuleDefinition : INamedRegion, IDeclarationOrUsage, IAttributeBearingDeclaration {
-  public IToken BodyStartTok = Token.NoToken;
-  public IToken BodyEndTok = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
-  public readonly string DafnyName; // The (not-qualified) name as seen in Dafny source code
+  public string DafnyName => MyName.StartToken.val; // The (not-qualified) name as seen in Dafny source code
   public readonly Name MyName; // (Last segment of the) module name
   public string Name => MyName.Value;
   public string FullDafnyName {
@@ -695,7 +693,6 @@ public class ModuleDefinition : INamedRegion, IDeclarationOrUsage, IAttributeBea
     bool isToBeVerified, bool isToBeCompiled) : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
-    this.DafnyName = tok.StartToken.val; // TODO what??
     this.MyName = name;
     this.PrefixIds = prefixIds;
     this.Attributes = attributes;

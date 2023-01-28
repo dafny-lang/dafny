@@ -33,7 +33,7 @@ namespace Microsoft.Dafny {
       if (m is DefaultModuleDecl) {
         nw = new DefaultModuleDecl();
       } else {
-        nw = new ModuleDefinition(Tok(m.RangeToken), name, m.PrefixIds, m.IsAbstract, m.IsFacade,
+        nw = new ModuleDefinition(Tok(m.RangeToken), new Name(m.MyName.RangeToken, name), m.PrefixIds, m.IsAbstract, m.IsFacade,
           m.RefinementQId, m.EnclosingModule, CloneAttributes(m.Attributes),
           true, m.IsToBeVerified, m.IsToBeCompiled);
       }

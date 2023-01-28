@@ -1577,7 +1577,7 @@ namespace Microsoft.Dafny.Compilers {
         return false;
       }
 
-      if (name != null && name != "") {
+      if (!string.IsNullOrEmpty(name)) {
         foreach (var module in program.CompileModules) {
           if (module.IsAbstract) {
             // the purpose of an abstract module is to skip compilation
