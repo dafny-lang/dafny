@@ -1,4 +1,4 @@
-// RUN: %baredafny format --print:- "%s" > "%t"
+// RUN: %baredafny format --print "%s" > "%t"
 // RUN: %diff "%s" "%t"
 
 include "formattinginclude.dfy"

@@ -1,4 +1,4 @@
-// RUN: %baredafny format --useBaseNameForFileName --print:- "%s" "%S/formatting1-2.dfy" "%S/formatting1-3.dfy" > "%t"
+// RUN: %baredafny format --use-basename-for-filename --print "%s" "%S/formatting1-2.dfy" "%S/formatting1-3.dfy" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module A {

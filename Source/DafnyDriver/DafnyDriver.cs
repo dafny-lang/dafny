@@ -426,7 +426,7 @@ namespace Microsoft.Dafny {
               Console.Out.Write(result);
             } else if (onlyCheck) {
               if (result != originalText) {
-                Console.Out.WriteLine("The file " + dafnyFile.FilePath + " needs to be formatted");
+                Console.Out.WriteLine("The file " + (DafnyOptions.O.UseBaseNameForFileName ? Path.GetFileName(dafnyFile.FilePath) : dafnyFile.FilePath) + " needs to be formatted");
                 exitValue = ExitValue.DAFNY_ERROR;
                 needFormatting += 1;
               }
