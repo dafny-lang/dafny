@@ -477,7 +477,7 @@ namespace Microsoft.Dafny {
       if (stmt == null) {
         return null;
       } else {
-        return new BlockStmt(Tok(stmt.Tok), Tok(stmt.RangeToken), stmt.Body.ConvertAll(CloneStmt));
+        return new BlockStmt(Tok(stmt.RangeToken), stmt.Body.ConvertAll(CloneStmt));
       }
     }
 
@@ -485,7 +485,7 @@ namespace Microsoft.Dafny {
       if (stmt == null) {
         return null;
       } else {
-        return new DividedBlockStmt(Tok(stmt.Tok), Tok(stmt.RangeToken), stmt.BodyInit.ConvertAll(CloneStmt), stmt.SeparatorTok == null ? null : Tok(stmt.SeparatorTok), stmt.BodyProper.ConvertAll(CloneStmt));
+        return new DividedBlockStmt(Tok(stmt.RangeToken), stmt.BodyInit.ConvertAll(CloneStmt), stmt.SeparatorTok == null ? null : Tok(stmt.SeparatorTok), stmt.BodyProper.ConvertAll(CloneStmt));
       }
     }
 
@@ -513,7 +513,7 @@ namespace Microsoft.Dafny {
     public MatchCaseStmt CloneMatchCaseStmt(MatchCaseStmt c) {
       Contract.Requires(c != null);
       Contract.Assert(c.Arguments != null);
-      return new MatchCaseStmt(Tok(c.tok), c.Ctor, c.FromBoundVar, c.Arguments.ConvertAll(v => CloneBoundVar(v, false)),
+      return new MatchCaseStmt(Tok(c.RangeToken), c.Ctor, c.FromBoundVar, c.Arguments.ConvertAll(v => CloneBoundVar(v, false)),
         c.Body.ConvertAll(CloneStmt), CloneAttributes(c.Attributes));
     }
 
@@ -660,9 +660,9 @@ namespace Microsoft.Dafny {
       return tok;
     }
 
-    public virtual RangeToken Tok(RangeToken tok) {
+    public RangeToken Tok(RangeToken tok) {
       Contract.Requires(tok != null);
-      return tok;
+      return new RangeToken(Tok(tok.StartToken), Tok(tok.EndToken));
     }
 
     public virtual AttributedToken AttributedTok(AttributedToken tok) {
@@ -827,7 +827,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(basef.Body != null); // a function-by-method has a nonempty .Body
         if (RevealedInScope(f)) {
           // For an "export reveals", use an empty (but not absent) by-method part.
-          basef.ByMethodBody = new BlockStmt(basef.ByMethodBody.Tok, basef.ByMethodBody.RangeToken, new List<Statement>());
+          basef.ByMethodBody = new BlockStmt(basef.ByMethodBody.RangeToken, new List<Statement>());
         } else {
           // For an "export provides", remove the by-method part altogether.
           basef.ByMethodTok = null;

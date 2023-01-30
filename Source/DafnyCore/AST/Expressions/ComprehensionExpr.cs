@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Numerics;
 using System.Linq;
+using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
 
@@ -87,13 +89,32 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
       BoundedPool best = null;
       foreach (var bound in bounds) {
         if ((bound.Virtues & requiredVirtues) == requiredVirtues) {
-          if (best == null || bound.Preference() > best.Preference()) {
+          if (best is IntBoundedPool ibp0 && bound is IntBoundedPool ibp1) {
+            best = new IntBoundedPool(
+              ChooseBestIntegerBound(ibp0.LowerBound, ibp1.LowerBound, true),
+              ChooseBestIntegerBound(ibp0.UpperBound, ibp1.UpperBound, false));
+          } else if (best == null || bound.Preference() > best.Preference()) {
             best = bound;
           }
         }
       }
       return best;
     }
+
+    [CanBeNull]
+    static Expression ChooseBestIntegerBound([CanBeNull] Expression a, [CanBeNull] Expression b, bool pickMax) {
+      if (a == null || b == null) {
+        return a ?? b;
+      }
+
+      if (Expression.IsIntLiteral(Expression.StripParensAndCasts(a), out var aa) &&
+          Expression.IsIntLiteral(Expression.StripParensAndCasts(b), out var bb)) {
+        var x = pickMax ? BigInteger.Max(aa, bb) : BigInteger.Min(aa, bb);
+        return new LiteralExpr(a.tok, x) { Type = a.Type };
+      }
+      return a; // we don't know how to determine which of "a" or "b" is better, so we'll just return "a"
+    }
+
     public static List<VT> MissingBounds<VT>(List<VT> vars, List<BoundedPool> bounds, PoolVirtues requiredVirtues = PoolVirtues.None) where VT : IVariable {
       Contract.Requires(vars != null);
       Contract.Requires(bounds == null || vars.Count == bounds.Count);
@@ -402,12 +423,12 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
     Contract.Requires(cce.NonNullElements(bvars));
     Contract.Requires(term != null);
 
-    this.BoundVars = bvars;
-    this.Range = range;
-    this.Term = term;
-    this.Attributes = attrs;
-    this.BodyStartTok = tok;
-    this.RangeToken = rangeToken;
+    BoundVars = bvars;
+    Range = range;
+    Term = term;
+    Attributes = attrs;
+    BodyStartTok = tok;
+    RangeToken = rangeToken;
   }
 
   protected ComprehensionExpr(Cloner cloner, ComprehensionExpr original) : base(cloner, original) {

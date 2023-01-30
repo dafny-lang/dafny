@@ -213,7 +213,8 @@ namespace Microsoft.Dafny {
         AddWellformednessCheck(cf);
         if (InVerificationScope(cf)) {
           var etran = new ExpressionTranslator(this, predef, f.tok);
-          heightAntecedent = Bpl.Expr.Lt(Bpl.Expr.Literal(cf.EnclosingModule.CallGraph.GetSCCRepresentativePredecessorCount(cf)), etran.FunctionContextHeight());
+          var visibilityLevel = cf.EnclosingModule.CallGraph.GetSCCRepresentativePredecessorCount(cf);
+          heightAntecedent = Bpl.Expr.Lt(MkFunctionHeight(visibilityLevel), etran.FunctionContextHeight());
         }
       }
 
@@ -600,7 +601,7 @@ namespace Microsoft.Dafny {
           methodSel.TypeApplication_AtEnclosingClass = m.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp));
           methodSel.TypeApplication_JustMember = m.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp));
           methodSel.Type = new InferredTypeProxy();
-          var recursiveCall = new CallStmt(m.tok, m.tok.ToRange(), new List<Expression>(), methodSel, recursiveCallArgs);
+          var recursiveCall = new CallStmt(m.tok.ToRange(), new List<Expression>(), methodSel, recursiveCallArgs);
           recursiveCall.IsGhost = m.IsGhost;  // resolve here
 
           Expression parRange = new LiteralExpr(m.tok, true);
@@ -646,7 +647,7 @@ namespace Microsoft.Dafny {
         // translate the body
         TrStmt(m.Body, builder, localVariables, etran);
         m.Outs.Iter(p => CheckDefiniteAssignmentReturn(m.Body.RangeToken.EndToken, p, builder));
-        stmts = builder.Collect(m.Body.Tok);
+        stmts = builder.Collect(m.Body.RangeToken.StartToken); // TODO should this be EndToken?  the parameter name suggests it should be the closing curly
         // tear down definite-assignment trackers
         m.Outs.Iter(RemoveDefiniteAssignmentTracker);
         Contract.Assert(definiteAssignmentTrackers.Count == 0);
@@ -877,8 +878,8 @@ namespace Microsoft.Dafny {
       }
       // the procedure itself
       var req = new List<Boogie.Requires>();
-      // free requires mh == ModuleContextHeight && fh == FunctionContextHeight;
-      req.Add(Requires(f.tok, true, etran.HeightContext(f.OverriddenFunction), null, null));
+      // free requires fh == FunctionContextHeight;
+      req.Add(Requires(f.tok, true, etran.HeightContext(f, true), null, null));
       if (f is TwoStateFunction) {
         // free requires prevHeap == Heap && HeapSucc(prevHeap, currHeap) && IsHeap(currHeap)
         var a0 = Boogie.Expr.Eq(prevHeap, ordinaryEtran.HeapExpr);
@@ -920,18 +921,16 @@ namespace Microsoft.Dafny {
       }
 
       var substMap = new Dictionary<IVariable, Expression>();
-      for (int i = 0; i < f.Formals.Count; i++) {
-        //get corresponsing formal in the class
-        var ie = new IdentifierExpr(f.Formals[i].tok, f.Formals[i].AssignUniqueName(f.IdGenerator));
-        ie.Var = f.Formals[i]; ie.Type = ie.Var.Type;
-        substMap.Add(f.OverriddenFunction.Formals[i], ie);
+      foreach (var (formal, overriddenFormal) in f.Formals.Zip(f.OverriddenFunction.Formals, Tuple.Create)) {
+        // get corresponding formal in the class
+        var ie = new IdentifierExpr(formal.tok, formal.AssignUniqueName(f.IdGenerator)) { Var = formal, Type = formal.Type };
+        substMap.Add(overriddenFormal, ie);
       }
 
       if (f.OverriddenFunction.Result != null) {
         Contract.Assert(pOut != null);
-        //get corresponsing formal in the class
-        var ie = new IdentifierExpr(pOut.tok, pOut.AssignUniqueName(f.IdGenerator));
-        ie.Var = pOut; ie.Type = ie.Var.Type;
+        // get corresponding formal in the class
+        var ie = new IdentifierExpr(pOut.tok, pOut.AssignUniqueName(f.IdGenerator)) { Var = pOut, Type = pOut.Type };
         substMap.Add(f.OverriddenFunction.Result, ie);
       }
 
@@ -946,8 +945,8 @@ namespace Microsoft.Dafny {
       //adding assert W <= Frame’
       AddFunctionOverrideSubsetChk(f, builder, etran, localVariables, substMap, typeMap);
 
-      //adding assume Q; assert Post’;
-      //adding assume J.F(ins) == C.F(ins);
+      //adding assume Q;
+      //assert Post’;
       AddFunctionOverrideEnsChk(f, builder, etran, substMap, typeMap, implInParams, implOutParams.Count == 0 ? null : implOutParams[0]);
 
       var stmts = builder.Collect(f.tok);
@@ -1134,7 +1133,7 @@ namespace Microsoft.Dafny {
       // The axiom
       Boogie.Expr ax = BplForall(f.tok, new List<Boogie.TypeVariable>(), forallFormals, null, tr,
         Boogie.Expr.Imp(Boogie.Expr.And(ReceiverNotNull(bvThisExpr), isOfSubtype), synonyms));
-      var activate = AxiomActivation(f, etran);
+      var activate = AxiomActivation(overridingFunction, etran, true);
       string comment = "override axiom for " + f.FullSanitizedName + " in class " + overridingFunction.EnclosingClass.FullSanitizedName;
       return new Boogie.Axiom(f.tok, Boogie.Expr.Imp(activate, ax), comment);
     }
@@ -1257,7 +1256,7 @@ namespace Microsoft.Dafny {
           N = i;
           break;
         }
-        toks.Add(new NestedToken(original.Tok, e1.tok));
+        toks.Add(new NestedToken(original.RangeToken.StartToken, e1.tok));
         types0.Add(e0.Type.NormalizeExpand());
         types1.Add(e1.Type.NormalizeExpand());
         callee.Add(etran.TrExpr(e0));

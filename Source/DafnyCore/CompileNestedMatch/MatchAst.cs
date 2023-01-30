@@ -81,7 +81,7 @@ public class MatchExpr : Expression, Match, ICloneable<MatchExpr> {  // a MatchE
   }
 }
 
-public abstract class MatchCase : Node, IHasUsages {
+public abstract class MatchCase : TokenNode, IHasUsages {
   public DatatypeCtor Ctor;
   public List<BoundVar> Arguments;
 
@@ -143,10 +143,9 @@ public class MatchStmt : Statement, Match, ICloneable<MatchStmt> {
     }
   }
 
-  public MatchStmt(IToken tok, RangeToken rangeToken, Expression source, [Captured] List<MatchCaseStmt> cases,
+  public MatchStmt(RangeToken rangeToken, Expression source, [Captured] List<MatchCaseStmt> cases,
     bool usesOptionalBraces, MatchingContext context = null)
-    : base(tok, rangeToken) {
-    Contract.Requires(tok != null);
+    : base(rangeToken) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(source != null);
     Contract.Requires(cce.NonNullElements(cases));
@@ -156,10 +155,9 @@ public class MatchStmt : Statement, Match, ICloneable<MatchStmt> {
     this.Context = context is null ? new HoleCtx() : context;
   }
 
-  public MatchStmt(IToken tok, RangeToken rangeToken, Expression source, [Captured] List<MatchCaseStmt> cases,
+  public MatchStmt(RangeToken rangeToken, Expression source, [Captured] List<MatchCaseStmt> cases,
     bool usesOptionalBraces, Attributes attrs, MatchingContext context = null)
-    : base(tok, rangeToken, attrs) {
-    Contract.Requires(tok != null);
+    : base(rangeToken, attrs) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(source != null);
     Contract.Requires(cce.NonNullElements(cases));
@@ -234,8 +232,9 @@ public class MatchCaseStmt : MatchCase {
 
   public override IEnumerable<Node> Children => body;
 
-  public MatchCaseStmt(IToken tok, DatatypeCtor ctor, bool fromBoundVar, [Captured] List<BoundVar> arguments, [Captured] List<Statement> body, Attributes attrs = null)
-    : base(tok, ctor, arguments) {
+  public MatchCaseStmt(RangeToken rangeToken, DatatypeCtor ctor, bool fromBoundVar, [Captured] List<BoundVar> arguments, [Captured] List<Statement> body, Attributes attrs = null)
+    : base(rangeToken.StartToken, ctor, arguments) {
+    RangeToken = rangeToken;
     Contract.Requires(tok != null);
     Contract.Requires(ctor != null);
     Contract.Requires(cce.NonNullElements(arguments));

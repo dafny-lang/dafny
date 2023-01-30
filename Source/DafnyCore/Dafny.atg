@@ -116,6 +116,12 @@ void CheckDeclModifiers(ref DeclModifierData dmod, string declCaption, AllowedDe
   }
 }
 
+void CheckAttribute(Errors errors, IToken attr) {
+  if (attr.val == "dllimport" || attr.val == "handle") {
+    errors.Deprecated(attr, $"Attribute :{attr.val} is deprecated and will be removed in Dafny 4.0");
+  }
+}
+
 bool IsAssumeTypeKeyword(IToken la) {
   return la.kind == _assume || la.kind == _assert || la.kind == _expect;
 }
@@ -235,9 +241,9 @@ public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, Include include, ModuleD
   dummyExpr = new LiteralExpr(Token.NoToken);
   dummyRhs = new ExprRhs(dummyExpr);
   dummyFrameExpr = new FrameExpression(dummyExpr.tok, dummyExpr, null);
-  dummyStmt = new ReturnStmt(Token.NoToken, Token.NoToken.ToRange(), null);
-  var dummyBlockStmt = new BlockStmt(Token.NoToken, Token.NoToken.ToRange(), new List<Statement>());
-  dummyIfStmt = new IfStmt(Token.NoToken, Token.NoToken.ToRange(), false, null, dummyBlockStmt, null);
+  dummyStmt = new ReturnStmt(Token.NoToken.ToRange(), null);
+  var dummyBlockStmt = new BlockStmt(Token.NoToken.ToRange(), new List<Statement>());
+  dummyIfStmt = new IfStmt(Token.NoToken.ToRange(), false, null, dummyBlockStmt, null);
   theInclude = include; // the "include" that includes this file
   theModule = module;
   theBuiltIns = builtIns;
@@ -1697,10 +1703,9 @@ LocalIdentTypeOptional<out LocalVariable var, bool isGhost, bool allowWild=true>
   WildIdent<out id, allowWild> (. startToken = t; .)
   [ ":" Type<out ty>             (. optType = ty; .)
   ]
-  (. var = new LocalVariable(id, id.ToRange(), id.val, optType == null ? new InferredTypeProxy() : optType, isGhost) {
+  (. var = new LocalVariable(new RangeToken(startToken, t), id.val, optType == null ? new InferredTypeProxy() : optType, isGhost) {
        IsTypeExplicit = optType != null
      };
-     var.RangeToken = new RangeToken(startToken, t);
   .)
   .
 
@@ -2804,7 +2809,7 @@ BlockStmt<out BlockStmt/*!*/ block, out IToken bodyStart, out IToken bodyEnd>
   "{"                                  (. bodyStart = t; .)
   { Stmt<body> }
   "}"                                  (. bodyEnd = t;
-                                          block = new BlockStmt(bodyStart, new RangeToken(bodyStart, bodyEnd), body);
+                                          block = new BlockStmt(new RangeToken(bodyStart, bodyEnd), body);
                                           .)
   .
 
@@ -2822,7 +2827,7 @@ DividedBlockStmt<out DividedBlockStmt body, out IToken bodyStart, out IToken bod
     { Stmt<bodyProper> }
   ]
   "}"                                  (. bodyEnd = t; .)
-  (. body = new DividedBlockStmt(bodyStart, new RangeToken(bodyStart, t), bodyInit, separatorTok, bodyProper); .)
+  (. body = new DividedBlockStmt(new RangeToken(bodyStart, t), bodyInit, separatorTok, bodyProper); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -2872,6 +2877,7 @@ LabeledStmt<out Statement s>
   LabelName<out id> ":" (. colonToken = t; .)
   OneStmt<out s>
   (. s.Labels = new LList<Label>(new Label(id, id.val), s.Labels);
+     s.PostLabelToken = s.StartToken;
      s.RangeToken = new RangeToken(labelToken, t);
   .)
   .
@@ -2881,7 +2887,7 @@ SkeletonStmt<out Statement s>
 = (. IToken dotdotdot; .)
   ellipsis                             (. dotdotdot = t; .)
   ";"
-  (. s = new SkeletonStatement(dotdotdot, new RangeToken(dotdotdot, t));
+  (. s = new SkeletonStatement(new RangeToken(dotdotdot, t));
      errors.Deprecated(t, "the ... refinement feature in statements is deprecated");
   .)
   .
@@ -2907,8 +2913,8 @@ BreakStmt<out Statement/*!*/ s>
   ";"
   (. Contract.Assert(label == null || breakAndContinueCount == 1);
      s = label != null ?
-       new BreakStmt(start, new RangeToken(start, t), label, isContinue) :
-       new BreakStmt(start, new RangeToken(start, t), breakAndContinueCount, isContinue);
+       new BreakStmt(new RangeToken(start, t), label, isContinue) :
+       new BreakStmt(new RangeToken(start, t), breakAndContinueCount, isContinue);
   .)
   .
 
@@ -2926,7 +2932,7 @@ ReturnStmt<out Statement/*!*/ s>
     { "," Rhs<out r>                 (. rhss.Add(r); .)
     }
   ]
-  ";"                                (. s = new ReturnStmt(returnTok, new RangeToken(returnTok, t), rhss);
+  ";"                                (. s = new ReturnStmt(new RangeToken(returnTok, t), rhss);
                                      .)
   .
 
@@ -2944,7 +2950,7 @@ YieldStmt<out Statement/*!*/ s>
     { "," Rhs<out r>                 (. rhss.Add(r); .)
     }
   ]
-  ";"                                (. s = new YieldStmt(yieldTok, new RangeToken(yieldTok, t), rhss);
+  ";"                                (. s = new YieldStmt(new RangeToken(yieldTok, t), rhss);
                                      .)
   .
 
@@ -3008,14 +3014,14 @@ UpdateStmt<out Statement/*!*/ s>
 )
   (. var rangeToken = new RangeToken(startToken, t);
      if (suchThat != null) {
-       s = new AssignSuchThatStmt(x, rangeToken, lhss, suchThat, suchThatAssume, null);
+       s = new AssignSuchThatStmt(rangeToken, lhss, suchThat, suchThatAssume, null);
      } else if (exceptionRhs != null) {
-       s = new AssignOrReturnStmt(x, rangeToken, lhss, exceptionRhs, keywordToken, rhss);
+       s = new AssignOrReturnStmt(rangeToken, lhss, exceptionRhs, keywordToken, rhss);
      } else {
        if (lhss.Count == 0 && rhss.Count == 0) {
-         s = new BlockStmt(x, rangeToken, new List<Statement>()); // error, give empty statement
+         s = new BlockStmt(rangeToken, new List<Statement>()); // error, give empty statement
        } else {
-         s = new UpdateStmt(x, rangeToken, lhss, rhss);
+         s = new UpdateStmt(rangeToken, lhss, rhss);
        }
      }
   .)
@@ -3075,7 +3081,7 @@ NewArray<. out List<Expression> ee, out Expression arrayElementInit, out List<Ex
     "["                              (. display = new List<Expression>(); .)
     [ Expressions<display> ]
     "]"                              (. // we fill in the size
-                                        ee.Add(new LiteralExpr(x, display.Count));
+                                        ee.Add(new LiteralExpr(new AutoGeneratedToken(x), display.Count));
                                      .)
   | Expressions<ee>
     "]"                              (. // make sure an array class with this dimensionality exists
@@ -3094,7 +3100,7 @@ NewArray<. out List<Expression> ee, out Expression arrayElementInit, out List<Ex
   )
   (. if (ee.Count == 0) {
        // an error occurred while parsing, but we still want to make sure to return a nonempty "ee"
-       ee.Add(new LiteralExpr(x, 0));
+       ee.Add(new LiteralExpr(new AutoGeneratedToken(x), 0));
      }
   .)
   .
@@ -3163,15 +3169,15 @@ VarDeclStatement<.out Statement/*!*/ s.>
        }
        var rangeToken = new RangeToken(startToken, t);
        if (suchThat != null) {
-         update = new AssignSuchThatStmt(assignTok, rangeToken, lhsExprs, suchThat, suchThatAssume, attrs);
+         update = new AssignSuchThatStmt(rangeToken, lhsExprs, suchThat, suchThatAssume, attrs);
        } else if (exceptionRhs != null) {
-         update = new AssignOrReturnStmt(assignTok, rangeToken, lhsExprs, exceptionRhs, keywordToken, rhss);
+         update = new AssignOrReturnStmt(rangeToken, lhsExprs, exceptionRhs, keywordToken, rhss);
        } else if (rhss.Count == 0) {
          update = null;
        } else {
-         update = new UpdateStmt(assignTok, rangeToken, lhsExprs, rhss);
+         update = new UpdateStmt(rangeToken, lhsExprs, rhss);
        }
-       s = new VarDeclStmt(x, rangeToken, lhss, update);
+       s = new VarDeclStmt(rangeToken, lhss, update);
     .)
   | (. CasePattern<LocalVariable> pat;
        Expression e = dummyExpr;
@@ -3185,7 +3191,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
     Expression<out e, false, true>
 
     ";"
-    (. s = new VarDeclPattern(e.tok, e.RangeToken, pat, e, isGhost);
+    (. s = new VarDeclPattern(e.RangeToken, pat, e, isGhost);
        s.RangeToken = new RangeToken(pat.StartToken, t); .)
   )
   .
@@ -3212,7 +3218,7 @@ IfStmt<out Statement/*!*/ ifStmt>
   (
     IF(IsAlternative())
     AlternativeBlock<true, out alternatives, out usesOptionalBraces, out endTok>
-    (. ifStmt = new AlternativeStmt(x, new RangeToken(startToken, t), alternatives, usesOptionalBraces, attrs);
+    (. ifStmt = new AlternativeStmt(new RangeToken(startToken, t), alternatives, usesOptionalBraces, attrs);
     .)
   |
     ( IF(IsBindingGuard())
@@ -3222,10 +3228,10 @@ IfStmt<out Statement/*!*/ ifStmt>
                                             errors.Deprecated(t, "the ... refinement feature in statements is deprecated");
                                          .)
     )
-    BlockStmt<out thn, out bodyStart, out bodyEnd>    (. endTok = thn.EndTok; .)
+    BlockStmt<out thn, out bodyStart, out bodyEnd> 
     [ "else"
-      ( IfStmt<out s>                                 (. els = s; endTok = s.EndTok; .)
-      | { Attribute<ref elsattrs> } BlockStmt<out bs, out bodyStart, out bodyEnd> (. els = bs; endTok = bs.EndTok; .)
+      ( IfStmt<out s>                                 (. els = s; .)
+      | { Attribute<ref elsattrs> } BlockStmt<out bs, out bodyStart, out bodyEnd> (. els = bs; .)
       )
     ]
     (.
@@ -3234,10 +3240,10 @@ IfStmt<out Statement/*!*/ ifStmt>
        }
        var rangeToken = new RangeToken(startToken, t);
        if (guardEllipsis != null) {
-         ifStmt = new IfStmt(x, rangeToken, isBindingGuard, guard, thn, els);
+         ifStmt = new IfStmt(rangeToken, isBindingGuard, guard, thn, els);
          ifStmt = new SkeletonStatement(ifStmt, guardEllipsis, null);
        } else {
-         ifStmt = new IfStmt(x, rangeToken, isBindingGuard, guard, thn, els, attrs);
+         ifStmt = new IfStmt(rangeToken, isBindingGuard, guard, thn, els, attrs);
        }
     .)
   )
@@ -3318,7 +3324,7 @@ WhileStmt<out Statement stmt>
     IF(IsLoopSpec() || IsAlternative())
     LoopSpec<invariants, decreases, ref mod, ref decAttrs, ref modAttrs>
     AlternativeBlock<false, out alternatives, out usesOptionalBraces, out endTok>
-    (. stmt = new AlternativeLoopStmt(x, new RangeToken(startToken, t), invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), alternatives, usesOptionalBraces, attrs);
+    (. stmt = new AlternativeLoopStmt(new RangeToken(startToken, t), invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), alternatives, usesOptionalBraces, attrs);
        .)
   |
     ( Guard<out guard>           (. Contract.Assume(guard == null || cce.Owner.None(guard)); .)
@@ -3342,16 +3348,16 @@ WhileStmt<out Statement stmt>
           SemErr(mod[0].E.tok, "'modifies' clauses are not allowed on refining loops");
         }
         if (body == null && !isDirtyLoop) {
-          body = new BlockStmt(x, rangeToken, new List<Statement>());
+          body = new BlockStmt(rangeToken, new List<Statement>());
         }
-        stmt = new WhileStmt(x, rangeToken, guard, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(null, null), body, attrs);
+        stmt = new WhileStmt(rangeToken, guard, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(null, null), body, attrs);
         stmt = new SkeletonStatement(stmt, guardEllipsis, bodyEllipsis);
       } else {
         // The following statement protects against crashes in case of parsing errors
         if (body == null && !isDirtyLoop) {
-          body = new BlockStmt(x, rangeToken, new List<Statement>());
+          body = new BlockStmt(rangeToken, new List<Statement>());
         }
-        stmt = new WhileStmt(x, rangeToken, guard, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), body, attrs);
+        stmt = new WhileStmt(rangeToken, guard, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), body, attrs);
       }
     .)
   )
@@ -3397,9 +3403,9 @@ ForLoopStmt<out Statement stmt>
     var rangeToken = new RangeToken(startToken, t);
     // The following statement protects against crashes in case of parsing errors
     if (body == null && !isDirtyLoop) {
-      body = new BlockStmt(x, rangeToken, new List<Statement>());
+      body = new BlockStmt(rangeToken, new List<Statement>());
     }
-    stmt = new ForLoopStmt(x, rangeToken, loopIndex, start, end, goingUp,
+    stmt = new ForLoopStmt(rangeToken, loopIndex, start, end, goingUp,
       invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), body, attrs);
   .)
   .
@@ -3532,7 +3538,7 @@ MatchStmt<out Statement/*!*/ s>
           CaseStmt<out c> (. cases.Add(c); .)
         }
   )
-  (. s = new NestedMatchStmt(x, new RangeToken(startToken, t), e, cases, usesOptionalBraces, attrs);
+  (. s = new NestedMatchStmt(new RangeToken(startToken, t), e, cases, usesOptionalBraces, attrs);
   .)
   .
 
@@ -3585,10 +3591,10 @@ AssertStmt<out Statement/*!*/ s, bool inExprContext>
     ";"
   )
   (. if (dotdotdot != null) {
-       s = new AssertStmt(x, new RangeToken(startToken, t), new LiteralExpr(x, true), null, null, attrs);
+       s = new AssertStmt(new RangeToken(startToken, t), new LiteralExpr(x, true), null, null, attrs);
        s = new SkeletonStatement(s, dotdotdot, null);
      } else {
-       s = new AssertStmt(x, new RangeToken(startToken, t), e, proof, lbl == null ? null : new AssertLabel(lbl, lbl.val), attrs);
+       s = new AssertStmt(new RangeToken(startToken, t), e, proof, lbl == null ? null : new AssertLabel(lbl, lbl.val), attrs);
      }
   .)
   .
@@ -3610,10 +3616,10 @@ ExpectStmt<out Statement/*!*/ s>
   [ "," Expression<out m, false, true> ]
   ";"
   (. if (dotdotdot != null) {
-       s = new ExpectStmt(x, new RangeToken(startToken, t), new LiteralExpr(x, true), m, attrs);
+       s = new ExpectStmt(new RangeToken(startToken, t), new LiteralExpr(x, true), m, attrs);
        s = new SkeletonStatement(s, dotdotdot, null);
      } else {
-       s = new ExpectStmt(x, new RangeToken(startToken, t), e, m, attrs);
+       s = new ExpectStmt(new RangeToken(startToken, t), e, m, attrs);
      }
   .)
   .
@@ -3634,10 +3640,10 @@ AssumeStmt<out Statement/*!*/ s>
   )
   ";"
   (. if (dotdotdot != null) {
-       s = new AssumeStmt(x, new RangeToken(startToken, t), new LiteralExpr(x, true), attrs);
+       s = new AssumeStmt(new RangeToken(startToken, t), new LiteralExpr(x, true), attrs);
        s = new SkeletonStatement(s, dotdotdot, null);
      } else {
-       s = new AssumeStmt(x, new RangeToken(startToken, t), e, attrs);
+       s = new AssumeStmt(new RangeToken(startToken, t), e, attrs);
      }
   .)
   .
@@ -3654,7 +3660,7 @@ PrintStmt<out Statement s>
   { "," Expression<out e, false, true>         (. args.Add(e); .)
   }
   ";"                                          (.
-    s = new PrintStmt(x, new RangeToken(startToken, t), args);
+    s = new PrintStmt(new RangeToken(startToken, t), args);
     .)
   .
 
@@ -3669,7 +3675,7 @@ RevealStmt<out Statement s>
   { "," Expression<out e, false, true>          (. es.Add(e); .)
   }
   ";"                                           (.
-    s = new RevealStmt(x, new RangeToken(startToken, t), es);
+    s = new RevealStmt(new RangeToken(startToken, t), es);
     .)
   .
 
@@ -3708,10 +3714,7 @@ ForallStmt<out Statement/*!*/ s>
         SemErr(t, "a forall statement with an ensures clause must have a body");
      }
 
-     if (block != null) {
-        tok = block.EndTok;
-     }
-     s = new ForallStmt(x, new RangeToken(startToken, t), bvars, qattrs, range, ens, block);
+     s = new ForallStmt(new RangeToken(startToken, t), bvars, qattrs, range, ens, block);
   .)
   .
 
@@ -3742,7 +3745,7 @@ ModifyStmt<out Statement s>
                                          .)
   | SYNC ";"         (. endTok = t; .)
   )
-  (. s = new ModifyStmt(tok, new RangeToken(startToken, t), mod, attrs, body);
+  (. s = new ModifyStmt(new RangeToken(startToken, t), mod, attrs, body);
      if (ellipsisToken != null) {
        s = new SkeletonStatement(s, ellipsisToken, null);
      }
@@ -3796,11 +3799,11 @@ CalcStmt<out Statement s>
     { IF(la.kind == _lbrace || la.kind == _calc)  /* Grab as a hint if possible, not a next line in the calculation whose expression begins with an open brace
                                                    * or StmtExpr containing a calc.  A user has to rewrite such a line to be enclosed in parentheses.
                                                    */
-      ( BlockStmt<out subBlock, out t0, out t1>   (. hintEnd = subBlock.EndTok; subhints.Add(subBlock); .)
-      | CalcStmt<out subCalc>                     (. hintEnd = subCalc.EndTok; subhints.Add(subCalc); .)
+      ( BlockStmt<out subBlock, out t0, out t1>   (. hintEnd = subBlock.EndToken; subhints.Add(subBlock); .)
+      | CalcStmt<out subCalc>                     (. hintEnd = subCalc.EndToken; subhints.Add(subCalc); .)
       )
     }
-    (. var h = new BlockStmt(hintStart, new RangeToken(hintStart, hintEnd), subhints); // if the hint is empty, hintStart is the first token of the next line, but it doesn't matter because the block statement is just used as a container
+    (. var h = new BlockStmt(new RangeToken(hintStart, hintEnd), subhints); // if the hint is empty, hintStart is the first token of the next line, but it doesn't matter because the block statement is just used as a container
        hints.Add(h);
        if (h.Body.Count != 0) { danglingOperator = null; }
     .)
@@ -3814,7 +3817,7 @@ CalcStmt<out Statement s>
       // Repeat the last line to create a dummy line for the dangling hint
       lines.Add(lines[lines.Count - 1]);
     }
-    s = new CalcStmt(x, new RangeToken(startToken, t), userSuppliedOp, lines, hints, stepOps, attrs);
+    s = new CalcStmt(new RangeToken(startToken, t), userSuppliedOp, lines, hints, stepOps, attrs);
   .)
   .
 
@@ -3891,7 +3894,7 @@ Expression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwis
     Expression<out e0, allowLemma, allowLambda>
     (. var startToken = e.StartToken;
        e = new StmtExpr(e0.Tok,
-             new UpdateStmt(startToken, e.RangeToken, new List<Expression>(), new List<AssignmentRhs>() { new ExprRhs(e) }),
+             new UpdateStmt(e.RangeToken, new List<Expression>(), new List<AssignmentRhs>() { new ExprRhs(e) }),
              e0);
        e.RangeToken = new RangeToken(startToken, e0.EndToken);
     .)
@@ -5097,7 +5100,7 @@ SetComprehensionExpr<out Expression q, bool allowLemma, bool allowLambda, bool a
        if (range == null) {
          range = LiteralExpr.CreateBoolLiteral(new AutoGeneratedToken(t), true);
        }
-       q = new SetComprehension(setToken, new RangeToken(t, t), finite, bvars, range, body, attrs);
+       q = new SetComprehension(setToken, new RangeToken(setToken, t), finite, bvars, range, body, attrs);
      }
   .)
   .
@@ -5139,7 +5142,8 @@ Attribute<ref Attributes attrs>
   AttributeName<out x>
   [ Expressions<args> ]
   "}"                         (. closeBrace = t; .)
-  (. attrs = new UserSuppliedAttributes(x, openBrace, closeBrace, args, attrs);
+  (. CheckAttribute(errors, x);
+     attrs = new UserSuppliedAttributes(x, openBrace, closeBrace, args, attrs);
      attrs.RangeToken = new RangeToken(openBrace, t);
   .)
   .

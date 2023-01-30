@@ -31,7 +31,7 @@ namespace Microsoft.Dafny {
   public interface IHasUsages : IDeclarationOrUsage {
     public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations();
   }
-  public class Program : Node {
+  public class Program : TokenNode {
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(FullName != null);
@@ -99,7 +99,7 @@ namespace Microsoft.Dafny {
     public IEnumerable<Node> ConcreteChildren => Children;
   }
 
-  public class Include : Node, IComparable {
+  public class Include : TokenNode, IComparable {
     public string IncluderFilename { get; }
     public string IncludedFilename { get; }
     public string CanonicalPath { get; }
@@ -143,7 +143,7 @@ namespace Microsoft.Dafny {
     Attributes Attributes { get; }
   }
 
-  public class Attributes : Node {
+  public class Attributes : TokenNode {
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Name != null);
@@ -347,7 +347,7 @@ namespace Microsoft.Dafny {
   }
 
 
-  public abstract class INamedRegion : Node {
+  public abstract class INamedRegion : TokenNode {
     string Name { get; }
   }
 
@@ -391,7 +391,7 @@ namespace Microsoft.Dafny {
     }
   }
   [ContractClassFor(typeof(IVariable))]
-  public abstract class IVariableContracts : Node, IVariable {
+  public abstract class IVariableContracts : TokenNode, IVariable {
     public string Name {
       get {
         Contract.Ensures(Contract.Result<string>() != null);
@@ -460,12 +460,11 @@ namespace Microsoft.Dafny {
     public abstract IToken NameToken { get; }
   }
 
-  public abstract class NonglobalVariable : Node, IVariable {
+  public abstract class NonglobalVariable : TokenNode, IVariable {
     readonly string name;
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
-      Contract.Invariant(tok != null);
       Contract.Invariant(name != null);
       Contract.Invariant(type != null);
     }
@@ -717,7 +716,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class ActualBinding : Node {
+  public class ActualBinding : TokenNode {
     public readonly IToken /*?*/ FormalParameterName;
     public readonly Expression Actual;
     public readonly bool IsGhost;
@@ -733,7 +732,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class ActualBindings : Node {
+  public class ActualBindings : TokenNode {
     public readonly List<ActualBinding> ArgumentBindings;
 
     public ActualBindings(List<ActualBinding> argumentBindings) {
@@ -787,7 +786,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class Specification<T> : Node, IAttributeBearingDeclaration
+  public class Specification<T> : TokenNode, IAttributeBearingDeclaration
     where T : Node {
     public readonly List<T> Expressions;
 
