@@ -178,7 +178,7 @@ See [docs/dev/news/](docs/dev/news/).
 
 # 3.7.2
 
-- fix: Hovering over variables and methods inside cases of nested match statements work again. (https://github.com/dafny-lang/dafny/pull/2334)
+- fix: Hovering over variables and methods inside cases of nested match statements works again. (https://github.com/dafny-lang/dafny/pull/2334)
 - fix: Fix bug in translation of two-state predicates with heap labels. (https://github.com/dafny-lang/dafny/pull/2300)
 - fix: Check that arguments of 'unchanged' satisfy enclosing reads clause. (https://github.com/dafny-lang/dafny/pull/2302)
 - feat: Whitespaces and comments are kept in relevant parts of the AST (https://github.com/dafny-lang/dafny/pull/1801)
