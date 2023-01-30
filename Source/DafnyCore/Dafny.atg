@@ -1725,13 +1725,14 @@ TypeIdentOptional<out RangeToken/*!*/ range, out Name/*!*/ identName, out Type/*
   { "ghost"                            (. isGhost = true; .)
   | "nameonly"                         (. nameonlyToken = t; .)
   }
-  ( TypeAndToken<out nameToken, out ty, false>
+  ( TypeAndToken<out var firstToken, out ty, false>
     [ ":"
       (. /* try to convert ty to an identifier */
          UserDefinedType udt = ty as UserDefinedType;
          if (udt != null && udt.TypeArgs.Count == 0) {
+           nameToken = firstToken;
          } else {
-           SemErr(nameToken, "invalid formal-parameter name in datatype constructor");
+           SemErr(firstToken, "invalid formal-parameter name in datatype constructor");
          }
       .)
       Type<out ty>
