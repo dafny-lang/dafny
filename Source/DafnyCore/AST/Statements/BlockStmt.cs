@@ -38,11 +38,11 @@ public class BlockStmt : Statement, ICloneable<BlockStmt>, ICanFormat {
       }
       switch (token.val) {
         case "{": {
-            if (!formatter.TryGetIndentLineBefore(token, out var indentLineBefore)) {
+            if (!formatter.TryGetIndentInline(token, out var indentLineBefore)) {
               formatter.SetDelimiterIndentedRegions(token, braceIndent);
             } else {
               braceIndent = indentLineBefore;
-              if (!formatter.TryGetIndentBefore(token, out _)) {
+              if (!formatter.TryGetIndentAbove(token, out _)) {
                 formatter.SetDelimiterIndentedRegions(token, braceIndent);
               }
 

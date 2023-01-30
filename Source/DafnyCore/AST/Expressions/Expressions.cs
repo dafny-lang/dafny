@@ -2171,7 +2171,7 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr>, ICanFormat {
       if (ownedTokens.Count == 2) {
         var firstToken = ownedTokens[0];
         var secondToken = ownedTokens[1];
-        indent = formatter.GetNewTokenVisualIndent(firstToken, formatter.GetIndentBefore(firstToken));
+        indent = formatter.GetNewTokenVisualIndent(firstToken, formatter.GetIndentInlineOrAbove(firstToken));
         var c = 0;
         while (c < firstToken.TrailingTrivia.Length && firstToken.TrailingTrivia[c] == ' ') {
           c++;
@@ -2185,14 +2185,14 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr>, ICanFormat {
       } else if (ownedTokens.Count > 0) {
         if (ownedTokens[0].val == "requires") { // Requirement conjunctions inside lambdas are separated by the keyword "requires"
           if (this.StartToken.Prev.val == "requires") {
-            formatter.binOpIndent = formatter.GetIndentBefore(this.StartToken.Prev);
+            formatter.binOpIndent = formatter.GetIndentInlineOrAbove(this.StartToken.Prev);
           }
         }
         if (formatter.binOpIndent > 0) {
           formatter.SetIndentations(ownedTokens[0], formatter.binOpIndent, formatter.binOpIndent, formatter.binOpArgIndent);
         } else {
           var startToken = this.StartToken;
-          var newIndent = formatter.GetNewTokenVisualIndent(startToken, formatter.GetIndentBefore(startToken));
+          var newIndent = formatter.GetNewTokenVisualIndent(startToken, formatter.GetIndentInlineOrAbove(startToken));
           formatter.SetIndentations(ownedTokens[0], newIndent, newIndent, newIndent);
         }
       }
@@ -2218,7 +2218,7 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr>, ICanFormat {
       }
       formatter.Visit(this.E0, indent);
       formatter.Visit(this.E1, this.Op is BinaryExpr.Opcode.Exp ? indent : indent + formatter.SpaceTab);
-      formatter.SetIndentations(this.EndToken, after: indent);
+      formatter.SetIndentations(this.EndToken, below: indent);
       return false;
     } else if (Op is Opcode.Eq or Opcode.Le or Opcode.Lt or Opcode.Ge or Opcode.Gt or Opcode.Iff or Opcode.Neq) {
       var itemIndent = formatter.GetNewTokenVisualIndent(
@@ -2247,7 +2247,7 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr>, ICanFormat {
                 }
                 formatter.SetIndentations(token, itemIndent, selfIndent);
                 item2Indent = followedByNewline ? itemIndent : formatter.GetNewTokenVisualIndent(this.E1.StartToken, itemIndent);
-                formatter.SetIndentations(token, after: item2Indent);
+                formatter.SetIndentations(token, below: item2Indent);
                 break;
               }
           }
@@ -2255,7 +2255,7 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr>, ICanFormat {
       }
       formatter.Visit(E0, itemIndent);
       formatter.Visit(E1, item2Indent);
-      formatter.SetIndentations(EndToken, after: indent);
+      formatter.SetIndentations(EndToken, below: indent);
       return false;
     } else {
       foreach (var token in OwnedTokens) {
@@ -2263,7 +2263,7 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr>, ICanFormat {
       }
       formatter.Visit(E0, indent);
       formatter.Visit(E1, indent);
-      formatter.SetIndentations(EndToken, after: indent);
+      formatter.SetIndentations(EndToken, below: indent);
       return false;
     }
   }
@@ -2639,7 +2639,7 @@ public class StmtExpr : Expression, ICanFormat {
 
   public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
     formatter.Visit(S, indentBefore);
-    formatter.SetIndentations(S.EndToken, after: indentBefore);
+    formatter.SetIndentations(S.EndToken, below: indentBefore);
     formatter.Visit(E, indentBefore);
     return false;
   }
@@ -2703,7 +2703,7 @@ public class ITEExpr : Expression, ICanFormat {
               formatter.SetIndentations(token, indentBefore, indentBefore, rightIndent);
             }
             formatter.Visit(Thn, indentBefore + formatter.SpaceTab);            // Override the last indentation so that comments are on the same column as "else"
-            formatter.SetIndentations(token.Prev, after: indentBefore);
+            formatter.SetIndentations(token.Prev, below: indentBefore);
 
             break;
           }
@@ -2713,7 +2713,7 @@ public class ITEExpr : Expression, ICanFormat {
               var newElseIndent = formatter.GetNewTokenVisualIndent(thenToken, indentBefore);
               formatter.SetDelimiterIndentedRegions(token, newElseIndent);
             } else if (token.Next.val == "if" || token.line == lineThen) { // Don't indent the subexpression
-              formatter.SetIndentations(token, before: indentBefore, sameLineBefore: indentBefore, after: indentBefore);
+              formatter.SetIndentations(token, above: indentBefore, inline: indentBefore, below: indentBefore);
             } else if (IndentationFormatter.IsFollowedByNewline(token)) {
               formatter.SetOpeningIndentedRegion(token, indentBefore);
             } else {
@@ -2722,7 +2722,7 @@ public class ITEExpr : Expression, ICanFormat {
 
             formatter.Visit(Els, indentBefore + formatter.SpaceTab);
             // Override the last indentation so that comments are on the same column as "else"
-            formatter.SetIndentations(token.Prev, after: indentBefore);
+            formatter.SetIndentations(token.Prev, below: indentBefore);
             break;
           }
       }

@@ -321,7 +321,7 @@ public class CalcStmt : Statement, ICloneable<CalcStmt>, ICanFormat {
                   token.val != "#" &&
                   !inOrdinal) {
                 if (token.Next.val != "{") {
-                  formatter.SetIndentations(token, sameLineBefore: indentBefore);
+                  formatter.SetIndentations(token, inline: indentBefore);
                   innerCalcIndent = Math.Max(innerCalcIndent, formatter.GetRightAlignIndentAfter(token, indentBefore));
                 } else {// It's an hint! If there is no comment and no newline between them, we align the hints as well.
                   if ((token.TrailingTrivia + token.Next.LeadingTrivia).Trim() == "" &&

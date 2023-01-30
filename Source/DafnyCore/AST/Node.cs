@@ -13,9 +13,9 @@ public interface INode {
 }
 
 public interface ICanFormat : INode {
-  // Set the indentation of individual tokens owned by this node, given
-  // the new indentation set by the tokens preceeding this node
-  // Returns if traverse needs to occur (true) or if it already happened (false)
+  /// Sets the indentation of individual tokens owned by this node, given
+  /// the new indentation set by the tokens preceding this node
+  /// Returns if further traverse needs to occur (true) or if it already happened (false)
   bool SetIndent(int indentBefore, IndentationFormatter formatter);
 }
 

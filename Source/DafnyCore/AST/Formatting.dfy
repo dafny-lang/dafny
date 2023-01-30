@@ -94,7 +94,7 @@ module {:extern "Microsoft.Dafny"} {:compile false} {:options "-functionSyntax:4
       }
     }
   }
-  class {:extern "HelperString"} {:compile false} HelperString {
+  class {:extern "TriviaFormatterHelper"} {:compile false} TriviaFormatterHelper {
     static predicate EndsWithNewline(input: CsString)
   }
 }
@@ -110,43 +110,24 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
 
         // Given the current indentation at this point
         // returns the leading trivia but with its indentation corrected.
-        function ReindentLeadingTrivia(token: IToken, precededByNewline: bool, indentation: CsString, lastIndentation: CsString): CsString
+        function GetNewLeadingTrivia(token: IToken): CsString
 
         // Given the current indentation at this point
         // returns the trailing trivia but with its indentation corrected.
-        function ReindentTrailingTrivia(token: IToken, precededByNewline: bool, indentation: CsString, lastIndentation: CsString): CsString
-
-        // Given a token and the current indentation, returns the expected indentation
-        // on the line before the token and at the token's line (used only if it's the first token on the line)
-        // and for the line after the token (used only it's not followed by a token on the same line)
-        method GetIndentation(token: IToken, currentIndentation: CsString)
-          returns (
-            indentationBefore: CsString,
-            lastIndentation: CsString,
-            indentationAfter: CsString)
-          requires token.Valid()
-          ensures token.allTokens == old(token.allTokens)
+        function GetNewTrailingTrivia(token: IToken): CsString
 
         // Given a token (including leading and trailing trivia), the current indentation, and whether the last trivia
         // was ending with a newline, returns the two new leading and trailing trivia of the token,
         // the new current indentation and whether the last trailing trivia ended with a newline
-        method GetNewLeadingTrailingTrivia(token: IToken, currentIndent: CsString, previousTrailingTriviaEndedWithNewline: bool)
+        method GetNewLeadingTrailingTrivia(token: IToken)
           returns (newLeadingTrivia: CsString,
-                   newTrailingTrivia: CsString,
-                   newIndentation: CsString,
-                   nextLeadingTriviaWillBePrecededByNewline: bool)
+                   newTrailingTrivia: CsString)
           requires token.Valid()
           ensures token.Valid()
           ensures token.allTokens == old(token.allTokens)
-          ensures nextLeadingTriviaWillBePrecededByNewline == HelperString.EndsWithNewline(token.TrailingTrivia)
         {
-          var indentationBefore,
-              lastIndentation,
-              indentationAfter := GetIndentation(token, currentIndent);
-          newLeadingTrivia := ReindentLeadingTrivia(token, previousTrailingTriviaEndedWithNewline, indentationBefore, lastIndentation);
-          newTrailingTrivia := ReindentTrailingTrivia(token, false, indentationAfter, indentationAfter);
-          newIndentation := indentationAfter;
-          nextLeadingTriviaWillBePrecededByNewline := HelperString.EndsWithNewline(token.TrailingTrivia);
+          newLeadingTrivia := GetNewLeadingTrivia(token);
+          newTrailingTrivia := GetNewTrailingTrivia(token);
         }
       }
 
@@ -163,9 +144,7 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
       {
         var token: IToken? := firstToken;
         var sb := new CsStringBuilder();
-        var currentIndent := CsStringEmpty;
         ghost var i := 0;
-        var leadingTriviaWasPreceededByNewline := true;
         var allTokens := firstToken.allTokens;
         while(token != null)
           decreases if token == null then 0 else |token.allTokens|
@@ -184,12 +163,8 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
           IsAllocated(allTokens[0..i]);
 
           var newLeadingTrivia,
-              newTrailingTrivia,
-              newCurrentIndent,
-              newEndedWithNewline :=
-            reindent.GetNewLeadingTrailingTrivia(token, currentIndent, leadingTriviaWasPreceededByNewline);
-          leadingTriviaWasPreceededByNewline := newEndedWithNewline;
-          currentIndent := newCurrentIndent;
+              newTrailingTrivia :=
+            reindent.GetNewLeadingTrailingTrivia(token);
           ghost var sPrev := sb.built;
           sb.Append(newLeadingTrivia);
           sb.Append(token.val);
