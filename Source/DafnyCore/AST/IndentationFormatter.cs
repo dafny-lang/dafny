@@ -1653,87 +1653,109 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
 
 
     return TriviaFormatterHelper.NewlineRegex.Replace(input, match => {
-    // Apply the given rules on a match of a (newline|beginning) + space + optional comment
-    if (match.Groups["trailingWhitespace"].Success) {
-      return TriviaFormatterHelper.RemoveTrailingWhitespace ? "" : match.Groups["trailingWhitespace"].Value;
-    }
+      // Apply the given rules on a match of a (newline|beginning) + space + optional comment
+      if (match.Groups["trailingWhitespace"].Success) {
+        return TriviaFormatterHelper.RemoveTrailingWhitespace ? "" : match.Groups["trailingWhitespace"].Value;
+      }
 
-    var startOfString = match.Groups["previousChar"].Value == "";
-    var capturedComment = match.Groups["capturedComment"].Value;
-    var currentIndent = match.Groups["currentIndent"].Value.Length;
-    var entireMatch = match.Groups[0].Value;
-    var caseCommented = match.Groups["caseCommented"];
-    if (startOfString && !precededByNewline) {
-      if (capturedComment.StartsWith("//")) {
-        // Possibly align consecutive // trailing comments
-        if (originalCommentIndent == 0) {
+      var startOfString = match.Groups["previousChar"].Value == "";
+      var capturedComment = match.Groups["capturedComment"].Value;
+      var currentIndent = match.Groups["currentIndent"].Value.Length;
+      var entireMatch = match.Groups[0].Value;
+      var caseCommented = match.Groups["caseCommented"];
+      if (startOfString && !precededByNewline) {
+        if (capturedComment.StartsWith("//") && originalCommentIndent == 0) {
+          // Possibly align consecutive // trailing comments
           originalCommentIndent = token.col - 1 + token.val.Length + currentIndent;
           newCommentIndent = GetNewTokenVisualIndent(token, 0) + token.val.Length + currentIndent;
           previousMatchWasSingleLineCommentToAlign = true;
         }
+
+        var isTrailingWhitespace = capturedComment.StartsWith("\r") || capturedComment.StartsWith("\n");
+        if (TriviaFormatterHelper.RemoveTrailingWhitespace &&
+            isTrailingWhitespace) {
+          precededByNewline = true;
+          return capturedComment;
+        }
+
+        if (!capturedComment.StartsWith("/*")) {
+          return entireMatch;
+        }
       }
 
-      if (TriviaFormatterHelper.RemoveTrailingWhitespace && capturedComment.StartsWith("\r") || capturedComment.StartsWith("\n")) {
+      var noMoreComment = capturedComment.Length == 0;
+      if (noMoreComment) {
+        //If no comment was captured, it means we reached the end of the trivia. Do we indent or not?
+        return trailingTrivia ? "" : (precededByNewline ? indentationInline : entireMatch);
+      }
+
+      if (!startOfString) {
         precededByNewline = true;
-        return capturedComment;
       }
 
-      if (!capturedComment.StartsWith("/*")) {
-        return entireMatch;
-      }
-    }
-
-    var noMoreComment = capturedComment.Length == 0;
-    if (noMoreComment) {
-      //If no comment was captured, it means we reached the end of the trivia. Do we indent or not?
-      return trailingTrivia ? "" : (precededByNewline ? indentationInline : entireMatch);
-    }
-
-    if (!startOfString) {
-      precededByNewline = true;
-    }
-
-    if (capturedComment.StartsWith("/*")) {
-      var doubleStar = capturedComment.StartsWith("/**") && !capturedComment.StartsWith("/***");
-
-      var absoluteOriginalIndent = currentIndent;
-      var newAbsoluteIndent = indentationBefore.Length;
-      if (!precededByNewline) {
-        // It has to be the trailing trivia of that token.
-        absoluteOriginalIndent = token.col - 1 + token.val.Length + absoluteOriginalIndent;
-        newAbsoluteIndent = GetNewTokenVisualIndent(token, indentationBefore.Length) + token.val.Length + currentIndent;
+      if (capturedComment.StartsWith("/*")) {
+        return ReIndentMultilineComment(token, capturedComment, currentIndent, indentationBefore, precededByNewline, out previousMatchWasSingleLineCommentToAlign);
       }
 
-      var relativeIndent = newAbsoluteIndent - absoluteOriginalIndent;
-      var initialRelativeIndent = relativeIndent;
-      var tryAgain = true;
-      var result = "";
-      // This loop executes at most two times. The second time is necessary only if the indentation before the first /* decreases
-      // and there were items that would have been moved into a negative column.
-      // e.g.
-      //
-      // const x := 2;
-      //     /* Start of comment
-      //   end of comment */
-      //
-      // would be, after the first iteration
-      //
-      // const x := 2;
-      // /* Start of comment
-      // end of comment */
-      //
-      // which breaks the alignment. So with `tryAgain`, it  corrects the offset so that the comment becomes:
-      //
-      // const x := 2;
-      //   /* Start of comment
-      // end of comment */
-      //
-      while (tryAgain)
-      // decreases newAbsoluteIndent - relativeIndent
-      {
-        var canIndentLinesStartingWithStar = true;
-        tryAgain = false;
-        result = new Regex($@"(?<=\r?\n|\r(?!\n))(?<existingIndent>[ \t]*)(?<star>\*)?").Replace(capturedComment, match1 => {
+      if (capturedComment.StartsWith("//")) {
+        return ReIndentSingleLineComment(token, capturedComment, originalCommentIndent, currentIndent, newCommentIndent, caseCommented, ref previousMatchWasSingleLineCommentToAlign, ref indentationBefore);
+      }
+
+      if (capturedComment.StartsWith("\r") || capturedComment.StartsWith("\n")) {
+        previousMatchWasSingleLineCommentToAlign = false;
+        return (TriviaFormatterHelper.BlankNewlinesWithoutSpaces ? "" : indentationBefore) + capturedComment;
+      }
+
+      previousMatchWasSingleLineCommentToAlign = false;
+
+      // Last line
+      return indentationInline;
+    });
+  }
+
+  private string ReIndentMultilineComment(IToken token, string capturedComment, int currentIndent,
+    string indentationBefore, bool precededByNewline, out bool previousMatchWasSingleLineCommentToAlign) {
+    var doubleStar = capturedComment.StartsWith("/**") && !capturedComment.StartsWith("/***");
+
+    var absoluteOriginalIndent = currentIndent;
+    var newAbsoluteIndent = indentationBefore.Length;
+    if (!precededByNewline) {
+      // It has to be the trailing trivia of that token.
+      absoluteOriginalIndent = token.col - 1 + token.val.Length + absoluteOriginalIndent;
+      newAbsoluteIndent = GetNewTokenVisualIndent(token, indentationBefore.Length) + token.val.Length + currentIndent;
+    }
+
+    var relativeIndent = newAbsoluteIndent - absoluteOriginalIndent;
+    var initialRelativeIndent = relativeIndent;
+    var tryAgain = true;
+    var result = "";
+    // This loop executes at most two times. The second time is necessary only if the indentation before the first /* decreases
+    // and there were items that would have been moved into a negative column.
+    // e.g.
+    //
+    // const x := 2;
+    //     /* Start of comment
+    //   end of comment */
+    //
+    // would be, after the first iteration
+    //
+    // const x := 2;
+    // /* Start of comment
+    // end of comment */
+    //
+    // which breaks the alignment. So with `tryAgain`, it  corrects the offset so that the comment becomes:
+    //
+    // const x := 2;
+    //   /* Start of comment
+    // end of comment */
+    //
+    while (tryAgain)
+    // decreases newAbsoluteIndent - relativeIndent
+    {
+      var canIndentLinesStartingWithStar = true;
+      tryAgain = false;
+      result = new Regex($@"(?<=\r?\n|\r(?!\n))(?<existingIndent>[ \t]*)(?<star>\*)?").Replace(capturedComment,
+        match1 => {
           if (canIndentLinesStartingWithStar && match1.Groups["star"].Success) {
             return indentationBefore + (doubleStar ? "  *" : " *");
           }
@@ -1749,63 +1771,55 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
 
           return Whitespace(newIndent) + (match1.Groups["star"].Success ? match1.Groups["star"].Value : "");
         });
-      }
-
-      previousMatchWasSingleLineCommentToAlign = false;
-      if (precededByNewline) {
-        return Whitespace(absoluteOriginalIndent + relativeIndent) + result;
-      }
-
-      return Whitespace(currentIndent + relativeIndent - initialRelativeIndent) + result;
     }
 
-    if (capturedComment.StartsWith("//")) {
-      if (capturedComment.StartsWith("///") && !capturedComment.StartsWith("////")) {
-        // No indentation
-        return capturedComment;
-      }
+    previousMatchWasSingleLineCommentToAlign = false;
+    if (precededByNewline) {
+      return Whitespace(absoluteOriginalIndent + relativeIndent) + result;
+    }
 
-      if (previousMatchWasSingleLineCommentToAlign) {
-        if (originalCommentIndent == currentIndent) {
-          return Whitespace(newCommentIndent) + capturedComment);
+    return Whitespace(currentIndent + relativeIndent - initialRelativeIndent) + result;
   }
-}
 
-var referenceToken = token.Next;
-        if (caseCommented.Success && token.Next != null && (token.Next.val == caseCommented.Value || FirstTokenOnLineIs(token, t => {
-  referenceToken = t;
-  return t.val == caseCommented.Value;
-}))) {
-          indentationBefore = Whitespace(GetNewTokenVisualIndent(referenceToken, indentationBefore.Length));
-}
+  private string ReIndentSingleLineComment(IToken token, string capturedComment, int originalCommentIndent,
+    int currentIndent, int newCommentIndent, Group caseCommented, ref bool previousMatchWasSingleLineCommentToAlign,
+    ref string indentationBefore) {
+    if (capturedComment.StartsWith("///") && !capturedComment.StartsWith("////")) {
+      // No indentation
+      return capturedComment;
+    }
 
-previousMatchWasSingleLineCommentToAlign = false;
+    if (previousMatchWasSingleLineCommentToAlign && originalCommentIndent == currentIndent) {
+      return Whitespace(newCommentIndent) + capturedComment;
+    }
 
-return indentationBefore + capturedComment;
-      }
+    var referenceToken = token.Next;
+    var isCommentedCaseFollowedByCase =
+      caseCommented.Success && token.Next != null &&
+        (token.Next.val == caseCommented.Value || FirstTokenOnLineIs(
+          token, t => {
+            referenceToken = t;
+            return t.val == caseCommented.Value;
+          }));
+    if (isCommentedCaseFollowedByCase) {
+      indentationBefore = Whitespace(GetNewTokenVisualIndent(referenceToken, indentationBefore.Length));
+    }
 
-      if (capturedComment.StartsWith("\r") || capturedComment.StartsWith("\n")) {
-  previousMatchWasSingleLineCommentToAlign = false;
-  return (TriviaFormatterHelper.BlankNewlinesWithoutSpaces ? "" : indentationBefore) + capturedComment;
-}
+    previousMatchWasSingleLineCommentToAlign = false;
 
-previousMatchWasSingleLineCommentToAlign = false;
-
-// Last line
-return indentationInline;
-    });
+    return indentationBefore + capturedComment;
   }
 
   private static readonly Dictionary<int, string> WhitespaceCache = new();
 
-private static string Whitespace(int characters) {
-  return WhitespaceCache.GetOrCreate(characters, () => new string(' ', characters));
-}
+  private static string Whitespace(int characters) {
+    return WhitespaceCache.GetOrCreate(characters, () => new string(' ', characters));
+  }
 
-public void GetNewLeadingTrailingTrivia(IToken token, out string newLeadingTrivia, out string newTrailingTrivia) {
-  _Companion_IIndentationFormatter.GetNewLeadingTrailingTrivia(this, token, out newLeadingTrivia,
-    out newTrailingTrivia);
-}
+  public void GetNewLeadingTrailingTrivia(IToken token, out string newLeadingTrivia, out string newTrailingTrivia) {
+    _Companion_IIndentationFormatter.GetNewLeadingTrailingTrivia(this, token, out newLeadingTrivia,
+      out newTrailingTrivia);
+  }
 
   #endregion
 }
@@ -1827,11 +1841,21 @@ public static class TriviaFormatterHelper {
     return EndsWithNewlineRegex.IsMatch(s);
   }
 
+  private static readonly string AnyNewline = @"\r?\n|\r(?!\n)";
+
   private static readonly string NoCommentDelimiter = @"(?:(?!/\*|\*/)[\s\S])*";
 
   private static readonly string MultilineCommentContent =
     $@"(?:{NoCommentDelimiter}(?:(?'Open'/\*)|(?'-Open'\*/)))*{NoCommentDelimiter}";
 
   public static readonly Regex NewlineRegex =
-    new($@"(?<=(?<previousChar>\r?\n|\r(?!\n)|^))(?<currentIndent>[ \t]*)(?<capturedComment>/\*{MultilineCommentContent}\*/|///?/? ?(?<caseCommented>(?:\||case))?|\r?\n|\r(?!\n)|$)|(?<=\S|^)(?<trailingWhitespace>[ \t]+)(?=\r?\n|\r(?!\n))");
+    new($@"(?<=(?<previousChar>{AnyNewline}|^))" // Always start after the beginning of the string or after a newline
+        + @"(?<currentIndent>[ \t]*)"                  // Captures the current indent on the line
+                                                       // Now, either capture a comment or a trailing whitespace.
+        + ($@"(?<capturedComment>/\*{MultilineCommentContent}\*/" // Captures a nested multiline comment
+          + $@"|///?/? ?(?<caseCommented>(?:\||case))?"           // Captures a single-line comment, with a possibly commented out case.
+          + $@"|{AnyNewline}"                                     // Captures a newline
+          + $@"|$)")                                              // Captures the end of the string
+        + $@"|(?<=\S|^)(?<trailingWhitespace>[ \t]+)(?={AnyNewline})" // Captures a trailing whitespace
+    );
 }
