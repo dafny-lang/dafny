@@ -1,5 +1,4 @@
-# 4. Modules {#sec-modules}
-([grammar](#g-module))
+# 4. Modules ([grammar](#g-module)) {#sec-modules}
 
 Examples:
 ```dafny
@@ -25,8 +24,7 @@ Module definitions and imports each declare a submodule
 of its enclosing module, if only of the
 implicit, undeclared, top-level module. 
 
-## 4.1. Declaring New Modules {#sec-module-definition}
-([grammar](#g-module-definition))
+## 4.1. Declaring New Modules ([grammar](#g-module-definition)) {#sec-module-definition}
 
 Examples:
 <!-- %check-resolve -->
@@ -150,8 +148,7 @@ the existence of `A.B` might cause names to be resolved differently and
 the semantics of the program might be (silently) different if `A.B` is
 present or absent.
 
-## 4.3. Importing Modules {#sec-importing-modules}
-([grammar](#g-module-import))
+## 4.3. Importing Modules ([grammar](#g-module-import)) {#sec-importing-modules}
 
 Examples:
 <!-- %no-check -->
@@ -346,8 +343,7 @@ To avoid confusion in such cases, it is an ambiguity error to `import open`
 a module without renaming that contains a declaration with the same name as a declaration in 
 a type in the module when the type has the same name as the module.
 
-## 4.5. Export Sets and Access Control {#sec-export-sets}
-([grammar](#g-module-export))
+## 4.5. Export Sets and Access Control ([grammar](#g-module-export)) {#sec-export-sets}
 
 Examples:
 <!-- %no-check -->

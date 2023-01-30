@@ -1,6 +1,4 @@
-# 20. Statements {#sec-statements}
-([grammar](#g-statement))
-
+# 20. Statements ([grammar](#g-statement)) {#sec-statements}
 
 Many of Dafny's statements are similar to those in traditional
 programming languages, but a number of them are significantly different.
@@ -10,8 +8,7 @@ Stsatements have zero or more labels.
 
 Statements typically end with either a semicolon (`;`) or a closing curly brace ('}').
 
-## 20.1. Labeled Statement {#sec-labeled-statement}
-([grammar](#g-labeled-statement))
+## 20.1. Labeled Statement ([grammar](#g-labeled-statement)) {#sec-labeled-statement}
 
 Examples:
 <!-- %check-resolve -->
@@ -51,8 +48,7 @@ same as any previous enclosing or dominating label.
 
 <!-- TODO : what about two-state predicate -->
 
-## 20.2. Break and Continue Statements {#sec-break-continue-statement}
-([grammar](#g-break-continue-statement))
+## 20.2. Break and Continue Statements ([grammar](#g-break-continue-statement)) {#sec-break-continue-statement}
 
 Examples:
 <!-- %check-resolve -->
@@ -293,8 +289,7 @@ in the assert statement in the example.
 So, remember, a loop invariant holds at the very top of every iteration, not necessarily
 immediately after the loop.
 
-## 20.3. Block Statement {#sec-block-statement}
-([grammar](#g-block-statement))
+## 20.3. Block Statement ([grammar](#g-block-statement)) {#sec-block-statement}
 
 Examples:
 <!-- %no-check -->
@@ -308,8 +303,7 @@ Examples:
 A block statement is just a sequence of zero or more statements enclosed by curly braces.
 Local variables declared in the block end their scope at the end of the block.
 
-## 20.4. Return Statement {#sec-return-statement}
-([grammar](#g-return-statement))
+## 20.4. Return Statement ([grammar](#g-return-statement)) {#sec-return-statement}
 
 Examples:
 <!-- %check-resolve -->
@@ -339,12 +333,10 @@ as the number of named out-parameters. These expressions are
 evaluated, then they are assigned to the out-parameters, and then the
 method terminates.
 
-## 20.5. Yield Statement {#sec-yield-statement}
-([grammar](#g-yield-statement))
-
+## 20.5. Yield Statement ([grammar](#g-yield-statement)) {#sec-yield-statement}
 
 A yield statement can only be used in an iterator.
-See [Section 16](#sec-iterator-types) for more details
+See [Section 15](#sec-iterator-types) for more details
 about iterators.
 
 The body of an iterator is a _co-routine_. It is used
@@ -364,8 +356,7 @@ These expressions are then evaluated, then they are
 assigned to the yield parameters, and then the iterator
 yields.
 
-## 20.6. Update and Call Statements {#sec-update-and-call-statement}
-([grammar](#g-update-and-call-statement))
+## 20.6. Update and Call Statements ([grammar](#g-update-and-call-statement)) {#sec-update-and-call-statement}
 
 Examples:
 ```dafny
@@ -861,7 +852,6 @@ using either `:-` statements or using `:=` statements with a LHS to receive the 
 
 ## 20.8. Variable Declaration Statement ([grammar](#g-variable-declaration-statement)) {#sec-variable-declaration-statement}
 
-
 Examples:
 ```dafny
 method m() {
@@ -1106,7 +1096,7 @@ Loops
 Importantly, loops need _loop specifications_ in order for Dafny to prove that
 they obey expected behavior. In some cases Dafny can infer the loop specifications by analyzing the code,
 so the loop specifications need not always be explicit.
-These specifications are described in [Section 5.6](#sec-loop-specification) and [Section 20.14](#sec-loop-specifications).
+These specifications are described in [Section 19.6](#sec-loop-specification) and [Section 20.14](#sec-loop-specifications).
 
 The general loop statement in Dafny is the familiar `while` statement.
 It has two general forms.
@@ -1721,8 +1711,7 @@ The attributes recognized for assert statements are discussed in [Section 23.3](
 
 Using `...` as the argument of the statement is deprecated.
 
-## 20.17. Assume Statement {#sec-assume-statement}
-([grammar](#g-assume-statement))
+## 20.17. Assume Statement ([grammar](#g-assume-statement)) {#sec-assume-statement}
 
 Examples:
 ```dafny
@@ -2175,7 +2164,7 @@ Using `...` as the argument of the statement is deprecated.
 The form of the `modify` statement which includes a block
 statement is also deprecated.
 
-<!-- TOOD - relationship between modify and havoc assignment -- latter for any variable or field; former for all fields of an object
+<!-- TODO - relationship between modify and havoc assignment -- latter for any variable or field; former for all fields of an object -->
 
 ## 20.23. Calc Statement ([grammar](#g-calc-statement)) {#sec-calc-statement}
 

@@ -1,5 +1,4 @@
-# 3. Programs {#sec-program}
-({grammar](#g-program))
+# 3. Programs ([grammar](#g-program)) {#sec-program}
 
 At the top level, a Dafny program (stored as files with extension `.dfy`)
 is a set of declarations. The declarations introduce (module-level)
@@ -25,8 +24,7 @@ A file consists of
 - top level declarations, followed by 
 - the end of the file.
 
-## 3.1. Include Directives {#sec-include-directive}
-([grammar](#g-include-directive))
+## 3.1. Include Directives ([grammar](#g-include-directive)) {#sec-include-directive}
 
 Examples:
 ```dafny
@@ -50,8 +48,7 @@ the underlying file system relative to the current working directory (the
 one in which the dafny tool is invoked). Paths beginning with a device
 designator (e.g., `C:`) are only permitted on Windows systems.
 
-## 3.2. Top Level Declarations {#sec-top-level-declaration}
-([grammar](#g-top-level-declaration)
+## 3.2. Top Level Declarations ([grammar](#g-top-level-declaration) {#sec-top-level-declaration}
 
 Examples:
 ```dafny
@@ -77,14 +74,13 @@ These declarations are one of these kinds:
 - methods and functions, encapsulating computations or actions
 - const declarations, which are names (of a given type) initialized to an unchanging value
   (declarations of variables are not allowed at the module level)
-- type declarations of various kinds ([Section 6](#sec-types) and the following sections)
+- type declarations of various kinds ([Section 5](#sec-types) and the following sections)
 
 Methods, functions and const declarations are placed in an implicit class declaration
 that is in the top-level implicit module. These declarations are all implicitly
 `static` (but may not be declared explicitly static).
 
-## 3.3. Declaration Modifiers {#sec-declaration-modifier}
-([grammar](#g-declaration-modifier))
+## 3.3. Declaration Modifiers ([grammar](#g-declaration-modifier)) {#sec-declaration-modifier}
 
 Examples:
 ,!-- %check-resolve -->

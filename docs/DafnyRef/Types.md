@@ -1,4 +1,4 @@
-# 6. Types {#sec-types}
+# 5. Types {#sec-types}
 
 A Dafny type is a domain type (i.e., a type that can be the domain of an
 arrow type) optionally followed by an arrow and a range type.
@@ -12,7 +12,7 @@ all described in the following subsections.
 
 Dafny types may be categorized as either value types or reference types.
 
-## 6.1. Value Types
+## 5.1. Value Types
 The value types are those whose values do not lie in the program heap.
 These are:
 
@@ -30,7 +30,7 @@ The `nat` type is a pre-defined [subset type](#sec-subset-types) of `int`.
 
 Dafny does not include types themselves as values, nor is there a type of types.
 
-## 6.2. Reference Types {#sec-reference-types}
+## 5.2. Reference Types {#sec-reference-types}
 Dafny offers a host of _reference types_.  These represent
 _references_ to objects allocated dynamically in the program heap.  To
 access the members of an object, a reference to (that is, a _pointer_
@@ -40,7 +40,7 @@ The reference types are class types, traits and array types.
 Dafny supports both reference types that contain the special `null` value
 (_nullable types_) and reference types that do not (_non-null types_).
 
-## 6.3. Named Types ([grammar](#g-type))
+## 5.3. Named Types ([grammar](#g-type))
 
 A _Named Type_ is used to specify a user-defined type by name
 (possibly module-qualified). Named types are introduced by
@@ -57,14 +57,13 @@ that does not allow a ``HashCall``.
 The following sections describe each of these kinds of types in more detail.
 
 <!--PDF NEWPAGE-->
-# 7. Basic types {#sec-basic-type}
+# 6. Basic types {#sec-basic-type}
 
 Dafny offers these basic types: `bool` for booleans, `char` for
 characters, `int` and `nat` for integers, `real` for reals,
 `ORDINAL`, and bit-vector types.
 
-## 7.1. Booleans {#sec-booleans}
-([grammar](#g-basic-type))
+## 6.1. Booleans ([grammar](#g-basic-type)) {#sec-booleans}
 
 There are two boolean values and each has a corresponding literal in
 the language:  `false` and `true`.
@@ -107,7 +106,7 @@ A && (B || C)
 ```
 depending on the intended meaning.
 
-### 7.1.1. Equivalence Operator {#sec-equivalence-operator}
+### 6.1.1. Equivalence Operator {#sec-equivalence-operator}
 
 The expressions `A <==> B` and `A == B` give the same value, but note
 that `<==>` is _associative_ whereas `==` is _chaining_ and they have
@@ -137,7 +136,7 @@ is simply a shorthand for
 A == B && B == C
 ```
 
-### 7.1.2. Conjunction and Disjunction {#sec-conjunction-and-disjunction}
+### 6.1.2. Conjunction and Disjunction {#sec-conjunction-and-disjunction}
 
 Conjunction and disjunction are associative.  These operators are
 _short circuiting (from left to right)_, meaning that their second
@@ -148,7 +147,7 @@ evaluates to `false` or `B` is defined.  When `A && B` is defined, its
 meaning is the same as the ordinary, symmetric mathematical
 conjunction `&`.  The same holds for `||` and `|`.
 
-### 7.1.3. Implication and  Reverse Implication {#sec-implication-and-reverse-implication}
+### 6.1.3. Implication and  Reverse Implication {#sec-implication-and-reverse-implication}
 
 Implication is _right associative_ and is short-circuiting from left
 to right.  Reverse implication `B <== A` is exactly the same as
@@ -166,7 +165,7 @@ C <== B <== A
 ```
 To illustrate the short-circuiting rules, note that the expression
 `a.Length` is defined for an array `a` only if `a` is not `null` (see
-[Section 6.2](#sec-reference-types)), which means the following two
+[Section 5.2](#sec-reference-types)), which means the following two
 expressions are well-formed:
 <!-- %no-check -->
 ```dafny
@@ -200,15 +199,13 @@ is not.
 In addition, booleans support _logical quantifiers_ (forall and
 exists), described in [Section 21.31.4](#sec-quantifier-expression).
 
-## 7.2. Numeric Types {#sec-numeric-types}
-([grammar](#g-basic-type))
-
+## 6.2. Numeric Types ([grammar](#g-basic-type)) {#sec-numeric-types}
 
 Dafny supports _numeric types_ of two kinds, _integer-based_, which
 includes the basic type `int` of all integers, and _real-based_, which
 includes the basic type `real` of all real numbers.  User-defined
 numeric types based on `int` and `real`, either _subset types_ or _newtypes_,
-are described in [Section 11.3](#sec-subset-types) and [Section 12](#sec-newtypes).
+are described in [Section 10.3](#sec-subset-types) and [Section 11](#sec-newtypes).
 
 There is one built-in [_subset type_](#sec-subset-types),
 `nat`, representing the non-negative subrange of `int`.
@@ -327,8 +324,7 @@ stronger than unary minus.  The fourth line uses the conversion
 function `as real` from `int` to `real`, as described in
 [Section 21.10](#sec-as-is-expression).
 
-## 7.3. Bit-vector Types {#sec-bit-vector-types}
-([grammar](#g-basic-type))
+## 6.3. Bit-vector Types ([grammar](#g-basic-type)) {#sec-bit-vector-types}
 
 Dafny includes a family of bit-vector types, each type having a specific,
 constant length, the number of bits in its values.
@@ -476,8 +472,7 @@ But `11` is not a valid `bv3` literal.
 
 [^binding]: The binding power of shift and bit-wise operations is different than in C-like languages.
 
-## 7.4. Ordinal type {#sec-ordinals}
-([grammar](#g-basic-type))
+## 6.4. Ordinal type ([grammar](#g-basic-type)) {#sec-ordinals}
 
 Values of type `ORDINAL` behave like `nat`s in many ways, with one important difference:
 there are `ORDINAL` values that are larger than any `nat`. The smallest of these non-nat ordinals is
@@ -507,8 +502,7 @@ In addition,
 
 In Dafny, `ORDINAL`s are used primarily in conjunction with [extreme functions and lemmas](#sec-extreme).
 
-## 7.5. Characters {#sec-characters}
-([grammar](#g-basic-type))
+## 6.5. Characters ([grammar](#g-basic-type)) {#sec-characters}
 
 Dafny supports a type `char` of _characters_.  
 Its exact meaning is controlled by the command-line switch `--unicode-char:true|false`.
@@ -541,7 +535,7 @@ supported escape sequences are the following:
 The escape sequence for a double quote is redundant, because
 `'"'` and `'\"'` denote the same
 character---both forms are provided in order to support the same
-escape sequences in string literals ([Section 10.3.5](#sec-strings)).
+escape sequences in string literals ([Section 9.3.5](#sec-strings)).
 
 In the form `\u`_xxxx_, which is only allowed if `--unicode-char` is disabled,
 the `u` is always lower case, but the four
@@ -567,7 +561,7 @@ relational operators:
   `>`              | greater than
 
 Sequences of characters represent _strings_, as described in
-[Section 10.3.5](#sec-strings).
+[Section 9.3.5](#sec-strings).
 
 Character values can be converted to and from `int` values using the
 `as int` and `as char` conversion operations. The result is what would
@@ -579,8 +573,8 @@ by indexing into a string, and the implicit conversion to string
 when used as a parameter of a `print` statement.
 
 <!--PDF NEWPAGE-->
-# 8. Type parameters {#sec-type-parameters}
-([grammar](#g-type-parameter))
+# 7. Type parameters ([grammar](#g-type-parameter)) {#sec-type-parameters}
+
 
 
 TODO _ rewerite
@@ -605,7 +599,7 @@ declared inside angle brackets and can stand for any type.
 Dafny has some inference support that makes certain signatures less
 cluttered (described in [Section 24.2](#sec-type-inference)).
 
-## 8.1. Declaring restrictions on type parameters {#sec-type-characteristics}
+## 7.1. Declaring restrictions on type parameters {#sec-type-characteristics}
 
 It is sometimes necessary to restrict type parameters so that
 they can only be instantiated by certain families of types, that is,
@@ -622,7 +616,7 @@ listed comma-separated,
 inside the parentheses or as multiple parenthesized elements:
  `T(==,0)` or `T(==)(0)`.
 
-### 8.1.1. Equality-supporting type parameters: `T(==)` {#sec-equality-supporting}
+### 7.1.1. Equality-supporting type parameters: `T(==)` {#sec-equality-supporting}
 
 Designating a type parameter with the `(==)` suffix indicates that
 the parameter may only be replaced in non-ghost contexts
@@ -647,7 +641,7 @@ code.  Coinductive datatypes, arrow types, and inductive
 datatypes with ghost parameters are examples of types that are not
 equality supporting.
 
-### 8.1.2. Auto-initializable types: `T(0)` {#sec-auto-init}
+### 7.1.2. Auto-initializable types: `T(0)` {#sec-auto-init}
 
 At every access of a variable `x` of a type `T`, Dafny ensures that
 `x` holds a legal value of type `T`.
@@ -691,7 +685,7 @@ type parameter `A` is declared to be restricted to auto-init types,
 the program does not need to explicitly assign any value to the
 out-parameter `a`.
 
-### 8.1.3. Nonempty types: `T(00)` {#sec-nonempty-types}
+### 7.1.3. Nonempty types: `T(00)` {#sec-nonempty-types}
 
 Auto-init types are important in compiled contexts. In ghost contexts, it
 may still be important to know that a type is nonempty. Dafny supports
@@ -713,7 +707,7 @@ for `h`, since the type `X` could be empty.
 
 Note that every auto-init type is nonempty.
 
-### 8.1.4. Non-heap based: `T(!new)` {#sec-non-heap-based}
+### 7.1.4. Non-heap based: `T(!new)` {#sec-non-heap-based}
 
 Dafny makes a distinction between types whose values are on the heap,
 i.e. references, like
@@ -757,7 +751,7 @@ method m() {
 }
 ```
 
-## 8.2. Type parameter variance {#sec-type-parameter-variance}
+## 7.2. Type parameter variance {#sec-type-parameter-variance}
 
 Type parameters have several different variance and cardinality properties.
 These properties of type parameters are designated in a generic type definition.
@@ -794,7 +788,7 @@ This states that `T` does not preserve the cardinality of `X`, meaning there cou
 A more detailed explanation of these topics is [here](http://leino.science/papers/krml280.html).
 
 <!--PDF NEWPAGE-->
-# 9. Generic Instantiation ([grammar](#g-generic-instantiation)) {#sec-generic-instantiation}
+# 8. Generic Instantiation ([grammar](#g-generic-instantiation)) {#sec-generic-instantiation}
 
 A generic instantiation consists of a comma-separated list of 1 or more Types,
 enclosed in angle brackets (`<` `>`),
@@ -804,12 +798,11 @@ If there is no instantion for a generic type, type inference will try
 to fill these in (cf. [Section 24.2](#sec-type-inference)).
 
 <!--PDF NEWPAGE-->
-# 10. Collection types {#sec-collection-types}
+# 9. Collection types {#sec-collection-types}
 
 Dafny offers several built-in collection types.
 
-## 10.1. Sets {#sec-sets}
-([grammar](#g-collection-type))
+## 9.1. Sets ([grammar](#g-collection-type)) {#sec-sets}
 
 For any type `T`, each value of type `set<T>` is a finite set of
 `T` values.
@@ -886,8 +879,7 @@ expression `e` of type `T`, sets support the following operations:
 
 The expression `e !in s` is a syntactic shorthand for `!(e in s)`.
 
-## 10.2. Multisets {#sec-multisets}
-([grammar](#g-collection-type))
+## 9.2. Multisets ([grammar](#g-collection-type)) {#sec-multisets}
 
 A _multiset_ is similar to a set, but keeps track of the multiplicity
 of each element, not just its presence or absence.  For any type `T`,
@@ -979,14 +971,13 @@ without any occurrences of `e` (whether or not `s` has occurrences of
 if e in s then s[e := s[e] - 1] else s
 ```
 
-## 10.3. Sequences {#sec-sequences}
-([grammar](#g-collection-type))
+## 9.3. Sequences ([grammar](#g-collection-type)) {#sec-sequences}
 
 For any type `T`, a value of type `seq<T>` denotes a _sequence_ of `T`
 elements, that is, a mapping from a finite downward-closed set of natural
 numbers (called _indices_) to `T` values.
 
-### 10.3.1. Sequence Displays {#sec-sequence-displays}
+### 9.3.1. Sequence Displays {#sec-sequence-displays}
 A sequence can be formed using a _sequence display_ expression, which
 is a possibly empty, ordered list of expressions enclosed in square
 brackets.  To illustrate,
@@ -1004,7 +995,7 @@ seq(5, i => i*i)
 ```
 is equivalent to `[0, 1, 4, 9, 16]`.
 
-### 10.3.2. Sequence Relational Operators
+### 9.3.2. Sequence Relational Operators
 In addition to equality and disequality, sequence types
 support the following relational operations:
 
@@ -1018,7 +1009,7 @@ TODO _ precedece
 Like the arithmetic relational operators, these operators are
 chaining.  Note the absence of `>` and `>=`.
 
-### 10.3.3. Sequence Concatenation
+### 9.3.3. Sequence Concatenation
 Sequences support the following binary operator:
 
  operator      | description
@@ -1028,7 +1019,7 @@ Sequences support the following binary operator:
 Operator `+` is associative, like the arithmetic operator with the
 same name.
 
-### 10.3.4. Other Sequence Expressions {#sec-other-sequence-expressions}
+### 9.3.4. Other Sequence Expressions {#sec-other-sequence-expressions}
 In addition, for any sequence `s` of type `seq<T>`, expression `e`
 of type `T`, integer-based numeric `i` satisfying `0 <= i < |s|`, and
 integer-based numerics `lo` and `hi` satisfying
@@ -1094,8 +1085,7 @@ The operation `multiset(s)` yields the multiset of elements of
 sequence `s`.  It is allowed in non-ghost contexts only if the element
 type `T` is [equality supporting](#sec-equality-supporting).
 
-### 10.3.5. Strings {#sec-strings}
-([grammar](#g-collection-type))
+### 9.3.5. Strings ([grammar](#g-collection-type)) {#sec-strings}
 
 A special case of a sequence type is `seq<char>`, for which Dafny
 provides a synonym: `string`.  Strings are like other sequences, but
@@ -1107,7 +1097,7 @@ String literals of the standard form are enclosed in double quotes, as
 in `"Dafny"`.  To include a double quote in such a string literal,
 it is necessary to use an escape sequence.  Escape sequences can also
 be used to include other characters.  The supported escape sequences
-are the same as those for character literals ([Section 7.5](#sec-characters)).
+are the same as those for character literals ([Section 6.5](#sec-characters)).
 For example, the Dafny expression `"say \"yes\""` represents the
 string `'say "yes"'`.
 The escape sequence for a single quote is redundant, because
@@ -1137,8 +1127,7 @@ still denote proper prefix and prefix, respectively, not some kind of
 alphabetic comparison as might be desirable, for example, when
 sorting strings.
 
-## 10.4. Finite and Infinite Maps {#sec-maps}
-([grammar](#g-collection-type))
+## 9.4. Finite and Infinite Maps ([grammar](#g-collection-type)) {#sec-maps}
 
 For any types `T` and `U`, a value of type `map<T,U>` denotes a
 _(finite) map_
@@ -1239,7 +1228,7 @@ The `-` operator implements a map difference operator. Here the LHS
 is a `map<K,V>` or `imap<K,V>` and the RHS is a `set<K>` (but not an `iset`); the operation removes
 from the LHS all the (key,value) pairs whose key is a member of the RHS set.
 
-## 10.5. Iterating over collections
+## 9.5. Iterating over collections
 
 Collections are very commonly used in programming and one frequently
 needs to iterate over the elements of a collection. Dafny does not have
@@ -1247,7 +1236,7 @@ built-in iterator methods, but the idioms by which to do so are straightforward.
 The subsections below give some introductory examples; more
 detail can be found in this [power user note](http://leino.science/papers/krml275.html).
 
-### 10.5.1. Sequences and arrays
+### 9.5.1. Sequences and arrays
 
 Sequences and arrays are indexable and have a length. So the idiom to
 iterate over the contents is well-known. For an array:
@@ -1287,9 +1276,9 @@ method m(s: array<int>) {
 }
 ```
 
-See [Section 15.2](#sec-array-to-seq) on how to convert an array to a sequence.
+See [Section 14.2](#sec-array-to-seq) on how to convert an array to a sequence.
 
-### 10.5.2. Sets
+### 9.5.2. Sets
 There is no intrinsic order to the elements of a set. Nevertheless, we can
 extract an arbitrary element of a nonempty set, performing an iteration
 as follows:
@@ -1309,7 +1298,7 @@ method m(s: set<int>) {
 
 Because `iset`s may be infinite, Dafny does not permit iteration over an `iset`.
 
-### 10.5.3. Maps
+### 9.5.3. Maps
 
 Iterating over the contents of a `map` uses the component sets: `Keys`, `Values`, and `Items`. The iteration loop follows the same patterns as for sets:
 
@@ -1331,17 +1320,17 @@ There are no mechanisms currently defined in Dafny for iterating over `imap`s.
 
 
 <!--PDF NEWPAGE-->
-# 11. Types that stand for other types ([grammar](#g-type-definition)) {#sec-type-definition}
+# 10. Types that stand for other types ([grammar](#g-type-definition)) {#sec-type-definition}
 
 It is sometimes useful to know a type by several names or to treat a
 type abstractly. There are several mechanisms in Dafny to do this:
 
-* ([Section 11.1](#sec-synonym-type)) A typical _synonym type_, in which a type name is a synonym for another type
-* ([Section 11.2](#sec-opaque-types)) An _opaque type_, in which a new type name is declared as an uninterpreted type
-* ([Section 11.3](#sec-subset-types)) A _subset type_, in which a new type name is given to a subset of the values of a given type
+* ([Section 10.1](#sec-synonym-type)) A typical _synonym type_, in which a type name is a synonym for another type
+* ([Section 10.2](#sec-opaque-types)) An _opaque type_, in which a new type name is declared as an uninterpreted type
+* ([Section 10.3](#sec-subset-types)) A _subset type_, in which a new type name is given to a subset of the values of a given type
 
-## 11.1. Type synonyms {#sec-synonym-type}
-([grammar](#g-type-definition))
+## 10.1. Type synonyms ([grammar](#g-type-definition)) {#sec-synonym-type}
+
 <!-- %check-resolve -->
 ```dafny
 type T = int
@@ -1355,7 +1344,7 @@ type Y<T> = G
 ```
 declares `Y<T>` to be a synonym for the type `G`.
 If the `= G` is omitted then the declaration just declares a name as an uninterpreted
-_opaque_ type, as described in [Section 11.2](#sec-opaque-types).  Such types may be
+_opaque_ type, as described in [Section 10.2](#sec-opaque-types).  Such types may be
 given a definition elsewhere in the Dafny program.
 
   Here, `T` is a
@@ -1377,7 +1366,7 @@ type Vertex = int
 The new type name itself may have type characteristics declared, though these are typically
 inferred from the definition, if there is one.
 
-As already described in [Section 10.3.5](#sec-strings), `string` is a built-in
+As already described in [Section 9.3.5](#sec-strings), `string` is a built-in
 type synonym for `seq<char>`, as if it would have been declared as
 follows:
 <!-- %check-resolve -->
@@ -1386,8 +1375,7 @@ type string_(==,0,!new) = seq<char>
 ```
 If the implicit declaration did not include the type characteristics, they would be inferred in any case.
 
-## 11.2. Opaque types {#sec-opaque-types}
-([grammar](#g-type-definition))
+## 10.2. Opaque types ([grammar](#g-type-definition)) {#sec-opaque-types}
 
 Examples:
 <!-- check-resolve -->
@@ -1404,7 +1392,7 @@ type Y<T>
 ```
 Its definition can be revealed in a
 refining module.  The name `Y` can be immediately followed by
-a type characteristics suffix ([Section 8.1](#sec-type-characteristics)).
+a type characteristics suffix ([Section 7.1](#sec-type-characteristics)).
 Because there is no defining RHS, the type characteristics cannot be inferred and so
 must be stated. If, in some refining module, a definition of the type is given, the
 type characteristics must match those of the new definition.
@@ -1446,8 +1434,7 @@ In the refining module `X`, `T` is declared to be a `newtype`, in which `ToStrin
 It would be an error to refine `P.T` as a simple type synonym or subset type in `X`, say `type T = int`, because
 type synonyms may not have members.
 
-## 11.3. Subset types {#sec-subset-types}
-([grammar](#g-type-definition))
+## 10.3. Subset types ([grammar](#g-type-definition)) {#sec-subset-types}
 
 Examples:
 <!-- check-resolve -->
@@ -1480,7 +1467,7 @@ The declaration of a subset type permits an optional [`witness` clause](#sec-wit
 
 Dafny builds in three families of subset types, as described next.
 
-### 11.3.1. Type `nat`
+### 10.3.1. Type `nat`
 
 The built-in type `nat`, which represents the non-negative integers
 (that is, the natural numbers), is a subset type:
@@ -1513,7 +1500,7 @@ function Fib(n: int): int
 }
 ```
 
-### 11.3.2. Non-null types
+### 10.3.2. Non-null types
 
 Every class, trait, and iterator declaration `C` gives rise to two types.
 
@@ -1559,7 +1546,7 @@ For example,
 Note that `?` is not an operator. Instead, it is simply the last
 character of the name of these various possibly-null types.
 
-### 11.3.3. Arrow types: `->`, `-->`, and `~>` {#sec-arrow-subset-types}
+### 10.3.3. Arrow types: `->`, `-->`, and `~>` {#sec-arrow-subset-types}
 
 The built-in type `->` stands for total functions, `-->` stands for
 partial functions (that is, functions with possible `requires` clauses),
@@ -1625,9 +1612,9 @@ type is a total arrow type and the verifier is not able to prove that the
 partial function really is total, then you'll get an error saying that the subset-type
 constraint may not be satisfied.
 
-For more information about arrow types, see [Section 17](#sec-arrow-types).
+For more information about arrow types, see [Section 16](#sec-arrow-types).
 
-### 11.3.4. Witness clauses {#sec-witness}
+### 10.3.4. Witness clauses {#sec-witness}
 
 The declaration of a subset type permits an optional `witness` clause.
 Types in Dafny are generally expected to be non-empty, in part because
@@ -1711,7 +1698,7 @@ does not complain about `x` unless `x` is actually used, in which case it must h
 The postcondition in `P` does not verify, but not because of the empty type.
 
 <!--PDF NEWPAGE-->
-# 12. Newtypes ([grammar](#g-type-definition)) {#sec-newtypes}
+# 11. Newtypes ([grammar](#g-type-definition)) {#sec-newtypes}
 
 Examples:
 <!-- %check-resolve -->
@@ -1784,7 +1771,7 @@ signed 32-bit integers in the target hardware.
 The incompatibility of a newtype and its basetype is intentional,
 as newtypes are meant to be used as distinct types from the basetype.
 If numeric types are desired that mix more readily with the basetype,
-the subset types described in [Section 11.3](#sec-subset-types)
+the subset types described in [Section 10.3](#sec-subset-types)
  may be more appropriate.
 
 Note that the bound variable `x` in `Q` has type `M`, not `N`.
@@ -1803,7 +1790,7 @@ and consider a variable `c` of type `int8`.  The expression
 is not well-defined, because the comparisons require each operand to
 have type `int8`, which means the literal `128` is checked to be of
 type `int8`, which it is not.  A proper way to write this expression
-is to use a conversion operation, described in [Section 12.1](#sec-conversion), on `c` to
+is to use a conversion operation, described in [Section 11.1](#sec-conversion), on `c` to
 convert it to the base type:
 <!-- %no-check -->
 ```dafny
@@ -1822,7 +1809,7 @@ known constants at compile-time. They need not be numeric literals; combinations
 of basic operations and symbolic constants are also allowed as described
 in [Section 21.38](#sec-compile-time-constants).
 
-## 12.1. Conversion operations {#sec-conversion}
+## 11.1. Conversion operations {#sec-conversion}
 
 For every type `N`, there is a conversion operation with the
 name `as N`, described more fully in [Section 21.10](#sec-as-is-expression).
@@ -1832,7 +1819,7 @@ converted to.  When the conversion is from a real-based numeric type
 to an integer-based numeric type, the operation requires that the
 real-based argument have no fractional part.  (To round a real-based
 numeric value down to the nearest integer, use the `.Floor` member,
-see [Section 7.2](#sec-numeric-types).)
+see [Section 6.2](#sec-numeric-types).)
 
 To illustrate using the example from above, if `lo` and `hi` have type
 `int32`, then the code fragment can legally be written as follows:
@@ -1866,8 +1853,7 @@ corresponding `is` operation ([Section 21.10](#sec-as-is-expression)) that
 tests whether a value is valid for a given type.
 
 <!--PDF NEWPAGE-->
-# 13. Class types {#sec-class-types}
-([grammar](#g-class-type))
+# 12. Class types ([grammar](#g-class-type)) {#sec-class-types}
 
 Examples:
 <!-- %check-resolve -->
@@ -1939,7 +1925,7 @@ unqualified accesses to the same receiver and member.
 
 A `C` instance is created using `new`. There are three forms of `new`,
 depending on whether or not the class declares any _constructors_
-(see [Section 13.3.2](#sec-constructor-methods)):
+(see [Section 12.3.2](#sec-constructor-methods)):
 
 <!-- %no-check -->
 ```dafny
@@ -1968,8 +1954,7 @@ constructor (here, named `Init`), which allocates and initializes the object.
 The third form is the same as the second, but invokes the _anonymous constructor_
 of the class (that is, a constructor declared with the empty-string name).
 
-## 13.1. Field Declarations {#sec-field-declaration}
-([grammar](#g-field-declaration))
+## 12.1. Field Declarations ([grammar](#g-field-declaration)) {#sec-field-declaration}
 
 Examples:
 <!-- %check-resolve -->
@@ -2010,8 +1995,7 @@ not in code that will be compiled into executable code.
 
 Fields may not be declared static.
 
-## 13.2. Constant Field Declarations {#sec-constant-field-declaration}
-([grammar](#g-const-declaration))
+## 12.2. Constant Field Declarations ([grammar](#g-const-declaration)) {#sec-constant-field-declaration}
 
 Examples:
 <!-- %check-resolve -->
@@ -2041,8 +2025,7 @@ modifier may be omitted.
 * The initialization expression may refer to other constant fields that are in scope and declared either
 before or after this declaration, but circular references are not allowed.
 
-## 13.3. Method Declarations {#sec-method-declaration}
-([grammar](#g-method-declaration))
+## 12.3. Method Declarations ([grammar](#g-method-declaration)) {#sec-method-declaration}
 
 Examples:
 <!-- %check-resolve -->
@@ -2056,11 +2039,12 @@ class A {
   constructor Init() {}
   static method g<T>(t: T) {}
 }
-method m ... { }
 lemma L(p: bool) ensures p || !p {}
 twostate lemma TL(p: bool) ensures p || !p {}
 least lemma LL[nat](p: bool) ensures p || !p {}
 greatest lemma GL(p: bool) ensures p || !p {}
+abstract module M { method m(i: int) }
+module N refines M { method m ... {} }
 ```
 
 Method declarations include a variety of related types of methods:
@@ -2088,7 +2072,7 @@ Dafny does not support method or function overloading, so the
 name of the class method uniquely identifies it without the
 signature.
 
-See [Section 5.2](#sec-method-specification) for a description of the method specification.
+See [Section 19.2](#sec-method-specification) for a description of the method specification.
 
 Here is an example of a method declaration.
 
@@ -2134,7 +2118,7 @@ method signature may also state the type of the _k_ parameter as either `nat` or
 These are described
 in [Section 24.5.3](#sec-friendliness) and subsequent sections.
 
-### 13.3.1. Ordinary methods
+### 12.3.1. Ordinary methods
 
 A method can be declared as ghost by preceding the declaration with the
 keyword `ghost` and as static by preceding the declaration with the keyword `static`.
@@ -2159,7 +2143,7 @@ abstract under the following circumstances:
 Note that when there is no body, Dafny assumes that the *ensures*
 clauses are true without proof.
 
-### 13.3.2. Constructors {#sec-constructor-methods}
+### 12.3.2. Constructors {#sec-constructor-methods}
 To write structured object-oriented programs, one often relies on
 objects being constructed only in certain ways.  For this purpose, Dafny
 provides _constructor (method)s_.
@@ -2179,7 +2163,7 @@ instance fields of its class. However, any field that is given an
 initializer in its declaration may not be reassigned in the body
 of the constructor.
 
-#### 13.3.2.1. Classes with no explicit constructors
+#### 12.3.2.1. Classes with no explicit constructors
 
 For a class that declares no constructors, an instance of the class is
 created with
@@ -2232,7 +2216,7 @@ but it is more typical in such a case to declare a constructor for the class.
 reasons. It may be deprecated in some future version of Dafny. In most cases,
 a constructor is to be preferred.)
 
-#### 13.3.2.2. Classes with one or more constructors
+#### 12.3.2.2. Classes with one or more constructors
 
 Like other class members, constructors have names. And like other members,
 their names must be distinct, even if their signatures are different.
@@ -2261,7 +2245,7 @@ The anonymous constructor is invoked as
 ```
 dropping the "`.`".
 
-#### 13.3.2.3. Two-phase constructors
+#### 12.3.2.3. Two-phase constructors
 
 The body of a constructor contains two sections,
 an initialization phase and a post-initialization phase, separated by a `new;` statement.
@@ -2288,7 +2272,7 @@ the end of the initialization phase are in effect no longer changeable.
 
 There are no restrictions on expressions or statements in the post-initialization phase.
 
-### 13.3.3. Lemmas {#sec-lemmas}
+### 12.3.3. Lemmas {#sec-lemmas}
 Sometimes there are steps of logic required to prove a program correct,
 but they are too complex for Dafny to discover and use on its own. When
 this happens, we can often give Dafny assistance by providing a lemma.
@@ -2318,7 +2302,7 @@ For an example, see the `FibProperty` lemma in
 See [the Dafny Lemmas tutorial](../OnlineTutorial/Lemmas)
 for more examples and hints for using lemmas.
 
-### 13.3.4. Two-state lemmas and functions {#sec-two-state}
+### 12.3.4. Two-state lemmas and functions {#sec-two-state}
 
 The heap is an implicit parameter to every function, though a function is only allowed
 to read those parts of the mutable heap that it admits to in its `reads` clause.
@@ -2483,10 +2467,9 @@ method EtaExample(p: P) returns (ghost f: int -> int) {
 }
 ```
 
-## 13.4. Function Declarations {#sec-function-declaration}
+## 12.4. Function Declarations ([grammar](#g-function-declaration)) {#sec-function-declaration}
 
-### 13.4.1. Functions
-([grammar](#g-function-declaration))
+### 12.4.1. Functions
 
 Examples:
 TODO
@@ -2495,7 +2478,7 @@ Functions may be declared as ghost. If so, all the formal parameters and
 return values are ghost; if it is not a ghost function, then 
 individual parameters may be declared ghost as desired.
 
-See [Section 5.3](#sec-function-specification) for a description of the function specifcication.
+See [Section 19.3](#sec-function-specification) for a description of the function specifcication.
 
 A Dafny function is a pure mathematical function. It is allowed to
 read memory that was specified in its `reads` expression but is not
@@ -2589,13 +2572,13 @@ However, any calls of a body-less function are treated as unverified assumptions
 asserting the preconditions and assuming the postconditions.
 Because body-less functions are unverified assumptions, Dafny will not compile them and will complain if called by [`dafny translate`, `dafny build` or even `dafny run`](https://dafny.org/latest/DafnyRef/DafnyRef#256-using-dafny-from-the-command-line)
 
-### 13.4.2. Predicates
+### 12.4.2. Predicates
 A function that returns a `bool` result is called a _predicate_. As an
 alternative syntax, a predicate can be declared by replacing the `function`
 keyword with the `predicate` keyword and possibly omitting a declaration of the
 return type (if it is not named).
 
-### 13.4.3. Function-by-method {#sec-function-by-method}
+### 12.4.3. Function-by-method {#sec-function-by-method}
 
 A function with a `by method` clause declares a _function-by-method_.
 A function-by-method gives a way to implement a
@@ -2643,7 +2626,7 @@ This means that the run-time evaluation of an expression may have print effects.
 Dafny does not track print effects, but this is the only situation that an
 expression can have a print effect.
 
-### 13.4.4. Function Transparency
+### 12.4.4. Function Transparency
 A function is said to be _transparent_ in a location if the
 body of the function is visible at that point.
 A function is said to be _opaque_ at a location if it is not
@@ -2671,11 +2654,11 @@ When `{:opaque}` is specified for function `g`, `g` is opaque,
 however the statement `reveal g();` is available to give the semantics
 of `g` whether in the defining module or outside.
 
-### 13.4.5. Extreme (Least or Greatest) Predicates and Lemmas
+### 12.4.5. Extreme (Least or Greatest) Predicates and Lemmas
 See [Section 24.5.3](#sec-friendliness) for descriptions
 of extreme predicates and lemmas.
 
-### 13.4.6. `older` parameters in predicates {#sec-older-parameters}
+### 12.4.6. `older` parameters in predicates {#sec-older-parameters}
 
 A parameter of any predicate (more precisely, of any
 boolean-returning, non-extreme function) can be marked as
@@ -2791,7 +2774,7 @@ Since nothing is known about type `X`, this quantifier might be
 open-ended.  For example, if `X` were passed in as a class type, then
 the quantifier would be open-ended. One way to fix this predicate is
 to restrict it to non-heap based types, which is indicated with the
-`(!new)` type characteristic (see [Section 8.1.4](#sec-non-heap-based)):
+`(!new)` type characteristic (see [Section 7.1.4](#sec-non-heap-based)):
 
 <!-- %check-verify -->
 ```dafny
@@ -2915,8 +2898,7 @@ as some object reference in another parameter to the predicate.
 
 
 <!--PDF NEWPAGE-->
-# 14. Trait types {#sec-trait-types}
-([grammar](#g-trait-type))
+# 13. Trait types ([grammar](#g-trait-type)) {#sec-trait-types}
 
 A _trait_ is an abstract superclass, similar to an "interface" or
 "mixin". A trait can be _extended_ only by another trait or
@@ -2947,15 +2929,14 @@ of `C`.  A member in `J` is not allowed to be redeclared in `C`,
 except if the member is a non-`static` function or method without a
 body in `J`.  By doing so, type `C` can supply a stronger
 specification and a body for the member. There is further discussion on
-this point in [Section 14.2](#sec-inheritance).
+this point in [Section 13.2](#sec-inheritance).
 
 `new` is not allowed to be used with traits.  Therefore, there is no
 object whose allocated type is a trait.  But there can of course be
 objects of a class `C` that implement a trait `J`, and a reference to
 such a `C` object can be used as a value of type `J`.
 
-## 14.1. Type `object` {#sec-object-type}
-([grammar](#g-object-type))
+## 13.1. Type `object` ([grammar](#g-object-type)) {#sec-object-type}
 
 There is a built-in trait `object` that is implicitly extended by all classes and traits.
 It produces two types: the type `object?` that is a supertype of all
@@ -2980,7 +2961,7 @@ The dynamic allocation of objects is done using `new C`...,
 (`new object?` makes no sense; always use `new object` instead because the result of
 `new` is always non-null.)
 
-## 14.2. Inheritance {#sec-inheritance}
+## 13.2. Inheritance {#sec-inheritance}
 
 The purpose of traits is to be able to express abstraction: a trait
 encapsulates a set of behaviors; classes and traits that extend it
@@ -3071,7 +3052,7 @@ When names are inherited from multiple traits, they must be different.
 If two traits declare a common name (even with the same signature),
 they cannot both be extendees of the same class or trait.
 
-## 14.3. Example of traits
+## 13.3. Example of traits
 As an example, the following trait represents movable geometric shapes:
 <!-- %check-verify -->
 ```dafny
@@ -3150,8 +3131,7 @@ method m() {
 ```
 
 <!--PDF NEWPAGE-->
-# 15. Array types {#sec-array-type}
-([grammar](#g-array-type))
+# 14. Array types ([grammar](#g-array-type)) {#sec-array-type}
 
 Dafny supports mutable fixed-length _array types_ of any positive
 dimension.  Array types are (heap-based) reference types.
@@ -3161,7 +3141,7 @@ such as `array`, `array?`, `array2`, `array2?`, `array3`, and so on (but not `ar
 The type parameter suffix giving the element type can be omitted if the element type can be inferred, though in that case it is likely that the `arrayToken` itself is also
 inferrable and can be omitted.
 
-## 15.1. One-dimensional arrays
+## 14.1. One-dimensional arrays
 
 A one-dimensional array of `n` `T` elements may be initialized by
 any expression that returns a value of the desired type.
@@ -3240,7 +3220,7 @@ okay to leave off the "`<T>`" in the fourth statement above.  However,
 as with the third statement, `array` has no anonymous constructor, so
 an error message is generated.
 
-## 15.2. Converting arrays to sequences {#sec-array-to-seq}
+## 14.2. Converting arrays to sequences {#sec-array-to-seq}
 
 One-dimensional arrays support operations that convert a stretch of
 consecutive elements into a sequence.  For any array `a` of type
@@ -3302,7 +3282,7 @@ conversion:
 multiset(a[..]) == multiset(old(a[..]))
 ```
 
-## 15.3. Multi-dimensional arrays {#sec-multi-dimensional-arrays}
+## 14.3. Multi-dimensional arrays {#sec-multi-dimensional-arrays}
 
 An array of 2 or more dimensions is mostly like a one-dimensional
 array, except that `new` takes more length arguments (one for each
@@ -3348,10 +3328,9 @@ using a function: see [Section 21.16](#sec-array-allocation).
 
 
 <!--PDF NEWPAGE-->
-# 16. Iterator types {#sec-iterator-types}
-([grammar](#g-iterator-type))
+# 15. Iterator types ([grammar](#g-iterator-type)) {#sec-iterator-types}
 
-See [Section 5.5](#sec-iterator-specification) for a description of iterator specifications.
+See [Section 19.5](#sec-iterator-specification) for a description of iterator specifications.
 
 An _iterator_ provides a programming abstraction for writing code that
 iteratively returns elements.  These CLU-style iterators are
@@ -3591,7 +3570,7 @@ design of asynchronous methods evolves.
 -->
 
 <!--PDF NEWPAGE-->
-# 17. Arrow types ([grammar](#g-arrow-type)) {#sec-arrow-types}
+# 16. Arrow types ([grammar](#g-arrow-type)) {#sec-arrow-types}
 
 Examples:
 <!-- %no-check -->
@@ -3618,7 +3597,7 @@ is `(int, array<bool>) ~> real`.
 As seen in the example above, the functions that are values of a type
 `(TT) ~> U` can have a precondition (as indicated by the `requires` clause)
 and can read values in the heap (as indicated by the `reads` clause).
-As described in [Section 11.3.3](#sec-arrow-subset-types),
+As described in [Section 10.3.3](#sec-arrow-subset-types),
 the subset type `(TT) --> U` denotes partial (but heap-independent) functions
 and the subset type `(TT) -> U` denotes total functions.
 
@@ -3756,7 +3735,7 @@ Dafny also supports anonymous functions by means of
 _lambda expressions_. See [Section 21.13](#sec-lambda-expression).
 
 <!--PDF NEWPAGE-->
-# 18.  Tuple types {#sec-tuple-types}
+# 17.  Tuple types {#sec-tuple-types}
 ````grammar
 TupleType = "(" [ [ "ghost" ] Type { "," [ "ghost" ] Type } ] ")"
 ````
@@ -3795,8 +3774,7 @@ const pair: (int, ghost int) := (1, ghost 2)
 ```
 
 <!--PDF NEWPAGE-->
-# 19. Algebraic Datatypes {#sec-datatype}
-([grammar](#g-datatype))
+# 18. Algebraic Datatypes ([grammar](#g-datatype)) {#sec-datatype}
 
 Dafny offers two kinds of algebraic datatypes, those defined
 inductively (with `datatype`)  and those defined coinductively (with `codatatype`).
@@ -3805,7 +3783,7 @@ every datatype is that each value of the type uniquely identifies one
 of the datatype's constructors and each constructor is injective in
 its parameters.
 
-## 19.1. Inductive datatypes {#sec-inductive-datatypes}
+## 18.1. Inductive datatypes {#sec-inductive-datatypes}
 
 The values of inductive datatypes can be seen as finite trees where
 the leaves are values of basic types, numeric types, reference types,
@@ -3937,7 +3915,7 @@ Note that only `<` is defined; not `<=` or `>` or `>=`.
 Also, `<` is underspecified. With the above code, one can prove neither `z < x` nor `!(z < x)` and neither
 `z < y` nor `!(z < y)`. In each pair, though, one or the other is true, so `(z < x) || !(z < x)` is provable.
 
-## 19.2. Coinductive datatypes {#sec-coinductive-datatypes}
+## 18.2. Coinductive datatypes {#sec-coinductive-datatypes}
 
 Whereas Dafny insists that there is a way to construct every inductive
 datatype value from the ground up, Dafny also supports
@@ -3966,7 +3944,7 @@ paper in this section but the reader is referred to that paper for more
 complete details and to supply bibliographic references that are
 omitted here.
 
-## 19.3. Coinduction {#sec-coinduction}
+## 18.3. Coinduction {#sec-coinduction}
 
 Mathematical induction is a cornerstone of programming and program
 verification. It arises in data definitions (e.g., some algebraic data
@@ -4071,7 +4049,7 @@ shown to be useful in defining language semantics, as needed to verify
 the correctness of a compiler, so this opens the possibility that
 such verifications can benefit from SMT automation.
 
-### 19.3.1. Well-Founded Function/Method Definitions
+### 18.3.1. Well-Founded Function/Method Definitions
 The Dafny programming language supports functions and methods. A _function_
 in Dafny is a mathematical function (i.e., it is well-defined,
 deterministic, and pure), whereas a _method_ is a body of statements that
@@ -4112,7 +4090,7 @@ is used to invoke `Lemma(x)` on all `x` for which `P(x)` holds. If
 forall x :: P(x) ==> Q(x).
 ```
 
-### 19.3.2. Defining Coinductive Datatypes
+### 18.3.2. Defining Coinductive Datatypes
 Each value of an inductive datatype is finite, in the sense that it can
 be constructed by a finite number of calls to datatype constructors. In
 contrast, values of a coinductive datatype, or co-datatype for short,
@@ -4159,7 +4137,7 @@ to datatype declarations, there is no grounding check for
 co-datatypes—since a codatatype admits infinite values, the type is
 nevertheless inhabited.
 
-### 19.3.3. Creating Values of Co-datatypes
+### 18.3.3. Creating Values of Co-datatypes
 To define values of co-datatypes, one could imagine a “co-function”
 language feature: the body of a “co-function” could include possibly
 never-ending self-calls that are interpreted by a greatest fix-point
@@ -4186,7 +4164,7 @@ in Dafny are deterministic. Since there cannot be multiple fix-points,
 the language allows one function to be involved in both recursive and co-recursive calls,
 as we illustrate by the function `FivesUp`.
 
-### 19.3.4. Greatest predicates {#sec-copredicates}
+### 18.3.4. Greatest predicates {#sec-copredicates}
 Determining properties of co-datatype values may require an infinite
 number of observations. To that end, Dafny provides _greatest predicates_
 which are function declarations that use the `greatest predicate` keyword phrase.
@@ -4270,20 +4248,20 @@ In the Dafny grammar this is called a ``HashCall``. The definition of
 that is, `Pos` and `Pos#` must not be in the same cluster. In other
 words, the definition of `Pos` cannot depend on `Pos#`.
 
-#### 19.3.4.1. Co-Equality {#sec-co-equality}
+#### 18.3.4.1. Co-Equality {#sec-co-equality}
 Equality between two values of a co-datatype is a built-in co-predicate.
 It has the usual equality syntax `s == t`, and the corresponding prefix
 equality is written `s ==#[k] t`. And similarly for `s != t`
 and `s !=#[k] t`.
 
-### 19.3.5. Coinductive Proofs
+### 18.3.5. Coinductive Proofs
 From what we have said so far, a program can make use of properties of
 co-datatypes. For example, a method that declares `Pos(s)` as a
 precondition can rely on the stream `s` containing only positive integers.
 In this section, we consider how such properties are established in the
 first place.
 
-#### 19.3.5.1. Properties About Prefix Predicates
+#### 18.3.5.1. Properties About Prefix Predicates
 Among other possible strategies for establishing coinductive properties
 we take the time-honored approach of reducing coinduction to
 induction. More precisely, Dafny passes to the SMT solver an
@@ -4329,7 +4307,7 @@ the forall statement to show `forall k • Pos#[k](Up(n))`. Finally, the axiom
 `D(Pos)` is used (automatically) to establish the greatest predicate.
 
 
-#### 19.3.5.2. Greatest lemmas {#sec-colemmas}
+#### 18.3.5.2. Greatest lemmas {#sec-colemmas}
 As we just showed, with help of the `D` axiom we can now prove a
 greatest predicate by inductively proving that the corresponding prefix
 predicate holds for all prefix lengths `k`. In this section, we introduce
@@ -4353,7 +4331,7 @@ co-recursively to obtain the proof for `Pos(Up(n).tail)` (since `Up(n).tail`
 equals `Up(n+1)`). The proof glue needed to then conclude `Pos(Up(n))` is
 provided automatically, thanks to the power of the SMT-based verifier.
 
-#### 19.3.5.3. Prefix Lemmas {#sec-prefix-lemmas}
+#### 18.3.5.3. Prefix Lemmas {#sec-prefix-lemmas}
 To understand why the above `UpPosLemma` greatest lemma code is a sound proof,
 let us now describe the details of the desugaring of greatest lemmas. In
 analogy to how a **greatest predicate** declaration defines both a greatest predicate and

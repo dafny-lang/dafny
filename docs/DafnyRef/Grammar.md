@@ -59,6 +59,7 @@ For most of this document, we consider Dafny programs as sequences of tokens.
 
 This section defines character classes used later in the token definitions.
 In this section 
+
 * a backslash is used to start an escape sequence (so for example
 `'\n'` denotes the single linefeed character)
 * double quotes
@@ -167,8 +168,7 @@ method m() {
 the `*/` inside the line comment and the string are seen as the end of the outer
 comment, leaving trailing text that will provoke parsing errors.
 
-## 2.5. Tokens {#sec-tokens}
-([grammar](#sec-g-tokens))
+## 2.5. Tokens ([grammar](#sec-g-tokens)) {#sec-tokens}
 
 The Dafny tokens are defined in this section.
 
@@ -179,6 +179,7 @@ be used as identifiers of user-defined entities.
 These are listed [here](#sec-g-tokens).
 
 In particular note that
+
 - `array`, `array2, `array3` , etc. are reserved words, but not `array1` or `array0`.
 These denote array types of given rank.
 - `array?`, `array2?, `array3?` , etc. are reserved words, but not `array1?` or `array0?`.
@@ -268,12 +269,14 @@ later be inserted through refinement or is already present in a parent declarati
 A basic ordinary identifier is just an `ident` token.
 
 It may be followed by a sequence of suffixes to denote compound entities.
-Each suffix is
-a dot (`.`) and another token, which may be
+Each suffix is a dot (`.`) and another token, which may be
+
 - another `ident` token
 - a `digits` token
 - the `requires` reserved word
 - the `reads` reserved word
+
+Note that
 
 * Digits can be used to name fields of classes and destructors of
   datatypes. For example, the built-in tuple datatypes have destructors
@@ -292,6 +295,7 @@ required to be ``NoUSIdent``s or, in some contexts, a ``digits``.
 for these below (e.g. ``ClassName``).
 
 A no-underscore-identifier is required for the following:
+
 - module name
 - class or trait name
 - datatype name
@@ -302,12 +306,12 @@ A no-underscore-identifier is required for the following:
 - attribute name
 
 A variation, a no-underscore-identifier or a `digits`, is allowed for
+
 - datatype member name
 - method or function or constructor name
 - label name
 - export id
 - suffix to a typename or constructor <!-- TODO check this -->
-
 
 #### 2.6.1.3. Wild identifier {#sec-wild-identifier}
 
@@ -318,6 +322,7 @@ A `_` is used when an identifier is needed, but its content is discarded.
 Such identifiers are not used in expressions.
 
 Wild identifiers may be used in these contexts:
+
 - formal parameters of a lambda expression
 - the local formal parameter of a quantifier
 - the local formal parameter of a subset type or newtype declaration
@@ -326,7 +331,6 @@ Wild identifiers may be used in these contexts:
 - binding guard parameter
 - for loop parameter
 - LHS of update statements 
-
 
 ### 2.6.2. Qualified Names
 
@@ -337,8 +341,6 @@ zero or more ``DotSuffix``s which denote a component. Examples:
 * `MyTuple.1`
 * `MyMethod.requires`
 * `A.B.C.D`
-
-
 
 ### 2.6.3. Identifier-Type Combinations
 
@@ -352,15 +354,12 @@ for field declarations and formal parameters of methods, functions and construct
 It may be omitted (if the type can be inferred) for local variable declarations, pattern matching variables, 
 quantifiers, 
 
-
 Similarly, there are circumstances in which the identifier name is not needed, because it is not used.
 This is allowed in defining algebraic datatypes.
 
 In some other situations a wild identifier can be used, as described [above](#sec-wild-identifier).
 
-
-### 2.6.4. Quantifier Domains {#sec-quantifier-domains}
-([grammar](#g-quantifier-domain))
+### 2.6.4. Quantifier Domains ([grammar](#g-quantifier-domain)) {#sec-quantifier-domains}
 
 Several Dafny constructs bind one or more variables to a range of possible values.
 For example, the quantifier `forall x: nat | x <= 5 :: x * x <= 25` has the meaning
@@ -406,9 +405,7 @@ because the range attached to `i` ensures `i` is a valid index in the sequence `
 Allowing per-variable ranges is not fully backwards compatible, and so it is not yet allowed by default;
 the `/quantifierSyntax:4` option needs to be provided to enable this feature (See [Section 25.8.5](#sec-controlling-language)).
 
-
-### 2.6.5. Numeric Literals {#sec-numeric-literals}
-([grammar](#g-literal-expression))
+### 2.6.5. Numeric Literals ([grammar](#g-literal-expression)) {#sec-numeric-literals}
 
 Integer and bitvector literals may be expressed in either decimal or hexadecimal (`digits` or `hexdigits`).
 

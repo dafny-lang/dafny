@@ -37,10 +37,12 @@ This section gives the definitions of Dafny tokens.
 ### 29.1.1. Classes of characters
 
 These definitions define some names as representing subsets of the set of characters.
-Here double quotes enclose the set of characters constituting the class, single quotes 
-enclose a single character (perhaps an escaped representation using `\`), the 
-binary `+` indicates set union, 
-binary `-` indicates set difference, and `ANY` indicates the set of all (unicode) characters.
+
+* Here double quotes enclose the set of characters constituting the class, 
+* single quotes enclose a single character (perhaps an escaped representation using `\`), 
+* the binary `+` indicates set union, 
+* binary `-` indicates set difference, and 
+* `ANY` indicates the set of all (unicode) characters.
 
 ````grammar
 letter = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
@@ -84,15 +86,16 @@ will trigger a subsequent scanning or parsing error.
 ### 29.1.2. Definitions of tokens {#sec-g-tokens}
 
 These definitions use 
-- double-quotes to indicate a verbatim string (with no escaping of characters)
-- `'"'` to indicate a literal double-quote character
-- vertical bar to indicate alternatives
-- square brackets to indicate an optional part
-- curly braces to indicate 0-or-more repetitions
-- parentheses to indicate grouping
-- a `-` sign to indicate set difference: any character sequence matched by the left operand except character sequences matched by the right operand
-- ANY to indicate any (unicode) character
-- a sequence of any of the above indicates concatentation (without whitespace)
+
+* double-quotes to indicate a verbatim string (with no escaping of characters)
+* `'"'` to indicate a literal double-quote character
+* vertical bar to indicate alternatives
+* square brackets to indicate an optional part
+* curly braces to indicate 0-or-more repetitions
+* parentheses to indicate grouping
+* a `-` sign to indicate set difference: any character sequence matched by the left operand except character sequences matched by the right operand
+* ANY to indicate any (unicode) character
+* a sequence of any of the above indicates concatentation (without whitespace)
 
 ````grammar
 reservedword =
@@ -147,8 +150,9 @@ ellipsis = "..."
 
 There are a few words that have a special meaning in certain contexts, but are not 
 reserved words and can be used as identifiers outside of those contexts:
+
 * `least` and `greatest` are recognized as adjectives to the keyword `predicate` (cf. [Section 24.4](#sec-extreme)).
-* `older` is a modifier for parameters of non-extreme predicates (cf. [Section 13.4.6](#sec-older-parameters)).
+* `older` is a modifier for parameters of non-extreme predicates (cf. [Section 12.4.6](#sec-older-parameters)).
 
 ## 29.2. Dafny Grammar productions
 
