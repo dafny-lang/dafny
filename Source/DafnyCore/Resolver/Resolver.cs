@@ -2654,7 +2654,7 @@ namespace Microsoft.Dafny {
               var kprime = new IdentifierExpr(com.tok, kprimeVar);
               var smaller = Expression.CreateLess(kprime, kId);
 
-              var bvs = new List<BoundVar>();  // TODO: populate with k', params
+              var bvs = new List<BoundVar>();  // the following loop populates bvs with k', params
               var substMap = new Dictionary<IVariable, Expression>();
               foreach (var inFormal in prefixLemma.Ins) {
                 if (inFormal == k) {

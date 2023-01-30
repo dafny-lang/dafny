@@ -74,6 +74,7 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
     ///
     /// 10: CollectionBoundedPool
     ///     - SetBoundedPool
+    ///     - MultiSetBoundedPool
     ///     - MapBoundedPool
     ///     - SeqBoundedPool
     ///
