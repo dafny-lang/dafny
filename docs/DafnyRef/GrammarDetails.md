@@ -36,9 +36,9 @@ This section gives the definitions of Dafny tokens.
 
 ### 29.1.1. Classes of characters
 
-These definitions define some names as representing subsets of the set of characters.
+These definitions define some names as representing subsets of the set of characters. Here
 
-* Here double quotes enclose the set of characters constituting the class, 
+* double quotes enclose the set of characters constituting the class, 
 * single quotes enclose a single character (perhaps an escaped representation using `\`), 
 * the binary `+` indicates set union, 
 * binary `-` indicates set difference, and 
@@ -48,7 +48,6 @@ These definitions define some names as representing subsets of the set of charac
 letter = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 
 digit = "0123456789"
-
 posDigit = "123456789"
 posDigitFrom2 = "23456789"
 
@@ -94,7 +93,6 @@ These definitions use
 * curly braces to indicate 0-or-more repetitions
 * parentheses to indicate grouping
 * a `-` sign to indicate set difference: any character sequence matched by the left operand except character sequences matched by the right operand
-* ANY to indicate any (unicode) character
 * a sequence of any of the above indicates concatentation (without whitespace)
 
 ````grammar
@@ -154,6 +152,9 @@ reserved words and can be used as identifiers outside of those contexts:
 * `least` and `greatest` are recognized as adjectives to the keyword `predicate` (cf. [Section 24.4](#sec-extreme)).
 * `older` is a modifier for parameters of non-extreme predicates (cf. [Section 12.4.6](#sec-older-parameters)).
 
+The `\uXXXX` form of an `escapedChar` is only used when the option `--unicode-char=false` is set (which is the default fof Dafny 3.x);
+the \U{XXXXXX} form of an `escapedChar` is only used when the option `--unicode-char=true` is set (which is the default for Dafny 4.x).
+
 ## 29.2. Dafny Grammar productions
 
 The grammar productions are presented in the following Extended BNF syntax:
@@ -188,7 +189,7 @@ underscore. Inlining these where they are referenced will reconstruct the origin
 ### 29.2.1. Programs ([discussion](#sec-program)) {#g-program}
 
 ````grammar
-Dafny = { IncludeDirective_ } { TopDecl } EOF
+Dafny = { IncludeDirective_ } { TopDecl(isTopLevel:true, isAbstract: false) } EOF
 ````
 
 #### 29.2.1.1. Include directives ([discussion](#sec-include-directive)) {#g-include-directive}
@@ -200,9 +201,9 @@ IncludeDirective_ = "include" stringToken
 #### 29.2.1.2. Top-level declarations ([discussion](#sec-top-level-declaration)) {#g-top-level-declaration}
 
 ````grammar
-TopDecl =
+TopDecl(isTopLevel, isAbstract) =
   { DeclModifier }
-  ( SubModuleDecl
+  ( SubModuleDecl(isTopLevel)
   | ClassDecl
   | DatatypeDecl
   | NewtypeDecl
@@ -222,8 +223,10 @@ DeclModifier = ( "abstract" | "ghost" | "static" )
 ### 29.2.2. Modules {#g-module}
 
 ````grammar
-SubModuleDecl = ( ModuleDefinition | ModuleImport | ModuleExport )
+SubModuleDecl(isTopLevel) = ( ModuleDefinition | ModuleImport | ModuleExport )
 ````
+
+Module export declarations are not permitted if isTopLevel is true.
 
 #### 29.2.2.1. Module Definitions ([discussion](#sec-module-definition)) {#g-module-definition}
 
@@ -231,8 +234,10 @@ SubModuleDecl = ( ModuleDefinition | ModuleImport | ModuleExport )
 ModuleDefinition = 
   "module" { Attribute } ModuleQualifiedName
   [ "refines" ModuleQualifiedName ]
-  "{" { TopDecl } "}"
+  "{" { TopDecl(isTopLevel:false, isAbstract) } "}"
 ````
+
+The `isAbstract` argument is true i the DeclModifiers include "abstract".
 
 #### 29.2.2.2. Module Imports ([discussion](#sec-importing-modules)) {#g-module-import}
 
@@ -460,8 +465,10 @@ ArrayType_ = arrayToken [ GenericInstantiation ]
 ````grammar
 IteratorDecl = "iterator" { Attribute } IteratorName
   ( [ GenericParameters ]
-    Formals(allowGhostKeyword: true, allowNewKeyword: false, allowOlderKeyword: false)
-    [ "yields" Formals(allowGhostKeyword: true, allowNewKeyword: false, allowOlderKeyword: false) ]
+    Formals(allowGhostKeyword: true, allowNewKeyword: false, 
+                                     allowOlderKeyword: false)
+    [ "yields" Formals(allowGhostKeyword: true, allowNewKeyword: false, 
+                                                allowOlderKeyword: false) ]
   | ellipsis
   )
   IteratorSpec
@@ -539,14 +546,18 @@ MethodKeyword_ = ( "method"
 MethodSignature_(isGhost, isExtreme) =
   [ GenericParameters ]
   [ KType ]    // permitted only if isExtreme == true
-  Formals(allowGhostKeyword: !isGhost, allowNewKeyword: isTwostateLemma, allowOlderKeyword: false, allowDefault: true)
-  [ "returns" Formals(allowGhostKeyword: !isGhost, allowNewKeyword: false, allowOlderKeyword: false, allowDefault: false) ]
+  Formals(allowGhostKeyword: !isGhost, allowNewKeyword: isTwostateLemma, 
+          allowOlderKeyword: false, allowDefault: true)
+  [ "returns" Formals(allowGhostKeyword: !isGhost, allowNewKeyword: false, 
+                      allowOlderKeyword: false, allowDefault: false) ]
 
 KType = "[" ( "nat" | "ORDINAL" ) "]"
 
 Formals(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, allowDefault) =
-  "(" [ GIdentType(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, allowNameOnlyKeyword: true, allowDefault)
-        { "," GIdentType(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, allowNameOnlyKeyword: true, allowDefault) }
+  "(" [ GIdentType(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, 
+                   allowNameOnlyKeyword: true, allowDefault)
+        { "," GIdentType(allowGhostKeyword, allowNewKeyword, allowOlderKeyword,
+                         allowNameOnlyKeyword: true, allowDefault) }
       ]
   ")"
 ````
@@ -588,7 +599,8 @@ FunctionSignatureOrEllipsis_(allowGhostKeyword) =
 
 FunctionSignature_(allowGhostKeyword, allowNewKeyword) =
   [ GenericParameters ]
-  Formals(allowGhostKeyword, allowNewKeyword, allowOlderKeyword: true, allowDefault: true)
+  Formals(allowGhostKeyword, allowNewKeyword, allowOlderKeyword: true, 
+          allowDefault: true)
   ":"
   ( Type
   | "(" GIdentType(allowGhostKeyword: false,
@@ -599,13 +611,16 @@ FunctionSignature_(allowGhostKeyword, allowNewKeyword) =
     ")"
   )
 
-PredicateSignatureOrEllipsis_(allowGhostKeyword, allowNewKeyword, allowOlderKeyword) =
-  PredicateSignature_(allowGhostKeyword, allowNewKeyword, allowOlderKeyword) | ellipsis
+PredicateSignatureOrEllipsis_(allowGhostKeyword, allowNewKeyword, 
+                              allowOlderKeyword) =
+    PredicateSignature_(allowGhostKeyword, allowNewKeyword, allowOlderKeyword) 
+  | ellipsis
 
 PredicateSignature_(allowGhostKeyword, allowNewKeyword, allowOlderKeyword) =
   [ GenericParameters ]
   [ KType ]
-  Formals(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, allowDefault: true)
+  Formals(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, 
+          allowDefault: true)
   [
     ":"
     ( Type
@@ -858,9 +873,10 @@ VarDeclStatement =
   )
   ";"
 
-CasePatternLocal = ( [ Ident ] "(" CasePatternLocal { "," CasePatternLocal } ")"
-                   | LocalIdentTypeOptional
-                   )
+CasePatternLocal = 
+  ( [ Ident ] "(" CasePatternLocal { "," CasePatternLocal } ")"
+  | LocalIdentTypeOptional
+  )
 ````
 
 #### 29.2.6.10. Guards ([discussion](#sec-guard)) {#g-guard}
@@ -902,7 +918,7 @@ AlternativeBlock(allowBindingGuards) =
 AlternativeBlockCase(allowBindingGuards) =
   { "case"
     (
-    BindingGuard(allowLambda: false) // permitted iff allowBindingGuards == true
+    BindingGuard(allowLambda: false) //permitted iff allowBindingGuards == true
     | Expression(allowLemma: true, allowLambda: false)
     ) "=>" { Stmt }
   }
@@ -1051,9 +1067,9 @@ CalcOp =
 #### 29.2.7.1. Top-level expression ([discussion](#sec-top-level-expression)) {#g-top-level-expression}
 
 ````grammar
-Expression(allowLemma, allowLambda) =
-  EquivExpression(allowLemma, allowLambda)
-  [ ";" Expression(allowLemma, allowLambda) ]
+Expression(allowLemma, allowLambda, allowBitwiseOps = true) =
+  EquivExpression(allowLemma, allowLambda, allowBitwiseOps)
+  [ ";" Expression(allowLemma, allowLambda, allowBitwiseOps) ]
 ````
 
 The "allowLemma" argument says whether or not the expression
@@ -1063,7 +1079,7 @@ be parsed sits in a context that itself is terminated by a semi-colon.
 
 The "allowLambda" says whether or not the expression to be parsed is
 allowed to be a lambda expression.  More precisely, an identifier or
-parenthesized-enclosed comma-delimited list of identifiers is allowed to
+parenthesized, comma-delimited list of identifiers is allowed to
 continue as a lambda expression (that is, continue with a `reads`, `requires`,
 or `=>`) only if "allowLambda" is true.  This affects function/method/iterator
 specifications, if/while statements with guarded alternatives, and expressions
@@ -1072,50 +1088,44 @@ in the specification of a lambda expression itself.
 #### 29.2.7.2. Equivalence expression ([discussion](#sec-equivalence-expression)) {#g-equivalence-expression}
 
 ````grammar
-EquivExpression(allowLemma, allowLambda) =
-  ImpliesExpliesExpression(allowLemma, allowLambda)
-  { "<==>" ImpliesExpliesExpression(allowLemma, allowLambda) }
+EquivExpression(allowLemma, allowLambda, allowBitwiseOps) =
+  ImpliesExpliesExpression(allowLemma, allowLambda, allowBitwiseOps)
+  { "<==>" ImpliesExpliesExpression(allowLemma, allowLambda, allowBitwiseOps) }
 ````
 
 #### 29.2.7.3. Implies expression ([discussion](#sec-implies-expression)) {#g-implies-expression}
 
 ````grammar
-ImpliesExpliesExpression(allowLemma, allowLambda) =
+ImpliesExpliesExpression(allowLemma, allowLambda, allowBitwiseOps) =
   LogicalExpression(allowLemma, allowLambda)
-  [ (  "==>" ImpliesExpression(allowLemma, allowLambda)
-    | "<==" LogicalExpression(allowLemma, allowLambda)
-            { "<==" LogicalExpression(allowLemma, allowLambda) }
+  [ (  "==>" ImpliesExpression(allowLemma, allowLambda, allowBitwiseOps)
+    | "<==" LogicalExpression(allowLemma, allowLambda, allowBitwiseOps)
+            { "<==" LogicalExpression(allowLemma, allowLambda, allowBitwiseOps) }
     )
   ]
 
-ImpliesExpression(allowLemma, allowLambda) =
-  LogicalExpression(allowLemma, allowLambda)
-  [  "==>" ImpliesExpression(allowLemma, allowLambda) ]
+ImpliesExpression(allowLemma, allowLambda, allowBitwiseOps) =
+  LogicalExpression(allowLemma, allowLambda, allowBitwiseOps)
+  [  "==>" ImpliesExpression(allowLemma, allowLambda, allowBitwiseOps) ]
 ````
 
 #### 29.2.7.4. Logical expression ([discussion](#sec-logical-expression)) {#g-logical-expression}
 
 ````grammar
-LogicalExpression(allowLemma, allowLambda) =
-  RelationalExpression(allowLemma, allowLambda)
-  [ ( "&&" RelationalExpression(allowLemma, allowLambda)
-           { "&&" RelationalExpression(allowLemma, allowLambda) }
-    | "||" RelationalExpression(allowLemma, allowLambda)
-           { "||" RelationalExpression(allowLemma, allowLambda) }
-    )
-  ]
-  | { "&&" RelationalExpression(allowLemma, allowLambda) }
-  | { "||" RelationalExpression(allowLemma, allowLambda) }
+LogicalExpression(allowLemma, allowLambda, allowBitwiseOps) =
+  [ "&&" | "||" ]
+  RelationalExpression(allowLemma, allowLambda, allowBitwiseOps)
+  { ( "&&" | "||" )
+    RelationalExpression(allowLemma, allowLambda, allowBitwiseOps)
+  }
 ````
-
-TODO - check the above
 
 #### 29.2.7.5. Relational expression ([discussion](#sec-relational-expression)) {#g-relational-expression}
 
 ````grammar
-RelationalExpression(allowLemma, allowLambda) =
-  ShiftTerm(allowLemma, allowLambda)
-  { RelOp ShiftTerm(allowLemma, allowLambda) }
+RelationalExpression(allowLemma, allowLambda, allowBitwiseOps) =
+  ShiftTerm(allowLemma, allowLambda, allowBitwiseOps)
+  { RelOp ShiftTerm(allowLemma, allowLambda, allowBitwiseOps) }
 
 RelOp =
   ( "=="
@@ -1132,9 +1142,9 @@ RelOp =
 #### 29.2.7.6. Bit-shift expression ([discussion](#sec-bit-shift-expression)) {#g-bit-shift-expression}
 
 ````grammar
-ShiftTerm(allowLemma, allowLambda) =
-  Term(allowLemma, allowLambda)
-  { ShiftOp Term(allowLemma, allowLambda) }
+ShiftTerm(allowLemma, allowLambda, allowBitwiseOps) =
+  Term(allowLemma, allowLambda, allowBitwiseOps)
+  { ShiftOp Term(allowLemma, allowLambda, allowBitwiseOps) }
 
 ShiftOp = ( "<<" | ">>" )
 ````
@@ -1142,9 +1152,9 @@ ShiftOp = ( "<<" | ">>" )
 #### 29.2.7.7. Term (addition operations) ([discussion](#sec-addition-expression)) {#g-term}
 
 ````grammar
-Term(allowLemma, allowLambda) =
-  Factor(allowLemma, allowLambda)
-  { AddOp Factor(allowLemma, allowLambda) }
+Term(allowLemma, allowLambda, allowBitwiseOps) =
+  Factor(allowLemma, allowLambda, allowBitwiseOps)
+  { AddOp Factor(allowLemma, allowLambda, allowBitwiseOps) }
 
 AddOp = ( "+" | "-" )
 ````
@@ -1152,9 +1162,9 @@ AddOp = ( "+" | "-" )
 #### 29.2.7.8. Factor (multiplication operations) ([discussion](#sec-multiplication-expression)) {#g-factor}
 
 ````grammar
-Factor(allowLemma, allowLambda) =
-  BitvectorFactor(allowLemma, allowLambda)
-  { MulOp BitvectorFactor(allowLemma, allowLambda) }
+Factor(allowLemma, allowLambda, allowBitwiseOps) =
+  BitvectorFactor(allowLemma, allowLambda, allowBitwiseOps)
+  { MulOp BitvectorFactor(allowLemma, allowLambda, allowBitwiseOps) }
 
 MulOp = ( "*" | "/" | "%" )
 ````
@@ -1162,52 +1172,54 @@ MulOp = ( "*" | "/" | "%" )
 #### 29.2.7.9. Bit-vector expression ([discussion](#sec-bitvector-expression)) {#g-bit-vector-expression}
 
 ````grammar
-BitvectorFactor(allowLemma, allowLambda) =
-  AsExpression(allowLemma, allowLambda)
-  { BVOp AsExpression(allowLemma, allowLambda) }
+BitvectorFactor(allowLemma, allowLambda, allowBitwiseOps) =
+  AsExpression(allowLemma, allowLambda, allowBitwiseOps)
+  { BVOp AsExpression(allowLemma, allowLambda, allowBitwiseOps) }
 
 BVOp = ( "|" | "&" | "^" )
 ````
 
+If `allowBitwiseOps` is false, it is an error to have a bitvector operation.
+
 #### 29.2.7.10. As/Is expression ([discussion](#sec-as-is-expression)) {#g-as-is-expression}
 
 ````grammar
-AsExpression(allowLemma, allowLambda) =
-  UnaryExpression(allowLemma, allowLambda)
+AsExpression(allowLemma, allowLambda, allowBitwiseOps) =
+  UnaryExpression(allowLemma, allowLambda, allowBitwiseOps)
   { ( "as" | "is" ) Type }
 ````
 
 #### 29.2.7.11. Unary expression ([discussion](#sec-unary-expression)) {#g-unary-expression}
 ````grammar
-UnaryExpression(allowLemma, allowLambda) =
-  ( "-" UnaryExpression(allowLemma, allowLambda)
-  | "!" UnaryExpression(allowLemma, allowLambda)
-  | PrimaryExpression(allowLemma, allowLambda)
+UnaryExpression(allowLemma, allowLambda, allowBitwiseOps) =
+  ( "-" UnaryExpression(allowLemma, allowLambda, allowBitwiseOps)
+  | "!" UnaryExpression(allowLemma, allowLambda, allowBitwiseOps)
+  | PrimaryExpression(allowLemma, allowLambda, allowBitwiseOps)
   )
 ````
 
 #### 29.2.7.12. Primary expression ([discussion](#sec-primary-expression)) {#g-primary-expression}
 ````grammar
-PrimaryExpression(allowLemma, allowLambda) =
+PrimaryExpression(allowLemma, allowLambda, allowBitwiseOps) =
   ( NameSegment { Suffix }
-  | LambdaExpression(allowLemma)
+  | LambdaExpression(allowLemma, allowBitwiseOps)
   | MapDisplayExpr { Suffix }
   | SeqDisplayExpr { Suffix }
   | SetDisplayExpr { Suffix }
-  | EndlessExpression(allowLemma, allowLambda)
+  | EndlessExpression(allowLemma, allowLambda, allowBitwiseOps)
   | ConstAtomExpression { Suffix }
   )
 ````
 
 #### 29.2.7.13. Lambda expression ([discussion](#sec-lambda-expression)) {#g-lambda-expression}
 ````grammar
-LambdaExpression(allowLemma) =
+LambdaExpression(allowLemma, allowBitwiseOps) =
   ( WildIdent
   | "(" [ IdentTypeOptional { "," IdentTypeOptional } ] ")"
   )
   LambdaSpec
   "=>"
-  Expression(allowLemma, allowLambda: true)
+  Expression(allowLemma, allowLambda: true, allowBitwiseOps)
 ````
 
 #### 29.2.7.14. Left-hand-side expression ([discussion](#sec-lhs-expression)) {#g-lhs-expression}
@@ -1223,7 +1235,7 @@ Lhs =
 Rhs =
   ( <a href="#g-array-allocation-expression">ArrayAllocation_</a>
   | <a href="#g-object-allocation-expression">ObjectAllocation_</a>
-  | Expression(allowLemma: false, allowLambda: true)
+  | Expression(allowLemma: false, allowLambda: true, allowBitwiseOps: true)
   | <a href="#g-havoc-expression">HavocRhs_</a>
   )
   { Attribute }
@@ -1326,7 +1338,15 @@ CardinalityExpression_ =
 
 ````grammar
 ParensExpression =
-  "(" [ Expressions ] ")"
+  "(" [ TupleArgs ] ")"
+
+TupleArgs =
+  [ "ghost" ]
+  ActualBinding(isGhost) // argument is true iff the ghost modifier is present
+  { ","
+    [ "ghost" ]
+    ActualBinding(isGhost) // argument is true iff the ghost modifier is present
+  }
 ````
 
 #### 29.2.7.28. Sequence Display Expression ([discussion](#sec-seq-comprehension)) {#g-sequence-display-expression}
@@ -1359,48 +1379,53 @@ MapDisplayExpr =
 
 MapLiteralExpressions =
   Expression(allowLemma: true, allowLambda: true)
-  ":=" Expression(allowLemma: true, allowLambda: true)
-  { "," Expression(allowLemma: true, allowLambda: true)
-        ":=" Expression(allowLemma: true, allowLambda: true)
+  ":=" 
+  Expression(allowLemma: true, allowLambda: true)
+  { "," 
+    Expression(allowLemma: true, allowLambda: true)
+    ":=" 
+    Expression(allowLemma: true, allowLambda: true)
   }
 ````
 
 #### 29.2.7.31. Endless Expression ([discussion](#sec-endless-expression)) {#g-endless-expression}
 
 ````grammar
-EndlessExpression(allowLemma, allowLambda) =
-  ( IfExpression(allowLemma, allowLambda)
-  | MatchExpression(allowLemma, allowLambda)
+EndlessExpression(allowLemma, allowLambda, allowBitwiseOps) =
+  ( IfExpression(allowLemma, allowLambda, allowBitwiseOps)
+  | MatchExpression(allowLemma, allowLambda, allowBitwiseOps)
   | QuantifierExpression(allowLemma, allowLambda)
-  | SetComprehensionExpr(allowLemma, allowLambda)
-  | StmtInExpr Expression(allowLemma, allowLambda)
-  | LetExpression(allowLemma, allowLambda)
-  | MapComprehensionExpr(allowLemma, allowLambda)
+  | SetComprehensionExpr(allowLemma, allowLambda, allowBitwiseOps)
+  | StmtInExpr
+    Expression(allowLemma, allowLambda, allowBitwiseOps)
+  | LetExpression(allowLemma, allowLambda, allowBitwiseOps)
+  | MapComprehensionExpr(allowLemma, allowLambda, allowBitwiseOps)
   )
 ````
 
 #### 29.2.7.32. If expression ([discussion](#sec-if-expression)) {#g-if-expression}
 
 ````grammar
-IfExpression(allowLemma, allowLambda) =
+IfExpression(allowLemma, allowLambda, allowBitwiseOps) =
     "if" ( BindingGuard(allowLambda: true)
-         | Expression(allowLemma: true, allowLambda: true)
+         | Expression(allowLemma: true, allowLambda: true, allowBitwiseOps: true)
          )
-    "then" Expression(allowLemma: true, allowLambda: true)
-    "else" Expression(allowLemma, allowLambda)
+    "then" Expression(allowLemma: true, allowLambda: true, allowBitwiseOps: true)
+    "else" Expression(allowLemma, allowLambda, allowBitwiseOps)
 ````
 
 #### 29.2.7.33. Match Expression ([discussion](#sec-match-expression)) {#g-match-expression}
 
 ````grammar
-MatchExpression(allowLemma, allowLambda) =
-  "match" Expression(allowLemma, allowLambda)
-  ( "{" { CaseExpression(allowLemma: true, allowLambda: true) } "}"
-  | { CaseExpression(allowLemma, allowLambda) }
+MatchExpression(allowLemma, allowLambda, allowBitwiseOps) =
+  "match"
+  Expression(allowLemma, allowLambda, allowBitwiseOps)
+  ( "{" { CaseExpression(allowLemma: true, allowLambda, allowBitwiseOps: true) } "}"
+  | { CaseExpression(allowLemma, allowLambda, allowBitwiseOps) }
   )
 
-CaseExpression(allowLemma, allowLambda) =
-  "case" { Attribute } ExtendedPattern "=>" Expression(allowLemma, allowLambda)
+CaseExpression(allowLemma, allowLambda, allowBitwiseOps) =
+  "case" { Attribute } ExtendedPattern "=>" Expression(allowLemma, allowLambda, allowBitwiseOps)
 ````
 
 #### 29.2.7.34. Case and Extended Patterns ([discussion](#sec-case-pattern)) {#g-pattern}
@@ -1587,7 +1612,7 @@ ActualBindings =
   ActualBinding
   { "," ActualBinding }
 
-ActualBinding =
+ActualBinding(isGhost = false) =
   [ NoUSIdentOrDigits ":=" ]
   Expression(allowLemma: true, allowLambda: true)
 ````
@@ -1601,7 +1626,7 @@ QuantifierDomain(allowLemma, allowLambda) =
 
 QuantifierVarDecl(allowLemma, allowLambda) =
   IdentTypeOptional
-  [ <- Expression(allowLemma, allowLambda) ]
+  [ "<-" Expression(allowLemma, allowLambda) ]
   { Attribute }
   [ | Expression(allowLemma, allowLambda) ]
 ````

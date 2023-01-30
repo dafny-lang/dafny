@@ -349,10 +349,18 @@ For many users, however, there may be no magic at all
 be bothered to think about that there was a need to prove 
 termination in the first place.
 
-Dafny also prepends an expression to the user-specified tuple of expressions
-in the decreases clause. This expression represents the position
-of the method in the call graph. Dafny analyzes the call-graph of the 
-entire program, grouping all methods into mutually-recursive groups.
+Dafny also prepends two expressions to the user-specified (or guessed) tuple of expressions
+in the decreases clause. The first expression is the ordering of
+the module containing the decreases clause in the dependence-ordering of 
+modules. That is, a module that neither imports or defines (as submodules) any other modules 
+has the lowest value in the order and every other module has a value that is higher than
+that of any module it defines or imports. As a module cannot call a method in a
+module that it does not depend on, this is an effective first component to the
+overall decreases tuple.
+
+The second prepended expression represents the position
+of the method in the call graph within a module. Dafny analyzes the call-graph of the 
+module, grouping all methods into mutually-recursive groups.
 Any method that calls nothing else is at the lowest level (say level 0).
 Absent recursion, every method has a level value strictly greater than any method it calls.
 Methods that are mutually recursive are at the same level and they are above
