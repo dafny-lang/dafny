@@ -40,8 +40,7 @@ The reference types are class types, traits and array types.
 Dafny supports both reference types that contain the special `null` value
 (_nullable types_) and reference types that do not (_non-null types_).
 
-## 6.3. Named Types
-([grammar](#g-type))
+## 6.3. Named Types ([grammar](#g-type))
 
 A _Named Type_ is used to specify a user-defined type by name
 (possibly module-qualified). Named types are introduced by
@@ -58,7 +57,7 @@ that does not allow a ``HashCall``.
 The following sections describe each of these kinds of types in more detail.
 
 <!--PDF NEWPAGE-->
-# 7. Basic types {#sec-basic-types}
+# 7. Basic types {#sec-basic-type}
 
 Dafny offers these basic types: `bool` for booleans, `char` for
 characters, `int` and `nat` for integers, `real` for reals,
@@ -795,8 +794,7 @@ This states that `T` does not preserve the cardinality of `X`, meaning there cou
 A more detailed explanation of these topics is [here](http://leino.science/papers/krml280.html).
 
 <!--PDF NEWPAGE-->
-# 9. Generic Instantiation
-([grammar](#g-generic-instantiation))
+# 9. Generic Instantiation ([grammar](#g-generic-instantiation)) {#sec-generic-instantiation}
 
 A generic instantiation consists of a comma-separated list of 1 or more Types,
 enclosed in angle brackets (`<` `>`),
@@ -1333,9 +1331,7 @@ There are no mechanisms currently defined in Dafny for iterating over `imap`s.
 
 
 <!--PDF NEWPAGE-->
-# 11. Types that stand for other types
-([grammar](#g-type-definition))
-
+# 11. Types that stand for other types ([grammar](#g-type-definition)) {#sec-type-definition}
 
 It is sometimes useful to know a type by several names or to treat a
 type abstractly. There are several mechanisms in Dafny to do this:
@@ -1972,7 +1968,7 @@ constructor (here, named `Init`), which allocates and initializes the object.
 The third form is the same as the second, but invokes the _anonymous constructor_
 of the class (that is, a constructor declared with the empty-string name).
 
-## 13.1. Field Declarations {#sec-field-declarations}
+## 13.1. Field Declarations {#sec-field-declaration}
 ([grammar](#g-field-declaration))
 
 Examples:
@@ -2014,7 +2010,7 @@ not in code that will be compiled into executable code.
 
 Fields may not be declared static.
 
-## 13.2. Constant Field Declarations {#sec-constant-field-declarations}
+## 13.2. Constant Field Declarations {#sec-constant-field-declaration}
 ([grammar](#g-const-declaration))
 
 Examples:
@@ -2045,7 +2041,7 @@ modifier may be omitted.
 * The initialization expression may refer to other constant fields that are in scope and declared either
 before or after this declaration, but circular references are not allowed.
 
-## 13.3. Method Declarations {#sec-method-declarations}
+## 13.3. Method Declarations {#sec-method-declaration}
 ([grammar](#g-method-declaration))
 
 Examples:
@@ -2487,7 +2483,7 @@ method EtaExample(p: P) returns (ghost f: int -> int) {
 }
 ```
 
-## 13.4. Function Declarations {#sec-function-declarations}
+## 13.4. Function Declarations {#sec-function-declaration}
 
 ### 13.4.1. Functions
 ([grammar](#g-function-declaration))
@@ -3154,7 +3150,7 @@ method m() {
 ```
 
 <!--PDF NEWPAGE-->
-# 15. Array types {#sec-array-types}
+# 15. Array types {#sec-array-type}
 ([grammar](#g-array-type))
 
 Dafny supports mutable fixed-length _array types_ of any positive
@@ -3595,8 +3591,7 @@ design of asynchronous methods evolves.
 -->
 
 <!--PDF NEWPAGE-->
-# 17. Arrow types {#sec-arrow-types}
-([grammar](#g-arrow-type))
+# 17. Arrow types ([grammar](#g-arrow-type)) {#sec-arrow-types}
 
 Examples:
 <!-- %no-check -->
@@ -3800,7 +3795,7 @@ const pair: (int, ghost int) := (1, ghost 2)
 ```
 
 <!--PDF NEWPAGE-->
-# 19. Algebraic Datatypes {#sec-algebraic-datatype}
+# 19. Algebraic Datatypes {#sec-datatype}
 ([grammar](#g-datatype))
 
 Dafny offers two kinds of algebraic datatypes, those defined

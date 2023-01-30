@@ -412,7 +412,7 @@ There are two different ways to dynamically test functionality in a test:
 
 1. A test can optionally return a single value to indicate success or failure.
    If it does, this must be a _failure-compatible_ type
-   just as the [update-with-failure statement](#sec-update-failure) requires. That is,
+   just as the [update-with-failure statement](#sec-update-with-failure-statement) requires. That is,
    the returned type must define a `IsFailure()` function method. If `IsFailure()`
    evaluates to `true` on the return value, the test will be marked a failure, and this
    return value used as the failure message.

@@ -10,7 +10,7 @@ Stsatements have zero or more labels.
 
 Statements typically end with either a semicolon (`;`) or a closing curly brace ('}').
 
-## 20.1. Labeled Statement {#sec-labeled-stmt}
+## 20.1. Labeled Statement {#sec-labeled-statement}
 ([grammar](#g-labeled-statement))
 
 Examples:
@@ -36,7 +36,7 @@ A labeled statement is just
 
 The label may be
 referenced in a `break` or `continue` statement within the labeled statement
-(see [Section 20.2](#sec-break-continue)). That is, the break or continue that
+(see [Section 20.2](#sec-break-continue-statement)). That is, the break or continue that
 mentions the label must be _enclosed_ in the labeled statement.
 
 The label may also be used in an `old` expression ([Section 21.22](#sec-old-expression)). In this case, the label
@@ -51,7 +51,7 @@ same as any previous enclosing or dominating label.
 
 <!-- TODO : what about two-state predicate -->
 
-## 20.2. Break and Continue Statements {#sec-break-continue}
+## 20.2. Break and Continue Statements {#sec-break-continue-statement}
 ([grammar](#g-break-continue-statement))
 
 Examples:
@@ -469,8 +469,7 @@ Note that the form
 
 is interpreted as a label in which the user forgot the `label` keyword.
 
-## 20.7. Update with Failure Statement (`:-`) {#sec-update-failure}
-([grammar](#g-update-with-failure-statement))
+## 20.7. Update with Failure Statement (`:-`) ([grammar](#g-update-with-failure-statement)) {#sec-update-with-failure-statement}
 
 See the subsections below for examples.
 
@@ -860,8 +859,8 @@ Not so in Dafny: a failure is passed up the call stack only if each caller has a
  * All methods that contain failure-return callees must explicitly handle those failures
 using either `:-` statements or using `:=` statements with a LHS to receive the failure value.
 
-## 20.8. Variable Declaration Statement {#sec-var-decl-statement}
-([grammar](#g-variable-declaration-statement))
+## 20.8. Variable Declaration Statement ([grammar](#g-variable-declaration-statement)) {#sec-variable-declaration-statement}
+
 
 Examples:
 ```dafny
@@ -920,10 +919,9 @@ function usesTuple() : int
 }
 ```
 
-The assignment with failure operator `:-` returns from the method if the value evaluates to a failure value of a failure-compatible type (see [Section 20.7](#sec-update-failure)).
+The assignment with failure operator `:-` returns from the method if the value evaluates to a failure value of a failure-compatible type (see [Section 20.7](#sec-update-with-failure-statement)).
 
-## 20.9. Guards {#sec-guards}
-([grammar](#g-guard))
+## 20.9. Guards ([grammar](#g-guard)) {#sec-guard}
 
 Examples (in `if` statements):
 ```dafny
@@ -942,8 +940,7 @@ The second form is either `*` or `(*)`. These have the same meaning. An
 unspecified boolean value is returned. The value returned
 may be different each time it is executed.
 
-## 20.10. Binding Guards {#sec-binding-guards}
-([grammar](#g-binding-guard))
+## 20.10. Binding Guards ([grammar](#g-binding-guard)) {#sec-binding-guards}
 
 Examples (in `if` statements):
 ```dafny
@@ -996,8 +993,7 @@ method M1() returns (ghost y: int)
 }
 ```
 
-## 20.11. If Statement {#sec-if-statement}
-([grammar](#g-if-statement))
+## 20.11. If Statement ([grammar](#g-if-statement)) {#sec-if-statement}
 
 Examples:
 ```dafny
@@ -1076,8 +1072,7 @@ braces but need not be.
 
 The form that used `...` (a refinement feature) as the guard is deprecated.
 
-## 20.12. While Statement {#sec-while-statement}
-([grammar](#g-while-statement))
+## 20.12. While Statement ([grammar](#g-while-statement)) {#sec-while-statement}
 
 Examples:
 ```dafny
@@ -1171,8 +1166,8 @@ loop execution is terminated.
 
 The form that used `...` (a refinement feature) as the guard is deprecated.
 
-## 20.13. For Loops {#sec-for-loops}
-([grammar](#g-for-statement))
+## 20.13. For Loops ([grammar](#g-for-statement)) {#sec-for-statement}
+
 
 Examples:
 ```dafny
@@ -1637,8 +1632,7 @@ is omitting the proof of the claim made by the lemma specification. As with the
 other body-less constructs above, the verifier is silently happy with a body-less
 `forall` statement, but the compiler will complain.
 
-## 20.15. Match Statement {#sec-match-statement}
-([grammar](#g-match-statement))
+## 20.15. Match Statement ([grammar](#g-match-statement)) {#sec-match-statement}
 
 Examples:
 <!-- %no-check -->
@@ -1686,8 +1680,7 @@ In this case it is not needed because Dafny is able to deduce that
 coinductive this would not have been possible since `x` might have been
 infinite.
 
-## 20.16. Assert statement {#sec-assert-statement}
-([grammar](#g-assert-statement))
+## 20.16. Assert statement ([grammar](#g-assert-statement)) {#sec-assert-statement}
 
 Examples:
 ```dafny
@@ -1759,8 +1752,7 @@ indeed true.
 
 Using `...` as the argument of the statement is deprecated.
 
-## 20.18. Expect Statement {#sec-expect-statement}
-([grammar](#g-expect-statement))
+## 20.18. Expect Statement ([grammar](#g-expect-statement)) {#sec-expect-statement}
 
 Examples:
 ```dafny
@@ -1868,8 +1860,7 @@ and potential unsoundness will be hidden.
 
 Using `...` as the argument of the statement is deprecated.
 
-## 20.19. Print Statement {#sec-print-statement}
-([grammar](#g-print-statement))
+## 20.19. Print Statement ([grammar](#g-print-statement)) {#sec-print-statement}
 
 Examples:
 <!-- %no-check -->
@@ -1933,8 +1924,7 @@ it uses language-specific flags and variables to enforce UTF-8 output regardless
 of the target language (but note that the C++ and Go backends currently have
 limited support for UTF-16 surrogates).
 
-## 20.20. Reveal Statement {#sec-reveal-statement}
-([grammar](#g-reveal-statement))
+## 20.20. Reveal Statement ([grammar](#g-reveal-statement)) {#sec-reveal-statement}
 
 Examples:
 <!-- %no-check -->
@@ -2043,8 +2033,7 @@ Note that the pseudo-function-call in the `reveal` statement is written without 
 instead of a label.
 
 
-## 20.21. Forall Statement {#sec-forall-statement}
-([grammar](#g-forall-statement))
+## 20.21. Forall Statement ([grammar](#g-forall-statement)) {#sec-forall-statement}
 
 Examples:
 <!-- %no-check -->
@@ -2155,7 +2144,7 @@ forall x :: P(x) ==> Q(x).
 The `forall` statement is also used extensively in the de-sugared forms of
 co-predicates and co-lemmas. See [datatypes](#sec-coinductive-datatypes).
 
-## 20.22. Modify Statement {#sec-modify-statement}
+## 20.22. Modify Statement ([grammar](#g-modify-statement)) {#sec-modify-statement}
 
 The effect of the `modify` statement
 is to say that some undetermined
@@ -2188,8 +2177,7 @@ statement is also deprecated.
 
 <!-- TOOD - relationship between modify and havoc assignment -- latter for any variable or field; former for all fields of an object
 
-## 20.23. Calc Statement {#sec-calc-statement}
-([grammar](#g-calc-statement))
+## 20.23. Calc Statement ([grammar](#g-calc-statement)) {#sec-calc-statement}
 
 [Verified Calculations]: http://research.microsoft.com/en-us/um/people/leino/papers/krml231.pdf
 

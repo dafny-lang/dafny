@@ -1,4 +1,4 @@
-# 3. Programs
+# 3. Programs {#sec-program}
 ({grammar](#g-program))
 
 At the top level, a Dafny program (stored as files with extension `.dfy`)
@@ -25,7 +25,7 @@ A file consists of
 - top level declarations, followed by 
 - the end of the file.
 
-## 3.1. Include Directives {#sec-include-directives}
+## 3.1. Include Directives {#sec-include-directive}
 ([grammar](#g-include-directive))
 
 Examples:
@@ -83,7 +83,7 @@ Methods, functions and const declarations are placed in an implicit class declar
 that is in the top-level implicit module. These declarations are all implicitly
 `static` (but may not be declared explicitly static).
 
-## 3.3. Declaration Modifiers {sec-declaration-modifiers}
+## 3.3. Declaration Modifiers {#sec-declaration-modifier}
 ([grammar](#g-declaration-modifier))
 
 Examples:

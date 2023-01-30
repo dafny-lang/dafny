@@ -181,19 +181,19 @@ To aid in explaining the grammar we have added some additional productions
 that are not present in the original grammar. We name these with a trailing
 underscore. Inlining these where they are referenced will reconstruct the original grammar.
 
-### 29.2.1. Programs {#g-program}
+### 29.2.1. Programs ([discussion](#sec-program)) {#g-program}
 
 ````grammar
 Dafny = { IncludeDirective_ } { TopDecl } EOF
 ````
 
-#### 29.2.1.1. Include directives {#g-include-directive}
+#### 29.2.1.1. Include directives ([discussion](#sec-include-directive)) {#g-include-directive}
 
 ````grammar
 IncludeDirective_ = "include" stringToken
 ````
 
-#### 29.2.1.2. Top-level declarations {#g-top-level-declaration}
+#### 29.2.1.2. Top-level declarations ([discussion](#sec-top-level-declaration)) {#g-top-level-declaration}
 
 ````grammar
 TopDecl =
@@ -209,7 +209,7 @@ TopDecl =
   )
 ````
 
-#### 29.2.1.3. Declaration modifiers {#g-declaration-modifier}
+#### 29.2.1.3. Declaration modifiers ([discussion](#sec-declaration-modifier)) {#g-declaration-modifier}
 
 ````grammar
 DeclModifier = ( "abstract" | "ghost" | "static" )
@@ -221,7 +221,7 @@ DeclModifier = ( "abstract" | "ghost" | "static" )
 SubModuleDecl = ( ModuleDefinition | ModuleImport | ModuleExport )
 ````
 
-#### 29.2.2.1. Module Definitions {#g-module-definition}
+#### 29.2.2.1. Module Definitions ([discussion](#sec-module-definition)) {#g-module-definition}
 
 ````grammar
 ModuleDefinition = 
@@ -230,7 +230,7 @@ ModuleDefinition =
   "{" { TopDecl } "}"
 ````
 
-#### 29.2.2.2. Module Imports {#g-module-import}
+#### 29.2.2.2. Module Imports ([discussion](#sec-importing-modules)) {#g-module-import}
 
 ````grammar
 ModuleImport =
@@ -250,7 +250,7 @@ ModuleExportSuffix =
   )
 ````
 
-#### 29.2.2.3. Module Export Definitions {#g-module-export}
+#### 29.2.2.3. Module Export Definitions ([discussion](#sec-export-sets)) {#g-module-export}
 
 ````grammar
 ModuleExport =
@@ -266,7 +266,7 @@ ModuleExport =
 ExportSignature = TypeNameOrCtorSuffix [ "." TypeNameOrCtorSuffix ]
 ````
 
-### 29.2.3. Types {#g-type}
+### 29.2.3. Types ([discussion](#sec-types)) {#g-type}
 
 ````grammar
 Type = DomainType_ | ArrowType_
@@ -284,18 +284,14 @@ DomainType_ =
   | TupleType
   | NamedType
   )
-````
 
-````grammar
 NamedType = NameSegmentForTypeName { "." NameSegmentForTypeName }
-````
 
-````grammar
 NameSegmentForTypeName = Ident [ GenericInstantiation ]
 ````
 
 
-#### 29.2.3.1. Basic types {#g-basic-type}
+#### 29.2.3.1. Basic types ([discussion](#sec-basic-type)) {#g-basic-type}
 ````grammar
 BoolType_ = "bool"
 IntType_ = "int"
@@ -306,13 +302,13 @@ CharType_ = "char"
 ````
 
 
-#### 29.2.3.2. Generic instantiation {#g-generic-instantiation}
+#### 29.2.3.2. Generic instantiation ([discussion](#sec-generic-instantiation)) {#g-generic-instantiation}
 
 ````grammar
 GenericInstantiation = "<" Type { "," Type } ">"
 ````
 
-#### 29.2.3.3. Type parameter {#g-type-parameter}
+#### 29.2.3.3. Type parameter ([discussion](#sec-type-parameters)) {#g-type-parameter}
 
 ````grammar
 GenericParameters(allowVariance) =
@@ -328,7 +324,7 @@ TypeParameterCharacteristics = "(" TPCharOption { "," TPCharOption } ")"
 TPCharOption = ( "==" | "0" | "00" | "!" "new" )
 ````
 
-#### 29.2.3.4. Collection types {#g-collection-type}
+#### 29.2.3.4. Collection types ([discussion](#sec-collection-types)) {#g-collection-type}
 ````grammar
 FiniteSetType_ = "set" [ GenericInstantiation ]
 
@@ -345,7 +341,7 @@ FiniteMapType_ = "map" [ GenericInstantiation ]
 InfiniteMapType_ = "imap" [ GenericInstantiation ]
 ````
 
-#### 29.2.3.5. Type definitions {#g-type-definition}
+#### 29.2.3.5. Type definitions ([discussion](#sec-type-definition)) {#g-type-definition}
 
 ````grammar
 SynonymTypeDecl =
@@ -406,7 +402,7 @@ NewtypeDecl = "newtype" { Attribute } NewtypeName "="
 ````
 
 
-#### 29.2.3.6. Class type {#g-class-type}
+#### 29.2.3.6. Class type ([discussion](#sec-class-types)) {#g-class-type}
 
 ````grammar
 ClassDecl = "class" { Attribute } ClassName [ GenericParameters ]
@@ -429,7 +425,7 @@ ClassMemberDecl(allowConstructors, isValueType,
 ````
 
 
-#### 29.2.3.7. Trait types {#g-trait-type}
+#### 29.2.3.7. Trait types ([discussion](#sec-trait-types)) {#g-trait-type}
 
 ````grammar
 TraitDecl =
@@ -443,19 +439,19 @@ TraitDecl =
   "}"
 ````
 
-#### 29.2.3.8. Object type {#g-object-type}
+#### 29.2.3.8. Object type ([discussion](#sec-object-type)) {#g-object-type}
 
 ````grammar
 ObjectType_ = "object" | "object?"
 ````
 
-#### 29.2.3.9. Array types {#g-array-type}
+#### 29.2.3.9. Array types ([discussion](#sec-array-type)) {#g-array-type}
 
 ````grammar
 ArrayType_ = arrayToken [ GenericInstantiation ]
 ````
 
-#### 29.2.3.10. Iterator types {#g-iterator-type}
+#### 29.2.3.10. Iterator types ([discussion](#sec-iterator-types)) {#g-iterator-type}
 
 ````grammar
 IteratorDecl = "iterator" { Attribute } IteratorName
@@ -468,7 +464,7 @@ IteratorDecl = "iterator" { Attribute } IteratorName
   [ BlockStmt ]
 ````
 
-#### 29.2.3.11. Arrow types {#g-arrow-type}
+#### 29.2.3.11. Arrow types ([discussion](#sec-arrow-types)) {#g-arrow-type}
 
 ````grammar
 ArrowType_ = ( DomainType_ "~>" Type
@@ -477,7 +473,7 @@ ArrowType_ = ( DomainType_ "~>" Type
              )
 ````
 
-#### 29.2.3.12. Algebraic datatypes {#g-datatype}
+#### 29.2.3.12. Algebraic datatypes ([discussion](#sec-datatype)) {#g-datatype}
 
 ````grammar
 DatatypeDecl =
@@ -494,9 +490,9 @@ DatatypeMemberDecl =
   { Attribute } DatatypeMemberName [ FormalsOptionalIds ]
 ````
 
-### 29.2.4. Type member declarations {#g-member-declaration}
+### 29.2.4. Type member declarations ([discussion](#sec-member-declaration)) {#g-member-declaration}
 
-#### 29.2.4.1. Fields {#g-field-declaration}
+#### 29.2.4.1. Fields ([discussion](#sec-field-declaration)) {#g-field-declaration}
 
 ````grammar
 FieldDecl(isValueType) =
@@ -504,7 +500,7 @@ FieldDecl(isValueType) =
 ````
 A `FieldDecl` is not permitted if `isValueType` is true.
 
-#### 29.2.4.2. Constant fields {#g-const-declaration}
+#### 29.2.4.2. Constant fields ([discussion](#sec-constant-field-declaration)) {#g-const-declaration}
 
 ````grammar
 ConstantFieldDecl(moduleLevelDecl) =
@@ -515,7 +511,7 @@ ConstantFieldDecl(moduleLevelDecl) =
 If `moduleLevelDecl` is true, then the `static` modifier is not permitted
 (the constant field is static implicitly).
 
-#### 29.2.4.3. Method declarations {#g-method-declaration}
+#### 29.2.4.3. Method declarations ([discussion](#sec-method-declaration)) {#g-method-declaration}
 
 ````grammar
 MethodDecl(isGhost, allowConstructors, isWithinAbstractModule) =
@@ -556,7 +552,7 @@ a body for the program that contains the declaration to be compiled.
 
 The `KType` may be specified only for least and greatest lemmas.
 
-#### 29.2.4.4. Function declarations {#g-function-declaration}
+#### 29.2.4.4. Function declarations ([discussion](#sec-function-declaration)) {#g-function-declaration}
 
 
 ````grammar
@@ -619,7 +615,7 @@ FunctionBody = "{" Expression(allowLemma: true, allowLambda: true)
 
 ### 29.2.5. Specifications
 
-#### 29.2.5.1. Method specifications {#g-method-specification}
+#### 29.2.5.1. Method specifications ([discussion](#sec-method-specification)) {#g-method-specification}
 
 ````grammar
 MethodSpec =
@@ -630,7 +626,7 @@ MethodSpec =
   }
 ````
 
-#### 29.2.5.2. Function specifications {#g-function-specification}
+#### 29.2.5.2. Function specifications ([discussion](#sec-function-specification)) {#g-function-specification}
 
 ````grammar
 FunctionSpec =
@@ -641,7 +637,7 @@ FunctionSpec =
   }
 ````
 
-#### 29.2.5.3. Lambda function specifications {#g-lambda-specification}
+#### 29.2.5.3. Lambda function specifications ([discussion](#sec-lambda-specification)) {#g-lambda-specification}
 
 ````grammar
 LambdaSpec =
@@ -650,7 +646,7 @@ LambdaSpec =
   }
 ````
 
-#### 29.2.5.4. Iterator specifications {#g-iterator-specification}
+#### 29.2.5.4. Iterator specifications ([discussion](#sec-iterator-specification)) {#g-iterator-specification}
 
 ````grammar
 IteratorSpec =
@@ -663,7 +659,7 @@ IteratorSpec =
   }
 ````
 
-#### 29.2.5.5. Loop specifications {#g-loop-specification}
+#### 29.2.5.5. Loop specifications ([discussion](#sec-loop-specification)) {#g-loop-specification}
 
 ````grammar
 LoopSpec =
@@ -675,7 +671,7 @@ LoopSpec =
 
 
 
-#### 29.2.5.6. Requires clauses {#g-requires-clause}
+#### 29.2.5.6. Requires clauses ([discussion](#sec-requires-clause)) {#g-requires-clause}
 
 ````grammar
 RequiresClause(allowLabel) =
@@ -684,14 +680,14 @@ RequiresClause(allowLabel) =
   Expression(allowLemma: false, allowLambda: false)
 ````
 
-#### 29.2.5.7. Ensures clauses {#g-ensures-clause}
+#### 29.2.5.7. Ensures clauses ([discussion](#sec-ensures-clause)) {#g-ensures-clause}
 
 ````grammar
 EnsuresClause(allowLambda) =
   "ensures" { Attribute } Expression(allowLemma: false, allowLambda)
 ````
 
-#### 29.2.5.8. Decreases clauses {#g-decreases-clause}
+#### 29.2.5.8. Decreases clauses ([discussion](#sec-decreases-clause)) {#g-decreases-clause}
 
 ````grammar
 DecreasesClause(allowWildcard, allowLambda) =
@@ -707,7 +703,7 @@ PossiblyWildExpression(allowLambda, allowWild) =
   )
 ````
 
-#### 29.2.5.9. Modifies clauses {#g-modifies-clause}
+#### 29.2.5.9. Modifies clauses ([discussion](#sec-modifies-clause)) {#g-modifies-clause}
 
 ````grammar
 ModifiesClause(allowLambda) =
@@ -716,7 +712,7 @@ ModifiesClause(allowLambda) =
   { "," FrameExpression(allowLemma: false, allowLambda) }
 ````
 
-#### 29.2.5.10. Invariant clauses {#g-invariant-clause}
+#### 29.2.5.10. Invariant clauses ([discussion](#sec-invariant-clause)) {#g-invariant-clause}
 
 ````grammar
 InvariantClause_ =
@@ -724,7 +720,7 @@ InvariantClause_ =
   Expression(allowLemma: false, allowLambda: true)
 ````
 
-#### 29.2.5.11. Reads clauses {#g-reads-clause}
+#### 29.2.5.11. Reads clauses ([discussion](#sec-reads-clause)) {#g-reads-clause}
 
 ````grammar
 ReadsClause(allowLemma, allowLambda, allowWild) =
@@ -734,7 +730,7 @@ ReadsClause(allowLemma, allowLambda, allowWild) =
   { "," PossiblyWildFrameExpression(allowLemma, allowLambda, allowWild) }
 ````
 
-#### 29.2.5.12. Frame expressions {#g-frame-expression}
+#### 29.2.5.12. Frame expressions ([discussion](#sec-frame-expression)) {#g-frame-expression}
 
 ````grammar
 FrameExpression(allowLemma, allowLambda) =
@@ -757,13 +753,13 @@ PossiblyWildFrameExpression(allowLemma, allowLambda, allowWild) =
 
 ### 29.2.6. Statements {#g-statement}
 
-#### 29.2.6.1. Labeled statement {#g-labeled-statement}
+#### 29.2.6.1. Labeled statement ([discussion](#sec-labeled-statement)) {#g-labeled-statement}
 
 ````grammar
 Stmt = { "label" LabelName ":" } NonLabeledStmt
 ````
 
-#### 29.2.6.2. Non-Labeled statement {#g-nonlabeled-statement}
+#### 29.2.6.2. Non-Labeled statement ([discussion](#sec-nonlabeled-statement)) {#g-nonlabeled-statement}
 
 ````grammar
 NonLabeledStmt =
@@ -776,7 +772,7 @@ NonLabeledStmt =
   )
 ````
 
-#### 29.2.6.3. Break and continue statements {#g-break-continue-statement}
+#### 29.2.6.3. Break and continue statements ([discussion](#sec-break-continue-statement)) {#g-break-continue-statement}
 
 ````grammar
 BreakStmt =
@@ -787,25 +783,25 @@ BreakStmt =
   )
 ````
 
-#### 29.2.6.4. Block statement {#g-block-statement}
+#### 29.2.6.4. Block statement ([discussion](#sec-block-statement)) {#g-block-statement}
 
 ````grammar
 BlockStmt = "{" { Stmt } "}"
 ````
 
-#### 29.2.6.5. Return statement {#g-return-statement}
+#### 29.2.6.5. Return statement ([discussion](#sec-return-statement)) {#g-return-statement}
 
 ````grammar
 ReturnStmt = "return" [ Rhs { "," Rhs } ] ";"
 ````
 
-#### 29.2.6.6. Yield statement {#g-yield-statement}
+#### 29.2.6.6. Yield statement ([discussion](#sec-yield-statement)) {#g-yield-statement}
 
 ````grammar
 YieldStmt = "yield" [ Rhs { "," Rhs } ] ";"
 ````
 
-#### 29.2.6.7. Update and call statement {#g-update-and-call-statement}
+#### 29.2.6.7. Update and call statement ([discussion](#sec-update-and-call-statement)) {#g-update-and-call-statement}
 
 ````grammar
 UpdateStmt =
@@ -821,7 +817,7 @@ UpdateStmt =
   )
 ````
 
-#### 29.2.6.8. Update with failure statement {#g-update-with-failure-statement}
+#### 29.2.6.8. Update with failure statement ([discussion](#sec-update-with-failure-statement)) {#g-update-with-failure-statement}
 
 ````grammar
 UpdateFailureStmt  =
@@ -833,7 +829,7 @@ UpdateFailureStmt  =
   ";"
 ````
 
-#### 29.2.6.9. Variable declaration statement {#g-variable-declaration-statement}
+#### 29.2.6.9. Variable declaration statement ([discussion](#sec-variable-declaration-statement)) {#g-variable-declaration-statement}
 
 ````grammar
 VarDeclStatement =
@@ -863,7 +859,7 @@ CasePatternLocal = ( [ Ident ] "(" CasePatternLocal { "," CasePatternLocal } ")"
                    )
 ````
 
-#### 29.2.6.10. Guards {#g-guard}
+#### 29.2.6.10. Guards ([discussion](#sec-guard)) {#g-guard}
 
 ````grammar
 Guard = ( "*"
@@ -872,7 +868,7 @@ Guard = ( "*"
         )
 ````
 
-#### 29.2.6.11. Binding guards {#g-binding-guard} 
+#### 29.2.6.11. Binding guards ([discussion](#sec-binding-guards)) {#g-binding-guard} 
 
 ````grammar
 BindingGuard(allowLambda) =
@@ -882,7 +878,7 @@ BindingGuard(allowLambda) =
   Expression(allowLemma: true, allowLambda)
 ````
 
-#### 29.2.6.12. If statement {#g-if-statement}
+#### 29.2.6.12. If statement ([discussion](#sec-if-statement)) {#g-if-statement}
 
 ````grammar
 IfStmt = "if"
@@ -908,7 +904,7 @@ AlternativeBlockCase(allowBindingGuards) =
   }
 ````
 
-#### 29.2.6.13. While Statement {#g-while-statement}
+#### 29.2.6.13. While Statement ([discussion](#sec-while-statement)) {#g-while-statement}
 
 ````grammar
 WhileStmt =
@@ -923,7 +919,7 @@ WhileStmt =
   )
 ````
 
-#### 29.2.6.14. For statement {#g-for-statement}
+#### 29.2.6.14. For statement ([discussion](#sec-for-statement)) {#g-for-statement}
 
 ````grammar
 ForLoopStmt =
@@ -938,7 +934,7 @@ ForLoopStmt =
   )
 ````
 
-#### 29.2.6.15. Match statement {#g-match-statement}
+#### 29.2.6.15. Match statement ([discussion](#sec-match-statement)) {#g-match-statement}
 
 ````grammar
 MatchStmt =
@@ -951,7 +947,7 @@ MatchStmt =
 CaseStmt = "case" ExtendedPattern "=>" { Stmt }
 ````
 
-#### 29.2.6.16. Assert statement {#g-assert-statement}
+#### 29.2.6.16. Assert statement ([discussion](#sec-assert-statement)) {#g-assert-statement}
 
 ````grammar
 AssertStmt =
@@ -964,7 +960,7 @@ AssertStmt =
   )
 ````
 
-#### 29.2.6.17. Assume statement {#g-assume-statement}
+#### 29.2.6.17. Assume statement ([discussion](#sec-assume-statement)) {#g-assume-statement}
 
 ````grammar
 AssumeStmt =
@@ -974,7 +970,7 @@ AssumeStmt =
   ";"
 ````
 
-#### 29.2.6.18. Expect statement {#g-expect-statement}
+#### 29.2.6.18. Expect statement ([discussion](#sec-expect-statement)) {#g-expect-statement}
 
 ````grammar
 ExpectStmt =
@@ -985,7 +981,7 @@ ExpectStmt =
   ";"
 ````
 
-#### 29.2.6.19. Print statement {#g-print-statement}
+#### 29.2.6.19. Print statement ([discussion](#sec-print-statement)) {#g-print-statement}
 
 ````grammar
 PrintStmt =
@@ -995,7 +991,7 @@ PrintStmt =
   ";"
 ````
 
-#### 29.2.6.20. Reveal statement {#g-reveal-statement}
+#### 29.2.6.20. Reveal statement ([discussion](#sec-reveal-statement)) {#g-reveal-statement}
 
 ````grammar
 RevealStmt =
@@ -1004,7 +1000,7 @@ RevealStmt =
   { "," Expression(allowLemma: false, allowLambda: true) }
   ";"
 ````
-#### 29.2.6.21. Forall statement {#g-forall-statement}
+#### 29.2.6.21. Forall statement ([discussion](#sec-forall-statement)) {#g-forall-statement}
 
 ````grammar
 ForallStmt =
@@ -1015,7 +1011,7 @@ ForallStmt =
   { EnsuresClause(allowLambda: true) }
   [ BlockStmt ]
 ````
-#### 29.2.6.22. Modify statement {#g-modify-statement}
+#### 29.2.6.22. Modify statement ([discussion](#sec-modify-statement)) {#g-modify-statement}
 
 ````grammar
 ModifyStmt =
@@ -1025,7 +1021,8 @@ ModifyStmt =
   { "," FrameExpression(allowLemma: false, allowLambda: true) }
   ";"
 ````
-#### 29.2.6.23. Calc statement {#g-calc-statement}
+
+#### 29.2.6.23. Calc statement ([discussion](#sec-calc-statement)) {#g-calc-statement}
 
 ````grammar
 CalcStmt = "calc" { Attribute } [ CalcOp ] "{" CalcBody_ "}"
@@ -1044,11 +1041,6 @@ CalcOp =
   | "<==>" | "==>" | "<=="
   )
 ````
-
-
-
-
-
 
 ### 29.2.7. Expressions
 
@@ -1081,7 +1073,7 @@ EquivExpression(allowLemma, allowLambda) =
   { "<==>" ImpliesExpliesExpression(allowLemma, allowLambda) }
 ````
 
-#### 29.2.7.3. Implies expression ( [discussion](#sec-implies-expression)){#g-implies-expression}
+#### 29.2.7.3. Implies expression ([discussion](#sec-implies-expression)) {#g-implies-expression}
 
 ````grammar
 ImpliesExpliesExpression(allowLemma, allowLambda) =

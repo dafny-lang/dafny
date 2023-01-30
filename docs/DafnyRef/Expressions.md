@@ -191,7 +191,7 @@ x ==#[k] y
 ```
 
 The relation expressions compare two or more terms.
-As explained in [the section about basic types](#sec-basic-types), `==`, `!=`, ``<``, `>`, `<=`, and `>=`
+As explained in [the section about basic types](#sec-basic-type), `==`, `!=`, ``<``, `>`, `<=`, and `>=`
 are _chaining_.
 
 The `in` and `!in` operators apply to collection types as explained in
@@ -472,7 +472,7 @@ old(o.f).x
 
 A left-hand-side expression is only used on the left hand
 side of an [``UpdateStmt``](#sec-update-and-call-statement)
-or an [Update with Failure Statement](#sec-update-failure).
+or an [Update with Failure Statement](#sec-update-with-failure-statement).
 
 An example of the first (`NameSegment`) form is:
 
@@ -512,8 +512,8 @@ Right-hand-side expressions (that are not just regular expressions) appear in th
 [`ReturnStmt`](#sec-return-statement),
 [`YieldStmt`](#sec-yield-statement),
 [`UpdateStmt`](#sec-update-and-call-statement),
-[`UpdateFailureStmt`](#sec-update-failure), or
-[`VarDeclStatement`](#sec-var-decl-statement).
+[`UpdateFailureStmt`](#sec-update-with-failure-statement), or
+[`VarDeclStatement`](#sec-variable-declaration-statement).
 These are the only contexts in which arrays or objects may be
 allocated, or in which havoc may be stipulated.
 
@@ -528,7 +528,7 @@ new int[5](i => i*i)
 new int[2,3]((i,j) => i*j)
 ```
 
-This right-hand-side expression allocates a new single or multi-dimensional array (cf. [Section 15](#sec-array-types)).
+This right-hand-side expression allocates a new single or multi-dimensional array (cf. [Section 15](#sec-array-type)).
 The initialization portion is optional. One form is an
 explicit list of values, in which case the dimension is optional:
 <!-- %no-check -->
@@ -824,7 +824,7 @@ fresh@L(e)
 `fresh(e)` returns a boolean value that is true if
 the objects denoted by expression `e` were all
 freshly allocated since the time of entry to the enclosing method,
-or since [`label L:`](#sec-labeled-stmt) in the variant `fresh@L(e)`.
+or since [`label L:`](#sec-labeled-statement) in the variant `fresh@L(e)`.
 For example, consider this valid program:
 
 ```dafny
@@ -843,8 +843,8 @@ method f(c1: C) returns (r: C)
 }
 ```
 
-The `L` in the variant `fresh@L(e)` must denote a [label](#sec-labeled-stmt) that, in the
-enclosing method's control flow, [dominates the expression](#sec-labeled-stmt). In this
+The `L` in the variant `fresh@L(e)` must denote a [label](#sec-labeled-statement) that, in the
+enclosing method's control flow, [dominates the expression](#sec-labeled-statement). In this
 case, `fresh@L(e)` returns `true` if the objects denoted by `e` were all
 freshly allocated since control flow reached label `L`.
 
@@ -1418,13 +1418,13 @@ function GhostF(z: Stuff): int
 
 The Let expression has a failure variant
 that simply uses `:-` instead of `:=`. This Let-or-Fail expression also permits propagating
-failure results. However, in statements ([Section 20.7](#sec-update-failure)), failure results in
+failure results. However, in statements ([Section 20.7](#sec-update-with-failure-statement)), failure results in
 immediate return from the method; expressions do not have side effects or immediate return
 mechanisms. Rather, if the expression to the right of `:-` results in a failure value `V`,
 the overall expression returns `V.PropagateFailure()`; if there is no failure, the expression following the 
 semicolon is returned. Note that these two possible return values must have the same type (or be 
 implicitly convertible to the same type). Typically that means that `tmp.PropagateFailure()` is a failure value and
-`E` is a value-carrying success value, both of the same failure-compatible type, as described in [Section 20.7](#sec-update-failure).
+`E` is a value-carrying success value, both of the same failure-compatible type, as described in [Section 20.7](#sec-update-with-failure-statement).
 
 The expression `:- V; E` is desugared into the _expression_
 <!-- %no-check -->
