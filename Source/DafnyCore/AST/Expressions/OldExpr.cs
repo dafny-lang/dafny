@@ -37,7 +37,7 @@ public class OldExpr : Expression, ICloneable<OldExpr>, ICanFormat {
     get { yield return E; }
   }
 
-  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     return formatter.SetIndentParensExpression(indentBefore, OwnedTokens);
   }
 }

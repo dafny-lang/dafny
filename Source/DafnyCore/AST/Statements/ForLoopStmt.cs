@@ -46,7 +46,7 @@ public class ForLoopStmt : OneBodyLoopStmt, ICloneable<ForLoopStmt>, ICanFormat 
     }
   }
 
-  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     var forReached = false;
     var specification = false;
     foreach (var token in OwnedTokens) {

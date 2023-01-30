@@ -69,7 +69,7 @@ public class AlternativeLoopStmt : LoopStmt, ICloneable<AlternativeLoopStmt>, IC
   }
 
   public override IEnumerable<Node> Children => SpecificationSubExpressions.Concat<Node>(Alternatives);
-  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     return formatter.SetIndentCases(indentBefore, OwnedTokens.Concat(Alternatives.SelectMany(alternative => alternative.OwnedTokens)), () => {
       foreach (var ens in Invariants) {
         formatter.SetAttributedExpressionIndentation(ens, indentBefore + formatter.SpaceTab);

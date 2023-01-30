@@ -141,7 +141,7 @@ public class ForallStmt : Statement, ICloneable<ForallStmt>, ICanFormat {
     return ComprehensionExpr.BoundedPool.MissingBounds(BoundVars, Bounds, v);
   }
 
-  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     formatter.SetIndentLikeLoop(OwnedTokens, Body, indentBefore);
     foreach (var ens in Ens) {
       formatter.SetAttributedExpressionIndentation(ens, indentBefore + formatter.SpaceTab);

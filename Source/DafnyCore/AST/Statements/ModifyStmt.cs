@@ -41,7 +41,7 @@ public class ModifyStmt : Statement, ICloneable<ModifyStmt>, ICanFormat {
     }
   }
 
-  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     var commaIndent = indentBefore + formatter.SpaceTab;
     var afterCommaIndent = commaIndent;
     foreach (var token in OwnedTokens) {
@@ -51,7 +51,7 @@ public class ModifyStmt : Statement, ICloneable<ModifyStmt>, ICanFormat {
       switch (token.val) {
         case "modifies":
         case "modify":
-          if (IndentationFormatter.IsFollowedByNewline(token)) {
+          if (TokenNewIndentCollector.IsFollowedByNewline(token)) {
             formatter.SetOpeningIndentedRegion(token, indentBefore);
           } else {
             formatter.SetAlign(indentBefore, token, out afterCommaIndent, out commaIndent);

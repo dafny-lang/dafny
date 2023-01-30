@@ -457,7 +457,7 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
   }
 
   public override IEnumerable<Type> ComponentTypes => BoundVars.Select(bv => bv.Type);
-  public virtual bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+  public virtual bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     var alreadyAligned = false;
     var assignOpIndent = indentBefore;
 
@@ -480,7 +480,7 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
             if (alreadyAligned) {
               formatter.SetIndentations(token, afterAssignIndent, assignOpIndent, afterAssignIndent);
             } else {
-              if (IndentationFormatter.IsFollowedByNewline(token)) {
+              if (TokenNewIndentCollector.IsFollowedByNewline(token)) {
                 formatter.SetIndentations(token, afterAssignIndent, assignOpIndent, afterAssignIndent);
               } else {
                 alreadyAligned = true;

@@ -286,7 +286,7 @@ public class CalcStmt : Statement, ICloneable<CalcStmt>, ICanFormat {
     }
   }
 
-  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     var inCalc = false;
     var inOrdinal = false;
     var first = true;
@@ -316,7 +316,7 @@ public class CalcStmt : Statement, ICloneable<CalcStmt>, ICanFormat {
               if (token.val == "]") {
                 inOrdinal = false;
               }
-              if (!IndentationFormatter.IsFollowedByNewline(token) &&
+              if (!TokenNewIndentCollector.IsFollowedByNewline(token) &&
                   (token.val != "==" || token.Next.val != "#") &&
                   token.val != "#" &&
                   !inOrdinal) {

@@ -45,7 +45,7 @@ public class PrintStmt : Statement, ICloneable<PrintStmt>, ICanFormat {
     }
   }
 
-  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     return formatter.SetIndentPrintRevealStmt(indentBefore, OwnedTokens);
   }
 }

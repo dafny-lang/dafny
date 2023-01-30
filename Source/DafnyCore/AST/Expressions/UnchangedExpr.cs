@@ -36,7 +36,7 @@ public class UnchangedExpr : Expression, ICloneable<UnchangedExpr>, ICanFormat {
     }
   }
 
-  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     return formatter.SetIndentParensExpression(indentBefore, OwnedTokens);
   }
 }

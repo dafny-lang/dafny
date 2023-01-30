@@ -52,7 +52,7 @@ public class AlternativeStmt : Statement, ICloneable<AlternativeStmt>, ICanForma
   }
 
   public override IEnumerable<Node> Children => Alternatives;
-  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     return formatter.SetIndentCases(indentBefore, OwnedTokens.Concat(Alternatives.SelectMany(alternative => alternative.OwnedTokens)).OrderBy(token => token.pos), () => {
       formatter.VisitAlternatives(Alternatives, indentBefore);
     });

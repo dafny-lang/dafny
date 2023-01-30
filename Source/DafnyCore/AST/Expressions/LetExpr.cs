@@ -82,7 +82,7 @@ public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBeari
     .Concat(LHSs)
     .Concat(base.Children);
 
-  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     return formatter.SetIndentVarDeclStmt(indentBefore, OwnedTokens, false, true);
   }
 }

@@ -274,7 +274,7 @@ public class RevealStmt : Statement, ICloneable<RevealStmt>, ICanFormat {
     }
   }
 
-  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     return formatter.SetIndentPrintRevealStmt(indentBefore, OwnedTokens);
   }
 }
@@ -359,7 +359,7 @@ public class YieldStmt : ProduceStmt, ICloneable<YieldStmt>, ICanFormat {
     : base(rangeToken, rhss) {
   }
 
-  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     return formatter.SetIndentAssertLikeStatement(this, indentBefore);
   }
 }
@@ -714,7 +714,7 @@ public class VarDeclStmt : Statement, ICloneable<VarDeclStmt>, ICanFormat {
   public override IEnumerable<Node> Children => Locals.Concat<Node>(SubStatements);
 
   public override IEnumerable<Node> ConcreteChildren => Children;
-  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     var result = formatter.SetIndentVarDeclStmt(indentBefore, OwnedTokens, false, false);
     return Update != null ? formatter.SetIndentUpdateStmt(Update, indentBefore, true) : result;
   }
@@ -762,7 +762,7 @@ public class VarDeclPattern : Statement, ICloneable<VarDeclPattern>, ICanFormat 
     }
   }
 
-  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     return formatter.SetIndentVarDeclStmt(indentBefore, OwnedTokens, false, true);
   }
 }
@@ -795,7 +795,7 @@ public abstract class ConcreteUpdateStatement : Statement, ICanFormat {
     }
   }
 
-  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     return formatter.SetIndentUpdateStmt(this, indentBefore, false);
   }
 }
@@ -1080,7 +1080,7 @@ public class WhileStmt : OneBodyLoopStmt, ICloneable<WhileStmt>, ICanFormat {
     }
   }
 
-  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     formatter.SetIndentLikeLoop(OwnedTokens, Body, indentBefore);
     foreach (var ens in Invariants) {
       formatter.SetAttributedExpressionIndentation(ens, indentBefore + formatter.SpaceTab);
@@ -1180,7 +1180,7 @@ public class SkeletonStatement : Statement, ICloneable<SkeletonStatement>, ICanF
     }
   }
 
-  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     return true;
   }
 }

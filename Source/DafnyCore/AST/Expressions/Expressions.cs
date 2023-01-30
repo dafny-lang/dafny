@@ -1234,7 +1234,7 @@ public class SetDisplayExpr : DisplayExpression, ICanFormat {
     Finite = finite;
   }
 
-  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     return formatter.SetIndentParensExpression(indentBefore, OwnedTokens);
   }
 }
@@ -1265,7 +1265,7 @@ public class MapDisplayExpr : Expression, ICanFormat {
     }
   }
 
-  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     return formatter.SetIndentParensExpression(indentBefore, OwnedTokens);
   }
 }
@@ -1276,7 +1276,7 @@ public class SeqDisplayExpr : DisplayExpression, ICanFormat {
     Contract.Requires(tok != null);
   }
 
-  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     return formatter.SetIndentParensExpression(indentBefore, OwnedTokens);
   }
 }
@@ -1643,7 +1643,7 @@ public abstract class UnaryExpr : Expression, ICanFormat {
     get { yield return E; }
   }
 
-  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     return formatter.SetIndentParensExpression(indentBefore, OwnedTokens);
   }
 }
@@ -2163,7 +2163,7 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr>, ICanFormat {
     }
   }
 
-  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     var indent = indentBefore;
     if (Op is Opcode.And or Opcode.Or) {
       var ownedTokens = OwnedTokens.ToList();
@@ -2239,7 +2239,7 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr>, ICanFormat {
             case ">":
             case "<==>":
             case "!=": {
-                var followedByNewline = IndentationFormatter.IsFollowedByNewline(token);
+                var followedByNewline = TokenNewIndentCollector.IsFollowedByNewline(token);
                 var selfIndent = followedByNewline ? itemIndent : Math.Max(itemIndent - token.val.Length - 1, 0);
                 if (selfIndent <= formatter.GetNewTokenVisualIndent(startToken.Prev, itemIndent)) {
                   // There could be a visual ambiguity if this token is aligned with the enclosing token.
@@ -2329,7 +2329,7 @@ public class LetOrFailExpr : ConcreteSyntaxExpression, ICloneable<LetOrFailExpr>
     (Lhs != null ?
     new List<Node> { Lhs } : Enumerable.Empty<Node>()).Concat(base.Children);
 
-  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     return formatter.SetIndentVarDeclStmt(indentBefore, OwnedTokens, Lhs == null, true);
   }
 }
@@ -2528,7 +2528,7 @@ public class LambdaExpr : ComprehensionExpr, ICloneable<LambdaExpr>, ICanFormat 
     return new LambdaExpr(cloner, this);
   }
 
-  public override bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+  public override bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     var itemIndent = indentBefore + formatter.SpaceTab;
     var commaIndent = indentBefore;
     var firstSpec = true;
@@ -2536,7 +2536,7 @@ public class LambdaExpr : ComprehensionExpr, ICloneable<LambdaExpr>, ICanFormat 
     foreach (var token in OwnedTokens) {
       switch (token.val) {
         case "(": {
-            if (IndentationFormatter.IsFollowedByNewline(token)) {
+            if (TokenNewIndentCollector.IsFollowedByNewline(token)) {
               formatter.SetIndentations(token, indentBefore, indentBefore, itemIndent);
             } else {
               formatter.SetAlign(indentBefore, token, out itemIndent, out commaIndent);
@@ -2637,7 +2637,7 @@ public class StmtExpr : Expression, ICanFormat {
     }
   }
 
-  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     formatter.Visit(S, indentBefore);
     formatter.SetIndentations(S.EndToken, below: indentBefore);
     formatter.Visit(E, indentBefore);
@@ -2677,14 +2677,14 @@ public class ITEExpr : Expression, ICanFormat {
     }
   }
 
-  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     var lineThen = 0;
     var colThen = 0;
     IToken thenToken = null;
     foreach (var token in OwnedTokens) {
       switch (token.val) {
         case "if": {
-            if (IndentationFormatter.IsFollowedByNewline(token)) {
+            if (TokenNewIndentCollector.IsFollowedByNewline(token)) {
               formatter.SetOpeningIndentedRegion(token, indentBefore);
             } else {
               formatter.SetAlignOpen(token, indentBefore);
@@ -2696,7 +2696,7 @@ public class ITEExpr : Expression, ICanFormat {
             lineThen = token.line;
             colThen = token.col;
             thenToken = token;
-            if (IndentationFormatter.IsFollowedByNewline(token)) {
+            if (TokenNewIndentCollector.IsFollowedByNewline(token)) {
               formatter.SetOpeningIndentedRegion(token, indentBefore);
             } else {
               var rightIndent = formatter.GetRightAlignIndentAfter(token, indentBefore);
@@ -2714,7 +2714,7 @@ public class ITEExpr : Expression, ICanFormat {
               formatter.SetDelimiterIndentedRegions(token, newElseIndent);
             } else if (token.Next.val == "if" || token.line == lineThen) { // Don't indent the subexpression
               formatter.SetIndentations(token, above: indentBefore, inline: indentBefore, below: indentBefore);
-            } else if (IndentationFormatter.IsFollowedByNewline(token)) {
+            } else if (TokenNewIndentCollector.IsFollowedByNewline(token)) {
               formatter.SetOpeningIndentedRegion(token, indentBefore);
             } else {
               formatter.SetAlign(indentBefore, token, out _, out _);
@@ -3050,7 +3050,7 @@ public class ParensExpression : ConcreteSyntaxExpression, ICanFormat {
     }
   }
 
-  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     return formatter.SetIndentParensExpression(indentBefore, OwnedTokens);
   }
 }
@@ -3340,7 +3340,7 @@ public class ChainingExpression : ConcreteSyntaxExpression, ICloneable<ChainingE
     }
   }
 
-  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     // Chaining expressions try to align their values if possible
     var itemIndent = formatter.GetNewTokenVisualIndent(
       Operands[0].StartToken, indentBefore);
@@ -3559,7 +3559,7 @@ public class ApplySuffix : SuffixExpr, ICloneable<ApplySuffix>, ICanFormat {
     return new ApplySuffix(tok, null, nameExpr, argBindings, tok);
   }
 
-  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     var reindent = formatter.ReduceBlockiness ? indentBefore
       : formatter.GetNewTokenVisualIndent(StartToken, indentBefore);
     return formatter.SetIndentParensExpression(reindent, OwnedTokens);

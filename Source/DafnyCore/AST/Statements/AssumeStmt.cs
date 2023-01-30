@@ -28,7 +28,7 @@ public class AssumeStmt : PredicateStmt, ICloneable<AssumeStmt>, ICanFormat {
     yield return AssumptionDescription.AssumeStatement;
   }
 
-  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     return formatter.SetIndentAssertLikeStatement(this, indentBefore);
   }
 }

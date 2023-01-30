@@ -29,7 +29,7 @@ public class BlockStmt : Statement, ICloneable<BlockStmt>, ICanFormat {
     Body.Add(s);
   }
 
-  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     var braceIndent = indentBefore;
     var innerBlockIndent = indentBefore + formatter.SpaceTab;
     foreach (var token in OwnedTokens) {
@@ -46,7 +46,7 @@ public class BlockStmt : Statement, ICloneable<BlockStmt>, ICanFormat {
                 formatter.SetDelimiterIndentedRegions(token, braceIndent);
               }
 
-              if (!IndentationFormatter.IsFollowedByNewline(token)) {
+              if (!TokenNewIndentCollector.IsFollowedByNewline(token)) {
                 // Align statements
                 formatter.SetAlign(indentBefore, token, out innerBlockIndent, out braceIndent);
               }

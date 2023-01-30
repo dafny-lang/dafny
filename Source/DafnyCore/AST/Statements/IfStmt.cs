@@ -65,7 +65,7 @@ public class IfStmt : Statement, ICloneable<IfStmt>, ICanFormat {
     }
   }
 
-  public bool SetIndent(int indentBefore, IndentationFormatter formatter) {
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     foreach (var token in OwnedTokens) {
       if (formatter.SetIndentLabelTokens(token, indentBefore)) {
         continue;
