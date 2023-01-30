@@ -18,7 +18,7 @@ namespace Microsoft.Dafny {
       var newBoundVars = vars.Count == 0 ? vars : new List<BoundVar>();
       foreach (var bv in vars) {
         var tt = bv.Type.Subst(typeMap);
-        var newBv = new BoundVar(bv.RangeToken, "_'" + bv.Name, tt);
+        var newBv = new BoundVar(bv.RangeToken, bv.MyName.Prepend("_'"), tt);
         newBoundVars.Add(newBv);
         // update substMap to reflect the new BoundVar substitutions
         var ie = new IdentifierExpr(newBv.RangeToken, newBv.Name);

@@ -6166,7 +6166,7 @@ namespace Microsoft.Dafny {
           if (rhsBindings.TryGetValue(f.Name, out var info)) {
             ctorArg = info.Item2 ?? info.Item3;
           } else {
-            ctorArg = new ExprDotName(tok, d, f.Name, null);
+            ctorArg = new ExprDotName(tok, d, f.MyName, null);
           }
           ctorArguments.Add(ctorArg);
           var bindingName = new Token(tok.StartToken.line, tok.StartToken.col) {

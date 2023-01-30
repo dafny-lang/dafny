@@ -772,7 +772,9 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt> {
 }
 
 public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration {
-  readonly string name;
+  public Name MyName { get; set; }
+  string name => MyName.Value;
+  
   public Attributes Attributes;
   Attributes IAttributeBearingDeclaration.Attributes => Attributes;
   public bool IsGhost;
@@ -786,7 +788,7 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
 
   public LocalVariable(Cloner cloner, LocalVariable original)
     : base(cloner, original) {
-    name = original.Name;
+    MyName = original.MyName.Clone(cloner);
     OptionalType = cloner.CloneType(original.OptionalType);
     IsGhost = original.IsGhost;
 
@@ -795,12 +797,12 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
     }
   }
 
-  public LocalVariable(RangeToken rangeToken, string name, Type type, bool isGhost)
+  public LocalVariable(RangeToken rangeToken, Name name, Type type, bool isGhost)
     : base(rangeToken) {
     Contract.Requires(name != null);
     Contract.Requires(type != null);  // can be a proxy, though
 
-    this.name = name;
+    this.MyName = name;
     this.OptionalType = type;
     if (type is InferredTypeProxy) {
       ((InferredTypeProxy)type).KeepConstraints = true;

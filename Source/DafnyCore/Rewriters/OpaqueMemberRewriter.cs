@@ -57,8 +57,8 @@ public class OpaqueMemberRewriter : IRewriter {
       typeApplication.Add(new IntType());
       typeApplication_JustForMember.Add(new IntType());
     }
-    var nameSegment = new NameSegment(f.RangeToken, f.Name, f.TypeArgs.Count == 0 ? null : typeApplication);
-    var rr = new MemberSelectExpr(f.RangeToken, receiver, f.Name);
+    var nameSegment = new NameSegment(f.RangeToken, f.MyName, f.TypeArgs.Count == 0 ? null : typeApplication);
+    var rr = new MemberSelectExpr(f.RangeToken, receiver, f.MyName);
     rr.Member = f;
     rr.TypeApplication_AtEnclosingClass = typeApplication;
     rr.TypeApplication_JustMember = typeApplication_JustForMember;
@@ -136,15 +136,15 @@ public class OpaqueMemberRewriter : IRewriter {
     lemma_attrs = new Attributes("verify", new List<Expression>() { new LiteralExpr(m.RangeToken, false) }, lemma_attrs);
     var ens = new List<AttributedExpression>();
     if (m is ConstantField c && c.Rhs != null) {
-      ens.Add(new AttributedExpression(new BinaryExpr(c.RangeToken, BinaryExpr.Opcode.Eq, new NameSegment(c.RangeToken, c.Name, null), c.Rhs)));
+      ens.Add(new AttributedExpression(new BinaryExpr(c.RangeToken, BinaryExpr.Opcode.Eq, new NameSegment(c.RangeToken, c.MyName, null), c.Rhs)));
     }
     Method reveal;
     if (m is TwoStateFunction) {
-      reveal = new TwoStateLemma(m.RangeToken, "reveal_" + m.Name, m.HasStaticKeyword, new List<TypeParameter>(), new List<Formal>(), new List<Formal>(), new List<AttributedExpression>(),
+      reveal = new TwoStateLemma(m.RangeToken, "reveal_" + m.MyName, m.HasStaticKeyword, new List<TypeParameter>(), new List<Formal>(), new List<Formal>(), new List<AttributedExpression>(),
         new Specification<FrameExpression>(new List<FrameExpression>(), null), ens,
         new Specification<Expression>(new List<Expression>(), null), null, lemma_attrs, null);
     } else {
-      reveal = new Lemma(m.RangeToken, "reveal_" + m.Name, m.HasStaticKeyword, new List<TypeParameter>(), new List<Formal>(), new List<Formal>(), new List<AttributedExpression>(),
+      reveal = new Lemma(m.RangeToken, "reveal_" + m.MyName, m.HasStaticKeyword, new List<TypeParameter>(), new List<Formal>(), new List<Formal>(), new List<AttributedExpression>(),
         new Specification<FrameExpression>(new List<FrameExpression>(), null), ens,
         new Specification<Expression>(new List<Expression>(), null), null, lemma_attrs, null);
     }

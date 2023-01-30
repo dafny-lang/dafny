@@ -408,6 +408,9 @@ namespace Microsoft.Dafny {
         throw new NotImplementedException();  // this getter implementation is here only so that the Ensures contract can be given here
       }
     }
+
+    public Name MyName => throw new NotImplementedException();
+
     public string DisplayName {
       get {
         Contract.Ensures(Contract.Result<string>() != null);
@@ -471,7 +474,7 @@ namespace Microsoft.Dafny {
   }
 
   public abstract class NonglobalVariable : RangeNode, IVariable {
-    public readonly Name MyName;
+    public Name MyName { get; set; }
 
     public override IToken Tok => MyName.StartToken;
 
@@ -650,7 +653,7 @@ namespace Microsoft.Dafny {
   /// </summary>
   public class ThisSurrogate : ImplicitFormal {
     public ThisSurrogate(RangeToken rangeToken, Type type)
-      : base(rangeToken, "this", type, true, false) {
+      : base(rangeToken, new Name("this"), type, true, false) {
       Contract.Requires(rangeToken != null);
       Contract.Requires(type != null);
     }
@@ -660,7 +663,7 @@ namespace Microsoft.Dafny {
   public class BoundVar : NonglobalVariable {
     public override bool IsMutable => false;
 
-    public BoundVar(IToken token, Type type) : this(new RangeToken(token ,token), token.val, type) {
+    public BoundVar(IToken token, Type type) : this(new RangeToken(token ,token), new Name(token), type) {
       
     }
     
@@ -682,7 +685,7 @@ namespace Microsoft.Dafny {
     public readonly Expression Domain;
     public readonly Expression Range;
 
-    public QuantifiedVar(RangeToken rangeToken, string name, Type type, Expression domain, Expression range)
+    public QuantifiedVar(RangeToken rangeToken, Name name, Type type, Expression domain, Expression range)
       : base(rangeToken, name, type) {
       Contract.Requires(rangeToken != null);
       Contract.Requires(name != null);
@@ -709,7 +712,7 @@ namespace Microsoft.Dafny {
       range = null;
 
       foreach (var qvar in qvars) {
-        BoundVar bvar = new BoundVar(qvar.RangeToken, qvar.Name, qvar.SyntacticType);
+        BoundVar bvar = new BoundVar(qvar.RangeToken, qvar.MyName, qvar.SyntacticType);
         bvars.Add(bvar);
 
         if (qvar.Domain != null) {

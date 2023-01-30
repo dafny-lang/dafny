@@ -7,7 +7,7 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny;
 
 public class BuiltIns {
-  public readonly ModuleDefinition SystemModule = new ModuleDefinition(RangeToken.NoToken, "_System", new List<IToken>(), false, false, null, null, null, true, true, true);
+  public readonly ModuleDefinition SystemModule = new ModuleDefinition(RangeToken.NoToken, new Name("_System"), new List<IToken>(), false, false, null, null, null, true, true, true);
   readonly Dictionary<int, ClassDecl> arrayTypeDecls = new Dictionary<int, ClassDecl>();
   public readonly Dictionary<int, ArrowTypeDecl> ArrowTypeDecls = new Dictionary<int, ArrowTypeDecl>();
   public readonly Dictionary<int, SubsetTypeDecl> PartialArrowTypeDecls = new Dictionary<int, SubsetTypeDecl>();  // same keys as arrowTypeDecl
@@ -29,15 +29,15 @@ public class BuiltIns {
   public BuiltIns() {
     SystemModule.Height = -1;  // the system module doesn't get a height assigned later, so we set it here to something below everything else
     // create type synonym 'string'
-    var str = new TypeSynonymDecl(RangeToken.NoToken, "string",
+    var str = new TypeSynonymDecl(RangeToken.NoToken, new Name("string"),
       new TypeParameter.TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, Type.AutoInitInfo.CompilableValue, false),
       new List<TypeParameter>(), SystemModule, new SeqType(new CharType()), null);
     SystemModule.TopLevelDecls.Add(str);
     // create subset type 'nat'
-    var bvNat = new BoundVar(RangeToken.NoToken, "x", Type.Int);
+    var bvNat = new BoundVar(RangeToken.NoToken, new Name("x"), Type.Int);
     var natConstraint = Expression.CreateAtMost(Expression.CreateIntLiteral(RangeToken.NoToken, 0), Expression.CreateIdentExpr(bvNat));
     var ax = AxiomAttribute();
-    NatDecl = new SubsetTypeDecl(RangeToken.NoToken, "nat",
+    NatDecl = new SubsetTypeDecl(RangeToken.NoToken, new Name("nat"),
       new TypeParameter.TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, Type.AutoInitInfo.CompilableValue, false),
       new List<TypeParameter>(), SystemModule, bvNat, natConstraint, SubsetTypeDecl.WKind.CompiledZero, null, ax);
     SystemModule.TopLevelDecls.Add(NatDecl);
