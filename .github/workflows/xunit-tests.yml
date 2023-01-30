@@ -23,7 +23,7 @@ jobs:
         include:
           - os: ubuntu-20.04
             suffix: ubuntu-20.04
-            z3: z3-4.12.1-x64-glibc-2.31
+            z3: z3-4.12.1-x64-glibc-2.35
             chmod: true
             coverage: true
           - os: windows-2019

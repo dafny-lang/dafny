@@ -21,7 +21,7 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            z3: z3-4.12.1-x64-glibc-2.31
+            z3: z3-4.12.1-x64-glibc-2.35
             chmod: true
 
     env:

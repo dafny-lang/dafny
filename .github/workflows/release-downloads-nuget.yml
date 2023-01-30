@@ -32,10 +32,10 @@ jobs:
         include:
         - os:  'ubuntu-latest'
           osn: 'ubuntu\-20.04'
-          z3: z3-4.12.1-x64-glibc-2.31
+          z3: z3-4.12.1-x64-glibc-2.35
         - os:  'ubuntu-20.04'
           osn: 'ubuntu\-20.04'
-          z3: z3-4.12.1-x64-glibc-2.31
+          z3: z3-4.12.1-x64-glibc-2.35
         - os:  'macos-latest'
           osn: 'osx-.*'
           z3: z3-4.12.1-x64-osx-10.16
@@ -141,10 +141,10 @@ jobs:
         include:
         - os:  'ubuntu-latest'
           osn: 'ubuntu\-20.04'
-          z3: z3-4.12.1-x64-glibc-2.31
+          z3: z3-4.12.1-x64-glibc-2.35
         - os:  'ubuntu-20.04'
           osn: 'ubuntu\-20.04'
-          z3: z3-4.12.1-x64-glibc-2.31
+          z3: z3-4.12.1-x64-glibc-2.35
         - os:  'macos-latest'
           osn: 'osx-.*'
           z3: z3-4.12.1-x64-osx-10.16
