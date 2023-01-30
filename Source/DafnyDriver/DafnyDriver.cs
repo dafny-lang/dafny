@@ -205,9 +205,9 @@ namespace Microsoft.Dafny {
           return CommandLineArgumentsResult.PREPROCESSING_ERROR;
         }
 
-        options.Compiler = new NoCompiler();
+        options.Backend = new NoExecutableBackend();
       } else {
-        options.Compiler = compiler;
+        options.Backend = compiler;
       }
 
       // If requested, print version number, help, attribute help, etc. and exit.
@@ -258,7 +258,7 @@ namespace Microsoft.Dafny {
           // Fall through and try to handle the file as an "other file"
         }
 
-        var supportedExtensions = options.Compiler.SupportedExtensions;
+        var supportedExtensions = options.Backend.SupportedExtensions;
         if (supportedExtensions.Contains(extension)) {
           // .h files are not part of the build, they are just emitted as includes
           if (File.Exists(file) || extension == ".h") {
@@ -370,8 +370,8 @@ namespace Microsoft.Dafny {
         try {
           compiled = Compile(dafnyFileNames[0], otherFileNames, dafnyProgram, outcome, moduleStats, verified);
         } catch (UnsupportedFeatureException e) {
-          if (!DafnyOptions.O.Compiler.UnsupportedFeatures.Contains(e.Feature)) {
-            throw new Exception($"'{e.Feature}' is not an element of the {DafnyOptions.O.Compiler.TargetId} compiler's UnsupportedFeatures set");
+          if (!DafnyOptions.O.Backend.UnsupportedFeatures.Contains(e.Feature)) {
+            throw new Exception($"'{e.Feature}' is not an element of the {DafnyOptions.O.Backend.TargetId} compiler's UnsupportedFeatures set");
           }
           reporter.Error(MessageSource.Compiler, e.Token, e.Message);
           compiled = false;
@@ -659,11 +659,11 @@ namespace Microsoft.Dafny {
     }
 
     private static TargetPaths GenerateTargetPaths(string dafnyProgramName) {
-      string targetBaseDir = DafnyOptions.O.Compiler.TargetBaseDir(dafnyProgramName);
-      string targetExtension = DafnyOptions.O.Compiler.TargetExtension;
+      string targetBaseDir = DafnyOptions.O.Backend.TargetBaseDir(dafnyProgramName);
+      string targetExtension = DafnyOptions.O.Backend.TargetExtension;
 
       // Note that using Path.ChangeExtension here does the wrong thing when dafnyProgramName has multiple periods (e.g., a.b.dfy)
-      string targetBaseName = DafnyOptions.O.Compiler.TargetBasename(dafnyProgramName) + "." + targetExtension;
+      string targetBaseName = DafnyOptions.O.Backend.TargetBasename(dafnyProgramName) + "." + targetExtension;
       string targetDir = Path.Combine(Path.GetDirectoryName(dafnyProgramName), targetBaseDir);
 
       string targetFilename = Path.Combine(targetDir, targetBaseName);
@@ -750,8 +750,8 @@ namespace Microsoft.Dafny {
 
       // Compile the Dafny program into a string that contains the target program
       var oldErrorCount = dafnyProgram.Reporter.Count(ErrorLevel.Error);
-      DafnyOptions.O.Compiler.OnPreCompile(dafnyProgram.Reporter, otherFileNames);
-      var compiler = DafnyOptions.O.Compiler;
+      DafnyOptions.O.Backend.OnPreCompile(dafnyProgram.Reporter, otherFileNames);
+      var compiler = DafnyOptions.O.Backend;
 
       var hasMain = Compilers.SinglePassCompiler.HasMain(dafnyProgram, out var mainMethod);
       if (hasMain) {
@@ -830,7 +830,7 @@ namespace Microsoft.Dafny {
 
   }
 
-  class NoCompiler : Compiler {
+  class NoExecutableBackend : IExecutableBackend {
     public override IReadOnlySet<string> SupportedExtensions => new HashSet<string>();
     public override string TargetLanguage => throw new NotSupportedException();
     public override string TargetExtension => throw new NotSupportedException();

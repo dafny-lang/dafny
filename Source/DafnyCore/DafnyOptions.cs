@@ -201,7 +201,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       Prune = true;
       NormalizeNames = true;
       EmitDebugInformation = false;
-      Compiler = new CsharpCompiler();
+      Backend = new CsharpBackend();
     }
 
     public override string VersionNumber {
@@ -265,7 +265,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public bool FormatCheck = false;
 
     public string CompilerName;
-    public Compiler Compiler;
+    public IExecutableBackend Backend;
     public bool CompileVerbose = true;
     public bool EnforcePrintEffects = false;
     public string DafnyPrintCompiledFile = null;
@@ -821,7 +821,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public void ApplyDefaultOptionsWithoutSettingsDefault() {
       base.ApplyDefaultOptions();
 
-      Compiler ??= new CsharpCompiler();
+      Backend ??= new CsharpBackend();
 
       // expand macros in filenames, now that LogPrefix is fully determined
 
