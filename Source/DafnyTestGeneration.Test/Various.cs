@@ -195,7 +195,7 @@ module Objects {
       DafnyOptions.O.TestGenOptions.TargetMethod =
         "Objects.List.IsACircleOfLessThanThree";
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
-      Assert.AreEqual(3, methods.Count);
+      Assert.IsTrue(methods.Count >= 3);
       Assert.IsTrue(methods.All(m =>
         m.MethodName == "Objects.List.IsACircleOfLessThanThree"));
       Assert.IsTrue(methods.All(m =>

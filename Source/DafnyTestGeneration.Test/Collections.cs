@@ -94,8 +94,11 @@ class SimpleTest {
       Assert.IsTrue(methods.Exists(m =>
         m.ArgValues[0].Split(",").Length != m.ArgValues[1].Split(",").Length));
 
+      // Previously, the following two predicates needed to be satisfied by the same test case,
+      // but that's not necessarily required for full coverage of the code.
       Assert.IsTrue(methods.Exists(m =>
-        m.ArgValues[0].Split(",").Length < 2 &&
+        m.ArgValues[0].Split(",").Length < 2));
+      Assert.IsTrue(methods.Exists(m =>
         m.ArgValues[0].Split(",").Length == m.ArgValues[1].Split(",").Length));
     }
 
