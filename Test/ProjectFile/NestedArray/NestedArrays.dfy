@@ -1,4 +1,4 @@
-// RUN: %baredafny "%s" >> "%t"
+// RUN: %baredafny "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 /* Note, compiling to arrays in Java is difficult. In fact, this is currently
