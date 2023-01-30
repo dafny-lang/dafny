@@ -24,7 +24,10 @@ namespace Microsoft.Dafny;
  * 2. The indentation of this token itself if it starts a new line
  * 3. The indentation of comments and other non-marked tokens that are after this token.
  * 
- * Because the token printer will traverse the tokens in order, the indentation 1. is used only for the trivia associated to the token in the leading whitespace of that token, like `/* Comment about X * /` in the following example, which is in the leading trivia of `const`
+ * Because the token printer will traverse the tokens in order, the indentation 1. is used only
+ * for the trivia associated to the token in the leading whitespace of that token,
+ * like `/* Comment about X * /` in the following example, which is in the leading
+ * trivia of `const`
  *
  * ```
  * datatype Y :=
@@ -47,6 +50,11 @@ namespace Microsoft.Dafny;
  * ```
  */
 public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
+  // If we ever decide that blank lines should keep spaces, we can set this to false. 
+  public static readonly bool BlankNewlinesWithoutSpaces = true;
+
+  // If we remove whitespace (tabs or space) at the end of lines. 
+  public static readonly bool RemoveTrailingWhitespace = true;
 
   /* If true, the indentation will be
    * var name := method(
@@ -1655,7 +1663,7 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
     return TriviaFormatterHelper.NewlineRegex.Replace(input, match => {
       // Apply the given rules on a match of a (newline|beginning) + space + optional comment
       if (match.Groups["trailingWhitespace"].Success) {
-        return TriviaFormatterHelper.RemoveTrailingWhitespace ? "" : match.Groups["trailingWhitespace"].Value;
+        return RemoveTrailingWhitespace ? "" : match.Groups["trailingWhitespace"].Value;
       }
 
       var startOfString = match.Groups["previousChar"].Value == "";
@@ -1672,7 +1680,7 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
         }
 
         var isTrailingWhitespace = capturedComment.StartsWith("\r") || capturedComment.StartsWith("\n");
-        if (TriviaFormatterHelper.RemoveTrailingWhitespace &&
+        if (RemoveTrailingWhitespace &&
             isTrailingWhitespace) {
           precededByNewline = true;
           return capturedComment;
@@ -1703,7 +1711,7 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
 
       if (capturedComment.StartsWith("\r") || capturedComment.StartsWith("\n")) {
         previousMatchWasSingleLineCommentToAlign = false;
-        return (TriviaFormatterHelper.BlankNewlinesWithoutSpaces ? "" : indentationBefore) + capturedComment;
+        return (BlankNewlinesWithoutSpaces ? "" : indentationBefore) + capturedComment;
       }
 
       previousMatchWasSingleLineCommentToAlign = false;
@@ -1826,12 +1834,6 @@ public class IndentationFormatter : TopDownVisitor<int>, IIndentationFormatter {
 
 
 public static class TriviaFormatterHelper {
-  // If we ever decide that blank lines should keep spaces, we can set this to false. 
-  public static readonly bool BlankNewlinesWithoutSpaces = true;
-
-  // If we remove whitespace (tabs or space) at the end of lines. 
-  public static readonly bool RemoveTrailingWhitespace = true;
-
   // A regex that checks if a particular string ends with a newline and some spaces.
   private static readonly Regex EndsWithNewlineRegex =
     new(@"(\r?\n|\r)[ \t]*$");
