@@ -361,9 +361,11 @@ namespace Microsoft.Dafny {
 
   [ContractClass(typeof(IVariableContracts))]
   public interface IVariable : IDeclarationOrUsage {
-    string Name {
+    string Name => MyName.Value;
+    Name MyName {
       get;
     }
+    
     string DisplayName {  // what the user thinks he wrote
       get;
     }
@@ -469,22 +471,22 @@ namespace Microsoft.Dafny {
   }
 
   public abstract class NonglobalVariable : RangeNode, IVariable {
-    readonly Name name;
+    public readonly Name MyName;
 
-    public override IToken Tok => name.StartToken;
+    public override IToken Tok => MyName.StartToken;
 
-    public IToken NameToken => name.StartToken;
+    public IToken NameToken => MyName.StartToken;
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
-      Contract.Invariant(name != null);
+      Contract.Invariant(MyName != null);
       Contract.Invariant(type != null);
     }
 
     public string Name {
       get {
         Contract.Ensures(Contract.Result<string>() != null);
-        return name.Value;
+        return MyName.Value;
       }
     }
     public string DisplayName =>
@@ -579,7 +581,7 @@ namespace Microsoft.Dafny {
     public NonglobalVariable(RangeToken rangeToken, Name name, Type type, bool isGhost) : base(rangeToken) {
       Contract.Requires(name != null);
       Contract.Requires(type != null);
-      this.name = name;
+      this.MyName = name;
       this.type = type;
       this.isGhost = isGhost;
     }
@@ -632,7 +634,7 @@ namespace Microsoft.Dafny {
   /// of each extreme lemma (for use in the extreme-method body only, not the specification).
   /// </summary>
   public class ImplicitFormal : Formal {
-    public ImplicitFormal(RangeToken rangeToken, string name, Type type, bool inParam, bool isGhost)
+    public ImplicitFormal(RangeToken rangeToken, Name name, Type type, bool inParam, bool isGhost)
       : base(rangeToken, name, type, inParam, isGhost, null) {
       Contract.Requires(rangeToken != null);
       Contract.Requires(name != null);
@@ -654,7 +656,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  [DebuggerDisplay("Bound<{name}>")]
+  [DebuggerDisplay("Bound<{MyName}>")]
   public class BoundVar : NonglobalVariable {
     public override bool IsMutable => false;
 
@@ -662,7 +664,7 @@ namespace Microsoft.Dafny {
       
     }
     
-    public BoundVar(RangeToken rangeToken, string name, Type type)
+    public BoundVar(RangeToken rangeToken, Name name, Type type)
       : base(rangeToken, name, type, false) {
       Contract.Requires(name != null);
       Contract.Requires(type != null);
@@ -675,7 +677,7 @@ namespace Microsoft.Dafny {
   /// In addition to its type, which may be inferred, it can have an optional domain collection expression
   /// (x <- C) and an optional range boolean expressions (x | E).
   /// </summary>
-  [DebuggerDisplay("Quantified<{name}>")]
+  [DebuggerDisplay("Quantified<{MyName}>")]
   public class QuantifiedVar : BoundVar {
     public readonly Expression Domain;
     public readonly Expression Range;

@@ -144,10 +144,10 @@ public class IdPattern : ExtendedPattern, IHasUsages {
       // Wildcard, ignore
       return;
     } else {
-      NameSegment e = new NameSegment(RangeToken, this.Id, null);
+      NameSegment e = new NameSegment(RangeToken, this.Name, null);
       resolver.ResolveNameSegment(e, true, null, resolutionContext, false, false);
       if (e.ResolvedExpression == null) {
-        resolver.ScopePushAndReport(resolver.scope, new BoundVar(RangeToken, this.Id, type), "parameter");
+        resolver.ScopePushAndReport(resolver.scope, new BoundVar(RangeToken, this.Name, type), "parameter");
       } else {
         // finds in full scope, not just current scope
         if (e.Resolved is MemberSelectExpr mse) {

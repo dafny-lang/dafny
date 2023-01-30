@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -9,8 +10,15 @@ namespace Microsoft.Dafny;
 /// Because generated names don't have an associated token
 /// </summary>
 public class Name : RangeNode {
-  public static implicit operator Name(string value) => new( value);
-    
+  // public static implicit operator Name(string value) => new( value);
+
+  public Name Append(string suffix) {
+    return new Name(RangeToken, Value + suffix);
+  }
+  
+  public Name Update(Func<string, string> update) {
+    return new Name(RangeToken, update(Value));
+  }
   public string Value { get; set; }
 
   public Name(Cloner cloner, Name original) : base(cloner, original) {

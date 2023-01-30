@@ -124,9 +124,9 @@ public class Field : MemberDecl {
   }
 }
 
-public class SpecialFunction : Function, ICodeContext, ICallable {
+public class SpecialFunction : Function, ICallable {
   readonly ModuleDefinition Module;
-  public SpecialFunction(RangeToken rangeToken, string name, ModuleDefinition module, bool hasStaticKeyword, bool isGhost,
+  public SpecialFunction(RangeToken rangeToken, Name name, ModuleDefinition module, bool hasStaticKeyword, bool isGhost,
     List<TypeParameter> typeArgs, List<Formal> formals, Type resultType,
     List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
     Expression body, Attributes attributes, IToken signatureEllipsis)
@@ -156,7 +156,7 @@ public class SpecialField : Field {
   }
   public readonly ID SpecialId;
   public readonly object IdParam;
-  public SpecialField(RangeToken rangeToken, string name, ID specialId, object idParam,
+  public SpecialField(RangeToken rangeToken, Name name, ID specialId, object idParam,
     bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
     : this(rangeToken, name, specialId, idParam, false, isGhost, isMutable, isUserMutable, type, attributes) {
     Contract.Requires(rangeToken != null);
@@ -322,7 +322,7 @@ public class PrefixPredicate : Function {
   public override string WhatKindMentionGhost => WhatKind;
   public readonly Formal K;
   public readonly ExtremePredicate ExtremePred;
-  public PrefixPredicate(RangeToken rangeToken, string name, bool hasStaticKeyword,
+  public PrefixPredicate(RangeToken rangeToken, Name name, bool hasStaticKeyword,
     List<TypeParameter> typeArgs, Formal k, List<Formal> formals,
     List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
     Expression body, Attributes attributes, ExtremePredicate extremePred)
@@ -370,7 +370,7 @@ public abstract class ExtremePredicate : Function {
 
     var args = new List<Expression>() { depth };
     args.AddRange(fexp.Args);
-    var prefixPredCall = new FunctionCallExpr(fexp.RangeToken, this.PrefixPredicate.Name, fexp.Receiver, args);
+    var prefixPredCall = new FunctionCallExpr(fexp.RangeToken, this.PrefixPredicate.MyName, fexp.Receiver, args);
     prefixPredCall.Function = this.PrefixPredicate;  // resolve here
     prefixPredCall.TypeApplication_AtEnclosingClass = fexp.TypeApplication_AtEnclosingClass;  // resolve here
     prefixPredCall.TypeApplication_JustFunction = fexp.TypeApplication_JustFunction;  // resolve here
@@ -748,7 +748,7 @@ public class PrefixLemma : Method {
 
   public readonly Formal K;
   public readonly ExtremeLemma ExtremeLemma;
-  public PrefixLemma(RangeToken rangeToken, string name, bool hasStaticKeyword,
+  public PrefixLemma(RangeToken rangeToken, Name name, bool hasStaticKeyword,
     List<TypeParameter> typeArgs, Formal k, List<Formal> ins, List<Formal> outs,
     List<AttributedExpression> req, Specification<FrameExpression> mod, List<AttributedExpression> ens, Specification<Expression> decreases,
     BlockStmt body, Attributes attributes, ExtremeLemma extremeLemma)

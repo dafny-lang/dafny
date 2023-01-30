@@ -122,7 +122,7 @@ namespace Microsoft.Dafny {
         if (newObj != mse.Obj ||
             newTypeApplicationAtEnclosingClass != mse.TypeApplication_AtEnclosingClass ||
             newTypeApplicationJustMember != mse.TypeApplication_JustMember) {
-          var fseNew = new MemberSelectExpr(mse.RangeToken, newObj, mse.MemberName) {
+          var fseNew = new MemberSelectExpr(mse.RangeToken, newObj, mse.MemberNameNode) {
             Member = mse.Member,
             TypeApplication_AtEnclosingClass = newTypeApplicationAtEnclosingClass,
             TypeApplication_JustMember = newTypeApplicationJustMember,
@@ -306,12 +306,12 @@ namespace Microsoft.Dafny {
                   disjunctivePattern.Alternatives.Select(SubstituteForPattern).ToList(), disjunctivePattern.IsGhost);
               case IdPattern idPattern:
                 if (idPattern.BoundVar == null) {
-                  return new IdPattern(idPattern.RangeToken, idPattern.Id, idPattern.Type,
+                  return new IdPattern(idPattern.RangeToken, idPattern.Name, idPattern.Type,
                     idPattern.Arguments.Select(SubstituteForPattern).ToList(), idPattern.IsGhost);
                 }
 
                 discoveredBvs.Add((BoundVar)idPattern.BoundVar);
-                var result = new IdPattern(idPattern.RangeToken, idPattern.Id, idPattern.Type, null, idPattern.IsGhost) {
+                var result = new IdPattern(idPattern.RangeToken, idPattern.Name, idPattern.Type, null, idPattern.IsGhost) {
                   BoundVar = CreateBoundVarSubstitutions(new[] { (BoundVar)idPattern.BoundVar }.ToList(), false)[0]
                 };
                 if (idPattern.BoundVar != result.BoundVar) {
@@ -648,7 +648,7 @@ namespace Microsoft.Dafny {
         }
         if (anythingChanged) {
           var patE = (DatatypeValue)pat.Expr;
-          var newPat = new CasePattern<VT>(pat.RangeToken, pat.Id, newArgs);
+          var newPat = new CasePattern<VT>(pat.RangeToken, pat.Name, newArgs);
           newPat.Ctor = pat.Ctor;
           newPat.AssembleExpr(patE.InferredTypeArgs.ConvertAll(tp => tp.Subst(typeMap)));
           return newPat;

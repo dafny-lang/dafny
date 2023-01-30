@@ -2523,7 +2523,7 @@ public class CasePattern<VT> : RangeNode
   public CasePattern(RangeToken range, VT bv) : base(range) {
     Contract.Requires(tok != null);
     Contract.Requires(bv != null);
-    Name = bv.Name;
+    Name = bv.MyName;
     Var = bv;
   }
 
@@ -3179,7 +3179,7 @@ public class ApplySuffix : SuffixExpr, ICloneable<ApplySuffix> {
   /// <param name="name">The name of the target function or method.</param>
   /// <param name="args">The arguments to apply the function or method to.</param>
   /// <returns></returns>
-  public static Expression MakeRawApplySuffix(RangeToken rangeToken, string name, List<Expression> args) {
+  public static Expression MakeRawApplySuffix(RangeToken rangeToken, Name name, List<Expression> args) {
     var nameExpr = new NameSegment(rangeToken, name, null);
     var argBindings = args.ConvertAll(arg => new ActualBinding(null, arg));
     return new ApplySuffix(rangeToken, null, nameExpr, argBindings, rangeToken.StartToken);

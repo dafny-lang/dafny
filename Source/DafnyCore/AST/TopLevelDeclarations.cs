@@ -387,7 +387,7 @@ public class LiteralModuleDecl : ModuleDecl {
   public override IEnumerable<Node> Children => new[] { ModuleDef };
 
   public LiteralModuleDecl(ModuleDefinition module, ModuleDefinition parent)
-    : base(module.RangeToken, module.Name, parent, false, false) {
+    : base(module.RangeToken, module.MyName, parent, false, false) {
     ModuleDef = module;
     TokenWithTrailingDocString = module.TokenWithTrailingDocString;
   }
@@ -448,7 +448,7 @@ public class ModuleExportDecl : ModuleDecl {
   public readonly VisibilityScope ThisScope;
   public ModuleExportDecl(RangeToken rangeToken, ModuleDefinition parent,
     List<ExportSignature> exports, List<IToken> extends, bool provideAll, bool revealAll, bool isDefault, bool isRefining)
-    : base(rangeToken, (isDefault || rangeToken.StartToken.val == "export") ? parent.Name : rangeToken.StartToken.val, parent, false, isRefining) {
+    : base(rangeToken, (isDefault || rangeToken.StartToken.val == "export") ? new Name(parent.Name) : new Name(rangeToken.StartToken), parent, false, isRefining) {
     Contract.Requires(exports != null);
     IsDefault = isDefault;
     Exports = exports;
@@ -943,7 +943,7 @@ public class ModuleDefinition : INamedRegion, IDeclarationOrUsage, IAttributeBea
 
 public class DefaultModuleDecl : ModuleDefinition {
   public DefaultModuleDecl()
-    : base(RangeToken.NoToken, "_module", new List<IToken>(), false, false, null, null, null, true, true, true) {
+    : base(RangeToken.NoToken, new Name("_module"), new List<IToken>(), false, false, null, null, null, true, true, true) {
   }
   public override bool IsDefaultModule {
     get {
@@ -1242,7 +1242,7 @@ public class ClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl {
   /// set, which it hasn't during the base call of the ArrowTypeDecl constructor). Instead, the ArrowTypeDecl
   /// constructor will do that call.
   /// </summary>
-  protected ClassDecl(RangeToken rangeToken, string name, ModuleDefinition module,
+  protected ClassDecl(RangeToken rangeToken, Name name, ModuleDefinition module,
     List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, bool isRefining)
     : base(rangeToken, name, module, typeArgs, members, attributes, isRefining, null) {
     Contract.Requires(rangeToken != null);
@@ -1300,7 +1300,7 @@ public class ClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl {
 
 public class DefaultClassDecl : ClassDecl {
   public DefaultClassDecl(ModuleDefinition module, [Captured] List<MemberDecl> members)
-    : base(RangeToken.NoToken, "_default", module, new List<TypeParameter>(), members, null, false, null) {
+    : base(RangeToken.NoToken, new Name("_default"), module, new List<TypeParameter>(), members, null, false, null) {
     Contract.Requires(module != null);
     Contract.Requires(cce.NonNullElements(members));
   }
@@ -1315,8 +1315,8 @@ public class ArrayClassDecl : ClassDecl {
   public override string WhatKind { get { return "array type"; } }
   public readonly int Dims;
   public ArrayClassDecl(int dims, ModuleDefinition module, Attributes attrs)
-    : base(RangeToken.NoToken, BuiltIns.ArrayClassName(dims), module,
-      new List<TypeParameter>(new TypeParameter[] { new TypeParameter(RangeToken.NoToken, "arg", TypeParameter.TPVarianceSyntax.NonVariant_Strict) }),
+    : base(RangeToken.NoToken, new Name(BuiltIns.ArrayClassName(dims)), module,
+      new List<TypeParameter>(new TypeParameter[] { new TypeParameter(RangeToken.NoToken,  new Name("arg"), TypeParameter.TPVarianceSyntax.NonVariant_Strict) }),
       new List<MemberDecl>(), attrs, false, null) {
     Contract.Requires(1 <= dims);
     Contract.Requires(module != null);

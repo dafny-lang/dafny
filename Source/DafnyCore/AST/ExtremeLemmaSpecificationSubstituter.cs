@@ -78,7 +78,7 @@ class ExtremeLemmaSpecificationSubstituter : ExtremeCloner {
       return new NameSegment(this, e);
     } else {
       var e = (ExprDotName)expr;
-      return new ExprDotName(Tok(e.RangeToken), CloneNamePathExpression(e.Lhs), e.SuffixName, e.OptTypeArguments == null ? null : e.OptTypeArguments.ConvertAll(CloneType));
+      return new ExprDotName(Tok(e.RangeToken), CloneNamePathExpression(e.Lhs), e.SuffixNameNode, e.OptTypeArguments == null ? null : e.OptTypeArguments.ConvertAll(CloneType));
     }
   }
 }

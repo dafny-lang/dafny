@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 
 namespace Microsoft.Dafny;
 
@@ -89,10 +90,10 @@ class ExtremeLemmaBodyCloner : ExtremeCloner {
         Expression lhsClone;
         if (apply.Lhs is NameSegment) {
           var lhs = (NameSegment)apply.Lhs;
-          lhsClone = new NameSegment(Tok(lhs.RangeToken), lhs.Name + "#", lhs.OptTypeArguments == null ? null : lhs.OptTypeArguments.ConvertAll(CloneType));
+          lhsClone = new NameSegment(Tok(lhs.RangeToken), lhs.MyName.Append("#"), lhs.OptTypeArguments == null ? null : lhs.OptTypeArguments.ConvertAll(CloneType));
         } else {
           var lhs = (ExprDotName)apply.Lhs;
-          lhsClone = new ExprDotName(Tok(lhs.RangeToken), CloneExpr(lhs.Lhs), lhs.SuffixName + "#", lhs.OptTypeArguments == null ? null : lhs.OptTypeArguments.ConvertAll(CloneType));
+          lhsClone = new ExprDotName(Tok(lhs.RangeToken), CloneExpr(lhs.Lhs), lhs.SuffixNameNode.Append("#"), lhs.OptTypeArguments == null ? null : lhs.OptTypeArguments.ConvertAll(CloneType));
         }
         var args = new List<ActualBinding>();
         args.Add(new ActualBinding(null, k));
