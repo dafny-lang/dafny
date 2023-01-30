@@ -1487,7 +1487,7 @@ public class FunctionCallExpr : Expression, IHasUsages, ICloneable<FunctionCallE
     this.Receiver = receiver;
     this.AtLabel = atLabel;
     this.Bindings = bindings;
-    // this.FormatTokens = closeParen != null ? new[] { closeParen } : null;
+    // TODO, delete? this.FormatTokens = closeParen != null ? new[] { closeParen } : null;
   }
 
   /// <summary>
