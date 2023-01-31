@@ -9,21 +9,18 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using System.IO;
 using System.Diagnostics.Contracts;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 using JetBrains.Annotations;
 
 namespace Microsoft.Dafny.Compilers {
-  public class CppCompiler : SinglePassCompiler {
-    public override void OnPreCompile(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
-      base.OnPreCompile(reporter, otherFileNames);
-      datatypeDecls = new List<DatatypeDecl>();
-      classDefaults = new List<string>();
-    }
+  class CppCompiler : SinglePassCompiler {
 
-    public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".h" };
+    private readonly ReadOnlyCollection<string> headers;
+
+    public CppCompiler(ErrorReporter reporter, ReadOnlyCollection<string> headers) : base(reporter) {
+      this.headers = headers;
+    }
 
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
       Feature.UnboundedIntegers,
@@ -60,15 +57,8 @@ namespace Microsoft.Dafny.Compilers {
       Feature.ConvertingValuesToStrings
     };
 
-    public override string TargetLanguage => "C++";
-    public override string TargetExtension => "cpp";
-
-    public override bool SupportsInMemoryCompilation => false;
-    public override bool TextualTargetIsExecutable => false;
-
-    private ReadOnlyCollection<string> headers => OtherFileNames;
-    private List<DatatypeDecl> datatypeDecls;
-    private List<string> classDefaults;
+    private List<DatatypeDecl> datatypeDecls = new();
+    private List<string> classDefaults = new();
 
     /*
      * Unlike other Dafny and Dafny's other backends, C++ cares about
@@ -129,7 +119,6 @@ namespace Microsoft.Dafny.Compilers {
       var rt = wr.NewFile("DafnyRuntime.h");
       ReadRuntimeSystem(program, "DafnyRuntime.h", rt);
     }
-
     protected override void EmitFooter(Program program, ConcreteSyntaxTree wr) {
       // Define default values for each datatype
       foreach (var dt in this.datatypeDecls) {
@@ -160,7 +149,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw, string argsParameterName) {
-      var wr = (cw as CppCompiler.ClassWriter).MethodWriter;
+      var wr = (cw as ClassWriter).MethodWriter;
       return wr.NewBlock($"int main(DafnySequence<DafnySequence<char>> {argsParameterName})");
     }
 
@@ -621,7 +610,7 @@ namespace Microsoft.Dafny.Compilers {
         throw new UnsupportedFeatureException(nt.tok, Feature.NonNativeNewtypes, String.Format("non-native newtype {0}", nt));
       }
       var className = "class_" + IdName(nt);
-      var cw = CreateClass(nt.EnclosingModuleDefinition.CompileName, className, nt, wr) as CppCompiler.ClassWriter;
+      var cw = CreateClass(nt.EnclosingModuleDefinition.CompileName, className, nt, wr) as ClassWriter;
       var w = cw.MethodDeclWriter;
       if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var witness = new ConcreteSyntaxTree(w.RelativeIndentLevel);
@@ -661,7 +650,7 @@ namespace Microsoft.Dafny.Compilers {
       this.modDeclWr.WriteLine("{0} using {1} = {2};", templateDecl, IdName(sst), TypeName(sst.Var.Type, wr, sst.tok));
 
       var className = "class_" + IdName(sst);
-      var cw = CreateClass(sst.EnclosingModuleDefinition.CompileName, className, sst, wr) as CppCompiler.ClassWriter;
+      var cw = CreateClass(sst.EnclosingModuleDefinition.CompileName, className, sst, wr) as ClassWriter;
       var w = cw.MethodDeclWriter;
 
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
@@ -1346,8 +1335,9 @@ namespace Microsoft.Dafny.Compilers {
       throw new UnsupportedFeatureException(tok, Feature.ForLoops, "for loops have not yet been implemented");
     }
 
-    protected override ConcreteSyntaxTree CreateForLoop(string indexVar, string bound, ConcreteSyntaxTree wr) {
-      return wr.NewNamedBlock("for (auto {0} = 0; {0} < {1}; {0}++)", indexVar, bound);
+    protected override ConcreteSyntaxTree CreateForLoop(string indexVar, string bound, ConcreteSyntaxTree wr, string start = null) {
+      start = start ?? "0";
+      return wr.NewNamedBlock("for (auto {0} = {2}; {0} < {1}; {0}++)", indexVar, bound, start);
     }
 
     protected override ConcreteSyntaxTree CreateDoublingForLoop(string indexVar, int start, ConcreteSyntaxTree wr) {
@@ -1439,15 +1429,13 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitNewArray(Type elmtType, IToken tok, List<Expression> dimensions,
-        bool mustInitialize, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      var initValue = mustInitialize ? DefaultValue(elmtType, wr, tok) : null;
+    protected override void EmitNewArray(Type elementType, IToken tok, List<string> dimensions,
+        bool mustInitialize, [CanBeNull] string exampleElement, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      var initValue = mustInitialize ? DefaultValue(elementType, wr, tok) : null;
       // TODO: Handle initValue
       if (dimensions.Count == 1) {
         // handle the common case of 1-dimensional arrays separately
-        wr.Write("DafnyArray<{0}>::New(", TypeName(elmtType, wr, tok));
-        TrExpr(dimensions[0], wr, false, wStmts);
-        wr.Write(")");
+        wr.Write($"DafnyArray<{TypeName(elementType, wr, tok)}>::New({dimensions[0]})");
       } else {
         throw new UnsupportedFeatureException(tok, Feature.MultiDimensionalArrays);
       }
@@ -1564,6 +1552,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override string IdProtect(string name) {
       return PublicIdProtect(name);
     }
+
     public override string PublicIdProtect(string name) {
       Contract.Requires(name != null);
       switch (name) {
@@ -1855,11 +1844,7 @@ namespace Microsoft.Dafny.Compilers {
       return w;
     }
 
-    protected override string ArrayIndexToInt(string arrayIndex, Type fromType) {
-      return arrayIndex;
-    }
-
-    protected override void EmitExprAsInt(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    protected override void EmitExprAsNativeInt(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       TrParenExpr(expr, wr, inLetExprBody, wStmts);
       if (AsNativeType(expr.Type) == null) {
         wr.Write(".toNumber()");
@@ -2474,43 +2459,6 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitHaltRecoveryStmt(Statement body, string haltMessageVarName, Statement recoveryBody, ConcreteSyntaxTree wr) {
       throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
-    }
-
-
-    // ----- Target compilation and execution -------------------------------------------------------------
-    private string ComputeExeName(string targetFilename) {
-      return Path.ChangeExtension(Path.GetFullPath(targetFilename), "exe");
-    }
-
-    public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
-      bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
-      var assemblyLocation = System.Reflection.Assembly.GetExecutingAssembly().Location;
-      Contract.Assert(assemblyLocation != null);
-      var codebase = System.IO.Path.GetDirectoryName(assemblyLocation);
-      Contract.Assert(codebase != null);
-      compilationResult = null;
-      var psi = PrepareProcessStartInfo("g++", new List<string> {
-        "-Wall",
-        "-Wextra",
-        "-Wpedantic",
-        "-Wno-unused-variable",
-        "-Wno-deprecated-copy",
-        "-Wno-unused-label",
-        "-Wno-unused-but-set-variable",
-        "-Wno-unknown-warning-option",
-        "-g",
-        "-std=c++17",
-        "-I", codebase,
-        "-o", ComputeExeName(targetFilename),
-        targetFilename
-      });
-      return 0 == RunProcess(psi, outputWriter, "Error while compiling C++ files.");
-    }
-
-    public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string targetFilename, ReadOnlyCollection<string> otherFileNames,
-      object compilationResult, TextWriter outputWriter) {
-      var psi = PrepareProcessStartInfo(ComputeExeName(targetFilename), DafnyOptions.O.MainArgs);
-      return 0 == RunProcess(psi, outputWriter);
     }
   }
 }
