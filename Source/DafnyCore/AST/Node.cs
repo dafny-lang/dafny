@@ -184,12 +184,12 @@ public abstract class TokenNode : Node {
   }
 }
 
-public abstract class RangeNode : Node {
-  public override IToken Tok => StartToken;
+public abstract class RangeNode : Node { // TODO merge into Node when TokenNode is gone.
+  public override IToken Tok => StartToken; // TODO rename to ReportingToken in separate PR
   
-  public IToken tok => Tok;
+  public IToken tok => Tok; // TODO replace with Tok in separate PR
   
-  public override RangeToken RangeToken { get; set; } // TODO remove set when TokenNode is gone.
+  public override RangeToken RangeToken { get; set; } // TODO remove setter when TokenNode is gone.
 
   protected RangeNode(Cloner cloner, RangeNode original) {
     RangeToken = cloner.Tok(original.RangeToken);

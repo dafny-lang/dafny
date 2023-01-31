@@ -30,14 +30,6 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt> {
       }
     }
   }
-  
-  // TODO remove?
-  // public void AddCustomizedErrorMessage(IToken tok, string s) {
-  //   var args = new List<Expression>() { new StringLiteralExpr(tok, s, true) };
-  //   IToken openBrace = tok;
-  //   IToken closeBrace = new Token(tok.line, tok.col + 7 + s.Length + 1); // where 7 = length(":error ")
-  //   this.Attributes = new UserSuppliedAttributes(tok, openBrace, closeBrace, args, this.Attributes);
-  // }
 
   public override IEnumerable<Expression> SpecificationSubExpressions {
     get {
