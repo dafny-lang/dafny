@@ -575,25 +575,16 @@ when used as a parameter of a `print` statement.
 <!--PDF NEWPAGE-->
 # 7. Type parameters ([grammar](#g-type-parameter)) {#sec-type-parameters}
 
+Examples:
+<!-- %check-resolve -->
+```dafny
+type G1<T>
+type G2<T(0)>
+type G3<+T(==),-U>
+```
 
-
-TODO _ rewerite
-
-````grammar
-GenericParameters(allowVariance) =
-  "<" [ Variance ] TypeVariableName { TypeParameterCharacteristics }
-  { "," [ Variance ] TypeVariableName { TypeParameterCharacteristics } }
-  ">"
-
-// The optional Variance indicator is permitted only if allowVariance is true
-Variance = ( "*" | "+" | "!" | "-" )
-
-TypeParameterCharacteristics = "(" TPCharOption { "," TPCharOption } ")"
-
-TPCharOption = ( "==" | "0" | "00" | "!" "new" )
-````
 Many of the types, functions, and methods in Dafny can be
-parameterized by types.  These _type parameters_ are typically
+parameterized by types.  These _type parameters_ are 
 declared inside angle brackets and can stand for any type.
 
 Dafny has some inference support that makes certain signatures less
@@ -828,14 +819,12 @@ expression (with a binder, like in logical quantifications), described in
 In addition to equality and disequality, set types
 support the following relational operations:
 
-TODO _ fill in precedence
-
- operator        | description
+ operator        | precedence | description
 -----------------|------------------------------------
- `<`             | proper subset
- `<=`            | subset
- `>=`            | superset
- `>`             | proper superset
+ `<`             | 4 | proper subset
+ `<=`            | 4 | subset
+ `>=`            | 4 | superset
+ `>`             | 4 | proper superset
 
 Like the arithmetic relational operators, these operators are
 chaining.
@@ -906,14 +895,13 @@ comprehension expression.
 In addition to equality and disequality, multiset types
 support the following relational operations:
 
-TODO _ fill in precednece
 
- operator          | description
+ operator          | precedence | description
 -------------------|-----------------------------------
-  `<`              | proper multiset subset
-  `<=`             | multiset subset
-  `>=`             | multiset superset
-  `>`              | proper multiset superset
+  `<`              | 4 | proper multiset subset
+  `<=`             | 4 | multiset subset
+  `>=`             | 4 | multiset superset
+  `>`              | 4 | proper multiset superset
 
 Like the arithmetic relational operators, these operators are
 chaining.
@@ -999,12 +987,10 @@ is equivalent to `[0, 1, 4, 9, 16]`.
 In addition to equality and disequality, sequence types
 support the following relational operations:
 
-TODO _ precedece
-
- operator        | description
+ operator        | precedence | description
 -----------------|------------------------------------
-  <              | proper prefix
-  <=             | prefix
+  <              | 4 | proper prefix
+  <=             | 4 | prefix
 
 Like the arithmetic relational operators, these operators are
 chaining.  Note the absence of `>` and `>=`.
@@ -1012,9 +998,9 @@ chaining.  Note the absence of `>` and `>=`.
 ### 9.3.3. Sequence Concatenation
 Sequences support the following binary operator:
 
- operator      | description
+ operator      | precedence | description
 ---------------|------------------------------------
- `+`           | concatenation
+ `+`           | 6 | concatenation
 
 Operator `+` is associative, like the arithmetic operator with the
 same name.
@@ -2472,7 +2458,12 @@ method EtaExample(p: P) returns (ghost f: int -> int) {
 ### 12.4.1. Functions
 
 Examples:
-TODO
+<!-- %check-resolve -->
+```dafny
+function f(i: int): real { i as real }
+function g(): (int, int) { (2,3) }
+function h(i: int): int requires i >= 0 { if i == 0 then 0 else 1 }
+```
 
 Functions may be declared as ghost. If so, all the formal parameters and
 return values are ghost; if it is not a ghost function, then 

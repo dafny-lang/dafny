@@ -1689,7 +1689,10 @@ See [the section about other sequence expressions](#sec-other-sequence-expressio
 ### 21.34.5. Sequence Update Suffix ([grammar](#g-sequence-update-suffix)) {#sec-sequence-update-suffix}
 
 Examples:
-TODO
+<!-- %no-check -->
+```dafny
+s[1 := 2, 3 := 4]
+```
 
 For a sequence `s` and expressions `i` and `v`, the expression
 `s[i := v]` is the same as the sequence `s` except that at
@@ -1703,18 +1706,22 @@ The expression `s[i := v]` has the same type as `s`.
 
 ### 21.34.6. Selection Suffix ([grammar](#g-selection-suffix)) {#sec-selection-suffix}
 
+Examples:
+<!-- %no-check -->
+```dafny
+a[9]
+a[i.j.k]
+```
 
-Examples: TODO
-
-If a ``SelectionSuffix_`` has only one expression in it, it is a
+If a selection suffix  has only one expression in it, it is a
 zero-based index that may be used to select a single element of a
 sequence or from a single-dimensional array.
 
-If a ``SelectionSuffix_`` has more than one expression in it, then
+If a selection suffix has more than one expression in it, then
 it is a list of indices to index into a multi-dimensional array.
 The rank of the array must be the same as the number of indices.
 
-If the ``SelectionSuffix_`` is used with an array or a sequence,
+If the selection suffix is used with an array or a sequence,
 then each index expression can have any integer- or bit-vector-based
 type
 (this is one situation in which Dafny implements implicit

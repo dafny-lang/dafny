@@ -42,8 +42,6 @@ method m(i: int)
   requires L: 0 < i < 10
 ```
 
-<!-- TODO : Add example of attribute -->
-
 The `requires` clauses specify preconditions for methods,
 functions, lambda expressions and iterators. Dafny checks
 that the preconditions are met at all call sites. The
@@ -70,8 +68,6 @@ Examples:
 method m(i: int) returns (r: int)
   ensures r > 0
 ```
-
-<!-- TODO : Add example of attribute -->
 
 An `ensures` clause specifies the post condition for a
 method, function or iterator.
@@ -100,9 +96,6 @@ method m(i: int, j: int) returns (r: int)
 method n(i: int) returns (r: int)
   decreases *
 ```
-
-<!-- TODO : Add example of attribute -->
-
 Decreases clauses are used to prove termination in the
 presence of recursion. If more than one `decreases` clause is given
 it is as if a single `decreases` clause had been given with the
@@ -716,9 +709,6 @@ allowed to modify any memory.
 
 ## 19.4. Lambda Specification ([grammar](#g-lambda-specification)) {#sec-lambda-specification}
 
-Examples:
-<!-- TODO -->
-
 A lambda specification provides a specification for a lambda function expression;
 it consists of zero or more `reads` or `requires` clauses.
 Any `requires` clauses may not have labels or attributes.
@@ -730,9 +720,6 @@ lambda specification does not have `modifies` clauses because lambdas
 are not allowed to modify any memory.
 
 ## 19.5. Iterator Specification ([grammar](#g-iterator-specification)) {#sec-iterator-specification}
-
-Examples:
-<!-- TODO -->
 
 An iterator specification may contains `reads`, `modifies`, 
 `decreases`, `requires`, `yield requires, `ensures`
@@ -754,9 +741,6 @@ Examples of iterators, including iterator specifications, are given in
 - a yield ensures clause is a postcondition for calling `MoveNext`
 
 ## 19.6. Loop Specification ([grammar](#g-loop-specification)) {#sec-loop-specification}
-
-Examples:
-<!-- TODO -->
 
 A loop specification provides the information Dafny needs to
 prove properties of a loop. It contains `invariant`,

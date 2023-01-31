@@ -152,8 +152,8 @@ reserved words and can be used as identifiers outside of those contexts:
 * `least` and `greatest` are recognized as adjectives to the keyword `predicate` (cf. [Section 24.4](#sec-extreme)).
 * `older` is a modifier for parameters of non-extreme predicates (cf. [Section 12.4.6](#sec-older-parameters)).
 
-The `\uXXXX` form of an `escapedChar` is only used when the option `--unicode-char=false` is set (which is the default fof Dafny 3.x);
-the \U{XXXXXX} form of an `escapedChar` is only used when the option `--unicode-char=true` is set (which is the default for Dafny 4.x).
+The `\uXXXX` form of an `escapedChar` is only used when the option `--unicode-char=false` is set (which is the default for Dafny 3.x);
+the `\U{XXXXXX}` form of an `escapedChar` is only used when the option `--unicode-char=true` is set (which is the default for Dafny 4.x).
 
 ## 29.2. Dafny Grammar productions
 
