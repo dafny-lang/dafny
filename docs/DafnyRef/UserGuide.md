@@ -938,7 +938,7 @@ For every method (or function, constructor, etc.), `dafny` extracts _assertions_
 
 * Every [division](#sec-numeric-types) yields an _assertion_ that the divisor is never zero.
 * Every [bounded number operation](#sec-numeric-types) yields an _assertion_ that the result will be within the same bounds (no overflow, no underflows).
-* Every [conversion](#sec-as-expression) yields an _assertion_ that conversion is compatible.
+* Every [conversion](#sec-as-is-expression) yields an _assertion_ that conversion is compatible.
 * Every [bitvector shift](#sec-bit-vector-types) yields an _assertion_ that the shift amount is never negative, and that the shift amount is within the width of the value.
 
 **Object assertions:**
@@ -946,7 +946,7 @@ For every method (or function, constructor, etc.), `dafny` extracts _assertions_
 * Every [object property access](#sec-class-types) yields an _assertion_ that the object is not null.
 * Every assignment `o.f := E;` yields an _assertion_ that `o` is among the set of objects of the `modifies` clause of the enclosing [loop](#sec-loop-framing) or [method](#sec-modifies-clause).
 * Every read `o.f` yields an _assertion_ that `o` is among the set of objects of the [`reads`](#sec-reads-clause) clause of the enclosing function or predicate; or the [`modifies`](#sec-modifies-clause) clause of the enclosing method.
-* Every [array access](#sec-array-types) `a[x]` yields the assertion that `0 <= x < a.Length`.
+* Every [array access](#sec-array-type) `a[x]` yields the assertion that `0 <= x < a.Length`.
 * Every [sequence access](#sec-sequences) `a[x]` yields an _assertion_, that `0 <= x < |a|`, because sequences are never null.
 * Every [datatype update expression](#sec-datatype-update-suffix) and [datatype destruction](#sec-algebraic-datatype) yields an _assertion_ that the object has the given property.
 * Every method overriding a [`trait`](#sec-trait-types) yields an _assertion_ that any postcondition it provides implies the postcondition of its parent trait, and an _assertion_ that any precondition it provides is implied by the precondition of its parent trait.

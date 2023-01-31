@@ -1,89 +1,17 @@
 # 2. Lexical and Low Level Grammar {#sec-lexical-grammar}
-Dafny uses the Coco/R lexer and parser generator for its lexer and parser
-(<http://www.ssw.uni-linz.ac.at/Research/Projects/Coco>)[@Linz:Coco].
-The Dafny input file to Coco/R is the `Dafny.atg` file in the source tree.
-A Coco/R input file consists of code written in the target language
-(C\# for the `dafny` tool) intermixed with these special sections:
 
-0. The [Characters section](#sec-character-classes)
-    which defines classes of characters that are used
-   in defining the lexer.
-1. The [Tokens section](#sec-tokens) which defines the lexical tokens.
-2. The [Productions section](#sec-grammar)
- which defines the grammar. The grammar productions
-are distributed in the later parts of this document in the places where
-those constructs are explained.
+As with most languages, Dafny syntax is defined in two levels. First the stream
+of input characters is broken up into _tokens_. Then these tokens are parsed
+using the Dafny grammar. 
 
-The grammar presented in this document was derived from the `Dafny.atg`
-file but has been simplified by removing details that, though needed by
-the parser, are not needed to understand the grammar. In particular, the
-following transformations have been performed.
+The Dafny grammar is designed as an _attributed grammar_, which is a 
+conventional BNF-style set of productions, but in which the productions can
+have arguments. The arguments control some alternatives within
+the productions, such as whether an alternative is allowed or not in a specific context.
+These arguments allow for a more compact and understandable grammar.
 
-* The semantics actions, enclosed by "(." and ".)", were removed.
-* There are some elements in the grammar used for error recovery
-  ("SYNC"). These were removed.
-* There are some elements in the grammar for resolving conflicts
-  ("IF(b)"). These have been removed.
-* Some comments related to Coco/R parsing details have been removed.
-* A Coco/R grammar is an attributed grammar where the attributes enable
-  the productions to have input and output parameters. These attributes
-  were removed except that boolean input parameters that affect
-  the parsing are kept.
-  * In our representation we represent these
-    in a definition by giving the names of the parameters following
-    the non-terminal name. For example `entity1(allowsX)`.
-  * In the case of uses of the parameter, the common case is that the
-    parameter is just passed to a lower-level non-terminal. In that
-    case we just give the name, e.g. `entity2(allowsX)`.
-  * If we want to give an explicit value to a parameter, we specify it in
-    a keyword notation like this: `entity2(allowsX: true)`.
-  * In some cases the value to be passed depends on the grammatical context.
-    In such cases we give a description of the conditions under which the
-    parameter is true, enclosed in parenthesis. For example:
-
-      `FunctionSignatureOrEllipsis_(allowGhostKeyword: ("method" present))`
-
-    means that the `allowGhostKeyword` parameter is true if the
-    "method" keyword was given in the associated ``FunctionDecl``.
-  * Where a parameter affects the parsing of a non-terminal we will
-    explain the effect of the parameter.
-
-
-The names of character sets and tokens start with a lower case
-letter; the names of grammar non-terminals start with
-an upper-case letter.
-
-The grammar uses Extended BNF notation. See the [Coco/R Referenced
-manual](http://www.ssw.uni-linz.ac.at/Research/Projects/Coco/Doc/UserManual.pdf)
-for details. In summary:
-
-* identifiers starting with a lower case letter denote
-terminal symbols
-* identifiers starting with an upper case letter denote nonterminal
-symbols
-* strings (a sequence of characters enclosed by double quote characters)
-denote the sequence of enclosed characters
-* `=` separates the sides of a production, e.g. `A = a b c`
-* in the Coco grammars "." terminates a production, but for readability
-  in this document a production starts with the defined identifier in
-  the left margin and may be continued on subsequent lines if they
-  are indented
-* `|` separates alternatives, e.g. `a b | c | d e` means `a b` or `c` or `d e`
-* `(` `)` groups alternatives, e.g. `(a | b) c` means `a c` or `b c`
-* `[ ]` option, e.g. `[a] b` means `a b` or `b`
-* `{ }` iteration (0 or more times), e.g. `{a} b` means `b` or `a b` or `a a b` or ...
-* We allow `|` inside `[ ]` and `{ }`. So `[a | b]` is short for `[(a | b)]`
-  and `{a | b}` is short for `{(a | b)}`.
-* The first production defines the name of the grammar, in this case `Dafny`.
-
-In addition to the Coco rules, for the sake of readability we have adopted
-these additional conventions.
-
-* We allow `-` to be used. `a - b` means it matches if it matches `a` but not `b`.
-* To aid in explaining the grammar we have added some additional productions
-that are not present in the original grammar. We name these with a trailing
-underscore. If you inline these where they are referenced, the result should
-let you reconstruct the original grammar.
+The precise, technical details of the grammar are presented together in [Section 29](#sec-grammar-details).
+The expository parts of this manual present the language structure less formally.
 
 ## 2.1. Dafny Input {#sec-unicode}
 
@@ -91,19 +19,20 @@ Dafny source code files are readable text encoded in UTF-8.
 All program text other than the contents of comments, character, string and verbatim string literals
 consists of printable and white-space ASCII characters,
 that is, ASCII characters in the range `!` to `~`, plus space, tab, 
-carriage return and newline (ASCII, 9, 10, 13, 32) characters.
+carriage return and newline (ASCII 9, 10, 13, 32) characters.
 
 ## 2.2. Tokens and whitespace {#sec-token-types}
 The characters used in a Dafny program fall into four groups:
 
-* White space characters
+* White space characters: space, tab, carriage return and newline
 * alphanumerics: letters, digits, underscore (`_`), apostrophe (`'`), and question mark (`?`)
 * punctuation: ``(){}[],.`;``
 * operator characters (the other printable characters)
 
-Each Dafny token consists of a sequence of consecutive characters from just one of these
+Except for string and character literals, each Dafny token consists of a 
+sequence of consecutive characters from just one of these
 groups, excluding white-space. White-space is ignored except that it
-separates tokens.
+separates tokens and except in the bodies of character and string literals.
 
 A sequence of alphanumeric characters (with no preceding or following additional
 alphanumeric characters) is a _single_ token. This is true even if the token
@@ -123,43 +52,50 @@ sequence `==>` is always one token; even if it were invalid in its context,
 separating it into `==` and `>` would always still be invalid.
 
 In summary, except for required white space between alphanumeric tokens,
-adding white space between tokens or removing white space can never result in changing the meaning of a Dafny program.
-For the rest of this document, we consider Dafny programs as sequences of tokens.
+adding or removing white space between tokens can never result in changing the meaning of a Dafny program.
+For most of this document, we consider Dafny programs as sequences of tokens.
 
 ## 2.3. Character Classes {#sec-character-classes}
+
 This section defines character classes used later in the token definitions.
-In this section a backslash is used to start an escape sequence; so for example
-`'\n'` denotes the single linefeed character. Also in this section, double quotes
-enclose the set of characters constituting a character class; enclosing single
-quotes are used when there is just one character in the class. `+` indicates
-the union of two character classes; `-` is the set-difference between the
-two classes. `ANY` designates all [unicode characters](#sec-unicode).
+In this section 
 
-````grammar
-letter = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-````
-At present, a letter is an ASCII upper or lowercase letter. Other Unicode letters
-are not supported.
+* a backslash is used to start an escape sequence (so for example
+`'\n'` denotes the single linefeed character)
+* double quotes
+enclose the set of characters constituting a character class
+* enclosing single
+quotes are used when there is just one character in the class
+(perhaps expressed with a `\` escape character)
+* `+` indicates
+the union of two character classes
+* `-` is the set-difference between the
+two classes
+* `ANY` designates all [unicode characters](#sec-unicode).
 
-````grammar
-digit = "0123456789"
-````
-A digit is just one of the base-10 digits.
+ name              | description
+-------------------|---------------------------
+letter             | ASCII upper or lower case letter; no unicode characters
+digit              | base-ten digit ("0123456789")
+posDigit           | digits, excluding 0 ("123456789")
+posDigitFrom2      | digits excluding 0 and 1 ("23456789")
+hexdigit           | a normal hex digit ("0123456789abcdefABCDEF")
+special            | "`?_"
+cr                 | carriage return character ('\r')
+lf                 | line feed character 
+tab                | tab character ('\t')
+space              | space character (' ')
+                   |
+nondigitIdChar     | characters allowed in an identifier, except digits (letter + special)
+idchar             | characters allowed in an identifier (nondigitIdChar + digits)
+nonidchar          | characters not in identifiers (ANY - idchar)
+charChar           | characters allowed in a character constant (ANY - '\'' - '\\' - cr - lf)
+stringChar         | characters allowed in a string constant (ANY - '"' - '\\' - cr - lf)
+verbatimStringChar | characters allowed in a verbatim string constant (ANY - '"')
 
-````grammar
-posDigit = "123456789"
-posDigitFrom2 = "23456789"
-````
-A ``posDigit`` is a digit, excluding 0. ``posDigitFrom2`` excludes both 0 and 1.
 
-````grammar
-hexdigit = "0123456789ABCDEFabcdef"
-````
-A ``hexdigit`` character is a digit or one of the letters from 'A' to 'F' in either case.
 
-````grammar
-special = "'_?"
-````
+
 The _special_ characters are the characters in addition to alphanumeric characters
 that are allowed to appear in a Dafny identifier. These are
 
@@ -169,65 +105,26 @@ that are allowed to appear in a Dafny identifier. These are
 * `?` because it is useful to have `?` at the end of names of predicates,
   e.g., "Cons?".
 
-````grammar
-cr        = '\r'
-````
-A carriage return character.
-
-````grammar
-lf        = '\n'
-````
-A line feed character.
-
-````grammar
-tab       = '\t'
-````
-A tab character.
-
-````grammar
-space     = ' '
-````
-A space character.
-
-````grammar
-nondigitIdChar = letter + special
-````
-The characters that can be used in an identifier minus the digits.
-
-````grammar
-idchar = nondigitIdChar + digit
-````
-The characters that can be used in an identifier.
-
-````grammar
-nonidchar = ANY - idchar
-````
-Any character except those that can be used in an identifier.
+A `nonidchar` is any character except those that can be used in an identifier.
 Here the scanner generator will interpret `ANY` as any unicode character.
 However, `nonidchar` is used only to mark the end of the `!in` token;
 in this context any character other than [whitespace or printable ASCII](#sec-unicode)
 will trigger a subsequent scanning or parsing error.
 
-````grammar
-charChar = ANY - '\'' - '\\' - cr - lf
-````
-Characters that can appear in a character constant.
 
-````grammar
-stringChar = ANY - '"' - '\\' - cr - lf
-````
-Characters that can appear in a string constant.
-
-````grammar
-verbatimStringChar = ANY - '"'
-````
-Characters that can appear in a verbatim string.
 
 ## 2.4. Comments {#sec-comments}
 Comments are in two forms.
 
 * They may go from `/*` to `*/` .
 * They may go from `//` to the end of the line.
+
+A comment is identified as a token during the tokenization of 
+input text and is then discarded for the purpose of interpreting the 
+Dafny program. (It is retained to enable auto-formatting
+and provide accurate source locations for error messages.)
+Thus comments are token separators: `a/*x*/b` becomes two tokens
+`a` and `b`.
 
 Comments may be nested,
 but note that the nesting of multi-line comments is behavior that is different
@@ -271,163 +168,115 @@ method m() {
 the `*/` inside the line comment and the string are seen as the end of the outer
 comment, leaving trailing text that will provoke parsing errors.
 
-## 2.5. Tokens {#sec-tokens}
-As with most languages, Dafny syntax is defined in two levels. First the stream
-of input characters is broken up into _tokens_. Then these tokens are parsed
-using the Dafny grammar. The Dafny tokens are defined in this section.
+## 2.5. Tokens ([grammar](#sec-g-tokens)) {#sec-tokens}
+
+The Dafny tokens are defined in this section.
 
 ### 2.5.1. Reserved Words {#sec-reserved-words}
-The following reserved words appear in the Dafny grammar and may not be used
-as identifiers of user-defined entities:
 
-````grammar
-reservedword =
-    "abstract" | "allocated" | "as" | "assert" | "assume" |
-    "bool" | "break" | "by" |
-    "calc" | "case" | "char" | "class" | "codatatype" |
-    "const" | "constructor" |
-    "datatype" | "decreases" |
-    "else" | "ensures" | "exists" | "export" | "extends" |
-    "false" | "forall" | "fresh" | "function" | "ghost" |
-    "if" | "imap" | "import" | "in" | "include" |
-    "int" | "invariant" | "is" | "iset" | "iterator" |
-    "label" | "lemma" | "map" | "match" | "method" |
-    "modifies" | "modify" | "module" | "multiset" |
-    "nameonly" | "nat" | "new" | "newtype" | "null" |
-    "object" | "object?" | "old" | "opened" | "ORDINAL"
-    "predicate" | "print" | "provides" |
-    "reads" | "real" | "refines" | "requires" | "return" |
-    "returns" | "reveal" | "reveals" |
-    "seq" | "set" | "static" | "string" |
-    "then" | "this" | "trait" | "true" | "twostate" | "type" |
-    "unchanged" | "var" | "while" | "witness" |
-    "yield" | "yields" |
-    arrayToken | bvToken
+Dafny has a set of reserved words that may not
+be used as identifiers of user-defined entities.
+These are listed [here](#sec-g-tokens).
 
-arrayToken = "array" [ posDigitFrom2 | posDigit digit { digit }]["?"]
+In particular note that
 
-bvToken = "bv" ( 0 | posDigit { digit } )
-````
-
-An ``arrayToken`` is a reserved word that denotes an array type of
-given rank. `array` is an array type of rank 1 (aka a vector). `array2`
-is the type of two-dimensional arrays, etc.
-`array1` and `array1?` are not reserved words; they are just ordinary identifiers.
-Similarly, `bv0`, `bv1`, and `bv8` are reserved words, but `bv02` is an
-ordinary identifier.
+- `array`, `array2, `array3` , etc. are reserved words, but not `array1` or `array0`.
+These denote array types of given rank.
+- `array?`, `array2?, `array3?` , etc. are reserved words, but not `array1?` or `array0?`.
+These denote possibly-null array types of given rank.
+- `bv0`, `bv1`, `bv2`, etc. are reserved words that denote the types of
+bitvectors of given length.
+The sequence of digits after 'array' or 'bv' may not have leading zeros: 
+for example, `bv02` is an ordinary identifier.
 
 ### 2.5.2. Identifiers {#sec-identifiers}
 
-````grammar
-ident = nondigitIdChar { idchar } - charToken - reservedword
-````
-In general Dafny identifiers are sequences of ``idchar`` characters where
+In general, an `ident` token (an identifier) is a sequence of ``idchar`` characters where
 the first character is a ``nondigitIdChar``. However tokens that fit this pattern
 are not identifiers if they look like a character literal
 or a reserved word (including array or bit-vector type tokens).
 Also, `ident` tokens that begin with an `_` are not permitted as user identifiers.
 
 ### 2.5.3. Digits {#sec-digits}
-````grammar
-digits = digit {['_'] digit}
-````
 
-A sequence of decimal digits, possibly interspersed with underscores for readability (but not beginning or ending with an underscore).
+A `digits` token is a sequence of decimal digits (`digit`), possibly interspersed with underscores for readability (but not beginning or ending with an underscore).
 Example: `1_234_567`.
-````grammar
-hexdigits = "0x" hexdigit {['_'] hexdigit}
-````
 
-A hexadecimal constant, possibly interspersed with underscores for readability (but not beginning or ending with an underscore).
+A `hexdigits` token denotes a hexadecimal constant, and is a sequence of hexadecimal digits (`hexdigit`)
+ possibly interspersed with underscores for readability (but not beginning or ending with an underscore).
 Example: `0xffff_ffff`.
 
-````grammar
-decimaldigits = digit {['_'] digit} '.' digit {['_'] digit}
-````
-A decimal fraction constant, possibly interspersed with underscores for readability (but not beginning or ending with an underscore).
+A `decimaldigits` token is a decimal fraction constant, possibly interspersed with underscores for readability (but not beginning or ending with an underscore).
+It has digits both before and after a single period (`.`) character. There is no syntax for floating point numbers with exponents.
 Example: `123_456.789_123`.
 
 ### 2.5.4. Escaped Character {#sec-escaped-characters}
-In this section the "\\" characters are literal.
-````grammar
-escapedChar =
-    ( "\'" | "\"" | "\\" | "\0" | "\n" | "\r" | "\t"
-      | "\u" hexdigit hexdigit hexdigit hexdigit
-      | "\U{" hexdigit { hexdigit } "}"
-    )
-````
 
-In Dafny character or string literals, escaped characters may be used
-to specify the presence of a single- or double-quote character, backslash,
+The `escapedChar` token is a multi-character sequence that denotes a non-printable or non-ASCII character.
+They begin with a backslash characcter (`\`) and denote
+ a single- or double-quote character, backslash,
 null, new line, carriage return, tab, or a
 Unicode character with given hexadecimal representation.
 Which Unicode escape form is allowed depends on the value of the `--unicode-char` option.
 
-If `--unicode-char:false` is provided,
+If `--unicode-char:false` is stipulated,
 `\uXXXX` escapes can be used to specify any UTF-16 code unit.
 
-If `--unicode-char:true` is provided,
+If `--unicode-char:true` is stipulated,
 `\U{X..X}` escapes can be used to specify any Unicode scalar value.
 There must be at least one hex digit in between the braces, and at most six.
 Surrogate code points are not allowed.
 The hex digits may be interspersed with underscores for readability 
 (but not beginning or ending with an underscore), as in `\U{1_F680}`.
+The braces are part of the required character sequence.
 
 
 ### 2.5.5. Character Constant Token {#sec-character-constant-token}
-````grammar
-charToken = "'" ( charChar | escapedChar ) "'"
-````
 
-A character constant is enclosed by `'` and includes either a character
-from the ``charChar`` set or an escaped character. Note that although Unicode
+The `charToken` token denotes a character constant.
+It is either a `charChar` or an `escapedChar` enclosed in single quotes.
+Note that although Unicode
 letters are not allowed in Dafny identifiers, Dafny does support [Unicode
-in its character, string, and verbatim strings constants and in its comments](#sec-unicode). A character
-constant has type `char`.
+in its character, string, and verbatim strings constants and in its comments](#sec-unicode).
 
 
 ### 2.5.6. String Constant Token {#sec-string-constant-token}
-````grammar
-stringToken =
-    '"' { stringChar | escapedChar }  '"'
-  | '@' '"' { verbatimStringChar | '"' '"' } '"'
-````
 
-A string constant is either a normal string constant or a verbatim string constant.
-A normal string constant is enclosed by `"` and can contain characters from the
-``stringChar`` set and ``escapedChar``s.
+A `stringToken` denotes a string constant.
+It consists of a sequence of `stringChar` and `escapedChar` characters enclosed in 
+double quotes.
 
-A verbatim string constant is enclosed between `@"` and `"` and can
-consist of any characters (including newline characters) except that two
+A `verbatimStringToken` token also denotes a string constant.
+It is a sequence of any `verbatimStringChar` characters (which includes newline characters),
+enclosed between `@"` and `"`, except that two
 successive double quotes represent one quote character inside
 the string. This is the mechanism for escaping a double quote character,
 which is the only character needing escaping in a verbatim string.
-Within a verbatim string constant, a backslash character represents itself and is not the first character of an `escapedChar`.
+Within a verbatim string constant, a backslash character represents itself 
+and is not the first character of an `escapedChar`.
 
 ### 2.5.7. Ellipsis {#sec-ellipsis}
-````grammar
-ellipsis = "..."
-````
-The ellipsis symbol is typically used to designate something missing that will
+
+The `ellipsisToken` is the character sequence `...` and is typically used to designate something missing that will
 later be inserted through refinement or is already present in a parent declaration.
 
 ## 2.6. Low Level Grammar Productions {#sec-grammar}
 
 ### 2.6.1. Identifier Variations {#sec-identifier-variations}
 
-````grammar
-Ident = ident
-````
-The ``Ident`` non-terminal is just an ``ident`` token and represents an ordinary
-identifier.
+#### 2.6.1.1. Identifier
 
-````grammar
-DotSuffix =
-  ( ident | digits | "requires" | "reads" )
-````
-When using the _dot_ notation to denote a component of a compound entity,
-the token following the "." may be an identifier,
- a natural number, or one of the keywords `requires` or `reads`.
+A basic ordinary identifier is just an `ident` token.
+
+It may be followed by a sequence of suffixes to denote compound entities.
+Each suffix is a dot (`.`) and another token, which may be
+
+- another `ident` token
+- a `digits` token
+- the `requires` reserved word
+- the `reads` reserved word
+
+Note that
 
 * Digits can be used to name fields of classes and destructors of
   datatypes. For example, the built-in tuple datatypes have destructors
@@ -437,54 +286,55 @@ the token following the "." may be an identifier,
 * `m.requires` is used to denote the [precondition](#sec-requires-clause) for method `m`.
 * `m.reads` is used to denote the things that method `m` may [read](#sec-reads-clause).
 
-````grammar
-NoUSIdent = ident - "_" { idchar }
-````
-A ``NoUSIdent`` is an identifier except that identifiers with a **leading**
+#### 2.6.1.2. No-underscore-identifier
+
+A `NoUSIdent` is an identifier except that identifiers with a **leading**
 underscore are not allowed. The names of user-defined entities are
 required to be ``NoUSIdent``s or, in some contexts, a ``digits``.
  We introduce more mnemonic names
 for these below (e.g. ``ClassName``).
 
-````grammar
-WildIdent = NoUSIdent | "_"
-````
-Identifier, disallowing leading underscores, except the "wildcard"
-identifier `_`. When `_` appears it is replaced by a unique generated
-identifier distinct from user identifiers. This wildcard has several uses
-in the language, but it is not used as part of expressions.
+A no-underscore-identifier is required for the following:
 
-### 2.6.2. NoUSIdent Synonyms
-In the productions for the declaration of user-defined entities the name of the
-user-defined entity is required to be an identifier that does not start
-with an underscore, i.e., a ``NoUSIdent``. To make the productions more
-mnemonic, we introduce the following synonyms for ``NoUSIdent``
-and other identifier-related symbols.
+- module name
+- class or trait name
+- datatype name
+- newtype name
+- synonym (and subset) type name
+- iterator name
+- type variable name
+- attribute name
 
-````grammar
-IdentOrDigits = Ident | digits
-NoUSIdentOrDigits = NoUSIdent | digits
-ModuleName = NoUSIdent
-ClassName = NoUSIdent    // also traits
-DatatypeName = NoUSIdent
-DatatypeMemberName = NoUSIdentOrDigits
-NewtypeName = NoUSIdent
-SynonymTypeName = NoUSIdent
-IteratorName = NoUSIdent
-TypeVariableName = NoUSIdent
-MethodFunctionName = NoUSIdentOrDigits
-LabelName = NoUSIdentOrDigits
-AttributeName = NoUSIdent
-ExportId = NoUSIdentOrDigits
-TypeNameOrCtorSuffix = NoUSIdentOrDigits
-````
+A variation, a no-underscore-identifier or a `digits`, is allowed for
 
+- datatype member name
+- method or function or constructor name
+- label name
+- export id
+- suffix to a typename or constructor <!-- TODO check this -->
 
-### 2.6.3. Qualified Names
-```grammar
-ModuleQualifiedName = ModuleName { "." ModuleName }
-```
-A qualified name starts with the name of the top-level entity and then is followed by
+#### 2.6.1.3. Wild identifier {#sec-wild-identifier}
+
+A wild identifier is a no-underscore-identifier except that the singleton
+`_` is allowed. The `_` is replaced conceptually by a unique
+identifier distinct from all other identifiers in the program.
+A `_` is used when an identifier is needed, but its content is discarded.
+Such identifiers are not used in expressions.
+
+Wild identifiers may be used in these contexts:
+
+- formal parameters of a lambda expression
+- the local formal parameter of a quantifier
+- the local formal parameter of a subset type or newtype declaration
+- a variable declaration
+- a case pattern formal parameter
+- binding guard parameter
+- for loop parameter
+- LHS of update statements 
+
+### 2.6.2. Qualified Names
+
+A qualified name starts with the name of a top-level entity and then is followed by
 zero or more ``DotSuffix``s which denote a component. Examples:
 
 * `Module.MyType1`
@@ -492,81 +342,24 @@ zero or more ``DotSuffix``s which denote a component. Examples:
 * `MyMethod.requires`
 * `A.B.C.D`
 
-The grammar does not actually have a production for qualified names
-except in the special case of a qualified name that is known to be
-a module name, i.e. a ``ModuleQualifiedName``.
+### 2.6.3. Identifier-Type Combinations
 
-### 2.6.4. Identifier-Type Combinations
-In this section, we describe some nonterminals that combine an identifier and a type.
+Identifiers are typically declared in combination with a type, as in
+```dafny
+var i: int
+```
 
-````grammar
-IdentType = WildIdent ":" Type
-````
-In Dafny, a variable or field is typically declared by giving its name followed by
-a ``colon`` and its type. An ``IdentType`` is such a construct.
+However, Dafny infers types in many circumstances, and in those, the type can be omitted. The type is required
+for field declarations and formal parameters of methods, functions and constructors (because there is no initializer).
+It may be omitted (if the type can be inferred) for local variable declarations, pattern matching variables, 
+quantifiers, 
 
-````grammar
-FIdentType = NoUSIdentOrDigits ":" Type
-````
-A `FIdentType` is used to declare a field. The Type is required because there is no initializer.
+Similarly, there are circumstances in which the identifier name is not needed, because it is not used.
+This is allowed in defining algebraic datatypes.
 
-````grammar
-CIdentType = NoUSIdentOrDigits [ ":" Type ]
-````
-A `CIdentType` is used for a `const` declaration. The Type is optional because it may be inferred from
-the initializer.
+In some other situations a wild identifier can be used, as described [above](#sec-wild-identifier).
 
-````grammar
-GIdentType(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, allowNameOnlyKeyword, allowDefault) =
-    { "ghost" | "new" | "nameonly" | "older" } IdentType
-    [ ":=" Expression(allowLemma: true, allowLambda: true) ]
-````
-A ``GIdentType`` is a typed entity declaration optionally preceded by `ghost` or `new`. The _ghost_
-qualifier means the entity is only used during verification and not in the generated code.
-Ghost variables are useful for abstractly representing internal state in specifications.
-If `allowGhostKeyword` is false, then `ghost` is not allowed.
-If `allowNewKeyword` is false, then `new` is not allowed.
-If `allowNameOnlyKeyword` is false, then `nameonly` is not allowed.
-If `allowDefault` is false, then `:= Expression` is not allowed.
-
-`older` is a context-sensitive keyword. It is recognized as a keyword only by `GIdentType` and
-only when `allowOlderKeyword` is true. If `allowOlderKeyword` is false, then a use of `older`
-is parsed by the `IdentType` production in `GIdentType`.
-
-
-````grammar
-LocalIdentTypeOptional = WildIdent [ ":" Type ]
-````
-A ``LocalIdentTypeOptional`` is used when declaring local variables.
-If a value is specified for the variable, the
-type may be omitted because it can be inferred from the initial value.
-An initial value is not required.
-
-````grammar
-IdentTypeOptional = WildIdent [ ":" Type ]
-````
-A ``IdentTypeOptional`` is typically used in a context where the type of the identifier
-may be inferred from the context. Examples are in pattern matching or quantifiers.
-
-````grammar
-TypeIdentOptional =
-    { "ghost" | "nameonly" } [ NoUSIdentOrDigits ":" ] Type
-    [ ":=" Expression(allowLemma: true, allowLambda: true) ]
-````
-``TypeIdentOptional``s are used in ``FormalsOptionalIds``. This represents situations
-where a type is given but there may not be an identifier. The default-value expression
-`:= Expression` is allowed only if `NoUSIdentOrDigits :` is also provided.
-If modifier `nameonly` is given, then `NoUSIdentOrDigits` must also be used.
-
-````grammar
-FormalsOptionalIds = "(" [ TypeIdentOptional
-                           { "," TypeIdentOptional } ] ")"
-````
-A ``FormalsOptionalIds`` is a formal parameter list in which the types are required
-but the names of the parameters are optional. This is used in algebraic
-datatype definitions.
-
-### 2.6.5. Quantifier Domains {#sec-quantifier-domains}
+### 2.6.4. Quantifier Domains ([grammar](#g-quantifier-domain)) {#sec-quantifier-domains}
 
 Several Dafny constructs bind one or more variables to a range of possible values.
 For example, the quantifier `forall x: nat | x <= 5 :: x * x <= 25` has the meaning
@@ -612,27 +405,9 @@ because the range attached to `i` ensures `i` is a valid index in the sequence `
 Allowing per-variable ranges is not fully backwards compatible, and so it is not yet allowed by default;
 the `/quantifierSyntax:4` option needs to be provided to enable this feature (See [Section 25.8.5](#sec-controlling-language)).
 
-The general production for quantifier domains is:
+### 2.6.5. Numeric Literals ([grammar](#g-literal-expression)) {#sec-numeric-literals}
 
-````grammar
-QuantifierDomain(allowLemma, allowLambda) =
-    QuantifierVarDecl(allowLemma, allowLambda) 
-    { "," QuantifierVarDecl(allowLemma, allowLambda) }
+Integer and bitvector literals may be expressed in either decimal or hexadecimal (`digits` or `hexdigits`).
 
-QuantifierVarDecl(allowLemma, allowLambda) =
-    IdentTypeOptional
-    [ <- Expression(allowLemma, allowLambda) ]
-    { Attribute }
-    [ | Expression(allowLemma, allowLambda) ]
-````
+Real number literals are written as decimal fractions (`decimaldigits`).
 
-### 2.6.6. Numeric Literals {#sec-numeric-literals}
-````grammar
-Nat = ( digits | hexdigits )
-````
-A ``Nat`` represents a natural number expressed in either decimal or hexadecimal.
-
-````grammar
-Dec = decimaldigits
-````
-A ``Dec`` represents a decimal fraction literal.
