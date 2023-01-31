@@ -4413,6 +4413,22 @@ ParensExpression<out Expression e>
   .
 
 /*------------------------------------------------------------------------*/
+TupleArgs<.List<ActualBinding> args.>
+= (. ActualBinding binding; bool isGhost = false; .)
+  // The IF is to distinguish between `(ghost var x := 5; x + x)` and (ghost x), both of which begin with `( ghost`.
+  [ IF(la.kind == _ghost && !IsVar())
+    "ghost"                             (. isGhost = true; .)
+  ]
+  ActualBinding<out binding, isGhost>   (. args.Add(binding); .)
+  { ","                                 (. isGhost = false; .)
+    [ IF(la.kind == _ghost && !IsVar())
+      "ghost"                           (. isGhost = true; .)
+    ]
+    ActualBinding<out binding, isGhost> (. args.Add(binding); .)
+  }
+  .
+
+/*------------------------------------------------------------------------*/
 SetDisplayExpr<out Expression e>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
      IToken token = null;
@@ -5110,22 +5126,6 @@ Expressions<.List<Expression> args.>
 = (. Expression e; .)
   Expression<out e, true, true>                      (. args.Add(e); .)
   { "," Expression<out e, true, true>                (. args.Add(e); .)
-  }
-  .
-
-/*------------------------------------------------------------------------*/
-TupleArgs<.List<ActualBinding> args.>
-= (. ActualBinding binding; bool isGhost = false; .)
-  // The IF is to distinguish between `(ghost var x := 5; x + x)` and (ghost x), both of which begin with `( ghost`.
-  [ IF(la.kind == _ghost && !IsVar())
-    "ghost"                             (. isGhost = true; .)
-  ]
-  ActualBinding<out binding, isGhost>   (. args.Add(binding); .)
-  { ","                                 (. isGhost = false; .)
-    [ IF(la.kind == _ghost && !IsVar())
-      "ghost"                           (. isGhost = true; .)
-    ]
-    ActualBinding<out binding, isGhost> (. args.Add(binding); .)
   }
   .
 
