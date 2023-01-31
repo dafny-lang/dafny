@@ -588,26 +588,26 @@ namespace Microsoft.Dafny {
         newName = f.Name;
       }
 
-      var newName2 = new Name(f.NameNode.RangeToken, newName);
+      var newNameNode = new Name(f.NameNode.RangeToken, newName);
       if (f is Predicate) {
-        return new Predicate(Tok(f.RangeToken), newName2, f.HasStaticKeyword, f.IsGhost, tps, formals, result,
+        return new Predicate(Tok(f.RangeToken), newNameNode, f.HasStaticKeyword, f.IsGhost, tps, formals, result,
           req, reads, ens, decreases, body, Predicate.BodyOriginKind.OriginalOrInherited,
           f.ByMethodTok == null ? null : Tok(f.ByMethodTok), byMethodBody,
           CloneAttributes(f.Attributes), null);
       } else if (f is LeastPredicate) {
-        return new LeastPredicate(Tok(f.RangeToken), newName2, f.HasStaticKeyword, ((LeastPredicate)f).TypeOfK, tps, formals, result,
+        return new LeastPredicate(Tok(f.RangeToken), newNameNode, f.HasStaticKeyword, ((LeastPredicate)f).TypeOfK, tps, formals, result,
           req, reads, ens, body, CloneAttributes(f.Attributes), null);
       } else if (f is GreatestPredicate greatestPredicate) {
-        return new GreatestPredicate(Tok(f.RangeToken), newName2, f.HasStaticKeyword, ((GreatestPredicate)f).TypeOfK, tps, formals, result,
+        return new GreatestPredicate(Tok(f.RangeToken), newNameNode, f.HasStaticKeyword, ((GreatestPredicate)f).TypeOfK, tps, formals, result,
           req, reads, ens, body, CloneAttributes(f.Attributes), null);
       } else if (f is TwoStatePredicate) {
-        return new TwoStatePredicate(Tok(f.RangeToken), newName2, f.HasStaticKeyword, tps, formals, result,
+        return new TwoStatePredicate(Tok(f.RangeToken), newNameNode, f.HasStaticKeyword, tps, formals, result,
           req, reads, ens, decreases, body, CloneAttributes(f.Attributes), null);
       } else if (f is TwoStateFunction) {
-        return new TwoStateFunction(Tok(f.RangeToken), newName2, f.HasStaticKeyword, tps, formals, result, CloneType(f.ResultType),
+        return new TwoStateFunction(Tok(f.RangeToken), newNameNode, f.HasStaticKeyword, tps, formals, result, CloneType(f.ResultType),
           req, reads, ens, decreases, body, CloneAttributes(f.Attributes), null);
       } else {
-        return new Function(Tok(f.RangeToken), newName2, f.HasStaticKeyword, f.IsGhost, tps, formals, result, CloneType(f.ResultType),
+        return new Function(Tok(f.RangeToken), newNameNode, f.HasStaticKeyword, f.IsGhost, tps, formals, result, CloneType(f.ResultType),
           req, reads, ens, decreases, body, f.ByMethodTok == null ? null : Tok(f.ByMethodTok), byMethodBody,
           CloneAttributes(f.Attributes), null);
       }
