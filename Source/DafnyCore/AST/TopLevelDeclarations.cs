@@ -14,7 +14,7 @@ public abstract class Declaration : INamedRegion, IAttributeBearingDeclaration, 
   }
 
   public static string IdProtect(string name) {
-    return DafnyOptions.O.Compiler.PublicIdProtect(name);
+    return DafnyOptions.O.Backend.PublicIdProtect(name);
   }
 
   public IToken TokenWithTrailingDocString = Token.NoToken;
@@ -1017,7 +1017,7 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
         }
       }
 
-      return DafnyOptions.O.Compiler.GetCompileName(EnclosingModuleDefinition.IsDefaultModule,
+      return DafnyOptions.O.Backend.GetCompileName(EnclosingModuleDefinition.IsDefaultModule,
         EnclosingModuleDefinition.CompileName, CompileName);
     }
   }

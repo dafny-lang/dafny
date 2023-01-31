@@ -117,7 +117,7 @@ namespace Microsoft.Dafny.Compilers {
     /// then not be used by the caller.
     /// </summary>
     public static bool IsErasableDatatypeWrapper(DatatypeDecl dt, out DatatypeDestructor coreDestructor) {
-      if (DafnyOptions.O.Compiler.SupportsDatatypeWrapperErasure && DafnyOptions.O.Get(CommonOptionBag.OptimizeErasableDatatypeWrapper)) {
+      if (DafnyOptions.O.Backend.SupportsDatatypeWrapperErasure && DafnyOptions.O.Get(CommonOptionBag.OptimizeErasableDatatypeWrapper)) {
         // First, check for all conditions except the non-cycle condition
         if (FindUnwrappedCandidate(dt, out var candidateCoreDestructor)) {
           // Now, check if the type of the destructor contains "datatypeDecl" itself

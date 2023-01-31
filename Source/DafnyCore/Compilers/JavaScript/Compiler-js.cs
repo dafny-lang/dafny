@@ -18,17 +18,9 @@ using System.Threading.Tasks;
 using JetBrains.Annotations;
 
 namespace Microsoft.Dafny.Compilers {
-  public class JavaScriptCompiler : SinglePassCompiler {
-    public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".js" };
-
-    public override string TargetLanguage => "JavaScript";
-    public override string TargetExtension => "js";
-
-    public override bool SupportsInMemoryCompilation => true;
-    public override bool TextualTargetIsExecutable => true;
-
-    public override IReadOnlySet<string> SupportedNativeTypes =>
-      new HashSet<string>(new List<string> { "number" });
+  class JavaScriptCompiler : SinglePassCompiler {
+    public JavaScriptCompiler(ErrorReporter reporter) : base(reporter) {
+    }
 
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
       Feature.MethodSynthesis,
@@ -740,7 +732,7 @@ namespace Microsoft.Dafny.Compilers {
       if (xType is BoolType) {
         return "_dafny.Rtd_bool";
       } else if (xType is CharType) {
-        return "_dafny.Rtd_char";
+        return UnicodeCharEnabled ? "_dafny.Rtd_codepoint" : "_dafny.Rtd_char";
       } else if (xType is IntType) {
         return "_dafny.Rtd_int";
       } else if (xType is BigOrdinalType) {
@@ -903,7 +895,7 @@ namespace Microsoft.Dafny.Compilers {
       if (xType is BoolType) {
         return "false";
       } else if (xType is CharType) {
-        return CharType.DefaultValueAsString;
+        return $"{CharFromNumberMethodName()}({CharType.DefaultValueAsString}.codePointAt(0))";
       } else if (xType is IntType || xType is BigOrdinalType) {
         return IntegerLiteral(0);
       } else if (xType is RealType) {
@@ -963,7 +955,7 @@ namespace Microsoft.Dafny.Compilers {
             if (arrayClass.Dims == 1) {
               return "[]";
             } else {
-              return string.Format("_dafny.newArray(undefined, {0})", Util.Comma(arrayClass.Dims, _ => "0"));
+              return string.Format("_dafny.newArray(undefined, {0})", Util.Comma(arrayClass.Dims, _ => "_dafny.ZERO"));
             }
           } else {
             // non-null (non-array) type
@@ -1225,8 +1217,9 @@ namespace Microsoft.Dafny.Compilers {
       return startWr;
     }
 
-    protected override ConcreteSyntaxTree CreateForLoop(string indexVar, string bound, ConcreteSyntaxTree wr) {
-      return wr.NewNamedBlock("for (let {0} = 0; {0} < {1}; {0}++)", indexVar, bound);
+    protected override ConcreteSyntaxTree CreateForLoop(string indexVar, string bound, ConcreteSyntaxTree wr, string start = null) {
+      start = start ?? "0";
+      return wr.NewNamedBlock("for (let {0} = {2}; {0} < {1}; {0}++)", indexVar, bound, start);
     }
 
     protected override ConcreteSyntaxTree CreateDoublingForLoop(string indexVar, int start, ConcreteSyntaxTree wr) {
@@ -1301,26 +1294,18 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitNewArray(Type elmtType, IToken tok, List<Expression> dimensions,
-        bool mustInitialize, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      var initValue = mustInitialize ? DefaultValue(elmtType, wr, tok, true) : null;
+    protected override void EmitNewArray(Type elementType, IToken tok, List<string> dimensions,
+        bool mustInitialize, [CanBeNull] string exampleElement, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      var initValue = mustInitialize ? DefaultValue(elementType, wr, tok, true) : null;
       if (dimensions.Count == 1) {
         // handle the common case of 1-dimensional arrays separately
-        wr.Write("Array(");
-        TrParenExpr(dimensions[0], wr, false, wStmts);
-        wr.Write(".toNumber())");
+        wr.Write($"Array(({dimensions[0]}).toNumber())");
         if (initValue != null) {
           wr.Write(".fill({0})", initValue);
         }
       } else {
         // the general case
-        wr.Write("_dafny.newArray({0}", initValue ?? "undefined");
-        foreach (var dim in dimensions) {
-          wr.Write(", ");
-          TrParenExpr(dim, wr, false, wStmts);
-          wr.Write(".toNumber()");
-        }
-        wr.Write(")");
+        wr.Write("_dafny.newArray({0}, {1})", initValue ?? "undefined", dimensions.Comma(s => s));
       }
     }
 
@@ -1745,6 +1730,14 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    protected override ConcreteSyntaxTree ExprToInt(Type fromType, ConcreteSyntaxTree wr) {
+      if (AsNativeType(fromType) == null) {
+        return wr;
+      }
+      wr.Write("BigNumber");
+      return wr.ForkInParens();
+    }
+
     protected override ConcreteSyntaxTree EmitArraySelect(List<string> indices, Type elmtType, ConcreteSyntaxTree wr) {
       var w = wr.Fork();
       if (indices.Count == 1) {
@@ -1777,11 +1770,9 @@ namespace Microsoft.Dafny.Compilers {
       return w;
     }
 
-    protected override string ArrayIndexToInt(string arrayIndex, Type fromType) {
-      return string.Format("new BigNumber({0})", arrayIndex);
-    }
+    protected override string ArrayIndexToInt(string arrayIndex) => $"new BigNumber({arrayIndex})";
 
-    protected override void EmitExprAsInt(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    protected override void EmitExprAsNativeInt(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       TrParenExpr(expr, wr, inLetExprBody, wStmts);
       if (AsNativeType(expr.Type) == null) {
         wr.Write(".toNumber()");
@@ -2501,80 +2492,10 @@ namespace Microsoft.Dafny.Compilers {
       elseBlock.WriteLine("throw e");
     }
 
-    // ----- Target compilation and execution -------------------------------------------------------------
-
-    public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
-      bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
-      compilationResult = null;
-      if (runAfterCompile) {
-        Contract.Assert(callToMain != null);  // this is part of the contract of CompileTargetProgram
-        // Since the program is to be run soon, nothing further is done here. Any compilation errors (that is, any errors
-        // in the emitted program--this should never happen if the compiler itself is correct) will be reported as 'node'
-        // will run the program.
-        return true;
-      } else {
-        // compile now
-        return SendToNewNodeProcess(dafnyProgramName, targetProgramText, null, targetFilename, otherFileNames, outputWriter);
-      }
-    }
-
-    public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string targetFilename, ReadOnlyCollection<string> otherFileNames,
-      object compilationResult, TextWriter outputWriter) {
-
-      return SendToNewNodeProcess(dafnyProgramName, targetProgramText, callToMain, targetFilename, otherFileNames, outputWriter);
-    }
-
     public string ToStringLiteral(string s) {
       var wr = new ConcreteSyntaxTree();
       EmitStringLiteral(s, false, wr);
       return wr.ToString();
-    }
-
-    bool SendToNewNodeProcess(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string targetFilename, ReadOnlyCollection<string> otherFileNames,
-      TextWriter outputWriter) {
-      Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
-
-      var psi = new ProcessStartInfo("node", "") {
-        RedirectStandardInput = true,
-        StandardInputEncoding = Encoding.UTF8,
-        RedirectStandardOutput = true,
-        RedirectStandardError = true,
-      };
-
-      try {
-        Process nodeProcess = Process.Start(psi);
-        foreach (var filename in otherFileNames) {
-          WriteFromFile(filename, nodeProcess.StandardInput);
-        }
-        nodeProcess.StandardInput.Write(targetProgramText);
-        if (callToMain != null && DafnyOptions.O.RunAfterCompile) {
-          nodeProcess.StandardInput.WriteLine("require('process').stdout.setEncoding(\"utf-8\");");
-          nodeProcess.StandardInput.WriteLine("require('process').argv = [\"node\",\"stdin\", " + string.Join(",", DafnyOptions.O.MainArgs.Select(ToStringLiteral)) + "];");
-          nodeProcess.StandardInput.Write(callToMain);
-        }
-        nodeProcess.StandardInput.Flush();
-        nodeProcess.StandardInput.Close();
-        // Fixes a problem of Node on Windows, where Node does not prints to the parent console its standard outputs.
-        var errorProcessing = Task.Run(() => {
-          PassthroughBuffer(nodeProcess.StandardError, Console.Error);
-        });
-        PassthroughBuffer(nodeProcess.StandardOutput, Console.Out);
-        nodeProcess.WaitForExit();
-        errorProcessing.Wait();
-        return nodeProcess.ExitCode == 0;
-      } catch (System.ComponentModel.Win32Exception e) {
-        outputWriter.WriteLine("Error: Unable to start node.js ({0}): {1}", psi.FileName, e.Message);
-        return false;
-      }
-    }
-
-    // We read character by character because we did not find a way to ensure
-    // final newlines are kept when reading line by line
-    private static void PassthroughBuffer(TextReader input, TextWriter output) {
-      int current;
-      while ((current = input.Read()) != -1) {
-        output.Write((char)current);
-      }
     }
   }
 }

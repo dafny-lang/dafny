@@ -3924,7 +3924,7 @@ namespace Microsoft.Dafny {
       // Finally, of the big-enough native types, pick the first one that is
       // supported by the selected target compiler.
       foreach (var nativeT in bigEnoughNativeTypes) {
-        if (DafnyOptions.O.Compiler.SupportedNativeTypes.Contains(nativeT.Name)) {
+        if (DafnyOptions.O.Backend.SupportedNativeTypes.Contains(nativeT.Name)) {
           dd.NativeType = nativeT;
           break;
         }
@@ -6662,7 +6662,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(resolutionContext != null);
 
       nestedMatchExpr.Resolve(this, resolutionContext);
-      this.SolveAllTypeConstraints();
     }
 
     void ResolveMatchExpr(MatchExpr me, ResolutionContext resolutionContext) {

@@ -24,27 +24,12 @@ namespace ExtensionMethods {
 }
 
 namespace Microsoft.Dafny.Compilers {
-  public class PythonCompiler : SinglePassCompiler {
-    public override void OnPreCompile(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
-      base.OnPreCompile(reporter, otherFileNames);
-      if (DafnyOptions.O.CoverageLegendFile != null) {
+  class PythonCompiler : SinglePassCompiler {
+    public PythonCompiler(ErrorReporter reporter) : base(reporter) {
+      if (DafnyOptions.O?.CoverageLegendFile != null) {
         Imports.Add("DafnyProfiling");
       }
     }
-    public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".py" };
-
-    public override string TargetLanguage => "Python";
-    public override string TargetExtension => "py";
-    public override int TargetIndentSize => 4;
-
-    public override string TargetBaseDir(string dafnyProgramName) =>
-      $"{Path.GetFileNameWithoutExtension(dafnyProgramName)}-py";
-
-    public override bool SupportsInMemoryCompilation => false;
-    public override bool TextualTargetIsExecutable => true;
-
-    public override IReadOnlySet<string> SupportedNativeTypes =>
-      new HashSet<string> { "byte", "sbyte", "ushort", "short", "uint", "int", "number", "ulong", "long" };
 
     private readonly List<string> Imports = new() { DafnyDefaultModule };
 
@@ -58,6 +43,7 @@ namespace Microsoft.Dafny.Compilers {
     const string DafnySetClass = $"{DafnyRuntimeModule}.Set";
     const string DafnyMultiSetClass = $"{DafnyRuntimeModule}.MultiSet";
     const string DafnySeqClass = $"{DafnyRuntimeModule}.Seq";
+    private string DafnySeqMakerFunction => UnicodeCharEnabled ? $"{DafnyRuntimeModule}.SeqWithoutIsStrInference" : DafnySeqClass;
     const string DafnyArrayClass = $"{DafnyRuntimeModule}.Array";
     const string DafnyMapClass = $"{DafnyRuntimeModule}.Map";
     const string DafnyDefaults = $"{DafnyRuntimeModule}.defaults";
@@ -569,7 +555,7 @@ namespace Microsoft.Dafny.Compilers {
         var x when x.IsBuiltinArrowType => $"{DafnyDefaults}.pointer",
         // unresolved proxy; just treat as bool, since no particular type information is apparently needed for this type
         BoolType or TypeProxy => $"{DafnyDefaults}.bool",
-        CharType => $"{DafnyDefaults}.char",
+        CharType => UnicodeCharEnabled ? $"{DafnyDefaults}.codepoint" : $"{DafnyDefaults}.char",
         IntType or BitvectorType => $"{DafnyDefaults}.int",
         RealType => $"{DafnyDefaults}.real",
         SeqType or SetType or MultiSetType or MapType => CollectionTypeDescriptor(),
@@ -684,7 +670,7 @@ namespace Microsoft.Dafny.Compilers {
         case BoolType:
           return "False";
         case CharType:
-          return CharType.DefaultValueAsString;
+          return UnicodeCharEnabled ? $"{DafnyRuntimeModule}.CodePoint({CharType.DefaultValueAsString})" : CharType.DefaultValueAsString;
         case IntType or BigOrdinalType or BitvectorType:
           return "int(0)";
         case RealType:
@@ -924,8 +910,9 @@ namespace Microsoft.Dafny.Compilers {
       return wBody;
     }
 
-    protected override ConcreteSyntaxTree CreateForLoop(string indexVar, string bound, ConcreteSyntaxTree wr) {
-      return wr.NewBlockPy($"for {indexVar} in range({bound}):");
+    protected override ConcreteSyntaxTree CreateForLoop(string indexVar, string bound, ConcreteSyntaxTree wr, string start = null) {
+      var lowerBound = start == null ? "" : start + ", ";
+      return wr.NewBlockPy($"for {indexVar} in range({lowerBound}{bound}):");
     }
 
     protected override ConcreteSyntaxTree CreateDoublingForLoop(string indexVar, int start, ConcreteSyntaxTree wr) {
@@ -973,15 +960,10 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(")");
     }
 
-    protected override void EmitNewArray(Type elmtType, IToken tok, List<Expression> dimensions, bool mustInitialize,
-        ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      var initValue = mustInitialize ? DefaultValue(elmtType, wr, tok, true) : "None";
-      wr.Write($"{DafnyArrayClass}({initValue}");
-      foreach (var dim in dimensions) {
-        wr.Write(", ");
-        TrExpr(dim, wr, false, wStmts);
-      }
-      wr.Write(")");
+    protected override void EmitNewArray(Type elementType, IToken tok, List<string> dimensions,
+      bool mustInitialize, [CanBeNull] string exampleElement, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      var initValue = mustInitialize ? DefaultValue(elementType, wr, tok, true) : "None";
+      wr.Write($"{DafnyArrayClass}({initValue}, {dimensions.Comma(s => s)})");
     }
 
     protected static string TranslateEscapes(string s) {
@@ -1004,14 +986,11 @@ namespace Microsoft.Dafny.Compilers {
           break;
         case StringLiteralExpr str:
           if (UnicodeCharEnabled) {
-            wr.Write($"{DafnyRuntimeModule}.Seq(map({DafnyRuntimeModule}.CodePoint, ");
+            wr.Write($"{DafnySeqMakerFunction}(map({DafnyRuntimeModule}.CodePoint, ");
             TrStringLiteral(str, wr);
-            // We pass str = None if --unicode-char is true because we no longer
-            // attempt to dynamically track what sequence values are actually strings
-            // with that flag enabled, and we don't want Seq trying to be clever about it.
-            wr.Write("), isStr = None)");
+            wr.Write("))");
           } else {
-            wr.Write($"{DafnyRuntimeModule}.Seq(");
+            wr.Write($"{DafnySeqMakerFunction}(");
             TrStringLiteral(str, wr);
             wr.Write(")");
           }
@@ -1304,7 +1283,7 @@ namespace Microsoft.Dafny.Compilers {
       return EmitArraySelect(strings.ToList(), elmtType, wr);
     }
 
-    protected override void EmitExprAsInt(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr,
+    protected override void EmitExprAsNativeInt(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr,
       ConcreteSyntaxTree wStmts) {
       // This is also used for bit shift operators, or more generally any binary operation where CompileBinOp()
       // sets the convertE1_to_int out parameter to true. This compiler always sets that to false, however,
@@ -1332,19 +1311,20 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitSeqSelectRange(Expression source, Expression lo, Expression hi, bool fromArray,
       bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      wr.Write($"{DafnySeqClass}(");
+      wr.Write($"{DafnySeqMakerFunction}(");
       TrParenExpr(source, wr, inLetExprBody, wStmts);
       wr.Write("[");
       if (lo != null) { TrExpr(lo, wr, inLetExprBody, wStmts); }
       wr.Write(":");
       if (hi != null) { TrExpr(hi, wr, inLetExprBody, wStmts); }
+
       wr.Write(":])");
     }
 
     protected override void EmitSeqConstructionExpr(SeqConstructionExpr expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       ConcreteSyntaxTree valueExpression;
       var range = $"range({Expr(expr.N, inLetExprBody, wStmts)})";
-      wr.Write(DafnySeqClass);
+      wr.Write(DafnySeqMakerFunction);
       if (expr.Initializer is LambdaExpr lam) {
         valueExpression = Expr(lam.Body, inLetExprBody, wStmts);
         var binder = IdProtect(lam.BoundVars[0].CompileName);
@@ -1483,7 +1463,7 @@ namespace Microsoft.Dafny.Compilers {
 
         case BinaryExpr.ResolvedOpcode.Add:
         case BinaryExpr.ResolvedOpcode.Concat:
-          if (resultType.IsCharType) {
+          if (resultType.IsCharType && !UnicodeCharEnabled) {
             staticCallString = $"{DafnyRuntimeModule}.plus_char";
           } else {
             if (resultType.IsNumericBased() || resultType.IsBitVectorType || resultType.IsBigOrdinalType) {
@@ -1497,7 +1477,7 @@ namespace Microsoft.Dafny.Compilers {
         case BinaryExpr.ResolvedOpcode.SetDifference:
         case BinaryExpr.ResolvedOpcode.MultiSetDifference:
         case BinaryExpr.ResolvedOpcode.MapSubtraction:
-          if (resultType.IsCharType) {
+          if (resultType.IsCharType && !UnicodeCharEnabled) {
             staticCallString = $"{DafnyRuntimeModule}.minus_char";
           } else {
             if (resultType.IsNumericBased() || resultType.IsBitVectorType || resultType.IsBigOrdinalType) {
@@ -1665,7 +1645,7 @@ namespace Microsoft.Dafny.Compilers {
         SeqType or MultiSetType => ("[", "]"),
         _ => ("{", "}")
       };
-      wr.Write(TypeHelperName(ct));
+      wr.Write(ct is SeqType ? DafnySeqMakerFunction : TypeHelperName(ct));
       wr.Write("(");
       wr.Write(open);
       TrExprList(elements, wr, inLetExprBody, wStmts, parens: false);
@@ -1759,66 +1739,6 @@ namespace Microsoft.Dafny.Compilers {
       var exceptBlock = wr.NewBlockPy($"except {DafnyRuntimeModule}.HaltException as e:");
       exceptBlock.WriteLine($"{IdProtect(haltMessageVarName)} = e.message");
       TrStmt(recoveryBody, exceptBlock);
-    }
-
-    private static readonly Regex ModuleLine = new(@"^\s*assert\s+""([a-zA-Z0-9_]+)""\s*==\s*__name__\s*$");
-
-    private static string FindModuleName(string externFilename) {
-      using var rd = new StreamReader(new FileStream(externFilename, FileMode.Open, FileAccess.Read));
-      while (rd.ReadLine() is { } line) {
-        var match = ModuleLine.Match(line);
-        if (match.Success) {
-          rd.Close();
-          return match.Groups[1].Value;
-        }
-      }
-      rd.Close();
-      if (externFilename.EndsWith(".py")) {
-        return externFilename.Substring(0, externFilename.Length - 3);
-      }
-      return null;
-    }
-
-    static bool CopyExternLibraryIntoPlace(string externFilename, string mainProgram, TextWriter outputWriter) {
-      // Grossly, we need to look in the file to figure out where to put it
-      var moduleName = FindModuleName(externFilename);
-      if (moduleName == null) {
-        outputWriter.WriteLine($"Unable to determine module name: {externFilename}");
-        return false;
-      }
-      var mainDir = Path.GetDirectoryName(mainProgram);
-      Contract.Assert(mainDir != null);
-      var tgtFilename = Path.Combine(mainDir, moduleName + ".py");
-      var file = new FileInfo(externFilename);
-      file.CopyTo(tgtFilename, true);
-      if (DafnyOptions.O.CompileVerbose) {
-        outputWriter.WriteLine($"Additional input {externFilename} copied to {tgtFilename}");
-      }
-      return true;
-    }
-
-    public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText,
-        string /*?*/ callToMain, string /*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
-        bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
-      compilationResult = null;
-      foreach (var otherFileName in otherFileNames) {
-        if (Path.GetExtension(otherFileName) != ".py") {
-          outputWriter.WriteLine($"Unrecognized file as extra input for Python compilation: {otherFileName}");
-          return false;
-        }
-        if (!CopyExternLibraryIntoPlace(otherFileName, targetFilename, outputWriter)) {
-          return false;
-        }
-      }
-      return true;
-    }
-
-    public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string /*?*/ callToMain,
-      string targetFilename, ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
-      Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
-      var psi = PrepareProcessStartInfo("python3", DafnyOptions.O.MainArgs.Prepend(targetFilename));
-      psi.EnvironmentVariables["PYTHONIOENCODING"] = "utf8";
-      return 0 == RunProcess(psi, outputWriter);
     }
   }
 }

@@ -11,12 +11,7 @@ using System.Linq;
 using System.Numerics;
 using System.IO;
 using System.Diagnostics.Contracts;
-using System.Reflection;
-using System.Collections.ObjectModel;
 using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis;
-using System.Runtime.Loader;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 using Microsoft.BaseTypes;
@@ -24,12 +19,6 @@ using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
 namespace Microsoft.Dafny.Compilers {
   public class CsharpCompiler : SinglePassCompiler {
-    public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".cs", ".dll" };
-
-    public override string TargetLanguage => "C#";
-    public override string TargetExtension => "cs";
-
-    // True if the most recently visited AST has a method annotated with {:synthesize}:
     protected bool Synthesize = false;
 
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
@@ -37,13 +26,8 @@ namespace Microsoft.Dafny.Compilers {
       Feature.TuplesWiderThan20
     };
 
-    public override string GetCompileName(bool isDefaultModule, string moduleName, string compileName) {
-      return isDefaultModule ? PublicIdProtect(compileName) :
-        base.GetCompileName(isDefaultModule, moduleName, compileName);
+    public CsharpCompiler(ErrorReporter reporter) : base(reporter) {
     }
-
-    public override bool SupportsInMemoryCompilation => true;
-    public override bool TextualTargetIsExecutable => false;
 
     const string DafnyISet = "Dafny.ISet";
     const string DafnyIMultiset = "Dafny.IMultiSet";
@@ -1475,6 +1459,7 @@ namespace Microsoft.Dafny.Compilers {
     // To improve readability
     private static bool CharIsRune => UnicodeCharEnabled;
     private static string CharTypeName => UnicodeCharEnabled ? "Dafny.Rune" : "char";
+    private static string CharTypeDescriptorName => DafnyHelpersClass + (UnicodeCharEnabled ? ".RUNE" : ".CHAR");
 
     private void ConvertFromChar(Expression e, ConcreteSyntaxTree wr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
       if (e.Type.IsCharType && UnicodeCharEnabled) {
@@ -1529,7 +1514,7 @@ namespace Microsoft.Dafny.Compilers {
       if (xType is BoolType) {
         return "false";
       } else if (xType is CharType) {
-        return CharType.DefaultValueAsString;
+        return UnicodeCharEnabled ? $"new {CharTypeName}({CharType.DefaultValueAsString})" : CharType.DefaultValueAsString;
       } else if (xType is IntType || xType is BigOrdinalType) {
         return "BigInteger.Zero";
       } else if (xType is RealType) {
@@ -1650,7 +1635,7 @@ namespace Microsoft.Dafny.Compilers {
       if (type is BoolType) {
         return "Dafny.Helpers.BOOL";
       } else if (type is CharType) {
-        return "Dafny.Helpers.CHAR";
+        return CharTypeDescriptorName;
       } else if (type is IntType || type is BigOrdinalType) {
         return "Dafny.Helpers.INT";
       } else if (type is RealType) {
@@ -1930,8 +1915,9 @@ namespace Microsoft.Dafny.Compilers {
       return startWr;
     }
 
-    protected override ConcreteSyntaxTree CreateForLoop(string indexVar, string bound, ConcreteSyntaxTree wr) {
-      return wr.NewNamedBlock("for (var {0} = 0; {0} < {1}; {0}++)", indexVar, bound);
+    protected override ConcreteSyntaxTree CreateForLoop(string indexVar, string bound, ConcreteSyntaxTree wr, string start = null) {
+      start = start ?? "0";
+      return wr.NewNamedBlock("for (var {0} = {2}; {0} < {1}; {0}++)", indexVar, bound, start);
     }
 
     protected override ConcreteSyntaxTree CreateDoublingForLoop(string indexVar, int start, ConcreteSyntaxTree wr) {
@@ -2000,37 +1986,30 @@ namespace Microsoft.Dafny.Compilers {
       arguments.Write(ConstructorArguments(initCall, wStmts, ctor, sep));
     }
 
-    // if checkRange is false, msg is ignored
-    // if checkRange is true and msg is null and the value is out of range, a generic message is emitted
-    // if checkRange is true and msg is not null and the value is out of range, msg is emitted in the error message
-    protected void TrExprAsInt(Expression expr, ConcreteSyntaxTree wr, bool inLetExprBody, ConcreteSyntaxTree wStmts,
-        bool checkRange = false, string msg = null) {
-      wr.Write($"{GetHelperModuleName()}.ToIntChecked(");
-      TrExpr(expr, wr, inLetExprBody, wStmts);
-      if (checkRange) {
-        wr.Write(msg == null ? ", null" : $", \"{msg}\")");
-      }
-    }
-
-    protected override void EmitNewArray(Type elmtType, IToken tok, List<Expression> dimensions,
-        bool mustInitialize, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      var wrs = EmitNewArray(elmtType, tok, dimensions.Count, mustInitialize, wr);
+    protected override void EmitNewArray(Type elementType, IToken tok, List<string> dimensions,
+        bool mustInitialize, [CanBeNull] string exampleElement, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      var wrs = EmitNewArray(elementType, tok, dimensions.Count, mustInitialize, wr);
       for (var i = 0; i < wrs.Count; i++) {
-        TrExprAsInt(dimensions[i], wrs[i], inLetExprBody: false, wStmts, true, "C# arrays may not be larger than the max 32-bit integer");
+        wrs[i].Write(dimensions[i]);
       }
     }
 
     private List<ConcreteSyntaxTree> EmitNewArray(Type elmtType, IToken tok, int dimCount, bool mustInitialize, ConcreteSyntaxTree wr) {
+      ConcreteSyntaxTree EmitSizeCheckWrapper(ConcreteSyntaxTree w) {
+        w.Write($"{DafnyHelpersClass}.ToIntChecked(");
+        var wSize = w.Fork();
+        w.Write(", \"array size exceeds memory limit\")");
+        return wSize;
+      }
+
       var wrs = new List<ConcreteSyntaxTree>();
       if (!mustInitialize || HasSimpleZeroInitializer(elmtType)) {
         TypeName_SplitArrayName(elmtType, wr, tok, out string typeNameSansBrackets, out string brackets);
         wr.Write("new {0}", typeNameSansBrackets);
         string prefix = "[";
         for (var d = 0; d < dimCount; d++) {
-          wr.Write($"{prefix}{DafnyHelpersClass}.ToIntChecked(");
-          var w = wr.Fork();
-          wrs.Add(w);
-          wr.Write(",\"C# array size must not be larger than max 32-bit int\")");
+          wr.Write(prefix);
+          wrs.Add(EmitSizeCheckWrapper(wr));
           prefix = ", ";
         }
         wr.Write("]{0}", brackets);
@@ -2040,8 +2019,7 @@ namespace Microsoft.Dafny.Compilers {
         inParens.Write(DefaultValue(elmtType, inParens, tok, true));
         for (var d = 0; d < dimCount; d++) {
           inParens.Write(", ");
-          var w = inParens.Fork();
-          wrs.Add(w);
+          wrs.Add(EmitSizeCheckWrapper(inParens));
         }
       }
       return wrs;
@@ -2109,9 +2087,10 @@ namespace Microsoft.Dafny.Compilers {
       } else if (e is StringLiteralExpr str) {
         wr.Format($"{DafnySeqClass}<{CharTypeName}>.{CharMethodQualifier}FromString({StringLiteral(str)})");
       } else if (AsNativeType(e.Type) != null) {
-        string nativeName = null, literalSuffix = null;
-        bool needsCastAfterArithmetic = false;
-        GetNativeInfo(AsNativeType(e.Type).Sel, out nativeName, out literalSuffix, out needsCastAfterArithmetic);
+        GetNativeInfo(AsNativeType(e.Type).Sel, out var nativeName, out var literalSuffix, out var needsCastAfterArithmetic);
+        if (needsCastAfterArithmetic) {
+          wr = wr.Write($"({nativeName})").ForkInParens();
+        }
         wr.Write((BigInteger)e.Value + literalSuffix);
       } else if (e.Value is BigInteger bigInteger) {
         EmitIntegerLiteral(bigInteger, wr);
@@ -2159,9 +2138,8 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, ConcreteSyntaxTree wr) {
       string nativeName = null, literalSuffix = null;
-      bool needsCastAfterArithmetic = false;
       if (bvType.NativeType != null) {
-        GetNativeInfo(bvType.NativeType.Sel, out nativeName, out literalSuffix, out needsCastAfterArithmetic);
+        GetNativeInfo(bvType.NativeType.Sel, out nativeName, out literalSuffix, out var needsCastAfterArithmetic);
       }
 
       // --- Before
@@ -2597,7 +2575,7 @@ namespace Microsoft.Dafny.Compilers {
       return w;
     }
 
-    protected override void EmitExprAsInt(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    protected override void EmitExprAsNativeInt(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       TrParenExpr("(int)", expr, wr, inLetExprBody, wStmts);
     }
 
@@ -2710,7 +2688,7 @@ namespace Microsoft.Dafny.Compilers {
         ixVar, TypeName(indexType, wrLoopBody, body.tok), intIxVar);
       var wrArrName = EmitArrayUpdate(new List<string> { ixVar }, body, wrLoopBody);
       wrArrName.Write(arrVar);
-      wrLoopBody.WriteLine(";");
+      EndStmt(wrLoopBody);
 
       wrLamBody.WriteLine("return {0}<{1}>.FromArray({2});", DafnySeqClass, TypeName(body.Type, wr, body.tok), arrVar);
     }
@@ -3233,160 +3211,6 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       wr.Write($"{DafnyHelpersClass}.SingleValue<{type}>");
       TrParenExpr(e, wr, inLetExprBody, wStmts);
-    }
-
-    // ----- Target compilation and execution -------------------------------------------------------------
-
-    private class CSharpCompilationResult {
-      public Assembly CompiledAssembly;
-    }
-
-    public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
-      bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
-
-      compilationResult = null;
-
-      // .NET Core does not allow C# compilation on all platforms using System.CodeDom. You need to use Roslyn libraries. Context: https://github.com/dotnet/runtime/issues/18768
-      var compilation = CSharpCompilation.Create(Path.GetFileNameWithoutExtension(dafnyProgramName))
-        .WithOptions(new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary))
-        .AddReferences(
-          MetadataReference.CreateFromFile(typeof(object).GetTypeInfo().Assembly.Location),
-          MetadataReference.CreateFromFile(Assembly.Load("mscorlib").Location));
-
-      var inMemory = runAfterCompile;
-      compilation = compilation.WithOptions(compilation.Options.WithOutputKind(callToMain != null ? OutputKind.ConsoleApplication : OutputKind.DynamicallyLinkedLibrary));
-
-      var tempCompilationResult = new CSharpCompilationResult();
-      var libPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-      if (DafnyOptions.O.UseRuntimeLib) {
-        compilation = compilation.AddReferences(MetadataReference.CreateFromFile(Path.Join(libPath, "DafnyRuntime.dll")));
-        compilation = compilation.AddReferences(MetadataReference.CreateFromFile(Assembly.Load("netstandard").Location));
-      }
-
-      var standardLibraries = new List<string>() {
-        "System.Runtime",
-        "System.Runtime.Numerics",
-        "System.Collections",
-        "System.Collections.Immutable",
-        "System.Console"
-      };
-      compilation = compilation.AddReferences(standardLibraries.Select(fileName => MetadataReference.CreateFromFile(Assembly.Load(fileName).Location)));
-
-      if (DafnyOptions.O.Optimize) {
-        compilation = compilation.WithOptions(compilation.Options.WithOptimizationLevel(
-          DafnyOptions.O.Optimize ? OptimizationLevel.Release : OptimizationLevel.Debug));
-      }
-
-      var otherSourceFiles = new List<string>();
-      foreach (var file in otherFileNames) {
-        string extension = Path.GetExtension(file);
-        if (extension != null) { extension = extension.ToLower(); }
-        if (extension == ".cs") {
-          var normalizedPath = Path.Combine(Path.GetDirectoryName(file), Path.GetFileName(file));
-          if (File.Exists(normalizedPath)) {
-            otherSourceFiles.Add(normalizedPath);
-          } else {
-            outputWriter.WriteLine("Errors compiling program: Could not find {0}", file);
-            return false;
-          }
-        } else if (extension == ".dll") {
-          compilation = compilation.AddReferences(MetadataReference.CreateFromFile(Path.GetFullPath(file)));
-        }
-      }
-
-      var source = callToMain == null ? targetProgramText : targetProgramText + callToMain;
-      compilation = compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(source));
-      foreach (var sourceFile in otherSourceFiles) {
-        compilation = compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(File.ReadAllText(sourceFile)));
-      }
-      var outputDir = targetFilename == null ? Directory.GetCurrentDirectory() : Path.GetDirectoryName(Path.GetFullPath(targetFilename));
-      var outputPath = Path.Join(outputDir, Path.GetFileNameWithoutExtension(Path.GetFileName(dafnyProgramName)) + ".dll");
-      var outputJson = Path.Join(outputDir, Path.GetFileNameWithoutExtension(Path.GetFileName(dafnyProgramName)) + ".runtimeconfig.json");
-      if (inMemory) {
-        using var stream = new MemoryStream();
-        var emitResult = compilation.Emit(stream);
-        if (emitResult.Success) {
-          tempCompilationResult.CompiledAssembly = Assembly.Load(stream.GetBuffer());
-        } else {
-          outputWriter.WriteLine("Errors compiling program:");
-          var errors = emitResult.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
-          foreach (var ce in errors) {
-            outputWriter.WriteLine(ce.ToString());
-            outputWriter.WriteLine();
-          }
-          return false;
-        }
-      } else {
-        var emitResult = compilation.Emit(outputPath);
-
-        if (emitResult.Success) {
-          tempCompilationResult.CompiledAssembly = Assembly.LoadFile(outputPath);
-          if (DafnyOptions.O.CompileVerbose) {
-            outputWriter.WriteLine("Compiled assembly into {0}.dll", compilation.AssemblyName);
-          }
-          try {
-            var configuration = JsonSerializer.Serialize(
-              new {
-                runtimeOptions = new {
-                  tfm = "net6.0",
-                  framework = new {
-                    name = "Microsoft.NETCore.App",
-                    version = "6.0.0",
-                    rollForward = "LatestMinor"
-                  }
-                }
-              }, new JsonSerializerOptions() { WriteIndented = true });
-            File.WriteAllText(outputJson, configuration + Environment.NewLine);
-          } catch (Exception e) {
-            outputWriter.WriteLine($"Error trying to write '{outputJson}': {e.Message}");
-            return false;
-          }
-        } else {
-          outputWriter.WriteLine("Errors compiling program into {0}", compilation.AssemblyName);
-          var errors = emitResult.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
-          foreach (var ce in errors) {
-            outputWriter.WriteLine(ce.ToString());
-            outputWriter.WriteLine();
-          }
-          return false;
-        }
-      }
-
-      compilationResult = tempCompilationResult;
-      return true;
-    }
-
-    public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
-      object compilationResult, TextWriter outputWriter) {
-
-      var crx = (CSharpCompilationResult)compilationResult;
-
-      foreach (var otherFileName in otherFileNames) {
-        if (Path.GetExtension(otherFileName) == ".dll") {
-          AssemblyLoadContext.Default.LoadFromAssemblyPath(Path.GetFullPath(otherFileName));
-        }
-      }
-
-      if (crx.CompiledAssembly == null) {
-        throw new Exception("Cannot call run target program on a compilation that failed");
-      }
-      var entry = crx.CompiledAssembly.EntryPoint;
-      if (entry == null) {
-        throw new Exception("Cannot call run target on a compilation whose assembly has no entry.");
-      }
-      try {
-        Console.OutputEncoding = System.Text.Encoding.UTF8; // Force UTF-8 output in dafny run (#2999)
-        object[] parameters = entry.GetParameters().Length == 0 ? new object[] { } : new object[] { DafnyOptions.O.MainArgs.ToArray() };
-        entry.Invoke(null, parameters);
-        return true;
-      } catch (System.Reflection.TargetInvocationException e) {
-        outputWriter.WriteLine("Error: Execution resulted in exception: {0}", e.Message);
-        outputWriter.WriteLine(e.InnerException.ToString());
-      } catch (System.Exception e) {
-        outputWriter.WriteLine("Error: Execution resulted in exception: {0}", e.Message);
-        outputWriter.WriteLine(e.ToString());
-      }
-      return false;
     }
 
     private void AddTestCheckerIfNeeded(string name, Declaration decl, ConcreteSyntaxTree wr) {
