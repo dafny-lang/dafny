@@ -17,6 +17,7 @@ public interface ICommandSpec {
   public static Argument<IEnumerable<FileInfo>> FilesArgument { get; }
 
   public static IReadOnlyList<Option> VerificationOptions = new Option[] {
+    CommonOptionBag.StdIn,
     CommonOptionBag.RelaxDefiniteAssignment,
     BoogieOptionBag.VerificationTimeLimit,
     CommonOptionBag.VerifyIncludedFiles,
