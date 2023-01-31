@@ -8,7 +8,7 @@ using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
-public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
+public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFormat {
   public override string WhatKind => "function";
 
   public string FunctionDeclarationKeywords {
@@ -298,5 +298,42 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     DafnyOptions.RegisterLegacyBinding(FunctionSyntaxOption, (options, value) => {
       options.FunctionSyntax = functionSyntaxOptionsMap[value];
     });
+  }
+
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    formatter.SetMethodLikeIndent(StartToken, OwnedTokens, indentBefore);
+    if (BodyStartTok.line > 0) {
+      formatter.SetDelimiterIndentedRegions(BodyStartTok, indentBefore);
+    }
+
+    formatter.SetFormalsIndentation(Formals);
+    if (Result is { } outFormal) {
+      formatter.SetTypeIndentation(outFormal.SyntacticType);
+    }
+
+    foreach (var req in Req) {
+      formatter.SetAttributedExpressionIndentation(req, indentBefore + formatter.SpaceTab);
+    }
+
+    foreach (var frame in Reads) {
+      formatter.SetFrameExpressionIndentation(frame, indentBefore + formatter.SpaceTab);
+    }
+
+    foreach (var ens in Ens) {
+      formatter.SetAttributedExpressionIndentation(ens, indentBefore + formatter.SpaceTab);
+    }
+
+    foreach (var dec in Decreases.Expressions) {
+      formatter.SetDecreasesExpressionIndentation(dec, indentBefore + formatter.SpaceTab);
+    }
+
+    if (ByMethodBody is { } byMethodBody) {
+      formatter.SetDelimiterIndentedRegions(byMethodBody.StartToken, indentBefore);
+      formatter.SetClosingIndentedRegion(byMethodBody.EndToken, indentBefore);
+      formatter.SetStatementIndentation(byMethodBody);
+    }
+
+    formatter.SetExpressionIndentation(Body);
+    return true;
   }
 }

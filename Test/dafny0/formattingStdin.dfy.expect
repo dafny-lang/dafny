@@ -1,1 +1,1 @@
-Please use the --check or --print option as stdin cannot be formatted in place.
+Please use the --check and/or --print option as stdin cannot be formatted in place.

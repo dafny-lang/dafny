@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %baredafny format --use-basename-for-filename --check "%s" > "%t"
+// RUN: %exits-with 5 %baredafny format --use-basename-for-filename --check "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module A {

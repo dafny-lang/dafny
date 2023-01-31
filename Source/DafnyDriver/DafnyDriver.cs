@@ -40,7 +40,7 @@ namespace Microsoft.Dafny {
     }
 
     // TODO: Refactor so that non-errors (NOT_VERIFIED, DONT_PROCESS_FILES) don't result in non-zero exit codes
-    public enum ExitValue { SUCCESS = 0, PREPROCESSING_ERROR, DAFNY_ERROR, COMPILE_ERROR, VERIFICATION_ERROR }
+    public enum ExitValue { SUCCESS = 0, PREPROCESSING_ERROR, DAFNY_ERROR, COMPILE_ERROR, VERIFICATION_ERROR, FORMAT_ERROR }
 
     // Environment variables that the CLI directly or indirectly (through target language tools) reads.
     // This is defined for the benefit of testing infrastructure to ensure that they are maintained
@@ -411,15 +411,16 @@ namespace Microsoft.Dafny {
             .Select(name => new DafnyFile(name)).ToList();
       })).ToList();
 
-      var failed = new List<string>();
-      var onlyCheck = DafnyOptions.O.FormatCheck;
-      var onlyPrint = DafnyOptions.O.DafnyPrintFile == "-";
+      var failedToParseFiles = new List<string>();
+      var emptyFiles = new List<string>();
+      var doCheck = DafnyOptions.O.FormatCheck;
+      var doPrint = DafnyOptions.O.DafnyPrintFile == "-";
       DafnyOptions.O.DafnyPrintFile = null;
-      var needFormatting = 0;
+      var neededFormatting = 0;
       foreach (var file in dafnyFiles) {
         var dafnyFile = file;
-        if (dafnyFile.UseStdin && !onlyCheck && !onlyPrint) {
-          Console.Error.WriteLine("Please use the --check or --print option as stdin cannot be formatted in place.");
+        if (dafnyFile.UseStdin && !doCheck && !doPrint) {
+          Console.Error.WriteLine("Please use the --check and/or --print option as stdin cannot be formatted in place.");
           exitValue = ExitValue.DAFNY_ERROR;
           continue;
         }
@@ -433,31 +434,41 @@ namespace Microsoft.Dafny {
 
         // Might not be totally optimized but let's do that for now
         var err = Dafny.Main.Parse(new List<DafnyFile> { dafnyFile }, programName, reporter, out var dafnyProgram);
-        string originalText = dafnyFile.UseStdin ? Console.In.ReadToEnd() :
+        var originalText = dafnyFile.UseStdin ? Console.In.ReadToEnd() :
           File.ReadAllText(dafnyFile.FilePath);
         if (err != null) {
           exitValue = ExitValue.DAFNY_ERROR;
-          Console.Error.WriteLine((string?)err);
-          failed.Add(dafnyFile.BaseName);
+          Console.Error.WriteLine(err);
+          failedToParseFiles.Add(dafnyFile.BaseName);
         } else {
           var firstToken = dafnyProgram.GetFirstTopLevelToken();
           if (firstToken != null) {
             var result = Formatting.__default.ReindentProgramFromFirstToken(firstToken,
               IndentationFormatter.ForProgram(dafnyProgram));
-            if (onlyPrint) {
-              Console.Out.Write(result);
-            } else if (result != originalText) {
-              exitValue = ExitValue.DAFNY_ERROR;
-              needFormatting += 1;
-              if (onlyCheck) {
-                Console.Out.WriteLine("The file " + (DafnyOptions.O.UseBaseNameForFileName ? Path.GetFileName(dafnyFile.FilePath) : dafnyFile.FilePath) + " needs to be formatted");
-              } else {
+            if (result != originalText) {
+              neededFormatting += 1;
+              if (doCheck) {
+                exitValue = exitValue != ExitValue.DAFNY_ERROR ? ExitValue.FORMAT_ERROR : exitValue;
+              }
+
+              if (doCheck && !doPrint) {
+                Console.Out.WriteLine("The file " +
+                                      (DafnyOptions.O.UseBaseNameForFileName
+                                        ? Path.GetFileName(dafnyFile.FilePath)
+                                        : dafnyFile.FilePath) + " needs to be formatted");
+              }
+
+              if (!doCheck && !doPrint) {
                 WriteFile(dafnyFile.FilePath, result);
               }
             }
+
+            if (doPrint) {
+              Console.Out.Write(result);
+            }
           } else {
             Console.Error.WriteLine(dafnyFile.BaseName + " was empty.");
-            failed.Add((DafnyOptions.O.UseBaseNameForFileName
+            emptyFiles.Add((DafnyOptions.O.UseBaseNameForFileName
               ? Path.GetFileName(dafnyFile.FilePath)
               : dafnyFile.FilePath));
           }
@@ -465,28 +476,33 @@ namespace Microsoft.Dafny {
 
         if (tempFileName != null) {
           File.Delete(tempFileName);
-          tempFileName = null;
         }
       }
-
-      var unchanged = dafnyFiles.Count - failed.Count - needFormatting;
-      var unchangedMessage = unchanged > 0 ? $" {Files(unchanged)} were already formatted." : "";
 
       string Files(int num) {
         return num + (num != 1 ? " files" : " file");
       }
 
-      var errorMsg = failed.Count > 0
-        ? $" {Files(failed.Count)} failed to parse or were empty:\n" + string.Join("\n", failed)
-        : "";
-      if (!onlyCheck && (dafnyFiles.Count != 1 || failed.Count > 0 || needFormatting > 0)) {
-        Console.Out.WriteLine($"{Files(needFormatting)} formatted." + unchangedMessage + errorMsg);
+      // Report any errors
+      var reportMsg = "";
+      if (failedToParseFiles.Count > 0) {
+        reportMsg += $"\n{Files(failedToParseFiles.Count)} failed to parse:\n  " + string.Join("\n  ", failedToParseFiles);
+      }
+      if (emptyFiles.Count > 0) {
+        reportMsg += $"\n{Files(emptyFiles.Count)} {(emptyFiles.Count > 1 ? "were" : "was")} empty:\n  " + string.Join("\n  ", emptyFiles);
       }
 
-      if (onlyCheck) {
-        Console.Out.WriteLine(needFormatting > 0
-          ? $"Error: {Files(needFormatting)} need{(needFormatting > 1 ? "" : "s")} formatting." + unchangedMessage + errorMsg
+      var unchanged = dafnyFiles.Count - failedToParseFiles.Count - emptyFiles.Count - neededFormatting;
+      reportMsg += unchanged > 0 && (failedToParseFiles.Count > 0 || emptyFiles.Count > 0) ? $"\n{Files(unchanged)} {(unchanged > 1 ? "were" : "was")} already formatted." : "";
+      var filesNeedFormatting = neededFormatting == 0 ? "" : $"{Files(neededFormatting)} need{(neededFormatting > 1 ? "" : "s")} formatting.";
+      reportMsg = filesNeedFormatting + reportMsg;
+
+      if (doCheck) {
+        Console.Out.WriteLine(neededFormatting > 0
+          ? $"Error: {reportMsg}"
           : "All files are correctly formatted");
+      } else if (reportMsg.Length > 0) {
+        Console.Out.WriteLine($"{reportMsg}");
       }
 
       return exitValue;
