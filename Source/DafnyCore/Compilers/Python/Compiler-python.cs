@@ -1740,6 +1740,5 @@ namespace Microsoft.Dafny.Compilers {
       exceptBlock.WriteLine($"{IdProtect(haltMessageVarName)} = e.message");
       TrStmt(recoveryBody, exceptBlock);
     }
-
   }
 }

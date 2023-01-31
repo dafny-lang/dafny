@@ -2054,7 +2054,7 @@ namespace Microsoft.Dafny {
       //   (mh == ModuleContextHeight && fh <= FunctionContextHeight)
       //
       // USE_VIA_CONTEXT
-      //   fh < FunctionContextHeight &&
+      //   (mh != ModuleContextHeight || fh != FunctionContextHeight) &&
       //   GOOD_PARAMETERS
       // where GOOD_PARAMETERS means:
       //   $IsGoodHeap($Heap) && this != null && formals-have-the-expected-types &&
@@ -2157,9 +2157,10 @@ namespace Microsoft.Dafny {
       foreach (AttributedExpression req in f.Req) {
         pre = BplAnd(pre, etran.TrExpr(Substitute(req.E, null, substMap)));
       }
-      // useViaContext: fh < FunctionContextHeight
-      var visibilityLevel = f.EnclosingClass.EnclosingModuleDefinition.CallGraph.GetSCCRepresentativePredecessorCount(f.OverriddenFunction ?? f);
-      Expr useViaContext = Expr.Lt(MkFunctionHeight(visibilityLevel), etran.FunctionContextHeight());
+      // useViaContext: (mh != ModuleContextHeight || fh != FunctionContextHeight)
+      var mod = f.EnclosingClass.EnclosingModuleDefinition;
+      Bpl.Expr useViaContext = !InVerificationScope(f) ? Bpl.Expr.True :
+        (Bpl.Expr)Bpl.Expr.Neq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativePredecessorCount(f)), etran.FunctionContextHeight());
       // useViaCanCall: f#canCall(args)
       Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
       Bpl.Expr useViaCanCall = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(canCallFuncID), Concat(tyargs, args));
@@ -2254,14 +2255,15 @@ namespace Microsoft.Dafny {
       return (olderParameterCount, olderCondition);
     }
 
-    Bpl.Expr AxiomActivation(Function f, ExpressionTranslator etran, bool requiresFullScope = false) {
+    Bpl.Expr AxiomActivation(Function f, ExpressionTranslator etran) {
       Contract.Requires(f != null);
       Contract.Requires(etran != null);
       Contract.Requires(VisibleInScope(f));
+      var module = f.EnclosingClass.EnclosingModuleDefinition;
 
       if (InVerificationScope(f)) {
-        var visibilityLevel = f.EnclosingClass.EnclosingModuleDefinition.CallGraph.GetSCCRepresentativePredecessorCount(f);
-        return Expr.Le(MkFunctionHeight(visibilityLevel, !requiresFullScope), etran.FunctionContextHeight());
+        return
+          Bpl.Expr.Le(Bpl.Expr.Literal(module.CallGraph.GetSCCRepresentativePredecessorCount(f)), etran.FunctionContextHeight());
       } else {
         return Bpl.Expr.True;
       }
@@ -2301,7 +2303,7 @@ namespace Microsoft.Dafny {
       // for visibility==ForeignModuleOnly, means:
       //   GOOD_PARAMETERS
       // for visibility==IntraModuleOnly, means:
-      //   fh < FunctionContextHeight &&
+      //   fh != FunctionContextHeight &&
       //   GOOD_PARAMETERS
       // where GOOD_PARAMETERS means:
       //   $IsGoodHeap($Heap) && this != null && formals-have-the-expected-types &&
@@ -2506,11 +2508,12 @@ namespace Microsoft.Dafny {
         return null;
       }
 
-      // useViaContext: fh < FunctionContextHeight
-      var visibilityLevel = f.EnclosingClass.EnclosingModuleDefinition.CallGraph.GetSCCRepresentativePredecessorCount(f);
+      // useViaContext: (mh != ModuleContextHeight || fh != FunctionContextHeight)
+      ModuleDefinition mod = f.EnclosingClass.EnclosingModuleDefinition;
       Bpl.Expr useViaContext = !InVerificationScope(f)
-        ? Bpl.Expr.True
-        : Bpl.Expr.Lt(MkFunctionHeight(visibilityLevel), etran.FunctionContextHeight());
+        ? (Bpl.Expr)Bpl.Expr.True
+        : Bpl.Expr.Neq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativePredecessorCount(f)),
+          etran.FunctionContextHeight());
       // ante := (useViaContext && typeAnte && pre)
       ante = BplAnd(useViaContext, BplAnd(ante, pre));
 
@@ -3480,42 +3483,65 @@ namespace Microsoft.Dafny {
         builder.Add(TrAssumeCmd(f.tok, etran.TrExpr(en.E)));
       }
 
+      //generating assume J.F(ins) == C.F(ins)
+      Bpl.FunctionCall funcIdC = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, TrType(f.ResultType)));
+      Bpl.FunctionCall funcIdT = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.OverriddenFunction.tok, f.OverriddenFunction.FullSanitizedName, TrType(f.OverriddenFunction.ResultType)));
+      List<Bpl.Expr> argsC = new List<Bpl.Expr>();
+      List<Bpl.Expr> argsT = new List<Bpl.Expr>();
+      // add type arguments
+      argsT.AddRange(GetTypeArguments(f.OverriddenFunction, f).ConvertAll(TypeToTy));
+      argsC.AddRange(GetTypeArguments(f, null).ConvertAll(TypeToTy));
+      // add fuel arguments
+      if (f.IsFuelAware()) {
+        argsC.Add(etran.layerInterCluster.GetFunctionFuel(f));
+      }
+      if (f.OverriddenFunction.IsFuelAware()) {
+        argsT.Add(etran.layerInterCluster.GetFunctionFuel(f));
+      }
+      // add heap arguments
+      if (f is TwoStateFunction) {
+        argsC.Add(etran.Old.HeapExpr);
+        argsT.Add(etran.Old.HeapExpr);
+      }
+      if (AlwaysUseHeap || f.ReadsHeap) {
+        argsC.Add(etran.HeapExpr);
+      }
+      if (AlwaysUseHeap || f.OverriddenFunction.ReadsHeap) {
+        argsT.Add(etran.HeapExpr);
+      }
+      // add "ordinary" parameters (including "this", if any)
+      var prefixCount = implInParams.Count - f.Formals.Count;
+      for (var i = 0; i < implInParams.Count; i++) {
+        Bpl.Expr cParam = new Bpl.IdentifierExpr(f.tok, implInParams[i]);
+        Bpl.Expr tParam = new Bpl.IdentifierExpr(f.OverriddenFunction.tok, implInParams[i]);
+        if (prefixCount <= i && ModeledAsBoxType(f.OverriddenFunction.Formals[i - prefixCount].Type)) {
+          tParam = BoxIfNecessary(f.tok, tParam, f.Formals[i - prefixCount].Type);
+        }
+        argsC.Add(cParam);
+        argsT.Add(tParam);
+      }
+      Bpl.Expr funcExpC = new Bpl.NAryExpr(f.tok, funcIdC, argsC);
+      Bpl.Expr funcExpT = new Bpl.NAryExpr(f.OverriddenFunction.tok, funcIdT, argsT);
+      var funcExpCPossiblyBoxed = funcExpC;
+      if (ModeledAsBoxType(f.OverriddenFunction.ResultType)) {
+        funcExpCPossiblyBoxed = BoxIfUnboxed(funcExpCPossiblyBoxed, f.ResultType);
+      }
+      builder.Add(TrAssumeCmd(f.tok, Bpl.Expr.Eq(funcExpCPossiblyBoxed, funcExpT)));
+
       //generating assume C.F(ins) == out, if a result variable was given
       if (resultVariable != null) {
-        var funcIdC = new FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, TrType(f.ResultType)));
-        var argsC = new List<Bpl.Expr>();
-
-        // add type arguments
-        argsC.AddRange(GetTypeArguments(f, null).ConvertAll(TypeToTy));
-
-        // add fuel arguments
-        if (f.IsFuelAware()) {
-          argsC.Add(etran.layerInterCluster.GetFunctionFuel(f));
-        }
-
-        // add heap arguments
-        if (f is TwoStateFunction) {
-          argsC.Add(etran.Old.HeapExpr);
-        }
-        if (AlwaysUseHeap || f.ReadsHeap) {
-          argsC.Add(etran.HeapExpr);
-        }
-
-        argsC.AddRange(implInParams.Select(var => new Bpl.IdentifierExpr(f.tok, var)));
-
-        var funcExpC = new Bpl.NAryExpr(f.tok, funcIdC, argsC);
         var resultVar = new Bpl.IdentifierExpr(resultVariable.tok, resultVariable);
         builder.Add(TrAssumeCmd(f.tok, Bpl.Expr.Eq(funcExpC, resultVar)));
       }
 
       //generating trait post-conditions with class variables
       foreach (var en in f.OverriddenFunction.Ens) {
-        // We replace all occurrences of the trait version of the function with the class version. This is only allowed
-        // if the receiver is `this`. We underapproximate this by looking for a `ThisExpr`, which misses more complex
-        // expressions that evaluate to one.
-        var sub = new FunctionCallSubstituter(null, substMap, typeMap, f.OverriddenFunction, f);
-        foreach (var s in TrSplitExpr(sub.Substitute(en.E), etran, false, out _).Where(s => s.IsChecked)) {
-          builder.Add(Assert(f.tok, s.E, new PODesc.FunctionContractOverride(true)));
+        Expression postcond = Substitute(en.E, null, substMap, typeMap);
+        bool splitHappened;  // we don't actually care
+        foreach (var s in TrSplitExpr(postcond, etran, false, out splitHappened)) {
+          if (s.IsChecked) {
+            builder.Add(Assert(f.tok, s.E, new PODesc.FunctionContractOverride(true)));
+          }
         }
       }
     }
@@ -4739,7 +4765,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(predef != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
-      if (expr is LiteralExpr or ThisExpr or IdentifierExpr or WildcardExpr or BoogieWrapper) {
+      if (expr is LiteralExpr || expr is ThisExpr || expr is IdentifierExpr || expr is WildcardExpr || expr is BoogieWrapper) {
         return Bpl.Expr.True;
       } else if (expr is DisplayExpression) {
         DisplayExpression e = (DisplayExpression)expr;
@@ -10724,14 +10750,6 @@ namespace Microsoft.Dafny {
         return FunctionCall(expr.tok, "$AlwaysAllocated", Bpl.Type.Bool, expr);
       }
       return null;
-    }
-
-    // We use the $FunctionContextHeight to restrict the applicability of certain axioms. The entity at the end of a
-    // dependency chain has the highest number. To get more granular control over the visibility, we extend every
-    // visibility level by a precursory intermediate level. This additional level is helpful for proofs that would be
-    // disturbed by axioms that are visible the the final level.
-    static Bpl.Expr MkFunctionHeight(int visibilityLevel, bool intermediateScope = false) {
-      return Expr.Literal(visibilityLevel * 2 + (intermediateScope ? 0 : 1));
     }
 
     public static void MapM<A>(IEnumerable<A> xs, Action<A> K) {
