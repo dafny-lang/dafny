@@ -267,6 +267,8 @@ namespace Microsoft.Dafny {
             options.Printer.ErrorWriteLine(Console.Out, $"*** Error: file {file} not found");
             return CommandLineArgumentsResult.PREPROCESSING_ERROR;
           }
+        } else if (options.Format && Directory.Exists(file)) {
+          options.FoldersToFormat.Add(file);
         } else if (!isDafnyFile) {
           if (string.IsNullOrEmpty(extension) && file.Length > 0 && (file[0] == '/' || file[0] == '-')) {
             options.Printer.ErrorWriteLine(Console.Out,
@@ -281,9 +283,17 @@ namespace Microsoft.Dafny {
         }
       }
 
-      if (dafnyFiles.Count == 0 && !options.Format) {
-        options.Printer.ErrorWriteLine(Console.Out, "*** Error: The command-line contains no .dfy files");
-        return CommandLineArgumentsResult.PREPROCESSING_ERROR;
+      if (dafnyFiles.Count == 0) {
+        if (!options.Format) {
+          options.Printer.ErrorWriteLine(Console.Out, "*** Error: The command-line contains no .dfy files");
+          return CommandLineArgumentsResult.PREPROCESSING_ERROR;
+        }
+
+        if (options.FoldersToFormat.Count == 0) {
+          options.Printer.ErrorWriteLine(Console.Out,
+            "Usage:\ndafny format [--check] [--print] <file/folder> <file/folder>...\nYou can use '.' for the current directory");
+          return CommandLineArgumentsResult.PREPROCESSING_ERROR;
+        }
       }
 
       if (dafnyFiles.Count > 1 &&
@@ -352,7 +362,7 @@ namespace Microsoft.Dafny {
       Program dafnyProgram;
       string err;
       if (Options.Format) {
-        return DoFormatting(dafnyFiles, reporter, programName);
+        return DoFormatting(dafnyFiles, Options.FoldersToFormat, reporter, programName);
       }
 
       err = Dafny.Main.ParseCheck(dafnyFiles, programName, reporter, out dafnyProgram);
@@ -392,13 +402,14 @@ namespace Microsoft.Dafny {
       return exitValue;
     }
 
-    private static ExitValue DoFormatting(IList<DafnyFile> dafnyFiles, ErrorReporter reporter, string programName) {
+    private static ExitValue DoFormatting(IList<DafnyFile> dafnyFiles, List<string> dafnyFolders,
+      ErrorReporter reporter, string programName) {
       var exitValue = ExitValue.SUCCESS;
-      if (dafnyFiles.Count == 0) {
-        // Let's list all the dafny files recursively in the working directory
-        dafnyFiles = Directory.GetFiles(Directory.GetCurrentDirectory(), "*.dfy", SearchOption.AllDirectories)
-          .Select(name => new DafnyFile(name)).ToList();
-      }
+      Contract.Assert(dafnyFiles.Count > 0 || dafnyFolders.Count > 0);
+      dafnyFiles = dafnyFiles.Concat(dafnyFolders.SelectMany(folderPath => {
+        return Directory.GetFiles(folderPath, "*.dfy", SearchOption.AllDirectories)
+            .Select(name => new DafnyFile(name)).ToList();
+      })).ToList();
 
       var failed = new List<string>();
       var onlyCheck = DafnyOptions.O.FormatCheck;
@@ -424,18 +435,20 @@ namespace Microsoft.Dafny {
               IndentationFormatter.ForProgram(dafnyProgram));
             if (onlyPrint) {
               Console.Out.Write(result);
-            } else if (onlyCheck) {
-              if (result != originalText) {
+            } else if (result != originalText) {
+              exitValue = ExitValue.DAFNY_ERROR;
+              needFormatting += 1;
+              if (onlyCheck) {
                 Console.Out.WriteLine("The file " + (DafnyOptions.O.UseBaseNameForFileName ? Path.GetFileName(dafnyFile.FilePath) : dafnyFile.FilePath) + " needs to be formatted");
-                exitValue = ExitValue.DAFNY_ERROR;
-                needFormatting += 1;
+              } else {
+                WriteFile(dafnyFile.FilePath, result);
               }
-            } else {
-              WriteFile(dafnyFile.FilePath, result);
             }
           } else {
             Console.Error.WriteLine(dafnyFile.BaseName + " was empty.");
-            failed.Add(dafnyFile.BaseName);
+            failed.Add((DafnyOptions.O.UseBaseNameForFileName
+              ? Path.GetFileName(dafnyFile.FilePath)
+              : dafnyFile.FilePath));
           }
         }
       }
@@ -450,14 +463,14 @@ namespace Microsoft.Dafny {
       var errorMsg = failed.Count > 0
         ? $" {Files(failed.Count)} failed to parse or were empty:\n" + string.Join("\n", failed)
         : "";
-      if (!onlyCheck && (dafnyFiles.Count != 1 || failed.Count > 0)) {
+      if (!onlyCheck && (dafnyFiles.Count != 1 || failed.Count > 0 || needFormatting > 0)) {
         Console.Out.WriteLine($"{Files(needFormatting)} formatted." + unchangedMessage + errorMsg);
       }
 
       if (onlyCheck) {
         Console.Out.WriteLine(needFormatting > 0
-          ? $"Error: {Files(needFormatting)} need formatting." + unchangedMessage + errorMsg
-          : "All files correctly formatted");
+          ? $"Error: {Files(needFormatting)} need{(needFormatting > 1 ? "" : "s")} formatting." + unchangedMessage + errorMsg
+          : "All files are correctly formatted");
       }
 
       return exitValue;

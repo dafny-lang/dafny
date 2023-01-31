@@ -350,6 +350,7 @@ public abstract class ExtremePredicate : Function {
   [FilledInDuringResolution] public PrefixPredicate PrefixPredicate;  // (name registration)
 
   public override IEnumerable<Node> Children => base.Children.Concat(new[] { PrefixPredicate });
+  public override IEnumerable<Node> ConcreteChildren => base.Children;
 
   public ExtremePredicate(IToken tok, string name, bool hasStaticKeyword, KType typeOfK,
     List<TypeParameter> typeArgs, List<Formal> formals, Formal result,

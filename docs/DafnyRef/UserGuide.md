@@ -371,12 +371,13 @@ For the formatter to work, the file should be parsed correctly by Dafny.
 
 There are four ways to use the formatter:
 
-* `dafny format file1.dfy file2.dfy ...` formats each file provided in arguments, altering the files in place.
-* `dafny format --print file1.dfy file2.dfy ...` format each file but instead of altering the files, output the formatted content to stdout
-* `dafny format` Look up for all the Dafny files recursively in the current repository and format them.
-* `dafny format --check` with the same options as above. It will print a message
-  and a non-zero return code if at least one file is not the same as
-  its formatted version through `dafny format`
+* `dafny format file.dfy [file2.dfy ...]` formats the given Dafny files, altering the files in place.
+* `dafny format folder` formats all the Dafny files contain in the given folders, altering the files in place. For example, `dafny format .` formats all the Dafny files recursively in the current folder.
+* `dafny format --print file.dfy` format each file but instead of altering the files, output the formatted content to stdout
+* `dafny format --check file.dfy` does not alter files. It will print a message concerning which files need formatting.
+
+In any case, each version of `dafny format` returns a non-zero return code
+if at least one file is not the same as its formatted version through `dafny format`.
 
 #### 25.5.1.10. `dafny test` {#sec-dafny-test}
  

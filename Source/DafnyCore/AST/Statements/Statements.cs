@@ -625,7 +625,7 @@ public class TypeRhs : AssignmentRhs, ICloneable<TypeRhs> {
         }
       }
 
-      if (Arguments != null) {
+      if (Bindings != null && Arguments != null) {
         foreach (var e in Arguments) {
           yield return e;
         }

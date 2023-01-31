@@ -248,6 +248,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public bool TypeInferenceDebug = false;
     public string DafnyPrelude = null;
     public string DafnyPrintFile = null;
+    public List<string> FoldersToFormat { get; } = new();
 
     public enum ContractTestingMode {
       None,
@@ -1584,7 +1585,6 @@ However, some Boogie options, like /loopUnroll, may not be sound for
 Dafny or may not have the same meaning for a Dafny program as it would
 for a similar Boogie program.
 ".Replace("\n", "\n  ");
-
   }
 
 }
