@@ -373,8 +373,10 @@ There are four ways to use the formatter:
 
 * `dafny format file.dfy [file2.dfy ...]` formats the given Dafny files, altering the files in place.
 * `dafny format folder` formats all the Dafny files contain in the given folders, altering the files in place. For example, `dafny format .` formats all the Dafny files recursively in the current folder.
-* `dafny format --print file.dfy` format each file but instead of altering the files, output the formatted content to stdout
+* `dafny format --print file.dfy` formats each file but instead of altering the files, output the formatted content to stdout
 * `dafny format --check file.dfy` does not alter files. It will print a message concerning which files need formatting.
+
+You can also use `--stdin` instead of providing a file to format a full Dafny file from the standard input.
 
 In any case, each version of `dafny format` returns a non-zero return code
 if at least one file is not the same as its formatted version through `dafny format`.

@@ -10,6 +10,9 @@ public class CommonOptionBag {
   public static readonly Option<bool> ManualLemmaInduction =
     new("--manual-lemma-induction", "Turn off automatic induction for lemmas.");
 
+  public static readonly Option<bool> StdIn = new("--stdin", () => false,
+    @"Read standard input and treat it as an input .dfy file.");
+
   public static readonly Option<bool> Check = new("--check", () => false, @"
 Instead of formatting files, verify that all files are already
 formatted through and return a non-zero exit code if it is not the case".TrimStart());
@@ -173,6 +176,9 @@ Functionality is still being expanded. Currently only checks contracts on every 
     DafnyOptions.RegisterLegacyBinding(Check, (options, value) => {
       options.FormatCheck = value;
     });
+    DafnyOptions.RegisterLegacyBinding(StdIn, (options, value) => {
+      options.UseStdin = value;
+    });
 
     DafnyOptions.RegisterLegacyBinding(FormatPrint, (options, value) => {
       options.DafnyPrintFile = value ? "-" : null;
@@ -209,8 +215,8 @@ Functionality is still being expanded. Currently only checks contracts on every 
   }
 
 
-  public static readonly Option<bool> FormatPrint = new("--print", @"
-Print Dafny program to stdout after formatting it instead of altering the files.".TrimStart()) {
+  public static readonly Option<bool> FormatPrint = new("--print",
+    @"Print Dafny program to stdout after formatting it instead of altering the files.") {
   };
 }
 

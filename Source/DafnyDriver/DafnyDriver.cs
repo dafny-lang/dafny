@@ -416,14 +416,25 @@ namespace Microsoft.Dafny {
       var onlyPrint = DafnyOptions.O.DafnyPrintFile == "-";
       DafnyOptions.O.DafnyPrintFile = null;
       var needFormatting = 0;
-      foreach (var dafnyFile in dafnyFiles) {
-        if (dafnyFile.UseStdin && !onlyCheck) {
+      foreach (var file in dafnyFiles) {
+        var dafnyFile = file;
+        if (dafnyFile.UseStdin && !onlyCheck && !onlyPrint) {
+          Console.Error.WriteLine("Please use the --check or --print option as stdin cannot be formatted in place.");
+          exitValue = ExitValue.DAFNY_ERROR;
           continue;
+        }
+
+        string tempFileName = null;
+        if (dafnyFile.UseStdin) {
+          tempFileName = Path.GetTempFileName() + ".dfy";
+          WriteFile(tempFileName, Console.In.ReadToEnd());
+          dafnyFile = new DafnyFile(tempFileName);
         }
 
         // Might not be totally optimized but let's do that for now
         var err = Dafny.Main.Parse(new List<DafnyFile> { dafnyFile }, programName, reporter, out var dafnyProgram);
-        string originalText = File.ReadAllText(dafnyFile.FilePath);
+        string originalText = dafnyFile.UseStdin ? Console.In.ReadToEnd() :
+          File.ReadAllText(dafnyFile.FilePath);
         if (err != null) {
           exitValue = ExitValue.DAFNY_ERROR;
           Console.Error.WriteLine((string?)err);
@@ -450,6 +461,11 @@ namespace Microsoft.Dafny {
               ? Path.GetFileName(dafnyFile.FilePath)
               : dafnyFile.FilePath));
           }
+        }
+
+        if (tempFileName != null) {
+          File.Delete(tempFileName);
+          tempFileName = null;
         }
       }
 
