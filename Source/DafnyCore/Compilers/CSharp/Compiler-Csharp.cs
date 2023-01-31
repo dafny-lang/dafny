@@ -45,8 +45,6 @@ namespace Microsoft.Dafny.Compilers {
     static string FormatTypeDescriptorVariable(TypeParameter tp) => FormatTypeDescriptorVariable(tp.CompileName);
     const string TypeDescriptorMethodName = "_TypeDescriptor";
 
-    protected override string AssignmentSymbol { get => " = "; }
-
     static string FormatDefaultTypeParameterValue(TopLevelDecl tp) {
       Contract.Requires(tp is TypeParameter || tp is OpaqueTypeDecl);
       if (tp is OpaqueTypeDecl) {

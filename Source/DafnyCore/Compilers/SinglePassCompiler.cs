@@ -347,7 +347,7 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual string True { get => "true"; }
     protected virtual string False { get => "false"; }
     protected virtual string Conj { get => "&&"; }
-    protected virtual string AssignmentSymbol { get => " := "; }
+    protected virtual string AssignmentSymbol { get => " = "; }
     public void EndStmt(ConcreteSyntaxTree wr) { wr.WriteLine(StmtTerminator); }
     protected abstract void DeclareLocalOutVar(string name, Type type, IToken tok, string rhs, bool useReturnStyleOuts, ConcreteSyntaxTree wr);
     protected virtual void EmitActualOutArg(string actualOutParamName, ConcreteSyntaxTree wr) { }  // actualOutParamName is always the name of a local variable; called only for non-return-style outs
