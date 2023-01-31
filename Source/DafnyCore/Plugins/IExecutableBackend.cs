@@ -13,7 +13,7 @@ namespace Microsoft.Dafny.Plugins;
 /// If the plugin defines no PluginConfiguration, then Dafny will instantiate every sub-class
 /// of Compiler from the plugin.
 /// </summary>
-public abstract class Compiler {
+public abstract class IExecutableBackend {
   /// <summary>
   /// Supported file extensions for additional compilation units (e.g. <c>.cs</c> for C#).
   /// </summary>
