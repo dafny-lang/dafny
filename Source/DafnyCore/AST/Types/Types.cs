@@ -1886,7 +1886,7 @@ public class BitvectorType : BasicType {
     Contract.Requires(0 <= width);
     Width = width;
     foreach (var nativeType in Resolver.NativeTypes) {
-      if (DafnyOptions.O.Compiler.SupportedNativeTypes.Contains(nativeType.Name) && width <= nativeType.Bitwidth) {
+      if (DafnyOptions.O.Backend.SupportedNativeTypes.Contains(nativeType.Name) && width <= nativeType.Bitwidth) {
         NativeType = nativeType;
         break;
       }
