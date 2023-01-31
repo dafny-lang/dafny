@@ -349,6 +349,7 @@ zero or more ``DotSuffix``s which denote a component. Examples:
 ### 2.6.3. Identifier-Type Combinations
 
 Identifiers are typically declared in combination with a type, as in
+<!-- %no-check -->
 ```dafny
 var i: int
 ```

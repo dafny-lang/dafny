@@ -1364,7 +1364,7 @@ If the implicit declaration did not include the type characteristics, they would
 ## 10.2. Opaque types ([grammar](#g-type-definition)) {#sec-opaque-types}
 
 Examples:
-<!-- check-resolve -->
+<!-- %check-resolve -->
 ```dafny
 type T
 type Q { function method toString(t: T): string }
@@ -1423,7 +1423,7 @@ type synonyms may not have members.
 ## 10.3. Subset types ([grammar](#g-type-definition)) {#sec-subset-types}
 
 Examples:
-<!-- check-resolve -->
+<!-- %check-resolve -->
 ```dafny
 type Pos = i: int | i > 0 witness 1
 type PosReal = r | r > 0.0 witness 1.0

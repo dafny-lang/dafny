@@ -27,6 +27,7 @@ A file consists of
 ## 3.1. Include Directives ([grammar](#g-include-directive)) {#sec-include-directive}
 
 Examples:
+<!-- %no-check -->
 ```dafny
 include "MyProgram.dfy"
 include @"/home/me/MyFile.dfy"
@@ -51,6 +52,7 @@ designator (e.g., `C:`) are only permitted on Windows systems.
 ## 3.2. Top Level Declarations ([grammar](#g-top-level-declaration) {#sec-top-level-declaration}
 
 Examples:
+<!-- %no-check -->
 ```dafny
 module M { }
 trait R { }
@@ -83,11 +85,14 @@ that is in the top-level implicit module. These declarations are all implicitly
 ## 3.3. Declaration Modifiers ([grammar](#g-declaration-modifier)) {#sec-declaration-modifier}
 
 Examples:
-,!-- %check-resolve -->
+<!-- %check-resolve -->
 ```dafny
-abstract module M {}
-static method m() {}
-ghost function f(): int { 0 }
+abstract module M {
+  class C {
+    static method m() {}
+  }
+}
+ghost const c : int
 ```
 
 Top level declarations may be preceded by zero or more declaration

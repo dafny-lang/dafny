@@ -450,6 +450,7 @@ lambda expressions.
 ### 19.1.5. Reads Clause ([grammar](#g-reads-clause)) {#sec-reads-clause}
 
 Examples:
+<!-- %no-check -->
 ```dafny
 const o: object
 const o, oo: object
@@ -566,8 +567,8 @@ Examples:
 <!-- %check-resolve -->
 ```dafny
 class A { var f: int }
-const o: object
-const p: A
+const o: object?
+const p: A?
 method M()
   modifies { o, p }
 method N()
@@ -637,7 +638,7 @@ Ada/SPARK's dataflow contracts encode _write_ (a) semantics.
 ### 19.1.7. Invariant Clause ([grammar](#g-invariant-clause)) {#sec-invariant-clause}
 
 Examples:
-<!-- %check-resolve -->
+<!-- %check-resolve-warn Specifications.2.expect -->
 ```dafny
 method m()
 {

@@ -68,6 +68,7 @@ in order of increasing binding power.
 ## 21.1. Top-level expressions ([grammar](#g-top-level-expression)) {#sec-top-level-expression}
 
 Examples:
+<!-- %no-check -->
 ```dafny
 let a == 2*b; a*b
 ```
@@ -114,6 +115,7 @@ and if and while statements with guarded alternatives.
 ## 21.2. Equivalence Expressions ([grammar](#g-equivalence-expression)) {#sec-equivalence-expression}
 
 Examples:
+<!-- %no-check -->
 ```dafny
 A
 A <==> B
@@ -135,6 +137,7 @@ are all equivalent and are all true iff an even number of operands are false.
 ## 21.3. Implies or Explies Expressions ([grammar](#g-implies-expression)) {#sec-implies-expression}
 
 Examples:
+<!-- %no-check -->
 ```dafny
 A ==> B
 A ==> B ==> C ==> D
@@ -147,6 +150,7 @@ of the `==>` and `<==` operators.
 ## 21.4. Logical Expressions ([grammar](#g-logical-expression)) {#sec-logical-expression}
 
 Examples:
+<!-- %no-check -->
 ```dafny
 A && B
 A || B
@@ -179,6 +183,7 @@ of the `&&` and `||` operators.
 ## 21.5. Relational Expressions ([grammar](#g-relational-expression)) {#sec-relational-expression}
 
 Examples:
+<!-- %no-check -->
 ```dafny
 x == y
 x != y
@@ -208,6 +213,7 @@ explained in [the section about co-equality](#sec-co-equality).
 ## 21.6. Bit Shifts ([grammar](#g-bit-shift-expression)) {#sec-bit-shift-expression}
 
 Examples:
+<!-- %no-check -->
 ```dafny
 k << 5
 j >> i
@@ -224,6 +230,7 @@ The operations are left-associative: `a << i >> j` is `(a << i) >> j`.
 ## 21.7. Terms ([grammar](#g-term)) {#sec-addition-expression}
 
 Examples:
+<!-- %no-check -->
 ```dafny
 x + y - z
 ```
@@ -248,6 +255,7 @@ Addition is commutative (except concatenation) and associative. Subtraction is n
 ## 21.8. Factors ([grammar](#g-factor)) {#sec-multiplication-expression}
 
 Examples:
+<!-- %no-check -->
 ```dafny
 x * y
 x / y
@@ -269,6 +277,7 @@ intersection as explained in [Section 9.1](#sec-sets) and [Section 9.2](#sec-mul
 ## 21.9. Bit-vector Operations ([grammar](#g-bit-vector-expression)) {#sec-bitvector-expression}
 
 Examples:
+<!-- %no-check -->
 ```dafny
 x | y
 x & y
@@ -296,6 +305,7 @@ a comprehension, as in `| set x: int :: x | 0x101 |`.
 ## 21.10. As (Conversion) and Is (type test) Expressions ([grammar](#g-as-is-expression)) {#sec-as-is-expression}
 
 Examples:
+<!-- %no-check -->
 ```dafny
 e as MyClass
 i as bv8
@@ -366,6 +376,7 @@ For an expression `e` and type `t`, `e is t` is the condition determining whethe
 ## 21.11. Unary Expressions ([grammar](#g-unary-expression)) {#sec-unary-expression}
 
 Examples:
+<!-- %no-check -->
 ```dafny
 - x
 - - x
@@ -498,6 +509,7 @@ An example of the second (`ConstAtomExpression`) form is:
 ## 21.15. Right-Hand-Side Expressions ([grammar](#g-rhs-expression)) {#sec-rhs-expression}
 
 Examples: 
+<!-- %no-check -->
 ```dafny
 new int[6]
 new MyClass
@@ -527,6 +539,7 @@ allocated, or in which havoc may be stipulated.
 ## 21.16. Array Allocation ([grammar](#g-array-allocation-expression)) {#sec-array-allocation}
 
 Examples:
+<!-- %no-check -->
 ```dafny
 new int[5,6]
 new int[5][2,3,5,7,11]
@@ -591,6 +604,7 @@ in section [Class Types](#sec-class-types).
 ## 21.18. Havoc Right-Hand-Side ([grammar](#g-havoc-expression)) {#sec-havoc-expression}
 
 Examples:
+<!-- %no-check -->
 ```dafny
 *
 ```
@@ -602,6 +616,7 @@ operator (`:|`) can be used. See [Section 20.6](#sec-update-and-call-statement).
 ## 21.19. Constant Or Atomic Expressions ([grammar](#g-atomic-expression)) {#sec-atomic-expression}
 
 Examples:
+<!-- %no-check -->
 ```dafny
 this
 null
@@ -624,6 +639,7 @@ atomic expression. They are neve l-values.
 ## 21.20. Literal Expressions ([grammar](#g-literal-expression)} {#sec-literal-expression}
 
 Examples:
+<!-- %no-check -->
 ```dafny
 5
 5.5
@@ -638,6 +654,7 @@ an integer or real literal, a character or string literal.
 ## 21.21. `this` Expression ([grammar](#g-this-expression)) {#sec-this-expression}
 
 Examples:
+<!-- %no-check -->
 ```dafny
 this
 ```
@@ -649,6 +666,7 @@ a constructor, instance method, or instance function.
 ## 21.22. Old and Old@ Expressions ([grammar](#g-old-expression)) {#sec-old-expression}
 
 Examples:
+<!-- %no-check -->
 ```dafny
 old(c)
 old@L(c)
@@ -824,6 +842,7 @@ class A {
 ## 21.23. Fresh Expressions ([grammar](#g-fresh-expression)) {#sec-fresh-expression}
 
 Examples:
+<!-- %no-check -->
 ```dafny
 fresh(e)
 fresh@L(e)
@@ -835,6 +854,7 @@ freshly allocated since the time of entry to the enclosing method,
 or since [`label L:`](#sec-labeled-statement) in the variant `fresh@L(e)`.
 For example, consider this valid program:
 
+<!-- %check-verify -->
 ```dafny
 class C { constructor() {} }
 method f(c1: C) returns (r: C)
@@ -866,6 +886,7 @@ is a synonym of [`old(!allocated(e))`](#sec-allocated-expression)
 ## 21.24. Allocated Expressions ([grammar](#g-allocated-expression)) {#sec-allocated-expression}
 
 Examples:
+<!-- %no-check -->
 ```dafny
 allocated(c)
 allocated({c1,c2})
@@ -878,6 +899,7 @@ it could in principle have been the value of a variable in that state.
 
 For example, consider this valid program:
 
+<!-- %check-verify -->
 ```dafny
 class C { constructor() {} }
 datatype D = Nil | Cons(C, D)
@@ -912,6 +934,7 @@ is the same as [`fresh(e)`](#sec-fresh-expression).
 ## 21.25. Unchanged Expressions ([grammar](#g-unchanged-expression)) {#sec-unchanged-expression}
 
 Examples:
+<!-- %no-check -->
 ```dafny
 unchanged(c)
 unchanged([c1,c2])
@@ -922,6 +945,7 @@ The `unchanged` expression returns `true` if and only if every reference
 denoted by its arguments has the same value for all its fields in the
 old and current state. For example, if `c` is an object with two
 fields, `x` and `y`, then `unchanged(c)` is equivalent to
+<!-- %no-check -->
 ```dafny
 c.x == old(c.x) && c.y == old(c.y)
 ```
@@ -935,6 +959,7 @@ state.
 The optional `@`-label says to use the state at that label as the old-state instead of using
 the `old` state (the pre-state of the method). That is, using the example `c` from above, the expression
 `unchanged@Lbl(c)` is equivalent to
+<!-- %no-check -->
 ```dafny
 c.x == old@Lbl(c.x) && c.y == old@Lbl(c.y)
 ```
@@ -946,8 +971,10 @@ must be allocated in the old-state of the expression.
 ## 21.26. Cardinality Expressions ([grammar](#g-cardinality-expression)) {#sec-cardinality-expression}
 
 Examples:
+<!-- %no-check -->
 ```dafny
 |s|
+|s[1..i]|
 ```
 
 For a finite-collection expression `c`, `|c|` is the cardinality of `c`. For a
@@ -971,6 +998,7 @@ See [Section 17](#sec-tuple-types).
 ## 21.28. Sequence Display Expression ([grammar](#g-sequence-display-expression)) {#sec-seq-comprehension}
 
 Examples:
+<!-- %no-check -->
 ```dafny
 [1, 2, 3]
 [1]
@@ -1000,6 +1028,7 @@ sequences.
 ## 21.29. Set Display Expression ([grammar](#g-set-display-expression)) {#sec-set-display-expression}
 
 Examples:
+<!-- %no-check -->
 ```dafny
 {}
 {1,2,3}
@@ -1051,6 +1080,7 @@ multisets.
 ## 21.30. Map Display Expression ([grammar](#g-map-display-expression)) {#sec-map-display-expression}
 
 Examples:
+<!-- %no-check -->
 ```dafny
 map[]
 map[1 := "a", 2 := "b"]
@@ -1078,6 +1108,7 @@ endless expression alternatives are described in the following subsections.
 ### 21.31.1. If Expression ([grammar](#g-if-expression)) {#sec-if-expression}
 
 Examples:
+<!-- %no-check -->
 ```dafny
 if c then e1 else e2
 if x: int :| P(x) then x else 0
@@ -1189,10 +1220,6 @@ attempt to match a constructor that has two identical arguments.)
 
 ### 21.31.3. Match Expression ([grammar](#g-match-expression)) {#sec-match-expression}
 
-Examples:
-```dafny
-```
-
 A _match expression_ is used to conditionally evaluate and select an
 expression depending on the value of an algebraic type, i.e. an inductive
 type, a coinductive type, or a base type.
@@ -1223,6 +1250,7 @@ there are nested match expressions.
 ### 21.31.4. Quantifier Expression ([grammar](#g-quantifier-expression)) {#sec-quantifier-expression}
 
 Examples:
+<!-- %no-check -->
 ```dafny
 forall x: int :: x > 0
 forall x: nat | x < 10 :: x*x < 100
@@ -1257,12 +1285,12 @@ It this is not possible, the program is in error.
 Examples:
 <!-- %check-resolve -->
 ```dafny
-set x: nat | x < 100
-set x: nat | x < 100 :: x * x
-set x: nat | x < 100, y: nat | x < y < 100 :: x * y
-iset x: nat | x > 100
-set<int> s;
-set x <- s :: x + 1
+const c1 := set x: nat | x < 100
+const c2 := set x: nat | x < 100 :: x * x
+const c3 := set x: nat, y: nat | x < y < 100 :: x * y
+ghost const c4 := iset x: nat | x > 100
+ghost const c5: iset<int> := iset s
+const c6 := set x <- c3 :: x + 1
 ```
 
 A set comprehension expression is an expression that yields a set
@@ -1461,6 +1489,7 @@ is evaluated as normal.
 ### 21.31.8. Map Comprehension Expression ([grammar](#g-map-comprehension-expression)) {#sec-map-comprehension-expression}
 
 Examples:
+<!-- %no-check -->
 ```dafny
 map x : int | 0 <= x <= 10 :: x * x;
 map x : int | 0 <= x <= 10 :: -x := x * x;
@@ -1502,6 +1531,7 @@ method test()
 ## 21.32. Name Segment ([grammar](#g-name-segment)) {#sec-name-segment}
 
 Examples:
+<!-- %no-check -->
 ```dafny
 I
 I<int,C>
@@ -1588,6 +1618,7 @@ of suffixes are described below.
 ### 21.34.1. Augmented Dot Suffix ([grammar](#g-augmented-dot-suffix)) {#sec-augmented-dot-suffix}
 
 Examples: (expression with suffix)
+<!-- %no-check -->
 ```dafny
 a.b
 (a).b<int>
@@ -1607,6 +1638,7 @@ selected by the ``DotSuffix`` is generic), or
 ### 21.34.2. Datatype Update Suffix ([grammar](#g-datatype-update-suffix)) {#sec-datatype-update-suffix}
 
 Examples: (expression with suffix)
+<!-- %no-check -->
 ```dafny
 a.(f := e1, g:= e2)
 a.(0 := e1)
@@ -1660,6 +1692,7 @@ module NewSyntax {
 ### 21.34.3. Subsequence Suffix ([grammar](#g-subsequence-suffix)) {#sec-subsequence-suffix}
 
 Examples: (with leading expression)
+<!-- %no-check -->
 ```dafny
 a[lo .. hi ]
 (e)[ lo .. ]
@@ -1676,6 +1709,7 @@ numerics `lo` and `hi` satisfying `0 <= lo <= hi <= |s|`. See
 ### 21.34.4. Subsequence Slices Suffix ([grammar](#g-subsequence-slices-suffix)) {#sec-subsequence-slices-suffix}
 
 Examples: (with leading expression)
+<!-- %no-check -->
 ```dafny
 a[ 0 : 2 : 3 ]
 a[ e1 : e2 : e3 ]
@@ -1730,7 +1764,7 @@ conversion, as if an `as int` were appended to the index expression).
 ### 21.34.7. Argument List Suffix ([grammar](#g-argument-list-suffix)) {#sec-argument-list-suffix}
 
 Examples:
-<!--no-check -->
+<!-- %no-check -->
 ```dafny
 ()
 (a)
@@ -1749,7 +1783,7 @@ parser.
 ## 21.35. Expression Lists ([grammar](#g-expression-list)) {#sec-expression-list}
 
 Examples:
-<!--no-check -->
+<!-- %no-check -->
 ```dafny
                 // empty list
 a
@@ -1762,7 +1796,7 @@ one or more expressions separated by commas.
 ## 21.36. Parameter Bindings ([grammar](#g-parameter-bindings)) {#sec-parameter-bindings}
 
 Examples: 
-<!--no-check -->
+<!-- %no-check -->
 ```dafny
 a
 a, b

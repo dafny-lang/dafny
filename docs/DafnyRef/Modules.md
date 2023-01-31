@@ -1,6 +1,7 @@
 # 4. Modules ([grammar](#g-module)) {#sec-modules}
 
 Examples:
+<!-- %no-check -->
 ```dafny
 module N  { }
 import A

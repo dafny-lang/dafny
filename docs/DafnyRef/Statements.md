@@ -4,7 +4,7 @@ Many of Dafny's statements are similar to those in traditional
 programming languages, but a number of them are significantly different.
 Dafny's various kinds of statements are described in subsequent sections.
 
-Stsatements have zero or more labels.
+Statements have zero or more labels.
 
 Statements typically end with either a semicolon (`;`) or a closing curly brace ('}').
 
@@ -13,13 +13,13 @@ Statements typically end with either a semicolon (`;`) or a closing curly brace 
 Examples:
 <!-- %check-resolve -->
 ```dafny
-class A ( f: int }
+class A { var f: int }
 method m(a: A) {
-  x: while true {
-       if (*) break x;
+  label x: while true {
+       if (*) { break x; }
   }
   a.f := 0;
-  y:
+  label y:
   a.f := 1;
   assert old@y(a.f) == 1;
 }
@@ -54,14 +54,14 @@ same as any previous enclosing or dominating label.
 Examples:
 <!-- %check-resolve -->
 ```dafny
-class A ( f: int }
+class A { var f: int }
 method m(a: A) {
   label x: while true {
-       if (*) break;
+       if (*) { break; }
   }
   label y: {
     var z := 1;
-    if * { break x; }
+    if * { break y; }
     z := 2;
   }
 
@@ -360,6 +360,7 @@ yields.
 ## 20.6. Update and Call Statements ([grammar](#g-update-and-call-statement)) {#sec-update-and-call-statement}
 
 Examples:
+<!-- %check-resolve -->
 ```dafny
 class C { var f: int }
 method q(i: int, j: int) {}
@@ -368,7 +369,8 @@ method m() {
   var ss: int, tt: int, c: C?, a: array<int>;
   q(0,1);
   ss, c.f := r();
-  a := new A;
+  c := new C;
+  a := new int[10];
   ss, tt := 212, 33;
   ss :| ss > 7;
   ss := *;
@@ -852,11 +854,14 @@ using either `:-` statements or using `:=` statements with a LHS to receive the 
 ## 20.8. Variable Declaration Statement ([grammar](#g-variable-declaration-statement)) {#sec-variable-declaration-statement}
 
 Examples:
+<!-- %check-resolve -->
 ```dafny
 method m() {
   var x, y: int; // x's type is inferred, not necessarily 'int'
-  var x: bool, y: int;
-
+  var b: bool, k: int;
+  x := 1; // settles x's type
+}
+```
 
 A variable declaration statement is used to declare one or more local variables in
 a method or function. The type of each local variable must be given
@@ -913,8 +918,9 @@ The assignment with failure operator `:-` returns from the method if the value e
 ## 20.9. Guards ([grammar](#g-guard)) {#sec-guard}
 
 Examples (in `if` statements):
+<!-- %check-resolve -->
 ```dafny
-method m(i: it) {
+method m(i: int) {
   if (*) { print i; }
   if i > 0 { print i; }
 }
@@ -932,6 +938,7 @@ may be different each time it is executed.
 ## 20.10. Binding Guards ([grammar](#g-binding-guard)) {#sec-binding-guards}
 
 Examples (in `if` statements):
+<!-- %check-resolve-warn Statements.13.expect -->
 ```dafny
 method m(i: int) {
   ghost var k: int;
@@ -985,6 +992,7 @@ method M1() returns (ghost y: int)
 ## 20.11. If Statement ([grammar](#g-if-statement)) {#sec-if-statement}
 
 Examples:
+<!-- %check-resolve-warn Statements.14.expect -->
 ```dafny
 method m(i: int) {
   var x: int;
@@ -1064,6 +1072,7 @@ The form that used `...` (a refinement feature) as the guard is deprecated.
 ## 20.12. While Statement ([grammar](#g-while-statement)) {#sec-while-statement}
 
 Examples:
+<!-- %check-resolve -->
 ```dafny
 method m() {
   var i := 10;
@@ -1157,8 +1166,8 @@ The form that used `...` (a refinement feature) as the guard is deprecated.
 
 ## 20.13. For Loops ([grammar](#g-for-statement)) {#sec-for-statement}
 
-
 Examples:
+<!-- %check-resolve-warn Statements.15.expect -->
 ```dafny
 method m() decreases * {
   for i := 0 to 10 {}
@@ -1672,6 +1681,7 @@ infinite.
 ## 20.16. Assert statement ([grammar](#g-assert-statement)) {#sec-assert-statement}
 
 Examples:
+<!-- %no-check -->
 ```dafny
 assert i > 0;
 assert IsPositive: i > 0;
@@ -1713,6 +1723,7 @@ Using `...` as the argument of the statement is deprecated.
 ## 20.17. Assume Statement ([grammar](#g-assume-statement)) {#sec-assume-statement}
 
 Examples:
+<!-- %no-check -->
 ```dafny
 assume i > 0;
 assume {:axiom} i > 0 ==> -i < 0;
@@ -1743,9 +1754,11 @@ Using `...` as the argument of the statement is deprecated.
 ## 20.18. Expect Statement ([grammar](#g-expect-statement)) {#sec-expect-statement}
 
 Examples:
+<!-- %no-check -->
 ```dafny
 expect i > 0;
 expect i > 0, "i is positive";
+```
 
 The `expect` statement states a boolean expression that is
 (a) assumed to be true by the verifier
