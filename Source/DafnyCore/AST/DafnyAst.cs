@@ -9,28 +9,20 @@ using System;
 using System.Collections;
 using System.Text;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Linq;
 using System.Diagnostics;
-using System.Reflection;
 using System.Threading;
 using Microsoft.Boogie;
+using Action = System.Action;
 
 namespace Microsoft.Dafny {
-  [System.AttributeUsage(System.AttributeTargets.Field)]
+  [System.AttributeUsage(System.AttributeTargets.Field | System.AttributeTargets.Property)]
+  public class FilledInDuringTranslationAttribute : System.Attribute { }
+  [System.AttributeUsage(System.AttributeTargets.Field | System.AttributeTargets.Property)]
   public class FilledInDuringResolutionAttribute : System.Attribute { }
-
-  public interface INode {
-
-    /// <summary>
-    /// These children should be such that they contain information produced by resolution such as inferred types
-    /// and resolved references. However, they should not be so transformed that source location from the initial
-    /// program is lost. As an example, the pattern matching compilation may deduplicate nodes from the original AST,
-    /// losing source location information, so those transformed nodes should not be returned by this property.
-    /// </summary>
-    IEnumerable<INode> Children { get; }
-  }
 
   public interface IDeclarationOrUsage : INode {
     IToken NameToken { get; }
@@ -39,8 +31,7 @@ namespace Microsoft.Dafny {
   public interface IHasUsages : IDeclarationOrUsage {
     public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations();
   }
-
-  public class Program : INode {
+  public class Program : TokenNode {
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(FullName != null);
@@ -103,11 +94,12 @@ namespace Microsoft.Dafny {
       return DefaultModuleDef.GetFirstTopLevelToken();
     }
 
-    public IEnumerable<INode> Children => new[] { DefaultModule };
+    public override IEnumerable<Node> Children => new[] { DefaultModule };
+
+    public IEnumerable<Node> ConcreteChildren => Children;
   }
 
-  public class Include : IComparable {
-    public readonly IToken tok;
+  public class Include : TokenNode, IComparable {
     public string IncluderFilename { get; }
     public string IncludedFilename { get; }
     public string CanonicalPath { get; }
@@ -131,12 +123,14 @@ namespace Microsoft.Dafny {
         throw new NotImplementedException();
       }
     }
+
+    public override IEnumerable<Node> Children => Enumerable.Empty<Node>();
   }
 
   /// <summary>
   /// An expression introducting bound variables
   /// </summary>
-  public interface IBoundVarsBearingExpression : IRegion {
+  public interface IBoundVarsBearingExpression {
     public IEnumerable<BoundVar> AllBoundVars {
       get;
     }
@@ -149,7 +143,7 @@ namespace Microsoft.Dafny {
     Attributes Attributes { get; }
   }
 
-  public class Attributes {
+  public class Attributes : TokenNode {
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Name != null);
@@ -159,8 +153,8 @@ namespace Microsoft.Dafny {
     public string Name;
     /*Frozen*/
     public readonly List<Expression> Args;
-    public readonly Attributes Prev;
 
+    public readonly Attributes Prev;
     public Attributes(string name, [Captured] List<Expression> args, Attributes prev) {
       Contract.Requires(name != null);
       Contract.Requires(cce.NonNullElements(args));
@@ -193,22 +187,21 @@ namespace Microsoft.Dafny {
     /// - if the attribute is {:nm true}, then value==true
     /// - if the attribute is {:nm false}, then value==false
     /// - if the attribute is anything else, then value returns as whatever it was passed in as.
+    /// This method does NOT use type information of the attribute arguments, so it can safely
+    /// be called very early during resolution before types are available and names have been resolved.
     /// </summary>
     [Pure]
     public static bool ContainsBool(Attributes attrs, string nm, ref bool value) {
       Contract.Requires(nm != null);
-      foreach (var attr in attrs.AsEnumerable()) {
-        if (attr.Name == nm) {
-          if (attr.Args.Count == 1) {
-            var arg = attr.Args[0] as LiteralExpr;
-            if (arg != null && arg.Value is bool) {
-              value = (bool)arg.Value;
-            }
-          }
-          return true;
-        }
+      var attr = attrs.AsEnumerable().FirstOrDefault(attr => attr.Name == nm);
+      if (attr == null) {
+        return false;
       }
-      return false;
+
+      if (attr.Args.Count == 1 && attr.Args[0] is LiteralExpr { Value: bool v }) {
+        value = v;
+      }
+      return true;
     }
 
     /// <summary>
@@ -318,6 +311,11 @@ namespace Microsoft.Dafny {
         return false;
       }
     }
+
+    public override IEnumerable<Node> Children => Args.Concat<Node>(
+      Prev == null
+        ? Enumerable.Empty<Node>()
+        : new List<Node> { Prev });
   }
 
   public static class AttributesExtensions {
@@ -333,7 +331,6 @@ namespace Microsoft.Dafny {
   }
 
   public class UserSuppliedAttributes : Attributes {
-    public readonly IToken tok;  // may be null, if the attribute was constructed internally
     public readonly IToken OpenBrace;
     public readonly IToken CloseBrace;
     public bool Recognized;  // set to true to indicate an attribute that is processed by some part of Dafny; this allows it to be colored in the IDE
@@ -349,15 +346,8 @@ namespace Microsoft.Dafny {
     }
   }
 
-  /// <summary>
-  /// This interface is used by the Dafny IDE.
-  /// </summary>
-  public interface IRegion {
-    IToken BodyStartTok { get; }
-    IToken BodyEndTok { get; }
-  }
 
-  public interface INamedRegion : IRegion {
+  public abstract class INamedRegion : TokenNode {
     string Name { get; }
   }
 
@@ -401,7 +391,7 @@ namespace Microsoft.Dafny {
     }
   }
   [ContractClassFor(typeof(IVariable))]
-  public abstract class IVariableContracts : IVariable {
+  public abstract class IVariableContracts : TokenNode, IVariable {
     public string Name {
       get {
         Contract.Ensures(Contract.Result<string>() != null);
@@ -462,28 +452,19 @@ namespace Microsoft.Dafny {
     public void MakeGhost() {
       throw new NotImplementedException();
     }
-    public IToken Tok {
-      get {
-        Contract.Ensures(Contract.Result<IToken>() != null);
-        throw new NotImplementedException();
-      }
-    }
     public string AssignUniqueName(FreshIdGenerator generator) {
       Contract.Ensures(Contract.Result<string>() != null);
       throw new NotImplementedException();
     }
 
-    public abstract IEnumerable<INode> Children { get; }
     public abstract IToken NameToken { get; }
   }
 
-  public abstract class NonglobalVariable : IVariable {
-    public readonly IToken tok;
+  public abstract class NonglobalVariable : TokenNode, IVariable {
     readonly string name;
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
-      Contract.Invariant(tok != null);
       Contract.Invariant(name != null);
       Contract.Invariant(type != null);
     }
@@ -556,6 +537,7 @@ namespace Microsoft.Dafny {
       compileName ??= SanitizedName;
 
     Type type;
+    public bool IsTypeExplicit = false;
     public Type SyntacticType { get { return type; } }  // returns the non-normalized type
     public Type Type {
       get {
@@ -581,11 +563,6 @@ namespace Microsoft.Dafny {
     public void MakeGhost() {
       IsGhost = true;
     }
-    public IToken Tok {
-      get {
-        return tok;
-      }
-    }
 
     public NonglobalVariable(IToken tok, string name, Type type, bool isGhost) {
       Contract.Requires(tok != null);
@@ -598,7 +575,7 @@ namespace Microsoft.Dafny {
     }
 
     public IToken NameToken => tok;
-    public IEnumerable<INode> Children => Type.Nodes;
+    public override IEnumerable<Node> Children => IsTypeExplicit ? Type.Nodes : Enumerable.Empty<Node>();
   }
 
   public class Formal : NonglobalVariable {
@@ -672,11 +649,7 @@ namespace Microsoft.Dafny {
 
   [DebuggerDisplay("Bound<{name}>")]
   public class BoundVar : NonglobalVariable {
-    public override bool IsMutable {
-      get {
-        return false;
-      }
-    }
+    public override bool IsMutable => false;
 
     public BoundVar(IToken tok, string name, Type type)
       : base(tok, name, type, false) {
@@ -743,10 +716,13 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class ActualBinding {
+  public class ActualBinding : TokenNode {
     public readonly IToken /*?*/ FormalParameterName;
     public readonly Expression Actual;
     public readonly bool IsGhost;
+
+    public override IEnumerable<Node> Children => new List<Node> { Actual }.Where(x => x != null);
+    // Names are owned by the method call
 
     public ActualBinding(IToken /*?*/ formalParameterName, Expression actual, bool isGhost = false) {
       Contract.Requires(actual != null);
@@ -756,7 +732,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class ActualBindings {
+  public class ActualBindings : TokenNode {
     public readonly List<ActualBinding> ArgumentBindings;
 
     public ActualBindings(List<ActualBinding> argumentBindings) {
@@ -764,27 +740,34 @@ namespace Microsoft.Dafny {
       ArgumentBindings = argumentBindings;
     }
 
+    public ActualBindings(Cloner cloner, ActualBindings original) {
+      ArgumentBindings = original.ArgumentBindings.Select(actualBinding => new ActualBinding(
+        actualBinding.FormalParameterName == null ? null : cloner.Tok(actualBinding.FormalParameterName),
+        cloner.CloneExpr(actualBinding.Actual))).ToList();
+      if (cloner.CloneResolvedFields) {
+        arguments = original.Arguments?.Select(cloner.CloneExpr).ToList();
+      }
+    }
+
     public ActualBindings(List<Expression> actuals) {
       Contract.Requires(actuals != null);
       ArgumentBindings = actuals.ConvertAll(actual => new ActualBinding(null, actual));
     }
 
+    [FilledInDuringResolution]
     private List<Expression> arguments; // set by ResolveActualParameters during resolution
 
     public bool WasResolved => arguments != null;
 
-    public List<Expression> Arguments {
-      get {
-        Contract.Requires(WasResolved);
-        return arguments;
-      }
-    }
+    public List<Expression> Arguments => arguments;
 
     public void AcceptArgumentExpressionsAsExactParameterList(List<Expression> args = null) {
       Contract.Requires(!WasResolved); // this operation should be done at most once
       Contract.Assume(ArgumentBindings.TrueForAll(arg => arg.Actual.WasResolved()));
       arguments = args ?? ArgumentBindings.ConvertAll(binding => binding.Actual);
     }
+
+    public override IEnumerable<Node> Children => arguments == null ? ArgumentBindings : arguments;
   }
 
   class QuantifiedVariableDomainCloner : Cloner {
@@ -803,7 +786,8 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class Specification<T> : IAttributeBearingDeclaration where T : class {
+  public class Specification<T> : TokenNode, IAttributeBearingDeclaration
+    where T : Node {
     public readonly List<T> Expressions;
 
     [ContractInvariantMethod]
@@ -817,19 +801,13 @@ namespace Microsoft.Dafny {
       Attributes = attrs;
     }
 
-    private Attributes attributes;
-    public Attributes Attributes {
-      get {
-        return attributes;
-      }
-      set {
-        attributes = value;
-      }
-    }
+    public Attributes Attributes { get; set; }
 
     public bool HasAttributes() {
       return Attributes != null;
     }
+
+    public override IEnumerable<Node> Children => Expressions;
   }
 
   public class BottomUpVisitor {
@@ -972,7 +950,7 @@ namespace Microsoft.Dafny {
       }
       //TODO More?
     }
-    public void Visit(Method method, State st) {
+    public virtual void Visit(Method method, State st) {
       Visit(method.Ens, st);
       Visit(method.Req, st);
       Visit(method.Mod.Expressions, st);
@@ -980,7 +958,7 @@ namespace Microsoft.Dafny {
       if (method.Body != null) { Visit(method.Body, st); }
       //TODO More?
     }
-    public void Visit(Function function, State st) {
+    public virtual void Visit(Function function, State st) {
       Visit(function.Ens, st);
       Visit(function.Req, st);
       Visit(function.Reads, st);
@@ -998,6 +976,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(expr != null);
       return true;  // by default, visit the sub-parts with the same "st"
     }
+
     /// <summary>
     /// Visit one statement proper.  For the rest of the description of what this method
     /// does, see VisitOneExpr.

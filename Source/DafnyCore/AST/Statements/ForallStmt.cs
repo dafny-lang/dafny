@@ -1,13 +1,16 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
+using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
-public class ForallStmt : Statement {
+public class ForallStmt : Statement, ICloneable<ForallStmt> {
   public readonly List<BoundVar> BoundVars;  // note, can be the empty list, in which case Range denotes "true"
   public Expression Range;  // mostly readonly, except that it may in some cases be updated during resolution to conjoin the precondition of the call in the body
   public readonly List<AttributedExpression> Ens;
   public readonly Statement Body;
+  [FilledInDuringResolution]
   public List<Expression> ForallExpressions;   // fill in by rewriter.
   public bool CanConvert = true; //  can convert to ForallExpressions
 
@@ -42,10 +45,27 @@ public class ForallStmt : Statement {
     Contract.Invariant(Ens != null);
   }
 
-  public ForallStmt(IToken tok, IToken endTok, List<BoundVar> boundVars, Attributes attrs, Expression range, List<AttributedExpression> ens, Statement body)
-    : base(tok, endTok, attrs) {
-    Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+  public ForallStmt Clone(Cloner cloner) {
+    return new ForallStmt(cloner, this);
+  }
+
+  public ForallStmt(Cloner cloner, ForallStmt original) : base(cloner, original) {
+    BoundVars = original.BoundVars.ConvertAll(bv => cloner.CloneBoundVar(bv, false));
+    Range = cloner.CloneExpr(original.Range);
+    Ens = original.Ens.Select(cloner.CloneAttributedExpr).ToList();
+    Body = cloner.CloneStmt(original.Body);
+    Attributes = cloner.CloneAttributes(original.Attributes);
+
+    if (cloner.CloneResolvedFields) {
+      Bounds = original.Bounds;
+      Kind = original.Kind;
+      ForallExpressions = original.ForallExpressions?.Select(cloner.CloneExpr).ToList();
+    }
+  }
+
+  public ForallStmt(RangeToken rangeToken, List<BoundVar> boundVars, Attributes attrs, Expression range, List<AttributedExpression> ens, Statement body)
+    : base(rangeToken, attrs) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(cce.NonNullElements(boundVars));
     Contract.Requires(range != null);
     Contract.Requires(boundVars.Count != 0 || LiteralExpr.IsTrue(range));
@@ -67,7 +87,7 @@ public class ForallStmt : Statement {
           // dig further into s
         } else if (s is UpdateStmt) {
           var update = (UpdateStmt)s;
-          if (update.ResolvedStatements.Count == 1) {
+          if (update.ResolvedStatements?.Count == 1) {
             s = update.ResolvedStatements[0];
             // dig further into s
           } else {
@@ -106,6 +126,12 @@ public class ForallStmt : Statement {
         foreach (var e in Attributes.SubExpressions(ee.Attributes)) { yield return e; }
         yield return ee.E;
       }
+    }
+  }
+
+  public override IEnumerable<AssumptionDescription> Assumptions() {
+    if (Body is null) {
+      yield return AssumptionDescription.ForallWithoutBody;
     }
   }
 

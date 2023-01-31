@@ -1,1 +1,0 @@
-Dafny now compiles functions that mix tail- and non-tail-recursive calls without crashing

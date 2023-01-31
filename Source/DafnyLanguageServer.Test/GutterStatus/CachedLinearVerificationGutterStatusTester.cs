@@ -28,8 +28,8 @@ public class CachedLinearVerificationGutterStatusTester : LinearVerificationGutt
   [TestMethod, Timeout(MaxTestExecutionTimeMs)]
   public async Task EnsureCachingDoesNotMakeSquigglyLinesToRemain() {
     await SetUp(options => {
-      CoresOption.Instance.Set(options, 1);
-      VerifySnapshotsOption.Instance.Set(options, 1);
+      options.Set(BoogieOptionBag.Cores, 1U);
+      options.Set(ServerCommand.VerifySnapshots, 1U);
     });
     await VerifyTrace(@"
  .  S  S  |  I  | :method test() {
@@ -41,8 +41,8 @@ public class CachedLinearVerificationGutterStatusTester : LinearVerificationGutt
   [TestMethod, Timeout(MaxTestExecutionTimeMs)]
   public async Task EnsureCachingDoesNotHideErrors() {
     await SetUp(options => {
-      CoresOption.Instance.Set(options, 1);
-      VerifySnapshotsOption.Instance.Set(options, 1);
+      options.Set(BoogieOptionBag.Cores, 1U);
+      options.Set(ServerCommand.VerifySnapshots, 1U);
     });
     await VerifyTrace(@"
  .  S [S][ ][I][I][ ]:method test() {

@@ -258,12 +258,11 @@ namespace Microsoft.Dafny {
         return new Boogie.IdentifierExpr(Token.NoToken, "$FunctionContextHeight", Boogie.Type.Int);
       }
 
-      public Boogie.Expr HeightContext(ICallable m) {
+      public Boogie.Expr HeightContext(ICallable m, bool intermediateScope = false) {
         Contract.Requires(m != null);
         // free requires fh == FunctionContextHeight;
-        var module = m.EnclosingModule;
-        Boogie.Expr context =
-          Boogie.Expr.Eq(Boogie.Expr.Literal(module.CallGraph.GetSCCRepresentativePredecessorCount(m)), FunctionContextHeight());
+        var visibilityLevel = m.EnclosingModule.CallGraph.GetSCCRepresentativePredecessorCount(m);
+        Boogie.Expr context = Boogie.Expr.Eq(MkFunctionHeight(visibilityLevel, intermediateScope), FunctionContextHeight());
         return context;
       }
 
@@ -1420,6 +1419,8 @@ namespace Microsoft.Dafny {
           var e = (ConcreteSyntaxExpression)expr;
           return TrExpr(e.ResolvedExpression);
 
+        } else if (expr is NestedMatchExpr nestedMatchExpr) {
+          return TrExpr(nestedMatchExpr.Flattened);
         } else if (expr is BoxingCastExpr) {
           BoxingCastExpr e = (BoxingCastExpr)expr;
           return translator.CondApplyBox(GetToken(e), TrExpr(e.E), e.FromType, e.ToType);

@@ -24,6 +24,7 @@ using System.Linq;
 using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 using System.Diagnostics;
+using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny {
 
@@ -87,7 +88,7 @@ namespace Microsoft.Dafny {
       "--cores=2",
 
       // We do not want absolute or relative paths in error messages, just the basename of the file
-      "--useBaseNameForFileName",
+      "--use-basename-for-filename",
 
       // Set a default time limit, to catch cases where verification time runs off the rails
       "--verification-time-limit=300"
@@ -193,6 +194,21 @@ namespace Microsoft.Dafny {
         return CommandLineArgumentsResult.OK;
       }
 
+      var nonOutOptions = options;
+      var compilers = options.Plugins.SelectMany(p => p.GetCompilers()).ToList();
+      var compiler = compilers.LastOrDefault(c => c.TargetId == nonOutOptions.CompilerName);
+      if (compiler == null) {
+        if (nonOutOptions.CompilerName != null) {
+          var known = String.Join(", ", compilers.Select(c => $"'{c.TargetId}' ({c.TargetLanguage})"));
+          options.Printer.ErrorWriteLine(Console.Error, $"No compiler found for language \"{options.CompilerName}\"{(options.CompilerName.StartsWith("-t") || options.CompilerName.StartsWith("--") ? " (use just a language name, not a -t or --target option)" : "")}; expecting one of {known}");
+          return CommandLineArgumentsResult.PREPROCESSING_ERROR;
+        }
+
+        options.Backend = new NoExecutableBackend();
+      } else {
+        options.Backend = compiler;
+      }
+
       // If requested, print version number, help, attribute help, etc. and exit.
       if (options.ProcessInfoFlags()) {
         return CommandLineArgumentsResult.OK_EXIT_EARLY;
@@ -241,9 +257,15 @@ namespace Microsoft.Dafny {
           // Fall through and try to handle the file as an "other file"
         }
 
-        var supportedExtensions = options.Compiler.SupportedExtensions;
+        var supportedExtensions = options.Backend.SupportedExtensions;
         if (supportedExtensions.Contains(extension)) {
-          otherFiles.Add(file);
+          // .h files are not part of the build, they are just emitted as includes
+          if (File.Exists(file) || extension == ".h") {
+            otherFiles.Add(file);
+          } else {
+            options.Printer.ErrorWriteLine(Console.Out, $"*** Error: file {file} not found");
+            return CommandLineArgumentsResult.PREPROCESSING_ERROR;
+          }
         } else if (!isDafnyFile) {
           if (string.IsNullOrEmpty(extension) && file.Length > 0 && (file[0] == '/' || file[0] == '-')) {
             options.Printer.ErrorWriteLine(Console.Out,
@@ -341,8 +363,8 @@ namespace Microsoft.Dafny {
         try {
           compiled = Compile(dafnyFileNames[0], otherFileNames, dafnyProgram, outcome, moduleStats, verified);
         } catch (UnsupportedFeatureException e) {
-          if (!DafnyOptions.O.Compiler.UnsupportedFeatures.Contains(e.Feature)) {
-            throw new Exception($"'{e.Feature}' is not an element of the {DafnyOptions.O.Compiler.TargetId} compiler's UnsupportedFeatures set");
+          if (!DafnyOptions.O.Backend.UnsupportedFeatures.Contains(e.Feature)) {
+            throw new Exception($"'{e.Feature}' is not an element of the {DafnyOptions.O.Backend.TargetId} compiler's UnsupportedFeatures set");
           }
           reporter.Error(MessageSource.Compiler, e.Token, e.Message);
           compiled = false;
@@ -559,11 +581,11 @@ namespace Microsoft.Dafny {
     }
 
     private static TargetPaths GenerateTargetPaths(string dafnyProgramName) {
-      string targetBaseDir = DafnyOptions.O.Compiler.TargetBaseDir(dafnyProgramName);
-      string targetExtension = DafnyOptions.O.Compiler.TargetExtension;
+      string targetBaseDir = DafnyOptions.O.Backend.TargetBaseDir(dafnyProgramName);
+      string targetExtension = DafnyOptions.O.Backend.TargetExtension;
 
       // Note that using Path.ChangeExtension here does the wrong thing when dafnyProgramName has multiple periods (e.g., a.b.dfy)
-      string targetBaseName = DafnyOptions.O.Compiler.TargetBasename(dafnyProgramName) + "." + targetExtension;
+      string targetBaseName = DafnyOptions.O.Backend.TargetBasename(dafnyProgramName) + "." + targetExtension;
       string targetDir = Path.Combine(Path.GetDirectoryName(dafnyProgramName), targetBaseDir);
 
       string targetFilename = Path.Combine(targetDir, targetBaseName);
@@ -650,8 +672,8 @@ namespace Microsoft.Dafny {
 
       // Compile the Dafny program into a string that contains the target program
       var oldErrorCount = dafnyProgram.Reporter.Count(ErrorLevel.Error);
-      DafnyOptions.O.Compiler.OnPreCompile(dafnyProgram.Reporter, otherFileNames);
-      var compiler = DafnyOptions.O.Compiler;
+      DafnyOptions.O.Backend.OnPreCompile(dafnyProgram.Reporter, otherFileNames);
+      var compiler = DafnyOptions.O.Backend;
 
       var hasMain = Compilers.SinglePassCompiler.HasMain(dafnyProgram, out var mainMethod);
       if (hasMain) {
@@ -728,5 +750,35 @@ namespace Microsoft.Dafny {
 
     #endregion
 
+  }
+
+  class NoExecutableBackend : IExecutableBackend {
+    public override IReadOnlySet<string> SupportedExtensions => new HashSet<string>();
+    public override string TargetLanguage => throw new NotSupportedException();
+    public override string TargetExtension => throw new NotSupportedException();
+    public override string PublicIdProtect(string name) {
+      throw new NotSupportedException();
+    }
+
+    public override bool TextualTargetIsExecutable => throw new NotSupportedException();
+
+    public override bool SupportsInMemoryCompilation => throw new NotSupportedException();
+    public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
+      throw new NotSupportedException();
+    }
+
+    public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree callToMainTree) {
+      throw new NotSupportedException();
+    }
+
+    public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string pathsFilename,
+      ReadOnlyCollection<string> otherFileNames, bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
+      throw new NotSupportedException();
+    }
+
+    public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string pathsFilename,
+      ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
+      throw new NotSupportedException();
+    }
   }
 }

@@ -30,9 +30,4 @@ public class PluginsTest : PluginsTestBase {
     Assert.AreEqual("Impossible to continue because\\ \"whatever", diagnostics[0].Message);
     Assert.AreEqual(new Range((0, 9), (0, 13)), diagnostics[0].Range);
   }
-
-  [TestCleanup]
-  public void DoCleanup() {
-    CleanupPlugin();
-  }
 }

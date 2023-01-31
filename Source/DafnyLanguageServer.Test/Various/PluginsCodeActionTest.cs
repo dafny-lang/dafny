@@ -36,9 +36,4 @@ method firstMethod() {
     Assert.AreEqual("Insert file header", codeAction.Title);
     // The rest is tested elsewhere
   }
-
-  [TestCleanup]
-  public void DoCleanup() {
-    CleanupPlugin();
-  }
 }

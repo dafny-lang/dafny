@@ -28,14 +28,14 @@ namespace Microsoft.Dafny.LanguageServer {
 
       var verifierOptions = new VerifierOptions();
       configuration.Bind(VerifierOptions.Section, verifierOptions);
-      LineVerificationStatusOption.Instance.Set(dafnyOptions, verifierOptions.GutterStatus);
-      VerificationTimeLimitOption.Instance.Set(dafnyOptions, verifierOptions.TimeLimit);
-      CoresOption.Instance.Set(dafnyOptions, (int)verifierOptions.VcsCores);
-      VerifySnapshotsOption.Instance.Set(dafnyOptions, verifierOptions.VerifySnapshots);
+      dafnyOptions.Set(ServerCommand.LineVerificationStatus, verifierOptions.GutterStatus);
+      dafnyOptions.Set(BoogieOptionBag.VerificationTimeLimit, verifierOptions.TimeLimit);
+      dafnyOptions.Set(BoogieOptionBag.Cores, verifierOptions.VcsCores);
+      dafnyOptions.Set(ServerCommand.VerifySnapshots, verifierOptions.VerifySnapshots);
 
       var ghostOptions = new GhostOptions();
       configuration.Bind(GhostOptions.Section, ghostOptions);
-      GhostIndicatorsOption.Instance.Set(dafnyOptions, ghostOptions.MarkStatements);
+      dafnyOptions.Set(ServerCommand.GhostIndicators, ghostOptions.MarkStatements);
 
       var documentOptions = new DocumentOptions();
       configuration.Bind(DocumentOptions.Section, documentOptions);
@@ -45,11 +45,11 @@ namespace Microsoft.Dafny.LanguageServer {
         AutoVerification.OnSave => VerifyOnMode.Save,
         _ => throw new ArgumentOutOfRangeException()
       };
-      VerificationOption.Instance.Set(dafnyOptions, mode);
+      dafnyOptions.Set(ServerCommand.Verification, mode);
 
       var pluginOptions = new DafnyPluginsOptions();
       configuration.Bind(DafnyPluginsOptions.Section, pluginOptions);
-      PluginOption.Instance.Set(dafnyOptions, pluginOptions.Plugins.ToList());
+      dafnyOptions.Set(CommonOptionBag.Plugin, pluginOptions.Plugins.ToList());
       return dafnyOptions;
     }
 

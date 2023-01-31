@@ -6,6 +6,7 @@
 //
 //-----------------------------------------------------------------------------
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Diagnostics.Contracts;
 
@@ -116,11 +117,11 @@ namespace Microsoft.Dafny.Compilers {
     /// then not be used by the caller.
     /// </summary>
     public static bool IsErasableDatatypeWrapper(DatatypeDecl dt, out DatatypeDestructor coreDestructor) {
-      if (DafnyOptions.O.Compiler.SupportsDatatypeWrapperErasure && DafnyOptions.O.OptimizeErasableDatatypeWrappers) {
+      if (DafnyOptions.O.Backend.SupportsDatatypeWrapperErasure && DafnyOptions.O.Get(CommonOptionBag.OptimizeErasableDatatypeWrapper)) {
         // First, check for all conditions except the non-cycle condition
         if (FindUnwrappedCandidate(dt, out var candidateCoreDestructor)) {
           // Now, check if the type of the destructor contains "datatypeDecl" itself
-          if (!CompiledTypeContains(candidateCoreDestructor.Type, dt, new HashSet<TopLevelDecl>())) {
+          if (!CompiledTypeContains(candidateCoreDestructor.Type, dt, ImmutableHashSet<TopLevelDecl>.Empty)) {
             coreDestructor = candidateCoreDestructor;
             return true;
           }
@@ -137,19 +138,15 @@ namespace Microsoft.Dafny.Compilers {
       if (datatypeDecl is IndDatatypeDecl &&
           !datatypeDecl.IsExtern(out _, out _) &&
           !datatypeDecl.Members.Any(member => member is Field)) {
-        var i = datatypeDecl.Ctors.FindIndex(ctor => !ctor.IsGhost);
-        if (0 <= i) {
-          if (datatypeDecl.Ctors.FindIndex(i + 1, ctor => !ctor.IsGhost) == -1) {
-            // there is exactly one non-ghost constructor
-            var ctor = datatypeDecl.Ctors[i];
-            var j = ctor.Destructors.FindIndex(dtor => !dtor.IsGhost);
-            if (0 <= j) {
-              if (ctor.Destructors.FindIndex(j + 1, dtor => !dtor.IsGhost) == -1) {
-                // there is exactly one non-ghost parameter to "ctor"
-                coreDtor = ctor.Destructors[j];
-                return true;
-              }
-            }
+        var nonGhostConstructors = datatypeDecl.Ctors.Where(ctor => !ctor.IsGhost).ToList();
+        if (nonGhostConstructors.Count == 1) {
+          // there is exactly one non-ghost constructor
+          var ctor = nonGhostConstructors[0];
+          var nonGhostDestructors = ctor.Destructors.Where(dtor => !dtor.IsGhost).ToList();
+          if (nonGhostDestructors.Count == 1) {
+            // there is exactly one non-ghost parameter to "ctor"
+            coreDtor = nonGhostDestructors[0];
+            return true;
           }
         }
       }
@@ -161,7 +158,7 @@ namespace Microsoft.Dafny.Compilers {
     /// Return "true" if a traversal into the components of "type" finds "lookingFor" before passing through any type in "visited".
     /// "lookingFor" is expected not to be a subset type, and "visited" is expected not to contain any subset types.
     /// </summary>
-    private static bool CompiledTypeContains(Type type, TopLevelDecl lookingFor, ISet<TopLevelDecl> visited) {
+    private static bool CompiledTypeContains(Type type, TopLevelDecl lookingFor, IImmutableSet<TopLevelDecl> visited) {
       type = type.NormalizeExpand();
       if (type is UserDefinedType udt) {
         if (udt.ResolvedClass == lookingFor) {
@@ -170,7 +167,7 @@ namespace Microsoft.Dafny.Compilers {
         if (visited.Contains(udt.ResolvedClass)) {
           return false;
         }
-        visited = visited.Union(new HashSet<TopLevelDecl>() { udt.ResolvedClass }).ToHashSet();
+        visited = visited.Union(ImmutableHashSet.Create(udt.ResolvedClass));
         // (a) IF "udt.ResolvedClass" is an erasable type wrapper, then we want to continue the search with
         // its core destructor, suitably substituting type arguments for type parameters.
         // (b) If it is NOT, then we just want to search in its type arguments (like we would for non-UserDefinedType's).

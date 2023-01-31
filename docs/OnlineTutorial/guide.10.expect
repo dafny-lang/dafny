@@ -1,0 +1,14 @@
+text.dfy(7,0): Error: A postcondition might not hold on this return path.
+text.dfy(4,12): Related location: This is the postcondition that might not hold.
+text.dfy(7,0): Error: A postcondition might not hold on this return path.
+text.dfy(5,23): Related location: This is the postcondition that might not hold.
+text.dfy(7,0): Error: A postcondition might not hold on this return path.
+text.dfy(6,22): Related location: This is the postcondition that might not hold.
+text.dfy(16,0): Error: A postcondition might not hold on this return path.
+text.dfy(13,12): Related location: This is the postcondition that might not hold.
+text.dfy(16,0): Error: A postcondition might not hold on this return path.
+text.dfy(14,23): Related location: This is the postcondition that might not hold.
+text.dfy(16,0): Error: A postcondition might not hold on this return path.
+text.dfy(15,22): Related location: This is the postcondition that might not hold.
+
+Dafny program verifier finished with 0 verified, 6 errors

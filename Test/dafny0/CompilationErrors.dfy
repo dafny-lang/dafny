@@ -1,4 +1,4 @@
-// RUN: %dafny_0 "%s" > "%t"
+// RUN: %exits-with 3 %dafny "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 type MyType  // compile error: opaque type

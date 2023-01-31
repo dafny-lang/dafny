@@ -15,5 +15,5 @@ AndOrAmbiguity.dfy(52,16): Error: Ambiguous use of &, |, ^. Use parentheses to d
 AndOrAmbiguity.dfy(55,16): Error: Ambiguous use of &, |, ^. Use parentheses to disambiguate.
 AndOrAmbiguity.dfy(58,16): Error: Ambiguous use of &, |, ^. Use parentheses to disambiguate.
 AndOrAmbiguity.dfy(63,17): Error: Ambiguous use of && and ||. Use parentheses to disambiguate.
-AndOrAmbiguity.dfy(63,20): Error: this symbol not expected in Dafny
+AndOrAmbiguity.dfy(66,17): Error: Ambiguous use of && and ||. Use parentheses to disambiguate.
 18 parse errors detected in AndOrAmbiguity.dfy

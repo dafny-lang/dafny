@@ -1,4 +1,4 @@
-// RUN: %exit 4 %dafny /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 codatatype Stream<T> = Cons(head: T, tail: Stream<T>)

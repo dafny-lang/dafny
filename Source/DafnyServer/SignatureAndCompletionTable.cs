@@ -41,7 +41,7 @@ namespace DafnyServer {
             ParentClass = predicate.EnclosingClass.Name,
             SymbolType = SymbolInformation.Type.Predicate,
             StartToken = predicate.tok,
-            EndToken = predicate.BodyEndTok
+            EndToken = predicate.EndToken
           };
           information.Add(predicateSymbol);
 
@@ -53,10 +53,10 @@ namespace DafnyServer {
             ParentClass = fn.EnclosingClass.Name,
             SymbolType = SymbolInformation.Type.Function,
             StartToken = fn.tok,
-            EndColumn = fn.BodyEndTok.col,
-            EndLine = fn.BodyEndTok.line,
-            EndPosition = fn.BodyEndTok.pos,
-            EndToken = fn.BodyEndTok
+            EndColumn = fn.EndToken.col,
+            EndLine = fn.EndToken.line,
+            EndPosition = fn.EndToken.pos,
+            EndToken = fn.EndToken
           };
           information.Add(functionSymbol);
         } else {
@@ -76,10 +76,10 @@ namespace DafnyServer {
             References =
                   FindMethodReferencesInternal(m.EnclosingClass.EnclosingModuleDefinition.Name + "." + m.EnclosingClass.Name + "." +
                                    m.Name),
-            EndColumn = m.BodyEndTok.col,
-            EndLine = m.BodyEndTok.line,
-            EndPosition = m.BodyEndTok.pos,
-            EndToken = m.BodyEndTok
+            EndColumn = m.EndToken.col,
+            EndLine = m.EndToken.line,
+            EndPosition = m.EndToken.pos,
+            EndToken = m.EndToken
           };
           information.Add(methodSymbol);
         }
@@ -115,7 +115,7 @@ namespace DafnyServer {
             Name = cs.Name,
             SymbolType = SymbolInformation.Type.Class,
             StartToken = cs.tok,
-            EndToken = cs.BodyEndTok
+            EndToken = cs.EndToken
           };
           information.Add(classSymbol);
         }
@@ -156,7 +156,7 @@ namespace DafnyServer {
                   Module = userType.ResolvedClass.EnclosingModuleDefinition.SanitizedName,
                   SymbolType = SymbolInformation.Type.Definition,
                   StartToken = method.BodyStartTok,
-                  EndToken = method.BodyEndTok
+                  EndToken = method.EndToken
                 });
               }
             }
@@ -173,7 +173,7 @@ namespace DafnyServer {
                 ParentClass = autoGhost.Resolved.Type.ToString(),
                 SymbolType = SymbolInformation.Type.Definition,
                 StartToken = updateStatement.Tok,
-                EndToken = updateStatement.EndTok
+                EndToken = updateStatement.EndToken
               });
             }
           }

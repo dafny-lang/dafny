@@ -22,7 +22,7 @@ method Foo() returns (x: int) ensures x / 2 == 1; {
   return 2;
 }";
     await SetUp(options => {
-      VerificationOption.Instance.Set(options, VerifyOnMode.Never);
+      options.Set(ServerCommand.Verification, VerifyOnMode.Never);
     });
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -157,7 +157,7 @@ function fib(n: nat): nat {
   if (n <= 1) then n else fib(n - 1) + fib(n - 2)
 }".TrimStart();
     await SetUp(options => {
-      VerificationOption.Instance.Set(options, VerifyOnMode.Never);
+      options.Set(ServerCommand.Verification, VerifyOnMode.Never);
     });
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -181,7 +181,7 @@ function fib(n: nat): nat {
   public async Task MigrateDeletedVerifiableSymbol() {
     var source = @"method Foo() { assert false; }";
     await SetUp(options => {
-      VerificationOption.Instance.Set(options, VerifyOnMode.Never);
+      options.Set(ServerCommand.Verification, VerifyOnMode.Never);
     });
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -199,7 +199,7 @@ function fib(n: nat): nat {
   [TestMethod]
   public async Task ChangeRunSaveWithVerify() {
     await SetUp(options => {
-      VerificationOption.Instance.Set(options, VerifyOnMode.Save);
+      options.Set(ServerCommand.Verification, VerifyOnMode.Save);
     });
     var source = @"method Foo() { assert true; }
 method Bar() { assert false; }";
@@ -220,7 +220,7 @@ method Bar() { assert false; }";
   public async Task MigratedDiagnosticsAfterManualRun() {
     var source = @"method Foo() { assert false; }";
     await SetUp(options => {
-      VerificationOption.Instance.Set(options, VerifyOnMode.Never);
+      options.Set(ServerCommand.Verification, VerifyOnMode.Never);
     });
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -244,7 +244,7 @@ method Bar() { assert false; }";
   public async Task ManualRunCancelCancelRunRun() {
 
     await SetUp(options => {
-      VerificationOption.Instance.Set(options, VerifyOnMode.Never);
+      options.Set(ServerCommand.Verification, VerifyOnMode.Never);
     });
     var documentItem = CreateTestDocument(SlowToVerify);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -279,7 +279,7 @@ method Bar() { assert false; }";
     var source = @"method Foo() { assert false; }";
 
     await SetUp(options => {
-      VerificationOption.Instance.Set(options, VerifyOnMode.Save);
+      options.Set(ServerCommand.Verification, VerifyOnMode.Save);
     });
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -300,7 +300,7 @@ method Bar() { assert false; }";
 method Bar() { assert false; }";
 
     await SetUp(options => {
-      CoresOption.Instance.Set(options, 1);
+      options.Set(BoogieOptionBag.Cores, 1U);
     });
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -321,7 +321,7 @@ method Bar() { assert false; }";
 ";
 
     await SetUp(options => {
-      VerificationOption.Instance.Set(options, VerifyOnMode.Save);
+      options.Set(ServerCommand.Verification, VerifyOnMode.Save);
     });
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -349,8 +349,8 @@ method Bar() { assert false; }";
 method Bar() { assert true; }";
 
     await SetUp(options => {
-      CoresOption.Instance.Set(options, 1);
-      VerifySnapshotsOption.Instance.Set(options, 1);
+      options.Set(BoogieOptionBag.Cores, 1U);
+      options.Set(ServerCommand.VerifySnapshots, 1U);
     });
 
     var documentItem = CreateTestDocument(source);

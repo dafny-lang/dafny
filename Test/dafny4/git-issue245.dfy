@@ -1,4 +1,4 @@
-// RUN: %dafny_0 "%s" > "%t"
+// RUN: %exits-with 4 %dafny "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Issue 245 pointed out that trait override checks ignored the optional name of function results
@@ -37,23 +37,23 @@ class C extends T {
   { 5 + y }
 }
 
-// class D is like C, but in each case, the spec is NOT weaker than that in T
+// class D is like C, but in each case, the spec is NOT stronger than that in T
 class D extends T {
   // d does not name the result in either trait or class
   function method d(y: nat): nat
-    ensures d(y) < 20 + y  // error: specification is not weaker
+    ensures d(y) < 20 + y  // error: specification is not stronger
   { 11 + y }
   // f names the result in both trait and class
   function method f(y: nat): (result: nat)
-    ensures result < 20 + y  // error: specification is not weaker
+    ensures result < 20 + y  // error: specification is not stronger
   { 11 + y }
   // g names the result in just the class
   function method g(y: nat): (result: nat)
-    ensures result < 20 + y  // error: specification is not weaker
+    ensures result < 20 + y  // error: specification is not stronger
   { 11 + y }
   // h names the result in just the trait
   function method h(y: nat): nat
-    ensures h(y) < 20 + y  // error: specification is not weaker
+    ensures h(y) < 20 + y  // error: specification is not stronger
   { 11 + y }
 }
 
@@ -62,19 +62,19 @@ class D extends T {
 class E extends T {
   // d does not name the result in either trait or class
   function method d(y: nat): nat
-    ensures d(y) < 20 + y
+    ensures d(y) < 20 + y  // error: specification is not stronger
   { 5 + y }
   // f names the result in both trait and class
   function method f(y: nat): (result: nat)
-    ensures result < 20 + y
+    ensures result < 20 + y  // error: specification is not stronger
   { 5 + y }
   // g names the result in just the class
   function method g(y: nat): (result: nat)
-    ensures result < 20 + y
+    ensures result < 20 + y  // error: specification is not stronger
   { 5 + y }
   // h names the result in just the trait
   function method h(y: nat): nat
-    ensures h(y) < 20 + y
+    ensures h(y) < 20 + y  // error: specification is not stronger
   { 5 + y }
 }
 
