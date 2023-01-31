@@ -1734,7 +1734,7 @@ public class TypeTestExpr : TypeUnaryExpr {
 }
 
 public class BinaryExpr : Expression, ICloneable<BinaryExpr> {
-  public override IToken Tok => E1.EndToken.Prev;
+  public override IToken Tok => E1.StartToken.Prev;
 
   public enum Opcode {
     Iff,
