@@ -295,8 +295,6 @@ Note that `dafny build` may do optimizations that `dafny run` does not.
 
 Details for specific target platforms are described [in Section 25.7](#sec-compilation).
 
-<!-- TODO: OLD TEXT: The command has options that enable being specific about the build platform and architecture. -->
-
 #### 25.5.1.6. `dafny run` {#sec-dafny-run}
 
 The `dafny run` command compiles the Dafny program and then runs the resulting executable.
@@ -372,8 +370,6 @@ This command is not yet released, but will be a command that formats source code
 This _experimental_ command (verifies and compiles the program and) runs every method in the program that is annotated with the `{:test}` attribute.
 Verification can be disabled using the `--no-verify` option. `dafny test` also accepts all other options of the `dafny build` command. 
 In particular, it accepts the `--target` option that specifies the programming language used in the build and execution phases.
-
-<!-- TODO: Or is it like dafny run? -->
 
 There are currently no other options specific to the `dafny test` command.
 
@@ -1832,7 +1828,7 @@ and what information it produces about the verification process.
   assignment, the property that every variable is eventually assigned a
   value before it is used.  If false (the default) definite assignment
   rules are strictly checked (corresponding to legacy level 3); if true,
-  checking corresponds to legacy level TODO.
+  checking corresponds to legacy level 2.
   The legacy option was `-definiteAssignment:<n>` with possible values
   * `0` - ignore definite-assignment rules; this mode is unsound and is
     for testing only.

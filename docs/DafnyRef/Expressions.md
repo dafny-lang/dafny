@@ -400,13 +400,17 @@ bit-vector negation (`-` -- [Section 7.3](#sec-bit-vector-types))
 ## 21.12. Primary Expressions {#sec-primary-expressions}
 ([grammar](#g-primary-expression))
 
-Examples: TODO: More examples
+Examples:
+<!-- %no-check -->
 ```dafny
+true
+34
 M(i,j)
-
 [1,2,3]
 {2,3,4}
-
+map[1 => 2, 3 => 4]
+(i:int,j:int)=>i+j
+if b then 4 else 5
 ```
 
 After descending through all the binary and unary operators we arrive at
@@ -420,13 +424,14 @@ recognized in this context.
 ## 21.13. Lambda expressions {#sec-lambda-expressions}
 ([grammar](#g-lambda-expression))
 
-Examples: TODO
+Examples:
+<!-- %no-check -->
 ```dafny
-x ==> -x
-_ ==> true
-(x,y) ==> x*y
-(x:int, b:bool) ==> if b then x else -x
-x requires x > 0 ==> x-1
+x => -x
+_ => true
+(x,y) => x*y
+(x:int, b:bool) => if b then x else -x
+x requires x > 0 => x-1
 ```
 
 
@@ -485,9 +490,11 @@ x requires F.requires(x) reads F.reads(x) => F(x)
 ## 21.14. Left-Hand-Side Expressions
 ([grammar](#g-lhs-expression))
 
-Examples: TODO
+Examples:
+<!-- %no-check -->
 ```dafny
 x
+a[k]
 LibraryModule.F().x
 old(o.f).x
 ```
@@ -594,7 +601,8 @@ context in effect cannot be changed after initialization.
 ## 21.17. Object Allocation
 ([grammar](#g-object-allocation-expression))
 
-Examples: TODO
+Examples:
+<!-- %no-check -->
 ```dafny
 new MyClass
 mew MyClass.Init
@@ -1286,26 +1294,18 @@ then the `if` and `y` are no longer ghost, and `y` could be used, for example, i
 ### 21.33.1. Case and Extended Patterns {#sec-case-pattern}
 ([grammar](#g-pattern))
 
-Examples: TODO
-```dafny
-```
-
-TODO - edit
-
 Patterns are used for (possibly nested)
 pattern matching on inductive, coinductive or base type values.
-The `ExtendedPattern` construct is used in
-`CaseStatement` and `CaseExpression`s,
-that is, in `match`
-[statements](#sec-match-statement)
-and [expressions](#sec-match-expression).
-`CasePattern`s are used
-in `LetExpr`s and `VarDeclStatement`s.
-The `ExtendedPattern` differs from `CasePattern` in allowing literals,
+They are used in 
+[match statements](#sec-match-statement),
+[match expressions](#sec-match-expression),
+[let expressions](#sec-let-expression),
+and [variable declarations](#sec-variable-declaration-statement).
+The match expressions and statements allow literals,
 symbolic constants, and disjunctive (“or”) patterns.
 
 When matching an inductive or coinductive value in
-a ``MatchStmt`` or ``MatchExpression``, the ``ExtendedPattern``
+a match statement or expression, the pattern
 must correspond to one of the following:
 
 * (0) a case disjunction (“or-pattern”)
@@ -1327,24 +1327,25 @@ matches a constructor.
 * a simple identifier, then the pattern matches
    * a parameter-less constructor if there is one defined with the correct type and the given name, else
    * the value of a symbolic constant, if a name lookup finds a declaration for
-a constant with the given name (if the name is declared but with a non-matching type, a type resolution error will occur),
+     a constant with the given name (if the name is declared but with a non-matching type, a type resolution error will occur),
    * otherwise, the identifier is a new bound variable
 
 Disjunctive patterns may not bind variables, and may not be nested inside other
 patterns.
 
-Any ``ExtendedPattern``s inside the parentheses are then
+Any patterns inside the parentheses of a constructor (or tuple) pattern are then
 matched against the arguments that were given to the
 constructor when the value was constructed.
-The number of ``ExtendedPattern``s must match the number
+The number of patterns must match the number
 of parameters to the constructor (or the arity of the
 tuple).
-When matching a value of base type, the ``ExtendedPattern`` should
-either be a ``LiteralExpression_`` of the same type as the value,
+
+When matching a value of base type, the pattern should
+either be a literal expression of the same type as the value,
 or a single identifier matching all values of this type.
 
-`ExtendedPattern`s and `CasePattern`s may be nested. The set of bound variable
-identifiers contained in a `CaseBinding_` or `CasePattern` must be distinct.
+Patterns may be nested. The  bound variable
+identifiers contained in all the patterns must be distinct.
 They are bound to the corresponding values in the value being
 matched. (Thus, for example, one cannot repeat a bound variable to
 attempt to match a constructor that has two identical arguments.)
@@ -1419,14 +1420,15 @@ It this is not possible, the program is in error.
 ### 21.36.1. Set Comprehension Expressions {#sec-set-comprehension-expression}
 ([grammar](#g-set-comprehension-expression))
 
-TODO  example using <-
-
 Examples:
+<!-- %check-resolve -->
 ```dafny
 set x: nat | x < 100
 set x: nat | x < 100 :: x * x
 set x: nat | x < 100, y: nat | x < y < 100 :: x * y
 iset x: nat | x > 100
+set<int> s;
+set x <- s :: x + 1
 ```
 
 A set comprehension expression is an expression that yields a set
@@ -1520,15 +1522,15 @@ of `I` for each value of `x.i`, or any other combination.
 ### 21.37.1. Statements in an Expression {#sec-statement-in-an-expression}
 ([grammar](#g-statement-in-expression))
 
-TODO Example of calc stastement
-
 Examples:
+<!-- %no-check -->
 ```dafny
 assert x != 0; 10/x
 assert x != 0; assert y > 0; y/x
 assume x != 0; 10/x
 expect x != 0; 10/x
 reveal M.f; M.f(x)
+calc { x * 0; == 0; } x/1;
 ```
 
 A ``StmtInExpr`` is a kind of statement that is allowed to
@@ -1545,13 +1547,14 @@ assume x != 0; 10/x
 ### 21.38.1. Let and Let or Fail Expression {#sec-let-expression}
 ([grammar](#g-let-expression))
 
-TODO Example of destructor, discussion of :|
-
 Examples:
+<!-- %no-check -->
 ```dafny
 var x := f(y); x*x
 var x :- f(y); x*x
 var x :| P(x); x*x
+var (x, y) := T(); x + y   // T returns a tuple
+var R(x,y) := T(); x + y   // T returns a datatype value R
 ```
 
 
