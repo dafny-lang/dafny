@@ -189,6 +189,7 @@ public abstract class RangeNode : Node { // TODO merge into Node when TokenNode 
   
   public IToken tok => Tok; // TODO replace with Tok in separate PR
   
+  // TODO rename to Range in separate PR
   public override RangeToken RangeToken { get; set; } // TODO remove setter when TokenNode is gone.
 
   protected RangeNode(Cloner cloner, RangeNode original) {

@@ -176,7 +176,7 @@ public class MemberSelectExpr : Expression, IHasUsages, ICloneable<MemberSelectE
   /// Returns a resolved MemberSelectExpr for a field.
   /// </summary>
   public MemberSelectExpr(RangeToken rangeToken, Expression obj, Field field)
-    : this(rangeToken, obj, field.MyName) {
+    : this(rangeToken, obj, field.NameNode) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(obj != null);
     Contract.Requires(field != null);

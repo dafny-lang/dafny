@@ -582,24 +582,24 @@ namespace Microsoft.Dafny {
       var byMethodBody = refinementCloner.CloneBlockStmt(f.ByMethodBody);
 
       if (f is Predicate) {
-        return new Predicate(tok, f.MyName, f.HasStaticKeyword, isGhost, tps, formals, result,
+        return new Predicate(tok, f.NameNode, f.HasStaticKeyword, isGhost, tps, formals, result,
           req, reads, ens, decreases, body, bodyOrigin,
           f.ByMethodTok == null ? null : refinementCloner.Tok(f.ByMethodTok), byMethodBody,
           refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       } else if (f is LeastPredicate) {
-        return new LeastPredicate(tok, f.MyName, f.HasStaticKeyword, ((LeastPredicate)f).TypeOfK, tps, formals, result,
+        return new LeastPredicate(tok, f.NameNode, f.HasStaticKeyword, ((LeastPredicate)f).TypeOfK, tps, formals, result,
           req, reads, ens, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       } else if (f is GreatestPredicate) {
-        return new GreatestPredicate(tok, f.MyName, f.HasStaticKeyword, ((GreatestPredicate)f).TypeOfK, tps, formals, result,
+        return new GreatestPredicate(tok, f.NameNode, f.HasStaticKeyword, ((GreatestPredicate)f).TypeOfK, tps, formals, result,
           req, reads, ens, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       } else if (f is TwoStatePredicate) {
-        return new TwoStatePredicate(tok, f.MyName, f.HasStaticKeyword, tps, formals, result,
+        return new TwoStatePredicate(tok, f.NameNode, f.HasStaticKeyword, tps, formals, result,
           req, reads, ens, decreases, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       } else if (f is TwoStateFunction) {
-        return new TwoStateFunction(tok, f.MyName, f.HasStaticKeyword, tps, formals, result, refinementCloner.CloneType(f.ResultType),
+        return new TwoStateFunction(tok, f.NameNode, f.HasStaticKeyword, tps, formals, result, refinementCloner.CloneType(f.ResultType),
           req, reads, ens, decreases, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       } else {
-        return new Function(tok, f.MyName, f.HasStaticKeyword, isGhost, tps, formals, result, refinementCloner.CloneType(f.ResultType),
+        return new Function(tok, f.NameNode, f.HasStaticKeyword, isGhost, tps, formals, result, refinementCloner.CloneType(f.ResultType),
           req, reads, ens, decreases, body,
           f.ByMethodTok == null ? null : refinementCloner.Tok(f.ByMethodTok), byMethodBody,
           refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
@@ -764,7 +764,7 @@ namespace Microsoft.Dafny {
               if ((!(origConst.Type is InferredTypeProxy) && newConst.Type is InferredTypeProxy) || (origConst.Rhs != null && newConst.Rhs == null)) {
                 var typ = newConst.Type is InferredTypeProxy ? refinementCloner.CloneType(origConst.Type) : newConst.Type;
                 var rhs = newConst.Rhs ?? origConst.Rhs;
-                nw.Members[index] = new ConstantField(newConst.RangeToken, newConst.MyName, rhs, newConst.HasStaticKeyword, newConst.IsGhost, typ, newConst.Attributes);
+                nw.Members[index] = new ConstantField(newConst.RangeToken, newConst.NameNode, rhs, newConst.HasStaticKeyword, newConst.IsGhost, typ, newConst.Attributes);
               }
             }
 

@@ -370,7 +370,7 @@ public abstract class ExtremePredicate : Function {
 
     var args = new List<Expression>() { depth };
     args.AddRange(fexp.Args);
-    var prefixPredCall = new FunctionCallExpr(fexp.RangeToken, this.PrefixPredicate.MyName, fexp.Receiver, args);
+    var prefixPredCall = new FunctionCallExpr(fexp.RangeToken, this.PrefixPredicate.NameNode, fexp.Receiver, args);
     prefixPredCall.Function = this.PrefixPredicate;  // resolve here
     prefixPredCall.TypeApplication_AtEnclosingClass = fexp.TypeApplication_AtEnclosingClass;  // resolve here
     prefixPredCall.TypeApplication_JustFunction = fexp.TypeApplication_JustFunction;  // resolve here

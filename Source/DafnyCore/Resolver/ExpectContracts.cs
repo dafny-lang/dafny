@@ -91,7 +91,7 @@ public class ExpectContracts : IRewriter {
 
     if (decl is Method origMethod) {
       var newMethod = cloner.CloneMethod(origMethod);
-      newMethod.MyName.Value = newName;
+      newMethod.NameNode.Value = newName;
 
       var args = newMethod.Ins.Select(Expression.CreateIdentExpr).ToList();
       var outs = newMethod.Outs.Select(Expression.CreateIdentExpr).ToList();
@@ -104,7 +104,7 @@ public class ExpectContracts : IRewriter {
       newDecl = newMethod;
     } else if (decl is Function origFunc) {
       var newFunc = cloner.CloneFunction(origFunc);
-      newFunc.MyName.Value = newName;
+      newFunc.NameNode.Value = newName;
 
       var args = origFunc.Formals.Select(Expression.CreateIdentExpr).ToList();
       var callExpr = ApplySuffix.MakeRawApplySuffix(decl.RangeToken, origFunc.Name, args);

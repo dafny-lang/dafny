@@ -6166,7 +6166,7 @@ namespace Microsoft.Dafny {
           if (rhsBindings.TryGetValue(f.Name, out var info)) {
             ctorArg = info.Item2 ?? info.Item3;
           } else {
-            ctorArg = new ExprDotName(tok, d, f.MyName, null);
+            ctorArg = new ExprDotName(tok, d, f.NameNode, null);
           }
           ctorArguments.Add(ctorArg);
           var bindingName = new Token(tok.StartToken.line, tok.StartToken.col) {
@@ -6263,7 +6263,7 @@ namespace Microsoft.Dafny {
       // For 3:
       TopLevelDecl decl;
 
-      var nameNode = resolutionContext.InReveal ? "reveal_" + expr.MyName : expr.MyName;
+      var nameNode = resolutionContext.InReveal ? "reveal_" + expr.NameNode : expr.NameNode;
       var name = nameNode.Value;
       v = scope.Find(name);
       if (v != null) {

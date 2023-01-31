@@ -7,7 +7,7 @@ using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
-public abstract class Declaration : INamedRegion, IAttributeBearingDeclaration, IDeclarationOrUsage {
+public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, IDeclarationOrUsage {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Name != null);
@@ -18,16 +18,16 @@ public abstract class Declaration : INamedRegion, IAttributeBearingDeclaration, 
   }
 
   public IToken TokenWithTrailingDocString = Token.NoToken;
-  public Name MyName;
+  public Name NameNode;
 
-  public override IToken Tok => MyName.StartToken;
-  public IToken NameToken => MyName.StartToken;
+  public override IToken Tok => NameNode.StartToken;
+  public IToken NameToken => NameNode.StartToken;
   
-  public string Name => MyName.Value;
+  public string Name => NameNode.Value;
   public bool IsRefining;
 
-  private VisibilityScope opaqueScope = new VisibilityScope();
-  private VisibilityScope revealScope = new VisibilityScope();
+  private VisibilityScope opaqueScope = new();
+  private VisibilityScope revealScope = new();
 
   private bool scopeIsInherited = false;
 
@@ -128,7 +128,7 @@ public abstract class Declaration : INamedRegion, IAttributeBearingDeclaration, 
   protected Declaration(RangeToken rangeToken, Name name, Attributes attributes, bool isRefining) : base(rangeToken) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
-    this.MyName = name;
+    this.NameNode = name;
     this.Attributes = attributes;
     this.IsRefining = isRefining;
   }
@@ -387,7 +387,7 @@ public class LiteralModuleDecl : ModuleDecl {
   public override IEnumerable<Node> Children => new[] { ModuleDef };
 
   public LiteralModuleDecl(ModuleDefinition module, ModuleDefinition parent)
-    : base(module.RangeToken, module.MyName, parent, false, false) {
+    : base(module.RangeToken, module.NameNode, parent, false, false) {
     ModuleDef = module;
     TokenWithTrailingDocString = module.TokenWithTrailingDocString;
   }
@@ -636,11 +636,11 @@ public class ModuleQualifiedId {
   [FilledInDuringResolution] public ModuleSignature Sig; // the module signature corresponding to the full path
 }
 
-public class ModuleDefinition : INamedRegion, IDeclarationOrUsage, IAttributeBearingDeclaration {
+public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearingDeclaration {
   public IToken TokenWithTrailingDocString = Token.NoToken;
-  public string DafnyName => MyName.StartToken.val; // The (not-qualified) name as seen in Dafny source code
-  public readonly Name MyName; // (Last segment of the) module name
-  public string Name => MyName.Value;
+  public string DafnyName => NameNode.StartToken.val; // The (not-qualified) name as seen in Dafny source code
+  public readonly Name NameNode; // (Last segment of the) module name
+  public string Name => NameNode.Value;
   public string FullDafnyName {
     get {
       if (EnclosingModule == null) {
@@ -693,7 +693,7 @@ public class ModuleDefinition : INamedRegion, IDeclarationOrUsage, IAttributeBea
     bool isToBeVerified, bool isToBeCompiled) : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
-    this.MyName = name;
+    this.NameNode = name;
     this.PrefixIds = prefixIds;
     this.Attributes = attributes;
     this.EnclosingModule = parent;

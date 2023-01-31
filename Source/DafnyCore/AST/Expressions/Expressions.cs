@@ -2559,7 +2559,7 @@ public class CasePattern<VT> : RangeNode
   public CasePattern(RangeToken range, VT bv) : base(range) {
     Contract.Requires(tok != null);
     Contract.Requires(bv != null);
-    Name = bv.MyName;
+    Name = bv.NameNode;
     Var = bv;
   }
 
@@ -3104,20 +3104,20 @@ public abstract class SuffixExpr : ConcreteSyntaxExpression {
 }
 
 public class NameSegment : ConcreteSyntaxExpression, ICloneable<NameSegment> {
-  public readonly Name MyName;
-  public string Name => MyName.Value;
+  public readonly Name NameNode;
+  public string Name => NameNode.Value;
   public readonly List<Type> OptTypeArguments;
-  public NameSegment(RangeToken rangeToken, Name name, List<Type> optTypeArguments)
+  public NameSegment(RangeToken rangeToken, Name nameNode, List<Type> optTypeArguments)
     : base(rangeToken) {
     Contract.Requires(rangeToken != null);
-    Contract.Requires(name != null);
+    Contract.Requires(nameNode != null);
     Contract.Requires(optTypeArguments == null || optTypeArguments.Count > 0);
-    MyName = name;
+    NameNode = nameNode;
     OptTypeArguments = optTypeArguments;
   }
 
   public NameSegment(Cloner cloner, NameSegment original) : base(cloner, original) {
-    MyName = original.MyName.Clone(cloner);
+    NameNode = original.NameNode.Clone(cloner);
     OptTypeArguments = original.OptTypeArguments?.ConvertAll(cloner.CloneType);
   }
 

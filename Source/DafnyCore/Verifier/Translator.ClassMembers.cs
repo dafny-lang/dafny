@@ -595,7 +595,7 @@ namespace Microsoft.Dafny {
 
           // Generate a CallStmt to be used as the body of the 'forall' statement.
           RecursiveCallParameters(m.RangeToken, m, m.TypeArgs, m.Ins, receiverSubst, substMap, out var recursiveCallReceiver, out var recursiveCallArgs);
-          var methodSel = new MemberSelectExpr(m.RangeToken, recursiveCallReceiver, m.MyName);
+          var methodSel = new MemberSelectExpr(m.RangeToken, recursiveCallReceiver, m.NameNode);
           methodSel.Member = m;  // resolve here
           methodSel.TypeApplication_AtEnclosingClass = m.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.RangeToken, tp));
           methodSel.TypeApplication_JustMember = m.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.RangeToken, tp));
@@ -869,7 +869,7 @@ namespace Microsoft.Dafny {
         } else {
           var pp = f.OverriddenFunction.Result;
           Contract.Assert(!pp.IsOld);
-          pOut = new Formal(pp.RangeToken, pp.MyName, f.ResultType, false, pp.IsGhost, null);
+          pOut = new Formal(pp.RangeToken, pp.NameNode, f.ResultType, false, pp.IsGhost, null);
         }
         var varType = TrType(pOut.Type);
         var wh = GetWhereClause(pOut.tok, new Boogie.IdentifierExpr(pOut.tok, pOut.AssignUniqueName(f.IdGenerator), varType), pOut.Type, etran, NOALLOC);

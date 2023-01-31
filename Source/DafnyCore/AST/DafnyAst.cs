@@ -346,23 +346,10 @@ namespace Microsoft.Dafny {
     }
   }
 
-
-  public abstract class INamedRegion : RangeNode {
-    string Name { get; }
-
-    protected INamedRegion(Cloner cloner, RangeNode original) : base(cloner, original)
-    {
-    }
-
-    protected INamedRegion(RangeToken rangeToken) : base(rangeToken)
-    {
-    }
-  }
-
   [ContractClass(typeof(IVariableContracts))]
   public interface IVariable : IDeclarationOrUsage {
-    string Name => MyName.Value;
-    Name MyName {
+    string Name => NameNode.Value;
+    Name NameNode {
       get;
     }
     
@@ -409,7 +396,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public Name MyName => throw new NotImplementedException();
+    public Name NameNode => throw new NotImplementedException();
 
     public string DisplayName {
       get {
@@ -474,22 +461,22 @@ namespace Microsoft.Dafny {
   }
 
   public abstract class NonglobalVariable : RangeNode, IVariable {
-    public Name MyName { get; set; }
+    public Name NameNode { get; set; }
 
-    public override IToken Tok => MyName.StartToken;
+    public override IToken Tok => NameNode.StartToken;
 
-    public IToken NameToken => MyName.StartToken;
+    public IToken NameToken => NameNode.StartToken;
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
-      Contract.Invariant(MyName != null);
+      Contract.Invariant(NameNode != null);
       Contract.Invariant(type != null);
     }
 
     public string Name {
       get {
         Contract.Ensures(Contract.Result<string>() != null);
-        return MyName.Value;
+        return NameNode.Value;
       }
     }
     public string DisplayName =>
@@ -584,7 +571,7 @@ namespace Microsoft.Dafny {
     public NonglobalVariable(RangeToken rangeToken, Name name, Type type, bool isGhost) : base(rangeToken) {
       Contract.Requires(name != null);
       Contract.Requires(type != null);
-      this.MyName = name;
+      this.NameNode = name;
       this.type = type;
       this.isGhost = isGhost;
     }
@@ -659,7 +646,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  [DebuggerDisplay("Bound<{MyName}>")]
+  [DebuggerDisplay("Bound<{NameNode}>")]
   public class BoundVar : NonglobalVariable {
     public override bool IsMutable => false;
 
@@ -680,7 +667,7 @@ namespace Microsoft.Dafny {
   /// In addition to its type, which may be inferred, it can have an optional domain collection expression
   /// (x <- C) and an optional range boolean expressions (x | E).
   /// </summary>
-  [DebuggerDisplay("Quantified<{MyName}>")]
+  [DebuggerDisplay("Quantified<{NameNode}>")]
   public class QuantifiedVar : BoundVar {
     public readonly Expression Domain;
     public readonly Expression Range;
@@ -712,7 +699,7 @@ namespace Microsoft.Dafny {
       range = null;
 
       foreach (var qvar in qvars) {
-        BoundVar bvar = new BoundVar(qvar.RangeToken, qvar.MyName, qvar.SyntacticType);
+        BoundVar bvar = new BoundVar(qvar.RangeToken, qvar.NameNode, qvar.SyntacticType);
         bvars.Add(bvar);
 
         if (qvar.Domain != null) {

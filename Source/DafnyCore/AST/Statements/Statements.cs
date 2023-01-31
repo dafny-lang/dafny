@@ -772,15 +772,14 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt> {
 }
 
 public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration {
-  public Name MyName { get; set; }
-  string name => MyName.Value;
+  public Name NameNode { get; set; }
   
   public Attributes Attributes;
   Attributes IAttributeBearingDeclaration.Attributes => Attributes;
   public bool IsGhost;
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(name != null);
+    Contract.Invariant(NameNode != null);
     Contract.Invariant(OptionalType != null);
   }
 
@@ -788,7 +787,7 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
 
   public LocalVariable(Cloner cloner, LocalVariable original)
     : base(cloner, original) {
-    MyName = original.MyName.Clone(cloner);
+    NameNode = original.NameNode.Clone(cloner);
     OptionalType = cloner.CloneType(original.OptionalType);
     IsGhost = original.IsGhost;
 
@@ -797,12 +796,12 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
     }
   }
 
-  public LocalVariable(RangeToken rangeToken, Name name, Type type, bool isGhost)
+  public LocalVariable(RangeToken rangeToken, Name nameNode, Type type, bool isGhost)
     : base(rangeToken) {
-    Contract.Requires(name != null);
+    Contract.Requires(nameNode != null);
     Contract.Requires(type != null);  // can be a proxy, though
 
-    this.MyName = name;
+    this.NameNode = nameNode;
     this.OptionalType = type;
     if (type is InferredTypeProxy) {
       ((InferredTypeProxy)type).KeepConstraints = true;
@@ -813,7 +812,7 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
   public string Name {
     get {
       Contract.Ensures(Contract.Result<string>() != null);
-      return name;
+      return NameNode.Value;
     }
   }
   public static bool HasWildcardName(IVariable v) {
