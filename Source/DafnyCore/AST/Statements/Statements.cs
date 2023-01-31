@@ -9,7 +9,7 @@ namespace Microsoft.Dafny;
 
 public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
   public override IToken Tok => PostLabelToken ?? base.Tok;
-  
+
   public IToken PostLabelToken { get; set; }
 
   public LList<Label> Labels;  // mutable during resolution
@@ -390,7 +390,7 @@ public class ExprRhs : AssignmentRhs {
   void ObjectInvariant() {
     Contract.Invariant(Expr != null);
   }
-  
+
   public ExprRhs(Expression expr, Attributes attrs = null)
     : base(new RangeToken(expr.StartToken, attrs?.EndToken ?? expr.EndToken), attrs) {
     Contract.Requires(expr != null);
@@ -773,7 +773,7 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt> {
 
 public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration {
   public Name NameNode { get; set; }
-  
+
   public Attributes Attributes;
   Attributes IAttributeBearingDeclaration.Attributes => Attributes;
   public bool IsGhost;

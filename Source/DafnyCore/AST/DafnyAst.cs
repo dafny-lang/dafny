@@ -352,7 +352,7 @@ namespace Microsoft.Dafny {
     Name NameNode {
       get;
     }
-    
+
     string DisplayName {  // what the user thinks he wrote
       get;
     }
@@ -650,10 +650,10 @@ namespace Microsoft.Dafny {
   public class BoundVar : NonglobalVariable {
     public override bool IsMutable => false;
 
-    public BoundVar(IToken token, Type type) : this(new RangeToken(token ,token), new Name(token), type) {
-      
+    public BoundVar(IToken token, Type type) : this(new RangeToken(token, token), new Name(token), type) {
+
     }
-    
+
     public BoundVar(RangeToken rangeToken, Name name, Type type)
       : base(rangeToken, name, type, false) {
       Contract.Requires(name != null);

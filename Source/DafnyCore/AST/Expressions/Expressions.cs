@@ -12,7 +12,7 @@ namespace Microsoft.Dafny;
 public abstract class Expression : RangeNode {
   public IToken OverrideToken { get; set; }
   public override IToken Tok => OverrideToken ?? base.Tok;
-  
+
   [ContractInvariantMethod]
   void ObjectInvariant() {
   }
@@ -1159,12 +1159,10 @@ class Resolver_IdentifierExpr : Expression, IHasUsages {
       throw new NotSupportedException();
     }
 
-    protected ResolverType(Cloner cloner, RangeNode original) : base(cloner, original)
-    {
+    protected ResolverType(Cloner cloner, RangeNode original) : base(cloner, original) {
     }
 
-    protected ResolverType(RangeToken rangeToken) : base(rangeToken)
-    {
+    protected ResolverType(RangeToken rangeToken) : base(rangeToken) {
     }
   }
   public class ResolverType_Module : ResolverType {
@@ -1177,15 +1175,13 @@ class Resolver_IdentifierExpr : Expression, IHasUsages {
       return that.NormalizeExpand(keepConstraints) is ResolverType_Module;
     }
 
-    public ResolverType_Module(Cloner cloner, RangeNode original) : base(cloner, original)
-    {
+    public ResolverType_Module(Cloner cloner, RangeNode original) : base(cloner, original) {
     }
 
-    public ResolverType_Module(RangeToken rangeToken) : base(rangeToken)
-    {
+    public ResolverType_Module(RangeToken rangeToken) : base(rangeToken) {
     }
   }
-  
+
   public class ResolverType_Type : ResolverType {
     [System.Diagnostics.Contracts.Pure]
     public override string TypeName(ModuleDefinition context, bool parseAble) {
@@ -1196,12 +1192,10 @@ class Resolver_IdentifierExpr : Expression, IHasUsages {
       return that.NormalizeExpand(keepConstraints) is ResolverType_Type;
     }
 
-    public ResolverType_Type(Cloner cloner, RangeNode original) : base(cloner, original)
-    {
+    public ResolverType_Type(Cloner cloner, RangeNode original) : base(cloner, original) {
     }
 
-    public ResolverType_Type(RangeToken rangeToken) : base(rangeToken)
-    {
+    public ResolverType_Type(RangeToken rangeToken) : base(rangeToken) {
     }
   }
 
@@ -1431,10 +1425,11 @@ public class ApplyExpr : Expression {
 }
 
 public class FunctionCallExpr : Expression, IHasUsages, ICloneable<FunctionCallExpr> {
-  
-  public override IToken Tok => Name.StartToken;
-  
-  public Name Name;
+
+  public override IToken Tok => NameNode.StartToken;
+
+  public Name NameNode;
+  public string Name => NameNode.Value;
   public readonly Expression Receiver;
   public readonly Label/*?*/ AtLabel;
   public readonly ActualBindings Bindings;
@@ -1489,7 +1484,7 @@ public class FunctionCallExpr : Expression, IHasUsages, ICloneable<FunctionCallE
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(Name != null);
+    Contract.Invariant(NameNode != null);
     Contract.Invariant(Receiver != null);
     Contract.Invariant(cce.NonNullElements(Args));
     Contract.Invariant(
@@ -1511,15 +1506,15 @@ public class FunctionCallExpr : Expression, IHasUsages, ICloneable<FunctionCallE
     Contract.Ensures(type == null);
   }
 
-  public FunctionCallExpr(RangeToken rangeToken, Name fn, Expression receiver, [Captured] ActualBindings bindings, Label/*?*/ atLabel = null)
+  public FunctionCallExpr(RangeToken rangeToken, Name name, Expression receiver, [Captured] ActualBindings bindings, Label/*?*/ atLabel = null)
     : base(rangeToken) {
     Contract.Requires(rangeToken != null);
-    Contract.Requires(fn != null);
+    Contract.Requires(name != null);
     Contract.Requires(receiver != null);
     Contract.Requires(bindings != null);
     Contract.Ensures(type == null);
 
-    this.Name = fn;
+    this.NameNode = name;
     this.Receiver = receiver;
     this.AtLabel = atLabel;
     this.Bindings = bindings;
@@ -1541,7 +1536,7 @@ public class FunctionCallExpr : Expression, IHasUsages, ICloneable<FunctionCallE
   }
 
   public FunctionCallExpr(Cloner cloner, FunctionCallExpr original) : base(cloner, original) {
-    Name = original.Name;
+    NameNode = original.NameNode.Clone(cloner);
     Receiver = cloner.CloneExpr(original.Receiver);
     Bindings = new ActualBindings(cloner, original.Bindings);
     AtLabel = original.AtLabel;
@@ -3023,7 +3018,7 @@ public class ChainingExpression : ConcreteSyntaxExpression, ICloneable<ChainingE
       for (int i = 0; i < operators.Count; i++) {
         Contract.Assume(operators[i] == BinaryExpr.Opcode.Disjoint);
         var opTok = operatorLocs[i];
-        var e = new BinaryExpr(new RangeToken(opTok, operands[i + 1].EndToken) , BinaryExpr.Opcode.Disjoint, acc, operands[i + 1]);
+        var e = new BinaryExpr(new RangeToken(opTok, operands[i + 1].EndToken), BinaryExpr.Opcode.Disjoint, acc, operands[i + 1]);
         desugaring = new BinaryExpr(desugaring.RangeToken, BinaryExpr.Opcode.And, desugaring, e);
         acc = new BinaryExpr(new RangeToken(opTok, operands[i + 1].EndToken), BinaryExpr.Opcode.Add, acc, operands[i + 1]);
       }
@@ -3169,7 +3164,7 @@ public class ExprDotName : SuffixExpr, ICloneable<ExprDotName> {
 /// </summary>
 public class ApplySuffix : SuffixExpr, ICloneable<ApplySuffix> {
   public override IToken Tok => Lhs.EndToken.Next;
-  
+
   public readonly IToken/*?*/ AtTok;
   public readonly IToken CloseParen;
   public readonly ActualBindings Bindings;

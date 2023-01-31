@@ -22,7 +22,7 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, IDe
 
   public override IToken Tok => NameNode.StartToken;
   public IToken NameToken => NameNode.StartToken;
-  
+
   public string Name => NameNode.Value;
   public bool IsRefining;
 
@@ -1316,7 +1316,7 @@ public class ArrayClassDecl : ClassDecl {
   public readonly int Dims;
   public ArrayClassDecl(int dims, ModuleDefinition module, Attributes attrs)
     : base(RangeToken.NoToken, new Name(BuiltIns.ArrayClassName(dims)), module,
-      new List<TypeParameter>(new TypeParameter[] { new TypeParameter(RangeToken.NoToken,  new Name("arg"), TypeParameter.TPVarianceSyntax.NonVariant_Strict) }),
+      new List<TypeParameter>(new TypeParameter[] { new TypeParameter(RangeToken.NoToken, new Name("arg"), TypeParameter.TPVarianceSyntax.NonVariant_Strict) }),
       new List<MemberDecl>(), attrs, false, null) {
     Contract.Requires(1 <= dims);
     Contract.Requires(module != null);
@@ -1599,7 +1599,7 @@ public class CodeContextWrapper : ICodeContext {
 /// </summary>
 public interface ICallable : ICodeContext, INode {
   IToken Tok => RangeToken.StartToken;
-  
+
   string WhatKind { get; }
   string NameRelativeToModule { get; }
   Specification<Expression> Decreases { get; }

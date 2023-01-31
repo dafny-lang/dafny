@@ -2366,7 +2366,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         */
         if (e.Args?.Count == 0) {
         } else {
-          PrintActualArguments(e.Bindings, e.Name.Value, null);
+          PrintActualArguments(e.Bindings, e.Name, null);
         }
         if (parensNeeded) { wr.Write(")"); }
 

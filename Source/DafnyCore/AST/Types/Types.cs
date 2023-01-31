@@ -1742,12 +1742,10 @@ public abstract class Type : RangeNode {
     return allGood;
   }
 
-  protected Type(Cloner cloner, RangeNode original) : base(cloner, original)
-  {
+  protected Type(Cloner cloner, RangeNode original) : base(cloner, original) {
   }
 
-  protected Type(RangeToken rangeToken) : base(rangeToken)
-  {
+  protected Type(RangeToken rangeToken) : base(rangeToken) {
   }
 }
 
@@ -1759,8 +1757,7 @@ public abstract class Type : RangeNode {
 /// </summary>
 public abstract class ArtificialType : Type {
 
-  protected ArtificialType() : base(RangeToken.NoToken)
-  {
+  protected ArtificialType() : base(RangeToken.NoToken) {
   }
 
   public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl>/*?*/ visitedDatatypes) {
@@ -1803,12 +1800,10 @@ public class RealVarietiesSupertype : ArtificialType {
 /// A NonProxy type is a fully constrained type.  It may contain members.
 /// </summary>
 public abstract class NonProxyType : Type {
-  protected NonProxyType(Cloner cloner, RangeNode original) : base(cloner, original)
-  {
+  protected NonProxyType(Cloner cloner, RangeNode original) : base(cloner, original) {
   }
 
-  protected NonProxyType(RangeToken rangeToken) : base(rangeToken)
-  {
+  protected NonProxyType(RangeToken rangeToken) : base(rangeToken) {
   }
 }
 
@@ -1826,12 +1821,10 @@ public abstract class BasicType : NonProxyType {
     return this;
   }
 
-  protected BasicType(Cloner cloner, RangeNode original) : base(cloner, original)
-  {
+  protected BasicType(Cloner cloner, RangeNode original) : base(cloner, original) {
   }
 
-  protected BasicType() : base(RangeToken.NoToken)
-  {
+  protected BasicType() : base(RangeToken.NoToken) {
   }
 }
 

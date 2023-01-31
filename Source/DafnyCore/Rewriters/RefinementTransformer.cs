@@ -36,7 +36,7 @@ namespace Microsoft.Dafny {
       get => new RefinementToken(base.Next, InheritingModule);
       set => throw new NotSupportedException();
     }
-    
+
     public override IToken Prev {
       get => new RefinementToken(base.Prev, InheritingModule);
       set => throw new NotSupportedException();

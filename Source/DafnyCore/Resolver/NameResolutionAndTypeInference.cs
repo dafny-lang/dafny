@@ -7010,7 +7010,7 @@ namespace Microsoft.Dafny {
       Contract.Assert(e.Receiver.Type != null);  // follows from postcondition of ResolveExpression
 
       NonProxyType tentativeReceiverType;
-      var member = ResolveMember(e.tok, e.Receiver.Type, e.Name.Value, out tentativeReceiverType);
+      var member = ResolveMember(e.tok, e.Receiver.Type, e.Name, out tentativeReceiverType);
 #if !NO_WORK_TO_BE_DONE
       var ctype = (UserDefinedType)tentativeReceiverType;
 #endif

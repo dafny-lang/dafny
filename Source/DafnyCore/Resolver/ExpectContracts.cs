@@ -219,7 +219,7 @@ public class ExpectContracts : IRewriter {
           var newTarget = newRedirections[f];
           var resolved = (FunctionCallExpr)fce.Resolved;
           resolved.Function = (Function)newTarget;
-          resolved.Name = newTarget.Name;
+          resolved.NameNode = newTarget.NameNode;
           calledWrappers.Add(newTarget);
         }
       }

@@ -10,16 +10,16 @@ namespace Microsoft.Dafny;
 /// Because generated names don't have an associated token
 /// </summary>
 public class Name : RangeNode {
-  public static implicit operator Name(string value) => new( value);
+  public static implicit operator Name(string value) => new(value);
 
   public Name Prepend(string prefix) {
     return new Name(RangeToken, prefix + Value);
   }
-  
+
   public Name Append(string suffix) {
     return new Name(RangeToken, Value + suffix);
   }
-  
+
   public Name Update(Func<string, string> update) {
     return new Name(RangeToken, update(Value));
   }
@@ -32,10 +32,10 @@ public class Name : RangeNode {
   public Name(RangeToken range, string value) : base(range) {
     this.Value = value;
   }
-  
+
   public Name(IToken token) : this(new RangeToken(token, token), token.val) {
   }
-  
+
   public Name(string value) : base(RangeToken.NoToken) {
     this.Value = value;
   }

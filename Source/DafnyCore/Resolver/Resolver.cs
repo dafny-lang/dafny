@@ -7482,7 +7482,7 @@ namespace Microsoft.Dafny {
           }
         }
         // Second, investigate the possibility that this call itself may be a candidate co-call
-        if (e.Name.Value != "requires" && ModuleDefinition.InSameSCC(currentFunction, e.Function)) {
+        if (e.Name != "requires" && ModuleDefinition.InSameSCC(currentFunction, e.Function)) {
           // This call goes to another function in the same recursive cluster
           if (destructionLevel != 0 && GuaranteedCoCtors(e.Function) <= destructionLevel) {
             // a potentially destructive context
