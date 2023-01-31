@@ -40,13 +40,14 @@ The label may also be used in an `old` expression ([Section 21.22](#sec-old-expr
 must have been encountered during the control flow en route to the `old`
 expression. We say in this case that the (program point of the) label _dominates_
 the (program point of the) use of the label.
+Similarly, labels are used to indicates previous states in calls of [two-state predicates](#sec-two-state),
+[fresh](#sec-fresh-expression) expressions, [unchanged expressions](#sec-unchanged-expression), 
+and [allocated](#sec-allocated-expression) expressions.
 
 A statement can be given several labels. It makes no difference which of these
 labels is used to reference the statement---they are synonyms of each other.
 The labels must be distinct from each other, and are not allowed to be the
 same as any previous enclosing or dominating label.
-
-<!-- TODO : what about two-state predicate -->
 
 ## 20.2. Break and Continue Statements ([grammar](#g-break-continue-statement)) {#sec-break-continue-statement}
 
@@ -725,17 +726,15 @@ if tmp.IsFailure() {
 The `:-` syntax can also be used in initialization, as in
 <!-- %no-check -->
 ```dafny
-var s :- M();
+var s, t :- M();
 ```
 This is equivalent to
 <!-- %no-check -->
 ```dafny
-var s;
-s :- M();
+var s, t;
+s, t :- M();
 ```
 with the semantics as described above.
-
-<!-- TODO - but only one result ? --> 
 
 ### 20.7.7. Keyword alternative {#sec-failure-return-keyword}
 
@@ -2164,7 +2163,10 @@ Using `...` as the argument of the statement is deprecated.
 The form of the `modify` statement which includes a block
 statement is also deprecated.
 
-<!-- TODO - relationship between modify and havoc assignment -- latter for any variable or field; former for all fields of an object -->
+The [havoc assignment](#sec-havoc-statement) also sets a variable or field
+to some arbitrary (but type-consistent) value. The difference is that
+the havoc assignment acts on one LHS variable or memory location;
+the modify statement acts on all the fields of an object.
 
 ## 20.23. Calc Statement ([grammar](#g-calc-statement)) {#sec-calc-statement}
 

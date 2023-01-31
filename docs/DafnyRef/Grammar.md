@@ -311,7 +311,11 @@ A variation, a no-underscore-identifier or a `digits`, is allowed for
 - method or function or constructor name
 - label name
 - export id
-- suffix to a typename or constructor <!-- TODO check this -->
+- suffix that is a typename or constructor 
+
+All _user-declared_ names do not start with underscores, but there are
+internally generated names that a user program might _use_ that begin
+with an underscore or are just an underscore.
 
 #### 2.6.1.3. Wild identifier {#sec-wild-identifier}
 
