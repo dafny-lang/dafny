@@ -31,9 +31,9 @@ in order of increasing binding power.
  `||`, `|`                | 3 | [disjunction (or)](#sec-logical-expression)
 --------------------------|------------------------------------
  `==`                     | 4 | equality
- `==#[k]`                 | 4 | prefix equality (coinductive)
+ `==#[k]`                 | 4 | [prefix equality (coinductive)](#sec-co-equality)
  `!=`                     | 4 | disequality
- `!=#[k]`                 | 4 | prefix disequality (coinductive)
+ `!=#[k]`                 | 4 | [prefix disequality (coinductive)](#sec-co-equality)
  `<`                      | 4 | less than
  `<=`                     | 4 | at most
  `>=`                     | 4 | at least
@@ -42,8 +42,8 @@ in order of increasing binding power.
  `!in`                    | 4 | collection non-membership
  `!!`                     | 4 | disjointness
 --------------------------|------------------------------------
- `<<`                     | 5 | left-shift
- `>>`                     | 5 | right-shift
+ `<<`                     | 5 | [left-shift](#sec-bit-shift-expression)
+ `>>`                     | 5 | [right-shift](#sec-bit-shift-expression)
 --------------------------|------------------------------------
  `+`                      | 6 | addition (plus)
  `-`                      | 6 | subtraction (minus)
@@ -111,6 +111,8 @@ A second restriction is that `E` is not always permitted to contain lambda expre
 as in the expressions that are the body of a lambda expression itself, function, method and iterator specifications,
 and if and while statements with guarded alternatives.
 
+A third restriction is that `E` is not always permitted to contain a bit-wise or (`|`) operator, 
+because it would be ambiguous with the vertical bar used in comprehension expressions.
 
 ## 21.2. Equivalence Expressions ([grammar](#g-equivalence-expression)) {#sec-equivalence-expression}
 
@@ -126,7 +128,7 @@ An Equivalence Expression that contains one or more `<==>`s is
 a boolean expression and all the operands
 must also be boolean expressions. In that case each `<==>`
 operator tests for logical equality which is the same as
-ordinary equality.
+ordinary equality (but with a different precedence).
 
 See [Section 6.1.1](#sec-equivalence-operator) for an explanation of the
 `<==>` operator as compared with the `==` operator.
@@ -425,7 +427,7 @@ x requires x > 0 => x-1
 ```
 
 
-See [Section 19.4](#sec-lambda-specification) for a description of ``LambdaSpec``.
+See [Section 19.4](#sec-lambda-specification) for a description of specifications for lambda expressions.
 
 In addition to named functions, Dafny supports expressions that define
 functions.  These are called _lambda (expression)s_ (some languages
@@ -524,7 +526,7 @@ side-effects. Consequently such expressions
 within methods, and not as general expressions or within functions or specifications.
 
 An ``Rhs`` is either array allocation, an object allocation,
-a havoc right-hand-side, or a regular expression, optionally followed
+a havoc right-hand-side, or a simple expression, optionally followed
 by one or more ``Attribute``s.
 
 Right-hand-side expressions (that are not just regular expressions) appear in the following constructs:
@@ -1090,10 +1092,10 @@ imap[1 := "a", 2 := "b"]
 A map display expression builds a finite or potentially infinite
 map from explicit mappings. For example:
 
-<!-- %no-check -->
+<!-- %check-resolve -->
 ```dafny
-var m := map[1 := "a", 2 := "b"];
-ghost var im := imap[1 := "a", 2 := "b"];
+const m := map[1 := "a", 2 := "b"];
+ghost const im := imap[1 := "a", 2 := "b"];
 ```
 
 See [Section 9.4](#sec-maps) for more details on maps and imaps.
@@ -1552,11 +1554,11 @@ the type parameters.
 To reference a prefix predicate (see [Section 18.3.4](#sec-copredicates)) or
 prefix lemma (see [Section 18.3.5.3](#sec-prefix-lemmas)), the identifier
 must be the name of the greatest predicate or greatest lemma and it must be
-followed by a ``HashCall``.
+followed by a [_hash call_](#sec-hash-call).
 
 ## 21.33. Hash call ([grammar](#g-hash-call)) {#sec-hash-call}
 
-A ``HashCall`` is used to call the prefix for a greatest predicate or greatest lemma.
+A _hash call_  is used to call the prefix for a greatest predicate or greatest lemma.
 In the non-generic case, just insert `"#[k]"` before the call argument
 list where k is the number of recursion levels.
 
@@ -1682,7 +1684,7 @@ module NewSyntax {
     abc := datum.(myint := x + 2);
     def := MyOtherConstructor(!datum.mybool);
     ghi := MyConstructor(2, false);
-    jkl := datum.(42 := 7);
+    jkl := datum.(42 := 7); // error
 
     assert abc.(myint := abc.myint - 2) == datum.(myint := x);
   }

@@ -2630,20 +2630,22 @@ transparent all the way.
 
 But the transparency of a function is affected by
 whether the function was given the `{:opaque}` attribute (as explained
-in [Section 23.2.8](#sec-opaque)).
+in [Section 23.2.8](#sec-opaque)),
+the reveal statement ([Section 0.0](#sec-reveal-statement)),
+and whether it was `reveal`ed in an export set.
 
-The following table summarizes where the function is transparent.
-The module referenced in the table is the module in which the
-function is defined.
-
- `{:opaque}`? | Transparent Inside Module | Transparent Outside Module
-:------------:|:-----------:|:-----------:
- N            | Y           | Y
- Y            | N           | N
-
-When `{:opaque}` is specified for function `g`, `g` is opaque,
-however the statement `reveal g();` is available to give the semantics
-of `g` whether in the defining module or outside.
+- Inside the module where the function is declared:
+   - if there is no `{:opaque}` attribute, the function is transparent
+   - if there is an `{:opaque}` attribute, then the function is opaque,
+   except if the function is mentioned in a `reveal` steatement, then
+   it is transparent between that `reveal` statement and the end of
+   the block containing the `reveal` statement.
+- Outside the module where the function is declared, the functio is 
+visible only if it was listed in the export set by which the contents
+of its module was imported. In that case, if the function was exported
+with `reveals`, the rules are the same within the importing module as when the function is used inside
+its declaring module. If the function is exported only with `provides` it is
+always opaque and is not permitted to be used in a reveal statement.
 
 ### 12.4.5. Extreme (Least or Greatest) Predicates and Lemmas
 See [Section 24.5.3](#sec-friendliness) for descriptions
