@@ -29,7 +29,7 @@ public class DafnyBackend : ExecutableBackend {
   }
 
   private static readonly Regex ModuleLine = new(@"^\s*assert\s+""([a-zA-Z0-9_]+)""\s*==\s*__name__\s*$");
-  
+
   public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText,
       string /*?*/ callToMain, string /*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
       bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
@@ -47,7 +47,7 @@ public class DafnyBackend : ExecutableBackend {
     string targetFilename, ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
     Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
     var opt = DafnyOptions.O;
-    var psi = PrepareProcessStartInfo("dafny", opt.MainArgs.Prepend(targetFilename));
+    var psi = PrepareProcessStartInfo("dafny", opt.MainArgs.Prepend("/compileTarget:cs").Prepend("/compile:3").Prepend(targetFilename));
     return 0 == RunProcess(psi, outputWriter);
   }
 }

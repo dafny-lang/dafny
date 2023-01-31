@@ -49,6 +49,9 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
+      wr.WriteLine("import opened my_module");
+      var wrBody = wr.NewBlock("method Main()", "");
+      wrBody.WriteLine("mymy__default.myMain();");
     }
 
     protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw, string argsParameterName) {
@@ -67,16 +70,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override string GetHelperModuleName() => DafnyRuntimeModule;
 
     private static string MangleName(string name) {
-      switch (name) {
-        case "_module":
-        case "_System":
-        case "__default":
-          name = $"my{name}";
-          break;
-        default:
-          break;
-      }
-      return name;
+      return "my" + name;
     }
 
     protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string fullPrintName,
@@ -197,9 +191,8 @@ namespace Microsoft.Dafny.Compilers {
 
     private ConcreteSyntaxTree CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody,
         ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
-      wr.Write($"static method {IdProtect(m.FullDafnyName)}()");
-      var block = wr.NewBlock(open: BlockStyle.NewlineBrace);
-      return block.Fork();
+      var wrBody = wr.NewBlock($"static method {IdProtect(m.FullDafnyName)}()");
+      return wrBody;
     }
 
     // protected override ConcreteSyntaxTree EmitMethodReturns(Method m, ConcreteSyntaxTree wr) {
@@ -278,7 +271,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override string GenerateLhsDecl(string target, Type type, ConcreteSyntaxTree wr, IToken tok) {
-      throw new NotImplementedException();
+      return target;
     }
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
@@ -330,7 +323,12 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree EmitForStmt(IToken tok, IVariable loopIndex, bool goingUp, string endVarName,
       List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      var direction = goingUp ? "to" : "downto";
+      var lowWr = new ConcreteSyntaxTree();
+      wr.Format($"for {IdName(loopIndex)} := {lowWr} {direction} {endVarName}");
+      var bodyWr = wr.NewBlock();
+      TrStmtList(body, bodyWr);
+      return lowWr;
     }
 
     protected override ConcreteSyntaxTree CreateWhileLoop(out ConcreteSyntaxTree guardWriter, ConcreteSyntaxTree wr) {
@@ -382,18 +380,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e) {
-      switch (e) {
-        case StringLiteralExpr str:
-          TrStringLiteral(str, wr);
-          break;
-        default:
-          if (e.Value is BigInteger i) {
-            wr.Write(i.ToString());
-          } else {
-            wr.Write("TODO: other literal");
-          }
-          break;
-      }
+      wr.Write(e.ToString());
     }
 
     protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
@@ -409,10 +396,10 @@ namespace Microsoft.Dafny.Compilers {
       throw new UnsupportedFeatureException(e0.tok, Feature.BitvectorRotateFunctions);
     }
 
-    void EmitShift(Expression e0, Expression e1, string op, bool truncate, bool firstOp, ConcreteSyntaxTree wr,
-        bool inLetExprBody, ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr) {
-      throw new NotImplementedException();
-    }
+    // void EmitShift(Expression e0, Expression e1, string op, bool truncate, bool firstOp, ConcreteSyntaxTree wr,
+    //     bool inLetExprBody, ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr) {
+    //   throw new NotImplementedException();
+    // }
 
     protected override void EmitEmptyTupleList(string tupleTypeArgs, ConcreteSyntaxTree wr) {
       throw new UnsupportedFeatureException(Token.NoToken, Feature.NonSequentializableForallStatements);
@@ -442,9 +429,9 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write("this");
     }
 
-    protected override void EmitNull(Type _, ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
-    }
+    // protected override void EmitNull(Type _, ConcreteSyntaxTree wr) {
+    //   throw new NotImplementedException();
+    // }
 
     protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, ConcreteSyntaxTree wr) {
       throw new NotImplementedException();
@@ -564,8 +551,140 @@ namespace Microsoft.Dafny.Compilers {
       convertE1_to_int = false;
 
       switch (op) {
+        case BinaryExpr.ResolvedOpcode.Iff:
+          opString = "<==>";
+          break;
+        case BinaryExpr.ResolvedOpcode.Imp:
+          opString = "==>";
+          break;
+        case BinaryExpr.ResolvedOpcode.And:
+          opString = "&&";
+          break;
+        case BinaryExpr.ResolvedOpcode.Or:
+          opString = "||";
+          break;
+        case BinaryExpr.ResolvedOpcode.BitwiseAnd:
+          opString = "&";
+          break;
+        case BinaryExpr.ResolvedOpcode.BitwiseOr:
+          opString = "|";
+          break;
+        case BinaryExpr.ResolvedOpcode.BitwiseXor:
+          opString = "^";
+          break;
+        case BinaryExpr.ResolvedOpcode.EqCommon:
+          opString = "==";
+          break;
+        case BinaryExpr.ResolvedOpcode.NeqCommon:
+          opString = "!=";
+          break;
+        case BinaryExpr.ResolvedOpcode.Lt:
+          opString = "<";
+          break;
+        case BinaryExpr.ResolvedOpcode.Le:
+          opString = "<=";
+          break;
+        case BinaryExpr.ResolvedOpcode.Ge:
+          opString = ">=";
+          break;
+        case BinaryExpr.ResolvedOpcode.Gt:
+          opString = ">";
+          break;
+        case BinaryExpr.ResolvedOpcode.LeftShift:
+          opString = "<<";
+          break;
+        case BinaryExpr.ResolvedOpcode.RightShift:
+          opString = ">>";
+          break;
         case BinaryExpr.ResolvedOpcode.Add:
           opString = "+";
+          break;
+        case BinaryExpr.ResolvedOpcode.Sub:
+          opString = "-";
+          break;
+        case BinaryExpr.ResolvedOpcode.Mul:
+          opString = "*";
+          break;
+        case BinaryExpr.ResolvedOpcode.Div:
+          opString = "/";
+          break;
+        case BinaryExpr.ResolvedOpcode.Mod:
+          opString = "%";
+          break;
+        case BinaryExpr.ResolvedOpcode.SetEq:
+          opString = "==";
+          break;
+        case BinaryExpr.ResolvedOpcode.MultiSetEq:
+          opString = "==";
+          break;
+        case BinaryExpr.ResolvedOpcode.SeqEq:
+          opString = "==";
+          break;
+        case BinaryExpr.ResolvedOpcode.MapEq:
+          opString = "==";
+          break;
+        case BinaryExpr.ResolvedOpcode.ProperSubset:
+          opString = "<";
+          break;
+        case BinaryExpr.ResolvedOpcode.ProperMultiSubset:
+          opString = "<";
+          break;
+        case BinaryExpr.ResolvedOpcode.Subset:
+          opString = "<=";
+          break;
+        case BinaryExpr.ResolvedOpcode.MultiSubset:
+          opString = "<=";
+          break;
+        case BinaryExpr.ResolvedOpcode.Disjoint:
+          opString = "!!";
+          break;
+        case BinaryExpr.ResolvedOpcode.MultiSetDisjoint:
+          opString = "!!";
+          break;
+        case BinaryExpr.ResolvedOpcode.InSet:
+          opString = "in";
+          break;
+        case BinaryExpr.ResolvedOpcode.InMultiSet:
+          opString = "in";
+          break;
+        case BinaryExpr.ResolvedOpcode.InMap:
+          opString = "in";
+          break;
+        case BinaryExpr.ResolvedOpcode.Union:
+          opString = "+";
+          break;
+        case BinaryExpr.ResolvedOpcode.MultiSetUnion:
+          opString = "+";
+          break;
+        case BinaryExpr.ResolvedOpcode.MapMerge:
+          opString = "+";
+          break;
+        case BinaryExpr.ResolvedOpcode.Intersection:
+          opString = "*";
+          break;
+        case BinaryExpr.ResolvedOpcode.MultiSetIntersection:
+          opString = "*";
+          break;
+        case BinaryExpr.ResolvedOpcode.SetDifference:
+          opString = "-";
+          break;
+        case BinaryExpr.ResolvedOpcode.MultiSetDifference:
+          opString = "-";
+          break;
+        case BinaryExpr.ResolvedOpcode.MapSubtraction:
+          opString = "-";
+          break;
+        case BinaryExpr.ResolvedOpcode.ProperPrefix:
+          opString = "<=";
+          break;
+        case BinaryExpr.ResolvedOpcode.Prefix:
+          opString = "<";
+          break;
+        case BinaryExpr.ResolvedOpcode.Concat:
+          opString = "+";
+          break;
+        case BinaryExpr.ResolvedOpcode.InSeq:
+          opString = "in";
           break;
       }
 
