@@ -91,7 +91,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern,
         string libraryName, ConcreteSyntaxTree wr) {
       throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
-      return wr.NewBlock($"module {IdProtect(moduleName)}");
+      //return wr.NewBlock($"module {IdProtect(moduleName)}");
     }
 
     private void EmitImports(string moduleName, ConcreteSyntaxTree wr) {
