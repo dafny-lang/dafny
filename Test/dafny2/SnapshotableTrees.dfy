@@ -616,7 +616,6 @@ module SnapTree {
       ensures hasCurrent <==> 0 <= N < |Contents|
     {
       reveal Valid();
-      reveal R();
       if !initialized {
         initialized, N := true, 0;
         hasCurrent := stack != Nil;
@@ -627,17 +626,20 @@ module SnapTree {
         case Cons(p, rest) =>
           // lemmas:
           reveal p.NodeValid();
-          assert R(rest, N + 1 + if p.right==null then 0 else |p.right.Contents|, Contents, T.Repr);
 
           stack, N := rest, N+1;
 
           if p.right != null {
             reveal R();
+            assert p.right in T.Repr && p.right.Repr <= T.Repr && p.right.NodeValid();
+            assert 0 <= N <= |Contents|;
             assert p.right.Contents <= Contents[N..];
+            assert R(stack, N + |p.right.Contents|, Contents, T.Repr);
             stack := Push(stack, N, p.right, Contents, T.Repr);
           }
           hasCurrent := stack != Nil;
       }
+      reveal R();
     }
   }
 
