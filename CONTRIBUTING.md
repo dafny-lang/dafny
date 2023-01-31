@@ -69,7 +69,7 @@ The plugin `dafny-msbuild` takes all the dafny files and compiles them into a si
 that is automatically included in the build process. This file contains also the Dafny run-time in C#.
 One example of such file is `Source/DafnyCore/AST/Formatting.dfy`, and you can use it as a starting point.
 
-Since Dafny cannot read C# files directly, you have to declare the C# functions it is calling using the `{:extern}` attribute, and there are many ways you can
+Since Dafny cannot read C# files directly, you have to declare the C# functions it is calling using the `{:extern}` attribute to
 interoperate with Dafny.
 For example, `Formatting.dfy`
 
