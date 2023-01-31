@@ -21,8 +21,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-20.04
-            suffix: ubuntu-20.04
+          - os: ubuntu-22.04
+            suffix: ubuntu-22.04
             z3: z3-4.12.1-x64-glibc-2.35
             chmod: true
             coverage: true
