@@ -405,7 +405,7 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     private static bool ShallowEq(FunctionCallExpr expr1, FunctionCallExpr expr2) {
-      return expr1.Name == expr2.Name &&
+      return expr1.Name.Value == expr2.Name.Value &&
              expr1.CoCall == expr2.CoCall && //TODO
              expr1.Function == expr2.Function; // TODO TypeArgumentSubstitutions?
     }
