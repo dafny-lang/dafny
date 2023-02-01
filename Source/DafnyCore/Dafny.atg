@@ -2338,14 +2338,14 @@ TupleType<.out Type ty, out IToken tok, out List<Type> tupleArgTypes, out List<I
 
 /*------------------------------------------------------------------------*/
 NamedType<.out Type ty, out IToken tok, bool inExpressionContext.> =
-  (. Expression e; IToken startToken = null; .)
-  NameSegmentForTypeName<out e, inExpressionContext>  (. tok = t; startToken = t; .)
+  (. Expression e; .)
+  NameSegmentForTypeName<out e, inExpressionContext>  (. tok = t; .)
   { "."
     TypeNameOrCtorSuffix<out tok>       (. List<Type> typeArgs; .)
     OptGenericInstantiation<out typeArgs, inExpressionContext>
     (. e = new ExprDotName(new RangeToken(e.StartToken, t), e, new Name(tok), typeArgs); .)
   }
-  (. ty = new UserDefinedType(new RangeToken(startToken, t), e);
+  (. ty = new UserDefinedType(new RangeToken(e.StartToken, t), e);
    .)
   .
 
