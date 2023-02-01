@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 
@@ -64,9 +65,22 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
 
   public readonly int SpaceTab = 2;
 
-  private readonly Dictionary<int, int> posToIndentAbove = new();
-  private readonly Dictionary<int, int> posToIndentInline = new();
-  private readonly Dictionary<int, int> posToIndentBelow = new();
+  private class Indentations {
+    public int Above = -1;
+    public int Inline = -1;
+    public int Below = -1;
+  }
+
+  private readonly Dictionary<int, Indentations> posToIndentations = new();
+
+  private Indentations PosToIndentations(int pos) {
+    if (posToIndentations.TryGetValue(pos, out var indentations)) {
+      return indentations;
+    }
+    var result = new Indentations();
+    posToIndentations[pos] = result;
+    return result;
+  }
 
   // Used for bullet points && and ||
   public int binOpIndent = -1;
@@ -130,15 +144,15 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
   // Used for frame expressions to initially copy the indentation of "reads", "requires", etc.
 
   public int GetIndentAbove(IToken token) {
-    if (posToIndentAbove.TryGetValue(token.pos, out var indentation2)) {
-      return indentation2;
+    if (PosToIndentations(token.pos).Above is var aboveIndentation and not -1) {
+      return aboveIndentation;
     }
 
     return GetIndentBelowOrInlineOrAbove(token.Prev);
   }
 
   public int GetIndentInlineOrAbove(IToken token) {
-    if (posToIndentInline.TryGetValue(token.pos, out var indentation)) {
+    if (PosToIndentations(token.pos).Inline is var indentation and not -1) {
       return indentation;
     }
 
@@ -150,7 +164,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
       return 0;
     }
 
-    if (posToIndentBelow.TryGetValue(token.pos, out var indentation)) {
+    if (PosToIndentations(token.pos).Below is var indentation and not -1) {
       return indentation;
     }
 
@@ -174,12 +188,12 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
         return lastTrivia.Length;
       }
 
-      if (posToIndentInline.TryGetValue(token.pos, out var indentation)) {
+      if (PosToIndentations(token.pos).Inline is var indentation and not -1) {
         return indentation;
       }
 
       if (token.Prev != null &&
-          posToIndentBelow.TryGetValue(token.Prev.pos, out var indentation2)) {
+          PosToIndentations(token.Prev.pos).Below is var indentation2 and not -1) {
         return indentation2;
       }
 
@@ -226,15 +240,15 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
     }
 
     if (above >= 0) {
-      posToIndentAbove[token.pos] = above;
+      PosToIndentations(token.pos).Above = above;
     }
 
     if (inline >= 0) {
-      posToIndentInline[token.pos] = inline;
+      PosToIndentations(token.pos).Inline = inline;
     }
 
     if (below >= 0) {
-      posToIndentBelow[token.pos] = below;
+      PosToIndentations(token.pos).Below = below;
     }
   }
 
@@ -283,7 +297,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
         case ">" or "]":
           SetIndentations(token, rightIndent, indent2, indent2);
           break;
-        case "}" when !posToIndentInline.ContainsKey(token.pos):
+        case "}" when PosToIndentations(token.pos).Inline == -1:
           SetClosingIndentedRegion(token, indent);
           break;
         case "returns":
@@ -436,7 +450,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
       SetIndentations(member.BodyEndTok, indent + SpaceTab, indent, indent);
     }
 
-    posToIndentBelow[member.EndToken.pos] = indent;
+    PosToIndentations(member.EndToken.pos).Below = indent;
   }
 
   private void SetRedirectingTypeDeclDeclIndentation(int indent, RedirectingTypeDecl redirectingTypeDecl) {
@@ -979,11 +993,23 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
   }
 
   public bool TryGetIndentAbove(IToken token, out int indent) {
-    return posToIndentAbove.TryGetValue(token.pos, out indent);
+    if (PosToIndentations(token.pos).Above is var aboveIndent and not -1) {
+      indent = aboveIndent;
+      return true;
+    }
+
+    indent = 0;
+    return false;
   }
 
   public bool TryGetIndentInline(IToken token, out int indent) {
-    return posToIndentInline.TryGetValue(token.pos, out indent);
+    if (PosToIndentations(token.pos).Inline is var inlineIndent and not -1) {
+      indent = inlineIndent;
+      return true;
+    }
+
+    indent = 0;
+    return false;
   }
 
   /// For example, the "if" keyword in the context of a statement
