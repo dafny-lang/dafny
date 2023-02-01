@@ -23,15 +23,16 @@ See [docs/dev/news/](docs/dev/news/).
 
 - For the command `translate`, renamed the option `--target` into `language` and turned it into a mandatory argument. (https://github.com/dafny-lang/dafny/pull/3239)
 
-- - Havoc assignments now count as assignments for definite-assignment checks.
-  - Unless `--enforce-determinism` is used, no errors are given for arrays that are allocated without being initialized.
+- Havoc assignments now count as assignments for definite-assignment checks. (https://github.com/dafny-lang/dafny/pull/3311)
+
+- Unless `--enforce-determinism` is used, no errors are given for arrays that are allocated without being initialized.
   (https://github.com/dafny-lang/dafny/pull/3311)
 
-- Enable passing a percentage value to the --cores option, to use a percentage of the total number of logical cores on the machine for verification. (https://github.com/dafny-lang/dafny/pull/3328)
+- Enable passing a percentage value to the --cores option, to use a percentage of the total number of logical cores on the machine for verification. (https://github.com/dafny-lang/dafny/pull/3357)
 
 ## Bug fixes
 
-- Nonexistent files passed on the CLI result in a graceful exit (https://github.com/dafny-lang/dafny/pull/2719)
+- Nonexistent files passed on the CLI now result in a graceful exit (https://github.com/dafny-lang/dafny/pull/2719)
 
 - Check loop invariants on entry, even when such are the only proof obligations in a method. (https://github.com/dafny-lang/dafny/pull/3244)
 
@@ -43,15 +44,15 @@ See [docs/dev/news/](docs/dev/news/).
 
 - Settings `--cores=0` will cause Dafny to use half of the available cores. (https://github.com/dafny-lang/dafny/pull/3276)
 
-- Remove an infeasible assertion in the Dafny Runtime for Java (https://github.com/dafny-lang/dafny/pull/3280)
+- Removed an infeasible assertion in the Dafny Runtime for Java (https://github.com/dafny-lang/dafny/pull/3280)
 
-- Language server displays more relevant informations on hovering assertions (https://github.com/dafny-lang/dafny/pull/3281)
+- Language server displays more relevant information on hovering assertions (https://github.com/dafny-lang/dafny/pull/3281)
 
 - Any `(==)` inferred for a type parameter of an iterator is now also inferred for the corresponding non-null iterator type. (https://github.com/dafny-lang/dafny/pull/3284)
 
-- the otherwise ambiguous program fragment `export least predicate` is parsed such that `least` (or `greatest`) is the export identifier (https://github.com/dafny-lang/dafny/pull/3291)
+- The otherwise ambiguous program fragment `export least predicate` is parsed such that `least` (or `greatest`) is the export identifier (https://github.com/dafny-lang/dafny/pull/3291)
 
-- The parser generated bad `Token`s when invoked through `/library` (https://github.com/dafny-lang/dafny/pull/3301)
+- The parser no longer generated bad tokens when invoked through `/library` (https://github.com/dafny-lang/dafny/pull/3301)
 
 - Match expressions no longer incorrectly convert between newtypes and their basetype (https://github.com/dafny-lang/dafny/pull/3333)
 
