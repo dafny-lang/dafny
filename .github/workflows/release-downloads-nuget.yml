@@ -28,13 +28,13 @@ jobs:
       fail-fast: false
       matrix:
         # This workflow breaks on windows-2022: https://github.com/dafny-lang/dafny/issues/1906
-        os: [ ubuntu-latest, ubuntu-20.04, macos-latest, windows-2019 ]
+        os: [ ubuntu-latest, ubuntu-22.04, macos-latest, windows-2019 ]
         include:
         - os:  'ubuntu-latest'
-          osn: 'ubuntu\-20.04'
+          osn: 'ubuntu\-22.04'
           z3: z3-4.12.1-x64-glibc-2.35
-        - os:  'ubuntu-20.04'
-          osn: 'ubuntu\-20.04'
+        - os:  'ubuntu-22.04'
+          osn: 'ubuntu\-22.04'
           z3: z3-4.12.1-x64-glibc-2.35
         - os:  'macos-latest'
           osn: 'osx-.*'
@@ -137,13 +137,13 @@ jobs:
         # but note we need to skip Dafny since nuget install doesn't work for dotnet tools.
         library-name: [ DafnyPipeline, DafnyServer, DafnyLanguageServer, DafnyRuntime, DafnyCore, DafnyDriver ]
         # This workflow breaks on windows-2022: https://github.com/dafny-lang/dafny/issues/1906
-        os: [ ubuntu-latest, ubuntu-20.04, macos-latest, windows-2019 ]
+        os: [ ubuntu-latest, ubuntu-22.04, macos-latest, windows-2019 ]
         include:
         - os:  'ubuntu-latest'
-          osn: 'ubuntu\-20.04'
+          osn: 'ubuntu\-22.04'
           z3: z3-4.12.1-x64-glibc-2.35
-        - os:  'ubuntu-20.04'
-          osn: 'ubuntu\-20.04'
+        - os:  'ubuntu-22.04'
+          osn: 'ubuntu\-22.04'
           z3: z3-4.12.1-x64-glibc-2.35
         - os:  'macos-latest'
           osn: 'osx-.*'
