@@ -2,6 +2,83 @@
 
 See [docs/dev/news/](docs/dev/news/).
 
+# 3.11.0
+
+## New features
+
+- Go to definition now works reliably across all Dafny language constructs and across files. (https://github.com/dafny-lang/dafny/pull/2734)
+
+- Improve performance of Go code by using native byte/char arrays (https://github.com/dafny-lang/dafny/pull/2818)
+
+- Introduce the experimental `measure-complexity` command, whose output can be fed to the Dafny report generator. In a future update, we expect to merge the functionality of the report generator into this command. (https://github.com/dafny-lang/dafny/pull/3061)
+
+- Integrate the Dafny [auditor plugin](https://github.com/dafny-lang/compiler-bootstrap/tree/main/src/Tools/Auditor) as a built-in `dafny audit` command. (https://github.com/dafny-lang/dafny/pull/3175)
+
+- Add the `--solver-path` option to allow customizing the SMT solver used when using the new Dafny CLI user interface. (https://github.com/dafny-lang/dafny/pull/3184)
+
+- Add the experimental `--test-assumptions` option to all execution commands: run, build, translate and test.
+  When turned on, inserts runtime tests at locations where (implicit) assumptions occur, such as when calling or being called by external code and when using assume statements.
+  Functionality is still being expanded. Currently only checks contracts on every call to a function or method marked with the {:extern} attribute.
+  (https://github.com/dafny-lang/dafny/pull/3185)
+
+- For the command `translate`, renamed the option `--target` into `language` and turned it into a mandatory argument. (https://github.com/dafny-lang/dafny/pull/3239)
+
+- - Havoc assignments now count as assignments for definite-assignment checks.
+  - Unless `--enforce-determinism` is used, no errors are given for arrays that are allocated without being initialized.
+  (https://github.com/dafny-lang/dafny/pull/3311)
+
+- Enable passing a percentage value to the --cores option, to use a percentage of the total number of logical cores on the machine for verification. (https://github.com/dafny-lang/dafny/pull/3328)
+
+## Bug fixes
+
+- Nonexistent files passed on the CLI result in a graceful exit (https://github.com/dafny-lang/dafny/pull/2719)
+
+- Check loop invariants on entry, even when such are the only proof obligations in a method. (https://github.com/dafny-lang/dafny/pull/3244)
+
+- The :options attribute now accepts new style options `--function-syntax` and `--quantifier-syntax` (https://github.com/dafny-lang/dafny/pull/3252)
+
+- Improved error messages for `dafny translate` (https://github.com/dafny-lang/dafny/pull/3274)
+
+- The :test attribute is now compatible with `dafny run` and `dafny build` (https://github.com/dafny-lang/dafny/pull/3275)
+
+- Settings `--cores=0` will cause Dafny to use half of the available cores. (https://github.com/dafny-lang/dafny/pull/3276)
+
+- Remove an infeasible assertion in the Dafny Runtime for Java (https://github.com/dafny-lang/dafny/pull/3280)
+
+- Language server displays more relevant informations on hovering assertions (https://github.com/dafny-lang/dafny/pull/3281)
+
+- Any `(==)` inferred for a type parameter of an iterator is now also inferred for the corresponding non-null iterator type. (https://github.com/dafny-lang/dafny/pull/3284)
+
+- the otherwise ambiguous program fragment `export least predicate` is parsed such that `least` (or `greatest`) is the export identifier (https://github.com/dafny-lang/dafny/pull/3291)
+
+- The parser generated bad `Token`s when invoked through `/library` (https://github.com/dafny-lang/dafny/pull/3301)
+
+- Match expressions no longer incorrectly convert between newtypes and their basetype (https://github.com/dafny-lang/dafny/pull/3333)
+
+- `dafny build` for Java now creates a library or executable jar file.
+  - If there is a Main method, the jar is an executable jar. So a simple A.dfy can be built as `dafny build -t:java A.dfy`
+  and then run as `java -jar A.jar`
+  - If there is no Main entry point, all the generated class files are assembled into a library jar file that can be used on a
+  classpath as a java library.
+  - In both cases, the DafnyRuntime library is included in the generated jar.
+  - In old and new CLIs, the default location and name of the jar file is the name of the first dfy file, with the extension changed
+  - In old and new CLIs, the path and name of the output jar file can be given by the --output option, with .jar added if necessary
+  - As before, the compilation artifacts (.java and .class files) are placed in a directory whose name is the same as the jar file
+  but without the .jar extension and with '-java' appended
+  - With the new CLI, the generated .java artifacts are deleted unless --spill-translation=true and the .class files are deleted in any case;
+    both kinds of files are retained with the legacy CLI for backwards compatibility.
+  - If any other jar files are needed to compile the dafny/java program, they must be on the CLASSPATH;
+    the same CLASSPATH used to compile the program is needed to run the program
+
+  Having a library or executable jar simplifies the user's task in figuring out how to use the built artifacts.
+  (https://github.com/dafny-lang/dafny/pull/3355)
+
+- Proper warning that 'new' cannot be used in expressions, instead of a parse error (https://github.com/dafny-lang/dafny/pull/3366)
+
+- The attributes :dllimport and :handle are now deprecated. They were undocumented, untested, and not maintained. (https://github.com/dafny-lang/dafny/pull/3399)
+
+- Fixed an axiom related to sequence comprehension extraction (https://github.com/dafny-lang/dafny/pull/3411)
+
 # 3.10.0
 
 ## New features
