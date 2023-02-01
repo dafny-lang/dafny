@@ -511,6 +511,13 @@ string UnwildIdent(string x, bool allowWildcardId) {
   return x;
 }
 
+bool IsDotXor() {
+  scanner.ResetPeek();
+  if (la.kind != _dot) return false;
+  int k = scanner.Peek().kind;
+  return k == _xor;
+}
+
 bool IsLambda(bool allowLambda)
 {
   if (!allowLambda) {
@@ -975,6 +982,7 @@ TOKENS
   singleeq = "=".
   eq = "==".
   neq = "!=".
+  xor = "^".
   neqAlt = '\u2260'. // ≠
   star = '*'.
   at = '@'.
@@ -1080,6 +1088,11 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
 =
   (. submodule = null; .)
   ( ModuleDefinition<dmod, parent, out submodule>
+    (. LiteralModuleDecl submod = (LiteralModuleDecl)submodule;
+       if (submod.ModuleDef.TopLevelDecls == null) {
+         if (isTopLevel) SemErr(submodule.tok, "Body-less module declarations are not permitted at the top-level: " + submod.FullDafnyName);
+       }
+    .)
   | ModuleImport<parent, out submodule>
   | ModuleExport<parent, out submodule>
     (. if (isTopLevel) SemErr(submodule.tok, "There is no point to an export declaration at the top level");
@@ -1104,7 +1117,11 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
      CheckDeclModifiers(ref dmod, "module", AllowedDeclModifiers.Abstract);
    .)
    { Attribute<ref attrs> }            (. ApplyOptionsFromAttributes(attrs); .)
-   ModuleQualifiedName<out idQualified>
+   ( IF(IsIdentifier(la.kind))
+     ModuleQualifiedName<out idQualified>
+    |
+      (. SemErr(la, "Expected a module name here"); .)
+    )
    (. id = idQualified[idQualified.Count-1];
       prefixIds = idQualified.GetRange(0,idQualified.Count-1);
    .)
@@ -1117,12 +1134,25 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
                                         false, theVerifyThisFile, theCompileThisFile);
    .)
    SYNC                                (. module.TokenWithTrailingDocString = t; .)
-   "{"                                 (. module.BodyStartTok = t; .)
-     { TopDecl<module, namedModuleDefaultClassMembers, /* isTopLevel */ false, isAbstract>}
-   "}"
+   ( "{"                                 (. module.BodyStartTok = t; .)
+       { TopDecl<module, namedModuleDefaultClassMembers, /* isTopLevel */ false, isAbstract>}
+     "}"
+      (.
+        module.RangeToken = new RangeToken(dmod.FirstToken, t);
+        module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
+      .)
+    |
+      (. 
+        module = new ModuleDefinition(id, id.val, isAbstract, parent, attrs);
+        module.RangeToken = new RangeToken(dmod.FirstToken, t);
+        module.BodyStartTok = null;
+        System.Console.WriteLine("Body-less module: " + idQualified + " " + module.Name + " " + module.FullDafnyName + " " + module.HasBody);
+        if (prefixIds.Count > 0) {
+          SemErr(prefixIds[0], "Body-less module declarations may not have a qualified id for a module name: " + module.Name);
+        }
+      .)
+    )
     (.
-      module.RangeToken = new RangeToken(dmod.FirstToken, t);
-      module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
       submodule = new LiteralModuleDecl(module, parent);
       submodule.RangeToken = new RangeToken(dmod.FirstToken, t);
       theOptions = dafnyOptionsBackup;
@@ -1259,7 +1289,11 @@ ModuleName<out IToken id> = NoUSIdent<out id> .
 ModuleQualifiedName<.out List<IToken> ids.>
 = (. IToken id; ids = new List<IToken>();
   .)
-  ModuleName<out id> (. ids.Add(id); .)
+  ( ModuleName<out id> (. ids.Add(id); .)
+  | "_"                (. ids.Add(t); .)
+  | "^"                (. ids.Add(t); .)
+    { IF(IsDotXor()) "." "^"          (. ids.Add(t); .) }
+  )
   { "." ModuleName<out id> (. ids.Add(id); .) }
   .
 

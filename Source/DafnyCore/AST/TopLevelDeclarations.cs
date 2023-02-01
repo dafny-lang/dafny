@@ -710,6 +710,25 @@ public class ModuleDefinition : INamedRegion, IDeclarationOrUsage, IAttributeBea
     this.IsToBeVerified = isToBeVerified;
     this.IsToBeCompiled = isToBeCompiled;
   }
+  public ModuleDefinition(IToken tok, string name, bool isAbstract,
+    ModuleDefinition parent, Attributes attributes) {
+    Contract.Requires(tok != null);
+    Contract.Requires(name != null);
+    this.tok = tok;
+    this.DafnyName = tok.val;
+    this.Name = name;
+    this.PrefixIds = new List<IToken>();
+    this.Attributes = attributes;
+    this.EnclosingModule = parent;
+    this.RefinementQId = null;
+    this.IsAbstract = isAbstract;
+    this.IsFacade = false;
+    this.Includes = new List<Include>();
+    this.IsBuiltinName = false;
+    this.IsToBeVerified = false;
+    this.IsToBeCompiled = false;
+    this.TopLevelDecls = null;
+  }
 
   VisibilityScope visibilityScope;
   public VisibilityScope VisibilityScope =>
@@ -721,6 +740,11 @@ public class ModuleDefinition : INamedRegion, IDeclarationOrUsage, IAttributeBea
     }
   }
 
+  public bool HasBody {
+    get {
+      return BodyStartTok != null;
+    }
+  }
   private string sanitizedName = null;
 
   public string SanitizedName {
