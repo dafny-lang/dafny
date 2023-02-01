@@ -30,6 +30,24 @@ See [docs/dev/news/](docs/dev/news/).
 
 - Enable passing a percentage value to the --cores option, to use a percentage of the total number of logical cores on the machine for verification. (https://github.com/dafny-lang/dafny/pull/3357)
 
+- `dafny build` for Java now creates a library or executable jar file.
+  - If there is a Main method, the jar is an executable jar. So a simple A.dfy can be built as `dafny build -t:java A.dfy`
+    and then run as `java -jar A.jar`
+  - If there is no Main entry point, all the generated class files are assembled into a library jar file that can be used on a
+    classpath as a java library.
+  - In both cases, the DafnyRuntime library is included in the generated jar.
+  - In old and new CLIs, the default location and name of the jar file is the name of the first dfy file, with the extension changed
+  - In old and new CLIs, the path and name of the output jar file can be given by the --output option, with .jar added if necessary
+  - As before, the compilation artifacts (.java and .class files) are placed in a directory whose name is the same as the jar file
+    but without the .jar extension and with '-java' appended
+  - With the new CLI, the generated .java artifacts are deleted unless --spill-translation=true and the .class files are deleted in any case;
+    both kinds of files are retained with the legacy CLI for backwards compatibility.
+  - If any other jar files are needed to compile the dafny/java program, they must be on the CLASSPATH;
+    the same CLASSPATH used to compile the program is needed to run the program
+
+  Having a library or executable jar simplifies the user's task in figuring out how to use the built artifacts.
+  (https://github.com/dafny-lang/dafny/pull/3355)
+
 ## Bug fixes
 
 - Nonexistent files passed on the CLI now result in a graceful exit (https://github.com/dafny-lang/dafny/pull/2719)
@@ -55,24 +73,6 @@ See [docs/dev/news/](docs/dev/news/).
 - The parser no longer generates bad tokens when invoked through `/library` (https://github.com/dafny-lang/dafny/pull/3301)
 
 - Match expressions no longer incorrectly convert between newtypes and their basetype (https://github.com/dafny-lang/dafny/pull/3333)
-
-- `dafny build` for Java now creates a library or executable jar file.
-  - If there is a Main method, the jar is an executable jar. So a simple A.dfy can be built as `dafny build -t:java A.dfy`
-  and then run as `java -jar A.jar`
-  - If there is no Main entry point, all the generated class files are assembled into a library jar file that can be used on a
-  classpath as a java library.
-  - In both cases, the DafnyRuntime library is included in the generated jar.
-  - In old and new CLIs, the default location and name of the jar file is the name of the first dfy file, with the extension changed
-  - In old and new CLIs, the path and name of the output jar file can be given by the --output option, with .jar added if necessary
-  - As before, the compilation artifacts (.java and .class files) are placed in a directory whose name is the same as the jar file
-  but without the .jar extension and with '-java' appended
-  - With the new CLI, the generated .java artifacts are deleted unless --spill-translation=true and the .class files are deleted in any case;
-    both kinds of files are retained with the legacy CLI for backwards compatibility.
-  - If any other jar files are needed to compile the dafny/java program, they must be on the CLASSPATH;
-    the same CLASSPATH used to compile the program is needed to run the program
-
-  Having a library or executable jar simplifies the user's task in figuring out how to use the built artifacts.
-  (https://github.com/dafny-lang/dafny/pull/3355)
 
 - Warn that 'new' cannot be used in expressions, instead of throwing a parse error (https://github.com/dafny-lang/dafny/pull/3366)
 
