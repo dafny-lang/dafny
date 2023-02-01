@@ -79,9 +79,9 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
-      wr.WriteLine("import opened my_module");
+      wr.WriteLine("import opened i_module");
       var wrBody = wr.NewBlock("method Main()", "");
-      wrBody.WriteLine("mymy__default.myMain();");
+      wrBody.WriteLine("ii__default.iMain();");
     }
 
     protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw, string argsParameterName) {
@@ -90,18 +90,17 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern,
         string libraryName, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
-      //return wr.NewBlock($"module {IdProtect(moduleName)}");
+      return wr.NewBlock($"module {IdProtect(moduleName)}");
     }
 
     private void EmitImports(string moduleName, ConcreteSyntaxTree wr) {
-      wr.WriteLine($"import {moduleName}");
+      wr.WriteLine($"import {IdProtect(moduleName)}");
     }
 
     protected override string GetHelperModuleName() => DafnyRuntimeModule;
 
     private static string MangleName(string name) {
-      return "my" + name;
+      return "i" + name;
     }
 
     protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string fullPrintName,
@@ -356,12 +355,13 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree EmitForStmt(IToken tok, IVariable loopIndex, bool goingUp, string endVarName,
       List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {
-      var direction = goingUp ? "to" : "downto";
-      var lowWr = new ConcreteSyntaxTree();
-      wr.Format($"for {IdName(loopIndex)} := {lowWr} {direction} {endVarName}");
-      var bodyWr = wr.NewBlock();
-      TrStmtList(body, bodyWr);
-      return lowWr;
+      // var direction = goingUp ? "to" : "downto";
+      // var lowWr = new ConcreteSyntaxTree();
+      // wr.Format($"for {IdName(loopIndex)} := {lowWr} {direction} {endVarName}");
+      // var bodyWr = wr.NewBlock();
+      // TrStmtList(body, bodyWr);
+      // return lowWr;
+      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
     }
 
     protected override ConcreteSyntaxTree CreateWhileLoop(out ConcreteSyntaxTree guardWriter, ConcreteSyntaxTree wr) {
