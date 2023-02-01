@@ -377,8 +377,9 @@ There are four ways to use the formatter:
 
 You can also use `--stdin` instead of providing a file to format a full Dafny file from the standard input.
 
-In any case, each version of `dafny format` returns a non-zero return code
-if at least one file is not the same as its formatted version through `dafny format`.
+Each version of `dafny format` returns a non-zero return code if there are any command-line or parsing
+errors or if --check is stipulated and at least one file is not the same as its formatted version.  
+`dafny format` does not necessarily report name or type resolution errors and does not attempt verification.
 
 #### 25.5.1.10. `dafny test` {#sec-dafny-test}
  
