@@ -732,7 +732,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      wr.Write(e.ToString());
     }
 
     protected override void EmitTypeTest(string localName, Type fromType, Type toType, IToken tok, ConcreteSyntaxTree wr) {
@@ -741,7 +741,16 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitCollectionDisplay(CollectionType ct, IToken tok, List<Expression> elements,
       bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      var (open, close) = ct switch {
+        SeqType => ("[", "]"),
+        _ => ("{", "}")
+      };
+      //wr.Write(ct is SeqType ? DafnySeqMakerFunction : TypeHelperName(ct));
+      //wr.Write("(");
+      wr.Write(open);
+      TrExprList(elements, wr, inLetExprBody, wStmts, parens: false);
+      wr.Write(close);
+      //wr.Write(")");
     }
 
     private static string TypeHelperName(Type ct) {
