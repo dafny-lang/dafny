@@ -100,8 +100,8 @@ public class TestDafny {
     return 0;
   }
 
-  private static int RunWithCompiler(ForEachCompilerOptions options, Compiler compiler, string expectedOutput) {
-    Console.Out.WriteLine($"Executing on {compiler.TargetLanguage}...");
+  private static int RunWithCompiler(ForEachCompilerOptions options, IExecutableBackend backend, string expectedOutput) {
+    Console.Out.WriteLine($"Executing on {backend.TargetLanguage}...");
     var dafnyArgs = new List<string>(options.OtherArgs) {
       options.TestFile!,
       // Here we can pass /noVerify to save time since we already verified the program. 
@@ -109,7 +109,7 @@ public class TestDafny {
       // /noVerify is interpreted pessimistically as "did not get verification success",
       // so we have to force compiling and running despite this.
       "/compile:4",
-      $"/compileTarget:{compiler.TargetId}"
+      $"/compileTarget:{backend.TargetId}"
     };
 
 
@@ -125,7 +125,7 @@ public class TestDafny {
     }
 
     // If we hit errors, check for known unsupported features for this compilation target
-    if (error == "" && OnlyUnsupportedFeaturesErrors(compiler, output)) {
+    if (error == "" && OnlyUnsupportedFeaturesErrors(backend, output)) {
       return 0;
     }
 
@@ -148,11 +148,11 @@ public class TestDafny {
     return command.Execute(null, null, null, null);
   }
 
-  private static bool OnlyUnsupportedFeaturesErrors(Compiler compiler, string output) {
+  private static bool OnlyUnsupportedFeaturesErrors(IExecutableBackend backend, string output) {
     using (StringReader sr = new StringReader(output)) {
       string? line;
       while ((line = sr.ReadLine()) != null) {
-        if (!IsAllowedOutputLine(compiler, line)) {
+        if (!IsAllowedOutputLine(backend, line)) {
           return false;
         }
       }
@@ -161,7 +161,7 @@ public class TestDafny {
     return true;
   }
 
-  private static bool IsAllowedOutputLine(Compiler compiler, string line) {
+  private static bool IsAllowedOutputLine(IExecutableBackend backend, string line) {
     line = line.Trim();
     if (line.Length == 0) {
       return true;
@@ -190,7 +190,7 @@ public class TestDafny {
 
     var featureDescription = line[(prefixIndex + UnsupportedFeatureException.MessagePrefix.Length)..];
     var feature = FeatureDescriptionAttribute.ForDescription(featureDescription);
-    if (compiler.UnsupportedFeatures.Contains(feature)) {
+    if (backend.UnsupportedFeatures.Contains(feature)) {
       return true;
     }
 
