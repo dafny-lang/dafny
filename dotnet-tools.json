@@ -14,10 +14,10 @@
         "dotnet-format"
       ]
     },
-    "dafny": {
-      "version": "3.7.1.40621",
+    "boogie": {
+      "version": "2.15.9",
       "commands": [
-        "dafny"
+        "boogie"
       ]
     }
   }
