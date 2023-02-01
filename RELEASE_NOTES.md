@@ -76,7 +76,7 @@ See [docs/dev/news/](docs/dev/news/).
 
 - Warn that 'new' cannot be used in expressions, instead of throwing a parse error (https://github.com/dafny-lang/dafny/pull/3366)
 
-- The attributes :dllimport and :handle are now deprecated. They were undocumented, untested, and not maintained. (https://github.com/dafny-lang/dafny/pull/3399)
+- The attributes `:dllimport` and `:handle` are now deprecated. They were undocumented, untested, and not maintained. (https://github.com/dafny-lang/dafny/pull/3399)
 
 - Fixed an axiom related to sequence comprehension extraction (https://github.com/dafny-lang/dafny/pull/3411)
 
