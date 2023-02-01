@@ -50,7 +50,7 @@
    to create a new release of the VSCode plugin.
 
 1. Make a documentation snapshot
-   a. Run the script dafny/docs/make-snapshot x.y.z
+   a. Run the (bash) script dafny/docs/make-snapshot x.y.z
       where x.y.z is the new version number
    b. The script creates new PRs in dafny-lang/dafny
       and dafny-lang/dafny-lang.github.io.
