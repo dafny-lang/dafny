@@ -30,7 +30,8 @@ are described on the Dafny wiki:
 [https://github.com/dafny-lang/dafny/wiki/INSTALL](https://github.com/dafny-lang/dafny/wiki/INSTALL).
 They are not repeated here to avoid replicating information that
 easily becomes inconsistent and out of date.
-The dafny tool can also be installed using `dotnet install`.
+The dafny tool can also be installed using `dotnet tool install --global dafny`
+(given that `dotnet` is already installed on your system).
 
 Most users will find it most convenient to install the pre-built Dafny binaries available on the project release site.
 As is typical for Open Source projects, dafny can also be built directly from the source files maintained in the github project.
@@ -166,9 +167,27 @@ A few options are not part of a command. In these cases any single-hyphen spelli
 
 The `dafny resolve` command checks the command-line and then parses and typechecks the given files and any included files.
 
-Note that a complete program must be presented to the dafny tool, either by listing all files on the command-line, or by using `include` directives,
-or by some combination. An incomplete program will likely result in errors because of unresolved names. A program need not include all implementations
-of all functions in order to verify parts of it, but will need all implementations in order to compile a working executable.
+The set of files considered by `dafny` are those listed on the command-line,
+including those named in a `--library` option, and all files that are
+named, recursively, in `include` directives in files in the set being considered by the tool.
+
+The set of files presented to an invocation of the `dafny` tool must 
+contain all the declarations needed to resolve all names and types, 
+else name or type resolution errors will be emitted.
+
+`dafny` can parse and verify sets of files that do not form a 
+complete program because they are missing the implementations of 
+some constructs such as functions, lemmas, and loop bodies.[^incomplete]
+However, `dafny` will need all implementations in order to compile a working executable.
+
+[^incomplete]: Unlike some languages, Dafny does not allow separation of 
+declaration and implementation of methods, functions and types in separate files, nor, for that matter,
+separation of specification and declaration. Implementations can be 
+omitted simply by leaving them out of the declaration (or a lemma, for example).
+However, a combination of [`traits`](#sec-trait-types) and
+[`classes`](#sec-class-types) can achieve a separation of interface
+and specification from
+implementation.
 
 The options relevant to this command are
 - those relevant to the command-line itself
@@ -207,7 +226,7 @@ implementations of all methods and functions must eventually be verified.
 - The option `--verify-included-files` (`-verifyAllModules` in legacy mode) forces the contents of all non-library files to be verified, whether they are listed on the command-line or recursively included by files on the command-line.
 - The `--library` option marks files that are excluded from `--verify-included-files`. Such a file may also, but need not, be the target of an `include` directive in some file of the program; in any case, such files are included in the program but not in the set of files verified (or compiled). The intent of this option is to mark files that
 should be considered as libraries that are independently verified prior to being released for shared use.
-- Verifying files individually is equivalent to verifying them in groups, presuming no other changes
+- Verifying files individually is equivalent to verifying them in groups, presuming no other changes.
 It is also permitted to verify completely disjoint files or
 programs together in a single run of `dafny`.
 
@@ -256,7 +275,7 @@ Various options control the translation process, in addition to all those descri
    - `--verbose` --- print information about generated files
 
 - The translation results
-   - `--output` (or `-o`) --- location (file or folder depending on the target) of the generated file(s)
+   - `--output` (or `-o`) --- location of the generated file(s) (this specifies a file path and name; a folder location for artifacts is derived from this name)
    - `--include-runtime` --- include the Dafny runtime for the target language in the generated artifacts
    - `--optimize-erasable-datatype-wrapper`
    - `--enforce-determinism`
@@ -265,11 +284,16 @@ Various options control the translation process, in addition to all those descri
 
 The `dafny build` command runs `dafny translate` and then compiles the result into an executable artifact for the target platform,
 such as a `.exe` or `.dll`. or executable `.jar`, or just the source code for an interpreted language.
+If the Dafny program does not have a Main entry point, then the build command creates a library, such as a `.dll` or `.jar`.
 As with `dafny translate`, all the previous phases are also executed, including verification (unless `--no-verify` is a command-line argument).
+By default, the generated file is in the same directory and has the same name with a different extension as the first
+.dfy file on the command line. This locaiton and name can be set by the `--output` option.
 
 There are no additional options for `dafny build` beyond those for `dafny translate` and the previous compiler phases.
 
 Note that `dafny build` may do optimizations that `dafny run` does not.
+
+Details for specific target platforms are described [in Section 25.7](#sec-compilation).
 
 <!-- TODO: OLD TEXT: The command has options that enable being specific about the build platform and architecture. -->
 
@@ -1279,19 +1303,21 @@ are contained in [this separate document](integration-cs/IntegrationCS).
 
 ### 25.7.4. Java
 
-The Dafny-to-Java compiler writes out the translated files of a file _A_`.dfy`
-to a directory _A_`-java`. The `-out` option can be used to choose a
-different output directory. 
+The Dafny-to-Java compiler translation phase writes out the translated files of a file _A_`.dfy`
+to a directory _A_`-java`. 
+The build phase writes out a library or executable jar file.
+The `--output` option (`-out` in the legacy CLI) can be used to choose a
+different jar file path and name and correspondingly different directory for .java and .class files. 
+
 The compiler produces a single wrapper method that then calls classes in 
 relevant other `.java` files. Because Java files must be named consistent
 with the class they contain, but Dafny files do not, there may be no relation
 between the Java file names and the Dafny file names.
 However, the wrapper class that contains the Java `main` method is named for
 the first `.dfy` file on the command-line.
-The output folder  will also contain
-translations to java for any library modules that are used.
 
-The step of compiling Java files (using `javac`) requires the Dafny runtime library. That library is automatically included if dafny is doing the compilation,
+The step of compiling Java files (using `javac`) requires the Dafny runtime library. 
+That library is automatically included if dafny is doing the compilation,
 but not if dafny is only doing translation.
 
 Examples of how to integrate Java source code and libraries with Dafny source
