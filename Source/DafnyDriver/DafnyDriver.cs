@@ -442,8 +442,9 @@ namespace Microsoft.Dafny {
           failedToParseFiles.Add(dafnyFile.BaseName);
         } else {
           var firstToken = dafnyProgram.GetFirstTopLevelToken();
+          var result = originalText;
           if (firstToken != null) {
-            var result = Formatting.__default.ReindentProgramFromFirstToken(firstToken,
+            result = Formatting.__default.ReindentProgramFromFirstToken(firstToken,
               IndentationFormatter.ForProgram(dafnyProgram));
             if (result != originalText) {
               neededFormatting += 1;
@@ -451,7 +452,7 @@ namespace Microsoft.Dafny {
                 exitValue = exitValue != ExitValue.DAFNY_ERROR ? ExitValue.FORMAT_ERROR : exitValue;
               }
 
-              if (doCheck && !doPrint) {
+              if (doCheck && (!doPrint || DafnyOptions.O.CompileVerbose)) {
                 Console.Out.WriteLine("The file " +
                                       (DafnyOptions.O.UseBaseNameForFileName
                                         ? Path.GetFileName(dafnyFile.FilePath)
@@ -462,15 +463,17 @@ namespace Microsoft.Dafny {
                 WriteFile(dafnyFile.FilePath, result);
               }
             }
-
-            if (doPrint) {
-              Console.Out.Write(result);
-            }
           } else {
-            Console.Error.WriteLine(dafnyFile.BaseName + " was empty.");
+            if (DafnyOptions.O.CompileVerbose) {
+              Console.Error.WriteLine(dafnyFile.BaseName + " was empty.");
+            }
+
             emptyFiles.Add((DafnyOptions.O.UseBaseNameForFileName
               ? Path.GetFileName(dafnyFile.FilePath)
               : dafnyFile.FilePath));
+          }
+          if (doPrint) {
+            Console.Out.Write(result);
           }
         }
 
@@ -501,7 +504,8 @@ namespace Microsoft.Dafny {
         Console.Out.WriteLine(neededFormatting > 0
           ? $"Error: {reportMsg}"
           : "All files are correctly formatted");
-      } else if (reportMsg.Length > 0) {
+      } else if (failedToParseFiles.Count > 0 || DafnyOptions.O.CompileVerbose) {
+        // We don't display anything if we just format files without verbosity and there was no parse error
         Console.Out.WriteLine($"{reportMsg}");
       }
 

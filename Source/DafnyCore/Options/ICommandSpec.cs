@@ -19,6 +19,7 @@ public interface ICommandSpec {
   public static IEnumerable<Option> FormatOptions => new Option[] {
     CommonOptionBag.Check,
     CommonOptionBag.StdIn,
+    CommonOptionBag.Verbose,
     CommonOptionBag.FormatPrint,
     DeveloperOptionBag.UseBaseFileName
   }.Concat(ParserOptions);
