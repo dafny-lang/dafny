@@ -35,38 +35,40 @@ cd "$D"
 ## Branch name
 B=`echo snapshot-$V | sed -e "s/\./_/g"`
 
+## Temp folder in which to clone
+P=/tmp/docsnapshotT
+rm -rf $P
+mkdir $P
+pushd $P
+git clone https://github.com/dafny-lang/dafny.git -b master --depth 1
+git clone https://github.com/dafny-lang/dafny-lang.github.io.git -b main --depth 1
+popd
+
 ## Location of the dafny-lang.github.io repo
-T=../../dafny-lang.github.io
-if [ ! -e "$T" ]; then
-  echo Expecting the dafny-lang.github.io repo to be parallel to the dafny repo
-  echo Nothing exists at $T
-  exit 1
-fi
-if [ -e $T/$V ]; then
-  echo FAILURE: $T/$V already exists; exit 1;
-fi
+T=$P/dafny-lang.github.io
+##T=/Users/davidcok/projects/dafny/dafny-lang.github.io
+
+cd "$P/dafny/docs"
+
 echo Executing from `pwd`
 echo Target is "$T"
 echo Version is "$V"
 echo Branch is "$B"
 
 ## Changes locally
-git checkout master
-git pull upstream
-git checkout -b "$B"
-echo "- [$V](https://dafny.org/$V)" >> Snapshots.md
+git checkout -b "$B" master
+sed -i -e "szlatest)zlatest)\n- [$V](https://dafny.org/$V)z" Snapshots.md
+rm Snapshots.md-e
 git add Snapshots.md
-git commit -m "Link to snapshot for $V"
+git commit -m "Documentation snapshot for $V"
 git push --set-upstream origin "$B"
+gh pr create --fill -R https://github.com/dafny-lang/dafny -B master --head "$B" | tail -1 > $P/url1
 
 ## Changes on dafny-lang.github.io
-( cd $T && \
-  git checkout main && \
-  git pull && \
-  git checkout -b "$B" && \
-  git push -u origin "$B" ) || \
+( cd $T && git checkout -b "$B" main ) || \
     (echo FAILED to create target branch; exit 1)
 
+(cd $T; git rm -r latest; rm -rf latest; mkdir latest; git commit -m "Removing old latest")
 
 cp -R . "$T/$V" || ( echo copy FAILED; exit 1 )
 cp -R "$T/$V/" "$T/latest/"
@@ -75,22 +77,31 @@ cp Snapshots.md "$T"
 ## Tweaks to snapshot files
 
 ### Remove developer documentation
-rm -r "$T/$V/dev" "$T/latest/dev"
+rm -f -r "$T/$V/dev" "$T/latest/dev" > $P/removals
 ### Adjust version information
-rm "$T/$V/DafnyRef/version.txt"
 echo "$V release snapshot" > "$T/$V/DafnyRef/version.txt"
-rm $T/latest/DafnyRef/version.txt
-echo "Latest release snapshot" > "$T/DafnyRef/version.txt"
+echo "Latest release snapshot" > "$T/latest/DafnyRef/version.txt"
 
 grep -q "$M" $T/$V/index.html || (echo FAILED: No Version marker line in "$T/$V/index.html" ; exit 1 )
 
 sed -i -e "s/$M.*/${M}$V documentation snapshot/" $T/$V/index.html || (echo Version replacement FAILED; exit 1; )
 sed -i -e "s/$M.*/${M}Latest release documentation snapshot/" $T/latest/index.html || (echo Version replacement FAILED; exit 1; )
 
+pushd $T
+rm `find . -name index.html-e`
 
-(cd $T && \
-  git add -u && \
-  git add "$V" && \
-  git commit -m "Documentation snapshot for $V" && \
-  git push origin "$B" ) ||\
-	( echo FAILED to commit or push the snapshot ; exit 1  )
+(git add -u \
+  && git add "$V" \
+  && git add latest \
+  && (git commit -m "Documentation snapshot for $V" > $P/commitmessage )  \
+  ) || ( echo FAILED to commit or push the snapshot ; exit 1  ) \
+
+git status
+git push --set-upstream origin "$B"
+gh pr create --fill -R https://github.com/dafny-lang/dafny-lang.github.io -B main --head "$B" | tail -1 > $P/url2
+popd
+
+##diff -r . $T/latest
+##diff -r . $T/$V
+echo "Approve and merge these PRs: " `cat $P/url1` `cat $P/url2`
+echo "When complete, delete $P"
