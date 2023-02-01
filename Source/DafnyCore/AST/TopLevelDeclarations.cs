@@ -446,17 +446,6 @@ public class ModuleExportDecl : ModuleDecl {
   public bool ProvideAll;
 
   public readonly VisibilityScope ThisScope;
-  public ModuleExportDecl(RangeToken rangeToken, ModuleDefinition parent,
-    List<ExportSignature> exports, List<IToken> extends, bool provideAll, bool revealAll, bool isDefault, bool isRefining)
-    : base(rangeToken, (isDefault || rangeToken.StartToken.val == "export") ? new Name(parent.Name) : new Name(rangeToken.StartToken), parent, false, isRefining) {
-    Contract.Requires(exports != null);
-    IsDefault = isDefault;
-    Exports = exports;
-    Extends = extends;
-    ProvideAll = provideAll;
-    RevealAll = revealAll;
-    ThisScope = new VisibilityScope(this.FullSanitizedName);
-  }
 
   public ModuleExportDecl(RangeToken rangeToken, Name name, ModuleDefinition parent,
     List<ExportSignature> exports, List<IToken> extends, bool provideAll, bool revealAll, bool isDefault, bool isRefining)

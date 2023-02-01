@@ -1220,10 +1220,15 @@ ModuleExport<ModuleDefinition parent, out ModuleDecl submodule>
   )
   [ "," (. SemErr(t, "no comma is allowed between provides and reveals and extends clauses in an export declaration"); .) ]
   }
-  (. if (exportId.val == "export" || exportId.val == parent.Name) {
+  (. 
+     Name name;
+     if (exportId.val == "export" || exportId.val == parent.Name) {
        isDefault = true;
+       name = parent.Name;
+     } else {
+       name = new Name(exportId);
      }
-     submodule = new ModuleExportDecl(new RangeToken(startToken, t), new Name(exportId), parent, exports, extends, provideAll, revealAll, isDefault, isRefining);
+     submodule = new ModuleExportDecl(new RangeToken(startToken, t), name, parent, exports, extends, provideAll, revealAll, isDefault, isRefining);
   .)
   // LL Warning: 'least' and 'greatest' are not keywords. They can be the identifier that is the last ExportId of the ModuleExport.
   // Those words can also be the first word of a declaration (e.g. least predicate) that follows the MOduleExport.
