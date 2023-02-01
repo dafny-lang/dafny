@@ -1,8 +1,1 @@
 .gradle
-
-generated-go
-DafnyRuntimeGo/DafnyRuntimeFromDafny.go
-generated-py
-generated.cs
-generated.js
-DafnyRuntimeJava/src/main/generated-java
