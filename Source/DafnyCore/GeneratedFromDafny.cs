@@ -8,9 +8,7 @@
 using System;
 using System.Numerics;
 using System.Collections;
-[assembly: DafnyAssembly.DafnySourceAttribute(@"// dafny 3.10.0.41215
-// Command Line Options: /out:obj\Debug\net6.0\GeneratedFromDafny.cs AST\Formatting.dfy /compile:0 /spillTargetCode:3 /noVerify
-// Formatting.dfy
+[assembly: DafnyAssembly.DafnySourceAttribute(@"// Formatting.dfy
 
 
 module {:extern ""System""} {:compile false} {:options ""-functionSyntax:4""} System {

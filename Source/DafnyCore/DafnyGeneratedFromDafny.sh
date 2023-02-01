@@ -5,4 +5,5 @@
 # 2. Add a dependcy to 
 #      <PackageReference Include="dafny.msbuild" Version="1.0.0" />
 # That's it! The same file will now be automatically generated as obj/Debug/net6.0/GeneratedFromDafny.cs
-./Binaries/Dafny.exe translate --target cs --out GeneratedFromDafny.cs AST/Formatting.dfy
+../../Binaries/Dafny.exe translate cs --include-runtime --output GeneratedFromDafny.cs AST/Formatting.dfy
+dotnet tool run dotnet-format -w --include GeneratedFromDafny.cs
