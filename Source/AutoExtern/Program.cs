@@ -527,7 +527,9 @@ public static class Program {
     };
     rootCommand.AddOption(skipInterfaceOption);
 
-    rootCommand.SetHandler(ParsedMain,
+    Action<string, string, List<(string, string)>, List<string>, string, string, string, List<string>>
+      main = ParsedMain;
+    rootCommand.SetHandler(main,
       projectPathArgument, rootModuleArgument, nameRewritesOption, skipInterfaceOption,
       templatePathArgument, modelPathArgument, outputPathArgument, sourceFilesArgument);
 
