@@ -101,8 +101,8 @@ namespace Microsoft.Dafny {
       Error(source, e.tok, msg, args);
     }
 
-    public void Warning(MessageSource source, RangeToken rangeToken, string msg) {
-
+    public void Warning(MessageSource source, RangeToken rangeToken, string msg, params object[] args) {
+      Warning(source, rangeToken.StartToken, msg, args);
     }
 
     public void Warning(MessageSource source, IToken tok, string msg) {
