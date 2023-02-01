@@ -213,7 +213,9 @@ public class Errors {
 
   // This is a RangeToken with the given length, but is a CodeActionToken
   // so that it can be distinguished later
-  public static CodeActionToken NewCodeAction(IToken t, int len) {
+  public static IToken NewCodeAction(IToken t, int len) {
+    return t;
+    /*
     Token x = (Token)t;
     var y = new Token(x.line,x.col);
     y.pos = x.pos;
@@ -221,6 +223,7 @@ public class Errors {
     y.Filename = x.Filename;
     y.val = len <= x.val.Length ? x.val.Substring(0, len) : x.val.PadRight(len, ' ');
     return new CodeActionToken(t, y);
+    */
   }
 
   // Nested range is up to, not including, the next token

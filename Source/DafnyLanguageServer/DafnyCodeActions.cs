@@ -21,9 +21,9 @@ public class DafnyCodeActions {
 
   private static Dictionary<ErrorID, Func<Diagnostic, Range, List<DafnyCodeAction>>> codeActionMap =
     new Dictionary<ErrorID, Func<Diagnostic, Range, List<DafnyCodeAction>>>();
-  static DafnyCodeActions() {
-    init();
-  }
+  // static DafnyCodeActions() {
+  //   init();
+  // }
 
   public static Func<Diagnostic, Range, List<DafnyCodeAction>>? GetAction(ErrorID errorId) {
     return codeActionMap.ContainsKey(errorId) ? codeActionMap[errorId] : null;
@@ -41,13 +41,13 @@ public class DafnyCodeActions {
     return new List<DafnyCodeAction> { action };
   }
 
-  public static void init() {
+  // public static void init() {
 
-    codeActionMap.Add(ErrorID.p_bad_const_initialize_op, (Diagnostic diagnostic, Range range) => ReplacementAction("replace = with :=", diagnostic, range, ":="));
-    codeActionMap.Add(ErrorID.p_abstract_not_allowed, (Diagnostic diagnostic, Range range) => RemoveAction("remove 'abstract'", diagnostic, range));
-    codeActionMap.Add(ErrorID.p_no_leading_underscore, (Diagnostic diagnostic, Range range) => RemoveAction("remove underscore", diagnostic, range));
+  //   codeActionMap.Add(ErrorID.p_bad_const_initialize_op, (Diagnostic diagnostic, Range range) => ReplacementAction("replace = with :=", diagnostic, range, ":="));
+  //   codeActionMap.Add(ErrorID.p_abstract_not_allowed, (Diagnostic diagnostic, Range range) => RemoveAction("remove 'abstract'", diagnostic, range));
+  //   codeActionMap.Add(ErrorID.p_no_leading_underscore, (Diagnostic diagnostic, Range range) => RemoveAction("remove underscore", diagnostic, range));
 
-  }
+  // }
 }
 
 
