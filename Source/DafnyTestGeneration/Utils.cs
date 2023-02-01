@@ -155,9 +155,9 @@ namespace DafnyTestGeneration {
         if (func.IsGhost || func.Body == null || func.ByMethodBody != null) {
           return;
         }
-        var returnStatement = new ReturnStmt(new Token(), new Token(),
+        var returnStatement = new ReturnStmt(new RangeToken(new Token(), new Token()),
           new List<AssignmentRhs> { new ExprRhs(func.Body) });
-        func.ByMethodBody = new BlockStmt(new Token(), new Token(),
+        func.ByMethodBody = new BlockStmt(new RangeToken(new Token(), new Token()),
           new List<Statement> { returnStatement });
       }
     }
