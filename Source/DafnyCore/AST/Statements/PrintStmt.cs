@@ -29,10 +29,9 @@ public class PrintStmt : Statement, ICloneable<PrintStmt> {
     Args = original.Args.Select(cloner.CloneExpr).ToList();
   }
 
-  public PrintStmt(IToken tok, IToken endTok, List<Expression> args)
-    : base(tok, endTok) {
-    Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+  public PrintStmt(RangeToken rangeToken, List<Expression> args)
+    : base(rangeToken) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(cce.NonNullElements(args));
 
     Args = args;

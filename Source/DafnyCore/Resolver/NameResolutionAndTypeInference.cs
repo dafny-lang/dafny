@@ -4298,7 +4298,7 @@ namespace Microsoft.Dafny {
         } else if (reporter.Count(ErrorLevel.Error) == errorCountBeforeCheckingLhs) {
           // add the statements here in a sequence, but don't use that sequence later for translation (instead, should translate properly as multi-assignment)
           for (int i = 0; i < update.Lhss.Count; i++) {
-            var a = new AssignStmt(update.Tok, update.EndTok, update.Lhss[i].Resolved, update.Rhss[i]);
+            var a = new AssignStmt(update.RangeToken, update.Lhss[i].Resolved, update.Rhss[i]);
             update.ResolvedStatements.Add(a);
           }
         }
@@ -4318,7 +4318,7 @@ namespace Microsoft.Dafny {
             if (tr.CanAffectPreviouslyKnownExpressions) {
               reporter.Error(MessageSource.Resolver, tr.Tok, "can only have initialization methods which modify at most 'this'.");
             } else if (reporter.Count(ErrorLevel.Error) == errorCountBeforeCheckingLhs) {
-              var a = new AssignStmt(update.Tok, update.EndTok, update.Lhss[0].Resolved, tr);
+              var a = new AssignStmt(update.RangeToken, update.Lhss[0].Resolved, tr);
               update.ResolvedStatements.Add(a);
             }
           }
@@ -4334,7 +4334,7 @@ namespace Microsoft.Dafny {
             Contract.Assert(2 <= update.Lhss.Count);  // the parser allows 0 Lhss only if the whole statement looks like an expression (not a TypeRhs)
             reporter.Error(MessageSource.Resolver, update.Lhss[1].tok, "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment", update.Lhss.Count, update.Rhss.Count);
           } else if (reporter.Count(ErrorLevel.Error) == errorCountBeforeCheckingLhs) {
-            var a = new AssignStmt(update.Tok, update.EndTok, update.Lhss[0].Resolved, update.Rhss[0]);
+            var a = new AssignStmt(update.RangeToken, update.Lhss[0].Resolved, update.Rhss[0]);
             update.ResolvedStatements.Add(a);
           }
         } else if (reporter.Count(ErrorLevel.Error) == errorCountBeforeCheckingLhs) {
@@ -4343,7 +4343,7 @@ namespace Microsoft.Dafny {
           foreach (var ll in update.Lhss) {
             resolvedLhss.Add(ll.Resolved);
           }
-          CallStmt a = new CallStmt(methodCallInfo.Tok, update.EndTok, resolvedLhss, methodCallInfo.Callee, methodCallInfo.ActualParameters);
+          CallStmt a = new CallStmt(update.RangeToken, resolvedLhss, methodCallInfo.Callee, methodCallInfo.ActualParameters, methodCallInfo.Tok);
           a.OriginalInitialLhs = update.OriginalInitialLhs;
           update.ResolvedStatements.Add(a);
         }
@@ -4417,7 +4417,7 @@ namespace Microsoft.Dafny {
                 Contract.Assert(methodCallInfo.Callee.Member is TwoStateLemma);
                 reporter.Error(MessageSource.Resolver, methodCallInfo.Tok, "to reveal a two-state function, do not list any parameters or @-labels");
               } else {
-                var call = new CallStmt(methodCallInfo.Tok, s.EndTok, new List<Expression>(), methodCallInfo.Callee, methodCallInfo.ActualParameters);
+                var call = new CallStmt(s.RangeToken, new List<Expression>(), methodCallInfo.Callee, methodCallInfo.ActualParameters, methodCallInfo.Tok);
                 s.ResolvedStatements.Add(call);
               }
             } else if (expr is NameSegment or ExprDotName) {
@@ -4432,7 +4432,7 @@ namespace Microsoft.Dafny {
                 //The revealed member is a function
                 reporter.Error(MessageSource.Resolver, callee.tok, "to reveal a function ({0}), append parentheses", callee.Member.ToString().Substring(7));
               } else {
-                var call = new CallStmt(expr.tok, s.EndTok, new List<Expression>(), callee, new List<ActualBinding>());
+                var call = new CallStmt(s.RangeToken, new List<Expression>(), callee, new List<ActualBinding>(), expr.tok);
                 s.ResolvedStatements.Add(call);
               }
             } else {
@@ -4510,7 +4510,7 @@ namespace Microsoft.Dafny {
               }
               formals.Add(produceLhs);
             }
-            s.HiddenUpdate = new UpdateStmt(s.Tok, s.EndTok, formals, s.Rhss, true);
+            s.HiddenUpdate = new UpdateStmt(s.RangeToken, formals, s.Rhss, true);
             // resolving the update statement will check for return/yield statement specifics.
             ResolveStatement(s.HiddenUpdate, resolutionContext);
           }
@@ -5425,7 +5425,7 @@ namespace Microsoft.Dafny {
                 Contract.Assert(callLhs.ResolvedExpression is MemberSelectExpr);  // since ResolveApplySuffix succeeded and call.Lhs denotes an expression (not a module or a type)
                 var methodSel = (MemberSelectExpr)callLhs.ResolvedExpression;
                 if (methodSel.Member is Method) {
-                  rr.InitCall = new CallStmt(initCallTok, stmt.EndTok, new List<Expression>(), methodSel, rr.Bindings.ArgumentBindings);
+                  rr.InitCall = new CallStmt(stmt.RangeToken, new List<Expression>(), methodSel, rr.Bindings.ArgumentBindings, initCallTok);
                   ResolveCallStmt(rr.InitCall, resolutionContext, rr.EType);
                   if (rr.InitCall.Method is Constructor) {
                     callsConstructor = true;
@@ -6892,7 +6892,7 @@ namespace Microsoft.Dafny {
               }
               if (allowMethodCall) {
                 Contract.Assert(!e.Bindings.WasResolved); // we expect that .Bindings has not yet been processed, so we use just .ArgumentBindings in the next line
-                var tok = DafnyOptions.O.Get(DafnyConsolePrinter.ShowSnippets) ? new RangeToken(e.Lhs.tok, e.CloseParen) : e.tok;
+                var tok = DafnyOptions.O.Get(DafnyConsolePrinter.ShowSnippets) ? e.RangeToken.ToToken() : e.tok;
                 var cRhs = new MethodCallInformation(tok, mse, e.Bindings.ArgumentBindings);
                 return cRhs;
               } else {

@@ -95,7 +95,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     private IEnumerable<DiagnosticRelatedInformation> CreateDiagnosticRelatedInformationFor(IToken token, string message) {
       var (tokenForMessage, inner) = token is NestedToken nestedToken ? (nestedToken.Outer, nestedToken.Inner) : (token, null);
-      if (tokenForMessage is RangeToken range) {
+      if (tokenForMessage is BoogieRangeToken range) {
         var rangeLength = range.EndToken.pos + range.EndToken.val.Length - range.StartToken.pos;
         if (message == PostConditionFailingMessage) {
           var postcondition = entryDocumentsource.Substring(range.StartToken.pos, rangeLength);

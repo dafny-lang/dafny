@@ -21,22 +21,19 @@ public class AlternativeLoopStmt : LoopStmt, ICloneable<AlternativeLoopStmt> {
     UsesOptionalBraces = original.UsesOptionalBraces;
   }
 
-  public AlternativeLoopStmt(IToken tok, IToken endTok,
+  public AlternativeLoopStmt(RangeToken rangeToken,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
     List<GuardedAlternative> alternatives, bool usesOptionalBraces)
-    : base(tok, endTok, invariants, decreases, mod) {
-    Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+    : base(rangeToken, invariants, decreases, mod) {
     Contract.Requires(alternatives != null);
     this.Alternatives = alternatives;
     this.UsesOptionalBraces = usesOptionalBraces;
   }
-  public AlternativeLoopStmt(IToken tok, IToken endTok,
+  public AlternativeLoopStmt(RangeToken rangeToken,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
     List<GuardedAlternative> alternatives, bool usesOptionalBraces, Attributes attrs)
-    : base(tok, endTok, invariants, decreases, mod, attrs) {
-    Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+    : base(rangeToken, invariants, decreases, mod, attrs) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(alternatives != null);
     this.Alternatives = alternatives;
     this.UsesOptionalBraces = usesOptionalBraces;
@@ -71,5 +68,5 @@ public class AlternativeLoopStmt : LoopStmt, ICloneable<AlternativeLoopStmt> {
     }
   }
 
-  public override IEnumerable<INode> Children => SpecificationSubExpressions.Concat<INode>(Alternatives);
+  public override IEnumerable<Node> Children => SpecificationSubExpressions.Concat<Node>(Alternatives);
 }
