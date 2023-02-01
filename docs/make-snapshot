@@ -16,12 +16,14 @@
 ## The script takes one argument -- the release name in X.Y.Z form
 ## (The script prepends a 'v' as the release folder name.)
 
-## 
+if [ ! `which gh` ]; then echo "This script requires that gh is installed"; exit 1; fi
+if [ ! `which git` ]; then echo "This script requires that git is installed"; exit 1; fi
 
 if [ "$#" != "1" ]; then
-  echo Expected the new version number as the one argument
+  echo Expected the new version number as the one argument, in the format x.y.z
   exit 1
 fi
+
 
 ## The version name
 V=v$1
