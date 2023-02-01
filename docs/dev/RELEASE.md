@@ -49,12 +49,17 @@
 1. Clone <https://github.com/dafny-lang/ide-vscode> and run `publish_process.js`
    to create a new release of the VSCode plugin.
 
-1. Update the Homebrew formula for Dafny (see below).
-   Note that it is fine to leave this for the next day,
-   and other members of the community may update the formula
-   in the meantime anyway.
+1. Make a documentation snapshot
+   a. Run the script dafny/docs/make-snapshot x.y.z
+      where x.y.z is the new version number
+   b. The script creates new PRs in dafny-lang/dafny
+      and dafny-lang/dafny-lang.github.io.
+      Approve and merge these PRs.
 
-1. Announce the new release to the world!
+1. Update the Homebrew formula for Dafny (see below).
+    Note that it is fine to leave this for the next day,
+    and other members of the community may update the formula
+    in the meantime anyway.
 
 If something goes wrong with the `prepare` step:
 
@@ -67,30 +72,7 @@ If something goes wrong with the `release` step:
 - Delete the remote tag: `git push --delete origin vA.B.C`
 - Return to the `prepare` step.
 
-10. Make a documentation snapshot
-   a. If you have not already, make a personal clone of the 
-      dafny-lang/dafny-lang.github.io repo. The dafny repo and the 
-      dafny-lang.github.io repo should be in sibling folders.
-   b. Be sure that the dafny repo has a clean status, is up-to-date, and
-      is in the master branch; be sure the dafny-lang.github.io repo has
-      a clean status, is up-to-date, and is in the main branch.
-   c. In the dafny-lang/dafny repo, execute the script
-      `docs/make-snapshot X.Y.Z`, where X.Y.Z is the new release number
-   d. Go to the Pull Request sites for both dafny-lang/dafny and
-      dafny-lang/dafny-lang.github.io and create the two PRs.
-   e. You can check the copies by running
-      `diff -r . ../../dafny-lang.github.io/vX.Y.Z` and
-      `diff -r . ../../dafny-lang.github.io/latest`
-      There should only be differences in version strings.
-   e. Have the two PRs reviewed and approved and merged
-   f. Delete the local and remote branches named snapshot-vX_Y_Z
-
-11. Update the Homebrew formula for Dafny (see below).
-    Note that it is fine to leave this for the next day,
-    and other members of the community may update the formula
-    in the meantime anyway.
-
-12. Announce the new release to the world.
+1. Announce the new release to the world.
 
 ## Updating Dafny on Homebrew
 
