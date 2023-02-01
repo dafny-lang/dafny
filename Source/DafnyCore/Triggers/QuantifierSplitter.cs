@@ -83,7 +83,9 @@ namespace Microsoft.Dafny.Triggers {
         }
         foreach (var e in stream) {
           var tok = new NestedToken(quantifier.tok, e.tok, "in subexpression at");
-          yield return new ForallExpr(quantifier.RangeToken, quantifier.BoundVars, quantifier.Range, e, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
+          var splitQuantifier = new ForallExpr(quantifier.RangeToken, quantifier.BoundVars, quantifier.Range, e, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
+          splitQuantifier.OverrideToken = tok;
+          yield return splitQuantifier;
         }
       } else if (quantifier is ExistsExpr) {
         IEnumerable<Expression> stream;
@@ -94,7 +96,9 @@ namespace Microsoft.Dafny.Triggers {
         }
         foreach (var e in stream) {
           var tok = body?.tok == e.tok ? quantifier.tok : new NestedToken(quantifier.tok, e.tok, "in subexpression at");
-          yield return new ExistsExpr(quantifier.RangeToken, quantifier.BoundVars, quantifier.Range, e, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
+          var splitQuantifier = new ExistsExpr(quantifier.RangeToken, quantifier.BoundVars, quantifier.Range, e, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
+          splitQuantifier.OverrideToken = tok;
+          yield return splitQuantifier;
         }
       } else {
         yield return quantifier;
@@ -181,10 +185,10 @@ namespace Microsoft.Dafny.Triggers {
         expr = s.Substitute(q.quantifier) as QuantifierExpr;
       } else {
         // make a copy of the expr
-        if (expr is ForallExpr) {
-          expr = new ForallExpr(expr.RangeToken, expr.BoundVars, expr.Range, expr.Term, TriggerUtils.CopyAttributes(expr.Attributes)) { Type = expr.Type, Bounds = expr.Bounds };
-        } else {
-          expr = new ExistsExpr(expr.RangeToken, expr.BoundVars, expr.Range, expr.Term, TriggerUtils.CopyAttributes(expr.Attributes)) { Type = expr.Type, Bounds = expr.Bounds };
+        if (expr is ForallExpr forallExpr) {
+          expr = new ForallExpr(new Cloner(true), forallExpr);
+        } else if (expr is ExistsExpr existsExpr) {
+          expr = new ExistsExpr(new Cloner(true), existsExpr);
         }
       }
       return expr;

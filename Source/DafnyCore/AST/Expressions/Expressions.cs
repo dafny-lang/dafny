@@ -78,7 +78,7 @@ public abstract class Expression : RangeNode {
   }
 
   protected Expression(Cloner cloner, Expression original) : base(cloner, original) {
-
+    OverrideToken = cloner.Tok(original.OverrideToken);
     if (cloner.CloneResolvedFields && original.Type != null) {
       Type = original.Type;
     }
@@ -1765,7 +1765,7 @@ public class TypeTestExpr : TypeUnaryExpr {
 }
 
 public class BinaryExpr : Expression, ICloneable<BinaryExpr> {
-  public override IToken Tok => E1.StartToken.Prev;
+  public override IToken Tok => OverrideToken ?? E1.StartToken.Prev;
 
   public enum Opcode {
     Iff,
