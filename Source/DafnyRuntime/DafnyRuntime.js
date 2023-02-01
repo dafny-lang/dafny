@@ -20,7 +20,7 @@ let _dafny = (function() {
       return a === b;
     } else if (BigNumber.isBigNumber(a)) {
       return a.isEqualTo(b);
-    } else if (a._tname !== undefined) {
+    } else if (a._tname !== undefined || (Array.isArray(a) && a.constructor.name == "Array")) {
       return a === b;  // pointer equality
     } else {
       return a.equals(b);  // value-type equality
@@ -63,6 +63,9 @@ let _dafny = (function() {
   }
   $module.Rtd_char = class {
     static get Default() { return 'D'; }  // See CharType.DefaultValue in Dafny source code
+  }
+  $module.Rtd_codepoint = class {
+    static get Default() { return new _dafny.CodePoint('D'.codePointAt(0)); }
   }
   $module.Rtd_int = class {
     static get Default() { return BigNumber(0); }
@@ -1087,7 +1090,7 @@ let _dafny = (function() {
     if (dims.length === 0) {
       return initValue;
     } else {
-      let a = Array(dims[0]);
+      let a = Array(dims[0].toNumber());
       let b = Array.from(a, (x) => buildArray(initValue, ...dims.slice(1)));
       return b;
     }

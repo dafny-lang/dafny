@@ -181,7 +181,7 @@ public class InferDecreasesClause {
           }
 
           sInE.Type = Type.Bool; // resolve here
-          var s = new SetComprehension(e.tok, e.tok, true, new List<BoundVar>() { bv }, sInE, bvIE, null);
+          var s = new SetComprehension(e.tok, e.RangeToken, true, new List<BoundVar>() { bv }, sInE, bvIE, null);
           s.Type = new SetType(true, resolver.builtIns.ObjectQ()); // resolve here
           sets.Add(s);
         } else {
