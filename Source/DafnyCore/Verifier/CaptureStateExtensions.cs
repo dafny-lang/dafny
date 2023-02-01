@@ -14,7 +14,7 @@ namespace Microsoft.Dafny {
     private static Bpl.Cmd CaptureState(Statement stmt) {
       Contract.Requires(stmt != null);
       Contract.Ensures(Contract.Result<Bpl.Cmd>() != null);
-      return CaptureState(stmt.EndTok, true, null);
+      return CaptureState(stmt.RangeToken.EndToken, true, null);
     }
 
     public static void AddCaptureState(this BoogieStmtListBuilder builder, IToken tok, bool isEndToken, string /*?*/ additionalInfo) {

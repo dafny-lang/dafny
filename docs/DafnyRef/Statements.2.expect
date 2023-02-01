@@ -1,0 +1,6 @@
+text.dfy(12,2): Error: A postcondition might not hold on this return path.
+text.dfy(8,17): Related location: This is the postcondition that might not hold.
+text.dfy(27,2): Error: A postcondition might not hold on this return path.
+text.dfy(23,17): Related location: This is the postcondition that might not hold.
+
+Dafny program verifier finished with 2 verified, 2 errors

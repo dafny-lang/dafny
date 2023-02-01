@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
@@ -22,16 +23,19 @@ abstract class ExtremeCloner : Cloner {
     Contract.Requires(e != null);
     Contract.Requires(e.Resolved is FunctionCallExpr && ((FunctionCallExpr)e.Resolved).Function is ExtremePredicate);
     Contract.Requires(e.Lhs is NameSegment || e.Lhs is ExprDotName);
+    if (this.CloneResolvedFields) {
+      throw new NotImplementedException();
+    }
+
     Expression lhs;
     string name;
-    var ns = e.Lhs as NameSegment;
-    if (ns != null) {
+    if (e.Lhs is NameSegment ns) {
       name = ns.Name;
-      lhs = new NameSegment(Tok(ns.tok), name + "#", ns.OptTypeArguments == null ? null : ns.OptTypeArguments.ConvertAll(CloneType));
+      lhs = new NameSegment(Tok(ns.tok), name + "#", ns.OptTypeArguments?.ConvertAll(CloneType));
     } else {
       var edn = (ExprDotName)e.Lhs;
       name = edn.SuffixName;
-      lhs = new ExprDotName(Tok(edn.tok), CloneExpr(edn.Lhs), name + "#", edn.OptTypeArguments == null ? null : edn.OptTypeArguments.ConvertAll(CloneType));
+      lhs = new ExprDotName(Tok(edn.tok), CloneExpr(edn.Lhs), name + "#", edn.OptTypeArguments?.ConvertAll(CloneType));
     }
     var args = new List<ActualBinding>();
     args.Add(new ActualBinding(null, k));
@@ -42,9 +46,13 @@ abstract class ExtremeCloner : Cloner {
     reporter.Info(MessageSource.Cloner, e.tok, name + suffix);
     return apply;
   }
+
   protected Expression CloneCallAndAddK(FunctionCallExpr e) {
     Contract.Requires(e != null);
     Contract.Requires(e.Function is ExtremePredicate);
+    if (CloneResolvedFields) {
+      throw new NotImplementedException();
+    }
     var receiver = CloneExpr(e.Receiver);
     var args = new List<ActualBinding>();
     args.Add(new ActualBinding(null, k));

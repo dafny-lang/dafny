@@ -3,7 +3,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBearingExpression {
+public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBearingExpression, ICloneable<LetExpr> {
   public readonly List<CasePattern<BoundVar>> LHSs;
   public readonly List<Expression> RHSs;
   public readonly Expression Body;
@@ -15,21 +15,31 @@ public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBeari
   private Expression translationDesugaring;  // filled in during translation, lazily; to be accessed only via Translation.LetDesugaring; always null when Exact==true
   private Translator lastTranslatorUsed; // avoid clashing desugaring between translators
 
-  public IToken BodyStartTok = Token.NoToken;
-  public IToken BodyEndTok = Token.NoToken;
-  IToken IRegion.BodyStartTok { get { return BodyStartTok; } }
-  IToken IRegion.BodyEndTok { get { return BodyEndTok; } }
-
   public void SetTranslationDesugaring(Translator trans, Expression expr) {
     lastTranslatorUsed = trans;
     translationDesugaring = expr;
   }
 
-  public Expression getTranslationDesugaring(Translator trans) {
+  public Expression GetTranslationDesugaring(Translator trans) {
     if (lastTranslatorUsed == trans) {
       return translationDesugaring;
     } else {
       return null;
+    }
+  }
+
+  public LetExpr Clone(Cloner cloner) {
+    return new LetExpr(cloner, this);
+  }
+
+  public LetExpr(Cloner cloner, LetExpr original) : base(cloner, original) {
+    LHSs = original.LHSs.ConvertAll(cloner.CloneCasePattern);
+    RHSs = original.RHSs.ConvertAll(cloner.CloneExpr);
+    Body = cloner.CloneExpr(original.Body);
+    Exact = original.Exact;
+    Attributes = cloner.CloneAttributes(original.Attributes);
+    if (cloner.CloneResolvedFields) {
+      Constraint_Bounds = original.Constraint_Bounds;
     }
   }
 
@@ -67,8 +77,8 @@ public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBeari
 
   public IEnumerable<BoundVar> AllBoundVars => BoundVars;
 
-  public override IEnumerable<INode> Children =>
-    (Attributes != null ? new List<INode> { Attributes } : Enumerable.Empty<INode>())
+  public override IEnumerable<Node> Children =>
+    (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>())
     .Concat(LHSs)
     .Concat(base.Children);
 }

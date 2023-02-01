@@ -1,10 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class CalcStmt : Statement {
+public class CalcStmt : Statement, ICloneable<CalcStmt> {
   public abstract class CalcOp {
     /// <summary>
     /// Resulting operator "x op z" if "x this y" and "y other z".
@@ -162,6 +163,8 @@ public class CalcStmt : Statement {
 
   public static readonly CalcOp DefaultOp = new BinaryCalcOp(BinaryExpr.Opcode.Eq);
 
+  public override IEnumerable<Node> Children => Steps.Concat(new Node[] { Result }).Concat(Hints);
+
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Lines != null);
@@ -175,10 +178,9 @@ public class CalcStmt : Statement {
     Contract.Invariant(StepOps.Count == Hints.Count);
   }
 
-  public CalcStmt(IToken tok, IToken endTok, CalcOp userSuppliedOp, List<Expression> lines, List<BlockStmt> hints, List<CalcOp/*?*/> stepOps, Attributes attrs)
-    : base(tok, endTok) {
-    Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+  public CalcStmt(RangeToken rangeToken, CalcOp userSuppliedOp, List<Expression> lines, List<BlockStmt> hints, List<CalcOp/*?*/> stepOps, Attributes attrs)
+    : base(rangeToken) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(lines != null);
     Contract.Requires(hints != null);
     Contract.Requires(stepOps != null);
@@ -189,10 +191,36 @@ public class CalcStmt : Statement {
     this.UserSuppliedOp = userSuppliedOp;
     this.Lines = lines;
     this.Hints = hints;
+    Steps = new List<Expression>();
     this.StepOps = stepOps;
-    this.Steps = new List<Expression>();
     this.Result = null;
     this.Attributes = attrs;
+  }
+
+  public CalcStmt Clone(Cloner cloner) {
+    return new CalcStmt(cloner, this);
+  }
+
+  public CalcStmt(Cloner cloner, CalcStmt original) : base(cloner, original) {
+    // calc statements have the unusual property that the last line is duplicated.  If that is the case (which
+    // we expect it to be here), we share the clone of that line as well.
+    var lineCount = original.Lines.Count;
+    var lines = new List<Expression>(lineCount);
+    for (int i = 0; i < lineCount; i++) {
+      lines.Add(i == lineCount - 1 && 2 <= lineCount && original.Lines[i] == original.Lines[i - 1] ? lines[i - 1] : cloner.CloneExpr(original.Lines[i]));
+    }
+    UserSuppliedOp = cloner.CloneCalcOp(original.UserSuppliedOp);
+    Lines = lines;
+    StepOps = original.StepOps.ConvertAll(cloner.CloneCalcOp);
+    Hints = original.Hints.ConvertAll(cloner.CloneBlockStmt);
+
+    if (cloner.CloneResolvedFields) {
+      Steps = original.Steps.Select(cloner.CloneExpr).ToList();
+      Result = cloner.CloneExpr(original.Result);
+      Op = original.Op;
+    } else {
+      Steps = new List<Expression>();
+    }
   }
 
   public override IEnumerable<Statement> SubStatements {
@@ -211,8 +239,7 @@ public class CalcStmt : Statement {
         yield return Lines[i];
       }
       foreach (var calcop in AllCalcOps) {
-        var o3 = calcop as TernaryCalcOp;
-        if (o3 != null) {
+        if (calcop is TernaryCalcOp o3) {
           yield return o3.Index;
         }
       }
