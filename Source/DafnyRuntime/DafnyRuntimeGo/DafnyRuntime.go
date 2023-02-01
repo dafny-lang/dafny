@@ -720,6 +720,7 @@ func (array GoArray) String() string {
 type Array struct {
   contents []interface{} // stored as a flat one-dimensional slice
   dims     []int
+}
 
 // Array is the general interface for arrays. Conceptually, it contains some
 // underlying storage (a slice) of elements, together with a record of the length
@@ -1258,7 +1259,7 @@ func (array *Array) RangeToSeq(lo, hi Int) Sequence {
   }
   return seq.Subsequence(nonNullLo, nonNullHi)
 }
-=======
+
 func ArrayRangeToSeq(array Array, lo, hi Int) Seq {
   if array.dimensionCount() != 1 {
     panic("Can't take a slice of a multidimensional array")

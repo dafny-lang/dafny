@@ -15,6 +15,7 @@
     <AssemblyName>DafnyCore</AssemblyName>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <OutputPath>..\..\Binaries\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <TargetFramework>net6.0</TargetFramework>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

@@ -6,6 +6,7 @@
       <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
       <DefineConstants>TRACE</DefineConstants>
       <TargetFramework>net6.0</TargetFramework>
+      <OutputPath>..\..\Binaries\</OutputPath>
       <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
 
       <PackAsTool>true</PackAsTool>
@@ -27,8 +28,6 @@
   <ItemGroup>
     <ProjectReference Include="..\DafnyDriver\DafnyDriver.csproj" />
     <ProjectReference Include="..\DafnyPipeline\DafnyPipeline.csproj" />
-    <ProjectReference Include="..\DafnyServer\DafnyServer.csproj" />
-    <ProjectReference Include="..\DafnyTestGeneration\DafnyTestGeneration.csproj" />
   </ItemGroup>
 
   <ItemGroup>

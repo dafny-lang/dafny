@@ -5,6 +5,7 @@
     <AssemblyName>DafnyPipeline</AssemblyName>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <OutputPath>..\..\Binaries\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <TargetFramework>net6.0</TargetFramework>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -41,9 +42,9 @@
     <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeGo\DafnyRuntime.go">
       <LogicalName>DafnyRuntime.go</LogicalName>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeGo\DafnyRuntimeFromDafny.go">
-      <LogicalName>DafnyRuntimeFromDafny.go</LogicalName>
-    </EmbeddedResource>
+<!--    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeGo\DafnyRuntimeFromDafny.go">-->
+<!--      <LogicalName>DafnyRuntimeFromDafny.go</LogicalName>-->
+<!--    </EmbeddedResource>-->
     <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntime.h">
       <LogicalName>DafnyRuntime.h</LogicalName>
     </EmbeddedResource>

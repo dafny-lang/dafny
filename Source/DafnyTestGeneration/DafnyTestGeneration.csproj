@@ -13,7 +13,7 @@
   
   <ItemGroup>
     <ProjectReference Include="..\DafnyServer\DafnyServer.csproj" />
-    <ProjectReference Include="..\DafnyCore\DafnyCore.csproj" />
+    <ProjectReference Include="..\DafnyPipeline\DafnyPipeline.csproj" />
   </ItemGroup>
 
 </Project>

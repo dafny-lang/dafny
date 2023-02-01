@@ -100,10 +100,6 @@ jobs:
         path: dafny
         submodules: true
     - run: rm dafny/Test/libraries/lit.site.cfg # we remove the lit configuration file in the library repo (a git submodule) to prevent override
-    - name: Download previous Dafny release for bootstrapping
-      uses: dafny-lang/setup-dafny-action@v1
-      with:
-        dafny-version: "3.10.0"
     - name: Create release
       if: inputs.all_platforms
       run: |

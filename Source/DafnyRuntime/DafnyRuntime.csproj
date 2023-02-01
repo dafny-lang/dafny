@@ -7,6 +7,7 @@
       <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
       <DefineConstants>TRACE;ISDAFNYRUNTIMELIB</DefineConstants>
       <TargetFrameworks>netstandard2.0;net452</TargetFrameworks>
+      <OutputPath>..\..\Binaries\</OutputPath>
       <LangVersion>7.3</LangVersion>
       <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
@@ -23,7 +24,7 @@
     </Compile>
     <Content Include="DafnyRuntime.js" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="DafnyRuntimeGo\DafnyRuntime.go" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="DafnyRuntimeGo\DafnyRuntimeFromDafny.go" CopyToOutputDirectory="PreserveNewest" />
+<!--    <Content Include="DafnyRuntimeGo\DafnyRuntimeFromDafny.go" CopyToOutputDirectory="PreserveNewest" />-->
     <Content Include="DafnyRuntime.h" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="DafnyRuntime.py" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="DafnyRuntimeJava\build\libs\DafnyRuntime.jar" Link="DafnyRuntime.jar" CopyToOutputDirectory="PreserveNewest" />

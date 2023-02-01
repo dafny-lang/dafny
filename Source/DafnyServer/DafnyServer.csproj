@@ -6,6 +6,7 @@
       <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
       <DefineConstants>TRACE</DefineConstants>
       <TargetFramework>net6.0</TargetFramework>
+      <OutputPath>..\..\Binaries\</OutputPath>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net6.0|AnyCPU'">
@@ -20,6 +21,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DafnyLanguageServer\DafnyLanguageServer.csproj" />
-    <ProjectReference Include="..\DafnyCore\DafnyCore.csproj" />
+    <ProjectReference Include="..\DafnyPipeline\DafnyPipeline.csproj" />
   </ItemGroup>
 </Project>

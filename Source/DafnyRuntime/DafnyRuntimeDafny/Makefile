@@ -18,7 +18,7 @@ py: verify
 	$(DAFNY) /noVerify /compile:0 /spillTargetCode:3 /useRuntimeLib src/dafnyRuntime.dfy /compileTarget:py /out:../generated
 	
 go: verify
-	$(DAFNY) translate -t:go src/dafnyRuntimeGo.dfy
+	$(DAFNY) translate go src/dafnyRuntimeGo.dfy --output ../generated
 	cp ../generated-go/src/dafny/dafny.go ../DafnyRuntimeGo/DafnyRuntimeFromDafny.go
 # Probably the wrong place for this
 	GO111MODULE=auto go test ../DafnyRuntimeGo
