@@ -9,9 +9,9 @@
 ## reviewed, approved and merged. After that is successful the 
 ## local and remote snapshot-vX.Y.Z branches can be deleted.
 
-## This procedure relies on the person executing it to have a clone of
-## dafny-lang/dafny-lang.github.io as a sibling to the clone of
-## dafny-lang/dafny.
+## This procedure creates clones in a temporary location,
+## so it has no effect on the users git workspaces.
+## It does however use the user's git credentials.
 
 ## The script takes one argument -- the release name in X.Y.Z form
 ## (The script prepends a 'v' as the release folder name.)
