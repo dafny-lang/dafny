@@ -714,14 +714,6 @@ func (array GoArray) String() string {
   return "dafny.GoArray"
 }
 
-// An Array is a Go slice representing a (possibly) multidimensional array,
-// along with metadata.  There aren't any methods for updating; instead, you can
-// update through the pointer returned by Index.
-type Array struct {
-  contents []interface{} // stored as a flat one-dimensional slice
-  dims     []int
-}
-
 // Array is the general interface for arrays. Conceptually, it contains some
 // underlying storage (a slice) of elements, together with a record of the length
 // of each dimension. Thus, this general interface supports 1- and multi-dimensional
@@ -1231,36 +1223,7 @@ func ArraySet(array Array, value interface{}, ixs ...int) {
 }
 
 // RangeToSeq converts the selected portion of the array to a sequence.
-func (array *Array) RangeToSeq(lo, hi Int) Sequence {
-  if len(array.dims) != 1 {
-    panic("Can't take a slice of a multidimensional array")
-  }
-  isString := false;
-  if len(array.contents) > 0 {
-      _, isString = array.contents[0].(Char)
-  }
-
-  // TODO Should set isString to true if this is an array of characters
-  // Do not know if it is an array of characters if the array is empty
-  seq := SeqOf(array.contents...)
-  seq.IsString_set_(isString)
-
-  var nonNullLo uint32
-  if lo.IsNilInt() {
-    nonNullLo = 0
-  } else {
-    nonNullLo = lo.Uint32()
-  }
-  var nonNullHi uint32
-  if hi.IsNilInt() {
-    nonNullHi = seq.Cardinality()
-  } else {
-    nonNullHi = hi.Uint32()
-  }
-  return seq.Subsequence(nonNullLo, nonNullHi)
-}
-
-func ArrayRangeToSeq(array Array, lo, hi Int) Seq {
+func ArrayRangeToSeq(array Array, lo, hi Int) Sequence {
   if array.dimensionCount() != 1 {
     panic("Can't take a slice of a multidimensional array")
   }
@@ -1271,7 +1234,7 @@ func ArrayRangeToSeq(array Array, lo, hi Int) Seq {
 
   anySlice := array.anySlice(lo, hi)
   seq := SeqOf(anySlice...)
-  seq.isString = isString
+  seq.IsString_set_(isString)
   return seq
 }
 
