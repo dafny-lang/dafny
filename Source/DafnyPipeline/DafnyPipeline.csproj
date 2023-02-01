@@ -42,9 +42,9 @@
     <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeGo\DafnyRuntime.go">
       <LogicalName>DafnyRuntime.go</LogicalName>
     </EmbeddedResource>
-<!--    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeGo\DafnyRuntimeFromDafny.go">-->
-<!--      <LogicalName>DafnyRuntimeFromDafny.go</LogicalName>-->
-<!--    </EmbeddedResource>-->
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeGo\DafnyRuntimeFromDafny.go">
+      <LogicalName>DafnyRuntimeFromDafny.go</LogicalName>
+    </EmbeddedResource>
     <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntime.h">
       <LogicalName>DafnyRuntime.h</LogicalName>
     </EmbeddedResource>
