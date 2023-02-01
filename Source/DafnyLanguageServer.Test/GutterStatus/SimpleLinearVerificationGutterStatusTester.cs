@@ -200,4 +200,121 @@ method Foo() ensures false { } ";
  .  |  |  | :  true
  .  |  |  | :}");
   }
+
+  [TestMethod]
+  public async Task EnsuresBodyVerifiedWithAssumptionsAreCorrectlyHighlighted() {
+    await VerifyTrace(@"
+ .  S  S  |? I? I? $?[S][ ]:method Test()
+ .  S  |  |? I? I? $?[=][=]:  ensures 1 == 2
+ .  S  S  |? I? I? $?[=][=]:{
+ .  S  S  =? -? I? $?[S][ ]:  assume false; //Next:
+ .  S  S  |? I? I? $?[S][ ]:}");
+  }
+
+  [TestMethod]
+  public async Task EnsureAxiomNotMarkedAndRequiresNotMarked() {
+    await VerifyTrace(@"
+ |?:method Test(i: nat)
+ |?:  requires {:axiom} i >= 1
+ |?:  requires i >= 2
+ |?:  requires {:axiom} i >= 3
+ |?:  requires i >= 4
+ |?:{
+ =?:  assume i >= 5;
+ |?:  assume {:axiom} i >= 6;
+ =?:  assume i >= 7;
+ |?:  assume {:axiom} i >= 8;
+ |?:}", intermediates: false);
+  }
+
+  [TestMethod]
+  public async Task EnsuresBodyWithRequiresFalseCorrectlyHighlighted() {
+    await VerifyTrace(@"
+ .  S  S  |?:method Test()
+ .  S  S  =?:  requires exists x: int :: true ==> (true && !true) || false
+ .  S  S  =?:  requires !forall x: int :: true && ((false || !false) && true)
+ .  S  S  |?:{
+ .  S  |  |?:  assert true;
+ .  S  S  |?:}");
+  }
+
+  [TestMethod]
+  public async Task EnsureArraySameCaught() {
+    await VerifyTrace(@"
+ |?:method Test(a: array<int>, i: nat, j: nat)
+ |?:  requires 0 <= i < a.Length
+ |?:  requires 0 <= j < a.Length
+ =?:  requires a[i] < a[i]
+ =?:  requires a[i] != a[i]
+ =?:  requires a[i] > a[i]
+ =?:  requires 1 > 2
+ |?:  requires i > j
+ |?:{
+ |?:  assert false;
+ |?:}", intermediates: false);
+  }
+
+  [TestMethod]
+  public async Task EnsureDatatypeSameCaught() {
+    await VerifyTrace(@"
+ | :datatype List = Nil | Cons(head: int, tail: List) {
+ | : const t := this
+ | :}
+ |?:method Test(a: List)
+ |?:  requires a != Nil
+ =?:  requires a.tail == a
+ =?:  requires a == a.tail
+ |?: requires a == a.t // We can't detect statically if this is true or not
+ |?: requires a.t == a // We can't detect statically if this is true or not
+ |?:{
+ |?:  assert false;
+ |?:}", intermediates: false);
+  }
+
+  [TestMethod]
+  public async Task EnsureDatatypeSameCaughtOnFunctions() {
+    await VerifyTrace(@"
+   :datatype List = Nil | Cons(head: int, tail: List)
+   :
+ |?:function Test(a: List): int
+ |?:  requires a != Nil
+ =?:  requires a.tail == a
+ =?:  requires a == a.tail
+ |?:{
+ |?:  2
+ |?:}", intermediates: false);
+  }
+
+  [TestMethod]
+  public async Task EnsuresEnsuresOnExternMethodDontTriviallyProveFalse() {
+    await VerifyTrace(@"
+   :datatype List = Nil | Cons(head: int, tail: List)
+   :
+ |?:method {:extern} Test() returns (a: List)
+ |?:  ensures a != Nil
+ =?:  ensures a.tail == a
+ =?:  ensures a == a.tail", intermediates: false);
+  }
+
+  [TestMethod]
+  public async Task EnsuresEnsuresOnExternFunctionDontTriviallyProveFalse() {
+    await VerifyTrace(@"
+   :datatype List = Nil | Cons(head: int, tail: List)
+   :
+ |?:function {:extern} Test(): (a: List)
+ |?:  ensures a != Nil
+ =?:  ensures a.tail == a
+ =?:  ensures a == a.tail", intermediates: false);
+  }
+
+  [TestMethod]
+  public async Task EnsuresFunctionVerifiedWithAssumptionsAreCorrectlyHighlighted() {
+    await VerifyTrace(@"
+ .  S  S  |? I? I? $?[=][=]:function Test(): int
+ .  S  |  |? I? I? $?[=][=]:  ensures 1 == 2
+ .  S  S  |? I? I? $?[S][ ]:{
+ .  S  S  =? -? I? $?[S][ ]:  assume false; //Next:
+ .  S  S  |? I? I? $?[S][ ]:  1
+ .  S  S  |? I? I? $?[S][ ]:}");
+  }
 }

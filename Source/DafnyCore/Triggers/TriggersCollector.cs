@@ -8,6 +8,7 @@ using System.Text;
 using Microsoft.Boogie;
 using System.Diagnostics.Contracts;
 using System.Diagnostics;
+using Microsoft.Dafny.ExprExtensions;
 
 namespace Microsoft.Dafny.Triggers {
   class TriggerTerm {
@@ -43,7 +44,7 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     internal static bool Eq(TriggerTerm t1, TriggerTerm t2) {
-      return ExprExtensions.ExpressionEq(t1.Expr, t2.Expr);
+      return t1.Expr.ExpressionEq(t2.Expr);
     }
 
     internal bool IsTranslatedToFunctionCall() {

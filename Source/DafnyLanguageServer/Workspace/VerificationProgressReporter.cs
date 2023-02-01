@@ -75,7 +75,9 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
                 ctor.CompileName,
                 ctor.tok.Filename,
                 verificationTreeRange,
-                ctor.tok.GetLspPosition());
+                ctor.tok.GetLspPosition()) {
+                node = topLevelDecl
+              };
               AddAndPossiblyMigrateVerificationTree(verificationTree);
             }
           }
@@ -101,7 +103,9 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
                 member.CompileName,
                 member.tok.Filename,
                 verificationTreeRange,
-                member.tok.GetLspPosition());
+                member.tok.GetLspPosition()) {
+                node = member
+              };
               AddAndPossiblyMigrateVerificationTree(verificationTree);
             } else if (member is Method or Function) {
               var verificationTreeRange = member.StartToken.GetLspRange(member.EndToken);
@@ -111,7 +115,9 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
                 member.CompileName,
                 member.tok.Filename,
                 verificationTreeRange,
-                member.tok.GetLspPosition());
+                member.tok.GetLspPosition()) {
+                node = member
+              };
               AddAndPossiblyMigrateVerificationTree(verificationTree);
               if (member is Function { ByMethodBody: { } } function) {
                 var verificationTreeRangeByMethod = function.ByMethodBody.RangeToken.ToLspRange();
@@ -121,7 +127,10 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
                   member.CompileName + "_by_method",
                   member.tok.Filename,
                   verificationTreeRangeByMethod,
-                  function.ByMethodTok.GetLspPosition());
+                  function.ByMethodTok.GetLspPosition()) {
+                  node = function,
+                  ByMethodBody = true
+                };
                 AddAndPossiblyMigrateVerificationTree(verificationTreeByMethod);
               }
             }
@@ -140,7 +149,9 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
             subsetTypeDecl.CompileName,
             subsetTypeDecl.tok.Filename,
             verificationTreeRange,
-            subsetTypeDecl.tok.GetLspPosition());
+            subsetTypeDecl.tok.GetLspPosition()) {
+            node = subsetTypeDecl
+          };
           AddAndPossiblyMigrateVerificationTree(verificationTree);
         }
       }

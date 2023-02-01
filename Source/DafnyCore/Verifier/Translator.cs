@@ -3853,6 +3853,7 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// Returns true if it can statically determine that the expression q always evaluates to truth
+    /// See QuickVerifier.IsExpressionAlways for an equivalent in Dafny.
     /// </summary>
     /// <param name="q">The expression</param>
     /// <param name="truth">The expected truth value that q might always have</param>

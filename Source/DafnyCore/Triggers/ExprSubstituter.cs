@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using Microsoft.Dafny.ExprExtensions;
 
 namespace Microsoft.Dafny {
   public class ExprSubstituter : Substituter {
@@ -14,12 +15,12 @@ namespace Microsoft.Dafny {
     }
 
     public bool TryGetExprSubst(Expression expr, out IdentifierExpr ie) {
-      var entry = usedSubstMap.Find(x => Triggers.ExprExtensions.ExpressionEq(expr, x.Item1));
+      var entry = usedSubstMap.Find(x => expr.ExpressionEq(x.Item1));
       if (entry != null) {
         ie = entry.Item2;
         return true;
       }
-      entry = exprSubstMap.Find(x => Triggers.ExprExtensions.ExpressionEq(expr, x.Item1));
+      entry = exprSubstMap.Find(x => expr.ExpressionEq(x.Item1));
       if (entry != null) {
         usedSubstMap.Add(entry);
         ie = entry.Item2;
