@@ -7,7 +7,7 @@ module {:extern "dafny"} {:options "/functionSyntax:4"} DafnyCsharp refines Dafn
 
   lemma EnsureSizeTLimitAboveMinimum() ensures 128 <= SIZE_T_LIMIT {}
 
-  trait {:extern} Sequence<+T> ... {
+  trait {:extern} Sequence<T> ... {
 
     function Elements(): Sequence<T> {
       this

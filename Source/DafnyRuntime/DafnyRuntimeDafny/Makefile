@@ -6,7 +6,7 @@ DAFNY = dafny
 all: verify cs java py js build
 
 verify:
-	$(DAFNY) /compile:0 /definiteAssignment:3 src/dafnyRuntime.dfy
+	$(DAFNY) verify src/dafnyRuntime.dfy
 
 java: verify
 	$(DAFNY) /noVerify /compile:0 /spillTargetCode:3 /useRuntimeLib src/dafnyRuntime.dfy /compileTarget:java /out:../DafnyRuntimeJava/src/main/generated
@@ -18,7 +18,7 @@ py: verify
 	$(DAFNY) /noVerify /compile:0 /spillTargetCode:3 /useRuntimeLib src/dafnyRuntime.dfy /compileTarget:py /out:../generated
 	
 go: verify
-	$(DAFNY) /noVerify /compile:0 /spillTargetCode:3 /useRuntimeLib src/dafnyRuntimeGo.dfy /compileTarget:go /out:../generated
+	$(DAFNY) translate -t:go src/dafnyRuntimeGo.dfy
 	cp ../generated-go/src/dafny/dafny.go ../DafnyRuntimeGo/DafnyRuntimeFromDafny.go
 # Probably the wrong place for this
 	GO111MODULE=auto go test ../DafnyRuntimeGo
