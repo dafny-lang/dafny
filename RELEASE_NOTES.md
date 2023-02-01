@@ -52,7 +52,7 @@ See [docs/dev/news/](docs/dev/news/).
 
 - The otherwise ambiguous program fragment `export least predicate` is parsed such that `least` (or `greatest`) is the export identifier (https://github.com/dafny-lang/dafny/pull/3291)
 
-- The parser no longer generated bad tokens when invoked through `/library` (https://github.com/dafny-lang/dafny/pull/3301)
+- The parser no longer generates bad tokens when invoked through `/library` (https://github.com/dafny-lang/dafny/pull/3301)
 
 - Match expressions no longer incorrectly convert between newtypes and their basetype (https://github.com/dafny-lang/dafny/pull/3333)
 
