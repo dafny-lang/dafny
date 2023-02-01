@@ -74,7 +74,7 @@ See [docs/dev/news/](docs/dev/news/).
   Having a library or executable jar simplifies the user's task in figuring out how to use the built artifacts.
   (https://github.com/dafny-lang/dafny/pull/3355)
 
-- Proper warning that 'new' cannot be used in expressions, instead of a parse error (https://github.com/dafny-lang/dafny/pull/3366)
+- Warn that 'new' cannot be used in expressions, instead of throwing a parse error (https://github.com/dafny-lang/dafny/pull/3366)
 
 - The attributes :dllimport and :handle are now deprecated. They were undocumented, untested, and not maintained. (https://github.com/dafny-lang/dafny/pull/3399)
 
