@@ -1,1 +1,0 @@
-The :test attribute is now compatible with `dafny run` and `dafny build`
