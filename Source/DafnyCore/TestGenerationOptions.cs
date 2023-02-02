@@ -10,8 +10,13 @@ namespace Microsoft.Dafny {
     public enum Modes { None, Block, Path };
     public Modes Mode = Modes.None;
     [CanBeNull] public string TargetMethod = null;
-    public uint? SeqLengthLimit = null;
+    public uint SeqLengthLimit = 0;
     public uint TestInlineDepth = 0;
+    public bool Verbose = false;
+    [CanBeNull] public string PrintBpl = null;
+    [CanBeNull] public string PrintStats = null;
+    public bool DisablePrune = false;
+    public static readonly uint DefaultTimeLimit = 10;
 
     public bool ParseOption(string name, Bpl.CommandLineParseState ps) {
       var args = ps.args;
@@ -29,7 +34,7 @@ namespace Microsoft.Dafny {
               "None" => Modes.None,
               "Block" => Modes.Block,
               "Path" => Modes.Path,
-              _ => throw new Exception("Invalid value for testMode")
+              _ => throw new Exception("Invalid value for generateTestMode")
             };
           }
           return true;
@@ -53,36 +58,50 @@ namespace Microsoft.Dafny {
             TestInlineDepth = (uint)depth;
           }
           return true;
+
+        case "generateTestPrintBpl":
+          if (ps.ConfirmArgumentCount(1)) {
+            PrintBpl = args[ps.i];
+          }
+          return true;
+
+        case "generateTestVerbose":
+          Verbose = true;
+          return true;
+
+        case "generateTestNoPrune":
+          DisablePrune = true;
+          return true;
       }
 
       return false;
     }
 
     public string Help => @"
+/warnDeadCode
+    Use counterexample generation to warn about potential dead code.
 /generateTestMode:<None|Block|Path>
     None (default) - Has no effect.
     Block - Prints block-coverage tests for the given program.
     Path - Prints path-coverage tests for the given program.
-
-    Using /definiteAssignment:3 and /loopUnroll is highly recommended
+    Using /definiteAssignment:3, /generateTestNoPrune, 
+    /generateTestSeqLengthLimit, and /loopUnroll is highly recommended
     when generating tests.
-
-/warnDeadCode
-    Use block-coverage tests to warn about potential dead code.
-
 /generateTestSeqLengthLimit:<n>
-    If /testMode is not None, using this argument adds an axiom that
-    sets the length of all sequences to be no greater than <n>. This is
-    useful in conjunction with loop unrolling.
-
+    Add an axiom that sets the length of all sequences to be no greater 
+    than <n>. 0 (default) indicates no limit.
 /generateTestTargetMethod:<methodName>
     If specified, only this method will be tested.
-
 /generateTestInlineDepth:<n>
     0 is the default. When used in conjunction with /testTargetMethod,
     this argument specifies the depth up to which all non-tested methods
     should be inlined.
-";
+/generateTestPrintBpl:<fileName>
+    Print the Boogie code used during test generation.
+/generateTestVerbose
+    Print various debugging info as comments for the generated tests.
+/generateTestNoPrune
+    Disable axiom pruning that Dafny uses to speed up verification.";
 
   }
 }

@@ -5628,7 +5628,7 @@ namespace Microsoft.Dafny {
         functionHandles[f] = name;
         var args = new List<Bpl.Expr>();
         var vars = MkTyParamBinders(GetTypeParams(f), out args);
-        var formals = MkTyParamFormals(GetTypeParams(f), false);
+        var formals = MkTyParamFormals(GetTypeParams(f), false, false);
         var tyargs = new List<Bpl.Expr>();
         foreach (var fm in f.Formals) {
           tyargs.Add(TypeToTy(fm.Type));
