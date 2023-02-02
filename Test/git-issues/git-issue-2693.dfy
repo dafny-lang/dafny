@@ -49,3 +49,32 @@ module A {
     return c;
   }
 }
+
+module B {
+  // This module gives two examples of failure-compatible types where members
+  // are ghost in useful ways (well, not very useful here, but at least they
+  // make sense to call them legal code).
+
+  datatype GhostFailureCompatible = Success | Failure
+  {
+    predicate IsFailure()
+    function PropagateFailure(): GhostFailureCompatible
+    function Extract(): int
+  }
+
+  datatype GhostFailureCompatible' = Success' | Failure'
+  {
+    predicate IsFailure()
+    function PropagateFailure(): GhostFailureCompatible'
+  }
+
+  ghost method Client() returns (r: GhostFailureCompatible) {
+    var e: GhostFailureCompatible;
+    var x :- e;
+  }
+
+  ghost method Client'() returns (r: GhostFailureCompatible') {
+    var e: GhostFailureCompatible';
+    :- e;
+  }
+}

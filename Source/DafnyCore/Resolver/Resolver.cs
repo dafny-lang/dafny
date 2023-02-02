@@ -6461,20 +6461,9 @@ namespace Microsoft.Dafny {
         }
       }
 
-      // The following checks are not necessary, because the ghost mismatch is caught later.
-      // However the error messages here are much clearer.
-      void checkIsCompilable([CanBeNull] MemberDecl memberDecl) {
-        if (memberDecl != null && memberDecl.IsGhost) {
-          origReporter.Error(MessageSource.Resolver, tok,
-            $"The {memberDecl.Name} member may not be ghost (type {tp} used in :- statement)");
-        }
-      }
-
       checkIsFunction(isFailure, false);
-      checkIsCompilable(isFailure);
       if (!hasKeywordToken) {
         checkIsFunction(propagateFailure, true);
-        checkIsCompilable(propagateFailure);
       }
       if (expectExtract) {
         checkIsFunction(extract, true);
