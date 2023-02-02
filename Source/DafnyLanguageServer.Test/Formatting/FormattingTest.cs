@@ -35,9 +35,9 @@ a + 1
 ";
     var target = @"
 function test
-  (
-    a: int
-  ): int {
+(
+  a: int
+): int {
   if   a - 1
     == 0 then
     1
