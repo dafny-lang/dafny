@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -50,14 +51,12 @@ public class DafnyBackend : ExecutableBackend {
     string targetFilename, ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
     Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
 
-    string strExeFilePath = System.Reflection.Assembly.GetExecutingAssembly().Location;
-    string strWorkPath = System.IO.Path.GetDirectoryName(strExeFilePath);
-    strWorkPath = System.IO.Path.GetDirectoryName(strWorkPath);
-
-    string dafny = strWorkPath + "/Scripts/dafny";
+    var where = System.Reflection.Assembly.GetExecutingAssembly().Location;
+    where = System.IO.Path.GetDirectoryName(where);
+    var dafny = where + "/Dafny.dll";
 
     var opt = DafnyOptions.O;
-    var psi = PrepareProcessStartInfo(dafny, opt.MainArgs.Prepend("/compileTarget:cs").Prepend("/compile:4").Prepend("/compileVerbose:0").Prepend("/printVerifiedProceduresCount:0").Prepend("/noVerify").Prepend(targetFilename));
+    var psi = PrepareProcessStartInfo("dotnet", opt.MainArgs.Prepend("/compileTarget:cs").Prepend("/compile:4").Prepend("/compileVerbose:0").Prepend("/printVerifiedProceduresCount:0").Prepend("/noVerify").Prepend(targetFilename).Prepend(dafny));
 
     /*
      * When this code was written, the Dafny compiler cannot be made completely silent.
@@ -68,11 +67,11 @@ public class DafnyBackend : ExecutableBackend {
      */
 
     psi.RedirectStandardOutput = true;
-
     var process = new Process();
     process.StartInfo = psi;
     var outputBuilder = new List<string>();
-    process.OutputDataReceived += (sender, args) => outputBuilder.Add(args.Data); // Console.WriteLine("received output: {0}", args.Data);
+    process.OutputDataReceived += (sender, args) => outputBuilder.Add(args.Data);
+
     try {
       process.Start();
       process.BeginOutputReadLine();
