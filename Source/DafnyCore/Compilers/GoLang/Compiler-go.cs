@@ -160,7 +160,7 @@ namespace Microsoft.Dafny.Compilers {
           import.SuppressDummy = true;
         }
       }
-      
+
       var filename = string.Format("{0}/{0}.go", pkgName);
       var w = wr.NewFile(filename);
       ModuleName = moduleName;
@@ -198,7 +198,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override string GetHelperModuleName() => "_dafny";
-    
+
     private string HelperModulePrefix => ModuleName == "dafny" ? "" : $"{GetHelperModuleName()}.";
 
     protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string/*?*/ fullPrintName,
@@ -296,7 +296,7 @@ namespace Microsoft.Dafny.Compilers {
       w.WriteLine();
       if (!name.EndsWith("Sequence")) {
         var wString = w.NewNamedBlock("func (*{0}) String() string", name);
-        
+
         // Be consistent with other back ends, which don't fold _module into the main module
         var module = ModuleName == MainModuleName ? "_module" : ModuleName;
         wString.WriteLine("return \"{0}.{1}\"", module, name);
@@ -381,8 +381,8 @@ namespace Microsoft.Dafny.Compilers {
       wCastTo.WriteLine("var t {0}", name);
       wCastTo.WriteLine("t, _ = x.({0})", name);
       wCastTo.WriteLine("return t");
-      
-      
+
+
       var cw = new ClassWriter(this, name, isExtern, abstractMethodWriter, concreteMethodWriter, null, null, null, staticFieldWriter, staticFieldInitWriter);
       staticFieldWriter.WriteLine($"TraitID_ *{HelperModulePrefix}TraitID");
       staticFieldInitWriter.WriteLine($"TraitID_: &{HelperModulePrefix}TraitID{{}},");
@@ -2789,7 +2789,7 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
     }
-    
+
     // This will probably move up to the superclass once more compilers are using dafnyRuntime.dfy
     protected void TrExprToSizeT(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       if (expr is LiteralExpr lit) {
@@ -2888,7 +2888,7 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write(")");
       } else {
         TrParenExpr(source, wr, inLetExprBody, wStmts);
-        
+
         if (lo == null) {
           if (hi == null) {
             return;
