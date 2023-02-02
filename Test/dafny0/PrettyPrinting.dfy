@@ -154,3 +154,15 @@ module BreakContinue {
     }
   }
 }
+
+module New {
+  method M() {
+    var three := 3;
+    var a;
+    a := new int[3] [20, 50, 70];
+    a := new [3] [20, 50, 70];
+    a := new [three] [20, 50, 70];
+    a := new int[] [20, 50, 70];
+    a := new [] [20, 50, 70];
+  }
+}
