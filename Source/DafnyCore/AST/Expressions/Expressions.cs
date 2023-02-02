@@ -3318,7 +3318,7 @@ public class ChainingExpression : ConcreteSyntaxExpression, ICloneable<ChainingE
 
   public override IEnumerable<Expression> SubExpressions {
     get {
-      if (Resolved == null) {
+      if (!WasResolved()) {
         foreach (var sub in PreResolveSubExpressions) {
           yield return sub;
         }
@@ -3414,7 +3414,7 @@ public abstract class SuffixExpr : ConcreteSyntaxExpression {
 
   public override IEnumerable<Expression> SubExpressions {
     get {
-      if (Resolved == null) {
+      if (!WasResolved()) {
         foreach (var sub in PreResolveSubExpressions) {
           yield return sub;
         }
