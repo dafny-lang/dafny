@@ -78,14 +78,21 @@ public abstract class QuantifierExpr : ComprehensionExpr, TypeParameter.ParentTy
     throw new cce.UnreachableException(); // This body is just here for the "Requires" clause
   }
 
+  public override IEnumerable<Node> ConcreteChildren => base.SubExpressions;
 
   public override IEnumerable<Expression> SubExpressions {
     get {
-      foreach (var e in Attributes.SubExpressions(Attributes)) {
-        yield return e;
-      }
-      foreach (var e in base.SubExpressions) {
-        yield return e;
+      if (SplitQuantifier == null) {
+        foreach (var e in base.SubExpressions) {
+          yield return e;
+        }
+      } else {
+        foreach (var e in Attributes.SubExpressions(Attributes)) {
+          yield return e;
+        }
+        foreach (var e in SplitQuantifier) {
+          yield return e;
+        }
       }
     }
   }
