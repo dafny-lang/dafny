@@ -10,6 +10,8 @@ namespace Microsoft.Dafny;
 
 public interface INode {
   RangeToken RangeToken { get; }
+
+  IToken Tok { get; }
 }
 
 public abstract class Node : INode {

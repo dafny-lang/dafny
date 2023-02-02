@@ -6628,7 +6628,7 @@ namespace Microsoft.Dafny {
             r = ResolveExprDotCall(expr.RangeToken, expr.SuffixNameNode, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           }
         } else {
-          reporter.Error(MessageSource.Resolver, expr.tok, "unresolved identifier: {0}", name);
+          reporter.Error(MessageSource.Resolver, expr.SuffixNameNode, "unresolved identifier: {0}", name);
         }
 
       } else if (lhs != null && lhs.Type is Resolver_IdentifierExpr.ResolverType_Type) {

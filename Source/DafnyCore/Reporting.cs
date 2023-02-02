@@ -66,6 +66,13 @@ namespace Microsoft.Dafny {
       Error(source, rangeToken.StartToken, msg, args);
     }
 
+    public void Error(MessageSource source, INode node, string msg, params object[] args) {
+      Contract.Requires(node != null);
+      Contract.Requires(msg != null);
+      Contract.Requires(args != null);
+      Error(source, node.Tok, String.Format(msg, args));
+    }
+    
     public void Error(MessageSource source, IToken tok, string msg, params object[] args) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
@@ -85,13 +92,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
       Error(source, s.Tok, msg, args);
-    }
-
-    public void Error(MessageSource source, IVariable v, string msg, params object[] args) {
-      Contract.Requires(v != null);
-      Contract.Requires(msg != null);
-      Contract.Requires(args != null);
-      Error(source, v.Tok, msg, args);
     }
 
     public void Error(MessageSource source, Expression e, string msg, params object[] args) {
@@ -133,6 +133,13 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public void Warning(MessageSource source, INode node, string msg, params object[] args) {
+      Contract.Requires(node != null);
+      Contract.Requires(msg != null);
+      Contract.Requires(args != null);
+      Warning(source, node.Tok, msg, args);
+    }
+    
     public void Warning(MessageSource source, IToken tok, string msg, params object[] args) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);

@@ -3129,6 +3129,8 @@ public class ExprDotName : SuffixExpr, ICloneable<ExprDotName> {
   public string SuffixName => SuffixNameNode.Value;
   public readonly List<Type> OptTypeArguments;
 
+  public override IToken Tok => SuffixNameNode.Tok;
+
   /// <summary>
   /// Because the resolved expression only points to the final resolved declaration,
   /// but not the declaration of the Lhs, we must also include the Lhs.
