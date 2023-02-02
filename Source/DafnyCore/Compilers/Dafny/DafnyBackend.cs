@@ -56,7 +56,7 @@ public class DafnyBackend : ExecutableBackend {
      * When this code was written, the Dafny compiler cannot be made completely silent.
      * This is a problem for this specific compiler and the integration tests because the second
      * call to the compiler makes unexpected writes to the output.
-     * The following code is simply catching the output from the second compiler call (the one that executes the code)
+     * The following code is catching the output from the second compiler call (the one that executes the code)
      * and stripping out the first two lines and the last line.
      */
 
