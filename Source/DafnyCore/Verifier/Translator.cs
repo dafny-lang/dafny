@@ -3513,7 +3513,7 @@ namespace Microsoft.Dafny {
         // We replace all occurrences of the trait version of the function with the class version. This is only allowed
         // if the receiver is `this`. We underapproximate this by looking for a `ThisExpr`, which misses more complex
         // expressions that evaluate to one.
-        var sub = new FunctionCallSubstituter(null, substMap, typeMap, f.OverriddenFunction, f);
+        var sub = new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)f.OverriddenFunction.EnclosingClass, (ClassDecl)f.EnclosingClass);
         foreach (var s in TrSplitExpr(sub.Substitute(en.E), etran, false, out _).Where(s => s.IsChecked)) {
           builder.Add(Assert(f.tok, s.E, new PODesc.FunctionContractOverride(true)));
         }
@@ -3607,17 +3607,15 @@ namespace Microsoft.Dafny {
       Contract.Requires(substMap != null);
       //generating trait pre-conditions with class variables
       foreach (var req in f.OverriddenFunction.Req) {
-        Expression precond = Substitute(req.E, null, substMap, typeMap);
-        builder.Add(TrAssumeCmd(f.tok, etran.TrExpr(precond)));
+        // We replace all occurrences of the trait version of the function with the class version. This is only allowed
+        // if the receiver is `this`. We underapproximate this by looking for a `ThisExpr`, which misses more complex
+        // expressions that evaluate to one.
+        var sub = new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)f.OverriddenFunction.EnclosingClass, (ClassDecl)f.EnclosingClass);
+        builder.Add(TrAssumeCmd(f.tok, etran.TrExpr(sub.Substitute(req.E))));
       }
       //generating class pre-conditions
-      foreach (var req in f.Req) {
-        bool splitHappened;  // we actually don't care
-        foreach (var s in TrSplitExpr(req.E, etran, false, out splitHappened)) {
-          if (s.IsChecked) {
-            builder.Add(Assert(f.tok, s.E, new PODesc.FunctionContractOverride(false)));
-          }
-        }
+      foreach (var s in f.Req.SelectMany(req => TrSplitExpr(req.E, etran, false, out _).Where(s => s.IsChecked))) {
+        builder.Add(Assert(f.tok, s.E, new PODesc.FunctionContractOverride(false)));
       }
     }
 

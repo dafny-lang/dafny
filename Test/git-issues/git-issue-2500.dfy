@@ -11,7 +11,7 @@ module M {
   }
 }
 
-class Class extends M.Tr {
+class Cl extends M.Tr {
   function True(): (ret: bool)
     // Missing: ensures ret
   { false }
@@ -26,4 +26,17 @@ class Class extends M.Tr {
     // Different receiver
     ensures x != 0 && Other(x-1, free) ==> Other(x-1, free)
   { false }
+}
+
+trait Trait {
+  predicate Even(i: nat)
+  predicate Odd(i: nat)
+    ensures if i == 0 then true else (i % 2 == 1) == Even(i-1)
+}
+
+class Class extends Trait {
+  predicate Even(i: nat) { if i == 0 then true else Odd(i-1) }
+  predicate Odd(i: nat)
+    ensures if i == 0 then true else (i % 2 == 1) == Even(i-1)
+  { if i == 0 then false else Even(i-1) }
 }

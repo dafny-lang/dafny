@@ -2,21 +2,23 @@ using System.Collections.Generic;
 
 namespace Microsoft.Dafny {
   public class FunctionCallSubstituter : Substituter {
-    public readonly Function A, B;
-    public FunctionCallSubstituter(Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/>/*!*/ substMap, Dictionary<TypeParameter, Type> typeMap, Function a, Function b)
-      : base(receiverReplacement, substMap, typeMap) {
-      A = a;
-      B = b;
+    public readonly TraitDecl Tr;
+    public readonly ClassDecl Cl;
+
+    public FunctionCallSubstituter(Dictionary<IVariable, Expression/*!*/>/*!*/ substMap, Dictionary<TypeParameter, Type> typeMap, TraitDecl Tr, ClassDecl Cl)
+      : base(null, substMap, typeMap) {
+      this.Tr = Tr;
+      this.Cl = Cl;
     }
     public override Expression Substitute(Expression expr) {
       if (expr is FunctionCallExpr e) {
         var receiver = Substitute(e.Receiver);
         var newArgs = SubstituteExprList(e.Args);
         var newFce = new FunctionCallExpr(e.tok, e.Name, receiver, e.OpenParen, e.CloseParen, newArgs, e.AtLabel);
-        if (e.Function == A && e.Receiver is ThisExpr && receiver is ThisExpr) {
-          newFce.Function = B;
+        if (e.Function.EnclosingClass == Tr && e.Receiver is ThisExpr && receiver is ThisExpr && Cl.Members.Find(m => m.OverriddenMember == e.Function) is { } f) {
+          newFce.Function = (Function)f;
           newFce.Type = e.Type; // TODO: this may not work with type parameters.
-          receiver.Type = Resolver.GetThisType(B.tok, (TopLevelDeclWithMembers)B.EnclosingClass);
+          receiver.Type = Resolver.GetThisType(f.tok, (TopLevelDeclWithMembers)f.EnclosingClass);
         } else {
           newFce.Function = e.Function;
           newFce.Type = e.Type;
