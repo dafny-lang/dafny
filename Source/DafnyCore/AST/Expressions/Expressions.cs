@@ -1290,6 +1290,8 @@ public class SeqSelectExpr : Expression {
   public readonly Expression E1;
   public readonly IToken CloseParen;
 
+  public override IToken Tok => Seq.EndToken.Next;
+
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Seq != null);
