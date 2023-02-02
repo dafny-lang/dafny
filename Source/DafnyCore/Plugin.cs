@@ -8,13 +8,13 @@ namespace Microsoft.Dafny;
 using Dafny.Plugins;
 
 public interface Plugin {
-  public IEnumerable<Compiler> GetCompilers();
+  public IEnumerable<IExecutableBackend> GetCompilers();
   public IEnumerable<IRewriter> GetRewriters(ErrorReporter reporter);
 }
 
 record ErrorPlugin(string AssemblyAndArgument, Exception Exception) : Plugin {
-  public IEnumerable<Compiler> GetCompilers() {
-    return Enumerable.Empty<Compiler>();
+  public IEnumerable<IExecutableBackend> GetCompilers() {
+    return Enumerable.Empty<IExecutableBackend>();
   }
 
   public IEnumerable<IRewriter> GetRewriters(ErrorReporter reporter) {
@@ -42,7 +42,7 @@ public class ConfiguredPlugin : Plugin {
     Configuration = configuration;
   }
 
-  public IEnumerable<Compiler> GetCompilers() {
+  public IEnumerable<IExecutableBackend> GetCompilers() {
     return Configuration.GetCompilers();
   }
 
@@ -68,7 +68,7 @@ public class AssemblyPlugin : ConfiguredPlugin {
       var types = assembly.GetTypes();
 
       Rewriters = FindPluginComponents<Rewriter, Func<ErrorReporter, Rewriter>>(assembly, CreateRewriterFactory);
-      Compilers = FindPluginComponents<Compiler, Func<Compiler>>(assembly, CreateCompilerFactory);
+      Compilers = FindPluginComponents<IExecutableBackend, Func<IExecutableBackend>>(assembly, CreateCompilerFactory);
 
       // Report an error if this assembly doesn't contain any plugins.  We only
       // get to this point if we have not found a `PluginConfiguration` either,
@@ -77,7 +77,7 @@ public class AssemblyPlugin : ConfiguredPlugin {
         throw new Exception($"Plugin {assembly.Location} does not contain any supported plugin classes.  " +
                             "Expecting one of the following:\n" +
                             $"- ${typeof(Plugins.Rewriter).FullName}\n" +
-                            $"- ${typeof(Plugins.Compiler).FullName}\n" +
+                            $"- ${typeof(Plugins.IExecutableBackend).FullName}\n" +
                             $"- ${typeof(Plugins.PluginConfiguration).FullName}");
       }
     }
@@ -92,16 +92,16 @@ public class AssemblyPlugin : ConfiguredPlugin {
     Func<ErrorReporter, Rewriter> CreateRewriterFactory(System.Type type) =>
       errorReporter => (Rewriter)Activator.CreateInstance(type, errorReporter);
 
-    private Func<Compiler>[] Compilers { get; init; }
+    private Func<IExecutableBackend>[] Compilers { get; init; }
 
-    Func<Compiler> CreateCompilerFactory(System.Type type) =>
-      () => (Compiler)Activator.CreateInstance(type);
+    Func<IExecutableBackend> CreateCompilerFactory(System.Type type) =>
+      () => (IExecutableBackend)Activator.CreateInstance(type);
 
     public override Rewriter[] GetRewriters(ErrorReporter errorReporter) =>
       Rewriters.Select(funcErrorReporterRewriter =>
         funcErrorReporterRewriter(errorReporter)).ToArray();
 
-    public override Compiler[] GetCompilers() =>
+    public override IExecutableBackend[] GetCompilers() =>
       Compilers.Select(c => c()).ToArray();
   }
 

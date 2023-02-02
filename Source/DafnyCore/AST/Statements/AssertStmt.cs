@@ -16,10 +16,9 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt> {
     Label = original.Label == null ? null : new AssertLabel(cloner.Tok(original.Label.Tok), original.Label.Name);
   }
 
-  public AssertStmt(IToken tok, IToken endTok, Expression expr, BlockStmt/*?*/ proof, AssertLabel/*?*/ label, Attributes attrs)
-    : base(tok, endTok, expr, attrs) {
-    Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+  public AssertStmt(RangeToken rangeToken, Expression expr, BlockStmt/*?*/ proof, AssertLabel/*?*/ label, Attributes attrs)
+    : base(rangeToken, expr, attrs) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(expr != null);
     Proof = proof;
     Label = label;
