@@ -1417,7 +1417,7 @@ public class ClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICanFormat
   public TopLevelDecl AsTopLevelDecl => this;
   public TypeDeclSynonymInfo SynonymInfo { get; set; }
   public override bool AcceptThis => this is not DefaultClassDecl;
-  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+  public virtual bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     IToken classToken = null;
     var parentTraitIndent = indentBefore + formatter.SpaceTab;
     var commaIndent = indentBefore;
@@ -2074,7 +2074,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanFormat {
     }
   }
 
-  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+  public override bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     formatter.SetMethodLikeIndent(StartToken, OwnedTokens, indentBefore);
     foreach (var req in Requires) {
       formatter.SetAttributedExpressionIndentation(req, indentBefore + formatter.SpaceTab);

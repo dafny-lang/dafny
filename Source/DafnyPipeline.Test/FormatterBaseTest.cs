@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -112,7 +113,7 @@ namespace DafnyPipeline.Test {
     }
 
     private static void ReportNotOwnedToken(string programNotIndented, IToken? notOwnedToken, Dictionary<int, List<Node>> posToOwnerNode) {
-      var nextOwnedToken = notOwnedToken.Next;
+      var nextOwnedToken = notOwnedToken?.Next;
       while (nextOwnedToken != null && !posToOwnerNode.ContainsKey(nextOwnedToken.pos)) {
         nextOwnedToken = nextOwnedToken.Next;
       }
