@@ -3039,7 +3039,8 @@ Rhs<out AssignmentRhs r>
      Attributes attrs = null;
      IToken startToken = null;
   .)
-  ( "new"                              (. newToken = t; startToken = t; .)
+  ( IF(la.val == "new")
+    "new"                              (. newToken = t; startToken = t; .)
     ( NewArray<out ee, out arrayElementInit, out display>  // "ty" is set to InferredTypeProxy above
     | TypeAndToken<out x, out ty, false>
       [ NewArray<out ee, out arrayElementInit, out display>

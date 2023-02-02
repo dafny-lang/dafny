@@ -59,10 +59,7 @@ namespace DafnyServer.CounterexampleGeneration {
       if (newType is not UserDefinedType newUserType) {
         return newType;
       }
-      // The copying above is required to update the NamePath so it takes into
-      // account the changes to TypeArgs made above
-      newUserType = new UserDefinedType(newUserType.RangeToken, newUserType.Name,
-        newUserType.TypeArgs);
+      newUserType = new UserDefinedType(newUserType.RangeToken, newUserType.Name, newUserType.TypeArgs);
       if (newType is DatatypeType) {
         return new DatatypeType(newUserType);
       }
@@ -110,6 +107,10 @@ namespace DafnyServer.CounterexampleGeneration {
             TransformType(arrowType.Result, transform));
         case UserDefinedType userDefinedType:
           return transform(userDefinedType);
+        case InferredTypeProxy inferredTypeProxy:
+          var tmp = new InferredTypeProxy();
+          tmp.T = TransformType(inferredTypeProxy.T, transform);
+          return tmp;
       }
       return type;
     }

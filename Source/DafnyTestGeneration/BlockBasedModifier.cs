@@ -1,5 +1,9 @@
+#nullable disable
 using System.Collections.Generic;
 using Microsoft.Boogie;
+using LiteralExpr = Microsoft.Boogie.LiteralExpr;
+using Program = Microsoft.Boogie.Program;
+using Token = Microsoft.Boogie.Token;
 
 namespace DafnyTestGeneration {
 
@@ -9,51 +13,65 @@ namespace DafnyTestGeneration {
   /// </summary>
   public class BlockBasedModifier : ProgramModifier {
 
-    private Implementation? implementation; // the implementation currently traversed
-    private Program? program; // the original program
-    private List<ProgramModification> modifications = new();
+    private Implementation/*?*/ implementation; // the implementation currently traversed
+    private Program/*?*/ program; // the original program
 
     protected override IEnumerable<ProgramModification> GetModifications(Program p) {
-      modifications = new List<ProgramModification>();
-      VisitProgram(p);
-      return modifications;
+      return VisitProgram(p);
     }
+    private ProgramModification/*?*/ VisitBlock(Block node) {
 
-    public override Block VisitBlock(Block node) {
       if (program == null || implementation == null) {
-        return node;
+        return null;
       }
-      base.VisitBlock(node);
       if (node.cmds.Count == 0) { // ignore blocks with zero commands
-        return node;
+        return null;
       }
-      node.cmds.Add(GetCmd("assert false;"));
-      var record = new BlockBasedModification(program,
-        ImplementationToTarget?.VerboseName ?? implementation.VerboseName,
-        node.UniqueId, ExtractCapturedStates(node));
-      modifications.Add(record);
+
+      var procedureName = ImplementationToTarget?.VerboseName ??
+                          implementation.VerboseName;
+      node.cmds.Add(new AssertCmd(new Token(), new LiteralExpr(new Token(), false)));
+      var record = ProgramModification.GetProgramModification(program, implementation,
+        new HashSet<int>() { node.UniqueId }, ExtractCapturedStates(node),
+          procedureName, $"{procedureName.Split(" ")[0]}(block#{node.UniqueId})");
+
       node.cmds.RemoveAt(node.cmds.Count - 1);
-      return node;
-    }
-
-    public override Implementation VisitImplementation(Implementation node) {
-      implementation = node;
-      if (ImplementationIsToBeTested(node)) {
-        VisitBlockList(node.Blocks);
+      if (record.IsCovered) {
+        return null;
       }
-      return node;
+      return record;
     }
 
-    public override Program VisitProgram(Program node) {
+    private IEnumerable<ProgramModification> VisitImplementation(
+      Implementation node) {
+      implementation = node;
+      if (!ImplementationIsToBeTested(node) ||
+          !DafnyInfo.IsAccessible(node.VerboseName.Split(" ")[0])) {
+        yield break;
+      }
+      for (int i = node.Blocks.Count - 1; i >= 0; i--) {
+        var modification = VisitBlock(node.Blocks[i]);
+        if (modification != null) {
+          yield return modification;
+        }
+      }
+
+    }
+
+    private IEnumerable<ProgramModification> VisitProgram(Program node) {
       program = node;
-      return base.VisitProgram(node);
+      foreach (var implementation in node.Implementations) {
+        foreach (var modification in VisitImplementation(implementation)) {
+          yield return modification;
+        }
+      }
     }
 
     /// <summary>
     /// Return the list of all states covered by the block.
     /// A state is represented by the string recorded via :captureState
     /// </summary>
-    private static ISet<string> ExtractCapturedStates(Block node) {
+    private static HashSet<string> ExtractCapturedStates(Block node) {
       HashSet<string> result = new();
       foreach (var cmd in node.cmds) {
         if (!(cmd is AssumeCmd assumeCmd)) {
