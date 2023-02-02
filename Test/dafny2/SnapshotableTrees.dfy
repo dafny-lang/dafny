@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /compile:4 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:3 /proverOpt:O:smt.qi.eager_threshold=80 /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Rustan Leino, September 2011.
@@ -631,10 +631,8 @@ module SnapTree {
 
           if p.right != null {
             reveal R();
-            assert p.right in T.Repr && p.right.Repr <= T.Repr && p.right.NodeValid();
-            assert 0 <= N <= |Contents|;
+            reveal p.right.NodeValid();
             assert p.right.Contents <= Contents[N..];
-            assert R(stack, N + |p.right.Contents|, Contents, T.Repr);
             stack := Push(stack, N, p.right, Contents, T.Repr);
           }
           hasCurrent := stack != Nil;
