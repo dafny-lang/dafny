@@ -234,7 +234,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
   // 'inline' is the hypothetical indentation of this token if it was on its own line
   // 'below' is the hypothetical indentation of a comment after that token, and of the next token if it does not have a set indentation
   public void SetIndentations(IToken token, int above = -1, int inline = -1, int below = -1) {
-    if (token is IncludeToken || token.line == 0 && token.col == 0) {
+    if (token is IncludeToken || (token.line == 0 && token.col == 0)) {
       // Just ignore this token.
       return;
     }
@@ -336,7 +336,6 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
 
     var commaIndent = indent + 2;
     var rightIndent = indent + 2;
-    var first = true;
     foreach (var token in tokens) {
       switch (token.val) {
         case "<": {
@@ -754,7 +753,6 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
   }
 
   public bool SetIndentCases(int indent, IEnumerable<IToken> ownedTokens, Action indentInside) {
-    var matchCaseNoIndent = false;
     var caseIndent = indent;
     var afterArrowIndent = indent + SpaceTab;
     var decreasesElemIndent = indent + SpaceTab + SpaceTab;

@@ -476,7 +476,7 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
           }
         case ":=":
         case "::": {
-            var afterAssignIndent = formatter.ReduceBlockiness && token.Prev.line == token.line || token.line == token.Next.line ? assignOpIndent : assignOpIndent + formatter.SpaceTab;
+            var afterAssignIndent = (formatter.ReduceBlockiness && token.Prev.line == token.line) || token.line == token.Next.line ? assignOpIndent : assignOpIndent + formatter.SpaceTab;
             if (alreadyAligned) {
               formatter.SetIndentations(token, afterAssignIndent, assignOpIndent, afterAssignIndent);
             } else {

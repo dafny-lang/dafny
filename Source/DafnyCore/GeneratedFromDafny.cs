@@ -26,8 +26,7 @@ namespace Formatting {
   }
 
   public class __default {
-    public static String ReindentProgramFromFirstToken(IToken firstToken, IIndentationFormatter reindent) {
-      var s = "";
+    public static string ReindentProgramFromFirstToken(IToken firstToken, IIndentationFormatter reindent) {
       var token = firstToken;
       var sb = new StringBuilder();
       while (token != null) {

@@ -289,7 +289,6 @@ public class CalcStmt : Statement, ICloneable<CalcStmt>, ICanFormat {
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     var inCalc = false;
     var inOrdinal = false;
-    var first = true;
     var innerCalcIndent = indentBefore + formatter.SpaceTab;
     var extraHintIndent = 0;
     var ownedTokens = this.OwnedTokens;

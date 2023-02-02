@@ -156,7 +156,6 @@ public class IndentationFormatter : IIndentationFormatter {
       Whitespace(formatter.GetIndentInlineOrAbove(token));
     //indentationBefore = GetIndentInlineOrAbove(token);
     var input = trailingTrivia ? token.TrailingTrivia : token.LeadingTrivia;
-    var commentExtra = "";
     // Invariant: Relative indentation inside a multi-line comment should be unchanged
     var originalCommentIndent = 0;
     var newCommentIndent = 0;
