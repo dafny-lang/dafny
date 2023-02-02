@@ -49,8 +49,15 @@ public class DafnyBackend : ExecutableBackend {
   public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string /*?*/ callToMain,
     string targetFilename, ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
     Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
+
+    string strExeFilePath = System.Reflection.Assembly.GetExecutingAssembly().Location;
+    string strWorkPath = System.IO.Path.GetDirectoryName(strExeFilePath);
+    strWorkPath = System.IO.Path.GetDirectoryName(strWorkPath);
+
+    string dafny = strWorkPath + "/Scripts/dafny";
+
     var opt = DafnyOptions.O;
-    var psi = PrepareProcessStartInfo("dafny", opt.MainArgs.Prepend("/compileTarget:cs").Prepend("/compile:4").Prepend("/compileVerbose:0").Prepend("/printVerifiedProceduresCount:0").Prepend("/noVerify").Prepend(targetFilename));
+    var psi = PrepareProcessStartInfo(dafny, opt.MainArgs.Prepend("/compileTarget:cs").Prepend("/compile:4").Prepend("/compileVerbose:0").Prepend("/printVerifiedProceduresCount:0").Prepend("/noVerify").Prepend(targetFilename));
 
     /*
      * When this code was written, the Dafny compiler cannot be made completely silent.
