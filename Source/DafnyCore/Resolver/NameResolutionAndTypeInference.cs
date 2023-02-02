@@ -3881,7 +3881,7 @@ namespace Microsoft.Dafny {
       if (tryToResolve) {
         var typeMap = s.MethodSelect.TypeArgumentSubstitutionsAtMemberDeclaration();
         // resolve arguments
-        ResolveActualParameters(s.Bindings, callee.Ins, s.RangeToken, callee, resolutionContext, typeMap,
+        ResolveActualParameters(s.Bindings, callee.Ins, s.Tok, callee, resolutionContext, typeMap,
           callee.IsStatic ? null : s.Receiver);
         // type check the out-parameter arguments (in-parameters were type checked as part of ResolveActualParameters)
         for (int i = 0; i < callee.Outs.Count && i < s.Lhs.Count; i++) {
@@ -3912,7 +3912,7 @@ namespace Microsoft.Dafny {
     /// "typeMap" is applied to the type of each formal.
     /// This method should be called only once. That is, bindings.arguments is required to be null on entry to this method.
     /// </summary>
-    void ResolveActualParameters(ActualBindings bindings, List<Formal> formals, RangeToken callTok, object context, ResolutionContext resolutionContext,
+    void ResolveActualParameters(ActualBindings bindings, List<Formal> formals, IToken callTok, object context, ResolutionContext resolutionContext,
       Dictionary<TypeParameter, Type> typeMap, Expression/*?*/ receiver) {
       Contract.Requires(bindings != null);
       Contract.Requires(formals != null);
@@ -4023,13 +4023,13 @@ namespace Microsoft.Dafny {
             whatKind + (context is Method ? " in-parameter" : " parameter"));
 
           AddAssignableConstraint(
-            callTok.StartToken, formal.Type.Subst(typeMap), b.Actual.Type,
+            callTok, formal.Type.Subst(typeMap), b.Actual.Type,
             $"incorrect argument type {what} (expected {{0}}, found {{1}})");
         } else if (formal.DefaultValue != null) {
           // Note, in the following line, "substMap" is passed in, but it hasn't been fully filled in until the
           // end of this foreach loop. Still, that's soon enough, because DefaultValueExpression won't use it
           // until FillInDefaultValueExpressions at the end of Pass 1 of the Resolver.
-          var n = new DefaultValueExpression(callTok, formal, receiver, substMap, typeMap);
+          var n = new DefaultValueExpression(formal.RangeToken, formal, receiver, substMap, typeMap);
           allDefaultValueExpressions.Add(n);
           actuals.Add(n);
           substMap.Add(formal, n);
@@ -6922,7 +6922,7 @@ namespace Microsoft.Dafny {
               TypeApplication_JustFunction = mse.TypeApplication_JustMember
             };
             var typeMap = BuildTypeArgumentSubstitute(mse.TypeArgumentSubstitutionsAtMemberDeclaration());
-            ResolveActualParameters(rr.Bindings, callee.Formals, e.RangeToken, callee, resolutionContext, typeMap, callee.IsStatic ? null : mse.Obj);
+            ResolveActualParameters(rr.Bindings, callee.Formals, e.Tok, callee, resolutionContext, typeMap, callee.IsStatic ? null : mse.Obj);
             rr.Type = callee.ResultType.Subst(typeMap);
             if (errorCount == reporter.Count(ErrorLevel.Error)) {
               Contract.Assert(!(mse.Obj is StaticReceiverExpr) || callee.IsStatic);  // this should have been checked already
@@ -6941,7 +6941,7 @@ namespace Microsoft.Dafny {
                 formals.Add(formal);
               }
             }
-            ResolveActualParameters(e.Bindings, formals, e.RangeToken, fnType, resolutionContext, new Dictionary<TypeParameter, Type>(), null);
+            ResolveActualParameters(e.Bindings, formals, e.Tok, fnType, resolutionContext, new Dictionary<TypeParameter, Type>(), null);
             r = new ApplyExpr(e.Lhs.RangeToken, e.Lhs, e.Args, e.CloseParen);
             r.Type = fnType.Result;
           }
@@ -6990,7 +6990,7 @@ namespace Microsoft.Dafny {
         dtv.Ctor = ctor;
       }
       if (complain && ctor != null) {
-        ResolveActualParameters(dtv.Bindings, ctor.Formals, dtv.RangeToken, ctor, resolutionContext, subst, null);
+        ResolveActualParameters(dtv.Bindings, ctor.Formals, dtv.Tok, ctor, resolutionContext, subst, null);
       } else {
         // still resolve the expressions
         foreach (var binding in dtv.Bindings.ArgumentBindings) {
@@ -7063,7 +7063,7 @@ namespace Microsoft.Dafny {
         Dictionary<TypeParameter, Type> subst = BuildTypeArgumentSubstitute(typeMap);
 
         // type check the arguments
-        ResolveActualParameters(e.Bindings, function.Formals, e.RangeToken, function, resolutionContext, subst, function.IsStatic ? null : e.Receiver);
+        ResolveActualParameters(e.Bindings, function.Formals, e.Tok, function, resolutionContext, subst, function.IsStatic ? null : e.Receiver);
 
         e.Type = function.ResultType.Subst(subst).NormalizeExpand();
       }

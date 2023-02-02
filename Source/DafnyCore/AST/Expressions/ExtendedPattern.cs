@@ -149,7 +149,7 @@ public abstract class ExtendedPattern : RangeNode {
           }
         } else {
           // else applied to the wrong number of arguments
-          resolver.reporter.Error(MessageSource.Resolver, idpat.RangeToken, "constructor {0} of arity {2} is applied to {1} argument(s)", idpat.Id, (idpat.Arguments == null ? 0 : idpat.Arguments.Count), ctor.Formals.Count);
+          resolver.reporter.Error(MessageSource.Resolver, idpat.RangeToken, "constructor {0} of arity {2} is applied to {1} argument(s)", idpat.Id, idpat.Arguments?.Count ?? 0, ctor.Formals.Count);
         }
       } else {
         /* =[4]= */
