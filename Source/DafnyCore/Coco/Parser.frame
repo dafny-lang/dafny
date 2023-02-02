@@ -66,16 +66,16 @@ public class Parser {
     errDist = 0;
   }
 
-  public void SemErr (string msg) {
+  public void SemErr(string msg) {
     Contract.Requires(msg != null);
-    if (errDist >= minErrDist) errors.SemErr(t, msg);
+    if (errDist >= minErrDist) errors.SemErr(ErrorID.None, t, msg);
     errDist = 0;
   }
 
   public void SemErr(IToken tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
-    errors.SemErr(tok, msg);
+    errors.SemErr(ErrorID.None, tok, msg);
   }
 
   public void SemErr(ErrorID errorID, IToken tok, string msg) {
@@ -161,7 +161,7 @@ public class Errors {
   public void SynErr(string filename, int line, int col, string msg) {
     Contract.Requires(msg != null);
     ErrorCount++;
-    Reporting.Error(MessageSource.Parser, filename, line, col, msg);
+    Reporting.Error(MessageSource.Parser, ErrorID.None, filename, line, col, msg);
   }
 
   string GetSyntaxErrorString(int n) {
@@ -177,7 +177,7 @@ public class Errors {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
     ErrorCount++;
-    Reporting.Error(MessageSource.Parser, tok, msg);
+    Reporting.Error(MessageSource.Parser, ErrorID.None, tok, msg);
   }
 
   public void SemErr(ErrorID errorID, IToken tok, string msg) {  // semantic errors
@@ -190,7 +190,7 @@ public class Errors {
   public void SemErr(string filename, int line, int col, string msg) {
     Contract.Requires(msg != null);
     ErrorCount++;
-    Reporting.Error(MessageSource.Parser, filename, line, col, msg);
+    Reporting.Error(MessageSource.Parser, ErrorID.None, filename, line, col, msg);
   }
 
   public void Deprecated(IToken tok, string msg) {
@@ -208,7 +208,7 @@ public class Errors {
   public void Warning(IToken tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
-    Reporting.Warning(MessageSource.Parser, tok, msg);
+    Reporting.Warning(MessageSource.Parser, ErrorID.None, tok, msg);
   }
 
   // This is a RangeToken with the given length, but is a CodeActionToken
