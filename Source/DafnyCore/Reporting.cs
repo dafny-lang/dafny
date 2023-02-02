@@ -86,6 +86,13 @@ namespace Microsoft.Dafny {
       Error(source, ErrorID.None, d.tok, msg, args);
     }
 
+    public void Error(MessageSource source, ErrorID errorID, Declaration d, string msg, params object[] args) {
+      Contract.Requires(d != null);
+      Contract.Requires(msg != null);
+      Contract.Requires(args != null);
+      Error(source, errorID, d.tok, msg, args);
+    }
+
     public void Error(MessageSource source, Statement s, string msg, params object[] args) {
       Contract.Requires(s != null);
       Contract.Requires(msg != null);
@@ -107,16 +114,6 @@ namespace Microsoft.Dafny {
       Error(source, ErrorID.None, e.tok, msg, args);
     }
 
-    // public void Warning(MessageSource source, ErrorID errorID, IToken tok, string msg) {
-    //   Contract.Requires(tok != null);
-    //   Contract.Requires(msg != null);
-    //   if (DafnyOptions.O.WarningsAsErrors) {
-    //     Error(source, errorID, tok, msg);
-    //   } else {
-    //     Message(source, ErrorLevel.Warning, errorID, tok, msg);
-    //   }
-    // }
-
     public void Warning(MessageSource source, ErrorID errorID, IToken tok, string msg) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
@@ -125,6 +122,13 @@ namespace Microsoft.Dafny {
       } else {
         Message(source, ErrorLevel.Warning, errorID, tok, msg);
       }
+    }
+
+    public void Warning(MessageSource source, ErrorID errorID, IToken tok, string msg, params object[] args) {
+      Contract.Requires(tok != null);
+      Contract.Requires(msg != null);
+      Contract.Requires(args != null);
+      Warning(source, errorID, tok, String.Format(msg, args));
     }
 
     public void Deprecated(MessageSource source, ErrorID errorID, IToken tok, string msg, params object[] args) {
@@ -145,12 +149,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void Warning(MessageSource source, IToken tok, string msg, params object[] args) {
-      Contract.Requires(tok != null);
-      Contract.Requires(msg != null);
-      Contract.Requires(args != null);
-      Warning(source, ErrorID.None, tok, String.Format(msg, args));
-    }
 
     public void Info(MessageSource source, IToken tok, string msg) {
       Contract.Requires(tok != null);
