@@ -35,7 +35,7 @@ namespace DafnyPipeline.Test {
 
     private Newlines currentNewlines;
 
-    protected void FormatterWorksFor(string testCase, string expectedProgramString = null, bool expectNoToken = false,
+    protected void FormatterWorksFor(string testCase, string? expectedProgramString = null, bool expectNoToken = false,
       bool reduceBlockiness = true) {
       BatchErrorReporter reporter = new BatchErrorReporter();
       var options = DafnyOptions.Create();
@@ -112,8 +112,8 @@ namespace DafnyPipeline.Test {
       ReportNotOwnedToken(programNotIndented, notOwnedToken, posToOwnerNode);
     }
 
-    private static void ReportNotOwnedToken(string programNotIndented, IToken? notOwnedToken, Dictionary<int, List<Node>> posToOwnerNode) {
-      var nextOwnedToken = notOwnedToken?.Next;
+    private static void ReportNotOwnedToken(string programNotIndented, IToken notOwnedToken, Dictionary<int, List<Node>> posToOwnerNode) {
+      var nextOwnedToken = notOwnedToken.Next;
       while (nextOwnedToken != null && !posToOwnerNode.ContainsKey(nextOwnedToken.pos)) {
         nextOwnedToken = nextOwnedToken.Next;
       }
@@ -142,7 +142,7 @@ namespace DafnyPipeline.Test {
     }
 
     private static HashSet<int> CollectTokensWithoutOwner(Program dafnyProgram, IToken firstToken, out Dictionary<int, List<Node>> posToOwnerNode) {
-      var tokensWithoutOwner = new HashSet<int>();
+      HashSet<int> tokensWithoutOwner = new HashSet<int>();
       var posToOwnerNodeInner = new Dictionary<int, List<Node>>();
 
       var t = firstToken;
