@@ -1426,7 +1426,7 @@ public class ApplyExpr : Expression {
 
 public class FunctionCallExpr : Expression, IHasUsages, ICloneable<FunctionCallExpr> {
 
-  public override IToken Tok => NameNode.StartToken;
+  public override IToken Tok => OverrideToken ?? NameNode.StartToken;
 
   public Name NameNode;
   public string Name => NameNode.Value;
@@ -2987,7 +2987,7 @@ public class ChainingExpression : ConcreteSyntaxExpression, ICloneable<ChainingE
     E = ComputeDesugaring(Operands, Operators, OperatorLocs, PrefixLimits);
   }
 
-  public override IToken Tok => OperatorLocs[0];
+  public override IToken Tok => OverrideToken ?? OperatorLocs[0];
 
   public ChainingExpression(RangeToken rangeToken, List<Expression> operands, List<BinaryExpr.Opcode> operators, List<IToken> operatorLocs, List<Expression/*?*/> prefixLimits)
     : base(rangeToken) {
@@ -3163,7 +3163,7 @@ public class ExprDotName : SuffixExpr, ICloneable<ExprDotName> {
 /// An ApplySuffix desugars into either an ApplyExpr or a FunctionCallExpr
 /// </summary>
 public class ApplySuffix : SuffixExpr, ICloneable<ApplySuffix> {
-  public override IToken Tok => Lhs.EndToken.Next;
+  public override IToken Tok => OverrideToken ?? Lhs.EndToken.Next;
 
   public readonly IToken/*?*/ AtTok;
   public readonly IToken CloseParen;
