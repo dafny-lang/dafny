@@ -4791,8 +4791,8 @@ NameSegment<out Expression e>
   | HashCall<name.StartToken, out openParen, out typeArgs, out args>
   | [ AtCall<out atLabel, out openParen, out args> ]
   )
-  /* Note, since HashCall updates id.val, we make sure not to use id.val until after the possibility of calling HashCall. */
-  (. e = new NameSegment(new RangeToken(name.StartToken, t), name, typeArgs);
+  /* Note, since HashCall updates name.StartToken.value, make sure to create a new name after it is called. */
+  (. e = new NameSegment(new RangeToken(name.StartToken, t), new Name(name.StartToken), typeArgs);
      if (openParen != null) {
        e = new ApplySuffix(new RangeToken(name.StartToken, t), atLabel, e, args, t);
      } else {
