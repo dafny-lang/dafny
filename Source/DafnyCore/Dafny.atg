@@ -4931,22 +4931,22 @@ Suffix<ref Expression e>
            Contract.Assert(anyDots || e0 != null);
            if (anyDots) {
              //Contract.Assert(e0 != null || e1 != null);
-             e = new SeqSelectExpr(new RangeToken(startToken, t), false, e, e0, e1, t);
+             e = new SeqSelectExpr(new RangeToken(startToken, t), false, e, e0, e1);
            } else if (multipleLengths != null) {
              Expression prev = null;
              List<Expression> seqs = new List<Expression>();
               foreach (var len in multipleLengths) {
                 var end = prev == null ? len : new BinaryExpr(new RangeToken(prev.StartToken, len.EndToken), BinaryExpr.Opcode.Add, prev, len);
-                seqs.Add(new SeqSelectExpr(new RangeToken(e.StartToken, t), false, e, prev, end, t));
+                seqs.Add(new SeqSelectExpr(new RangeToken(e.StartToken, t), false, e, prev, end));
                 prev = end;
               }
              if (takeRest) {
-               seqs.Add(new SeqSelectExpr(new RangeToken(e.StartToken, t), false, e, prev, null, t));
+               seqs.Add(new SeqSelectExpr(new RangeToken(e.StartToken, t), false, e, prev, null));
              }
              e = new SeqDisplayExpr(new RangeToken(startToken, t), seqs);
            } else if (e1 == null) {
              Contract.Assert(e0 != null);
-             e = new SeqSelectExpr(new RangeToken(startToken, t), true, e, e0, null, t);
+             e = new SeqSelectExpr(new RangeToken(startToken, t), true, e, e0, null);
            } else {
              Contract.Assert(e0 != null);
              e = new SeqUpdateExpr(new RangeToken(startToken, t), e, e0, e1);

@@ -68,10 +68,10 @@ public class ForallStmtRewriter : IRewriter {
                   Contract.Assert(ll.SelectOne);
                   if (!FreeVariablesUtil.ContainsFreeVariable(ll.Seq, false, i)) {
                     Fi = ll.E0;
-                    lhsBuilder = e => { var l = new SeqSelectExpr(ll.RangeToken, true, ll.Seq, e, null, ll.CloseParen); l.Type = ll.Type; return l; };
+                    lhsBuilder = e => { var l = new SeqSelectExpr(ll.RangeToken, true, ll.Seq, e, null); l.Type = ll.Type; return l; };
                   } else if (!FreeVariablesUtil.ContainsFreeVariable(ll.E0, false, i)) {
                     Fi = ll.Seq;
-                    lhsBuilder = e => { var l = new SeqSelectExpr(ll.RangeToken, true, e, ll.E0, null, ll.CloseParen); l.Type = ll.Type; return l; };
+                    lhsBuilder = e => { var l = new SeqSelectExpr(ll.RangeToken, true, e, ll.E0, null); l.Type = ll.Type; return l; };
                   }
                 }
               }

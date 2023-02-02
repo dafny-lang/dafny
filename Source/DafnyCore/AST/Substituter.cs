@@ -136,7 +136,7 @@ namespace Microsoft.Dafny {
         Expression e0 = sse.E0 == null ? null : Substitute(sse.E0);
         Expression e1 = sse.E1 == null ? null : Substitute(sse.E1);
         if (seq != sse.Seq || e0 != sse.E0 || e1 != sse.E1) {
-          newExpr = new SeqSelectExpr(sse.RangeToken, sse.SelectOne, seq, e0, e1, sse.CloseParen);
+          newExpr = new SeqSelectExpr(sse.RangeToken, sse.SelectOne, seq, e0, e1);
         }
 
       } else if (expr is SeqUpdateExpr) {

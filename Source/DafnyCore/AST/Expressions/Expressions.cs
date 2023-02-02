@@ -1288,7 +1288,6 @@ public class SeqSelectExpr : Expression {
   public readonly Expression Seq;
   public readonly Expression E0;
   public readonly Expression E1;
-  public readonly IToken CloseParen;
 
   public override IToken Tok => Seq.EndToken.Next;
 
@@ -1298,7 +1297,7 @@ public class SeqSelectExpr : Expression {
     Contract.Invariant(!SelectOne || E1 == null);
   }
 
-  public SeqSelectExpr(RangeToken rangeToken, bool selectOne, Expression seq, Expression e0, Expression e1, IToken closeParen)
+  public SeqSelectExpr(RangeToken rangeToken, bool selectOne, Expression seq, Expression e0, Expression e1)
     : base(rangeToken) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(seq != null);
@@ -1308,7 +1307,6 @@ public class SeqSelectExpr : Expression {
     Seq = seq;
     E0 = e0;
     E1 = e1;
-    CloseParen = closeParen;
     // if (closeParen != null) {
     //   FormatTokens = new[] { closeParen };
     // }
