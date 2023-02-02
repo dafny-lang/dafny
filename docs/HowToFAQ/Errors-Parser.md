@@ -1196,7 +1196,7 @@ or BigDecimal. Given the parser logic, that parsing should never fail.
 
 <!-- Scanner.frame -->
 
-## **Error: Malformed _template_ pragma: #_source_**
+## **Error: Malformed _template_ pragma: #_source_** {#sc_malformed_pragma}
 
 ```dafny
 const s := @"
@@ -1208,7 +1208,7 @@ The Dafny scanner supports pragmas of the form `#line <lineno> <filename>`, with
 This message indicates that the pragma was not readable, most likely because the line number was not a
 parsable numeral.
 
-## **Error: Unrecognized pragma: #_source_**
+## **Error: Unrecognized pragma: #_source_** {#sc_unknown_pragma}
 
 ```dafny
 const s := @"
