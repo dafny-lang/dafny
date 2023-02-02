@@ -90,11 +90,11 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern,
         string libraryName, ConcreteSyntaxTree wr) {
-      if (!isDefault) {
-        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
-      }
       if (moduleName == "_System") {
         return wr;
+      }
+      if (!isDefault) {
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
       return wr.NewBlock($"module {IdProtect(moduleName)}");
     }
