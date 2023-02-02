@@ -33,7 +33,7 @@ namespace IntegrationTests {
       "/proverOpt:O:smt.qi.eager_threshold=100",
       "/proverOpt:O:smt.delay_units=true",
       "/proverOpt:O:smt.arith.solver=2",
-      "/proverOpt:PROVER_PATH:" + RepositoryRoot + "Binaries/z3/bin/z3"
+      "/proverOpt:PROVER_PATH:z3/bin/z3"
     };
 
     private static readonly LitTestConfiguration Config;
