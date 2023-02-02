@@ -98,11 +98,10 @@ datatype MStatus = Okay | Error(code: int) {
   predicate method IsFailure() {
     Error?
   }
-  method PropagateFailure() returns (m: MStatus)
+  function method PropagateFailure(): MStatus
     requires Error?
-    ensures m == this
   {
-    return this;
+    this
   }
 }
 
@@ -132,15 +131,14 @@ datatype MResult<X> = Success(x: X) | Failure(code: int) {
   predicate method IsFailure() {
     Failure?
   }
-  method PropagateFailure<U>() returns (result: MResult<U>)
+  function method PropagateFailure<U>(): MResult<U>
     requires Failure?
-    ensures result.Failure? && result.code == code
   {
-    return MResult.Failure(code);
+    MResult.Failure(code)
   }
-  method Extract() returns (result: X)
+  function method Extract(): X
     requires Success?
   {
-    return x;
+    x
   }
 }

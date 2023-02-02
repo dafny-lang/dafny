@@ -4,19 +4,19 @@
 datatype FailureCompatible = Make {
   predicate IsFailure() { true }
   function PropagateFailure(): real { 12.0 }
-  ghost method Extract() returns (r: real) { }
+  function Extract(): real { 9.0 }
 }
 
 datatype FailureCompatible2 = Make {
   predicate method IsFailure() { true }
   function method PropagateFailure(): real { 12.0 }
-  ghost method Extract() returns (r: real) { }
+  function Extract(): real { 9.0 }
 }
 
 datatype FailureCompatible3 = Make {
   predicate method IsFailure() { true }
   function method PropagateFailure(): real { 12.0 }
-  method Extract() returns (r: real) { }
+  function method Extract(): real { 9.0 }
 }
 
 method M() returns (r: FailureCompatible) { }
