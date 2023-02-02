@@ -4126,12 +4126,14 @@ RelOp<out IToken/*!*/ x, out BinaryExpr.Opcode op, out Expression k>
 /*------------------------------------------------------------------------*/
 ShiftTerm<out Expression e0, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null);
-     Expression e1;  BinaryExpr.Opcode op = BinaryExpr.Opcode.LeftShift/*(dummy)*/;
+     IToken x = Token.NoToken;  Expression e1;  BinaryExpr.Opcode op = BinaryExpr.Opcode.LeftShift/*(dummy)*/;
   .)
   Term<out e0, allowLemma, allowLambda, allowBitwiseOps>
   { IF(IsShiftOp())  /* read a Term as far as possible */
-    ( "<<"            (. op = BinaryExpr.Opcode.LeftShift; .)
-    | ">>"            (. op = BinaryExpr.Opcode.RightShift; .)
+    ( "<<"           (. x = t;  op = BinaryExpr.Opcode.LeftShift; .)
+      "<"            (. x.val = "<<";  Contract.Assert(t.pos == x.pos + 1); .)
+    | ">"            (. op = BinaryExpr.Opcode.RightShift; .)
+      ">"            (. x.val = "<<";  Contract.Assert(t.pos == x.pos + 1); .)
     )
     Term<out e1, allowLemma, allowLambda, allowBitwiseOps> (.
       var startToken = e0.StartToken;

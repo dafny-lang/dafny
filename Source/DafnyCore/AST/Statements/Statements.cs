@@ -386,6 +386,9 @@ public abstract class AssignmentRhs : RangeNode, IAttributeBearingDeclaration {
 
 public class ExprRhs : AssignmentRhs {
   public readonly Expression Expr;
+
+  public override IToken Tok => Expr.Tok;
+
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Expr != null);
