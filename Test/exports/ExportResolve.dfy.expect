@@ -111,11 +111,11 @@ ExportResolve.dfy(506,9): Error: This export set is not consistent: ProvideAllAn
 ExportResolve.dfy(582,16): Error: member 'u' has not been imported in this scope and cannot be accessed here
 ExportResolve.dfy(590,16): Error: member 'u' has not been imported in this scope and cannot be accessed here
 ExportResolve.dfy(595,19): Error: member 'FromInt' does not exist in type 'F' or cannot be part of type name
-ExportResolve.dfy(595,8): Error: new can be applied only to class types (got S.F.FromInt)
+ExportResolve.dfy(595,11): Error: new can be applied only to class types (got S.F.FromInt)
 ExportResolve.dfy(599,18): Error: member 'u' has not been imported in this scope and cannot be accessed here
 ExportResolve.dfy(619,6): Error: when allocating an object of type 'D', one of its constructor methods must be called
 ExportResolve.dfy(622,10): Error: when allocating an object of imported type 'E', one of its constructor methods must be called
 ExportResolve.dfy(627,19): Error: member 'FromInt' does not exist in type 'F' or cannot be part of type name
-ExportResolve.dfy(627,8): Error: new can be applied only to class types (got S.F.FromInt)
+ExportResolve.dfy(627,11): Error: new can be applied only to class types (got S.F.FromInt)
 ExportResolve.dfy(631,18): Error: member 'u' has not been imported in this scope and cannot be accessed here
 120 resolution/type errors detected in ExportResolve.dfy
