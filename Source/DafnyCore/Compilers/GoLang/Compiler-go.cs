@@ -3453,7 +3453,7 @@ namespace Microsoft.Dafny.Compilers {
               // Optimize .Count to avoid intermediate BigInteger
               wr.Write("{0}(", GetNativeTypeName(toNative));
               TrParenExpr(u.E, wr, inLetExprBody, wStmts);
-              wr.Write(".Cardinality())");
+              wr.Write(u.E.Type.AsSeqType != null ? ".Cardinality())" : ".CardinalityInt())");
             } else if (m != null && m.MemberName == "Length" && m.Obj.Type.IsArrayType) {
               // Optimize .Length to avoid intermediate BigInteger
               wr.Write("{0}(_dafny.ArrayLenInt(", GetNativeTypeName(toNative));
