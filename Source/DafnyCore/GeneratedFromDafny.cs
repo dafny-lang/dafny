@@ -6,29 +6,30 @@
 using System;
 using System.Numerics;
 using System.Collections;
+using System.Text;
 using Microsoft.Dafny;
 
 namespace Formatting {
 
   public interface IIndentationFormatter {
-    String GetNewLeadingTrivia(IToken token);
-    String GetNewTrailingTrivia(IToken token);
-    void GetNewLeadingTrailingTrivia(IToken token, out String newLeadingTrivia, out String newTrailingTrivia);
+    string GetNewLeadingTrivia(IToken token);
+    string GetNewTrailingTrivia(IToken token);
+    void GetNewLeadingTrailingTrivia(IToken token, out string newLeadingTrivia, out string newTrailingTrivia);
   }
   public class _Companion_IIndentationFormatter {
     public static void GetNewLeadingTrailingTrivia(
         IIndentationFormatter _this, IToken token,
-        out String newLeadingTrivia, out String newTrailingTrivia) {
+        out string newLeadingTrivia, out string newTrailingTrivia) {
       newLeadingTrivia = _this.GetNewLeadingTrivia(token);
       newTrailingTrivia = _this.GetNewTrailingTrivia(token);
     }
   }
 
-  public partial class __default {
+  public class __default {
     public static String ReindentProgramFromFirstToken(IToken firstToken, IIndentationFormatter reindent) {
-      String s = "";
-      IToken token = firstToken;
-      StringBuilder sb = new StringBuilder();
+      var s = "";
+      var token = firstToken;
+      var sb = new StringBuilder();
       while (token != null) {
         reindent.GetNewLeadingTrailingTrivia(token, out var newLeadingTrivia, out var newTrailingTrivia);
         sb.Append(newLeadingTrivia);
