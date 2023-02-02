@@ -161,14 +161,14 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
 
       var item = new Diagnostic {
-        Code = errorID.ToString(),
+        //Code = errorID.ToString(),
         Severity = ToSeverity(level),
         Message = msg,
         Range = tok.GetLspRange(),
         Source = source.ToString(),
         RelatedInformation = relatedInformation,
-        CodeDescription = errorID == ErrorID.None ? null : new CodeDescription { Href = new System.Uri("https://dafny.org/dafny/docs/HowToFAQ/Errors#" + errorID.ToString()) },
-        Data = JToken.FromObject(Errors.FindCodeActionRange(tok).GetLspRange()),
+        //CodeDescription = errorID == ErrorID.None ? null : new CodeDescription { Href = new System.Uri("https://dafny.org/dafny/docs/HowToFAQ/Errors#" + errorID.ToString()) },
+        //Data = JToken.FromObject(Errors.FindCodeActionRange(tok).GetLspRange()),
       };
       AddDiagnosticForFile(item, source, GetDocumentUriOrDefault(tok));
       return true;

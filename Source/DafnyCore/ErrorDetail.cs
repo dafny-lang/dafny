@@ -25,7 +25,7 @@ public static class ErrorDetail {
 
   static ErrorDetail() { init(); }
 
-  static bool initialized = true;
+  static bool initialized = false;
   public static void init() {
     if (!initialized) {
       ParserErrorDetail.init();
