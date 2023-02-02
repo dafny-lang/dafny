@@ -58,7 +58,11 @@ namespace Microsoft.Dafny {
       CanonicalPath = Canonicalize(filePath);
 
       if (!useStdin && !Path.IsPathRooted(filePath)) {
-        filePath = Path.GetFullPath(filePath);
+        if (filePath?.StartsWith("file:") == true) {
+          filePath = (new Uri(filePath)).LocalPath;
+        } else {
+          filePath = Path.GetFullPath(filePath);
+        }
       }
 
       if (extension == ".dfy" || extension == ".dfyi") {
