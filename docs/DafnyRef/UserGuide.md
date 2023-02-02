@@ -371,15 +371,15 @@ For the formatter to work, the file should be parsed correctly by Dafny.
 
 There are four ways to use the formatter:
 
-* `dafny format file.dfy [file2.dfy ...]` formats the given Dafny files, altering the files in place.
-* `dafny format folder` formats all the Dafny files contain in the given folders, altering the files in place. For example, `dafny format .` formats all the Dafny files recursively in the current folder.
-* `dafny format --print file.dfy` formats each file but instead of altering the files, output the formatted content to stdout
-* `dafny format --check file.dfy` does not alter files. It will print a message concerning which files need formatting.
+* `dafny format <one or more .dfy files or folders>` formats the given Dafny files and the Dafny files in the folders, recursively, altering the files in place. For example, `dafny format .` formats all the Dafny files recursively in the current folder.
+* `dafny format --print <files and/or folders>` formats each file but instead of altering the files, output the formatted content to stdout
+* `dafny format --check <files and/or folders>` does not alter files. It will print a message concerning which files need formatting and return a non-zero exit code if any files would be changed by formatting.
 
 You can also use `--stdin` instead of providing a file to format a full Dafny file from the standard input.
 
-In any case, each version of `dafny format` returns a non-zero return code
-if at least one file is not the same as its formatted version through `dafny format`.
+Each version of `dafny format` returns a non-zero return code if there are any command-line or parsing
+errors or if --check is stipulated and at least one file is not the same as its formatted version.  
+`dafny format` does not necessarily report name or type resolution errors and does not attempt verification.
 
 #### 25.5.1.10. `dafny test` {#sec-dafny-test}
  
