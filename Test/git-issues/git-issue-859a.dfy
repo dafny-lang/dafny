@@ -69,3 +69,16 @@ module Test3 {
     print s1, "\n"; // verifying s1 is non-ghost
   }
 }
+
+module MoreTests {
+  datatype NotFunctionsAtAll = Make(PropagateFailure: () -> char)
+  {
+    const IsFailure: () -> bool
+    const Extract: () -> real
+  }
+
+  method Client() returns (r: char) {
+    var e: NotFunctionsAtAll;
+    var x :- e;
+  }
+}
