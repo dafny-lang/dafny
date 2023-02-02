@@ -4378,7 +4378,6 @@ LambdaExpression<out Expression e, bool allowLemma, bool allowBitwiseOps>
      var reads = new List<FrameExpression>();
      Expression req = null;
      Expression body = null;
-     IToken startToken = null;
   .)
   ( WildIdent<out id, true>                  (. x = t; bvs.Add(new BoundVar(id, id.val, new InferredTypeProxy()) {RangeToken = new RangeToken(x, x)}); .)
   | "("                                      (. x = t; .)
