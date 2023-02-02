@@ -187,10 +187,10 @@ public class Errors {
     Reporting.Error(MessageSource.Parser, errorID, tok, msg);
   }
 
-  public void SemErr(string filename, int line, int col, string msg) {
+  public void SemErr(ErrorID errorID, string filename, int line, int col, string msg) {
     Contract.Requires(msg != null);
     ErrorCount++;
-    Reporting.Error(MessageSource.Parser, ErrorID.None, filename, line, col, msg);
+    Reporting.Error(MessageSource.Parser, errorID, filename, line, col, msg);
   }
 
   public void Deprecated(IToken tok, string msg) {

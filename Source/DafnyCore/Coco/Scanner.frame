@@ -441,11 +441,11 @@ public class Scanner {
           } catch (FormatException) {
             // just fall down through to produce an error message
           }
-          this.errorHandler.SemErr(Filename, prLine, prColumn, "Malformed (#line num [filename]) pragma: #" + hashLine);
+          this.errorHandler.SemErr(ErrorDetail.ErrorID.None, Filename, prLine, prColumn, "Malformed (#line num [filename]) pragma: #" + hashLine);
           continue;
           }
 
-          this.errorHandler.SemErr(Filename, prLine, prColumn, "Unrecognized pragma: #" + hashLine);
+          this.errorHandler.SemErr(ErrorDetail.ErrorID.None, Filename, prLine, prColumn, "Unrecognized pragma: #" + hashLine);
           continue;
         }
         return;

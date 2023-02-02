@@ -9,6 +9,9 @@ public static class ErrorDetail {
 
   public enum ErrorID {
     None,
+
+    sc_malformed_pragma,
+    sc_unknown_pragma,
     p_bad_const_initialize_op,
     p_deprecated_semicolon,
     p_no_leading_underscore,

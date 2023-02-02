@@ -1194,3 +1194,27 @@ or BigDecimal. Given the parser logic, that parsing should never fail.
 
 <!-- There are three instances of this message, one for digits one for hexdigits, one for decimaldigits -->
 
+<!-- Scanner.frame -->
+
+## **Error: Malformed _template_ pragma: #_source_**
+
+```dafny
+const s := @"
+#line S
+"
+```
+
+The Dafny scanner supports pragmas of the form `#line <lineno> <filename>`, with the filename optional.
+This message indicates that the pragma was not readable, most likely because the line number was not a
+parsable numeral.
+
+## **Error: Unrecognized pragma: #_source_**
+
+```dafny
+const s := @"
+# I love hashes
+"
+```
+The Dafny scanner saw a pragma -- the first character of the line is a # character. But it is not one that the
+scanner recopgnizes. As of this writing, the only pragma recognized is `#line`.
+
