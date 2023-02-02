@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny /compile:0 /proverOpt:O:smt.qi.eager_threshold=30 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 function fact6(n: nat): nat
@@ -87,13 +87,10 @@ function interp(env: map<int,int>, e: exp): int
   else if (e.Var? && e.x in env) then env[e.x]
   else 0
 }
-// TODO: re-enable
-/*
 ghost method compute_interp1()
   ensures interp(map[], Plus(Plus(Num(1), Num(2)), Plus(Num(3), Num(4))))==10;
 {
 }
-*/
 ghost method compute_interp2(env: map<int,int>)
   requires 0 in env && env[0]==10;
   ensures interp(env, Plus(Plus(Var(0), Num(1)), Num(0)))==11;
@@ -112,13 +109,10 @@ function cinterp(env: map<int,int>, e: exp): int
   case Num(n) => n
   case Var(x) => if x in env then env[x] else 0
 }
-// TODO: re-enable
-/*
 ghost method compute_cinterp1()
   ensures cinterp(map[], Plus(Plus(Num(1), Num(2)), Plus(Num(3), Num(4))))==10;
 {
 }
-*/
 ghost method compute_cinterp2(env: map<int,int>)
   requires 0 in env && env[0]==10;
   ensures cinterp(env, Plus(Plus(Var(0), Num(1)), Num(0)))==11;
@@ -189,27 +183,4 @@ ghost method test_fib3(k: nat, m: nat)
 {
   var y := 12;
   assert y <= k && k < y + m && m == 1 ==> fib(k)==144;
-}
-
-module NeedsAllLiteralsAxiom {
-  // The following test shows that there exist an example that
-  // benefits from the all-literals axiom.  (It's not clear how
-  // important such an example is, nor is it clear what the cost
-  // of including the all-literals axiom is.)
-
-  function trick(n: nat, m: nat): nat
-    decreases n;  // note that m is not included
-  {
-    if n < m || m==0 then n else trick(n-m, m) + m
-  }
-
-  lemma lemma_trick(n: nat, m: nat)
-    ensures trick(n, m) == n;
-  {
-  }
-
-  lemma calc_trick(n: nat, m: nat)
-    ensures trick(100, 10) == 100;
-  {
-  }
 }
