@@ -312,6 +312,9 @@ Examples:
 method m(i: int) returns (r: int) {
   return i+1;
 }
+method m(i: int) returns (r: int, q: int) {
+  return i+1, i + 2;
+}
 method p() {
   return;
 }
