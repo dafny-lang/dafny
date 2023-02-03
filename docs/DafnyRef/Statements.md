@@ -2050,9 +2050,15 @@ instead of a label.
 Examples:
 <!-- %no-check -->
 ```dafny
-forall i | 0 <= i < a.Length { a[i] := 0; }
-forall i | 0 <= i < 100 { P(i); } // P a lemma
-forall i | 0 <= i < 100 ensures i < 1000 {  } 
+forall i | 0 <= i < a.Length {
+  a[i] := 0;
+}
+forall i | 0 <= i < 100 {
+  P(i); // P a lemma
+}
+forall i | 0 <= i < 100
+  ensures i < 1000 {
+} 
 ```
 
 The `forall` statement executes the body
