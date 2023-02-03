@@ -1,1 +1,0 @@
-Introduce the experimental `measure-complexity` command, whose output can be fed to the Dafny report generator. In a future update, we expect to merge the functionality of the report generator into this command.
