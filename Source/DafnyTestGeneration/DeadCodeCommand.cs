@@ -29,5 +29,6 @@ public class DeadCodeCommand : ICommandSpec {
     dafnyOptions.DefiniteAssignmentLevel = 2;
 
     dafnyOptions.TestGenOptions.Mode = TestGenerationOptions.Modes.Block;
+    dafnyOptions.TestGenOptions.WarnDeadCode = true;
   }
 }
