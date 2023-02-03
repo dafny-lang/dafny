@@ -18,6 +18,10 @@ namespace XUnitExtensions.Lit {
         var operand = ParseArguments(tokens[2..], config);
         return new ExitCommand(ec, operand);
       }
+      if (tokens[0] == "%stdin") {
+        var operand = ParseArguments(tokens[2..], config);
+        return new StdInCommand(tokens[1], operand);
+      }
 
       // Just supporting || for now since it's a precise way to ignore an exit code
       var seqOperatorIndex = Array.IndexOf(tokens, "||");
