@@ -5389,7 +5389,7 @@ namespace Microsoft.Dafny {
               reporter.Error(MessageSource.Resolver, stmt, "new can be applied only to class types (got {0})", rr.EType);
             }
           } else {
-            string initCallName = null;
+            Name initCallName = null;
             IToken initCallTok = null;
             // Resolve rr.Path and do one of three things:
             // * If rr.Path denotes a type, then set EType,initCallName to rr.Path,"_ctor", which sets up a call to the anonymous constructor.
@@ -5399,13 +5399,13 @@ namespace Microsoft.Dafny {
             if (ret != null) {
               // The all-but-last components of rr.Path denote a type (namely, ret.ReplacementType).
               rr.EType = ret.ReplacementType;
-              initCallName = ret.LastComponent.SuffixName;
+              initCallName = ret.LastComponent.SuffixNameNode;
               initCallTok = ret.LastComponent.Tok;
             } else {
               // Either rr.Path resolved correctly as a type or there was no way to drop a last component to make it into something that looked
               // like a type.  In either case, set EType,initCallName to Path,"_ctor" and continue.
               rr.EType = rr.Path;
-              initCallName = "_ctor";
+              initCallName = new Name(rr.RangeToken, "_ctor");
               initCallTok = rr.Tok;
             }
             var cl = (rr.EType as UserDefinedType)?.ResolvedClass as NonNullTypeDecl;
