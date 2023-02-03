@@ -22,6 +22,6 @@ public class ExitCommand : ILitCommand {
   }
 
   public override string ToString() {
-    return $"%exit {expectedExitCode}  {operand}";
+    return $"%exits-with {expectedExitCode}  {operand}";
   }
 }
