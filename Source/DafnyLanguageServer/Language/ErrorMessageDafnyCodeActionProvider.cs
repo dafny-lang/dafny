@@ -40,7 +40,8 @@ public class ErrorMessageDafnyCodeActionProvider : DiagnosticDafnyCodeActionProv
     if (action == null) {
       return new List<DafnyCodeAction> { };
     } else {
-      Range range = InterpretDataAsRangeOrDefault(diagnostic.Data, diagnostic.Range);
+      Range range = diagnostic.Range;
+      //Range range = InterpretDataAsRangeOrDefault(diagnostic.Data, diagnostic.Range);
       return action(diagnostic, range);
     }
   }
