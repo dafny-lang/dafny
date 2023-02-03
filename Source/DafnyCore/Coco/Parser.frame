@@ -193,6 +193,12 @@ public class Errors {
     Reporting.Error(MessageSource.Parser, errorID, filename, line, col, msg);
   }
 
+  public void Deprecated(ErrorID errorID, IToken tok, string msg) {
+    Contract.Requires(tok != null);
+    Contract.Requires(msg != null);
+    Reporting.Deprecated(MessageSource.Parser, errorID, tok, msg);
+  }
+
   public void Deprecated(IToken tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
@@ -213,7 +219,7 @@ public class Errors {
 
   // Code action range is from start of given token and with given new length
   public static CodeActionToken CodeAction(IToken sourceTok, int len) {
-    return new CodeActionToken(sourceTok, sourceTok.col, len);
+    return CodeAction(sourceTok, sourceTok.col, len);
   }
 
   // Code action range has given column and length
@@ -223,12 +229,18 @@ public class Errors {
 
   // Code action range is up to, not including, the next token
   public static CodeActionToken CodeAction(IToken sourceTok, IToken next) {
-    return new CodeActionToken(sourceTok, sourceTok.col, next.pos - sourceTok.pos);
+    return CodeAction(sourceTok, sourceTok.col, next.pos - sourceTok.pos);
+  }
+
+  // Code action range is up to, not including, the given token's Next token 
+  // so the range includes following white space
+  public static CodeActionToken CodeActionToNext(IToken sourceTok) {
+    return CodeAction(sourceTok, sourceTok.Next);
   }
 
   // Code action range is same as the given token
   public static CodeActionToken CodeAction(IToken sourceTok) {
-    return new CodeActionToken(sourceTok, sourceTok.col, sourceTok.val.Length);
+    return CodeAction(sourceTok, sourceTok.col, sourceTok.val.Length);
   }
 
   public static CodeActionToken FindCodeActionRange(IToken toptok) {

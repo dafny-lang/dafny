@@ -11,12 +11,26 @@ public static class ErrorDetail {
     None,
 
     p_duplicate_modifier,
-    p_bad_const_initialize_op,
-    p_deprecated_semicolon,
-    p_no_leading_underscore,
     p_abstract_not_allowed,
     p_no_ghost_for_by_method,
+    p_ghost_forbidden_default,
+    p_ghost_forbidden,
     p_no_static,
+    p_deprecated_attribute,
+    p_literal_string_required,
+    p_no_leading_underscore,
+    p_bitvector_too_large,
+    p_array_dimension_too_large,
+    p_superfluous_export,
+    p_bad_module_decl,
+    p_extraneous_comma_in_export,
+    p_top_level_field,
+    p_bad_datatype_refinement,
+
+
+
+    p_bad_const_initialize_op,
+    p_deprecated_semicolon,
     sc_malformed_pragma,
     sc_unknown_pragma,
   }

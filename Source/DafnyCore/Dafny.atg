@@ -55,7 +55,7 @@ class DeclModifierData {
 public void CheckAndSetToken(ref IToken token)
 {
     if (token != null) {
-      SemErr(ErrorID.p_duplicate_modifier, Errors.CodeAction(t, t.Next), "Duplicate declaration modifier: " + t.val);
+      SemErr(ErrorID.p_duplicate_modifier, Errors.CodeActionToNext(t), "Duplicate declaration modifier: " + t.val);
     }
     token = t;
 }
@@ -94,31 +94,33 @@ void CheckDeclModifiers(ref DeclModifierData dmod, string declCaption, AllowedDe
 {
   declCaption = (declCaption.StartsWith("i") || declCaption.StartsWith("o") ? "an " : "a ") + declCaption;
   if (dmod.IsAbstract && ((allowed & AllowedDeclModifiers.Abstract) == 0)) {
-    SemErr(ErrorID.p_abstract_not_allowed, Errors.CodeAction(dmod.AbstractToken, dmod.AbstractToken.Next), $"{declCaption} cannot be declared 'abstract'");
+    SemErr(ErrorID.p_abstract_not_allowed, Errors.CodeActionToNext(dmod.AbstractToken), $"{declCaption} cannot be declared 'abstract'");
     dmod.IsAbstract = false;
   }
   if (dmod.IsGhost) {
     if ((allowed & AllowedDeclModifiers.AlreadyGhost) != 0) {
       if (declCaption.Contains("-by-method")) {
-        SemErr(ErrorID.p_no_ghost_for_by_method, Errors.CodeAction(dmod.GhostToken, dmod.GhostToken.Next), $"{declCaption} has a ghost function body and a non-ghost method body; {declCaption} declaration does not use the 'ghost' keyword.");
+        SemErr(ErrorID.p_no_ghost_for_by_method, Errors.CodeActionToNext(dmod.GhostToken),
+          $"{declCaption} has a ghost function body and a non-ghost method body; {declCaption} declaration does not use the 'ghost' keyword.");
       } else {
-        SemErr(dmod.GhostToken, $"{declCaption} cannot be declared 'ghost' (it is 'ghost' by default)");
+        SemErr(ErrorID.p_ghost_forbidden_default, Errors.CodeActionToNext(dmod.GhostToken), $"{declCaption} cannot be declared 'ghost' (it is 'ghost' by default)");
       }
       dmod.IsGhost = false;
     } else if ((allowed & AllowedDeclModifiers.Ghost) == 0) {
-      SemErr(dmod.GhostToken, $"{declCaption} cannot be declared 'ghost'");
+      SemErr(ErrorID.p_ghost_forbidden, Errors.CodeActionToNext(dmod.GhostToken), $"{declCaption} cannot be declared 'ghost'");
       dmod.IsGhost = false;
     }
   }
   if (dmod.IsStatic && ((allowed & AllowedDeclModifiers.Static) == 0)) {
-    SemErr(ErrorID.p_no_static, Errors.CodeAction(dmod.StaticToken, dmod.StaticToken.Next), $"{declCaption} cannot be declared 'static'");
+    SemErr(ErrorID.p_no_static, Errors.CodeActionToNext(dmod.StaticToken), $"{declCaption} cannot be declared 'static'");
     dmod.IsStatic = false;
   }
 }
 
 void CheckAttribute(Errors errors, IToken attr) {
   if (attr.val == "dllimport" || attr.val == "handle") {
-    errors.Deprecated(attr, $"Attribute :{attr.val} is deprecated and will be removed in Dafny 4.0");
+    errors.Deprecated(ErrorID.p_deprecated_attribute, Errors.CodeAction(attr, attr.Prev.col, attr.Next.Next.col - attr.Prev.col),
+      $"Attribute :{attr.val} is deprecated and will be removed in Dafny 4.0");
   }
 }
 
@@ -189,7 +191,7 @@ public void ApplyOptionsFromAttributes(Attributes attrs) {
       (token: (a as UserSuppliedAttributes)?.tok,
        options: a.Args.Select(arg => {
          if (arg is not LiteralExpr {Value: string optStr}) {
-           SemErr(arg.tok, "argument to :options attribute must be a literal string");
+           SemErr(ErrorID.p_literal_string_required, Errors.CodeAction(arg.tok), "argument to :options attribute must be a literal string");
            return null;
          }
          return optStr;
@@ -505,7 +507,7 @@ string UnwildIdent(string x, bool allowWildcardId) {
     if (allowWildcardId && x.Length == 1) {
       return "_v" + anonymousIds++;
     } else {
-      SemErr("cannot declare identifier beginning with underscore");
+      SemErr(ErrorID.p_no_leading_underscore, Errors.CodeAction(t, 1), "cannot declare identifier beginning with underscore");
     }
   }
   return x;
@@ -790,7 +792,7 @@ void ConvertKeywordTokenToIdent() {
   }
 }
 
-int StringToInt(string s, int defaultValue, string errString) {
+int StringToInt(string s, int defaultValue, string errString, IToken tok) {
   Contract.Requires(s != null);
   Contract.Requires(errString != null);
   try {
@@ -798,7 +800,8 @@ int StringToInt(string s, int defaultValue, string errString) {
       defaultValue = int.Parse(s);
     }
   } catch (System.OverflowException) {
-    SemErr(string.Format("sorry, {0} ({1}) are not supported", errString, s));
+    SemErr(errString.Contains("array") ? ErrorID.p_array_dimension_too_large : ErrorID.p_bitvector_too_large, 
+      tok, string.Format("sorry, {0} ({1}) are not supported", errString, s));
   }
   return defaultValue;
 }
@@ -1082,7 +1085,8 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
   ( ModuleDefinition<dmod, parent, out submodule>
   | ModuleImport<parent, out submodule>
   | ModuleExport<parent, out submodule>
-    (. if (isTopLevel) SemErr(submodule.tok, "There is no point to an export declaration at the top level");
+    (. if (isTopLevel) SemErr(ErrorID.p_superfluous_export, submodule.tok.Prev,
+          "There is no point to an export declaration at the top level");
     .)
   )
   .
@@ -1110,7 +1114,7 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
    .)
 
    [ "refines" ModuleQualifiedName<out idRefined>
-   | Ident<out iderr> (. SemErr(la, $"expected either a '{{' or a 'refines' keyword here, found {iderr.val}"); .)
+   | Ident<out iderr> (. SemErr(ErrorID.p_bad_module_decl, t, $"expected either a '{{' or a 'refines' keyword here, found {iderr.val}"); .)
    ]
    (. module = new ModuleDefinition(id, id.val, prefixIds, isAbstract, false,
                                         idRefined == null ? null : new ModuleQualifiedId(idRefined), parent, attrs,
@@ -1219,7 +1223,7 @@ ModuleExport<ModuleDefinition parent, out ModuleDecl submodule>
       (. scanner.ResetPeek(); laa = scanner.Peek(); .)
     }
   )
-  [ "," (. SemErr(t, "no comma is allowed between provides and reveals and extends clauses in an export declaration"); .) ]
+  [ "," (. SemErr(ErrorID.p_extraneous_comma_in_export, Errors.CodeAction(t), "no comma is allowed between provides and reveals and extends clauses in an export declaration"); .) ]
   }
   (. if (exportId.val == "export" || exportId.val == parent.Name) {
        isDefault = true;
@@ -1369,7 +1373,7 @@ ClassMemberDecl<. DeclModifierData dmod, List<MemberDecl> mm, bool allowConstruc
      Function/*!*/ f;
   .)
   ( (. if (moduleLevelDecl) {
-         SemErr(la, "fields are not allowed to be declared at the module level; instead, wrap the field in a 'class' declaration");
+         SemErr(ErrorID.p_top_level_field, la, "fields are not allowed to be declared at the module level; instead, wrap the field in a 'class' declaration");
          dmod.IsStatic = false;
        }
     .)
@@ -2206,7 +2210,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
   | "real"                          (. tok = t; startToken = t;  ty = new RealType(); .)
   | "ORDINAL"                       (. tok = t; startToken = t;  ty = new BigOrdinalType(); .)
   | bvToken                         (. tok = t; startToken = t;
-                                       int w = StringToInt(tok.val.Substring(2), 0, "bitvectors that wide");
+                                       int w = StringToInt(tok.val.Substring(2), 0, "bitvectors that wide", startToken);
                                        ty = new BitvectorType(w);
                                     .)
   | "set"                           (. tok = t; startToken = t; .)
@@ -2268,7 +2272,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
                                        bool q = tokString[tokString.Length-1] == '?';
                                        // Extracting the dimension out of array2 or array10?
                                        var dimString = tokString.Substring(5, tokString.Length - (q?6:5)); // 5 is length of "array"
-                                       int dims = StringToInt(dimString, 1, "arrays of that many dimensions");
+                                       int dims = StringToInt(dimString, 1, "arrays of that many dimensions", startToken);
                                        ty = theBuiltIns.ArrayType(tok, dims, gt, true, q);
                                     .)
   | TupleType<out ty, out tok, out tupleArgTypes, out argumentGhostTokens>

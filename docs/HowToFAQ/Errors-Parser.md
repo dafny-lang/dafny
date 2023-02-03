@@ -32,12 +32,8 @@ ghost function f(): int
 }
 ```
 
-Functions with a [by method](../DafnyRef/DafnyRef#sec-function-declarations)
-section to their body can be used both in ghost contexts and in non-ghost contexts; in ghost contexts the function body is used and in compiled contexts
-the by-method body is used. The `ghost` keyword is not permitted on the 
-declaration.
-
-## **Error: _decl_ cannot be declared 'ghost' (it is 'ghost' by default)** {#p_ghost_forbidden}
+_defulat
+## **Error: _decl_ cannot be declared 'ghost' (it is 'ghost' by default)** {#p_ghost_forbidden_default}
 
 ```dafny
 ghost function f(): int { 42 }
@@ -50,7 +46,7 @@ From Dafny 4 on, `ghost function` means a ghost function and
 See the discussion [here](../DafnyRef/DafnyRef#sec-function-syntax) for
 a discussion of options to control this feature.
 
-## **Error: a _decl_ cannot be declared 'ghost'**
+## **Error: a _decl_ cannot be declared 'ghost'** {#p_ghost_forbidden}
 
 ```dafny
 ghost module M {}
@@ -69,7 +65,15 @@ Only some kinds of declarations can be declared 'static', most often
 fields, constants, methods, and functions, and only within classes.
 Modules and the declarations within them are already always static.
 
-## **Error: argument to :options attribute must be a literal string**
+## **Warning: Attribute _attribute_ is deprecated and will be removed in Dafny 4.0 {#p_deprecated_attribute}
+
+```dafny
+method {:handle} m() {}
+```
+
+The `{:handle}` and `{:dllimport}` attributes are obsolete and unmaintained. They will be removed.
+
+## **Error: argument to :options attribute must be a literal string** {#p_literal_string_required}
 
 ```dafny
 module N { const opt := "--function-syntax:4" }
@@ -95,7 +99,7 @@ that is a single underscore is used as a wild-card match.
      function m(): (_: int) {0}
 -->
 
-## **Error: sorry, bitvectors that wide (_number_) are not supported**
+## **Error: sorry, bitvectors that wide (_number_) are not supported** {#p_bitvector_too_large}
 
 ```dafny
 const b: bv2147483648
@@ -105,7 +109,7 @@ A bitvector type name is the characters 'bv' followed by a non-negative
 integer literal. However, dafny only supports widths up to the largest
 signed 32-bit integer (2147483647).
 
-## **Error: sorry, arrays of that many dimensions (_number_) are not supported**
+## **Error: sorry, arrays of that many dimensions (_number_) are not supported** {#p_array_dimension_too_large}
 
 ```dafny
 const a: array2147483648<int>
@@ -117,7 +121,7 @@ dimensions up to the largest signed 32-bit integer (2147483647).
 In practice (as of v3.9.1) dimensions of more than a few can take 
 overly long to resolve ([Issue #3180](https://github.com/dafny-lang/dafny/issues/3180)).
 
-## **Error: There is no point to an export declaration at the top level**
+## **Error: There is no point to an export declaration at the top level** {#p_superfluous_export}
 
 ```dafny
 export M
@@ -128,7 +132,7 @@ Although all top-level declarations are contained in an implicit top-level modul
 Such an import would likely cause a circular module dependency error.
 If the implicit module cannot be imported, there is no point to any export declarations inside the implicit module.
 
-## **Error: expected either a '{' or a 'refines' keyword here, found _token_**
+## **Error: expected either a '{' or a 'refines' keyword here, found _token_** {#p_bad_module_decl}
 
 ```dafny
 module M {}
@@ -139,9 +143,7 @@ The [syntax for a module declaration](../DafnyRef/DafnyRef#sec-modules) is eithe
 `module M refines N { ... }` with optional attributes after the `module` keyword.
 This error message often occurs if the `refines` keyword is misspelled.
 
-## **Error: no comma is allowed between provides and reveals and extends clauses in an export declaration**
-
-<!-- There are four instances of this error message -->
+## **Error: no comma is allowed between provides and reveals and extends clauses in an export declaration** {#p_extraneous_comma_in_export}
 
 ```dafny
 module M {
@@ -159,7 +161,7 @@ a comma-separated list of identifiers, but the clauses themselves are not separa
 So in the example above, the comma after `a` is wrong in each export declaration. 
 This mistake is easy to make when the clauses are on the same line.
 
-## **Error: fields are not allowed to be declared at the module level; instead, wrap the field in a 'class' declaration**
+## **Error: fields are not allowed to be declared at the module level; instead, wrap the field in a 'class' declaration** {#p_top_level_field}
 
 ```dafny
 module M {
@@ -171,7 +173,7 @@ module M {
 But mutable field declarations are not permitted at the static module level, including in the (implicit) toplevel module.
 Rather, you may want the declaration to be a `const` declaration or you may want the mutable field to be declared in the body of a class.
 
-## **Error: in refining a datatype, the '...' replaces the '=' token and everything up to a left brace starting the declaration of the body; only members of the body may be changed in a datatype refinement**
+## **Error: in refining a datatype, the '...' replaces the '=' token and everything up to a left brace starting the declaration of the body; only members of the body may be changed in a datatype refinement** {#p_bad_datatype_refinement}
 
 ```dafny
 abstract module M { datatype D = A | B }
@@ -179,6 +181,7 @@ module N refines M { datatype D = ... Y | Z }
 ```
 
 There are limitations on refining a datatype, namely that the set of constructors cannot be changed.
+It is only allowed to add members to the body of the datatype.
 
 ## **Error: mutable fields are not allowed in value types**
 
