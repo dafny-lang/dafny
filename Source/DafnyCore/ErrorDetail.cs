@@ -10,14 +10,15 @@ public static class ErrorDetail {
   public enum ErrorID {
     None,
 
-    sc_malformed_pragma,
-    sc_unknown_pragma,
+    p_duplicate_modifier,
     p_bad_const_initialize_op,
     p_deprecated_semicolon,
     p_no_leading_underscore,
     p_abstract_not_allowed,
     p_no_ghost_for_by_method,
     p_no_static,
+    sc_malformed_pragma,
+    sc_unknown_pragma,
   }
 
   // This dictionary maps an errorID (error code) to a code action and explanatory text

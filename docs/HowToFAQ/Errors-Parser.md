@@ -2,13 +2,14 @@
 
 <!-- Parser.cs, but not Deprecated warnings or syntactic errors -->
 
-## **Error: Duplicate declaration modifier: abstract**
+## **Error: Duplicate declaration modifier: abstract** {#p_duplicate_modifier}
 
 ```dafny
 abstract abstract module M {}
 ```
 
-No Dafny modifier, such as [`abstract`, `static`, `ghost`](../DafnyRef/DafnyRef#sec-declaration-modifiers) may be repeated. Such repetition would be superfluous even if allowed.
+No Dafny modifier, such as [`abstract`, `static`, `ghost`](../DafnyRef/DafnyRef#sec-declaration-modifiers) may be repeated
+Such repetition would be superfluous even if allowed.
 
 ## **Error: a _decl_ cannot be declared 'abstract'** {#p_abstract_not_allowed}
  
@@ -36,7 +37,7 @@ section to their body can be used both in ghost contexts and in non-ghost contex
 the by-method body is used. The `ghost` keyword is not permitted on the 
 declaration.
 
-## **Error: _decl_ cannot be declared 'ghost' (it is 'ghost' by default)**
+## **Error: _decl_ cannot be declared 'ghost' (it is 'ghost' by default)** {#p_ghost_forbidden}
 
 ```dafny
 ghost function f(): int { 42 }

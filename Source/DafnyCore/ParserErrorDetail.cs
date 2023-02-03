@@ -57,5 +57,12 @@ In match statements and expressions, an identifier
 that is a single underscore is used as a wild-card match.
 ");
 
+    ErrorDetail.Add(ErrorID.p_duplicate_modifier,
+    @"
+No Dafny modifier, such as [`abstract`, `static`, `ghost`](../DafnyRef/DafnyRef#sec-declaration-modifiers) may be repeated
+Such repetition would be superfluous even if allowed.
+");
+
+
   }
 }

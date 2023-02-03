@@ -48,6 +48,7 @@ public class DafnyCodeActions {
     codeActionMap.Add(ErrorID.p_bad_const_initialize_op, (Diagnostic diagnostic, Range range) => ReplacementAction("replace = with :=", diagnostic, range, ":="));
     codeActionMap.Add(ErrorID.p_abstract_not_allowed, (Diagnostic diagnostic, Range range) => RemoveAction("remove 'abstract'", diagnostic, range));
     codeActionMap.Add(ErrorID.p_no_leading_underscore, (Diagnostic diagnostic, Range range) => RemoveAction("remove underscore", diagnostic, range));
+    codeActionMap.Add(ErrorID.p_duplicate_modifier, (Diagnostic diagnostic, Range range) => RemoveAction("remove duplicate modifier'", diagnostic, range));
 
   }
 }

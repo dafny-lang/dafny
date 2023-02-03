@@ -55,7 +55,7 @@ class DeclModifierData {
 public void CheckAndSetToken(ref IToken token)
 {
     if (token != null) {
-      SemErr(t, "Duplicate declaration modifier: " + t.val);
+      SemErr(ErrorID.p_duplicate_modifier, Errors.CodeAction(t, t.Next), "Duplicate declaration modifier: " + t.val);
     }
     token = t;
 }
