@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 using JetBrains.Annotations;
 
 namespace Microsoft.Dafny.Compilers {
@@ -378,7 +379,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
-      if(str.Contains("\"") || str.Contains("\\") || !str.All(char.IsAscii)) {
+      if (str.Contains("\"") || str.Contains("\\") || !str.All(char.IsAscii)) {
         throw new UnsupportedFeatureException(Token.NoToken, Feature.UnicodeChars);
       } else {
         wr.Write($"\"{str}\"");
