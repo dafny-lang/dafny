@@ -409,7 +409,10 @@ public class Scanner {
         if (ch == '\r' && buffer.Peek() != '\n') ch = EOL;
         if (ch == EOL) {
           line++; col = 0;
-        } else if (ch == '#' && col == 1) {
+        } else if (false && ch == '#' && col == 1) {
+          // This block of code implements the scanner recognizing line pragmas (#line) that reset the line number and filename.
+          // The pragma syntax can interfere with otherwise legal Dafny programs, so it is being disabled.
+          // Turn it back on by removing the 'false' in the condition, or perhaps by introducing a test of an option.
           int prLine = line;
           int prColumn = 0;
 
