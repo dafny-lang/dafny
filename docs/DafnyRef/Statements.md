@@ -46,7 +46,7 @@ and [allocated](#sec-allocated-expression) expressions.
 A statement can be given several labels. It makes no difference which of these
 labels is used to reference the statement---they are synonyms of each other.
 The labels must be distinct from each other, and are not allowed to be the
-same as any previous enclosing or dominating label.
+same as any previous enclosing or [dominating label](#sec-two-state).
 
 ## 20.2. Break and Continue Statements ([grammar](#g-break-continue-statement)) {#sec-break-continue-statement}
 
