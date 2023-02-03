@@ -1,6 +1,8 @@
+#nullable disable
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
@@ -16,29 +18,46 @@ namespace DafnyTestGeneration {
   /// </summary>
   public class ProgramModification {
 
-    private readonly string procedure; // procedure to be tested
-    private readonly Program program;
+    private static Dictionary<string, ProgramModification>
+      idToModification = new();
 
-    public ProgramModification(Program program, string procedure) {
-      this.program = DeepCloneProgram(program);
-      this.procedure = procedure;
+    private enum Status { Success, Failure, Untested }
+
+    private Status counterexampleStatus;
+    private readonly Implementation implementation; // implementation under test
+
+    private readonly string uniqueId;
+    public readonly HashSet<string> CapturedStates;
+
+    private readonly string procedure; // procedure to start verification from
+    private Program/*?*/ program;
+    private readonly HashSet<int> coversBlocks;
+    private string/*?*/ counterexampleLog;
+    private TestMethod testMethod;
+
+    public static ProgramModification GetProgramModification(Program program,
+      Implementation impl, HashSet<int> coversBlocks, HashSet<string> capturedStates, string procedure,
+      string uniqueId) {
+      if (!idToModification.ContainsKey(uniqueId)) {
+        idToModification[uniqueId] =
+          new ProgramModification(program, impl, coversBlocks, capturedStates, procedure,
+            uniqueId);
+      }
+      return idToModification[uniqueId];
     }
 
-    /// <summary>
-    /// Deep clone the program.
-    /// </summary>
-    private static Program DeepCloneProgram(Program program) {
-      var oldPrintInstrumented = DafnyOptions.O.PrintInstrumented;
-      var oldPrintFile = DafnyOptions.O.PrintFile;
-      DafnyOptions.O.PrintInstrumented = true;
-      DafnyOptions.O.PrintFile = "-";
-      var output = new StringWriter();
-      program.Emit(new TokenTextWriter(output, DafnyOptions.O));
-      var textRepresentation = output.ToString();
-      Microsoft.Boogie.Parser.Parse(textRepresentation, "", out var copy);
-      DafnyOptions.O.PrintInstrumented = oldPrintInstrumented;
-      DafnyOptions.O.PrintFile = oldPrintFile;
-      return copy;
+    private ProgramModification(Program program, Implementation impl,
+      HashSet<int> coversBlocks, HashSet<string> capturedStates,
+      string procedure, string uniqueId) {
+      implementation = impl;
+      counterexampleStatus = Status.Untested;
+      this.program = Utils.DeepCloneProgram(program);
+      this.procedure = procedure;
+      this.coversBlocks = coversBlocks;
+      CapturedStates = capturedStates;
+      this.uniqueId = uniqueId;
+      counterexampleLog = null;
+      testMethod = null;
     }
 
     /// <summary>
@@ -60,6 +79,7 @@ namespace DafnyTestGeneration {
         "O:model_evaluator.completion=true",
         "O:model.completion=true"
       };
+      options.Prune = !DafnyOptions.O.TestGenOptions.DisablePrune;
       options.ProverOptions.AddRange(DafnyOptions.O.ProverOptions);
       options.LoopUnrollCount = DafnyOptions.O.LoopUnrollCount;
       options.DefiniteAssignmentLevel = DafnyOptions.O.DefiniteAssignmentLevel;
@@ -74,32 +94,118 @@ namespace DafnyTestGeneration {
     /// version of the original boogie program. Return null if this
     /// counterexample does not cover any new SourceModifications.
     /// </summary>
-    public virtual async Task<string?> GetCounterExampleLog() {
+    public async Task<string>/*?*/ GetCounterExampleLog() {
+      if (counterexampleStatus != Status.Untested ||
+          (coversBlocks.Count != 0 && IsCovered)) {
+        return counterexampleLog;
+      }
       var oldOptions = DafnyOptions.O;
       var options = SetupOptions(procedure);
       DafnyOptions.Install(options);
       var engine = ExecutionEngine.CreateWithoutSharedCache(options);
-      var uniqueId = Guid.NewGuid().ToString();
+      var guid = Guid.NewGuid().ToString();
       program.Resolve(options);
       program.Typecheck(options);
       engine.EliminateDeadVariables(program);
       engine.CollectModSets(program);
-      engine.CoalesceBlocks(program);
       engine.Inline(program);
       var writer = new StringWriter();
-      await engine.InferAndVerify(writer, program,
-        new PipelineStatistics(), null,
-        _ => { }, uniqueId);
-      var log = writer.ToString();
+      var result = await Task.WhenAny(engine.InferAndVerify(writer, program,
+            new PipelineStatistics(), null,
+            _ => { }, guid),
+          Task.Delay(TimeSpan.FromSeconds(oldOptions.TimeLimit <= 0 ?
+            TestGenerationOptions.DefaultTimeLimit : oldOptions.TimeLimit)));
+      program = null; // allows to garbage collect what is no longer needed
+      counterexampleStatus = Status.Failure;
+      counterexampleLog = null;
       DafnyOptions.Install(oldOptions);
+      if (result is not Task<PipelineOutcome>) {
+        if (DafnyOptions.O.TestGenOptions.Verbose) {
+          Console.WriteLine(
+            $"// No test can be generated for {uniqueId} " +
+            "because the verifier timed out.");
+        }
+        return counterexampleLog;
+      }
+      var log = writer.ToString();
       // make sure that there is a counterexample (i.e. no parse errors, etc):
       var stringReader = new StringReader(log);
       while (await stringReader.ReadLineAsync() is { } line) {
         if (line.StartsWith("Block |")) {
-          return log;
+          counterexampleLog = log;
+          counterexampleStatus = Status.Success;
+          var blockId = int.Parse(Regex.Replace(line, @"\s+", "").Split('|')[2]);
+          coversBlocks.Add(blockId);
+          if (DafnyOptions.O.TestGenOptions.Verbose) {
+            Console.WriteLine($"// Test {uniqueId} covers block {blockId}");
+          }
         }
       }
+      if (DafnyOptions.O.TestGenOptions.Verbose && counterexampleLog == null) {
+        if (log == "") {
+          Console.WriteLine(
+            $"// No test can be generated for {uniqueId} " +
+            "because the verifier suceeded.");
+        } else if (log.Contains("MODEL")) {
+          Console.WriteLine(
+            $"// No test can be generated for {uniqueId} " +
+            "because there is no enhanced error trace.");
+        } else if (log.Contains("anon0")) {
+          Console.WriteLine(
+            $"// No test can be generated for {uniqueId} " +
+            "because the model cannot be extracted.");
+        } else {
+          Console.WriteLine(
+            $"// No test can be generated for {uniqueId} " +
+            "because the verifier timed out.");
+        }
+      }
+      return counterexampleLog;
+    }
+
+    public async Task<TestMethod> GetTestMethod(DafnyInfo dafnyInfo, bool returnNullIfNotUnique = true) {
+      if (DafnyOptions.O.TestGenOptions.Verbose) {
+        Console.WriteLine(
+          $"// Extracting the test for {uniqueId} from the counterexample...");
+      }
+      var log = await GetCounterExampleLog();
+      if (log == null) {
+        return null;
+      }
+      testMethod = new TestMethod(dafnyInfo, log);
+      if (!testMethod.IsValid || !returnNullIfNotUnique) {
+        return testMethod;
+      }
+      var duplicate = ModificationsForImplementation(implementation)
+        .Where(mod => mod != this && Equals(mod.testMethod, testMethod))
+        .FirstOrDefault((ProgramModification)null);
+      if (duplicate == null) {
+        return testMethod;
+      }
+      if (DafnyOptions.O.TestGenOptions.Verbose) {
+        Console.WriteLine(
+          $"// Test for {uniqueId} matches a test previously generated " +
+          $"for {duplicate.uniqueId}.");
+      }
       return null;
+    }
+
+    private static IEnumerable<ProgramModification>
+      ModificationsForImplementation(Implementation implementation) =>
+      idToModification.Values.Where(modification =>
+        modification.implementation == implementation ||
+        DafnyOptions.O.TestGenOptions.TargetMethod != null);
+
+    private static bool BlocksAreCovered(Implementation implementation, HashSet<int> blockIds, bool onlyIfTestsExists = false) {
+      var relevantModifications = ModificationsForImplementation(implementation).Where(modification =>
+        modification.counterexampleStatus == Status.Success && (!onlyIfTestsExists || (modification.testMethod != null && modification.testMethod.IsValid)));
+      return blockIds.All(blockId =>
+        relevantModifications.Any(mod => mod.coversBlocks.Contains(blockId)));
+    }
+    public bool IsCovered => BlocksAreCovered(implementation, coversBlocks);
+
+    public static void ResetStatistics() {
+      idToModification = new();
     }
   }
 }

@@ -1,14 +1,16 @@
-using System.Collections.Concurrent;
+#nullable disable
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 using Microsoft.Dafny;
 using Program = Microsoft.Dafny.Program;
 
 namespace DafnyTestGeneration {
 
   public static class Main {
+
+    public static bool setNonZeroExitCode = false;
 
     /// <summary>
     /// This method returns each capturedState that is unreachable, one by one,
@@ -19,6 +21,8 @@ namespace DafnyTestGeneration {
     /// <returns></returns>
     public static async IAsyncEnumerable<string> GetDeadCodeStatistics(Program program) {
 
+      DafnyOptions.O.PrintMode = PrintModes.Everything;
+      ProgramModification.ResetStatistics();
       var modifications = GetModifications(program).ToList();
       var blocksReached = modifications.Count;
       HashSet<string> allStates = new();
@@ -27,7 +31,11 @@ namespace DafnyTestGeneration {
       // Generate tests based on counterexamples produced from modifications
       for (var i = modifications.Count - 1; i >= 0; i--) {
         await modifications[i].GetCounterExampleLog();
-        var deadStates = ((BlockBasedModification)modifications[i]).GetKnownDeadStates();
+        var deadStates = new HashSet<string>();
+        if (!modifications[i].IsCovered) {
+          deadStates = modifications[i].CapturedStates;
+        }
+
         if (deadStates.Count != 0) {
           foreach (var capturedState in deadStates) {
             yield return $"Code at {capturedState} is potentially unreachable.";
@@ -35,30 +43,32 @@ namespace DafnyTestGeneration {
           blocksReached--;
           allDeadStates.UnionWith(deadStates);
         }
-        allStates.UnionWith(((BlockBasedModification)modifications[i]).GetAllStates());
+        allStates.UnionWith(modifications[i].CapturedStates);
       }
 
       yield return $"Out of {modifications.Count} basic blocks " +
                    $"({allStates.Count} capturedStates), {blocksReached} " +
                    $"({allStates.Count - allDeadStates.Count}) are reachable. " +
-                   $"There might be false negatives if you are not unrolling " +
-                   $"loops. False positives are always possible.";
+                   "There might be false negatives if you are not unrolling " +
+                   "loops. False positives are always possible.";
     }
 
     public static async IAsyncEnumerable<string> GetDeadCodeStatistics(string sourceFile) {
+      DafnyOptions.O.PrintMode = PrintModes.Everything;
       var source = await new StreamReader(sourceFile).ReadToEndAsync();
       var program = Utils.Parse(source, sourceFile);
       if (program == null) {
         yield return "Cannot parse program";
         yield break;
       }
-
       await foreach (var line in GetDeadCodeStatistics(program)) {
         yield return line;
       }
     }
 
     private static IEnumerable<ProgramModification> GetModifications(Program program) {
+      var dafnyInfo = new DafnyInfo(program);
+      setNonZeroExitCode = dafnyInfo.SetNonZeroExitCode || setNonZeroExitCode;
       // Translate the Program to Boogie:
       var oldPrintInstrumented = DafnyOptions.O.PrintInstrumented;
       DafnyOptions.O.PrintInstrumented = true;
@@ -72,33 +82,34 @@ namespace DafnyTestGeneration {
         DafnyOptions.O.TestGenOptions.Mode == TestGenerationOptions.Modes.Path
           ? new PathBasedModifier()
           : new BlockBasedModifier();
-      return programModifier.GetModifications(boogiePrograms);
+      return programModifier.GetModifications(boogiePrograms, dafnyInfo);
     }
 
     /// <summary>
     /// Generate test methods for a certain Dafny program.
     /// </summary>
     /// <returns></returns>
-    public static async IAsyncEnumerable<TestMethod> GetTestMethodsForProgram(
-      Program program, DafnyInfo? dafnyInfo = null) {
+    public static async IAsyncEnumerable<TestMethod> GetTestMethodsForProgram(Program program) {
 
-      dafnyInfo ??= new DafnyInfo(program);
-      var modifications = GetModifications(program).ToList();
-
+      DafnyOptions.O.PrintMode = PrintModes.Everything;
+      ProgramModification.ResetStatistics();
+      var dafnyInfo = new DafnyInfo(program);
+      setNonZeroExitCode = dafnyInfo.SetNonZeroExitCode || setNonZeroExitCode;
       // Generate tests based on counterexamples produced from modifications
-      var testMethods = new ConcurrentBag<TestMethod>();
-      for (var i = modifications.Count - 1; i >= 0; i--) {
-        var log = await modifications[i].GetCounterExampleLog();
+
+      foreach (var modification in GetModifications(program)) {
+
+        var log = await modification.GetCounterExampleLog();
         if (log == null) {
           continue;
         }
-        var testMethod = new TestMethod(dafnyInfo, log);
-        if (testMethods.Contains(testMethod)) {
+        var testMethod = await modification.GetTestMethod(dafnyInfo);
+        if (testMethod == null) {
           continue;
         }
-        testMethods.Add(testMethod);
         yield return testMethod;
       }
+      setNonZeroExitCode = dafnyInfo.SetNonZeroExitCode || setNonZeroExitCode;
     }
 
     /// <summary>
@@ -106,6 +117,7 @@ namespace DafnyTestGeneration {
     /// </summary>
     public static async IAsyncEnumerable<string> GetTestClassForProgram(string sourceFile) {
 
+      DafnyOptions.O.PrintMode = PrintModes.Everything;
       TestMethod.ClearTypesToSynthesize();
       var source = new StreamReader(sourceFile).ReadToEnd();
       var program = Utils.Parse(source, sourceFile);
@@ -113,7 +125,8 @@ namespace DafnyTestGeneration {
         yield break;
       }
       var dafnyInfo = new DafnyInfo(program);
-      var rawName = Path.GetFileName(sourceFile).Split(".").First();
+      setNonZeroExitCode = dafnyInfo.SetNonZeroExitCode || setNonZeroExitCode;
+      var rawName = Regex.Replace(sourceFile, "[^a-zA-Z0-9_]", "");
 
       string EscapeDafnyStringLiteral(string str) {
         return $"\"{str.Replace(@"\", @"\\")}\"";
@@ -121,16 +134,19 @@ namespace DafnyTestGeneration {
 
       yield return $"include {EscapeDafnyStringLiteral(sourceFile)}";
       yield return $"module {rawName}UnitTests {{";
-      foreach (var module in dafnyInfo.ToImport) {
-        yield return $"import {module}";
+      foreach (var module in dafnyInfo.ToImportAs.Keys) {
+        if (module.Split(".").Last() == dafnyInfo.ToImportAs[module]) {
+          yield return $"import {module}";
+        } else {
+          yield return $"import {dafnyInfo.ToImportAs[module]} = {module}";
+        }
       }
 
-      await foreach (var method in GetTestMethodsForProgram(program, dafnyInfo)) {
+      await foreach (var method in GetTestMethodsForProgram(program)) {
         yield return method.ToString();
       }
 
-      yield return TestMethod.EmitSynthesizeMethods();
-
+      yield return TestMethod.EmitSynthesizeMethods(dafnyInfo);
       yield return "}";
     }
   }
