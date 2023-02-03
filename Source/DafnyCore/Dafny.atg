@@ -1718,7 +1718,7 @@ IdentTypeOptional<out BoundVar var>
      // disambiguate, it makes sense to force the colon to consider the ': type' here. Hence the semantic predicate.
      // Also a SetComprehension would be the wrong type in a slices-by-length construct.
   ]
-  (. var = new BoundVar(name.StartToken.To(t), name.Value, optType == null ? new InferredTypeProxy() : optType) {
+  (. var = new BoundVar(name.StartToken.To(t), name, optType == null ? new InferredTypeProxy() : optType) {
        IsTypeExplicit = optType != null
      }; .)
   .

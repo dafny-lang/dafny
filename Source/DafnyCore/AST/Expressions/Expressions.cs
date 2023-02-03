@@ -1600,6 +1600,8 @@ public class SeqConstructionExpr : Expression {
 }
 
 public class MultiSetFormingExpr : Expression {
+  public override IToken Tok => E.StartToken.Prev;
+
   [Peer]
   public readonly Expression E;
   [ContractInvariantMethod]
