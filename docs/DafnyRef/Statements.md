@@ -1008,10 +1008,26 @@ Examples:
 ```dafny
 method m(i: int) {
   var x: int;
-  if i > 0 { x := i; } else { x := -i; }
-  if * { x := i; } else { x := -i; }
-  if i: nat, j: nat :| i+j<10 { assert i < 10; }
-  if i == 0 { x := 0; } else if i > 0 { x := 1; } else { x := -1; }
+  if i > 0 {
+    x := i;
+  } else {
+    x := -i;
+  }
+  if * {
+    x := i;
+  } else {
+    x := -i;
+  }
+  if i: nat, j: nat :| i+j<10 {
+    assert i < 10;
+  }
+  if i == 0 {
+    x := 0;
+  } else if i > 0 {
+    x := 1;
+  } else {
+    x := -1;
+  }
   if 
     case i == 0 => x := 0;
     case i > 0 => x := 1;
