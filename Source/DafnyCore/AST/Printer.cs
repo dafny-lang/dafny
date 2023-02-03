@@ -2156,7 +2156,11 @@ NoGhost - disable printing of functions, ghost methods, and proof
           // we're looking at a tuple, whose printed constructor name is essentially the empty string
           printParens = true;
         } else {
-          wr.Write("{0}.{1}", dtv.DatatypeName, dtv.MemberName);
+          var typeArgs = "";
+          if (dtv.InferredTypeArgs != null && dtv.InferredTypeArgs.Count != 0) {
+            typeArgs = $"<{string.Join(",", dtv.InferredTypeArgs.ConvertAll(ty => ty.ToString()))}>";
+          }
+          wr.Write("{0}{1}.{2}", dtv.DatatypeName, typeArgs, dtv.MemberName);
           printParens = dtv.Arguments.Count != 0;
         }
         if (printParens) {

@@ -5386,7 +5386,7 @@ namespace Microsoft.Dafny {
             if (cl != null && !(rr.EType.IsTraitType && !rr.EType.NormalizeExpand().IsObjectQ)) {
               // life is good
             } else {
-              reporter.Error(MessageSource.Resolver, stmt, "new can be applied only to class types (got {0})", rr.EType);
+              reporter.Error(MessageSource.Resolver, rr.tok, "new can be applied only to class types (got {0})", rr.EType);
             }
           } else {
             string initCallName = null;
@@ -5410,7 +5410,7 @@ namespace Microsoft.Dafny {
             }
             var cl = (rr.EType as UserDefinedType)?.ResolvedClass as NonNullTypeDecl;
             if (cl == null || rr.EType.IsTraitType) {
-              reporter.Error(MessageSource.Resolver, stmt, "new can be applied only to class types (got {0})", rr.EType);
+              reporter.Error(MessageSource.Resolver, rr.tok, "new can be applied only to class types (got {0})", rr.EType);
             } else {
               // ---------- new C.Init(EE)
               Contract.Assert(initCallName != null);
