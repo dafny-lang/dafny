@@ -629,6 +629,9 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   public IToken TokenWithTrailingDocString = Token.NoToken;
   public string DafnyName => NameNode.StartToken.val; // The (not-qualified) name as seen in Dafny source code
   public readonly Name NameNode; // (Last segment of the) module name
+
+  public override IToken Tok => NameNode.StartToken;
+  
   public string Name => NameNode.Value;
   public string FullDafnyName {
     get {
