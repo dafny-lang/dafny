@@ -194,6 +194,10 @@ public class CodeActionToken : TokenWrapper {
     this.start = start;
     this.length = length;
   }
+
+  public String StartLength() {
+    return start + " " + length;
+  }
 }
 
 public class NestedToken : TokenWrapper {
