@@ -264,7 +264,7 @@ x / y
 x % y
 ```
 
-A ``Factor`` combines bit-vector expressions using multiplication,
+A ``Factor`` combines expressions using multiplication,
 division, or modulus. For numeric types these are explained in
 [Section 6.2](#sec-numeric-types).
 As explained there, `/` and `%` on `int` values represent _Euclidean_
@@ -636,7 +636,7 @@ fresh(e)
 ```
 
 These expressions represent either a constant of some type (a literal), or an
-atomic expression. They are neve l-values.
+atomic expression. They are never l-values.
 
 ## 21.20. Literal Expressions ([grammar](#g-literal-expression)} {#sec-literal-expression}
 
