@@ -58,8 +58,15 @@ namespace Microsoft.Dafny {
       CanonicalPath = Canonicalize(filePath);
 
       if (!useStdin && !Path.IsPathRooted(filePath)) {
-        if (filePath?.StartsWith("file:") == true) {
-          filePath = (new Uri(filePath)).LocalPath;
+        if (filePath != null
+            && filePath.StartsWith("file:")) {
+          if (Uri.IsWellFormedUriString(filePath, UriKind.RelativeOrAbsolute)) {
+            filePath = (new Uri(filePath)).LocalPath;
+          } else if (filePath.StartsWith("file:\\")) { // Recovery mechanisms for the language server
+            filePath = filePath.Substring("file:\\".Length);
+          } else {
+            filePath = filePath.Substring("file:".Length);
+          }
         } else {
           filePath = Path.GetFullPath(filePath);
         }
