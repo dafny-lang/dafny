@@ -6263,7 +6263,7 @@ namespace Microsoft.Dafny {
       // For 3:
       TopLevelDecl decl;
 
-      var nameNode = resolutionContext.InReveal ? "reveal_" + expr.NameNode : expr.NameNode;
+      var nameNode = resolutionContext.InReveal ? expr.NameNode.Prepend("reveal_") : expr.NameNode;
       var name = nameNode.Value;
       v = scope.Find(name);
       if (v != null) {
