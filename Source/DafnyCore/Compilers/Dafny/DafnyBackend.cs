@@ -5,34 +5,23 @@ using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Text.RegularExpressions;
 
 namespace Microsoft.Dafny.Compilers;
 
 public class DafnyBackend : ExecutableBackend {
 
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".dfy" };
-
   public override string TargetLanguage => "Dafny";
   public override string TargetExtension => "dfy";
   public override int TargetIndentSize => 4;
-
   public override string TargetBaseDir(string dafnyProgramName) =>
     $"{Path.GetFileNameWithoutExtension(dafnyProgramName)}-dfy";
-
   public override bool SupportsInMemoryCompilation => false;
   public override bool TextualTargetIsExecutable => false;
-
-  public override IReadOnlySet<string> SupportedNativeTypes =>
-    new HashSet<string> { "byte", "sbyte", "ushort", "short", "uint", "int", "number", "ulong", "long" };
 
   protected override SinglePassCompiler CreateCompiler() {
     return new DafnyCompiler(Reporter);
   }
-
-  private static readonly Regex ModuleLine = new(@"^\s*assert\s+""([a-zA-Z0-9_]+)""\s*==\s*__name__\s*$");
 
   public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText,
       string /*?*/ callToMain, string /*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
@@ -47,9 +36,18 @@ public class DafnyBackend : ExecutableBackend {
     return true;
   }
 
+  /*
+   * The Dafny backend is different from the other backends in that the output code needs to be compiled
+   * by the Dafny compiler itself to another backend for execution.
+   */
   public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string /*?*/ callToMain,
     string targetFilename, ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
     Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
+
+    /*
+     * In order to work for the continuous integration, we need to call the Dafny compiler using dotnet
+     * because dafny is not currently in the path
+     */
 
     var where = System.Reflection.Assembly.GetExecutingAssembly().Location;
     where = System.IO.Path.GetDirectoryName(where);

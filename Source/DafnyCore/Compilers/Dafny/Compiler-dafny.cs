@@ -1,18 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.Diagnostics.Contracts;
-using System.IO;
-using System.Linq;
-using System.Numerics;
-using System.Text.RegularExpressions;
 using JetBrains.Annotations;
-using ExtensionMethods;
-using Microsoft.BaseTypes;
-using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.Compilers {
+
   class DafnyCompiler : SinglePassCompiler {
     public DafnyCompiler(ErrorReporter reporter) : base(reporter) {
       if (DafnyOptions.O?.CoverageLegendFile != null) {
@@ -59,17 +51,6 @@ namespace Microsoft.Dafny.Compilers {
 
     private const string DafnyRuntimeModule = "_dafny";
     private const string DafnyDefaultModule = "module_";
-    const string DafnySetClass = $"{DafnyRuntimeModule}.Set";
-    const string DafnyMultiSetClass = $"{DafnyRuntimeModule}.MultiSet";
-    const string DafnySeqClass = $"{DafnyRuntimeModule}.Seq";
-    private string DafnySeqMakerFunction => UnicodeCharEnabled ? $"{DafnyRuntimeModule}.SeqWithoutIsStrInference" : DafnySeqClass;
-    const string DafnyArrayClass = $"{DafnyRuntimeModule}.Array";
-    const string DafnyMapClass = $"{DafnyRuntimeModule}.Map";
-    const string DafnyDefaults = $"{DafnyRuntimeModule}.defaults";
-    static string FormatDefaultTypeParameterValue(TopLevelDecl tp) {
-      Contract.Requires(tp is TypeParameter or OpaqueTypeDecl);
-      return $"default_{tp.CompileName}";
-    }
 
     protected override string AssignmentSymbol { get => " := "; }
 
@@ -97,10 +78,6 @@ namespace Microsoft.Dafny.Compilers {
         throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
       return wr.NewBlock($"module {IdProtect(moduleName)}");
-    }
-
-    private void EmitImports(string moduleName, ConcreteSyntaxTree wr) {
-      wr.WriteLine($"import {IdProtect(moduleName)}");
     }
 
     protected override string GetHelperModuleName() => DafnyRuntimeModule;
@@ -132,24 +109,12 @@ namespace Microsoft.Dafny.Compilers {
       throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
     }
 
-    private void DatatypeFieldsAndConstructor(DatatypeCtor ctor, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
-    }
-
-    private static string DtCtorDeclarationName(DatatypeCtor ctor, bool full = true) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
-    }
-
-    protected IClassWriter DeclareType(TopLevelDecl d, SubsetTypeDecl.WKind witnessKind, Expression witness, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
-    }
-
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr) {
       throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, ConcreteSyntaxTree wr) {
-      wr.WriteLine("// TODO: DeclareSubsetType");
+      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
     }
 
     protected override void GetNativeInfo(NativeType.Selection sel, out string name, out string literalSuffix, out bool needsCastAfterArithmetic) {
@@ -229,16 +194,6 @@ namespace Microsoft.Dafny.Compilers {
         ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
       var wrBody = wr.NewBlock($"static method {IdProtect(m.FullDafnyName)}()");
       return wrBody;
-    }
-
-    // protected override ConcreteSyntaxTree EmitMethodReturns(Method m, ConcreteSyntaxTree wr) {
-    //   // Requires Implementation
-    //   return wr;
-    // }
-
-    private void WriteFormals(List<TypeArgumentInstantiation> typeParams, List<Formal> formals, bool isStatic,
-      bool customReceiver, ref string sep, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
     }
 
     private ConcreteSyntaxTree CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs,
@@ -435,11 +390,6 @@ namespace Microsoft.Dafny.Compilers {
       throw new UnsupportedFeatureException(e0.tok, Feature.BitvectorRotateFunctions);
     }
 
-    // void EmitShift(Expression e0, Expression e1, string op, bool truncate, bool firstOp, ConcreteSyntaxTree wr,
-    //     bool inLetExprBody, ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr) {
-    //   throw new NotImplementedException();
-    // }
-
     protected override void EmitEmptyTupleList(string tupleTypeArgs, ConcreteSyntaxTree wr) {
       throw new UnsupportedFeatureException(Token.NoToken, Feature.NonSequentializableForallStatements);
     }
@@ -467,10 +417,6 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitThis(ConcreteSyntaxTree wr) {
       wr.Write("this");
     }
-
-    // protected override void EmitNull(Type _, ConcreteSyntaxTree wr) {
-    //   throw new NotImplementedException();
-    // }
 
     protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, ConcreteSyntaxTree wr) {
       throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
@@ -751,16 +697,9 @@ namespace Microsoft.Dafny.Compilers {
         SeqType => ("[", "]"),
         _ => ("{", "}")
       };
-      //wr.Write(ct is SeqType ? DafnySeqMakerFunction : TypeHelperName(ct));
-      //wr.Write("(");
       wr.Write(open);
       TrExprList(elements, wr, inLetExprBody, wStmts, parens: false);
       wr.Write(close);
-      //wr.Write(")");
-    }
-
-    private static string TypeHelperName(Type ct) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
     }
 
     protected override void EmitMapDisplay(MapType mt, IToken tok, List<ExpressionPair> elements, bool inLetExprBody,
@@ -786,7 +725,6 @@ namespace Microsoft.Dafny.Compilers {
       throw new UnsupportedFeatureException(tok, Feature.MapComprehensions);
     }
 
-    [CanBeNull]
     protected override string GetSubtypeCondition(string tmpVarName, Type boundVarType, IToken tok, ConcreteSyntaxTree wPreconditions) {
       throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
     }
