@@ -40,7 +40,7 @@ The label may also be used in an `old` expression ([Section 21.22](#sec-old-expr
 must have been encountered during the control flow en route to the `old`
 expression. We say in this case that the (program point of the) label _dominates_
 the (program point of the) use of the label.
-Similarly, labels are used to indicates previous states in calls of [two-state predicates](#sec-two-state),
+Similarly, labels are used to indicate previous states in calls of [two-state predicates](#sec-two-state),
 [fresh](#sec-fresh-expression) expressions, [unchanged expressions](#sec-unchanged-expression), 
 and [allocated](#sec-allocated-expression) expressions.
 
@@ -363,13 +363,20 @@ Examples:
 <!-- %check-resolve -->
 ```dafny
 class C { var f: int }
+class D {
+  var i: int
+  constructor(i: int) {
+    this.i := i;
+  }
+}
 method q(i: int, j: int) {}
 method r() returns (s: int, t: int) { return 2,3; }
 method m() {
-  var ss: int, tt: int, c: C?, a: array<int>;
+  var ss: int, tt: int, c: C?, a: array<int>, d: D?;
   q(0,1);
   ss, c.f := r();
   c := new C;
+  d := new D(2);
   a := new int[10];
   ss, tt := 212, 33;
   ss :| ss > 7;
@@ -807,8 +814,8 @@ There are several points to note.
   the caller's first out-parameter type.
   If the caller's first out-parameter type is failure-compatible (which it need not be),
   then failures can be propagated up the call chain.
-  If the keyword form of the statement is used, then no `PropagateFailure` member
-  is needed and there is no restriction on the caller's first out-parameter.
+  If the keyword form (e.g. `assume`) of the statement is used, then no `PropagateFailure` member
+  is needed, because no failure can occur, and there is no restriction on the caller's first out-parameter.
 * In the statement `j, k :- Callee(i);`,
   when the callee's return value has an `Extract` member,
   the type of `j` is not the type of the first out-parameter of `Callee`.
@@ -1037,8 +1044,8 @@ The then alternative of the if-statement must be block statement;
 the else alternative may be either a block statement or another if statement.
 The condition of the if statement need not (but may) be enclosed in parentheses.
 
-An if-statement with a binding guard is a ghost statement.
-An if statement with `*` for a guard is non-deterministic.
+An if statement with a binding guard is non-deterministic;
+an if statement with `*` for a guard is non-deterministic and ghost.
 
 The `if-case` statement using the `AlternativeBlock` form is similar to the
 `if ... fi` construct used in the book "A Discipline of Programming" by
