@@ -16,10 +16,10 @@ public class ErrorMessageDafnyCodeActionProvider : DiagnosticDafnyCodeActionProv
     }
     try {
       String s = data.ToString();
-      var nums = s.split(" ");
-      var line = Int32.Parse(s[0]);
-      var column = Int32.Parse(s[1]);
-      var length = Int32.Parse(s[2]);
+      var nums = s.Split(" ");
+      var line = Int32.Parse(nums[0]);
+      var column = Int32.Parse(nums[1]);
+      var length = Int32.Parse(nums[2]);
       return new Range(line, column, line, column + length);
     } catch (Exception) {
       // Just return the default
