@@ -3171,7 +3171,7 @@ public class ExprDotName : SuffixExpr, ICloneable<ExprDotName> {
 /// An ApplySuffix desugars into either an ApplyExpr or a FunctionCallExpr
 /// </summary>
 public class ApplySuffix : SuffixExpr, ICloneable<ApplySuffix> {
-  public override IToken Tok => OverrideToken ?? Lhs.EndToken.Next;
+  public override IToken Tok => OverrideToken ?? (AtTok ?? Lhs.EndToken).Next;
 
   public readonly IToken/*?*/ AtTok;
   public readonly IToken CloseParen;

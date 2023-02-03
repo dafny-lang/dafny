@@ -4784,15 +4784,17 @@ NameSegment<out Expression e>
      List<Type> typeArgs = null; List<ActualBinding> args = null;
   .)
   IName<out var name>
+  (. var nameEndToken = t; .)
   ( IF(IsGenericInstantiation(true))
     (. typeArgs = new List<Type>(); .)
     GenericInstantiation<typeArgs>
+    (. nameEndToken = t; .)
     [ AtCall<out atLabel, out openParen, out args> ]
   | HashCall<name.StartToken, out openParen, out typeArgs, out args>
   | [ AtCall<out atLabel, out openParen, out args> ]
   )
   /* Note, since HashCall updates name.StartToken.value, make sure to create a new name after it is called. */
-  (. e = new NameSegment(new RangeToken(name.StartToken, t), new Name(name.StartToken), typeArgs);
+  (. e = new NameSegment(new RangeToken(name.StartToken, nameEndToken), new Name(name.StartToken), typeArgs);
      if (openParen != null) {
        e = new ApplySuffix(new RangeToken(name.StartToken, t), atLabel, e, args, t);
      } else {
