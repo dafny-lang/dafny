@@ -4,9 +4,7 @@ Many of Dafny's statements are similar to those in traditional
 programming languages, but a number of them are significantly different.
 Dafny's various kinds of statements are described in subsequent sections.
 
-Statements have zero or more labels.
-
-Statements typically end with either a semicolon (`;`) or a closing curly brace ('}').
+Statements have zero or more labels and typically end with either a semicolon (`;`) or a closing curly brace ('}').
 
 ## 20.1. Labeled Statement ([grammar](#g-labeled-statement)) {#sec-labeled-statement}
 
