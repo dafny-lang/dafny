@@ -54,7 +54,14 @@ public class DafnyBackend : ExecutableBackend {
     var dafny = where + "/Dafny.dll";
 
     var opt = DafnyOptions.O;
-    var psi = PrepareProcessStartInfo("dotnet", opt.MainArgs.Prepend("/compileTarget:cs").Prepend("/compile:4").Prepend("/compileVerbose:0").Prepend("/printVerifiedProceduresCount:0").Prepend("/noVerify").Prepend(targetFilename).Prepend(dafny));
+    var psi = PrepareProcessStartInfo("dotnet", opt.MainArgs
+      .Prepend("/compileTarget:cs")
+      .Prepend("/compile:4")
+      .Prepend("/compileVerbose:0")
+      .Prepend("/printVerifiedProceduresCount:0")
+      .Prepend("/noVerify")
+      .Prepend(targetFilename)
+      .Prepend(dafny));
 
     /*
      * When this code was written, the Dafny compiler cannot be made completely silent.
