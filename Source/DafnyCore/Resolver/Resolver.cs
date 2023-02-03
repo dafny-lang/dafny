@@ -6452,7 +6452,7 @@ namespace Microsoft.Dafny {
         } else if (allowMethod && memberDecl is Method) {
           // give a deprecation warning, so we will remove this language feature around the Dafny 4 time frame
           origReporter.Deprecated(MessageSource.Resolver, tok,
-            $"Support for member '{memberDecl.Name}' in type '{tp}' (used indirectly via a :- statement) being a method is being deprecated;" +
+            $"Support for member '{memberDecl.Name}' in type '{tp}' (used indirectly via a :- statement) being a method is deprecated;" +
             " declare it to be a function instead");
         } else {
           // not allowed

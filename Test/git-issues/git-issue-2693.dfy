@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /compile:0 "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /functionSyntax:4 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module A {
@@ -15,7 +15,7 @@ module A {
   class EvenGood_OddBad {
     var a: int
 
-    function method IsFailure(): bool
+    function IsFailure(): bool
       reads this
     {
       a % 2 == 1
@@ -57,15 +57,15 @@ module B {
 
   datatype GhostFailureCompatible = Success | Failure
   {
-    predicate IsFailure()
-    function PropagateFailure(): GhostFailureCompatible
-    function Extract(): int
+    ghost predicate IsFailure()
+    ghost function PropagateFailure(): GhostFailureCompatible
+    ghost function Extract(): int
   }
 
   datatype GhostFailureCompatible' = Success' | Failure'
   {
-    predicate IsFailure()
-    function PropagateFailure(): GhostFailureCompatible'
+    ghost predicate IsFailure()
+    ghost function PropagateFailure(): GhostFailureCompatible'
   }
 
   ghost method Client() returns (r: GhostFailureCompatible) {
