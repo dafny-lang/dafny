@@ -3418,7 +3418,7 @@ public abstract class SuffixExpr : ConcreteSyntaxExpression {
         foreach (var sub in PreResolveSubExpressions) {
           yield return sub;
         }
-      } else {
+      } else if (Resolved != null) {
         yield return Resolved;
       }
     }
