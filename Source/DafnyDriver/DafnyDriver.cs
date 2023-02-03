@@ -427,7 +427,7 @@ namespace Microsoft.Dafny {
         var dafnyFile = file;
         if (dafnyFile.UseStdin && !doCheck && !doPrint) {
           Console.Error.WriteLine("Please use the --check and/or --print option as stdin cannot be formatted in place.");
-          exitValue = ExitValue.DAFNY_ERROR;
+          exitValue = ExitValue.PREPROCESSING_ERROR;
           continue;
         }
 

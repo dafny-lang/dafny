@@ -642,7 +642,20 @@ public class TypeRhs : AssignmentRhs, ICloneable<TypeRhs> {
 
   public IToken Start => Tok;
 
-  public override IEnumerable<Node> Children =>
+  public override IEnumerable<Node> Children {
+    get {
+      if (ArrayDimensions == null) {
+        if (InitCall != null) {
+          return new[] { InitCall };
+        }
+
+        return EType.Nodes;
+      }
+
+      return EType.Nodes.Concat(SubExpressions).Concat<Node>(SubStatements);
+    }
+  }
+  public override IEnumerable<Node> ConcreteChildren =>
     new[] { EType, Type }.OfType<UserDefinedType>()
       .Concat<Node>(ArrayDimensions ?? Enumerable.Empty<Node>())
       .Concat<Node>(ElementInit != null ? new[] { ElementInit } : Enumerable.Empty<Node>())
@@ -650,8 +663,6 @@ public class TypeRhs : AssignmentRhs, ICloneable<TypeRhs> {
       .Concat<Node>((Bindings != null ? Arguments : null) ?? Enumerable.Empty<Node>());
 
   public override IEnumerable<Statement> PreResolveSubStatements => Enumerable.Empty<Statement>();
-
-  public override IEnumerable<Node> ConcreteChildren => Children;
 }
 
 public class HavocRhs : AssignmentRhs {
