@@ -315,6 +315,10 @@ method m(i: int) returns (r: int) {
 method m(i: int) returns (r: int, q: int) {
   return i+1, i + 2;
 }
+method p() returns (i: int) {
+  i := 1;
+  return;
+}
 method p() {
   return;
 }
