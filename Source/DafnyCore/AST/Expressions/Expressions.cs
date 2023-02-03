@@ -78,7 +78,9 @@ public abstract class Expression : RangeNode {
   }
 
   protected Expression(Cloner cloner, Expression original) : base(cloner, original) {
-    OverrideToken = cloner.Tok(original.OverrideToken);
+    if (original.OverrideToken != null) {
+      OverrideToken = cloner.Tok(original.OverrideToken);
+    }
     if (cloner.CloneResolvedFields && original.Type != null) {
       Type = original.Type;
     }
