@@ -188,15 +188,15 @@ public class BoogieRangeToken : TokenWrapper {
 }
 
 public class CodeActionToken : TokenWrapper {
-  public int start;
+  public int column;
   public int length;
-  public CodeActionToken(IToken sourceTok, int start, int length) : base(sourceTok) {
-    this.start = start;
+  public CodeActionToken(IToken sourceTok, int column, int length) : base(sourceTok) {
+    this.column = column;
     this.length = length;
   }
 
   public String StartLength() {
-    return start + " " + length;
+    return (line - 1) + " " + (column - 1) + " " + length;
   }
 }
 

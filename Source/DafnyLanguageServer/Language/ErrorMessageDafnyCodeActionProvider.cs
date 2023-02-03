@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Collections.Generic;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
@@ -13,22 +14,16 @@ public class ErrorMessageDafnyCodeActionProvider : DiagnosticDafnyCodeActionProv
     if (data is null) {
       return def;
     }
-    // If the token provided does not have the format expected, just use the default
     try {
-      var sl = data.First?.First?.First?.ToString();
-      var sc = data.First?.First?.Last?.ToString();
-      var el = data.Last?.First?.First?.ToString();
-      var ec = data.Last?.First?.Last?.ToString();
-      if (sl == null || sc == null || el == null || ec == null) {
-        return def;
-      } else {
-        int sline = Int32.Parse(sl.Substring(sl.IndexOf(":") + 1));
-        int schar = Int32.Parse(sc.Substring(sc.IndexOf(":") + 1));
-        int eline = Int32.Parse(el.Substring(el.IndexOf(":") + 1));
-        int echar = Int32.Parse(ec.Substring(ec.IndexOf(":") + 1));
-        return new Range(sline, schar, eline, echar);
-      }
+      String s = data.ToString();
+      int k1 = s.IndexOf(" ");
+      int k2 = s.IndexOf(" ", k1 + 1);
+      int line = Int32.Parse(s.Substring(0, k1));
+      int column = Int32.Parse(s.Substring(k1 + 1, k2 - k1 - 1));
+      int length = Int32.Parse(s.Substring(k2 + 1));
+      return new Range(line, column, line, column + length);
     } catch (Exception) {
+      // Just return the default
     }
     return def;
   }
@@ -40,8 +35,8 @@ public class ErrorMessageDafnyCodeActionProvider : DiagnosticDafnyCodeActionProv
     if (action == null) {
       return new List<DafnyCodeAction> { };
     } else {
-      Range range = diagnostic.Range;
-      //Range range = InterpretDataAsRangeOrDefault(diagnostic.Data, diagnostic.Range);
+      //Range range = diagnostic.Range;
+      Range range = InterpretDataAsRangeOrDefault(diagnostic.Data, diagnostic.Range);
       return action(diagnostic, range);
     }
   }

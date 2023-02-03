@@ -213,22 +213,22 @@ public class Errors {
 
   // Code action range is from start of given token and with given new length
   public static CodeActionToken CodeAction(IToken sourceTok, int len) {
-    return new CodeActionToken(sourceTok, sourceTok.pos, len);
+    return new CodeActionToken(sourceTok, sourceTok.col, len);
   }
 
-  // Code action range has given start and length
-  public static CodeActionToken CodeAction(IToken sourceTok, int start, int len) {
-    return new CodeActionToken(sourceTok, start, len);
+  // Code action range has given column and length
+  public static CodeActionToken CodeAction(IToken sourceTok, int column, int len) {
+    return new CodeActionToken(sourceTok, column, len);
   }
 
   // Code action range is up to, not including, the next token
   public static CodeActionToken CodeAction(IToken sourceTok, IToken next) {
-    return new CodeActionToken(sourceTok, sourceTok.pos, next.pos - sourceTok.pos);
+    return new CodeActionToken(sourceTok, sourceTok.col, next.pos - sourceTok.pos);
   }
 
   // Code action range is same as the given token
   public static CodeActionToken CodeAction(IToken sourceTok) {
-    return new CodeActionToken(sourceTok, sourceTok.pos, sourceTok.val.Length);
+    return new CodeActionToken(sourceTok, sourceTok.col, sourceTok.val.Length);
   }
 
   public static CodeActionToken FindCodeActionRange(IToken toptok) {
