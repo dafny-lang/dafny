@@ -950,7 +950,11 @@ Examples (in `if` statements):
 ```dafny
 method m(i: int) {
   ghost var k: int;
-  if i, j :| 0 < i+j < 10 { k := 0; } else { k := 1; }
+  if i, j :| 0 < i+j < 10 {
+    k := 0;
+  } else {
+    k := 1;
+  }
 }
 ```
 
