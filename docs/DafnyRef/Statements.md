@@ -301,7 +301,7 @@ Examples:
 }
 ```
 
-A block statement is just a sequence of zero or more statements enclosed by curly braces.
+A block statement is a sequence of zero or more statements enclosed by curly braces.
 Local variables declared in the block end their scope at the end of the block.
 
 ## 20.4. Return Statement ([grammar](#g-return-statement)) {#sec-return-statement}
