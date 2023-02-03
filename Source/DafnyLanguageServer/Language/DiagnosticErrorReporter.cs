@@ -167,8 +167,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         Range = tok.GetLspRange(),
         Source = source.ToString(),
         RelatedInformation = relatedInformation,
-        // TODO - change to dafny.org before final merge
-        CodeDescription = errorID == ErrorID.None ? null : new CodeDescription { Href = new System.Uri("https://davidcok.github.io/dafny/HowToFAQ/Errors#" + errorID.ToString()) },
+        CodeDescription = errorID == ErrorID.None ? null : new CodeDescription { Href = new System.Uri("https://dafny.org/dafny/HowToFAQ/Errors#" + errorID.ToString()) },
         Data = Errors.FindCodeActionRange(tok).StartLength(),
       };
       AddDiagnosticForFile(item, source, GetDocumentUriOrDefault(tok));
