@@ -4875,14 +4875,16 @@ Suffix<ref Expression e>
                                                   IToken atLabel = null;
                                                .)
 
+      (. var exprDotNameEndToken = t; .)
       ( IF(IsGenericInstantiation(true))
         (. typeArgs = new List<Type>(); .)
         GenericInstantiation<typeArgs>
+        (. exprDotNameEndToken = t; .)
         [ AtCall<out atLabel, out openParen, out args> ]
       | HashCall<id, out openParen, out typeArgs, out args>
       | [ AtCall<out atLabel, out openParen, out args> ]
       )
-      (. e = new ExprDotName(new RangeToken(startToken, id), e, new Name(id), typeArgs);
+      (. e = new ExprDotName(new RangeToken(startToken, exprDotNameEndToken), e, new Name(id), typeArgs);
          if (openParen != null) {
            e = new ApplySuffix(new RangeToken(startToken, t), atLabel, e, args, t);
          } else {

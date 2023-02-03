@@ -3109,10 +3109,10 @@ public abstract class SuffixExpr : ConcreteSyntaxExpression {
   public override IEnumerable<Node> Children => ResolvedExpression == null ? new[] { Lhs } : base.Children;
 }
 
-public class NameSegment : ConcreteSyntaxExpression, ICloneable<NameSegment> {
+public class NameSegment : ConcreteSyntaxExpression, ICloneable<NameSegment>, IHasOptionalTypeArguments {
   public readonly Name NameNode;
   public string Name => NameNode.Value;
-  public readonly List<Type> OptTypeArguments;
+  public List<Type> OptTypeArguments { get; }
   public NameSegment(RangeToken rangeToken, Name nameNode, List<Type> optTypeArguments)
     : base(rangeToken) {
     Contract.Requires(rangeToken != null);
@@ -3132,13 +3132,17 @@ public class NameSegment : ConcreteSyntaxExpression, ICloneable<NameSegment> {
   }
 }
 
+interface IHasOptionalTypeArguments : INode {
+  List<Type> OptTypeArguments { get; }
+}
+
 /// <summary>
 /// An ExprDotName desugars into either an IdentifierExpr (if the Lhs is a static name) or a MemberSelectExpr (if the Lhs is a computed expression).
 /// </summary>
-public class ExprDotName : SuffixExpr, ICloneable<ExprDotName> {
+public class ExprDotName : SuffixExpr, ICloneable<ExprDotName>, IHasOptionalTypeArguments {
   public readonly Name SuffixNameNode;
   public string SuffixName => SuffixNameNode.Value;
-  public readonly List<Type> OptTypeArguments;
+  public List<Type> OptTypeArguments { get; }
 
   public override IToken Tok => SuffixNameNode.Tok;
 

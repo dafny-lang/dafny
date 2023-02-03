@@ -10,7 +10,7 @@ namespace Microsoft.Dafny;
 public class CallStmt : Statement, ICloneable<CallStmt> {
 
   // TODO remove overrideToken now that we can rely on MethodSelect.
-  public override IToken Tok => overrideToken ?? MethodSelect.EndToken.Next;
+  public override IToken Tok => MethodSelect.EndToken.Next;
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
