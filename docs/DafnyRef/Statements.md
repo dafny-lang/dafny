@@ -13,7 +13,8 @@ Examples:
 ```dafny
 class A { var f: int }
 method m(a: A) {
-  label x: while true {
+  label x:
+  while true {
        if (*) { break x; }
   }
   a.f := 0;
