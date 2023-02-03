@@ -115,10 +115,15 @@ while IFS= read -r line
 do 
   let n++
 
-  ## For header lines, extract the error message from
-  ## the header text (everything but the initial ##[ ]* )
+  ## For header lines, extract the error message from the header text
+  ## everything but the initial ##[ ]*, the enclosing ** and the appended {#_errorid_}
+  ## The sed commands turn this into a pattern matching regex to match against the output of applying dafny to the example in the text:
+  ## remove the trailing error id if present; remove initial ## **; remove trailing '**'; turn any italicized text, which marks some
+  ## hole in the template to a '.*' matcher.
+  ## May not be robust against parentheses, brackets or other regex-special symbols in the error message -- none of these encountered so far.
+
   ( echo "$line" | grep -E -e '[#][#] ' > /dev/null ) \
-   && msg=`echo "$line" | sed -E -e 's/ {#.*}//' | sed -E -e 's/^##[ ]*[*]*//' -e 's/[*]*$//' -e 's/\\*/\\\\*/' -e 's/_[a-z]+_/.*/g'`
+   && msg=`echo "$line" | sed -E -e 's/ {#.*}//' -e 's/^##[ ]*[*]*//' -e 's/[*]*$//' -e 's/\\*/\\\\*/' -e 's/_[a-z]+_/.*/g'`
 
   ## Check for the test command information
   echo "$line" | grep '^[ ]*<!-- [ ]*%' > /dev/null
