@@ -5277,7 +5277,7 @@ namespace Microsoft.Dafny {
         if (option.Opt == ResolveTypeOptionEnum.AllowPrefixExtend) {
           // extend defaultTypeArguments, if needed
           for (int i = defaultTypeArguments.Count; i < n; i++) {
-            var tp = new TypeParameter(tok.ToRange(), "_T" + i, i, option.Parent);
+            var tp = new TypeParameter(tok.ToRange(), new Name(tok.ToRange(), "_T" + i), i, option.Parent);
             if (option.Parent is IteratorDecl) {
               tp.Characteristics.AutoInit = Type.AutoInitInfo.CompilableValue;
             }

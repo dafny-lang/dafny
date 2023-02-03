@@ -2268,16 +2268,16 @@ public class UserDefinedType : NonProxyType {
   /// If "typeArgs" is null, then the formal type parameters of "cd" are used.
   /// </summary>
   public static UserDefinedType FromTopLevelDecl(RangeToken rangeToken, TopLevelDecl cd, List<TypeParameter> typeArgs = null) {
-    Contract.Requires(rangeToken != null);
+    // TODO remove unused rangeToken parameter.
     Contract.Requires(cd != null);
     Contract.Assert((cd is ArrowTypeDecl) == ArrowType.IsArrowTypeName(cd.Name));
     var args = (typeArgs ?? cd.TypeArgs).ConvertAll(tp => (Type)new UserDefinedType(tp));
     if (cd is ArrowTypeDecl) {
-      return new ArrowType(rangeToken, (ArrowTypeDecl)cd, args);
+      return new ArrowType(cd.NameNode.RangeToken, (ArrowTypeDecl)cd, args);
     } else if (cd is ClassDecl && !(cd is DefaultClassDecl)) {
-      return new UserDefinedType(rangeToken, cd.Name + "?", cd, args);
+      return new UserDefinedType(cd.NameNode.RangeToken, cd.Name + "?", cd, args);
     } else {
-      return new UserDefinedType(rangeToken, cd.Name, cd, args);
+      return new UserDefinedType(cd.NameNode.RangeToken, cd.Name, cd, args);
     }
   }
 
