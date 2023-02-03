@@ -2063,7 +2063,7 @@ forall i | 0 <= i < 100
 
 The `forall` statement executes the body
 simultaneously for all quantified values in the specified quantifier domain.
-See [Section 2.6.4](#sec-quantifier-domains) for more details on quantifier domains.
+You can find more details about [quantifier domains here](#sec-quantifier-domains).
 
 There are several variant uses of the `forall`
 statement and there are a number of restrictions.
