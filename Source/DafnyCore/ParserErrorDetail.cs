@@ -14,8 +14,8 @@ public class ParserErrorDetail {
 
     ErrorDetail.Add(ErrorID.p_bad_const_initialize_op,
     @"
-Dafny's syntax for initialization and assignment uses `:=`, not `=` (like some other languages).
-In fact `=` is not used at all in Dafny.
+Dafny's syntax for initialization and assignment uses `:=`, not `=`.
+In Dafny `=` is used only in type definitions.
 "
     );
 

@@ -94,13 +94,13 @@ void CheckDeclModifiers(ref DeclModifierData dmod, string declCaption, AllowedDe
 {
   declCaption = (declCaption.StartsWith("i") || declCaption.StartsWith("o") ? "an " : "a ") + declCaption;
   if (dmod.IsAbstract && ((allowed & AllowedDeclModifiers.Abstract) == 0)) {
-    SemErr(ErrorID.p_abstract_not_allowed, Errors.NestCodeAction(dmod.AbstractToken), $"{declCaption} cannot be declared 'abstract'");
+    SemErr(ErrorID.p_abstract_not_allowed, Errors.CodeAction(dmod.AbstractToken, dmod.AbstractToken.Next), $"{declCaption} cannot be declared 'abstract'");
     dmod.IsAbstract = false;
   }
   if (dmod.IsGhost) {
     if ((allowed & AllowedDeclModifiers.AlreadyGhost) != 0) {
       if (declCaption.Contains("-by-method")) {
-        SemErr(ErrorID.p_no_ghost_for_by_method, Errors.NestCodeAction(dmod.GhostToken, dmod.GhostToken.Next), $"{declCaption} has a ghost function body and a non-ghost method body; {declCaption} declaration does not use the 'ghost' keyword.");
+        SemErr(ErrorID.p_no_ghost_for_by_method, Errors.CodeAction(dmod.GhostToken, dmod.GhostToken.Next), $"{declCaption} has a ghost function body and a non-ghost method body; {declCaption} declaration does not use the 'ghost' keyword.");
       } else {
         SemErr(dmod.GhostToken, $"{declCaption} cannot be declared 'ghost' (it is 'ghost' by default)");
       }
@@ -111,7 +111,7 @@ void CheckDeclModifiers(ref DeclModifierData dmod, string declCaption, AllowedDe
     }
   }
   if (dmod.IsStatic && ((allowed & AllowedDeclModifiers.Static) == 0)) {
-    SemErr(ErrorID.p_no_static, Errors.NestCodeAction(dmod.StaticToken, dmod.StaticToken.Next), $"{declCaption} cannot be declared 'static'");
+    SemErr(ErrorID.p_no_static, Errors.CodeAction(dmod.StaticToken, dmod.StaticToken.Next), $"{declCaption} cannot be declared 'static'");
     dmod.IsStatic = false;
   }
 }
@@ -5227,7 +5227,7 @@ DotSuffix<out IToken x, out IToken y>
 NoUSIdent<out IToken/*!*/ x>
 = (. Contract.Ensures(Contract.ValueAtReturn(out x) != null); .)
   Ident<out x>     (. if (x.val.StartsWith("_")) {
-                        SemErr(ErrorID.p_no_leading_underscore, Errors.NewCodeAction(x,1), 
+                        SemErr(ErrorID.p_no_leading_underscore, Errors.CodeAction(x,1), 
                           "cannot declare identifier beginning with underscore");
                       }
                    .)
