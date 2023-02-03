@@ -67,21 +67,16 @@ jobs:
       run: |
         ## Run twice to catch unstable code (Issue #2673)
         dotnet test --no-restore --verbosity normal --logger trx Source/DafnyLanguageServer.Test
-        ##dotnet test --no-restore --verbosity normal --logger trx Source/DafnyLanguageServer.Test
+        dotnet test --no-restore --verbosity normal --logger trx Source/DafnyLanguageServer.Test
     - name: Run DafnyDriver Tests
-      if: false
       run: dotnet test --no-restore --verbosity normal --logger trx Source/DafnyDriver.Test
     - name: Run DafnyPipeline Tests
-      if: false
       run: dotnet test --no-restore --verbosity normal --logger trx Source/DafnyPipeline.Test
     - name: Run DafnyTestGeneration Tests
-      if: false
       run: dotnet test --no-restore --verbosity normal --logger trx Source/DafnyTestGeneration.Test
     - name: Run AutoExtern Tests
-      if: false
       run: dotnet test --no-restore --verbosity normal --logger trx Source/AutoExtern.Test
     - name: Run DafnyRuntime Tests
-      if: false
       run: dotnet test --no-restore --verbosity normal --logger trx Source/DafnyRuntime.Tests
     - uses: actions/upload-artifact@v3
       if: always()
