@@ -1757,7 +1757,7 @@ been replaced through a refinement step.
 Using an `{:axiom}` attribute makes the claim that the assume statement is
 OK because it is known outside the Dafny program to be true.
 The verifier will not complain about it, but it is the user's 
-responsibility to be absolutelu=y sure that the proposition is
+responsibility to be absolutely sure that the proposition is
 indeed true.
 
 Using `...` as the argument of the statement is deprecated.
