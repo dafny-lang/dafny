@@ -264,7 +264,7 @@ x / y
 x % y
 ```
 
-A ``Factor`` combines bit-vector expressions using multiplication,
+A ``Factor`` combines expressions using multiplication,
 division, or modulus. For numeric types these are explained in
 [Section 6.2](#sec-numeric-types).
 As explained there, `/` and `%` on `int` values represent _Euclidean_
