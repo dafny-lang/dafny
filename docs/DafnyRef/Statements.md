@@ -4,9 +4,7 @@ Many of Dafny's statements are similar to those in traditional
 programming languages, but a number of them are significantly different.
 Dafny's various kinds of statements are described in subsequent sections.
 
-Statements have zero or more labels.
-
-Statements typically end with either a semicolon (`;`) or a closing curly brace ('}').
+Statements have zero or more labels and typically end with either a semicolon (`;`) or a closing curly brace ('}').
 
 ## 20.1. Labeled Statement ([grammar](#g-labeled-statement)) {#sec-labeled-statement}
 
@@ -15,8 +13,9 @@ Examples:
 ```dafny
 class A { var f: int }
 method m(a: A) {
-  label x: while true {
-       if (*) { break x; }
+  label x:
+  while true {
+     if (*) { break x; }
   }
   a.f := 0;
   label y:
@@ -47,7 +46,7 @@ and [allocated](#sec-allocated-expression) expressions.
 A statement can be given several labels. It makes no difference which of these
 labels is used to reference the statement---they are synonyms of each other.
 The labels must be distinct from each other, and are not allowed to be the
-same as any previous enclosing or dominating label.
+same as any previous enclosing or [dominating label](#sec-two-state).
 
 ## 20.2. Break and Continue Statements ([grammar](#g-break-continue-statement)) {#sec-break-continue-statement}
 
@@ -56,8 +55,9 @@ Examples:
 ```dafny
 class A { var f: int }
 method m(a: A) {
-  label x: while true {
-       if (*) { break; }
+  label x:
+  while true {
+    if (*) { break; }
   }
   label y: {
     var z := 1;
@@ -297,11 +297,11 @@ Examples:
 ```dafny
 {
   print 0;
-  var x:= 0;
+  var x := 0;
 }
 ```
 
-A block statement is just a sequence of zero or more statements enclosed by curly braces.
+A block statement is a sequence of zero or more statements enclosed by curly braces.
 Local variables declared in the block end their scope at the end of the block.
 
 ## 20.4. Return Statement ([grammar](#g-return-statement)) {#sec-return-statement}
@@ -311,6 +311,13 @@ Examples:
 ```dafny
 method m(i: int) returns (r: int) {
   return i+1;
+}
+method m(i: int) returns (r: int, q: int) {
+  return i+1, i + 2;
+}
+method p() returns (i: int) {
+  i := 1;
+  return;
 }
 method p() {
   return;
@@ -337,7 +344,7 @@ method terminates.
 ## 20.5. Yield Statement ([grammar](#g-yield-statement)) {#sec-yield-statement}
 
 A yield statement can only be used in an iterator.
-See [Section 15](#sec-iterator-types) for more details
+See [iterator types](#sec-iterator-types) for more details
 about iterators.
 
 The body of an iterator is a _co-routine_. It is used
@@ -892,6 +899,7 @@ var x, y := 5, 6;
 var x, y :- m();
 var x, y :| 0 < x + y < 10;
 var (x, y) := makePair();
+var Cons(x, y) = ConsMaker();
 ```
 does not declare both `x` and `y` to be of type `int`. Rather it will give an
 error explaining that the type of `x` is underspecified if it cannot be
@@ -949,7 +957,11 @@ Examples (in `if` statements):
 ```dafny
 method m(i: int) {
   ghost var k: int;
-  if i, j :| 0 < i+j < 10 { k := 0; } else { k := 1; }
+  if i, j :| 0 < i+j < 10 {
+    k := 0;
+  } else {
+    k := 1;
+  }
 }
 ```
 
@@ -1003,10 +1015,26 @@ Examples:
 ```dafny
 method m(i: int) {
   var x: int;
-  if i > 0 { x := i; } else { x := -i; }
-  if * { x := i; } else { x := -i; }
-  if i: nat, j: nat :| i+j<10 { assert i < 10; }
-  if i == 0 { x := 0; } else if i > 0 { x := 1; } else { x := -1; }
+  if i > 0 {
+    x := i;
+  } else {
+    x := -i;
+  }
+  if * {
+    x := i;
+  } else {
+    x := -i;
+  }
+  if i: nat, j: nat :| i+j<10 {
+    assert i < 10;
+  }
+  if i == 0 {
+    x := 0;
+  } else if i > 0 {
+    x := 1;
+  } else {
+    x := -1;
+  }
   if 
     case i == 0 => x := 0;
     case i > 0 => x := 1;
@@ -1040,7 +1068,7 @@ If the guard is an asterisk then a non-deterministic choice is made:
   }
 ```
 
-The then alternative of the if-statement must be block statement;
+The then alternative of the if-statement must be a block statement;
 the else alternative may be either a block statement or another if statement.
 The condition of the if statement need not (but may) be enclosed in parentheses.
 
@@ -1070,7 +1098,7 @@ to the right of `=>` for that guard are executed. The statement requires
 at least one of the guards to evaluate to `true` (that is, `if-case`
 statements must be exhaustive: the guards must cover all cases).
 
-In the if-with-cases, a seeqneuce of statements may follow the `=>`; it
+In the if-with-cases, a sequence of statements may follow the `=>`; it
 need not be a block statement. Also the sequence of cases may be enclosed in 
 braces but need not be.
 
@@ -1642,8 +1670,20 @@ other body-less constructs above, the verifier is silently happy with a body-les
 Examples:
 <!-- %no-check -->
 ```dafny
-match x case 1 => print x; case 2 => var y := x*x; print y; case _ => print "Other";
-match list { case Nil => {} case Cons(head,tail) => print head; }
+
+match list {
+  case Nil => {}
+  case Cons(head,tail) => print head;
+}
+match x
+case 1 =>
+  print x;
+case 2 =>
+  var y := x*x;
+  print y;
+case _ =>
+  print "Other";
+  // Any statement after is captured in this case.
 ```
 
 The `match` statement is used to do case analysis on a value of an expression.
@@ -1753,7 +1793,7 @@ been replaced through a refinement step.
 Using an `{:axiom}` attribute makes the claim that the assume statement is
 OK because it is known outside the Dafny program to be true.
 The verifier will not complain about it, but it is the user's 
-responsibility to be absolutelu=y sure that the proposition is
+responsibility to be absolutely sure that the proposition is
 indeed true.
 
 Using `...` as the argument of the statement is deprecated.
@@ -2046,14 +2086,20 @@ instead of a label.
 Examples:
 <!-- %no-check -->
 ```dafny
-forall i | 0 <= i < a.Length { a[i] := 0; }
-forall i | 0 <= i < 100 { P(i); } // P a lemma
-forall i | 0 <= i < 100 ensures i < 1000 {  } 
+forall i | 0 <= i < a.Length {
+  a[i] := 0;
+}
+forall i | 0 <= i < 100 {
+  P(i); // P a lemma
+}
+forall i | 0 <= i < 100
+  ensures i < 1000 {
+} 
 ```
 
 The `forall` statement executes the body
 simultaneously for all quantified values in the specified quantifier domain.
-See [Section 2.6.4](#sec-quantifier-domains) for more details on quantifier domains.
+You can find more details about [quantifier domains here](#sec-quantifier-domains).
 
 There are several variant uses of the `forall`
 statement and there are a number of restrictions.
