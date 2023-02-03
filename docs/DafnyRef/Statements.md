@@ -55,8 +55,9 @@ Examples:
 ```dafny
 class A { var f: int }
 method m(a: A) {
-  label x: while true {
-       if (*) { break; }
+  label x:
+  while true {
+    if (*) { break; }
   }
   label y: {
     var z := 1;
