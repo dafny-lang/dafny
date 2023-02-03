@@ -15,7 +15,7 @@ class A { var f: int }
 method m(a: A) {
   label x:
   while true {
-       if (*) { break x; }
+     if (*) { break x; }
   }
   a.f := 0;
   label y:
