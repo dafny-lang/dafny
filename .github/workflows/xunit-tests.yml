@@ -2,7 +2,7 @@ name: Run XUnit tests
 
 on:
   push:
-    branches: [ master , cok-3182A ]
+    branches: [ master ]
   pull_request:
     branches: [ master ]
 
