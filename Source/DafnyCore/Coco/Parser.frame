@@ -211,40 +211,30 @@ public class Errors {
     Reporting.Warning(MessageSource.Parser, ErrorID.None, tok, msg);
   }
 
-  // This is a RangeToken with the given length, but is a CodeActionToken
-  // so that it can be distinguished later
-  public static IToken NewCodeAction(IToken t, int len) {
-    return t;
-    /*
-    Token x = (Token)t;
-    var y = new Token(x.line,x.col);
-    y.pos = x.pos;
-    y.kind = x.kind;
-    y.Filename = x.Filename;
-    y.val = len <= x.val.Length ? x.val.Substring(0, len) : x.val.PadRight(len, ' ');
-    return new CodeActionToken(t, y);
-    */
+  // Code action range is from start of given token and with given new length
+  public static CodeActionToken CodeAction(IToken sourceTok, int len) {
+    return new CodeActionToken(sourceTok, sourceTok.pos, len);
   }
 
-  // Nested range is up to, not including, the next token
-  public static IToken NestCodeAction(IToken t, IToken next = null) {
-    next = next ?? t.Next;
-    return new NestedToken(t, NewCodeAction(t, next.pos - t.pos));
+  // Code action range has given start and length
+  public static CodeActionToken CodeAction(IToken sourceTok, int start, int len) {
+    return new CodeActionToken(sourceTok, start, len);
   }
 
-  public static IToken NestCodeAction(IToken t, int len) {
-    return new NestedToken(t, NewCodeAction(t, len));
+  // Code action range is up to, not including, the next token
+  public static CodeActionToken CodeAction(IToken sourceTok, IToken next) {
+    return new CodeActionToken(sourceTok, sourceTok.pos, next.pos - sourceTok.pos);
   }
 
-  public static IToken FindCodeActionRange(IToken toptok) {
+  // Code action range is same as the given token
+  public static CodeActionToken CodeAction(IToken sourceTok) {
+    return new CodeActionToken(sourceTok, sourceTok.pos, sourceTok.val.Length);
+  }
+
+  public static CodeActionToken FindCodeActionRange(IToken toptok) {
     var tok = toptok;
-    while (tok is NestedToken) {
-      NestedToken ntok = (NestedToken)tok;
-      if (ntok.Outer is CodeActionToken) return ntok.Outer;
-      tok = ntok.Inner; 
-    }
-    if (tok is CodeActionToken) return tok;
-    return toptok;
+    if (tok is CodeActionToken) return (CodeActionToken)tok;
+    return CodeAction(toptok);
   }
 } // Errors
 
