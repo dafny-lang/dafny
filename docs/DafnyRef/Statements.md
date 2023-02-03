@@ -892,6 +892,7 @@ var x, y := 5, 6;
 var x, y :- m();
 var x, y :| 0 < x + y < 10;
 var (x, y) := makePair();
+var Cons(x, y) = ConsMaker();
 ```
 does not declare both `x` and `y` to be of type `int`. Rather it will give an
 error explaining that the type of `x` is underspecified if it cannot be
