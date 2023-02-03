@@ -10,6 +10,9 @@ public class CommonOptionBag {
   public static readonly Option<bool> ManualLemmaInduction =
     new("--manual-lemma-induction", "Turn off automatic induction for lemmas.");
 
+  public static readonly Option<bool> StdIn = new("--stdin", () => false,
+    @"Read standard input and treat it as an input .dfy file.");
+
   public static readonly Option<bool> OptimizeErasableDatatypeWrapper = new("--optimize-erasable-datatype-wrapper", () => true, @"
 false - Include all non-ghost datatype constructors in the compiled code
 true - In the compiled target code, transform any non-extern
@@ -165,6 +168,10 @@ Functionality is still being expanded. Currently only checks contracts on every 
     DafnyOptions.RegisterLegacyBinding(QuantifierSyntax, (options, value) => { options.QuantifierSyntax = value; });
 
     DafnyOptions.RegisterLegacyBinding(Plugin, (options, value) => { options.AdditionalPluginArguments = value; });
+
+    DafnyOptions.RegisterLegacyBinding(StdIn, (options, value) => {
+      options.UseStdin = value;
+    });
 
     DafnyOptions.RegisterLegacyBinding(Prelude, (options, value) => {
       options.DafnyPrelude = value?.FullName;

@@ -1,1 +1,0 @@
-Enable passing a percentage value to the --cores option, to use a percentage of the total number of logical cores on the machine for verification.
