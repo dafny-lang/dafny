@@ -1061,7 +1061,7 @@ If the guard is an asterisk then a non-deterministic choice is made:
   }
 ```
 
-The then alternative of the if-statement must be block statement;
+The then alternative of the if-statement must be a block statement;
 the else alternative may be either a block statement or another if statement.
 The condition of the if statement need not (but may) be enclosed in parentheses.
 
