@@ -1634,8 +1634,20 @@ other body-less constructs above, the verifier is silently happy with a body-les
 Examples:
 <!-- %no-check -->
 ```dafny
-match x case 1 => print x; case 2 => var y := x*x; print y; case _ => print "Other";
-match list { case Nil => {} case Cons(head,tail) => print head; }
+
+match list {
+  case Nil => {}
+  case Cons(head,tail) => print head;
+}
+match x
+case 1 =>
+  print x;
+case 2 =>
+  var y := x*x;
+  print y;
+case _ =>
+  print "Other";
+  // Any statement after is captured in this case.
 ```
 
 The `match` statement is used to do case analysis on a value of an expression.
