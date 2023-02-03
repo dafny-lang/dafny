@@ -1,3 +1,4 @@
+git-issue-3449.dfy(11,11): Error: assertion might not hold
+git-issue-3449.dfy(13,11): Error: assertion might not hold
 
-Dafny program verifier finished with 1 verified, 0 errors
-Expected exit code 2 , actual result is 0
+Dafny program verifier finished with 0 verified, 2 errors
