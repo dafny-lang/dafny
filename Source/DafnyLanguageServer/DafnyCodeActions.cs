@@ -41,7 +41,9 @@ public class DafnyCodeActions {
 
   private static bool initialized = false;
   public static void init() {
-    if (initialized) return;
+    if (initialized) {
+      return;
+    }
     initialized = true;
     codeActionMap.Add(ErrorID.p_bad_const_initialize_op, (Diagnostic diagnostic, Range range) => ReplacementAction("replace = with :=", diagnostic, range, ":="));
     codeActionMap.Add(ErrorID.p_abstract_not_allowed, (Diagnostic diagnostic, Range range) => RemoveAction("remove 'abstract'", diagnostic, range));
