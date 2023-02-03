@@ -505,6 +505,7 @@ To use this form of update,
  * if the failure-compatible type of the RHS does not have an `Extract` member,
 then the LHS of the `:-` statement has one less expression than the RHS
 (or than the number of out-parameters from the method call), the value of the first out-parameter or expression being dropped
+(see the discussion and examples in [Section 20.7.2](#sec-simple-fc-return}
  * if the failure-compatible type of the RHS does have an `Extract` member,
 then the LHS of the `:-` statement has the same number of expressions as the RHS
 (or as the number of out-parameters from the method call)
@@ -556,7 +557,7 @@ datatype Outcome<T> =
 ``` <!-- %save Outcome.tmp -->
 
 
-### 20.7.2. Simple status return with no other outputs
+### 20.7.2. Simple status return with no other outputs {#sec-simple-fc-return}
 
 The simplest use of this failure-return style of programming is to have a method call that just returns a non-value-carrying `Status` value:
 <!-- %check-resolve %use Status.tmp -->
@@ -593,7 +594,7 @@ if tmp.IsFailure() {
 ```
 In this and subsequent examples of desugaring, the `tmp` variable is a new, unique variable, unused elsewhere in the calling member.
 
-### 20.7.3. Status return with additional outputs
+### 20.7.3. Status return with additional outputs {#sec-multiple-output-fc}
 
 The example in the previous subsection affects the program only through side effects or the status return itself.
 It may well be convenient to have additional out-parameters, as is allowed for `:=` updates;
@@ -640,7 +641,7 @@ if tmp.IsFailure() {
 ```
 
 
-### 20.7.4. Failure-returns with additional data
+### 20.7.4. Failure-returns with additional data {#sec-value-carrying}
 
 The failure-compatible return value can carry additional data as shown in the `Outcome<T>` example above.
 In this case there is a (first) LHS l-value to receive this additional data.
@@ -697,7 +698,7 @@ if tmp.IsFailure() {
 j := tmp.Extract();
 ```
 
-### 20.7.5. RHS with expression list
+### 20.7.5. RHS with expression list {#sec-failure-expressions}
 
 Instead of a failure-returning method call on the RHS of the statement,
 the RHS can instead be a list of expressions.
@@ -737,7 +738,7 @@ if tmp.IsFailure() {
   return;
 }
 ```
-### 20.7.6. Failure with initialized declaration.
+### 20.7.6. Failure with initialized declaration. {#sec-failure-with-declaration}
 
 The `:-` syntax can also be used in initialization, as in
 <!-- %no-check -->
@@ -1073,7 +1074,9 @@ the else alternative may be either a block statement or another if statement.
 The condition of the if statement need not (but may) be enclosed in parentheses.
 
 An if statement with a binding guard is non-deterministic;
-an if statement with `*` for a guard is non-deterministic and ghost.
+it will not be compiled if `--enforce-determinism` is enabled
+(even if it can be proved that there is a unique value).
+An if statement with `*` for a guard is non-deterministic and ghost.
 
 The `if-case` statement using the `AlternativeBlock` form is similar to the
 `if ... fi` construct used in the book "A Discipline of Programming" by
