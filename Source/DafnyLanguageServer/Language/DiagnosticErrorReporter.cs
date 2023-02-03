@@ -169,7 +169,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         RelatedInformation = relatedInformation,
         // TODO - change to dafny.org before final merge
         CodeDescription = errorID == ErrorID.None ? null : new CodeDescription { Href = new System.Uri("https://davidcok.github.io/dafny/HowToFAQ/Errors#" + errorID.ToString()) },
-        //Data = JToken.FromObject(Errors.FindCodeActionRange(tok).GetLspRange()),
+        Data = JToken.FromObject(Errors.FindCodeActionRange(tok).GetLspRange()),
       };
       AddDiagnosticForFile(item, source, GetDocumentUriOrDefault(tok));
       return true;
