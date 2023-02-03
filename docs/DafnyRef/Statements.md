@@ -344,7 +344,7 @@ method terminates.
 ## 20.5. Yield Statement ([grammar](#g-yield-statement)) {#sec-yield-statement}
 
 A yield statement can only be used in an iterator.
-See [Section 15](#sec-iterator-types) for more details
+See [iterator types](#sec-iterator-types) for more details
 about iterators.
 
 The body of an iterator is a _co-routine_. It is used
