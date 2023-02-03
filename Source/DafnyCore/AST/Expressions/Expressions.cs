@@ -2810,6 +2810,9 @@ public class ParensExpression : ConcreteSyntaxExpression {
 public class DatatypeUpdateExpr : ConcreteSyntaxExpression, IHasUsages, ICloneable<DatatypeUpdateExpr> {
   public readonly Expression Root;
   public readonly List<Tuple<IToken, string, Expression>> Updates;
+
+  public override IToken Tok => Root.EndToken.Next.Next; // Move to . then (
+  
   [FilledInDuringResolution] public List<MemberDecl> Members;
   [FilledInDuringResolution] public List<DatatypeCtor> LegalSourceConstructors;
   [FilledInDuringResolution] public bool InCompiledContext;
