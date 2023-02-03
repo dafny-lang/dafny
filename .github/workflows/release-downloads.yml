@@ -21,10 +21,10 @@ jobs:
         - os:  'ubuntu-20.04'
           osn: 'ubuntu\-20.04'
         - os:  'macos-latest'
-          osn: 'osx-.*'
+          osn: 'x64-osx-.*'
         - os:  'windows-2019'
           osn: 'win'
-    # There is no hosted environment for Unbuntu 14.04 or for debian
+    # There is no hosted environment for Ubuntu 14.04 or for debian
 
     # Java is installed by default, but we need to select 18
 
