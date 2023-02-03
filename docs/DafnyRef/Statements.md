@@ -1091,7 +1091,7 @@ to the right of `=>` for that guard are executed. The statement requires
 at least one of the guards to evaluate to `true` (that is, `if-case`
 statements must be exhaustive: the guards must cover all cases).
 
-In the if-with-cases, a seeqneuce of statements may follow the `=>`; it
+In the if-with-cases, a sequence of statements may follow the `=>`; it
 need not be a block statement. Also the sequence of cases may be enclosed in 
 braces but need not be.
 
