@@ -378,7 +378,11 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
-      wr.Write($"\"{str}\"");
+      if(str.Contains("\"") || str.Contains("\\") || !str.All(char.IsAscii)) {
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.UnicodeChars);
+      } else {
+        wr.Write($"\"{str}\"");
+      }
     }
 
     protected override ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, ConcreteSyntaxTree wr) {
