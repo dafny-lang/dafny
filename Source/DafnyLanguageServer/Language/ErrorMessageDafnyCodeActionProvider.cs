@@ -16,11 +16,10 @@ public class ErrorMessageDafnyCodeActionProvider : DiagnosticDafnyCodeActionProv
     }
     try {
       String s = data.ToString();
-      int k1 = s.IndexOf(" ");
-      int k2 = s.IndexOf(" ", k1 + 1);
-      int line = Int32.Parse(s.Substring(0, k1));
-      int column = Int32.Parse(s.Substring(k1 + 1, k2 - k1 - 1));
-      int length = Int32.Parse(s.Substring(k2 + 1));
+      var nums = s.split(" ");
+      var line = Int32.Parse(s[0]);
+      var column = Int32.Parse(s[1]);
+      var length = Int32.Parse(s[2]);
       return new Range(line, column, line, column + length);
     } catch (Exception) {
       // Just return the default
