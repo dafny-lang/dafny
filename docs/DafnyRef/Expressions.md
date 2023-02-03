@@ -70,7 +70,7 @@ in order of increasing binding power.
 Examples:
 <!-- %no-check -->
 ```dafny
-let a == 2*b; a*b
+let a := 2*b; a*b
 ```
 
 This top-level expression has the form `S; E`.
@@ -1792,8 +1792,8 @@ a
 a, b
 ```
 
-The ``Expressions`` non-terminal represents a list of
-one or more expressions separated by commas.
+An expression list is a comma-separated sequence of expressions, used, for example,
+as actual araguments in a method or function call or in parallel assignment.
 
 ## 21.36. Parameter Bindings ([grammar](#g-parameter-bindings)) {#sec-parameter-bindings}
 
