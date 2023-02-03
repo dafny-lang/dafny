@@ -636,7 +636,7 @@ fresh(e)
 ```
 
 These expressions represent either a constant of some type (a literal), or an
-atomic expression. They are neve l-values.
+atomic expression. They are never l-values.
 
 ## 21.20. Literal Expressions ([grammar](#g-literal-expression)} {#sec-literal-expression}
 
