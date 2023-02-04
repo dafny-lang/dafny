@@ -472,11 +472,15 @@ abstract module {:options "/functionSyntax:4"} Dafny {
 
     // Quantification methods
 
-    function Elements(): Sequence<T> {
+    function Elements(): Sequence<T> 
+      requires Valid()
+    {
       this
     }
 
-    function {:extern} UniqueElements(): set<T>
+    method {:extern} UniqueElements() returns (ret: set<T>)
+      requires Valid()
+      ensures ret == set t | t in Value()
 
     // Sequence creation methods
 

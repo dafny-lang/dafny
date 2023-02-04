@@ -4,6 +4,9 @@ include "../src/dafnyRuntime.dfy"
 // Implementing the external traits to guard against inconsistent specifications
 module {:options "/functionSyntax:4"} FeasibilityImplementation refines Dafny {
 
+  const SIZE_T_LIMIT: nat := 256
+  lemma EnsureSizeTLimitAboveMinimum() ensures 128 <= SIZE_T_LIMIT {}
+
   class DafnyNativeArray<T> extends NativeArray<T> {
     const valuesArray: array<ArrayCell<T>>
 
@@ -18,14 +21,13 @@ module {:options "/functionSyntax:4"} FeasibilityImplementation refines Dafny {
       && |values| < SIZE_T_LIMIT
     }
 
-    constructor(length: nat)
+    constructor(length: size_t)
       ensures Valid()
       ensures fresh(Repr)
       ensures values == seq(length, i => Unset)
     {
       valuesArray := new ArrayCell<T>[length](i => Unset);
-      new;
-      values := valuesArray[..];
+      values := seq(length, i => Unset);
       Repr := {this, valuesArray};
     }
 
@@ -58,7 +60,6 @@ module {:options "/functionSyntax:4"} FeasibilityImplementation refines Dafny {
       ensures Select(i) == t
     {
       valuesArray[i] := Set(t);
-
       values := valuesArray[..];
     }
 
@@ -66,19 +67,27 @@ module {:options "/functionSyntax:4"} FeasibilityImplementation refines Dafny {
       requires Valid()
       requires other.Valid()
       requires start <= Length()
-      requires start + other.Length() <= Length()
+      requires start as int + other.Length() as int <= Length() as int
       modifies Repr
-      ensures Valid()
+      ensures ValidAndDisjoint()
       ensures Repr == old(Repr)
       ensures values == 
         old(values)[..start] + 
         other.CellValues() +
         old(values)[(start + other.Length())..]
     {
-      forall i | 0 <= i < other.Length() {
+      for i := 0 to other.Length() 
+        invariant Valid()
+        invariant Repr == old(Repr)
+        invariant values == 
+          old(values)[..start] + 
+          other.CellValues()[..i] +
+          old(values)[(start + i)..(start + other.Length())] +
+          old(values)[(start + other.Length())..]
+      {
         valuesArray[start + i] := Set(other.Select(i));
+        values := values[start + i := valuesArray[start + i]];
       }
-      values := valuesArray[..];
     }
 
     method Freeze(size: size_t) returns (ret: ImmutableArray<T>)
@@ -152,4 +161,16 @@ module {:options "/functionSyntax:4"} FeasibilityImplementation refines Dafny {
       return new DafnyImmutableArray(valuesSeq[lo..hi]);
     }
   }
+
+  // trait Sequence<T> ... {
+  //   method UniqueElements() returns (ret: set<T>)
+  //     requires Valid()
+  //     ensures UniqueElements() == set t | t in Value()
+  //   {
+  //     if Cardinality() == 0 then
+  //       {}
+  //     else
+  //       {}
+  //   }
+  // }
 }
