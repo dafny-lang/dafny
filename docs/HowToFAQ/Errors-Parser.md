@@ -183,7 +183,7 @@ module N refines M { datatype D = ... Y | Z }
 There are limitations on refining a datatype, namely that the set of constructors cannot be changed.
 It is only allowed to add members to the body of the datatype.
 
-## **Error: mutable fields are not allowed in value types**
+## **Error: mutable fields are not allowed in value types** {#p_no_mutable_fields_in_value_types}
 
 ```dafny
 datatype D = A | B  { var c: D }
@@ -202,7 +202,7 @@ const c: int = 5
 Dafny's syntax for initialization and assignment uses `:=`, not `=`.
 In Dafny `=` is used only in type definitions.
 
-## **Error: a const declaration must have a type or a RHS value**
+## **Error: a const declaration must have a type or a RHS value** {#p_const_is_missing_type_or_init}
 
 ```dafny
 const i
@@ -213,7 +213,7 @@ or a right-hand-side expression, whose type is then the type of the
 declared identifier. 
 So use syntax either like `const i: int` or `const i:= 5` (or both together).
 
-## **Error: in refining a newtype, the '...' replaces the '=' token and everything up to the left brace starting the declaration of the newtype body (if any); a newtype refinement may not change the base type of the newtype**
+## **Error: in refining a newtype, the '...' replaces the '=' token and everything up to the left brace starting the declaration of the newtype body (if any); a newtype refinement may not change the base type of the newtype** {#p_misplaced_ellipsis_in_newtype}
 
 ```dafny
 abstract module M { newtype T = int }
@@ -222,15 +222,17 @@ module N refines M { newtype T = ... int }
 
 There are limitations on refining a newtype, namely that the base type cannot be changed. You can change an opaque type into a newtype, however.
 
-## **Error: formal cannot be declared 'ghost' in this context**
+## **Error: formal cannot be declared 'ghost' in this context** {#p_output_of_function_not_ghost}
 
 ```dafny
 predicate m(i: int): (ghost r: bool) { 0 }
 ```
 
 The output of a predicate or function cannot be ghost.
+It is implicitly ghost if the function is ghost itself.
 
-## **Error: formal cannot be declared 'ghost' in this context**
+<!-- MISPLACED TODO -->
+## **Error: formal cannot be declared 'ghost' in this context** {#p_ghost_function_output_not_ghost}
 
 ```dafny
 function m(ghost i: int): int {
@@ -241,7 +243,7 @@ function m(ghost i: int): int {
 If a method, function, or predicate is declared as ghost, then its formal parameters may not also be declared ghost.
 Any use of this construct will always be in ghost contexts.
 
-## **Error: formal cannot be declared 'new' in this context**
+## **Error: formal cannot be declared 'new' in this context** {#p_no_new_on_output_formals}
 
 ```dafny
 method m(i: int) returns (new r: int) {}
@@ -249,7 +251,7 @@ method m(i: int) returns (new r: int) {}
 
 The `new` modifier only applies to input parameters.
 
-## **Error: formal cannot be declared 'nameonly' in this context**
+## **Error: formal cannot be declared 'nameonly' in this context** {#p_no_nameonly_on_output_formals}
 
 ```dafny
 method m(i: int) returns (nameonly r: int) {}
@@ -257,7 +259,7 @@ method m(i: int) returns (nameonly r: int) {}
 
 The `nameonly` modifier only applies to input parameters.
 
-## **Error: formal cannot be declared 'older' in this context**
+## **Error: formal cannot be declared 'older' in this context** {#p_no_older_on_output_formals}
 
 ```dafny
 method m(i: int) returns (older r: int) {}
@@ -266,7 +268,7 @@ method m(i: int) returns (older r: int) {}
 The `older` modifier only applies to input parameters.
 
 
-## **Error: a mutable field must be declared with a type**
+## **Error: a mutable field must be declared with a type** {#p_var_decl_must_have_type}
 
 ```dafny
 class A {
@@ -278,7 +280,7 @@ class A {
 Because a mutable field does not have initializer, it must have a type (as in `var f: int`).
 `const` declarations may have initializers; if they do they do not need an explicit type.
 
-## **Error: a mutable field may not have an initializer**
+## **Error: a mutable field may not have an initializer** {#p_no_init_for_var_field}
 
 ```dafny
 class A {
@@ -290,9 +292,7 @@ class A {
 Dafny does not allow field declarations to have initializers. They are initialized in constructors.
 Local variable declarations (which also begin with `var`) may have initializers.
 
-
-
-## **Error: invalid formal-parameter name in datatype constructor**
+## **Error: invalid formal-parameter name in datatype constructor** {#p_datatype_formal_is_not_id}
 
 ```dafny
 datatype D = Nil | D(int: uint8) 
@@ -300,12 +300,11 @@ datatype D = Nil | D(int: uint8)
 
 Datatype constructors can have formal parameters, declared with the usual syntax: 'name: type'.
 In datatype constructors the 'name :' is optional; one can just state the type.
-
 However, if there is a name, it may not be a typename, as in the failing example above.
 The formal parameter name should be a simple identifier that is not a reserved word.
 
 
-## **Error: use of the 'nameonly' modifier must be accompanied with a parameter name**
+## **Error: use of the 'nameonly' modifier must be accompanied with a parameter name** {#p_nameonly_must_have_parameter_name}
 
 ```dafny
 datatype D = D (i: int, nameonly int) {}
@@ -317,7 +316,7 @@ then the name must be given, as in `datatype D = D (i: int, nameonly j: int) {}`
 
 More detail is given [here](../DafnyRef/DafnyRef#sec-parameter-bindings).
 
-## **Error: iterators don't have a 'returns' clause; did you mean 'yields'?**
+## **Error: iterators don't have a 'returns' clause; did you mean 'yields'?** {#p_should_be_yields_instead_of_returns}
 
 ```dafny
 iterator Count(n: nat) returns (x: nat) {

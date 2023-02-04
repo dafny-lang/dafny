@@ -126,12 +126,106 @@ There are limitations on refining a datatype, namely that the set of constructor
 It is only allowed to add members to the body of the datatype.
 ");
 
+    Add(ErrorID.p_no_mutable_fields_in_value_types,
+    @"
+The `var` declaration declares a mutable field, which is only permitted within
+classes, traits and iterators. 
+`const` declarations can be members of value-types, such as datatypes.
+");
 
-    ErrorDetail.Add(ErrorID.p_bad_const_initialize_op,
+    Add(ErrorID.p_bad_const_initialize_op,
     @"
 Dafny's syntax for initialization and assignment uses `:=`, not `=`.
 In Dafny `=` is used only in type definitions.
 ");
+
+    Add(ErrorID.p_const_is_missing_type_or_init,
+    @"
+A `const` declaration needs its type indicated by either an explicit type
+or a right-hand-side expression, whose type is then the type of the 
+declared identifier. 
+So use syntax either like `const i: int` or `const i:= 5` (or both together).
+");
+
+    Add(ErrorID.p_misplaced_ellipsis_in_newtype,
+    @"
+There are limitations on refining a newtype, namely that the base type cannot be changed. You can change an opaque type into a newtype, however.
+");
+
+    Add(ErrorID.p_output_of_function_not_ghost,
+    @"
+The output of a predicate or function cannot be ghost.
+It is implicitly ghost if the function is ghost itself.
+");
+
+    // TODO - MISPLACED
+    Add(ErrorID.p_ghost_function_output_not_ghost,
+    @"
+If a method, function, or predicate is declared as ghost, then its formal parameters may not also be declared ghost.
+Any use of this construct will always be in ghost contexts.
+");
+
+    Add(ErrorID.p_no_new_on_output_formals,
+    @"
+The `new` modifier only applies to input parameters.
+");
+
+    Add(ErrorID.p_no_nameonly_on_output_formals,
+    @"
+The `nameonly` modifier only applies to input parameters.
+");
+
+    Add(ErrorID.p_no_older_on_output_formals,
+    @"
+The `older` modifier only applies to input parameters.
+");
+
+    Add(ErrorID.p_var_decl_must_have_type,
+    @"
+Because a mutable field does not have initializer, it must have a type (as in `var f: int`).
+`const` declarations may have initializers; if they do they do not need an explicit type.
+");
+
+    Add(ErrorID.p_no_init_for_var_field,
+    @"
+Dafny does not allow field declarations to have initializers. They are initialized in constructors.
+Local variable declarations (which also begin with `var`) may have initializers.
+");
+
+    Add(ErrorID.p_datatype_formal_is_not_id,
+    @"
+Datatype constructors can have formal parameters, declared with the usual syntax: 'name: type'.
+In datatype constructors the 'name :' is optional; one can just state the type.
+However, if there is a name, it may not be a typename, as in the failing example above.
+The formal parameter name should be a simple identifier that is not a reserved word.
+");
+
+    Add(ErrorID.p_nameonly_must_have_parameter_name,
+    @"
+The parameters of a datatype constructor do not need to have names -- it is allowed to just give the type.
+However, if `nameonly` is used, meaning the constructor can be called using named parameters,
+then the name must be given, as in `datatype D = D (i: int, nameonly j: int) {}`
+
+More detail is given [here](../DafnyRef/DafnyRef#sec-parameter-bindings).
+");
+
+    Add(ErrorID.p_should_be_yields_instead_of_returns,
+    @"
+An [iterator](../DafnyRef/DafnyRef#sec-iterator-types) is like a co-routine: 
+its control flow produces (yields) a value, but the execution continues from that point (a yield statement) to go on to produce the next value, rather than exiting the method. 
+To accentuate this difference, a `yield` statement is used to say when the next value of the iterator is ready, rather than a `return` statement.
+In addition, the declaration does not use `returns` to state the out-parameter, as a method would. Rather it has a `yields` clause.
+The example above is a valid example if `returns` is replaced by `yields`.
+");
+
+
+
+
+
+
+
+
+
 
     ErrorDetail.Add(ErrorID.p_deprecated_semicolon,
     @"

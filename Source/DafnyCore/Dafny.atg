@@ -1486,11 +1486,11 @@ FieldDecl<.DeclModifierData dmod, bool isValueType, List<MemberDecl> mm.>
      }
   .)
   SYNC
-  "var"                                             (. startToken = startToken ?? t;
-                                                       if (isValueType) {
-                                                         SemErr(t, "mutable fields are not allowed in value types");
-                                                       }
-                                                    .)
+  "var"                               (. startToken = startToken ?? t;
+                                         if (isValueType) {
+                                           SemErr(ErrorID.p_no_mutable_fields_in_value_types, t, "mutable fields are not allowed in value types");
+                                         }
+                                      .)
   { Attribute<ref attrs> }
   FIdentType<out id, out ty>           (. var f = new Field(id, id.val, dmod.IsGhost, ty, attrs); f.RangeToken = new RangeToken(startToken, t); mm.Add(f); f.TokenWithTrailingDocString = t;
                                           f.RangeToken = new RangeToken(startToken, t); .)
@@ -1522,7 +1522,7 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
   [ ( ":=" | "=" (. SemErr(ErrorID.p_bad_const_initialize_op, t, "a const field should be initialized using ':=', not '='"); .) )
     Expression<out e, false, true> ]
                                              (. if (e == null && ty is InferredTypeProxy) {
-                                                  SemErr(id, "a const declaration must have a type or a RHS value");
+                                                  SemErr(ErrorID.p_const_is_missing_type_or_init, id, "a const declaration must have a type or a RHS value");
                                                 }
                                                 var c = new ConstantField(id, id.val, e, dmod.IsStatic, dmod.IsGhost, ty, attrs);
                                                 if (e != null) {
@@ -1552,7 +1552,7 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
   NewtypeName<out id>
   (
   "="
-  [ ellipsis                               (. SemErr(t, // Help users adjust to the new syntax
+  [ ellipsis                               (. SemErr(ErrorID.p_misplaced_ellipsis_in_newtype, t, // Help users adjust to the new syntax
       $"in refining a newtype, the '...' replaces the '=' token and everything up to the left brace starting the declaration of the newtype body (if any); a newtype refinement may not change the base type of the newtype"); .)
   ]
   ( IF(IsIdentColonOrBar())
@@ -1662,10 +1662,10 @@ GIdentType<bool allowGhostKeyword, bool allowNewKeyword, bool allowNameOnlyKeywo
      isGhost = false; isOld = allowNewKeyword; isNameOnly = false; isOlder = false;
   .)
   { IF(IsKeywordForFormal())
-    ( "ghost"                    (. if (allowGhostKeyword) { isGhost = true; } else { SemErr(t, "formal cannot be declared 'ghost' in this context"); } .)
-    | "new"                      (. if (allowNewKeyword) { isOld = false; } else { SemErr(t, "formal cannot be declared 'new' in this context"); } .)
-    | "nameonly"                 (. if (allowNameOnlyKeyword) { isNameOnly = true; } else { SemErr(t, "formal cannot be declared 'nameonly' in this context"); } .)
-    | "older"                    (. if (allowOlderKeyword) { isOlder = true; } else { SemErr(t, "formal cannot be declared 'older' in this context"); } .)
+    ( "ghost"                    (. if (allowGhostKeyword) { isGhost = true; } else { SemErr(ErrorID.p_output_of_function_not_ghost, Errors.CodeActionToNext(t), "formal cannot be declared 'ghost' in this context"); } .)
+    | "new"                      (. if (allowNewKeyword) { isOld = false; } else { SemErr(ErrorID.p_no_new_on_output_formals, Errors.CodeActionToNext(t), "formal cannot be declared 'new' in this context"); } .)
+    | "nameonly"                 (. if (allowNameOnlyKeyword) { isNameOnly = true; } else { SemErr(ErrorID.p_no_nameonly_on_output_formals, Errors.CodeActionToNext(t), "formal cannot be declared 'nameonly' in this context"); } .)
+    | "older"                    (. if (allowOlderKeyword) { isOlder = true; } else { SemErr(ErrorID.p_no_older_on_output_formals, Errors.CodeActionToNext(t), "formal cannot be declared 'older' in this context"); } .)
     )
   }
   IdentType<out id, out ty, false>
@@ -1677,9 +1677,9 @@ FIdentType<out IToken/*!*/ id, out Type/*!*/ ty>
   .)
   NoUSIdentOrDigits<out id> (. id = t; ty = null; .)
   ( ":" Type<out ty> 
-  | (. SemErr(t, "a mutable field must be declared with a type"); .)
+  | (. SemErr(ErrorID.p_var_decl_must_have_type, t, "a mutable field must be declared with a type"); .)
   )
-  [ ( ":=" | "=" ) (. SemErr(t, "a mutable field may not have an initializer"); Expression e; .) Expression<out e, true, true> ]
+  [ ( ":=" | "=" ) (. SemErr(ErrorID.p_no_init_for_var_field, t, "a mutable field may not have an initializer"); Expression e; .) Expression<out e, true, true> ]
   .
 
 CIdentType<out IToken/*!*/ id, out Type ty>
@@ -1749,7 +1749,7 @@ TypeIdentOptional<out IToken/*!*/ id, out string/*!*/ identName, out Type/*!*/ t
          if (udt != null && udt.TypeArgs.Count == 0) {
            name = udt.Name;
          } else {
-           SemErr(id, "invalid formal-parameter name in datatype constructor");
+           SemErr(ErrorID.p_datatype_formal_is_not_id, id, "invalid formal-parameter name in datatype constructor");
          }
       .)
       Type<out ty>
@@ -1766,7 +1766,7 @@ TypeIdentOptional<out IToken/*!*/ id, out string/*!*/ identName, out Type/*!*/ t
      } else {
        identName = "#" + anonymousIds++;
        if (nameonlyToken != null) {
-         SemErr(nameonlyToken, "use of the 'nameonly' modifier must be accompanied with a parameter name");
+         SemErr(ErrorID.p_nameonly_must_have_parameter_name, Errors.CodeActionToNext(nameonlyToken), "use of the 'nameonly' modifier must be accompanied with a parameter name");
        }
        isNameOnly = false;
      }
@@ -1808,7 +1808,7 @@ IteratorDecl<DeclModifierData dmod, ModuleDefinition module, out IteratorDecl/*!
     [ GenericParameters<typeArgs, true> ]
     Formals<true, true, false, false, ins>
     [ ( "yields"
-      | "returns"           (. SemErr(t, "iterators don't have a 'returns' clause; did you mean 'yields'?"); .)
+      | "returns"           (. SemErr(ErrorID.p_should_be_yields_instead_of_returns, Errors.CodeAction(t), "iterators don't have a 'returns' clause; did you mean 'yields'?"); .)
       )
       Formals<false, true, false, false, outs>
     ]

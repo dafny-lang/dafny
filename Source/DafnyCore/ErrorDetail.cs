@@ -26,10 +26,23 @@ public static class ErrorDetail {
     p_extraneous_comma_in_export,
     p_top_level_field,
     p_bad_datatype_refinement,
-
-
-
+    p_no_mutable_fields_in_value_types,
     p_bad_const_initialize_op,
+    p_const_is_missing_type_or_init,
+    p_misplaced_ellipsis_in_newtype,
+    p_output_of_function_not_ghost,
+    p_ghost_function_output_not_ghost,
+    p_no_new_on_output_formals,
+    p_no_nameonly_on_output_formals,
+    p_no_older_on_output_formals,
+    p_var_decl_must_have_type,
+    p_no_init_for_var_field,
+    p_datatype_formal_is_not_id,
+    p_nameonly_must_have_parameter_name,
+    p_should_be_yields_instead_of_returns,
+
+
+
     p_deprecated_semicolon,
     sc_malformed_pragma,
     sc_unknown_pragma,
