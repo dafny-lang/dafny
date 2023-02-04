@@ -637,6 +637,9 @@ attribute in Boogie.
 ## 23.5. Attributes on quantifier expressions (forall, exists)
 
 ### 23.5.1. `{:heapQuantifier}`
+
+_This attribute has been deprecated._
+
 The `{:heapQuantifier}` attribute may be used on a [`QuantifierExpression`](#sec-quantifier-expression).
 When it appears in a quantifier expression, it is as if a new heap-valued
 quantifier variable was added to the quantification. Consider this code
@@ -709,8 +712,16 @@ Here are ways one can prove `assert P(j + 4);`:
 * Remove `{:trigger Q(i)}` so that it will automatically determine all possible triggers thanks to the option `/autoTriggers:1` which is the default.
 
 
+## 23.6. Deprecated attributes
 
-## 23.6. Other undocumented verification attributes
+These attributes have been deprecated. They are no longer useful (or perhaps never were) or were experimental.
+They will likely be removed entirely sometime soon after the release of Dafny 4.
+
+- :heapQuantifier
+- :dllimport
+- :handle
+
+## 23.7. Other undocumented verification attributes
 
 A scan of Dafny's sources shows it checks for the
 following attributes.

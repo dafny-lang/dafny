@@ -80,6 +80,7 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["How do I create and use an iterator?](FAQIterator)
 - ["Can classes appear in specs?"](FAQClassInSpec)
 - ["How do I write specifications for a lambda expression in a sequence constructor?"](FAQLambdaSpecifications)
+- ["I have a lemma and later an assert stating the postcondition of the lemma, but it fails to prove. Why and how do I fix it?"](FAQMapExtensionality)
 
 ## Dafny tools
 
