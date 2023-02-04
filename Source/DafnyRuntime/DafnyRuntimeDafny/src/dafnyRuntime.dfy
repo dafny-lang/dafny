@@ -478,9 +478,9 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       this
     }
 
-    method {:extern} UniqueElements() returns (ret: set<T>)
+    function {:extern} UniqueElements(): set<T>
       requires Valid()
-      ensures ret == set t | t in Value()
+      ensures UniqueElements() == set t | t in Value()
 
     // Sequence creation methods
 
