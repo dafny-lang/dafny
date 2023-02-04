@@ -365,6 +365,22 @@ func sliceIterator(s []interface{}) Iterator {
   }
 }
 
+func stringOfElements(iter interface{}) string {
+  str := ""
+  sep := ""
+  for i := Iterate(iter); ; {
+    v, ok := i()
+    if !ok {
+      break
+    }
+
+    str += sep
+    str += String(v)
+    sep = ", "
+  }
+  return str
+}
+
 /******************************************************************************
  * Iteration
  ******************************************************************************/
@@ -455,22 +471,6 @@ func AllBooleans() Iterator {
       return false, false
     }
   }
-}
-
-func StringOfElements(iter interface{}) string {
-  str := ""
-  sep := ""
-  for i := Iterate(iter); ; {
-    v, ok := i()
-    if !ok {
-      break
-    }
-
-    str += sep
-    str += String(v)
-    sep = ", "
-  }
-  return str
 }
 
 /******************************************************************************
@@ -602,7 +602,7 @@ func SequenceString(seq Sequence) string {
     }
     return s
   } else {
-    return "[" + StringOfElements(seq) + "]"
+    return "[" + stringOfElements(seq) + "]"
   }
 }
 func (seq *ArraySequence) String() string {
@@ -1266,7 +1266,7 @@ func (tuple Tuple) EqualsGeneric(other interface{}) bool {
 }
 
 func (tuple Tuple) String() string {
-  return "(" + StringOfElements(tuple.contents) + ")"
+  return "(" + stringOfElements(tuple.contents) + ")"
 }
 
 // Index looks up the address of the ith element of the tuple.
@@ -1559,7 +1559,7 @@ func reverse(values []interface{}) []interface{} {
 }
 
 func (set Set) String() string {
-  return "{" + StringOfElements(set.contents) + "}"
+  return "{" + stringOfElements(set.contents) + "}"
 }
 
 /******************************************************************************

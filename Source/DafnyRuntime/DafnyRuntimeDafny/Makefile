@@ -1,30 +1,14 @@
 
-
+# TODO: Use a project file to automate this better
 # TODO: make work for all platforms
 DAFNY = dafny
-
-all: verify cs java py js build
 
 verify:
 	$(DAFNY) verify src/dafnyRuntime.dfy
 
-java: verify
-	$(DAFNY) /noVerify /compile:0 /spillTargetCode:3 /useRuntimeLib src/dafnyRuntime.dfy /compileTarget:java /out:../DafnyRuntimeJava/src/main/generated
-
-cs: verify
-	$(DAFNY) /noVerify /compile:0 /spillTargetCode:3 /useRuntimeLib src/dafnyRuntimeCsharp.dfy /compileTarget:cs /out:../../generated
-
-py: verify
-	$(DAFNY) /noVerify /compile:0 /spillTargetCode:3 /useRuntimeLib src/dafnyRuntime.dfy /compileTarget:py /out:../generated
-	
 go: verify
 	$(DAFNY) translate go src/dafnyRuntimeGo.dfy --output ../generated
-	cp ../generated-go/src/dafny/dafny.go ../DafnyRuntimeGo/DafnyRuntimeFromDafny.go
-# Probably the wrong place for this
-	GO111MODULE=auto go test ../DafnyRuntimeGo
+	diff ../generated-go/src/dafny/dafny.go ../DafnyRuntimeGo/DafnyRuntimeFromDafny.go
 
-js: verify
-	$(DAFNY) /noVerify /compile:0 /spillTargetCode:3 /useRuntimeLib src/dafnyRuntime.dfy /compileTarget:js /out:../generated
-
-build:
-	dotnet build ../DafnyRuntime.csproj
+test: verify
+    GO111MODULE=auto go test ../DafnyRuntimeGo

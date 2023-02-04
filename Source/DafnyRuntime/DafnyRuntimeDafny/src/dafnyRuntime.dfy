@@ -7,10 +7,6 @@ abstract module {:options "/functionSyntax:4"} Dafny {
   // we will need to either add that support or make adjustments
   // like downcast-cloning in some backends.
 
-  trait {:extern} Helpers {
-    static function {:extern} DafnyValueToDafnyString<T>(t: T): string
-  }
-
   // A trait for objects with a Valid() predicate. Necessary in order to
   // generalize some proofs, but also useful for reducing the boilerplate
   // that most such objects need to include.
@@ -27,6 +23,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     // Convenience predicate for when your object's validity depends on one
     // or more other objects.
     ghost predicate ValidComponent(component: Validatable)
+      requires this in Repr
       reads this, Repr 
       decreases Repr, 0
     {
@@ -46,8 +43,10 @@ abstract module {:options "/functionSyntax:4"} Dafny {
   }
 
   // Defining a bounded integer newtype for lengths and indices into
-  // arrays and sequences.
+  // Dafny arrays and sequences. This may be distinct from the type
+  // used for indexing into native arrays or similar datatypes.
   const SIZE_T_LIMIT: nat
+  
   // The limit has to be at least a little higher than zero
   // for basic logic to be valid.
   const MIN_SIZE_T_LIMIT: nat := 128
@@ -58,8 +57,8 @@ abstract module {:options "/functionSyntax:4"} Dafny {
   lemma EnsureSizeTLimitAboveMinimum() ensures MIN_SIZE_T_LIMIT <= SIZE_T_LIMIT
 
   newtype size_t = x: nat | x < SIZE_T_LIMIT witness (EnsureSizeTLimitAboveMinimum(); 0)
-  const SIZE_T_MAX: size_t := (EnsureSizeTLimitAboveMinimum(); (SIZE_T_LIMIT - 1) as size_t)
 
+  const SIZE_T_MAX: size_t := (EnsureSizeTLimitAboveMinimum(); (SIZE_T_LIMIT - 1) as size_t)
   const ZERO_SIZE: size_t := (EnsureSizeTLimitAboveMinimum(); 0 as size_t);
   const ONE_SIZE: size_t := (EnsureSizeTLimitAboveMinimum(); 1 as size_t);
   const TWO_SIZE: size_t := (EnsureSizeTLimitAboveMinimum(); 2 as size_t);
@@ -131,7 +130,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       requires Valid()
       requires i < Length()
       modifies Repr
-      ensures Valid()
+      ensures ValidAndDisjoint()
       ensures Repr == old(Repr)
       ensures values == old(values)[..i] + [Set(t)] + old(values)[(i + 1)..]
       ensures Select(i) == t
@@ -142,7 +141,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       requires start <= Length()
       requires start as int + other.Length() as int <= Length() as int
       modifies Repr
-      ensures Valid()
+      ensures ValidAndDisjoint()
       ensures Repr == old(Repr)
       ensures values == 
         old(values)[..start] + 
@@ -228,7 +227,8 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       && storage.Repr <= Repr
       && this !in storage.Repr
       && storage.Valid()
-      // TODO: having trouble with termination on this one
+      // TODO: This is equivalent but I believe it doesn't
+      // get unrolled enough.
       // && ValidComponent(storage)
       && 0 <= size <= storage.Length()
       && forall i | 0 <= i < size :: storage.values[i].Set?
@@ -587,10 +587,10 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     }
   }
 
-  // TODO: this would be safe(r) if we used a datatype instead, but still not guaranteed.
-  // Is there a decent solution in every target language?
-  // TODO: Eliminate this, so that it is sound to provide a native language implementation
-  // (in particular, wrapping a native string type as a seq<char>).
+  // I'd rather not have to make this assumption,
+  // but it is necessary to prove we've handled all cases in AppendOptimized.
+  // I'd prefer to just have a default "else" that calls Sequence.ToArray(),
+  // but Dafny doesn't support tail recursion optimization of mutually-recursive functions.
   lemma {:axiom} SequenceTypeIsClosed<T>(e: Sequence<T>) 
     ensures
       || e is ArraySequence<T>
@@ -862,5 +862,10 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       var arraySeq := new ArraySequence(ret);
       box.Put(arraySeq);
     }
+  }
+
+  // Helper methods from the native runtime code
+  trait {:extern} Helpers {
+    static function {:extern} DafnyValueToDafnyString<T>(t: T): string
   }
 }

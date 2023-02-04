@@ -1,23 +1,21 @@
 
-include "../src/dafnyRuntimeGo.dfy"
+include "../src/dafnyRuntime.dfy"
 
-module {:options "/functionSyntax:4"} DafnyArrays {
-  import opened Dafny
+// Implementing the external traits to guard against inconsistent specifications
+module {:options "/functionSyntax:4"} FeasibilityImplementation refines Dafny {
 
-  ///
-  // Feasibility implementation
-  // TODO: Move this to test/ or examples/,
-  // especially since we don't want to compile any seq<T> values
-  ///
-  class DafnyArray<T> extends Array<T> {
+  class DafnyNativeArray<T> extends NativeArray<T> {
     const valuesArray: array<ArrayCell<T>>
 
     ghost predicate Valid()
       reads this, Repr
+      decreases Repr, 1
       ensures Valid() ==> this in Repr
+      ensures Valid() ==> |values| < SIZE_T_LIMIT
     {
       && Repr == {this, valuesArray}
       && valuesArray[..] == values
+      && |values| < SIZE_T_LIMIT
     }
 
     constructor(length: nat)
@@ -31,15 +29,15 @@ module {:options "/functionSyntax:4"} DafnyArrays {
       Repr := {this, valuesArray};
     }
 
-    function Length(): nat
+    function Length(): size_t
       requires Valid()
       reads Repr
-      ensures Length() == |values|
+      ensures Length() as int == |values|
     {
-      valuesArray.Length
+      valuesArray.Length as size_t
     }
 
-    function Read(i: nat): (ret: T)
+    function Select(i: size_t): (ret: T)
       requires Valid()
       requires i < Length()
       requires values[i].Set?
@@ -49,22 +47,22 @@ module {:options "/functionSyntax:4"} DafnyArrays {
       valuesArray[i].value
     }
 
-    method Write(i: nat, t: T)
+    method Update(i: size_t, t: T)
       requires Valid()
       requires i < Length()
       modifies Repr
-      ensures Valid()
+      ensures ValidAndDisjoint()
       ensures Repr == old(Repr)
       ensures Length() == old(Length())
       ensures values == old(values)[..i] + [Set(t)] + old(values)[(i + 1)..]
-      ensures Read(i) == t
+      ensures Select(i) == t
     {
       valuesArray[i] := Set(t);
 
       values := valuesArray[..];
     }
 
-    method WriteRangeArray(start: nat, other: ImmutableArray<T>)
+    method UpdateSubarray(start: size_t, other: ImmutableArray<T>)
       requires Valid()
       requires other.Valid()
       requires start <= Length()
@@ -78,46 +76,50 @@ module {:options "/functionSyntax:4"} DafnyArrays {
         old(values)[(start + other.Length())..]
     {
       forall i | 0 <= i < other.Length() {
-        valuesArray[start + i] := Set(other.At(i));
+        valuesArray[start + i] := Set(other.Select(i));
       }
       values := valuesArray[..];
     }
 
-    method Freeze(size: nat) returns (ret: ImmutableArray<T>)
+    method Freeze(size: size_t) returns (ret: ImmutableArray<T>)
       requires Valid()
       requires size <= Length()
       requires forall i | 0 <= i < size :: values[i].Set?
       ensures ret.Valid()
-      ensures |ret.values| == size
+      ensures |ret.values| == size as int
       ensures forall i | 0 <= i < size :: ret.values[i] == values[i].value
     {
       ret := new DafnyImmutableArray(ValuesFromArray(this, size));
     }
   }
 
-  function ValuesFromArray<T>(a: Array<T>, size: nat): (ret: seq<T>)
+  function ValuesFromArray<T>(a: DafnyNativeArray<T>, size: size_t): (ret: seq<T>)
     requires a.Valid()
     requires size <= a.Length()
     requires forall i | 0 <= i < size :: a.values[i].Set?
     reads a, a.Repr
-    ensures |ret| == size
+    ensures |ret| == size as int
     ensures forall i | 0 <= i < size :: ret[i] == a.values[i].value
   {
     if size == 0 then
       []
     else
-      ValuesFromArray(a, size - 1) + [a.Read(size - 1)]
+      ValuesFromArray(a, size - 1) + [a.Select(size - 1)]
   }
 
   class DafnyImmutableArray<T> extends ImmutableArray<T> {
 
     const valuesSeq: seq<T>
 
-    ghost predicate Valid() {
-      values == valuesSeq
+    ghost predicate Valid() 
+      ensures Valid() ==> |values| < SIZE_T_LIMIT
+    {
+      && values == valuesSeq
+      && |values| < SIZE_T_LIMIT
     }
 
     constructor(valuesSeq: seq<T>)
+      requires |valuesSeq| < SIZE_T_LIMIT
       ensures Valid()
       ensures this.valuesSeq == valuesSeq
     {
@@ -125,29 +127,29 @@ module {:options "/functionSyntax:4"} DafnyArrays {
       this.valuesSeq := valuesSeq;
     }
 
-    function Length(): nat 
+    function Length(): size_t 
       requires Valid()
-      ensures Length() == |values|
+      ensures Length() as int == |values|
     {
-      |valuesSeq|
+      |valuesSeq| as size_t
     }
 
-    function At(index: nat): T
+    function Select(index: size_t): T
       requires Valid()
-      requires index < |values|
-      ensures At(index) == values[index]
+      requires index as int < |values|
+      ensures Select(index) == values[index]
     {
       valuesSeq[index]
     }
 
-    method Slice(start: nat, end: nat) returns (ret: ImmutableArray<T>)
+    method Subarray(lo: size_t, hi: size_t) returns (ret: ImmutableArray<T>)
       requires Valid()
-      requires start <= end <= Length()
+      requires lo <= hi <= Length()
       ensures ret.Valid()
-      ensures ret.Length() == end - start
-      ensures forall i | 0 <= i < ret.Length() :: ret.At(i) == At(start + i)
+      ensures ret.Length() == hi - lo
+      ensures ret.values == values[lo..hi]
     {
-      return new DafnyImmutableArray(valuesSeq[start..end]);
+      return new DafnyImmutableArray(valuesSeq[lo..hi]);
     }
   }
 }
