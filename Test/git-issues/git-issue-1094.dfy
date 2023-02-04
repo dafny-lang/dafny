@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %dafny /compile:0 /functionSyntax:4 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // ----- Type error -----
@@ -84,10 +84,10 @@ method MTry() returns (status: MStatus)
   ensures status == MStatus.Error(5)
 
 datatype FStatus = Okay | Error(code: int) {
-  predicate method IsFailure() {
+  predicate IsFailure() {
     Error?
   }
-  function method PropagateFailure(): FStatus
+  function PropagateFailure(): FStatus
     requires Error?
   {
     this
@@ -95,10 +95,10 @@ datatype FStatus = Okay | Error(code: int) {
 }
 
 datatype MStatus = Okay | Error(code: int) {
-  predicate method IsFailure() {
+  predicate IsFailure() {
     Error?
   }
-  function method PropagateFailure(): MStatus
+  function PropagateFailure(): MStatus
     requires Error?
   {
     this
@@ -112,15 +112,15 @@ method MCompute() returns (result: MResult<int>)
   ensures result == MResult.Failure(5)
 
 datatype FResult<X> = Success(x: X) | Failure(code: int) {
-  predicate method IsFailure() {
+  predicate IsFailure() {
     Failure?
   }
-  function method PropagateFailure<U>(): FResult<U>
+  function PropagateFailure<U>(): FResult<U>
     requires Failure?
   {
     FResult.Failure(code)
   }
-  function method Extract(): X
+  function Extract(): X
     requires Success?
   {
     x
@@ -128,15 +128,15 @@ datatype FResult<X> = Success(x: X) | Failure(code: int) {
 }
 
 datatype MResult<X> = Success(x: X) | Failure(code: int) {
-  predicate method IsFailure() {
+  predicate IsFailure() {
     Failure?
   }
-  function method PropagateFailure<U>(): MResult<U>
+  function PropagateFailure<U>(): MResult<U>
     requires Failure?
   {
     MResult.Failure(code)
   }
-  function method Extract(): X
+  function Extract(): X
     requires Success?
   {
     x

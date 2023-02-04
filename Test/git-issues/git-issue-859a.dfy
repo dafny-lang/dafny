@@ -1,23 +1,23 @@
-// RUN: %exits-with 2 %dafny /compile:0 "%s" > "%t"
+// RUN: %exits-with 2 %dafny /compile:0 /functionSyntax:4 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Common {
   datatype FailureCompatible = Make { // Extract is ghost
-    predicate method IsFailure() { true }
-    function method PropagateFailure(): real { 12.0 }
-    function Extract(): real { 9.0 }
+    predicate IsFailure() { true }
+    function PropagateFailure(): real { 12.0 }
+    ghost function Extract(): real { 9.0 }
   }
 
   datatype FailureCompatible2 = Make { // PropagateFailure is ghost
-    predicate method IsFailure() { true }
-    function PropagateFailure(): real { 12.0 }
-    function method Extract(): real { 9.0 }
+    predicate IsFailure() { true }
+    ghost function PropagateFailure(): real { 12.0 }
+    function Extract(): real { 9.0 }
   }
 
   datatype FailureCompatible3 = Make { // IsFailure is ghost
-    predicate IsFailure() { true }
-    function method PropagateFailure(): real { 12.0 }
-    function method Extract(): real { 9.0 }
+    ghost predicate IsFailure() { true }
+    function PropagateFailure(): real { 12.0 }
+    function Extract(): real { 9.0 }
   }
 
   method M() returns (r: FailureCompatible) { }
