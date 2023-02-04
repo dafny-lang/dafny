@@ -5628,7 +5628,7 @@ namespace Microsoft.Dafny {
         functionHandles[f] = name;
         var args = new List<Bpl.Expr>();
         var vars = MkTyParamBinders(GetTypeParams(f), out args);
-        var formals = MkTyParamFormals(GetTypeParams(f), false, false);
+        var formals = MkTyParamFormals(GetTypeParams(f), false);
         var tyargs = new List<Bpl.Expr>();
         foreach (var fm in f.Formals) {
           tyargs.Add(TypeToTy(fm.Type));
@@ -8935,7 +8935,8 @@ namespace Microsoft.Dafny {
         builder.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr> { nw }));
         // assume $nw != null && dtype($nw) == RHS;
         var nwNotNull = Bpl.Expr.Neq(nw, predef.Null);
-        var rightType = DType(nw, TypeToTy(type));
+        // drop the dtype conjunct if the type is "object", because "new object" allocates an object of an arbitrary type
+        var rightType = type.IsObjectQ ? Bpl.Expr.True : DType(nw, TypeToTy(type));
         builder.Add(TrAssumeCmd(tok, Bpl.Expr.And(nwNotNull, rightType)));
       }
       // assume !$Heap[$nw, alloc];

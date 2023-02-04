@@ -1,0 +1,109 @@
+#! /usr/bin/env bash
+
+## This script copies the current development docs into the dafny.org
+## user-facing web pages, making a snapshot of the current docs.
+## It is intended to be run as part of a release procedure (so that
+## the docs snapshot corresponds to the release functionality).
+## The script creates two PRs -- one in the dafny-lang/dafny repo and
+## one in the dafny-lang/dafny-lang.github.io repo. These need to be
+## reviewed, approved and merged. After that is successful the 
+## local and remote snapshot-vX.Y.Z branches can be deleted.
+
+## This procedure creates clones in a temporary location,
+## so it has no effect on the user's git workspaces.
+## It does however use the user's git credentials.
+
+## The script takes one argument -- the release name in X.Y.Z form
+## (The script prepends a 'v' as the release folder name.)
+
+if [ ! `which gh` ]; then echo "This script requires that gh is installed"; exit 1; fi
+if [ ! `which git` ]; then echo "This script requires that git is installed"; exit 1; fi
+
+if [ "$#" != "1" ]; then
+  echo Expected the new version number as the one argument, in the format x.y.z
+  exit 1
+fi
+
+
+## The version name
+V=v$1
+## Text string in index.html that marks where to put the version text
+M="<!-- VERSION INFO HERE-->"
+
+## Location of the development docs folder
+D=$(dirname "$BASH_SOURCE")
+cd "$D"
+
+## Branch name
+B=`echo snapshot-$V | sed -e "s/\./_/g"`
+
+## Temp folder in which to clone
+P=/tmp/docsnapshotT
+rm -rf $P
+mkdir $P
+pushd $P
+git clone https://github.com/dafny-lang/dafny.git -b master --depth 1
+git clone https://github.com/dafny-lang/dafny-lang.github.io.git -b main --depth 1
+popd
+
+## Location of the dafny-lang.github.io repo
+T=$P/dafny-lang.github.io
+##T=/Users/davidcok/projects/dafny/dafny-lang.github.io
+
+cd "$P/dafny/docs"
+
+echo Executing from `pwd`
+echo Target is "$T"
+echo Version is "$V"
+echo Branch is "$B"
+
+## Changes locally
+git checkout -b "$B" master
+sed -i -e "szlatest)zlatest)\n- [$V](https://dafny.org/$V)z" Snapshots.md
+rm Snapshots.md-e
+git add Snapshots.md
+git commit -m "Documentation snapshot for $V"
+git push --set-upstream origin "$B"
+gh pr create --fill -R https://github.com/dafny-lang/dafny -B master --head "$B" | tail -1 > $P/url1
+
+## Changes on dafny-lang.github.io
+( cd $T && git checkout -b "$B" main ) || \
+    (echo FAILED to create target branch; exit 1)
+
+(cd $T; git rm -r latest; rm -rf latest; mkdir latest; git commit -m "Removing old latest")
+
+cp -R . "$T/$V" || ( echo copy FAILED; exit 1 )
+cp -R "$T/$V/" "$T/latest/"
+cp Snapshots.md "$T"
+
+## Tweaks to snapshot files
+
+### Remove developer documentation
+rm -f -r "$T/$V/dev" "$T/latest/dev" > $P/removals
+### Adjust version information
+echo "$V release snapshot" > "$T/$V/DafnyRef/version.txt"
+echo "Latest release snapshot" > "$T/latest/DafnyRef/version.txt"
+
+grep -q "$M" $T/$V/index.html || (echo FAILED: No Version marker line in "$T/$V/index.html" ; exit 1 )
+
+sed -i -e "s/$M.*/${M}$V documentation snapshot/" $T/$V/index.html || (echo Version replacement FAILED; exit 1; )
+sed -i -e "s/$M.*/${M}Latest release documentation snapshot/" $T/latest/index.html || (echo Version replacement FAILED; exit 1; )
+
+pushd $T
+rm `find . -name index.html-e`
+
+(git add -u \
+  && git add "$V" \
+  && git add latest \
+  && (git commit -m "Documentation snapshot for $V" > $P/commitmessage )  \
+  ) || ( echo FAILED to commit or push the snapshot ; exit 1  ) \
+
+git status
+git push --set-upstream origin "$B"
+gh pr create --fill -R https://github.com/dafny-lang/dafny-lang.github.io -B main --head "$B" | tail -1 > $P/url2
+popd
+
+##diff -r . $T/latest
+##diff -r . $T/$V
+echo "Approve and merge these PRs: " `cat $P/url1` `cat $P/url2`
+echo "When complete, delete $P"
