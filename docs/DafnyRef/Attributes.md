@@ -623,6 +623,11 @@ method doSplitHere(x: bool) returns (y: int) {
 ### 23.3.3. `{:subsumption n}`
 Overrides the `/subsumption` command-line setting for this assertion.
 
+### 23.3.4. `{:expect s}`
+This attribute is recognized on an assert statement. If present, the statement's expression is both checked by the verifier and
+is compiled to a run-time test (like an expect statement). The optional argument of the attribute is used as
+the optional message provided by the equivalent expect statement.
+
 ## 23.4. Attributes on variable declarations
 
 ### 23.4.1. `{:assumption}`

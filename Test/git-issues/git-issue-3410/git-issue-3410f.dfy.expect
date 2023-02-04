@@ -1,2 +1,4 @@
 git-issue-3410f.dfy(6,19): Error: ghost variables such as i are allowed only in specification contexts. i was inferred to be ghost based on its declaration or initialization.
-1 resolution/type errors detected in git-issue-3410f.dfy
+git-issue-3410f.dfy(12,9): Error: assert with {:expect} statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+git-issue-3410f.dfy(16,2): Error: assert with {:expect} statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+3 resolution/type errors detected in git-issue-3410f.dfy

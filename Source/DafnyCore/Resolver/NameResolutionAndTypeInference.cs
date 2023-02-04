@@ -4384,10 +4384,18 @@ namespace Microsoft.Dafny {
           enclosingStatementLabels = prevLblStmts;
           loopStack = prevLoopStack;
         }
+        if (assertStmt != null) {
+          var attr = Attributes.Find(assertStmt.Attributes, "expect");
+          if (attr != null) {
+            if (attr.Args.Count > 1) {
+              reporter.Error(MessageSource.Resolver, attr.tok, ":expect attribute may have at most one argument");
+            }
+          }
+        }
         var expectStmt = stmt as ExpectStmt;
         if (expectStmt != null) {
           if (expectStmt.Message == null) {
-            expectStmt.Message = new StringLiteralExpr(s.Tok, "expectation violation", false);
+            expectStmt.Message = new StringLiteralExpr(s.Tok, ExpectStmt.DefaultMessage, false);
           }
           ResolveExpression(expectStmt.Message, resolutionContext);
           Contract.Assert(expectStmt.Message.Type != null);  // follows from postcondition of ResolveExpression

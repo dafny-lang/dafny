@@ -6,3 +6,12 @@ method Main() {
   assert {:expect} i == 41;
   print "Done\n";
 }
+
+method m() {
+  ghost var b: bool := true;
+  if b { assert {:expect} true; }
+}
+
+ghost method mm() {
+  assert {:expect} true;
+}

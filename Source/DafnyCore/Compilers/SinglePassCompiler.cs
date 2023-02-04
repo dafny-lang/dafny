@@ -3066,7 +3066,8 @@ namespace Microsoft.Dafny.Compilers {
           expr = expectStmt.Expr;
         } else {
           var assertStmt = (AssertStmt)stmt;
-          msg = new StringLiteralExpr(stmt.Tok, "expectation violation", false);
+          var expectAttr = Attributes.Find(stmt.Attributes, "expect");
+          msg = expectAttr.Args.Count > 0 ? expectAttr.Args[0] : new StringLiteralExpr(expectAttr.Tok, ExpectStmt.DefaultMessage, false);
           expr = assertStmt.Expr;
         }
         // TODO there's potential here to use target-language specific features such as exceptions

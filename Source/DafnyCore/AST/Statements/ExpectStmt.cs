@@ -4,6 +4,7 @@ using System.Diagnostics.Contracts;
 namespace Microsoft.Dafny;
 
 public class ExpectStmt : PredicateStmt, ICloneable<ExpectStmt> {
+  public static string DefaultMessage = "expectation violation";
   public Expression Message;
 
   public ExpectStmt Clone(Cloner cloner) {

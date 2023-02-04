@@ -72,29 +72,33 @@ class GhostInterestVisitor {
     Contract.Assume(!codeContext.IsGhost || mustBeErasable); // (this is really a precondition) CodeContext.IsGhost ==> mustBeErasable
     Contract.Assume(mustBeErasable || proofContext == null); // (this is really a precondition) !mustBeErasable ==> proofContext == null 
 
-    if ((stmt is AssertStmt && !Attributes.Contains(stmt.Attributes, "expect")) || stmt is AssumeStmt) {
+    if (stmt is AssumeStmt) {
       stmt.IsGhost = true;
+
+    } else if (stmt is AssertStmt) {
+      var expectAttr = Attributes.Find(stmt.Attributes, "expect");
+      stmt.IsGhost = expectAttr == null;
       var assertStmt = stmt as AssertStmt;
       if (assertStmt != null && assertStmt.Proof != null) {
         Visit(assertStmt.Proof, true, "an assert-by body");
       }
-
-    } else if (stmt is ExpectStmt || (stmt is AssertStmt && Attributes.Contains(stmt.Attributes, "expect"))) {
-      stmt.IsGhost = false;
-      Expression msg;
-      Expression expr;
-      if (stmt is ExpectStmt) {
-        var expectStmt = (ExpectStmt)stmt;
-        msg = expectStmt.Message;
-        expr = expectStmt.Expr;
-      } else {
-        var assertStmt = (AssertStmt)stmt;
-        if (assertStmt.Proof != null) {
-          Visit(assertStmt.Proof, true, "an assert-by body");
+      if (expectAttr != null) {
+        if (mustBeErasable) {
+          Error(stmt, "assert with {{:expect}} statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
+        } else {
+          Expression expr = assertStmt.Expr;
+          Expression msg = expectAttr.Args.Count > 0 ? expectAttr.Args[0] : new StringLiteralExpr(expectAttr.Tok, ExpectStmt.DefaultMessage, false);
+          ExpressionTester.CheckIsCompilable(resolver, reporter, expr, codeContext);
+          Contract.Assert(msg != null);
+          ExpressionTester.CheckIsCompilable(resolver, reporter, msg, codeContext);
         }
-        msg = new StringLiteralExpr(assertStmt.Tok, "expectation violation", false);
-        expr = assertStmt.Expr;
       }
+
+    } else if (stmt is ExpectStmt) {
+      stmt.IsGhost = false;
+      var expectStmt = (ExpectStmt)stmt;
+      Expression msg = expectStmt.Message;
+      Expression expr = expectStmt.Expr;
       if (mustBeErasable) {
         Error(stmt, "expect statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
       } else {
