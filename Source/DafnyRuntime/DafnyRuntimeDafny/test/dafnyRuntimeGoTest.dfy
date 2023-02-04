@@ -1,15 +1,18 @@
 
-include "../src/dafnyRuntime.dfy"
+include "../test/dafnyRuntimeFeasibility.dfy"
 
-abstract module DafnyRuntimeTest {
+module DafnyRuntimeTest {
 
-    import opened D: Dafny
+    import opened FeasibilityImplementation
 
     method {:test} HappyPath() {
         EnsureSizeTLimitAboveMinimum();
         var a := NativeArray<int>.Make(5);
         for i: size_t := 0 to 5 
             invariant a.Valid()
+            invariant a.Length() == 5
+            invariant fresh(a.Repr)
+            invariant forall j | 0 <= j < i :: a.values[j].Set?
         {
             a.Update(i, i as int);
         }

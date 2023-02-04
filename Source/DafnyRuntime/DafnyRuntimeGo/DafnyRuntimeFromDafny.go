@@ -438,23 +438,6 @@ func (_static *CompanionStruct_Default___) ZERO__SIZE() uint32 {
 }
 // End of class Default__
 
-// Definition of trait Helpers
-type Helpers interface {
-  String() string
-}
-type CompanionStruct_Helpers_ struct {
-  TraitID_ *TraitID
-}
-var Companion_Helpers_ = CompanionStruct_Helpers_ {
-  TraitID_: &TraitID{},
-}
-func (CompanionStruct_Helpers_) CastTo_(x interface{}) Helpers {
-  var t Helpers
-  t, _ = x.(Helpers)
-  return t
-}
-// End of trait Helpers
-
 // Definition of trait Validatable
 type Validatable interface {
   String() string
@@ -1239,3 +1222,20 @@ func (_this *LazySequence) Box() AtomicBox {
   }
 }
 // End of class LazySequence
+
+// Definition of trait Helpers
+type Helpers interface {
+  String() string
+}
+type CompanionStruct_Helpers_ struct {
+  TraitID_ *TraitID
+}
+var Companion_Helpers_ = CompanionStruct_Helpers_ {
+  TraitID_: &TraitID{},
+}
+func (CompanionStruct_Helpers_) CastTo_(x interface{}) Helpers {
+  var t Helpers
+  t, _ = x.(Helpers)
+  return t
+}
+// End of trait Helpers
