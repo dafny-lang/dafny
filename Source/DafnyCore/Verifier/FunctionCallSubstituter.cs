@@ -18,7 +18,7 @@ namespace Microsoft.Dafny {
         if (e.Function.EnclosingClass == Tr && e.Receiver is ThisExpr && receiver is ThisExpr && Cl.Members.Find(m => m.OverriddenMember == e.Function) is { } f) {
           newFce.Function = (Function)f;
           newFce.Type = e.Type; // TODO: this may not work with type parameters.
-          receiver.Type = Resolver.GetThisType(f.tok, (TopLevelDeclWithMembers)f.EnclosingClass);
+          receiver = new ThisExpr((TopLevelDeclWithMembers)f.EnclosingClass);
         } else {
           newFce.Function = e.Function;
           newFce.Type = e.Type;
