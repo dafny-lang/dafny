@@ -14,19 +14,20 @@ namespace Microsoft.Dafny {
       if (expr is FunctionCallExpr e) {
         var receiver = Substitute(e.Receiver);
         var newArgs = SubstituteExprList(e.Args);
-        var newFce = new FunctionCallExpr(e.tok, e.Name, receiver, e.OpenParen, e.CloseParen, newArgs, e.AtLabel);
+        Function function;
         if (e.Function.EnclosingClass == Tr && e.Receiver is ThisExpr && receiver is ThisExpr && Cl.Members.Find(m => m.OverriddenMember == e.Function) is { } f) {
-          newFce.Function = (Function)f;
-          newFce.Type = e.Type; // TODO: this may not work with type parameters.
           receiver = new ThisExpr((TopLevelDeclWithMembers)f.EnclosingClass);
+          function = (Function)f;
         } else {
-          newFce.Function = e.Function;
-          newFce.Type = e.Type;
+          function = e.Function;
         }
-        newFce.TypeApplication_AtEnclosingClass = SubstituteTypeList(e.TypeApplication_AtEnclosingClass);  // resolve here
-        newFce.TypeApplication_JustFunction = SubstituteTypeList(e.TypeApplication_JustFunction);  // resolve here
-        newFce.IsByMethodCall = e.IsByMethodCall;
-        return newFce;
+        return new FunctionCallExpr(e.tok, e.Name, receiver, e.OpenParen, e.CloseParen, newArgs, e.AtLabel) {
+          Function = function,
+          Type = e.Type, // TODO: this may not work with type parameters.
+          TypeApplication_AtEnclosingClass = SubstituteTypeList(e.TypeApplication_AtEnclosingClass), // resolve here
+          TypeApplication_JustFunction = SubstituteTypeList(e.TypeApplication_JustFunction), // resolve here
+          IsByMethodCall = e.IsByMethodCall
+        };
       }
       return base.Substitute(expr);
     }
