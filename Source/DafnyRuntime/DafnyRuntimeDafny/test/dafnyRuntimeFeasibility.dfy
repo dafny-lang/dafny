@@ -162,15 +162,6 @@ module {:options "/functionSyntax:4"} FeasibilityImplementation refines Dafny {
     }
   }
 
-  // trait Sequence<T> ... {
-  //   method UniqueElements() returns (ret: set<T>)
-  //     requires Valid()
-  //     ensures UniqueElements() == set t | t in Value()
-  //   {
-  //     if Cardinality() == 0 then
-  //       {}
-  //     else
-  //       {}
-  //   }
-  // }
+  // Note that it is impossible to implement a DafnyAtomicBox<T>,
+  // precisely because Put() modifies nothing.
 }
