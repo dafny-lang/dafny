@@ -1,0 +1,2 @@
+* An assert statement may have an atttribute {:expect}, which causes the boolean expression in the statement to be tested at run-time. The attribute can have an
+argument, which serves the same purpose as the optional message in an expect statement. If {:expect} is stipulated, the statement may not be ghost.
