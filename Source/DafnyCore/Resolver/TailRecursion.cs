@@ -3,7 +3,7 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using Microsoft.Boogie;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny;
 
 class TailRecursion {
 
@@ -267,6 +267,7 @@ class TailRecursion {
       }
     } else if (stmt is VarDeclPattern) {
     } else if (stmt is ExpectStmt) {
+    } else if (stmt is AssertStmt) { // Can be an expect as well
     } else {
       Contract.Assert(false);  // unexpected statement type
     }

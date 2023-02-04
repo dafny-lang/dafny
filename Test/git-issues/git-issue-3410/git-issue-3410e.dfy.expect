@@ -1,0 +1,2 @@
+git-issue-3410e.dfy(7,9): Error: ghost variables such as i are allowed only in specification contexts. i was inferred to be ghost based on its declaration or initialization.
+1 resolution/type errors detected in git-issue-3410e.dfy

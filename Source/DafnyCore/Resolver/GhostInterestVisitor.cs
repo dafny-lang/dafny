@@ -72,23 +72,36 @@ class GhostInterestVisitor {
     Contract.Assume(!codeContext.IsGhost || mustBeErasable); // (this is really a precondition) CodeContext.IsGhost ==> mustBeErasable
     Contract.Assume(mustBeErasable || proofContext == null); // (this is really a precondition) !mustBeErasable ==> proofContext == null 
 
-    if (stmt is AssertStmt || stmt is AssumeStmt) {
+    if ((stmt is AssertStmt && !Attributes.Contains(stmt.Attributes, "expect")) || stmt is AssumeStmt) {
       stmt.IsGhost = true;
       var assertStmt = stmt as AssertStmt;
       if (assertStmt != null && assertStmt.Proof != null) {
         Visit(assertStmt.Proof, true, "an assert-by body");
       }
 
-    } else if (stmt is ExpectStmt) {
+    } else if (stmt is ExpectStmt || (stmt is AssertStmt && Attributes.Contains(stmt.Attributes, "expect"))) {
       stmt.IsGhost = false;
-      var s = (ExpectStmt)stmt;
+      Expression msg;
+      Expression expr;
+      if (stmt is ExpectStmt) {
+        var expectStmt = (ExpectStmt)stmt;
+        msg = expectStmt.Message;
+        expr = expectStmt.Expr;
+      } else {
+        var assertStmt = (AssertStmt)stmt;
+        if (assertStmt.Proof != null) {
+          Visit(assertStmt.Proof, true, "an assert-by body");
+        }
+        msg = new StringLiteralExpr(assertStmt.Tok, "expectation violation", false);
+        expr = assertStmt.Expr;
+      }
       if (mustBeErasable) {
         Error(stmt, "expect statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
       } else {
-        ExpressionTester.CheckIsCompilable(resolver, reporter, s.Expr, codeContext);
+        ExpressionTester.CheckIsCompilable(resolver, reporter, expr, codeContext);
         // If not provided, the message is populated with a default value in resolution
-        Contract.Assert(s.Message != null);
-        ExpressionTester.CheckIsCompilable(resolver, reporter, s.Message, codeContext);
+        Contract.Assert(msg != null);
+        ExpressionTester.CheckIsCompilable(resolver, reporter, msg, codeContext);
       }
 
     } else if (stmt is PrintStmt) {

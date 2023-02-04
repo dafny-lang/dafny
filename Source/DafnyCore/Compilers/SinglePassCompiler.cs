@@ -3057,16 +3057,26 @@ namespace Microsoft.Dafny.Compilers {
         // to make it more target-language idiomatic and improve performance
         TrStmtList(s.ResolvedStatements, wr);
 
-      } else if (stmt is ExpectStmt) {
-        var s = (ExpectStmt)stmt;
+      } else if (stmt is ExpectStmt || (stmt is AssertStmt && Attributes.Contains(stmt.Attributes, "expect"))) {
+        Expression msg;
+        Expression expr;
+        if (stmt is ExpectStmt) {
+          var expectStmt = (ExpectStmt)stmt;
+          msg = expectStmt.Message;
+          expr = expectStmt.Expr;
+        } else {
+          var assertStmt = (AssertStmt)stmt;
+          msg = new StringLiteralExpr(stmt.Tok, "expectation violation", false);
+          expr = assertStmt.Expr;
+        }
         // TODO there's potential here to use target-language specific features such as exceptions
         // to make it more target-language idiomatic and improve performance
         ConcreteSyntaxTree guardWriter;
         ConcreteSyntaxTree bodyWriter = EmitIf(out guardWriter, false, wr);
-        var negated = new UnaryOpExpr(s.Tok, UnaryOpExpr.Opcode.Not, s.Expr);
+        var negated = new UnaryOpExpr(stmt.Tok, UnaryOpExpr.Opcode.Not, expr);
         negated.Type = Type.Bool;
         TrExpr(negated, guardWriter, false, wStmts);
-        EmitHalt(s.Tok, s.Message, bodyWriter);
+        EmitHalt(stmt.Tok, msg, bodyWriter);
 
       } else if (stmt is CallStmt) {
         var s = (CallStmt)stmt;
