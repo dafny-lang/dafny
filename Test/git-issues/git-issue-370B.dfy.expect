@@ -1,0 +1,17 @@
+git-issue-370B.dfy(45,0): Error: A postcondition might not hold on this return path.
+git-issue-370B.dfy(43,7): Related location: This is the postcondition that might not hold.
+git-issue-370B.dfy(19,5): Related location
+git-issue-370B.dfy(45,0): Error: A postcondition might not hold on this return path.
+git-issue-370B.dfy(44,7): Related location: This is the postcondition that might not hold.
+git-issue-370B.dfy(29,9): Related location
+git-issue-370B.dfy(45,0): Error: A postcondition might not hold on this return path.
+git-issue-370B.dfy(44,7): Related location: This is the postcondition that might not hold.
+git-issue-370B.dfy(30,9): Related location
+git-issue-370B.dfy(45,0): Error: A postcondition might not hold on this return path.
+git-issue-370B.dfy(44,7): Related location: This is the postcondition that might not hold.
+git-issue-370B.dfy(31,9): Related location
+git-issue-370B.dfy(45,0): Error: A postcondition might not hold on this return path.
+git-issue-370B.dfy(44,7): Related location: This is the postcondition that might not hold.
+git-issue-370B.dfy(32,9): Related location
+
+Dafny program verifier finished with 1 verified, 5 errors

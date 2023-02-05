@@ -572,7 +572,7 @@ namespace Microsoft.Dafny {
       var byMethodBody = refinementCloner.CloneBlockStmt(f.ByMethodBody);
 
       if (f is Predicate) {
-        return new Predicate(tok, f.Name, f.HasStaticKeyword, isGhost, tps, formals, result,
+        return new Predicate(tok, f.Name, f.HasStaticKeyword, isGhost, f.IsOpaque, tps, formals, result,
           req, reads, ens, decreases, body, bodyOrigin,
           f.ByMethodTok == null ? null : refinementCloner.Tok(f.ByMethodTok), byMethodBody,
           refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
@@ -589,7 +589,7 @@ namespace Microsoft.Dafny {
         return new TwoStateFunction(tok, f.Name, f.HasStaticKeyword, tps, formals, result, refinementCloner.CloneType(f.ResultType),
           req, reads, ens, decreases, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       } else {
-        return new Function(tok, f.Name, f.HasStaticKeyword, isGhost, tps, formals, result, refinementCloner.CloneType(f.ResultType),
+        return new Function(tok, f.Name, f.HasStaticKeyword, isGhost, f.IsOpaque, tps, formals, result, refinementCloner.CloneType(f.ResultType),
           req, reads, ens, decreases, body,
           f.ByMethodTok == null ? null : refinementCloner.Tok(f.ByMethodTok), byMethodBody,
           refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);

@@ -48,6 +48,8 @@ class DeclModifierData {
   public IToken GhostToken;
   public bool IsStatic;
   public IToken StaticToken;
+  public bool IsOpaque;
+  public IToken OpaqueToken;
   public IToken FirstToken;
 }
 
@@ -253,7 +255,8 @@ public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, Include include, ModuleD
 }
 
 bool IsIdentifier(int kind) {
-  return kind == _ident || kind == _least || kind == _greatest || kind == _older;
+  if (kind == _opaque) errors.Deprecated(t, "opaque is deprecated as an identifier. It will soon become a reserved word. Use a different name.");
+  return kind == _ident || kind == _least || kind == _greatest || kind == _older || kind == _opaque;
 }
 
 bool IsQuantifierVariableDecl(QuantifiedVar previousVar) {
@@ -932,6 +935,7 @@ TOKENS
   predicate = "predicate".
   least = "least". /* not a keyword by itself, but part of a keyword phrase */
   greatest = "greatest". /* not a keyword by itself, but part of a keyword phrase */
+  opaque = "opaque".
   inductive = "inductive".
   twostate = "twostate".
   copredicate = "copredicate".
@@ -1046,6 +1050,7 @@ DeclModifier<ref DeclModifierData dmod>
 = ( "abstract"                             (. dmod.IsAbstract = true;  CheckAndSetToken(ref dmod.AbstractToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   | "ghost"                                (. dmod.IsGhost = true;  CheckAndSetToken(ref dmod.GhostToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   | "static"                               (. dmod.IsStatic = true; CheckAndSetToken(ref dmod.StaticToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
+  | "opaque"                               (. dmod.IsOpaque = true; CheckAndSetToken(ref dmod.OpaqueToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   )
   .
 
@@ -2649,7 +2654,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
        }
      }
 
-     /* ========================================
+     /* =========================================
       * Finally, we create the AST node for the function declaration we parsed.
       */
 
@@ -2664,7 +2669,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
                                 reqs, reads, ens, new Specification<Expression>(decreases, decAttrs), body, attrs, signatureEllipsis);
      } else if (isPredicate) {
        Contract.Assert(functionMethodToken == null || !dmod.IsGhost);
-       f = new Predicate(tok, id.val, dmod.IsStatic, isGhost, typeArgs, formals, result,
+       f = new Predicate(tok, id.val, dmod.IsStatic, isGhost, dmod.IsOpaque, typeArgs, formals, result,
                          reqs, reads, ens, new Specification<Expression>(decreases, decAttrs), body, Predicate.BodyOriginKind.OriginalOrInherited,
                          byMethodTok, byMethodBody, attrs, signatureEllipsis);
      } else if (isLeastPredicate) {
@@ -2677,7 +2682,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
                                  reqs, reads, ens, body, attrs, signatureEllipsis);
      } else {
        Contract.Assert(functionMethodToken == null || !dmod.IsGhost);
-       f = new Function(tok, id.val, dmod.IsStatic, isGhost,
+       f = new Function(tok, id.val, dmod.IsStatic, isGhost, dmod.IsOpaque,
                         typeArgs, formals, result, returnType,
                         reqs, reads, ens, new Specification<Expression>(decreases, decAttrs), body,
                         byMethodTok, byMethodBody,
@@ -5156,6 +5161,8 @@ Ident<out IToken/*!*/ x>
   | "least"      (. t.kind = _ident; .) // convert it to an ident
   | "greatest"   (. t.kind = _ident; .) // convert it to an ident
   | "older"      (. t.kind = _ident; .) // convert it to an ident
+  | "opaque"     (. t.kind = _ident; .) // convert it to an ident
+                 (. errors.Deprecated(t, "opaque is deprecated as an identifier. It will soon become a reserved word. Use a different name."); .)
   )
   (. x = t; .)
   .
