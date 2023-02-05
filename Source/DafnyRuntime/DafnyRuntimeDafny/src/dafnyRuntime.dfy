@@ -365,14 +365,19 @@ abstract module {:options "/functionSyntax:4"} Dafny {
 
     ghost const inv: T -> bool
 
+    ghost predicate Valid()
+
     static method {:extern} Make(ghost inv: T -> bool, t: T) returns (ret: AtomicBox<T>)
       requires inv(t)
+      ensures ret.Valid()
       ensures ret.inv == inv
 
     method {:extern} Get() returns (t: T)
+      requires Valid()
       ensures inv(t)
 
     method {:extern} Put(t: T)
+      requires Valid()
       requires inv(t)
   }
 
@@ -811,6 +816,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       && 0 < size
       && |value| < SIZE_T_LIMIT
       && length == |value| as size_t
+      && box.Valid()
       && box.inv == (s: Sequence<T>) =>
         && s.size < size
         && s.Valid()

@@ -162,6 +162,50 @@ module {:options "/functionSyntax:4"} FeasibilityImplementation refines Dafny {
     }
   }
 
-  // Note that it is impossible to implement a DafnyAtomicBox<T>,
+  // Note that it is impossible to implement a DafnyAtomicBox<T>
+  // that actually works as expected (but not specified!)
+  // by storing the value passed to Put(),
   // precisely because Put() modifies nothing.
+  // But we CAN implement the worst cache in the world with a
+  // 0% hit rate...
+
+  class DafnyAtomicBox<T> extends AtomicBox<T> {
+
+    const value: T
+
+    ghost predicate Valid() {
+      inv(value)
+    }
+
+    constructor(ghost inv: T -> bool, value: T) 
+      requires inv(value)
+      ensures Valid()
+      ensures this.inv == inv
+    {
+      this.inv := inv;
+      this.value := value;
+    }
+
+    static method {:extern "Make"} NativeMake(ghost inv: T -> bool, t: T) returns (ret: AtomicBox<T>)
+      requires inv(t)
+      ensures ret.Valid()
+      ensures ret.inv == inv
+    {
+      return new DafnyAtomicBox(inv, t);
+    }
+
+    method {:extern} Get() returns (t: T)
+      requires Valid()
+      ensures inv(t)
+    {
+      return value;
+    }
+
+    method {:extern} Put(t: T)
+      requires Valid()
+      requires inv(t)
+    {
+      // Whoops!
+    }
+  }
 }

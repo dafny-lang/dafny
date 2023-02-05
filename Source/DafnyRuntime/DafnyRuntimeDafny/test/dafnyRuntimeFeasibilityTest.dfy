@@ -1,7 +1,7 @@
 
 include "../test/dafnyRuntimeFeasibility.dfy"
 
-module DafnyRuntimeTest {
+module DafnyRuntimeFeasibilityTest {
 
     import opened FeasibilityImplementation
 
