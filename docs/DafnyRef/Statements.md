@@ -1663,7 +1663,7 @@ their purpose -- to assist in proving the given assertion -- is manifest in the 
 Examples of this form of assert are given in the section of the [`reveal`](#sec-reveal-statement) statement and in [_Different Styles of Proof_](http://leino.science/papers/krml276.html)
 
 An assert statement recoognizes an optional attribute `{:expect}`. If present, the statement acts as an `expect` statement as well as an assert, with the same expression.
-That is, the `assert {:expect}` statement will be iverified by the verifier and tested at runtime. 
+That is, the `assert {:expect}` statement will be verified by the verifier and tested at runtime. 
 The `{:expect}` attribute may take an argument, which serves the same purpose as the 
 optional message in an [expect statement](#sec-expect-statement). If `{:expect}` is present, the tested expression may not be ghost, nor may the statement be in a ghost context.
 An `assert {:expect} P;` is equivalent to `assert P; expect P;`, but avoids replicating an identical expression P.
