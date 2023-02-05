@@ -235,13 +235,6 @@ namespace Microsoft.Dafny {
           msg = nestedToken.Message ?? "[Related location]";
           errorLine += $" {msg} {TokenToString(tok)}";
         }
-
-        if (DafnyOptions.O.CompileVerbose && false) { // Need to control tests better before we enable this
-          var info = ErrorDetail.GetDetail(errorID);
-          if (info != null) {
-            errorLine += "\n" + info;
-          }
-        }
         Console.WriteLine(errorLine);
 
         Console.ForegroundColor = previousColor;
