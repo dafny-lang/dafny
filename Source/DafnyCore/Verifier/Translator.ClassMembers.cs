@@ -173,7 +173,7 @@ namespace Microsoft.Dafny {
             AddMethodImpl(m, proc, true);
           }
         }
-        if (m.OverriddenMethod != null && InVerificationScope(m)) //method has overrided a parent method
+        if (m.OverriddenMethod != null && InVerificationScope(m)) //method has overridden a parent method
         {
           var procOverrideChk = AddMethod(m, MethodTranslationKind.OverrideCheck);
           sink.AddTopLevelDeclaration(procOverrideChk);
@@ -1380,7 +1380,7 @@ namespace Microsoft.Dafny {
       // FREE PRECONDITIONS
       if (kind == MethodTranslationKind.SpecWellformedness || kind == MethodTranslationKind.Implementation || kind == MethodTranslationKind.OverrideCheck) {  // the other cases have no need for a free precondition
         // free requires mh == ModuleContextHeight && fh == FunctionContextHeight;
-        req.Add(Requires(m.tok, true, etran.HeightContext(kind == MethodTranslationKind.OverrideCheck ? m.OverriddenMethod : m), null, null));
+        req.Add(Requires(m.tok, true, etran.HeightContext(m), null, null));
         if (m is TwoStateLemma) {
           // free requires prevHeap == Heap && HeapSucc(prevHeap, currHeap) && IsHeap(currHeap)
           var a0 = Boogie.Expr.Eq(prevHeap, ordinaryEtran.HeapExpr);
