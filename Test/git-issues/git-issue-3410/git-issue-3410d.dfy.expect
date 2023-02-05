@@ -1,6 +1,6 @@
 
 Dafny program verifier did not attempt verification
-[Program halted] git-issue-3410d.dfy(7,2): expectation violation
-git-issue-3410d.dfy(7,21): Error: assertion might not hold
+[Program halted] git-issue-3410d.dfy(11,2): expectation violation
+git-issue-3410d.dfy(11,21): Error: assertion might not hold
 
 Dafny program verifier finished with 0 verified, 1 error

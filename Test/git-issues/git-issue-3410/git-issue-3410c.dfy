@@ -1,4 +1,4 @@
-// RUN: %baredafny run --no-verify --use-basename-for-filename "%s" > "%t"
+// RUN: %testDafnyForEachCompiler "%s" > "%t"
 // RUN: %baredafny verify --use-basename-for-filename "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 

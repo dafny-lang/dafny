@@ -2106,7 +2106,9 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected void EmitToString(ConcreteSyntaxTree wr, Expression arg, ConcreteSyntaxTree wStmts) {
-      if (arg.Type.IsArrowType) {
+      if (arg is StringLiteralExpr) {
+        wr.Write(arg.ToString());
+      } else if (arg.Type.IsArrowType) {
         var expr = arg.Resolved;
         if (expr is IdentifierExpr id) {
           wr.Write(IdName(id.Var) + " == null ? null : \"Function\"");
