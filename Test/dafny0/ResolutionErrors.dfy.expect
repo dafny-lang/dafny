@@ -157,7 +157,7 @@ ResolutionErrors.dfy(1132,6): Error: RHS (of type P<int>) not assignable to LHS 
 ResolutionErrors.dfy(1137,13): Error: arguments must have comparable types (got P<int> and P<X>)
 ResolutionErrors.dfy(1138,13): Error: arguments must have comparable types (got P<bool> and P<X>)
 ResolutionErrors.dfy(1139,13): Error: arguments must have comparable types (got P<int> and P<bool>)
-ResolutionErrors.dfy(1150,10): Error: new can be applied only to class types (got JJ)
+ResolutionErrors.dfy(1150,13): Error: new can be applied only to class types (got JJ)
 ResolutionErrors.dfy(1158,31): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references, but values of 'o' may contain references (see documentation for 'older' parameters)
 ResolutionErrors.dfy(1159,38): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references, but values of 'o' may contain references (see documentation for 'older' parameters)
 ResolutionErrors.dfy(1165,27): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'o'

@@ -31,7 +31,7 @@ namespace Microsoft.Dafny {
     /// If you do not have access to them, use moduleDefinition.GetFirstTopLevelToken()
     /// </summary>
     /// <param name="reporter">The error reporter. Usually outputs automatically to IDE or command-line</param>
-    internal IRewriter(ErrorReporter reporter) {
+    protected internal IRewriter(ErrorReporter reporter) {
       Contract.Requires(reporter != null);
       this.Reporter = reporter;
     }

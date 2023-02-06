@@ -46,6 +46,7 @@ js - Compile to JavaScript.
 java - Compile to Java.
 py - Compile to Python.
 cpp - Compile to C++.
+dfy - Compile to Dafny.
 
 Note that the C++ backend has various limitations (see
 Docs/Compilation/Cpp.md). This includes lack of support for
@@ -201,7 +202,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       Prune = true;
       NormalizeNames = true;
       EmitDebugInformation = false;
-      Compiler = new CsharpCompiler();
+      Backend = new CsharpBackend();
     }
 
     public override string VersionNumber {
@@ -263,7 +264,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public List<string> MainArgs = new List<string>();
 
     public string CompilerName;
-    public Compiler Compiler;
+    public IExecutableBackend Backend;
     public bool CompileVerbose = true;
     public bool EnforcePrintEffects = false;
     public string DafnyPrintCompiledFile = null;
@@ -811,7 +812,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public void ApplyDefaultOptionsWithoutSettingsDefault() {
       base.ApplyDefaultOptions();
 
-      Compiler ??= new CsharpCompiler();
+      Backend ??= new CsharpBackend();
 
       // expand macros in filenames, now that LogPrefix is fully determined
 
