@@ -6049,7 +6049,7 @@ namespace Microsoft.Dafny {
     /// desugaring during resolution, because then the desugaring can be constructed as a non-resolved expression on which ResolveExpression
     /// is called--this is easier than constructing an already-resolved expression.
     /// </summary>
-    (Expression, Expression) ResolveDatatypeUpdate(DatatypeUpdateExpr datatypeUpdateExpr, DatatypeDecl dt, 
+    (Expression, Expression) ResolveDatatypeUpdate(DatatypeUpdateExpr datatypeUpdateExpr, DatatypeDecl dt,
       ResolutionContext resolutionContext, out List<MemberDecl> members, out List<DatatypeCtor> legalSourceConstructors) {
       Contract.Requires(dt != null);
       Contract.Requires(resolutionContext != null);
@@ -6687,8 +6687,8 @@ namespace Microsoft.Dafny {
             AddAssignableConstraint(expr.tok, tentativeReceiverType, receiver.Type, "receiver type ({1}) does not have a member named " + name);
             r = ResolveExprDotCall(expr, expr.SuffixNameNode, receiver, tentativeReceiverType, member, args, resolutionContext, allowMethodCall);
           } else {
-            
-            receiver = new StaticReceiverExpr(expr.Tok.ToRange() /* TODO expr.RangeToken makes more sense here */ , 
+
+            receiver = new StaticReceiverExpr(expr.Tok.ToRange() /* TODO expr.RangeToken makes more sense here */ ,
               (UserDefinedType)tentativeReceiverType, (TopLevelDeclWithMembers)member.EnclosingClass, false, lhs);
             r = ResolveExprDotCall(expr, expr.SuffixNameNode, receiver, null, member, args, resolutionContext, allowMethodCall);
           }
@@ -6746,8 +6746,8 @@ namespace Microsoft.Dafny {
 
       var rangeToken = dotName.RangeToken;
       var tok = dotName.Tok;
-      var optTypeArguments = dotName.OptTypeArguments; 
-      
+      var optTypeArguments = dotName.OptTypeArguments;
+
       var rr = new MemberSelectExpr(rangeToken, receiver, new Name(name.RangeToken, member.Name));
       rr.Member = member;
 

@@ -9,7 +9,7 @@ public class MemberSelectExpr : Expression, IHasUsages, ICloneable<MemberSelectE
   public readonly Expression Obj;
 
   public override IToken Tok => MemberNameNode.Tok;
-  
+
   public string MemberName => MemberNameNode.Value;
   public Name MemberNameNode;
   [FilledInDuringResolution] public MemberDecl Member;    // will be a Field or Function

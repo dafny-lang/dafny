@@ -77,7 +77,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(args != null);
       Error(source, node.Tok, String.Format(msg, args));
     }
-    
+
     public void Error(MessageSource source, IToken tok, string msg, params object[] args) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);

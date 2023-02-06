@@ -631,7 +631,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   public readonly Name NameNode; // (Last segment of the) module name
 
   public override IToken Tok => NameNode.StartToken;
-  
+
   public string Name => NameNode.Value;
   public string FullDafnyName {
     get {

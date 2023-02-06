@@ -1775,7 +1775,7 @@ public class TypeTestExpr : TypeUnaryExpr {
     Contract.Requires(expr != null);
     Contract.Requires(toType != null);
   }
-  
+
   public override IToken Tok => E.Tok.Next; // Move to "is", can't use ToType since type tokens can't be trusted.
 }
 
@@ -2821,7 +2821,7 @@ public class DatatypeUpdateExpr : ConcreteSyntaxExpression, IHasUsages, ICloneab
   public readonly List<Tuple<IToken, string, Expression>> Updates;
 
   public override IToken Tok => Root.EndToken.Next.Next; // Move to . then (
-  
+
   [FilledInDuringResolution] public List<MemberDecl> Members;
   [FilledInDuringResolution] public List<DatatypeCtor> LegalSourceConstructors;
   [FilledInDuringResolution] public bool InCompiledContext;

@@ -62,7 +62,7 @@ namespace Microsoft.Dafny {
 
         QuantifierExpr newExpr;
         if (expr is ForallExpr) {
-          newExpr = new ForallExpr(e.RangeToken, newBoundVars, newRange, newTerm, newAttrs) { Bounds = newBounds, OverrideToken = expr.OverrideToken};
+          newExpr = new ForallExpr(e.RangeToken, newBoundVars, newRange, newTerm, newAttrs) { Bounds = newBounds, OverrideToken = expr.OverrideToken };
         } else {
           Contract.Assert(expr is ExistsExpr);
           newExpr = new ExistsExpr(e.RangeToken, newBoundVars, newRange, newTerm, newAttrs) { Bounds = newBounds, OverrideToken = expr.OverrideToken };
