@@ -336,7 +336,7 @@ In addition, the declaration does not use `returns` to state the out-parameter, 
 The example above is a valid example if `returns` is replaced by `yields`.
 
 
-## **Error: type-parameter variance is not allowed to be specified in this context**
+## **Error: type-parameter variance is not allowed to be specified in this context** {p_type_parameter_variance_forbidden}
 
 ```dafny
 type List<T>
@@ -350,7 +350,7 @@ Such designations are allowed in generic type declarations but not in generic me
 
 <!-- There are two instances of this error, one for the first item in a type parameter list, and one for subsequent items -->
 
-## **Error: unexpected type parameter option: '000' should be one of == or 0 or 00 or !new**
+## **Error: unexpected type characteristic: '000' should be one of == or 0 or 00 or !new** {#p_unexpected_type_characteristic}
 
 ```dafny
 type T(000)
@@ -360,7 +360,43 @@ type T(000)
 indicated in parentheses after the type name, state properties of the otherwise uninterpreted or opaque type.
 The currently defined type parameters are designated by `==` (equality-supporting), `0` (auto-initializable), `00` (non-empty), and `!new` (non-reference).
 
-## **Error: constructors are allowed only in classes**
+## **Error: extra comma or missing type characteristic: should be one of == or 0 or 00 or !new** {#p_missing_type_characteristic}
+
+```dafny
+type T()
+```
+
+[Type parameters](../DafnyRef/DafnyRef#sec-type-parameters), 
+indicated in parentheses after the type name, state properties of the otherwise uninterpreted or opaque type.
+The currently defined type parameters are designated by `==` (equality-supporting), `0` (auto-initializable), `00` (non-empty), and `!new` (non-reference).
+
+## **Error: illegal type characteristic: '_token_' should be one of == or 0 or 00 or !new** {#p_illegal_type_characteristic}
+
+```dafny
+type T(000)
+```
+
+[Type parameters](../DafnyRef/DafnyRef#sec-type-parameters), 
+indicated in parentheses after the type name, state properties of the otherwise uninterpreted or opaque type.
+The currently defined type parameters are designated by `==` (equality-supporting), `0` (auto-initializable), `00` (non-empty), and `!new` (non-reference).
+
+## **Warning: the old keyword 'colemma' has been renamed to the keyword phrase 'greatest lemma'** {#p_deprecated_colemma}
+
+```dafny
+colemma m() ensures true {}
+```
+
+The adjectives `least` and `greatest` for lemmas and functions are more consistent with the nomenclature for coinduction.
+
+## **Warning: the old keyword phrase 'inductive lemma' has been renamed to 'least lemma'** {#p_deprecated_inductive_lemma}
+
+```dafny
+inductive lemma m() ensures true {}
+```
+
+The adjectives `least` and `greatest` for lemmas and functions are more consistent with the nomenclature for coinduction.
+
+## **Error: constructors are allowed only in classes** {#p_constructor_in_class}
 
 ```dafny
 module M {
@@ -372,7 +408,7 @@ Constructors are methods that initialize class instances. That is, when a new in
 using the `new` object syntax, some constructor of the class is called, perhaps a default anonymous one.
 So constructor declarations only make sense within classes.
 
-## **Error: a method must be given a name (expecting identifier)**
+## **Error: a method must be given a name (expecting identifier)** {#p_method_missing_name}
 
 ```dafny
 method {:extern "M"} (i: int) {}
@@ -382,7 +418,7 @@ A method declaration always requires an identifier between the `method` keyword 
 This is the case even when, as in the example above, a name is specified using `:extern`. The extern name is only used in the
 compiled code; it is not the name used to refer to the method in Dafny code
 
-## **Error: type of _k_ can only be specified for least and greatest lemmas**
+## **Error: type of _k_ can only be specified for least and greatest lemmas** {#p_extraneous_k}
 
 ```dafny
 lemma b[nat](i: int) { }
@@ -393,7 +429,7 @@ Its type is specified in square brackets between the lemma/predicate name and th
 The type may be either `nat` or `ORDINAL`.
 But this type is specified only for `least` and `greatest` constructs.
 
-## **Error: constructors cannot have out-parameters**
+## **Error: constructors cannot have out-parameters** {#p_constructors_have_no_out_parameters}
 
 ```dafny
 class C {
@@ -410,7 +446,7 @@ and they may not be declared.
 (This is similar to constructors in other programming languages, like Java.)
 
 
-## **Error: A 'reads' clause that contains '*' is not allowed to contain any other expressions**
+## **Error: A 'reads' clause that contains '*' is not allowed to contain any other expressions** {#p_reads_star_must_be_alone}
 
 ```dafny
 const a: object;
@@ -421,13 +457,13 @@ function f(): int
 }
 ```
 
-A reads clause lists the objects whose fields the function is allowed to read (or expressions containing such objects).
-`reads *` means the function may read anything.
+A reads clause lists the objects whose fields the function is allowed to read (or expressions 
+containing such objects). `reads *` means the function may read anything.
 So it does not make sense to list `*` along with something more specific.
 If you mean that the function should be able to read anything, just list `*`.
 Otherwise, omit the `*` and list expressions containing all the objects that are read.
 
-## **Error: out-parameters cannot have default-value expressions**
+## **Error: out-parameters cannot have default-value expressions** {#p_no_defaults_for_out_parameters}
 
 ```dafny
 method m(i: int) returns (j: int := 0) { return 42; }
@@ -439,7 +475,7 @@ No initializing value may be given. If a default value is needed, assign the out
 that value as a first statement in the body of the method.
 
 
-## **Error: set type expects only one type argument**
+## **Error: set type expects only one type argument** {#p_set_only_one_type_parameter}
 
 ```dafny
 const c: set<int,bool>
@@ -449,7 +485,7 @@ A `set` type has one type parameter, namely the type of the elements of the set.
 The error message states that the parser sees some number of type parameters different than one.
 The type parameters are listed in a comma-separated list between `<` and `>`, after the type name.
 
-## **Error: iset type expects only one type argument**
+## **Error: iset type expects only one type argument** {#p_iset_only_one_type_parameter}
 
 ```dafny
 const c: iset<int,bool>
@@ -459,7 +495,7 @@ A `iset` type has one type parameter, namely the type of the elements of the set
 The error message states that the parser sees some number of type parameters different than one.
 The type parameters are listed in a comma-separated list between `<` and `>`, after the type name.
 
-## **Error: multiset type expects only one type argument**
+## **Error: multiset type expects only one type argument** {#p_multiset_only_one_type_parameter}
 
 ```dafny
 const c: multiset<int,bool>
@@ -469,7 +505,7 @@ A `multiset` type has one type parameter, namely the type of the elements of the
 The error message states that the parser sees some number of type parameters different than one.
 The type parameters are listed in a comma-separated list between `<` and `>`, after the type name.
 
-## **Error: seq type expects only one type argument**
+## **Error: seq type expects only one type argument** {#p_seq_only_one_type_parameter}
 
 ```dafny
 const c: seq<int,bool>
@@ -482,7 +518,7 @@ The type parameters are listed in a comma-separated list between `<` and `>`, af
 
 <!-- There are two instances of this error. -->
 
-## **Error: map type expects two type arguments**
+## **Error: map type expects two type arguments** {#p_map_needs_two_type_parameters}
 
 ```dafny
 const m: map<int,bool,string>
@@ -492,7 +528,7 @@ A `map` type has two type parameters: the type of the keys and the type of the v
 The error message states that the parser sees some number of type parameters different than two.
 
 
-## **Error: imap type expects two type arguments**
+## **Error: imap type expects two type arguments** {#p_imap_needs_two_type_parameters}
 
 ```dafny
 const m: imap<int,bool,string>
@@ -584,7 +620,7 @@ It indicates that `predicates` are always ghost and cannot be declared with the 
 - If you intend to predicate to be ghost, remove `method`.
 - If you intend the predicate to be non-ghost, you either cannot use `experimentalPredicateAlwaysGhost` or you should use `function` with a `bool` return type instead of `predicate`
 
-## **Error: the phrase '_what_ method' is not allowed; to declare a compiled _what_, use just '_what_'**
+## **Error: the phrase '_what_ method' is not allowed; to declare a compiled _what_, use just '_what_'** {#p_deprecating_function_method}
 
 ```dafny
 module {:options "--function-syntax:4"} M {
@@ -595,7 +631,6 @@ module {:options "--function-syntax:4"} M {
 In Dafny 4 on, the phrases `function method` and `predicate method` are no
 longer accepted. Use `function` for compiled, non-ghost functions and
 `ghost function` for non-compiled, ghost functions, and similarly for predicates.
-
 See [the documentation here](../DafnyRef/DafnyRef#sec-function-syntax).
 
 ## **Error: there is no such thing as a 'ghost _what_ method'**

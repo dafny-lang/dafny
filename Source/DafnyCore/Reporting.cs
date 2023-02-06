@@ -118,7 +118,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
       if (DafnyOptions.O.WarningsAsErrors) {
-        Error(source, tok, msg);
+        Error(source, errorID, tok, msg);
       } else {
         Message(source, ErrorLevel.Warning, errorID, tok, msg);
       }

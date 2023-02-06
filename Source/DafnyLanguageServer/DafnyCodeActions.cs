@@ -33,11 +33,22 @@ public class DafnyCodeActions {
     return new List<DafnyCodeAction> { action };
   }
 
+  public static List<DafnyCodeAction> ReplacementActions(Diagnostic diagnostic, Range range, Tuple<String, String>[] data) {
+    List<DafnyCodeAction> actions = new List<DafnyCodeAction>();
+    foreach (var pair in data) {
+      var edit = new DafnyCodeActionEdit[] { new DafnyCodeActionEdit(range, pair.Item2) };
+      var action = new InstantDafnyCodeAction(pair.Item1, new List<Diagnostic> { diagnostic }, edit);
+      actions.Add(action);
+    }
+    return actions;
+  }
+
   public static List<DafnyCodeAction> RemoveAction(string title, Diagnostic diagnostic, Range range) {
     var edit = new DafnyCodeActionEdit[] { new DafnyCodeActionEdit(range, "") };
     var action = new InstantDafnyCodeAction(title, new List<Diagnostic> { diagnostic }, edit);
     return new List<DafnyCodeAction> { action };
   }
+
 
   public static void AddRemoveAction(ErrorID errorID, String title) {
     codeActionMap.Add(errorID, (Diagnostic diagnostic, Range range) => RemoveAction(title, diagnostic, range));
@@ -45,6 +56,10 @@ public class DafnyCodeActions {
 
   public static void AddReplaceAction(ErrorID errorID, String title, String newContent) {
     codeActionMap.Add(errorID, (Diagnostic diagnostic, Range range) => ReplacementAction(title, diagnostic, range, newContent));
+  }
+
+  public static void AddReplacementActions(ErrorID errorID, Tuple<String, String>[] actions) {
+    codeActionMap.Add(errorID, (Diagnostic diagnostic, Range range) => ReplacementActions(diagnostic, range, actions));
   }
 
   private static bool initialized = false;
@@ -82,6 +97,42 @@ public class DafnyCodeActions {
     // p_datatype_formal_is_not_id -- no code action - perhaps remove the name and the colon
     AddRemoveAction(ErrorID.p_nameonly_must_have_parameter_name, "remove 'nameonly'");
     AddReplaceAction(ErrorID.p_should_be_yields_instead_of_returns, "replace 'returns' by 'yields'", "yields");
+    AddRemoveAction(ErrorID.p_type_parameter_variance_forbidden, "remove type parameter variance");
+
+    AddReplacementActions(ErrorID.p_unexpected_type_characteristic, new Tuple<String, String>[]{
+      Tuple.Create("replace with '=='", "=="),
+      Tuple.Create("replace with '0'", "0"),
+      Tuple.Create("replace with '00'", "00"),
+      Tuple.Create("replace with '!new'", "!new")});
+
+    // p_missing_type_characteristic -- need to insert something? or remove comma?
+
+    AddReplacementActions(ErrorID.p_illegal_type_characteristic, new Tuple<String, String>[]{
+      Tuple.Create("replace with '=='", "=="),
+      Tuple.Create("replace with '0'", "0"),
+      Tuple.Create("replace with '00'", "00"),
+      Tuple.Create("replace with '!new'", "!new")});
+
+    AddReplaceAction(ErrorID.p_deprecated_colemma, "Replace 'colemma' with 'greatest lemma'", "greatest lemma");
+    AddReplaceAction(ErrorID.p_deprecated_inductive_lemma, "Replace 'inductive' with 'least'", "least");
+    AddReplaceAction(ErrorID.p_constructor_not_in_class, "replace 'constructor' with 'method'", "method");
+
+    // p_method_missing_name -- insert a name?
+    AddRemoveAction(ErrorID.p_extraneous_k, "remove '[type]'");
+    // p_constructors_have_no_out_parameters - remove everything from returns through )
+    // p_reads_star_must_be_alone -- remove *, remove everything else
+    AddRemoveAction(ErrorID.p_no_defaults_for_out_parameters, "remove initializer");
+    // p_set_only_one_type_parameter
+    // p_iset_only_one_type_parameter
+    // p_multiset_only_one_type_parameter
+    // p_seq_only_one_type_parameter
+    // p_map_needs_two_type_parameters
+    // p_imap_needs_two_type_parameters
+
+
+
+
+    AddRemoveAction(ErrorID.p_deprecating_function_method, "remove 'method'");
   }
 }
 

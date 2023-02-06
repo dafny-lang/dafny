@@ -1843,7 +1843,7 @@ GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs, bool allowVariance.>
   // Fortunately that is not currently the case.
   // (Only because we parse the new "<-" symbol as separate "<" "-" tokens precisely to avoid this issue :)
   "<"
-  [ Variance<out variance>  (. if (!allowVariance) { SemErr(t, "type-parameter variance is not allowed to be specified in this context"); } .)
+  [ Variance<out variance>  (. if (!allowVariance) { SemErr(ErrorID.p_type_parameter_variance_forbidden, t, "type-parameter variance is not allowed to be specified in this context"); } .)
   ]
   TypeVariableName<out id>
   { TypeParameterCharacteristics<ref characteristics> }
@@ -1852,7 +1852,7 @@ GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs, bool allowVariance.>
     (. variance = TypeParameter.TPVarianceSyntax.NonVariant_Strict;
        characteristics = new TypeParameter.TypeParameterCharacteristics(false);
     .)
-    [ Variance<out variance>  (. if (!allowVariance) { SemErr(t, "type-parameter variance is not allowed to be specified in this context"); } .)
+    [ Variance<out variance>  (. if (!allowVariance) { SemErr(ErrorID.p_type_parameter_variance_forbidden, t, "type-parameter variance is not allowed to be specified in this context"); } .)
     ]
     TypeVariableName<out id>
     { TypeParameterCharacteristics<ref characteristics> }
@@ -1891,10 +1891,14 @@ TPCharOption<ref TypeParameter.TypeParameterCharacteristics characteristics>
                       characteristics.AutoInit = Microsoft.Dafny.Type.AutoInitInfo.Nonempty;
                     }
                   } else {
-                    SemErr(t, $"unexpected type parameter option: '{t.val}' should be one of == or 0 or 00 or !new");
+                    SemErr(ErrorID.p_unexpected_type_characteristic, t, $"unexpected type characteristic: '{t.val}' should be one of == or 0 or 00 or !new");
                   }
                .)
   | "!" "new"  (. characteristics.ContainsNoReferenceTypes = true; .)
+  | ANY        (. if (t.kind == _closeparen || t.kind == _comma) 
+                      SemErr(ErrorID.p_missing_type_characteristic, t, $"extra comma or missing type characteristic: should be one of == or 0 or 00 or !new");
+                  else SemErr(ErrorID.p_illegal_type_characteristic, t, $"illegal type characteristic: '{t.val}' should be one of == or 0 or 00 or !new");
+                .)
   )
   .
 
@@ -1937,12 +1941,16 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static; .)
   | ( "greatest"                    (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
       "lemma"
-    | "colemma"                     (. CheckAndSetTokenOnce(ref dmod.FirstToken); errors.Deprecated(t, "the old keyword 'colemma' has been renamed to the keyword phrase 'greatest lemma'"); .)
+    | "colemma"                     (. CheckAndSetTokenOnce(ref dmod.FirstToken); 
+                                       errors.Deprecated(ErrorID.p_deprecated_colemma, Errors.CodeAction(t), "the old keyword 'colemma' has been renamed to the keyword phrase 'greatest lemma'"); 
+                                    .)
     )
                                     (. isGreatestLemma = true; caption = "greatest lemma";
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static; .)
   | ( "least"                       (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
-    | "inductive"                   (. CheckAndSetTokenOnce(ref dmod.FirstToken);errors.Deprecated(t, "the old keyword phrase 'inductive lemma' has been renamed to 'least lemma'"); .)
+    | "inductive"                   (. CheckAndSetTokenOnce(ref dmod.FirstToken);
+                                       errors.Deprecated(ErrorID.p_deprecated_inductive_lemma, Errors.CodeAction(t), "the old keyword phrase 'inductive lemma' has been renamed to 'least lemma'"); 
+                                    .)
     )
     "lemma"
                                     (. isLeastLemma = true;  caption = "least lemma";
@@ -1954,7 +1962,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
                                        if (allowConstructor) {
                                          isConstructor = true;
                                        } else {
-                                         SemErr(t, "constructors are allowed only in classes");
+                                         SemErr(ErrorID.p_constructor_not_in_class, t, "constructors are allowed only in classes");
                                        }
                                        caption = "constructor";
                                        allowed = AllowedDeclModifiers.Ghost;
@@ -1967,13 +1975,18 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
   (. if (!hasName) {
        id = keywordToken;
        if (!isConstructor) {
-         SemErr(la, "a method must be given a name (expecting identifier)");
+         SemErr(ErrorID.p_method_missing_name, la, "a method must be given a name (expecting identifier)");
        }
      }
   .)
   (
     [ GenericParameters<typeArgs, false> ]
-    [ KType<ref kType>              (. if (!(isGreatestLemma || isLeastLemma)) { SemErr(t, "type of _k can only be specified for least and greatest lemmas"); } .)
+    [ KType<ref kType>              (. if (!(isGreatestLemma || isLeastLemma)) { 
+                                         SemErr(ErrorID.p_extraneous_k, 
+                                                t.Prev == null || t.Prev.Prev == null || t.Next == null ? t : Errors.CodeAction(t.Prev.Prev,t.Next), 
+                                                "type of _k can only be specified for least and greatest lemmas"); 
+                                       } 
+                                    .)
     ]
     (. var isCompilable = (isPlainOlMethod || isConstructor) && !dmod.IsGhost; .)
     Formals<true, isCompilable, isTwoStateLemma, false, ins>
@@ -2082,7 +2095,7 @@ ReadsClause<.List<FrameExpression/*!*/>/*!*/ reads,
   { "," PossiblyWildFrameExpression<out fe, allowLemma, allowLambda, allowWild>    (. reads.Add(fe); .)
   }
   (. if (allowWild && reads.Count > 1 && reads.Exists(fe => fe.E is WildcardExpr)) {
-       SemErr(fe.tok, "A 'reads' clause that contains '*' is not allowed to contain any other expressions");
+       SemErr(ErrorID.p_reads_star_must_be_alone, fe.tok, "A 'reads' clause that contains '*' is not allowed to contain any other expressions");
      }
   .)
   OldSemi
@@ -2163,7 +2176,7 @@ ParameterDefaultValue<bool incoming, out Expression defaultValue>
   [ ":="        (. tok = t; .)
     Expression<out defaultValue, true, true>
     (. if (!incoming) {
-         SemErr(tok, "out-parameters cannot have default-value expressions");
+         SemErr(ErrorID.p_no_defaults_for_out_parameters, Errors.CodeAction(tok,t.Next), "out-parameters cannot have default-value expressions");
          defaultValue = null;
        }
     .)
@@ -2216,28 +2229,32 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
   | "set"                           (. tok = t; startToken = t; .)
     OptGenericInstantiation<out gt, inExpressionContext>
                                     (. if (gt != null && gt.Count > 1) {
-                                         SemErr("set type expects only one type argument");
+                                         SemErr(ErrorID.p_set_only_one_type_parameter, 
+                                           Errors.CodeAction(startToken.Next, t), "set type expects only one type argument");
                                        }
                                        ty = new SetType(true, gt != null ?gt[0] : null);
                                     .)
   | "iset"                          (. tok = t; startToken = t; .)
     OptGenericInstantiation<out gt, inExpressionContext>
                                     (. if (gt != null && gt.Count > 1) {
-                                         SemErr("iset type expects only one type argument");
+                                         SemErr(ErrorID.p_iset_only_one_type_parameter, 
+                                           Errors.CodeAction(startToken.Next, t), "iset type expects only one type argument");
                                        }
                                        ty = new SetType(false, gt != null ? gt[0] : null);
                                     .)
   | "multiset"                      (. tok = t; startToken = t; .)
     OptGenericInstantiation<out gt, inExpressionContext>
                                     (. if (gt != null && gt.Count > 1) {
-                                         SemErr("multiset type expects only one type argument");
+                                         SemErr(ErrorID.p_multiset_only_one_type_parameter, 
+                                           Errors.CodeAction(startToken.Next, t), "multiset type expects only one type argument");
                                        }
                                        ty = new MultiSetType(gt != null ? gt[0] : null);
                                     .)
   | "seq"                           (. tok = t; startToken = t; .)
     OptGenericInstantiation<out gt, inExpressionContext>
                                     (. if (gt != null && gt.Count > 1) {
-                                         SemErr("seq type expects only one type argument");
+                                         SemErr(ErrorID.p_seq_only_one_type_parameter, 
+                                           Errors.CodeAction(startToken.Next, t), "seq type expects only one type argument");
                                        }
                                        ty = new SeqType(gt != null ? gt[0] : null);
                                     .)
@@ -2249,7 +2266,8 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
                                     (. if (gt == null) {
                                          ty = new MapType(true, null, null);
                                        } else if (gt.Count != 2) {
-                                         SemErr("map type expects two type arguments");
+                                         SemErr(ErrorID.p_map_needs_two_type_parameters, 
+                                           Errors.CodeAction(startToken.Next, t), "map type expects two type arguments");
                                          ty = new MapType(true, gt[0], gt.Count == 1 ? new InferredTypeProxy() : gt[1]);
                                        } else {
                                          ty = new MapType(true, gt[0], gt[1]);
@@ -2260,7 +2278,8 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
                                     (. if (gt == null) {
                                          ty = new MapType(false, null, null);
                                        } else if (gt.Count != 2) {
-                                         SemErr("imap type expects two type arguments");
+                                         SemErr(ErrorID.p_imap_needs_two_type_parameters, 
+                                           Errors.CodeAction(startToken.Next, t), "imap type expects two type arguments");
                                          ty = new MapType(false, gt[0], gt.Count == 1 ? new InferredTypeProxy() : gt[1]);
                                        } else {
                                          ty = new MapType(false, gt[0], gt[1]);
@@ -2371,10 +2390,14 @@ OptGenericInstantiation<.out List<Type> gt, bool inExpressionContext.>  /* NOTE:
 GenericInstantiation<.List<Type> gt.>
 = (. Contract.Requires(cce.NonNullElements(gt)); Type/*!*/ ty; .)
   "<"
+  (
+    ">" (. SemErr(ErrorID.None, t, "empty type parameter lists are not permitted"); .)
+  |
     Type<out ty>                     (. gt.Add(ty); .)
     { "," Type<out ty>               (. gt.Add(ty); .)
     }
-  ">"
+    ">"
+  )
   .
 
 /*------------------------------------------------------------------------*/
@@ -2579,7 +2602,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
              dmod.IsGhost = false; // don't report errors about 'ghost', too
            } else if (theOptions.FunctionSyntax == FunctionSyntaxOptions.Version4 ||
                       theOptions.FunctionSyntax == FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost) {
-             SemErr(t, $"the phrase '{what} method' is not allowed; to declare a compiled {what}, use just '{what}'");
+             SemErr(ErrorID.p_deprecating_function_method, functionMethodToken, $"the phrase '{what} method' is not allowed; to declare a compiled {what}, use just '{what}'");
              functionMethodToken = null;
            } else if (dmod.IsGhost && theOptions.FunctionSyntax != FunctionSyntaxOptions.Version3) {
              SemErr(t, $"there is no such thing as a 'ghost {what} method'");

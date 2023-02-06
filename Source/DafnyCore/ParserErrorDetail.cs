@@ -218,14 +218,148 @@ In addition, the declaration does not use `returns` to state the out-parameter, 
 The example above is a valid example if `returns` is replaced by `yields`.
 ");
 
+    Add(ErrorID.p_type_parameter_variance_forbidden,
+    @"
+[Type-parameter variance](../DafnyRef/DafnyRef#sec-type-parameter-variance) is specified by a 
+`+`, `-`, `*` or `!` before the type-parameter name.
+Such designations are allowed in generic type declarations but not in generic method, function, or predicate declarations.
+");
+
+    Add(ErrorID.p_unexpected_type_characteristic,
+    @"
+[Type characteristics](../DafnyRef/DafnyRef#sec-type-parameters), 
+indicated in parentheses after the type name, state properties of the otherwise uninterpreted or opaque type.
+The currently defined type characteristics are designated by `==` (equality-supporting), `0` (auto-initializable), `00` (non-empty), and `!new` (non-reference).
+");
+
+    Add(ErrorID.p_missing_type_characteristic,
+    @"
+[Type characteristics](.. / DafnyRef / DafnyRef#sec-type-parameters), 
+state properties of the otherwise uninterpreted or opaque type.
+They are given in a parentheses-enclosed, comma-separated list after the type name.
+The currently defined type characteristics are designated by `==` (equality - supporting), `0` (auto - initializable), `00` (non - empty), and `!new` (non - reference).
+");
+
+    Add(ErrorID.p_illegal_type_characteristic,
+    @"
+[Type characteristics](.. / DafnyRef / DafnyRef#sec-type-parameters), 
+indicated in parentheses after the type name, state properties of the otherwise uninterpreted or opaque type.
+The currently defined type characteristics are designated by `==` (equality - supporting), `0` (auto - initializable), `00` (non - empty), and `!new` (non - reference).
+Type parameters are given in a parentheses-enclosed, comma-separated list after the type name.
+");
+
+    Add(ErrorID.p_deprecated_colemma,
+    @"
+The adjectives `least` and `greatest` for lemmas and functions are more consistent with the nomenclature for coinduction.
+");
+
+    Add(ErrorID.p_deprecated_inductive_lemma,
+  @"
+The adjectives `least` and `greatest` for lemmas and functions are more consistent with the nomenclature for coinduction.
+");
+
+    Add(ErrorID.p_constructor_not_in_class,
+    @"
+Constructors are methods that initialize class instances. That is, when a new instance of a class is being created, 
+using the `new` object syntax, some constructor of the class is called, perhaps a default anonymous one.
+So constructor declarations only make sense within classes.
+");
+
+    Add(ErrorID.p_method_missing_name,
+    @"
+A method declaration always requires an identifier between the `method` keyword and the `(` that starts the formal parameter list.
+This is the case even when, as in the example above, a name is specified using `:extern`. The extern name is only used in the
+compiled code; it is not the name used to refer to the method in Dafny code
+");
+
+    Add(ErrorID.p_extraneous_k,
+    @"
+Least and greatest lemmas and predicates have a special parameter named `k`.
+Its type is specified in square brackets between the lemma/predicate name and the rest of the signature.
+The type may be either `nat` or `ORDINAL`.
+But this type is specified only for `least` and `greatest` constructs.
+");
+
+    Add(ErrorID.p_constructors_have_no_out_parameters,
+    @"
+Constructors are used to initalize the state of an instance of a class.
+Thus they typically set the values of the fields of the class instance.
+Constructors are used in `new` object expressions, which return 
+a reference to the newly constructed object (as in `new C(42)`).
+There is no syntax to receive out-parameter values of a constructor
+and they may not be declared. 
+(This is similar to constructors in other programming languages, like Java.)
+");
+
+    Add(ErrorID.p_reads_star_must_be_alone,
+    @"
+A reads clause lists the objects whose fields the function is allowed to read (or expressions 
+containing such objects). `reads *` means the function may read anything.
+So it does not make sense to list `*` along with something more specific.
+If you mean that the function should be able to read anything, just list `*`.
+Otherwise, omit the `*` and list expressions containing all the objects that are read.
+");
+
+    Add(ErrorID.p_no_defaults_for_out_parameters,
+    @"
+Out-parameters of a method are declared (inside the parentheses after the `returns` keyword)
+with just an identifier and a type, separated by a colon. 
+No initializing value may be given. If a default value is needed, assign the out-parameter
+that value as a first statement in the body of the method.
+");
+
+    Add(ErrorID.p_set_only_one_type_parameter,
+    @"
+A `set` type has one type parameter, namely the type of the elements of the set.
+The error message states that the parser sees some number of type parameters different than one.
+The type parameters are listed in a comma-separated list between `<` and `>`, after the type name.
+");
+
+    Add(ErrorID.p_iset_only_one_type_parameter,
+    @"
+A `iset` type has one type parameter, namely the type of the elements of the set.
+The error message states that the parser sees some number of type parameters different than one.
+The type parameters are listed in a comma-separated list between `<` and `>`, after the type name.
+");
+
+    Add(ErrorID.p_multiset_only_one_type_parameter,
+    @"
+A `multiset` type has one type parameter, namely the type of the elements of the multiset.
+The error message states that the parser sees some number of type parameters different than one.
+The type parameters are listed in a comma-separated list between `<` and `>`, after the type name.
+");
+
+    Add(ErrorID.p_seq_only_one_type_parameter,
+    @"
+A `seq` type has one type parameter, namely the type of the elements of the sequence.
+The error message states that the parser sees some number of type parameters different than one.
+The type parameters are listed in a comma-separated list between `<` and `>`, after the type name.
+");
+
+    Add(ErrorID.p_map_needs_two_type_parameters,
+    @"
+A `map` type has two type parameters: the type of the keys and the type of the values.
+The error message states that the parser sees some number of type parameters different than two.
+");
+
+    Add(ErrorID.p_imap_needs_two_type_parameters,
+    @"
+A `imap` type has two type parameters: the type of the keys and the type of the values.
+The error message states that the parser sees some number of type parameters different than two.
+");
 
 
 
 
 
 
-
-
+    Add(ErrorID.p_deprecating_function_method,
+    @"
+In Dafny 4 on, the phrases `function method` and `predicate method` are no
+longer accepted. Use `function` for compiled, non-ghost functions and
+`ghost function` for non-compiled, ghost functions, and similarly for predicates.
+See [the documentation here](../DafnyRef/DafnyRef#sec-function-syntax).
+");
 
     ErrorDetail.Add(ErrorID.p_deprecated_semicolon,
     @"
