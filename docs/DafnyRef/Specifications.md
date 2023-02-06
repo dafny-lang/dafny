@@ -574,7 +574,7 @@ method M()
 method N()
   modifies { }
 method Q()
-  modifies o,p`f
+  modifies o, p`f
 ```
 
 Frames also affect methods. Methods are not
@@ -678,7 +678,7 @@ class C {
 }
 ```
 
-A method specification is zero or more `modifies`, `requires`,
+A method specification consists of zero or more `modifies`, `requires`,
 `ensures` or `decreases` clauses, in any order.
 A method does not have `reads` clauses because methods are allowed to
 read any memory.
@@ -750,7 +750,7 @@ prove properties of a loop. It contains `invariant`,
 The `invariant` clause
 is effectively a precondition and it along with the
 negation of the loop test condition provides the postcondition.
-The `decreaases` clause is used to prove termination.
+The `decreases` clause is used to prove termination.
 
 ## 19.7. Auto-generated boilerplate specifications
 
