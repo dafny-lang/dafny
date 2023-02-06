@@ -651,7 +651,7 @@ method m()
 An `invariant` clause is used to specify an invariant
 for a loop. If more than one `invariant` clause is given for
 a loop, the effective invariant is the conjunction of
-the conditions specified, in their textual order.
+the conditions specified, in the order given in the source text.
 
 The invariant must hold on entry to the loop. And assuming it
 is valid on entry to a particular iteration of the loop, 
