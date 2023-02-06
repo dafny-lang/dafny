@@ -4029,7 +4029,7 @@ namespace Microsoft.Dafny {
           // Note, in the following line, "substMap" is passed in, but it hasn't been fully filled in until the
           // end of this foreach loop. Still, that's soon enough, because DefaultValueExpression won't use it
           // until FillInDefaultValueExpressions at the end of Pass 1 of the Resolver.
-          var n = new DefaultValueExpression(formal.RangeToken, formal, receiver, substMap, typeMap);
+          var n = new DefaultValueExpression(callTok.ToRange(), formal, receiver, substMap, typeMap);
           allDefaultValueExpressions.Add(n);
           actuals.Add(n);
           substMap.Add(formal, n);
