@@ -505,7 +505,7 @@ To use this form of update,
  * if the failure-compatible type of the RHS does not have an `Extract` member,
 then the LHS of the `:-` statement has one less expression than the RHS
 (or than the number of out-parameters from the method call), the value of the first out-parameter or expression being dropped
-(see the discussion and examples in [Section 20.7.2](#sec-simple-fc-return}
+(see the discussion and examples in [Section 20.7.2](#sec-simple-fc-return))
  * if the failure-compatible type of the RHS does have an `Extract` member,
 then the LHS of the `:-` statement has the same number of expressions as the RHS
 (or as the number of out-parameters from the method call)
