@@ -3,7 +3,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 module A {
-  class B {
+    class B {
     method C(x: Included.X)
       requires x.Z?
     {
