@@ -574,7 +574,7 @@ method M()
 method N()
   modifies { }
 method Q()
-  modifies o,p`f
+  modifies o, p`f
 ```
 
 Frames also affect methods. Methods are not
