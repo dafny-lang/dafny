@@ -15,7 +15,10 @@ public abstract class MemberDecl : Declaration {
     }
   }
 
-  public readonly bool IsOpaque;
+  public virtual bool IsOpaque {
+    get { return false; }
+  }
+
   protected readonly bool isGhost;
   public bool IsGhost { get { return isGhost; } }
 
@@ -44,16 +47,11 @@ public abstract class MemberDecl : Declaration {
   }
 
   public MemberDecl(IToken tok, string name, bool hasStaticKeyword, bool isGhost, Attributes attributes, bool isRefining)
-    : this(tok, name, hasStaticKeyword, isGhost, false, attributes, isRefining) {
-  }
-
-  public MemberDecl(IToken tok, string name, bool hasStaticKeyword, bool isGhost, bool isOpaque, Attributes attributes, bool isRefining)
     : base(tok, name, attributes, isRefining) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
     HasStaticKeyword = hasStaticKeyword;
     this.isGhost = isGhost;
-    this.IsOpaque = isOpaque;
   }
   /// <summary>
   /// Returns className+"."+memberName.  Available only after resolution.
@@ -113,14 +111,14 @@ public class Field : MemberDecl {
   public override IEnumerable<Node> Children => Type.Nodes;
 
   public Field(IToken tok, string name, bool isGhost, Type type, Attributes attributes)
-    : this(tok, name, false, isGhost, false, true, true, type, attributes) {
+    : this(tok, name, false, isGhost, true, true, type, attributes) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
     Contract.Requires(type != null);
   }
 
-  public Field(IToken tok, string name, bool hasStaticKeyword, bool isGhost, bool isOpaque, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
-    : base(tok, name, hasStaticKeyword, isGhost, isOpaque, attributes, false) {
+  public Field(IToken tok, string name, bool hasStaticKeyword, bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
+    : base(tok, name, hasStaticKeyword, isGhost, attributes, false) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
     Contract.Requires(type != null);
@@ -165,7 +163,7 @@ public class SpecialField : Field {
   public readonly object IdParam;
   public SpecialField(IToken tok, string name, ID specialId, object idParam,
     bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
-    : this(tok, name, specialId, idParam, false, isGhost, false, isMutable, isUserMutable, type, attributes) {
+    : this(tok, name, specialId, idParam, false, isGhost, isMutable, isUserMutable, type, attributes) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
     Contract.Requires(!isUserMutable || isMutable);
@@ -173,8 +171,8 @@ public class SpecialField : Field {
   }
 
   public SpecialField(IToken tok, string name, ID specialId, object idParam,
-    bool hasStaticKeyword, bool isGhost, bool isOpaque, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
-    : base(tok, name, hasStaticKeyword, isGhost, isOpaque, isMutable, isUserMutable, type, attributes) {
+    bool hasStaticKeyword, bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
+    : base(tok, name, hasStaticKeyword, isGhost, isMutable, isUserMutable, type, attributes) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
     Contract.Requires(!isUserMutable || isMutable);
@@ -264,12 +262,20 @@ public class DatatypeDestructor : SpecialField {
 public class ConstantField : SpecialField, ICallable {
   public override string WhatKind => "const field";
   public readonly Expression Rhs;
+
+  private readonly bool IsOpaque_;
+
+  override public bool IsOpaque {
+    get { return IsOpaque_; }
+  }
+
   public ConstantField(IToken tok, string name, Expression/*?*/ rhs, bool hasStaticKeyword, bool isGhost, bool isOpaque, Type type, Attributes attributes)
-    : base(tok, name, SpecialField.ID.UseIdParam, NonglobalVariable.SanitizeName(name), hasStaticKeyword, isGhost, isOpaque, false, false, type, attributes) {
+      : base(tok, name, SpecialField.ID.UseIdParam, NonglobalVariable.SanitizeName(name), hasStaticKeyword, isGhost, false, type, attributes) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
     Contract.Requires(type != null);
     this.Rhs = rhs;
+    this.IsOpaque_ = isOpaque;
   }
 
   public override bool CanBeRevealed() {

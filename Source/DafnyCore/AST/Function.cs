@@ -33,6 +33,12 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
     }
   }
 
+  private bool IsOpaque_;
+
+  public override bool IsOpaque {
+    get { return IsOpaque_; }
+  }
+
   public override bool CanBeRevealed() {
     return true;
   }
@@ -194,7 +200,7 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
     List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
     Expression/*?*/ body, IToken/*?*/ byMethodTok, BlockStmt/*?*/ byMethodBody,
     Attributes attributes, IToken/*?*/ signatureEllipsis)
-    : base(tok, name, hasStaticKeyword, isGhost, isOpaque, attributes, signatureEllipsis != null) {
+    : base(tok, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null) {
 
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
@@ -219,6 +225,7 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
     this.ByMethodTok = byMethodTok;
     this.ByMethodBody = byMethodBody;
     this.SignatureEllipsis = signatureEllipsis;
+    this.IsOpaque_ = isOpaque;
 
     if (attributes != null) {
       List<Expression> args = Attributes.FindExpressions(attributes, "fuel");
