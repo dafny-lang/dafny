@@ -3858,7 +3858,7 @@ namespace Microsoft.Dafny {
       } else {
         if (isInitCall) {
           if (callee.IsStatic) {
-            reporter.Error(MessageSource.Resolver, s.Tok, "a method called as an initialization method must not be 'static'");
+            reporter.Error(MessageSource.Resolver, s, "a method called as an initialization method must not be 'static'");
           } else {
             tryToResolve = true;
           }
@@ -5419,7 +5419,7 @@ namespace Microsoft.Dafny {
               // We want to create a MemberSelectExpr for the initializing method.  To do that, we create a throw-away receiver of the appropriate
               // type, create an dot-suffix expression around this receiver, and then resolve it in the usual way for dot-suffix expressions.
               var lhs = new ImplicitThisExpr_ConstructorCall(initCallTok.ToRange()) { Type = rr.EType };
-              var callLhs = new ExprDotName(((UserDefinedType)rr.EType).RangeToken, lhs, initCallName, ret == null ? null : ret.LastComponent.OptTypeArguments);
+              var callLhs = new ExprDotName(new RangeToken(((UserDefinedType)rr.EType).StartToken, rr.Path.EndToken), lhs, initCallName, ret == null ? null : ret.LastComponent.OptTypeArguments);
               ResolveDotSuffix(callLhs, true, rr.Bindings.ArgumentBindings, resolutionContext, true);
               if (prevErrorCount == reporter.Count(ErrorLevel.Error)) {
                 Contract.Assert(callLhs.ResolvedExpression is MemberSelectExpr);  // since ResolveApplySuffix succeeded and call.Lhs denotes an expression (not a module or a type)
