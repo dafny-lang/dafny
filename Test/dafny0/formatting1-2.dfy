@@ -1,4 +1,4 @@
-// RUN: echo 'lit should ignore this file' 
+// RUN: echo 'lit should ignore this file'
 
 module A {
   class B {
