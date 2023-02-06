@@ -11,7 +11,7 @@ verify:
 	$(DAFNY) verify $(SOURCES)
 
 build-go: verify
-	$(DAFNY) translate go --no-verify src/dafnyRuntimeGo.dfy
+	$(DAFNY) translate go --no-verify --use-basename-for-filename src/dafnyRuntimeGo.dfy
 
 check-go: build-go
 	diff $(GENERATED_CODE_GO_SOURCE) $(GENERATED_CODE_GO_TARGET)
