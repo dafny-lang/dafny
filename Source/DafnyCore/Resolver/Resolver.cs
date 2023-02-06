@@ -2046,7 +2046,7 @@ namespace Microsoft.Dafny {
               ((ClassDecl)cl).HasConstructor = true;
             }
           } else if (m is ExtremePredicate || m is ExtremeLemma) {
-            var extraName = m.Name + "#";
+            var extraName = m.NameNode.Append("#");
             MemberDecl extraMember;
             var cloner = new Cloner();
             var formals = new List<Formal>();
@@ -2104,7 +2104,7 @@ namespace Microsoft.Dafny {
             }
 
             extraMember.InheritVisibility(m, false);
-            members.Add(extraName, extraMember);
+            members.Add(extraName.Value, extraMember);
           } else if (m is Function f && f.ByMethodBody != null) {
             RegisterByMethod(f, cl);
           }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 
 namespace Microsoft.Dafny;
 
@@ -28,14 +29,14 @@ abstract class ExtremeCloner : Cloner {
     }
 
     Expression lhs;
-    string name;
+    Name name;
     if (e.Lhs is NameSegment ns) {
-      name = ns.Name;
-      lhs = new NameSegment(Tok(ns.RangeToken), name + "#", ns.OptTypeArguments?.ConvertAll(CloneType));
+      name = ns.NameNode;
+      lhs = new NameSegment(Tok(ns.RangeToken), name.Append("#"), ns.OptTypeArguments?.ConvertAll(CloneType));
     } else {
       var edn = (ExprDotName)e.Lhs;
-      name = edn.SuffixName;
-      lhs = new ExprDotName(Tok(edn.RangeToken), CloneExpr(edn.Lhs), name + "#", edn.OptTypeArguments?.ConvertAll(CloneType));
+      name = edn.SuffixNameNode;
+      lhs = new ExprDotName(Tok(edn.RangeToken), CloneExpr(edn.Lhs), name.Append("#"), edn.OptTypeArguments?.ConvertAll(CloneType));
     }
     var args = new List<ActualBinding>();
     args.Add(new ActualBinding(null, k));
