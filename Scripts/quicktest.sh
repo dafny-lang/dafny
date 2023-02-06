@@ -17,4 +17,6 @@ echo Compiling to Java
 $DIR/dafny /compile:3 /compileVerbose:0 /compileTarget:java c.dfy
 echo Compiling to Go
 $DIR/dafny /compile:3 /compileVerbose:0 /compileTarget:go c.dfy
-rm -rf a.dfy b.dfy c.dfy c-go c-java c
+echo Compiling to Python
+$DIR/dafny /compile:3 /compileVerbose:0 /compileTarget:py c.dfy
+rm -rf a.dfy b.dfy c.dfy c-go c-java c-py c.jar c
