@@ -255,7 +255,6 @@ public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, Include include, ModuleD
 }
 
 bool IsIdentifier(int kind) {
-  if (kind == _opaque) errors.Deprecated(t, "opaque is deprecated as an identifier. It will soon become a reserved word. Use a different name.");
   return kind == _ident || kind == _least || kind == _greatest || kind == _older || kind == _opaque;
 }
 

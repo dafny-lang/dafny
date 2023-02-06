@@ -194,7 +194,7 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
     List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
     Expression/*?*/ body, IToken/*?*/ byMethodTok, BlockStmt/*?*/ byMethodBody,
     Attributes attributes, IToken/*?*/ signatureEllipsis)
-    : base(tok, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null) {
+    : base(tok, name, hasStaticKeyword, isGhost, isOpaque, attributes, signatureEllipsis != null) {
 
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
@@ -207,7 +207,6 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
     Contract.Requires(decreases != null);
     Contract.Requires(byMethodBody == null || (!isGhost && body != null)); // function-by-method has a ghost expr and non-ghost stmt, but to callers appears like a functiion-method
     this.IsFueled = false;  // Defaults to false.  Only set to true if someone mentions this function in a fuel annotation
-    this.IsOpaque = isOpaque;
     this.TypeArgs = typeArgs;
     this.Formals = formals;
     this.Result = result;

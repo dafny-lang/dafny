@@ -15,7 +15,7 @@ public abstract class MemberDecl : Declaration {
     }
   }
 
-  public bool IsOpaque;
+  public readonly bool IsOpaque;
   protected readonly bool isGhost;
   public bool IsGhost { get { return isGhost; } }
 
@@ -44,11 +44,16 @@ public abstract class MemberDecl : Declaration {
   }
 
   public MemberDecl(IToken tok, string name, bool hasStaticKeyword, bool isGhost, Attributes attributes, bool isRefining)
+    : this(tok, name, hasStaticKeyword, isGhost, false, attributes, isRefining) {
+  }
+
+  public MemberDecl(IToken tok, string name, bool hasStaticKeyword, bool isGhost, bool isOpaque, Attributes attributes, bool isRefining)
     : base(tok, name, attributes, isRefining) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
     HasStaticKeyword = hasStaticKeyword;
     this.isGhost = isGhost;
+    this.IsOpaque = isOpaque;
   }
   /// <summary>
   /// Returns className+"."+memberName.  Available only after resolution.
