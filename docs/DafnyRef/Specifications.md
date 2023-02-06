@@ -750,7 +750,7 @@ prove properties of a loop. It contains `invariant`,
 The `invariant` clause
 is effectively a precondition and it along with the
 negation of the loop test condition provides the postcondition.
-The `decreaases` clause is used to prove termination.
+The `decreases` clause is used to prove termination.
 
 ## 19.7. Auto-generated boilerplate specifications
 
