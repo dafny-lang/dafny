@@ -94,13 +94,13 @@ void CheckDeclModifiers(ref DeclModifierData dmod, string declCaption, AllowedDe
 {
   declCaption = (declCaption.StartsWith("i") || declCaption.StartsWith("o") ? "an " : "a ") + declCaption;
   if (dmod.IsAbstract && ((allowed & AllowedDeclModifiers.Abstract) == 0)) {
-    SemErr(dmod.AbstractToken, $"{declCaption} cannot be declared 'abstract'");
+    SemErr(ErrorID.p_abstract_not_allowed, Errors.CodeAction(dmod.AbstractToken, dmod.AbstractToken.Next), $"{declCaption} cannot be declared 'abstract'");
     dmod.IsAbstract = false;
   }
   if (dmod.IsGhost) {
     if ((allowed & AllowedDeclModifiers.AlreadyGhost) != 0) {
       if (declCaption.Contains("-by-method")) {
-        SemErr(dmod.GhostToken, $"{declCaption} has a ghost function body and a non-ghost method body; {declCaption} declaration does not use the 'ghost' keyword.");
+        SemErr(ErrorID.p_no_ghost_for_by_method, Errors.CodeAction(dmod.GhostToken, dmod.GhostToken.Next), $"{declCaption} has a ghost function body and a non-ghost method body; {declCaption} declaration does not use the 'ghost' keyword.");
       } else {
         SemErr(dmod.GhostToken, $"{declCaption} cannot be declared 'ghost' (it is 'ghost' by default)");
       }
@@ -111,7 +111,7 @@ void CheckDeclModifiers(ref DeclModifierData dmod, string declCaption, AllowedDe
     }
   }
   if (dmod.IsStatic && ((allowed & AllowedDeclModifiers.Static) == 0)) {
-    SemErr(dmod.StaticToken, $"{declCaption} cannot be declared 'static'");
+    SemErr(ErrorID.p_no_static, Errors.CodeAction(dmod.StaticToken, dmod.StaticToken.Next), $"{declCaption} cannot be declared 'static'");
     dmod.IsStatic = false;
   }
 }
@@ -1515,7 +1515,7 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
   { Attribute<ref attrs> }
   CIdentType<out id, out ty>                 (. if (ty == null) { ty = new InferredTypeProxy(); } .)
   [ ellipsis ]
-  [ ( ":=" | "=" (. SemErr(la, "a const field should be initialized using ':=', not '='"); .) )
+  [ ( ":=" | "=" (. SemErr(ErrorID.p_bad_const_initialize_op, t, "a const field should be initialized using ':=', not '='"); .) )
     Expression<out e, false, true> ]
                                              (. if (e == null && ty is InferredTypeProxy) {
                                                   SemErr(id, "a const declaration must have a type or a RHS value");
@@ -3134,7 +3134,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
       { Attribute<ref attrs> }
       LocalIdentTypeOptional<out d, isGhost>  (. lhss.Add(d); d.Attributes = attrs; attrs = null; .)
     }
-    [ ( ":=" | "=" (. SemErr(la, "a local variable should be initialized using ':=', ':-', or ':|', not '='"); .) )                         
+    [ ( ":=" | "=" (. SemErr(t, "a local variable should be initialized using ':=', ':-', or ':|', not '='"); .) )                         
                                      (. assignTok = t; .)
       Rhs<out r>                     (. rhss.Add(r); .)
       { "," Rhs<out r>               (. rhss.Add(r); .)
@@ -4624,7 +4624,7 @@ LetExprWithLHS<out Expression e, bool allowLemma, bool allowLambda, bool allowBi
                                        }
                                     .)
     | ":-"                          (. isLetOrFail = true; .)
-    | "=" (. SemErr(la, "a variable in a let expression should be initialized using ':=', ':-', or ':|', not '='"); .)
+    | "=" (. SemErr(t, "a variable in a let expression should be initialized using ':=', ':-', or ':|', not '='"); .)
     )
     Expression<out e, false, true>        (. letRHSs.Add(e); .)
     { "," Expression<out e, false, true>  (. letRHSs.Add(e); .)
@@ -5227,7 +5227,8 @@ DotSuffix<out IToken x, out IToken y>
 NoUSIdent<out IToken/*!*/ x>
 = (. Contract.Ensures(Contract.ValueAtReturn(out x) != null); .)
   Ident<out x>     (. if (x.val.StartsWith("_")) {
-                        SemErr("cannot declare identifier beginning with underscore");
+                        SemErr(ErrorID.p_no_leading_underscore, Errors.CodeAction(x,1), 
+                          "cannot declare identifier beginning with underscore");
                       }
                    .)
   .
@@ -5284,7 +5285,7 @@ OldSemi  /* NOTE: Coco complains about "OldSemi deletable". That's okay. */
 = /* In the future, it may be that semi-colons will be neither needed nor allowed in certain places where,
    * in the past, they were required.  As a period of transition between the two, such semi-colons are optional.
    */
-  [ SYNC ";"    (. errors.DeprecatedStyle(t, "deprecated style: a semi-colon is not needed here"); .)
+  [ SYNC ";"    (. errors.DeprecatedStyle(ErrorID.p_deprecated_semicolon, t, "deprecated style: a semi-colon is not needed here"); .)
   ].
 
 /*------------------------------------------------------------------------*/
