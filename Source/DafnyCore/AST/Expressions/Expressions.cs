@@ -1760,7 +1760,7 @@ public class ConversionExpr : TypeUnaryExpr {
     this.messagePrefix = messagePrefix;
   }
 
-  public override IToken Tok => ToType.Tok.Prev; // Move to "as"
+  public override IToken Tok => E.Tok.Next; // Move to "as", can't use ToType since type tokens can't be trusted.
 }
 
 public class TypeTestExpr : TypeUnaryExpr {
@@ -1771,7 +1771,7 @@ public class TypeTestExpr : TypeUnaryExpr {
     Contract.Requires(toType != null);
   }
   
-  public override IToken Tok => ToType.Tok.Prev; // Move to "is"
+  public override IToken Tok => E.Tok.Next; // Move to "is", can't use ToType since type tokens can't be trusted.
 }
 
 public class BinaryExpr : Expression, ICloneable<BinaryExpr> {
