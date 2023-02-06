@@ -1,0 +1,5 @@
+Implements error detail information and quick fixes:
+   - An error catalog with error message explanations is at https://dafny.org/latest/HowToFAQ/Errors
+   - In VSCode, when hovering over an error, the hover information shows additional explanation and
+     an error id, which is also a link to the error explanation page
+   - Where a Quick Fix is available, the Quick Fix link is active
