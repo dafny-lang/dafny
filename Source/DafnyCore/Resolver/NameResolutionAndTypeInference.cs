@@ -6892,6 +6892,7 @@ namespace Microsoft.Dafny {
                 Contract.Assert(mse != null); // assured by the parser
                 if (mse.Member is TwoStateLemma) {
                   mse.AtLabel = atLabel;
+                  mse.RangeToken = new RangeToken(mse.RangeToken.StartToken, e.AtTok);
                 } else {
                   reporter.Error(MessageSource.Resolver, e.AtTok, "an @-label can only be applied to a two-state lemma");
                 }
