@@ -4114,6 +4114,8 @@ RelOp<out IToken/*!*/ x, out BinaryExpr.Opcode op, out Expression k>
                         SemErr(x, "invalid relational operator (perhaps you intended \"!!\" with no intervening whitespace?)");
                       } else {
                         x.val = "!!";
+                        y.Next.Prev = x;
+                        x.Next = y.Next;
                         y.val = "";
                         op = BinaryExpr.Opcode.Disjoint;
                       }
@@ -4137,6 +4139,11 @@ ShiftTerm<out Expression e0, bool allowLemma, bool allowLambda, bool allowBitwis
       ">"            (. x.val = ">>";  Contract.Assert(t.pos == x.pos + 1); .)
     )
     Term<out e1, allowLemma, allowLambda, allowBitwiseOps> (.
+
+      var empty = x.Next;
+      empty.Next.Prev = x;
+      x.Next = empty.Next;
+
       var startToken = e0.StartToken;
       e0 = new BinaryExpr(new RangeToken(startToken, t), op, e0, e1);
      .)

@@ -926,7 +926,7 @@ public class DatatypeValue : Expression, IHasUsages, ICloneable<DatatypeValue> {
   public readonly ActualBindings Bindings;
   public List<Expression> Arguments => Bindings.Arguments;
 
-  public override IToken Tok => MemberNameNode.StartToken;
+  public override IToken Tok => MemberNameNode.StartToken == Token.NoToken ? StartToken : MemberNameNode.StartToken; // Check for tuples.
 
   public override IEnumerable<Node> Children => new Node[] { Bindings };
 
