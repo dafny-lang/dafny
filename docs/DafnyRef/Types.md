@@ -1,16 +1,20 @@
 # 5. Types {#sec-types}
 
-A Dafny type is a domain type (i.e., a type that can be the domain of an
-arrow type) optionally followed by an arrow and a range type.
+A Dafny type is a (possibly-empty) set of values or heap data-structures,
+together with allowed operations on those values..
+Types are classified as mutable reference types or immutable value types,
+depending on whether their values are stored in the heap or are 
+(mathematical) values independent of the heap..
 
-The domain types comprise the 
-* builtin scalar types, 
-* the builtin collection types, 
-* tuple types (including as a special case a parenthesized type) 
-* and reference types,
-all described in the following subsections.
-
-Dafny types may be categorized as either value types or reference types.
+Dafny supports the following kinds of types,
+all described in later sections of this manual:
+* [builtin scalar types](#sec-basic-type), 
+* [builtin collection types](#sec-collection-types), 
+* [reference types](#sec-class-types) (classes, traits, iterators),
+* [tuple types](#sec-tuple-types) (including as a special case a parenthesized type),
+* [inductive](#sec-datatype) and [coinductive](#sec-coinductive-datatypes) datatypes, 
+* [function (arrow) types](#sec-arrow-subset-types), and
+* [types, such as subset types, derived from other types](#sec-subset-types).
 
 ## 5.1. Value Types
 The value types are those whose values do not lie in the program heap.

@@ -1826,21 +1826,14 @@ and what information it produces about the verification process.
 
 * `--relax-definite-assignment - control the rules governing definite
   assignment, the property that every variable is eventually assigned a
-  value before it is used.  If false (the default) definite assignment
-  rules are strictly checked (corresponding to legacy level 3); if true,
-  checking corresponds to legacy level 2.
-  The legacy option was `-definiteAssignment:<n>` with possible values
-  * `0` - ignore definite-assignment rules; this mode is unsound and is
-    for testing only.
-  * `1` (default) - enforce definite-assignment rules for compiled
+  value before it is used.
+  * if false (default), enforce definite-assignment for all non-yield-parameter
+    variables and fields, regardless of their types
+  * if false and `--enforce-determinism` is true, then also performs 
+    checks in the compiler that no nondeterministic statements are used
+  * if true, enforce definite-assignment rules for compiled
     variables and fields whose types do not support auto-initialization
     and for ghost variables and fields whose type is possibly empty.
-  * `2` - enforce definite-assignment for all non-yield-parameter
-    variables and fields, regardless of their types.
-  * `3` - like `2`, but also performs checks in the compiler that no
-    nondeterministic statements are used; thus, a program that passes at
-    this level 3 is one that the language guarantees that values seen
-    during execution will be the same in every run of the program.
 
 * `-noAutoReq` - ignore `autoReq` attributes, and therefore do not
   automatically generate `requires` clauses.
