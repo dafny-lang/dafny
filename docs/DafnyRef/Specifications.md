@@ -678,7 +678,7 @@ class C {
 }
 ```
 
-A method specification is zero or more `modifies`, `requires`,
+A method specification consists of zero or more `modifies`, `requires`,
 `ensures` or `decreases` clauses, in any order.
 A method does not have `reads` clauses because methods are allowed to
 read any memory.
