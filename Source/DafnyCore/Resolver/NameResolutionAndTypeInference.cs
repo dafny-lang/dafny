@@ -6921,7 +6921,7 @@ namespace Microsoft.Dafny {
           }
           if (callee != null) {
             // produce a FunctionCallExpr instead of an ApplyExpr(MemberSelectExpr)
-            var rr = new FunctionCallExpr(e.Lhs.RangeToken, mse.MemberNameNode, mse.Obj, e.Bindings, atLabel) {
+            var rr = new FunctionCallExpr(e.RangeToken, mse.MemberNameNode, mse.Obj, e.Bindings, atLabel) {
               Function = callee,
               TypeApplication_AtEnclosingClass = mse.TypeApplication_AtEnclosingClass,
               TypeApplication_JustFunction = mse.TypeApplication_JustMember
