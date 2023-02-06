@@ -463,7 +463,7 @@ function h()
 ```
 
 Functions are not allowed to have side effects; they may also be restricted in
-what they can read. The _reading frame_ of a function (or predicate) is all
+what they can read. The _reading frame_ of a function (or predicate) consists of all
 the heap memory locations that the function is allowed to read. The reason we
 might limit what a function can read is so that when we write to memory,
 we can be sure that functions that did not read that part of memory have
