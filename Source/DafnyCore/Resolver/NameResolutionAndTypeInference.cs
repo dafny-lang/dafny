@@ -18,6 +18,7 @@ using Microsoft.BaseTypes;
 using Microsoft.Boogie;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Dafny.Plugins;
+using static Microsoft.Dafny.ErrorDetail;
 
 namespace Microsoft.Dafny {
   public partial class Resolver {
@@ -1107,9 +1108,9 @@ namespace Microsoft.Dafny {
         var r = allTypeParameters.Push(tp.Name, tp);
         if (emitErrors) {
           if (r == Scope<TypeParameter>.PushResult.Duplicate) {
-            reporter.Error(MessageSource.Resolver, tp, "Duplicate type-parameter name: {0}", tp.Name);
+            reporter.Error(MessageSource.Resolver, ErrorID.None, tp, "Duplicate type-parameter name: {0}", tp.Name);
           } else if (r == Scope<TypeParameter>.PushResult.Shadow) {
-            reporter.Warning(MessageSource.Resolver, tp.tok, "Shadowed type-parameter name: {0}", tp.Name);
+            reporter.Warning(MessageSource.Resolver, ErrorID.None, tp.tok, "Shadowed type-parameter name: {0}", tp.Name);
           }
         }
       }
@@ -4783,7 +4784,7 @@ namespace Microsoft.Dafny {
             text += text.Length == 0 ? "$Heap" : ", $Heap";
           }
           text = string.Format("note, this loop has no body{0}", text.Length == 0 ? "" : " (loop frame: " + text + ")");
-          reporter.Warning(MessageSource.Resolver, s.Tok, text);
+          reporter.Warning(MessageSource.Resolver, ErrorID.None, s.Tok, text);
         }
 
         if (s is ForLoopStmt) {
@@ -4827,7 +4828,7 @@ namespace Microsoft.Dafny {
           enclosingStatementLabels = prevLblStmts;
           loopStack = prevLoopStack;
         } else {
-          reporter.Warning(MessageSource.Resolver, s.Tok, "note, this forall statement has no body");
+          reporter.Warning(MessageSource.Resolver, ErrorID.None, s.Tok, "note, this forall statement has no body");
         }
         scope.PopMarker();
 
@@ -4875,7 +4876,7 @@ namespace Microsoft.Dafny {
               if (s.Body is BlockStmt && ((BlockStmt)s.Body).Body.Count == 0) {
                 // an empty statement, so don't produce any warning
               } else {
-                reporter.Warning(MessageSource.Resolver, s.Tok, "the conclusion of the body of this forall statement will not be known outside the forall statement; consider using an 'ensures' clause");
+                reporter.Warning(MessageSource.Resolver, ErrorID.None, s.Tok, "the conclusion of the body of this forall statement will not be known outside the forall statement; consider using an 'ensures' clause");
               }
             }
           }

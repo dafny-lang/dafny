@@ -137,6 +137,7 @@ public abstract class TokenWrapper : IToken {
     get { return WrappedToken.pos; }
     set { WrappedToken.pos = value; }
   }
+
   public virtual string val {
     get { return WrappedToken.val; }
     set { WrappedToken.val = value; }
@@ -199,6 +200,19 @@ public class BoogieRangeToken : TokenWrapper {
   public BoogieRangeToken(IToken startTok, IToken endTok) : base(
     startTok) {
     this.endTok = endTok;
+  }
+}
+
+public class CodeActionToken : TokenWrapper {
+  public int column;
+  public int length;
+  public CodeActionToken(IToken sourceTok, int column, int length) : base(sourceTok) {
+    this.column = column;
+    this.length = length;
+  }
+
+  public String StartLength() {
+    return (line - 1) + " " + (column - 1) + " " + length;
   }
 }
 

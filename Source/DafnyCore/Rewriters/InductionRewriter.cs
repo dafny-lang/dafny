@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using static Microsoft.Dafny.ErrorDetail;
 
 namespace Microsoft.Dafny;
 
@@ -130,7 +131,7 @@ public class InductionRewriter : IRewriter {
           }
 
           if (0 <= j) {
-            Reporter.Warning(MessageSource.Rewriter, arg.tok,
+            Reporter.Warning(MessageSource.Rewriter, ErrorID.None, arg.tok,
               "{0}s given as :induction arguments must be given in the same order as in the {1}; ignoring attribute",
               lemma != null ? "lemma parameter" : "bound variable", lemma != null ? "lemma" : "quantifier");
             return;
@@ -143,12 +144,12 @@ public class InductionRewriter : IRewriter {
             continue;
           }
 
-          Reporter.Warning(MessageSource.Rewriter, arg.tok,
+          Reporter.Warning(MessageSource.Rewriter, ErrorID.None, arg.tok,
             "lemma parameters given as :induction arguments must be given in the same order as in the lemma; ignoring attribute");
           return;
         }
 
-        Reporter.Warning(MessageSource.Rewriter, arg.tok,
+        Reporter.Warning(MessageSource.Rewriter, ErrorID.None, arg.tok,
           "invalid :induction attribute argument; expected {0}{1}; ignoring attribute",
           i == 0 ? "'false' or 'true' or " : "",
           lemma != null ? "lemma parameter" : "bound variable");
