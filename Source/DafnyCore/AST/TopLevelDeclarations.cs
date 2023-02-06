@@ -141,7 +141,7 @@ public abstract class Declaration : INamedRegion, IAttributeBearingDeclaration, 
   internal FreshIdGenerator IdGenerator = new();
   public IToken NameToken => tok;
   public override IEnumerable<Node> Children => (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>());
-  public override IEnumerable<Node> ConcreteChildren => Children;
+  public override IEnumerable<Node> PreResolveChildren => Children;
 }
 
 public class TypeParameter : TopLevelDecl {
@@ -387,7 +387,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
   }
 
   public override IEnumerable<Node> Children => new[] { ModuleDef };
-  public override IEnumerable<Node> ConcreteChildren => Children;
+  public override IEnumerable<Node> PreResolveChildren => Children;
 
   public LiteralModuleDecl(ModuleDefinition module, ModuleDefinition parent)
     : base(module.tok, module.Name, parent, false, false) {
@@ -512,7 +512,7 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
   public bool RevealAll; // only kept for initial rewriting, then discarded
   public bool ProvideAll;
   public override IEnumerable<Node> Children => Exports;
-  public override IEnumerable<Node> ConcreteChildren => Exports;
+  public override IEnumerable<Node> PreResolveChildren => Exports;
 
   public readonly VisibilityScope ThisScope;
   public ModuleExportDecl(IToken tok, ModuleDefinition parent,
@@ -634,7 +634,7 @@ public class ExportSignature : TokenNode, IHasUsages {
 
   public IToken NameToken => Tok;
   public override IEnumerable<Node> Children => Enumerable.Empty<Node>();
-  public override IEnumerable<Node> ConcreteChildren => Enumerable.Empty<Node>();
+  public override IEnumerable<Node> PreResolveChildren => Enumerable.Empty<Node>();
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return new[] { Decl };
   }
@@ -1059,7 +1059,7 @@ public class ModuleDefinition : INamedRegion, IDeclarationOrUsage, IAttributeBea
 
   public IToken NameToken => tok;
   public override IEnumerable<Node> Children => (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(TopLevelDecls);
-  public override IEnumerable<Node> ConcreteChildren => Includes.Concat<Node>(TopLevelDecls).Concat<Node>(
+  public override IEnumerable<Node> PreResolveChildren => Includes.Concat<Node>(TopLevelDecls).Concat<Node>(
     PrefixNamedModules.Select(tuple => tuple.Item2)
     );
 }
@@ -1274,7 +1274,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl {
 
   public override IEnumerable<Node> Children => ParentTraits.Concat<Node>(Members);
 
-  public override IEnumerable<Node> ConcreteChildren => Children;
+  public override IEnumerable<Node> PreResolveChildren => Children;
 
   /// <summary>
   /// Returns the set of transitive parent traits (not including "this" itself).

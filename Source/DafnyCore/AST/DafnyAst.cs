@@ -112,7 +112,7 @@ namespace Microsoft.Dafny {
 
     public override IEnumerable<Node> Children => new[] { DefaultModule };
 
-    public override IEnumerable<Node> ConcreteChildren => Children;
+    public override IEnumerable<Node> PreResolveChildren => Children;
   }
 
   public class Include : TokenNode, IComparable {
@@ -141,7 +141,7 @@ namespace Microsoft.Dafny {
     }
 
     public override IEnumerable<Node> Children => Enumerable.Empty<Node>();
-    public override IEnumerable<Node> ConcreteChildren => Enumerable.Empty<Node>();
+    public override IEnumerable<Node> PreResolveChildren => Enumerable.Empty<Node>();
   }
 
   /// <summary>
@@ -334,7 +334,7 @@ namespace Microsoft.Dafny {
         ? Enumerable.Empty<Node>()
         : new List<Node> { Prev });
 
-    public override IEnumerable<Node> ConcreteChildren => Children;
+    public override IEnumerable<Node> PreResolveChildren => Children;
   }
 
   public static class AttributesExtensions {
@@ -595,7 +595,7 @@ namespace Microsoft.Dafny {
 
     public IToken NameToken => tok;
     public override IEnumerable<Node> Children => IsTypeExplicit ? new List<Node>() { Type } : Enumerable.Empty<Node>();
-    public override IEnumerable<Node> ConcreteChildren => IsTypeExplicit ? new List<Node>() { Type } : Enumerable.Empty<Node>();
+    public override IEnumerable<Node> PreResolveChildren => IsTypeExplicit ? new List<Node>() { Type } : Enumerable.Empty<Node>();
   }
 
   public class Formal : NonglobalVariable {
@@ -743,7 +743,7 @@ namespace Microsoft.Dafny {
 
     public override IEnumerable<Node> Children => new List<Node> { Actual }.Where(x => x != null);
 
-    public override IEnumerable<Node> ConcreteChildren => Children;
+    public override IEnumerable<Node> PreResolveChildren => Children;
 
     public ActualBinding(IToken /*?*/ formalParameterName, Expression actual, bool isGhost = false) {
       Contract.Requires(actual != null);
@@ -789,7 +789,7 @@ namespace Microsoft.Dafny {
     }
 
     public override IEnumerable<Node> Children => arguments == null ? ArgumentBindings : arguments;
-    public override IEnumerable<Node> ConcreteChildren => Children;
+    public override IEnumerable<Node> PreResolveChildren => Children;
   }
 
   class QuantifiedVariableDomainCloner : Cloner {
@@ -830,7 +830,7 @@ namespace Microsoft.Dafny {
     }
 
     public override IEnumerable<Node> Children => Expressions;
-    public override IEnumerable<Node> ConcreteChildren => Children;
+    public override IEnumerable<Node> PreResolveChildren => Children;
   }
 
   public class BottomUpVisitor {

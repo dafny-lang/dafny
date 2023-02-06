@@ -25,7 +25,7 @@ public class IndentationFormatter : IIndentationFormatter {
     var tokenNewIndentCollector = new TokenNewIndentCollector {
       ReduceBlockiness = reduceBlockiness
     };
-    foreach (var child in program.DefaultModuleDef.ConcreteChildren) {
+    foreach (var child in program.DefaultModuleDef.PreResolveChildren) {
       if (child is TopLevelDecl topLevelDecl) {
         tokenNewIndentCollector.SetDeclIndentation(topLevelDecl, 0);
       } else if (child is Include include) {

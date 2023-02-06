@@ -164,7 +164,7 @@ public class CalcStmt : Statement, ICloneable<CalcStmt>, ICanFormat {
   public static readonly CalcOp DefaultOp = new BinaryCalcOp(BinaryExpr.Opcode.Eq);
 
   public override IEnumerable<Node> Children => Steps.Concat(Result != null ? new Node[] { Result } : new Node[] { }).Concat(Hints);
-  public override IEnumerable<Node> ConcreteChildren => Lines.Take(Lines.Count > 0 ? Lines.Count - 1 : 0).Concat<Node>(Hints.Where(hintBatch => hintBatch.Body.Count() != 0));
+  public override IEnumerable<Node> PreResolveChildren => Lines.Take(Lines.Count > 0 ? Lines.Count - 1 : 0).Concat<Node>(Hints.Where(hintBatch => hintBatch.Body.Count() != 0));
 
   [ContractInvariantMethod]
   void ObjectInvariant() {

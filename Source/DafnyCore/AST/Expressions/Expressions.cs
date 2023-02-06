@@ -813,7 +813,7 @@ public abstract class Expression : TokenNode {
   }
 
   public override IEnumerable<Node> Children => SubExpressions;
-  public override IEnumerable<Node> ConcreteChildren => Children;
+  public override IEnumerable<Node> PreResolveChildren => Children;
 }
 
 public class LiteralExpr : Expression {
@@ -2827,7 +2827,7 @@ public class CasePattern<VT> : TokenNode
   }
 
   public override IEnumerable<Node> Children => Arguments ?? Enumerable.Empty<Node>();
-  public override IEnumerable<Node> ConcreteChildren => Children;
+  public override IEnumerable<Node> PreResolveChildren => Children;
 }
 
 public class BoxingCastExpr : Expression {  // a BoxingCastExpr is used only as a temporary placeholding during translation
@@ -2936,7 +2936,7 @@ public class AttributedExpression : TokenNode, IAttributeBearingDeclaration {
     (Attributes != null ? new List<Node>() { Attributes } : Enumerable.Empty<Node>()).Concat(
     new List<Node>() { E });
 
-  public override IEnumerable<Node> ConcreteChildren => Children;
+  public override IEnumerable<Node> PreResolveChildren => Children;
 }
 
 public class FrameExpression : TokenNode, IHasUsages {
@@ -2975,7 +2975,7 @@ public class FrameExpression : TokenNode, IHasUsages {
 
   public IToken NameToken => tok;
   public override IEnumerable<Node> Children => new[] { E };
-  public override IEnumerable<Node> ConcreteChildren => Children;
+  public override IEnumerable<Node> PreResolveChildren => Children;
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return new[] { Field }.Where(x => x != null);
   }
@@ -3018,7 +3018,7 @@ public abstract class ConcreteSyntaxExpression : Expression {
   }
 
   public virtual IEnumerable<Expression> PreResolveSubExpressions => Enumerable.Empty<Expression>();
-  public override IEnumerable<Node> ConcreteChildren => PreResolveSubExpressions;
+  public override IEnumerable<Node> PreResolveChildren => PreResolveSubExpressions;
 
   public override IEnumerable<Type> ComponentTypes => ResolvedExpression.ComponentTypes;
 }
@@ -3410,7 +3410,7 @@ public abstract class SuffixExpr : ConcreteSyntaxExpression {
   }
 
   public override IEnumerable<Node> Children => ResolvedExpression == null ? new[] { Lhs } : base.Children;
-  public override IEnumerable<Node> ConcreteChildren => PreResolveSubExpressions;
+  public override IEnumerable<Node> PreResolveChildren => PreResolveSubExpressions;
 
   public override IEnumerable<Expression> SubExpressions {
     get {
@@ -3452,7 +3452,7 @@ public class NameSegment : ConcreteSyntaxExpression, ICloneable<NameSegment> {
     return new NameSegment(cloner, this);
   }
 
-  public override IEnumerable<Node> ConcreteChildren => OptTypeArguments ?? new List<Type>();
+  public override IEnumerable<Node> PreResolveChildren => OptTypeArguments ?? new List<Type>();
 }
 
 /// <summary>
@@ -3503,7 +3503,7 @@ public class ApplySuffix : SuffixExpr, ICloneable<ApplySuffix>, ICanFormat {
 
   public override IEnumerable<Node> Children => ResolvedExpression == null
     ? base.Children.Concat(Bindings == null ? new List<Node>() : Args ?? Enumerable.Empty<Node>()) : new[] { ResolvedExpression };
-  public override IEnumerable<Node> ConcreteChildren => new List<Node> { Lhs, Bindings };
+  public override IEnumerable<Node> PreResolveChildren => new List<Node> { Lhs, Bindings };
 
   [ContractInvariantMethod]
   void ObjectInvariant() {

@@ -168,7 +168,7 @@ namespace DafnyPipeline.Test {
         }
 
         ProcessOwnedTokens(node);
-        foreach (var child in node.ConcreteChildren) {
+        foreach (var child in node.PreResolveChildren) {
           ProcessNode(child);
         }
       }

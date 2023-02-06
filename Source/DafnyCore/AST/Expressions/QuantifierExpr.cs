@@ -78,7 +78,7 @@ public abstract class QuantifierExpr : ComprehensionExpr, TypeParameter.ParentTy
     throw new cce.UnreachableException(); // This body is just here for the "Requires" clause
   }
 
-  public override IEnumerable<Node> ConcreteChildren => base.SubExpressions;
+  public override IEnumerable<Node> PreResolveChildren => base.SubExpressions;
 
   public override IEnumerable<Expression> SubExpressions {
     get {

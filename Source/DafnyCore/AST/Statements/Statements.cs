@@ -169,7 +169,7 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
     (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(
       SubStatements.Concat<Node>(SubExpressions));
 
-  public override IEnumerable<Node> ConcreteChildren =>
+  public override IEnumerable<Node> PreResolveChildren =>
     (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(
     PreResolveSubStatements).Concat(PreResolveSubExpressions);
 }
@@ -466,7 +466,7 @@ public class ExprRhs : AssignmentRhs {
   }
 
   public override IEnumerable<Node> Children => new[] { Expr };
-  public override IEnumerable<Node> ConcreteChildren => PreResolveSubExpressions;
+  public override IEnumerable<Node> PreResolveChildren => PreResolveSubExpressions;
 }
 
 /// <summary>
@@ -655,7 +655,7 @@ public class TypeRhs : AssignmentRhs, ICloneable<TypeRhs> {
       return EType.Nodes.Concat(SubExpressions).Concat<Node>(SubStatements);
     }
   }
-  public override IEnumerable<Node> ConcreteChildren =>
+  public override IEnumerable<Node> PreResolveChildren =>
     new[] { EType, Type }.OfType<UserDefinedType>()
       .Concat<Node>(ArrayDimensions ?? Enumerable.Empty<Node>())
       .Concat<Node>(ElementInit != null ? new[] { ElementInit } : Enumerable.Empty<Node>())
@@ -671,7 +671,7 @@ public class HavocRhs : AssignmentRhs {
   }
   public override bool CanAffectPreviouslyKnownExpressions { get { return false; } }
   public override IEnumerable<Node> Children => Enumerable.Empty<Node>();
-  public override IEnumerable<Node> ConcreteChildren => Enumerable.Empty<Node>();
+  public override IEnumerable<Node> PreResolveChildren => Enumerable.Empty<Node>();
 }
 
 public class VarDeclStmt : Statement, ICloneable<VarDeclStmt>, ICanFormat {
@@ -724,7 +724,7 @@ public class VarDeclStmt : Statement, ICloneable<VarDeclStmt>, ICanFormat {
 
   public override IEnumerable<Node> Children => Locals.Concat<Node>(SubStatements);
 
-  public override IEnumerable<Node> ConcreteChildren => Children;
+  public override IEnumerable<Node> PreResolveChildren => Children;
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     var result = formatter.SetIndentVarDeclStmt(indentBefore, OwnedTokens, false, false);
     return Update != null ? formatter.SetIndentUpdateStmt(Update, indentBefore, true) : result;
@@ -795,7 +795,7 @@ public abstract class ConcreteUpdateStatement : Statement, ICanFormat {
   }
 
   public override IEnumerable<Node> Children => Lhss;
-  public override IEnumerable<Node> ConcreteChildren => Lhss;
+  public override IEnumerable<Node> PreResolveChildren => Lhss;
 
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     return formatter.SetIndentUpdateStmt(this, indentBefore, false);
@@ -836,7 +836,7 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt> {
   public override IEnumerable<Statement> SubStatements => Children.OfType<Statement>();
 
   public override IEnumerable<Node> Children => ResolvedStatements ?? Lhss.Concat<Node>(Rhss);
-  public override IEnumerable<Node> ConcreteChildren => Lhss.Concat<Node>(Rhss);
+  public override IEnumerable<Node> PreResolveChildren => Lhss.Concat<Node>(Rhss);
 
   public override IEnumerable<Statement> PreResolveSubStatements => Enumerable.Empty<Statement>();
 
@@ -993,7 +993,7 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
     (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(
       IsTypeExplicit ? new List<Node>() { type } : Enumerable.Empty<Node>());
 
-  public override IEnumerable<Node> ConcreteChildren =>
+  public override IEnumerable<Node> PreResolveChildren =>
     (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(
       IsTypeExplicit ? new List<Node>() { OptionalType ?? type } : Enumerable.Empty<Node>());
 }
@@ -1004,7 +1004,7 @@ public class GuardedAlternative : TokenNode, IAttributeBearingDeclaration {
   public readonly List<Statement> Body;
   public Attributes Attributes;
   public override IEnumerable<Node> Children => (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(new List<Node>() { Guard }).Concat<Node>(Body);
-  public override IEnumerable<Node> ConcreteChildren => Children;
+  public override IEnumerable<Node> PreResolveChildren => Children;
   Attributes IAttributeBearingDeclaration.Attributes => Attributes;
 
   [ContractInvariantMethod]

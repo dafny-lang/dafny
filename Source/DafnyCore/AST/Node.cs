@@ -36,12 +36,12 @@ public abstract class Node : INode {
   /// That way, gathering all OwnedTokens of all recursive ConcreteChildren should result in a comprehensive
   /// coverage of the original program
   /// </summary>
-  public abstract IEnumerable<Node> ConcreteChildren { get; }
+  public abstract IEnumerable<Node> PreResolveChildren { get; }
 
   // Nodes like DefaultClassDecl have children but no OwnedTokens as they are not "physical"
   // Therefore, we have to find all the concrete children by unwrapping such nodes.
   private IEnumerable<Node> GetConcreteChildren() {
-    foreach (var child in ConcreteChildren) {
+    foreach (var child in PreResolveChildren) {
       if (child.StartToken != null && child.EndToken != null && child.StartToken.line != 0) {
         yield return child;
       } else {
