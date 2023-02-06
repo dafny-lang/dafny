@@ -35,7 +35,7 @@ referenced in a `break` or `continue` statement within the labeled statement
 (see [Section 20.2](#sec-break-continue-statement)). That is, the break or continue that
 mentions the label must be _enclosed_ in the labeled statement.
 
-The label may also be used in an `old` expression ([Section 21.22](#sec-old-expression)). In this case, the label
+The label may also be used in an `old` expression ([Section 21.25](#sec-old-expression)). In this case, the label
 must have been encountered during the control flow en route to the `old`
 expression. We say in this case that the (program point of the) label _dominates_
 the (program point of the) use of the label.
@@ -312,14 +312,14 @@ Examples:
 method m(i: int) returns (r: int) {
   return i+1;
 }
-method m(i: int) returns (r: int, q: int) {
+method n(i: int) returns (r: int, q: int) {
   return i+1, i + 2;
 }
 method p() returns (i: int) {
   i := 1;
   return;
 }
-method p() {
+method q() {
   return;
 }
 ```
@@ -1142,7 +1142,7 @@ Loops
 Importantly, loops need _loop specifications_ in order for Dafny to prove that
 they obey expected behavior. In some cases Dafny can infer the loop specifications by analyzing the code,
 so the loop specifications need not always be explicit.
-These specifications are described in [Section 19.6](#sec-loop-specification) and [Section 20.14](#sec-loop-specifications).
+These specifications are described in [Section 5.6](#sec-loop-specification) and [Section 20.14](#sec-loop-specifications).
 
 The general loop statement in Dafny is the familiar `while` statement.
 It has two general forms.
@@ -1698,7 +1698,7 @@ each clause in order until a matching clause is found.
 
 The process of matching the selector expression against the case patterns is
 the same as for match expressions and is described in
-[Section 21.31.2](#sec-case-pattern).
+[Section 21.33](#sec-case-pattern).
 
 The selector need not be enclosed in parentheses; the sequence of cases may but need not be enclosed in braces.
 The matches in the cases must be exhaustive.
