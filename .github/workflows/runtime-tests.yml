@@ -17,6 +17,8 @@ jobs:
         with:
           java-version: 18
           distribution: corretto
+      - name: Build Dafny
+        run: dotnet build dafny/Source/Dafny.sln
       - name: Test DafnyRuntimeDafny
         run: |
           cd ./Source/DafnyRuntime/DafnyRuntimeDafny
