@@ -224,6 +224,10 @@ public class CodeActionToken : TokenWrapper {
   public String StartLength() {
     return (line - 1) + " " + (column - 1) + " " + length;
   }
+
+  public override IToken WithVal(string newVal) {
+    return this;
+  }
 }
 
 public class NestedToken : TokenWrapper {
