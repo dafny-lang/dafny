@@ -1341,6 +1341,8 @@ public class MultiSelectExpr : Expression {
     Contract.Invariant(1 <= Indices.Count);
   }
 
+  public override IToken Tok => Array.EndToken.Next; // Move to the [
+
   public MultiSelectExpr(RangeToken rangeToken, Expression array, List<Expression> indices)
     : base(rangeToken) {
     Contract.Requires(rangeToken != null);
