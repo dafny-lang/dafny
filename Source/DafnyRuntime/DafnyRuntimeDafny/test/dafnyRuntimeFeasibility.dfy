@@ -1,7 +1,7 @@
 
 include "../src/dafnyRuntime.dfy"
 
-// Implementing the external traits to guard against inconsistent specifications
+// Implementing the external traits in Dafny to guard against inconsistent specifications
 module {:options "/functionSyntax:4"} FeasibilityImplementation refines Dafny {
 
   const SIZE_T_LIMIT: nat := 256
@@ -95,6 +95,7 @@ module {:options "/functionSyntax:4"} FeasibilityImplementation refines Dafny {
       requires size <= Length()
       requires forall i | 0 <= i < size :: values[i].Set?
       ensures ret.Valid()
+      ensures ret as object != this as object
       ensures |ret.values| == size as int
       ensures forall i | 0 <= i < size :: ret.values[i] == values[i].value
     {
@@ -162,13 +163,19 @@ module {:options "/functionSyntax:4"} FeasibilityImplementation refines Dafny {
     }
   }
 
+  trait {:extern} AtomicBox<T> ... {
+    static method Make(ghost inv: T -> bool, t: T) returns (ret: AtomicBox<T>)
+    {
+      return new DafnyAtomicBox(inv, t);
+    }
+  }
+
   // Note that it is impossible to implement a DafnyAtomicBox<T>
   // that actually works as expected (but not specified!)
   // by storing the value passed to Put(),
   // precisely because Put() modifies nothing.
   // But we CAN implement the worst cache in the world with a
   // 0% hit rate...
-
   class DafnyAtomicBox<T> extends AtomicBox<T> {
 
     const value: T
@@ -184,14 +191,6 @@ module {:options "/functionSyntax:4"} FeasibilityImplementation refines Dafny {
     {
       this.inv := inv;
       this.value := value;
-    }
-
-    static method {:extern "Make"} NativeMake(ghost inv: T -> bool, t: T) returns (ret: AtomicBox<T>)
-      requires inv(t)
-      ensures ret.Valid()
-      ensures ret.inv == inv
-    {
-      return new DafnyAtomicBox(inv, t);
     }
 
     method {:extern} Get() returns (t: T)

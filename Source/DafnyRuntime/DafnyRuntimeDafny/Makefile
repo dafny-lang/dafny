@@ -10,10 +10,15 @@ SOURCES := $(shell find $(SOURCE_DIR) -name '*.dfy')
 verify:
 	$(DAFNY) verify $(SOURCES)
 
-go: verify
+build-go: verify
 	$(DAFNY) translate go src/dafnyRuntimeGo.dfy --output ../generated
+
+check-go: build-go
 	diff ../generated-go/src/dafny/dafny.go ../DafnyRuntimeGo/DafnyRuntimeFromDafny.go
 
-test:
+update-go: build-go
+	cp ../generated-go/src/dafny/dafny.go ../DafnyRuntimeGo/DafnyRuntimeFromDafny.go
+
+test: verify
 	$(DAFNY) test test/dafnyRuntimeGoTest.dfy
 

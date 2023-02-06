@@ -154,6 +154,9 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       requires forall i | 0 <= i < size :: values[i].Set?
       // Explicitly doesn't ensure Valid()!
       ensures ret.Valid()
+      // This is imporant, because it's tempting to just return this when possible
+      // to save allocations, but that leads to inconsistencies.
+      ensures ret as object != this as object
       ensures |ret.values| as size_t == size
       ensures forall i | 0 <= i < size :: ret.values[i] == values[i].value
 
@@ -380,21 +383,6 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       requires Valid()
       requires inv(t)
   }
-
-  // TODO: Need custom compiler/runtime code to connect things like HashCode(), Equals() and ToString()
-  // to the native versions of those concepts, adjusting for names and native string types.
-  // The answer is likely to make sure all target languages support classes with a mix of Dafny- and 
-  // target language-defined methods (which Go doesn't yet support, and I don't think C++ does either).
-  // If we ever target a language that really can't support this, the worst case option is to
-  // not rely on built-in functionality that requires those built-in methods to be implemented.
-  //
-  // TODO: How to deal with iteration (for quantification)? Again we could rely on target-language
-  // code to add iterator() implementations as necessary...
-  //
-  // TODO: static analysis to assert that all methods that are called directly from Dafny syntax
-  // (e.g. s[i] -> s.Select(i)) have `modifies {}` (implicitly or explicitly).
-  // TODO: Might also be good to assert that seq<T> is only used in specifications.
-  // TODO: Align terminology between length/size/etc.
 
   trait {:extern} Sequence<T> {
    

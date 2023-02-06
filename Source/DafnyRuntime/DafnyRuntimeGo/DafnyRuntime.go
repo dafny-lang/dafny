@@ -577,7 +577,8 @@ func (seq *LazySequence) Iterator() Iterator {
 }
 
 // UniqueElements returns the set of elements in the sequence.
-// TODO: move to dafnyRuntime.dfy?
+// This should be in Dafny eventually but for now it's much more efficient
+// and convenient here.
 func (seq *ArraySequence) UniqueElements() Set {
   return NewBuilderOf(seq).ToSet()
 }
