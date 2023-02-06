@@ -14,10 +14,8 @@ Here is some sample code that show a workaround.
 trait Test {
   var y: int
   var z: int
-  predicate readsY() reads this`y { true }
-  predicate readsZ() reads this`z { true }
   function {:opaque} MyFunc(x: bool): int
-    reads if x then readsY.reads() else readsZ.reads() {
+    reads (if x then {this} else {})`y, (if x then {} else {this})`z {
     if x then y else z
   }
 }
