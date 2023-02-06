@@ -2199,6 +2199,8 @@ public class UserDefinedType : NonProxyType {
     Contract.Invariant(!ArrowType.IsArrowTypeName(Name) || this is ArrowType);
   }
 
+  public override IToken Tok => NamePath.Tok;
+
   public readonly Expression NamePath;  // either NameSegment or ExprDotName (with the inner expression satisfying this same constraint)
   public readonly string Name;
   [Rep]
