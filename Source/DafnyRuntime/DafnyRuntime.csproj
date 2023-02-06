@@ -63,8 +63,4 @@
     </ItemGroup>
   </Target>
 
-<!--  <Target Name="BuildDafnyRuntimeToGo" AfterTargets="ResolveReferences" BeforeTargets="CoreCompile">-->
-<!--    <Exec WorkingDirectory="DafnyRuntimeDafny" Command="make go" ConsoleToMSBuild="true" />-->
-<!--  </Target>-->
-
 </Project>
