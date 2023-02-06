@@ -547,7 +547,7 @@ class GhostInterestVisitor {
         if (rhs.InitCall != null) {
           var callee = rhs.InitCall.Method;
           if (callee.IsGhost) {
-            Error(rhs.InitCall, "the result of a ghost constructor can only be assigned to a ghost variable");
+            Error(rhs.InitCall.MethodSelect, "the result of a ghost constructor can only be assigned to a ghost variable");
           }
           for (var i = 0; i < rhs.InitCall.Args.Count; i++) {
             if (!callee.Ins[i].IsGhost) {
