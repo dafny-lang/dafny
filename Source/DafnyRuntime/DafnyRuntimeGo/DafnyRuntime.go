@@ -495,11 +495,11 @@ func SeqCreate(n uint32, init func (Int) interface{}) Sequence {
 }
 
 func SeqFromArray(contents []interface{}, isString bool) Sequence {
-  arr := GoArray{
+  arr := GoNativeArray{
     contents: contents,
   }
   result := New_ArraySequence_()
-  result.Ctor__(arr, isString) 
+  result.Ctor__(arr, isString)
   return result
 }
 
@@ -543,11 +543,6 @@ func UnicodeSeqOfUtf8Bytes(str string) Sequence {
   return SeqFromArray(arr, false)
 }
 
-// TODO: Need to avoid the per-concrete type declarations, or else
-// it will not be possible to provide other Sequence implementations
-// in native code.
-// Likely the compiler needs to insert these instead.
-
 // Iterator returns an iterator over the sequence.
 // This could be implemented more efficiently
 // in the source Dafny code in the future,
@@ -566,6 +561,12 @@ func SequenceIterator(seq Sequence) Iterator {
     return ans, true
   }
 }
+// Unfortunately when we want to provide a single common definition
+// for a trait function, we have to take care of the indirection
+// from the concrete structs to the trait implementation ourselves.
+// Ideally there would be a way of telling Dafny
+// an {:extern} trait method will be specifically implemented at the trait level
+// so the compiler could do this for us.
 func (seq *ArraySequence) Iterator() Iterator {
   return SequenceIterator(seq)
 }
@@ -652,15 +653,15 @@ func (seq *LazySequence) VerbatimString(asLiteral bool) string {
  * Arrays
  ******************************************************************************/
 
-// A GoArray is a single dimensional Go slice,
+// A GoNativeArray is a single dimensional Go slice,
 // wrapped up for the benefit of dafnyRuntime.dfy.
-type GoArray struct {
+type GoNativeArray struct {
   contents []interface{}
 }
 
 func (CompanionStruct_NativeArray_) Make(length uint32) NativeArray {
   contents := make([]interface{}, length)
-  return GoArray{
+  return GoNativeArray{
     contents: contents,
   }
 }
@@ -670,49 +671,49 @@ func (CompanionStruct_NativeArray_) MakeWithInit(length uint32, init func(uint32
   for i := uint32(0); i < length; i++ {
     contents[i] = init(i)
   }
-  return GoArray{
+  return GoNativeArray{
     contents: contents,
   }
 }
 
 func (CompanionStruct_NativeArray_) Copy(other ImmutableArray) NativeArray {
-  otherArray := other.(GoArray)
+  otherArray := other.(GoNativeArray)
   contents := make([]interface{}, otherArray.Length())
   copy(contents, otherArray.contents)
-  return GoArray{
+  return GoNativeArray{
     contents: contents,
   }
 }
 
-func (array GoArray) Length() uint32 {
+func (array GoNativeArray) Length() uint32 {
   return uint32(len(array.contents))
 }
 
-func (array GoArray) Select(i uint32) interface{} {
+func (array GoNativeArray) Select(i uint32) interface{} {
   return array.contents[i]
 }
 
-func (array GoArray) Update(i uint32, t interface{}) {
+func (array GoNativeArray) Update(i uint32, t interface{}) {
   array.contents[i] = t
 }
 
-func (array GoArray) UpdateSubarray(i uint32, other ImmutableArray) {
-  otherArray := other.(GoArray)
+func (array GoNativeArray) UpdateSubarray(i uint32, other ImmutableArray) {
+  otherArray := other.(GoNativeArray)
   copy(array.contents[i:(i + otherArray.Length())], otherArray.contents)
 }
 
-func (array GoArray) Freeze(size uint32) ImmutableArray {
+func (array GoNativeArray) Freeze(size uint32) ImmutableArray {
   return array.Subarray(0, size)
 }
 
-func (array GoArray) Subarray(lo uint32, hi uint32) ImmutableArray {
-  return GoArray{
+func (array GoNativeArray) Subarray(lo uint32, hi uint32) ImmutableArray {
+  return GoNativeArray{
     contents: array.contents[lo:hi],
   }
 }
 
-func (array GoArray) String() string {
-  return "dafny.GoArray"
+func (array GoNativeArray) String() string {
+  return "dafny.GoNativeArray"
 }
 
 // Array is the general interface for arrays. Conceptually, it contains some
