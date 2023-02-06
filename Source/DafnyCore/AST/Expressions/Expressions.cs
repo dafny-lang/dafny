@@ -1406,6 +1406,8 @@ public class ApplyExpr : Expression {
   public readonly Expression Function;
   public readonly List<Expression> Args;
 
+  public override IToken Tok => Function.Tok;
+
   public override IEnumerable<Expression> SubExpressions {
     get {
       yield return Function;
