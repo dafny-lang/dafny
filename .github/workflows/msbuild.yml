@@ -1,8 +1,10 @@
 name: Build and Test
 
 on:
+  push:
+    branches: [ cok-3459-dafny4test ]
   pull_request:
-    branches: [ master, cok-3459-dafny4test ]
+    branches: [ master ]
 
 env:
   dotnet-version: 6.0.x # SDK Version for building Dafny
