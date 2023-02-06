@@ -532,7 +532,7 @@ set x: int, o: object | o in F(x) :: o
 For each function value `f`, Dafny defines the function `f.reads`,
 which takes the same arguments as `f` and returns that set of objects
 that `f` reads (according to its reads clause) with those arguments.
-`f.reads` has type `int ~> set<object>`.
+`f.reads` has type `T ~> set<object>`, where `T` is the input type(s) of `f`.
 
 This is particularly useful when wanting to specify the reads set of
 another function. For example, function `Sum` adds up the values of
