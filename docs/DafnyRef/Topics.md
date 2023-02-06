@@ -768,7 +768,7 @@ keyword `function` to `predicate`.
 
 ### 24.5.2. Proofs in Dafny {#sec-proofs-in-dafny}
 
-Dafny has `lemma` declarations, as described in [Section 13.3.3](#sec-lemmas):
+Dafny has `lemma` declarations, as described in [Section 12.3.3](#sec-lemmas):
 lemmas can have pre- and postcondition specifications and their body is a code block.
 Here is the lemma we stated and proved in [the fib example](#sec-fib-example) in the previous section:
 
@@ -1044,7 +1044,7 @@ is auto-initialized to `0`; a non-nullable class type is not
 auto-initialized, but a nullable class type is auto-initalized to `null`.
 
 In declaring generic types, type parameters can be declared to be required to
-be auto-initializable types (cf. [Section 8.1.2](#sec-auto-init)).
+be auto-initializable types (cf. [Section 7.1.2](#sec-auto-init)).
 
 If a class has fields that are not auto-initializable, then the class must
 have a constructor, and in each constructor those fields must be explicitly

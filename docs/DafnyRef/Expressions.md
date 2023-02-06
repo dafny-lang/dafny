@@ -134,7 +134,7 @@ must also be boolean expressions. In that case each `<==>`
 operator tests for logical equality which is the same as
 ordinary equality.
 
-See [Section 7.1.1](#sec-equivalence-operator) for an explanation of the
+See [Section 6.1.1](#sec-equivalence-operator) for an explanation of the
 `<==>` operator as compared with the `==` operator.
 
 ## 21.3. Implies or Explies Expressions {#sec-implication}
@@ -152,7 +152,7 @@ ImpliesExpression(allowLemma, allowLambda) =
   [  "==>" ImpliesExpression(allowLemma, allowLambda) ]
 ````
 
-See [Section 7.1.3](#sec-implication-and-reverse-implication) for an explanation
+See [Section 6.1.3](#sec-implication-and-reverse-implication) for an explanation
 of the `==>` and `<==` operators.
 
 ## 21.4. Logical Expressions
@@ -187,7 +187,7 @@ This is purely a syntactic convenience allowing easy edits such as reordering
 lines or commenting out lines without having to check that the infix
 operators are always where they should be.
 
-See [Section 7.1.2](#sec-conjunction-and-disjunction) for an explanation
+See [Section 6.1.2](#sec-conjunction-and-disjunction) for an explanation
 of the `&&` and `||` operators.
 
 ## 21.5. Relational Expressions
@@ -214,11 +214,11 @@ As explained in [the section about basic types](#sec-basic-types), `==`, `!=`, `
 are _chaining_.
 
 The `in` and `!in` operators apply to collection types as explained in
-[Section 10](#sec-collection-types) and represent membership or non-membership
+[Section 9](#sec-collection-types) and represent membership or non-membership
 respectively.
 
 The `!!` represents disjointness for sets and multisets as explained in
-[Section 10.1](#sec-sets) and [Section 10.2](#sec-multisets).
+[Section 9.1](#sec-sets) and [Section 9.2](#sec-multisets).
 
 Note that `x ==#[k] y` is the prefix equality operator that compares
 coinductive values for equality to a nesting level of k, as
@@ -252,10 +252,10 @@ AddOp = ( "+" | "-" )
 `Terms` combine `Factors` by adding or subtracting.
 Addition has these meanings for different types:
 
-* Arithmetic addition for numeric types ([Section 7.2](#sec-numeric-types)]).
-* Union for sets and multisets ([Section 10.1](#sec-sets) and [Section 10.2](#sec-multisets))
-* Concatenation for sequences ([Section 10.3](#sec-sequences))
-* Map merging for maps ([Section 10.4](#sec-maps)).
+* Arithmetic addition for numeric types ([Section 6.2](#sec-numeric-types)]).
+* Union for sets and multisets ([Section 9.1](#sec-sets) and [Section 9.2](#sec-multisets))
+* Concatenation for sequences ([Section 9.3](#sec-sequences))
+* Map merging for maps ([Section 9.4](#sec-maps)).
 
 Subtraction is arithmetic subtraction for numeric types, and set or multiset
 subtraction for sets and multisets, and domain subtraction for maps.
@@ -271,13 +271,13 @@ MulOp = ( "*" | "/" | "%" )
 
 A ``Factor`` combines ``UnaryExpression``s using multiplication,
 division, or modulus. For numeric types these are explained in
-[Section 7.2](#sec-numeric-types).
+[Section 6.2](#sec-numeric-types).
 As explained there, `/` and `%` on `int` values represent _Euclidean_
 integer division and modulus and not the typical C-like programming
 language operations.
 
 Only `*` has a non-numeric application. It represents set or multiset
-intersection as explained in [Section 10.1](#sec-sets) and [Section 10.2](#sec-multisets).
+intersection as explained in [Section 9.1](#sec-sets) and [Section 9.2](#sec-multisets).
 
 ## 21.9. Bit-vector Operations
 ````grammar
@@ -382,9 +382,9 @@ UnaryExpression(allowLemma, allowLambda) =
 ````
 
 A ``UnaryExpression`` applies either 
-logical complement (`!` -- [Section 7.1](#sec-booleans)),
-numeric negation (`-` -- [Section 7.2](#sec-numeric-types)), or
-bit-vector negation (`-` -- [Section 7.3](#sec-bit-vector-types))
+logical complement (`!` -- [Section 6.1](#sec-booleans)),
+numeric negation (`-` -- [Section 6.2](#sec-numeric-types)), or
+bit-vector negation (`-` -- [Section 6.3](#sec-bit-vector-types))
  to its operand.
 
 ## 21.12. Primary Expressions {#sec-primary-expressions}
@@ -419,7 +419,7 @@ LambdaExpression(allowLemma) =
   Expression(allowLemma, allowLambda: true)
 ````
 
-See [Section 5.4](#sec-lambda-specification) for a description of ``LambdaSpec``.
+See [Section 19.4](#sec-lambda-specification) for a description of ``LambdaSpec``.
 
 In addition to named functions, Dafny supports expressions that define
 functions.  These are called _lambda (expression)s_ (some languages
@@ -535,7 +535,7 @@ ArrayAllocation_ =
   ]
 ````
 
-This right-hand-side expression allocates a new single or multi-dimensional array (cf. [Section 15](#sec-array-types)).
+This right-hand-side expression allocates a new single or multi-dimensional array (cf. [Section 14](#sec-array-types)).
 The initialization portion is optional. One form is an
 explicit list of values, in which case the dimension is optional:
 <!-- %no-check -->
@@ -929,7 +929,7 @@ finite set or sequence, the cardinality is the number of elements. For
 a multiset, the cardinality is the sum of the multiplicities of the
 elements. For a finite map, the cardinality is the cardinality of the
 domain of the map. Cardinality is not defined for infinite sets or infinite maps.
-For more, see [Section 10](#sec-collection-types).
+For more, see [Section 9](#sec-collection-types).
 
 ## 21.27. Parenthesized Expression
 ````grammar
@@ -943,7 +943,7 @@ If there is exactly one expression enclosed then the value is just
 the value of that expression.
 
 If there are zero or more than one, the result is a `tuple` value.
-See [Section 18](#sec-tuple-types).
+See [Section 17](#sec-tuple-types).
 
 ## 21.28. Sequence Display Expression {#sec-seq-comprehension}
 ````grammar
@@ -994,7 +994,7 @@ For example
 {1, 2, 3}
 ```
 is a set with three elements in it.
-See [Section 10.1](#sec-sets) for more information on
+See [Section 9.1](#sec-sets) for more information on
 sets.
 
 A multiset display expression provides a way of constructing
@@ -1020,7 +1020,7 @@ var ms2 : multiset<int> := multiset(sq);
 assert ms == ms2;
 ```
 
-See [Section 10.2](#sec-multisets) for more information on
+See [Section 9.2](#sec-multisets) for more information on
 multisets.
 
 ## 21.30. Map Display Expression {#sec-map-display-expression}
@@ -1045,7 +1045,7 @@ var m := map[1 := "a", 2 := "b"];
 ghost var im := imap[1 := "a", 2 := "b"];
 ```
 
-See [Section 10.4](#sec-maps) for more details on maps and imaps.
+See [Section 9.4](#sec-maps) for more details on maps and imaps.
 
 ## 21.31. Endless Expression
 ````grammar
@@ -1530,8 +1530,8 @@ If the identifier is for a generic entity, it is followed by
 a ``GenericInstantiation`` which provides actual types for
 the type parameters.
 
-To reference a prefix predicate (see [Section 19.3.4](#sec-copredicates)) or
-prefix lemma (see [Section 19.3.5.3](#sec-prefix-lemmas)), the identifier
+To reference a prefix predicate (see [Section 18.3.4](#sec-copredicates)) or
+prefix lemma (see [Section 18.3.5.3](#sec-prefix-lemmas)), the identifier
 must be the name of the greatest predicate or greatest lemma and it must be
 followed by a ``HashCall``.
 
@@ -1591,7 +1591,7 @@ greatest lemma {:induction false} Theorem0<T>(s: T)
 ```
 
 where the ``HashCall`` is `"Theorem0#<T>[_k-1](s);"`.
-See [Section 19.3.4](#sec-copredicates) and [Section 19.3.5.3](#sec-prefix-lemmas).
+See [Section 18.3.4](#sec-copredicates) and [Section 18.3.5.3](#sec-prefix-lemmas).
 
 ## 21.43. Suffix
 ````grammar
