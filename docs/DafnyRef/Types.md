@@ -4,7 +4,7 @@ A Dafny type is a (possibly-empty) set of values or heap data-structures,
 together with allowed operations on those values.
 Types are classified as mutable reference types or immutable value types,
 depending on whether their values are stored in the heap or are 
-(mathematical) values independent of the heap..
+(mathematical) values independent of the heap.
 
 Dafny supports the following kinds of types,
 all described in later sections of this manual:
