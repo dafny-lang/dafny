@@ -6174,7 +6174,7 @@ namespace Microsoft.Dafny {
           };
           actualBindings.Add(new ActualBinding(bindingName, ctorArg));
         }
-        var ctor_call = new DatatypeValue(tok, crc.EnclosingDatatype.Name, crc.Name, actualBindings);
+        var ctor_call = new DatatypeValue(tok, crc.EnclosingDatatype.Name, crc.NameNode, actualBindings);
         // in the following line, resolve to root.Type, so that type parameters get filled in appropriately
         ResolveDatatypeValue(resolutionContext, ctor_call, dt, root.Type.NormalizeExpand());
 
@@ -6297,7 +6297,7 @@ namespace Microsoft.Dafny {
         r = ResolveExprDotCall(expr, nameNode, receiver, null, member, args, resolutionContext, allowMethodCall);
       } else if (isLastNameSegment && moduleInfo.Ctors.TryGetValue(name, out pair)) {
         // ----- 2. datatype constructor
-        if (ResolveDatatypeConstructor(expr, args, resolutionContext, complain, pair, name, ref r, ref rWithArgs)) {
+        if (ResolveDatatypeConstructor(expr, args, resolutionContext, complain, pair, nameNode, ref r, ref rWithArgs)) {
           return null;
         }
       } else if (moduleInfo.TopLevels.TryGetValue(name, out decl)) {
@@ -6352,7 +6352,7 @@ namespace Microsoft.Dafny {
 
       } else if (!isLastNameSegment && moduleInfo.Ctors.TryGetValue(name, out pair)) {
         // ----- 5. datatype constructor
-        if (ResolveDatatypeConstructor(expr, args, resolutionContext, complain, pair, name, ref r, ref rWithArgs)) {
+        if (ResolveDatatypeConstructor(expr, args, resolutionContext, complain, pair, nameNode, ref r, ref rWithArgs)) {
           return null;
         }
 
@@ -6378,7 +6378,8 @@ namespace Microsoft.Dafny {
       return rWithArgs;
     }
 
-    private bool ResolveDatatypeConstructor(NameSegment expr, List<ActualBinding>/*?*/ args, ResolutionContext resolutionContext, bool complain, Tuple<DatatypeCtor, bool> pair, string name, ref Expression r, ref Expression rWithArgs) {
+    private bool ResolveDatatypeConstructor(NameSegment expr, List<ActualBinding>/*?*/ args, ResolutionContext resolutionContext, bool complain, Tuple<DatatypeCtor, bool> pair, Name nameNode, ref Expression r, ref Expression rWithArgs) {
+      var name = nameNode.Value;
       Contract.Requires(expr != null);
       Contract.Requires(resolutionContext != null);
 
@@ -6400,7 +6401,7 @@ namespace Microsoft.Dafny {
             return true;
           }
         }
-        var rr = new DatatypeValue(expr.RangeToken, pair.Item1.EnclosingDatatype.Name, name, args ?? new List<ActualBinding>());
+        var rr = new DatatypeValue(expr.RangeToken, pair.Item1.EnclosingDatatype.Name, nameNode, args ?? new List<ActualBinding>());
         bool ok = ResolveDatatypeValue(resolutionContext, rr, pair.Item1.EnclosingDatatype, null, complain);
         if (!ok) {
           expr.ResolvedExpression = null;
@@ -6563,7 +6564,8 @@ namespace Microsoft.Dafny {
       Expression rWithArgs = null;  // the resolved expression after incorporating "args"
       MemberDecl member = null;
 
-      var name = resolutionContext.InReveal ? "reveal_" + expr.SuffixName : expr.SuffixName;
+      var nameNode = resolutionContext.InReveal ? expr.SuffixNameNode.Prepend("reveal_") : expr.SuffixNameNode;
+      var name = nameNode.Value;
       if (!expr.Lhs.WasResolved()) {
         return null;
       }
@@ -6586,7 +6588,7 @@ namespace Microsoft.Dafny {
             if (expr.OptTypeArguments != null) {
               reporter.Error(MessageSource.Resolver, expr.tok, "datatype constructor does not take any type parameters ('{0}')", name);
             }
-            var rr = new DatatypeValue(expr.RangeToken, pair.Item1.EnclosingDatatype.Name, name, args ?? new List<ActualBinding>());
+            var rr = new DatatypeValue(expr.RangeToken, pair.Item1.EnclosingDatatype.Name, nameNode, args ?? new List<ActualBinding>());
             ResolveDatatypeValue(resolutionContext, rr, pair.Item1.EnclosingDatatype, null);
 
             if (args == null) {
@@ -6643,7 +6645,7 @@ namespace Microsoft.Dafny {
             if (expr.OptTypeArguments != null) {
               reporter.Error(MessageSource.Resolver, expr.tok, "datatype constructor does not take any type parameters ('{0}')", name);
             }
-            var rr = new DatatypeValue(expr.RangeToken, ctor.EnclosingDatatype.Name, name, args ?? new List<ActualBinding>());
+            var rr = new DatatypeValue(expr.RangeToken, ctor.EnclosingDatatype.Name, nameNode, args ?? new List<ActualBinding>());
             ResolveDatatypeValue(resolutionContext, rr, ctor.EnclosingDatatype, ty);
             if (args == null) {
               r = rr;

@@ -1732,7 +1732,7 @@ TypeIdentOptional<out RangeToken/*!*/ range, out Name/*!*/ identName, out Type/*
      identName = null;
      defaultValue = null;
   .)
-  (. var startToken = t; .)
+  (. var beforeStartToken = t; .)
   { "ghost"                            (. isGhost = true; .)
   | "nameonly"                         (. nameonlyToken = t; .)
   }
@@ -1754,7 +1754,7 @@ TypeIdentOptional<out RangeToken/*!*/ range, out Name/*!*/ identName, out Type/*
     Type<out ty>
     ParameterDefaultValue<true, out defaultValue>
   )
-  (. range = new RangeToken(startToken, t);
+  (. range = new RangeToken(beforeStartToken.Next, t);
      if (nameToken != null) {
        identName = new Name(nameToken);
        isNameOnly = nameonlyToken != null;

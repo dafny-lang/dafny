@@ -921,9 +921,12 @@ public class StringLiteralExpr : LiteralExpr {
 
 public class DatatypeValue : Expression, IHasUsages, ICloneable<DatatypeValue> {
   public readonly string DatatypeName;
-  public readonly string MemberName;
+  public readonly Name MemberNameNode;
+  public string MemberName => MemberNameNode.Value;
   public readonly ActualBindings Bindings;
   public List<Expression> Arguments => Bindings.Arguments;
+
+  public override IToken Tok => MemberNameNode.StartToken;
 
   public override IEnumerable<Node> Children => new Node[] { Bindings };
 
@@ -945,7 +948,7 @@ public class DatatypeValue : Expression, IHasUsages, ICloneable<DatatypeValue> {
 
   public DatatypeValue(Cloner cloner, DatatypeValue original) : base(cloner, original) {
     DatatypeName = original.DatatypeName;
-    MemberName = original.MemberName;
+    MemberNameNode = original.MemberNameNode.Clone(cloner);
     Bindings = new ActualBindings(cloner, original.Bindings);
 
     if (cloner.CloneResolvedFields) {
@@ -955,14 +958,14 @@ public class DatatypeValue : Expression, IHasUsages, ICloneable<DatatypeValue> {
     }
   }
 
-  public DatatypeValue(RangeToken rangeToken, string datatypeName, string memberName, [Captured] List<ActualBinding> arguments)
+  public DatatypeValue(RangeToken rangeToken, string datatypeName, Name memberName, [Captured] List<ActualBinding> arguments)
     : base(rangeToken) {
     Contract.Requires(cce.NonNullElements(arguments));
     Contract.Requires(rangeToken != null);
     Contract.Requires(datatypeName != null);
     Contract.Requires(memberName != null);
     this.DatatypeName = datatypeName;
-    this.MemberName = memberName;
+    this.MemberNameNode = memberName;
     this.Bindings = new ActualBindings(arguments);
   }
 

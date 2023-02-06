@@ -529,7 +529,7 @@ namespace DafnyTestGeneration {
                 actualBindings.Last().Actual.Type = binding.Actual.Type;
               }
               var newValue = new DatatypeValue(RangeToken.NoToken,
-                udt.ResolvedClass.FullDafnyName, datatypeValue.MemberName,
+                udt.ResolvedClass.FullDafnyName, datatypeValue.MemberNameNode,
                 actualBindings);
               newValue.Type = Utils.UseFullName(datatypeValue.Type);
               newValue.InferredTypeArgs = datatypeValue.InferredTypeArgs.ConvertAll(typ => Utils.UseFullName(typ));
