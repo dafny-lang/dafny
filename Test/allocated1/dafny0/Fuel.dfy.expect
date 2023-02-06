@@ -2,7 +2,6 @@ Fuel.dfy(3,8): Error: the included file Fuel.dfy contains error(s)
 Fuel.dfy(129,8): Error: Fuel can only increase within a given scope.
 Fuel.dfy(407,8): Error: Fuel can only increase within a given scope.
 Fuel.dfy(17,22): Error: assertion might not hold
-Fuel.dfy(65,27): Error: assertion might not hold
 Fuel.dfy(69,27): Error: assertion might not hold
 Fuel.dfy(92,22): Error: assertion might not hold
 Fuel.dfy(93,23): Error: assertion might not hold
