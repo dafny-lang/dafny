@@ -15,9 +15,7 @@ public abstract class MemberDecl : Declaration {
     }
   }
 
-  public virtual bool IsOpaque {
-    get { return false; }
-  }
+  public virtual bool IsOpaque => false;
 
   protected readonly bool isGhost;
   public bool IsGhost { get { return isGhost; } }
