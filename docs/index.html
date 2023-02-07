@@ -36,6 +36,7 @@
 <li><a href="https://github.com/dafny-lang/dafny">Dafny GitHub project (for developers of the Dafny tools themselves)</a></li>
 <li><a href="Snapshots">Other documentation snapshots</a></li>
 </ul>
+<h2><a href="https://dafny.org/blog"><b>Blog</b></a><iframe src="https://dafny.org/blog"></iframe></h2>
 </nav>
 
 <main>
@@ -86,5 +87,11 @@ and the accumulating expertise of industrial projects using Dafny.
 <figcaption>Dafny running in Visual Studio Code</figcaption>
 </figure>
 </main>
+<script>
+var frame = document.querySelector("iframe");
+frame.addEventListener( "load", function(e) {
+  frame.outerHTML = x.contentWindow.document.querySelector("ul.post-list").outerHTML
+} );
+</script>
 </body>
 </html>
