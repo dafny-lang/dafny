@@ -573,26 +573,28 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       requires left.Valid()
       requires right.Valid()
       ensures ret.Valid()
+      ensures ret.Value() == left.Value() + right.Value()
     {
       expect SizeAdditionInRange(left.Cardinality(), right.Cardinality()),
         "Concatenation result cardinality would be larger than the maximum (" + Helpers.DafnyValueToDafnyString(SIZE_T_MAX) + ")";
 
-      // TODO: This could inspect left and right to see if they are already LazySequences
-      // and concatenate the boxed values if so.
-      var c := new ConcatSequence(left, right);
+      // Optimize away redundant lazy wrappers
+      var left' := left;
+      if (left is LazySequence<T>) {
+        var lazyLeft := left as LazySequence<T>;
+        left' := lazyLeft.box.Get();
+      }
+
+      var right' := right;
+      if (right is LazySequence<T>) {
+        var lazyRight := right as LazySequence<T>;
+        right' := lazyRight.box.Get();
+      }
+      
+      var c := new ConcatSequence(left', right');
       ret := new LazySequence(c);
     }
   }
-
-  // I'd rather not have to make this assumption,
-  // but it is necessary to prove we've handled all cases in AppendOptimized.
-  // I'd prefer to just have a default "else" that calls Sequence.ToArray(),
-  // but Dafny doesn't support tail recursion optimization of mutually-recursive functions.
-  lemma {:axiom} SequenceTypeIsClosed<T>(e: Sequence<T>) 
-    ensures
-      || e is ArraySequence<T>
-      || e is ConcatSequence<T>
-      || e is LazySequence<T>
 
   class ArraySequence<T> extends Sequence<T> {
     const values: ImmutableArray<T>
@@ -662,6 +664,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       requires right.Valid()
       requires left.Cardinality() as int + right.Cardinality() as int < SIZE_T_LIMIT as int
       ensures Valid()
+      ensures Value() == left.Value() + right.Value()
     {
       this.left := left;
       this.right := right;
@@ -758,8 +761,10 @@ abstract module {:options "/functionSyntax:4"} Dafny {
         AppendOptimized(builder, next, stack);
       }
     } else {
-      SequenceTypeIsClosed(e);
-      assert false;
+      // I'd prefer to just call Sequence.ToArray(),
+      // but Dafny doesn't support tail recursion optimization of mutually-recursive functions.
+      // Alternatively we could use a datatype, which would be a significant rewrite.
+      expect false, "Unsupported Sequence implementation";
     }
   }
 
@@ -815,6 +820,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       requires wrapped.Valid()
       requires 1 <= wrapped.size
       ensures Valid()
+      ensures Value() == wrapped.Value()
     {
       var value := wrapped.Value();
       var size := 1 + wrapped.size;

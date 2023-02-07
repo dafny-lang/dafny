@@ -96,7 +96,6 @@ namespace Microsoft.Dafny.Compilers {
       importWriter = wr.Fork(1);
       wr.WriteLine(")");
       importDummyWriter = wr.Fork();
-      // TODO-HACK
       if (ModuleName != "dafny") {
         foreach (var import in Imports) {
           EmitImport(import, importWriter, importDummyWriter);
@@ -273,7 +272,7 @@ namespace Microsoft.Dafny.Compilers {
       if (includeEquals) {
         
         w.WriteLine();
-        // TODO-HACK
+        // TODO-RS: HACK
         if (name.EndsWith("Sequence")) {
           var wEquals = w.NewNamedBlock("func (_this *{0}) Equals(other {0}) bool", name);
           wEquals.WriteLine($"return {DafnySequenceCompanion}.Equal(_this, other)");
@@ -285,9 +284,10 @@ namespace Microsoft.Dafny.Compilers {
 
         w.WriteLine();
         var wEqualsGeneric = w.NewNamedBlock("func (_this *{0}) EqualsGeneric(x interface{{}}) bool", name);
+        // TODO-RS: HACK
         if (name.EndsWith("Sequence")) {
           wEqualsGeneric.WriteLine("other, ok := x.(Sequence)");
-          wEqualsGeneric.WriteLine($"return ok && {DafnySequenceCompanion}.Equal(_this, other)");
+          wEqualsGeneric.WriteLine("return ok && _this.Equals(other)");
         } else {
           wEqualsGeneric.WriteLine("other, ok := x.(*{0})", name);
           wEqualsGeneric.WriteLine("return ok && _this.Equals(other)");
@@ -295,6 +295,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       w.WriteLine();
+      // TODO-RS: HACK
       if (!name.EndsWith("Sequence")) {
         var wString = w.NewNamedBlock("func (*{0}) String() string", name);
 
@@ -369,6 +370,7 @@ namespace Microsoft.Dafny.Compilers {
       var abstractMethodWriter = wr.NewNamedBlock("type {0} interface", name);
       var concreteMethodWriter = wr.Fork();
       abstractMethodWriter.WriteLine("String() string");
+      // TODO-RS: HACK
       if (name == "Sequence") {
         abstractMethodWriter.WriteLine("Equals(other Sequence) bool");
         abstractMethodWriter.WriteLine("EqualsGeneric(x interface{}) bool");
