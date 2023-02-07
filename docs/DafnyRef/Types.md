@@ -2698,7 +2698,7 @@ default. To make it ghost, replace the keyword `function` with the two keywords 
 (See the [/functionSyntax option](#sec-function-syntax) for a description 
 of the migration path for this change in behavior.}
 
-Functions (including predicates, function-by-methods, two-state functions and extreme predicates) may be 
+Functions (including predicates, function-by-methods, two-state functions, and extreme predicates) may be 
 declared `opaque`. In that case, only the signature and specification of the method
 is known at its points of use, not its body. The body can be _revealed_ for reasoning
 purposes using the [reveal statment](#sec-reveal-statement).
