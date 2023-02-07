@@ -874,7 +874,7 @@ func (_this *ArraySequence) Equals(other ArraySequence) bool {
 
 func (_this *ArraySequence) EqualsGeneric(x interface{}) bool {
   other, ok := x.(Sequence)
-  return ok && Companion_Sequence_.Equal(_this, other)
+  return ok && _this.Equals(other)
 }
 
 
@@ -993,7 +993,7 @@ func (_this *ConcatSequence) Equals(other ConcatSequence) bool {
 
 func (_this *ConcatSequence) EqualsGeneric(x interface{}) bool {
   other, ok := x.(Sequence)
-  return ok && Companion_Sequence_.Equal(_this, other)
+  return ok && _this.Equals(other)
 }
 
 
@@ -1137,7 +1137,7 @@ func (_this *LazySequence) Equals(other LazySequence) bool {
 
 func (_this *LazySequence) EqualsGeneric(x interface{}) bool {
   other, ok := x.(Sequence)
-  return ok && Companion_Sequence_.Equal(_this, other)
+  return ok && _this.Equals(other)
 }
 
 
