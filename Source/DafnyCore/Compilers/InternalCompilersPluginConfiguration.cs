@@ -10,7 +10,8 @@ internal class InternalCompilersPluginConfiguration : Plugins.PluginConfiguratio
       new GoBackend(),
       new JavaBackend(),
       new PythonBackend(),
-      new CppCompilerBackend()
+      new CppCompilerBackend(),
+      new DafnyBackend()
     };
   }
 }
