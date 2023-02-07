@@ -9,3 +9,7 @@ method z() {
 method p() {
   assert d == 42; // OK
 }
+method q() {
+  reveal c;
+  assert c == 5; // OK - revealed
+}
