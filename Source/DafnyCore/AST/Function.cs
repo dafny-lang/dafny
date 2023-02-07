@@ -33,11 +33,9 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
     }
   }
 
-  private bool IsOpaque_;
+  private bool isOpaque;
 
-  public override bool IsOpaque {
-    get { return IsOpaque_; }
-  }
+  public override bool IsOpaque => isOpaque;
 
   public override bool CanBeRevealed() {
     return true;
@@ -225,7 +223,7 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
     this.ByMethodTok = byMethodTok;
     this.ByMethodBody = byMethodBody;
     this.SignatureEllipsis = signatureEllipsis;
-    this.IsOpaque_ = isOpaque;
+    this.isOpaque = isOpaque;
 
     if (attributes != null) {
       List<Expression> args = Attributes.FindExpressions(attributes, "fuel");

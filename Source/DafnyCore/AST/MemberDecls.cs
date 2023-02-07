@@ -263,11 +263,9 @@ public class ConstantField : SpecialField, ICallable {
   public override string WhatKind => "const field";
   public readonly Expression Rhs;
 
-  private readonly bool IsOpaque_;
+  private readonly bool isOpaque;
 
-  override public bool IsOpaque {
-    get { return IsOpaque_; }
-  }
+  override public bool IsOpaque => isOpaque;
 
   public ConstantField(IToken tok, string name, Expression/*?*/ rhs, bool hasStaticKeyword, bool isGhost, bool isOpaque, Type type, Attributes attributes)
       : base(tok, name, SpecialField.ID.UseIdParam, NonglobalVariable.SanitizeName(name), hasStaticKeyword, isGhost, false, false, type, attributes) {
@@ -275,7 +273,7 @@ public class ConstantField : SpecialField, ICallable {
     Contract.Requires(name != null);
     Contract.Requires(type != null);
     this.Rhs = rhs;
-    this.IsOpaque_ = isOpaque;
+    this.isOpaque = isOpaque;
   }
 
   public override bool CanBeRevealed() {
