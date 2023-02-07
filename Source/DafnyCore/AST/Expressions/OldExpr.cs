@@ -3,7 +3,7 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public class OldExpr : Expression, ICloneable<OldExpr> {
+public class OldExpr : Expression, ICloneable<OldExpr>, ICanFormat {
   [Peer]
   public readonly Expression E;
   public readonly string/*?*/ At;
@@ -35,5 +35,9 @@ public class OldExpr : Expression, ICloneable<OldExpr> {
 
   public override IEnumerable<Expression> SubExpressions {
     get { yield return E; }
+  }
+
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    return formatter.SetIndentParensExpression(indentBefore, OwnedTokens);
   }
 }
