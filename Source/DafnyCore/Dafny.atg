@@ -1518,7 +1518,6 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
        dmod.IsStatic = false;
      }
      CheckDeclModifiers(ref dmod, "field", AllowedDeclModifiers.Ghost | AllowedDeclModifiers.Static | AllowedDeclModifiers.Opaque);
-     System.Console.WriteLine("PARSED CONST AS STATIC " + dmod.IsStatic);
   .)
   SYNC
   "const"                                    (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
@@ -2666,11 +2665,11 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
      IToken tok = id;
      if (isTwoState && isPredicate) {
        Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
-       f = new TwoStatePredicate(tok, id.val, dmod.IsStatic, typeArgs, formals, result,
+       f = new TwoStatePredicate(tok, id.val, dmod.IsStatic, dmod.IsOpaque, typeArgs, formals, result,
                                  reqs, reads, ens, new Specification<Expression>(decreases, decAttrs), body, attrs, signatureEllipsis);
      } else if (isTwoState) {
        Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
-       f = new TwoStateFunction(tok, id.val, dmod.IsStatic, typeArgs, formals, result, returnType,
+       f = new TwoStateFunction(tok, id.val, dmod.IsStatic, dmod.IsOpaque, typeArgs, formals, result, returnType,
                                 reqs, reads, ens, new Specification<Expression>(decreases, decAttrs), body, attrs, signatureEllipsis);
      } else if (isPredicate) {
        Contract.Assert(functionMethodToken == null || !dmod.IsGhost);
@@ -2679,11 +2678,11 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
                          byMethodTok, byMethodBody, attrs, signatureEllipsis);
      } else if (isLeastPredicate) {
        Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
-       f = new LeastPredicate(tok, id.val, dmod.IsStatic, kType, typeArgs, formals, result,
+       f = new LeastPredicate(tok, id.val, dmod.IsStatic, dmod.IsOpaque, kType, typeArgs, formals, result,
                               reqs, reads, ens, body, attrs, signatureEllipsis);
      } else if (isGreatestPredicate) {
        Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
-       f = new GreatestPredicate(tok, id.val, dmod.IsStatic, kType, typeArgs, formals, result,
+       f = new GreatestPredicate(tok, id.val, dmod.IsStatic, dmod.IsOpaque, kType, typeArgs, formals, result,
                                  reqs, reads, ens, body, attrs, signatureEllipsis);
      } else {
        Contract.Assert(functionMethodToken == null || !dmod.IsGhost);

@@ -594,16 +594,16 @@ namespace Microsoft.Dafny {
           f.ByMethodTok == null ? null : Tok(f.ByMethodTok), byMethodBody,
           CloneAttributes(f.Attributes), null);
       } else if (f is LeastPredicate) {
-        return new LeastPredicate(Tok(f.tok), newName, f.HasStaticKeyword, ((LeastPredicate)f).TypeOfK, tps, formals, result,
+        return new LeastPredicate(Tok(f.tok), newName, f.HasStaticKeyword, f.IsOpaque, ((LeastPredicate)f).TypeOfK, tps, formals, result,
           req, reads, ens, body, CloneAttributes(f.Attributes), null);
       } else if (f is GreatestPredicate greatestPredicate) {
-        return new GreatestPredicate(Tok(f.tok), newName, f.HasStaticKeyword, ((GreatestPredicate)f).TypeOfK, tps, formals, result,
+        return new GreatestPredicate(Tok(f.tok), newName, f.HasStaticKeyword, f.IsOpaque, ((GreatestPredicate)f).TypeOfK, tps, formals, result,
           req, reads, ens, body, CloneAttributes(f.Attributes), null);
       } else if (f is TwoStatePredicate) {
-        return new TwoStatePredicate(Tok(f.tok), newName, f.HasStaticKeyword, tps, formals, result,
+        return new TwoStatePredicate(Tok(f.tok), newName, f.HasStaticKeyword, f.IsOpaque, tps, formals, result,
           req, reads, ens, decreases, body, CloneAttributes(f.Attributes), null);
       } else if (f is TwoStateFunction) {
-        return new TwoStateFunction(Tok(f.tok), newName, f.HasStaticKeyword, tps, formals, result, CloneType(f.ResultType),
+        return new TwoStateFunction(Tok(f.tok), newName, f.HasStaticKeyword, f.IsOpaque, tps, formals, result, CloneType(f.ResultType),
           req, reads, ens, decreases, body, CloneAttributes(f.Attributes), null);
       } else {
         return new Function(Tok(f.tok), newName, f.HasStaticKeyword, f.IsGhost, f.IsOpaque, tps, formals, result, CloneType(f.ResultType),
