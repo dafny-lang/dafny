@@ -244,17 +244,45 @@ func (_static *CompanionStruct_Sequence_) Concatenate(left Sequence, right Seque
   var ret Sequence = (Sequence)(nil)
   _ = ret
   if (!(Companion_Default___.SizeAdditionInRange((left).Cardinality(), (right).Cardinality()))) {
-    panic("dafnyRuntime.dfy[DafnyGo](577,6): " + (Companion_Sequence_.Concatenate(Companion_Sequence_.Concatenate(SeqOfString("Concatenation result cardinality would be larger than the maximum ("), Companion_Helpers_.DafnyValueToDafnyString(Companion_Default___.SIZE__T__MAX())), SeqOfString(")"))).String())
+    panic("dafnyRuntime.dfy[DafnyGo](567,6): " + (Companion_Sequence_.Concatenate(Companion_Sequence_.Concatenate(SeqOfString("Concatenation result cardinality would be larger than the maximum ("), Companion_Helpers_.DafnyValueToDafnyString(Companion_Default___.SIZE__T__MAX())), SeqOfString(")"))).String())
   }
-  var _13_c *ConcatSequence
-  _ = _13_c
+  var _13_left_k Sequence
+  _ = _13_left_k
+  _13_left_k = left
+  if (func (_is_0 Sequence) bool {
+    return InstanceOf(_is_0, (*LazySequence)(nil))
+  }(left)) {
+    var _14_lazyLeft *LazySequence
+    _ = _14_lazyLeft
+    _14_lazyLeft = left.(*LazySequence)
+    var _out16 interface{}
+    _ = _out16
+    _out16 = ((_14_lazyLeft).Box()).Get()
+    _13_left_k = Companion_Sequence_.CastTo_(_out16)
+  }
+  var _15_right_k Sequence
+  _ = _15_right_k
+  _15_right_k = right
+  if (func (_is_1 Sequence) bool {
+    return InstanceOf(_is_1, (*LazySequence)(nil))
+  }(right)) {
+    var _16_lazyRight *LazySequence
+    _ = _16_lazyRight
+    _16_lazyRight = right.(*LazySequence)
+    var _out17 interface{}
+    _ = _out17
+    _out17 = ((_16_lazyRight).Box()).Get()
+    _15_right_k = Companion_Sequence_.CastTo_(_out17)
+  }
+  var _17_c *ConcatSequence
+  _ = _17_c
   var _nw3 *ConcatSequence = New_ConcatSequence_()
   _ = _nw3
-  _nw3.Ctor__(left, right)
-  _13_c = _nw3
+  _nw3.Ctor__(_13_left_k, _15_right_k)
+  _17_c = _nw3
   var _nw4 *LazySequence = New_LazySequence_()
   _ = _nw4
-  _nw4.Ctor__(_13_c)
+  _nw4.Ctor__(_17_c)
   ret = _nw4
   return ret
 }
@@ -311,60 +339,14 @@ func (_static *CompanionStruct_Default___) SizeAdditionInRange(a uint32, b uint3
   return _hresult
 }
 func (_static *CompanionStruct_Default___) AppendRecursive(builder *Vector, e Sequence) {
-  if (func (_is_0 Sequence) bool {
-    return InstanceOf(_is_0, (*ConcatSequence)(nil))
-  }(e)) {
-    var _14_concat *ConcatSequence
-    _ = _14_concat
-    _14_concat = e.(*ConcatSequence)
-    Companion_Default___.AppendRecursive(builder, (_14_concat).Left())
-    Companion_Default___.AppendRecursive(builder, (_14_concat).Right())
-  } else if (func (_is_1 Sequence) bool {
-    return InstanceOf(_is_1, (*LazySequence)(nil))
-  }(e)) {
-    var _15_lazy *LazySequence
-    _ = _15_lazy
-    _15_lazy = e.(*LazySequence)
-    var _16_boxed Sequence
-    _ = _16_boxed
-    var _out16 interface{}
-    _ = _out16
-    _out16 = ((_15_lazy).Box()).Get()
-    _16_boxed = Companion_Sequence_.CastTo_(_out16)
-    Companion_Default___.AppendRecursive(builder, _16_boxed)
-  } else {
-    var _17_a ImmutableArray
-    _ = _17_a
-    var _out17 ImmutableArray
-    _ = _out17
-    _out17 = (e).ToArray()
-    _17_a = _out17
-    (builder).Append(_17_a)
-  }
-}
-func (_static *CompanionStruct_Default___) AppendOptimized(builder *Vector, e Sequence, stack *Vector) {
-  goto TAIL_CALL_START
-  TAIL_CALL_START:
   if (func (_is_2 Sequence) bool {
     return InstanceOf(_is_2, (*ConcatSequence)(nil))
   }(e)) {
     var _18_concat *ConcatSequence
     _ = _18_concat
     _18_concat = e.(*ConcatSequence)
-    if (!(Companion_Default___.SizeAdditionInRange(stack.Size, Companion_Default___.ONE__SIZE()))) {
-      panic("dafnyRuntime.dfy[DafnyGo](746,6): " + (SeqOfString("expectation violation")).String())
-    }
-    (stack).AddLast((_18_concat).Right())
-    var _in0 *Vector = builder
-    _ = _in0
-    var _in1 Sequence = (_18_concat).Left()
-    _ = _in1
-    var _in2 *Vector = stack
-    _ = _in2
-    builder = _in0
-    e = _in1
-    stack = _in2
-    goto TAIL_CALL_START
+    Companion_Default___.AppendRecursive(builder, (_18_concat).Left())
+    Companion_Default___.AppendRecursive(builder, (_18_concat).Right())
   } else if (func (_is_3 Sequence) bool {
     return InstanceOf(_is_3, (*LazySequence)(nil))
   }(e)) {
@@ -377,9 +359,55 @@ func (_static *CompanionStruct_Default___) AppendOptimized(builder *Vector, e Se
     _ = _out18
     _out18 = ((_19_lazy).Box()).Get()
     _20_boxed = Companion_Sequence_.CastTo_(_out18)
+    Companion_Default___.AppendRecursive(builder, _20_boxed)
+  } else {
+    var _21_a ImmutableArray
+    _ = _21_a
+    var _out19 ImmutableArray
+    _ = _out19
+    _out19 = (e).ToArray()
+    _21_a = _out19
+    (builder).Append(_21_a)
+  }
+}
+func (_static *CompanionStruct_Default___) AppendOptimized(builder *Vector, e Sequence, stack *Vector) {
+  goto TAIL_CALL_START
+  TAIL_CALL_START:
+  if (func (_is_4 Sequence) bool {
+    return InstanceOf(_is_4, (*ConcatSequence)(nil))
+  }(e)) {
+    var _22_concat *ConcatSequence
+    _ = _22_concat
+    _22_concat = e.(*ConcatSequence)
+    if (!(Companion_Default___.SizeAdditionInRange(stack.Size, Companion_Default___.ONE__SIZE()))) {
+      panic("dafnyRuntime.dfy[DafnyGo](739,6): " + (SeqOfString("expectation violation")).String())
+    }
+    (stack).AddLast((_22_concat).Right())
+    var _in0 *Vector = builder
+    _ = _in0
+    var _in1 Sequence = (_22_concat).Left()
+    _ = _in1
+    var _in2 *Vector = stack
+    _ = _in2
+    builder = _in0
+    e = _in1
+    stack = _in2
+    goto TAIL_CALL_START
+  } else if (func (_is_5 Sequence) bool {
+    return InstanceOf(_is_5, (*LazySequence)(nil))
+  }(e)) {
+    var _23_lazy *LazySequence
+    _ = _23_lazy
+    _23_lazy = e.(*LazySequence)
+    var _24_boxed Sequence
+    _ = _24_boxed
+    var _out20 interface{}
+    _ = _out20
+    _out20 = ((_23_lazy).Box()).Get()
+    _24_boxed = Companion_Sequence_.CastTo_(_out20)
     var _in3 *Vector = builder
     _ = _in3
-    var _in4 Sequence = _20_boxed
+    var _in4 Sequence = _24_boxed
     _ = _in4
     var _in5 *Vector = stack
     _ = _in5
@@ -387,23 +415,23 @@ func (_static *CompanionStruct_Default___) AppendOptimized(builder *Vector, e Se
     e = _in4
     stack = _in5
     goto TAIL_CALL_START
-  } else if (func (_is_4 Sequence) bool {
-    return InstanceOf(_is_4, (*ArraySequence)(nil))
+  } else if (func (_is_6 Sequence) bool {
+    return InstanceOf(_is_6, (*ArraySequence)(nil))
   }(e)) {
-    var _21_a *ArraySequence
-    _ = _21_a
-    _21_a = e.(*ArraySequence)
-    (builder).Append((_21_a).Values())
+    var _25_a *ArraySequence
+    _ = _25_a
+    _25_a = e.(*ArraySequence)
+    (builder).Append((_25_a).Values())
     if ((uint32(0)) < (stack.Size)) {
-      var _22_next Sequence
-      _ = _22_next
-      var _out19 interface{}
-      _ = _out19
-      _out19 = (stack).RemoveLast()
-      _22_next = Companion_Sequence_.CastTo_(_out19)
+      var _26_next Sequence
+      _ = _26_next
+      var _out21 interface{}
+      _ = _out21
+      _out21 = (stack).RemoveLast()
+      _26_next = Companion_Sequence_.CastTo_(_out21)
       var _in6 *Vector = builder
       _ = _in6
-      var _in7 Sequence = _22_next
+      var _in7 Sequence = _26_next
       _ = _in7
       var _in8 *Vector = stack
       _ = _in8
@@ -413,6 +441,9 @@ func (_static *CompanionStruct_Default___) AppendOptimized(builder *Vector, e Se
       goto TAIL_CALL_START
     }
   } else {
+    if (!(false)) {
+      panic("dafnyRuntime.dfy[DafnyGo](757,6): " + (SeqOfString("Unsupported Sequence implementation")).String())
+    }
   }
 }
 func (_static *CompanionStruct_Default___) SIZE__T__LIMIT() Int {
@@ -704,13 +735,13 @@ var _ Validatable = &Vector{}
 var _ TraitOffspring = &Vector{}
 func (_this *Vector) Ctor__(length uint32) {
   {
-    var _23_storage NativeArray
-    _ = _23_storage
-    var _out20 NativeArray
-    _ = _out20
-    _out20 = Companion_NativeArray_.Make(length)
-    _23_storage = _out20
-    (_this).Storage = _23_storage
+    var _27_storage NativeArray
+    _ = _27_storage
+    var _out22 NativeArray
+    _ = _out22
+    _out22 = Companion_NativeArray_.Make(length)
+    _27_storage = _out22
+    (_this).Storage = _27_storage
     (_this).Size = uint32(0)
   }
 }
@@ -745,26 +776,26 @@ func (_this *Vector) EnsureCapacity(newMinCapacity uint32) {
     if (((_this.Storage).Length()) >= (newMinCapacity)) {
       return
     }
-    var _24_newCapacity uint32
-    _ = _24_newCapacity
-    _24_newCapacity = newMinCapacity
+    var _28_newCapacity uint32
+    _ = _28_newCapacity
+    _28_newCapacity = newMinCapacity
     if (((_this.Storage).Length()) <= ((Companion_Default___.SIZE__T__MAX()) / (Companion_Default___.TWO__SIZE()))) {
-      _24_newCapacity = (_this).Max(_24_newCapacity, ((_this.Storage).Length()) * (Companion_Default___.TWO__SIZE()))
+      _28_newCapacity = (_this).Max(_28_newCapacity, ((_this.Storage).Length()) * (Companion_Default___.TWO__SIZE()))
     }
-    var _25_newStorage NativeArray
-    _ = _25_newStorage
-    var _out21 NativeArray
-    _ = _out21
-    _out21 = Companion_NativeArray_.Make(_24_newCapacity)
-    _25_newStorage = _out21
-    var _26_values ImmutableArray
-    _ = _26_values
-    var _out22 ImmutableArray
-    _ = _out22
-    _out22 = (_this.Storage).Freeze(_this.Size)
-    _26_values = _out22
-    (_25_newStorage).UpdateSubarray(uint32(0), _26_values)
-    (_this).Storage = _25_newStorage
+    var _29_newStorage NativeArray
+    _ = _29_newStorage
+    var _out23 NativeArray
+    _ = _out23
+    _out23 = Companion_NativeArray_.Make(_28_newCapacity)
+    _29_newStorage = _out23
+    var _30_values ImmutableArray
+    _ = _30_values
+    var _out24 ImmutableArray
+    _ = _out24
+    _out24 = (_this.Storage).Freeze(_this.Size)
+    _30_values = _out24
+    (_29_newStorage).UpdateSubarray(uint32(0), _30_values)
+    (_this).Storage = _29_newStorage
   }
 }
 func (_this *Vector) RemoveLast() interface{} {
@@ -778,10 +809,10 @@ func (_this *Vector) RemoveLast() interface{} {
 }
 func (_this *Vector) Append(other ImmutableArray) {
   {
-    var _27_newSize uint32
-    _ = _27_newSize
-    _27_newSize = (_this.Size) + ((other).Length())
-    (_this).EnsureCapacity(_27_newSize)
+    var _31_newSize uint32
+    _ = _31_newSize
+    _31_newSize = (_this.Size) + ((other).Length())
+    (_this).EnsureCapacity(_31_newSize)
     (_this.Storage).UpdateSubarray(_this.Size, other)
     (_this).Size = (_this.Size) + ((other).Length())
   }
@@ -790,10 +821,10 @@ func (_this *Vector) Freeze() ImmutableArray {
   {
     var ret ImmutableArray = (ImmutableArray)(nil)
     _ = ret
-    var _out23 ImmutableArray
-    _ = _out23
-    _out23 = (_this.Storage).Freeze(_this.Size)
-    ret = _out23
+    var _out25 ImmutableArray
+    _ = _out25
+    _out25 = (_this.Storage).Freeze(_this.Size)
+    ret = _out25
     return ret
   }
 }
@@ -837,7 +868,7 @@ type CompanionStruct_ArraySequence_ struct {
 var Companion_ArraySequence_ = CompanionStruct_ArraySequence_ {
 }
 
-func (_this *ArraySequence) Equals(other Sequence) bool {
+func (_this *ArraySequence) Equals(other ArraySequence) bool {
   return Companion_Sequence_.Equal(_this, other)
 }
 
@@ -868,10 +899,10 @@ func (_this *ArraySequence) ParentTraits_() []*TraitID {
 var _ Sequence = &ArraySequence{}
 var _ TraitOffspring = &ArraySequence{}
 func (_this *ArraySequence) SetString() Sequence {
-  var _out24 Sequence
-  _ = _out24
-  _out24 = Companion_Sequence_.SetString(_this)
-  return _out24
+  var _out26 Sequence
+  _ = _out26
+  _out26 = Companion_Sequence_.SetString(_this)
+  return _out26
 }
 func (_this *ArraySequence) IsString() bool {
   return _this._isString
@@ -880,28 +911,28 @@ func (_this *ArraySequence) IsString_set_(value bool) {
   _this._isString = value
 }
 func (_this *ArraySequence) Select(index uint32) interface{} {
-  var _out25 interface{}
-  _ = _out25
-  _out25 = Companion_Sequence_.Select(_this, index)
-  return _out25
-}
-func (_this *ArraySequence) Drop(lo uint32) Sequence {
-  var _out26 Sequence
-  _ = _out26
-  _out26 = Companion_Sequence_.Drop(_this, lo)
-  return _out26
-}
-func (_this *ArraySequence) Take(hi uint32) Sequence {
-  var _out27 Sequence
+  var _out27 interface{}
   _ = _out27
-  _out27 = Companion_Sequence_.Take(_this, hi)
+  _out27 = Companion_Sequence_.Select(_this, index)
   return _out27
 }
-func (_this *ArraySequence) Subsequence(lo uint32, hi uint32) Sequence {
+func (_this *ArraySequence) Drop(lo uint32) Sequence {
   var _out28 Sequence
   _ = _out28
-  _out28 = Companion_Sequence_.Subsequence(_this, lo, hi)
+  _out28 = Companion_Sequence_.Drop(_this, lo)
   return _out28
+}
+func (_this *ArraySequence) Take(hi uint32) Sequence {
+  var _out29 Sequence
+  _ = _out29
+  _out29 = Companion_Sequence_.Take(_this, hi)
+  return _out29
+}
+func (_this *ArraySequence) Subsequence(lo uint32, hi uint32) Sequence {
+  var _out30 Sequence
+  _ = _out30
+  _out30 = Companion_Sequence_.Subsequence(_this, lo, hi)
+  return _out30
 }
 func (_this *ArraySequence) Elements() Sequence {
   return Companion_Sequence_.Elements(_this)
@@ -956,7 +987,7 @@ type CompanionStruct_ConcatSequence_ struct {
 var Companion_ConcatSequence_ = CompanionStruct_ConcatSequence_ {
 }
 
-func (_this *ConcatSequence) Equals(other Sequence) bool {
+func (_this *ConcatSequence) Equals(other ConcatSequence) bool {
   return Companion_Sequence_.Equal(_this, other)
 }
 
@@ -987,10 +1018,10 @@ func (_this *ConcatSequence) ParentTraits_() []*TraitID {
 var _ Sequence = &ConcatSequence{}
 var _ TraitOffspring = &ConcatSequence{}
 func (_this *ConcatSequence) SetString() Sequence {
-  var _out29 Sequence
-  _ = _out29
-  _out29 = Companion_Sequence_.SetString(_this)
-  return _out29
+  var _out31 Sequence
+  _ = _out31
+  _out31 = Companion_Sequence_.SetString(_this)
+  return _out31
 }
 func (_this *ConcatSequence) IsString() bool {
   return _this._isString
@@ -999,28 +1030,28 @@ func (_this *ConcatSequence) IsString_set_(value bool) {
   _this._isString = value
 }
 func (_this *ConcatSequence) Select(index uint32) interface{} {
-  var _out30 interface{}
-  _ = _out30
-  _out30 = Companion_Sequence_.Select(_this, index)
-  return _out30
-}
-func (_this *ConcatSequence) Drop(lo uint32) Sequence {
-  var _out31 Sequence
-  _ = _out31
-  _out31 = Companion_Sequence_.Drop(_this, lo)
-  return _out31
-}
-func (_this *ConcatSequence) Take(hi uint32) Sequence {
-  var _out32 Sequence
+  var _out32 interface{}
   _ = _out32
-  _out32 = Companion_Sequence_.Take(_this, hi)
+  _out32 = Companion_Sequence_.Select(_this, index)
   return _out32
 }
-func (_this *ConcatSequence) Subsequence(lo uint32, hi uint32) Sequence {
+func (_this *ConcatSequence) Drop(lo uint32) Sequence {
   var _out33 Sequence
   _ = _out33
-  _out33 = Companion_Sequence_.Subsequence(_this, lo, hi)
+  _out33 = Companion_Sequence_.Drop(_this, lo)
   return _out33
+}
+func (_this *ConcatSequence) Take(hi uint32) Sequence {
+  var _out34 Sequence
+  _ = _out34
+  _out34 = Companion_Sequence_.Take(_this, hi)
+  return _out34
+}
+func (_this *ConcatSequence) Subsequence(lo uint32, hi uint32) Sequence {
+  var _out35 Sequence
+  _ = _out35
+  _out35 = Companion_Sequence_.Subsequence(_this, lo, hi)
+  return _out35
 }
 func (_this *ConcatSequence) Elements() Sequence {
   return Companion_Sequence_.Elements(_this)
@@ -1042,23 +1073,23 @@ func (_this *ConcatSequence) ToArray() ImmutableArray {
   {
     var ret ImmutableArray = (ImmutableArray)(nil)
     _ = ret
-    var _28_builder *Vector
-    _ = _28_builder
+    var _32_builder *Vector
+    _ = _32_builder
     var _nw5 *Vector = New_Vector_()
     _ = _nw5
     _nw5.Ctor__((_this).Length())
-    _28_builder = _nw5
-    var _29_stack *Vector
-    _ = _29_stack
+    _32_builder = _nw5
+    var _33_stack *Vector
+    _ = _33_stack
     var _nw6 *Vector = New_Vector_()
     _ = _nw6
     _nw6.Ctor__(Companion_Default___.TEN__SIZE())
-    _29_stack = _nw6
-    Companion_Default___.AppendOptimized(_28_builder, _this, _29_stack)
-    var _out34 ImmutableArray
-    _ = _out34
-    _out34 = (_28_builder).Freeze()
-    ret = _out34
+    _33_stack = _nw6
+    Companion_Default___.AppendOptimized(_32_builder, _this, _33_stack)
+    var _out36 ImmutableArray
+    _ = _out36
+    _out36 = (_32_builder).Freeze()
+    ret = _out36
     return ret
   }
 }
@@ -1100,7 +1131,7 @@ type CompanionStruct_LazySequence_ struct {
 var Companion_LazySequence_ = CompanionStruct_LazySequence_ {
 }
 
-func (_this *LazySequence) Equals(other Sequence) bool {
+func (_this *LazySequence) Equals(other LazySequence) bool {
   return Companion_Sequence_.Equal(_this, other)
 }
 
@@ -1131,10 +1162,10 @@ func (_this *LazySequence) ParentTraits_() []*TraitID {
 var _ Sequence = &LazySequence{}
 var _ TraitOffspring = &LazySequence{}
 func (_this *LazySequence) SetString() Sequence {
-  var _out35 Sequence
-  _ = _out35
-  _out35 = Companion_Sequence_.SetString(_this)
-  return _out35
+  var _out37 Sequence
+  _ = _out37
+  _out37 = Companion_Sequence_.SetString(_this)
+  return _out37
 }
 func (_this *LazySequence) IsString() bool {
   return _this._isString
@@ -1143,41 +1174,41 @@ func (_this *LazySequence) IsString_set_(value bool) {
   _this._isString = value
 }
 func (_this *LazySequence) Select(index uint32) interface{} {
-  var _out36 interface{}
-  _ = _out36
-  _out36 = Companion_Sequence_.Select(_this, index)
-  return _out36
-}
-func (_this *LazySequence) Drop(lo uint32) Sequence {
-  var _out37 Sequence
-  _ = _out37
-  _out37 = Companion_Sequence_.Drop(_this, lo)
-  return _out37
-}
-func (_this *LazySequence) Take(hi uint32) Sequence {
-  var _out38 Sequence
+  var _out38 interface{}
   _ = _out38
-  _out38 = Companion_Sequence_.Take(_this, hi)
+  _out38 = Companion_Sequence_.Select(_this, index)
   return _out38
 }
-func (_this *LazySequence) Subsequence(lo uint32, hi uint32) Sequence {
+func (_this *LazySequence) Drop(lo uint32) Sequence {
   var _out39 Sequence
   _ = _out39
-  _out39 = Companion_Sequence_.Subsequence(_this, lo, hi)
+  _out39 = Companion_Sequence_.Drop(_this, lo)
   return _out39
+}
+func (_this *LazySequence) Take(hi uint32) Sequence {
+  var _out40 Sequence
+  _ = _out40
+  _out40 = Companion_Sequence_.Take(_this, hi)
+  return _out40
+}
+func (_this *LazySequence) Subsequence(lo uint32, hi uint32) Sequence {
+  var _out41 Sequence
+  _ = _out41
+  _out41 = Companion_Sequence_.Subsequence(_this, lo, hi)
+  return _out41
 }
 func (_this *LazySequence) Elements() Sequence {
   return Companion_Sequence_.Elements(_this)
 }
 func (_this *LazySequence) Ctor__(wrapped Sequence) {
   {
-    var _30_box AtomicBox
-    _ = _30_box
-    var _out40 AtomicBox
-    _ = _out40
-    _out40 = Companion_AtomicBox_.Make(wrapped)
-    _30_box = _out40
-    (_this)._box = _30_box
+    var _34_box AtomicBox
+    _ = _34_box
+    var _out42 AtomicBox
+    _ = _out42
+    _out42 = Companion_AtomicBox_.Make(wrapped)
+    _34_box = _out42
+    (_this)._box = _34_box
     (_this)._length = (wrapped).Cardinality()
     (_this)._isString = wrapped.IsString()
   }
@@ -1191,23 +1222,23 @@ func (_this *LazySequence) ToArray() ImmutableArray {
   {
     var ret ImmutableArray = (ImmutableArray)(nil)
     _ = ret
-    var _31_expr Sequence
-    _ = _31_expr
-    var _out41 interface{}
-    _ = _out41
-    _out41 = ((_this).Box()).Get()
-    _31_expr = Companion_Sequence_.CastTo_(_out41)
-    var _out42 ImmutableArray
-    _ = _out42
-    _out42 = (_31_expr).ToArray()
-    ret = _out42
-    var _32_arraySeq *ArraySequence
-    _ = _32_arraySeq
+    var _35_expr Sequence
+    _ = _35_expr
+    var _out43 interface{}
+    _ = _out43
+    _out43 = ((_this).Box()).Get()
+    _35_expr = Companion_Sequence_.CastTo_(_out43)
+    var _out44 ImmutableArray
+    _ = _out44
+    _out44 = (_35_expr).ToArray()
+    ret = _out44
+    var _36_arraySeq *ArraySequence
+    _ = _36_arraySeq
     var _nw7 *ArraySequence = New_ArraySequence_()
     _ = _nw7
     _nw7.Ctor__(ret, false)
-    _32_arraySeq = _nw7
-    ((_this).Box()).Put(_32_arraySeq)
+    _36_arraySeq = _nw7
+    ((_this).Box()).Put(_36_arraySeq)
     return ret
   }
 }
