@@ -655,6 +655,8 @@ func (seq *LazySequence) VerbatimString(asLiteral bool) string {
 
 // A GoNativeArray is a single dimensional Go slice,
 // wrapped up for the benefit of dafnyRuntime.dfy.
+// We should refactor to wrap an Array interface as defined below
+// to get the same optimization benefits for sequences of bytes and chars/CodePoints.
 type GoNativeArray struct {
   contents []interface{}
 }

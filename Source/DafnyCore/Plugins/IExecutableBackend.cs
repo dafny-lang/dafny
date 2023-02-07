@@ -66,8 +66,6 @@ public abstract class IExecutableBackend {
   public virtual IReadOnlySet<string> SupportedNativeTypes =>
     new HashSet<string> { "byte", "sbyte", "ushort", "short", "uint", "int", "ulong", "long" };
 
-  public virtual string SizeNativeType => "uint";
-
   /// <summary>
   /// Whether compiled code can be run without being compiled (e.g. Python but not Java).
   /// </summary>
