@@ -22,7 +22,7 @@ namespace DafnyTestGeneration {
     public static Type UseFullName(Type type) {
       return DafnyModelTypeUtils
         .ReplaceType(type, _ => true, typ => new UserDefinedType(
-          new Token(),
+          RangeToken.NoToken,
           typ?.ResolvedClass?.FullName ?? typ.Name,
           typ.TypeArgs));
     }
@@ -41,15 +41,15 @@ namespace DafnyTestGeneration {
         replacements[from[i]] = to[i];
       }
       replacements["_System.string"] =
-        new UserDefinedType(new Token(), "string", new List<Type>());
+        new UserDefinedType(RangeToken.NoToken, "string", new List<Type>());
       replacements["_System.nat"] =
-        new UserDefinedType(new Token(), "nat", new List<Type>());
+        new UserDefinedType(RangeToken.NoToken, "nat", new List<Type>());
       replacements["_System.object"] =
-        new UserDefinedType(new Token(), "object", new List<Type>());
+        new UserDefinedType(RangeToken.NoToken, "object", new List<Type>());
       return DafnyModelTypeUtils.ReplaceType(type, _ => true,
         typ => replacements.ContainsKey(typ.Name) ?
           replacements[typ.Name] :
-          new UserDefinedType(typ.tok, typ.Name, typ.TypeArgs));
+          new UserDefinedType(typ.RangeToken, typ.Name, typ.TypeArgs));
     }
 
     /// <summary>

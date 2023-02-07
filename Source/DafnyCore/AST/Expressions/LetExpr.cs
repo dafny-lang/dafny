@@ -43,8 +43,8 @@ public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBeari
     }
   }
 
-  public LetExpr(IToken tok, List<CasePattern<BoundVar>> lhss, List<Expression> rhss, Expression body, bool exact, Attributes attrs = null)
-    : base(tok) {
+  public LetExpr(RangeToken rangeToken, List<CasePattern<BoundVar>> lhss, List<Expression> rhss, Expression body, bool exact, Attributes attrs = null)
+    : base(rangeToken) {
     LHSs = lhss;
     RHSs = rhss;
     Body = body;

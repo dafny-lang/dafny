@@ -110,7 +110,7 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
       if (Expression.IsIntLiteral(Expression.StripParensAndCasts(a), out var aa) &&
           Expression.IsIntLiteral(Expression.StripParensAndCasts(b), out var bb)) {
         var x = pickMax ? BigInteger.Max(aa, bb) : BigInteger.Min(aa, bb);
-        return new LiteralExpr(a.tok, x) { Type = a.Type };
+        return new LiteralExpr(a.RangeToken, x) { Type = a.Type };
       }
       return a; // we don't know how to determine which of "a" or "b" is better, so we'll just return "a"
     }
@@ -417,9 +417,8 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
     return ComprehensionExpr.BoundedPool.MissingBounds(BoundVars, Bounds, v);
   }
 
-  public ComprehensionExpr(IToken tok, RangeToken rangeToken, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
-    : base(tok) {
-    Contract.Requires(tok != null);
+  protected ComprehensionExpr(RangeToken rangeToken, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
+    : base(rangeToken) {
     Contract.Requires(cce.NonNullElements(bvars));
     Contract.Requires(term != null);
 
@@ -427,8 +426,7 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
     Range = range;
     Term = term;
     Attributes = attrs;
-    BodyStartTok = tok;
-    RangeToken = rangeToken;
+    BodyStartTok = Tok;
   }
 
   protected ComprehensionExpr(Cloner cloner, ComprehensionExpr original) : base(cloner, original) {

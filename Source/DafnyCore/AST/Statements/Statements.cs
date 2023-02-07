@@ -8,7 +8,8 @@ using System.Security.Policy;
 namespace Microsoft.Dafny;
 
 public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
-  public override IToken Tok => PostLabelToken ?? StartToken;
+  public override IToken Tok => PostLabelToken ?? base.Tok;
+
   public IToken PostLabelToken { get; set; }
 
   public LList<Label> Labels;  // mutable during resolution
@@ -115,26 +116,25 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
   /// <summary>
   /// Create a resolved statement for an uninitialized local variable.
   /// </summary>
-  public static VarDeclStmt CreateLocalVariable(IToken tok, string name, Type type) {
+  public static VarDeclStmt CreateLocalVariable(RangeToken tok, string name, Type type) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
     Contract.Requires(type != null);
-    var variable = new LocalVariable(tok.ToRange(), name, type, false);
+    var variable = new LocalVariable(tok, name, type, false);
     variable.type = type;
-    return new VarDeclStmt(tok.ToRange(), Util.Singleton(variable), null);
+    return new VarDeclStmt(tok, Util.Singleton(variable), null);
   }
 
   /// <summary>
   /// Create a resolved statement for a local variable with an initial value.
   /// </summary>
-  public static VarDeclStmt CreateLocalVariable(IToken tok, string name, Expression value) {
-    Contract.Requires(tok != null);
+  public static VarDeclStmt CreateLocalVariable(RangeToken rangeToken, string name, Expression value) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(value != null);
-    var rangeToken = new RangeToken(tok, tok);
     var variable = new LocalVariable(rangeToken, name, value.Type, false);
     variable.type = value.Type;
-    Expression variableExpr = new IdentifierExpr(tok, variable);
+    Expression variableExpr = new IdentifierExpr(rangeToken, variable);
     var variableUpdateStmt = new UpdateStmt(rangeToken, Util.Singleton(variableExpr),
       Util.Singleton<AssignmentRhs>(new ExprRhs(value)));
     var variableAssignStmt = new AssignStmt(rangeToken, variableUpdateStmt.Lhss[0], variableUpdateStmt.Rhss[0]);
@@ -142,9 +142,8 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
     return new VarDeclStmt(rangeToken, Util.Singleton(variable), variableUpdateStmt);
   }
 
-  public static PrintStmt CreatePrintStmt(IToken tok, params Expression[] exprs) {
-    var rangeToken = new RangeToken(tok, tok);
-    return new PrintStmt(rangeToken, exprs.ToList());
+  public static PrintStmt CreatePrintStmt(RangeToken tok, params Expression[] exprs) {
+    return new PrintStmt(tok, exprs.ToList());
   }
 
   public override string ToString() {
@@ -328,7 +327,7 @@ public class YieldStmt : ProduceStmt, ICloneable<YieldStmt> {
   }
 }
 
-public abstract class AssignmentRhs : TokenNode, IAttributeBearingDeclaration {
+public abstract class AssignmentRhs : RangeNode, IAttributeBearingDeclaration {
   private Attributes attributes;
   public Attributes Attributes {
     get {
@@ -343,13 +342,11 @@ public abstract class AssignmentRhs : TokenNode, IAttributeBearingDeclaration {
     return Attributes != null;
   }
 
-  internal AssignmentRhs(Cloner cloner, AssignmentRhs original) {
-    tok = cloner.Tok(original.tok);
+  internal AssignmentRhs(Cloner cloner, AssignmentRhs original) : base(cloner, original) {
     Attributes = cloner.CloneAttributes(original.Attributes);
   }
 
-  internal AssignmentRhs(IToken tok, Attributes attrs = null) {
-    this.tok = tok;
+  internal AssignmentRhs(RangeToken tok, Attributes attrs = null) : base(tok) {
     Attributes = attrs;
   }
   public abstract bool CanAffectPreviouslyKnownExpressions { get; }
@@ -389,13 +386,16 @@ public abstract class AssignmentRhs : TokenNode, IAttributeBearingDeclaration {
 
 public class ExprRhs : AssignmentRhs {
   public readonly Expression Expr;
+
+  public override IToken Tok => Expr.Tok;
+
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Expr != null);
   }
 
   public ExprRhs(Expression expr, Attributes attrs = null)
-    : base(expr.tok, attrs) {
+    : base(new RangeToken(expr.StartToken, attrs?.EndToken ?? expr.EndToken), attrs) {
     Contract.Requires(expr != null);
     Expr = expr;
   }
@@ -503,7 +503,7 @@ public class TypeRhs : AssignmentRhs, ICloneable<TypeRhs> {
     Contract.Invariant(!(ArrayDimensions == null && Bindings == null) || (Path == null && InitCall == null && ElementInit == null && InitDisplay == null));
   }
 
-  public TypeRhs(IToken tok, Type type, List<Expression> arrayDimensions, Expression elementInit)
+  public TypeRhs(RangeToken tok, Type type, List<Expression> arrayDimensions, Expression elementInit)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(type != null);
@@ -512,7 +512,7 @@ public class TypeRhs : AssignmentRhs, ICloneable<TypeRhs> {
     ArrayDimensions = arrayDimensions;
     ElementInit = elementInit;
   }
-  public TypeRhs(IToken tok, Type type, Expression dim, List<Expression> initDisplay)
+  public TypeRhs(RangeToken tok, Type type, Expression dim, List<Expression> initDisplay)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(type != null);
@@ -522,13 +522,13 @@ public class TypeRhs : AssignmentRhs, ICloneable<TypeRhs> {
     ArrayDimensions = new List<Expression> { dim };
     InitDisplay = initDisplay;
   }
-  public TypeRhs(IToken tok, Type type)
+  public TypeRhs(RangeToken tok, Type type)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(type != null);
     EType = type;
   }
-  public TypeRhs(IToken tok, Type path, List<ActualBinding> arguments)
+  public TypeRhs(RangeToken tok, Type path, List<ActualBinding> arguments)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(path != null);
@@ -591,7 +591,7 @@ public class TypeRhs : AssignmentRhs, ICloneable<TypeRhs> {
 }
 
 public class HavocRhs : AssignmentRhs {
-  public HavocRhs(IToken tok)
+  public HavocRhs(RangeToken tok)
     : base(tok) {
   }
   public override bool CanAffectPreviouslyKnownExpressions { get { return false; } }
@@ -775,13 +775,14 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt> {
 }
 
 public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration {
-  readonly string name;
+  public Name NameNode { get; set; }
+
   public Attributes Attributes;
   Attributes IAttributeBearingDeclaration.Attributes => Attributes;
   public bool IsGhost;
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(name != null);
+    Contract.Invariant(NameNode != null);
     Contract.Invariant(OptionalType != null);
   }
 
@@ -789,7 +790,7 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
 
   public LocalVariable(Cloner cloner, LocalVariable original)
     : base(cloner, original) {
-    name = original.Name;
+    NameNode = original.NameNode.Clone(cloner);
     OptionalType = cloner.CloneType(original.OptionalType);
     IsGhost = original.IsGhost;
 
@@ -798,12 +799,12 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
     }
   }
 
-  public LocalVariable(RangeToken rangeToken, string name, Type type, bool isGhost)
+  public LocalVariable(RangeToken rangeToken, Name nameNode, Type type, bool isGhost)
     : base(rangeToken) {
-    Contract.Requires(name != null);
+    Contract.Requires(nameNode != null);
     Contract.Requires(type != null);  // can be a proxy, though
 
-    this.name = name;
+    this.NameNode = nameNode;
     this.OptionalType = type;
     if (type is InferredTypeProxy) {
       ((InferredTypeProxy)type).KeepConstraints = true;
@@ -814,7 +815,7 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
   public string Name {
     get {
       Contract.Ensures(Contract.Result<string>() != null);
-      return name;
+      return NameNode.Value;
     }
   }
   public static bool HasWildcardName(IVariable v) {
@@ -880,7 +881,7 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
       IsTypeExplicit ? new List<Node>() { type } : Enumerable.Empty<Node>());
 }
 
-public class GuardedAlternative : TokenNode, IAttributeBearingDeclaration {
+public class GuardedAlternative : RangeNode, IAttributeBearingDeclaration {
   public readonly bool IsBindingGuard;
   public readonly Expression Guard;
   public readonly List<Statement> Body;
@@ -895,23 +896,21 @@ public class GuardedAlternative : TokenNode, IAttributeBearingDeclaration {
     Contract.Invariant(!IsBindingGuard || (Guard is ExistsExpr && ((ExistsExpr)Guard).Range == null));
     Contract.Invariant(Body != null);
   }
-  public GuardedAlternative(IToken tok, bool isBindingGuard, Expression guard, List<Statement> body) {
+  public GuardedAlternative(RangeToken tok, bool isBindingGuard, Expression guard, List<Statement> body) : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(guard != null);
     Contract.Requires(!isBindingGuard || (guard is ExistsExpr && ((ExistsExpr)guard).Range == null));
     Contract.Requires(body != null);
-    this.tok = tok;
     this.IsBindingGuard = isBindingGuard;
     this.Guard = guard;
     this.Body = body;
     this.Attributes = null;
   }
-  public GuardedAlternative(IToken tok, bool isBindingGuard, Expression guard, List<Statement> body, Attributes attrs) {
+  public GuardedAlternative(RangeToken tok, bool isBindingGuard, Expression guard, List<Statement> body, Attributes attrs) : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(guard != null);
     Contract.Requires(!isBindingGuard || (guard is ExistsExpr && ((ExistsExpr)guard).Range == null));
     Contract.Requires(body != null);
-    this.tok = tok;
     this.IsBindingGuard = isBindingGuard;
     this.Guard = guard;
     this.Body = body;

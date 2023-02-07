@@ -619,7 +619,7 @@ namespace Microsoft.Dafny.Compilers {
       string companionTypeName = FormatCompanionTypeName(name);
       string dataName = FormatDatatypeInterfaceName(name);
       string ifaceName = FormatLazyInterfaceName(name);
-      var simplifiedType = DatatypeWrapperEraser.SimplifyType(UserDefinedType.FromTopLevelDecl(dt.tok, dt));
+      var simplifiedType = DatatypeWrapperEraser.SimplifyType(UserDefinedType.FromTopLevelDecl(dt.RangeToken, dt));
       var simplifiedTypeName = TypeName(simplifiedType, wr, dt.tok);
 
       Func<DatatypeCtor, string> structOfCtor = ctor =>
@@ -918,7 +918,7 @@ namespace Microsoft.Dafny.Compilers {
       // RTD
       {
         CreateRTD(IdName(nt), null, out var wDefaultBody, wr);
-        var udt = new UserDefinedType(nt.tok, nt.Name, nt, new List<Type>());
+        var udt = new UserDefinedType(nt.RangeToken, nt.Name, nt, new List<Type>());
         var d = TypeInitializationValue(udt, wr, nt.tok, false, true);
         wDefaultBody.WriteLine("return {0}", d);
       }
@@ -937,7 +937,7 @@ namespace Microsoft.Dafny.Compilers {
       // RTD
       {
         CreateRTD(IdName(sst), null, out var wDefaultBody, wr);
-        var udt = UserDefinedType.FromTopLevelDecl(sst.tok, sst);
+        var udt = UserDefinedType.FromTopLevelDecl(sst.RangeToken, sst);
         var d = TypeInitializationValue(udt, wr, sst.tok, false, true);
         wDefaultBody.WriteLine("return {0}", d);
       }
@@ -1062,12 +1062,11 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       public void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass) {
-        var tok = field.tok;
-        var lvalue = Compiler.EmitMemberSelect(w => w.Write("_this"), UserDefinedType.FromTopLevelDecl(tok, enclosingClass), field,
+        var lvalue = Compiler.EmitMemberSelect(w => w.Write("_this"), UserDefinedType.FromTopLevelDecl(field.RangeToken, enclosingClass), field,
         new List<TypeArgumentInstantiation>(), enclosingClass.ParentFormalTypeParametersToActuals, instantiatedFieldType);
         var wRHS = lvalue.EmitWrite(FieldInitWriter(false));
-        Compiler.EmitCoercionIfNecessary(instantiatedFieldType, field.Type, tok, wRHS);
-        wRHS.Write(Compiler.PlaceboValue(instantiatedFieldType, ErrorWriter(), tok));
+        Compiler.EmitCoercionIfNecessary(instantiatedFieldType, field.Type, field.Tok, wRHS);
+        wRHS.Write(Compiler.PlaceboValue(instantiatedFieldType, ErrorWriter(), field.Tok));
       }
 
       public ConcreteSyntaxTree/*?*/ ErrorWriter() => ConcreteMethodWriter;
@@ -1126,7 +1125,7 @@ namespace Microsoft.Dafny.Compilers {
       var prefix = "";
       var nTypes = WriteRuntimeTypeDescriptorsFormals(ForTypeDescriptors(typeArgs, member.EnclosingClass, member, lookasideBody), wr, ref prefix, tp => $"{FormatRTDName(tp.CompileName)} {DafnyTypeDescriptor}");
       if (customReceiver) {
-        wr.Write("{0}_this {1}", nTypes != 0 ? ", " : "", TypeName(UserDefinedType.FromTopLevelDecl(tok, member.EnclosingClass), wr, tok));
+        wr.Write("{0}_this {1}", nTypes != 0 ? ", " : "", TypeName(UserDefinedType.FromTopLevelDecl(tok.ToRange(), member.EnclosingClass), wr, tok));
       }
       var _ = WriteFormals(nTypes != 0 || customReceiver ? ", " : "", overriddenInParams ?? inParams, wr, inParams);
       wr.Write(")");
@@ -1334,7 +1333,7 @@ namespace Microsoft.Dafny.Compilers {
 
       var getterWriter = CreateGetter(name, resultType, tok, false, createBody, member, ownerName, abstractWriter, concreteWriter, forBodyInheritance);
 
-      var valueParam = new Formal(tok, "value", resultType, true, false, null);
+      var valueParam = new Formal(tok.ToRange(), "value", resultType, true, false, null);
       setterWriter = CreateSubroutine(name + "_set_", new List<TypeArgumentInstantiation>(), new List<Formal>() { valueParam }, new List<Formal>(), null,
         new List<Formal>() { valueParam }, new List<Formal>(), null, tok, false, createBody, ownerName, member,
         abstractWriter, concreteWriter, forBodyInheritance, false);
@@ -1600,7 +1599,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected string TypeName_Constructor(DatatypeCtor ctor, ConcreteSyntaxTree wr) {
       var ptr = ctor.EnclosingDatatype is CoDatatypeDecl ? "*" : "";
-      return string.Format("{0}{1}_{2}", ptr, TypeName(UserDefinedType.FromTopLevelDecl(ctor.tok, ctor.EnclosingDatatype), wr, ctor.tok), ctor.CompileName);
+      return string.Format("{0}{1}_{2}", ptr, TypeName(UserDefinedType.FromTopLevelDecl(ctor.RangeToken, ctor.EnclosingDatatype), wr, ctor.tok), ctor.CompileName);
     }
 
     protected override string TypeName_Companion(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl/*?*/ member) {
@@ -1657,7 +1656,7 @@ namespace Microsoft.Dafny.Compilers {
 
     /// A type which is rendered to Go exactly as specified.  Used to represent the native string type.
     private class SpecialNativeType : UserDefinedType {
-      internal SpecialNativeType(string name) : base(Token.NoToken, name, null) { }
+      internal SpecialNativeType(string name) : base(RangeToken.NoToken, name, null) { }
     }
 
     private readonly static SpecialNativeType NativeStringType = new SpecialNativeType("string");
@@ -2473,7 +2472,7 @@ namespace Microsoft.Dafny.Compilers {
         // Co-recursive call
         // Generate:  Companion_Dt_.LazyDt(func () Dt => Companion_Dt_.CreateCtor(args))
         wr.Write("{0}.{1}(func () {2} ", companionName, FormatLazyConstructorName(dt.CompileName),
-          TypeName(UserDefinedType.FromTopLevelDecl(dt.tok, dt), wr, dt.tok));
+          TypeName(UserDefinedType.FromTopLevelDecl(dt.RangeToken, dt), wr, dt.tok));
         wr.Write("{{ return {0}.{1}({2}) }}", companionName, FormatDatatypeConstructorName(ctorName), arguments);
         wr.Write(')');
       }
@@ -2881,8 +2880,8 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(", ");
       var fromType = (ArrowType)expr.Initializer.Type.NormalizeExpand();
       var atd = (ArrowTypeDecl)fromType.ResolvedClass;
-      var tParam = new UserDefinedType(expr.tok, new TypeParameter(expr.tok, "X", TypeParameter.TPVarianceSyntax.NonVariant_Strict));
-      var toType = new ArrowType(expr.tok, atd, new List<Type>() { Type.Int }, tParam);
+      var tParam = new UserDefinedType(expr.RangeToken, new TypeParameter(expr.RangeToken, "X", TypeParameter.TPVarianceSyntax.NonVariant_Strict));
+      var toType = new ArrowType(expr.RangeToken, atd, new List<Type>() { Type.Int }, tParam);
       var initWr = EmitCoercionIfNecessary(fromType, toType, expr.tok, wr);
       TrExpr(expr.Initializer, initWr, inLetExprBody, wStmts);
       wr.Write(")");

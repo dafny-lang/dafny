@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 
 namespace Microsoft.Dafny;
 
@@ -44,7 +45,7 @@ class ExtremeLemmaBodyCloner : ExtremeCloner {
 #endif
         }
       } else if (expr is StaticReceiverExpr ee) {
-        return new StaticReceiverExpr(Tok(ee.tok), ee.Type, ee.IsImplicit);
+        return new StaticReceiverExpr(Tok(ee.RangeToken), ee.Type, ee.IsImplicit);
       } else if (expr is ApplySuffix) {
         var apply = (ApplySuffix)expr;
         if (!apply.WasResolved()) {
@@ -89,15 +90,15 @@ class ExtremeLemmaBodyCloner : ExtremeCloner {
         Expression lhsClone;
         if (apply.Lhs is NameSegment) {
           var lhs = (NameSegment)apply.Lhs;
-          lhsClone = new NameSegment(Tok(lhs.tok), lhs.Name + "#", lhs.OptTypeArguments == null ? null : lhs.OptTypeArguments.ConvertAll(CloneType));
+          lhsClone = new NameSegment(Tok(lhs.RangeToken), lhs.NameNode.Append("#"), lhs.OptTypeArguments == null ? null : lhs.OptTypeArguments.ConvertAll(CloneType));
         } else {
           var lhs = (ExprDotName)apply.Lhs;
-          lhsClone = new ExprDotName(Tok(lhs.tok), CloneExpr(lhs.Lhs), lhs.SuffixName + "#", lhs.OptTypeArguments == null ? null : lhs.OptTypeArguments.ConvertAll(CloneType));
+          lhsClone = new ExprDotName(Tok(lhs.RangeToken), CloneExpr(lhs.Lhs), lhs.SuffixNameNode.Append("#"), lhs.OptTypeArguments == null ? null : lhs.OptTypeArguments.ConvertAll(CloneType));
         }
         var args = new List<ActualBinding>();
         args.Add(new ActualBinding(null, k));
         apply.Bindings.ArgumentBindings.ForEach(arg => args.Add(CloneActualBinding(arg)));
-        var applyClone = new ApplySuffix(Tok(apply.tok), apply.AtTok == null ? null : Tok(apply.AtTok),
+        var applyClone = new ApplySuffix(Tok(apply.RangeToken), apply.AtTok == null ? null : Tok(apply.AtTok),
           lhsClone, args, Tok(apply.CloseParen));
         var c = new ExprRhs(applyClone, CloneAttributes(rhs.Attributes));
         reporter.Info(MessageSource.Cloner, apply.Lhs.tok, mse.Member.Name + suffix);

@@ -15,7 +15,7 @@ public class OldExpr : Expression, ICloneable<OldExpr> {
   }
 
   public OldExpr Clone(Cloner cloner) {
-    var result = new OldExpr(cloner.Tok(tok), cloner.CloneExpr(E), At);
+    var result = new OldExpr(cloner.Tok(RangeToken), cloner.CloneExpr(E), At);
     if (cloner.CloneResolvedFields) {
       result.AtLabel = AtLabel;
       result.Useless = Useless;
@@ -24,7 +24,7 @@ public class OldExpr : Expression, ICloneable<OldExpr> {
   }
 
   [Captured]
-  public OldExpr(IToken tok, Expression expr, string at = null)
+  public OldExpr(RangeToken tok, Expression expr, string at = null)
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(expr != null);

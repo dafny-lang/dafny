@@ -250,12 +250,12 @@ namespace Microsoft.Dafny.Triggers {
           QuantifierWithTriggers q = group.quantifier;
           if (q.quantifier is ForallExpr) {
             ForallExpr quantifier = (ForallExpr)q.quantifier;
-            Expression expr = QuantifiersToExpression(quantifier.tok, BinaryExpr.ResolvedOpcode.And, group.expressions);
-            q.quantifier = new ForallExpr(quantifier.tok, quantifier.RangeToken, quantifier.BoundVars, quantifier.Range, expr, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
+            Expression expr = QuantifiersToExpression(quantifier.RangeToken, BinaryExpr.ResolvedOpcode.And, group.expressions);
+            q.quantifier = new ForallExpr(quantifier.RangeToken, quantifier.BoundVars, quantifier.Range, expr, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
           } else if (q.quantifier is ExistsExpr) {
             ExistsExpr quantifier = (ExistsExpr)q.quantifier;
-            Expression expr = QuantifiersToExpression(quantifier.tok, BinaryExpr.ResolvedOpcode.Or, group.expressions);
-            q.quantifier = new ExistsExpr(quantifier.tok, quantifier.RangeToken, quantifier.BoundVars, quantifier.Range, expr, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
+            Expression expr = QuantifiersToExpression(quantifier.RangeToken, BinaryExpr.ResolvedOpcode.Or, group.expressions);
+            q.quantifier = new ExistsExpr(quantifier.RangeToken, quantifier.BoundVars, quantifier.Range, expr, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
           }
           list.Add(q);
           splits.Add(q.quantifier);
@@ -274,7 +274,7 @@ namespace Microsoft.Dafny.Triggers {
       return TriggerUtils.SameLists(arg1.Terms, arg2.Terms, TriggerTerm.Eq);
     }
 
-    private Expression QuantifiersToExpression(IToken tok, BinaryExpr.ResolvedOpcode op, List<ComprehensionExpr> expressions) {
+    private Expression QuantifiersToExpression(RangeToken tok, BinaryExpr.ResolvedOpcode op, List<ComprehensionExpr> expressions) {
       var expr = expressions[0].Term;
       for (int i = 1; i < expressions.Count; i++) {
         expr = new BinaryExpr(tok, op, expr, expressions[i].Term);

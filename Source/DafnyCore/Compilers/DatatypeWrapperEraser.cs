@@ -50,7 +50,7 @@ namespace Microsoft.Dafny.Compilers {
           }
           Contract.Assert(typeArgsForNonGhostTuple.Count == nonGhostTupleTypeDecl.Dims);
           Contract.Assert(nonGhostTupleTypeDecl.NonGhostDims == nonGhostTupleTypeDecl.Dims);
-          return new UserDefinedType(udt.tok, nonGhostTupleTypeDecl.Name, nonGhostTupleTypeDecl, typeArgsForNonGhostTuple);
+          return new UserDefinedType(udt.RangeToken, nonGhostTupleTypeDecl.Name, nonGhostTupleTypeDecl, typeArgsForNonGhostTuple);
 
         } else if (udt.ResolvedClass is DatatypeDecl datatypeDecl && GetInnerTypeOfErasableDatatypeWrapper(datatypeDecl, out var innerType)) {
           var typeSubst = TypeParameter.SubstitutionMap(datatypeDecl.TypeArgs, udt.TypeArgs);

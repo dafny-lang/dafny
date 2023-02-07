@@ -30,10 +30,10 @@ git-issue-276a.dfy(18,41): Error: possible division by zero
 git-issue-276a.dfy(19,41): Error: possible division by zero
 git-issue-276a.dfy(20,10): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
 git-issue-276a.dfy(20,27): Related location
-git-issue-276a.dfy(20,40): Error: shift amount must be non-negative
+git-issue-276a.dfy(20,41): Error: shift amount must be non-negative
 git-issue-276a.dfy(21,10): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
 git-issue-276a.dfy(21,27): Related location
-git-issue-276a.dfy(21,40): Error: shift amount must be non-negative
+git-issue-276a.dfy(21,41): Error: shift amount must be non-negative
 git-issue-276a.dfy(28,10): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
 git-issue-276a.dfy(28,26): Related location
 git-issue-276a.dfy(28,35): Error: index out of range

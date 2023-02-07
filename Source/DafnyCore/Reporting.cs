@@ -65,6 +65,19 @@ namespace Microsoft.Dafny {
       Error(source, errorID, tok, msg);
     }
 
+    public void Error(MessageSource source, RangeToken rangeToken, string msg, params object[] args) {
+      Contract.Requires(msg != null);
+      Contract.Requires(args != null);
+      Error(source, rangeToken.StartToken, msg, args);
+    }
+
+    public void Error(MessageSource source, INode node, string msg, params object[] args) {
+      Contract.Requires(node != null);
+      Contract.Requires(msg != null);
+      Contract.Requires(args != null);
+      Error(source, node.Tok, String.Format(msg, args));
+    }
+
     public void Error(MessageSource source, IToken tok, string msg, params object[] args) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
@@ -92,26 +105,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(args != null);
       Error(source, errorID, d.tok, msg, args);
     }
-
-    public void Error(MessageSource source, Statement s, string msg, params object[] args) {
-      Contract.Requires(s != null);
-      Contract.Requires(msg != null);
-      Contract.Requires(args != null);
-      Error(source, ErrorID.None, s.Tok, msg, args);
-    }
-
-    public void Error(MessageSource source, IVariable v, string msg, params object[] args) {
-      Contract.Requires(v != null);
-      Contract.Requires(msg != null);
-      Contract.Requires(args != null);
-      Error(source, ErrorID.None, v.Tok, msg, args);
-    }
-
-    public void Error(MessageSource source, Expression e, string msg, params object[] args) {
-      Contract.Requires(e != null);
-      Contract.Requires(msg != null);
-      Contract.Requires(args != null);
-      Error(source, ErrorID.None, e.tok, msg, args);
+    public void Warning(MessageSource source, ErrorID errorID, RangeToken rangeToken, string msg, params object[] args) {
+      Warning(source, errorID, rangeToken.StartToken, msg, args);
     }
 
     public void Warning(MessageSource source, ErrorID errorID, IToken tok, string msg) {
@@ -149,6 +144,12 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public void Warning(MessageSource source, ErrorID errorID, INode node, string msg, params object[] args) {
+      Contract.Requires(node != null);
+      Contract.Requires(msg != null);
+      Contract.Requires(args != null);
+      Warning(source, errorID, node.Tok, msg, args);
+    }
 
     public void Info(MessageSource source, IToken tok, string msg) {
       Contract.Requires(tok != null);

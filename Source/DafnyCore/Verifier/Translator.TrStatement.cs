@@ -73,12 +73,12 @@ namespace Microsoft.Dafny {
         Contract.Assert(iter.OutsFields.Count == iter.OutsHistoryFields.Count);
         for (int i = 0; i < iter.OutsFields.Count; i++) {
           var y = iter.OutsFields[i];
-          var dafnyY = new MemberSelectExpr(s.Tok, th, y);
+          var dafnyY = new MemberSelectExpr(s.RangeToken, th, y);
           var ys = iter.OutsHistoryFields[i];
-          var dafnyYs = new MemberSelectExpr(s.Tok, th, ys);
-          var dafnySingletonY = new SeqDisplayExpr(s.Tok, new List<Expression>() { dafnyY });
+          var dafnyYs = new MemberSelectExpr(s.RangeToken, th, ys);
+          var dafnySingletonY = new SeqDisplayExpr(s.RangeToken, new List<Expression>() { dafnyY });
           dafnySingletonY.Type = ys.Type;  // resolve here
-          var rhs = new BinaryExpr(s.Tok, BinaryExpr.Opcode.Add, dafnyYs, dafnySingletonY);
+          var rhs = new BinaryExpr(s.RangeToken, BinaryExpr.Opcode.Add, dafnyYs, dafnySingletonY);
           rhs.ResolvedOp = BinaryExpr.ResolvedOpcode.Concat;
           rhs.Type = ys.Type;  // resolve here
           var cmd = Bpl.Cmd.SimpleAssign(s.Tok, etran.HeapCastToIdentifierExpr,
@@ -108,7 +108,7 @@ namespace Microsoft.Dafny {
           }
           builder.Add(TrAssumeCmd(stmt.Tok, yeEtran.TrExpr(p.E)));
         }
-        YieldHavoc(iter.tok, iter, builder, etran);
+        YieldHavoc(iter.RangeToken, iter, builder, etran);
         builder.AddCaptureState(s);
 
       } else if (stmt is AssignSuchThatStmt) {
@@ -157,7 +157,7 @@ namespace Microsoft.Dafny {
             typeAntecedent = BplAnd(typeAntecedent, wh);
           } else {
             havocLHSs.Add(lhs.Resolved);
-            havocRHSs.Add(new HavocRhs(lhs.tok));  // note, a HavocRhs is constructed as already resolved
+            havocRHSs.Add(new HavocRhs(lhs.RangeToken));  // note, a HavocRhs is constructed as already resolved
           }
         }
         ProcessLhss(havocLHSs, false, true, builder, locals, etran, out var lhsBuilder, out var bLhss, out _, out _, out _);
@@ -177,7 +177,7 @@ namespace Microsoft.Dafny {
           foreach (var lhs in s.Lhss) {
             var l = lhs.Resolved;
             if (l is IdentifierExpr x) {
-              CloneVariableAsBoundVar(x.tok, x.Var, "$as#" + x.Name, out var bv, out var ie);
+              CloneVariableAsBoundVar(x.RangeToken, x.Var, "$as#" + x.Name, out var bv, out var ie);
               bvars.Add(bv);
               substMap.Add(x.Var, ie);
             } else {
@@ -285,7 +285,7 @@ namespace Microsoft.Dafny {
         SelectAllocateObject(tok, bplThis, th.Type, false, builder, etran);
         for (int i = 0; i < fields.Count; i++) {
           // assume $Heap[this, f] == this.f;
-          var mse = new MemberSelectExpr(tok, th, fields[i]);
+          var mse = new MemberSelectExpr(tok.ToRange(), th, fields[i]);
           Bpl.Expr surr = new Bpl.IdentifierExpr(tok, localSurrogates[i]);
           surr = CondApplyUnbox(tok, surr, fields[i].Type, mse.Type);
           builder.Add(new Bpl.AssumeCmd(tok, Bpl.Expr.Eq(etran.TrExpr(mse), surr)));
@@ -317,7 +317,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is AlternativeLoopStmt) {
         AddComment(builder, stmt, "alternative loop statement");
         var s = (AlternativeLoopStmt)stmt;
-        var tru = new LiteralExpr(s.Tok, true);
+        var tru = new LiteralExpr(s.RangeToken, true);
         tru.Type = Type.Bool; // resolve here
         TrLoop(s, tru,
           delegate (BoogieStmtListBuilder bld, ExpressionTranslator e) {
@@ -580,7 +580,7 @@ namespace Microsoft.Dafny {
               if (v is LocalVariable) {
                 var vcopy = new LocalVariable(stmt.RangeToken, string.Format("##{0}#{1}", name, v.Name), v.Type, v.IsGhost);
                 vcopy.type = vcopy.OptionalType; // resolve local here
-                IdentifierExpr ie = new IdentifierExpr(vcopy.Tok, vcopy.AssignUniqueName(currentDeclaration.IdGenerator));
+                IdentifierExpr ie = new IdentifierExpr(vcopy.RangeToken, vcopy.AssignUniqueName(currentDeclaration.IdGenerator));
                 ie.Var = vcopy;
                 ie.Type = ie.Var.Type; // resolve ie here
                 substMap.Add(v, ie);
@@ -820,7 +820,7 @@ namespace Microsoft.Dafny {
 
       var indexVar = stmt.LoopIndex;
       var indexVarName = indexVar.AssignUniqueName(currentDeclaration.IdGenerator);
-      var dIndex = new IdentifierExpr(indexVar.tok, indexVar);
+      var dIndex = new IdentifierExpr(indexVar.RangeToken, indexVar);
       var bIndexVar = new Bpl.LocalVariable(indexVar.tok, new Bpl.TypedIdent(indexVar.Tok, indexVarName, TrType(indexVar.Type)));
       locals.Add(bIndexVar);
       var bIndex = new Bpl.IdentifierExpr(indexVar.tok, indexVarName);
@@ -880,9 +880,9 @@ namespace Microsoft.Dafny {
       // build the guard expression
       Expression guard;
       if (lo == null || hi == null) {
-        guard = LiteralExpr.CreateBoolLiteral(stmt.Tok, true);
+        guard = LiteralExpr.CreateBoolLiteral(stmt.RangeToken, true);
       } else {
-        guard = Expression.CreateNot(stmt.Tok, Expression.CreateEq(dIndex, stmt.GoingUp ? dHi : dLo, indexVar.Type));
+        guard = Expression.CreateNot(stmt.RangeToken, Expression.CreateEq(dIndex, stmt.GoingUp ? dHi : dLo, indexVar.Type));
       }
 
       // free invariant lo <= i <= hi
@@ -1414,7 +1414,7 @@ namespace Microsoft.Dafny {
           // add "this" to the explicit modifies clause
           var explicitModifies = modifiesClause;
           modifiesClause = new List<FrameExpression>();
-          modifiesClause.Add(new FrameExpression(s.Tok, new ThisExpr((IteratorDecl)codeContext), null));
+          modifiesClause.Add(new FrameExpression(s.RangeToken, new ThisExpr((IteratorDecl)codeContext), null));
           modifiesClause.AddRange(explicitModifies);
         }
         // include boilerplate invariants
@@ -1431,8 +1431,8 @@ namespace Microsoft.Dafny {
         // for iterators, add "fresh(_new)" as an invariant
         if (codeContext is IteratorDecl iter) {
           var th = new ThisExpr(iter);
-          var thisDotNew = new MemberSelectExpr(s.Tok, th, iter.Member_New);
-          var fr = new FreshExpr(s.Tok, thisDotNew);
+          var thisDotNew = new MemberSelectExpr(s.RangeToken, th, iter.Member_New);
+          var fr = new FreshExpr(s.RangeToken, thisDotNew);
           fr.Type = Type.Bool;
           invariants.Add(TrAssertCmd(s.Tok, etran.TrExpr(fr)));
         }
@@ -1778,7 +1778,7 @@ namespace Microsoft.Dafny {
         var formal = callee.Ins[i];
         var local = new LocalVariable(formal.RangeToken, formal.Name + "#", formal.Type.Subst(tySubst), formal.IsGhost);
         local.type = local.OptionalType;  // resolve local here
-        var ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator));
+        var ie = new IdentifierExpr(local.RangeToken, local.AssignUniqueName(currentDeclaration.IdGenerator));
         ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
         substMap.Add(formal, ie);
         locals.Add(new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), TrType(local.Type))));

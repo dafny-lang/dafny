@@ -248,7 +248,7 @@ namespace Microsoft.Dafny.Compilers {
           $"def AllSingletonConstructors(cls):");
         var values = dt.Ctors.Select(ctor =>
           ctor.IsGhost
-          ? ForcePlaceboValue(UserDefinedType.FromTopLevelDecl(dt.tok, dt), w, dt.tok)
+          ? ForcePlaceboValue(UserDefinedType.FromTopLevelDecl(dt.RangeToken, dt), w, dt.tok)
           : $"{DtCtorDeclarationName(ctor, false)}()");
         w.WriteLine($"return [{values.Comma()}]");
       }
@@ -257,7 +257,7 @@ namespace Microsoft.Dafny.Compilers {
       var wDefault = btw.NewBlockPy($"def default(cls, {UsedTypeParameters(dt).Comma(FormatDefaultTypeParameterValue)}):");
       var groundingCtor = dt.GetGroundingCtor();
       if (groundingCtor.IsGhost) {
-        wDefault.WriteLine($"return lambda: {ForcePlaceboValue(UserDefinedType.FromTopLevelDecl(dt.tok, dt), wDefault, dt.tok)}");
+        wDefault.WriteLine($"return lambda: {ForcePlaceboValue(UserDefinedType.FromTopLevelDecl(dt.RangeToken, dt), wDefault, dt.tok)}");
       } else if (DatatypeWrapperEraser.GetInnerTypeOfErasableDatatypeWrapper(dt, out var innerType)) {
         wDefault.WriteLine($"return lambda: {DefaultValue(innerType, wDefault, dt.tok)}");
       } else {
@@ -365,7 +365,7 @@ namespace Microsoft.Dafny.Compilers {
     protected IClassWriter DeclareType(TopLevelDecl d, SubsetTypeDecl.WKind witnessKind, Expression witness, ConcreteSyntaxTree wr) {
       var cw = (ClassWriter)CreateClass(IdProtect(d.EnclosingModuleDefinition.CompileName), IdName(d), d, wr);
       var w = cw.MethodWriter;
-      var udt = UserDefinedType.FromTopLevelDecl(d.tok, d);
+      var udt = UserDefinedType.FromTopLevelDecl(d.RangeToken, d);
       w.WriteLine("@staticmethod");
       var block = w.NewBlockPy("def default():");
       var wStmts = block.Fork();

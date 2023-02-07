@@ -280,7 +280,7 @@ partial class Resolver {
                       var possiblyNullTypeDecl = (ClassDecl)possiblyNullUdf.ResolvedClass;
                       Contract.Assert(nonNullTypeDecl.TypeArgs.Count == possiblyNullTypeDecl.TypeArgs.Count);
                       Contract.Assert(nonNullTypeDecl.TypeArgs.Count == nntUdf.TypeArgs.Count);
-                      var ty = new UserDefinedType(nntUdf.tok, possiblyNullUdf.Name, possiblyNullTypeDecl, nntUdf.TypeArgs);
+                      var ty = new UserDefinedType(nntUdf.RangeToken, possiblyNullUdf.Name, possiblyNullTypeDecl, nntUdf.TypeArgs);
 
                       hint = $" (to make it possible for {name} to have the value 'null', declare its type to be '{ty}')";
                     }
@@ -332,24 +332,24 @@ partial class Resolver {
             if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
               var d = (BaseTypes.BigDec)lit.Value;
               Contract.Assert(!d.IsNegative);
-              resolved = new LiteralExpr(e.tok, -d);
+              resolved = new LiteralExpr(e.RangeToken, -d);
             } else if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
               var n = (BigInteger)lit.Value;
               Contract.Assert(0 <= n);
-              resolved = new LiteralExpr(e.tok, -n);
+              resolved = new LiteralExpr(e.RangeToken, -n);
             }
           }
           if (resolved == null) {
             // Treat all other expressions "-e" as "0 - e"
             Expression zero;
             if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
-              zero = new LiteralExpr(e.tok, BaseTypes.BigDec.ZERO);
+              zero = new LiteralExpr(e.RangeToken, BaseTypes.BigDec.ZERO);
             } else {
               Contract.Assert(e.E.Type.IsNumericBased(Type.NumericPersuasion.Int) || e.E.Type.IsBitVectorType);
-              zero = new LiteralExpr(e.tok, 0);
+              zero = new LiteralExpr(e.RangeToken, 0);
             }
             zero.Type = expr.Type;
-            resolved = new BinaryExpr(e.tok, BinaryExpr.Opcode.Sub, zero, e.E) { ResolvedOp = BinaryExpr.ResolvedOpcode.Sub };
+            resolved = new BinaryExpr(e.RangeToken, BinaryExpr.Opcode.Sub, zero, e.E) { ResolvedOp = BinaryExpr.ResolvedOpcode.Sub };
           }
           resolved.Type = expr.Type;
           e.ResolvedExpression = resolved;

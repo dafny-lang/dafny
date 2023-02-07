@@ -10,7 +10,7 @@ public class NestedMatchCaseExpr : NestedMatchCase, IAttributeBearingDeclaration
   public Attributes Attributes;
   Attributes IAttributeBearingDeclaration.Attributes => Attributes;
 
-  public NestedMatchCaseExpr(IToken tok, ExtendedPattern pat, Expression body, Attributes attrs) : base(tok, pat) {
+  public NestedMatchCaseExpr(RangeToken tok, ExtendedPattern pat, Expression body, Attributes attrs) : base(tok, pat) {
     Contract.Requires(body != null);
     this.Body = body;
     this.Attributes = attrs;
@@ -27,10 +27,10 @@ public class NestedMatchCaseExpr : NestedMatchCase, IAttributeBearingDeclaration
 
     var boundVars = Pat.ReplaceTypesWithBoundVariables(resolver, resolutionContext).ToList();
     if (boundVars.Any()) {
-      var lhss = boundVars.Select(b => new CasePattern<BoundVar>(Token.NoToken, b.var)).ToList();
+      var lhss = boundVars.Select(b => new CasePattern<BoundVar>(RangeToken.NoToken, b.var)).ToList();
       var rhss = boundVars.Select(b => b.usage).ToList();
 
-      Body = new LetExpr(Token.NoToken, lhss, rhss, Body, true);
+      Body = new LetExpr(RangeToken.NoToken, lhss, rhss, Body, true);
     }
 
     Pat.Resolve(resolver, resolutionContext, sourceType, false, false, false, false);

@@ -2352,7 +2352,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         var e = (FunctionCallExpr)expr;
         // determine if parens are needed
         int opBindingStrength = 0x90;
-        bool parensNeeded = !(e.Receiver.IsImplicit) &&
+        bool parensNeeded = !e.Receiver.IsImplicit &&
           ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
 
         if (parensNeeded) { wr.Write("("); }
@@ -2368,10 +2368,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
           wr.Write("]");
         }
         */
-        if (e.OpenParen == null && e.Args.Count == 0) {
-        } else {
-          PrintActualArguments(e.Bindings, e.Name, null);
-        }
+        PrintActualArguments(e.Bindings, e.Name, null);
         if (parensNeeded) { wr.Write(")"); }
 
       } else if (expr is SeqConstructionExpr) {

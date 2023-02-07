@@ -287,7 +287,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(enclosingTypeDecl != null);
       Contract.Requires(wr != null);
 
-      var type = UserDefinedType.FromTopLevelDecl(enclosingTypeDecl.tok, enclosingTypeDecl);
+      var type = UserDefinedType.FromTopLevelDecl(enclosingTypeDecl.RangeToken, enclosingTypeDecl);
       var initializer = DefaultValue(type, wr, enclosingTypeDecl.tok, true);
 
       var targetTypeName = TypeName(type, wr, enclosingTypeDecl.tok);
@@ -472,7 +472,7 @@ namespace Microsoft.Dafny.Compilers {
       var nonGhostTypeArgs = SelectNonGhost(dt, dt.TypeArgs);
       var DtT_TypeArgs = TypeParameters(nonGhostTypeArgs);
       var DtT_protected = IdName(dt) + DtT_TypeArgs;
-      var simplifiedType = DatatypeWrapperEraser.SimplifyType(UserDefinedType.FromTopLevelDecl(dt.tok, dt));
+      var simplifiedType = DatatypeWrapperEraser.SimplifyType(UserDefinedType.FromTopLevelDecl(dt.RangeToken, dt));
       var simplifiedTypeName = TypeName(simplifiedType, wr, dt.tok);
 
       // ContreteSyntaxTree for the interface
@@ -558,7 +558,7 @@ namespace Microsoft.Dafny.Compilers {
         foreach (var ctor in dt.Ctors) {
           Contract.Assert(ctor.Formals.Count == 0);
           var constructor = ctor.IsGhost
-            ? ForcePlaceboValue(UserDefinedType.FromTopLevelDecl(dt.tok, dt), wGet, dt.tok)
+            ? ForcePlaceboValue(UserDefinedType.FromTopLevelDecl(dt.RangeToken, dt), wGet, dt.tok)
             : $"{DtT_protected}.{DtCreateName(ctor)}()";
           wGet.WriteLine($"yield return {constructor};");
         }
@@ -602,7 +602,7 @@ namespace Microsoft.Dafny.Compilers {
       var typeArgs = TypeParameters(nonGhostTypeArgs);
       var typeSubstMap = nonGhostTypeArgs.ToDictionary(
         tp => tp,
-        tp => (Type)new UserDefinedType(tp.tok, new TypeParameter(tp.tok, $"_{tp.Name}", tp.VarianceSyntax)));
+        tp => (Type)new UserDefinedType(tp.RangeToken, new TypeParameter(tp.RangeToken, $"_{tp.Name}", tp.VarianceSyntax)));
 
       var resultType = DatatypeWrapperEraser.GetInnerTypeOfErasableDatatypeWrapper(datatype, out var innerType)
         ? TypeName(innerType.Subst(typeSubstMap), wr, datatype.tok)
@@ -626,7 +626,7 @@ namespace Microsoft.Dafny.Compilers {
       if (!(toInterface && customReceiver)) {
         string receiver;
         if (customReceiver) {
-          var simplifiedType = DatatypeWrapperEraser.SimplifyType(UserDefinedType.FromTopLevelDecl(datatype.tok, datatype));
+          var simplifiedType = DatatypeWrapperEraser.SimplifyType(UserDefinedType.FromTopLevelDecl(datatype.RangeToken, datatype));
           receiver = $"{TypeName(simplifiedType, wr, datatype.tok)} _this";
         } else {
           receiver = "";
@@ -677,7 +677,7 @@ namespace Microsoft.Dafny.Compilers {
         if (nonGhostTypeArgs.Exists(ty => ContainsTyVar(ty, fromType))) {
           var map = nonGhostTypeArgs.ToDictionary(
             tp => tp,
-            tp => (Type)new UserDefinedType(tp.tok, new TypeParameter(tp.tok, $"_{tp.Name}", tp.VarianceSyntax)));
+            tp => (Type)new UserDefinedType(tp.RangeToken, new TypeParameter(tp.RangeToken, $"_{tp.Name}", tp.VarianceSyntax)));
           var to = fromType.Subst(map);
           var downcast = new ConcreteSyntaxTree();
           EmitDowncast(fromType, to, null, downcast).Write(name);
@@ -1274,7 +1274,7 @@ namespace Microsoft.Dafny.Compilers {
         tp => $"{DafnyTypeDescriptor}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp)}");
       if (customReceiver) {
         var nt = m.EnclosingClass;
-        var receiverType = UserDefinedType.FromTopLevelDecl(m.tok, nt);
+        var receiverType = UserDefinedType.FromTopLevelDecl(m.RangeToken, nt);
         DeclareFormal(sep, "_this", receiverType, m.tok, true, parameters);
         sep = ", ";
       }
@@ -1361,7 +1361,7 @@ namespace Microsoft.Dafny.Compilers {
         } else if (dllimportsArgs.Count == 1) {
           libName = dllimportsArgs[0] as StringLiteralExpr;
           // use the given name, not the .CompileName (if user needs something else, the user can supply it as a second argument to :dllimport)
-          entryPoint = new StringLiteralExpr(decl.tok, decl.Name, false);
+          entryPoint = new StringLiteralExpr(decl.RangeToken, decl.Name, false);
         }
         if (libName == null || entryPoint == null) {
           Error(decl.tok, "Expected arguments are {{:dllimport dllName}} or {{:dllimport dllName, entryPoint}} where dllName and entryPoint are strings: {0}", wr, decl.FullName);

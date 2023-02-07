@@ -13,16 +13,16 @@ public class UnchangedExpr : Expression, ICloneable<UnchangedExpr> {
   }
 
   public UnchangedExpr Clone(Cloner cloner) {
-    var result = new UnchangedExpr(cloner.Tok(tok), Frame.ConvertAll(cloner.CloneFrameExpr), At);
+    var result = new UnchangedExpr(cloner.Tok(RangeToken), Frame.ConvertAll(cloner.CloneFrameExpr), At);
     if (cloner.CloneResolvedFields) {
       result.AtLabel = AtLabel;
     }
     return result;
   }
 
-  public UnchangedExpr(IToken tok, List<FrameExpression> frame, string/*?*/ at)
-    : base(tok) {
-    Contract.Requires(tok != null);
+  public UnchangedExpr(RangeToken rangeToken, List<FrameExpression> frame, string/*?*/ at)
+    : base(rangeToken) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(frame != null);
     this.Frame = frame;
     this.At = at;

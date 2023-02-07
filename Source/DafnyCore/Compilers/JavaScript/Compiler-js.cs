@@ -311,7 +311,7 @@ namespace Microsoft.Dafny.Compilers {
 
       string DtT = dt.CompileName;
       string DtT_protected = IdProtect(DtT);
-      var simplifiedType = DatatypeWrapperEraser.SimplifyType(UserDefinedType.FromTopLevelDecl(dt.tok, dt));
+      var simplifiedType = DatatypeWrapperEraser.SimplifyType(UserDefinedType.FromTopLevelDecl(dt.RangeToken, dt));
 
       // from here on, write everything into the new block created here:
       var btw = wr.NewNamedBlock("$module.{0} = class {0}", DtT_protected);
@@ -389,7 +389,7 @@ namespace Microsoft.Dafny.Compilers {
           foreach (var ctor in dt.Ctors) {
             Contract.Assert(ctor.Formals.Count == 0);
             if (ctor.IsGhost) {
-              w.WriteLine("yield {0};", ForcePlaceboValue(UserDefinedType.FromTopLevelDecl(dt.tok, dt), w, dt.tok));
+              w.WriteLine("yield {0};", ForcePlaceboValue(UserDefinedType.FromTopLevelDecl(dt.RangeToken, dt), w, dt.tok));
             } else {
               w.WriteLine("yield {0}.create_{1}({2});", DtT_protected, ctor.CompileName, dt is CoDatatypeDecl ? "null" : "");
             }
@@ -562,7 +562,7 @@ namespace Microsoft.Dafny.Compilers {
       // In JavaScript, the companion class of a newtype (which is what is being declared here) doubles as a
       // type descriptor for the newtype. The Default() method for that type descriptor is declared here.
       var wDefault = w.NewBlock("static get Default()");
-      var udt = new UserDefinedType(nt.tok, nt.Name, nt, new List<Type>());
+      var udt = new UserDefinedType(nt.RangeToken, nt.Name, nt, new List<Type>());
       var d = TypeInitializationValue(udt, wr, nt.tok, false, false);
       wDefault.WriteLine("return {0};", d);
       return cw;
@@ -571,7 +571,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void DeclareSubsetType(SubsetTypeDecl sst, ConcreteSyntaxTree wr) {
       var cw = (ClassWriter)CreateClass(IdProtect(sst.EnclosingModuleDefinition.CompileName), IdName(sst), sst, wr);
       var w = cw.MethodWriter;
-      var udt = UserDefinedType.FromTopLevelDecl(sst.tok, sst);
+      var udt = UserDefinedType.FromTopLevelDecl(sst.RangeToken, sst);
       string d;
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var sw = new ConcreteSyntaxTree(w.RelativeIndentLevel);
@@ -652,7 +652,7 @@ namespace Microsoft.Dafny.Compilers {
       WriteRuntimeTypeDescriptorsFormals(ForTypeDescriptors(typeArgs, m.EnclosingClass, m, lookasideBody), wr, ref sep, tp => $"rtd$_{tp.CompileName}");
       if (customReceiver) {
         var nt = m.EnclosingClass;
-        var receiverType = UserDefinedType.FromTopLevelDecl(m.tok, nt);
+        var receiverType = UserDefinedType.FromTopLevelDecl(m.RangeToken, nt);
         DeclareFormal(sep, "_this", receiverType, m.tok, true, wr);
         sep = ", ";
       }
@@ -682,7 +682,7 @@ namespace Microsoft.Dafny.Compilers {
       var nTypes = WriteRuntimeTypeDescriptorsFormals(ForTypeDescriptors(typeArgs, member.EnclosingClass, member, lookasideBody), wr, ref sep, tp => $"rtd$_{tp.CompileName}");
       if (customReceiver) {
         var nt = member.EnclosingClass;
-        var receiverType = UserDefinedType.FromTopLevelDecl(tok, nt);
+        var receiverType = UserDefinedType.FromTopLevelDecl(tok.ToRange(), nt);
         DeclareFormal(sep, "_this", receiverType, tok, true, wr);
         sep = ", ";
       }

@@ -155,7 +155,7 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
     Contract.Requires(atd.Arity == Formals.Count);
 
     // Note, the following returned type can contain type parameters from the function and its enclosing class
-    return new ArrowType(tok, atd, Formals.ConvertAll(f => f.Type), ResultType);
+    return new ArrowType(RangeToken, atd, Formals.ConvertAll(f => f.Type), ResultType);
   }
 
   public bool AllowsNontermination {
@@ -189,14 +189,14 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
     Contract.Invariant(Decreases != null);
   }
 
-  public Function(IToken tok, string name, bool hasStaticKeyword, bool isGhost,
+  public Function(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isGhost,
     List<TypeParameter> typeArgs, List<Formal> formals, Formal result, Type resultType,
     List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
     Expression/*?*/ body, IToken/*?*/ byMethodTok, BlockStmt/*?*/ byMethodBody,
     Attributes attributes, IToken/*?*/ signatureEllipsis)
-    : base(tok, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null) {
+    : base(rangeToken, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null) {
 
-    Contract.Requires(tok != null);
+    Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(formals));

@@ -15,7 +15,7 @@ TypeTests.dfy(62,29): Error: unresolved identifier: w1
 TypeTests.dfy(62,47): Error: unresolved identifier: w0
 TypeTests.dfy(65,28): Error: unresolved identifier: e
 TypeTests.dfy(80,17): Error: object initialization must denote an initializing method or constructor (F)
-TypeTests.dfy(81,17): Error: a method called as an initialization method must not have any result arguments
+TypeTests.dfy(81,18): Error: a method called as an initialization method must not have any result arguments
 TypeTests.dfy(90,3): Error: cannot assign to a range of array elements (try the 'forall' statement)
 TypeTests.dfy(91,3): Error: cannot assign to a range of array elements (try the 'forall' statement)
 TypeTests.dfy(92,3): Error: cannot assign to a range of array elements (try the 'forall' statement)

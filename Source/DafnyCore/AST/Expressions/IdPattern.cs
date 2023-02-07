@@ -10,7 +10,8 @@ namespace Microsoft.Dafny;
 
 public class IdPattern : ExtendedPattern, IHasUsages {
   public bool HasParenthesis { get; }
-  public String Id;
+  public String Id => Name.Value;
+  public Name Name;
   public Type Type; // This is the syntactic type, ExtendedPatterns dissapear during resolution.
   public IVariable BoundVar { get; set; }
   public List<ExtendedPattern> Arguments; // null if just an identifier; possibly empty argument list if a constructor call
@@ -25,8 +26,8 @@ public class IdPattern : ExtendedPattern, IHasUsages {
     this.Arguments = new List<ExtendedPattern>();
   }
 
-  public IdPattern(Cloner cloner, IdPattern original) : base(cloner.Tok(original.Tok), original.IsGhost) {
-    Id = original.Id;
+  public IdPattern(Cloner cloner, IdPattern original) : base(cloner.Tok(original.RangeToken), original.IsGhost) {
+    Name = original.Name.Clone(cloner);
     Arguments = original.Arguments?.Select(cloner.CloneExtendedPattern).ToList();
     HasParenthesis = original.HasParenthesis;
     if (cloner.CloneResolvedFields) {
@@ -37,19 +38,19 @@ public class IdPattern : ExtendedPattern, IHasUsages {
     }
   }
 
-  public IdPattern(IToken tok, String id, List<ExtendedPattern> arguments, bool isGhost = false, bool hasParenthesis = false) : base(tok, isGhost) {
-    Contract.Requires(id != null);
+  public IdPattern(RangeToken rangeToken, Name name, List<ExtendedPattern> arguments, bool isGhost = false, bool hasParenthesis = false) : base(rangeToken, isGhost) {
+    Contract.Requires(name != null);
     Contract.Requires(arguments != null); // Arguments can be empty, but shouldn't be null
     HasParenthesis = hasParenthesis;
-    this.Id = id;
+    this.Name = name;
     this.Type = new InferredTypeProxy();
     this.Arguments = arguments;
   }
 
-  public IdPattern(IToken tok, String id, Type type, List<ExtendedPattern> arguments, bool isGhost = false) : base(tok, isGhost) {
-    Contract.Requires(id != null);
+  public IdPattern(RangeToken rangeToken, Name name, Type type, List<ExtendedPattern> arguments, bool isGhost = false) : base(rangeToken, isGhost) {
+    Contract.Requires(name != null);
     Contract.Requires(arguments != null); // Arguments can be empty, but shouldn't be null
-    this.Id = id;
+    Name = name;
     this.Type = type == null ? new InferredTypeProxy() : type;
     this.Arguments = arguments;
     this.IsGhost = isGhost;
@@ -71,7 +72,7 @@ public class IdPattern : ExtendedPattern, IHasUsages {
     bool inPattern, bool inDisjunctivePattern) {
 
     if (inDisjunctivePattern && ResolvedLit == null && Arguments == null && !IsWildcardPattern) {
-      resolver.reporter.Error(MessageSource.Resolver, Tok, "Disjunctive patterns may not bind variables");
+      resolver.reporter.Error(MessageSource.Resolver, RangeToken, "Disjunctive patterns may not bind variables");
     }
 
     Debug.Assert(Arguments != null || Type is InferredTypeProxy);
@@ -83,13 +84,13 @@ public class IdPattern : ExtendedPattern, IHasUsages {
         localVariable.type = sourceType;
         BoundVar = localVariable;
       } else {
-        var boundVar = new BoundVar(Tok, Id, sourceType);
+        var boundVar = new BoundVar(RangeToken, Id, sourceType);
         boundVar.IsGhost = isGhost;
         BoundVar = boundVar;
       }
 
       resolver.scope.Push(Id, BoundVar);
-      resolver.ResolveType(Tok, BoundVar.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+      resolver.ResolveType(RangeToken.StartToken, BoundVar.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
 
     } else {
       if (Ctor != null) {
@@ -107,10 +108,10 @@ public class IdPattern : ExtendedPattern, IHasUsages {
     ResolutionContext resolutionContext) {
     if (Arguments == null && Type is not InferredTypeProxy) {
       var freshName = resolver.FreshTempVarName(Id, resolutionContext.CodeContext);
-      var boundVar = new BoundVar(Tok, Id, Type);
+      var boundVar = new BoundVar(RangeToken, Id, Type);
       boundVar.IsGhost = IsGhost;
-      yield return (boundVar, new IdentifierExpr(Tok, freshName));
-      Id = freshName;
+      yield return (boundVar, new IdentifierExpr(RangeToken, freshName));
+      Name.Value = freshName;
       Type = new InferredTypeProxy();
     }
 
@@ -125,28 +126,28 @@ public class IdPattern : ExtendedPattern, IHasUsages {
     return new IDeclarationOrUsage[] { Ctor }.Where(x => x != null);
   }
 
-  public IToken NameToken => Tok;
+  public IToken NameToken => RangeToken.StartToken;
 
   public void CheckLinearVarPattern(Type type, ResolutionContext resolutionContext, Resolver resolver) {
     if (Arguments != null) {
       if (Id == BuiltIns.TupleTypeCtorName(1)) {
-        resolver.reporter.Error(MessageSource.Resolver, this.Tok, "parentheses are not allowed around a pattern");
+        resolver.reporter.Error(MessageSource.Resolver, RangeToken, "parentheses are not allowed around a pattern");
       } else {
-        resolver.reporter.Error(MessageSource.Resolver, this.Tok, "member {0} does not exist in type {1}", this.Id, type);
+        resolver.reporter.Error(MessageSource.Resolver, RangeToken, "member {0} does not exist in type {1}", this.Id, type);
       }
       return;
     }
 
     if (resolver.scope.FindInCurrentScope(this.Id) != null) {
-      resolver.reporter.Error(MessageSource.Resolver, this.Tok, "Duplicate parameter name: {0}", this.Id);
+      resolver.reporter.Error(MessageSource.Resolver, RangeToken, "Duplicate parameter name: {0}", this.Id);
     } else if (IsWildcardPattern) {
       // Wildcard, ignore
       return;
     } else {
-      NameSegment e = new NameSegment(this.Tok, this.Id, null);
+      NameSegment e = new NameSegment(RangeToken, this.Name, null);
       resolver.ResolveNameSegment(e, true, null, resolutionContext, false, false);
       if (e.ResolvedExpression == null) {
-        resolver.ScopePushAndReport(resolver.scope, new BoundVar(this.Tok, this.Id, type), "parameter");
+        resolver.ScopePushAndReport(resolver.scope, new BoundVar(RangeToken, this.Name, type), "parameter");
       } else {
         // finds in full scope, not just current scope
         if (e.Resolved is MemberSelectExpr mse) {
@@ -158,19 +159,19 @@ public class IdPattern : ExtendedPattern, IHasUsages {
                 // OK - type is correct
               } else {
                 // may well be a proxy so add a type constraint
-                resolver.ConstrainSubtypeRelation(e.ResolvedExpression.Type, type, this.Tok,
+                resolver.ConstrainSubtypeRelation(e.ResolvedExpression.Type, type, RangeToken.StartToken,
                   "the type of the pattern ({0}) does not agree with the match expression ({1})", e.ResolvedExpression.Type, type);
               }
             } else {
-              resolver.reporter.Error(MessageSource.Resolver, this.Tok, "{0} is not initialized as a constant literal", this.Id);
-              resolver.ScopePushAndReport(resolver.scope, new BoundVar(this.Tok, this.Id, type), "parameter");
+              resolver.reporter.Error(MessageSource.Resolver, RangeToken, "{0} is not initialized as a constant literal", this.Id);
+              resolver.ScopePushAndReport(resolver.scope, new BoundVar(RangeToken, this.Id, type), "parameter");
             }
           } else {
             // Not a static const, so just a variable
-            resolver.ScopePushAndReport(resolver.scope, new BoundVar(this.Tok, this.Id, type), "parameter");
+            resolver.ScopePushAndReport(resolver.scope, new BoundVar(RangeToken, this.Id, type), "parameter");
           }
         } else {
-          resolver.ScopePushAndReport(resolver.scope, new BoundVar(this.Tok, this.Id, type), "parameter");
+          resolver.ScopePushAndReport(resolver.scope, new BoundVar(RangeToken, this.Id, type), "parameter");
         }
       }
     }

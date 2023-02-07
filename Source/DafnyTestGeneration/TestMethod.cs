@@ -151,8 +151,8 @@ namespace DafnyTestGeneration {
           type = DafnyModelTypeUtils.ReplaceType(type,
             _ => true,
             type => DafnyInfo.GetSupersetType(type) != null && type.Name.StartsWith("_System") ?
-              new UserDefinedType(type.tok, type.Name[8..], type.TypeArgs) :
-              new UserDefinedType(type.tok, type.Name, type.TypeArgs));
+              new UserDefinedType(type.RangeToken, type.Name[8..], type.TypeArgs) :
+              new UserDefinedType(type.RangeToken, type.Name, type.TypeArgs));
         } else {
           type = null;
         }
@@ -229,7 +229,7 @@ namespace DafnyTestGeneration {
         asType = DafnyModelTypeUtils.ReplaceType(asType,
           type => DafnyInfo.GetSupersetType(type) != null &&
                   type.Name.StartsWith("_System"),
-          type => new UserDefinedType(type.tok, type.Name[8..], type.TypeArgs));
+          type => new UserDefinedType(type.RangeToken, type.Name[8..], type.TypeArgs));
       }
       if (mockedVarId.ContainsKey(variable)) {
         return mockedVarId[variable];
@@ -251,7 +251,7 @@ namespace DafnyTestGeneration {
       variableType = DafnyModelTypeUtils.ReplaceType(variableType,
         type => DafnyInfo.GetSupersetType(type) != null &&
                 type.Name.StartsWith("_System"),
-        type => new UserDefinedType(type.tok, type.Name[8..], type.TypeArgs));
+        type => new UserDefinedType(type.RangeToken, type.Name[8..], type.TypeArgs));
       if (variableType.ToString() == defaultType.ToString() &&
           variableType.ToString() != variable.Type.ToString()) {
         return GetADefaultTypeValue(variable);
@@ -382,7 +382,7 @@ namespace DafnyTestGeneration {
               _ => true,
               t => DafnyInfo.Datatypes.ContainsKey(t.Name)
                 ? new DafnyModelTypeUtils.DatatypeType(t)
-                : new UserDefinedType(t.tok, t.Name, t.TypeArgs));
+                : new UserDefinedType(t.RangeToken, t.Name, t.TypeArgs));
             fields.Add(ctor.Destructors[i].Name + ":=" +
                        ExtractVariable(variable.Children[fieldName].First(), destructorType));
           }
@@ -538,7 +538,7 @@ namespace DafnyTestGeneration {
         _ => true,
         t => DafnyInfo.Datatypes.ContainsKey(t.Name) ?
           new DafnyModelTypeUtils.DatatypeType(t) :
-          new UserDefinedType(t.tok, t.Name, t.TypeArgs));
+          new UserDefinedType(t.RangeToken, t.Name, t.TypeArgs));
       type = DafnyModelTypeUtils.ReplaceTypeVariables(type, defaultType);
       if ((asType != null) && (DafnyInfo.GetWitnessForType(asType) != null)) {
         return DafnyInfo.GetWitnessForType(asType);

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 
 namespace Microsoft.Dafny;
 
@@ -28,21 +29,21 @@ abstract class ExtremeCloner : Cloner {
     }
 
     Expression lhs;
-    string name;
+    Name name;
     if (e.Lhs is NameSegment ns) {
-      name = ns.Name;
-      lhs = new NameSegment(Tok(ns.tok), name + "#", ns.OptTypeArguments?.ConvertAll(CloneType));
+      name = ns.NameNode;
+      lhs = new NameSegment(Tok(ns.RangeToken), name.Append("#"), ns.OptTypeArguments?.ConvertAll(CloneType));
     } else {
       var edn = (ExprDotName)e.Lhs;
-      name = edn.SuffixName;
-      lhs = new ExprDotName(Tok(edn.tok), CloneExpr(edn.Lhs), name + "#", edn.OptTypeArguments?.ConvertAll(CloneType));
+      name = edn.SuffixNameNode;
+      lhs = new ExprDotName(Tok(edn.RangeToken), CloneExpr(edn.Lhs), name.Append("#"), edn.OptTypeArguments?.ConvertAll(CloneType));
     }
     var args = new List<ActualBinding>();
     args.Add(new ActualBinding(null, k));
     foreach (var arg in e.Bindings.ArgumentBindings) {
       args.Add(CloneActualBinding(arg));
     }
-    var apply = new ApplySuffix(Tok(e.tok), e.AtTok == null ? null : Tok(e.AtTok), lhs, args, Tok(e.CloseParen));
+    var apply = new ApplySuffix(Tok(e.RangeToken), e.AtTok == null ? null : Tok(e.AtTok), lhs, args, Tok(e.CloseParen));
     reporter.Info(MessageSource.Cloner, e.tok, name + suffix);
     return apply;
   }
@@ -59,7 +60,7 @@ abstract class ExtremeCloner : Cloner {
     foreach (var binding in e.Bindings.ArgumentBindings) {
       args.Add(CloneActualBinding(binding));
     }
-    var fexp = new FunctionCallExpr(Tok(e.tok), e.Name + "#", receiver, e.OpenParen, e.CloseParen, args, e.AtLabel);
+    var fexp = new FunctionCallExpr(Tok(e.RangeToken), e.NameNode.Append("#"), receiver, args, e.AtLabel);
     reporter.Info(MessageSource.Cloner, e.tok, e.Name + suffix);
     return fexp;
   }

@@ -15,19 +15,19 @@ public class ArrowType : UserDefinedType {
       var bvars = new List<BoundVar>();
       var bexprs = new List<Expression>();
       foreach (var t in arrTy.Args) {
-        var bv = new BoundVar(e.tok, idGen.FreshId("_x"), t);
+        var bv = new BoundVar(e.RangeToken, idGen.FreshId("_x"), t);
         bvars.Add(bv);
-        bexprs.Add(new IdentifierExpr(e.tok, bv.Name) { Type = bv.Type, Var = bv });
+        bexprs.Add(new IdentifierExpr(e.RangeToken, bv.Name) { Type = bv.Type, Var = bv });
       }
 
-      var oVar = new BoundVar(e.tok, idGen.FreshId("_o"), builtIns.ObjectQ());
-      var obj = new IdentifierExpr(e.tok, oVar.Name) { Type = oVar.Type, Var = oVar };
+      var oVar = new BoundVar(e.RangeToken, idGen.FreshId("_o"), builtIns.ObjectQ());
+      var obj = new IdentifierExpr(e.RangeToken, oVar.Name) { Type = oVar.Type, Var = oVar };
       bvars.Add(oVar);
 
       return
-        new SetComprehension(e.tok, e.RangeToken, true, bvars,
-          new BinaryExpr(e.tok, BinaryExpr.Opcode.In, obj,
-            new ApplyExpr(e.tok, e, bexprs, e.tok) {
+        new SetComprehension(e.RangeToken, true, bvars,
+          new BinaryExpr(e.RangeToken, BinaryExpr.Opcode.In, obj,
+            new ApplyExpr(e.RangeToken, e, bexprs, e.tok) {
               Type = new SetType(true, builtIns.ObjectQ())
             }) {
             ResolvedOp =
@@ -58,18 +58,18 @@ public class ArrowType : UserDefinedType {
   /// <summary>
   /// Constructs a(n unresolved) arrow type.
   /// </summary>
-  public ArrowType(IToken tok, List<Type> args, Type result)
-    : base(tok, ArrowTypeName(args.Count), Util.Snoc(args, result)) {
-    Contract.Requires(tok != null);
+  public ArrowType(RangeToken rangeToken, List<Type> args, Type result)
+    : base(rangeToken, ArrowTypeName(args.Count), Util.Snoc(args, result)) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(args != null);
     Contract.Requires(result != null);
   }
   /// <summary>
   /// Constructs and returns a resolved arrow type.
   /// </summary>
-  public ArrowType(IToken tok, ArrowTypeDecl atd, List<Type> typeArgsAndResult)
-    : base(tok, ArrowTypeName(atd.Arity), atd, typeArgsAndResult) {
-    Contract.Requires(tok != null);
+  public ArrowType(RangeToken rangeToken, ArrowTypeDecl atd, List<Type> typeArgsAndResult)
+    : base(rangeToken, ArrowTypeName(atd.Arity), atd, typeArgsAndResult) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(atd != null);
     Contract.Requires(typeArgsAndResult != null);
     Contract.Requires(typeArgsAndResult.Count == atd.Arity + 1);
@@ -77,9 +77,9 @@ public class ArrowType : UserDefinedType {
   /// <summary>
   /// Constructs and returns a resolved arrow type.
   /// </summary>
-  public ArrowType(IToken tok, ArrowTypeDecl atd, List<Type> typeArgs, Type result)
-    : this(tok, atd, Util.Snoc(typeArgs, result)) {
-    Contract.Requires(tok != null);
+  public ArrowType(RangeToken rangeToken, ArrowTypeDecl atd, List<Type> typeArgs, Type result)
+    : this(rangeToken, atd, Util.Snoc(typeArgs, result)) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(atd != null);
     Contract.Requires(typeArgs != null);
     Contract.Requires(typeArgs.Count == atd.Arity);
@@ -162,11 +162,11 @@ public class ArrowType : UserDefinedType {
   }
 
   public override Type Subst(IDictionary<TypeParameter, Type> subst) {
-    return new ArrowType(tok, (ArrowTypeDecl)ResolvedClass, Args.ConvertAll(u => u.Subst(subst)), Result.Subst(subst));
+    return new ArrowType(RangeToken, (ArrowTypeDecl)ResolvedClass, Args.ConvertAll(u => u.Subst(subst)), Result.Subst(subst));
   }
 
   public override Type ReplaceTypeArguments(List<Type> arguments) {
-    return new ArrowType(tok, (ArrowTypeDecl)ResolvedClass, arguments);
+    return new ArrowType(RangeToken, (ArrowTypeDecl)ResolvedClass, arguments);
   }
 
   public override bool SupportsEquality {

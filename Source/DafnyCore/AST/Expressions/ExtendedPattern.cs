@@ -11,12 +11,10 @@ ExtendedPattern is either:
 2 - An IdPattern of a string and a list of ExtendedPattern, representing either
     a bound variable or a constructor applied to n arguments or a symbolic constant
 */
-public abstract class ExtendedPattern : TokenNode {
+public abstract class ExtendedPattern : RangeNode {
   public bool IsGhost;
 
-  public ExtendedPattern(IToken tok, bool isGhost = false) {
-    Contract.Requires(tok != null);
-    this.tok = tok;
+  protected ExtendedPattern(RangeToken rangeToken, bool isGhost = false) : base(rangeToken) {
     this.IsGhost = isGhost;
   }
 
@@ -61,9 +59,9 @@ public abstract class ExtendedPattern : TokenNode {
         if (idPattern.Arguments != null) {
           // pat is a tuple or constructor
           if (idPattern.Id.StartsWith(BuiltIns.TupleTypeCtorNamePrefix)) {
-            resolver.reporter.Error(MessageSource.Resolver, this.Tok, $"tuple type does not match type {type.ToString()}");
+            resolver.reporter.Error(MessageSource.Resolver, RangeToken.StartToken, $"tuple type does not match type {type.ToString()}");
           } else {
-            resolver.reporter.Error(MessageSource.Resolver, this.Tok, $"member {idPattern.Id} does not exist in type {type.ToString()}");
+            resolver.reporter.Error(MessageSource.Resolver, RangeToken.StartToken, $"member {idPattern.Id} does not exist in type {type.ToString()}");
           }
         } else { // pat is a simple variable or a constant
           /* =[1]= */
@@ -79,7 +77,7 @@ public abstract class ExtendedPattern : TokenNode {
     } else if (type.AsDatatype is TupleTypeDecl tupleTypeDecl) {
       var udt = type.NormalizeExpand() as UserDefinedType;
       if (!(this is IdPattern)) {
-        resolver.reporter.Error(MessageSource.Resolver, this.Tok, "pattern doesn't correspond to a tuple");
+        resolver.reporter.Error(MessageSource.Resolver, this.RangeToken, "pattern doesn't correspond to a tuple");
         return;
       }
 
@@ -95,10 +93,10 @@ public abstract class ExtendedPattern : TokenNode {
       //We expect the number of arguments in the type of the matchee and the provided pattern to match, except if the pattern is a bound variable
       if (udt.TypeArgs.Count != idpat.Arguments.Count) {
         if (idpat.Id.StartsWith(BuiltIns.TupleTypeCtorNamePrefix)) {
-          resolver.reporter.Error(MessageSource.Resolver, this.Tok,
+          resolver.reporter.Error(MessageSource.Resolver, this.RangeToken,
             $"the case pattern is a {idpat.Arguments.Count}-element tuple, while the match expression is a {udt.TypeArgs.Count}-element tuple");
         } else {
-          resolver.reporter.Error(MessageSource.Resolver, this.Tok,
+          resolver.reporter.Error(MessageSource.Resolver, this.RangeToken,
             $"case pattern {idpat.Id} has {idpat.Arguments.Count} arguments whereas the match expression has {udt.TypeArgs.Count}");
         }
       }
@@ -106,14 +104,14 @@ public abstract class ExtendedPattern : TokenNode {
       var pairTP = udt.TypeArgs.Zip(idpat.Arguments, (x, y) => new Tuple<Type, ExtendedPattern>(x, y));
 
       foreach (var tp in pairTP) {
-        var t = resolver.PartiallyResolveTypeForMemberSelection(this.Tok, tp.Item1).NormalizeExpand();
+        var t = resolver.PartiallyResolveTypeForMemberSelection(RangeToken, tp.Item1).NormalizeExpand();
         tp.Item2.CheckLinearExtendedPattern(t, resolutionContext, resolver);
       }
       return;
     } else { // matching a datatype value
       if (!(this is IdPattern)) {
         Contract.Assert(this is LitPattern);
-        resolver.reporter.Error(MessageSource.Resolver, this.Tok, "Constant pattern used in place of datatype");
+        resolver.reporter.Error(MessageSource.Resolver, this.RangeToken, "Constant pattern used in place of datatype");
         return;
       }
       IdPattern idpat = (IdPattern)this;
@@ -151,7 +149,7 @@ public abstract class ExtendedPattern : TokenNode {
           }
         } else {
           // else applied to the wrong number of arguments
-          resolver.reporter.Error(MessageSource.Resolver, idpat.Tok, "constructor {0} of arity {2} is applied to {1} argument(s)", idpat.Id, (idpat.Arguments == null ? 0 : idpat.Arguments.Count), ctor.Formals.Count);
+          resolver.reporter.Error(MessageSource.Resolver, idpat.RangeToken, "constructor {0} of arity {2} is applied to {1} argument(s)", idpat.Id, idpat.Arguments?.Count ?? 0, ctor.Formals.Count);
         }
       } else {
         /* =[4]= */

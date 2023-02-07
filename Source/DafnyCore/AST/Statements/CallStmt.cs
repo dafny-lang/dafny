@@ -8,8 +8,9 @@ namespace Microsoft.Dafny;
 /// A CallStmt is always resolved.  It is typically produced as a resolved counterpart of the syntactic AST note ApplySuffix.
 /// </summary>
 public class CallStmt : Statement, ICloneable<CallStmt> {
-  // OverrideToken is required because MethodSelect.EndToken can be incorrect. Will remove once resolved expressions have correct ranges.
-  public override IToken Tok => overrideToken ?? MethodSelect.EndToken.Next;
+
+  // TODO remove overrideToken now that we can rely on MethodSelect.
+  public override IToken Tok => MethodSelect.EndToken.Next;
 
   [ContractInvariantMethod]
   void ObjectInvariant() {

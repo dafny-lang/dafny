@@ -61,7 +61,7 @@ class ConstructorWarningVisitor : TopDownVisitor<Unit> {
         CheckPattern(nestedPattern);
       }
       if (!idPattern.HasParenthesis) {
-        this.reporter.Warning(MessageSource.Rewriter, ErrorDetail.ErrorID.None, idPattern.tok,
+        reporter.Warning(MessageSource.Rewriter, ErrorDetail.ErrorID.None, idPattern.RangeToken,
           $"Constructor name '{idPattern}' should be followed by parentheses");
       }
     }

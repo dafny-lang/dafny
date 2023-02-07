@@ -43,7 +43,7 @@ namespace DafnyTestGeneration {
         Type.Int);
       subsetToSuperset["_System.object"] = new(
         new List<TypeParameter>(),
-        new UserDefinedType(new Token(), "object", new List<Type>()));
+        new UserDefinedType(RangeToken.NoToken, "object", new List<Type>()));
       scopes = program.DefaultModuleDef.TopLevelDecls?
         .OfType<LiteralModuleDecl>()
         .Select(declaration =>
@@ -493,7 +493,7 @@ namespace DafnyTestGeneration {
         if (name.StartsWith("_System.")) {
           name = name[8..];
         }
-        return new UserDefinedType(new Token(), name,
+        return new UserDefinedType(RangeToken.NoToken, name,
           type.TypeArgs.ConvertAll(CloneType));
       }
 
@@ -506,7 +506,7 @@ namespace DafnyTestGeneration {
             isValidExpression = false;
             return base.CloneExpr(expr);
           case ThisExpr:
-            return new IdentifierExpr(expr.tok, receiver);
+            return new IdentifierExpr(expr.RangeToken, receiver);
           case AutoGhostIdentifierExpr:
             isValidExpression = false;
             return base.CloneExpr(expr);
@@ -528,8 +528,8 @@ namespace DafnyTestGeneration {
                 actualBindings.Add(base.CloneActualBinding(binding));
                 actualBindings.Last().Actual.Type = binding.Actual.Type;
               }
-              var newValue = new DatatypeValue(new Token(),
-                udt.ResolvedClass.FullDafnyName, datatypeValue.MemberName,
+              var newValue = new DatatypeValue(RangeToken.NoToken,
+                udt.ResolvedClass.FullDafnyName, datatypeValue.MemberNameNode,
                 actualBindings);
               newValue.Type = Utils.UseFullName(datatypeValue.Type);
               newValue.InferredTypeArgs = datatypeValue.InferredTypeArgs.ConvertAll(typ => Utils.UseFullName(typ));
@@ -545,7 +545,7 @@ namespace DafnyTestGeneration {
               }
               if ((identifierExpr.Var != null) &&
                   subst.ContainsKey(identifierExpr.Var)) {
-                return new IdentifierExpr(expr.tok, subst[identifierExpr.Var]);
+                return new IdentifierExpr(expr.RangeToken, subst[identifierExpr.Var]);
               }
               return base.CloneExpr(expr);
             }
@@ -556,7 +556,7 @@ namespace DafnyTestGeneration {
                 return base.CloneExpr(expr);
               }
               if (memberSelectExpr.Obj is StaticReceiverExpr staticReceiverExpr) {
-                return new IdentifierExpr(expr.tok,
+                return new IdentifierExpr(expr.RangeToken,
                   ((staticReceiverExpr.Type) as UserDefinedType).ResolvedClass
                   .FullDafnyName + "." + memberSelectExpr.MemberName);
               }

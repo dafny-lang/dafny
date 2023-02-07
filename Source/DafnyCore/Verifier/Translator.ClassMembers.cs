@@ -262,7 +262,7 @@ namespace Microsoft.Dafny {
       // This is the typical case (that is, f is not a static const field)
 
       var hVar = BplBoundVar("$h", predef.HeapType, out var h);
-      var oVar = BplBoundVar("$o", TrType(Resolver.GetThisType(c.tok, c)), out var o);
+      var oVar = BplBoundVar("$o", TrType(Resolver.GetThisType(c.RangeToken, c)), out var o);
 
       // TClassA(G)
       Bpl.Expr o_ty = ClassTyCon(c, tyexprs);
@@ -270,7 +270,7 @@ namespace Microsoft.Dafny {
       var isGoodHeap = FunctionCall(c.tok, BuiltinFunction.IsGoodHeap, null, h);
       Bpl.Expr isalloc_o;
       if (!(c is ClassDecl)) {
-        var udt = UserDefinedType.FromTopLevelDecl(c.tok, c);
+        var udt = UserDefinedType.FromTopLevelDecl(c.RangeToken, c);
         isalloc_o = MkIsAlloc(o, udt, h);
       } else if (RevealedInScope(c)) {
         isalloc_o = IsAlloced(c.tok, h, o);
@@ -278,7 +278,7 @@ namespace Microsoft.Dafny {
         // c is only provided, not revealed, in the scope. Use the non-null type decl's internal synonym
         var cl = (ClassDecl)c;
         Contract.Assert(cl.NonNullTypeDecl != null);
-        var udt = UserDefinedType.FromTopLevelDecl(c.tok, cl.NonNullTypeDecl);
+        var udt = UserDefinedType.FromTopLevelDecl(c.RangeToken, cl.NonNullTypeDecl);
         isalloc_o = MkIsAlloc(o, udt, h);
       }
 
@@ -540,7 +540,7 @@ namespace Microsoft.Dafny {
         foreach (var f in m.Ins) {
           var udt = f.Type.NormalizeExpandKeepConstraints() as UserDefinedType;
           if (udt != null && udt.Name == "nat") {
-            builder.Add(optimizeExpr(true, new IdentifierExpr(f.tok, f), f.Tok, etran));
+            builder.Add(optimizeExpr(true, new IdentifierExpr(f.RangeToken, f), f.Tok, etran));
           }
         }
       }
@@ -578,15 +578,15 @@ namespace Microsoft.Dafny {
               // this corresponds to "this"
               Contract.Assert(!m.IsStatic);  // if "m" is static, "this" should never have gone into the _induction attribute
               Contract.Assert(receiverSubst == null);  // we expect at most one
-              var receiverType = Resolver.GetThisType(m.tok, (TopLevelDeclWithMembers)m.EnclosingClass);
-              bv = new BoundVar(m.tok, CurrentIdGenerator.FreshId("$ih#this"), receiverType); // use this temporary variable counter, but for a Dafny name (the idea being that the number and the initial "_" in the name might avoid name conflicts)
-              var ie = new IdentifierExpr(m.tok, bv.Name);
+              var receiverType = Resolver.GetThisType(m.RangeToken, (TopLevelDeclWithMembers)m.EnclosingClass);
+              bv = new BoundVar(m.RangeToken, CurrentIdGenerator.FreshId("$ih#this"), receiverType); // use this temporary variable counter, but for a Dafny name (the idea being that the number and the initial "_" in the name might avoid name conflicts)
+              var ie = new IdentifierExpr(m.RangeToken, bv.Name);
               ie.Var = bv;  // resolve here
               ie.Type = bv.Type;  // resolve here
               receiverSubst = ie;
             } else {
               IdentifierExpr ie;
-              CloneVariableAsBoundVar(iv.tok, iv, "$ih#" + iv.Name, out bv, out ie);
+              CloneVariableAsBoundVar(iv.RangeToken, iv, "$ih#" + iv.Name, out bv, out ie);
               substMap.Add(iv, ie);
             }
             parBoundVars.Add(bv);
@@ -594,16 +594,16 @@ namespace Microsoft.Dafny {
           }
 
           // Generate a CallStmt to be used as the body of the 'forall' statement.
-          RecursiveCallParameters(m.tok, m, m.TypeArgs, m.Ins, receiverSubst, substMap, out var recursiveCallReceiver, out var recursiveCallArgs);
-          var methodSel = new MemberSelectExpr(m.tok, recursiveCallReceiver, m.Name);
+          RecursiveCallParameters(m.RangeToken, m, m.TypeArgs, m.Ins, receiverSubst, substMap, out var recursiveCallReceiver, out var recursiveCallArgs);
+          var methodSel = new MemberSelectExpr(m.RangeToken, recursiveCallReceiver, m.NameNode);
           methodSel.Member = m;  // resolve here
-          methodSel.TypeApplication_AtEnclosingClass = m.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp));
-          methodSel.TypeApplication_JustMember = m.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp));
+          methodSel.TypeApplication_AtEnclosingClass = m.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.RangeToken, tp));
+          methodSel.TypeApplication_JustMember = m.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.RangeToken, tp));
           methodSel.Type = new InferredTypeProxy();
           var recursiveCall = new CallStmt(m.tok.ToRange(), new List<Expression>(), methodSel, recursiveCallArgs);
           recursiveCall.IsGhost = m.IsGhost;  // resolve here
 
-          Expression parRange = new LiteralExpr(m.tok, true);
+          Expression parRange = new LiteralExpr(m.RangeToken, true);
           parRange.Type = Type.Bool;  // resolve here
           foreach (var pre in m.Req) {
             parRange = Expression.CreateAnd(parRange, Substitute(pre.E, receiverSubst, substMap));
@@ -761,13 +761,13 @@ namespace Microsoft.Dafny {
       var substMap = new Dictionary<IVariable, Expression>();
       for (int i = 0; i < m.Ins.Count; i++) {
         // get corresponding formal in the class
-        var ie = new IdentifierExpr(m.Ins[i].tok, m.Ins[i].AssignUniqueName(m.IdGenerator));
+        var ie = new IdentifierExpr(m.Ins[i].RangeToken, m.Ins[i].AssignUniqueName(m.IdGenerator));
         ie.Var = m.Ins[i]; ie.Type = ie.Var.Type;
         substMap.Add(m.OverriddenMethod.Ins[i], ie);
       }
       for (int i = 0; i < m.Outs.Count; i++) {
         // get corresponding formal in the class
-        var ie = new IdentifierExpr(m.Outs[i].tok, m.Outs[i].AssignUniqueName(m.IdGenerator));
+        var ie = new IdentifierExpr(m.Outs[i].RangeToken, m.Outs[i].AssignUniqueName(m.IdGenerator));
         ie.Var = m.Outs[i]; ie.Type = ie.Var.Type;
         substMap.Add(m.OverriddenMethod.Outs[i], ie);
       }
@@ -851,7 +851,7 @@ namespace Microsoft.Dafny {
         var th = new Boogie.IdentifierExpr(f.tok, "this", TrReceiverType(f));
         Boogie.Expr wh = Boogie.Expr.And(
           ReceiverNotNull(th),
-          etran.GoodRef(f.tok, th, Resolver.GetReceiverType(f.tok, f)));
+          etran.GoodRef(f.tok, th, Resolver.GetReceiverType(f.RangeToken, f)));
         Boogie.Formal thVar = new Boogie.Formal(f.tok, new Boogie.TypedIdent(f.tok, "this", TrReceiverType(f), wh), true);
         inParams.Add(thVar);
       }
@@ -869,7 +869,7 @@ namespace Microsoft.Dafny {
         } else {
           var pp = f.OverriddenFunction.Result;
           Contract.Assert(!pp.IsOld);
-          pOut = new Formal(pp.tok, pp.Name, f.ResultType, false, pp.IsGhost, null);
+          pOut = new Formal(pp.RangeToken, pp.NameNode, f.ResultType, false, pp.IsGhost, null);
         }
         var varType = TrType(pOut.Type);
         var wh = GetWhereClause(pOut.tok, new Boogie.IdentifierExpr(pOut.tok, pOut.AssignUniqueName(f.IdGenerator), varType), pOut.Type, etran, NOALLOC);
@@ -922,7 +922,7 @@ namespace Microsoft.Dafny {
       var substMap = new Dictionary<IVariable, Expression>();
       for (int i = 0; i < f.Formals.Count; i++) {
         //get corresponsing formal in the class
-        var ie = new IdentifierExpr(f.Formals[i].tok, f.Formals[i].AssignUniqueName(f.IdGenerator));
+        var ie = new IdentifierExpr(f.Formals[i].RangeToken, f.Formals[i].AssignUniqueName(f.IdGenerator));
         ie.Var = f.Formals[i]; ie.Type = ie.Var.Type;
         substMap.Add(f.OverriddenFunction.Formals[i], ie);
       }
@@ -930,7 +930,7 @@ namespace Microsoft.Dafny {
       if (f.OverriddenFunction.Result != null) {
         Contract.Assert(pOut != null);
         //get corresponsing formal in the class
-        var ie = new IdentifierExpr(pOut.tok, pOut.AssignUniqueName(f.IdGenerator));
+        var ie = new IdentifierExpr(pOut.RangeToken, pOut.AssignUniqueName(f.IdGenerator));
         ie.Var = pOut; ie.Type = ie.Var.Type;
         substMap.Add(f.OverriddenFunction.Result, ie);
       }
@@ -1077,7 +1077,7 @@ namespace Microsoft.Dafny {
       }
 
       // Add receiver parameter
-      Type thisType = Resolver.GetReceiverType(f.tok, overridingFunction);
+      Type thisType = Resolver.GetReceiverType(f.RangeToken, overridingFunction);
       var bvThis = new Boogie.BoundVariable(f.tok, new Boogie.TypedIdent(f.tok, etran.This, TrType(thisType)));
       forallFormals.Add(bvThis);
       var bvThisExpr = new Boogie.IdentifierExpr(f.tok, bvThis);
@@ -1174,7 +1174,7 @@ namespace Microsoft.Dafny {
       var overridingTypeArgs = ((ICallable)overridingMember).TypeArgs;
       for (var i = 0; i < origTypeArgs.Count; i++) {
         var otp = overridingTypeArgs[i];
-        typeMap.Add(origTypeArgs[i], new UserDefinedType(otp.tok, otp));
+        typeMap.Add(origTypeArgs[i], new UserDefinedType(otp.RangeToken, otp));
       }
 
       return typeMap;
@@ -1302,7 +1302,7 @@ namespace Microsoft.Dafny {
       if (m.OverriddenMethod.Mod != null) {
         foreach (var e in m.OverriddenMethod.Mod.Expressions) {
           var newE = Substitute(e.E, null, substMap, typeMap);
-          FrameExpression fe = new FrameExpression(e.tok, newE, e.FieldName);
+          FrameExpression fe = new FrameExpression(e.RangeToken, newE, e.FieldName);
           traitFrameExps.Add(fe);
         }
       }
@@ -1395,7 +1395,7 @@ namespace Microsoft.Dafny {
         var index = 0;
         foreach (var formal in m.Ins) {
           if (formal.IsOld) {
-            var dafnyFormalIdExpr = new IdentifierExpr(formal.tok, formal);
+            var dafnyFormalIdExpr = new IdentifierExpr(formal.RangeToken, formal);
             var pIdx = m.Ins.Count == 1 ? "" : " at index " + index;
             var desc = new PODesc.IsAllocated($"parameter{pIdx} ('{formal.Name}')", "in the two-state lemma's previous state");
             var require = Requires(formal.tok, false, MkIsAlloc(etran.TrExpr(dafnyFormalIdExpr), formal.Type, prevHeap),

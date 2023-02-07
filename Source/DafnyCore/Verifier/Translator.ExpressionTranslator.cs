@@ -613,7 +613,7 @@ namespace Microsoft.Dafny {
             var mem = recv as MemberSelectExpr;
             var fn = mem == null ? null : mem.Member as Function;
             if (fn != null) {
-              return TrExpr(new FunctionCallExpr(e.tok, fn.Name, mem.Obj, e.tok, e.CloseParen, e.Args) {
+              return TrExpr(new FunctionCallExpr(e.RangeToken, fn.Name, mem.Obj, e.Args) {
                 Function = fn,
                 Type = e.Type,
                 TypeApplication_AtEnclosingClass = mem.TypeApplication_AtEnclosingClass,
@@ -1552,7 +1552,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
           foreach (var bv in mc.Arguments) {
             if (!LocalVariable.HasWildcardName(bv)) {
               var dtor = mc.Ctor.Destructors[argIndex];
-              var dv = new MemberSelectExpr(bv.tok, e.Source, dtor);
+              var dv = new MemberSelectExpr(bv.RangeToken, e.Source, dtor);
               substMap.Add(bv, dv);
             }
             argIndex++;
@@ -1561,8 +1561,8 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
           if (r == null) {
             r = c;
           } else {
-            var test = new MemberSelectExpr(mc.tok, e.Source, mc.Ctor.QueryField);
-            var ite = new ITEExpr(mc.tok, false, test, c, r);
+            var test = new MemberSelectExpr(mc.RangeToken, e.Source, mc.Ctor.QueryField);
+            var ite = new ITEExpr(mc.RangeToken, false, test, c, r);
             ite.Type = e.Type;
             r = ite;
           }
@@ -1623,8 +1623,8 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
         antitriggers = null;
         Boogie.Expr typeAntecedent = Boogie.Expr.True;
         foreach (BoundVar bv in boundVars) {
-          var newBoundVar = new BoundVar(bv.tok, bv.Name, bv.Type);
-          IdentifierExpr ie = new IdentifierExpr(newBoundVar.tok, newBoundVar.AssignUniqueName(translator.currentDeclaration.IdGenerator));
+          var newBoundVar = new BoundVar(bv.RangeToken, bv.Name, bv.Type);
+          IdentifierExpr ie = new IdentifierExpr(newBoundVar.RangeToken, newBoundVar.AssignUniqueName(translator.currentDeclaration.IdGenerator));
           ie.Var = newBoundVar; ie.Type = ie.Var.Type;  // resolve ie here
           substMap.Add(bv, ie);
           Boogie.Variable bvar = new Boogie.BoundVariable(newBoundVar.tok, new Boogie.TypedIdent(newBoundVar.tok, newBoundVar.AssignUniqueName(translator.currentDeclaration.IdGenerator), translator.TrType(newBoundVar.Type)));

@@ -43,10 +43,10 @@ public class ExpectContracts : IRewriter {
     if (ExpressionTester.UsesSpecFeatures(exprToCheck)) {
       Reporter.Warning(MessageSource.Rewriter, ErrorID.None, tok,
         $"The {exprType} clause at this location cannot be compiled to be tested at runtime because it references ghost state.");
-      exprToCheck = new LiteralExpr(tok, true);
+      exprToCheck = new LiteralExpr(expr.E.RangeToken, true);
       msg += " (not compiled because it references ghost state)";
     }
-    var msgExpr = Expression.CreateStringLiteral(tok, msg);
+    var msgExpr = Expression.CreateStringLiteral(expr.E.RangeToken, msg);
     return new ExpectStmt(expr.E.RangeToken, exprToCheck, msgExpr, null);
   }
 
@@ -92,11 +92,11 @@ public class ExpectContracts : IRewriter {
 
     if (decl is Method origMethod) {
       var newMethod = cloner.CloneMethod(origMethod);
-      newMethod.Name = newName;
+      newMethod.NameNode.Value = newName;
 
       var args = newMethod.Ins.Select(Expression.CreateIdentExpr).ToList();
       var outs = newMethod.Outs.Select(Expression.CreateIdentExpr).ToList();
-      var applyExpr = ApplySuffix.MakeRawApplySuffix(tok, origMethod.Name, args);
+      var applyExpr = ApplySuffix.MakeRawApplySuffix(decl.RangeToken, origMethod.Name, args);
       var applyRhs = new ExprRhs(applyExpr);
       var callStmt = new UpdateStmt(decl.RangeToken, outs, new List<AssignmentRhs>() { applyRhs });
 
@@ -105,15 +105,15 @@ public class ExpectContracts : IRewriter {
       newDecl = newMethod;
     } else if (decl is Function origFunc) {
       var newFunc = cloner.CloneFunction(origFunc);
-      newFunc.Name = newName;
+      newFunc.NameNode.Value = newName;
 
       var args = origFunc.Formals.Select(Expression.CreateIdentExpr).ToList();
-      var callExpr = ApplySuffix.MakeRawApplySuffix(tok, origFunc.Name, args);
+      var callExpr = ApplySuffix.MakeRawApplySuffix(decl.RangeToken, origFunc.Name, args);
       newFunc.Body = callExpr;
 
       var localName = origFunc.Result?.Name ?? "__result";
       var local = new LocalVariable(decl.RangeToken, localName, origFunc.ResultType, false);
-      var localExpr = new IdentifierExpr(tok, localName);
+      var localExpr = new IdentifierExpr(decl.RangeToken, localName);
       var callRhs = new ExprRhs(callExpr);
 
       var lhss = new List<Expression> { localExpr };
@@ -220,7 +220,7 @@ public class ExpectContracts : IRewriter {
           var newTarget = newRedirections[f];
           var resolved = (FunctionCallExpr)fce.Resolved;
           resolved.Function = (Function)newTarget;
-          resolved.Name = newTarget.Name;
+          resolved.NameNode = newTarget.NameNode;
           calledWrappers.Add(newTarget);
         }
       }
@@ -235,7 +235,7 @@ public class ExpectContracts : IRewriter {
           var newTarget = newRedirections[m];
           var resolved = (MemberSelectExpr)cs.MethodSelect.Resolved;
           resolved.Member = newTarget;
-          resolved.MemberName = newTarget.Name;
+          resolved.MemberNameNode.Value = newTarget.Name;
           calledWrappers.Add(newTarget);
         }
       }

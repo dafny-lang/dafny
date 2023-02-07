@@ -27,7 +27,7 @@ public class BitvectorOptimizationVisitor : BottomUpVisitor {
   private Expression ShrinkBitVectorShiftAmount(Expression expr, BitvectorType originalType) {
     var width = new BigInteger(originalType.Width);
     var intermediateType = new BitvectorType((int)width.GetBitLength());
-    var newExpr = new ConversionExpr(expr.tok, expr, intermediateType, "when converting shift amount to a bit vector, the ");
+    var newExpr = new ConversionExpr(expr.RangeToken, expr, intermediateType, "when converting shift amount to a bit vector, the ");
     newExpr.Type = intermediateType;
     return newExpr;
   }

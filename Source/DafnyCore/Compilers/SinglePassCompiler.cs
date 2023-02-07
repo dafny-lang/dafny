@@ -289,7 +289,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(cls != null);
       Contract.Requires(wr != null);
       Contract.Requires(tok != null);
-      return TypeName_Companion(UserDefinedType.FromTopLevelDecl(tok, cls), wr, tok, null);
+      return TypeName_Companion(UserDefinedType.FromTopLevelDecl(tok.ToRange(), cls), wr, tok, null);
     }
     /// Return the "native form" of a type, to which EmitCoercionToNativeForm coerces it.
     protected virtual Type NativeForm(Type type) {
@@ -1578,7 +1578,7 @@ namespace Microsoft.Dafny.Compilers {
         return false;
       }
 
-      if (name != null && name != "") {
+      if (!string.IsNullOrEmpty(name)) {
         foreach (var module in program.CompileModules) {
           if (module.IsAbstract) {
             // the purpose of an abstract module is to skip compilation
@@ -1745,7 +1745,7 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         // Need to manually insert the args.
         var argsType = new SeqType(new SeqType(new CharType()));
-        m.Ins.Add(new ImplicitFormal(m.tok, "_noArgsParameter", argsType, true, false));
+        m.Ins.Add(new ImplicitFormal(m.RangeToken, "_noArgsParameter", argsType, true, false));
       }
       if (!m.Outs.TrueForAll(f => f.IsGhost)) {
         reason = "the method has non-ghost out parameters";
@@ -1949,7 +1949,7 @@ namespace Microsoft.Dafny.Compilers {
                   var typeSubst = new Dictionary<TypeParameter, Type>();
                   cf.EnclosingClass.TypeArgs.ForEach(tp => typeSubst.Add(tp, (Type)new UserDefinedType(tp)));
                   var typeArgs = CombineAllTypeArguments(cf);
-                  EmitMemberSelect(EmitThis, UserDefinedType.FromTopLevelDecl(c.tok, c), cf,
+                  EmitMemberSelect(EmitThis, UserDefinedType.FromTopLevelDecl(c.RangeToken, c), cf,
                     typeArgs, typeSubst, f.Type, internalAccess: true).EmitRead(sw);
                 } else {
                   EmitReturnExpr(PlaceboValue(cf.Type, wBody, cf.tok, true), wBody);
@@ -2096,7 +2096,7 @@ namespace Microsoft.Dafny.Compilers {
       wr = EmitReturnExpr(wr);
       wr = EmitCoercionIfNecessary(f.Type, fOriginal.Type, f.tok, wr);
 
-      var calleeReceiverType = UserDefinedType.FromTopLevelDecl(f.tok, f.EnclosingClass).Subst(thisContext.ParentFormalTypeParametersToActuals);
+      var calleeReceiverType = UserDefinedType.FromTopLevelDecl(f.RangeToken, f.EnclosingClass).Subst(thisContext.ParentFormalTypeParametersToActuals);
       wr.Write("{0}{1}", TypeName_Companion(calleeReceiverType, wr, f.tok, f), ModuleSeparator);
       var typeArgs = CombineAllTypeArguments(f, thisContext);
       EmitNameAndActualTypeArgs(IdName(f), TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, f, true)), f.tok, wr);
@@ -2105,7 +2105,7 @@ namespace Microsoft.Dafny.Compilers {
       EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, f.EnclosingClass, f, true), f.tok, wr, ref sep);
 
       wr.Write(sep);
-      var w = EmitCoercionIfNecessary(UserDefinedType.FromTopLevelDecl(f.tok, thisContext), calleeReceiverType, f.tok, wr);
+      var w = EmitCoercionIfNecessary(UserDefinedType.FromTopLevelDecl(f.RangeToken, thisContext), calleeReceiverType, f.tok, wr);
       EmitThis(w);
       wr.Write(")");
     }
@@ -2132,7 +2132,7 @@ namespace Microsoft.Dafny.Compilers {
       wr = EmitReturnExpr(wr);
       wr = EmitCoercionIfNecessary(f.ResultType, f.Original.ResultType, f.tok, wr);
 
-      var calleeReceiverType = UserDefinedType.FromTopLevelDecl(f.tok, f.EnclosingClass).Subst(thisContext.ParentFormalTypeParametersToActuals);
+      var calleeReceiverType = UserDefinedType.FromTopLevelDecl(f.RangeToken, f.EnclosingClass).Subst(thisContext.ParentFormalTypeParametersToActuals);
       wr.Write("{0}{1}", TypeName_Companion(calleeReceiverType, wr, f.tok, f), ModuleSeparator);
       var typeArgs = CombineAllTypeArguments(f, thisContext);
       EmitNameAndActualTypeArgs(IdName(f), TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, f, true)), f.tok, wr);
@@ -2141,7 +2141,7 @@ namespace Microsoft.Dafny.Compilers {
       EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, f.EnclosingClass, f, true), f.tok, wr, ref sep);
 
       wr.Write(sep);
-      var w = EmitCoercionIfNecessary(UserDefinedType.FromTopLevelDecl(f.tok, thisContext), calleeReceiverType, f.tok, wr);
+      var w = EmitCoercionIfNecessary(UserDefinedType.FromTopLevelDecl(f.RangeToken, thisContext), calleeReceiverType, f.tok, wr);
       EmitThis(w);
       sep = ", ";
 
@@ -2192,7 +2192,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       var protectedName = IdName(method);
-      var calleeReceiverType = UserDefinedType.FromTopLevelDecl(method.tok, method.EnclosingClass).Subst(thisContext.ParentFormalTypeParametersToActuals);
+      var calleeReceiverType = UserDefinedType.FromTopLevelDecl(method.RangeToken, method.EnclosingClass).Subst(thisContext.ParentFormalTypeParametersToActuals);
       wr.Write(TypeName_Companion(calleeReceiverType, wr, method.tok, method));
       wr.Write(ClassAccessor);
 
@@ -2203,7 +2203,7 @@ namespace Microsoft.Dafny.Compilers {
       EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, method.EnclosingClass, method, true), method.tok, wr, ref sep);
 
       wr.Write(sep);
-      var w = EmitCoercionIfNecessary(UserDefinedType.FromTopLevelDecl(method.tok, thisContext), calleeReceiverType, method.tok, wr);
+      var w = EmitCoercionIfNecessary(UserDefinedType.FromTopLevelDecl(method.RangeToken, thisContext), calleeReceiverType, method.tok, wr);
       EmitThis(w);
       sep = ", ";
 
@@ -2409,23 +2409,23 @@ namespace Microsoft.Dafny.Compilers {
             };
             Expression unit;
             if (f.ResultType.IsNumericBased(Type.NumericPersuasion.Int) || f.ResultType.IsBigOrdinalType) {
-              unit = new LiteralExpr(f.tok, f.TailRecursion == Function.TailStatus.Accumulate_Mul ? 1 : 0);
+              unit = new LiteralExpr(f.RangeToken, f.TailRecursion == Function.TailStatus.Accumulate_Mul ? 1 : 0);
               unit.Type = f.ResultType;
             } else if (f.ResultType.IsNumericBased(Type.NumericPersuasion.Real)) {
-              unit = new LiteralExpr(f.tok, f.TailRecursion == Function.TailStatus.Accumulate_Mul ? BigDec.FromInt(1) : BigDec.ZERO);
+              unit = new LiteralExpr(f.RangeToken, f.TailRecursion == Function.TailStatus.Accumulate_Mul ? BigDec.FromInt(1) : BigDec.ZERO);
               unit.Type = f.ResultType;
             } else if (f.ResultType.IsBitVectorType) {
               var n = f.TailRecursion == Function.TailStatus.Accumulate_Mul ? 1 : 0;
-              unit = new LiteralExpr(f.tok, n);
+              unit = new LiteralExpr(f.RangeToken, n);
               unit.Type = f.ResultType;
             } else if (f.ResultType.AsSetType != null) {
-              unit = new SetDisplayExpr(f.tok, !f.ResultType.IsISetType, new List<Expression>());
+              unit = new SetDisplayExpr(f.RangeToken, !f.ResultType.IsISetType, new List<Expression>());
               unit.Type = f.ResultType;
             } else if (f.ResultType.AsMultiSetType != null) {
-              unit = new MultiSetDisplayExpr(f.tok, new List<Expression>());
+              unit = new MultiSetDisplayExpr(f.RangeToken, new List<Expression>());
               unit.Type = f.ResultType;
             } else if (f.ResultType.AsSeqType != null) {
-              unit = new SeqDisplayExpr(f.tok, new List<Expression>());
+              unit = new SeqDisplayExpr(f.RangeToken, new List<Expression>());
               unit.Type = f.ResultType;
             } else {
               Contract.Assert(false);  // unexpected type
@@ -2693,7 +2693,7 @@ namespace Microsoft.Dafny.Compilers {
             wRHS = wr;
           } else {
             var instantiatedType = e.Receiver.Type.Subst(thisContext.ParentFormalTypeParametersToActuals);
-            wRHS = EmitCoercionIfNecessary(instantiatedType, UserDefinedType.FromTopLevelDecl(e.tok, thisContext), e.tok, wr);
+            wRHS = EmitCoercionIfNecessary(instantiatedType, UserDefinedType.FromTopLevelDecl(e.RangeToken, thisContext), e.tok, wr);
           }
           wRHS.Write(inTmps[n]);
           EndStmt(wr);
@@ -2715,23 +2715,23 @@ namespace Microsoft.Dafny.Compilers {
         Contract.Assert(accumulatorVar != null);
         Expression tailTerm;
         Expression rhs;
-        var acc = new IdentifierExpr(expr.tok, accumulatorVar);
+        var acc = new IdentifierExpr(expr.RangeToken, accumulatorVar);
         if (bin.AccumulatesForTailRecursion == BinaryExpr.AccumulationOperand.Left) {
-          rhs = new BinaryExpr(bin.tok, bin.ResolvedOp, acc, bin.E0);
+          rhs = new BinaryExpr(bin.RangeToken, bin.ResolvedOp, acc, bin.E0);
           tailTerm = bin.E1;
         } else {
           switch (bin.ResolvedOp) {
             case BinaryExpr.ResolvedOpcode.Sub:
-              rhs = new BinaryExpr(bin.tok, BinaryExpr.ResolvedOpcode.Add, bin.E1, acc);
+              rhs = new BinaryExpr(bin.RangeToken, BinaryExpr.ResolvedOpcode.Add, bin.E1, acc);
               break;
             case BinaryExpr.ResolvedOpcode.SetDifference:
-              rhs = new BinaryExpr(bin.tok, BinaryExpr.ResolvedOpcode.Union, bin.E1, acc);
+              rhs = new BinaryExpr(bin.RangeToken, BinaryExpr.ResolvedOpcode.Union, bin.E1, acc);
               break;
             case BinaryExpr.ResolvedOpcode.MultiSetDifference:
-              rhs = new BinaryExpr(bin.tok, BinaryExpr.ResolvedOpcode.MultiSetUnion, bin.E1, acc);
+              rhs = new BinaryExpr(bin.RangeToken, BinaryExpr.ResolvedOpcode.MultiSetUnion, bin.E1, acc);
               break;
             default:
-              rhs = new BinaryExpr(bin.tok, bin.ResolvedOp, bin.E1, acc);
+              rhs = new BinaryExpr(bin.RangeToken, bin.ResolvedOp, bin.E1, acc);
               break;
           }
           tailTerm = bin.E0;
@@ -2748,34 +2748,34 @@ namespace Microsoft.Dafny.Compilers {
         if (enclosingFunction != null && enclosingFunction.IsAccumulatorTailRecursive) {
           // Remember to include the accumulator
           Contract.Assert(accumulatorVar != null);
-          var acc = new IdentifierExpr(expr.tok, accumulatorVar);
+          var acc = new IdentifierExpr(expr.RangeToken, accumulatorVar);
           switch (enclosingFunction.TailRecursion) {
             case Function.TailStatus.Accumulate_Add:
-              expr = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.Add, expr, acc);
+              expr = new BinaryExpr(expr.RangeToken, BinaryExpr.ResolvedOpcode.Add, expr, acc);
               break;
             case Function.TailStatus.AccumulateRight_Sub:
-              expr = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.Sub, expr, acc);
+              expr = new BinaryExpr(expr.RangeToken, BinaryExpr.ResolvedOpcode.Sub, expr, acc);
               break;
             case Function.TailStatus.Accumulate_Mul:
-              expr = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.Mul, expr, acc);
+              expr = new BinaryExpr(expr.RangeToken, BinaryExpr.ResolvedOpcode.Mul, expr, acc);
               break;
             case Function.TailStatus.Accumulate_SetUnion:
-              expr = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.Union, expr, acc);
+              expr = new BinaryExpr(expr.RangeToken, BinaryExpr.ResolvedOpcode.Union, expr, acc);
               break;
             case Function.TailStatus.AccumulateRight_SetDifference:
-              expr = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.SetDifference, expr, acc);
+              expr = new BinaryExpr(expr.RangeToken, BinaryExpr.ResolvedOpcode.SetDifference, expr, acc);
               break;
             case Function.TailStatus.Accumulate_MultiSetUnion:
-              expr = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.MultiSetUnion, expr, acc);
+              expr = new BinaryExpr(expr.RangeToken, BinaryExpr.ResolvedOpcode.MultiSetUnion, expr, acc);
               break;
             case Function.TailStatus.AccumulateRight_MultiSetDifference:
-              expr = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.MultiSetDifference, expr, acc);
+              expr = new BinaryExpr(expr.RangeToken, BinaryExpr.ResolvedOpcode.MultiSetDifference, expr, acc);
               break;
             case Function.TailStatus.AccumulateLeft_Concat:
-              expr = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.Concat, acc, expr); // note order of operands
+              expr = new BinaryExpr(expr.RangeToken, BinaryExpr.ResolvedOpcode.Concat, acc, expr); // note order of operands
               break;
             case Function.TailStatus.AccumulateRight_Concat:
-              expr = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.Concat, expr, acc);
+              expr = new BinaryExpr(expr.RangeToken, BinaryExpr.ResolvedOpcode.Concat, expr, acc);
               break;
             default:
               Contract.Assert(false); // unexpected TailStatus
@@ -3063,7 +3063,7 @@ namespace Microsoft.Dafny.Compilers {
         // to make it more target-language idiomatic and improve performance
         ConcreteSyntaxTree guardWriter;
         ConcreteSyntaxTree bodyWriter = EmitIf(out guardWriter, false, wr);
-        var negated = new UnaryOpExpr(s.Tok, UnaryOpExpr.Opcode.Not, s.Expr);
+        var negated = new UnaryOpExpr(s.RangeToken, UnaryOpExpr.Opcode.Not, s.Expr);
         negated.Type = Type.Bool;
         TrExpr(negated, guardWriter, false, wStmts);
         EmitHalt(s.Tok, s.Message, bodyWriter);
@@ -3088,7 +3088,7 @@ namespace Microsoft.Dafny.Compilers {
             // let's compile the "else" branch, since that involves no work
             // (still, let's leave a marker in the source code to indicate that this is what we did)
             Coverage.UnusedInstrumentationPoint(s.Thn.Tok, "then branch");
-            var notFalse = (UnaryOpExpr)Expression.CreateNot(s.Thn.Tok, new LiteralExpr(s.Thn.Tok, false));
+            var notFalse = (UnaryOpExpr)Expression.CreateNot(s.Thn.RangeToken, new LiteralExpr(s.Thn.RangeToken, false));
             var thenWriter = EmitIf(out guardWriter, false, wr);
             EmitUnaryExpr(ResolvedUnaryOp.BoolNot, notFalse.E, false, guardWriter, wStmts);
             Coverage.Instrument(s.Tok, "implicit else branch", wr);
@@ -3575,7 +3575,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (bound is ComprehensionExpr.DatatypeBoundedPool) {
         var b = (ComprehensionExpr.DatatypeBoundedPool)bound;
         collectionWriter.Write("{0}.AllSingletonConstructors{1}", TypeName_Companion(bv.Type, collectionWriter, bv.Tok, null), propertySuffix);
-        return new UserDefinedType(bv.Tok, new NameSegment(bv.Tok, b.Decl.Name, new())) {
+        return new UserDefinedType(bv.RangeToken, new NameSegment(bv.RangeToken, b.Decl.Name, new())) {
           ResolvedClass = b.Decl
         };
       } else {
@@ -4233,7 +4233,7 @@ namespace Microsoft.Dafny.Compilers {
         var element0 = ProtectedFreshId($"_element0_");
         wRhs = DeclareLocalVar(element0, null, typeRhs.Tok, wElse);
         wRhs.Write("{0}{1}({2})", init, LambdaExecute, initFunctionType.Args.Comma(argumentType => {
-          var zero = Expression.CreateIntLiteral(typeRhs.Tok, 0, argumentType);
+          var zero = Expression.CreateIntLiteral(typeRhs.RangeToken, 0, argumentType);
           return Expr(zero, false, wElse).ToString();
         }));
 
@@ -4584,7 +4584,7 @@ namespace Microsoft.Dafny.Compilers {
           wRHS = wr;
         } else {
           var instantiatedType = receiver.Type.Subst(thisContext.ParentFormalTypeParametersToActuals);
-          wRHS = EmitCoercionIfNecessary(instantiatedType, UserDefinedType.FromTopLevelDecl(tok, thisContext), tok, wr);
+          wRHS = EmitCoercionIfNecessary(instantiatedType, UserDefinedType.FromTopLevelDecl(tok.ToRange(), thisContext), tok, wr);
         }
         wRHS.Write(inTmps[n]);
         EndStmt(wr);
@@ -4742,7 +4742,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (expr is ThisExpr) {
         if (thisContext != null) {
           var instantiatedType = expr.Type.Subst(thisContext.ParentFormalTypeParametersToActuals);
-          wr = EmitCoercionIfNecessary(UserDefinedType.FromTopLevelDecl(expr.tok, thisContext), instantiatedType, expr.tok, wr);
+          wr = EmitCoercionIfNecessary(UserDefinedType.FromTopLevelDecl(expr.RangeToken, thisContext), instantiatedType, expr.tok, wr);
         }
         EmitThis(wr);
 
@@ -4944,7 +4944,7 @@ namespace Microsoft.Dafny.Compilers {
         var e = (TypeTestExpr)expr;
         var fromType = e.E.Type;
         if (fromType.IsSubtypeOf(e.ToType, false, false)) {
-          TrExpr(Expression.CreateBoolLiteral(e.tok, true), wr, inLetExprBody, wStmts);
+          TrExpr(Expression.CreateBoolLiteral(e.RangeToken, true), wr, inLetExprBody, wStmts);
         } else {
           var name = $"_is_{GetUniqueAstNumber(e)}";
           wr = CreateIIFE_ExprBody(name, fromType, e.tok, e.E, inLetExprBody, Type.Bool, e.tok, wr, ref wStmts);
@@ -5313,7 +5313,7 @@ namespace Microsoft.Dafny.Compilers {
             wr = EmitBlock(wr);
             var wStmts = wr.Fork();
             wr = EmitReturnExpr(wr);
-            TrExpr(new LiteralExpr(tok, elseReturnValue), wr, inLetExprBody, wStmts);
+            TrExpr(new LiteralExpr(tok.ToRange(), elseReturnValue), wr, inLetExprBody, wStmts);
           }
           wr = thenWriter;
         }
@@ -5345,7 +5345,7 @@ namespace Microsoft.Dafny.Compilers {
               inLetExprBody, tok, wr, isReturning, elseReturnValue, true);
         }
 
-        var bvIdentifier = new IdentifierExpr(tok, boundVar);
+        var bvIdentifier = new IdentifierExpr(tok.ToRange(), boundVar);
         var typeParameters = TypeParameter.SubstitutionMap(typeParametersArgs, typeArgs);
         var subContract = new Substituter(null,
           new Dictionary<IVariable, Expression>()
@@ -5365,7 +5365,7 @@ namespace Microsoft.Dafny.Compilers {
           elseBranch = EmitBlock(elseBranch);
           elseBranch = EmitReturnExpr(elseBranch);
           wStmts = elseBranch.Fork();
-          TrExpr(new LiteralExpr(tok, elseReturnValue), elseBranch, inLetExprBody, wStmts);
+          TrExpr(new LiteralExpr(tok.ToRange(), elseReturnValue), elseBranch, inLetExprBody, wStmts);
         }
         wr = thenWriter;
       }
@@ -5402,13 +5402,13 @@ namespace Microsoft.Dafny.Compilers {
         if (fv.IsGhost) {
           continue;
         }
-        fexprs.Add(new IdentifierExpr(fv.Tok, fv.Name) {
+        fexprs.Add(new IdentifierExpr(fv.RangeToken, fv.Name) {
           Var = fv, // resolved here!
           Type = fv.Type
         });
-        var bv = new BoundVar(fv.Tok, fv.Name, fv.Type);
+        var bv = new BoundVar(fv.RangeToken, fv.Name, fv.Type);
         bvars.Add(bv);
-        sm[fv] = new IdentifierExpr(bv.Tok, bv.Name) {
+        sm[fv] = new IdentifierExpr(bv.RangeToken, bv.Name) {
           Var = bv, // resolved here!
           Type = bv.Type
         };

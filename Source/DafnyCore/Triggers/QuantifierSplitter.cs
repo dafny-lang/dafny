@@ -35,7 +35,7 @@ namespace Microsoft.Dafny.Triggers {
     //   forall x :: P(x) ==> (Q(x) && R(x))
 
     private static UnaryOpExpr Not(Expression expr) {
-      return new UnaryOpExpr(expr.tok, UnaryOpExpr.Opcode.Not, expr) { Type = expr.Type };
+      return new UnaryOpExpr(expr.RangeToken, UnaryOpExpr.Opcode.Not, expr) { Type = expr.Type };
     }
 
     internal static IEnumerable<Expression> SplitExpr(Expression expr, BinaryExpr.Opcode separator) {
@@ -64,7 +64,9 @@ namespace Microsoft.Dafny.Triggers {
       foreach (var e1 in SplitExpr(pair.E1, separator)) {
         // Notice the token. This makes triggers/splitting-picks-the-right-tokens.dfy possible
         var nestedToken = new NestedToken(pair.tok, e1.tok);
-        yield return new BinaryExpr(nestedToken, pair.Op, pair.E0, e1) { ResolvedOp = pair.ResolvedOp, Type = pair.Type };
+        var result = new BinaryExpr(pair.RangeToken, pair.Op, pair.E0, e1) { ResolvedOp = pair.ResolvedOp, Type = pair.Type };
+        result.OverrideToken = nestedToken;
+        yield return result;
       }
     }
 
@@ -81,7 +83,9 @@ namespace Microsoft.Dafny.Triggers {
         }
         foreach (var e in stream) {
           var tok = new NestedToken(quantifier.tok, e.tok, "in subexpression at");
-          yield return new ForallExpr(tok, quantifier.RangeToken, quantifier.BoundVars, quantifier.Range, e, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
+          var splitQuantifier = new ForallExpr(quantifier.RangeToken, quantifier.BoundVars, quantifier.Range, e, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
+          splitQuantifier.OverrideToken = tok;
+          yield return splitQuantifier;
         }
       } else if (quantifier is ExistsExpr) {
         IEnumerable<Expression> stream;
@@ -92,7 +96,9 @@ namespace Microsoft.Dafny.Triggers {
         }
         foreach (var e in stream) {
           var tok = body?.tok == e.tok ? quantifier.tok : new NestedToken(quantifier.tok, e.tok, "in subexpression at");
-          yield return new ExistsExpr(tok, quantifier.RangeToken, quantifier.BoundVars, quantifier.Range, e, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
+          var splitQuantifier = new ExistsExpr(quantifier.RangeToken, quantifier.BoundVars, quantifier.Range, e, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
+          splitQuantifier.OverrideToken = tok;
+          yield return splitQuantifier;
         }
       } else {
         yield return quantifier;
@@ -162,8 +168,8 @@ namespace Microsoft.Dafny.Triggers {
             if (triggersCollector.IsTriggerKiller(sub) && (!TriggersCollector.IsPotentialTriggerCandidate(sub))) {
               var entry = substMap.Find(x => ExprExtensions.ExpressionEq(sub, x.Item1));
               if (entry == null) {
-                var newBv = new BoundVar(sub.tok, "_t#" + substMap.Count, sub.Type);
-                var ie = new IdentifierExpr(sub.tok, newBv.Name);
+                var newBv = new BoundVar(sub.RangeToken, "_t#" + substMap.Count, sub.Type);
+                var ie = new IdentifierExpr(sub.RangeToken, newBv.Name);
                 ie.Var = newBv;
                 ie.Type = newBv.Type;
                 substMap.Add(new Tuple<Expression, IdentifierExpr>(sub, ie));
@@ -179,10 +185,10 @@ namespace Microsoft.Dafny.Triggers {
         expr = s.Substitute(q.quantifier) as QuantifierExpr;
       } else {
         // make a copy of the expr
-        if (expr is ForallExpr) {
-          expr = new ForallExpr(expr.tok, expr.RangeToken, expr.BoundVars, expr.Range, expr.Term, TriggerUtils.CopyAttributes(expr.Attributes)) { Type = expr.Type, Bounds = expr.Bounds };
-        } else {
-          expr = new ExistsExpr(expr.tok, expr.RangeToken, expr.BoundVars, expr.Range, expr.Term, TriggerUtils.CopyAttributes(expr.Attributes)) { Type = expr.Type, Bounds = expr.Bounds };
+        if (expr is ForallExpr forallExpr) {
+          expr = new ForallExpr(new Cloner(true), forallExpr);
+        } else if (expr is ExistsExpr existsExpr) {
+          expr = new ExistsExpr(new Cloner(true), existsExpr);
         }
       }
       return expr;

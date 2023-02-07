@@ -1,12 +1,17 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 
 namespace Microsoft.Dafny;
 
 public class MemberSelectExpr : Expression, IHasUsages, ICloneable<MemberSelectExpr> {
   public readonly Expression Obj;
-  public string MemberName;
+
+  public override IToken Tok => MemberNameNode.Tok;
+
+  public string MemberName => MemberNameNode.Value;
+  public Name MemberNameNode;
   [FilledInDuringResolution] public MemberDecl Member;    // will be a Field or Function
   [FilledInDuringResolution] public Label /*?*/ AtLabel;  // non-null for a two-state selection
   [FilledInDuringResolution] public bool InCompiledContext;
@@ -151,7 +156,7 @@ public class MemberSelectExpr : Expression, IHasUsages, ICloneable<MemberSelectE
 
   public MemberSelectExpr(Cloner cloner, MemberSelectExpr original) : base(cloner, original) {
     Obj = cloner.CloneExpr(original.Obj);
-    MemberName = original.MemberName;
+    MemberNameNode = original.MemberNameNode.Clone(cloner);
 
     if (cloner.CloneResolvedFields) {
       Member = cloner.CloneMember(original.Member, true);
@@ -162,21 +167,21 @@ public class MemberSelectExpr : Expression, IHasUsages, ICloneable<MemberSelectE
     }
   }
 
-  public MemberSelectExpr(IToken tok, Expression obj, string memberName)
-    : base(tok) {
-    Contract.Requires(tok != null);
+  public MemberSelectExpr(RangeToken rangeToken, Expression obj, Name memberName)
+    : base(rangeToken) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(obj != null);
     Contract.Requires(memberName != null);
     this.Obj = obj;
-    this.MemberName = memberName;
+    this.MemberNameNode = memberName;
   }
 
   /// <summary>
   /// Returns a resolved MemberSelectExpr for a field.
   /// </summary>
-  public MemberSelectExpr(IToken tok, Expression obj, Field field)
-    : this(tok, obj, field.Name) {
-    Contract.Requires(tok != null);
+  public MemberSelectExpr(RangeToken rangeToken, Expression obj, Field field)
+    : this(rangeToken, obj, field.NameNode) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(obj != null);
     Contract.Requires(field != null);
     Contract.Requires(obj.Type != null);  // "obj" is required to be resolved

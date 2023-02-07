@@ -21,9 +21,9 @@ public class StaticReceiverExpr : LiteralExpr {
   /// </summary>
   public Expression ContainerExpression;
 
-  public StaticReceiverExpr(IToken tok, Type t, bool isImplicit)
-    : base(tok) {
-    Contract.Requires(tok != null);
+  public StaticReceiverExpr(RangeToken rangeToken, Type t, bool isImplicit)
+    : base(rangeToken) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(t != null);
     UnresolvedType = t;
     IsImplicit = isImplicit;
@@ -33,12 +33,12 @@ public class StaticReceiverExpr : LiteralExpr {
   /// Constructs a resolved LiteralExpr representing the fictitious static-receiver literal whose type is
   /// "cl" parameterized by the type arguments of "cl" itself.
   /// </summary>
-  public StaticReceiverExpr(IToken tok, TopLevelDeclWithMembers cl, bool isImplicit, Expression lhs = null)
-    : base(tok) {
-    Contract.Requires(tok != null);
+  public StaticReceiverExpr(RangeToken rangeToken, TopLevelDeclWithMembers cl, bool isImplicit, Expression lhs = null)
+    : base(rangeToken) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(cl != null);
     var typeArgs = cl.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
-    Type = new UserDefinedType(tok, cl is ClassDecl klass && klass.IsDefaultClass ? cl.Name : cl.Name + "?", cl, typeArgs);
+    Type = new UserDefinedType(rangeToken, cl is ClassDecl klass && klass.IsDefaultClass ? cl.Name : cl.Name + "?", cl, typeArgs);
     UnresolvedType = Type;
     IsImplicit = isImplicit;
     ObjectToDiscard = lhs;
@@ -57,9 +57,9 @@ public class StaticReceiverExpr : LiteralExpr {
   ///   a trait that in turn extends trait "W(g(Y))".  If "t" denotes type "C(G)" and "cl" denotes "W",
   ///   then type of the StaticReceiverExpr will be "T(g(f(G)))".
   /// </summary>
-  public StaticReceiverExpr(IToken tok, UserDefinedType t, TopLevelDeclWithMembers cl, bool isImplicit, Expression lhs = null)
-    : base(tok) {
-    Contract.Requires(tok != null);
+  public StaticReceiverExpr(RangeToken rangeToken, UserDefinedType t, TopLevelDeclWithMembers cl, bool isImplicit, Expression lhs = null)
+    : base(rangeToken) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(t.ResolvedClass != null);
     Contract.Requires(cl != null);
     var top = t.AsTopLevelTypeWithMembersBypassInternalSynonym;
@@ -68,9 +68,9 @@ public class StaticReceiverExpr : LiteralExpr {
       var clArgsInTermsOfTFormals = cl.TypeArgs.ConvertAll(tp => top.ParentFormalTypeParametersToActuals[tp]);
       var subst = TypeParameter.SubstitutionMap(top.TypeArgs, t.TypeArgs);
       var typeArgs = clArgsInTermsOfTFormals.ConvertAll(ty => ty.Subst(subst));
-      Type = new UserDefinedType(tok, cl.Name, cl, typeArgs);
+      Type = new UserDefinedType(rangeToken, cl.Name, cl, typeArgs);
     } else if (t.Name != cl.Name) {  // t may be using the name "C?", and we'd prefer it read "C"
-      Type = new UserDefinedType(tok, cl.Name, cl, t.TypeArgs);
+      Type = new UserDefinedType(rangeToken, cl.Name, cl, t.TypeArgs);
     } else {
       Type = t;
     }
