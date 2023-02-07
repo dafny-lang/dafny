@@ -1252,7 +1252,7 @@ A ``QuantifierExpression`` is a boolean expression that specifies that a
 given expression (the one following the `::`) is true for all (for
 **forall**) or some (for **exists**) combination of values of the
 quantified variables, namely those in the ``QuantifierDomain``.
-See [Section 2.6.5](#sec-quantifier-domains) for more details on quantifier domains.
+See [Section 2.6.4](#sec-quantifier-domains) for more details on quantifier domains.
 
 Here are some examples:
 <!-- %no-check -->
@@ -1325,7 +1325,7 @@ The types on the quantified variables are optional and if not given Dafny
 will attempt to infer them from the contexts in which they are used in the
 various expressions. The `<- C` domain expressions are also optional and default to
 `iset x: T` (i.e. all values of the variable's type), as are the `| P` expressions which
-default to `true`. See also [Section 2.6.5](#sec-quantifier-domains) for more details on quantifier domains.
+default to `true`. See also [Section 2.6.4](#sec-quantifier-domains) for more details on quantifier domains.
 
 If a finite set was specified ("set" keyword used), Dafny must be able to prove that the
 result is finite otherwise the set comprehension expression will not be
@@ -1487,7 +1487,7 @@ MapComprehensionExpr(allowLemma, allowLambda) =
 A ``MapComprehensionExpr`` defines a finite or infinite map value
 by defining a domain and for each value in the domain,
 giving the mapped value using the expression following the "::".
-See [Section 2.6.5](#sec-quantifier-domains) for more details on quantifier domains.
+See [Section 2.6.4](#sec-quantifier-domains) for more details on quantifier domains.
 
 For example:
 <!-- %check-resolve -->
