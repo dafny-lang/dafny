@@ -204,6 +204,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string/*?*/ fullPrintName,
       List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type>/*?*/ superClasses, IToken tok, ConcreteSyntaxTree wr) {
       var isDefaultClass = cls is ClassDecl c && c.IsDefaultClass;
+      
       return CreateClass(name, isExtern, fullPrintName, typeParameters, superClasses, tok, wr, includeRtd: !isDefaultClass, includeEquals: true);
     }
 
@@ -270,14 +271,14 @@ namespace Microsoft.Dafny.Compilers {
       var staticFieldInitWriter = w.NewNamedBlock("var {0} = {1}", FormatCompanionName(name), FormatCompanionTypeName(name));
 
       if (includeEquals) {
-        // This Equals() is so simple that we could just use == instead, but uniformity is good and it'll get inlined anyway.
-
+        
         w.WriteLine();
         // TODO-HACK
         if (name.EndsWith("Sequence")) {
-          var wEquals = w.NewNamedBlock("func (_this *{0}) Equals(other Sequence) bool", name);
+          var wEquals = w.NewNamedBlock("func (_this *{0}) Equals(other {0}) bool", name);
           wEquals.WriteLine($"return {DafnySequenceCompanion}.Equal(_this, other)");
         } else {
+          // This Equals() is so simple that we could just use == instead, but uniformity is good and it'll get inlined anyway.
           var wEquals = w.NewNamedBlock("func (_this *{0}) Equals(other *{0}) bool", name);
           wEquals.WriteLine("return _this == other");
         }
@@ -336,7 +337,6 @@ namespace Microsoft.Dafny.Compilers {
       //
       // type Trait interface {
       //   String() string
-      //   EqualsGeneric(x interface{}) bool
       //   AbstractMethod0(param0 type0, ...) returnType0
       //   ...
       // }
