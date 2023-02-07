@@ -95,7 +95,7 @@ public abstract class MemberDecl : Declaration {
   public virtual IEnumerable<Expression> SubExpressions => Enumerable.Empty<Expression>();
 }
 
-public class Field : MemberDecl {
+public class Field : MemberDecl, ICanFormat {
   public override string WhatKind => "field";
   public readonly bool IsMutable;  // says whether or not the field can ever change values
   public readonly bool IsUserMutable;  // says whether or not code is allowed to assign to the field (IsUserMutable implies IsMutable)
@@ -124,6 +124,45 @@ public class Field : MemberDecl {
     IsMutable = isMutable;
     IsUserMutable = isUserMutable;
     Type = type;
+  }
+
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    formatter.SetOpeningIndentedRegion(StartToken, indentBefore);
+    formatter.SetClosingIndentedRegion(EndToken, indentBefore);
+    switch (this) {
+      case ConstantField constantField:
+        var ownedTokens = constantField.OwnedTokens;
+        var commaIndent = indentBefore + formatter.SpaceTab;
+        var rightIndent = indentBefore + formatter.SpaceTab;
+        foreach (var token in ownedTokens) {
+          switch (token.val) {
+            case ":=": {
+                if (TokenNewIndentCollector.IsFollowedByNewline(token)) {
+                  formatter.SetDelimiterInsideIndentedRegions(token, indentBefore);
+                } else {
+                  formatter.SetAlign(indentBefore + formatter.SpaceTab, token, out rightIndent, out commaIndent);
+                }
+
+                break;
+              }
+            case ",": {
+                formatter.SetIndentations(token, rightIndent, commaIndent, rightIndent);
+                break;
+              }
+            case ";": {
+                break;
+              }
+          }
+        }
+
+        if (constantField.Rhs is { } constantFieldRhs) {
+          formatter.SetExpressionIndentation(constantFieldRhs);
+        }
+
+        break;
+    }
+
+    return true;
   }
 }
 
@@ -302,6 +341,8 @@ public class ConstantField : SpecialField, ICallable {
   public bool AllowsAllocation => true;
 
   public override IEnumerable<Node> Children => base.Children.Concat(new[] { Rhs }.Where(x => x != null));
+
+  public override IEnumerable<Node> PreResolveChildren => Children;
 }
 
 public class Predicate : Function {
@@ -357,6 +398,7 @@ public abstract class ExtremePredicate : Function {
   [FilledInDuringResolution] public PrefixPredicate PrefixPredicate;  // (name registration)
 
   public override IEnumerable<Node> Children => base.Children.Concat(new[] { PrefixPredicate });
+  public override IEnumerable<Node> PreResolveChildren => base.Children;
 
   public ExtremePredicate(IToken tok, string name, bool hasStaticKeyword, bool isOpaque, KType typeOfK,
     List<TypeParameter> typeArgs, List<Formal> formals, Formal result,
@@ -450,10 +492,11 @@ public class TwoStatePredicate : TwoStateFunction {
   }
 }
 
-public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext {
+public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, ICanFormat {
   public override IEnumerable<Node> Children => new Node[] { Body, Decreases }.
     Where(x => x != null).Concat(Ins).Concat(Outs).Concat(TypeArgs).
     Concat(Req).Concat(Ens).Concat(Mod.Expressions);
+  public override IEnumerable<Node> PreResolveChildren => Children;
 
   public override string WhatKind => "method";
   public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }
@@ -648,6 +691,38 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext {
       return methodBody;
     }
   }
+
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    formatter.SetMethodLikeIndent(StartToken, OwnedTokens, indentBefore);
+    if (BodyStartTok.line > 0) {
+      formatter.SetDelimiterIndentedRegions(BodyStartTok, indentBefore);
+    }
+
+    formatter.SetFormalsIndentation(Ins);
+    formatter.SetFormalsIndentation(Outs);
+    foreach (var req in Req) {
+      formatter.SetAttributedExpressionIndentation(req, indentBefore + formatter.SpaceTab);
+    }
+
+    foreach (var mod in Mod.Expressions) {
+      formatter.SetFrameExpressionIndentation(mod, indentBefore + formatter.SpaceTab);
+    }
+
+    foreach (var ens in Ens) {
+      formatter.SetAttributedExpressionIndentation(ens, indentBefore + formatter.SpaceTab);
+    }
+
+    foreach (var dec in Decreases.Expressions) {
+      formatter.SetDecreasesExpressionIndentation(dec, indentBefore + formatter.SpaceTab);
+      formatter.SetExpressionIndentation(dec);
+    }
+
+    if (Body != null) {
+      formatter.SetStatementIndentation(this.Body);
+    }
+
+    return true;
+  }
 }
 
 public class Lemma : Method {
@@ -783,6 +858,8 @@ public abstract class ExtremeLemma : Method {
   [FilledInDuringResolution] public PrefixLemma PrefixLemma;  // (name registration)
 
   public override IEnumerable<Node> Children => base.Children.Concat(new[] { PrefixLemma });
+
+  public override IEnumerable<Node> PreResolveChildren => base.Children;
 
   public ExtremeLemma(IToken tok, string name,
     bool hasStaticKeyword, ExtremePredicate.KType typeOfK,
