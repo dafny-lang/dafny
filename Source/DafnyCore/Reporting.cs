@@ -100,7 +100,7 @@ namespace Microsoft.Dafny {
       Error(source, ErrorID.None, s.Tok, msg, args);
     }
 
-    public void Error(MessageSource source, IVariable v, string msg, params object[] args) {
+    public void Error(MessageSource source, INode v, string msg, params object[] args) {
       Contract.Requires(v != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);

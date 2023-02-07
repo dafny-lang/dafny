@@ -1912,7 +1912,7 @@ public class SelfType : NonProxyType {
   public TypeParameter TypeArg;
   public Type ResolvedType;
   public SelfType() : base() {
-    TypeArg = new TypeParameter(Token.NoToken, "selfType", TypeParameter.TPVarianceSyntax.NonVariant_Strict);
+    TypeArg = new TypeParameter(RangeToken.NoToken, new Name("selfType"), TypeParameter.TPVarianceSyntax.NonVariant_Strict);
   }
 
   [Pure]

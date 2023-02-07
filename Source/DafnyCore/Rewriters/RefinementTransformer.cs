@@ -528,8 +528,7 @@ namespace Microsoft.Dafny {
       moduleUnderConstruction = null;
     }
 
-    Function CloneFunction(IToken tok, Function f, bool isGhost, List<AttributedExpression> moreEnsures, Formal moreResult, Expression moreBody, Expression replacementBody, bool checkPrevPostconditions, Attributes moreAttributes) {
-      Contract.Requires(tok != null);
+    Function CloneFunction(RangeToken range, Function f, bool isGhost, List<AttributedExpression> moreEnsures, Formal moreResult, Expression moreBody, Expression replacementBody, bool checkPrevPostconditions, Attributes moreAttributes) {
       Contract.Requires(moreBody == null || f is Predicate);
       Contract.Requires(moreBody == null || replacementBody == null);
 
@@ -572,24 +571,24 @@ namespace Microsoft.Dafny {
       var byMethodBody = refinementCloner.CloneBlockStmt(f.ByMethodBody);
 
       if (f is Predicate) {
-        return new Predicate(tok, f.Name, f.HasStaticKeyword, isGhost, tps, formals, result,
+        return new Predicate(range, f.NameNode, f.HasStaticKeyword, isGhost, tps, formals, result,
           req, reads, ens, decreases, body, bodyOrigin,
           f.ByMethodTok == null ? null : refinementCloner.Tok(f.ByMethodTok), byMethodBody,
           refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       } else if (f is LeastPredicate) {
-        return new LeastPredicate(tok, f.Name, f.HasStaticKeyword, ((LeastPredicate)f).TypeOfK, tps, formals, result,
+        return new LeastPredicate(range, f.NameNode, f.HasStaticKeyword, ((LeastPredicate)f).TypeOfK, tps, formals, result,
           req, reads, ens, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       } else if (f is GreatestPredicate) {
-        return new GreatestPredicate(tok, f.Name, f.HasStaticKeyword, ((GreatestPredicate)f).TypeOfK, tps, formals, result,
+        return new GreatestPredicate(range, f.NameNode, f.HasStaticKeyword, ((GreatestPredicate)f).TypeOfK, tps, formals, result,
           req, reads, ens, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       } else if (f is TwoStatePredicate) {
-        return new TwoStatePredicate(tok, f.Name, f.HasStaticKeyword, tps, formals, result,
+        return new TwoStatePredicate(range, f.NameNode, f.HasStaticKeyword, tps, formals, result,
           req, reads, ens, decreases, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       } else if (f is TwoStateFunction) {
-        return new TwoStateFunction(tok, f.Name, f.HasStaticKeyword, tps, formals, result, refinementCloner.CloneType(f.ResultType),
+        return new TwoStateFunction(range, f.NameNode, f.HasStaticKeyword, tps, formals, result, refinementCloner.CloneType(f.ResultType),
           req, reads, ens, decreases, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       } else {
-        return new Function(tok, f.Name, f.HasStaticKeyword, isGhost, tps, formals, result, refinementCloner.CloneType(f.ResultType),
+        return new Function(range, f.NameNode, f.HasStaticKeyword, isGhost, tps, formals, result, refinementCloner.CloneType(f.ResultType),
           req, reads, ens, decreases, body,
           f.ByMethodTok == null ? null : refinementCloner.Tok(f.ByMethodTok), byMethodBody,
           refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
@@ -615,29 +614,29 @@ namespace Microsoft.Dafny {
 
       if (m is Constructor) {
         var dividedBody = (DividedBlockStmt)newBody ?? refinementCloner.CloneDividedBlockStmt((DividedBlockStmt)m.BodyForRefinement);
-        return new Constructor(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.IsGhost, tps, ins,
+        return new Constructor(m.RangeToken.MakeRefined(moduleUnderConstruction), m.NameNode, m.IsGhost, tps, ins,
           req, mod, ens, decreases, dividedBody, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
       }
       var body = newBody ?? refinementCloner.CloneBlockStmt(m.BodyForRefinement);
       if (m is LeastLemma) {
-        return new LeastLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, ((LeastLemma)m).TypeOfK, tps, ins,
+        return new LeastLemma(m.RangeToken.MakeRefined(moduleUnderConstruction), m.NameNode, m.HasStaticKeyword, ((LeastLemma)m).TypeOfK, tps, ins,
           m.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
       } else if (m is GreatestLemma) {
-        return new GreatestLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, ((GreatestLemma)m).TypeOfK, tps, ins,
+        return new GreatestLemma(m.RangeToken.MakeRefined(moduleUnderConstruction), m.NameNode, m.HasStaticKeyword, ((GreatestLemma)m).TypeOfK, tps, ins,
           m.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
       } else if (m is Lemma) {
-        return new Lemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, tps, ins,
+        return new Lemma(m.RangeToken.MakeRefined(moduleUnderConstruction), m.NameNode, m.HasStaticKeyword, tps, ins,
           m.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
       } else if (m is TwoStateLemma) {
         var two = (TwoStateLemma)m;
-        return new TwoStateLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, tps, ins,
+        return new TwoStateLemma(m.RangeToken.MakeRefined(moduleUnderConstruction), m.NameNode, m.HasStaticKeyword, tps, ins,
           m.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
       } else {
-        return new Method(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, m.IsGhost, tps, ins,
+        return new Method(m.RangeToken.MakeRefined(moduleUnderConstruction), m.NameNode, m.HasStaticKeyword, m.IsGhost, tps, ins,
           m.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null, m.IsByMethod);
       }
@@ -691,8 +690,8 @@ namespace Microsoft.Dafny {
         prev.YieldEnsures.ConvertAll(refinementCloner.CloneAttributedExpr));
       yens.AddRange(nw.YieldEnsures);
 
-      return new IteratorDecl(new RefinementToken(nw.tok, moduleUnderConstruction),
-        nw.Name, moduleUnderConstruction,
+      return new IteratorDecl(nw.RangeToken.MakeRefined(moduleUnderConstruction),
+        nw.NameNode, moduleUnderConstruction,
         nw.SignatureIsOmitted ? prev.TypeArgs.ConvertAll(refinementCloner.CloneTypeParam) : nw.TypeArgs,
         nw.SignatureIsOmitted ? prev.Ins.ConvertAll(p => refinementCloner.CloneFormal(p, false)) : nw.Ins,
         nw.SignatureIsOmitted ? prev.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)) : nw.Outs,
@@ -754,7 +753,7 @@ namespace Microsoft.Dafny {
               if ((!(origConst.Type is InferredTypeProxy) && newConst.Type is InferredTypeProxy) || (origConst.Rhs != null && newConst.Rhs == null)) {
                 var typ = newConst.Type is InferredTypeProxy ? refinementCloner.CloneType(origConst.Type) : newConst.Type;
                 var rhs = newConst.Rhs ?? origConst.Rhs;
-                nw.Members[index] = new ConstantField(newConst.tok, newConst.Name, rhs, newConst.HasStaticKeyword, newConst.IsGhost, typ, newConst.Attributes);
+                nw.Members[index] = new ConstantField(newConst.RangeToken, newConst.NameNode, rhs, newConst.HasStaticKeyword, newConst.IsGhost, typ, newConst.Attributes);
               }
             }
 
@@ -822,7 +821,7 @@ namespace Microsoft.Dafny {
               } else if (f.Body != null) {
                 Reporter.Error(MessageSource.RefinementTransformer, nwMember, $"a refining {f.WhatKind} is not allowed to extend/change the body");
               }
-              var newF = CloneFunction(f.tok, prevFunction, f.IsGhost, f.Ens, f.Result, moreBody, replacementBody, prevFunction.Body == null, f.Attributes);
+              var newF = CloneFunction(f.RangeToken, prevFunction, f.IsGhost, f.Ens, f.Result, moreBody, replacementBody, prevFunction.Body == null, f.Attributes);
               newF.RefinementBase = member;
               nw.Members[index] = newF;
             }
@@ -1692,7 +1691,7 @@ namespace Microsoft.Dafny {
         // refining module, retain its name but not be default, unless the refining module has the same name
         ModuleExportDecl dex = d as ModuleExportDecl;
         if (dex.IsDefault && d.Name != m.Name) {
-          ddex = new ModuleExportDecl(dex.tok, d.Name, m, dex.Exports, dex.Extends, dex.ProvideAll, dex.RevealAll, false, true);
+          ddex = new ModuleExportDecl(dex.RangeToken, d.NameNode, m, dex.Exports, dex.Extends, dex.ProvideAll, dex.RevealAll, false, true);
         }
         ddex.SetupDefaultSignature();
         dd = ddex;

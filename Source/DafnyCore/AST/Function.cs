@@ -189,12 +189,12 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
     Contract.Invariant(Decreases != null);
   }
 
-  public Function(IToken tok, string name, bool hasStaticKeyword, bool isGhost,
+  public Function(RangeToken range, Name name, bool hasStaticKeyword, bool isGhost,
     List<TypeParameter> typeArgs, List<Formal> formals, Formal result, Type resultType,
     List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
     Expression/*?*/ body, IToken/*?*/ byMethodTok, BlockStmt/*?*/ byMethodBody,
     Attributes attributes, IToken/*?*/ signatureEllipsis)
-    : base(tok, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null) {
+    : base(range, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null) {
 
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
