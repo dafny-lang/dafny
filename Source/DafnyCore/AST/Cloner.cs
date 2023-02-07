@@ -662,7 +662,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(range != null);
       return new RangeToken(Tok(range.StartToken), Tok(range.EndToken));
     }
-    
+
     public virtual IToken Tok(IToken tok) {
       Contract.Requires(tok != null);
       return tok;

@@ -195,7 +195,7 @@ public class SpecialField : Field {
   }
   public readonly ID SpecialId;
   public readonly object IdParam;
-  
+
   public SpecialField(RangeToken rangeToken, string name, ID specialId, object idParam,
     bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
     : this(rangeToken, new Name(name), specialId, idParam, false, isGhost, isMutable, isUserMutable, type, attributes) {
@@ -848,7 +848,7 @@ public abstract class ExtremeLemma : Method {
   public override IEnumerable<Node> Children => base.Children.Concat(new[] { PrefixLemma });
 
   public override IEnumerable<Node> PreResolveChildren => base.Children;
-  
+
   public ExtremeLemma(RangeToken rangeToken, Name name,
     bool hasStaticKeyword, ExtremePredicate.KType typeOfK,
     List<TypeParameter> typeArgs,
