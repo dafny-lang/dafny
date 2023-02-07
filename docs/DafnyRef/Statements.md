@@ -1973,6 +1973,11 @@ Without the [`{:opaque}`](#sec-opaque) attribute, the assertion is valid; with t
 function is not visible. However if a `reveal f();` statement is inserted before the assertion, the proof succeeds.
 Note that the pseudo-function-call in the `reveal` statement is written without arguments.
 
+### 20.20.4. Revealing constants
+
+A `const` declaration can be `opaque`. If so the value of the constant is not known in reasoning about its uses, just its type and the
+fact that the value does not change. The constant's identifier can be listed in a reveal statement. In that case, like other revealed items,
+the value of the constant will be known to the reasonig engine until the end of the block containing the reveal statement.
 
 ## 20.21. Forall Statement {#sec-forall-statement}
 ````grammar
