@@ -254,7 +254,7 @@ method m() {
   }
   assert i == 10 || 200 <= i < 210;
 }
-predicate method P(i:int)
+predicate P(i:int)
 ```
 To explain the example, the loop invariant `0 <= i <= 10` is known to hold at the very top
 of each iteration,
@@ -438,9 +438,9 @@ This is a language feature somewhat analogous to exceptions in other languages.
 An update-with-failure statement uses _failure-compatible_ types.
 A failure-compatible type is a type that has the following members (each with no in-parameters and one out-parameter):
 
- * a function method `IsFailure()` that returns a `bool`
- * an optional function method `PropagateFailure()` that returns a value assignable to the first out-parameter of the caller
- * an optional method or function `Extract()`
+ * a function `IsFailure()` that returns a `bool`
+ * an optional function `PropagateFailure()` that returns a value assignable to the first out-parameter of the caller
+ * an optional function `Extract()`
 
 A failure-compatible type with an `Extract` member is called _value-carrying_.
 
@@ -472,8 +472,8 @@ datatype Status =
 | Success
 | Failure(error: string)
 {
-  predicate method IsFailure() { this.Failure?  }
-  function method PropagateFailure(): Status
+  predicate IsFailure() { this.Failure?  }
+  function PropagateFailure(): Status
     requires IsFailure()
   {
     Failure(this.error)
@@ -488,15 +488,15 @@ datatype Outcome<T> =
 | Success(value: T)
 | Failure(error: string)
 {
-  predicate method IsFailure() {
+  predicate IsFailure() {
     this.Failure?
   }
-  function method PropagateFailure<U>(): Outcome<U>
+  function PropagateFailure<U>(): Outcome<U>
     requires IsFailure()
   {
     Failure(this.error) // this is Outcome<U>.Failure(...)
   }
-  function method Extract(): T
+  function Extract(): T
     requires !IsFailure()
   {
     this.value

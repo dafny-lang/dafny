@@ -249,7 +249,7 @@ Real literals using exponents are not supported in Dafny. For now, you'd have to
 <!-- %check-verify -->
 ```dafny
 // realExp(2.37, 100) computes 2.37e100
-function method realExp(r: real, e: int): real decreases if e > 0 then e else -e {
+function realExp(r: real, e: int): real decreases if e > 0 then e else -e {
   if e == 0 then r
   else if e < 0 then realExp(r/10.0, e+1)
   else realExp(r*10.0, e-1)
@@ -2622,7 +2622,7 @@ FunctionBody = "{" Expression(allowLemma: true, allowLambda: true)
 
 In the above productions, `allowGhostKeyword` is true if the optional
 `method` keyword was specified. This allows some of the
-formal parameters of a function method to be specified as `ghost`.
+formal parameters of a function to be specified as `ghost`.
 
 See [Section 5.3](#sec-function-specification) for a description of ``FunctionSpec``.
 
@@ -2924,7 +2924,7 @@ to restrict it to non-heap based types, which is indicated with the
 
 <!-- %check-verify -->
 ```dafny
-predicate IsCommutative<X(!new)>(r: (X, X) -> bool) // X is restricted to non-heap types
+ghost predicate IsCommutative<X(!new)>(r: (X, X) -> bool) // X is restricted to non-heap types
 {
   forall x, y :: r(x, y) == r(y, x) // allowed
 }
@@ -3015,13 +3015,13 @@ class Node {
 
 datatype Path = Empty | Extend(Path, Node)
 
-predicate Reachable(source: Node, sink: Node, S: set<Node>)
+ghost predicate Reachable(source: Node, sink: Node, S: set<Node>)
   reads S
 {
   exists p :: ReachableVia(source, p, sink, S) // allowed because of 'older p' on ReachableVia
 }
 
-predicate ReachableVia(source: Node, older p: Path, sink: Node, S: set<Node>)
+ghost predicate ReachableVia(source: Node, older p: Path, sink: Node, S: set<Node>)
   reads S
   decreases p
 {
@@ -3218,7 +3218,7 @@ As an example, the following trait represents movable geometric shapes:
 ```dafny
 trait Shape
 {
-  function method Width(): real
+  function Width(): real
     reads this
     decreases 1
   method Move(dx: real, dy: real)
@@ -3240,7 +3240,7 @@ that each extend `Shape`:
 class UnitSquare extends Shape
 {
   var x: real, y: real
-  function method Width(): real 
+  function Width(): real 
     decreases 0
   {  // note the empty reads clause
     1.0
@@ -3255,7 +3255,7 @@ class UnitSquare extends Shape
 class LowerRightTriangle extends Shape
 {
   var xNW: real, yNW: real, xSE: real, ySE: real
-  function method Width(): real
+  function Width(): real
     reads this
     decreases 0
   {
@@ -3844,7 +3844,7 @@ considered to be ghost if either the function or any of its arguments
 is ghost. The following example program illustrates:
 <!-- %check-resolve Types.18.expect -->
 ```dafny
-function method F(x: int, ghost y: int): int
+function F(x: int, ghost y: int): int
 {
   x
 }
