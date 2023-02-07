@@ -42,7 +42,7 @@ public class AssignSuchThatStmt : ConcreteUpdateStatement, ICloneable<AssignSuch
     AssumeToken = cloner.AttributedTok(original.AssumeToken);
 
     if (cloner.CloneResolvedFields) {
-      Bounds = original.Bounds.Select(bp => bp.Clone(cloner)).ToList();
+      Bounds = original.Bounds?.Select(bp => bp.Clone(cloner)).ToList();
       MissingBounds = original.MissingBounds?.Select(v => cloner.CloneIVariable(v, true)).ToList();
     }
   }
