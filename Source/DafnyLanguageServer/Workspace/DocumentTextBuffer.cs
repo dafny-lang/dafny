@@ -17,6 +17,8 @@ public class DocumentTextBuffer {
     Buffer = buffer;
   }
 
+  public Range Range => new Range(0, 0, NumberOfLines, 0);
+
   public Position FromIndex(int index) {
     return Buffer.FromIndex(index);
   }

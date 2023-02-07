@@ -12,6 +12,7 @@ public class DisjunctivePattern : ExtendedPattern {
   }
 
   public override IEnumerable<Node> Children => Alternatives;
+  public override IEnumerable<Node> PreResolveChildren => Children;
   public override void Resolve(Resolver resolver, ResolutionContext resolutionContext,
     Type sourceType, bool isGhost, bool mutable,
     bool inPattern, bool inDisjunctivePattern) {

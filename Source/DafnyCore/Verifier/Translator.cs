@@ -7181,6 +7181,10 @@ namespace Microsoft.Dafny {
         var ftok = tok as ForceCheckToken;
         return ftok != null ? ftok.WrappedToken : tok;
       }
+
+      public override IToken WithVal(string newVal) {
+        return new ForceCheckToken(WrappedToken.WithVal(newVal));
+      }
     }
 
     Bpl.PredicateCmd Assert(IToken tok, Bpl.Expr condition, PODesc.ProofObligationDescription description, Bpl.QKeyValue kv = null) {
