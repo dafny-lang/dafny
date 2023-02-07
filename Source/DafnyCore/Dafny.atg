@@ -1518,6 +1518,7 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
        dmod.IsStatic = false;
      }
      CheckDeclModifiers(ref dmod, "field", AllowedDeclModifiers.Ghost | AllowedDeclModifiers.Static | AllowedDeclModifiers.Opaque);
+     System.Console.WriteLine("PARSED CONST AS STATIC " + dmod.IsStatic);
   .)
   SYNC
   "const"                                    (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
@@ -2557,7 +2558,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
            $"to use a 'by method' implementation with a {what}, declare '{id.val}' using '{what}', not '{what} method'");
          functionMethodToken = null;
        }
-       AllowedDeclModifiers allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Opaque;
+       AllowedDeclModifiers allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static | AllowedDeclModifiers.Opaque;
        CheckDeclModifiers(ref dmod, what + "-by-method", allowed);
 
      } else {

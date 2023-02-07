@@ -276,6 +276,8 @@ public class ConstantField : SpecialField, ICallable {
     Contract.Requires(type != null);
     this.Rhs = rhs;
     this.IsOpaque_ = isOpaque;
+    System.Console.WriteLine("CONSTRUCTED CONST " + name + " " + hasStaticKeyword + " " + IsStatic);
+    if (!hasStaticKeyword) throw new System.Exception();
   }
 
   public override bool CanBeRevealed() {
