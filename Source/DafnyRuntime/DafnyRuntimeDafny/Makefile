@@ -21,5 +21,8 @@ update-go: build-go
 
 test: check-go
 
+check-format:
+	$(DAFNY) format . --check
+
 # TODO: find a way to execute tests
 

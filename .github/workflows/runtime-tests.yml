@@ -25,6 +25,7 @@ jobs:
         run: |
           cd ./Source/DafnyRuntime/DafnyRuntimeDafny
           make test
+          make check-format
       - name: Test DafnyRuntimeGo
         run: |
           cd ./Source/DafnyRuntime/DafnyRuntimeGo

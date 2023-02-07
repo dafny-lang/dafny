@@ -71,19 +71,19 @@ module {:options "/functionSyntax:4"} FeasibilityImplementation refines Dafny {
       modifies Repr
       ensures ValidAndDisjoint()
       ensures Repr == old(Repr)
-      ensures values == 
-        old(values)[..start] + 
-        other.CellValues() +
-        old(values)[(start + other.Length())..]
+      ensures values ==
+              old(values)[..start] +
+              other.CellValues() +
+              old(values)[(start + other.Length())..]
     {
-      for i := 0 to other.Length() 
+      for i := 0 to other.Length()
         invariant Valid()
         invariant Repr == old(Repr)
-        invariant values == 
-          old(values)[..start] + 
-          other.CellValues()[..i] +
-          old(values)[(start + i)..(start + other.Length())] +
-          old(values)[(start + other.Length())..]
+        invariant values ==
+                  old(values)[..start] +
+                  other.CellValues()[..i] +
+                  old(values)[(start + i)..(start + other.Length())] +
+                  old(values)[(start + other.Length())..]
       {
         valuesArray[start + i] := Set(other.Select(i));
         values := values[start + i := valuesArray[start + i]];
@@ -121,7 +121,7 @@ module {:options "/functionSyntax:4"} FeasibilityImplementation refines Dafny {
 
     const valuesSeq: seq<T>
 
-    ghost predicate Valid() 
+    ghost predicate Valid()
       ensures Valid() ==> |values| < SIZE_T_LIMIT
     {
       && values == valuesSeq
@@ -137,7 +137,7 @@ module {:options "/functionSyntax:4"} FeasibilityImplementation refines Dafny {
       this.valuesSeq := valuesSeq;
     }
 
-    function Length(): size_t 
+    function Length(): size_t
       requires Valid()
       ensures Length() as int == |values|
     {
@@ -184,7 +184,7 @@ module {:options "/functionSyntax:4"} FeasibilityImplementation refines Dafny {
       inv(value)
     }
 
-    constructor(ghost inv: T -> bool, value: T) 
+    constructor(ghost inv: T -> bool, value: T)
       requires inv(value)
       ensures Valid()
       ensures this.inv == inv
