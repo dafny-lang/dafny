@@ -2093,7 +2093,7 @@ that may contain members (class, trait, datatype, newtype).
 expression, then the ghost-ness of the declaration is inferred; the `ghost`
 modifier may be omitted.
 * If the declaration includes the `opaque` modifier, then uses of the declared
-variable know its name and type but not its value .
+variable know its name and type but not its value.
 * The initialization expression may refer to other constant fields that are in scope and declared either
 before or after this declaration, but circular references are not allowed.
 
