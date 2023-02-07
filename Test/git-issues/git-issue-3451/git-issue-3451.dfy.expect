@@ -1,2 +1,2 @@
-git-issue-3451.dfy(8,10): Error: a const field should be initialized using ':=', not '='
+git-issue-3451.dfy(8,8): Error: a const field should be initialized using ':=', not '='
 1 parse errors detected in git-issue-3451.dfy
