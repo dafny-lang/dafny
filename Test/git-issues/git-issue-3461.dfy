@@ -14,5 +14,5 @@ opaque newtype N = int // NO
 opaque type P = i | i >= 0 // NO
 
 method z() {
-  opaque var j: int; // NO
+  opaque var j: int // NO
 }
