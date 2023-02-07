@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt> {
+public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt>, ICanFormat {
   public readonly Expression Source;
   public readonly List<NestedMatchCaseStmt> Cases;
   public readonly bool UsesOptionalBraces;
@@ -42,6 +42,10 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt> {
   public override IEnumerable<Node> Children => new[] { Source }.Concat<Node>(Cases);
 
   public override IEnumerable<Statement> SubStatements => Cases.SelectMany(c => c.Body);
+
+  public override IEnumerable<Statement> PreResolveSubStatements {
+    get => this.Cases.SelectMany(oneCase => oneCase.Body);
+  }
 
   public override IEnumerable<Expression> NonSpecificationSubExpressions {
     get {
@@ -102,5 +106,16 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt> {
       mc.CheckLinearNestedMatchCase(dtd, resolutionContext, resolver);
       resolver.scope.PopMarker();
     }
+  }
+
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    return formatter.SetIndentCases(indentBefore, OwnedTokens.Concat(Cases.SelectMany(oneCase => oneCase.OwnedTokens)).OrderBy(token => token.pos), () => {
+      foreach (var e in PreResolveSubExpressions) {
+        formatter.Visit(e, indentBefore);
+      }
+      foreach (var s in PreResolveSubStatements) {
+        formatter.Visit(s, indentBefore);
+      }
+    });
   }
 }

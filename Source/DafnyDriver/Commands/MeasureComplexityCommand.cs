@@ -12,7 +12,7 @@ public class MeasureComplexityCommand : ICommandSpec {
     Format,
     IsolateAssertions,
   }.Concat(ICommandSpec.VerificationOptions).
-    Concat(ICommandSpec.CommonOptions);
+    Concat(ICommandSpec.ResolverOptions);
 
   static MeasureComplexityCommand() {
     DafnyOptions.RegisterLegacyBinding(Iterations, (o, v) => o.RandomSeedIterations = (int)v);
