@@ -22,6 +22,7 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
   }
 
   public override IEnumerable<Node> Children => ResolvedStatements;
+  public override IEnumerable<Statement> PreResolveSubStatements => Enumerable.Empty<Statement>();
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -56,5 +57,24 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
     Rhs = rhs;
     Rhss = rhss;
     KeywordToken = keywordToken;
+  }
+
+  public override IEnumerable<Expression> PreResolveSubExpressions {
+    get {
+      foreach (var e in base.SpecificationSubExpressions) {
+        yield return e;
+      }
+      foreach (var e in base.Lhss) {
+        yield return e;
+      }
+      if (Rhs != null) {
+        yield return Rhs.Expr;
+      }
+      foreach (var rhs in Rhss) {
+        foreach (var e in rhs.SubExpressions) {
+          yield return e;
+        }
+      }
+    }
   }
 }

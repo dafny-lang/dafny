@@ -319,12 +319,15 @@ public class Scanner {
   }
 
 //  [NotDelayed]
-  public Scanner (string/*!*/ fullFilename, string/*!*/ fileName, Errors/*!*/ errorHandler, bool useBaseName = false) : base() {
+  public Scanner (string/*!*/ fullFilename, string/*!*/ fileName, Errors/*!*/ errorHandler, bool useBaseName = false, Token firstToken = null) : base() {
     Contract.Requires(fileName != null);
     Contract.Requires(errorHandler != null);
     this.errorHandler = errorHandler;
-    pt = tokens = new Token();  // first token is a dummy
-    t = new Token(); // dummy because t is a non-null field
+    if(firstToken.Filename == null || firstToken.Filename == "") {
+      firstToken.Filename = fullFilename;
+    }
+    pt = tokens = firstToken ?? new Token();  // first token is a dummy
+    t = firstToken ?? new Token(); // dummy because t is a non-null field
     try {
       Stream stream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read);
       this._buffer = new Buffer(stream, false);
@@ -337,12 +340,15 @@ public class Scanner {
   }
 
 //  [NotDelayed]
-  public Scanner (Stream/*!*/ s, Errors/*!*/ errorHandler, string/*!*/ fullFilename, string/*!*/ fileName, int lineNumber = 1, bool useBaseName = false) : base() {
+  public Scanner (Stream/*!*/ s, Errors/*!*/ errorHandler, string/*!*/ fullFilename, string/*!*/ fileName, int lineNumber = 1, bool useBaseName = false, Token firstToken = null) : base() {
     Contract.Requires(s != null);
     Contract.Requires(errorHandler != null);
     Contract.Requires(fileName != null);
-    pt = tokens = new Token();  // first token is a dummy
-    t = new Token(); // dummy because t is a non-null field
+    if(firstToken.Filename == null || firstToken.Filename == "") {
+      firstToken.Filename = fullFilename;
+    }
+    pt = tokens = firstToken ?? new Token();  // first token is a dummy
+    t = firstToken ?? new Token(); // dummy because t is a non-null field
     this._buffer = new Buffer(s, true);
     this.errorHandler = errorHandler;
     this.FullFilename = fullFilename;
@@ -490,15 +496,15 @@ public class Scanner {
       lastWasCr = false;
     } else {
       // We just skipped a comment. Any newline coming after the comment doesn't count for the splitting of the trivia
-      if(triviaTrailing && (ch == '\r' || (ch == '\n' && !lastWasCr))) {
-        triviaNewlines--;
+      if(triviaTrailing && (ch == '\r' || (ch == '\n' && !lastWasCr)) && oldEols == 0) {
+        triviaNewlines = 0;
         lastWasCr = (ch == '\r');
       }
     }
     while (ch == ' ' ||
 -->scan1
     ) {
-      if(triviaTrailing && (ch == '\r' || ch == '\n')) {
+      if(triviaTrailing && (ch == '\r' || ch == '\n') && oldEols == 0) {
         if(ch == '\r' || (ch == '\n' && !lastWasCr)) { // Don't count \r\n as two newlines.
           triviaNewlines++;
         }

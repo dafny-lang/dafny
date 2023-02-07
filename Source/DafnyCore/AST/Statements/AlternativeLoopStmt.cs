@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class AlternativeLoopStmt : LoopStmt, ICloneable<AlternativeLoopStmt> {
+public class AlternativeLoopStmt : LoopStmt, ICloneable<AlternativeLoopStmt>, ICanFormat {
   public readonly bool UsesOptionalBraces;
   public readonly List<GuardedAlternative> Alternatives;
   [ContractInvariantMethod]
@@ -69,4 +69,20 @@ public class AlternativeLoopStmt : LoopStmt, ICloneable<AlternativeLoopStmt> {
   }
 
   public override IEnumerable<Node> Children => SpecificationSubExpressions.Concat<Node>(Alternatives);
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    return formatter.SetIndentCases(indentBefore, OwnedTokens.Concat(Alternatives.SelectMany(alternative => alternative.OwnedTokens)), () => {
+      foreach (var ens in Invariants) {
+        formatter.SetAttributedExpressionIndentation(ens, indentBefore + formatter.SpaceTab);
+      }
+
+      foreach (var dec in Decreases.Expressions) {
+        formatter.SetDecreasesExpressionIndentation(dec, indentBefore + formatter.SpaceTab);
+      }
+
+      formatter.VisitAlternatives(Alternatives, indentBefore);
+      if (EndToken.val == "}") {
+        formatter.SetClosingIndentedRegion(EndToken, indentBefore);
+      }
+    });
+  }
 }

@@ -231,6 +231,7 @@ public class MatchCaseStmt : MatchCase {
   }
 
   public override IEnumerable<Node> Children => body;
+  public override IEnumerable<Node> PreResolveChildren => Children;
 
   public MatchCaseStmt(RangeToken rangeToken, DatatypeCtor ctor, bool fromBoundVar, [Captured] List<BoundVar> arguments, [Captured] List<Statement> body, Attributes attrs = null)
     : base(rangeToken.StartToken, ctor, arguments) {
@@ -264,6 +265,7 @@ public class MatchCaseExpr : MatchCase {
   }
 
   public override IEnumerable<Node> Children => Arguments.Concat<Node>(new[] { body });
+  public override IEnumerable<Node> PreResolveChildren => Children;
 
   public MatchCaseExpr(IToken tok, DatatypeCtor ctor, bool FromBoundVar, [Captured] List<BoundVar> arguments, Expression body, Attributes attrs = null)
     : base(tok, ctor, arguments) {

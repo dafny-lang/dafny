@@ -28,6 +28,6 @@ public class PluginsTest : PluginsTestBase {
                     "Not exactly 1 plugin loaded");
     Assert.AreEqual(1, diagnostics.Length, LibraryPath + " did not raise an error.");
     Assert.AreEqual("Impossible to continue because\\ \"whatever", diagnostics[0].Message);
-    Assert.AreEqual(new Range((0, 9), (0, 13)), diagnostics[0].Range);
+    Assert.AreEqual(new Range((0, 0), (0, 8)), diagnostics[0].Range);
   }
 }
