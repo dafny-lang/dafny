@@ -2001,7 +2001,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
   ]
   (. var range = new RangeToken(dmod.FirstToken, t);
      if (isConstructor) {
-       m = new Constructor(range, hasName ? name : new Name(RangeToken.NoToken, "_ctor"), dmod.IsGhost, typeArgs, ins,
+       m = new Constructor(range, hasName ? name : new Name(dmod.FirstToken.ToRange(), "_ctor"), dmod.IsGhost, typeArgs, ins,
                            req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), (DividedBlockStmt)body, attrs, signatureEllipsis);
      } else if (isLeastLemma) {
        m = new LeastLemma(range, name, dmod.IsStatic, kType, typeArgs, ins, outs,
