@@ -88,7 +88,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       Type.ResetScopes();
       return new Dafny.Program(
         document.Uri.ToString(),
-        new LiteralModuleDecl(new DefaultModuleDecl(), null),
+        new LiteralModuleDecl(new DefaultModuleDefinition(), null),
         // BuiltIns cannot be initialized without Type.ResetScopes() before.
         new BuiltIns(),
         errorReporter

@@ -1022,7 +1022,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     if (StartToken.line > 0) {
       return StartToken;
     }
-    if (this is DefaultModuleDecl { Includes: { Count: > 0 } includes } &&
+    if (this is DefaultModuleDefinition { Includes: { Count: > 0 } includes } &&
         includes[0].OwnedTokens.Any()) {
       return includes[0].OwnedTokens.First();
     }
@@ -1051,8 +1051,8 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     );
 }
 
-public class DefaultModuleDecl : ModuleDefinition {
-  public DefaultModuleDecl()
+public class DefaultModuleDefinition : ModuleDefinition {
+  public DefaultModuleDefinition()
     : base(RangeToken.NoToken, new Name("_module"), new List<IToken>(), false, false, null, null, null, true, true, true) {
   }
   public override bool IsDefaultModule {

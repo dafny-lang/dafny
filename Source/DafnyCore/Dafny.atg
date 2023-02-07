@@ -1002,8 +1002,8 @@ PRODUCTIONS
 Dafny
 = (. List<MemberDecl/*!*/> membersDefaultClass = new List<MemberDecl/*!*/>();
      // to support multiple files, create a default module only if theModule is null
-     DefaultModuleDecl defaultModule = (DefaultModuleDecl)((LiteralModuleDecl)theModule).ModuleDef;
-     // theModule should be a DefaultModuleDecl (actually, the singular DefaultModuleDecl)
+     DefaultModuleDefinition defaultModule = (DefaultModuleDefinition)((LiteralModuleDecl)theModule).ModuleDef;
+     // theModule should be a DefaultModuleDefinition (actually, the singular DefaultModuleDefinition)
      Contract.Assert(defaultModule != null);
      IToken startToken;
   .)
@@ -1644,7 +1644,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
   | TypeMembers<module, members>
   ]
   (. if (td == null) {
-       if (module is DefaultModuleDecl) {
+       if (module is DefaultModuleDefinition) {
          // opaque type declarations at the very outermost program scope get an automatic (!new)
          characteristics.ContainsNoReferenceTypes = true;
        }
