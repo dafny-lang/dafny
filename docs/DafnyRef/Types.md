@@ -2083,7 +2083,7 @@ which value is fixed after initialization.
 The declaration must either have a type or an initializing expression (or both).
 If the type is omitted, it is inferred from the initializing expression.
 
-* A const declaration may include the `ghost`, `static` and `opaque` modifiers, but no
+* A const declaration may include the `ghost`, `static`, and `opaque` modifiers, but no
 others.
 * A const declaration may appear within a module or within any declaration
 that may contain members (class, trait, datatype, newtype).
@@ -2093,7 +2093,7 @@ that may contain members (class, trait, datatype, newtype).
 expression, then the ghost-ness of the declaration is inferred; the `ghost`
 modifier may be omitted.
 * If the declaration includes the `opaque` modifier, then uses of the declared
-variable know its name and type but not its value .
+variable know its name and type but not its value.
 * The initialization expression may refer to other constant fields that are in scope and declared either
 before or after this declaration, but circular references are not allowed.
 
@@ -2698,7 +2698,7 @@ default. To make it ghost, replace the keyword `function` with the two keywords 
 (See the [/functionSyntax option](#sec-function-syntax) for a description 
 of the migration path for this change in behavior.}
 
-Functions (including predicates, function-by-methods, two-state functions and extreme predicates) may be 
+Functions (including predicates, function-by-methods, two-state functions, and extreme predicates) may be 
 declared `opaque`. In that case, only the signature and specification of the method
 is known at its points of use, not its body. The body can be _revealed_ for reasoning
 purposes using the [reveal statment](#sec-reveal-statement).
