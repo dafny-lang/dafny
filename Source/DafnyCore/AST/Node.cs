@@ -14,6 +14,13 @@ public interface INode {
   IToken Tok { get; }
 }
 
+public interface ICanFormat : INode {
+  /// Sets the indentation of individual tokens owned by this node, given
+  /// the new indentation set by the tokens preceding this node
+  /// Returns if further traverse needs to occur (true) or if it already happened (false)
+  bool SetIndent(int indentBefore, TokenNewIndentCollector formatter);
+}
+
 public abstract class Node : INode {
 
   public abstract IToken Tok { get; }
@@ -25,6 +32,28 @@ public abstract class Node : INode {
   /// losing source location information, so those transformed nodes should not be returned by this property.
   /// </summary>
   public abstract IEnumerable<Node> Children { get; }
+
+  /// <summary>
+  /// These children should match what was parsed before the resolution phase.
+  /// That way, gathering all OwnedTokens of all recursive ConcreteChildren should result in a comprehensive
+  /// coverage of the original program
+  /// </summary>
+  public abstract IEnumerable<Node> PreResolveChildren { get; }
+
+  // Nodes like DefaultClassDecl have children but no OwnedTokens as they are not "physical"
+  // Therefore, we have to find all the concrete children by unwrapping such nodes.
+  private IEnumerable<Node> GetConcreteChildren() {
+    foreach (var child in PreResolveChildren) {
+      if (child.StartToken != null && child.EndToken != null && child.StartToken.line != 0) {
+        yield return child;
+      } else {
+        foreach (var subNode in child.GetConcreteChildren()) {
+          yield return subNode;
+        }
+      }
+    }
+  }
+
 
   public IEnumerable<Node> Descendants() {
     return Children.Concat(Children.SelectMany(n => n.Descendants()));
@@ -88,9 +117,28 @@ public abstract class Node : INode {
         return OwnedTokensCache;
       }
 
-      var startToEndTokenNotOwned =
-        Children.Where(child => child.StartToken != null && child.EndToken != null)
-          .ToDictionary(child => child.StartToken!, child => child.EndToken!);
+      var childrenFiltered = GetConcreteChildren().ToList();
+
+      Dictionary<int, IToken> startToEndTokenNotOwned;
+      try {
+        startToEndTokenNotOwned =
+          childrenFiltered
+            .ToDictionary(child => child.StartToken.pos, child => child.EndToken!);
+      } catch (ArgumentException) {
+        // If we parse a resolved document, some children sometimes have the same token because they are auto-generated
+        Debugger.Break();
+        startToEndTokenNotOwned = new();
+        foreach (var child in childrenFiltered) {
+          if (startToEndTokenNotOwned.ContainsKey(child.StartToken.pos)) {
+            var previousEnd = startToEndTokenNotOwned[child.StartToken.pos];
+            if (child.EndToken.pos > previousEnd.pos) {
+              startToEndTokenNotOwned[child.StartToken.pos] = child.EndToken;
+            }
+          } else {
+            startToEndTokenNotOwned[child.StartToken.pos] = child.EndToken;
+          }
+        }
+      }
 
       var result = new List<IToken>();
       if (StartToken == null) {
@@ -99,7 +147,7 @@ public abstract class Node : INode {
         Contract.Assume(EndToken != null);
         var tmpToken = StartToken;
         while (tmpToken != null && tmpToken != EndToken.Next) {
-          if (startToEndTokenNotOwned.TryGetValue(tmpToken, out var endNotOwnedToken)) {
+          if (startToEndTokenNotOwned.TryGetValue(tmpToken.pos, out var endNotOwnedToken)) {
             tmpToken = endNotOwnedToken;
           } else if (tmpToken.filename != null) {
             result.Add(tmpToken);

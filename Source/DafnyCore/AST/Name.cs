@@ -41,6 +41,7 @@ public class Name : RangeNode {
   }
 
   public override IEnumerable<Node> Children => Enumerable.Empty<Node>();
+  public override IEnumerable<Node> PreResolveChildren => Children;
 
   public Name Clone(Cloner cloner) {
     return new Name(cloner.Tok(RangeToken), Value);
