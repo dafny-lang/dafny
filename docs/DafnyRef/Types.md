@@ -2083,7 +2083,7 @@ which value is fixed after initialization.
 The declaration must either have a type or an initializing expression (or both).
 If the type is omitted, it is inferred from the initializing expression.
 
-* A const declaration may include the `ghost`, `static` and `opaque` modifiers, but no
+* A const declaration may include the `ghost`, `static`, and `opaque` modifiers, but no
 others.
 * A const declaration may appear within a module or within any declaration
 that may contain members (class, trait, datatype, newtype).
