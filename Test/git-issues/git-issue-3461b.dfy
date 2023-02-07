@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %baredafny verify %verifyargs "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 const d := 42
