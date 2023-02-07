@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class NestedMatchExpr : Expression, ICloneable<NestedMatchExpr> {
+public class NestedMatchExpr : Expression, ICloneable<NestedMatchExpr>, ICanFormat {
   public readonly Expression Source;
   public readonly List<NestedMatchCaseExpr> Cases;
   public readonly bool UsesOptionalBraces;
@@ -77,5 +77,13 @@ public class NestedMatchExpr : Expression, ICloneable<NestedMatchExpr> {
 
   public NestedMatchExpr Clone(Cloner cloner) {
     return new NestedMatchExpr(cloner, this);
+  }
+
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    return formatter.SetIndentCases(indentBefore, OwnedTokens.Concat(Cases.SelectMany(oneCase => oneCase.OwnedTokens)).OrderBy(token => token.pos), () => {
+      foreach (var e in formatter.SubExpressions(this)) {
+        formatter.Visit(e, indentBefore);
+      }
+    });
   }
 }
