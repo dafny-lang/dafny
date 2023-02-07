@@ -30,7 +30,7 @@ public class PluginsTestWithVerification : PluginsTestBase {
       "Not exactly 1 plugin loaded");
     Assert.AreEqual(2, diagnostics.Length, LibraryPath + " did not raise an error.");
     Assert.AreEqual("Plugin Error that does not prevent verification", diagnostics[0].Message);
-    Assert.AreEqual(new Range((0, 9), (0, 13)), diagnostics[0].Range);
+    Assert.AreEqual(new Range((0, 0), (0, 8)), diagnostics[0].Range);
     Assert.AreEqual("value does not satisfy the subset constraints of 'nat'", diagnostics[1].Message);
     Assert.AreEqual(new Range((0, 23), (0, 24)), diagnostics[1].Range);
   }
