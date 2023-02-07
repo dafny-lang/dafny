@@ -17,6 +17,8 @@ gem "github-pages", "~> 225", group: :jekyll_plugins
 #group :jekyll_plugins do
 #  gem "jekyll-feed", "~> 0.12"
 #end
+# Newer version of rouge to pick up Dafny syntax highlighting support
+gem "rouge", "~> 3.27"
 
 gem 'jekyll-numbered-headings'
 gem "kramdown", ">= 2.3.1"
