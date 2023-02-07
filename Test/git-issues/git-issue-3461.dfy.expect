@@ -5,4 +5,5 @@ git-issue-3461.dfy(13,0): Error: a newtype cannot be declared 'opaque'
 git-issue-3461.dfy(14,0): Error: a subset type cannot be declared 'opaque'
 git-issue-3461.dfy(17,2): Warning: opaque is deprecated as an identifier. It will soon become a reserved word. Use a different name.
 git-issue-3461.dfy(17,9): Error: invalid UpdateStmt
-6 parse errors detected in git-issue-3461.dfy
+git-issue-3461.dfy(18,0): Error: this symbol not expected in VarDeclStatement
+7 parse errors detected in git-issue-3461.dfy
