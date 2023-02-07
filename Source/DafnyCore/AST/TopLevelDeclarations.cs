@@ -1446,7 +1446,7 @@ public class ClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICanFormat
 
 public class DefaultClassDecl : ClassDecl {
   public DefaultClassDecl(ModuleDefinition module, [Captured] List<MemberDecl> members)
-    : base(RangeToken.NoToken, new Name("_default"), module, new List<TypeParameter>(), members, null, false, null) {
+    : base(module.RangeToken, new Name("_default"), module, new List<TypeParameter>(), members, null, false, null) {
     Contract.Requires(module != null);
     Contract.Requires(cce.NonNullElements(members));
   }

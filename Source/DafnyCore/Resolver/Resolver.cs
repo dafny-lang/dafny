@@ -158,7 +158,7 @@ namespace Microsoft.Dafny {
       }
 
       private AmbiguousTopLevelDecl(ModuleDefinition m, string name, ISet<TopLevelDecl> pool)
-        : base(pool.First().RangeToken, new Name(name), m, new List<TypeParameter>(), null, false) {
+        : base(pool.First().RangeToken, new Name(pool.First().RangeToken, name), m, new List<TypeParameter>(), null, false) {
         Contract.Requires(name != null);
         Contract.Requires(pool != null && 2 <= pool.Count);
         Pool = pool;
@@ -198,7 +198,7 @@ namespace Microsoft.Dafny {
       }
 
       private AmbiguousMemberDecl(ModuleDefinition m, string name, ISet<MemberDecl> pool)
-        : base(pool.First().RangeToken, new Name(name), true, pool.First().IsGhost, null, false) {
+        : base(pool.First().RangeToken, new Name(pool.First().RangeToken, name), true, pool.First().IsGhost, null, false) {
         Contract.Requires(name != null);
         Contract.Requires(pool != null && 2 <= pool.Count);
         Pool = pool;
@@ -1831,14 +1831,14 @@ namespace Microsoft.Dafny {
           // saying is that the Method/Predicate does not take any type parameters over and beyond what the enclosing type (namely, the
           // iterator type) does.
           // --- here comes the constructor
-          var init = new Constructor(iter.RangeToken, new Name("_ctor"), false, new List<TypeParameter>(), iter.Ins,
+          var init = new Constructor(iter.RangeToken, new Name(iter.NameNode.RangeToken, "_ctor"), false, new List<TypeParameter>(), iter.Ins,
             new List<AttributedExpression>(),
             new Specification<FrameExpression>(new List<FrameExpression>(), null),
             new List<AttributedExpression>(),
             new Specification<Expression>(new List<Expression>(), null),
             null, null, null);
           // --- here comes predicate Valid()
-          var valid = new Predicate(iter.RangeToken, new Name("Valid"), false, true, new List<TypeParameter>(),
+          var valid = new Predicate(iter.RangeToken, new Name(iter.NameNode.RangeToken, "Valid"), false, true, new List<TypeParameter>(),
             new List<Formal>(),
             null,
             new List<AttributedExpression>(),
@@ -1847,7 +1847,7 @@ namespace Microsoft.Dafny {
             new Specification<Expression>(new List<Expression>(), null),
             null, Predicate.BodyOriginKind.OriginalOrInherited, null, null, null, null);
           // --- here comes method MoveNext
-          var moveNext = new Method(iter.RangeToken, new Name("MoveNext"), false, false, new List<TypeParameter>(),
+          var moveNext = new Method(iter.RangeToken, new Name(iter.NameNode.RangeToken, "MoveNext"), false, false, new List<TypeParameter>(),
             new List<Formal>(), new List<Formal>() { new Formal(iter.tok, "more", Type.Bool, false, false, null) },
             new List<AttributedExpression>(),
             new Specification<FrameExpression>(new List<FrameExpression>(), null),
