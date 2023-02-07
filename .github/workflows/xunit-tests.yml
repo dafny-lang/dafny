@@ -65,6 +65,7 @@ jobs:
       run: dotnet build -warnaserror --no-restore ${{env.solutionPath}}
     - name: Run DafnyLanguageServer Tests
       run: |
+        ## Run twice to catch unstable code (Issue #2673)
         dotnet test --no-restore --verbosity normal --logger trx Source/DafnyLanguageServer.Test
         dotnet test --no-restore --verbosity normal --logger trx Source/DafnyLanguageServer.Test
     - name: Run DafnyDriver Tests

@@ -10,7 +10,7 @@ abstract abstract module M {}
 
 No Dafny modifier, such as [`abstract`, `static`, `ghost`](../DafnyRef/DafnyRef#sec-declaration-modifiers) may be repeated. Such repetition would be superfluous even if allowed.
 
-## **Error: a _decl_ cannot be declared 'abstract'**
+## **Error: a _decl_ cannot be declared 'abstract'** {#p_abstract_not_allowed}
  
 ```dafny
 module M {
@@ -18,10 +18,9 @@ module M {
 }
 ```
 
-Only some kinds of declarations can be declared abstract. 
-In the example, a const declaration cannot be abstract.
+Only modules may be declared abstract.
 
-## **Error: a function-by-method has a ghost function body and a non-ghost method body; a function-by-method declaration does not use the 'ghost' keyword.**
+## **Error: a function-by-method has a ghost function body and a non-ghost method body; a function-by-method declaration does not use the 'ghost' keyword.** {#p_no_ghost_for_by_method}
 
 ```dafny
 ghost function f(): int
@@ -59,14 +58,15 @@ ghost module M {}
 Only some kinds of declarations can be declared `ghost`, most often functions,
 fields, and local declarations. In the example, a `module` may not be `ghost`.
 
-## **Error: a _decl_ cannot be declared 'static'**
+## **Error: a _decl_ cannot be declared 'static'** {#p_no_static}
 
 ```dafny
 static module M {}
 ```
 
 Only some kinds of declarations can be declared 'static', most often 
-fields, constants, methods, and functions, and only within classes. Modules are already always static.
+fields, constants, methods, and functions, and only within classes.
+Modules and the declarations within them are already always static.
 
 ## **Error: argument to :options attribute must be a literal string**
 
@@ -78,7 +78,7 @@ module {:options opt} M{}
 
 The value of an options attribute cannot be a computed expression. It must be a literal string.
 
-## **Error: cannot declare identifier beginning with underscore**
+## **Error: cannot declare identifier beginning with underscore** {#p_no_leading_underscore}
 
 ```dafny
 const _myconst := 5
@@ -87,8 +87,8 @@ function m(): (_: int) {0}
 
 User-declared identifiers may not begin with an underscore; 
 such identifiers are reserved for internal use. 
-In match statements and expressions, an 
-identifier that is a single underscore is used as a wild-card match.
+In match statements and expressions, an identifier
+that is a single underscore is used as a wild-card match.
 
 <!-- There are two instances of this message. An example of the other message is
      function m(): (_: int) {0}
@@ -189,14 +189,14 @@ The `var` declaration declares a mutable field, which is only permitted within
 classes, traits and iterators. 
 `const` declarations can be members of value-types, such as datatypes.
 
-## **Error: a const field should be initialized using ':=', not '='**
+## **Error: a const field should be initialized using ':=', not '='** {#p_bad_const_initialize_op}
 
 ```dafny
 const c: int = 5
 ```
 
-Dafny's syntax for initialization and assignment uses `:=`, not `=` (like some other languages).
-In fact `=` is not used at all in Dafny.
+Dafny's syntax for initialization and assignment uses `:=`, not `=`.
+In Dafny `=` is used only in type definitions.
 
 ## **Error: a const declaration must have a type or a RHS value**
 
@@ -723,9 +723,8 @@ method m() {
 }
 ```
 
-Local variables are initialized with `:=` (and sometimes with `:-` or `:|`), but not
-with `=`, as in some other languages.
-In fact, Dafny does not use the `=` operator anywhere.
+Local variables are initialized with `:=` (and sometimes with `:-` or `:|`), but not with `=`.
+In Dafny `=` is used only in type definitions.
 
 ## **Error: LHS of assign-such-that expression must be variables, not general patterns**
 
@@ -1091,9 +1090,8 @@ method m() {
 }
 ```
 
-Like local variables, let variables are initialized with `:=` (and sometimes with `:-` or `:|`), but not
-with `=`, as in some other languages.
-In fact, Dafny does not use the `=` operator anywhere.
+Like local variables, let variables are initialized with `:=` (and sometimes with `:-` or `:|`), but not with `=`.
+In Dafny `=` is used only in type definitions.
 
 ## **Error: LHS of let-such-that expression must be variables, not general patterns**
 
@@ -1193,4 +1191,28 @@ a decimal number and then passes that string to a libary routine to create a Big
 or BigDecimal. Given the parser logic, that parsing should never fail.
 
 <!-- There are three instances of this message, one for digits one for hexdigits, one for decimaldigits -->
+
+<!-- Scanner.frame -->
+
+## **Error: Malformed _template_ pragma: #_source_** {#sc_malformed_pragma}
+
+```dafny
+const s := @"
+#line S
+"
+```
+
+The Dafny scanner supports pragmas of the form `#line <lineno> <filename>`, with the filename optional.
+This message indicates that the pragma was not readable, most likely because the line number was not a
+parsable numeral.
+
+## **Error: Unrecognized pragma: #_source_** {#sc_unknown_pragma}
+
+```dafny
+const s := @"
+# I love hashes
+"
+```
+The Dafny scanner saw a pragma -- the first character of the line is a # character. But it is not one that the
+scanner recopgnizes. As of this writing, the only pragma recognized is `#line`.
 
