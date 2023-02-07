@@ -50,8 +50,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       try {
         var parseErrors = Parser.Parse(
           document.Text,
-          document.GetFilePath(),
           // We use the full path as filename so we can better re-construct the DocumentUri for the definition lookup.
+          document.Uri.ToString(),
           document.Uri.ToString(),
           program.DefaultModule,
           program.BuiltIns,

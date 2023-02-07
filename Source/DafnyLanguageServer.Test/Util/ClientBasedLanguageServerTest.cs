@@ -70,7 +70,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
   }
 
   [TestInitialize]
-  public async Task SetUp() {
+  public virtual async Task SetUp() {
     await SetUp(null);
   }
 
