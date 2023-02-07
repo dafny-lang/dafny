@@ -26,7 +26,7 @@ namespace DafnyPipeline.Test {
         var programString = @"
 // Comment ∈ before
 module Test // Module docstring
-{}
+{} // Attached to }
 
 /** Trait docstring */
 trait Trait1 { }
@@ -36,6 +36,7 @@ trait Trait2 extends Trait1
 // Trait docstring
 { }
 // This is attached to trait2
+// This is also attached to trait2
 
 // This is attached to n
 type n = x: int | x % 2 == 0
@@ -115,16 +116,13 @@ ensures true
     private void TestTokens(Node program) {
       var allTokens = new HashSet<IToken>();
 
-      void Traverse(Node node, int depth = 0) {
-        if (depth == 2) {
-          depth = 2;
-        }
+      void Traverse(Node node) {
         foreach (var ownedToken in node.OwnedTokens) {
           Assert.DoesNotContain(ownedToken, allTokens);
           allTokens.Add(ownedToken);
         }
-        foreach (var child in node.Children) {
-          Traverse(child, depth + 1);
+        foreach (var child in node.PreResolveChildren) {
+          Traverse(child);
         }
       }
 
@@ -140,7 +138,7 @@ ensures true
             t = t.Next;
           }
         } else {
-          foreach (var child in node.Children) {
+          foreach (var child in node.PreResolveChildren) {
             AreAllTokensOwned(child);
           }
         }
