@@ -75,17 +75,10 @@ abstract module {:options "/functionSyntax:4"} Dafny {
 
   // 
   // Native implementation of a flat, single-dimensional array.
-  // We use this instead of the built-in Dafny array<T> type for three reasons:
+  // We use this instead of the built-in Dafny array<T> type for two reasons,
+  // both of which may be addressable in the future:
   // 
-  // 1. Every element of an array<T> must be initialized.
-  //    This means you have to provide initial values when creating one,
-  //    which you can't do in generic code if your T is not auto-initializable (T(0)).
-  //    This RFC proposes a way to model uninitialized storage
-  //    that could be compiled to efficient enough code instead
-  //    (i.e. the Unset constructor below could be marked ghost):
-  //    https://github.com/dafny-lang/rfcs/pull/11
-  //
-  // 2. The array<T> type does not support any bulk-assignment
+  // 1. The array<T> type does not support any bulk-assignment
   //    operations, which are important to optimize as much as possible
   //    in this performance-sensitive code.
   //    I don't think it's a safe assumption that every target language
@@ -95,15 +88,13 @@ abstract module {:options "/functionSyntax:4"} Dafny {
   //    code amenable to such optimizations. :)
   //    See https://github.com/dafny-lang/dafny/issues/2447.
   //
-  // 3. Dafny arrays can be multi-dimensional, and so the native implementation
+  // 2. Dafny arrays can be multi-dimensional, and so the native implementation
   //    of that family of types is more general than the single dimension we need here.
   //    Ideally we would be able to lift the implementation of multi-dimensional arrays
   //    based on NativeArray<T> into Dafny as well, but that is likely blocked
   //    on being able to compile the interface efficiently enough.
   //    See https://github.com/dafny-lang/dafny/issues/2749.
   //
-  // TODO: This could be a class instead, since it doesn't require variance.
-  // A trait does allow more than one implementation though.
   trait {:extern} NativeArray<T> extends Validatable {
 
     ghost var values: seq<ArrayCell<T>>
@@ -211,13 +202,11 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       ensures ret.values == values[lo..hi]
   }
 
-  // TODO: More consistent method names.
   // This is internal for now but would be great to have in a shared library.
-  // Could also track a start index to support Deque-style use
+  // It could also track a start index to support Deque-style use
   // (possibly in a separate datatype to avoid the extra overhead of adding 0 all the time).
   class Vector<T> extends Validatable {
     var storage: NativeArray<T>
-    // TODO: "length"?
     var size: size_t
 
     ghost predicate Valid() 
@@ -230,8 +219,8 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       && storage.Repr <= Repr
       && this !in storage.Repr
       && storage.Valid()
-      // TODO: This is equivalent but I believe it doesn't
-      // get unrolled enough.
+      // TODO: This is equivalent to the above four clauses
+      // but I believe it doesn't get unrolled enough.
       // && ValidComponent(storage)
       && 0 <= size <= storage.Length()
       && forall i | 0 <= i < size :: storage.values[i].Set?
@@ -389,23 +378,23 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     // This is only here to support the attempts some runtimes make to
     // track what sequence values are actually sequences of characters.
     // This is not used when --unicode-char is enabled.
-    // TODO: rename. isNonUnicodeString?
     var isString: bool
 
-    // TODO: Better name, NOT a size_t
-    ghost const size: nat
+    // Total class instances in the tree.
+    // Used in decreases clauses.
+    ghost const NodeCount: nat
 
     ghost predicate Valid()
-      decreases size, 0
-      ensures Valid() ==> 0 < size
+      decreases NodeCount, 0
+      ensures Valid() ==> 0 < NodeCount
     
     function Cardinality(): size_t 
       requires Valid() 
-      decreases size, 1
+      decreases NodeCount, 1
 
     ghost function Value(): seq<T> 
       requires Valid()
-      decreases size, 2
+      decreases NodeCount, 2
       ensures |Value()| < SIZE_T_LIMIT && |Value()| as size_t == Cardinality()
 
     method Select(index: size_t) returns (ret: T)
@@ -420,7 +409,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     method Drop(lo: size_t) returns (ret: Sequence<T>)
       requires Valid()
       requires lo <= Cardinality()
-      decreases size, 2
+      decreases NodeCount, 2
       ensures ret.Valid()
       ensures ret.Value() == Value()[lo..]
     {
@@ -430,7 +419,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     method Take(hi: size_t) returns (ret: Sequence<T>)
       requires Valid()
       requires hi <= Cardinality()
-      decreases size, 2
+      decreases NodeCount, 2
       ensures ret.Valid()
       ensures ret.Value() == Value()[..hi]
     {
@@ -440,7 +429,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     method Subsequence(lo: size_t, hi: size_t) returns (ret: Sequence<T>)
       requires Valid()
       requires lo <= hi <= Cardinality()
-      decreases size, 2
+      decreases NodeCount, 2
       ensures ret.Valid()
       ensures ret.Value() == Value()[lo..hi]
     {
@@ -454,7 +443,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
 
     method ToArray() returns (ret: ImmutableArray<T>)
       requires Valid()
-      decreases size, 2
+      decreases NodeCount, 2
       ensures ret.Valid()
       ensures ret.Length() == Cardinality()
       ensures ret.values == Value()
@@ -579,6 +568,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
         "Concatenation result cardinality would be larger than the maximum (" + Helpers.DafnyValueToDafnyString(SIZE_T_MAX) + ")";
 
       // Optimize away redundant lazy wrappers
+      // (which will happen a lot with chained concatenations)
       var left' := left;
       if (left is LazySequence<T>) {
         var lazyLeft := left as LazySequence<T>;
@@ -600,11 +590,11 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     const values: ImmutableArray<T>
 
     ghost predicate Valid()
-      decreases size, 0
-      ensures Valid() ==> 0 < size
+      decreases NodeCount, 0
+      ensures Valid() ==> 0 < NodeCount
     {
       && values.Valid()
-      && size == 1
+      && NodeCount == 1
     }
 
     constructor(value: ImmutableArray<T>, isString: bool := false) 
@@ -614,19 +604,19 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     {
       this.values := value;
       this.isString := isString;
-      this.size := 1;
+      this.NodeCount := 1;
     }
 
     function Cardinality(): size_t 
       requires Valid() 
-      decreases size, 1
+      decreases NodeCount, 1
     {
       values.Length()
     }
 
     ghost function Value(): seq<T> 
       requires Valid()
-      decreases size, 2
+      decreases NodeCount, 2
       ensures |Value()| < SIZE_T_LIMIT && |Value()| as size_t == Cardinality()
     {
       values.values
@@ -634,7 +624,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
 
     method ToArray() returns (ret: ImmutableArray<T>)
       requires Valid()
-      decreases size, 2
+      decreases NodeCount, 2
       ensures ret.Valid()
       ensures ret.Length() == Cardinality()
       ensures ret.values == Value()
@@ -649,10 +639,10 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     const length: size_t
 
     ghost predicate Valid() 
-      decreases size, 0
-      ensures Valid() ==> 0 < size
+      decreases NodeCount, 0
+      ensures Valid() ==> 0 < NodeCount
     {
-      && size == 1 + left.size + right.size
+      && NodeCount == 1 + left.NodeCount + right.NodeCount
       && left.Valid()
       && right.Valid()
       && left.Cardinality() as int + right.Cardinality() as int < SIZE_T_LIMIT as int
@@ -670,19 +660,19 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       this.right := right;
       this.length := left.Cardinality() + right.Cardinality();
       this.isString := left.isString || right.isString;
-      this.size := 1 + left.size + right.size;
+      this.NodeCount := 1 + left.NodeCount + right.NodeCount;
     }
 
     function Cardinality(): size_t 
       requires Valid() 
-      decreases size, 1
+      decreases NodeCount, 1
     {
       length
     }
 
     ghost function Value(): seq<T> 
       requires Valid()
-      decreases size, 2
+      decreases NodeCount, 2
       ensures |Value()| < SIZE_T_LIMIT && |Value()| as size_t == Cardinality()
     {
       var ret := left.Value() + right.Value();
@@ -692,7 +682,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
 
     method ToArray() returns (ret: ImmutableArray<T>)
       requires Valid()
-      decreases size, 2
+      decreases NodeCount, 2
       ensures ret.Valid()
       ensures ret.Length() == Cardinality()
       ensures ret.values == Value()
@@ -710,7 +700,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     requires builder.Valid()
     requires SizeAdditionInRange(builder.size, e.Cardinality())
     modifies builder.Repr
-    decreases e.size
+    decreases e.NodeCount
     ensures builder.ValidAndDisjoint()
     ensures e.Valid()
     ensures builder.Value() == old(builder.Value()) + e.Value();
@@ -737,7 +727,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     requires forall expr <- stack.Value() :: expr.Valid()
     requires builder.size as int + e.Cardinality() as int + CardinalitySum(stack.Value()) < SIZE_T_LIMIT
     modifies builder.Repr, stack.Repr
-    decreases e.size + SizeSum(stack.Value())
+    decreases e.NodeCount + NodeCountSum(stack.Value())
     ensures builder.Valid()
     ensures stack.Valid()
     ensures builder.Value() == old(builder.Value()) + e.Value() + ConcatValueOnStack(old(stack.Value()));
@@ -777,14 +767,14 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       s[|s| - 1].Value() + ConcatValueOnStack(s[..(|s| - 1)])
   }
 
-  ghost function SizeSum<T>(s: seq<Sequence<T>>): nat 
+  ghost function NodeCountSum<T>(s: seq<Sequence<T>>): nat 
     requires forall e <- s :: e.Valid()
   {
     if |s| == 0 then 
       0 
     else
       var last := |s| - 1;
-      SizeSum(s[..last]) + s[last].size
+      NodeCountSum(s[..last]) + s[last].NodeCount
   }
 
   ghost function CardinalitySum<T>(s: seq<Sequence<T>>): nat 
@@ -803,29 +793,29 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     const length: size_t
 
     ghost predicate Valid() 
-      decreases size, 0
-      ensures Valid() ==> 0 < size
+      decreases NodeCount, 0
+      ensures Valid() ==> 0 < NodeCount
     {
-      && 0 < size
+      && 0 < NodeCount
       && |value| < SIZE_T_LIMIT
       && length == |value| as size_t
       && box.Valid()
       && box.inv == (s: Sequence<T>) =>
-        && s.size < size
+        && s.NodeCount < NodeCount
         && s.Valid()
         && s.Value() == value
     }
 
     constructor(wrapped: Sequence<T>) 
       requires wrapped.Valid()
-      requires 1 <= wrapped.size
+      requires 1 <= wrapped.NodeCount
       ensures Valid()
       ensures Value() == wrapped.Value()
     {
       var value := wrapped.Value();
-      var size := 1 + wrapped.size;
+      var nodeCount := 1 + wrapped.NodeCount;
       var inv := (s: Sequence<T>) =>
-        && s.size < size
+        && s.NodeCount < nodeCount
         && s.Valid()
         && s.Value() == value;
       var box := AtomicBox.Make(inv, wrapped);
@@ -834,19 +824,19 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       this.length := wrapped.Cardinality();
       this.isString := wrapped.isString;
       this.value := value;
-      this.size := size;
+      this.NodeCount := nodeCount;
     }
 
     function Cardinality(): size_t 
       requires Valid() 
-      decreases size, 1
+      decreases NodeCount, 1
     {
       length
     }
     
     ghost function Value(): seq<T> 
       requires Valid()
-      decreases size, 2
+      decreases NodeCount, 2
       ensures |Value()| < SIZE_T_LIMIT && |Value()| as size_t == Cardinality()
     {
       assert |value| as size_t == Cardinality();
@@ -855,7 +845,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
 
     method ToArray() returns (ret: ImmutableArray<T>)
       requires Valid()
-      decreases size, 2
+      decreases NodeCount, 2
       ensures ret.Valid()
       ensures ret.Length() == Cardinality()
       ensures ret.values == Value()
