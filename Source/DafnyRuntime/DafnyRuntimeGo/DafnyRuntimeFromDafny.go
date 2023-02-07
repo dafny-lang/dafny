@@ -868,13 +868,13 @@ type CompanionStruct_ArraySequence_ struct {
 var Companion_ArraySequence_ = CompanionStruct_ArraySequence_ {
 }
 
-func (_this *ArraySequence) Equals(other ArraySequence) bool {
+func (_this *ArraySequence) Equals(other Sequence) bool {
   return Companion_Sequence_.Equal(_this, other)
 }
 
 func (_this *ArraySequence) EqualsGeneric(x interface{}) bool {
   other, ok := x.(Sequence)
-  return ok && _this.Equals(other)
+  return ok && Companion_Sequence_.Equal(_this, other)
 }
 
 
@@ -987,13 +987,13 @@ type CompanionStruct_ConcatSequence_ struct {
 var Companion_ConcatSequence_ = CompanionStruct_ConcatSequence_ {
 }
 
-func (_this *ConcatSequence) Equals(other ConcatSequence) bool {
+func (_this *ConcatSequence) Equals(other Sequence) bool {
   return Companion_Sequence_.Equal(_this, other)
 }
 
 func (_this *ConcatSequence) EqualsGeneric(x interface{}) bool {
   other, ok := x.(Sequence)
-  return ok && _this.Equals(other)
+  return ok && Companion_Sequence_.Equal(_this, other)
 }
 
 
@@ -1131,13 +1131,13 @@ type CompanionStruct_LazySequence_ struct {
 var Companion_LazySequence_ = CompanionStruct_LazySequence_ {
 }
 
-func (_this *LazySequence) Equals(other LazySequence) bool {
+func (_this *LazySequence) Equals(other Sequence) bool {
   return Companion_Sequence_.Equal(_this, other)
 }
 
 func (_this *LazySequence) EqualsGeneric(x interface{}) bool {
   other, ok := x.(Sequence)
-  return ok && _this.Equals(other)
+  return ok && Companion_Sequence_.Equal(_this, other)
 }
 
 

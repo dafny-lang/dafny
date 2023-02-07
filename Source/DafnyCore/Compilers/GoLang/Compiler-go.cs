@@ -274,7 +274,7 @@ namespace Microsoft.Dafny.Compilers {
         w.WriteLine();
         // TODO-RS: HACK
         if (name.EndsWith("Sequence")) {
-          var wEquals = w.NewNamedBlock("func (_this *{0}) Equals(other {0}) bool", name);
+          var wEquals = w.NewNamedBlock("func (_this *{0}) Equals(other Sequence) bool", name);
           wEquals.WriteLine($"return {DafnySequenceCompanion}.Equal(_this, other)");
         } else {
           // This Equals() is so simple that we could just use == instead, but uniformity is good and it'll get inlined anyway.
@@ -287,7 +287,7 @@ namespace Microsoft.Dafny.Compilers {
         // TODO-RS: HACK
         if (name.EndsWith("Sequence")) {
           wEqualsGeneric.WriteLine("other, ok := x.(Sequence)");
-          wEqualsGeneric.WriteLine("return ok && _this.Equals(other)");
+          wEqualsGeneric.WriteLine($"return ok && {DafnySequenceCompanion}.Equal(_this, other)");
         } else {
           wEqualsGeneric.WriteLine("other, ok := x.(*{0})", name);
           wEqualsGeneric.WriteLine("return ok && _this.Equals(other)");
