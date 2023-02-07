@@ -346,11 +346,6 @@ namespace Microsoft.Dafny {
     }
   }
 
-
-  public abstract class INamedRegion : TokenNode {
-    string Name { get; }
-  }
-
   [ContractClass(typeof(IVariableContracts))]
   public interface IVariable : IDeclarationOrUsage {
     string Name {

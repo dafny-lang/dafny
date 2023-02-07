@@ -7,7 +7,7 @@ using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
-public abstract class Declaration : INamedRegion, IAttributeBearingDeclaration, IDeclarationOrUsage {
+public abstract class Declaration : TokenNode, IAttributeBearingDeclaration, IDeclarationOrUsage {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(tok != null);
@@ -24,10 +24,10 @@ public abstract class Declaration : INamedRegion, IAttributeBearingDeclaration, 
   public string Name;
   public bool IsRefining;
 
-  private VisibilityScope opaqueScope = new VisibilityScope();
-  private VisibilityScope revealScope = new VisibilityScope();
+  private VisibilityScope opaqueScope = new();
+  private VisibilityScope revealScope = new();
 
-  private bool scopeIsInherited = false;
+  private bool scopeIsInherited;
 
   public override IEnumerable<AssumptionDescription> Assumptions() {
     if (Attributes.Contains(Attributes, "axiom")) {
@@ -638,7 +638,7 @@ public class ModuleQualifiedId {
   [FilledInDuringResolution] public ModuleSignature Sig; // the module signature corresponding to the full path
 }
 
-public class ModuleDefinition : INamedRegion, IDeclarationOrUsage, IAttributeBearingDeclaration {
+public class ModuleDefinition : TokenNode, IDeclarationOrUsage, IAttributeBearingDeclaration {
   public IToken BodyStartTok = Token.NoToken;
   public IToken BodyEndTok = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
