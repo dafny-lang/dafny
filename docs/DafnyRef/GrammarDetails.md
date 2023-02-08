@@ -93,7 +93,7 @@ These definitions use
 * curly braces to indicate 0-or-more repetitions
 * parentheses to indicate grouping
 * a `-` sign to indicate set difference: any character sequence matched by the left operand except character sequences matched by the right operand
-* a sequence of any of the above indicates concatentation (without whitespace)
+* a sequence of any of the above to indicate concatenation without whitespace
 
 ````grammar
 reservedword =
