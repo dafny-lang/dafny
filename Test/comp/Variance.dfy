@@ -11,7 +11,7 @@ datatype Co<+T> = Co(z: T) {
     const y: seq<T>
 
     function A(x: T): int { 0 }
-    static ghost function sA(x: T): int { 0 }
+    static function sA(x: T): int { 0 }
     function gA(ghost x: T): int { 0 }
     function B(x: seq<T>): int { 0 }
     function C(x: int): seq<T> { y }
@@ -26,7 +26,7 @@ datatype Non<T> = Non(T) {
     const y: seq<T>
 
     function A(x: T): int { 0 }
-    static ghost function sA(x: T): int { 0 }
+    static function sA(x: T): int { 0 }
     function gA(ghost x: T): int { 0 }
     function B(x: seq<T>): int { 0 }
     function C(x: int): seq<T> { y }
@@ -41,7 +41,7 @@ datatype Cont<-T> = Cont(z: T -> int) {
     const y: seq<T>
 
     function A(x: T): int { 0 }
-    static ghost function sA(x: T): int { 0 }
+    static function sA(x: T): int { 0 }
     function gA(ghost x: T): int { 0 }
     function B(x: seq<T>): int { 0 }
     function C(x: int): seq<T> { y }
@@ -56,7 +56,7 @@ codatatype CCo<+T> = CCo(T) {
     const y: seq<T>
 
     function A(x: T): int { 0 }
-    static ghost function sA(x: T): int { 0 }
+    static function sA(x: T): int { 0 }
     function gA(ghost x: T): int { 0 }
     function B(x: seq<T>): int { 0 }
     function C(x: int): seq<T> { y }
@@ -71,7 +71,7 @@ codatatype CNon<T> = CNon(z: T) {
     const y: seq<T>
 
     function A(x: T): int { 0 }
-    static ghost function sA(x: T): int { 0 }
+    static function sA(x: T): int { 0 }
     function gA(ghost x: T): int { 0 }
     function B(x: seq<T>): int { 0 }
     function C(x: int): seq<T> { y }
@@ -86,7 +86,7 @@ codatatype CCon<-T> = CCon(T -> int) {
     const y: seq<T>
 
     function A(x: T): int { 0 }
-    static ghost function sA(x: T): int { 0 }
+    static function sA(x: T): int { 0 }
     function gA(ghost x: T): int { 0 }
     function B(x: seq<T>): int { 0 }
     function C(x: int): seq<T> { y }

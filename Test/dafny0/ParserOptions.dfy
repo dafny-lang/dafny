@@ -5,13 +5,13 @@
 
 // Use legacy syntax
 module {:options "/functionSyntax:3"} FunctionMethodSyntax {
-  function CompiledFunction() : int { 1 }
-  ghost function GhostFunction() : int { 1 }
+  function method CompiledFunction() : int { 1 }
+  function GhostFunction() : int { 1 }
 }
 
 // Use new syntax
 module {:options "/functionSyntax:4"} GhostFunctionSyntax {
-  ghost function CompiledFunction() : int { 1 }
+  function CompiledFunction() : int { 1 }
   ghost function GhostFunction() : int { 1 }
 }
 
@@ -19,7 +19,7 @@ module {:options "/functionSyntax:4"} GhostFunctionSyntax {
 module {:options "/functionSyntax:3"} {:options "/functionSyntax:4"}
   StillGhostFunctionSyntax
 {
-  ghost function CompiledFunction() : int { 1 }
+  function CompiledFunction() : int { 1 }
   ghost function GhostFunction() : int { 1 }
 }
 

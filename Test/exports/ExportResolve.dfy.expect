@@ -58,11 +58,11 @@ ExportResolve.dfy(119,9): Error: This export set is not consistent: P4
 ExportResolve.dfy(123,19): Error: Cannot export type member 'FromInt' without providing its enclosing class 'Klass'
 ExportResolve.dfy(126,19): Error: Cannot export mutable field 'x' without revealing its enclosing trait 'Trait'
 ExportResolve.dfy(127,19): Error: Cannot export mutable field 'x' without revealing its enclosing class 'Klass'
-ExportResolve.dfy(184,18): Error: Raised while checking export set WhatIsKnownAboutProvidedClass1: Function body type mismatch (expected object, got Trait)
+ExportResolve.dfy(184,11): Error: Raised while checking export set WhatIsKnownAboutProvidedClass1: Function body type mismatch (expected object, got Trait)
 ExportResolve.dfy(169,9): Error: This export set is not consistent: WhatIsKnownAboutProvidedClass1
-ExportResolve.dfy(185,30): Error: Raised while checking export set WhatIsKnownAboutProvidedClass2: Undeclared top-level type or type parameter: Trait? (did you forget to qualify a name or declare a module import 'opened'?)
+ExportResolve.dfy(185,23): Error: Raised while checking export set WhatIsKnownAboutProvidedClass2: Undeclared top-level type or type parameter: Trait? (did you forget to qualify a name or declare a module import 'opened'?)
 ExportResolve.dfy(172,9): Error: This export set is not consistent: WhatIsKnownAboutProvidedClass2
-ExportResolve.dfy(185,30): Error: Raised while checking export set WhatIsKnownAboutProvidedClass3: Undeclared top-level type or type parameter: Trait? (did you forget to qualify a name or declare a module import 'opened'?)
+ExportResolve.dfy(185,23): Error: Raised while checking export set WhatIsKnownAboutProvidedClass3: Undeclared top-level type or type parameter: Trait? (did you forget to qualify a name or declare a module import 'opened'?)
 ExportResolve.dfy(175,9): Error: This export set is not consistent: WhatIsKnownAboutProvidedClass3
 ExportResolve.dfy(248,20): Error: unresolved identifier: X
 ExportResolve.dfy(248,28): Error: member 'More?' has not been imported in this scope and cannot be accessed here
@@ -106,7 +106,7 @@ ExportResolve.dfy(433,8): Error: RHS (of type A.T) not assignable to LHS (of typ
 ExportResolve.dfy(457,15): Error: member 'Q' has not been imported in this scope and cannot be accessed here
 ExportResolve.dfy(473,15): Error: Cannot export mutable field 'u' without revealing its enclosing class 'C'
 ExportResolve.dfy(475,15): Error: Cannot export constructor 'FromInt' without revealing its enclosing class 'C'
-ExportResolve.dfy(520,34): Error: Raised while checking export set ProvideAllAndThenSome: unresolved identifier: X?
+ExportResolve.dfy(520,27): Error: Raised while checking export set ProvideAllAndThenSome: unresolved identifier: X?
 ExportResolve.dfy(506,9): Error: This export set is not consistent: ProvideAllAndThenSome
 ExportResolve.dfy(582,16): Error: member 'u' has not been imported in this scope and cannot be accessed here
 ExportResolve.dfy(590,16): Error: member 'u' has not been imported in this scope and cannot be accessed here

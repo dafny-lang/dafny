@@ -32,9 +32,9 @@ TraitResolution2.dfy(183,10): Error: const field 'cic' is inherited from trait '
 TraitResolution2.dfy(184,16): Error: const field 'gic' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution2.dfy(185,17): Error: static const field 'csc' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution2.dfy(186,23): Error: static const field 'gsc' is inherited from trait 'Tr' and is not allowed to be re-declared
-TraitResolution2.dfy(192,14): Error: fully defined function 'cif2' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution2.dfy(192,13): Error: fully defined function 'cif2' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution2.dfy(193,19): Error: fully defined function 'gif2' is inherited from trait 'Tr' and is not allowed to be re-declared
-TraitResolution2.dfy(194,14): Error: fully defined function 'cif3' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution2.dfy(194,13): Error: fully defined function 'cif3' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution2.dfy(195,19): Error: fully defined function 'gif3' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution2.dfy(197,26): Error: static function 'csf0' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution2.dfy(198,26): Error: static function 'gsf0' is inherited from trait 'Tr' and is not allowed to be re-declared
@@ -57,7 +57,7 @@ TraitResolution2.dfy(220,24): Error: static method 'gsm2' is inherited from trai
 TraitResolution2.dfy(221,18): Error: static method 'csm3' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution2.dfy(222,24): Error: static method 'gsm3' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution2.dfy(245,19): Error: overridden function 'F' in 'SwitchGhostStatus' has different ghost/compiled status than in trait 'AAA'
-TraitResolution2.dfy(246,14): Error: overridden function 'G' in 'SwitchGhostStatus' has different ghost/compiled status than in trait 'AAA'
+TraitResolution2.dfy(246,13): Error: overridden function 'G' in 'SwitchGhostStatus' has different ghost/compiled status than in trait 'AAA'
 TraitResolution2.dfy(249,17): Error: overridden method 'M' in 'SwitchGhostStatus' has different ghost/compiled status than in trait 'AAA'
 TraitResolution2.dfy(250,11): Error: overridden method 'N' in 'SwitchGhostStatus' has different ghost/compiled status than in trait 'AAA'
 TraitResolution2.dfy(266,10): Error: method 'N' in 'AAA' can only be overridden by a method (got lemma)

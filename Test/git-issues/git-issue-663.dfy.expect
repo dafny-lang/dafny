@@ -76,7 +76,7 @@ git-issue-663.dfy(194,11): Error: an assume statement without an {:axiom} attrib
 git-issue-663.dfy(195,11): Error: an assume statement without an {:axiom} attribute cannot be compiled
 git-issue-663.dfy(196,10): Error: an assume statement without an {:axiom} attribute cannot be compiled
 git-issue-663.dfy(197,12): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(199,10): Error: Function _module._default.SpecificationOfCompiledFunctionWithoutBody has no body
+git-issue-663.dfy(199,9): Error: Function _module._default.SpecificationOfCompiledFunctionWithoutBody has no body
 git-issue-663.dfy(200,11): Error: an assume statement without an {:axiom} attribute cannot be compiled
 git-issue-663.dfy(201,8): Error: an assume statement without an {:axiom} attribute cannot be compiled
 git-issue-663.dfy(202,10): Error: an assume statement without an {:axiom} attribute cannot be compiled

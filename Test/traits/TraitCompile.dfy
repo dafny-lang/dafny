@@ -15,7 +15,7 @@ trait TT
   }
   function Times(x:int, y:int) : int
     requires x > y
-  static ghost function StaticMinus(x:int, y:int) : int
+  static function StaticMinus(x:int, y:int) : int
     requires x > y
   {
      x - y
@@ -99,7 +99,7 @@ method Main()
 
 module OtherModule {
   trait Y {
-    static ghost function F(x: int): int
+    static function F(x: int): int
     { x / 2 }
     static method P(t: real) returns (f: bool)
     {
@@ -145,7 +145,7 @@ module GenericBasics {
     static method Stat(y: int, a: A, b: B) returns (bb: B) { bb := b; }
 
     function Teen<R>(a: (A, R)): B
-    static ghost function STeen<R>(a: (A, R), b: B): B { b }
+    static function STeen<R>(a: (A, R), b: B): B { b }
 
     // here are some functions with/without a named result value, which is treated separately in the verifier; these tests check on box/unbox-ing in the verifier
     function RValue0<X>(x: X): B

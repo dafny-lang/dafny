@@ -1,0 +1,859 @@
+*** MODEL
+##_System._tuple#2._#Make2 -> T@U!val!19
+$_Frame -> 
+$_Frame@0 -> T@U!val!33
+$_reverifyPost -> 
+$decr_init$loop#00 -> 
+$decr_init$loop#00@0 -> 5854
+$decr$loop#00 -> 
+$decr$loop#00@0 -> 
+$decr$loop#00@1 -> 5854
+$FunctionContextHeight -> 0
+$Heap -> T@U!val!29
+$Heap@0 -> T@U!val!27
+$Heap@1 -> T@U!val!24
+$Heap@2 -> T@U!val!27
+$Heap@3 -> T@U!val!28
+$Heap@4 -> T@U!val!27
+$nw -> 
+$nw@0 -> T@U!val!25
+$PreLoopHeap$loop#0 -> 
+$rhs#0_0_0 -> 
+$rhs#0_0_0@0 -> 
+$rhs#0_0_0@1 -> T@U!val!55
+$rhs#0_1_0 -> 
+$rhs#0_1_0@0 -> 
+$rhs#0_1_0@1 -> T@U!val!26
+$Tick -> 
+$w$loop#0 -> 
+$w$loop#0@0 -> true
+alloc -> T@U!val!16
+boolType -> T@T!val!2
+BoxType -> T@T!val!14
+charType -> T@T!val!15
+DatatypeTypeType -> T@T!val!13
+DtCtorIdType -> T@T!val!9
+i#0 -> 
+i#0@0 -> 0
+i#0@1 -> 0
+i#0@2 -> 1
+intType -> T@T!val!0
+j#0 -> 
+j#2 -> 
+MapType1Type -> T@T!val!12
+n#0 -> 5854
+null -> T@U!val!23
+realType -> T@T!val!1
+refType -> T@T!val!11
+regexType -> T@T!val!5
+ret#0 -> T@U!val!30
+rmodeType -> T@T!val!3
+stringType -> T@T!val!4
+TagBool -> T@U!val!5
+TagChar -> T@U!val!6
+Tagclass._System.array -> T@U!val!18
+Tagclass._System.array? -> T@U!val!17
+Tagclass._System.Tuple2 -> T@U!val!20
+TagIMap -> T@U!val!15
+TagInt -> T@U!val!7
+TagISet -> T@U!val!11
+TagMap -> T@U!val!14
+TagMultiSet -> T@U!val!12
+TagORDINAL -> T@U!val!9
+TagReal -> T@U!val!8
+TagSeq -> T@U!val!13
+TagSet -> T@U!val!10
+TBool -> T@U!val!0
+TChar -> T@U!val!1
+TInt -> T@U!val!2
+TORDINAL -> T@U!val!4
+TReal -> T@U!val!3
+tytagFamily$_tuple#2 -> T@U!val!22
+tytagFamily$array -> T@U!val!21
+TyTagFamilyType -> T@T!val!10
+TyTagType -> T@T!val!7
+TyType -> T@T!val!6
+_System.array.Length -> {
+  else -> 5854
+}
+$Box -> {
+  T@U!val!42 -> T@U!val!43
+  T@U!val!46 -> T@U!val!47
+  T@U!val!49 -> T@U!val!50
+  T@U!val!52 -> T@U!val!53
+  T@U!val!55 -> T@U!val!61
+  else -> T@U!val!40
+}
+$HeapSucc -> {
+  else -> true
+}
+$Is -> {
+  else -> true
+}
+$IsAlloc -> {
+  else -> true
+}
+$IsAllocBox -> {
+  else -> true
+}
+$IsBox -> {
+  else -> true
+}
+$IsGoodHeap -> {
+  else -> true
+}
+$IsHeapAnchor -> {
+  else -> true
+}
+$Unbox -> {
+  T@T!val!15 T@U!val!40 -> T@U!val!39
+  T@T!val!15 T@U!val!43 -> T@U!val!42
+  T@T!val!15 T@U!val!47 -> T@U!val!46
+  T@T!val!15 T@U!val!50 -> T@U!val!49
+  T@T!val!15 T@U!val!53 -> T@U!val!52
+  else -> T@U!val!55
+}
+bool_2_U -> {
+  false -> T@U!val!36
+  else -> T@U!val!37
+}
+char#FromInt -> {
+  100 -> T@U!val!52
+  110 -> T@U!val!46
+  111 -> T@U!val!49
+  118 -> T@U!val!42
+  else -> T@U!val!39
+}
+char#ToInt -> {
+  T@U!val!39 -> 101
+  T@U!val!42 -> 118
+  T@U!val!46 -> 110
+  T@U!val!49 -> 111
+  else -> 100
+}
+ControlFlow -> {
+  0 10 -> 4
+  0 18 -> 10
+  0 20 -> 18
+  0 4 -> (- 5)
+  0 49 -> 20
+  0 50 -> 49
+  0 51 -> 50
+  0 57 -> 51
+  else -> 57
+}
+Ctor -> {
+  T@T!val!0 -> 0
+  T@T!val!1 -> 1
+  T@T!val!10 -> 10
+  T@T!val!11 -> 12
+  T@T!val!12 -> 13
+  T@T!val!13 -> 14
+  T@T!val!14 -> 15
+  T@T!val!15 -> 20
+  T@T!val!16 -> 11
+  T@T!val!17 -> 16
+  T@T!val!18 -> 17
+  T@T!val!2 -> 2
+  T@T!val!3 -> 3
+  T@T!val!4 -> 4
+  T@T!val!5 -> 5
+  T@T!val!6 -> 6
+  T@T!val!7 -> 7
+  T@T!val!9 -> 9
+  else -> 8
+}
+dtype -> {
+  else -> T@U!val!34
+}
+FDim -> {
+  T@U!val!58 -> 1
+  else -> 0
+}
+FieldType -> {
+  T@T!val!14 -> T@T!val!19
+  else -> T@T!val!8
+}
+FieldTypeInv0 -> {
+  T@T!val!19 -> T@T!val!14
+  else -> T@T!val!2
+}
+IndexField -> {
+  else -> T@U!val!58
+}
+IndexField_Inverse -> {
+  else -> 0
+}
+int_2_U -> {
+  else -> T@U!val!59
+}
+Inv0_TSeq -> {
+  else -> T@U!val!1
+}
+lambda#0 -> {
+  else -> T@U!val!33
+}
+Lit -> {
+  T@U!val!61 -> T@U!val!61
+  else -> T@U!val!55
+}
+LitInt -> {
+  2 -> 2
+  else -> 0
+}
+MapType0Select -> {
+  T@U!val!24 T@U!val!25 -> T@U!val!56
+  T@U!val!27 T@U!val!25 -> T@U!val!57
+  T@U!val!29 T@U!val!25 -> T@U!val!35
+  else -> T@U!val!60
+}
+MapType0Store -> {
+  else -> T@U!val!27
+}
+MapType0Type -> {
+  else -> T@T!val!16
+}
+MapType0TypeInv0 -> {
+  else -> T@T!val!11
+}
+MapType0TypeInv1 -> {
+  else -> T@T!val!12
+}
+MapType1Select -> {
+  T@U!val!35 T@U!val!16 -> T@U!val!36
+  T@U!val!35 T@U!val!58 -> T@U!val!61
+  T@U!val!57 T@U!val!58 -> T@U!val!61
+  else -> T@U!val!37
+}
+MapType1Store -> {
+  else -> T@U!val!57
+}
+MapType2Select -> {
+  else -> T@U!val!37
+}
+MapType2Type -> {
+  else -> T@T!val!17
+}
+MapType2TypeInv0 -> {
+  else -> T@T!val!11
+}
+MapType2TypeInv1 -> {
+  else -> T@T!val!2
+}
+Mod -> {
+  else -> 0
+}
+Seq#Build -> {
+  T@U!val!38 T@U!val!50 -> T@U!val!51
+  T@U!val!41 T@U!val!43 -> T@U!val!44
+  T@U!val!44 T@U!val!40 -> T@U!val!45
+  T@U!val!45 T@U!val!47 -> T@U!val!48
+  T@U!val!51 T@U!val!53 -> T@U!val!54
+  T@U!val!54 T@U!val!53 -> T@U!val!55
+  else -> T@U!val!41
+}
+Seq#Build_inv0 -> {
+  T@U!val!44 -> T@U!val!41
+  T@U!val!45 -> T@U!val!44
+  T@U!val!48 -> T@U!val!45
+  T@U!val!54 -> T@U!val!51
+  T@U!val!55 -> T@U!val!54
+  else -> T@U!val!38
+}
+Seq#Build_inv1 -> {
+  T@U!val!41 -> T@U!val!40
+  T@U!val!44 -> T@U!val!43
+  T@U!val!45 -> T@U!val!40
+  T@U!val!48 -> T@U!val!47
+  T@U!val!51 -> T@U!val!50
+  else -> T@U!val!53
+}
+Seq#Empty -> {
+  else -> T@U!val!38
+}
+Seq#Equal -> {
+  else -> false
+}
+Seq#Length -> {
+  T@U!val!38 -> 0
+  T@U!val!41 -> 1
+  T@U!val!44 -> 2
+  T@U!val!48 -> 4
+  T@U!val!51 -> 1
+  T@U!val!54 -> 2
+  else -> 3
+}
+SeqType -> {
+  else -> T@T!val!18
+}
+SeqTypeInv0 -> {
+  else -> T@T!val!14
+}
+Tag -> {
+  T@U!val!1 -> T@U!val!6
+  T@U!val!2 -> T@U!val!7
+  T@U!val!3 -> T@U!val!8
+  T@U!val!31 -> T@U!val!13
+  T@U!val!32 -> T@U!val!18
+  T@U!val!34 -> T@U!val!17
+  T@U!val!4 -> T@U!val!9
+  else -> T@U!val!5
+}
+TagFamily -> {
+  else -> T@U!val!21
+}
+Tclass._System.array -> {
+  else -> T@U!val!32
+}
+Tclass._System.array_0 -> {
+  else -> T@U!val!31
+}
+Tclass._System.array? -> {
+  else -> T@U!val!34
+}
+Tclass._System.array?_0 -> {
+  else -> T@U!val!31
+}
+tickleBool -> {
+  else -> true
+}
+TSeq -> {
+  else -> T@U!val!31
+}
+type -> {
+  T@U!val!0 -> T@T!val!6
+  T@U!val!1 -> T@T!val!6
+  T@U!val!16 -> T@T!val!8
+  T@U!val!19 -> T@T!val!9
+  T@U!val!2 -> T@T!val!6
+  T@U!val!21 -> T@T!val!10
+  T@U!val!22 -> T@T!val!10
+  T@U!val!23 -> T@T!val!11
+  T@U!val!24 -> T@T!val!16
+  T@U!val!25 -> T@T!val!11
+  T@U!val!26 -> T@T!val!18
+  T@U!val!27 -> T@T!val!16
+  T@U!val!28 -> T@T!val!16
+  T@U!val!29 -> T@T!val!16
+  T@U!val!3 -> T@T!val!6
+  T@U!val!30 -> T@T!val!11
+  T@U!val!31 -> T@T!val!6
+  T@U!val!32 -> T@T!val!6
+  T@U!val!33 -> T@T!val!17
+  T@U!val!34 -> T@T!val!6
+  T@U!val!35 -> T@T!val!12
+  T@U!val!36 -> T@T!val!2
+  T@U!val!37 -> T@T!val!2
+  T@U!val!38 -> T@T!val!18
+  T@U!val!39 -> T@T!val!15
+  T@U!val!4 -> T@T!val!6
+  T@U!val!40 -> T@T!val!14
+  T@U!val!41 -> T@T!val!18
+  T@U!val!42 -> T@T!val!15
+  T@U!val!43 -> T@T!val!14
+  T@U!val!44 -> T@T!val!18
+  T@U!val!45 -> T@T!val!18
+  T@U!val!46 -> T@T!val!15
+  T@U!val!47 -> T@T!val!14
+  T@U!val!48 -> T@T!val!18
+  T@U!val!49 -> T@T!val!15
+  T@U!val!50 -> T@T!val!14
+  T@U!val!51 -> T@T!val!18
+  T@U!val!52 -> T@T!val!15
+  T@U!val!53 -> T@T!val!14
+  T@U!val!54 -> T@T!val!18
+  T@U!val!55 -> T@T!val!18
+  T@U!val!56 -> T@T!val!12
+  T@U!val!57 -> T@T!val!12
+  T@U!val!58 -> T@T!val!19
+  T@U!val!59 -> T@T!val!0
+  T@U!val!60 -> T@T!val!12
+  T@U!val!61 -> T@T!val!14
+  else -> T@T!val!7
+}
+U_2_bool -> {
+  else -> (= (:var 0) T@U!val!37)
+}
+U_2_int -> {
+  else -> 5854
+}
+*** STATE <initial>
+  $_Frame -> 
+  $_reverifyPost -> 
+  $decr_init$loop#00 -> 
+  $decr$loop#00 -> 
+  $Heap -> T@U!val!29
+  $nw -> 
+  $PreLoopHeap$loop#0 -> 
+  $rhs#0_0_0 -> 
+  $rhs#0_1_0 -> 
+  $Tick -> 
+  $w$loop#0 -> 
+  i#0 -> 
+  j#0 -> 
+  j#2 -> 
+  n#0 -> 5854
+  ret#0 -> T@U!val!30
+*** END_STATE
+*** STATE git-issue-2026.dfy(5,0): initial state
+  $_Frame -> T@U!val!33
+*** END_STATE
+*** STATE git-issue-2026.dfy(6,24)
+  $_reverifyPost -> false
+  $Heap -> T@U!val!27
+  $nw -> T@U!val!25
+  ret#0 -> T@U!val!25
+*** END_STATE
+*** STATE git-issue-2026.dfy(8,14)
+  i#0 -> 0
+*** END_STATE
+*** STATE git-issue-2026.dfy(9,4): after some loop iterations
+  $decr_init$loop#00 -> 5854
+  $decr$loop#00 -> 
+  $Heap -> T@U!val!24
+  $PreLoopHeap$loop#0 -> T@U!val!27
+  $rhs#0_0_0 -> 
+  $rhs#0_1_0 -> 
+  $w$loop#0 -> true
+  i#0 -> 0
+*** END_STATE
+*** STATE git-issue-2026.dfy(15,27)
+  $decr$loop#00 -> 5854
+  $Heap -> T@U!val!27
+  $rhs#0_0_0 -> T@U!val!55
+*** END_STATE
+*** STATE git-issue-2026.dfy(19,18)
+  $Heap -> T@U!val!27
+  i#0 -> 1
+*** END_STATE
+*** END_MODEL
+*** MODEL
+##_System._tuple#2._#Make2 -> T@U!val!19
+$_Frame -> 
+$_Frame@0 -> T@U!val!33
+$_reverifyPost -> 
+$decr_init$loop#00 -> 
+$decr_init$loop#00@0 -> 5854
+$decr$loop#00 -> 
+$decr$loop#00@0 -> 
+$decr$loop#00@1 -> 4879
+$FunctionContextHeight -> 0
+$Heap -> T@U!val!29
+$Heap@0 -> T@U!val!28
+$Heap@1 -> T@U!val!24
+$Heap@2 -> T@U!val!26
+$Heap@3 -> T@U!val!28
+$Heap@4 -> T@U!val!28
+$nw -> 
+$nw@0 -> T@U!val!25
+$PreLoopHeap$loop#0 -> 
+$rhs#0_0_0 -> 
+$rhs#0_0_0@0 -> 
+$rhs#0_0_0@1 -> T@U!val!27
+$rhs#0_1_0 -> 
+$rhs#0_1_0@0 -> 
+$rhs#0_1_0@1 -> T@U!val!58
+$Tick -> 
+$w$loop#0 -> 
+$w$loop#0@0 -> true
+alloc -> T@U!val!16
+boolType -> T@T!val!2
+BoxType -> T@T!val!14
+charType -> T@T!val!15
+DatatypeTypeType -> T@T!val!13
+DtCtorIdType -> T@T!val!9
+i#0 -> 
+i#0@0 -> 0
+i#0@1 -> 975
+i#0@2 -> 976
+intType -> T@T!val!0
+j#0 -> 
+j#2 -> 
+MapType1Type -> T@T!val!12
+n#0 -> 5854
+null -> T@U!val!23
+realType -> T@T!val!1
+refType -> T@T!val!11
+regexType -> T@T!val!5
+ret#0 -> T@U!val!30
+rmodeType -> T@T!val!3
+stringType -> T@T!val!4
+TagBool -> T@U!val!5
+TagChar -> T@U!val!6
+Tagclass._System.array -> T@U!val!18
+Tagclass._System.array? -> T@U!val!17
+Tagclass._System.Tuple2 -> T@U!val!20
+TagIMap -> T@U!val!15
+TagInt -> T@U!val!7
+TagISet -> T@U!val!11
+TagMap -> T@U!val!14
+TagMultiSet -> T@U!val!12
+TagORDINAL -> T@U!val!9
+TagReal -> T@U!val!8
+TagSeq -> T@U!val!13
+TagSet -> T@U!val!10
+TBool -> T@U!val!0
+TChar -> T@U!val!1
+TInt -> T@U!val!2
+TORDINAL -> T@U!val!4
+TReal -> T@U!val!3
+tytagFamily$_tuple#2 -> T@U!val!22
+tytagFamily$array -> T@U!val!21
+TyTagFamilyType -> T@T!val!10
+TyTagType -> T@T!val!7
+TyType -> T@T!val!6
+_System.array.Length -> {
+  else -> 5854
+}
+$Box -> {
+  T@U!val!42 -> T@U!val!43
+  T@U!val!46 -> T@U!val!47
+  T@U!val!48 -> T@U!val!49
+  T@U!val!51 -> T@U!val!52
+  T@U!val!58 -> T@U!val!61
+  else -> T@U!val!40
+}
+$HeapSucc -> {
+  else -> true
+}
+$Is -> {
+  else -> true
+}
+$IsAlloc -> {
+  else -> true
+}
+$IsAllocBox -> {
+  else -> true
+}
+$IsBox -> {
+  else -> true
+}
+$IsGoodHeap -> {
+  else -> true
+}
+$IsHeapAnchor -> {
+  else -> true
+}
+$Unbox -> {
+  T@T!val!15 T@U!val!40 -> T@U!val!39
+  T@T!val!15 T@U!val!43 -> T@U!val!42
+  T@T!val!15 T@U!val!47 -> T@U!val!46
+  T@T!val!15 T@U!val!49 -> T@U!val!48
+  T@T!val!15 T@U!val!52 -> T@U!val!51
+  else -> T@U!val!58
+}
+bool_2_U -> {
+  false -> T@U!val!36
+  else -> T@U!val!37
+}
+char#FromInt -> {
+  100 -> T@U!val!51
+  110 -> T@U!val!46
+  111 -> T@U!val!48
+  118 -> T@U!val!42
+  else -> T@U!val!39
+}
+char#ToInt -> {
+  T@U!val!39 -> 101
+  T@U!val!42 -> 118
+  T@U!val!48 -> 111
+  T@U!val!51 -> 100
+  else -> 110
+}
+ControlFlow -> {
+  0 14 -> 4
+  0 18 -> 14
+  0 20 -> 18
+  0 4 -> (- 3)
+  0 49 -> 20
+  0 50 -> 49
+  0 51 -> 50
+  0 57 -> 51
+  else -> 57
+}
+Ctor -> {
+  T@T!val!0 -> 0
+  T@T!val!1 -> 1
+  T@T!val!10 -> 10
+  T@T!val!11 -> 12
+  T@T!val!12 -> 13
+  T@T!val!13 -> 14
+  T@T!val!14 -> 15
+  T@T!val!15 -> 20
+  T@T!val!16 -> 11
+  T@T!val!17 -> 16
+  T@T!val!18 -> 17
+  T@T!val!2 -> 2
+  T@T!val!3 -> 3
+  T@T!val!4 -> 4
+  T@T!val!5 -> 5
+  T@T!val!6 -> 6
+  T@T!val!7 -> 7
+  T@T!val!9 -> 9
+  else -> 8
+}
+dtype -> {
+  else -> T@U!val!34
+}
+FDim -> {
+  T@U!val!57 -> 1
+  else -> 0
+}
+FieldType -> {
+  T@T!val!14 -> T@T!val!19
+  else -> T@T!val!8
+}
+FieldTypeInv0 -> {
+  T@T!val!19 -> T@T!val!14
+  else -> T@T!val!2
+}
+IndexField -> {
+  else -> T@U!val!57
+}
+IndexField_Inverse -> {
+  else -> 975
+}
+int_2_U -> {
+  else -> T@U!val!59
+}
+Inv0_TSeq -> {
+  else -> T@U!val!1
+}
+lambda#0 -> {
+  else -> T@U!val!33
+}
+Lit -> {
+  T@U!val!61 -> T@U!val!61
+  else -> T@U!val!58
+}
+LitInt -> {
+  1 -> 1
+  2 -> 2
+  else -> 0
+}
+MapType0Select -> {
+  T@U!val!24 T@U!val!25 -> T@U!val!55
+  T@U!val!28 T@U!val!25 -> T@U!val!56
+  T@U!val!29 T@U!val!25 -> T@U!val!35
+  else -> T@U!val!60
+}
+MapType0Store -> {
+  else -> T@U!val!28
+}
+MapType0Type -> {
+  else -> T@T!val!16
+}
+MapType0TypeInv0 -> {
+  else -> T@T!val!11
+}
+MapType0TypeInv1 -> {
+  else -> T@T!val!12
+}
+MapType1Select -> {
+  T@U!val!35 T@U!val!16 -> T@U!val!36
+  T@U!val!35 T@U!val!57 -> T@U!val!61
+  T@U!val!56 T@U!val!57 -> T@U!val!61
+  else -> T@U!val!37
+}
+MapType1Store -> {
+  else -> T@U!val!56
+}
+MapType2Select -> {
+  else -> T@U!val!37
+}
+MapType2Type -> {
+  else -> T@T!val!17
+}
+MapType2TypeInv0 -> {
+  else -> T@T!val!11
+}
+MapType2TypeInv1 -> {
+  else -> T@T!val!2
+}
+Mod -> {
+  else -> 1
+}
+Seq#Build -> {
+  T@U!val!38 T@U!val!49 -> T@U!val!50
+  T@U!val!41 T@U!val!43 -> T@U!val!44
+  T@U!val!44 T@U!val!40 -> T@U!val!45
+  T@U!val!45 T@U!val!47 -> T@U!val!58
+  T@U!val!50 T@U!val!52 -> T@U!val!53
+  T@U!val!53 T@U!val!52 -> T@U!val!54
+  else -> T@U!val!41
+}
+Seq#Build_inv0 -> {
+  T@U!val!44 -> T@U!val!41
+  T@U!val!45 -> T@U!val!44
+  T@U!val!53 -> T@U!val!50
+  T@U!val!54 -> T@U!val!53
+  T@U!val!58 -> T@U!val!45
+  else -> T@U!val!38
+}
+Seq#Build_inv1 -> {
+  T@U!val!44 -> T@U!val!43
+  T@U!val!50 -> T@U!val!49
+  T@U!val!53 -> T@U!val!52
+  T@U!val!54 -> T@U!val!52
+  T@U!val!58 -> T@U!val!47
+  else -> T@U!val!40
+}
+Seq#Empty -> {
+  else -> T@U!val!38
+}
+Seq#Equal -> {
+  else -> false
+}
+Seq#Length -> {
+  T@U!val!38 -> 0
+  T@U!val!41 -> 1
+  T@U!val!44 -> 2
+  T@U!val!50 -> 1
+  T@U!val!53 -> 2
+  T@U!val!58 -> 4
+  else -> 3
+}
+SeqType -> {
+  else -> T@T!val!18
+}
+SeqTypeInv0 -> {
+  else -> T@T!val!14
+}
+Tag -> {
+  T@U!val!1 -> T@U!val!6
+  T@U!val!2 -> T@U!val!7
+  T@U!val!3 -> T@U!val!8
+  T@U!val!31 -> T@U!val!13
+  T@U!val!32 -> T@U!val!18
+  T@U!val!34 -> T@U!val!17
+  T@U!val!4 -> T@U!val!9
+  else -> T@U!val!5
+}
+TagFamily -> {
+  else -> T@U!val!21
+}
+Tclass._System.array -> {
+  else -> T@U!val!32
+}
+Tclass._System.array_0 -> {
+  else -> T@U!val!31
+}
+Tclass._System.array? -> {
+  else -> T@U!val!34
+}
+Tclass._System.array?_0 -> {
+  else -> T@U!val!31
+}
+tickleBool -> {
+  else -> true
+}
+TSeq -> {
+  else -> T@U!val!31
+}
+type -> {
+  T@U!val!0 -> T@T!val!6
+  T@U!val!1 -> T@T!val!6
+  T@U!val!16 -> T@T!val!8
+  T@U!val!19 -> T@T!val!9
+  T@U!val!2 -> T@T!val!6
+  T@U!val!21 -> T@T!val!10
+  T@U!val!22 -> T@T!val!10
+  T@U!val!23 -> T@T!val!11
+  T@U!val!24 -> T@T!val!16
+  T@U!val!25 -> T@T!val!11
+  T@U!val!26 -> T@T!val!16
+  T@U!val!27 -> T@T!val!18
+  T@U!val!28 -> T@T!val!16
+  T@U!val!29 -> T@T!val!16
+  T@U!val!3 -> T@T!val!6
+  T@U!val!30 -> T@T!val!11
+  T@U!val!31 -> T@T!val!6
+  T@U!val!32 -> T@T!val!6
+  T@U!val!33 -> T@T!val!17
+  T@U!val!34 -> T@T!val!6
+  T@U!val!35 -> T@T!val!12
+  T@U!val!36 -> T@T!val!2
+  T@U!val!37 -> T@T!val!2
+  T@U!val!38 -> T@T!val!18
+  T@U!val!39 -> T@T!val!15
+  T@U!val!4 -> T@T!val!6
+  T@U!val!40 -> T@T!val!14
+  T@U!val!41 -> T@T!val!18
+  T@U!val!42 -> T@T!val!15
+  T@U!val!43 -> T@T!val!14
+  T@U!val!44 -> T@T!val!18
+  T@U!val!45 -> T@T!val!18
+  T@U!val!46 -> T@T!val!15
+  T@U!val!47 -> T@T!val!14
+  T@U!val!48 -> T@T!val!15
+  T@U!val!49 -> T@T!val!14
+  T@U!val!50 -> T@T!val!18
+  T@U!val!51 -> T@T!val!15
+  T@U!val!52 -> T@T!val!14
+  T@U!val!53 -> T@T!val!18
+  T@U!val!54 -> T@T!val!18
+  T@U!val!55 -> T@T!val!12
+  T@U!val!56 -> T@T!val!12
+  T@U!val!57 -> T@T!val!19
+  T@U!val!58 -> T@T!val!18
+  T@U!val!59 -> T@T!val!0
+  T@U!val!60 -> T@T!val!12
+  T@U!val!61 -> T@T!val!14
+  else -> T@T!val!7
+}
+U_2_bool -> {
+  else -> (= (:var 0) T@U!val!37)
+}
+U_2_int -> {
+  else -> 5854
+}
+*** STATE <initial>
+  $_Frame -> 
+  $_reverifyPost -> 
+  $decr_init$loop#00 -> 
+  $decr$loop#00 -> 
+  $Heap -> T@U!val!29
+  $nw -> 
+  $PreLoopHeap$loop#0 -> 
+  $rhs#0_0_0 -> 
+  $rhs#0_1_0 -> 
+  $Tick -> 
+  $w$loop#0 -> 
+  i#0 -> 
+  j#0 -> 
+  j#2 -> 
+  n#0 -> 5854
+  ret#0 -> T@U!val!30
+*** END_STATE
+*** STATE git-issue-2026.dfy(5,0): initial state
+  $_Frame -> T@U!val!33
+*** END_STATE
+*** STATE git-issue-2026.dfy(6,24)
+  $_reverifyPost -> false
+  $Heap -> T@U!val!28
+  $nw -> T@U!val!25
+  ret#0 -> T@U!val!25
+*** END_STATE
+*** STATE git-issue-2026.dfy(8,14)
+  i#0 -> 0
+*** END_STATE
+*** STATE git-issue-2026.dfy(9,4): after some loop iterations
+  $decr_init$loop#00 -> 5854
+  $decr$loop#00 -> 
+  $Heap -> T@U!val!24
+  $PreLoopHeap$loop#0 -> T@U!val!28
+  $rhs#0_0_0 -> 
+  $rhs#0_1_0 -> 
+  $w$loop#0 -> true
+  i#0 -> 975
+*** END_STATE
+*** STATE git-issue-2026.dfy(17,28)
+  $decr$loop#00 -> 4879
+  $Heap -> T@U!val!28
+  $rhs#0_1_0 -> T@U!val!58
+*** END_STATE
+*** STATE git-issue-2026.dfy(19,18)
+  $Heap -> T@U!val!28
+  i#0 -> 976
+*** END_STATE
+*** END_MODEL

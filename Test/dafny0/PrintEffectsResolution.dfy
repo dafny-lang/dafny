@@ -17,7 +17,7 @@ ghost function {:print} F(): int // error: cannot apply {:print} to function
 
 function {:print} G(): int // error: cannot apply {:print} to function
 
-ghost function {:print} H(): int { // error: cannot apply {:print} to function-by-method
+function {:print} H(): int { // error: cannot apply {:print} to function-by-method
   2
 } by method {
   return 2;

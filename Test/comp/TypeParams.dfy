@@ -126,7 +126,7 @@ class WClass<W> {
     k0 := Generate(w);
     k1 := Generate(w);
   }
-  static ghost function Generate(w: W): Stream<W> {
+  static function Generate(w: W): Stream<W> {
     Next(w, Generate(w))
   }
 }

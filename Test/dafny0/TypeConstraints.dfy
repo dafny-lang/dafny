@@ -478,7 +478,7 @@ module TypeArgumentPrintTests {
 
   // -----
   class A<X> {
-    static ghost function F(x: X): int { 15 }
+    static function F(x: X): int { 15 }
   }
 
   class B<Y> {

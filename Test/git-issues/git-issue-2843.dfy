@@ -1,7 +1,7 @@
 // RUN: %exits-with 2 %dafny /functionSyntax:4 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-ghost function F(ghost x: int, y: int): int {
+function F(ghost x: int, y: int): int {
   y
 }
 

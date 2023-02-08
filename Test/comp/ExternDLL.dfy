@@ -11,11 +11,11 @@ module {:extern "Modx"} Mod1
 {
   class {:extern "classx"} Class1
   {
-    static ghost function {:extern "Fun1x"} Fun1() : int
+    static function {:extern "Fun1x"} Fun1() : int
       ensures Fun1() > 0
     static method {:extern "Method1x"} Method1() returns (x: int)
       ensures x > 0
-    static ghost function Fun2() : int
+    static function Fun2() : int
       ensures Fun2() > 0
     {
       Fun1()

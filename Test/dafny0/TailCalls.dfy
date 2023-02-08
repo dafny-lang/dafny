@@ -374,13 +374,13 @@ method {:tailrecursion} NonGhostLoop(n: nat) returns (r: nat)
   }
 }
 
-ghost function {:tailrecursion} FBM0(n: nat, x: int): int {
+function {:tailrecursion} FBM0(n: nat, x: int): int {
   x
 } by method {
   return if n == 0 then x else FBM0(n - 1, x); // error: not recognized as tail recursive
 }
 
-ghost function {:tailrecursion} FBM0'(n: nat, x: int): (r: int) {
+function {:tailrecursion} FBM0'(n: nat, x: int): (r: int) {
   x
 } by method {
   if n == 0 {
@@ -390,7 +390,7 @@ ghost function {:tailrecursion} FBM0'(n: nat, x: int): (r: int) {
   }
 }
 
-ghost function {:tailrecursion} FBM0''(n: nat, x: int): (r: int) {
+function {:tailrecursion} FBM0''(n: nat, x: int): (r: int) {
   x
 } by method {
   if n == 0 {
@@ -400,7 +400,7 @@ ghost function {:tailrecursion} FBM0''(n: nat, x: int): (r: int) {
   }
 }
 
-ghost function {:tailrecursion} FBM0'3(n: nat, x: int): int {
+function {:tailrecursion} FBM0'3(n: nat, x: int): int {
   x
 } by method {
   if n == 0 {
@@ -410,13 +410,13 @@ ghost function {:tailrecursion} FBM0'3(n: nat, x: int): int {
   }
 }
 
-ghost function {:tailrecursion} FBM1(n: nat, x: int): int {
+function {:tailrecursion} FBM1(n: nat, x: int): int {
   x
 } by method {
   return if n == 0 then x else FBM1(n - 1, x) + FBM1(n - 1, x); // error: not tail recursive
 }
 
-ghost function {:tailrecursion} FBM2(n: nat, x: int): int {
+function {:tailrecursion} FBM2(n: nat, x: int): int {
   x
 } by method {
   if n == 0 {
@@ -428,7 +428,7 @@ ghost function {:tailrecursion} FBM2(n: nat, x: int): int {
   }
 }
 
-ghost function {:tailrecursion} FBM3(n: nat, x: int): (r: int) {
+function {:tailrecursion} FBM3(n: nat, x: int): (r: int) {
   x
 } by method {
   if n == 0 {
@@ -438,7 +438,7 @@ ghost function {:tailrecursion} FBM3(n: nat, x: int): (r: int) {
   }
 }
 
-ghost function {:tailrecursion} FBM4(n: nat, x: int): (r: int) {
+function {:tailrecursion} FBM4(n: nat, x: int): (r: int) {
   x
 } by method {
   if n == 0 {
@@ -453,7 +453,7 @@ ghost function {:tailrecursion} FBM4(n: nat, x: int): (r: int) {
   }
 }
 
-ghost function {:tailrecursion} FBM5(n: nat, x: int): (r: int) {
+function {:tailrecursion} FBM5(n: nat, x: int): (r: int) {
   x
 } by method {
   r := x;

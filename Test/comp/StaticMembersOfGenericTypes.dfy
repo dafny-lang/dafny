@@ -69,7 +69,7 @@ method GenericClass() {
 trait Trait<G, H(0)> {
   static const K': H
   static const N' := 25
-  static ghost function F'<B>(g: G, h: H, b: B): (G, H, B) {
+  static function F'<B>(g: G, h: H, b: B): (G, H, B) {
     (g, h, b)
   }
   static method M'<B>(g: G, h: H, b: B) returns (gg: G, hh: H, bb: B) {
@@ -80,7 +80,7 @@ trait Trait<G, H(0)> {
 class Class<A(0)> extends Trait<bool, A> {
   static const K: A
   static const N := 25
-  static ghost function F<B>(a: A, b: B): (A, B) {
+  static function F<B>(a: A, b: B): (A, B) {
     (a, b)
   }
   static method M<B>(a: A, b: B) returns (bb: B, aa: A) {
@@ -91,7 +91,7 @@ class Class<A(0)> extends Trait<bool, A> {
 datatype Datatype<A(0)> = Something {
   static const K: A
   static const N := 25
-  static ghost function F<B>(a: A, b: B): (A, B) {
+  static function F<B>(a: A, b: B): (A, B) {
     (a, b)
   }
   static method M<B>(a: A, b: B) returns (bb: B, aa: A) {
@@ -136,7 +136,7 @@ method FunctionValues() {
 }
 
 trait TraitFunc<X(0), Y> {
-  static ghost function F'<U>(x: X, y: Y, u: U): (X, Y, U) {
+  static function F'<U>(x: X, y: Y, u: U): (X, Y, U) {
     (x, y, u)
   }
   function G'<U>(x: X, y: Y, u: U): (X, Y, U) {
@@ -145,7 +145,7 @@ trait TraitFunc<X(0), Y> {
 }
 
 class ClassFunc<T> extends TraitFunc<int, T> {
-  static ghost function F<U>(t: T, u: U): (T, U) {
+  static function F<U>(t: T, u: U): (T, U) {
     (t, u)
   }
   function G<U>(t: T, u: U): (T, U) {
@@ -154,7 +154,7 @@ class ClassFunc<T> extends TraitFunc<int, T> {
 }
 
 datatype DatatypeFunc<T> = DFMake(T) {
-  static ghost function F<U>(t: T, u: U): (T, U) {
+  static function F<U>(t: T, u: U): (T, U) {
     (t, u)
   }
   function G<U>(t: T, u: U): (T, U) {
@@ -163,7 +163,7 @@ datatype DatatypeFunc<T> = DFMake(T) {
 }
 
 newtype NewtypeFunc = x | 0 <= x < 25 {
-  static ghost function F<U>(u: U): U {
+  static function F<U>(u: U): U {
     u
   }
   function G<U>(u: U): U {

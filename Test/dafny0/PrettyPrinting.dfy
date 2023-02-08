@@ -107,7 +107,7 @@ module Ats {
 }
 
 module ByMethod {
-  ghost function F(x: nat): int {
+  function F(x: nat): int {
     x
   } by method {
     var j := 0;

@@ -131,12 +131,12 @@ module Methods {
 module Functions {
   newtype Newtype = x | 0 <= x < 500 {
     function InstanceN<Bn(0)>(b: Bn): Bn { b }
-    static ghost function StaticN<Bn(0)>(b: Bn): Bn { b }
+    static function StaticN<Bn(0)>(b: Bn): Bn { b }
   }
 
   datatype Datatype<Ad(0)> = Dt0 | Dt1 {
     function InstanceD<Bd(0)>(a: Ad, b: Bd): (Ad, Bd) { (a, b) }
-    static ghost function StaticD<Bd(0)>(a: Ad, b: Bd): (Ad, Bd) { (a, b) }
+    static function StaticD<Bd(0)>(a: Ad, b: Bd): (Ad, Bd) { (a, b) }
   }
 
   trait UberTrait<Au(0)> {
@@ -154,14 +154,14 @@ module Functions {
     function InstanceU2<Bt(0)>(a: At, b: Bt): (At, Bt) { (a, b) }
     function InstanceT<Bt(0)>(a: At, b: Bt): (At, Bt)
     function InstanceTBody<Bt(0)>(a: At, b: Bt): (At, Bt) { (a, b) }
-    static ghost function StaticT<Bt(0)>(a: At, b: Bt): (At, Bt) { (a, b) }
+    static function StaticT<Bt(0)>(a: At, b: Bt): (At, Bt) { (a, b) }
   }
 
   class Class<Ac(0)> extends Trait<Ac> {
     function InstanceU3<Bc(0)>(a: Ac, b: Bc): (Ac, Bc) { (a, b) }
     function InstanceT<Bc(0)>(a: Ac, b: Bc): (Ac, Bc) { (a, b) }
     function InstanceC<Bc(0)>(a: Ac, b: Bc): (Ac, Bc) { (a, b) }
-    static ghost function StaticC<Bc(0)>(a: Ac, b: Bc): (Ac, Bc) { (a, b) }
+    static function StaticC<Bc(0)>(a: Ac, b: Bc): (Ac, Bc) { (a, b) }
   }
 
   datatype Uni = Uni

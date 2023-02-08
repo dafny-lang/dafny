@@ -186,13 +186,13 @@ module {:options "/functionSyntax:4"} EqualitySupport {
       this != EnumB // error: XY only partially supports equality
     }
 
-    ghost predicate Q()
+    predicate Q()
       requires EnumB?
     {
       this != EnumB
     }
 
-    ghost predicate R()
+    predicate R()
       requires !EnumA?
     {
       this != EnumB

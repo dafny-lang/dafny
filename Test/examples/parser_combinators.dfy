@@ -77,10 +77,10 @@ module {:options "-functionSyntax:4"} Parsers {
 /// i.e. one that can be used with the monadic `:-` operator.  This makes
 /// error handling much less intrusive.
 
-    ghost predicate IsFailure() { Failure? }
-    ghost function PropagateFailure<U>(): ParseResult<U> requires Failure? { Failure() }
-    ghost function Extract(): (nat, T) requires Success? { (pos, t) }
-    ghost function MapResult<T'>(f: T -> T'): ParseResult<T'> {
+    predicate IsFailure() { Failure? }
+    function PropagateFailure<U>(): ParseResult<U> requires Failure? { Failure() }
+    function Extract(): (nat, T) requires Success? { (pos, t) }
+    function MapResult<T'>(f: T -> T'): ParseResult<T'> {
       match this
         case Success(pos, t) => Success(pos, f(t))
         case Failure() => Failure()
@@ -113,7 +113,7 @@ module {:options "-functionSyntax:4"} Parsers {
 /// (`left.requires(pos)`) and that the right parser may be called, but only if
 /// the left one succeeds, and only on the position returned by it.
 
-    static ghost function Concat0<L, R>(left: Parser<L>, right: Parser<R>)
+    static function Concat0<L, R>(left: Parser<L>, right: Parser<R>)
       : (p: Parser<(L, R)>)
     {
       (pos: nat)
@@ -130,7 +130,7 @@ module {:options "-functionSyntax:4"} Parsers {
 /// reasoning.  This will cause verification-performance issues down the line,
 /// so we use the following alternative definition instead:
 
-    static ghost function {:opaque} Concat<L, R>(
+    static function {:opaque} Concat<L, R>(
       left: Parser<L>,
       right: Parser<R>
     )
@@ -164,7 +164,7 @@ module {:options "-functionSyntax:4"} Parsers {
 ///
 /// With that in mind, we can define `Either` in the same way:
 
-    static ghost function {:opaque} Either<L, R>(
+    static function {:opaque} Either<L, R>(
       left: Parser<L>,
       right: Parser<R>
     )

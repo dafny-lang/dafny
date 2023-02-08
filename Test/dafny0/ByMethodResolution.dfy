@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 module Resolution {
-  ghost function F(x: nat): int {
+  function F(x: nat): int {
     x
   } by method {
     var j := 0;
@@ -17,7 +17,7 @@ module Resolution {
       return -j, 3; // error: wrong number of out-parameters
     }
   }
-  ghost function G(ghost a: int, b: bool): (r: real) {
+  function G(ghost a: int, b: bool): (r: real) {
     0.0
   } by method {
     r := 1.8;
@@ -47,7 +47,7 @@ module Export {
       5
     }
 
-    ghost function H(): int {
+    function H(): int {
       5
     } by method {
       return 5;
@@ -72,7 +72,7 @@ module Export {
 module ByMethodGhostInterests {
   ghost function Zero(): int { 0 }
 
-  ghost function F(x: nat): int {
+  function F(x: nat): int {
     x + Zero()
   } by method {
     var j := 0;
@@ -86,7 +86,7 @@ module ByMethodGhostInterests {
     return -j;
   }
 
-  ghost function G(ghost a: int, b: bool): real {
+  function G(ghost a: int, b: bool): real {
     0.0
   } by method {
     return if a == 3 then 3.0 else 0.0; // error: cannot use ghost in this context
@@ -105,7 +105,7 @@ module BadExtremeRecursion {
   least predicate P() {
     F() == 5 // error: this call is illegal
   }
-  ghost function F(): int {
+  function F(): int {
     if P() then 5 else 3
   } by method {
     return 5;
@@ -115,7 +115,7 @@ module BadExtremeRecursion {
   least predicate Q() {
     G() == 5
   }
-  ghost function G(): int {
+  function G(): int {
     5
   } by method {
     ghost var u := Q();
@@ -129,7 +129,7 @@ module BadExtremeRecursion {
   ghost function H0'(): int {
     if H0() < 100 then 5 else 3 // in a ghost context, this calls the function part of H0
   }
-  ghost function H0(): int {
+  function H0(): int {
     5
   } by method {
     var x := H0'();
@@ -144,7 +144,7 @@ module BadExtremeRecursion {
   function H1'(): int {
     if H1() < 100 then 5 else 3 // in a compiled context, this calls the method part of H1
   }
-  ghost function H1(): int {
+  function H1(): int {
     5
   } by method {
     var x :=  H1'();
@@ -159,7 +159,7 @@ module BadExtremeRecursion {
   function H2'(): int {
     if H2() < 100 then 5 else 3 // in a compiled context, this calls the method part of H2
   }
-  ghost function H2(): int {
+  function H2(): int {
     if R2() then 5 else 3
   } by method { // the method part uses the function part in its specification, so there's a call-graph edge
     return 5;

@@ -36,7 +36,7 @@ module {:options "--function-syntax=4"} Stacks {
       Repr := {this, arr};
     }
 
-    ghost function Count(): nat
+    function Count(): nat
       requires Valid()
       reads Repr
     {
@@ -107,7 +107,7 @@ module {:options "/functionSyntax:4"} EnumerationTests {
   {
     const N := 13
 
-    ghost predicate Is(n: nat) {
+    predicate Is(n: nat) {
       N == n
     }
   }
@@ -116,7 +116,7 @@ module {:options "/functionSyntax:4"} EnumerationTests {
   {
     const N := 13
 
-    ghost predicate Is(n: nat) {
+    predicate Is(n: nat) {
       N == n
     }
 
