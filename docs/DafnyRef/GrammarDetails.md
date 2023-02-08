@@ -36,7 +36,7 @@ This section gives the definitions of Dafny tokens.
 
 ### 29.1.1. Classes of characters
 
-These definitions define some names as representing subsets of the set of characters. Here
+These definitions define some names as representing subsets of the set of characters. Here,
 
 * double quotes enclose the set of characters constituting the class, 
 * single quotes enclose a single character (perhaps an escaped representation using `\`), 
