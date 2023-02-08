@@ -12,12 +12,17 @@ namespace DafnyPipeline.Test {
     }
 
     [Fact]
-    public void TestFileConversion() {
-      var filePath = @"file:\c:\Users\xxx\Documents\with%20space\test.dfy";
-      var filePath1 = @"file:c:\Users\xxx\Documents\with%20space\test.dfy";
+    public void TestFileCanonicalization() {
+      var filePath1 = @"file:\c:\Users\xxx\Documents\with%20space\test.dfy";
+      var filePath2 = @"file:c:\Users\xxx\Documents\with%20space\test.dfy";
       var expected = @"c:\Users\xxx\Documents\with space\test.dfy";
-      Assert.Equal(expected, DafnyFile.Canonicalize(filePath));
       Assert.Equal(expected, DafnyFile.Canonicalize(filePath1));
+      Assert.Equal(expected, DafnyFile.Canonicalize(filePath2));
+      filePath1 = @"file:///home/dev/with%20space/test.dfy";
+      filePath2 = @"file:/home/dev/with%20space/test.dfy";
+      expected = @"/home/dev/with space/test.dfy";
+      Assert.Equal(expected, DafnyFile.Canonicalize(filePath1));
+      Assert.Equal(expected, DafnyFile.Canonicalize(filePath2));
     }
   }
 }
