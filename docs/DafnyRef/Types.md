@@ -1,30 +1,20 @@
 # 5. Types {#sec-types}
-````grammar
-Type = DomainType_ | ArrowType_
-````
-A Dafny type is a domain type (i.e., a type that can be the domain of an
-arrow type) optionally followed by an arrow and a range type.
 
-````grammar
-DomainType_ =
-  ( BoolType_ | CharType_ | IntType_ | RealType_
-  | OrdinalType_ | BitVectorType_ | ObjectType_
-  | FiniteSetType_ | InfiniteSetType_
-  | MultisetType_
-  | FiniteMapType_ | InfiniteMapType_
-  | SequenceType_
-  | NatType_
-  | StringType_
-  | ArrayType_
-  | TupleType
-  | NamedType
-  )
-````
-The domain types comprise the builtin scalar types, the builtin
-collection types, tuple types (including as a special case
-a parenthesized type) and reference types.
+A Dafny type is a (possibly-empty) set of values or heap data-structures,
+together with allowed operations on those values.
+Types are classified as mutable reference types or immutable value types,
+depending on whether their values are stored in the heap or are 
+(mathematical) values independent of the heap.
 
-Dafny types may be categorized as either value types or reference types.
+Dafny supports the following kinds of types,
+all described in later sections of this manual:
+* [builtin scalar types](#sec-basic-type), 
+* [builtin collection types](#sec-collection-types), 
+* [reference types](#sec-class-types) (classes, traits, iterators),
+* [tuple types](#sec-tuple-types) (including as a special case a parenthesized type),
+* [inductive](#sec-datatype) and [coinductive](#sec-coinductive-datatypes) datatypes, 
+* [function (arrow) types](#sec-arrow-subset-types), and
+* [types, such as subset types, derived from other types](#sec-subset-types).
 
 ## 5.1. Value Types
 The value types are those whose values do not lie in the program heap.
@@ -54,19 +44,14 @@ The reference types are class types, traits and array types.
 Dafny supports both reference types that contain the special `null` value
 (_nullable types_) and reference types that do not (_non-null types_).
 
-## 5.3. Named Types
-````grammar
-NamedType = NameSegmentForTypeName { "." NameSegmentForTypeName }
-````
+## 5.3. Named Types ([grammar](#g-type))
 
-A ``NamedType`` is used to specify a user-defined type by name
+A _Named Type_ is used to specify a user-defined type by name
 (possibly module-qualified). Named types are introduced by
 class, trait, inductive, coinductive, synonym and opaque
 type declarations. They are also used to refer to type variables.
+A Named Type is denoted by a dot-separated sequence of `NameSegmentForTypeName`s
 
-````grammar
-NameSegmentForTypeName = Ident [ GenericInstantiation ]
-````
 A ``NameSegmentForTypeName`` is a type name optionally followed by a
 ``GenericInstantiation``, which supplies type parameters to a generic
 type, if needed. It is a special case of a ``NameSegment``
@@ -76,16 +61,13 @@ that does not allow a ``HashCall``.
 The following sections describe each of these kinds of types in more detail.
 
 <!--PDF NEWPAGE-->
-# 6. Basic types {#sec-basic-types}
+# 6. Basic types {#sec-basic-type}
 
 Dafny offers these basic types: `bool` for booleans, `char` for
 characters, `int` and `nat` for integers, `real` for reals,
 `ORDINAL`, and bit-vector types.
 
-## 6.1. Booleans {#sec-booleans}
-````grammar
-BoolType_ = "bool"
-````
+## 6.1. Booleans ([grammar](#g-basic-type)) {#sec-booleans}
 
 There are two boolean values and each has a corresponding literal in
 the language:  `false` and `true`.
@@ -129,6 +111,7 @@ A && (B || C)
 depending on the intended meaning.
 
 ### 6.1.1. Equivalence Operator {#sec-equivalence-operator}
+
 The expressions `A <==> B` and `A == B` give the same value, but note
 that `<==>` is _associative_ whereas `==` is _chaining_ and they have
 different precedence.  So,
@@ -158,6 +141,7 @@ A == B && B == C
 ```
 
 ### 6.1.2. Conjunction and Disjunction {#sec-conjunction-and-disjunction}
+
 Conjunction and disjunction are associative.  These operators are
 _short circuiting (from left to right)_, meaning that their second
 argument is evaluated only if the evaluation of the first operand does
@@ -168,6 +152,7 @@ meaning is the same as the ordinary, symmetric mathematical
 conjunction `&`.  The same holds for `||` and `|`.
 
 ### 6.1.3. Implication and  Reverse Implication {#sec-implication-and-reverse-implication}
+
 Implication is _right associative_ and is short-circuiting from left
 to right.  Reverse implication `B <== A` is exactly the same as
 `A ==> B`, but gives the ability to write the operands in the opposite
@@ -218,12 +203,7 @@ is not.
 In addition, booleans support _logical quantifiers_ (forall and
 exists), described in [Section 21.31.4](#sec-quantifier-expression).
 
-## 6.2. Numeric Types {#sec-numeric-types}
-
-````grammar
-IntType_ = "int"
-RealType_ = "real"
-````
+## 6.2. Numeric Types ([grammar](#g-basic-type)) {#sec-numeric-types}
 
 Dafny supports _numeric types_ of two kinds, _integer-based_, which
 includes the basic type `int` of all integers, and _real-based_, which
@@ -315,7 +295,7 @@ each other in the two groups.
 The groups are listed in order of
 increasing binding power, with equality binding less strongly than any of these operators.
 There is no implicit conversion between `int` and `real`: use `as int` or
-`as real` conversions to write an explicit conversion (cf. [Section 21.10](#sec-as-expression)).
+`as real` conversions to write an explicit conversion (cf. [Section 21.10](#sec-as-is-expression)).
 
 Modulus is supported only for integer-based numeric types.  Integer
 division and modulus are the _Euclidean division and modulus_.  This
@@ -346,12 +326,9 @@ method m(r: real, r': real) {
 Note in the third line that member access (like `.Floor`) binds
 stronger than unary minus.  The fourth line uses the conversion
 function `as real` from `int` to `real`, as described in
-[Section 21.10](#sec-as-expression).
+[Section 21.10](#sec-as-is-expression).
 
-## 6.3. Bit-vector Types {#sec-bit-vector-types}
-````grammar
-BitVectorType_ = bvToken
-````
+## 6.3. Bit-vector Types ([grammar](#g-basic-type)) {#sec-bit-vector-types}
 
 Dafny includes a family of bit-vector types, each type having a specific,
 constant length, the number of bits in its values.
@@ -499,10 +476,7 @@ But `11` is not a valid `bv3` literal.
 
 [^binding]: The binding power of shift and bit-wise operations is different than in C-like languages.
 
-## 6.4. Ordinal type {#sec-ordinals}
-````grammar
-OrdinalType_ = "ORDINAL"
-````
+## 6.4. Ordinal type ([grammar](#g-basic-type)) {#sec-ordinals}
 
 Values of type `ORDINAL` behave like `nat`s in many ways, with one important difference:
 there are `ORDINAL` values that are larger than any `nat`. The smallest of these non-nat ordinals is
@@ -532,11 +506,7 @@ In addition,
 
 In Dafny, `ORDINAL`s are used primarily in conjunction with [extreme functions and lemmas](#sec-extreme).
 
-## 6.5. Characters {#sec-characters}
-
-````grammar
-CharType_ = "char"
-````
+## 6.5. Characters ([grammar](#g-basic-type)) {#sec-characters}
 
 Dafny supports a type `char` of _characters_.  
 Its exact meaning is controlled by the command-line switch `--unicode-char:true|false`.
@@ -607,23 +577,18 @@ by indexing into a string, and the implicit conversion to string
 when used as a parameter of a `print` statement.
 
 <!--PDF NEWPAGE-->
-# 7. Type parameters {#sec-type-parameters}
+# 7. Type parameters ([grammar](#g-type-parameter)) {#sec-type-parameters}
 
-````grammar
-GenericParameters(allowVariance) =
-  "<" [ Variance ] TypeVariableName { TypeParameterCharacteristics }
-  { "," [ Variance ] TypeVariableName { TypeParameterCharacteristics } }
-  ">"
+Examples:
+<!-- %check-resolve -->
+```dafny
+type G1<T>
+type G2<T(0)>
+type G3<+T(==),-U>
+```
 
-// The optional Variance indicator is permitted only if allowVariance is true
-Variance = ( "*" | "+" | "!" | "-" )
-
-TypeParameterCharacteristics = "(" TPCharOption { "," TPCharOption } ")"
-
-TPCharOption = ( "==" | "0" | "00" | "!" "new" )
-````
 Many of the types, functions, and methods in Dafny can be
-parameterized by types.  These _type parameters_ are typically
+parameterized by types.  These _type parameters_ are 
 declared inside angle brackets and can stand for any type.
 
 Dafny has some inference support that makes certain signatures less
@@ -818,13 +783,13 @@ This states that `T` does not preserve the cardinality of `X`, meaning there cou
 A more detailed explanation of these topics is [here](http://leino.science/papers/krml280.html).
 
 <!--PDF NEWPAGE-->
-# 8. Generic Instantiation
-````grammar
-GenericInstantiation = "<" Type { "," Type } ">"
-````
-When a generic entity is used, actual types must be specified for each
-generic parameter. This is done using a ``GenericInstantiation``.
-If the `GenericInstantiation` is omitted, type inference will try
+# 8. Generic Instantiation ([grammar](#g-generic-instantiation)) {#sec-generic-instantiation}
+
+A generic instantiation consists of a comma-separated list of 1 or more Types,
+enclosed in angle brackets (`<` `>`),
+providing actual types to be used in place of the type parameters of the 
+declaration of the generic type.
+If there is no instantion for a generic type, type inference will try
 to fill these in (cf. [Section 24.2](#sec-type-inference)).
 
 <!--PDF NEWPAGE-->
@@ -832,12 +797,7 @@ to fill these in (cf. [Section 24.2](#sec-type-inference)).
 
 Dafny offers several built-in collection types.
 
-## 9.1. Sets {#sec-sets}
-````grammar
-FiniteSetType_ = "set" [ GenericInstantiation ]
-
-InfiniteSetType_ = "iset" [ GenericInstantiation ]
-````
+## 9.1. Sets ([grammar](#g-collection-type)) {#sec-sets}
 
 For any type `T`, each value of type `set<T>` is a finite set of
 `T` values.
@@ -849,7 +809,7 @@ so `set<T>` can be used in a non-ghost context only if `T` is
 For any type `T`, each value of type `iset<T>` is a potentially infinite
 set of `T` values.
 
-A set can be formed using a _set display_ expression, which is a
+A set can be formed using a [_set display_ expression](#sec-set-display-expression), which is a
 possibly empty, unordered, duplicate-insensitive list of expressions
 enclosed in curly braces.  To illustrate,
 <!-- %no-check -->
@@ -863,12 +823,12 @@ expression (with a binder, like in logical quantifications), described in
 In addition to equality and disequality, set types
 support the following relational operations:
 
- operator        | description
+ operator        | precedence | description
 -----------------|------------------------------------
- `<`             | proper subset
- `<=`            | subset
- `>=`            | superset
- `>`             | proper superset
+ `<`             | 4 | proper subset
+ `<=`            | 4 | subset
+ `>=`            | 4 | superset
+ `>`             | 4 | proper superset
 
 Like the arithmetic relational operators, these operators are
 chaining.
@@ -912,10 +872,7 @@ expression `e` of type `T`, sets support the following operations:
 
 The expression `e !in s` is a syntactic shorthand for `!(e in s)`.
 
-## 9.2. Multisets {#sec-multisets}
-````grammar
-MultisetType_ = "multiset" [ GenericInstantiation ]
-````
+## 9.2. Multisets ([grammar](#g-collection-type)) {#sec-multisets}
 
 A _multiset_ is similar to a set, but keeps track of the multiplicity
 of each element, not just its presence or absence.  For any type `T`,
@@ -942,12 +899,13 @@ comprehension expression.
 In addition to equality and disequality, multiset types
 support the following relational operations:
 
- operator          | description
+
+ operator          | precedence | description
 -------------------|-----------------------------------
-  `<`              | proper multiset subset
-  `<=`             | multiset subset
-  `>=`             | multiset superset
-  `>`              | proper multiset superset
+  `<`              | 4 | proper multiset subset
+  `<=`             | 4 | multiset subset
+  `>=`             | 4 | multiset superset
+  `>`              | 4 | proper multiset superset
 
 Like the arithmetic relational operators, these operators are
 chaining.
@@ -1005,10 +963,7 @@ without any occurrences of `e` (whether or not `s` has occurrences of
 if e in s then s[e := s[e] - 1] else s
 ```
 
-## 9.3. Sequences {#sec-sequences}
-````grammar
-SequenceType_ = "seq" [ GenericInstantiation ]
-````
+## 9.3. Sequences ([grammar](#g-collection-type)) {#sec-sequences}
 
 For any type `T`, a value of type `seq<T>` denotes a _sequence_ of `T`
 elements, that is, a mapping from a finite downward-closed set of natural
@@ -1036,10 +991,10 @@ is equivalent to `[0, 1, 4, 9, 16]`.
 In addition to equality and disequality, sequence types
 support the following relational operations:
 
- operator        | description
+ operator        | precedence | description
 -----------------|------------------------------------
-  <              | proper prefix
-  <=             | prefix
+  <              | 4 | proper prefix
+  <=             | 4 | prefix
 
 Like the arithmetic relational operators, these operators are
 chaining.  Note the absence of `>` and `>=`.
@@ -1047,9 +1002,9 @@ chaining.  Note the absence of `>` and `>=`.
 ### 9.3.3. Sequence Concatenation
 Sequences support the following binary operator:
 
- operator      | description
+ operator      | precedence | description
 ---------------|------------------------------------
- `+`           | concatenation
+ `+`           | 6 | concatenation
 
 Operator `+` is associative, like the arithmetic operator with the
 same name.
@@ -1120,10 +1075,7 @@ The operation `multiset(s)` yields the multiset of elements of
 sequence `s`.  It is allowed in non-ghost contexts only if the element
 type `T` is [equality supporting](#sec-equality-supporting).
 
-### 9.3.5. Strings {#sec-strings}
-````grammar
-StringType_ = "string"
-````
+### 9.3.5. Strings ([grammar](#g-collection-type)) {#sec-strings}
 
 A special case of a sequence type is `seq<char>`, for which Dafny
 provides a synonym: `string`.  Strings are like other sequences, but
@@ -1165,12 +1117,7 @@ still denote proper prefix and prefix, respectively, not some kind of
 alphabetic comparison as might be desirable, for example, when
 sorting strings.
 
-## 9.4. Finite and Infinite Maps {#sec-maps}
-````grammar
-FiniteMapType_ = "map" [ GenericInstantiation ]
-
-InfiniteMapType_ = "imap" [ GenericInstantiation ]
-````
+## 9.4. Finite and Infinite Maps ([grammar](#g-collection-type)) {#sec-maps}
 
 For any types `T` and `U`, a value of type `map<T,U>` denotes a
 _(finite) map_
@@ -1363,12 +1310,7 @@ There are no mechanisms currently defined in Dafny for iterating over `imap`s.
 
 
 <!--PDF NEWPAGE-->
-# 10. Types that stand for other types
-
-````grammar
-SynonymTypeDecl =
-  SynonymTypeDecl_ | OpaqueTypeDecl_ | SubsetTypeDecl_
-````
+# 10. Types that stand for other types ([grammar](#g-type-definition)) {#sec-type-definition}
 
 It is sometimes useful to know a type by several names or to treat a
 type abstractly. There are several mechanisms in Dafny to do this:
@@ -1377,16 +1319,13 @@ type abstractly. There are several mechanisms in Dafny to do this:
 * ([Section 10.2](#sec-opaque-types)) An _opaque type_, in which a new type name is declared as an uninterpreted type
 * ([Section 10.3](#sec-subset-types)) A _subset type_, in which a new type name is given to a subset of the values of a given type
 
-## 10.1. Type synonyms {#sec-synonym-type}
-````grammar
-SynonymTypeName = NoUSIdent
+## 10.1. Type synonyms ([grammar](#g-type-definition)) {#sec-synonym-type}
 
-SynonymTypeDecl_ =
-  "type" { Attribute } SynonymTypeName
-   { TypeParameterCharacteristics }
-   [ GenericParameters ]
-   "=" Type
-````
+<!-- %check-resolve -->
+```dafny
+type T = int
+type SS<T> = set<set<T>>
+```
 
 A _type synonym_ declaration:
 <!-- %no-check -->
@@ -1426,25 +1365,14 @@ type string_(==,0,!new) = seq<char>
 ```
 If the implicit declaration did not include the type characteristics, they would be inferred in any case.
 
-## 10.2. Opaque types {#sec-opaque-types}
-````grammar
-OpaqueTypeDecl_ =
-  "type" { Attribute } SynonymTypeName
-   { TypeParameterCharacteristics }
-   [ GenericParameters ]
-   [ TypeMembers ]
+## 10.2. Opaque types ([grammar](#g-type-definition)) {#sec-opaque-types}
 
-TypeMembers =
-  "{"
-  {
-    { DeclModifier }
-    ClassMemberDecl(allowConstructors: false,
-                    isValueType: true,
-                    moduleLevelDecl: false,
-                    isWithinAbstractModule: module.IsAbstract)
-  }
-  "}"
-````
+Examples:
+<!-- %check-resolve -->
+```dafny
+type T
+type Q { function method toString(t: T): string }
+```
 
 An opaque type is a special case of a type synonym that is underspecified.  Such
 a type is declared simply by:
@@ -1496,26 +1424,16 @@ In the refining module `X`, `T` is declared to be a `newtype`, in which `ToStrin
 It would be an error to refine `P.T` as a simple type synonym or subset type in `X`, say `type T = int`, because
 type synonyms may not have members.
 
-## 10.3. Subset types {#sec-subset-types}
+## 10.3. Subset types ([grammar](#g-type-definition)) {#sec-subset-types}
 
-````grammar
-SubsetTypeDecl_ =
-  "type"
-  { Attribute }
-  SynonymTypeName [ GenericParameters ]
-  "="
-  LocalIdentTypeOptional
-  "|"
-  Expression(allowLemma: false, allowLambda: true)
-  [ "ghost" "witness" Expression(allowLemma: false, allowLambda: true)
-  | "witness" Expression((allowLemma: false, allowLambda: true)
-  | "witness" "*"
-  ]
-````
-
-````grammar
-NatType_ = "nat"
-````
+Examples:
+<!-- %check-resolve -->
+```dafny
+type Pos = i: int | i > 0 witness 1
+type PosReal = r | r > 0.0 witness 1.0
+type Empty = n: nat | n < 0 witness *
+type Big = n: nat | n > 1000 ghost witness 10000
+```
 
 A _subset type_ is a restricted use of an existing type, called
 the _base type_ of the subset type.  A subset type is like a
@@ -1533,7 +1451,7 @@ satisfies the predicate defining the receiving subset type.
 (Note, in contrast, assignments between a newtype and its base type
 are never allowed, even if the value assigned is a value of the target
 type.  For such assignments, an explicit conversion must be used, see
-[Section 21.10](#sec-as-expression).)
+[Section 21.10](#sec-as-is-expression).)
 
 The declaration of a subset type permits an optional [`witness` clause](#sec-witness), to declare default values that the compiler can use to initialize variables of the subset type, or to assert the non-emptiness of the subset type.
 
@@ -1770,21 +1688,16 @@ does not complain about `x` unless `x` is actually used, in which case it must h
 The postcondition in `P` does not verify, but not because of the empty type.
 
 <!--PDF NEWPAGE-->
-# 11. Newtypes {#sec-newtypes}
-````grammar
-NewtypeDecl = "newtype" { Attribute } NewtypeName "="
-  [ ellipsis ]
-  ( LocalIdentTypeOptional
-    "|"
-    Expression(allowLemma: false, allowLambda: true)
-    [ "ghost" "witness" Expression(allowLemma: false, allowLambda: true)
-    | "witness" Expression((allowLemma: false, allowLambda: true)
-    | "witness" "*"
-    ]
-  | Type
-  )
-  [ TypeMembers ]
-````
+# 11. Newtypes ([grammar](#g-type-definition)) {#sec-newtypes}
+
+Examples:
+<!-- %check-resolve -->
+```dafny
+newtype I = int
+newtype D = i: int | 0 <= i < 10
+newtype uint8 = i | 0 <= i < 256
+```
+
 A newtype is like a type synonym or subset type except that it declares a wholly new type
 name that is distinct from its base type. It also accepts an optional [`witness` clause](#sec-witness).
 
@@ -1889,7 +1802,7 @@ in [Section 21.38](#sec-compile-time-constants).
 ## 11.1. Conversion operations {#sec-conversion}
 
 For every type `N`, there is a conversion operation with the
-name `as N`, described more fully in [Section 21.10](#sec-as-expression).
+name `as N`, described more fully in [Section 21.10](#sec-as-is-expression).
 It is a partial function defined when the
 given value, which can be of any type, is a member of the type
 converted to.  When the conversion is from a real-based numeric type
@@ -1926,33 +1839,28 @@ and `o is C` is a downcast. A downcast requires the LHS expression to
 have the RHS type, as is enforced by the verifier.
 
 For some types (in particular, reference types), there is also a
-corresponding `is` operation ([Section 21.10](#sec-as-expression)) that
+corresponding `is` operation ([Section 21.10](#sec-as-is-expression)) that
 tests whether a value is valid for a given type.
 
 <!--PDF NEWPAGE-->
-# 12. Class types {#sec-class-types}
+# 12. Class types ([grammar](#g-class-type)) {#sec-class-types}
 
-````grammar
-ClassDecl = "class" { Attribute } ClassName [ GenericParameters ]
-  ["extends" Type {"," Type} | ellipsis ]
-  "{" { { DeclModifier }
-        ClassMemberDecl(allowConstructors: true,
-                        isValueType: false,
-                        moduleLevelDecl: false,
-                        isWithinAbstractModule: false) }
-  "}"
+Examples:
+<!-- %check-resolve -->
+```dafny
+trait T {}
+class A {}
+class B extends T {
+  const b: B?
+  var v: int
+  constructor (vv: int) { v := vv; b := null; }
+  function toString(): string { "a B" }
+  method m(i: int) { var x := new B(0); }
+  static method q() {}
+}
+```
 
-ClassMemberDecl(allowConstructors, isValueType,
-                moduleLevelDecl, isWithinAbstractModule) =
-  ( FieldDecl(isValueType) // allowed iff moduleLevelDecl is false
-  | ConstantFieldDecl(moduleLevelDecl)
-  | FunctionDecl(isWithinAbstractModule)
-  | MethodDecl(isGhost: "ghost" was present,
-               allowConstructors, isWithinAbstractModule)
-  )
-````
-
-Declarations within a class all begin with reserved keywords and do not end with semicolons.
+Declarations within a class all begin with keywords and do not end with semicolons.
 
 The ``ClassMemberDecl`` parameter `moduleLevelDecl` will be true if
 the member declaration is at the top level or directly within a
@@ -2036,17 +1944,24 @@ constructor (here, named `Init`), which allocates and initializes the object.
 The third form is the same as the second, but invokes the _anonymous constructor_
 of the class (that is, a constructor declared with the empty-string name).
 
-## 12.1. Field Declarations {#sec-field-declarations}
-````grammar
-FieldDecl(isValueType) =
-  "var" { Attribute } FIdentType { "," FIdentType }
-````
-A `FieldDecl` is not permitted in a value type (i.e., if `isValueType` is true).
+## 12.1. Field Declarations ([grammar](#g-field-declaration)) {#sec-field-declaration}
 
-An ``FIdentType`` is used to declare a field. The field name is either an
+Examples:
+<!-- %check-resolve -->
+```dafny
+class C {
+  var c: int  // no initialization
+  ghost var 123: bv10  // name may be a sequence of digits
+  var d: nat, e: real  // type is required
+}
+```
+A field declaration is not permitted in a value type.
+
+The field name is either an
 identifier (that is not allowed to start with a leading underscore) or
 some digits. Digits are used if you want to number your fields, e.g. "0",
-"1", etc.
+"1", etc. The digits do not denote numbers but sequences of digits,
+so 0, 00, 0_0 are all different.
 
 A field x of some type T is declared as:
 <!-- %no-check -->
@@ -2070,13 +1985,18 @@ not in code that will be compiled into executable code.
 
 Fields may not be declared static.
 
-## 12.2. Constant Field Declarations {#sec-constant-field-declarations}
-````grammar
-ConstantFieldDecl(moduleLeavelDecl) =
-  "const" { Attribute } CIdentType [ ellipsis ]
-   [ ":=" Expression(allowLemma: false, allowLambda:true) ]
-````
+## 12.2. Constant Field Declarations ([grammar](#g-const-declaration)) {#sec-constant-field-declaration}
 
+Examples:
+<!-- %check-resolve -->
+```dafny
+const c: int
+ghost const d := 5
+class A {
+  const e: bool
+  static const f: int
+}
+```
 A `const` declaration declares a name bound to a value,
 which value is fixed after initialization.
 
@@ -2095,44 +2015,36 @@ modifier may be omitted.
 * The initialization expression may refer to other constant fields that are in scope and declared either
 before or after this declaration, but circular references are not allowed.
 
-## 12.3. Method Declarations {#sec-method-declarations}
-````grammar
-MethodDecl(isGhost, allowConstructors, isWithinAbstractModule) =
-  MethodKeyword_ { Attribute } [ MethodFunctionName ]
-  ( MethodSignature_(isGhost, isExtreme: true iff this is a least
-                                   or greatest lemma declaration)
-  | ellipsis
-  )
-  MethodSpec(isConstructor: true iff
-                       this is a constructor declaration)
-  [ BlockStmt ]
-````
-The `isGhost` parameter is true iff the `ghost` keyword
-preceded the method declaration.
+## 12.3. Method Declarations ([grammar](#g-method-declaration)) {#sec-method-declaration}
 
-If the `allowConstructor` parameter is false then
-the ``MethodDecl`` must not be a `constructor`
-declaration.
+Examples:
+<!-- %check-resolve -->
+```dafny
+method m(i: int) requires i > 0 {}
+method p() returns (r: int) { r := 0; }
+method q() returns (r: int, s: int, t: nat) ensures r < s < t { r := 0; s := 1; t := 2; }
+ghost method g() {}
+class A {
+  method f() {}
+  constructor Init() {}
+  static method g<T>(t: T) {}
+}
+lemma L(p: bool) ensures p || !p {}
+twostate lemma TL(p: bool) ensures p || !p {}
+least lemma LL[nat](p: bool) ensures p || !p {}
+greatest lemma GL(p: bool) ensures p || !p {}
+abstract module M { method m(i: int) }
+module N refines M { method m ... {} }
+```
 
-````grammar
-MethodKeyword_ = ( "method"
-                 | "constructor"
-                 | "lemma"
-                 | "twostate" "lemma"
-                 | "least" "lemma"
-                 | "greatest" "lemma"
-                 )
-````
-The method keyword is used to specify special kinds of methods
-as explained below.
+Method declarations include a variety of related types of methods:
+- method
+- constructor
+- lemma
+- twostate lemma
+- least lemma
+- greatest lemma
 
-````grammar
-MethodSignature_(isGhost, isExtreme) =
-  [ GenericParameters ]
-  [ KType ]    // permitted only if isExtreme == true
-  Formals(allowGhostKeyword: !isGhost, allowNewKeyword: isTwostateLemma, allowOlderKeyword: false, allowDefault: true))
-  [ "returns" Formals(allowGhostKeyword: !isGhost, allowNewKeyword: false, allowOlderKeyword: false, allowDefault: false) ]
-````
 A method signature specifies the method generic parameters,
 input parameters and return parameters.
 The formal parameters are not allowed to have `ghost` specified
@@ -2150,26 +2062,8 @@ Dafny does not support method or function overloading, so the
 name of the class method uniquely identifies it without the
 signature.
 
-````grammar
-KType = "[" ( "nat" | "ORDINAL" ) "]"
-````
-The _KType_ may be specified only for least and greatest lemmas and is described
-in [Section 24.5.3](#sec-friendliness) and subsequent sections.
+See [Section 19.2](#sec-method-specification) for a description of the method specification.
 
-````grammar
-Formals(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, allowDefault) =
-  "(" [ GIdentType(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, allowNameOnlyKeyword: true, allowDefault)
-        { "," GIdentType(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, allowNameOnlyKeyword: true, allowDefault) }
-      ]
-  ")"
-````
-The ``Formals`` specifies the names and types of the method input or
-output parameters.
-
-
-See [Section 19.2](#sec-method-specification) for a description of ``MethodSpec``.
-
-A method declaration adheres to the ``MethodDecl`` grammar above.
 Here is an example of a method declaration.
 
 <!-- %no-check -->
@@ -2208,6 +2102,11 @@ modifies c, d
 ```
 
 all mean the same thing.
+
+If the method is an _extreme lemma_ ( a `least` or `greatest` lemma), then the 
+method signature may also state the type of the _k_ parameter as either `nat` or `ORDINAL`.
+These are described
+in [Section 24.5.3](#sec-friendliness) and subsequent sections.
 
 ### 12.3.1. Ordinary methods
 
@@ -2558,73 +2457,23 @@ method EtaExample(p: P) returns (ghost f: int -> int) {
 }
 ```
 
-## 12.4. Function Declarations {#sec-function-declarations}
-
-````grammar
-FunctionDecl(isWithinAbstractModule) =
-  ( [ "twostate" ] "function" [ "method" ] { Attribute }
-    MethodFunctionName
-    FunctionSignatureOrEllipsis_(allowGhostKeyword:
-                                           ("method" present),
-                                 allowNewKeyword:
-                                           "twostate" present)
-  | "predicate" [ "method" ] { Attribute }
-    MethodFunctionName
-    PredicateSignatureOrEllipsis_(allowGhostKeyword:
-                                           ("method" present),
-                                  allowNewKeyword:
-                                           "twostate" present,
-                                  allowOlderKeyword: true)
-  | ( "least" | "greatest" ) "predicate" { Attribute }
-    MethodFunctionName
-    PredicateSignatureOrEllipsis_(allowGhostKeyword: false,
-                         allowNewKeyword: "twostate" present,
-                         allowOlderKeyword: false))
-  )
-  FunctionSpec
-  [ FunctionBody ]
-
-FunctionSignatureOrEllipsis_(allowGhostKeyword) =
-  FunctionSignature_(allowGhostKeyword) | ellipsis
-
-FunctionSignature_(allowGhostKeyword, allowNewKeyword) =
-  [ GenericParameters ]
-  Formals(allowGhostKeyword, allowNewKeyword, allowOlderKeyword: true, allowDefault: true)
-  ":"
-  ( Type
-  | "(" GIdentType(allowGhostKeyword: false,
-                   allowNewKeyword: false,
-                   allowOlderKeyword: false,
-                   allowNameOnlyKeyword: false,
-                   allowDefault: false)
-    ")"
-  )
-
-PredicateSignatureOrEllipsis_(allowGhostKeyword, allowNewKeyword, allowOlderKeyword) =
-  PredicateSignature_(allowGhostKeyword, allowNewKeyword, allowOlderKeyword) | ellipsis
-
-PredicateSignature_(allowGhostKeyword, allowNewKeyword, allowOlderKeyword) =
-  [ GenericParameters ]
-  [ KType ]
-  Formals(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, allowDefault: true)
-  [
-    ":"
-    ( Type
-    | "(" Ident ":" "bool" ")"
-    )
-  ]
-
-FunctionBody = "{" Expression(allowLemma: true, allowLambda: true)
-               "}" [ "by" "method" BlockStmt ]
-````
+## 12.4. Function Declarations ([grammar](#g-function-declaration)) {#sec-function-declaration}
 
 ### 12.4.1. Functions
 
-In the above productions, `allowGhostKeyword` is true if the optional
-`method` keyword was specified. This allows some of the
-formal parameters of a function method to be specified as `ghost`.
+Examples:
+<!-- %check-resolve -->
+```dafny
+function f(i: int): real { i as real }
+function g(): (int, int) { (2,3) }
+function h(i: int): int requires i >= 0 { if i == 0 then 0 else 1 }
+```
 
-See [Section 19.3](#sec-function-specification) for a description of ``FunctionSpec``.
+Functions may be declared as ghost. If so, all the formal parameters and
+return values are ghost; if it is not a ghost function, then 
+individual parameters may be declared ghost as desired.
+
+See [Section 19.3](#sec-function-specification) for a description of the function specifcication.
 
 A Dafny function is a pure mathematical function. It is allowed to
 read memory that was specified in its `reads` expression but is not
@@ -2776,7 +2625,7 @@ expression can have a print effect.
 A function is said to be _transparent_ in a location if the
 body of the function is visible at that point.
 A function is said to be _opaque_ at a location if it is not
-transparent. However the ``FunctionSpec`` of a function
+transparent. However the specification of a function
 is always available.
 
 A function is usually transparent up to some unrolling level (up to
@@ -2785,26 +2634,28 @@ transparent all the way.
 
 But the transparency of a function is affected by
 whether the function was given the `{:opaque}` attribute (as explained
-in [Section 23.2.8](#sec-opaque)).
+in [Section 23.2.8](#sec-opaque)),
+the reveal statement ([Section 20.20](#sec-reveal-statement)),
+and whether it was `reveal`ed in an export set.
 
-The following table summarizes where the function is transparent.
-The module referenced in the table is the module in which the
-function is defined.
-
- `{:opaque}`? | Transparent Inside Module | Transparent Outside Module
-:------------:|:-----------:|:-----------:
- N            | Y           | Y
- Y            | N           | N
-
-When `{:opaque}` is specified for function `g`, `g` is opaque,
-however the statement `reveal g();` is available to give the semantics
-of `g` whether in the defining module or outside.
+- Inside the module where the function is declared:
+   - if there is no `{:opaque}` attribute, the function is transparent
+   - if there is an `{:opaque}` attribute, then the function is opaque,
+   except if the function is mentioned in a `reveal` steatement, then
+   it is transparent between that `reveal` statement and the end of
+   the block containing the `reveal` statement.
+- Outside the module where the function is declared, the functio is 
+visible only if it was listed in the export set by which the contents
+of its module was imported. In that case, if the function was exported
+with `reveals`, the rules are the same within the importing module as when the function is used inside
+its declaring module. If the function is exported only with `provides` it is
+always opaque and is not permitted to be used in a reveal statement.
 
 ### 12.4.5. Extreme (Least or Greatest) Predicates and Lemmas
 See [Section 24.5.3](#sec-friendliness) for descriptions
 of extreme predicates and lemmas.
 
-### 12.4.6. `older` parameters in predicates
+### 12.4.6. `older` parameters in predicates {#sec-older-parameters}
 
 A parameter of any predicate (more precisely, of any
 boolean-returning, non-extreme function) can be marked as
@@ -3044,18 +2895,7 @@ as some object reference in another parameter to the predicate.
 
 
 <!--PDF NEWPAGE-->
-# 13. Trait types {#sec-trait-types}
-````grammar
-TraitDecl =
-  "trait" { Attribute } ClassName [ GenericParameters ]
-  [ "extends" Type { "," Type } | ellipsis ]
-  "{"
-   { { DeclModifier } ClassMemberDecl(allowConstructors: true,
-                                      isValueType: false,
-                                      moduleLevelDecl: false,
-                                      isWithinAbstractModule: false) }
-  "}"
-````
+# 13. Trait types ([grammar](#g-trait-type)) {#sec-trait-types}
 
 A _trait_ is an abstract superclass, similar to an "interface" or
 "mixin". A trait can be _extended_ only by another trait or
@@ -3093,10 +2933,7 @@ object whose allocated type is a trait.  But there can of course be
 objects of a class `C` that implement a trait `J`, and a reference to
 such a `C` object can be used as a value of type `J`.
 
-## 13.1. Type `object` {#sec-object-type}
-````grammar
-ObjectType_ = "object" | "object?"
-````
+## 13.1. Type `object` ([grammar](#g-object-type)) {#sec-object-type}
 
 There is a built-in trait `object` that is implicitly extended by all classes and traits.
 It produces two types: the type `object?` that is a supertype of all
@@ -3291,17 +3128,14 @@ method m() {
 ```
 
 <!--PDF NEWPAGE-->
-# 14. Array types {#sec-array-types}
-````grammar
-ArrayType_ = arrayToken [ GenericInstantiation ]
-````
+# 14. Array types ([grammar](#g-array-type)) {#sec-array-type}
 
 Dafny supports mutable fixed-length _array types_ of any positive
 dimension.  Array types are (heap-based) reference types.
 
 `arrayToken` is a kind of [reserved token](#sec-reserved-words),
-such as `array`, `array2`, `array3`, an so on (but not `array1`).
-The suffix giving the element type can be omitted if the element type can be inferred, though in that case it is likely that the `arrayToken` itself is also
+such as `array`, `array?`, `array2`, `array2?`, `array3`, and so on (but not `array1`).
+The type parameter suffix giving the element type can be omitted if the element type can be inferred, though in that case it is likely that the `arrayToken` itself is also
 inferrable and can be omitted.
 
 ## 14.1. One-dimensional arrays
@@ -3491,19 +3325,9 @@ using a function: see [Section 21.16](#sec-array-allocation).
 
 
 <!--PDF NEWPAGE-->
-# 15. Iterator types {#sec-iterator-types}
-````grammar
-IteratorDecl = "iterator" { Attribute } IteratorName
-  ( [ GenericParameters ]
-    Formals(allowGhostKeyword: true, allowNewKeyword: false, allowOlderKeyword: false)
-    [ "yields" Formals(allowGhostKeyword: true, allowNewKeyword: false, allowOlderKeyword: false) ]
-  | ellipsis
-  )
-  IteratorSpec
-  [ BlockStmt ]
-````
+# 15. Iterator types ([grammar](#g-iterator-type)) {#sec-iterator-types}
 
-See [Section 19.5](#sec-iterator-specification) for a description of ``IteratorSpec``.
+See [Section 19.5](#sec-iterator-specification) for a description of iterator specifications.
 
 An _iterator_ provides a programming abstraction for writing code that
 iteratively returns elements.  These CLU-style iterators are
@@ -3743,14 +3567,15 @@ design of asynchronous methods evolves.
 -->
 
 <!--PDF NEWPAGE-->
-# 16. Arrow types {#sec-arrow-types}
+# 16. Arrow types ([grammar](#g-arrow-type)) {#sec-arrow-types}
 
-````grammar
-ArrowType_ = ( DomainType_ "~>" Type
-             | DomainType_ "-->" Type
-             | DomainType_ "->" Type
-             )
-````
+Examples:
+<!-- %no-check -->
+```dafny
+(int) -> int
+(bool,int) ~> bool
+() --> object?
+```
 
 Functions are first-class values in Dafny. The types of function values
 are called _arrow types_ (aka, _function types_).
@@ -3790,7 +3615,7 @@ function F(x: int, b: bool): real
 ```
 is `(int, bool) -> real`.
 In addition to functions declared by name, Dafny also supports anonymous
-functions by means of _lambda expressions_ (see [Section 21.13](#sec-lambda-expressions)).
+functions by means of _lambda expressions_ (see [Section 21.13](#sec-lambda-expression)).
 
 To simplify the appearance of the basic case where a function's
 domain consists of a list of exactly one non-function, non-tuple type, the parentheses around
@@ -3904,7 +3729,7 @@ then the type of `f.reads` is `T -> set<object?>` and the type
 of `f.requires` is `T -> bool`.
 
 Dafny also supports anonymous functions by means of
-_lambda expressions_. See [Section 21.13](#sec-lambda-expressions).
+_lambda expressions_. See [Section 21.13](#sec-lambda-expression).
 
 <!--PDF NEWPAGE-->
 # 17.  Tuple types {#sec-tuple-types}
@@ -3946,21 +3771,7 @@ const pair: (int, ghost int) := (1, ghost 2)
 ```
 
 <!--PDF NEWPAGE-->
-# 18. Algebraic Datatypes {#sec-algebraic-datatype}
-
-````grammar
-DatatypeDecl =
-  ( "datatype" | "codatatype" )
-  { Attribute }
-  DatatypeName [ GenericParameters ]
-  "=" [ ellipsis ]
-      [ "|" ] DatatypeMemberDecl
-      { "|" DatatypeMemberDecl }
-      [ TypeMembers ]
-
-DatatypeMemberDecl =
-  { Attribute } DatatypeMemberName [ FormalsOptionalIds ]
-````
+# 18. Algebraic Datatypes ([grammar](#g-datatype)) {#sec-datatype}
 
 Dafny offers two kinds of algebraic datatypes, those defined
 inductively (with `datatype`)  and those defined coinductively (with `codatatype`).
