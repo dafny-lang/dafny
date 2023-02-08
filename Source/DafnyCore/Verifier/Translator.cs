@@ -8131,42 +8131,42 @@ namespace Microsoft.Dafny {
       Contract.Requires(type != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
-      var normType = type.NormalizeExpandKeepConstraints();
+      type = type.NormalizeExpandKeepConstraints();
 
-      if (normType.IsTypeParameter || normType.IsOpaqueType) {
-        var udt = (UserDefinedType)normType;
+      if (type.IsTypeParameter || type.IsOpaqueType) {
+        var udt = (UserDefinedType)type;
         return trTypeParamOrOpaqueType(udt.ResolvedClass, udt.TypeArgs);
-      } else if (normType is UserDefinedType) {
+      } else if (type is UserDefinedType) {
         // Classes, (co-)datatypes, newtypes, subset types, ...
-        var args = normType.TypeArgs.ConvertAll(TypeToTy);
-        return ClassTyCon(((UserDefinedType)normType), args);
-      } else if (normType is SetType) {
-        bool finite = ((SetType)normType).Finite;
-        return FunctionCall(Token.NoToken, finite ? "TSet" : "TISet", predef.Ty, TypeToTy(((CollectionType)normType).Arg));
-      } else if (normType is MultiSetType) {
-        return FunctionCall(Token.NoToken, "TMultiSet", predef.Ty, TypeToTy(((CollectionType)normType).Arg));
-      } else if (normType is SeqType) {
-        return FunctionCall(Token.NoToken, "TSeq", predef.Ty, TypeToTy(((CollectionType)normType).Arg));
-      } else if (normType is MapType) {
-        bool finite = ((MapType)normType).Finite;
+        var args = type.TypeArgs.ConvertAll(TypeToTy);
+        return ClassTyCon(((UserDefinedType)type), args);
+      } else if (type is SetType) {
+        bool finite = ((SetType)type).Finite;
+        return FunctionCall(Token.NoToken, finite ? "TSet" : "TISet", predef.Ty, TypeToTy(((CollectionType)type).Arg));
+      } else if (type is MultiSetType) {
+        return FunctionCall(Token.NoToken, "TMultiSet", predef.Ty, TypeToTy(((CollectionType)type).Arg));
+      } else if (type is SeqType) {
+        return FunctionCall(Token.NoToken, "TSeq", predef.Ty, TypeToTy(((CollectionType)type).Arg));
+      } else if (type is MapType) {
+        bool finite = ((MapType)type).Finite;
         return FunctionCall(Token.NoToken, finite ? "TMap" : "TIMap", predef.Ty,
-          TypeToTy(((MapType)normType).Domain),
-          TypeToTy(((MapType)normType).Range));
-      } else if (normType is BoolType) {
+          TypeToTy(((MapType)type).Domain),
+          TypeToTy(((MapType)type).Range));
+      } else if (type is BoolType) {
         return new Bpl.IdentifierExpr(Token.NoToken, "TBool", predef.Ty);
-      } else if (normType is CharType) {
+      } else if (type is CharType) {
         return new Bpl.IdentifierExpr(Token.NoToken, "TChar", predef.Ty);
-      } else if (normType is RealType) {
+      } else if (type is RealType) {
         return new Bpl.IdentifierExpr(Token.NoToken, "TReal", predef.Ty);
-      } else if (normType is BitvectorType) {
-        var t = (BitvectorType)normType;
+      } else if (type is BitvectorType) {
+        var t = (BitvectorType)type;
         return FunctionCall(Token.NoToken, "TBitvector", predef.Ty, Bpl.Expr.Literal(t.Width));
-      } else if (normType is IntType) {
+      } else if (type is IntType) {
         return new Bpl.IdentifierExpr(Token.NoToken, "TInt", predef.Ty);
-      } else if (normType is BigOrdinalType) {
+      } else if (type is BigOrdinalType) {
         return new Bpl.IdentifierExpr(Token.NoToken, "TORDINAL", predef.Ty);
-      } else if (normType is ParamTypeProxy) {
-        return trTypeParamOrOpaqueType(((ParamTypeProxy)normType).orig);
+      } else if (type is ParamTypeProxy) {
+        return trTypeParamOrOpaqueType(((ParamTypeProxy)type).orig);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
