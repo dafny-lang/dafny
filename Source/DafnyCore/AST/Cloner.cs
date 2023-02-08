@@ -589,7 +589,7 @@ namespace Microsoft.Dafny {
         newName = f.Name;
       }
 
-      var newNameNode = new Name(f.NameNode.RangeToken, newName);
+      var newNameNode = new Name(Range(f.NameNode.RangeToken), newName);
 
       if (f is Predicate) {
         return new Predicate(Range(f.RangeToken), newNameNode, f.HasStaticKeyword, f.IsGhost, tps, formals, result,

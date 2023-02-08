@@ -540,7 +540,6 @@ namespace Microsoft.Dafny {
       bool isGhost = newFunction.IsGhost; 
       List<AttributedExpression> moreEnsures = newFunction.Ens;
       Formal moreResult = newFunction.Result;
-      var range = newFunction.RangeToken;
       
       var tps = previousFunction.TypeArgs.ConvertAll(refinementCloner.CloneTypeParam);
       var formals = previousFunction.Formals.ConvertAll(p => refinementCloner.CloneFormal(p, false));
@@ -580,25 +579,28 @@ namespace Microsoft.Dafny {
       }
       var byMethodBody = refinementCloner.CloneBlockStmt(previousFunction.ByMethodBody);
 
+      var range = newFunction.RangeToken;
+      var nameNode = newFunction.NameNode;
+      
       if (previousFunction is Predicate) {
-        return new Predicate(range, newFunction.NameNode, previousFunction.HasStaticKeyword, isGhost, tps, formals, result,
+        return new Predicate(range, nameNode, previousFunction.HasStaticKeyword, isGhost, tps, formals, result,
           req, reads, ens, decreases, body, bodyOrigin,
           previousFunction.ByMethodTok == null ? null : refinementCloner.Tok(previousFunction.ByMethodTok), byMethodBody,
           refinementCloner.MergeAttributes(previousFunction.Attributes, moreAttributes), null);
       } else if (previousFunction is LeastPredicate) {
-        return new LeastPredicate(range, newFunction.NameNode, previousFunction.HasStaticKeyword, ((LeastPredicate)previousFunction).TypeOfK, tps, formals, result,
+        return new LeastPredicate(range, nameNode, previousFunction.HasStaticKeyword, ((LeastPredicate)previousFunction).TypeOfK, tps, formals, result,
           req, reads, ens, body, refinementCloner.MergeAttributes(previousFunction.Attributes, moreAttributes), null);
       } else if (previousFunction is GreatestPredicate) {
-        return new GreatestPredicate(range, newFunction.NameNode, previousFunction.HasStaticKeyword, ((GreatestPredicate)previousFunction).TypeOfK, tps, formals, result,
+        return new GreatestPredicate(range, nameNode, previousFunction.HasStaticKeyword, ((GreatestPredicate)previousFunction).TypeOfK, tps, formals, result,
           req, reads, ens, body, refinementCloner.MergeAttributes(previousFunction.Attributes, moreAttributes), null);
       } else if (previousFunction is TwoStatePredicate) {
-        return new TwoStatePredicate(range, newFunction.NameNode, previousFunction.HasStaticKeyword, tps, formals, result,
+        return new TwoStatePredicate(range, nameNode, previousFunction.HasStaticKeyword, tps, formals, result,
           req, reads, ens, decreases, body, refinementCloner.MergeAttributes(previousFunction.Attributes, moreAttributes), null);
       } else if (previousFunction is TwoStateFunction) {
-        return new TwoStateFunction(range, newFunction.NameNode, previousFunction.HasStaticKeyword, tps, formals, result, refinementCloner.CloneType(previousFunction.ResultType),
+        return new TwoStateFunction(range, nameNode, previousFunction.HasStaticKeyword, tps, formals, result, refinementCloner.CloneType(previousFunction.ResultType),
           req, reads, ens, decreases, body, refinementCloner.MergeAttributes(previousFunction.Attributes, moreAttributes), null);
       } else {
-        return new Function(range, newFunction.NameNode, previousFunction.HasStaticKeyword, isGhost, tps, formals, result, refinementCloner.CloneType(previousFunction.ResultType),
+        return new Function(range, nameNode, previousFunction.HasStaticKeyword, isGhost, tps, formals, result, refinementCloner.CloneType(previousFunction.ResultType),
           req, reads, ens, decreases, body,
           previousFunction.ByMethodTok == null ? null : refinementCloner.Tok(previousFunction.ByMethodTok), byMethodBody,
           refinementCloner.MergeAttributes(previousFunction.Attributes, moreAttributes), null);
