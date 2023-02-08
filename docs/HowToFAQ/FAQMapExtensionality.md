@@ -2,7 +2,7 @@
 title: I have a lemma and later an assert stating the postcondition of the lemma, but it fails to prove. Why and how do I fix it?
 ---
 
-## Question: I have a lemma and later an assert stating the postconditio nof the lemma, but it fails to prove. Why and how do I fix it?
+## Question: I have a lemma and later an assert stating the postcondition of the lemma, but it fails to prove. Why and how do I fix it?
 
 I have this lemma
 ```dafny
@@ -45,7 +45,7 @@ or reason that the one map … is the very same map as the other map … (in whi
 The way to prove that two maps are equal is to show that they have the same keys and the same mappings. 
 The idea of proving two things equal by looking at the “elements” of each of the two things is called extensionality. 
 Dafny never tries to prove extensionality, but it’s happy to do it if you ask it to. 
-For example, if G is a function that you know nothing about and you ask to prove
+For example, if `G` is a function that you know nothing about and you ask to prove
 ```dafny
 assert G(s + {x}) == G({x} + s + {x});
 ```
@@ -71,7 +71,7 @@ To make them the same, you could rewrite the code to:
   assert |authSchema| == |map k <- authSchema.Keys | true :: F(k) := authSchema[k]|;
 ```
 
-Now, this `map …` syntactically looks just like the one in the lemma postcondition, but with authSchema instead of m and with F instead of f. 
+Now, this `map …` syntactically looks just like the one in the lemma postcondition, but with `authSchema` instead of `m` and with `F` instead of `f`. 
 When two map comprehensions (or set comprehensions, or lambda expressions) are syntactically the same like this, then Dafny knows to treat them the same.
 Almost. 
 Alas, there’s something about this example that makes what I said not quite true (and I didn’t dive into those details just now). 
@@ -80,14 +80,12 @@ The workaround is to give the comprehension a name. Then, if you use the same na
 Dafny will know that they are the same way of constructing the map. 
 The following code shows how to do it: 
 ```dafny
-lemma MapKeepsCount<X,Y,Z>(m : map<X,Y>, f : (X) -> Z)
-  requires forall a : X, b : X :: a != b ==> f(a) != f(b)
+lemma MapKeepsCount<X, Y, Z>(m: map<X, Y>, f: X -> Z)
+  requires forall a: X, b: X :: a != b ==> f(a) != f(b)
   ensures |m| == |MyMap(f, m)|
 
 function MyMap<X, Y, Z>(f: X -> Y, m: map<X, Z>): map<Y, Z>
-  // (you can use the <- syntax in the following lines, by the Dafny Playground uses
-  // an older version of Dafny that didn't yet support that syntax)
-  requires forall a, b | a in m.Keys && b in m.Keys :: a != b ==> f(a) != f(b)
+  requires forall a <- m.Keys, b <- m.Keys :: a != b ==> f(a) != f(b)
 {
   // same comment about <- in the next line
   map k | k in m.Keys :: f(k) := m[k]
@@ -108,4 +106,4 @@ module Paths {
 }
 ```
 
-It manually introduces a function MyMap, and by using it in both caller and callee, the code verifies.
+It manually introduces a function `MyMap`, and by using it in both caller and callee, the code verifies.
