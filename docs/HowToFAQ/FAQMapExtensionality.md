@@ -85,9 +85,7 @@ lemma MapKeepsCount<X, Y, Z>(m: map<X, Y>, f: X -> Z)
   ensures |m| == |MyMap(f, m)|
 
 function MyMap<X, Y, Z>(f: X -> Y, m: map<X, Z>): map<Y, Z>
-  // (you can use the <- syntax in the following lines, by the Dafny Playground uses
-  // an older version of Dafny that didn't yet support that syntax)
-  requires forall a, b | a in m.Keys && b in m.Keys :: a != b ==> f(a) != f(b)
+  requires forall a <- m.Keys, b <- m.Keys :: a != b ==> f(a) != f(b)
 {
   // same comment about <- in the next line
   map k | k in m.Keys :: f(k) := m[k]
