@@ -396,7 +396,7 @@ corresponding right-hand sides also denote the same value.
 
 The update statement serves several logical purposes.
 
-
+### 20.6.1. Method call
 1) The form
 
 ````grammar
@@ -404,6 +404,7 @@ Lhs {Attribute} ";"
 ````
 is assumed to be a call to a method with no out-parameters.
 
+### 20.6.2. Method call with multiple outputs
 2) The form
 
 ````grammar
@@ -420,6 +421,7 @@ the `:=`, which then is assigned a tuple of the out-parameters.
 Note that the result of a method call is not allowed to be used as an argument of
 another method call, as if it were an expression.
 
+### 20.6.3. Parallel assignment
 3) This is the typical parallel-assignment form, in which no call is involved:
 ````grammar
     Lhs { , Lhs } ":=" Rhs { "," Rhs } ";"
@@ -433,6 +435,7 @@ be an equal number of left-hand sides and right-hand sides in this case.
 Of course, the most common case will have only one
 ``Rhs`` and one ``Lhs``.
 
+### 20.6.4. Havoc assignment {#sec-havoc-statement}
 4) The form with a right-hand-side that is `*` is a _havoc_ assignment.
 It assigns an arbitrary but type-correct value to the corresponding left-hand-side.
 

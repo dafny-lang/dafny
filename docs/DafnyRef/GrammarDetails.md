@@ -778,7 +778,7 @@ PossiblyWildFrameExpression(allowLemma, allowLambda, allowWild) =
 Stmt = { "label" LabelName ":" } NonLabeledStmt
 ````
 
-#### 29.2.6.2. Non-Labeled statement ([discussion](#sec-nonlabeled-statement)) {#g-nonlabeled-statement}
+#### 29.2.6.2. Non-Labeled statement ([discussion](#sec-statement)) {#g-nonlabeled-statement}
 
 ````grammar
 NonLabeledStmt =
