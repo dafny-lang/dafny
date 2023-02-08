@@ -10,7 +10,6 @@ namespace Microsoft.Dafny;
 /// Because generated names don't have an associated token
 /// </summary>
 public class Name : RangeNode {
-  // public static implicit operator Name(string value) => new(value);
 
   public Name Prepend(string prefix) {
     return new Name(RangeToken, prefix + Value);

@@ -537,27 +537,22 @@ namespace Microsoft.Dafny {
       Contract.Requires(moreBody == null || previousFunction is Predicate);
       Contract.Requires(moreBody == null || replacementBody == null);
 
-      bool isGhost = newFunction.IsGhost; 
-      List<AttributedExpression> moreEnsures = newFunction.Ens;
-      Formal moreResult = newFunction.Result;
-      
       var tps = previousFunction.TypeArgs.ConvertAll(refinementCloner.CloneTypeParam);
       var formals = previousFunction.Formals.ConvertAll(p => refinementCloner.CloneFormal(p, false));
       var req = previousFunction.Req.ConvertAll(refinementCloner.CloneAttributedExpr);
       var reads = previousFunction.Reads.ConvertAll(refinementCloner.CloneFrameExpr);
       var decreases = refinementCloner.CloneSpecExpr(previousFunction.Decreases);
-      var result = previousFunction.Result ?? moreResult;
+      var result = previousFunction.Result ?? newFunction.Result;
       if (result != null) {
         result = refinementCloner.CloneFormal(result, false);
       }
-
 
       var ens = refinementCloner.WithRefinementTokenWrapping(
         () => previousFunction.Ens.ConvertAll(refinementCloner.CloneAttributedExpr),
         !checkPrevPostconditions); // note, if a postcondition includes something that changes in the module, the translator will notice this and still re-check the postcondition
 
-      if (moreEnsures != null) {
-        ens.AddRange(moreEnsures);
+      if (newFunction.Ens != null) {
+        ens.AddRange(newFunction.Ens);
       }
 
       Expression body;
@@ -581,9 +576,9 @@ namespace Microsoft.Dafny {
 
       var range = newFunction.RangeToken;
       var nameNode = newFunction.NameNode;
-      
+
       if (previousFunction is Predicate) {
-        return new Predicate(range, nameNode, previousFunction.HasStaticKeyword, isGhost, tps, formals, result,
+        return new Predicate(range, nameNode, previousFunction.HasStaticKeyword, newFunction.IsGhost, tps, formals, result,
           req, reads, ens, decreases, body, bodyOrigin,
           previousFunction.ByMethodTok == null ? null : refinementCloner.Tok(previousFunction.ByMethodTok), byMethodBody,
           refinementCloner.MergeAttributes(previousFunction.Attributes, moreAttributes), null);
@@ -600,7 +595,7 @@ namespace Microsoft.Dafny {
         return new TwoStateFunction(range, nameNode, previousFunction.HasStaticKeyword, tps, formals, result, refinementCloner.CloneType(previousFunction.ResultType),
           req, reads, ens, decreases, body, refinementCloner.MergeAttributes(previousFunction.Attributes, moreAttributes), null);
       } else {
-        return new Function(range, nameNode, previousFunction.HasStaticKeyword, isGhost, tps, formals, result, refinementCloner.CloneType(previousFunction.ResultType),
+        return new Function(range, nameNode, previousFunction.HasStaticKeyword, newFunction.IsGhost, tps, formals, result, refinementCloner.CloneType(previousFunction.ResultType),
           req, reads, ens, decreases, body,
           previousFunction.ByMethodTok == null ? null : refinementCloner.Tok(previousFunction.ByMethodTok), byMethodBody,
           refinementCloner.MergeAttributes(previousFunction.Attributes, moreAttributes), null);
