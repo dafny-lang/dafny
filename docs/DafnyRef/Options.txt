@@ -103,8 +103,8 @@ Usage: dafny [ option ... ] [ filename ... ]
   ---- Language feature selection --------------------------------------------
   
   /unicodeChar:<value>
-      0 (default) - The char type represents any UTF-16 code unit.
-      1 - The char type represents any Unicode scalar value.
+      0 - The char type represents any UTF-16 code unit.
+      1 (default) - The char type represents any Unicode scalar value.
 
   /noIncludes
       Ignore include directives.
