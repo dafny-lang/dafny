@@ -80,7 +80,7 @@ The workaround is to give the comprehension a name. Then, if you use the same na
 Dafny will know that they are the same way of constructing the map. 
 The following code shows how to do it: 
 ```dafny
-lemma MapKeepsCount<X,Y,Z>(m : map<X,Y>, f : (X) -> Z)
+lemma MapKeepsCount<X, Y, Z>(m: map<X, Y>, f: X -> Z)
   requires forall a : X, b : X :: a != b ==> f(a) != f(b)
   ensures |m| == |MyMap(f, m)|
 
