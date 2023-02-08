@@ -138,5 +138,6 @@ jobs:
       if: always()
       with:
         name: integration-test-results-${{ matrix.os }}
-        path: dafny/Source/IntegrationTests/TestResults/*.trx
-              dafny/Source/IntegrationTests/TestResults/*/coverage.cobertura.xml
+        path: |
+          dafny/Source/IntegrationTests/TestResults/*.trx
+          dafny/Source/IntegrationTests/TestResults/*/coverage.cobertura.xml

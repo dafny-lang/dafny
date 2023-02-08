@@ -82,5 +82,6 @@ jobs:
       if: always()
       with:
         name: unit-test-results-${{ matrix.os }}
-        path: Source/*/TestResults/*.trx
-              Source/*/TestResult/*/coverage.cobertura.xml
+        path: |
+          Source/*/TestResults/*.trx
+          Source/*/TestResult/*/coverage.cobertura.xml
