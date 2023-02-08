@@ -2,7 +2,7 @@
 title: I have a lemma and later an assert stating the postcondition of the lemma, but it fails to prove. Why and how do I fix it?
 ---
 
-## Question: I have a lemma and later an assert stating the postconditio nof the lemma, but it fails to prove. Why and how do I fix it?
+## Question: I have a lemma and later an assert stating the postcondition of the lemma, but it fails to prove. Why and how do I fix it?
 
 I have this lemma
 ```dafny
