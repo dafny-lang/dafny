@@ -3,7 +3,7 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public class ForLoopStmt : OneBodyLoopStmt, ICloneable<ForLoopStmt> {
+public class ForLoopStmt : OneBodyLoopStmt, ICloneable<ForLoopStmt>, ICanFormat {
   public readonly BoundVar LoopIndex;
   public readonly Expression Start;
   public readonly Expression/*?*/ End;
@@ -44,5 +44,40 @@ public class ForLoopStmt : OneBodyLoopStmt, ICloneable<ForLoopStmt> {
         yield return End;
       }
     }
+  }
+
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    var forReached = false;
+    var specification = false;
+    foreach (var token in OwnedTokens) {
+      if (formatter.SetIndentLabelTokens(token, indentBefore)) {
+        continue;
+      }
+      if (token.val == "for") {
+        formatter.SetOpeningIndentedRegion(token, indentBefore);
+        forReached = true;
+        continue;
+      }
+
+      if (!forReached) {
+        continue;
+      }
+
+      if (specification) {
+        formatter.SetOpeningIndentedRegion(token, indentBefore + formatter.SpaceTab);
+      }
+
+      if (token.val is "to" or "downto") {
+        specification = true;
+      }
+    }
+
+    foreach (var ens in Invariants) {
+      formatter.SetAttributedExpressionIndentation(ens, indentBefore + formatter.SpaceTab);
+    }
+
+    formatter.SetIndentBody(Body, indentBefore);
+    formatter.SetClosingIndentedRegion(EndToken, indentBefore);
+    return false;
   }
 }
