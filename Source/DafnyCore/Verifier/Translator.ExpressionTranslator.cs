@@ -1303,7 +1303,7 @@ namespace Microsoft.Dafny {
             // lambda y: BoxType :: CorrectType(y) && R[xs := yUnboxed]
             Boogie.Expr typeAntecedent = translator.MkIsBox(new Boogie.IdentifierExpr(GetToken(expr), yVar), bv.Type);
             if (freeOfAlloc != null && !freeOfAlloc[0]) {
-              var isAlloc = translator.MkIsAlloc(new Boogie.IdentifierExpr(GetToken(expr), yVar), bv.Type, HeapExpr);
+              var isAlloc = translator.MkIsAllocBox(new Boogie.IdentifierExpr(GetToken(expr), yVar), bv.Type, HeapExpr);
               typeAntecedent = BplAnd(typeAntecedent, isAlloc);
             }
             var yUnboxed = translator.UnboxIfBoxed(new Boogie.IdentifierExpr(GetToken(expr), yVar), bv.Type);

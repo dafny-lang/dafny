@@ -8256,6 +8256,10 @@ namespace Microsoft.Dafny {
       return MkIsAlloc(x, TypeToTy(t), h, ModeledAsBoxType(t));
     }
 
+    Bpl.Expr MkIsAllocBox(Bpl.Expr x, Type t, Bpl.Expr h) {
+      return MkIsAlloc(x, TypeToTy(t), h, true);
+    }
+
     Bpl.Expr MkIsAlloc(Bpl.Expr x, Bpl.Expr t, Bpl.Expr h, bool box = false) {
       if (box) {
         return FunctionCall(x.tok, BuiltinFunction.IsAllocBox, null, x, t, h);
