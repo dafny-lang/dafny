@@ -81,7 +81,7 @@ Dafny will know that they are the same way of constructing the map.
 The following code shows how to do it: 
 ```dafny
 lemma MapKeepsCount<X, Y, Z>(m: map<X, Y>, f: X -> Z)
-  requires forall a : X, b : X :: a != b ==> f(a) != f(b)
+  requires forall a: X, b: X :: a != b ==> f(a) != f(b)
   ensures |m| == |MyMap(f, m)|
 
 function MyMap<X, Y, Z>(f: X -> Y, m: map<X, Z>): map<Y, Z>
