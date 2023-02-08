@@ -66,13 +66,11 @@ jobs:
     steps:
       - name: Download integration test artifacts
         uses: dawidd6/action-download-artifact@v2
-        with:
-          workflow: integration-tests-reusable.yml
 
       - name: Download unit test artifacts
         uses: dawidd6/action-download-artifact@v2
         with:
-          workflow: xuint-tests.yml
+          workflow: xunit-tests.yml
 
       - name: Show files
         run: ls -lR
