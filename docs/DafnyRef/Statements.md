@@ -302,7 +302,7 @@ YieldStmt = "yield" [ Rhs { "," Rhs } ] ";"
 ````
 
 A yield statement can only be used in an iterator.
-See [Section 16](#sec-iterator-types) for more details
+See [Section 15](#sec-iterator-types) for more details
 about iterators.
 
 The body of an iterator is a _co-routine_. It is used
@@ -1046,7 +1046,7 @@ WhileStmt =
 Loops need _loop specifications_ (``LoopSpec`` in the grammar) in order for Dafny to prove that
 they obey expected behavior. In some cases Dafny can infer the loop specifications by analyzing the code,
 so the loop specifications need not always be explicit.
-These specifications are described in [Section 5.6](#sec-loop-specification) and [Section 20.14](#sec-loop-specifications).
+These specifications are described in [Section 19.6](#sec-loop-specification) and [Section 20.14](#sec-loop-specifications).
 
 The general loop statement in Dafny is the familiar `while` statement.
 It has two general forms.
@@ -1987,7 +1987,7 @@ ForallStmt =
 
 The `forall` statement executes the body
 simultaneously for all quantified values in the specified quantifier domain.
-See [Section 2.6.5](#sec-quantifier-domains) for more details on quantifier domains.
+See [Section 2.6.4](#sec-quantifier-domains) for more details on quantifier domains.
 
 There are several variant uses of the `forall`
 statement and there are a number of restrictions.
