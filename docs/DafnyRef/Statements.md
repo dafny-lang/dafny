@@ -35,7 +35,7 @@ referenced in a `break` or `continue` statement within the labeled statement
 (see [Section 20.2](#sec-break-continue-statement)). That is, the break or continue that
 mentions the label must be _enclosed_ in the labeled statement.
 
-The label may also be used in an `old` expression ([Section 21.25](#sec-old-expression)). In this case, the label
+The label may also be used in an `old` expression ([Section 21.22](#sec-old-expression)). In this case, the label
 must have been encountered during the control flow en route to the `old`
 expression. We say in this case that the (program point of the) label _dominates_
 the (program point of the) use of the label.
