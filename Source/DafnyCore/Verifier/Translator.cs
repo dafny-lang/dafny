@@ -2724,8 +2724,9 @@ namespace Microsoft.Dafny {
         if (pp.ExtremePred is GreatestPredicate) {
           // forall k':ORDINAL | _k' LESS _k :: pp(_k', args)
           var smaller = Expression.CreateLess(kprime, k);
-          limitCalls = new ForallExpr(pp.tok, pp.RangeToken, new List<BoundVar> { kprimeVar }, smaller, ppCall, triggerAttr);
-          limitCalls.Type = Type.Bool;  // resolve here
+          limitCalls = new ForallExpr(pp.tok, pp.RangeToken, new List<BoundVar> { kprimeVar }, smaller, ppCall, triggerAttr) {
+            Type = Type.Bool,
+          };
         } else {
           // exists k':ORDINAL | _k' LESS _k :: pp(_k', args)
           // Here, instead of using the usual ORD#Less, we use the semantically equivalent ORD#LessThanLimit, because this
@@ -2735,8 +2736,9 @@ namespace Microsoft.Dafny {
             ResolvedOp = BinaryExpr.ResolvedOpcode.LessThanLimit,
             Type = Type.Bool
           };
-          limitCalls = new ExistsExpr(pp.tok, pp.RangeToken, new List<BoundVar> { kprimeVar }, smaller, ppCall, triggerAttr);
-          limitCalls.Type = Type.Bool;  // resolve here
+          limitCalls = new ExistsExpr(pp.tok, pp.RangeToken, new List<BoundVar> { kprimeVar }, smaller, ppCall, triggerAttr) {
+            Type = Type.Bool,
+          };
         }
         var a = Expression.CreateImplies(kIsPositive, body);
         var b = Expression.CreateImplies(kIsLimit, limitCalls);
@@ -8233,7 +8235,7 @@ namespace Microsoft.Dafny {
     /// Return $IsBox(x, t).
     /// </summary>
     Bpl.Expr MkIsBox(Bpl.Expr x, Type t) {
-      return MkIs(x, TypeToTy(t.NormalizeExpandKeepConstraints()), true);
+      return MkIs(x, TypeToTy(t), true);
     }
 
     // Boxes, if necessary
