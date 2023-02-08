@@ -71,7 +71,7 @@ To make them the same, you could rewrite the code to:
   assert |authSchema| == |map k <- authSchema.Keys | true :: F(k) := authSchema[k]|;
 ```
 
-Now, this `map …` syntactically looks just like the one in the lemma postcondition, but with authSchema instead of m and with F instead of f. 
+Now, this `map …` syntactically looks just like the one in the lemma postcondition, but with `authSchema` instead of `m` and with `F` instead of `f`. 
 When two map comprehensions (or set comprehensions, or lambda expressions) are syntactically the same like this, then Dafny knows to treat them the same.
 Almost. 
 Alas, there’s something about this example that makes what I said not quite true (and I didn’t dive into those details just now). 
