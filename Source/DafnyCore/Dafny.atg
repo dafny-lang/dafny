@@ -48,6 +48,8 @@ class DeclModifierData {
   public IToken GhostToken;
   public bool IsStatic;
   public IToken StaticToken;
+  public bool IsOpaque;
+  public IToken OpaqueToken;
   public IToken FirstToken;
 }
 
@@ -80,6 +82,7 @@ enum AllowedDeclModifiers {
   // Means ghost not allowed because already implicitly ghost.
   AlreadyGhost = 4,
   Static = 8,
+  Opaque = 16
 };
 
 /// <summary>
@@ -113,6 +116,10 @@ void CheckDeclModifiers(ref DeclModifierData dmod, string declCaption, AllowedDe
   if (dmod.IsStatic && ((allowed & AllowedDeclModifiers.Static) == 0)) {
     SemErr(ErrorID.p_no_static, Errors.CodeAction(dmod.StaticToken, dmod.StaticToken.Next), $"{declCaption} cannot be declared 'static'");
     dmod.IsStatic = false;
+  }
+  if (dmod.IsOpaque && ((allowed & AllowedDeclModifiers.Opaque) == 0)) {
+    SemErr(dmod.OpaqueToken, $"{declCaption} cannot be declared 'opaque'");
+    dmod.IsOpaque = false;
   }
 }
 
@@ -261,7 +268,7 @@ public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, Include include, ModuleD
 }
 
 bool IsIdentifier(int kind) {
-  return kind == _ident || kind == _least || kind == _greatest || kind == _older;
+  return kind == _ident || kind == _least || kind == _greatest || kind == _older || kind == _opaque;
 }
 
 bool IsQuantifierVariableDecl(QuantifiedVar previousVar) {
@@ -940,6 +947,7 @@ TOKENS
   predicate = "predicate".
   least = "least". /* not a keyword by itself, but part of a keyword phrase */
   greatest = "greatest". /* not a keyword by itself, but part of a keyword phrase */
+  opaque = "opaque".
   inductive = "inductive".
   twostate = "twostate".
   copredicate = "copredicate".
@@ -1054,6 +1062,7 @@ DeclModifier<ref DeclModifierData dmod>
 = ( "abstract"                             (. dmod.IsAbstract = true;  CheckAndSetToken(ref dmod.AbstractToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   | "ghost"                                (. dmod.IsGhost = true;  CheckAndSetToken(ref dmod.GhostToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   | "static"                               (. dmod.IsStatic = true; CheckAndSetToken(ref dmod.StaticToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
+  | "opaque"                               (. dmod.IsOpaque = true; CheckAndSetToken(ref dmod.OpaqueToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   )
   .
 
@@ -1516,7 +1525,7 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
        errors.Warning(dmod.StaticToken, "module-level const declarations are always non-instance, so the 'static' keyword is not allowed here");
        dmod.IsStatic = false;
      }
-     CheckDeclModifiers(ref dmod, "field", AllowedDeclModifiers.Ghost | AllowedDeclModifiers.Static);
+     CheckDeclModifiers(ref dmod, "field", AllowedDeclModifiers.Ghost | AllowedDeclModifiers.Static | AllowedDeclModifiers.Opaque);
   .)
   SYNC
   "const"                                    (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
@@ -1528,7 +1537,7 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
                                              (. if (e == null && ty is InferredTypeProxy) {
                                                   SemErr(id, "a const declaration must have a type or a RHS value");
                                                 }
-                                                var c = new ConstantField(id, id.val, e, dmod.IsStatic, dmod.IsGhost, ty, attrs);
+                                                var c = new ConstantField(id, id.val, e, dmod.IsStatic, dmod.IsGhost, dmod.IsOpaque, ty, attrs);
                                                 if (e != null) {
                                                   // c.BodyEndTok = t; // Until we have proper ranges
                                                 }
@@ -2567,7 +2576,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
            $"to use a 'by method' implementation with a {what}, declare '{id.val}' using '{what}', not '{what} method'");
          functionMethodToken = null;
        }
-       AllowedDeclModifiers allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static;
+       AllowedDeclModifiers allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static | AllowedDeclModifiers.Opaque;
        CheckDeclModifiers(ref dmod, what + "-by-method", allowed);
 
      } else {
@@ -2581,7 +2590,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
            SemErr(functionMethodToken, $"a {adjective} {what} is supported only as ghost, not as a compiled {what}");
            functionMethodToken = null;
          }
-         AllowedDeclModifiers allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static;
+         AllowedDeclModifiers allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static | AllowedDeclModifiers.Opaque;
          CheckDeclModifiers(ref dmod, $"{adjective} {what}", allowed);
 
        } else {
@@ -2603,7 +2612,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
          } else if (!dmod.IsGhost && theOptions.FunctionSyntax == FunctionSyntaxOptions.Migration3To4) {
            SemErr(headToken, $"a {what} must be declared as either 'ghost {what}' or '{what} method'");
          }
-         AllowedDeclModifiers allowed = AllowedDeclModifiers.Static;
+         AllowedDeclModifiers allowed = AllowedDeclModifiers.Static | AllowedDeclModifiers.Opaque;
          if (isPredicate && theOptions.FunctionSyntax == FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost) {
            allowed |= AllowedDeclModifiers.AlreadyGhost;
          } else if (theOptions.FunctionSyntax == FunctionSyntaxOptions.Version3) {
@@ -2668,35 +2677,35 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
        }
      }
 
-     /* ========================================
+     /* =========================================
       * Finally, we create the AST node for the function declaration we parsed.
       */
 
      IToken tok = id;
      if (isTwoState && isPredicate) {
        Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
-       f = new TwoStatePredicate(tok, id.val, dmod.IsStatic, typeArgs, formals, result,
+       f = new TwoStatePredicate(tok, id.val, dmod.IsStatic, dmod.IsOpaque, typeArgs, formals, result,
                                  reqs, reads, ens, new Specification<Expression>(decreases, decAttrs), body, attrs, signatureEllipsis);
      } else if (isTwoState) {
        Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
-       f = new TwoStateFunction(tok, id.val, dmod.IsStatic, typeArgs, formals, result, returnType,
+       f = new TwoStateFunction(tok, id.val, dmod.IsStatic, dmod.IsOpaque, typeArgs, formals, result, returnType,
                                 reqs, reads, ens, new Specification<Expression>(decreases, decAttrs), body, attrs, signatureEllipsis);
      } else if (isPredicate) {
        Contract.Assert(functionMethodToken == null || !dmod.IsGhost);
-       f = new Predicate(tok, id.val, dmod.IsStatic, isGhost, typeArgs, formals, result,
+       f = new Predicate(tok, id.val, dmod.IsStatic, isGhost, dmod.IsOpaque, typeArgs, formals, result,
                          reqs, reads, ens, new Specification<Expression>(decreases, decAttrs), body, Predicate.BodyOriginKind.OriginalOrInherited,
                          byMethodTok, byMethodBody, attrs, signatureEllipsis);
      } else if (isLeastPredicate) {
        Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
-       f = new LeastPredicate(tok, id.val, dmod.IsStatic, kType, typeArgs, formals, result,
+       f = new LeastPredicate(tok, id.val, dmod.IsStatic, dmod.IsOpaque, kType, typeArgs, formals, result,
                               reqs, reads, ens, body, attrs, signatureEllipsis);
      } else if (isGreatestPredicate) {
        Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
-       f = new GreatestPredicate(tok, id.val, dmod.IsStatic, kType, typeArgs, formals, result,
+       f = new GreatestPredicate(tok, id.val, dmod.IsStatic, dmod.IsOpaque, kType, typeArgs, formals, result,
                                  reqs, reads, ens, body, attrs, signatureEllipsis);
      } else {
        Contract.Assert(functionMethodToken == null || !dmod.IsGhost);
-       f = new Function(tok, id.val, dmod.IsStatic, isGhost,
+       f = new Function(tok, id.val, dmod.IsStatic, isGhost, dmod.IsOpaque,
                         typeArgs, formals, result, returnType,
                         reqs, reads, ens, new Specification<Expression>(decreases, decAttrs), body,
                         byMethodTok, byMethodBody,
@@ -4446,6 +4455,22 @@ ParensExpression<out Expression e>
   .
 
 /*------------------------------------------------------------------------*/
+TupleArgs<.List<ActualBinding> args.>
+= (. ActualBinding binding; bool isGhost = false; .)
+  // The IF is to distinguish between `(ghost var x := 5; x + x)` and (ghost x), both of which begin with `( ghost`.
+  [ IF(la.kind == _ghost && !IsVar())
+    "ghost"                             (. isGhost = true; .)
+  ]
+  ActualBinding<out binding, isGhost>   (. args.Add(binding); .)
+  { ","                                 (. isGhost = false; .)
+    [ IF(la.kind == _ghost && !IsVar())
+      "ghost"                           (. isGhost = true; .)
+    ]
+    ActualBinding<out binding, isGhost> (. args.Add(binding); .)
+  }
+  .
+
+/*------------------------------------------------------------------------*/
 SetDisplayExpr<out Expression e>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
      IToken token = null;
@@ -5148,22 +5173,6 @@ Expressions<.List<Expression> args.>
   .
 
 /*------------------------------------------------------------------------*/
-TupleArgs<.List<ActualBinding> args.>
-= (. ActualBinding binding; bool isGhost = false; .)
-  // The IF is to distinguish between `(ghost var x := 5; x + x)` and (ghost x), both of which begin with `( ghost`.
-  [ IF(la.kind == _ghost && !IsVar())
-    "ghost"                             (. isGhost = true; .)
-  ]
-  ActualBinding<out binding, isGhost>   (. args.Add(binding); .)
-  { ","                                 (. isGhost = false; .)
-    [ IF(la.kind == _ghost && !IsVar())
-      "ghost"                           (. isGhost = true; .)
-    ]
-    ActualBinding<out binding, isGhost> (. args.Add(binding); .)
-  }
-  .
-
-/*------------------------------------------------------------------------*/
 AttributeName<out IToken id> = NoUSIdent<out id>.
 
 Attribute<ref Attributes attrs>
@@ -5189,6 +5198,8 @@ Ident<out IToken/*!*/ x>
   | "least"      (. t.kind = _ident; .) // convert it to an ident
   | "greatest"   (. t.kind = _ident; .) // convert it to an ident
   | "older"      (. t.kind = _ident; .) // convert it to an ident
+  | "opaque"     (. t.kind = _ident; .) // convert it to an ident
+                 (. errors.Deprecated(t, "opaque is deprecated as an identifier. It will soon become a reserved word. Use a different name."); .)
   )
   (. x = t; .)
   .
