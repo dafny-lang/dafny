@@ -35,8 +35,8 @@
 
 function Apply(f: () -> int): int { f() }
 
-ghost function F0(): int { Apply(F0) }
-ghost function F1(): int { Apply(() => F1()) }
+function F0(): int { Apply(F0) }
+function F1(): int { Apply(() => F1()) }
 
 /// Dafny rejects `F0` because it does not allow using “naked” recursive
 /// functions, so one must wrap it in an anonymous function, as done in `F1
@@ -53,7 +53,7 @@ ghost function F1(): int { Apply(() => F1()) }
 module {:options "-functionSyntax:4"} Parsers {
 
 /// (The `-functionSyntax:4` enables Dafny's new function syntax, where
-/// `function` replaces `function `)
+/// `function` replaces `function method`)
 ///
 /// ## Utility types
 ///
@@ -188,7 +188,7 @@ module {:options "-functionSyntax:4"} Parsers {
 /// advanced.  It additionally states that the new position is `<= |input|`
 /// (which is equivalent to saying that the original position was `< |input|`).
 
-    ghost function {:opaque} Char(c: char): (p: Parser<char>)
+    function {:opaque} Char(c: char): (p: Parser<char>)
       ensures forall pos: nat :: p.requires(pos)
       ensures forall pos: nat :: p(pos).Success? ==>
         p(pos).pos == pos + 1 && p(pos).pos <= |input|
@@ -213,7 +213,7 @@ module {:options "-functionSyntax:4"} Parsers {
 /// mention `pos` in its spec).  Also note the call to `MapResult`, which
 /// implements a simple semantic action (here, counting parentheses).
 
-    ghost function {:opaque} Parentheses'(pos: nat): ParseResult<nat>
+    function {:opaque} Parentheses'(pos: nat): ParseResult<nat>
       decreases |input| - pos
     {
       var rec := pos' requires pos < pos' <= |input| => Parentheses'(pos');
@@ -262,7 +262,7 @@ module {:options "-functionSyntax:4"} Parsers {
 ///
 /// Phew!  Now all that is left is to check for the end of the string:
 
-    ghost function Parentheses(pos: nat): ParseResult<nat> {
+    function Parentheses(pos: nat): ParseResult<nat> {
       Concat(Parentheses', EOS)(pos)
         .MapResult<nat>((r: (nat, ())) => r.0)
     }

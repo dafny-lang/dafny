@@ -182,7 +182,7 @@ module {:options "/functionSyntax:4"} EqualitySupport {
 
   datatype Enum = ghost EnumA | EnumB
   {
-    ghost predicate P() {
+    predicate P() {
       this != EnumB // error: XY only partially supports equality
     }
 
