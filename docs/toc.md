@@ -63,7 +63,7 @@ There are also publications and lecture notes:
 
 And some books:
 * K. Rustan M. Leino, 2023, [_Program Proofs_](https://mitpress.mit.edu/9780262546232/program-proofs/), available March, 2023.
-* K. Rustan M. Leino and Kaleb Leino, 2020, [_Program Proofs_](https://www.lulu.com/shop/k-rustan-m-leino-and-kaleb-leino/program-proofs/paperback/product-wqy8w5.html). Draft version of the book being published by MIT Press in 2023 (see previous item).
+* K. Rustan M. Leino and Kaleb Leino, 2020, [_Program Proofs_](https://www.lulu.com/shop/k-rustan-m-leino-and-kaleb-leino/program-proofs/paperback/product-wqy8w5.html). Draft version of the book being published by MIT Press, available only until its release in March 2023. 
 * Boro Sitnovski, 2022, [_Introducing Software Verification with Dafny Language_](https://link.springer.com/book/10.1007/978-1-4842-7978-6_)
 * Jason Koenig, K. Rustan M. Leino, 2016, [_Getting Started with Dafny: A Guide_](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/12/krml220.pdf)
 

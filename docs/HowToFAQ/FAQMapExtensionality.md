@@ -109,6 +109,3 @@ module Paths {
 ```
 
 It manually introduces a function MyMap, and by using it in both caller and callee, the code verifies.
-
-Being “injective” is the mathematical description of any function f that satisfies the property you’re giving in the precondition. 
-Another name for “injective” is “one-to-one” (which sounds more symmetric than it is--hence, the name “injective” is probably better).
