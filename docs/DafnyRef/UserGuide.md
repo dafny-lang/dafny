@@ -1087,7 +1087,8 @@ file.
 
 In general, we recommend something like the following:
 
-```bash <!-- %no-check -->
+<!-- %no-check -->
+```bash
 dafny-reportgenerator --max-resource-cv-pct 10 TestResults/*.csv
 ```
 
