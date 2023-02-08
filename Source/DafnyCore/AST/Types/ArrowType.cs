@@ -14,10 +14,13 @@ public class ArrowType : UserDefinedType {
     if (arrTy != null) {
       var bvars = new List<BoundVar>();
       var bexprs = new List<Expression>();
+      var bounds = new List<ComprehensionExpr.BoundedPool>();
       foreach (var t in arrTy.Args) {
         var bv = new BoundVar(e.tok, idGen.FreshId("_x"), t);
         bvars.Add(bv);
         bexprs.Add(new IdentifierExpr(e.tok, bv.Name) { Type = bv.Type, Var = bv });
+        var allBounds = Resolver.DiscoverAllBounds_SingleVar(bv, Expression.CreateBoolLiteral(e.tok, true));
+        bounds.Add(ComprehensionExpr.BoundedPool.GetBest(allBounds, ComprehensionExpr.BoundedPool.PoolVirtues.None));
       }
 
       var oVar = new BoundVar(e.tok, idGen.FreshId("_o"), builtIns.ObjectQ());
@@ -26,7 +29,9 @@ public class ArrowType : UserDefinedType {
       var collection = new ApplyExpr(e.tok, e, bexprs, e.tok) {
         Type = new SetType(true, builtIns.ObjectQ())
       };
-      var resolvedOpcode = ((CollectionType)arrTy.Result).ResolvedOpcodeForIn;
+      var collectionType = (CollectionType)arrTy.Result;
+      var resolvedOpcode = collectionType.ResolvedOpcodeForIn;
+      var boundedPool = collectionType.GetBoundedPool(collection);
 
       return
         new SetComprehension(e.tok, e.RangeToken, true, bvars,
@@ -34,7 +39,8 @@ public class ArrowType : UserDefinedType {
             ResolvedOp = resolvedOpcode,
             Type = Type.Bool
           }, obj, null) {
-          Type = new SetType(true, builtIns.ObjectQ())
+          Type = new SetType(true, builtIns.ObjectQ()),
+          Bounds = bounds
         };
     } else {
       return e;
