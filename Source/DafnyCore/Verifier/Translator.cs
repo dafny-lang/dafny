@@ -2157,10 +2157,9 @@ namespace Microsoft.Dafny {
       foreach (AttributedExpression req in f.Req) {
         pre = BplAnd(pre, etran.TrExpr(Substitute(req.E, null, substMap)));
       }
-      // useViaContext: (mh != ModuleContextHeight || fh != FunctionContextHeight)
-      var mod = f.EnclosingClass.EnclosingModuleDefinition;
-      Bpl.Expr useViaContext = !InVerificationScope(f) ? Bpl.Expr.True :
-        (Bpl.Expr)Bpl.Expr.Neq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativePredecessorCount(f)), etran.FunctionContextHeight());
+      // useViaContext: fh != FunctionContextHeight
+      var visibilityLevel = f.EnclosingClass.EnclosingModuleDefinition.CallGraph.GetSCCRepresentativePredecessorCount(f.OverriddenFunction ?? f);
+      Expr useViaContext = Expr.Lt(Expr.Literal(visibilityLevel), etran.FunctionContextHeight());
       // useViaCanCall: f#canCall(args)
       Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
       Bpl.Expr useViaCanCall = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(canCallFuncID), Concat(tyargs, args));
@@ -3483,65 +3482,38 @@ namespace Microsoft.Dafny {
         builder.Add(TrAssumeCmd(f.tok, etran.TrExpr(en.E)));
       }
 
-      //generating assume J.F(ins) == C.F(ins)
-      Bpl.FunctionCall funcIdC = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, TrType(f.ResultType)));
-      Bpl.FunctionCall funcIdT = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.OverriddenFunction.tok, f.OverriddenFunction.FullSanitizedName, TrType(f.OverriddenFunction.ResultType)));
-      List<Bpl.Expr> argsC = new List<Bpl.Expr>();
-      List<Bpl.Expr> argsT = new List<Bpl.Expr>();
-      // add type arguments
-      argsT.AddRange(GetTypeArguments(f.OverriddenFunction, f).ConvertAll(TypeToTy));
-      argsC.AddRange(GetTypeArguments(f, null).ConvertAll(TypeToTy));
-      // add fuel arguments
-      if (f.IsFuelAware()) {
-        argsC.Add(etran.layerInterCluster.GetFunctionFuel(f));
-      }
-      if (f.OverriddenFunction.IsFuelAware()) {
-        argsT.Add(etran.layerInterCluster.GetFunctionFuel(f));
-      }
-      // add heap arguments
-      if (f is TwoStateFunction) {
-        argsC.Add(etran.Old.HeapExpr);
-        argsT.Add(etran.Old.HeapExpr);
-      }
-      if (AlwaysUseHeap || f.ReadsHeap) {
-        argsC.Add(etran.HeapExpr);
-      }
-      if (AlwaysUseHeap || f.OverriddenFunction.ReadsHeap) {
-        argsT.Add(etran.HeapExpr);
-      }
-      // add "ordinary" parameters (including "this", if any)
-      var prefixCount = implInParams.Count - f.Formals.Count;
-      for (var i = 0; i < implInParams.Count; i++) {
-        Bpl.Expr cParam = new Bpl.IdentifierExpr(f.tok, implInParams[i]);
-        Bpl.Expr tParam = new Bpl.IdentifierExpr(f.OverriddenFunction.tok, implInParams[i]);
-        if (prefixCount <= i && ModeledAsBoxType(f.OverriddenFunction.Formals[i - prefixCount].Type)) {
-          tParam = BoxIfNecessary(f.tok, tParam, f.Formals[i - prefixCount].Type);
-        }
-        argsC.Add(cParam);
-        argsT.Add(tParam);
-      }
-      Bpl.Expr funcExpC = new Bpl.NAryExpr(f.tok, funcIdC, argsC);
-      Bpl.Expr funcExpT = new Bpl.NAryExpr(f.OverriddenFunction.tok, funcIdT, argsT);
-      var funcExpCPossiblyBoxed = funcExpC;
-      if (ModeledAsBoxType(f.OverriddenFunction.ResultType)) {
-        funcExpCPossiblyBoxed = BoxIfUnboxed(funcExpCPossiblyBoxed, f.ResultType);
-      }
-      builder.Add(TrAssumeCmd(f.tok, Bpl.Expr.Eq(funcExpCPossiblyBoxed, funcExpT)));
-
       //generating assume C.F(ins) == out, if a result variable was given
       if (resultVariable != null) {
+        var funcIdC = new FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, TrType(f.ResultType)));
+        var argsC = new List<Bpl.Expr>();
+
+        // add type arguments
+        argsC.AddRange(GetTypeArguments(f, null).ConvertAll(TypeToTy));
+
+        // add fuel arguments
+        if (f.IsFuelAware()) {
+          argsC.Add(etran.layerInterCluster.GetFunctionFuel(f));
+        }
+
+        // add heap arguments
+        if (f is TwoStateFunction) {
+          argsC.Add(etran.Old.HeapExpr);
+        }
+        if (AlwaysUseHeap || f.ReadsHeap) {
+          argsC.Add(etran.HeapExpr);
+        }
+
+        argsC.AddRange(implInParams.Select(var => new Bpl.IdentifierExpr(f.tok, var)));
+
+        var funcExpC = new Bpl.NAryExpr(f.tok, funcIdC, argsC);
         var resultVar = new Bpl.IdentifierExpr(resultVariable.tok, resultVariable);
         builder.Add(TrAssumeCmd(f.tok, Bpl.Expr.Eq(funcExpC, resultVar)));
       }
 
       //generating trait post-conditions with class variables
-      foreach (var en in f.OverriddenFunction.Ens) {
-        Expression postcond = Substitute(en.E, null, substMap, typeMap);
-        bool splitHappened;  // we don't actually care
-        foreach (var s in TrSplitExpr(postcond, etran, false, out splitHappened)) {
-          if (s.IsChecked) {
-            builder.Add(Assert(f.tok, s.E, new PODesc.FunctionContractOverride(true)));
-          }
+      foreach (var post in f.OverriddenFunction.Ens.Select(en => Substitute(en.E, null, substMap, typeMap))) {
+        foreach (var s in TrSplitExpr(post, etran, false, out _).Where(e => e.IsChecked)) {
+          builder.Add(Assert(f.tok, s.E, new PODesc.FunctionContractOverride(true)));
         }
       }
     }

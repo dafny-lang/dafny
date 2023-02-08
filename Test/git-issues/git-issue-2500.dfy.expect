@@ -1,0 +1,6 @@
+git-issue-2500.dfy(15,11): Error: the function must provide an equal or more detailed postcondition than in its parent trait
+git-issue-2500.dfy(18,11): Error: the function must provide an equal or more detailed postcondition than in its parent trait
+git-issue-2500.dfy(21,11): Error: the function must provide an equal or more detailed postcondition than in its parent trait
+git-issue-2500.dfy(25,11): Error: the function must provide an equal or more detailed postcondition than in its parent trait
+
+Dafny program verifier finished with 11 verified, 4 errors
