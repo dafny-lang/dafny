@@ -2711,6 +2711,7 @@ namespace Microsoft.Dafny {
           currentClass = null;
           new CheckTypeInferenceVisitor(this).VisitMethod(prefixLemma);
           CallGraphBuilder.VisitMethod(prefixLemma, reporter);
+          new BoundsDiscoveryVisitor(reporter).VisitMethod(prefixLemma);
         }
       }
 
