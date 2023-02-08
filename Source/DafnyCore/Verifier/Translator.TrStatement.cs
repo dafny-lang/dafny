@@ -806,8 +806,9 @@ namespace Microsoft.Dafny {
         els = null;
         CurrentIdGenerator.Pop();
       }
-      Contract.Assert(ifCmd != null); // follows from the fact that s.Cases.Count + s.MissingCases.Count != 0.
-      builder.Add(ifCmd);
+      if (ifCmd != null) {
+        builder.Add(ifCmd);
+      }
     }
 
     private void TrForLoop(ForLoopStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {

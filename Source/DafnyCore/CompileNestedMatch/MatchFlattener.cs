@@ -92,12 +92,12 @@ public class MatchFlattener : IRewriter {
     Contract.Requires(resolutionContext != null);
 
     var dtd = s.Source.Type.AsDatatype;
-    Dictionary<string, DatatypeCtor> ctors = dtd.ConstructorsByName;
+    var constructors = dtd?.ConstructorsByName;
 
     ISet<string> memberNamesUsed = new HashSet<string>();
 
     foreach (var matchCase in s.Cases) {
-      if (ctors != null) {
+      if (constructors != null) {
         Contract.Assert(dtd != null);
         var ctorId = matchCase.Ctor.Name;
         if (s.Source.Type.AsDatatype is TupleTypeDecl) {
@@ -105,7 +105,7 @@ public class MatchFlattener : IRewriter {
           ctorId = BuiltIns.TupleTypeCtorName(tuple.Dims);
         }
 
-        if (ctors.ContainsKey(ctorId)) {
+        if (constructors.ContainsKey(ctorId)) {
           memberNamesUsed.Add(ctorId); // add mc.Id to the set of names used
         }
       }
