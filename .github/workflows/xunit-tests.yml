@@ -84,4 +84,4 @@ jobs:
         name: unit-test-results-${{ matrix.os }}
         path: |
           Source/*/TestResults/*.trx
-          Source/*/TestResult/*/coverage.cobertura.xml
+          Source/*/TestResults/*/coverage.cobertura.xml
