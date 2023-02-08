@@ -739,6 +739,7 @@ public class ModuleQualifiedId : Node, IHasUsages {
 
   public override IToken Tok => Path.Last();
   public override IEnumerable<Node> Children => Enumerable.Empty<Node>();
+  public override IEnumerable<Node> PreResolveChildren => Children;
 
   public override RangeToken RangeToken {
     get => new(Path.First(), Path.Last());
