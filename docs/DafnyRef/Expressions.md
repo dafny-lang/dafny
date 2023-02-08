@@ -179,7 +179,7 @@ operators are always where they should be.
 Note also that `&&` and `||` cannot be mixed without using parentheses:
 `A && B || C` is not permitted. Write `(A && B) || C` or `A && (B || C)` instead.
 
-See [Section 7.1.2](#sec-conjunction-and-disjunction) for an explanation
+See [Section 6.1.2](#sec-conjunction-and-disjunction) for an explanation
 of the `&&` and `||` operators.
 
 ## 21.5. Relational Expressions ([grammar](#g-relational-expression)) {#sec-relational-expression}
@@ -240,10 +240,10 @@ x + y - z
 `Terms` combine `Factors` by adding or subtracting.
 Addition has these meanings for different types:
 
-* arithmetic addition for numeric types ([Section 7.2](#sec-numeric-types)])
-* union for sets and multisets ([Section 10.1](#sec-sets) and [Section 10.2](#sec-multisets))
-* concatenation for sequences ([Section 10.3](#sec-sequences))
-* map merging for maps ([Section 10.4](#sec-maps))
+* arithmetic addition for numeric types ([Section 6.2](#sec-numeric-types)])
+* union for sets and multisets ([Section 9.1](#sec-sets) and [Section 9.2](#sec-multisets))
+* concatenation for sequences ([Section 9.3](#sec-sequences))
+* map merging for maps ([Section 9.4](#sec-maps))
 
 Subtraction is 
 
@@ -386,9 +386,9 @@ Examples:
 ```
 
 A unary expression applies either 
-logical complement (`!` -- [Section 7.1](#sec-booleans)),
-numeric negation (`-` -- [Section 7.2](#sec-numeric-types)), or
-bit-vector negation (`-` -- [Section 7.3](#sec-bit-vector-types))
+logical complement (`!` -- [Section 6.1](#sec-booleans)),
+numeric negation (`-` -- [Section 6.2](#sec-numeric-types)), or
+bit-vector negation (`-` -- [Section 6.3](#sec-bit-vector-types))
 to its operand.
 
 ## 21.12. Primary Expressions ([grammar](#g-primary-expression)) {#sec-primary-expression}
@@ -426,7 +426,7 @@ _ => true
 x requires x > 0 => x-1
 ```
 
-See [Section 5.4](#sec-lambda-specification) for a description of specifications for lambda expressions.
+See [Section 19.4](#sec-lambda-specification) for a description of specifications for lambda expressions.
 
 In addition to named functions, Dafny supports expressions that define
 functions.  These are called _lambda (expression)s_ (some languages
@@ -983,7 +983,7 @@ finite set or sequence, the cardinality is the number of elements. For
 a multiset, the cardinality is the sum of the multiplicities of the
 elements. For a finite map, the cardinality is the cardinality of the
 domain of the map. Cardinality is not defined for infinite sets or infinite maps.
-For more information, see [Section 10](#sec-collection-types).
+For more information, see [Section 9](#sec-collection-types).
 
 ## 21.27. Parenthesized Expression ([grammar](#g-parenthesized-expression)) {#sec-parenthesized-expression}
 
