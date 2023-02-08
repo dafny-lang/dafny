@@ -31,19 +31,16 @@ namespace Microsoft.Dafny {
       //         { Dt.Ctor1?(G,d) }
       //         $Is(d, T(G)) ==> Dt.Ctor0?(G,d) || Dt.Ctor1?(G,d) || ...);
       {
-        var tyvars = MkTyParamBinders(dt.TypeArgs, out var tyexprs);
-        Bpl.Expr d;
-        var dVar = BplBoundVar("d", predef.DatatypeType, out d);
-        var d_is = MkIs(d, ClassTyCon(dt, tyexprs));
+        MkIsPredicateForDatatype(dt, out var boundVariables, out var d, out _, out var isPredicate);
         Bpl.Expr cases_body = Bpl.Expr.False;
         Bpl.Trigger tr = null;
         foreach (DatatypeCtor ctor in dt.Ctors) {
           var disj = FunctionCall(ctor.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, d);
           cases_body = BplOr(cases_body, disj);
-          tr = new Bpl.Trigger(ctor.tok, true, new List<Bpl.Expr> { disj, d_is }, tr);
+          tr = new Bpl.Trigger(ctor.tok, true, new List<Bpl.Expr> { disj, isPredicate }, tr);
         }
-        var body = Bpl.Expr.Imp(d_is, cases_body);
-        var ax = BplForall(Snoc(tyvars, dVar), tr, body);
+        var body = Bpl.Expr.Imp(isPredicate, cases_body);
+        var ax = BplForall(boundVariables, tr, body);
         var axiom = new Bpl.Axiom(dt.tok, ax, "Questionmark data type disjunctivity");
         sink.AddTopLevelDeclaration(axiom);
       }
@@ -671,6 +668,25 @@ namespace Microsoft.Dafny {
           "Constructor $IsAlloc");
         AddOtherDefinition(ctorFunction, constructorIsAllocAxiom);
       }
+    }
+
+    /// <summary>
+    /// Return list of variables
+    ///     d: DatatypeValue, T0,T1,...: Ty
+    /// expression
+    ///     d
+    /// expression
+    ///     T(T0,T1,...)
+    /// and predicate
+    ///     $Is(d, T(T0,T1,...))
+    /// </summary>
+    private void MkIsPredicateForDatatype(DatatypeDecl dt, out List<Bpl.Variable> boundVariables,
+      out Bpl.Expr d, out Bpl.Expr tyExpr, out Bpl.Expr isPredicate) {
+      var tyvars = MkTyParamBinders(dt.TypeArgs, out var tyexprs);
+      var dVar = BplBoundVar("d", predef.DatatypeType, out d);
+      boundVariables = Snoc(tyvars, dVar);
+      tyExpr = ClassTyCon(dt, tyexprs);
+      isPredicate = MkIs(d, tyExpr);
     }
 
     /* (forall d : DatatypeType, G : Ty, H : Heap •
