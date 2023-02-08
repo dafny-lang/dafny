@@ -47,6 +47,7 @@ namespace IntegrationTests {
         { "%diff", "diff" },
         { "%resolveargs", " --use-basename-for-filename " },
         { "%translateargs", " --use-basename-for-filename --cores:2 --verification-time-limit:300 " },
+        { "%verifyargs", "--use-basename-for-filename --cores:2 --verification-time-limit:300" },
         //{ "%run", " run --use-basename-for-filename --cores:2 --verification-time-limit:300 " },
         { "%binaryDir", "." },
         { "%z3", Path.Join("z3", "bin", "z3") },
