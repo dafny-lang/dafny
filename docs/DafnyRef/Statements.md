@@ -2086,6 +2086,11 @@ function is not visible. However if a `reveal f();` statement is inserted before
 Note that the pseudo-function-call in the `reveal` statement is written without arguments and serves to mark `f` as a function name
 instead of a label.
 
+### 20.20.4. Revealing constants
+
+A `const` declaration can be `opaque`. If so the value of the constant is not known in reasoning about its uses, just its type and the
+fact that the value does not change. The constant's identifier can be listed in a reveal statement. In that case, like other revealed items,
+the value of the constant will be known to the reasonig engine until the end of the block containing the reveal statement.
 
 ## 20.21. Forall Statement ([grammar](#g-forall-statement)) {#sec-forall-statement}
 
