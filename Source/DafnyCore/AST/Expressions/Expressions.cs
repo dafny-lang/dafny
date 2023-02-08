@@ -2091,7 +2091,8 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr>, ICanFormat {
   }
 
   public BinaryExpr(IToken tok, Opcode op, Expression e0, Expression e1)
-    : base(tok) {
+    : 
+    base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(e0 != null);
     Contract.Requires(e1 != null);
