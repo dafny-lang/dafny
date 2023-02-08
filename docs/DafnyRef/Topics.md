@@ -205,8 +205,8 @@ These statements are determined to be ghost:
 - The body of the `by` of an [`assert`](#sec-assert-statement) statement.
 - Calls to ghost methods, including [lemmas](#sec-lemmas).
 - [`if`](#sec-if-statement), [`match`](#sec-match-statement), and [`while`](#sec-while-statement) statements with condition expressions or alternatives containing ghost expressions. Their bodies are also ghost.
-- [`for`](#sec-for-loops) loops whose start expression contains ghost expressions.
-- [Variable declarations](#sec-var-decl-statement) if they are explicitly ghost or if their respective right-hand side is a ghost expression.
+- [`for`](#sec-for-statement) loops whose start expression contains ghost expressions.
+- [Variable declarations](#sec-variable-declaration-statement) if they are explicitly ghost or if their respective right-hand side is a ghost expression.
 - [Assignments or update statement](#sec-update-and-call-statement) if all updated variables are ghost.
 - [`forall`](#sec-forall-statement) statements, unless there is exactly one assignment to a non-ghost array in its body.
 
@@ -219,7 +219,7 @@ The following expressions are ghost, which is used in some of the tests above:
 
 - All [specification expressions](#sec-list-of-specification-expressions)
 - All calls to functions and predicates not marked as `method`
-- All variables, [constants](#sec-constant-field-declarations) and [fields](#sec-field-declarations) declared using the `ghost` keyword
+- All variables, [constants](#sec-constant-field-declaration) and [fields](#sec-field-declaration) declared using the `ghost` keyword
 
 Note that inferring ghostness can uncover other errors, such as updating non-ghost variables in ghost contexts.
 For example, if `f` is a ghost function, in the presence of the following code:
@@ -768,7 +768,7 @@ keyword `function` to `predicate`.
 
 ### 24.5.2. Proofs in Dafny {#sec-proofs-in-dafny}
 
-Dafny has `lemma` declarations, as described in [Section 13.3.3](#sec-lemmas):
+Dafny has `lemma` declarations, as described in [Section 12.3.3](#sec-lemmas):
 lemmas can have pre- and postcondition specifications and their body is a code block.
 Here is the lemma we stated and proved in [the fib example](#sec-fib-example) in the previous section:
 
@@ -1044,7 +1044,7 @@ is auto-initialized to `0`; a non-nullable class type is not
 auto-initialized, but a nullable class type is auto-initalized to `null`.
 
 In declaring generic types, type parameters can be declared to be required to
-be auto-initializable types (cf. [Section 8.1.2](#sec-auto-init)).
+be auto-initializable types (cf. [Section 7.1.2](#sec-auto-init)).
 
 If a class has fields that are not auto-initializable, then the class must
 have a constructor, and in each constructor those fields must be explicitly
