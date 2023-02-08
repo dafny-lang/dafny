@@ -59,3 +59,20 @@ jobs:
       # This is the best way to fix an issue in master that was only caught by the nightly build.
       all_platforms: ${{ contains(github.event.pull_request.labels.*.name, 'run-deep-tests') }}
       num_shards: 5
+
+  test-coverage-analysis:
+    runs-on: ubuntu-20.04
+    needs: integration-tests
+    steps:
+      - name: Download integration test artifacts
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          workflow: integration-tests-reusable.yml
+
+      - name: Download unit test artifacts
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          workflow: xuint-tests.yml
+
+      - name: Show files
+        run: ls -lR
