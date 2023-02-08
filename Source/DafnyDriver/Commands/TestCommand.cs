@@ -10,7 +10,7 @@ public class TestCommand : ICommandSpec {
     new Option[] {
     }.Concat(ICommandSpec.ExecutionOptions).
       Concat(ICommandSpec.ConsoleOutputOptions).
-      Concat(ICommandSpec.CommonOptions);
+      Concat(ICommandSpec.ResolverOptions);
 
   public Command Create() {
     var result = new Command("test", "(Experimental) Execute every method in the program that's annotated with the {:test} attribute.");

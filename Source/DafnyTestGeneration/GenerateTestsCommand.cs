@@ -18,7 +18,7 @@ public class GenerateTestsCommand : ICommandSpec {
       PrintBpl,
       DisablePrune
     }.Concat(ICommandSpec.ConsoleOutputOptions).
-      Concat(ICommandSpec.CommonOptions);
+      Concat(ICommandSpec.ResolverOptions);
 
   private enum Mode {
     Path,
