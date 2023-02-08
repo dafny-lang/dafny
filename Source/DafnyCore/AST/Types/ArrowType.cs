@@ -26,6 +26,7 @@ public class ArrowType : UserDefinedType {
       var collection = new ApplyExpr(e.tok, e, bexprs, e.tok) {
         Type = new SetType(true, builtIns.ObjectQ())
       };
+      ComputeResolvedOpcodeAndBoundedPool(collection, (CollectionType)arrTy.Result, out var resolvedOpcode, out _);
 
       return
         new SetComprehension(e.tok, e.RangeToken, true, bvars,
