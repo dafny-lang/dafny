@@ -21,6 +21,9 @@ update-go: build-go
 
 test: check-go
 
+format:
+	$(DAFNY) format .
+
 check-format:
 	$(DAFNY) format . --check
 

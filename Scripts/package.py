@@ -135,7 +135,6 @@ class Release:
         exitStatus = 1
         while 0 < remaining and exitStatus != 0:
             remaining -= 1
-            csproj_path = path.join(SOURCE_DIRECTORY, project, project + ".csproj")
             publish_args = [
                 "--nologo",
                 "-o", self.buildDirectory,
@@ -143,8 +142,7 @@ class Release:
                 "--self-contained",
                 "-c", "Release", 
                 *(["-f", framework] if framework else [])]
-            flush(f"   + dotnet publish {' '.join(publish_args)}")
-            exitStatus = subprocess.call(["dotnet", "publish", csproj_path, *publish_args], env=env)
+            exitStatus = subprocess.call(["dotnet", "publish", project + ".csproj", *publish_args], env=env)
             if exitStatus != 0:
                 if remaining == 0:
                     flush("failed! (Is Dafny or the Dafny server running?)")
