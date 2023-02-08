@@ -104,7 +104,7 @@ Usage: dafny [ option ... ] [ filename ... ]
   
   /unicodeChar:<value>
       0 (default) - The char type represents any UTF-16 code unit.
-      1  - The char type represents any Unicode scalar value.
+      1 - The char type represents any Unicode scalar value.
 
   /noIncludes
       Ignore include directives.
