@@ -45,7 +45,7 @@ or reason that the one map … is the very same map as the other map … (in whi
 The way to prove that two maps are equal is to show that they have the same keys and the same mappings. 
 The idea of proving two things equal by looking at the “elements” of each of the two things is called extensionality. 
 Dafny never tries to prove extensionality, but it’s happy to do it if you ask it to. 
-For example, if G is a function that you know nothing about and you ask to prove
+For example, if `G` is a function that you know nothing about and you ask to prove
 ```dafny
 assert G(s + {x}) == G({x} + s + {x});
 ```
