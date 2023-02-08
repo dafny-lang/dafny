@@ -4,7 +4,7 @@ module Tests {
 class CC {
   var f: nat
   var g: int
-  function method F(): nat
+  function F(): nat
   method M() {
     var a := f;  // nat
     var b := g;  // int
@@ -392,7 +392,7 @@ module OtherTraitsAndClasses {
 module LetPatterns {
   datatype MyDt = AAA(x: int) | BBB(y: int)
 
-  function M(m: MyDt): int
+  ghost function M(m: MyDt): int
     requires m.AAA?
   {
     var AAA(u) := m;  // u: int
@@ -478,11 +478,11 @@ module TypeArgumentPrintTests {
 
   // -----
   class A<X> {
-    static function method F(x: X): int { 15 }
+    static ghost function F(x: X): int { 15 }
   }
 
   class B<Y> {
-    function method H(y: Y, b: bool): int {
+    function H(y: Y, b: bool): int {
       if b then
         A.F(y)  // should print as A<Y>.F(y)
       else

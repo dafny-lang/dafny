@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 module Resolution {
-  function F(x: nat): int {
+  ghost function F(x: nat): int {
     x
   } by method {
     var j := 0;
@@ -17,7 +17,7 @@ module Resolution {
       return -j, 3; // error: wrong number of out-parameters
     }
   }
-  function G(ghost a: int, b: bool): (r: real) {
+  ghost function G(ghost a: int, b: bool): (r: real) {
     0.0
   } by method {
     r := 1.8;
@@ -31,11 +31,11 @@ module Export {
     export
       provides F, FP, F2, G, H
 
-    function F(): int {
+    ghost function F(): int {
       5
     }
 
-    predicate FP() {
+    ghost predicate FP() {
       true
     }
 
@@ -43,11 +43,11 @@ module Export {
       5
     }
 
-    function method G(): int {
+    function G(): int {
       5
     }
 
-    function H(): int {
+    ghost function H(): int {
       5
     } by method {
       return 5;
@@ -70,9 +70,9 @@ module Export {
 }
 
 module ByMethodGhostInterests {
-  function Zero(): int { 0 }
+  ghost function Zero(): int { 0 }
 
-  function F(x: nat): int {
+  ghost function F(x: nat): int {
     x + Zero()
   } by method {
     var j := 0;
@@ -86,7 +86,7 @@ module ByMethodGhostInterests {
     return -j;
   }
 
-  function G(ghost a: int, b: bool): real {
+  ghost function G(ghost a: int, b: bool): real {
     0.0
   } by method {
     return if a == 3 then 3.0 else 0.0; // error: cannot use ghost in this context
@@ -105,7 +105,7 @@ module BadExtremeRecursion {
   least predicate P() {
     F() == 5 // error: this call is illegal
   }
-  function F(): int {
+  ghost function F(): int {
     if P() then 5 else 3
   } by method {
     return 5;
@@ -115,7 +115,7 @@ module BadExtremeRecursion {
   least predicate Q() {
     G() == 5
   }
-  function G(): int {
+  ghost function G(): int {
     5
   } by method {
     ghost var u := Q();
@@ -126,10 +126,10 @@ module BadExtremeRecursion {
   least predicate R0() {
     H0'() == 5
   }
-  function H0'(): int {
+  ghost function H0'(): int {
     if H0() < 100 then 5 else 3 // in a ghost context, this calls the function part of H0
   }
-  function H0(): int {
+  ghost function H0(): int {
     5
   } by method {
     var x := H0'();
@@ -141,10 +141,10 @@ module BadExtremeRecursion {
   least predicate R1() {
     H1'() == 5 // error: R1 is in same recursive cluster as H1
   }
-  function method H1'(): int {
+  function H1'(): int {
     if H1() < 100 then 5 else 3 // in a compiled context, this calls the method part of H1
   }
-  function H1(): int {
+  ghost function H1(): int {
     5
   } by method {
     var x :=  H1'();
@@ -156,10 +156,10 @@ module BadExtremeRecursion {
   least predicate R2() {
     H2'() == 5 // error: R2 is in same recursive cluster as H2
   }
-  function method H2'(): int {
+  function H2'(): int {
     if H2() < 100 then 5 else 3 // in a compiled context, this calls the method part of H2
   }
-  function H2(): int {
+  ghost function H2(): int {
     if R2() then 5 else 3
   } by method { // the method part uses the function part in its specification, so there's a call-graph edge
     return 5;

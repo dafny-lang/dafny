@@ -6,11 +6,11 @@ module ExampleA {
     provides Test
 
   trait C {
-    predicate F()
+    ghost predicate F()
       ensures false
   }
 
-  predicate BadGhost()
+  ghost predicate BadGhost()
     ensures false
   {
     // regression: in the the following line, the verifier once used the fact that all types were nonempty
@@ -26,11 +26,11 @@ module ExampleA {
 
 module ExampleA_Compiled {
   trait C {
-    predicate method F()
+    predicate F()
       ensures false
   }
 
-  predicate method BadCompiled()
+  predicate BadCompiled()
     ensures false
   {
     // regression: the verifier used to verify the next line (though the compiler then complained it didn't know how to generate code)
@@ -206,73 +206,73 @@ module OtherBindersInExpressions {
       ensures false
   }
 
-  function Forall0(): int
+  ghost function Forall0(): int
   {
     var b := forall c: C :: 5/0 == 19;  // error: division by zero
     40
   }
 
-  function Forall1(): int
+  ghost function Forall1(): int
   {
     var b := forall c: C :: (c.False(); 5/0 == 19);  // fine, since the lemma helps figure out that "c: C" is an impossibility
     40 / 0  // error: division by zero (the call to c.False() on the line above
   }
 
-  function Forall2(): int
+  ghost function Forall2(): int
   {
     var b := forall c: C :: (c.False(); 5/0 == 19);  // fine, since the lemma helps figure out that "c: C" is an impossibility
     40 / 0  // error: division by zero (the call to c.False() on the line above
   }
 
-  function Forall3(): int
+  ghost function Forall3(): int
   {
     var b := forall c: C :: (c.False(); 5/0 == 19);  // fine, since the lemma helps figure out that "c: C" is an impossibility
     40 / 0  // error: division by zero (the call to c.False() on the line above
   }
 
-  function Exists(): int
+  ghost function Exists(): int
   {
     var b := exists c: C :: (c.False(); 5/0 == 19);  // fine, since the lemma helps figure out that "c: C" is an impossibility
     40 / 0  // error: division by zero (the call to c.False() on the line above
   }
 
-  function SetComprehension0(): int
+  ghost function SetComprehension0(): int
   {
     var b := iset c: C | (c.False(); 5/0 == 19);  // fine, since the lemma helps figure out that "c: C" is an impossibility
     40 / 0  // error: division by zero (the call to c.False() on the line above
   }
 
-  function SetComprehension1(): int
+  ghost function SetComprehension1(): int
   {
     var b := set c: C | true :: (c.False(); 5/0 == 19);  // fine, since the lemma helps figure out that "c: C" is an impossibility
     40 / 0  // error: division by zero (the call to c.False() on the line above
   }
 
-  function MapComprehension0(): int
+  ghost function MapComprehension0(): int
   {
     var b := imap c: C | (c.False(); 5/0 == 19) :: 102;  // fine, since the lemma helps figure out that "c: C" is an impossibility
     40 / 0  // error: division by zero (the call to c.False() on the line above
   }
 
-  function MapComprehension1(): int
+  ghost function MapComprehension1(): int
   {
     var b := imap c: C | true :: (c.False(); 5/0 == 19);  // fine, since the lemma helps figure out that "c: C" is an impossibility
     40 / 0  // error: division by zero (the call to c.False() on the line above
   }
 
-  function MapComprehension2(): int
+  ghost function MapComprehension2(): int
   {
     var b := map c: C | true :: (c.False(); 5/0 == 19) := 20;  // fine, since the lemma helps figure out that "c: C" is an impossibility
     40 / 0  // error: division by zero (the call to c.False() on the line above
   }
 
-  function MapComprehension3(): int
+  ghost function MapComprehension3(): int
   {
     var b := imap c: C | true :: 20 := (c.False(); 5/0 == 19);  // fine, since the lemma helps figure out that "c: C" is an impossibility
     40 / 0  // error: division by zero (the call to c.False() on the line above
   }
 
-  function Lambda(): int
+  ghost function Lambda(): int
   {
     var f := (c: C) => (c.False(); 5/0 == 19);  // fine, since the lemma helps figure out that "c: C" is an impossibility
     40 / 0  // error: division by zero (the call to c.False() on the line above

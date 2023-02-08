@@ -6,7 +6,7 @@
 // RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
-function method F(x: int, y: bool): int {
+function F(x: int, y: bool): int {
   x + if y then 2 else 3
 }
 
@@ -79,18 +79,18 @@ module FunctionValues {
   class Class {
     const x: int
     constructor (x: int) { this.x := x; }
-    function method F(): int { x }
-    static function method G(): int { 3 }
+    function F(): int { x }
+    static ghost function G(): int { 3 }
   }
 
   datatype Color = Red | Green | Blue {
-    function method F(): int { if this == Red then 5 else 2 }
-    static function method G(): int { 3 }
+    function F(): int { if this == Red then 5 else 2 }
+    static ghost function G(): int { 3 }
   }
 
   newtype NT = x | 0 <= x < 15 {
-    function method F(): int { this as int }
-    static function method G(): int { 3 }
+    function F(): int { this as int }
+    static ghost function G(): int { 3 }
   }
 }
 

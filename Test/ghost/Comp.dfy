@@ -106,15 +106,15 @@ method TestSingletons() returns (r: (ghost int, int, ghost real, ghost real)) {
   return r.(1 := r.1 + x);
 }
 
-function method Singleton0(): (ghost int, real) {
+function Singleton0(): (ghost int, real) {
   (ghost 2, 3.2)
 }
 
-function method Singleton1(): (real, ghost int) {
+function Singleton1(): (real, ghost int) {
   (3.2, ghost 2)
 }
 
-function method Singleton2(): (ghost real, ghost (), int, ghost char) {
+function Singleton2(): (ghost real, ghost (), int, ghost char) {
   (ghost 5.0, ghost (), 100, ghost 'D')
 }
 

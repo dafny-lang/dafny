@@ -10,12 +10,12 @@ datatype Co<+T> = Co(z: T) {
     const x: int;
     const y: seq<T>
 
-    function method A(x: T): int { 0 }
-    static function method sA(x: T): int { 0 }
-    function method gA(ghost x: T): int { 0 }
-    function method B(x: seq<T>): int { 0 }
-    function method C(x: int): seq<T> { y }
-    function method D(x: T): T { x }
+    function A(x: T): int { 0 }
+    static ghost function sA(x: T): int { 0 }
+    function gA(ghost x: T): int { 0 }
+    function B(x: seq<T>): int { 0 }
+    function C(x: int): seq<T> { y }
+    function D(x: T): T { x }
 
     method mA(x: T) returns (r: int) { r := 0; }
     method mD(x: T) returns (r: T) { r := x; }
@@ -25,12 +25,12 @@ datatype Non<T> = Non(T) {
     const x: int;
     const y: seq<T>
 
-    function method A(x: T): int { 0 }
-    static function method sA(x: T): int { 0 }
-    function method gA(ghost x: T): int { 0 }
-    function method B(x: seq<T>): int { 0 }
-    function method C(x: int): seq<T> { y }
-    function method D(x: T): T { x }
+    function A(x: T): int { 0 }
+    static ghost function sA(x: T): int { 0 }
+    function gA(ghost x: T): int { 0 }
+    function B(x: seq<T>): int { 0 }
+    function C(x: int): seq<T> { y }
+    function D(x: T): T { x }
 
     method mA(x: T) returns (r: int) { r := 0; }
     method mD(x: T) returns (r: T) { r := x; }
@@ -40,12 +40,12 @@ datatype Cont<-T> = Cont(z: T -> int) {
     const x: int;
     const y: seq<T>
 
-    function method A(x: T): int { 0 }
-    static function method sA(x: T): int { 0 }
-    function method gA(ghost x: T): int { 0 }
-    function method B(x: seq<T>): int { 0 }
-    function method C(x: int): seq<T> { y }
-    function method D(x: T): T { x }
+    function A(x: T): int { 0 }
+    static ghost function sA(x: T): int { 0 }
+    function gA(ghost x: T): int { 0 }
+    function B(x: seq<T>): int { 0 }
+    function C(x: int): seq<T> { y }
+    function D(x: T): T { x }
 
     method mA(x: T) returns (r: int) { r := 0; }
     method mD(x: T) returns (r: T) { r := x; }
@@ -55,12 +55,12 @@ codatatype CCo<+T> = CCo(T) {
     const x: int;
     const y: seq<T>
 
-    function method A(x: T): int { 0 }
-    static function method sA(x: T): int { 0 }
-    function method gA(ghost x: T): int { 0 }
-    function method B(x: seq<T>): int { 0 }
-    function method C(x: int): seq<T> { y }
-    function method D(x: T): T { x }
+    function A(x: T): int { 0 }
+    static ghost function sA(x: T): int { 0 }
+    function gA(ghost x: T): int { 0 }
+    function B(x: seq<T>): int { 0 }
+    function C(x: int): seq<T> { y }
+    function D(x: T): T { x }
 
     method mA(x: T) returns (r: int) { r := 0; }
     method mD(x: T) returns (r: T) { r := x; }
@@ -70,12 +70,12 @@ codatatype CNon<T> = CNon(z: T) {
     const x: int;
     const y: seq<T>
 
-    function method A(x: T): int { 0 }
-    static function method sA(x: T): int { 0 }
-    function method gA(ghost x: T): int { 0 }
-    function method B(x: seq<T>): int { 0 }
-    function method C(x: int): seq<T> { y }
-    function method D(x: T): T { x }
+    function A(x: T): int { 0 }
+    static ghost function sA(x: T): int { 0 }
+    function gA(ghost x: T): int { 0 }
+    function B(x: seq<T>): int { 0 }
+    function C(x: int): seq<T> { y }
+    function D(x: T): T { x }
 
     method mA(x: T) returns (r: int) { r := 0; }
     method mD(x: T) returns (r: T) { r := x; }
@@ -85,12 +85,12 @@ codatatype CCon<-T> = CCon(T -> int) {
     const x: int;
     const y: seq<T>
 
-    function method A(x: T): int { 0 }
-    static function method sA(x: T): int { 0 }
-    function method gA(ghost x: T): int { 0 }
-    function method B(x: seq<T>): int { 0 }
-    function method C(x: int): seq<T> { y }
-    function method D(x: T): T { x }
+    function A(x: T): int { 0 }
+    static ghost function sA(x: T): int { 0 }
+    function gA(ghost x: T): int { 0 }
+    function B(x: seq<T>): int { 0 }
+    function C(x: int): seq<T> { y }
+    function D(x: T): T { x }
 
     method mA(x: T) returns (r: int) { r := 0; }
     method mD(x: T) returns (r: T) { r := x; }

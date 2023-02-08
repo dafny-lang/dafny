@@ -42,18 +42,18 @@ TraitResolution1.dfy(238,10): Error: const field 'cic' is inherited from trait '
 TraitResolution1.dfy(239,16): Error: const field 'gic' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution1.dfy(240,17): Error: static const field 'csc' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution1.dfy(241,23): Error: static const field 'gsc' is inherited from trait 'Tr' and is not allowed to be re-declared
-TraitResolution1.dfy(247,20): Error: fully defined function 'cif2' is inherited from trait 'Tr' and is not allowed to be re-declared
-TraitResolution1.dfy(248,13): Error: fully defined function 'gif2' is inherited from trait 'Tr' and is not allowed to be re-declared
-TraitResolution1.dfy(249,20): Error: fully defined function 'cif3' is inherited from trait 'Tr' and is not allowed to be re-declared
-TraitResolution1.dfy(250,13): Error: fully defined function 'gif3' is inherited from trait 'Tr' and is not allowed to be re-declared
-TraitResolution1.dfy(252,27): Error: static function 'csf0' is inherited from trait 'Tr' and is not allowed to be re-declared
-TraitResolution1.dfy(253,20): Error: static function 'gsf0' is inherited from trait 'Tr' and is not allowed to be re-declared
-TraitResolution1.dfy(254,27): Error: static function 'csf1' is inherited from trait 'Tr' and is not allowed to be re-declared
-TraitResolution1.dfy(255,20): Error: static function 'gsf1' is inherited from trait 'Tr' and is not allowed to be re-declared
-TraitResolution1.dfy(256,27): Error: static function 'csf2' is inherited from trait 'Tr' and is not allowed to be re-declared
-TraitResolution1.dfy(257,20): Error: static function 'gsf2' is inherited from trait 'Tr' and is not allowed to be re-declared
-TraitResolution1.dfy(258,27): Error: static function 'csf3' is inherited from trait 'Tr' and is not allowed to be re-declared
-TraitResolution1.dfy(259,20): Error: static function 'gsf3' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution1.dfy(247,14): Error: fully defined function 'cif2' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution1.dfy(248,19): Error: fully defined function 'gif2' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution1.dfy(249,14): Error: fully defined function 'cif3' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution1.dfy(250,19): Error: fully defined function 'gif3' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution1.dfy(252,26): Error: static function 'csf0' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution1.dfy(253,26): Error: static function 'gsf0' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution1.dfy(254,26): Error: static function 'csf1' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution1.dfy(255,26): Error: static function 'gsf1' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution1.dfy(256,26): Error: static function 'csf2' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution1.dfy(257,26): Error: static function 'gsf2' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution1.dfy(258,26): Error: static function 'csf3' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution1.dfy(259,26): Error: static function 'gsf3' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution1.dfy(265,11): Error: fully defined method 'cim2' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution1.dfy(266,17): Error: fully defined method 'gim2' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution1.dfy(267,11): Error: fully defined method 'cim3' is inherited from trait 'Tr' and is not allowed to be re-declared
@@ -66,8 +66,8 @@ TraitResolution1.dfy(274,18): Error: static method 'csm2' is inherited from trai
 TraitResolution1.dfy(275,24): Error: static method 'gsm2' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution1.dfy(276,18): Error: static method 'csm3' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution1.dfy(277,24): Error: static method 'gsm3' is inherited from trait 'Tr' and is not allowed to be re-declared
-TraitResolution1.dfy(299,13): Error: overridden function 'F' in 'SwitchGhostStatus' has different ghost/compiled status than in trait 'AAA'
-TraitResolution1.dfy(300,20): Error: overridden function 'G' in 'SwitchGhostStatus' has different ghost/compiled status than in trait 'AAA'
+TraitResolution1.dfy(299,19): Error: overridden function 'F' in 'SwitchGhostStatus' has different ghost/compiled status than in trait 'AAA'
+TraitResolution1.dfy(300,14): Error: overridden function 'G' in 'SwitchGhostStatus' has different ghost/compiled status than in trait 'AAA'
 TraitResolution1.dfy(303,17): Error: overridden method 'M' in 'SwitchGhostStatus' has different ghost/compiled status than in trait 'AAA'
 TraitResolution1.dfy(304,11): Error: overridden method 'N' in 'SwitchGhostStatus' has different ghost/compiled status than in trait 'AAA'
 TraitResolution1.dfy(320,10): Error: method 'N' in 'AAA' can only be overridden by a method (got lemma)
@@ -80,8 +80,8 @@ TraitResolution1.dfy(357,20): Error: greatest predicate 'Q' in 'AAA' can only be
 TraitResolution1.dfy(358,19): Error: least lemma 'R' in 'AAA' can only be overridden by a least lemma (got greatest lemma)
 TraitResolution1.dfy(359,16): Error: greatest lemma 'S' in 'AAA' can only be overridden by a greatest lemma (got least lemma)
 TraitResolution1.dfy(369,16): Error: lemma 'L' in 'AAA' can only be overridden by a lemma (got least lemma)
-TraitResolution1.dfy(372,14): Error: least predicate 'P' in 'AAA' can only be overridden by a least predicate (got predicate)
-TraitResolution1.dfy(373,14): Error: greatest predicate 'Q' in 'AAA' can only be overridden by a greatest predicate (got predicate)
+TraitResolution1.dfy(372,20): Error: least predicate 'P' in 'AAA' can only be overridden by a least predicate (got predicate)
+TraitResolution1.dfy(373,20): Error: greatest predicate 'Q' in 'AAA' can only be overridden by a greatest predicate (got predicate)
 TraitResolution1.dfy(374,10): Error: least lemma 'R' in 'AAA' can only be overridden by a least lemma (got lemma)
 TraitResolution1.dfy(375,10): Error: greatest lemma 'S' in 'AAA' can only be overridden by a greatest lemma (got lemma)
 TraitResolution1.dfy(408,20): Error: the type of special parameter '_k' of least predicate 'Q' (ORDINAL) must be the same as in the overridden least predicate (nat)
@@ -110,16 +110,16 @@ TraitResolution1.dfy(554,16): Error: type parameter 'S' is not allowed to change
 TraitResolution1.dfy(554,19): Error: type parameter 'T' is not allowed to change the requirement of being nonempty
 TraitResolution1.dfy(554,22): Error: type parameter 'U' is not allowed to change the no-reference-type requirement
 TraitResolution1.dfy(554,25): Error: type parameter 'V' is not allowed to change the requirement of supporting equality
-TraitResolution1.dfy(555,18): Error: type parameter 'S' is not allowed to change the requirement of supporting auto-initialization
-TraitResolution1.dfy(555,21): Error: type parameter 'T' is not allowed to change the requirement of being nonempty
-TraitResolution1.dfy(555,24): Error: type parameter 'U' is not allowed to change the no-reference-type requirement
-TraitResolution1.dfy(555,27): Error: type parameter 'V' is not allowed to change the requirement of supporting equality
+TraitResolution1.dfy(555,24): Error: type parameter 'S' is not allowed to change the requirement of supporting auto-initialization
+TraitResolution1.dfy(555,27): Error: type parameter 'T' is not allowed to change the requirement of being nonempty
+TraitResolution1.dfy(555,30): Error: type parameter 'U' is not allowed to change the no-reference-type requirement
+TraitResolution1.dfy(555,33): Error: type parameter 'V' is not allowed to change the requirement of supporting equality
 TraitResolution1.dfy(558,13): Error: type parameter 'R' is not allowed to change the requirement of supporting auto-initialization
 TraitResolution1.dfy(558,25): Error: type parameter 'T' is not allowed to change the requirement of supporting auto-initialization
-TraitResolution1.dfy(559,15): Error: type parameter 'R' is not allowed to change the requirement of supporting auto-initialization
-TraitResolution1.dfy(559,27): Error: type parameter 'T' is not allowed to change the requirement of supporting auto-initialization
+TraitResolution1.dfy(559,21): Error: type parameter 'R' is not allowed to change the requirement of supporting auto-initialization
+TraitResolution1.dfy(559,33): Error: type parameter 'T' is not allowed to change the requirement of supporting auto-initialization
 TraitResolution1.dfy(562,13): Error: type parameter 'R' is not allowed to change the requirement of being nonempty
 TraitResolution1.dfy(562,20): Error: type parameter 'S' is not allowed to change the requirement of supporting auto-initialization
-TraitResolution1.dfy(563,15): Error: type parameter 'R' is not allowed to change the requirement of being nonempty
-TraitResolution1.dfy(563,22): Error: type parameter 'S' is not allowed to change the requirement of supporting auto-initialization
+TraitResolution1.dfy(563,21): Error: type parameter 'R' is not allowed to change the requirement of being nonempty
+TraitResolution1.dfy(563,28): Error: type parameter 'S' is not allowed to change the requirement of supporting auto-initialization
 124 resolution/type errors detected in TraitResolution1.dfy

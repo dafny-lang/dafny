@@ -4,22 +4,22 @@
 module Library {
   datatype Result<T> = Success(value: T) | Failure(error: string)
   {
-    predicate method IsFailure() {
+    predicate IsFailure() {
       Failure?
     }
-    function method PropagateFailure<U>(): Result<U>
+    function PropagateFailure<U>(): Result<U>
       requires Failure?
     {
       Failure(this.error)
     }
-    function method Extract(): T
+    function Extract(): T
       requires Success?
     {
       value
     }
   }
 
-  function method F(): Result<string>
+  function F(): Result<string>
 }
 
 method Test0() {
@@ -34,7 +34,7 @@ method Test2() returns (r: Library.Result<string>) {
   var res :- Library.F();  // (once had causes crash)
 }
 
-function method G(): Library.Result<string>
+function G(): Library.Result<string>
 
 method Test3() {
   var res :- expect G();  // (onced had caused Internal Error)

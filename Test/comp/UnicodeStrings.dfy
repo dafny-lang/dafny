@@ -109,21 +109,21 @@ method AllCharCasesTest() {
 // WARNING: Do not do this in real code!
 // It's a great example of what NOT to do when working with Unicode,
 // since the concept of upper/lower case is culture-specific.
-function method ToLower(ch: char): char {
+function ToLower(ch: char): char {
   if 'A' <= ch <= 'Z' then
     ch - 'A' + 'a'
   else
     ch
 }
 
-function method MapToLower(s: string): string {
+function MapToLower(s: string): string {
   if 0 == |s| then
     []
   else
     [ToLower(s[0])] + MapToLower(s[1..])
 }
 
-function method MapToInt32(s: string): seq<int32> {
+function MapToInt32(s: string): seq<int32> {
   if 0 == |s| then
     []
   else
@@ -241,4 +241,4 @@ method CharQuantification() {
 }
 
 // Dummy identity function just to enable triggers that Dafny and Boogie are happy with
-function method Identity<T>(x: T): T { x }
+function Identity<T>(x: T): T { x }

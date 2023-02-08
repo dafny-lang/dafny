@@ -58,7 +58,7 @@ method GenerateBytesWrapper(i: int32) returns (res: seq<uint8>)
 }
 
 // Function or method with no body
-function WhoKnows(x: int): int
+ghost function WhoKnows(x: int): int
 
 // Method declared {:extern} with no body and no ensures clauses
 method {:extern} GenerateBytesNoGuarantee(i: int32) returns (res: seq<uint8>)

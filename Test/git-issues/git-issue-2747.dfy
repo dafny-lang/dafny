@@ -1,7 +1,7 @@
 // RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-function AnotherBrokenFunction(): nat {
+ghost function AnotherBrokenFunction(): nat {
   var y := 0;
   assert true by {
     if

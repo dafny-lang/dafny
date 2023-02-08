@@ -1,8 +1,8 @@
 // RUN: %testDafnyForEachCompiler "%s"
 
 datatype FailureCompatible = Make {
-  predicate method IsFailure() { true }
-  function method PropagateFailure(): int { 12 }
+  predicate IsFailure() { true }
+  function PropagateFailure(): int { 12 }
   method Extract() returns (r: real) { }
 }
 

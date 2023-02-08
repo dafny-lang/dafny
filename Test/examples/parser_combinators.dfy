@@ -33,10 +33,10 @@
 /// called in any context.  To see why, consider the function `Apply` below and
 /// the following two uses of it:
 
-function method Apply(f: () -> int): int { f() }
+function Apply(f: () -> int): int { f() }
 
-function F0(): int { Apply(F0) }
-function F1(): int { Apply(() => F1()) }
+ghost function F0(): int { Apply(F0) }
+ghost function F1(): int { Apply(() => F1()) }
 
 /// Dafny rejects `F0` because it does not allow using “naked” recursive
 /// functions, so one must wrap it in an anonymous function, as done in `F1
@@ -53,7 +53,7 @@ function F1(): int { Apply(() => F1()) }
 module {:options "-functionSyntax:4"} Parsers {
 
 /// (The `-functionSyntax:4` enables Dafny's new function syntax, where
-/// `function` replaces `function method`)
+/// `function` replaces `function `)
 ///
 /// ## Utility types
 ///
@@ -77,10 +77,10 @@ module {:options "-functionSyntax:4"} Parsers {
 /// i.e. one that can be used with the monadic `:-` operator.  This makes
 /// error handling much less intrusive.
 
-    predicate IsFailure() { Failure? }
-    function PropagateFailure<U>(): ParseResult<U> requires Failure? { Failure() }
-    function Extract(): (nat, T) requires Success? { (pos, t) }
-    function MapResult<T'>(f: T -> T'): ParseResult<T'> {
+    ghost predicate IsFailure() { Failure? }
+    ghost function PropagateFailure<U>(): ParseResult<U> requires Failure? { Failure() }
+    ghost function Extract(): (nat, T) requires Success? { (pos, t) }
+    ghost function MapResult<T'>(f: T -> T'): ParseResult<T'> {
       match this
         case Success(pos, t) => Success(pos, f(t))
         case Failure() => Failure()
@@ -113,7 +113,7 @@ module {:options "-functionSyntax:4"} Parsers {
 /// (`left.requires(pos)`) and that the right parser may be called, but only if
 /// the left one succeeds, and only on the position returned by it.
 
-    static function Concat0<L, R>(left: Parser<L>, right: Parser<R>)
+    static ghost function Concat0<L, R>(left: Parser<L>, right: Parser<R>)
       : (p: Parser<(L, R)>)
     {
       (pos: nat)
@@ -130,7 +130,7 @@ module {:options "-functionSyntax:4"} Parsers {
 /// reasoning.  This will cause verification-performance issues down the line,
 /// so we use the following alternative definition instead:
 
-    static function {:opaque} Concat<L, R>(
+    static ghost function {:opaque} Concat<L, R>(
       left: Parser<L>,
       right: Parser<R>
     )
@@ -164,7 +164,7 @@ module {:options "-functionSyntax:4"} Parsers {
 ///
 /// With that in mind, we can define `Either` in the same way:
 
-    static function {:opaque} Either<L, R>(
+    static ghost function {:opaque} Either<L, R>(
       left: Parser<L>,
       right: Parser<R>
     )
@@ -188,7 +188,7 @@ module {:options "-functionSyntax:4"} Parsers {
 /// advanced.  It additionally states that the new position is `<= |input|`
 /// (which is equivalent to saying that the original position was `< |input|`).
 
-    function {:opaque} Char(c: char): (p: Parser<char>)
+    ghost function {:opaque} Char(c: char): (p: Parser<char>)
       ensures forall pos: nat :: p.requires(pos)
       ensures forall pos: nat :: p(pos).Success? ==>
         p(pos).pos == pos + 1 && p(pos).pos <= |input|
@@ -213,7 +213,7 @@ module {:options "-functionSyntax:4"} Parsers {
 /// mention `pos` in its spec).  Also note the call to `MapResult`, which
 /// implements a simple semantic action (here, counting parentheses).
 
-    function {:opaque} Parentheses'(pos: nat): ParseResult<nat>
+    ghost function {:opaque} Parentheses'(pos: nat): ParseResult<nat>
       decreases |input| - pos
     {
       var rec := pos' requires pos < pos' <= |input| => Parentheses'(pos');
@@ -262,7 +262,7 @@ module {:options "-functionSyntax:4"} Parsers {
 ///
 /// Phew!  Now all that is left is to check for the end of the string:
 
-    function Parentheses(pos: nat): ParseResult<nat> {
+    ghost function Parentheses(pos: nat): ParseResult<nat> {
       Concat(Parentheses', EOS)(pos)
         .MapResult<nat>((r: (nat, ())) => r.0)
     }

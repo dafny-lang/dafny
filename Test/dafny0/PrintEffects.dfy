@@ -41,7 +41,7 @@ method M() {
   print "bye, from M\n"; // error: cannot print from this method
 }
 
-function F(x: int): int {
+ghost function F(x: int): int {
   10
 } by method {
   print "function-by-method F\n"; // error: cannot print from this method

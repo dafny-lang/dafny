@@ -8,14 +8,14 @@
 
 trait TT
 {
-  function method Plus(x:int, y:int) : int
+  function Plus(x:int, y:int) : int
     requires x > y
   {
      x + y
   }
-  function method Times(x:int, y:int) : int
+  function Times(x:int, y:int) : int
     requires x > y
-  static function method StaticMinus(x:int, y:int) : int
+  static ghost function StaticMinus(x:int, y:int) : int
     requires x > y
   {
      x - y
@@ -34,7 +34,7 @@ trait TT
 
 class CC extends TT
 {
-  function method Times(x:int, y:int) : int
+  function Times(x:int, y:int) : int
     requires x>y
   {
     x * y
@@ -99,7 +99,7 @@ method Main()
 
 module OtherModule {
   trait Y {
-    static function method F(x: int): int
+    static ghost function F(x: int): int
     { x / 2 }
     static method P(t: real) returns (f: bool)
     {
@@ -144,15 +144,15 @@ module GenericBasics {
     method Inst(x: int, a: A, b: B) returns (bb: B, cc: seq<B>) { bb, cc := b, []; }
     static method Stat(y: int, a: A, b: B) returns (bb: B) { bb := b; }
 
-    function method Teen<R>(a: (A, R)): B
-    static function method STeen<R>(a: (A, R), b: B): B { b }
+    function Teen<R>(a: (A, R)): B
+    static ghost function STeen<R>(a: (A, R), b: B): B { b }
 
     // here are some functions with/without a named result value, which is treated separately in the verifier; these tests check on box/unbox-ing in the verifier
-    function method RValue0<X>(x: X): B
-    function method RValue1<X>(x: X): (r: B)
-    function method RValue2<X>(x: X): B
-    function method RValue3<X>(x: X): (r: B)
-    function method RBValue<X>(x: X, b: B): B
+    function RValue0<X>(x: X): B
+    function RValue1<X>(x: X): (r: B)
+    function RValue2<X>(x: X): B
+    function RValue3<X>(x: X): (r: B)
+    function RBValue<X>(x: X, b: B): B
     method MValue0<X>(x: X, b: B) returns (r: B)
     method MValue1<X>(x: X, b: B) returns (r: B, y: X)
 
@@ -228,13 +228,13 @@ module GenericBasics {
       ss := Tr<seq<int>, set<int>>.STeen<bv7>(([], 70), {80});
     }
 
-    function method Teen<S>(a: (Q, S)): int { 12 }
+    function Teen<S>(a: (Q, S)): int { 12 }
 
-    function method RValue0<XX>(x: XX): int { 5 }
-    function method RValue1<XX>(x: XX): int { 5 }
-    function method RValue2<XX>(x: XX): (r: int) { 5 }
-    function method RValue3<XX>(x: XX): (r: int) { 5 }
-    function method RBValue<XX>(x: XX, b: int): int { b + 2 }
+    function RValue0<XX>(x: XX): int { 5 }
+    function RValue1<XX>(x: XX): int { 5 }
+    function RValue2<XX>(x: XX): (r: int) { 5 }
+    function RValue3<XX>(x: XX): (r: int) { 5 }
+    function RBValue<XX>(x: XX, b: int): int { b + 2 }
     method MValue0<XX>(x: XX, b: int) returns (r: int) {
       r := b + 3;
     }
@@ -286,13 +286,13 @@ module GenericBasics {
       ss := Tr<seq<int>, set<int>>.STeen<bv7>(([], 70), {80});
     }
 
-    function method Teen<S>(a: (Q, S)): int { 12 }
+    function Teen<S>(a: (Q, S)): int { 12 }
 
-    function method RValue0<XX>(x: XX): int { 5 }
-    function method RValue1<XX>(x: XX): int { 5 }
-    function method RValue2<XX>(x: XX): (r: int) { 5 }
-    function method RValue3<XX>(x: XX): (r: int) { 5 }
-    function method RBValue<XX>(x: XX, b: int): int { b + 2 }
+    function RValue0<XX>(x: XX): int { 5 }
+    function RValue1<XX>(x: XX): int { 5 }
+    function RValue2<XX>(x: XX): (r: int) { 5 }
+    function RValue3<XX>(x: XX): (r: int) { 5 }
+    function RBValue<XX>(x: XX, b: int): int { b + 2 }
     method MValue0<XX>(x: XX, b: int) returns (r: int) {
       r := b + 3;
     }
@@ -409,12 +409,12 @@ module TraitsExtendingTraits {
     {
       y0 := y;
     }
-    function method GetY(): Y0
+    function GetY(): Y0
       reads this
     {
       y0
     }
-    function method GetY'(): Y0
+    function GetY'(): Y0
       reads this
   }
   trait B {
@@ -427,7 +427,7 @@ module TraitsExtendingTraits {
 
   trait K<Y> extends A<Y, Odd> {
     const k := y1
-    function method GetY'(): Y
+    function GetY'(): Y
       reads this
     {
       y0
@@ -496,13 +496,13 @@ module TraitsExtendingTraits {
 }
 
 module TypeDescriptorTests {
-  function method Gee<Whiz(0)>(): int { 10 }
+  function Gee<Whiz(0)>(): int { 10 }
 
   trait UberTrait<X, Y(0), Z(0)> {
     method Golly() {
       var n := Gee<Y>();
     }
-    function method Id(x: X): X { x }
+    function Id(x: X): X { x }
   }
 
   trait Trait<T(0), R> extends UberTrait<int, seq<T>, seq<R>> {
@@ -526,13 +526,13 @@ module TypeDescriptorTests {
   trait XT<U, W> {
     const c: U
     var u: U
-    function method F(u: U): U { u }
-    function method G(u: U): U
+    function F(u: U): U { u }
+    function G(u: U): U
     method M(u: U) returns (r: U) { r := u; }
     method N(u: U) returns (r: U)
 
-    function method F'(u: W -> W): W -> W { u }
-    function method G'(u: W -> W): W -> W
+    function F'(u: W -> W): W -> W { u }
+    function G'(u: W -> W): W -> W
     method M'(u: W -> W) returns (r: W -> W) { r := u; }
     method N'(u: W -> W) returns (r: W -> W)
   }
@@ -542,13 +542,13 @@ module TypeDescriptorTests {
       c := inc;
       u := inc;
     }
-    function method G(uu: int -> int): int -> int {
+    function G(uu: int -> int): int -> int {
       F(uu)
     }
     method N(uu: int -> int) returns (rr: int -> int) {
       rr := M(uu);
     }
-    function method G'(uu: int -> int): int -> int {
+    function G'(uu: int -> int): int -> int {
       F(uu)
     }
     method N'(uu: int -> int) returns (rr: int -> int) {
@@ -701,10 +701,10 @@ module TailRecursion {
   trait Trait<G> {
     var h: G
     var K: G
-    function method Id(g: G): G { g }
-    function method Combine(g0: G, g1: G): G
+    function Id(g: G): G { g }
+    function Combine(g0: G, g1: G): G
 
-    function method {:tailrecursion} Daisy(g: G, n: nat): G
+    function {:tailrecursion} Daisy(g: G, n: nat): G
       reads this
     {
       if n == 0 then
@@ -728,7 +728,7 @@ module TailRecursion {
   }
 
   class Class extends Trait<int> {
-    function method Combine(g0: int, g1: int): int {
+    function Combine(g0: int, g1: int): int {
       g0 + g1
     }
     constructor (u: int, v: int) {
@@ -772,7 +772,7 @@ module ObjectEquality {
     print b == a0, " ", Eq(b, a0), "\n";
   }
 
-  predicate method Eq<U(==)>(u: U, v: U) {
+  predicate Eq<U(==)>(u: U, v: U) {
     u == v
   }
 

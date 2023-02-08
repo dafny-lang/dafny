@@ -128,7 +128,7 @@ module Members {
   {
     const n := 100
 
-    function F(): int {
+    ghost function F(): int {
       3
     }
 
@@ -182,17 +182,17 @@ module {:options "/functionSyntax:4"} EqualitySupport {
 
   datatype Enum = ghost EnumA | EnumB
   {
-    predicate P() {
+    ghost predicate P() {
       this != EnumB // error: XY only partially supports equality
     }
 
-    predicate Q()
+    ghost predicate Q()
       requires EnumB?
     {
       this != EnumB
     }
 
-    predicate R()
+    ghost predicate R()
       requires !EnumA?
     {
       this != EnumB

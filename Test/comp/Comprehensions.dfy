@@ -26,9 +26,9 @@ method Main() {
   EnumerationRegression.Test();
 }
 
-predicate method Thirteen(x: int) { x == 13 }
-predicate method Even(y: int) { y % 2 == 1 }
-function method FourMore(x: int): int { x + 4 }
+predicate Thirteen(x: int) { x == 13 }
+predicate Even(y: int) { y % 2 == 1 }
+function FourMore(x: int): int { x + 4 }
 
 method AssignSuchThat() {
   var x, y;
@@ -327,7 +327,7 @@ method SetComprehension2() {
 
 datatype Color = Red | Green | Blue
 
-predicate method True<G>(g: G) { true }
+predicate True<G>(g: G) { true }
 
 method SetComprehension3() {
   var s: set<bool> := {false, true};
@@ -517,7 +517,7 @@ module ObjectTests {
     print GenEqual(o', p'), " ", GenEqual(p', p'), "\n"; // true true
   }
 
-  predicate method GenEqual<X(==)>(x: X, y: X) {
+  predicate GenEqual<X(==)>(x: X, y: X) {
     x == y
   }
 
@@ -559,14 +559,14 @@ module {:options "/functionSyntax:4"} EnumerationRegression {
   // Another previous problem with the Java compiler was that it generated names that confused
   // the following "Long" with the built-in "java.lang.Long".
   newtype Long = x | 0x1F_FFFF_FFF0 <= x < 0x20_0000_0100 witness 0x1F_FFFF_FFF0 {
-    predicate True() { true }
+    ghost predicate True() { true }
   }
 
   newtype AlsoLong = x | 0x20_0000_0002 <= x < 0x20_0000_0008 witness 0x20_0000_0002 {
-    predicate True() { true }
+    ghost predicate True() { true }
   }
 
-  function Digit(x: int): char
+  ghost function Digit(x: int): char
     requires 0x20_0000_0000 <= x < 0x20_0000_000a
   {
     'a' + (x - 0x20_0000_0000) as char

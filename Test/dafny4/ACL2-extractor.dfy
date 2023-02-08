@@ -7,7 +7,7 @@
 
 datatype List<T> = Nil | Cons(head: T, tail: List)
 
-function length(xs: List): nat
+ghost function length(xs: List): nat
 {
   match xs
   case Nil => 0
@@ -16,7 +16,7 @@ function length(xs: List): nat
 
 // If "0 <= n < length(xs)", then return the element of "xs" that is preceded by
 // "n" elements; otherwise, return an arbitrary value.
-function nth<T(00)>(n: int, xs: List<T>): T
+ghost function nth<T(00)>(n: int, xs: List<T>): T
 {
   if 0 <= n < length(xs) then
     nthWorker(n, xs)
@@ -24,32 +24,32 @@ function nth<T(00)>(n: int, xs: List<T>): T
     var t :| true; t
 }
 
-function nthWorker<T>(n: int, xs: List<T>): T
+ghost function nthWorker<T>(n: int, xs: List<T>): T
   requires 0 <= n < length(xs);
 {
   if n == 0 then xs.head else nthWorker(n-1, xs.tail)
 }
 
-function append(xs: List, ys: List): List
+ghost function append(xs: List, ys: List): List
 {
   match xs
   case Nil => ys
   case Cons(x, rest) => Cons(x, append(rest, ys))
 }
 
-function rev(xs: List): List
+ghost function rev(xs: List): List
 {
   match xs
   case Nil => Nil
   case Cons(x, rest) => append(rev(rest), Cons(x, Nil))
 }
 
-function nats(n: nat): List<int>
+ghost function nats(n: nat): List<int>
 {
   if n == 0 then Nil else Cons(n-1, nats(n-1))
 }
 
-function xtr<T(00)>(mp: List<int>, lst: List): List
+ghost function xtr<T(00)>(mp: List<int>, lst: List): List
 {
   match mp
   case Nil => Nil

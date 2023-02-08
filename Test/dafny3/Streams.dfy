@@ -5,7 +5,7 @@
 
 codatatype Stream<T> = Nil | Cons(head: T, tail: Stream)
 
-function append(M: Stream, N: Stream): Stream
+ghost function append(M: Stream, N: Stream): Stream
 {
   match M
   case Nil => N
@@ -16,24 +16,24 @@ function append(M: Stream, N: Stream): Stream
 
 type X
 
-function f(x: X): X
-function g(x: X): X
+ghost function f(x: X): X
+ghost function g(x: X): X
 
-function map_f(M: Stream<X>): Stream<X>
+ghost function map_f(M: Stream<X>): Stream<X>
 {
   match M
   case Nil => Nil
   case Cons(x, N) => Cons(f(x), map_f(N))
 }
 
-function map_g(M: Stream<X>): Stream<X>
+ghost function map_g(M: Stream<X>): Stream<X>
 {
   match M
   case Nil => Nil
   case Cons(x, N) => Cons(g(x), map_g(N))
 }
 
-function map_fg(M: Stream<X>): Stream<X>
+ghost function map_fg(M: Stream<X>): Stream<X>
 {
   match M
   case Nil => Nil
@@ -190,12 +190,12 @@ greatest lemma Theorem4_Alt(M: Stream<X>, N: Stream<X>, P: Stream<X>)
 // This first variation of Flatten returns a stream of the streams in M, each preceded with
 // "startMarker".
 
-function FlattenStartMarker<T>(M: Stream<Stream>, startMarker: T): Stream
+ghost function FlattenStartMarker<T>(M: Stream<Stream>, startMarker: T): Stream
 {
   PrependThenFlattenStartMarker(Nil, M, startMarker)
 }
 
-function PrependThenFlattenStartMarker<T>(prefix: Stream, M: Stream<Stream>, startMarker: T): Stream
+ghost function PrependThenFlattenStartMarker<T>(prefix: Stream, M: Stream<Stream>, startMarker: T): Stream
 {
   match prefix
   case Cons(hd, tl) =>
@@ -215,13 +215,13 @@ greatest predicate StreamOfNonEmpties(M: Stream<Stream>)
   case Cons(s, N) => s.Cons? && StreamOfNonEmpties(N)
 }
 
-function FlattenNonEmpties(M: Stream<Stream>): Stream
+ghost function FlattenNonEmpties(M: Stream<Stream>): Stream
   requires StreamOfNonEmpties(M);
 {
   PrependThenFlattenNonEmpties(Nil, M)
 }
 
-function PrependThenFlattenNonEmpties(prefix: Stream, M: Stream<Stream>): Stream
+ghost function PrependThenFlattenNonEmpties(prefix: Stream, M: Stream<Stream>): Stream
   requires StreamOfNonEmpties(M);
 {
   match prefix
@@ -237,7 +237,7 @@ function PrependThenFlattenNonEmpties(prefix: Stream, M: Stream<Stream>): Stream
 // do that, we first define a function that prepends an element to each stream
 // of a given stream of streams.
 
-function Prepend<T>(x: T, M: Stream<Stream>): Stream<Stream>
+ghost function Prepend<T>(x: T, M: Stream<Stream>): Stream<Stream>
 {
   match M
   case Nil => Nil

@@ -13,11 +13,11 @@ ghost method {:print} N() { // error: cannot apply {:print} to ghost method
 lemma {:print} L() { // error: cannot apply {:print} to lemma
 }
 
-function {:print} F(): int // error: cannot apply {:print} to function
+ghost function {:print} F(): int // error: cannot apply {:print} to function
 
-function method {:print} G(): int // error: cannot apply {:print} to function
+function {:print} G(): int // error: cannot apply {:print} to function
 
-function {:print} H(): int { // error: cannot apply {:print} to function-by-method
+ghost function {:print} H(): int { // error: cannot apply {:print} to function-by-method
   2
 } by method {
   return 2;

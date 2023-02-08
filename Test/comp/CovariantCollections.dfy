@@ -373,7 +373,7 @@ method Create<T>(a: T, b: T) returns (m: set<T>, n: multiset<T>, o: seq<T>, p: m
   p := map[a := b, b := a];
 }
 
-function method DowncastF(s: set<Integer>): set<Number> { s }
+function DowncastF(s: set<Integer>): set<Number> { s }
 method DowncastM(s: set<Integer>) returns (r: set<Number>)
   ensures r == s
 {
@@ -385,7 +385,7 @@ method DowncastM2(s: set<Integer>) returns (r0: set<Number>, r1: set<Number>)
   r0, r1 := s, s;
 }
 
-function method FId<T>(s: set<T>): set<T> { s }
+function FId<T>(s: set<T>): set<T> { s }
 method MId<T>(s: set<T>) returns (r: set<T>)
   ensures r == s
 {
@@ -404,7 +404,7 @@ method {:tailrecursion} TailRecursiveMethod(x: nat, ghost u: int, s: set<Integer
   }
 }
 
-function method {:tailrecursion} TailRecursiveFunction(x: nat, ghost u: int, s: set<Integer>): int {
+function {:tailrecursion} TailRecursiveFunction(x: nat, ghost u: int, s: set<Integer>): int {
   var n: set<Number> := s;
   if x == 0 then 16 else TailRecursiveFunction(x - 1, 100 * u, n)
 }
@@ -449,11 +449,11 @@ method DeepDowncast() {
   print |mtt|, " ", |mcc|, "\n";
 }
 
-function method SetOfSeqOf<T(==)>(t: T): set<seq<T>> {
+function SetOfSeqOf<T(==)>(t: T): set<seq<T>> {
   {[t]}
 }
 
-function method MapOfSeqOf<T(==), U>(t: T, u: U): map<seq<T>, U> {
+function MapOfSeqOf<T(==), U>(t: T, u: U): map<seq<T>, U> {
   map[[t] := u]
 }
 

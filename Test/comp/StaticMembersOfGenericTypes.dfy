@@ -69,7 +69,7 @@ method GenericClass() {
 trait Trait<G, H(0)> {
   static const K': H
   static const N' := 25
-  static function method F'<B>(g: G, h: H, b: B): (G, H, B) {
+  static ghost function F'<B>(g: G, h: H, b: B): (G, H, B) {
     (g, h, b)
   }
   static method M'<B>(g: G, h: H, b: B) returns (gg: G, hh: H, bb: B) {
@@ -80,7 +80,7 @@ trait Trait<G, H(0)> {
 class Class<A(0)> extends Trait<bool, A> {
   static const K: A
   static const N := 25
-  static function method F<B>(a: A, b: B): (A, B) {
+  static ghost function F<B>(a: A, b: B): (A, B) {
     (a, b)
   }
   static method M<B>(a: A, b: B) returns (bb: B, aa: A) {
@@ -91,7 +91,7 @@ class Class<A(0)> extends Trait<bool, A> {
 datatype Datatype<A(0)> = Something {
   static const K: A
   static const N := 25
-  static function method F<B>(a: A, b: B): (A, B) {
+  static ghost function F<B>(a: A, b: B): (A, B) {
     (a, b)
   }
   static method M<B>(a: A, b: B) returns (bb: B, aa: A) {
@@ -136,37 +136,37 @@ method FunctionValues() {
 }
 
 trait TraitFunc<X(0), Y> {
-  static function method F'<U>(x: X, y: Y, u: U): (X, Y, U) {
+  static ghost function F'<U>(x: X, y: Y, u: U): (X, Y, U) {
     (x, y, u)
   }
-  function method G'<U>(x: X, y: Y, u: U): (X, Y, U) {
+  function G'<U>(x: X, y: Y, u: U): (X, Y, U) {
     (x, y, u)
   }
 }
 
 class ClassFunc<T> extends TraitFunc<int, T> {
-  static function method F<U>(t: T, u: U): (T, U) {
+  static ghost function F<U>(t: T, u: U): (T, U) {
     (t, u)
   }
-  function method G<U>(t: T, u: U): (T, U) {
+  function G<U>(t: T, u: U): (T, U) {
     (t, u)
   }
 }
 
 datatype DatatypeFunc<T> = DFMake(T) {
-  static function method F<U>(t: T, u: U): (T, U) {
+  static ghost function F<U>(t: T, u: U): (T, U) {
     (t, u)
   }
-  function method G<U>(t: T, u: U): (T, U) {
+  function G<U>(t: T, u: U): (T, U) {
     (t, u)
   }
 }
 
 newtype NewtypeFunc = x | 0 <= x < 25 {
-  static function method F<U>(u: U): U {
+  static ghost function F<U>(u: U): U {
     u
   }
-  function method G<U>(u: U): U {
+  function G<U>(u: U): U {
     u
   }
 }
@@ -188,9 +188,9 @@ method Coercions() {
   print c.x + Id(Id(plus))(48) + Id(y), "\n";  // 149
 }
 
-function method Id<G>(g: G): G { g }
+function Id<G>(g: G): G { g }
 
-function method IdFunc<H>(h: H -> H): H -> H { h }
+function IdFunc<H>(h: H -> H): H -> H { h }
 
 class Coer<T> {
   constructor (u: T) {

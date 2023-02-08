@@ -6,13 +6,13 @@
 // RUN: %diff "%s.expect" "%t"
 
 datatype List<T> = Nil | Cons(T, List<T>) {
-  function method App(ys: List<T>): List<T> {
+  function App(ys: List<T>): List<T> {
     match this
       case Nil => ys
       case Cons(x, xs) => Cons(x, xs.App(ys))
   }
 
-  static function method Concat<T>(l: List<List<T>>): List<T> {
+  static ghost function Concat<T>(l: List<List<T>>): List<T> {
     match l
       case Nil => Nil
       case Cons(x, xs) => x.App(Concat(xs))

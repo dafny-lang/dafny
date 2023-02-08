@@ -1,5 +1,5 @@
-TraitOverride0.dfy(48,18): Error: function 'BodyLess1' is declared with a different number of parameter (1 instead of 0) than in the overridden function
-TraitOverride0.dfy(53,18): Error: fully defined function 'Mul' is inherited from trait 'T1' and is not allowed to be re-declared
+TraitOverride0.dfy(48,12): Error: function 'BodyLess1' is declared with a different number of parameter (1 instead of 0) than in the overridden function
+TraitOverride0.dfy(53,12): Error: fully defined function 'Mul' is inherited from trait 'T1' and is not allowed to be re-declared
 TraitOverride0.dfy(65,6): Error: class 'C2' does not implement trait function 'T1.BodyLess1'
 TraitOverride0.dfy(65,6): Error: class 'C2' does not implement trait function 'T1.BodyLess2'
 4 resolution/type errors detected in TraitOverride0.dfy

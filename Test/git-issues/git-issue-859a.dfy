@@ -2,20 +2,20 @@
 // RUN: %diff "%s.expect" "%t"
 
 datatype FailureCompatible = Make {
+  ghost predicate IsFailure() { true }
+  ghost function PropagateFailure(): real { 12.0 }
+  ghost method Extract() returns (r: real) { }
+}
+
+datatype FailureCompatible2 = Make {
   predicate IsFailure() { true }
   function PropagateFailure(): real { 12.0 }
   ghost method Extract() returns (r: real) { }
 }
 
-datatype FailureCompatible2 = Make {
-  predicate method IsFailure() { true }
-  function method PropagateFailure(): real { 12.0 }
-  ghost method Extract() returns (r: real) { }
-}
-
 datatype FailureCompatible3 = Make {
-  predicate method IsFailure() { true }
-  function method PropagateFailure(): real { 12.0 }
+  predicate IsFailure() { true }
+  function PropagateFailure(): real { 12.0 }
   method Extract() returns (r: real) { }
 }
 

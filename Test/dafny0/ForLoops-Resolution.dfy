@@ -18,8 +18,8 @@ module Tests {
   }
 
   newtype Nat = x | 0 <= x
-  function method F(): nat
-  function method G(): Nat
+  function F(): nat
+  function G(): Nat
 
   method P0(x: int) returns (r: nat) {
     for i := F() to 5 {
@@ -51,7 +51,7 @@ module Tests {
     }
   }
 
-  function method Pow(b: nat, n: nat): nat {
+  function Pow(b: nat, n: nat): nat {
     if n == 0 then 1 else b * Pow(b, n - 1)
   }
 

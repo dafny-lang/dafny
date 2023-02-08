@@ -114,7 +114,7 @@ module {:options "/functionSyntax:4"} Match {
     case Wrapper(_) => r := 0;
   }
 
-  function F0(xy: XY): int {
+  ghost function F0(xy: XY): int {
     match xy
     case any => 0
   }
@@ -124,22 +124,22 @@ module {:options "/functionSyntax:4"} Match {
     case any => 0
   }
 
-  function F2(w: Wrapper<XY>): int {
+  ghost function F2(w: Wrapper<XY>): int {
     match w
     case Wrapper(any) => 0
   }
 
-  function F3(w: Wrapper<XY>): int {
+  ghost function F3(w: Wrapper<XY>): int {
     match w
     case Wrapper(_) => 0
   }
 
-  function F4(w: Wrapper<XY>): int {
+  ghost function F4(w: Wrapper<XY>): int {
     match w
     case _ => 0
   }
 
-  function G0(xy: XY): int {
+  ghost function G0(xy: XY): int {
     match xy
     case D0(_) => 0
     case _ => 0
@@ -152,12 +152,12 @@ module {:options "/functionSyntax:4"} Match {
     case _ => 0
   }
 
-  function G2(w: Wrapper<XY>): int {
+  ghost function G2(w: Wrapper<XY>): int {
     match w
     case Wrapper(_) => 0
   }
 
-  function G3(w: Wrapper<XY>): int {
+  ghost function G3(w: Wrapper<XY>): int {
     match w
     case Wrapper(D0(_)) => 0
     case Wrapper(_) => 0
@@ -220,7 +220,7 @@ module {:options "/functionSyntax:4"} EqualitySupport {
     }
   }
 
-  function Eq<T(==)>(x: T, y: T): bool {
+  ghost function Eq<T(==)>(x: T, y: T): bool {
     x == y
   }
 }
@@ -251,7 +251,7 @@ module {:options "/functionSyntax:4"} Constructors {
     xy1 := c;
   }
 
-  function F(b: bool): XY {
+  ghost function F(b: bool): XY {
     if b then
       D0(2)
     else
@@ -347,14 +347,14 @@ module Updates {
 module {:options "/functionSyntax:4"} EnumTests0 {
   datatype Enum = ghost EnumA | EnumB
   {
-    predicate P() {
+    ghost predicate P() {
       this != EnumA // error: ghost constructor not allowed in compiled code
     }
   }
 
   datatype TotallyGhost = ghost Ctor0 | ghost Ctor1
   {
-    predicate P() {
+    ghost predicate P() {
       this != Ctor0 // error: ghost constructor not allowed in compiled code
     }
   }
@@ -363,17 +363,17 @@ module {:options "/functionSyntax:4"} EnumTests0 {
 module {:options "/functionSyntax:4"} EnumTests1 {
   datatype Enum = ghost EnumA | EnumB
   {
-    predicate P() {
+    ghost predicate P() {
       this == this // the resolver is fine with this, but the verifier will complain
     }
-    predicate Q() {
+    ghost predicate Q() {
       this != EnumB // the resolver is fine with this, but the verifier will complain
     }
   }
 
   datatype TotallyGhost = ghost Ctor0 | ghost Ctor1
   {
-    predicate P() {
+    ghost predicate P() {
       this == this // error: ghost equality not allowed in compiled code
     }
   }

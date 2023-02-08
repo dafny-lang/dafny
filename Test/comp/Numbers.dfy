@@ -215,10 +215,10 @@ method DivModNative() {
   TestDivModInt64(-108, 9, " ");                     // (-12, 0)
   TestDivModInt64(-108, -9, "\n");                   // (12, 0)
 }
-function method Sign(n: int): int {
+function Sign(n: int): int {
   if n < 0 then -1 else if n == 0 then 0 else 1
 }
-function method Abs(n: int): nat {
+function Abs(n: int): nat {
   if n < 0 then -n else n
 }
 method EuclideanDefinitions(i: int, j: int, suffix: string)
@@ -467,7 +467,7 @@ method ZeroComparisonTests() {
   ZCNativeTypeTests(23);
 }
 
-function method YN(b : bool) : string {
+function YN(b : bool) : string {
   if b then "Y" else "N"
 }
 

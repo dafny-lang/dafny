@@ -311,7 +311,7 @@ class Cell<T> {
     crr := arr;
     mat := new T[15, 15]((_, _) => t);
   }
-  function method FArray(): array<T>
+  function FArray(): array<T>
     reads this
   {
     arr
@@ -570,14 +570,14 @@ module {:options "/functionSyntax:4"} ArrayAllocationInitialization {
   newtype NonAutoInit = x | 20 <= x < 2_000_000 witness *
   newtype byte = x | 0 <= x < 256
 
-  function AutoInitF(i: nat): AutoInit { if 20 <= i < 30 then i as AutoInit else 78 }
-  function NonAutoInitF(i: nat): NonAutoInit { 82 }
-  function ByteF(i: nat): byte { if 20 <= i < 30 then i as byte else 60 }
-  function CharF(i: nat): char { if 20 <= i < 30 then 'a' + (i - 20) as char else 'g' }
+  ghost function AutoInitF(i: nat): AutoInit { if 20 <= i < 30 then i as AutoInit else 78 }
+  ghost function NonAutoInitF(i: nat): NonAutoInit { 82 }
+  ghost function ByteF(i: nat): byte { if 20 <= i < 30 then i as byte else 60 }
+  ghost function CharF(i: nat): char { if 20 <= i < 30 then 'a' + (i - 20) as char else 'g' }
 
-  function AutoInitF2(i: nat, j: nat): AutoInit { if i == j then 50 else 78 }
-  function ByteF2(i: nat, j: nat): byte { if i == j then 50 else 60 }
-  function CharF2(i: nat, j: nat): char { if i == j then 'a' else 'g' }
+  ghost function AutoInitF2(i: nat, j: nat): AutoInit { if i == j then 50 else 78 }
+  ghost function ByteF2(i: nat, j: nat): byte { if i == j then 50 else 60 }
+  ghost function CharF2(i: nat, j: nat): char { if i == j then 'a' else 'g' }
 
   method Test() {
     TestAutoInit();
@@ -722,13 +722,13 @@ module {:options "/functionSyntax:4"} ArrayAllocationInitialization {
     print s, "\n";
   }
 
-  function MatrixToSequence<T>(m: array2<T>): seq<T>
+  ghost function MatrixToSequence<T>(m: array2<T>): seq<T>
     reads m
   {
     M2S(m, 0, 0)
   }
 
-  function M2S<T>(m: array2<T>, i: nat, j: nat): seq<T>
+  ghost function M2S<T>(m: array2<T>, i: nat, j: nat): seq<T>
     requires i <= m.Length0 && j <= m.Length1
     requires i == m.Length0 ==> j == 0
     reads m
@@ -819,7 +819,7 @@ module {:options "/functionSyntax:4"} VariationsOnIndexAndDimensionTypes {
         == 138;
   }
 
-  function F(a: nat, b: nat, c: nat): byte {
+  ghost function F(a: nat, b: nat, c: nat): byte {
     if a == 0 then
       45
     else if a == 1 then

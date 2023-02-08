@@ -42,7 +42,7 @@ module ByMethodVerification {
     return j; // error: does not live up to method postcondition
   }
 
-  predicate P(x: int)
+  ghost predicate P(x: int)
 
   function V0(x: int): (r: int) // error: function body does not meet postcondition
     ensures P(r)
@@ -58,14 +58,6 @@ module ByMethodVerification {
     x
   } by method {
     return x + 1; // error: this is not what the function body does
-  }
-
-  predicate Pred0(x: int) // error: function body does not meet postcondition
-    ensures Pred0(x) ==> x < 100
-  {
-    x == 23 || x == 102
-  } by method {
-    return x == 22; // error: this is not what the function body does
   }
 
   predicate Pred1(x: int) // error: function body does not meet postcondition
@@ -92,7 +84,7 @@ module ByMethodRecursion {
   } by method {
     return Id(x, n); // error: failure to prove termination
   }
-  function method Id(x: int, n: nat): int {
+  function Id(x: int, n: nat): int {
     if n == 0 then x else G(x, n - 1)
   }
 
@@ -102,7 +94,7 @@ module ByMethodRecursion {
     return H(x, n); // error: failure to prove termination
   }
 
-  function method I(x: int, n: nat): int {
+  function I(x: int, n: nat): int {
     if n == 0 then x else J(x, n - 1)
   }
   function J(x: int, n: nat): int {
@@ -111,7 +103,7 @@ module ByMethodRecursion {
     return I(x, n); // error: failure to prove termination
   }
 
-  function method I'(x: int, n: nat): int
+  function I'(x: int, n: nat): int
     decreases x, n, 3
   {
     if n == 0 then x else J'(x, n - 1)
