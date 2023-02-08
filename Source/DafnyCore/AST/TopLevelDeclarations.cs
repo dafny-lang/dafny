@@ -1073,10 +1073,11 @@ public class ModuleDefinition : INamedRegion, IDeclarationOrUsage, IAttributeBea
   }
 
   public IToken NameToken => tok;
-  public override IEnumerable<Node> Children => (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(TopLevelDecls);
-  public override IEnumerable<Node> PreResolveChildren => Includes.Concat<Node>(TopLevelDecls).Concat<Node>(
-    PrefixNamedModules.Select(tuple => tuple.Item2)
-    ).Concat(RefinementQId == null ? Enumerable.Empty<Node>() : new Node[] { RefinementQId });
+  public override IEnumerable<Node> Children => (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat<Node>(TopLevelDecls).
+    Concat(RefinementQId == null ? Enumerable.Empty<Node>() : new Node[] { RefinementQId });
+
+  public override IEnumerable<Node> PreResolveChildren => Includes.Concat<Node>(TopLevelDecls).Concat(
+    PrefixNamedModules.Select(tuple => tuple.Item2));
 }
 
 public class DefaultModuleDecl : ModuleDefinition {
