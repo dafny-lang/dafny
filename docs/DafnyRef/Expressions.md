@@ -550,7 +550,7 @@ new int[5](i => i*i)
 new int[2,3]((i,j) => i*j)
 ```
 
-This right-hand-side expression allocates a new single or multi-dimensional array (cf. [Section 14](#sec-array-type)).
+This right-hand-side expression allocates a new single or multi-dimensional array (cf. [Section 15](#sec-array-type)).
 The initialization portion is optional. One form is an
 explicit list of values, in which case the dimension is optional:
 <!-- %no-check -->
