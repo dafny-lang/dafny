@@ -23,23 +23,35 @@ public class ArrowType : UserDefinedType {
       var oVar = new BoundVar(e.tok, idGen.FreshId("_o"), builtIns.ObjectQ());
       var obj = new IdentifierExpr(e.tok, oVar.Name) { Type = oVar.Type, Var = oVar };
       bvars.Add(oVar);
+      var collection = new ApplyExpr(e.tok, e, bexprs, e.tok) {
+        Type = new SetType(true, builtIns.ObjectQ())
+      };
 
       return
         new SetComprehension(e.tok, e.RangeToken, true, bvars,
-          new BinaryExpr(e.tok, BinaryExpr.Opcode.In, obj,
-            new ApplyExpr(e.tok, e, bexprs, e.tok) {
-              Type = new SetType(true, builtIns.ObjectQ())
-            }) {
-            ResolvedOp =
-              arrTy.Result.AsMultiSetType != null ? BinaryExpr.ResolvedOpcode.InMultiSet :
-              arrTy.Result.AsSeqType != null ? BinaryExpr.ResolvedOpcode.InSeq :
-              BinaryExpr.ResolvedOpcode.InSet,
+          new BinaryExpr(e.tok, BinaryExpr.Opcode.In, obj, collection) {
+            ResolvedOp = resolvedOpcode,
             Type = Type.Bool
           }, obj, null) {
           Type = new SetType(true, builtIns.ObjectQ())
         };
     } else {
       return e;
+    }
+  }
+
+  public static void ComputeResolvedOpcodeAndBoundedPool(Expression collection, CollectionType collectionType,
+    out BinaryExpr.ResolvedOpcode resolvedOpcode, out ComprehensionExpr.BoundedPool boundedPool) {
+    if (collectionType is SetType setType) {
+      resolvedOpcode = BinaryExpr.ResolvedOpcode.InSet;
+      boundedPool = new ComprehensionExpr.SetBoundedPool(collection, collectionType.Arg, collectionType.Arg, setType.Finite);
+    } else if (collectionType is SeqType) {
+      resolvedOpcode = BinaryExpr.ResolvedOpcode.InSeq;
+      boundedPool = new ComprehensionExpr.SeqBoundedPool(collection, collectionType.Arg, collectionType.Arg);
+    } else {
+      Contract.Assert(collectionType is MultiSetType);
+      resolvedOpcode = BinaryExpr.ResolvedOpcode.InMultiSet;
+      boundedPool = new ComprehensionExpr.MultiSetBoundedPool(collection, collectionType.Arg, collectionType.Arg);
     }
   }
 
