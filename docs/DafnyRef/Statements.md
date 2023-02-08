@@ -27,7 +27,7 @@ which is the label, followed by a colon and a statement. The label may be
 referenced in a `break` or `continue` statement within the labeled statement
 (see [Section 20.2](#sec-break-continue)). That is, the break or continue that
 mentions the label must be _enclosed_ in the labeled statement.
-The label may also be used in an `old` expression ([Section 21.25](#sec-old-expression)). In this case, the label
+The label may also be used in an `old` expression ([Section 21.22](#sec-old-expression)). In this case, the label
 must have been encountered during the control flow en route to the `old`
 expression. We say in this case that the (program point of the) label _dominates_
 the (program point of the) use of the label.
@@ -1590,14 +1590,14 @@ MatchStmt =
 CaseStmt = "case" ExtendedPattern "=>" { Stmt }
 ````
 
-[ `ExtendedPattern` is defined in [Section 21.33](#sec-case-pattern).]
+[ `ExtendedPattern` is defined in [Section 21.31.2](#sec-case-pattern).]
 
 The `match` statement is used to do case analysis on a value of an inductive or coinductive datatype (which includes the built-in tuple types), a base type, or newtype. The expression after the `match` keyword is called the _selector_. The expression is evaluated and then matched against
 each clause in order until a matching clause is found.
 
 The process of matching the selector expression against the `CaseBinding_`s is
 the same as for match expressions and is described in
-[Section 21.33](#sec-case-pattern).
+[Section 21.31.2](#sec-case-pattern).
 
 The code below shows an example of a match statement.
 
@@ -1987,7 +1987,7 @@ ForallStmt =
 
 The `forall` statement executes the body
 simultaneously for all quantified values in the specified quantifier domain.
-See [Section 2.6.5](#sec-quantifier-domains) for more details on quantifier domains.
+See [Section 2.6.4](#sec-quantifier-domains) for more details on quantifier domains.
 
 There are several variant uses of the `forall`
 statement and there are a number of restrictions.
