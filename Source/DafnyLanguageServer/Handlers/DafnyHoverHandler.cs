@@ -258,7 +258,10 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           // It's not necessary to restate the postcondition itself if the user is already hovering it
           // however, nested postconditions should be displayed
           if (errorToken is BoogieRangeToken rangeToken && !hoveringPostcondition) {
-            deltaInformation += "  \n" + CouldProveOrNotPrefix + ideState.TextDocumentItem.Text.Substring(rangeToken.StartToken.pos,
+            var originalText =
+              ideState.Uri == rangeToken.Filename ? ideState.TextDocumentItem.Text :
+              File.ReadAllText(rangeToken.ActualFilename);
+            deltaInformation += "  \n" + CouldProveOrNotPrefix + originalText.Substring(rangeToken.StartToken.pos,
               rangeToken.EndToken.pos + rangeToken.EndToken.val.Length - rangeToken.StartToken.pos);
           }
 
