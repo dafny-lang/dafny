@@ -495,7 +495,7 @@ A failure-compatible type is a type that has the following members (each with no
  * a non-ghost function `IsFailure()` that returns a `bool`
  * an optional non-ghost function `PropagateFailure()` that returns a value assignable to the first out-parameter of the caller
  * an optional method or function `Extract()`
-(PropagateFailure and Extract) were permitted to be methods (but deprecated) prior to Dafny 4. They will be required to be functions in Dafny 4.)
+(PropagateFailure and Extract were permitted to be methods (but deprecated) prior to Dafny 4. They will be required to be functions in Dafny 4.)
 
 A failure-compatible type with an `Extract` member is called _value-carrying_.
 
