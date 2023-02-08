@@ -170,6 +170,7 @@ public class InferDecreasesClause {
           // e represents a sequence or multiset
           var collectionType = (CollectionType)eType;
           var resolvedOpcode = collectionType.ResolvedOpcodeForIn;
+          var boundedPool = collectionType.GetBoundedPool(e);
 
           // Add:  set x :: x in e
           var bv = new BoundVar(e.tok, idGen.FreshId("_s2s_"), collectionType.Arg);
@@ -183,6 +184,7 @@ public class InferDecreasesClause {
           };
           var s = new SetComprehension(e.tok, e.RangeToken, true, new List<BoundVar>() { bv }, sInE, bvIE, null) {
             Type = new SetType(true, resolver.builtIns.ObjectQ()),
+            Bounds = new List<ComprehensionExpr.BoundedPool>() { boundedPool }
           };
           sets.Add(s);
         } else {
