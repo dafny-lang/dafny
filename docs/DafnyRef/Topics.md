@@ -205,8 +205,8 @@ These statements are determined to be ghost:
 - The body of the `by` of an [`assert`](#sec-assert-statement) statement.
 - Calls to ghost methods, including [lemmas](#sec-lemmas).
 - [`if`](#sec-if-statement), [`match`](#sec-match-statement), and [`while`](#sec-while-statement) statements with condition expressions or alternatives containing ghost expressions. Their bodies are also ghost.
-- [`for`](#sec-for-loops) loops whose start expression contains ghost expressions.
-- [Variable declarations](#sec-var-decl-statement) if they are explicitly ghost or if their respective right-hand side is a ghost expression.
+- [`for`](#sec-for-statement) loops whose start expression contains ghost expressions.
+- [Variable declarations](#sec-variable-declaration-statement) if they are explicitly ghost or if their respective right-hand side is a ghost expression.
 - [Assignments or update statement](#sec-update-and-call-statement) if all updated variables are ghost.
 - [`forall`](#sec-forall-statement) statements, unless there is exactly one assignment to a non-ghost array in its body.
 
@@ -219,7 +219,7 @@ The following expressions are ghost, which is used in some of the tests above:
 
 - All [specification expressions](#sec-list-of-specification-expressions)
 - All calls to functions and predicates not marked as `method`
-- All variables, [constants](#sec-constant-field-declarations) and [fields](#sec-field-declarations) declared using the `ghost` keyword
+- All variables, [constants](#sec-constant-field-declaration) and [fields](#sec-field-declaration) declared using the `ghost` keyword
 
 Note that inferring ghostness can uncover other errors, such as updating non-ghost variables in ghost contexts.
 For example, if `f` is a ghost function, in the presence of the following code:

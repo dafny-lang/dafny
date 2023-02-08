@@ -1987,7 +1987,7 @@ ForallStmt =
 
 The `forall` statement executes the body
 simultaneously for all quantified values in the specified quantifier domain.
-See [Section 2.6.5](#sec-quantifier-domains) for more details on quantifier domains.
+See [Section 2.6.4](#sec-quantifier-domains) for more details on quantifier domains.
 
 There are several variant uses of the `forall`
 statement and there are a number of restrictions.
