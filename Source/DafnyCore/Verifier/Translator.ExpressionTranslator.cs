@@ -1343,7 +1343,6 @@ namespace Microsoft.Dafny {
           if (FrugalHeapUseX) {
             freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
           }
-          TrBoundVariables(e.BoundVars, bvars, false, freeOfAlloc);
 
           Boogie.QKeyValue kv = TrAttributes(e.Attributes, "trigger");
 
@@ -1355,6 +1354,10 @@ namespace Microsoft.Dafny {
             var w = new Boogie.IdentifierExpr(GetToken(expr), wVar);
             Boogie.Expr unboxw = translator.UnboxIfBoxed(w, bv.Type);
             Boogie.Expr typeAntecedent = translator.MkIsBox(w, bv.Type);
+            if (freeOfAlloc != null && !freeOfAlloc[0]) {
+              var isAlloc = translator.MkIsAllocBox(w, bv.Type, HeapExpr);
+              typeAntecedent = BplAnd(typeAntecedent, isAlloc);
+            }
             var subst = new Dictionary<IVariable, Expression>();
             subst.Add(bv, new BoogieWrapper(unboxw, bv.Type));
 
@@ -1367,6 +1370,10 @@ namespace Microsoft.Dafny {
             var w = new Boogie.IdentifierExpr(GetToken(expr), wVar);
             Boogie.Expr unboxw = translator.UnboxIfBoxed(w, t.Type);
             Boogie.Expr typeAntecedent = translator.MkIsBox(w, t.Type);
+            if (freeOfAlloc != null && !freeOfAlloc[0]) {
+              var isAlloc = translator.MkIsAllocBox(w, t.Type, HeapExpr);
+              typeAntecedent = BplAnd(typeAntecedent, isAlloc);
+            }
             List<Boogie.Variable> bvs;
             List<Boogie.Expr> args;
             translator.CreateBoundVariables(e.BoundVars, out bvs, out args);
