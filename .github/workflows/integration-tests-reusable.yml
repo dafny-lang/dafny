@@ -125,7 +125,7 @@ jobs:
         XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
         DAFNY_RELEASE: ${{ github.workspace }}\unzippedRelease\dafny
       run: |
-        dotnet test --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj
+        dotnet test --logger trx --collect:"XPlat Code Coverage" dafny/Source/IntegrationTests/IntegrationTests.csproj
     - name: Run integration tests
       if: runner.os != 'Windows'
       env:
@@ -133,9 +133,10 @@ jobs:
         XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
       run: |
         ${{ inputs.all_platforms }} && export DAFNY_RELEASE="${{ github.workspace }}/unzippedRelease/dafny"
-        dotnet test --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj
+        dotnet test --logger trx --collect:"XPlat Code Coverage" dafny/Source/IntegrationTests/IntegrationTests.csproj
     - uses: actions/upload-artifact@v3
       if: always()
       with:
         name: integration-test-results-${{ matrix.os }}
         path: dafny/Source/IntegrationTests/TestResults/*.trx
+              dafny/Source/IntegrationTests/TestResults/*/coverage.cobertura.xml
