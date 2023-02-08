@@ -2118,7 +2118,6 @@ namespace Microsoft.Dafny {
           (f is TwoStateFunction ? etran.Old : etran).GoodRef(f.tok, bvThisIdExpr, thisType));
         ante = BplAnd(ante, wh);
       }
-      var substMap = new Dictionary<IVariable, Expression>();
       foreach (Formal p in f.Formals) {
         var bv = new Bpl.BoundVariable(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(currentDeclaration.IdGenerator), TrType(p.Type)));
         Bpl.Expr formal = new Bpl.IdentifierExpr(p.tok, bv);
@@ -2155,7 +2154,7 @@ namespace Microsoft.Dafny {
 
       Bpl.Expr pre = Bpl.Expr.True;
       foreach (AttributedExpression req in f.Req) {
-        pre = BplAnd(pre, etran.TrExpr(Substitute(req.E, null, substMap)));
+        pre = BplAnd(pre, etran.TrExpr(req.E));
       }
       // useViaContext: (mh != ModuleContextHeight || fh != FunctionContextHeight)
       var mod = f.EnclosingClass.EnclosingModuleDefinition;
@@ -2172,6 +2171,7 @@ namespace Microsoft.Dafny {
         (AlwaysUseHeap || f.ReadsHeap || !readsHeap) ? null : etran.HeapExpr);
       Bpl.Expr post = Bpl.Expr.True;
       // substitute function return value with the function call.
+      var substMap = new Dictionary<IVariable, Expression>();
       if (f.Result != null) {
         substMap.Add(f.Result, new BoogieWrapper(funcAppl, f.ResultType));
       }
