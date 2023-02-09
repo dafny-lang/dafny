@@ -3516,7 +3516,9 @@ namespace Microsoft.Dafny {
         // We replace all occurrences of the trait version of the function with the class version. This is only allowed
         // if the receiver is `this`. We underapproximate this by looking for a `ThisExpr`, which misses more complex
         // expressions that evaluate to one.
-        sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)f.OverriddenFunction.EnclosingClass, (ClassDecl)f.EnclosingClass);
+        Function tf = f.OverriddenFunction;
+        var whitelist = tf.EnclosingClass.EnclosingModuleDefinition.CallGraph.GetSCC(tf).OfType<Function>().ToList();
+        sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)tf.EnclosingClass, (ClassDecl)f.EnclosingClass, whitelist);
         foreach (var s in TrSplitExpr(sub.Substitute(en.E), etran, false, out _).Where(s => s.IsChecked)) {
           builder.Add(Assert(f.tok, s.E, new PODesc.FunctionContractOverride(true)));
         }
@@ -3614,7 +3616,9 @@ namespace Microsoft.Dafny {
         // We replace all occurrences of the trait version of the function with the class version. This is only allowed
         // if the receiver is `this`. We underapproximate this by looking for a `ThisExpr`, which misses more complex
         // expressions that evaluate to one.
-        sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)f.OverriddenFunction.EnclosingClass, (ClassDecl)f.EnclosingClass);
+        Function tf = f.OverriddenFunction;
+        var whitelist = tf.EnclosingClass.EnclosingModuleDefinition.CallGraph.GetSCC(tf).OfType<Function>().ToList();
+        sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)tf.EnclosingClass, (ClassDecl)f.EnclosingClass, whitelist);
         builder.Add(TrAssumeCmd(f.tok, etran.TrExpr(sub.Substitute(req.E))));
       }
       //generating class pre-conditions

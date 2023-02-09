@@ -4,18 +4,20 @@ namespace Microsoft.Dafny {
   public class FunctionCallSubstituter : Substituter {
     public readonly TraitDecl Tr;
     public readonly ClassDecl Cl;
+    public readonly List<Function> whitelist;
 
-    public FunctionCallSubstituter(Dictionary<IVariable, Expression/*!*/>/*!*/ substMap, Dictionary<TypeParameter, Type> typeMap, TraitDecl Tr, ClassDecl Cl)
+    public FunctionCallSubstituter(Dictionary<IVariable, Expression/*!*/>/*!*/ substMap, Dictionary<TypeParameter, Type> typeMap, TraitDecl Tr, ClassDecl Cl, List<Function> whitelist)
       : base(null, substMap, typeMap) {
       this.Tr = Tr;
       this.Cl = Cl;
+      this.whitelist = whitelist;
     }
     public override Expression Substitute(Expression expr) {
       if (expr is FunctionCallExpr e) {
         var receiver = Substitute(e.Receiver);
         var newArgs = SubstituteExprList(e.Args);
         Function function;
-        if (e.Function.EnclosingClass == Tr && e.Receiver is ThisExpr && receiver is ThisExpr && Cl.Members.Find(m => m.OverriddenMember == e.Function) is { } f) {
+        if (e.Function.EnclosingClass == Tr && e.Receiver is ThisExpr && receiver is ThisExpr && whitelist.Contains(e.Function) && Cl.Members.Find(m => m.OverriddenMember == e.Function) is { } f) {
           receiver = new ThisExpr((TopLevelDeclWithMembers)f.EnclosingClass);
           function = (Function)f;
         } else {
