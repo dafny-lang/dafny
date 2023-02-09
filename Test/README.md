@@ -31,7 +31,7 @@ Lit tests use a very restricted form of command-line: executables and their argu
 To work cross-platform, use a number of macros: %verify, %resolve, %build, %run, %translate (with %trargs),
 %exits-with, %diff, %sed and others you can find defined in lit.site.cfg
 
-Any new macros defined here must also be defied in Source/IntegrationTetss/LitTests.cs
+`Any new macros defined here must also be defied in Source/IntegrationTetss/LitTests.cs`
 
 A typical simple test for a single source file that has verification errors is
 // RUN: %exits-with 4 %verify "%s" > "%t"
