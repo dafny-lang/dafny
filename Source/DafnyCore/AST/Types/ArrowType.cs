@@ -20,7 +20,7 @@ public class ArrowType : UserDefinedType {
         bvars.Add(bv);
         bexprs.Add(new IdentifierExpr(e.tok, bv.Name) { Type = bv.Type, Var = bv });
         var allBounds = Resolver.DiscoverAllBounds_SingleVar(bv, Expression.CreateBoolLiteral(e.tok, true));
-        bounds.Add(ComprehensionExpr.BoundedPool.GetBest(allBounds, ComprehensionExpr.BoundedPool.PoolVirtues.None));
+        bounds.Add(ComprehensionExpr.BoundedPool.GetBest(allBounds));
       }
 
       var oVar = new BoundVar(e.tok, idGen.FreshId("_o"), builtIns.ObjectQ());

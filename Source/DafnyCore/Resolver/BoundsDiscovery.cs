@@ -24,8 +24,7 @@ namespace Microsoft.Dafny {
 
       protected override bool VisitOneStatement(Statement stmt, IASTVisitorContext context) {
         if (stmt is ForallStmt forallStmt) {
-          forallStmt.Bounds = DiscoverBestBounds_MultipleVars(forallStmt.BoundVars, forallStmt.Range, true,
-            ComprehensionExpr.BoundedPool.PoolVirtues.None);
+          forallStmt.Bounds = DiscoverBestBounds_MultipleVars(forallStmt.BoundVars, forallStmt.Range, true);
         } else if (stmt is AssignSuchThatStmt assignSuchThatStmt) {
           if (assignSuchThatStmt.AssumeToken == null) {
             var varLhss = new List<IVariable>();
@@ -33,8 +32,7 @@ namespace Microsoft.Dafny {
               var ide = (IdentifierExpr)lhs.Resolved;  // successful resolution implies all LHS's are IdentifierExpr's
               varLhss.Add(ide.Var);
             }
-            assignSuchThatStmt.Bounds = DiscoverBestBounds_MultipleVars(varLhss, assignSuchThatStmt.Expr, true,
-              ComprehensionExpr.BoundedPool.PoolVirtues.None);
+            assignSuchThatStmt.Bounds = DiscoverBestBounds_MultipleVars(varLhss, assignSuchThatStmt.Expr, true);
           }
         }
 
@@ -59,7 +57,7 @@ namespace Microsoft.Dafny {
             Contract.Assume(e is LambdaExpr);  // otherwise, unexpected ComprehensionExpr
           }
           if (whereToLookForBounds != null) {
-            e.Bounds = DiscoverBestBounds_MultipleVars_AllowReordering(e.BoundVars, whereToLookForBounds, polarity, ComprehensionExpr.BoundedPool.PoolVirtues.None);
+            e.Bounds = DiscoverBestBounds_MultipleVars_AllowReordering(e.BoundVars, whereToLookForBounds, polarity);
             if (2 <= DafnyOptions.O.Allocated && (context is Function or ConstantField or RedirectingTypeDecl)) {
               // functions are not allowed to depend on the set of allocated objects
               foreach (var bv in ComprehensionExpr.BoundedPool.MissingBounds(e.BoundVars, e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc)) {
@@ -97,12 +95,11 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// For a list of variables "bvars", returns a list of best bounds, subject to the constraint "requiredVirtues", for each respective variable.
-    /// If no bound matching "requiredVirtues" is found for a variable "v", then the bound for "v" in the returned list is set to "null".
+    /// For a list of variables "bvars", returns a list of best bounds for each respective variable.
+    /// If no bound is found for a variable "v", then the bound for "v" in the returned list is set to "null".
     /// </summary>
     public static List<ComprehensionExpr.BoundedPool> DiscoverBestBounds_MultipleVars<VT>(List<VT> bvars, Expression expr,
-      bool polarity,
-      ComprehensionExpr.BoundedPool.PoolVirtues requiredVirtues) where VT : IVariable {
+      bool polarity) where VT : IVariable {
       Contract.Requires(bvars != null);
       Contract.Requires(expr != null);
       Contract.Ensures(Contract.Result<List<ComprehensionExpr.BoundedPool>>() != null);
@@ -110,17 +107,16 @@ namespace Microsoft.Dafny {
         var c = GetImpliedTypeConstraint(bv, bv.Type);
         expr = polarity ? Expression.CreateAnd(c, expr) : Expression.CreateImplies(c, expr);
       }
-      var bests = DiscoverAllBounds_Aux_MultipleVars(bvars, expr, polarity, requiredVirtues);
+      var bests = DiscoverAllBounds_Aux_MultipleVars(bvars, expr, polarity);
       return bests;
     }
 
     public static List<ComprehensionExpr.BoundedPool> DiscoverBestBounds_MultipleVars_AllowReordering<VT>(List<VT> bvars, Expression expr,
-      bool polarity,
-      ComprehensionExpr.BoundedPool.PoolVirtues requiredVirtues) where VT : IVariable {
+      bool polarity) where VT : IVariable {
       Contract.Requires(bvars != null);
       Contract.Requires(expr != null);
       Contract.Ensures(Contract.Result<List<ComprehensionExpr.BoundedPool>>() != null);
-      var bounds = DiscoverBestBounds_MultipleVars(bvars, expr, polarity, requiredVirtues);
+      var bounds = DiscoverBestBounds_MultipleVars(bvars, expr, polarity);
       if (bvars.Count > 1) {
         // It may be helpful to try all permutations (or, better yet, to use an algorithm that keeps track of the dependencies
         // and discovers good bounds more efficiently). However, all permutations would be expensive. Therefore, we try just one
@@ -129,7 +125,7 @@ namespace Microsoft.Dafny {
         // than two bound variables.
         var bvarsMissyElliott = new List<VT>(bvars);  // make a copy
         bvarsMissyElliott.Reverse();  // and then flip it and reverse it, Ti esrever dna ti pilf nwod gnaht ym tup I
-        var boundsMissyElliott = DiscoverBestBounds_MultipleVars(bvarsMissyElliott, expr, polarity, requiredVirtues);
+        var boundsMissyElliott = DiscoverBestBounds_MultipleVars(bvarsMissyElliott, expr, polarity);
         // Figure out which one seems best
         var meBetter = 0;
         for (int i = 0; i < bvars.Count; i++) {
@@ -156,7 +152,7 @@ namespace Microsoft.Dafny {
     }
 
     private static List<ComprehensionExpr.BoundedPool> DiscoverAllBounds_Aux_MultipleVars<VT>(List<VT> bvars, Expression expr,
-      bool polarity, ComprehensionExpr.BoundedPool.PoolVirtues requiredVirtues) where VT : IVariable {
+      bool polarity) where VT : IVariable {
       Contract.Requires(bvars != null);
       Contract.Requires(expr != null);
       Contract.Ensures(Contract.Result<List<ComprehensionExpr.BoundedPool>>() != null);
@@ -169,7 +165,7 @@ namespace Microsoft.Dafny {
       // filled in for higher-indexed variables.
       for (var j = bvars.Count; 0 <= --j;) {
         var bounds = DiscoverAllBounds_Aux_SingleVar(bvars, j, expr, polarity, knownBounds);
-        knownBounds[j] = ComprehensionExpr.BoundedPool.GetBest(bounds, requiredVirtues);
+        knownBounds[j] = ComprehensionExpr.BoundedPool.GetBest(bounds);
 #if DEBUG_PRINT
         if (knownBounds[j] is ComprehensionExpr.IntBoundedPool) {
           var ib = (ComprehensionExpr.IntBoundedPool)knownBounds[j];
