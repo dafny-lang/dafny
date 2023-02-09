@@ -40,7 +40,7 @@ namespace IntegrationTests {
 
       string[] defaultResolveArgs = new[] { "resolve", "--use-basename-for-filename" };
       string[] defaultVerifyArgs = new[] { "verify", "--use-basename-for-filename", "--cores:2", "--verification-time-limit:300" };
-      string[] defaultTranslateArgs = new[] { "translate", "--use-basename-for-filename", "--cores:2", "--verification-time-limit:300" };
+      //string[] defaultTranslateArgs = new[] { "translate", "--use-basename-for-filename", "--cores:2", "--verification-time-limit:300" };
       string[] defaultBuildArgs = new[] { "build", "--use-basename-for-filename", "--cores:2", "--verification-time-limit:300" };
       string[] defaultRunArgs = new[] { "run", "--use-basename-for-filename", "--cores:2", "--verification-time-limit:300" };
 
@@ -62,7 +62,7 @@ namespace IntegrationTests {
               config, InvokeMainMethodsDirectly)
         }, {
           "%translate", (args, config) =>
-            MainMethodLitCommand.Parse(DafnyDriverAssembly, AddExtraArgs(AddExtraArgs(new[]{defaultTranslateArgs[0],args[0]}, defaultTranslateArgs[1..]), args[1..]),
+            MainMethodLitCommand.Parse(DafnyDriverAssembly, AddExtraArgs(new[]{"translate"}, args),
               config, InvokeMainMethodsDirectly)
         }, {
           "%verify", (args, config) =>
