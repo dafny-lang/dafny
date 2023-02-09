@@ -24,8 +24,8 @@ But that failed in this case
 
 ```dafny
 MapKeepsCount(authSchema, k => Paths.SimpleCanon(tableName, k));
-assume |authSchema| == |map k <- authSchema.Keys | true :: Paths.SimpleCanon(tableName, k) := authSchema[k]|;
-assert |authSchema| == |map k <- authSchema.Keys | true :: Paths.SimpleCanon(tableName, k) := authSchema[k]|;
+assume |authSchema| == |map k <- authSchema.Keys :: Paths.SimpleCanon(tableName, k) := authSchema[k]|;
+assert |authSchema| == |map k <- authSchema.Keys :: Paths.SimpleCanon(tableName, k) := authSchema[k]|;
 ```
 
 Which makes no sense.
