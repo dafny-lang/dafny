@@ -8,7 +8,7 @@ I have this lemma
 ```dafny
     lemma MapKeepsCount<X,Y,Z>(m : map<X,Y>, f : (X) -> Z)
       requires forall a : X, b : X :: a != b ==> f(a) != f(b)
-      ensures |m| == |map k <- m.Keys | true :: f(k) := m[k]|
+      ensures |m| == |map k <- m.Keys :: f(k) := m[k]|
 ```
 and later on this code
 ```dafny
