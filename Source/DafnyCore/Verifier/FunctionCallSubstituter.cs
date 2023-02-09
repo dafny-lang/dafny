@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Microsoft.Dafny {
   public class FunctionCallSubstituter : Substituter {
@@ -6,11 +7,12 @@ namespace Microsoft.Dafny {
     public readonly ClassDecl Cl;
     public readonly List<Function> whitelist;
 
-    public FunctionCallSubstituter(Dictionary<IVariable, Expression/*!*/>/*!*/ substMap, Dictionary<TypeParameter, Type> typeMap, TraitDecl Tr, ClassDecl Cl, List<Function> whitelist)
+    public FunctionCallSubstituter(Dictionary<IVariable, Expression/*!*/>/*!*/ substMap, Dictionary<TypeParameter, Type> typeMap, Function f)
       : base(null, substMap, typeMap) {
-      this.Tr = Tr;
-      this.Cl = Cl;
-      this.whitelist = whitelist;
+      var tf = f.OverriddenFunction;
+      Tr = (TraitDecl)tf.EnclosingClass;
+      Cl = (ClassDecl)f.EnclosingClass;
+      whitelist = tf.EnclosingClass.EnclosingModuleDefinition.CallGraph.GetSCC(tf).OfType<Function>().ToList();
     }
     public override Expression Substitute(Expression expr) {
       if (expr is FunctionCallExpr e) {
