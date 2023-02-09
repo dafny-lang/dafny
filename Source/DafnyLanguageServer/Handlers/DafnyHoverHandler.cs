@@ -259,8 +259,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           // however, nested postconditions should be displayed
           if (errorToken is BoogieRangeToken rangeToken && !hoveringPostcondition) {
             var originalText = rangeToken.PrintOriginal();
-            deltaInformation += "  \n" + CouldProveOrNotPrefix + originalText.Substring(rangeToken.StartToken.pos,
-              rangeToken.EndToken.pos + rangeToken.EndToken.val.Length - rangeToken.StartToken.pos);
+            deltaInformation += "  \n" + CouldProveOrNotPrefix + originalText;
           }
 
           hoveringPostcondition = false;

@@ -215,13 +215,11 @@ public class BoogieRangeToken : TokenWrapper {
   public string PrintOriginal() {
     var tok = WrappedToken;
     var s = tok.val;
-    while (tok != null && tok.pos < endTok.pos) {
-      if (tok != WrappedToken) {
-        s += tok.TrailingTrivia;
-        s += tok.val;
-      }
+    while (tok.Next != null && tok.pos < endTok.pos) {
       s += tok.TrailingTrivia;
       tok = tok.Next;
+      s += tok.LeadingTrivia;
+      s += tok.val;
     }
 
     return s;
