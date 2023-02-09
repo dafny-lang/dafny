@@ -996,7 +996,7 @@ namespace Microsoft.Dafny {
     ///   axiom (forall $heap: HeapType, typeArgs: Ty, this: ref, x#0: int, fuel: LayerType ::
     ///     { J.F(fuel, $heap, G(typeArgs), this, x#0), C.F(fuel, $heap, typeArgs, this, x#0) }
     ///     { J.F(fuel, $heap, G(typeArgs), this, x#0), $Is(this, C) }
-    ///     C.F#canCall(args) || (fh != FunctionContextHeight && this != null && $Is(this, C))
+    ///     C.F#canCall(args) || (fh < FunctionContextHeight && this != null && $Is(this, C))
     ///     ==>
     ///     J.F(fuel, $heap, G(typeArgs), this, x#0) == C.F(fuel, $heap, typeArgs, this, x#0));
     /// (without the other usual antecedents).  Essentially, the override gives a part of the body of the

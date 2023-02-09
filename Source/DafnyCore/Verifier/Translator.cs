@@ -2050,11 +2050,10 @@ namespace Microsoft.Dafny {
       //
       // AXIOM_ACTIVATION
       // means:
-      //   mh < ModuleContextHeight ||
-      //   (mh == ModuleContextHeight && fh <= FunctionContextHeight)
+      //   fh <= FunctionContextHeight
       //
       // USE_VIA_CONTEXT
-      //   (mh != ModuleContextHeight || fh != FunctionContextHeight) &&
+      //   fh < FunctionContextHeight &&
       //   GOOD_PARAMETERS
       // where GOOD_PARAMETERS means:
       //   $IsGoodHeap($Heap) && this != null && formals-have-the-expected-types &&
@@ -2157,8 +2156,8 @@ namespace Microsoft.Dafny {
       foreach (AttributedExpression req in f.Req) {
         pre = BplAnd(pre, etran.TrExpr(Substitute(req.E, null, substMap)));
       }
-      // useViaContext: fh != FunctionContextHeight
-      var visibilityLevel = f.EnclosingClass.EnclosingModuleDefinition.CallGraph.GetSCCRepresentativePredecessorCount(f.OverriddenFunction ?? f);
+      // useViaContext: fh < FunctionContextHeight
+      var visibilityLevel = f.EnclosingClass.EnclosingModuleDefinition.CallGraph.GetSCCRepresentativePredecessorCount(f);
       Expr useViaContext = Expr.Lt(Expr.Literal(visibilityLevel), etran.FunctionContextHeight());
       // useViaCanCall: f#canCall(args)
       Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
