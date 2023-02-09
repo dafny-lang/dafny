@@ -8,7 +8,7 @@ I have this lemma
 ```dafny
     lemma MapKeepsCount<X,Y,Z>(m : map<X,Y>, f : (X) -> Z)
       requires forall a : X, b : X :: a != b ==> f(a) != f(b)
-      ensures |m| == |map k <- m.Keys | true :: f(k) := m[k]|
+      ensures |m| == |map k <- m.Keys :: f(k) := m[k]|
 ```
 and later on this code
 ```dafny
@@ -40,8 +40,8 @@ assert |schema| == |map k <- schema.Keys :: fn(k) := schema[k]|;
 The explanation is a little involved, and in the end gets into a weakness of Dafny. But these is a workaround. Here goes:
 
 To prove that the `|map …|` expression in the specification has the same value as the `|map …|` expression in the code, 
-the verifier would either have to compute the cardinality of each map (which it can’t do, because m.Keys is symbolic and could stand for any size set) 
-or reason that the one map … is the very same map as the other map … (in which case it would follow that the cardinality of the two maps are also the same).
+the verifier would either have to compute the cardinality of each map (which it can’t do, because `m.Keys` is symbolic and could stand for any size set) 
+or reason that the one `map …` is the very same map as the other `map …` (in which case it would follow that the cardinality of the two maps are also the same).
 The way to prove that two maps are equal is to show that they have the same keys and the same mappings. 
 The idea of proving two things equal by looking at the “elements” of each of the two things is called extensionality. 
 Dafny never tries to prove extensionality, but it’s happy to do it if you ask it to. 
@@ -87,8 +87,7 @@ lemma MapKeepsCount<X, Y, Z>(m: map<X, Y>, f: X -> Z)
 ghost function MyMap<X, Y, Z>(f: X -> Y, m: map<X, Z>): map<Y, Z>
   requires forall a <- m.Keys, b <- m.Keys :: a != b ==> f(a) != f(b)
 {
-  // same comment about <- in the next line
-  map k | k in m.Keys :: f(k) := m[k]
+  map k <- m.Keys :: f(k) := m[k]
 }
 
 method Use<X,Y,Z>(schema: map<X,Y>, tableName: TableName)
