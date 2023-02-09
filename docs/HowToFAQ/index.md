@@ -81,7 +81,7 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["Can classes appear in specs?"](FAQClassInSpec)
 - ["How do I write specifications for a lambda expression in a sequence constructor?"](FAQLambdaSpecifications)
 - ["I have a lemma and later an assert stating the postcondition of the lemma, but it fails to prove. Why and how do I fix it?"](FAQMapExtensionality)
-- ["Why can't I write `forall t: Test :: t.i == 1` for an object t?"]{FAQForallTricks)
+- ["Why can't I write `forall t: Test :: t.i == 1` for an object t?"](FAQForallTricks)
 - ["How do I say 'reads if x then this\`y else this\`z'? Dafny complains about the 'this'."](FAQThisFrameField)
 - ["How do I model extern methods that return objects?"](FAQExternReturnsObject)
 
