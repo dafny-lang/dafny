@@ -49,12 +49,17 @@
 1. Clone <https://github.com/dafny-lang/ide-vscode> and run `publish_process.js`
    to create a new release of the VSCode plugin.
 
-1. Update the Homebrew formula for Dafny (see below).
-   Note that it is fine to leave this for the next day,
-   and other members of the community may update the formula
-   in the meantime anyway.
+1. Make a documentation snapshot
+   a. Run the (bash) script dafny/docs/make-snapshot x.y.z
+      where x.y.z is the new version number
+   b. The script creates new PRs in dafny-lang/dafny
+      and dafny-lang/dafny-lang.github.io.
+      Approve and merge these PRs.
 
-1. Announce the new release to the world!
+1. Update the Homebrew formula for Dafny (see below).
+    Note that it is fine to leave this for the next day,
+    and other members of the community may update the formula
+    in the meantime anyway.
 
 If something goes wrong with the `prepare` step:
 
@@ -63,10 +68,11 @@ If something goes wrong with the `prepare` step:
 - Re-run the `prepare` step; the script will recognize the `release-` branch and will not recreate it.
 
 If something goes wrong with the `release` step:
-
 - Delete the local tag: `git tag -d vA.B.C`
 - Delete the remote tag: `git push --delete origin vA.B.C`
 - Return to the `prepare` step.
+
+1. Announce the new release to the world.
 
 ## Updating Dafny on Homebrew
 

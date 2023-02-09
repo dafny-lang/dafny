@@ -38,6 +38,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Diagnostics.Contracts;
 using Microsoft.Boogie;
+using static Microsoft.Dafny.ErrorDetail;
 
 
 -->namespace
@@ -318,12 +319,15 @@ public class Scanner {
   }
 
 //  [NotDelayed]
-  public Scanner (string/*!*/ fullFilename, string/*!*/ fileName, Errors/*!*/ errorHandler, bool useBaseName = false) : base() {
+  public Scanner (string/*!*/ fullFilename, string/*!*/ fileName, Errors/*!*/ errorHandler, bool useBaseName = false, Token firstToken = null) : base() {
     Contract.Requires(fileName != null);
     Contract.Requires(errorHandler != null);
     this.errorHandler = errorHandler;
-    pt = tokens = new Token();  // first token is a dummy
-    t = new Token(); // dummy because t is a non-null field
+    if(firstToken.Filename == null || firstToken.Filename == "") {
+      firstToken.Filename = fullFilename;
+    }
+    pt = tokens = firstToken ?? new Token();  // first token is a dummy
+    t = firstToken ?? new Token(); // dummy because t is a non-null field
     try {
       Stream stream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read);
       this._buffer = new Buffer(stream, false);
@@ -336,12 +340,15 @@ public class Scanner {
   }
 
 //  [NotDelayed]
-  public Scanner (Stream/*!*/ s, Errors/*!*/ errorHandler, string/*!*/ fullFilename, string/*!*/ fileName, int lineNumber = 1, bool useBaseName = false) : base() {
+  public Scanner (Stream/*!*/ s, Errors/*!*/ errorHandler, string/*!*/ fullFilename, string/*!*/ fileName, int lineNumber = 1, bool useBaseName = false, Token firstToken = null) : base() {
     Contract.Requires(s != null);
     Contract.Requires(errorHandler != null);
     Contract.Requires(fileName != null);
-    pt = tokens = new Token();  // first token is a dummy
-    t = new Token(); // dummy because t is a non-null field
+    if(firstToken.Filename == null || firstToken.Filename == "") {
+      firstToken.Filename = fullFilename;
+    }
+    pt = tokens = firstToken ?? new Token();  // first token is a dummy
+    t = firstToken ?? new Token(); // dummy because t is a non-null field
     this._buffer = new Buffer(s, true);
     this.errorHandler = errorHandler;
     this.FullFilename = fullFilename;
@@ -408,7 +415,10 @@ public class Scanner {
         if (ch == '\r' && buffer.Peek() != '\n') ch = EOL;
         if (ch == EOL) {
           line++; col = 0;
-        } else if (ch == '#' && col == 1) {
+        } else if (false && ch == '#' && col == 1) {
+          // This block of code implements the scanner recognizing line pragmas (#line) that reset the line number and filename.
+          // The pragma syntax can interfere with otherwise legal Dafny programs, so it is being disabled.
+          // Turn it back on by removing the 'false' in the condition, or perhaps by introducing a test of an option.
           int prLine = line;
           int prColumn = 0;
 
@@ -441,11 +451,11 @@ public class Scanner {
           } catch (FormatException) {
             // just fall down through to produce an error message
           }
-          this.errorHandler.SemErr(Filename, prLine, prColumn, "Malformed (#line num [filename]) pragma: #" + hashLine);
+          this.errorHandler.SemErr(ErrorDetail.ErrorID.sc_malformed_pragma, Filename, prLine, prColumn, "Malformed (#line num [filename]) pragma: #" + hashLine);
           continue;
           }
 
-          this.errorHandler.SemErr(Filename, prLine, prColumn, "Unrecognized pragma: #" + hashLine);
+          this.errorHandler.SemErr(ErrorDetail.ErrorID.sc_unknown_pragma, Filename, prLine, prColumn, "Unrecognized pragma: #" + hashLine);
           continue;
         }
         return;
@@ -486,15 +496,15 @@ public class Scanner {
       lastWasCr = false;
     } else {
       // We just skipped a comment. Any newline coming after the comment doesn't count for the splitting of the trivia
-      if(triviaTrailing && (ch == '\r' || (ch == '\n' && !lastWasCr))) {
-        triviaNewlines--;
+      if(triviaTrailing && (ch == '\r' || (ch == '\n' && !lastWasCr)) && oldEols == 0) {
+        triviaNewlines = 0;
         lastWasCr = (ch == '\r');
       }
     }
     while (ch == ' ' ||
 -->scan1
     ) {
-      if(triviaTrailing && (ch == '\r' || ch == '\n')) {
+      if(triviaTrailing && (ch == '\r' || ch == '\n') && oldEols == 0) {
         if(ch == '\r' || (ch == '\n' && !lastWasCr)) { // Don't count \r\n as two newlines.
           triviaNewlines++;
         }

@@ -120,12 +120,12 @@ public class BuiltIns {
         Type = new SetType(true, ObjectQ()),
       };
       var readsFrame = new List<FrameExpression> { new FrameExpression(tok, readsIS, null) };
-      var req = new Function(tok, "requires", false, true,
+      var req = new Function(tok, "requires", false, true, false,
         new List<TypeParameter>(), args, null, Type.Bool,
         new List<AttributedExpression>(), readsFrame, new List<AttributedExpression>(),
         new Specification<Expression>(new List<Expression>(), null),
         null, null, null, null, null);
-      var reads = new Function(tok, "reads", false, true,
+      var reads = new Function(tok, "reads", false, true, false,
         new List<TypeParameter>(), args, null, new SetType(true, ObjectQ()),
         new List<AttributedExpression>(), readsFrame, new List<AttributedExpression>(),
         new Specification<Expression>(new List<Expression>(), null),
@@ -240,7 +240,7 @@ public class BuiltIns {
       var nonGhostDims = argumentGhostness.Count(x => !x);
       TupleTypeDecl nonGhostTupleTypeDecl = null;
       if (nonGhostDims != dims &&
-          (nonGhostDims != 1 || !DafnyOptions.O.Compiler.SupportsDatatypeWrapperErasure || !DafnyOptions.O.Get(CommonOptionBag.OptimizeErasableDatatypeWrapper))) {
+          (nonGhostDims != 1 || !DafnyOptions.O.Backend.SupportsDatatypeWrapperErasure || !DafnyOptions.O.Get(CommonOptionBag.OptimizeErasableDatatypeWrapper))) {
         // make sure the corresponding non-ghost tuple type also exists
         nonGhostTupleTypeDecl = TupleType(tok, nonGhostDims, allowCreationOfNewType);
       }
