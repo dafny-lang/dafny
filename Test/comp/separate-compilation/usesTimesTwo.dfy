@@ -1,4 +1,4 @@
-// RUN: %translate cs %trargs --output=%S/Inputs/producer/timesTwo %S/Inputs/producer/timesTwo.dfy
+// RUN: %translate cs --use-basename-for-filename --cores:2 --verification-time-limit:300 --output=%S/Inputs/producer/timesTwo %S/Inputs/producer/timesTwo.dfy
 // RUN: dotnet build %S/Inputs/producer
 
 // RUN: %translate cs --output=%S/consumer/usesTimesTwo --library=%S/Inputs/producer/timesTwo.dfy %s
