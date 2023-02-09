@@ -3730,7 +3730,8 @@ ForallStmt<out Statement/*!*/ s>
           QuantifierDomain<out bvars, out qattrs, out range, true, true, true>
         ]
   )
-  (. if (bvars == null) { bvars = new List<BoundVar>(); }
+  (. if (bvars == null) errors.Deprecated(startToken, "a forall statement with no bound variables is deprecated; use an 'assert by' statement instead");
+     if (bvars == null) { bvars = new List<BoundVar>(); }
      if (range == null) { range = new LiteralExpr(x, true); }
   .)
 
