@@ -578,7 +578,7 @@ namespace Microsoft.Dafny {
       var nameNode = newFunction.NameNode;
 
       if (previousFunction is Predicate) {
-        return new Predicate(range, nameNode, previousFunction.HasStaticKeyword, previousFunction.IsOpaque, newFunction.IsGhost, tps, formals, result,
+        return new Predicate(range, nameNode, previousFunction.HasStaticKeyword, newFunction.IsGhost, previousFunction.IsOpaque, tps, formals, result,
           req, reads, ens, decreases, body, bodyOrigin,
           previousFunction.ByMethodTok == null ? null : refinementCloner.Tok(previousFunction.ByMethodTok), byMethodBody,
           refinementCloner.MergeAttributes(previousFunction.Attributes, moreAttributes), null);

@@ -87,7 +87,7 @@ public class AutoContractsRewriter : IRewriter {
     // Add:  predicate Valid()
     // ...unless an instance function with that name is already present
     if (!cl.Members.Exists(member => member is Function && member.Name == "Valid" && !member.IsStatic)) {
-      var valid = new Predicate(range, new Name(range, "Valid"), false, true, false, new List<TypeParameter>(), new List<Formal>(), null,
+      var valid = new Predicate(range, new Name(cl.NameNode.RangeToken, "Valid"), false, true, false, new List<TypeParameter>(), new List<Formal>(), null,
         new List<AttributedExpression>(), new List<FrameExpression>(), new List<AttributedExpression>(), new Specification<Expression>(new List<Expression>(), null),
         null, Predicate.BodyOriginKind.OriginalOrInherited, null, null, null, null);
       cl.Members.Add(valid);
