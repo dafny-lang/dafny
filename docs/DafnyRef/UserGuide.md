@@ -142,7 +142,7 @@ The command-line also expects the following:
 working directory. A command-line argument not matching a known option is considered a filepath, and likely one
 with an unsupported suffix, provoking an error message.
 - Files containing dafny code must have a `.dfy` suffix.
-- There must be at least one `.dfy` file (except when using `--stdin` or in the case of `dafny format`, see the [Dafny format section](#sec-formatting)) 
+- There must be at least one `.dfy` file (except when using `--stdin` or in the case of `dafny format`, see the [Dafny format section](#sec-dafny-format)) 
 - The command-line may contain other kinds of files appropriate to
 the language that the Dafny files are being compiled to. The kind of file is determined by its suffix.
 - Escape characters are determined by the shell executing the command-line.
@@ -295,8 +295,6 @@ Note that `dafny build` may do optimizations that `dafny run` does not.
 
 Details for specific target platforms are described [in Section 25.7](#sec-compilation).
 
-<!-- TODO: OLD TEXT: The command has options that enable being specific about the build platform and architecture. -->
-
 #### 25.5.1.6. `dafny run` {#sec-dafny-run}
 
 The `dafny run` command compiles the Dafny program and then runs the resulting executable.
@@ -386,8 +384,6 @@ errors or if --check is stipulated and at least one file is not the same as its 
 This _experimental_ command (verifies and compiles the program and) runs every method in the program that is annotated with the `{:test}` attribute.
 Verification can be disabled using the `--no-verify` option. `dafny test` also accepts all other options of the `dafny build` command. 
 In particular, it accepts the `--target` option that specifies the programming language used in the build and execution phases.
-
-<!-- TODO: Or is it like dafny run? -->
 
 There are currently no other options specific to the `dafny test` command.
 
@@ -956,7 +952,7 @@ For every method (or function, constructor, etc.), `dafny` extracts _assertions_
 
 * Every [division](#sec-numeric-types) yields an _assertion_ that the divisor is never zero.
 * Every [bounded number operation](#sec-numeric-types) yields an _assertion_ that the result will be within the same bounds (no overflow, no underflows).
-* Every [conversion](#sec-as-expression) yields an _assertion_ that conversion is compatible.
+* Every [conversion](#sec-as-is-expression) yields an _assertion_ that conversion is compatible.
 * Every [bitvector shift](#sec-bit-vector-types) yields an _assertion_ that the shift amount is never negative, and that the shift amount is within the width of the value.
 
 **Object assertions:**
@@ -964,7 +960,7 @@ For every method (or function, constructor, etc.), `dafny` extracts _assertions_
 * Every [object property access](#sec-class-types) yields an _assertion_ that the object is not null.
 * Every assignment `o.f := E;` yields an _assertion_ that `o` is among the set of objects of the `modifies` clause of the enclosing [loop](#sec-loop-framing) or [method](#sec-modifies-clause).
 * Every read `o.f` yields an _assertion_ that `o` is among the set of objects of the [`reads`](#sec-reads-clause) clause of the enclosing function or predicate; or the [`modifies`](#sec-modifies-clause) clause of the enclosing method.
-* Every [array access](#sec-array-types) `a[x]` yields the assertion that `0 <= x < a.Length`.
+* Every [array access](#sec-array-type) `a[x]` yields the assertion that `0 <= x < a.Length`.
 * Every [sequence access](#sec-sequences) `a[x]` yields an _assertion_, that `0 <= x < |a|`, because sequences are never null.
 * Every [datatype update expression](#sec-datatype-update-suffix) and [datatype destruction](#sec-algebraic-datatype) yields an _assertion_ that the object has the given property.
 * Every method overriding a [`trait`](#sec-trait-types) yields an _assertion_ that any postcondition it provides implies the postcondition of its parent trait, and an _assertion_ that any precondition it provides is implied by the precondition of its parent trait.
@@ -1091,7 +1087,8 @@ file.
 
 In general, we recommend something like the following:
 
-```bash <!-- %no-check -->
+<!-- %no-check -->
+```bash
 dafny-reportgenerator --max-resource-cv-pct 10 TestResults/*.csv
 ```
 
@@ -1844,21 +1841,14 @@ and what information it produces about the verification process.
 
 * `--relax-definite-assignment - control the rules governing definite
   assignment, the property that every variable is eventually assigned a
-  value before it is used.  If false (the default) definite assignment
-  rules are strictly checked (corresponding to legacy level 3); if true,
-  checking corresponds to legacy level TODO.
-  The legacy option was `-definiteAssignment:<n>` with possible values
-  * `0` - ignore definite-assignment rules; this mode is unsound and is
-    for testing only.
-  * `1` (default) - enforce definite-assignment rules for compiled
+  value before it is used.
+  * if false (default), enforce definite-assignment for all non-yield-parameter
+    variables and fields, regardless of their types
+  * if false and `--enforce-determinism` is true, then also performs 
+    checks in the compiler that no nondeterministic statements are used
+  * if true, enforce definite-assignment rules for compiled
     variables and fields whose types do not support auto-initialization
     and for ghost variables and fields whose type is possibly empty.
-  * `2` - enforce definite-assignment for all non-yield-parameter
-    variables and fields, regardless of their types.
-  * `3` - like `2`, but also performs checks in the compiler that no
-    nondeterministic statements are used; thus, a program that passes at
-    this level 3 is one that the language guarantees that values seen
-    during execution will be the same in every run of the program.
 
 * `-noAutoReq` - ignore `autoReq` attributes, and therefore do not
   automatically generate `requires` clauses.
