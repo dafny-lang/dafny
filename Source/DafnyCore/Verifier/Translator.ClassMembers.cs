@@ -1099,8 +1099,8 @@ namespace Microsoft.Dafny {
 
       // useViaContext: fh != FunctionContextHeight
       ModuleDefinition mod = f.EnclosingClass.EnclosingModuleDefinition;
-      Boogie.Expr useViaContext = !InVerificationScope(overridingFunction) ? Boogie.Expr.True :
-        Boogie.Expr.Neq(Boogie.Expr.Literal(mod.CallGraph.GetSCCRepresentativePredecessorCount(overridingFunction)), etran.FunctionContextHeight());
+      Boogie.Expr useViaContext =
+        Boogie.Expr.Neq(Boogie.Expr.Literal(mod.CallGraph.GetSCCRepresentativePredecessorCount(f)), etran.FunctionContextHeight());
 
       // useViaCanCall: C.F#canCall(args)
       Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(overridingFunction.tok, overridingFunction.FullSanitizedName + "#canCall", Bpl.Type.Bool);
