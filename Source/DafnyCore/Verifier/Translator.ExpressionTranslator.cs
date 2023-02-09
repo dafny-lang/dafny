@@ -783,10 +783,11 @@ namespace Microsoft.Dafny {
                 Boogie.Expr oIsFresh = Boogie.Expr.Not(OldAt(freshLabel).IsAlloced(GetToken(expr), TrExpr(e.E)));
                 return Boogie.Expr.Binary(GetToken(expr), BinaryOperator.Opcode.And, oNull, oIsFresh);
               }
-            case UnaryOpExpr.ResolvedOpcode.Allocated: {
-                var aType = e.E.Type.NormalizeExpand();
-                return translator.MkIsAlloc(TrExpr(e.E), aType, HeapExpr);
-              }
+            case UnaryOpExpr.ResolvedOpcode.Allocated:
+                // Translate with $IsAllocBox, even if it requires boxing the argument. This has the effect of giving
+                // both the $IsAllocBox and $IsAlloc forms, because the axioms that connects these two is triggered
+                // by $IsAllocBox.
+                return translator.MkIsAllocBox(BoxIfNecessary(e.E.tok, TrExpr(e.E), e.E.Type), e.E.Type, HeapExpr);
             default:
               Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary expression
           }
