@@ -657,7 +657,7 @@ public class ModuleSignature {
   }
 }
 
-public class ModuleQualifiedId {
+public class ModuleQualifiedId : Node, IHasUsages {
   public readonly List<Name> Path; // Path != null && Path.Count > 0
 
   public ModuleQualifiedId(List<Name> path) {
@@ -725,6 +725,21 @@ public class ModuleQualifiedId {
   [FilledInDuringResolution] public ModuleDecl Decl; // the module corresponding to the full path
   [FilledInDuringResolution] public ModuleDefinition Def; // the module definition corresponding to the full path
   [FilledInDuringResolution] public ModuleSignature Sig; // the module signature corresponding to the full path
+
+  public override IToken Tok => Path.Last();
+  public override IEnumerable<Node> Children => Enumerable.Empty<Node>();
+  public override IEnumerable<Node> PreResolveChildren => Children;
+
+  public override RangeToken RangeToken {
+    get => new(Path.First(), Path.Last());
+    set => throw new NotSupportedException();
+  }
+
+  public IToken NameToken => Path.Last();
+
+  public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
+    return Enumerable.Repeat(Decl, 1);
+  }
 }
 
 public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearingDeclaration {
@@ -1048,10 +1063,11 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   }
 
   public IToken NameToken => tok;
-  public override IEnumerable<Node> Children => (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(TopLevelDecls);
-  public override IEnumerable<Node> PreResolveChildren => Includes.Concat<Node>(TopLevelDecls).Concat<Node>(
-    PrefixNamedModules.Select(tuple => tuple.Item2)
-    );
+  public override IEnumerable<Node> Children => (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat<Node>(TopLevelDecls).
+    Concat(RefinementQId == null ? Enumerable.Empty<Node>() : new Node[] { RefinementQId });
+
+  public override IEnumerable<Node> PreResolveChildren => Includes.Concat<Node>(TopLevelDecls).Concat(
+    PrefixNamedModules.Select(tuple => tuple.Item2));
 }
 
 public class DefaultModuleDefinition : ModuleDefinition {
