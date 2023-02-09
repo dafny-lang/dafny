@@ -22,6 +22,7 @@ using static Microsoft.Dafny.ErrorDetail;
 
 namespace Microsoft.Dafny {
   public partial class Resolver {
+    public DafnyOptions Options { get; }
     public readonly BuiltIns builtIns;
 
     public ErrorReporter reporter;
@@ -235,10 +236,12 @@ namespace Microsoft.Dafny {
     private List<IRewriter> rewriters;
     private RefinementTransformer refinementTransformer;
 
-    public Resolver() {
+    public Resolver(DafnyOptions options) {
+      Options = options;
     }
 
     public Resolver(Program prog) {
+      Options = prog.Options;
       Contract.Requires(prog != null);
 
       builtIns = prog.BuiltIns;
@@ -418,7 +421,7 @@ namespace Microsoft.Dafny {
 
       rewriters = new List<IRewriter>();
 
-      if (DafnyOptions.O.AuditProgram) {
+      if (Options.AuditProgram) {
         rewriters.Add(new Auditor.Auditor(reporter));
       }
 
@@ -432,16 +435,16 @@ namespace Microsoft.Dafny {
       rewriters.Add(new ProvideRevealAllRewriter(this.reporter));
       rewriters.Add(new MatchFlattener(this.reporter, Resolver.defaultTempVarIdGenerator));
 
-      if (DafnyOptions.O.AutoTriggers) {
+      if (Options.AutoTriggers) {
         rewriters.Add(new QuantifierSplittingRewriter(reporter));
         rewriters.Add(new TriggerGeneratingRewriter(reporter));
       }
 
-      if (DafnyOptions.O.TestContracts != DafnyOptions.ContractTestingMode.None) {
+      if (Options.TestContracts != DafnyOptions.ContractTestingMode.None) {
         rewriters.Add(new ExpectContracts(reporter));
       }
 
-      if (DafnyOptions.O.RunAllTests) {
+      if (Options.RunAllTests) {
         rewriters.Add(new RunAllTestsMainMethod(reporter));
       }
 
@@ -449,13 +452,13 @@ namespace Microsoft.Dafny {
       rewriters.Add(new PrintEffectEnforcement(reporter));
       rewriters.Add(new BitvectorOptimization(reporter));
 
-      if (DafnyOptions.O.DisallowConstructorCaseWithoutParentheses) {
+      if (Options.DisallowConstructorCaseWithoutParentheses) {
         rewriters.Add(new ConstructorWarning(reporter));
       }
       rewriters.Add(new UselessOldLinter(reporter));
       rewriters.Add(new PrecedenceLinter(reporter));
 
-      foreach (var plugin in DafnyOptions.O.Plugins) {
+      foreach (var plugin in Options.Plugins) {
         rewriters.AddRange(plugin.GetRewriters(reporter));
       }
 
@@ -1173,7 +1176,7 @@ namespace Microsoft.Dafny {
         var scope = exportDecl.Signature.VisibilityScope;
         Cloner cloner = new ScopeCloner(scope);
         var exportView = cloner.CloneModuleDefinition(m, m.Name);
-        if (DafnyOptions.O.DafnyPrintExportedViews.Contains(exportDecl.FullName)) {
+        if (Options.DafnyPrintExportedViews.Contains(exportDecl.FullName)) {
           var wr = Console.Out;
           wr.WriteLine("/* ===== export set {0}", exportDecl.FullName);
           var pr = new Printer(wr);
@@ -1907,7 +1910,7 @@ namespace Microsoft.Dafny {
           if (cl.IsDefaultClass) {
             foreach (MemberDecl m in members.Values) {
               Contract.Assert(!m.HasStaticKeyword || m is ConstantField ||
-                              DafnyOptions.O
+                              Options
                                 .AllowGlobals); // note, the IsStatic value isn't available yet; when it becomes available, we expect it will have the value 'true'
               if (m is Function || m is Method || m is ConstantField) {
                 sig.StaticMembers[m.Name] = m;
@@ -3925,7 +3928,7 @@ namespace Microsoft.Dafny {
       // Finally, of the big-enough native types, pick the first one that is
       // supported by the selected target compiler.
       foreach (var nativeT in bigEnoughNativeTypes) {
-        if (DafnyOptions.O.Backend.SupportedNativeTypes.Contains(nativeT.Name)) {
+        if (Options.Backend.SupportedNativeTypes.Contains(nativeT.Name)) {
           dd.NativeType = nativeT;
           break;
         }
