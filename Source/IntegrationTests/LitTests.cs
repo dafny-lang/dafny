@@ -38,15 +38,15 @@ namespace IntegrationTests {
 
       var repositoryRoot = Path.GetFullPath("../../../../../"); // Up from Source/IntegrationTests/bin/Debug/net6.0/
 
-      string[] defaultResolveArgs = new[] { "resolve", "--use-basename-for-filename", "--cores:2", "--verification-time-limit:300" };
+      string[] defaultResolveArgs = new[] { "resolve", "--use-basename-for-filename" };
       string[] defaultVerifyArgs = new[] { "verify", "--use-basename-for-filename", "--cores:2", "--verification-time-limit:300" };
       string[] defaultBuildArgs = new[] { "build", "--use-basename-for-filename", "--cores:2", "--verification-time-limit:300" };
       string[] defaultRunArgs = new[] { "run", "--use-basename-for-filename", "--cores:2", "--verification-time-limit:300" };
 
       var substitutions = new Dictionary<string, object> {
         { "%diff", "diff" },
-        { "%resolveargs", " --use-basename-for-filename " },
-        { "%translateargs", " --use-basename-for-filename --cores:2 --verification-time-limit:300 " },
+        { "%resolveargs", "--use-basename-for-filename" },
+        { "%translateargs", "--use-basename-for-filename --cores:2 --verification-time-limit:300" },
         { "%verifyargs", "--use-basename-for-filename --cores:2 --verification-time-limit:300" },
         //{ "%run", " run --use-basename-for-filename --cores:2 --verification-time-limit:300 " },
         { "%binaryDir", "." },
