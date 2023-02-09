@@ -6328,8 +6328,11 @@ namespace Microsoft.Dafny {
           lhsExtract.Type = lmulti.Type;
         } else if (lhsResolved is IdentifierExpr) {
           // do nothing
+        } else if (lhsResolved == null) {
+          // LHS failed to resolve. Abort trying to resolve assign or return stmt
+          return;
         } else {
-          Contract.Assert(false, "Internal error: unexpected option in ResolveAssignOrReturnStmt");
+          throw new InvalidOperationException("Internal error: unexpected option in ResolveAssignOrReturnStmt");
         }
       }
       var temp = FreshTempVarName("valueOrError", resolutionContext.CodeContext);
