@@ -40,7 +40,7 @@ assert |authSchema| == |map k <- authSchema.Keys :: fn(k) := authSchema[k]|;
 The explanation is a little involved, and in the end gets into a weakness of Dafny. But I also have a workaround. Get some popcorn. Here goes:
 
 To prove that the `|map …|` expression in the specification has the same value as the `|map …|` expression in the code, 
-the verifier would either have to compute the cardinality of each map (which it can’t do, because m.Keys is symbolic and could stand for any size set) 
+the verifier would either have to compute the cardinality of each map (which it can’t do, because `m.Keys` is symbolic and could stand for any size set) 
 or reason that the one map … is the very same map as the other map … (in which case it would follow that the cardinality of the two maps are also the same).
 The way to prove that two maps are equal is to show that they have the same keys and the same mappings. 
 The idea of proving two things equal by looking at the “elements” of each of the two things is called extensionality. 
