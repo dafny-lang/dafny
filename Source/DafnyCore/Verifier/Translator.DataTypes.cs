@@ -672,21 +672,21 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// Return list of variables
-    ///     d: DatatypeValue, T0,T1,...: Ty
+    ///     d: DatatypeValue, T0,T1,...: Ty  // in out-parameter "boundVariables"
     /// expression
-    ///     d
+    ///     d                                // in out-parameter "varExpression"
     /// expression
-    ///     T(T0,T1,...)
+    ///     T(T0,T1,...)                     // in out-parameter "typeExpression"
     /// and predicate
-    ///     $Is(d, T(T0,T1,...))
+    ///     $Is(d, T(T0,T1,...))             // in out-parameter "isPredicate"
     /// </summary>
-    private void MkIsPredicateForDatatype(DatatypeDecl dt, out List<Bpl.Variable> boundVariables,
-      out Bpl.Expr d, out Bpl.Expr tyExpr, out Bpl.Expr isPredicate) {
-      var tyvars = MkTyParamBinders(dt.TypeArgs, out var tyexprs);
-      var dVar = BplBoundVar("d", predef.DatatypeType, out d);
-      boundVariables = Snoc(tyvars, dVar);
-      tyExpr = ClassTyCon(dt, tyexprs);
-      isPredicate = MkIs(d, tyExpr);
+    private void MkIsPredicateForDatatype(DatatypeDecl datatypeDecl, out List<Bpl.Variable> boundVariables,
+      out Bpl.Expr varExpression, out Bpl.Expr typeExpression, out Bpl.Expr isPredicate) {
+      var typeVariables = MkTyParamBinders(datatypeDecl.TypeArgs, out var typeExpressions);
+      var dVar = BplBoundVar("d", predef.DatatypeType, out varExpression);
+      boundVariables = Snoc(typeVariables, dVar);
+      typeExpression = ClassTyCon(datatypeDecl, typeExpressions);
+      isPredicate = MkIs(varExpression, typeExpression);
     }
 
     /* (forall d : DatatypeType, G : Ty, H : Heap •
