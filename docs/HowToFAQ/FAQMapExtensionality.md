@@ -13,7 +13,7 @@ I have this lemma
 and later on this code
 ```dafny
 MapKeepsCount(authSchema, k => Paths.SimpleCanon(tableName, k));
-assert |authSchema| == |map k <- authSchema.Keys | true :: Paths.SimpleCanon(tableName, k) := authSchema[k]|;
+assert |authSchema| == |map k <- authSchema.Keys :: Paths.SimpleCanon(tableName, k) := authSchema[k]|;
 ```
 
 The final assert fails, even though it exactly matches the ensures of the lemma.
