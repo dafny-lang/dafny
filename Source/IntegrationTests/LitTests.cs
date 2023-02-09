@@ -40,15 +40,13 @@ namespace IntegrationTests {
 
       string[] defaultResolveArgs = new[] { "resolve", "--use-basename-for-filename" };
       string[] defaultVerifyArgs = new[] { "verify", "--use-basename-for-filename", "--cores:2", "--verification-time-limit:300" };
+      string[] defaultTranslateArgs = new[] { "translate", "--use-basename-for-filename", "--cores:2", "--verification-time-limit:300" };
       string[] defaultBuildArgs = new[] { "build", "--use-basename-for-filename", "--cores:2", "--verification-time-limit:300" };
       string[] defaultRunArgs = new[] { "run", "--use-basename-for-filename", "--cores:2", "--verification-time-limit:300" };
 
       var substitutions = new Dictionary<string, object> {
         { "%diff", "diff" },
-        { "%resolveargs", "--use-basename-for-filename" },
-        { "%translateargs", "--use-basename-for-filename --cores:2 --verification-time-limit:300" },
-        { "%verifyargs", "--use-basename-for-filename --cores:2 --verification-time-limit:300" },
-        //{ "%run", " run --use-basename-for-filename --cores:2 --verification-time-limit:300 " },
+        { "%trargs", "--use-basename-for-filename --cores:2 --verification-time-limit:300" },
         { "%binaryDir", "." },
         { "%z3", Path.Join("z3", "bin", "z3") },
         { "%repositoryRoot", repositoryRoot.Replace(@"\", "/") },
@@ -61,6 +59,10 @@ namespace IntegrationTests {
         }, {
           "%resolve", (args, config) =>
             MainMethodLitCommand.Parse(DafnyDriverAssembly, AddExtraArgs(defaultResolveArgs, args),
+              config, InvokeMainMethodsDirectly)
+        }, {
+          "%translate", (args, config) =>
+            MainMethodLitCommand.Parse(DafnyDriverAssembly, AddExtraArgs(AddExtraArgs(new[]{defaultTranslateArgs[0],args[0]}, defaultTranslateArgs[1..]), args[1..]),
               config, InvokeMainMethodsDirectly)
         }, {
           "%verify", (args, config) =>
@@ -125,15 +127,6 @@ namespace IntegrationTests {
         var dafnyCliPath = Path.Join(dafnyReleaseDir, "dafny");
         commands["%baredafny"] = (args, config) =>
           new ShellLitCommand(dafnyCliPath, args, config.PassthroughEnvironmentVariables);
-        //        commands["%resolve"] = (args, config) =>
-        //          new ShellLitCommand(dafnyCliPath, defaultResolveArgs, config.PassthroughEnvironmentVariables);
-        //        commands["%verify"] = (args, config) =>
-        //          new ShellLitCommand(dafnyCliPath, defaultVerifyArgs, config.PassthroughEnvironmentVariables);
-        //        commands["%build"] = (args, config) =>
-        //          new ShellLitCommand(dafnyCliPath, defaultBuildArgs, config.PassthroughEnvironmentVariables);
-        //        commands["%run"] = (args, config) =>
-        //          new ShellLitCommand(dafnyCliPath, defaultRunArgs, config.PassthroughEnvironmentVariables);
-
         commands["%dafny"] = (args, config) =>
           new ShellLitCommand(dafnyCliPath,
             AddExtraArgs(DafnyDriver.DefaultArgumentsForTesting, args), config.PassthroughEnvironmentVariables);
