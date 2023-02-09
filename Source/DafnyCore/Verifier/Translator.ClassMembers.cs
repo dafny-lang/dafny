@@ -877,8 +877,8 @@ namespace Microsoft.Dafny {
       }
       // the procedure itself
       var req = new List<Boogie.Requires>();
-      // free requires mh == ModuleContextHeight && fh == FunctionContextHeight;
-      req.Add(Requires(f.tok, true, etran.HeightContext(f.OverriddenFunction), null, null));
+      // free requires fh == FunctionContextHeight;
+      req.Add(Requires(f.tok, true, etran.HeightContext(f), null, null));
       if (f is TwoStateFunction) {
         // free requires prevHeap == Heap && HeapSucc(prevHeap, currHeap) && IsHeap(currHeap)
         var a0 = Boogie.Expr.Eq(prevHeap, ordinaryEtran.HeapExpr);
@@ -1146,7 +1146,7 @@ namespace Microsoft.Dafny {
       // The axiom
       Boogie.Expr ax = BplForall(f.tok, new List<Boogie.TypeVariable>(), forallFormals, null, tr,
         Boogie.Expr.Imp(ante, synonyms));
-      var activate = AxiomActivation(f, etran);
+      var activate = AxiomActivation(overridingFunction, etran);
       string comment = "override axiom for " + f.FullSanitizedName + " in class " + overridingFunction.EnclosingClass.FullSanitizedName;
       return new Boogie.Axiom(f.tok, Boogie.Expr.Imp(activate, ax), comment);
     }
