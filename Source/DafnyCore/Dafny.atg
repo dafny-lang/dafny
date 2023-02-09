@@ -1013,7 +1013,7 @@ Dafny
      DefaultModuleDefinition defaultModule = (DefaultModuleDefinition)((LiteralModuleDecl)theModule).ModuleDef;
      // theModule should be a DefaultModuleDefinition (actually, the singular DefaultModuleDefinition)
      Contract.Assert(defaultModule != null);
-     IToken startToken;
+     IToken startToken = t;
   .)
   { "include"                 (. startToken = t; .)
     stringToken               (. {
@@ -1033,7 +1033,9 @@ Dafny
                             .)
   }
   { TopDecl<defaultModule, membersDefaultClass, /* isTopLevel */ true, /* isAbstract */ false> }
-  (. // find the default class in the default module, then append membersDefaultClass to its member list
+  (. 
+    defaultModule.RangeToken = new RangeToken(startToken, t);
+    // find the default class in the default module, then append membersDefaultClass to its member list
 		 if (membersDefaultClass.Count == 0 && defaultModule.Includes.Count == 0 && defaultModule.TopLevelDecls.Count == 0
 		     && (defaultModule.PrefixNamedModules == null || defaultModule.PrefixNamedModules.Count == 0)) {
 		   var fileName = theOptions.UseBaseNameForFileName
@@ -1134,7 +1136,7 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
                                         false, theVerifyThisFile, theCompileThisFile);
    .)
    SYNC                                (. tokenWithTrailingDocString = t; .)
-   "{"                                 
+   "{"                                 (. module.BodyStartTok = t; .)
      { TopDecl<module, namedModuleDefaultClassMembers, /* isTopLevel */ false, isAbstract>}
    "}"
     (.

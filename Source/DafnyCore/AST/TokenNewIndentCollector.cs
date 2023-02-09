@@ -74,12 +74,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
   private readonly Dictionary<int, Indentations> posToIndentations = new();
 
   private Indentations PosToIndentations(int pos) {
-    if (posToIndentations.TryGetValue(pos, out var indentations)) {
-      return indentations;
-    }
-    var result = new Indentations();
-    posToIndentations[pos] = result;
-    return result;
+    return posToIndentations.GetOrCreate(pos, () => new Indentations());
   }
 
   // Used for bullet points && and ||
