@@ -126,7 +126,6 @@ public abstract class Node : INode {
             .ToDictionary(child => child.StartToken.pos, child => child.EndToken!);
       } catch (ArgumentException) {
         // If we parse a resolved document, some children sometimes have the same token because they are auto-generated
-        Debugger.Break();
         startToEndTokenNotOwned = new();
         foreach (var child in childrenFiltered) {
           if (startToEndTokenNotOwned.ContainsKey(child.StartToken.pos)) {
