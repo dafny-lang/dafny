@@ -1854,14 +1854,14 @@ GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs, bool allowVariance.>
      TypeParameter.TypeParameterCharacteristics characteristics;
      TypeParameter.TPVarianceSyntax variance = TypeParameter.TPVarianceSyntax.NonVariant_Strict;  // assignment is to please compiler
      characteristics = new TypeParameter.TypeParameterCharacteristics(false);
-     IToken startToken = t.Next;
+     
      Name name;
   .)
   // If a "<" combined with a Variance symbol could be a new token, then the parser here will need to be more complex,
   // since, for example, a < followed immediately by a Variance symbol would scan as the wrong token.
   // Fortunately that is not currently the case.
   // (Only because we parse the new "<-" symbol as separate "<" "-" tokens precisely to avoid this issue :)
-  "<"
+  "<"   (. IToken startToken = t.Next; .)
   [ Variance<out variance>  (.
             if (!allowVariance) { SemErr(t, "type-parameter variance is not allowed to be specified in this context"); } 
         .)
