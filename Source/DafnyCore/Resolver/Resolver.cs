@@ -18,6 +18,7 @@ using Microsoft.BaseTypes;
 using Microsoft.Boogie;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Dafny.Plugins;
+using static Microsoft.Dafny.ErrorDetail;
 
 namespace Microsoft.Dafny {
   public partial class Resolver {
@@ -882,7 +883,7 @@ namespace Microsoft.Dafny {
           // then an error will already have been produced ("duplicate name of top-level declaration").
           if (classMembers.TryGetValue((ClassDecl)defaultClass, out members) &&
               members.TryGetValue(d.Name, out member)) {
-            reporter.Warning(MessageSource.Resolver, d.tok,
+            reporter.Warning(MessageSource.Resolver, ErrorID.None, d.tok,
               "note, this export set is empty (did you perhaps forget the 'provides' or 'reveals' keyword?)");
           }
         }
@@ -1837,7 +1838,7 @@ namespace Microsoft.Dafny {
             new Specification<Expression>(new List<Expression>(), null),
             null, null, null);
           // --- here comes predicate Valid()
-          var valid = new Predicate(iter.tok, "Valid", false, true, new List<TypeParameter>(),
+          var valid = new Predicate(iter.tok, "Valid", false, true, false, new List<TypeParameter>(),
             new List<Formal>(),
             null,
             new List<AttributedExpression>(),
@@ -3235,7 +3236,7 @@ namespace Microsoft.Dafny {
     void CheckForUnnecessaryEqualitySupportDeclarations(MemberDecl member, List<TypeParameter> typeParameters) {
       if (member.IsGhost) {
         foreach (var p in typeParameters.Where(p => p.SupportsEquality)) {
-          reporter.Warning(MessageSource.Resolver, p.tok,
+          reporter.Warning(MessageSource.Resolver, ErrorID.None, p.tok,
             $"type parameter {p.Name} of ghost {member.WhatKind} {member.Name} is declared (==), which is unnecessary because the {member.WhatKind} doesn't contain any compiled code");
         }
       }
@@ -5706,10 +5707,10 @@ namespace Microsoft.Dafny {
         case Scope<Thing>.PushResult.Success:
           break;
         case Scope<Thing>.PushResult.Duplicate:
-          reporter.Error(MessageSource.Resolver, tok, "Duplicate {0} name: {1}", kind, name);
+          reporter.Error(MessageSource.Resolver, ErrorID.None, tok, "Duplicate {0} name: {1}", kind, name);
           break;
         case Scope<Thing>.PushResult.Shadow:
-          reporter.Warning(MessageSource.Resolver, tok, "Shadowed {0} name: {1}", kind, name);
+          reporter.Warning(MessageSource.Resolver, ErrorID.None, tok, "Shadowed {0} name: {1}", kind, name);
           break;
       }
     }
@@ -6327,8 +6328,11 @@ namespace Microsoft.Dafny {
           lhsExtract.Type = lmulti.Type;
         } else if (lhsResolved is IdentifierExpr) {
           // do nothing
+        } else if (lhsResolved == null) {
+          // LHS failed to resolve. Abort trying to resolve assign or return stmt
+          return;
         } else {
-          Contract.Assert(false, "Internal error: unexpected option in ResolveAssignOrReturnStmt");
+          throw new InvalidOperationException("Internal error: unexpected option in ResolveAssignOrReturnStmt");
         }
       }
       var temp = FreshTempVarName("valueOrError", resolutionContext.CodeContext);
@@ -7637,7 +7641,10 @@ namespace Microsoft.Dafny {
       public IToken FirstCollectedToken = Token.NoToken;
       public bool Collected = false;
 
-      public override bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
+      public bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
+        return Message(source, level, ErrorID.None, tok, msg);
+      }
+      public override bool Message(MessageSource source, ErrorLevel level, ErrorID errorID, IToken tok, string msg) {
         if (!Collected && level == ErrorLevel.Error) {
           FirstCollectedMessage = msg;
           FirstCollectedToken = tok;

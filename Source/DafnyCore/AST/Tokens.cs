@@ -1,5 +1,6 @@
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
@@ -43,6 +44,8 @@ public interface IToken : Microsoft.Boogie.IToken {
   string LeadingTrivia { get; set; }
   IToken Next { get; set; } // The next token
   IToken Prev { get; set; } // The previous token
+
+  public IToken WithVal(string val);  // create a new token by setting the given val.
 }
 
 /// <summary>
@@ -80,9 +83,9 @@ public class Token : IToken {
 
   public string val { get; set; } // Used by coco, so we can't rename it to Val
 
-  public string LeadingTrivia { get; set; }
+  public string LeadingTrivia { get; set; } = "";
 
-  public string TrailingTrivia { get; set; }
+  public string TrailingTrivia { get; set; } = "";
 
   public IToken Next { get; set; } // The next token
 
@@ -90,8 +93,25 @@ public class Token : IToken {
 
   public bool IsValid => this.ActualFilename != null;
 
+  public IToken WithVal(string newVal) {
+    return new Token {
+      pos = pos,
+      col = col,
+      line = line,
+      Prev = Prev,
+      Next = Next,
+      Filename = Filename,
+      kind = kind,
+      val = newVal
+    };
+  }
+
   public override int GetHashCode() {
     return pos;
+  }
+
+  public override string ToString() {
+    return $"{Filename}@{pos} - @{line}:{col}";
   }
 }
 
@@ -103,7 +123,9 @@ public abstract class TokenWrapper : IToken {
     WrappedToken = wrappedToken;
   }
 
-  public int col {
+  public abstract IToken WithVal(string newVal);
+
+  public virtual int col {
     get { return WrappedToken.col; }
     set { WrappedToken.col = value; }
   }
@@ -122,14 +144,15 @@ public abstract class TokenWrapper : IToken {
     get { return WrappedToken.kind; }
     set { WrappedToken.kind = value; }
   }
-  public int line {
+  public virtual int line {
     get { return WrappedToken.line; }
     set { WrappedToken.line = value; }
   }
-  public int pos {
+  public virtual int pos {
     get { return WrappedToken.pos; }
     set { WrappedToken.pos = value; }
   }
+
   public virtual string val {
     get { return WrappedToken.val; }
     set { WrappedToken.val = value; }
@@ -178,11 +201,32 @@ public class BoogieRangeToken : TokenWrapper {
   public IToken EndToken => endTok;
 
   // Used for range reporting
-  public override string val => new string(' ', endTok.pos + endTok.val.Length - pos);
+  public override string val => new string(' ', Math.Max(endTok.pos + endTok.val.Length - pos, 1));
 
   public BoogieRangeToken(IToken startTok, IToken endTok) : base(
     startTok) {
     this.endTok = endTok;
+  }
+
+  public override IToken WithVal(string newVal) {
+    return this;
+  }
+}
+
+public class CodeActionToken : TokenWrapper {
+  public int column;
+  public int length;
+  public CodeActionToken(IToken sourceTok, int column, int length) : base(sourceTok) {
+    this.column = column;
+    this.length = length;
+  }
+
+  public String StartLength() {
+    return (line - 1) + " " + (column - 1) + " " + length;
+  }
+
+  public override IToken WithVal(string newVal) {
+    return this;
   }
 }
 
@@ -197,6 +241,10 @@ public class NestedToken : TokenWrapper {
   public IToken Outer { get { return WrappedToken; } }
   public readonly IToken Inner;
   public readonly string Message;
+
+  public override IToken WithVal(string newVal) {
+    return this;
+  }
 }
 
 /// <summary>
@@ -217,6 +265,21 @@ public class IncludeToken : TokenWrapper {
     set { WrappedToken.val = value; }
   }
 
+  public override int pos {
+    get { return WrappedToken.pos; }
+    set { WrappedToken.pos = value; }
+  }
+
+  public override int line {
+    get { return WrappedToken.line; }
+    set { WrappedToken.line = value; }
+  }
+
+  public override int col {
+    get { return WrappedToken.col; }
+    set { WrappedToken.col = value; }
+  }
+
   public override IToken Prev {
     get { return WrappedToken.Prev; }
     set { WrappedToken.Prev = value; }
@@ -227,6 +290,9 @@ public class IncludeToken : TokenWrapper {
     set { WrappedToken.Next = value; }
   }
 
+  public override IToken WithVal(string newVal) {
+    return new IncludeToken(Include, WrappedToken.WithVal(newVal));
+  }
 }
 
 /// <summary>
@@ -243,6 +309,10 @@ public class QuantifiedVariableDomainToken : TokenWrapper {
     get { return WrappedToken.val; }
     set { WrappedToken.val = value; }
   }
+
+  public override IToken WithVal(string newVal) {
+    return new QuantifiedVariableDomainToken((WrappedToken.WithVal(newVal)));
+  }
 }
 
 /// <summary>
@@ -258,5 +328,9 @@ public class QuantifiedVariableRangeToken : TokenWrapper {
   public override string val {
     get { return WrappedToken.val; }
     set { WrappedToken.val = value; }
+  }
+
+  public override IToken WithVal(string newVal) {
+    return new QuantifiedVariableRangeToken(WrappedToken.WithVal(newVal));
   }
 }

@@ -19,6 +19,8 @@ public class NestedMatchCaseExpr : NestedMatchCase, IAttributeBearingDeclaration
   public override IEnumerable<Node> Children =>
     (Attributes != null ? new Node[] { Attributes } : Enumerable.Empty<Node>()).Concat(new Node[] { Body, Pat });
 
+  public override IEnumerable<Node> PreResolveChildren => Children;
+
   public void Resolve(Resolver resolver,
     ResolutionContext resolutionContext,
     Type resultType,
