@@ -2089,7 +2089,9 @@ namespace Microsoft.Dafny {
         formals.Add(bvPrevHeap);
         args.Add(etran.Old.HeapExpr);
         // ante:  $IsGoodHeap($prevHeap) &&
-        ante = BplAnd(ante, FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etran.Old.HeapExpr));
+        var goodHeap = FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etran.Old.HeapExpr);
+        ante = BplAnd(ante, goodHeap);
+        anteIsAlloc = BplAnd(anteIsAlloc, goodHeap);
       }
       var bvHeap = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, predef.HeapVarName, predef.HeapType));
       if (AlwaysUseHeap || f.ReadsHeap) {
@@ -2100,9 +2102,12 @@ namespace Microsoft.Dafny {
         Bpl.Expr goodHeap = FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etranHeap.HeapExpr);
         formals.Add(bvHeap);
         ante = BplAnd(ante, goodHeap);
-      }
-      if (f is TwoStateFunction && f.ReadsHeap) {
-        ante = BplAnd(ante, HeapSucc(etran.Old.HeapExpr, etran.HeapExpr));
+        anteIsAlloc = BplAnd(anteIsAlloc, f.ReadsHeap ? goodHeap : Bpl.Expr.True);
+        if (f is TwoStateFunction) {
+          var heapSucc = HeapSucc(etran.Old.HeapExpr, etran.HeapExpr);
+          ante = BplAnd(ante, heapSucc);
+          anteIsAlloc = BplAnd(anteIsAlloc, f.ReadsHeap ? heapSucc : Bpl.Expr.True);
+        }
       }
 
       if (!f.IsStatic) {
@@ -2117,6 +2122,11 @@ namespace Microsoft.Dafny {
           ReceiverNotNull(bvThisIdExpr),
           (f is TwoStateFunction ? etran.Old : etran).GoodRef(f.tok, bvThisIdExpr, thisType));
         ante = BplAnd(ante, wh);
+        anteIsAlloc = BplAnd(anteIsAlloc, ReceiverNotNull(bvThisIdExpr));
+        wh = GetWhereClause(f.tok, bvThisIdExpr, thisType, f is TwoStateFunction ? etranHeap.Old : etranHeap, ISALLOC, true);
+        if (wh != null) {
+          anteIsAlloc = BplAnd(anteIsAlloc, wh);
+        }
       }
       foreach (Formal p in f.Formals) {
         var bv = new Bpl.BoundVariable(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(currentDeclaration.IdGenerator), TrType(p.Type)));
@@ -2127,7 +2137,7 @@ namespace Microsoft.Dafny {
         // add well-typedness conjunct to antecedent
         Bpl.Expr wh = GetWhereClause(p.tok, formal, p.Type, p.IsOld ? etran.Old : etran, NOALLOC);
         if (wh != null) { ante = BplAnd(ante, wh); }
-        wh = GetWhereClause(p.tok, formal, p.Type, etranHeap, ISALLOC);
+        wh = GetWhereClause(p.tok, formal, p.Type, p.IsOld ? etranHeap.Old : etranHeap, ISALLOC);
         if (wh != null) { anteIsAlloc = BplAnd(anteIsAlloc, wh); }
       }
 
@@ -2166,6 +2176,7 @@ namespace Microsoft.Dafny {
 
       // ante := useViaCanCall || (useViaContext && typeAnte && pre)
       ante = Bpl.Expr.Or(useViaCanCall, BplAnd(useViaContext, BplAnd(ante, pre)));
+      anteIsAlloc = Bpl.Expr.Or(useViaCanCall, BplAnd(useViaContext, BplAnd(anteIsAlloc, pre)));
 
       Bpl.Trigger tr = BplTriggerHeap(this, f.tok, funcAppl,
         (AlwaysUseHeap || f.ReadsHeap || !readsHeap) ? null : etran.HeapExpr);
@@ -2192,16 +2203,22 @@ namespace Microsoft.Dafny {
       var consequenceAxiom = new Bpl.Axiom(f.tok, Bpl.Expr.Imp(activate, ax), comment);
       AddOtherDefinition(boogieFunction, consequenceAxiom);
 
-      if (CommonHeapUse && !readsHeap) {
-        whr = GetWhereClause(f.tok, funcAppl, f.ResultType, etranHeap, NOALLOC, true);
+      if (CommonHeapUse && f.ResultType.MayInvolveReferences) {
+        whr = GetWhereClause(f.tok, funcAppl, f.ResultType, etranHeap, ISALLOC, true);
         if (whr != null) {
-          Bpl.Expr goodHeap = FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etranHeap.HeapExpr);
-          formals = Util.Cons(bvHeap, formals);
-          ante = BplAnd(ante, goodHeap);
-          ax = BplForall(f.tok, new List<Bpl.TypeVariable>(), formals, null, BplTrigger(whr), Bpl.Expr.Imp(ante, whr));
-          activate = AxiomActivation(f, etran);
-          var heapConsequenceAxiom = new Bpl.Axiom(f.tok, Bpl.Expr.Imp(activate, ax));
-          AddOtherDefinition(boogieFunction, heapConsequenceAxiom);
+          if (readsHeap) {
+            Contract.Assert(formals.Contains(bvHeap));
+          } else {
+            formals = Util.Cons(bvHeap, formals);
+            var goodHeap = FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etranHeap.HeapExpr);
+            anteIsAlloc = BplAnd(anteIsAlloc, goodHeap);
+          }
+
+          ax = BplForall(f.tok, new List<Bpl.TypeVariable>(), formals, null, BplTrigger(whr), Bpl.Expr.Imp(anteIsAlloc, whr));
+
+          comment = "alloc consequence axiom for " + f.FullSanitizedName;
+          var allocConsequenceAxiom = new Bpl.Axiom(f.tok, Bpl.Expr.Imp(activate, ax), comment);
+          AddOtherDefinition(boogieFunction, allocConsequenceAxiom);
         }
       }
     }
