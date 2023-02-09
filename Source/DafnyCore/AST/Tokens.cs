@@ -211,6 +211,21 @@ public class BoogieRangeToken : TokenWrapper {
   public override IToken WithVal(string newVal) {
     return this;
   }
+
+  public string PrintOriginal() {
+    var tok = WrappedToken;
+    var s = tok.val;
+    while (tok != null && tok.pos < endTok.pos) {
+      if (tok != WrappedToken) {
+        s += tok.TrailingTrivia;
+        s += tok.val;
+      }
+      s += tok.TrailingTrivia;
+      tok = tok.Next;
+    }
+
+    return s;
+  }
 }
 
 public class CodeActionToken : TokenWrapper {
