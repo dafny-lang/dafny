@@ -403,7 +403,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
 
     var indent2 = indent + SpaceTab;
     if (topLevelDecl.StartToken.line > 0) {
-      SetDelimiterIndentedRegions(topLevelDecl.StartToken, indent);
+      SetDelimiterIndentedRegions(topLevelDecl.BodyStartTok, indent);
       SetOpeningIndentedRegion(topLevelDecl.StartToken, indent);
     }
 
@@ -440,14 +440,14 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
       canFormat.SetIndent(indent, this);
     } else {
       SetMethodLikeIndent(member.StartToken, member.OwnedTokens, indent);
-      if (member.StartToken.line > 0) {
-        SetDelimiterIndentedRegions(member.StartToken, indent);
+      if (member.BodyStartTok.line > 0) {
+        SetDelimiterIndentedRegions(member.BodyStartTok, indent);
       }
     }
 
-    if (member.EndToken.line > 0) {
-      SetIndentations(member.EndToken, indent + SpaceTab, indent, indent);
-    }
+    // if (member.EndToken.line > 0) {
+    //   SetIndentations(member.EndToken, indent + SpaceTab, indent, indent);
+    // }
 
     PosToIndentations(member.EndToken.pos).Below = indent;
   }

@@ -682,8 +682,8 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
 
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     formatter.SetMethodLikeIndent(StartToken, OwnedTokens, indentBefore);
-    if (StartToken.line > 0) {
-      formatter.SetDelimiterIndentedRegions(StartToken, indentBefore);
+    if (BodyStartTok.line > 0) {
+      formatter.SetDelimiterIndentedRegions(BodyStartTok, indentBefore);
     }
 
     formatter.SetFormalsIndentation(Ins);

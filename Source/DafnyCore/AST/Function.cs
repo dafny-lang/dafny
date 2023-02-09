@@ -301,9 +301,9 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
   }
 
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
-    formatter.SetMethodLikeIndent(StartToken, OwnedTokens, indentBefore);
+    formatter.SetMethodLikeIndent(Body.StartToken, OwnedTokens, indentBefore);
     if (StartToken.line > 0) {
-      formatter.SetDelimiterIndentedRegions(StartToken, indentBefore);
+      formatter.SetDelimiterIndentedRegions(Body.StartToken, indentBefore);
     }
 
     formatter.SetFormalsIndentation(Formals);

@@ -17,6 +17,7 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, IDe
     return DafnyOptions.O.Backend.PublicIdProtect(name);
   }
 
+  public IToken BodyStartTok = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
   public Name NameNode;
 
@@ -1913,7 +1914,7 @@ public class NoContext : ICodeContext {
   public bool AllowsAllocation => true;
 }
 
-public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanFormat {
+public class IteratorDecl : ClassDecl, IMethodCodeContext {
   public override string WhatKind { get { return "iterator"; } }
   public readonly List<Formal> Ins;
   public readonly List<Formal> Outs;
@@ -2081,9 +2082,9 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanFormat {
 
     formatter.SetFormalsIndentation(Ins);
     formatter.SetFormalsIndentation(Outs);
-    if (this.StartToken.line > 0) {
-      formatter.SetDelimiterIndentedRegions(this.StartToken, indentBefore);
-      formatter.SetClosingIndentedRegion(this.EndToken, indentBefore);
+    if (this.BodyStartTok.line > 0) {
+      formatter.SetDelimiterIndentedRegions(this.BodyStartTok, indentBefore);
+      formatter.SetClosingIndentedRegion(Token.NoToken, indentBefore);
     }
 
     if (Body != null) {

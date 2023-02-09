@@ -1329,6 +1329,7 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
     }
   "}"
   (. c = new ClassDecl(new RangeToken(dmodClass.FirstToken, t), name, module, typeArgs, members, attrs, isRefining, parentTraits);
+     c.BodyStartTok = bodyStart;
      c.TokenWithTrailingDocString = tokenWithTrailingDocString;
   .)
   .
@@ -1365,6 +1366,7 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
     }
   "}"
   (. trait = new TraitDecl(new RangeToken(dmodIn.FirstToken, t), name, module, typeArgs, members, attrs, isRefining, parentTraits);
+     trait.BodyStartTok = bodyStart;
      trait.TokenWithTrailingDocString = tokenWithTrailingDocString;
     .)
   .
@@ -1436,6 +1438,7 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
      } else {
        dt = new IndDatatypeDecl(new RangeToken(dmod.FirstToken, t), name, module, typeArgs, ctors, members, attrs, isRefining);
      }
+     dt.BodyStartTok = bodyStart;
      dt.TokenWithTrailingDocString = bodyStart;
   .)
   .
@@ -1828,6 +1831,7 @@ IteratorDecl<DeclModifierData dmod, ModuleDefinition module, out IteratorDecl/*!
                              new Specification<Expression>(decreases, decrAttrs),
                              req, ens, yieldReq, yieldEns,
                              body, attrs, signatureEllipsis);
+     iter.BodyStartTok = bodyStart;
  .)
   .
 
@@ -2020,6 +2024,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
        m = new Method(range, name, dmod.IsStatic, dmod.IsGhost, typeArgs, ins, outs,
                       req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
      }
+     m.BodyStartTok = bodyStart;
      m.TokenWithTrailingDocString = tokenWithTrailingDocString;
  .)
   .
@@ -2706,6 +2711,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
                         byMethodTok, byMethodBody,
                         attrs, signatureEllipsis);
      }
+     f.BodyStartTok = bodyStart;
      f.TokenWithTrailingDocString = tokenWithTrailingDocString;
      theBuiltIns.CreateArrowTypeDecl(formals.Count);
      if (isLeastPredicate || isGreatestPredicate) {
