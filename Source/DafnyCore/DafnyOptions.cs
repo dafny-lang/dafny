@@ -46,6 +46,7 @@ js - Compile to JavaScript.
 java - Compile to Java.
 py - Compile to Python.
 cpp - Compile to C++.
+dfy - Compile to Dafny.
 
 Note that the C++ backend has various limitations (see
 Docs/Compilation/Cpp.md). This includes lack of support for
@@ -248,6 +249,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public bool TypeInferenceDebug = false;
     public string DafnyPrelude = null;
     public string DafnyPrintFile = null;
+    public List<string> FoldersToFormat { get; } = new();
 
     public enum ContractTestingMode {
       None,
@@ -261,6 +263,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public List<string> DafnyPrintExportedViews = new List<string>();
     public bool Compile = true;
     public List<string> MainArgs = new List<string>();
+    public bool Format = false;
+    public bool FormatCheck = false;
 
     public string CompilerName;
     public IExecutableBackend Backend;
@@ -447,6 +451,14 @@ NoGhost - disable printing of functions, ghost methods, and proof
         case "main": {
             if (ps.ConfirmArgumentCount(1)) {
               MainMethod = args[ps.i];
+            }
+
+            return true;
+          }
+
+        case "check": {
+            if (!ps.hasColonArgument || ps.ConfirmArgumentCount(1)) {
+              FormatCheck = !ps.hasColonArgument || args[ps.i] == "1";
             }
 
             return true;
@@ -1574,7 +1586,6 @@ However, some Boogie options, like /loopUnroll, may not be sound for
 Dafny or may not have the same meaning for a Dafny program as it would
 for a similar Boogie program.
 ".Replace("\n", "\n  ");
-
   }
 
 }

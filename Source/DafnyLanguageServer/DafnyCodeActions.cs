@@ -49,7 +49,6 @@ public class DafnyCodeActions {
     return new List<DafnyCodeAction> { action };
   }
 
-
   public static void AddRemoveAction(ErrorID errorID, String title) {
     codeActionMap.Add(errorID, (Diagnostic diagnostic, Range range) => RemoveAction(title, diagnostic, range));
   }

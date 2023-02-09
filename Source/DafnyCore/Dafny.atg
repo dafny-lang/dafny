@@ -48,6 +48,8 @@ class DeclModifierData {
   public IToken GhostToken;
   public bool IsStatic;
   public IToken StaticToken;
+  public bool IsOpaque;
+  public IToken OpaqueToken;
   public IToken FirstToken;
 }
 
@@ -80,6 +82,7 @@ enum AllowedDeclModifiers {
   // Means ghost not allowed because already implicitly ghost.
   AlreadyGhost = 4,
   Static = 8,
+  Opaque = 16
 };
 
 /// <summary>
@@ -115,6 +118,10 @@ void CheckDeclModifiers(ref DeclModifierData dmod, string declCaption, AllowedDe
     SemErr(ErrorID.p_no_static, Errors.CodeActionToNext(dmod.StaticToken), $"{declCaption} cannot be declared 'static'");
     dmod.IsStatic = false;
   }
+  if (dmod.IsOpaque && ((allowed & AllowedDeclModifiers.Opaque) == 0)) {
+    SemErr(dmod.OpaqueToken, $"{declCaption} cannot be declared 'opaque'");
+    dmod.IsOpaque = false;
+  }
 }
 
 void CheckAttribute(Errors errors, IToken attr) {
@@ -139,11 +146,12 @@ public static int Parse (bool useStdin, string/*!*/ filename, Include include, M
   Contract.Requires(module != null);
   string s;
   if (useStdin) {
-    s = Microsoft.Boogie.ParserHelper.Fill(System.Console.In, new List<string>());
+    s = Microsoft.Dafny.SourcePreprocessor.ProcessDirectives(System.Console.In, new List<string>(), Environment.NewLine);
     return Parse(s, filename, filename, include, module, builtIns, errors, verifyThisFile, compileThisFile);
   } else {
+    var newline = SourcePreprocessor.GetNewlineStyle(filename);
     using (System.IO.StreamReader reader = new System.IO.StreamReader(filename)) {
-      s = Microsoft.Boogie.ParserHelper.Fill(reader, new List<string>());
+      s = Microsoft.Dafny.SourcePreprocessor.ProcessDirectives(reader, new List<string>(), newline);
       return Parse(s, filename, DafnyOptions.O.UseBaseNameForFileName ? Path.GetFileName(filename) : filename, include, module, builtIns, errors, verifyThisFile, compileThisFile);
     }
   }
@@ -170,7 +178,14 @@ public static Parser SetupParser(string/*!*/ s, string/*!*/ fullFilename, string
   Contract.Requires(errors != null);
   byte[]/*!*/ buffer = cce.NonNull( UTF8Encoding.Default.GetBytes(s));
   MemoryStream ms = new MemoryStream(buffer,false);
-  Scanner scanner = new Scanner(ms, errors, fullFilename, filename);
+  Token firstToken;
+  if((module.RootToken.Filename ?? "") == "") { // This is the first module
+    module.RootToken.Filename = DafnyOptions.O.UseBaseNameForFileName ? Path.GetFileName(fullFilename) : fullFilename;
+    firstToken = module.RootToken;
+  } else {
+    firstToken = new Token(); // It's an included file
+  }
+  Scanner scanner = new Scanner(ms, errors, fullFilename, filename, firstToken: firstToken);
   return new Parser(scanner, errors, include, module, builtIns, verifyThisFile, compileThisFile);
 }
 
@@ -255,7 +270,7 @@ public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, Include include, ModuleD
 }
 
 bool IsIdentifier(int kind) {
-  return kind == _ident || kind == _least || kind == _greatest || kind == _older;
+  return kind == _ident || kind == _least || kind == _greatest || kind == _older || kind == _opaque;
 }
 
 bool IsQuantifierVariableDecl(QuantifiedVar previousVar) {
@@ -935,6 +950,7 @@ TOKENS
   predicate = "predicate".
   least = "least". /* not a keyword by itself, but part of a keyword phrase */
   greatest = "greatest". /* not a keyword by itself, but part of a keyword phrase */
+  opaque = "opaque".
   inductive = "inductive".
   twostate = "twostate".
   copredicate = "copredicate".
@@ -1049,6 +1065,7 @@ DeclModifier<ref DeclModifierData dmod>
 = ( "abstract"                             (. dmod.IsAbstract = true;  CheckAndSetToken(ref dmod.AbstractToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   | "ghost"                                (. dmod.IsGhost = true;  CheckAndSetToken(ref dmod.GhostToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   | "static"                               (. dmod.IsStatic = true; CheckAndSetToken(ref dmod.StaticToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
+  | "opaque"                               (. dmod.IsOpaque = true; CheckAndSetToken(ref dmod.OpaqueToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   )
   .
 
@@ -1512,7 +1529,7 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
        errors.Warning(dmod.StaticToken, "module-level const declarations are always non-instance, so the 'static' keyword is not allowed here");
        dmod.IsStatic = false;
      }
-     CheckDeclModifiers(ref dmod, "field", AllowedDeclModifiers.Ghost | AllowedDeclModifiers.Static);
+     CheckDeclModifiers(ref dmod, "field", AllowedDeclModifiers.Ghost | AllowedDeclModifiers.Static | AllowedDeclModifiers.Opaque);
   .)
   SYNC
   "const"                                    (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
@@ -1524,7 +1541,7 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
                                              (. if (e == null && ty is InferredTypeProxy) {
                                                   SemErr(ErrorID.p_const_is_missing_type_or_init, id, "a const declaration must have a type or a RHS value");
                                                 }
-                                                var c = new ConstantField(id, id.val, e, dmod.IsStatic, dmod.IsGhost, ty, attrs);
+                                                var c = new ConstantField(id, id.val, e, dmod.IsStatic, dmod.IsGhost, dmod.IsOpaque, ty, attrs);
                                                 if (e != null) {
                                                   // c.BodyEndTok = t; // Until we have proper ranges
                                                 }
@@ -1655,11 +1672,13 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
 
 /*------------------------------------------------------------------------*/
 GIdentType<bool allowGhostKeyword, bool allowNewKeyword, bool allowNameOnlyKeyword, bool allowOlderKeyword,
-           out IToken/*!*/ id, out Type/*!*/ ty, out bool isGhost, out bool isOld, out bool isNameOnly, out bool isOlder>
+           out IToken/*!*/ id, out Type/*!*/ ty, out bool isGhost, out bool isOld, out bool isNameOnly, out bool isOlder, out IToken startToken>
 /* isGhost always returns as false if allowGhostKeyword is false */
 = (. Contract.Ensures(Contract.ValueAtReturn(out id)!=null);
      Contract.Ensures(Contract.ValueAtReturn(out ty)!=null);
      isGhost = false; isOld = allowNewKeyword; isNameOnly = false; isOlder = false;
+     startToken = null;
+     IToken originalId = null;
   .)
   { IF(IsKeywordForFormal())
     ( "ghost"                    (. if (allowGhostKeyword) { isGhost = true; } else { SemErr(ErrorID.p_output_of_function_not_ghost, Errors.CodeActionToNext(t), "formal cannot be declared 'ghost' in this context"); } .)
@@ -1668,7 +1687,7 @@ GIdentType<bool allowGhostKeyword, bool allowNewKeyword, bool allowNameOnlyKeywo
     | "older"                    (. if (allowOlderKeyword) { isOlder = true; } else { SemErr(ErrorID.p_no_older_on_output_formals, Errors.CodeActionToNext(t), "formal cannot be declared 'older' in this context"); } .)
     )
   }
-  IdentType<out id, out ty, false>
+  IdentType<out id, out originalId, out ty, false>  (. startToken = startToken ?? originalId; .)
   .
 
 FIdentType<out IToken/*!*/ id, out Type/*!*/ ty>
@@ -1693,9 +1712,9 @@ CIdentType<out IToken/*!*/ id, out Type ty>
   ]
   .
 
-IdentType<out IToken/*!*/ id, out Type/*!*/ ty, bool allowWildcardId>
+IdentType<out IToken/*!*/ id, out IToken originalId, out Type/*!*/ ty, bool allowWildcardId>
 = (.Contract.Ensures(Contract.ValueAtReturn(out id) != null); Contract.Ensures(Contract.ValueAtReturn(out ty) != null);.)
-  WildIdent<out id, allowWildcardId>
+  WildIdent<out id, allowWildcardId> (. originalId = t; .)
   ":"
   Type<out ty>
   .
@@ -1716,8 +1735,9 @@ LocalIdentTypeOptional<out LocalVariable var, bool isGhost, bool allowWild=true>
 IdentTypeOptional<out BoundVar var>
 = (. Contract.Ensures(Contract.ValueAtReturn(out var) != null);
      IToken id;  Type ty;  Type optType = null;
+     IToken startToken = null;
   .)
-  WildIdent<out id, true>
+  WildIdent<out id, true> (. startToken = t; .)
   [ IF( la.kind == _colon) ":" Type<out ty>             (. optType = ty; .)
      // CoCo warns about this optional ':', because it is ambiguous with a ':' that follows the IdentTypeOptional.
      // An IdentTypeOptional can be the last thing in an Expression (a SetComprehension)
@@ -1727,20 +1747,22 @@ IdentTypeOptional<out BoundVar var>
      // Also a SetComprehension would be the wrong type in a slices-by-length construct.
   ]
   (. var = new BoundVar(id, id.val, optType == null ? new InferredTypeProxy() : optType) {
-       IsTypeExplicit = optType != null
+       IsTypeExplicit = optType != null,
+       RangeToken = new RangeToken(startToken, t)
      }; .)
   .
 
-TypeIdentOptional<out IToken/*!*/ id, out string/*!*/ identName, out Type/*!*/ ty, out bool isGhost, out Expression defaultValue, out bool isNameOnly>
+TypeIdentOptional<out IToken/*!*/ id, out string/*!*/ identName, out Type/*!*/ ty, out bool isGhost, out Expression defaultValue, out bool isNameOnly, out IToken formalStartToken>
 = (.Contract.Ensures(Contract.ValueAtReturn(out id)!=null);
      Contract.Ensures(Contract.ValueAtReturn(out ty)!=null);
      Contract.Ensures(Contract.ValueAtReturn(out identName)!=null);
      string name = null; id = Token.NoToken; ty = new BoolType()/*dummy*/; isGhost = false;
      IToken nameonlyToken = null;
+     formalStartToken = null;
      defaultValue = null;
   .)
-  { "ghost"                            (. isGhost = true; .)
-  | "nameonly"                         (. nameonlyToken = t; .)
+  { "ghost"                            (. isGhost = true; formalStartToken = t; .)
+  | "nameonly"                         (. nameonlyToken = t; formalStartToken = t; .)
   }
   ( TypeAndToken<out id, out ty, false>
     [ ":"
@@ -1760,7 +1782,8 @@ TypeIdentOptional<out IToken/*!*/ id, out string/*!*/ identName, out Type/*!*/ t
     Type<out ty>
     ParameterDefaultValue<true, out defaultValue>
   )
-  (. if (name != null) {
+  (. formalStartToken = formalStartToken ?? id;
+     if (name != null) {
        identName = name;
        isNameOnly = nameonlyToken != null;
      } else {
@@ -1837,6 +1860,7 @@ GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs, bool allowVariance.>
      TypeParameter.TypeParameterCharacteristics characteristics;
      TypeParameter.TPVarianceSyntax variance = TypeParameter.TPVarianceSyntax.NonVariant_Strict;  // assignment is to please compiler
      characteristics = new TypeParameter.TypeParameterCharacteristics(false);
+     IToken varianceToken = null;
   .)
   // If a "<" combined with a Variance symbol could be a new token, then the parser here will need to be more complex,
   // since, for example, a < followed immediately by a Variance symbol would scan as the wrong token.
@@ -1847,7 +1871,7 @@ GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs, bool allowVariance.>
   ]
   TypeVariableName<out id>
   { TypeParameterCharacteristics<ref characteristics> }
-  (. typeArgs.Add(new TypeParameter(id, id.val, variance, characteristics)); .)
+  (. typeArgs.Add(new TypeParameter(id, id.val, variance, characteristics) { RangeToken = new RangeToken(varianceToken != null ? varianceToken : id, characteristics.RangeToken != null ? characteristics.RangeToken.EndToken : id) }); .)
   { ","
     (. variance = TypeParameter.TPVarianceSyntax.NonVariant_Strict;
        characteristics = new TypeParameter.TypeParameterCharacteristics(false);
@@ -1856,7 +1880,7 @@ GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs, bool allowVariance.>
     ]
     TypeVariableName<out id>
     { TypeParameterCharacteristics<ref characteristics> }
-    (. typeArgs.Add(new TypeParameter(id, id.val, variance, characteristics)); .)
+    (. typeArgs.Add(new TypeParameter(id, id.val, variance, characteristics) { RangeToken = new RangeToken(varianceToken != null ? varianceToken : id, characteristics.RangeToken != null ? characteristics.RangeToken.EndToken : id) }); .)
   }
   ">"
   .
@@ -2156,15 +2180,16 @@ Formals<.bool incoming, bool allowGhostKeyword, bool allowNewKeyword, bool allow
      Expression defaultValue;
      bool isNameOnly;
      bool isOlder;
+     IToken formalStartToken;
   .)
   "("
   [
-    GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out id, out ty, out isGhost, out isOld, out isNameOnly, out isOlder>
+    GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out id, out ty, out isGhost, out isOld, out isNameOnly, out isOlder, out formalStartToken>
     ParameterDefaultValue<incoming, out defaultValue>
-                 (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost, defaultValue, isOld, isNameOnly, isOlder)); .)
-    { "," GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out id, out ty, out isGhost, out isOld, out isNameOnly, out isOlder>
+                 (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost, defaultValue, isOld, isNameOnly, isOlder) { RangeToken = new RangeToken(formalStartToken, t), IsTypeExplicit = ty != null }); .)
+    { "," GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out id, out ty, out isGhost, out isOld, out isNameOnly, out isOlder, out formalStartToken>
     ParameterDefaultValue<incoming, out defaultValue>
-                 (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost, defaultValue, isOld, isNameOnly, isOlder)); .)
+                 (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost, defaultValue, isOld, isNameOnly, isOlder) { RangeToken = new RangeToken(formalStartToken, t), IsTypeExplicit = ty != null }); .)
     }
   ]
   ")"
@@ -2188,13 +2213,14 @@ FormalsOptionalIds<.List<Formal/*!*/>/*!*/ formals.>
 = (. Contract.Requires(cce.NonNullElements(formals));
      IToken/*!*/ id;  Type/*!*/ ty;  string/*!*/ name;  bool isGhost;  Expression/*?*/ defaultValue;
      bool isNameOnly;
+     IToken formalStartToken;
   .)
   "("
   [
-    TypeIdentOptional<out id, out name, out ty, out isGhost, out defaultValue, out isNameOnly>
-            (. formals.Add(new Formal(id, name, ty, true, isGhost, defaultValue, false, isNameOnly)); .)
-    { "," TypeIdentOptional<out id, out name, out ty, out isGhost, out defaultValue, out isNameOnly>
-            (. formals.Add(new Formal(id, name, ty, true, isGhost, defaultValue, false, isNameOnly)); .)
+    TypeIdentOptional<out id, out name, out ty, out isGhost, out defaultValue, out isNameOnly, out formalStartToken>
+            (. formals.Add(new Formal(id, name, ty, true, isGhost, defaultValue, false, isNameOnly) {RangeToken = new RangeToken(formalStartToken, t), IsTypeExplicit = ty != null}); .)
+    { "," TypeIdentOptional<out id, out name, out ty, out isGhost, out defaultValue, out isNameOnly, out formalStartToken>
+            (. formals.Add(new Formal(id, name, ty, true, isGhost, defaultValue, false, isNameOnly) {RangeToken = new RangeToken(formalStartToken, t), IsTypeExplicit = ty != null}); .)
     }
   ]
   ")"
@@ -2366,7 +2392,7 @@ TupleType<.out Type ty, out IToken tok, out List<Type> tupleArgTypes, out List<I
 /*------------------------------------------------------------------------*/
 NamedType<.out Type ty, out IToken tok, bool inExpressionContext.> =
   (. Expression e; IToken startToken = null; .)
-  NameSegmentForTypeName<out e, inExpressionContext>  (. tok = t; startToken = t; .)
+  NameSegmentForTypeName<out e, inExpressionContext>  (. tok = t; startToken = e.StartToken; .)
   { "."
     TypeNameOrCtorSuffix<out tok>       (. List<Type> typeArgs; .)
     OptGenericInstantiation<out typeArgs, inExpressionContext>
@@ -2476,9 +2502,9 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
       ":"
       (  IF(IsParenIdentsColon())
          "("
-           GIdentType<false, false, false, false, out var resultId, out var ty, out var resultIsGhost, out var isOld, out var isNameOnly, out var isOlder>
+           GIdentType<false, false, false, false, out var resultId, out var ty, out var resultIsGhost, out var isOld, out var isNameOnly, out var isOlder, out var formalStartToken>
            (. Contract.Assert(!resultIsGhost && !isOld && !isNameOnly && !isOlder);
-              result = new Formal(resultId, resultId.val, ty, false, false, null, false);
+              result = new Formal(resultId, resultId.val, ty, false, false, null, false) { RangeToken = new RangeToken(formalStartToken, t), IsTypeExplicit = ty != null };
            .)
          ")"
          | Type<out returnType>
@@ -2575,7 +2601,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
            $"to use a 'by method' implementation with a {what}, declare '{id.val}' using '{what}', not '{what} method'");
          functionMethodToken = null;
        }
-       AllowedDeclModifiers allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static;
+       AllowedDeclModifiers allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static | AllowedDeclModifiers.Opaque;
        CheckDeclModifiers(ref dmod, what + "-by-method", allowed);
 
      } else {
@@ -2589,7 +2615,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
            SemErr(functionMethodToken, $"a {adjective} {what} is supported only as ghost, not as a compiled {what}");
            functionMethodToken = null;
          }
-         AllowedDeclModifiers allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static;
+         AllowedDeclModifiers allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static | AllowedDeclModifiers.Opaque;
          CheckDeclModifiers(ref dmod, $"{adjective} {what}", allowed);
 
        } else {
@@ -2611,7 +2637,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
          } else if (!dmod.IsGhost && theOptions.FunctionSyntax == FunctionSyntaxOptions.Migration3To4) {
            SemErr(headToken, $"a {what} must be declared as either 'ghost {what}' or '{what} method'");
          }
-         AllowedDeclModifiers allowed = AllowedDeclModifiers.Static;
+         AllowedDeclModifiers allowed = AllowedDeclModifiers.Static | AllowedDeclModifiers.Opaque;
          if (isPredicate && theOptions.FunctionSyntax == FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost) {
            allowed |= AllowedDeclModifiers.AlreadyGhost;
          } else if (theOptions.FunctionSyntax == FunctionSyntaxOptions.Version3) {
@@ -2676,35 +2702,35 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
        }
      }
 
-     /* ========================================
+     /* =========================================
       * Finally, we create the AST node for the function declaration we parsed.
       */
 
      IToken tok = id;
      if (isTwoState && isPredicate) {
        Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
-       f = new TwoStatePredicate(tok, id.val, dmod.IsStatic, typeArgs, formals, result,
+       f = new TwoStatePredicate(tok, id.val, dmod.IsStatic, dmod.IsOpaque, typeArgs, formals, result,
                                  reqs, reads, ens, new Specification<Expression>(decreases, decAttrs), body, attrs, signatureEllipsis);
      } else if (isTwoState) {
        Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
-       f = new TwoStateFunction(tok, id.val, dmod.IsStatic, typeArgs, formals, result, returnType,
+       f = new TwoStateFunction(tok, id.val, dmod.IsStatic, dmod.IsOpaque, typeArgs, formals, result, returnType,
                                 reqs, reads, ens, new Specification<Expression>(decreases, decAttrs), body, attrs, signatureEllipsis);
      } else if (isPredicate) {
        Contract.Assert(functionMethodToken == null || !dmod.IsGhost);
-       f = new Predicate(tok, id.val, dmod.IsStatic, isGhost, typeArgs, formals, result,
+       f = new Predicate(tok, id.val, dmod.IsStatic, isGhost, dmod.IsOpaque, typeArgs, formals, result,
                          reqs, reads, ens, new Specification<Expression>(decreases, decAttrs), body, Predicate.BodyOriginKind.OriginalOrInherited,
                          byMethodTok, byMethodBody, attrs, signatureEllipsis);
      } else if (isLeastPredicate) {
        Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
-       f = new LeastPredicate(tok, id.val, dmod.IsStatic, kType, typeArgs, formals, result,
+       f = new LeastPredicate(tok, id.val, dmod.IsStatic, dmod.IsOpaque, kType, typeArgs, formals, result,
                               reqs, reads, ens, body, attrs, signatureEllipsis);
      } else if (isGreatestPredicate) {
        Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
-       f = new GreatestPredicate(tok, id.val, dmod.IsStatic, kType, typeArgs, formals, result,
+       f = new GreatestPredicate(tok, id.val, dmod.IsStatic, dmod.IsOpaque, kType, typeArgs, formals, result,
                                  reqs, reads, ens, body, attrs, signatureEllipsis);
      } else {
        Contract.Assert(functionMethodToken == null || !dmod.IsGhost);
-       f = new Function(tok, id.val, dmod.IsStatic, isGhost,
+       f = new Function(tok, id.val, dmod.IsStatic, isGhost, dmod.IsOpaque,
                         typeArgs, formals, result, returnType,
                         reqs, reads, ens, new Specification<Expression>(decreases, decAttrs), body,
                         byMethodTok, byMethodBody,
@@ -2748,12 +2774,12 @@ PredicateResult<string name, out Formal result>
   ":"
   (  IF(IsParenIdentsColon())
      "("
-       GIdentType<false, false, false, false, out var resultId, out var ty, out var resultIsGhost, out var isOld, out var isNameOnly, out var isOlder>
+       GIdentType<false, false, false, false, out var resultId, out var ty, out var resultIsGhost, out var isOld, out var isNameOnly, out var isOlder, out var formalStartToken>
        (. Contract.Assert(!resultIsGhost && !isOld && !isNameOnly && !isOlder);
           if(ty is not BoolType) {
             SemErr(t, $"{name} return type should be bool, got {ty}");
           }
-          result = new Formal(resultId, resultId.val, ty, false, false, null, false);
+          result = new Formal(resultId, resultId.val, ty, false, false, null, false) { RangeToken = new RangeToken(formalStartToken, t), IsTypeExplicit = ty != null };
        .)
      ")"
      | Type<out returnType> (. SemErr(t, $"{name}s do not have an explicitly declared return type; it is always bool. Unless you want to name the result: ': (result: bool)'"); .)
@@ -3196,14 +3222,15 @@ VarDeclStatement<.out Statement/*!*/ s.>
          }
        }
        var rangeToken = new RangeToken(startToken, t);
+       var updateRangeToken = new RangeToken(assignTok, t);
        if (suchThat != null) {
-         update = new AssignSuchThatStmt(rangeToken, lhsExprs, suchThat, suchThatAssume, attrs);
+         update = new AssignSuchThatStmt(updateRangeToken, lhsExprs, suchThat, suchThatAssume, attrs);
        } else if (exceptionRhs != null) {
-         update = new AssignOrReturnStmt(rangeToken, lhsExprs, exceptionRhs, keywordToken, rhss);
+         update = new AssignOrReturnStmt(updateRangeToken, lhsExprs, exceptionRhs, keywordToken, rhss);
        } else if (rhss.Count == 0) {
          update = null;
        } else {
-         update = new UpdateStmt(rangeToken, lhsExprs, rhss);
+         update = new UpdateStmt(updateRangeToken, lhsExprs, rhss);
        }
        s = new VarDeclStmt(rangeToken, lhss, update);
     .)
@@ -3995,11 +4022,12 @@ LogicalExpression<out Expression e0, bool allowLemma, bool allowLambda, bool all
      Expression first;
      IToken startToken = null;
      IToken/*!*/ firstOp = null;
+     IToken/*!*/ prefixOp = null;
      e0 = dummyExpr; /* mute the warning */
   .)
-    // This extra AndOp will belong to the outermost binary expression
-  [ (AndOp | OrOp) (. firstOp = t; x = t; .) ]
-  RelationalExpression<out e0, allowLemma, allowLambda, allowBitwiseOps> (. first = e0; if (firstOp != null) e0.RangeToken = new RangeToken(firstOp, t); .)
+    // This extra AndOp will belong to the first binary expression
+  [ (AndOp | OrOp) (. firstOp = t; prefixOp = t; x = t; .) ]
+  RelationalExpression<out e0, allowLemma, allowLambda, allowBitwiseOps> (. first = e0; .)
 
   { IF(IsAndOp() || IsOrOp())  /* read a LogicalExpression as far as possible */
     ( AndOp | OrOp ) (. x = t; 
@@ -4010,17 +4038,18 @@ LogicalExpression<out Expression e0, bool allowLemma, bool allowLambda, bool all
          (. startToken = e0.StartToken;
             e0 = new BinaryExpr(x, firstOp.val == "&&" ? BinaryExpr.Opcode.And : BinaryExpr.Opcode.Or, e0, e1);
             e0.RangeToken = new RangeToken(startToken, t);
-            e0.FormatTokens = new[] { firstOp };
          .)
   }
   (.
-       if (e0 == first && firstOp != null) {
+       if (e0 == first && prefixOp != null) {
          // There was only one conjunct. To make sure that the type checker still checks it to
          // be a boolean, we conjoin "true" of "false" to its left.
          if (firstOp.val == "&&") e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, new LiteralExpr(new AutoGeneratedToken(x), true), e0);
          else e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, new LiteralExpr(new AutoGeneratedToken(x), false), e0);
          e0.RangeToken = new RangeToken(firstOp, t);
          e0.FormatTokens = new[] { firstOp };
+       } else if(prefixOp != null) {
+         e0.RangeToken = new RangeToken(prefixOp, e0.EndToken);
        }
   .)
   .
@@ -4165,9 +4194,19 @@ ShiftTerm<out Expression e0, bool allowLemma, bool allowLambda, bool allowBitwis
   Term<out e0, allowLemma, allowLambda, allowBitwiseOps>
   { IF(IsShiftOp())  /* read a Term as far as possible */
     ( "<"            (. x = t;  op = BinaryExpr.Opcode.LeftShift; .)
-      "<"            (. x.val = "<<";  Contract.Assert(t.pos == x.pos + 1); .)
+      "<"            (. t.val = "<<";
+                        t.pos = x.pos;
+                        t.col = x.col;
+                        t.Prev = x.Prev;
+                        x.Prev.Next = t;
+                        x = t; .)
     | ">"            (. x = t;  op = BinaryExpr.Opcode.RightShift; .)
-      ">"            (. x.val = "<<";  Contract.Assert(t.pos == x.pos + 1); .)
+      ">"            (. t.val = ">>";
+                        t.pos = x.pos;
+                        t.col = x.col;
+                        t.Prev = x.Prev;
+                        x.Prev.Next = t;
+                        x = t; .)
     )
     Term<out e1, allowLemma, allowLambda, allowBitwiseOps> (.
       var startToken = e0.StartToken;
@@ -4374,7 +4413,7 @@ LambdaExpression<out Expression e, bool allowLemma, bool allowBitwiseOps>
      Expression req = null;
      Expression body = null;
   .)
-  ( WildIdent<out id, true>                  (. x = t; bvs.Add(new BoundVar(id, id.val, new InferredTypeProxy())); .)
+  ( WildIdent<out id, true>                  (. x = t; bvs.Add(new BoundVar(id, id.val, new InferredTypeProxy()) {RangeToken = new RangeToken(x, x)}); .)
   | "("                                      (. x = t; .)
       [
         IdentTypeOptional<out bv>            (. bvs.Add(bv); .)
@@ -4438,6 +4477,22 @@ ParensExpression<out Expression e>
      }
      e.RangeToken = new RangeToken(x, t);
   .)
+  .
+
+/*------------------------------------------------------------------------*/
+TupleArgs<.List<ActualBinding> args.>
+= (. ActualBinding binding; bool isGhost = false; .)
+  // The IF is to distinguish between `(ghost var x := 5; x + x)` and (ghost x), both of which begin with `( ghost`.
+  [ IF(la.kind == _ghost && !IsVar())
+    "ghost"                             (. isGhost = true; .)
+  ]
+  ActualBinding<out binding, isGhost>   (. args.Add(binding); .)
+  { ","                                 (. isGhost = false; .)
+    [ IF(la.kind == _ghost && !IsVar())
+      "ghost"                           (. isGhost = true; .)
+    ]
+    ActualBinding<out binding, isGhost> (. args.Add(binding); .)
+  }
   .
 
 /*------------------------------------------------------------------------*/
@@ -4555,7 +4610,7 @@ MapComprehensionExpr<out Expression e, bool allowLemma, bool allowLambda, bool a
        SemErr(t, "a map comprehension with more than one bound variable must have a term expression of the form 'Expr := Expr'");
        e = dummyExpr;
      } else {
-       e = new MapComprehension(mapToken, new RangeToken(mapToken, t), finite, bvars, range ?? new LiteralExpr(mapToken, true), bodyLeft, bodyRight, attrs);
+       e = new MapComprehension(mapToken, new RangeToken(mapToken, t), finite, bvars, range ?? new LiteralExpr(Token.NoToken, true), bodyLeft, bodyRight, attrs);
      }
   .)
   .
@@ -4847,6 +4902,7 @@ NameSegmentForTypeName<out Expression e, bool inExpressionContext>
   Ident<out id>
   OptGenericInstantiation<out typeArgs, inExpressionContext>
   (. e = new NameSegment(id, id.val, typeArgs);
+     e.RangeToken = new RangeToken(id, t);
   .)
   .
 
@@ -5142,22 +5198,6 @@ Expressions<.List<Expression> args.>
   .
 
 /*------------------------------------------------------------------------*/
-TupleArgs<.List<ActualBinding> args.>
-= (. ActualBinding binding; bool isGhost = false; .)
-  // The IF is to distinguish between `(ghost var x := 5; x + x)` and (ghost x), both of which begin with `( ghost`.
-  [ IF(la.kind == _ghost && !IsVar())
-    "ghost"                             (. isGhost = true; .)
-  ]
-  ActualBinding<out binding, isGhost>   (. args.Add(binding); .)
-  { ","                                 (. isGhost = false; .)
-    [ IF(la.kind == _ghost && !IsVar())
-      "ghost"                           (. isGhost = true; .)
-    ]
-    ActualBinding<out binding, isGhost> (. args.Add(binding); .)
-  }
-  .
-
-/*------------------------------------------------------------------------*/
 AttributeName<out IToken id> = NoUSIdent<out id>.
 
 Attribute<ref Attributes attrs>
@@ -5183,6 +5223,8 @@ Ident<out IToken/*!*/ x>
   | "least"      (. t.kind = _ident; .) // convert it to an ident
   | "greatest"   (. t.kind = _ident; .) // convert it to an ident
   | "older"      (. t.kind = _ident; .) // convert it to an ident
+  | "opaque"     (. t.kind = _ident; .) // convert it to an ident
+                 (. errors.Deprecated(t, "opaque is deprecated as an identifier. It will soon become a reserved word. Use a different name."); .)
   )
   (. x = t; .)
   .
@@ -5236,6 +5278,17 @@ DotSuffix<out IToken x, out IToken y>
                           x.pos = x.pos + dot + 1;
                           x.val = x.val.Substring(dot + 1);
                           x.col = x.col + dot + 1;
+                          
+                          var prev = x.Prev;
+                          
+                          prev.Next = y;
+                          y.Prev = prev;
+                          
+                          y.Next = dotTok;
+                          dotTok.Prev = y;
+                          
+                          dotTok.Next = x;
+                          x.Prev = dotTok;
                           
                           // Ok, now swaps x and y when returning
                           var tmp = x;
@@ -5304,7 +5357,7 @@ TypeNameOrCtorSuffix<out IToken id>
 // Identifier, disallowing leading underscores, except possibly the "wildcard" identifier "_"
 WildIdent<out IToken x, bool allowWildcardId>
 = (. Contract.Ensures(Contract.ValueAtReturn(out x) != null); .)
-  Ident<out x>     (. t.val = UnwildIdent(t.val, allowWildcardId); .)
+  Ident<out x>     (. x = t.WithVal(UnwildIdent(t.val, allowWildcardId)); .)
   .
 
 /*------------------------------------------------------------------------*/

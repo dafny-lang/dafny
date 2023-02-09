@@ -61,7 +61,7 @@ Typically this is the presence of a `...` token.
 
 ## 22.1. Export set declarations
 
-A refining export set declaration begins with the syntax
+A refining export set declaration begins with [the syntax](#g-module-export)
 ````grammar
 "export" Ident ellipsis
 ````
@@ -421,5 +421,5 @@ Note that type refinements are not required to include the `...` indicator that 
 
 ## 22.10. Statements
 
-The refinment syntax (`...`) in statements is deprecated.
+The refinement syntax (`...`) in statements is deprecated.
 

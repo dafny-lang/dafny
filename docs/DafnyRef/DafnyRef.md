@@ -11,7 +11,7 @@ layout: default
 <p style="text-align: center;">The dafny-lang community</p> <!-- PDFOMIT -->
 <p style="text-align: center;"><script> document.write(new Date(document.lastModified)); </script></p> <!-- PDFOMIT -->
 <p style="text-align: center;">
-{% include_relative version.txt %}
+{% include_relative version.txt %} <!-- PDFOMIT -->
 </p>
 <!--PDF NEWPAGE-->
 
@@ -38,10 +38,10 @@ user understand how to do proofs with Dafny.
 {% include_relative Modules.md %}
 
 <!--PDF NEWPAGE-->
-{% include_relative Specifications.md %}
+{% include_relative Types.md %}
 
 <!--PDF NEWPAGE-->
-{% include_relative Types.md %}
+{% include_relative Specifications.md %}
 
 <!--PDF NEWPAGE-->
 {% include_relative Statements.md %}
@@ -70,8 +70,10 @@ user understand how to do proofs with Dafny.
 <!--PDF NEWPAGE-->
 {% include_relative CommandLineOptions.md %}
 
+<!--PDF NEWPAGE-->
+{% include_relative GrammarDetails.md %}
+
+
 {% include_relative SyntaxTests.md %}
 
-# 30. References
-
-
+# 31. References
