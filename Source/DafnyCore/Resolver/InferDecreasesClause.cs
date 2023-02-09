@@ -169,7 +169,7 @@ public class InferDecreasesClause {
         } else if (eType is SeqType || eType is MultiSetType) {
           // e represents a sequence or multiset
           var collectionType = (CollectionType)eType;
-          ArrowType.ComputeResolvedOpcodeAndBoundedPool(e, collectionType, out var resolvedOpcode, out var boundedPool);
+          Expression.ComputeResolvedOpcodeAndBoundedPool(e, collectionType, out var resolvedOpcode, out _);
 
           // Add:  set x :: x in e
           var bv = new BoundVar(e.tok, idGen.FreshId("_s2s_"), collectionType.Arg);

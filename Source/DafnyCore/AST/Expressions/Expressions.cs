@@ -783,6 +783,26 @@ public abstract class Expression : TokenNode {
     return e;
   }
 
+  /// <summary>
+  /// For a given collection type "collectionType", return the ResolvedOpcode and appropriate BoundedPool
+  /// used in creating a resolved expression of the form "x in collection", where "collection" is given as
+  /// a parameter.
+  /// </summary>
+  public static void ComputeResolvedOpcodeAndBoundedPool(Expression collection, CollectionType collectionType,
+    out BinaryExpr.ResolvedOpcode resolvedOpcode, out ComprehensionExpr.BoundedPool boundedPool) {
+    if (collectionType is SetType setType) {
+      resolvedOpcode = BinaryExpr.ResolvedOpcode.InSet;
+      boundedPool = new ComprehensionExpr.SetBoundedPool(collection, collectionType.Arg, collectionType.Arg, setType.Finite);
+    } else if (collectionType is SeqType) {
+      resolvedOpcode = BinaryExpr.ResolvedOpcode.InSeq;
+      boundedPool = new ComprehensionExpr.SeqBoundedPool(collection, collectionType.Arg, collectionType.Arg);
+    } else {
+      Contract.Assert(collectionType is MultiSetType);
+      resolvedOpcode = BinaryExpr.ResolvedOpcode.InMultiSet;
+      boundedPool = new ComprehensionExpr.MultiSetBoundedPool(collection, collectionType.Arg, collectionType.Arg);
+    }
+  }
+
   public static Expression VarSubstituter(List<NonglobalVariable> oldVars, List<BoundVar> newVars, Expression e, Dictionary<TypeParameter, Type> typeMap = null) {
     Contract.Requires(oldVars != null && newVars != null);
     Contract.Requires(oldVars.Count == newVars.Count);
