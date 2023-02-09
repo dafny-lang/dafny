@@ -3946,8 +3946,12 @@ namespace Microsoft.Dafny {
         var requiredParametersCount = formals.Count(f => f.DefaultValue == null);
         var actualsCounts = bindings.ArgumentBindings.Count;
         var sig = "";
-        for (int i = 0; i < formals.Count; i++) sig += (", " + formals[i].Name + ": " + formals[i].Type.ToString());
-        if (formals.Count > 0) sig = ": (" + sig[2..] + ")";
+        for (int i = 0; i < formals.Count; i++) {
+          sig += (", " + formals[i].Name + ": " + formals[i].Type.ToString());
+        }
+        if (formals.Count > 0) {
+          sig = ": (" + sig[2..] + ")";
+        }
         if (requiredParametersCount <= actualsCounts && actualsCounts <= formals.Count) {
           // the situation is plausible
         } else if (requiredParametersCount == formals.Count) {
