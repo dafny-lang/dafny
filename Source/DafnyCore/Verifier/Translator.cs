@@ -5696,7 +5696,7 @@ namespace Microsoft.Dafny {
         if (f is TwoStateFunction) {
           // also add previous-heap to the list of fixed arguments of the handle
           var prevH = BplBoundVar("$prevHeap", predef.HeapType, vars);
-          formals.Add(BplFormalVar(null, predef.HeapType, true));
+          formals.Add(BplFormalVar("h", predef.HeapType, true));
           SnocPrevH = xs => Snoc(xs, prevH);
         }
         if (f.IsStatic) {
@@ -5704,7 +5704,7 @@ namespace Microsoft.Dafny {
         } else {
           var selfTy = TrType(UserDefinedType.FromTopLevelDecl(f.tok, f.EnclosingClass));
           var self = BplBoundVar("$self", selfTy, vars);
-          formals.Add(BplFormalVar(null, selfTy, true));
+          formals.Add(BplFormalVar("self", selfTy, true));
           SnocSelf = xs => Snoc(xs, self);
           var wrapperType = UserDefinedType.FromTopLevelDecl(f.tok, f.EnclosingClass);
           selfExpr = new BoogieWrapper(self, wrapperType);
