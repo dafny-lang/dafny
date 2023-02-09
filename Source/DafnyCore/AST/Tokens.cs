@@ -224,22 +224,8 @@ public class CodeActionToken : TokenWrapper {
   public String StartLength() {
     return (line - 1) + " " + (column - 1) + " " + length;
   }
-
   public override IToken WithVal(string newVal) {
     return this;
-  }
-}
-
-public class CodeActionToken : TokenWrapper {
-  public int column;
-  public int length;
-  public CodeActionToken(IToken sourceTok, int column, int length) : base(sourceTok) {
-    this.column = column;
-    this.length = length;
-  }
-
-  public String StartLength() {
-    return (line - 1) + " " + (column - 1) + " " + length;
   }
 }
 
