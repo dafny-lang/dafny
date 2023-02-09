@@ -34,8 +34,10 @@ To work cross-platform, use a number of macros: %verify, %resolve, %build, %run,
 `Any new macros defined here must also be defied in Source/IntegrationTetss/LitTests.cs`
 
 A typical simple test for a single source file that has verification errors is
+```
 // RUN: %exits-with 4 %verify "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
+```
 
 There are many examples in the .dfy files under this directory.
 
