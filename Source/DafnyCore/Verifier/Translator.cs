@@ -1545,7 +1545,7 @@ namespace Microsoft.Dafny {
     }
     static bool IsOpaque(MemberDecl f) {
       Contract.Requires(f != null);
-      return Attributes.Contains(f.Attributes, "opaque");
+      return Attributes.Contains(f.Attributes, "opaque") || f.IsOpaque;
     }
     static bool IsOpaqueRevealLemma(Method m) {
       Contract.Requires(m != null);
@@ -7155,6 +7155,10 @@ namespace Microsoft.Dafny {
         Contract.Ensures(Contract.Result<IToken>() != null);
         var ftok = tok as ForceCheckToken;
         return ftok != null ? ftok.WrappedToken : tok;
+      }
+
+      public override IToken WithVal(string newVal) {
+        return new ForceCheckToken(WrappedToken.WithVal(newVal));
       }
     }
 
