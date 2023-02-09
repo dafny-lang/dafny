@@ -87,8 +87,7 @@ lemma MapKeepsCount<X, Y, Z>(m: map<X, Y>, f: X -> Z)
 function MyMap<X, Y, Z>(f: X -> Y, m: map<X, Z>): map<Y, Z>
   requires forall a <- m.Keys, b <- m.Keys :: a != b ==> f(a) != f(b)
 {
-  // same comment about <- in the next line
-  map k | k in m.Keys :: f(k) := m[k]
+  map k <- m.Keys :: f(k) := m[k]
 }
 
 method Use<X,Y,Z>(authSchema: map<X,Y>, tableName: Paths.TableName)
