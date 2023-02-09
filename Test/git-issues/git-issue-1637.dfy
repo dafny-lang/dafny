@@ -1,4 +1,4 @@
-// RUN: %resolve "%s" > "%t"
+// RUN: %exits-with 2 %resolve "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 type uint8 = i | 0 <= i <= 255
