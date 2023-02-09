@@ -65,12 +65,14 @@ jobs:
     needs: integration-tests
     steps:
       - name: Download integration test artifacts
-        uses: dawidd6/action-download-artifact@v2
+        uses: actions/download-artifact@v2
+        with:
+          name: integration-test-results-ubuntu-20.04
 
       - name: Download unit test artifacts
-        uses: dawidd6/action-download-artifact@v2
+        uses: actions/download-artifact@v2
         with:
-          workflow: xunit-tests.yml
+          name: unit-test-results-ubuntu-20.04
 
       - name: Show files
         run: ls -lR
