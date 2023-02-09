@@ -65,14 +65,15 @@ jobs:
     needs: integration-tests
     steps:
       - name: Download integration test artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: integration-test-results-ubuntu-20.04
 
-      - name: Download unit test artifacts
-        uses: actions/download-artifact@v2
-        with:
-          name: unit-test-results-ubuntu-20.04
+# These come from another workflow. How to get them?
+#      - name: Download unit test artifacts
+#        uses: actions/download-artifact@v3
+#        with:
+#          name: unit-test-results-ubuntu-20.04
 
       - name: Show files
         run: ls -lR
