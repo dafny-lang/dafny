@@ -1453,11 +1453,7 @@ public class DefaultClassDecl : ClassDecl {
     Contract.Requires(module != null);
     Contract.Requires(cce.NonNullElements(members));
   }
-  public override bool IsDefaultClass {
-    get {
-      return true;
-    }
-  }
+  public override bool IsDefaultClass => true;
 }
 
 public class ArrayClassDecl : ClassDecl {
