@@ -142,7 +142,7 @@ The command-line also expects the following:
 working directory. A command-line argument not matching a known option is considered a filepath, and likely one
 with an unsupported suffix, provoking an error message.
 - Files containing dafny code must have a `.dfy` suffix.
-- There must be at least one `.dfy` file (except when using `--stdin` or in the case of `dafny format`, see the [Dafny format section](#sec-formatting)) 
+- There must be at least one `.dfy` file (except when using `--stdin` or in the case of `dafny format`, see the [Dafny format section](#sec-dafny-format)) 
 - The command-line may contain other kinds of files appropriate to
 the language that the Dafny files are being compiled to. The kind of file is determined by its suffix.
 - Escape characters are determined by the shell executing the command-line.

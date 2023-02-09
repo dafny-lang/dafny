@@ -1838,7 +1838,7 @@ namespace Microsoft.Dafny {
             new Specification<Expression>(new List<Expression>(), null),
             null, null, null);
           // --- here comes predicate Valid()
-          var valid = new Predicate(iter.tok, "Valid", false, true, new List<TypeParameter>(),
+          var valid = new Predicate(iter.tok, "Valid", false, true, false, new List<TypeParameter>(),
             new List<Formal>(),
             null,
             new List<AttributedExpression>(),
