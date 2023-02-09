@@ -621,29 +621,29 @@ namespace Microsoft.Dafny {
 
       if (previousMethod is Constructor) {
         var dividedBody = (DividedBlockStmt)newBody ?? refinementCloner.CloneDividedBlockStmt((DividedBlockStmt)previousMethod.BodyForRefinement);
-        return new Constructor(previousMethod.RangeToken.MakeRefined(moduleUnderConstruction), previousMethod.NameNode, previousMethod.IsGhost, tps, ins,
+        return new Constructor(previousMethod.RangeToken.MakeRefined(moduleUnderConstruction), previousMethod.NameNode.Clone(refinementCloner), previousMethod.IsGhost, tps, ins,
           req, mod, ens, decreases, dividedBody, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
       }
       var body = newBody ?? refinementCloner.CloneBlockStmt(previousMethod.BodyForRefinement);
       if (previousMethod is LeastLemma) {
-        return new LeastLemma(previousMethod.RangeToken.MakeRefined(moduleUnderConstruction), previousMethod.NameNode, previousMethod.HasStaticKeyword, ((LeastLemma)previousMethod).TypeOfK, tps, ins,
+        return new LeastLemma(previousMethod.RangeToken.MakeRefined(moduleUnderConstruction), previousMethod.NameNode.Clone(refinementCloner), previousMethod.HasStaticKeyword, ((LeastLemma)previousMethod).TypeOfK, tps, ins,
           previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
       } else if (previousMethod is GreatestLemma) {
-        return new GreatestLemma(previousMethod.RangeToken.MakeRefined(moduleUnderConstruction), previousMethod.NameNode, previousMethod.HasStaticKeyword, ((GreatestLemma)previousMethod).TypeOfK, tps, ins,
+        return new GreatestLemma(previousMethod.RangeToken.MakeRefined(moduleUnderConstruction), previousMethod.NameNode.Clone(refinementCloner), previousMethod.HasStaticKeyword, ((GreatestLemma)previousMethod).TypeOfK, tps, ins,
           previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
       } else if (previousMethod is Lemma) {
-        return new Lemma(previousMethod.RangeToken.MakeRefined(moduleUnderConstruction), previousMethod.NameNode, previousMethod.HasStaticKeyword, tps, ins,
+        return new Lemma(previousMethod.RangeToken.MakeRefined(moduleUnderConstruction), previousMethod.NameNode.Clone(refinementCloner), previousMethod.HasStaticKeyword, tps, ins,
           previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
       } else if (previousMethod is TwoStateLemma) {
         var two = (TwoStateLemma)previousMethod;
-        return new TwoStateLemma(previousMethod.RangeToken.MakeRefined(moduleUnderConstruction), previousMethod.NameNode, previousMethod.HasStaticKeyword, tps, ins,
+        return new TwoStateLemma(previousMethod.RangeToken.MakeRefined(moduleUnderConstruction), previousMethod.NameNode.Clone(refinementCloner), previousMethod.HasStaticKeyword, tps, ins,
           previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
       } else {
-        return new Method(previousMethod.RangeToken.MakeRefined(moduleUnderConstruction), previousMethod.NameNode, previousMethod.HasStaticKeyword, previousMethod.IsGhost, tps, ins,
+        return new Method(previousMethod.RangeToken.MakeRefined(moduleUnderConstruction), previousMethod.NameNode.Clone(refinementCloner), previousMethod.HasStaticKeyword, previousMethod.IsGhost, tps, ins,
           previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null, previousMethod.IsByMethod);
       }

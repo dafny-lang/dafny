@@ -726,16 +726,16 @@ public class ModuleQualifiedId : Node, IHasUsages {
   [FilledInDuringResolution] public ModuleDefinition Def; // the module definition corresponding to the full path
   [FilledInDuringResolution] public ModuleSignature Sig; // the module signature corresponding to the full path
 
-  public override IToken Tok => Path.Last();
+  public override IToken Tok => Path.Last().Tok;
   public override IEnumerable<Node> Children => Enumerable.Empty<Node>();
   public override IEnumerable<Node> PreResolveChildren => Children;
 
   public override RangeToken RangeToken {
-    get => new(Path.First(), Path.Last());
+    get => new(Path.First().StartToken, Path.Last().EndToken);
     set => throw new NotSupportedException();
   }
 
-  public IToken NameToken => Path.Last();
+  public IToken NameToken => Path.Last().StartToken;
 
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return Enumerable.Repeat(Decl, 1);
