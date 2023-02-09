@@ -136,7 +136,7 @@ classes, traits and iterators.
     Add(ErrorID.p_bad_const_initialize_op,
     @"
 Dafny's syntax for initialization and assignment uses `:=`, not `=`.
-In Dafny `=` is used only in type definitions.
+In Dafny, `=` is used only in type definitions.
 ");
 
     Add(ErrorID.p_const_is_missing_type_or_init,
