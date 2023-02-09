@@ -12,8 +12,8 @@ I have this lemma
 ```
 and later on this code
 ```dafny
-MapKeepsCount(authSchema, k => Paths.SimpleCanon(tableName, k));
-assert |authSchema| == |map k <- authSchema.Keys | true :: Paths.SimpleCanon(tableName, k) := authSchema[k]|;
+MapKeepsCount(schema, k => Canonicalize(tableName, k));
+assert |schema| == |map k <- schema.Keys | true :: Canonicalize(tableName, k) := schema[k]|;
 ```
 
 The final assert fails, even though it exactly matches the ensures of the lemma.
@@ -23,21 +23,21 @@ If the lemma is an axiom, one can try to assume the post condition right before 
 But that failed in this case
 
 ```dafny
-MapKeepsCount(authSchema, k => Paths.SimpleCanon(tableName, k));
-assume |authSchema| == |map k <- authSchema.Keys | true :: Paths.SimpleCanon(tableName, k) := authSchema[k]|;
-assert |authSchema| == |map k <- authSchema.Keys | true :: Paths.SimpleCanon(tableName, k) := authSchema[k]|;
+MapKeepsCount(schema, k => Canonicalize(tableName, k));
+assume |schema| == |map k <- schema.Keys | true :: Canonicalize(tableName, k) := schema[k]|;
+assert |schema| == |map k <- schema.Keys | true :: Canonicalize(tableName, k) := schema[k]|;
 ```
 
 Which makes no sense.
 I even put the function into a variable, and this still fails
 ```dafny
-assume |authSchema| == |map k <- authSchema.Keys :: fn(k) := authSchema[k]|;
-assert |authSchema| == |map k <- authSchema.Keys :: fn(k) := authSchema[k]|;
+assume |schema| == |map k <- schema.Keys :: fn(k) := schema[k]|;
+assert |schema| == |map k <- schema.Keys :: fn(k) := schema[k]|;
 ```
 
 ## Answer:
 
-The explanation is a little involved, and in the end gets into a weakness of Dafny. But I also have a workaround. Get some popcorn. Here goes:
+The explanation is a little involved, and in the end gets into a weakness of Dafny. But these is a workaround. Here goes:
 
 To prove that the `|map …|` expression in the specification has the same value as the `|map …|` expression in the code, 
 the verifier would either have to compute the cardinality of each map (which it can’t do, because m.Keys is symbolic and could stand for any size set) 
@@ -66,12 +66,12 @@ If the two of them looked the same, then Dafny would know that the are the same.
 But the form is slightly different, because you are (probably without thinking about it) instantiating a lambda expression. 
 To make them the same, you could rewrite the code to:
 ```dafny
-  var F := k => Paths.SimpleCanon(tableName, k);
-  MapKeepsCount(authSchema, F);
-  assert |authSchema| == |map k <- authSchema.Keys | true :: F(k) := authSchema[k]|;
+  var F := k => Canonicalize(tableName, k);
+  MapKeepsCount(schema, F);
+  assert |schema| == |map k <- schema.Keys | true :: F(k) := schema[k]|;
 ```
 
-Now, this `map …` syntactically looks just like the one in the lemma postcondition, but with `authSchema` instead of `m` and with `F` instead of `f`. 
+Now, this `map …` syntactically looks just like the one in the lemma postcondition, but with `schema` instead of `m` and with `F` instead of `f`. 
 When two map comprehensions (or set comprehensions, or lambda expressions) are syntactically the same like this, then Dafny knows to treat them the same.
 Almost. 
 Alas, there’s something about this example that makes what I said not quite true (and I didn’t dive into those details just now). 
@@ -84,26 +84,26 @@ lemma MapKeepsCount<X, Y, Z>(m: map<X, Y>, f: X -> Z)
   requires forall a: X, b: X :: a != b ==> f(a) != f(b)
   ensures |m| == |MyMap(f, m)|
 
-function MyMap<X, Y, Z>(f: X -> Y, m: map<X, Z>): map<Y, Z>
+ghost function MyMap<X, Y, Z>(f: X -> Y, m: map<X, Z>): map<Y, Z>
   requires forall a <- m.Keys, b <- m.Keys :: a != b ==> f(a) != f(b)
 {
   // same comment about <- in the next line
   map k | k in m.Keys :: f(k) := m[k]
 }
 
-method Use<X,Y,Z>(authSchema: map<X,Y>, tableName: Paths.TableName)
-  requires forall a : X, b : X :: a != b ==> Paths.SimpleCanon(tableName, a) != Paths.SimpleCanon(tableName, b)
+method Use<X,Y,Z>(schema: map<X,Y>, tableName: TableName)
+  requires forall a : X, b : X :: a != b ==> Canonicalize(tableName, a) != Canonicalize(tableName, b)
 {
-  var F := k => Paths.SimpleCanon(tableName, k);
-  MapKeepsCount(authSchema, F);
-  assert |authSchema| == |MyMap(F, authSchema)|;
+  var F := k => Canonicalize(tableName, k);
+  MapKeepsCount(schema, F);
+  assert |schema| == |MyMap(F, schema)|;
 }
 
-module Paths {
-  type TableName
 
-  function method SimpleCanon<K>(t: TableName, k: K): int
-}
+type TableName
+
+function SimpleCanon<K>(t: TableName, k: K): int
+
 ```
 
 It manually introduces a function `MyMap`, and by using it in both caller and callee, the code verifies.
