@@ -439,7 +439,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
         SetDelimiterIndentedRegions(member.BodyStartTok, indent);
       }
     }
-    
+
     PosToIndentations(member.EndToken.pos).Below = indent;
   }
 
