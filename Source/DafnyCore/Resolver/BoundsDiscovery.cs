@@ -25,7 +25,7 @@ namespace Microsoft.Dafny {
       protected override bool VisitOneStatement(Statement stmt, IASTVisitorContext context) {
         if (stmt is ForallStmt forallStmt) {
           forallStmt.Bounds = DiscoverBestBounds_MultipleVars(forallStmt.BoundVars, forallStmt.Range, true,
-            ComprehensionExpr.BoundedPool.PoolVirtues.Enumerable);
+            ComprehensionExpr.BoundedPool.PoolVirtues.None);
         } else if (stmt is AssignSuchThatStmt assignSuchThatStmt) {
           if (assignSuchThatStmt.AssumeToken == null) {
             var varLhss = new List<IVariable>();
