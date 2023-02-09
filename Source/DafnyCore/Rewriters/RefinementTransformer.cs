@@ -578,24 +578,24 @@ namespace Microsoft.Dafny {
       var nameNode = newFunction.NameNode;
 
       if (previousFunction is Predicate) {
-        return new Predicate(range, nameNode, previousFunction.HasStaticKeyword, newFunction.IsGhost, tps, formals, result,
+        return new Predicate(range, nameNode, previousFunction.HasStaticKeyword, previousFunction.IsOpaque, newFunction.IsGhost, tps, formals, result,
           req, reads, ens, decreases, body, bodyOrigin,
           previousFunction.ByMethodTok == null ? null : refinementCloner.Tok(previousFunction.ByMethodTok), byMethodBody,
           refinementCloner.MergeAttributes(previousFunction.Attributes, moreAttributes), null);
       } else if (previousFunction is LeastPredicate) {
-        return new LeastPredicate(range, nameNode, previousFunction.HasStaticKeyword, ((LeastPredicate)previousFunction).TypeOfK, tps, formals, result,
+        return new LeastPredicate(range, nameNode, previousFunction.HasStaticKeyword, previousFunction.IsOpaque, ((LeastPredicate)previousFunction).TypeOfK, tps, formals, result,
           req, reads, ens, body, refinementCloner.MergeAttributes(previousFunction.Attributes, moreAttributes), null);
       } else if (previousFunction is GreatestPredicate) {
-        return new GreatestPredicate(range, nameNode, previousFunction.HasStaticKeyword, ((GreatestPredicate)previousFunction).TypeOfK, tps, formals, result,
+        return new GreatestPredicate(range, nameNode, previousFunction.HasStaticKeyword, previousFunction.IsOpaque, ((GreatestPredicate)previousFunction).TypeOfK, tps, formals, result,
           req, reads, ens, body, refinementCloner.MergeAttributes(previousFunction.Attributes, moreAttributes), null);
       } else if (previousFunction is TwoStatePredicate) {
-        return new TwoStatePredicate(range, nameNode, previousFunction.HasStaticKeyword, tps, formals, result,
+        return new TwoStatePredicate(range, nameNode, previousFunction.HasStaticKeyword, previousFunction.IsOpaque, tps, formals, result,
           req, reads, ens, decreases, body, refinementCloner.MergeAttributes(previousFunction.Attributes, moreAttributes), null);
       } else if (previousFunction is TwoStateFunction) {
-        return new TwoStateFunction(range, nameNode, previousFunction.HasStaticKeyword, tps, formals, result, refinementCloner.CloneType(previousFunction.ResultType),
+        return new TwoStateFunction(range, nameNode, previousFunction.HasStaticKeyword, previousFunction.IsOpaque, tps, formals, result, refinementCloner.CloneType(previousFunction.ResultType),
           req, reads, ens, decreases, body, refinementCloner.MergeAttributes(previousFunction.Attributes, moreAttributes), null);
       } else {
-        return new Function(range, nameNode, previousFunction.HasStaticKeyword, newFunction.IsGhost, tps, formals, result, refinementCloner.CloneType(previousFunction.ResultType),
+        return new Function(range, nameNode, previousFunction.HasStaticKeyword, newFunction.IsGhost, previousFunction.IsOpaque, tps, formals, result, refinementCloner.CloneType(previousFunction.ResultType),
           req, reads, ens, decreases, body,
           previousFunction.ByMethodTok == null ? null : refinementCloner.Tok(previousFunction.ByMethodTok), byMethodBody,
           refinementCloner.MergeAttributes(previousFunction.Attributes, moreAttributes), null);
@@ -760,7 +760,7 @@ namespace Microsoft.Dafny {
               if ((!(origConst.Type is InferredTypeProxy) && newConst.Type is InferredTypeProxy) || (origConst.Rhs != null && newConst.Rhs == null)) {
                 var typ = newConst.Type is InferredTypeProxy ? refinementCloner.CloneType(origConst.Type) : newConst.Type;
                 var rhs = newConst.Rhs ?? origConst.Rhs;
-                nw.Members[index] = new ConstantField(newConst.RangeToken, newConst.NameNode, rhs, newConst.HasStaticKeyword, newConst.IsGhost, typ, newConst.Attributes);
+                nw.Members[index] = new ConstantField(newConst.RangeToken, newConst.NameNode, rhs, newConst.HasStaticKeyword, newConst.IsGhost, newConst.IsOpaque, typ, newConst.Attributes);
               }
             }
 

@@ -193,7 +193,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
     // Sub-diagnostics if any
     public List<VerificationTree> Children { get; set; } = new();
-    private List<VerificationTree> NewChildren { get; set; } = new();
+    public List<VerificationTree> NewChildren { get; set; } = new();
 
     public int GetNewChildrenCount() {
       return NewChildren.Count;
