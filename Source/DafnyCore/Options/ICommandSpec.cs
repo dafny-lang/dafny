@@ -16,7 +16,16 @@ public interface ICommandSpec {
   }
   public static Argument<IEnumerable<FileInfo>> FilesArgument { get; }
 
+  public static IEnumerable<Option> FormatOptions => new Option[] {
+    CommonOptionBag.Check,
+    CommonOptionBag.StdIn,
+    CommonOptionBag.Verbose,
+    CommonOptionBag.FormatPrint,
+    DeveloperOptionBag.UseBaseFileName
+  }.Concat(ParserOptions);
+
   public static IReadOnlyList<Option> VerificationOptions = new Option[] {
+    CommonOptionBag.StdIn,
     CommonOptionBag.RelaxDefiniteAssignment,
     BoogieOptionBag.VerificationTimeLimit,
     CommonOptionBag.VerifyIncludedFiles,
@@ -48,18 +57,21 @@ public interface ICommandSpec {
     CommonOptionBag.WarningAsErrors,
   });
 
-  public static IReadOnlyList<Option> CommonOptions = new List<Option>(new Option[] {
+  public static IReadOnlyList<Option> ParserOptions = new List<Option>(new Option[] {
     BoogieOptionBag.Cores,
     CommonOptionBag.Libraries,
     CommonOptionBag.Plugin,
     CommonOptionBag.Prelude,
     Function.FunctionSyntaxOption,
     CommonOptionBag.QuantifierSyntax,
+    CommonOptionBag.UnicodeCharacters,
+  });
+
+  public static IReadOnlyList<Option> ResolverOptions = new List<Option>(new Option[] {
     CommonOptionBag.WarnShadowing,
     CommonOptionBag.WarnMissingConstructorParenthesis,
     PrintStmt.TrackPrintEffectsOption,
-    CommonOptionBag.UnicodeCharacters,
-  });
+  }).Concat(ParserOptions).ToList();
 
   IEnumerable<Option> Options { get; }
 

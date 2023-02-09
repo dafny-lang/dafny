@@ -4,9 +4,7 @@ Many of Dafny's statements are similar to those in traditional
 programming languages, but a number of them are significantly different.
 Dafny's various kinds of statements are described in subsequent sections.
 
-Statements have zero or more labels.
-
-Statements typically end with either a semicolon (`;`) or a closing curly brace ('}').
+Statements have zero or more labels and typically end with either a semicolon (`;`) or a closing curly brace ('}').
 
 ## 20.1. Labeled Statement ([grammar](#g-labeled-statement)) {#sec-labeled-statement}
 
@@ -15,8 +13,9 @@ Examples:
 ```dafny
 class A { var f: int }
 method m(a: A) {
-  label x: while true {
-       if (*) { break x; }
+  label x:
+  while true {
+     if (*) { break x; }
   }
   a.f := 0;
   label y:
@@ -40,14 +39,14 @@ The label may also be used in an `old` expression ([Section 21.22](#sec-old-expr
 must have been encountered during the control flow en route to the `old`
 expression. We say in this case that the (program point of the) label _dominates_
 the (program point of the) use of the label.
-Similarly, labels are used to indicates previous states in calls of [two-state predicates](#sec-two-state),
+Similarly, labels are used to indicate previous states in calls of [two-state predicates](#sec-two-state),
 [fresh](#sec-fresh-expression) expressions, [unchanged expressions](#sec-unchanged-expression), 
 and [allocated](#sec-allocated-expression) expressions.
 
 A statement can be given several labels. It makes no difference which of these
 labels is used to reference the statement---they are synonyms of each other.
 The labels must be distinct from each other, and are not allowed to be the
-same as any previous enclosing or dominating label.
+same as any previous enclosing or [dominating label](#sec-two-state).
 
 ## 20.2. Break and Continue Statements ([grammar](#g-break-continue-statement)) {#sec-break-continue-statement}
 
@@ -56,8 +55,9 @@ Examples:
 ```dafny
 class A { var f: int }
 method m(a: A) {
-  label x: while true {
-       if (*) { break; }
+  label x:
+  while true {
+    if (*) { break; }
   }
   label y: {
     var z := 1;
@@ -297,11 +297,11 @@ Examples:
 ```dafny
 {
   print 0;
-  var x:= 0;
+  var x := 0;
 }
 ```
 
-A block statement is just a sequence of zero or more statements enclosed by curly braces.
+A block statement is a sequence of zero or more statements enclosed by curly braces.
 Local variables declared in the block end their scope at the end of the block.
 
 ## 20.4. Return Statement ([grammar](#g-return-statement)) {#sec-return-statement}
@@ -312,7 +312,14 @@ Examples:
 method m(i: int) returns (r: int) {
   return i+1;
 }
-method p() {
+method n(i: int) returns (r: int, q: int) {
+  return i+1, i + 2;
+}
+method p() returns (i: int) {
+  i := 1;
+  return;
+}
+method q() {
   return;
 }
 ```
@@ -337,7 +344,7 @@ method terminates.
 ## 20.5. Yield Statement ([grammar](#g-yield-statement)) {#sec-yield-statement}
 
 A yield statement can only be used in an iterator.
-See [Section 15](#sec-iterator-types) for more details
+See [iterator types](#sec-iterator-types) for more details
 about iterators.
 
 The body of an iterator is a _co-routine_. It is used
@@ -363,13 +370,20 @@ Examples:
 <!-- %check-resolve -->
 ```dafny
 class C { var f: int }
+class D {
+  var i: int
+  constructor(i: int) {
+    this.i := i;
+  }
+}
 method q(i: int, j: int) {}
 method r() returns (s: int, t: int) { return 2,3; }
 method m() {
-  var ss: int, tt: int, c: C?, a: array<int>;
+  var ss: int, tt: int, c: C?, a: array<int>, d: D?;
   q(0,1);
   ss, c.f := r();
   c := new C;
+  d := new D(2);
   a := new int[10];
   ss, tt := 212, 33;
   ss :| ss > 7;
@@ -382,7 +396,7 @@ corresponding right-hand sides also denote the same value.
 
 The update statement serves several logical purposes.
 
-
+### 20.6.1. Method call
 1) The form
 
 ````grammar
@@ -390,6 +404,7 @@ Lhs {Attribute} ";"
 ````
 is assumed to be a call to a method with no out-parameters.
 
+### 20.6.2. Method call with multiple outputs
 2) The form
 
 ````grammar
@@ -406,6 +421,7 @@ the `:=`, which then is assigned a tuple of the out-parameters.
 Note that the result of a method call is not allowed to be used as an argument of
 another method call, as if it were an expression.
 
+### 20.6.3. Parallel assignment
 3) This is the typical parallel-assignment form, in which no call is involved:
 ````grammar
     Lhs { , Lhs } ":=" Rhs { "," Rhs } ";"
@@ -419,6 +435,7 @@ be an equal number of left-hand sides and right-hand sides in this case.
 Of course, the most common case will have only one
 ``Rhs`` and one ``Lhs``.
 
+### 20.6.4. Havoc assignment {#sec-havoc-statement}
 4) The form with a right-hand-side that is `*` is a _havoc_ assignment.
 It assigns an arbitrary but type-correct value to the corresponding left-hand-side.
 
@@ -491,6 +508,7 @@ To use this form of update,
  * if the failure-compatible type of the RHS does not have an `Extract` member,
 then the LHS of the `:-` statement has one less expression than the RHS
 (or than the number of out-parameters from the method call), the value of the first out-parameter or expression being dropped
+(see the discussion and examples in [Section 20.7.2](#sec-simple-fc-return))
  * if the failure-compatible type of the RHS does have an `Extract` member,
 then the LHS of the `:-` statement has the same number of expressions as the RHS
 (or as the number of out-parameters from the method call)
@@ -542,7 +560,7 @@ datatype Outcome<T> =
 ``` <!-- %save Outcome.tmp -->
 
 
-### 20.7.2. Simple status return with no other outputs
+### 20.7.2. Simple status return with no other outputs {#sec-simple-fc-return}
 
 The simplest use of this failure-return style of programming is to have a method call that just returns a non-value-carrying `Status` value:
 <!-- %check-resolve %use Status.tmp -->
@@ -579,7 +597,7 @@ if tmp.IsFailure() {
 ```
 In this and subsequent examples of desugaring, the `tmp` variable is a new, unique variable, unused elsewhere in the calling member.
 
-### 20.7.3. Status return with additional outputs
+### 20.7.3. Status return with additional outputs {#sec-multiple-output-fc}
 
 The example in the previous subsection affects the program only through side effects or the status return itself.
 It may well be convenient to have additional out-parameters, as is allowed for `:=` updates;
@@ -626,7 +644,7 @@ if tmp.IsFailure() {
 ```
 
 
-### 20.7.4. Failure-returns with additional data
+### 20.7.4. Failure-returns with additional data {#sec-value-carrying}
 
 The failure-compatible return value can carry additional data as shown in the `Outcome<T>` example above.
 In this case there is a (first) LHS l-value to receive this additional data.
@@ -683,7 +701,7 @@ if tmp.IsFailure() {
 j := tmp.Extract();
 ```
 
-### 20.7.5. RHS with expression list
+### 20.7.5. RHS with expression list {#sec-failure-expressions}
 
 Instead of a failure-returning method call on the RHS of the statement,
 the RHS can instead be a list of expressions.
@@ -723,7 +741,7 @@ if tmp.IsFailure() {
   return;
 }
 ```
-### 20.7.6. Failure with initialized declaration.
+### 20.7.6. Failure with initialized declaration. {#sec-failure-with-declaration}
 
 The `:-` syntax can also be used in initialization, as in
 <!-- %no-check -->
@@ -807,8 +825,8 @@ There are several points to note.
   the caller's first out-parameter type.
   If the caller's first out-parameter type is failure-compatible (which it need not be),
   then failures can be propagated up the call chain.
-  If the keyword form of the statement is used, then no `PropagateFailure` member
-  is needed and there is no restriction on the caller's first out-parameter.
+  If the keyword form (e.g. `assume`) of the statement is used, then no `PropagateFailure` member
+  is needed, because no failure can occur, and there is no restriction on the caller's first out-parameter.
 * In the statement `j, k :- Callee(i);`,
   when the callee's return value has an `Extract` member,
   the type of `j` is not the type of the first out-parameter of `Callee`.
@@ -885,6 +903,7 @@ var x, y := 5, 6;
 var x, y :- m();
 var x, y :| 0 < x + y < 10;
 var (x, y) := makePair();
+var Cons(x, y) = ConsMaker();
 ```
 does not declare both `x` and `y` to be of type `int`. Rather it will give an
 error explaining that the type of `x` is underspecified if it cannot be
@@ -942,7 +961,11 @@ Examples (in `if` statements):
 ```dafny
 method m(i: int) {
   ghost var k: int;
-  if i, j :| 0 < i+j < 10 { k := 0; } else { k := 1; }
+  if i, j :| 0 < i+j < 10 {
+    k := 0;
+  } else {
+    k := 1;
+  }
 }
 ```
 
@@ -996,10 +1019,26 @@ Examples:
 ```dafny
 method m(i: int) {
   var x: int;
-  if i > 0 { x := i; } else { x := -i; }
-  if * { x := i; } else { x := -i; }
-  if i: nat, j: nat :| i+j<10 { assert i < 10; }
-  if i == 0 { x := 0; } else if i > 0 { x := 1; } else { x := -1; }
+  if i > 0 {
+    x := i;
+  } else {
+    x := -i;
+  }
+  if * {
+    x := i;
+  } else {
+    x := -i;
+  }
+  if i: nat, j: nat :| i+j<10 {
+    assert i < 10;
+  }
+  if i == 0 {
+    x := 0;
+  } else if i > 0 {
+    x := 1;
+  } else {
+    x := -1;
+  }
   if 
     case i == 0 => x := 0;
     case i > 0 => x := 1;
@@ -1033,12 +1072,14 @@ If the guard is an asterisk then a non-deterministic choice is made:
   }
 ```
 
-The then alternative of the if-statement must be block statement;
+The then alternative of the if-statement must be a block statement;
 the else alternative may be either a block statement or another if statement.
 The condition of the if statement need not (but may) be enclosed in parentheses.
 
-An if-statement with a binding guard is a ghost statement.
-An if statement with `*` for a guard is non-deterministic.
+An if statement with a binding guard is non-deterministic;
+it will not be compiled if `--enforce-determinism` is enabled
+(even if it can be proved that there is a unique value).
+An if statement with `*` for a guard is non-deterministic and ghost.
 
 The `if-case` statement using the `AlternativeBlock` form is similar to the
 `if ... fi` construct used in the book "A Discipline of Programming" by
@@ -1063,7 +1104,7 @@ to the right of `=>` for that guard are executed. The statement requires
 at least one of the guards to evaluate to `true` (that is, `if-case`
 statements must be exhaustive: the guards must cover all cases).
 
-In the if-with-cases, a seeqneuce of statements may follow the `=>`; it
+In the if-with-cases, a sequence of statements may follow the `=>`; it
 need not be a block statement. Also the sequence of cases may be enclosed in 
 braces but need not be.
 
@@ -1635,8 +1676,20 @@ other body-less constructs above, the verifier is silently happy with a body-les
 Examples:
 <!-- %no-check -->
 ```dafny
-match x case 1 => print x; case 2 => var y := x*x; print y; case _ => print "Other";
-match list { case Nil => {} case Cons(head,tail) => print head; }
+
+match list {
+  case Nil => {}
+  case Cons(head,tail) => print head;
+}
+match x
+case 1 =>
+  print x;
+case 2 =>
+  var y := x*x;
+  print y;
+case _ =>
+  print "Other";
+  // Any statement after is captured in this case.
 ```
 
 The `match` statement is used to do case analysis on a value of an expression.
@@ -1746,7 +1799,7 @@ been replaced through a refinement step.
 Using an `{:axiom}` attribute makes the claim that the assume statement is
 OK because it is known outside the Dafny program to be true.
 The verifier will not complain about it, but it is the user's 
-responsibility to be absolutelu=y sure that the proposition is
+responsibility to be absolutely sure that the proposition is
 indeed true.
 
 Using `...` as the argument of the statement is deprecated.
@@ -2033,20 +2086,31 @@ function is not visible. However if a `reveal f();` statement is inserted before
 Note that the pseudo-function-call in the `reveal` statement is written without arguments and serves to mark `f` as a function name
 instead of a label.
 
+### 20.20.4. Revealing constants
+
+A `const` declaration can be `opaque`. If so the value of the constant is not known in reasoning about its uses, just its type and the
+fact that the value does not change. The constant's identifier can be listed in a reveal statement. In that case, like other revealed items,
+the value of the constant will be known to the reasonig engine until the end of the block containing the reveal statement.
 
 ## 20.21. Forall Statement ([grammar](#g-forall-statement)) {#sec-forall-statement}
 
 Examples:
 <!-- %no-check -->
 ```dafny
-forall i | 0 <= i < a.Length { a[i] := 0; }
-forall i | 0 <= i < 100 { P(i); } // P a lemma
-forall i | 0 <= i < 100 ensures i < 1000 {  } 
+forall i | 0 <= i < a.Length {
+  a[i] := 0;
+}
+forall i | 0 <= i < 100 {
+  P(i); // P a lemma
+}
+forall i | 0 <= i < 100
+  ensures i < 1000 {
+} 
 ```
 
 The `forall` statement executes the body
 simultaneously for all quantified values in the specified quantifier domain.
-See [Section 2.6.4](#sec-quantifier-domains) for more details on quantifier domains.
+You can find more details about [quantifier domains here](#sec-quantifier-domains).
 
 There are several variant uses of the `forall`
 statement and there are a number of restrictions.

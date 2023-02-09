@@ -463,7 +463,7 @@ function h()
 ```
 
 Functions are not allowed to have side effects; they may also be restricted in
-what they can read. The _reading frame_ of a function (or predicate) is all
+what they can read. The _reading frame_ of a function (or predicate) consists of all
 the heap memory locations that the function is allowed to read. The reason we
 might limit what a function can read is so that when we write to memory,
 we can be sure that functions that did not read that part of memory have
@@ -532,7 +532,7 @@ set x: int, o: object | o in F(x) :: o
 For each function value `f`, Dafny defines the function `f.reads`,
 which takes the same arguments as `f` and returns that set of objects
 that `f` reads (according to its reads clause) with those arguments.
-`f.reads` has type `int ~> set<object>`.
+`f.reads` has type `T ~> set<object>`, where `T` is the input type(s) of `f`.
 
 This is particularly useful when wanting to specify the reads set of
 another function. For example, function `Sum` adds up the values of
@@ -574,7 +574,7 @@ method M()
 method N()
   modifies { }
 method Q()
-  modifies o,p`f
+  modifies o, p`f
 ```
 
 Frames also affect methods. Methods are not
@@ -650,8 +650,8 @@ method m()
 
 An `invariant` clause is used to specify an invariant
 for a loop. If more than one `invariant` clause is given for
-a loop the effective invariant is the conjunction of
-the conditions specified, in their textual order.
+a loop, the effective invariant is the conjunction of
+the conditions specified, in the order given in the source text.
 
 The invariant must hold on entry to the loop. And assuming it
 is valid on entry to a particular iteration of the loop, 
@@ -678,7 +678,7 @@ class C {
 }
 ```
 
-A method specification is zero or more `modifies`, `requires`,
+A method specification consists of zero or more `modifies`, `requires`,
 `ensures` or `decreases` clauses, in any order.
 A method does not have `reads` clauses because methods are allowed to
 read any memory.
@@ -750,7 +750,7 @@ prove properties of a loop. It contains `invariant`,
 The `invariant` clause
 is effectively a precondition and it along with the
 negation of the loop test condition provides the postcondition.
-The `decreaases` clause is used to prove termination.
+The `decreases` clause is used to prove termination.
 
 ## 19.7. Auto-generated boilerplate specifications
 

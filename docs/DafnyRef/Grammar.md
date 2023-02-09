@@ -180,9 +180,9 @@ These are listed [here](#sec-g-tokens).
 
 In particular note that
 
-- `array`, `array2, `array3` , etc. are reserved words, but not `array1` or `array0`.
+- `array`, `array2`, `array3`, etc. are reserved words, but not `array1` or `array0`.
 These denote array types of given rank.
-- `array?`, `array2?, `array3?` , etc. are reserved words, but not `array1?` or `array0?`.
+- `array?`, `array2?`, `array3?`, etc. are reserved words, but not `array1?` or `array0?`.
 These denote possibly-null array types of given rank.
 - `bv0`, `bv1`, `bv2`, etc. are reserved words that denote the types of
 bitvectors of given length.
@@ -203,7 +203,8 @@ A `digits` token is a sequence of decimal digits (`digit`), possibly intersperse
 Example: `1_234_567`.
 
 A `hexdigits` token denotes a hexadecimal constant, and is a sequence of hexadecimal digits (`hexdigit`)
- possibly interspersed with underscores for readability (but not beginning or ending with an underscore).
+prefaced by `0x` and
+possibly interspersed with underscores for readability (but not beginning or ending with an underscore).
 Example: `0xffff_ffff`.
 
 A `decimaldigits` token is a decimal fraction constant, possibly interspersed with underscores for readability (but not beginning or ending with an underscore).

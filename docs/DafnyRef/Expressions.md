@@ -70,7 +70,7 @@ in order of increasing binding power.
 Examples:
 <!-- %no-check -->
 ```dafny
-let a == 2*b; a*b
+var a := 2*b; a*b
 ```
 
 This top-level expression has the form `S; E`.
@@ -264,7 +264,7 @@ x / y
 x % y
 ```
 
-A ``Factor`` combines bit-vector expressions using multiplication,
+A ``Factor`` combines expressions using multiplication,
 division, or modulus. For numeric types these are explained in
 [Section 6.2](#sec-numeric-types).
 As explained there, `/` and `%` on `int` values represent _Euclidean_
@@ -389,7 +389,7 @@ A unary expression applies either
 logical complement (`!` -- [Section 6.1](#sec-booleans)),
 numeric negation (`-` -- [Section 6.2](#sec-numeric-types)), or
 bit-vector negation (`-` -- [Section 6.3](#sec-bit-vector-types))
- to its operand.
+to its operand.
 
 ## 21.12. Primary Expressions ([grammar](#g-primary-expression)) {#sec-primary-expression}
 
@@ -425,7 +425,6 @@ _ => true
 (x:int, b:bool) => if b then x else -x
 x requires x > 0 => x-1
 ```
-
 
 See [Section 19.4](#sec-lambda-specification) for a description of specifications for lambda expressions.
 
@@ -636,7 +635,7 @@ fresh(e)
 ```
 
 These expressions represent either a constant of some type (a literal), or an
-atomic expression. They are neve l-values.
+atomic expression. They are never l-values.
 
 ## 21.20. Literal Expressions ([grammar](#g-literal-expression)} {#sec-literal-expression}
 
@@ -1792,8 +1791,8 @@ a
 a, b
 ```
 
-The ``Expressions`` non-terminal represents a list of
-one or more expressions separated by commas.
+An expression list is a comma-separated sequence of expressions, used, for example,
+as actual araguments in a method or function call or in parallel assignment.
 
 ## 21.36. Parameter Bindings ([grammar](#g-parameter-bindings)) {#sec-parameter-bindings}
 

@@ -142,7 +142,7 @@ The command-line also expects the following:
 working directory. A command-line argument not matching a known option is considered a filepath, and likely one
 with an unsupported suffix, provoking an error message.
 - Files containing dafny code must have a `.dfy` suffix.
-- There must be at least one `.dfy` file.
+- There must be at least one `.dfy` file (except when using `--stdin` or in the case of `dafny format`, see the [Dafny format section](#sec-dafny-format)) 
 - The command-line may contain other kinds of files appropriate to
 the language that the Dafny files are being compiled to. The kind of file is determined by its suffix.
 - Escape characters are determined by the shell executing the command-line.
@@ -363,7 +363,21 @@ The command emits exit codes of
 
 #### 25.5.1.9. `dafny format` {#sec-dafny-format}
 
-This command is not yet released, but will be a command that formats source code to a consistent style.
+Dafny supports a formatter, which for now only changes the indentation of every line in a Dafny file, so that it conforms
+to the idiomatic Dafny code formatting style.
+For the formatter to work, the file should be parsed correctly by Dafny.
+
+There are four ways to use the formatter:
+
+* `dafny format <one or more .dfy files or folders>` formats the given Dafny files and the Dafny files in the folders, recursively, altering the files in place. For example, `dafny format .` formats all the Dafny files recursively in the current folder.
+* `dafny format --print <files and/or folders>` formats each file but instead of altering the files, output the formatted content to stdout
+* `dafny format --check <files and/or folders>` does not alter files. It will print a message concerning which files need formatting and return a non-zero exit code if any files would be changed by formatting.
+
+You can also use `--stdin` instead of providing a file to format a full Dafny file from the standard input.
+
+Each version of `dafny format` returns a non-zero return code if there are any command-line or parsing
+errors or if --check is stipulated and at least one file is not the same as its formatted version.  
+`dafny format` does not necessarily report name or type resolution errors and does not attempt verification.
 
 #### 25.5.1.10. `dafny test` {#sec-dafny-test}
  
@@ -1073,7 +1087,8 @@ file.
 
 In general, we recommend something like the following:
 
-```bash <!-- %no-check -->
+<!-- %no-check -->
+```bash
 dafny-reportgenerator --max-resource-cv-pct 10 TestResults/*.csv
 ```
 
@@ -1826,21 +1841,14 @@ and what information it produces about the verification process.
 
 * `--relax-definite-assignment - control the rules governing definite
   assignment, the property that every variable is eventually assigned a
-  value before it is used.  If false (the default) definite assignment
-  rules are strictly checked (corresponding to legacy level 3); if true,
-  checking corresponds to legacy level 2.
-  The legacy option was `-definiteAssignment:<n>` with possible values
-  * `0` - ignore definite-assignment rules; this mode is unsound and is
-    for testing only.
-  * `1` (default) - enforce definite-assignment rules for compiled
+  value before it is used.
+  * if false (default), enforce definite-assignment for all non-yield-parameter
+    variables and fields, regardless of their types
+  * if false and `--enforce-determinism` is true, then also performs 
+    checks in the compiler that no nondeterministic statements are used
+  * if true, enforce definite-assignment rules for compiled
     variables and fields whose types do not support auto-initialization
     and for ghost variables and fields whose type is possibly empty.
-  * `2` - enforce definite-assignment for all non-yield-parameter
-    variables and fields, regardless of their types.
-  * `3` - like `2`, but also performs checks in the compiler that no
-    nondeterministic statements are used; thus, a program that passes at
-    this level 3 is one that the language guarantees that values seen
-    during execution will be the same in every run of the program.
 
 * `-noAutoReq` - ignore `autoReq` attributes, and therefore do not
   automatically generate `requires` clauses.

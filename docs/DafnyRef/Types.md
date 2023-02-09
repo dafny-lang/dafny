@@ -1,16 +1,20 @@
 # 5. Types {#sec-types}
 
-A Dafny type is a domain type (i.e., a type that can be the domain of an
-arrow type) optionally followed by an arrow and a range type.
+A Dafny type is a (possibly-empty) set of values or heap data-structures,
+together with allowed operations on those values.
+Types are classified as mutable reference types or immutable value types,
+depending on whether their values are stored in the heap or are 
+(mathematical) values independent of the heap.
 
-The domain types comprise the 
-* builtin scalar types, 
-* the builtin collection types, 
-* tuple types (including as a special case a parenthesized type) 
-* and reference types,
-all described in the following subsections.
-
-Dafny types may be categorized as either value types or reference types.
+Dafny supports the following kinds of types,
+all described in later sections of this manual:
+* [builtin scalar types](#sec-basic-type), 
+* [builtin collection types](#sec-collection-types), 
+* [reference types](#sec-class-types) (classes, traits, iterators),
+* [tuple types](#sec-tuple-types) (including as a special case a parenthesized type),
+* [inductive](#sec-datatype) and [coinductive](#sec-coinductive-datatypes) datatypes, 
+* [function (arrow) types](#sec-arrow-subset-types), and
+* [types, such as subset types, derived from other types](#sec-subset-types).
 
 ## 5.1. Value Types
 The value types are those whose values do not lie in the program heap.
@@ -1999,7 +2003,7 @@ which value is fixed after initialization.
 The declaration must either have a type or an initializing expression (or both).
 If the type is omitted, it is inferred from the initializing expression.
 
-* A const declaration may include the `ghost` and `static` modifiers, but no
+* A const declaration may include the `ghost`, `static`, and `opaque` modifiers, but no
 others.
 * A const declaration may appear within a module or within any declaration
 that may contain members (class, trait, datatype, newtype).
@@ -2008,6 +2012,9 @@ that may contain members (class, trait, datatype, newtype).
 * If the declaration has an initializing expression that is a ghost
 expression, then the ghost-ness of the declaration is inferred; the `ghost`
 modifier may be omitted.
+* If the declaration includes the `opaque` modifier, then uses of the declared
+variable know its name and type but not its value. The value can be made known for
+reasoning purposes by using the [reveal statement](#sec-reveal-statement).
 * The initialization expression may refer to other constant fields that are in scope and declared either
 before or after this declaration, but circular references are not allowed.
 
@@ -2541,6 +2548,11 @@ default. To make it ghost, replace the keyword `function` with the two keywords 
 (See the [/functionSyntax option](#sec-function-syntax) for a description 
 of the migration path for this change in behavior.}
 
+Functions (including predicates, function-by-methods, two-state functions, and extreme predicates) may be 
+declared `opaque`. In that case, only the signature and specification of the method
+is known at its points of use, not its body. The body can be _revealed_ for reasoning
+purposes using the [reveal statment](#sec-reveal-statement).
+
 Like methods, functions can be either _instance_ (which they are by default) or
 _static_ (when the function declaration contains the keyword `static`).
 An instance function, but not a static function, has an implicit receiver parameter, `this`.  A static function `F` in a class `C` can be invoked
@@ -2631,7 +2643,7 @@ transparent all the way.
 But the transparency of a function is affected by
 whether the function was given the `{:opaque}` attribute (as explained
 in [Section 23.2.8](#sec-opaque)),
-the reveal statement ([Section 0.0](#sec-reveal-statement)),
+the reveal statement ([Section 20.20](#sec-reveal-statement)),
 and whether it was `reveal`ed in an export set.
 
 - Inside the module where the function is declared:

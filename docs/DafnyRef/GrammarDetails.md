@@ -36,7 +36,7 @@ This section gives the definitions of Dafny tokens.
 
 ### 29.1.1. Classes of characters
 
-These definitions define some names as representing subsets of the set of characters. Here
+These definitions define some names as representing subsets of the set of characters. Here,
 
 * double quotes enclose the set of characters constituting the class, 
 * single quotes enclose a single character (perhaps an escaped representation using `\`), 
@@ -93,7 +93,7 @@ These definitions use
 * curly braces to indicate 0-or-more repetitions
 * parentheses to indicate grouping
 * a `-` sign to indicate set difference: any character sequence matched by the left operand except character sequences matched by the right operand
-* a sequence of any of the above indicates concatentation (without whitespace)
+* a sequence of any of the above to indicate concatenation without whitespace
 
 ````grammar
 reservedword =
@@ -778,7 +778,7 @@ PossiblyWildFrameExpression(allowLemma, allowLambda, allowWild) =
 Stmt = { "label" LabelName ":" } NonLabeledStmt
 ````
 
-#### 29.2.6.2. Non-Labeled statement ([discussion](#sec-nonlabeled-statement)) {#g-nonlabeled-statement}
+#### 29.2.6.2. Non-Labeled statement ([discussion](#sec-statements)) {#g-nonlabeled-statement}
 
 ````grammar
 NonLabeledStmt =

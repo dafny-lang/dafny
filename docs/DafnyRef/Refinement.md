@@ -61,7 +61,7 @@ Typically this is the presence of a `...` token.
 
 ## 22.1. Export set declarations
 
-A refining export set declaration begins with [the syntax](#g-module-export}
+A refining export set declaration begins with [the syntax](#g-module-export)
 ````grammar
 "export" Ident ellipsis
 ````
