@@ -1,11 +1,14 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 
 namespace Microsoft.Dafny;
 
 public class AssignStmt : Statement, ICloneable<AssignStmt> {
   public readonly Expression Lhs;
   public readonly AssignmentRhs Rhs;
+  public override IEnumerable<Node> Children => new List<Node> { Lhs, Rhs }.Where(x => x != null);
+  public override IEnumerable<Node> PreResolveChildren => Children;
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Lhs != null);
@@ -25,8 +28,6 @@ public class AssignStmt : Statement, ICloneable<AssignStmt> {
       return Rhs.StartToken;
     }
   }
-
-  public override IEnumerable<Node> Children => new Node[] { Lhs, Rhs };
 
   public AssignStmt Clone(Cloner cloner) {
     return new AssignStmt(cloner, this);
@@ -49,6 +50,14 @@ public class AssignStmt : Statement, ICloneable<AssignStmt> {
   public override IEnumerable<Statement> SubStatements {
     get {
       foreach (var s in Rhs.SubStatements) {
+        yield return s;
+      }
+    }
+  }
+
+  public override IEnumerable<Statement> PreResolveSubStatements {
+    get {
+      foreach (var s in Rhs.PreResolveSubStatements) {
         yield return s;
       }
     }

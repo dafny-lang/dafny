@@ -10,7 +10,7 @@ class VerifyCommand : ICommandSpec {
     BoogieOptionBag.BoogieFilter,
   }.Concat(ICommandSpec.VerificationOptions).
     Concat(ICommandSpec.ConsoleOutputOptions).
-    Concat(ICommandSpec.CommonOptions);
+    Concat(ICommandSpec.ResolverOptions);
 
   public Command Create() {
     var result = new Command("verify", "Verify the program.");
@@ -25,7 +25,7 @@ class VerifyCommand : ICommandSpec {
 
 class ResolveCommand : ICommandSpec {
   public IEnumerable<Option> Options => ICommandSpec.ConsoleOutputOptions.
-    Concat(ICommandSpec.CommonOptions);
+    Concat(ICommandSpec.ResolverOptions);
 
   public Command Create() {
     var result = new Command("resolve", "Only check for parse and type resolution errors.");

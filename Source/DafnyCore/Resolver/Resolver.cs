@@ -1838,7 +1838,7 @@ namespace Microsoft.Dafny {
             new Specification<Expression>(new List<Expression>(), null),
             null, null, null);
           // --- here comes predicate Valid()
-          var valid = new Predicate(iter.tok, "Valid", false, true, new List<TypeParameter>(),
+          var valid = new Predicate(iter.tok, "Valid", false, true, false, new List<TypeParameter>(),
             new List<Formal>(),
             null,
             new List<AttributedExpression>(),
@@ -6328,8 +6328,11 @@ namespace Microsoft.Dafny {
           lhsExtract.Type = lmulti.Type;
         } else if (lhsResolved is IdentifierExpr) {
           // do nothing
+        } else if (lhsResolved == null) {
+          // LHS failed to resolve. Abort trying to resolve assign or return stmt
+          return;
         } else {
-          Contract.Assert(false, "Internal error: unexpected option in ResolveAssignOrReturnStmt");
+          throw new InvalidOperationException("Internal error: unexpected option in ResolveAssignOrReturnStmt");
         }
       }
       var temp = FreshTempVarName("valueOrError", resolutionContext.CodeContext);

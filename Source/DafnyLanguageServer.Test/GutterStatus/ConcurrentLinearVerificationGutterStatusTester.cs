@@ -17,7 +17,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
 
 [TestClass]
 public class ConcurrentLinearVerificationGutterStatusTester : LinearVerificationGutterStatusTester {
-  private const int MaxSimultaneousVerificationTasks = 3;
+  private const int MaxSimultaneousVerificationTasks = 10;
 
   protected TestNotificationReceiver<VerificationStatusGutter>[] verificationStatusGutterReceivers =
     new TestNotificationReceiver<VerificationStatusGutter>[MaxSimultaneousVerificationTasks];
