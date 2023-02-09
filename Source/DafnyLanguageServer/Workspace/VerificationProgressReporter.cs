@@ -295,6 +295,13 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
       } else if (implementationNode == null) {
         logger.LogError($"No implementation node at {implementation.tok.filename}:{implementation.tok.line}:{implementation.tok.col}");
       } else {
+        var wasAlreadyProcessed = implementationNode.NewChildren.Any(assertNode =>
+          assertNode is AssertionVerificationTree assertionNode
+          && assertionNode.AssertionBatchNum == result.vcNum);
+        if (wasAlreadyProcessed) {
+          return;
+        }
+
         result.ComputePerAssertOutcomes(out var perAssertOutcome, out var perAssertCounterExample);
 
         var assertionBatchTime = (int)result.runTime.TotalMilliseconds;
