@@ -1,2 +1,2 @@
-git-issue53.dfy(5,11): Error: Undeclared top-level type or type parameter: mode (did you forget to qualify a name or declare a module import 'opened'?)
+git-issue53.dfy(5,11): Error: Type or type parameter is not declared in this scope: mode (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
 1 resolution/type errors detected in git-issue53.dfy
