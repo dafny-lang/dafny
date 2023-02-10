@@ -6,45 +6,75 @@ namespace Microsoft.Dafny;
 
 public class ArrowType : UserDefinedType {
 
+  /// <summary>
+  /// The motivation for this method is to convert a reads-clause frame expression "f.reads" into a set.
+  /// More generally, if the given expression "e" has type "X ~> collection<Y>", for some list of type X,
+  /// some reference type Y, and "collection" being "set", "iset", "seq", or "multiset", then this method
+  /// returns an expression of type "set<Y>" denoting
+  ///
+  ///     UNION x: X :: e(x)                      // e.g., UNION x: X :: f.reads(x)
+  ///
+  /// For example, if "e" is an expression "f.reads" of type "X ~> set<object>", then the expression
+  /// returned is the union of "f.reads(x)" over all inputs "x" to "f".
+  ///
+  /// If the type of "e" is not of the form "X ~> collection<Y>" as stated above, then this method simply
+  /// returns the given "e".
+  ///
+  /// Dafny does not have a UNION comprehension, so the expression returned has the form
+  ///
+  ///     { obj: Y | exists x: X :: obj in e(x) }
+  ///
+  /// which in Dafny notation is written
+  ///
+  ///     set x: X, obj: Y | obj in e(x) :: obj
+  ///
+  /// Note, since Y is a reference type and there is, at any one time, only a finite number of references,
+  /// the result type is finite.
+  /// </summary>
   public static Expression FrameArrowToObjectSet(Expression e, FreshIdGenerator idGen, BuiltIns builtIns) {
     Contract.Requires(e != null);
     Contract.Requires(idGen != null);
     Contract.Requires(builtIns != null);
-    var arrTy = e.Type.AsArrowType;
-    if (arrTy != null) {
-      var bvars = new List<BoundVar>();
-      var bexprs = new List<Expression>();
-      var bounds = new List<ComprehensionExpr.BoundedPool>();
-      foreach (var t in arrTy.Args) {
-        var bv = new BoundVar(e.tok, idGen.FreshId("_x"), t);
-        bvars.Add(bv);
-        bexprs.Add(new IdentifierExpr(e.tok, bv.Name) { Type = bv.Type, Var = bv });
-        var allBounds = Resolver.DiscoverAllBounds_SingleVar(bv, Expression.CreateBoolLiteral(e.tok, true));
-        bounds.Add(ComprehensionExpr.BoundedPool.GetBest(allBounds));
-      }
-
-      var oVar = new BoundVar(e.tok, idGen.FreshId("_o"), builtIns.ObjectQ());
-      var obj = new IdentifierExpr(e.tok, oVar.Name) { Type = oVar.Type, Var = oVar };
-      bvars.Add(oVar);
-      var collection = new ApplyExpr(e.tok, e, bexprs, e.tok) {
-        Type = new SetType(true, builtIns.ObjectQ())
-      };
-      var collectionType = (CollectionType)arrTy.Result;
-      var resolvedOpcode = collectionType.ResolvedOpcodeForIn;
-      var boundedPool = collectionType.GetBoundedPool(collection);
-
-      return
-        new SetComprehension(e.tok, e.RangeToken, true, bvars,
-          new BinaryExpr(e.tok, BinaryExpr.Opcode.In, obj, collection) {
-            ResolvedOp = resolvedOpcode,
-            Type = Type.Bool
-          }, obj, null) {
-          Type = new SetType(true, builtIns.ObjectQ()),
-          Bounds = bounds
-        };
-    } else {
+    var arrowType = e.Type.AsArrowType;
+    if (arrowType == null) {
       return e;
     }
+    var collectionType = arrowType.Result.AsCollectionType;
+    if (collectionType == null || collectionType.NormalizeExpand() is MapType) {
+      return e;
+    }
+    var elementType = collectionType.Arg; // "elementType" is called "Y" in the description of this method, above
+
+    var boundVarDecls = new List<BoundVar>();
+    var boundVarUses = new List<Expression>();
+    var bounds = new List<ComprehensionExpr.BoundedPool>();
+    foreach (var functionArgumentType in arrowType.Args) {
+      var bv = new BoundVar(e.tok, idGen.FreshId("_x"), functionArgumentType);
+      boundVarDecls.Add(bv);
+      boundVarUses.Add(new IdentifierExpr(e.tok, bv.Name) { Type = bv.Type, Var = bv });
+      var allBounds = Resolver.DiscoverAllBounds_SingleVar(bv, Expression.CreateBoolLiteral(e.tok, true));
+      bounds.Add(ComprehensionExpr.BoundedPool.GetBest(allBounds));
+    }
+    var objVar = new BoundVar(e.tok, idGen.FreshId("_obj"), elementType);
+    var objUse = new IdentifierExpr(e.tok, objVar.Name) { Type = objVar.Type, Var = objVar };
+    boundVarDecls.Add(objVar);
+
+    var collection = new ApplyExpr(e.tok, e, boundVarUses, e.tok) {
+      Type = collectionType
+    };
+    var resolvedOpcode = collectionType.ResolvedOpcodeForIn;
+    var boundedPool = collectionType.GetBoundedPool(collection);
+    bounds.Add(boundedPool);
+
+    var inCollection = new BinaryExpr(e.tok, BinaryExpr.Opcode.In, objUse, collection) {
+      ResolvedOp = resolvedOpcode,
+      Type = Type.Bool
+    };
+    var attributes = new Attributes("trigger", new List<Expression>() { inCollection }, null);
+    return new SetComprehension(e.tok, e.RangeToken, true, boundVarDecls, inCollection, objUse, attributes) {
+      Type = new SetType(true, elementType),
+      Bounds = bounds
+    };
   }
 
   public List<Type> Args {
