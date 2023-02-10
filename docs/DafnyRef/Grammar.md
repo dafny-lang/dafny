@@ -205,7 +205,8 @@ Also, `ident` tokens that begin with an `_` are not permitted as user identifier
 
 ### 2.5.3. Digits {#sec-digits}
 
-A `digits` token is a sequence of decimal digits (`digit`), possibly interspersed with underscores for readability (but not beginning or ending with an underscore).
+A `digits` token is a sequence of decimal digits (`digit`), possibly interspersed with 
+underscores for readability (but not beginning or ending with an underscore).
 Example: `1_234_567`.
 
 A `hexdigits` token denotes a hexadecimal constant, and is a sequence of hexadecimal digits (`hexdigit`)
@@ -220,7 +221,7 @@ Example: `123_456.789_123`.
 ### 2.5.4. Escaped Character {#sec-escaped-characters}
 
 The `escapedChar` token is a multi-character sequence that denotes a non-printable or non-ASCII character.
-They begin with a backslash characcter (`\`) and denote
+Such tokens begin with a backslash characcter (`\`) and denote
  a single- or double-quote character, backslash,
 null, new line, carriage return, tab, or a
 Unicode character with given hexadecimal representation.
