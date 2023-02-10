@@ -709,6 +709,7 @@ namespace Microsoft.Dafny {
 
     private Bpl.Program DoTranslation(Program p, ModuleDefinition forModule) {
       program = p;
+      this.forModule = forModule;
       Type.EnableScopes();
 
       EstablishModuleScope(p.BuiltIns.SystemModule, forModule);
@@ -2157,7 +2158,7 @@ namespace Microsoft.Dafny {
         pre = BplAnd(pre, etran.TrExpr(Substitute(req.E, null, substMap)));
       }
       // useViaContext: fh < FunctionContextHeight
-      var visibilityLevel = f.EnclosingClass.EnclosingModuleDefinition.CallGraph.GetSCCRepresentativePredecessorCount(f);
+      var visibilityLevel = forModule.CallGraph.GetSCCRepresentativePredecessorCount(f);
       Expr useViaContext = Expr.Lt(Expr.Literal(visibilityLevel), etran.FunctionContextHeight());
       // useViaCanCall: f#canCall(args)
       Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
@@ -2257,11 +2258,9 @@ namespace Microsoft.Dafny {
       Contract.Requires(f != null);
       Contract.Requires(etran != null);
       Contract.Requires(VisibleInScope(f));
-      var module = f.EnclosingClass.EnclosingModuleDefinition;
-
       if (InVerificationScope(f)) {
         return
-          Bpl.Expr.Le(Bpl.Expr.Literal(module.CallGraph.GetSCCRepresentativePredecessorCount(f)), etran.FunctionContextHeight());
+          Bpl.Expr.Le(Bpl.Expr.Literal(forModule.CallGraph.GetSCCRepresentativePredecessorCount(f)), etran.FunctionContextHeight());
       } else {
         return Bpl.Expr.True;
       }
@@ -2292,16 +2291,10 @@ namespace Microsoft.Dafny {
       // where:
       //
       // AXIOM_ACTIVATION
-      // for visibility==ForeignModuleOnly, means:
-      //   mh < ModuleContextHeight
-      // for visibility==IntraModuleOnly, means:
-      //   mh == ModuleContextHeight && fh <= FunctionContextHeight
+      //   fh <= FunctionContextHeight
       //
       // USE_VIA_CONTEXT
-      // for visibility==ForeignModuleOnly, means:
-      //   GOOD_PARAMETERS
-      // for visibility==IntraModuleOnly, means:
-      //   fh != FunctionContextHeight &&
+      //   fh < FunctionContextHeight &&
       //   GOOD_PARAMETERS
       // where GOOD_PARAMETERS means:
       //   $IsGoodHeap($Heap) && this != null && formals-have-the-expected-types &&
@@ -2506,12 +2499,9 @@ namespace Microsoft.Dafny {
         return null;
       }
 
-      // useViaContext: (mh != ModuleContextHeight || fh != FunctionContextHeight)
+      // useViaContext: fh < FunctionContextHeight
       ModuleDefinition mod = f.EnclosingClass.EnclosingModuleDefinition;
-      Bpl.Expr useViaContext = !InVerificationScope(f)
-        ? (Bpl.Expr)Bpl.Expr.True
-        : Bpl.Expr.Neq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativePredecessorCount(f)),
-          etran.FunctionContextHeight());
+      var useViaContext = Bpl.Expr.Lt(Bpl.Expr.Literal(forModule.CallGraph.GetSCCRepresentativePredecessorCount(f)), etran.FunctionContextHeight());
       // ante := (useViaContext && typeAnte && pre)
       ante = BplAnd(useViaContext, BplAnd(ante, pre));
 
@@ -3149,6 +3139,7 @@ namespace Microsoft.Dafny {
     }
 
     ModuleDefinition currentModule = null;  // the module whose members are currently being translated
+    ModuleDefinition forModule = null;  // the root module
     ICallable codeContext = null;  // the method/iterator whose implementation is currently being translated or the function whose specification is being checked for well-formedness
     Bpl.LocalVariable yieldCountVariable = null;  // non-null when an iterator body is being translated
     bool inBodyInitContext = false;  // true during the translation of the .BodyInit portion of a divided constructor body
@@ -3512,10 +3503,7 @@ namespace Microsoft.Dafny {
       //generating trait post-conditions with class variables
       FunctionCallSubstituter sub = null;
       foreach (var en in f.OverriddenFunction.Ens) {
-        // We replace all occurrences of the trait version of the function with the class version. This is only allowed
-        // if the receiver is `this`. We underapproximate this by looking for a `ThisExpr`, which misses more complex
-        // expressions that evaluate to one.
-        sub ??= new FunctionCallSubstituter(substMap, typeMap, f);
+        sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)f.OverriddenFunction.EnclosingClass, (ClassDecl)f.EnclosingClass);
         foreach (var s in TrSplitExpr(sub.Substitute(en.E), etran, false, out _).Where(s => s.IsChecked)) {
           builder.Add(Assert(f.tok, s.E, new PODesc.FunctionContractOverride(true)));
         }
@@ -3610,10 +3598,7 @@ namespace Microsoft.Dafny {
       //generating trait pre-conditions with class variables
       FunctionCallSubstituter sub = null;
       foreach (var req in f.OverriddenFunction.Req) {
-        // We replace all occurrences of the trait version of the function with the class version. This is only allowed
-        // if the receiver is `this`. We underapproximate this by looking for a `ThisExpr`, which misses more complex
-        // expressions that evaluate to one.
-        sub ??= new FunctionCallSubstituter(substMap, typeMap, f);
+        sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)f.OverriddenFunction.EnclosingClass, (ClassDecl)f.EnclosingClass);
         builder.Add(TrAssumeCmd(f.tok, etran.TrExpr(sub.Substitute(req.E))));
       }
       //generating class pre-conditions

@@ -2,11 +2,14 @@
 // RUN: %diff "%s.expect" "%t"
 
 module M {
-  trait {:termination false} Tr {
+  trait {:termination false} Top {
+    predicate ActuallyTrue() ensures ActuallyTrue()
+  }
+  trait {:termination false} Tr extends Top {
     function True(): (ret: bool) ensures ret
     function True'(): (ret: bool) ensures True'()
-    function ActuallyTrue(): (ret: bool) ensures ActuallyTrue()
-    function Other(x:nat, free: Tr): bool
+    predicate ActuallyTrue'() ensures ActuallyTrue()
+    predicate Other(x:nat, free: Tr)
       ensures x != 0 && free.Other(x-1, free) ==> Other(x-1, free)
   }
 }
@@ -18,8 +21,10 @@ class Cl extends M.Tr {
   function True'(): (ret: bool)
     // Missing: ensures True'()
   { false }
-  function ActuallyTrue(): (ret: bool)
-    // This is logically correct, but the disguised receiver in the Tr spec prevents the override check from passing.
+  predicate ActuallyTrue()
+    ensures ActuallyTrue()
+  { true }
+  predicate ActuallyTrue'()
     ensures ActuallyTrue()
   { true }
   function Other(x: nat, free: M.Tr): bool

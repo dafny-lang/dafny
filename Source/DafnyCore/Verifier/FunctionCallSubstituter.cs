@@ -6,18 +6,21 @@ namespace Microsoft.Dafny {
     public readonly TraitDecl Tr;
     public readonly ClassDecl Cl;
 
-    public FunctionCallSubstituter(Dictionary<IVariable, Expression/*!*/>/*!*/ substMap, Dictionary<TypeParameter, Type> typeMap, Function f)
+    // We replace all occurrences of the trait version of the function with the class version. This is only allowed if
+    // the receiver is `this`. We underapproximate this by looking for a `ThisExpr`, which misses more complex
+    // expressions that evaluate to one.
+    public FunctionCallSubstituter(Dictionary<IVariable, Expression/*!*/>/*!*/ substMap, Dictionary<TypeParameter, Type> typeMap, TraitDecl Tr, ClassDecl Cl)
       : base(null, substMap, typeMap) {
-      var tf = f.OverriddenFunction;
-      Tr = (TraitDecl)tf.EnclosingClass;
-      Cl = (ClassDecl)f.EnclosingClass;
+      this.Tr = Tr;
+      this.Cl = Cl;
     }
+
     public override Expression Substitute(Expression expr) {
       if (expr is FunctionCallExpr e) {
         var receiver = Substitute(e.Receiver);
         var newArgs = SubstituteExprList(e.Args);
         Function function;
-        if (e.Function.EnclosingClass == Tr && e.Receiver is ThisExpr && receiver is ThisExpr && Cl.Members.Find(m => m.OverriddenMember == e.Function) is { } f) {
+        if ((e.Function.EnclosingClass == Tr || Tr.InheritedMembers.Contains(e.Function)) && e.Receiver is ThisExpr && receiver is ThisExpr && Cl.Members.Find(m => m.OverriddenMember == e.Function) is { } f) {
           receiver = new ThisExpr((TopLevelDeclWithMembers)f.EnclosingClass);
           function = (Function)f;
         } else {
