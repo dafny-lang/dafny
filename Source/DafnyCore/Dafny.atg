@@ -2603,14 +2603,14 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
              dmod.IsGhost = false; // don't report errors about 'ghost', too
            } else if (theOptions.FunctionSyntax == FunctionSyntaxOptions.Version4 ||
                       theOptions.FunctionSyntax == FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost) {
-             SemErr(functionMethodToken, $"the phrase '{what} method' is not allowed with --function-syntax:4; to declare a compiled {what}, use just '{what}'");
+             SemErr(functionMethodToken, $"the phrase '{what} method' is not allowed when using --function-syntax:4; to declare a compiled {what}, use just '{what}'");
              functionMethodToken = null;
            } else if (dmod.IsGhost && theOptions.FunctionSyntax != FunctionSyntaxOptions.Version3) {
              SemErr(t, $"there is no such thing as a 'ghost {what} method'");
              functionMethodToken = null;
            }
          } else if (!dmod.IsGhost && theOptions.FunctionSyntax == FunctionSyntaxOptions.Migration3To4) {
-           SemErr(headToken, $"a {what} must be declared as either 'ghost {what}' or '{what} method'");
+           SemErr(headToken, $"a {what} must be declared as either 'ghost {what}' or '{what} method' when using --function-syntax:migration3to4");
          }
          AllowedDeclModifiers allowed = AllowedDeclModifiers.Static | AllowedDeclModifiers.Opaque;
          if (isPredicate && theOptions.FunctionSyntax == FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost) {
@@ -3730,7 +3730,8 @@ ForallStmt<out Statement/*!*/ s>
           QuantifierDomain<out bvars, out qattrs, out range, true, true, true>
         ]
   )
-  (. if (bvars == null) { bvars = new List<BoundVar>(); }
+  (. if (bvars == null) errors.Deprecated(startToken, "a forall statement with no bound variables is deprecated; use an 'assert by' statement instead");
+     if (bvars == null) { bvars = new List<BoundVar>(); }
      if (range == null) { range = new LiteralExpr(x, true); }
   .)
 
