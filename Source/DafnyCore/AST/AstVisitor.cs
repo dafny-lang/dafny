@@ -71,15 +71,15 @@ namespace Microsoft.Dafny {
       iteratorDecl.Requires.Iter(aexpr => VisitAttributedExpression(aexpr, context));
 
       VisitAttributes(iteratorDecl.Modifies, iteratorDecl.EnclosingModuleDefinition);
-      iteratorDecl.Modifies.Expressions.Iter(frameExpr => VisitExpression(frameExpr.E, context));
+      iteratorDecl.Modifies.Expressions.Iter(frameExpr => VisitFrameExpression(frameExpr, context, false));
 
       iteratorDecl.YieldRequires.Iter(aexpr => VisitAttributedExpression(aexpr, context));
 
-      iteratorDecl.Reads.Expressions.Iter(frameExpr => VisitExpression(frameExpr.E, context));
+      iteratorDecl.Reads.Expressions.Iter(frameExpr => VisitFrameExpression(frameExpr, context, true));
 
-      iteratorDecl.YieldEnsures.Iter(frameExpr => VisitExpression(frameExpr.E, context));
+      iteratorDecl.YieldEnsures.Iter(aexpr => VisitExpression(aexpr.E, context));
 
-      iteratorDecl.Ensures.Iter(frameExpr => VisitExpression(frameExpr.E, context));
+      iteratorDecl.Ensures.Iter(aexpr => VisitExpression(aexpr.E, context));
 
       VisitAttributes(iteratorDecl.Decreases, iteratorDecl.EnclosingModuleDefinition);
       iteratorDecl.Decreases.Expressions.Iter(expr => VisitExpression(expr, context));
@@ -145,7 +145,7 @@ namespace Microsoft.Dafny {
 
       function.Req.Iter(aexpr => VisitAttributedExpression(aexpr, context));
 
-      function.Reads.Iter(frameExpression => VisitExpression(frameExpression.E, context));
+      function.Reads.Iter(frameExpression => VisitFrameExpression(frameExpression, context, true));
 
       function.Ens.Iter(aexpr => VisitAttributedExpression(aexpr, GetContext(function, true)));
 
@@ -174,7 +174,7 @@ namespace Microsoft.Dafny {
       method.Req.Iter(aexpr => VisitAttributedExpression(aexpr, context));
 
       VisitAttributes(method.Mod, method.EnclosingClass.EnclosingModuleDefinition);
-      method.Mod.Expressions.Iter(frameExpression => VisitExpression(frameExpression.E, context));
+      method.Mod.Expressions.Iter(frameExpression => VisitFrameExpression(frameExpression, context, false));
 
       VisitAttributes(method.Decreases, method.EnclosingClass.EnclosingModuleDefinition);
       method.Decreases.Expressions.Iter(expr => VisitExpression(expr, context));
@@ -270,6 +270,15 @@ namespace Microsoft.Dafny {
 
         PostVisitOneExpression(expr, context);
       }
+    }
+
+    /// <summary>
+    /// Note: The parameter "inReadsClause" is more specific than "context", and therefore it is passed as a parameter
+    /// rather than being part of the context. For example, the "reads" clause of a lambda expression inside a method
+    /// context passes in "inReadsClause" as "true".
+    /// </summary>
+    public virtual void VisitFrameExpression(FrameExpression frameExpression, VisitorContext context, bool inReadsClause) {
+      VisitExpression(frameExpression.E, context);
     }
 
     /// <summary>
