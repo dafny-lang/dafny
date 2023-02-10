@@ -124,9 +124,12 @@ void CheckDeclModifiers(ref DeclModifierData dmod, string declCaption, AllowedDe
   }
 }
 
-void CheckAttribute(Errors errors, IToken attr) {
+void CheckAttribute(Errors errors, IToken attr, RangeToken range, IToken next) {
+  // attr is the identifier of the Attribute
+  // range is from opening brace to closing brace
+  // next is the next token (after any whitespace)
   if (attr.val == "dllimport" || attr.val == "handle") {
-    errors.Deprecated(ErrorID.p_deprecated_attribute, Errors.CodeAction(attr, attr.Prev.col, attr.Next.Next.col - attr.Prev.col),
+    errors.Deprecated(ErrorID.p_deprecated_attribute, Errors.CodeAction(attr, range.StartToken.col, next.pos - range.StartToken.pos),
       $"Attribute :{attr.val} is deprecated and will be removed in Dafny 4.0");
   }
 }
@@ -2005,9 +2008,12 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
   .)
   (
     [ GenericParameters<typeArgs, false> ]
-    [ KType<ref kType>              (. if (!(isGreatestLemma || isLeastLemma)) { 
+    [ KType<ref kType, out IToken openBracket, out IToken closeBracket>              
+                                    (. if (!(isGreatestLemma || isLeastLemma)) { 
+                                         // Note: When ranges are refactored, make the first use of openBracket a range
+                                         // that extends through closeBracket
                                          SemErr(ErrorID.p_extraneous_k, 
-                                                t.Prev == null || t.Prev.Prev == null || t.Next == null ? t : Errors.CodeAction(t.Prev.Prev,t.Next), 
+                                                Errors.CodeAction(openBracket, openBracket, closeBracket.Next), 
                                                 "type of _k can only be specified for least and greatest lemmas"); 
                                        } 
                                     .)
@@ -2055,12 +2061,12 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
   .
 
 /*------------------------------------------------------------------------*/
-KType<ref ExtremePredicate.KType kType>
-= "["
+KType<ref ExtremePredicate.KType kType, out IToken openBracket, out IToken closeBracket>
+= "["           (. openBracket = t; .)
   ( "nat"       (. kType = ExtremePredicate.KType.Nat; .)
   | "ORDINAL"   (. kType = ExtremePredicate.KType.ORDINAL; .)
   )
-  "]"
+  "]"           (. closeBracket = t; .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -2520,7 +2526,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
     MethodFunctionName<out id>
     (
       [ GenericParameters<typeArgs, false> ]
-      [ KType<ref kType> 
+      [ KType<ref kType, out IToken openBracket, out IToken closeBracket> 
         (. SemErr(t, "a formal [ ] declaration is only allowed for least and greatest predicates"); .)
       ]
       [ Formals<true, true, isTwoState, true, formals>
@@ -2541,7 +2547,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
     MethodFunctionName<out id>
     (
       [ GenericParameters<typeArgs, false> ]
-      [ KType<ref kType> ]
+      [ KType<ref kType, out IToken openBracket, out IToken closeBracket> ]
       Formals<true, false, false, false, formals>
       [ PredicateResult<"least predicate", out result> ]
     | ellipsis                 (. signatureEllipsis = t; .)
@@ -2559,7 +2565,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
     MethodFunctionName<out id>
     (
       [ GenericParameters<typeArgs, false> ]
-      [ KType<ref kType> ]
+      [ KType<ref kType, out IToken openBracket, out IToken closeBracket> ]
       Formals<true, false, false, false, formals>
       [ PredicateResult<"greatest predicate", out result> ]
     | ellipsis                 (. signatureEllipsis = t; .)
@@ -5210,9 +5216,10 @@ Attribute<ref Attributes attrs>
   AttributeName<out x>
   [ Expressions<args> ]
   "}"                         (. closeBrace = t; .)
-  (. CheckAttribute(errors, x);
+  (. 
      attrs = new UserSuppliedAttributes(x, openBrace, closeBrace, args, attrs);
      attrs.RangeToken = new RangeToken(openBrace, t);
+     CheckAttribute(errors, x, attrs.RangeToken, la);
   .)
   .
 

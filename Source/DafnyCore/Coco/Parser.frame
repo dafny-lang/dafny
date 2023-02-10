@@ -232,6 +232,11 @@ public class Errors {
     return CodeAction(sourceTok, sourceTok.col, next.pos - sourceTok.pos);
   }
 
+  // Code action range is up to, not including, the next token
+  public static CodeActionToken CodeAction(IToken display, IToken sourceTok, IToken next) {
+    return CodeAction(display, sourceTok.col, next.pos - sourceTok.pos);
+  }
+
   // Code action range is up to, not including, the given token's Next token 
   // so the range includes following white space
   public static CodeActionToken CodeActionToNext(IToken sourceTok) {
