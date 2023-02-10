@@ -14,7 +14,7 @@ public class ParserErrorDetail {
 
     Add(ErrorID.p_duplicate_modifier,
     @"
-No Dafny modifier, such as [`abstract`, `static`, `ghost`](../DafnyRef/DafnyRef#sec-declaration-modifiers) may be repeated
+No Dafny modifier, such as [`abstract`, `static`, `ghost`](https://dafny.org/latest/DafnyRef/DafnyRef#sec-declaration-modifiers) may be repeated
 Such repetition would be superfluous even if allowed.
 ");
 
@@ -26,7 +26,7 @@ Only modules may be declared abstract.
 
     Add(ErrorID.p_no_ghost_for_by_method,
     @"
-Functions with a [by method](../DafnyRef/DafnyRef#sec-function-declarations)
+Functions with a [by method](https://dafny.org/latest/DafnyRef/DafnyRef#sec-function-declarations)
 section to their body can be used both in ghost contexts and in non-ghost contexts; 
 in ghost contexts the function body is used and in compiled contexts
 the by-method body is used. The `ghost` keyword is not permitted on the
@@ -40,7 +40,7 @@ For versions prior to Dafny 4, the `function` keyword meant a ghost function
 and `function method` meant a non-ghost function. 
 From Dafny 4 on, `ghost function` means a ghost function and 
 `function` means a non-ghost function. 
-See the discussion [here](../DafnyRef/DafnyRef#sec-function-syntax) for
+See the discussion [here](https://dafny.org/latest/DafnyRef/DafnyRef#sec-function-syntax) for
 a discussion of options to control this feature.
 ");
 
@@ -100,7 +100,7 @@ If the implicit module cannot be imported, there is no point to any export decla
 
     Add(ErrorID.p_bad_module_decl,
     @"
-The [syntax for a module declaration](../DafnyRef/DafnyRef#sec-modules) is either `module M { ... }` or
+The [syntax for a module declaration](https://dafny.org/latest/DafnyRef/DafnyRef#sec-modules) is either `module M { ... }` or
 `module M refines N { ... }` with optional attributes after the `module` keyword.
 This error message often occurs if the `refines` keyword is misspelled.
    ");
@@ -206,12 +206,12 @@ The parameters of a datatype constructor do not need to have names -- it is allo
 However, if `nameonly` is used, meaning the constructor can be called using named parameters,
 then the name must be given, as in `datatype D = D (i: int, nameonly j: int) {}`
 
-More detail is given [here](../DafnyRef/DafnyRef#sec-parameter-bindings).
+More detail is given [here](https://dafny.org/latest/DafnyRef/DafnyRef#sec-parameter-bindings).
 ");
 
     Add(ErrorID.p_should_be_yields_instead_of_returns,
     @"
-An [iterator](../DafnyRef/DafnyRef#sec-iterator-types) is like a co-routine: 
+An [iterator](https://dafny.org/latest/DafnyRef/DafnyRef#sec-iterator-types) is like a co-routine: 
 its control flow produces (yields) a value, but the execution continues from that point (a yield statement) to go on to produce the next value, rather than exiting the method. 
 To accentuate this difference, a `yield` statement is used to say when the next value of the iterator is ready, rather than a `return` statement.
 In addition, the declaration does not use `returns` to state the out-parameter, as a method would. Rather it has a `yields` clause.
@@ -220,21 +220,21 @@ The example above is a valid example if `returns` is replaced by `yields`.
 
     Add(ErrorID.p_type_parameter_variance_forbidden,
     @"
-[Type-parameter variance](../DafnyRef/DafnyRef#sec-type-parameter-variance) is specified by a 
+[Type-parameter variance](https://dafny.org/latest/DafnyRef/DafnyRef#sec-type-parameter-variance) is specified by a 
 `+`, `-`, `*` or `!` before the type-parameter name.
 Such designations are allowed in generic type declarations but not in generic method, function, or predicate declarations.
 ");
 
     Add(ErrorID.p_unexpected_type_characteristic,
     @"
-[Type characteristics](../DafnyRef/DafnyRef#sec-type-parameters), 
+[Type characteristics](https://dafny.org/latest/DafnyRef/DafnyRef#sec-type-parameters), 
 indicated in parentheses after the type name, state properties of the otherwise uninterpreted or opaque type.
 The currently defined type characteristics are designated by `==` (equality-supporting), `0` (auto-initializable), `00` (non-empty), and `!new` (non-reference).
 ");
 
     Add(ErrorID.p_missing_type_characteristic,
     @"
-[Type characteristics](.. /DafnyRef/DafnyRef#sec-type-parameters), 
+[Type characteristics](https://dafny.org/latest/DafnyRef/DafnyRef#sec-type-parameters), 
 state properties of the otherwise uninterpreted or opaque type.
 They are given in a parentheses-enclosed, comma-separated list after the type name.
 The currently defined type characteristics are designated by `==` (equality - supporting), `0` (auto - initializable), `00` (non - empty), and `!new` (non - reference).
@@ -242,7 +242,7 @@ The currently defined type characteristics are designated by `==` (equality - su
 
     Add(ErrorID.p_illegal_type_characteristic,
     @"
-[Type characteristics](.. / DafnyRef / DafnyRef#sec-type-parameters), 
+[Type characteristics](https://dafny.org/latest/DafnyRef/DafnyRef#sec-type-parameters), 
 indicated in parentheses after the type name, state properties of the otherwise uninterpreted or opaque type.
 The currently defined type characteristics are designated by `==` (equality - supporting), `0` (auto - initializable), `00` (non - empty), and `!new` (non - reference).
 Type parameters are given in a parentheses-enclosed, comma-separated list after the type name.
@@ -358,7 +358,7 @@ The error message states that the parser sees some number of type parameters dif
 In Dafny 4 on, the phrases `function method` and `predicate method` are no
 longer accepted. Use `function` for compiled, non-ghost functions and
 `ghost function` for non-compiled, ghost functions, and similarly for predicates.
-See [the documentation here](../DafnyRef/DafnyRef#sec-function-syntax).
+See [the documentation here](https://dafny.org/latest/DafnyRef/DafnyRef#sec-function-syntax).
 ");
 
     ErrorDetail.Add(ErrorID.p_deprecated_semicolon,
