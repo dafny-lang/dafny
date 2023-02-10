@@ -210,14 +210,14 @@ TopDecl(isTopLevel, isAbstract) =
   | SynonymTypeDecl  // includes opaque types
   | IteratorDecl
   | TraitDecl
-  | ClassMemberDecl(moduleLevelDecl: true)
+  | ClassMemberDecl(allowConstructors: false, isValueType: true, moduleLevelDecl: true)
   )
 ````
 
 #### 29.2.1.3. Declaration modifiers ([discussion](#sec-declaration-modifier)) {#g-declaration-modifier}
 
 ````grammar
-DeclModifier = ( "abstract" | "ghost" | "static" )
+DeclModifier = ( "abstract" | "ghost" | "static" | "opaque" )
 ````
 
 ### 29.2.2. Modules {#g-module}
@@ -226,18 +226,18 @@ DeclModifier = ( "abstract" | "ghost" | "static" )
 SubModuleDecl(isTopLevel) = ( ModuleDefinition | ModuleImport | ModuleExport )
 ````
 
-Module export declarations are not permitted if isTopLevel is true.
+Module export declarations are not permitted if `isTopLevel` is true.
 
 #### 29.2.2.1. Module Definitions ([discussion](#sec-module-definition)) {#g-module-definition}
 
 ````grammar
-ModuleDefinition = 
+ModuleDefinition(isTopLevel) = 
   "module" { Attribute } ModuleQualifiedName
   [ "refines" ModuleQualifiedName ]
   "{" { TopDecl(isTopLevel:false, isAbstract) } "}"
 ````
 
-The `isAbstract` argument is true i the DeclModifiers include "abstract".
+The `isAbstract` argument is true if the preceding `DeclModifiers` include "abstract".
 
 #### 29.2.2.2. Module Imports ([discussion](#sec-importing-modules)) {#g-module-import}
 
@@ -417,19 +417,18 @@ NewtypeDecl = "newtype" { Attribute } NewtypeName "="
 ClassDecl = "class" { Attribute } ClassName [ GenericParameters ]
   ["extends" Type {"," Type} | ellipsis ]
   "{" { { DeclModifier }
-        ClassMemberDecl(allowConstructors: true,
+        ClassMemberDecl(modifiers,
+                        allowConstructors: true,
                         isValueType: false,
-                        moduleLevelDecl: false,
-                        isWithinAbstractModule: false) }
+                        moduleLevelDecl: false) 
+      }
   "}"
 
-ClassMemberDecl(allowConstructors, isValueType,
-                moduleLevelDecl, isWithinAbstractModule) =
+ClassMemberDecl(modifiers, allowConstructors, isValueType, moduleLevelDecl) =
   ( FieldDecl(isValueType) // allowed iff moduleLevelDecl is false
   | ConstantFieldDecl(moduleLevelDecl)
   | FunctionDecl(isWithinAbstractModule)
-  | MethodDecl(isGhost: "ghost" was present,
-               allowConstructors, isWithinAbstractModule)
+  | MethodDecl(modifiers, allowConstructors)
   )
 ````
 
