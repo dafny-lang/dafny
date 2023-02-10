@@ -234,7 +234,7 @@ The currently defined type characteristics are designated by `==` (equality-supp
 
     Add(ErrorID.p_missing_type_characteristic,
     @"
-[Type characteristics](.. / DafnyRef / DafnyRef#sec-type-parameters), 
+[Type characteristics](.. /DafnyRef/DafnyRef#sec-type-parameters), 
 state properties of the otherwise uninterpreted or opaque type.
 They are given in a parentheses-enclosed, comma-separated list after the type name.
 The currently defined type characteristics are designated by `==` (equality - supporting), `0` (auto - initializable), `00` (non - empty), and `!new` (non - reference).
