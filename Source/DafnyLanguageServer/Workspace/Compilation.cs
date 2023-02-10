@@ -264,6 +264,15 @@ public class Compilation {
       foreach (var counterExample in verificationResult.Errors) {
         document.Counterexamples.Add(counterExample);
       }
+      // Sometimes, the boogie status is set as Completed
+      // but the assertion batches were not reported yet.
+      // because they are on a different thread.
+      // This loop will ensure that every vc result has been dealt with
+      // before we report that the verification of the implementation is finished 
+      foreach (var result in completed.Result.VCResults) {
+        document.GutterProgressReporter.ReportAssertionBatchResult(
+          new AssertionBatchResult(implementationTask.Implementation, result));
+      }
 
       var diagnostics = GetDiagnosticsFromResult(document, verificationResult);
       var view = new ImplementationView(implementationRange, status, diagnostics);

@@ -412,7 +412,7 @@ There are two different ways to dynamically test functionality in a test:
 
 1. A test can optionally return a single value to indicate success or failure.
    If it does, this must be a _failure-compatible_ type
-   just as the [update-with-failure statement](#sec-update-failure) requires. That is,
+   just as the [update-with-failure statement](#sec-update-with-failure-statement) requires. That is,
    the returned type must define a `IsFailure()` function method. If `IsFailure()`
    evaluates to `true` on the return value, the test will be marked a failure, and this
    return value used as the failure message.
@@ -531,7 +531,7 @@ options revert to their previous values.
 Only a small subset of Dafny's command line options is supported.  Use the
 `/attrHelp` flag to see which ones.
 
-## 23.3. Attributes on assertions, preconditions and postconditions {#sec-verification-attributes-on-assert-statements}
+## 23.3. Attributes on assertions, preconditions and postconditions {#sec-verification-attributes-on-assertions}
 
 
 ### 23.3.1. `{:focus}` {#sec-focus}
@@ -637,6 +637,9 @@ attribute in Boogie.
 ## 23.5. Attributes on quantifier expressions (forall, exists)
 
 ### 23.5.1. `{:heapQuantifier}`
+
+_This attribute has been deprecated._
+
 The `{:heapQuantifier}` attribute may be used on a [`QuantifierExpression`](#sec-quantifier-expression).
 When it appears in a quantifier expression, it is as if a new heap-valued
 quantifier variable was added to the quantification. Consider this code
@@ -709,8 +712,16 @@ Here are ways one can prove `assert P(j + 4);`:
 * Remove `{:trigger Q(i)}` so that it will automatically determine all possible triggers thanks to the option `/autoTriggers:1` which is the default.
 
 
+## 23.6. Deprecated attributes
 
-## 23.6. Other undocumented verification attributes
+These attributes have been deprecated. They are no longer useful (or perhaps never were) or were experimental.
+They will likely be removed entirely sometime soon after the release of Dafny 4.
+
+- :heapQuantifier
+- :dllimport
+- :handle
+
+## 23.7. Other undocumented verification attributes
 
 A scan of Dafny's sources shows it checks for the
 following attributes.
