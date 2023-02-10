@@ -262,7 +262,7 @@ The adjectives `least` and `greatest` for lemmas and functions are more consiste
     @"
 Constructors are methods that initialize class instances. That is, when a new instance of a class is being created, 
 using the `new` object syntax, some constructor of the class is called, perhaps a default anonymous one.
-So constructor declarations only make sense within classes.
+So, constructor declarations only make sense within classes.
 ");
 
     Add(ErrorID.p_method_missing_name,
