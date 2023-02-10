@@ -157,6 +157,12 @@ partial class Resolver {
           }
         }
 
+        if (expr is LambdaExpr lambdaExpr) {
+          foreach (var frameExpression in lambdaExpr.Reads) {
+            CheckReadsClause(frameExpression);
+          }
+        }
+
       } else if (expr is MemberSelectExpr) {
         var e = (MemberSelectExpr)expr;
         if (e.Member is Function || e.Member is Method) {
@@ -357,6 +363,32 @@ partial class Resolver {
       }
 
       base.VisitOneExpression(expr, context);
+    }
+
+    public override void VisitFrameExpression(FrameExpression frameExpression, IASTVisitorContext context, bool inReadsClause) {
+      if (inReadsClause) {
+        CheckReadsClause(frameExpression);
+      }
+      base.VisitFrameExpression(frameExpression, context, inReadsClause);
+    }
+
+    void CheckReadsClause(FrameExpression frameExpression) {
+      var arrowType = frameExpression.E.Type.AsArrowType;
+      if (arrowType != null) {
+        foreach (var argumentType in arrowType.Args) {
+          if (argumentType.MayInvolveReferences) {
+            var errorMessage =
+              "a function is allowed to be listed in a reads clause only if the function's arguments do not involve any reference types," +
+              " because then the resulting reads set would depend on the set of allocated references;" +
+              $" here, the type '{argumentType}' violates this rule";
+            if (argumentType.IsTypeParameter || argumentType.IsOpaqueType) {
+              errorMessage += $" (perhaps declare type '{argumentType}' with '(!new)')";
+            }
+            errorMessage += " (see documentation for 'older' parameters)";
+            reporter.Error(MessageSource.Resolver, frameExpression.E, errorMessage);
+          }
+        }
+      }
     }
 
     public static bool IsDetermined(Type t) {
