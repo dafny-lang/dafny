@@ -145,7 +145,7 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
 
     previousTraces.AddOrUpdate(verificationStatusGutterReceiver,
       oldKey => traces,
-      (oldKey, oldTraces) => traces
+      (oldKey, _) => traces
       );
     return traces;
   }

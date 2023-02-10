@@ -33,6 +33,10 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
     }
   }
 
+  private bool isOpaque;
+
+  public override bool IsOpaque => isOpaque;
+
   public override bool CanBeRevealed() {
     return true;
   }
@@ -192,7 +196,7 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
     Contract.Invariant(Decreases != null);
   }
 
-  public Function(IToken tok, string name, bool hasStaticKeyword, bool isGhost,
+  public Function(IToken tok, string name, bool hasStaticKeyword, bool isGhost, bool isOpaque,
     List<TypeParameter> typeArgs, List<Formal> formals, Formal result, Type resultType,
     List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
     Expression/*?*/ body, IToken/*?*/ byMethodTok, BlockStmt/*?*/ byMethodBody,
@@ -222,6 +226,7 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
     this.ByMethodTok = byMethodTok;
     this.ByMethodBody = byMethodBody;
     this.SignatureEllipsis = signatureEllipsis;
+    this.isOpaque = isOpaque;
 
     if (attributes != null) {
       List<Expression> args = Attributes.FindExpressions(attributes, "fuel");

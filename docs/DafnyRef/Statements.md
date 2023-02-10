@@ -396,7 +396,7 @@ corresponding right-hand sides also denote the same value.
 
 The update statement serves several logical purposes.
 
-
+### 20.6.1. Method call
 1) The form
 
 ````grammar
@@ -404,6 +404,7 @@ Lhs {Attribute} ";"
 ````
 is assumed to be a call to a method with no out-parameters.
 
+### 20.6.2. Method call with multiple outputs
 2) The form
 
 ````grammar
@@ -420,6 +421,7 @@ the `:=`, which then is assigned a tuple of the out-parameters.
 Note that the result of a method call is not allowed to be used as an argument of
 another method call, as if it were an expression.
 
+### 20.6.3. Parallel assignment
 3) This is the typical parallel-assignment form, in which no call is involved:
 ````grammar
     Lhs { , Lhs } ":=" Rhs { "," Rhs } ";"
@@ -433,6 +435,7 @@ be an equal number of left-hand sides and right-hand sides in this case.
 Of course, the most common case will have only one
 ``Rhs`` and one ``Lhs``.
 
+### 20.6.4. Havoc assignment {#sec-havoc-statement}
 4) The form with a right-hand-side that is `*` is a _havoc_ assignment.
 It assigns an arbitrary but type-correct value to the corresponding left-hand-side.
 
@@ -492,9 +495,9 @@ A failure-compatible type is a type that has the following members (each with no
  * a non-ghost function `IsFailure()` that returns a `bool`
  * an optional non-ghost function `PropagateFailure()` that returns a value assignable to the first out-parameter of the caller
  * an optional method or function `Extract()`
+(PropagateFailure and Extract were permitted to be methods (but deprecated) prior to Dafny 4. They will be required to be functions in Dafny 4.)
 
 A failure-compatible type with an `Extract` member is called _value-carrying_.
-
 
 To use this form of update,
 
@@ -2083,6 +2086,11 @@ function is not visible. However if a `reveal f();` statement is inserted before
 Note that the pseudo-function-call in the `reveal` statement is written without arguments and serves to mark `f` as a function name
 instead of a label.
 
+### 20.20.4. Revealing constants
+
+A `const` declaration can be `opaque`. If so the value of the constant is not known in reasoning about its uses, just its type and the
+fact that the value does not change. The constant's identifier can be listed in a reveal statement. In that case, like other revealed items,
+the value of the constant will be known to the reasonig engine until the end of the block containing the reveal statement.
 
 ## 20.21. Forall Statement ([grammar](#g-forall-statement)) {#sec-forall-statement}
 

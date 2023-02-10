@@ -102,7 +102,7 @@ public enum Feature {
     for details.")]
   NonSequentializableForallStatements,
 
-  [FeatureDescription("Taking an array's length", "sec-array-types")]
+  [FeatureDescription("Taking an array's length", "sec-array-type")]
   ArrayLength,
 
   [FeatureDescription("`m.Items` when `m` is a map", "sec-maps")]
@@ -121,10 +121,10 @@ public enum Feature {
     "compiler-sequence-display-of-characters-note", "This refers to an expression such as `['H', 'e', 'l', 'l', 'o']`, as opposed to a string literal such as `\"Hello\"`.")]
   SequenceDisplaysOfCharacters,
 
-  [FeatureDescription("Type test expressions (`x is T`)", "sec-as-expression")]
+  [FeatureDescription("Type test expressions (`x is T`)", "sec-as-is-expression")]
   TypeTests,
 
-  [FeatureDescription("Type test expressions on subset types", "sec-as-expression")]
+  [FeatureDescription("Type test expressions on subset types", "sec-as-is-expression")]
   SubsetTypeTests,
 
   [FeatureDescription("Quantifiers", "sec-quantifier-expression")]
@@ -133,10 +133,10 @@ public enum Feature {
   [FeatureDescription("Bitvector RotateLeft/RotateRight functions", "sec-bit-vector-types")]
   BitvectorRotateFunctions,
 
-  [FeatureDescription("`for` loops", "sec-for-loops")]
+  [FeatureDescription("`for` loops", "sec-for-statement")]
   ForLoops,
 
-  [FeatureDescription("`continue` statements", "sec-break-continue")]
+  [FeatureDescription("`continue` statements", "sec-break-continue-statement")]
   ContinueStatements,
 
   [FeatureDescription("Assign-such-that statements with potentially infinite bounds", "sec-update-and-call-statement",
