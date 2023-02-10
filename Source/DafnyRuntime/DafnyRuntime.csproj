@@ -18,19 +18,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- TODO: why does this need to be here as well as DafnyPipeline? -->
-    <Compile Update="DafnyRuntime.cs">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Compile>
-    <Content Include="DafnyRuntime.js" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="DafnyRuntimeGo\DafnyRuntime.go" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="DafnyRuntimeGo\DafnyRuntimeFromDafny.go" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="DafnyRuntime.h" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="DafnyRuntime.py" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="DafnyRuntimeJava\build\libs\DafnyRuntime.jar" Link="DafnyRuntime.jar" CopyToOutputDirectory="PreserveNewest" />
-  </ItemGroup>
-
-  <ItemGroup>
     <DafnyRuntimeJavaInputFile Include="./DafnyRuntimeJava/**/*.*" />
     <DafnyRuntimeJavaInputFile Remove="./DafnyRuntimeJava/build/**/*.*" />
   </ItemGroup>
