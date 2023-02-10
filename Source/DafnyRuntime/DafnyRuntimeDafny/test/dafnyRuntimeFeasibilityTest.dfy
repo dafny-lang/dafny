@@ -1,6 +1,9 @@
 
 include "../test/dafnyRuntimeFeasibility.dfy"
 
+// TODO: This isn't actually executable yet because we don't have feasibility
+// implementations for the complete set of externs,
+// but at least we get some benefit from verification.
 module DafnyRuntimeFeasibilityTest {
 
   import opened FeasibilityImplementation

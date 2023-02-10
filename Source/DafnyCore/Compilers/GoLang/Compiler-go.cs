@@ -365,7 +365,6 @@ namespace Microsoft.Dafny.Compilers {
       var abstractMethodWriter = wr.NewNamedBlock("type {0} interface", name);
       var concreteMethodWriter = wr.Fork();
       abstractMethodWriter.WriteLine("String() string");
-      // See DafnySequence comment
       if (IsDafnySequence(trait)) {
         abstractMethodWriter.WriteLine("Equals(other Sequence) bool");
         abstractMethodWriter.WriteLine("EqualsGeneric(x interface{}) bool");

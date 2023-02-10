@@ -1,7 +1,7 @@
 
 include "../src/dafnyRuntime.dfy"
 
-// Implementing the external traits in Dafny to guard against inconsistent specifications
+// Implementing a subset of the external traits in Dafny to guard against inconsistent specifications
 module {:options "/functionSyntax:4"} FeasibilityImplementation refines Dafny {
 
   const SIZE_T_LIMIT: nat := 256
