@@ -73,7 +73,7 @@ jobs:
         uses: dawidd6/action-download-artifact@v2
         with:
            pr: ${{github.event.pull_request.number}}
-           workflow: xunit-tests.yml
+           workflow: Run XUnit tests
            name: unit-test-results-ubuntu-20.04
 
       - name: Show files
