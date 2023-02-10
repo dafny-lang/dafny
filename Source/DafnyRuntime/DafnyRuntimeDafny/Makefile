@@ -1,5 +1,6 @@
 
-DAFNY = dotnet run --project ../../DafnyDriver --no-build --
+# Invoking the CLI this way just to stay platform-independent
+DAFNY = dotnet run --project ../../Dafny --no-build --
 
 SOURCE_DIR=.
 SOURCES=$(shell find $(SOURCE_DIR) -name '*.dfy')

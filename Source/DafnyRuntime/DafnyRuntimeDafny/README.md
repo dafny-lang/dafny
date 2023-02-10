@@ -15,3 +15,11 @@ Once the needed bugs are released
 that we'd strongly prefer to have in the bootstrapping Dafny version),
 we can delete the generated code from the repository
 and generate it during the actual build of the runtimes.
+
+Note also that that our planned bootstrapping strategy at that point
+is to pick a released version of Dafny and stick with it as long as possible.
+Updating to a newer version implies trusting its implementation,
+and building Dafny completely from source will then involve
+multiple steps of building older versions from scratch.
+We hope to move to [a more sustainable strategy](https://bootstrappable.org/best-practices.html)
+before this chain of trust gets too long.

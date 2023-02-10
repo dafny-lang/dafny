@@ -1,3 +1,6 @@
+// Internal implementation of runtime datatypes and algorithms in Dafny.
+// Although some of the code in here is likely useful for other codebases,
+// it is NOT intended to be used as such in its current state.
 abstract module {:options "/functionSyntax:4"} Dafny {
 
   // Note that the T type parameters on some types,
@@ -352,7 +355,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
   //
   // Compilers could special case this type to inline declarations and avoid
   // the cost of allocation and indirection, e.g. by replacing a `const fooBox: AtomicBox<T>`
-  // with a direct `volitile T fooBox;` in the target language.
+  // with a direct `volatile T fooBox;` in the target language.
   trait {:extern} AtomicBox<T> {
 
     ghost const inv: T -> bool
@@ -377,7 +380,11 @@ abstract module {:options "/functionSyntax:4"} Dafny {
 
     // This is only here to support the attempts some runtimes make to
     // track what sequence values are actually sequences of characters.
-    // This is not used when --unicode-char is enabled.
+    // If true, the value definitely has the type seq<char>.
+    // If false, the value may or may not be a string.
+    // This is always false when --unicode-char is enabled,
+    // since that mode no longer applies heuristics and instead
+    // only relies on static information.
     var isString: bool
 
     // Total class instances in the tree.
@@ -444,6 +451,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     method ToArray() returns (ret: ImmutableArray<T>)
       requires Valid()
       decreases NodeCount, 2
+      ensures Valid()
       ensures ret.Valid()
       ensures ret.Length() == Cardinality()
       ensures ret.values == Value()
