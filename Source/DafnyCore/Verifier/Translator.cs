@@ -2291,9 +2291,15 @@ namespace Microsoft.Dafny {
       // where:
       //
       // AXIOM_ACTIVATION
+      // for visibility==ForeignModuleOnly, means:
+      //   true
+      // for visibility==IntraModuleOnly, means:
       //   fh <= FunctionContextHeight
       //
       // USE_VIA_CONTEXT
+      // for visibility==ForeignModuleOnly, means:
+      //   GOOD_PARAMETERS
+      // for visibility==IntraModuleOnly, means:
       //   fh < FunctionContextHeight &&
       //   GOOD_PARAMETERS
       // where GOOD_PARAMETERS means:
@@ -2501,7 +2507,9 @@ namespace Microsoft.Dafny {
 
       // useViaContext: fh < FunctionContextHeight
       ModuleDefinition mod = f.EnclosingClass.EnclosingModuleDefinition;
-      var useViaContext = Bpl.Expr.Lt(Bpl.Expr.Literal(forModule.CallGraph.GetSCCRepresentativePredecessorCount(f)), etran.FunctionContextHeight());
+      Bpl.Expr useViaContext = !InVerificationScope(f)
+        ? Bpl.Expr.True
+        : Bpl.Expr.Lt(Bpl.Expr.Literal(forModule.CallGraph.GetSCCRepresentativePredecessorCount(f)), etran.FunctionContextHeight());
       // ante := (useViaContext && typeAnte && pre)
       ante = BplAnd(useViaContext, BplAnd(ante, pre));
 
