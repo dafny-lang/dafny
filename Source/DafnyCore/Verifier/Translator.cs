@@ -4088,7 +4088,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
       // requires o to denote an expression of type RefType
-      // "rw" is is allowed to contain a WildcardExpr
+      // "rw" is allowed to contain a WildcardExpr
 
       Bpl.Expr disjunction = Bpl.Expr.False;
       foreach (FrameExpression rwComponent in rw) {
