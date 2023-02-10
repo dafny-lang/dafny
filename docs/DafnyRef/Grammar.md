@@ -238,15 +238,14 @@ The hex digits may be interspersed with underscores for readability
 (but not beginning or ending with an underscore), as in `\U{1_F680}`.
 The braces are part of the required character sequence.
 
+Note that although Unicode
+letters are not allowed in Dafny identifiers, Dafny does support [Unicode
+in its character, string, and verbatim strings constants and in its comments](#sec-unicode).
 
 ### 2.5.5. Character Constant Token {#sec-character-constant-token}
 
 The `charToken` token denotes a character constant.
 It is either a `charChar` or an `escapedChar` enclosed in single quotes.
-Note that although Unicode
-letters are not allowed in Dafny identifiers, Dafny does support [Unicode
-in its character, string, and verbatim strings constants and in its comments](#sec-unicode).
-
 
 ### 2.5.6. String Constant Token {#sec-string-constant-token}
 
@@ -288,7 +287,7 @@ Note that
 
 * Digits can be used to name fields of classes and destructors of
   datatypes. For example, the built-in tuple datatypes have destructors
-  named 0, 1, 2, etc. Note that as a field or destructor name a digit sequence
+  named 0, 1, 2, etc. Note that as a field or destructor name, a digit sequence
   is treated as a string, not a number: internal
   underscores matter, so `10` is different from `1_0` and from `010`.
 * `m.requires` is used to denote the [precondition](#sec-requires-clause) for method `m`.
@@ -354,6 +353,9 @@ zero or more ``DotSuffix``s which denote a component. Examples:
 * `MyMethod.requires`
 * `A.B.C.D`
 
+The identifiers and dots are separate tokens and so may optionally be
+separated by whitespace.
+
 ### 2.6.3. Identifier-Type Combinations
 
 Identifiers are typically declared in combination with a type, as in
@@ -416,7 +418,7 @@ For example, in the quantifier domain `i | 0 <= i < |s|, y <- s[i] | i < y`, the
 because the range attached to `i` ensures `i` is a valid index in the sequence `s`.
 
 Allowing per-variable ranges is not fully backwards compatible, and so it is not yet allowed by default;
-the `/quantifierSyntax:4` option needs to be provided to enable this feature (See [Section 25.8.5](#sec-controlling-language)).
+the `--quantifier-syntax:4` option needs to be provided to enable this feature (See [Section 25.8.5](#sec-controlling-language)).
 
 ### 2.6.5. Numeric Literals ([grammar](#g-literal-expression)) {#sec-numeric-literals}
 
