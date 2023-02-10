@@ -76,6 +76,13 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private string DafnyTypeDescriptor => $"{HelperModulePrefix}TypeDescriptor";
+    
+    // The implementation of seq<T> is now in DafnyRuntimeDafny/src/dafnyRuntime.dfy.
+    // We have to special-case compiling this code a little bit in places to work around
+    // features Dafny doesn't support, such as customizing the definition of equality.
+    private bool IsDafnySequence(TopLevelDecl d) => 
+      DafnyOptions.O.Get(DeveloperOptionBag.Bootstrapping) && d.FullCompileName == "dafny.Sequence";
+    
     private string DafnySequenceCompanion => $"{HelperModulePrefix}Companion_Sequence_";
 
     void EmitModuleHeader(ConcreteSyntaxTree wr) {
@@ -204,11 +211,12 @@ namespace Microsoft.Dafny.Compilers {
       List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type>/*?*/ superClasses, IToken tok, ConcreteSyntaxTree wr) {
       var isDefaultClass = cls is ClassDecl c && c.IsDefaultClass;
 
-      return CreateClass(name, isExtern, fullPrintName, typeParameters, superClasses, tok, wr, includeRtd: !isDefaultClass, includeEquals: true);
+      bool isSequence = superClasses.Any(superClass => superClass is UserDefinedType udt && IsDafnySequence(udt.ResolvedClass));
+      return CreateClass(name, isExtern, fullPrintName, typeParameters, superClasses, tok, wr, includeRtd: !isDefaultClass, includeEquals: !isSequence, includeString: !isSequence);
     }
 
-    // TODO Consider splitting this into two functions; most things seem to be passing includeRtd: false and includeEquals: false.
-    private GoCompiler.ClassWriter CreateClass(string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, IToken tok, ConcreteSyntaxTree wr, bool includeRtd, bool includeEquals) {
+    // TODO Consider splitting this into two functions; most things seem to be passing includeRtd: false, includeEquals: false and includeString: true.
+    private GoCompiler.ClassWriter CreateClass(string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, IToken tok, ConcreteSyntaxTree wr, bool includeRtd, bool includeEquals, bool includeString) {
       // See docs/Compilation/ReferenceTypes.md for a description of how instance members of classes and traits are compiled into Go.
       //
       // func New_Class_(Type0 _dafny.TypeDescriptor, Type1 _dafny.TypeDescriptor) *Class {
@@ -270,33 +278,20 @@ namespace Microsoft.Dafny.Compilers {
       var staticFieldInitWriter = w.NewNamedBlock("var {0} = {1}", FormatCompanionName(name), FormatCompanionTypeName(name));
 
       if (includeEquals) {
+        // This Equals() is so simple that we could just use == instead, but uniformity is good and it'll get inlined anyway.
 
         w.WriteLine();
-        // TODO-RS: HACK
-        if (name.EndsWith("Sequence")) {
-          var wEquals = w.NewNamedBlock("func (_this *{0}) Equals(other Sequence) bool", name);
-          wEquals.WriteLine($"return {DafnySequenceCompanion}.Equal(_this, other)");
-        } else {
-          // This Equals() is so simple that we could just use == instead, but uniformity is good and it'll get inlined anyway.
-          var wEquals = w.NewNamedBlock("func (_this *{0}) Equals(other *{0}) bool", name);
-          wEquals.WriteLine("return _this == other");
-        }
+        var wEquals = w.NewNamedBlock("func (_this *{0}) Equals(other *{0}) bool", name);
+        wEquals.WriteLine("return _this == other");
 
         w.WriteLine();
         var wEqualsGeneric = w.NewNamedBlock("func (_this *{0}) EqualsGeneric(x interface{{}}) bool", name);
-        // TODO-RS: HACK
-        if (name.EndsWith("Sequence")) {
-          wEqualsGeneric.WriteLine("other, ok := x.(Sequence)");
-          wEqualsGeneric.WriteLine($"return ok && {DafnySequenceCompanion}.Equal(_this, other)");
-        } else {
-          wEqualsGeneric.WriteLine("other, ok := x.(*{0})", name);
-          wEqualsGeneric.WriteLine("return ok && _this.Equals(other)");
-        }
+        wEqualsGeneric.WriteLine("other, ok := x.(*{0})", name);
+        wEqualsGeneric.WriteLine("return ok && _this.Equals(other)");
       }
 
       w.WriteLine();
-      // TODO-RS: HACK
-      if (!name.EndsWith("Sequence")) {
+      if (includeString) {
         var wString = w.NewNamedBlock("func (*{0}) String() string", name);
 
         // Be consistent with other back ends, which don't fold _module into the main module
@@ -370,8 +365,8 @@ namespace Microsoft.Dafny.Compilers {
       var abstractMethodWriter = wr.NewNamedBlock("type {0} interface", name);
       var concreteMethodWriter = wr.Fork();
       abstractMethodWriter.WriteLine("String() string");
-      // TODO-RS: HACK
-      if (name == "Sequence") {
+      // See DafnySequence comment
+      if (IsDafnySequence(trait)) {
         abstractMethodWriter.WriteLine("Equals(other Sequence) bool");
         abstractMethodWriter.WriteLine("EqualsGeneric(x interface{}) bool");
         abstractMethodWriter.WriteLine("VerbatimString(isLiteral bool) string");
@@ -451,7 +446,7 @@ namespace Microsoft.Dafny.Compilers {
       //   // break becomes:
       //   return
       // }()
-      var cw = CreateClass(IdName(iter), false, null, iter.TypeArgs, null, null, wr, includeRtd: false, includeEquals: false);
+      var cw = CreateClass(IdName(iter), false, null, iter.TypeArgs, null, null, wr, includeRtd: false, includeEquals: false, includeString: true);
 
       cw.InstanceFieldWriter.WriteLine("cont chan<- struct{}");
       cw.InstanceFieldWriter.WriteLine("yielded <-chan struct{}");
@@ -924,7 +919,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr) {
-      var cw = CreateClass(IdName(nt), false, null, null, null, null, wr, includeRtd: false, includeEquals: false);
+      var cw = CreateClass(IdName(nt), false, null, null, null, null, wr, includeRtd: false, includeEquals: false, includeString: true);
       var w = cw.ConcreteMethodWriter;
       var nativeType = nt.NativeType != null ? GetNativeTypeName(nt.NativeType) : null;
       if (nt.NativeType != null) {
@@ -960,7 +955,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, ConcreteSyntaxTree wr) {
-      var cw = CreateClass(IdName(sst), false, null, sst.TypeArgs, null, null, wr, includeRtd: false, includeEquals: false);
+      var cw = CreateClass(IdName(sst), false, null, sst.TypeArgs, null, null, wr, includeRtd: false, includeEquals: false, includeString: true);
       var w = cw.ConcreteMethodWriter;
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var witness = new ConcreteSyntaxTree(w.RelativeIndentLevel);

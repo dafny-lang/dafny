@@ -649,6 +649,29 @@ func (seq *LazySequence) VerbatimString(asLiteral bool) string {
   return SequenceVerbatimString(seq, asLiteral)
 }
 
+func (seq *ArraySequence) Equals(other Sequence) bool {
+  return Companion_Sequence_.Equal(seq, other)
+}
+func (seq *ConcatSequence) Equals(other Sequence) bool {
+  return Companion_Sequence_.Equal(seq, other)
+}
+func (seq *LazySequence) Equals(other Sequence) bool {
+  return Companion_Sequence_.Equal(seq, other)
+}
+
+func (seq *ArraySequence) EqualsGeneric(x interface{}) bool {
+  other, ok := x.(Sequence)
+  return ok && Companion_Sequence_.Equal(seq, other)
+}
+func (seq *ConcatSequence) EqualsGeneric(x interface{}) bool {
+  other, ok := x.(Sequence)
+  return ok && Companion_Sequence_.Equal(seq, other)
+}
+func (seq *LazySequence) EqualsGeneric(x interface{}) bool {
+  other, ok := x.(Sequence)
+  return ok && Companion_Sequence_.Equal(seq, other)
+}
+
 /******************************************************************************
  * Arrays
  ******************************************************************************/
@@ -1011,7 +1034,6 @@ func (_this arrayForByte) ArrayGet1CodePoint(index int) CodePoint {
 func (_this arrayForByte) ArraySet1CodePoint(value CodePoint, index int) {
   panic("Expected specialized array type that contains code points, but found general-purpose array of interface{}")
 }
-
 func (_this arrayForByte) anySlice(lo, hi Int) []interface{} {
   if lo.IsNilInt() {
     lo = Zero
