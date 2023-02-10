@@ -124,7 +124,7 @@ void CheckDeclModifiers(ref DeclModifierData dmod, string declCaption, AllowedDe
 }
 
 void CheckAttribute(Errors errors, IToken attr) {
-  if (attr.val == "dllimport" || attr.val == "handle") {
+  if (attr.val == "dllimport" || attr.val == "handle" || attr.val == "heapQuantifier" ) {
     errors.Deprecated(attr, $"Attribute :{attr.val} is deprecated and will be removed in Dafny 4.0");
   }
 }
