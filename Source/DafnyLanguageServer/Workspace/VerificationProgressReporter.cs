@@ -230,6 +230,11 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
 
         if (implementationNode == null) {
           logger.LogError($"No implementation at {implementation.tok}");
+        } else if (implementationNode.StatusCurrent == CurrentStatus.Verifying) {
+          // Race condition explained here https://github.com/dafny-lang/dafny/issues/3502
+          // We just ignore this as an early assertion batch already
+          // made this implementation to start to run.
+          return;
         } else {
           implementationNode.Start();
         }
@@ -300,6 +305,12 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
           && assertionNode.AssertionBatchNum == result.vcNum);
         if (wasAlreadyProcessed) {
           return;
+        }
+
+        if (!implementationNode.Started) {
+          // Race condition identified in https://github.com/dafny-lang/dafny/issues/3502
+          // We first need to mark the implementation as it started to verify
+          ReportVerifyImplementationRunning(implementation);
         }
 
         result.ComputePerAssertOutcomes(out var perAssertOutcome, out var perAssertCounterExample);
