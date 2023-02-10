@@ -155,7 +155,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
   }
 
   public int GetIndentBelowOrInlineOrAbove(IToken token) {
-    if (token == null) {
+    if (token == null || token == Token.NoToken) {
       return 0;
     }
 
