@@ -12,6 +12,8 @@ These arguments allow for a more compact and understandable grammar.
 
 The precise, technical details of the grammar are presented together in [Section 29](#sec-grammar-details).
 The expository parts of this manual present the language structure less formally.
+Throughout this document there are embedded hyperlinks to relevant grammar sections, 
+marked as [grammar](#sec-grammar-details).
 
 ## 2.1. Dafny Input {#sec-unicode}
 
@@ -20,6 +22,9 @@ All program text other than the contents of comments, character, string and verb
 consists of printable and white-space ASCII characters,
 that is, ASCII characters in the range `!` to `~`, plus space, tab, 
 carriage return and newline (ASCII 9, 10, 13, 32) characters.
+
+String and character literals and comments may contain any unicode character,
+either directly or as an escape sequence.
 
 ## 2.2. Tokens and whitespace {#sec-token-types}
 The characters used in a Dafny program fall into four groups:
@@ -80,11 +85,11 @@ digit              | base-ten digit ("0123456789")
 posDigit           | digits, excluding 0 ("123456789")
 posDigitFrom2      | digits excluding 0 and 1 ("23456789")
 hexdigit           | a normal hex digit ("0123456789abcdefABCDEF")
-special            | "`?_"
-cr                 | carriage return character ('\r')
-lf                 | line feed character 
-tab                | tab character ('\t')
-space              | space character (' ')
+special            | `?_"
+cr                 | carriage return character (ASCII 10)
+lf                 | line feed character (ASCII 13)
+tab                | tab character (ASCII 9)
+space              | space character (ASCII 32)
                    |
 nondigitIdChar     | characters allowed in an identifier, except digits (letter + special)
 idchar             | characters allowed in an identifier (nondigitIdChar + digits)
@@ -103,7 +108,7 @@ that are allowed to appear in a Dafny identifier. These are
   programmers like to start names of type parameters with a `'`,
 * `_` because computer scientists expect to be able to have underscores in identifiers, and
 * `?` because it is useful to have `?` at the end of names of predicates,
-  e.g., "Cons?".
+  e.g., `Cons?`.
 
 A `nonidchar` is any character except those that can be used in an identifier.
 Here the scanner generator will interpret `ANY` as any unicode character.
@@ -180,10 +185,11 @@ These are listed [here](#sec-g-tokens).
 
 In particular note that
 
-- `array`, `array2`, `array3` , etc. are reserved words, but not `array1` or `array0`.
-These denote array types of given rank.
-- `array?`, `array2?`, `array3?` , etc. are reserved words, but not `array1?` or `array0?`.
-These denote possibly-null array types of given rank.
+- `array`, `array2`, `array3`, etc. are reserved words, denoting array types of given rank.
+However,  `array1` and `array0` are ordinary identifiers.
+- `array?`, `array2?`, `array3?`, etc. are reserved words, 
+denoting possibly-null array types of given rank,
+but not `array1?` or `array0?`.
 - `bv0`, `bv1`, `bv2`, etc. are reserved words that denote the types of
 bitvectors of given length.
 The sequence of digits after 'array' or 'bv' may not have leading zeros: 
