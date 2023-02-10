@@ -81,7 +81,7 @@ public class DafnyCodeActions {
     // p_superfluous_exoirt -- TODO - need a code action
     // p_bad_module_decl -- no code action
     AddRemoveAction(ErrorID.p_extraneous_comma_in_export, "remove comma");
-    AddReplaceAction(ErrorID.p_top_level_field, "replace 'var' by 'const'", "const"); // also remove entire declaration?
+    AddReplaceAction(ErrorID.p_top_level_field, "replace 'var' by 'const'", "const");
     // p_bad_datatype_refinement -- what code action
     AddReplaceAction(ErrorID.p_no_mutable_fields_in_value_types, "replace 'var' by 'const'", "const");
     AddReplaceAction(ErrorID.p_bad_const_initialize_op, "replace = with :=", ":=");
