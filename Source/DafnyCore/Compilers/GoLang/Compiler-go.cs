@@ -76,13 +76,13 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private string DafnyTypeDescriptor => $"{HelperModulePrefix}TypeDescriptor";
-    
+
     // The implementation of seq<T> is now in DafnyRuntimeDafny/src/dafnyRuntime.dfy.
     // We have to special-case compiling this code a little bit in places to work around
     // features Dafny doesn't support, such as customizing the definition of equality.
-    private bool IsDafnySequence(TopLevelDecl d) => 
+    private bool IsDafnySequence(TopLevelDecl d) =>
       DafnyOptions.O.Get(DeveloperOptionBag.Bootstrapping) && d.FullCompileName == "dafny.Sequence";
-    
+
     private string DafnySequenceCompanion => $"{HelperModulePrefix}Companion_Sequence_";
 
     void EmitModuleHeader(ConcreteSyntaxTree wr) {

@@ -36,7 +36,7 @@ Print Dafny program after resolving it.
     IsHidden = true,
     ArgumentHelpName = "file"
   };
-  
+
   public static readonly Option<bool> Bootstrapping = new("--bootstrapping", @"
 (internal, may be removed in the future)
 Indicates the Dafny source is part of the Dafny implementation itself,
