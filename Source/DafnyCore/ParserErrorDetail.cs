@@ -136,7 +136,7 @@ classes, traits and iterators.
     Add(ErrorID.p_bad_const_initialize_op,
     @"
 Dafny's syntax for initialization and assignment uses `:=`, not `=`.
-In Dafny `=` is used only in type definitions.
+In Dafny, `=` is used only in type definitions.
 ");
 
     Add(ErrorID.p_const_is_missing_type_or_init,
@@ -234,7 +234,7 @@ The currently defined type characteristics are designated by `==` (equality-supp
 
     Add(ErrorID.p_missing_type_characteristic,
     @"
-[Type characteristics](.. / DafnyRef / DafnyRef#sec-type-parameters), 
+[Type characteristics](.. /DafnyRef/DafnyRef#sec-type-parameters), 
 state properties of the otherwise uninterpreted or opaque type.
 They are given in a parentheses-enclosed, comma-separated list after the type name.
 The currently defined type characteristics are designated by `==` (equality - supporting), `0` (auto - initializable), `00` (non - empty), and `!new` (non - reference).
@@ -262,7 +262,7 @@ The adjectives `least` and `greatest` for lemmas and functions are more consiste
     @"
 Constructors are methods that initialize class instances. That is, when a new instance of a class is being created, 
 using the `new` object syntax, some constructor of the class is called, perhaps a default anonymous one.
-So constructor declarations only make sense within classes.
+So, constructor declarations only make sense within classes.
 ");
 
     Add(ErrorID.p_method_missing_name,
