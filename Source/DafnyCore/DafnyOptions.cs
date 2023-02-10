@@ -1087,9 +1087,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
         // Boogie will perform the ultimate test to see if "proverPath" is real--it will attempt to run it.
         // However, by at least checking if the file exists, we can produce a better error message in common scenarios.
         // Unfortunately, there doesn't seem to be a portable way of checking whether it's executable.
-        if (!File.Exists(proverPath)) {
-          return null;
-        }
+        //if (!File.Exists(proverPath)) {
+        //  return null;
+        //}
 
         confirmedProverPath = proverPath;
       }
