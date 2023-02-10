@@ -124,6 +124,7 @@ void CheckDeclModifiers(ref DeclModifierData dmod, string declCaption, AllowedDe
   }
 }
 
+<<<<<<< HEAD
 void CheckAttribute(Errors errors, IToken attr, RangeToken range, IToken next) {
   // attr is the identifier of the Attribute
   // range is from opening brace to closing brace
@@ -131,6 +132,11 @@ void CheckAttribute(Errors errors, IToken attr, RangeToken range, IToken next) {
   if (attr.val == "dllimport" || attr.val == "handle") {
     errors.Deprecated(ErrorID.p_deprecated_attribute, Errors.CodeAction(attr, range.StartToken.col, next.pos - range.StartToken.pos),
       $"Attribute :{attr.val} is deprecated and will be removed in Dafny 4.0");
+=======
+void CheckAttribute(Errors errors, IToken attr) {
+  if (attr.val == "dllimport" || attr.val == "handle" || attr.val == "heapQuantifier" ) {
+    errors.Deprecated(attr, $"Attribute :{attr.val} is deprecated and will be removed in Dafny 4.0");
+>>>>>>> master
   }
 }
 
