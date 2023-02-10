@@ -92,3 +92,5 @@ jobs:
           output: both
           thresholds: '70 80'
 
+      - name: Show coverage
+        run: cat code-coverage-results.md
