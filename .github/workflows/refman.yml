@@ -2,7 +2,9 @@ name: Build DafnyRef.pdf
 
 on:
   push:
-    branches: [ master ]
+    branches:
+      - 'cok'
+      - '!master'
   pull_request:
     branches: [ master ]
 

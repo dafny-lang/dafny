@@ -245,7 +245,7 @@ public class Errors {
       string trivia = sourceTok.TrailingTrivia;
       // Don't want to remove newlines or comments -- just spaces and tabs
       int i = 0;
-      while (trivia[i] == ' ' || trivia[i] == '\t') {
+      while (i < trivia.Length && (trivia[i] == ' ' || trivia[i] == '\t')) {
         i++;
       }
       return CodeAction(sourceTok, sourceTok.col, sourceTok.val.Length + i);
