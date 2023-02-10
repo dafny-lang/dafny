@@ -217,40 +217,44 @@ public class Errors {
     Reporting.Warning(MessageSource.Parser, ErrorID.None, tok, msg);
   }
 
+  // Code action range has given column and length
+  public static CodeActionRange CodeAction(IToken sourceTok, int column, int len) {
+    return new CodeActionRange(sourceTok, column, len);
+  }
+
   // Code action range is from start of given token and with given new length
-  public static CodeActionToken CodeAction(IToken sourceTok, int len) {
+  public static CodeActionRange CodeAction(IToken sourceTok, int len) {
     return CodeAction(sourceTok, sourceTok.col, len);
   }
 
-  // Code action range has given column and length
-  public static CodeActionToken CodeAction(IToken sourceTok, int column, int len) {
-    return new CodeActionToken(sourceTok, column, len);
-  }
-
   // Code action range is up to, not including, the next token
-  public static CodeActionToken CodeAction(IToken sourceTok, IToken next) {
+  public static CodeActionRange CodeAction(IToken sourceTok, IToken next) {
     return CodeAction(sourceTok, sourceTok.col, next.pos - sourceTok.pos);
   }
 
   // Code action range is up to, not including, the next token
-  public static CodeActionToken CodeAction(IToken display, IToken sourceTok, IToken next) {
+  public static CodeActionRange CodeAction(IToken display, IToken sourceTok, IToken next) {
     return CodeAction(display, sourceTok.col, next.pos - sourceTok.pos);
   }
 
-  // Code action range is up to, not including, the given token's Next token 
-  // so the range includes following white space
-  public static CodeActionToken CodeActionToNext(IToken sourceTok) {
-    return CodeAction(sourceTok, sourceTok.Next);
-  }
-
   // Code action range is same as the given token
-  public static CodeActionToken CodeAction(IToken sourceTok) {
-    return CodeAction(sourceTok, sourceTok.col, sourceTok.val.Length);
+  public static CodeActionRange CodeAction(IToken sourceTok, bool IncludeTrailingSpace = false) {
+    if (!IncludeTrailingSpace){
+      return CodeAction(sourceTok, sourceTok.col, sourceTok.val.Length);
+    } else {
+      string trivia = sourceTok.TrailingTrivia;
+      // Don't want to remove newlines or comments -- just spaces and tabs
+      int i = 0;
+      while (trivia[i] == ' ' || trivia[i] == '\t') {
+        i++;
+      }
+      return CodeAction(sourceTok, sourceTok.col, sourceTok.val.Length + i);
+    }
   }
 
-  public static CodeActionToken FindCodeActionRange(IToken toptok) {
+  public static CodeActionRange FindCodeActionRange(IToken toptok) {
     var tok = toptok;
-    if (tok is CodeActionToken) return (CodeActionToken)tok;
+    if (tok is CodeActionRange) return (CodeActionRange)tok;
     return CodeAction(toptok);
   }
 } // Errors

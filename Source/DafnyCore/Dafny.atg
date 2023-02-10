@@ -57,7 +57,7 @@ class DeclModifierData {
 public void CheckAndSetToken(ref IToken token)
 {
     if (token != null) {
-      SemErr(ErrorID.p_duplicate_modifier, Errors.CodeActionToNext(t), "Duplicate declaration modifier: " + t.val);
+      SemErr(ErrorID.p_duplicate_modifier, Errors.CodeAction(t,true), "Duplicate declaration modifier: " + t.val);
     }
     token = t;
 }
@@ -97,25 +97,25 @@ void CheckDeclModifiers(ref DeclModifierData dmod, string declCaption, AllowedDe
 {
   declCaption = (declCaption.StartsWith("i") || declCaption.StartsWith("o") ? "an " : "a ") + declCaption;
   if (dmod.IsAbstract && ((allowed & AllowedDeclModifiers.Abstract) == 0)) {
-    SemErr(ErrorID.p_abstract_not_allowed, Errors.CodeActionToNext(dmod.AbstractToken), $"{declCaption} cannot be declared 'abstract'");
+    SemErr(ErrorID.p_abstract_not_allowed, Errors.CodeAction(dmod.AbstractToken,true), $"{declCaption} cannot be declared 'abstract'");
     dmod.IsAbstract = false;
   }
   if (dmod.IsGhost) {
     if ((allowed & AllowedDeclModifiers.AlreadyGhost) != 0) {
       if (declCaption.Contains("-by-method")) {
-        SemErr(ErrorID.p_no_ghost_for_by_method, Errors.CodeActionToNext(dmod.GhostToken),
+        SemErr(ErrorID.p_no_ghost_for_by_method, Errors.CodeAction(dmod.GhostToken,true),
           $"{declCaption} has a ghost function body and a non-ghost method body; {declCaption} declaration does not use the 'ghost' keyword.");
       } else {
-        SemErr(ErrorID.p_ghost_forbidden_default, Errors.CodeActionToNext(dmod.GhostToken), $"{declCaption} cannot be declared 'ghost' (it is 'ghost' by default)");
+        SemErr(ErrorID.p_ghost_forbidden_default, Errors.CodeAction(dmod.GhostToken,true), $"{declCaption} cannot be declared 'ghost' (it is 'ghost' by default)");
       }
       dmod.IsGhost = false;
     } else if ((allowed & AllowedDeclModifiers.Ghost) == 0) {
-      SemErr(ErrorID.p_ghost_forbidden, Errors.CodeActionToNext(dmod.GhostToken), $"{declCaption} cannot be declared 'ghost'");
+      SemErr(ErrorID.p_ghost_forbidden, Errors.CodeAction(dmod.GhostToken,true), $"{declCaption} cannot be declared 'ghost'");
       dmod.IsGhost = false;
     }
   }
   if (dmod.IsStatic && ((allowed & AllowedDeclModifiers.Static) == 0)) {
-    SemErr(ErrorID.p_no_static, Errors.CodeActionToNext(dmod.StaticToken), $"{declCaption} cannot be declared 'static'");
+    SemErr(ErrorID.p_no_static, Errors.CodeAction(dmod.StaticToken,true), $"{declCaption} cannot be declared 'static'");
     dmod.IsStatic = false;
   }
   if (dmod.IsOpaque && ((allowed & AllowedDeclModifiers.Opaque) == 0)) {
@@ -1684,10 +1684,10 @@ GIdentType<bool allowGhostKeyword, bool allowNewKeyword, bool allowNameOnlyKeywo
      IToken originalId = null;
   .)
   { IF(IsKeywordForFormal())
-    ( "ghost"                    (. if (allowGhostKeyword) { isGhost = true; } else { SemErr(ErrorID.p_output_of_function_not_ghost, Errors.CodeActionToNext(t), "formal cannot be declared 'ghost' in this context"); } .)
-    | "new"                      (. if (allowNewKeyword) { isOld = false; } else { SemErr(ErrorID.p_no_new_on_output_formals, Errors.CodeActionToNext(t), "formal cannot be declared 'new' in this context"); } .)
-    | "nameonly"                 (. if (allowNameOnlyKeyword) { isNameOnly = true; } else { SemErr(ErrorID.p_no_nameonly_on_output_formals, Errors.CodeActionToNext(t), "formal cannot be declared 'nameonly' in this context"); } .)
-    | "older"                    (. if (allowOlderKeyword) { isOlder = true; } else { SemErr(ErrorID.p_no_older_on_output_formals, Errors.CodeActionToNext(t), "formal cannot be declared 'older' in this context"); } .)
+    ( "ghost"                    (. if (allowGhostKeyword) { isGhost = true; } else { SemErr(ErrorID.p_output_of_function_not_ghost, Errors.CodeAction(t,true), "formal cannot be declared 'ghost' in this context"); } .)
+    | "new"                      (. if (allowNewKeyword) { isOld = false; } else { SemErr(ErrorID.p_no_new_on_output_formals, Errors.CodeAction(t,true), "formal cannot be declared 'new' in this context"); } .)
+    | "nameonly"                 (. if (allowNameOnlyKeyword) { isNameOnly = true; } else { SemErr(ErrorID.p_no_nameonly_on_output_formals, Errors.CodeAction(t,true), "formal cannot be declared 'nameonly' in this context"); } .)
+    | "older"                    (. if (allowOlderKeyword) { isOlder = true; } else { SemErr(ErrorID.p_no_older_on_output_formals, Errors.CodeAction(t,true), "formal cannot be declared 'older' in this context"); } .)
     )
   }
   IdentType<out id, out originalId, out ty, false>  (. startToken = startToken ?? originalId; .)
@@ -1792,7 +1792,7 @@ TypeIdentOptional<out IToken/*!*/ id, out string/*!*/ identName, out Type/*!*/ t
      } else {
        identName = "#" + anonymousIds++;
        if (nameonlyToken != null) {
-         SemErr(ErrorID.p_nameonly_must_have_parameter_name, Errors.CodeActionToNext(nameonlyToken), "use of the 'nameonly' modifier must be accompanied with a parameter name");
+         SemErr(ErrorID.p_nameonly_must_have_parameter_name, Errors.CodeAction(nameonlyToken,true), "use of the 'nameonly' modifier must be accompanied with a parameter name");
        }
        isNameOnly = false;
      }
