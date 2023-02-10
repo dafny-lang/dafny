@@ -1,1 +1,1 @@
-No more crash if hovering an assertion which references code written in another file
+No more crash when hovering assertions that reference code written in other smaller files
