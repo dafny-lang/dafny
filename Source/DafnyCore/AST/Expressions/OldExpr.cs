@@ -14,13 +14,17 @@ public class OldExpr : Expression, ICloneable<OldExpr>, ICanFormat {
     Contract.Invariant(E != null);
   }
 
-  public OldExpr Clone(Cloner cloner) {
-    var result = new OldExpr(cloner.Tok(tok), cloner.CloneExpr(E), At);
+  public OldExpr(Cloner cloner, OldExpr original) : base(cloner, original) {
+    E = cloner.CloneExpr(original.E);
+    At = original.At;
     if (cloner.CloneResolvedFields) {
-      result.AtLabel = AtLabel;
-      result.Useless = Useless;
+      AtLabel = original.AtLabel;
+      Useless = original.Useless;
     }
-    return result;
+  }
+
+  public OldExpr Clone(Cloner cloner) {
+    return new OldExpr(cloner, this);
   }
 
   [Captured]
