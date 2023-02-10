@@ -69,11 +69,12 @@ jobs:
         with:
           name: integration-test-results-ubuntu-20.04
 
-# These come from another workflow. How to get them?
-#      - name: Download unit test artifacts
-#        uses: actions/download-artifact@v3
-#        with:
-#          name: unit-test-results-ubuntu-20.04
+      - name: Download unit test artifacts
+        uses: dawidd6/action-download-artifact@v2
+        with:
+           pr: ${{github.event.pull_request.number}}
+           workflow: xunit-tests.yml
+           name: unit-test-results-ubuntu-20.04
 
       - name: Show files
         run: ls -lR
