@@ -12,7 +12,6 @@ hello, Dafny
 Dafny program verifier finished with 0 verified, 0 errors
 Wrote textual form of target program to JustRun-go/src/JustRun.go
 Additional target code written to JustRun-go/src/dafny/dafny.go
-Additional target code written to JustRun-go/src/dafny/dafnyFromDafny.go
 Additional target code written to JustRun-go/src/System_/System_.go
 Running...
 

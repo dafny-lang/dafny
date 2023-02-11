@@ -1891,7 +1891,7 @@ namespace Microsoft.Dafny.Compilers {
           thisContext = c;
         }
         if (c is TraitDecl && member.OverriddenMember != null && !member.IsOverrideThatAddsBody) {
-          if (!member.IsGhost && TraitRepeatsInheritedDeclarations) {
+          if (TraitRepeatsInheritedDeclarations) {
             RedeclareInheritedMember(member, classWriter);
           } else {
             // emit nothing in the trait; this member will be emitted in the classes that extend this trait

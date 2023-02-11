@@ -103,7 +103,7 @@ jobs:
     - name: Create release
       if: inputs.all_platforms
       run: |
-        python dafny/Scripts/package.py 0.0.0-CI --platform x64 --os ${{ fromJson(needs.populate-matrix-dimensions.outputs.os-mapping)[matrix.os] }} --skip_manual=true --trial=true --github_secret=${{ secrets.GITHUB_TOKEN }} --out=CI.zip
+        python dafny/Scripts/package.py 0.0.0-CI --os ${{ fromJson(needs.populate-matrix-dimensions.outputs.os-mapping)[matrix.os] }} --skip_manual=true --trial=true --github_secret=${{ secrets.GITHUB_TOKEN }} --out=CI.zip
     - if: runner.os == 'Windows' && inputs.all_platforms
       shell: pwsh
       run: |

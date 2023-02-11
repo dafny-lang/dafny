@@ -1,1 +1,1 @@
-To generate the tuples in DafnyRuntime and DafnyRuntimeJava/src, the file tuplesForDafnyRuntime.dfy was used. 
+To generate the tuples in DafnyRuntime and DafnyRuntimeJava/src, the file dafnyRuntime.dfy was used. 

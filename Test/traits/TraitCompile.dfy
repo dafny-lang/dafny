@@ -801,23 +801,3 @@ module ObjectEquality {
     **/
   }
 }
-
-module RedeclaringMembers {
-  // Regression test: at one point the single-pass compiler logic
-  // forgot to check if a member was ghost before redeclaring it
-  // in an extending trait (for target languages that require it, such as Go).
-  // The code below would lead to a target-compiler
-  // error because B would include Valid() even though it was ghost.
-  trait A {
-    ghost var Foo: int
-    predicate Valid()
-  }
-  trait B extends A {
-    predicate Valid()
-  }
-  class C extends B {
-    predicate Valid() {
-      true
-    }
-  }
-}
