@@ -3,9 +3,11 @@ name: Build and Test Dafny Runtimes
 on:
   pull_request:
     branches: [ master ]
+  push:
 
 jobs:
   build:
+    if: github.repository == 'dafny-lang/dafny' || vars.TEST_ON_FORK
 
     runs-on: ubuntu-latest
 
