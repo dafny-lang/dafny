@@ -116,7 +116,7 @@ jobs:
       run: |
         sudo apt-get install -qq libarchive-tools
         mkdir dafny/Binaries/z3
-        wget -qO- https://github.com/Z3Prover/z3/releases/download/z3-4.12.1/z3-4.12.1-x64-glibc-2.35.zip | bsdtar -xf - -C dafny/Binaries/z3 --strip-components=1
+        wget -qO- https://github.com/Z3Prover/z3/releases/download/Nightly/z3-4.12.2-x64-glibc-2.31.zip | bsdtar -xf - -C dafny/Binaries/z3 --strip-components=1
         chmod +x dafny/Binaries/z3/bin/z3
     - name: Run integration tests
       if: runner.os == 'Windows'
