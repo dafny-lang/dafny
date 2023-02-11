@@ -12,8 +12,8 @@ on:
   push:
 
 jobs:
-  if: github.repository == 'dafny-lang/dafny' || vars.TEST_ON_FORK
   build:
+    if: github.repository == 'dafny-lang/dafny' || vars.TEST_ON_FORK
 
     runs-on: ${{ matrix.os }}
     strategy:
