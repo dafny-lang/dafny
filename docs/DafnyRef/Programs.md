@@ -55,9 +55,9 @@ designator (e.g., `C:`) are only permitted on Windows systems.
 Examples:
 <!-- %check-resolve -->
 ```dafny
-module M { }
+abstract module M { }
 trait R { }
-abstract class C { }
+class C { }
 dataype D = A | B
 newtype pos = i: int | i >= 0
 type T = i: int | 0 <= i < 100
