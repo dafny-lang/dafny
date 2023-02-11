@@ -2,13 +2,9 @@ name: Build and Test
 
 on:
   pull_request:
-    branches:
-      - 'master'
-      - 'cok'
+    branches: [ master ]
   push:
-    branches:
-      - 'davidcok'
-      - '!master'
+    branches: [ master, 'cok*' ]
 
 env:
   dotnet-version: 6.0.x # SDK Version for building Dafny
