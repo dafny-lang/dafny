@@ -7,12 +7,12 @@ name: Test documentation
 ## The tests only need to run on one OS -- Linux is used because the test scripts are bash
 
 on:
-  push:
-    branches: [ master ]
   pull_request:
     branches: [ master ]
+  push:
 
 jobs:
+  if: github.repository == 'dafny-lang/dafny' || vars.TEST_ON_FORK
   build:
 
     runs-on: ${{ matrix.os }}
