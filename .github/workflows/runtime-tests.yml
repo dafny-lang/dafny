@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    if: github.repository == 'dafny-lang/dafny' || vars.TEST_ON_FORK
+    if: github.repository == 'dafny-lang/dafny' || vars.TEST_ON_FORK == 'true'
 
     runs-on: ubuntu-latest
 
