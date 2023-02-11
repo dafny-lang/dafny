@@ -2,8 +2,7 @@ name: Build and Test
 
 on:
   push:
-    branches:
-      - 'cok*'
+    branches: [ master, 'cok*' ]
   pull_request:
     branches: [ master ]
 

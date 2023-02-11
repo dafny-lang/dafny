@@ -87,7 +87,7 @@ done
 shift $(($OPTIND - 1))
 
 ## Temporary file
-text=$(mktemp -q tmptext-XXXXXX).dfy
+text=text.dfy
 
 ## Tracks if there have been any failures
 ANYFAIL=0
