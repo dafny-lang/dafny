@@ -10,6 +10,7 @@ env:
 
 jobs:
   singletons:
+    if: github.repository == 'dafny-lang/dafny' || vars.TEST_ON_FORK
     runs-on: ubuntu-20.04
     steps:
     - name: Setup dotnet
