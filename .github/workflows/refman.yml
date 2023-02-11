@@ -7,8 +7,14 @@ on:
     branches: [ master ]
 
 jobs:
+  check-deep-tests:
+     uses: ./.github/workflows/check-deep-tests-reusable.yml
+     with:
+       branch: master
+
   build:
-    if: github.repository == 'dafny-lang/dafny' || vars.TEST_ON_FORK == 'true'
+    needs: check-deep-tests
+    if: always() && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests' || vars.TEST_ON_FORK == 'true' ))
 
     runs-on: ${{ matrix.os }}
     strategy:
