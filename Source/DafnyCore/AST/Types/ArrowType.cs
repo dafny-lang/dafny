@@ -30,11 +30,11 @@ public class ArrowType : UserDefinedType {
   ///
   /// Note, since Y is a reference type and there is, at any one time, only a finite number of references,
   /// the result type is finite.
+  ///
+  /// TODO: The range of the set comprehension should be limited to the values for x that satisfy e's precondition.
   /// </summary>
-  public static Expression FrameArrowToObjectSet(Expression e, FreshIdGenerator idGen, BuiltIns builtIns) {
+  public static Expression FrameArrowToObjectSet(Expression e) {
     Contract.Requires(e != null);
-    Contract.Requires(idGen != null);
-    Contract.Requires(builtIns != null);
     var arrowType = e.Type.AsArrowType;
     if (arrowType == null) {
       return e;
@@ -44,18 +44,20 @@ public class ArrowType : UserDefinedType {
       return e;
     }
     var elementType = collectionType.Arg; // "elementType" is called "Y" in the description of this method, above
+    if (!elementType.IsRefType) {
+      return e;
+    }
 
     var boundVarDecls = new List<BoundVar>();
     var boundVarUses = new List<Expression>();
-    var bounds = new List<ComprehensionExpr.BoundedPool>();
+    var i = 0;
     foreach (var functionArgumentType in arrowType.Args) {
-      var bv = new BoundVar(e.tok, idGen.FreshId("_x"), functionArgumentType);
+      var bv = new BoundVar(e.tok, $"_x{i}", functionArgumentType);
       boundVarDecls.Add(bv);
       boundVarUses.Add(new IdentifierExpr(e.tok, bv.Name) { Type = bv.Type, Var = bv });
-      var allBounds = Resolver.DiscoverAllBounds_SingleVar(bv, Expression.CreateBoolLiteral(e.tok, true));
-      bounds.Add(ComprehensionExpr.BoundedPool.GetBest(allBounds));
+      i++;
     }
-    var objVar = new BoundVar(e.tok, idGen.FreshId("_obj"), elementType);
+    var objVar = new BoundVar(e.tok, "_obj", elementType);
     var objUse = new IdentifierExpr(e.tok, objVar.Name) { Type = objVar.Type, Var = objVar };
     boundVarDecls.Add(objVar);
 
@@ -63,8 +65,6 @@ public class ArrowType : UserDefinedType {
       Type = collectionType
     };
     var resolvedOpcode = collectionType.ResolvedOpcodeForIn;
-    var boundedPool = collectionType.GetBoundedPool(collection);
-    bounds.Add(boundedPool);
 
     var inCollection = new BinaryExpr(e.tok, BinaryExpr.Opcode.In, objUse, collection) {
       ResolvedOp = resolvedOpcode,
@@ -72,8 +72,7 @@ public class ArrowType : UserDefinedType {
     };
     var attributes = new Attributes("trigger", new List<Expression>() { inCollection }, null);
     return new SetComprehension(e.tok, e.RangeToken, true, boundVarDecls, inCollection, objUse, attributes) {
-      Type = new SetType(true, elementType),
-      Bounds = bounds
+      Type = new SetType(true, elementType)
     };
   }
 

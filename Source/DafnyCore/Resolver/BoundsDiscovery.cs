@@ -39,6 +39,11 @@ namespace Microsoft.Dafny {
         return base.VisitOneStatement(stmt, context);
       }
 
+      public override void VisitFrameExpression(FrameExpression frameExpression, IASTVisitorContext context, bool inReadsClause) {
+        frameExpression.E = ArrowType.FrameArrowToObjectSet(frameExpression.E);
+        base.VisitFrameExpression(frameExpression, context, inReadsClause);
+      }
+
       protected override bool VisitOneExpression(Expression expr, IASTVisitorContext context) {
         if (expr is ComprehensionExpr) {
           var e = (ComprehensionExpr)expr;

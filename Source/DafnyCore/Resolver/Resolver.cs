@@ -2481,6 +2481,8 @@ namespace Microsoft.Dafny {
 
       // Discover bounds. These are needed later to determine if certain things are ghost or compiled, and thus this should
       // be done before building the call graph.
+      // The BoundsDiscoveryVisitor also desugars FrameExpressions, so that bounds discovery can
+      // apply to the desugared versions.
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         var boundsDiscoveryVisitor = new BoundsDiscoveryVisitor(reporter);
         boundsDiscoveryVisitor.VisitDeclarations(declarations);

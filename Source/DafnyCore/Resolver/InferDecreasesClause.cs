@@ -138,12 +138,6 @@ public class InferDecreasesClause {
     return anyChangeToDecreases;
   }
 
-  public Expression FrameArrowToObjectSet(Expression e, FreshIdGenerator idGen) {
-    Contract.Requires(e != null);
-    Contract.Requires(idGen != null);
-    return ArrowType.FrameArrowToObjectSet(e, idGen, resolver.builtIns);
-  }
-
   public Expression FrameToObjectSet(List<FrameExpression> fexprs) {
     Contract.Requires(fexprs != null);
     Contract.Ensures(Contract.Result<Expression>() != null);
@@ -156,7 +150,7 @@ public class InferDecreasesClause {
       if (fe.E is WildcardExpr) {
         // drop wildcards altogether
       } else {
-        Expression e = FrameArrowToObjectSet(fe.E, idGen); // keep only fe.E, drop any fe.Field designation
+        Expression e = fe.E; // keep only fe.E, drop any fe.Field designation
         Contract.Assert(e.Type != null); // should have been resolved already
         var eType = e.Type.NormalizeExpand();
         if (eType.IsRefType) {
