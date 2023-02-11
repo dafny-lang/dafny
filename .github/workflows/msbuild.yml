@@ -1,10 +1,9 @@
 name: Build and Test
 
 on:
-  push:
-    branches: [ master, 'cok*' ]
   pull_request:
     branches: [ master ]
+  push:
 
 env:
   dotnet-version: 6.0.x # SDK Version for building Dafny
@@ -53,7 +52,7 @@ jobs:
 
   integration-tests:
     needs: check-deep-tests
-    if: always() && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests') || github.repository != 'dafny-lang/dafny' )
+    if: always() && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests') || (github.repository != 'dafny-lang/dafny'  && vars.TEST_ON_FORK ))
     uses: ./.github/workflows/integration-tests-reusable.yml
     with:
       # By default run only on one platform, but run on all platforms if the PR has the "run-deep-tests"
