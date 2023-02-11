@@ -7,10 +7,9 @@ name: Test documentation
 ## The tests only need to run on one OS -- Linux is used because the test scripts are bash
 
 on:
-  push:
-    branches: [ master , 'cok-*' ]
   pull_request:
     branches: [ master ]
+  push:
 
 jobs:
   build:

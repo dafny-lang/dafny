@@ -1,10 +1,9 @@
 name: Run XUnit tests
 
 on:
-  push:
-    branches: [ master, 'cok*' ]
   pull_request:
     branches: [ master ]
+  push:
 
 ## In the matrix:
 ##  os - name of the Github actions runner
