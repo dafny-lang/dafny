@@ -39,7 +39,8 @@ public interface ICommandSpec {
     BoogieOptionBag.NoVerify,
     CommonOptionBag.EnforceDeterminism,
     CommonOptionBag.OptimizeErasableDatatypeWrapper,
-    CommonOptionBag.TestAssumptions
+    CommonOptionBag.TestAssumptions,
+    DeveloperOptionBag.Bootstrapping
   }.Concat(VerificationOptions).ToList();
 
   public static IReadOnlyList<Option> ExecutionOptions = new Option[] {
