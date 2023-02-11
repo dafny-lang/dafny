@@ -58,7 +58,7 @@ Examples:
 abstract module M { }
 trait R { }
 class C { }
-dataype D = A | B
+datatype D = A | B
 newtype pos = i: int | i >= 0
 type T = i: int | 0 <= i < 100
 static method m() {}
