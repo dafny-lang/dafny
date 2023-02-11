@@ -1,6 +1,7 @@
 name: Run XUnit tests
 
 on:
+  workflow_dispatch:
   pull_request:
     branches: [ master ]
   push:
