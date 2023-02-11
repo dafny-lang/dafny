@@ -8,7 +8,7 @@ name: Test documentation
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master , 'cok-*' ]]
   pull_request:
     branches: [ master ]
 

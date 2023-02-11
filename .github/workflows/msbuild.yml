@@ -1,6 +1,9 @@
 name: Build and Test
 
 on:
+  push:
+    branches:
+      - 'cok*'
   pull_request:
     branches: [ master ]
 
