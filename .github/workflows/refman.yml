@@ -14,7 +14,7 @@ jobs:
 
   build:
     needs: check-deep-tests
-    if: always() && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests' || vars.TEST_ON_FORK == 'true' ))
+    if: always() && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests') || vars.TEST_ON_FORK == 'true' )
 
     runs-on: ${{ matrix.os }}
     strategy:
