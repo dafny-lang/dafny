@@ -46,9 +46,14 @@ specified.
 The file name may be a path using the customary `/`, `.`, and `..` punctuation.
 The interpretation of the name (e.g., case-sensitivity) will depend on the
 underlying operating system. A path not beginning with `/` is looked up in
-the underlying file system relative to the current working directory (the
-one in which the dafny tool is invoked). Paths beginning with a device
+the underlying file system relative to the _location of the file in which the
+include directive is stated_. Paths beginning with a device
 designator (e.g., `C:`) are only permitted on Windows systems.
+Better style advocates using relative paths in include directives so that
+groups of files may be moved as a whole to a new location.
+
+Paths of files on the command-line or named in `--library` options are 
+relative the the current working directory.
 
 ## 3.2. Top Level Declarations ([grammar](#g-top-level-declaration)) {#sec-top-level-declaration}
 
