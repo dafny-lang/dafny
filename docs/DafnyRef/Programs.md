@@ -66,7 +66,7 @@ class C { }
 datatype D = A | B
 newtype pos = i: int | i >= 0
 type T = i: int | 0 <= i < 100
-static method m() {}
+method m() {}
 function f(): int
 const c: bool
 ```
