@@ -20,7 +20,7 @@ jobs:
 
   doctests:
     needs: check-deep-tests
-    if: always() && ((needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests') && ( github.event_hame != 'push' || github.ref_name == 'master' || vars.TEST_ON_FORK == 'true' ))) 
+    if: always() && ((needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests')) || ( github.event_name == 'push' && ( github.ref_name == 'master' || vars.TEST_ON_FORK == 'true' )))
     runs-on: ubuntu-latest
 
     steps:
