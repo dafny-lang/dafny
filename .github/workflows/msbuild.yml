@@ -11,7 +11,7 @@ env:
 
 jobs:
   singletons:
-    if: ( github.repository == 'dafny-lang/dafny' && github.ref_name == 'master') || vars.TEST_ON_FORK == 'true'
+    if: ( github.event_name != 'push'  || ( github.repository == 'dafny-lang/dafny' && github.ref_name == 'master' )) || ( github.event_name == 'push' && vars.TEST_ON_FORK == 'true' )
     runs-on: ubuntu-20.04
     steps:
     - name: Setup dotnet
@@ -54,7 +54,7 @@ jobs:
 
   integration-tests:
     needs: check-deep-tests
-    if: always() && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests') || vars.TEST_ON_FORK == 'true' ) && ( github.repository != 'dafny-lang/dafny' || github.ref_name == 'master' )
+    if: always() && ((needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests') && ( github.event_hame != 'push' || github.ref_name == 'master' || vars.TEST_ON_FORK == 'true' )))
     uses: ./.github/workflows/integration-tests-reusable.yml
     with:
       # By default run only on one platform, but run on all platforms if the PR has the "run-deep-tests"

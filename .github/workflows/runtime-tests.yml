@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    if: ( github.repository == 'dafny-lang/dafny' && github.ref_name == 'master' ) || vars.TEST_ON_FORK == 'true'
+    if: ( github.event_name != 'push'  || ( github.repository == 'dafny-lang/dafny' && github.ref_name == 'master' )) || ( github.event_name == 'push' && vars.TEST_ON_FORK == 'true' )
 
     runs-on: ubuntu-latest
 
