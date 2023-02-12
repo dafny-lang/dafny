@@ -5,6 +5,7 @@ on:
     branches: [ master ]
     paths-ignore:
       - 'docs/**'
+      - '.github/**'
 
 env:
   dotnet-version: 6.0.x # SDK Version for building Dafny
