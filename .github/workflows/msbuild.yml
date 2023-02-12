@@ -3,14 +3,12 @@ name: Build and Test
 on:
   pull_request:
     branches: [ master ]
-  push:
 
 env:
   dotnet-version: 6.0.x # SDK Version for building Dafny
 
 jobs:
   singletons:
-    if: github.repository == 'dafny-lang/dafny' || vars.TEST_ON_FORK == 'true'
     runs-on: ubuntu-20.04
     steps:
     - name: Setup dotnet
@@ -53,7 +51,7 @@ jobs:
 
   integration-tests:
     needs: check-deep-tests
-    if: always() && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests') || (github.repository != 'dafny-lang/dafny'  && vars.TEST_ON_FORK == 'true' ))
+    if: always() && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests'))
     uses: ./.github/workflows/integration-tests-reusable.yml
     with:
       # By default run only on one platform, but run on all platforms if the PR has the "run-deep-tests"

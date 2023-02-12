@@ -7,22 +7,30 @@ name: Test documentation
 ## The tests only need to run on one OS -- Linux is used because the test scripts are bash
 
 on:
+  push:
+    branches: [ master ]
   pull_request:
     branches: [ master ]
-  push:
 
 jobs:
-  check-deep-tests:
-     uses: ./.github/workflows/check-deep-tests-reusable.yml
-     with:
-       branch: master
+  build:
 
-  doctests:
-    needs: check-deep-tests
-    if: always() && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests' || vars.TEST_ON_FORK == 'true' ))
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            z3: z3-4.8.5-x64-ubuntu-16.04
+            chmod: true
 
+    env:
+      solutionPath: Source/Dafny.sln
+      z3BaseUri: https://github.com/Z3Prover/z3/releases/download/Z3-4.8.5
+      Logging__LogLevel__Microsoft: Debug
     steps:
+    - name: OS
+      run: echo ${{ runner.os }} ${{ matrix.os }}
     - name: Setup dotnet
       uses: actions/setup-dotnet@v3
       with:
@@ -33,11 +41,18 @@ jobs:
         submodules: recursive
         path: dafny
     - name: Load Z3
+      shell: pwsh
       run: |
-        sudo apt-get install -qq libarchive-tools
-        mkdir dafny/Binaries/z3
-        wget -qO- https://github.com/Z3Prover/z3/releases/download/Z3-4.8.5/z3-4.8.5-x64-ubuntu-16.04.zip | bsdtar -xf - -C dafny/Binaries/z3 --strip-components=1
-        chmod +x dafny/Binaries/z3/bin/z3
+        Invoke-WebRequest ${{env.z3BaseUri}}/${{matrix.z3}}.zip -OutFile z3.zip
+        Expand-Archive z3.zip .
+        Remove-Item z3.zip
+    - name: Set Z3 location and permissions
+      if: ${{matrix.chmod}}
+      run: |
+        cd dafny
+        mkdir bin
+        mv ../${{matrix.z3}}/bin/z3* bin/
+        chmod +x bin/z3*
     - name: Build Dafny
       run: dotnet build dafny/Source/Dafny.sln
     - name: Check OnlineTutorial examples

@@ -1,9 +1,10 @@
 name: Run XUnit tests
 
 on:
+  push:
+    branches: [ master ]
   pull_request:
     branches: [ master ]
-  push:
 
 ## In the matrix:
 ##  os - name of the Github actions runner
@@ -13,14 +14,7 @@ on:
 ##  coverage -- unused?
 
 jobs:
-  check-deep-tests:
-     uses: ./.github/workflows/check-deep-tests-reusable.yml
-     with:
-       branch: master
-
   build:
-    needs: check-deep-tests
-    if: always() && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests' || vars.TEST_ON_FORK == 'true' ))
     runs-on: ${{matrix.os}}
     name: ${{matrix.suffix}}
     strategy:
