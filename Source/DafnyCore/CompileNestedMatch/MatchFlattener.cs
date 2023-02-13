@@ -59,9 +59,9 @@ public class MatchFlattener : IRewriter {
     }
   }
 
-  private void FlattenNode(Node moduleDefinition) {
-    moduleDefinition.Visit(node => {
-      if (node != moduleDefinition && node is ModuleDefinition) {
+  private void FlattenNode(Node root) {
+    root.Visit(node => {
+      if (node != root && node is ModuleDefinition) {
         // The resolver clones module definitions for compilation, but also the top level module which also contains the uncloned definitions,
         // so this is to prevent recursion into the uncloned definitions. 
         return false;
@@ -132,21 +132,22 @@ public class MatchFlattener : IRewriter {
 
     CaseBody compiledMatch = CompilePatternPaths(state, new HoleCtx(), LinkedLists.Create(nestedMatchExpr.Source), paths);
     if (compiledMatch is null) {
-      // Happens only if the match has no cases, create a Match with no cases as resolved expression and let ResolveMatchExpr handle it.
-      var result = new MatchExpr(nestedMatchExpr.tok, nestedMatchExpr.Source, new List<MatchCaseExpr>(), nestedMatchExpr.UsesOptionalBraces);
-      result.Type = nestedMatchExpr.Type;
-      FillMissingCases(result);
-      return result;
-    } else if (compiledMatch.Node is Expression expression) {
+      Reporter.Error(MessageSource.Resolver, nestedMatchExpr.Tok, "match has no cases");
+      // TODO add reference to HoleExpression issue
+      var emptyMatch = new MatchExpr(nestedMatchExpr.tok, nestedMatchExpr.Source, new List<MatchCaseExpr>(), nestedMatchExpr.UsesOptionalBraces);
+      emptyMatch.Type = nestedMatchExpr.Type;
+      return emptyMatch;
+    }
+
+    if (compiledMatch.Node is Expression expression) {
       for (int id = 0; id < state.CaseCopyCount.Length; id++) {
         if (state.CaseCopyCount[id] <= 0) {
           Reporter.Warning(MessageSource.Resolver, ErrorID.None, state.CaseTok[id], "this branch is redundant");
         }
       }
       return expression;
-    } else {
-      Contract.Assert(false); throw new cce.UnreachableException(); // Returned container should be a CExpr
     }
+    Contract.Assert(false); throw new cce.UnreachableException(); // Returned container should be a CExpr
   }
 
   private Statement CompileNestedMatchStmt(NestedMatchStmt nestedMatchStmt) {
@@ -157,11 +158,11 @@ public class MatchFlattener : IRewriter {
 
     var compiledMatch = CompilePatternPaths(state, new HoleCtx(), LinkedLists.Create(nestedMatchStmt.Source), paths);
     if (compiledMatch is null) {
-      // Happens only if the nested match has no cases, create a MatchStmt with no paths.
-      var result = new MatchStmt(nestedMatchStmt.RangeToken, nestedMatchStmt.Source, new List<MatchCaseStmt>(), nestedMatchStmt.UsesOptionalBraces, nestedMatchStmt.Attributes);
-      FillMissingCases(result);
-      return result;
-    } else if (compiledMatch.Node is Statement statement) {
+      // Happens only if the nested match has no cases
+      return AssertStmt.CreateErrorAssert(nestedMatchStmt, "match has no cases");
+    }
+
+    if (compiledMatch.Node is Statement statement) {
       var result = statement;
       result.Attributes = (new ClonerKeepParensExpressions()).CloneAttributes(nestedMatchStmt.Attributes);
       for (int id = 0; id < state.CaseCopyCount.Length; id++) {
@@ -173,9 +174,8 @@ public class MatchFlattener : IRewriter {
       new GhostInterestVisitor(resolutionContext.WithGhost(nestedMatchStmt.IsGhost).CodeContext, null, Reporter, false).
         Visit(result, nestedMatchStmt.IsGhost, null);
       return result;
-    } else {
-      Contract.Assert(false); throw new cce.UnreachableException(); // Returned container should be a StmtContainer
     }
+    Contract.Assert(false); throw new cce.UnreachableException(); // Returned container should be a StmtContainer
   }
 
   private IEnumerable<NestedMatchCaseStmt> FlattenNestedMatchCaseStmt(NestedMatchCaseStmt c) {
@@ -434,11 +434,13 @@ public class MatchFlattener : IRewriter {
       }
       var newMatchStmt = new MatchStmt(nestedMatchStmt.RangeToken, headMatchee, newMatchCaseStmts, true, mti.Attributes, context);
       newMatchStmt.IsGhost |= mti.CodeContext.IsGhost;
+      // TODO this could be moved to the translator.
       FillMissingCases(newMatchStmt);
       return new CaseBody(null, newMatchStmt);
     } else {
       var newMatchExpr = new MatchExpr(mti.Tok, headMatchee, newMatchCases.ConvertAll(x => (MatchCaseExpr)x), true, context);
       newMatchExpr.Type = ((NestedMatchExpr)mti.Match).Type;
+      // TODO this could be moved to the translator.
       FillMissingCases(newMatchExpr);
       return new CaseBody(null, newMatchExpr);
     }
@@ -567,11 +569,13 @@ public class MatchFlattener : IRewriter {
     var currBlock = blocks.First();
     blocks = blocks.Skip(1).ToList();
 
-    IToken tok = matchee.tok;
-    var endtok = matchee.tok.ToRange();
+    var tok = matchee.Tok;
+    var range = matchee.Tok.ToRange();
     BinaryExpr guard = new BinaryExpr(tok, BinaryExpr.Opcode.Eq, matchee, currBlock.Item1);
     guard.ResolvedOp = BinaryExpr.ResolvedOpcode.EqCommon;
     guard.Type = Type.Bool;
+    var contextStr = context.FillHole(new IdCtx($"c: {matchee.Type}", new List<MatchingContext>())).AbstractAllHoles().ToString();
+    var assertGuard = AssertStmt.CreateErrorAssert(matchee, $"missing case in match: {contextStr} (not all possibilities for constant 'c' in context have been covered)", guard);
 
     var elsC = CreateIfElseIfChain(mti, context, matchee, blocks, defaultBlock);
 
@@ -579,13 +583,7 @@ public class MatchFlattener : IRewriter {
       if (elsC is null) {
         // handle an empty default
         // assert guard; item2.Body
-        var contextStr = context.FillHole(new IdCtx($"c: {matchee.Type.ToString()}", new List<MatchingContext>())).AbstractAllHoles().ToString();
-        var errorMessage = new StringLiteralExpr(mti.Tok,
-          $"missing case in match expression: {contextStr} (not all possibilities for constant 'c' in context have been covered)", true);
-        errorMessage.Type = new SeqType(Type.Char);
-        var attr = new Attributes("error", new List<Expression>() { errorMessage }, null);
-        var ag = new AssertStmt(endtok, AutoGeneratedExpression.Create(guard, mti.Tok), null, null, attr);
-        var result = new StmtExpr(tok, ag, expression);
+        var result = new StmtExpr(tok, assertGuard, expression);
         result.Type = ((NestedMatchExpr)mti.Match).Type;
         return new CaseBody(null, result);
       } else {
@@ -594,28 +592,24 @@ public class MatchFlattener : IRewriter {
         result.Type = ((NestedMatchExpr)mti.Match).Type;
         return new CaseBody(null, result);
       }
-    } else if (currBlock.Item2.Node is Statement statement) {
-      var item2 = BlockStmtOfCStmt(endtok, statement);
+    }
+
+    if (currBlock.Item2.Node is Statement statement) {
+      var item2 = BlockStmtOfCStmt(range, statement);
       if (elsC is null) {
         // handle an empty default
         // assert guard; item2.Body
-        var contextStr = context.FillHole(new IdCtx(string.Format("c: {0}", matchee.Type.ToString()), new List<MatchingContext>())).AbstractAllHoles().ToString();
-        var errorMessage = new StringLiteralExpr(mti.Tok, string.Format("missing case in match statement: {0} (not all possibilities for constant 'c' have been covered)", contextStr), true);
-        errorMessage.Type = new SeqType(Type.Char);
-        var attr = new Attributes("error", new List<Expression>() { errorMessage }, null);
-        var ag = new AssertStmt(endtok, AutoGeneratedExpression.Create(guard, mti.Tok), null, null, attr);
-        ag.IsGhost = true;
         var body = new List<Statement>();
-        body.Add(ag);
+        body.Add(assertGuard);
         body.AddRange(item2.Body);
-        return new CaseBody(null, new BlockStmt(endtok, body));
+        return new CaseBody(null, new BlockStmt(range, body));
       } else {
         var els = (Statement)elsC.Node;
-        return new CaseBody(null, new IfStmt(endtok, false, guard, item2, els));
+        return new CaseBody(null, new IfStmt(range, false, guard, item2, els));
       }
-    } else {
-      throw new cce.UnreachableException();
     }
+
+    throw new cce.UnreachableException();
   }
 
   record CaseBody(IToken Tok, Node Node, Attributes Attributes = null);
