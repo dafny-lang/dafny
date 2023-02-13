@@ -1,12 +1,7 @@
 name: Build and Test
 
 on:
-<<<<<<< HEAD
-  push:
-    branches: [ cok-3459-dafny4test ]
-=======
   workflow_dispatch:
->>>>>>> master
   pull_request:
     branches: [ master ]
   push:
