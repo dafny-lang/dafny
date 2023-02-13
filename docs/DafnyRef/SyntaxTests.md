@@ -1,6 +1,6 @@
 
 <!--PDF NEWPAGE-->
-# 30. Testing syntax rendering
+# 18. Testing syntax rendering
 
 Sample math B: $a \to b$ or
 <p style="text-align: center;">$$ a \to \pi $$</p>

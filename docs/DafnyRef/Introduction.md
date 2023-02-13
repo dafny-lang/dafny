@@ -58,7 +58,7 @@ based on the following references:
 The main part of the reference manual is in top down order except for an
 initial section that deals with the lowest level constructs.
 
-The details of using (and contributing to) the dafny tool are described in the User Guide ([Section 25](#sec-user-guide)).
+The details of using (and contributing to) the dafny tool are described in the User Guide ([Section 13](#sec-user-guide)).
 
 ## 1.1. Dafny Example {#sec-example}
 To give a flavor of Dafny, here is the solution to a competition problem.
