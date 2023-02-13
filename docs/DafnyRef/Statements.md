@@ -949,7 +949,7 @@ function usesTuple() : int
 }
 ```
 
-The assignment with failure operator `:-` returns from the method if the value evaluates to a failure value of a failure-compatible type (see [Section 20.7](#sec-update-with-failure-statement)).
+The initialization with failure operator `:-` returns from the method if the value evaluates to a failure value of a failure-compatible type (see [Section 20.7](#sec-update-with-failure-statement)).
 
 ## 20.9. Guards ([grammar](#g-guard)) {#sec-guard}
 
@@ -1010,7 +1010,7 @@ The identifiers bound by the binding guard are ghost variables
 and cannot be assigned to non-ghost variables. They are only
 used in specification contexts.
 
-Here is an example:
+Here is another example:
 
 <!-- %check-verify -->
 ```dafny
@@ -1122,8 +1122,7 @@ at least one of the guards to evaluate to `true` (that is, `if-case`
 statements must be exhaustive: the guards must cover all cases).
 
 In the if-with-cases, a sequence of statements may follow the `=>`; it
-need not be a block statement. Also the sequence of cases may be enclosed in 
-braces but need not be.
+may but need not be a block statement ( a brace-enclosed sequence of statements).
 
 The form that used `...` (a refinement feature) as the guard is deprecated.
 
@@ -1153,7 +1152,7 @@ method m() {
 
 Loops
 - may be a conventional loop with a condition and a block statement for a body
-- the condition need not be in parentheses
+- need not have parentheses around the condition
 - may have a `*` for the condition (the loop is then non-deterministic)
 - binding guards are not allowed
 - may have a case-based structure
@@ -1196,7 +1195,7 @@ to prove loop invariants and decreases assertions that would normally be
 asserted at the end of the loop body.
 There is more discussion about bodyless loops in [Section 20.14.4](#sec-bodyless-constructs).
 
-The second form uses the `AlternativeBlock`. It is similar to the
+The second form uses a case-based block. It is similar to the
 `do ... od` construct used in the book "A Discipline of Programming" by
 Edsger W. Dijkstra. For example:
 
@@ -1240,7 +1239,7 @@ The `for` statement provides a convenient way to write some common loops.
 The statement introduces a local variable with optional type, which is called
 the _loop index_. The loop index is in scope in the specification and the body,
 but not after the `for` loop. Assignments to the loop index are not allowed.
-The type of the loop index can typically be inferred, so it need not be given
+The type of the loop index can typically be inferred; if so, it need not be given
 explicitly. If the identifier is not used, it can be written as `_`, as illustrated
 in this repeat-20-times loop:
 <!-- %no-check -->
@@ -1327,10 +1326,10 @@ Semantically, they are defined as the following respective `while` loops:
 }
 ```
 
-Note that expressions `lo` and `hi` are evaluated just once, before the loop
+The expressions `lo` and `hi` are evaluated just once, before the loop
 iterations start.
 
-Also, note in all variations that the values of `i` in the body are the values
+Also, in all variations the values of `i` in the body are the values
 from `lo` to, _but not including_, `hi`. This makes it convenient to
 write common loops, including these:
 
@@ -1381,7 +1380,7 @@ know in advance how many times the code will go around the loop and
 a tool cannot reason about every one of a possibly unbounded sequence of unrollings.
 In order to consider all paths through a program, specification-based
 program verification tools require loop invariants, which are another kind of
-annotation.
+specification.
 
 A loop invariant is an expression that holds just prior to the loop test,
 that is, upon entering a loop and
@@ -1603,7 +1602,7 @@ compiler will no longer complain about the absence of a method body; the verifie
 object either, even though there is now no proof that the Dafny specifications are satisfied
 by the external implementation.
 
-A lemma is a special kind of method. Callers are therefore unaffected by the absence of a body,
+A lemma is a special kind of (ghost) method. Callers are therefore unaffected by the absence of a body,
 and the verifier is silently happy with not having a proof to check against the lemma specification.
 Despite a lemma being ghost, it is still the compiler that checks for, and complains about,
 body-less lemmas. A body-less lemma is an unproven lemma, which is often known as an _axiom_.
@@ -1623,7 +1622,7 @@ the results of functions in Dafny (unlike in most other languages) must be deter
 
 Just like methods and functions have two sides, callers and implementations, loops also have
 two sides. One side (analogous to callers) is the context that uses the loop. That context treats
-the loop in the same way regardless of whether or not the loop has a body. The other side
+the loop in the same way, using its specifications, regardless of whether or not the loop has a body. The other side
 is the loop body, that is, the implementation of each loop iteration. The verifier checks
 that the loop body maintains the loop invariant and that the iterations will eventually terminate,
 but if there is no loop body, the verifier is silently happy. This allows you to temporarily
@@ -1713,7 +1712,7 @@ The `match` statement is used to do case analysis on a value of an expression.
 The expression may be a value of a basic type (e.g. `int`), a newtype, or
 an inductive or coinductive datatype (which includes the built-in tuple types). 
 The expression after the `match` keyword is called the _selector_. 
-The expression is evaluated and then matched against
+The selector is evaluated and then matched against
 each clause in order until a matching clause is found.
 
 The process of matching the selector expression against the case patterns is
@@ -1721,7 +1720,7 @@ the same as for match expressions and is described in
 [Section 21.31.2](#sec-case-pattern).
 
 The selector need not be enclosed in parentheses; the sequence of cases may but need not be enclosed in braces.
-The matches in the cases must be exhaustive.
+The matches in the cases must be exhaustive, but you can use a wild variable (`_`) or an as yet unused simple identifier to indicate "match anything".
 
 The code below shows an example of a match statement.
 
@@ -1779,12 +1778,12 @@ The intent is that those statements be evaluated in support of proving the `asse
 For that purpose, they could be simply inserted before the `assert` statement.
 But by using the `by` block, the statements in the block are discarded after the assertion is proved.
 As a result, the statements in the block do not clutter or confuse the solver in performing subsequent
-proofs of assertions later in the program. Furthermore, by isolating the statements in the `by` block
+proofs of assertions later in the program. Furthermore, by isolating the statements in the `by` block,
 their purpose -- to assist in proving the given assertion -- is manifest in the structure of the code.
 
 Examples of this form of assert are given in the section of the [`reveal`](#sec-reveal-statement) statement and in [_Different Styles of Proof_](http://leino.science/papers/krml276.html)
 
-An assert statement may have a label. whose use is explained in [Section 20.20.1](#sec-reveal-assertions).
+An assert statement may have a label, whose use is explained in [Section 20.20.1](#sec-reveal-assertions).
 
 The attributes recognized for assert statements are discussed in [Section 23.3](#sec-verification-attributes-on-assertions).
 
