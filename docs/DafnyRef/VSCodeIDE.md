@@ -1,4 +1,4 @@
-# 26. Dafny VSCode extension and the Dafny Language Server {#sec-dafny-language-server-vscode}
+# 14. Dafny VSCode extension and the Dafny Language Server {#sec-dafny-language-server-vscode}
 
 There is a language server for Dafny, which [implements](https://github.com/dafny-lang/dafny/tree/master/Source/DafnyLanguageServer) the [Language Server Protocol](https://microsoft.github.io/language-server-protocol/).
 This server is used by the Dafny VSCode Extension, and it currently offers the following features:
@@ -11,7 +11,7 @@ This server is used by the Dafny VSCode Extension, and it currently offers the f
 - Highlighting of ghost statement
 - Gutter highlights
 
-## 26.1. Gutter highlights meaning {#sec-gutter-highlights}
+## 14.1. Gutter highlights meaning {#sec-gutter-highlights}
 
 The first time a file is loaded, the gutter will highlight in a transparent squiggly green line all the methods that need to be verified, like this:
 
@@ -55,7 +55,7 @@ the position of the parse or resolution error.
 ![image](https://user-images.githubusercontent.com/3601079/178068650-24c14da1-d247-4027-b784-2eb055242e6b.png)
 
 
-## 26.2. The Dafny Server {#sec-old-dafny-server}
+## 14.2. The Dafny Server {#sec-old-dafny-server}
 
 Before Dafny [implemented](https://github.com/dafny-lang/dafny/tree/master/Source/DafnyLanguageServer) the official [Language Server Protocol](https://microsoft.github.io/language-server-protocol/), it implemented its own protocol for [Emacs](https://github.com/boogie-org/boogie-friends), which resulted in a project called [DafnyServer](https://github.com/dafny-lang/dafny/tree/master/Source/DafnyServer).
 
