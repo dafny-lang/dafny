@@ -410,7 +410,7 @@ e.f().g.m(45);
 As there are no left-hand-side locations to receive values, this form is allowed only for 
 methods that have no out-parameters.
 
-### 20.6.2. Method call with multiple outputs
+### 20.6.2. Method call with out-parameters
 
 This form uses `:=` to denote the assignment of the out-parameters of the method to the 
 corresponding number of LHS values.
@@ -442,19 +442,26 @@ The most common case has only one RHS and one LHS.
 ### 20.6.4. Havoc assignment {#sec-havoc-statement}
 The form with a right-hand-side that is `*` is a _havoc_ assignment.
 It assigns an arbitrary but type-correct value to the corresponding left-hand-side.
-```
+It can be mised with other assignments of cmoputed values.
+```dafny
 a := *'
 a, b, c := 4, *, 5;
+```
 
-5) The form
-````grammar
-  Lhs { "," Lhs } :| [ "assume" ] Expression<false,false>
-````
-using "`:|`" assigns some values to the left-hand side
-variables such that the boolean expression on the right hand side
-is satisfied. This can be used to make a choice as in the
+### 20.6.4. Such-that assignment
+
+This form has one or more left-hand-sides, a `:|` symbol and then a boolean expression on the right.
+The effect is to assign values to the left-hand-sides that satisfy the 
+RHS condition.
+
+```dafny
+x, y :| 0 < x+y < 10;
+```
+This is read as assign values to `x` and `y` such that `0 < x+y < 10` is true.
+The given boolean expression need not constrain the LHS values uniquely:
+the choice of satisfying values is non-deterministic. 
+This can be used to make a choice as in the
 following example where we choose an element in a set.
-The given boolean expression need not constrain the LHS values uniquely.
 
 <!-- %check-verify -->
 ```dafny
@@ -472,18 +479,20 @@ method Sum(X: set<int>) returns (s: int)
 ```
 
 Dafny will report an error if it cannot prove that values
-exist that satisfy the condition. If the `assume` keyword
-is present, Dafny assumes without proof that an appropriate value exists.
+exist that satisfy the condition. 
 
-In addition, as the choice is arbitrary,
-assignment statements using `:|` may be non-deterministic
-when executed.
+In this variation, with an `assume` keyword
+```dafny
+    y :| assume y in Y;
+```
+Dafny assumes without proof that an appropriate value exists.
 
-Note that the form
 
-````grammar
+Note that the syntax
+
+```
     Lhs ":"
-````
+```
 
 is interpreted as a label in which the user forgot the `label` keyword.
 
@@ -497,11 +506,11 @@ This is a language feature somewhat analogous to exceptions in other languages.
 [^elephant]: The `:-` token is called the elephant symbol or operator.
 
 An update-with-failure statement uses _failure-compatible_ types.
-A failure-compatible type is a type that has the following members (each with no in-parameters and one out-parameter):
+A failure-compatible type is a type that has the following (non-static) members (each with no in-parameters and one out-parameter):
 
  * a non-ghost function `IsFailure()` that returns a `bool`
  * an optional non-ghost function `PropagateFailure()` that returns a value assignable to the first out-parameter of the caller
- * an optional method or function `Extract()`
+ * an optional function `Extract()`
 (PropagateFailure and Extract were permitted to be methods (but deprecated) prior to Dafny 4. They will be required to be functions in Dafny 4.)
 
 A failure-compatible type with an `Extract` member is called _value-carrying_.
@@ -654,7 +663,8 @@ if tmp.IsFailure() {
 ### 20.7.4. Failure-returns with additional data {#sec-value-carrying}
 
 The failure-compatible return value can carry additional data as shown in the `Outcome<T>` example above.
-In this case there is a (first) LHS l-value to receive this additional data.
+In this case there is a (first) LHS l-value to receive this additional data. The type of that first LHS
+value is one that is assignable from the result of the `Extract` function, not the actual first out-parameter.
 
 <!-- %check-resolve %use Outcome.tmp -->
 ```dafny
@@ -722,8 +732,8 @@ The semantics is very similar to that in the previous subsection.
 then `r.PropagateFailure()` is assigned to the first out-parameter of the _caller_
 and the execution of the caller's body is ended.
  * If the first RHS value (say `r`) responds `false` to `r.IsFailure()`, then
-   * if the type of `r` is value-carrying, then `r.Extract()` is assigned to the first LHS value of the `:-` statement
-(if `r` is not value-carrying, then the corresponding LHS l-value is omitted)
+   * if the type of `r` is value-carrying, then `r.Extract()` is assigned to the first LHS value of the `:-` statement;
+if `r` is not value-carrying, then the corresponding LHS l-value is omitted
    * execution of the caller's body continues with the statement following the `:-` statement.
 
 A RHS with a method call cannot be mixed with a RHS containing multiple expressions.
