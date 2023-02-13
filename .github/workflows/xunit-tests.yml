@@ -4,11 +4,7 @@ on:
   workflow_dispatch:
   pull_request:
     branches: [ master ]
-    paths-ignore:
-      - 'docs/**'
   push:
-    paths-ignore:
-      - 'docs/**'
 
 ## In the matrix:
 ##  os - name of the Github actions runner
