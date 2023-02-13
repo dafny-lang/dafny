@@ -28,11 +28,13 @@ z3-mac:
 	wget https://github.com/Z3Prover/z3/releases/download/z3-4.12.1/z3-4.12.1-x64-osx-10.16.zip
 	unzip z3-4.12.1-x64-osx-10.16.zip
 	mv z3-4.12.1-x64-osx-10.16 ${DIR}/Binaries/z3
+	rm z3-4.12.1-x64-osx-10.16.zip
 
 z3-ubuntu:
 	wget https://github.com/Z3Prover/z3/releases/download/z3-4.12.1/z3-4.12.1-x64-glibc-2.31.zip
 	unzip z3-4.12.1-x64-glibc-2.31.zip
 	mv z3-4.12.1-x64-glibc-2.31 ${DIR}/Binaries/z3
+	rm z3-4.12.1-x64-glibc-2.31.zip
 
 format:
 	dotnet tool run dotnet-format -w -s error Source/Dafny.sln --exclude DafnyCore/Scanner.cs --exclude DafnyCore/Parser.cs

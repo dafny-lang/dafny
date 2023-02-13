@@ -7,31 +7,23 @@ name: Test documentation
 ## The tests only need to run on one OS -- Linux is used because the test scripts are bash
 
 on:
-  push:
-    branches: [ master ]
+  workflow_dispatch:
   pull_request:
     branches: [ master ]
+  push:
 
 jobs:
-  build:
+  check-deep-tests:
+     uses: ./.github/workflows/check-deep-tests-reusable.yml
+     with:
+       branch: master
 
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-latest
-            z3: z3-4.12.2-x64-glibc-2.31
-            chmod: true
+  doctests:
+    needs: check-deep-tests
+    if: always() && ((needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests')) || ( github.event_name == 'push' && ( github.ref_name == 'master' || vars.TEST_ON_FORK == 'true' )))
+    runs-on: ubuntu-latest
 
-    env:
-      solutionPath: Source/Dafny.sln
-
-      z3BaseUri: https://github.com/Z3Prover/z3/releases/download/Nightly
-      Logging__LogLevel__Microsoft: Debug
     steps:
-    - name: OS
-      run: echo ${{ runner.os }} ${{ matrix.os }}
     - name: Setup dotnet
       uses: actions/setup-dotnet@v3
       with:
@@ -42,18 +34,11 @@ jobs:
         submodules: recursive
         path: dafny
     - name: Load Z3
-      shell: pwsh
       run: |
-        Invoke-WebRequest ${{env.z3BaseUri}}/${{matrix.z3}}.zip -OutFile z3.zip
-        Expand-Archive z3.zip .
-        Remove-Item z3.zip
-    - name: Set Z3 location and permissions
-      if: ${{matrix.chmod}}
-      run: |
-        cd dafny
-        mkdir bin
-        mv ../${{matrix.z3}}/bin/z3* bin/
-        chmod +x bin/z3*
+        sudo apt-get install -qq libarchive-tools
+        mkdir dafny/Binaries/z3
+        wget -qO- https://github.com/Z3Prover/z3/releases/download/Z3-4.8.5/z3-4.8.5-x64-ubuntu-16.04.zip | bsdtar -xf - -C dafny/Binaries/z3 --strip-components=1
+        chmod +x dafny/Binaries/z3/bin/z3
     - name: Build Dafny
       run: dotnet build dafny/Source/Dafny.sln
     - name: Check OnlineTutorial examples

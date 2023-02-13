@@ -57,7 +57,7 @@ class DeclModifierData {
 public void CheckAndSetToken(ref IToken token)
 {
     if (token != null) {
-      SemErr(t, "Duplicate declaration modifier: " + t.val);
+      SemErr(ErrorID.p_duplicate_modifier, Errors.CodeAction(t,true), "Duplicate declaration modifier: " + t.val);
     }
     token = t;
 }
@@ -97,24 +97,25 @@ void CheckDeclModifiers(ref DeclModifierData dmod, string declCaption, AllowedDe
 {
   declCaption = (declCaption.StartsWith("i") || declCaption.StartsWith("o") ? "an " : "a ") + declCaption;
   if (dmod.IsAbstract && ((allowed & AllowedDeclModifiers.Abstract) == 0)) {
-    SemErr(ErrorID.p_abstract_not_allowed, Errors.CodeAction(dmod.AbstractToken, dmod.AbstractToken.Next), $"{declCaption} cannot be declared 'abstract'");
+    SemErr(ErrorID.p_abstract_not_allowed, Errors.CodeAction(dmod.AbstractToken,true), $"{declCaption} cannot be declared 'abstract'");
     dmod.IsAbstract = false;
   }
   if (dmod.IsGhost) {
     if ((allowed & AllowedDeclModifiers.AlreadyGhost) != 0) {
       if (declCaption.Contains("-by-method")) {
-        SemErr(ErrorID.p_no_ghost_for_by_method, Errors.CodeAction(dmod.GhostToken, dmod.GhostToken.Next), $"{declCaption} has a ghost function body and a non-ghost method body; {declCaption} declaration does not use the 'ghost' keyword.");
+        SemErr(ErrorID.p_no_ghost_for_by_method, Errors.CodeAction(dmod.GhostToken,true),
+          $"{declCaption} has a ghost function body and a non-ghost method body; {declCaption} declaration does not use the 'ghost' keyword.");
       } else {
-        SemErr(dmod.GhostToken, $"{declCaption} cannot be declared 'ghost' (it is 'ghost' by default)");
+        SemErr(ErrorID.p_ghost_forbidden_default, Errors.CodeAction(dmod.GhostToken,true), $"{declCaption} cannot be declared 'ghost' (it is 'ghost' by default)");
       }
       dmod.IsGhost = false;
     } else if ((allowed & AllowedDeclModifiers.Ghost) == 0) {
-      SemErr(dmod.GhostToken, $"{declCaption} cannot be declared 'ghost'");
+      SemErr(ErrorID.p_ghost_forbidden, Errors.CodeAction(dmod.GhostToken,true), $"{declCaption} cannot be declared 'ghost'");
       dmod.IsGhost = false;
     }
   }
   if (dmod.IsStatic && ((allowed & AllowedDeclModifiers.Static) == 0)) {
-    SemErr(ErrorID.p_no_static, Errors.CodeAction(dmod.StaticToken, dmod.StaticToken.Next), $"{declCaption} cannot be declared 'static'");
+    SemErr(ErrorID.p_no_static, Errors.CodeAction(dmod.StaticToken,true), $"{declCaption} cannot be declared 'static'");
     dmod.IsStatic = false;
   }
   if (dmod.IsOpaque && ((allowed & AllowedDeclModifiers.Opaque) == 0)) {
@@ -123,9 +124,13 @@ void CheckDeclModifiers(ref DeclModifierData dmod, string declCaption, AllowedDe
   }
 }
 
-void CheckAttribute(Errors errors, IToken attr) {
+void CheckAttribute(Errors errors, IToken attr, RangeToken range, IToken next) {
+  // attr is the identifier of the Attribute
+  // range is from opening brace to closing brace
+  // next is the next token (after any whitespace)
   if (attr.val == "dllimport" || attr.val == "handle") {
-    errors.Deprecated(attr, $"Attribute :{attr.val} is deprecated and will be removed in Dafny 4.0");
+    errors.Deprecated(ErrorID.p_deprecated_attribute, Errors.CodeAction(attr, range.StartToken.col, next.pos - range.StartToken.pos),
+      $"Attribute :{attr.val} is deprecated and will be removed in Dafny 4.0");
   }
 }
 
@@ -204,7 +209,7 @@ public void ApplyOptionsFromAttributes(Attributes attrs) {
       (token: (a as UserSuppliedAttributes)?.tok,
        options: a.Args.Select(arg => {
          if (arg is not LiteralExpr {Value: string optStr}) {
-           SemErr(arg.tok, "argument to :options attribute must be a literal string");
+           SemErr(ErrorID.p_literal_string_required, Errors.CodeAction(arg.tok), "argument to :options attribute must be a literal string");
            return null;
          }
          return optStr;
@@ -520,7 +525,7 @@ string UnwildIdent(string x, bool allowWildcardId) {
     if (allowWildcardId && x.Length == 1) {
       return "_v" + anonymousIds++;
     } else {
-      SemErr("cannot declare identifier beginning with underscore");
+      SemErr(ErrorID.p_no_leading_underscore, Errors.CodeAction(t, 1), "cannot declare identifier beginning with underscore");
     }
   }
   return x;
@@ -805,7 +810,7 @@ void ConvertKeywordTokenToIdent() {
   }
 }
 
-int StringToInt(string s, int defaultValue, string errString) {
+int StringToInt(string s, int defaultValue, string errString, IToken tok) {
   Contract.Requires(s != null);
   Contract.Requires(errString != null);
   try {
@@ -813,7 +818,8 @@ int StringToInt(string s, int defaultValue, string errString) {
       defaultValue = int.Parse(s);
     }
   } catch (System.OverflowException) {
-    SemErr(string.Format("sorry, {0} ({1}) are not supported", errString, s));
+    SemErr(errString.Contains("array") ? ErrorID.p_array_dimension_too_large : ErrorID.p_bitvector_too_large, 
+      tok, string.Format("sorry, {0} ({1}) are not supported", errString, s));
   }
   return defaultValue;
 }
@@ -1099,7 +1105,8 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
   ( ModuleDefinition<dmod, parent, out submodule>
   | ModuleImport<parent, out submodule>
   | ModuleExport<parent, out submodule>
-    (. if (isTopLevel) SemErr(submodule.tok, "There is no point to an export declaration at the top level");
+    (. if (isTopLevel) SemErr(ErrorID.p_superfluous_export, submodule.tok.Prev,
+          "There is no point to an export declaration at the top level");
     .)
   )
   .
@@ -1127,7 +1134,7 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
    .)
 
    [ "refines" ModuleQualifiedName<out idRefined>
-   | Ident<out iderr> (. SemErr(la, $"expected either a '{{' or a 'refines' keyword here, found {iderr.val}"); .)
+   | Ident<out iderr> (. SemErr(ErrorID.p_bad_module_decl, t, $"expected either a '{{' or a 'refines' keyword here, found {iderr.val}"); .)
    ]
    (. module = new ModuleDefinition(id, id.val, prefixIds, isAbstract, false,
                                         idRefined == null ? null : new ModuleQualifiedId(idRefined), parent, attrs,
@@ -1236,7 +1243,7 @@ ModuleExport<ModuleDefinition parent, out ModuleDecl submodule>
       (. scanner.ResetPeek(); laa = scanner.Peek(); .)
     }
   )
-  [ "," (. SemErr(t, "no comma is allowed between provides and reveals and extends clauses in an export declaration"); .) ]
+  [ "," (. SemErr(ErrorID.p_extraneous_comma_in_export, Errors.CodeAction(t), "no comma is allowed between provides and reveals and extends clauses in an export declaration"); .) ]
   }
   (. if (exportId.val == "export" || exportId.val == parent.Name) {
        isDefault = true;
@@ -1386,7 +1393,7 @@ ClassMemberDecl<. DeclModifierData dmod, List<MemberDecl> mm, bool allowConstruc
      Function/*!*/ f;
   .)
   ( (. if (moduleLevelDecl) {
-         SemErr(la, "fields are not allowed to be declared at the module level; instead, wrap the field in a 'class' declaration");
+         SemErr(ErrorID.p_top_level_field, la, "fields are not allowed to be declared at the module level; instead, wrap the field in a 'class' declaration");
          dmod.IsStatic = false;
        }
     .)
@@ -1499,11 +1506,11 @@ FieldDecl<.DeclModifierData dmod, bool isValueType, List<MemberDecl> mm.>
      }
   .)
   SYNC
-  "var"                                             (. startToken = startToken ?? t;
-                                                       if (isValueType) {
-                                                         SemErr(t, "mutable fields are not allowed in value types");
-                                                       }
-                                                    .)
+  "var"                               (. startToken = startToken ?? t;
+                                         if (isValueType) {
+                                           SemErr(ErrorID.p_no_mutable_fields_in_value_types, t, "mutable fields are not allowed in value types");
+                                         }
+                                      .)
   { Attribute<ref attrs> }
   FIdentType<out id, out ty>           (. var f = new Field(id, id.val, dmod.IsGhost, ty, attrs); f.RangeToken = new RangeToken(startToken, t); mm.Add(f); f.TokenWithTrailingDocString = t;
                                           f.RangeToken = new RangeToken(startToken, t); .)
@@ -1535,7 +1542,7 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
   [ ( ":=" | "=" (. SemErr(ErrorID.p_bad_const_initialize_op, t, "a const field should be initialized using ':=', not '='"); .) )
     Expression<out e, false, true> ]
                                              (. if (e == null && ty is InferredTypeProxy) {
-                                                  SemErr(id, "a const declaration must have a type or a RHS value");
+                                                  SemErr(ErrorID.p_const_is_missing_type_or_init, id, "a const declaration must have a type or a RHS value");
                                                 }
                                                 var c = new ConstantField(id, id.val, e, dmod.IsStatic, dmod.IsGhost, dmod.IsOpaque, ty, attrs);
                                                 if (e != null) {
@@ -1565,7 +1572,7 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
   NewtypeName<out id>
   (
   "="
-  [ ellipsis                               (. SemErr(t, // Help users adjust to the new syntax
+  [ ellipsis                               (. SemErr(ErrorID.p_misplaced_ellipsis_in_newtype, t, // Help users adjust to the new syntax
       $"in refining a newtype, the '...' replaces the '=' token and everything up to the left brace starting the declaration of the newtype body (if any); a newtype refinement may not change the base type of the newtype"); .)
   ]
   ( IF(IsIdentColonOrBar())
@@ -1677,11 +1684,11 @@ GIdentType<bool allowGhostKeyword, bool allowNewKeyword, bool allowNameOnlyKeywo
      IToken originalId = null;
   .)
   { IF(IsKeywordForFormal())
-    ( "ghost"                    (. if (allowGhostKeyword) { isGhost = true; } else { SemErr(t, "formal cannot be declared 'ghost' in this context"); } .)
-    | "new"                      (. if (allowNewKeyword) { isOld = false; } else { SemErr(t, "formal cannot be declared 'new' in this context"); } .)
-    | "nameonly"                 (. if (allowNameOnlyKeyword) { isNameOnly = true; } else { SemErr(t, "formal cannot be declared 'nameonly' in this context"); } .)
-    | "older"                    (. if (allowOlderKeyword) { isOlder = true; } else { SemErr(t, "formal cannot be declared 'older' in this context"); } .)
-    )                            (. startToken = t; .)
+    ( "ghost"                    (. if (allowGhostKeyword) { isGhost = true; } else { SemErr(ErrorID.p_output_of_function_not_ghost, Errors.CodeAction(t,true), "formal cannot be declared 'ghost' in this context"); } .)
+    | "new"                      (. if (allowNewKeyword) { isOld = false; } else { SemErr(ErrorID.p_no_new_on_output_formals, Errors.CodeAction(t,true), "formal cannot be declared 'new' in this context"); } .)
+    | "nameonly"                 (. if (allowNameOnlyKeyword) { isNameOnly = true; } else { SemErr(ErrorID.p_no_nameonly_on_output_formals, Errors.CodeAction(t,true), "formal cannot be declared 'nameonly' in this context"); } .)
+    | "older"                    (. if (allowOlderKeyword) { isOlder = true; } else { SemErr(ErrorID.p_no_older_on_output_formals, Errors.CodeAction(t,true), "formal cannot be declared 'older' in this context"); } .)
+    )
   }
   IdentType<out id, out originalId, out ty, false>  (. startToken = startToken ?? originalId; .)
   .
@@ -1692,9 +1699,9 @@ FIdentType<out IToken/*!*/ id, out Type/*!*/ ty>
   .)
   NoUSIdentOrDigits<out id> (. id = t; ty = null; .)
   ( ":" Type<out ty> 
-  | (. SemErr(t, "a mutable field must be declared with a type"); .)
+  | (. SemErr(ErrorID.p_var_decl_must_have_type, t, "a mutable field must be declared with a type"); .)
   )
-  [ ( ":=" | "=" ) (. SemErr(t, "a mutable field may not have an initializer"); Expression e; .) Expression<out e, true, true> ]
+  [ ( ":=" | "=" ) (. SemErr(ErrorID.p_no_init_for_var_field, t, "a mutable field may not have an initializer"); Expression e; .) Expression<out e, true, true> ]
   .
 
 CIdentType<out IToken/*!*/ id, out Type ty>
@@ -1767,7 +1774,7 @@ TypeIdentOptional<out IToken/*!*/ id, out string/*!*/ identName, out Type/*!*/ t
          if (udt != null && udt.TypeArgs.Count == 0) {
            name = udt.Name;
          } else {
-           SemErr(id, "invalid formal-parameter name in datatype constructor");
+           SemErr(ErrorID.p_datatype_formal_is_not_id, id, "invalid formal-parameter name in datatype constructor");
          }
       .)
       Type<out ty>
@@ -1785,7 +1792,7 @@ TypeIdentOptional<out IToken/*!*/ id, out string/*!*/ identName, out Type/*!*/ t
      } else {
        identName = "#" + anonymousIds++;
        if (nameonlyToken != null) {
-         SemErr(nameonlyToken, "use of the 'nameonly' modifier must be accompanied with a parameter name");
+         SemErr(ErrorID.p_nameonly_must_have_parameter_name, Errors.CodeAction(nameonlyToken,true), "use of the 'nameonly' modifier must be accompanied with a parameter name");
        }
        isNameOnly = false;
      }
@@ -1827,7 +1834,7 @@ IteratorDecl<DeclModifierData dmod, ModuleDefinition module, out IteratorDecl/*!
     [ GenericParameters<typeArgs, true> ]
     Formals<true, true, false, false, ins>
     [ ( "yields"
-      | "returns"           (. SemErr(t, "iterators don't have a 'returns' clause; did you mean 'yields'?"); .)
+      | "returns"           (. SemErr(ErrorID.p_should_be_yields_instead_of_returns, Errors.CodeAction(t), "iterators don't have a 'returns' clause; did you mean 'yields'?"); .)
       )
       Formals<false, true, false, false, outs>
     ]
@@ -1863,9 +1870,7 @@ GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs, bool allowVariance.>
   // Fortunately that is not currently the case.
   // (Only because we parse the new "<-" symbol as separate "<" "-" tokens precisely to avoid this issue :)
   "<"
-  [ Variance<out variance>  (. if (!allowVariance) { SemErr(t, "type-parameter variance is not allowed to be specified in this context"); }
-    varianceToken = t;
-  .)
+  [ Variance<out variance>  (. if (!allowVariance) { SemErr(ErrorID.p_type_parameter_variance_forbidden, t, "type-parameter variance is not allowed to be specified in this context"); } .)
   ]
   TypeVariableName<out id>
   { TypeParameterCharacteristics<ref characteristics> }
@@ -1874,7 +1879,7 @@ GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs, bool allowVariance.>
     (. variance = TypeParameter.TPVarianceSyntax.NonVariant_Strict;
        characteristics = new TypeParameter.TypeParameterCharacteristics(false);
     .)
-    [ Variance<out variance>  (. if (!allowVariance) { SemErr(t, "type-parameter variance is not allowed to be specified in this context"); } .)
+    [ Variance<out variance>  (. if (!allowVariance) { SemErr(ErrorID.p_type_parameter_variance_forbidden, t, "type-parameter variance is not allowed to be specified in this context"); } .)
     ]
     TypeVariableName<out id>
     { TypeParameterCharacteristics<ref characteristics> }
@@ -1913,10 +1918,14 @@ TPCharOption<ref TypeParameter.TypeParameterCharacteristics characteristics>
                       characteristics.AutoInit = Microsoft.Dafny.Type.AutoInitInfo.Nonempty;
                     }
                   } else {
-                    SemErr(t, $"unexpected type parameter option: '{t.val}' should be one of == or 0 or 00 or !new");
+                    SemErr(ErrorID.p_unexpected_type_characteristic, t, $"unexpected type characteristic: '{t.val}' should be one of == or 0 or 00 or !new");
                   }
                .)
   | "!" "new"  (. characteristics.ContainsNoReferenceTypes = true; .)
+  | ANY        (. if (t.kind == _closeparen || t.kind == _comma) 
+                      SemErr(ErrorID.p_missing_type_characteristic, t, $"extra comma or missing type characteristic: should be one of == or 0 or 00 or !new");
+                  else SemErr(ErrorID.p_illegal_type_characteristic, t, $"illegal type characteristic: '{t.val}' should be one of == or 0 or 00 or !new");
+                .)
   )
   .
 
@@ -1959,12 +1968,16 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static; .)
   | ( "greatest"                    (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
       "lemma"
-    | "colemma"                     (. CheckAndSetTokenOnce(ref dmod.FirstToken); errors.Deprecated(t, "the old keyword 'colemma' has been renamed to the keyword phrase 'greatest lemma'"); .)
+    | "colemma"                     (. CheckAndSetTokenOnce(ref dmod.FirstToken); 
+                                       errors.Deprecated(ErrorID.p_deprecated_colemma, Errors.CodeAction(t), "the old keyword 'colemma' has been renamed to the keyword phrase 'greatest lemma'"); 
+                                    .)
     )
                                     (. isGreatestLemma = true; caption = "greatest lemma";
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static; .)
   | ( "least"                       (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
-    | "inductive"                   (. CheckAndSetTokenOnce(ref dmod.FirstToken);errors.Deprecated(t, "the old keyword phrase 'inductive lemma' has been renamed to 'least lemma'"); .)
+    | "inductive"                   (. CheckAndSetTokenOnce(ref dmod.FirstToken);
+                                       errors.Deprecated(ErrorID.p_deprecated_inductive_lemma, Errors.CodeAction(t), "the old keyword phrase 'inductive lemma' has been renamed to 'least lemma'"); 
+                                    .)
     )
     "lemma"
                                     (. isLeastLemma = true;  caption = "least lemma";
@@ -1976,7 +1989,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
                                        if (allowConstructor) {
                                          isConstructor = true;
                                        } else {
-                                         SemErr(t, "constructors are allowed only in classes");
+                                         SemErr(ErrorID.p_constructor_not_in_class, t, "constructors are allowed only in classes");
                                        }
                                        caption = "constructor";
                                        allowed = AllowedDeclModifiers.Ghost;
@@ -1989,13 +2002,21 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
   (. if (!hasName) {
        id = keywordToken;
        if (!isConstructor) {
-         SemErr(la, "a method must be given a name (expecting identifier)");
+         SemErr(ErrorID.p_method_missing_name, la, "a method must be given a name (expecting identifier)");
        }
      }
   .)
   (
     [ GenericParameters<typeArgs, false> ]
-    [ KType<ref kType>              (. if (!(isGreatestLemma || isLeastLemma)) { SemErr(t, "type of _k can only be specified for least and greatest lemmas"); } .)
+    [ KType<ref kType, out IToken openBracket, out IToken closeBracket>              
+                                    (. if (!(isGreatestLemma || isLeastLemma)) { 
+                                         // Note: When ranges are refactored, make the first use of openBracket a range
+                                         // that extends through closeBracket
+                                         SemErr(ErrorID.p_extraneous_k, 
+                                                Errors.CodeAction(openBracket, openBracket, closeBracket.Next), 
+                                                "type of _k can only be specified for least and greatest lemmas"); 
+                                       } 
+                                    .)
     ]
     (. var isCompilable = (isPlainOlMethod || isConstructor) && !dmod.IsGhost; .)
     Formals<true, isCompilable, isTwoStateLemma, false, ins>
@@ -2040,12 +2061,12 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
   .
 
 /*------------------------------------------------------------------------*/
-KType<ref ExtremePredicate.KType kType>
-= "["
+KType<ref ExtremePredicate.KType kType, out IToken openBracket, out IToken closeBracket>
+= "["           (. openBracket = t; .)
   ( "nat"       (. kType = ExtremePredicate.KType.Nat; .)
   | "ORDINAL"   (. kType = ExtremePredicate.KType.ORDINAL; .)
   )
-  "]"
+  "]"           (. closeBracket = t; .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -2104,7 +2125,7 @@ ReadsClause<.List<FrameExpression/*!*/>/*!*/ reads,
   { "," PossiblyWildFrameExpression<out fe, allowLemma, allowLambda, allowWild>    (. reads.Add(fe); .)
   }
   (. if (allowWild && reads.Count > 1 && reads.Exists(fe => fe.E is WildcardExpr)) {
-       SemErr(fe.tok, "A 'reads' clause that contains '*' is not allowed to contain any other expressions");
+       SemErr(ErrorID.p_reads_star_must_be_alone, fe.tok, "A 'reads' clause that contains '*' is not allowed to contain any other expressions");
      }
   .)
   OldSemi
@@ -2186,7 +2207,7 @@ ParameterDefaultValue<bool incoming, out Expression defaultValue>
   [ ":="        (. tok = t; .)
     Expression<out defaultValue, true, true>
     (. if (!incoming) {
-         SemErr(tok, "out-parameters cannot have default-value expressions");
+         SemErr(ErrorID.p_no_defaults_for_out_parameters, Errors.CodeAction(tok,t.Next), "out-parameters cannot have default-value expressions");
          defaultValue = null;
        }
     .)
@@ -2234,34 +2255,38 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
   | "real"                          (. tok = t; startToken = t;  ty = new RealType(); .)
   | "ORDINAL"                       (. tok = t; startToken = t;  ty = new BigOrdinalType(); .)
   | bvToken                         (. tok = t; startToken = t;
-                                       int w = StringToInt(tok.val.Substring(2), 0, "bitvectors that wide");
+                                       int w = StringToInt(tok.val.Substring(2), 0, "bitvectors that wide", startToken);
                                        ty = new BitvectorType(w);
                                     .)
   | "set"                           (. tok = t; startToken = t; .)
     OptGenericInstantiation<out gt, inExpressionContext>
                                     (. if (gt != null && gt.Count > 1) {
-                                         SemErr("set type expects only one type argument");
+                                         SemErr(ErrorID.p_set_only_one_type_parameter, 
+                                           Errors.CodeAction(startToken.Next, t), "set type expects only one type argument");
                                        }
                                        ty = new SetType(true, gt != null ?gt[0] : null);
                                     .)
   | "iset"                          (. tok = t; startToken = t; .)
     OptGenericInstantiation<out gt, inExpressionContext>
                                     (. if (gt != null && gt.Count > 1) {
-                                         SemErr("iset type expects only one type argument");
+                                         SemErr(ErrorID.p_iset_only_one_type_parameter, 
+                                           Errors.CodeAction(startToken.Next, t), "iset type expects only one type argument");
                                        }
                                        ty = new SetType(false, gt != null ? gt[0] : null);
                                     .)
   | "multiset"                      (. tok = t; startToken = t; .)
     OptGenericInstantiation<out gt, inExpressionContext>
                                     (. if (gt != null && gt.Count > 1) {
-                                         SemErr("multiset type expects only one type argument");
+                                         SemErr(ErrorID.p_multiset_only_one_type_parameter, 
+                                           Errors.CodeAction(startToken.Next, t), "multiset type expects only one type argument");
                                        }
                                        ty = new MultiSetType(gt != null ? gt[0] : null);
                                     .)
   | "seq"                           (. tok = t; startToken = t; .)
     OptGenericInstantiation<out gt, inExpressionContext>
                                     (. if (gt != null && gt.Count > 1) {
-                                         SemErr("seq type expects only one type argument");
+                                         SemErr(ErrorID.p_seq_only_one_type_parameter, 
+                                           Errors.CodeAction(startToken.Next, t), "seq type expects only one type argument");
                                        }
                                        ty = new SeqType(gt != null ? gt[0] : null);
                                     .)
@@ -2273,7 +2298,8 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
                                     (. if (gt == null) {
                                          ty = new MapType(true, null, null);
                                        } else if (gt.Count != 2) {
-                                         SemErr("map type expects two type arguments");
+                                         SemErr(ErrorID.p_map_needs_two_type_parameters, 
+                                           Errors.CodeAction(startToken.Next, t), "map type expects two type arguments");
                                          ty = new MapType(true, gt[0], gt.Count == 1 ? new InferredTypeProxy() : gt[1]);
                                        } else {
                                          ty = new MapType(true, gt[0], gt[1]);
@@ -2284,7 +2310,8 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
                                     (. if (gt == null) {
                                          ty = new MapType(false, null, null);
                                        } else if (gt.Count != 2) {
-                                         SemErr("imap type expects two type arguments");
+                                         SemErr(ErrorID.p_imap_needs_two_type_parameters, 
+                                           Errors.CodeAction(startToken.Next, t), "imap type expects two type arguments");
                                          ty = new MapType(false, gt[0], gt.Count == 1 ? new InferredTypeProxy() : gt[1]);
                                        } else {
                                          ty = new MapType(false, gt[0], gt[1]);
@@ -2296,7 +2323,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
                                        bool q = tokString[tokString.Length-1] == '?';
                                        // Extracting the dimension out of array2 or array10?
                                        var dimString = tokString.Substring(5, tokString.Length - (q?6:5)); // 5 is length of "array"
-                                       int dims = StringToInt(dimString, 1, "arrays of that many dimensions");
+                                       int dims = StringToInt(dimString, 1, "arrays of that many dimensions", startToken);
                                        ty = theBuiltIns.ArrayType(tok, dims, gt, true, q);
                                     .)
   | TupleType<out ty, out tok, out tupleArgTypes, out argumentGhostTokens>
@@ -2395,10 +2422,14 @@ OptGenericInstantiation<.out List<Type> gt, bool inExpressionContext.>  /* NOTE:
 GenericInstantiation<.List<Type> gt.>
 = (. Contract.Requires(cce.NonNullElements(gt)); Type/*!*/ ty; .)
   "<"
+  (
+    ">" (. SemErr(ErrorID.None, t, "empty type parameter lists are not permitted"); .)
+  |
     Type<out ty>                     (. gt.Add(ty); .)
     { "," Type<out ty>               (. gt.Add(ty); .)
     }
-  ">"
+    ">"
+  )
   .
 
 /*------------------------------------------------------------------------*/
@@ -2495,7 +2526,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
     MethodFunctionName<out id>
     (
       [ GenericParameters<typeArgs, false> ]
-      [ KType<ref kType> 
+      [ KType<ref kType, out IToken openBracket, out IToken closeBracket> 
         (. SemErr(t, "a formal [ ] declaration is only allowed for least and greatest predicates"); .)
       ]
       [ Formals<true, true, isTwoState, true, formals>
@@ -2516,7 +2547,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
     MethodFunctionName<out id>
     (
       [ GenericParameters<typeArgs, false> ]
-      [ KType<ref kType> ]
+      [ KType<ref kType, out IToken openBracket, out IToken closeBracket> ]
       Formals<true, false, false, false, formals>
       [ PredicateResult<"least predicate", out result> ]
     | ellipsis                 (. signatureEllipsis = t; .)
@@ -2534,7 +2565,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
     MethodFunctionName<out id>
     (
       [ GenericParameters<typeArgs, false> ]
-      [ KType<ref kType> ]
+      [ KType<ref kType, out IToken openBracket, out IToken closeBracket> ]
       Formals<true, false, false, false, formals>
       [ PredicateResult<"greatest predicate", out result> ]
     | ellipsis                 (. signatureEllipsis = t; .)
@@ -2603,7 +2634,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
              dmod.IsGhost = false; // don't report errors about 'ghost', too
            } else if (theOptions.FunctionSyntax == FunctionSyntaxOptions.Version4 ||
                       theOptions.FunctionSyntax == FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost) {
-             SemErr(t, $"the phrase '{what} method' is not allowed; to declare a compiled {what}, use just '{what}'");
+             SemErr(ErrorID.p_deprecating_function_method, functionMethodToken, $"the phrase '{what} method' is not allowed; to declare a compiled {what}, use just '{what}'");
              functionMethodToken = null;
            } else if (dmod.IsGhost && theOptions.FunctionSyntax != FunctionSyntaxOptions.Version3) {
              SemErr(t, $"there is no such thing as a 'ghost {what} method'");
@@ -5185,9 +5216,10 @@ Attribute<ref Attributes attrs>
   AttributeName<out x>
   [ Expressions<args> ]
   "}"                         (. closeBrace = t; .)
-  (. CheckAttribute(errors, x);
+  (. 
      attrs = new UserSuppliedAttributes(x, openBrace, closeBrace, args, attrs);
      attrs.RangeToken = new RangeToken(openBrace, t);
+     CheckAttribute(errors, x, attrs.RangeToken, la);
   .)
   .
 
