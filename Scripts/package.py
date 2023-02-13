@@ -135,15 +135,14 @@ class Release:
         exitStatus = 1
         while 0 < remaining and exitStatus != 0:
             remaining -= 1
-            otherArgs = []
-            if framework:
-                otherArgs += ["-f", framework]
-            exitStatus = subprocess.call(["dotnet", "publish", path.join(SOURCE_DIRECTORY, project, project + ".csproj"),
+            publish_args = [
                 "--nologo",
                 "-o", self.buildDirectory,
                 "-r", self.target,
                 "--self-contained",
-                "-c", "Release"] + otherArgs, env=env)
+                "-c", "Release", 
+                *(["-f", framework] if framework else [])]
+            exitStatus = subprocess.call(["dotnet", "publish", project + ".csproj", *publish_args], env=env)
             if exitStatus != 0:
                 if remaining == 0:
                     flush("failed! (Is Dafny or the Dafny server running?)")
@@ -295,6 +294,7 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description="Prepare a Dafny release. Configuration is hardcoded; edit the `# Configuration' section of this script to change it.")
     parser.add_argument("version", help="Version number for this release")
     parser.add_argument("--os", help="operating system name for which to make a release")
+    parser.add_argument("--platform", help="platform for which to make a release")
     parser.add_argument("--skip_manual", help="do not create the reference manual")
     parser.add_argument("--trial", help="ignore Directory.Build.props version discrepancies")
     parser.add_argument("--github_secret", help="access token for making an authenticated GitHub call, to prevent being rate limited.")
@@ -317,6 +317,8 @@ def main():
     releases = list(discover(args))
     if args.os:
         releases = list(filter(lambda release: release.os_name == args.os, releases))
+    if args.platform:
+        releases = list(filter(lambda release: release.platform == args.platform, releases))
     download(releases)
 
     flush("* Building and packaging Dafny")

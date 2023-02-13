@@ -37,6 +37,13 @@ Print Dafny program after resolving it.
     ArgumentHelpName = "file"
   };
 
+  public static readonly Option<bool> Bootstrapping = new("--bootstrapping", @"
+(internal, may be removed in the future)
+Indicates the Dafny source is part of the Dafny implementation itself,
+enabling necessary special handling.".TrimStart()) {
+    IsHidden = true,
+  };
+
   static DeveloperOptionBag() {
     DafnyOptions.RegisterLegacyBinding(SpillTranslation, (o, f) => o.SpillTargetCode = f ? 1U : 0U);
 
