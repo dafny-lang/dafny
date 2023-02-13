@@ -97,7 +97,6 @@ public class MatchFlattener : IRewriter {
     CaseBody compiledMatch = CompilePatternPaths(state, new HoleCtx(), LinkedLists.Create(nestedMatchExpr.Source), paths);
     if (compiledMatch is null) {
       Reporter.Error(MessageSource.Resolver, nestedMatchExpr.Tok, "match has no cases");
-      // TODO add reference to HoleExpression issue
       var emptyMatch = new MatchExpr(nestedMatchExpr.tok, nestedMatchExpr.Source, new List<MatchCaseExpr>(), nestedMatchExpr.UsesOptionalBraces);
       emptyMatch.Type = nestedMatchExpr.Type;
       return emptyMatch;
