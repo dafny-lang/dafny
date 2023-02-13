@@ -2,6 +2,4 @@ github-issue-3484.dfy(5,2): Error: match has no cases
 github-issue-3484.dfy(11,8): Error: missing case in match: not all possibilities for selector of type int have been covered
 github-issue-3484.dfy(17,8): Error: missing case in match: not all possibilities for selector of type int have been covered
 
-
 Dafny program verifier finished with 0 verified, 3 errors
-

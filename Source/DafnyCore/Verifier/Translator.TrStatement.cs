@@ -750,6 +750,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
 
+      FillMissingCases(stmt);
+
       TrStmt_CheckWellformed(stmt.Source, builder, locals, etran, true);
       Bpl.Expr source = etran.TrExpr(stmt.Source);
       var b = new BoogieStmtListBuilder(this);
@@ -808,6 +810,42 @@ namespace Microsoft.Dafny {
       }
       if (ifCmd != null) {
         builder.Add(ifCmd);
+      }
+    }
+
+    void FillMissingCases(IMatch s) {
+      Contract.Requires(s != null);
+
+      var dtd = s.Source.Type.AsDatatype;
+      var constructors = dtd?.ConstructorsByName;
+
+      ISet<string> memberNamesUsed = new HashSet<string>();
+
+      foreach (var matchCase in s.Cases) {
+        if (constructors != null) {
+          Contract.Assert(dtd != null);
+          var ctorId = matchCase.Ctor.Name;
+          if (s.Source.Type.AsDatatype is TupleTypeDecl) {
+            var tuple = (TupleTypeDecl)s.Source.Type.AsDatatype;
+            ctorId = BuiltIns.TupleTypeCtorName(tuple.Dims);
+          }
+
+          if (constructors.ContainsKey(ctorId)) {
+            memberNamesUsed.Add(ctorId); // add mc.Id to the set of names used
+          }
+        }
+      }
+      if (dtd != null && memberNamesUsed.Count != dtd.Ctors.Count) {
+        // We could complain about the syntactic omission of constructors:
+        //   Reporter.Error(MessageSource.Resolver, stmt, "match statement does not cover all constructors");
+        // but instead we let the verifier do a semantic check.
+        // So, for now, record the missing constructors:
+        foreach (var ctr in dtd.Ctors) {
+          if (!memberNamesUsed.Contains(ctr.Name)) {
+            s.MissingCases.Add(ctr);
+          }
+        }
+        Contract.Assert(memberNamesUsed.Count + s.MissingCases.Count == dtd.Ctors.Count);
       }
     }
 

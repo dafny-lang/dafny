@@ -87,42 +87,6 @@ public class MatchFlattener : IRewriter {
     });
   }
 
-  void FillMissingCases(Match s) {
-    Contract.Requires(s != null);
-    Contract.Requires(resolutionContext != null);
-
-    var dtd = s.Source.Type.AsDatatype;
-    var constructors = dtd?.ConstructorsByName;
-
-    ISet<string> memberNamesUsed = new HashSet<string>();
-
-    foreach (var matchCase in s.Cases) {
-      if (constructors != null) {
-        Contract.Assert(dtd != null);
-        var ctorId = matchCase.Ctor.Name;
-        if (s.Source.Type.AsDatatype is TupleTypeDecl) {
-          var tuple = (TupleTypeDecl)s.Source.Type.AsDatatype;
-          ctorId = BuiltIns.TupleTypeCtorName(tuple.Dims);
-        }
-
-        if (constructors.ContainsKey(ctorId)) {
-          memberNamesUsed.Add(ctorId); // add mc.Id to the set of names used
-        }
-      }
-    }
-    if (dtd != null && memberNamesUsed.Count != dtd.Ctors.Count) {
-      // We could complain about the syntactic omission of constructors:
-      //   Reporter.Error(MessageSource.Resolver, stmt, "match statement does not cover all constructors");
-      // but instead we let the verifier do a semantic check.
-      // So, for now, record the missing constructors:
-      foreach (var ctr in dtd.Ctors) {
-        if (!memberNamesUsed.Contains(ctr.Name)) {
-          s.MissingCases.Add(ctr);
-        }
-      }
-      Contract.Assert(memberNamesUsed.Count + s.MissingCases.Count == dtd.Ctors.Count);
-    }
-  }
 
   private Expression CompileNestedMatchExpr(NestedMatchExpr nestedMatchExpr) {
     var cases = nestedMatchExpr.Cases.SelectMany(FlattenNestedMatchCaseExpr).ToList();
@@ -434,16 +398,12 @@ public class MatchFlattener : IRewriter {
       }
       var newMatchStmt = new MatchStmt(nestedMatchStmt.RangeToken, headMatchee, newMatchCaseStmts, true, mti.Attributes, context);
       newMatchStmt.IsGhost |= mti.CodeContext.IsGhost;
-      // TODO this could be moved to the translator.
-      FillMissingCases(newMatchStmt);
       return new CaseBody(null, newMatchStmt);
-    } else {
-      var newMatchExpr = new MatchExpr(mti.Tok, headMatchee, newMatchCases.ConvertAll(x => (MatchCaseExpr)x), true, context);
-      newMatchExpr.Type = ((NestedMatchExpr)mti.Match).Type;
-      // TODO this could be moved to the translator.
-      FillMissingCases(newMatchExpr);
-      return new CaseBody(null, newMatchExpr);
     }
+
+    var newMatchExpr = new MatchExpr(mti.Tok, headMatchee, newMatchCases.ConvertAll(x => (MatchCaseExpr)x), true, context);
+    newMatchExpr.Type = ((NestedMatchExpr)mti.Match).Type;
+    return new CaseBody(null, newMatchExpr);
   }
 
   private MatchCase CreateMatchCase(IToken tok, DatatypeCtor ctor, List<BoundVar> freshPatBV, CaseBody bodyContainer, bool fromBoundVar) {

@@ -19,7 +19,7 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
   public static AssertStmt CreateErrorAssert(Node node, string message, Expression guard = null) {
     var errorMessage = new StringLiteralExpr(node.Tok, message, true);
     errorMessage.Type = new SeqType(Type.Char);
-    var attr = new Attributes("error", new List<Expression> {errorMessage}, null);
+    var attr = new Attributes("error", new List<Expression> { errorMessage }, null);
     guard ??= new LiteralExpr(node.Tok, false) {
       Type = Type.Bool
     };
@@ -35,7 +35,7 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
     Proof = proof;
     Label = label;
   }
-  
+
   public override IEnumerable<Statement> SubStatements {
     get {
       if (Proof != null) {
