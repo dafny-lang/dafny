@@ -1906,10 +1906,26 @@ depend on any testing framework in the target language.
 Within such methods one might use `expect` statements (as well as `print` statements)
 to insert checks that the target program is behaving as expected.
 
-C) Compiler tests
+C) Debugging
 
-If one wants to assure that compiled code is behaving at run-time consistently with the statically verified code,
-one can use paired assert/expect statements with the same expression:
+While developing a new program, one work style uses proof attempts and runtime tests in combination.
+If an assert statement does not prove, one might run the program with a corresponding expect statement
+to see if there are some conditions when the assert is not actually true. So one might have
+paired assert/expect statements:
+<!-- %no-check -->
+```dafny
+assert _P_;
+expect _P_;
+```
+Once the program is debugged, both statements can be removed.
+Note that it is important that the `assert` come before the `expect`, because
+to the verifier, the `expect` is an `assume`, which would automatically make
+a subsequent `assert` succeed.
+
+D) Compiler tests
+
+The same approach might be taken to assure that compiled code is behaving at run-time consistently with the statically verified code,
+one can again use paired assert/expect statements with the same expression:
 <!-- %no-check -->
 ```dafny
 assert _P_;
@@ -1921,8 +1937,8 @@ The verifier will check that _P_ is always true at the given point in a program
 At run-time, the compiler will insert checks that the same predicate,
 in the `expect` statement, is true.
 Any difference identifies a compiler bug.
-Note that the `expect` must be after the `assert`.
-If the `expect` is first,
+Again the `expect` must be after the `assert`:
+if the `expect` is first,
 then the verifier will interpret the `expect` like an `assume`,
 in which case the `assert` will be proved trivially
 and potential unsoundness will be hidden.
@@ -1942,7 +1958,7 @@ list of expressions to the console (standard-out). The generated code uses
 target-language-specific idioms to perform this printing.
 The expressions may of course include strings that are used
 for captions. There is no implicit new line added, so to add a new
-line you should include `"\n"` as part of one of the expressions.
+line you must include `"\n"` as part of one of the expressions.
 Dafny automatically creates implementations of methods that convert values to strings
 for all Dafny data types. For example,
 
@@ -2090,13 +2106,13 @@ But then there may be specific instances where the definition of that opaque fun
 body of the function can be _revealed_ using the reveal statement. Here is an example:
 <!-- %check-verify Statements.9.expect -->
 ```dafny
-function {:opaque} f(i: int): int { i + 1 }
+opaque function f(i: int): int { i + 1 }
 
 method m(i: int) {
   assert f(i) == i + 1;
 }
 ```
-Without the [`{:opaque}`](#sec-opaque) attribute, the assertion is valid; with the attribute it cannot be proved because the body if the
+Without the [`opaque`] modifier, the assertion is valid; with the modifier it cannot be proved because the body of the
 function is not visible. However if a `reveal f();` statement is inserted before the assertion, the proof succeeds.
 Note that the pseudo-function-call in the `reveal` statement is written without arguments and serves to mark `f` as a function name
 instead of a label.
@@ -2105,7 +2121,10 @@ instead of a label.
 
 A `const` declaration can be `opaque`. If so the value of the constant is not known in reasoning about its uses, just its type and the
 fact that the value does not change. The constant's identifier can be listed in a reveal statement. In that case, like other revealed items,
-the value of the constant will be known to the reasonig engine until the end of the block containing the reveal statement.
+the value of the constant will be known to the reasoning engine until the end of the block containing the reveal statement.
+
+A label or locally declared name in a method body will shadow an opaque constant with the same name outside the method body,
+making it unable to be revealed without using a qualified name.
 
 ## 20.21. Forall Statement ([grammar](#g-forall-statement)) {#sec-forall-statement}
 
@@ -2229,7 +2248,7 @@ co-predicates and co-lemmas. See [datatypes](#sec-coinductive-datatypes).
 The effect of the `modify` statement
 is to say that some undetermined
 modifications have been made to any or all of the memory
-locations specified by the [frame expressions](#sec-frame-expression).
+locations specified by the given [frame expressions](#sec-frame-expression).
 In the following example, a value is assigned to field `x`
 followed by a `modify` statement that may modify any field
 in the object. After that we can no longer prove that the field
@@ -2262,7 +2281,7 @@ the modify statement acts on all the fields of an object.
 
 ## 20.23. Calc Statement ([grammar](#g-calc-statement)) {#sec-calc-statement}
 
-[Verified Calculations]: http://research.microsoft.com/en-us/um/people/leino/papers/krml231.pdf
+See also: [Verified Calculations](http://research.microsoft.com/en-us/um/people/leino/papers/krml231.pdf).
 
 The `calc` statement supports _calculational proofs_ using a language
 feature called _program-oriented calculations_ (poC). This feature was
