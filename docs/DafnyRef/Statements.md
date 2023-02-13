@@ -4,7 +4,7 @@ Many of Dafny's statements are similar to those in traditional
 programming languages, but a number of them are significantly different.
 Dafny's various kinds of statements are described in subsequent sections.
 
-Statements have zero or more labels and typically end with either a semicolon (`;`) or a closing curly brace ('}').
+Statements have zero or more labels and end with either a semicolon (`;`) or a closing curly brace ('}').
 
 ## 20.1. Labeled Statement ([grammar](#g-labeled-statement)) {#sec-labeled-statement}
 
@@ -40,13 +40,64 @@ must have been encountered during the control flow en route to the `old`
 expression. We say in this case that the (program point of the) label _dominates_
 the (program point of the) use of the label.
 Similarly, labels are used to indicate previous states in calls of [two-state predicates](#sec-two-state),
-[fresh](#sec-fresh-expression) expressions, [unchanged expressions](#sec-unchanged-expression), 
-and [allocated](#sec-allocated-expression) expressions.
+[fresh expressions](#sec-fresh-expression), [unchanged expressions](#sec-unchanged-expression), 
+and [allocated expressions](#sec-allocated-expression).
 
 A statement can be given several labels. It makes no difference which of these
 labels is used to reference the statement---they are synonyms of each other.
 The labels must be distinct from each other, and are not allowed to be the
 same as any previous enclosing or [dominating label](#sec-two-state).
+
+## 20.3. Block Statement ([grammar](#g-block-statement)) {#sec-block-statement}
+
+Examples:
+<!-- %no-check -->
+```dafny
+{
+  print 0;
+  var x := 0;
+}
+```
+
+A block statement is a sequence of zero or more statements enclosed by curly braces.
+Local variables declared in the block end their scope at the end of the block.
+
+## 20.4. Return Statement ([grammar](#g-return-statement)) {#sec-return-statement}
+
+Examples:
+<!-- %check-resolve -->
+```dafny
+method m(i: int) returns (r: int) {
+  return i+1;
+}
+method n(i: int) returns (r: int, q: int) {
+  return i+1, i + 2;
+}
+method p() returns (i: int) {
+  i := 1;
+  return;
+}
+method q() {
+  return;
+}
+```
+  
+A return statement can only be used in a method. It is used
+to terminate the execution of the method.
+
+To return a value from a method, the value is assigned to one
+of the named out-parameters sometime before a return statement.
+In fact, the out-parameters act very much like local variables,
+and can be assigned to more than once. Return statements are
+used when one wants to return before reaching the end of the
+body block of the method.
+
+Return statements can be just the `return` keyword (where the current values
+of the out-parameters are used), or they can take a list of expressions to
+return. If a list is given, the number of expressions given must be the same
+as the number of named out-parameters. These expressions are
+evaluated, then they are assigned to the out-parameters, and then the
+method terminates.
 
 ## 20.2. Break and Continue Statements ([grammar](#g-break-continue-statement)) {#sec-break-continue-statement}
 
@@ -126,7 +177,7 @@ method m() {
 }
 ```
 
-Note that a non-labeled `break` pays attention only to loop, not to labeled
+Note that a non-labeled `break` pays attention only to loops, not to labeled
 statements. For example, the labeled block `X` in the previous example
 does not play a role in determining the target statement of the `break break;`.
 
@@ -290,60 +341,9 @@ in the assert statement in the example.
 So, remember, a loop invariant holds at the very top of every iteration, not necessarily
 immediately after the loop.
 
-## 20.3. Block Statement ([grammar](#g-block-statement)) {#sec-block-statement}
-
-Examples:
-<!-- %no-check -->
-```dafny
-{
-  print 0;
-  var x := 0;
-}
-```
-
-A block statement is a sequence of zero or more statements enclosed by curly braces.
-Local variables declared in the block end their scope at the end of the block.
-
-## 20.4. Return Statement ([grammar](#g-return-statement)) {#sec-return-statement}
-
-Examples:
-<!-- %check-resolve -->
-```dafny
-method m(i: int) returns (r: int) {
-  return i+1;
-}
-method n(i: int) returns (r: int, q: int) {
-  return i+1, i + 2;
-}
-method p() returns (i: int) {
-  i := 1;
-  return;
-}
-method q() {
-  return;
-}
-```
-  
-A return statement can only be used in a method. It is used
-to terminate the execution of the method.
-
-To return a value from a method, the value is assigned to one
-of the named out-parameters sometime before a return statement.
-In fact, the out-parameters act very much like local variables,
-and can be assigned to more than once. Return statements are
-used when one wants to return before reaching the end of the
-body block of the method.
-
-Return statements can be just the `return` keyword (where the current values
-of the out-parameters are used), or they can take a list of expressions to
-return. If a list is given, the number of expressions given must be the same
-as the number of named out-parameters. These expressions are
-evaluated, then they are assigned to the out-parameters, and then the
-method terminates.
-
 ## 20.5. Yield Statement ([grammar](#g-yield-statement)) {#sec-yield-statement}
 
-A yield statement can only be used in an iterator.
+A yield statement may only be used in an iterator.
 See [iterator types](#sec-iterator-types) for more details
 about iterators.
 
@@ -390,31 +390,36 @@ method m() {
   ss := *;
 }
 ```
-If more than one
+
+This statement corresponds to familiar assignment or method call statements,
+with variations. If more than one
 left-hand side is used, these must denote different l-values, unless the
 corresponding right-hand sides also denote the same value.
 
 The update statement serves several logical purposes.
 
-### 20.6.1. Method call
-1) The form
+### 20.6.1. Method call with no out-parameters
+1) Examples of method calls take this form
+<!-- %no-check -->
+```dafny
+m();
+m(1,2,3) {:attr} ;
+e.f().g.m(45);
+```
 
-````grammar
-Lhs {Attribute} ";"
-````
-is assumed to be a call to a method with no out-parameters.
+As there are no left-hand-side locations to receive values, this form is allowed only for 
+methods that have no out-parameters.
 
 ### 20.6.2. Method call with multiple outputs
-2) The form
 
-````grammar
-    Lhs { , Lhs } ":=" Rhs ";"
-````
-can occur in the ``UpdateStmt`` grammar when there is a single Rhs that
-takes the special form of a ``Lhs`` that is a call.
-This is the only case
-where the number of left-hand sides can be different than the number of
-right-hand sides in the `Update statement. In that case the number of
+This form uses `:=` to denote the assignment of the out-parameters of the method to the 
+corresponding number of LHS values.
+<!--%no-check -->
+```dafny
+a, b.e().f := m() {:attr};
+```
+
+In this case, the right-hand-side must be emthod call and the number of
 left-hand sides must match the number of out-parameters of the
 method that is called or there must be just one ``Lhs`` to the left of
 the `:=`, which then is assigned a tuple of the out-parameters.
@@ -422,22 +427,24 @@ Note that the result of a method call is not allowed to be used as an argument o
 another method call, as if it were an expression.
 
 ### 20.6.3. Parallel assignment
-3) This is the typical parallel-assignment form, in which no call is involved:
-````grammar
-    Lhs { , Lhs } ":=" Rhs { "," Rhs } ";"
-````
-This Update statement is a parallel
-assignment of right-hand-side values to the left-hand sides. For example,
-`x,y := y,x` swaps the values of `x` and `y`. If more than one
+
+A parallel-assignment has one-or-more right-hand-side expressions,
+which may be function calls but may not be method calls.
+```dafny
+    x, y := y, x;
+```
+The above example swaps the values of `x` and `y`. If more than one
 left-hand side is used, these must denote different l-values, unless the
 corresponding right-hand sides also denote the same value. There must
-be an equal number of left-hand sides and right-hand sides in this case.
-Of course, the most common case will have only one
-``Rhs`` and one ``Lhs``.
+be an equal number of left-hand sides and right-hand sides.
+The most common case has only one RHS and one LHS.
 
 ### 20.6.4. Havoc assignment {#sec-havoc-statement}
-4) The form with a right-hand-side that is `*` is a _havoc_ assignment.
+The form with a right-hand-side that is `*` is a _havoc_ assignment.
 It assigns an arbitrary but type-correct value to the corresponding left-hand-side.
+```
+a := *'
+a, b, c := 4, *, 5;
 
 5) The form
 ````grammar
