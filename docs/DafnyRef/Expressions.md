@@ -65,7 +65,7 @@ in order of increasing binding power.
  Primary Expressions      | 11 |
 
 
-## 21.1. Let and Lemma-call expressions ([grammar](#g-top-level-expression)) {#sec-top-level-expression}
+## 9.1. Let and Lemma-call expressions ([grammar](#g-top-level-expression)) {#sec-top-level-expression}
 
 Examples:
 <!-- %no-check -->
@@ -124,7 +124,7 @@ because it would be ambiguous with the vertical bar used in comprehension expres
 
 Note that the effect of the lemma call only extends to the succeeding expression `E` (which may be another `;` expression).
 
-## 21.2. Equivalence Expressions ([grammar](#g-equivalence-expression)) {#sec-equivalence-expression}
+## 9.2. Equivalence Expressions ([grammar](#g-equivalence-expression)) {#sec-equivalence-expression}
 
 Examples:
 <!-- %no-check -->
@@ -397,10 +397,10 @@ Examples:
 
 A unary expression applies 
 
-- logical complement (`!` -- [Section 6.1](#sec-booleans)),
-- bit-wise complement (`!` -- [Section 6.1](#sec-bit-vector-types)),
-- numeric negation (`-` -- [Section 6.2](#sec-numeric-types)), or
-- bit-vector negation (`-` -- [Section 6.3](#sec-bit-vector-types))
+- logical complement (`!` -- [Section 5.2.1](#sec-booleans)),
+- bit-wise complement (`!` -- [Section 5.2.3](#sec-bit-vector-types)),
+- numeric negation (`-` -- [Section 5.2.2](#sec-numeric-types)), or
+- bit-vector negation (`-` -- [Section 5.2.3](#sec-bit-vector-types))
 
 to its operand.
 
@@ -425,7 +425,7 @@ the primary expressions, which are explained in subsequent sections.
 A number of these can be followed by 0 or more suffixes
 to select a component of the value.
 
-## 21.13. Lambda expressions ([grammar](#g-lambda-expression)) {#sec-lambda-expression}
+## 9.13. Lambda expressions ([grammar](#g-lambda-expression)) {#sec-lambda-expression}
 
 Examples:
 <!-- %no-check -->
@@ -618,7 +618,7 @@ A havoc right-hand-side is just a `*` character.
 It produces an arbitrary value of its associated
 type. The "assign-such-that"
 operator (`:|`) can be used to obtain a more constrained arbitrary value. 
-See [Section 20.6](#sec-update-and-call-statement).
+See [Section 8.6](#sec-update-and-call-statement).
 
 ## 9.19. Constant Or Atomic Expressions ([grammar](#g-atomic-expression)) {#sec-atomic-expression}
 
@@ -1000,7 +1000,7 @@ elements. For a finite map, the cardinality is the cardinality of the
 domain of the map. Cardinality is not defined for infinite sets or infinite maps.
 For more information, see [Section 5.5](#sec-collection-types).
 
-## 21.27. Parenthesized Expressions ([grammar](#g-parenthesized-expression)) {#sec-parenthesized-expression}
+## 9.27. Parenthesized Expressions ([grammar](#g-parenthesized-expression)) {#sec-parenthesized-expression}
 
 A parenthesized expression is a list of zero or more expressions
 enclosed in parentheses.
@@ -1094,7 +1094,7 @@ Note that `multiset{1, 1})` is a multiset holding the value `1` with multiplicit
 but in `multiset({1,1})` the multiplicity is 1, because the expression `{1,1}` is the set `{1}`,
 which is then converted to a multiset.
 
-See [Section 9.2](#sec-multisets) for more information on multisets.
+See [Section 5.5.2](#sec-multisets) for more information on multisets.
 
 ## 9.30. Map Display Expression ([grammar](#g-map-display-expression)) {#sec-map-display-expression}
 
@@ -1473,7 +1473,7 @@ the overall expression returns `V.PropagateFailure()`; if there is no failure, t
 semicolon is returned. Note that these two possible return values must have the same type (or be 
 implicitly convertible to the same type). Typically that means that `tmp.PropagateFailure()` is a failure value and
 `E` is a value-carrying success value, both of the same failure-compatible type, 
-as described in [Section 20.7](#sec-update-with-failure-statement).
+as described in [Section 8.7](#sec-update-with-failure-statement).
 
 The expression `:- V; E` is desugared into the _expression_
 <!-- %no-check -->
