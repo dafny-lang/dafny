@@ -1,4 +1,4 @@
-# 19. Specifications {#sec-specifications}
+# 7. Specifications {#sec-specifications}
 
 Specifications describe logical properties of Dafny methods, functions,
 lambdas, iterators and loops. They specify preconditions, postconditions,
@@ -25,13 +25,13 @@ that use them.
 Specification clauses typically appear in a sequence. They all begin with a 
 keyword and do not end with semicolons.
 
-## 19.1. Specification Clauses {#sec-specification-clauses}
+## 7.1. Specification Clauses {#sec-specification-clauses}
 
 
 Within expressions in specification clauses, you can use
 [specification expressions](#sec-list-of-specification-expressions) along with any [other expressions](#sec-expressions) you need.
 
-### 19.1.1. Requires Clause ([grammar](#g-requires-clause)) {#sec-requires-clause}
+### 7.1.1. Requires Clause ([grammar](#g-requires-clause)) {#sec-requires-clause}
 
 Examples:
 <!-- %check-resolve -->
@@ -58,9 +58,9 @@ of all the given Attributes. The order of conjunctions
 can be important: earlier conjuncts can set conditions that
 establish that later conjuncts are well-defined.
 
-The attributes recognized for requires clauses are discussed in [Section 23.3](#sec-verification-attributes-on-assertions).
+The attributes recognized for requires clauses are discussed in [Section 11.3](#sec-verification-attributes-on-assertions).
 
-### 19.1.2. Ensures Clause ([grammar](#g-ensures-clause)) {#sec-ensures-clause}
+### 7.1.2. Ensures Clause ([grammar](#g-ensures-clause)) {#sec-ensures-clause}
 
 Examples:
 <!-- %check-resolve -->
@@ -84,9 +84,9 @@ The order of conjunctions
 can be important: earlier conjuncts can set conditions that
 establish that later conjuncts are well-defined.
 
-The attributes recognized for ensures clauses are discussed in [Section 23.3](#sec-verification-attributes-on-assertions).
+The attributes recognized for ensures clauses are discussed in [Section 11.3](#sec-verification-attributes-on-assertions).
 
-### 19.1.3. Decreases Clause ([grammar](#g-decreases-clause)) {#sec-decreases-clause}
+### 7.1.3. Decreases Clause ([grammar](#g-decreases-clause)) {#sec-decreases-clause}
 
 Examples:
 <!-- %check-resolve -->
@@ -366,7 +366,7 @@ termination, Dafny does not surface this ordering directly in
 expressions. That is, syntactically, there is no single operator that
 stands for the well-founded ordering.
 
-### 19.1.4. Framing ([grammar](#g-frame-expression)) {#sec-frame-expression}
+### 7.1.4. Framing ([grammar](#g-frame-expression)) {#sec-frame-expression}
 
 Examples:
 <!-- %no-check -->
@@ -447,7 +447,7 @@ elements -- but to account for unchanged elements, you can always write
 A ``FrameField`` is not taken into consideration for
 lambda expressions.
 
-### 19.1.5. Reads Clause ([grammar](#g-reads-clause)) {#sec-reads-clause}
+### 7.1.5. Reads Clause ([grammar](#g-reads-clause)) {#sec-reads-clause}
 
 Examples:
 <!-- %no-check -->
@@ -561,7 +561,7 @@ reads on the values from `lo` to `hi`, but the larger set denoted by
 Note, only `reads` clauses, not `modifies` clauses, are allowed to
 include functions as just described.
 
-### 19.1.6. Modifies Clause ([grammar](#g-modifies-clause)) {#sec-modifies-clause}
+### 7.1.6. Modifies Clause ([grammar](#g-modifies-clause)) {#sec-modifies-clause}
 
 Examples:
 <!-- %check-resolve -->
@@ -635,7 +635,7 @@ interprets JML's `assigns/modifies` in sense (b).
 ACSL and ACSL++ use the `assigns` keyword, but with _modify_ (b) semantics.
 Ada/SPARK's dataflow contracts encode _write_ (a) semantics.
 
-### 19.1.7. Invariant Clause ([grammar](#g-invariant-clause)) {#sec-invariant-clause}
+### 7.1.7. Invariant Clause ([grammar](#g-invariant-clause)) {#sec-invariant-clause}
 
 Examples:
 <!-- %check-resolve-warn Specifications.2.expect -->
@@ -658,7 +658,7 @@ is valid on entry to a particular iteration of the loop,
 Dafny must be able to prove that it then
 holds at the end of that iteration of the loop.
 
-## 19.2. Method Specification ([grammar](#g-method-specification)) {#sec-method-specification}
+## 7.2. Method Specification ([grammar](#g-method-specification)) {#sec-method-specification}
 
 Examples:
 <!-- %check-resolve -->
@@ -683,7 +683,7 @@ A method specification consists of zero or more `modifies`, `requires`,
 A method does not have `reads` clauses because methods are allowed to
 read any memory.
 
-## 19.3. Function Specification ([grammar](#g-function-specification)) {#sec-function-specification}
+## 7.3. Function Specification ([grammar](#g-function-specification)) {#sec-function-specification}
 
 Examples:
 <!-- %check-resolve -->
@@ -708,7 +708,7 @@ A function specification is zero or more `reads`, `requires`,
 specification does not have `modifies` clauses because functions are not
 allowed to modify any memory.
 
-## 19.4. Lambda Specification ([grammar](#g-lambda-specification)) {#sec-lambda-specification}
+## 7.4. Lambda Specification ([grammar](#g-lambda-specification)) {#sec-lambda-specification}
 
 A lambda specification provides a specification for a lambda function expression;
 it consists of zero or more `reads` or `requires` clauses.
@@ -720,7 +720,7 @@ clauses because lambda expressions do not have names and thus cannot be recursiv
 lambda specification does not have `modifies` clauses because lambdas
 are not allowed to modify any memory.
 
-## 19.5. Iterator Specification ([grammar](#g-iterator-specification)) {#sec-iterator-specification}
+## 7.5. Iterator Specification ([grammar](#g-iterator-specification)) {#sec-iterator-specification}
 
 An iterator specification may contains `reads`, `modifies`, 
 `decreases`, `requires`, `yield requires, `ensures`
@@ -734,14 +734,14 @@ clauses apply to both of them.
 - The `yield requires` and `yield ensures` clauses apply to the `MoveNext` method.
 
 Examples of iterators, including iterator specifications, are given in
-[Section 15](#sec-iterator-types). Briefly
+[Section 5.11](#sec-iterator-types). Briefly
 - a requires clause gives a precondition for creating an iterator
 - an ensures clause gives a postcondition when the iterator exits (after all iterations are complete)
 - a decreases clause is used to show that the iterator will eventually terminate
 - a yield requires clause is a precondition for calling `MoveNext`
 - a yield ensures clause is a postcondition for calling `MoveNext`
 
-## 19.6. Loop Specification ([grammar](#g-loop-specification)) {#sec-loop-specification}
+## 7.6. Loop Specification ([grammar](#g-loop-specification)) {#sec-loop-specification}
 
 A loop specification provides the information Dafny needs to
 prove properties of a loop. It contains `invariant`,
@@ -752,7 +752,7 @@ is effectively a precondition and it along with the
 negation of the loop test condition provides the postcondition.
 The `decreases` clause is used to prove termination.
 
-## 19.7. Auto-generated boilerplate specifications
+## 7.7. Auto-generated boilerplate specifications
 
 AutoContracts is an experimental feature that inserts much of the dynamic-frames boilerplate
 into a class. The user simply

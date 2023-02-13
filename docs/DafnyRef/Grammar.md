@@ -10,7 +10,7 @@ have arguments. The arguments control some alternatives within
 the productions, such as whether an alternative is allowed or not in a specific context.
 These arguments allow for a more compact and understandable grammar.
 
-The precise, technical details of the grammar are presented together in [Section 29](#sec-grammar-details).
+The precise, technical details of the grammar are presented together in [Section 17](#sec-grammar-details).
 The expository parts of this manual present the language structure less formally.
 Throughout this document there are embedded hyperlinks to relevant grammar sections, 
 marked as [grammar](#sec-grammar-details).
@@ -418,7 +418,7 @@ For example, in the quantifier domain `i | 0 <= i < |s|, y <- s[i] | i < y`, the
 because the range attached to `i` ensures `i` is a valid index in the sequence `s`.
 
 Allowing per-variable ranges is not fully backwards compatible, and so it is not yet allowed by default;
-the `--quantifier-syntax:4` option needs to be provided to enable this feature (See [Section 25.8.5](#sec-controlling-language)).
+the `--quantifier-syntax:4` option needs to be provided to enable this feature (See [Section 13.8.5](#sec-controlling-language)).
 
 ### 2.6.5. Numeric Literals ([grammar](#g-literal-expression)) {#sec-numeric-literals}
 

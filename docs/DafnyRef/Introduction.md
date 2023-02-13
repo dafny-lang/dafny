@@ -56,7 +56,7 @@ based on the following references:
 The main part of the reference manual is in top down order except for an
 initial section that deals with the lowest level constructs.
 
-The details of using (and contributing to) the dafny tool are described in the User Guide ([Section 25](#sec-user-guide)).
+The details of using (and contributing to) the dafny tool are described in the User Guide ([Section 13](#sec-user-guide)).
 
 ## 1.1. Dafny 4.0
 
