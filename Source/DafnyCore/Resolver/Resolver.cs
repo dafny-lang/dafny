@@ -6328,8 +6328,11 @@ namespace Microsoft.Dafny {
           lhsExtract.Type = lmulti.Type;
         } else if (lhsResolved is IdentifierExpr) {
           // do nothing
+        } else if (lhsResolved == null) {
+          // LHS failed to resolve. Abort trying to resolve assign or return stmt
+          return;
         } else {
-          Contract.Assert(false, "Internal error: unexpected option in ResolveAssignOrReturnStmt");
+          throw new InvalidOperationException("Internal error: unexpected option in ResolveAssignOrReturnStmt");
         }
       }
       var temp = FreshTempVarName("valueOrError", resolutionContext.CodeContext);
@@ -6427,37 +6430,47 @@ namespace Microsoft.Dafny {
       var origReporter = this.reporter;
       this.reporter = new ErrorReporterSink();
 
+      var isFailure = ResolveMember(tok, tp, "IsFailure", out _);
+      var propagateFailure = ResolveMember(tok, tp, "PropagateFailure", out _);
+      var extract = ResolveMember(tok, tp, "Extract", out _);
+
       if (hasKeywordToken) {
-        if (ResolveMember(tok, tp, "IsFailure", out _) == null ||
-            (ResolveMember(tok, tp, "Extract", out _) != null) != expectExtract) {
+        if (isFailure == null || (extract != null) != expectExtract) {
           // more details regarding which methods are missing have already been reported by regular resolution
           origReporter.Error(MessageSource.Resolver, tok,
-            "The right-hand side of ':-', which is of type '{0}', with a keyword token must have members 'IsFailure()', {1} 'Extract()'",
+            "The right-hand side of ':-', which is of type '{0}', with a keyword token must have functions 'IsFailure()', {1} 'Extract()'",
             tp, expectExtract ? "and" : "but not");
         }
       } else {
-        if (ResolveMember(tok, tp, "IsFailure", out _) == null ||
-            ResolveMember(tok, tp, "PropagateFailure", out _) == null ||
-            (ResolveMember(tok, tp, "Extract", out _) != null) != expectExtract) {
+        if (isFailure == null || propagateFailure == null || (extract != null) != expectExtract) {
           // more details regarding which methods are missing have already been reported by regular resolution
           origReporter.Error(MessageSource.Resolver, tok,
-            "The right-hand side of ':-', which is of type '{0}', must have members 'IsFailure()', 'PropagateFailure()', {1} 'Extract()'",
+            "The right-hand side of ':-', which is of type '{0}', must have functions 'IsFailure()', 'PropagateFailure()', {1} 'Extract()'",
             tp, expectExtract ? "and" : "but not");
         }
       }
 
-
-      // The following checks are not necessary, because the ghost mismatch is caught later.
-      // However the error messages here are much clearer.
-      var m = ResolveMember(tok, tp, "IsFailure", out _);
-      if (m != null && m.IsGhost) {
-        origReporter.Error(MessageSource.Resolver, tok,
-          $"The IsFailure member may not be ghost (type {tp} used in :- statement)");
+      void checkIsFunction([CanBeNull] MemberDecl memberDecl, bool allowMethod) {
+        if (memberDecl == null || memberDecl is Function) {
+          // fine
+        } else if (allowMethod && memberDecl is Method) {
+          // give a deprecation warning, so we will remove this language feature around the Dafny 4 time frame
+          origReporter.Deprecated(MessageSource.Resolver, ErrorID.None, tok,
+            $"Support for member '{memberDecl.Name}' in type '{tp}' (used indirectly via a :- statement) being a method is deprecated;" +
+            " declare it to be a function instead");
+        } else {
+          // not allowed
+          origReporter.Error(MessageSource.Resolver, tok,
+            $"Member '{memberDecl.Name}' in type '{tp}' (used indirectly via a :- statement) is expected to be a function");
+        }
       }
-      m = ResolveMember(tok, tp, "PropagateFailure", out _);
-      if (!hasKeywordToken && m != null && m.IsGhost) {
-        origReporter.Error(MessageSource.Resolver, tok,
-          $"The PropagateFailure member may not be ghost (type {tp} used in :- statement)");
+
+      checkIsFunction(isFailure, false);
+      if (!hasKeywordToken) {
+        checkIsFunction(propagateFailure, true);
+      }
+      if (expectExtract) {
+        checkIsFunction(extract, true);
       }
 
       this.reporter = origReporter;
