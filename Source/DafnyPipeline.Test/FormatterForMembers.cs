@@ -152,6 +152,23 @@ function Test(): int {
   }
 
   [Fact]
+  public void FormatWorksForFunctionByMethods() {
+    FormatterWorksFor(@"
+function Fib(i: nat): nat {
+  1
+} by method {
+  if i <= 1 { return i; }
+  var a, b, t := 0, 1, 1;
+  for t := 1 to i
+    invariant && b == Fib(t)
+              && a == Fib(t-1) {
+    a, b := b, a + b;
+  }
+  return b;
+}");
+  }
+
+  [Fact]
   public void FormatWorksConstant() {
     FormatterWorksFor(@"
 class T {
