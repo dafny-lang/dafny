@@ -118,7 +118,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
       if (DafnyOptions.O.WarningsAsErrors) {
-        Error(source, tok, msg);
+        Error(source, errorID, tok, msg);
       } else {
         Message(source, ErrorLevel.Warning, errorID, tok, msg);
       }
@@ -172,10 +172,10 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public abstract class BatchErrorReporter : ErrorReporter {
-    protected readonly Dictionary<ErrorLevel, List<ErrorMessage>> AllMessages;
+  public class BatchErrorReporter : ErrorReporter {
+    public Dictionary<ErrorLevel, List<ErrorMessage>> AllMessages;
 
-    protected BatchErrorReporter() {
+    public BatchErrorReporter() {
       ErrorsOnly = false;
       AllMessages = new Dictionary<ErrorLevel, List<ErrorMessage>> {
         [ErrorLevel.Error] = new(),
@@ -234,6 +234,13 @@ namespace Microsoft.Dafny {
           }
           msg = nestedToken.Message ?? "[Related location]";
           errorLine += $" {msg} {TokenToString(tok)}";
+        }
+
+        if (DafnyOptions.O.CompileVerbose && false) { // Need to control tests better before we enable this
+          var info = ErrorDetail.GetDetail(errorID);
+          if (info != null) {
+            errorLine += "\n" + info;
+          }
         }
         Console.WriteLine(errorLine);
 

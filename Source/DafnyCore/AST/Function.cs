@@ -8,7 +8,7 @@ using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
-public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
+public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFormat {
   public override string WhatKind => "function";
 
   public string FunctionDeclarationKeywords {
@@ -32,6 +32,10 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
       return HasStaticKeyword ? "static " + k : k;
     }
   }
+
+  private bool isOpaque;
+
+  public override bool IsOpaque => isOpaque;
 
   public override bool CanBeRevealed() {
     return true;
@@ -120,12 +124,15 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
   }
 
   public override IEnumerable<Node> Children => new[] { ByMethodDecl }.Where(x => x != null).
+    Concat<Node>(TypeArgs).
     Concat<Node>(Reads).
     Concat<Node>(Req).
     Concat(Ens.Select(e => e.E)).
     Concat(Decreases.Expressions).
-    Concat(Formals).Concat(ResultType.Nodes).
+    Concat(Formals).Concat(ResultType != null ? new List<Node>() { ResultType } : new List<Node>()).
     Concat(Body == null ? Enumerable.Empty<Node>() : new[] { Body });
+
+  public override IEnumerable<Node> PreResolveChildren => Children;
 
   public override IEnumerable<Expression> SubExpressions {
     get {
@@ -189,7 +196,7 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
     Contract.Invariant(Decreases != null);
   }
 
-  public Function(IToken tok, string name, bool hasStaticKeyword, bool isGhost,
+  public Function(IToken tok, string name, bool hasStaticKeyword, bool isGhost, bool isOpaque,
     List<TypeParameter> typeArgs, List<Formal> formals, Formal result, Type resultType,
     List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
     Expression/*?*/ body, IToken/*?*/ byMethodTok, BlockStmt/*?*/ byMethodBody,
@@ -219,6 +226,7 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
     this.ByMethodTok = byMethodTok;
     this.ByMethodBody = byMethodBody;
     this.SignatureEllipsis = signatureEllipsis;
+    this.isOpaque = isOpaque;
 
     if (attributes != null) {
       List<Expression> args = Attributes.FindExpressions(attributes, "fuel");
@@ -295,5 +303,42 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     DafnyOptions.RegisterLegacyBinding(FunctionSyntaxOption, (options, value) => {
       options.FunctionSyntax = functionSyntaxOptionsMap[value];
     });
+  }
+
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    formatter.SetMethodLikeIndent(StartToken, OwnedTokens, indentBefore);
+    if (BodyStartTok.line > 0) {
+      formatter.SetDelimiterIndentedRegions(BodyStartTok, indentBefore);
+    }
+
+    formatter.SetFormalsIndentation(Formals);
+    if (Result is { } outFormal) {
+      formatter.SetTypeIndentation(outFormal.SyntacticType);
+    }
+
+    foreach (var req in Req) {
+      formatter.SetAttributedExpressionIndentation(req, indentBefore + formatter.SpaceTab);
+    }
+
+    foreach (var frame in Reads) {
+      formatter.SetFrameExpressionIndentation(frame, indentBefore + formatter.SpaceTab);
+    }
+
+    foreach (var ens in Ens) {
+      formatter.SetAttributedExpressionIndentation(ens, indentBefore + formatter.SpaceTab);
+    }
+
+    foreach (var dec in Decreases.Expressions) {
+      formatter.SetDecreasesExpressionIndentation(dec, indentBefore + formatter.SpaceTab);
+    }
+
+    if (ByMethodBody is { } byMethodBody) {
+      formatter.SetDelimiterIndentedRegions(byMethodBody.StartToken, indentBefore);
+      formatter.SetClosingIndentedRegion(byMethodBody.EndToken, indentBefore);
+      formatter.SetStatementIndentation(byMethodBody);
+    }
+
+    formatter.SetExpressionIndentation(Body);
+    return true;
   }
 }

@@ -3,7 +3,7 @@
 datatype FailureCompatible = Make {
   predicate IsFailure() { true }
   function PropagateFailure(): int { 12 }
-  method Extract() returns (r: real) { }
+  function Extract(): (r: real) { 0.0 }
 }
 
 method M() returns (r: FailureCompatible) { }

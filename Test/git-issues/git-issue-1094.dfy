@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %dafny /compile:0 /functionSyntax:4 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // ----- Type error -----
@@ -98,11 +98,10 @@ datatype MStatus = Okay | Error(code: int) {
   predicate IsFailure() {
     Error?
   }
-  method PropagateFailure() returns (m: MStatus)
+  function PropagateFailure(): MStatus
     requires Error?
-    ensures m == this
   {
-    return this;
+    this
   }
 }
 
@@ -132,15 +131,14 @@ datatype MResult<X> = Success(x: X) | Failure(code: int) {
   predicate IsFailure() {
     Failure?
   }
-  method PropagateFailure<U>() returns (result: MResult<U>)
+  function PropagateFailure<U>(): MResult<U>
     requires Failure?
-    ensures result.Failure? && result.code == code
   {
-    return MResult.Failure(code);
+    MResult.Failure(code)
   }
-  method Extract() returns (result: X)
+  function Extract(): X
     requires Success?
   {
-    return x;
+    x
   }
 }

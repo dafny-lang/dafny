@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %dafny /compile:0 "%s" > "%t"
+// RUN: %exits-with 2 %dafny /compile:0 /functionSyntax:4 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype FailureCompatible = Make {
@@ -10,13 +10,13 @@ datatype FailureCompatible = Make {
 datatype FailureCompatible2 = Make {
   predicate IsFailure() { true }
   function PropagateFailure(): real { 12.0 }
-  ghost method Extract() returns (r: real) { }
+  ghost function Extract(): real { 9.0 }
 }
 
 datatype FailureCompatible3 = Make {
   predicate IsFailure() { true }
   function PropagateFailure(): real { 12.0 }
-  method Extract() returns (r: real) { }
+  function Extract(): real { 9.0 }
 }
 
 method M() returns (r: FailureCompatible) { }

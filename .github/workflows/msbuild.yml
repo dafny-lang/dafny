@@ -1,16 +1,23 @@
 name: Build and Test
 
 on:
+<<<<<<< HEAD
   push:
     branches: [ cok-3459-dafny4test ]
+=======
+  workflow_dispatch:
+>>>>>>> master
   pull_request:
     branches: [ master ]
+  push:
 
 env:
   dotnet-version: 6.0.x # SDK Version for building Dafny
 
 jobs:
   singletons:
+    needs: check-deep-tests
+    if: always() && ((needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests')) || ( github.event_name == 'push' && ( github.ref_name == 'master' || vars.TEST_ON_FORK == 'true' )))
     runs-on: ubuntu-20.04
     steps:
     - name: Setup dotnet
@@ -53,7 +60,7 @@ jobs:
 
   integration-tests:
     needs: check-deep-tests
-    if: always() && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests'))
+    if: always() && ((needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests')) || ( github.event_name == 'push' && ( github.ref_name == 'master' || vars.TEST_ON_FORK == 'true' )))
     uses: ./.github/workflows/integration-tests-reusable.yml
     with:
       # By default run only on one platform, but run on all platforms if the PR has the "run-deep-tests"

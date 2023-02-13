@@ -13,6 +13,10 @@ public class CommonOptionBag {
   public static readonly Option<bool> StdIn = new("--stdin", () => false,
     @"Read standard input and treat it as an input .dfy file.");
 
+  public static readonly Option<bool> Check = new("--check", () => false, @"
+Instead of formatting files, verify that all files are already
+formatted through and return a non-zero exit code if it is not the case".TrimStart());
+
   public static readonly Option<bool> OptimizeErasableDatatypeWrapper = new("--optimize-erasable-datatype-wrapper", () => true, @"
 false - Include all non-ghost datatype constructors in the compiled code
 true - In the compiled target code, transform any non-extern
@@ -169,8 +173,16 @@ Functionality is still being expanded. Currently only checks contracts on every 
 
     DafnyOptions.RegisterLegacyBinding(Plugin, (options, value) => { options.AdditionalPluginArguments = value; });
 
+    DafnyOptions.RegisterLegacyBinding(Check, (options, value) => {
+      options.FormatCheck = value;
+    });
+
     DafnyOptions.RegisterLegacyBinding(StdIn, (options, value) => {
       options.UseStdin = value;
+    });
+
+    DafnyOptions.RegisterLegacyBinding(FormatPrint, (options, value) => {
+      options.DafnyPrintFile = value ? "-" : null;
     });
 
     DafnyOptions.RegisterLegacyBinding(Prelude, (options, value) => {
@@ -202,5 +214,10 @@ Functionality is still being expanded. Currently only checks contracts on every 
         }
       });
   }
+
+
+  public static readonly Option<bool> FormatPrint = new("--print",
+    @"Print Dafny program to stdout after formatting it instead of altering the files.") {
+  };
 }
 
