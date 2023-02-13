@@ -172,7 +172,8 @@ namespace Microsoft.Dafny {
 
         return true;
       }
-      return false;
+
+      return d is Function { EnclosingClass: TraitDecl };
     }
 
     [Pure]
@@ -2158,8 +2159,9 @@ namespace Microsoft.Dafny {
         pre = BplAnd(pre, etran.TrExpr(Substitute(req.E, null, substMap)));
       }
       // useViaContext: fh < FunctionContextHeight
-      var visibilityLevel = forModule.CallGraph.GetSCCRepresentativePredecessorCount(f);
-      Expr useViaContext = Expr.Lt(Expr.Literal(visibilityLevel), etran.FunctionContextHeight());
+      Expr useViaContext = !InVerificationScope(f)
+        ? Bpl.Expr.True
+        : Bpl.Expr.Lt(Expr.Literal(forModule.CallGraph.GetSCCRepresentativePredecessorCount(f)), etran.FunctionContextHeight());
       // useViaCanCall: f#canCall(args)
       Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
       Bpl.Expr useViaCanCall = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(canCallFuncID), Concat(tyargs, args));

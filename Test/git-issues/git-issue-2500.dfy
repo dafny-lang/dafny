@@ -6,19 +6,20 @@ module M {
     predicate ActuallyTrue() ensures ActuallyTrue()
   }
   trait {:termination false} Tr extends Top {
-    function True(): (ret: bool) ensures ret
-    function True'(): (ret: bool) ensures True'()
+    predicate True(): (ret: bool) ensures ret
+    predicate True'() ensures True'()
     predicate ActuallyTrue'() ensures ActuallyTrue()
+    predicate ActuallyTrue''() ensures var alsoThis := this; alsoThis.ActuallyTrue()
     predicate Other(x:nat, free: Tr)
       ensures x != 0 && free.Other(x-1, free) ==> Other(x-1, free)
   }
 }
 
 class Cl extends M.Tr {
-  function True(): (ret: bool)
+  predicate True(): (ret: bool)
     // Missing: ensures ret
   { false }
-  function True'(): (ret: bool)
+  predicate True'()
     // Missing: ensures True'()
   { false }
   predicate ActuallyTrue()
@@ -27,7 +28,11 @@ class Cl extends M.Tr {
   predicate ActuallyTrue'()
     ensures ActuallyTrue()
   { true }
-  function Other(x: nat, free: M.Tr): bool
+  predicate ActuallyTrue''()
+     // This is logically correct, but the disguised receiver in the Tr spec prevents the override check from passing.
+     ensures ActuallyTrue''()
+   { true }
+  predicate Other(x: nat, free: M.Tr)
     // Different receiver
     ensures x != 0 && Other(x-1, free) ==> Other(x-1, free)
   { false }
