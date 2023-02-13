@@ -7,6 +7,11 @@ on:
   push:
 
 jobs:
+  check-deep-tests:
+     uses: ./.github/workflows/check-deep-tests-reusable.yml
+     with:
+       branch: master
+
   build:
     needs: check-deep-tests
     if: always() && ((needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests')) || ( github.event_name == 'push' && ( github.ref_name == 'master' || vars.TEST_ON_FORK == 'true' )))
