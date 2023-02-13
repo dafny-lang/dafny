@@ -1,12 +1,7 @@
 name: Run XUnit tests
 
 on:
-<<<<<<< HEAD
-  push:
-    branches: [ master, cok-3459-dafny4test ]
-=======
   workflow_dispatch:
->>>>>>> master
   pull_request:
     branches: [ master ]
   push:
