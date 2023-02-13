@@ -181,6 +181,27 @@ class T {
 }");
   }
   [Fact]
+  public void FormatterWorksForConstants() {
+    FormatterWorksFor(@"
+const ASSIGNED_PLANES := [
+  0,
+  1,
+  2
+]
+const ASSIGNED_PLANES: set<bv8> := {
+  0,
+  1,
+  2
+}
+const ASSIGNED_PLANES := (
+  0,
+  1,
+  2
+)
+");
+  }
+
+  [Fact]
   public void FormatterWorksForExtremePredicates() {
     FormatterWorksFor(@"
 lemma Lemma(k: ORDINAL, r: real)
