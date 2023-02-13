@@ -574,8 +574,7 @@ public class MatchFlattener : IRewriter {
     BinaryExpr guard = new BinaryExpr(tok, BinaryExpr.Opcode.Eq, matchee, currBlock.Item1);
     guard.ResolvedOp = BinaryExpr.ResolvedOpcode.EqCommon;
     guard.Type = Type.Bool;
-    var contextStr = context.FillHole(new IdCtx($"c: {matchee.Type}", new List<MatchingContext>())).AbstractAllHoles().ToString();
-    var assertGuard = AssertStmt.CreateErrorAssert(matchee, $"missing case in match: {contextStr} (not all possibilities for constant 'c' in context have been covered)", guard);
+    var assertGuard = AssertStmt.CreateErrorAssert(matchee, $"missing case in match: not all possibilities for selector of type {matchee.Type} have been covered", guard);
 
     var elsC = CreateIfElseIfChain(mti, context, matchee, blocks, defaultBlock);
 
