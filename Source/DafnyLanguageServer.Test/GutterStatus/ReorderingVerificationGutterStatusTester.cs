@@ -200,7 +200,9 @@ method m5() { assert false; } //Remove4:
 
       } catch (OperationCanceledException) {
         Console.WriteLine("count: " + count);
-        Console.WriteLine("Found status before timeout: " + string.Join(", ", foundStatus!.NamedVerifiables));
+        if (foundStatus != null) {
+          Console.WriteLine("Found status before timeout: " + string.Join(", ", foundStatus.NamedVerifiables));
+        }
         Console.WriteLine($"\nOld to new history was: {verificationStatusReceiver.History.Stringify()}");
         throw;
       }
