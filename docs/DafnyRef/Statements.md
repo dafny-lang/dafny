@@ -1809,8 +1809,7 @@ the other verification can proceed. Then when that is completed the
 user would come back and replace the `assume` with `assert`.
 
 An `assume` statement cannot be compiled. In fact, the compiler
-will complain if it finds an `assume` anywhere where it has not
-been replaced through a refinement step.
+will complain if it finds an `assume` anywhere.
 
 Using an `{:axiom}` attribute makes the claim that the assume statement is
 OK because it is known outside the Dafny program to be true.
