@@ -172,8 +172,7 @@ namespace Microsoft.Dafny {
 
         return true;
       }
-
-      return d is Function { EnclosingClass: TraitDecl };
+      return false;
     }
 
     [Pure]
@@ -2159,7 +2158,7 @@ namespace Microsoft.Dafny {
         pre = BplAnd(pre, etran.TrExpr(Substitute(req.E, null, substMap)));
       }
       // useViaContext: fh < FunctionContextHeight
-      Expr useViaContext = !InVerificationScope(f)
+      Expr useViaContext = !(InVerificationScope(f) || (f.EnclosingClass is TraitDecl))
         ? Bpl.Expr.True
         : Bpl.Expr.Lt(Expr.Literal(forModule.CallGraph.GetSCCRepresentativePredecessorCount(f)), etran.FunctionContextHeight());
       // useViaCanCall: f#canCall(args)
