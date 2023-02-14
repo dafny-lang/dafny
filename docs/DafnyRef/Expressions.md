@@ -70,7 +70,7 @@ in order of increasing binding power.
 Examples:
 <!-- %no-check -->
 ```dafny
-var a := 2*b; a*b
+var a := L(a,b); a*b
 ```
 
 This expression has the form `S; E`.
