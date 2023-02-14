@@ -1920,7 +1920,7 @@ expect _P_;
 ```
 Once the program is debugged, both statements can be removed.
 Note that it is important that the `assert` come before the `expect`, because
-to the verifier, the `expect` is an `assume`, which would automatically make
+by the verifier, the `expect` is interpreted as an `assume`, which would automatically make
 a subsequent `assert` succeed.
 
 D) Compiler tests
