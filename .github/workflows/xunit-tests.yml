@@ -69,7 +69,7 @@ jobs:
       run: |
         ## Run twice to catch unstable code (Issue #2673)
         dotnet test --no-restore --verbosity normal --logger trx --collect:"XPlat Code Coverage" Source/DafnyLanguageServer.Test
-        dotnet coverage collect -o DafnyLanguageServer.Test..coverage dotnet test --no-restore --verbosity normal --logger trx Source/DafnyLanguageServer.Test
+        dotnet coverage collect -o DafnyLanguageServer.Test.coverage dotnet test --no-restore --verbosity normal --logger trx Source/DafnyLanguageServer.Test
     - name: Run DafnyDriver Tests
       run: dotnet test --no-restore --verbosity normal --logger trx --collect:"XPlat Code Coverage" Source/DafnyDriver.Test
     - name: Run DafnyPipeline Tests
