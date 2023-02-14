@@ -14,7 +14,7 @@ an executable appropriate to the target language; otherwise it will emit
 a library or individual files.
 The conditions for a legal `Main()` method are described in the User Guide
 ([Section 3.4](#sec-user-guide-main)).
-If there is more than one Main(), Dafny will emit an error message.
+If there is more than one `Main()`, Dafny will emit an error message.
 
 An invocation of Dafny may specify a number of source files.
 Each Dafny file follows the grammar of the ``Dafny`` non-terminal.
