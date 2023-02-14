@@ -25,7 +25,7 @@ jobs:
         path: dafny
     - name: New library
       run: |
-        cd dafny/Test/libraries
+        cd libraries
         git fetch
         git checkout cok-code
     - name: Restore tools
