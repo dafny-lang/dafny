@@ -9,12 +9,12 @@ Some types, notably classes, also may contain a set of declarations, introducing
 and functions.
 
 When asked to compile a program, Dafny looks for the existence of a
-Main() method. If a legal Main() method is found, the compiler will emit
+`Main()` method. If a legal `Main()` method is found, the compiler will emit
 an executable appropriate to the target language; otherwise it will emit
 a library or individual files.
-The conditions for a legal Main() method are described in the User Guide
+The conditions for a legal `Main()` method are described in the User Guide
 ([Section 3.4](#sec-user-guide-main)).
-If there is more than one Main(), Dafny will emit an error message.
+If there is more than one `Main()`, Dafny will emit an error message.
 
 An invocation of Dafny may specify a number of source files.
 Each Dafny file follows the grammar of the ``Dafny`` non-terminal.
@@ -191,7 +191,7 @@ Note, however, that the following are allowed:
 
 * The method is allowed to have `ensures` clauses
 * The method is allowed to have `decreases` clauses, including a
-  `decreases *`. (If Main() has a `decreases *`, then its execution may
+  `decreases *`. (If `Main()` has a `decreases *`, then its execution may
   go on forever, but in the absence of a `decreases *` on Main(), `dafny`
   will have verified that the entire execution will eventually
   terminate.)

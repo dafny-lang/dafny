@@ -70,7 +70,7 @@ TODO
 The user documentation has been expanded with more examples, a FAQ, and an error explanation catalog.
 There is even a new book, [Program Proofs](https://mitpress.mit.edu/9780262546232/program-proofs/) by Dafny designer Rustan Leino.
 
-The IDE now has a framework for showing error explanation informatino and corresponding quick fixes are
+The IDE now has a framework for showing error explanation information and corresponding quick fixes are
 being added, with refactoring operations on the horizon.
 MORE TODO
 
