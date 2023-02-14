@@ -255,7 +255,7 @@ Subtraction is
 * set or multiset subtraction for sets and multisets
 * domain subtraction for maps.
 
-Addition is associative. Arithmetic addtion and union are commutative. Subtraction is neither: it groups to the left as expected:
+All addition operations are associative. Arithmetic addition and union are commutative. Subtraction is neither; it groups to the left as expected:
 `x - y -z` is `(x - y) -z`.
 
 ## 9.8. Factors ([grammar](#g-factor)) {#sec-multiplication-expression}
@@ -306,7 +306,7 @@ The `|` symbol is used both for bit-wise or and as the delimiter in a
 the expression E in `| E |` contains a `|`. This situation is easily
 remedied: just enclose E in parentheses, as in `|(E)|`.
 The only type-correct way this can happen is if the expression is
-a comprehension, as in `| set x: bv12 :: x | 0x101 |`.
+a comprehension, as in `| set x: int :: x | 0x101 |`.
 
 ## 9.10. As (Conversion) and Is (type test) Expressions ([grammar](#g-as-is-expression)) {#sec-as-is-expression}
 
@@ -523,7 +523,7 @@ within methods, and not as general expressions or within functions or specificat
 
 An RHS is either an array allocation, an object allocation,
 a havoc right-hand-side, a method call, or a simple expression, optionally followed
-by one or more ``Attribute``s.
+by one or more attributes.
 
 Right-hand-side expressions (that are not just regular expressions) appear in the following constructs:
 
@@ -657,8 +657,8 @@ true
 "dafny"
 ```
 
-A literal expression is a boolean literal, a null object reference,
-an integer or real literal, or a character or string literal.
+A literal expression is a null object reference or a boolean,
+integer, real, character or string literal.
 
 ## 9.21. `this` Expression ([grammar](#g-this-expression)) {#sec-this-expression}
 
@@ -962,7 +962,7 @@ c.x == old(c.x) && c.y == old(c.y)
 
 Each argument to `unchanged` can be a reference, a set of references, or
 a sequence of references, each optionally followed by a back-tick and field name. 
-This form expresses that the field `f`,
+This form with a frame field expresses that just the field `f`,
 not necessarily all fields, has the same value in the old and current
 state.
 If there is such a frame field, all the references must have the same type,
