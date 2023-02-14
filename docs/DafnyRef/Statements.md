@@ -419,7 +419,7 @@ corresponding number of LHS values.
 a, b.e().f := m() {:attr};
 ```
 
-In this case, the right-hand-side must be emthod call and the number of
+In this case, the right-hand-side must be a method call and the number of
 left-hand sides must match the number of out-parameters of the
 method that is called or there must be just one ``Lhs`` to the left of
 the `:=`, which then is assigned a tuple of the out-parameters.
