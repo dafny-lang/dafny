@@ -97,8 +97,15 @@ public class MatchFlattener : IRewriter {
 
     CaseBody compiledMatch = CompilePatternPaths(state, new HoleCtx(), LinkedLists.Create(nestedMatchExpr.Source), paths);
     if (compiledMatch is null) {
-      var havoc = LetExpr.Havoc(nestedMatchExpr.tok, nestedMatchExpr.Type);
-      return new StmtExpr(nestedMatchExpr.tok, AssertStmt.CreateErrorAssert(nestedMatchExpr, NoCasesMessage), havoc) {
+      if (nestedMatchExpr.Source.Type.AsDatatype == null) {
+        var havoc = LetExpr.Havoc(nestedMatchExpr.tok, nestedMatchExpr.Type);
+        return new StmtExpr(nestedMatchExpr.tok, AssertStmt.CreateErrorAssert(nestedMatchExpr, NoCasesMessage), havoc) {
+          Type = nestedMatchExpr.Type
+        };
+      }
+
+      return new MatchExpr(nestedMatchExpr.tok, nestedMatchExpr.Source, new List<MatchCaseExpr>(),
+        nestedMatchExpr.UsesOptionalBraces) {
         Type = nestedMatchExpr.Type
       };
     }
@@ -123,7 +130,11 @@ public class MatchFlattener : IRewriter {
     var compiledMatch = CompilePatternPaths(state, new HoleCtx(), LinkedLists.Create(nestedMatchStmt.Source), paths);
     if (compiledMatch is null) {
       // Happens only if the nested match has no cases
-      return AssertStmt.CreateErrorAssert(nestedMatchStmt, NoCasesMessage);
+      if (nestedMatchStmt.Source.Type.AsDatatype == null) {
+        return AssertStmt.CreateErrorAssert(nestedMatchStmt, NoCasesMessage);
+      }
+
+      return new MatchStmt(nestedMatchStmt.RangeToken, nestedMatchStmt.Source, new List<MatchCaseStmt>(), nestedMatchStmt.UsesOptionalBraces, nestedMatchStmt.Attributes);
     }
 
     if (compiledMatch.Node is Statement statement) {
