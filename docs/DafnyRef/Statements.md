@@ -442,7 +442,7 @@ The most common case has only one RHS and one LHS.
 ### 8.6.4. Havoc assignment {#sec-havoc-statement}
 The form with a right-hand-side that is `*` is a _havoc_ assignment.
 It assigns an arbitrary but type-correct value to the corresponding left-hand-side.
-It can be mised with other assignments of cmoputed values.
+It can be mixed with other assignments of computed values.
 ```dafny
 a := *'
 a, b, c := 4, *, 5;
@@ -949,7 +949,7 @@ function usesTuple() : int
 }
 ```
 
-The initialization with failure operator `:-` returns from the method if the value evaluates to a failure value of a failure-compatible type (see [Section 8.7](#sec-update-with-failure-statement)).
+The initialization with failure operator `:-` returns from the enclosing method if the initializer evaluates to a failure value of a failure-compatible type (see [Section 8.7](#sec-update-with-failure-statement)).
 
 ## 8.9. Guards ([grammar](#g-guard)) {#sec-guard}
 
@@ -1122,7 +1122,7 @@ at least one of the guards to evaluate to `true` (that is, `if-case`
 statements must be exhaustive: the guards must cover all cases).
 
 In the if-with-cases, a sequence of statements may follow the `=>`; it
-may but need not be a block statement ( a brace-enclosed sequence of statements).
+may but need not be a block statement (a brace-enclosed sequence of statements).
 
 The form that used `...` (a refinement feature) as the guard is deprecated.
 
@@ -1380,7 +1380,7 @@ know in advance how many times the code will go around the loop and
 a tool cannot reason about every one of a possibly unbounded sequence of unrollings.
 In order to consider all paths through a program, specification-based
 program verification tools require loop invariants, which are another kind of
-specification.
+annotation.
 
 A loop invariant is an expression that holds just prior to the loop test,
 that is, upon entering a loop and
@@ -1720,7 +1720,8 @@ the same as for match expressions and is described in
 [Section 9.31.2](#sec-case-pattern).
 
 The selector need not be enclosed in parentheses; the sequence of cases may but need not be enclosed in braces.
-The matches in the cases must be exhaustive, but you can use a wild variable (`_`) or an as yet unused simple identifier to indicate "match anything".
+The cases need not be disjoint.
+The cases must be exhaustive, but you can use a wild variable (`_`) or an as yet unused simple identifier to indicate "match anything".
 
 The code below shows an example of a match statement.
 
