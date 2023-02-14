@@ -31,7 +31,9 @@ jobs:
         ls ..
         echo DAFNY
         ls dafny
-        cd ../libraries
+        echo DAFNY/TEST
+        ls dafny/Test
+        cd dafny/Test/libraries
         git fetch
         git checkout cok-code
     - name: Restore tools
