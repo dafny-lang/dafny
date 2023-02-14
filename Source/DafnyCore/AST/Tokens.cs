@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Text;
 
 namespace Microsoft.Dafny;
 
@@ -213,16 +214,17 @@ public class BoogieRangeToken : TokenWrapper {
   }
 
   public string PrintOriginal() {
-    var tok = WrappedToken;
-    var s = tok.val;
-    while (tok.Next != null && tok.pos < endTok.pos) {
-      s += tok.TrailingTrivia;
-      tok = tok.Next;
-      s += tok.LeadingTrivia;
-      s += tok.val;
+    var token = WrappedToken;
+    var originalString = new StringBuilder();
+    originalString.Append(token.val);
+    while (token.Next != null && token.pos < endTok.pos) {
+      originalString.Append(token.TrailingTrivia);
+      token = token.Next;
+      originalString.Append(token.LeadingTrivia);
+      originalString.Append(token.val);
     }
 
-    return s;
+    return originalString.ToString();
   }
 }
 
