@@ -1871,11 +1871,7 @@ class B extends T {
 
 Declarations within a class all begin with keywords and do not end with semicolons.
 
-The ``ClassMemberDecl`` parameter `moduleLevelDecl` will be true if
-the member declaration is at the top level or directly within a
-module declaration. It will be false for ``ClassMemberDecl``s
-that are part of a class or trait declaration. If `moduleLevelDecl` is
-true ``FieldDecl``s are not allowed.
+
 
 A _class_ `C` is a reference type declared as follows:
 <!-- %no-check -->
@@ -1885,9 +1881,9 @@ class C<T> extends J1, ..., Jn
   _members_
 }
 ```
-where the list of type parameters `T` is optional. The text
+where the <>-enclosed list of one-or-more type parameters `T` is optional. The text
 "`extends J1, ..., Jn`" is also optional and says that the class extends traits `J1` ... `Jn`.
-The members of a class are _fields_, _functions_, and
+The members of a class are _fields_, _constant fields_, _functions_, and
 _methods_.  These are accessed or invoked by dereferencing a reference
 to a `C` instance.
 
@@ -1972,7 +1968,7 @@ trait J
   _members_
 }
 ```
-where _members_ can include fields, functions, methods and declarations of nested traits, but
+where _members_ can include fields, constant fields, functions, methods and declarations of nested traits, but
 no constructor methods.  The functions and methods are allowed to be
 declared `static`.
 
@@ -2636,6 +2632,78 @@ Examples:
 (bool,int) ~> bool
 () --> object?
 ```
+
+
+The built-in type `->` stands for total functions, `-->` stands for
+partial functions (that is, functions with possible `requires` clauses),
+and `~>` stands for all functions. More precisely, these are type constructors
+that exist for any arity (`() -> X`, `A -> X`, `(A, B) -> X`, `(A, B, C) -> X`,
+etc.).
+
+For a list of types `TT` and a type `U`, the values of the arrow type `(TT) ~> U`
+are functions from `TT` to `U`. This includes functions that may read the
+heap and functions that are not defined on all inputs. It is not common
+to need this generality (and working with such general functions is
+difficult). Therefore, Dafny defines two subset types that are more common
+(and much easier to work with).
+
+The type `(TT) --> U` denotes the subset of `(TT) ~> U` where the functions
+do not read the (mutable parts of the) heap.
+Values of type `(TT) --> U` are called _partial functions_,
+and the subset type `(TT) --> U` is called the _partial arrow type_.
+(As a mnemonic to help you remember that this is the partial arrow, you may
+think of the little gap between the two hyphens in `-->` as showing a broken
+arrow.)
+
+The built-in partial arrow type is defined as follows (here shown
+for arrows with arity 1):
+<!-- %no-check -->
+```dafny
+type A --> B = f: A ~> B | forall a :: f.reads(a) == {}
+```
+(except that what is shown here left of the `=` is not legal Dafny syntax).
+That is, the partial arrow type is defined as those functions `f`
+whose reads frame is empty for all inputs.
+More precisely, taking variance into account, the partial arrow type
+is defined as
+<!-- %no-check -->
+```dafny
+type -A --> +B = f: A ~> B | forall a :: f.reads(a) == {}
+```
+
+The type `(TT) -> U` is, in turn, a subset type of `(TT) --> U`, adding the
+restriction that the functions must not impose any precondition. That is,
+values of type `(TT) -> U` are _total functions_, and the subset type
+`(TT) -> U` is called the _total arrow type_.
+
+The built-in total arrow type is defined as follows (here shown
+for arrows with arity 1):
+<!-- %no-check -->
+```dafny
+type -A -> +B = f: A --> B | forall a :: f.requires(a)
+```
+That is, the total arrow type is defined as those partial functions `f`
+whose precondition evaluates to `true` for all inputs.
+
+Among these types, the most commonly used are the total arrow types.
+They are also the easiest to work with. Because they are common, they
+have the simplest syntax (`->`).
+
+Note, informally, we tend to speak of all three of these types as arrow types,
+even though, technically, the `~>` types are the arrow types and the
+`-->` and `->` types are subset types thereof. The one place where you may need to
+remember that `-->` and `->` are subset types is in some error messages.
+For example, if you try to assign a partial function to a variable whose
+type is a total arrow type and the verifier is not able to prove that the
+partial function really is total, then you'll get an error saying that the subset-type
+constraint may not be satisfied.
+
+For more information about arrow types, see [Section 5.12](#sec-arrow-types).
+
+
+
+
+
 
 Functions are first-class values in Dafny. The types of function values
 are called _arrow types_ (aka, _function types_).
@@ -3493,7 +3561,8 @@ statement. Unlike for local variables and bound variables, the type is
 required and will not be inferred.
 
 Unlike method and function declarations, a field declaration
-cannot be given at the top level. Fields can be declared in either a
+is not permitted as a member of a module, even though there is an implicit class.
+Fields can be declared in either an explicit
 class or a trait. A class that inherits from multiple traits will
 have all the fields declared in any of its parent traits.
 
