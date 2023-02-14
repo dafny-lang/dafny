@@ -3,8 +3,8 @@
 // RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
-include "../libraries/src/Wrappers.dfy"
-import opened Wrappers
+include "../libraries/src/dafny/Boxes.dfy"
+import opened Dafny.Boxes
 
 method id<T>(r: T) returns (r2: T)  {
   r2 := r;
