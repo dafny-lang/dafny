@@ -22,7 +22,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
     [TestInitialize]
     public void SetUp() {
       lastDebugLogger = new LastDebugLogger();
-      parser = DafnyLangParser.Create(lastDebugLogger);
+      parser = DafnyLangParser.Create(DafnyOptions.Create(), lastDebugLogger);
     }
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]

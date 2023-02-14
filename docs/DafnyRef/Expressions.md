@@ -75,7 +75,7 @@ var a := L(a,b); a*b
 
 This expression has the form `S; E`.
 The type of the expression is the type of `E`.
-`S` must be lemma call (though the grammar appears more lenient).
+`S` must be a lemma call (though the grammar appears more lenient).
 The lemma introduces a fact necessary to establish properties of `E`.
 
 Sometimes an expression will fail unless some relevant fact is known.
