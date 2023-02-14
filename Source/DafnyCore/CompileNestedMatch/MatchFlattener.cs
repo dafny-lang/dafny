@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using static Microsoft.Dafny.ErrorDetail;
@@ -542,22 +543,28 @@ public class MatchFlattener : IRewriter {
 
     var tok = matchee.Tok;
     var range = matchee.Tok.ToRange();
-    BinaryExpr guard = new BinaryExpr(tok, BinaryExpr.Opcode.Eq, matchee, currBlock.Item1);
-    guard.ResolvedOp = BinaryExpr.ResolvedOpcode.EqCommon;
-    guard.Type = Type.Bool;
-    var assertGuard = AssertStmt.CreateErrorAssert(matchee, $"missing case in match: not all possibilities for selector of type {matchee.Type} have been covered", guard);
+    var guard = new BinaryExpr(mti.Match.Tok, BinaryExpr.Opcode.Eq, matchee, currBlock.Item1) {
+      ResolvedOp = BinaryExpr.ResolvedOpcode.EqCommon,
+      Type = Type.Bool
+    };
 
-    var elsC = CreateIfElseIfChain(mti, context, matchee, blocks, defaultBlock);
+    var contextStr = context.FillHole(new IdCtx($"c: {matchee.Type}", new List<MatchingContext>())).AbstractAllHoles().ToString();
+    var errorMessage = mti.Match.Source.Type.AsDatatype == null
+      ? $"missing case in match {mti.Match.MatchTypeName}: not all possibilities for selector of type {matchee.Type} have been covered"
+      : $"missing case in match {mti.Match.MatchTypeName}: {contextStr} (not all possibilities for constant 'c' have been covered)";
+
+    var assertGuard = AssertStmt.CreateErrorAssert(mti.Match, errorMessage, guard);
+    var elseCase = CreateIfElseIfChain(mti, context, matchee, blocks, defaultBlock);
 
     if (currBlock.Item2.Node is Expression expression) {
-      if (elsC is null) {
+      if (elseCase is null) {
         // handle an empty default
         // assert guard; item2.Body
         var result = new StmtExpr(tok, assertGuard, expression);
         result.Type = ((NestedMatchExpr)mti.Match).Type;
         return new CaseBody(null, result);
       } else {
-        var els = (Expression)elsC.Node;
+        var els = (Expression)elseCase.Node;
         var result = new ITEExpr(tok, false, guard, expression, els);
         result.Type = ((NestedMatchExpr)mti.Match).Type;
         return new CaseBody(null, result);
@@ -566,7 +573,7 @@ public class MatchFlattener : IRewriter {
 
     if (currBlock.Item2.Node is Statement statement) {
       var item2 = BlockStmtOfCStmt(range, statement);
-      if (elsC is null) {
+      if (elseCase is null) {
         // handle an empty default
         // assert guard; item2.Body
         var body = new List<Statement>();
@@ -574,7 +581,7 @@ public class MatchFlattener : IRewriter {
         body.AddRange(item2.Body);
         return new CaseBody(null, new BlockStmt(range, body));
       } else {
-        var els = (Statement)elsC.Node;
+        var els = (Statement)elseCase.Node;
         return new CaseBody(null, new IfStmt(range, false, guard, item2, els));
       }
     }
@@ -615,7 +622,7 @@ public class MatchFlattener : IRewriter {
   }
 
   private class MatchCompilationState {
-    public Node Match { get; }
+    public INestedMatch Match { get; }
     public readonly IToken[] CaseTok;
     public readonly int[] CaseCopyCount;
 
@@ -628,7 +635,7 @@ public class MatchFlattener : IRewriter {
     public readonly ResolutionContext CodeContext;
     public Attributes Attributes;
 
-    public MatchCompilationState(Node match, IReadOnlyList<NestedMatchCase> flattenedCases, ResolutionContext codeContext,
+    public MatchCompilationState(INestedMatch match, IReadOnlyList<NestedMatchCase> flattenedCases, ResolutionContext codeContext,
       Attributes attrs = null) {
       this.Match = match;
       this.CaseTok = flattenedCases.Select(c => c.Tok).ToArray();

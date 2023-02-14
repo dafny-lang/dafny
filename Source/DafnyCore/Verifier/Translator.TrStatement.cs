@@ -813,20 +813,23 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void FillMissingCases(IMatch s) {
-      Contract.Requires(s != null);
+    void FillMissingCases(IMatch match) {
+      Contract.Requires(match != null);
+      if (match.MissingCases.Any()) {
+        return;
+      }
 
-      var dtd = s.Source.Type.AsDatatype;
+      var dtd = match.Source.Type.AsDatatype;
       var constructors = dtd?.ConstructorsByName;
 
       ISet<string> memberNamesUsed = new HashSet<string>();
 
-      foreach (var matchCase in s.Cases) {
+      foreach (var matchCase in match.Cases) {
         if (constructors != null) {
           Contract.Assert(dtd != null);
           var ctorId = matchCase.Ctor.Name;
-          if (s.Source.Type.AsDatatype is TupleTypeDecl) {
-            var tuple = (TupleTypeDecl)s.Source.Type.AsDatatype;
+          if (match.Source.Type.AsDatatype is TupleTypeDecl) {
+            var tuple = (TupleTypeDecl)match.Source.Type.AsDatatype;
             ctorId = BuiltIns.TupleTypeCtorName(tuple.Dims);
           }
 
@@ -842,10 +845,10 @@ namespace Microsoft.Dafny {
         // So, for now, record the missing constructors:
         foreach (var ctr in dtd.Ctors) {
           if (!memberNamesUsed.Contains(ctr.Name)) {
-            s.MissingCases.Add(ctr);
+            match.MissingCases.Add(ctr);
           }
         }
-        Contract.Assert(memberNamesUsed.Count + s.MissingCases.Count == dtd.Ctors.Count);
+        Contract.Assert(memberNamesUsed.Count + match.MissingCases.Count == dtd.Ctors.Count);
       }
     }
 

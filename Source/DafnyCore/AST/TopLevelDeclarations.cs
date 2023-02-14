@@ -1857,7 +1857,6 @@ public class CodeContextWrapper : ICodeContext {
 /// An ICallable is a Function, Method, IteratorDecl, or (less fitting for the name ICallable) RedirectingTypeDecl or DatatypeDecl.
 /// </summary>
 public interface ICallable : ICodeContext, INode {
-  IToken Tok { get; }
   string WhatKind { get; }
   string NameRelativeToModule { get; }
   Specification<Expression> Decreases { get; }

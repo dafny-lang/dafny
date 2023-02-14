@@ -405,9 +405,6 @@ namespace Microsoft.Dafny {
       get;
     }
     void MakeGhost();
-    IToken Tok {
-      get;
-    }
   }
   [ContractClassFor(typeof(IVariable))]
   public abstract class IVariableContracts : TokenNode, IVariable {

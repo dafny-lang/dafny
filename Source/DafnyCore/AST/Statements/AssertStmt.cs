@@ -16,7 +16,7 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
     Label = original.Label == null ? null : new AssertLabel(cloner.Tok(original.Label.Tok), original.Label.Name);
   }
 
-  public static AssertStmt CreateErrorAssert(Node node, string message, Expression guard = null) {
+  public static AssertStmt CreateErrorAssert(INode node, string message, Expression guard = null) {
     var errorMessage = new StringLiteralExpr(node.Tok, message, true);
     errorMessage.Type = new SeqType(Type.Char);
     var attr = new Attributes("error", new List<Expression> { errorMessage }, null);

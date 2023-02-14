@@ -1,6 +1,6 @@
 github-issue-3484.dfy(5,2): Error: match has no cases and this is only allowed when the verifier can prove the match is unreachable
-github-issue-3484.dfy(11,8): Error: missing case in match: not all possibilities for selector of type int have been covered
-github-issue-3484.dfy(17,8): Error: missing case in match: not all possibilities for selector of type int have been covered
+github-issue-3484.dfy(11,8): Error: missing case in match statement: not all possibilities for selector of type int have been covered
+github-issue-3484.dfy(17,8): Error: missing case in match expression: not all possibilities for selector of type int have been covered
 github-issue-3484.dfy(23,2): Error: match has no cases and this is only allowed when the verifier can prove the match is unreachable
 
 Dafny program verifier finished with 0 verified, 4 errors
