@@ -1,6 +1,6 @@
-module {:options "--function-syntax:4"} LibraryModule {
+module LibraryModule {
 
-  function TimesTwo(x: nat): nat
+  function method TimesTwo(x: nat): nat
   {
     x * 2
   }
