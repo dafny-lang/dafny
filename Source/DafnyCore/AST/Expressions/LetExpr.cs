@@ -55,7 +55,7 @@ public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBeari
   public static LetExpr Havoc(IToken tok, Type type = null) {
     type ??= new InferredTypeProxy();
     var boundVar = new BoundVar(tok, "x", type);
-    var casePatterns = new List<CasePattern<BoundVar>>() { new(tok, boundVar)};
+    var casePatterns = new List<CasePattern<BoundVar>>() { new(tok, boundVar) };
     return new LetExpr(tok, casePatterns, new List<Expression>() { CreateBoolLiteral(tok, true) },
       new IdentifierExpr(tok, boundVar), false) {
       Type = type
