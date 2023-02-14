@@ -65,7 +65,7 @@ in order of increasing binding power.
  Primary Expressions      | 11 |
 
 
-## 9.1. Let and Lemma-call expressions ([grammar](#g-top-level-expression)) {#sec-top-level-expression}
+## 9.1. Lemma-call expressions ([grammar](#g-top-level-expression)) {#sec-top-level-expression}
 
 Examples:
 <!-- %no-check -->
@@ -75,14 +75,8 @@ var a := 2*b; a*b
 
 This expression has the form `S; E`.
 The type of the expression is the type of `E`.
-Syntactically `S` can be any expression and the `;` serves to chain successive expression evaluations.
-To be useful, though, the earlier expressions have to have some effect.
-
-One such effect is to declare a local variable. This is a [let expression](#sec-let-expression), described later.
-
-The other useful form is when S is a call of a lemma, which syntactically is a (ghost) method call.
+`S` must be lemma call (though the grammar appears more lenient).
 The lemma introduces a fact necessary to establish properties of `E`.
-
 
 Sometimes an expression will fail unless some relevant fact is known.
 In the following example the `F_Fails` function fails to verify
@@ -113,7 +107,7 @@ function F_Succeeds(n: nat): int
 }
 ```
 
-On restriction is that a lemma call in this form is permitted only in situations in which the expression itself is not terminated by a semicolon.
+One restriction is that a lemma call in this form is permitted only in situations in which the expression itself is not terminated by a semicolon.
 
 A second restriction is that `E` is not always permitted to contain lambda expressions, such 
 as in the expressions that are the body of a lambda expression itself, function, method and iterator specifications,
@@ -967,10 +961,12 @@ c.x == old(c.x) && c.y == old(c.y)
 ```
 
 Each argument to `unchanged` can be a reference, a set of references, or
-a sequence of references. If it is a reference, it can be followed by
-`` `f``, where `f` is a field of the reference. This form expresses that the field `f`,
+a sequence of references, each optionally followed by a back-tick and field name. 
+This form expresses that the field `f`,
 not necessarily all fields, has the same value in the old and current
 state.
+If there is such a frame field, all the references must have the same type,
+which must have a field of that name.
 
 The optional `@`-label says to use the state at that label as the old-state instead of using
 the `old` state (the pre-state of the method). That is, using the example `c` from above, the expression
@@ -1723,6 +1719,10 @@ elements are taken from a contiguous part of the original sequence. For
 example, expression `s[lo..hi]` for sequence `s`, and integer-based
 numerics `lo` and `hi` satisfying `0 <= lo <= hi <= |s|`. See
 [the section about other sequence expressions](#sec-other-sequence-expressions) for details.
+
+A subsequence suffix applied to an array produces a _sequence_ consisting of 
+the values of the designated elements. A concise way of converting a whole 
+array to a sequence is to write `a[..]`.
 
 ### 9.34.4. Subsequence Slices Suffix ([grammar](#g-subsequence-slices-suffix)) {#sec-subsequence-slices-suffix}
 
