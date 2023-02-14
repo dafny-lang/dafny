@@ -18,3 +18,8 @@ function Qar(x: int): int {
     case 3 => 3
   }
 }
+
+function Bar(x: int): int {
+  match x {
+  }
+}

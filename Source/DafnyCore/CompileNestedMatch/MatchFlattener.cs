@@ -39,6 +39,7 @@ namespace Microsoft.Dafny;
 /// 
 /// </summary>
 public class MatchFlattener : IRewriter {
+  private const string NoCasesMessage = "match has no cases and this is only allowed when the verifier can prove the match is unreachable";
   private readonly FreshIdGenerator idGenerator;
   private ResolutionContext resolutionContext;
 
@@ -96,10 +97,10 @@ public class MatchFlattener : IRewriter {
 
     CaseBody compiledMatch = CompilePatternPaths(state, new HoleCtx(), LinkedLists.Create(nestedMatchExpr.Source), paths);
     if (compiledMatch is null) {
-      Reporter.Error(MessageSource.Resolver, nestedMatchExpr.Tok, "match has no cases");
-      var emptyMatch = new MatchExpr(nestedMatchExpr.tok, nestedMatchExpr.Source, new List<MatchCaseExpr>(), nestedMatchExpr.UsesOptionalBraces);
-      emptyMatch.Type = nestedMatchExpr.Type;
-      return emptyMatch;
+      var havoc = LetExpr.Havoc(nestedMatchExpr.tok, nestedMatchExpr.Type);
+      return new StmtExpr(nestedMatchExpr.tok, AssertStmt.CreateErrorAssert(nestedMatchExpr, NoCasesMessage), havoc) {
+        Type = nestedMatchExpr.Type
+      };
     }
 
     if (compiledMatch.Node is Expression expression) {
@@ -122,7 +123,7 @@ public class MatchFlattener : IRewriter {
     var compiledMatch = CompilePatternPaths(state, new HoleCtx(), LinkedLists.Create(nestedMatchStmt.Source), paths);
     if (compiledMatch is null) {
       // Happens only if the nested match has no cases
-      return AssertStmt.CreateErrorAssert(nestedMatchStmt, "match has no cases");
+      return AssertStmt.CreateErrorAssert(nestedMatchStmt, NoCasesMessage);
     }
 
     if (compiledMatch.Node is Statement statement) {
