@@ -414,7 +414,7 @@ methods that have no out-parameters.
 
 This form uses `:=` to denote the assignment of the out-parameters of the method to the 
 corresponding number of LHS values.
-<!--%no-check -->
+<!-- %no-check -->
 ```dafny
 a, b.e().f := m() {:attr};
 ```
@@ -430,6 +430,7 @@ another method call, as if it were an expression.
 
 A parallel-assignment has one-or-more right-hand-side expressions,
 which may be function calls but may not be method calls.
+<!-- %no-check -->
 ```dafny
     x, y := y, x;
 ```
@@ -443,6 +444,7 @@ The most common case has only one RHS and one LHS.
 The form with a right-hand-side that is `*` is a _havoc_ assignment.
 It assigns an arbitrary but type-correct value to the corresponding left-hand-side.
 It can be mixed with other assignments of computed values.
+<!-- %no-check -->
 ```dafny
 a := *'
 a, b, c := 4, *, 5;
@@ -454,6 +456,7 @@ This form has one or more left-hand-sides, a `:|` symbol and then a boolean expr
 The effect is to assign values to the left-hand-sides that satisfy the 
 RHS condition.
 
+<!-- %no-check -->
 ```dafny
 x, y :| 0 < x+y < 10;
 ```
@@ -482,6 +485,7 @@ Dafny will report an error if it cannot prove that values
 exist that satisfy the condition. 
 
 In this variation, with an `assume` keyword
+<!-- %no-check -->
 ```dafny
     y :| assume y in Y;
 ```
@@ -490,7 +494,7 @@ Dafny assumes without proof that an appropriate value exists.
 
 Note that the syntax
 
-```
+```text
     Lhs ":"
 ```
 
