@@ -192,7 +192,7 @@ Note, however, that the following are allowed:
 * The method is allowed to have `ensures` clauses
 * The method is allowed to have `decreases` clauses, including a
   `decreases *`. (If `Main()` has a `decreases *`, then its execution may
-  go on forever, but in the absence of a `decreases *` on Main(), `dafny`
+  go on forever, but in the absence of a `decreases *` on `Main()`, `dafny`
   will have verified that the entire execution will eventually
   terminate.)
 
