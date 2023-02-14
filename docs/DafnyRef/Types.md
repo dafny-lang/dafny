@@ -1547,10 +1547,19 @@ character of the name of these various possibly-null types.
 
 #### 5.6.3.3. Arrow types: `->`, `-->`, and `~>` {#sec-arrow-subset-types}
 
-The built-in type `->` stands for total functions, `-->` stands for
-partial functions (that is, functions with possible `requires` clauses),
-and `~>` stands for all functions. More precisely, these are type constructors
-that exist for any arity (`() -> X`, `A -> X`, `(A, B) -> X`, `(A, B, C) -> X`,
+For more information about arrow types (function types), see [Section 5.12](#sec-arrow-types).
+This section is a preview to point out the subset-type relationships among the kinds
+of function types.
+
+The built-in type 
+
+- `->` stands for total functions, 
+- `-->` stands for partial functions (that is, functions with possible `requires` clauses),
+and 
+- `~>` stands for all functions. 
+
+More precisely, type constructors
+exist for any arity (`() -> X`, `A -> X`, `(A, B) -> X`, `(A, B, C) -> X`,
 etc.).
 
 For a list of types `TT` and a type `U`, the values of the arrow type `(TT) ~> U`
@@ -1611,7 +1620,6 @@ type is a total arrow type and the verifier is not able to prove that the
 partial function really is total, then you'll get an error saying that the subset-type
 constraint may not be satisfied.
 
-For more information about arrow types, see [Section 5.12](#sec-arrow-types).
 
 #### 5.6.3.4. Witness clauses {#sec-witness}
 
@@ -2633,78 +2641,6 @@ Examples:
 () --> object?
 ```
 
-
-The built-in type `->` stands for total functions, `-->` stands for
-partial functions (that is, functions with possible `requires` clauses),
-and `~>` stands for all functions. More precisely, these are type constructors
-that exist for any arity (`() -> X`, `A -> X`, `(A, B) -> X`, `(A, B, C) -> X`,
-etc.).
-
-For a list of types `TT` and a type `U`, the values of the arrow type `(TT) ~> U`
-are functions from `TT` to `U`. This includes functions that may read the
-heap and functions that are not defined on all inputs. It is not common
-to need this generality (and working with such general functions is
-difficult). Therefore, Dafny defines two subset types that are more common
-(and much easier to work with).
-
-The type `(TT) --> U` denotes the subset of `(TT) ~> U` where the functions
-do not read the (mutable parts of the) heap.
-Values of type `(TT) --> U` are called _partial functions_,
-and the subset type `(TT) --> U` is called the _partial arrow type_.
-(As a mnemonic to help you remember that this is the partial arrow, you may
-think of the little gap between the two hyphens in `-->` as showing a broken
-arrow.)
-
-The built-in partial arrow type is defined as follows (here shown
-for arrows with arity 1):
-<!-- %no-check -->
-```dafny
-type A --> B = f: A ~> B | forall a :: f.reads(a) == {}
-```
-(except that what is shown here left of the `=` is not legal Dafny syntax).
-That is, the partial arrow type is defined as those functions `f`
-whose reads frame is empty for all inputs.
-More precisely, taking variance into account, the partial arrow type
-is defined as
-<!-- %no-check -->
-```dafny
-type -A --> +B = f: A ~> B | forall a :: f.reads(a) == {}
-```
-
-The type `(TT) -> U` is, in turn, a subset type of `(TT) --> U`, adding the
-restriction that the functions must not impose any precondition. That is,
-values of type `(TT) -> U` are _total functions_, and the subset type
-`(TT) -> U` is called the _total arrow type_.
-
-The built-in total arrow type is defined as follows (here shown
-for arrows with arity 1):
-<!-- %no-check -->
-```dafny
-type -A -> +B = f: A --> B | forall a :: f.requires(a)
-```
-That is, the total arrow type is defined as those partial functions `f`
-whose precondition evaluates to `true` for all inputs.
-
-Among these types, the most commonly used are the total arrow types.
-They are also the easiest to work with. Because they are common, they
-have the simplest syntax (`->`).
-
-Note, informally, we tend to speak of all three of these types as arrow types,
-even though, technically, the `~>` types are the arrow types and the
-`-->` and `->` types are subset types thereof. The one place where you may need to
-remember that `-->` and `->` are subset types is in some error messages.
-For example, if you try to assign a partial function to a variable whose
-type is a total arrow type and the verifier is not able to prove that the
-partial function really is total, then you'll get an error saying that the subset-type
-constraint may not be satisfied.
-
-For more information about arrow types, see [Section 5.12](#sec-arrow-types).
-
-
-
-
-
-
 Functions are first-class values in Dafny. The types of function values
 are called _arrow types_ (aka, _function types_).
 Arrow types have the form `(TT) ~> U` where `TT` is a (possibly empty)
@@ -2723,8 +2659,9 @@ As seen in the example above, the functions that are values of a type
 `(TT) ~> U` can have a precondition (as indicated by the `requires` clause)
 and can read values in the heap (as indicated by the `reads` clause).
 As described in [Section 5.6.3.3](#sec-arrow-subset-types),
-the subset type `(TT) --> U` denotes partial (but heap-independent) functions
-and the subset type `(TT) -> U` denotes total functions.
+
+- the subset type `(TT) --> U` denotes partial (but heap-independent) functions
+- and the subset type `(TT) -> U` denotes total functions.
 
 A function declared without a `reads` clause is known by the type
 checker to be a partial function. For example, the type of
@@ -2791,7 +2728,7 @@ whereas it would have been incorrect to have written something like:
 var f': (C, int, bool) -> real := F;  // not correct
 ```
 
-The arrow types themselves do not divide its parameters into ghost
+The arrow types themselves do not divide a function's parameters into ghost
 versus non-ghost. Instead, a function used as a first-class value is
 considered to be ghost if either the function or any of its arguments
 is ghost. The following example program illustrates:
@@ -2878,7 +2815,7 @@ and its type arguments are given in
 round parentheses, and as if the constructor name were the empty string.
 Note that
 the destructor names are `0` and `1`, which are legal identifier names
-for members.  For example, showing the use of a tuple destructor, here
+for members.  For an example showing the use of a tuple destructor, here
 is a property that holds of 2-tuples (that is, _pairs_):
 <!-- %check-verify -->
 ```dafny
@@ -2924,8 +2861,7 @@ datatype D<T> = _Ctors_
 where _Ctors_ is a nonempty `|`-separated list of
 _(datatype) constructors_ for the datatype.  Each constructor has the
 form:
-<!-- %no-check -->
-```dafny
+```text
 C(_params_)
 ```
 where _params_ is a comma-delimited list of types, optionally
@@ -3065,7 +3001,7 @@ branch goes on forever), respectively.
 The paper [Co-induction Simply](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/coinduction.pdf), by Leino and
 Moskal[@LEINO:Dafny:Coinduction], explains Dafny's implementation and
 verification of coinductive types. We capture the key features from that
-paper in this section but the reader is referred to that paper for more
+paper in the following section but the reader is referred to that paper for more
 complete details and to supply bibliographic references that are
 omitted here.
 
@@ -3289,6 +3225,12 @@ in Dafny are deterministic. Since there cannot be multiple fix-points,
 the language allows one function to be involved in both recursive and co-recursive calls,
 as we illustrate by the function `FivesUp`.
 
+#### 5.14.3.5. Co-Equality {#sec-co-equality}
+Equality between two values of a co-datatype is a built-in co-predicate.
+It has the usual equality syntax `s == t`, and the corresponding prefix
+equality is written `s ==#[k] t`. And similarly for `s != t`
+and `s !=#[k] t`.
+
 #### 5.14.3.4. Greatest predicates {#sec-copredicates}
 Determining properties of co-datatype values may require an infinite
 number of observations. To that end, Dafny provides _greatest predicates_
@@ -3373,12 +3315,6 @@ In the Dafny grammar this is called a ``HashCall``. The definition of
 that is, `Pos` and `Pos#` must not be in the same cluster. In other
 words, the definition of `Pos` cannot depend on `Pos#`.
 
-##### 5.14.3.4.1. Co-Equality {#sec-co-equality}
-Equality between two values of a co-datatype is a built-in co-predicate.
-It has the usual equality syntax `s == t`, and the corresponding prefix
-equality is written `s ==#[k] t`. And similarly for `s != t`
-and `s !=#[k] t`.
-
 #### 5.14.3.5. Coinductive Proofs
 From what we have said so far, a program can make use of properties of
 co-datatypes. For example, a method that declares `Pos(s)` as a
@@ -3386,7 +3322,7 @@ precondition can rely on the stream `s` containing only positive integers.
 In this section, we consider how such properties are established in the
 first place.
 
-##### 5.14.3.5.1. Properties About Prefix Predicates
+##### 5.14.3.5.1. Properties of Prefix Predicates
 Among other possible strategies for establishing coinductive properties
 we take the time-honored approach of reducing coinduction to
 induction. More precisely, Dafny passes to the SMT solver an
@@ -3540,7 +3476,8 @@ class C {
   var d: nat, e: real  // type is required
 }
 ```
-A field declaration is not permitted in a value type.
+A field declaration is not permitted in a value type nor as a member of a module
+(despite there being an implicit unnamed class).
 
 The field name is either an
 identifier (that is not allowed to start with a leading underscore) or
@@ -3638,12 +3575,12 @@ A method signature specifies the method generic parameters,
 input parameters and return parameters.
 The formal parameters are not allowed to have `ghost` specified
 if `ghost` was already specified for the method.
-Within the body of a method, formal parameters are immutable, that is, 
+Within the body of a method, formal (input) parameters are immutable, that is, 
 they may not be assigned to, though their array elements or fields may be
 assigned, if otherwise permitted.
 The out-parameters are mutable and must be assigned in the body of the method.
 
-A ``ellipsis`` is used when a method or function is being redeclared
+An ``ellipsis`` is used when a method or function is being redeclared
 in a module that refines another module. (cf. [Section 10](#sec-module-refinement))
 In that case the signature is
 copied from the module that is being refined. This works because
@@ -3701,7 +3638,7 @@ in [Section 12.5.3](#sec-friendliness) and subsequent sections.
 
 A method can be declared as ghost by preceding the declaration with the
 keyword `ghost` and as static by preceding the declaration with the keyword `static`.
-The default is non-static (i.e., instance) and non-ghost.
+The default is non-static (i.e., instance) for methods declared in a type and non-ghost.
 An instance method has an implicit receiver parameter, `this`.
 A static method M in a class C can be invoked by `C.M(…)`.
 
@@ -3969,7 +3906,7 @@ method M(c: Cell) {
 }
 ```
 
-A two-state function can declare that it only assumes a parameter to be allocated
+A two-state function may declare that it only assumes a parameter to be allocated
 in the current heap. This is done by preceding the parameter with the `new` modifier,
 as illustrated in the following example, where the first call to `DiffAgain` is legal:
 <!-- %check-verify Types.12.expect %use Increasing.tmp -->
@@ -4054,15 +3991,15 @@ Examples:
 <!-- %check-resolve -->
 ```dafny
 function f(i: int): real { i as real }
-function g(): (int, int) { (2,3) }
-function h(i: int): int requires i >= 0 { if i == 0 then 0 else 1 }
+ghost function g(): (int, int) { (2,3) }
+function h(i: int, ghost k: int): int requires i >= 0 { if i == 0 then 0 else 1 }
 ```
 
 Functions may be declared as ghost. If so, all the formal parameters and
 return values are ghost; if it is not a ghost function, then 
 individual parameters may be declared ghost as desired.
 
-See [Section 7.3](#sec-function-specification) for a description of the function specifcication.
+See [Section 7.3](#sec-function-specification) for a description of the function specification.
 
 A Dafny function is a pure mathematical function. It is allowed to
 read memory that was specified in its `reads` expression but is not
@@ -4131,7 +4068,7 @@ Pre v4.0, a function is `ghost` by default, and cannot be called from non-ghost
 code. To make it non-ghost, replace the keyword `function` with the two
 keywords "`function method`". From v4.0 on, a function is non-ghost by
 default. To make it ghost, replace the keyword `function` with the two keywords "`ghost function`".
-(See the [/functionSyntax option](#sec-function-syntax) for a description 
+(See the [--function-syntax option](#sec-function-syntax) for a description 
 of the migration path for this change in behavior.}
 
 Functions (including predicates, function-by-methods, two-state functions, and extreme predicates) may be 
@@ -4139,9 +4076,10 @@ declared `opaque`. In that case, only the signature and specification of the met
 is known at its points of use, not its body. The body can be _revealed_ for reasoning
 purposes using the [reveal statment](#sec-reveal-statement).
 
-Like methods, functions can be either _instance_ (which they are by default) or
-_static_ (when the function declaration contains the keyword `static`).
-An instance function, but not a static function, has an implicit receiver parameter, `this`.  A static function `F` in a class `C` can be invoked
+Like methods, functions can be either _instance_ (which they are by default when declared within a type) or
+_static_ (when the function declaration contains the keyword `static` or is declared in a module).
+An instance function, but not a static function, has an implicit receiver parameter, `this`.  
+A static function `F` in a class `C` can be invoked
 by `C.F(…)`. This provides a convenient way to declare a number of helper
 functions in a separate class.
 
@@ -4159,7 +4097,7 @@ If a function definition does not have a body, the program that contains it may 
 The function itself has nothing to verify.
 However, any calls of a body-less function are treated as unverified assumptions by the caller,
 asserting the preconditions and assuming the postconditions.
-Because body-less functions are unverified assumptions, Dafny will not compile them and will complain if called by [`dafny translate`, `dafny build` or even `dafny run`](https://dafny.org/latest/DafnyRef/DafnyRef#256-using-dafny-from-the-command-line)
+Because body-less functions are unverified assumptions, Dafny will not compile them and will complain if called by [`dafny translate`, `dafny build` or even `dafny run`](#command-line)
 
 ### 6.4.2. Predicates
 A function that returns a `bool` result is called a _predicate_. As an
@@ -4212,8 +4150,8 @@ call of the function-by-method into a call that leads to the method body.
 
 Note, the method body of a function-by-method may contain `print` statements.
 This means that the run-time evaluation of an expression may have print effects.
-Dafny does not track print effects, but this is the only situation that an
-expression can have a print effect.
+If `--track-print-effects` is enabled, this use of print in a function context
+will be disallowed.
 
 ### 6.4.4. Function Transparency
 A function is said to be _transparent_ in a location if the
