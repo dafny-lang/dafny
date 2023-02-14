@@ -27,7 +27,11 @@ jobs:
       run: |
         pwd
         ls
-        cd libraries
+        echo ..
+        ls ..
+        echo DAFNY
+        ls dafny
+        cd ../libraries
         git fetch
         git checkout cok-code
     - name: Restore tools
