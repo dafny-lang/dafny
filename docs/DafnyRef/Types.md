@@ -335,7 +335,7 @@ Dafny includes a family of bit-vector types, each type having a specific,
 constant length, the number of bits in its values.
 Each such type is
 distinct and is designated by the prefix `bv` followed (without white space) by
-a postive integer without leading zeros or zero, stating the number of bits. For example,
+a positive integer without leading zeros or zero, stating the number of bits. For example,
 `bv1`, `bv8`, and `bv32` are legal bit-vector type names.
 The type `bv0` is also legal; it is a bit-vector type with no bits and just one value, `0x0`.
 
@@ -381,13 +381,19 @@ unsigned arithmetic modulo 2^{number of bits}, like 2's-complement machine arith
 
 The groups of operators lower in the table above bind more tightly.[^binding]
 All operators bind more tightly than equality, disequality, and comparisons.
-All binary operators are left-associative, but the bit-wise `&`, `|`, and `^` do not associate together (parentheses are required to disambiguate).
+All binary operators are left-associative, but the 
+bit-wise `&`, `|`, and `^` do not associate together (parentheses are required to disambiguate).
+The `+`, `|`, `^`, and `&` operators are commutative.
 
 The right-hand operand of bit-shift operations is an `int` value,
 must be non-negative, and
 no more than the number of bits in the type.
 There is no signed right shift as all bit-vector values correspond to
 non-negative integers.
+
+Bit-vector negation returns an unsigned value in the correct range for the type.
+It has the properties `x + (-x) == 0` and `(!x) + 1 == -x`, for a bitvector value `x`
+of at least one bit.
 
 The argument of the `RotateLeft` and `RotateRight` operations is a
 non-negative `int` that is no larger than the bit-width of the value being rotated.
@@ -485,7 +491,7 @@ represented as $\omega$ in mathematics, though there is no literal expression in
 
 The natural numbers are ordinals.
 Any ordinal has a successor ordinal (equivalent to adding `1`).
-Some ordinals are _limit_ ordinals, meaning they are not a successor to any other ordinal;
+Some ordinals are _limit_ ordinals, meaning they are not a successor of any other ordinal;
 the natural number `0` and  $\omega$ are limit ordinals.
 
 The _offset_ of an ordinal is the number of successor operations it takes to reach it from a limit ordinal.
@@ -504,7 +510,6 @@ In addition,
 - `*`, `/` and `%` are not defined for `ORDINAL`s
 - two `ORDINAL`s may be subtracted if the RHS satisfies `.IsNat` and the offset of the LHS is not smaller than the offset of the RHS
 
-
 In Dafny, `ORDINAL`s are used primarily in conjunction with [extreme functions and lemmas](#sec-extreme).
 
 ### 5.2.5. Characters ([grammar](#g-basic-type)) {#sec-characters}
@@ -519,7 +524,6 @@ If `--unicode-char` is enabled, then `char` represents any [Unicode scalar value
 This excludes surrogate code points.
 
 Character literals are enclosed in single quotes, as in `'D'`. 
-Their form is described by the ``charToken`` nonterminal in the grammar.
 To write a single quote as a
 character literal, it is necessary to use an _escape sequence_.
 Escape sequences can also be used to write other characters.  The
@@ -873,6 +877,9 @@ expression `e` of type `T`, sets support the following operations:
 
 The expression `e !in s` is a syntactic shorthand for `!(e in s)`.
 
+(No white space is permitted between `!` and `in`, making `!in` effectively
+the one example of a mixed-character-class token in Dafny.)
+
 ### 5.5.2. Multisets ([grammar](#g-collection-type)) {#sec-multisets}
 
 A _multiset_ is similar to a set, but keeps track of the multiplicity
@@ -1021,7 +1028,7 @@ integer-based numerics `lo` and `hi` satisfying
  `e in s`           | 4 | `bool` | sequence membership
  `e !in s`          | 4 | `bool` | sequence non-membership
  `|s|`              | 11 | `nat` | sequence length
- `s[i]`             | 11 | `T` |sequence selection
+ `s[i]`             | 11 | `T` | sequence selection
  `s[i := e]`        | 11 | `seq<T>` | sequence update
  `s[lo..hi]`        | 11 | `seq<T>`| subsequence
  `s[lo..]`          | 11 | `seq<T>` | drop
@@ -1134,7 +1141,7 @@ denotes a _(possibly) infinite map_.  In most regards, `imap<T,U>` is
 like `map<T,U>`, but a map of type `imap<T,U>` is allowed to have an
 infinite domain.
 
-A map can be formed using a _map display_ expression (see [``MapDisplayExpr``](#sec-map-display-expression)),
+A map can be formed using a _map display_ expression (see [Section 0.0.0](#sec-map-display-expression)),
 which is a possibly empty, ordered list of _maplets_, each maplet having the
 form `t := u` where `t` is an expression of type `T` and `u` is an
 expression of type `U`, enclosed in square brackets after the keyword
@@ -1319,6 +1326,7 @@ type abstractly. There are several mechanisms in Dafny to do this:
 * ([Section 5.6.1](#sec-synonym-type)) A typical _synonym type_, in which a type name is a synonym for another type
 * ([Section 5.6.2](#sec-opaque-types)) An _opaque type_, in which a new type name is declared as an uninterpreted type
 * ([Section 5.6.3](#sec-subset-types)) A _subset type_, in which a new type name is given to a subset of the values of a given type
+* ([Section 0.0){#sec-newtypes)) A _newtype_, in which a subset type is declared, but with restrictions on converting to and from its base type
 
 ### 5.6.1. Type synonyms ([grammar](#g-type-definition)) {#sec-synonym-type}
 
@@ -1381,7 +1389,7 @@ a type is declared simply by:
 ```dafny
 type Y<T>
 ```
-Its definition can be revealed in a
+Its definition can be stated in a
 refining module.  The name `Y` can be immediately followed by
 a type characteristics suffix ([Section 5.3.1](#sec-type-characteristics)).
 Because there is no defining RHS, the type characteristics cannot be inferred and so
