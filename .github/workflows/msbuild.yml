@@ -31,7 +31,6 @@ jobs:
       run: |
         pwd
         ls dafny/Test/libraries
-        ls dafny/Test/libraries/src
     - name: Restore tools
       working-directory: dafny
       run: dotnet tool restore
