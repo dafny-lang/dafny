@@ -9,7 +9,7 @@ Some types, notably classes, also may contain a set of declarations, introducing
 and functions.
 
 When asked to compile a program, Dafny looks for the existence of a
-Main() method. If a legal Main() method is found, the compiler will emit
+`Main()` method. If a legal `Main()` method is found, the compiler will emit
 an executable appropriate to the target language; otherwise it will emit
 a library or individual files.
 The conditions for a legal Main() method are described in the User Guide
