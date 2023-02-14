@@ -47,17 +47,15 @@ Dafny supports both reference types that contain the special `null` value
 
 ### 5.1.3. Named Types ([grammar](#g-type))
 
-A _Named Type_ is used to specify a user-defined type by name
-(possibly module-qualified). Named types are introduced by
+A _Named Type_ is used to specify a user-defined type by a (possibly module- or class-qualified) name.
+Named types are introduced by
 class, trait, inductive, coinductive, synonym and opaque
 type declarations. They are also used to refer to type variables.
-A Named Type is denoted by a dot-separated sequence of `NameSegmentForTypeName`s
+A Named Type is denoted by a dot-separated sequence of name segments ([Section 9.32](#sec-name-segment)).
 
-A ``NameSegmentForTypeName`` is a type name optionally followed by a
-``GenericInstantiation``, which supplies type parameters to a generic
-type, if needed. It is a special case of a ``NameSegment``
-([Section 9.32](#sec-name-segment))
-that does not allow a ``HashCall``.
+A name segment (for a type) is a type name optionally followed by a
+_generic instatiation_, which supplies type parameters to a generic
+type, if needed.
 
 The following sections describe each of these kinds of types in more detail.
 
@@ -140,6 +138,16 @@ is simply a shorthand for
 ```dafny
 A == B && B == C
 ```
+
+Also,
+```dafny
+A <==> B == C <==> D
+```
+is
+```dafny
+A <==> (B == C) <==> D
+```
+
 
 #### 5.2.1.2. Conjunction and Disjunction {#sec-conjunction-and-disjunction}
 
