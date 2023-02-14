@@ -39,7 +39,7 @@ method m2() {
     );
   }
 
-  [TestMethod, Ignore]
+  [TestMethod]
   public async Task EnsuresPriorityDependsOnEditingWhileEditingSameMethod() {
     await TestPriorities(@"
 method m1() {
@@ -127,11 +127,13 @@ method m5() { assert false; } //Remove4:
     var documentItem = CreateTestDocument(code);
     client.OpenDocument(documentItem);
 
+    var source = new CancellationTokenSource();
+    source.CancelAfter(TimeSpan.FromMinutes(1));
     var index = 0;
     // ReSharper disable AccessToModifiedClosure
     async Task CompareWithExpectation(List<string> expectedSymbols) {
       try {
-        var orderAfterChange = await GetFlattenedPositionOrder(semaphoreSlim, CancellationToken);
+        var orderAfterChange = await GetFlattenedPositionOrder(semaphoreSlim, source.Token);
         var orderAfterChangeSymbols = GetSymbols(code, orderAfterChange).ToList();
         Assert.IsTrue(expectedSymbols.SequenceEqual(orderAfterChangeSymbols),
           $"Expected {string.Join(", ", expectedSymbols)} but got {string.Join(", ", orderAfterChangeSymbols)}." +
