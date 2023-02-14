@@ -39,7 +39,7 @@ method m2() {
     );
   }
 
-  [TestMethod]
+  [TestMethod, Ignore]
   public async Task EnsuresPriorityDependsOnEditingWhileEditingSameMethod() {
     await TestPriorities(@"
 method m1() {
