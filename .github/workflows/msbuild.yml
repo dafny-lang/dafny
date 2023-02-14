@@ -64,6 +64,14 @@ jobs:
     runs-on: ubuntu-20.04
     needs: integration-tests
     steps:
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: ${{env.dotnet-version}}
+
+      - name: Install dotnet-reportgenerator
+        run: dotnet tool install --global dotnet-reportgenerator-globaltool
+
       - name: Download integration test artifacts
         uses: actions/download-artifact@v3
         with:
@@ -80,6 +88,11 @@ jobs:
       - name: Show files
         run: ls -lR
 
+      - name: Merge reports
+        run: \
+          reportgenerator -reports:"./**/coverage.cobertura.xml" -reporttypes:Cobertura -targetdir:combined
+          ls -lR combined
+
       - name: Code coverage report
         uses: irongut/CodeCoverageSummary@v1.3.0
         with:
@@ -92,6 +105,3 @@ jobs:
           indicators: true
           output: both
           thresholds: '70 80'
-
-      - name: Show coverage
-        run: cat code-coverage-results.md
