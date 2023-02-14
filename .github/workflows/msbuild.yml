@@ -26,7 +26,8 @@ jobs:
     - name: New library
       run: |
         pwd
-        ( cd dafny/Test/libraries ;  git fetch ; git checkout cok-code )
+        ls dafny/Test/libraries
+        ls dafny/Test/libraries/src
     - name: Restore tools
       working-directory: dafny
       run: dotnet tool restore
