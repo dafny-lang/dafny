@@ -177,7 +177,7 @@ method Foo() ensures false { } ";
  .  S [O][O]:  ensures test2(a - b)
  .  S [S][ ]:  ensures true
     |  |  | :
- .  |  |  | :predicate method test2(x: nat) {
+ .  |  |  | :predicate test2(x: nat) {
  .  |  |  | :  true
  .  |  |  | :}");
   }
@@ -189,14 +189,14 @@ method Foo() ensures false { } ";
  .  |  |  | :method test() {
  .  |  |  | :}
     |  |  | :
- .  S [S][ ]:function method {:extern} test4(a: nat, b: nat): nat
+ .  S [S][ ]:function {:extern} test4(a: nat, b: nat): nat
  .  S [S][ ]:  ensures true
  .  S [=][=]:  ensures test2(a - b)
  .  S [S][ ]:  ensures true
  .  S [O][O]:  ensures test2(a - b)
  .  S [S][ ]:  ensures true
     |  |  | :
- .  |  |  | :predicate method test2(x: nat) {
+ .  |  |  | :predicate test2(x: nat) {
  .  |  |  | :  true
  .  |  |  | :}");
   }

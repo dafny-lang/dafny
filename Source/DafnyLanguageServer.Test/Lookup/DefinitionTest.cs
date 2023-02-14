@@ -57,7 +57,7 @@ datatype A = A {
   static method create() returns (ret: A)
 }
 datatype Result<T, E> = Ok(value: T) | Err({>1:error<}: E) {
-  function method PropagateFailure<U>(): Result<U, E>
+  function PropagateFailure<U>(): Result<U, E>
     requires Err?
   {
     Err(this.er><ror)
@@ -87,7 +87,7 @@ datatype Result<T, E> = Ok(value: T) | Err({>1:error<}: E) {
       var source = @"
 module [>Zaz<] {
   trait [>E<] {
-    static function method [>Foo<](): E
+    static function [>Foo<](): E
   }
 }
 
@@ -218,7 +218,7 @@ module Provider {
 
     constructor() {}
 
-    function method [>GetX<](): int
+    function [>GetX<](): int
       reads this`><x
     {
       this.x
