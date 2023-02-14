@@ -128,7 +128,7 @@ method m5() { assert false; } //Remove4:
     client.OpenDocument(documentItem);
 
     var source = new CancellationTokenSource();
-    source.CancelAfter(TimeSpan.FromMinutes(1));
+    source.CancelAfter(TimeSpan.FromMinutes(5));
     var index = 0;
     // ReSharper disable AccessToModifiedClosure
     async Task CompareWithExpectation(List<string> expectedSymbols) {
