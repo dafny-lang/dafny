@@ -1086,7 +1086,7 @@ var ms2 : multiset<int> := multiset(sq);
 assert ms == ms2;
 ```
 
-Note that `multiset{1, 1})` is a multiset holding the value `1` with multiplicity 2,
+Note that `multiset{1, 1}` is a multiset holding the value `1` with multiplicity 2,
 but in `multiset({1,1})` the multiplicity is 1, because the expression `{1,1}` is the set `{1}`,
 which is then converted to a multiset.
 
