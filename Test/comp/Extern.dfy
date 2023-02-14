@@ -40,23 +40,23 @@ module {:extern "Library"} Library {
   }
 
   class {:extern} AllDafny {
-    static ghost function Seven(): int { 7 }
+    static function Seven(): int { 7 }
     static method M() { print "AllDafny.M\n"; }
   }
   class {:extern} Mixed {
     constructor() { }
-    static ghost function Seven(): int { 7 }
+    static function Seven(): int { 7 }
     static method M() { print "Extern static method says: "; P(); }
     static method {:extern} P()
     method IM() { print "Extern instance method says: "; IP(); }
     method {:extern} IP()
-    static ghost function F() : int { 1000 + G() }
-    static ghost function {:extern} G() : int
+    static function F() : int { 1000 + G() }
+    static function {:extern} G() : int
     function IF() : int { 2000 + IG() }
     function {:extern} IG() : int
   }
   class {:extern} AllExtern {
-    static ghost function Seven(): int { 7 }
+    static function Seven(): int { 7 }
     static method {:extern} P()
   }
 

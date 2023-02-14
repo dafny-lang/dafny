@@ -60,6 +60,14 @@ module ByMethodVerification {
     return x + 1; // error: this is not what the function body does
   }
 
+  predicate Pred0(x: int) // error: function body does not meet postcondition
+    ensures Pred0(x) ==> x < 100
+  {
+    x == 23 || x == 102
+  } by method {
+    return x == 22; // error: this is not what the function body does
+  }
+
   predicate Pred1(x: int) // error: function body does not meet postcondition
     ensures Pred1(x) ==> x < 100
   {

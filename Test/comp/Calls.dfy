@@ -80,17 +80,17 @@ module FunctionValues {
     const x: int
     constructor (x: int) { this.x := x; }
     function F(): int { x }
-    static ghost function G(): int { 3 }
+    static function G(): int { 3 }
   }
 
   datatype Color = Red | Green | Blue {
     function F(): int { if this == Red then 5 else 2 }
-    static ghost function G(): int { 3 }
+    static function G(): int { 3 }
   }
 
   newtype NT = x | 0 <= x < 15 {
     function F(): int { this as int }
-    static ghost function G(): int { 3 }
+    static function G(): int { 3 }
   }
 }
 

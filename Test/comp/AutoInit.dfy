@@ -17,7 +17,7 @@ class WClass<W> {
   constructor Make(w: W) {
     strm := Generate(w);
   }
-  static ghost function Generate(w: W): Stream<W> {
+  static function Generate(w: W): Stream<W> {
     Next(w, Generate(w))
   }
 }

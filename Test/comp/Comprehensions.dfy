@@ -536,7 +536,7 @@ module NewtypeRangeRegression {
   }
 }
 
-module {:options "/functionSyntax:4"} EnumerationRegression {
+module {:options "--function-syntax:4"} EnumerationRegression {
   method Test() {
     // The Java compiler once converted each candidate Long number to a 32-bit int, which meant
     // that none of them fell into the range mentioned by the set. Thus, it erroneously computed

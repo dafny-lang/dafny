@@ -269,7 +269,7 @@ module EqualitySupportingTypes {
   method P<T>()
   function G<T>(): int
   class AClass<V(==),Y> {
-    static ghost function H<W,X(==)>(): bool
+    static function H<W,X(==)>(): bool
     static method Q<A,B(==)>()
   }
 

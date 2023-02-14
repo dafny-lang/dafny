@@ -15,7 +15,7 @@ method Main() {
   print "Sums: ", Sum(s), " ", Sum(s'), "\n";
 }
 
-ghost function Four(): int {
+function Four(): int {
   4
 } by method {
   // The print statement in Dafny is effectful, but it has no specification that
@@ -27,7 +27,7 @@ ghost function Four(): int {
   return 2 + 2;
 }
 
-ghost function Recursive(n: nat, acc: nat := 0): nat {
+function Recursive(n: nat, acc: nat := 0): nat {
   2 * n + acc
 } by method { // compiled as tail recursive
   if n == 0 {
@@ -37,7 +37,7 @@ ghost function Recursive(n: nat, acc: nat := 0): nat {
   }
 }
 
-ghost function NonCompilableFunction(n: nat): (r: nat) {
+function NonCompilableFunction(n: nat): (r: nat) {
   // This function body cannot be compiled, since it mentions a least predicate.
   // That's fine, as long as the compiler doesn't incorrectly try to compile the
   // function body.
@@ -87,7 +87,7 @@ lemma Pong(x: int)
 // that will be solved once Dafny supports built-in iterations
 // over sets).
 
-ghost function Sum(s: set<int>): int {
+function Sum(s: set<int>): int {
   if s == {} then 0 else
     var x := Pick(s);
     x + Sum(s - {x})

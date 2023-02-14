@@ -354,7 +354,7 @@ module Regression {
   }
 }
 
-ghost function FunctionByMethodTailRecursion(x: int, y: int := 0): (r: int) {
+function FunctionByMethodTailRecursion(x: int, y: int := 0): (r: int) {
   x + y
 } by method {
   if x < 8 || x == 77 {

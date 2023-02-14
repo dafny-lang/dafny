@@ -17,7 +17,7 @@
 // RUN: %s.exe "cpp" 2 >> "%t"
 // RUN: %s.exe "cpp" 1 >> "%t"
 // RUN: %s.exe "cpp" "aloha" >> "%t"
-// RUN: %baredafny build %args --unicode-char --no-verify --unicode-char:0 --target:java "%s" --output:"%s.jar" >> "%t"
+// RUN: %baredafny build %args --no-verify --unicode-char:0 --target:java "%s" --output:"%s.jar" >> "%t"
 // RUN: java -jar "%s.jar" Java 2 >> "%t"
 // RUN: java -jar "%s.jar" Java 1 >> "%t"
 // RUN: java -jar "%s.jar" Java aloha >> "%t"

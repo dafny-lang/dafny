@@ -18,7 +18,7 @@ class MyClass {
   }
 
   function F(): int { 8 }
-  static ghost function G(): int { 9 }
+  static function G(): int { 9 }
   method M() returns (r: int) { r := 69; }
   static method N() returns (r: int) { r := 70; }
 }
@@ -31,7 +31,7 @@ trait MyTrait {
   static const e := 18
 
   function F(): int { 8 }
-  static ghost function G(): int { 9 }
+  static function G(): int { 9 }
   method M() returns (r: int) { r := 69; }
   static method N() returns (r: int) { r := 70; }
 }
