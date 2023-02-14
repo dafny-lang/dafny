@@ -12,7 +12,7 @@ When asked to compile a program, Dafny looks for the existence of a
 `Main()` method. If a legal `Main()` method is found, the compiler will emit
 an executable appropriate to the target language; otherwise it will emit
 a library or individual files.
-The conditions for a legal Main() method are described in the User Guide
+The conditions for a legal `Main()` method are described in the User Guide
 ([Section 3.4](#sec-user-guide-main)).
 If there is more than one Main(), Dafny will emit an error message.
 
