@@ -25,6 +25,8 @@ jobs:
         path: dafny
     - name: New library
       run: |
+        pwd
+        ls
         cd libraries
         git fetch
         git checkout cok-code
