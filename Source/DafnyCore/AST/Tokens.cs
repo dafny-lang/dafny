@@ -229,10 +229,10 @@ public class BoogieRangeToken : TokenWrapper {
   }
 }
 
-public class CodeActionToken : TokenWrapper {
+public class CodeActionRange : TokenWrapper {
   public int column;
   public int length;
-  public CodeActionToken(IToken sourceTok, int column, int length) : base(sourceTok) {
+  public CodeActionRange(IToken sourceTok, int column, int length) : base(sourceTok) {
     this.column = column;
     this.length = length;
   }

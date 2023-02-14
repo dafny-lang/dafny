@@ -42,7 +42,7 @@ namespace Microsoft.Dafny {
       var success = (Dafny.Parser.Parse(source, fname, fname, null, module, builtIns, new Dafny.Errors(reporter)) == 0 &&
                      Dafny.Main.ParseIncludesDepthFirstNotCompiledFirst(module, builtIns, new HashSet<string>(), new Dafny.Errors(reporter)) == null);
       if (success) {
-        dafnyProgram = new Dafny.Program(fname, module, builtIns, reporter);
+        dafnyProgram = new Dafny.Program(fname, module, builtIns, reporter, DafnyOptions.O);
       }
       return success;
     }

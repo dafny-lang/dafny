@@ -216,7 +216,7 @@ namespace Microsoft.Dafny {
         dmap.PrintMap();
       }
 
-      program = new Program(programName, module, builtIns, reporter);
+      program = new Program(programName, module, builtIns, reporter, DafnyOptions.O);
 
       MaybePrintProgram(program, DafnyOptions.O.DafnyPrintFile, false);
 

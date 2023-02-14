@@ -49,7 +49,8 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           new LiteralModuleDecl(new DefaultModuleDefinition(), null),
           // BuiltIns cannot be initialized without Type.ResetScopes() before.
           new BuiltIns(), // TODO creating a BuiltIns is a heavy operation
-          errorReporter
+          errorReporter,
+          DafnyOptions.Create()
         )),
         new Dictionary<object, ILocalizableSymbol>(),
         new Dictionary<ISymbol, SymbolLocation>(),
