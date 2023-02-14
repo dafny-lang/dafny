@@ -340,10 +340,10 @@ module X {
 }
 ```
 `Option.a` now means the `a` in the datatype instead of the `a` in the module.
-To avoid confusion in such cases, it is an ambiguity error to use such a name
+To avoid confusion in such cases, it is an ambiguity error if a name
+that is declared in both the datatype and the module is used
 when there is an `import open` of
-a module without renaming that contains a declaration with the same name as a declaration in 
-a type in the module when the type has the same name as the module.
+the module (without renaming).
 
 ## 4.5. Export Sets and Access Control ([grammar](#g-module-export)) {#sec-export-sets}
 

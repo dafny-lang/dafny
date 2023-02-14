@@ -46,8 +46,9 @@ specified.
 The file name may be a path using the customary `/`, `.`, and `..` punctuation.
 The interpretation of the name (e.g., case-sensitivity) will depend on the
 underlying operating system. A path not beginning with `/` is looked up in
-the underlying file system relative to the _location of the file in which the
-include directive is stated_. Paths beginning with a device
+the underlying file system relative to the 
+_location of the file in which the include directive is stated_. 
+Paths beginning with a device
 designator (e.g., `C:`) are only permitted on Windows systems.
 Better style advocates using relative paths in include directives so that
 groups of files may be moved as a whole to a new location.
@@ -163,8 +164,7 @@ method must be a legal main entry point.
 If exactly one is found, that method is used as the entry point; if more
 than one method has the `{:main}` attribute, an error message is issued.
 * Otherwise, the program is searched for a method with the name `Main`.
-If more than one is found
-an error message is issued.
+If more than one is found an error message is issued.
 
 Any abstract modules are not searched for candidate entry points,
 but otherwise the entry point may be in any module or type. In addition,

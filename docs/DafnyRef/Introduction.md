@@ -67,7 +67,7 @@ Some of the highlights of Dafny 4.0 are
 * support for full unicode
 TODO
 
-The user documentation has been expanded with more examples, A FAQ, and an error explanation catalog.
+The user documentation has been expanded with more examples, a FAQ, and an error explanation catalog.
 There is even a new book, [Program Proofs](https://mitpress.mit.edu/9780262546232/program-proofs/) by Dafny designer Rustan Leino.
 
 The IDE now has a framework for showing error explanation informatino and corresponding quick fixes are
