@@ -5,8 +5,9 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt>, ICanFormat {
-  public readonly Expression Source;
+public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt>, ICanFormat, INestedMatch {
+  public Expression Source { get; }
+  public string MatchTypeName => "statement";
   public readonly List<NestedMatchCaseStmt> Cases;
   public readonly bool UsesOptionalBraces;
 

@@ -10,6 +10,8 @@ namespace Microsoft.Dafny;
 
 public interface INode {
   RangeToken RangeToken { get; }
+
+  IToken Tok { get; }
 }
 
 public interface ICanFormat : INode {
@@ -124,7 +126,6 @@ public abstract class Node : INode {
             .ToDictionary(child => child.StartToken.pos, child => child.EndToken!);
       } catch (ArgumentException) {
         // If we parse a resolved document, some children sometimes have the same token because they are auto-generated
-        Debugger.Break();
         startToEndTokenNotOwned = new();
         foreach (var child in childrenFiltered) {
           if (startToEndTokenNotOwned.ContainsKey(child.StartToken.pos)) {
@@ -232,8 +233,13 @@ public abstract class TokenNode : Node {
   }
 }
 
-public abstract class RangeNode : Node {
-  public override RangeToken RangeToken { get; set; } // TODO remove set when TokenNode is gone.
+public abstract class RangeNode : Node { // TODO merge into Node when TokenNode is gone.
+  public override IToken Tok => StartToken; // TODO rename to ReportingToken in separate PR
+
+  public IToken tok => Tok; // TODO replace with Tok in separate PR
+
+  // TODO rename to Range in separate PR
+  public override RangeToken RangeToken { get; set; } // TODO remove setter when TokenNode is gone.
 
   protected RangeNode(Cloner cloner, RangeNode original) {
     RangeToken = cloner.Tok(original.RangeToken);

@@ -1125,61 +1125,10 @@ of these are described in the following subsections. In general note the followi
 included by default and must be explicitly requested using `--include-runtime`.  All runtime libraries are part of the Binary (`./DafnyRuntime.*`) and Source (`./Source/DafnyRuntime/DafnyRuntime.*`) releases.
 - Names in Dafny are written out as names in the target language. In some cases this can result in naming conflicts. Thus if a Dafny program is intended to be compiled to a target language X, you should avoid using Dafny identifiers that are not legal identifiers in X or that conflict with reserved words in X.
 
-### 13.7.1. Main method {#sec-user-guide-main}
+To be compilable to an executable program, a Dafny program must contain a `Main` entry point, as described [here](#sec-user-guide-main).
 
-To generate a stand-alone executable from a Dafny program, the
-Dafny program must use a specific method as the executable entry point.
-That method is determined as follows:
 
-* If the /Main option is specified on the command-line with an argument of "-", then no entry point is used at all
-* If the /Main option is specified on the command-line and its argument is
-not an empty string, then its argument is
-interpreted as the fully-qualified name of a method to be used as the entry point. If there is no matching method, an error message is issued.
-* Otherwise, the program is searched for a method with the attribute `{:main}`.
-If exactly one is found, that method is used as the entry point; if more
-than one method has the `{:main}` attribute, an error message is issued.
-* Otherwise, the program is searched for a method with the name `Main`.
-If more than one is found
-an error message is issued.
-
-Any abstract modules are not searched for candidate entry points,
-but otherwise the entry point may be in any module or type. In addition,
-an entry-point candidate must satisfy the following conditions:
-
-* The method has no type parameters and either has no parameters or one parameter of type `seq<string>`
-* The method is not a ghost method
-* The method has no requires or modifies clauses, unless it is marked `{:main}`
-* If the method is an instance (that is, non-static) method and the
-  enclosing type is a class,
-  then that class must not declare any constructor.
-  In this case, the runtime system will
-  allocate an object of the enclosing class and will invoke
-  the entry-point method on it.
-* If the method is an instance (that is, non-static) method and the
-  enclosing type is not a class,
-  then the enclosing type must, when instantiated with auto-initializing
-  type parameters, be an auto-initializing type.
-  In this case, the runtime system will
-  invoke the entry-point method on a value of the enclosing type.
-
-Note, however, that the following are allowed:
-
-* The method is allowed to have `ensures` clauses
-* The method is allowed to have `decreases` clauses, including a
-  `decreases *`. (If Main() has a `decreases *`, then its execution may
-  go on forever, but in the absence of a `decreases *` on Main(), `dafny`
-  will have verified that the entire execution will eventually
-  terminate.)
-
-If no legal candidate entry point is identified, `dafny` will still produce executable output files, but
-they will need to be linked with some other code in the target language that
-provides a `main` entry point.
-
-If the `Main` method takes an argument (of type `seq<string>`), the value of that input argument is the sequence
-of command-line arguments, with the first entry of the sequence (at index 0) being a system-determined name for the 
-executable being run.
-
-### 13.7.2. `extern` declarations {#sec-extern-decls}
+### 13.7.1. `extern` declarations {#sec-extern-decls}
 
 A Dafny declaration can be marked with the [`{:extern}`](#sec-extern) attribute to
 indicate that it refers to an external definition that is already
@@ -1292,7 +1241,7 @@ Detailed description of the `dafny build` and `dafny run` commands and
 the `--input` option (needed when `dafny run` has more than one input file)
 is contained [in the section on command-line structure](#command-line).
 
-### 13.7.3. C\#
+### 13.7.2. C\#
 
 For a simple Dafny-only program, the translation step converts a `A.dfy` file into `A.cs`;
 the build step then produces a `A.dll`, which can be used as a library or as an executable (ran via `dotnet A.dll`).
@@ -1312,7 +1261,7 @@ Note that all input `.dfy` files and any needed runtime library code are combine
 Examples of how to integrate C# libraries and source code with Dafny source code
 are contained in [this separate document](integration-cs/IntegrationCS).
 
-### 13.7.4. Java
+### 13.7.3. Java
 
 The Dafny-to-Java compiler translation phase writes out the translated files of a file _A_`.dfy`
 to a directory _A_`-java`. 
@@ -1334,7 +1283,7 @@ but not if dafny is only doing translation.
 Examples of how to integrate Java source code and libraries with Dafny source
 are contained in [this separate document](integration-java/IntegrationJava).
 
-### 13.7.5. Javascript
+### 13.7.4. Javascript
 
 The Dafny-to-Javascript compiler translates all the given `.dfy` files into a single `.js` file, which can then be run using `node`. (Javascript has no compilation step). 
 The build and run steps are simply
@@ -1347,7 +1296,7 @@ Or, in one step,
 Examples of how to integrate Javascript libraries and source code with Dafny source
 are contained in [this separate document](integration-js/IntegrationJS).
 
-### 13.7.6. Go
+### 13.7.5. Go
 
 The Dafny-to-Go compiler translates all the given `.dfy` files into a single
 `.go` file in `A-go/src/A.go`; the output folder can be specified with the 
@@ -1370,7 +1319,7 @@ change, though the `./A` alternative will still be supported.
 Examples of how to integrate Go source code and libraries with Dafny source
 are contained in [this separate document](integration-go/IntegrationGo).
 
-### 13.7.7. Python
+### 13.7.6. Python
 
 The Dafny-to-Python compiler is still under development. However, simple
 Dafny programs can be built and run as follows. The Dafny-to-Python
@@ -1387,7 +1336,7 @@ In one step:
 Examples of how to integrate Python libraries and source code with Dafny source
 are contained in [this separate document](integration-py/IntegrationPython).
 
-### 13.7.8. C++
+### 13.7.7. C++
 
 The C++ backend was written assuming that it would primarily support writing
 C/C++ style code in Dafny, which leads to some limitations in the current
@@ -1407,7 +1356,7 @@ implementation.
 - The current backend also assumes the use of C++17 in order to cleanly and
   performantly implement datatypes.
 
-### 13.7.9. Supported features by target language {#sec-supported-features-by-target-language}
+### 13.7.8. Supported features by target language {#sec-supported-features-by-target-language}
 
 Some Dafny features are not supported by every target language.
 The table below shows which features are supported by each backend.
