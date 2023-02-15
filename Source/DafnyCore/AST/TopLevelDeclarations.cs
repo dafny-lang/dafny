@@ -1614,7 +1614,8 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
     var rightIndent = indent2;
     var noExtraIndent =
       formatter.ReduceBlockiness && Ctors.Count == 1
-                                 && Ctors[0].Formals.Count > 0;
+                                 && Ctors[0].Formals.Count > 0
+                                 && Ctors[0].StartToken.line == StartToken.line;
     if (noExtraIndent) {
       rightOfVerticalBarIndent = indent;
     }
@@ -1857,7 +1858,6 @@ public class CodeContextWrapper : ICodeContext {
 /// An ICallable is a Function, Method, IteratorDecl, or (less fitting for the name ICallable) RedirectingTypeDecl or DatatypeDecl.
 /// </summary>
 public interface ICallable : ICodeContext, INode {
-  IToken Tok { get; }
   string WhatKind { get; }
   string NameRelativeToModule { get; }
   Specification<Expression> Decreases { get; }

@@ -10,6 +10,7 @@ namespace Microsoft.Dafny;
 
 public interface INode {
   RangeToken RangeToken { get; }
+  IToken Tok { get; }
 }
 
 public interface ICanFormat : INode {

@@ -22,6 +22,7 @@ using static Microsoft.Dafny.ErrorDetail;
 
 namespace Microsoft.Dafny {
   public partial class Resolver {
+    public DafnyOptions Options { get; }
     public readonly BuiltIns builtIns;
 
     public ErrorReporter reporter;
@@ -235,10 +236,12 @@ namespace Microsoft.Dafny {
     private List<IRewriter> rewriters;
     private RefinementTransformer refinementTransformer;
 
-    public Resolver() {
+    public Resolver(DafnyOptions options) {
+      Options = options;
     }
 
     public Resolver(Program prog) {
+      Options = prog.Options;
       Contract.Requires(prog != null);
 
       builtIns = prog.BuiltIns;
@@ -418,7 +421,7 @@ namespace Microsoft.Dafny {
 
       rewriters = new List<IRewriter>();
 
-      if (DafnyOptions.O.AuditProgram) {
+      if (Options.AuditProgram) {
         rewriters.Add(new Auditor.Auditor(reporter));
       }
 
@@ -432,16 +435,16 @@ namespace Microsoft.Dafny {
       rewriters.Add(new ProvideRevealAllRewriter(this.reporter));
       rewriters.Add(new MatchFlattener(this.reporter, Resolver.defaultTempVarIdGenerator));
 
-      if (DafnyOptions.O.AutoTriggers) {
+      if (Options.AutoTriggers) {
         rewriters.Add(new QuantifierSplittingRewriter(reporter));
         rewriters.Add(new TriggerGeneratingRewriter(reporter));
       }
 
-      if (DafnyOptions.O.TestContracts != DafnyOptions.ContractTestingMode.None) {
+      if (Options.TestContracts != DafnyOptions.ContractTestingMode.None) {
         rewriters.Add(new ExpectContracts(reporter));
       }
 
-      if (DafnyOptions.O.RunAllTests) {
+      if (Options.RunAllTests) {
         rewriters.Add(new RunAllTestsMainMethod(reporter));
       }
 
@@ -449,13 +452,13 @@ namespace Microsoft.Dafny {
       rewriters.Add(new PrintEffectEnforcement(reporter));
       rewriters.Add(new BitvectorOptimization(reporter));
 
-      if (DafnyOptions.O.DisallowConstructorCaseWithoutParentheses) {
+      if (Options.DisallowConstructorCaseWithoutParentheses) {
         rewriters.Add(new ConstructorWarning(reporter));
       }
       rewriters.Add(new UselessOldLinter(reporter));
       rewriters.Add(new PrecedenceLinter(reporter));
 
-      foreach (var plugin in DafnyOptions.O.Plugins) {
+      foreach (var plugin in Options.Plugins) {
         rewriters.AddRange(plugin.GetRewriters(reporter));
       }
 
@@ -1173,7 +1176,7 @@ namespace Microsoft.Dafny {
         var scope = exportDecl.Signature.VisibilityScope;
         Cloner cloner = new ScopeCloner(scope);
         var exportView = cloner.CloneModuleDefinition(m, m.Name);
-        if (DafnyOptions.O.DafnyPrintExportedViews.Contains(exportDecl.FullName)) {
+        if (Options.DafnyPrintExportedViews.Contains(exportDecl.FullName)) {
           var wr = Console.Out;
           wr.WriteLine("/* ===== export set {0}", exportDecl.FullName);
           var pr = new Printer(wr);
@@ -1907,7 +1910,7 @@ namespace Microsoft.Dafny {
           if (cl.IsDefaultClass) {
             foreach (MemberDecl m in members.Values) {
               Contract.Assert(!m.HasStaticKeyword || m is ConstantField ||
-                              DafnyOptions.O
+                              Options
                                 .AllowGlobals); // note, the IsStatic value isn't available yet; when it becomes available, we expect it will have the value 'true'
               if (m is Function || m is Method || m is ConstantField) {
                 sig.StaticMembers[m.Name] = m;
@@ -3925,7 +3928,7 @@ namespace Microsoft.Dafny {
       // Finally, of the big-enough native types, pick the first one that is
       // supported by the selected target compiler.
       foreach (var nativeT in bigEnoughNativeTypes) {
-        if (DafnyOptions.O.Backend.SupportedNativeTypes.Contains(nativeT.Name)) {
+        if (Options.Backend.SupportedNativeTypes.Contains(nativeT.Name)) {
           dd.NativeType = nativeT;
           break;
         }
@@ -6676,98 +6679,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(resolutionContext != null);
 
       nestedMatchExpr.Resolve(this, resolutionContext);
-    }
-
-    void ResolveMatchExpr(MatchExpr me, ResolutionContext resolutionContext) {
-      Contract.Requires(me != null);
-      Contract.Requires(resolutionContext != null);
-      Contract.Requires(me.OrigUnresolved == null);
-
-      // first, clone the original match expression
-      me.OrigUnresolved = (MatchExpr)new ClonerKeepParensExpressions().CloneExpr(me);
-      ResolveExpression(me.Source, resolutionContext);
-
-      Contract.Assert(me.Source.Type != null);  // follows from postcondition of ResolveExpression
-
-      var sourceType = PartiallyResolveTypeForMemberSelection(me.Source.tok, me.Source.Type).NormalizeExpand();
-
-      var dtd = sourceType.AsDatatype;
-      var subst = new Dictionary<TypeParameter, Type>();
-      Dictionary<string, DatatypeCtor> ctors;
-      if (dtd == null) {
-        reporter.Error(MessageSource.Resolver, me.Source, "the type of the match source expression must be a datatype (instead found {0})", me.Source.Type);
-        ctors = null;
-      } else {
-        Contract.Assert(sourceType != null);  // dtd and sourceType are set together above
-        ctors = dtd.ConstructorsByName;
-        Contract.Assert(ctors != null);  // dtd should have been inserted into datatypeCtors during a previous resolution stage
-
-        // build the type-parameter substitution map for this use of the datatype
-        subst = TypeParameter.SubstitutionMap(dtd.TypeArgs, sourceType.TypeArgs);
-      }
-
-      ISet<string> memberNamesUsed = new HashSet<string>();
-      me.Type = new InferredTypeProxy();
-      foreach (MatchCaseExpr mc in me.Cases) {
-        if (ctors != null) {
-          Contract.Assert(dtd != null);
-          var ctorId = mc.Ctor.Name;
-          if (me.Source.Type.AsDatatype is TupleTypeDecl) {
-            var tuple = (TupleTypeDecl)me.Source.Type.AsDatatype;
-            ctorId = BuiltIns.TupleTypeCtorName(tuple.Dims);
-          }
-          if (!ctors.ContainsKey(ctorId)) {
-            reporter.Error(MessageSource.Resolver, mc.tok, "member '{0}' does not exist in datatype '{1}'", ctorId, dtd.Name);
-          } else {
-            if (mc.Ctor.Formals.Count != mc.Arguments.Count) {
-              if (me.Source.Type.AsDatatype is TupleTypeDecl) {
-                reporter.Error(MessageSource.Resolver, mc.tok, "case arguments count does not match source arguments count");
-              } else {
-                reporter.Error(MessageSource.Resolver, mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", ctorId, mc.Arguments.Count, mc.Ctor.Formals.Count);
-              }
-            }
-            if (memberNamesUsed.Contains(ctorId)) {
-              reporter.Error(MessageSource.Resolver, mc.tok, "member {0} appears in more than one case", mc.Ctor.Name);
-            } else {
-              memberNamesUsed.Add(ctorId);  // add mc.Id to the set of names used
-            }
-          }
-        }
-        scope.PushMarker();
-        int i = 0;
-        if (mc.Arguments != null) {
-          foreach (BoundVar v in mc.Arguments) {
-            scope.Push(v.Name, v);
-            ResolveType(v.tok, v.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
-            if (i < mc.Ctor.Formals.Count) {
-              Formal formal = mc.Ctor.Formals[i];
-              Type st = formal.Type.Subst(subst);
-              ConstrainSubtypeRelation(v.Type, st, me,
-                "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", v.Type, st);
-              v.IsGhost = formal.IsGhost;
-            }
-            i++;
-          }
-        }
-
-        ResolveExpression(mc.Body, resolutionContext);
-
-        Contract.Assert(mc.Body.Type != null);  // follows from postcondition of ResolveExpression
-        ConstrainSubtypeRelation(me.Type, mc.Body.Type, mc.Body.tok, "type of case bodies do not agree (found {0}, previous types {1})", mc.Body.Type, me.Type);
-        scope.PopMarker();
-      }
-      if (dtd != null && memberNamesUsed.Count != dtd.Ctors.Count) {
-        // We could complain about the syntactic omission of constructors:
-        //   reporter.Error(MessageSource.Resolver, expr, "match expression does not cover all constructors");
-        // but instead we let the verifier do a semantic check.
-        // So, for now, record the missing constructors:
-        foreach (var ctr in dtd.Ctors) {
-          if (!memberNamesUsed.Contains(ctr.Name)) {
-            me.MissingCases.Add(ctr);
-          }
-        }
-        Contract.Assert(memberNamesUsed.Count + me.MissingCases.Count == dtd.Ctors.Count);
-      }
     }
 
     void ResolveCasePattern<VT>(CasePattern<VT> pat, Type sourceType, ResolutionContext resolutionContext)
