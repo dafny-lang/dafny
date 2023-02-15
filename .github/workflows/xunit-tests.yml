@@ -28,21 +28,21 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-20.04
-            suffix: ubuntu-20.04
-            z3: z3-4.8.5-x64-ubuntu-16.04
-            chmod: true
-            coverage: true
-          - os: windows-2019
-            suffix: win
-            z3: z3-4.8.5-x64-win
-            chmod: false
-            coverage: false
           - os: macos-latest
             suffix: osx
             z3: z3-4.8.5-x64-osx-10.14.2
             chmod: true
             coverage: false
+          - os: windows-2019
+            suffix: win
+            z3: z3-4.8.5-x64-win
+            chmod: false
+            coverage: false
+          - os: ubuntu-20.04
+            suffix: ubuntu-20.04
+            z3: z3-4.8.5-x64-ubuntu-16.04
+            chmod: true
+            coverage: true
     env:
       solutionPath: Source/Dafny.sln
       z3BaseUri: https://github.com/Z3Prover/z3/releases/download/Z3-4.8.5
