@@ -294,4 +294,43 @@ public class BuiltIns {
     Contract.Assert(0 <= dims);
     return TupleTypeCtorNamePrefix + dims;
   }
+
+  private static Boogie.Program prelude;
+  public static Boogie.Program ReadPreludeCached() {
+    prelude ??= ReadPrelude();
+    return (Boogie.Program)prelude.Clone();
+  }
+
+  private static Boogie.Program ReadPrelude() {
+    string preludePath = DafnyOptions.O.DafnyPrelude;
+    if (preludePath == null) {
+      //using (System.IO.Stream stream = cce.NonNull( System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("DafnyPrelude.bpl")) // Use this once Spec#/VSIP supports designating a non-.resx project item as an embedded resource
+      string codebase = cce.NonNull(System.IO.Path.GetDirectoryName(cce.NonNull(System.Reflection.Assembly.GetExecutingAssembly().Location)));
+      preludePath = System.IO.Path.Combine(codebase, "DafnyPrelude.bpl");
+    }
+
+    var defines = new List<string>();
+    if (6 <= DafnyOptions.O.ArithMode) {
+      defines.Add("ARITH_DISTR");
+    }
+    if (8 <= DafnyOptions.O.ArithMode) {
+      defines.Add("ARITH_MUL_DIV_MOD");
+    }
+    if (9 <= DafnyOptions.O.ArithMode) {
+      defines.Add("ARITH_MUL_SIGN");
+    }
+    if (10 <= DafnyOptions.O.ArithMode) {
+      defines.Add("ARITH_MUL_COMM");
+      defines.Add("ARITH_MUL_ASSOC");
+    }
+    if (DafnyOptions.O.Get(CommonOptionBag.UnicodeCharacters)) {
+      defines.Add("UNICODE_CHAR");
+    }
+    int errorCount = Microsoft.Boogie.Parser.Parse(preludePath, defines, out var prelude);
+    if (prelude == null || errorCount > 0) {
+      return null;
+    } else {
+      return prelude;
+    }
+  }
 }
