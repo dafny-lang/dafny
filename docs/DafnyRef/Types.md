@@ -1142,7 +1142,7 @@ denotes a _(possibly) infinite map_.  In most regards, `imap<T,U>` is
 like `map<T,U>`, but a map of type `imap<T,U>` is allowed to have an
 infinite domain.
 
-A map can be formed using a _map display_ expression (see [Section 0.0.0](#sec-map-display-expression)),
+A map can be formed using a _map display_ expression (see [Section 9.30](#sec-map-display-expression)),
 which is a possibly empty, ordered list of _maplets_, each maplet having the
 form `t := u` where `t` is an expression of type `T` and `u` is an
 expression of type `U`, enclosed in square brackets after the keyword
@@ -1958,6 +1958,7 @@ constructor (here, named `Init`), which allocates and initializes the object.
 The third form is the same as the second, but invokes the _anonymous constructor_
 of the class (that is, a constructor declared with the empty-string name).
 
+The details of constructors and other class members are described in [Section 6.3.2](#sec-constructor-methods).
 
 <!--PDF NEWPAGE-->
 ## 5.9. Trait types ([grammar](#g-trait-type)) {#sec-trait-types}
@@ -3226,13 +3227,13 @@ in Dafny are deterministic. Since there cannot be multiple fix-points,
 the language allows one function to be involved in both recursive and co-recursive calls,
 as we illustrate by the function `FivesUp`.
 
-#### 5.14.3.5. Co-Equality {#sec-co-equality}
+#### 5.14.3.4. Co-Equality {#sec-co-equality}
 Equality between two values of a co-datatype is a built-in co-predicate.
 It has the usual equality syntax `s == t`, and the corresponding prefix
 equality is written `s ==#[k] t`. And similarly for `s != t`
 and `s !=#[k] t`.
 
-#### 5.14.3.4. Greatest predicates {#sec-copredicates}
+#### 5.14.3.5. Greatest predicates {#sec-copredicates}
 Determining properties of co-datatype values may require an infinite
 number of observations. To that end, Dafny provides _greatest predicates_
 which are function declarations that use the `greatest predicate` keyword phrase.
@@ -3316,14 +3317,14 @@ In the Dafny grammar this is called a ``HashCall``. The definition of
 that is, `Pos` and `Pos#` must not be in the same cluster. In other
 words, the definition of `Pos` cannot depend on `Pos#`.
 
-#### 5.14.3.5. Coinductive Proofs
+#### 5.14.3.6. Coinductive Proofs
 From what we have said so far, a program can make use of properties of
 co-datatypes. For example, a method that declares `Pos(s)` as a
 precondition can rely on the stream `s` containing only positive integers.
 In this section, we consider how such properties are established in the
 first place.
 
-##### 5.14.3.5.1. Properties of Prefix Predicates
+##### 5.14.3.6.1. Properties of Prefix Predicates
 Among other possible strategies for establishing coinductive properties
 we take the time-honored approach of reducing coinduction to
 induction. More precisely, Dafny passes to the SMT solver an
@@ -3369,7 +3370,7 @@ the forall statement to show `forall k • Pos#[k](Up(n))`. Finally, the axiom
 `D(Pos)` is used (automatically) to establish the greatest predicate.
 
 
-##### 5.14.3.5.2. Greatest lemmas {#sec-colemmas}
+##### 5.14.3.6.2. Greatest lemmas {#sec-colemmas}
 As we just showed, with help of the `D` axiom we can now prove a
 greatest predicate by inductively proving that the corresponding prefix
 predicate holds for all prefix lengths `k`. In this section, we introduce
@@ -3393,7 +3394,7 @@ co-recursively to obtain the proof for `Pos(Up(n).tail)` (since `Up(n).tail`
 equals `Up(n+1)`). The proof glue needed to then conclude `Pos(Up(n))` is
 provided automatically, thanks to the power of the SMT-based verifier.
 
-##### 5.14.3.5.3. Prefix Lemmas {#sec-prefix-lemmas}
+##### 5.14.3.6.3. Prefix Lemmas {#sec-prefix-lemmas}
 To understand why the above `UpPosLemma` greatest lemma code is a sound proof,
 let us now describe the details of the desugaring of greatest lemmas. In
 analogy to how a **greatest predicate** declaration defines both a greatest predicate and
