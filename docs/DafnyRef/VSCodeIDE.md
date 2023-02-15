@@ -10,6 +10,7 @@ This server is used by the Dafny VSCode Extension, and it currently offers the f
 - Counter-example display
 - Highlighting of ghost statement
 - Gutter highlights
+- A variety of Preference settings
 
 ## 14.1. Gutter highlights meaning {#sec-gutter-highlights}
 
