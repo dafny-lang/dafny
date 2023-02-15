@@ -5,8 +5,14 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class NestedMatchExpr : Expression, ICloneable<NestedMatchExpr>, ICanFormat {
-  public readonly Expression Source;
+interface INestedMatch : INode {
+  Expression Source { get; }
+  string MatchTypeName { get; }
+}
+
+public class NestedMatchExpr : Expression, ICloneable<NestedMatchExpr>, ICanFormat, INestedMatch {
+  public Expression Source { get; }
+  public string MatchTypeName => "expression";
   public readonly List<NestedMatchCaseExpr> Cases;
   public readonly bool UsesOptionalBraces;
   public Attributes Attributes;
