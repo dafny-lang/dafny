@@ -231,6 +231,17 @@ function Test(value: string): bool {
 }
 ");
   }
+
+  [Fact]
+  public void FormatterWorksForAlignedOrVar() {
+    FormatterWorksFor(@"
+predicate IsBinary(s: seq<int>) {
+  forall i | 0 <= i < |s| ::
+    || s[i] == 0
+    || s[i] == 1
+}");
+  }
+
   [Fact]
   public void FormatterWorksForAlignedAmpVar() {
     FormatterWorksFor(@"

@@ -79,6 +79,7 @@ public abstract class QuantifierExpr : ComprehensionExpr, TypeParameter.ParentTy
   }
 
   public override IEnumerable<Node> PreResolveChildren => base.SubExpressions;
+  public IEnumerable<Expression> PreResolveSubExpressions => base.SubExpressions;
 
   public override IEnumerable<Expression> SubExpressions {
     get {

@@ -934,6 +934,9 @@ namespace Microsoft.Dafny {
       if (VisitOneExpr(expr, ref st)) {
         if (preResolve && expr is ConcreteSyntaxExpression concreteSyntaxExpression) {
           concreteSyntaxExpression.PreResolveSubExpressions.Iter(e => Visit(e, st));
+        } else if (preResolve && expr is QuantifierExpr quantifierExpr) {
+          // pre-resolve, split expressions are not children
+          quantifierExpr.PreResolveSubExpressions.Iter(e => Visit(e, st));
         } else {
           // recursively visit all subexpressions and all substatements
           expr.SubExpressions.Iter(e => Visit(e, st));
