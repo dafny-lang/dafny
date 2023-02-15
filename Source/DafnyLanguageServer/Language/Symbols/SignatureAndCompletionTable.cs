@@ -40,7 +40,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
     private readonly DafnyLangTypeResolver typeResolver;
 
-    public static SignatureAndCompletionTable Empty(DocumentTextBuffer textDocument) {
+    public static SignatureAndCompletionTable Empty(DafnyOptions options, DocumentTextBuffer textDocument) {
       var errorReporter = new DiagnosticErrorReporter(textDocument.Text, textDocument.Uri);
       return new SignatureAndCompletionTable(
         NullLogger<SignatureAndCompletionTable>.Instance,
@@ -50,7 +50,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           // BuiltIns cannot be initialized without Type.ResetScopes() before.
           new BuiltIns(), // TODO creating a BuiltIns is a heavy operation
           errorReporter,
-          DafnyOptions.Create()
+          options
         )),
         new Dictionary<object, ILocalizableSymbol>(),
         new Dictionary<ISymbol, SymbolLocation>(),
