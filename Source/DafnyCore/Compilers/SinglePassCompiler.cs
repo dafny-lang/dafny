@@ -347,6 +347,7 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual string True { get => "true"; }
     protected virtual string False { get => "false"; }
     protected virtual string Conj { get => "&&"; }
+    protected virtual string AssignmentSymbol { get => " = "; }
     public void EndStmt(ConcreteSyntaxTree wr) { wr.WriteLine(StmtTerminator); }
     protected abstract void DeclareLocalOutVar(string name, Type type, IToken tok, string rhs, bool useReturnStyleOuts, ConcreteSyntaxTree wr);
     protected virtual void EmitActualOutArg(string actualOutParamName, ConcreteSyntaxTree wr) { }  // actualOutParamName is always the name of a local variable; called only for non-return-style outs
@@ -374,7 +375,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected virtual void EmitAssignment(out ConcreteSyntaxTree wLhs, Type/*?*/ lhsType, out ConcreteSyntaxTree wRhs, Type/*?*/ rhsType, ConcreteSyntaxTree wr) {
       wLhs = wr.Fork();
-      wr.Write(" = ");
+      wr.Write(AssignmentSymbol);
       var w = wr;
       w = EmitCoercionIfNecessary(rhsType, lhsType, Token.NoToken, w);
       w = EmitDowncastIfNecessary(rhsType, lhsType, Token.NoToken, w);
@@ -397,7 +398,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected virtual ConcreteSyntaxTree EmitAssignmentRhs(ConcreteSyntaxTree wr) {
-      wr.Write(" = ");
+      wr.Write(AssignmentSymbol);
       var w = wr.Fork();
       EndStmt(wr);
       return w;
@@ -407,7 +408,7 @@ namespace Microsoft.Dafny.Compilers {
       var wStmts = wr.Fork();
       var target = ProtectedFreshId("_lhs");
       wr.Write(GenerateLhsDecl(target, e.Type, wr, e.tok));
-      wr.Write(" = ");
+      wr.Write(AssignmentSymbol);
       TrExpr(e, wr, false, wStmts);
       EndStmt(wr);
       return target;
@@ -1890,7 +1891,7 @@ namespace Microsoft.Dafny.Compilers {
           thisContext = c;
         }
         if (c is TraitDecl && member.OverriddenMember != null && !member.IsOverrideThatAddsBody) {
-          if (TraitRepeatsInheritedDeclarations) {
+          if (!member.IsGhost && TraitRepeatsInheritedDeclarations) {
             RedeclareInheritedMember(member, classWriter);
           } else {
             // emit nothing in the trait; this member will be emitted in the classes that extend this trait
@@ -2910,7 +2911,7 @@ namespace Microsoft.Dafny.Compilers {
       }
       private void RejectAssume(IToken tok, Attributes attributes, ConcreteSyntaxTree wr) {
         if (!Attributes.Contains(attributes, "axiom")) {
-          compiler.Error(tok, "an assume statement without an {{:axiom}} attribute cannot be compiled", wr);
+          compiler.Error(tok, "an assume statement cannot be compiled (use the {{:axiom}} attribute to let the compiler ignore the statement)", wr);
         }
       }
       protected override void VisitOneStmt(Statement stmt) {

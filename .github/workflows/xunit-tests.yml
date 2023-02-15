@@ -1,10 +1,10 @@
 name: Run XUnit tests
 
 on:
-  push:
-    branches: [ master ]
+  workflow_dispatch:
   pull_request:
     branches: [ master ]
+  push:
 
 ## In the matrix:
 ##  os - name of the Github actions runner
@@ -14,28 +14,35 @@ on:
 ##  coverage -- unused?
 
 jobs:
+  check-deep-tests:
+     uses: ./.github/workflows/check-deep-tests-reusable.yml
+     with:
+       branch: master
+
   build:
+    needs: check-deep-tests
+    if: always() && ((needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests')) || ( github.event_name == 'push' && ( github.ref_name == 'master' || vars.TEST_ON_FORK == 'true' )))
     runs-on: ${{matrix.os}}
     name: ${{matrix.suffix}}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-20.04
-            suffix: ubuntu-20.04
-            z3: z3-4.8.5-x64-ubuntu-16.04
-            chmod: true
-            coverage: true
-          - os: windows-2019
-            suffix: win
-            z3: z3-4.8.5-x64-win
-            chmod: false
-            coverage: false
           - os: macos-latest
             suffix: osx
             z3: z3-4.8.5-x64-osx-10.14.2
             chmod: true
             coverage: false
+          - os: windows-2019
+            suffix: win
+            z3: z3-4.8.5-x64-win
+            chmod: false
+            coverage: false
+          - os: ubuntu-20.04
+            suffix: ubuntu-20.04
+            z3: z3-4.8.5-x64-ubuntu-16.04
+            chmod: true
+            coverage: true
     env:
       solutionPath: Source/Dafny.sln
       z3BaseUri: https://github.com/Z3Prover/z3/releases/download/Z3-4.8.5
@@ -65,6 +72,7 @@ jobs:
       run: dotnet build -warnaserror --no-restore ${{env.solutionPath}}
     - name: Run DafnyLanguageServer Tests
       run: |
+        ## Run twice to catch unstable code (Issue #2673)
         dotnet test --no-restore --verbosity normal --logger trx Source/DafnyLanguageServer.Test
         dotnet test --no-restore --verbosity normal --logger trx Source/DafnyLanguageServer.Test
     - name: Run DafnyDriver Tests

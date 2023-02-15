@@ -11,7 +11,7 @@ class AuditCommand : ICommandSpec {
     Auditor.Auditor.ReportFileOption,
     Auditor.Auditor.ReportFormatOption,
     Auditor.Auditor.CompareReportOption
-  }.Concat(ICommandSpec.CommonOptions);
+  }.Concat(ICommandSpec.ResolverOptions);
 
   public Command Create() {
     var result = new Command("audit", "Report issues in the Dafny code that might limit the soundness claims of verification, emitting them as warnings or in a report document.");

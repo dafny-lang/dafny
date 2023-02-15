@@ -27,9 +27,10 @@ static class CommandRegistry {
   static CommandRegistry() {
     AddCommand(new ResolveCommand());
     AddCommand(new VerifyCommand());
-    AddCommand(new RunCommand());
     AddCommand(new BuildCommand());
+    AddCommand(new RunCommand());
     AddCommand(new TranslateCommand());
+    AddCommand(new FormatCommand());
     AddCommand(new MeasureComplexityCommand());
     AddCommand(new ServerCommand());
     AddCommand(new TestCommand());
@@ -59,6 +60,7 @@ static class CommandRegistry {
     var optionValues = new Dictionary<Option, object>();
     var options = new Options(optionValues);
     dafnyOptions.ShowEnv = ExecutionEngineOptions.ShowEnvironment.Never;
+    dafnyOptions.Environment = "Command-line arguments: " + string.Join(" ", arguments);
     dafnyOptions.Options = options;
 
     foreach (var option in Commands.SelectMany(c => c.Options)) {

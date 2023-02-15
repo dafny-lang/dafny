@@ -1,0 +1,7 @@
+git-issue-3513.dfy(7,9): Error: module A does not exist
+1 resolution/type errors detected in git-issue-3513.dfy
+(0,-1): Error: the included file A.dfy contains error(s)
+A.dfy(4,9): Error: module B does not exist
+2 resolution/type errors detected in the_program
+
+Dafny program verifier did not attempt verification

@@ -18,6 +18,7 @@ using Microsoft.BaseTypes;
 using Microsoft.Boogie;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Dafny.Plugins;
+using static Microsoft.Dafny.ErrorDetail;
 
 namespace Microsoft.Dafny {
   public partial class Resolver {
@@ -1107,9 +1108,9 @@ namespace Microsoft.Dafny {
         var r = allTypeParameters.Push(tp.Name, tp);
         if (emitErrors) {
           if (r == Scope<TypeParameter>.PushResult.Duplicate) {
-            reporter.Error(MessageSource.Resolver, tp, "Duplicate type-parameter name: {0}", tp.Name);
+            reporter.Error(MessageSource.Resolver, ErrorID.None, tp, "Duplicate type-parameter name: {0}", tp.Name);
           } else if (r == Scope<TypeParameter>.PushResult.Shadow) {
-            reporter.Warning(MessageSource.Resolver, tp.tok, "Shadowed type-parameter name: {0}", tp.Name);
+            reporter.Warning(MessageSource.Resolver, ErrorID.None, tp.tok, "Shadowed type-parameter name: {0}", tp.Name);
           }
         }
       }
@@ -3944,17 +3945,24 @@ namespace Microsoft.Dafny {
       if (onlyPositionalArguments) {
         var requiredParametersCount = formals.Count(f => f.DefaultValue == null);
         var actualsCounts = bindings.ArgumentBindings.Count;
+        var sig = "";
+        for (int i = 0; i < formals.Count; i++) {
+          sig += (", " + formals[i].Name + ": " + formals[i].Type.ToString());
+        }
+        if (formals.Count > 0) {
+          sig = ": (" + sig[2..] + ")";
+        }
         if (requiredParametersCount <= actualsCounts && actualsCounts <= formals.Count) {
           // the situation is plausible
         } else if (requiredParametersCount == formals.Count) {
           // this is the common, classical case of no default parameter values; generate a straightforward error message
-          reporter.Error(MessageSource.Resolver, callTok, $"wrong number of arguments ({name} expects {formals.Count}, got {actualsCounts})");
+          reporter.Error(MessageSource.Resolver, callTok, $"wrong number of arguments (got {actualsCounts}, but {name} expects {formals.Count}{sig})");
           simpleErrorReported = true;
         } else if (actualsCounts < requiredParametersCount) {
-          reporter.Error(MessageSource.Resolver, callTok, $"wrong number of arguments ({name} expects at least {requiredParametersCount}, got {actualsCounts})");
+          reporter.Error(MessageSource.Resolver, callTok, $"wrong number of arguments (got {actualsCounts}, but {name} expects at least {requiredParametersCount}{sig})");
           simpleErrorReported = true;
         } else {
-          reporter.Error(MessageSource.Resolver, callTok, $"wrong number of arguments ({name} expects at most {formals.Count}, got {actualsCounts})");
+          reporter.Error(MessageSource.Resolver, callTok, $"wrong number of arguments (got {actualsCounts}, but {name} expects at most {formals.Count}{sig})");
           simpleErrorReported = true;
         }
       }
@@ -4783,7 +4791,7 @@ namespace Microsoft.Dafny {
             text += text.Length == 0 ? "$Heap" : ", $Heap";
           }
           text = string.Format("note, this loop has no body{0}", text.Length == 0 ? "" : " (loop frame: " + text + ")");
-          reporter.Warning(MessageSource.Resolver, s.Tok, text);
+          reporter.Warning(MessageSource.Resolver, ErrorID.None, s.Tok, text);
         }
 
         if (s is ForLoopStmt) {
@@ -4827,7 +4835,7 @@ namespace Microsoft.Dafny {
           enclosingStatementLabels = prevLblStmts;
           loopStack = prevLoopStack;
         } else {
-          reporter.Warning(MessageSource.Resolver, s.Tok, "note, this forall statement has no body");
+          reporter.Warning(MessageSource.Resolver, ErrorID.None, s.Tok, "note, this forall statement has no body");
         }
         scope.PopMarker();
 
@@ -4875,7 +4883,7 @@ namespace Microsoft.Dafny {
               if (s.Body is BlockStmt && ((BlockStmt)s.Body).Body.Count == 0) {
                 // an empty statement, so don't produce any warning
               } else {
-                reporter.Warning(MessageSource.Resolver, s.Tok, "the conclusion of the body of this forall statement will not be known outside the forall statement; consider using an 'ensures' clause");
+                reporter.Warning(MessageSource.Resolver, ErrorID.None, s.Tok, "the conclusion of the body of this forall statement will not be known outside the forall statement; consider using an 'ensures' clause");
               }
             }
           }
@@ -5277,7 +5285,7 @@ namespace Microsoft.Dafny {
         if (option.Opt == ResolveTypeOptionEnum.AllowPrefixExtend) {
           // extend defaultTypeArguments, if needed
           for (int i = defaultTypeArguments.Count; i < n; i++) {
-            var tp = new TypeParameter(tok, "_T" + i, i, option.Parent);
+            var tp = new TypeParameter(tok.ToRange(), new Name(tok.ToRange(), "_T" + i), i, option.Parent);
             if (option.Parent is IteratorDecl) {
               tp.Characteristics.AutoInit = Type.AutoInitInfo.CompilableValue;
             }
@@ -5386,7 +5394,7 @@ namespace Microsoft.Dafny {
             if (cl != null && !(rr.EType.IsTraitType && !rr.EType.NormalizeExpand().IsObjectQ)) {
               // life is good
             } else {
-              reporter.Error(MessageSource.Resolver, stmt, "new can be applied only to class types (got {0})", rr.EType);
+              reporter.Error(MessageSource.Resolver, rr.tok, "new can be applied only to class types (got {0})", rr.EType);
             }
           } else {
             string initCallName = null;
@@ -5410,7 +5418,7 @@ namespace Microsoft.Dafny {
             }
             var cl = (rr.EType as UserDefinedType)?.ResolvedClass as NonNullTypeDecl;
             if (cl == null || rr.EType.IsTraitType) {
-              reporter.Error(MessageSource.Resolver, stmt, "new can be applied only to class types (got {0})", rr.EType);
+              reporter.Error(MessageSource.Resolver, rr.tok, "new can be applied only to class types (got {0})", rr.EType);
             } else {
               // ---------- new C.Init(EE)
               Contract.Assert(initCallName != null);
@@ -6500,7 +6508,7 @@ namespace Microsoft.Dafny {
 #endif
       } else {
         // ----- None of the above
-        reporter.Error(MessageSource.Resolver, expr.tok, "Undeclared top-level type or type parameter: {0} (did you forget to qualify a name or declare a module import 'opened'?)", expr.Name);
+        reporter.Error(MessageSource.Resolver, expr.tok, "Type or type parameter is not declared in this scope: {0} (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)", expr.Name);
       }
 
       if (r == null) {

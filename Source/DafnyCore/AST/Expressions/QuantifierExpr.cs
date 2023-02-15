@@ -50,11 +50,6 @@ public abstract class QuantifierExpr : ComprehensionExpr, TypeParameter.ParentTy
     return idGen.FreshId(prefix);
   }
 
-  public TypeParameter Refresh(TypeParameter p, FreshIdGenerator idGen) {
-    var cp = new TypeParameter(p.tok, idGen.FreshId(p.Name + "#"), p.VarianceSyntax, p.Characteristics);
-    cp.Parent = this;
-    return cp;
-  }
   public QuantifierExpr(IToken tok, RangeToken rangeToken, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
     : base(tok, rangeToken, bvars, range, term, attrs) {
     Contract.Requires(tok != null);
@@ -78,6 +73,8 @@ public abstract class QuantifierExpr : ComprehensionExpr, TypeParameter.ParentTy
     throw new cce.UnreachableException(); // This body is just here for the "Requires" clause
   }
 
+  public override IEnumerable<Node> PreResolveChildren => base.SubExpressions;
+
   public override IEnumerable<Expression> SubExpressions {
     get {
       if (SplitQuantifier == null) {
@@ -88,6 +85,23 @@ public abstract class QuantifierExpr : ComprehensionExpr, TypeParameter.ParentTy
         foreach (var e in Attributes.SubExpressions(Attributes)) {
           yield return e;
         }
+        foreach (var e in SplitQuantifier) {
+          yield return e;
+        }
+      }
+    }
+  }
+
+  public IEnumerable<Expression> SplitOrSubExpressions {
+    get {
+      foreach (var e in Attributes.SubExpressions(Attributes)) {
+        yield return e;
+      }
+      if (SplitQuantifier == null) {
+        foreach (var e in base.SubExpressions) {
+          yield return e;
+        }
+      } else {
         foreach (var e in SplitQuantifier) {
           yield return e;
         }
