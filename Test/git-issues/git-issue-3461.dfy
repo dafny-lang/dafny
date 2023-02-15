@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %baredafny resolve --use-basename-for-filename "%s" > "%t"
+// RUN: %exits-with 2 %resolve "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 opaque method m() {} // NO
