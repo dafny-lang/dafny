@@ -91,14 +91,14 @@ namespace Microsoft.Dafny {
     }
 
     public ConcreteSyntaxTree Format(FormattableString input) {
-      var anchorValues = new List<ConcreteSyntaxTree>();
+      var anchorValues = new List<ICanRender>();
       // Because template strings are difficult to process, we use the existing string.Format to do the processing
       // and we insert anchors to identify where the ConcreteSyntaxTree values are.
       // Template string processing logic can be found here: https://github.com/dotnet/runtime/blob/ae5ee8f02d6fc99469e1f194be45b5f649c2da1a/src/libraries/System.Private.CoreLib/src/System/Text/ValueStringBuilder.AppendFormat.cs#L60
       var formatArguments = Enumerable.Range(0, input.ArgumentCount).
         Select(index => {
           object argument = input.GetArgument(index)!;
-          if (argument is ConcreteSyntaxTree treeArg) {
+          if (argument is ICanRender treeArg) {
             anchorValues.Add(treeArg);
             return $"{anchorUUID}{anchorValues.Count - 1}";
           }

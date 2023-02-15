@@ -901,7 +901,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected virtual ConcreteSyntaxTree EmitCast(ICanRender toType, ConcreteSyntaxTree wr) {
-      wr.Write("({0})", toType);
+      wr.Format($"({toType})");
       return wr.ForkInParens();
     }
 
@@ -4990,10 +4990,10 @@ namespace Microsoft.Dafny.Compilers {
           var e0 = reverseArguments ? e.E1 : e.E0;
           var e1 = reverseArguments ? e.E0 : e.E1;
 
-          var left = Expr(e0, inLetExprBody, wStmts).InParens();
+          var left = Expr(e0, inLetExprBody, wStmts);
           var right = convertE1_to_int
             ? ExprAsNativeInt(e1, inLetExprBody, wStmts)
-            : Expr(e1, inLetExprBody, wStmts).InParens();
+            : Expr(e1, inLetExprBody, wStmts);
 
           wr.Write(preOpString);
           if (opString != null) {
@@ -5004,14 +5004,14 @@ namespace Microsoft.Dafny.Compilers {
               GetNativeInfo(nativeType.Sel, out nativeName, out _, out needsCast);
             }
 
-            var opResult = ConcreteSyntaxTree.Create($"{left} {opString} {right}");
+            var opResult = ConcreteSyntaxTree.Create($"{left.InParens()} {opString} {right.InParens()}");
             if (needsCast) {
               opResult = Cast(new LineSegment(nativeName), opResult);
             }
 
             wr.Append(opResult);
           } else if (callString != null) {
-            wr.Format($"{left}.{callString}({right})");
+            wr.Format($"{left.InParens()}.{callString}({right})");
           } else if (staticCallString != null) {
             wr.Format($"{staticCallString}({left}, {right})");
           }
