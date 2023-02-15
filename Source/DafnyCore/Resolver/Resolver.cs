@@ -1457,6 +1457,7 @@ namespace Microsoft.Dafny {
     // (a) the module (context) itself and (b) any local imports
     // The latter is so that if one writes 'import A`E  import F = A`F' the second A does not
     // resolve to the alias produced by the first import
+    // Returns -1 if OK; if error, return value is the position of the module name that could not be found
     private int ResolveQualifiedModuleIdRootImport(AliasModuleDecl context, ModuleBindings bindings, ModuleQualifiedId qid,
       out ModuleDecl first, out ModuleDecl leaf) {
       Func<ModuleDecl, bool> filter = m => context != m && ((context.EnclosingModuleDefinition == m.EnclosingModuleDefinition && context.Exports.Count == 0) || m is LiteralModuleDecl);
@@ -1485,11 +1486,10 @@ namespace Microsoft.Dafny {
         if (bb.TryGetFilter(root.val, out moduleFound, filter)) {
           qid.Root = moduleFound;
           first = moduleFound;
-          return i;
         } else {
           reporter.Error(MessageSource.Resolver, root, "No module named {0} was found in {1}", root.val, bb.selfName);
           first = null;
-          return -1;
+          return i;
         }
 
       } else if (root.val == "_") {
@@ -1497,28 +1497,31 @@ namespace Microsoft.Dafny {
         while (bb.parent != null) {
           bb = bb.parent;
           parents.Add(bb.selfName);
+          System.Console.WriteLine("PARENT " + bb.selfName);
         }
-        for (i = 1; i < parents.Count; i++) {
+        for (i = 1; i < parents.Count && i < qid.Path.Count; i++) {
+          System.Console.WriteLine("ANCESTOR " + i + " " + parents[parents.Count - i] + " " + qid.Path[i].val + " " + parents.Count + " " + qid.Path.Count);
           if (parents[parents.Count - i] != qid.Path[i].val) break;
         }
         root = qid.Path[i];
+        System.Console.WriteLine("ROOT " + i + " " + qid.Path[i]);
         ModuleDecl moduleFound;
         if (bb.TryGetFilter(root.val, out moduleFound, filter)) {
           qid.Root = moduleFound;
           first = moduleFound;
-          return i;
         } else {
           reporter.Error(MessageSource.Resolver, root, "No module named {0} was found in {1}", root.val, bb.selfName);
           first = null;
-          return -1;
+          return i;
         }
+      } else {
+        // no special character
+        // keep values of root and i
+        bool res = bb.TryLookupFilter(root, out result, filter);
+        qid.Root = result;
+        first = result;
+        if (!res) return i;
       }
-      // no special character
-      // keep values of root and i
-      bool res = bb.TryLookupFilter(root, out result, filter);
-      qid.Root = result;
-      first = result;
-      if (!res) return i;
       //result = ResolveModuleQualifiedId(result, qid, reporter);
       if (!bindings.LookupModuleQualifiedId(first, qid, out leaf)) {
         // TODO - error message
@@ -1598,6 +1601,7 @@ namespace Microsoft.Dafny {
           System.Console.WriteLine("ADDEDGE-FAILED " + alias.FullDafnyName);
           reporter.Error(MessageSource.Resolver, alias.tok, ModuleNotFoundErrorMessage(errorPos, alias.TargetQId.Path)); // TODO 
         } else {
+          System.Console.WriteLine("ADDEDGE-CN " + (moduleDecl == null));
           System.Console.WriteLine("ADDEDGE-C " + moduleDecl.FullDafnyName + " " + leaf.FullDafnyName);
           dependencies.AddEdge(moduleDecl, leaf);
         }
