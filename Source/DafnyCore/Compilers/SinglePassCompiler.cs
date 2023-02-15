@@ -4990,8 +4990,10 @@ namespace Microsoft.Dafny.Compilers {
           var e0 = reverseArguments ? e.E1 : e.E0;
           var e1 = reverseArguments ? e.E0 : e.E1;
 
-          var left = Expr(e0, inLetExprBody, wStmts);
-          var right = convertE1_to_int ? ExprAsNativeInt(e1, inLetExprBody, wStmts) : Expr(e1, inLetExprBody, wStmts);
+          var left = Expr(e0, inLetExprBody, wStmts).InParens();
+          var right = convertE1_to_int
+            ? ExprAsNativeInt(e1, inLetExprBody, wStmts)
+            : Expr(e1, inLetExprBody, wStmts).InParens();
 
           wr.Write(preOpString);
           if (opString != null) {

@@ -126,6 +126,10 @@ namespace Microsoft.Dafny {
       return this;
     }
 
+    public ConcreteSyntaxTree InParens() {
+      return Create($"({this})");
+    }
+
     // ----- Nested blocks ------------------------------
 
     public ConcreteSyntaxTree ForkInParens() {
