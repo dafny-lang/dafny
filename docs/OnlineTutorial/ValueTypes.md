@@ -454,9 +454,9 @@ Like sets, multisets are unordered. However, because they keep track of how many
 element they have, the above literal actually has two 3's in it.
 
 Many of the operations defined on sets are also available for multisets. You can use `in` to
-test whether some element is in a multiset (in means that it has at least one member of the given value). Multiset union
+test whether some element is in a multiset (in means that it has at least one member of the given value). Multiset sum
 (`+`) means take elements from both, and add them up. So if one multiset has two 3's and another has one, then their multiset
-union would have a total of three 3's. The multiset difference (`-`) works similarly, in that the multiplicity of the elements
+sun would have a total of three 3's. The multiset difference (`-`) works similarly, in that the multiplicity of the elements
 (i.e. how many of each element are in the multiset) matters. So the following:
 
 <!-- %check-verify -->

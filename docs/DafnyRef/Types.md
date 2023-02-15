@@ -925,7 +925,7 @@ increasing binding power:
 ---------------|:---:|------------------------------------
  `!!`          | 4 | multiset disjointness
 ---------------|------------------------------------
- `+`           | 6 |multiset union
+ `+`           | 6 |multiset sum
  `-`           | 6 |multiset difference
 ---------------|------------------------------------
  `*`           | 7 | multiset intersection
@@ -935,7 +935,8 @@ arithmetic operators with the same names. The `+` operator
 adds the multiplicity of corresponding elements, the `-` operator
 subtracts them (but 0 is the minimum multiplicity),
 and the `*` has multiplicity that is the minimum of the
-multiplicity of the operands.
+multiplicity of the operands. There is no operator for multiset
+union, which would compute the maximum of the multiplicities of the operands.
 
 The expression `A !! B`
 says that multisets `A` and `B` have no elements in common, that is,
@@ -4165,18 +4166,18 @@ A function is usually transparent up to some unrolling level (up to
 transparent all the way.
 
 But the transparency of a function is affected by
-whether the function was given the `{:opaque}` attribute (as explained
+whether the function was declared with an `opaque` modifier, as explained
 in [Section 11.2.8](#sec-opaque)),
 the reveal statement ([Section 8.20](#sec-reveal-statement)),
 and whether it was `reveal`ed in an export set.
 
 - Inside the module where the function is declared:
-   - if there is no `{:opaque}` attribute, the function is transparent
-   - if there is an `{:opaque}` attribute, then the function is opaque,
-   except if the function is mentioned in a `reveal` steatement, then
+   - if there is no `opaque` modifier, the function is transparent
+   - if there is an `opaque` modifier, then the function is opaque,
+   except if the function is mentioned in a `reveal` statement, then
    it is transparent between that `reveal` statement and the end of
    the block containing the `reveal` statement.
-- Outside the module where the function is declared, the functio is 
+- Outside the module where the function is declared, the function is 
 visible only if it was listed in the export set by which the contents
 of its module was imported. In that case, if the function was exported
 with `reveals`, the rules are the same within the importing module as when the function is used inside
@@ -4242,7 +4243,7 @@ terminate. Termination is assured by the specification `decreases p`,
 since every such datatype value has a finite structure and every
 recursive call passes in a path that is structurally included in the
 previous. Predicate `ReachableVia` must also declare (an upper bound
-on) which heap objects that it depends on. For this purpose, the
+on) which heap objects it depends on. For this purpose, the
 predicate takes an additional parameter `S`, which is used to limit
 the set of intermediate nodes in the path. More precisely, predicate
 `ReachableVia(source, p, sink, S)` returns `true` if and only if `p`
