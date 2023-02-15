@@ -1600,7 +1600,8 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
     var rightIndent = indent2;
     var noExtraIndent =
       formatter.ReduceBlockiness && Ctors.Count == 1
-                                 && Ctors[0].Formals.Count > 0;
+                                 && Ctors[0].Formals.Count > 0
+                                 && Ctors[0].StartToken.line == StartToken.line;
     if (noExtraIndent) {
       rightOfVerticalBarIndent = indent;
     }

@@ -99,6 +99,9 @@ iterator Iter0(x: int := y, y: int := 0)
   [Fact]
   public void FormatterWorksForDatatypeWithVerticalBarAfterwardsOrOneLine() {
     FormatterWorksFor(@"
+datatype Single =
+  SingleWithArguments(a: int)
+
 datatype Lindgren =
   Pippi(Node) |
   Longstocking(seq<object>, Lindgren) |
