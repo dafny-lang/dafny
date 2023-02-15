@@ -552,7 +552,7 @@ namespace Microsoft.Dafny.Compilers {
         var witness = new ConcreteSyntaxTree(w.RelativeIndentLevel);
         var wStmts = w.Fork();
         if (nt.NativeType == null) {
-          TrExpr(nt.Witness, witness, false, wStmts);
+          witness.Append(Expr(nt.Witness, false, wStmts));
         } else {
           TrParenExpr(nt.Witness, witness, false, wStmts);
           witness.Write(".toNumber()");
@@ -576,7 +576,7 @@ namespace Microsoft.Dafny.Compilers {
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var sw = new ConcreteSyntaxTree(w.RelativeIndentLevel);
         var wStmts = w.Fork();
-        TrExpr(sst.Witness, sw, false, wStmts);
+        sw.Append(Expr(sst.Witness, false, wStmts));
         DeclareField("Witness", true, true, sst.Rhs, sst.tok, sw.ToString(), w);
         d = TypeName_UDT(FullTypeName(udt), udt, wr, udt.tok) + ".Witness";
       } else {
@@ -1081,7 +1081,7 @@ namespace Microsoft.Dafny.Compilers {
       if (isStringLiteral && !UnicodeCharEnabled) {
         // process.stdout.write(_dafny.toString(x));
         wr.Write("process.stdout.write(_dafny.toString(");
-        TrExpr(arg, wr, false, wStmts);
+        wr.Append(Expr(arg, false, wStmts));
         wr.WriteLine("));");
       } else if (isString) {
         if (UnicodeCharEnabled) {
@@ -1090,7 +1090,7 @@ namespace Microsoft.Dafny.Compilers {
           wr.WriteLine(".toVerbatimString(false));");
         } else {
           wr.Write($"process.stdout.write(_dafny.toString({DafnySeqClass}.JoinIfPossible(");
-          TrExpr(arg, wr, false, wStmts);
+          wr.Append(Expr(arg, false, wStmts));
           wr.WriteLine(")));");
         }
       } else if (isGeneric && !UnicodeCharEnabled) {
@@ -1098,24 +1098,24 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write("try { process.stdout.write(_dafny.toString(");
         wr.Write("(");
         wr.Write("(");
-        TrExpr(arg, wr, false, wStmts);
+        wr.Append(Expr(arg, false, wStmts));
         wr.Write(") instanceof Array && typeof((");
-        TrExpr(arg, wr, false, wStmts);
+        wr.Append(Expr(arg, false, wStmts));
         wr.Write(")[0]) == \"string\") ? ");
         wr.Write("(");
-        TrExpr(arg, wr, false, wStmts);
+        wr.Append(Expr(arg, false, wStmts));
         wr.Write(").join(\"\")");
         wr.Write(":");
         wr.Write("(");
-        TrExpr(arg, wr, false, wStmts);
+        wr.Append(Expr(arg, false, wStmts));
         wr.Write(")));");
         wr.Write("} catch (_error) { process.stdout.write(_dafny.toString(");
-        TrExpr(arg, wr, false, wStmts);
+        wr.Append(Expr(arg, false, wStmts));
         wr.WriteLine("));}");
       } else { // !isString && !isGeneric
         // process.stdout.write(_dafny.toString(x));
         wr.Write("process.stdout.write(_dafny.toString(");
-        TrExpr(arg, wr, false, wStmts);
+        wr.Append(Expr(arg, false, wStmts));
         wr.WriteLine("));");
       }
     }
@@ -1757,13 +1757,13 @@ namespace Microsoft.Dafny.Compilers {
       var w = wr.Fork();
       if (indices.Count == 1) {
         wr.Write("[");
-        TrExpr(indices[0], wr, inLetExprBody, wStmts);
+        wr.Append(Expr(indices[0], inLetExprBody, wStmts));
         wr.Write("]");
       } else {
         wr.Write(".elmts");
         foreach (var index in indices) {
           wr.Write("[");
-          TrExpr(index, wr, inLetExprBody, wStmts);
+          wr.Append(Expr(index, inLetExprBody, wStmts));
           wr.Write("]");
         }
       }
@@ -1785,12 +1785,12 @@ namespace Microsoft.Dafny.Compilers {
       if (source.Type.NormalizeExpand() is SeqType) {
         // seq
         wr.Write("[");
-        TrExpr(index, wr, inLetExprBody, wStmts);
+        wr.Append(Expr(index, inLetExprBody, wStmts));
         wr.Write("]");
       } else {
         // map or imap
         wr.Write(".get(");
-        TrExpr(index, wr, inLetExprBody, wStmts);
+        wr.Append(Expr(index, inLetExprBody, wStmts));
         wr.Write(")");
       }
     }
@@ -1799,15 +1799,15 @@ namespace Microsoft.Dafny.Compilers {
         CollectionType resultCollectionType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       if (source.Type.AsSeqType != null) {
         wr.Write($"{DafnySeqClass}.update(");
-        TrExpr(source, wr, inLetExprBody, wStmts);
+        wr.Append(Expr(source, inLetExprBody, wStmts));
         wr.Write(", ");
       } else {
         TrParenExpr(source, wr, inLetExprBody, wStmts);
         wr.Write(".update(");
       }
-      TrExpr(index, wr, inLetExprBody, wStmts);
+      wr.Append(Expr(index, inLetExprBody, wStmts));
       wr.Write(", ");
-      TrExpr(value, wr, inLetExprBody, wStmts);
+      wr.Append(Expr(value, inLetExprBody, wStmts));
       wr.Write(")");
     }
 
@@ -1819,15 +1819,15 @@ namespace Microsoft.Dafny.Compilers {
       TrParenExpr(source, wr, inLetExprBody, wStmts);
       if (lo != null) {
         wr.Write(".slice(");
-        TrExpr(lo, wr, inLetExprBody, wStmts);
+        wr.Append(Expr(lo, inLetExprBody, wStmts));
         if (hi != null) {
           wr.Write(", ");
-          TrExpr(hi, wr, inLetExprBody, wStmts);
+          wr.Append(Expr(hi, inLetExprBody, wStmts));
         }
         wr.Write(")");
       } else if (hi != null) {
         wr.Write(".slice(0, ");
-        TrExpr(hi, wr, inLetExprBody, wStmts);
+        wr.Append(Expr(hi, inLetExprBody, wStmts));
         wr.Write(")");
       } else if (fromArray) {
         wr.Write(".slice()");
@@ -1840,9 +1840,9 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitSeqConstructionExpr(SeqConstructionExpr expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       var fromType = (ArrowType)expr.Initializer.Type.NormalizeExpand();
       wr.Write($"{DafnySeqClass}.Create(");
-      TrExpr(expr.N, wr, inLetExprBody, wStmts);
+      wr.Append(Expr(expr.N, inLetExprBody, wStmts));
       wr.Write(", ");
-      TrExpr(expr.Initializer, wr, inLetExprBody, wStmts);
+      wr.Append(Expr(expr.Initializer, inLetExprBody, wStmts));
       wr.Write(")");
       if (fromType.Result.IsCharType && !UnicodeCharEnabled) {
         wr.Write(".join('')");
@@ -1933,7 +1933,7 @@ namespace Microsoft.Dafny.Compilers {
             wr.Write("0");
           } else {
             wr.Write("_dafny.BitwiseNot(");
-            TrExpr(expr, wr, inLetExprBody, wStmts);
+            wr.Append(Expr(expr, inLetExprBody, wStmts));
             wr.Write(", {0})", expr.Type.AsBitVectorType.Width);
           }
           break;
@@ -2290,7 +2290,7 @@ namespace Microsoft.Dafny.Compilers {
           var toNative = AsNativeType(e.ToType);
           if (fromNative != null && toNative != null) {
             // from a native, to a native -- simple!
-            TrExpr(e.E, wr, inLetExprBody, wStmts);
+            wr.Append(Expr(e.E, inLetExprBody, wStmts));
           } else if (e.E.Type.IsCharType) {
             Contract.Assert(fromNative == null);
             if (toNative == null) {
@@ -2305,7 +2305,7 @@ namespace Microsoft.Dafny.Compilers {
             }
           } else if (fromNative == null && toNative == null) {
             // big-integer (int or bv) -> big-integer (int or bv or ORDINAL), so identity will do
-            TrExpr(e.E, wr, inLetExprBody, wStmts);
+            wr.Append(Expr(e.E, inLetExprBody, wStmts));
           } else if (fromNative != null && toNative == null) {
             // native (int or bv) -> big-integer (int or bv)
             wr.Write("new BigNumber");
@@ -2339,7 +2339,7 @@ namespace Microsoft.Dafny.Compilers {
         if (e.ToType.IsNumericBased(Type.NumericPersuasion.Real)) {
           // real -> real
           Contract.Assert(AsNativeType(e.ToType) == null);
-          TrExpr(e.E, wr, inLetExprBody, wStmts);
+          wr.Append(Expr(e.E, inLetExprBody, wStmts));
         } else if (e.ToType.IsCharType) {
           wr.Write($"{CharFromNumberMethodName()}(");
           TrParenExpr(e.E, wr, inLetExprBody, wStmts);
@@ -2357,7 +2357,7 @@ namespace Microsoft.Dafny.Compilers {
           wr.Write($"{CharFromNumberMethodName()}((");
         }
 
-        TrExpr(e.E, wr, inLetExprBody, wStmts);
+        wr.Append(Expr(e.E, inLetExprBody, wStmts));
         if (e.ToType.IsCharType) {
           wr.Write(").toNumber())");
         }
@@ -2422,7 +2422,7 @@ namespace Microsoft.Dafny.Compilers {
         string sep = "";
         foreach (var e in elements) {
           wrElements.Write(sep);
-          TrExpr(e, wrElements, inLetExprBody, wStmts);
+          wrElements.Append(Expr(e, inLetExprBody, wStmts));
           sep = ", ";
         }
       }
@@ -2435,9 +2435,9 @@ namespace Microsoft.Dafny.Compilers {
       foreach (ExpressionPair p in elements) {
         wr.Write(sep);
         wr.Write("[");
-        TrExpr(p.A, wr, inLetExprBody, wStmts);
+        wr.Append(Expr(p.A, inLetExprBody, wStmts));
         wr.Write(",");
-        TrExpr(p.B, wr, inLetExprBody, wStmts);
+        wr.Append(Expr(p.B, inLetExprBody, wStmts));
         wr.Write("]");
         sep = ", ";
       }
@@ -2458,7 +2458,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Assume(ct is SetType || ct is MultiSetType);  // follows from precondition
       var wStmts = wr.Fork();
       wr.Write("{0}.add(", collName);
-      TrExpr(elmt, wr, inLetExprBody, wStmts);
+      wr.Append(Expr(elmt, inLetExprBody, wStmts));
       wr.WriteLine(");");
     }
 
@@ -2467,7 +2467,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write("{0}.push([", collName);
       var termLeftWriter = wr.Fork();
       wr.Write(",");
-      TrExpr(term, wr, inLetExprBody, wStmts);
+      wr.Append(Expr(term, inLetExprBody, wStmts));
       wr.WriteLine("]);");
       return termLeftWriter;
     }
