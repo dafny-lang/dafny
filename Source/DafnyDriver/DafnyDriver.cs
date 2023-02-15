@@ -169,14 +169,18 @@ namespace Microsoft.Dafny {
       OK_EXIT_EARLY
     }
 
-    static HashSet<string> AllDfyFilesRecursively(HashSet<string> input) {
+    static HashSet<string> SplitOptionValueIntoFiles(HashSet<string> inputs) {
       var output = new HashSet<string>();
-      foreach (var name in input) {
-        if (System.IO.Directory.Exists(name)) {
-          var files = System.IO.Directory.GetFiles(name, "*.dfy", SearchOption.AllDirectories);
-          foreach (var file in files) { output.Add(file); }
-        } else {
-          output.Add(name);
+      foreach (var input in inputs) {
+        var values = input.Split(',');
+        foreach (var slice in values) {
+          var name = slice.Trim();
+          if (System.IO.Directory.Exists(name)) {
+            var files = System.IO.Directory.GetFiles(name, "*.dfy", SearchOption.AllDirectories);
+            foreach (var file in files) { output.Add(file); }
+          } else {
+            output.Add(name);
+          }
         }
       }
       return output;
@@ -251,7 +255,7 @@ namespace Microsoft.Dafny {
       }
 
       ISet<String> filesSeen = new HashSet<string>();
-      foreach (string file in options.Files.Concat(AllDfyFilesRecursively(options.LibraryFiles))) {
+      foreach (string file in options.Files.Concat(SplitOptionValueIntoFiles(options.LibraryFiles))) {
         Contract.Assert(file != null);
         string extension = Path.GetExtension(file);
         if (extension != null) { extension = extension.ToLower(); }
