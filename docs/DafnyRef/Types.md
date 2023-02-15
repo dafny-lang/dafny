@@ -1621,6 +1621,7 @@ type is a total arrow type and the verifier is not able to prove that the
 partial function really is total, then you'll get an error saying that the subset-type
 constraint may not be satisfied.
 
+For more information about arrow types, see [Section 5.12](#sec-arrow-types).
 
 #### 5.6.3.4. Witness clauses {#sec-witness}
 
@@ -3234,6 +3235,7 @@ equality is written `s ==#[k] t`. And similarly for `s != t`
 and `s !=#[k] t`.
 
 #### 5.14.3.5. Greatest predicates {#sec-copredicates}
+
 Determining properties of co-datatype values may require an infinite
 number of observations. To that end, Dafny provides _greatest predicates_
 which are function declarations that use the `greatest predicate` keyword phrase.
@@ -3318,6 +3320,7 @@ that is, `Pos` and `Pos#` must not be in the same cluster. In other
 words, the definition of `Pos` cannot depend on `Pos#`.
 
 #### 5.14.3.6. Coinductive Proofs
+
 From what we have said so far, a program can make use of properties of
 co-datatypes. For example, a method that declares `Pos(s)` as a
 precondition can rely on the stream `s` containing only positive integers.
@@ -3325,6 +3328,7 @@ In this section, we consider how such properties are established in the
 first place.
 
 ##### 5.14.3.6.1. Properties of Prefix Predicates
+
 Among other possible strategies for establishing coinductive properties
 we take the time-honored approach of reducing coinduction to
 induction. More precisely, Dafny passes to the SMT solver an
@@ -3371,6 +3375,7 @@ the forall statement to show `forall k • Pos#[k](Up(n))`. Finally, the axiom
 
 
 ##### 5.14.3.6.2. Greatest lemmas {#sec-colemmas}
+
 As we just showed, with help of the `D` axiom we can now prove a
 greatest predicate by inductively proving that the corresponding prefix
 predicate holds for all prefix lengths `k`. In this section, we introduce
@@ -3395,6 +3400,7 @@ equals `Up(n+1)`). The proof glue needed to then conclude `Pos(Up(n))` is
 provided automatically, thanks to the power of the SMT-based verifier.
 
 ##### 5.14.3.6.3. Prefix Lemmas {#sec-prefix-lemmas}
+
 To understand why the above `UpPosLemma` greatest lemma code is a sound proof,
 let us now describe the details of the desugaring of greatest lemmas. In
 analogy to how a **greatest predicate** declaration defines both a greatest predicate and
@@ -4002,7 +4008,6 @@ return values are ghost; if it is not a ghost function, then
 individual parameters may be declared ghost as desired.
 
 See [Section 7.3](#sec-function-specification) for a description of the function specification.
-
 A Dafny function is a pure mathematical function. It is allowed to
 read memory that was specified in its `reads` expression but is not
 allowed to have any side effects.
