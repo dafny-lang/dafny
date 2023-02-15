@@ -888,16 +888,23 @@ namespace Microsoft.Dafny.Compilers {
       wr.Format($"(({Expr(guard, inLetExprBody, wStmts)}) ? ({castedThenExpr}) : ({castedElseExpr}))");
     }
 
-    public ConcreteSyntaxTree Cast(Type toType, ConcreteSyntaxTree expr) {
+    public ConcreteSyntaxTree Cast(ICanRender toType, ConcreteSyntaxTree expr) {
       var result = new ConcreteSyntaxTree();
       EmitCast(toType, result).Append(expr);
       return result;
     }
 
-    protected virtual ConcreteSyntaxTree EmitCast(Type toType, ConcreteSyntaxTree wr) {
-      wr.Write("({0})", TypeName(toType, wr, Token.NoToken));
+    public ConcreteSyntaxTree Cast(Type toType, ConcreteSyntaxTree expr) {
+      var result = new ConcreteSyntaxTree();
+      EmitCast(new LineSegment(TypeName(toType, result, Token.NoToken)), result).Append(expr);
+      return result;
+    }
+
+    protected virtual ConcreteSyntaxTree EmitCast(ICanRender toType, ConcreteSyntaxTree wr) {
+      wr.Write("({0})", toType);
       return wr.ForkInParens();
     }
+
     protected abstract void EmitDatatypeValue(DatatypeValue dtv, string arguments, ConcreteSyntaxTree wr);
     protected abstract void GetSpecialFieldInfo(SpecialField.ID id, object idParam, Type receiverType, out string compiledName, out string preString, out string postString);
 
@@ -1084,6 +1091,13 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(fromType != null);
       return arrayIndex;
     }
+
+    protected ConcreteSyntaxTree ExprAsNativeInt(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
+      var result = new ConcreteSyntaxTree();
+      EmitExprAsNativeInt(expr, inLetExprBody, result, wStmts);
+      return result;
+    }
+
     protected abstract void EmitExprAsNativeInt(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr,
       ConcreteSyntaxTree wStmts);
     protected abstract void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
@@ -4975,47 +4989,31 @@ namespace Microsoft.Dafny.Compilers {
           }
           var e0 = reverseArguments ? e.E1 : e.E0;
           var e1 = reverseArguments ? e.E0 : e.E1;
+
+          var left = Expr(e0, inLetExprBody, wStmts);
+          var right = convertE1_to_int ? ExprAsNativeInt(e1, inLetExprBody, wStmts) : Expr(e1, inLetExprBody, wStmts);
+
+          wr.Write(preOpString);
           if (opString != null) {
             var nativeType = AsNativeType(e.Type);
-            string nativeName = null, literalSuffix = null;
+            string nativeName = null;
             bool needsCast = false;
             if (nativeType != null) {
-              GetNativeInfo(nativeType.Sel, out nativeName, out literalSuffix, out needsCast);
+              GetNativeInfo(nativeType.Sel, out nativeName, out _, out needsCast);
             }
 
-            var inner = wr;
+            var opResult = ConcreteSyntaxTree.Create($"{left} {opString} {right}");
             if (needsCast) {
-              inner = wr.Write("(" + nativeName + ")").ForkInParens();
+              opResult = Cast(new LineSegment(nativeName), opResult);
             }
-            inner.Write(preOpString);
-            TrParenExpr(e0, inner, inLetExprBody, wStmts);
-            inner.Write(" {0} ", opString);
-            if (convertE1_to_int) {
-              EmitExprAsNativeInt(e1, inLetExprBody, inner, wStmts);
-            } else {
-              TrParenExpr(e1, inner, inLetExprBody, wStmts);
-            }
-            wr.Write(postOpString);
+
+            wr.Append(opResult);
           } else if (callString != null) {
-            wr.Write(preOpString);
-            TrParenExpr(e0, wr, inLetExprBody, wStmts);
-            wr.Write(".{0}(", callString);
-            if (convertE1_to_int) {
-              EmitExprAsNativeInt(e1, inLetExprBody, wr, wStmts);
-            } else {
-              TrParenExpr(e1, wr, inLetExprBody, wStmts);
-            }
-            wr.Write(")");
-            wr.Write(postOpString);
+            wr.Format($"{left}.{callString}({right})");
           } else if (staticCallString != null) {
-            wr.Write(preOpString);
-            wr.Write("{0}(", staticCallString);
-            wr.Append(Expr(e0, inLetExprBody, wStmts));
-            wr.Write(", ");
-            wr.Append(Expr(e1, inLetExprBody, wStmts));
-            wr.Write(")");
-            wr.Write(postOpString);
+            wr.Format($"{staticCallString}({left}, {right})");
           }
+          wr.Write(postOpString);
         }
       } else if (expr is TernaryExpr) {
         Contract.Assume(false);  // currently, none of the ternary expressions is compilable

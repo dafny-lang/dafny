@@ -86,6 +86,10 @@ namespace Microsoft.Dafny {
 
     static string anchorUUID = "20e34a49-f40b-4547-ba7a-3a1955826af2";
 
+    public static ConcreteSyntaxTree Create(FormattableString input) {
+      return new ConcreteSyntaxTree().Format(input);
+    }
+
     public ConcreteSyntaxTree Format(FormattableString input) {
       var anchorValues = new List<ConcreteSyntaxTree>();
       // Because template strings are difficult to process, we use the existing string.Format to do the processing

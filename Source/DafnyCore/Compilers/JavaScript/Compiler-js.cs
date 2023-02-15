@@ -1538,7 +1538,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write("_this");
     }
 
-    protected override ConcreteSyntaxTree EmitCast(Type toType, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree EmitCast(ICanRender toType, ConcreteSyntaxTree wr) {
       return wr;
     }
 
