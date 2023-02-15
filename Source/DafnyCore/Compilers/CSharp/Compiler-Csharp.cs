@@ -1081,10 +1081,8 @@ namespace Microsoft.Dafny.Compilers {
         wEnum.WriteLine($"for (var j = lo; j < hi; j++) {{ yield return ({GetNativeTypeName(nt.NativeType)})j; }}");
       }
       if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-        var wrWitness = new ConcreteSyntaxTree();
         var wStmts = w.Fork();
-        wrWitness.Append(Expr(nt.Witness, false, wStmts));
-        var witness = wrWitness.ToString();
+        var witness = Expr(nt.Witness, false, wStmts).ToString();
         string typeName;
         if (nt.NativeType == null) {
           typeName = TypeName(nt.BaseType, cw.StaticMemberWriter, nt.tok);
@@ -1883,18 +1881,14 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitHalt(IToken tok, Expression/*?*/ messageExpr, ConcreteSyntaxTree wr) {
-      var wStmts = wr.Fork();
-      wr.Write("throw new Dafny.HaltException(");
+      var exceptionMessage = Expr(messageExpr, false, wr.Fork());
       if (tok != null) {
-        wr.Write(SymbolDisplay.FormatLiteral(ErrorReporter.TokenToString(tok) + ": ", true) + " + ");
+        exceptionMessage.Prepend(new LineSegment(SymbolDisplay.FormatLiteral(ErrorReporter.TokenToString(tok) + ": ", true) + " + "));
       }
-
-      wr.Append(Expr(messageExpr, false, wStmts));
       if (UnicodeCharEnabled && messageExpr.Type.IsStringType) {
-        wr.Write(".ToVerbatimString(false)");
+        exceptionMessage.Write(".ToVerbatimString(false)");
       }
-
-      wr.WriteLine(");");
+      wr.Format($"throw new Dafny.HaltException({exceptionMessage});");
     }
 
     protected override ConcreteSyntaxTree EmitForStmt(IToken tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
