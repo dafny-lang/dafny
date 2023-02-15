@@ -1,9 +1,10 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class AlternativeStmt : Statement, ICloneable<AlternativeStmt> {
+public class AlternativeStmt : Statement, ICloneable<AlternativeStmt>, ICanFormat {
   public readonly bool UsesOptionalBraces;
   public readonly List<GuardedAlternative> Alternatives;
   [ContractInvariantMethod]
@@ -51,4 +52,9 @@ public class AlternativeStmt : Statement, ICloneable<AlternativeStmt> {
   }
 
   public override IEnumerable<Node> Children => Alternatives;
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    return formatter.SetIndentCases(indentBefore, OwnedTokens.Concat(Alternatives.SelectMany(alternative => alternative.OwnedTokens)).OrderBy(token => token.pos), () => {
+      formatter.VisitAlternatives(Alternatives, indentBefore);
+    });
+  }
 }

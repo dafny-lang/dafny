@@ -127,11 +127,13 @@ method m5() { assert false; } //Remove4:
     var documentItem = CreateTestDocument(code);
     client.OpenDocument(documentItem);
 
+    var source = new CancellationTokenSource();
+    source.CancelAfter(TimeSpan.FromMinutes(5));
     var index = 0;
     // ReSharper disable AccessToModifiedClosure
     async Task CompareWithExpectation(List<string> expectedSymbols) {
       try {
-        var orderAfterChange = await GetFlattenedPositionOrder(semaphoreSlim, CancellationToken);
+        var orderAfterChange = await GetFlattenedPositionOrder(semaphoreSlim, source.Token);
         var orderAfterChangeSymbols = GetSymbols(code, orderAfterChange).ToList();
         Assert.IsTrue(expectedSymbols.SequenceEqual(orderAfterChangeSymbols),
           $"Expected {string.Join(", ", expectedSymbols)} but got {string.Join(", ", orderAfterChangeSymbols)}." +
@@ -200,7 +202,9 @@ method m5() { assert false; } //Remove4:
 
       } catch (OperationCanceledException) {
         Console.WriteLine("count: " + count);
-        Console.WriteLine("Found status before timeout: " + string.Join(", ", foundStatus!.NamedVerifiables));
+        if (foundStatus != null) {
+          Console.WriteLine("Found status before timeout: " + string.Join(", ", foundStatus.NamedVerifiables));
+        }
         Console.WriteLine($"\nOld to new history was: {verificationStatusReceiver.History.Stringify()}");
         throw;
       }

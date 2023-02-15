@@ -18,9 +18,11 @@ using Microsoft.BaseTypes;
 using Microsoft.Boogie;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Dafny.Plugins;
+using static Microsoft.Dafny.ErrorDetail;
 
 namespace Microsoft.Dafny {
   public partial class Resolver {
+    public DafnyOptions Options { get; }
     public readonly BuiltIns builtIns;
 
     public ErrorReporter reporter;
@@ -234,10 +236,12 @@ namespace Microsoft.Dafny {
     private List<IRewriter> rewriters;
     private RefinementTransformer refinementTransformer;
 
-    public Resolver() {
+    public Resolver(DafnyOptions options) {
+      Options = options;
     }
 
     public Resolver(Program prog) {
+      Options = prog.Options;
       Contract.Requires(prog != null);
 
       builtIns = prog.BuiltIns;
@@ -417,7 +421,7 @@ namespace Microsoft.Dafny {
 
       rewriters = new List<IRewriter>();
 
-      if (DafnyOptions.O.AuditProgram) {
+      if (Options.AuditProgram) {
         rewriters.Add(new Auditor.Auditor(reporter));
       }
 
@@ -431,16 +435,16 @@ namespace Microsoft.Dafny {
       rewriters.Add(new ProvideRevealAllRewriter(this.reporter));
       rewriters.Add(new MatchFlattener(this.reporter, Resolver.defaultTempVarIdGenerator));
 
-      if (DafnyOptions.O.AutoTriggers) {
+      if (Options.AutoTriggers) {
         rewriters.Add(new QuantifierSplittingRewriter(reporter));
         rewriters.Add(new TriggerGeneratingRewriter(reporter));
       }
 
-      if (DafnyOptions.O.TestContracts != DafnyOptions.ContractTestingMode.None) {
+      if (Options.TestContracts != DafnyOptions.ContractTestingMode.None) {
         rewriters.Add(new ExpectContracts(reporter));
       }
 
-      if (DafnyOptions.O.RunAllTests) {
+      if (Options.RunAllTests) {
         rewriters.Add(new RunAllTestsMainMethod(reporter));
       }
 
@@ -448,13 +452,13 @@ namespace Microsoft.Dafny {
       rewriters.Add(new PrintEffectEnforcement(reporter));
       rewriters.Add(new BitvectorOptimization(reporter));
 
-      if (DafnyOptions.O.DisallowConstructorCaseWithoutParentheses) {
+      if (Options.DisallowConstructorCaseWithoutParentheses) {
         rewriters.Add(new ConstructorWarning(reporter));
       }
       rewriters.Add(new UselessOldLinter(reporter));
       rewriters.Add(new PrecedenceLinter(reporter));
 
-      foreach (var plugin in DafnyOptions.O.Plugins) {
+      foreach (var plugin in Options.Plugins) {
         rewriters.AddRange(plugin.GetRewriters(reporter));
       }
 
@@ -882,7 +886,7 @@ namespace Microsoft.Dafny {
           // then an error will already have been produced ("duplicate name of top-level declaration").
           if (classMembers.TryGetValue((ClassDecl)defaultClass, out members) &&
               members.TryGetValue(d.Name, out member)) {
-            reporter.Warning(MessageSource.Resolver, d.tok,
+            reporter.Warning(MessageSource.Resolver, ErrorID.None, d.tok,
               "note, this export set is empty (did you perhaps forget the 'provides' or 'reveals' keyword?)");
           }
         }
@@ -1172,7 +1176,7 @@ namespace Microsoft.Dafny {
         var scope = exportDecl.Signature.VisibilityScope;
         Cloner cloner = new ScopeCloner(scope);
         var exportView = cloner.CloneModuleDefinition(m, m.Name);
-        if (DafnyOptions.O.DafnyPrintExportedViews.Contains(exportDecl.FullName)) {
+        if (Options.DafnyPrintExportedViews.Contains(exportDecl.FullName)) {
           var wr = Console.Out;
           wr.WriteLine("/* ===== export set {0}", exportDecl.FullName);
           var pr = new Printer(wr);
@@ -1837,7 +1841,7 @@ namespace Microsoft.Dafny {
             new Specification<Expression>(new List<Expression>(), null),
             null, null, null);
           // --- here comes predicate Valid()
-          var valid = new Predicate(iter.tok, "Valid", false, true, new List<TypeParameter>(),
+          var valid = new Predicate(iter.tok, "Valid", false, true, false, new List<TypeParameter>(),
             new List<Formal>(),
             null,
             new List<AttributedExpression>(),
@@ -1906,7 +1910,7 @@ namespace Microsoft.Dafny {
           if (cl.IsDefaultClass) {
             foreach (MemberDecl m in members.Values) {
               Contract.Assert(!m.HasStaticKeyword || m is ConstantField ||
-                              DafnyOptions.O
+                              Options
                                 .AllowGlobals); // note, the IsStatic value isn't available yet; when it becomes available, we expect it will have the value 'true'
               if (m is Function || m is Method || m is ConstantField) {
                 sig.StaticMembers[m.Name] = m;
@@ -3235,7 +3239,7 @@ namespace Microsoft.Dafny {
     void CheckForUnnecessaryEqualitySupportDeclarations(MemberDecl member, List<TypeParameter> typeParameters) {
       if (member.IsGhost) {
         foreach (var p in typeParameters.Where(p => p.SupportsEquality)) {
-          reporter.Warning(MessageSource.Resolver, p.tok,
+          reporter.Warning(MessageSource.Resolver, ErrorID.None, p.tok,
             $"type parameter {p.Name} of ghost {member.WhatKind} {member.Name} is declared (==), which is unnecessary because the {member.WhatKind} doesn't contain any compiled code");
         }
       }
@@ -3924,7 +3928,7 @@ namespace Microsoft.Dafny {
       // Finally, of the big-enough native types, pick the first one that is
       // supported by the selected target compiler.
       foreach (var nativeT in bigEnoughNativeTypes) {
-        if (DafnyOptions.O.Backend.SupportedNativeTypes.Contains(nativeT.Name)) {
+        if (Options.Backend.SupportedNativeTypes.Contains(nativeT.Name)) {
           dd.NativeType = nativeT;
           break;
         }
@@ -5706,10 +5710,10 @@ namespace Microsoft.Dafny {
         case Scope<Thing>.PushResult.Success:
           break;
         case Scope<Thing>.PushResult.Duplicate:
-          reporter.Error(MessageSource.Resolver, tok, "Duplicate {0} name: {1}", kind, name);
+          reporter.Error(MessageSource.Resolver, ErrorID.None, tok, "Duplicate {0} name: {1}", kind, name);
           break;
         case Scope<Thing>.PushResult.Shadow:
-          reporter.Warning(MessageSource.Resolver, tok, "Shadowed {0} name: {1}", kind, name);
+          reporter.Warning(MessageSource.Resolver, ErrorID.None, tok, "Shadowed {0} name: {1}", kind, name);
           break;
       }
     }
@@ -6327,8 +6331,11 @@ namespace Microsoft.Dafny {
           lhsExtract.Type = lmulti.Type;
         } else if (lhsResolved is IdentifierExpr) {
           // do nothing
+        } else if (lhsResolved == null) {
+          // LHS failed to resolve. Abort trying to resolve assign or return stmt
+          return;
         } else {
-          Contract.Assert(false, "Internal error: unexpected option in ResolveAssignOrReturnStmt");
+          throw new InvalidOperationException("Internal error: unexpected option in ResolveAssignOrReturnStmt");
         }
       }
       var temp = FreshTempVarName("valueOrError", resolutionContext.CodeContext);
@@ -6426,37 +6433,47 @@ namespace Microsoft.Dafny {
       var origReporter = this.reporter;
       this.reporter = new ErrorReporterSink();
 
+      var isFailure = ResolveMember(tok, tp, "IsFailure", out _);
+      var propagateFailure = ResolveMember(tok, tp, "PropagateFailure", out _);
+      var extract = ResolveMember(tok, tp, "Extract", out _);
+
       if (hasKeywordToken) {
-        if (ResolveMember(tok, tp, "IsFailure", out _) == null ||
-            (ResolveMember(tok, tp, "Extract", out _) != null) != expectExtract) {
+        if (isFailure == null || (extract != null) != expectExtract) {
           // more details regarding which methods are missing have already been reported by regular resolution
           origReporter.Error(MessageSource.Resolver, tok,
-            "The right-hand side of ':-', which is of type '{0}', with a keyword token must have members 'IsFailure()', {1} 'Extract()'",
+            "The right-hand side of ':-', which is of type '{0}', with a keyword token must have functions 'IsFailure()', {1} 'Extract()'",
             tp, expectExtract ? "and" : "but not");
         }
       } else {
-        if (ResolveMember(tok, tp, "IsFailure", out _) == null ||
-            ResolveMember(tok, tp, "PropagateFailure", out _) == null ||
-            (ResolveMember(tok, tp, "Extract", out _) != null) != expectExtract) {
+        if (isFailure == null || propagateFailure == null || (extract != null) != expectExtract) {
           // more details regarding which methods are missing have already been reported by regular resolution
           origReporter.Error(MessageSource.Resolver, tok,
-            "The right-hand side of ':-', which is of type '{0}', must have members 'IsFailure()', 'PropagateFailure()', {1} 'Extract()'",
+            "The right-hand side of ':-', which is of type '{0}', must have functions 'IsFailure()', 'PropagateFailure()', {1} 'Extract()'",
             tp, expectExtract ? "and" : "but not");
         }
       }
 
-
-      // The following checks are not necessary, because the ghost mismatch is caught later.
-      // However the error messages here are much clearer.
-      var m = ResolveMember(tok, tp, "IsFailure", out _);
-      if (m != null && m.IsGhost) {
-        origReporter.Error(MessageSource.Resolver, tok,
-          $"The IsFailure member may not be ghost (type {tp} used in :- statement)");
+      void checkIsFunction([CanBeNull] MemberDecl memberDecl, bool allowMethod) {
+        if (memberDecl == null || memberDecl is Function) {
+          // fine
+        } else if (allowMethod && memberDecl is Method) {
+          // give a deprecation warning, so we will remove this language feature around the Dafny 4 time frame
+          origReporter.Deprecated(MessageSource.Resolver, ErrorID.None, tok,
+            $"Support for member '{memberDecl.Name}' in type '{tp}' (used indirectly via a :- statement) being a method is deprecated;" +
+            " declare it to be a function instead");
+        } else {
+          // not allowed
+          origReporter.Error(MessageSource.Resolver, tok,
+            $"Member '{memberDecl.Name}' in type '{tp}' (used indirectly via a :- statement) is expected to be a function");
+        }
       }
-      m = ResolveMember(tok, tp, "PropagateFailure", out _);
-      if (!hasKeywordToken && m != null && m.IsGhost) {
-        origReporter.Error(MessageSource.Resolver, tok,
-          $"The PropagateFailure member may not be ghost (type {tp} used in :- statement)");
+
+      checkIsFunction(isFailure, false);
+      if (!hasKeywordToken) {
+        checkIsFunction(propagateFailure, true);
+      }
+      if (expectExtract) {
+        checkIsFunction(extract, true);
       }
 
       this.reporter = origReporter;
@@ -7637,7 +7654,10 @@ namespace Microsoft.Dafny {
       public IToken FirstCollectedToken = Token.NoToken;
       public bool Collected = false;
 
-      public override bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
+      public bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
+        return Message(source, level, ErrorID.None, tok, msg);
+      }
+      public override bool Message(MessageSource source, ErrorLevel level, ErrorID errorID, IToken tok, string msg) {
         if (!Collected && level == ErrorLevel.Error) {
           FirstCollectedMessage = msg;
           FirstCollectedToken = tok;

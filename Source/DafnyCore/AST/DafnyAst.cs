@@ -49,9 +49,10 @@ namespace Microsoft.Dafny {
     public readonly ModuleDecl DefaultModule;
     public readonly ModuleDefinition DefaultModuleDef;
     public readonly BuiltIns BuiltIns;
+    public DafnyOptions Options { get; }
     public ErrorReporter Reporter { get; set; }
 
-    public Program(string name, [Captured] ModuleDecl module, [Captured] BuiltIns builtIns, ErrorReporter reporter) {
+    public Program(string name, [Captured] ModuleDecl module, [Captured] BuiltIns builtIns, ErrorReporter reporter, DafnyOptions options) {
       Contract.Requires(name != null);
       Contract.Requires(module != null);
       Contract.Requires(module is LiteralModuleDecl);
@@ -60,6 +61,7 @@ namespace Microsoft.Dafny {
       DefaultModule = module;
       DefaultModuleDef = (DefaultModuleDecl)((LiteralModuleDecl)module).ModuleDef;
       BuiltIns = builtIns;
+      this.Options = options;
       this.Reporter = reporter;
       ModuleSigs = new Dictionary<ModuleDefinition, ModuleSignature>();
       CompileModules = new List<ModuleDefinition>();
@@ -90,13 +92,29 @@ namespace Microsoft.Dafny {
       }
     }
 
+    /// Get the first token that is in the same file as the DefaultModule.RootToken.FileName
+    /// (skips included tokens)
     public IToken GetFirstTopLevelToken() {
-      return DefaultModuleDef.GetFirstTopLevelToken();
+      if (DefaultModule.RootToken.Next == null) {
+        return null;
+      }
+
+      var firstToken = DefaultModule.RootToken.Next;
+      // We skip all included files
+      while (firstToken is { Next: { } } && firstToken.Next.Filename != DefaultModule.RootToken.Filename) {
+        firstToken = firstToken.Next;
+      }
+
+      if (firstToken == null || firstToken.kind == 0) {
+        return null;
+      }
+
+      return firstToken;
     }
 
     public override IEnumerable<Node> Children => new[] { DefaultModule };
 
-    public IEnumerable<Node> ConcreteChildren => Children;
+    public override IEnumerable<Node> PreResolveChildren => Children;
   }
 
   public class Include : TokenNode, IComparable {
@@ -125,6 +143,7 @@ namespace Microsoft.Dafny {
     }
 
     public override IEnumerable<Node> Children => Enumerable.Empty<Node>();
+    public override IEnumerable<Node> PreResolveChildren => Enumerable.Empty<Node>();
   }
 
   /// <summary>
@@ -316,6 +335,8 @@ namespace Microsoft.Dafny {
       Prev == null
         ? Enumerable.Empty<Node>()
         : new List<Node> { Prev });
+
+    public override IEnumerable<Node> PreResolveChildren => Children;
   }
 
   public static class AttributesExtensions {
@@ -575,7 +596,8 @@ namespace Microsoft.Dafny {
     }
 
     public IToken NameToken => tok;
-    public override IEnumerable<Node> Children => IsTypeExplicit ? Type.Nodes : Enumerable.Empty<Node>();
+    public override IEnumerable<Node> Children => IsTypeExplicit ? new List<Node>() { Type } : Enumerable.Empty<Node>();
+    public override IEnumerable<Node> PreResolveChildren => IsTypeExplicit ? new List<Node>() { Type } : Enumerable.Empty<Node>();
   }
 
   public class Formal : NonglobalVariable {
@@ -722,7 +744,8 @@ namespace Microsoft.Dafny {
     public readonly bool IsGhost;
 
     public override IEnumerable<Node> Children => new List<Node> { Actual }.Where(x => x != null);
-    // Names are owned by the method call
+
+    public override IEnumerable<Node> PreResolveChildren => Children;
 
     public ActualBinding(IToken /*?*/ formalParameterName, Expression actual, bool isGhost = false) {
       Contract.Requires(actual != null);
@@ -768,6 +791,7 @@ namespace Microsoft.Dafny {
     }
 
     public override IEnumerable<Node> Children => arguments == null ? ArgumentBindings : arguments;
+    public override IEnumerable<Node> PreResolveChildren => Children;
   }
 
   class QuantifiedVariableDomainCloner : Cloner {
@@ -808,6 +832,7 @@ namespace Microsoft.Dafny {
     }
 
     public override IEnumerable<Node> Children => Expressions;
+    public override IEnumerable<Node> PreResolveChildren => Children;
   }
 
   public class BottomUpVisitor {
@@ -874,6 +899,7 @@ namespace Microsoft.Dafny {
       Visit(function.Ens);
       Visit(function.Decreases.Expressions);
       if (function.Body != null) { Visit(function.Body); }
+      if (function.ByMethodBody != null) { Visit(function.ByMethodBody); }
       //TODO More?
     }
     public void Visit(Expression expr) {
@@ -904,11 +930,17 @@ namespace Microsoft.Dafny {
     }
   }
   public class TopDownVisitor<State> {
+    protected bool preResolve = false;
+
     public void Visit(Expression expr, State st) {
       Contract.Requires(expr != null);
       if (VisitOneExpr(expr, ref st)) {
-        // recursively visit all subexpressions and all substatements
-        expr.SubExpressions.Iter(e => Visit(e, st));
+        if (preResolve && expr is ConcreteSyntaxExpression concreteSyntaxExpression) {
+          concreteSyntaxExpression.PreResolveSubExpressions.Iter(e => Visit(e, st));
+        } else {
+          // recursively visit all subexpressions and all substatements
+          expr.SubExpressions.Iter(e => Visit(e, st));
+        }
         if (expr is StmtExpr) {
           // a StmtExpr also has a substatement
           var e = (StmtExpr)expr;
@@ -920,8 +952,13 @@ namespace Microsoft.Dafny {
       Contract.Requires(stmt != null);
       if (VisitOneStmt(stmt, ref st)) {
         // recursively visit all subexpressions and all substatements
-        stmt.SubExpressions.Iter(e => Visit(e, st));
-        stmt.SubStatements.Iter(s => Visit(s, st));
+        if (preResolve) {
+          stmt.PreResolveSubExpressions.Iter(e => Visit(e, st));
+          stmt.PreResolveSubStatements.Iter(s => Visit(s, st));
+        } else {
+          stmt.SubExpressions.Iter(e => Visit(e, st));
+          stmt.SubStatements.Iter(s => Visit(s, st));
+        }
       }
     }
     public void Visit(IEnumerable<Expression> exprs, State st) {
