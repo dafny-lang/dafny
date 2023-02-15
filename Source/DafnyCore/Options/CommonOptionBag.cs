@@ -51,7 +51,7 @@ The contents of this file and any files it includes can be referenced from other
 However, these contents are skipped during code generation and verification.
 This option is useful in a diamond dependency situation, 
 to prevent code from the bottom dependency from being generated more than once.
-The value may be a comma-separated list of files ad folders.".TrimStart());
+The value may be a comma-separated list of files and folders.".TrimStart());
 
   public static readonly Option<FileInfo> Output = new(new[] { "--output", "-o" },
     "Specify the filename and location for the generated target language files.") {
