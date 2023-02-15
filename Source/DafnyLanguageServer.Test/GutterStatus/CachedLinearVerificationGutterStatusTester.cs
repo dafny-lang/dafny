@@ -32,10 +32,10 @@ public class CachedLinearVerificationGutterStatusTester : LinearVerificationGutt
       options.Set(ServerCommand.VerifySnapshots, 1U);
     });
     await VerifyTrace(@"
- .  S  S  |  I  | :method test() {
- .  S  |  |  I  | :  assert true;
- .  S  S  |  I  | :  //Next: 
- .  S  S  |  I  | :}");
+ .  S  S  |  I  $  | :method test() {
+ .  S  |  |  I  $  | :  assert true;
+ .  S  S  |  I  $  | :  //Next: 
+ .  S  S  |  I  $  | :}");
   }
 
   [TestMethod, Timeout(MaxTestExecutionTimeMs)]
@@ -45,10 +45,10 @@ public class CachedLinearVerificationGutterStatusTester : LinearVerificationGutt
       options.Set(ServerCommand.VerifySnapshots, 1U);
     });
     await VerifyTrace(@"
- .  S [S][ ][I][I][ ]:method test() {
- .  S [O][O][o][O][O]:  assert true;
- .  S [=][=][-][=][=]:  assert false;
- .  S [S][ ][I][I][ ]:  //Next: 
- .  S [S][ ][I][I][ ]:}");
+ .  S [S][ ][I][S][S][ ]:method test() {
+ .  S [O][O][o][Q][O][O]:  assert true;
+ .  S [=][=][-][~][=][=]:  assert false;
+ .  S [S][ ][I][S][S][ ]:  //Next: 
+ .  S [S][ ][I][S][S][ ]:}");
   }
 }

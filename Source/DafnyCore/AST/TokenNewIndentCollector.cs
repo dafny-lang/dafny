@@ -74,12 +74,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
   private readonly Dictionary<int, Indentations> posToIndentations = new();
 
   private Indentations PosToIndentations(int pos) {
-    if (posToIndentations.TryGetValue(pos, out var indentations)) {
-      return indentations;
-    }
-    var result = new Indentations();
-    posToIndentations[pos] = result;
-    return result;
+    return posToIndentations.GetOrCreate(pos, () => new Indentations());
   }
 
   // Used for bullet points && and ||
@@ -160,7 +155,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
   }
 
   public int GetIndentBelowOrInlineOrAbove(IToken token) {
-    if (token == null) {
+    if (token == null || token == Token.NoToken) {
       return 0;
     }
 
@@ -443,10 +438,6 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
       if (member.BodyStartTok.line > 0) {
         SetDelimiterIndentedRegions(member.BodyStartTok, indent);
       }
-    }
-
-    if (member.BodyEndTok.line > 0) {
-      SetIndentations(member.BodyEndTok, indent + SpaceTab, indent, indent);
     }
 
     PosToIndentations(member.EndToken.pos).Below = indent;

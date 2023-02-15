@@ -100,7 +100,7 @@ namespace Microsoft.Dafny {
       Error(source, ErrorID.None, s.Tok, msg, args);
     }
 
-    public void Error(MessageSource source, IVariable v, string msg, params object[] args) {
+    public void Error(MessageSource source, INode v, string msg, params object[] args) {
       Contract.Requires(v != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
@@ -118,7 +118,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
       if (DafnyOptions.O.WarningsAsErrors) {
-        Error(source, tok, msg);
+        Error(source, errorID, tok, msg);
       } else {
         Message(source, ErrorLevel.Warning, errorID, tok, msg);
       }
@@ -234,6 +234,13 @@ namespace Microsoft.Dafny {
           }
           msg = nestedToken.Message ?? "[Related location]";
           errorLine += $" {msg} {TokenToString(tok)}";
+        }
+
+        if (DafnyOptions.O.CompileVerbose && false) { // Need to control tests better before we enable this
+          var info = ErrorDetail.GetDetail(errorID);
+          if (info != null) {
+            errorLine += "\n" + info;
+          }
         }
         Console.WriteLine(errorLine);
 

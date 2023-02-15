@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
@@ -72,6 +73,32 @@ Resource usage: 9K RU"
 
 - Total resource usage: ??? RU  
 - Only one [assertion batch](???)"
+      );
+    }
+
+    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    public async Task HoverGetsForeignContentAsWell() {
+      var documentItem = await GetDocumentItem(@"
+include ""foreign-verify.dfy""
+
+predicate Q(i: int) {
+  P(i)
+}
+
+method DoIt() returns (x: int)
+  ensures Q(x)
+{
+  return -1;
+//^ hover #1
+}", Path.Combine(Directory.GetCurrentDirectory(), "Lookup/TestFiles/test.dfy"));
+      // When hovering the failing path, it should extract text from the included file
+      await AssertHoverMatches(documentItem, (9, 4),
+        @"[**Error:**](???) A postcondition might not hold on this return path.  
+Could not prove: Q(x)  
+Could not prove: P(i)  
+Could not prove: i >= 0  
+This is assertion #1 of 2 in method DoIt  
+Resource usage: ??? RU"
       );
     }
 
