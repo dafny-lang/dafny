@@ -454,7 +454,8 @@ namespace Microsoft.Dafny {
         // Might not be totally optimized but let's do that for now
         var err = Dafny.Main.Parse(new List<DafnyFile> { dafnyFile }, programName, reporter, out var dafnyProgram);
         var originalText = dafnyFile.UseStdin ? Console.In.ReadToEnd() :
-          File.ReadAllText(dafnyFile.FilePath);
+          File.Exists(dafnyFile.FilePath) ?
+          File.ReadAllText(dafnyFile.FilePath) : null;
         if (err != null) {
           exitValue = ExitValue.DAFNY_ERROR;
           Console.Error.WriteLine(err);
