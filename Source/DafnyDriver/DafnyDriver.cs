@@ -169,6 +169,23 @@ namespace Microsoft.Dafny {
       OK_EXIT_EARLY
     }
 
+    static HashSet<string> SplitOptionValueIntoFiles(HashSet<string> inputs) {
+      var output = new HashSet<string>();
+      foreach (var input in inputs) {
+        var values = input.Split(',');
+        foreach (var slice in values) {
+          var name = slice.Trim();
+          if (System.IO.Directory.Exists(name)) {
+            var files = System.IO.Directory.GetFiles(name, "*.dfy", SearchOption.AllDirectories);
+            foreach (var file in files) { output.Add(file); }
+          } else {
+            output.Add(name);
+          }
+        }
+      }
+      return output;
+    }
+
     public static CommandLineArgumentsResult ProcessCommandLineArguments(string[] args, out DafnyOptions options, out List<DafnyFile> dafnyFiles, out List<string> otherFiles) {
       dafnyFiles = new List<DafnyFile>();
       otherFiles = new List<string>();
@@ -238,7 +255,7 @@ namespace Microsoft.Dafny {
       }
 
       ISet<String> filesSeen = new HashSet<string>();
-      foreach (string file in options.Files.Concat(options.LibraryFiles)) {
+      foreach (string file in options.Files.Concat(SplitOptionValueIntoFiles(options.LibraryFiles))) {
         Contract.Assert(file != null);
         string extension = Path.GetExtension(file);
         if (extension != null) { extension = extension.ToLower(); }
@@ -441,7 +458,8 @@ namespace Microsoft.Dafny {
         // Might not be totally optimized but let's do that for now
         var err = Dafny.Main.Parse(new List<DafnyFile> { dafnyFile }, programName, reporter, out var dafnyProgram);
         var originalText = dafnyFile.UseStdin ? Console.In.ReadToEnd() :
-          File.ReadAllText(dafnyFile.FilePath);
+          File.Exists(dafnyFile.FilePath) ?
+          File.ReadAllText(dafnyFile.FilePath) : null;
         if (err != null) {
           exitValue = ExitValue.DAFNY_ERROR;
           Console.Error.WriteLine(err);
