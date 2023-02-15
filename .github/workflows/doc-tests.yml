@@ -44,8 +44,10 @@ jobs:
     - name: Check OnlineTutorial examples
       run: |
         cd dafny/docs
+        chmod +x ./check-examples
         PATH=../bin:$PATH ./check-examples OnlineTutorial/*.md || ( echo Tests Failed; exit 1 ) && echo Tests Succeeded
     - name: Check Reference Manual examples
       run: |
         cd dafny/docs
+        chmod +x ./check-examples
         PATH=../bin:$PATH ./check-examples DafnyRef/*.md || ( echo Tests Failed; exit 1 ) && echo Tests Succeeded

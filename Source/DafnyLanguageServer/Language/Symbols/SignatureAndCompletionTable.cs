@@ -46,9 +46,9 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         NullLogger<SignatureAndCompletionTable>.Instance,
         new CompilationUnit(new Dafny.Program(
           textDocument.Uri.ToString(),
-          new LiteralModuleDecl(new DefaultModuleDecl(), null),
+          new LiteralModuleDecl(new DefaultModuleDefinition(), null),
           // BuiltIns cannot be initialized without Type.ResetScopes() before.
-          new BuiltIns(),
+          new BuiltIns(), // TODO creating a BuiltIns is a heavy operation
           errorReporter,
           options
         )),
