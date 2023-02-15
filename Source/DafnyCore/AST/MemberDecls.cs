@@ -129,6 +129,7 @@ public class Field : MemberDecl, ICanFormat {
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     formatter.SetOpeningIndentedRegion(StartToken, indentBefore);
     formatter.SetClosingIndentedRegion(EndToken, indentBefore);
+    var hasComma = OwnedTokens.Any(token => token.val == ",");
     switch (this) {
       case ConstantField constantField:
         var ownedTokens = constantField.OwnedTokens;
@@ -139,6 +140,16 @@ public class Field : MemberDecl, ICanFormat {
             case ":=": {
                 if (TokenNewIndentCollector.IsFollowedByNewline(token)) {
                   formatter.SetDelimiterInsideIndentedRegions(token, indentBefore);
+                } else if (formatter.ReduceBlockiness && token.Next.val is "{" or "[" or "(") {
+                  if (!hasComma && token.Next.val != "(") {
+                    rightIndent = indentBefore;
+                    commaIndent = indentBefore;
+                  } else {
+                    rightIndent = indentBefore + formatter.SpaceTab;
+                    commaIndent = indentBefore + formatter.SpaceTab;
+                  }
+
+                  formatter.SetIndentations(token, indentBefore, indentBefore, rightIndent);
                 } else {
                   formatter.SetAlign(indentBefore + formatter.SpaceTab, token, out rightIndent, out commaIndent);
                 }
