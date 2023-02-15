@@ -270,7 +270,13 @@ namespace Microsoft.Dafny {
         } else if (options.Format && Directory.Exists(file)) {
           options.FoldersToFormat.Add(file);
         } else if (!isDafnyFile) {
-          if (string.IsNullOrEmpty(extension) && file.Length > 0 && (file[0] == '/' || file[0] == '-')) {
+          if (options.UsingNewCli && string.IsNullOrEmpty(extension) && file.Length > 0) {
+            var relative = System.IO.Path.GetFileName(file);
+            options.Printer.ErrorWriteLine(Console.Out,
+              "*** Error: Command-line argument '{0}' is neither a recognized option nor a filename with a supported extension ({1}).",
+              relative.StartsWith("-") ? relative : file,
+              string.Join(", ", Enumerable.Repeat(".dfy", 1).Concat(supportedExtensions)));
+          } else if (string.IsNullOrEmpty(extension) && file.Length > 0 && (file[0] == '/' || file[0] == '-')) {
             options.Printer.ErrorWriteLine(Console.Out,
               "*** Error: Command-line argument '{0}' is neither a recognized option nor a filename with a supported extension ({1}).",
               file, string.Join(", ", Enumerable.Repeat(".dfy", 1).Concat(supportedExtensions)));
