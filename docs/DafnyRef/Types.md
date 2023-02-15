@@ -3999,8 +3999,8 @@ Examples:
 <!-- %check-resolve -->
 ```dafny
 function f(i: int): real { i as real }
-ghost function g(): (int, int) { (2,3) }
-function h(i: int, ghost k: int): int requires i >= 0 { if i == 0 then 0 else 1 }
+function g(): (int, int) { (2,3) }
+function h(i: int, k: int): int requires i >= 0 { if i == 0 then 0 else 1 }
 ```
 
 Functions may be declared as ghost. If so, all the formal parameters and
