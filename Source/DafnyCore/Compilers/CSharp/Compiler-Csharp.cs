@@ -15,6 +15,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 using Microsoft.BaseTypes;
+using Microsoft.Boogie;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
 namespace Microsoft.Dafny.Compilers {
@@ -101,10 +102,13 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(program != null);
       Contract.Requires(wr != null);
 
-      var strwr = new StringWriter();
-      strwr.NewLine = Environment.NewLine;
-      new Printer(strwr, PrintModes.DllEmbed).PrintProgram(program, true);
-      var programString = strwr.GetStringBuilder().Replace("\"", "\"\"").ToString();
+      var stringWriter = new StringWriter();
+      stringWriter.NewLine = Environment.NewLine;
+      var oldValue = DafnyOptions.O.ShowEnv;
+      DafnyOptions.O.ShowEnv = ExecutionEngineOptions.ShowEnvironment.DuringPrint;
+      new Printer(stringWriter, PrintModes.DllEmbed).PrintProgram(program, true);
+      DafnyOptions.O.ShowEnv = oldValue;
+      var programString = stringWriter.GetStringBuilder().Replace("\"", "\"\"").ToString();
 
       wr.WriteLine($"[assembly: DafnyAssembly.DafnySourceAttribute(@\"{programString}\")]");
       wr.WriteLine();
@@ -153,7 +157,7 @@ namespace Microsoft.Dafny.Compilers {
         var argConvDecls = arity switch {
           0 => "",
           1 => $"{ArgConvDecl(("U", "T"))}, ",
-          _ => us.SkipLast(1).Zip(ts.SkipLast(1))
+          _ => Enumerable.Zip(us.SkipLast(1), ts.SkipLast(1))
                  .Comma((tp, i) => $"{ArgConvDecl(tp)}{++i}")
                + ", "
         };
@@ -2724,7 +2728,7 @@ namespace Microsoft.Dafny.Compilers {
 
         var typeArgs = from.IsArrowType ? from.TypeArgs.Concat(to.TypeArgs) : to.TypeArgs;
         var wTypeArgs = typeArgs.Comma(ta => TypeName(ta, wr, tok));
-        var argPairs = from.TypeArgs.Zip(to.TypeArgs);
+        var argPairs = Enumerable.Zip(from.TypeArgs, to.TypeArgs);
         if (from.IsArrowType) {
           argPairs = argPairs.Select((tp, i) => ++i < to.TypeArgs.Count ? (tp.Second, tp.First) : tp);
         }
