@@ -116,12 +116,13 @@ method m5() { assert false; } //Remove4:
 
   // Requires changes to not change the position of symbols for now, as we are not applying the changes to the local code for now.
   private async Task TestPriorities(string codeAndChanges, string symbolsString) {
-    var symbols = ExtractSymbols(symbolsString);
     var semaphoreSlim = new SemaphoreSlim(0);
-    var original = DafnyOptions.O.CreateSolver;
-    DafnyOptions.O.CreateSolver = (_, _) =>
-      new UnsatSolver(semaphoreSlim);
-    await SetUp(options => options.Set(BoogieOptionBag.Cores, 1U));
+    await SetUp(options => {
+      options.CreateSolver = (_, _) =>
+        new UnsatSolver(semaphoreSlim);
+      options.Set(BoogieOptionBag.Cores, 1U);
+    });
+    var symbols = ExtractSymbols(symbolsString);
 
     var (code, changes) = ExtractCodeAndChanges(codeAndChanges.TrimStart());
     var documentItem = CreateTestDocument(code);
@@ -160,8 +161,6 @@ method m5() { assert false; } //Remove4:
         await CompareWithExpectation(expectedSymbols);
       }
     }
-
-    DafnyOptions.O.CreateSolver = original;
   }
 
   private IEnumerable<string> GetSymbols(string code, List<Position> positions) {

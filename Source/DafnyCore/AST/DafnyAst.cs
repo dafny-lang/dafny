@@ -59,7 +59,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(reporter != null);
       FullName = name;
       DefaultModule = module;
-      DefaultModuleDef = (DefaultModuleDecl)((LiteralModuleDecl)module).ModuleDef;
+      DefaultModuleDef = (DefaultModuleDefinition)((LiteralModuleDecl)module).ModuleDef;
       BuiltIns = builtIns;
       this.Options = options;
       this.Reporter = reporter;
@@ -367,11 +367,6 @@ namespace Microsoft.Dafny {
     }
   }
 
-
-  public abstract class INamedRegion : TokenNode {
-    string Name { get; }
-  }
-
   [ContractClass(typeof(IVariableContracts))]
   public interface IVariable : IDeclarationOrUsage {
     string Name {
@@ -407,9 +402,6 @@ namespace Microsoft.Dafny {
       get;
     }
     void MakeGhost();
-    IToken Tok {
-      get;
-    }
   }
   [ContractClassFor(typeof(IVariable))]
   public abstract class IVariableContracts : TokenNode, IVariable {

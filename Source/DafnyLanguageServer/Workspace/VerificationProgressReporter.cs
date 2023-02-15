@@ -11,18 +11,19 @@ using VerificationResult = Microsoft.Boogie.VerificationResult;
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public class VerificationProgressReporter : IVerificationProgressReporter {
-
+  private DafnyOptions options;
   private readonly DocumentAfterTranslation document;
   private readonly ILogger<VerificationProgressReporter> logger;
   private readonly INotificationPublisher notificationPublisher;
 
   public VerificationProgressReporter(ILogger<VerificationProgressReporter> logger,
     DocumentAfterTranslation document,
-    INotificationPublisher notificationPublisher
-  ) {
+    INotificationPublisher notificationPublisher,
+    DafnyOptions options) {
     this.document = document;
     this.logger = logger;
     this.notificationPublisher = notificationPublisher;
+    this.options = options;
   }
 
   /// <summary>
@@ -208,7 +209,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   public void ReportRealtimeDiagnostics(bool verificationStarted, DocumentAfterResolution? document = null) {
     lock (LockProcessing) {
       document ??= this.document;
-      notificationPublisher.PublishGutterIcons(this.document.InitialIdeState(), verificationStarted);
+      notificationPublisher.PublishGutterIcons(this.document.InitialIdeState(options), verificationStarted);
     }
   }
 
