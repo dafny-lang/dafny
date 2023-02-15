@@ -42,6 +42,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public static TextDocumentLoader CreateTextDocumentLoader(IServiceProvider services) {
       return TextDocumentLoader.Create(
+        services.GetRequiredService<DafnyOptions>(),
         services.GetRequiredService<IDafnyParser>(),
         services.GetRequiredService<ISymbolResolver>(),
         services.GetRequiredService<ISymbolTableFactory>(),

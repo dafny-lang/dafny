@@ -32,7 +32,6 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
   public IEnumerable<BoundVar> AllBoundVars => BoundVars;
 
   public IToken BodyStartTok = Token.NoToken;
-  public IToken BodyEndTok = Token.NoToken;
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
