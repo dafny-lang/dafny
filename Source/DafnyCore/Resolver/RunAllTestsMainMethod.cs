@@ -30,7 +30,7 @@ public class RunAllTestsMainMethod : IRewriter {
     // and would be low-value anyway.
     var noVerifyAttribute = new Attributes("verify", new List<Expression> { new LiteralExpr(Token.NoToken, false) }, null);
 
-    mainMethod = new Method(Token.NoToken, "Main", false, false,
+    mainMethod = new Method(RangeToken.NoToken, new Name("Main"), false, false,
       new List<TypeParameter>(), new List<Formal>(), new List<Formal>(),
       new List<AttributedExpression>(),
       new Specification<FrameExpression>(new List<FrameExpression>(), null),

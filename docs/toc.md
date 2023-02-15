@@ -28,6 +28,7 @@ This page contains links to Dafny documentation.
    * [Cheatsheet](DafnyCheatsheet.pdf)
    * Dafny [Quick Reference](./QuickReference)
    * [Getting started tutorial](./OnlineTutorial/guide), focusing mostly on simple imperative programs
+   * [Dafny blog](https://dafny.org/blog)
 * Detailed documents for programmers
    * [**Dafny Reference Manual**](DafnyRef/DafnyRef)
    * [FAQs](HowToFAQ/index)
