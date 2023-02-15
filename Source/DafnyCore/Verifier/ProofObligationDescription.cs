@@ -404,7 +404,7 @@ public class TraitDecreases : ProofObligationDescription {
     $"{whatKind}'s decreases clause is below or equal to that in the trait";
 
   public override string FailureDescription =>
-    $"{whatKind}'s decreases clause must be below or equal to that in the trait";
+    $"{whatKind}'s (possibly automatically generated) decreases clause must be below or equal to that in the trait";
 
   public override string ShortDescription => "trait decreases";
 
