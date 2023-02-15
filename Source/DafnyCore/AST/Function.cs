@@ -132,7 +132,15 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
     Concat(Formals).Concat(ResultType != null ? new List<Node>() { ResultType } : new List<Node>()).
     Concat(Body == null ? Enumerable.Empty<Node>() : new[] { Body });
 
-  public override IEnumerable<Node> PreResolveChildren => Children;
+  public override IEnumerable<Node> PreResolveChildren =>
+    TypeArgs.
+    Concat<Node>(Reads).
+    Concat<Node>(Req).
+    Concat(Ens).
+    Concat(Decreases.Expressions).
+    Concat(Formals).Concat(ResultType != null ? new List<Node>() { ResultType } : new List<Node>()).
+    Concat(Body == null ? Enumerable.Empty<Node>() : new[] { Body }).
+    Concat(ByMethodBody == null ? Enumerable.Empty<Node>() : new[] { ByMethodBody });
 
   public override IEnumerable<Expression> SubExpressions {
     get {

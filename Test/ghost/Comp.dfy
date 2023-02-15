@@ -1,5 +1,5 @@
 // RUN: %dafny /compile:0 /print:"%t.print" "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:cs "%s" >> "%t"
+// RUN: %baredafny run %args --no-verify --target=cs --spill-translation "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:js "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:go "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:java "%s" >> "%t"
@@ -15,7 +15,7 @@ method Test3(t3: ((ghost int), (ghost int, int), ghost int)) { print "Test3: ", 
 
 method Main() {
   var p := PhantomData(123);
-  var t0, t1, t2, t3;
+  var t0, t1, t2, t3 := *, *, *, *;
   Test0(t0);
   Test1(t1);
   Test2(t2);
@@ -39,7 +39,7 @@ method TestDestructors() {
   var u := (100, 200);
   print u.0, " ", u.1, "\n"; // 100 200
 
-  var a, b, c, d; // will be initialized to default values
+  var a, b, c, d := *, *, *, *; // will be initialized to default values
   print a, " ", b, " ", c, " ", d, "\n"; // 
 
   a := (5, ghost 7, 9);
@@ -157,7 +157,7 @@ method UpdateArray<T(0)>(arr: array<T>, t: T)
   requires 10 <= arr.Length
   modifies arr
 {
-  var tt: T;
+  var tt: T := *;
   arr[1] := tt;
   arr[2] := t;
 }
@@ -166,7 +166,7 @@ method UpdateSxArray(arr: array<SX>, t: SX)
   requires 10 <= arr.Length
   modifies arr
 {
-  var tt: SX;
+  var tt: SX := *;
   arr[4] := tt;
   arr[5] := t;
 }
