@@ -561,12 +561,12 @@ Usage: dafny [ option ... ] [ filename ... ]
                             of the path supplied on the command line
 
   /emitDebugInformation:<n>
-                0 - do not emit debug information
-                1 (default) - emit the debug information :qid, :skolemid and set-info :boogie-vc-id
+                0 (default) - do not emit debug information
+                1 - emit the debug information :qid, :skolemid and set-info :boogie-vc-id
 
   /normalizeNames:<n>
-                0 (default) - Keep Boogie program names when generating SMT commands
-                1 - Normalize Boogie program names when generating SMT commands. 
+                0 - Keep Boogie program names when generating SMT commands
+                1 (default) - Normalize Boogie program names when generating SMT commands.
                   This keeps SMT solver input, and thus output, 
                   constant when renaming declarations in the input program.
 
@@ -798,8 +798,8 @@ Usage: dafny [ option ... ] [ filename ... ]
   /rlimit:<num>
                 Limit the Z3 resource spent trying to verify each procedure
   /errorTrace:<n>
-                0 - no Trace labels in the error output,
-                1 (default) - include useful Trace labels in error output,
+                0 (default) - no Trace labels in the error output,
+                1 - include useful Trace labels in error output,
                 2 - include all Trace labels in the error output
   /vcBrackets:<b>
                 bracket odd-charactered identifier names with |'s.  <b> is:
