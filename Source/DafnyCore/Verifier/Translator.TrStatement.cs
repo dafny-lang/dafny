@@ -750,6 +750,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
 
+      FillMissingCases(stmt);
+
       TrStmt_CheckWellformed(stmt.Source, builder, locals, etran, true);
       Bpl.Expr source = etran.TrExpr(stmt.Source);
       var b = new BoogieStmtListBuilder(this);
@@ -806,8 +808,48 @@ namespace Microsoft.Dafny {
         els = null;
         CurrentIdGenerator.Pop();
       }
-      Contract.Assert(ifCmd != null); // follows from the fact that s.Cases.Count + s.MissingCases.Count != 0.
-      builder.Add(ifCmd);
+      if (ifCmd != null) {
+        builder.Add(ifCmd);
+      }
+    }
+
+    void FillMissingCases(IMatch match) {
+      Contract.Requires(match != null);
+      if (match.MissingCases.Any()) {
+        return;
+      }
+
+      var dtd = match.Source.Type.AsDatatype;
+      var constructors = dtd?.ConstructorsByName;
+
+      ISet<string> memberNamesUsed = new HashSet<string>();
+
+      foreach (var matchCase in match.Cases) {
+        if (constructors != null) {
+          Contract.Assert(dtd != null);
+          var ctorId = matchCase.Ctor.Name;
+          if (match.Source.Type.AsDatatype is TupleTypeDecl) {
+            var tuple = (TupleTypeDecl)match.Source.Type.AsDatatype;
+            ctorId = BuiltIns.TupleTypeCtorName(tuple.Dims);
+          }
+
+          if (constructors.ContainsKey(ctorId)) {
+            memberNamesUsed.Add(ctorId); // add mc.Id to the set of names used
+          }
+        }
+      }
+      if (dtd != null && memberNamesUsed.Count != dtd.Ctors.Count) {
+        // We could complain about the syntactic omission of constructors:
+        //   Reporter.Error(MessageSource.Resolver, stmt, "match statement does not cover all constructors");
+        // but instead we let the verifier do a semantic check.
+        // So, for now, record the missing constructors:
+        foreach (var ctr in dtd.Ctors) {
+          if (!memberNamesUsed.Contains(ctr.Name)) {
+            match.MissingCases.Add(ctr);
+          }
+        }
+        Contract.Assert(memberNamesUsed.Count + match.MissingCases.Count == dtd.Ctors.Count);
+      }
     }
 
     private void TrForLoop(ForLoopStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
