@@ -59,7 +59,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(reporter != null);
       FullName = name;
       DefaultModule = module;
-      DefaultModuleDef = (DefaultModuleDecl)((LiteralModuleDecl)module).ModuleDef;
+      DefaultModuleDef = (DefaultModuleDefinition)((LiteralModuleDecl)module).ModuleDef;
       BuiltIns = builtIns;
       this.Options = options;
       this.Reporter = reporter;
@@ -365,11 +365,6 @@ namespace Microsoft.Dafny {
       OpenBrace = openBrace;
       CloseBrace = closeBrace;
     }
-  }
-
-
-  public abstract class INamedRegion : TokenNode {
-    string Name { get; }
   }
 
   [ContractClass(typeof(IVariableContracts))]
