@@ -382,7 +382,7 @@ namespace Microsoft.Dafny {
 
       Type.EnableScopes();
       var origErrorCount = reporter.ErrorCount; //TODO: This is used further below, but not in the >0 comparisons in the next few lines. Is that right?
-      var bindings = new ModuleBindings(prog.DefaultModule, null, prog.Reporter);
+      var bindings = new ModuleBindings(prog.DefaultModule.Name, null, prog.Reporter);
       var b = BindModuleNames(prog.DefaultModuleDef, bindings);
       bindings.BindName(prog.DefaultModule.Name, prog.DefaultModule, b);
       if (reporter.ErrorCount > 0) {
@@ -1204,18 +1204,18 @@ namespace Microsoft.Dafny {
 
     public class ModuleBindings {
       public ModuleBindings parent;
-      public ModuleDecl self;
+      public string selfName;
       private Dictionary<string, ModuleDecl> modules;
       private Dictionary<string, ModuleBindings> bindings;
       public ErrorReporter reporter;
 
-      public ModuleBindings(ModuleDecl self, ModuleBindings p, ErrorReporter reporter) {
+      public ModuleBindings(string selfName, ModuleBindings p, ErrorReporter reporter) {
         parent = p;
-        this.self = self;
+        this.selfName = selfName;
         modules = new Dictionary<string, ModuleDecl>();
         bindings = new Dictionary<string, ModuleBindings>();
         this.reporter = reporter;
-        System.Console.WriteLine("CREATING MODULE BINDINGS FOR " + self == null ? " TP" : self.FullDafnyName);
+        System.Console.WriteLine("CREATING MODULE BINDINGS FOR " + selfName);
       }
 
       public bool BindName(string name, ModuleDecl subModule, ModuleBindings b) {
@@ -1235,7 +1235,7 @@ namespace Microsoft.Dafny {
 
       public bool TryGetFilter(string name, out ModuleDecl moduleFound, Func<ModuleDecl, bool> filter) {
         Contract.Requires(name != null);
-        return modules.TryGetValue(name.val, out m) && filter(m);
+        return modules.TryGetValue(name, out moduleFound) && filter(moduleFound);
       }
 
       public bool TryLookupFilter(IToken name, out ModuleDecl m, Func<ModuleDecl, bool> filter) {
@@ -1330,7 +1330,7 @@ namespace Microsoft.Dafny {
     }
 
     private ModuleBindings BindModuleNames(ModuleDefinition moduleDecl, ModuleBindings parentBindings) {
-      var bindings = new ModuleBindings(moduleDecl, parentBindings, reporter);
+      var bindings = new ModuleBindings(moduleDecl.Name, parentBindings, reporter);
 
       // moduleDecl.PrefixNamedModules is a list of pairs like:
       //     A.B.C  ,  module D { ... }
@@ -1459,7 +1459,7 @@ namespace Microsoft.Dafny {
     // resolve to the alias produced by the first import
     private int ResolveQualifiedModuleIdRootImport(AliasModuleDecl context, ModuleBindings bindings, ModuleQualifiedId qid,
       out ModuleDecl first, out ModuleDecl leaf) {
-      var filter = m => context != m && ((context.EnclosingModuleDefinition == m.EnclosingModuleDefinition && context.Exports.Count == 0) || m is LiteralModuleDecl);
+      Func<ModuleDecl, bool> filter = m => context != m && ((context.EnclosingModuleDefinition == m.EnclosingModuleDefinition && context.Exports.Count == 0) || m is LiteralModuleDecl);
       var bb = bindings;
       Contract.Assert(qid != null);
       IToken root = qid.Path[0];
@@ -1481,31 +1481,35 @@ namespace Microsoft.Dafny {
           i++;
         }
         root = qid.Path[i];
-        ModuleDecl moduleFound;
-        if (bb.TryGetFilter(root.val, moduleFound)) {
+        ModuleDecl moduleFound = null;
+        if (bb.TryGetFilter(root.val, out moduleFound, filter)) {
           qid.Root = moduleFound;
+          first = moduleFound;
           return i;
         } else {
-          reporter.Error(MessageSource.Resolver, root.tok, "No module named {0} was found in {1}", root.val, bb.self.FullDafnyName);
+          reporter.Error(MessageSource.Resolver, root, "No module named {0} was found in {1}", root.val, bb.selfName);
+          first = null;
           return -1;
         }
 
       } else if (root.val == "_") {
-        var parents = new List<ModuleDecl>();
+        var parents = new List<string>();
         while (bb.parent != null) {
           bb = bb.parent;
-          parents.Add(bb.self);
+          parents.Add(bb.selfName);
         }
-        for (i = 1; i < parents.Length; i++) {
-          if (parents[parents.Length - i].Name != qid.Path[i]) break;
+        for (i = 1; i < parents.Count; i++) {
+          if (parents[parents.Count - i] != qid.Path[i].val) break;
         }
         root = qid.Path[i];
         ModuleDecl moduleFound;
-        if (bb.TryGetFilter(root.val, moduleFound)) {
+        if (bb.TryGetFilter(root.val, out moduleFound, filter)) {
           qid.Root = moduleFound;
+          first = moduleFound;
           return i;
         } else {
-          reporter.Error(MessageSource.Resolver, root.tok, "No module named {0} was found in {1}", root.val, bb.self.FullDafnyName);
+          reporter.Error(MessageSource.Resolver, root, "No module named {0} was found in {1}", root.val, bb.selfName);
+          first = null;
           return -1;
         }
       }
@@ -1619,7 +1623,6 @@ namespace Microsoft.Dafny {
              (1 < path.Count
                ? " (position " + i.ToString() + " in path " + Util.Comma(".", path, x => x.val) + ")" + tail
                : "");
-      throw new Exception();
       return msg;
     }
 
