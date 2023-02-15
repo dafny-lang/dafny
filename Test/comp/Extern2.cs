@@ -49,4 +49,16 @@ namespace Library {
       return Wrappers_Compile.Pair<BigInteger, BigInteger>.create_Pair(3, 7);
     }
   }
+
+  public partial class SingletonOptimization {
+    public static int SingletonTuple(int a) {
+      return a + 1;
+    }
+    public static int NoWrapper(int a) {
+      return a + 1;
+    }
+    public static int GhostWrapper(int a) {
+      return a + 1;
+    }
+  }
 }

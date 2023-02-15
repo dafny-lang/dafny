@@ -2,26 +2,30 @@
 
 ## Making a new Github release
 
-0. Ensure that you are in a repository that:
+1. Ensure that you are in a repository that:
    * is clean and up-to-date with no uncommitted changes,
    * was cloned with SSH so that you can push to it, and
    * has the `master` branch checked out.
 
-1. Select a version number `$VER` (e.g., "3.0.0" or "3.0.0-alpha"), then
-   run `Scripts/prepare_release.py $VER prepare` from the root of the
+1. Select a version number `$VER` (e.g., "3.0.0" or "3.0.0-alpha"). 
+   The `major`.`minor`.`patch` numbers may already have been
+   incremented since the last release, so they do not necessarily need
+   to be updated. However, you may want to increment them further
+   depending the types of changes that are in the release.
+1. Run `Scripts/prepare_release.py $VER prepare` from the root of the
    repository. The script will check that the repository is in a good
    state, create and check out a new release branch, update
-   `Source/version.cs` and `RELEASE_NOTES.md`, prepare a release commit,
+   `Source/Directory.Build.props` and `RELEASE_NOTES.md`, prepare a release commit,
    and push it.
 
-2. Kick off the deep test suite by navigating to
+1. Kick off the deep test suite by navigating to
    <https://github.com/dafny-lang/dafny/actions/workflows/deep-tests.yml>,
    clicking the "Run workflow" dropdown, selecting the newly created branch, and
    clicking the "Run workflow" button. The automation for releasing below will
    check for a run of this workflow on the exact commit to release.  (TODO:
    Run this automatically as part of the prepare-release script.)
 
-3. Once the the tests complete, run `Scripts/prepare_release.py $VER
+1. Once the the tests complete, run `Scripts/prepare_release.py $VER
    release` from the root of the repository. The script will tag the
    current commit and push it. (TODO: Merge with the two steps above.) A
    GitHub action will automatically run in reaction to the tag being
@@ -29,28 +33,33 @@
    create a draft GitHub release. You can find and watch the progress of
    this workflow at <https://github.com/dafny-lang/dafny/actions>.
 
-4. Once the action completes, you should find the draft release at
+1. Once the action completes, you should find the draft release at
    <https://github.com/dafny-lang/dafny/releases>. Edit the release body to add in
    the release notes from `RELEASE_NOTES.md`.  If this is not a pre-release,
    check the box to create a new discussion based on the release.
 
-5. Push the "Publish" button. This will trigger yet another workflow
+1. Push the "Publish" button. This will trigger yet another workflow
    that will download the published artifacts and run a smoke test
    on multiple platforms. Again you can watch for this workflow at
    <https://github.com/dafny-lang/dafny/actions>.
 
-6. Create a pull request to merge the newly created branch into `master` (the
+1. Create a pull request to merge the newly created branch into `master` (the
    script will give you a link to do so).  Get it approved and merged.
 
-7. Clone <https://github.com/dafny-lang/ide-vscode> and run `publish_process.js`
+1. Clone <https://github.com/dafny-lang/ide-vscode> and run `publish_process.js`
    to create a new release of the VSCode plugin.
 
-8. Update the Homebrew formula for Dafny (see below).
-   Note that it is fine to leave this for the next day,
-   and other members of the community may update the formula
-   in the meantime anyway.
+1. Make a documentation snapshot
+   a. Run the (bash) script dafny/docs/make-snapshot x.y.z
+      where x.y.z is the new version number
+   b. The script creates new PRs in dafny-lang/dafny
+      and dafny-lang/dafny-lang.github.io.
+      Approve and merge these PRs.
 
-9. Announce the new release to the world!
+1. Update the Homebrew formula for Dafny (see below).
+    Note that it is fine to leave this for the next day,
+    and other members of the community may update the formula
+    in the meantime anyway.
 
 If something goes wrong with the `prepare` step:
 
@@ -59,10 +68,11 @@ If something goes wrong with the `prepare` step:
 - Re-run the `prepare` step; the script will recognize the `release-` branch and will not recreate it.
 
 If something goes wrong with the `release` step:
-
 - Delete the local tag: `git tag -d vA.B.C`
 - Delete the remote tag: `git push --delete origin vA.B.C`
 - Return to the `prepare` step.
+
+1. Announce the new release to the world.
 
 ## Updating Dafny on Homebrew
 

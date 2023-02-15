@@ -35,7 +35,7 @@ public abstract class PluginConfiguration {
   /// Override this method to provide compilers
   /// </summary>
   /// <returns>A list of compilers implemented by this plugin</returns>
-  public virtual Compiler[] GetCompilers() {
-    return Array.Empty<Compiler>();
+  public virtual IExecutableBackend[] GetCompilers() {
+    return Array.Empty<IExecutableBackend>();
   }
 }

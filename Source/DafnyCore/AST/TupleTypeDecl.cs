@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using JetBrains.Annotations;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
@@ -12,10 +13,12 @@ public class TupleTypeDecl : IndDatatypeDecl {
 
   public int NonGhostDims => ArgumentGhostness.Count(x => !x);
 
+  [CanBeNull] public TupleTypeDecl NonGhostTupleTypeDecl { get; }
+
   /// <summary>
   /// Construct a resolved built-in tuple type with "dim" arguments.  "systemModule" is expected to be the _System module.
   /// </summary>
-  public TupleTypeDecl(List<bool> argumentGhostness, ModuleDefinition systemModule, Attributes attributes)
+  public TupleTypeDecl(List<bool> argumentGhostness, ModuleDefinition systemModule, [CanBeNull] TupleTypeDecl nonGhostTupleTypeDecl, Attributes attributes)
     : this(systemModule, CreateCovariantTypeParameters(argumentGhostness.Count), argumentGhostness, attributes) {
     Contract.Requires(0 <= argumentGhostness.Count);
     Contract.Requires(systemModule != null);
@@ -27,10 +30,12 @@ public class TupleTypeDecl : IndDatatypeDecl {
       tp.Parent = this;
       tp.PositionalIndex = i;
     }
+
+    NonGhostTupleTypeDecl = nonGhostTupleTypeDecl;
   }
 
   private TupleTypeDecl(ModuleDefinition systemModule, List<TypeParameter> typeArgs, List<bool> argumentGhostness, Attributes attributes)
-    : base(Token.NoToken, BuiltIns.TupleTypeName(argumentGhostness), systemModule, typeArgs, CreateConstructors(typeArgs, argumentGhostness), new List<MemberDecl>(), attributes, false) {
+    : base(RangeToken.NoToken, new Name(BuiltIns.TupleTypeName(argumentGhostness)), systemModule, typeArgs, CreateConstructors(typeArgs, argumentGhostness), new List<MemberDecl>(), attributes, false) {
     Contract.Requires(systemModule != null);
     Contract.Requires(typeArgs != null);
     ArgumentGhostness = argumentGhostness;
@@ -48,7 +53,7 @@ public class TupleTypeDecl : IndDatatypeDecl {
     Contract.Requires(0 <= dims);
     var ts = new List<TypeParameter>();
     for (int i = 0; i < dims; i++) {
-      var tp = new TypeParameter(Token.NoToken, "T" + i, TypeParameter.TPVarianceSyntax.Covariant_Strict);
+      var tp = new TypeParameter(RangeToken.NoToken, new Name("T" + i), TypeParameter.TPVarianceSyntax.Covariant_Strict);
       tp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype = true;
       ts.Add(tp);
     }
@@ -73,11 +78,11 @@ public class TupleTypeDecl : IndDatatypeDecl {
       formals.Add(f);
     }
     string ctorName = BuiltIns.TupleTypeCtorName(typeArgs.Count);
-    var ctor = new DatatypeCtor(Token.NoToken, ctorName, false, formals, null);
+    var ctor = new DatatypeCtor(RangeToken.NoToken, new Name(ctorName), false, formals, null);
     return new List<DatatypeCtor>() { ctor };
   }
 
   public override string SanitizedName =>
     sanitizedName ??= $"Tuple{BuiltIns.ArgumentGhostnessToString(ArgumentGhostness)}";
-  public override string CompileName => $"Tuple{NonGhostDims}";
+  public override string CompileName => NonGhostTupleTypeDecl?.CompileName ?? $"Tuple{NonGhostDims}";
 }

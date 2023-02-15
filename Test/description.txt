@@ -1,0 +1,15 @@
+Dafny has _n_-tuples for any _n_ except 1. In addition, it supports "[ghost tuples](https://github.com/dafny-lang/dafny/pull/1269)", where 1 or more components are ghost. When these are compiled, the ghost components are omitted, which means you could potentially end up with a 1-tuple after all. This is suboptimal. For example, if you have a function
+
+``` dafny
+function method F(x: X): Y
+```
+
+that you want to also return a ghost value from, you would write
+
+``` dafny
+function method F(x: X): (Y, ghost Z)
+```
+
+but it's then unfortunate that the compiled target code ends up with a wrapper around the `Y`.
+
+No more. This PR turns such would-be-singleton-tuples into just the component itself. For example, the second version of `F` above would be compiled in the same way as the first version of `F`.

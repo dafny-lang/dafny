@@ -116,24 +116,25 @@ method m5() { assert false; } //Remove4:
 
   // Requires changes to not change the position of symbols for now, as we are not applying the changes to the local code for now.
   private async Task TestPriorities(string codeAndChanges, string symbolsString) {
-    var symbols = ExtractSymbols(symbolsString);
     var semaphoreSlim = new SemaphoreSlim(0);
-    var original = DafnyOptions.O.CreateSolver;
-    DafnyOptions.O.CreateSolver = (_, _) =>
-      new UnsatSolver(semaphoreSlim);
-    await SetUp(new Dictionary<string, string> {
-    { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", "1" },
+    await SetUp(options => {
+      options.CreateSolver = (_, _) =>
+        new UnsatSolver(semaphoreSlim);
+      options.Set(BoogieOptionBag.Cores, 1U);
     });
+    var symbols = ExtractSymbols(symbolsString);
 
     var (code, changes) = ExtractCodeAndChanges(codeAndChanges.TrimStart());
     var documentItem = CreateTestDocument(code);
     client.OpenDocument(documentItem);
 
+    var source = new CancellationTokenSource();
+    source.CancelAfter(TimeSpan.FromMinutes(5));
     var index = 0;
     // ReSharper disable AccessToModifiedClosure
     async Task CompareWithExpectation(List<string> expectedSymbols) {
       try {
-        var orderAfterChange = await GetFlattenedPositionOrder(semaphoreSlim, CancellationToken);
+        var orderAfterChange = await GetFlattenedPositionOrder(semaphoreSlim, source.Token);
         var orderAfterChangeSymbols = GetSymbols(code, orderAfterChange).ToList();
         Assert.IsTrue(expectedSymbols.SequenceEqual(orderAfterChangeSymbols),
           $"Expected {string.Join(", ", expectedSymbols)} but got {string.Join(", ", orderAfterChangeSymbols)}." +
@@ -160,8 +161,6 @@ method m5() { assert false; } //Remove4:
         await CompareWithExpectation(expectedSymbols);
       }
     }
-
-    DafnyOptions.O.CreateSolver = original;
   }
 
   private IEnumerable<string> GetSymbols(string code, List<Position> positions) {
@@ -202,7 +201,9 @@ method m5() { assert false; } //Remove4:
 
       } catch (OperationCanceledException) {
         Console.WriteLine("count: " + count);
-        Console.WriteLine("Found status before timeout: " + string.Join(", ", foundStatus!.NamedVerifiables));
+        if (foundStatus != null) {
+          Console.WriteLine("Found status before timeout: " + string.Join(", ", foundStatus.NamedVerifiables));
+        }
         Console.WriteLine($"\nOld to new history was: {verificationStatusReceiver.History.Stringify()}");
         throw;
       }

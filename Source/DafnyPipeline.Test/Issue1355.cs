@@ -21,11 +21,11 @@ namespace DafnyPipeline.Test {
       DafnyOptions.Install(options);
 
       var programString = @"trait Trait<A, B> { }";
-      ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
+      ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
       Microsoft.Dafny.Type.ResetScopes();
       BuiltIns builtIns = new BuiltIns();
       Parser.Parse(programString, "virtual", "virtual", module, builtIns, reporter);
-      var dafnyProgram = new Program("programName", module, builtIns, reporter);
+      var dafnyProgram = new Program("programName", module, builtIns, reporter, options);
       Main.Resolve(dafnyProgram, reporter);
       foreach (var prog in Translator.Translate(dafnyProgram, dafnyProgram.Reporter)) {
         var writer = new StringWriter();

@@ -14,17 +14,17 @@ jobs:
       fail-fast: false
       matrix:
         # This workflow breaks on windows-2022: https://github.com/dafny-lang/dafny/issues/1906
-        os: [ ubuntu-latest, ubuntu-18.04, macos-latest, windows-2019 ]
+        os: [ ubuntu-latest, ubuntu-20.04, macos-latest, windows-2019 ]
         include:
         - os:  'ubuntu-latest'
-          osn: 'ubuntu\-16.04'
-        - os:  'ubuntu-18.04'
-          osn: 'ubuntu\-16.04'
+          osn: 'ubuntu\-20.04'
+        - os:  'ubuntu-20.04'
+          osn: 'ubuntu\-20.04'
         - os:  'macos-latest'
-          osn: 'osx-.*'
+          osn: 'x64-osx-.*'
         - os:  'windows-2019'
           osn: 'win'
-    # There is no hosted environment for Unbuntu 14.04 or for debian
+    # There is no hosted environment for Ubuntu 14.04 or for debian
 
     # Java is installed by default, but we need to select 18
 
@@ -32,9 +32,10 @@ jobs:
     - name: OS
       run: echo ${{ runner.os }} ${{ matrix.os }}
     - name: Set up JDK 18
-      uses: actions/setup-java@v1
+      uses: actions/setup-java@v3
       with:
         java-version: 18
+        distribution: corretto
     - name: Download ${{matrix.os}} releases
       uses: dsaltares/fetch-gh-release-asset@master
       with:

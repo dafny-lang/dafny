@@ -92,4 +92,15 @@ func (AllExtern) MaybeInt() Wrappers.Option {
 }
 func (AllExtern) IntPair() Wrappers.Pair {
   return Wrappers.Companion_Pair_.Create_Pair_(3, 7)
+
+type SingletonOptimization struct{}
+var Companion_SingletonOptimization_ = SingletonOptimization{}
+func (SingletonOptimization) SingletonTuple(a int32) int32 {
+  return a + 1
+}
+func (SingletonOptimization) NoWrapper(a int32) int32 {
+  return a + 1
+}
+func (SingletonOptimization) GhostWrapper(a int32) int32 {
+  return a + 1
 }

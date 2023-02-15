@@ -9,6 +9,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using VCGeneration;
+using Newtonsoft.Json.Linq;
+using static Microsoft.Dafny.ErrorDetail;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   public class DiagnosticErrorReporter : ErrorReporter {
@@ -65,6 +67,10 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         }
       }
 
+      if (error.Tok is NestedToken { Inner: var innerToken }) {
+        relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(innerToken, "Related location"));
+      }
+
       var uri = GetDocumentUriOrDefault(Translator.ToDafnyToken(error.Tok));
       var diagnostic = new Diagnostic {
         Severity = DiagnosticSeverity.Error,
@@ -89,7 +95,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     private IEnumerable<DiagnosticRelatedInformation> CreateDiagnosticRelatedInformationFor(IToken token, string message) {
       var (tokenForMessage, inner) = token is NestedToken nestedToken ? (nestedToken.Outer, nestedToken.Inner) : (token, null);
-      if (tokenForMessage is RangeToken range) {
+      if (tokenForMessage is BoogieRangeToken range) {
         var rangeLength = range.EndToken.pos + range.EndToken.val.Length - range.StartToken.pos;
         if (message == PostConditionFailingMessage) {
           var postcondition = entryDocumentsource.Substring(range.StartToken.pos, rangeLength);
@@ -137,23 +143,32 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       };
     }
 
-    public override bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
+    public override bool Message(MessageSource source, ErrorLevel level, ErrorID errorID, IToken tok, string msg) {
       if (ErrorsOnly && level != ErrorLevel.Error) {
         return false;
       }
       var relatedInformation = new List<DiagnosticRelatedInformation>();
-      if (tok is NestedToken nestedToken) {
-        relatedInformation.AddRange(
-          CreateDiagnosticRelatedInformationFor(
-            nestedToken.Inner, nestedToken.Message ?? "Related location")
-        );
+      var ntok = tok;
+      while (ntok is NestedToken nestedToken) {
+        ntok = nestedToken.Inner;
+        if (!(ntok is CodeActionRange)) {
+          relatedInformation.AddRange(
+            CreateDiagnosticRelatedInformationFor(
+              ntok, nestedToken.Message ?? "Related location")
+          );
+          break;
+        }
       }
+
       var item = new Diagnostic {
+        Code = errorID.ToString(),
         Severity = ToSeverity(level),
         Message = msg,
         Range = tok.GetLspRange(),
         Source = source.ToString(),
         RelatedInformation = relatedInformation,
+        CodeDescription = errorID == ErrorID.None ? null : new CodeDescription { Href = new System.Uri("https://dafny.org/dafny/HowToFAQ/Errors#" + errorID.ToString()) },
+        Data = Errors.FindCodeActionRange(tok).StartLength(),
       };
       AddDiagnosticForFile(item, source, GetDocumentUriOrDefault(tok));
       return true;

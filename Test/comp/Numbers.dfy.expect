@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 58 verified, 0 errors
+Dafny program verifier finished with 59 verified, 0 errors
 
 Dafny program verifier did not attempt verification
 0
@@ -11,10 +11,10 @@ Dafny program verifier did not attempt verification
 2147483649
 4294967295 (aka C# uint.MaxValue)
 4294967296 (aka 2^32)
-590295810358705651711 (aka JavaScript Number.MAX_SAFE_INTEGER)
-590295810358705651712 (aka 2^53)
--590295810358705651711 (aka JavaScript Number.MAX_SAFE_INTEGER)
--590295810358705651712
+9007199254740991 (aka JavaScript Number.MAX_SAFE_INTEGER)
+9007199254740992 (aka 2^53)
+-9007199254740991 (aka JavaScript Number.MIN_SAFE_INTEGER)
+-9007199254740992
 9223372036854775807 (aka C# long.MaxValue)
 9223372036854775808 (aka 2^63)
 9223372036854775809
@@ -112,6 +112,7 @@ false true false true
 true false true false
 false true false true
 true false true false
+20 23 23 88 880
 
 Dafny program verifier did not attempt verification
 0
@@ -123,10 +124,10 @@ Dafny program verifier did not attempt verification
 2147483649
 4294967295 (aka C# uint.MaxValue)
 4294967296 (aka 2^32)
-590295810358705651711 (aka JavaScript Number.MAX_SAFE_INTEGER)
-590295810358705651712 (aka 2^53)
--590295810358705651711 (aka JavaScript Number.MAX_SAFE_INTEGER)
--590295810358705651712
+9007199254740991 (aka JavaScript Number.MAX_SAFE_INTEGER)
+9007199254740992 (aka 2^53)
+-9007199254740991 (aka JavaScript Number.MIN_SAFE_INTEGER)
+-9007199254740992
 9223372036854775807 (aka C# long.MaxValue)
 9223372036854775808 (aka 2^63)
 9223372036854775809
@@ -224,6 +225,7 @@ false true false true
 true false true false
 false true false true
 true false true false
+20 23 23 88 880
 
 Dafny program verifier did not attempt verification
 0
@@ -235,10 +237,10 @@ Dafny program verifier did not attempt verification
 2147483649
 4294967295 (aka C# uint.MaxValue)
 4294967296 (aka 2^32)
-590295810358705651711 (aka JavaScript Number.MAX_SAFE_INTEGER)
-590295810358705651712 (aka 2^53)
--590295810358705651711 (aka JavaScript Number.MAX_SAFE_INTEGER)
--590295810358705651712
+9007199254740991 (aka JavaScript Number.MAX_SAFE_INTEGER)
+9007199254740992 (aka 2^53)
+-9007199254740991 (aka JavaScript Number.MIN_SAFE_INTEGER)
+-9007199254740992
 9223372036854775807 (aka C# long.MaxValue)
 9223372036854775808 (aka 2^63)
 9223372036854775809
@@ -336,6 +338,7 @@ false true false true
 true false true false
 false true false true
 true false true false
+20 23 23 88 880
 
 Dafny program verifier did not attempt verification
 0
@@ -347,10 +350,10 @@ Dafny program verifier did not attempt verification
 2147483649
 4294967295 (aka C# uint.MaxValue)
 4294967296 (aka 2^32)
-590295810358705651711 (aka JavaScript Number.MAX_SAFE_INTEGER)
-590295810358705651712 (aka 2^53)
--590295810358705651711 (aka JavaScript Number.MAX_SAFE_INTEGER)
--590295810358705651712
+9007199254740991 (aka JavaScript Number.MAX_SAFE_INTEGER)
+9007199254740992 (aka 2^53)
+-9007199254740991 (aka JavaScript Number.MIN_SAFE_INTEGER)
+-9007199254740992
 9223372036854775807 (aka C# long.MaxValue)
 9223372036854775808 (aka 2^63)
 9223372036854775809
@@ -448,6 +451,7 @@ false true false true
 true false true false
 false true false true
 true false true false
+20 23 23 88 880
 
 Dafny program verifier did not attempt verification
 0
@@ -459,10 +463,10 @@ Dafny program verifier did not attempt verification
 2147483649
 4294967295 (aka C# uint.MaxValue)
 4294967296 (aka 2^32)
-590295810358705651711 (aka JavaScript Number.MAX_SAFE_INTEGER)
-590295810358705651712 (aka 2^53)
--590295810358705651711 (aka JavaScript Number.MAX_SAFE_INTEGER)
--590295810358705651712
+9007199254740991 (aka JavaScript Number.MAX_SAFE_INTEGER)
+9007199254740992 (aka 2^53)
+-9007199254740991 (aka JavaScript Number.MIN_SAFE_INTEGER)
+-9007199254740992
 9223372036854775807 (aka C# long.MaxValue)
 9223372036854775808 (aka 2^63)
 9223372036854775809
@@ -560,3 +564,4 @@ false true false true
 true false true false
 false true false true
 true false true false
+20 23 23 88 880

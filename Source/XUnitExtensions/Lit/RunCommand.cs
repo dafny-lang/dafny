@@ -9,6 +9,20 @@ namespace XUnitExtensions.Lit {
     }
 
     private static ILitCommand ParseArguments(string[] tokens, LitTestConfiguration config) {
+      if (tokens[0] == "!") {
+        var operand = ParseArguments(tokens[1..], config);
+        return new NotCommand(operand);
+      }
+      if (tokens[0] == "%exits-with") {
+        var ec = Int32.Parse(tokens[1]);
+        var operand = ParseArguments(tokens[2..], config);
+        return new ExitCommand(ec, operand);
+      }
+      if (tokens[0] == "%stdin") {
+        var operand = ParseArguments(tokens[2..], config);
+        return new StdInCommand(tokens[1], operand);
+      }
+
       // Just supporting || for now since it's a precise way to ignore an exit code
       var seqOperatorIndex = Array.IndexOf(tokens, "||");
       if (seqOperatorIndex >= 0) {

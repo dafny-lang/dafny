@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier finished with 1 verified, 0 errors
 
 Dafny program verifier did not attempt verification
 TestModule.Passing1: PASSED
@@ -12,7 +12,8 @@ Failing2: FAILED
 	RunAllTestsOption.dfy(29,2): expectation violation
 FailingReturnValue: FAILED
 	VoidOutcome.VoidFailure(Whoopsie)
-Test failures occurred: see above.
+[Program halted] RunAllTestsOption.dfy(9,0): Test failures occurred: see above.
+
 
 Dafny program verifier did not attempt verification
 TestModule.Passing1: PASSED
@@ -25,7 +26,8 @@ Failing2: FAILED
 	RunAllTestsOption.dfy(29,2): expectation violation
 FailingReturnValue: FAILED
 	VoidOutcome.VoidFailure(Whoopsie)
-Test failures occurred: see above.
+[Program halted] RunAllTestsOption.dfy(9,0): Test failures occurred: see above.
+
 
 Dafny program verifier did not attempt verification
 TestModule.Passing1: PASSED
@@ -38,7 +40,8 @@ Failing2: FAILED
 	RunAllTestsOption.dfy(29,2): expectation violation
 FailingReturnValue: FAILED
 	VoidOutcome.VoidFailure(Whoopsie)
-Test failures occurred: see above.
+[Program halted] RunAllTestsOption.dfy(9,0): Test failures occurred: see above.
+
 
 Dafny program verifier did not attempt verification
 TestModule.Passing1: PASSED
@@ -51,7 +54,8 @@ Failing2: FAILED
 	RunAllTestsOption.dfy(29,2): expectation violation
 FailingReturnValue: FAILED
 	VoidOutcome.VoidFailure(Whoopsie)
-Test failures occurred: see above.
+[Program halted] RunAllTestsOption.dfy(9,0): Test failures occurred: see above.
+
 
 Dafny program verifier did not attempt verification
 TestModule.Passing1: PASSED
@@ -64,4 +68,5 @@ Failing2: FAILED
 	RunAllTestsOption.dfy(29,2): expectation violation
 FailingReturnValue: FAILED
 	VoidOutcome.VoidFailure(Whoopsie)
-Test failures occurred: see above.
+[Program halted] RunAllTestsOption.dfy(9,0): Test failures occurred: see above.
+

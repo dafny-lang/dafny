@@ -19,6 +19,7 @@ method Main() {
   ZeroComparisonTests();
   TestConversions();
   ComparisonRegressions();
+  CastRegressions();
 }
 
 method Print(description: string, x: int) {
@@ -59,10 +60,10 @@ method Literals() {
   Print("C# uint.MaxValue", 0xFFFF_FFFF);  // uint.MaxValue
   Print("2^32", 0x1_0000_0000);  // uint.MaxValue + 1
 
-  Print("JavaScript Number.MAX_SAFE_INTEGER", 0x1F_FFFF_FFFF_FFFF_FFFF);  // 2^53 -  1
-  Print("2^53", 0x20_0000_0000_0000_0000);  // 2^53
-  Print("JavaScript Number.MAX_SAFE_INTEGER", - 0x1F_FFFF_FFFF_FFFF_FFFF);  // - (2^53 -  1)
-  Print("", - 0x20_0000_0000_0000_0000);  // - 2^53
+  Print("JavaScript Number.MAX_SAFE_INTEGER", 0x1F_FFFF_FFFF_FFFF);  // 2^53 -  1
+  Print("2^53", 0x20_0000_0000_0000);  // 2^53
+  Print("JavaScript Number.MIN_SAFE_INTEGER", - 0x1F_FFFF_FFFF_FFFF);  // - (2^53 -  1)
+  Print("", - 0x20_0000_0000_0000);  // - 2^53
 
   Print("C# long.MaxValue", 0x7FFF_ffff_FFFF_ffff);  // long.MaxValue
   Print("2^63", 0x8000_0000_0000_0000);  // long.MaxValue + 1
@@ -555,4 +556,14 @@ method ComparisonRegressions() {
     print xx < yy, " ", yy < xx, " ", xx <= yy, " ", yy <= xx, "\n"; // false true false true
     print xx > yy, " ", yy > xx, " ", xx >= yy, " ", yy >= xx, "\n"; // true false true false
   }
+}
+
+method CastRegressions() {
+  var i: int := 20;
+  var bt: uint8 := (i + 3) as uint8;
+  var bu := (3 + i) as uint8;
+  var b: bool;
+  var bv: uint8 := if b then 89 else 88;
+  var u: uint32 := if b then 890 else 880;
+  print i, " ", bt, " ", bu, " ", bv, " ", u, "\n";
 }

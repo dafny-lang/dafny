@@ -20,10 +20,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit;
 public class GhostStateDiagnosticCollectorTest {
   private GhostStateDiagnosticCollector ghostStateDiagnosticCollector;
 
-  class DummyOptions : IOptions<GhostOptions> {
-    public GhostOptions Value { get; set; }
-  }
-
   class DummyLogger : ILogger<GhostStateDiagnosticCollector> {
     public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter) {
       // Do nothing
@@ -40,11 +36,8 @@ public class GhostStateDiagnosticCollectorTest {
 
   [TestInitialize]
   public void SetUp() {
-    var loggerFactory = new Mock<ILoggerFactory>();
-    var options = new DummyOptions {
-      Value = new Mock<GhostOptions>().Object
-    };
-    options.Value.MarkStatements = true;
+    var options = new DafnyOptions();
+    options.Set(ServerCommand.GhostIndicators, true);
     ghostStateDiagnosticCollector = new GhostStateDiagnosticCollector(
       options,
       new DummyLogger());
@@ -58,7 +51,7 @@ public class GhostStateDiagnosticCollectorTest {
 
   class DummyModuleDecl : LiteralModuleDecl {
     public DummyModuleDecl() : base(
-      new DefaultModuleDecl(), null) {
+      new DefaultModuleDefinition(), null) {
     }
     public override object Dereference() {
       return this;
@@ -69,7 +62,7 @@ public class GhostStateDiagnosticCollectorTest {
   public void EnsureResilienceAgainstErrors() {
     // Builtins is null to trigger an error.
     var reporter = new CollectingErrorReporter();
-    var program = new Dafny.Program("dummy", new DummyModuleDecl(), null, reporter);
+    var program = new Dafny.Program("dummy", new DummyModuleDecl(), null, reporter, DafnyOptions.O);
     var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(
       new SignatureAndCompletionTable(null!, new CompilationUnit(program), null!, null!, new IntervalTree<Position, ILocalizableSymbol>(), true)
       , CancellationToken.None);

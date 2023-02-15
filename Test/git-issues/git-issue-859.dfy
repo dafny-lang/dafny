@@ -1,14 +1,9 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s"
 
 datatype FailureCompatible = Make {
   predicate method IsFailure() { true }
   function method PropagateFailure(): int { 12 }
-  method Extract() returns (r: real) { }
+  function method Extract(): real { 9.0 }
 }
 
 method M() returns (r: FailureCompatible) { }

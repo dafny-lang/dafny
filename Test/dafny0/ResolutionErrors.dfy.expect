@@ -75,7 +75,7 @@ ResolutionErrors.dfy(491,8): Error: when allocating an object of type 'Luci', on
 ResolutionErrors.dfy(493,15): Error: class Lamb does not have an anonymous constructor
 ResolutionErrors.dfy(546,7): Error: RHS (of type List<A>) not assignable to LHS (of type List<B>) (covariant type parameter would require A <: B)
 ResolutionErrors.dfy(551,7): Error: RHS (of type List<A>) not assignable to LHS (of type List<B>) (covariant type parameter would require A <: B)
-ResolutionErrors.dfy(565,17): Error: type of case bodies do not agree (found Tree<_T1, _T0>, previous types Tree<_T0, _T1>) (covariant type parameter 0 would require _T1 <: _T0)
+ResolutionErrors.dfy(565,23): Error: type of case bodies do not agree (found Tree<_T1, _T0>, previous types Tree<_T0, _T1>) (covariant type parameter 0 would require _T1 <: _T0)
 ResolutionErrors.dfy(577,24): Error: Wrong number of type arguments (0 instead of 2) passed to datatype: Tree
 ResolutionErrors.dfy(592,20): Error: unresolved identifier: w
 ResolutionErrors.dfy(611,8): Error: the type of this local variable is underspecified
@@ -157,9 +157,9 @@ ResolutionErrors.dfy(1132,6): Error: RHS (of type P<int>) not assignable to LHS 
 ResolutionErrors.dfy(1137,13): Error: arguments must have comparable types (got P<int> and P<X>)
 ResolutionErrors.dfy(1138,13): Error: arguments must have comparable types (got P<bool> and P<X>)
 ResolutionErrors.dfy(1139,13): Error: arguments must have comparable types (got P<int> and P<bool>)
-ResolutionErrors.dfy(1150,10): Error: new can be applied only to class types (got JJ)
+ResolutionErrors.dfy(1150,13): Error: new can be applied only to class types (got JJ)
 ResolutionErrors.dfy(1158,31): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references, but values of 'o' may contain references (see documentation for 'older' parameters)
-ResolutionErrors.dfy(1160,38): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references, but values of 'o' may contain references (see documentation for 'older' parameters)
+ResolutionErrors.dfy(1159,38): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references, but values of 'o' may contain references (see documentation for 'older' parameters)
 ResolutionErrors.dfy(1165,27): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'o'
 ResolutionErrors.dfy(1173,15): Error: arguments to / must be numeric or bitvector types (got set<bool>)
 ResolutionErrors.dfy(1180,20): Error: a call to a possibly non-terminating method is allowed only if the calling method is also declared (with 'decreases *') to be possibly non-terminating
@@ -232,7 +232,6 @@ ResolutionErrors.dfy(1607,9): Error: ghost variables such as g are allowed only 
 ResolutionErrors.dfy(1613,4): Error: non-ghost variable cannot be assigned a value that depends on a ghost
 ResolutionErrors.dfy(1630,8): Error: print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
 ResolutionErrors.dfy(1639,29): Error: ghost variables such as z are allowed only in specification contexts. z was inferred to be ghost based on its declaration or initialization.
-ResolutionErrors.dfy(1647,10): Error: the type of the bound variable 't' could not be determined
 ResolutionErrors.dfy(1647,10): Error: the type of the bound variable 't' could not be determined
 ResolutionErrors.dfy(1647,10): Error: the type of the bound variable 't' could not be determined
 ResolutionErrors.dfy(1647,10): Error: the type of the bound variable 't' could not be determined
@@ -346,261 +345,285 @@ ResolutionErrors.dfy(2327,18): Error: a ghost const field is allowed only in spe
 ResolutionErrors.dfy(2343,9): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'i'
 ResolutionErrors.dfy(2346,9): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'i'
 ResolutionErrors.dfy(2352,24): Error: a set comprehension involved in a const field definition is not allowed to depend on the set of allocated references, but values of 'c' may contain references (see documentation for 'older' parameters)
-ResolutionErrors.dfy(2352,24): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'c'
 ResolutionErrors.dfy(2355,36): Error: a set comprehension involved in a newtype definition is not allowed to depend on the set of allocated references, but values of 'c' may contain references (see documentation for 'older' parameters)
 ResolutionErrors.dfy(2356,34): Error: a set comprehension involved in a subset type definition is not allowed to depend on the set of allocated references, but values of 'c' may contain references (see documentation for 'older' parameters)
 ResolutionErrors.dfy(2354,22): Error: a set comprehension involved in a const field definition is not allowed to depend on the set of allocated references, but values of 'c' may contain references (see documentation for 'older' parameters)
-ResolutionErrors.dfy(2354,22): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'c'
-ResolutionErrors.dfy(2361,19): Error: a set comprehension involved in a predicate definition is not allowed to depend on the set of allocated references, but values of 'c' may contain references (see documentation for 'older' parameters)
-ResolutionErrors.dfy(2367,37): Error: a const field definition is not allowed to depend on the set of allocated references
-ResolutionErrors.dfy(2367,10): Error: const field's type is not fully determined
-ResolutionErrors.dfy(2370,49): Error: a newtype definition is not allowed to depend on the set of allocated references
-ResolutionErrors.dfy(2371,47): Error: a subset type definition is not allowed to depend on the set of allocated references
-ResolutionErrors.dfy(2369,35): Error: a const field definition is not allowed to depend on the set of allocated references
-ResolutionErrors.dfy(2369,8): Error: const field's type is not fully determined
-ResolutionErrors.dfy(2376,32): Error: a predicate definition is not allowed to depend on the set of allocated references
-ResolutionErrors.dfy(2382,41): Error: a const field definition is not allowed to depend on the set of allocated references
-ResolutionErrors.dfy(2382,10): Error: const field's type is not fully determined
-ResolutionErrors.dfy(2385,53): Error: a newtype definition is not allowed to depend on the set of allocated references
-ResolutionErrors.dfy(2386,51): Error: a subset type definition is not allowed to depend on the set of allocated references
-ResolutionErrors.dfy(2384,39): Error: a const field definition is not allowed to depend on the set of allocated references
-ResolutionErrors.dfy(2384,8): Error: const field's type is not fully determined
-ResolutionErrors.dfy(2391,36): Error: a predicate definition is not allowed to depend on the set of allocated references
-ResolutionErrors.dfy(2398,25): Error: the value returned by an abstemious function must come from invoking a co-constructor
-ResolutionErrors.dfy(2434,25): Error: the value returned by an abstemious function must come from invoking a co-constructor
-ResolutionErrors.dfy(2441,32): Error: an abstemious function is allowed to invoke a codatatype destructor only on its parameters
-ResolutionErrors.dfy(2446,12): Error: an abstemious function is allowed to codatatype-match only on its parameters
-ResolutionErrors.dfy(2453,9): Error: an abstemious function is not only allowed to check codatatype equality
-ResolutionErrors.dfy(2455,14): Error: an abstemious function is not only allowed to check codatatype equality
-ResolutionErrors.dfy(2480,19): Error: type parameter 'G' (passed in as 'ORDINAL') to function call 'F' is not allowed to use ORDINAL
-ResolutionErrors.dfy(2481,13): Error: type parameter 'G' (passed in as 'ORDINAL') to function call 'F'' is not allowed to use ORDINAL
-ResolutionErrors.dfy(2482,13): Error: type parameter 'G' (passed in as '(char, ORDINAL)') to function call 'F'' is not allowed to use ORDINAL
-ResolutionErrors.dfy(2483,18): Error: type parameter 'G' (passed in as 'ORDINAL') to the function 'F'' is not allowed to use ORDINAL
-ResolutionErrors.dfy(2488,17): Error: type of bound variable 'r' ('ORDINAL') is not allowed to use type ORDINAL
-ResolutionErrors.dfy(2489,18): Error: type of bound variable 'r' ('ORDINAL') is not allowed to use type ORDINAL
-ResolutionErrors.dfy(2490,24): Error: type of bound variable 'r' ('ORDINAL') is not allowed to use type ORDINAL
-ResolutionErrors.dfy(2501,25): Error: an ORDINAL type is not allowed to be used as a type argument
-ResolutionErrors.dfy(2502,17): Error: type of bound variable 'yt' ('ORDINAL') is not allowed to use type ORDINAL
-ResolutionErrors.dfy(2499,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2361,18): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'c'
+ResolutionErrors.dfy(2362,18): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'c'
+ResolutionErrors.dfy(2368,19): Error: a set comprehension involved in a predicate definition is not allowed to depend on the set of allocated references, but values of 'c' may contain references (see documentation for 'older' parameters)
+ResolutionErrors.dfy(2374,37): Error: a const field definition is not allowed to depend on the set of allocated references
+ResolutionErrors.dfy(2377,49): Error: a newtype definition is not allowed to depend on the set of allocated references
+ResolutionErrors.dfy(2378,47): Error: a subset type definition is not allowed to depend on the set of allocated references
+ResolutionErrors.dfy(2376,35): Error: a const field definition is not allowed to depend on the set of allocated references
+ResolutionErrors.dfy(2383,32): Error: a predicate definition is not allowed to depend on the set of allocated references
+ResolutionErrors.dfy(2389,41): Error: a const field definition is not allowed to depend on the set of allocated references
+ResolutionErrors.dfy(2392,53): Error: a newtype definition is not allowed to depend on the set of allocated references
+ResolutionErrors.dfy(2393,51): Error: a subset type definition is not allowed to depend on the set of allocated references
+ResolutionErrors.dfy(2391,39): Error: a const field definition is not allowed to depend on the set of allocated references
+ResolutionErrors.dfy(2398,36): Error: a predicate definition is not allowed to depend on the set of allocated references
+ResolutionErrors.dfy(2405,25): Error: the value returned by an abstemious function must come from invoking a co-constructor
+ResolutionErrors.dfy(2441,25): Error: the value returned by an abstemious function must come from invoking a co-constructor
+ResolutionErrors.dfy(2448,32): Error: an abstemious function is allowed to invoke a codatatype destructor only on its parameters
+ResolutionErrors.dfy(2453,12): Error: an abstemious function is allowed to codatatype-match only on its parameters
+ResolutionErrors.dfy(2460,9): Error: an abstemious function is not only allowed to check codatatype equality
+ResolutionErrors.dfy(2462,14): Error: an abstemious function is not only allowed to check codatatype equality
+ResolutionErrors.dfy(2487,19): Error: type parameter 'G' (passed in as 'ORDINAL') to function call 'F' is not allowed to use ORDINAL
+ResolutionErrors.dfy(2488,13): Error: type parameter 'G' (passed in as 'ORDINAL') to function call 'F'' is not allowed to use ORDINAL
+ResolutionErrors.dfy(2489,13): Error: type parameter 'G' (passed in as '(char, ORDINAL)') to function call 'F'' is not allowed to use ORDINAL
+ResolutionErrors.dfy(2490,18): Error: type parameter 'G' (passed in as 'ORDINAL') to the function 'F'' is not allowed to use ORDINAL
+ResolutionErrors.dfy(2491,4): Error: type parameter 'G' (passed in as 'ORDINAL') to the lemma 'ParameterizedLemma' is not allowed to use ORDINAL
+ResolutionErrors.dfy(2492,18): Error: type of bound variable 'r' ('ORDINAL') is not allowed to use type ORDINAL
+ResolutionErrors.dfy(2493,18): Error: type of bound variable 'r' ('(ORDINAL, int)') is not allowed to use type ORDINAL
+ResolutionErrors.dfy(2494,26): Error: type of bound variable 'r' ('ORDINAL') is not allowed to use type ORDINAL
+ResolutionErrors.dfy(2495,17): Error: type of bound variable 'r' ('ORDINAL') is not allowed to use type ORDINAL
+ResolutionErrors.dfy(2496,18): Error: type of bound variable 'r' ('ORDINAL') is not allowed to use type ORDINAL
+ResolutionErrors.dfy(2497,24): Error: type of bound variable 'r' ('ORDINAL') is not allowed to use type ORDINAL
+ResolutionErrors.dfy(2508,25): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2509,17): Error: type of bound variable 'yt' ('ORDINAL') is not allowed to use type ORDINAL
+ResolutionErrors.dfy(2506,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2506,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2505,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2502,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2500,8): Error: an ORDINAL type is not allowed to be used as a type argument
 ResolutionErrors.dfy(2499,8): Error: an ORDINAL type is not allowed to be used as a type argument
 ResolutionErrors.dfy(2498,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2497,14): Error: an ORDINAL type is not allowed to be used as a type argument
 ResolutionErrors.dfy(2495,8): Error: an ORDINAL type is not allowed to be used as a type argument
-ResolutionErrors.dfy(2493,8): Error: an ORDINAL type is not allowed to be used as a type argument
-ResolutionErrors.dfy(2492,8): Error: an ORDINAL type is not allowed to be used as a type argument
-ResolutionErrors.dfy(2491,8): Error: an ORDINAL type is not allowed to be used as a type argument
-ResolutionErrors.dfy(2490,14): Error: an ORDINAL type is not allowed to be used as a type argument
-ResolutionErrors.dfy(2488,8): Error: an ORDINAL type is not allowed to be used as a type argument
-ResolutionErrors.dfy(2487,26): Error: type of bound variable 'r' ('ORDINAL') is not allowed to use type ORDINAL
-ResolutionErrors.dfy(2486,18): Error: type of bound variable 'r' ('(ORDINAL, int)') is not allowed to use type ORDINAL
-ResolutionErrors.dfy(2485,18): Error: type of bound variable 'r' ('ORDINAL') is not allowed to use type ORDINAL
-ResolutionErrors.dfy(2484,4): Error: type parameter 'G' (passed in as 'ORDINAL') to the lemma 'ParameterizedLemma' is not allowed to use ORDINAL
-ResolutionErrors.dfy(2478,8): Error: an ORDINAL type is not allowed to be used as a type argument
-ResolutionErrors.dfy(2477,8): Error: an ORDINAL type is not allowed to be used as a type argument
-ResolutionErrors.dfy(2617,23): Error: no label 'Treasure' in scope at this time
-ResolutionErrors.dfy(2618,19): Error: no label 'WonderfulLabel' in scope at this time
-ResolutionErrors.dfy(2620,23): Error: no label 'FutureLabel' in scope at this time
-ResolutionErrors.dfy(2629,13): Error: no label 'Treasure' in scope at this time
-ResolutionErrors.dfy(2630,13): Error: no label 'WonderfulLabel' in scope at this time
-ResolutionErrors.dfy(2632,13): Error: no label 'FutureLabel' in scope at this time
-ResolutionErrors.dfy(2641,13): Error: no label 'Treasure' in scope at this time
-ResolutionErrors.dfy(2642,13): Error: no label 'WonderfulLabel' in scope at this time
-ResolutionErrors.dfy(2644,13): Error: no label 'FutureLabel' in scope at this time
-ResolutionErrors.dfy(2534,11): Error: no label 'L' in scope at this time
-ResolutionErrors.dfy(2537,10): Error: label shadows a dominating label
-ResolutionErrors.dfy(2545,10): Error: label shadows a dominating label
-ResolutionErrors.dfy(2673,26): Error: type parameter (G) passed to method GimmieOne must support auto-initialization (got Yt<GW>)
-ResolutionErrors.dfy(2686,50): Error: type of the receiver is not fully determined at this program point
-ResolutionErrors.dfy(2712,11): Error: name of type (Cache) is used as a variable
-ResolutionErrors.dfy(2712,17): Error: incorrect type for selection into ? (got X)
-ResolutionErrors.dfy(2720,13): Warning: the quantifier has the form 'exists x :: A ==> B', which most often is a typo for 'exists x :: A && B'; if you think otherwise, rewrite as 'exists x :: (A ==> B)' or 'exists x :: !A || B' to suppress this warning
-ResolutionErrors.dfy(2730,13): Warning: the quantifier has the form 'exists x :: A ==> B', which most often is a typo for 'exists x :: A && B'; if you think otherwise, rewrite as 'exists x :: (A ==> B)' or 'exists x :: !A || B' to suppress this warning
-ResolutionErrors.dfy(2763,13): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function with 'function method')
-ResolutionErrors.dfy(2764,13): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function with 'function method')
-ResolutionErrors.dfy(2766,11): Error: ghost variables such as g are allowed only in specification contexts. g was inferred to be ghost based on its declaration or initialization.
-ResolutionErrors.dfy(2787,4): Error: ghost variables such as g are allowed only in specification contexts. g was inferred to be ghost based on its declaration or initialization.
-ResolutionErrors.dfy(2797,15): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function with 'function method')
-ResolutionErrors.dfy(2798,22): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function with 'function method')
+ResolutionErrors.dfy(2485,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2484,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2624,23): Error: no label 'Treasure' in scope at this time
+ResolutionErrors.dfy(2625,19): Error: no label 'WonderfulLabel' in scope at this time
+ResolutionErrors.dfy(2627,23): Error: no label 'FutureLabel' in scope at this time
+ResolutionErrors.dfy(2636,13): Error: no label 'Treasure' in scope at this time
+ResolutionErrors.dfy(2637,13): Error: no label 'WonderfulLabel' in scope at this time
+ResolutionErrors.dfy(2639,13): Error: no label 'FutureLabel' in scope at this time
+ResolutionErrors.dfy(2648,13): Error: no label 'Treasure' in scope at this time
+ResolutionErrors.dfy(2649,13): Error: no label 'WonderfulLabel' in scope at this time
+ResolutionErrors.dfy(2651,13): Error: no label 'FutureLabel' in scope at this time
+ResolutionErrors.dfy(2541,11): Error: no label 'L' in scope at this time
+ResolutionErrors.dfy(2544,10): Error: label shadows a dominating label
+ResolutionErrors.dfy(2552,10): Error: label shadows a dominating label
+ResolutionErrors.dfy(2680,26): Error: type parameter (G) passed to method GimmieOne must support auto-initialization (got Yt<GW>)
+ResolutionErrors.dfy(2693,50): Error: type of the receiver is not fully determined at this program point
+ResolutionErrors.dfy(2719,11): Error: name of type (Cache) is used as a variable
+ResolutionErrors.dfy(2719,17): Error: incorrect type for selection into ? (got X)
+ResolutionErrors.dfy(2727,13): Warning: the quantifier has the form 'exists x :: A ==> B', which most often is a typo for 'exists x :: A && B'; if you think otherwise, rewrite as 'exists x :: (A ==> B)' or 'exists x :: !A || B' to suppress this warning
+ResolutionErrors.dfy(2737,13): Warning: the quantifier has the form 'exists x :: A ==> B', which most often is a typo for 'exists x :: A && B'; if you think otherwise, rewrite as 'exists x :: (A ==> B)' or 'exists x :: !A || B' to suppress this warning
+ResolutionErrors.dfy(2770,13): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function with 'function method')
+ResolutionErrors.dfy(2771,13): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function with 'function method')
+ResolutionErrors.dfy(2773,11): Error: ghost variables such as g are allowed only in specification contexts. g was inferred to be ghost based on its declaration or initialization.
+ResolutionErrors.dfy(2794,4): Error: ghost variables such as g are allowed only in specification contexts. g was inferred to be ghost based on its declaration or initialization.
 ResolutionErrors.dfy(2804,15): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function with 'function method')
 ResolutionErrors.dfy(2805,22): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function with 'function method')
-ResolutionErrors.dfy(2822,23): Error: type of left argument to * (int) must agree with the result type (bool)
-ResolutionErrors.dfy(2822,23): Error: type of * must be of a numeric type, bitvector type, or a set-like type (instead got bool)
-ResolutionErrors.dfy(2821,13): Error: not resolving module 'V' because there were errors in resolving its nested module 'W'
-ResolutionErrors.dfy(2831,21): Error: type of left argument to * (int) must agree with the result type (bool)
-ResolutionErrors.dfy(2831,21): Error: type of * must be of a numeric type, bitvector type, or a set-like type (instead got bool)
-ResolutionErrors.dfy(2830,11): Error: not resolving module 'V' because there were errors in resolving its nested module 'W'
-ResolutionErrors.dfy(2817,9): Error: not resolving module 'ErrorsFromNestedModules' because there were errors in resolving its nested module 'U'
-ResolutionErrors.dfy(2839,11): Error: duplicate name of top-level declaration: G
-ResolutionErrors.dfy(2845,11): Error: duplicate name of top-level declaration: H
-ResolutionErrors.dfy(2861,4): Error: ghost variables such as y are allowed only in specification contexts. y was inferred to be ghost based on its declaration or initialization.
-ResolutionErrors.dfy(2863,20): Error: ghost variables such as y are allowed only in specification contexts. y was inferred to be ghost based on its declaration or initialization.
-ResolutionErrors.dfy(2872,6): Error: ghost variables such as i are allowed only in specification contexts. i was inferred to be ghost based on its declaration or initialization.
-ResolutionErrors.dfy(2873,4): Error: ghost variables such as b are allowed only in specification contexts. b was inferred to be ghost based on its declaration or initialization.
-ResolutionErrors.dfy(2882,6): Error: ghost variables such as i are allowed only in specification contexts. i was inferred to be ghost based on its declaration or initialization.
-ResolutionErrors.dfy(2883,8): Error: ghost variables such as i are allowed only in specification contexts. i was inferred to be ghost based on its declaration or initialization.
-ResolutionErrors.dfy(2884,4): Error: ghost variables such as b are allowed only in specification contexts. b was inferred to be ghost based on its declaration or initialization.
-ResolutionErrors.dfy(2896,13): Error: expression is not allowed to refer to constant field x
-ResolutionErrors.dfy(2898,22): Error: expression is not allowed to refer to constant field x
-ResolutionErrors.dfy(2909,13): Error: arguments must be of a set or multiset type (got map<X, Y>)
-ResolutionErrors.dfy(2919,4): Error: expect statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
-ResolutionErrors.dfy(2925,11): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'i'
-ResolutionErrors.dfy(2926,21): Error: ghost variables such as g are allowed only in specification contexts. g was inferred to be ghost based on its declaration or initialization.
-ResolutionErrors.dfy(2937,15): Error: RHS (of type X) not assignable to LHS (of type X)
-ResolutionErrors.dfy(2941,10): Error: type of corresponding source/RHS (X) does not match type of bound variable (X)
-ResolutionErrors.dfy(2969,16): Error: sequence update requires the value to have the element type of the sequence (got Trait)
-ResolutionErrors.dfy(2973,11): Error: multiset update requires domain element to be of type Elem (got Trait)
-ResolutionErrors.dfy(2978,13): Error: map update requires domain element to be of type Elem (got Trait)
-ResolutionErrors.dfy(2980,18): Error: map update requires the value to have the range type Elem (got Trait)
-ResolutionErrors.dfy(3005,5): Error: type parameter (F) passed to method Q must support auto-initialization (got Y) (perhaps try declaring type parameter 'Y' on line 3000 as 'Y(0)', which says it can only be instantiated with a type that supports auto-initialization)
-ResolutionErrors.dfy(3008,5): Error: type parameter (F) passed to method Q must support auto-initialization (got Z) (perhaps try declaring type parameter 'Z' on line 3000 as 'Z(0)', which says it can only be instantiated with a type that supports auto-initialization)
-ResolutionErrors.dfy(3009,5): Error: type parameter (G) passed to method P must support nonempty (got Z) (perhaps try declaring type parameter 'Z' on line 3000 as 'Z(00)', which says it can only be instantiated with a nonempty type)
-ResolutionErrors.dfy(3018,9): Error: type parameter (F) passed to function FQ must support auto-initialization (got Y) (perhaps try declaring type parameter 'Y' on line 3013 as 'Y(0)', which says it can only be instantiated with a type that supports auto-initialization)
-ResolutionErrors.dfy(3021,9): Error: type parameter (F) passed to function FQ must support auto-initialization (got Z) (perhaps try declaring type parameter 'Z' on line 3013 as 'Z(0)', which says it can only be instantiated with a type that supports auto-initialization)
-ResolutionErrors.dfy(3022,9): Error: type parameter (G) passed to function FP must support nonempty (got Z) (perhaps try declaring type parameter 'Z' on line 3013 as 'Z(00)', which says it can only be instantiated with a nonempty type)
-ResolutionErrors.dfy(3039,9): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function with 'function method')
-ResolutionErrors.dfy(3040,9): Error: a call to a ghost predicate is allowed only in specification contexts (consider declaring the predicate with 'predicate method')
-ResolutionErrors.dfy(3041,9): Error: a call to a least predicate is allowed only in specification contexts
-ResolutionErrors.dfy(3042,9): Error: a call to a greatest predicate is allowed only in specification contexts
-ResolutionErrors.dfy(3043,9): Error: a call to a twostate function is allowed only in specification contexts
-ResolutionErrors.dfy(3044,9): Error: a call to a twostate predicate is allowed only in specification contexts
-ResolutionErrors.dfy(3061,9): Error: function 'F0' expects 0 type arguments (got 1)
-ResolutionErrors.dfy(3063,9): Error: function 'F2' expects 2 type arguments (got 1)
-ResolutionErrors.dfy(3064,9): Error: function 'F0' expects 0 type arguments (got 2)
-ResolutionErrors.dfy(3065,9): Error: function 'F1' expects 1 type argument (got 2)
-ResolutionErrors.dfy(3073,4): Error: method 'M0' expects 0 type arguments (got 1)
-ResolutionErrors.dfy(3075,4): Error: method 'M2' expects 2 type arguments (got 1)
-ResolutionErrors.dfy(3076,4): Error: method 'M0' expects 0 type arguments (got 2)
-ResolutionErrors.dfy(3077,4): Error: method 'M1' expects 1 type argument (got 2)
-ResolutionErrors.dfy(3090,10): Error: ghost variables such as c are allowed only in specification contexts. c was inferred to be ghost based on its declaration or initialization.
-ResolutionErrors.dfy(3094,14): Error: ghost variables such as t are allowed only in specification contexts. t was inferred to be ghost based on its declaration or initialization.
-ResolutionErrors.dfy(3099,10): Error: ghost variables such as a' are allowed only in specification contexts. a' was inferred to be ghost based on its declaration or initialization.
-ResolutionErrors.dfy(3100,10): Error: ghost variables such as c' are allowed only in specification contexts. c' was inferred to be ghost based on its declaration or initialization.
-ResolutionErrors.dfy(3251,11): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got PossiblyEmpty)
-ResolutionErrors.dfy(3252,11): Error: type parameter (T) passed to function MustBeAutoInit must support auto-initialization (got PossiblyEmpty)
-ResolutionErrors.dfy(3253,11): Error: type parameter (T) passed to function MustBeAutoInit must support auto-initialization (got Nonempty)
-ResolutionErrors.dfy(3254,11): Error: type parameter (T) passed to function MustSupportEquality must support equality (got NoEquality)
-ResolutionErrors.dfy(3255,11): Error: type parameter (T) passed to function NoReferences must support no references (got Class?)
-ResolutionErrors.dfy(3259,47): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got PossiblyEmpty)
-ResolutionErrors.dfy(3260,12): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got PossiblyEmpty)
-ResolutionErrors.dfy(3264,11): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got PossiblyEmpty)
-ResolutionErrors.dfy(3265,11): Error: type parameter (T) passed to function MustBeAutoInit must support auto-initialization (got PossiblyEmpty)
-ResolutionErrors.dfy(3266,11): Error: type parameter (T) passed to function MustBeAutoInit must support auto-initialization (got Nonempty)
-ResolutionErrors.dfy(3267,11): Error: type parameter (T) passed to function MustSupportEquality must support equality (got NoEquality)
-ResolutionErrors.dfy(3268,11): Error: type parameter (T) passed to function NoReferences must support no references (got Class?)
-ResolutionErrors.dfy(3272,50): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got PossiblyEmpty)
-ResolutionErrors.dfy(3273,12): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got PossiblyEmpty)
-ResolutionErrors.dfy(3276,12): Error: type parameter (T) passed to function MustSupportEquality must support equality (got NoEquality)
-ResolutionErrors.dfy(3280,12): Error: type parameter (T) passed to function MustSupportEquality must support equality (got NoEquality)
-ResolutionErrors.dfy(3285,53): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got PossiblyEmpty)
-ResolutionErrors.dfy(3288,63): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got PossiblyEmpty)
-ResolutionErrors.dfy(3124,9): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got PossiblyEmpty)
-ResolutionErrors.dfy(3129,9): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got Z) (perhaps try declaring type parameter 'Z' on line 3120 as 'Z(00)', which says it can only be instantiated with a nonempty type)
-ResolutionErrors.dfy(3131,9): Error: type parameter (T) passed to function MustBeAutoInit must support auto-initialization (got PossiblyEmpty)
-ResolutionErrors.dfy(3132,9): Error: type parameter (T) passed to function MustBeAutoInit must support auto-initialization (got Nonempty)
-ResolutionErrors.dfy(3136,9): Error: type parameter (T) passed to function MustBeAutoInit must support auto-initialization (got Z) (perhaps try declaring type parameter 'Z' on line 3120 as 'Z(0)', which says it can only be instantiated with a type that supports auto-initialization)
-ResolutionErrors.dfy(3140,9): Error: type parameter (T) passed to function MustSupportEquality must support equality (got NoEquality)
-ResolutionErrors.dfy(3143,9): Error: type parameter (T) passed to function MustSupportEquality must support equality (got Z) (perhaps try declaring type parameter 'Z' on line 3120 as 'Z(==)', which says it can only be instantiated with a type that supports equality)
-ResolutionErrors.dfy(3148,9): Error: type parameter (T) passed to function NoReferences must support no references (got Class?)
-ResolutionErrors.dfy(3150,9): Error: type parameter (T) passed to function NoReferences must support no references (got Z) (perhaps try declaring type parameter 'Z' on line 3120 as 'Z(!new)', which says it can only be instantiated with a type that contains no references)
-ResolutionErrors.dfy(3157,9): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got PossiblyEmpty)
-ResolutionErrors.dfy(3163,9): Error: type parameter (T) passed to function MustBeAutoInit must support auto-initialization (got PossiblyEmpty)
-ResolutionErrors.dfy(3178,9): Error: type parameter (T) passed to function NoReferences must support no references (got Class?)
-ResolutionErrors.dfy(3187,12): Error: == can only be applied to expressions of types that support equality (got T) (perhaps try declaring type parameter 'T' on line 3185 as 'T(==)', which says it can only be instantiated with a type that supports equality)
-ResolutionErrors.dfy(3189,7): Error: == can only be applied to expressions of types that support equality (got T) (perhaps try declaring type parameter 'T' on line 3185 as 'T(==)', which says it can only be instantiated with a type that supports equality)
-ResolutionErrors.dfy(3192,12): Error: type parameter (T) passed to function GetInt must support equality (got NoEquality)
-ResolutionErrors.dfy(3194,7): Error: type parameter (T) passed to function GetInt must support equality (got NoEquality)
-ResolutionErrors.dfy(3197,19): Error: type parameter (T) passed to function GetInt must support equality (got NoEquality)
-ResolutionErrors.dfy(3205,13): Error: == can only be applied to expressions of types that support equality (got T) (perhaps try declaring type parameter 'T' on line 3204 as 'T(==)', which says it can only be instantiated with a type that supports equality)
-ResolutionErrors.dfy(3210,13): Error: == can only be applied to expressions of types that support equality (got T) (perhaps try declaring type parameter 'T' on line 3204 as 'T(==)', which says it can only be instantiated with a type that supports equality)
-ResolutionErrors.dfy(3212,23): Error: == can only be applied to expressions of types that support equality (got T) (perhaps try declaring type parameter 'T' on line 3204 as 'T(==)', which says it can only be instantiated with a type that supports equality)
-ResolutionErrors.dfy(3214,14): Error: type parameter 0 (T) passed to type QuadEq must support equality (got seq<T>)
-ResolutionErrors.dfy(3215,15): Error: type parameter 1 (U) passed to type QuadEq must support equality (got seq<T>)
-ResolutionErrors.dfy(3224,15): Error: == can only be applied to expressions of types that support equality (got T) (perhaps try declaring type parameter 'T' on line 3221 as 'T(==)', which says it can only be instantiated with a type that supports equality)
-ResolutionErrors.dfy(3233,15): Error: == can only be applied to expressions of types that support equality (got T) (perhaps try declaring type parameter 'T' on line 3221 as 'T(==)', which says it can only be instantiated with a type that supports equality)
-ResolutionErrors.dfy(3305,6): Error: ghost variables such as m are allowed only in specification contexts. m was inferred to be ghost based on its declaration or initialization.
-ResolutionErrors.dfy(3309,8): Error: non-ghost variable cannot be assigned a value that depends on a ghost
-ResolutionErrors.dfy(3313,18): Error: ghost variables such as m are allowed only in specification contexts. m was inferred to be ghost based on its declaration or initialization.
-ResolutionErrors.dfy(3339,6): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got PossiblyEmpty)
-ResolutionErrors.dfy(3345,6): Error: type parameter (T) passed to function MustBeAutoInit must support auto-initialization (got PossiblyEmpty)
-ResolutionErrors.dfy(3346,6): Error: type parameter (T) passed to function MustBeAutoInit must support auto-initialization (got Nonempty)
-ResolutionErrors.dfy(3353,6): Error: type parameter (T) passed to function MustSupportEquality must support equality (got NoEquality)
-ResolutionErrors.dfy(3360,6): Error: type parameter (T) passed to function NoReferences must support no references (got Class?)
-ResolutionErrors.dfy(3366,9): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got PossiblyEmpty)
-ResolutionErrors.dfy(3372,9): Error: type parameter (T) passed to function MustBeAutoInit must support auto-initialization (got PossiblyEmpty)
-ResolutionErrors.dfy(3387,9): Error: type parameter (T) passed to function NoReferences must support no references (got Class?)
-ResolutionErrors.dfy(3435,7): Error: ghost variables such as p are allowed only in specification contexts. p was inferred to be ghost based on its declaration or initialization.
-ResolutionErrors.dfy(3449,21): Error: a loop in a hint is not allowed to use 'modifies' clauses
+ResolutionErrors.dfy(2811,15): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function with 'function method')
+ResolutionErrors.dfy(2812,22): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function with 'function method')
+ResolutionErrors.dfy(2829,23): Error: type of left argument to * (int) must agree with the result type (bool)
+ResolutionErrors.dfy(2829,23): Error: type of * must be of a numeric type, bitvector type, or a set-like type (instead got bool)
+ResolutionErrors.dfy(2828,13): Error: not resolving module 'V' because there were errors in resolving its nested module 'W'
+ResolutionErrors.dfy(2838,21): Error: type of left argument to * (int) must agree with the result type (bool)
+ResolutionErrors.dfy(2838,21): Error: type of * must be of a numeric type, bitvector type, or a set-like type (instead got bool)
+ResolutionErrors.dfy(2837,11): Error: not resolving module 'V' because there were errors in resolving its nested module 'W'
+ResolutionErrors.dfy(2824,9): Error: not resolving module 'ErrorsFromNestedModules' because there were errors in resolving its nested module 'U'
+ResolutionErrors.dfy(2846,11): Error: duplicate name of top-level declaration: G
+ResolutionErrors.dfy(2852,11): Error: duplicate name of top-level declaration: H
+ResolutionErrors.dfy(2868,4): Error: ghost variables such as y are allowed only in specification contexts. y was inferred to be ghost based on its declaration or initialization.
+ResolutionErrors.dfy(2870,20): Error: ghost variables such as y are allowed only in specification contexts. y was inferred to be ghost based on its declaration or initialization.
+ResolutionErrors.dfy(2879,6): Error: ghost variables such as i are allowed only in specification contexts. i was inferred to be ghost based on its declaration or initialization.
+ResolutionErrors.dfy(2880,4): Error: ghost variables such as b are allowed only in specification contexts. b was inferred to be ghost based on its declaration or initialization.
+ResolutionErrors.dfy(2889,6): Error: ghost variables such as i are allowed only in specification contexts. i was inferred to be ghost based on its declaration or initialization.
+ResolutionErrors.dfy(2890,8): Error: ghost variables such as i are allowed only in specification contexts. i was inferred to be ghost based on its declaration or initialization.
+ResolutionErrors.dfy(2891,4): Error: ghost variables such as b are allowed only in specification contexts. b was inferred to be ghost based on its declaration or initialization.
+ResolutionErrors.dfy(2903,13): Error: expression is not allowed to refer to constant field x
+ResolutionErrors.dfy(2905,22): Error: expression is not allowed to refer to constant field x
+ResolutionErrors.dfy(2916,13): Error: arguments must be of a set or multiset type (got map<X, Y>)
+ResolutionErrors.dfy(2926,4): Error: expect statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+ResolutionErrors.dfy(2932,11): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'i'
+ResolutionErrors.dfy(2933,21): Error: ghost variables such as g are allowed only in specification contexts. g was inferred to be ghost based on its declaration or initialization.
+ResolutionErrors.dfy(2944,15): Error: RHS (of type X) not assignable to LHS (of type X)
+ResolutionErrors.dfy(2948,10): Error: type of corresponding source/RHS (X) does not match type of bound variable (X)
+ResolutionErrors.dfy(2976,16): Error: sequence update requires the value to have the element type of the sequence (got Trait)
+ResolutionErrors.dfy(2980,11): Error: multiset update requires domain element to be of type Elem (got Trait)
+ResolutionErrors.dfy(2985,13): Error: map update requires domain element to be of type Elem (got Trait)
+ResolutionErrors.dfy(2987,18): Error: map update requires the value to have the range type Elem (got Trait)
+ResolutionErrors.dfy(3012,5): Error: type parameter (F) passed to method Q must support auto-initialization (got Y) (perhaps try declaring type parameter 'Y' on line 3007 as 'Y(0)', which says it can only be instantiated with a type that supports auto-initialization)
+ResolutionErrors.dfy(3015,5): Error: type parameter (F) passed to method Q must support auto-initialization (got Z) (perhaps try declaring type parameter 'Z' on line 3007 as 'Z(0)', which says it can only be instantiated with a type that supports auto-initialization)
+ResolutionErrors.dfy(3016,5): Error: type parameter (G) passed to method P must support nonempty (got Z) (perhaps try declaring type parameter 'Z' on line 3007 as 'Z(00)', which says it can only be instantiated with a nonempty type)
+ResolutionErrors.dfy(3025,9): Error: type parameter (F) passed to function FQ must support auto-initialization (got Y) (perhaps try declaring type parameter 'Y' on line 3020 as 'Y(0)', which says it can only be instantiated with a type that supports auto-initialization)
+ResolutionErrors.dfy(3028,9): Error: type parameter (F) passed to function FQ must support auto-initialization (got Z) (perhaps try declaring type parameter 'Z' on line 3020 as 'Z(0)', which says it can only be instantiated with a type that supports auto-initialization)
+ResolutionErrors.dfy(3029,9): Error: type parameter (G) passed to function FP must support nonempty (got Z) (perhaps try declaring type parameter 'Z' on line 3020 as 'Z(00)', which says it can only be instantiated with a nonempty type)
+ResolutionErrors.dfy(3046,9): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function with 'function method')
+ResolutionErrors.dfy(3047,9): Error: a call to a ghost predicate is allowed only in specification contexts (consider declaring the predicate with 'predicate method')
+ResolutionErrors.dfy(3048,9): Error: a call to a least predicate is allowed only in specification contexts
+ResolutionErrors.dfy(3049,9): Error: a call to a greatest predicate is allowed only in specification contexts
+ResolutionErrors.dfy(3050,9): Error: a call to a twostate function is allowed only in specification contexts
+ResolutionErrors.dfy(3051,9): Error: a call to a twostate predicate is allowed only in specification contexts
+ResolutionErrors.dfy(3068,9): Error: function 'F0' expects 0 type arguments (got 1)
+ResolutionErrors.dfy(3070,9): Error: function 'F2' expects 2 type arguments (got 1)
+ResolutionErrors.dfy(3071,9): Error: function 'F0' expects 0 type arguments (got 2)
+ResolutionErrors.dfy(3072,9): Error: function 'F1' expects 1 type argument (got 2)
+ResolutionErrors.dfy(3080,4): Error: method 'M0' expects 0 type arguments (got 1)
+ResolutionErrors.dfy(3082,4): Error: method 'M2' expects 2 type arguments (got 1)
+ResolutionErrors.dfy(3083,4): Error: method 'M0' expects 0 type arguments (got 2)
+ResolutionErrors.dfy(3084,4): Error: method 'M1' expects 1 type argument (got 2)
+ResolutionErrors.dfy(3097,10): Error: ghost variables such as c are allowed only in specification contexts. c was inferred to be ghost based on its declaration or initialization.
+ResolutionErrors.dfy(3101,14): Error: ghost variables such as t are allowed only in specification contexts. t was inferred to be ghost based on its declaration or initialization.
+ResolutionErrors.dfy(3106,10): Error: ghost variables such as a' are allowed only in specification contexts. a' was inferred to be ghost based on its declaration or initialization.
+ResolutionErrors.dfy(3107,10): Error: ghost variables such as c' are allowed only in specification contexts. c' was inferred to be ghost based on its declaration or initialization.
+ResolutionErrors.dfy(3258,11): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got PossiblyEmpty)
+ResolutionErrors.dfy(3259,11): Error: type parameter (T) passed to function MustBeAutoInit must support auto-initialization (got PossiblyEmpty)
+ResolutionErrors.dfy(3260,11): Error: type parameter (T) passed to function MustBeAutoInit must support auto-initialization (got Nonempty)
+ResolutionErrors.dfy(3261,11): Error: type parameter (T) passed to function MustSupportEquality must support equality (got NoEquality)
+ResolutionErrors.dfy(3262,11): Error: type parameter (T) passed to function NoReferences must support no references (got Class?)
+ResolutionErrors.dfy(3266,47): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got PossiblyEmpty)
+ResolutionErrors.dfy(3267,12): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got PossiblyEmpty)
+ResolutionErrors.dfy(3271,11): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got PossiblyEmpty)
+ResolutionErrors.dfy(3272,11): Error: type parameter (T) passed to function MustBeAutoInit must support auto-initialization (got PossiblyEmpty)
+ResolutionErrors.dfy(3273,11): Error: type parameter (T) passed to function MustBeAutoInit must support auto-initialization (got Nonempty)
+ResolutionErrors.dfy(3274,11): Error: type parameter (T) passed to function MustSupportEquality must support equality (got NoEquality)
+ResolutionErrors.dfy(3275,11): Error: type parameter (T) passed to function NoReferences must support no references (got Class?)
+ResolutionErrors.dfy(3279,50): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got PossiblyEmpty)
+ResolutionErrors.dfy(3280,12): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got PossiblyEmpty)
+ResolutionErrors.dfy(3283,12): Error: type parameter (T) passed to function MustSupportEquality must support equality (got NoEquality)
+ResolutionErrors.dfy(3287,12): Error: type parameter (T) passed to function MustSupportEquality must support equality (got NoEquality)
+ResolutionErrors.dfy(3292,53): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got PossiblyEmpty)
+ResolutionErrors.dfy(3295,63): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got PossiblyEmpty)
+ResolutionErrors.dfy(3131,9): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got PossiblyEmpty)
+ResolutionErrors.dfy(3136,9): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got Z) (perhaps try declaring type parameter 'Z' on line 3127 as 'Z(00)', which says it can only be instantiated with a nonempty type)
+ResolutionErrors.dfy(3138,9): Error: type parameter (T) passed to function MustBeAutoInit must support auto-initialization (got PossiblyEmpty)
+ResolutionErrors.dfy(3139,9): Error: type parameter (T) passed to function MustBeAutoInit must support auto-initialization (got Nonempty)
+ResolutionErrors.dfy(3143,9): Error: type parameter (T) passed to function MustBeAutoInit must support auto-initialization (got Z) (perhaps try declaring type parameter 'Z' on line 3127 as 'Z(0)', which says it can only be instantiated with a type that supports auto-initialization)
+ResolutionErrors.dfy(3147,9): Error: type parameter (T) passed to function MustSupportEquality must support equality (got NoEquality)
+ResolutionErrors.dfy(3150,9): Error: type parameter (T) passed to function MustSupportEquality must support equality (got Z) (perhaps try declaring type parameter 'Z' on line 3127 as 'Z(==)', which says it can only be instantiated with a type that supports equality)
+ResolutionErrors.dfy(3155,9): Error: type parameter (T) passed to function NoReferences must support no references (got Class?)
+ResolutionErrors.dfy(3157,9): Error: type parameter (T) passed to function NoReferences must support no references (got Z) (perhaps try declaring type parameter 'Z' on line 3127 as 'Z(!new)', which says it can only be instantiated with a type that contains no references)
+ResolutionErrors.dfy(3164,9): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got PossiblyEmpty)
+ResolutionErrors.dfy(3170,9): Error: type parameter (T) passed to function MustBeAutoInit must support auto-initialization (got PossiblyEmpty)
+ResolutionErrors.dfy(3185,9): Error: type parameter (T) passed to function NoReferences must support no references (got Class?)
+ResolutionErrors.dfy(3194,12): Error: == can only be applied to expressions of types that support equality (got T) (perhaps try declaring type parameter 'T' on line 3192 as 'T(==)', which says it can only be instantiated with a type that supports equality)
+ResolutionErrors.dfy(3196,7): Error: == can only be applied to expressions of types that support equality (got T) (perhaps try declaring type parameter 'T' on line 3192 as 'T(==)', which says it can only be instantiated with a type that supports equality)
+ResolutionErrors.dfy(3199,12): Error: type parameter (T) passed to function GetInt must support equality (got NoEquality)
+ResolutionErrors.dfy(3201,7): Error: type parameter (T) passed to function GetInt must support equality (got NoEquality)
+ResolutionErrors.dfy(3204,19): Error: type parameter (T) passed to function GetInt must support equality (got NoEquality)
+ResolutionErrors.dfy(3212,13): Error: == can only be applied to expressions of types that support equality (got T) (perhaps try declaring type parameter 'T' on line 3211 as 'T(==)', which says it can only be instantiated with a type that supports equality)
+ResolutionErrors.dfy(3217,13): Error: == can only be applied to expressions of types that support equality (got T) (perhaps try declaring type parameter 'T' on line 3211 as 'T(==)', which says it can only be instantiated with a type that supports equality)
+ResolutionErrors.dfy(3219,23): Error: == can only be applied to expressions of types that support equality (got T) (perhaps try declaring type parameter 'T' on line 3211 as 'T(==)', which says it can only be instantiated with a type that supports equality)
+ResolutionErrors.dfy(3221,14): Error: type parameter 0 (T) passed to type QuadEq must support equality (got seq<T>)
+ResolutionErrors.dfy(3222,15): Error: type parameter 1 (U) passed to type QuadEq must support equality (got seq<T>)
+ResolutionErrors.dfy(3231,15): Error: == can only be applied to expressions of types that support equality (got T) (perhaps try declaring type parameter 'T' on line 3228 as 'T(==)', which says it can only be instantiated with a type that supports equality)
+ResolutionErrors.dfy(3240,15): Error: == can only be applied to expressions of types that support equality (got T) (perhaps try declaring type parameter 'T' on line 3228 as 'T(==)', which says it can only be instantiated with a type that supports equality)
+ResolutionErrors.dfy(3312,6): Error: ghost variables such as m are allowed only in specification contexts. m was inferred to be ghost based on its declaration or initialization.
+ResolutionErrors.dfy(3316,8): Error: non-ghost variable cannot be assigned a value that depends on a ghost
+ResolutionErrors.dfy(3320,18): Error: ghost variables such as m are allowed only in specification contexts. m was inferred to be ghost based on its declaration or initialization.
+ResolutionErrors.dfy(3346,6): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got PossiblyEmpty)
+ResolutionErrors.dfy(3352,6): Error: type parameter (T) passed to function MustBeAutoInit must support auto-initialization (got PossiblyEmpty)
+ResolutionErrors.dfy(3353,6): Error: type parameter (T) passed to function MustBeAutoInit must support auto-initialization (got Nonempty)
+ResolutionErrors.dfy(3360,6): Error: type parameter (T) passed to function MustSupportEquality must support equality (got NoEquality)
+ResolutionErrors.dfy(3367,6): Error: type parameter (T) passed to function NoReferences must support no references (got Class?)
+ResolutionErrors.dfy(3373,9): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got PossiblyEmpty)
+ResolutionErrors.dfy(3379,9): Error: type parameter (T) passed to function MustBeAutoInit must support auto-initialization (got PossiblyEmpty)
+ResolutionErrors.dfy(3394,9): Error: type parameter (T) passed to function NoReferences must support no references (got Class?)
+ResolutionErrors.dfy(3442,7): Error: ghost variables such as p are allowed only in specification contexts. p was inferred to be ghost based on its declaration or initialization.
 ResolutionErrors.dfy(3456,21): Error: a loop in a hint is not allowed to use 'modifies' clauses
-ResolutionErrors.dfy(3485,9): Error: the argument of a fresh expression must denote an object or a set or sequence of objects (instead got multiset<object>)
-ResolutionErrors.dfy(3486,9): Error: the argument of a fresh expression must denote an object or a set or sequence of objects (instead got map<object, int>)
-ResolutionErrors.dfy(3487,9): Error: the argument of a fresh expression must denote an object or a set or sequence of objects (instead got map<int, object>)
-ResolutionErrors.dfy(3488,9): Error: the argument of a fresh expression must denote an object or a set or sequence of objects (instead got imap<object, object>)
-ResolutionErrors.dfy(3493,9): Error: the argument of a fresh expression must denote an object or a set or sequence of objects (instead got int)
-ResolutionErrors.dfy(3494,9): Error: the argument of a fresh expression must denote an object or a set or sequence of objects (instead got set<bool>)
-ResolutionErrors.dfy(3495,9): Error: the argument of a fresh expression must denote an object or a set or sequence of objects (instead got iset<bv8>)
-ResolutionErrors.dfy(3496,9): Error: the argument of a fresh expression must denote an object or a set or sequence of objects (instead got seq<int>)
-ResolutionErrors.dfy(3501,9): Error: the argument of a fresh expression must denote an object or a set or sequence of objects (instead got int -> int)
-ResolutionErrors.dfy(3502,9): Error: the argument of a fresh expression must denote an object or a set or sequence of objects (instead got int -> object)
-ResolutionErrors.dfy(3503,9): Error: the argument of a fresh expression must denote an object or a set or sequence of objects (instead got int -> set<object>)
-ResolutionErrors.dfy(3504,9): Error: the argument of a fresh expression must denote an object or a set or sequence of objects (instead got int -> seq<object>)
-ResolutionErrors.dfy(3505,9): Error: the argument of a fresh expression must denote an object or a set or sequence of objects (instead got set<object> -> int)
-ResolutionErrors.dfy(3524,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got map<object, int>)
-ResolutionErrors.dfy(3525,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got map<int, object>)
-ResolutionErrors.dfy(3526,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got imap<object, object>)
-ResolutionErrors.dfy(3531,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got int)
-ResolutionErrors.dfy(3532,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got set<bool>)
-ResolutionErrors.dfy(3533,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got iset<bv8>)
-ResolutionErrors.dfy(3534,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got seq<int>)
-ResolutionErrors.dfy(3543,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got int -> int)
-ResolutionErrors.dfy(3544,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got int -> object)
-ResolutionErrors.dfy(3545,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got int -> set<object>)
-ResolutionErrors.dfy(3546,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got int -> iset<object>)
-ResolutionErrors.dfy(3547,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got int -> seq<object>)
-ResolutionErrors.dfy(3548,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got set<object> -> int)
-ResolutionErrors.dfy(3549,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got bool -> multiset<object>)
-ResolutionErrors.dfy(3550,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got bool -> map<object, object>)
-ResolutionErrors.dfy(3565,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got map<object, int>)
-ResolutionErrors.dfy(3566,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got map<int, object>)
-ResolutionErrors.dfy(3567,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got imap<object, object>)
-ResolutionErrors.dfy(3572,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got int)
-ResolutionErrors.dfy(3573,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got set<bool>)
-ResolutionErrors.dfy(3574,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got iset<bv8>)
-ResolutionErrors.dfy(3575,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got seq<int>)
-ResolutionErrors.dfy(3583,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got int -> int)
-ResolutionErrors.dfy(3584,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got int -> object)
-ResolutionErrors.dfy(3585,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got int -> set<object>)
-ResolutionErrors.dfy(3586,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got int -> iset<object>)
-ResolutionErrors.dfy(3587,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got int -> seq<object>)
-ResolutionErrors.dfy(3588,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got set<object> -> int)
-ResolutionErrors.dfy(3589,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got bool -> multiset<object>)
-ResolutionErrors.dfy(3590,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got bool -> map<object, object>)
-ResolutionErrors.dfy(3606,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got map<object, int>)
-ResolutionErrors.dfy(3607,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got map<int, object>)
-ResolutionErrors.dfy(3608,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got imap<object, object>)
-ResolutionErrors.dfy(3614,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got int)
-ResolutionErrors.dfy(3615,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got set<bool>)
-ResolutionErrors.dfy(3616,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got iset<bv8>)
-ResolutionErrors.dfy(3617,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got seq<int>)
-ResolutionErrors.dfy(3626,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got int -> int)
-ResolutionErrors.dfy(3627,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got int -> object)
-ResolutionErrors.dfy(3631,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got set<object> -> int)
-ResolutionErrors.dfy(3633,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got bool -> map<object, object>)
-ResolutionErrors.dfy(3652,12): Error: a 'break break break continue' statement is allowed only in contexts with 4 enclosing loops, but the current context only has 3
-ResolutionErrors.dfy(3689,27): Error: continue label must designate a loop: X
-ResolutionErrors.dfy(3691,27): Error: continue label must designate a loop: Y0
-ResolutionErrors.dfy(3693,27): Error: continue label must designate a loop: Y1
-ResolutionErrors.dfy(3695,27): Error: continue label must designate a loop: Z
-ResolutionErrors.dfy(3705,4): Error: a non-labeled 'break' statement is allowed only in loops
-ResolutionErrors.dfy(3709,4): Error: a non-labeled 'continue' statement is allowed only in loops
-ResolutionErrors.dfy(3715,19): Error: a non-labeled 'break' statement is allowed only in loops
-ResolutionErrors.dfy(3716,19): Error: a non-labeled 'continue' statement is allowed only in loops
-ResolutionErrors.dfy(3718,28): Error: continue label must designate a loop: X
-ResolutionErrors.dfy(3735,21): Error: a non-labeled 'break' statement is allowed only in loops
-ResolutionErrors.dfy(3736,21): Error: a non-labeled 'continue' statement is allowed only in loops
-ResolutionErrors.dfy(3737,27): Error: break label is undefined or not in scope: L
-ResolutionErrors.dfy(3738,30): Error: continue label is undefined or not in scope: L
-ResolutionErrors.dfy(3751,8): Error: ghost-context continue statement is not allowed to continue out of non-ghost loop
-ResolutionErrors.dfy(3760,8): Error: ghost-context break statement is not allowed to break out of non-ghost loop
-ResolutionErrors.dfy(3768,8): Error: ghost-context continue statement is not allowed to continue out of non-ghost loop
-ResolutionErrors.dfy(3783,10): Error: ghost-context continue statement is not allowed to continue out of non-ghost loop
-ResolutionErrors.dfy(3806,10): Error: ghost-context continue statement is not allowed to continue out of non-ghost loop
-600 resolution/type errors detected in ResolutionErrors.dfy
+ResolutionErrors.dfy(3463,21): Error: a loop in a hint is not allowed to use 'modifies' clauses
+ResolutionErrors.dfy(3492,9): Error: the argument of a fresh expression must denote an object or a set or sequence of objects (instead got multiset<object>)
+ResolutionErrors.dfy(3493,9): Error: the argument of a fresh expression must denote an object or a set or sequence of objects (instead got map<object, int>)
+ResolutionErrors.dfy(3494,9): Error: the argument of a fresh expression must denote an object or a set or sequence of objects (instead got map<int, object>)
+ResolutionErrors.dfy(3495,9): Error: the argument of a fresh expression must denote an object or a set or sequence of objects (instead got imap<object, object>)
+ResolutionErrors.dfy(3500,9): Error: the argument of a fresh expression must denote an object or a set or sequence of objects (instead got int)
+ResolutionErrors.dfy(3501,9): Error: the argument of a fresh expression must denote an object or a set or sequence of objects (instead got set<bool>)
+ResolutionErrors.dfy(3502,9): Error: the argument of a fresh expression must denote an object or a set or sequence of objects (instead got iset<bv8>)
+ResolutionErrors.dfy(3503,9): Error: the argument of a fresh expression must denote an object or a set or sequence of objects (instead got seq<int>)
+ResolutionErrors.dfy(3508,9): Error: the argument of a fresh expression must denote an object or a set or sequence of objects (instead got int -> int)
+ResolutionErrors.dfy(3509,9): Error: the argument of a fresh expression must denote an object or a set or sequence of objects (instead got int -> object)
+ResolutionErrors.dfy(3510,9): Error: the argument of a fresh expression must denote an object or a set or sequence of objects (instead got int -> set<object>)
+ResolutionErrors.dfy(3511,9): Error: the argument of a fresh expression must denote an object or a set or sequence of objects (instead got int -> seq<object>)
+ResolutionErrors.dfy(3512,9): Error: the argument of a fresh expression must denote an object or a set or sequence of objects (instead got set<object> -> int)
+ResolutionErrors.dfy(3531,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got map<object, int>)
+ResolutionErrors.dfy(3532,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got map<int, object>)
+ResolutionErrors.dfy(3533,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got imap<object, object>)
+ResolutionErrors.dfy(3538,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got int)
+ResolutionErrors.dfy(3539,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got set<bool>)
+ResolutionErrors.dfy(3540,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got iset<bv8>)
+ResolutionErrors.dfy(3541,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got seq<int>)
+ResolutionErrors.dfy(3550,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got int -> int)
+ResolutionErrors.dfy(3551,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got int -> object)
+ResolutionErrors.dfy(3552,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got int -> set<object>)
+ResolutionErrors.dfy(3553,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got int -> iset<object>)
+ResolutionErrors.dfy(3554,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got int -> seq<object>)
+ResolutionErrors.dfy(3555,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got set<object> -> int)
+ResolutionErrors.dfy(3556,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got bool -> multiset<object>)
+ResolutionErrors.dfy(3557,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got bool -> map<object, object>)
+ResolutionErrors.dfy(3572,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got map<object, int>)
+ResolutionErrors.dfy(3573,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got map<int, object>)
+ResolutionErrors.dfy(3574,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got imap<object, object>)
+ResolutionErrors.dfy(3579,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got int)
+ResolutionErrors.dfy(3580,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got set<bool>)
+ResolutionErrors.dfy(3581,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got iset<bv8>)
+ResolutionErrors.dfy(3582,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got seq<int>)
+ResolutionErrors.dfy(3590,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got int -> int)
+ResolutionErrors.dfy(3591,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got int -> object)
+ResolutionErrors.dfy(3592,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got int -> set<object>)
+ResolutionErrors.dfy(3593,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got int -> iset<object>)
+ResolutionErrors.dfy(3594,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got int -> seq<object>)
+ResolutionErrors.dfy(3595,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got set<object> -> int)
+ResolutionErrors.dfy(3596,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got bool -> multiset<object>)
+ResolutionErrors.dfy(3597,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got bool -> map<object, object>)
+ResolutionErrors.dfy(3613,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got map<object, int>)
+ResolutionErrors.dfy(3614,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got map<int, object>)
+ResolutionErrors.dfy(3615,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got imap<object, object>)
+ResolutionErrors.dfy(3621,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got int)
+ResolutionErrors.dfy(3622,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got set<bool>)
+ResolutionErrors.dfy(3623,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got iset<bv8>)
+ResolutionErrors.dfy(3624,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got seq<int>)
+ResolutionErrors.dfy(3633,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got int -> int)
+ResolutionErrors.dfy(3634,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got int -> object)
+ResolutionErrors.dfy(3638,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got set<object> -> int)
+ResolutionErrors.dfy(3640,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got bool -> map<object, object>)
+ResolutionErrors.dfy(3659,12): Error: a 'break break break continue' statement is allowed only in contexts with 4 enclosing loops, but the current context only has 3
+ResolutionErrors.dfy(3696,27): Error: continue label must designate a loop: X
+ResolutionErrors.dfy(3698,27): Error: continue label must designate a loop: Y0
+ResolutionErrors.dfy(3700,27): Error: continue label must designate a loop: Y1
+ResolutionErrors.dfy(3702,27): Error: continue label must designate a loop: Z
+ResolutionErrors.dfy(3712,4): Error: a non-labeled 'break' statement is allowed only in loops
+ResolutionErrors.dfy(3716,4): Error: a non-labeled 'continue' statement is allowed only in loops
+ResolutionErrors.dfy(3722,19): Error: a non-labeled 'break' statement is allowed only in loops
+ResolutionErrors.dfy(3723,19): Error: a non-labeled 'continue' statement is allowed only in loops
+ResolutionErrors.dfy(3725,28): Error: continue label must designate a loop: X
+ResolutionErrors.dfy(3742,21): Error: a non-labeled 'break' statement is allowed only in loops
+ResolutionErrors.dfy(3743,21): Error: a non-labeled 'continue' statement is allowed only in loops
+ResolutionErrors.dfy(3744,27): Error: break label is undefined or not in scope: L
+ResolutionErrors.dfy(3745,30): Error: continue label is undefined or not in scope: L
+ResolutionErrors.dfy(3758,8): Error: ghost-context continue statement is not allowed to continue out of non-ghost loop
+ResolutionErrors.dfy(3767,8): Error: ghost-context break statement is not allowed to break out of non-ghost loop
+ResolutionErrors.dfy(3775,8): Error: ghost-context continue statement is not allowed to continue out of non-ghost loop
+ResolutionErrors.dfy(3790,10): Error: ghost-context continue statement is not allowed to continue out of non-ghost loop
+ResolutionErrors.dfy(3813,10): Error: ghost-context continue statement is not allowed to continue out of non-ghost loop
+ResolutionErrors.dfy(3869,13): Error: 'this' is not allowed in a 'static' context
+ResolutionErrors.dfy(3869,18): Error: type of the receiver is not fully determined at this program point
+ResolutionErrors.dfy(3878,13): Error: 'this' is not allowed in a 'static' context
+ResolutionErrors.dfy(3878,18): Error: type of the receiver is not fully determined at this program point
+ResolutionErrors.dfy(3896,22): Error: 'this' is not allowed in a 'static' context
+ResolutionErrors.dfy(3864,22): Error: 'this' is not allowed in a 'static' context
+ResolutionErrors.dfy(3864,27): Error: type of the receiver is not fully determined at this program point
+ResolutionErrors.dfy(3870,12): Error: 'this' is not allowed in a 'static' context
+ResolutionErrors.dfy(3870,17): Error: type of the receiver is not fully determined at this program point
+ResolutionErrors.dfy(3868,25): Error: 'this' is not allowed in a 'static' context
+ResolutionErrors.dfy(3868,30): Error: type of the receiver is not fully determined at this program point
+ResolutionErrors.dfy(3875,22): Error: 'this' is not allowed in a 'static' context
+ResolutionErrors.dfy(3875,27): Error: type of the receiver is not fully determined at this program point
+ResolutionErrors.dfy(3879,12): Error: 'this' is not allowed in a 'static' context
+ResolutionErrors.dfy(3879,17): Error: type of the receiver is not fully determined at this program point
+ResolutionErrors.dfy(3877,22): Error: 'this' is not allowed in a 'static' context
+ResolutionErrors.dfy(3877,27): Error: type of the receiver is not fully determined at this program point
+ResolutionErrors.dfy(3881,23): Error: 'this' is not allowed in a 'static' context
+ResolutionErrors.dfy(3881,28): Error: type of the receiver is not fully determined at this program point
+ResolutionErrors.dfy(3895,32): Error: 'this' is not allowed in a 'static' context
+ResolutionErrors.dfy(3898,29): Error: 'this' is not allowed in a 'static' context
+ResolutionErrors.dfy(3897,33): Error: 'this' is not allowed in a 'static' context
+ResolutionErrors.dfy(3900,29): Error: 'this' is not allowed in a 'static' context
+ResolutionErrors.dfy(3899,35): Error: 'this' is not allowed in a 'static' context
+ResolutionErrors.dfy(3885,23): Error: 'this' is not allowed in a 'static' context
+ResolutionErrors.dfy(3885,28): Error: type of the receiver is not fully determined at this program point
+ResolutionErrors.dfy(3904,21): Error: 'this' is not allowed in a 'static' context
+ResolutionErrors.dfy(3904,26): Error: type of the receiver is not fully determined at this program point
+623 resolution/type errors detected in ResolutionErrors.dfy

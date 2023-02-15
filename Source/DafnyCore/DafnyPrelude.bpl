@@ -116,18 +116,29 @@ function {:identity} LitReal(x: real): real { x } uses {
 // -- Characters -------------------------------------------------
 // ---------------------------------------------------------------
 
+#if UNICODE_CHAR
+function {:inline} char#IsChar(n: int): bool {
+  (0                  <= n && n < 55296   /* 0xD800 */) || 
+  (57344 /* 0xE000 */ <= n && n < 1114112 /* 0x11_0000 */ )
+}
+#else
+function {:inline} char#IsChar(n: int): bool {
+  0 <= n && n < 65536
+}
+#endif
+
 type char;
 function char#FromInt(int): char uses {
   axiom (forall n: int ::
     { char#FromInt(n) }
-    0 <= n && n < 65536 ==> char#ToInt(char#FromInt(n)) == n);
+    char#IsChar(n) ==> char#ToInt(char#FromInt(n)) == n);
 }
 
 function char#ToInt(char): int uses {
   axiom (forall ch: char ::
     { char#ToInt(ch) }
     char#FromInt(char#ToInt(ch)) == ch &&
-    0 <= char#ToInt(ch) && char#ToInt(ch) < 65536);
+    char#IsChar(char#ToInt(ch)));
 }  
 
 function char#Plus(char, char): char uses {
@@ -1007,7 +1018,7 @@ axiom (forall ty: Ty, heap: Heap, len: int, init: HandleType ::
 axiom (forall ty: Ty, heap: Heap, len: int, init: HandleType, i: int ::
   { Seq#Index(Seq#Create(ty, heap, len, init), i) }
   $IsGoodHeap(heap) && 0 <= i && i < len ==>
-  Seq#Index(Seq#Create(ty, heap, len, init), i) == Apply1(TInt, TSeq(ty), heap, init, $Box(i)));
+  Seq#Index(Seq#Create(ty, heap, len, init), i) == Apply1(TInt, ty, heap, init, $Box(i)));
 
 function Seq#Append<T>(Seq T, Seq T): Seq T;
 axiom (forall<T> s0: Seq T, s1: Seq T :: { Seq#Length(Seq#Append(s0,s1)) }

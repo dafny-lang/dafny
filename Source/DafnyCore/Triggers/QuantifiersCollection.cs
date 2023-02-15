@@ -9,6 +9,7 @@ using System.Linq;
 using System.Text;
 using Microsoft.Boogie;
 using System.Diagnostics.Contracts;
+using static Microsoft.Dafny.ErrorDetail;
 
 namespace Microsoft.Dafny.Triggers {
   class QuantifierWithTriggers {
@@ -250,11 +251,11 @@ namespace Microsoft.Dafny.Triggers {
           if (q.quantifier is ForallExpr) {
             ForallExpr quantifier = (ForallExpr)q.quantifier;
             Expression expr = QuantifiersToExpression(quantifier.tok, BinaryExpr.ResolvedOpcode.And, group.expressions);
-            q.quantifier = new ForallExpr(quantifier.tok, quantifier.BodyEndTok, quantifier.BoundVars, quantifier.Range, expr, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
+            q.quantifier = new ForallExpr(quantifier.tok, quantifier.RangeToken, quantifier.BoundVars, quantifier.Range, expr, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
           } else if (q.quantifier is ExistsExpr) {
             ExistsExpr quantifier = (ExistsExpr)q.quantifier;
             Expression expr = QuantifiersToExpression(quantifier.tok, BinaryExpr.ResolvedOpcode.Or, group.expressions);
-            q.quantifier = new ExistsExpr(quantifier.tok, quantifier.BodyEndTok, quantifier.BoundVars, quantifier.Range, expr, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
+            q.quantifier = new ExistsExpr(quantifier.tok, quantifier.RangeToken, quantifier.BoundVars, quantifier.Range, expr, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
           }
           list.Add(q);
           splits.Add(q.quantifier);
@@ -287,7 +288,7 @@ namespace Microsoft.Dafny.Triggers {
       var indent = addHeader ? "  " : "";
       bool suppressWarnings = Attributes.Contains(q.quantifier.Attributes, "nowarn");
       var reportingToken = q.quantifier.tok;
-      // If there is only one sub-expression, we discard the nested token information.
+      // If there is only one subexpression, we discard the nested token information.
       if (reportingToken is NestedToken nestedToken && !addHeader) {
         reportingToken = nestedToken.Outer;
       }
@@ -339,9 +340,9 @@ namespace Microsoft.Dafny.Triggers {
 #endif
       }
 
-      if (msg.Length > 0) {
+      if (msg.Length > 0 && !Attributes.Contains(q.quantifier.Attributes, "auto_generated")) {
         var msgStr = msg.ToString().TrimEnd("\r\n ".ToCharArray());
-        reporter.Message(MessageSource.Rewriter, errorLevel, reportingToken, msgStr);
+        reporter.Message(MessageSource.Rewriter, errorLevel, ErrorID.None, reportingToken, msgStr);
       }
     }
 

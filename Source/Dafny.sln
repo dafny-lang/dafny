@@ -8,6 +8,7 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyCore", "DafnyCore\DafnyCore.csproj", "{ACBF62FD-19AC-4243-9019-056D30A130D6}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyRuntime", "DafnyRuntime\DafnyRuntime.csproj", "{09E25A18-19EA-42C4-B33F-69E3E6FD5698}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyRuntime.Tests", "DafnyRuntime.Tests\DafnyRuntime.Tests.csproj", "{86D16941-75D5-4D75-ADF3-955C7950F770}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyPipeline", "DafnyPipeline\DafnyPipeline.csproj", "{45FFD363-CFE0-4ABC-984F-7EB58C8BEDE5}"
@@ -35,6 +36,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoExtern", "AutoExtern\AutoExtern.csproj", "{F185BDC2-1327-47A4-A293-D3FCDC419867}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoExtern.Test", "AutoExtern.Test\AutoExtern.Test.csproj", "{A47E2F45-DEA3-4700-A82F-9506FEEB199A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyDriver.Test", "DafnyDriver.Test\DafnyDriver.Test.csproj", "{FD18CD43-4D20-42EB-93EF-12125C206D76}"
 EndProject
 EndProject
 Global
@@ -111,6 +114,10 @@ Global
 		{A47E2F45-DEA3-4700-A82F-9506FEEB199A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A47E2F45-DEA3-4700-A82F-9506FEEB199A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A47E2F45-DEA3-4700-A82F-9506FEEB199A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FD18CD43-4D20-42EB-93EF-12125C206D76}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FD18CD43-4D20-42EB-93EF-12125C206D76}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FD18CD43-4D20-42EB-93EF-12125C206D76}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FD18CD43-4D20-42EB-93EF-12125C206D76}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

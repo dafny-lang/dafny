@@ -26,7 +26,7 @@ namespace DafnyPipeline.Test {
         var programString = @"
 // Comment ∈ before
 module Test // Module docstring
-{}
+{} // Attached to }
 
 /** Trait docstring */
 trait Trait1 { }
@@ -36,6 +36,7 @@ trait Trait2 extends Trait1
 // Trait docstring
 { }
 // This is attached to trait2
+// This is also attached to trait2
 
 // This is attached to n
 type n = x: int | x % 2 == 0
@@ -71,11 +72,11 @@ ensures true
 ";
         programString = AdjustNewlines(programString);
 
-        ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
+        ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
         Microsoft.Dafny.Type.ResetScopes();
         BuiltIns builtIns = new BuiltIns();
         Parser.Parse(programString, "virtual", "virtual", module, builtIns, reporter);
-        var dafnyProgram = new Program("programName", module, builtIns, reporter);
+        var dafnyProgram = new Program("programName", module, builtIns, reporter, options);
         Assert.Equal(0, reporter.ErrorCount);
         Assert.Equal(6, dafnyProgram.DefaultModuleDef.TopLevelDecls.Count);
         var moduleTest = dafnyProgram.DefaultModuleDef.TopLevelDecls[0] as LiteralModuleDecl;
@@ -92,6 +93,9 @@ ensures true
         var f = defaultClass.Members[1];
         var g = defaultClass.Members[2];
         var m = defaultClass.Members[3];
+        Assert.NotNull(trait1.StartToken.Next);
+        Assert.Equal("Trait1", trait1.StartToken.Next.val);
+
         AssertTrivia(moduleTest, "\n// Comment ∈ before\n", " // Module docstring\n");
         AssertTrivia(trait1, "/** Trait docstring */\n", " ");
         AssertTrivia(trait2, "// Just a comment\n", "\n// Trait docstring\n");
@@ -101,7 +105,47 @@ ensures true
         AssertTrivia(f, "// This is attached to f\n", "\n// This is f docstring\n");
         AssertTrivia(g, "/** This is the docstring */\n", "\n// This is not the docstring\n");
         AssertTrivia(m, "// Just a regular comment\n", "\n// This is the docstring\n");
+
+        TestTokens(dafnyProgram);
       }
+    }
+
+    // Asserts that a token is owned by at most one node
+    // and that every token from start to end of every program child
+    // is owned by a node.
+    private void TestTokens(Node program) {
+      var allTokens = new HashSet<IToken>();
+
+      void Traverse(Node node) {
+        foreach (var ownedToken in node.OwnedTokens) {
+          Assert.DoesNotContain(ownedToken, allTokens);
+          allTokens.Add(ownedToken);
+        }
+        foreach (var child in node.PreResolveChildren) {
+          Traverse(child);
+        }
+      }
+
+      Traverse(program);
+
+      var count = 0;
+      void AreAllTokensOwned(Node node) {
+        if (node.StartToken is { filename: { } }) {
+          count++;
+          var t = node.StartToken;
+          while (t != null && t != node.EndToken) {
+            Assert.Contains(t, allTokens);
+            t = t.Next;
+          }
+        } else {
+          foreach (var child in node.PreResolveChildren) {
+            AreAllTokensOwned(child);
+          }
+        }
+      }
+
+      AreAllTokensOwned(program);
+      Assert.Equal(9, count); // Sanity check
     }
 
     private string AdjustNewlines(string programString) {

@@ -772,18 +772,29 @@ namespace DafnyServer.CounterexampleGeneration {
           return result;
         }
 
-        // Otherwise, sequences can be reconstructed index by index,
-        // ensuring indices are in ascending order.
-        IEnumerable<(Model.Element, BigInteger)> tpls =
-          fSeqIndex.AppsWithArg(0, var.Element)
-          .Select(tpl => (Unbox(tpl.Result), BigInteger.Parse(tpl.Args[1].ToString())))
-          .OrderBy(tpl => tpl.Item2);
+        // Otherwise, sequences can be reconstructed index by index, ensuring indices are in ascending order.
+        // NB: per https://github.com/dafny-lang/dafny/issues/3048 , not all indices may be parsed as a BigInteger,
+        // so ensure we do not try to sort those numerically.
+        var intIndices = new List<(Model.Element, BigInteger)>();
+        var otherIndices = new List<(Model.Element, String)>();
+        foreach (var tpl in fSeqIndex.AppsWithArg(0, var.Element)) {
+          var asString = tpl.Args[1].ToString();
+          if (BigInteger.TryParse(asString, out var bi)) {
+            intIndices.Add((Unbox(tpl.Result), bi));
+          } else {
+            otherIndices.Add((Unbox(tpl.Result), asString));
+          }
+        }
 
-        foreach (var (res, idx) in tpls) {
-          var idxstr = idx.ToString();
-          var e = DafnyModelVariableFactory.Get(state, res, "[" + idxstr + "]", var);
+        var sortedIndices = intIndices
+          .OrderBy(p => p.Item2)
+          .Select(p => (p.Item1, p.Item2.ToString()))
+          .Concat(otherIndices);
+
+        foreach (var (res, idx) in sortedIndices) {
+          var e = DafnyModelVariableFactory.Get(state, res, "[" + idx + "]", var);
           result.Add(e);
-          (var as SeqVariable)?.AddAtIndex(e, idxstr);
+          (var as SeqVariable)?.AddAtIndex(e, idx);
         }
 
         return result;
@@ -803,6 +814,7 @@ namespace DafnyServer.CounterexampleGeneration {
 
       var mapDomain = fMapDomain.OptEval(var.Element);
       var mapElements = fMapElements.OptEval(var.Element);
+      var mapBuildStartPoint = var.Element;
       var mapBuild = fMapBuild.AppWithResult(var.Element);
       while (mapBuild != null) {
         var pairId = var.Children.Count.ToString();
@@ -813,7 +825,7 @@ namespace DafnyServer.CounterexampleGeneration {
         ((MapVariable)var).AddMapping(key, value);
         mapDomain = fMapDomain.OptEval(mapBuild.Args[0]);
         mapElements = fMapElements.OptEval(mapBuild.Args[0]);
-        if (fMapBuild.AppWithResult(mapBuild.Args[0]) == mapBuild) {
+        if (mapBuild.Args[0] == mapBuildStartPoint) {
           break; // can happen when constructing maps with single application
         }
         mapBuild = fMapBuild.AppWithResult(mapBuild.Args[0]);

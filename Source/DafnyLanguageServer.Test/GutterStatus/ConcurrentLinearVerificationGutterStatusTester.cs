@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.JsonRpc;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
@@ -16,7 +17,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
 
 [TestClass]
 public class ConcurrentLinearVerificationGutterStatusTester : LinearVerificationGutterStatusTester {
-  private const int MaxSimultaneousVerificationTasks = 3;
+  private const int MaxSimultaneousVerificationTasks = 5;
 
   protected TestNotificationReceiver<VerificationStatusGutter>[] verificationStatusGutterReceivers =
     new TestNotificationReceiver<VerificationStatusGutter>[MaxSimultaneousVerificationTasks];
@@ -27,8 +28,7 @@ public class ConcurrentLinearVerificationGutterStatusTester : LinearVerification
     }
   }
 
-  [TestInitialize]
-  public override async Task SetUp() {
+  public override async Task SetUp(Action<DafnyOptions> modifyOptions) {
     for (var i = 0; i < verificationStatusGutterReceivers.Length; i++) {
       verificationStatusGutterReceivers[i] = new();
     }
@@ -37,14 +37,17 @@ public class ConcurrentLinearVerificationGutterStatusTester : LinearVerification
       options
         .AddHandler(DafnyRequestNames.VerificationStatusGutter,
           NotificationHandler.For<VerificationStatusGutter>(NotifyAllVerificationGutterStatusReceivers))
-    );
+    , o => {
+      o.Set(ServerCommand.LineVerificationStatus, true);
+      modifyOptions?.Invoke(o);
+    });
   }
 
   [TestMethod]
   public async Task EnsuresManyDocumentsCanBeVerifiedAtOnce() {
     var result = new List<Task>();
-    //Every verificationStatusGutterReceiver checks that the filename matches and filters out notifications that do not match.
-    //That way, it can rebuild the trace for every file independently.
+    // Every verificationStatusGutterReceiver checks that the filename matches and filters out notifications that do not match.
+    // That way, it can rebuild the trace for every file independently.
     for (var i = 0; i < MaxSimultaneousVerificationTasks; i++) {
       result.Add(VerifyTrace(@"
  .  |  |  |  I  |  | :predicate F(i: int) {

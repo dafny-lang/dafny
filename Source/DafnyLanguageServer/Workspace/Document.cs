@@ -38,12 +38,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public virtual IEnumerable<Diagnostic> Diagnostics => Enumerable.Empty<Diagnostic>();
 
-    public IdeState InitialIdeState() {
+    public IdeState InitialIdeState(DafnyOptions options) {
       return ToIdeState(new IdeState(TextDocumentItem, Array.Empty<Diagnostic>(),
-        SymbolTable.Empty(), SignatureAndCompletionTable.Empty(TextDocumentItem), new Dictionary<ImplementationId, ImplementationView>(),
+        SymbolTable.Empty(), SignatureAndCompletionTable.Empty(options, TextDocumentItem), new Dictionary<ImplementationId, ImplementationView>(),
         Array.Empty<Counterexample>(),
         false, Array.Empty<Diagnostic>(),
-        new DocumentVerificationTree(TextDocumentItem)));
+        GetInitialDocumentVerificationTree()));
+    }
+
+    public virtual VerificationTree GetInitialDocumentVerificationTree() {
+      return new DocumentVerificationTree(TextDocumentItem);
     }
 
     /// <summary>
@@ -86,14 +90,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       DocumentTextBuffer textDocumentItem,
       Dafny.Program program,
       IReadOnlyList<Diagnostic> parseAndResolutionDiagnostics,
-      SymbolTable? newSymbolTable,
+      SymbolTable? symbolTable,
       SignatureAndCompletionTable signatureAndCompletionTable,
       IReadOnlyList<Diagnostic> ghostDiagnostics,
       IReadOnlyList<IImplementationTask> verificationTasks,
       List<Counterexample> counterexamples,
       Dictionary<ImplementationId, ImplementationView> implementationIdToView,
       VerificationTree verificationTree)
-      : base(textDocumentItem, program, parseAndResolutionDiagnostics, newSymbolTable, signatureAndCompletionTable, ghostDiagnostics) {
+      : base(textDocumentItem, program, parseAndResolutionDiagnostics, symbolTable, signatureAndCompletionTable, ghostDiagnostics) {
       VerificationTree = verificationTree;
       VerificationTasks = verificationTasks;
       Counterexamples = counterexamples;
@@ -102,7 +106,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       GutterProgressReporter = new VerificationProgressReporter(
         services.GetRequiredService<ILogger<VerificationProgressReporter>>(),
         this,
-        services.GetRequiredService<INotificationPublisher>());
+        services.GetRequiredService<INotificationPublisher>(),
+        services.GetRequiredService<DafnyOptions>());
+    }
+
+    public override VerificationTree GetInitialDocumentVerificationTree() {
+      return VerificationTree;
     }
 
     public override IdeState ToIdeState(IdeState previousState) {

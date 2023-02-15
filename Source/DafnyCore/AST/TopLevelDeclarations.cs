@@ -3,36 +3,46 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Linq;
+using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
-public abstract class Declaration : INamedRegion, IAttributeBearingDeclaration, IDeclarationOrUsage {
+public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, IDeclarationOrUsage {
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(tok != null);
     Contract.Invariant(Name != null);
   }
 
   public static string IdProtect(string name) {
-    return DafnyOptions.O.Compiler.PublicIdProtect(name);
+    return DafnyOptions.O.Backend.PublicIdProtect(name);
   }
 
-  public IToken tok;
   public IToken BodyStartTok = Token.NoToken;
-  public IToken BodyEndTok = Token.NoToken;
-  public IToken StartToken = Token.NoToken;
-  public IToken EndToken = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
-  public string Name;
-  public bool IsRefining;
-  IToken IRegion.BodyStartTok { get { return BodyStartTok; } }
-  IToken IRegion.BodyEndTok { get { return BodyEndTok; } }
-  string INamedRegion.Name { get { return Name; } }
+  public Name NameNode;
 
-  private VisibilityScope opaqueScope = new VisibilityScope();
-  private VisibilityScope revealScope = new VisibilityScope();
+  public override IToken Tok => NameNode.StartToken;
+  public IToken NameToken => NameNode.StartToken;
+
+  public string Name => NameNode.Value;
+  public bool IsRefining;
+
+  private VisibilityScope opaqueScope = new();
+  private VisibilityScope revealScope = new();
 
   private bool scopeIsInherited = false;
+
+  public override IEnumerable<AssumptionDescription> Assumptions() {
+    if (Attributes.Contains(Attributes, "axiom")) {
+      yield return AssumptionDescription.HasAxiomAttribute;
+    }
+
+    if (Attributes.Find(Attributes, "verify") is Attributes va &&
+        va.Args.Count == 1 && Expression.IsBoolLiteral(va.Args[0], out var verify) &&
+        verify == false) {
+      yield return AssumptionDescription.HasVerifyFalseAttribute;
+    }
+  }
 
   public virtual bool CanBeExported() {
     return true;
@@ -116,11 +126,10 @@ public abstract class Declaration : INamedRegion, IAttributeBearingDeclaration, 
   public Attributes Attributes;  // readonly, except during class merging in the refinement transformations and when changed by Compiler.MarkCapitalizationConflict
   Attributes IAttributeBearingDeclaration.Attributes => Attributes;
 
-  public Declaration(IToken tok, string name, Attributes attributes, bool isRefining) {
-    Contract.Requires(tok != null);
+  protected Declaration(RangeToken rangeToken, Name name, Attributes attributes, bool isRefining) : base(rangeToken) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
-    this.tok = tok;
-    this.Name = name;
+    this.NameNode = name;
     this.Attributes = attributes;
     this.IsRefining = isRefining;
   }
@@ -132,13 +141,8 @@ public abstract class Declaration : INamedRegion, IAttributeBearingDeclaration, 
   }
 
   internal FreshIdGenerator IdGenerator = new();
-  public IToken NameToken => tok;
-  public virtual IEnumerable<INode> Children {
-    get {
-
-      return Enumerable.Empty<INode>();
-    }
-  }
+  public override IEnumerable<Node> Children => (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>());
+  public override IEnumerable<Node> PreResolveChildren => Children;
 }
 
 public class TypeParameter : TopLevelDecl {
@@ -242,6 +246,7 @@ public class TypeParameter : TopLevelDecl {
 
   public enum EqualitySupportValue { Required, InferredRequired, Unspecified }
   public struct TypeParameterCharacteristics {
+    public RangeToken RangeToken = null;
     public EqualitySupportValue EqualitySupport;  // the resolver may change this value from Unspecified to InferredRequired (for some signatures that may immediately imply that equality support is required)
     public Type.AutoInitInfo AutoInit;
     public bool HasCompiledValue => AutoInit == Type.AutoInitInfo.CompilableValue;
@@ -270,21 +275,21 @@ public class TypeParameter : TopLevelDecl {
   }
   public int PositionalIndex; // which type parameter this is (ie. in C<S, T, U>, S is 0, T is 1 and U is 2).
 
-  public TypeParameter(IToken tok, string name, TPVarianceSyntax varianceS, TypeParameterCharacteristics characteristics)
-    : base(tok, name, null, new List<TypeParameter>(), null, false) {
-    Contract.Requires(tok != null);
+  public TypeParameter(RangeToken rangeToken, Name name, TPVarianceSyntax varianceS, TypeParameterCharacteristics characteristics)
+    : base(rangeToken, name, null, new List<TypeParameter>(), null, false) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Characteristics = characteristics;
     VarianceSyntax = varianceS;
   }
 
-  public TypeParameter(IToken tok, string name, TPVarianceSyntax varianceS)
-    : this(tok, name, varianceS, new TypeParameterCharacteristics(false)) {
-    Contract.Requires(tok != null);
+  public TypeParameter(RangeToken rangeToken, Name name, TPVarianceSyntax varianceS)
+    : this(rangeToken, name, varianceS, new TypeParameterCharacteristics(false)) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
   }
 
-  public TypeParameter(IToken tok, string name, int positionalIndex, ParentType parent)
+  public TypeParameter(RangeToken tok, Name name, int positionalIndex, ParentType parent)
      : this(tok, name, TPVarianceSyntax.NonVariant_Strict) {
     PositionalIndex = positionalIndex;
     Parent = parent;
@@ -313,10 +318,22 @@ public class TypeParameter : TopLevelDecl {
       return characteristics;
     }
   }
+
+  public static Dictionary<TypeParameter, Type> SubstitutionMap(List<TypeParameter> formals, List<Type> actuals) {
+    Contract.Requires(formals != null);
+    Contract.Requires(actuals != null);
+    Contract.Requires(formals.Count == actuals.Count);
+    var subst = new Dictionary<TypeParameter, Type>();
+    for (int i = 0; i < formals.Count; i++) {
+      subst.Add(formals[i], actuals[i]);
+    }
+    return subst;
+  }
+
 }
 
 // Represents a submodule declaration at module level scope
-abstract public class ModuleDecl : TopLevelDecl {
+public abstract class ModuleDecl : TopLevelDecl {
   public override string WhatKind { get { return "module"; } }
   [FilledInDuringResolution] public ModuleSignature Signature; // filled in topological order.
   public virtual ModuleSignature AccessibleSignature(bool ignoreExports) {
@@ -328,11 +345,12 @@ abstract public class ModuleDecl : TopLevelDecl {
     return Signature;
   }
   public int Height;
+  public Token RootToken = new Token();
 
   public readonly bool Opened;
 
-  public ModuleDecl(IToken tok, string name, ModuleDefinition parent, bool opened, bool isRefining)
-    : base(tok, name, parent, new List<TypeParameter>(), null, isRefining) {
+  public ModuleDecl(RangeToken rangeToken, Name name, ModuleDefinition parent, bool opened, bool isRefining)
+    : base(rangeToken, name, parent, new List<TypeParameter>(), null, isRefining) {
     Height = -1;
     Signature = null;
     Opened = opened;
@@ -340,9 +358,14 @@ abstract public class ModuleDecl : TopLevelDecl {
   public abstract object Dereference();
 
   public int? ResolvedHash { get; set; }
+
+  public override bool IsEssentiallyEmpty() {
+    // A module or import is considered "essentially empty" to its parents, but the module is going to be resolved by itself.
+    return true;
+  }
 }
 // Represents module X { ... }
-public class LiteralModuleDecl : ModuleDecl {
+public class LiteralModuleDecl : ModuleDecl, ICanFormat {
   public readonly ModuleDefinition ModuleDef;
 
   [FilledInDuringResolution] public ModuleSignature DefaultExport;  // the default export set of the module.
@@ -364,24 +387,66 @@ public class LiteralModuleDecl : ModuleDecl {
     return DefaultExport;
   }
 
-  public override IEnumerable<INode> Children => new[] { ModuleDef };
+  public override IEnumerable<Node> Children => new[] { ModuleDef };
+  public override IEnumerable<Node> PreResolveChildren => Children;
 
   public LiteralModuleDecl(ModuleDefinition module, ModuleDefinition parent)
-    : base(module.tok, module.Name, parent, false, false) {
+    : base(module.RangeToken, module.NameNode, parent, false, false) {
     ModuleDef = module;
-    StartToken = module.StartToken;
+    BodyStartTok = module.BodyStartTok;
     TokenWithTrailingDocString = module.TokenWithTrailingDocString;
   }
+
   public override object Dereference() { return ModuleDef; }
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    var innerIndent = indentBefore + formatter.SpaceTab;
+    var allTokens = ModuleDef.OwnedTokens.ToList();
+    if (allTokens.Any()) {
+      formatter.SetOpeningIndentedRegion(allTokens[0], indentBefore);
+    }
+
+    foreach (var token in allTokens) {
+      switch (token.val) {
+        case "abstract":
+        case "module": {
+            break;
+          }
+        case "{": {
+            if (TokenNewIndentCollector.IsFollowedByNewline(token)) {
+              formatter.SetOpeningIndentedRegion(token, indentBefore);
+            } else {
+              formatter.SetAlign(indentBefore, token, out innerIndent, out _);
+            }
+
+            break;
+          }
+        case "}": {
+            formatter.SetClosingIndentedRegionAligned(token, innerIndent, indentBefore);
+            break;
+          }
+      }
+    }
+
+    foreach (var decl2 in ModuleDef.TopLevelDecls) {
+      formatter.SetDeclIndentation(decl2, innerIndent);
+    }
+
+    foreach (var decl2 in ModuleDef.PrefixNamedModules) {
+      formatter.SetDeclIndentation(decl2.Item2, innerIndent);
+    }
+
+    return true;
+  }
 }
+
 // Represents "module name = path;", where name is an identifier and path is a possibly qualified name.
-public class AliasModuleDecl : ModuleDecl, IHasUsages {
+public class AliasModuleDecl : ModuleDecl, IHasUsages, ICanFormat {
   public readonly ModuleQualifiedId TargetQId; // generated by the parser, this is looked up
   public readonly List<IToken> Exports; // list of exports sets
   [FilledInDuringResolution] public bool ShadowsLiteralModule;  // initialized early during Resolution (and used not long after that); true for "import opened A = A" where "A" is a literal module in the same scope
 
-  public AliasModuleDecl(ModuleQualifiedId path, IToken name, ModuleDefinition parent, bool opened, List<IToken> exports)
-    : base(name, name.val, parent, opened, false) {
+  public AliasModuleDecl(RangeToken rangeToken, ModuleQualifiedId path, Name name, ModuleDefinition parent, bool opened, List<IToken> exports)
+    : base(rangeToken, name, parent, opened, false) {
     Contract.Requires(path != null && path.Path.Count > 0);
     Contract.Requires(exports != null);
     Contract.Requires(exports.Count == 0 || path.Path.Count == 1);
@@ -393,18 +458,26 @@ public class AliasModuleDecl : ModuleDecl, IHasUsages {
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return new[] { Dereference() };
   }
+
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    if (OwnedTokens.FirstOrDefault() is { } theToken) {
+      formatter.SetOpeningIndentedRegion(theToken, indentBefore);
+    }
+
+    return true;
+  }
 }
 
 // Represents "module name as path [ = compilePath];", where name is a identifier and path is a possibly qualified name.
 // Used to be called ModuleFacadeDecl -- renamed to be like LiteralModuleDecl, AliasModuleDecl
-public class AbstractModuleDecl : ModuleDecl {
+public class AbstractModuleDecl : ModuleDecl, ICanFormat {
   public readonly ModuleQualifiedId QId;
   public readonly List<IToken> Exports; // list of exports sets
   public ModuleDecl CompileRoot;
   public ModuleSignature OriginalSignature;
 
-  public AbstractModuleDecl(ModuleQualifiedId qid, IToken name, ModuleDefinition parent, bool opened, List<IToken> exports)
-    : base(name, name.val, parent, opened, false) {
+  public AbstractModuleDecl(RangeToken rangeToken, ModuleQualifiedId qid, Name name, ModuleDefinition parent, bool opened, List<IToken> exports)
+    : base(rangeToken, name, parent, opened, false) {
     Contract.Requires(qid != null && qid.Path.Count > 0);
     Contract.Requires(exports != null);
 
@@ -412,10 +485,25 @@ public class AbstractModuleDecl : ModuleDecl {
     Exports = exports;
   }
   public override object Dereference() { return this; }
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    foreach (var token in OwnedTokens) {
+      switch (token.val) {
+        case "import": {
+            formatter.SetOpeningIndentedRegion(token, indentBefore);
+            break;
+          }
+        case ":": {
+            break;
+          }
+      }
+    }
+
+    return true;
+  }
 }
 
 // Represents the exports of a module.
-public class ModuleExportDecl : ModuleDecl {
+public class ModuleExportDecl : ModuleDecl, ICanFormat {
   public readonly bool IsDefault;
   public List<ExportSignature> Exports; // list of TopLevelDecl that are included in the export
   public List<IToken> Extends; // list of exports that are extended
@@ -423,23 +511,14 @@ public class ModuleExportDecl : ModuleDecl {
   [FilledInDuringResolution] public readonly HashSet<Tuple<Declaration, bool>> ExportDecls = new HashSet<Tuple<Declaration, bool>>();
   public bool RevealAll; // only kept for initial rewriting, then discarded
   public bool ProvideAll;
+  public override IEnumerable<Node> Children => Exports;
+  public override IEnumerable<Node> PreResolveChildren => Exports;
 
   public readonly VisibilityScope ThisScope;
-  public ModuleExportDecl(IToken tok, ModuleDefinition parent,
-    List<ExportSignature> exports, List<IToken> extends, bool provideAll, bool revealAll, bool isDefault, bool isRefining)
-    : base(tok, (isDefault || tok.val == "export") ? parent.Name : tok.val, parent, false, isRefining) {
-    Contract.Requires(exports != null);
-    IsDefault = isDefault;
-    Exports = exports;
-    Extends = extends;
-    ProvideAll = provideAll;
-    RevealAll = revealAll;
-    ThisScope = new VisibilityScope(this.FullSanitizedName);
-  }
 
-  public ModuleExportDecl(IToken tok, string name, ModuleDefinition parent,
+  public ModuleExportDecl(RangeToken rangeToken, Name name, ModuleDefinition parent,
     List<ExportSignature> exports, List<IToken> extends, bool provideAll, bool revealAll, bool isDefault, bool isRefining)
-    : base(tok, name, parent, false, isRefining) {
+    : base(rangeToken, name, parent, false, isRefining) {
     Contract.Requires(exports != null);
     IsDefault = isDefault;
     Exports = exports;
@@ -464,10 +543,41 @@ public class ModuleExportDecl : ModuleDecl {
     return false;
   }
 
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    var innerIndent = indentBefore + formatter.SpaceTab;
+    var revealExportIndent = innerIndent + formatter.SpaceTab;
+    var commaIndent = innerIndent;
+    foreach (var token in OwnedTokens) {
+      switch (token.val) {
+        case "export": {
+            formatter.SetOpeningIndentedRegion(token, indentBefore);
+            break;
+          }
+        case "extends":
+        case "reveals":
+        case "provides": {
+            if (TokenNewIndentCollector.IsFollowedByNewline(token)) {
+              formatter.SetOpeningIndentedRegion(token, innerIndent);
+              revealExportIndent = innerIndent + formatter.SpaceTab;
+              commaIndent = innerIndent + formatter.SpaceTab;
+            } else {
+              formatter.SetAlign(innerIndent, token, out revealExportIndent, out commaIndent);
+            }
+
+            break;
+          }
+        case ",": {
+            formatter.SetIndentations(token, above: revealExportIndent, inline: commaIndent, below: revealExportIndent);
+            break;
+          }
+      }
+    }
+
+    return true;
+  }
 }
 
-public class ExportSignature : IHasUsages {
-  public readonly IToken Tok;
+public class ExportSignature : TokenNode, IHasUsages {
   public readonly IToken ClassIdTok;
   public readonly bool Opaque;
   public readonly string ClassId;
@@ -487,19 +597,21 @@ public class ExportSignature : IHasUsages {
     Contract.Requires(prefix != null);
     Contract.Requires(idTok != null);
     Contract.Requires(id != null);
-    Tok = idTok;
+    tok = idTok;
     ClassIdTok = prefixTok;
     ClassId = prefix;
     Id = id;
     Opaque = opaque;
+    OwnedTokensCache = new List<IToken>() { Tok, prefixTok };
   }
 
   public ExportSignature(IToken idTok, string id, bool opaque) {
     Contract.Requires(idTok != null);
     Contract.Requires(id != null);
-    Tok = idTok;
+    tok = idTok;
     Id = id;
     Opaque = opaque;
+    OwnedTokensCache = new List<IToken>() { Tok };
   }
 
   public override string ToString() {
@@ -510,7 +622,8 @@ public class ExportSignature : IHasUsages {
   }
 
   public IToken NameToken => Tok;
-  public IEnumerable<INode> Children => Enumerable.Empty<INode>();
+  public override IEnumerable<Node> Children => Enumerable.Empty<Node>();
+  public override IEnumerable<Node> PreResolveChildren => Enumerable.Empty<Node>();
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return new[] { Decl };
   }
@@ -544,10 +657,10 @@ public class ModuleSignature {
   }
 }
 
-public class ModuleQualifiedId {
-  public readonly List<IToken> Path; // Path != null && Path.Count > 0
+public class ModuleQualifiedId : Node, IHasUsages {
+  public readonly List<Name> Path; // Path != null && Path.Count > 0
 
-  public ModuleQualifiedId(List<IToken> path) {
+  public ModuleQualifiedId(List<Name> path) {
     Contract.Assert(path != null && path.Count > 0);
     this.Path = path; // note that the list is aliased -- not to be modified after construction
   }
@@ -555,7 +668,7 @@ public class ModuleQualifiedId {
   // Creates a clone, including a copy of the list;
   // if the argument is true, resolution information is included
   public ModuleQualifiedId Clone(bool includeResInfo) {
-    List<IToken> newlist = new List<IToken>(Path);
+    var newlist = new List<Name>(Path);
     ModuleQualifiedId cl = new ModuleQualifiedId(newlist);
     if (includeResInfo) {
       cl.Root = this.Root;
@@ -568,17 +681,17 @@ public class ModuleQualifiedId {
   }
 
   public string rootName() {
-    return Path[0].val;
+    return Path[0].Value;
   }
 
   public IToken rootToken() {
-    return Path[0];
+    return Path[0].StartToken;
   }
 
-  override public string ToString() {
-    string s = Path[0].val;
+  public override string ToString() {
+    string s = Path[0].Value;
     for (int i = 1; i < Path.Count; ++i) {
-      s = s + "." + Path[i].val;
+      s = s + "." + Path[i].Value;
     }
 
     return s;
@@ -612,16 +725,32 @@ public class ModuleQualifiedId {
   [FilledInDuringResolution] public ModuleDecl Decl; // the module corresponding to the full path
   [FilledInDuringResolution] public ModuleDefinition Def; // the module definition corresponding to the full path
   [FilledInDuringResolution] public ModuleSignature Sig; // the module signature corresponding to the full path
+
+  public override IToken Tok => Path.Last().Tok;
+  public override IEnumerable<Node> Children => Enumerable.Empty<Node>();
+  public override IEnumerable<Node> PreResolveChildren => Children;
+
+  public override RangeToken RangeToken {
+    get => new(Path.First().StartToken, Path.Last().EndToken);
+    set => throw new NotSupportedException();
+  }
+
+  public IToken NameToken => Path.Last().StartToken;
+
+  public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
+    return Enumerable.Repeat(Decl, 1);
+  }
 }
 
-public class ModuleDefinition : IDeclarationOrUsage, INamedRegion, IAttributeBearingDeclaration {
-  public readonly IToken tok;
+public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearingDeclaration {
   public IToken BodyStartTok = Token.NoToken;
-  public IToken BodyEndTok = Token.NoToken;
-  public IToken StartToken = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
-  public readonly string DafnyName; // The (not-qualified) name as seen in Dafny source code
-  public readonly string Name; // (Last segment of the) module name
+  public string DafnyName => NameNode.StartToken.val; // The (not-qualified) name as seen in Dafny source code
+  public readonly Name NameNode; // (Last segment of the) module name
+
+  public override IToken Tok => NameNode.StartToken;
+
+  public string Name => NameNode.Value;
   public string FullDafnyName {
     get {
       if (EnclosingModule == null) {
@@ -643,9 +772,6 @@ public class ModuleDefinition : IDeclarationOrUsage, INamedRegion, IAttributeBea
   }
   public readonly List<IToken> PrefixIds; // The qualified module name, except the last segment when a
                                           // nested module declaration is outside its enclosing module
-  IToken IRegion.BodyStartTok { get { return BodyStartTok; } }
-  IToken IRegion.BodyEndTok { get { return BodyEndTok; } }
-  string INamedRegion.Name { get { return Name; } }
   public ModuleDefinition EnclosingModule;  // readonly, except can be changed by resolver for prefix-named modules when the real parent is discovered
   public readonly Attributes Attributes;
   Attributes IAttributeBearingDeclaration.Attributes => Attributes;
@@ -672,14 +798,12 @@ public class ModuleDefinition : IDeclarationOrUsage, INamedRegion, IAttributeBea
     Contract.Invariant(CallGraph != null);
   }
 
-  public ModuleDefinition(IToken tok, string name, List<IToken> prefixIds, bool isAbstract, bool isFacade,
+  public ModuleDefinition(RangeToken tok, Name name, List<IToken> prefixIds, bool isAbstract, bool isFacade,
     ModuleQualifiedId refinementQId, ModuleDefinition parent, Attributes attributes, bool isBuiltinName,
-    bool isToBeVerified, bool isToBeCompiled) {
+    bool isToBeVerified, bool isToBeCompiled) : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
-    this.tok = tok;
-    this.DafnyName = tok.val;
-    this.Name = name;
+    this.NameNode = name;
     this.PrefixIds = prefixIds;
     this.Attributes = attributes;
     this.EnclosingModule = parent;
@@ -825,22 +949,33 @@ public class ModuleDefinition : IDeclarationOrUsage, INamedRegion, IAttributeBea
   /// declarations.
   /// Note, an iterator declaration is a type, in this sense.
   /// Note, if the given list are the top-level declarations of a module, the yield will include
-  /// greatest lemmas but not their associated prefix lemmas (which are tucked into the greatest lemma's
-  /// .PrefixLemma field).
+  /// extreme predicates/lemmas but not their associated prefix predicates/lemmas (which are tucked
+  /// into the extreme predicate/lemma's PrefixPredicate/PrefixLemma field).
   /// </summary>
   public static IEnumerable<ICallable> AllCallables(List<TopLevelDecl> declarations) {
     foreach (var d in declarations) {
-      var cl = d as TopLevelDeclWithMembers;
-      if (cl != null) {
-        foreach (var member in cl.Members) {
-          var clbl = member as ICallable;
-          if (clbl != null && !(member is ConstantField)) {
-            yield return clbl;
-            if (clbl is Function f && f.ByMethodDecl != null) {
-              yield return f.ByMethodDecl;
-            }
+      if (d is TopLevelDeclWithMembers cl) {
+        foreach (var member in cl.Members.Where(member => member is ICallable and not ConstantField)) {
+          yield return (ICallable)member;
+          if (member is Function { ByMethodDecl: { } } f) {
+            yield return f.ByMethodDecl;
           }
         }
+      }
+    }
+  }
+
+  /// <summary>
+  /// Yields all functions and methods that are members of some type in the given list of
+  /// declarations, including prefix lemmas and prefix predicates.
+  /// </summary>
+  public static IEnumerable<ICallable> AllCallablesIncludingPrefixDeclarations(List<TopLevelDecl> declarations) {
+    foreach (var decl in AllCallables(declarations)) {
+      yield return decl;
+      if (decl is ExtremeLemma extremeLemma) {
+        yield return extremeLemma.PrefixLemma;
+      } else if (decl is ExtremePredicate extremePredicate) {
+        yield return extremePredicate.PrefixPredicate;
       }
     }
   }
@@ -852,17 +987,12 @@ public class ModuleDefinition : IDeclarationOrUsage, INamedRegion, IAttributeBea
   public static IEnumerable<ICallable> AllItersAndCallables(List<TopLevelDecl> declarations) {
     foreach (var d in declarations) {
       if (d is IteratorDecl) {
-        var iter = (IteratorDecl)d;
-        yield return iter;
-      } else if (d is TopLevelDeclWithMembers) {
-        var cl = (TopLevelDeclWithMembers)d;
-        foreach (var member in cl.Members) {
-          var clbl = member as ICallable;
-          if (clbl != null) {
-            yield return clbl;
-            if (clbl is Function f && f.ByMethodDecl != null) {
-              yield return f.ByMethodDecl;
-            }
+        yield return (IteratorDecl)d;
+      } else if (d is TopLevelDeclWithMembers cl) {
+        foreach (var member in cl.Members.Where(member => member is ICallable)) {
+          yield return (ICallable)member;
+          if (member is Function { ByMethodDecl: { } } f) {
+            yield return f.ByMethodDecl;
           }
         }
       }
@@ -871,8 +1001,7 @@ public class ModuleDefinition : IDeclarationOrUsage, INamedRegion, IAttributeBea
 
   public static IEnumerable<IteratorDecl> AllIteratorDecls(List<TopLevelDecl> declarations) {
     foreach (var d in declarations) {
-      var iter = d as IteratorDecl;
-      if (iter != null) {
+      if (d is IteratorDecl iter) {
         yield return iter;
       }
     }
@@ -885,8 +1014,7 @@ public class ModuleDefinition : IDeclarationOrUsage, INamedRegion, IAttributeBea
   public static IEnumerable<TopLevelDecl> AllDeclarationsAndNonNullTypeDecls(List<TopLevelDecl> declarations) {
     foreach (var d in declarations) {
       yield return d;
-      var cl = d as ClassDecl;
-      if (cl != null && cl.NonNullTypeDecl != null) {
+      if (d is ClassDecl { NonNullTypeDecl: { } } cl) {
         yield return cl.NonNullTypeDecl;
       }
     }
@@ -894,12 +1022,10 @@ public class ModuleDefinition : IDeclarationOrUsage, INamedRegion, IAttributeBea
 
   public static IEnumerable<ExtremeLemma> AllExtremeLemmas(List<TopLevelDecl> declarations) {
     foreach (var d in declarations) {
-      var cl = d as TopLevelDeclWithMembers;
-      if (cl != null) {
+      if (d is TopLevelDeclWithMembers cl) {
         foreach (var member in cl.Members) {
-          var m = member as ExtremeLemma;
-          if (m != null) {
-            yield return m;
+          if (member is ExtremeLemma extremeLemma) {
+            yield return extremeLemma;
           }
         }
       }
@@ -907,40 +1033,46 @@ public class ModuleDefinition : IDeclarationOrUsage, INamedRegion, IAttributeBea
   }
 
   public bool IsEssentiallyEmptyModuleBody() {
-    foreach (var d in TopLevelDecls) {
-      if (d is ModuleDecl) {
-        // modules don't count
-        continue;
-      } else if (d is ClassDecl) {
-        var cl = (ClassDecl)d;
-        if (cl.Members.Count == 0) {
-          // the class is empty, so it doesn't count
-          continue;
-        }
-      }
-      return false;
-    }
-    return true;
+    return TopLevelDecls.All(decl => decl.IsEssentiallyEmpty());
   }
 
   public IToken GetFirstTopLevelToken() {
-    return TopLevelDecls.OfType<ClassDecl>()
-      .SelectMany(classDecl => classDecl.Members)
-      .Where(member => member.tok.line > 0)
-      .Select(member => member.tok)
-      .Concat(TopLevelDecls.OfType<LiteralModuleDecl>()
-        .Select(moduleDecl => moduleDecl.ModuleDef.GetFirstTopLevelToken())
-        .Where(tok => tok.line > 0)
-      ).FirstOrDefault(Token.NoToken);
+    if (StartToken.line > 0) {
+      return StartToken;
+    }
+    if (this is DefaultModuleDefinition { Includes: { Count: > 0 } includes } &&
+        includes[0].OwnedTokens.Any()) {
+      return includes[0].OwnedTokens.First();
+    }
+    IEnumerable<IToken> topTokens = TopLevelDecls.SelectMany<TopLevelDecl, IToken>(decl => {
+      if (decl.StartToken.line > 0) {
+        return new List<IToken>() { decl.StartToken };
+      } else if (decl is TopLevelDeclWithMembers declWithMembers) {
+        return declWithMembers.Members.Where(
+            member => member.tok.line > 0)
+          .Select(member => member.StartToken);
+      } else if (decl is LiteralModuleDecl literalModuleDecl) {
+        return literalModuleDecl.ModuleDef.PrefixNamedModules.Select(module =>
+          module.Item2.ModuleDef.GetFirstTopLevelToken()).Where((IToken t) => t is { line: > 0 });
+      } else {
+        return new List<IToken>() { };
+      }
+    });
+
+    return topTokens.MinBy(token => token.pos);
   }
 
   public IToken NameToken => tok;
-  public IEnumerable<INode> Children => TopLevelDecls;
+  public override IEnumerable<Node> Children => (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat<Node>(TopLevelDecls).
+    Concat(RefinementQId == null ? Enumerable.Empty<Node>() : new Node[] { RefinementQId });
+
+  public override IEnumerable<Node> PreResolveChildren => Includes.Concat<Node>(TopLevelDecls).Concat(
+    PrefixNamedModules.Select(tuple => tuple.Item2));
 }
 
-public class DefaultModuleDecl : ModuleDefinition {
-  public DefaultModuleDecl()
-    : base(Token.NoToken, "_module", new List<IToken>(), false, false, null, null, null, true, true, true) {
+public class DefaultModuleDefinition : ModuleDefinition {
+  public DefaultModuleDefinition()
+    : base(RangeToken.NoToken, new Name("_module"), new List<IToken>(), false, false, null, null, null, true, true, true) {
   }
   public override bool IsDefaultModule {
     get {
@@ -958,9 +1090,9 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
     Contract.Invariant(cce.NonNullElements(TypeArgs));
   }
 
-  public TopLevelDecl(IToken tok, string name, ModuleDefinition enclosingModule, List<TypeParameter> typeArgs, Attributes attributes, bool isRefining)
-    : base(tok, name, attributes, isRefining) {
-    Contract.Requires(tok != null);
+  protected TopLevelDecl(RangeToken rangeToken, Name name, ModuleDefinition enclosingModule, List<TypeParameter> typeArgs, Attributes attributes, bool isRefining)
+    : base(rangeToken, name, attributes, isRefining) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
     EnclosingModuleDefinition = enclosingModule;
@@ -1014,7 +1146,7 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
         }
       }
 
-      return DafnyOptions.O.Compiler.GetCompileName(EnclosingModuleDefinition.IsDefaultModule,
+      return DafnyOptions.O.Backend.GetCompileName(EnclosingModuleDefinition.IsDefaultModule,
         EnclosingModuleDefinition.CompileName, CompileName);
     }
   }
@@ -1045,7 +1177,15 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
   }
 
   public bool AllowsAllocation => true;
-  public override IEnumerable<INode> Children => Enumerable.Empty<INode>();
+  public override IEnumerable<Node> Children => Enumerable.Empty<Node>();
+
+  /// <summary>
+  /// A top-level declaration is considered "essentially empty" if there is no way it could generate any resolution error
+  /// other than introducing a duplicate name.
+  /// </summary>
+  public virtual bool IsEssentiallyEmpty() {
+    return Attributes == null || TypeArgs.Count != 0;
+  }
 }
 
 public abstract class TopLevelDeclWithMembers : TopLevelDecl {
@@ -1053,7 +1193,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl {
 
   // The following fields keep track of parent traits
   public readonly List<MemberDecl> InheritedMembers = new List<MemberDecl>();  // these are instance members declared in parent traits
-  public readonly List<Type> ParentTraits;  // these are the types that are parsed after the keyword 'extends'; note, for a successfully resolved program, these are UserDefinedType's where .ResolvedClas is NonNullTypeDecl
+  public readonly List<Type> ParentTraits;  // these are the types that are parsed after the keyword 'extends'; note, for a successfully resolved program, these are UserDefinedType's where .ResolvedClass is NonNullTypeDecl
   public readonly Dictionary<TypeParameter, Type> ParentFormalTypeParametersToActuals = new Dictionary<TypeParameter, Type>();  // maps parent traits' type parameters to actuals
 
   /// <summary>
@@ -1097,7 +1237,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl {
           info.Add(traitHead, list);
         }
         foreach (var pair in entry.Value) {
-          var ty = Resolver.SubstType(pair.Item1, typeMap);
+          var ty = pair.Item1.Subst(typeMap);
           // prepend the path with "parent"
           var parentPath = new List<TraitDecl>() { parent };
           parentPath.AddRange(pair.Item2);
@@ -1113,9 +1253,9 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl {
     }
   }
 
-  public TopLevelDeclWithMembers(IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs, List<MemberDecl> members, Attributes attributes, bool isRefining, List<Type>/*?*/ traits = null)
-    : base(tok, name, module, typeArgs, attributes, isRefining) {
-    Contract.Requires(tok != null);
+  protected TopLevelDeclWithMembers(RangeToken rangeToken, Name name, ModuleDefinition module, List<TypeParameter> typeArgs, List<MemberDecl> members, Attributes attributes, bool isRefining, List<Type>/*?*/ traits = null)
+    : base(rangeToken, name, module, typeArgs, attributes, isRefining) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(members));
@@ -1132,17 +1272,15 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl {
     var types = new List<UserDefinedType>();
     foreach (var t in aa) {
       var typeArgs = t.TypeArgs.ConvertAll(tp => a.ParentFormalTypeParametersToActuals[tp]);
-      var u = new UserDefinedType(t.tok, t.Name + "?", t, typeArgs);
+      var u = new UserDefinedType(t.Tok, t.Name + "?", t, typeArgs);
       types.Add(u);
     }
     return types;
   }
 
-  public override IEnumerable<INode> Children {
-    get {
-      return Members.Concat(ParentTraits.SelectMany(parentTrait => parentTrait.Nodes));
-    }
-  }
+  public override IEnumerable<Node> Children => ParentTraits.Concat<Node>(Members);
+
+  public override IEnumerable<Node> PreResolveChildren => Children;
 
   /// <summary>
   /// Returns the set of transitive parent traits (not including "this" itself).
@@ -1167,17 +1305,40 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl {
       tr.AddTraitAncestors(s);
     }
   }
+
+  // True if non-static members can access the underlying object "this"
+  // False if all members are implicitly static (e.g. in a default class declaration)
+  public abstract bool AcceptThis { get; }
+
+  public override bool IsEssentiallyEmpty() {
+    if (Members.Count != 0 || ParentTraits.Count != 0) {
+      return false;
+    }
+    return base.IsEssentiallyEmpty();
+  }
 }
 
 public class TraitDecl : ClassDecl {
   public override string WhatKind { get { return "trait"; } }
   public bool IsParent { set; get; }
-  public TraitDecl(IToken tok, string name, ModuleDefinition module,
+  public TraitDecl(RangeToken rangeToken, Name name, ModuleDefinition module,
     List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, bool isRefining, List<Type>/*?*/ traits)
-    : base(tok, name, module, typeArgs, members, attributes, isRefining, traits) { }
+    : base(rangeToken, name, module, typeArgs, members, attributes, isRefining, traits) { }
+
+  public override IEnumerable<AssumptionDescription> Assumptions() {
+    foreach (var assumption in base.Assumptions()) {
+      yield return assumption;
+    }
+
+    if (Attributes.Find(Attributes, "termination") is Attributes ta &&
+        ta.Args.Count == 1 && Expression.IsBoolLiteral(ta.Args[0], out var termCheck) &&
+        termCheck == false) {
+      yield return AssumptionDescription.HasTerminationFalseAttribute;
+    }
+  }
 }
 
-public class ClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl {
+public class ClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICanFormat {
   public override string WhatKind { get { return "class"; } }
   public override bool CanBeRevealed() { return true; }
   [FilledInDuringResolution] public bool HasConstructor;  // filled in (early) during resolution; true iff there exists a member that is a Constructor
@@ -1188,10 +1349,10 @@ public class ClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl {
     Contract.Invariant(ParentTraits != null);
   }
 
-  public ClassDecl(IToken tok, string name, ModuleDefinition module,
+  public ClassDecl(RangeToken rangeToken, Name name, ModuleDefinition module,
     List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, bool isRefining, List<Type>/*?*/ traits)
-    : base(tok, name, module, typeArgs, members, attributes, isRefining, traits) {
-    Contract.Requires(tok != null);
+    : base(rangeToken, name, module, typeArgs, members, attributes, isRefining, traits) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(module != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
@@ -1208,10 +1369,10 @@ public class ClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl {
   /// set, which it hasn't during the base call of the ArrowTypeDecl constructor). Instead, the ArrowTypeDecl
   /// constructor will do that call.
   /// </summary>
-  protected ClassDecl(IToken tok, string name, ModuleDefinition module,
+  protected ClassDecl(RangeToken rangeToken, Name name, ModuleDefinition module,
     List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(tok, name, module, typeArgs, members, attributes, isRefining, null) {
-    Contract.Requires(tok != null);
+    : base(rangeToken, name, module, typeArgs, members, attributes, isRefining, null) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(module != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
@@ -1242,8 +1403,8 @@ public class ClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl {
       // this optimization seems worthwhile
       return ParentTraits;
     } else {
-      var subst = Resolver.TypeSubstitutionMap(TypeArgs, typeArgs);
-      return ParentTraits.ConvertAll(traitType => Resolver.SubstType(traitType, subst));
+      var subst = TypeParameter.SubstitutionMap(TypeArgs, typeArgs);
+      return ParentTraits.ConvertAll(traitType => traitType.Subst(subst));
     }
   }
 
@@ -1251,8 +1412,8 @@ public class ClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl {
     Contract.Requires(typeArgs != null);
     Contract.Requires(typeArgs.Count == TypeArgs.Count);
     // Instantiate with the actual type arguments
-    var subst = Resolver.TypeSubstitutionMap(TypeArgs, typeArgs);
-    return ParentTraits.ConvertAll(traitType => (Type)UserDefinedType.CreateNullableType((UserDefinedType)Resolver.SubstType(traitType, subst)));
+    var subst = TypeParameter.SubstitutionMap(TypeArgs, typeArgs);
+    return ParentTraits.ConvertAll(traitType => (Type)UserDefinedType.CreateNullableType((UserDefinedType)traitType.Subst(subst)));
   }
 
   public override List<Type> ParentTypes(List<Type> typeArgs) {
@@ -1261,27 +1422,62 @@ public class ClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl {
 
   public TopLevelDecl AsTopLevelDecl => this;
   public TypeDeclSynonymInfo SynonymInfo { get; set; }
+  public override bool AcceptThis => this is not DefaultClassDecl;
+  public virtual bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    IToken classToken = null;
+    var parentTraitIndent = indentBefore + formatter.SpaceTab;
+    var commaIndent = indentBefore;
+    var extraIndent = 0;
+
+    foreach (var token in OwnedTokens) {
+      switch (token.val) {
+        case "class": {
+            classToken = token;
+            break;
+          }
+        case "extends": {
+            if (token.line != token.Next.line) {
+              extraIndent = classToken != null && classToken.line == token.line ? 0 : formatter.SpaceTab;
+              commaIndent += extraIndent;
+              formatter.SetIndentations(token, below: indentBefore + formatter.SpaceTab + extraIndent);
+            } else {
+              extraIndent += 2;
+              commaIndent = indentBefore + formatter.SpaceTab;
+              formatter.SetIndentations(token, below: indentBefore + formatter.SpaceTab);
+            }
+
+            break;
+          }
+        case ",": {
+            formatter.SetIndentations(token, parentTraitIndent + extraIndent, commaIndent, parentTraitIndent + extraIndent);
+            break;
+          }
+      }
+    }
+
+    foreach (var parent in ParentTraits) {
+      formatter.SetTypeIndentation(parent);
+    }
+
+    return true;
+  }
 }
 
 public class DefaultClassDecl : ClassDecl {
   public DefaultClassDecl(ModuleDefinition module, [Captured] List<MemberDecl> members)
-    : base(Token.NoToken, "_default", module, new List<TypeParameter>(), members, null, false, null) {
+    : base(RangeToken.NoToken, new Name("_default"), module, new List<TypeParameter>(), members, null, false, null) {
     Contract.Requires(module != null);
     Contract.Requires(cce.NonNullElements(members));
   }
-  public override bool IsDefaultClass {
-    get {
-      return true;
-    }
-  }
+  public override bool IsDefaultClass => true;
 }
 
 public class ArrayClassDecl : ClassDecl {
   public override string WhatKind { get { return "array type"; } }
   public readonly int Dims;
   public ArrayClassDecl(int dims, ModuleDefinition module, Attributes attrs)
-    : base(Token.NoToken, BuiltIns.ArrayClassName(dims), module,
-      new List<TypeParameter>(new TypeParameter[] { new TypeParameter(Token.NoToken, "arg", TypeParameter.TPVarianceSyntax.NonVariant_Strict) }),
+    : base(RangeToken.NoToken, new Name(BuiltIns.ArrayClassName(dims)), module,
+      new List<TypeParameter>(new TypeParameter[] { new TypeParameter(RangeToken.NoToken, new Name("arg"), TypeParameter.TPVarianceSyntax.NonVariant_Strict) }),
       new List<MemberDecl>(), attrs, false, null) {
     Contract.Requires(1 <= dims);
     Contract.Requires(module != null);
@@ -1302,7 +1498,7 @@ public class ArrowTypeDecl : ClassDecl {
   public readonly Function Reads;
 
   public ArrowTypeDecl(List<TypeParameter> tps, Function req, Function reads, ModuleDefinition module, Attributes attributes)
-    : base(Token.NoToken, ArrowType.ArrowTypeName(tps.Count - 1), module, tps,
+    : base(RangeToken.NoToken, new Name(ArrowType.ArrowTypeName(tps.Count - 1)), module, tps,
       new List<MemberDecl> { req, reads }, attributes, false) {
     Contract.Requires(tps != null && 1 <= tps.Count);
     Contract.Requires(req != null);
@@ -1317,21 +1513,23 @@ public class ArrowTypeDecl : ClassDecl {
   }
 }
 
-public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICallable {
+public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICallable, ICanFormat {
   public override bool CanBeRevealed() { return true; }
   public readonly List<DatatypeCtor> Ctors;
+
+  [FilledInDuringResolution] public Dictionary<string, DatatypeCtor> ConstructorsByName { get; set; }
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(cce.NonNullElements(Ctors));
     Contract.Invariant(1 <= Ctors.Count);
   }
 
-  public override IEnumerable<INode> Children => Ctors.Concat<INode>(base.Children);
+  public override IEnumerable<Node> Children => Ctors.Concat<Node>(base.Children);
 
-  public DatatypeDecl(IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs,
+  public DatatypeDecl(RangeToken rangeToken, Name name, ModuleDefinition module, List<TypeParameter> typeArgs,
     [Captured] List<DatatypeCtor> ctors, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(tok, name, module, typeArgs, members, attributes, isRefining) {
-    Contract.Requires(tok != null);
+    : base(rangeToken, name, module, typeArgs, members, attributes, isRefining) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(module != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
@@ -1360,10 +1558,9 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
   bool ICodeContext.IsGhost { get { return true; } }
   List<TypeParameter> ICodeContext.TypeArgs { get { return TypeArgs; } }
   List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
-  ModuleDefinition ICodeContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
+  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
   bool ICodeContext.MustReverify { get { return false; } }
   bool ICodeContext.AllowsNontermination { get { return false; } }
-  IToken ICallable.Tok { get { return tok; } }
   string ICallable.NameRelativeToModule { get { return Name; } }
   Specification<Expression> ICallable.Decreases {
     get {
@@ -1377,7 +1574,103 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
     set { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
   }
 
+  /// <summary>
+  /// For information about the grounding constructor, see docs/Compilation/AutoInitialization.md.
+  /// </summary>
   public abstract DatatypeCtor GetGroundingCtor();
+
+
+  public override bool IsEssentiallyEmpty() {
+    if (Ctors.Any(ctor => ctor.Attributes != null || ctor.Formals.Count != 0)) {
+      return false;
+    }
+    return base.IsEssentiallyEmpty();
+  }
+
+  public bool SetIndent(int indent, TokenNewIndentCollector formatter) {
+    var indent2 = indent + formatter.SpaceTab;
+    var verticalBarIndent = indent2;
+    var rightOfVerticalBarIndent = indent2 + formatter.SpaceTab;
+    if (OwnedTokens.All(token =>
+          token.val != "|" || TokenNewIndentCollector.IsFollowedByNewline(token) || token.Next.line == token.Prev.line)) {
+      rightOfVerticalBarIndent = indent2;
+    }
+
+    var commaIndent = indent2;
+    var rightIndent = indent2;
+    var noExtraIndent =
+      formatter.ReduceBlockiness && Ctors.Count == 1
+                                 && Ctors[0].Formals.Count > 0
+                                 && Ctors[0].StartToken.line == StartToken.line;
+    if (noExtraIndent) {
+      rightOfVerticalBarIndent = indent;
+    }
+
+    var ownedTokens = OwnedTokens.Concat(this.Ctors.SelectMany(ctor => ctor.OwnedTokens))
+      .OrderBy(token => token.pos);
+    foreach (var token in ownedTokens) {
+      switch (token.val) {
+        case "datatype": {
+            formatter.SetOpeningIndentedRegion(token, indent);
+            break;
+          }
+        case "=": {
+            if (TokenNewIndentCollector.IsFollowedByNewline(token) || noExtraIndent) {
+              formatter.SetIndentations(token, rightOfVerticalBarIndent, indent + formatter.SpaceTab, rightOfVerticalBarIndent);
+            } else {
+              formatter.SetAlign(indent2, token, out rightOfVerticalBarIndent, out verticalBarIndent);
+            }
+
+            break;
+          }
+        case "|": {
+            formatter.SetIndentations(token, rightOfVerticalBarIndent, verticalBarIndent, rightOfVerticalBarIndent);
+            break;
+          }
+        case "(": {
+            if (TokenNewIndentCollector.IsFollowedByNewline(token)) {
+              formatter.SetOpeningIndentedRegion(token, rightOfVerticalBarIndent);
+              commaIndent = rightOfVerticalBarIndent;
+              rightIndent = commaIndent + formatter.SpaceTab;
+            } else {
+              formatter.SetAlign(rightOfVerticalBarIndent + formatter.SpaceTab, token, out rightIndent, out commaIndent);
+            }
+
+            break;
+          }
+        case ")": {
+            formatter.SetIndentations(token.Prev, below: rightIndent);
+            formatter.SetClosingIndentedRegionAligned(token, rightIndent, rightOfVerticalBarIndent);
+            break;
+          }
+        case ",": {
+            formatter.SetIndentations(token, rightIndent, commaIndent, rightIndent);
+            break;
+          }
+        case ";": {
+            break;
+          }
+        case "{": {
+            formatter.SetOpeningIndentedRegion(token, indent);
+            break;
+          }
+        case "}": {
+            formatter.SetClosingIndentedRegion(token, indent);
+            break;
+          }
+      }
+    }
+
+    foreach (var ctor in this.Ctors) {
+      formatter.SetFormalsIndentation(ctor.Formals);
+    }
+
+    if (EndToken.TrailingTrivia.Trim() == "") {
+      formatter.SetIndentations(this.EndToken, below: indent);
+    }
+
+    return true;
+  }
 }
 
 public class IndDatatypeDecl : DatatypeDecl {
@@ -1393,10 +1686,10 @@ public class IndDatatypeDecl : DatatypeDecl {
   public enum ES { NotYetComputed, Never, ConsultTypeArguments }
   public ES EqualitySupport = ES.NotYetComputed;
 
-  public IndDatatypeDecl(IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs,
+  public IndDatatypeDecl(RangeToken rangeToken, Name name, ModuleDefinition module, List<TypeParameter> typeArgs,
     [Captured] List<DatatypeCtor> ctors, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(tok, name, module, typeArgs, ctors, members, attributes, isRefining) {
-    Contract.Requires(tok != null);
+    : base(rangeToken, name, module, typeArgs, ctors, members, attributes, isRefining) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(module != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
@@ -1404,16 +1697,18 @@ public class IndDatatypeDecl : DatatypeDecl {
     Contract.Requires(cce.NonNullElements(members));
     Contract.Requires((isRefining && ctors.Count == 0) || (!isRefining && 1 <= ctors.Count));
   }
+
+  public override bool AcceptThis => true;
 }
 
 public class CoDatatypeDecl : DatatypeDecl {
   public override string WhatKind { get { return "codatatype"; } }
   [FilledInDuringResolution] public CoDatatypeDecl SscRepr;
 
-  public CoDatatypeDecl(IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs,
+  public CoDatatypeDecl(RangeToken rangeToken, Name name, ModuleDefinition module, List<TypeParameter> typeArgs,
     [Captured] List<DatatypeCtor> ctors, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(tok, name, module, typeArgs, ctors, members, attributes, isRefining) {
-    Contract.Requires(tok != null);
+    : base(rangeToken, name, module, typeArgs, ctors, members, attributes, isRefining) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(module != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
@@ -1425,6 +1720,8 @@ public class CoDatatypeDecl : DatatypeDecl {
   public override DatatypeCtor GetGroundingCtor() {
     return Ctors.FirstOrDefault(ctor => ctor.IsGhost, Ctors[0]);
   }
+
+  public override bool AcceptThis => true;
 }
 
 /// <summary>
@@ -1438,14 +1735,14 @@ public class ValuetypeDecl : TopLevelDecl {
   readonly Func<List<Type>, Type>/*?*/ typeCreator;
 
   public ValuetypeDecl(string name, ModuleDefinition module, int typeParameterCount, Func<Type, bool> typeTester, Func<List<Type>, Type>/*?*/ typeCreator)
-    : base(Token.NoToken, name, module, new List<TypeParameter>(), null, false) {
+    : base(RangeToken.NoToken, new Name(name), module, new List<TypeParameter>(), null, false) {
     Contract.Requires(name != null);
     Contract.Requires(module != null);
     Contract.Requires(0 <= typeParameterCount);
     Contract.Requires(typeTester != null);
     // fill in the type parameters
     for (int i = 0; i < typeParameterCount; i++) {
-      TypeArgs.Add(new TypeParameter(Token.NoToken, ((char)('T' + i)).ToString(), i, this));
+      TypeArgs.Add(new TypeParameter(RangeToken.NoToken, new Name(((char)('T' + i)).ToString()), i, this));
     }
     this.typeTester = typeTester;
     this.typeCreator = typeCreator;
@@ -1476,16 +1773,16 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType {
       Destructors.Count == Formals.Count);  // after resolution
   }
 
-  public override IEnumerable<INode> Children => base.Children.Concat(Formals);
+  public override IEnumerable<Node> Children => base.Children.Concat(Formals);
 
   // TODO: One could imagine having a precondition on datatype constructors
   [FilledInDuringResolution] public DatatypeDecl EnclosingDatatype;
   [FilledInDuringResolution] public SpecialField QueryField;
   [FilledInDuringResolution] public List<DatatypeDestructor> Destructors = new List<DatatypeDestructor>();  // includes both implicit (not mentionable in source) and explicit destructors
 
-  public DatatypeCtor(IToken tok, string name, bool isGhost, [Captured] List<Formal> formals, Attributes attributes)
-    : base(tok, name, attributes, false) {
-    Contract.Requires(tok != null);
+  public DatatypeCtor(RangeToken rangeToken, Name name, bool isGhost, [Captured] List<Formal> formals, Attributes attributes)
+    : base(rangeToken, name, attributes, false) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(formals));
     this.Formals = formals;
@@ -1505,11 +1802,10 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType {
 /// <summary>
 /// An ICodeContext is an ICallable or a NoContext.
 /// </summary>
-public interface ICodeContext {
+public interface ICodeContext : IASTVisitorContext {
   bool IsGhost { get; }
   List<TypeParameter> TypeArgs { get; }
   List<Formal> Ins { get; }
-  ModuleDefinition EnclosingModule { get; }  // to be called only after signature-resolution is complete
   bool MustReverify { get; }
   string FullSanitizedName { get; }
   bool AllowsNontermination { get; }
@@ -1547,8 +1843,7 @@ public class CodeContextWrapper : ICodeContext {
 /// <summary>
 /// An ICallable is a Function, Method, IteratorDecl, or (less fitting for the name ICallable) RedirectingTypeDecl or DatatypeDecl.
 /// </summary>
-public interface ICallable : ICodeContext {
-  IToken Tok { get; }
+public interface ICallable : ICodeContext, INode {
   string WhatKind { get; }
   string NameRelativeToModule { get; }
   Specification<Expression> Decreases { get; }
@@ -1584,6 +1879,7 @@ public class CallableWrapper : CodeContextWrapper, ICallable {
   }
 
   public bool AllowsAllocation => cwInner.AllowsAllocation;
+  public RangeToken RangeToken => cwInner.RangeToken;
 }
 
 public class DontUseICallable : ICallable {
@@ -1603,7 +1899,9 @@ public class DontUseICallable : ICallable {
     set { throw new cce.UnreachableException(); }
   }
   public bool AllowsAllocation => throw new cce.UnreachableException();
+  public RangeToken RangeToken => throw new cce.UnreachableException();
 }
+
 /// <summary>
 /// An IMethodCodeContext is a Method or IteratorDecl.
 /// </summary>
@@ -1623,7 +1921,7 @@ public class NoContext : ICodeContext {
   bool ICodeContext.IsGhost { get { return true; } }
   List<TypeParameter> ICodeContext.TypeArgs { get { return new List<TypeParameter>(); } }
   List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
-  ModuleDefinition ICodeContext.EnclosingModule { get { return Module; } }
+  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return Module; } }
   bool ICodeContext.MustReverify { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
   public string FullSanitizedName { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
   public bool AllowsNontermination { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
@@ -1655,7 +1953,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext {
   [FilledInDuringResolution] public Method Member_MoveNext;  // created during registration phase of resolution;
   public readonly LocalVariable YieldCountVariable;
 
-  public IteratorDecl(IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs,
+  public IteratorDecl(RangeToken rangeToken, Name name, ModuleDefinition module, List<TypeParameter> typeArgs,
     List<Formal> ins, List<Formal> outs,
     Specification<FrameExpression> reads, Specification<FrameExpression> mod, Specification<Expression> decreases,
     List<AttributedExpression> requires,
@@ -1663,8 +1961,8 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext {
     List<AttributedExpression> yieldRequires,
     List<AttributedExpression> yieldEnsures,
     BlockStmt body, Attributes attributes, IToken signatureEllipsis)
-    : base(tok, name, module, typeArgs, new List<MemberDecl>(), attributes, signatureEllipsis != null, null) {
-    Contract.Requires(tok != null);
+    : base(rangeToken, name, module, typeArgs, new List<MemberDecl>(), attributes, signatureEllipsis != null, null) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(module != null);
     Contract.Requires(typeArgs != null);
@@ -1693,7 +1991,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext {
     OutsHistoryFields = new List<Field>();
     DecreasesFields = new List<Field>();
 
-    YieldCountVariable = new LocalVariable(tok, tok, "_yieldCount", new EverIncreasingType(), true);
+    YieldCountVariable = new LocalVariable(rangeToken, "_yieldCount", new EverIncreasingType(), true);
     YieldCountVariable.type = YieldCountVariable.OptionalType;  // resolve YieldCountVariable here
   }
 
@@ -1762,7 +2060,6 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext {
   List<Formal> ICodeContext.Ins { get { return this.Ins; } }
   List<Formal> IMethodCodeContext.Outs { get { return this.Outs; } }
   Specification<FrameExpression> IMethodCodeContext.Modifies { get { return this.Modifies; } }
-  IToken ICallable.Tok { get { return this.tok; } }
   string ICallable.NameRelativeToModule { get { return this.Name; } }
   Specification<Expression> ICallable.Decreases { get { return this.Decreases; } }
   bool _inferredDecr;
@@ -1771,16 +2068,48 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext {
     get { return _inferredDecr; }
   }
 
-  ModuleDefinition ICodeContext.EnclosingModule { get { return this.EnclosingModuleDefinition; } }
+  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return this.EnclosingModuleDefinition; } }
   bool ICodeContext.MustReverify { get { return false; } }
   public bool AllowsNontermination {
     get {
       return Contract.Exists(Decreases.Expressions, e => e is WildcardExpr);
     }
   }
+
+  public override bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    formatter.SetMethodLikeIndent(StartToken, OwnedTokens, indentBefore);
+    foreach (var req in Requires) {
+      formatter.SetAttributedExpressionIndentation(req, indentBefore + formatter.SpaceTab);
+    }
+
+    foreach (var req in Ensures) {
+      formatter.SetAttributedExpressionIndentation(req, indentBefore + formatter.SpaceTab);
+    }
+
+    foreach (var req in YieldRequires) {
+      formatter.SetAttributedExpressionIndentation(req, indentBefore + formatter.SpaceTab);
+    }
+
+    foreach (var req in YieldEnsures) {
+      formatter.SetAttributedExpressionIndentation(req, indentBefore + formatter.SpaceTab);
+    }
+
+    formatter.SetFormalsIndentation(Ins);
+    formatter.SetFormalsIndentation(Outs);
+    if (this.BodyStartTok.line > 0) {
+      formatter.SetDelimiterIndentedRegions(this.BodyStartTok, indentBefore);
+      formatter.SetClosingIndentedRegion(Token.NoToken, indentBefore);
+    }
+
+    if (Body != null) {
+      formatter.SetStatementIndentation(Body);
+    }
+
+    return true;
+  }
 }
 
-public class OpaqueTypeDecl : TopLevelDeclWithMembers, TypeParameter.ParentType, RevealableTypeDecl {
+public class OpaqueTypeDecl : TopLevelDeclWithMembers, TypeParameter.ParentType, RevealableTypeDecl, ICanFormat {
   public override string WhatKind { get { return "opaque type"; } }
   public override bool CanBeRevealed() { return true; }
   public readonly TypeParameter.TypeParameterCharacteristics Characteristics;
@@ -1788,9 +2117,9 @@ public class OpaqueTypeDecl : TopLevelDeclWithMembers, TypeParameter.ParentType,
     get { return Characteristics.EqualitySupport != TypeParameter.EqualitySupportValue.Unspecified; }
   }
 
-  public OpaqueTypeDecl(IToken tok, string name, ModuleDefinition module, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(tok, name, module, typeArgs, members, attributes, isRefining) {
-    Contract.Requires(tok != null);
+  public OpaqueTypeDecl(RangeToken rangeToken, Name name, ModuleDefinition module, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, List<MemberDecl> members, Attributes attributes, bool isRefining)
+    : base(rangeToken, name, module, typeArgs, members, attributes, isRefining) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(module != null);
     Contract.Requires(typeArgs != null);
@@ -1800,12 +2129,75 @@ public class OpaqueTypeDecl : TopLevelDeclWithMembers, TypeParameter.ParentType,
 
   public TopLevelDecl AsTopLevelDecl => this;
   public TypeDeclSynonymInfo SynonymInfo { get; set; }
+  public override bool AcceptThis => true;
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    var indent2 = indentBefore + formatter.SpaceTab;
+    var typeArgumentIndent = indent2;
+    var commaIndent = indent2;
+    var rightIndent = indent2;
+    foreach (var token in OwnedTokens) {
+      switch (token.val) {
+        case "type": {
+            formatter.SetOpeningIndentedRegion(token, indentBefore);
+            break;
+          }
+        case "=": {
+            if (TokenNewIndentCollector.IsFollowedByNewline(token)) {
+              formatter.SetDelimiterInsideIndentedRegions(token, indent2);
+            } else {
+              formatter.SetAlign(indent2, token, out typeArgumentIndent, out _);
+            }
+
+            break;
+          }
+        case "<": {
+            if (TokenNewIndentCollector.IsFollowedByNewline(token)) {
+              formatter.SetOpeningIndentedRegion(token, typeArgumentIndent);
+              commaIndent = typeArgumentIndent;
+              rightIndent = commaIndent + formatter.SpaceTab;
+            } else {
+              formatter.SetAlign(typeArgumentIndent + formatter.SpaceTab, token, out rightIndent, out commaIndent);
+            }
+
+            break;
+          }
+        case ">": {
+            formatter.SetIndentations(token.Prev, below: rightIndent);
+            formatter.SetClosingIndentedRegionAligned(token, rightIndent, typeArgumentIndent);
+            break;
+          }
+        case ",": {
+            formatter.SetIndentations(token, rightIndent, commaIndent, rightIndent);
+            break;
+          }
+        case ";": {
+            break;
+          }
+        case "{": {
+            formatter.SetOpeningIndentedRegion(token, indentBefore);
+            break;
+          }
+        case "}": {
+            formatter.SetClosingIndentedRegion(token, indentBefore);
+            break;
+          }
+      }
+    }
+
+    if (EndToken.TrailingTrivia.Trim() == "") {
+      formatter.SetIndentations(EndToken, below: indentBefore);
+    }
+
+    return true;
+  }
 }
 
 public interface RedirectingTypeDecl : ICallable {
   string Name { get; }
 
   IToken tok { get; }
+  IEnumerable<IToken> OwnedTokens { get; }
+  IToken StartToken { get; }
   Attributes Attributes { get; }
   ModuleDefinition Module { get; }
   BoundVar/*?*/ Var { get; }
@@ -1837,14 +2229,14 @@ public class TypeDeclSynonymInfo {
   public readonly InternalTypeSynonymDecl SelfSynonymDecl;
 
   public TypeDeclSynonymInfo(TopLevelDecl d) {
-    var thisType = UserDefinedType.FromTopLevelDecl(d.tok, d);
-    SelfSynonymDecl = new InternalTypeSynonymDecl(d.tok, d.Name, TypeParameter.GetExplicitCharacteristics(d),
+    var thisType = UserDefinedType.FromTopLevelDecl(d.Tok, d);
+    SelfSynonymDecl = new InternalTypeSynonymDecl(d.RangeToken, d.NameNode, TypeParameter.GetExplicitCharacteristics(d),
       d.TypeArgs, d.EnclosingModuleDefinition, thisType, d.Attributes);
     SelfSynonymDecl.InheritVisibility(d, false);
   }
 
   public UserDefinedType SelfSynonym(List<Type> args, Expression /*?*/ namePath = null) {
-    return new UserDefinedType(SelfSynonymDecl.tok, SelfSynonymDecl.Name, SelfSynonymDecl, args, namePath);
+    return new UserDefinedType(SelfSynonymDecl.Tok, SelfSynonymDecl.Name, SelfSynonymDecl, args, namePath);
   }
 }
 
@@ -1878,18 +2270,18 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
   public SubsetTypeDecl.WKind WitnessKind { get; set; } = SubsetTypeDecl.WKind.CompiledZero;
   public Expression/*?*/ Witness { get; set; } // non-null iff WitnessKind is Compiled or Ghost
   [FilledInDuringResolution] public NativeType NativeType; // non-null for fixed-size representations (otherwise, use BigIntegers for integers)
-  public NewtypeDecl(IToken tok, string name, ModuleDefinition module, Type baseType, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(tok, name, module, new List<TypeParameter>(), members, attributes, isRefining) {
-    Contract.Requires(tok != null);
+  public NewtypeDecl(RangeToken rangeToken, Name name, ModuleDefinition module, Type baseType, List<MemberDecl> members, Attributes attributes, bool isRefining)
+    : base(rangeToken, name, module, new List<TypeParameter>(), members, attributes, isRefining) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(module != null);
     Contract.Requires(isRefining ^ (baseType != null));
     Contract.Requires(members != null);
     BaseType = baseType;
   }
-  public NewtypeDecl(IToken tok, string name, ModuleDefinition module, BoundVar bv, Expression constraint, SubsetTypeDecl.WKind witnessKind, Expression witness, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(tok, name, module, new List<TypeParameter>(), members, attributes, isRefining) {
-    Contract.Requires(tok != null);
+  public NewtypeDecl(RangeToken rangeToken, Name name, ModuleDefinition module, BoundVar bv, Expression constraint, SubsetTypeDecl.WKind witnessKind, Expression witness, List<MemberDecl> members, Attributes attributes, bool isRefining)
+    : base(rangeToken, name, module, new List<TypeParameter>(), members, attributes, isRefining) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(module != null);
     Contract.Requires(bv != null && bv.Type != null);
@@ -1918,6 +2310,8 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
 
   string RedirectingTypeDecl.Name { get { return Name; } }
   IToken RedirectingTypeDecl.tok { get { return tok; } }
+  IEnumerable<IToken> RedirectingTypeDecl.OwnedTokens => OwnedTokens;
+  IToken RedirectingTypeDecl.StartToken => StartToken;
   Attributes RedirectingTypeDecl.Attributes { get { return Attributes; } }
   ModuleDefinition RedirectingTypeDecl.Module { get { return EnclosingModuleDefinition; } }
   BoundVar RedirectingTypeDecl.Var { get { return Var; } }
@@ -1931,10 +2325,9 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
   }
   List<TypeParameter> ICodeContext.TypeArgs { get { return new List<TypeParameter>(); } }
   List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
-  ModuleDefinition ICodeContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
+  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
   bool ICodeContext.MustReverify { get { return false; } }
   bool ICodeContext.AllowsNontermination { get { return false; } }
-  IToken ICallable.Tok { get { return tok; } }
   string ICallable.NameRelativeToModule { get { return Name; } }
   Specification<Expression> ICallable.Decreases {
     get {
@@ -1947,6 +2340,13 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
     get { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
     set { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
   }
+
+  public override bool AcceptThis => true;
+
+  public override bool IsEssentiallyEmpty() {
+    // A "newtype" is not considered "essentially empty", because it always has a parent type to be resolved.
+    return false;
+  }
 }
 
 public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl {
@@ -1956,9 +2356,10 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl {
     get { return Characteristics.EqualitySupport != TypeParameter.EqualitySupportValue.Unspecified; }
   }
   public readonly Type Rhs;
-  public TypeSynonymDeclBase(IToken tok, string name, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module, Type rhs, Attributes attributes)
-    : base(tok, name, module, typeArgs, attributes, false) {
-    Contract.Requires(tok != null);
+
+  protected TypeSynonymDeclBase(RangeToken rangeToken, Name name, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module, Type rhs, Attributes attributes)
+    : base(rangeToken, name, module, typeArgs, attributes, false) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(typeArgs != null);
     Contract.Requires(module != null);
@@ -1994,15 +2395,18 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl {
       // this optimization seems worthwhile
       return Rhs;
     } else {
-      var subst = Resolver.TypeSubstitutionMap(TypeArgs, typeArgs);
-      return Resolver.SubstType(Rhs, subst);
+      var subst = TypeParameter.SubstitutionMap(TypeArgs, typeArgs);
+      return Rhs.Subst(subst);
     }
   }
 
-  public override IEnumerable<INode> Children => base.Children.Concat(Rhs.Nodes);
+  public override IEnumerable<Node> Children => base.Children.Concat(
+    Rhs != null ? new List<Node>() { Rhs } : Enumerable.Empty<Node>());
 
   string RedirectingTypeDecl.Name { get { return Name; } }
   IToken RedirectingTypeDecl.tok { get { return tok; } }
+  IEnumerable<IToken> RedirectingTypeDecl.OwnedTokens => OwnedTokens;
+  IToken RedirectingTypeDecl.StartToken => StartToken;
   Attributes RedirectingTypeDecl.Attributes { get { return Attributes; } }
   ModuleDefinition RedirectingTypeDecl.Module { get { return EnclosingModuleDefinition; } }
   BoundVar RedirectingTypeDecl.Var { get { return null; } }
@@ -2016,10 +2420,9 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl {
   }
   List<TypeParameter> ICodeContext.TypeArgs { get { return TypeArgs; } }
   List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
-  ModuleDefinition ICodeContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
+  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
   bool ICodeContext.MustReverify { get { return false; } }
   bool ICodeContext.AllowsNontermination { get { return false; } }
-  IToken ICallable.Tok { get { return tok; } }
   string ICallable.NameRelativeToModule { get { return Name; } }
   Specification<Expression> ICallable.Decreases {
     get {
@@ -2035,20 +2438,25 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl {
   public override bool CanBeRevealed() {
     return true;
   }
+
+  public override bool IsEssentiallyEmpty() {
+    // A synonym/subset type is not considered "essentially empty", because it always has a parent type to be resolved.
+    return false;
+  }
 }
 
 public class TypeSynonymDecl : TypeSynonymDeclBase, RevealableTypeDecl {
-  public TypeSynonymDecl(IToken tok, string name, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module, Type rhs, Attributes attributes)
-    : base(tok, name, characteristics, typeArgs, module, rhs, attributes) {
+  public TypeSynonymDecl(RangeToken rangeToken, Name name, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module, Type rhs, Attributes attributes)
+    : base(rangeToken, name, characteristics, typeArgs, module, rhs, attributes) {
     this.NewSelfSynonym();
   }
   public TopLevelDecl AsTopLevelDecl => this;
   public TypeDeclSynonymInfo SynonymInfo { get; set; }
 }
 
-public class InternalTypeSynonymDecl : TypeSynonymDeclBase, RedirectingTypeDecl {
-  public InternalTypeSynonymDecl(IToken tok, string name, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module, Type rhs, Attributes attributes)
-    : base(tok, name, characteristics, typeArgs, module, rhs, attributes) {
+public class InternalTypeSynonymDecl : TypeSynonymDeclBase {
+  public InternalTypeSynonymDecl(RangeToken rangeToken, Name name, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module, Type rhs, Attributes attributes)
+    : base(rangeToken, name, characteristics, typeArgs, module, rhs, attributes) {
   }
 }
 
@@ -2062,11 +2470,11 @@ public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl {
   public readonly Expression/*?*/ Witness;  // non-null iff WitnessKind is Compiled or Ghost
   [FilledInDuringResolution] public bool ConstraintIsCompilable;
   [FilledInDuringResolution] public bool CheckedIfConstraintIsCompilable = false; // Set to true lazily by the Resolver when the Resolver fills in "ConstraintIsCompilable".
-  public SubsetTypeDecl(IToken tok, string name, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module,
+  public SubsetTypeDecl(RangeToken rangeToken, Name name, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module,
     BoundVar id, Expression constraint, WKind witnessKind, Expression witness,
     Attributes attributes)
-    : base(tok, name, characteristics, typeArgs, module, id.Type, attributes) {
-    Contract.Requires(tok != null);
+    : base(rangeToken, name, characteristics, typeArgs, module, id.Type, attributes) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(typeArgs != null);
     Contract.Requires(module != null);
@@ -2079,7 +2487,8 @@ public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl {
     WitnessKind = witnessKind;
   }
 
-  public override IEnumerable<INode> Children => base.Children.Concat(new[] { Constraint });
+  public override IEnumerable<Node> Children =>
+    base.Children.Concat(new[] { Constraint });
 
   BoundVar RedirectingTypeDecl.Var { get { return Var; } }
   Expression RedirectingTypeDecl.Constraint { get { return Constraint; } }
@@ -2099,20 +2508,20 @@ public class NonNullTypeDecl : SubsetTypeDecl {
   /// in order to build values that depend on previously computed parameters.
   /// </summary>
   public NonNullTypeDecl(ClassDecl cl)
-    : this(cl, cl.TypeArgs.ConvertAll(tp => new TypeParameter(tp.tok, tp.Name, tp.VarianceSyntax, tp.Characteristics))) {
+    : this(cl, cl.TypeArgs.ConvertAll(tp => new TypeParameter(tp.RangeToken, tp.NameNode, tp.VarianceSyntax, tp.Characteristics))) {
     Contract.Requires(cl != null);
   }
 
   private NonNullTypeDecl(ClassDecl cl, List<TypeParameter> tps)
     : this(cl, tps,
-      new BoundVar(cl.tok, "c", new UserDefinedType(cl.tok, cl.Name + "?", tps.Count == 0 ? null : tps.ConvertAll(tp => (Type)new UserDefinedType(tp))))) {
+      new BoundVar(cl.Tok, "c", new UserDefinedType(cl.Tok, cl.Name + "?", tps.Count == 0 ? null : tps.ConvertAll(tp => (Type)new UserDefinedType(tp))))) {
     Contract.Requires(cl != null);
     Contract.Requires(tps != null);
   }
 
   private NonNullTypeDecl(ClassDecl cl, List<TypeParameter> tps, BoundVar id)
-    : base(cl.tok, cl.Name, new TypeParameter.TypeParameterCharacteristics(), tps, cl.EnclosingModuleDefinition, id,
-      new BinaryExpr(cl.tok, BinaryExpr.Opcode.Neq, new IdentifierExpr(cl.tok, id), new LiteralExpr(cl.tok)),
+    : base(cl.RangeToken, cl.NameNode, new TypeParameter.TypeParameterCharacteristics(), tps, cl.EnclosingModuleDefinition, id,
+      new BinaryExpr(cl.Tok, BinaryExpr.Opcode.Neq, new IdentifierExpr(cl.Tok, id), new LiteralExpr(cl.Tok)),
       SubsetTypeDecl.WKind.Special, null, BuiltIns.AxiomAttribute()) {
     Contract.Requires(cl != null);
     Contract.Requires(tps != null);

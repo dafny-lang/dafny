@@ -305,17 +305,17 @@ namespace Microsoft.Dafny {
           } else if (e is CharLiteralExpr) {
             // we expect e.Value to be a string representing exactly one char
             Boogie.Expr rawElement = null;  // assignment to please compiler's definite assignment rule
-            foreach (char ch in Util.UnescapedCharacters((string)e.Value, false)) {
+            foreach (var ch in Util.UnescapedCharacters((string)e.Value, false)) {
               Contract.Assert(rawElement == null);  // we should get here only once
-              rawElement = translator.FunctionCall(GetToken(expr), BuiltinFunction.CharFromInt, null, Boogie.Expr.Literal((int)ch));
+              rawElement = translator.FunctionCall(GetToken(expr), BuiltinFunction.CharFromInt, null, Boogie.Expr.Literal(ch));
             }
             Contract.Assert(rawElement != null);  // there should have been an iteration of the loop above
             return MaybeLit(rawElement, predef.CharType);
           } else if (e is StringLiteralExpr) {
             var str = (StringLiteralExpr)e;
             Boogie.Expr seq = translator.FunctionCall(GetToken(expr), BuiltinFunction.SeqEmpty, predef.BoxType);
-            foreach (char ch in Util.UnescapedCharacters((string)e.Value, str.IsVerbatim)) {
-              var rawElement = translator.FunctionCall(GetToken(expr), BuiltinFunction.CharFromInt, null, Boogie.Expr.Literal((int)ch));
+            foreach (var ch in Util.UnescapedCharacters((string)e.Value, str.IsVerbatim)) {
+              var rawElement = translator.FunctionCall(GetToken(expr), BuiltinFunction.CharFromInt, null, Boogie.Expr.Literal(ch));
               Boogie.Expr elt = BoxIfNecessary(GetToken(expr), rawElement, Type.Char);
               seq = translator.FunctionCall(GetToken(expr), BuiltinFunction.SeqBuild, predef.BoxType, seq, elt);
             }
@@ -1420,6 +1420,8 @@ namespace Microsoft.Dafny {
           var e = (ConcreteSyntaxExpression)expr;
           return TrExpr(e.ResolvedExpression);
 
+        } else if (expr is NestedMatchExpr nestedMatchExpr) {
+          return TrExpr(nestedMatchExpr.Flattened);
         } else if (expr is BoxingCastExpr) {
           BoxingCastExpr e = (BoxingCastExpr)expr;
           return translator.CondApplyBox(GetToken(e), TrExpr(e.E), e.FromType, e.ToType);

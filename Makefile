@@ -12,6 +12,9 @@ boogie: ${DIR}/boogie/Binaries/Boogie.exe
 tests:
 	(cd ${DIR}; dotnet test Source/IntegrationTests)
 
+tests-verbose:
+	(cd ${DIR}; dotnet test --logger "console;verbosity=normal" Source/IntegrationTests )
+
 ${DIR}/boogie/Binaries/Boogie.exe:
 	(cd ${DIR}/boogie ; dotnet build -c Release Source/Boogie.sln )
 
@@ -25,11 +28,13 @@ z3-mac:
 	wget https://github.com/Z3Prover/z3/releases/download/Z3-4.8.5/z3-4.8.5-x64-osx-10.14.2.zip
 	unzip z3-4.8.5-x64-osx-10.14.2.zip
 	mv z3-4.8.5-x64-osx-10.14.2 ${DIR}/Binaries/z3
+	rm z3-4.8.5-x64-osx-10.14.2.zip
 
 z3-ubuntu:
 	wget https://github.com/Z3Prover/z3/releases/download/Z3-4.8.5/z3-4.8.5-x64-ubuntu-16.04.zip
 	unzip z3-4.8.5-x64-ubuntu-16.04.zip
 	mv z3-4.8.5-x64-ubuntu-16.04 ${DIR}/Binaries/z3
+	rm z3-4.8.5-x64-ubuntu-16.04.zip
 
 format:
 	dotnet tool run dotnet-format -w -s error Source/Dafny.sln --exclude DafnyCore/Scanner.cs --exclude DafnyCore/Parser.cs

@@ -46,7 +46,11 @@ namespace Microsoft.Dafny.Triggers {
       if (unary != null && unary.Op == UnaryOpExpr.Opcode.Not) {
         foreach (var e in SplitExpr(unary.E, FlipOpcode(separator))) { yield return Not(e); }
       } else if (binary != null && binary.Op == separator) {
-        foreach (var e in SplitExpr(binary.E0, separator)) { yield return e; }
+        if (Expression.IsBoolLiteral(binary.E0, out var b) && (binary.Op == BinaryExpr.Opcode.And ? b : !b)) {
+          // skip this unit element
+        } else {
+          foreach (var e in SplitExpr(binary.E0, separator)) { yield return e; }
+        }
         foreach (var e in SplitExpr(binary.E1, separator)) { yield return e; }
       } else if (binary != null && binary.Op == BinaryExpr.Opcode.Imp && separator == BinaryExpr.Opcode.Or) {
         foreach (var e in SplitExpr(Not(binary.E0), separator)) { yield return e; }
@@ -56,10 +60,11 @@ namespace Microsoft.Dafny.Triggers {
       }
     }
 
-    internal static IEnumerable<Expression> SplitAndStich(BinaryExpr pair, BinaryExpr.Opcode separator) {
+    internal static IEnumerable<Expression> SplitAndStitch(BinaryExpr pair, BinaryExpr.Opcode separator) {
       foreach (var e1 in SplitExpr(pair.E1, separator)) {
         // Notice the token. This makes triggers/splitting-picks-the-right-tokens.dfy possible
-        yield return new BinaryExpr(e1.tok, pair.Op, pair.E0, e1) { ResolvedOp = pair.ResolvedOp, Type = pair.Type };
+        var nestedToken = new NestedToken(pair.tok, e1.tok);
+        yield return new BinaryExpr(nestedToken, pair.Op, pair.E0, e1) { ResolvedOp = pair.ResolvedOp, Type = pair.Type };
       }
     }
 
@@ -70,24 +75,24 @@ namespace Microsoft.Dafny.Triggers {
       if (quantifier is ForallExpr) {
         IEnumerable<Expression> stream;
         if (binary != null && (binary.Op == BinaryExpr.Opcode.Imp || binary.Op == BinaryExpr.Opcode.Or)) {
-          stream = SplitAndStich(binary, BinaryExpr.Opcode.And);
+          stream = SplitAndStitch(binary, BinaryExpr.Opcode.And);
         } else {
           stream = SplitExpr(body, BinaryExpr.Opcode.And);
         }
         foreach (var e in stream) {
-          var tok = new NestedToken(quantifier.tok, e.tok, "in sub-expression at");
-          yield return new ForallExpr(tok, quantifier.BodyEndTok, quantifier.BoundVars, quantifier.Range, e, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
+          var tok = new NestedToken(quantifier.tok, e.tok, "in subexpression at");
+          yield return new ForallExpr(tok, quantifier.RangeToken, quantifier.BoundVars, quantifier.Range, e, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
         }
       } else if (quantifier is ExistsExpr) {
         IEnumerable<Expression> stream;
         if (binary != null && binary.Op == BinaryExpr.Opcode.And) {
-          stream = SplitAndStich(binary, BinaryExpr.Opcode.Or);
+          stream = SplitAndStitch(binary, BinaryExpr.Opcode.Or);
         } else {
           stream = SplitExpr(body, BinaryExpr.Opcode.Or);
         }
         foreach (var e in stream) {
-          var tok = body?.tok == e.tok ? quantifier.tok : new NestedToken(quantifier.tok, e.tok, "in sub-expression at");
-          yield return new ExistsExpr(tok, quantifier.BodyEndTok, quantifier.BoundVars, quantifier.Range, e, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
+          var tok = body?.tok == e.tok ? quantifier.tok : new NestedToken(quantifier.tok, e.tok, "in subexpression at");
+          yield return new ExistsExpr(tok, quantifier.RangeToken, quantifier.BoundVars, quantifier.Range, e, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
         }
       } else {
         yield return quantifier;
@@ -108,6 +113,10 @@ namespace Microsoft.Dafny.Triggers {
           splits[quantifier] = SplitQuantifier(quantifier).ToList();
         }
       }
+
+      if (expr is ITEExpr iteExpr && iteExpr.IsBindingGuard) {
+        splits.Remove((ExistsExpr)iteExpr.Test);
+      }
     }
 
     protected override void VisitOneStmt(Statement stmt) {
@@ -118,6 +127,10 @@ namespace Microsoft.Dafny.Triggers {
             VisitOneExpr(expr);
           }
         }
+      }
+
+      if (stmt is IfStmt ifStatement && ifStatement.IsBindingGuard) {
+        splits.Remove((ExistsExpr)ifStatement.Guard);
       }
     }
 
@@ -167,9 +180,9 @@ namespace Microsoft.Dafny.Triggers {
       } else {
         // make a copy of the expr
         if (expr is ForallExpr) {
-          expr = new ForallExpr(expr.tok, expr.BodyEndTok, expr.BoundVars, expr.Range, expr.Term, TriggerUtils.CopyAttributes(expr.Attributes)) { Type = expr.Type, Bounds = expr.Bounds };
+          expr = new ForallExpr(expr.tok, expr.RangeToken, expr.BoundVars, expr.Range, expr.Term, TriggerUtils.CopyAttributes(expr.Attributes)) { Type = expr.Type, Bounds = expr.Bounds };
         } else {
-          expr = new ExistsExpr(expr.tok, expr.BodyEndTok, expr.BoundVars, expr.Range, expr.Term, TriggerUtils.CopyAttributes(expr.Attributes)) { Type = expr.Type, Bounds = expr.Bounds };
+          expr = new ExistsExpr(expr.tok, expr.RangeToken, expr.BoundVars, expr.Range, expr.Term, TriggerUtils.CopyAttributes(expr.Attributes)) { Type = expr.Type, Bounds = expr.Bounds };
         }
       }
       return expr;

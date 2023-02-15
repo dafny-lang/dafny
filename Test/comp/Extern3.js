@@ -57,5 +57,17 @@ let Library = (function() {
     }
   };
 
+  $module.SingletonOptimization = class SingletonOptimization {
+    static SingletonTuple(a) {
+      return a + 1;
+    }
+    static NoWrapper(a) {
+      return a + 1;
+    }
+    static GhostWrapper(a) {
+      return a + 1;
+    }
+  };
+
   return $module;
 })();

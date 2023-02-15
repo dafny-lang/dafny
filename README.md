@@ -1,6 +1,6 @@
 [![Build and Test](https://github.com/dafny-lang/dafny/workflows/Build%20and%20Test/badge.svg)](https://github.com/dafny-lang/dafny/actions?query=workflow%3A%22Build+and+Test%22) [![Gitter](https://badges.gitter.im/dafny-lang/community.svg)](https://gitter.im/dafny-lang/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
-Dafny is a **verification-ready programming language**. As you type in your program, Dafny's verifier constantly looks over your shoulder, flags any errors, shows you counterexamples, and congratulates you when your code matches your specifications. When you're done, Dafny can **compile your code to C#, Java, JavaScript or Go** (more to come!), so it can integrate with your existing workflow.
+Dafny is a **verification-ready programming language**. As you type in your program, Dafny's verifier constantly looks over your shoulder, flags any errors, shows you counterexamples, and congratulates you when your code matches your specifications. When you're done, Dafny can **compile your code to C#, Go, Python, Java, or JavaScript** (more to come!), so it can integrate with your existing workflow.
 
 ![vs-code-dafny-2 0 0-demo](https://user-images.githubusercontent.com/3601079/140799975-f3ac0925-10d9-4c14-b1a9-cd449854c6ae.gif)
 
@@ -70,7 +70,7 @@ The language itself draws pieces of influence from:
 
 # Contributors
 
-Information and instructions for potential contributors are provided [here](CONTRIBUTING).
+Information and instructions for potential contributors are provided [here](CONTRIBUTING.md).
 
 # License
 

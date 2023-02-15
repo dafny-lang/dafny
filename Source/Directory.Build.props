@@ -1,10 +1,8 @@
 <Project>
 
   <PropertyGroup>
-    <!-- Target framework -->
-    <TargetFramework>net6.0</TargetFramework>
-    <VersionPrefix>3.9.1.41027<!--Version 3.9.1, year 2018+4, month 10, day 27.--></VersionPrefix>
+    <VersionPrefix>3.11.0.50201<!--Version 3.11.0, year 2018+5, month 2, day 1.--></VersionPrefix>
     <NoWarn>1701;1702;VSTHRD200</NoWarn>
   </PropertyGroup>
-
+ 
 </Project>

@@ -1,10 +1,10 @@
-// RUN: %dafny_0 /compile:0 "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /functionSyntax:4 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype Result<T> = Failure(msg: string) | Success(value: T) {
-  predicate method IsFailure() { Failure? }
-  function method PropagateFailure(): Result<T> requires IsFailure() { this }
-  method Extract() returns (t: T) requires !IsFailure() ensures t == this.value { return this.value; }
+  predicate IsFailure() { Failure? }
+  function PropagateFailure(): Result<T> requires IsFailure() { this }
+  function Extract(): T requires !IsFailure() { this.value }
 }
 
 class Cell {

@@ -30,7 +30,7 @@ public class RunAllTestsMainMethod : IRewriter {
     // and would be low-value anyway.
     var noVerifyAttribute = new Attributes("verify", new List<Expression> { new LiteralExpr(Token.NoToken, false) }, null);
 
-    mainMethod = new Method(Token.NoToken, "Main", false, false,
+    mainMethod = new Method(RangeToken.NoToken, new Name("Main"), false, false,
       new List<TypeParameter>(), new List<Formal>(), new List<Formal>(),
       new List<AttributedExpression>(),
       new Specification<FrameExpression>(new List<FrameExpression>(), null),
@@ -83,10 +83,7 @@ public class RunAllTestsMainMethod : IRewriter {
   /// }
   /// </summary>
   internal override void PostResolve(Program program) {
-
-
-
-    var tok = Token.NoToken;
+    var tok = program.GetFirstTopLevelToken();
     List<Statement> mainMethodStatements = new();
     var idGenerator = new FreshIdGenerator();
 
@@ -147,11 +144,11 @@ public class RunAllTestsMainMethod : IRewriter {
               }
           }
 
-          var callStmt = new CallStmt(tok, tok, lhss, methodSelectExpr, new List<Expression>());
+          var callStmt = new CallStmt(tok.ToRange(), lhss, methodSelectExpr, new List<Expression>());
           tryBodyStatements.Add(callStmt);
 
           Statement passedStmt = Statement.CreatePrintStmt(tok, Expression.CreateStringLiteral(tok, "PASSED\n"));
-          var passedBlock = new BlockStmt(tok, tok, Util.Singleton(passedStmt));
+          var passedBlock = new BlockStmt(tok.ToRange(), Util.Singleton(passedStmt));
 
           if (resultVarExpr != null) {
             var failureGuardExpr =
@@ -164,12 +161,12 @@ public class RunAllTestsMainMethod : IRewriter {
             failureGuardExpr.TypeApplication_AtEnclosingClass = new List<Type>();
 
             var failedBlock = PrintTestFailureStatement(tok, successVarExpr, resultVarExpr);
-            tryBodyStatements.Add(new IfStmt(tok, tok, false, failureGuardExpr, failedBlock, passedBlock));
+            tryBodyStatements.Add(new IfStmt(tok.ToRange(), false, failureGuardExpr, failedBlock, passedBlock));
           } else {
             tryBodyStatements.Add(passedBlock);
           }
 
-          var tryBody = new BlockStmt(tok, tok, tryBodyStatements);
+          var tryBody = new BlockStmt(tok.ToRange(), tryBodyStatements);
 
           // Wrap the code above with:
           //
@@ -180,7 +177,7 @@ public class RunAllTestsMainMethod : IRewriter {
           //   success := false;
           // }
           //
-          var haltMessageVar = new LocalVariable(tok, tok, "haltMessage", Type.String(), false) {
+          var haltMessageVar = new LocalVariable(tok.ToRange(), "haltMessage", Type.String(), false) {
             type = Type.String()
           };
           var haltMessageVarExpr = new IdentifierExpr(tok, haltMessageVar);
@@ -193,24 +190,21 @@ public class RunAllTestsMainMethod : IRewriter {
       }
     }
 
-    // For now just print a footer to call attention to any failed tests.
-    // Ideally we would also set the process return code, but since Dafny main methods
-    // don't support that yet, that is deferred for now.
+    // Use an expect statement to halt if there are any failed tests.
+    // Ideally we would just set the process return code instead of crashing the program,
+    // but since Dafny main methods don't support that yet, that is deferred for now.
     //
-    // if !success {
-    //   print "Test failures occurred: see above.\n";
-    // }
-    Statement printFailure = Statement.CreatePrintStmt(tok,
-      Expression.CreateStringLiteral(tok, "Test failures occurred: see above.\n"));
-    var failuresBlock = new BlockStmt(tok, tok, Util.Singleton(printFailure));
-    var ifNotSuccess = new IfStmt(tok, tok, false, Expression.CreateNot(tok, successVarExpr), failuresBlock, null);
-    mainMethodStatements.Add(ifNotSuccess);
+    // expect success, "Test failures occurred: see above.\n";
+    // 
+    Statement expectSuccess = new ExpectStmt(tok.ToRange(), successVarExpr,
+      Expression.CreateStringLiteral(tok, "Test failures occurred: see above.\n"), null);
+    mainMethodStatements.Add(expectSuccess);
 
     // Find the resolved main method to attach the body to (which will be a different instance
     // than the Method we added in PreResolve).
     var hasMain = Compilers.SinglePassCompiler.HasMain(program, out var mainMethod);
     Contract.Assert(hasMain);
-    mainMethod.Body = new BlockStmt(tok, tok, mainMethodStatements);
+    mainMethod.Body = new BlockStmt(tok.ToRange(), mainMethodStatements);
   }
 
   private BlockStmt PrintTestFailureStatement(IToken tok, Expression successVarExpr, Expression failureValueExpr) {
@@ -219,7 +213,7 @@ public class RunAllTestsMainMethod : IRewriter {
       failureValueExpr,
       Expression.CreateStringLiteral(tok, "\n"));
     var failSuiteStmt =
-      new AssignStmt(tok, tok, successVarExpr, new ExprRhs(Expression.CreateBoolLiteral(tok, false)));
-    return new BlockStmt(tok, tok, Util.List<Statement>(failedPrintStmt, failSuiteStmt));
+      new AssignStmt(tok.ToRange(), successVarExpr, new ExprRhs(Expression.CreateBoolLiteral(tok, false)));
+    return new BlockStmt(tok.ToRange(), Util.List<Statement>(failedPrintStmt, failSuiteStmt));
   }
 }

@@ -1,48 +1,44 @@
 name: Build and Test
 
 on:
+  workflow_dispatch:
   pull_request:
     branches: [ master ]
+  push:
 
 env:
   dotnet-version: 6.0.x # SDK Version for building Dafny
 
 jobs:
   singletons:
-    runs-on: ubuntu-18.04
+    needs: check-deep-tests
+    if: always() && ((needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests')) || ( github.event_name == 'push' && ( github.ref_name == 'master' || vars.TEST_ON_FORK == 'true' )))
+    runs-on: ubuntu-20.04
     steps:
     - name: Setup dotnet
-      uses: actions/setup-dotnet@v1.9.0
+      uses: actions/setup-dotnet@v3
       with:
         dotnet-version: ${{env.dotnet-version}}
     - name: Checkout Dafny
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         path: dafny
     - name: Restore tools
       working-directory: dafny
       run: dotnet tool restore
-    - name: Get XML
-      id: boogieVersion
-      uses: QwerMike/xpath-action@v1
-      with:
-        filename: 'dafny/Source/DafnyCore/DafnyCore.csproj'
-        expression: "//PackageReference[@Include='Boogie.ExecutionEngine']/@Version"
-
-    - uses: actions-ecosystem/action-regex-match@v2
-      id: regex-match
-      with:
-        text: ${{ steps.boogieVersion.outputs.result }}
-        regex: ' Version="([\d\.]+)"'
+    - name: Get Boogie Version
+      run: |
+        sudo apt-get install -qq libxml2-utils
+        echo "boogieVersion=`xmllint --xpath "//PackageReference[@Include='Boogie.ExecutionEngine']/@Version" dafny/Source/DafnyCore/DafnyCore.csproj | grep -Po 'Version="\K.*?(?=")'`" >> $GITHUB_ENV
     - name: Attempt custom Boogie patch
       working-directory: dafny
       run: git apply customBoogie.patch
     - name: Checkout Boogie
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         repository: boogie-org/boogie
         path: dafny/boogie
-        ref: v${{ steps.regex-match.outputs.group1 }}
+        ref: v${{ env.boogieVersion }}
     - name: Build Dafny with local Boogie
       working-directory: dafny
       run: dotnet build Source/Dafny.sln
@@ -59,7 +55,7 @@ jobs:
 
   integration-tests:
     needs: check-deep-tests
-    if: always() && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests'))
+    if: always() && ((needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests')) || ( github.event_name == 'push' && ( github.ref_name == 'master' || vars.TEST_ON_FORK == 'true' )))
     uses: ./.github/workflows/integration-tests-reusable.yml
     with:
       # By default run only on one platform, but run on all platforms if the PR has the "run-deep-tests"

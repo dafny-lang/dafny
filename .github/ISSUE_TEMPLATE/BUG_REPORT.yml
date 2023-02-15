@@ -1,14 +1,13 @@
 name: Bug Report
 description: File a bug report
-title: "[Bug]: "
-labels: []
+labels: "kind: bug"
 body:
   - type: markdown
     attributes:
       value: |
         Thanks for taking the time to fill out this bug report!
         Are you having trouble with a proof?  Consider posting your question on [Stack Overflow](https://stackoverflow.com/questions/ask?tags=dafny).	  
-        Please do not report security issues on this public tracker.  Instead, see https://github.com/dafny-lang/dafny/blob/master/.github/SECURITY.md
+        Please do not report security issues on this public tracker. Instead, follow our [policy](https://github.com/dafny-lang/dafny/security/policy).
   - type: input
     id: dafnyversion
     attributes:
@@ -26,7 +25,7 @@ body:
   - type: textarea
     id: environment
     attributes:
-      label: Command to run and results
+      label: Command to run and resulting output
       description: "Please paste here what you ran (command, vscode) and what were your results that you think ought to be different:"
       render: code
   - type: textarea
@@ -34,13 +33,13 @@ body:
     attributes:
       label: What happened?
       description: Describe the issue here. What did you expect instead?
-      placeholder: Tell us what you see!
+      placeholder: Tell us what you see and wish to see!
     validations:
       required: true
   - type: dropdown
     id: operating-systems
     attributes:
-      label: What type of Operating System are you seeing the problem on?
+      label: What type of operating system are you experiencing the problem on?
       multiple: true
       options:
         - Linux

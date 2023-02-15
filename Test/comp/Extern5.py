@@ -32,7 +32,7 @@ class OtherClass:
 class AllDafny:
     @staticmethod
     def M():
-        _dafny.print(_dafny.Seq("AllDafny.M\n"))
+        _dafny.print(_dafny.string_of(_dafny.Seq("AllDafny.M\n")))
 
 class Mixed:
     def ctor__(self):
@@ -40,19 +40,19 @@ class Mixed:
 
     @staticmethod
     def M():
-        _dafny.print(_dafny.Seq("Extern static method says: "))
+        _dafny.print(_dafny.string_of(_dafny.Seq("Extern static method says: ")))
         Library.Mixed.P()
 
     @staticmethod
     def P():
-        _dafny.print(_dafny.Seq("Mixed.P\n"))
+        _dafny.print(_dafny.string_of(_dafny.Seq("Mixed.P\n")))
 
     def IM(self):
-        _dafny.print(_dafny.Seq("Extern instance method says: "))
+        _dafny.print(_dafny.string_of(_dafny.Seq("Extern instance method says: ")))
         (self).IP()
 
     def IP(self):
-        _dafny.print(_dafny.Seq("Mixed.IP\n"))
+        _dafny.print(_dafny.string_of(_dafny.Seq("Mixed.IP\n")))
 
     @staticmethod
     def F():
@@ -80,3 +80,15 @@ class AllExtern:
     @staticmethod
     def IntPair():
         return Wrappers_Compile.Pair_Pair(3, 7)
+        _dafny.print(_dafny.string_of(_dafny.Seq("AllExtern.P\n")))
+
+class SingletonOptimization:
+    @staticmethod
+    def SingletonTuple(x):
+        return x + 1
+    @staticmethod
+    def NoWrapper(x):
+        return x + 1
+    @staticmethod
+    def GhostWrapper(x):
+        return x + 1

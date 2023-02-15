@@ -159,24 +159,20 @@ method Bar([>value<]: Identity<Colors>) returns (x: bool) {
       var matchSource = (await RequestDefinition(documentItem, positions[0]).AsTask()).Single();
       Assert.AreEqual(ranges[2], matchSource.Location!.Range);
 
-      // TODO doesn't work right now because we use post match compilation information.
-      // var identity = (await RequestDefinition(documentItem, positions[1]).AsTask()).Single();
-      // Assert.AreEqual(ranges[0], identity.Location!.Range);
+      var identity = (await RequestDefinition(documentItem, positions[1]).AsTask()).Single();
+      Assert.AreEqual(new Range((0, 23), (0, 31)), identity.Location!.Range);
 
-      // TODO doesn't work right now because we use post match compilation information.
-      // var green = (await RequestDefinition(documentItem, positions[2]).AsTask()).Single();
-      // Assert.AreEqual(ranges[1], green.Location!.Range);
+      var green = (await RequestDefinition(documentItem, positions[2]).AsTask()).Single();
+      Assert.AreEqual(new Range((1, 24), (1, 29)), green.Location!.Range);
 
       var matchSourceStmt = (await RequestDefinition(documentItem, positions[3]).AsTask()).Single();
       Assert.AreEqual(ranges[3], matchSourceStmt.Location!.Range);
 
-      // TODO doesn't work right now because we use post match compilation information.
-      // var identityStmt = (await RequestDefinition(documentItem, positions[4]).AsTask()).Single();
-      // Assert.AreEqual(ranges[0], identity.Location!.Range);
+      var identityStmt = (await RequestDefinition(documentItem, positions[4]).AsTask()).Single();
+      Assert.AreEqual(new Range((0, 23), (0, 31)), identityStmt.Location!.Range);
 
-      // TODO doesn't work right now because we use post match compilation information.
-      // var greenStmt = (await RequestDefinition(documentItem, positions[5]).AsTask()).Single();
-      // Assert.AreEqual(ranges[1], green.Location!.Range);
+      var greenStmt = (await RequestDefinition(documentItem, positions[5]).AsTask()).Single();
+      Assert.AreEqual(new Range((1, 24), (1, 29)), greenStmt.Location!.Range);
     }
 
     [TestMethod]
@@ -427,6 +423,45 @@ method DoIt() returns (x: int) {
       var location = aInNewA.Location;
       Assert.AreEqual(DocumentUri.FromFileSystemPath(Path.Combine(Directory.GetCurrentDirectory(), "Lookup/TestFiles/foreign.dfy")), location.Uri);
       Assert.AreEqual(new Range((3, 2), (3, 13)), location.Range);
+    }
+
+    [TestMethod]
+    public async Task Refinement() {
+      var source = @"
+module {>0:A<} {
+  class X { }
+  class T {
+    method M(x: int) returns (y: int)
+      requires 0 <= x;
+      ensures 0 <= y;
+    {
+      y := 2 * x;
+    }
+    method Q() returns (q: int, r: int, {>1:s<}: int)
+      ensures 0 <= q && 0 <= r && 0 <= s;
+    {  // error: failure to establish postcondition about q
+      r, s := 100, 200;
+    }
+  }
+}
+
+module B refines ><A {
+  class C { }
+  datatype Dt = Ax | Bx
+  class T ... {
+    method P() returns (p: int)
+    {
+      p := 18;
+    }
+    method M(x: int) returns (y: int)
+      ensures y % 2 == 0;  // add a postcondition
+    method Q ...
+      ensures 12 <= r;
+      ensures 1200 <= ><s;  // error: postcondition is not established by
+                          // inherited method body
+  }
+}".TrimStart();
+      await AssertPositionsLineUpWithRanges(source);
     }
   }
 }

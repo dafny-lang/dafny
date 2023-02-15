@@ -23,7 +23,7 @@
 <body>
 <header>
 <h1>The Dafny Programming and Verification Language</h1>
-<!-- VERSION INFO HERE-->
+<!-- VERSION INFO HERE--><p style="text-align:center;">Development version</p>
 </header>
 
 <nav>
@@ -31,11 +31,13 @@
 <ul>
 <li><a href="https://github.com/dafny-lang/dafny/wiki/INSTALL"><b>Installation</b></a>
      (or a <a href="https://marketplace.visualstudio.com/items?itemName=dafny-lang.ide-vscode">VSCode plugin for Dafny</a>)</li>
-<li><a href="./latest/DafnyRef/DafnyRef">Dafny Reference Manual and User Guide</a></li>
-<li><a href="./latest/toc">Dafny Resources for Users</a></li>
+<li><a href="./DafnyRef/DafnyRef">Dafny Reference Manual and User Guide</a></li>
+<li><a href="./toc">Dafny Resources for Users</a></li>
 <li><a href="https://github.com/dafny-lang/dafny">Dafny GitHub project (for developers of the Dafny tools themselves)</a></li>
 <li><a href="Snapshots">Other documentation snapshots</a></li>
+<li><a href="https://mitpress.mit.edu/9780262546232/program-proofs"><i><b>New Book!</b></i> <I>Program Proofs</i>, by Rustan Leino, MIT Press</a></li>
 </ul>
+<h2><a href="/blog/"><b>Blog</b></a><iframe src="/blog/" style="display:none"></iframe></h2>
 </nav>
 
 <main>
@@ -86,5 +88,11 @@ and the accumulating expertise of industrial projects using Dafny.
 <figcaption>Dafny running in Visual Studio Code</figcaption>
 </figure>
 </main>
+<script>
+var frame = document.querySelector("iframe");
+frame.addEventListener( "load", function(e) {
+  frame.outerHTML = x.contentWindow.document.querySelector("ul.post-list").outerHTML
+} );
+</script>
 </body>
 </html>

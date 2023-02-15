@@ -10,14 +10,15 @@ on:
 
 jobs:
   check-deep-tests:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
     - name: Checkout Dafny
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         path: dafny
         submodules: true
     - uses: actions/github-script@v6
+      if: github.repository_owner == 'dafny-lang'
       with:
         script: |
           const script = require('${{ github.workspace }}/dafny/.github/workflows/check-for-workflow-run.js')

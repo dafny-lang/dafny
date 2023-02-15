@@ -8,14 +8,13 @@ from collections.abc import Iterable
 from functools import reduce
 from types import GeneratorType, FunctionType
 from itertools import chain, combinations, count
-import copy
 
 class classproperty(property):
     def __get__(self, instance, owner):
         return classmethod(self.fget).__get__(None, owner)()
 
 def print(value):
-    builtins.print(string_of(value), end="")
+    builtins.print(value, end="")
 
 # Dafny strings are currently sequences of UTF-16 code units.
 # To make a best effort attempt at printing the right characters we attempt to decode,
@@ -72,16 +71,55 @@ def c_label(name: str = None):
         if g.target != name:
             raise g
 
+class CodePoint(str):
+
+    escapes = {
+      '\n' : "\\n",
+      '\r' : "\\r",
+      '\t' : "\\t",
+      '\0' : "\\0",
+      '\'' : "\\'",
+      '\"' : "\\\"",
+      '\\' : "\\\\",
+    }
+
+    def __escaped__(self):
+        return self.escapes.get(self, self)
+
+    def __dafnystr__(self):
+        return f"'{self.__escaped__()}'"
+
+    def __add__(self, other):
+        return CodePoint(plus_char(self, other))
+
+    def __sub__(self, other):
+        return CodePoint(minus_char(self, other))
+
 class Seq(tuple):
     def __init__(self, __iterable = None, isStr = False):
+        '''
+        isStr defines whether this value should be tracked at runtime as a string (a.k.a. seq<char>)
+        It accepts three different values:
+         - True: this value is definitely a string, mark it as such
+         - False: this value might be a string, apply heuristics to make a best guess
+         - None: don't apply heuristics, don't mark it as a string
+
+        None is used when --unicode-char is true, to ensure consistent printing of strings
+        across backends without depending on any runtime tracking.
+        See docs/Compilation/StringsAndChars.md.
+        '''
+
         if __iterable is None:
             __iterable = []
-        self.isStr = isStr \
-                     or isinstance(__iterable, str) \
-                     or (isinstance(__iterable, Seq) and __iterable.isStr) \
-                     or (not isinstance(__iterable, GeneratorType)
-                         and all(isinstance(e, str) and len(e) == 1 for e in __iterable)
-                         and len(__iterable) > 0)
+        if isStr is None:
+            self.isStr = None
+        else:
+            self.isStr = isStr \
+                        or isinstance(__iterable, str) \
+                        or (isinstance(__iterable, Seq) and __iterable.isStr) \
+                        or (not isinstance(__iterable, GeneratorType)
+                            and all(isinstance(e, str) and len(e) == 1 for e in __iterable)
+                            and len(__iterable) > 0)
 
     @property
     def Elements(self):
@@ -91,8 +129,16 @@ class Seq(tuple):
     def UniqueElements(self):
         return frozenset(self)
 
+    def VerbatimString(self, asliteral):
+        if asliteral:
+            return f"\"{''.join(map(lambda c: c.__escaped__(), self))}\""
+        else:
+            return ''.join(self)
+
     def __dafnystr__(self) -> str:
         if self.isStr:
+            # This should never be true when using --unicode-char,
+            # so it is safe to assume we are a sequence of UTF-16 code units.
             return string_from_utf_16(self)
         return '[' + ', '.join(map(string_of, self)) + ']'
 
@@ -119,19 +165,19 @@ class Seq(tuple):
     def __le__(self, other):
         return len(self) <= len(other) and self == other[:len(self)]
 
-class Array:
-    class Box(list):
-        def __dafnystr__(self) -> str:
-            return '[' + ', '.join(map(string_of, self)) + ']'
+# Convenience for translation when --unicode-char is enabled
+def SeqWithoutIsStrInference(__iterable = None):
+    return Seq(__iterable, isStr = None)
 
+class Array:
     def __init__(self, initValue, *dims):
-        self.arr = initValue
+        def create_structure(initValue, *dims):
+            return [initValue if len(dims) <= 1 else create_structure(initValue, *dims[1:]) for _ in range(dims[0])]
         self.dims = list(dims)
-        for i in reversed(self.dims):
-            self.arr = Array.Box([copy.copy(self.arr) for _ in range(i)])
+        self.arr = create_structure(initValue, *dims)
 
     def __dafnystr__(self) -> str:
-        return '[' + ', '.join(map(string_of, self.arr)) + ']'
+        return f'array{self.dims}'
 
     def __str__(self):
         return self.__dafnystr__()
@@ -393,6 +439,10 @@ def AllBooleans():
 def AllChars():
     return (chr(i) for i in range(0x10000))
 
+def AllUnicodeChars():
+    return chain((CodePoint(chr(i)) for i in range(0xD800)), 
+                 (CodePoint(chr(i)) for i in range(0xE000, 0x11_0000)))
+
 def AllIntegers():
     return (i//2 if i % 2 == 0 else -i//2 for i in count(0))
 
@@ -416,6 +466,7 @@ class Doubler:
 class defaults:
     bool = staticmethod(lambda: False)
     char = staticmethod(lambda: 'D')
+    codepoint = staticmethod(lambda: CodePoint(defaults.char()))
     int = staticmethod(lambda: 0)
     real = staticmethod(BigRational)
     pointer = staticmethod(lambda: None)

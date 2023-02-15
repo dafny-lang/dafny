@@ -8,11 +8,24 @@ namespace Microsoft.Dafny;
 class RunCommand : ICommandSpec {
   private readonly Argument<IEnumerable<string>> userProgramArguments;
 
-  public IEnumerable<IOptionSpec> Options =>
-    new IOptionSpec[] {
-      TargetOption.Instance,
-      NoVerifyOption.Instance,
-    }.Concat(CommandRegistry.CommonOptions);
+  public static readonly Option<IEnumerable<string>> Inputs = new("--input", "Specify an additional input file.") {
+    ArgumentHelpName = "file"
+  };
+
+  static RunCommand() {
+    DafnyOptions.RegisterLegacyBinding(Inputs, (options, files) => {
+      foreach (var file in files) {
+        options.AddFile(file);
+      }
+    });
+  }
+
+  public IEnumerable<Option> Options =>
+    new Option[] {
+      Inputs,
+    }.Concat(ICommandSpec.ExecutionOptions).
+      Concat(ICommandSpec.ConsoleOutputOptions).
+      Concat(ICommandSpec.ResolverOptions);
 
   public RunCommand() {
     userProgramArguments = new Argument<IEnumerable<string>>("program-arguments", "arguments to the Dafny program");
@@ -32,7 +45,7 @@ class RunCommand : ICommandSpec {
     dafnyOptions.AddFile(inputFile.FullName);
     dafnyOptions.Compile = true;
     dafnyOptions.RunAfterCompile = true;
-    dafnyOptions.ForceCompile = NoVerifyOption.Instance.Get(options);
+    dafnyOptions.ForceCompile = dafnyOptions.Get(BoogieOptionBag.NoVerify);
     dafnyOptions.CompileVerbose = false;
   }
 }

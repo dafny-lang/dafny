@@ -1,0 +1,4 @@
+git-issue-3125.dfy(5,6): Error: RHS (of type string) not assignable to LHS (of type int)
+git-issue-3125.dfy(6,4): Error: Method return value mismatch (expected int, got string)
+git-issue-3125.dfy(9,9): Error: Function body type mismatch (expected int, got string)
+3 resolution/type errors detected in git-issue-3125.dfy

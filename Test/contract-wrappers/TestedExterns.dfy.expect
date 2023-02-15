@@ -8,4 +8,5 @@ FooTest: FAILED
 BarTest: FAILED
 	CheckExtern.dfy(21,12): Runtime failure of ensures clause from CheckExtern.dfy:21:13
 BazTest: PASSED
-Test failures occurred: see above.
+[Program halted] TestedExterns.dfy(8,0): Test failures occurred: see above.
+

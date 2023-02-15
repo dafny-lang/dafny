@@ -193,7 +193,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
     // Sub-diagnostics if any
     public List<VerificationTree> Children { get; set; } = new();
-    private List<VerificationTree> NewChildren { get; set; } = new();
+    public List<VerificationTree> NewChildren { get; set; } = new();
 
     public int GetNewChildrenCount() {
       return NewChildren.Count;
@@ -322,7 +322,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       // Ensure that if this is an ImplementationVerificationTree, and children "painted" verified,
       // and this node is still pending
       // at least the first line should show pending.
-      if (range.Start.Line >= 0 && range.End.Line - range.Start.Line + 1 < perLineDiagnostics.Length) {
+      if (range.Start.Line >= 0 && range.End.Line < perLineDiagnostics.Length) {
         if (StatusCurrent == CurrentStatus.Verifying &&
             perLineDiagnostics.ToList().GetRange(range.Start.Line, range.End.Line - range.Start.Line + 1).All(
               line => line == LineVerificationStatus.Verified)) {

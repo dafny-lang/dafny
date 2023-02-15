@@ -1,0 +1,53 @@
+name: Test documentation
+
+## Tests various aspects of documentation
+##  -- Examples are well-formed and verify when expected
+##  (Building the pdf is separately tested, in refman.yml)
+##
+## The tests only need to run on one OS -- Linux is used because the test scripts are bash
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [ master ]
+  push:
+
+jobs:
+  check-deep-tests:
+     uses: ./.github/workflows/check-deep-tests-reusable.yml
+     with:
+       branch: master
+
+  doctests:
+    needs: check-deep-tests
+    if: always() && ((needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests')) || ( github.event_name == 'push' && ( github.ref_name == 'master' || vars.TEST_ON_FORK == 'true' )))
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Setup dotnet
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 6.0.x
+    - name: Checkout Dafny
+      uses: actions/checkout@v3
+      with:
+        submodules: recursive
+        path: dafny
+    - name: Load Z3
+      run: |
+        sudo apt-get install -qq libarchive-tools
+        mkdir dafny/Binaries/z3
+        wget -qO- https://github.com/Z3Prover/z3/releases/download/Z3-4.8.5/z3-4.8.5-x64-ubuntu-16.04.zip | bsdtar -xf - -C dafny/Binaries/z3 --strip-components=1
+        chmod +x dafny/Binaries/z3/bin/z3
+    - name: Build Dafny
+      run: dotnet build dafny/Source/Dafny.sln
+    - name: Check OnlineTutorial examples
+      run: |
+        cd dafny/docs
+        chmod +x ./check-examples
+        PATH=../bin:$PATH ./check-examples OnlineTutorial/*.md || ( echo Tests Failed; exit 1 ) && echo Tests Succeeded
+    - name: Check Reference Manual examples
+      run: |
+        cd dafny/docs
+        chmod +x ./check-examples
+        PATH=../bin:$PATH ./check-examples DafnyRef/*.md || ( echo Tests Failed; exit 1 ) && echo Tests Succeeded

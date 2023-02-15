@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -17,10 +18,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
 public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguageServerTest {
   protected TestNotificationReceiver<VerificationStatusGutter> verificationStatusGutterReceiver;
 
-  [TestInitialize]
-  public override async Task SetUp() {
+  public override async Task SetUp(Action<DafnyOptions> modifyOptions) {
     verificationStatusGutterReceiver = new();
-    await base.SetUp();
+
+    void ModifyOptions(DafnyOptions options) {
+      options.Set(ServerCommand.LineVerificationStatus, true);
+      modifyOptions?.Invoke(options);
+    }
+    await base.SetUp(ModifyOptions);
   }
 
   protected override void InitialiseClientHandler(LanguageClientOptions options) {
@@ -106,17 +111,18 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
     return codeWithoutTrace;
   }
 
-  protected List<LineVerificationStatus[]> previousTraces = null;
+  protected ConcurrentDictionary<TestNotificationReceiver<VerificationStatusGutter>, List<LineVerificationStatus[]>>
+    previousTraces = new();
 
   protected async Task<List<LineVerificationStatus[]>> GetAllLineVerificationStatuses(
       TextDocumentItem documentItem,
       TestNotificationReceiver<VerificationStatusGutter> verificationStatusGutterReceiver
       ) {
     var traces = new List<LineVerificationStatus[]>();
-    var maximumNumberOfTraces = 50;
-    var previousPerLineDiagnostics
-      = previousTraces == null || previousTraces.Count == 0 ? null :
-        previousTraces[^1].ToList();
+    var maximumNumberOfTraces = 5000;
+    var attachedTraces = previousTraces.GetOrCreate(verificationStatusGutterReceiver,
+      () => new List<LineVerificationStatus[]>());
+    var previousPerLineDiagnostics = !attachedTraces.Any() ? null : attachedTraces[^1].ToList();
     for (; maximumNumberOfTraces > 0; maximumNumberOfTraces--) {
       var verificationStatusGutter = await verificationStatusGutterReceiver.AwaitNextNotificationAsync(CancellationToken);
       if (documentItem.Uri != verificationStatusGutter.Uri || documentItem.Version != verificationStatusGutter.Version) {
@@ -137,7 +143,10 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
       previousPerLineDiagnostics = newPerLineDiagnostics;
     }
 
-    previousTraces = traces;
+    previousTraces.AddOrUpdate(verificationStatusGutterReceiver,
+      oldKey => traces,
+      (oldKey, _) => traces
+      );
     return traces;
   }
 

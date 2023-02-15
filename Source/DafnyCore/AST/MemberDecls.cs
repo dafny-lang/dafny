@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
-using System.Numerics;
 using System.Linq;
+using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
@@ -14,6 +14,9 @@ public abstract class MemberDecl : Declaration {
       return HasStaticKeyword || (EnclosingClass is ClassDecl && ((ClassDecl)EnclosingClass).IsDefaultClass);
     }
   }
+
+  public virtual bool IsOpaque => false;
+
   protected readonly bool isGhost;
   public bool IsGhost { get { return isGhost; } }
 
@@ -41,9 +44,9 @@ public abstract class MemberDecl : Declaration {
     return false;
   }
 
-  public MemberDecl(IToken tok, string name, bool hasStaticKeyword, bool isGhost, Attributes attributes, bool isRefining)
-    : base(tok, name, attributes, isRefining) {
-    Contract.Requires(tok != null);
+  public MemberDecl(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isGhost, Attributes attributes, bool isRefining)
+    : base(rangeToken, name, attributes, isRefining) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     HasStaticKeyword = hasStaticKeyword;
     this.isGhost = isGhost;
@@ -92,7 +95,7 @@ public abstract class MemberDecl : Declaration {
   public virtual IEnumerable<Expression> SubExpressions => Enumerable.Empty<Expression>();
 }
 
-public class Field : MemberDecl {
+public class Field : MemberDecl, ICanFormat {
   public override string WhatKind => "field";
   public readonly bool IsMutable;  // says whether or not the field can ever change values
   public readonly bool IsUserMutable;  // says whether or not code is allowed to assign to the field (IsUserMutable implies IsMutable)
@@ -103,18 +106,18 @@ public class Field : MemberDecl {
     Contract.Invariant(!IsUserMutable || IsMutable);  // IsUserMutable ==> IsMutable
   }
 
-  public override IEnumerable<INode> Children => Type.Nodes;
+  public override IEnumerable<Node> Children => Type.Nodes;
 
-  public Field(IToken tok, string name, bool isGhost, Type type, Attributes attributes)
-    : this(tok, name, false, isGhost, true, true, type, attributes) {
-    Contract.Requires(tok != null);
+  public Field(RangeToken rangeToken, Name name, bool isGhost, Type type, Attributes attributes)
+    : this(rangeToken, name, false, isGhost, true, true, type, attributes) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(type != null);
   }
 
-  public Field(IToken tok, string name, bool hasStaticKeyword, bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
-    : base(tok, name, hasStaticKeyword, isGhost, attributes, false) {
-    Contract.Requires(tok != null);
+  public Field(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
+    : base(rangeToken, name, hasStaticKeyword, isGhost, attributes, false) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(type != null);
     Contract.Requires(!isUserMutable || isMutable);
@@ -122,18 +125,68 @@ public class Field : MemberDecl {
     IsUserMutable = isUserMutable;
     Type = type;
   }
+
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    formatter.SetOpeningIndentedRegion(StartToken, indentBefore);
+    formatter.SetClosingIndentedRegion(EndToken, indentBefore);
+    var hasComma = OwnedTokens.Any(token => token.val == ",");
+    switch (this) {
+      case ConstantField constantField:
+        var ownedTokens = constantField.OwnedTokens;
+        var commaIndent = indentBefore + formatter.SpaceTab;
+        var rightIndent = indentBefore + formatter.SpaceTab;
+        foreach (var token in ownedTokens) {
+          switch (token.val) {
+            case ":=": {
+                if (TokenNewIndentCollector.IsFollowedByNewline(token)) {
+                  formatter.SetDelimiterInsideIndentedRegions(token, indentBefore);
+                } else if (formatter.ReduceBlockiness && token.Next.val is "{" or "[" or "(") {
+                  if (!hasComma && token.Next.val != "(") {
+                    rightIndent = indentBefore;
+                    commaIndent = indentBefore;
+                  } else {
+                    rightIndent = indentBefore + formatter.SpaceTab;
+                    commaIndent = indentBefore + formatter.SpaceTab;
+                  }
+
+                  formatter.SetIndentations(token, indentBefore, indentBefore, rightIndent);
+                } else {
+                  formatter.SetAlign(indentBefore + formatter.SpaceTab, token, out rightIndent, out commaIndent);
+                }
+
+                break;
+              }
+            case ",": {
+                formatter.SetIndentations(token, rightIndent, commaIndent, rightIndent);
+                break;
+              }
+            case ";": {
+                break;
+              }
+          }
+        }
+
+        if (constantField.Rhs is { } constantFieldRhs) {
+          formatter.SetExpressionIndentation(constantFieldRhs);
+        }
+
+        break;
+    }
+
+    return true;
+  }
 }
 
-public class SpecialFunction : Function, ICodeContext, ICallable {
+public class SpecialFunction : Function, ICallable {
   readonly ModuleDefinition Module;
-  public SpecialFunction(IToken tok, string name, ModuleDefinition module, bool hasStaticKeyword, bool isGhost,
+  public SpecialFunction(RangeToken rangeToken, string name, ModuleDefinition module, bool hasStaticKeyword, bool isGhost,
     List<TypeParameter> typeArgs, List<Formal> formals, Type resultType,
     List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
     Expression body, Attributes attributes, IToken signatureEllipsis)
-    : base(tok, name, hasStaticKeyword, isGhost, typeArgs, formals, null, resultType, req, reads, ens, decreases, body, null, null, attributes, signatureEllipsis) {
+    : base(rangeToken, new Name(name), hasStaticKeyword, isGhost, false, typeArgs, formals, null, resultType, req, reads, ens, decreases, body, null, null, attributes, signatureEllipsis) {
     Module = module;
   }
-  ModuleDefinition ICodeContext.EnclosingModule { get { return this.Module; } }
+  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return this.Module; } }
   string ICallable.NameRelativeToModule { get { return Name; } }
 }
 
@@ -156,19 +209,16 @@ public class SpecialField : Field {
   }
   public readonly ID SpecialId;
   public readonly object IdParam;
-  public SpecialField(IToken tok, string name, ID specialId, object idParam,
+
+  public SpecialField(RangeToken rangeToken, string name, ID specialId, object idParam,
     bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
-    : this(tok, name, specialId, idParam, false, isGhost, isMutable, isUserMutable, type, attributes) {
-    Contract.Requires(tok != null);
-    Contract.Requires(name != null);
-    Contract.Requires(!isUserMutable || isMutable);
-    Contract.Requires(type != null);
+    : this(rangeToken, new Name(name), specialId, idParam, false, isGhost, isMutable, isUserMutable, type, attributes) {
   }
 
-  public SpecialField(IToken tok, string name, ID specialId, object idParam,
+  public SpecialField(RangeToken rangeToken, Name name, ID specialId, object idParam,
     bool hasStaticKeyword, bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
-    : base(tok, name, hasStaticKeyword, isGhost, isMutable, isUserMutable, type, attributes) {
-    Contract.Requires(tok != null);
+    : base(rangeToken, name, hasStaticKeyword, isGhost, isMutable, isUserMutable, type, attributes) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(!isUserMutable || isMutable);
     Contract.Requires(type != null);
@@ -204,8 +254,8 @@ public class DatatypeDiscriminator : SpecialField {
     get { return "discriminator"; }
   }
 
-  public DatatypeDiscriminator(IToken tok, string name, ID specialId, object idParam, bool isGhost, Type type, Attributes attributes)
-    : base(tok, name, specialId, idParam, isGhost, false, false, type, attributes) {
+  public DatatypeDiscriminator(RangeToken rangeToken, Name name, ID specialId, object idParam, bool isGhost, Type type, Attributes attributes)
+    : base(rangeToken, name, specialId, idParam, false, isGhost, false, false, type, attributes) {
   }
 }
 
@@ -220,9 +270,9 @@ public class DatatypeDestructor : SpecialField {
     Contract.Invariant(EnclosingCtors.Count == CorrespondingFormals.Count);
   }
 
-  public DatatypeDestructor(IToken tok, DatatypeCtor enclosingCtor, Formal correspondingFormal, string name, string compiledName, bool isGhost, Type type, Attributes attributes)
-    : base(tok, name, SpecialField.ID.UseIdParam, compiledName, isGhost, false, false, type, attributes) {
-    Contract.Requires(tok != null);
+  public DatatypeDestructor(RangeToken rangeToken, DatatypeCtor enclosingCtor, Formal correspondingFormal, Name name, string compiledName, bool isGhost, Type type, Attributes attributes)
+    : base(rangeToken, name, SpecialField.ID.UseIdParam, compiledName, false, isGhost, false, false, type, attributes) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(enclosingCtor != null);
     Contract.Requires(correspondingFormal != null);
     Contract.Requires(name != null);
@@ -257,12 +307,16 @@ public class DatatypeDestructor : SpecialField {
 public class ConstantField : SpecialField, ICallable {
   public override string WhatKind => "const field";
   public readonly Expression Rhs;
-  public ConstantField(IToken tok, string name, Expression/*?*/ rhs, bool hasStaticKeyword, bool isGhost, Type type, Attributes attributes)
-    : base(tok, name, SpecialField.ID.UseIdParam, NonglobalVariable.SanitizeName(name), hasStaticKeyword, isGhost, false, false, type, attributes) {
+
+  public override bool IsOpaque { get; }
+
+  public ConstantField(RangeToken rangeToken, Name name, Expression/*?*/ rhs, bool hasStaticKeyword, bool isGhost, bool isOpaque, Type type, Attributes attributes)
+      : base(rangeToken, name, ID.UseIdParam, NonglobalVariable.SanitizeName(name.Value), hasStaticKeyword, isGhost, false, false, type, attributes) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
     Contract.Requires(type != null);
     this.Rhs = rhs;
+    this.IsOpaque = isOpaque;
   }
 
   public override bool CanBeRevealed() {
@@ -276,7 +330,6 @@ public class ConstantField : SpecialField, ICallable {
   public ModuleDefinition EnclosingModule { get { return this.EnclosingClass.EnclosingModuleDefinition; } }
   public bool MustReverify { get { return false; } }
   public bool AllowsNontermination { get { throw new cce.UnreachableException(); } }
-  public IToken Tok { get { return tok; } }
   public string NameRelativeToModule {
     get {
       if (EnclosingClass is DefaultClassDecl) {
@@ -293,235 +346,9 @@ public class ConstantField : SpecialField, ICallable {
   }
   public bool AllowsAllocation => true;
 
-  public override IEnumerable<INode> Children => base.Children.Concat(new[] { Rhs }.Where(x => x != null));
-}
+  public override IEnumerable<Node> Children => base.Children.Concat(new[] { Rhs }.Where(x => x != null));
 
-public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
-  public override string WhatKind => "function";
-
-  public string FunctionDeclarationKeywords {
-    get {
-      string k;
-      if (this is TwoStateFunction || this is ExtremePredicate || this.ByMethodBody != null) {
-        k = WhatKind;
-      } else if (this is PrefixPredicate) {
-        k = "predicate";
-      } else if (DafnyOptions.O.FunctionSyntax == DafnyOptions.FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost &&
-                 (this is Predicate || !IsGhost)) {
-        k = WhatKind;
-      } else if (DafnyOptions.O.FunctionSyntax != DafnyOptions.FunctionSyntaxOptions.Version4 && !IsGhost) {
-        k = WhatKind + " method";
-      } else if (DafnyOptions.O.FunctionSyntax != DafnyOptions.FunctionSyntaxOptions.Version3 && IsGhost) {
-        k = "ghost " + WhatKind;
-      } else {
-        k = WhatKind;
-      }
-
-      return HasStaticKeyword ? "static " + k : k;
-    }
-  }
-
-  public override bool CanBeRevealed() {
-    return true;
-  }
-
-  [FilledInDuringResolution] public bool IsRecursive;
-
-  [FilledInDuringResolution]
-  public TailStatus
-    TailRecursion =
-      TailStatus.NotTailRecursive; // NotTailRecursive = no tail recursion; TriviallyTailRecursive is never used here
-
-  public bool IsTailRecursive => TailRecursion != TailStatus.NotTailRecursive;
-  public bool IsAccumulatorTailRecursive => IsTailRecursive && TailRecursion != Function.TailStatus.TailRecursive;
-  [FilledInDuringResolution] public bool IsFueled; // if anyone tries to adjust this function's fuel
-  public readonly List<TypeParameter> TypeArgs;
-  public readonly List<Formal> Formals;
-  public readonly Formal Result;
-  public readonly Type ResultType;
-  public readonly List<AttributedExpression> Req;
-  public readonly List<FrameExpression> Reads;
-  public readonly List<AttributedExpression> Ens;
-  public readonly Specification<Expression> Decreases;
-  public Expression Body; // an extended expression; Body is readonly after construction, except for any kind of rewrite that may take place around the time of resolution
-  public IToken /*?*/ ByMethodTok; // null iff ByMethodBody is null
-  public BlockStmt /*?*/ ByMethodBody;
-  [FilledInDuringResolution] public Method /*?*/ ByMethodDecl; // if ByMethodBody is non-null
-  public bool SignatureIsOmitted => SignatureEllipsis != null; // is "false" for all Function objects that survive into resolution
-  public readonly IToken SignatureEllipsis;
-  public Function OverriddenFunction;
-  public Function Original => OverriddenFunction == null ? this : OverriddenFunction.Original;
-  public override bool IsOverrideThatAddsBody => base.IsOverrideThatAddsBody && Body != null;
-  public bool AllowsAllocation => true;
-  public bool containsQuantifier;
-
-  public bool ContainsQuantifier {
-    set { containsQuantifier = value; }
-    get { return containsQuantifier; }
-  }
-
-  public enum TailStatus {
-    TriviallyTailRecursive, // contains no recursive calls (in non-ghost expressions)
-    TailRecursive, // all recursive calls (in non-ghost expressions) are tail calls
-    NotTailRecursive, // contains some non-ghost recursive call outside of a tail-call position
-    // E + F or F + E, where E has no tail call and F is a tail call
-    Accumulate_Add,
-    AccumulateRight_Sub,
-    Accumulate_Mul,
-    Accumulate_SetUnion,
-    AccumulateRight_SetDifference,
-    Accumulate_MultiSetUnion,
-    AccumulateRight_MultiSetDifference,
-    AccumulateLeft_Concat,
-    AccumulateRight_Concat,
-  }
-
-  public override IEnumerable<INode> Children => new[] { ByMethodDecl }.Where(x => x != null).
-    Concat<INode>(Reads).
-    Concat<INode>(Req.Select(e => e.E)).
-    Concat(Ens.Select(e => e.E)).
-    Concat(Decreases.Expressions).
-    Concat(Formals).Concat(ResultType.Nodes).
-    Concat(Body == null ? Enumerable.Empty<INode>() : new[] { Body });
-
-  public override IEnumerable<Expression> SubExpressions {
-    get {
-      foreach (var formal in Formals.Where(f => f.DefaultValue != null)) {
-        yield return formal.DefaultValue;
-      }
-      foreach (var e in Req) {
-        yield return e.E;
-      }
-      foreach (var e in Reads) {
-        yield return e.E;
-      }
-      foreach (var e in Ens) {
-        yield return e.E;
-      }
-      foreach (var e in Decreases.Expressions) {
-        yield return e;
-      }
-      if (Body != null) {
-        yield return Body;
-      }
-    }
-  }
-
-  public Type GetMemberType(ArrowTypeDecl atd) {
-    Contract.Requires(atd != null);
-    Contract.Requires(atd.Arity == Formals.Count);
-
-    // Note, the following returned type can contain type parameters from the function and its enclosing class
-    return new ArrowType(tok, atd, Formals.ConvertAll(f => f.Type), ResultType);
-  }
-
-  public bool AllowsNontermination {
-    get {
-      return Contract.Exists(Decreases.Expressions, e => e is WildcardExpr);
-    }
-  }
-
-  /// <summary>
-  /// The "AllCalls" field is used for non-ExtremePredicate, non-PrefixPredicate functions only (so its value should not be relied upon for ExtremePredicate and PrefixPredicate functions).
-  /// It records all function calls made by the Function, including calls made in the body as well as in the specification.
-  /// The field is filled in during resolution (and used toward the end of resolution, to attach a helpful "decreases" prefix to functions in clusters
-  /// with co-recursive calls.
-  /// </summary>
-  public readonly List<FunctionCallExpr> AllCalls = new List<FunctionCallExpr>();
-  public enum CoCallClusterInvolvement {
-    None,  // the SCC containing the function does not involve any co-recursive calls
-    IsMutuallyRecursiveTarget,  // the SCC contains co-recursive calls, and this function is the target of some non-self recursive call
-    CoRecursiveTargetAllTheWay,  // the SCC contains co-recursive calls, and this function is the target only of self-recursive calls and co-recursive calls
-  }
-  public CoCallClusterInvolvement CoClusterTarget = CoCallClusterInvolvement.None;
-
-  [ContractInvariantMethod]
-  void ObjectInvariant() {
-    Contract.Invariant(cce.NonNullElements(TypeArgs));
-    Contract.Invariant(cce.NonNullElements(Formals));
-    Contract.Invariant(ResultType != null);
-    Contract.Invariant(cce.NonNullElements(Req));
-    Contract.Invariant(cce.NonNullElements(Reads));
-    Contract.Invariant(cce.NonNullElements(Ens));
-    Contract.Invariant(Decreases != null);
-  }
-
-  public Function(IToken tok, string name, bool hasStaticKeyword, bool isGhost,
-    List<TypeParameter> typeArgs, List<Formal> formals, Formal result, Type resultType,
-    List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
-    Expression/*?*/ body, IToken/*?*/ byMethodTok, BlockStmt/*?*/ byMethodBody,
-    Attributes attributes, IToken/*?*/ signatureEllipsis)
-    : base(tok, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null) {
-
-    Contract.Requires(tok != null);
-    Contract.Requires(name != null);
-    Contract.Requires(cce.NonNullElements(typeArgs));
-    Contract.Requires(cce.NonNullElements(formals));
-    Contract.Requires(resultType != null);
-    Contract.Requires(cce.NonNullElements(req));
-    Contract.Requires(cce.NonNullElements(reads));
-    Contract.Requires(cce.NonNullElements(ens));
-    Contract.Requires(decreases != null);
-    Contract.Requires(byMethodBody == null || (!isGhost && body != null)); // function-by-method has a ghost expr and non-ghost stmt, but to callers appears like a functiion-method
-    this.IsFueled = false;  // Defaults to false.  Only set to true if someone mentions this function in a fuel annotation
-    this.TypeArgs = typeArgs;
-    this.Formals = formals;
-    this.Result = result;
-    this.ResultType = result != null ? result.Type : resultType;
-    this.Req = req;
-    this.Reads = reads;
-    this.Ens = ens;
-    this.Decreases = decreases;
-    this.Body = body;
-    this.ByMethodTok = byMethodTok;
-    this.ByMethodBody = byMethodBody;
-    this.SignatureEllipsis = signatureEllipsis;
-
-    if (attributes != null) {
-      List<Expression> args = Attributes.FindExpressions(attributes, "fuel");
-      if (args != null) {
-        if (args.Count == 1) {
-          LiteralExpr literal = args[0] as LiteralExpr;
-          if (literal != null && literal.Value is BigInteger) {
-            this.IsFueled = true;
-          }
-        } else if (args.Count == 2) {
-          LiteralExpr literalLow = args[0] as LiteralExpr;
-          LiteralExpr literalHigh = args[1] as LiteralExpr;
-
-          if (literalLow != null && literalLow.Value is BigInteger && literalHigh != null && literalHigh.Value is BigInteger) {
-            this.IsFueled = true;
-          }
-        }
-      }
-    }
-  }
-
-  bool ICodeContext.IsGhost { get { return this.IsGhost; } }
-  List<TypeParameter> ICodeContext.TypeArgs { get { return this.TypeArgs; } }
-  List<Formal> ICodeContext.Ins { get { return this.Formals; } }
-  IToken ICallable.Tok { get { return this.tok; } }
-  string ICallable.NameRelativeToModule {
-    get {
-      if (EnclosingClass is DefaultClassDecl) {
-        return Name;
-      } else {
-        return EnclosingClass.Name + "." + Name;
-      }
-    }
-  }
-  Specification<Expression> ICallable.Decreases { get { return this.Decreases; } }
-  bool _inferredDecr;
-  bool ICallable.InferredDecreases {
-    set { _inferredDecr = value; }
-    get { return _inferredDecr; }
-  }
-  ModuleDefinition ICodeContext.EnclosingModule { get { return this.EnclosingClass.EnclosingModuleDefinition; } }
-  bool ICodeContext.MustReverify { get { return false; } }
-
-  [Pure]
-  public bool IsFuelAware() { return IsRecursive || IsFueled || (OverriddenFunction != null && OverriddenFunction.IsFuelAware()); }
-  public virtual bool ReadsHeap { get { return Reads.Count != 0; } }
+  public override IEnumerable<Node> PreResolveChildren => Children;
 }
 
 public class Predicate : Function {
@@ -532,12 +359,12 @@ public class Predicate : Function {
     Extension  // this predicate extends the definition of a predicate with a body in a module being refined
   }
   public readonly BodyOriginKind BodyOrigin;
-  public Predicate(IToken tok, string name, bool hasStaticKeyword, bool isGhost,
+  public Predicate(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isGhost, bool isOpaque,
     List<TypeParameter> typeArgs, List<Formal> formals,
     Formal result,
     List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
     Expression body, BodyOriginKind bodyOrigin, IToken/*?*/ byMethodTok, BlockStmt/*?*/ byMethodBody, Attributes attributes, IToken signatureEllipsis)
-    : base(tok, name, hasStaticKeyword, isGhost, typeArgs, formals, result, Type.Bool, req, reads, ens, decreases, body, byMethodTok, byMethodBody, attributes, signatureEllipsis) {
+    : base(rangeToken, name, hasStaticKeyword, isGhost, isOpaque, typeArgs, formals, result, Type.Bool, req, reads, ens, decreases, body, byMethodTok, byMethodBody, attributes, signatureEllipsis) {
     Contract.Requires(bodyOrigin == Predicate.BodyOriginKind.OriginalOrInherited || body != null);
     BodyOrigin = bodyOrigin;
   }
@@ -551,11 +378,11 @@ public class PrefixPredicate : Function {
   public override string WhatKindMentionGhost => WhatKind;
   public readonly Formal K;
   public readonly ExtremePredicate ExtremePred;
-  public PrefixPredicate(IToken tok, string name, bool hasStaticKeyword,
+  public PrefixPredicate(RangeToken rangeToken, Name name, bool hasStaticKeyword,
     List<TypeParameter> typeArgs, Formal k, List<Formal> formals,
     List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
     Expression body, Attributes attributes, ExtremePredicate extremePred)
-    : base(tok, name, hasStaticKeyword, true, typeArgs, formals, null, Type.Bool, req, reads, ens, decreases, body, null, null, attributes, null) {
+    : base(rangeToken, name, hasStaticKeyword, true, false, typeArgs, formals, null, Type.Bool, req, reads, ens, decreases, body, null, null, attributes, null) {
     Contract.Requires(k != null);
     Contract.Requires(extremePred != null);
     Contract.Requires(formals != null && 1 <= formals.Count && formals[0] == k);
@@ -576,11 +403,14 @@ public abstract class ExtremePredicate : Function {
   [FilledInDuringResolution] public readonly List<FunctionCallExpr> Uses = new List<FunctionCallExpr>();  // used by verifier
   [FilledInDuringResolution] public PrefixPredicate PrefixPredicate;  // (name registration)
 
-  public ExtremePredicate(IToken tok, string name, bool hasStaticKeyword, KType typeOfK,
+  public override IEnumerable<Node> Children => base.Children.Concat(new[] { PrefixPredicate });
+  public override IEnumerable<Node> PreResolveChildren => base.Children;
+
+  public ExtremePredicate(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isOpaque, KType typeOfK,
     List<TypeParameter> typeArgs, List<Formal> formals, Formal result,
     List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens,
     Expression body, Attributes attributes, IToken signatureEllipsis)
-    : base(tok, name, hasStaticKeyword, true, typeArgs, formals, result, Type.Bool,
+    : base(rangeToken, name, hasStaticKeyword, true, isOpaque, typeArgs, formals, result, Type.Bool,
       req, reads, ens, new Specification<Expression>(new List<Expression>(), null), body, null, null, attributes, signatureEllipsis) {
     TypeOfK = typeOfK;
   }
@@ -597,7 +427,7 @@ public abstract class ExtremePredicate : Function {
 
     var args = new List<Expression>() { depth };
     args.AddRange(fexp.Args);
-    var prefixPredCall = new FunctionCallExpr(fexp.tok, this.PrefixPredicate.Name, fexp.Receiver, fexp.OpenParen, fexp.CloseParen, args);
+    var prefixPredCall = new FunctionCallExpr(fexp.Tok, this.PrefixPredicate.Name, fexp.Receiver, fexp.OpenParen, fexp.CloseParen, args);
     prefixPredCall.Function = this.PrefixPredicate;  // resolve here
     prefixPredCall.TypeApplication_AtEnclosingClass = fexp.TypeApplication_AtEnclosingClass;  // resolve here
     prefixPredCall.TypeApplication_JustFunction = fexp.TypeApplication_JustFunction;  // resolve here
@@ -609,22 +439,22 @@ public abstract class ExtremePredicate : Function {
 
 public class LeastPredicate : ExtremePredicate {
   public override string WhatKind => "least predicate";
-  public LeastPredicate(IToken tok, string name, bool hasStaticKeyword, KType typeOfK,
+  public LeastPredicate(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isOpaque, KType typeOfK,
     List<TypeParameter> typeArgs, List<Formal> formals, Formal result,
     List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens,
     Expression body, Attributes attributes, IToken signatureEllipsis)
-    : base(tok, name, hasStaticKeyword, typeOfK, typeArgs, formals, result,
+    : base(rangeToken, name, hasStaticKeyword, isOpaque, typeOfK, typeArgs, formals, result,
       req, reads, ens, body, attributes, signatureEllipsis) {
   }
 }
 
 public class GreatestPredicate : ExtremePredicate {
   public override string WhatKind => "greatest predicate";
-  public GreatestPredicate(IToken tok, string name, bool hasStaticKeyword, KType typeOfK,
+  public GreatestPredicate(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isOpaque, KType typeOfK,
     List<TypeParameter> typeArgs, List<Formal> formals, Formal result,
     List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens,
     Expression body, Attributes attributes, IToken signatureEllipsis)
-    : base(tok, name, hasStaticKeyword, typeOfK, typeArgs, formals, result,
+    : base(rangeToken, name, hasStaticKeyword, isOpaque, typeOfK, typeArgs, formals, result,
       req, reads, ens, body, attributes, signatureEllipsis) {
   }
 }
@@ -632,12 +462,12 @@ public class GreatestPredicate : ExtremePredicate {
 public class TwoStateFunction : Function {
   public override string WhatKind => "twostate function";
   public override string WhatKindMentionGhost => WhatKind;
-  public TwoStateFunction(IToken tok, string name, bool hasStaticKeyword,
+  public TwoStateFunction(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isOpaque,
     List<TypeParameter> typeArgs, List<Formal> formals, Formal result, Type resultType,
     List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
     Expression body, Attributes attributes, IToken signatureEllipsis)
-    : base(tok, name, hasStaticKeyword, true, typeArgs, formals, result, resultType, req, reads, ens, decreases, body, null, null, attributes, signatureEllipsis) {
-    Contract.Requires(tok != null);
+    : base(rangeToken, name, hasStaticKeyword, true, isOpaque, typeArgs, formals, result, resultType, req, reads, ens, decreases, body, null, null, attributes, signatureEllipsis) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(typeArgs != null);
     Contract.Requires(formals != null);
@@ -652,12 +482,12 @@ public class TwoStateFunction : Function {
 
 public class TwoStatePredicate : TwoStateFunction {
   public override string WhatKind => "twostate predicate";
-  public TwoStatePredicate(IToken tok, string name, bool hasStaticKeyword,
+  public TwoStatePredicate(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isOpaque,
     List<TypeParameter> typeArgs, List<Formal> formals, Formal result,
     List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
     Expression body, Attributes attributes, IToken signatureEllipsis)
-    : base(tok, name, hasStaticKeyword, typeArgs, formals, result, Type.Bool, req, reads, ens, decreases, body, attributes, signatureEllipsis) {
-    Contract.Requires(tok != null);
+    : base(rangeToken, name, hasStaticKeyword, isOpaque, typeArgs, formals, result, Type.Bool, req, reads, ens, decreases, body, attributes, signatureEllipsis) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(typeArgs != null);
     Contract.Requires(formals != null);
@@ -668,10 +498,11 @@ public class TwoStatePredicate : TwoStateFunction {
   }
 }
 
-public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext {
-  public override IEnumerable<INode> Children => (Body?.SubStatements ?? Enumerable.Empty<INode>()).Concat<INode>(Ins).Concat(Outs).Concat(TypeArgs).
-    Concat(Req.Select(r => r.E)).Concat(Ens.Select(r => r.E)).Concat(Mod.Expressions).Concat(Decreases.Expressions).
-    Concat(Attributes?.Args ?? Enumerable.Empty<INode>());
+public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, ICanFormat {
+  public override IEnumerable<Node> Children => new Node[] { Body, Decreases }.
+    Where(x => x != null).Concat(Ins).Concat(Outs).Concat<Node>(TypeArgs).
+    Concat(Req).Concat(Ens).Concat(Mod.Expressions);
+  public override IEnumerable<Node> PreResolveChildren => Children;
 
   public override string WhatKind => "method";
   public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }
@@ -693,7 +524,42 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext {
   public Method OverriddenMethod;
   public Method Original => OverriddenMethod == null ? this : OverriddenMethod.Original;
   public override bool IsOverrideThatAddsBody => base.IsOverrideThatAddsBody && Body != null;
-  private static BlockStmt emptyBody = new BlockStmt(Token.NoToken, Token.NoToken, new List<Statement>());
+  private static BlockStmt emptyBody = new BlockStmt(Token.NoToken.ToRange(), new List<Statement>());
+
+  public bool HasPostcondition =>
+    Ens.Count > 0 || Outs.Any(f => f.Type.AsSubsetType is not null);
+
+  public bool HasPrecondition =>
+    Req.Count > 0 || Ins.Any(f => f.Type.AsSubsetType is not null);
+
+  public override IEnumerable<AssumptionDescription> Assumptions() {
+    foreach (var a in base.Assumptions()) {
+      yield return a;
+    }
+
+    if (Body is null && HasPostcondition && !EnclosingClass.EnclosingModuleDefinition.IsAbstract) {
+      yield return AssumptionDescription.NoBody(IsGhost);
+    }
+
+    if (Attributes.Contains(Attributes, "extern") && HasPostcondition) {
+      yield return AssumptionDescription.ExternWithPostcondition;
+    }
+
+    if (Attributes.Contains(Attributes, "extern") && HasPrecondition) {
+      yield return AssumptionDescription.ExternWithPrecondition;
+    }
+
+    if (AllowsNontermination) {
+      yield return AssumptionDescription.MayNotTerminate;
+    }
+
+    foreach (var c in Descendants()) {
+      foreach (var a in c.Assumptions()) {
+        yield return a;
+      }
+    }
+
+  }
 
   public override IEnumerable<Expression> SubExpressions {
     get {
@@ -726,7 +592,7 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext {
     Contract.Invariant(Decreases != null);
   }
 
-  public Method(IToken tok, string name,
+  public Method(RangeToken rangeToken, Name name,
     bool hasStaticKeyword, bool isGhost,
     [Captured] List<TypeParameter> typeArgs,
     [Captured] List<Formal> ins, [Captured] List<Formal> outs,
@@ -735,8 +601,8 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext {
     [Captured] Specification<Expression> decreases,
     [Captured] BlockStmt body,
     Attributes attributes, IToken signatureEllipsis, bool isByMethod = false)
-    : base(tok, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null) {
-    Contract.Requires(tok != null);
+    : base(rangeToken, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(ins));
@@ -763,7 +629,6 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext {
   List<Formal> ICodeContext.Ins { get { return this.Ins; } }
   List<Formal> IMethodCodeContext.Outs { get { return this.Outs; } }
   Specification<FrameExpression> IMethodCodeContext.Modifies { get { return Mod; } }
-  IToken ICallable.Tok { get { return this.tok; } }
   string ICallable.NameRelativeToModule {
     get {
       if (EnclosingClass is DefaultClassDecl) {
@@ -782,7 +647,7 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext {
 
   public virtual bool AllowsAllocation => true;
 
-  ModuleDefinition ICodeContext.EnclosingModule {
+  ModuleDefinition IASTVisitorContext.EnclosingModule {
     get {
       Contract.Assert(this.EnclosingClass != null);  // this getter is supposed to be called only after signature-resolution is complete
       return this.EnclosingClass.EnclosingModuleDefinition;
@@ -832,12 +697,44 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext {
       return methodBody;
     }
   }
+
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    formatter.SetMethodLikeIndent(StartToken, OwnedTokens, indentBefore);
+    if (BodyStartTok.line > 0) {
+      formatter.SetDelimiterIndentedRegions(BodyStartTok, indentBefore);
+    }
+
+    formatter.SetFormalsIndentation(Ins);
+    formatter.SetFormalsIndentation(Outs);
+    foreach (var req in Req) {
+      formatter.SetAttributedExpressionIndentation(req, indentBefore + formatter.SpaceTab);
+    }
+
+    foreach (var mod in Mod.Expressions) {
+      formatter.SetFrameExpressionIndentation(mod, indentBefore + formatter.SpaceTab);
+    }
+
+    foreach (var ens in Ens) {
+      formatter.SetAttributedExpressionIndentation(ens, indentBefore + formatter.SpaceTab);
+    }
+
+    foreach (var dec in Decreases.Expressions) {
+      formatter.SetDecreasesExpressionIndentation(dec, indentBefore + formatter.SpaceTab);
+      formatter.SetExpressionIndentation(dec);
+    }
+
+    if (Body != null) {
+      formatter.SetStatementIndentation(this.Body);
+    }
+
+    return true;
+  }
 }
 
 public class Lemma : Method {
   public override string WhatKind => "lemma";
   public override string WhatKindMentionGhost => WhatKind;
-  public Lemma(IToken tok, string name,
+  public Lemma(RangeToken rangeToken, Name name,
     bool hasStaticKeyword,
     [Captured] List<TypeParameter> typeArgs,
     [Captured] List<Formal> ins, [Captured] List<Formal> outs,
@@ -846,7 +743,7 @@ public class Lemma : Method {
     [Captured] Specification<Expression> decreases,
     [Captured] BlockStmt body,
     Attributes attributes, IToken signatureEllipsis)
-    : base(tok, name, hasStaticKeyword, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureEllipsis) {
+    : base(rangeToken, name, hasStaticKeyword, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureEllipsis) {
   }
 
   public override bool AllowsAllocation => false;
@@ -856,7 +753,7 @@ public class TwoStateLemma : Method {
   public override string WhatKind => "twostate lemma";
   public override string WhatKindMentionGhost => WhatKind;
 
-  public TwoStateLemma(IToken tok, string name,
+  public TwoStateLemma(RangeToken rangeToken, Name name,
     bool hasStaticKeyword,
     [Captured] List<TypeParameter> typeArgs,
     [Captured] List<Formal> ins, [Captured] List<Formal> outs,
@@ -866,8 +763,8 @@ public class TwoStateLemma : Method {
     [Captured] Specification<Expression> decreases,
     [Captured] BlockStmt body,
     Attributes attributes, IToken signatureEllipsis)
-    : base(tok, name, hasStaticKeyword, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureEllipsis) {
-    Contract.Requires(tok != null);
+    : base(rangeToken, name, hasStaticKeyword, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureEllipsis) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(typeArgs != null);
     Contract.Requires(ins != null);
@@ -905,7 +802,7 @@ public class Constructor : Method {
       }
     }
   }
-  public Constructor(IToken tok, string name,
+  public Constructor(RangeToken rangeToken, Name name,
     bool isGhost,
     List<TypeParameter> typeArgs,
     List<Formal> ins,
@@ -914,8 +811,8 @@ public class Constructor : Method {
     Specification<Expression> decreases,
     DividedBlockStmt body,
     Attributes attributes, IToken signatureEllipsis)
-    : base(tok, name, false, isGhost, typeArgs, ins, new List<Formal>(), req, mod, ens, decreases, body, attributes, signatureEllipsis) {
-    Contract.Requires(tok != null);
+    : base(rangeToken, name, false, isGhost, typeArgs, ins, new List<Formal>(), req, mod, ens, decreases, body, attributes, signatureEllipsis) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(ins));
@@ -941,11 +838,11 @@ public class PrefixLemma : Method {
 
   public readonly Formal K;
   public readonly ExtremeLemma ExtremeLemma;
-  public PrefixLemma(IToken tok, string name, bool hasStaticKeyword,
+  public PrefixLemma(RangeToken rangeToken, Name name, bool hasStaticKeyword,
     List<TypeParameter> typeArgs, Formal k, List<Formal> ins, List<Formal> outs,
     List<AttributedExpression> req, Specification<FrameExpression> mod, List<AttributedExpression> ens, Specification<Expression> decreases,
     BlockStmt body, Attributes attributes, ExtremeLemma extremeLemma)
-    : base(tok, name, hasStaticKeyword, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, null) {
+    : base(rangeToken, name, hasStaticKeyword, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, null) {
     Contract.Requires(k != null);
     Contract.Requires(ins != null && 1 <= ins.Count && ins[0] == k);
     Contract.Requires(extremeLemma != null);
@@ -966,7 +863,11 @@ public abstract class ExtremeLemma : Method {
   }
   [FilledInDuringResolution] public PrefixLemma PrefixLemma;  // (name registration)
 
-  public ExtremeLemma(IToken tok, string name,
+  public override IEnumerable<Node> Children => base.Children.Concat(new[] { PrefixLemma });
+
+  public override IEnumerable<Node> PreResolveChildren => base.Children;
+
+  public ExtremeLemma(RangeToken rangeToken, Name name,
     bool hasStaticKeyword, ExtremePredicate.KType typeOfK,
     List<TypeParameter> typeArgs,
     List<Formal> ins, [Captured] List<Formal> outs,
@@ -975,8 +876,8 @@ public abstract class ExtremeLemma : Method {
     Specification<Expression> decreases,
     BlockStmt body,
     Attributes attributes, IToken signatureEllipsis)
-    : base(tok, name, hasStaticKeyword, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureEllipsis) {
-    Contract.Requires(tok != null);
+    : base(rangeToken, name, hasStaticKeyword, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureEllipsis) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(ins));
@@ -994,7 +895,7 @@ public abstract class ExtremeLemma : Method {
 public class LeastLemma : ExtremeLemma {
   public override string WhatKind => "least lemma";
 
-  public LeastLemma(IToken tok, string name,
+  public LeastLemma(RangeToken rangeToken, Name name,
     bool hasStaticKeyword, ExtremePredicate.KType typeOfK,
     List<TypeParameter> typeArgs,
     List<Formal> ins, [Captured] List<Formal> outs,
@@ -1003,8 +904,8 @@ public class LeastLemma : ExtremeLemma {
     Specification<Expression> decreases,
     BlockStmt body,
     Attributes attributes, IToken signatureEllipsis)
-    : base(tok, name, hasStaticKeyword, typeOfK, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureEllipsis) {
-    Contract.Requires(tok != null);
+    : base(rangeToken, name, hasStaticKeyword, typeOfK, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureEllipsis) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(ins));
@@ -1019,7 +920,7 @@ public class LeastLemma : ExtremeLemma {
 public class GreatestLemma : ExtremeLemma {
   public override string WhatKind => "greatest lemma";
 
-  public GreatestLemma(IToken tok, string name,
+  public GreatestLemma(RangeToken rangeToken, Name name,
     bool hasStaticKeyword, ExtremePredicate.KType typeOfK,
     List<TypeParameter> typeArgs,
     List<Formal> ins, [Captured] List<Formal> outs,
@@ -1028,8 +929,8 @@ public class GreatestLemma : ExtremeLemma {
     Specification<Expression> decreases,
     BlockStmt body,
     Attributes attributes, IToken signatureEllipsis)
-    : base(tok, name, hasStaticKeyword, typeOfK, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureEllipsis) {
-    Contract.Requires(tok != null);
+    : base(rangeToken, name, hasStaticKeyword, typeOfK, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureEllipsis) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(ins));

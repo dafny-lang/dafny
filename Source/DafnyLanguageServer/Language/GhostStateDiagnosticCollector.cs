@@ -21,15 +21,15 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   public class GhostStateDiagnosticCollector : IGhostStateDiagnosticCollector {
     private const string GhostStatementMessage = "Ghost statement";
 
-    private readonly GhostOptions options;
+    private readonly DafnyOptions options;
     private readonly ILogger<GhostStateDiagnosticCollector> logger;
-    public GhostStateDiagnosticCollector(IOptions<GhostOptions> options, ILogger<GhostStateDiagnosticCollector> logger) {
+    public GhostStateDiagnosticCollector(DafnyOptions options, ILogger<GhostStateDiagnosticCollector> logger) {
+      this.options = options;
       this.logger = logger;
-      this.options = options.Value;
     }
 
     public IEnumerable<Diagnostic> GetGhostStateDiagnostics(SignatureAndCompletionTable signatureAndCompletionTable, CancellationToken cancellationToken) {
-      if (!options.MarkStatements) {
+      if (!options.Get(ServerCommand.GhostIndicators)) {
         return Enumerable.Empty<Diagnostic>();
       }
 
@@ -78,7 +78,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       private static Range GetRange(Statement statement) {
         return statement switch {
           UpdateStmt updateStatement => GetRange(updateStatement),
-          _ => CreateRange(statement.Tok, statement.EndTok)
+          _ => CreateRange(statement.RangeToken.StartToken, statement.RangeToken.EndToken)
         };
       }
 
@@ -93,7 +93,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         } else {
           startToken = updateStatement.Tok;
         }
-        return CreateRange(startToken, updateStatement.EndTok);
+        return CreateRange(startToken, updateStatement.RangeToken.EndToken);
       }
 
       private static IToken GetStartTokenFromResolvedStatement(Statement resolvedStatement) {

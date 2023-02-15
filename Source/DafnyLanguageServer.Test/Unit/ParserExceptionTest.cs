@@ -22,7 +22,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
     [TestInitialize]
     public void SetUp() {
       lastDebugLogger = new LastDebugLogger();
-      parser = DafnyLangParser.Create(lastDebugLogger);
+      parser = DafnyLangParser.Create(DafnyOptions.Create(), lastDebugLogger);
     }
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
@@ -41,14 +41,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
     private class ParserExceptionSimulatingErrorReporter : ErrorReporter {
       private int numberOfErrors;
       public string LastMessage = "";
-      public override bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
+      public override bool Message(MessageSource source, ErrorLevel level, ErrorDetail.ErrorID errorID, IToken tok, string msg) {
         if (level != ErrorLevel.Error) {
           return false;
         }
 
         numberOfErrors++;
         if (numberOfErrors == 1) {
-          throw new Exception("Simulated parser internal error");
+          throw new InvalidOperationException("Simulated parser internal error");
         }
 
         LastMessage = ErrorToString(level, tok, msg);
