@@ -3266,12 +3266,12 @@ namespace Microsoft.Dafny {
           var ec = reporter.Count(ErrorLevel.Error);
           allTypeParameters.PushMarker();
           ResolveTypeParameters(function.TypeArgs, false, function);
-          ResolveFunction(function);
+          function.Resolve(this);
           allTypeParameters.PopMarker();
           if (function is ExtremePredicate { PrefixPredicate: { } prefixPredicate } && ec == reporter.Count(ErrorLevel.Error)) {
             allTypeParameters.PushMarker();
             ResolveTypeParameters(prefixPredicate.TypeArgs, false, prefixPredicate);
-            ResolveFunction(prefixPredicate);
+            prefixPredicate.Resolve(this);
             allTypeParameters.PopMarker();
           }
 
@@ -3354,95 +3354,6 @@ namespace Microsoft.Dafny {
           AddDatatypeDependencyEdge(dt, ta, dependencies);
         }
       }
-    }
-
-    /// <summary>
-    /// Assumes type parameters have already been pushed
-    /// </summary>
-    void ResolveFunction(Function f) {
-      Contract.Requires(f != null);
-      Contract.Requires(AllTypeConstraints.Count == 0);
-      Contract.Ensures(AllTypeConstraints.Count == 0);
-
-      // make note of the warnShadowing attribute
-      bool warnShadowingOption = DafnyOptions.O.WarnShadowing;  // save the original warnShadowing value
-      bool warnShadowing = false;
-      if (Attributes.ContainsBool(f.Attributes, "warnShadowing", ref warnShadowing)) {
-        DafnyOptions.O.WarnShadowing = warnShadowing;  // set the value according to the attribute
-      }
-
-      scope.PushMarker();
-      if (f.IsStatic) {
-        scope.AllowInstance = false;
-      }
-
-      foreach (Formal p in f.Formals) {
-        scope.Push(p.Name, p);
-      }
-
-      ResolveParameterDefaultValues(f.Formals, ResolutionContext.FromCodeContext(f));
-
-      foreach (AttributedExpression e in f.Req) {
-        ResolveAttributes(e, new ResolutionContext(f, f is TwoStateFunction));
-        Expression r = e.E;
-        ResolveExpression(r, new ResolutionContext(f, f is TwoStateFunction));
-        Contract.Assert(r.Type != null);  // follows from postcondition of ResolveExpression
-        ConstrainTypeExprBool(r, "Precondition must be a boolean (got {0})");
-      }
-      foreach (FrameExpression fr in f.Reads) {
-        ResolveFrameExpressionTopLevel(fr, FrameExpressionUse.Reads, f);
-      }
-
-      scope.PushMarker();
-      if (f.Result != null) {
-        scope.Push(f.Result.Name, f.Result);  // function return only visible in post-conditions (and in function attributes)
-      }
-      foreach (AttributedExpression e in f.Ens) {
-        Expression r = e.E;
-        ResolveAttributes(e, new ResolutionContext(f, f is TwoStateFunction));
-        ResolveExpression(r, new ResolutionContext(f, f is TwoStateFunction) with { InFunctionPostcondition = true });
-        Contract.Assert(r.Type != null);  // follows from postcondition of ResolveExpression
-        ConstrainTypeExprBool(r, "Postcondition must be a boolean (got {0})");
-      }
-      scope.PopMarker(); // function result name
-
-      ResolveAttributes(f.Decreases, new ResolutionContext(f, f is TwoStateFunction));
-      foreach (Expression r in f.Decreases.Expressions) {
-        ResolveExpression(r, new ResolutionContext(f, f is TwoStateFunction));
-        // any type is fine
-      }
-      SolveAllTypeConstraints(); // solve type constraints in the specification
-
-      if (f.Body != null) {
-        ResolveExpression(f.Body, new ResolutionContext(f, f is TwoStateFunction));
-        Contract.Assert(f.Body.Type != null);  // follows from postcondition of ResolveExpression
-        AddAssignableConstraint(f.tok, f.ResultType, f.Body.Type, "Function body type mismatch (expected {0}, got {1})");
-        SolveAllTypeConstraints();
-      }
-
-      scope.PushMarker();
-      if (f.Result != null) {
-        scope.Push(f.Result.Name, f.Result);  // function return only visible in post-conditions (and in function attributes)
-      }
-      ResolveAttributes(f, new ResolutionContext(f, f is TwoStateFunction), true);
-      scope.PopMarker(); // function result name
-
-      scope.PopMarker(); // formals
-
-      if (f.ByMethodBody != null) {
-        Contract.Assert(f.Body != null && !f.IsGhost); // assured by the parser and other callers of the Function constructor
-        var method = f.ByMethodDecl;
-        if (method != null) {
-          method.Resolve(this);
-        } else {
-          // method should have been filled in by now,
-          // unless there was a function by method and a method of the same name
-          // but then this error must have been reported.
-          Contract.Assert(reporter.ErrorCount > 0);
-        }
-      }
-
-      DafnyOptions.O.WarnShadowing = warnShadowingOption; // restore the original warnShadowing value
     }
 
     public void ResolveFrameExpressionTopLevel(FrameExpression fe, FrameExpressionUse use, ICodeContext codeContext) {
