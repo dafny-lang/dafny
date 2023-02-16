@@ -21,6 +21,12 @@ using Microsoft.Dafny.Plugins;
 using static Microsoft.Dafny.ErrorDetail;
 
 namespace Microsoft.Dafny {
+  interface ICanResolve {
+    void Resolve(Resolver resolver, ResolutionContext context);
+  }
+
+  public enum FrameExpressionUse { Reads, Modifies, Unchanged }
+
   public partial class Resolver {
     public DafnyOptions Options { get; }
     public readonly BuiltIns builtIns;
@@ -5991,22 +5997,6 @@ namespace Microsoft.Dafny {
       return at;
     }
 
-    /// <summary>
-    /// Resolves a NestedMatchStmt by
-    /// 1 - checking that all of its patterns are linear
-    /// 2 - desugaring it into a decision tree of MatchStmt and IfStmt (for constant matching)
-    /// 3 - resolving the generated (sub)statement.
-    /// </summary>
-    void ResolveNestedMatchStmt(NestedMatchStmt s, ResolutionContext resolutionContext) {
-      Contract.Requires(s != null);
-
-      var errorCount = reporter.Count(ErrorLevel.Error);
-      s.Resolve(this, resolutionContext);
-      this.SolveAllTypeConstraints();
-    }
-
-
-
     void FillInDefaultLoopDecreases(LoopStmt loopStmt, Expression guard, List<Expression> theDecreases, ICallable enclosingMethod) {
       Contract.Requires(loopStmt != null);
       Contract.Requires(theDecreases != null);
@@ -6170,11 +6160,12 @@ namespace Microsoft.Dafny {
         reporter.Info(MessageSource.Resolver, loopStmt.Tok, s);
       }
     }
-    private Expression VarDotMethod(IToken tok, string varname, string methodname) {
+
+    public Expression VarDotMethod(IToken tok, string varname, string methodname) {
       return new ApplySuffix(tok, null, new ExprDotName(tok, new IdentifierExpr(tok, varname), methodname, null), new List<ActualBinding>(), tok);
     }
 
-    private Expression makeTemp(String prefix, AssignOrReturnStmt s, ResolutionContext resolutionContext, Expression ex) {
+    public Expression makeTemp(String prefix, AssignOrReturnStmt s, ResolutionContext resolutionContext, Expression ex) {
       var temp = FreshTempVarName(prefix, resolutionContext.CodeContext);
       var locvar = new LocalVariable(s.RangeToken, temp, ex.Type, false);
       var id = new IdentifierExpr(s.Tok, temp);
@@ -6186,246 +6177,7 @@ namespace Microsoft.Dafny {
       return id;
     }
 
-    /// <summary>
-    /// Desugars "y, ... :- MethodOrExpression" into
-    /// var temp;
-    /// temp, ... := MethodOrExpression;
-    /// if temp.IsFailure() { return temp.PropagateFailure(); }
-    /// y := temp.Extract();
-    ///
-    /// If the type of MethodExpression does not have an Extract, then the desugaring is
-    /// var temp;
-    /// temp, y, ... := MethodOrExpression;
-    /// if temp.IsFailure() { return temp.PropagateFailure(); }
-    ///
-    /// If there are multiple RHSs then "y, ... :- Expression, ..." becomes
-    /// var temp;
-    /// temp, ... := Expression, ...;
-    /// if temp.IsFailure() { return temp.PropagateFailure(); }
-    /// y := temp.Extract();
-    /// OR
-    /// var temp;
-    /// temp, y, ... := Expression, ...;
-    /// if temp.IsFailure() { return temp.PropagateFailure(); }
-    ///
-    /// and "y, ... :- expect MethodOrExpression, ..." into
-    /// var temp, [y, ] ... := MethodOrExpression, ...;
-    /// expect !temp.IsFailure(), temp.PropagateFailure();
-    /// [y := temp.Extract();]
-    ///
-    /// and saves the result into s.ResolvedStatements.
-    /// This is also known as the "elephant operator"
-    /// </summary>
-    private void ResolveAssignOrReturnStmt(AssignOrReturnStmt s, ResolutionContext resolutionContext) {
-      // TODO Do I have any responsibilities regarding the use of resolutionContext? Is it mutable?
-
-      // We need to figure out whether we are using a status type that has Extract or not,
-      // as that determines how the AssignOrReturnStmt is desugared. Thus if the Rhs is a
-      // method call we need to know which one (to inspect its first output); if RHs is a
-      // list of expressions, we need to know the type of the first one. For all of this we have
-      // to do some partial type resolution.
-
-      bool expectExtract = s.Lhss.Count != 0; // default value if we cannot determine and inspect the type
-      Type firstType = null;
-      Method call = null;
-      if ((s.Rhss == null || s.Rhss.Count == 0) && s.Rhs.Expr is ApplySuffix asx) {
-        ResolveApplySuffix(asx, resolutionContext, true);
-        call = (asx.Lhs.Resolved as MemberSelectExpr)?.Member as Method;
-        if (call != null) {
-          // We're looking at a method call
-          var typeMap = (asx.Lhs.Resolved as MemberSelectExpr)?.TypeArgumentSubstitutionsWithParents();
-          if (call.Outs.Count != 0) {
-            firstType = call.Outs[0].Type.Subst(typeMap);
-          } else {
-            reporter.Error(MessageSource.Resolver, s.Rhs.tok, "Expected {0} to have a Success/Failure output value, but the method returns nothing.", call.Name);
-          }
-        } else {
-          // We're looking at a call to a function. Treat it like any other expression.
-          firstType = asx.Type;
-        }
-      } else {
-        ResolveExpression(s.Rhs.Expr, resolutionContext);
-        firstType = s.Rhs.Expr.Type;
-      }
-
-      var method = (Method)resolutionContext.CodeContext;
-      if (method.Outs.Count == 0 && s.KeywordToken == null) {
-        reporter.Error(MessageSource.Resolver, s.Tok, "A method containing a :- statement must have an out-parameter ({0})", method.Name);
-        return;
-      }
-      if (firstType != null) {
-        firstType = PartiallyResolveTypeForMemberSelection(s.Rhs.tok, firstType);
-        if (firstType.AsTopLevelTypeWithMembers != null) {
-          if (firstType.AsTopLevelTypeWithMembers.Members.Find(x => x.Name == "IsFailure") == null) {
-            reporter.Error(MessageSource.Resolver, s.Tok,
-              "member IsFailure does not exist in {0}, in :- statement", firstType);
-            return;
-          }
-          expectExtract = firstType.AsTopLevelTypeWithMembers.Members.Find(x => x.Name == "Extract") != null;
-          if (expectExtract && call == null && s.Lhss.Count != 1 + s.Rhss.Count) {
-            reporter.Error(MessageSource.Resolver, s.Tok,
-              "number of lhs ({0}) must match number of rhs ({1}) for a rhs type ({2}) with member Extract",
-              s.Lhss.Count, 1 + s.Rhss.Count, firstType);
-            return;
-          } else if (expectExtract && call != null && s.Lhss.Count != call.Outs.Count) {
-            reporter.Error(MessageSource.Resolver, s.Tok,
-              "wrong number of method result arguments (got {0}, expected {1}) for a rhs type ({2}) with member Extract",
-              s.Lhss.Count, call.Outs.Count, firstType);
-            return;
-
-          } else if (!expectExtract && call == null && s.Lhss.Count != s.Rhss.Count) {
-            reporter.Error(MessageSource.Resolver, s.Tok,
-              "number of lhs ({0}) must be one less than number of rhs ({1}) for a rhs type ({2}) without member Extract", s.Lhss.Count, 1 + s.Rhss.Count, firstType);
-            return;
-
-          } else if (!expectExtract && call != null && s.Lhss.Count != call.Outs.Count - 1) {
-            reporter.Error(MessageSource.Resolver, s.Tok,
-              "wrong number of method result arguments (got {0}, expected {1}) for a rhs type ({2}) without member Extract", s.Lhss.Count, call.Outs.Count - 1, firstType);
-            return;
-          }
-        } else {
-          reporter.Error(MessageSource.Resolver, s.Tok,
-            $"The type of the first expression to the right of ':-' could not be determined to be a failure type (got '{firstType}')");
-          return;
-        }
-      } else {
-        reporter.Error(MessageSource.Resolver, s.Tok,
-          "Internal Error: Unknown failure type in :- statement");
-        return;
-      }
-
-      Expression lhsExtract = null;
-      if (expectExtract) {
-        if (resolutionContext.CodeContext is Method caller && caller.Outs.Count == 0 && s.KeywordToken == null) {
-          reporter.Error(MessageSource.Resolver, s.Rhs.tok, "Expected {0} to have a Success/Failure output value", caller.Name);
-          return;
-        }
-
-        lhsExtract = s.Lhss[0];
-        var lhsResolved = s.Lhss[0].Resolved;
-        // Make a new unresolved expression
-        if (lhsResolved is MemberSelectExpr lexr) {
-          Expression id = Expression.AsThis(lexr.Obj) != null ? lexr.Obj : makeTemp("recv", s, resolutionContext, lexr.Obj);
-          var lex = lhsExtract as ExprDotName; // might be just a NameSegment
-          lhsExtract = new ExprDotName(lexr.tok, id, lexr.MemberName, lex == null ? null : lex.OptTypeArguments);
-        } else if (lhsResolved is SeqSelectExpr lseq) {
-          if (!lseq.SelectOne || lseq.E0 == null) {
-            reporter.Error(MessageSource.Resolver, s.Tok,
-              "Element ranges not allowed as l-values");
-            return;
-          }
-          Expression id = makeTemp("recv", s, resolutionContext, lseq.Seq);
-          Expression id0 = id0 = makeTemp("idx", s, resolutionContext, lseq.E0);
-          lhsExtract = new SeqSelectExpr(lseq.tok, lseq.SelectOne, id, id0, null, lseq.CloseParen);
-          lhsExtract.Type = lseq.Type;
-        } else if (lhsResolved is MultiSelectExpr lmulti) {
-          Expression id = makeTemp("recv", s, resolutionContext, lmulti.Array);
-          var idxs = new List<Expression>();
-          foreach (var i in lmulti.Indices) {
-            Expression idx = makeTemp("idx", s, resolutionContext, i);
-            idxs.Add(idx);
-          }
-          lhsExtract = new MultiSelectExpr(lmulti.tok, id, idxs);
-          lhsExtract.Type = lmulti.Type;
-        } else if (lhsResolved is IdentifierExpr) {
-          // do nothing
-        } else if (lhsResolved == null) {
-          // LHS failed to resolve. Abort trying to resolve assign or return stmt
-          return;
-        } else {
-          throw new InvalidOperationException("Internal error: unexpected option in ResolveAssignOrReturnStmt");
-        }
-      }
-      var temp = FreshTempVarName("valueOrError", resolutionContext.CodeContext);
-      var lhss = new List<LocalVariable>() { new LocalVariable(s.RangeToken, temp, new InferredTypeProxy(), false) };
-      // "var temp ;"
-      s.ResolvedStatements.Add(new VarDeclStmt(s.RangeToken, lhss, null));
-      var lhss2 = new List<Expression>() { new IdentifierExpr(s.Tok, temp) };
-      for (int k = (expectExtract ? 1 : 0); k < s.Lhss.Count; ++k) {
-        lhss2.Add(s.Lhss[k]);
-      }
-      List<AssignmentRhs> rhss2 = new List<AssignmentRhs>() { s.Rhs };
-      if (s.Rhss != null) {
-        s.Rhss.ForEach(e => rhss2.Add(e));
-      }
-      if (s.Rhss != null && s.Rhss.Count > 0) {
-        if (lhss2.Count != rhss2.Count) {
-          reporter.Error(MessageSource.Resolver, s.Tok,
-            "Mismatch in expected number of LHSs and RHSs");
-          if (lhss2.Count < rhss2.Count) {
-            rhss2.RemoveRange(lhss2.Count, rhss2.Count - lhss2.Count);
-          } else {
-            lhss2.RemoveRange(rhss2.Count, lhss2.Count - rhss2.Count);
-          }
-        }
-      }
-      // " temp, ... := MethodOrExpression, ...;"
-      UpdateStmt up = new UpdateStmt(s.RangeToken, lhss2, rhss2);
-      if (expectExtract) {
-        up.OriginalInitialLhs = s.Lhss.Count == 0 ? null : s.Lhss[0];
-      }
-      s.ResolvedStatements.Add(up);
-
-      if (s.KeywordToken != null) {
-        var notFailureExpr = new UnaryOpExpr(s.Tok, UnaryOpExpr.Opcode.Not, VarDotMethod(s.Tok, temp, "IsFailure"));
-        Statement ss = null;
-        if (s.KeywordToken.Token.val == "expect") {
-          // "expect !temp.IsFailure(), temp"
-          ss = new ExpectStmt(new RangeToken(s.Tok, s.EndToken), notFailureExpr, new IdentifierExpr(s.Tok, temp), s.KeywordToken.Attrs);
-        } else if (s.KeywordToken.Token.val == "assume") {
-          ss = new AssumeStmt(new RangeToken(s.Tok, s.EndToken), notFailureExpr, s.KeywordToken.Attrs);
-        } else if (s.KeywordToken.Token.val == "assert") {
-          ss = new AssertStmt(new RangeToken(s.Tok, s.EndToken), notFailureExpr, null, null, s.KeywordToken.Attrs);
-        } else {
-          Contract.Assert(false, $"Invalid token in :- statement: {s.KeywordToken.Token.val}");
-        }
-        s.ResolvedStatements.Add(ss);
-      } else {
-        var enclosingOutParameter = ((Method)resolutionContext.CodeContext).Outs[0];
-        var ident = new IdentifierExpr(s.Tok, enclosingOutParameter.Name);
-        // resolve it here to avoid capture into more closely declared local variables
-        Contract.Assert(enclosingOutParameter.Type != null);  // this confirms our belief that the out-parameter has already been resolved
-        ident.Var = enclosingOutParameter;
-        ident.Type = ident.Var.Type;
-
-        s.ResolvedStatements.Add(
-          // "if temp.IsFailure()"
-          new IfStmt(s.RangeToken, false, VarDotMethod(s.Tok, temp, "IsFailure"),
-            // THEN: { out := temp.PropagateFailure(); return; }
-            new BlockStmt(s.RangeToken, new List<Statement>() {
-              new UpdateStmt(s.RangeToken,
-                new List<Expression>() { ident },
-                new List<AssignmentRhs>() {new ExprRhs(VarDotMethod(s.Tok, temp, "PropagateFailure"))}
-                ),
-              new ReturnStmt(s.RangeToken, null),
-            }),
-            // ELSE: no else block
-            null
-          ));
-      }
-
-      if (expectExtract) {
-        // "y := temp.Extract();"
-        var lhs = s.Lhss[0];
-        s.ResolvedStatements.Add(
-          new UpdateStmt(s.RangeToken,
-            new List<Expression>() { lhsExtract },
-            new List<AssignmentRhs>() { new ExprRhs(VarDotMethod(s.Tok, temp, "Extract")) }
-          ));
-        // The following check is not necessary, because the ghost mismatch is caught later.
-        // However the error message here is much clearer.
-        var m = ResolveMember(s.Tok, firstType, "Extract", out _);
-        if (m != null && m.IsGhost && !AssignStmt.LhsIsToGhostOrAutoGhost(lhs)) {
-          reporter.Error(MessageSource.Resolver, lhs.tok,
-            "The Extract member may not be ghost unless the initial LHS is ghost");
-        }
-      }
-
-      s.ResolvedStatements.ForEach(a => ResolveStatement(a, resolutionContext));
-      EnsureSupportsErrorHandling(s.Tok, firstType, expectExtract, s.KeywordToken != null);
-    }
-
-    private void EnsureSupportsErrorHandling(IToken tok, Type tp, bool expectExtract, bool hasKeywordToken) {
+    public void EnsureSupportsErrorHandling(IToken tok, Type tp, bool expectExtract, bool hasKeywordToken) {
       // The "method not found" errors which will be generated here were already reported while
       // resolving the statement, so we don't want them to reappear and redirect them into a sink.
       var origReporter = this.reporter;
@@ -7663,6 +7415,4 @@ namespace Microsoft.Dafny {
       return base.Traverse(e, field, parent);
     }
   }
-
-  public enum FrameExpressionUse { Reads, Modifies, Unchanged }
 }

@@ -66,8 +66,13 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt>, ICanForma
     InitializeAttributes();
   }
 
-  public void Resolve(Resolver resolver, ResolutionContext resolutionContext) {
-
+  /// <summary>
+  /// Resolves a NestedMatchStmt by
+  /// 1 - checking that all of its patterns are linear
+  /// 2 - desugaring it into a decision tree of MatchStmt and IfStmt (for constant matching)
+  /// 3 - resolving the generated (sub)statement.
+  /// </summary>
+  public override void Resolve(Resolver resolver, ResolutionContext resolutionContext) {
     resolver.ResolveExpression(Source, resolutionContext);
 
     if (Source.Type is TypeProxy) {
@@ -98,6 +103,8 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt>, ICanForma
       _case.Resolve(resolver, resolutionContext, subst, sourceType);
       resolver.scope.PopMarker();
     }
+
+    resolver.SolveAllTypeConstraints();
   }
 
   public void CheckLinearNestedMatchStmt(Type dtd, ResolutionContext resolutionContext, Resolver resolver) {
