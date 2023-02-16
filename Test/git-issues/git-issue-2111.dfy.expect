@@ -1,2 +1,2 @@
-git-issue-2111.dfy(6,4): Error: wrong number of arguments (got 0, but datatype constructor 'C' expects 1: (s: string))
+git-issue-2111.dfy(6,4): Error: wrong number of arguments (datatype constructor 'C' expects 1, got 0)
 1 resolution/type errors detected in git-issue-2111.dfy

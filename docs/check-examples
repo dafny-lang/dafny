@@ -200,7 +200,6 @@ do
         capture=1
         dOptions=$defOptions
         if [ "$command" == "%check-verify" ]; then
-          ##cat $text
           com=verify
           ec=4
         elif [ "$command" == "%check-verify-warn" ]; then
