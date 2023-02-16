@@ -1,3 +1,0 @@
-git-issue-2477.dfy(10,12): Error: predicate's (possibly automatically generated) decreases clause must be below or equal to that in the trait
-
-Dafny program verifier finished with 0 verified, 1 error
