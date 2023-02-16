@@ -1,3 +1,2 @@
-Bug122.dfy(6,1): Warning: a forall statement with no bound variables is deprecated; use an 'assert by' statement instead
 
 Dafny program verifier finished with 1 verified, 0 errors
