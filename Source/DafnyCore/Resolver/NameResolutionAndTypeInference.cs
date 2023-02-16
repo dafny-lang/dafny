@@ -3588,7 +3588,7 @@ namespace Microsoft.Dafny {
     /// that can be assigned to.  In particular, this means that lhs denotes a mutable variable, field,
     /// or array element.  If a violation is detected, an error is reported.
     /// </summary>
-    void CheckIsLvalue(Expression lhs, ResolutionContext resolutionContext) {
+    public void CheckIsLvalue(Expression lhs, ResolutionContext resolutionContext) {
       Contract.Requires(lhs != null);
       Contract.Requires(resolutionContext != null);
       if (lhs is IdentifierExpr) {
@@ -4071,67 +4071,22 @@ namespace Microsoft.Dafny {
       return new Resolver_IdentifierExpr(tok, decl, tpArgs);
     }
 
-    private void ResolveAssignSuchThatStmt(AssignSuchThatStmt s, ResolutionContext resolutionContext) {
-      Contract.Requires(s != null);
-      Contract.Requires(resolutionContext != null);
-
-      if (s.AssumeToken != null) {
-        ResolveAttributes(s.AssumeToken, resolutionContext);
-      }
-
-      var lhsSimpleVariables = new HashSet<IVariable>();
-      foreach (var lhs in s.Lhss) {
-        if (lhs.Resolved != null) {
-          CheckIsLvalue(lhs.Resolved, resolutionContext);
-        } else {
-          Contract.Assert(reporter.ErrorCount > 0);
-        }
-        if (lhs.Resolved is IdentifierExpr ide) {
-          if (lhsSimpleVariables.Contains(ide.Var)) {
-            // syntactically forbid duplicate simple-variables on the LHS
-            reporter.Error(MessageSource.Resolver, lhs, $"variable '{ide.Var.Name}' occurs more than once as left-hand side of :|");
-          } else {
-            lhsSimpleVariables.Add(ide.Var);
-          }
-        }
-        // to ease in the verification of the existence check, only allow local variables as LHSs
-        if (s.AssumeToken == null && !(lhs.Resolved is IdentifierExpr)) {
-          reporter.Error(MessageSource.Resolver, lhs, "an assign-such-that statement (without an 'assume' clause) currently only supports local-variable LHSs");
-        }
-      }
-
-      ResolveExpression(s.Expr, resolutionContext);
-      ConstrainTypeExprBool(s.Expr, "type of RHS of assign-such-that statement must be boolean (got {0})");
-    }
-
     private void ResolveConcreteUpdateStmt(ConcreteUpdateStatement s, ResolutionContext resolutionContext) {
       Contract.Requires(resolutionContext != null);
 
       // First, resolve all LHS's and expression-looking RHS's.
       int errorCountBeforeCheckingLhs = reporter.Count(ErrorLevel.Error);
 
-      var lhsNameSet = new HashSet<string>();  // used to check for duplicate identifiers on the left (full duplication checking for references and the like is done during verification)
-      foreach (var lhs in s.Lhss) {
-        var ec = reporter.Count(ErrorLevel.Error);
-        ResolveExpression(lhs, resolutionContext);
-        if (ec == reporter.Count(ErrorLevel.Error)) {
-          if (lhs is SeqSelectExpr && !((SeqSelectExpr)lhs).SelectOne) {
-            reporter.Error(MessageSource.Resolver, lhs, "cannot assign to a range of array elements (try the 'forall' statement)");
-          }
-        }
-      }
+      s.ResolvePart(this, resolutionContext);
 
       // Resolve RHSs
-      if (s is AssignSuchThatStmt) {
-        ResolveAssignSuchThatStmt((AssignSuchThatStmt)s, resolutionContext);
-      } else if (s is UpdateStmt) {
+      if (s is UpdateStmt) {
         ResolveUpdateStmt((UpdateStmt)s, resolutionContext, errorCountBeforeCheckingLhs);
       } else if (s is AssignOrReturnStmt) {
         ResolveAssignOrReturnStmt((AssignOrReturnStmt)s, resolutionContext);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();
       }
-      ResolveAttributes(s, resolutionContext);
     }
     /// <summary>
     /// Resolve the RHSs and entire UpdateStmt (LHSs should already have been checked by the caller).
@@ -4473,8 +4428,8 @@ namespace Microsoft.Dafny {
           ResolveAttributes(local, resolutionContext);
         }
         // Resolve the AssignSuchThatStmt, if any
-        if (s.Update is AssignSuchThatStmt) {
-          ResolveConcreteUpdateStmt(s.Update, resolutionContext);
+        if (s.Update is AssignSuchThatStmt assignSuchThatStmt) {
+          assignSuchThatStmt.Resolve(this, resolutionContext);
         }
         // Check on "assumption" variables
         foreach (var local in s.Locals) {
