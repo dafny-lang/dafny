@@ -51,11 +51,11 @@ namespace DafnyPipeline.Test {
           ? AdjustNewlines(expectedProgramString)
           : removeTrailingNewlineRegex.Replace(programString, "");
 
-        ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
+        ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
         Microsoft.Dafny.Type.ResetScopes();
         BuiltIns builtIns = new BuiltIns();
         Parser.Parse(programNotIndented, "virtual", "virtual", module, builtIns, reporter);
-        var dafnyProgram = new Program("programName", module, builtIns, reporter);
+        var dafnyProgram = new Program("programName", module, builtIns, reporter, options);
         if (reporter.ErrorCount > 0) {
           var error = reporter.AllMessages[ErrorLevel.Error][0];
           Assert.False(true, $"{error.message}: line {error.token.line} col {error.token.col}");
@@ -74,11 +74,11 @@ namespace DafnyPipeline.Test {
         Assert.Equal(expectedProgram, reprinted);
 
         // Verify that the formatting is stable.
-        module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
+        module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
         Microsoft.Dafny.Type.ResetScopes();
         builtIns = new BuiltIns();
         Parser.Parse(reprinted, "virtual", "virtual", module, builtIns, reporter);
-        dafnyProgram = new Program("programName", module, builtIns, reporter);
+        dafnyProgram = new Program("programName", module, builtIns, reporter, options);
         Assert.Equal(0, reporter.ErrorCount);
         firstToken = dafnyProgram.GetFirstTopLevelToken();
         var reprinted2 = firstToken != null && firstToken.line > 0

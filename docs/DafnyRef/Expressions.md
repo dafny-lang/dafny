@@ -1,4 +1,4 @@
-# 21. Expressions {#sec-expressions}
+# 9. Expressions {#sec-expressions}
 
 Dafny expressions come in three flavors.
 - The bulk of expressions have no side-effects and can be used within
@@ -65,18 +65,18 @@ in order of increasing binding power.
  Primary Expressions      | 11 |
 
 
-## 21.1. Top-level expressions ([grammar](#g-top-level-expression)) {#sec-top-level-expression}
+## 9.1. Lemma-call expressions ([grammar](#g-top-level-expression)) {#sec-top-level-expression}
 
 Examples:
 <!-- %no-check -->
 ```dafny
-var a := 2*b; a*b
+var a := L(a,b); a*b
 ```
 
-This top-level expression has the form `S; E`.
+This expression has the form `S; E`.
 The type of the expression is the type of `E`.
-Typically `S` is a call to a lemma that introduces a fact necessary to establish properties of `E`.
-Such a lemma is permitted only in situations in which the expression itself is not terminated by a semicolon.
+`S` must be a lemma call (though the grammar appears more lenient).
+The lemma introduces a fact necessary to establish properties of `E`.
 
 Sometimes an expression will fail unless some relevant fact is known.
 In the following example the `F_Fails` function fails to verify
@@ -107,6 +107,8 @@ function F_Succeeds(n: nat): int
 }
 ```
 
+One restriction is that a lemma call in this form is permitted only in situations in which the expression itself is not terminated by a semicolon.
+
 A second restriction is that `E` is not always permitted to contain lambda expressions, such 
 as in the expressions that are the body of a lambda expression itself, function, method and iterator specifications,
 and if and while statements with guarded alternatives.
@@ -114,7 +116,9 @@ and if and while statements with guarded alternatives.
 A third restriction is that `E` is not always permitted to contain a bit-wise or (`|`) operator, 
 because it would be ambiguous with the vertical bar used in comprehension expressions.
 
-## 21.2. Equivalence Expressions ([grammar](#g-equivalence-expression)) {#sec-equivalence-expression}
+Note that the effect of the lemma call only extends to the succeeding expression `E` (which may be another `;` expression).
+
+## 9.2. Equivalence Expressions ([grammar](#g-equivalence-expression)) {#sec-equivalence-expression}
 
 Examples:
 <!-- %no-check -->
@@ -130,13 +134,13 @@ must also be boolean expressions. In that case each `<==>`
 operator tests for logical equality which is the same as
 ordinary equality (but with a different precedence).
 
-See [Section 6.1.1](#sec-equivalence-operator) for an explanation of the
+See [Section 5.2.1.1](#sec-equivalence-operator) for an explanation of the
 `<==>` operator as compared with the `==` operator.
 
 The `<==>` operator is commutative and associative: `A <==> B <==> C` and `(A <==> B) <==> C` and `A <==> (B <==> C)` and `C <==> B <==> A`
 are all equivalent and are all true iff an even number of operands are false.
 
-## 21.3. Implies or Explies Expressions ([grammar](#g-implies-expression)) {#sec-implies-expression}
+## 9.3. Implies or Explies Expressions ([grammar](#g-implies-expression)) {#sec-implies-expression}
 
 Examples:
 <!-- %no-check -->
@@ -146,10 +150,10 @@ A ==> B ==> C ==> D
 B <== A
 ```
 
-See [Section 6.1.3](#sec-implication-and-reverse-implication) for an explanation
+See [Section 5.2.1.3](#sec-implication-and-reverse-implication) for an explanation
 of the `==>` and `<==` operators.
 
-## 21.4. Logical Expressions ([grammar](#g-logical-expression)) {#sec-logical-expression}
+## 9.4. Logical Expressions ([grammar](#g-logical-expression)) {#sec-logical-expression}
 
 Examples:
 <!-- %no-check -->
@@ -179,10 +183,10 @@ operators are always where they should be.
 Note also that `&&` and `||` cannot be mixed without using parentheses:
 `A && B || C` is not permitted. Write `(A && B) || C` or `A && (B || C)` instead.
 
-See [Section 6.1.2](#sec-conjunction-and-disjunction) for an explanation
+See [Section 5.2.1.2](#sec-conjunction-and-disjunction) for an explanation
 of the `&&` and `||` operators.
 
-## 21.5. Relational Expressions ([grammar](#g-relational-expression)) {#sec-relational-expression}
+## 9.5. Relational Expressions ([grammar](#g-relational-expression)) {#sec-relational-expression}
 
 Examples:
 <!-- %no-check -->
@@ -202,17 +206,17 @@ As explained in [the section about basic types](#sec-basic-type), `==`, `!=`, ``
 are _chaining_.
 
 The `in` and `!in` operators apply to collection types as explained in
-[Section 9](#sec-collection-types) and represent membership or non-membership
+[Section 5.5](#sec-collection-types) and represent membership or non-membership
 respectively.
 
 The `!!` represents disjointness for sets and multisets as explained in
-[Section 9.1](#sec-sets) and [Section 9.2](#sec-multisets).
+[Section 5.5.1](#sec-sets) and [Section 5.5.2](#sec-multisets).
 
 `x ==#[k] y` is the prefix equality operator that compares
 coinductive values for equality to a nesting level of k, as
 explained in [the section about co-equality](#sec-co-equality).
 
-## 21.6. Bit Shifts ([grammar](#g-bit-shift-expression)) {#sec-bit-shift-expression}
+## 9.6. Bit Shifts ([grammar](#g-bit-shift-expression)) {#sec-bit-shift-expression}
 
 Examples:
 <!-- %no-check -->
@@ -229,7 +233,7 @@ bits in the bit-vector type, inclusive.
 
 The operations are left-associative: `a << i >> j` is `(a << i) >> j`.
 
-## 21.7. Terms ([grammar](#g-term)) {#sec-addition-expression}
+## 9.7. Terms ([grammar](#g-term)) {#sec-addition-expression}
 
 Examples:
 <!-- %no-check -->
@@ -240,10 +244,10 @@ x + y - z
 `Terms` combine `Factors` by adding or subtracting.
 Addition has these meanings for different types:
 
-* arithmetic addition for numeric types ([Section 6.2](#sec-numeric-types)])
-* union for sets and multisets ([Section 9.1](#sec-sets) and [Section 9.2](#sec-multisets))
-* concatenation for sequences ([Section 9.3](#sec-sequences))
-* map merging for maps ([Section 9.4](#sec-maps))
+* arithmetic addition for numeric types ([Section 5.2.2](#sec-numeric-types)])
+* union for sets and multisets ([Section 5.5.1](#sec-sets) and [Section 5.5.2](#sec-multisets))
+* concatenation for sequences ([Section 5.5.3](#sec-sequences))
+* map merging for maps ([Section 5.5.4](#sec-maps))
 
 Subtraction is 
 
@@ -251,10 +255,10 @@ Subtraction is
 * set or multiset subtraction for sets and multisets
 * domain subtraction for maps.
 
-Addition is commutative (except concatenation) and associative. Subtraction is neither: it groups to the left as expected:
+All addition operations are associative. Arithmetic addition and union are commutative. Subtraction is neither; it groups to the left as expected:
 `x - y -z` is `(x - y) -z`.
 
-## 21.8. Factors ([grammar](#g-factor)) {#sec-multiplication-expression}
+## 9.8. Factors ([grammar](#g-factor)) {#sec-multiplication-expression}
 
 Examples:
 <!-- %no-check -->
@@ -266,17 +270,17 @@ x % y
 
 A ``Factor`` combines expressions using multiplication,
 division, or modulus. For numeric types these are explained in
-[Section 6.2](#sec-numeric-types).
+[Section 5.2.2](#sec-numeric-types).
 As explained there, `/` and `%` on `int` values represent _Euclidean_
 integer division and modulus and not the typical C-like programming
 language operations.
 
 Only `*` has a non-numeric application. It represents set or multiset
-intersection as explained in [Section 9.1](#sec-sets) and [Section 9.2](#sec-multisets).
+intersection as explained in [Section 5.5.1](#sec-sets) and [Section 5.5.2](#sec-multisets).
 
 `*` is commutative and associative; `/` and `%` are neither but do group to the left.
 
-## 21.9. Bit-vector Operations ([grammar](#g-bit-vector-expression)) {#sec-bitvector-expression}
+## 9.9. Bit-vector Operations ([grammar](#g-bit-vector-expression)) {#sec-bitvector-expression}
 
 Examples:
 <!-- %no-check -->
@@ -290,7 +294,7 @@ x ^ y
 These operations take two bit-vector values of the same type, returning
 a value of the same type. The operations perform bit-wise _or_ (`|`),
 _and_ (`&`), and _exclusive-or_ (`^`). To perform bit-wise equality, use
-`^` and `!` (unary complement) together.
+`^` and `!` (unary complement) together. (`==` is boolean equality of the whole bit-vector.)
 
 These operations are associative and commutative but do not associate with each other.
 Use parentheses: `a & b | c` is illegal; use `(a & b) | c` or `a & (b | c)`
@@ -304,7 +308,7 @@ remedied: just enclose E in parentheses, as in `|(E)|`.
 The only type-correct way this can happen is if the expression is
 a comprehension, as in `| set x: int :: x | 0x101 |`.
 
-## 21.10. As (Conversion) and Is (type test) Expressions ([grammar](#g-as-is-expression)) {#sec-as-is-expression}
+## 9.10. As (Conversion) and Is (type test) Expressions ([grammar](#g-as-is-expression)) {#sec-as-is-expression}
 
 Examples:
 <!-- %no-check -->
@@ -314,7 +318,6 @@ i as bv8
 e is MyClass
 ```
 
-
 The `as` expression converts the given LHS to the type stated on the RHS,
 with the result being of the given type. The following combinations
 of conversions are permitted:
@@ -322,8 +325,8 @@ of conversions are permitted:
 * Any type to itself
 * Any int or real based numeric type or bit-vector type to another int or real based numeric type or bit-vector type
 * Any base type to a subset or newtype with that base
-* Any subset or newtype or to its base type or a subset or newtype of the same base
-* Any type to a subset of newtype that has the type as its base
+* Any subset or newtype to its base type or a subset or newtype of the same base
+* Any type to a subset or newtype that has the type as its base
 * Any trait to a class or trait that extends (perhaps recursively) that trait
 * Any class or trait to a trait extended by that class or trait
 
@@ -338,14 +341,15 @@ That is `- 5 as nat` is `(- 5) as nat` (which fails), whereas `a * b as nat`
 is `a * (b as nat)`. On the other hand, `- a[4]` is `- (a[4])`.
 
 The `is` expression is grammatically similar to the `as` expression, with the
-same binding power. The `is` expression is a run-time type test that
+same binding power. The `is` expression is a type test that
 returns a `bool` value indicating whether the LHS expression is a legal
 value of the RHS type. The expression can be used to check
 whether a trait value is of a particular class type. That is, the expression
 in effect checks the allocated type of a trait.
 
 The RHS type of an `is` expression can always be a supertype of the type of the LHS
-expression. Other than that, the RHS must be based on a reference type and the
+expression, in which case the result is trivally true. 
+Other than that, the RHS must be based on a reference type and the
 LHS expression must be assignable to the RHS type. Furthermore, in order to be
 compilable, the RHS type must not be a subset type other than a non-null reference
 type, and the type parameters of the RHS must be uniquely determined from the
@@ -375,23 +379,26 @@ For an expression `e` and type `t`, `e is t` is the condition determining whethe
 
 *The repertoire of types allowed in `is` tests may be expanded in the future.*
 
-## 21.11. Unary Expressions ([grammar](#g-unary-expression)) {#sec-unary-expression}
+## 9.11. Unary Expressions ([grammar](#g-unary-expression)) {#sec-unary-expression}
 
 Examples:
 <!-- %no-check -->
 ```dafny
-- x
+-x
 - - x
 ! x
 ```
 
-A unary expression applies either 
-logical complement (`!` -- [Section 6.1](#sec-booleans)),
-numeric negation (`-` -- [Section 6.2](#sec-numeric-types)), or
-bit-vector negation (`-` -- [Section 6.3](#sec-bit-vector-types))
+A unary expression applies 
+
+- logical complement (`!` -- [Section 5.2.1](#sec-booleans)),
+- bit-wise complement (`!` -- [Section 5.2.3](#sec-bit-vector-types)),
+- numeric negation (`-` -- [Section 5.2.2](#sec-numeric-types)), or
+- bit-vector negation (`-` -- [Section 5.2.3](#sec-bit-vector-types))
+
 to its operand.
 
-## 21.12. Primary Expressions ([grammar](#g-primary-expression)) {#sec-primary-expression}
+## 9.12. Primary Expressions ([grammar](#g-primary-expression)) {#sec-primary-expression}
 
 Examples:
 <!-- %no-check -->
@@ -399,6 +406,7 @@ Examples:
 true
 34
 M(i,j)
+b.c.d
 [1,2,3]
 {2,3,4}
 map[1 => 2, 3 => 4]
@@ -407,14 +415,11 @@ if b then 4 else 5
 ```
 
 After descending through all the binary and unary operators we arrive at
-the primary expressions, which are explained in subsequent sections. As
-can be seen, a number of these can be followed by 0 or more ``Suffix``es
+the primary expressions, which are explained in subsequent sections. 
+A number of these can be followed by 0 or more suffixes
 to select a component of the value.
 
-If the `allowLambda` is false then ``LambdaExpression``s are not
-recognized in this context.
-
-## 21.13. Lambda expressions ([grammar](#g-lambda-expression)) {#sec-lambda-expression}
+## 9.13. Lambda expressions ([grammar](#g-lambda-expression)) {#sec-lambda-expression}
 
 Examples:
 <!-- %no-check -->
@@ -426,7 +431,7 @@ _ => true
 x requires x > 0 => x-1
 ```
 
-See [Section 19.4](#sec-lambda-specification) for a description of specifications for lambda expressions.
+See [Section 7.4](#sec-lambda-specification) for a description of specifications for lambda expressions.
 
 In addition to named functions, Dafny supports expressions that define
 functions.  These are called _lambda (expression)s_ (some languages
@@ -478,7 +483,7 @@ of `F` looks like:
 x requires F.requires(x) reads F.reads(x) => F(x)
 ```
 
-## 21.14. Left-Hand-Side Expressions ([grammar](#g-lhs-expression)) {#sec-lhs-expression}
+## 9.14. Left-Hand-Side Expressions ([grammar](#g-lhs-expression)) {#sec-lhs-expression}
 
 Examples:
 <!-- %no-check -->
@@ -490,24 +495,16 @@ old(o.f).x
 ```
 
 A left-hand-side expression is only used on the left hand
-side of an [``UpdateStmt``](#sec-update-and-call-statement)
+side of an [Update statement](#sec-update-and-call-statement)
 or an [Update with Failure Statement](#sec-update-with-failure-statement).
 
-An example of the first (`NameSegment`) form is:
+An LHS can be
 
-<!-- %no-check -->
-```dafny
-    LibraryModule.F().x
-```
+- a simple identifier: `k`
+- an expression with a dot suffix: `this.x`, `f(k).y`
+- an expression with an array selection: `a[k]`, `f(a8)[6]`
 
-An example of the second (`ConstAtomExpression`) form is:
-
-<!-- %no-check -->
-```dafny
-    old(o.f).x
-```
-
-## 21.15. Right-Hand-Side Expressions ([grammar](#g-rhs-expression)) {#sec-rhs-expression}
+## 9.15. Right-Hand-Side Expressions ([grammar](#g-rhs-expression)) {#sec-rhs-expression}
 
 Examples: 
 <!-- %no-check -->
@@ -524,20 +521,22 @@ side-effects. Consequently such expressions
  can only be used within certain statements
 within methods, and not as general expressions or within functions or specifications.
 
-An ``Rhs`` is either array allocation, an object allocation,
-a havoc right-hand-side, or a simple expression, optionally followed
-by one or more ``Attribute``s.
+An RHS is either an array allocation, an object allocation,
+a havoc right-hand-side, a method call, or a simple expression, optionally followed
+by one or more attributes.
 
 Right-hand-side expressions (that are not just regular expressions) appear in the following constructs:
-[`ReturnStmt`](#sec-return-statement),
-[`YieldStmt`](#sec-yield-statement),
-[`UpdateStmt`](#sec-update-and-call-statement),
-[`UpdateFailureStmt`](#sec-update-with-failure-statement), or
-[`VarDeclStatement`](#sec-variable-declaration-statement).
-These are the only contexts in which arrays or objects may be
-allocated, or in which havoc may be stipulated.
 
-## 21.16. Array Allocation ([grammar](#g-array-allocation-expression)) {#sec-array-allocation}
+- [return statements](#sec-return-statement),
+- [yield statements](#sec-yield-statement),
+- [update statements](#sec-update-and-call-statement),
+- [update-with-failure statements](#sec-update-with-failure-statement), or
+- [variable declaration statements](#sec-variable-declaration-statement).
+
+These are the only contexts in which arrays or objects may be
+allocated or in which havoc may be stipulated.
+
+## 9.16. Array Allocation ([grammar](#g-array-allocation-expression)) {#sec-array-allocation}
 
 Examples:
 <!-- %no-check -->
@@ -549,7 +548,7 @@ new int[5](i => i*i)
 new int[2,3]((i,j) => i*j)
 ```
 
-This right-hand-side expression allocates a new single or multi-dimensional array (cf. [Section 14](#sec-array-type)).
+This right-hand-side expression allocates a new single or multi-dimensional array (cf. [Section 5.10](#sec-array-type)).
 The initialization portion is optional. One form is an
 explicit list of values, in which case the dimension is optional:
 <!-- %no-check -->
@@ -576,7 +575,7 @@ allocates a 640-by-480 two-dimensional array of `real`s. The initialization
 portion cannot give a display of elements like in the one-dimensional
 case, but it can use an initialization function. A function used to initialize
 a n-dimensional array requires a function from n `nat`s to a `T`, where `T`
-is element type of the array. Here is an example:
+is the element type of the array. Here is an example:
 <!-- %no-check -->
 ```dafny
 var diag := new int[30, 30]((i, j) => if i == j then 1 else 0);
@@ -588,13 +587,13 @@ used to specify a dimension or initialization value is ghost, then the
 elements of an array are non-ghost, an array allocated in a ghost
 context in effect cannot be changed after initialization.
 
-## 21.17. Object Allocation ([grammar](#g-object-allocation-expression)) {#sec-object-allocation}
+## 9.17. Object Allocation ([grammar](#g-object-allocation-expression)) {#sec-object-allocation}
 
 Examples:
 <!-- %no-check -->
 ```dafny
 new MyClass
-mew MyClass.Init
+new MyClass.Init
 new MyClass.Init(1,2,3)
 ```
 
@@ -602,7 +601,7 @@ This right-hand-side expression
 allocates a new object of a class type as explained
 in section [Class Types](#sec-class-types).
 
-## 21.18. Havoc Right-Hand-Side ([grammar](#g-havoc-expression)) {#sec-havoc-expression}
+## 9.18. Havoc Right-Hand-Side ([grammar](#g-havoc-expression)) {#sec-havoc-expression}
 
 Examples:
 <!-- %no-check -->
@@ -611,10 +610,11 @@ Examples:
 ```
 A havoc right-hand-side is just a `*` character.
 It produces an arbitrary value of its associated
-type. To obtain a more constrained arbitrary value the "assign-such-that"
-operator (`:|`) can be used. See [Section 20.6](#sec-update-and-call-statement).
+type. The "assign-such-that"
+operator (`:|`) can be used to obtain a more constrained arbitrary value. 
+See [Section 8.6](#sec-update-and-call-statement).
 
-## 21.19. Constant Or Atomic Expressions ([grammar](#g-atomic-expression)) {#sec-atomic-expression}
+## 9.19. Constant Or Atomic Expressions ([grammar](#g-atomic-expression)) {#sec-atomic-expression}
 
 Examples:
 <!-- %no-check -->
@@ -634,10 +634,18 @@ unchanged(x)
 fresh(e)
 ```
 
-These expressions represent either a constant of some type (a literal), or an
-atomic expression. They are never l-values.
+These expressions are never l-values. They include
 
-## 21.20. Literal Expressions ([grammar](#g-literal-expression)} {#sec-literal-expression}
+- [literal epxressions](#sec-literal-expression)
+- [parenthesized expressions](#sec-parenthesized-expression)
+- [`this` expressions](#sec-this-expression)
+- [fresh expressions](#sec-fresh-expression)
+- [allocated expressions](#sec-allocated-expression)
+- [unchanged expressions](#sec-unchanged-expression)
+- [old expressions](#sec-old-expression)
+- [cardinality expressions](#sec-cardinality-expression)
+
+## 9.20. Literal Expressions ([grammar](#g-literal-expression)} {#sec-literal-expression}
 
 Examples:
 <!-- %no-check -->
@@ -649,10 +657,10 @@ true
 "dafny"
 ```
 
-A literal expression is a boolean literal, a null object reference,
-an integer or real literal, a character or string literal.
+A literal expression is a null object reference or a boolean,
+integer, real, character or string literal.
 
-## 21.21. `this` Expression ([grammar](#g-this-expression)) {#sec-this-expression}
+## 9.21. `this` Expression ([grammar](#g-this-expression)) {#sec-this-expression}
 
 Examples:
 <!-- %no-check -->
@@ -664,7 +672,7 @@ The `this` token denotes the current object in the context of
 a constructor, instance method, or instance function.
 
 
-## 21.22. Old and Old@ Expressions ([grammar](#g-old-expression)) {#sec-old-expression}
+## 9.22. Old and Old@ Expressions ([grammar](#g-old-expression)) {#sec-old-expression}
 
 Examples:
 <!-- %no-check -->
@@ -676,7 +684,7 @@ old@L(c)
 An _old expression_ is used in postconditions or in the body of a method
 or in the body or specification of any two-state function or two-state lemma;
 an _old_ expression with a label is used only in the body of a method at a point
-where the label dominates its use in this expression.
+where the label dominates its use in the expression.
 
 `old(e)` evaluates
 the argument using the value of the heap on entry to the method;
@@ -840,7 +848,7 @@ class A {
   }
 }
 ```
-## 21.23. Fresh Expressions ([grammar](#g-fresh-expression)) {#sec-fresh-expression}
+## 9.23. Fresh Expressions ([grammar](#g-fresh-expression)) {#sec-fresh-expression}
 
 Examples:
 <!-- %no-check -->
@@ -853,6 +861,7 @@ fresh@L(e)
 the objects denoted by expression `e` were all
 freshly allocated since the time of entry to the enclosing method,
 or since [`label L:`](#sec-labeled-statement) in the variant `fresh@L(e)`.
+The argument is an object or set of objects.
 For example, consider this valid program:
 
 <!-- %check-verify -->
@@ -884,7 +893,7 @@ is a synonym of [`old(!allocated(e))`](#sec-allocated-expression)
 (respectively [`old@L(!allocated(e))`](#sec-allocated-expression))
 
 
-## 21.24. Allocated Expressions ([grammar](#g-allocated-expression)) {#sec-allocated-expression}
+## 9.24. Allocated Expressions ([grammar](#g-allocated-expression)) {#sec-allocated-expression}
 
 Examples:
 <!-- %no-check -->
@@ -932,7 +941,7 @@ If the expression `e` is of a reference type, then `!old(allocated(e))`
 is the same as [`fresh(e)`](#sec-fresh-expression).
 
 
-## 21.25. Unchanged Expressions ([grammar](#g-unchanged-expression)) {#sec-unchanged-expression}
+## 9.25. Unchanged Expressions ([grammar](#g-unchanged-expression)) {#sec-unchanged-expression}
 
 Examples:
 <!-- %no-check -->
@@ -952,10 +961,12 @@ c.x == old(c.x) && c.y == old(c.y)
 ```
 
 Each argument to `unchanged` can be a reference, a set of references, or
-a sequence of references. If it is a reference, it can be followed by
-`` `f``, where `f` is a field of the reference. This form expresses that the field `f`,
+a sequence of references, each optionally followed by a back-tick and field name. 
+This form with a frame field expresses that just the field `f`,
 not necessarily all fields, has the same value in the old and current
 state.
+If there is such a frame field, all the references must have the same type,
+which must have a field of that name.
 
 The optional `@`-label says to use the state at that label as the old-state instead of using
 the `old` state (the pre-state of the method). That is, using the example `c` from above, the expression
@@ -969,7 +980,7 @@ Each reference denoted by the arguments of `unchanged` must be non-null and
 must be allocated in the old-state of the expression.
 
 
-## 21.26. Cardinality Expressions ([grammar](#g-cardinality-expression)) {#sec-cardinality-expression}
+## 9.26. Cardinality Expressions ([grammar](#g-cardinality-expression)) {#sec-cardinality-expression}
 
 Examples:
 <!-- %no-check -->
@@ -983,9 +994,9 @@ finite set or sequence, the cardinality is the number of elements. For
 a multiset, the cardinality is the sum of the multiplicities of the
 elements. For a finite map, the cardinality is the cardinality of the
 domain of the map. Cardinality is not defined for infinite sets or infinite maps.
-For more information, see [Section 9](#sec-collection-types).
+For more information, see [Section 5.5](#sec-collection-types).
 
-## 21.27. Parenthesized Expression ([grammar](#g-parenthesized-expression)) {#sec-parenthesized-expression}
+## 9.27. Parenthesized Expressions ([grammar](#g-parenthesized-expression)) {#sec-parenthesized-expression}
 
 A parenthesized expression is a list of zero or more expressions
 enclosed in parentheses.
@@ -994,9 +1005,9 @@ If there is exactly one expression enclosed then the value is just
 the value of that expression.
 
 If there are zero or more than one, the result is a `tuple` value.
-See [Section 17](#sec-tuple-types).
+See [Section 5.13](#sec-tuple-types).
 
-## 21.28. Sequence Display Expression ([grammar](#g-sequence-display-expression)) {#sec-seq-comprehension}
+## 9.28. Sequence Display Expression ([grammar](#g-sequence-display-expression)) {#sec-seq-comprehension}
 
 Examples:
 <!-- %no-check -->
@@ -1021,12 +1032,12 @@ is a sequence with three elements in it.
 seq(k, n => n+1)
 ```
 is a sequence of k elements whose values are obtained by evaluating the
-second argument (a function) on the indices 0 up to k.
+second argument (a function, in this case a lambda expression) on the indices 0 up to k.
 
 See [this section](#sec-sequences) for more information on
 sequences.
 
-## 21.29. Set Display Expression ([grammar](#g-set-display-expression)) {#sec-set-display-expression}
+## 9.29. Set Display Expression ([grammar](#g-set-display-expression)) {#sec-set-display-expression}
 
 Examples:
 <!-- %no-check -->
@@ -1049,7 +1060,7 @@ For example
 {1, 2, 3}
 ```
 is a set with three elements in it.
-See [Section 9.1](#sec-sets) for more information on
+See [Section 5.5.1](#sec-sets) for more information on
 sets.
 
 A multiset display expression provides a way of constructing
@@ -1075,10 +1086,13 @@ var ms2 : multiset<int> := multiset(sq);
 assert ms == ms2;
 ```
 
-See [Section 9.2](#sec-multisets) for more information on
-multisets.
+Note that `multiset{1, 1}` is a multiset holding the value `1` with multiplicity 2,
+but in `multiset({1,1})` the multiplicity is 1, because the expression `{1,1}` is the set `{1}`,
+which is then converted to a multiset.
 
-## 21.30. Map Display Expression ([grammar](#g-map-display-expression)) {#sec-map-display-expression}
+See [Section 5.5.2](#sec-multisets) for more information on multisets.
+
+## 9.30. Map Display Expression ([grammar](#g-map-display-expression)) {#sec-map-display-expression}
 
 Examples:
 <!-- %no-check -->
@@ -1097,16 +1111,16 @@ const m := map[1 := "a", 2 := "b"];
 ghost const im := imap[1 := "a", 2 := "b"];
 ```
 
-See [Section 9.4](#sec-maps) for more details on maps and imaps.
+See [Section 5.5.4](#sec-maps) for more details on maps and imaps.
 
-## 21.31. Endless Expression ([grammar](#g-endless-expression)) {#sec-endless-expression}
+## 9.31. Endless Expression ([grammar](#g-endless-expression)) {#sec-endless-expression}
 
 _Endless expression_ gets it name from the fact that all its alternate
 productions have no terminating symbol to end them, but rather they
-all end with an ``Expression`` at the end. The various
+all end with an arbitrary expression at the end. The various
 endless expression alternatives are described in the following subsections.
 
-### 21.31.1. If Expression ([grammar](#g-if-expression)) {#sec-if-expression}
+### 9.31.1. If Expression ([grammar](#g-if-expression)) {#sec-if-expression}
 
 Examples:
 <!-- %no-check -->
@@ -1161,7 +1175,7 @@ In the example given, the binder for `x` has no constraining range, so the expre
 if a range is given, such as `var y := if x: int :| 0 <= x < 10 && P(x) then x else 0;`,
 then the `if` and `y` are no longer ghost, and `y` could be used, for example, in a `print` statement.
 
-### 21.31.2. Case and Extended Patterns ([grammar](#g-pattern)) {#sec-case-pattern}
+### 9.31.2. Case and Extended Patterns ([grammar](#g-pattern)) {#sec-case-pattern}
 
 Patterns are used for (possibly nested)
 pattern matching on inductive, coinductive or base type values.
@@ -1219,13 +1233,13 @@ They are bound to the corresponding values in the value being
 matched. (Thus, for example, one cannot repeat a bound variable to
 attempt to match a constructor that has two identical arguments.)
 
-### 21.31.3. Match Expression ([grammar](#g-match-expression)) {#sec-match-expression}
+### 9.31.3. Match Expression ([grammar](#g-match-expression)) {#sec-match-expression}
 
 A _match expression_ is used to conditionally evaluate and select an
 expression depending on the value of an algebraic type, i.e. an inductive
 type, a coinductive type, or a base type.
 
-All of the variables in the ``ExtendedPattern``s must be distinct.
+All of the variables in the patterns must be distinct.
 If types for the identifiers are not given then types are inferred
 from the types of the constructor's parameters. If types are
 given then they must agree with the types of the
@@ -1235,7 +1249,7 @@ The expression following the `match` keyword is called the
 _selector_. A match expression is evaluated by first evaluating the selector.
 The patterns of each match alternative are then compared, in order,
  with the resulting value until a matching pattern is found, as described in
-the [section on `CaseBinding`s](#sec-case-pattern).
+the [section on case bindings](#sec-case-pattern).
 If the constructor had
 parameters, then the actual values used to construct the selector
 value are bound to the identifiers in the identifier list.
@@ -1248,7 +1262,7 @@ Those braces are required if lemma or lambda expressions are used in the
 body of any match alternative; they may also be needed for disambiguation if
 there are nested match expressions.
 
-### 21.31.4. Quantifier Expression ([grammar](#g-quantifier-expression)) {#sec-quantifier-expression}
+### 9.31.4. Quantifier Expression ([grammar](#g-quantifier-expression)) {#sec-quantifier-expression}
 
 Examples:
 <!-- %no-check -->
@@ -1258,11 +1272,10 @@ forall x: nat | x < 10 :: x*x < 100
 exists x: int :: x * x == 25
 ```
 
-
 A _quantifier expression_ is a boolean expression that specifies that a
 given expression (the one following the `::`) is true for all (for
 **forall**) or some (for **exists**) combination of values of the
-quantified variables, namely those in the ``QuantifierDomain``.
+quantified variables, namely those in the given quantifier domain.
 See [Section 2.6.4](#sec-quantifier-domains) for more details on quantifier domains.
 
 Here are some examples:
@@ -1281,7 +1294,7 @@ attempts to infer their types from the context of the expressions.
 It this is not possible, the program is in error.
 
 
-### 21.31.5. Set Comprehension Expressions ([grammar](#g-set-comprehension-expression)) {#sec-set-comprehension-expression}
+### 9.31.5. Set Comprehension Expressions ([grammar](#g-set-comprehension-expression)) {#sec-set-comprehension-expression}
 
 Examples:
 <!-- %check-resolve -->
@@ -1333,9 +1346,9 @@ For example,
 
 <!-- %no-check -->
 ```dafny
-var S := set x:nat, y:nat | x < 2 && y < 2 :: (x, y)
+var S := set x:nat, y:nat | x < y < 3 :: (x, y)
 ```
-yields `S == {(0, 0), (0, 1), (1, 0), (1,1) }`
+yields `S == {(0, 1), (0, 2), (1, 2) }`
 
 The types on the quantified variables are optional and if not given Dafny
 will attempt to infer them from the contexts in which they are used in the
@@ -1382,7 +1395,7 @@ at the point in program execution that `test` is evaluated. This could be
 no instances, one per value of `x.i` in the stated range, multiple instances
 of `I` for each value of `x.i`, or any other combination.
 
-### 21.31.6. Statements in an Expression ([grammar](#g-statement-in-expression)) {#sec-statement-in-an-expression}
+### 9.31.6. Statements in an Expression ([grammar](#g-statement-in-expression)) {#sec-statement-in-an-expression}
 
 Examples:
 <!-- %no-check -->
@@ -1406,7 +1419,7 @@ assume x != 0; 10/x
 
 `Assert`, `assume`, `expect`, `reveal` and `calc` statements can be used in this way.
 
-### 21.31.7. Let and Let or Fail Expression ([grammar](#g-let-expression)) {#sec-let-expression}
+### 9.31.7. Let and Let or Fail Expression ([grammar](#g-let-expression)) {#sec-let-expression}
 
 Examples:
 <!-- %no-check -->
@@ -1449,13 +1462,14 @@ function GhostF(z: Stuff): int
 
 The Let expression has a failure variant
 that simply uses `:-` instead of `:=`. This Let-or-Fail expression also permits propagating
-failure results. However, in statements ([Section 20.7](#sec-update-with-failure-statement)), failure results in
+failure results. However, in statements ([Section 8.7](#sec-update-with-failure-statement)), failure results in
 immediate return from the method; expressions do not have side effects or immediate return
 mechanisms. Rather, if the expression to the right of `:-` results in a failure value `V`,
 the overall expression returns `V.PropagateFailure()`; if there is no failure, the expression following the 
 semicolon is returned. Note that these two possible return values must have the same type (or be 
 implicitly convertible to the same type). Typically that means that `tmp.PropagateFailure()` is a failure value and
-`E` is a value-carrying success value, both of the same failure-compatible type, as described in [Section 20.7](#sec-update-with-failure-statement).
+`E` is a value-carrying success value, both of the same failure-compatible type, 
+as described in [Section 8.7](#sec-update-with-failure-statement).
 
 The expression `:- V; E` is desugared into the _expression_
 <!-- %no-check -->
@@ -1487,7 +1501,7 @@ else var v, v1 := tmp.Extract(), V1; E
 So, if tmp is a failure value, then a corresponding failure value is propagated along; otherwise, the expression
 is evaluated as normal.
 
-### 21.31.8. Map Comprehension Expression ([grammar](#g-map-comprehension-expression)) {#sec-map-comprehension-expression}
+### 9.31.8. Map Comprehension Expression ([grammar](#g-map-comprehension-expression)) {#sec-map-comprehension-expression}
 
 Examples:
 <!-- %no-check -->
@@ -1529,7 +1543,7 @@ method test()
 ```
 `m` maps `2` to `3`, `4` to `6`, and so on.
 
-## 21.32. Name Segment ([grammar](#g-name-segment)) {#sec-name-segment}
+## 9.32. Name Segment ([grammar](#g-name-segment)) {#sec-name-segment}
 
 Examples:
 <!-- %no-check -->
@@ -1550,12 +1564,12 @@ If the identifier is for a generic entity, it is followed by
 a ``GenericInstantiation`` which provides actual types for
 the type parameters.
 
-To reference a prefix predicate (see [Section 18.3.4](#sec-copredicates)) or
-prefix lemma (see [Section 18.3.5.3](#sec-prefix-lemmas)), the identifier
+To reference a prefix predicate (see [Section 5.14.3.4](#sec-copredicates)) or
+prefix lemma (see [Section 5.14.3.5.3](#sec-prefix-lemmas)), the identifier
 must be the name of the greatest predicate or greatest lemma and it must be
 followed by a [_hash call_](#sec-hash-call).
 
-## 21.33. Hash call ([grammar](#g-hash-call)) {#sec-hash-call}
+## 9.33. Hash call ([grammar](#g-hash-call)) {#sec-hash-call}
 
 A _hash call_  is used to call the prefix for a greatest predicate or greatest lemma.
 In the non-generic case, just insert `"#[k]"` before the call argument
@@ -1607,16 +1621,15 @@ greatest lemma {:induction false} Theorem0<T>(s: T)
 ```
 
 where the ``HashCall`` is `"Theorem0#<T>[_k-1](s);"`.
-See [Section 18.3.4](#sec-copredicates) and [Section 18.3.5.3](#sec-prefix-lemmas).
+See [Section 5.14.3.4](#sec-copredicates) and [Section 5.14.3.5.3](#sec-prefix-lemmas).
 
-## 21.34. Suffix ([grammar](#g-suffix)) {#sec-suffix}
+## 9.34. Suffix ([grammar](#g-suffix)) {#sec-suffix}
 
-
-The ``Suffix`` non-terminal describes ways of deriving a new value from
+A _suffix_ describes ways of deriving a new value from
 the entity to which the suffix is appended. The several kinds
 of suffixes are described below.
 
-### 21.34.1. Augmented Dot Suffix ([grammar](#g-augmented-dot-suffix)) {#sec-augmented-dot-suffix}
+### 9.34.1. Augmented Dot Suffix ([grammar](#g-augmented-dot-suffix)) {#sec-augmented-dot-suffix}
 
 Examples: (expression with suffix)
 <!-- %no-check -->
@@ -1627,7 +1640,7 @@ a.b#[k]
 a.b#<int>[k]
 ```
 
-An augmented dot suffix consists of a simple [_dot suffix](#sec-identifier-variations) optionally
+An augmented dot suffix consists of a simple [dot suffix](#sec-identifier-variations) optionally
 followed by either
 
 * a ``GenericInstantiation`` (for the case where the item
@@ -1636,7 +1649,7 @@ selected by the ``DotSuffix`` is generic), or
   or prefix lemma. The result is the result of calling the prefix predicate
   or prefix lemma.
 
-### 21.34.2. Datatype Update Suffix ([grammar](#g-datatype-update-suffix)) {#sec-datatype-update-suffix}
+### 9.34.2. Datatype Update Suffix ([grammar](#g-datatype-update-suffix)) {#sec-datatype-update-suffix}
 
 Examples: (expression with suffix)
 <!-- %no-check -->
@@ -1649,8 +1662,8 @@ a.(0 := e1)
 A _datatype update suffix_ is used to produce a new datatype value
 that is the same as an old datatype value except that the
 value corresponding to a given destructor has the specified value.
-In a ``MemberBindingUpdate``, the ``ident`` or ``digits`` is the
-name of a destructor (i.e. formal parameter name) for one of the
+In a _member binding update_, the given identifier (or digit sequence) is the
+name of a destructor (i.e. the formal parameter name) for one of the
 constructors of the datatype. The expression to the right of the
 `:=` is the new value for that formal.
 
@@ -1690,7 +1703,7 @@ module NewSyntax {
 }
 ```
 
-### 21.34.3. Subsequence Suffix ([grammar](#g-subsequence-suffix)) {#sec-subsequence-suffix}
+### 9.34.3. Subsequence Suffix ([grammar](#g-subsequence-suffix)) {#sec-subsequence-suffix}
 
 Examples: (with leading expression)
 <!-- %no-check -->
@@ -1707,7 +1720,11 @@ example, expression `s[lo..hi]` for sequence `s`, and integer-based
 numerics `lo` and `hi` satisfying `0 <= lo <= hi <= |s|`. See
 [the section about other sequence expressions](#sec-other-sequence-expressions) for details.
 
-### 21.34.4. Subsequence Slices Suffix ([grammar](#g-subsequence-slices-suffix)) {#sec-subsequence-slices-suffix}
+A subsequence suffix applied to an array produces a _sequence_ consisting of 
+the values of the designated elements. A concise way of converting a whole 
+array to a sequence is to write `a[..]`.
+
+### 9.34.4. Subsequence Slices Suffix ([grammar](#g-subsequence-slices-suffix)) {#sec-subsequence-slices-suffix}
 
 Examples: (with leading expression)
 <!-- %no-check -->
@@ -1721,7 +1738,7 @@ Applying a _subsequence slices suffix_ to a sequence produces a
 sequence of subsequences of the original sequence.
 See [the section about other sequence expressions](#sec-other-sequence-expressions) for details.
 
-### 21.34.5. Sequence Update Suffix ([grammar](#g-sequence-update-suffix)) {#sec-sequence-update-suffix}
+### 9.34.5. Sequence Update Suffix ([grammar](#g-sequence-update-suffix)) {#sec-sequence-update-suffix}
 
 Examples:
 <!-- %no-check -->
@@ -1739,7 +1756,7 @@ The index `i` can have any integer- or bit-vector-based type
 conversion, as if an `as int` were appended to the index expression).
 The expression `s[i := v]` has the same type as `s`.
 
-### 21.34.6. Selection Suffix ([grammar](#g-selection-suffix)) {#sec-selection-suffix}
+### 9.34.6. Selection Suffix ([grammar](#g-selection-suffix)) {#sec-selection-suffix}
 
 Examples:
 <!-- %no-check -->
@@ -1762,7 +1779,7 @@ type
 (this is one situation in which Dafny implements implicit
 conversion, as if an `as int` were appended to the index expression).
 
-### 21.34.7. Argument List Suffix ([grammar](#g-argument-list-suffix)) {#sec-argument-list-suffix}
+### 9.34.7. Argument List Suffix ([grammar](#g-argument-list-suffix)) {#sec-argument-list-suffix}
 
 Examples:
 <!-- %no-check -->
@@ -1778,10 +1795,10 @@ to be called and the result is the result of the call.
 
 Note that method calls may only appear in [right-hand-side](#sec-rhs-expression)
 locations, whereas function calls may appear in expressions and specifications;
-this distinction can be made oly during name and type resolution, not by the
+this distinction can be made only during name and type resolution, not by the
 parser.
 
-## 21.35. Expression Lists ([grammar](#g-expression-list)) {#sec-expression-list}
+## 9.35. Expression Lists ([grammar](#g-expression-list)) {#sec-expression-list}
 
 Examples:
 <!-- %no-check -->
@@ -1794,14 +1811,14 @@ a, b
 An expression list is a comma-separated sequence of expressions, used, for example,
 as actual araguments in a method or function call or in parallel assignment.
 
-## 21.36. Parameter Bindings ([grammar](#g-parameter-bindings)) {#sec-parameter-bindings}
+## 9.36. Parameter Bindings ([grammar](#g-parameter-bindings)) {#sec-parameter-bindings}
 
 Examples: 
 <!-- %no-check -->
 ```dafny
 a
 a, b
-a, optimze := b
+a, optimize := b
 ```
 
 Method calls, object-allocation calls (`new`), function calls, and
@@ -1820,7 +1837,7 @@ value for each optional parameter, and must never name
 non-existent formals. Any optional parameter that is not given a value
 takes on the default value declared in the callee for that optional parameter.
 
-## 21.37. Formal Parameters and Default-Value Expressions
+## 9.37. Formal Parameters and Default-Value Expressions
 
 The formal parameters of a method, constructor in a class, iterator,
 function, or datatype constructor can be declared with an expression
@@ -1845,7 +1862,7 @@ expressions may not read anything. A default-value expression may not be
 involved in any recursive or mutually recursive calls with the enclosing
 declaration.
 
-## 21.38. Compile-Time Constants {#sec-compile-time-constants}
+## 9.38. Compile-Time Constants {#sec-compile-time-constants}
 
 In certain situations in Dafny it is helpful to know what the value of a
 constant is during program analysis, before verification or execution takes
@@ -1886,7 +1903,7 @@ In Dafny, the following expressions are compile-time constants[^CTC], recursivel
 
 [^CTC]: This set of operations that are constant-folded may be enlarged in future versions of `dafny`.
 
-## 21.39. List of specification expressions {#sec-list-of-specification-expressions}
+## 9.39. List of specification expressions {#sec-list-of-specification-expressions}
 
 The following is a list of expressions that can only appear in specification contexts or in ghost blocks.
 
