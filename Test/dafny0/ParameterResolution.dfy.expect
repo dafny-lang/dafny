@@ -1,5 +1,5 @@
-ParameterResolution.dfy(17,15): Error: wrong number of arguments (function 'F' expects 3, got 2)
-ParameterResolution.dfy(18,15): Error: wrong number of arguments (function 'F' expects 3, got 4)
+ParameterResolution.dfy(17,15): Error: wrong number of arguments (got 2, but function 'F' expects 3: (x: int, y: int, z: int))
+ParameterResolution.dfy(18,15): Error: wrong number of arguments (got 4, but function 'F' expects 3: (x: int, y: int, z: int))
 ParameterResolution.dfy(19,27): Error: duplicate binding for parameter name 'y'
 ParameterResolution.dfy(19,15): Error: function parameter 'z' at index 2 requires an argument of type int
 ParameterResolution.dfy(20,19): Error: the parameter named 'x' is already given positionally
@@ -37,15 +37,15 @@ ParameterResolution.dfy(86,52): Error: a call to a ghost function is allowed onl
 ParameterResolution.dfy(88,58): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function without the 'ghost' keyword)
 ParameterResolution.dfy(95,89): Error: ghost variables such as x are allowed only in specification contexts. x was inferred to be ghost based on its declaration or initialization.
 ParameterResolution.dfy(97,82): Error: ghost variables such as x are allowed only in specification contexts. x was inferred to be ghost based on its declaration or initialization.
-ParameterResolution.dfy(127,14): Error: wrong number of arguments (function 'N' expects 1, got 0)
-ParameterResolution.dfy(133,14): Error: wrong number of arguments (function 'O' expects 1, got 0)
-ParameterResolution.dfy(147,12): Error: wrong number of arguments (function 'O' expects 1, got 0)
+ParameterResolution.dfy(127,14): Error: wrong number of arguments (got 0, but function 'N' expects 1: (x: int))
+ParameterResolution.dfy(133,14): Error: wrong number of arguments (got 0, but function 'O' expects 1: (x: int))
+ParameterResolution.dfy(147,12): Error: wrong number of arguments (got 0, but function 'O' expects 1: (x: int))
 ParameterResolution.dfy(161,13): Error: a refining formal parameter ('x') in a refinement module is not allowed to give a default-value expression
 ParameterResolution.dfy(163,13): Error: a refining formal parameter ('x') in a refinement module is not allowed to give a default-value expression
 ParameterResolution.dfy(172,14): Error: a refining formal parameter ('x') in a refinement module is not allowed to give a default-value expression
 ParameterResolution.dfy(174,12): Error: a refining formal parameter ('x') in a refinement module is not allowed to give a default-value expression
-ParameterResolution.dfy(169,12): Error: wrong number of arguments (function 'O' expects 1, got 0)
-ParameterResolution.dfy[RefinementB](147,12): Error: wrong number of arguments (function 'O' expects 1, got 0)
+ParameterResolution.dfy(169,12): Error: wrong number of arguments (got 0, but function 'O' expects 1: (x: int))
+ParameterResolution.dfy[RefinementB](147,12): Error: wrong number of arguments (got 0, but function 'O' expects 1: (x: int))
 ParameterResolution.dfy(197,26): Error: type parameter 'X' (inferred to be '?') in the function call to 'F' could not be determined
 ParameterResolution.dfy(197,26): Error: type parameter 'X' (inferred to be '?') in the function call to 'F' could not be determined
 ParameterResolution.dfy(198,37): Error: type parameter 'X' (inferred to be '?') in the function call to 'F' could not be determined
@@ -64,7 +64,7 @@ ParameterResolution.dfy(217,33): Error: old expressions are not allowed in this 
 ParameterResolution.dfy(225,14): Error: the name 'Nothing' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Ax.Nothing')
 ParameterResolution.dfy(226,14): Error: the name 'Nothing' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Ax.Nothing')
 ParameterResolution.dfy(227,14): Error: the name 'Nothing' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Ax.Nothing')
-ParameterResolution.dfy(239,17): Error: wrong number of arguments (datatype constructor 'Create' expects at most 1, got 2)
+ParameterResolution.dfy(239,17): Error: wrong number of arguments (got 2, but datatype constructor 'Create' expects at most 1: (x: int))
 ParameterResolution.dfy(246,5): Error: method in-parameter 'a' at index 0 requires an argument of type int
 ParameterResolution.dfy(246,5): Error: method in-parameter 'b' at index 1 requires an argument of type int
 ParameterResolution.dfy(247,5): Error: method in-parameter 'a' at index 0 requires an argument of type int
@@ -86,7 +86,7 @@ ParameterResolution.dfy(313,11): Error: nameonly parameter 'b' must be passed us
 ParameterResolution.dfy(313,16): Error: the parameter named 'b' is already given positionally
 ParameterResolution.dfy(314,21): Error: duplicate binding for parameter name 'b'
 ParameterResolution.dfy(323,16): Error: nameonly parameter 'b' must be passed using a name binding; it cannot be passed positionally
-ParameterResolution.dfy(328,15): Error: wrong number of arguments (least predicate 'LP' expects at least 2, got 1)
+ParameterResolution.dfy(328,15): Error: wrong number of arguments (got 1, but least predicate 'LP' expects at least 2: (a: int, b: int, c: int))
 ParameterResolution.dfy(329,15): Error: least predicate parameter 'b' at index 1 requires an argument of type int
 ParameterResolution.dfy(333,36): Error: the parameter named 'a' is already given positionally
 ParameterResolution.dfy(336,21): Error: nameonly parameter 'u' must be passed using a name binding; it cannot be passed positionally

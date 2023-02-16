@@ -228,9 +228,9 @@ lemma ShowExists(a: int, b: int) returns (d: int)
   requires a > 0 && b > 0
   ensures DividesBoth(d, a, b) && forall m :: DividesBoth(m, a, b) ==> m <= d;
 {
-  forall
-    ensures exists d :: DividesBoth(d, a, b)
-  {
+  assert
+    exists d :: DividesBoth(d, a, b)
+  by {
     OneDividesAnything(a);
     OneDividesAnything(b);
     assert Divides(1, a);
