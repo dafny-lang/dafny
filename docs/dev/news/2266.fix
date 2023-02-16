@@ -1,1 +1,1 @@
-Fix Dafny to Boogie translation of FunctionHandles
+Fix translation of Dafny FunctionHandles to Boogie
