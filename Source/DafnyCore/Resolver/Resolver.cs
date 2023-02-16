@@ -2706,7 +2706,7 @@ namespace Microsoft.Dafny {
           allTypeParameters.PushMarker();
           ResolveTypeParameters(currentClass.TypeArgs, false, currentClass);
           ResolveTypeParameters(prefixLemma.TypeArgs, false, prefixLemma);
-          ResolveMethod(prefixLemma);
+          prefixLemma.Resolve(this);
           allTypeParameters.PopMarker();
           currentClass = null;
           new CheckTypeInferenceVisitor(this).VisitMethod(prefixLemma);
@@ -4965,7 +4965,7 @@ namespace Microsoft.Dafny {
     }
 
     TopLevelDeclWithMembers currentClass;
-    Method currentMethod;
+    public Method currentMethod;
     readonly Scope<TypeParameter>/*!*/ allTypeParameters = new Scope<TypeParameter>();
     public readonly Scope<IVariable>/*!*/ scope = new Scope<IVariable>();
     Scope<Statement>/*!*/ enclosingStatementLabels = new Scope<Statement>();
@@ -5740,8 +5740,6 @@ namespace Microsoft.Dafny {
       }
       scope.PopMarker();
     }
-
-    public enum FrameExpressionUse { Reads, Modifies, Unchanged }
 
     /// <summary>
     /// This method can be called even if the resolution of "fe" failed; in that case, this method will
@@ -7665,4 +7663,6 @@ namespace Microsoft.Dafny {
       return base.Traverse(e, field, parent);
     }
   }
+
+  public enum FrameExpressionUse { Reads, Modifies, Unchanged }
 }

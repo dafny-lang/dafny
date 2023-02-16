@@ -6877,9 +6877,9 @@ namespace Microsoft.Dafny {
         bool fieldGranularity = true;
         bool objectGranularity = !fieldGranularity;
         // the frame condition, which is free since it is checked with every heap update and call
-        boilerplate.Add(new BoilerplateTriple(tok, true, FrameCondition(tok, modifiesClause, canAllocate, Resolver.FrameExpressionUse.Modifies, etranPre, etran, etranMod, objectGranularity), null, "frame condition: object granularity"));
+        boilerplate.Add(new BoilerplateTriple(tok, true, FrameCondition(tok, modifiesClause, canAllocate, FrameExpressionUse.Modifies, etranPre, etran, etranMod, objectGranularity), null, "frame condition: object granularity"));
         if (modifiesClause.Exists(fe => fe.FieldName != null)) {
-          boilerplate.Add(new BoilerplateTriple(tok, true, FrameCondition(tok, modifiesClause, canAllocate, Resolver.FrameExpressionUse.Modifies, etranPre, etran, etranMod, fieldGranularity), null, "frame condition: field granularity"));
+          boilerplate.Add(new BoilerplateTriple(tok, true, FrameCondition(tok, modifiesClause, canAllocate, FrameExpressionUse.Modifies, etranPre, etran, etranMod, fieldGranularity), null, "frame condition: field granularity"));
         }
         // HeapSucc(S1, S2) or HeapSuccGhost(S1, S2)
         Bpl.Expr heapSucc = HeapSucc(etranPre.HeapExpr, etran.HeapExpr, isGhostContext);
@@ -6902,7 +6902,7 @@ namespace Microsoft.Dafny {
     ///      if it's in the frame, then it is unchanged,
     ///      and if it has a field designation, then furthermore 'alloc' is unchanged
     /// </summary>
-    Bpl.Expr/*!*/ FrameCondition(IToken/*!*/ tok, List<FrameExpression/*!*/>/*!*/ frame, bool canAllocate, Resolver.FrameExpressionUse use,
+    Bpl.Expr/*!*/ FrameCondition(IToken/*!*/ tok, List<FrameExpression/*!*/>/*!*/ frame, bool canAllocate, FrameExpressionUse use,
       ExpressionTranslator/*!*/ etranPre, ExpressionTranslator/*!*/ etran, ExpressionTranslator/*!*/ etranMod, bool fieldGranularity) {
       Contract.Requires(tok != null);
       Contract.Requires(etran != null);
@@ -6976,12 +6976,12 @@ namespace Microsoft.Dafny {
       }
 
       Bpl.Expr ante = Bpl.Expr.Neq(o, predef.Null);
-      if (canAllocate && use == Resolver.FrameExpressionUse.Modifies) {
+      if (canAllocate && use == FrameExpressionUse.Modifies) {
         ante = Bpl.Expr.And(ante, etranMod.IsAlloced(tok, o));
       }
       var eq = Bpl.Expr.Eq(heapOF, preHeapOF);
-      var ofInFrame = InRWClause(tok, o, f, frame, use == Resolver.FrameExpressionUse.Unchanged, etranMod, null, null);
-      Bpl.Expr consequent = use == Resolver.FrameExpressionUse.Modifies ? Bpl.Expr.Or(eq, ofInFrame) : Bpl.Expr.Imp(ofInFrame, eq);
+      var ofInFrame = InRWClause(tok, o, f, frame, use == FrameExpressionUse.Unchanged, etranMod, null, null);
+      Bpl.Expr consequent = use == FrameExpressionUse.Modifies ? Bpl.Expr.Or(eq, ofInFrame) : Bpl.Expr.Imp(ofInFrame, eq);
 
       var tr = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { heapOF });
       return new Bpl.ForallExpr(tok, typeVars, quantifiedVars, null, tr, Bpl.Expr.Imp(ante, consequent));

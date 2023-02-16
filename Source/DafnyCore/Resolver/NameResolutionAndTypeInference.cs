@@ -159,7 +159,7 @@ namespace Microsoft.Dafny {
         AddAssignableConstraint(tok, lhs, rhs, errMsgFormat);
       }
     }
-    void AddAssignableConstraint(IToken tok, Type lhs, Type rhs, string errMsgFormat) {
+    public void AddAssignableConstraint(IToken tok, Type lhs, Type rhs, string errMsgFormat) {
       Contract.Requires(tok != null);
       Contract.Requires(lhs != null);
       Contract.Requires(rhs != null);
@@ -244,7 +244,7 @@ namespace Microsoft.Dafny {
     /// Upon failure, reports errors.
     /// Clears all constraints.
     /// </summary>
-    void SolveAllTypeConstraints() {
+    public void SolveAllTypeConstraints() {
       PrintTypeConstraintState(0);
       PartiallySolveTypeConstraints(true);
       PrintTypeConstraintState(1);
@@ -1124,7 +1124,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(msgArgs != null);
       return ConstrainSubtypeRelation(super, sub, exprForToken.tok, msg, msgArgs);
     }
-    private void ConstrainTypeExprBool(Expression e, string msg) {
+
+    public void ConstrainTypeExprBool(Expression e, string msg) {
       Contract.Requires(e != null);
       Contract.Requires(msg != null);  // expected to have a {0} part
       ConstrainSubtypeRelation(Type.Bool, e.Type, e, msg, e.Type);
@@ -3278,12 +3279,12 @@ namespace Microsoft.Dafny {
           var ec = reporter.Count(ErrorLevel.Error);
           allTypeParameters.PushMarker();
           ResolveTypeParameters(method.TypeArgs, false, method);
-          ResolveMethod(method);
+          method.Resolve(this);
           allTypeParameters.PopMarker();
           if (method is ExtremeLemma { PrefixLemma: { } prefixLemma } && ec == reporter.Count(ErrorLevel.Error)) {
             allTypeParameters.PushMarker();
             ResolveTypeParameters(prefixLemma.TypeArgs, false, prefixLemma);
-            ResolveMethod(prefixLemma);
+            prefixLemma.Resolve(this);
             allTypeParameters.PopMarker();
           }
 
@@ -3432,7 +3433,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(f.Body != null && !f.IsGhost); // assured by the parser and other callers of the Function constructor
         var method = f.ByMethodDecl;
         if (method != null) {
-          ResolveMethod(method);
+          method.Resolve(this);
         } else {
           // method should have been filled in by now,
           // unless there was a function by method and a method of the same name
@@ -3444,7 +3445,7 @@ namespace Microsoft.Dafny {
       DafnyOptions.O.WarnShadowing = warnShadowingOption; // restore the original warnShadowing value
     }
 
-    void ResolveFrameExpressionTopLevel(FrameExpression fe, FrameExpressionUse use, ICodeContext codeContext) {
+    public void ResolveFrameExpressionTopLevel(FrameExpression fe, FrameExpressionUse use, ICodeContext codeContext) {
       ResolveFrameExpression(fe, use, new ResolutionContext(codeContext, false));
     }
 
@@ -3479,124 +3480,6 @@ namespace Microsoft.Dafny {
           Contract.Assert(ctype != null && ctype.ResolvedClass != null);  // follows from postcondition of ResolveMember
           fe.Field = (Field)member;
         }
-      }
-    }
-
-    /// <summary>
-    /// Assumes type parameters have already been pushed
-    /// </summary>
-    void ResolveMethod(Method m) {
-      Contract.Requires(m != null);
-      Contract.Requires(AllTypeConstraints.Count == 0);
-      Contract.Ensures(AllTypeConstraints.Count == 0);
-
-      try {
-        currentMethod = m;
-
-        // make note of the warnShadowing attribute
-        bool warnShadowingOption = DafnyOptions.O.WarnShadowing;  // save the original warnShadowing value
-        bool warnShadowing = false;
-        if (Attributes.ContainsBool(m.Attributes, "warnShadowing", ref warnShadowing)) {
-          DafnyOptions.O.WarnShadowing = warnShadowing;  // set the value according to the attribute
-        }
-
-        // Add in-parameters to the scope, but don't care about any duplication errors, since they have already been reported
-        scope.PushMarker();
-        if (m.IsStatic || m is Constructor) {
-          scope.AllowInstance = false;
-        }
-        foreach (Formal p in m.Ins) {
-          scope.Push(p.Name, p);
-        }
-        ResolveParameterDefaultValues(m.Ins, new ResolutionContext(m, m is TwoStateLemma));
-
-        // Start resolving specification...
-        foreach (AttributedExpression e in m.Req) {
-          ResolveAttributes(e, new ResolutionContext(m, m is TwoStateLemma));
-          ResolveExpression(e.E, new ResolutionContext(m, m is TwoStateLemma));
-          Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
-          ConstrainTypeExprBool(e.E, "Precondition must be a boolean (got {0})");
-        }
-
-        ResolveAttributes(m.Mod, new ResolutionContext(m, false));
-        foreach (FrameExpression fe in m.Mod.Expressions) {
-          ResolveFrameExpressionTopLevel(fe, FrameExpressionUse.Modifies, m);
-          if (m.IsLemmaLike) {
-            reporter.Error(MessageSource.Resolver, fe.tok, "{0}s are not allowed to have modifies clauses", m.WhatKind);
-          } else if (m.IsGhost) {
-            DisallowNonGhostFieldSpecifiers(fe);
-          }
-        }
-        ResolveAttributes(m.Decreases, new ResolutionContext(m, false));
-        foreach (Expression e in m.Decreases.Expressions) {
-          ResolveExpression(e, new ResolutionContext(m, m is TwoStateLemma));
-          // any type is fine
-        }
-
-        if (m is Constructor) {
-          scope.PopMarker();
-          // start the scope again, but this time allowing instance
-          scope.PushMarker();
-          foreach (Formal p in m.Ins) {
-            scope.Push(p.Name, p);
-          }
-        }
-
-        // Add out-parameters to a new scope that will also include the outermost-level locals of the body
-        // Don't care about any duplication errors among the out-parameters, since they have already been reported
-        scope.PushMarker();
-        if (m is ExtremeLemma && m.Outs.Count != 0) {
-          reporter.Error(MessageSource.Resolver, m.Outs[0].tok, "{0}s are not allowed to have out-parameters", m.WhatKind);
-        } else {
-          foreach (Formal p in m.Outs) {
-            scope.Push(p.Name, p);
-          }
-        }
-
-        // ... continue resolving specification
-        foreach (AttributedExpression e in m.Ens) {
-          ResolveAttributes(e, new ResolutionContext(m, true));
-          ResolveExpression(e.E, new ResolutionContext(m, true));
-          Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
-          ConstrainTypeExprBool(e.E, "Postcondition must be a boolean (got {0})");
-        }
-        SolveAllTypeConstraints(); // solve type constraints for specification
-
-        // Resolve body
-        if (m.Body != null) {
-          if (m is ExtremeLemma com && com.PrefixLemma != null) {
-            // The body may mentioned the implicitly declared parameter _k.  Throw it into the
-            // scope before resolving the body.
-            var k = com.PrefixLemma.Ins[0];
-            scope.Push(k.Name, k);  // we expect no name conflict for _k
-          }
-
-          DominatingStatementLabels.PushMarker();
-          foreach (var req in m.Req) {
-            if (req.Label != null) {
-              if (DominatingStatementLabels.Find(req.Label.Name) != null) {
-                reporter.Error(MessageSource.Resolver, req.Label.Tok, "assert label shadows a dominating label");
-              } else {
-                var rr = DominatingStatementLabels.Push(req.Label.Name, req.Label);
-                Contract.Assert(rr == Scope<Label>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
-              }
-            }
-          }
-          ResolveBlockStatement(m.Body, ResolutionContext.FromCodeContext(m));
-          DominatingStatementLabels.PopMarker();
-          SolveAllTypeConstraints();
-        }
-
-        // attributes are allowed to mention both in- and out-parameters (including the implicit _k, for greatest lemmas)
-        ResolveAttributes(m, new ResolutionContext(m, m is TwoStateLemma), true);
-
-        DafnyOptions.O.WarnShadowing = warnShadowingOption; // restore the original warnShadowing value
-        scope.PopMarker();  // for the out-parameters and outermost-level locals
-        scope.PopMarker();  // for the in-parameters
-
-      }
-      finally {
-        currentMethod = null;
       }
     }
 
@@ -3741,7 +3624,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void ResolveBlockStatement(BlockStmt blockStmt, ResolutionContext resolutionContext) {
+    public void ResolveBlockStatement(BlockStmt blockStmt, ResolutionContext resolutionContext) {
       Contract.Requires(blockStmt != null);
       Contract.Requires(resolutionContext != null);
 
@@ -5038,7 +4921,7 @@ namespace Microsoft.Dafny {
     ///
     /// Reports an error for any cyclic dependency among the default-value expressions of the formals.
     /// </summary>
-    void ResolveParameterDefaultValues(List<Formal> formals, ResolutionContext resolutionContext) {
+    public void ResolveParameterDefaultValues(List<Formal> formals, ResolutionContext resolutionContext) {
       Contract.Requires(formals != null);
       Contract.Requires(resolutionContext != null);
 
