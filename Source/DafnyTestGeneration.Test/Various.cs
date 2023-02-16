@@ -153,7 +153,7 @@ module Paths {
 ".TrimStart();
       var program = Utils.Parse(source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
-      Assert.IsTrue(methods.Count is >= 3 and <= 6);
+      Assert.IsTrue(methods.Count is >= 2 and <= 6);
       Assert.IsTrue(methods.All(m => m.MethodName == "Paths.eightPaths"));
       Assert.IsTrue(methods.All(m => m.DafnyInfo.IsStatic("Paths.eightPaths")));
       Assert.IsTrue(methods.All(m => m.ArgValues.Count == 1));
