@@ -123,7 +123,7 @@ do
   ## May not be robust against parentheses, brackets or other regex-special symbols in the error message -- none of these encountered so far.
 
   ( echo "$line" | grep -E -e '[#][#] ' > /dev/null ) \
-   && msg=`echo "$line" | sed -E -e 's/ \{#.*\}//' -e 's/^##[ ]*[*]*//' -e 's/[*]*$//' -e 's/\\*/\\\\*/' -e 's/_[a-z]+_/.*/g'`
+   && msg=`echo "$line" | sed -E -e 's/ \{#.*\}[ ]*$//' -e 's/^##[ ]*[*]*//' -e 's/[*]*$//' -e 's/\\*/\\\\*/' -e 's/_[a-z]+_/.*/g'`
 
   ## Check for the test command information
   echo "$line" | grep '^[ ]*<!-- [ ]*%' > /dev/null
@@ -200,6 +200,7 @@ do
         capture=1
         dOptions=$defOptions
         if [ "$command" == "%check-verify" ]; then
+          ##cat $text
           com=verify
           ec=4
         elif [ "$command" == "%check-verify-warn" ]; then
