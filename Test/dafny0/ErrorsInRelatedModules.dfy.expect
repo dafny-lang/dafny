@@ -1,12 +1,12 @@
-ErrorsInRelatedModules.dfy(9,29): Error: Type or type parameter is not declared in this scope: UndeclaredType (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
+ErrorsInRelatedModules.dfy(9,29): Error: Undeclared top-level type or type parameter: UndeclaredType (did you forget to qualify a name or declare a module import 'opened'?)
 ErrorsInRelatedModules.dfy(13,11): Error: not resolving module 'MainModule' because there were errors in resolving its import 'LibraryModule'
-ErrorsInRelatedModules.dfy(23,31): Error: Type or type parameter is not declared in this scope: UndeclaredType (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
+ErrorsInRelatedModules.dfy(23,31): Error: Undeclared top-level type or type parameter: UndeclaredType (did you forget to qualify a name or declare a module import 'opened'?)
 ErrorsInRelatedModules.dfy(22,11): Error: not resolving module 'OuterModule' because there were errors in resolving its nested module 'NestedModule'
-ErrorsInRelatedModules.dfy(34,29): Error: Type or type parameter is not declared in this scope: UndeclaredType (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
-ErrorsInRelatedModules.dfy(34,29): Error: Type or type parameter is not declared in this scope: UndeclaredType (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
+ErrorsInRelatedModules.dfy(34,29): Error: Undeclared top-level type or type parameter: UndeclaredType (did you forget to qualify a name or declare a module import 'opened'?)
+ErrorsInRelatedModules.dfy(34,29): Error: Undeclared top-level type or type parameter: UndeclaredType (did you forget to qualify a name or declare a module import 'opened'?)
 ErrorsInRelatedModules.dfy(38,11): Error: not resolving module 'ClientModule' because there were errors in resolving its import 'T'
 ErrorsInRelatedModules.dfy(59,21): Error: module I does not exist (position 1 in path Middle.I)
-ErrorsInRelatedModules.dfy(65,27): Error: Type or type parameter is not declared in this scope: UndeclaredType (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
+ErrorsInRelatedModules.dfy(65,27): Error: Undeclared top-level type or type parameter: UndeclaredType (did you forget to qualify a name or declare a module import 'opened'?)
 ErrorsInRelatedModules.dfy(69,9): Error: not resolving module 'ClientOfErroneousModule0' because there were errors in resolving its import 'ModuleWithErrors'
 ErrorsInRelatedModules.dfy(80,9): Error: not resolving module 'ClientOfErroneousModule2' because there were errors in resolving its import 'ModuleWithErrors'
 ErrorsInRelatedModules.dfy(95,9): Error: not resolving module 'ClientOfErroneousModule2''' because there were errors in resolving its import 'ModuleWithErrors'
