@@ -1,13 +1,13 @@
-TraitsDecreases.dfy(117,20): Error: predicate's (possibly automatically generated) decreases clause must be below or equal to that in the trait
-TraitsDecreases.dfy(124,20): Error: predicate's (possibly automatically generated) decreases clause must be below or equal to that in the trait
-TraitsDecreases.dfy(131,20): Error: predicate's (possibly automatically generated) decreases clause must be below or equal to that in the trait
-TraitsDecreases.dfy(138,20): Error: predicate's (possibly automatically generated) decreases clause must be below or equal to that in the trait
-TraitsDecreases.dfy(145,20): Error: predicate's (possibly automatically generated) decreases clause must be below or equal to that in the trait
-TraitsDecreases.dfy(152,11): Error: method's (possibly automatically generated) decreases clause must be below or equal to that in the trait
-TraitsDecreases.dfy(57,9): Error: method's (possibly automatically generated) decreases clause must be below or equal to that in the trait
-TraitsDecreases.dfy(69,9): Error: method's (possibly automatically generated) decreases clause must be below or equal to that in the trait
-TraitsDecreases.dfy(72,9): Error: method's (possibly automatically generated) decreases clause must be below or equal to that in the trait
-TraitsDecreases.dfy(78,9): Error: method's (possibly automatically generated) decreases clause must be below or equal to that in the trait
-TraitsDecreases.dfy(88,9): Error: method's (possibly automatically generated) decreases clause must be below or equal to that in the trait
+TraitsDecreases.dfy(117,20): Error: predicate's decreases clause must be below or equal to that in the trait
+TraitsDecreases.dfy(124,20): Error: predicate's decreases clause must be below or equal to that in the trait
+TraitsDecreases.dfy(131,20): Error: predicate's decreases clause must be below or equal to that in the trait
+TraitsDecreases.dfy(138,20): Error: predicate's decreases clause must be below or equal to that in the trait
+TraitsDecreases.dfy(145,20): Error: predicate's decreases clause must be below or equal to that in the trait
+TraitsDecreases.dfy(152,11): Error: method's decreases clause must be below or equal to that in the trait
+TraitsDecreases.dfy(57,9): Error: method's decreases clause must be below or equal to that in the trait
+TraitsDecreases.dfy(69,9): Error: method's decreases clause must be below or equal to that in the trait
+TraitsDecreases.dfy(72,9): Error: method's decreases clause must be below or equal to that in the trait
+TraitsDecreases.dfy(78,9): Error: method's decreases clause must be below or equal to that in the trait
+TraitsDecreases.dfy(88,9): Error: method's decreases clause must be below or equal to that in the trait
 
 Dafny program verifier finished with 12 verified, 11 errors

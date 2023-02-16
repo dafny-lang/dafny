@@ -38,15 +38,10 @@ namespace IntegrationTests {
 
       var repositoryRoot = Path.GetFullPath("../../../../../"); // Up from Source/IntegrationTests/bin/Debug/net6.0/
 
-      string[] defaultResolveArgs = new[] { "resolve", "--use-basename-for-filename" };
-      string[] defaultVerifyArgs = new[] { "verify", "--use-basename-for-filename", "--cores:2", "--verification-time-limit:300" };
-      //string[] defaultTranslateArgs = new[] { "translate", "--use-basename-for-filename", "--cores:2", "--verification-time-limit:300" };
-      string[] defaultBuildArgs = new[] { "build", "--use-basename-for-filename", "--cores:2", "--verification-time-limit:300" };
-      string[] defaultRunArgs = new[] { "run", "--use-basename-for-filename", "--cores:2", "--verification-time-limit:300" };
-
       var substitutions = new Dictionary<string, object> {
         { "%diff", "diff" },
-        { "%trargs", "--use-basename-for-filename --cores:2 --verification-time-limit:300" },
+        { "%verifyargs", "--use-basename-for-filename --cores:2 --verification-time-limit:300" },
+        { "%resolveargs", "--use-basename-for-filename" },
         { "%binaryDir", "." },
         { "%z3", Path.Join("z3", "bin", "z3") },
         { "%repositoryRoot", repositoryRoot.Replace(@"\", "/") },
@@ -56,26 +51,6 @@ namespace IntegrationTests {
         {
           "%baredafny", (args, config) =>
             MainMethodLitCommand.Parse(DafnyDriverAssembly, args, config, InvokeMainMethodsDirectly)
-        }, {
-          "%resolve", (args, config) =>
-            MainMethodLitCommand.Parse(DafnyDriverAssembly, AddExtraArgs(defaultResolveArgs, args),
-              config, InvokeMainMethodsDirectly)
-        }, {
-          "%translate", (args, config) =>
-            MainMethodLitCommand.Parse(DafnyDriverAssembly, AddExtraArgs(new[]{"translate"}, args),
-              config, InvokeMainMethodsDirectly)
-        }, {
-          "%verify", (args, config) =>
-            MainMethodLitCommand.Parse(DafnyDriverAssembly, AddExtraArgs(defaultVerifyArgs, args),
-              config, InvokeMainMethodsDirectly)
-        }, {
-          "%build", (args, config) =>
-            MainMethodLitCommand.Parse(DafnyDriverAssembly, AddExtraArgs(defaultBuildArgs, args),
-              config, InvokeMainMethodsDirectly)
-        }, {
-          "%run", (args, config) =>
-            MainMethodLitCommand.Parse(DafnyDriverAssembly, AddExtraArgs(defaultRunArgs, args),
-              config, InvokeMainMethodsDirectly)
         }, {
           "%dafny", (args, config) =>
             MainMethodLitCommand.Parse(DafnyDriverAssembly, AddExtraArgs(DafnyDriver.DefaultArgumentsForTesting, args),
