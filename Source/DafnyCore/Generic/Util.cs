@@ -16,6 +16,14 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny {
   public static class Util {
 
+    public static string CapitaliseFirstLetter(this string input) {
+      if (input.Length > 0) {
+        return char.ToUpper(input[0]) + input.Substring(1);
+      }
+
+      return input;
+    }
+
     public static Task<U> SelectMany<T, U>(this Task<T> task, Func<T, Task<U>> f) {
       return Select(task, f).Unwrap();
     }

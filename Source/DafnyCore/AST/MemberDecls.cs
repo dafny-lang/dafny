@@ -8,11 +8,7 @@ public abstract class MemberDecl : Declaration {
   public abstract string WhatKind { get; }
   public virtual string WhatKindMentionGhost => (IsGhost ? "ghost " : "") + WhatKind;
   public readonly bool HasStaticKeyword;
-  public virtual bool IsStatic {
-    get {
-      return HasStaticKeyword || (EnclosingClass is ClassDecl && ((ClassDecl)EnclosingClass).IsDefaultClass);
-    }
-  }
+  public virtual bool IsStatic => HasStaticKeyword || (EnclosingClass is ClassDecl && ((ClassDecl)EnclosingClass).IsDefaultClass);
 
   public virtual bool IsOpaque => false;
 

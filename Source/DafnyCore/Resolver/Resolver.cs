@@ -21,6 +21,7 @@ using Microsoft.Dafny.Plugins;
 using static Microsoft.Dafny.ErrorDetail;
 
 namespace Microsoft.Dafny {
+
   interface ICanResolve {
     void Resolve(Resolver resolver, ResolutionContext context);
   }
@@ -4974,9 +4975,9 @@ namespace Microsoft.Dafny {
     public Method currentMethod;
     readonly Scope<TypeParameter>/*!*/ allTypeParameters = new Scope<TypeParameter>();
     public readonly Scope<IVariable>/*!*/ scope = new Scope<IVariable>();
-    Scope<Statement>/*!*/ enclosingStatementLabels = new Scope<Statement>();
+    public Scope<Statement>/*!*/ enclosingStatementLabels = new Scope<Statement>();
     public readonly Scope<Label>/*!*/ DominatingStatementLabels = new Scope<Label>();
-    List<Statement> loopStack = new List<Statement>();  // the enclosing loops (from which it is possible to break out)
+    public List<Statement> loopStack = new List<Statement>();  // the enclosing loops (from which it is possible to break out)
 
     /// <summary>
     /// Resolves the types along .ParentTraits and fills in .ParentTraitHeads

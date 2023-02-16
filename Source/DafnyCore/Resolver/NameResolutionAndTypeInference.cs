@@ -3360,7 +3360,7 @@ namespace Microsoft.Dafny {
       ResolveFrameExpression(fe, use, new ResolutionContext(codeContext, false));
     }
 
-    void ResolveFrameExpression(FrameExpression fe, FrameExpressionUse use, ResolutionContext resolutionContext) {
+    public void ResolveFrameExpression(FrameExpression fe, FrameExpressionUse use, ResolutionContext resolutionContext) {
       Contract.Requires(fe != null);
       Contract.Requires(resolutionContext != null);
 
@@ -3989,43 +3989,11 @@ namespace Microsoft.Dafny {
         canResolve.Resolve(this, resolutionContext);
         return;
       }
+
       if (!(stmt is ForallStmt || stmt is ForLoopStmt)) {  // "forall" and "for" statements do their own attribute resolution below
         ResolveAttributes(stmt, resolutionContext);
       }
-      if (stmt is PredicateStmt) {
-        PredicateStmt s = (PredicateStmt)stmt;
-        var assertStmt = stmt as AssertStmt;
-        if (assertStmt != null && assertStmt.Label != null) {
-          if (DominatingStatementLabels.Find(assertStmt.Label.Name) != null) {
-            reporter.Error(MessageSource.Resolver, assertStmt.Label.Tok, "assert label shadows a dominating label");
-          } else {
-            var rr = DominatingStatementLabels.Push(assertStmt.Label.Name, assertStmt.Label);
-            Contract.Assert(rr == Scope<Label>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
-          }
-        }
-        ResolveExpression(s.Expr, resolutionContext);
-        Contract.Assert(s.Expr.Type != null);  // follows from postcondition of ResolveExpression
-        ConstrainTypeExprBool(s.Expr, "condition is expected to be of type bool, but is {0}");
-        if (assertStmt != null && assertStmt.Proof != null) {
-          // clear the labels for the duration of checking the proof body, because break statements are not allowed to leave a the proof body
-          var prevLblStmts = enclosingStatementLabels;
-          var prevLoopStack = loopStack;
-          enclosingStatementLabels = new Scope<Statement>();
-          loopStack = new List<Statement>();
-          ResolveStatement(assertStmt.Proof, resolutionContext);
-          enclosingStatementLabels = prevLblStmts;
-          loopStack = prevLoopStack;
-        }
-        var expectStmt = stmt as ExpectStmt;
-        if (expectStmt != null) {
-          if (expectStmt.Message == null) {
-            expectStmt.Message = new StringLiteralExpr(s.Tok, "expectation violation", false);
-          }
-          ResolveExpression(expectStmt.Message, resolutionContext);
-          Contract.Assert(expectStmt.Message.Type != null);  // follows from postcondition of ResolveExpression
-        }
-
-      } else if (stmt is PrintStmt) {
+      if (stmt is PrintStmt) {
         var s = (PrintStmt)stmt;
         s.Args.Iter(e => ResolveExpression(e, resolutionContext));
 
@@ -4179,36 +4147,18 @@ namespace Microsoft.Dafny {
           }
         }
         // Resolve the UpdateStmt, if any
-        if (s.Update is UpdateStmt) {
-          var upd = (UpdateStmt)s.Update;
+        if (s.Update is UpdateStmt or AssignOrReturnStmt) {
           // resolve the LHS
-          Contract.Assert(upd.Lhss.Count == s.Locals.Count);
-          for (int i = 0; i < upd.Lhss.Count; i++) {
+          Contract.Assert(s.Update.Lhss.Count == s.Locals.Count);
+          for (int i = 0; i < s.Update.Lhss.Count; i++) {
             var local = s.Locals[i];
-            var lhs = (IdentifierExpr)upd.Lhss[i];  // the LHS in this case will be an IdentifierExpr, because that's how the parser creates the VarDeclStmt
+            var lhs = (IdentifierExpr)s.Update.Lhss[i];  // the LHS in this case will be an IdentifierExpr, because that's how the parser creates the VarDeclStmt
             Contract.Assert(lhs.Type == null);  // not yet resolved
             lhs.Var = local;
             lhs.Type = local.Type;
           }
           // resolve the whole thing
           s.Update.Resolve(this, resolutionContext);
-        }
-
-        if (s.Update is AssignOrReturnStmt) {
-          var assignOrRet = (AssignOrReturnStmt)s.Update;
-          // resolve the LHS
-          Contract.Assert(assignOrRet.Lhss.Count == s.Locals.Count);
-          for (int i = 0; i < s.Locals.Count; i++) {
-            var local = s.Locals[i];
-            var lhs = (IdentifierExpr)assignOrRet
-              .Lhss[i]; // the LHS in this case will be an IdentifierExpr, because that's how the parser creates the VarDeclStmt
-            Contract.Assert(lhs.Type == null); // not yet resolved
-            lhs.Var = local;
-            lhs.Type = local.Type;
-          }
-
-          // resolve the whole thing
-          assignOrRet.Resolve(this, resolutionContext);
         }
         // Add the locals to the scope
         foreach (var local in s.Locals) {
@@ -4607,8 +4557,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(s.Result != null);
         Contract.Assert(prevErrorCount != reporter.Count(ErrorLevel.Error) || s.Steps.Count == s.Hints.Count);
 
-      }
-      if (stmt is SkeletonStatement) {
+      } else if (stmt is SkeletonStatement) {
         var s = (SkeletonStatement)stmt;
         reporter.Error(MessageSource.Resolver, s.Tok, "skeleton statements are allowed only in refining methods");
         // nevertheless, resolve the underlying statement; hey, why not

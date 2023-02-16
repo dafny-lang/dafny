@@ -5,7 +5,7 @@ using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
-public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, ICanFormat {
+public class Method : MethodOrFunction, TypeParameter.ParentType, IMethodCodeContext, ICanFormat {
   public override IEnumerable<Node> Children => new Node[] { Body, Decreases }.
     Where(x => x != null).Concat(Ins).Concat(Outs).Concat<Node>(TypeArgs).
     Concat(Req).Concat(Ens).Concat(Mod.Expressions);
@@ -237,13 +237,18 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
     return true;
   }
 
+  protected override bool Bodyless => Body == null;
+  protected override string TypeName => "method";
+
   /// <summary>
   /// Assumes type parameters have already been pushed
   /// </summary>
-  public void Resolve(Resolver resolver) {
+  public override void Resolve(Resolver resolver) {
     Contract.Requires(this != null);
     Contract.Requires(resolver.AllTypeConstraints.Count == 0);
     Contract.Ensures(resolver.AllTypeConstraints.Count == 0);
+
+    base.Resolve(resolver);
 
     try {
       resolver.currentMethod = this;

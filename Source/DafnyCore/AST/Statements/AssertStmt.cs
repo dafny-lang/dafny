@@ -58,4 +58,28 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     return formatter.SetIndentAssertLikeStatement(this, indentBefore);
   }
+
+  public override void Resolve(Resolver resolver, ResolutionContext context) {
+    if (Label != null) {
+      if (resolver.DominatingStatementLabels.Find(Label.Name) != null) {
+        resolver.Reporter.Error(MessageSource.Resolver, Label.Tok, "assert label shadows a dominating label");
+      } else {
+        var rr = resolver.DominatingStatementLabels.Push(Label.Name, Label);
+        Contract.Assert(rr == Scope<Label>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
+      }
+    }
+
+    base.Resolve(resolver, context);
+
+    if (Proof != null) {
+      // clear the labels for the duration of checking the proof body, because break statements are not allowed to leave a the proof body
+      var prevLblStmts = resolver.enclosingStatementLabels;
+      var prevLoopStack = resolver.loopStack;
+      resolver.enclosingStatementLabels = new Scope<Statement>();
+      resolver.loopStack = new List<Statement>();
+      resolver.ResolveStatement(Proof, context);
+      resolver.enclosingStatementLabels = prevLblStmts;
+      resolver.loopStack = prevLoopStack;
+    }
+  }
 }

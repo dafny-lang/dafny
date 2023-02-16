@@ -28,6 +28,7 @@ public abstract class ConcreteUpdateStatement : Statement, ICanFormat {
   }
 
   public override void Resolve(Resolver resolver, ResolutionContext context) {
+
     foreach (var lhs in Lhss) {
       var ec = resolver.Reporter.Count(ErrorLevel.Error);
       resolver.ResolveExpression(lhs, context);

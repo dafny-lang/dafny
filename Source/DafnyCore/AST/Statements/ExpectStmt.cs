@@ -36,4 +36,13 @@ public class ExpectStmt : PredicateStmt, ICloneable<ExpectStmt>, ICanFormat {
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     return formatter.SetIndentAssertLikeStatement(this, indentBefore);
   }
+
+  public override void Resolve(Resolver resolver, ResolutionContext context) {
+    base.Resolve(resolver, context);
+    if (Message == null) {
+      Message = new StringLiteralExpr(Tok, "expectation violation", false);
+    }
+    resolver.ResolveExpression(Message, context);
+    Contract.Assert(Message.Type != null);  // follows from postcondition of ResolveExpression
+  }
 }

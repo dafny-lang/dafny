@@ -30,10 +30,6 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
 
   [FilledInDuringResolution] public bool IsGhost { get; set; }
 
-  public virtual void Resolve(Resolver resolver, ResolutionContext resolutionContext) {
-    resolver.ResolveAttributes(this, resolutionContext);
-  }
-
   protected Statement(Cloner cloner, Statement original) : base(cloner.Tok(original.RangeToken)) {
     cloner.AddStatementClone(original, this);
     this.attributes = cloner.CloneAttributes(original.Attributes);
@@ -42,6 +38,10 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
       IsGhost = original.IsGhost;
       Labels = original.Labels;
     }
+  }
+
+  public virtual void Resolve(Resolver resolver, ResolutionContext resolutionContext) {
+    resolver.ResolveAttributes(this, resolutionContext);
   }
 
   protected Statement(RangeToken rangeToken, Attributes attrs) : base(rangeToken) {

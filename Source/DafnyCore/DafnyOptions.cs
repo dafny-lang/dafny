@@ -279,6 +279,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public uint SpillTargetCode = 0; // [0..4]
     public bool DisallowIncludes = false;
     public bool DisallowExterns = false;
+    public bool AllowExterns => !DisallowExterns;
     public bool DisableNLarith = false;
     public int ArithMode = 1; // [0..10]
     public string AutoReqPrintFile = null;

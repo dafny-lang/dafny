@@ -73,6 +73,7 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt>, ICanForma
   /// 3 - resolving the generated (sub)statement.
   /// </summary>
   public override void Resolve(Resolver resolver, ResolutionContext resolutionContext) {
+
     resolver.ResolveExpression(Source, resolutionContext);
 
     if (Source.Type is TypeProxy) {

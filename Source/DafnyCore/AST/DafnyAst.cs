@@ -162,6 +162,15 @@ namespace Microsoft.Dafny {
     Attributes Attributes { get; }
   }
 
+  static class AttributeBearingDeclaration {
+
+    public static bool IsExtern(this IAttributeBearingDeclaration me) =>
+      DafnyOptions.O.AllowExterns && Attributes.Contains(me.Attributes, "extern");  // TODO do earlier check to complain about any usages of :extern if allow externs is false.
+
+    public static bool IsExplicitAxiom(this IAttributeBearingDeclaration me) =>
+      Attributes.Contains(me.Attributes, "axiom");  // TODO do earlier check to complain about any usages of :extern if allow externs is false.
+  }
+
   public class Attributes : TokenNode {
     [ContractInvariantMethod]
     void ObjectInvariant() {
