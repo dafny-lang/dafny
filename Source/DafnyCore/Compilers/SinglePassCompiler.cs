@@ -2911,7 +2911,7 @@ namespace Microsoft.Dafny.Compilers {
       }
       private void RejectAssume(IToken tok, Attributes attributes, ConcreteSyntaxTree wr) {
         if (!Attributes.Contains(attributes, "axiom")) {
-          compiler.Error(tok, "an assume statement cannot be compiled (use the {{:axiom}} attribute to let the compiler ignore the statement)", wr);
+          compiler.Error(tok, "an assume statement without an {{:axiom}} attribute cannot be compiled", wr);
         }
       }
       protected override void VisitOneStmt(Statement stmt) {
