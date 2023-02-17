@@ -1,6 +1,6 @@
 module LibraryModule {
 
-  function method TimesTwo(x: nat): nat
+  function TimesTwo(x: nat): nat
   {
     x * 2
   }
