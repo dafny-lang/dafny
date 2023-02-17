@@ -25,16 +25,20 @@ refman-release:
 	make -C ${DIR}/docs/DafnyRef release
 
 z3-mac:
-	wget https://github.com/Z3Prover/z3/releases/download/Nightly/z3-4.12.2-x64-osx-10.16.zip
-	unzip z3-4.12.2-x64-osx-10.16.zip
-	mv z3-4.12.2-x64-osx-10.16 ${DIR}/Binaries/z3
-	rm z3-4.12.2-x64-osx-10.16.zip
+	mkdir -p ${DIR}Binaries/z3/bin
+	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-02-17/z3-4.12.1-macos-11-bin.zip
+	unzip z3-4.12.1-macos-11-bin.zip
+	mv z3-4.12.1 ${DIR}/Binaries/z3/bin/z3
+	chmod +x ${DIR}/Binaries/z3/bin/z3
+	rm z3-4.12.1-macos-11-bin.zip
 
 z3-ubuntu:
-	wget https://github.com/Z3Prover/z3/releases/download/Nightly/z3-4.12.2-x64-glibc-2.31.zip
-	unzip z3-4.12.2-x64-glibc-2.31.zip
-	mv z3-4.12.2-x64-glibc-2.31 ${DIR}/Binaries/z3
-	rm z3-4.12.2-x64-glibc-2.31.zip
+	mkdir -p ${DIR}Binaries/z3/bin
+	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-02-17/z3-4.12.1-ubuntu-20.04-bin.zip
+	unzip z3-4.12.1-ubuntu-20.04-bin.zip
+	mv z3-4.12.1 ${DIR}/Binaries/z3/bin/z3
+	chmod +x ${DIR}/Binaries/z3/bin/z3
+	rm z3-4.12.1-ubuntu-20.04-bin.zip
 
 format:
 	dotnet tool run dotnet-format -w -s error Source/Dafny.sln --exclude DafnyCore/Scanner.cs --exclude DafnyCore/Parser.cs

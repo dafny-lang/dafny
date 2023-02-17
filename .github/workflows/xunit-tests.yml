@@ -11,6 +11,7 @@ on:
 ##  suffix - name used in the description of the job
 ##  z3 - name of the Z3 asset at the 'z3BaseUri' URL
 ##  chmod - whether the Z3 download needs execute permissions added
+##  exe_ext - the extension for executable files
 ##  coverage -- unused?
 
 jobs:
@@ -30,22 +31,25 @@ jobs:
         include:
           - os: ubuntu-20.04
             suffix: ubuntu-20.04
-            z3: z3-4.12.2-x64-glibc-2.31
+            z3: z3-4.12.1-ubuntu-22.04
             chmod: true
             coverage: true
+            exe_ext: ''
           - os: windows-2019
             suffix: win
-            z3: z3-4.12.2-x64-win
+            z3: z3-4.12.1-windows-2019
             chmod: false
             coverage: false
-          - os: macos-latest
+            exe_ext: '.exe'
+          - os: macos-11
             suffix: osx
-            z3: z3-4.12.2-x64-osx-10.16
+            z3: z3-4.12.1-macos-11
             chmod: true
             coverage: false
+            exe_ext: ''
     env:
       solutionPath: Source/Dafny.sln
-      z3BaseUri: https://github.com/Z3Prover/z3/releases/download/Nightly
+      z3BaseUri: https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-02-17
       Logging__LogLevel__Microsoft: Debug
     steps:
     - uses: actions/checkout@v3
@@ -63,11 +67,11 @@ jobs:
         Invoke-WebRequest ${{env.z3BaseUri}}/${{matrix.z3}}.zip -OutFile z3.zip
         Expand-Archive z3.zip .
         Remove-Item z3.zip
-        Copy-Item ${{matrix.z3}} Binaries/z3 -Recurse
+    - name: Move Z3
+      run: mv z3-4.12.1${{matrix.exe_ext}} Binaries/z3/bin/z3${{matrix.exe_ext}}
     - name: Set Z3 Permissions
       if: ${{matrix.chmod}}
-      run: |
-        chmod +x Binaries/z3/bin/z3
+      run: chmod +x Binaries/z3/bin/z3
     - name: Build
       run: dotnet build -warnaserror --no-restore ${{env.solutionPath}}
     - name: Run DafnyLanguageServer Tests
