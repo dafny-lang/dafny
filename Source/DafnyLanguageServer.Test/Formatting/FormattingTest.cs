@@ -49,8 +49,6 @@ function test
     await FormattingWorksFor(target, target);
   }
 
-
-
   [TestMethod]
   public async Task TestFormatting2() {
     var source = @"
@@ -79,6 +77,27 @@ function Fib(i: nat): nat {
     a, b := b, a + b;
   }
   return b;
+}
+";
+    await FormattingWorksFor(source, target);
+    await FormattingWorksFor(target, target);
+  }
+
+
+  [TestMethod]
+  public async Task TestFormatting3() {
+    var source = @"
+predicate IsBinary(s: seq<int>) {
+forall i | 0 <= i < |s| ::
+|| s[i] == 0
+|| s[i] == 1
+}
+";
+    var target = @"
+predicate IsBinary(s: seq<int>) {
+  forall i | 0 <= i < |s| ::
+    || s[i] == 0
+    || s[i] == 1
 }
 ";
     await FormattingWorksFor(source, target);
