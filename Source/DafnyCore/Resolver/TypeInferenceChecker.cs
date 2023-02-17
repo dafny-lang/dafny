@@ -396,11 +396,11 @@ partial class Resolver {
       base.PostVisitOneExpression(expr, context);
     }
 
-    public override void VisitFrameExpression(FrameExpression frameExpression, TypeInferenceCheckingContext context, bool inReadsClause) {
+    public override void VisitTopLevelFrameExpression(FrameExpression frameExpression, TypeInferenceCheckingContext context, bool inReadsClause) {
       if (inReadsClause) {
         DesugarReadsClause(frameExpression);
       }
-      base.VisitFrameExpression(frameExpression, context, inReadsClause);
+      base.VisitTopLevelFrameExpression(frameExpression, context, inReadsClause);
     }
 
     void DesugarReadsClause(FrameExpression frameExpression) {
