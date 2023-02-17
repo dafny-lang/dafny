@@ -165,10 +165,10 @@ namespace Microsoft.Dafny {
   static class AttributeBearingDeclaration {
 
     public static bool IsExtern(this IAttributeBearingDeclaration me) =>
-      DafnyOptions.O.AllowExterns && Attributes.Contains(me.Attributes, "extern");  // TODO do earlier check to complain about any usages of :extern if allow externs is false.
+      DafnyOptions.O.AllowExterns && Attributes.Contains(me.Attributes, "extern");
 
     public static bool IsExplicitAxiom(this IAttributeBearingDeclaration me) =>
-      Attributes.Contains(me.Attributes, "axiom");  // TODO do earlier check to complain about any usages of :extern if allow externs is false.
+      Attributes.Contains(me.Attributes, "axiom");
   }
 
   public class Attributes : TokenNode {
