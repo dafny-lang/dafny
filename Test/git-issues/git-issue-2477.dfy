@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %verify "%s" > "%t"
+// RUN: %exits-with 4 %baredafny verify --use-basename-for-filename --cores:2 --verification-time-limit:300 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 trait T {
