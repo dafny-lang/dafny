@@ -17,20 +17,22 @@ namespace Microsoft.Dafny {
         readonly bool inLambdaExpression;
 
         public bool AllowedToDependOnAllocationState =>
-          astVisitorContext is Function or ConstantField or RedirectingTypeDecl ||
-          inLambdaExpression;
+          !(astVisitorContext is Function or ConstantField or RedirectingTypeDecl || inLambdaExpression);
 
         public string Kind {
           get {
             // assumes context denotes a lambda expression, redirecting type, or member declaration
             if (inLambdaExpression) {
               return "lambda expression";
-            } else if (astVisitorContext is RedirectingTypeDecl redirectingTypeDecl) {
-              return redirectingTypeDecl.WhatKind;
+            }
+            string kind;
+            if (astVisitorContext is RedirectingTypeDecl redirectingTypeDecl) {
+              kind = redirectingTypeDecl.WhatKind;
             } else {
               var memberDecl = (MemberDecl)astVisitorContext;
-              return memberDecl.WhatKind;
+              kind = memberDecl.WhatKind;
             }
+            return $"{kind} definition";
           }
         }
 
@@ -43,7 +45,7 @@ namespace Microsoft.Dafny {
         /// This constructor is used to say that, within parentContext, the context is inside a lambda
         /// expression.
         /// </summary>
-        public BoundsDiscoveryContext(BoundsDiscoveryContext parentContext) {
+        public BoundsDiscoveryContext(BoundsDiscoveryContext parentContext, LambdaExpr lambdaExpr) {
           this.astVisitorContext = parentContext.astVisitorContext;
           this.inLambdaExpression = true;
         }
@@ -78,13 +80,16 @@ namespace Microsoft.Dafny {
         return base.VisitOneStatement(stmt, context);
       }
 
-      public override void VisitFrameExpression(FrameExpression frameExpression, BoundsDiscoveryContext context, bool inReadsClause) {
-        frameExpression.E = ArrowType.FrameArrowToObjectSet(frameExpression.E);
-        base.VisitFrameExpression(frameExpression, context, inReadsClause);
+      protected override void VisitExpression(Expression expr, BoundsDiscoveryContext context) {
+        if (expr is LambdaExpr lambdaExpr) {
+          // Make the context more specific when visiting inside a lambda expression
+          context = new BoundsDiscoveryContext(context, lambdaExpr);
+        }
+        base.VisitExpression(expr, context);
       }
 
       protected override bool VisitOneExpression(Expression expr, BoundsDiscoveryContext context) {
-        if (expr is ComprehensionExpr) {
+        if (expr is ComprehensionExpr and not LambdaExpr) {
           var e = (ComprehensionExpr)expr;
           // apply bounds discovery to quantifiers, finite sets, and finite maps
           Expression whereToLookForBounds = null;
@@ -97,19 +102,21 @@ namespace Microsoft.Dafny {
           } else if (e is MapComprehension) {
             whereToLookForBounds = e.Range;
           } else {
-            Contract.Assume(e is LambdaExpr);  // otherwise, unexpected ComprehensionExpr
+            Contract.Assert(false);  // otherwise, unexpected ComprehensionExpr
           }
           if (whereToLookForBounds != null) {
             e.Bounds = DiscoverBestBounds_MultipleVars_AllowReordering(e.BoundVars, whereToLookForBounds, polarity);
             if (2 <= DafnyOptions.O.Allocated && !context.AllowedToDependOnAllocationState) {
               foreach (var bv in ComprehensionExpr.BoundedPool.MissingBounds(e.BoundVars, e.Bounds,
                          ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc)) {
-                var msgFormat = "a {0} involved in a {3} definition is not allowed to depend on the set of allocated references, but values of '{1}' may contain references";
+                var message =
+                  $"a {e.WhatKind} involved in a {context.Kind} is not allowed to depend on the set of allocated references," +
+                  $" but values of '{bv.Name}' (of type '{bv.Type}') may contain references";
                 if (bv.Type.IsTypeParameter || bv.Type.IsOpaqueType) {
-                  msgFormat += " (perhaps declare its type, '{2}', as '{2}(!new)')";
+                  message += $" (perhaps declare its type as '{bv.Type}(!new)')";
                 }
-                msgFormat += " (see documentation for 'older' parameters)";
-                reporter.Error(MessageSource.Resolver, e, msgFormat, e.WhatKind, bv.Name, bv.Type, context.Kind);
+                message += " (see documentation for 'older' parameters)";
+                reporter.Error(MessageSource.Resolver, e, message);
               }
             }
 

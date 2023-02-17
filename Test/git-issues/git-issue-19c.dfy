@@ -158,8 +158,11 @@ module D {
       =>
       25;
   }
+}
+  
+module E {
+  import opened Types
 
-  /*** TODO
   method N0(f: Basic -> set<object>) {
     var u := () => set c: Basic | c.data == 11; // error: this makes the lambda expression depend on the allocation state
   }
@@ -177,5 +180,11 @@ module D {
       =>
       25;
   }
-  ***/
+
+  method N3<X>(f: X -> set<object>, c: Basic, p: (X, int) -> bool) {
+    var u := ()
+      reads if |set x: X | p(x, 0) :: p(x, 1)| == 3 then {} else {c} // error: this makes the lambda expression depend on the allocation state
+      =>
+      25;
+  }
 }
