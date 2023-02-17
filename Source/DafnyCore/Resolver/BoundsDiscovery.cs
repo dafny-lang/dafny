@@ -11,18 +11,57 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
   public partial class Resolver {
-    private class BoundsDiscoveryVisitor : ASTVisitor<IASTVisitorContext> {
+    private class BoundsDiscoveryVisitor : ASTVisitor<BoundsDiscoveryVisitor.BoundsDiscoveryContext> {
+      public class BoundsDiscoveryContext : IASTVisitorContext {
+        private readonly IASTVisitorContext astVisitorContext;
+        readonly bool inLambdaExpression;
+
+        public bool AllowedToDependOnAllocationState =>
+          astVisitorContext is Function or ConstantField or RedirectingTypeDecl ||
+          inLambdaExpression;
+
+        public string Kind {
+          get {
+            // assumes context denotes a lambda expression, redirecting type, or member declaration
+            if (inLambdaExpression) {
+              return "lambda expression";
+            } else if (astVisitorContext is RedirectingTypeDecl redirectingTypeDecl) {
+              return redirectingTypeDecl.WhatKind;
+            } else {
+              var memberDecl = (MemberDecl)astVisitorContext;
+              return memberDecl.WhatKind;
+            }
+          }
+        }
+
+        public BoundsDiscoveryContext(IASTVisitorContext astVisitorContext) {
+          this.astVisitorContext = astVisitorContext;
+          this.inLambdaExpression = false;
+        }
+
+        /// <summary>
+        /// This constructor is used to say that, within parentContext, the context is inside a lambda
+        /// expression.
+        /// </summary>
+        public BoundsDiscoveryContext(BoundsDiscoveryContext parentContext) {
+          this.astVisitorContext = parentContext.astVisitorContext;
+          this.inLambdaExpression = true;
+        }
+
+        ModuleDefinition IASTVisitorContext.EnclosingModule => astVisitorContext.EnclosingModule;
+      }
+
       private readonly ErrorReporter reporter;
 
       public BoundsDiscoveryVisitor(ErrorReporter reporter) {
         this.reporter = reporter;
       }
 
-      public override IASTVisitorContext GetContext(IASTVisitorContext astVisitorContext, bool inFunctionPostcondition) {
-        return astVisitorContext;
+      public override BoundsDiscoveryContext GetContext(IASTVisitorContext astVisitorContext, bool inFunctionPostcondition) {
+        return new BoundsDiscoveryContext(astVisitorContext);
       }
 
-      protected override bool VisitOneStatement(Statement stmt, IASTVisitorContext context) {
+      protected override bool VisitOneStatement(Statement stmt, BoundsDiscoveryContext context) {
         if (stmt is ForallStmt forallStmt) {
           forallStmt.Bounds = DiscoverBestBounds_MultipleVars(forallStmt.BoundVars, forallStmt.Range, true);
         } else if (stmt is AssignSuchThatStmt assignSuchThatStmt) {
@@ -39,16 +78,15 @@ namespace Microsoft.Dafny {
         return base.VisitOneStatement(stmt, context);
       }
 
-      public override void VisitFrameExpression(FrameExpression frameExpression, IASTVisitorContext context, bool inReadsClause) {
+      public override void VisitFrameExpression(FrameExpression frameExpression, BoundsDiscoveryContext context, bool inReadsClause) {
         frameExpression.E = ArrowType.FrameArrowToObjectSet(frameExpression.E);
         base.VisitFrameExpression(frameExpression, context, inReadsClause);
       }
 
-      protected override bool VisitOneExpression(Expression expr, IASTVisitorContext context) {
+      protected override bool VisitOneExpression(Expression expr, BoundsDiscoveryContext context) {
         if (expr is ComprehensionExpr) {
           var e = (ComprehensionExpr)expr;
           // apply bounds discovery to quantifiers, finite sets, and finite maps
-          string what = e.WhatKind;
           Expression whereToLookForBounds = null;
           var polarity = true;
           if (e is QuantifierExpr quantifierExpr) {
@@ -63,16 +101,15 @@ namespace Microsoft.Dafny {
           }
           if (whereToLookForBounds != null) {
             e.Bounds = DiscoverBestBounds_MultipleVars_AllowReordering(e.BoundVars, whereToLookForBounds, polarity);
-            if (2 <= DafnyOptions.O.Allocated && (context is Function or ConstantField or RedirectingTypeDecl)) {
-              // functions are not allowed to depend on the set of allocated objects
-              foreach (var bv in ComprehensionExpr.BoundedPool.MissingBounds(e.BoundVars, e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc)) {
+            if (2 <= DafnyOptions.O.Allocated && !context.AllowedToDependOnAllocationState) {
+              foreach (var bv in ComprehensionExpr.BoundedPool.MissingBounds(e.BoundVars, e.Bounds,
+                         ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc)) {
                 var msgFormat = "a {0} involved in a {3} definition is not allowed to depend on the set of allocated references, but values of '{1}' may contain references";
                 if (bv.Type.IsTypeParameter || bv.Type.IsOpaqueType) {
                   msgFormat += " (perhaps declare its type, '{2}', as '{2}(!new)')";
                 }
                 msgFormat += " (see documentation for 'older' parameters)";
-                var declKind = context is RedirectingTypeDecl redir ? redir.WhatKind : ((MemberDecl)context).WhatKind;
-                reporter.Error(MessageSource.Resolver, e, msgFormat, e.WhatKind, bv.Name, bv.Type, declKind);
+                reporter.Error(MessageSource.Resolver, e, msgFormat, e.WhatKind, bv.Name, bv.Type, context.Kind);
               }
             }
 
