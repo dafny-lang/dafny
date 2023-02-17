@@ -127,6 +127,16 @@ partial class Resolver {
       base.PostVisitOneStatement(stmt, context);
     }
 
+    protected override bool VisitOneExpression(Expression expr, TypeInferenceCheckingContext context) {
+      if (expr is LambdaExpr lambdaExpr) {
+        foreach (var frameExpression in lambdaExpr.Reads) {
+          frameExpression.E = ArrowType.FrameArrowToObjectSet(frameExpression.E);
+        }
+      }
+
+      return base.VisitOneExpression(expr, context);
+    }
+
     protected override void PostVisitOneExpression(Expression expr, TypeInferenceCheckingContext context) {
       if (expr is LiteralExpr) {
         var e = (LiteralExpr)expr;
@@ -180,7 +190,7 @@ partial class Resolver {
 
         if (expr is LambdaExpr lambdaExpr) {
           foreach (var frameExpression in lambdaExpr.Reads) {
-            CheckReadsClause(frameExpression);
+            DesugarReadsClause(frameExpression);
           }
         }
 
@@ -388,28 +398,13 @@ partial class Resolver {
 
     public override void VisitFrameExpression(FrameExpression frameExpression, TypeInferenceCheckingContext context, bool inReadsClause) {
       if (inReadsClause) {
-        CheckReadsClause(frameExpression);
+        DesugarReadsClause(frameExpression);
       }
       base.VisitFrameExpression(frameExpression, context, inReadsClause);
     }
 
-    void CheckReadsClause(FrameExpression frameExpression) {
-      var arrowType = frameExpression.E.Type.AsArrowType;
-      if (arrowType != null) {
-        foreach (var argumentType in arrowType.Args) {
-          if (argumentType.MayInvolveReferences) {
-            var errorMessage =
-              "a function is allowed to be listed in a reads clause only if the function's arguments do not involve any reference types," +
-              " because then the resulting reads set would depend on the set of allocated references;" +
-              $" here, the type '{argumentType}' violates this rule";
-            if (argumentType.IsTypeParameter || argumentType.IsOpaqueType) {
-              errorMessage += $" (perhaps declare type '{argumentType}' with '(!new)')";
-            }
-            errorMessage += " (see documentation for 'older' parameters)";
-            reporter.Error(MessageSource.Resolver, frameExpression.E, errorMessage);
-          }
-        }
-      }
+    void DesugarReadsClause(FrameExpression frameExpression) {
+      frameExpression.E = ArrowType.FrameArrowToObjectSet(frameExpression.E);
     }
 
     public static bool IsDetermined(Type t) {

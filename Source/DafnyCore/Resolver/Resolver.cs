@@ -2460,7 +2460,8 @@ namespace Microsoft.Dafny {
       ResolveNamesAndInferTypes(declarations, true);
       ResolveNamesAndInferTypes(declarations, false);
 
-      // Check that all types have been determined. During this process, fill in all .ResolvedOp fields.
+      // Check that all types have been determined. During this process, also fill in all .ResolvedOp fields and desugar
+      // frame expressions in reads clauses.
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         var checkTypeInferenceVisitor = new CheckTypeInferenceVisitor(this);
         checkTypeInferenceVisitor.VisitDeclarations(declarations);
