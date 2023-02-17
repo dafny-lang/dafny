@@ -32,7 +32,12 @@ public interface ICommandSpec {
     CommonOptionBag.ManualLemmaInduction,
     CommonOptionBag.SolverPath,
     CommonOptionBag.DisableNonLinearArithmetic,
+    CommonOptionBag.IsolateAssertions,
     BoogieOptionBag.BoogieArguments,
+    CommonOptionBag.VerificationLogFormat,
+    CommonOptionBag.SolverResourceLimit,
+    CommonOptionBag.SolverPlugin,
+    CommonOptionBag.SolverLog,
   }.ToList();
 
   public static IReadOnlyList<Option> TranslationOptions = new Option[] {
@@ -66,6 +71,7 @@ public interface ICommandSpec {
     Function.FunctionSyntaxOption,
     CommonOptionBag.QuantifierSyntax,
     CommonOptionBag.UnicodeCharacters,
+    CommonOptionBag.ErrorLimit,
   });
 
   public static IReadOnlyList<Option> ResolverOptions = new List<Option>(new Option[] {

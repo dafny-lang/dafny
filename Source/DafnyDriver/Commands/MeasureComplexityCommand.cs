@@ -9,16 +9,12 @@ public class MeasureComplexityCommand : ICommandSpec {
   public IEnumerable<Option> Options => new Option[] {
     Iterations,
     RandomSeed,
-    Format,
-    IsolateAssertions,
   }.Concat(ICommandSpec.VerificationOptions).
     Concat(ICommandSpec.ResolverOptions);
 
   static MeasureComplexityCommand() {
     DafnyOptions.RegisterLegacyBinding(Iterations, (o, v) => o.RandomSeedIterations = (int)v);
     DafnyOptions.RegisterLegacyBinding(RandomSeed, (o, v) => o.RandomSeed = (int)v);
-    DafnyOptions.RegisterLegacyBinding(IsolateAssertions, (o, v) => o.VcsSplitOnEveryAssert = v);
-    DafnyOptions.RegisterLegacyBinding(Format, (o, v) => o.VerificationLoggerConfigs = v);
   }
 
   private static readonly Option<uint> RandomSeed = new("--random-seed", () => 0U,
@@ -29,16 +25,6 @@ public class MeasureComplexityCommand : ICommandSpec {
     ArgumentHelpName = "n"
   };
 
-  private static readonly Option<bool> IsolateAssertions = new("--isolate-assertions", @"Verify each assertion in isolation.");
-
-  private static readonly Option<List<string>> Format = new("--format", $@"
-Logs verification results using the given test result format. The currently supported formats are `trx`, `csv`, and `text`. These are: the XML-based format commonly used for test results for .NET languages, a custom CSV schema, and a textual format meant for human consumption. You can provide configuration using the same string format as when using the --logger option for dotnet test, such as: --format ""trx;LogFileName=<...>"");
-  
-The `trx` and `csv` formats automatically choose an output file name by default, and print the name of this file to the console. The `text` format prints its output to the console by default, but can send output to a file given the `LogFileName` option.
-
-The `text` format also includes a more detailed breakdown of what assertions appear in each assertion batch. When combined with the {IsolateAssertions.Name} option, it will provide approximate time and resource use costs for each assertion, allowing identification of especially expensive assertions.".TrimStart()) {
-    ArgumentHelpName = "configuration"
-  };
 
   public Command Create() {
     var result = new Command("measure-complexity", "(Experimental) Measure the complexity of verifying the program.");
