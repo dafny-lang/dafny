@@ -68,7 +68,9 @@ jobs:
         Expand-Archive z3.zip .
         Remove-Item z3.zip
     - name: Move Z3
-      run: mv z3-4.12.1${{matrix.exe_ext}} Binaries/z3/bin/z3${{matrix.exe_ext}}
+      run: |
+        mkdir -p Binaries/z3/bin
+        mv z3-4.12.1${{matrix.exe_ext}} Binaries/z3/bin/z3${{matrix.exe_ext}}
     - name: Set Z3 Permissions
       if: ${{matrix.chmod}}
       run: chmod +x Binaries/z3/bin/z3
