@@ -18,14 +18,12 @@ public interface ICommandSpec {
 
   public static IEnumerable<Option> FormatOptions => new Option[] {
     CommonOptionBag.Check,
-    CommonOptionBag.StdIn,
     CommonOptionBag.Verbose,
     CommonOptionBag.FormatPrint,
     DeveloperOptionBag.UseBaseFileName
   }.Concat(ParserOptions);
 
   public static IReadOnlyList<Option> VerificationOptions = new Option[] {
-    CommonOptionBag.StdIn,
     CommonOptionBag.RelaxDefiniteAssignment,
     BoogieOptionBag.VerificationTimeLimit,
     CommonOptionBag.VerifyIncludedFiles,
@@ -64,6 +62,7 @@ public interface ICommandSpec {
   });
 
   public static IReadOnlyList<Option> ParserOptions = new List<Option>(new Option[] {
+    CommonOptionBag.StdIn,
     BoogieOptionBag.Cores,
     CommonOptionBag.Libraries,
     CommonOptionBag.Plugin,
