@@ -170,20 +170,20 @@ namespace Microsoft.Dafny {
     }
 
     static HashSet<string> SplitOptionValueIntoFiles(HashSet<string> inputs) {
-      var output = new HashSet<string>();
+      var result = new HashSet<string>();
       foreach (var input in inputs) {
         var values = input.Split(',');
         foreach (var slice in values) {
           var name = slice.Trim();
-          if (System.IO.Directory.Exists(name)) {
-            var files = System.IO.Directory.GetFiles(name, "*.dfy", SearchOption.AllDirectories);
-            foreach (var file in files) { output.Add(file); }
+          if (Directory.Exists(name)) {
+            var files = Directory.GetFiles(name, "*.dfy", SearchOption.AllDirectories);
+            foreach (var file in files) { result.Add(file); }
           } else {
-            output.Add(name);
+            result.Add(name);
           }
         }
       }
-      return output;
+      return result;
     }
 
     public static CommandLineArgumentsResult ProcessCommandLineArguments(string[] args, out DafnyOptions options, out List<DafnyFile> dafnyFiles, out List<string> otherFiles) {
