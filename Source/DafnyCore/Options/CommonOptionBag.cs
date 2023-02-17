@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using Microsoft.Boogie;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny;
 
 public class CommonOptionBag {
 
@@ -69,7 +69,8 @@ The `text` format also includes a more detailed breakdown of what assertions app
 The contents of this file and any files it includes can be referenced from other files as if they were included. 
 However, these contents are skipped during code generation and verification.
 This option is useful in a diamond dependency situation, 
-to prevent code from the bottom dependency from being generated more than once.".TrimStart());
+to prevent code from the bottom dependency from being generated more than once.
+The value may be a comma-separated list of files and folders.".TrimStart());
 
   public static readonly Option<FileInfo> Output = new(new[] { "--output", "-o" },
     "Specify the filename and location for the generated target language files.") {
