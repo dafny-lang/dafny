@@ -13,9 +13,11 @@ module M {
     predicate Other(x:nat, free: Tr)
       ensures x != 0 && free.Other(x-1, free) ==> Other(x-1, free)
   }
+  method X(tr: Tr) requires tr.ActuallyTrue() {}
 }
 
 class Cl extends M.Tr {
+  constructor() {}
   predicate True(): (ret: bool)
     // Missing: ensures ret
   { false }
@@ -36,6 +38,12 @@ class Cl extends M.Tr {
     // Different receiver
     ensures x != 0 && Other(x-1, free) ==> Other(x-1, free)
   { false }
+}
+
+method Meh(tr: M.Tr)
+  requires tr.ActuallyTrue'()
+{
+  M.X(tr);
 }
 
 module SSCinClass {
