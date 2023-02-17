@@ -27,7 +27,10 @@ the `dotnet test` command and other supported options.
 
 ## Writing tests
 
-Lit tests use a very restricted form of command-line: executables and their arguments piping, `>` and `>>` redirections (for respectively writing and appending stdout to a file) and `2>` and `2>>` redirections (for respectively writing and appending both stdout and stderr to a file).
+Lit tests use a very restricted form of command-line: executables and their arguments, piping,
+`>` and `>>` redirections (for respectively writing and appending stdout to a file) 
+and `2>` and `2>>` redirections (for respectively writing and appending both stdout and stderr to a file).
+
 To work cross-platform, use a number of macros: %verify, %resolve, %build, %run, %translate (with %trargs),
 %exits-with, %diff, %sed and others you can find defined in lit.site.cfg
 

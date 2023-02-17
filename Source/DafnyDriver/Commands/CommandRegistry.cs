@@ -84,6 +84,11 @@ static class CommandRegistry {
       var keywordForNewMode = commandToSpec.Keys.Select(c => c.Name).
         Union(new[] { "--dev", "--version", "-h", "--help", "[parse]", "[suggest]" });
       if (!keywordForNewMode.Contains(first)) {
+        if (first.Length > 0 && first[0] != '/' && first[0] != '-' && !System.IO.File.Exists(first) && first.IndexOf('.') == -1) {
+          dafnyOptions.Printer.ErrorWriteLine(Console.Out,
+            "*** Error: '{0}': The first input must be a command or a legacy option or file with supported extension", first);
+          return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR);
+        }
         var oldOptions = new DafnyOptions();
         if (oldOptions.Parse(arguments)) {
           return new ParseArgumentSuccess(oldOptions);
