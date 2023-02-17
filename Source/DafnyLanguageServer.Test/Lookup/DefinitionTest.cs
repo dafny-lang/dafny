@@ -312,7 +312,7 @@ method DoIt() returns (x: int) {
       var definition = (await RequestDefinition(documentItem, (4, 13)).AsTask()).Single();
       var location = definition.Location;
       Assert.AreEqual(DocumentUri.FromFileSystemPath(Path.Combine(Directory.GetCurrentDirectory(), "Lookup/TestFiles/foreign.dfy")), location.Uri);
-      Assert.AreEqual(new Range((5, 18), (5, 22)), location.Range);
+      Assert.AreEqual(new Range((5, 11), (5, 15)), location.Range);
     }
 
     [TestMethod]

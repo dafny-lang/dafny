@@ -64,7 +64,7 @@ method Foo() ensures false { } ";
     |  |  |  I  I  |  |  |  I  I  |  |  | :
  .  |  |  |  I  I  |  |  |  I  I  |  |  | :ghost const maxId := 200;
     |  |  |  I  I  |  |  |  I  I  |  |  | :
- .  |  |  |  I  I  |  |  |  I  I  |  |  | :predicate isIssueIdValid(issueId: int) {
+ .  |  |  |  I  I  |  |  |  I  I  |  |  | :ghost predicate isIssueIdValid(issueId: int) {
  .  |  |  |  I  I  |  |  |  I  I  |  |  | :  101 <= issueId < maxId
  .  |  |  |  I  I  |  |  |  I  I  |  |  | :}
     |  |  |  I  I  |  |  |  I  I  |  |  | :
