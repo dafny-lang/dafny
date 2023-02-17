@@ -115,7 +115,7 @@ jobs:
       if: "!inputs.all_platforms"
       run: |
         sudo apt-get install -qq libarchive-tools
-        mkdir dafny/Binaries/z3
+        mkdir -p dafny/Binaries/z3/bin
         wget -qO- https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-02-17/z3-4.12.1-ubuntu-20.04-bin.zip | bsdtar -xf -
         mv z3-4.12.1 dafny/Binaries/z3/bin/z3
         chmod +x dafny/Binaries/z3/bin/z3

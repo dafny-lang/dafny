@@ -58,7 +58,7 @@ jobs:
     - name: Load Z3
       shell: pwsh
       run: |
-        Invoke-WebRequest ${{env.z3BaseUri}}/${{matrix.z3}}.zip -OutFile z3.zip
+        Invoke-WebRequest ${{env.z3BaseUri}}/${{matrix.z3}}-bin.zip -OutFile z3.zip
         Expand-Archive z3.zip .
         Remove-Item z3.zip
     - name: Set up Z3 (non-Windows)
