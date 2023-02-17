@@ -1,0 +1,2 @@
+git-issue-2550.dfy(8,14): Error: Type or type parameter is not declared in this scope: Foo (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
+1 resolution/type errors detected in git-issue-2550.dfy

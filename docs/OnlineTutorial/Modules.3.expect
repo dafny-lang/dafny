@@ -1,5 +1,5 @@
 text.dfy(7,11): Error: Raised while checking export set BadSpec: Function body type mismatch (expected T, got int)
 text.dfy(4,9): Error: This export set is not consistent: BadSpec
-text.dfy(7,16): Error: Raised while checking export set BadSpec2: Undeclared top-level type or type parameter: T (did you forget to qualify a name or declare a module import 'opened'?)
+text.dfy(7,16): Error: Raised while checking export set BadSpec2: Type or type parameter is not declared in this scope: T (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
 text.dfy(5,9): Error: This export set is not consistent: BadSpec2
 4 resolution/type errors detected in text.dfy
