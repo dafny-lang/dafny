@@ -1564,8 +1564,8 @@ If the identifier is for a generic entity, it is followed by
 a ``GenericInstantiation`` which provides actual types for
 the type parameters.
 
-To reference a prefix predicate (see [Section 5.14.3.4](#sec-copredicates)) or
-prefix lemma (see [Section 5.14.3.5.3](#sec-prefix-lemmas)), the identifier
+To reference a prefix predicate (see [Section 5.14.3.5](#sec-copredicates)) or
+prefix lemma (see [Section 5.14.3.6.3](#sec-prefix-lemmas)), the identifier
 must be the name of the greatest predicate or greatest lemma and it must be
 followed by a [_hash call_](#sec-hash-call).
 
@@ -1621,7 +1621,7 @@ greatest lemma {:induction false} Theorem0<T>(s: T)
 ```
 
 where the ``HashCall`` is `"Theorem0#<T>[_k-1](s);"`.
-See [Section 5.14.3.4](#sec-copredicates) and [Section 5.14.3.5.3](#sec-prefix-lemmas).
+See [Section 5.14.3.5](#sec-copredicates) and [Section 5.14.3.6.3](#sec-prefix-lemmas).
 
 ## 9.34. Suffix ([grammar](#g-suffix)) {#sec-suffix}
 

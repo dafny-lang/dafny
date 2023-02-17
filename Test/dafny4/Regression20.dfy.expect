@@ -1,2 +1,2 @@
-Regression20.dfy(6,12): Error: Type or type parameter is not declared in this scope: bv (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
+Regression20.dfy(6,12): Error: Undeclared top-level type or type parameter: bv (did you forget to qualify a name or declare a module import 'opened'?)
 1 resolution/type errors detected in Regression20.dfy
