@@ -327,7 +327,7 @@ method m() {
   }
   assert i == 10 || 200 <= i < 210;
 }
-predicate method P(i:int)
+predicate P(i:int)
 ```
 To explain the example, the loop invariant `0 <= i <= 10` is known to hold at the very top
 of each iteration,
@@ -547,8 +547,8 @@ datatype Status =
 | Success
 | Failure(error: string)
 {
-  predicate method IsFailure() { this.Failure?  }
-  function method PropagateFailure(): Status
+  predicate IsFailure() { this.Failure?  }
+  function PropagateFailure(): Status
     requires IsFailure()
   {
     Failure(this.error)
@@ -563,15 +563,15 @@ datatype Outcome<T> =
 | Success(value: T)
 | Failure(error: string)
 {
-  predicate method IsFailure() {
+  predicate IsFailure() {
     this.Failure?
   }
-  function method PropagateFailure<U>(): Outcome<U>
+  function PropagateFailure<U>(): Outcome<U>
     requires IsFailure()
   {
     Failure(this.error) // this is Outcome<U>.Failure(...)
   }
-  function method Extract(): T
+  function Extract(): T
     requires !IsFailure()
   {
     this.value

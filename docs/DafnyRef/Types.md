@@ -238,7 +238,7 @@ Real literals using exponents are not supported in Dafny. For now, you'd have to
 <!-- %check-verify -->
 ```dafny
 // realExp(2.37, 100) computes 2.37e100
-function method realExp(r: real, e: int): real decreases if e > 0 then e else -e {
+function realExp(r: real, e: int): real decreases if e > 0 then e else -e {
   if e == 0 then r
   else if e < 0 then realExp(r/10.0, e+1)
   else realExp(r*10.0, e-1)
@@ -2130,7 +2130,7 @@ As an example, the following trait represents movable geometric shapes:
 ```dafny
 trait Shape
 {
-  function method Width(): real
+  function Width(): real
     reads this
     decreases 1
   method Move(dx: real, dy: real)
@@ -2152,7 +2152,7 @@ that each extend `Shape`:
 class UnitSquare extends Shape
 {
   var x: real, y: real
-  function method Width(): real 
+  function Width(): real 
     decreases 0
   {  // note the empty reads clause
     1.0
@@ -2167,7 +2167,7 @@ class UnitSquare extends Shape
 class LowerRightTriangle extends Shape
 {
   var xNW: real, yNW: real, xSE: real, ySE: real
-  function method Width(): real
+  function Width(): real
     reads this
     decreases 0
   {
@@ -2745,7 +2745,7 @@ considered to be ghost if either the function or any of its arguments
 is ghost. The following example program illustrates:
 <!-- %check-resolve Types.18.expect -->
 ```dafny
-function method F(x: int, ghost y: int): int
+function F(x: int, ghost y: int): int
 {
   x
 }

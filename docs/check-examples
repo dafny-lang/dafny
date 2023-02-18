@@ -237,7 +237,7 @@ do
           if [ "$capture" == "2" ]; then
             "$dafny" $com $dOptions ${options[@]} $text 2> actual > /dev/null
           else
-            "$dafny" $com $dOptions ${options[@]} $text > actual
+            "$dafny" $com --function-syntax:4 $dOptions ${options[@]} $text > actual
           fi
           actualec=$?
           if [ "$useHeadings" == "1" ]; then

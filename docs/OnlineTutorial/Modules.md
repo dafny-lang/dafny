@@ -83,7 +83,7 @@ name prefixing them. They are also available in the methods and functions of the
 ```dafny
 module Mod {
   module Helpers {
-    function method addOne(n: nat): nat {
+    function addOne(n: nat): nat {
       n + 1
     }
   }
@@ -102,7 +102,7 @@ export sets, as we will see in the following section. So adding
 ```dafny
 module Mod {
   module Helpers {
-    function method addOne(n: nat): nat {
+    function addOne(n: nat): nat {
       n + 1
     }
   }
@@ -129,7 +129,7 @@ defined outside of `Mod`, then we could import it:
 <!-- %check-verify -->
 ```dafny
 module Helpers {
-  function method addOne(n: nat): nat
+  function addOne(n: nat): nat
   {
     n + 1
   }
@@ -160,7 +160,7 @@ module Helpers {
   export Spec provides addOne, addOne_result
   export Body reveals addOne
   export extends Spec
-  function method addOne(n: nat): nat
+  function addOne(n: nat): nat
   {
     n + 1
   }
@@ -180,7 +180,7 @@ module Helpers {
   export Spec provides addOne, addOne_result
   export Body reveals addOne
   export extends Spec
-  function method addOne(n: nat): nat
+  function addOne(n: nat): nat
   {
     n + 1
   }
@@ -356,7 +356,7 @@ example, we could write the previous `addOne` example as:
 <!-- %check-verify -->
 ```dafny
 module Helpers {
-  function method addOne(n: nat): nat
+  function addOne(n: nat): nat
   {
     n + 1
   }
@@ -377,7 +377,7 @@ present however, so you can always use the name that was bound to get to anythin
 <!-- %check-verify Modules.5.expect -->
 ```dafny
 module Helpers {
-  function method addOne(n: nat): nat
+  function addOne(n: nat): nat
   {
     n + 1
   }
@@ -412,7 +412,7 @@ is defined, any refinement of `B` can be used safely. For example, if we start w
 <!-- %check-verify -->
 ```dafny
 abstract module Interface {
-  function method addSome(n: nat): nat
+  function addSome(n: nat): nat
     ensures addSome(n) > n
 }
 abstract module Mod {
@@ -429,7 +429,7 @@ so this is actually a refinement of the `Interface` module.
 <!-- %check-verify -->
 ```dafny
 abstract module Interface {
-  function method addSome(n: nat): nat
+  function addSome(n: nat): nat
     ensures addSome(n) > n
 }
 abstract module Mod {
@@ -439,7 +439,7 @@ abstract module Mod {
   }
 }
 module Implementation refines Interface {
-  function method addSome(n: nat): nat
+  function addSome(n: nat): nat
     ensures addSome(n) == n + 1
   {
     n + 1
@@ -452,7 +452,7 @@ We can then substitute `Implementation` for `A` in a new module, by declaring a 
 <!-- %check-verify -->
 ```dafny
 abstract module Interface {
-  function method addSome(n: nat): nat
+  function addSome(n: nat): nat
     ensures addSome(n) > n
 }
 abstract module Mod {
@@ -462,7 +462,7 @@ abstract module Mod {
   }
 }
 module Implementation refines Interface {
-  function method addSome(n: nat): nat
+  function addSome(n: nat): nat
     ensures addSome(n) == n + 1
   {
     n + 1
