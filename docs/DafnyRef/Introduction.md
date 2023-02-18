@@ -114,7 +114,7 @@ class Node {
   var head: int
   var next: Node? // Node? means a Node value or null
 
-  predicate Valid()
+  ghost predicate Valid()
     reads this, Repr
   {
     this in Repr &&

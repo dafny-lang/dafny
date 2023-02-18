@@ -140,10 +140,12 @@ A == B && B == C
 ```
 
 Also,
+<!-- %no-check -->
 ```dafny
 A <==> B == C <==> D
 ```
 is
+<!-- %no-check -->
 ```dafny
 A <==> (B == C) <==> D
 ```
@@ -1389,7 +1391,7 @@ Examples:
 <!-- %check-resolve -->
 ```dafny
 type T
-type Q { function method toString(t: T): string }
+type Q { function toString(t: T): string }
 ```
 
 An opaque type is a special case of a type synonym that is underspecified.  Such
@@ -4322,7 +4324,7 @@ to restrict it to non-heap based types, which is indicated with the
 
 <!-- %check-verify -->
 ```dafny
-predicate IsCommutative<X(!new)>(r: (X, X) -> bool) // X is restricted to non-heap types
+ghost predicate IsCommutative<X(!new)>(r: (X, X) -> bool) // X is restricted to non-heap types
 {
   forall x, y :: r(x, y) == r(y, x) // allowed
 }
@@ -4413,13 +4415,13 @@ class Node {
 
 datatype Path = Empty | Extend(Path, Node)
 
-predicate Reachable(source: Node, sink: Node, S: set<Node>)
+ghost predicate Reachable(source: Node, sink: Node, S: set<Node>)
   reads S
 {
   exists p :: ReachableVia(source, p, sink, S) // allowed because of 'older p' on ReachableVia
 }
 
-predicate ReachableVia(source: Node, older p: Path, sink: Node, S: set<Node>)
+ghost predicate ReachableVia(source: Node, older p: Path, sink: Node, S: set<Node>)
   reads S
   decreases p
 {

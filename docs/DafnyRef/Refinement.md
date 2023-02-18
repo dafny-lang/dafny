@@ -380,7 +380,7 @@ abstract module ChildWithExtraMembers refines Parent {
   }
 
   datatype Bool ... {
-    function method AsDafnyBool() : bool { this.True? }
+    function AsDafnyBool() : bool { this.True? }
   }
 }
 ```
