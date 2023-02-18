@@ -526,34 +526,16 @@ because the module `M` must come before any other kind of members, such as metho
 and open it into any module that needs its functionality.
 Finally, if you import via a path, such as `import A = B.C`, then this creates a dependency of `A` on `B`, as we need to know what B is (is it abstract or concrete, or a refinement?).
 
-
-
 ## Name Resolution
-
-(Todo: The following has changed in Dafny. The description here should
-be changed to reflect the new rules.)
 
 When Dafny sees something like `A.B.C`, how does it know what each part refers to? The process Dafny uses to determine what identifier sequences like this refer
 to is name resolution. Though the rules may seem complex, usually they do what you would expect. Dafny first looks up the initial identifier. Depending on what the first
-identifier refers to, the rest of the identifier is looked up in the appropriate context. The full rules are as follows:
+identifier refers to, the rest of the identifier is looked up in the appropriate context. The full rules are described in the [Reference Manual](../DafnyRef/DafnyRef#sec-name-resolution):
 
-* Local variables, parameters and bound variables. These are things like `x`, `y`, and `i` in `var x;`, `... returns (y: int)`, and `forall i :: ...`.
-* Classes, datatypes, and module names (provided this is not the only part of the identifier). Classes allow their static members to be accessed in this way,
-    and datatypes allow their constructors to be accessed. Modules allow any of their members to be referred to like this.
-* Constructor names (if unambiguous). Any datatypes that don't need qualification (so the datatype name itself doesn't
-    need a prefix), and also have a uniquely named constructor, can be referred to just by its name. So if `datatype List = Cons(List) | Nil`
-    is the only datatype that declares `Cons` and `Nil` constructors, then you can write `Cons(Cons(Nil))`.
-    If the constructor name is not unique, then you need to prefix it with the name of the datatype (for example `List.Cons(List.Nil))`).
-    This is done per constructor, not per datatype.
-* Fields, functions, and methods of the current class (if in a static context, then only static methods and functions are allowed).
-    You can refer to fields of the current class either as `this.f` or `f`,
-    assuming of course that `f` hasn't been hidden by one of the above. You can always prefix `this` if needed, which cannot be hidden. (Note, a field whose name is a string of digits must always have some prefix.)
-* Static functions and methods in the enclosing module. Note, this refers only to functions and methods declared at the
-  module level, not static members of a named class.
+* The first component is looked up in the local scope, which may be a block of a method, the declarations of a type, or the local names in a module.
+For a module, the local names include those brought in by `import opened`, though these can be shadowed by non-imported local names.
+The names brought in by an import depend on which export set is designated (perhaps by default) in the import declaration.
+* Then subsequent identifiers are looked up in the scope of the qualified name prefix interpreted so far.
 
-Opened modules are treated at each level, after the declarations in the current module. Opened modules only affect steps 2, 3 and 5.
-If a ambiguous name is found, an error is generated, rather than continuing down the list.
-After the first identifer, the rules are basically the same, except in the new context. For example, if the first identifier is a
-module, then the next identifier looks into that module. Opened modules only apply within the module it is opened into. When looking
-up into another module, only things explicitly declared in that module are considered.
-
+There are slightly modified rules for (a) the qualified names used in module import and refine declarations, (b) the name of a datatype that is the same as the name of its containing
+module, and (c) the names of datatype constructors, if they are unambiguous (they often do not need a prefixing name of the data type itself).
