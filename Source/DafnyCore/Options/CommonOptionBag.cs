@@ -9,7 +9,7 @@ namespace Microsoft.Dafny;
 public class CommonOptionBag {
 
   public static readonly Option<int> ErrorLimit =
-    new("--error-limit", "Set the maximum number of errors to report (0 for unlimited).");
+    new("--error-limit", () => 5, "Set the maximum number of errors to report (0 for unlimited).");
 
   public static readonly Option<bool> ManualLemmaInduction =
     new("--manual-lemma-induction", "Turn off automatic induction for lemmas.");
