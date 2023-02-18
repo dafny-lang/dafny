@@ -2405,16 +2405,12 @@ namespace Microsoft.Dafny.Compilers {
 
         return AddTypeDescriptorArgs(s, udt.TypeArgs, relevantTypeArgs, wr, udt.tok);
       } else if (type is SetType setType) {
-        var tp = new TypeParameter(tok, "T", TypeParameter.TPVarianceSyntax.Covariant_Permissive);
         return AddTypeDescriptorArgs(DafnySetClass, setType.TypeArgs, setType.TypeArgs, wr, tok);
       } else if (type is SeqType seqType) {
-        var tp = new TypeParameter(tok, "T", TypeParameter.TPVarianceSyntax.Covariant_Permissive);
         return AddTypeDescriptorArgs(DafnySeqClass, seqType.TypeArgs, seqType.TypeArgs, wr, tok);
       } else if (type is MultiSetType multiSetType) {
-        var tp = new TypeParameter(tok, "T", TypeParameter.TPVarianceSyntax.Covariant_Permissive);
         return AddTypeDescriptorArgs(DafnyMultiSetClass, multiSetType.TypeArgs, multiSetType.TypeArgs, wr, tok);
       } else if (type is MapType mapType) {
-        var tp = new TypeParameter(tok, "T", TypeParameter.TPVarianceSyntax.Covariant_Permissive);
         return AddTypeDescriptorArgs(DafnyMapClass, mapType.TypeArgs, mapType.TypeArgs, wr, tok);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();
@@ -2863,7 +2859,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine();
       var typeParams = new List<TypeParameter>();
       for (var j = 0; j < i; j++) {
-        typeParams.Add(new TypeParameter(Token.NoToken, $"T{j}", TypeParameter.TPVarianceSyntax.Covariant_Permissive));
+        typeParams.Add(new TypeParameter(RangeToken.NoToken, new Name($"T{j}"), TypeParameter.TPVarianceSyntax.Covariant_Permissive));
       }
       var typeParamString = TypeParameters(typeParams);
       var initializer = string.Format("Default({0})", Util.Comma(i, j => $"_td_T{j}.defaultValue()"));

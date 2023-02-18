@@ -10,6 +10,7 @@ using System.IO;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using System.Reactive.Disposables;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
@@ -34,7 +35,20 @@ namespace Microsoft.Dafny {
     // links are difficult across file systems (which may mount parts of other filesystems,
     // with different characteristics) and is not supported by .Net libraries
     public static string Canonicalize(String filePath) {
-      return Path.GetFullPath(filePath);
+      if (filePath == null || !filePath.StartsWith("file:")) {
+        return Path.GetFullPath(filePath);
+      }
+
+      if (Uri.IsWellFormedUriString(filePath, UriKind.RelativeOrAbsolute)) {
+        return (new Uri(filePath)).LocalPath;
+      }
+
+      if (filePath.StartsWith("file:\\")) {
+        // Recovery mechanisms for the language server
+        return filePath.Substring("file:\\".Length);
+      }
+
+      return filePath.Substring("file:".Length);
     }
     public static List<string> FileNames(IList<DafnyFile> dafnyFiles) {
       var sourceFiles = new List<string>();
@@ -55,11 +69,8 @@ namespace Microsoft.Dafny {
       // supported in .Net APIs, because it is very difficult in general
       // So we will just use the absolute path, lowercased for all file systems.
       // cf. IncludeComparer.CompareTo
-      CanonicalPath = Canonicalize(filePath);
-
-      if (!useStdin && !Path.IsPathRooted(filePath)) {
-        filePath = Path.GetFullPath(filePath);
-      }
+      CanonicalPath = !useStdin ? Canonicalize(filePath) : "<stdin>";
+      filePath = CanonicalPath;
 
       if (extension == ".dfy" || extension == ".dfyi") {
         IsPrecompiled = false;
@@ -173,7 +184,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(programName != null);
       Contract.Requires(files != null);
       program = null;
-      ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
+      ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
       BuiltIns builtIns = new BuiltIns();
 
       foreach (DafnyFile dafnyFile in files) {
@@ -205,7 +216,7 @@ namespace Microsoft.Dafny {
         dmap.PrintMap();
       }
 
-      program = new Program(programName, module, builtIns, reporter);
+      program = new Program(programName, module, builtIns, reporter, DafnyOptions.O);
 
       MaybePrintProgram(program, DafnyOptions.O.DafnyPrintFile, false);
 

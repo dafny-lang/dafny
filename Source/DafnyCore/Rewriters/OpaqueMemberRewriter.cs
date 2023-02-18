@@ -80,7 +80,7 @@ public class OpaqueMemberRewriter : IRewriter {
     Contract.Requires(c != null);
     var newDecls = new List<MemberDecl>();
     foreach (var member in c.Members.Where(member => member is Function or ConstantField)) {
-      if (!Attributes.Contains(member.Attributes, "opaque")) {
+      if (!Attributes.Contains(member.Attributes, "opaque") && !member.IsOpaque) {
         // Nothing to do
       } else if (!RefinementToken.IsInherited(member.tok, c.EnclosingModuleDefinition)) {
         GenerateRevealLemma(member, newDecls);
@@ -140,11 +140,11 @@ public class OpaqueMemberRewriter : IRewriter {
     }
     Method reveal;
     if (m is TwoStateFunction) {
-      reveal = new TwoStateLemma(m.tok, "reveal_" + m.Name, m.HasStaticKeyword, new List<TypeParameter>(), new List<Formal>(), new List<Formal>(), new List<AttributedExpression>(),
+      reveal = new TwoStateLemma(m.RangeToken, m.NameNode.Prepend("reveal_"), m.HasStaticKeyword, new List<TypeParameter>(), new List<Formal>(), new List<Formal>(), new List<AttributedExpression>(),
         new Specification<FrameExpression>(new List<FrameExpression>(), null), ens,
         new Specification<Expression>(new List<Expression>(), null), null, lemma_attrs, null);
     } else {
-      reveal = new Lemma(m.tok, "reveal_" + m.Name, m.HasStaticKeyword, new List<TypeParameter>(), new List<Formal>(), new List<Formal>(), new List<AttributedExpression>(),
+      reveal = new Lemma(m.RangeToken, m.NameNode.Prepend("reveal_"), m.HasStaticKeyword, new List<TypeParameter>(), new List<Formal>(), new List<Formal>(), new List<AttributedExpression>(),
         new Specification<FrameExpression>(new List<FrameExpression>(), null), ens,
         new Specification<Expression>(new List<Expression>(), null), null, lemma_attrs, null);
     }

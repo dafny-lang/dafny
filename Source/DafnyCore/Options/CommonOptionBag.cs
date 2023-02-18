@@ -2,16 +2,24 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.IO;
 using System.Linq;
+using Microsoft.Boogie;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny;
 
 public class CommonOptionBag {
+
+  public static readonly Option<int> ErrorLimit =
+    new("--error-limit", () => 5, "Set the maximum number of errors to report (0 for unlimited).");
 
   public static readonly Option<bool> ManualLemmaInduction =
     new("--manual-lemma-induction", "Turn off automatic induction for lemmas.");
 
   public static readonly Option<bool> StdIn = new("--stdin", () => false,
     @"Read standard input and treat it as an input .dfy file.");
+
+  public static readonly Option<bool> Check = new("--check", () => false, @"
+Instead of formatting files, verify that all files are already
+formatted through and return a non-zero exit code if it is not the case".TrimStart());
 
   public static readonly Option<bool> OptimizeErasableDatatypeWrapper = new("--optimize-erasable-datatype-wrapper", () => true, @"
 false - Include all non-ghost datatype constructors in the compiled code
@@ -41,12 +49,28 @@ Results in more manual work, but also produces more predictable behavior.".TrimS
     "Allow variables to be read before they are assigned, but only if they have an auto-initializable type or if they are ghost and have a nonempty type.") {
   };
 
+  public static readonly Option<bool> IsolateAssertions = new("--isolate-assertions", @"Verify each assertion in isolation.");
+
+  public static readonly Option<List<string>> VerificationLogFormat = new("--log-format", $@"
+Logs verification results using the given test result format. The currently supported formats are `trx`, `csv`, and `text`. These are: the XML-based format commonly used for test results for .NET languages, a custom CSV schema, and a textual format meant for human consumption. You can provide configuration using the same string format as when using the --logger option for dotnet test, such as: --format ""trx;LogFileName=<...>"");
+
+The `trx` and `csv` formats automatically choose an output file name by default, and print the name of this file to the console. The `text` format prints its output to the console by default, but can send output to a file given the `LogFileName` option.
+
+The `text` format also includes a more detailed breakdown of what assertions appear in each assertion batch. When combined with the {CommonOptionBag.IsolateAssertions.Name} option, it will provide approximate time and resource use costs for each assertion, allowing identification of especially expensive assertions.".TrimStart()) {
+    ArgumentHelpName = "configuration"
+  };
+
+  public static readonly Option<uint> SolverResourceLimit = new("--resource-limit", @"Specify the maximum resource limit (rlimit) value to pass to Z3. Multiplied by 1000 before sending to Z3.");
+  public static readonly Option<string> SolverPlugin = new("--solver-plugin", @"Specify a plugin to use to solve verification conditions (instead of an external Z3 process).");
+  public static readonly Option<string> SolverLog = new("--solver-log", @"Specify a file to use to log the SMT-Lib text sent to the solver.");
+
   public static readonly Option<IList<string>> Libraries = new("--library",
     @"
 The contents of this file and any files it includes can be referenced from other files as if they were included. 
 However, these contents are skipped during code generation and verification.
 This option is useful in a diamond dependency situation, 
-to prevent code from the bottom dependency from being generated more than once.".TrimStart());
+to prevent code from the bottom dependency from being generated more than once.
+The value may be a comma-separated list of files and folders.".TrimStart());
 
   public static readonly Option<FileInfo> Output = new(new[] { "--output", "-o" },
     "Specify the filename and location for the generated target language files.") {
@@ -159,6 +183,7 @@ Functionality is still being expanded. Currently only checks contracts on every 
     DafnyOptions.RegisterLegacyBinding(WarnMissingConstructorParenthesis,
       (options, value) => { options.DisallowConstructorCaseWithoutParentheses = value; });
     DafnyOptions.RegisterLegacyBinding(WarningAsErrors, (options, value) => { options.WarningsAsErrors = value; });
+    DafnyOptions.RegisterLegacyBinding(ErrorLimit, (options, value) => { options.ErrorLimit = value; });
     DafnyOptions.RegisterLegacyBinding(VerifyIncludedFiles,
       (options, value) => { options.VerifyAllModules = value; });
 
@@ -169,8 +194,16 @@ Functionality is still being expanded. Currently only checks contracts on every 
 
     DafnyOptions.RegisterLegacyBinding(Plugin, (options, value) => { options.AdditionalPluginArguments = value; });
 
+    DafnyOptions.RegisterLegacyBinding(Check, (options, value) => {
+      options.FormatCheck = value;
+    });
+
     DafnyOptions.RegisterLegacyBinding(StdIn, (options, value) => {
       options.UseStdin = value;
+    });
+
+    DafnyOptions.RegisterLegacyBinding(FormatPrint, (options, value) => {
+      options.DafnyPrintFile = value ? "-" : null;
     });
 
     DafnyOptions.RegisterLegacyBinding(Prelude, (options, value) => {
@@ -184,6 +217,18 @@ Functionality is still being expanded. Currently only checks contracts on every 
 
     DafnyOptions.RegisterLegacyBinding(Verbose, (o, v) => o.CompileVerbose = v);
     DafnyOptions.RegisterLegacyBinding(DisableNonLinearArithmetic, (o, v) => o.DisableNLarith = v);
+
+    DafnyOptions.RegisterLegacyBinding(VerificationLogFormat, (o, v) => o.VerificationLoggerConfigs = v);
+    DafnyOptions.RegisterLegacyBinding(IsolateAssertions, (o, v) => o.VcsSplitOnEveryAssert = v);
+    DafnyOptions.RegisterLegacyBinding(SolverResourceLimit, (o, v) => o.ResourceLimit = v);
+    DafnyOptions.RegisterLegacyBinding(SolverPlugin, (o, v) => {
+      if (v is not null) {
+        o.ProverDllName = v;
+        o.TheProverFactory = ProverFactory.Load(o.ProverDllName);
+      }
+    });
+    DafnyOptions.RegisterLegacyBinding(SolverLog, (o, v) => o.ProverLogFilePath = v);
+
     DafnyOptions.RegisterLegacyBinding(EnforceDeterminism, (options, value) => {
       options.ForbidNondeterminism = value;
       options.DefiniteAssignmentLevel = 4;
@@ -202,5 +247,10 @@ Functionality is still being expanded. Currently only checks contracts on every 
         }
       });
   }
+
+
+  public static readonly Option<bool> FormatPrint = new("--print",
+    @"Print Dafny program to stdout after formatting it instead of altering the files.") {
+  };
 }
 
