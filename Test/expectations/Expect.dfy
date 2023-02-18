@@ -1,8 +1,8 @@
-// RUN: ! %baredafny run --target=cs %args "%s" > "%t"
-// RUN: ! %baredafny run --target=go %args "%s" >> "%t"
-// RUN: ! %baredafny run --target=java %args "%s" >> "%t"
-// RUN: ! %baredafny run --target=js %args "%s" >> "%t"
-// RUN: ! %baredafny run --target=py %args "%s" >> "%t"
+// RUN: ! %baredafny run --use-basename-for-filename --cores:2 --verification-time-limit:300 --target=cs "%s" > "%t"
+// RUN: ! %baredafny run --use-basename-for-filename --cores:2 --verification-time-limit:300 --target=go "%s" >> "%t"
+// RUN: ! %baredafny run --use-basename-for-filename --cores:2 --verification-time-limit:300 --target=java "%s" >> "%t"
+// RUN: ! %baredafny run --use-basename-for-filename --cores:2 --verification-time-limit:300 --target=js "%s" >> "%t"
+// RUN: ! %baredafny run --use-basename-for-filename --cores:2 --verification-time-limit:300 --target=py "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype OOAgent = | OO7 {

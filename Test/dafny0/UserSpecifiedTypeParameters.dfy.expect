@@ -3,9 +3,9 @@ UserSpecifiedTypeParameters.dfy(26,16): Error: type of type parameter could not 
 UserSpecifiedTypeParameters.dfy(26,16): Error: type of type parameter could not be determined; please specify the type explicitly
 UserSpecifiedTypeParameters.dfy(26,24): Error: type parameter 'T' (inferred to be '?') in the function call to 'H' could not be determined
 UserSpecifiedTypeParameters.dfy(26,24): Error: type parameter 'U' (inferred to be '?') in the function call to 'H' could not be determined
-UserSpecifiedTypeParameters.dfy(46,16): Error: wrong number of arguments (function 'F' expects 2, got 1)
-UserSpecifiedTypeParameters.dfy(46,22): Error: Undeclared top-level type or type parameter: b (did you forget to qualify a name or declare a module import 'opened'?)
-UserSpecifiedTypeParameters.dfy(46,26): Error: Undeclared top-level type or type parameter: c (did you forget to qualify a name or declare a module import 'opened'?)
+UserSpecifiedTypeParameters.dfy(46,16): Error: wrong number of arguments (got 1, but function 'F' expects 2: (x: bool, y: bool))
+UserSpecifiedTypeParameters.dfy(46,22): Error: Type or type parameter is not declared in this scope: b (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
+UserSpecifiedTypeParameters.dfy(46,26): Error: Type or type parameter is not declared in this scope: c (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
 UserSpecifiedTypeParameters.dfy(46,18): Error: variable 'a' does not take any type parameters
 UserSpecifiedTypeParameters.dfy(46,30): Error: non-function expression (of type int) is called with parameters
 UserSpecifiedTypeParameters.dfy(77,15): Error: incorrect argument type for lemma in-parameter 'y' (expected A, found int)

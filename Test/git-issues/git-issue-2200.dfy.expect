@@ -1,0 +1,2 @@
+git-issue-2200.dfy(6,21): Error: wrong number of arguments (got 2, but function 'f' expects 1: (i: int))
+1 resolution/type errors detected in git-issue-2200.dfy

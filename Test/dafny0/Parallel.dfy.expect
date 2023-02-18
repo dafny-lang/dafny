@@ -1,3 +1,6 @@
+Parallel.dfy(267,4): Warning: a forall statement with no bound variables is deprecated; use an 'assert by' statement instead
+Parallel.dfy(279,4): Warning: a forall statement with no bound variables is deprecated; use an 'assert by' statement instead
+Parallel.dfy(286,4): Warning: a forall statement with no bound variables is deprecated; use an 'assert by' statement instead
 Parallel.dfy(293,21): Error: assertion might not hold
 Parallel.dfy(33,9): Error: A precondition for this call might not hold.
 Parallel.dfy(59,13): Related location: This is the precondition that might not hold.
