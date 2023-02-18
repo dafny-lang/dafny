@@ -36,13 +36,13 @@ ParameterResolution.dfy(79,22): Error: ghost variables such as y are allowed onl
 ParameterResolution.dfy(86,52): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function without the 'ghost' keyword)
 ParameterResolution.dfy(88,58): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function without the 'ghost' keyword)
 ParameterResolution.dfy(95,89): Error: ghost variables such as x are allowed only in specification contexts. x was inferred to be ghost based on its declaration or initialization.
-ParameterResolution.dfy(97,89): Error: ghost variables such as x are allowed only in specification contexts. x was inferred to be ghost based on its declaration or initialization.
+ParameterResolution.dfy(97,82): Error: ghost variables such as x are allowed only in specification contexts. x was inferred to be ghost based on its declaration or initialization.
 ParameterResolution.dfy(127,14): Error: wrong number of arguments (got 0, but function 'N' expects 1: (x: int))
 ParameterResolution.dfy(133,14): Error: wrong number of arguments (got 0, but function 'O' expects 1: (x: int))
 ParameterResolution.dfy(147,12): Error: wrong number of arguments (got 0, but function 'O' expects 1: (x: int))
-ParameterResolution.dfy(161,20): Error: a refining formal parameter ('x') in a refinement module is not allowed to give a default-value expression
-ParameterResolution.dfy(163,20): Error: a refining formal parameter ('x') in a refinement module is not allowed to give a default-value expression
-ParameterResolution.dfy(172,21): Error: a refining formal parameter ('x') in a refinement module is not allowed to give a default-value expression
+ParameterResolution.dfy(161,13): Error: a refining formal parameter ('x') in a refinement module is not allowed to give a default-value expression
+ParameterResolution.dfy(163,13): Error: a refining formal parameter ('x') in a refinement module is not allowed to give a default-value expression
+ParameterResolution.dfy(172,14): Error: a refining formal parameter ('x') in a refinement module is not allowed to give a default-value expression
 ParameterResolution.dfy(174,12): Error: a refining formal parameter ('x') in a refinement module is not allowed to give a default-value expression
 ParameterResolution.dfy(169,12): Error: wrong number of arguments (got 0, but function 'O' expects 1: (x: int))
 ParameterResolution.dfy[RefinementB](147,12): Error: wrong number of arguments (got 0, but function 'O' expects 1: (x: int))
