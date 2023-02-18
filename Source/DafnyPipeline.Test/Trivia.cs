@@ -72,11 +72,11 @@ ensures true
 ";
         programString = AdjustNewlines(programString);
 
-        ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
+        ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
         Microsoft.Dafny.Type.ResetScopes();
         BuiltIns builtIns = new BuiltIns();
         Parser.Parse(programString, "virtual", "virtual", module, builtIns, reporter);
-        var dafnyProgram = new Program("programName", module, builtIns, reporter);
+        var dafnyProgram = new Program("programName", module, builtIns, reporter, options);
         Assert.Equal(0, reporter.ErrorCount);
         Assert.Equal(6, dafnyProgram.DefaultModuleDef.TopLevelDecls.Count);
         var moduleTest = dafnyProgram.DefaultModuleDef.TopLevelDecls[0] as LiteralModuleDecl;

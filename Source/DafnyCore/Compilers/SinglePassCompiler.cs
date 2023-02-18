@@ -1891,7 +1891,7 @@ namespace Microsoft.Dafny.Compilers {
           thisContext = c;
         }
         if (c is TraitDecl && member.OverriddenMember != null && !member.IsOverrideThatAddsBody) {
-          if (TraitRepeatsInheritedDeclarations) {
+          if (!member.IsGhost && TraitRepeatsInheritedDeclarations) {
             RedeclareInheritedMember(member, classWriter);
           } else {
             // emit nothing in the trait; this member will be emitted in the classes that extend this trait
@@ -2911,7 +2911,7 @@ namespace Microsoft.Dafny.Compilers {
       }
       private void RejectAssume(IToken tok, Attributes attributes, ConcreteSyntaxTree wr) {
         if (!Attributes.Contains(attributes, "axiom")) {
-          compiler.Error(tok, "an assume statement without an {{:axiom}} attribute cannot be compiled", wr);
+          compiler.Error(tok, "an assume statement cannot be compiled (use the {{:axiom}} attribute to let the compiler ignore the statement)", wr);
         }
       }
       protected override void VisitOneStmt(Statement stmt) {

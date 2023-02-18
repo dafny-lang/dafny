@@ -323,7 +323,7 @@ namespace Microsoft.Dafny {
           } else if (e.Value is BigInteger) {
             var n = Microsoft.BaseTypes.BigNum.FromBigInt((BigInteger)e.Value);
             if (e.Type is BitvectorType) {
-              return MaybeLit(translator.BplBvLiteralExpr(GetToken(e), n, (BitvectorType)e.Type));
+              return MaybeLit(translator.BplBvLiteralExpr(GetToken(e), n, e.Type.AsBitVectorType));
             } else if (e.Type.IsBigOrdinalType) {
               var fromNat = FunctionCall(GetToken(expr), "ORD#FromNat", predef.BigOrdinalType, Boogie.Expr.Literal(n));
               return MaybeLit(fromNat, predef.BigOrdinalType);

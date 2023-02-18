@@ -1,4 +1,4 @@
-# 27. Plugins to Dafny {#sec-plugins}
+# 15. Plugins to Dafny {#sec-plugins}
 
 Dafny has a plugin architecture that permits uses to build tools for the Dafny language without having to replicate 
 parsing and name/type resolution of Dafny programs. Such a tool might just do some analysis on the Dafny program,
@@ -38,7 +38,7 @@ Plugins are typically used to report additional diagnostics such as unsupported 
 
 Note that all plugin errors should use the original program's expressions' token and NOT `Token.NoToken`, else no error will be displayed in the IDE.
 
-## 27.1. Code actions plugin tutorial
+## 15.1. Code actions plugin tutorial
 
 In this section, we will create a plugin to provide more code actions to Dafny.
 The code actions will be simple: Add a dummy comment in front of the first method name,
