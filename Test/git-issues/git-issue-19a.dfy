@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %dafny /compile:0 /allocated:4 "%s" > "%t"
+// RUN: %exits-with 2 %dafny /compile:0 /allocated:4 /functionSyntax:4 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Resolution (for verification, see git-issue-19b.dfy)
@@ -7,9 +7,9 @@ module M0 {
   // This is the original example from Issue 19. It has been fixed by the resolution
   // check that forbids functions that would depend on the allocation state.
 
-  predicate P<T>(x:T)
+  ghost predicate P<T>(x: T)
 
-  predicate AllP<T>() { forall x :: P<T>(x) } // error: predicate is not allowed to depend on allocation state
+  ghost predicate AllP<T>() { forall x :: P<T>(x) } // error: predicate is not allowed to depend on allocation state
 
   class C {}
 
@@ -32,9 +32,9 @@ module M0 {
 }
 
 module M1 {
-  predicate P<T>(x:T)
+  ghost predicate P<T>(x:T)
 
-  predicate AllP<T(!new)>() { forall x :: P<T>(x) } // note, declares T(!new)
+  ghost predicate AllP<T(!new)>() { forall x :: P<T>(x) } // note, declares T(!new)
 
   class C {}
 
