@@ -61,5 +61,5 @@ jobs:
       # By default run only on one platform, but run on all platforms if the PR has the "run-deep-tests"
       # label, and skip checking the nightly build above.
       # This is the best way to fix an issue in master that was only caught by the nightly build.
-      all_platforms: ${{ contains(github.event.pull_request.labels.*.name, 'run-deep-tests') }}
+      all_platforms: ${{ contains(github.event.pull_request.labels.*.name, 'run-deep-tests') || contains(github.event.push.labels.*.name, 'run-deep-tests')}}
       num_shards: 5
