@@ -1,0 +1,2 @@
+GhostITEResolution.dfy(18,10): Error: ghost variables such as y are allowed only in specification contexts. y was inferred to be ghost based on its declaration or initialization.
+1 resolution/type errors detected in GhostITEResolution.dfy

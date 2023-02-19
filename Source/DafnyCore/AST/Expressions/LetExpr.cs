@@ -74,6 +74,14 @@ public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBeari
     }
   }
 
+  public override IEnumerable<Expression> TerminalExpressions {
+    get {
+      foreach (var e in Body.TerminalExpressions) {
+        yield return e;
+      }
+    }
+  }
+
   public override IEnumerable<Type> ComponentTypes => BoundVars.Select(bv => bv.Type);
 
   public IEnumerable<BoundVar> BoundVars {

@@ -2639,18 +2639,28 @@ namespace Microsoft.Dafny.Compilers {
 
       } else if (expr is ITEExpr) {
         var e = (ITEExpr)expr;
-        ConcreteSyntaxTree guardWriter;
-        var wStmts = wr.Fork();
-        var thn = EmitIf(out guardWriter, true, wr);
-        guardWriter.Append(Expr(e.Test, false, wStmts));
-        Coverage.Instrument(e.Thn.tok, "then branch", thn);
-        TrExprOpt(e.Thn, resultType, thn, accumulatorVar);
-        ConcreteSyntaxTree els = wr;
-        if (!(e.Els is ITEExpr)) {
-          els = EmitBlock(wr);
-          Coverage.Instrument(e.Thn.tok, "else branch", els);
+        switch (e.HowToCompile) {
+          case ITEExpr.ITECompilation.CompileJustThenBranch:
+            TrExprOpt(e.Thn, resultType, wr, accumulatorVar);
+            break;
+          case ITEExpr.ITECompilation.CompileJustElseBranch:
+            TrExprOpt(e.Els, resultType, wr, accumulatorVar);
+            break;
+          case ITEExpr.ITECompilation.CompileBothBranches:
+            ConcreteSyntaxTree guardWriter;
+            var wStmts = wr.Fork();
+            var thn = EmitIf(out guardWriter, true, wr);
+            guardWriter.Append(Expr(e.Test, false, wStmts));
+            Coverage.Instrument(e.Thn.tok, "then branch", thn);
+            TrExprOpt(e.Thn, resultType, thn, accumulatorVar);
+            ConcreteSyntaxTree els = wr;
+            if (!(e.Els is ITEExpr { HowToCompile: ITEExpr.ITECompilation.CompileBothBranches })) {
+              els = EmitBlock(wr);
+              Coverage.Instrument(e.Thn.tok, "else branch", els);
+            }
+            TrExprOpt(e.Els, resultType, els, accumulatorVar);
+            break;
         }
-        TrExprOpt(e.Els, resultType, els, accumulatorVar);
 
       } else if (expr is NestedMatchExpr nestedMatchExpr) {
         TrExprOpt(nestedMatchExpr.Flattened, resultType, wr, accumulatorVar);

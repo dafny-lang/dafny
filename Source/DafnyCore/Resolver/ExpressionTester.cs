@@ -260,6 +260,46 @@ public class ExpressionTester {
       // the chaining expression
       return chainingExpression.Operands.TrueForAll(ee => CheckIsCompilable(ee, codeContext));
 
+    } else if (expr is ITEExpr iteExpr) {
+      // An if-then-else expression is compilable if its guard, then branch, and else branch all are.
+      // But there's another situation when it's compilable, namely when the enclosing context is a
+      // compiled function, say F(x, ghost y) where parameters x are compiled and parameters y are ghost,
+      // and one of the branches of the if-then-else expression ends with a recursive call F(s, t)
+      // where the actual parameters s are exactly the formal parameters x. In that case, the way to
+      // compile the if-then-else expression is to ignore the test expression and the branch that
+      // ends as just described, and instead just compile the other branch.
+      if (codeContext is Function function) {
+        bool onlyGhostParametersChange(Expression ee) {
+          if (ee is FunctionCallExpr functionCallExpr) {
+            if (!function.IsStatic && functionCallExpr.Receiver.Resolved is not ThisExpr) {
+              return false;
+            }
+            Contract.Assert(function.Formals.Count == functionCallExpr.Args.Count);
+            for (var i = 0; i < function.Formals.Count; i++) {
+              var formal = function.Formals[i];
+              if (!formal.IsGhost) {
+                var actual = functionCallExpr.Args[i].Resolved as IdentifierExpr;
+                if (actual == null || actual.Var != formal) {
+                  return false;
+                }
+              }
+            }
+            return true;
+          }
+          return false;
+        }
+
+        if (iteExpr.Thn.TerminalExpressions.All(onlyGhostParametersChange)) {
+          // mark "else" branch as the one to compile
+          iteExpr.HowToCompile = ITEExpr.ITECompilation.CompileJustElseBranch;
+          return CheckIsCompilable(iteExpr.Els, codeContext);
+        } else if (iteExpr.Els.TerminalExpressions.All(onlyGhostParametersChange)) {
+          // mark "then" branch as the one to compile
+          iteExpr.HowToCompile = ITEExpr.ITECompilation.CompileJustThenBranch;
+          return CheckIsCompilable(iteExpr.Thn, codeContext);
+        }
+      }
+
     } else if (expr is MatchExpr matchExpr) {
       var mc = FirstCaseThatDependsOnGhostCtor(matchExpr.Cases);
       if (mc != null) {
