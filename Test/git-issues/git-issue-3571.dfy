@@ -10,6 +10,7 @@
 // RUN: %verify --verification-time-limit 300 --verification-time-limit 500  "%s" >> "%t"
 // RUN: %resolve --error-limit:10 --error-limit:5  "%s" >> "%t"
 // RUN: %translate cs --output x --output y  "%s" >> "%t"
+// RUN: %diff "%s.expect" "%t"
 // Crashes size x is nothing real
 // ## %verify --solver-plugin x --solver-plugin x  "%s" >> "%t"
 // Not testing --boogi, --boogie-filter
