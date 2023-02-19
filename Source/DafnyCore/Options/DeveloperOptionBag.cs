@@ -20,7 +20,8 @@ public class DeveloperOptionBag {
 Print Boogie program translated from Dafny
 (use - as <file> to print to console)".TrimStart()) {
     IsHidden = true,
-    ArgumentHelpName = "file"
+    ArgumentHelpName = "file",
+    AllowMultipleArgumentsPerToken = true,
   };
 
   public static readonly Option<string> Print = new("--print", @"
@@ -34,7 +35,8 @@ Print Dafny program after parsing it.
 Print Dafny program after resolving it.
 (use - as <file> to print to console.)".TrimStart()) {
     IsHidden = true,
-    ArgumentHelpName = "file"
+    ArgumentHelpName = "file",
+    AllowMultipleArgumentsPerToken = true,
   };
 
   public static readonly Option<bool> Bootstrapping = new("--bootstrapping", @"
