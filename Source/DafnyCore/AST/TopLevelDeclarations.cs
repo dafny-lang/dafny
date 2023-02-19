@@ -790,6 +790,10 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   public readonly bool IsToBeVerified;
   public readonly bool IsToBeCompiled;
 
+  public readonly bool IsExternal; // true if declared outside the body of parent module (nothing to do with :extern)
+
+  public ModuleDefinition Companion = null;
+
   public int? ResolvedHash { get; set; }
 
   [ContractInvariantMethod]
@@ -800,7 +804,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
 
   public ModuleDefinition(RangeToken tok, Name name, List<IToken> prefixIds, bool isAbstract, bool isFacade,
     ModuleQualifiedId refinementQId, ModuleDefinition parent, Attributes attributes, bool isBuiltinName,
-    bool isToBeVerified, bool isToBeCompiled) : base(tok) {
+    bool isToBeVerified, bool isToBeCompiled, bool isExternal) : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
     this.NameNode = name;
@@ -814,14 +818,13 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     this.IsBuiltinName = isBuiltinName;
     this.IsToBeVerified = isToBeVerified;
     this.IsToBeCompiled = isToBeCompiled;
+    this.IsExternal = isExternal;
   }
-  public ModuleDefinition(IToken tok, string name, bool isAbstract,
-    ModuleDefinition parent, Attributes attributes) {
+  public ModuleDefinition(RangeToken tok, Name name, bool isAbstract,
+    ModuleDefinition parent, Attributes attributes) : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
-    this.tok = tok;
-    this.DafnyName = tok.val;
-    this.Name = name;
+    this.NameNode = name;
     this.PrefixIds = new List<IToken>();
     this.Attributes = attributes;
     this.EnclosingModule = parent;
@@ -832,7 +835,19 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     this.IsBuiltinName = false;
     this.IsToBeVerified = false;
     this.IsToBeCompiled = false;
-    this.TopLevelDecls = null;
+    this.IsExternal = false;
+  }
+
+  public bool CompileIt() {
+    if (IsAbstract || !HasBody || !IsToBeCompiled) {
+      return false;
+    }
+    var compileIt = true;
+    Attributes.ContainsBool(this.Attributes, "compile", ref compileIt);
+    if (!compileIt) {
+      return false;
+    }
+    return true;
   }
 
   VisibilityScope visibilityScope;
@@ -847,7 +862,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
 
   public bool HasBody {
     get {
-      return BodyStartTok != null;
+      return BodyStartTok != Token.NoToken;
     }
   }
   private string sanitizedName = null;
@@ -1096,7 +1111,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
 
 public class DefaultModuleDefinition : ModuleDefinition {
   public DefaultModuleDefinition()
-    : base(RangeToken.NoToken, new Name("_module"), new List<IToken>(), false, false, null, null, null, true, true, true) {
+    : base(RangeToken.NoToken, new Name("_module"), new List<IToken>(), false, false, null, null, null, true, true, true, false) {
   }
   public override bool IsDefaultModule {
     get {

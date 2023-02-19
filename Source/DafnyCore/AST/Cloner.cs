@@ -36,7 +36,11 @@ namespace Microsoft.Dafny {
       } else {
         nw = new ModuleDefinition(Range(m.RangeToken), name, m.PrefixIds, m.IsAbstract, m.IsFacade,
           m.RefinementQId, m.EnclosingModule, CloneAttributes(m.Attributes),
-          true, m.IsToBeVerified, m.IsToBeCompiled);
+          true, m.IsToBeVerified, m.IsToBeCompiled, m.IsExternal);
+        if (nw.SuccessfullyResolved) {
+          nw.Companion = m.Companion;
+        }
+        nw.BodyStartTok = m.BodyStartTok;
       }
       foreach (var d in m.TopLevelDecls) {
         nw.TopLevelDecls.Add(CloneDeclaration(d, nw));

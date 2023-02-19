@@ -1,3 +1,7 @@
+// RUN: %exits-with 2 %resolve "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
+// Checks that too many ^ gives an error
 module A {
   module B {
     module C {

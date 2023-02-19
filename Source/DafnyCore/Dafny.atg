@@ -1114,8 +1114,8 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
   (. submodule = null; .)
   ( ModuleDefinition<dmod, parent, out submodule>
     (. LiteralModuleDecl submod = (LiteralModuleDecl)submodule;
-       if (submod.ModuleDef.TopLevelDecls == null) {
-         if (isTopLevel) SemErr(submodule.tok, "Body-less module declarations are not permitted at the top-level: " + submod.FullDafnyName);
+       if (isTopLevel && !submod.ModuleDef.HasBody) {
+         SemErr(submodule.tok, "Body-less module declarations are not permitted at the top-level: " + submod.FullDafnyName);
        }
     .)
   | ModuleImport<parent, out submodule>
@@ -1134,51 +1134,54 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
      IToken/*!*/ iderr;
      IToken tokenWithTrailingDocString;
      var prefixIds = new List<IToken>();
-     List<MemberDecl/*!*/> namedModuleDefaultClassMembers = new List<MemberDecl>();;
+     List<MemberDecl/*!*/> namedModuleDefaultClassMembers = new List<MemberDecl>();
      List<Name> idRefined = null;
+     Name name = null;
      ModuleDefinition module;
      submodule = null; // appease compiler
      bool isAbstract = dmod.IsAbstract;
      var dafnyOptionsBackup = theOptions;
      CheckDeclModifiers(ref dmod, "module", AllowedDeclModifiers.Abstract);
+     IToken startToken = t;
    .)
    { Attribute<ref attrs> }            (. ApplyOptionsFromAttributes(attrs); .)
    ( IF(IsIdentifier(la.kind))
-     ModuleQualifiedName<out idQualified>
+     ModuleQualifiedName<out var names>
+     (. name = names[^1];
+        prefixIds = names.GetRange(0,names.Count-1).Select(n => n.StartToken).ToList();
+        if (name.Tok.line == la.line && (name.Value == "least" || name.Value == "greatest") && la.kind == _predicate)
+           errors.Warning(name.Tok, $"the {name.Value} token is the identifier for the body-less module, not an adjective for an extreme predicate; to silence this warning, put {name.Value} on the different line than 'predicate'");
+     .)
     |
-      (. SemErr(la, "Expected a module name here"); .)
+      (. SemErr(t, "Expected a module name after 'module' or its attributes"); 
+         // name stays null
+         prefixIds = new List<IToken>();
+      .)
     )
-   (. id = idQualified[idQualified.Count-1];
-      prefixIds = idQualified.GetRange(0,idQualified.Count-1);
-   .)
 
    [ "refines" ModuleQualifiedName<out idRefined>
    | Ident<out iderr> (. SemErr(ErrorID.p_bad_module_decl, t, $"expected either a '{{' or a 'refines' keyword here, found {iderr.val}"); .)
    ]
    (. module = new ModuleDefinition(RangeToken.NoToken, name, prefixIds, isAbstract, false,
                                         idRefined == null ? null : new ModuleQualifiedId(idRefined), parent, attrs,
-                                        false, theVerifyThisFile, theCompileThisFile);
+                                        false, theVerifyThisFile, theCompileThisFile, prefixIds.Count > 0);
    .)
-   SYNC                                (. module.TokenWithTrailingDocString = t; .)
-   ( "{"                                 (. module.BodyStartTok = t; .)
+   SYNC                                (. tokenWithTrailingDocString = t; .)
+   ( "{"                               (. module.BodyStartTok = t; .)
        { TopDecl<module, namedModuleDefaultClassMembers, /* isTopLevel */ false, isAbstract>}
      "}"
-      (.
-        module.RangeToken = new RangeToken(dmod.FirstToken, t);
-        module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
-      .)
     |
-      (. 
-        module = new ModuleDefinition(id, id.val, isAbstract, parent, attrs);
-        module.RangeToken = new RangeToken(dmod.FirstToken, t);
-        module.BodyStartTok = null;
-        System.Console.WriteLine("Body-less module: " + idQualified + " " + module.Name + " " + module.FullDafnyName + " " + module.HasBody);
+      (. // Body-less module
+        module.BodyStartTok = Token.NoToken;
+        //System.Console.WriteLine("Body-less module: " + prefixIds + " " + module.Name + " " + module.FullDafnyName + " " + module.HasBody);
         if (prefixIds.Count > 0) {
-          SemErr(prefixIds[0], "Body-less module declarations may not have a qualified id for a module name: " + module.Name);
+          SemErr(prefixIds[0], "Body-less module declarations may not have a qualified id for a module name: " + module.FullDafnyName);
         }
       .)
     )
     (.
+      module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
+      module.RangeToken = new RangeToken(dmod.FirstToken, t);
       submodule = new LiteralModuleDecl(module, parent);
       submodule.RangeToken = module.RangeToken;
       theOptions = dafnyOptionsBackup;
@@ -1318,12 +1321,12 @@ ModuleQualifiedName<.out List<Name> names.>
 = (. names = new List<Name>();
      Name name;
   .)
-  ( ModuleName<out id> (. ids.Add(id); .)
-  | "_"                (. ids.Add(t); .)
-  | "^"                (. ids.Add(t); .)
-    { IF(IsDotXor()) "." "^"          (. ids.Add(t); .) }
+  ( ModuleName<out name> (. names.Add(name); .)
+  | "_"                (. names.Add(new Name(t)); .)
+  | "^"                (. names.Add(new Name(t)); .)
+    { IF(IsDotXor()) "." "^"          (. names.Add(new Name(t)); .) }
   )
-  { "." ModuleName<out id> (. ids.Add(id); .) }
+  { "." ModuleName<out name> (. names.Add(name); .) }
   .
 
 /*------------------------------------------------------------------------*/

@@ -1,4 +1,4 @@
-// RUN: %baredafny resolve --use-basename-for-filename "%s" > "%t"
+// RUN: %verify "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module A {
@@ -12,5 +12,3 @@ module A {
 module A.B {
   const c := 10;
 }
-
-module X

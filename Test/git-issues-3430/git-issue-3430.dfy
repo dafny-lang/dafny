@@ -1,4 +1,4 @@
-// RUN: %baredafny resolve --use-basename-for-filename "%s" > "%t"
+// RUN: %exits-with 0 %resolve "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module A {
