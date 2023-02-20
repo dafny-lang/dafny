@@ -86,13 +86,13 @@ namespace Microsoft.Dafny {
       }
 
       void DesugarFunctionsInFrameClause(FrameExpression frameExpression) {
-        frameExpression.E = ArrowType.FrameArrowToObjectSet(frameExpression.E);
+        frameExpression.DesugaredExpression = ArrowType.FrameArrowToObjectSet(frameExpression.E);
       }
 
       protected override void VisitExpression(Expression expr, BoundsDiscoveryContext context) {
         if (expr is LambdaExpr lambdaExpr) {
           lambdaExpr.Reads.Iter(DesugarFunctionsInFrameClause);
-          
+
           // Make the context more specific when visiting inside a lambda expression
           context = new BoundsDiscoveryContext(context, lambdaExpr);
         }

@@ -2946,7 +2946,12 @@ public class AttributedExpression : TokenNode, IAttributeBearingDeclaration {
 
 public class FrameExpression : TokenNode, IHasUsages {
   public readonly Expression OriginalExpression; // may be a WildcardExpr
-  public Expression E; // starts off as OriginalExpression; destructively updated to its desugared version during resolution
+  [FilledInDuringResolution] public Expression DesugaredExpression; // may be null for modifies clauses, even after resolution
+
+  /// <summary>
+  /// .E starts off as OriginalExpression; destructively updated to its desugared version during resolution
+  /// </summary>
+  public Expression E => DesugaredExpression ?? OriginalExpression;
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -2967,19 +2972,19 @@ public class FrameExpression : TokenNode, IHasUsages {
     Contract.Requires(!(e is WildcardExpr) || fieldName == null);
     this.tok = tok;
     OriginalExpression = e;
-    E = e;
     FieldName = fieldName;
   }
 
   public FrameExpression(Cloner cloner, FrameExpression original) {
     this.tok = cloner.Tok(original.tok);
     OriginalExpression = cloner.CloneExpr(original.OriginalExpression);
-    E = OriginalExpression;
     FieldName = original.FieldName;
 
     if (cloner.CloneResolvedFields) {
       Field = original.Field;
-      E = cloner.CloneExpr(original.E);
+      if (original.DesugaredExpression != null) {
+        DesugaredExpression = cloner.CloneExpr(original.DesugaredExpression);
+      }
     }
   }
 
