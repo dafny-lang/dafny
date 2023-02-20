@@ -67,11 +67,10 @@ static class CommandRegistry {
       if (!allowHidden) {
         option.IsHidden = false;
       }
-      option.AllowMultipleArgumentsPerToken = true;
+      if (!option.Arity.Equals(ArgumentArity.ZeroOrMore) && !option.Arity.Equals(ArgumentArity.OneOrMore)) {
+        option.AllowMultipleArgumentsPerToken = true;
+      }
     }
-    RunCommand.Inputs.AllowMultipleArgumentsPerToken = false;
-    CommonOptionBag.Libraries.AllowMultipleArgumentsPerToken = false;
-    CommonOptionBag.VerificationLogFormat.AllowMultipleArgumentsPerToken = false;
 
     var commandToSpec = Commands.ToDictionary(c => {
       var result = c.Create();
