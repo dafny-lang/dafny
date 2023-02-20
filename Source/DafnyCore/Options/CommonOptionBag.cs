@@ -74,7 +74,7 @@ The value may be a comma-separated list of files and folders.".TrimStart());
 
   public static readonly Option<FileInfo> Output = new(new[] { "--output", "-o" },
     "Specify the filename and location for the generated target language files.") {
-    ArgumentHelpName = "file"
+    ArgumentHelpName = "file",
   };
 
   public static readonly Option<IList<string>> Plugin = new(new[] { "--plugin" },
@@ -90,7 +90,7 @@ https://github.com/dafny-lang/dafny/blob/master/Source/DafnyLanguageServer/READM
   };
 
   public static readonly Option<FileInfo> Prelude = new("--prelude", "Choose the Dafny prelude file.") {
-    ArgumentHelpName = "file"
+    ArgumentHelpName = "file",
   };
 
   public static readonly Option<QuantifierSyntaxOptions> QuantifierSyntax = new("--quantifier-syntax",
@@ -117,7 +117,7 @@ The syntax for quantification domains is changing from Dafny version 3 to versio
     (e.g. set x | 0 <= x < |s|, y <- s[x] | 0 <= y :: y)
 
 Note that quantifier variable domains (<- <Domain>) are available in both syntax versions.".TrimStart()) {
-    ArgumentHelpName = "version"
+    ArgumentHelpName = "version",
   };
 
   public static readonly Option<string> Target = new(new[] { "--target", "-t" }, () => "cs", @"
@@ -130,16 +130,18 @@ cpp - Compile to C++.
 
 Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md). This includes lack of support for BigIntegers (aka int), most higher order functions, and advanced features like traits or co-inductive types.".TrimStart()
   ) {
-    ArgumentHelpName = "language"
+    ArgumentHelpName = "language",
   };
 
   public static readonly Option<bool> UnicodeCharacters = new("--unicode-char", () => false,
     @"
 false - The char type represents any UTF-16 code unit.
-true - The char type represents any Unicode scalar value.".TrimStart());
+true - The char type represents any Unicode scalar value.".TrimStart()) {
+  };
 
   public static readonly Option<FileInfo> SolverPath = new("--solver-path",
-    "Can be used to specify a custom SMT solver to use for verifying Dafny proofs.");
+    "Can be used to specify a custom SMT solver to use for verifying Dafny proofs.") {
+  };
   public static readonly Option<bool> VerifyIncludedFiles = new("--verify-included-files",
     "Verify code in included files.");
   public static readonly Option<bool> WarningAsErrors = new("--warn-as-errors",
