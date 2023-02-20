@@ -32,6 +32,7 @@ public interface ICommandSpec {
     CommonOptionBag.DisableNonLinearArithmetic,
     CommonOptionBag.IsolateAssertions,
     BoogieOptionBag.BoogieArguments,
+    CommonOptionBag.AllowAxioms,
     CommonOptionBag.VerificationLogFormat,
     CommonOptionBag.SolverResourceLimit,
     CommonOptionBag.SolverPlugin,

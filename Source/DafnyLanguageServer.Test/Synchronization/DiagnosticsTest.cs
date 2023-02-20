@@ -98,7 +98,7 @@ predicate P(i: int) {
   i <= 0
 }
 
-function method Call(i: int): int
+function method {:axiom} Call(i: int): int
   requires P(i)
 
 method Test(i: int) returns (j: int)
