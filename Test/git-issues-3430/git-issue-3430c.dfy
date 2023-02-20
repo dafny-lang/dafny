@@ -7,3 +7,5 @@ module A {
 
 module A.B {
 }
+
+// Happy path: no wranings/error expected

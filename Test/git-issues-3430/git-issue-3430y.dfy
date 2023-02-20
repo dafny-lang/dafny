@@ -1,4 +1,4 @@
-// RUN: %verify "%s" > "%t"
+// RUN: %exits-with 2 %verify "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module A {
@@ -9,8 +9,4 @@ module A {
   }
 }
 
-module A.B {
-  const c := 10;
-}
-
-// Finds externally declared value
+// No value to find

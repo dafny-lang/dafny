@@ -6,3 +6,5 @@ module A {
 }
 
 module X
+
+// Checks that a top-level body-less module delcl is bad, but one in a module is OK

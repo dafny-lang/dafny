@@ -1,0 +1,4 @@
+git-issue-3430r1.dfy(5,9): Warning: this body-less module declaration has no companion external declaration: A.B
+git-issue-3430r1.dfy(10,6): Error: unresolved identifier: m
+git-issue-3430r1.dfy(10,7): Error: expected method call, found expression
+2 resolution/type errors detected in git-issue-3430r1.dfy

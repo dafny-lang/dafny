@@ -6,3 +6,5 @@ module A {
 
 module A.C {}
 module A.C {}
+
+// SHould report duplicate

@@ -6,10 +6,12 @@ module A {
 }
 
 module B {
-  module {:options "--functions-syntax:4"}
+  module {:options "--function-syntax:4"}
 }
 
 module C {
   module 
   const c := 6
 }
+
+// Checks for OK behavior if module name is missing

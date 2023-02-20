@@ -5,3 +5,8 @@ module A {
   module
   least predicate m[nat]() {}
 }
+
+module B {
+  module least
+  predicate m[nat]() {}
+}

@@ -5,3 +5,4 @@ module A {
   module B
 }
 
+// Checks for warning if there is no companion external module

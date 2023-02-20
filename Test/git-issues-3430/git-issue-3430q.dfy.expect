@@ -1,2 +1,4 @@
-git-issue-3430q.dfy(6,0): Error: Expected a module name here
-1 parse errors detected in git-issue-3430q.dfy
+git-issue-3430q.dfy(5,3): Error: Expected a module name after 'module' or its attributes
+git-issue-3430q.dfy(9,40): Error: Expected a module name after 'module' or its attributes
+git-issue-3430q.dfy(13,2): Error: Expected a module name after 'module' or its attributes
+3 parse errors detected in git-issue-3430q.dfy

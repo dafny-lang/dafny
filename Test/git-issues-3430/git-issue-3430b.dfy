@@ -4,3 +4,5 @@
 module A {
   module A.B
 }
+
+// May not have a qualified body-less module decl

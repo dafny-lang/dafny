@@ -5,3 +5,5 @@ module A {
   module B
   module B
 }
+
+// Should report duplicate

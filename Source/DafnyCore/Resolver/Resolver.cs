@@ -1882,7 +1882,7 @@ namespace Microsoft.Dafny {
               var thisModuleDef = (d as ModuleDecl).Signature.ModuleDef;
               var previousModuleDef = (previous as ModuleDecl).Signature.ModuleDef;
               if (thisModuleDef.HasBody != previousModuleDef.HasBody) {
-                System.Console.WriteLine("MATCHED DECLS OF " + thisModuleDef.FullDafnyName + " " + d.FullDafnyName + " " + thisModuleDef.HasBody + " " + previousModuleDef.HasBody);
+                //System.Console.WriteLine("MATCHED DECLS OF " + thisModuleDef.FullDafnyName + " " + d.FullDafnyName + " " + thisModuleDef.HasBody + " " + previousModuleDef.HasBody);
                 //if (thisModuleDef.Companion != null) {
                 // TODO - add a related location?
                 //   if (thisModuleDef.HasBody) {

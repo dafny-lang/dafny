@@ -1,7 +1,7 @@
-// RUN: %exits-with 2 %resolve "%s" > "%t"
+// RUN: %exits-with 0 %resolve "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-// Checks that too many ^ gives an error
+// Checks that correct module is found
 
 module A {
   module B {

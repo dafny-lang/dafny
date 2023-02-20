@@ -7,3 +7,5 @@ module A {
 
 module B {
 }
+
+// The declarations of B should not match

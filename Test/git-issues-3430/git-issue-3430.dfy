@@ -11,3 +11,5 @@ module A {
 module A.B {
   const c := 10;
 }
+
+// Checks for warning if there is no companion body-less declaration

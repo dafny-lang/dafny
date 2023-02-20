@@ -1,0 +1,4 @@
+git-issue-3430d1.dfy(6,9): Error: duplicate name for module declaration: B
+git-issue-3430d1.dfy(5,9): Warning: this body-less module declaration has no companion external declaration: A.B
+git-issue-3430d1.dfy(6,9): Warning: this body-less module declaration has no companion external declaration: A.B
+1 resolution/type errors detected in git-issue-3430d1.dfy
