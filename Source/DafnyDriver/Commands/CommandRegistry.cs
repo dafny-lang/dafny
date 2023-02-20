@@ -67,7 +67,12 @@ static class CommandRegistry {
       if (!allowHidden) {
         option.IsHidden = false;
       }
+      option.AllowMultipleArgumentsPerToken = true;
     }
+    RunCommand.Inputs.AllowMultipleArgumentsPerToken = false;
+    CommonOptionBag.Libraries.AllowMultipleArgumentsPerToken = false;
+    CommonOptionBag.VerificationLogFormat.AllowMultipleArgumentsPerToken = false;
+
     var commandToSpec = Commands.ToDictionary(c => {
       var result = c.Create();
       foreach (var option in c.Options) {

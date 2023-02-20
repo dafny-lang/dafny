@@ -9,9 +9,7 @@ namespace Microsoft.Dafny;
 public class CommonOptionBag {
 
   public static readonly Option<int> ErrorLimit =
-    new("--error-limit", () => 5, "Set the maximum number of errors to report (0 for unlimited).") {
-      AllowMultipleArgumentsPerToken = true,
-    };
+    new("--error-limit", () => 5, "Set the maximum number of errors to report (0 for unlimited).");
 
   public static readonly Option<bool> ManualLemmaInduction =
     new("--manual-lemma-induction", "Turn off automatic induction for lemmas.");
@@ -62,15 +60,9 @@ The `text` format also includes a more detailed breakdown of what assertions app
     ArgumentHelpName = "configuration"
   };
 
-  public static readonly Option<uint> SolverResourceLimit = new("--resource-limit", @"Specify the maximum resource limit (rlimit) value to pass to Z3. Multiplied by 1000 before sending to Z3.") {
-    AllowMultipleArgumentsPerToken = true,
-  };
-  public static readonly Option<string> SolverPlugin = new("--solver-plugin", @"Specify a plugin to use to solve verification conditions (instead of an external Z3 process).") {
-    AllowMultipleArgumentsPerToken = true,
-  };
-  public static readonly Option<string> SolverLog = new("--solver-log", @"Specify a file to use to log the SMT-Lib text sent to the solver.") {
-    AllowMultipleArgumentsPerToken = true,
-  };
+  public static readonly Option<uint> SolverResourceLimit = new("--resource-limit", @"Specify the maximum resource limit (rlimit) value to pass to Z3. Multiplied by 1000 before sending to Z3.");
+  public static readonly Option<string> SolverPlugin = new("--solver-plugin", @"Specify a plugin to use to solve verification conditions (instead of an external Z3 process).");
+  public static readonly Option<string> SolverLog = new("--solver-log", @"Specify a file to use to log the SMT-Lib text sent to the solver.");
 
   public static readonly Option<IList<string>> Libraries = new("--library",
     @"
@@ -83,7 +75,6 @@ The value may be a comma-separated list of files and folders.".TrimStart());
   public static readonly Option<FileInfo> Output = new(new[] { "--output", "-o" },
     "Specify the filename and location for the generated target language files.") {
     ArgumentHelpName = "file",
-    AllowMultipleArgumentsPerToken = true,
   };
 
   public static readonly Option<IList<string>> Plugin = new(new[] { "--plugin" },
@@ -100,7 +91,6 @@ https://github.com/dafny-lang/dafny/blob/master/Source/DafnyLanguageServer/READM
 
   public static readonly Option<FileInfo> Prelude = new("--prelude", "Choose the Dafny prelude file.") {
     ArgumentHelpName = "file",
-    AllowMultipleArgumentsPerToken = true,
   };
 
   public static readonly Option<QuantifierSyntaxOptions> QuantifierSyntax = new("--quantifier-syntax",
@@ -128,7 +118,6 @@ The syntax for quantification domains is changing from Dafny version 3 to versio
 
 Note that quantifier variable domains (<- <Domain>) are available in both syntax versions.".TrimStart()) {
     ArgumentHelpName = "version",
-    AllowMultipleArgumentsPerToken = true,
   };
 
   public static readonly Option<string> Target = new(new[] { "--target", "-t" }, () => "cs", @"
@@ -142,19 +131,16 @@ cpp - Compile to C++.
 Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md). This includes lack of support for BigIntegers (aka int), most higher order functions, and advanced features like traits or co-inductive types.".TrimStart()
   ) {
     ArgumentHelpName = "language",
-    AllowMultipleArgumentsPerToken = true,
   };
 
   public static readonly Option<bool> UnicodeCharacters = new("--unicode-char", () => false,
     @"
 false - The char type represents any UTF-16 code unit.
 true - The char type represents any Unicode scalar value.".TrimStart()) {
-    AllowMultipleArgumentsPerToken = true
   };
 
   public static readonly Option<FileInfo> SolverPath = new("--solver-path",
     "Can be used to specify a custom SMT solver to use for verifying Dafny proofs.") {
-    AllowMultipleArgumentsPerToken = true
   };
   public static readonly Option<bool> VerifyIncludedFiles = new("--verify-included-files",
     "Verify code in included files.");

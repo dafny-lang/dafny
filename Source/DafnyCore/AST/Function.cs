@@ -294,7 +294,6 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
       .TrimStart()
   ) {
     ArgumentHelpName = "version",
-    AllowMultipleArgumentsPerToken = true,
   };
 
   static Function() {

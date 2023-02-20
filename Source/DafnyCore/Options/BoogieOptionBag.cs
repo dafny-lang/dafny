@@ -12,18 +12,16 @@ public static class BoogieOptionBag {
 (experimental) Only check proofs whose Boogie name is matched by pattern <p>. This option may be specified multiple times to match multiple patterns. The pattern <p> may contain * wildcards which match any character zero or more times. If you are unsure of how Boogie names are generated, please pre- and postfix your pattern with a wildcard to enable matching on Dafny proof names."
     .TrimStart()) {
     ArgumentHelpName = "pattern",
-    AllowMultipleArgumentsPerToken = true,
   };
 
   public static readonly Option<string> BoogieArguments = new("--boogie",
     "Specify arguments that are passed to Boogie, a tool used to verify Dafny programs.") {
     ArgumentHelpName = "arguments",
-    AllowMultipleArgumentsPerToken = true,
   };
 
   public static readonly Option<uint> Cores = new("--cores", result => {
 
-    var value = result.Tokens[result.Tokens.Count - 1].Value;
+    var value = result.Tokens[^1].Value;
     if (value.EndsWith('%')) {
       if (double.TryParse(value.Substring(0, value.Length - 1), out var percentage)) {
         return Math.Max(1U, (uint)(percentage / 100.0 * Environment.ProcessorCount));
@@ -46,7 +44,6 @@ public static class BoogieOptionBag {
   }, true,
     "Run the Dafny verifier using <n> cores, or using <XX%> of the machine's logical cores.") {
     ArgumentHelpName = "count",
-    AllowMultipleArgumentsPerToken = true,
   };
 
   public static readonly Option<bool> NoVerify = new("--no-verify",
@@ -57,7 +54,6 @@ public static class BoogieOptionBag {
   public static readonly Option<uint> VerificationTimeLimit = new("--verification-time-limit",
     "Limit the number of seconds spent trying to verify each procedure") {
     ArgumentHelpName = "seconds",
-    AllowMultipleArgumentsPerToken = true,
   };
 
   static BoogieOptionBag() {
