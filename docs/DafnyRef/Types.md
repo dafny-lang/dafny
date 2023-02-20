@@ -2888,7 +2888,8 @@ the standard `List` type
 <!-- %check-resolve -->
 ```dafny
 datatype List<T> = Nil | Cons(head: T, tail: List<T>)
-``` <!-- %save List.tmp -->
+```
+<!-- %save List.tmp -->
 the following holds:
 <!-- %check-verify %use List.tmp -->
 ```dafny
