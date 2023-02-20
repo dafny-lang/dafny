@@ -451,13 +451,13 @@ the method's preconditions.
 
 _This command is under development and not yet functional._
 
-#### 13.5.1.12. `dafny measure-complexity` {#sec-dafny-measure-complexity}
+#### 13.5.1.13. `dafny measure-complexity` {#sec-dafny-measure-complexity}
 
 This _experimental_ command reports complexity metrics of a program.
 
 _This command is under development and not yet functional._
 
-#### 13.5.1.13. Plugins
+#### 13.5.1.14. Plugins
 
 This execution mode is not a command, per se, but rather a command-line option that enables executing plugins to the dafny tool.
 Plugins may be either standalone tools or be additions to existing commands.
@@ -467,7 +467,7 @@ where the argument to `--plugin` gives the path to the compiled assembly of the 
 
 More on writing and building plugins can be found [in this section](#sec-plugins).
 
-#### 13.5.1.14. Legacy operation
+#### 13.5.1.15. Legacy operation
 
 Prior to implementing the command-based CLI, the `dafny` command-line simply took files and options and the arguments to options.
 That legacy mode of operation is still supported, though discouraged. The command `dafny -?` produces the list of legacy options.
@@ -1941,7 +1941,7 @@ Legacy options:
   `-proverOpt:O:model_compress=false` and
   `-proverOpt:O:model.completion=true` options.
 
-### 13.8.11. Controlling compilation {#sec-controlling-compilation}
+### 13.8.8. Controlling compilation {#sec-controlling-compilation}
 
 These options control what code gets compiled, what target language is
 used, how compilation proceeds, and whether the compiled program is
@@ -2095,7 +2095,7 @@ out the textual target program as part of compilation, in which case
     method marked with the `{:extern}` attribute directly from a
     function or method marked with the `{:test}` attribute.
 
-### 13.8.8. Controlling Boogie {#sec-controlling-boogie}
+### 13.8.9. Controlling Boogie {#sec-controlling-boogie}
 
 Dafny builds on top of Boogie, a general-purpose intermediate language
 for verification. Options supported by Boogie on its own are also
@@ -2197,11 +2197,11 @@ PROVER_OPTIONS="\
 #"$BOOGIE" $BOOGIE_OPTIONS $PROVER_OPTIONS "$@"
 ```
 
-### 13.8.9. Controlling the prover {#sec-controlling-prover}
+### 13.8.10. Controlling the prover {#sec-controlling-prover}
 
 Much of controlling the prover is accomplished by controlling 
 verification condition generation ([25.9.7](#sec-controlling-verification)) or Boogie 
-([Section 13.8.8](#sec-controlling-boogie)). 
+([Section 13.8.9](#sec-controlling-boogie)). 
 The following options are also commonly used:
 
 * `--verification-error-limit:<n>` - limits the number of verification errors reported per procedure.
@@ -2212,7 +2212,7 @@ The following options are also commonly used:
   the number of seconds spent trying to verify each procedure.
 
 
-### 13.8.10. Controlling test generation {#sec-controlling-test-gen}
+### 13.8.11. Controlling test generation {#sec-controlling-test-gen}
 
 Dafny is capable of generating unit (runtime) tests. It does so by asking the prover to solve
 for values of inputs to a method that cause the program to execute specific blocks or paths.

@@ -25,7 +25,7 @@ The Dafny functionality within VSCode can be found in these locations:
 - Within a .dfy editor, a right-click brings up a context menu, which has a menu item 'Dafny'. Under it are actions to Build or Run a program,
 to turn on or off counterexample display, find definitions, and the like.
 
-## 14.1. Gutter highlights meaning {#sec-gutter-highlights}
+## 14.2. Gutter highlights meaning {#sec-gutter-highlights}
 
 Feedback on a program is show visually as underlining with squiggles within the text and as various markings in various colors in the _gutter_ down the left side of an editor window.
 
@@ -71,7 +71,7 @@ the position of the parse or resolution error.
 ![image](https://user-images.githubusercontent.com/3601079/178068650-24c14da1-d247-4027-b784-2eb055242e6b.png)
 
 
-## 14.2. The Dafny Server {#sec-old-dafny-server}
+## 14.3. The Dafny Server {#sec-old-dafny-server}
 
 Before Dafny [implemented](https://github.com/dafny-lang/dafny/tree/master/Source/DafnyLanguageServer) the official [Language Server Protocol](https://microsoft.github.io/language-server-protocol/), it implemented its own protocol for [Emacs](https://github.com/boogie-org/boogie-friends), which resulted in a project called [DafnyServer](https://github.com/dafny-lang/dafny/tree/master/Source/DafnyServer).
 
