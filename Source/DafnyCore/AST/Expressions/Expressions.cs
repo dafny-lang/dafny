@@ -922,7 +922,7 @@ public class StringLiteralExpr : LiteralExpr {
   }
 }
 
-public class DatatypeValue : Expression, IHasUsages, ICloneable<DatatypeValue> {
+public class DatatypeValue : Expression, IHasUsages, ICloneable<DatatypeValue>, ICanFormat {
   public readonly string DatatypeName;
   public readonly string MemberName;
   public readonly ActualBindings Bindings;
@@ -986,6 +986,10 @@ public class DatatypeValue : Expression, IHasUsages, ICloneable<DatatypeValue> {
   }
 
   public IToken NameToken => tok;
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    formatter.SetMethodLikeIndent(StartToken, OwnedTokens, indentBefore);
+    return true;
+  }
 }
 
 public class ThisExpr : Expression {
