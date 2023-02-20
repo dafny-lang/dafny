@@ -1869,21 +1869,6 @@ namespace Microsoft.Dafny {
               var thisModuleDef = (d as ModuleDecl).Signature.ModuleDef;
               var previousModuleDef = (previous as ModuleDecl).Signature.ModuleDef;
               if (thisModuleDef.HasBody != previousModuleDef.HasBody) {
-                //System.Console.WriteLine("MATCHED DECLS OF " + thisModuleDef.FullDafnyName + " " + d.FullDafnyName + " " + thisModuleDef.HasBody + " " + previousModuleDef.HasBody);
-                //if (thisModuleDef.Companion != null) {
-                // TODO - add a related location?
-                //   if (thisModuleDef.HasBody) {
-                //     reporter.Error(MessageSource.Resolver, thisModuleDef.Tok, "this module declaration has already been matched to a body-less declaration: {0}", d.FullDafnyName);
-                //   } else {
-                //     reporter.Error(MessageSource.Resolver, thisModuleDef.Tok, "this body-less module declaration has already been matched to an external declaration: {0}", d.FullDafnyName);
-                //   }
-                // } else if (previousModuleDef.Companion != null) {
-                //   if (previousModuleDef.HasBody) {
-                //     reporter.Error(MessageSource.Resolver, previousModuleDef.Tok, "this module declaration has already been matched to a body-less declaration: {0}", previousModuleDef.FullDafnyName);
-                //   } else {
-                //     reporter.Error(MessageSource.Resolver, previousModuleDef.Tok, "this body-less module declaration has already been matched to an external declaration: {0}", previousModuleDef.FullDafnyName);
-                //   }
-                //} else {
                 thisModuleDef.Companion = previousModuleDef;
                 previousModuleDef.Companion = thisModuleDef;
                 if (previousModuleDef.HasBody) {
@@ -1896,7 +1881,6 @@ namespace Microsoft.Dafny {
                   registerThisDecl = d;
                   registerUnderThisName = d.Name;
                 }
-                //}
               } else {
                 reporter.Error(MessageSource.Resolver, d, "duplicate name for module declaration: {0}", d.Name);
               }
@@ -2222,8 +2206,9 @@ namespace Microsoft.Dafny {
         if (d is ModuleDecl) {
           var def = (d as ModuleDecl).Signature.ModuleDef;
           if (!def.HasBody && def.Companion == null) {
-            reporter.Warning(MessageSource.Resolver, ErrorID.None, d.Tok,
-              $"this body-less module declaration has no companion external declaration: {d.FullDafnyName}");
+            // Don't complain about this yet - perhaps not at all, as if the external declaration does not exist, trying to resolve something in it will fail
+            //reporter.Warning(MessageSource.Resolver, ErrorID.None, d.Tok,
+            //  $"this body-less module declaration has no companion external declaration: {d.FullDafnyName}");
           } else if (def.IsExternal && def.Companion == null) {
             reporter.Warning(MessageSource.Resolver, ErrorID.None, d.Tok,
               $"this external module declaration has no companion body-less declaration: {d.FullDafnyName} (This will become an error in the future)");
