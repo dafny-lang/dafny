@@ -80,8 +80,19 @@ namespace Microsoft.Dafny {
         return base.VisitOneStatement(stmt, context);
       }
 
+      public override void VisitTopLevelFrameExpression(FrameExpression frameExpression, BoundsDiscoveryContext context) {
+        DesugarFunctionsInFrameClause(frameExpression);
+        base.VisitTopLevelFrameExpression(frameExpression, context);
+      }
+
+      void DesugarFunctionsInFrameClause(FrameExpression frameExpression) {
+        frameExpression.E = ArrowType.FrameArrowToObjectSet(frameExpression.E);
+      }
+
       protected override void VisitExpression(Expression expr, BoundsDiscoveryContext context) {
         if (expr is LambdaExpr lambdaExpr) {
+          lambdaExpr.Reads.Iter(DesugarFunctionsInFrameClause);
+          
           // Make the context more specific when visiting inside a lambda expression
           context = new BoundsDiscoveryContext(context, lambdaExpr);
         }

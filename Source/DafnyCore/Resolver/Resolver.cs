@@ -2460,8 +2460,7 @@ namespace Microsoft.Dafny {
       ResolveNamesAndInferTypes(declarations, true);
       ResolveNamesAndInferTypes(declarations, false);
 
-      // Check that all types have been determined. During this process, also fill in all .ResolvedOp fields and desugar
-      // frame expressions in reads clauses.
+      // Check that all types have been determined. During this process, also fill in all .ResolvedOp fields.
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         var checkTypeInferenceVisitor = new CheckTypeInferenceVisitor(this);
         checkTypeInferenceVisitor.VisitDeclarations(declarations);
@@ -2472,6 +2471,7 @@ namespace Microsoft.Dafny {
 
       // ---------------------------------- Pass 1 ----------------------------------
       // This pass does the following:
+      // * desugar functions used in reads clauses
       // * discovers bounds
       // * builds the module's call graph.
       // * compute and checks ghosts (this makes use of bounds discovery, as done above)

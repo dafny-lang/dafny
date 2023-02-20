@@ -10,7 +10,6 @@ namespace Microsoft.Dafny;
 partial class Resolver {
   class TypeInferenceCheckingContext : IASTVisitorContext {
     private readonly IASTVisitorContext astVisitorContext;
-    public readonly bool InLambdaExpression;
 
     public bool IsPrefixPredicate => astVisitorContext is PrefixPredicate;
     public bool IsExtremePredicate => astVisitorContext is ExtremePredicate;
@@ -18,12 +17,6 @@ partial class Resolver {
 
     public TypeInferenceCheckingContext(IASTVisitorContext astVisitorContext) {
       this.astVisitorContext = astVisitorContext;
-      this.InLambdaExpression = false;
-    }
-
-    public TypeInferenceCheckingContext(TypeInferenceCheckingContext parentContext) {
-      this.astVisitorContext = parentContext.astVisitorContext;
-      this.InLambdaExpression = true;
     }
 
     ModuleDefinition IASTVisitorContext.EnclosingModule => astVisitorContext.EnclosingModule;
@@ -125,14 +118,6 @@ partial class Resolver {
       }
 
       base.PostVisitOneStatement(stmt, context);
-    }
-
-    protected override bool VisitOneExpression(Expression expr, TypeInferenceCheckingContext context) {
-      if (expr is LambdaExpr lambdaExpr) {
-        lambdaExpr.Reads.Iter(DesugarFunctionsInFrameClause);
-      }
-
-      return base.VisitOneExpression(expr, context);
     }
 
     protected override void PostVisitOneExpression(Expression expr, TypeInferenceCheckingContext context) {
@@ -386,15 +371,6 @@ partial class Resolver {
       }
 
       base.PostVisitOneExpression(expr, context);
-    }
-
-    public override void VisitTopLevelFrameExpression(FrameExpression frameExpression, TypeInferenceCheckingContext context) {
-      DesugarFunctionsInFrameClause(frameExpression);
-      base.VisitTopLevelFrameExpression(frameExpression, context);
-    }
-
-    void DesugarFunctionsInFrameClause(FrameExpression frameExpression) {
-      frameExpression.E = ArrowType.FrameArrowToObjectSet(frameExpression.E);
     }
 
     public static bool IsDetermined(Type t) {
