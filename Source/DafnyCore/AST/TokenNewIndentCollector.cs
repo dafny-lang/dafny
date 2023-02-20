@@ -1074,7 +1074,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
   ///   // indented
   ///   ; // indented
   /// // not indented
-  private void SetClosingIndentedRegionInside(IToken token, int indent) {
+  public void SetClosingIndentedRegionInside(IToken token, int indent) {
     SetIndentations(token, indent + SpaceTab, indent + SpaceTab, indent);
   }
 

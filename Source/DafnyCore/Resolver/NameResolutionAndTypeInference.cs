@@ -3739,17 +3739,24 @@ namespace Microsoft.Dafny {
       if (onlyPositionalArguments) {
         var requiredParametersCount = formals.Count(f => f.DefaultValue == null);
         var actualsCounts = bindings.ArgumentBindings.Count;
+        var sig = "";
+        for (int i = 0; i < formals.Count; i++) {
+          sig += (", " + formals[i].Name + ": " + formals[i].Type.ToString());
+        }
+        if (formals.Count > 0) {
+          sig = ": (" + sig[2..] + ")";
+        }
         if (requiredParametersCount <= actualsCounts && actualsCounts <= formals.Count) {
           // the situation is plausible
         } else if (requiredParametersCount == formals.Count) {
           // this is the common, classical case of no default parameter values; generate a straightforward error message
-          reporter.Error(MessageSource.Resolver, callTok, $"wrong number of arguments ({name} expects {formals.Count}, got {actualsCounts})");
+          reporter.Error(MessageSource.Resolver, callTok, $"wrong number of arguments (got {actualsCounts}, but {name} expects {formals.Count}{sig})");
           simpleErrorReported = true;
         } else if (actualsCounts < requiredParametersCount) {
-          reporter.Error(MessageSource.Resolver, callTok, $"wrong number of arguments ({name} expects at least {requiredParametersCount}, got {actualsCounts})");
+          reporter.Error(MessageSource.Resolver, callTok, $"wrong number of arguments (got {actualsCounts}, but {name} expects at least {requiredParametersCount}{sig})");
           simpleErrorReported = true;
         } else {
-          reporter.Error(MessageSource.Resolver, callTok, $"wrong number of arguments ({name} expects at most {formals.Count}, got {actualsCounts})");
+          reporter.Error(MessageSource.Resolver, callTok, $"wrong number of arguments (got {actualsCounts}, but {name} expects at most {formals.Count}{sig})");
           simpleErrorReported = true;
         }
       }
@@ -6077,7 +6084,7 @@ namespace Microsoft.Dafny {
 #endif
       } else {
         // ----- None of the above
-        reporter.Error(MessageSource.Resolver, expr.tok, "Undeclared top-level type or type parameter: {0} (did you forget to qualify a name or declare a module import 'opened'?)", expr.Name);
+        reporter.Error(MessageSource.Resolver, expr.tok, "Type or type parameter is not declared in this scope: {0} (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)", expr.Name);
       }
 
       if (r == null) {

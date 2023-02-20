@@ -1,4 +1,4 @@
-// RUN: %baredafny translate cs --output=%S/Inputs/producer/timesTwo %S/Inputs/producer/timesTwo.dfy
+// RUN: %baredafny translate cs --use-basename-for-filename --cores:2 --verification-time-limit:300 --output=%S/Inputs/producer/timesTwo %S/Inputs/producer/timesTwo.dfy
 // RUN: dotnet build %S/Inputs/producer
 
 // RUN: %baredafny translate cs --output=%S/consumer/usesTimesTwo --library=%S/Inputs/producer/timesTwo.dfy %s
