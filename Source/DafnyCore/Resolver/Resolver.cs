@@ -823,7 +823,9 @@ namespace Microsoft.Dafny {
     // Resolve the exports and detect cycles.
     private void ResolveModuleExport(LiteralModuleDecl literalDecl, ModuleSignature sig) {
       ModuleDefinition m = literalDecl.ModuleDef;
-      if (!m.HasBody) return;
+      if (!m.HasBody) {
+        return;
+      }
       literalDecl.DefaultExport = sig;
       Graph<ModuleExportDecl> exportDependencies = new Graph<ModuleExportDecl>();
       foreach (TopLevelDecl toplevel in m.TopLevelDecls) {
@@ -1215,7 +1217,6 @@ namespace Microsoft.Dafny {
         modules = new Dictionary<string, ModuleDecl>();
         bindings = new Dictionary<string, ModuleBindings>();
         this.reporter = reporter;
-        //System.Console.WriteLine("CREATING MODULE BINDINGS FOR " + selfName);
       }
 
       public bool BindName(string name, ModuleDecl subModule, ModuleBindings b) {
@@ -1276,7 +1277,6 @@ namespace Microsoft.Dafny {
         m = null;
         var path = qname.Path;
         int i = 0;
-        //System.Console.WriteLine("TRYLOOKUP FIRST " + path[i] + " " + path.Count + " " + DictToString(bb.modules) + " " + DictToString(bb.bindings));
         if (path[0].Value == "_") {
           while (bb.parent != null) bb = bb.parent;
           b = bb;
@@ -1285,35 +1285,27 @@ namespace Microsoft.Dafny {
           while (path[i].Value == "^") {
             bb = bb.parent;
             if (bb.parent == null) {
-              reporter.Error(MessageSource.Resolver, path[i], "Too many parent module symbols (^) for starting in modules " + qname.ToString());
+              reporter.Error(MessageSource.Resolver, path[i], "Too many parent module symbols (^) for starting in module " + qname.ToString());
               return false;
             }
             i++;
-            //System.Console.WriteLine("TRYLOOKUP PARENT " + DictToString(bb.modules) + " " + DictToString(bb.bindings));
           }
           b = bb;
         } else {
           while (!bb.bindings.TryGetValue(path[0].Value, out b)) {
             bb = bb.parent;
-            //System.Console.WriteLine("TRYLOOKUP FIRST FAILED " + (bb != null));
             if (bb.parent == null) return false;
           }
           i = 1;
         }
         while (i < path.Count) {
-          //System.Console.WriteLine("TRYLOOKUP " + i + " " + path[i].Value + " " + (b != null) + " " + DictToString(b.modules) + " " + DictToString(b.bindings));
-          //var ok = b.modules.TryGetValue(path[i - 1].val, out m);
-          //System.Console.WriteLine("TRYLOOKUP RESULT " + ok);
-          //System.Console.WriteLine("TRYLOOKUP RESULT " + m.FullDafnyName);
           bb = b;
           if (!b.bindings.TryGetValue(path[i].Value, out b)) {
-            //System.Console.WriteLine("TRYLOOKUP FAILED " + path[i].Value);
             return false;
           }
           i = i + 1;
         }
         bb.modules.TryGetValue(path[i - 1].Value, out m);
-        //System.Console.WriteLine("TRYLOOKUP FINAL RESULT " + m.FullDafnyName);
         return true;
       }
 
@@ -1604,17 +1596,12 @@ namespace Microsoft.Dafny {
         //System.Console.WriteLine("PD-IMPORT " + alias.FullDafnyName + " " + PathToString(alias.TargetQId.Path));
         var errorPos = ResolveQualifiedModuleIdRootImport(alias, bindings, alias.TargetQId, out root, out leaf);
         if (errorPos >= 0) {
-          //        if (!bindings.TryLookupFilter(alias.TargetQId.rootToken(), out root, m => alias != m)
-          //System.Console.WriteLine("ADDEDGE-FAILED " + alias.FullDafnyName);
-          reporter.Error(MessageSource.Resolver, alias.tok, ModuleNotFoundErrorMessage(errorPos, alias.TargetQId.Path)); // TODO 
+          reporter.Error(MessageSource.Resolver, alias.tok, ModuleNotFoundErrorMessage(errorPos, alias.TargetQId.Path));
         } else {
-          //System.Console.WriteLine("ADDEDGE-CN " + (moduleDecl == null));
-          //System.Console.WriteLine("ADDEDGE-C " + moduleDecl.FullDafnyName + " " + leaf.FullDafnyName);
-          dependencies.AddEdge(moduleDecl, leaf);
+          dependencies.AddEdge(moduleDecl, root);
         }
       } else if (moduleDecl is AbstractModuleDecl) {
         var abs = moduleDecl as AbstractModuleDecl;
-        //System.Console.WriteLine("PD-ABSTRACT " + abs.FullDafnyName);
         ModuleDecl root;
         if (!ResolveQualifiedModuleIdRootAbstract(abs, bindings, abs.QId, out root)) {
           //if (!bindings.TryLookupFilter(abs.QId.rootToken(), out root,

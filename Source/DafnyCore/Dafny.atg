@@ -1173,7 +1173,6 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
     |
       (. // Body-less module
         module.BodyStartTok = Token.NoToken;
-        //System.Console.WriteLine("Body-less module: " + prefixIds + " " + module.Name + " " + module.FullDafnyName + " " + module.HasBody);
         if (prefixIds.Count > 0) {
           SemErr(prefixIds[0], "Body-less module declarations may not have a qualified id for a module name: " + module.FullDafnyName);
         }
@@ -1181,6 +1180,7 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
     )
     (.
       module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
+      module.TokenWithTrailingDocString = tokenWithTrailingDocString;
       module.RangeToken = new RangeToken(dmod.FirstToken, t);
       submodule = new LiteralModuleDecl(module, parent);
       submodule.RangeToken = module.RangeToken;
