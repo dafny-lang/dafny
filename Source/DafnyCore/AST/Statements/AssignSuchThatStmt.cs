@@ -76,7 +76,7 @@ public class AssignSuchThatStmt : ConcreteUpdateStatement, ICloneable<AssignSuch
     base.Resolve(resolver, resolutionContext);
 
     if (AssumeToken != null) {
-      if (!AssumeToken.IsExplicitAxiom()) {
+      if (!resolver.Options.Get(CommonOptionBag.AllowAxioms) && !AssumeToken.IsExplicitAxiom()) {
         resolver.Reporter.Warning(MessageSource.Resolver, ErrorDetail.ErrorID.None, AssumeToken.Token, "assume keyword in assign-such-that statement has no {:axiom} annotation.");
       }
 

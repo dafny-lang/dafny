@@ -81,10 +81,12 @@ namespace Microsoft.Dafny {
       "/compileVerbose:0",
       
       // Set a default time limit, to catch cases where verification time runs off the rails
-      "/timeLimit:300"
+      "/timeLimit:300",
+
+      "/allowAxioms:1"
     };
 
-    public static readonly string[] NewDefaultArgumentsForTesting = new[] {
+    public static readonly string[] NewDefaultArgumentsForTesting = {
       // Try to verify 2 verification conditions at once
       "--cores=2",
 
@@ -92,7 +94,9 @@ namespace Microsoft.Dafny {
       "--use-basename-for-filename",
 
       // Set a default time limit, to catch cases where verification time runs off the rails
-      "--verification-time-limit=300"
+      "--verification-time-limit=300",
+
+      "--allow-axioms"
     };
 
     public static int Main(string[] args) {

@@ -9,7 +9,7 @@ public abstract class MethodOrFunction : MemberDecl {
   public virtual void Resolve(Resolver resolver) {
     if (Bodyless && !IsVirtual) {
       var mayBeAxiom = this.IsExplicitAxiom() || this.IsExtern();
-      if (!mayBeAxiom) {
+      if (!resolver.Options.Get(CommonOptionBag.AllowAxioms) && !mayBeAxiom) {
         resolver.Reporter.Warning(MessageSource.Resolver, ErrorDetail.ErrorID.None, Tok, $"{TypeName.CapitaliseFirstLetter()} {FullName} has no body. Add the {{:axiom}} attribute to it to suppress this warning.");
       }
     }

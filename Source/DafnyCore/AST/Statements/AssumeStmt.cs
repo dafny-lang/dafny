@@ -35,7 +35,7 @@ public class AssumeStmt : PredicateStmt, ICloneable<AssumeStmt>, ICanFormat {
   public override void Resolve(Resolver resolver, ResolutionContext context) {
     base.Resolve(resolver, context);
 
-    if (!this.IsExplicitAxiom()) {
+    if (!resolver.Options.Get(CommonOptionBag.AllowAxioms) && !this.IsExplicitAxiom()) {
       resolver.Reporter.Warning(MessageSource.Resolver, ErrorDetail.ErrorID.None, Tok, "Assume statement has no {:axiom} annotation.");
     }
   }

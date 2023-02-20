@@ -33,6 +33,7 @@ public interface ICommandSpec {
     CommonOptionBag.SolverPath,
     CommonOptionBag.DisableNonLinearArithmetic,
     BoogieOptionBag.BoogieArguments,
+    CommonOptionBag.AllowAxioms
   }.ToList();
 
   public static IReadOnlyList<Option> TranslationOptions = new Option[] {
