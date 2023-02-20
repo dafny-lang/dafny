@@ -1398,10 +1398,12 @@ migrated to the POSIX-compliant `--` form as needed.
 ### 13.8.1. Help and version information {#sec-controlling-help}
 
 These options emit general information about commands, options and attributes.
+When present, the dafny program will terminates after emitting the requested information
+but without processig any files.
 
 * `--help`, `-h` - shows the various commands (which have help information under them as `dafny <command> -h`
 
-* `--version` - show the version of the build (and exits)
+* `--version` - show the version of the build
 
 Legacy options:
 
@@ -1431,7 +1433,9 @@ These options control how Dafny processes its input.
   instead of reading from a file.
 
 * `--library:<files>` - treat the given files as _library_ code, namely, skip
-these files (and any files recursively included) during verification
+these files (and any files recursively included) during verification;
+the value may be a comma-separated-list of files or folders; folders are expanded into
+a list of all .dfy files contained, recursively, in those folders
 
 * `--prelude:<file>` (was `-dprelude`) - select an alternative Dafny prelude file. This
   file contains Boogie definitions (including many axioms) required by
@@ -1741,7 +1745,6 @@ and what information it produces about the verification process.
     variables and fields whose types do not support auto-initialization
     and for ghost variables and fields whose type is possibly empty.
 
-
 * `--disable-nonlinear-arithmetic` (was `-noNLarith`) - reduce 
   Z3's knowledge of non-linear arithmetic (the
   operators `*`, `/`, and `%`). Enabling this option will typically
@@ -1758,11 +1761,10 @@ and what information it produces about the verification process.
 
 Controlling the proof engine:
 
-* `--cores:<n>` - sets the number oor percent of the available cores to be used for verification
-
+* `--cores:<n>` - sets the number or percent of the available cores to be used for verification
 * `--verification-time-limit <seconds>` - imposes a time limit on each verification attempt
 * `--verification-error-limit <number>` - limits the number of verification errors reported (0 is no limit)
-* `--resource limit` - states a resource limit (to be used by the backend solver)
+* `--resource-limit` - states a resource limit (to be used by the backend solver)
 
 Legacy options:
 

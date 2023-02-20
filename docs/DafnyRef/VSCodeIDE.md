@@ -25,7 +25,7 @@ The Dafny functionality within VSCode can be found in these locations:
 - Within a .dfy editor, a right-click brings up a context menu, which has a menu item 'Dafny'. Under it are actions to Build or Run a program,
 to turn on or off counterexample display, find definitions, and the like.
 
-## 14.2. Gutter highlights meaning {#sec-gutter-highlights}
+## 14.2. Gutter highlights {#sec-gutter-highlights}
 
 Feedback on a program is show visually as underlining with squiggles within the text and as various markings in various colors in the _gutter_ down the left side of an editor window.
 
