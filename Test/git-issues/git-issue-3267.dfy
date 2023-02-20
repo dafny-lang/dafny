@@ -8,5 +8,8 @@
 // RUN: %exits-with 1 %baredafny /useBaseNameForFileName /zzzz "%s" >> "%t"
 // RUN: %exits-with 1 %baredafny /useBaseNameForFileName -zzzz "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
+// UNSUPPORTED: windows
+
+// The output is slightly different on windows -- not worth automated testing of the alternative
 
 module A{}
