@@ -129,9 +129,7 @@ partial class Resolver {
 
     protected override bool VisitOneExpression(Expression expr, TypeInferenceCheckingContext context) {
       if (expr is LambdaExpr lambdaExpr) {
-        foreach (var frameExpression in lambdaExpr.Reads) {
-          frameExpression.E = ArrowType.FrameArrowToObjectSet(frameExpression.E);
-        }
+        lambdaExpr.Reads.Iter(DesugarReadsClause);
       }
 
       return base.VisitOneExpression(expr, context);
