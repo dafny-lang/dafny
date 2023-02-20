@@ -1279,7 +1279,6 @@ namespace Microsoft.Dafny {
         int i = 0;
         if (path[0].Value == "_") {
           while (bb.parent != null) bb = bb.parent;
-          b = bb;
           i = 1;
         } else if (path[0].Value == "^") {
           while (path[i].Value == "^") {
@@ -1290,7 +1289,6 @@ namespace Microsoft.Dafny {
             }
             i++;
           }
-          b = bb;
         } else {
           while (!bb.bindings.TryGetValue(path[0].Value, out b)) {
             bb = bb.parent;
@@ -1298,8 +1296,11 @@ namespace Microsoft.Dafny {
           }
           i = 1;
         }
+        b = bb;
+        System.Console.WriteLine("ROOT " + bb.selfName + " " + i + " " + path.Count + " " + qname);
         while (i < path.Count) {
           bb = b;
+          System.Console.WriteLine("ITER " + bb.selfName + " " + i + " " + path.Count + " " + path[i].Value);
           if (!b.bindings.TryGetValue(path[i].Value, out b)) {
             return false;
           }
