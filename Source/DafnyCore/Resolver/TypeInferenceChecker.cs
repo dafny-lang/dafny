@@ -129,7 +129,7 @@ partial class Resolver {
 
     protected override bool VisitOneExpression(Expression expr, TypeInferenceCheckingContext context) {
       if (expr is LambdaExpr lambdaExpr) {
-        lambdaExpr.Reads.Iter(DesugarReadsClause);
+        lambdaExpr.Reads.Iter(DesugarFunctionsInFrameClause);
       }
 
       return base.VisitOneExpression(expr, context);
@@ -183,12 +183,6 @@ partial class Resolver {
             resolver.reporter.Warning(MessageSource.Resolver, ErrorID.None, e.tok,
               "the quantifier has the form 'exists x :: A ==> B', which most often is a typo for 'exists x :: A && B'; " +
               "if you think otherwise, rewrite as 'exists x :: (A ==> B)' or 'exists x :: !A || B' to suppress this warning");
-          }
-        }
-
-        if (expr is LambdaExpr lambdaExpr) {
-          foreach (var frameExpression in lambdaExpr.Reads) {
-            DesugarReadsClause(frameExpression);
           }
         }
 
@@ -394,14 +388,12 @@ partial class Resolver {
       base.PostVisitOneExpression(expr, context);
     }
 
-    public override void VisitTopLevelFrameExpression(FrameExpression frameExpression, TypeInferenceCheckingContext context, bool inReadsClause) {
-      if (inReadsClause) {
-        DesugarReadsClause(frameExpression);
-      }
-      base.VisitTopLevelFrameExpression(frameExpression, context, inReadsClause);
+    public override void VisitTopLevelFrameExpression(FrameExpression frameExpression, TypeInferenceCheckingContext context) {
+      DesugarFunctionsInFrameClause(frameExpression);
+      base.VisitTopLevelFrameExpression(frameExpression, context);
     }
 
-    void DesugarReadsClause(FrameExpression frameExpression) {
+    void DesugarFunctionsInFrameClause(FrameExpression frameExpression) {
       frameExpression.E = ArrowType.FrameArrowToObjectSet(frameExpression.E);
     }
 

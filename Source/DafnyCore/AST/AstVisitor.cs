@@ -71,11 +71,11 @@ namespace Microsoft.Dafny {
       iteratorDecl.Requires.Iter(aexpr => VisitAttributedExpression(aexpr, context));
 
       VisitAttributes(iteratorDecl.Modifies, iteratorDecl.EnclosingModuleDefinition);
-      iteratorDecl.Modifies.Expressions.Iter(frameExpr => VisitTopLevelFrameExpression(frameExpr, context, false));
+      iteratorDecl.Modifies.Expressions.Iter(frameExpr => VisitTopLevelFrameExpression(frameExpr, context));
 
       iteratorDecl.YieldRequires.Iter(aexpr => VisitAttributedExpression(aexpr, context));
 
-      iteratorDecl.Reads.Expressions.Iter(frameExpr => VisitTopLevelFrameExpression(frameExpr, context, true));
+      iteratorDecl.Reads.Expressions.Iter(frameExpr => VisitTopLevelFrameExpression(frameExpr, context));
 
       iteratorDecl.YieldEnsures.Iter(aexpr => VisitExpression(aexpr.E, context));
 
@@ -145,7 +145,7 @@ namespace Microsoft.Dafny {
 
       function.Req.Iter(aexpr => VisitAttributedExpression(aexpr, context));
 
-      function.Reads.Iter(frameExpression => VisitTopLevelFrameExpression(frameExpression, context, true));
+      function.Reads.Iter(frameExpression => VisitTopLevelFrameExpression(frameExpression, context));
 
       function.Ens.Iter(aexpr => VisitAttributedExpression(aexpr, GetContext(function, true)));
 
@@ -174,7 +174,7 @@ namespace Microsoft.Dafny {
       method.Req.Iter(aexpr => VisitAttributedExpression(aexpr, context));
 
       VisitAttributes(method.Mod, method.EnclosingClass.EnclosingModuleDefinition);
-      method.Mod.Expressions.Iter(frameExpression => VisitTopLevelFrameExpression(frameExpression, context, false));
+      method.Mod.Expressions.Iter(frameExpression => VisitTopLevelFrameExpression(frameExpression, context));
 
       VisitAttributes(method.Decreases, method.EnclosingClass.EnclosingModuleDefinition);
       method.Decreases.Expressions.Iter(expr => VisitExpression(expr, context));
@@ -273,15 +273,12 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Note: The parameter "inReadsClause" is more specific than "context", and therefore it is passed as a parameter
-    /// rather than being part of the context.
-    ///
     /// This method is called only for FrameExpression's that are part of top-level or member declarations.
     /// Some statements (modifies clauses of loops) and expressions (reads clauses of lambda expressions, unchanged expressions)
     /// also have FrameExpression's, but the ASTVisitor does not automatically call VisitTopLevelFrameExpression on those, only
     /// VisitExpression.
     /// </summary>
-    public virtual void VisitTopLevelFrameExpression(FrameExpression frameExpression, VisitorContext context, bool inReadsClause) {
+    public virtual void VisitTopLevelFrameExpression(FrameExpression frameExpression, VisitorContext context) {
       VisitExpression(frameExpression.E, context);
     }
 
