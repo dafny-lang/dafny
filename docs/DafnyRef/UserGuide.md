@@ -1393,23 +1393,24 @@ using the `-?` or `--help` or `-h` options.
 Remember that options are typically stated with either a leading `--`.
 
 Legacy options begin with either '-' or '/'; however they are being
-migrated to the POSIX-compliant `--` form.
+migrated to the POSIX-compliant `--` form as needed.
 
 ### 13.8.1. Help and version information {#sec-controlling-help}
 
-These options select output including documentation on command-line
-options or attribute declarations, information on the version of Dafny
-being used, and information about how Dafny was invoked.
+These options emit general information about commands, options and attributes.
 
-* `-?` or `-help` - print out the current list of command-line options
+* `--help`, `-h` - shows the various commands (which have help information under them as `dafny <command> -h`
+
+* `--version` - show the version of the build (and exits)
+
+Legacy options:
+
+* `-?` - print out the legacy list of command-line options
   and terminate. All of these options are also described in this and
   the following sections.
 
 * `-attrHelp` - print out the current list of supported attribute
   declarations and terminate.
-
-* `--version` (was `-version`) - print the version of the executable being invoked and
-  terminate.
 
 * `-env:<n>` - print the command-line arguments supplied to the program.
   The value of `<n>` can be one of the following.
@@ -1426,22 +1427,23 @@ being used, and information about how Dafny was invoked.
 
 These options control how Dafny processes its input.
 
+* `-stdin` - read standard input and treat it as Dafny source code,
+  instead of reading from a file.
+
+* `--library:<files>` - treat the given files as _library_ code, namely, skip
+these files (and any files recursively included) during verification
+
 * `--prelude:<file>` (was `-dprelude`) - select an alternative Dafny prelude file. This
   file contains Boogie definitions (including many axioms) required by
   the translator from Dafny to Boogie. Using an alternative prelude is
   primarily useful if you're extending the Dafny language or changing
-  how Dafny constructs are modeled. The default prelude is here:
-
-  <https://github.com/dafny-lang/dafny/blob/master/Source/Dafny/DafnyPrelude.bpl>
-
-* `-stdin` - read standard input and treat it as Dafny source code,
-  instead of reading from a file.
+  how Dafny constructs are modeled. The default prelude is 
+  [here](https://github.com/dafny-lang/dafny/blob/master/Source/Dafny/DafnyPrelude.bpl).
 
 ### 13.8.3. Controlling plugins {#sec-controlling-plugins}
 
 Dafny has a plugin capability. 
-For example, `dafny audit` and `dafny doc` 
-are under development. A plugin has access to an AST of the dafny input files
+A plugin has access to an AST of the dafny input files
 after all parsing and resolution are performed (but not verification)
 and also to the command-line options.
 
@@ -1451,7 +1453,7 @@ the form of the AST. The best guides to writing a new plugin are
 and (b) example plugins in the
 `src/Tools` folder of the `dafny-lang/compiler-bootstrap` repo.
 
-The value of the option `-plugin` is a path to a dotnet dll that contains
+The value of the option `--plugin` is a path to a dotnet dll that contains
 the compiled plugin.
 
 ### 13.8.4. Controlling output {#sec-controlling-output}
@@ -1459,6 +1461,21 @@ the compiled plugin.
 These options instruct Dafny to print various information about your
 program during processing, including variations of the original source
 code (which can be helpful for debugging).
+
+* `--use-basename-for-filename` - when enabled, just the filename without the 
+directory path is used in error messages; this make error message shorter and 
+not tied to the local environment (which is a help in testing)
+
+* `--output`, `-o` - location of output files [translate, build]
+
+* `--show-snippets` - include with an error message some of the source code text
+in the neighborhood of the error; the error location (file, line, column) is always given
+
+* `--solver-log <file>` - [verification only] the file in which to place the SMT text sent to the solver
+
+* `--log-format <configuration` - [verification only] logs information about verification performance
+
+Legacy options:
 
 * `-stats` - print various statistics about the Dafny files supplied on
   the command line. The statistics include the number of total
@@ -1564,6 +1581,23 @@ These options allow some Dafny language features to be enabled or
 disabled. Some of these options exist for backward compatibility with
 older versions of Dafny.
 
+* `--function-syntax` (value '3' or '4') - permits a choice of using the Dafny 3 syntax (`function` and `function method`)
+or the Dafny 4 syntax (`ghost function` and `function`)
+
+* `--quantifier-syntax` (value '3' or '4') - permits a choice between the Dafny 3 and Dafny 4 syntax for quantifiers
+
+* `--unicode-char` - if false, the `char` type represents any UTF-16 code unit,
+  that is, any 16-bit value, including surrogate code points and
+  allows `\uXXXX` escapes in string and character literals.
+  If true, `char` represnts any Unicode scalar value,
+  that is, any Unicode code point excluding surrogates and
+  allows `\U{X..X}` escapes in string and character literals. 
+  The default is false for Dafny version 3 and true for version 4.
+  The legacy option was -unicodeChar:<n>` with values 0 and 1 for
+  false and true above.
+
+Legacy options:
+
 * `-noIncludes` - ignore `include` directives in the program.
 
 * `-noExterns` - ignore `extern` and `dllimport` attributes in the
@@ -1614,7 +1648,7 @@ older versions of Dafny.
 
 <!-- %check-verify -->
   ```dafny
-  module {:options "-functionSyntax:4"} M {
+  module {:options "--function-syntax:4"} M {
     predicate CompiledPredicate() { true }
   }
   ```
@@ -1644,23 +1678,19 @@ older versions of Dafny.
   implicitly static and field declarations are not allowed at the
   module scope.
 
-* `--unicode-char` - if false, the `char` type represents any UTF-16 code unit;
-  this means any 16-bit value, including surrogate code points and
-  allows `\uXXXX` escapes in string and character literals.
-  If true, `char` represnts any Unicode scalar value;
-  this means any Unicode code point excluding surrogates and
-  allows `\U{X..X}` escapes in string and character literals. 
-  The default is false for Dafny version 3 and true for version 4.
-  The legacy option was -unicodeChar:<n>` with values 0 and 1 for
-  false and true above.
-
 ### 13.8.6. Controlling warnings {#sec-controlling-warnings}
 
 These options control what warnings Dafny produces, and whether to treat
 warnings as errors.
 
+* `--warn-as-errors (was `-warningsAsErrors`) - treat warnings as errors.
+
 * `--warn-shadowing (was `-warnShadowing`) - emit a warning if the name 
   of a declared variable caused another variable to be shadowed.
+
+* `--warn-missing-constructor-parentheses` - warn if a constructor name in a pattern might be misinterpreted
+
+Legacy options
 
 * `-deprecation:<n>` - control warnings about deprecated features. The
   value of `<n>` can be any of the following.
@@ -1671,20 +1701,13 @@ warnings as errors.
 
    * `2` - issue warnings and advise about alternate syntax.
 
-* `--warn-as-errors (was `-warningsAsErrors`) - treat warnings as errors.
-
 ### 13.8.7. Controlling verification {#sec-controlling-verification}
 
 These options control how Dafny verifies the input program, including
 how much it verifies, what techniques it uses to perform verification,
 and what information it produces about the verification process.
 
-* `-dafnyVerify:<n>` [discouraged] - turn verification of the program on or off. The
-  value of `<n>` can be any of the following.
-
-  * `0` - stop after type checking.
-
-  * `1` - continue on to verification and compilation.
+* `--no-verify` - turns off verification (for translate, build, run commands)
 
 * `--verify-included-files` (was `-verifyAllModules`) - verify modules that come from include directives.
 
@@ -1700,10 +1723,61 @@ and what information it produces about the verification process.
   Running Dafny with this option on the file containing your
   main result is a good way to ensure that all its dependencies verify.
 
+
+* `--track-print-effects` - If true, a compiled method, constructor, or 
+   iterator is allowed to have print effects only if it is marked with 
+   {{:print}}. (default false)
+   The legacy option was `-trackPrintEffects:<n>`) with values 0 or 1
+   for false and true.
+
+* `--relax-definite-assignment` - control the rules governing definite
+  assignment, the property that every variable is eventually assigned a
+  value before it is used.
+  * if false (default), enforce definite-assignment for all non-yield-parameter
+    variables and fields, regardless of their types
+  * if false and `--enforce-determinism` is true, then also performs 
+    checks in the compiler that no nondeterministic statements are used
+  * if true, enforce definite-assignment rules for compiled
+    variables and fields whose types do not support auto-initialization
+    and for ghost variables and fields whose type is possibly empty.
+
+
+* `--disable-nonlinear-arithmetic` (was `-noNLarith`) - reduce 
+  Z3's knowledge of non-linear arithmetic (the
+  operators `*`, `/`, and `%`). Enabling this option will typically
+  require more manual work to complete proofs (by explicitly applying
+  lemmas about non-linear operators), but will also result in more
+  predictable behavior, since Z3 can sometimes get stuck down an
+  unproductive path while attempting to prove things about those
+  operators. (This option will perhaps be replaced by `-arith` in the
+  future. For now, it takes precedence over `-arith`.)
+
+* `--manual-lemma-induction` - diables automatic inducntion for lemmas
+
+* `--isolate-assertions` - verify assertions individually
+
+Controlling the proof engine:
+
+* `--cores:<n>` - sets the number oor percent of the available cores to be used for verification
+
+* `--verification-time-limit <seconds>` - imposes a time limit on each verification attempt
+* `--verification-error-limit <number>` - limits the number of verification errors reported (0 is no limit)
+* `--resource limit` - states a resource limit (to be used by the backend solver)
+
+Legacy options:
+
+* `-dafnyVerify:<n>` [discouraged] - turn verification of the program on or off. The
+  value of `<n>` can be any of the following.
+
+  * `0` - stop after type checking.
+
+  * `1` - continue on to verification and compilation.
+
+
 * `-separateModuleOutput` - output verification results for each module
   separately, rather than aggregating them after they are all finished.
 
-* `-verificationLogger:<configuration string>` - log verification
+* `-verificationLogger:<configuration string>` - (now `--log-format`) log verification
   results to the given test result logger. The currently supported
   loggers are `trx`, `csv`, and `text`. These are the XML-based formats
   commonly used for test results for .NET languages, a custom CSV
@@ -1773,12 +1847,6 @@ and what information it produces about the verification process.
 
   * `6` (default) - use the most discriminating induction heuristic.
 
-* `--track-print-effects - If true, a compiled method, constructor, or 
-   iterator is allowed to have print effects only if it is marked with 
-   {{:print}}. (default false)
-   The legacy option was `-trackPrintEffects:<n>`) with values 0 or 1
-   for false and true.
-
 * `-allocated:<n>` - specify defaults for where Dafny should assert and
   assume `allocated(x)` for various parameters `x`, local variables `x`,
   bound variables `x`, etc. Lower `<n>` may require more manual
@@ -1807,32 +1875,11 @@ and what information it produces about the verification process.
   `-allocated:1` let functions depend on the allocation state, which is
   not sound in general.
 
-* `--relax-definite-assignment - control the rules governing definite
-  assignment, the property that every variable is eventually assigned a
-  value before it is used.
-  * if false (default), enforce definite-assignment for all non-yield-parameter
-    variables and fields, regardless of their types
-  * if false and `--enforce-determinism` is true, then also performs 
-    checks in the compiler that no nondeterministic statements are used
-  * if true, enforce definite-assignment rules for compiled
-    variables and fields whose types do not support auto-initialization
-    and for ghost variables and fields whose type is possibly empty.
-
 * `-noAutoReq` - ignore `autoReq` attributes, and therefore do not
   automatically generate `requires` clauses.
 
 * `-autoReqPrint:<file>` - print the requires clauses that were
   automatically generated by `autoReq` to the given `<file>`.
-
-* `--disable-nonlinear-arithmetic` (was `-noNLarith`) - reduce 
-  Z3's knowledge of non-linear arithmetic (the
-  operators `*`, `/`, and `%`). Enabling this option will typically
-  require more manual work to complete proofs (by explicitly applying
-  lemmas about non-linear operators), but will also result in more
-  predictable behavior, since Z3 can sometimes get stuck down an
-  unproductive path while attempting to prove things about those
-  operators. (This option will perhaps be replaced by `-arith` in the
-  future. For now, it takes precedence over `-arith`.)
 
 * `-arith:<n>` - control how arithmetic is modeled during verification.
   This is an experimental switch, and its options may change. The value
@@ -1894,6 +1941,160 @@ and what information it produces about the verification process.
   `-proverOpt:O:model_compress=false` and
   `-proverOpt:O:model.completion=true` options.
 
+### 13.8.11. Controlling compilation {#sec-controlling-compilation}
+
+These options control what code gets compiled, what target language is
+used, how compilation proceeds, and whether the compiled program is
+immediately executed.
+
+* `--target:<s>` or `-t:<s>` (was `-compileTarget:<s>`) - set the target programming language for the
+  compiler. The value of `<s>` can be one of the following.
+
+   * `cs` - C\# . Produces a .dll file that can be run using `dotnet`.
+      For example, `dafny Hello.dfy` will produce `Hello.dll` and `Hello.runtimeconfig.json`.
+      The dll can be run using `dotnet Hello.dll`.
+
+   * `go` - Go. The default output of `dafny Hello.dfy -compileTarget:go` is
+      in the `Hello-go` folder. It is run using
+      ``GOPATH=`pwd`/Hello-go/ GO111MODULE=auto go run Hello-go/src/Hello.go``
+
+   * `js` - Javascript. The default output of `dafny Hello.dfy -compileTarget:js` is
+      the file `Hello.js`, which can be run using `node Hello.js`. (You must have 
+      `bignumber.js` installed.)
+
+   * `java` - Java. The default output of `dafny Hello.dfy -compileTarget:java` is
+      in the `Hello-java` folder. The compiled program can be run using
+      `java -cp Hello-java:Hello-java/DafnyRuntime.jar Hello`.
+
+   * `py` - Python. The default output of `dafny Hello.dfy -compileTarget:py` is
+      in the `Hello-py` folder. The compiled program can be run using
+      `python Hello-py/Hello.py`, where `python` is Python version 3.
+
+   * `cpp` - C++. The default output of `dafny Hello.dfy -compileTarget:cpp` is
+      `Hello.exe` and other files written to the current folder. The compiled
+      program can be run using `./Hello.exe`.
+
+* `--input <file>` - designates files to be include in the compilation in addition to the main file in
+  `dafny run`; these may be non-.dfy files; this option may be specified more than once
+
+* `--output:<file>` or `-o:<file>` (was `-out:<file>`) - set the name to use for compiled code files.
+
+By default, `dafny` reuses the name of the Dafny file being compiled.
+Compilers that generate a single file use the file name as-is (e.g. the
+C# backend will generate `<file>.dll` and optionally `<file>.cs` with
+`-spillTargetCode`). Compilers that generate multiple files use the file
+name as a directory name (e.g. the Java backend will generate files in
+directory `<file>-java/`). Any file extension is ignored, so
+`-out:<file>` is the same as `-out:<file>.<ext>` if `<file>` contains no
+periods.
+
+* `--include-runtime` - include the runtime library for the target language in
+  the generated artifacts. This is true by default for build and run, 
+  but false by default for translate. The legacy option `-useRuntimeLib` had the 
+  opposite effect: when enabled, the compiled assembly referred to
+  the pre-built `DafnyRuntime.dll` in the
+  compiled assembly rather than including `DafnyRuntime.cs` in the build
+  process. 
+
+
+Legacy options:
+
+* `-compile:<n>` -  [obsolete - use `dafny build` or `dafny run`] control whether compilation 
+   happens. The value of
+  `<n>` can be one of the following. Note that if the program is 
+   compiled, it will be compiled to the target language determined by
+   the `-compileTarget` option, which is C\# by default.
+
+   * `0` - do not compile the program
+
+   * `1` (default) - upon successful verification, compile the program
+     to the target language.
+
+   * `2` - always compile, regardless of verification success.
+
+   * `3` - if verification is successful, compile the program (like
+     option `1`), and then if there is a `Main` method, attempt to run the
+     program.
+
+   * `4` - always compile (like option `2`), and then if there is a
+     `Main` method, attempt to run the program.
+
+* `-spillTargetCode:<n>` - [obsolete - use `dafny translate`) control whether to write out compiled code in
+  the target language (instead of just holding it in internal temporary
+  memory). The value of `<n>` can be one of the following.
+
+   * `0` (default) - don't make any extra effort to write the textual
+     target program (but still compile it, if `-compile` indicates to do
+     so).
+
+   * `1` - write it out to the target language, if it is being compiled.
+
+   * `2` - write the compiled program if it passes verification,
+     regardless of the `-compile` setting.
+
+   * `3` - write the compiled program regardless of verification success
+     and the `-compile` setting.
+
+Note that some compiler targets may (always or in some situations) write
+out the textual target program as part of compilation, in which case
+`-spillTargetCode:0` behaves the same way as `-spillTargetCode:1`.
+
+* `-Main:<name>` - specify the (fully-qualified) name of the method to
+  use as the executable entry point. The default is the method with the
+  `{:main}` attribute, or else the method named `Main`.
+
+* `-compileVerbose:<n>` - control whether to write out compilation
+  progress information. The value of `<n>` can be one of the following.
+
+  * `0` - do not print any information (silent mode)
+
+  * `1` (default) - print information such as the files being created by
+    the compiler
+
+* `-coverage:<file>` - emit branch-coverage calls and outputs into
+  `<file>`, including a legend that gives a description of each
+  source-location identifier used in the branch-coverage calls. (Use `-`
+  as `<file>` to print to the console.)
+
+* `-optimize` - produce optimized C# code by passing the `/optimize`
+  flag to the `csc` executable.
+
+* `-optimizeResolution:<n>` - control optimization of method target
+  resolution. The value of `<n>` can be one of the following.
+
+  * `0` - resolve and translate all methods.
+
+  * `1` - translate methods only in the call graph of the current
+    verification target.
+
+  * `2` (default) - as in `1`, but resolve only methods that are defined
+    in the current verification target file, not in included files.
+
+
+* `-testContracts:<mode>` - test certain function and method contracts
+  at runtime. This works by generating a wrapper for each function or
+  method to be tested that includes a sequence of `expect` statements
+  for each requires clause, a call to the original, and sequence of
+  `expect` statements for each `ensures` clause. This is particularly
+  useful for code marked with the `{:extern}` attribute and implemented
+  in the target language instead of Dafny. Having runtime checks of the
+  contracts on such code makes it possible to gather evidence that the
+  target-language code satisfies the assumptions made of it during Dafny
+  verification through mechanisms ranging from manual tests through
+  fuzzing to full verification. For the latter two use cases, having
+  checks for `requires` clauses can be helpful, even if the Dafny
+  calling code will never violate them.
+
+  The `<mode>` parameter can currently be one of the following.
+
+  * `Externs` - insert dynamic checks when calling any function or
+    method marked with the `{:extern}` attribute, wherever the call
+    occurs.
+
+  * `TestedExterns` - insert dynamic checks when calling any function or
+    method marked with the `{:extern}` attribute directly from a
+    function or method marked with the `{:test}` attribute.
+
 ### 13.8.8. Controlling Boogie {#sec-controlling-boogie}
 
 Dafny builds on top of Boogie, a general-purpose intermediate language
@@ -1902,6 +2103,16 @@ supported by Dafny. Some of the Boogie options most relevant to Dafny
 users include the following. We use the term "procedure" below to refer
 to a Dafny function, lemma, method, or predicate, following Boogie
 terminology.
+
+* `--solver-path` - specifies a custom SMT solver to use
+
+* `--solver-plugin` - specifies a plugin to use as the SMT solver, instead of an external pdafny translaterocess
+
+* `--boogie-filter` - restricts the set of verification tasks (for debugging) 
+
+* `--boogie` - arguments to send to boogie
+
+Legacy options:
 
 * `-proc:<name>` - verify only the procedure named `<name>`. The name
   can include `*` to indicate arbitrary sequences of characters.
@@ -1942,10 +2153,6 @@ terminology.
   well, but sometimes causes the solver to take longer. If a proof that
   you believe should succeed is timing out, using this option can
   sometimes help.
-
-* `-vcsCores:<n>` - try to verify `<n>` procedures simultaneously.
-  Setting `<n>` to the number of physical cores available tends to be
-  effective at speeding up overall proof time.
 
 * `-timeLimit:<n>` - spend at most `<n>` seconds attempting to prove any
   single SMT query. This setting can also be set per method using the
@@ -1997,7 +2204,7 @@ verification condition generation ([25.9.7](#sec-controlling-verification)) or B
 ([Section 13.8.8](#sec-controlling-boogie)). 
 The following options are also commonly used:
 
-* `-errorLimit:<n>` - limits the number of verification errors reported per procedure.
+* `--verification-error-limit:<n>` - limits the number of verification errors reported per procedure.
   Default is 5; 0 means as many as possible; a small positive number runs faster
   but a large positive number reports more errors per run
 
@@ -2012,150 +2219,3 @@ for values of inputs to a method that cause the program to execute specific bloc
 A detailed description of how to do this is given in
 [a separate document](https://github.com/dafny-lang/dafny/blob/master/Source/DafnyTestGeneration/README.md).
 
-### 13.8.11. Controlling compilation {#sec-controlling-compilation}
-
-These options control what code gets compiled, what target language is
-used, how compilation proceeds, and whether the compiled program is
-immediately executed.
-
-* `-compile:<n>` -  [obsolete - use `dafny build` or `dafny run`] control whether compilation 
-   happens. The value of
-  `<n>` can be one of the following. Note that if the program is 
-   compiled, it will be compiled to the target language determined by
-   the `-compileTarget` option, which is C\# by default.
-
-   * `0` - do not compile the program
-
-   * `1` (default) - upon successful verification, compile the program
-     to the target language.
-
-   * `2` - always compile, regardless of verification success.
-
-   * `3` - if verification is successful, compile the program (like
-     option `1`), and then if there is a `Main` method, attempt to run the
-     program.
-
-   * `4` - always compile (like option `2`), and then if there is a
-     `Main` method, attempt to run the program.
-
-* `--target:<s>` or `-t:<s>` (was `-compileTarget:<s>`) - set the target programming language for the
-  compiler. The value of `<s>` can be one of the following.
-
-   * `cs` - C\# . Produces a .dll file that can be run using `dotnet`.
-      For example, `dafny Hello.dfy` will produce `Hello.dll` and `Hello.runtimeconfig.json`.
-      The dll can be run using `dotnet Hello.dll`.
-
-   * `go` - Go. The default output of `dafny Hello.dfy -compileTarget:go` is
-      in the `Hello-go` folder. It is run using
-      ``GOPATH=`pwd`/Hello-go/ GO111MODULE=auto go run Hello-go/src/Hello.go``
-
-   * `js` - Javascript. The default output of `dafny Hello.dfy -compileTarget:js` is
-      the file `Hello.js`, which can be run using `node Hello.js`. (You must have 
-      `bignumber.js` installed.)
-
-   * `java` - Java. The default output of `dafny Hello.dfy -compileTarget:java` is
-      in the `Hello-java` folder. The compiled program can be run using
-      `java -cp Hello-java:Hello-java/DafnyRuntime.jar Hello`.
-
-   * `py` - Python. The default output of `dafny Hello.dfy -compileTarget:py` is
-      in the `Hello-py` folder. The compiled program can be run using
-      `python Hello-py/Hello.py`, where `python` is Python version 3.
-
-   * `cpp` - C++. The default output of `dafny Hello.dfy -compileTarget:cpp` is
-      `Hello.exe` and other files written to the current folder. The compiled
-      program can be run using `./Hello.exe`.
-
-
-* `-spillTargetCode:<n>` - [obsolete - use `dafny translate`) control whether to write out compiled code in
-  the target language (instead of just holding it in internal temporary
-  memory). The value of `<n>` can be one of the following.
-
-   * `0` (default) - don't make any extra effort to write the textual
-     target program (but still compile it, if `-compile` indicates to do
-     so).
-
-   * `1` - write it out to the target language, if it is being compiled.
-
-   * `2` - write the compiled program if it passes verification,
-     regardless of the `-compile` setting.
-
-   * `3` - write the compiled program regardless of verification success
-     and the `-compile` setting.
-
-Note that some compiler targets may (always or in some situations) write
-out the textual target program as part of compilation, in which case
-`-spillTargetCode:0` behaves the same way as `-spillTargetCode:1`.
-
-* `-Main:<name>` - specify the (fully-qualified) name of the method to
-  use as the executable entry point. The default is the method with the
-  `{:main}` attribute, or else the method named `Main`.
-
-* `--output:<file>` or `-o:<file>` (was `-out:<file>`) - set the name to use for compiled code files.
-
-By default, `dafny` reuses the name of the Dafny file being compiled.
-Compilers that generate a single file use the file name as-is (e.g. the
-C# backend will generate `<file>.dll` and optionally `<file>.cs` with
-`-spillTargetCode`). Compilers that generate multiple files use the file
-name as a directory name (e.g. the Java backend will generate files in
-directory `<file>-java/`). Any file extension is ignored, so
-`-out:<file>` is the same as `-out:<file>.<ext>` if `<file>` contains no
-periods.
-
-* `-compileVerbose:<n>` - control whether to write out compilation
-  progress information. The value of `<n>` can be one of the following.
-
-  * `0` - do not print any information (silent mode)
-
-  * `1` (default) - print information such as the files being created by
-    the compiler
-
-* `-coverage:<file>` - emit branch-coverage calls and outputs into
-  `<file>`, including a legend that gives a description of each
-  source-location identifier used in the branch-coverage calls. (Use `-`
-  as `<file>` to print to the console.)
-
-* `-optimize` - produce optimized C# code by passing the `/optimize`
-  flag to the `csc` executable.
-
-* `-optimizeResolution:<n>` - control optimization of method target
-  resolution. The value of `<n>` can be one of the following.
-
-  * `0` - resolve and translate all methods.
-
-  * `1` - translate methods only in the call graph of the current
-    verification target.
-
-  * `2` (default) - as in `1`, but resolve only methods that are defined
-    in the current verification target file, not in included files.
-
-* `--include-runtime` - include the runtime library for the target language in
-  the generated artifacts. The legacy option `-useRuntimeLib` had the 
-  opposite effect: when enabled, the compiled assembly referred to
-  the pre-built `DafnyRuntime.dll` in the
-  compiled assembly rather than including `DafnyRuntime.cs` in the build
-  process. 
-
-
-* `-testContracts:<mode>` - test certain function and method contracts
-  at runtime. This works by generating a wrapper for each function or
-  method to be tested that includes a sequence of `expect` statements
-  for each requires clause, a call to the original, and sequence of
-  `expect` statements for each `ensures` clause. This is particularly
-  useful for code marked with the `{:extern}` attribute and implemented
-  in the target language instead of Dafny. Having runtime checks of the
-  contracts on such code makes it possible to gather evidence that the
-  target-language code satisfies the assumptions made of it during Dafny
-  verification through mechanisms ranging from manual tests through
-  fuzzing to full verification. For the latter two use cases, having
-  checks for `requires` clauses can be helpful, even if the Dafny
-  calling code will never violate them.
-
-  The `<mode>` parameter can currently be one of the following.
-
-  * `Externs` - insert dynamic checks when calling any function or
-    method marked with the `{:extern}` attribute, wherever the call
-    occurs.
-
-  * `TestedExterns` - insert dynamic checks when calling any function or
-    method marked with the `{:extern}` attribute directly from a
-    function or method marked with the `{:test}` attribute.
