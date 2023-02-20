@@ -109,8 +109,9 @@ namespace Microsoft.Dafny {
             if (2 <= DafnyOptions.O.Allocated && !context.AllowedToDependOnAllocationState) {
               foreach (var bv in ComprehensionExpr.BoundedPool.MissingBounds(e.BoundVars, e.Bounds,
                          ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc)) {
+                var how = Attributes.Contains(e.Attributes, "_reads") ? "(implicitly by using a function in a reads clause) " : "";
                 var message =
-                  $"a {e.WhatKind} involved in a {context.Kind} is not allowed to depend on the set of allocated references," +
+                  $"a {e.WhatKind} involved in a {context.Kind} {how}is not allowed to depend on the set of allocated references," +
                   $" but values of '{bv.Name}' (of type '{bv.Type}') may contain references";
                 if (bv.Type.IsTypeParameter || bv.Type.IsOpaqueType) {
                   message += $" (perhaps declare its type as '{bv.Type}(!new)')";

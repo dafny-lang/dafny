@@ -70,7 +70,9 @@ public class ArrowType : UserDefinedType {
       ResolvedOp = resolvedOpcode,
       Type = Type.Bool
     };
-    var attributes = new Attributes("trigger", new List<Expression>() { inCollection }, null);
+
+    var attributes = new Attributes("trigger", new List<Expression>() { inCollection },
+      new Attributes("_reads", new List<Expression>(), null));
     return new SetComprehension(e.tok, e.RangeToken, true, boundVarDecls, inCollection, objUse, attributes) {
       Type = new SetType(true, elementType)
     };

@@ -163,27 +163,41 @@ module D {
 module E {
   import opened Types
 
-  method N0(f: Basic -> set<object>) {
+  method N0() {
     var u := () => set c: Basic | c.data == 11; // error: this makes the lambda expression depend on the allocation state
   }
 
-  method N1(f: Basic -> set<object>) {
+  method N1() {
     var u := ()
       requires |set c: Basic | c.data == 11| == 3 // error: this makes the lambda expression depend on the allocation state
       =>
       25;
   }
 
-  method N2(f: Basic -> set<object>, c: Basic) {
+  method N2(c: Basic) {
     var u := ()
       reads if |set c: Basic | c.data == 11| == 3 then {} else {c} // error: this makes the lambda expression depend on the allocation state
       =>
       25;
   }
 
-  method N3<X>(f: X -> set<object>, c: Basic, p: (X, int) -> bool) {
+  method N3<X>(c: Basic, p: (X, int) -> bool) {
     var u := ()
       reads if |set x: X | p(x, 0) :: p(x, 1)| == 3 then {} else {c} // error: this makes the lambda expression depend on the allocation state
+      =>
+      25;
+  }
+
+  method N4<X>(f: X -> set<object>) {
+    var u := ()
+      reads ((a: int, x: X, c: real) => f(x)) // error: this makes the lambda expression depend on the allocation state
+      =>
+      25;
+  }
+
+  method N5<X(!new)>(f: X -> set<object>) {
+    var u := ()
+      reads ((a: int, x: X, c: real) => f(x)) // fine, since parameters do not depend on allocation state
       =>
       25;
   }
