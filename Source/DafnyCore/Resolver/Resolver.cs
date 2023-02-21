@@ -1929,7 +1929,7 @@ namespace Microsoft.Dafny {
                 extremePredicate.Ens.ConvertAll(cloner.CloneAttributedExpr),
                 new Specification<Expression>(new List<Expression>() { new IdentifierExpr(extremePredicate.tok, k.Name) }, null),
                 cloner.CloneExpr(extremePredicate.Body),
-                null,
+                BuiltIns.AxiomAttribute(),
                 extremePredicate);
               extraMember = extremePredicate.PrefixPredicate;
             } else {
@@ -1954,7 +1954,7 @@ namespace Microsoft.Dafny {
                 req, cloner.CloneSpecFrameExpr(extremeLemma.Mod), ens,
                 new Specification<Expression>(decr, null),
                 null, // Note, the body for the prefix method will be created once the call graph has been computed and the SCC for the greatest lemma is known
-                cloner.CloneAttributes(extremeLemma.Attributes), extremeLemma);
+                BuiltIns.AxiomAttribute(cloner.CloneAttributes(extremeLemma.Attributes)), extremeLemma);
               extraMember = extremeLemma.PrefixLemma;
             }
 
@@ -2974,16 +2974,14 @@ namespace Microsoft.Dafny {
             : $"{com.PrefixLemma.Name} with focal predicate{Util.Plural(focalPredicates.Count)} {Util.Comma(focalPredicates, p => p.Name)}");
         // Compute the statement body of the prefix lemma
         Contract.Assume(prefixLemma.Body == null); // this is not supposed to have been filled in before
-        if (com.Body != null)
-        {
+        if (com.Body != null) {
           var kMinusOne = new BinaryExpr(com.tok, BinaryExpr.Opcode.Sub, new IdentifierExpr(k.tok, k.Name),
             new LiteralExpr(com.tok, 1));
           var subst = new ExtremeLemmaBodyCloner(com, kMinusOne, focalPredicates, this.reporter);
           var mainBody = subst.CloneBlockStmt(com.Body);
           Expression kk;
           Statement els;
-          if (k.Type.IsBigOrdinalType)
-          {
+          if (k.Type.IsBigOrdinalType) {
             kk = new MemberSelectExpr(k.tok, new IdentifierExpr(k.tok, k.Name), "Offset");
             // As an "else" branch, we add recursive calls for the limit case.  When automatic induction is on,
             // this get handled automatically, but we still want it in the case when automatic induction has been
@@ -2999,15 +2997,11 @@ namespace Microsoft.Dafny {
 
             var bvs = new List<BoundVar>(); // TODO: populate with k', params
             var substMap = new Dictionary<IVariable, Expression>();
-            foreach (var inFormal in prefixLemma.Ins)
-            {
-              if (inFormal == k)
-              {
+            foreach (var inFormal in prefixLemma.Ins) {
+              if (inFormal == k) {
                 bvs.Add(kprimeVar);
                 substMap.Add(k, kprime);
-              }
-              else
-              {
+              } else {
                 var bv = new BoundVar(inFormal.tok, inFormal.Name, inFormal.Type);
                 bvs.Add(bv);
                 substMap.Add(inFormal, new IdentifierExpr(com.tok, bv));
@@ -3042,9 +3036,7 @@ namespace Microsoft.Dafny {
             var forallStmt = new ForallStmt(mainBody.RangeToken, bvs, attrs, range,
               new List<AttributedExpression>(), forallBody);
             els = new BlockStmt(mainBody.RangeToken, new List<Statement>() {forallStmt});
-          }
-          else
-          {
+          } else {
             kk = new IdentifierExpr(k.tok, k.Name);
             els = null;
           }
@@ -3052,6 +3044,7 @@ namespace Microsoft.Dafny {
           var kPositive = new BinaryExpr(com.tok, BinaryExpr.Opcode.Lt, new LiteralExpr(com.tok, 0), kk);
           var condBody = new IfStmt(mainBody.RangeToken, false, kPositive, mainBody, els);
           prefixLemma.Body = new BlockStmt(mainBody.RangeToken, new List<Statement>() {condBody});
+        } else {
         }
 
         // The prefix lemma now has all its components, so it's finally time we resolve it
