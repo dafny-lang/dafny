@@ -107,7 +107,7 @@ To give a flavor of Dafny, here is the solution to a competition problem.
 // variable 'Repr' that is maintained as the set of objects that
 // make up the representation of the aggregate object--in this
 // case, the Node itself and all its successors.
-module {:options "--functcion-syntax:4"} M {
+module {:options "--function-syntax:4"} M {
 class Node {
   ghost var List: seq<int>
   ghost var Repr: set<Node>
