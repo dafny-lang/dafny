@@ -7,15 +7,15 @@
 
 datatype Result<T> = Success(value: T) | Failure(error: string)
 {
-  predicate method IsFailure() {
+  predicate IsFailure() {
     Failure?
   }
-  function method PropagateFailure<U>(): Result<U>
+  function PropagateFailure<U>(): Result<U>
     requires Failure?
   {
     Failure(this.error)
   }
-  function method Extract(): T
+  function Extract(): T
     requires Success?
   {
     value

@@ -65,7 +65,7 @@ module CharOrder refines Order {
 module CharSetSetOrder refines Order {
   type T = set<char>
 
-  function method Pow2(i: nat) : nat {
+  function Pow2(i: nat) : nat {
     if i == 0 then 1 else 2 * Pow2(i-1)
   }
 
@@ -155,7 +155,7 @@ method SubSets() {
   print "\n";
 }
 
-predicate method P(r: set<char>) { true }
+predicate P(r: set<char>) { true }
 
 // -------------------------------------------------------------------------------------------
 

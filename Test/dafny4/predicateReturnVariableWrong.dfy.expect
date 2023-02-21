@@ -1,6 +1,6 @@
-predicateReturnVariableWrong.dfy(4,34): Error: predicate return type should be bool, got int
+predicateReturnVariableWrong.dfy(4,40): Error: predicate return type should be bool, got int
 predicateReturnVariableWrong.dfy(8,40): Error: least predicate return type should be bool, got int
 predicateReturnVariableWrong.dfy(12,43): Error: greatest predicate return type should be bool, got int
-predicateReturnVariableWrong.dfy(18,34): Error: predicate return type should be bool, got MyBoolSynonym
-predicateReturnVariableWrong.dfy(24,34): Error: predicate return type should be bool, got AlwaysTrue
+predicateReturnVariableWrong.dfy(18,40): Error: predicate return type should be bool, got MyBoolSynonym
+predicateReturnVariableWrong.dfy(24,40): Error: predicate return type should be bool, got AlwaysTrue
 5 parse errors detected in predicateReturnVariableWrong.dfy

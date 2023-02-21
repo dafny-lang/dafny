@@ -8,7 +8,7 @@ class List<T> {
   var a: array<T>
   var n: nat
 
-  predicate Valid()
+  ghost predicate Valid()
     reads this, Repr
     ensures Valid() ==> this in Repr
   {

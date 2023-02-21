@@ -3,7 +3,7 @@
 
 type IntMap = map<int, int>
 
-function RemoveElement(m: IntMap, x: int): IntMap
+ghost function RemoveElement(m: IntMap, x: int): IntMap
 {
   // The following operation once got resolved as set difference instead
   // of map domain subtraction, because the resolver didn't expand the
@@ -11,7 +11,7 @@ function RemoveElement(m: IntMap, x: int): IntMap
   m - {x}
 }
 
-function RemoveElement'(m: map<int, int>, x: int): map<int, int>
+ghost function RemoveElement'(m: map<int, int>, x: int): map<int, int>
 {
   // This operation always worked (and continues to work)
   m - {x}

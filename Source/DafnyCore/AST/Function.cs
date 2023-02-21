@@ -280,7 +280,7 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
   public virtual bool ReadsHeap { get { return Reads.Count != 0; } }
 
   public static readonly Option<string> FunctionSyntaxOption = new("--function-syntax",
-    () => "3",
+    () => "4",
     @"
 The syntax for functions is changing from Dafny version 3 to version 4. This switch gives early access to the new syntax, and also provides a mode to help with migration.
 

@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 class SumOfCubes {
-  static function SumEmUp(n: int, m: int): int
+  static ghost function SumEmUp(n: int, m: int): int
     requires 0 <= n && n <= m;
     decreases m - n;
   {
@@ -44,7 +44,7 @@ class SumOfCubes {
     Lemma3(0, k);
   }
 
-  static function GSum(k: int): int
+  static ghost function GSum(k: int): int
     requires 0 <= k;
   {
     if k == 0 then 0 else GSum(k-1) + k-1
@@ -86,7 +86,7 @@ class SumOfCubes {
     }
   }
 
-  static function SumEmDown(n: int, m: int): int
+  static ghost function SumEmDown(n: int, m: int): int
     requires 0 <= n && n <= m;
   {
     if m == n then 0 else SumEmDown(n, m-1) + (m-1)*(m-1)*(m-1)

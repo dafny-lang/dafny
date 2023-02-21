@@ -4,8 +4,8 @@
 // This file is a series of basic tests for loop detection, focusing on the
 // warnings and information messages
 
-function f(i: int): int
-function g(i: int): int
+ghost function f(i: int): int
+ghost function g(i: int): int
 
 method M() {
   assert forall i :: false ==> f(i) == f(f(i));

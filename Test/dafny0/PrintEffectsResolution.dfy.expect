@@ -1,8 +1,8 @@
 PrintEffectsResolution.dfy(44,18): Error: not allowed to override a non-printing method with a possibly printing method ('DoesNotPrint')
 PrintEffectsResolution.dfy(10,22): Error: :print attribute is not allowed on ghost methods
 PrintEffectsResolution.dfy(13,15): Error: :print attribute is not allowed on ghost methods
-PrintEffectsResolution.dfy(16,18): Error: :print attribute is not allowed on functions
-PrintEffectsResolution.dfy(18,25): Error: :print attribute is not allowed on functions
+PrintEffectsResolution.dfy(16,24): Error: :print attribute is not allowed on functions
+PrintEffectsResolution.dfy(18,18): Error: :print attribute is not allowed on functions
 PrintEffectsResolution.dfy(20,18): Error: :print attribute is not allowed on functions
 PrintEffectsResolution.dfy(26,28): Error: :print attribute is not allowed on functions
 PrintEffectsResolution.dfy(30,28): Error: :print attribute is not allowed on functions
@@ -11,8 +11,8 @@ PrintEffectsResolution.dfy(34,15): Error: :print attribute does not take any arg
 PrintEffectsResolution.dfy(44,18): Error: not allowed to override a non-printing method with a possibly printing method ('DoesNotPrint')
 PrintEffectsResolution.dfy(10,22): Error: :print attribute is not allowed on ghost methods
 PrintEffectsResolution.dfy(13,15): Error: :print attribute is not allowed on ghost methods
-PrintEffectsResolution.dfy(16,18): Error: :print attribute is not allowed on functions
-PrintEffectsResolution.dfy(18,25): Error: :print attribute is not allowed on functions
+PrintEffectsResolution.dfy(16,24): Error: :print attribute is not allowed on functions
+PrintEffectsResolution.dfy(18,18): Error: :print attribute is not allowed on functions
 PrintEffectsResolution.dfy(20,18): Error: :print attribute is not allowed on functions
 PrintEffectsResolution.dfy(26,28): Error: :print attribute is not allowed on functions
 PrintEffectsResolution.dfy(30,28): Error: :print attribute is not allowed on functions

@@ -71,7 +71,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     private static string SlowToVerify2 =>
       @"
-function method {:unroll 100} Ack(m: nat, n: nat): nat
+function {:unroll 100} Ack(m: nat, n: nat): nat
   decreases m, n
 {
   if m == 0 then

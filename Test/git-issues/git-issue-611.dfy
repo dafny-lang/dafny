@@ -14,6 +14,6 @@ module M2 {
 
   export provides f, Nothing
 
-  function f() : M1.T
+  ghost function f() : M1.T
 }
 

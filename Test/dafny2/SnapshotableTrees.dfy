@@ -90,7 +90,7 @@ module SnapTree {
     var root: Node?
     var reprIsShared: bool
 
-    predicate Valid()
+    ghost predicate Valid()
       reads this, Repr
       ensures Valid() ==> this in Repr && MutableRepr <= Repr
       ensures Valid() ==> IsSorted(Contents)
@@ -106,7 +106,7 @@ module SnapTree {
       (reprIsShared ==> MutableRepr == {this})
     }
 
-    static predicate {:opaque} IsSorted(c: seq<int>)  // checks if "c" is sorted and has no duplicates
+    static ghost predicate {:opaque} IsSorted(c: seq<int>)  // checks if "c" is sorted and has no duplicates
     {
       forall i, j :: 0 <= i < j < |c| ==> c[i] < c[j]
     }
@@ -120,15 +120,15 @@ module SnapTree {
     {
       reveal IsSorted();
     }
-    static predicate AllBelow(s: seq<int>, d: int)
+    static ghost predicate AllBelow(s: seq<int>, d: int)
     {
       forall i :: 0 <= i < |s| ==> s[i] < d
     }
-    static predicate AllAbove(d: int, s: seq<int>)
+    static ghost predicate AllAbove(d: int, s: seq<int>)
     {
       forall i :: 0 <= i < |s| ==> d < s[i]
     }
-    static predicate SortedSplit(left: seq<int>, data: int, right: seq<int>)
+    static ghost predicate SortedSplit(left: seq<int>, data: int, right: seq<int>)
     {
       IsSorted(left) && IsSorted(right) &&
       AllBelow(left, data) && AllAbove(data, right)
@@ -244,7 +244,7 @@ module SnapTree {
     var left: Node?
     var right: Node?
 
-    predicate {:opaque} NodeValid()
+    ghost predicate {:opaque} NodeValid()
       reads this, Repr
       ensures NodeValid() ==> this in Repr && Tree.IsSorted(Contents)
     {
@@ -259,12 +259,12 @@ module SnapTree {
       Tree.IsSorted(Contents)
     }
 
-    static predicate SortedSplit(left: Node?, data: int, right: Node?)
+    static ghost predicate SortedSplit(left: Node?, data: int, right: Node?)
       reads left, right
     {
       Tree.SortedSplit(if left == null then [] else left.Contents, data, if right == null then [] else right.Contents)
     }
-    static function CombineSplit(left: Node?, data: int, right: Node?): seq<int>
+    static ghost function CombineSplit(left: Node?, data: int, right: Node?): seq<int>
       reads left, right
     {
       if left == null && right == null then
@@ -484,7 +484,7 @@ module SnapTree {
     var initialized: bool
     var stack: List
 
-    predicate Valid()
+    ghost predicate Valid()
       reads this, IterRepr, T
       reads if T != null then T.Repr else {}
       ensures Valid() ==> T != null && IterRepr !! T.Repr
@@ -505,7 +505,7 @@ module SnapTree {
     //  * for Cons(p, rest), fragment [p.data]+p.right.Contents
     // In each case, R(wlist,n,C,Nodes) implies that the fragment wlist proper is a prefix of C[n..].
     // Nodes is (an overapproximation of) the set of nodes read by R.
-    static predicate R(wlist: List, n: int, C: seq<int>, Nodes: set<object>)
+    static ghost predicate R(wlist: List, n: int, C: seq<int>, Nodes: set<object>)
       reads Nodes
       decreases wlist
     {

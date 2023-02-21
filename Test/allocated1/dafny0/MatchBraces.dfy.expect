@@ -16,7 +16,7 @@ method M(c: Color, d: Color)
   print x, " ", y, " ", z, " ", w, " ", t, "\n";
 }
 
-function Heat(c: Color): int
+ghost function Heat(c: Color): int
 {
   match c
   case Red =>
@@ -27,7 +27,7 @@ function Heat(c: Color): int
     14
 }
 
-function IceCream(c: Color): int
+ghost function IceCream(c: Color): int
 {
   match c {
     case Red =>
@@ -39,7 +39,7 @@ function IceCream(c: Color): int
   }
 }
 
-function Flowers(c: Color, d: Color): int
+ghost function Flowers(c: Color, d: Color): int
 {
   match c {
     case Red =>

@@ -232,7 +232,7 @@ method f(x: int) {
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
     public async Task DoNotExtendPastExpressions2() {
       var documentItem = await GetDocumentItem(@"
-function method Id<T>(t: T): T { t }
+function Id<T>(t: T): T { t }
 datatype Test = Test(i: int)
 {
   method Tester(other: Test) {
@@ -271,7 +271,7 @@ datatype ValidTester = Tester(next: ValidTester2) | Tester2(next: ValidTester2) 
     ((this.Tester? || this.Tester2?) && this.next.Valid()) || (this.Test3? && !this.next.Valid())
   }
 
-  function method apply(): int requires Valid() {
+  function apply(): int requires Valid() {
     2
   }
   static method Test(c: ValidTester) {
@@ -308,7 +308,7 @@ datatype Test = Test(i: int)
     assert Id(other).CanAct();
   }
 }
-function method Id<T>(t: T): T { t }
+function Id<T>(t: T): T { t }
 
 ", "testfile2.dfy");
       await AssertHoverMatches(documentItem, (9, 20),
@@ -337,7 +337,7 @@ predicate Q(i: int, j: int) {
   i == j || -i == j
 }
 
-function method Toast(i: int): int
+function Toast(i: int): int
   requires P(i)
 
 method Test(i: int) returns (j: nat)
@@ -375,7 +375,7 @@ module ProblemModule {
     | Cons(head: int, tail: X)
     | Nil
   {
-    predicate method Valid() {
+    predicate Valid() {
       this.Cons? && tail.Valid()
     }
   }

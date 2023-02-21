@@ -5,40 +5,4 @@ Dafny program verifier did not attempt verification
 Csharp says hello
 
 Dafny program verifier did not attempt verification
-Cpp says Yipee
-
-Dafny program verifier did not attempt verification
-Java says --heya
-
-Dafny program verifier did not attempt verification
-Javascript says howdy
-
-Dafny program verifier did not attempt verification
-Python says hello
-
-Dafny program verifier did not attempt verification
-Go go says hello
-dotnet says howdy
-dotnet says hello
-dotnet says aloha
-javascript says howdy
-javascript says hello
-javascript says aloha
-cpp says howdy
-cpp says hello
-cpp says aloha
-
-Dafny program verifier did not attempt verification
-Java says howdy
-Java says hello
-Java says aloha
-
-Dafny program verifier did not attempt verification
-Python says howdy
-Python says hello
-Python says aloha
-
-Dafny program verifier did not attempt verification
-Go says howdy
-Go says hello
-Go says aloha
+CompileWithArguments.dfy(34,0): Error: Feature not supported for this compilation target: Unicode chars

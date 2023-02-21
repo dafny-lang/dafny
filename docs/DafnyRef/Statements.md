@@ -305,8 +305,8 @@ datatype Status =
 | Success
 | Failure(error: string)
 {
-  predicate method IsFailure() { this.Failure?  }
-  function method PropagateFailure(): Status
+  predicate IsFailure() { this.Failure?  }
+  function PropagateFailure(): Status
     requires IsFailure()
   {
     Failure(this.error)
@@ -321,15 +321,15 @@ datatype Outcome<T> =
 | Success(value: T)
 | Failure(error: string)
 {
-  predicate method IsFailure() {
+  predicate IsFailure() {
     this.Failure?
   }
-  function method PropagateFailure<U>(): Outcome<U>
+  function PropagateFailure<U>(): Outcome<U>
     requires IsFailure()
   {
     Failure(this.error) // this is Outcome<U>.Failure(...)
   }
-  function method Extract(): T
+  function Extract(): T
     requires !IsFailure()
   {
     this.value
@@ -1413,7 +1413,7 @@ method m() {
   }
   assert i == 10 || 200 <= i < 210;
 }
-predicate method P(i:int)
+predicate P(i:int)
 ```
 To explain the example, the loop invariant `0 <= i <= 10` is known to hold at the very top
 of each iteration,
@@ -1426,7 +1426,6 @@ path, `200 <= i < 210` is known to hold immediately after the loop. This is summ
 in the assert statement in the example.
 So, remember, a loop invariant holds at the very top of every iteration, not necessarily
 immediately after the loop.
-
 
 ## 8.15. Loop Specifications {#sec-loop-specifications}
 For some simple loops, such as those mentioned previously, Dafny can figure

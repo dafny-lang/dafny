@@ -6,10 +6,10 @@
 // RUN: %diff "%s.expect" "%t"
 
 datatype OOAgent = | OO7 {
-  function method Talk(): bool {
+  function Talk(): bool {
     true
   }
-  function method Die(): bool {
+  function Die(): bool {
     false
   }
 }

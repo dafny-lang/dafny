@@ -1,9 +1,9 @@
 // RUN: %testDafnyForEachCompiler "%s"
 
 datatype Result<T> = Failure(msg: string) | Success(value: T) {
-  predicate method IsFailure() { Failure? }
-  function method PropagateFailure(): Result<T> requires IsFailure() { this }
-  function method Extract(): T requires !IsFailure() { this.value }
+  predicate IsFailure() { Failure? }
+  function PropagateFailure(): Result<T> requires IsFailure() { this }
+  function Extract(): (t: T) requires !IsFailure() ensures t == this.value { this.value }
 }
 
 class Cell {

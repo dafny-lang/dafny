@@ -61,11 +61,11 @@ lemma Lemma(c: C?, x: int, y: int)
 lemma PowerLemma(x: int, y: int)
   ensures Pred(x, y)
 
-function F(x: int): int
-function G(x: int): nat
-function H(x: int, y: int): int
-function Sum(x: int): int
-function Pred(x: int, y: int): bool
+ghost function F(x: int): int
+ghost function G(x: int): nat
+ghost function H(x: int, y: int): int
+ghost function Sum(x: int): int
+ghost function Pred(x: int, y: int): bool
 
 // ---------------------------------------------------------------------
 
@@ -269,7 +269,7 @@ class EmptyForallStatement {
     }
   }
 
-  function EmptyPar_P(x: int): bool
+  ghost function EmptyPar_P(x: int): bool
   lemma EmptyPar_Lemma(x: int)
     ensures EmptyPar_P(x)
 
@@ -301,7 +301,7 @@ class EmptyForallStatement {
 
 datatype Nat = Zero | Succ(tail: Nat)
 
-predicate ThProperty(step: nat, t: Nat, r: nat)
+ghost predicate ThProperty(step: nat, t: Nat, r: nat)
 {
   match t
   case Zero => true
@@ -326,7 +326,7 @@ method BogosityClient()
   Bogus(c);
 }
 
-predicate False(x: int) { false }
+ghost predicate False(x: int) { false }
 
 method Bogus(c: C)
   requires c.data == 3

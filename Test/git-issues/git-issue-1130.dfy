@@ -17,7 +17,7 @@ method Main() {
 module Issue
 {
   class Foo<T> {
-    function Repr(): set<object> { {this} }
+    ghost function Repr(): set<object> { {this} }
     constructor() {}
   }
 
@@ -38,7 +38,7 @@ module Issue
 // the following variation was working all along
 module Variation {
   class Foo<T> {
-    function Repr(): set<object> { {this} }
+    ghost function Repr(): set<object> { {this} }
     constructor() {}
   }
 
@@ -70,7 +70,7 @@ module Variation {
 module AnotherVariation
 {
   class Foo<T> {
-    function Repr(): set<object> { {this} }
+    ghost function Repr(): set<object> { {this} }
     constructor() {}
 
     method UseFoo()

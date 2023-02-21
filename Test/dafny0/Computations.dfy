@@ -1,12 +1,12 @@
 // RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-function fact6(n: nat): nat
+ghost function fact6(n: nat): nat
 {
   fact(n+6)
 }
 
-function fact(n: nat): nat
+ghost function fact(n: nat): nat
 {
   if (n==0) then 1 else n*fact(n-1)
 }
@@ -20,11 +20,11 @@ ghost method compute_fact6_plus()
 }
 
 datatype intlist = IntNil | IntCons(head: int, tail: intlist)
-function intsize(l: intlist): nat
+ghost function intsize(l: intlist): nat
 {
   if (l.IntNil?) then 0 else 1+intsize(l.tail)
 }
-function intapp(a: intlist, b: intlist): intlist
+ghost function intapp(a: intlist, b: intlist): intlist
 {
   if (a.IntNil?) then b else IntCons(a.head, intapp(a.tail, b))
 }
@@ -36,13 +36,13 @@ ghost method compute_intsize4()
   ensures intsize(IntCons(1, IntCons(2, IntCons(3, IntCons(4, IntNil))))) == 4;
 {
 }
-function cintsize(l: intlist): nat
+ghost function cintsize(l: intlist): nat
 {
   match l
   case IntNil => 0
   case IntCons(hd, tl) => 1+cintsize(tl)
 }
-function cintapp(a: intlist, b: intlist): intlist
+ghost function cintapp(a: intlist, b: intlist): intlist
 {
   match a
   case IntNil => b
@@ -57,11 +57,11 @@ ghost method compute_cintsize4()
 {
 }
 datatype list<A> = Nil | Cons(head: A, tail: list)
-function size(l: list): nat
+ghost function size(l: list): nat
 {
   if (l.Nil?) then 0 else 1+size(l.tail)
 }
-function app(a: list, b: list): list
+ghost function app(a: list, b: list): list
 {
   if (a.Nil?) then b else Cons(a.head, app(a.tail, b))
 }
@@ -79,7 +79,7 @@ ghost method compute_appsize()
 }
 
 datatype exp = Plus(e1: exp, e2: exp) | Num(n: int) | Var(x: int)
-function interp(env: map<int,int>, e: exp): int
+ghost function interp(env: map<int,int>, e: exp): int
   decreases e;
 {
   if (e.Plus?) then interp(env, e.e1)+interp(env, e.e2)
@@ -101,7 +101,7 @@ ghost method compute_interp3(env: map<int,int>)
   ensures interp(env, Plus(Var(0), Plus(Var(1), Var(0))))==20;
 {
 }
-function cinterp(env: map<int,int>, e: exp): int
+ghost function cinterp(env: map<int,int>, e: exp): int
   decreases e;
 {
   match e
@@ -124,7 +124,7 @@ ghost method compute_cinterp3(env: map<int,int>)
 {
 }
 
-function opt(e: exp): exp
+ghost function opt(e: exp): exp
 {
   match e
   case Num(n) => e
@@ -137,7 +137,7 @@ ghost method opt_test()
   ensures opt(Plus(Plus(Plus(Num(0), Num(0)), Num(0)), Num(1)))==Num(1);
 {
 }
-function copt(e: exp): exp
+ghost function copt(e: exp): exp
 {
   match e
   case Num(n) => e
@@ -154,7 +154,7 @@ ghost method copt_test()
 {
 }
 
-function power(b: int, n: nat): int
+ghost function power(b: int, n: nat): int
 {
   if (n==0) then 1 else b*power(b, n-1)
 }
@@ -163,7 +163,7 @@ ghost method test_power()
 {
 }
 
-function fib(n: nat): nat
+ghost function fib(n: nat): nat
 {
   if (n<2) then n else fib(n-1)+fib(n-2)
 }
@@ -191,7 +191,7 @@ module NeedsAllLiteralsAxiom {
   // important such an example is, nor is it clear what the cost
   // of including the all-literals axiom is.)
 
-  function trick(n: nat, m: nat): nat
+  ghost function trick(n: nat, m: nat): nat
     decreases n;  // note that m is not included
   {
     if n < m || m==0 then n else trick(n-m, m) + m
