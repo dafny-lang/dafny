@@ -132,18 +132,8 @@ static class CommandRegistry {
     }
 
     var builder = new CommandLineBuilder(rootCommand).UseDefaults();
-    var languageDeveloperHelp = new Option<bool>("--language-developer-help",
-      "Show help and usage information, including options designed for developing the Dafny language and toolchain.");
-    rootCommand.AddGlobalOption(languageDeveloperHelp);
-    builder = builder.AddMiddleware(async (context, next) =>
-    {
-      if (context.ParseResult.FindResultFor(languageDeveloperHelp) is { }) {
-        context.InvocationResult = new HelpResult();
-      } else {
-        await next(context);
-      }
-    }, MiddlewareOrder.Configuration - 101);
-    
+    builder = AddDeveloperHelp(rootCommand, builder);
+
 #pragma warning disable VSTHRD002
     var exitCode = builder.Build().InvokeAsync(arguments).Result;
 #pragma warning restore VSTHRD002
@@ -159,6 +149,25 @@ static class CommandRegistry {
     }
 
     return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR);
+  }
+
+  private static CommandLineBuilder AddDeveloperHelp(RootCommand rootCommand, CommandLineBuilder builder)
+  {
+    var languageDeveloperHelp = new Option<bool>("--language-developer-help",
+      "Show help and usage information, including options designed for developing the Dafny language and toolchain.");
+    rootCommand.AddGlobalOption(languageDeveloperHelp);
+    builder = builder.AddMiddleware(async (context, next) =>
+    {
+      if (context.ParseResult.FindResultFor(languageDeveloperHelp) is { })
+      {
+        context.InvocationResult = new HelpResult();
+      }
+      else
+      {
+        await next(context);
+      }
+    }, MiddlewareOrder.Configuration - 101);
+    return builder;
   }
 }
 
