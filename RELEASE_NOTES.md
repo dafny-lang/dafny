@@ -6,6 +6,10 @@ See [docs/dev/news/](docs/dev/news/).
 
 ## New features
 
+- Dafny code formatter with IDE support (https://github.com/dafny-lang/dafny/pull/2399)
+     - Makes it possible to "format" one or many Dafny files on the command-line, which for now means only changing the indentation of lines.
+     - Instructions and more details are available in the [Dafny Reference Manual](https://dafny.org/dafny/DafnyRef/DafnyRef#sec-dafny-format)
+
 - Implements error detail information and quick fixes:
      - An error catalog with error message explanations is at https://dafny.org/latest/HowToFAQ/Errors
      - In VSCode, when hovering over an error, the hover information shows additional explanation and
