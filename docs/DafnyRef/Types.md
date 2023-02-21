@@ -1387,7 +1387,7 @@ Examples:
 <!-- %check-resolve -->
 ```dafny
 type T
-type Q { function method toString(t: T): string }
+type Q { function toString(t: T): string }
 ```
 
 An opaque type is a special case of a type synonym that is underspecified.  Such

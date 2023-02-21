@@ -102,7 +102,7 @@ module.
 ```dafny
 module Mod {
   module Helpers {
-    function method addOne(n: nat): nat {
+    function addOne(n: nat): nat {
       n + 1
     }
   }
@@ -185,7 +185,7 @@ it:
 <!-- %check-verify -->
 ```dafny
 module Helpers {
-  function method addOne(n: nat): nat {
+  function addOne(n: nat): nat {
     n + 1
   }
 }
@@ -248,7 +248,7 @@ For example, we could write the previous example as:
 <!-- %check-verify -->
 ```dafny
 module Helpers {
-  function method addOne(n: nat): nat {
+  function addOne(n: nat): nat {
     n + 1
   }
 }
@@ -270,7 +270,7 @@ the name that was bound to get to anything that is hidden.
 <!-- %check-verify Modules.2.expect -->
 ```dafny
 module Helpers {
-  function method addOne(n: nat): nat {
+  function addOne(n: nat): nat {
     n + 1
   }
 }
@@ -769,7 +769,7 @@ these declarations:
 <!-- %check-verify -->
 ```dafny
 module Interface {
-  function method addSome(n: nat): nat
+  function addSome(n: nat): nat
     ensures addSome(n) > n
 }
 abstract module Mod {
@@ -788,7 +788,7 @@ Interface module.
 <!-- %check-verify -->
 ```dafny
 module Implementation {
-  function method addSome(n: nat): nat
+  function addSome(n: nat): nat
     ensures addSome(n) == n + 1
   {
     n + 1
@@ -802,7 +802,7 @@ declaring a refinement of `Mod` which defines  `A` to be `Implementation`.
 <!-- %check-verify -->
 ```dafny
 module Interface {
-  function method addSome(n: nat): nat
+  function addSome(n: nat): nat
     ensures addSome(n) > n
 }
 abstract module Mod {
