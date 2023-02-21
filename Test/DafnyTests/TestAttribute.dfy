@@ -1,4 +1,4 @@
-// RUN: %exits-with 3 %dafny /compileVerbose:1 /compile:0 /spillTargetCode:3 /noVerify "%s" > "%t"
+// RUN: %exits-with 3 %dafny /unicodeChar:0 /compileVerbose:1 /compile:0 /spillTargetCode:3 /noVerify "%s" > "%t"
 // RUN: ! dotnet test -v:q %S >> %t
 //
 // RUN: %OutputCheck --file-to-check "%t" "%s"
