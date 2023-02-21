@@ -99,248 +99,6 @@ as the number of named out-parameters. These expressions are
 evaluated, then they are assigned to the out-parameters, and then the
 method terminates.
 
-## 8.4. Break and Continue Statements ([grammar](#g-break-continue-statement)) {#sec-break-continue-statement}
-
-Examples:
-<!-- %check-resolve -->
-```dafny
-class A { var f: int }
-method m(a: A) {
-  label x:
-  while true {
-    if (*) { break; }
-  }
-  label y: {
-    var z := 1;
-    if * { break y; }
-    z := 2;
-  }
-
-}
-```
-
-Break and continue statements provide a means to transfer control
-in a way different than the usual nested control structures.
-There are two forms of each of these statements: with and without a label.
-
-If a label is used, the break or continue statement must be enclosed in a statement
-with that label. The enclosing statement is called the _target_ of the break
-or continue.
-
-A `break` statement transfers control to the point immediately
-following the target statement. For example, such a break statement can be
-used to exit a sequence of statements in a block statement before
-reaching the end of the block.
-
-For example,
-<!-- %no-check -->
-```dafny
-label L: {
-  var n := ReadNext();
-  if n < 0 {
-    break L;
-  }
-  DoSomething(n);
-}
-```
-is equivalent to
-<!-- %no-check -->
-```dafny
-{
-  var n := ReadNext();
-  if 0 <= n {
-    DoSomething(n);
-  }
-}
-```
-
-If no label is specified and the statement lists `n`
-occurrences of `break`, then the statement must be enclosed in
-at least `n` levels of loop statements. Control continues after exiting `n`
-enclosing loops. For example,
-
-<!-- %check-resolve -->
-```dafny
-method m() {
-  for i := 0 to 10 {
-    for j := 0 to 10 {
-      label X: {
-        for k := 0 to 10 {
-          if j + k == 15 {
-            break break;
-          }
-        }
-      }
-    }
-    // control continues here after the "break break", exiting two loops
-  }
-}
-```
-
-Note that a non-labeled `break` pays attention only to loops, not to labeled
-statements. For example, the labeled block `X` in the previous example
-does not play a role in determining the target statement of the `break break;`.
-
-For a `continue` statement, the target statement must be a loop statement.
-The continue statement transfers control to the point immediately
-before the closing curly-brace of the loop body.
-
-For example,
-<!-- %check-resolve -->
-```dafny
-method m() {
-  for i := 0 to 100 {
-    if i == 17 {
-      continue;
-    }
-    DoSomething(i);
-  }
-}
-method DoSomething(i:int){}
-```
-is equivalent to
-<!-- %check-resolve -->
-```dafny
-method m() {
-  for i := 0 to 100 {
-    if i != 17 {
-      DoSomething(i);
-    }
-  }
-}
-method DoSomething(i:int){}
-```
-The same effect can also be obtained by wrapping the loop body in a labeled
-block statement and then using `break` with a label, but that usually makes
-for a more cluttered program:
-<!-- %check-resolve -->
-```dafny
-method m() {
-  for i := 0 to 100 {
-    label LoopBody: {
-      if i == 17 {
-        break LoopBody;
-      }
-      DoSomething(i);
-    }
-  }
-}
-method DoSomething(i:int){}
-```
-
-Stated differently, `continue` has the effect of ending the current loop iteration,
-after which control continues with any remaining iterations. This is most natural
-for `for` loops. For a `while` loop, be careful to make progress toward termination
-before a `continue` statement. For example, the following program snippet shows
-an easy mistake to make (the verifier will complain that the loop may not terminate):
-
-<!-- %check-verify Statements.1.expect -->
-```dafny
-method m() {
-  var i := 0;
-  while i < 100 {
-    if i == 17 {
-      continue; // error: this would cause an infinite loop
-    }
-    DoSomething(i);
-    i := i + 1;
-  }
-}
-method DoSomething(i:int){}
-```
-
-The `continue` statement can give a label, provided the label is a label of a loop.
-For example,
-
-<!-- %check-resolve -->
-```dafny
-method m() {
-  label Outer:
-  for i := 0 to 100 {
-    for j := 0 to 100 {
-      if i + j == 19 {
-        continue Outer;
-      }
-      WorkIt(i, j);
-    }
-    PostProcess(i);
-    // the "continue Outer" statement above transfers control to here
-  }
-}
-method WorkIt(i:int, j:int){}
-method PostProcess(i:int){}
-```
-
-If a non-labeled continue statement lists `n` occurrences of `break` before the
-`continue` keyword, then the statement must be enclosed in at least `n + 1` levels
-of loop statements. The effect is to `break` out of the `n` most closely enclosing
-loops and then `continue` the iterations of the next loop. That is, `n` occurrences
-of `break` followed by one more `break;` will break out of `n` levels of loops
-and then do a `break`, whereas `n` occurrences of `break` followed by `continue;`
-will break out of `n` levels of loops and then do a `continue`.
-
-For example, the `WorkIt` example above can equivalently be written without labels
-as
-<!-- %check-resolve -->
-```dafny
-method m() {
-  for i := 0 to 100 {
-    for j := 0 to 100 {
-      if i + j == 19 {
-        break continue;
-      }
-      WorkIt(i, j);
-    }
-    PostProcess(i);
-    // the "break continue" statement above transfers control to here
-  }
-}
-method WorkIt(i:int, j:int){}
-method PostProcess(i:int){}
-```
-
-Note that a loop invariant is checked on entry to a loop and at the closing curly-brace
-of the loop body. It is not checked at break statements. For continue statements, 
-the loop invariant is checked as usual at the closing curly-brace
-that the continue statement jumps to.
-This checking ensures that the loop invariant holds at the very top of
-every iteration. Commonly, the only exit out of a loop happens when the loop guard evaluates
-to `false`. Since no state is changed between the top of an iteration (where the loop
-invariant is known to hold) and the evaluation of the loop guard, one can also rely on
-the loop invariant to hold immediately following the loop. But the loop invariant may
-not hold immediately following a loop if a loop iteration changes the program state and
-then exits the loop with a break statement.
-
-For example, the following program verifies:
-<!-- %check-verify -->
-```dafny
-method m() {
-  var i := 0;
-  while i < 10
-    invariant 0 <= i <= 10
-  {
-    if P(i) {
-      i := i + 200;
-      break;
-    }
-    i := i + 1;
-  }
-  assert i == 10 || 200 <= i < 210;
-}
-predicate method P(i:int)
-```
-To explain the example, the loop invariant `0 <= i <= 10` is known to hold at the very top
-of each iteration,
-that is, just before the loop guard `i < 10` is evaluated. If the loop guard evaluates
-to `false`, then the negated guard condition (`10 <= i`) and the invariant hold, so
-`i == 10` will hold immediately after the loop. If the loop guard evaluates to `true`
-(that is, `i < 10` holds), then the loop body is entered. If the test `P(i)` then evaluates
-to `true`, the loop adds `200` to `i` and breaks out of the loop, so on such a
-path, `200 <= i < 210` is known to hold immediately after the loop. This is summarized
-in the assert statement in the example.
-So, remember, a loop invariant holds at the very top of every iteration, not necessarily
-immediately after the loop.
-
 ## 8.5. Yield Statement ([grammar](#g-yield-statement)) {#sec-yield-statement}
 
 A yield statement may only be used in an iterator.
@@ -1130,6 +888,67 @@ may but need not be a block statement (a brace-enclosed sequence of statements).
 
 The form that used `...` (a refinement feature) as the guard is deprecated.
 
+## 8.15. Match Statement ([grammar](#g-match-statement)) {#sec-match-statement}
+
+Examples:
+<!-- %no-check -->
+```dafny
+
+match list {
+  case Nil => {}
+  case Cons(head,tail) => print head;
+}
+match x
+case 1 =>
+  print x;
+case 2 =>
+  var y := x*x;
+  print y;
+case _ =>
+  print "Other";
+  // Any statement after is captured in this case.
+```
+
+The `match` statement is used to do case analysis on a value of an expression.
+The expression may be a value of a basic type (e.g. `int`), a newtype, or
+an inductive or coinductive datatype (which includes the built-in tuple types). 
+The expression after the `match` keyword is called the _selector_. 
+The selector is evaluated and then matched against
+each clause in order until a matching clause is found.
+
+The process of matching the selector expression against the case patterns is
+the same as for match expressions and is described in
+[Section 9.31.2](#sec-case-pattern).
+
+The selector need not be enclosed in parentheses; the sequence of cases may but need not be enclosed in braces.
+The cases need not be disjoint.
+The cases must be exhaustive, but you can use a wild variable (`_`) or an as yet unused simple identifier to indicate "match anything".
+
+The code below shows an example of a match statement.
+
+<!-- %check-resolve -->
+```dafny
+datatype Tree = Empty | Node(left: Tree, data: int, right: Tree)
+
+// Return the sum of the data in a tree.
+method Sum(x: Tree) returns (r: int)
+{
+  match x {
+    case Empty => r := 0;
+    case Node(t1, d, t2) =>
+      var v1 := Sum(t1);
+      var v2 := Sum(t2);
+      r := v1 + d + v2;
+  }
+}
+```
+
+Note that the `Sum` method is recursive yet has no `decreases` annotation.
+In this case it is not needed because Dafny is able to deduce that
+`t1` and `t2` are _smaller_ (structurally) than `x`. If `Tree` had been
+coinductive this would not have been possible since `x` might have been
+infinite.
+
 ## 8.12. While Statement ([grammar](#g-while-statement)) {#sec-while-statement}
 
 Examples:
@@ -1365,6 +1184,248 @@ verification. This suppresses attempts to check assertions (like invariants)
 that would occur at the end of the loop. Eventually, however a body must
 be provided; the compiler will not compile a method containing a body-less
 for-loop. There is more discussion about bodyless loops in [Section 8.14.4](#sec-bodyless-constructs).
+
+## 8.4. Break and Continue Statements ([grammar](#g-break-continue-statement)) {#sec-break-continue-statement}
+
+Examples:
+<!-- %check-resolve -->
+```dafny
+class A { var f: int }
+method m(a: A) {
+  label x:
+  while true {
+    if (*) { break; }
+  }
+  label y: {
+    var z := 1;
+    if * { break y; }
+    z := 2;
+  }
+
+}
+```
+
+Break and continue statements provide a means to transfer control
+in a way different than the usual nested control structures.
+There are two forms of each of these statements: with and without a label.
+
+If a label is used, the break or continue statement must be enclosed in a statement
+with that label. The enclosing statement is called the _target_ of the break
+or continue.
+
+A `break` statement transfers control to the point immediately
+following the target statement. For example, such a break statement can be
+used to exit a sequence of statements in a block statement before
+reaching the end of the block.
+
+For example,
+<!-- %no-check -->
+```dafny
+label L: {
+  var n := ReadNext();
+  if n < 0 {
+    break L;
+  }
+  DoSomething(n);
+}
+```
+is equivalent to
+<!-- %no-check -->
+```dafny
+{
+  var n := ReadNext();
+  if 0 <= n {
+    DoSomething(n);
+  }
+}
+```
+
+If no label is specified and the statement lists `n`
+occurrences of `break`, then the statement must be enclosed in
+at least `n` levels of loop statements. Control continues after exiting `n`
+enclosing loops. For example,
+
+<!-- %check-resolve -->
+```dafny
+method m() {
+  for i := 0 to 10 {
+    for j := 0 to 10 {
+      label X: {
+        for k := 0 to 10 {
+          if j + k == 15 {
+            break break;
+          }
+        }
+      }
+    }
+    // control continues here after the "break break", exiting two loops
+  }
+}
+```
+
+Note that a non-labeled `break` pays attention only to loops, not to labeled
+statements. For example, the labeled block `X` in the previous example
+does not play a role in determining the target statement of the `break break;`.
+
+For a `continue` statement, the target statement must be a loop statement.
+The continue statement transfers control to the point immediately
+before the closing curly-brace of the loop body.
+
+For example,
+<!-- %check-resolve -->
+```dafny
+method m() {
+  for i := 0 to 100 {
+    if i == 17 {
+      continue;
+    }
+    DoSomething(i);
+  }
+}
+method DoSomething(i:int){}
+```
+is equivalent to
+<!-- %check-resolve -->
+```dafny
+method m() {
+  for i := 0 to 100 {
+    if i != 17 {
+      DoSomething(i);
+    }
+  }
+}
+method DoSomething(i:int){}
+```
+The same effect can also be obtained by wrapping the loop body in a labeled
+block statement and then using `break` with a label, but that usually makes
+for a more cluttered program:
+<!-- %check-resolve -->
+```dafny
+method m() {
+  for i := 0 to 100 {
+    label LoopBody: {
+      if i == 17 {
+        break LoopBody;
+      }
+      DoSomething(i);
+    }
+  }
+}
+method DoSomething(i:int){}
+```
+
+Stated differently, `continue` has the effect of ending the current loop iteration,
+after which control continues with any remaining iterations. This is most natural
+for `for` loops. For a `while` loop, be careful to make progress toward termination
+before a `continue` statement. For example, the following program snippet shows
+an easy mistake to make (the verifier will complain that the loop may not terminate):
+
+<!-- %check-verify Statements.1.expect -->
+```dafny
+method m() {
+  var i := 0;
+  while i < 100 {
+    if i == 17 {
+      continue; // error: this would cause an infinite loop
+    }
+    DoSomething(i);
+    i := i + 1;
+  }
+}
+method DoSomething(i:int){}
+```
+
+The `continue` statement can give a label, provided the label is a label of a loop.
+For example,
+
+<!-- %check-resolve -->
+```dafny
+method m() {
+  label Outer:
+  for i := 0 to 100 {
+    for j := 0 to 100 {
+      if i + j == 19 {
+        continue Outer;
+      }
+      WorkIt(i, j);
+    }
+    PostProcess(i);
+    // the "continue Outer" statement above transfers control to here
+  }
+}
+method WorkIt(i:int, j:int){}
+method PostProcess(i:int){}
+```
+
+If a non-labeled continue statement lists `n` occurrences of `break` before the
+`continue` keyword, then the statement must be enclosed in at least `n + 1` levels
+of loop statements. The effect is to `break` out of the `n` most closely enclosing
+loops and then `continue` the iterations of the next loop. That is, `n` occurrences
+of `break` followed by one more `break;` will break out of `n` levels of loops
+and then do a `break`, whereas `n` occurrences of `break` followed by `continue;`
+will break out of `n` levels of loops and then do a `continue`.
+
+For example, the `WorkIt` example above can equivalently be written without labels
+as
+<!-- %check-resolve -->
+```dafny
+method m() {
+  for i := 0 to 100 {
+    for j := 0 to 100 {
+      if i + j == 19 {
+        break continue;
+      }
+      WorkIt(i, j);
+    }
+    PostProcess(i);
+    // the "break continue" statement above transfers control to here
+  }
+}
+method WorkIt(i:int, j:int){}
+method PostProcess(i:int){}
+```
+
+Note that a loop invariant is checked on entry to a loop and at the closing curly-brace
+of the loop body. It is not checked at break statements. For continue statements, 
+the loop invariant is checked as usual at the closing curly-brace
+that the continue statement jumps to.
+This checking ensures that the loop invariant holds at the very top of
+every iteration. Commonly, the only exit out of a loop happens when the loop guard evaluates
+to `false`. Since no state is changed between the top of an iteration (where the loop
+invariant is known to hold) and the evaluation of the loop guard, one can also rely on
+the loop invariant to hold immediately following the loop. But the loop invariant may
+not hold immediately following a loop if a loop iteration changes the program state and
+then exits the loop with a break statement.
+
+For example, the following program verifies:
+<!-- %check-verify -->
+```dafny
+method m() {
+  var i := 0;
+  while i < 10
+    invariant 0 <= i <= 10
+  {
+    if P(i) {
+      i := i + 200;
+      break;
+    }
+    i := i + 1;
+  }
+  assert i == 10 || 200 <= i < 210;
+}
+predicate method P(i:int)
+```
+To explain the example, the loop invariant `0 <= i <= 10` is known to hold at the very top
+of each iteration,
+that is, just before the loop guard `i < 10` is evaluated. If the loop guard evaluates
+to `false`, then the negated guard condition (`10 <= i`) and the invariant hold, so
+`i == 10` will hold immediately after the loop. If the loop guard evaluates to `true`
+(that is, `i < 10` holds), then the loop body is entered. If the test `P(i)` then evaluates
+to `true`, the loop adds `200` to `i` and breaks out of the loop, so on such a
+path, `200 <= i < 210` is known to hold immediately after the loop. This is summarized
+in the assert statement in the example.
+So, remember, a loop invariant holds at the very top of every iteration, not necessarily
+immediately after the loop.
 
 
 ## 8.14. Loop Specifications {#sec-loop-specifications}
@@ -1691,66 +1752,6 @@ is omitting the proof of the claim made by the lemma specification. As with the
 other body-less constructs above, the verifier is silently happy with a body-less
 `forall` statement, but the compiler will complain.
 
-## 8.15. Match Statement ([grammar](#g-match-statement)) {#sec-match-statement}
-
-Examples:
-<!-- %no-check -->
-```dafny
-
-match list {
-  case Nil => {}
-  case Cons(head,tail) => print head;
-}
-match x
-case 1 =>
-  print x;
-case 2 =>
-  var y := x*x;
-  print y;
-case _ =>
-  print "Other";
-  // Any statement after is captured in this case.
-```
-
-The `match` statement is used to do case analysis on a value of an expression.
-The expression may be a value of a basic type (e.g. `int`), a newtype, or
-an inductive or coinductive datatype (which includes the built-in tuple types). 
-The expression after the `match` keyword is called the _selector_. 
-The selector is evaluated and then matched against
-each clause in order until a matching clause is found.
-
-The process of matching the selector expression against the case patterns is
-the same as for match expressions and is described in
-[Section 9.31.2](#sec-case-pattern).
-
-The selector need not be enclosed in parentheses; the sequence of cases may but need not be enclosed in braces.
-The cases need not be disjoint.
-The cases must be exhaustive, but you can use a wild variable (`_`) or an as yet unused simple identifier to indicate "match anything".
-
-The code below shows an example of a match statement.
-
-<!-- %check-resolve -->
-```dafny
-datatype Tree = Empty | Node(left: Tree, data: int, right: Tree)
-
-// Return the sum of the data in a tree.
-method Sum(x: Tree) returns (r: int)
-{
-  match x {
-    case Empty => r := 0;
-    case Node(t1, d, t2) =>
-      var v1 := Sum(t1);
-      var v2 := Sum(t2);
-      r := v1 + d + v2;
-  }
-}
-```
-
-Note that the `Sum` method is recursive yet has no `decreases` annotation.
-In this case it is not needed because Dafny is able to deduce that
-`t1` and `t2` are _smaller_ (structurally) than `x`. If `Tree` had been
-coinductive this would not have been possible since `x` might have been
-infinite.
 
 ## 8.16. Assert statement ([grammar](#g-assert-statement)) {#sec-assert-statement}
 
