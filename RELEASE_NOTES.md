@@ -2,6 +2,33 @@
 
 See [docs/dev/news/](docs/dev/news/).
 
+# 3.12.0
+
+## New features
+
+- Implements error detail information and quick fixes:
+     - An error catalog with error message explanations is at https://dafny.org/latest/HowToFAQ/Errors
+     - In VSCode, when hovering over an error, the hover information shows additional explanation and
+       an error id, which is also a link to the error explanation page
+     - Where a Quick Fix is available, the Quick Fix link is active
+  (https://github.com/dafny-lang/dafny/pull/3299)
+
+- * `opaque` is now a modifier, though still allowed, but deprecated as an identifier; it replaces the `{:opaque}` attribute (https://github.com/dafny-lang/dafny/pull/3462)
+
+- * The value of the --library option is allowed to be a comma-separated list of files or folders (https://github.com/dafny-lang/dafny/pull/3540)
+
+## Bug fixes
+
+- Exclude verifier's type information for “new object” allocations (https://github.com/dafny-lang/dafny/pull/3450)
+
+- The Dafny scanner no longer treats lines beginning with # (even those in strings) as pragmas. (https://github.com/dafny-lang/dafny/pull/3452)
+
+- * The attribute `:heapQUantifier` is deprecated and will be removed in the future. (https://github.com/dafny-lang/dafny/pull/3456)
+
+- Fixed race conditions in the language server that made gutter icons behave abnormally (https://github.com/dafny-lang/dafny/pull/3502)
+
+- No more crash when hovering assertions that reference code written in other smaller files (https://github.com/dafny-lang/dafny/pull/3585)
+
 # 3.11.0
 
 ## New features
