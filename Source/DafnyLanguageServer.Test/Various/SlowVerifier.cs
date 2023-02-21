@@ -37,8 +37,6 @@ class SlowVerifier : IProgramVerifier {
     return tasks;
   }
 
-  public IObservable<AssertionBatchResult> BatchCompletions => verifier.BatchCompletions;
-
   class NeverVerifiesImplementationTask : IImplementationTask {
     private readonly IImplementationTask original;
     private readonly Subject<IVerificationStatus> source;

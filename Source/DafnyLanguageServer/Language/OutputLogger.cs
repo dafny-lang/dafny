@@ -9,10 +9,10 @@ using VCGeneration;
 
 namespace Microsoft.Dafny.LanguageServer.Language;
 
-public class AssertionBatchCompletedObserver : OutputPrinter {
+public class OutputLogger : OutputPrinter {
   private readonly ILogger logger;
 
-  public AssertionBatchCompletedObserver(ILogger logger) {
+  public OutputLogger(ILogger logger) {
     this.logger = logger;
   }
 
