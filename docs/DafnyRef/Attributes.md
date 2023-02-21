@@ -119,7 +119,7 @@ It can take one of the following forms:
 
 * `{:nativeType}` - With no parameters it has no effect and the declaration
 will have its default behavior, which is to choose a native type that can hold any
-value satisfying the constraints, if possible, otherwise BigInteger is used.
+value satisfying the constraints, if possible, and otherwise to use BigInteger.
 * `{:nativeType true}` - Also gives default behavior,
 but gives an error if the base type is not integral.
 * `{:nativeType false}` - Inhibits using a native type. BigInteger is used.
