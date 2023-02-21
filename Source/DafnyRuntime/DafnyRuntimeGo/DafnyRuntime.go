@@ -147,9 +147,6 @@ var CharType = CreateStandardTypeDescriptor(Char('D')) // See CharType.DefaultVa
 // CodePointType is the RTD of char
 var CodePointType = CreateStandardTypeDescriptor(CodePoint('D'))  // See CharType.DefaultValue in Dafny source code
 
-// CodePointType is the RTD of char
-var CodePointType = CreateStandardTypeDescriptor(CodePoint('D'))  // See CharType.DefaultValue in Dafny source code
-
 // RealType is the RTD for real
 var RealType = CreateStandardTypeDescriptor(ZeroReal)
 

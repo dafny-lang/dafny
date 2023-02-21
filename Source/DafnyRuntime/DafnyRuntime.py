@@ -143,11 +143,7 @@ class Seq(tuple):
         return '[' + ', '.join(map(string_of, self)) + ']'
 
     def __add__(self, other):
-        if self.isStr is None or other.isStr is None:
-            isStr = None
-        else:
-            isStr = self.isStr and other.isStr
-        return Seq(super().__add__(other), isStr=isStr)
+        return Seq(super().__add__(other), isStr=self.isStr and other.isStr)
 
     def __getitem__(self, key):
         if isinstance(key, slice):
@@ -407,12 +403,6 @@ def plus_char(a, b):
 
 def minus_char(a, b):
     return chr(ord(a) - ord(b))
-
-def plus_unicode_char(a, b):
-    return CodePoint(plus_char(a, b))
-
-def minus_unicode_char(a, b):
-    return CodePoint(minus_char(a, b))
 
 def euclidian_division(a, b):
     if 0 <= a:
