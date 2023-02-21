@@ -23,7 +23,7 @@ See [docs/dev/news/](docs/dev/news/).
 
 - The Dafny scanner no longer treats lines beginning with # (even those in strings) as pragmas. (https://github.com/dafny-lang/dafny/pull/3452)
 
-- * The attribute `:heapQUantifier` is deprecated and will be removed in the future. (https://github.com/dafny-lang/dafny/pull/3456)
+- * The attribute `:heapQuantifier` is deprecated and will be removed in the future. (https://github.com/dafny-lang/dafny/pull/3456)
 
 - Fixed race conditions in the language server that made gutter icons behave abnormally (https://github.com/dafny-lang/dafny/pull/3502)
 
