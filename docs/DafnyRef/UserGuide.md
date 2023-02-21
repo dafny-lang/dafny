@@ -1477,7 +1477,7 @@ in the neighborhood of the error; the error location (file, line, column) is alw
 
 * `--solver-log <file>` - [verification only] the file in which to place the SMT text sent to the solver
 
-* `--log-format <configuration` - [verification only] logs information about verification performance
+* `--log-format <configuration>` - [verification only] logs information about verification performance
 
 Legacy options:
 
