@@ -3490,7 +3490,7 @@ namespace Microsoft.Dafny {
       scope.PopMarker();  // pop off the AllowInstance setting
 
       if (postSpecErrorCount == initialErrorCount) {
-        CreateIteratorMethodSpecs(iter);
+        iter.CreateIteratorMethodSpecs(this);
       }
     }
 
