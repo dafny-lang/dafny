@@ -70,7 +70,7 @@ jobs:
         mv Binaries/z3/bin/z3 Binaries/z3/bin/z3-4.8.5
         chmod +x Binaries/z3/bin/z3*
     - name: Move Z3
-      if: !${{matrix.chmod}}
+      if: ! ${{matrix.chmod}}
         mv Binaries/z3/bin/z3.exe Binaries/z3/bin/z3-4.8.5.exe
     - name: Build
       run: dotnet build -warnaserror --no-restore ${{env.solutionPath}}
