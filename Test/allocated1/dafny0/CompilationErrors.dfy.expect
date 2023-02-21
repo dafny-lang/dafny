@@ -1,23 +1,25 @@
+CompilationErrors.dfy(6,13): Warning: Method _module._default.M has no body. Add the {:axiom} attribute to it to suppress this warning
+CompilationErrors.dfy(7,7): Warning: Method _module._default.P has no body. Add the {:axiom} attribute to it to suppress this warning
+CompilationErrors.dfy(19,9): Warning: Function _module._default.F has no body. Add the {:axiom} attribute to it to suppress this warning
+CompilationErrors.dfy(20,16): Warning: Function _module._default.H has no body. Add the {:axiom} attribute to it to suppress this warning
+CompilationErrors.dfy(23,2): Warning: Assume statement has no {:axiom} annotation
+CompilationErrors.dfy(27,2): Warning: Assume statement has no {:axiom} annotation
+CompilationErrors.dfy(33,2): Warning: Assume statement has no {:axiom} annotation
+CompilationErrors.dfy(43,6): Warning: Assume statement has no {:axiom} annotation
+CompilationErrors.dfy(55,8): Warning: Assume statement has no {:axiom} annotation
+CompilationErrors.dfy(60,16): Warning: assume keyword in assign-such-that statement has no {:axiom} annotation
 CompilationErrors.dfy(71,2): Warning: note, this loop has no body (loop frame: x)
 CompilationErrors.dfy(73,2): Warning: note, this loop has no body (loop frame: i, x)
 CompilationErrors.dfy(83,4): Warning: note, this loop has no body (loop frame: x)
 CompilationErrors.dfy(85,4): Warning: note, this loop has no body (loop frame: i, x)
+CompilationErrors.dfy(12,6): Warning: Assume statement has no {:axiom} annotation
 
 Dafny program verifier finished with 5 verified, 0 errors
-CompilationErrors.dfy(6,13): Error: Method _module._default.M has no body
-CompilationErrors.dfy(7,7): Error: Method _module._default.P has no body
-CompilationErrors.dfy(19,9): Error: Function _module._default.F has no body
-CompilationErrors.dfy(20,16): Error: Function _module._default.H has no body
-CompilationErrors.dfy(23,2): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
-CompilationErrors.dfy(27,2): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
-CompilationErrors.dfy(33,2): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
-CompilationErrors.dfy(43,6): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
-CompilationErrors.dfy(55,8): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
-CompilationErrors.dfy(60,13): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+CompilationErrors.dfy(7,7): Error: Method _module._default.P has no body so it cannot be executed
+CompilationErrors.dfy(20,16): Error: Function _module._default.H has no body so it cannot be executed
 CompilationErrors.dfy(71,2): Error: a loop without a body cannot be compiled
 CompilationErrors.dfy(73,2): Error: a loop without a body cannot be compiled
 CompilationErrors.dfy(83,4): Error: a loop without a body cannot be compiled
 CompilationErrors.dfy(85,4): Error: a loop without a body cannot be compiled
 CompilationErrors.dfy(4,5): Error: Opaque type ('_module.MyType') cannot be compiled; perhaps make it a type synonym or use :extern.
 CompilationErrors.dfy(5,9): Error: iterator _module.Iter has no body
-CompilationErrors.dfy(12,6): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)

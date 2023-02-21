@@ -10,7 +10,7 @@ public abstract class MethodOrFunction : MemberDecl {
     if (Bodyless && !IsVirtual) {
       var mayBeAxiom = this.IsExplicitAxiom() || this.IsExtern();
       if (!resolver.Options.Get(CommonOptionBag.AllowAxioms) && !mayBeAxiom) {
-        resolver.Reporter.Warning(MessageSource.Resolver, ErrorDetail.ErrorID.None, Tok, $"{TypeName.CapitaliseFirstLetter()} {FullName} has no body. Add the {{:axiom}} attribute to it to suppress this warning.");
+        resolver.Reporter.Warning(MessageSource.Resolver, ErrorDetail.ErrorID.None, Tok, $"{TypeName.CapitaliseFirstLetter()} {FullName} has no body. Add the {{:axiom}} attribute to it to suppress this warning");
       }
     }
   }
