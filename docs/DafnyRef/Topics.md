@@ -1033,10 +1033,19 @@ through `if`, `match`, loop statements and expressions, checking for
 definite assignment can require some program flow analysis.
 
 Dafny will issue an error message if it cannot assure itself that a variable 
-has been given a value. This may be a conservative warning: Dafny may issue an error message even if it is possible to prove, but Dafny does not, that a
+has been given a value. This may be a conservative warning: Dafny may issue an 
+error message even if it is possible to prove, but Dafny does not, that a
 variable will always be initialized.
 
-If the type of a variable is _auto-initializable_, then a default value is used
+Dafny has two definite assignment modes: 
+- a strict mode (the default) in which 
+assignments are required even for auto-initializable types, and 
+- a relaxed mode,
+enabled by the option `--relax-definite-assignment`, in which the
+auto-initialization is sufficient to satisfy the definite assignment rules.
+
+In relaxed definite assignment mode,
+if the type of a variable is _auto-initializable_, then a default value is used
 implicitly even if the declaration of the variable does not have an 
 explicit initializer. For example, a `bool` variable is initialized by default
 to `false` and a variable with an int-based type for which `0` is a valid value
@@ -1054,10 +1063,6 @@ having been initialized.
 
 [This document](../Compilation/AutoInitialization) has more detail on
 auto-initialization.
-
-By default the definite assignment rules
-are enforced even for auto-initializable types.
-They can be relaxed using `--relax-definite-assignment`.
 
 ## 12.7. Well-founded Orders {#sec-well-founded-orders}
 
