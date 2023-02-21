@@ -319,8 +319,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext {
     Member_MoveNext.Decreases.Attributes = Decreases.Attributes;
   }
 
-  public void Resolve(Resolver resolver)
-  {
+  public void Resolve(Resolver resolver) {
     // register the names of the implicit members
     var members = new Dictionary<string, MemberDecl>();
     resolver.classMembers.Add(this, members);
@@ -379,8 +378,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext {
                     OutsHistoryFields
                       .Count); // the code above makes sure this holds, even in the face of errors
     // now that already-used 'ys' names have been checked for, add these yield-history variables
-    OutsHistoryFields.ForEach(f =>
-    {
+    OutsHistoryFields.ForEach(f => {
       members.Add(f.Name, f);
       Members.Add(f);
     });
