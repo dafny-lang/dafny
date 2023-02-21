@@ -21,6 +21,10 @@ method Main() {
   print m.IF(), "\n";
   Library.AllExtern.P();
   assert Library.AllDafny.Seven() == Library.Mixed.Seven() == Library.AllExtern.Seven();
+  var maybeInt := Library.AllExtern.MaybeInt();
+  print maybeInt, "\n";
+  var intPair := Library.AllExtern.IntPair();
+  print intPair, "\n";
 
   var singleton := Library.SingletonOptimization.SingletonTuple((ghost 10, 2));
   assert singleton.0 == 3;
@@ -31,8 +35,16 @@ method Main() {
   print singleton.0, " ", noWrapper.x, " ", ghostWrapper.x, "\n"; // 3 3 3
 }
 
+module Wrappers {
+  datatype Option<T> = Some(value: T) | None
+  datatype Pair<A, B> = Pair(first: A, second: B)
+}
+
 module {:extern "Library"} Library {
+  import opened Wrappers
+
   newtype MyInt = x | -100 <= x < 0x8000_0000
+  
   class {:extern "LibClass"} LibClass {
     static method {:extern} CallMeInt(x: int) returns (y: int, z: int)
     static method {:extern} CallMeNative(x: MyInt, b: bool) returns (y: MyInt)
@@ -58,6 +70,8 @@ module {:extern "Library"} Library {
   class {:extern} AllExtern {
     static function Seven(): int { 7 }
     static method {:extern} P()
+    static function method {:extern} MaybeInt(): Option<int>
+    static function method {:extern} IntPair(): Pair<int, int>
   }
 
   datatype ErasableWrapper = ErasableWrapper(x: MyInt)
