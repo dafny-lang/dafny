@@ -57,7 +57,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
   // Ensures a minimum for SIZE_T_LIMIT.
   // Refining modules must provide a body - an empty body is enough,
   // but only works if SIZE_T_LIMIT is defined legally.
-  lemma EnsureSizeTLimitAboveMinimum() ensures MIN_SIZE_T_LIMIT <= SIZE_T_LIMIT
+  lemma {:axiom} EnsureSizeTLimitAboveMinimum() ensures MIN_SIZE_T_LIMIT <= SIZE_T_LIMIT
 
   newtype size_t = x: nat | x < SIZE_T_LIMIT witness (EnsureSizeTLimitAboveMinimum(); 0)
 

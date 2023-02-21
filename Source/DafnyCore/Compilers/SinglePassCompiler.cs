@@ -1975,10 +1975,6 @@ namespace Microsoft.Dafny.Compilers {
             if (Attributes.Contains(f.Attributes, "test")) {
               Error(f.tok, "Function {0} must be compiled to use the {{:test}} attribute", errorWr, f.FullName);
             }
-          } else if (f.IsExtern()) {
-            if (IncludeExternMembers) {
-              CompileFunction(f, classWriter, false);
-            }
           } else if (f.IsVirtual) {
             if (f.OverriddenMember == null) {
               var w = classWriter.CreateFunction(IdName(f), CombineAllTypeArguments(f), f.Formals, f.ResultType, f.tok, false, false, f, false, false);
@@ -1988,6 +1984,10 @@ namespace Microsoft.Dafny.Compilers {
             }
             if (f.Body != null) {
               CompileFunction(f, classWriter, true);
+            }
+          } else if (f.IsExtern()) {
+            if (IncludeExternMembers) {
+              CompileFunction(f, classWriter, false);
             }
           } else if (f.Body == null) {
             Error(f.tok, "Function {0} has no body so it cannot be executed", errorWr, f.FullName);
@@ -2006,10 +2006,6 @@ namespace Microsoft.Dafny.Compilers {
                 errorWr, m.FullName);
             }
           } else if (m.IsGhost) {
-          } else if (m.IsExtern()) {
-            if (IncludeExternMembers) {
-              CompileMethod(program, m, classWriter, false);
-            }
           } else if (m.IsVirtual) {
             if (m.OverriddenMember == null) {
               var w = classWriter.CreateMethod(m, CombineAllTypeArguments(m), false, false, false);
@@ -2019,6 +2015,10 @@ namespace Microsoft.Dafny.Compilers {
             }
             if (m.Body != null) {
               CompileMethod(program, m, classWriter, true);
+            }
+          } else if (m.IsExtern()) {
+            if (IncludeExternMembers) {
+              CompileMethod(program, m, classWriter, false);
             }
           } else if (m.Body == null) {
             Error(m.tok, "Method {0} has no body so it cannot be executed", errorWr, m.FullName);
