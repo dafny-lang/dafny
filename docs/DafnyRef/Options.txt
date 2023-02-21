@@ -192,6 +192,9 @@ Usage: dafny [ option ... ] [ filename ... ]
   
   ---- Verification options -------------------------------------------------
   
+  /allowAxioms:<value>
+      Prevents a warning from being generated for axioms, such as assume statements and functions or methods without a body, that don't have an {:axiom} attribute.
+
   /dafnyVerify:<n>
       0 - Stop after resolution and typechecking.
       1 - Continue on to verification and compilation.
