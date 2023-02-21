@@ -1,6 +1,8 @@
-assume.dfy(6,1): Warning: assume statement has no {:axiom} annotation.
+assume.dfy(6,1): Warning: assume statement has no {:axiom} annotation
+assume.dfy(10,10): Warning: assume keyword in assign-such-that statement has no {:axiom} annotation
 
 Dafny program verifier finished with 0 verified, 0 errors
-assume.dfy(6,1): Warning: assume statement has no {:axiom} annotation.
+assume.dfy(6,1): Warning: assume statement has no {:axiom} annotation
+assume.dfy(10,10): Warning: assume keyword in assign-such-that statement has no {:axiom} annotation
 
 Dafny program verifier finished with 0 verified, 0 errors

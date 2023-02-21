@@ -1,6 +1,6 @@
 // Generating tests:
 // RUN: cp %S/TestGeneration.dfy %t.dfy
-// RUN: %baredafny generate-tests %args Block %t.dfy > %t-tests.dfy
+// RUN: %baredafny generate-tests --use-basename-for-filename --cores=2 --verification-time-limit=300 Block %t.dfy > %t-tests.dfy
 // RUN: %baredafny translate cs %args --include-runtime --verbose --no-verify "%t-tests.dfy" > "%t"
 // RUN: dotnet test -v:q %S >> %t
 
