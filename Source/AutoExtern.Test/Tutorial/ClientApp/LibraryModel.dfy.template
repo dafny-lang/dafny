@@ -7,7 +7,7 @@ module {:extern "App"} {:compile false} App {}
 module {:compile false} {:extern "ExactArithmetic"} App.ExactArithmetic {
   import opened System
   type {:compile false} {:extern} Decimal {
-    function method ToStr(): (s: System.String)
+    function method {:axiom} ToStr(): (s: System.String)
   }
 }
 
