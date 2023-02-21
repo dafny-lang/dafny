@@ -32,7 +32,7 @@ ghost function f(): int
 }
 ```
 
-## **Error: _decl_ cannot be declared 'ghost' (it is 'ghost' by default)** {#p_ghost_forbidden_default}
+## **Error: _decl_ cannot be declared 'ghost' (it is 'ghost' by default when using --function-syntax:3)** {#p_ghost_forbidden_default}
 
 ```dafny
 module {:options "--function-syntax:3"} M {
