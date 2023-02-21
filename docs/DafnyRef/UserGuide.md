@@ -1477,7 +1477,31 @@ in the neighborhood of the error; the error location (file, line, column) is alw
 
 * `--solver-log <file>` - [verification only] the file in which to place the SMT text sent to the solver
 
-* `--log-format <configuration>` - [verification only] logs information about verification performance
+* `--log-format <configuration>` - [verification only] (was `-verificationLogger:<configuration string>`)
+  log verification
+  results to the given test result logger. The currently supported
+  loggers are `trx`, `csv`, and `text`. These are the XML-based formats
+  commonly used for test results for .NET languages, a custom CSV
+  schema, and a textual format meant for human consumption,
+  respectively. You can provide configuration using the same string
+  format as when using the `--logger` option for dotnet test, such as:
+
+        -verificationLogger:trx;LogFileName=<...>
+
+  The exact mapping of verification concepts to these formats is
+  experimental and subject to change!
+
+  The `trx` and `csv` loggers automatically choose an output file name
+  by default, and print the name of this file to the console. The `text`
+  logger prints its output to the console by default, but can send
+  output to a file given the `LogFileName` option.
+
+  The `text` logger also includes a more detailed breakdown of what
+  assertions appear in each assertion batch. When combined with the
+  `-vcsSplitOnEveryAssert` option, it will provide approximate time and
+  resource use costs for each assertion, allowing identification of
+  especially expensive assertions.
+
 
 Legacy options:
 
@@ -1778,30 +1802,6 @@ Legacy options:
 
 * `-separateModuleOutput` - output verification results for each module
   separately, rather than aggregating them after they are all finished.
-
-* `-verificationLogger:<configuration string>` - (now `--log-format`) log verification
-  results to the given test result logger. The currently supported
-  loggers are `trx`, `csv`, and `text`. These are the XML-based formats
-  commonly used for test results for .NET languages, a custom CSV
-  schema, and a textual format meant for human consumption,
-  respectively. You can provide configuration using the same string
-  format as when using the `--logger` option for dotnet test, such as:
-
-        -verificationLogger:trx;LogFileName=<...>
-
-  The exact mapping of verification concepts to these formats is
-  experimental and subject to change!
-
-  The `trx` and `csv` loggers automatically choose an output file name
-  by default, and print the name of this file to the console. The `text`
-  logger prints its output to the console by default, but can send
-  output to a file given the `LogFileName` option.
-
-  The `text` logger also includes a more detailed breakdown of what
-  assertions appear in each assertion batch. When combined with the
-  `-vcsSplitOnEveryAssert` option, it will provide approximate time and
-  resource use costs for each assertion, allowing identification of
-  especially expensive assertions.
 
 * `-mimicVerificationOf:<dafny version>` - let `dafny` attempt to mimic
   the verification behavior of a previous version of `dafny`. This can be
