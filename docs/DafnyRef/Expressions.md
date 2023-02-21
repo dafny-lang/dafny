@@ -612,7 +612,7 @@ A havoc right-hand-side is just a `*` character.
 It produces an arbitrary value of its associated
 type. The "assign-such-that"
 operator (`:|`) can be used to obtain a more constrained arbitrary value. 
-See [Section 8.6](#sec-update-and-call-statement).
+See [Section 8.5](#sec-update-and-call-statement).
 
 ## 9.19. Constant Or Atomic Expressions ([grammar](#g-atomic-expression)) {#sec-atomic-expression}
 
@@ -636,7 +636,7 @@ fresh(e)
 
 These expressions are never l-values. They include
 
-- [literal epxressions](#sec-literal-expression)
+- [literal expressions](#sec-literal-expression)
 - [parenthesized expressions](#sec-parenthesized-expression)
 - [`this` expressions](#sec-this-expression)
 - [fresh expressions](#sec-fresh-expression)
@@ -1462,14 +1462,14 @@ function GhostF(z: Stuff): int
 
 The Let expression has a failure variant
 that simply uses `:-` instead of `:=`. This Let-or-Fail expression also permits propagating
-failure results. However, in statements ([Section 8.7](#sec-update-with-failure-statement)), failure results in
+failure results. However, in statements ([Section 8.6](#sec-update-with-failure-statement)), failure results in
 immediate return from the method; expressions do not have side effects or immediate return
 mechanisms. Rather, if the expression to the right of `:-` results in a failure value `V`,
 the overall expression returns `V.PropagateFailure()`; if there is no failure, the expression following the 
 semicolon is returned. Note that these two possible return values must have the same type (or be 
 implicitly convertible to the same type). Typically that means that `tmp.PropagateFailure()` is a failure value and
 `E` is a value-carrying success value, both of the same failure-compatible type, 
-as described in [Section 8.7](#sec-update-with-failure-statement).
+as described in [Section 8.6](#sec-update-with-failure-statement).
 
 The expression `:- V; E` is desugared into the _expression_
 <!-- %no-check -->
