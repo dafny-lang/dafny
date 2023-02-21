@@ -57,8 +57,8 @@ public class BuiltIns {
     return new Attributes("compile", new List<Expression>() { flse }, null);
   }
 
-  public static Attributes AxiomAttribute() {
-    return new Attributes("axiom", new List<Expression>(), null);
+  public static Attributes AxiomAttribute(Attributes prev = null) {
+    return new Attributes("axiom", new List<Expression>(), prev);
   }
 
   public UserDefinedType ArrayType(int dims, Type arg, bool allowCreationOfNewClass) {

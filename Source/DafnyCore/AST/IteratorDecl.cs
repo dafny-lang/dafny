@@ -424,7 +424,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext {
       new Specification<FrameExpression>(new List<FrameExpression>(), null),
       new List<AttributedExpression>(),
       new Specification<Expression>(new List<Expression>(), null),
-      null, null, null);
+      null, BuiltIns.AxiomAttribute(), null);
     // --- here comes predicate Valid()
     var valid = new Predicate(RangeToken, new Name(NameNode.RangeToken, "Valid"), false, true, false,
       new List<TypeParameter>(),
@@ -434,7 +434,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext {
       new List<FrameExpression>(),
       new List<AttributedExpression>(),
       new Specification<Expression>(new List<Expression>(), null),
-      null, Predicate.BodyOriginKind.OriginalOrInherited, null, null, null, null);
+      null, Predicate.BodyOriginKind.OriginalOrInherited, null, null, BuiltIns.AxiomAttribute(), null);
     // --- here comes method MoveNext
     var moveNext = new Method(RangeToken, new Name(NameNode.RangeToken, "MoveNext"), false, false,
       new List<TypeParameter>(),
@@ -443,7 +443,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext {
       new Specification<FrameExpression>(new List<FrameExpression>(), null),
       new List<AttributedExpression>(),
       new Specification<Expression>(new List<Expression>(), null),
-      null, Attributes.Find(Attributes, "print"), null);
+      null, BuiltIns.AxiomAttribute(Attributes.Find(Attributes, "print")), null);
     // add these implicit members to the class
     init.EnclosingClass = this;
     init.InheritVisibility(this);
