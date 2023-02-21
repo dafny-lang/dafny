@@ -22,7 +22,7 @@ function Elements(list: List): set
 ```
 In the latter case, Dafny knows that the already defined types `set` and `List` each take one type parameter
 so it fills in `<T>` (using some unique type parameter name) and then determines that the function itself needs
-a type parameter `<T>` also.
+a type parameter `<T>` as well.
 
 Dafny also accepts
 <!-- %check-resolve -->
