@@ -32,11 +32,12 @@ ghost function f(): int
 }
 ```
 
-_defulat
 ## **Error: _decl_ cannot be declared 'ghost' (it is 'ghost' by default)** {#p_ghost_forbidden_default}
 
 ```dafny
-ghost function f(): int { 42 }
+module {:options "--function-syntax:3"} M {
+  ghost function f(): int { 42 }
+}
 ```
 
 For versions prior to Dafny 4, the `function` keyword meant a ghost function
@@ -67,6 +68,7 @@ Modules and the declarations within them are already always static.
 
 ## **Warning: Attribute _attribute_ is deprecated and will be removed in Dafny 4.0 {#p_deprecated_attribute}
 
+<!-- %check-resolve-warn -->
 ```dafny
 method {:handle} m() {}
 ```
@@ -235,7 +237,7 @@ It is implicitly ghost if the function is ghost itself.
 ## **Error: formal cannot be declared 'ghost' in this context** {#p_ghost_function_output_not_ghost}
 
 ```dafny
-function m(ghost i: int): int {
+ghost function m(ghost i: int): int {
   42
 }
 ```
@@ -336,7 +338,7 @@ In addition, the declaration does not use `returns` to state the out-parameter, 
 The example above is a valid example if `returns` is replaced by `yields`.
 
 
-## **Error: type-parameter variance is not allowed to be specified in this context** {p_type_parameter_variance_forbidden}
+## **Error: type-parameter variance is not allowed to be specified in this context** {#p_type_parameter_variance_forbidden}
 
 ```dafny
 type List<T>
@@ -362,8 +364,9 @@ The currently defined type parameters are designated by `==` (equality-supportin
 
 ## **Error: extra comma or missing type characteristic: should be one of == or 0 or 00 or !new** {#p_missing_type_characteristic}
 
+<!-- %no-check - TODO - fix to better error recovery after 4.0 -->
 ```dafny
-type T()
+type T(0,,0)
 ```
 
 [Type parameters](../DafnyRef/DafnyRef#sec-type-parameters), 
@@ -373,7 +376,7 @@ The currently defined type parameters are designated by `==` (equality-supportin
 ## **Error: illegal type characteristic: '_token_' should be one of == or 0 or 00 or !new** {#p_illegal_type_characteristic}
 
 ```dafny
-type T(000)
+type T(X)
 ```
 
 [Type parameters](../DafnyRef/DafnyRef#sec-type-parameters), 
@@ -382,6 +385,7 @@ The currently defined type parameters are designated by `==` (equality-supportin
 
 ## **Warning: the old keyword 'colemma' has been renamed to the keyword phrase 'greatest lemma'** {#p_deprecated_colemma}
 
+<!-- %check-resolve-warn -->
 ```dafny
 colemma m() ensures true {}
 ```
@@ -390,6 +394,7 @@ The adjectives `least` and `greatest` for lemmas and functions are more consiste
 
 ## **Warning: the old keyword phrase 'inductive lemma' has been renamed to 'least lemma'** {#p_deprecated_inductive_lemma}
 
+<!-- %check-resolve-warn -->
 ```dafny
 inductive lemma m() ensures true {}
 ```
@@ -620,7 +625,7 @@ It indicates that `predicates` are always ghost and cannot be declared with the 
 - If you intend to predicate to be ghost, remove `method`.
 - If you intend the predicate to be non-ghost, you either cannot use `experimentalPredicateAlwaysGhost` or you should use `function` with a `bool` return type instead of `predicate`
 
-## **Error: the phrase '_what_ method' is not allowed; to declare a compiled _what_, use just '_what_'** {#p_deprecating_function_method}
+## **Error: the phrase '_what_ method' is not allowed when using --function-syntax:4; to declare a compiled function, use just 'function'** {#p_deprecating_function_method}
 
 ```dafny
 module {:options "--function-syntax:4"} M {
@@ -651,8 +656,7 @@ and there is no longer any declaration of the form `function method`, and simila
 
 See [the documentation here](../DafnyRef/DafnyRef#sec-function-syntax).
 
-## **Error: a _what_ must be declared as either 'ghost _what_' or '_what_ method'**
-
+## **Error: a _what_ must be declared as either 'ghost _what_' or '_what_ method' when using --function-syntax:migration3to4**
 ```dafny
 module {:options "--function-syntax:migration3to4"} M {
   function f(): int { 42 }
@@ -697,7 +701,7 @@ So `predicate p(): (res: bool) { true }` is permitted
 ## **Error: A '*' expression is not allowed here**
 
 ```dafny
-function method m(i: int): int
+function m(i: int): int
   decreases *
 {
   42
@@ -1150,13 +1154,13 @@ For simplicity, however, Dafny requires the variables being initialized to be si
 datatype Outcome<T> = 
   | Success(value: T) 
   | Failure(error: string) 
-{ predicate method IsFailure() { this.Failure? } 
-  function method PropagateFailure<U>(): Outcome<U> 
+{ predicate IsFailure() { this.Failure? } 
+  function PropagateFailure<U>(): Outcome<U> 
     requires IsFailure() 
   { Outcome<U>.Failure(this.error) // this is Outcome<U>.Failure(...) 
   }
  
-  function method Extract(): T requires !IsFailure() { this.value } 
+  function Extract(): T requires !IsFailure() { this.value } 
 }
 
 function m(): Outcome<int> { Outcome<int>.Success(0) }
@@ -1173,13 +1177,13 @@ Within a function, the `:-` operator is limited to a most one left-hand-side and
 datatype Outcome<T> = 
   | Success(value: T) 
   | Failure(error: string) 
-{ predicate method IsFailure() { this.Failure? } 
-  function method PropagateFailure<U>(): Outcome<U> 
+{ predicate IsFailure() { this.Failure? } 
+  function PropagateFailure<U>(): Outcome<U> 
     requires IsFailure() 
   { Outcome<U>.Failure(this.error) // this is Outcome<U>.Failure(...) 
   }
  
-  function method Extract(): T requires !IsFailure() { this.value } 
+  function Extract(): T requires !IsFailure() { this.value } 
 }
 
 function m(): Outcome<int> { Outcome<int>.Success(0) }
@@ -1234,23 +1238,28 @@ or BigDecimal. Given the parser logic, that parsing should never fail.
 
 ## **Error: Malformed _template_ pragma: #_source_** {#sc_malformed_pragma}
 
+<!-- %no-check -->
 ```dafny
 const s := @"
 #line S
 "
 ```
 
-The Dafny scanner supports pragmas of the form `#line <lineno> <filename>`, with the filename optional.
+This pragma syntax is no longer supported. If this message is seen, please report it to the Dafny development team.
+The Dafny scanner once supported pragmas of the form `#line <lineno> <filename>`, with the filename optional.
 This message indicates that the pragma was not readable, most likely because the line number was not a
 parsable numeral.
 
 ## **Error: Unrecognized pragma: #_source_** {#sc_unknown_pragma}
 
+<!-- %no-check -->
 ```dafny
 const s := @"
 # I love hashes
 "
 ```
+
+This pragma syntax is no longer supported. If this message is seen, please report it to the Dafny development team.
 The Dafny scanner saw a pragma -- the first character of the line is a # character. But it is not one that the
-scanner recopgnizes. As of this writing, the only pragma recognized is `#line`.
+scanner recopgnizes. The only pragma ever recognized was `#line`.
 
