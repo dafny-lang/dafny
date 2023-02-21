@@ -39,7 +39,7 @@ As is typical for Open Source projects, dafny can also be built directly from th
 Current and past Dafny binary releases can be found at
 [https://github.com/dafny-lang/dafny/releases](https://github.com/dafny-lang/dafny/releases) for each supported platform.
 Each release is a .zip file with a name combining the release name and the
-platform. Current platforms are Windows 11, Ubuntu 20ff, and MacOS 10.14ff.
+platform. Current platforms are Windows 11, Ubuntu 20 and later, and MacOS 10.14 and later.
 
 The dafny tool is distributed as a standalone executable. 
 A compatible version of the required Z3 solver is included in the release.
@@ -372,7 +372,7 @@ It also takes the `--verbose` option, which then gives information about the fil
 
 #### 13.5.1.9. `dafny format` {#sec-dafny-format}
 
-Dafny supports a formatter, which for now only changes the indentation lines in a Dafny file, so that it conforms
+Dafny supports a formatter, which for now only changes the indentation of lines in a Dafny file, so that it conforms
 to the idiomatic Dafny code formatting style.
 For the formatter to work, the file should be parsed correctly by Dafny.
 
@@ -485,7 +485,7 @@ As is typical for command-line tools, `dafny` provides in-tool help through the 
 
 ### 13.5.3. dafny exit codes {#sec-exit-codes}
 
-The basic dafny tool (resolve, verify, translate, build, run) terminates with these exit codes.
+The basic resolve, verify, translate, build, run and commands of dafny terminate with these exit codes.
 
 * 0 -- success
 * 1 -- invalid command-line arguments
