@@ -1103,6 +1103,13 @@ public class IdentifierExpr : Expression, IHasUsages, ICloneable<IdentifierExpr>
     }
   }
 
+  /// <summary>
+  /// Returns whether or not "expr" is an IdentifierExpr for "variable".
+  /// </summary>
+  public static bool Is(Expression expr, IVariable variable) {
+    return expr.Resolved is IdentifierExpr identifierExpr && identifierExpr.Var == variable;
+  }
+
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return Enumerable.Repeat(Var, 1);
   }

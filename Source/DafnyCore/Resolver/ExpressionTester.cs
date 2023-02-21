@@ -289,11 +289,8 @@ public class ExpressionTester {
             Contract.Assert(function.Formals.Count == functionCallExpr.Args.Count);
             for (var i = 0; i < function.Formals.Count; i++) {
               var formal = function.Formals[i];
-              if (!formal.IsGhost) {
-                var actual = functionCallExpr.Args[i].Resolved as IdentifierExpr;
-                if (actual == null || actual.Var != formal) {
-                  return false;
-                }
+              if (!formal.IsGhost && !IdentifierExpr.Is(functionCallExpr.Args[i], formal)) {
+                return false;
               }
             }
             return true;
