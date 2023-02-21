@@ -68,10 +68,10 @@ module {:extern "Library"} Library {
     function {:extern} IG() : int
   }
   class {:extern} AllExtern {
-    static function Seven(): int { 7 }
+    static ghost function Seven(): int { 7 }
     static method {:extern} P()
-    static function method {:extern} MaybeInt(): Option<int>
-    static function method {:extern} IntPair(): Pair<int, int>
+    static function {:extern} MaybeInt(): Option<int>
+    static function {:extern} IntPair(): Pair<int, int>
   }
 
   datatype ErasableWrapper = ErasableWrapper(x: MyInt)

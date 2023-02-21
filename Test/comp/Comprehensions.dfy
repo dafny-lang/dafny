@@ -559,14 +559,14 @@ module {:options "--function-syntax:4"} EnumerationRegression {
   // Another previous problem with the Java compiler was that it generated names that confused
   // the following "Long" with the built-in "java.lang.Long".
   newtype Long = x | 0x1F_FFFF_FFF0 <= x < 0x20_0000_0100 witness 0x1F_FFFF_FFF0 {
-    ghost predicate True() { true }
+    predicate True() { true }
   }
 
   newtype AlsoLong = x | 0x20_0000_0002 <= x < 0x20_0000_0008 witness 0x20_0000_0002 {
-    ghost predicate True() { true }
+    predicate True() { true }
   }
 
-  ghost function Digit(x: int): char
+  function Digit(x: int): char
     requires 0x20_0000_0000 <= x < 0x20_0000_000a
   {
     'a' + (x - 0x20_0000_0000) as char
