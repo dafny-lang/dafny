@@ -1689,7 +1689,7 @@ warnings as errors.
 
 * `--warn-as-errors` (was `-warningsAsErrors`) - treat warnings as errors.
 
-* `--warn-shadowing (was `-warnShadowing`) - emit a warning if the name 
+* `--warn-shadowing` (was `-warnShadowing`) - emit a warning if the name 
   of a declared variable caused another variable to be shadowed.
 
 * `--warn-missing-constructor-parentheses` - warn if a constructor name in a pattern might be misinterpreted
