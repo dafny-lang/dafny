@@ -690,7 +690,8 @@ out-parameter `a`.
 Auto-init types are important in compiled contexts. In ghost contexts, it
 may still be important to know that a type is nonempty. Dafny supports
 a type characteristic for nonempty types, written with the suffix `(00)`.
-For example,
+For example, with `--relax-definite-assignment`, the following example happens:
+
 <!-- %check-verify Types.8.expect %options --relax-definite-assignment -->
 ```dafny
 method NonemptyExamples<B(00), X>() returns (b: B, ghost g: B, ghost h: X)
@@ -706,6 +707,11 @@ non-ghost `b`, since `B` is not an auto-init type, and reports an error
 for `h`, since the type `X` could be empty.
 
 Note that every auto-init type is nonempty.
+
+In the default definite-assignment mode (that is, without `--relax-definite-assignment`)
+there will be errors for all three formal parameters in the example just given.
+
+For more details see [Section 12.6](#sec-definite-assignment).
 
 #### 5.3.1.4. Non-heap based: `T(!new)` {#sec-non-heap-based}
 
