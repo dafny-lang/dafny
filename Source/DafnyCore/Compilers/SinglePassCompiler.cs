@@ -1976,6 +1976,9 @@ namespace Microsoft.Dafny.Compilers {
               Error(f.tok, "Function {0} must be compiled to use the {{:test}} attribute", errorWr, f.FullName);
             }
           } else if (f.IsExtern()) {
+            if (IncludeExternMembers) {
+              CompileFunction(f, classWriter, false);
+            }
           } else if (f.IsVirtual) {
             if (f.OverriddenMember == null) {
               var w = classWriter.CreateFunction(IdName(f), CombineAllTypeArguments(f), f.Formals, f.ResultType, f.tok, false, false, f, false, false);
@@ -2002,7 +2005,11 @@ namespace Microsoft.Dafny.Compilers {
                            "anything",
                 errorWr, m.FullName);
             }
-          } else if (m.IsGhost || m.IsExtern()) {
+          } else if (m.IsGhost) {
+          } else if (m.IsExtern()) {
+            if (IncludeExternMembers) {
+              CompileMethod(program, m, classWriter, false);
+            }
           } else if (m.IsVirtual) {
             if (m.OverriddenMember == null) {
               var w = classWriter.CreateMethod(m, CombineAllTypeArguments(m), false, false, false);
