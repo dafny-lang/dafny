@@ -28,17 +28,23 @@ z3-mac:
 	mkdir -p ${DIR}Binaries/z3/bin
 	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-02-17/z3-4.12.1-macos-11-bin.zip
 	unzip z3-4.12.1-macos-11-bin.zip
-	mv z3-4.12.1 ${DIR}/Binaries/z3/bin/z3
-	chmod +x ${DIR}/Binaries/z3/bin/z3
 	rm z3-4.12.1-macos-11-bin.zip
+	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-02-17/z3-4.8.5-macos-11-bin.zip
+	unzip z3-4.8.5-macos-11-bin.zip
+	rm z3-4.8.5-macos-11-bin.zip
+	mv z3-* ${DIR}/Binaries/z3/bin/
+	chmod +x ${DIR}/Binaries/z3/bin/z3-*
 
 z3-ubuntu:
 	mkdir -p ${DIR}Binaries/z3/bin
 	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-02-17/z3-4.12.1-ubuntu-20.04-bin.zip
 	unzip z3-4.12.1-ubuntu-20.04-bin.zip
-	mv z3-4.12.1 ${DIR}/Binaries/z3/bin/z3
-	chmod +x ${DIR}/Binaries/z3/bin/z3
 	rm z3-4.12.1-ubuntu-20.04-bin.zip
+	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-02-17/z3-4.8.5-ubuntu-20.04-bin.zip
+	unzip z3-4.8.5-ubuntu-20.04-bin.zip
+	rm z3-4.8.5-ubuntu-20.04-bin.zip
+	mv z3-* ${DIR}/Binaries/z3/bin/
+	chmod +x ${DIR}/Binaries/z3/bin/z3-*
 
 format:
 	dotnet tool run dotnet-format -w -s error Source/Dafny.sln --exclude DafnyCore/Scanner.cs --exclude DafnyCore/Parser.cs

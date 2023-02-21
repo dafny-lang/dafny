@@ -32,16 +32,12 @@ jobs:
         include:
         - os:  'ubuntu-22.04'
           osn: 'ubuntu\-22.04'
-          z3: z3-4.12.1-ubuntu-22.04
         - os:  'ubuntu-20.04'
           osn: 'ubuntu\-20.04'
-          z3: z3-4.12.1-ubuntu-20.04
         - os:  'macos-latest'
           osn: 'osx-11'
-          z3: z3-4.12.1-macos-11
         - os:  'windows-2019'
           osn: 'win'
-          z3: z3-4.12.1-windows-2019
 
     steps:
     - name: OS
@@ -58,20 +54,20 @@ jobs:
     - name: Load Z3
       shell: pwsh
       run: |
-        Invoke-WebRequest ${{env.z3BaseUri}}/${{matrix.z3}}-bin.zip -OutFile z3.zip
-        Expand-Archive z3.zip .
-        Remove-Item z3.zip
-    - name: Set up Z3 (non-Windows)
+        Invoke-WebRequest ${{env.z3BaseUri}}/z3-4.8.5-${{matrix.os}}-bin.zip -OutFile z3-4.8.5.zip
+        Invoke-WebRequest ${{env.z3BaseUri}}/z3-4.12.1-${{matrix.os}}-bin.zip -OutFile z3-4.12.1.zip
+        Expand-Archive z3-4.8.5.zip .
+        Expand-Archive z3-4.12.1.zip .
+        Remove-Item z3-4.8.5.zip
+        Remove-Item z3-4.12.1.zip
+    - name: Set up Z3
       run: |
         mkdir bin
-        mv z3-* bin/z3
-        chmod +x bin/z3
+        mv z3-* bin/
+    - name: Make Z3 executable (non-Windows)
+      run: |
+        chmod +x bin/z3-*
       if: runner.os != 'Windows'
-    - name: Set up Z3 (Windows)
-      run: |
-        mkdir bin
-        mv z3-*.exe bin/z3.exe
-      if: runner.os == 'Windows'
     - name: Set Path
       if: runner.os != 'Windows'
       run: echo "${PWD}/bin" >> $GITHUB_PATH
@@ -147,16 +143,12 @@ jobs:
         include:
         - os:  'ubuntu-22.04'
           osn: 'ubuntu\-22.04'
-          z3: z3-4.12.1-ubuntu-22.04
         - os:  'ubuntu-20.04'
           osn: 'ubuntu\-20.04'
-          z3: z3-4.12.1-ubuntu-20.04
         - os:  'macos-11'
           osn: 'osx-.*'
-          z3: z3-4.12.1-macos-11
         - os:  'windows-2019'
           osn: 'win'
-          z3: z3-4.12.1-windows-2019
 
     steps:
     ## Verify that the dependencies of the libraries we publish (e.g. DafnyLanguageServer)
