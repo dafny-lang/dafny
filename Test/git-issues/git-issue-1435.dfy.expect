@@ -1,3 +1,3 @@
-git-issue-1435.dfy(3,36): Error: insufficient reads clause to read state of 'unchanged' object
+git-issue-1435.dfy(6,37): Error: insufficient reads clause to read state of 'unchanged' object
 
 Dafny program verifier finished with 1 verified, 1 error
