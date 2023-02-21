@@ -252,7 +252,7 @@ Various options control the verification process, in addition to all those descr
 #### 13.5.1.4. `dafny translate <language>` {#sec-dafny-translate}
 
 The `dafny translate` command translates Dafny source code to source code for another target programming language.
-The command always performs the actions of `dafny resolve` and, unless `--no-verify is an option`, does the actions of `dafny verify`.
+The command always performs the actions of `dafny resolve` and, unless the `--no-verify` option is specified, does the actions of `dafny verify`.
 The language is designated by a subcommand argument, rather than an option, and is required.
 The current set of supported target languages is 
 - cs (C#)
