@@ -979,7 +979,7 @@ AssertStmt =
   )
 ````
 
-#### 17.2.6.17. Assume statement ([discussion](#sec-assume-statement)) {#g-assume-statement}
+#### 17.2.6.17. assume statement ([discussion](#sec-assume-statement)) {#g-assume-statement}
 
 ````grammar
 AssumeStmt =

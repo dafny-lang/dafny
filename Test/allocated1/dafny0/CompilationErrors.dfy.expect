@@ -2,17 +2,17 @@ CompilationErrors.dfy(6,13): Warning: Method _module._default.M has no body. Add
 CompilationErrors.dfy(7,7): Warning: Method _module._default.P has no body. Add the {:axiom} attribute to it to suppress this warning
 CompilationErrors.dfy(19,9): Warning: Function _module._default.F has no body. Add the {:axiom} attribute to it to suppress this warning
 CompilationErrors.dfy(20,16): Warning: Function _module._default.H has no body. Add the {:axiom} attribute to it to suppress this warning
-CompilationErrors.dfy(23,2): Warning: Assume statement has no {:axiom} annotation
-CompilationErrors.dfy(27,2): Warning: Assume statement has no {:axiom} annotation
-CompilationErrors.dfy(33,2): Warning: Assume statement has no {:axiom} annotation
-CompilationErrors.dfy(43,6): Warning: Assume statement has no {:axiom} annotation
-CompilationErrors.dfy(55,8): Warning: Assume statement has no {:axiom} annotation
+CompilationErrors.dfy(23,2): Warning: assume statement has no {:axiom} annotation
+CompilationErrors.dfy(27,2): Warning: assume statement has no {:axiom} annotation
+CompilationErrors.dfy(33,2): Warning: assume statement has no {:axiom} annotation
+CompilationErrors.dfy(43,6): Warning: assume statement has no {:axiom} annotation
+CompilationErrors.dfy(55,8): Warning: assume statement has no {:axiom} annotation
 CompilationErrors.dfy(60,16): Warning: assume keyword in assign-such-that statement has no {:axiom} annotation
 CompilationErrors.dfy(71,2): Warning: note, this loop has no body (loop frame: x)
 CompilationErrors.dfy(73,2): Warning: note, this loop has no body (loop frame: i, x)
 CompilationErrors.dfy(83,4): Warning: note, this loop has no body (loop frame: x)
 CompilationErrors.dfy(85,4): Warning: note, this loop has no body (loop frame: i, x)
-CompilationErrors.dfy(12,6): Warning: Assume statement has no {:axiom} annotation
+CompilationErrors.dfy(12,6): Warning: assume statement has no {:axiom} annotation
 
 Dafny program verifier finished with 5 verified, 0 errors
 CompilationErrors.dfy(7,7): Error: Method _module._default.P has no body so it cannot be executed
