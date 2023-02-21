@@ -11,7 +11,6 @@ on:
 ##  suffix - name used in the description of the job
 ##  z3 - name of the Z3 asset at the 'z3BaseUri' URL
 ##  chmod - whether the Z3 download needs execute permissions added
-##  exe_ext - the extension for executable files
 ##  coverage -- unused?
 
 jobs:
@@ -29,21 +28,24 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-20.04
-            suffix: ubuntu-20.04
+          - os: macos-latest
+            suffix: osx
+            z3: z3-4.8.5-x64-osx-10.14.2
             chmod: true
-            coverage: true
+            coverage: false
           - os: windows-2019
             suffix: win
+            z3: z3-4.8.5-x64-win
             chmod: false
             coverage: false
-          - os: macos-11
-            suffix: osx
+          - os: ubuntu-20.04
+            suffix: ubuntu-20.04
+            z3: z3-4.8.5-x64-ubuntu-16.04
             chmod: true
-            coverage: false
+            coverage: true
     env:
       solutionPath: Source/Dafny.sln
-      z3BaseUri: https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-02-17
+      z3BaseUri: https://github.com/Z3Prover/z3/releases/download/Z3-4.8.5
       Logging__LogLevel__Microsoft: Debug
     steps:
     - uses: actions/checkout@v3
@@ -58,26 +60,25 @@ jobs:
     - name: Load Z3
       shell: pwsh
       run: |
-        Invoke-WebRequest ${{env.z3BaseUri}}/z3-4.8.5-${{matrix.os}}-bin.zip -OutFile z3-4.8.5.zip
-        Invoke-WebRequest ${{env.z3BaseUri}}/z3-4.12.1-${{matrix.os}}-bin.zip -OutFile z3-4.12.1.zip
-        Expand-Archive z3-4.8.5.zip .
-        Expand-Archive z3-4.12.1.zip .
-        Remove-Item z3-4.8.5.zip
-        Remove-Item z3-4.12.1.zip
-    - name: Move Z3
-      run: |
-        mkdir -p Binaries/z3/bin
-        mv z3-* Binaries/z3/bin/
-    - name: Set Z3 Permissions
+        Invoke-WebRequest ${{env.z3BaseUri}}/${{matrix.z3}}.zip -OutFile z3.zip
+        Expand-Archive z3.zip .
+        Remove-Item z3.zip
+        Copy-Item ${{matrix.z3}} Binaries/z3 -Recurse
+    - name: Set Z3 Permissions and move
       if: ${{matrix.chmod}}
-      run: chmod +x Binaries/z3/bin/z3*
+      run: |
+        mv Binaries/z3/bin/z3 Binaries/z3/bin/z3-4.8.5
+        chmod +x Binaries/z3/bin/z3*
+    - name: Move Z3
+      if: !${{matrix.chmod}}
+        mv Binaries/z3/bin/z3.exe Binaries/z3/bin/z3-4.8.5.exe
     - name: Build
       run: dotnet build -warnaserror --no-restore ${{env.solutionPath}}
     - name: Run DafnyLanguageServer Tests
       run: |
         ## Run twice to catch unstable code (Issue #2673)
-        dotnet test --no-restore --logger "console;verbosity=detailed" --logger trx Source/DafnyLanguageServer.Test
-        dotnet test --no-restore --logger "console;verbosity=detailed" --logger trx Source/DafnyLanguageServer.Test
+        dotnet test --no-restore --verbosity normal --logger trx Source/DafnyLanguageServer.Test
+        dotnet test --no-restore --verbosity normal --logger trx Source/DafnyLanguageServer.Test
     - name: Run DafnyDriver Tests
       run: dotnet test --no-restore --verbosity normal --logger trx Source/DafnyDriver.Test
     - name: Run DafnyPipeline Tests
