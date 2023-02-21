@@ -43,7 +43,6 @@ public class ConcurrentLinearVerificationGutterStatusTester : LinearVerification
     });
   }
 
-  /*
   [TestMethod]
   public async Task EnsuresManyDocumentsCanBeVerifiedAtOnce() {
     var result = new List<Task>();
@@ -65,6 +64,5 @@ public class ConcurrentLinearVerificationGutterStatusTester : LinearVerification
       await result[i];
     }
   }
-*/
 
 }

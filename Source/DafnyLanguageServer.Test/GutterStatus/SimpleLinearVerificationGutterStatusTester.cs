@@ -8,7 +8,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
 
 [TestClass]
 public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutterStatusTester {
-  private const int MaxTestExecutionTimeMs = 20000;
+  private const int MaxTestExecutionTimeMs = 10000;
 
   // To add a new test, just call VerifyTrace on a given program,
   // the test will fail and give the correct output that can be use for the test
@@ -85,7 +85,6 @@ method Foo() ensures false { } ";
  .  S [S][ ]:}");
   }
 
-  /*
   [TestMethod, Timeout(MaxTestExecutionTimeMs * 10)]
   public async Task EnsureNoAssertShowsVerified() {
     for (var i = 0; i < 10; i++) {
@@ -98,7 +97,6 @@ method Foo() ensures false { } ";
                 | :");
     }
   }
-  */
 
   [TestMethod, Timeout(MaxTestExecutionTimeMs)]
   public async Task EnsureEmptyDocumentIsVerified() {
