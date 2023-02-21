@@ -1,10 +1,12 @@
+TraitCompileErrors.dfy(7,27): Warning: Function StaticMembers.Tr.Func has no body. Add the {:axiom} attribute to it to suppress this warning
+TraitCompileErrors.dfy(8,18): Warning: Method StaticMembers.Tr.Method has no body. Add the {:axiom} attribute to it to suppress this warning
+TraitCompileErrors.dfy(9,29): Warning: Function StaticMembers.Tr.TwoF has no body. Add the {:axiom} attribute to it to suppress this warning
+TraitCompileErrors.dfy(10,26): Warning: Method StaticMembers.Tr.TwoL has no body. Add the {:axiom} attribute to it to suppress this warning
+TraitCompileErrors.dfy(11,27): Warning: Function StaticMembers.Tr.P has no body. Add the {:axiom} attribute to it to suppress this warning
+TraitCompileErrors.dfy(12,30): Warning: Function StaticMembers.Tr.Q has no body. Add the {:axiom} attribute to it to suppress this warning
+TraitCompileErrors.dfy(13,23): Warning: Method StaticMembers.Tr.IL has no body. Add the {:axiom} attribute to it to suppress this warning
+TraitCompileErrors.dfy(14,26): Warning: Method StaticMembers.Tr.CL has no body. Add the {:axiom} attribute to it to suppress this warning
 
 Dafny program verifier finished with 0 verified, 0 errors
-TraitCompileErrors.dfy(7,27): Error: Function StaticMembers_Compile.Tr.Func has no body
-TraitCompileErrors.dfy(8,18): Error: Method StaticMembers_Compile.Tr.Method has no body
-TraitCompileErrors.dfy(9,29): Error: Function StaticMembers_Compile.Tr.TwoF has no body
-TraitCompileErrors.dfy(10,26): Error: Method StaticMembers_Compile.Tr.TwoL has no body
-TraitCompileErrors.dfy(11,27): Error: Function StaticMembers_Compile.Tr.P has no body
-TraitCompileErrors.dfy(12,30): Error: Function StaticMembers_Compile.Tr.Q has no body
-TraitCompileErrors.dfy(13,23): Error: Method StaticMembers_Compile.Tr.IL has no body
-TraitCompileErrors.dfy(14,26): Error: Method StaticMembers_Compile.Tr.CL has no body
+TraitCompileErrors.dfy(7,27): Error: Function StaticMembers_Compile.Tr.Func has no body so it cannot be executed
+TraitCompileErrors.dfy(8,18): Error: Method StaticMembers_Compile.Tr.Method has no body so it cannot be executed

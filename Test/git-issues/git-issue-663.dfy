@@ -1,4 +1,4 @@
-// RUN: %exits-with 3 %dafny /compile:1 "%s" > "%t"
+// RUN: ! %dafny /compile:1 /allowAxioms:0 /warningsAsErrors "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method StatementsInCompiledMethod() {

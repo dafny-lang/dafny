@@ -1,4 +1,4 @@
 
 Dafny program verifier finished with 1 verified, 0 errors
-github-issue-305-b.dfy(4,7): Error: Method _module._default.hasNoBody has no body
+github-issue-305-b.dfy(4,7): Error: Method _module._default.hasNoBody has no body so it cannot be executed
 Wrote textual form of partial target program to github-issue-305-b.cs

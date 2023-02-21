@@ -1,3 +1,2 @@
-
-Dafny program verifier finished with 0 verified, 0 errors
-opened_workaround.dfy(6,14): Error: Function A_Compile._default.P has no body
+opened_workaround.dfy(6,14): Error: Function A._default.P has no body. Add the {:axiom} attribute to it to suppress this warning
+1 resolution/type errors detected in opened_workaround.dfy

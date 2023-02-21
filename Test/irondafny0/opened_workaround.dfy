@@ -1,4 +1,4 @@
-// RUN: %exits-with 3 %dafny /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 2 %dafny /print:"%t.print" /dprint:"%t.dprint" "%s" /allowAxioms:0 /warningsAsErrors > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module A {
@@ -7,7 +7,7 @@ module A {
 
     class C
     {
-        static method{:axiom} M()
+        static ghost method{:axiom} M()
             ensures P();
     }
 }
