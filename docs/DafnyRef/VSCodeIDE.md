@@ -5,7 +5,7 @@
 There is a language server for Dafny, which [implements](https://github.com/dafny-lang/dafny/tree/master/Source/DafnyLanguageServer) the [Language Server Protocol](https://microsoft.github.io/language-server-protocol/).
 This server is used by the Dafny VSCode Extension; it currently offers the following features:
 - Quick syntax highlighting
-- As you type parsing, resolution and verification diagnostics
+- As-you-type parsing, resolution and verification diagnostics
 - Support for [Dafny plugins](https://github.com/dafny-lang/dafny/tree/master/Source/DafnyLanguageServer#plugins)
 - Expanded explanations (in addition to the error message) for selected errors (and more being added), shown by hovering
 - Quick fixes for selected errors (and more being added)

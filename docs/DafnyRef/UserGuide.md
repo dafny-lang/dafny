@@ -33,7 +33,7 @@ easily becomes inconsistent and out of date.
 The dafny tool can also be installed using `dotnet tool install --global dafny`
 (presuming that `dotnet` is already installed on your system).
 
-Most users will find it most convenient to install the pre-built Dafny binaries available on the project release site or in dotnet.
+Most users will find it most convenient to install the pre-built Dafny binaries available on the project release site or using the `dotnet` CLI.
 As is typical for Open Source projects, dafny can also be built directly from the source files maintained in the github project.
 
 Current and past Dafny binary releases can be found at
@@ -252,7 +252,7 @@ Various options control the verification process, in addition to all those descr
 #### 13.5.1.4. `dafny translate <language>` {#sec-dafny-translate}
 
 The `dafny translate` command translates Dafny source code to source code for another target programming language.
-The command always performs the actions of `dafny resolve` and, unless `--no-verify is an option`, does the actions of `dafny verify`.
+The command always performs the actions of `dafny resolve` and, unless the `--no-verify` option is specified, does the actions of `dafny verify`.
 The language is designated by a subcommand argument, rather than an option, and is required.
 The current set of supported target languages is 
 - cs (C#)
@@ -1477,7 +1477,7 @@ in the neighborhood of the error; the error location (file, line, column) is alw
 
 * `--solver-log <file>` - [verification only] the file in which to place the SMT text sent to the solver
 
-* `--log-format <configuration` - [verification only] logs information about verification performance
+* `--log-format <configuration>` - [verification only] logs information about verification performance
 
 Legacy options:
 
@@ -1597,7 +1597,7 @@ or the Dafny 4 syntax (`ghost function` and `function`)
   that is, any Unicode code point excluding surrogates and
   allows `\U{X..X}` escapes in string and character literals. 
   The default is false for Dafny version 3 and true for version 4.
-  The legacy option was -unicodeChar:<n>` with values 0 and 1 for
+  The legacy option was `-unicodeChar:<n>` with values 0 and 1 for
   false and true above.
 
 Legacy options:
@@ -1687,9 +1687,9 @@ Legacy options:
 These options control what warnings Dafny produces, and whether to treat
 warnings as errors.
 
-* `--warn-as-errors (was `-warningsAsErrors`) - treat warnings as errors.
+* `--warn-as-errors` (was `-warningsAsErrors`) - treat warnings as errors.
 
-* `--warn-shadowing (was `-warnShadowing`) - emit a warning if the name 
+* `--warn-shadowing` (was `-warnShadowing`) - emit a warning if the name 
   of a declared variable caused another variable to be shadowed.
 
 * `--warn-missing-constructor-parentheses` - warn if a constructor name in a pattern might be misinterpreted
@@ -2129,7 +2129,7 @@ Legacy options:
 
   Certain Boogie inputs are unstable in the sense that changes to the
   input that preserve its meaning may cause the output to change. The
-  `-randomSeed`` option simulates meaning-preserving changes to the
+  `-randomSeed` option simulates meaning-preserving changes to the
   input without requiring the user to actually make those changes.
 
   The `-randomSeed` option is implemented by renaming variables and
