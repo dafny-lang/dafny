@@ -33,7 +33,7 @@ easily becomes inconsistent and out of date.
 The dafny tool can also be installed using `dotnet tool install --global dafny`
 (presuming that `dotnet` is already installed on your system).
 
-Most users will find it most convenient to install the pre-built Dafny binaries available on the project release site or in dotnet.
+Most users will find it most convenient to install the pre-built Dafny binaries available on the project release site or using the `dotnet` CLI.
 As is typical for Open Source projects, dafny can also be built directly from the source files maintained in the github project.
 
 Current and past Dafny binary releases can be found at
