@@ -21,8 +21,8 @@ type List<T>
 function Elements(list: List): set
 ```
 In the latter case, Dafny knows that the already defined types `set` and `List` each take one type parameter
-so it fills in `<T>` (using some unique type parameter name) and then determines the the function itself needs
-a type parameter `<T>` also.
+so it fills in `<T>` (using some unique type parameter name) and then determines that the function itself needs
+a type parameter `<T>` as well.
 
 Dafny also accepts
 <!-- %check-resolve -->
@@ -218,7 +218,7 @@ These statements always non-ghost:
 The following expressions are ghost, which is used in some of the tests above:
 
 - All [specification expressions](#sec-list-of-specification-expressions)
-- All calls to functions and predicates not marked as `method`
+- All calls to functions and predicates marked as `ghost`
 - All variables, [constants](#sec-constant-field-declaration) and [fields](#sec-field-declaration) declared using the `ghost` keyword
 
 Note that inferring ghostness can uncover other errors, such as updating non-ghost variables in ghost contexts.
