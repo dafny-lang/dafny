@@ -25,11 +25,11 @@ public class ExpressionTester {
 
   // Static call to CheckIsCompilable
   public static bool CheckIsCompilable([CanBeNull] Resolver resolver, Expression expr, ICodeContext codeContext) {
-    return new ExpressionTester(resolver, resolver?.Reporter).CheckIsCompilable(expr, codeContext);
+    return new ExpressionTester(resolver, resolver?.Reporter).CheckIsCompilable(expr, codeContext, true);
   }
   // Static call to CheckIsCompilable
   public static bool CheckIsCompilable(Resolver resolver, ErrorReporter reporter, Expression expr, ICodeContext codeContext) {
-    return new ExpressionTester(resolver, reporter).CheckIsCompilable(expr, codeContext);
+    return new ExpressionTester(resolver, reporter).CheckIsCompilable(expr, codeContext, true);
   }
 
   /// <summary>
@@ -38,13 +38,25 @@ public class ExpressionTester {
   /// For example, this bookkeeping information keeps track of if the constraint of a let-such-that expression
   /// must determine the value uniquely.
   /// Requires "expr" to have been successfully resolved.
+  ///
+  /// An expression is considered to be "insideBranchesOnly" if the enclosing context consists only of "if"
+  /// conditions that decide whether or not to return the value of this expression. For example, if the
+  /// expression
+  ///     if E then F else 2 + G
+  /// is considered "insideBranchesOnly", then so if "F", but not "E" or "G".
   /// </summary>
-  private bool CheckIsCompilable(Expression expr, ICodeContext codeContext) {
+  private bool CheckIsCompilable(Expression expr, ICodeContext codeContext, bool insideBranchesOnly = false) {
     Contract.Requires(expr != null);
     Contract.Requires(expr.WasResolved());  // this check approximates the requirement that "expr" be resolved
     Contract.Requires(codeContext != null || reporter == null);
 
     var isCompilable = true;
+    // The subexpressions of "if" and "match" essentially consist of a "condition" and some "branches".
+    // The branches inherit the "insideBranchesOnly" value, but the condition does not. To code this without
+    // copying what the .SubExpression getter does for "if" and "match", the local variable
+    // "subexpressionsAreInsideBranchesOnlyExcept". If it is non-null, "expr" is of the condition/branches variety
+    // "subexpressionsAreInsideBranchesOnlyExcept" is its condition.
+    Expression subexpressionsAreInsideBranchesOnlyExcept = null;
 
     if (expr is IdentifierExpr expression) {
       if (expression.Var != null && expression.Var.IsGhost) {
@@ -170,7 +182,7 @@ public class ExpressionTester {
 
     } else if (expr is StmtExpr stmtExpr) {
       // ignore the statement
-      return CheckIsCompilable(stmtExpr.E, codeContext);
+      return CheckIsCompilable(stmtExpr.E, codeContext, insideBranchesOnly);
 
     } else if (expr is BinaryExpr binaryExpr) {
       if (reporter != null) {
@@ -210,14 +222,14 @@ public class ExpressionTester {
           }
           i++;
         }
-        isCompilable = CheckIsCompilable(letExpr.Body, codeContext) && isCompilable;
+        isCompilable = CheckIsCompilable(letExpr.Body, codeContext, insideBranchesOnly) && isCompilable;
       } else {
         Contract.Assert(letExpr.RHSs.Count == 1);
         var lhsVarsAreAllGhost = letExpr.BoundVars.All(bv => bv.IsGhost);
         if (!lhsVarsAreAllGhost) {
           isCompilable = CheckIsCompilable(letExpr.RHSs[0], codeContext) && isCompilable;
         }
-        isCompilable = CheckIsCompilable(letExpr.Body, codeContext) && isCompilable;
+        isCompilable = CheckIsCompilable(letExpr.Body, codeContext, insideBranchesOnly) && isCompilable;
 
         // fill in bounds for this to-be-compiled let-such-that expression
         Contract.Assert(letExpr.RHSs.Count == 1);  // if we got this far, the resolver will have checked this condition successfully
@@ -268,7 +280,7 @@ public class ExpressionTester {
       // where the actual parameters s are exactly the formal parameters x. In that case, the way to
       // compile the if-then-else expression is to ignore the test expression and the branch that
       // ends as just described, and instead just compile the other branch.
-      if (codeContext is Function function) {
+      if (codeContext is Function function && insideBranchesOnly) {
         bool onlyGhostParametersChange(Expression ee) {
           if (ee is FunctionCallExpr functionCallExpr) {
             if (!function.IsStatic && functionCallExpr.Receiver.Resolved is not ThisExpr) {
@@ -292,13 +304,14 @@ public class ExpressionTester {
         if (iteExpr.Thn.TerminalExpressions.All(onlyGhostParametersChange)) {
           // mark "else" branch as the one to compile
           iteExpr.HowToCompile = ITEExpr.ITECompilation.CompileJustElseBranch;
-          return CheckIsCompilable(iteExpr.Els, codeContext);
+          return CheckIsCompilable(iteExpr.Els, codeContext, insideBranchesOnly);
         } else if (iteExpr.Els.TerminalExpressions.All(onlyGhostParametersChange)) {
           // mark "then" branch as the one to compile
           iteExpr.HowToCompile = ITEExpr.ITECompilation.CompileJustThenBranch;
-          return CheckIsCompilable(iteExpr.Thn, codeContext);
+          return CheckIsCompilable(iteExpr.Thn, codeContext, insideBranchesOnly);
         }
       }
+      subexpressionsAreInsideBranchesOnlyExcept = iteExpr.Test;
 
     } else if (expr is MatchExpr matchExpr) {
       var mc = FirstCaseThatDependsOnGhostCtor(matchExpr.Cases);
@@ -307,15 +320,19 @@ public class ExpressionTester {
         isCompilable = false;
       }
       // other conditions are checked below
+      subexpressionsAreInsideBranchesOnlyExcept = matchExpr.Source;
+
+    } else if (expr is ConcreteSyntaxExpression concreteSyntaxExpression) {
+      return CheckIsCompilable(concreteSyntaxExpression.ResolvedExpression, codeContext, insideBranchesOnly);
     }
 
     foreach (var ee in expr.SubExpressions) {
-      isCompilable = CheckIsCompilable(ee, codeContext) && isCompilable;
+      var eeIsOnlyInsideBranches = insideBranchesOnly && subexpressionsAreInsideBranchesOnlyExcept != null && subexpressionsAreInsideBranchesOnlyExcept != ee;
+      isCompilable = CheckIsCompilable(ee, codeContext, eeIsOnlyInsideBranches) && isCompilable;
     }
 
     return isCompilable;
   }
-
 
   public static bool IsTypeTestCompilable(TypeTestExpr tte) {
     Contract.Requires(tte != null);

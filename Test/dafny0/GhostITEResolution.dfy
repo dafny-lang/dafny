@@ -57,3 +57,30 @@ function K(x: nat, ghost y: nat): nat
   else
     K(x - 1, 65) + 13
 }
+
+function L(x: nat, ghost y: nat): nat
+{
+  10 + // this renders the RHS ineligible for the ghost-ITE analysis
+    if x == 0 then
+      0
+    else if y != 0 then // error: ghost variable not allowed here
+      L(x, y - 1)
+    else
+      L(x - 1, 65) + 13
+}
+
+function M(x: nat, ghost y: nat): nat
+{
+  (
+    var sixtyFive := 65;
+    assert 0 <= sixtyFive;
+    (
+      if x == 0 then
+        sixtyFive - sixtyFive
+      else if y != 0 then
+        M(x, sixtyFive + y - 66)
+      else
+        M(x - 1, sixtyFive) + 13
+    )
+  )
+}

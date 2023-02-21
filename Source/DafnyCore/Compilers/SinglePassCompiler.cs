@@ -5291,6 +5291,9 @@ namespace Microsoft.Dafny.Compilers {
 
       } else if (expr is ITEExpr) {
         var e = (ITEExpr)expr;
+        // The ghost-ITE optimization applies only to at "the top" of the expression structure of a function
+        // body. Those cases are handled in TrExprOpt, so we expect the be compiling both branches here.
+        Contract.Assert(e.HowToCompile == ITEExpr.ITECompilation.CompileBothBranches);
         EmitITE(e.Test, e.Thn, e.Els, e.Type, inLetExprBody, wr, wStmts);
 
       } else if (expr is ConcreteSyntaxExpression) {
