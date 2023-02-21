@@ -32,7 +32,7 @@ A labeled statement is just
 
 The label may be
 referenced in a `break` or `continue` statement within the labeled statement
-(see [Section 8.4](#sec-break-continue-statement)). That is, the break or continue that
+(see [Section 8.14](#sec-break-continue-statement)). That is, the break or continue that
 mentions the label must be _enclosed_ in the labeled statement.
 
 The label may also be used in an `old` expression ([Section 9.22](#sec-old-expression)). In this case, the label
@@ -99,7 +99,7 @@ as the number of named out-parameters. These expressions are
 evaluated, then they are assigned to the out-parameters, and then the
 method terminates.
 
-## 8.5. Yield Statement ([grammar](#g-yield-statement)) {#sec-yield-statement}
+## 8.4. Yield Statement ([grammar](#g-yield-statement)) {#sec-yield-statement}
 
 A yield statement may only be used in an iterator.
 See [iterator types](#sec-iterator-types) for more details
@@ -122,7 +122,7 @@ These expressions are then evaluated, then they are
 assigned to the yield parameters, and then the iterator
 yields.
 
-## 8.6. Update and Call Statements ([grammar](#g-update-and-call-statement)) {#sec-update-and-call-statement}
+## 8.5. Update and Call Statements ([grammar](#g-update-and-call-statement)) {#sec-update-and-call-statement}
 
 Examples:
 <!-- %check-resolve -->
@@ -156,7 +156,7 @@ corresponding right-hand sides also denote the same value.
 
 The update statement serves several logical purposes.
 
-### 8.6.1. Method call with no out-parameters
+### 8.5.1. Method call with no out-parameters
 1) Examples of method calls take this form
 <!-- %no-check -->
 ```dafny
@@ -168,7 +168,7 @@ e.f().g.m(45);
 As there are no left-hand-side locations to receive values, this form is allowed only for 
 methods that have no out-parameters.
 
-### 8.6.2. Method call with out-parameters
+### 8.5.2. Method call with out-parameters
 
 This form uses `:=` to denote the assignment of the out-parameters of the method to the 
 corresponding number of LHS values.
@@ -184,7 +184,7 @@ the `:=`, which then is assigned a tuple of the out-parameters.
 Note that the result of a method call is not allowed to be used as an argument of
 another method call, as if it were an expression.
 
-### 8.6.3. Parallel assignment
+### 8.5.3. Parallel assignment
 
 A parallel-assignment has one-or-more right-hand-side expressions,
 which may be function calls but may not be method calls.
@@ -198,7 +198,7 @@ corresponding right-hand sides also denote the same value. There must
 be an equal number of left-hand sides and right-hand sides.
 The most common case has only one RHS and one LHS.
 
-### 8.6.4. Havoc assignment {#sec-havoc-statement}
+### 8.5.4. Havoc assignment {#sec-havoc-statement}
 The form with a right-hand-side that is `*` is a _havoc_ assignment.
 It assigns an arbitrary but type-correct value to the corresponding left-hand-side.
 It can be mixed with other assignments of computed values.
@@ -208,7 +208,7 @@ a := *'
 a, b, c := 4, *, 5;
 ```
 
-### 8.6.5. Such-that assignment
+### 8.5.5. Such-that assignment
 
 This form has one or more left-hand-sides, a `:|` symbol and then a boolean expression on the right.
 The effect is to assign values to the left-hand-sides that satisfy the 
@@ -258,7 +258,7 @@ Note that the syntax
 
 is interpreted as a label in which the user forgot the `label` keyword.
 
-## 8.7. Update with Failure Statement (`:-`) ([grammar](#g-update-with-failure-statement)) {#sec-update-with-failure-statement}
+## 8.6. Update with Failure Statement (`:-`) ([grammar](#g-update-with-failure-statement)) {#sec-update-with-failure-statement}
 
 See the subsections below for examples.
 
@@ -282,11 +282,11 @@ To use this form of update,
  * if the RHS of the update-with-failure statement is a method call, the first out-parameter of the callee must be failure-compatible
  * if instead, the RHS of the update-with-failure statement is one or more expressions, the first of these expressions must be a value with a failure-compatible type
  * the caller must have a first out-parameter whose type matches the output of `PropagateFailure` applied to the first output of the callee, unless an
-`expect`, `assume`, or `assert` keyword is used after `:-` (cf. [Section 8.7.7](#sec-failure-return-keyword)).
+`expect`, `assume`, or `assert` keyword is used after `:-` (cf. [Section 8.6.7](#sec-failure-return-keyword)).
  * if the failure-compatible type of the RHS does not have an `Extract` member,
 then the LHS of the `:-` statement has one less expression than the RHS
 (or than the number of out-parameters from the method call), the value of the first out-parameter or expression being dropped
-(see the discussion and examples in [Section 8.7.2](#sec-simple-fc-return))
+(see the discussion and examples in [Section 8.6.2](#sec-simple-fc-return))
  * if the failure-compatible type of the RHS does have an `Extract` member,
 then the LHS of the `:-` statement has the same number of expressions as the RHS
 (or as the number of out-parameters from the method call)
@@ -296,7 +296,7 @@ and the type of the first LHS expression must be assignable from the return type
 
 The following subsections show various uses and alternatives.
 
-### 8.7.1. Failure compatible types {#sec-failure-compatible-types}
+### 8.6.1. Failure compatible types {#sec-failure-compatible-types}
 
 A simple failure-compatible type is the following:
 <!-- %check-resolve -->
@@ -338,7 +338,7 @@ datatype Outcome<T> =
 ``` <!-- %save Outcome.tmp -->
 
 
-### 8.7.2. Simple status return with no other outputs {#sec-simple-fc-return}
+### 8.6.2. Simple status return with no other outputs {#sec-simple-fc-return}
 
 The simplest use of this failure-return style of programming is to have a method call that just returns a non-value-carrying `Status` value:
 <!-- %check-resolve %use Status.tmp -->
@@ -375,7 +375,7 @@ if tmp.IsFailure() {
 ```
 In this and subsequent examples of desugaring, the `tmp` variable is a new, unique variable, unused elsewhere in the calling member.
 
-### 8.7.3. Status return with additional outputs {#sec-multiple-output-fc}
+### 8.6.3. Status return with additional outputs {#sec-multiple-output-fc}
 
 The example in the previous subsection affects the program only through side effects or the status return itself.
 It may well be convenient to have additional out-parameters, as is allowed for `:=` updates;
@@ -422,7 +422,7 @@ if tmp.IsFailure() {
 ```
 
 
-### 8.7.4. Failure-returns with additional data {#sec-value-carrying}
+### 8.6.4. Failure-returns with additional data {#sec-value-carrying}
 
 The failure-compatible return value can carry additional data as shown in the `Outcome<T>` example above.
 In this case there is a (first) LHS l-value to receive this additional data. The type of that first LHS
@@ -480,7 +480,7 @@ if tmp.IsFailure() {
 j := tmp.Extract();
 ```
 
-### 8.7.5. RHS with expression list {#sec-failure-expressions}
+### 8.6.5. RHS with expression list {#sec-failure-expressions}
 
 Instead of a failure-returning method call on the RHS of the statement,
 the RHS can instead be a list of expressions.
@@ -520,7 +520,7 @@ if tmp.IsFailure() {
   return;
 }
 ```
-### 8.7.6. Failure with initialized declaration. {#sec-failure-with-declaration}
+### 8.6.6. Failure with initialized declaration. {#sec-failure-with-declaration}
 
 The `:-` syntax can also be used in initialization, as in
 <!-- %no-check -->
@@ -535,23 +535,23 @@ s, t :- M();
 ```
 with the semantics as described above.
 
-### 8.7.7. Keyword alternative {#sec-failure-return-keyword}
+### 8.6.7. Keyword alternative {#sec-failure-return-keyword}
 
 In any of the above described uses of `:-`, the `:-` token may be followed immediately by the keyword `expect`, `assert` or `assume`.
 
 * `assert` means that the RHS evaluation is expected to be successful, but that
 the verifier should prove that this is so; that is, the verifier should prove
 `assert !r.IsFailure()` (where `r` is the status return from the callee)
-(cf. [Section 8.16](#sec-assert-statement))
+(cf. [Section 8.17](#sec-assert-statement))
 * `assume` means that the RHS evaluation should be assumed to be successful,
 as if the statement `assume !r.IsFailure()` followed the evaluation of the RHS
-(cf. [Section 8.17](#sec-assume-statement))
+(cf. [Section 8.18](#sec-assume-statement))
 * `expect` means that the RHS evaluation should be assumed to be successful
 (like using `assume` above), but that the compiler should include a
 run-time check for success. This is equivalent to including
 `expect !r.IsFailure()` after the RHS evaluation; that is, if the status
 return is a failure, the program halts.
-(cf. [Section 8.18](#sec-expect-statement))
+(cf. [Section 8.19](#sec-expect-statement))
 
 In each of these cases, there is no abrupt return from the caller. Thus
 there is no evaluation of `PropagateFailure`. Consequently the first
@@ -590,7 +590,7 @@ For example, `assert P; E` can be an expression. However, in
 `:-`. To have the `assert` considered part of the expression use parentheses:
 `e :- (assert P; E);`.
 
-### 8.7.8. Key points
+### 8.6.8. Key points
 
 There are several points to note.
 
@@ -636,7 +636,7 @@ If there is a mix of failure-compatible types, then the program will need to use
 explicit handling of failure values.
 
 
-### 8.7.9. Failure returns and exceptions
+### 8.6.9. Failure returns and exceptions
 
 The `:-` mechanism is like the exceptions used in other programming languages, with some similarities and differences.
 
@@ -648,7 +648,7 @@ Not so in Dafny: a failure is passed up the call stack only if each caller has a
  * All methods that contain failure-return callees must explicitly handle those failures
 using either `:-` statements or using `:=` statements with a LHS to receive the failure value.
 
-## 8.8. Variable Declaration Statement ([grammar](#g-variable-declaration-statement)) {#sec-variable-declaration-statement}
+## 8.7. Variable Declaration Statement ([grammar](#g-variable-declaration-statement)) {#sec-variable-declaration-statement}
 
 Examples:
 <!-- %check-resolve -->
@@ -688,7 +688,7 @@ does not declare both `x` and `y` to be of type `int`. Rather it will give an
 error explaining that the type of `x` is underspecified if it cannot be
 inferred from uses of x.
 
-The variables can be initialized with syntax similar to update statements (cf. [Section 8.6](#sec-update-and-call-statement)).
+The variables can be initialized with syntax similar to update statements (cf. [Section 8.5](#sec-update-and-call-statement)).
 
 If the RHS is a call, then any variable receiving the value of a
 formal ghost out-parameter will automatically be declared as ghost, even
@@ -711,9 +711,9 @@ function usesTuple() : int
 }
 ```
 
-The initialization with failure operator `:-` returns from the enclosing method if the initializer evaluates to a failure value of a failure-compatible type (see [Section 8.7](#sec-update-with-failure-statement)).
+The initialization with failure operator `:-` returns from the enclosing method if the initializer evaluates to a failure value of a failure-compatible type (see [Section 8.6](#sec-update-with-failure-statement)).
 
-## 8.9. Guards ([grammar](#g-guard)) {#sec-guard}
+## 8.8. Guards ([grammar](#g-guard)) {#sec-guard}
 
 Examples (in `if` statements):
 <!-- %check-resolve -->
@@ -733,7 +733,7 @@ The second form is either `*` or `(*)`. These have the same meaning. An
 unspecified boolean value is returned. The value returned
 may be different each time it is executed.
 
-## 8.10. Binding Guards ([grammar](#g-binding-guard)) {#sec-binding-guards}
+## 8.9. Binding Guards ([grammar](#g-binding-guard)) {#sec-binding-guards}
 
 Examples (in `if` statements):
 <!-- %check-resolve-warn Statements.13.expect -->
@@ -791,7 +791,7 @@ method M1() returns (ghost y: int)
 }
 ```
 
-## 8.11. If Statement ([grammar](#g-if-statement)) {#sec-if-statement}
+## 8.10. If Statement ([grammar](#g-if-statement)) {#sec-if-statement}
 
 Examples:
 <!-- %check-resolve-warn Statements.14.expect -->
@@ -888,7 +888,7 @@ may but need not be a block statement (a brace-enclosed sequence of statements).
 
 The form that used `...` (a refinement feature) as the guard is deprecated.
 
-## 8.15. Match Statement ([grammar](#g-match-statement)) {#sec-match-statement}
+## 8.11. Match Statement ([grammar](#g-match-statement)) {#sec-match-statement}
 
 Examples:
 <!-- %no-check -->
@@ -984,7 +984,7 @@ Loops
 Importantly, loops need _loop specifications_ in order for Dafny to prove that
 they obey expected behavior. In some cases Dafny can infer the loop specifications by analyzing the code,
 so the loop specifications need not always be explicit.
-These specifications are described in [Section 7.6](#sec-loop-specification) and [Section 8.14](#sec-loop-specifications).
+These specifications are described in [Section 7.6](#sec-loop-specification) and [Section 8.15](#sec-loop-specifications).
 
 The general loop statement in Dafny is the familiar `while` statement.
 It has two general forms.
@@ -1016,7 +1016,7 @@ to compile the containing program will result in an error message.
 When verifying a loop with a missing body, the verifier will skip attempts
 to prove loop invariants and decreases assertions that would normally be
 asserted at the end of the loop body.
-There is more discussion about bodyless loops in [Section 8.14.4](#sec-bodyless-constructs).
+There is more discussion about bodyless loops in [Section 8.15.4](#sec-bodyless-constructs).
 
 The second form uses a case-based block. It is similar to the
 `do ... od` construct used in the book "A Discipline of Programming" by
@@ -1183,9 +1183,9 @@ Just like for while loops, the body of a for-loop may be omitted during
 verification. This suppresses attempts to check assertions (like invariants)
 that would occur at the end of the loop. Eventually, however a body must
 be provided; the compiler will not compile a method containing a body-less
-for-loop. There is more discussion about bodyless loops in [Section 8.14.4](#sec-bodyless-constructs).
+for-loop. There is more discussion about bodyless loops in [Section 8.15.4](#sec-bodyless-constructs).
 
-## 8.4. Break and Continue Statements ([grammar](#g-break-continue-statement)) {#sec-break-continue-statement}
+## 8.14. Break and Continue Statements ([grammar](#g-break-continue-statement)) {#sec-break-continue-statement}
 
 Examples:
 <!-- %check-resolve -->
@@ -1428,7 +1428,7 @@ So, remember, a loop invariant holds at the very top of every iteration, not nec
 immediately after the loop.
 
 
-## 8.14. Loop Specifications {#sec-loop-specifications}
+## 8.15. Loop Specifications {#sec-loop-specifications}
 For some simple loops, such as those mentioned previously, Dafny can figure
 out what the loop is doing without more help. However, in general the user
 must provide more information in order to help Dafny prove the effect of
@@ -1438,7 +1438,7 @@ what the loop modifies.
 For additional tutorial information see [@KoenigLeino:MOD2011] or the
 [online Dafny tutorial](../OnlineTutorial/guide).
 
-### 8.14.1. Loop invariants {#sec-loop-invariants}
+### 8.15.1. Loop invariants {#sec-loop-invariants}
 
 Loops present a problem for specification-based reasoning. There is no way to
 know in advance how many times the code will go around the loop and
@@ -1476,7 +1476,7 @@ loop condition). Just as Dafny will not discover properties of a method
 on its own, it will not know that any but the most basic properties of a loop
 are preserved unless it is told via an invariant.
 
-### 8.14.2. Loop termination {#sec-loop-termination}
+### 8.15.2. Loop termination {#sec-loop-termination}
 
 Dafny proves that code terminates, i.e. does not loop forever, by using
 `decreases` annotations. For many things, Dafny is able to guess the right
@@ -1557,7 +1557,7 @@ If the `decreases` clause of a loop specifies `*`, then no
 termination check will be performed. Use of this feature is sound only with
 respect to partial correctness.
 
-### 8.14.3. Loop framing {#sec-loop-framing}
+### 8.15.3. Loop framing {#sec-loop-framing}
 
 The specification of a loop also includes _framing_, which says what the
 loop modifies. The loop frame includes both local variables and locations
@@ -1647,7 +1647,7 @@ every iteration, a proof obligation that
 * everything indicated in the loop `modifies` clause is allowed to be modified by the
   (effective `modifies` clause of the) enclosing loop or method.
 
-### 8.14.4. Body-less methods, functions, loops, and aggregate statements {#sec-bodyless-constructs}
+### 8.15.4. Body-less methods, functions, loops, and aggregate statements {#sec-bodyless-constructs}
 
 Methods (including lemmas), functions, loops, and `forall` statements are ordinarily
 declared with a body, that is, a curly-braces pair that contains (for methods, loops, and `forall`)
@@ -1696,7 +1696,7 @@ is what you need in the context of the loop.
 
 There is one thing that works differently for body-less loops than for loops with bodies.
 It is the computation of syntactic loop targets, which become part of the loop frame
-(see [Section 8.14.3](#sec-loop-framing)). For a body-less loop, the local variables
+(see [Section 8.15.3](#sec-loop-framing)). For a body-less loop, the local variables
 computed as part of the loop frame are the mutable variables that occur free in the
 loop specification. The heap is considered a part of the loop frame if it is used
 for mutable fields in the loop specification or if the loop has an explicit `modifies` clause.
@@ -1752,8 +1752,71 @@ is omitting the proof of the claim made by the lemma specification. As with the
 other body-less constructs above, the verifier is silently happy with a body-less
 `forall` statement, but the compiler will complain.
 
+## 8.16. Print Statement ([grammar](#g-print-statement)) {#sec-print-statement}
 
-## 8.16. Assert statement ([grammar](#g-assert-statement)) {#sec-assert-statement}
+Examples:
+<!-- %no-check -->
+```dafny
+print 0, x, list, array;
+```
+
+The `print` statement is used to print the values of a comma-separated
+list of expressions to the console (standard-out). The generated code uses
+target-language-specific idioms to perform this printing.
+The expressions may of course include strings that are used
+for captions. There is no implicit new line added, so to add a new
+line you must include `"\n"` as part of one of the expressions.
+Dafny automatically creates implementations of methods that convert values to strings
+for all Dafny data types. For example,
+
+<!-- %check-run Statements.4.expect -->
+```dafny
+datatype Tree = Empty | Node(left: Tree, data: int, right: Tree)
+method Main()
+{
+  var x : Tree := Node(Node(Empty, 1, Empty), 2, Empty);
+  print "x=", x, "\n";
+}
+```
+
+produces this output:
+
+```text
+x=Tree.Node(Tree.Node(Tree.Empty, 1, Tree.Empty), 2, Tree.Empty)
+```
+
+Note that Dafny does not have method overriding and there is no mechanism to
+override the built-in value->string conversion.  Nor is there a way to
+explicitly invoke this conversion.
+One can always write an explicit function to convert a data value to a string
+and then call it explicitly in a `print` statement or elsewhere.
+
+By default, Dafny does not keep track of print effects, but this can be changed
+using the `--track-print-effects` command line flag. `print` statements are allowed
+only in non-ghost contexts and not in expressions, with one exception.
+The exception is that a function-by-method may contain `print` statements,
+whose effect may be observed as part of the run-time evaluation of such functions
+(unless `--track-print-effects` is enabled).
+
+The verifier checks that each expression is well-defined, but otherwise 
+ignores the `print` statement.
+
+<a id="print-encoding"></a>
+
+**Note:** `print` writes to standard output.  To improve compatibility with
+native code and external libraries, the process of encoding Dafny strings passed
+to `print` into standard-output byte strings is left to the runtime of the
+language that the Dafny code is compiled to (some language runtimes use UTF-8 in
+all cases; others obey the current locale or console encoding).
+
+In most cases, the standard-output encoding can be set before running the
+compiled program using language-specific flags or environment variables
+(e.g. `-Dfile.encoding=` for Java).  This is in fact how `dafny run` operates:
+it uses language-specific flags and variables to enforce UTF-8 output regardless
+of the target language (but note that the C++ and Go backends currently have
+limited support for UTF-16 surrogates).
+
+## 8.17. Assert statement ([grammar](#g-assert-statement)) {#sec-assert-statement}
 
 Examples:
 <!-- %no-check -->
@@ -1795,7 +1858,7 @@ The attributes recognized for assert statements are discussed in [Section 11.3](
 
 Using `...` as the argument of the statement is deprecated.
 
-## 8.17. Assume Statement ([grammar](#g-assume-statement)) {#sec-assume-statement}
+## 8.18. Assume Statement ([grammar](#g-assume-statement)) {#sec-assume-statement}
 
 Examples:
 <!-- %no-check -->
@@ -1825,7 +1888,7 @@ indeed true.
 
 Using `...` as the argument of the statement is deprecated.
 
-## 8.18. Expect Statement ([grammar](#g-expect-statement)) {#sec-expect-statement}
+## 8.19. Expect Statement ([grammar](#g-expect-statement)) {#sec-expect-statement}
 
 Examples:
 <!-- %no-check -->
@@ -1950,70 +2013,6 @@ in which case the `assert` will be proved trivially
 and potential unsoundness will be hidden.
 
 Using `...` as the argument of the statement is deprecated.
-
-## 8.19. Print Statement ([grammar](#g-print-statement)) {#sec-print-statement}
-
-Examples:
-<!-- %no-check -->
-```dafny
-print 0, x, list, array;
-```
-
-The `print` statement is used to print the values of a comma-separated
-list of expressions to the console (standard-out). The generated code uses
-target-language-specific idioms to perform this printing.
-The expressions may of course include strings that are used
-for captions. There is no implicit new line added, so to add a new
-line you must include `"\n"` as part of one of the expressions.
-Dafny automatically creates implementations of methods that convert values to strings
-for all Dafny data types. For example,
-
-<!-- %check-run Statements.4.expect -->
-```dafny
-datatype Tree = Empty | Node(left: Tree, data: int, right: Tree)
-method Main()
-{
-  var x : Tree := Node(Node(Empty, 1, Empty), 2, Empty);
-  print "x=", x, "\n";
-}
-```
-
-produces this output:
-
-```text
-x=Tree.Node(Tree.Node(Tree.Empty, 1, Tree.Empty), 2, Tree.Empty)
-```
-
-Note that Dafny does not have method overriding and there is no mechanism to
-override the built-in value->string conversion.  Nor is there a way to
-explicitly invoke this conversion.
-One can always write an explicit function to convert a data value to a string
-and then call it explicitly in a `print` statement or elsewhere.
-
-By default, Dafny does not keep track of print effects, but this can be changed
-using the `--track-print-effects` command line flag. `print` statements are allowed
-only in non-ghost contexts and not in expressions, with one exception.
-The exception is that a function-by-method may contain `print` statements,
-whose effect may be observed as part of the run-time evaluation of such functions
-(unless `--track-print-effects` is enabled).
-
-The verifier checks that each expression is well-defined, but otherwise 
-ignores the `print` statement.
-
-<a id="print-encoding"></a>
-
-**Note:** `print` writes to standard output.  To improve compatibility with
-native code and external libraries, the process of encoding Dafny strings passed
-to `print` into standard-output byte strings is left to the runtime of the
-language that the Dafny code is compiled to (some language runtimes use UTF-8 in
-all cases; others obey the current locale or console encoding).
-
-In most cases, the standard-output encoding can be set before running the
-compiled program using language-specific flags or environment variables
-(e.g. `-Dfile.encoding=` for Java).  This is in fact how `dafny run` operates:
-it uses language-specific flags and variables to enforce UTF-8 output regardless
-of the target language (but note that the C++ and Go backends currently have
-limited support for UTF-16 surrogates).
 
 ## 8.20. Reveal Statement ([grammar](#g-reveal-statement)) {#sec-reveal-statement}
 
