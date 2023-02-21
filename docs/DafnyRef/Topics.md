@@ -1055,8 +1055,9 @@ having been initialized.
 [This document](../Compilation/AutoInitialization) has more detail on
 auto-initialization.
 
-The `--strict-definite-assignment` option will cause definite assignment rules
-to be enforced even for auto-initializable types.
+By default the definite assignment rules
+are enforced even for auto-initializable types.
+They can be relaxed using `--relax-definite-assignment`.
 
 ## 12.7. Well-founded Orders {#sec-well-founded-orders}
 

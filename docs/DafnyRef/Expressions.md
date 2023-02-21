@@ -636,7 +636,7 @@ fresh(e)
 
 These expressions are never l-values. They include
 
-- [literal epxressions](#sec-literal-expression)
+- [literal expressions](#sec-literal-expression)
 - [parenthesized expressions](#sec-parenthesized-expression)
 - [`this` expressions](#sec-this-expression)
 - [fresh expressions](#sec-fresh-expression)
