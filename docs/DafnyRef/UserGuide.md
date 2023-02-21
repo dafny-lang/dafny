@@ -1687,7 +1687,7 @@ Legacy options:
 These options control what warnings Dafny produces, and whether to treat
 warnings as errors.
 
-* `--warn-as-errors (was `-warningsAsErrors`) - treat warnings as errors.
+* `--warn-as-errors` (was `-warningsAsErrors`) - treat warnings as errors.
 
 * `--warn-shadowing (was `-warnShadowing`) - emit a warning if the name 
   of a declared variable caused another variable to be shadowed.
