@@ -32,7 +32,6 @@ public interface ICommandSpec {
     CommonOptionBag.DisableNonLinearArithmetic,
     CommonOptionBag.IsolateAssertions,
     BoogieOptionBag.BoogieArguments,
-    CommonOptionBag.AllowAxioms,
     CommonOptionBag.VerificationLogFormat,
     CommonOptionBag.SolverResourceLimit,
     CommonOptionBag.SolverPlugin,
@@ -78,6 +77,7 @@ public interface ICommandSpec {
     CommonOptionBag.WarnShadowing,
     CommonOptionBag.WarnMissingConstructorParenthesis,
     PrintStmt.TrackPrintEffectsOption,
+    CommonOptionBag.AllowAxioms,
   }).Concat(ParserOptions).ToList();
 
   IEnumerable<Option> Options { get; }
