@@ -14,6 +14,7 @@ namespace Microsoft.Dafny {
 
     static void Main(string[] args) {
       var options = DafnyOptions.Create();
+      options.Set(CommonOptionBag.AllowAxioms, true);
       ServerUtils.ApplyArgs(args, options);
       var engine = ExecutionEngine.CreateWithoutSharedCache(options);
       Server server = new Server(engine);
