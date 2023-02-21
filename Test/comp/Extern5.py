@@ -71,7 +71,7 @@ class Mixed:
 class AllExtern:
     @staticmethod
     def P():
-        _dafny.print(_dafny.Seq("AllExtern.P\n"))
+        print("AllExtern.P")
 
     @staticmethod
     def MaybeInt():
@@ -80,7 +80,6 @@ class AllExtern:
     @staticmethod
     def IntPair():
         return Wrappers_Compile.Pair_Pair(3, 7)
-        _dafny.print(_dafny.string_of(_dafny.Seq("AllExtern.P\n")))
 
 class SingletonOptimization:
     @staticmethod

@@ -1748,27 +1748,7 @@ namespace Microsoft.Dafny.Compilers {
 
       // constructor
       if (dt.IsRecordType) {
-        var ctor = dt.Ctors[0];
-        DatatypeFieldsAndConstructor(ctor, 0, wr);
-
-        // Also emit a "create" method that thunks to "create_<ctor_name>",
-        // as a convenience for Java code to invoke directly,
-        // and for backwards compatibility (as we used to ONLY emit the "create" method
-        // instead of the "create_<ctor_name>" method).
-        wr.Write("public static{0} {1} create(", justTypeArgs, DtT_protected);
-        WriteFormals("", ctor.Formals, wr);
-        var w = wr.NewBlock(")");
-        w.Write($"return {DtCreateName(ctor)}(");
-        var sep = "";
-        var i = 0;
-        foreach (var arg in ctor.Formals) {
-          if (!arg.IsGhost) {
-            w.Write("{0}{1}", sep, FormalName(arg, i));
-            sep = ", ";
-            i++;
-          }
-        }
-        w.WriteLine(");");
+        DatatypeFieldsAndConstructor(dt.Ctors[0], 0, wr);
       } else {
         wr.WriteLine($"public {IdName(dt)}() {{ }}");
       }
@@ -1819,20 +1799,21 @@ namespace Microsoft.Dafny.Compilers {
 
       // create methods
       foreach (var ctor in dt.Ctors.Where(ctor => !ctor.IsGhost)) {
-        wr.Write("public static{0} {1} {2}(", justTypeArgs, DtT_protected, DtCreateName(ctor));
+        wr.Write($"public static{justTypeArgs} {DtT_protected} {DtCreateName(ctor)}(");
         WriteFormals("", ctor.Formals, wr);
         var w = wr.NewBlock(")");
-        w.Write("return new {0}(", DtCtorDeclarationName(ctor, dt.TypeArgs));
-        var sep = "";
-        var i = 0;
-        foreach (var arg in ctor.Formals) {
-          if (!arg.IsGhost) {
-            w.Write("{0}{1}", sep, FormalName(arg, i));
-            sep = ", ";
-            i++;
-          }
-        }
-        w.WriteLine(");");
+        w.Write($"return new {DtCtorDeclarationName(ctor, dt.TypeArgs)}({ctor.Formals.Where(f => !f.IsGhost).Comma(FormalName)});");
+      }
+
+      if (dt.IsRecordType) {
+        // Also emit a "create_<ctor_name>" method that thunks to "create",
+        // to provide a more uniform interface.
+
+        var ctor = dt.Ctors[0];
+        wr.Write($"public static{justTypeArgs} {DtT_protected} create_{ctor.CompileName}(");
+        WriteFormals("", ctor.Formals, wr);
+        wr.NewBlock(")")
+          .Write($"return create({ctor.Formals.Where(f => !f.IsGhost).Comma(FormalName)});");
       }
 
       // query properties
@@ -2105,6 +2086,9 @@ namespace Microsoft.Dafny.Compilers {
     }
     string DtCreateName(DatatypeCtor ctor) {
       Contract.Assert(!ctor.IsGhost); // there should never be an occasion to ask for a ghost constructor
+      if (ctor.EnclosingDatatype.IsRecordType) {
+        return "create";
+      }
       return "create_" + ctor.CompileName;
     }
 

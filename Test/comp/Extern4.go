@@ -92,6 +92,7 @@ func (AllExtern) MaybeInt() Wrappers.Option {
 }
 func (AllExtern) IntPair() Wrappers.Pair {
   return Wrappers.Companion_Pair_.Create_Pair_(3, 7)
+}
 
 type SingletonOptimization struct{}
 var Companion_SingletonOptimization_ = SingletonOptimization{}
