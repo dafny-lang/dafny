@@ -67,7 +67,11 @@ static class CommandRegistry {
       if (!allowHidden) {
         option.IsHidden = false;
       }
+      if (!option.Arity.Equals(ArgumentArity.ZeroOrMore) && !option.Arity.Equals(ArgumentArity.OneOrMore)) {
+        option.AllowMultipleArgumentsPerToken = true;
+      }
     }
+
     var commandToSpec = Commands.ToDictionary(c => {
       var result = c.Create();
       foreach (var option in c.Options) {

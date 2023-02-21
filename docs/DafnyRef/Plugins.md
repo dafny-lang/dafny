@@ -1,8 +1,8 @@
 # 15. Plugins to Dafny {#sec-plugins}
 
-Dafny has a plugin architecture that permits uses to build tools for the Dafny language without having to replicate 
+Dafny has a plugin architecture that permits users to build tools for the Dafny language without having to replicate 
 parsing and name/type resolution of Dafny programs. Such a tool might just do some analysis on the Dafny program,
-without concern for verifying or sompiling the program. Or it might modify the program (actually, modify the program's AST) 
+without concern for verifying or compiling the program. Or it might modify the program (actually, modify the program's AST) 
 and then continue on with verification and compilation with the core Dafny tool. A user plugin might also be used
 in the Language Server and thereby be available in the VSCode (or other) IDE.
 
@@ -10,7 +10,7 @@ _ **This is an experimental aspect of Dafny.**
 The plugin API directly exposes the Dafny AST, which is constantly evolving.
 Hence, always recompile your plugin against the binary of Dafny that will be importing your plugin._
 
-Plugins are libraries linked to a `Dafny.dll` of the same version than the language server.
+Plugins are libraries linked to a `Dafny.dll` of the same version as the language server.
 A plugin typically defines:
 
 * Zero or one class extending `Microsoft.Dafny.Plugins.PluginConfiguration`, which receives plugins arguments in its method `ParseArguments`, and
@@ -114,7 +114,7 @@ We replace the return statement with a conditional that tests whether the select
 ```
 
 Every quick fix consists of a title (provided immediately), and zero or more `DafnyCodeActionEdit` (computed lazily).
-An `DafnyCodeActionEdit` has a `Range` to remove and some `string` to insert instead. All `DafnyCodeActionEdit`
+A `DafnyCodeActionEdit` has a `Range` to remove and some `string` to insert instead. All `DafnyCodeActionEdit`s
 of the same `DafnyCodeAction` are applied at the same time if selected.
 
 To create a `DafnyCodeAction`, we can either use the easy-to-use `InstantDafnyCodeAction`, which accepts a title and an array of edits:
