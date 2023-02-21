@@ -114,7 +114,8 @@ namespace Microsoft.Dafny {
       /// Note, since Y is a reference type and there is, at any one time, only a finite number of references,
       /// the result type is finite.
       ///
-      /// TODO: The range of the set comprehension should be limited to the values for x that satisfy e's precondition.
+      /// Note: A pending improvement would be to limit the range of the set comprehension to the values for x
+      /// that satisfy e's precondition.
       /// </summary>
       public static Expression FrameArrowToObjectSet(Expression e) {
         Contract.Requires(e != null);
