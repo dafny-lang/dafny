@@ -22,6 +22,7 @@ using static Microsoft.Dafny.ErrorDetail;
 
 namespace Microsoft.Dafny {
   public partial class Resolver {
+    public DafnyOptions Options { get; }
     public readonly BuiltIns builtIns;
 
     public ErrorReporter reporter;
@@ -158,7 +159,7 @@ namespace Microsoft.Dafny {
       }
 
       private AmbiguousTopLevelDecl(ModuleDefinition m, string name, ISet<TopLevelDecl> pool)
-        : base(pool.First().tok, name, m, new List<TypeParameter>(), null, false) {
+        : base(pool.First().RangeToken, new Name(pool.First().RangeToken, name), m, new List<TypeParameter>(), null, false) {
         Contract.Requires(name != null);
         Contract.Requires(pool != null && 2 <= pool.Count);
         Pool = pool;
@@ -198,7 +199,7 @@ namespace Microsoft.Dafny {
       }
 
       private AmbiguousMemberDecl(ModuleDefinition m, string name, ISet<MemberDecl> pool)
-        : base(pool.First().tok, name, true, pool.First().IsGhost, null, false) {
+        : base(pool.First().RangeToken, new Name(pool.First().RangeToken, name), true, pool.First().IsGhost, null, false) {
         Contract.Requires(name != null);
         Contract.Requires(pool != null && 2 <= pool.Count);
         Pool = pool;
@@ -235,10 +236,12 @@ namespace Microsoft.Dafny {
     private List<IRewriter> rewriters;
     private RefinementTransformer refinementTransformer;
 
-    public Resolver() {
+    public Resolver(DafnyOptions options) {
+      Options = options;
     }
 
     public Resolver(Program prog) {
+      Options = prog.Options;
       Contract.Requires(prog != null);
 
       builtIns = prog.BuiltIns;
@@ -263,27 +266,27 @@ namespace Microsoft.Dafny {
       builtIns.TupleType(Token.NoToken, 0, true);
 
       // Populate the members of the basic types
-      var floor = new SpecialField(Token.NoToken, "Floor", SpecialField.ID.Floor, null, false, false, false, Type.Int, null);
+      var floor = new SpecialField(RangeToken.NoToken, "Floor", SpecialField.ID.Floor, null, false, false, false, Type.Int, null);
       floor.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
       valuetypeDecls[(int)ValuetypeVariety.Real].Members.Add(floor.Name, floor);
 
-      var isLimit = new SpecialField(Token.NoToken, "IsLimit", SpecialField.ID.IsLimit, null, false, false, false,
+      var isLimit = new SpecialField(RangeToken.NoToken, "IsLimit", SpecialField.ID.IsLimit, null, false, false, false,
         Type.Bool, null);
       isLimit.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
       valuetypeDecls[(int)ValuetypeVariety.BigOrdinal].Members.Add(isLimit.Name, isLimit);
 
-      var isSucc = new SpecialField(Token.NoToken, "IsSucc", SpecialField.ID.IsSucc, null, false, false, false,
+      var isSucc = new SpecialField(RangeToken.NoToken, "IsSucc", SpecialField.ID.IsSucc, null, false, false, false,
         Type.Bool, null);
       isSucc.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
       valuetypeDecls[(int)ValuetypeVariety.BigOrdinal].Members.Add(isSucc.Name, isSucc);
 
-      var limitOffset = new SpecialField(Token.NoToken, "Offset", SpecialField.ID.Offset, null, false, false, false,
+      var limitOffset = new SpecialField(RangeToken.NoToken, "Offset", SpecialField.ID.Offset, null, false, false, false,
         Type.Int, null);
       limitOffset.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
       valuetypeDecls[(int)ValuetypeVariety.BigOrdinal].Members.Add(limitOffset.Name, limitOffset);
       builtIns.ORDINAL_Offset = limitOffset;
 
-      var isNat = new SpecialField(Token.NoToken, "IsNat", SpecialField.ID.IsNat, null, false, false, false, Type.Bool, null);
+      var isNat = new SpecialField(RangeToken.NoToken, "IsNat", SpecialField.ID.IsNat, null, false, false, false, Type.Bool, null);
       isNat.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
       valuetypeDecls[(int)ValuetypeVariety.BigOrdinal].Members.Add(isNat.Name, isNat);
 
@@ -293,16 +296,16 @@ namespace Microsoft.Dafny {
         var isFinite = typeVariety == ValuetypeVariety.Map;
 
         var r = new SetType(isFinite, new UserDefinedType(vtd.TypeArgs[0]));
-        var keys = new SpecialField(Token.NoToken, "Keys", SpecialField.ID.Keys, null, false, false, false, r, null);
+        var keys = new SpecialField(RangeToken.NoToken, "Keys", SpecialField.ID.Keys, null, false, false, false, r, null);
 
         r = new SetType(isFinite, new UserDefinedType(vtd.TypeArgs[1]));
-        var values = new SpecialField(Token.NoToken, "Values", SpecialField.ID.Values, null, false, false, false, r, null);
+        var values = new SpecialField(RangeToken.NoToken, "Values", SpecialField.ID.Values, null, false, false, false, r, null);
 
         var gt = vtd.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
         var dt = builtIns.TupleType(Token.NoToken, 2, true);
         var tupleType = new UserDefinedType(Token.NoToken, dt.Name, dt, gt);
         r = new SetType(isFinite, tupleType);
-        var items = new SpecialField(Token.NoToken, "Items", SpecialField.ID.Items, null, false, false, false, r, null);
+        var items = new SpecialField(RangeToken.NoToken, "Items", SpecialField.ID.Items, null, false, false, false, r, null);
 
         foreach (var memb in new[] { keys, values, items }) {
           memb.EnclosingClass = vtd;
@@ -314,7 +317,7 @@ namespace Microsoft.Dafny {
       // The result type of the following bitvector methods is the type of the bitvector itself. However, we're representing all bitvector types as
       // a family of types rolled up in one ValuetypeDecl. Therefore, we use the special SelfType as the result type.
       List<Formal> formals = new List<Formal> { new Formal(Token.NoToken, "w", Type.Nat(), true, false, null, false) };
-      var rotateLeft = new SpecialFunction(Token.NoToken, "RotateLeft", prog.BuiltIns.SystemModule, false, false,
+      var rotateLeft = new SpecialFunction(RangeToken.NoToken, "RotateLeft", prog.BuiltIns.SystemModule, false, false,
         new List<TypeParameter>(), formals, new SelfType(),
         new List<AttributedExpression>(), new List<FrameExpression>(), new List<AttributedExpression>(),
         new Specification<Expression>(new List<Expression>(), null), null, null, null);
@@ -323,7 +326,7 @@ namespace Microsoft.Dafny {
       valuetypeDecls[(int)ValuetypeVariety.Bitvector].Members.Add(rotateLeft.Name, rotateLeft);
 
       formals = new List<Formal> { new Formal(Token.NoToken, "w", Type.Nat(), true, false, null, false) };
-      var rotateRight = new SpecialFunction(Token.NoToken, "RotateRight", prog.BuiltIns.SystemModule, false, false,
+      var rotateRight = new SpecialFunction(RangeToken.NoToken, "RotateRight", prog.BuiltIns.SystemModule, false, false,
         new List<TypeParameter>(), formals, new SelfType(),
         new List<AttributedExpression>(), new List<FrameExpression>(), new List<AttributedExpression>(),
         new Specification<Expression>(new List<Expression>(), null), null, null, null);
@@ -418,7 +421,7 @@ namespace Microsoft.Dafny {
 
       rewriters = new List<IRewriter>();
 
-      if (DafnyOptions.O.AuditProgram) {
+      if (Options.AuditProgram) {
         rewriters.Add(new Auditor.Auditor(reporter));
       }
 
@@ -432,16 +435,16 @@ namespace Microsoft.Dafny {
       rewriters.Add(new ProvideRevealAllRewriter(this.reporter));
       rewriters.Add(new MatchFlattener(this.reporter, Resolver.defaultTempVarIdGenerator));
 
-      if (DafnyOptions.O.AutoTriggers) {
+      if (Options.AutoTriggers) {
         rewriters.Add(new QuantifierSplittingRewriter(reporter));
         rewriters.Add(new TriggerGeneratingRewriter(reporter));
       }
 
-      if (DafnyOptions.O.TestContracts != DafnyOptions.ContractTestingMode.None) {
+      if (Options.TestContracts != DafnyOptions.ContractTestingMode.None) {
         rewriters.Add(new ExpectContracts(reporter));
       }
 
-      if (DafnyOptions.O.RunAllTests) {
+      if (Options.RunAllTests) {
         rewriters.Add(new RunAllTestsMainMethod(reporter));
       }
 
@@ -449,13 +452,13 @@ namespace Microsoft.Dafny {
       rewriters.Add(new PrintEffectEnforcement(reporter));
       rewriters.Add(new BitvectorOptimization(reporter));
 
-      if (DafnyOptions.O.DisallowConstructorCaseWithoutParentheses) {
+      if (Options.DisallowConstructorCaseWithoutParentheses) {
         rewriters.Add(new ConstructorWarning(reporter));
       }
       rewriters.Add(new UselessOldLinter(reporter));
       rewriters.Add(new PrecedenceLinter(reporter));
 
-      foreach (var plugin in DafnyOptions.O.Plugins) {
+      foreach (var plugin in Options.Plugins) {
         rewriters.AddRange(plugin.GetRewriters(reporter));
       }
 
@@ -541,7 +544,7 @@ namespace Microsoft.Dafny {
           if (reporter.ErrorCount == errorCount && !m.IsAbstract) {
             // compilation should only proceed if everything is good, including the signature (which preResolveErrorCount does not include);
             CompilationCloner cloner = new CompilationCloner(compilationModuleClones);
-            var nw = cloner.CloneModuleDefinition(m, m.CompileName + "_Compile");
+            var nw = cloner.CloneModuleDefinition(m, new Name(m.NameNode.RangeToken, m.CompileName + "_Compile"));
             compilationModuleClones.Add(m, nw);
             var oldErrorsOnly = reporter.ErrorsOnly;
             reporter.ErrorsOnly = true; // turn off warning reporting for the clone
@@ -1172,8 +1175,8 @@ namespace Microsoft.Dafny {
 
         var scope = exportDecl.Signature.VisibilityScope;
         Cloner cloner = new ScopeCloner(scope);
-        var exportView = cloner.CloneModuleDefinition(m, m.Name);
-        if (DafnyOptions.O.DafnyPrintExportedViews.Contains(exportDecl.FullName)) {
+        var exportView = cloner.CloneModuleDefinition(m, m.NameNode);
+        if (Options.DafnyPrintExportedViews.Contains(exportDecl.FullName)) {
           var wr = Console.Out;
           wr.WriteLine("/* ===== export set {0}", exportDecl.FullName);
           var pr = new Printer(wr);
@@ -1292,7 +1295,7 @@ namespace Microsoft.Dafny {
         var name = entry.Key;
         var prefixNamedModules = entry.Value;
         var tok = prefixNamedModules.First().Item1[0];
-        var modDef = new ModuleDefinition(tok, name, new List<IToken>(), false, false, null, moduleDecl, null, false,
+        var modDef = new ModuleDefinition(tok.ToRange(), new Name(tok.ToRange(), name), new List<IToken>(), false, false, null, moduleDecl, null, false,
           true, true);
         // Every module is expected to have a default class, so we create and add one now
         var defaultClass = new DefaultClassDecl(modDef, new List<MemberDecl>());
@@ -1365,7 +1368,7 @@ namespace Microsoft.Dafny {
     private bool ResolveQualifiedModuleIdRootRefines(ModuleDefinition context, ModuleBindings bindings, ModuleQualifiedId qid,
       out ModuleDecl result) {
       Contract.Assert(qid != null);
-      IToken root = qid.Path[0];
+      IToken root = qid.Path[0].StartToken;
       result = null;
       bool res = bindings.TryLookupFilter(root, out result, m => m.EnclosingModuleDefinition != context);
       qid.Root = result;
@@ -1379,7 +1382,7 @@ namespace Microsoft.Dafny {
     private bool ResolveQualifiedModuleIdRootImport(AliasModuleDecl context, ModuleBindings bindings, ModuleQualifiedId qid,
       out ModuleDecl result) {
       Contract.Assert(qid != null);
-      IToken root = qid.Path[0];
+      IToken root = qid.Path[0].StartToken;
       result = null;
       bool res = bindings.TryLookupFilter(root, out result,
         m => context != m && ((context.EnclosingModuleDefinition == m.EnclosingModuleDefinition && context.Exports.Count == 0) || m is LiteralModuleDecl));
@@ -1390,7 +1393,7 @@ namespace Microsoft.Dafny {
     private bool ResolveQualifiedModuleIdRootAbstract(AbstractModuleDecl context, ModuleBindings bindings, ModuleQualifiedId qid,
       out ModuleDecl result) {
       Contract.Assert(qid != null);
-      IToken root = qid.Path[0];
+      IToken root = qid.Path[0].StartToken;
       result = null;
       bool res = bindings.TryLookupFilter(root, out result,
         m => context != m && ((context.EnclosingModuleDefinition == m.EnclosingModuleDefinition && context.Exports.Count == 0) || m is LiteralModuleDecl));
@@ -1459,12 +1462,12 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private static string ModuleNotFoundErrorMessage(int i, List<IToken> path, string tail = "") {
+    private static string ModuleNotFoundErrorMessage(int i, List<Name> path, string tail = "") {
       Contract.Requires(path != null);
       Contract.Requires(0 <= i && i < path.Count);
-      return "module " + path[i].val + " does not exist" +
+      return "module " + path[i].Value + " does not exist" +
              (1 < path.Count
-               ? " (position " + i.ToString() + " in path " + Util.Comma(".", path, x => x.val) + ")" + tail
+               ? " (position " + i.ToString() + " in path " + Util.Comma(".", path, x => x.Value) + ")" + tail
                : "");
     }
 
@@ -1745,7 +1748,7 @@ namespace Microsoft.Dafny {
               reporter.Error(MessageSource.Resolver, p,
                 "Name of in-parameter is used by another member of the iterator: {0}", p.Name);
             } else {
-              var field = new SpecialField(p.tok, p.Name, SpecialField.ID.UseIdParam, p.CompileName, p.IsGhost, false,
+              var field = new SpecialField(p.RangeToken, p.Name, SpecialField.ID.UseIdParam, p.CompileName, p.IsGhost, false,
                 false, p.Type, null);
               field.EnclosingClass = iter; // resolve here
               field.InheritVisibility(iter);
@@ -1761,7 +1764,7 @@ namespace Microsoft.Dafny {
                 "Name of yield-parameter is used by another member of the iterator: {0}", p.Name);
             } else {
               nonDuplicateOuts.Add(p);
-              var field = new SpecialField(p.tok, p.Name, SpecialField.ID.UseIdParam, p.CompileName, p.IsGhost, true,
+              var field = new SpecialField(p.RangeToken, p.Name, SpecialField.ID.UseIdParam, p.CompileName, p.IsGhost, true,
                 true, p.Type, null);
               field.EnclosingClass = iter; // resolve here
               field.InheritVisibility(iter);
@@ -1782,7 +1785,7 @@ namespace Microsoft.Dafny {
 
             // we add some field to OutsHistoryFields, even if there was an error; the name of the field, in case of error, is not so important
             var tp = new SeqType(p.Type.NormalizeExpand());
-            var field = new SpecialField(p.tok, nm, SpecialField.ID.UseIdParam, nm, true, true, false, tp, null);
+            var field = new SpecialField(p.RangeToken, nm, SpecialField.ID.UseIdParam, nm, true, true, false, tp, null);
             field.EnclosingClass = iter; // resolve here
             field.InheritVisibility(iter);
             iter.OutsHistoryFields
@@ -1798,11 +1801,11 @@ namespace Microsoft.Dafny {
             iter.Members.Add(f);
           });
           // add the additional special variables as fields
-          iter.Member_Reads = new SpecialField(iter.tok, "_reads", SpecialField.ID.Reads, null, true, false, false,
+          iter.Member_Reads = new SpecialField(iter.RangeToken, "_reads", SpecialField.ID.Reads, null, true, false, false,
             new SetType(true, builtIns.ObjectQ()), null);
-          iter.Member_Modifies = new SpecialField(iter.tok, "_modifies", SpecialField.ID.Modifies, null, true, false,
+          iter.Member_Modifies = new SpecialField(iter.RangeToken, "_modifies", SpecialField.ID.Modifies, null, true, false,
             false, new SetType(true, builtIns.ObjectQ()), null);
-          iter.Member_New = new SpecialField(iter.tok, "_new", SpecialField.ID.New, null, true, true, true,
+          iter.Member_New = new SpecialField(iter.RangeToken, "_new", SpecialField.ID.New, null, true, true, true,
             new SetType(true, builtIns.ObjectQ()), null);
           foreach (var field in new List<Field>() { iter.Member_Reads, iter.Member_Modifies, iter.Member_New }) {
             field.EnclosingClass = iter; // resolve here
@@ -1817,7 +1820,7 @@ namespace Microsoft.Dafny {
           var i = 0;
           foreach (var p in iter.Decreases.Expressions) {
             var nm = "_decreases" + i;
-            var field = new SpecialField(p.tok, nm, SpecialField.ID.UseIdParam, nm, true, false, false,
+            var field = new SpecialField(p.RangeToken, nm, SpecialField.ID.UseIdParam, nm, true, false, false,
               new InferredTypeProxy(), null);
             field.EnclosingClass = iter; // resolve here
             field.InheritVisibility(iter);
@@ -1831,14 +1834,14 @@ namespace Microsoft.Dafny {
           // saying is that the Method/Predicate does not take any type parameters over and beyond what the enclosing type (namely, the
           // iterator type) does.
           // --- here comes the constructor
-          var init = new Constructor(iter.tok, "_ctor", false, new List<TypeParameter>(), iter.Ins,
+          var init = new Constructor(iter.RangeToken, new Name(iter.NameNode.RangeToken, "_ctor"), false, new List<TypeParameter>(), iter.Ins,
             new List<AttributedExpression>(),
             new Specification<FrameExpression>(new List<FrameExpression>(), null),
             new List<AttributedExpression>(),
             new Specification<Expression>(new List<Expression>(), null),
             null, null, null);
           // --- here comes predicate Valid()
-          var valid = new Predicate(iter.tok, "Valid", false, true, false, new List<TypeParameter>(),
+          var valid = new Predicate(iter.RangeToken, new Name(iter.NameNode.RangeToken, "Valid"), false, true, false, new List<TypeParameter>(),
             new List<Formal>(),
             null,
             new List<AttributedExpression>(),
@@ -1847,7 +1850,7 @@ namespace Microsoft.Dafny {
             new Specification<Expression>(new List<Expression>(), null),
             null, Predicate.BodyOriginKind.OriginalOrInherited, null, null, null, null);
           // --- here comes method MoveNext
-          var moveNext = new Method(iter.tok, "MoveNext", false, false, new List<TypeParameter>(),
+          var moveNext = new Method(iter.RangeToken, new Name(iter.NameNode.RangeToken, "MoveNext"), false, false, new List<TypeParameter>(),
             new List<Formal>(), new List<Formal>() { new Formal(iter.tok, "more", Type.Bool, false, false, null) },
             new List<AttributedExpression>(),
             new Specification<FrameExpression>(new List<FrameExpression>(), null),
@@ -1907,7 +1910,7 @@ namespace Microsoft.Dafny {
           if (cl.IsDefaultClass) {
             foreach (MemberDecl m in members.Values) {
               Contract.Assert(!m.HasStaticKeyword || m is ConstantField ||
-                              DafnyOptions.O
+                              Options
                                 .AllowGlobals); // note, the IsStatic value isn't available yet; when it becomes available, we expect it will have the value 'true'
               if (m is Function || m is Method || m is ConstantField) {
                 sig.StaticMembers[m.Name] = m;
@@ -1940,12 +1943,12 @@ namespace Microsoft.Dafny {
               ctor.InheritVisibility(dt);
 
               // create and add the query "method" (field, really)
-              string queryName = ctor.Name + "?";
-              var query = new DatatypeDiscriminator(ctor.tok, queryName, SpecialField.ID.UseIdParam, "is_" + ctor.CompileName,
+              var queryName = ctor.NameNode.Append("?");
+              var query = new DatatypeDiscriminator(ctor.RangeToken, queryName, SpecialField.ID.UseIdParam, "is_" + ctor.CompileName,
                 ctor.IsGhost, Type.Bool, null);
               query.InheritVisibility(dt);
               query.EnclosingClass = dt; // resolve here
-              members.Add(queryName, query);
+              members.Add(queryName.Value, query);
               ctor.QueryField = query;
 
               // also register the constructor name globally
@@ -1990,7 +1993,7 @@ namespace Microsoft.Dafny {
                 dtor.AddAnotherEnclosingCtor(ctor, formal);
               } else {
                 // either the destructor has no explicit name, or this constructor declared another destructor with this name, or no previous destructor had this name
-                dtor = new DatatypeDestructor(formal.tok, ctor, formal, formal.Name, "dtor_" + formal.CompileName,
+                dtor = new DatatypeDestructor(formal.RangeToken, ctor, formal, new Name(formal.RangeToken, formal.Name), "dtor_" + formal.CompileName,
                   formal.IsGhost, formal.Type, null);
                 dtor.InheritVisibility(dt);
                 dtor.EnclosingClass = dt; // resolve here
@@ -2047,7 +2050,7 @@ namespace Microsoft.Dafny {
               ((ClassDecl)cl).HasConstructor = true;
             }
           } else if (m is ExtremePredicate || m is ExtremeLemma) {
-            var extraName = m.Name + "#";
+            var extraName = m.NameNode.Append("#");
             MemberDecl extraMember;
             var cloner = new Cloner();
             var formals = new List<Formal>();
@@ -2068,7 +2071,7 @@ namespace Microsoft.Dafny {
               List<TypeParameter> tyvars = extremePredicate.TypeArgs.ConvertAll(cloner.CloneTypeParam);
 
               // create prefix predicate
-              extremePredicate.PrefixPredicate = new PrefixPredicate(extremePredicate.tok, extraName, extremePredicate.HasStaticKeyword,
+              extremePredicate.PrefixPredicate = new PrefixPredicate(extremePredicate.RangeToken, extraName, extremePredicate.HasStaticKeyword,
                 tyvars, k, formals,
                 extremePredicate.Req.ConvertAll(cloner.CloneAttributedExpr),
                 extremePredicate.Reads.ConvertAll(cloner.CloneFrameExpr),
@@ -2095,7 +2098,7 @@ namespace Microsoft.Dafny {
               var ens = extremeLemma is GreatestLemma
                 ? new List<AttributedExpression>()
                 : extremeLemma.Ens.ConvertAll(cloner.CloneAttributedExpr);
-              extremeLemma.PrefixLemma = new PrefixLemma(extremeLemma.tok, extraName, extremeLemma.HasStaticKeyword,
+              extremeLemma.PrefixLemma = new PrefixLemma(extremeLemma.RangeToken, extraName, extremeLemma.HasStaticKeyword,
                 extremeLemma.TypeArgs.ConvertAll(cloner.CloneTypeParam), k, formals, extremeLemma.Outs.ConvertAll(f => cloner.CloneFormal(f, false)),
                 req, cloner.CloneSpecFrameExpr(extremeLemma.Mod), ens,
                 new Specification<Expression>(decr, null),
@@ -2105,7 +2108,7 @@ namespace Microsoft.Dafny {
             }
 
             extraMember.InheritVisibility(m, false);
-            members.Add(extraName, extraMember);
+            members.Add(extraName.Value, extraMember);
           } else if (m is Function f && f.ByMethodBody != null) {
             RegisterByMethod(f, cl);
           }
@@ -2126,7 +2129,7 @@ namespace Microsoft.Dafny {
       var receiver = f.IsStatic ? (Expression)new StaticReceiverExpr(tok, cl, true) : new ImplicitThisExpr(tok);
       var fn = new FunctionCallExpr(tok, f.Name, receiver, tok, tok, f.Formals.ConvertAll(Expression.CreateIdentExpr));
       var post = new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq, r, fn));
-      var method = new Method(f.tok, f.Name, f.HasStaticKeyword, false, f.TypeArgs,
+      var method = new Method(f.RangeToken, f.NameNode, f.HasStaticKeyword, false, f.TypeArgs,
         f.Formals, new List<Formal>() { resultVar },
         f.Req, new Specification<FrameExpression>(new List<FrameExpression>(), null), new List<AttributedExpression>() { post }, f.Decreases,
         f.ByMethodBody, f.Attributes, null, true);
@@ -2144,7 +2147,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(compilationModuleClones != null);
       var errCount = reporter.Count(ErrorLevel.Error);
 
-      var mod = new ModuleDefinition(Token.NoToken, Name + ".Abs", new List<IToken>(), true, true, null, null, null,
+      var mod = new ModuleDefinition(RangeToken.NoToken, new Name(Name + ".Abs"), new List<IToken>(), true, true, null, null, null,
         false,
         p.ModuleDef.IsToBeVerified, p.ModuleDef.IsToBeCompiled);
       mod.Height = Height;
@@ -2188,7 +2191,7 @@ namespace Microsoft.Dafny {
         var abs = (AbstractModuleDecl)d;
         var sig = MakeAbstractSignature(abs.OriginalSignature, Name + "." + abs.Name, abs.Height, mods,
           compilationModuleClones);
-        var a = new AbstractModuleDecl(abs.QId, abs.tok, m, abs.Opened, abs.Exports);
+        var a = new AbstractModuleDecl(abs.RangeToken, abs.QId, abs.NameNode, m, abs.Opened, abs.Exports);
         a.Signature = sig;
         a.OriginalSignature = abs.OriginalSignature;
         return a;
@@ -2205,7 +2208,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(qid != null);
       Contract.Requires(qid.Path.Count > 0);
 
-      List<IToken> Path = qid.Path;
+      List<Name> Path = qid.Path;
       ModuleDecl decl = root;
       ModuleSignature p;
       for (int k = 1; k < Path.Count; k++) {
@@ -2220,7 +2223,7 @@ namespace Microsoft.Dafny {
           p = decl.Signature;
         }
 
-        var tld = p.TopLevels.GetValueOrDefault(Path[k].val, null);
+        var tld = p.TopLevels.GetValueOrDefault(Path[k].Value, null);
         if (!(tld is ModuleDecl dd)) {
           if (decl.Signature.ModuleDef == null) {
             reporter.Error(MessageSource.Resolver, Path[k],
@@ -2687,16 +2690,16 @@ namespace Microsoft.Dafny {
               attrs = new Attributes("_trustWellformed", new List<Expression>(), attrs);
 #endif
               attrs = new Attributes("auto_generated", new List<Expression>(), attrs);
-              var forallBody = new BlockStmt(com.RangeToken, new List<Statement>() { recursiveCall });
-              var forallStmt = new ForallStmt(com.RangeToken, bvs, attrs, range, new List<AttributedExpression>(), forallBody);
-              els = new BlockStmt(new RangeToken(com.BodyStartTok, mainBody.RangeToken.EndToken), new List<Statement>() { forallStmt });
+              var forallBody = new BlockStmt(mainBody.RangeToken, new List<Statement>() { recursiveCall });
+              var forallStmt = new ForallStmt(mainBody.RangeToken, bvs, attrs, range, new List<AttributedExpression>(), forallBody);
+              els = new BlockStmt(mainBody.RangeToken, new List<Statement>() { forallStmt });
             } else {
               kk = new IdentifierExpr(k.tok, k.Name);
               els = null;
             }
             var kPositive = new BinaryExpr(com.tok, BinaryExpr.Opcode.Lt, new LiteralExpr(com.tok, 0), kk);
-            var condBody = new IfStmt(new RangeToken(com.BodyStartTok, mainBody.RangeToken.EndToken), false, kPositive, mainBody, els);
-            prefixLemma.Body = new BlockStmt(new RangeToken(com.BodyStartTok, condBody.EndToken), new List<Statement>() { condBody });
+            var condBody = new IfStmt(mainBody.RangeToken, false, kPositive, mainBody, els);
+            prefixLemma.Body = new BlockStmt(mainBody.RangeToken, new List<Statement>() { condBody });
           }
           // The prefix lemma now has all its components, so it's finally time we resolve it
           currentClass = (TopLevelDeclWithMembers)prefixLemma.EnclosingClass;
@@ -3925,7 +3928,7 @@ namespace Microsoft.Dafny {
       // Finally, of the big-enough native types, pick the first one that is
       // supported by the selected target compiler.
       foreach (var nativeT in bigEnoughNativeTypes) {
-        if (DafnyOptions.O.Backend.SupportedNativeTypes.Contains(nativeT.Name)) {
+        if (Options.Backend.SupportedNativeTypes.Contains(nativeT.Name)) {
           dd.NativeType = nativeT;
           break;
         }
@@ -5809,7 +5812,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(initiallyNoTypeArguments);
         Contract.Assert(iter.NonNullTypeDecl.TypeArgs.Count == 0);
         var nnt = iter.NonNullTypeDecl;
-        nnt.TypeArgs.AddRange(iter.TypeArgs.ConvertAll(tp => new TypeParameter(tp.tok, tp.Name, tp.VarianceSyntax, tp.Characteristics)));
+        nnt.TypeArgs.AddRange(iter.TypeArgs.ConvertAll(tp => new TypeParameter(tp.RangeToken, tp.NameNode, tp.VarianceSyntax, tp.Characteristics)));
         var varUdt = (UserDefinedType)nnt.Var.Type;
         Contract.Assert(varUdt.TypeArgs.Count == 0);
         varUdt.TypeArgs = nnt.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
@@ -6676,98 +6679,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(resolutionContext != null);
 
       nestedMatchExpr.Resolve(this, resolutionContext);
-    }
-
-    void ResolveMatchExpr(MatchExpr me, ResolutionContext resolutionContext) {
-      Contract.Requires(me != null);
-      Contract.Requires(resolutionContext != null);
-      Contract.Requires(me.OrigUnresolved == null);
-
-      // first, clone the original match expression
-      me.OrigUnresolved = (MatchExpr)new ClonerKeepParensExpressions().CloneExpr(me);
-      ResolveExpression(me.Source, resolutionContext);
-
-      Contract.Assert(me.Source.Type != null);  // follows from postcondition of ResolveExpression
-
-      var sourceType = PartiallyResolveTypeForMemberSelection(me.Source.tok, me.Source.Type).NormalizeExpand();
-
-      var dtd = sourceType.AsDatatype;
-      var subst = new Dictionary<TypeParameter, Type>();
-      Dictionary<string, DatatypeCtor> ctors;
-      if (dtd == null) {
-        reporter.Error(MessageSource.Resolver, me.Source, "the type of the match source expression must be a datatype (instead found {0})", me.Source.Type);
-        ctors = null;
-      } else {
-        Contract.Assert(sourceType != null);  // dtd and sourceType are set together above
-        ctors = dtd.ConstructorsByName;
-        Contract.Assert(ctors != null);  // dtd should have been inserted into datatypeCtors during a previous resolution stage
-
-        // build the type-parameter substitution map for this use of the datatype
-        subst = TypeParameter.SubstitutionMap(dtd.TypeArgs, sourceType.TypeArgs);
-      }
-
-      ISet<string> memberNamesUsed = new HashSet<string>();
-      me.Type = new InferredTypeProxy();
-      foreach (MatchCaseExpr mc in me.Cases) {
-        if (ctors != null) {
-          Contract.Assert(dtd != null);
-          var ctorId = mc.Ctor.Name;
-          if (me.Source.Type.AsDatatype is TupleTypeDecl) {
-            var tuple = (TupleTypeDecl)me.Source.Type.AsDatatype;
-            ctorId = BuiltIns.TupleTypeCtorName(tuple.Dims);
-          }
-          if (!ctors.ContainsKey(ctorId)) {
-            reporter.Error(MessageSource.Resolver, mc.tok, "member '{0}' does not exist in datatype '{1}'", ctorId, dtd.Name);
-          } else {
-            if (mc.Ctor.Formals.Count != mc.Arguments.Count) {
-              if (me.Source.Type.AsDatatype is TupleTypeDecl) {
-                reporter.Error(MessageSource.Resolver, mc.tok, "case arguments count does not match source arguments count");
-              } else {
-                reporter.Error(MessageSource.Resolver, mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", ctorId, mc.Arguments.Count, mc.Ctor.Formals.Count);
-              }
-            }
-            if (memberNamesUsed.Contains(ctorId)) {
-              reporter.Error(MessageSource.Resolver, mc.tok, "member {0} appears in more than one case", mc.Ctor.Name);
-            } else {
-              memberNamesUsed.Add(ctorId);  // add mc.Id to the set of names used
-            }
-          }
-        }
-        scope.PushMarker();
-        int i = 0;
-        if (mc.Arguments != null) {
-          foreach (BoundVar v in mc.Arguments) {
-            scope.Push(v.Name, v);
-            ResolveType(v.tok, v.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
-            if (i < mc.Ctor.Formals.Count) {
-              Formal formal = mc.Ctor.Formals[i];
-              Type st = formal.Type.Subst(subst);
-              ConstrainSubtypeRelation(v.Type, st, me,
-                "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", v.Type, st);
-              v.IsGhost = formal.IsGhost;
-            }
-            i++;
-          }
-        }
-
-        ResolveExpression(mc.Body, resolutionContext);
-
-        Contract.Assert(mc.Body.Type != null);  // follows from postcondition of ResolveExpression
-        ConstrainSubtypeRelation(me.Type, mc.Body.Type, mc.Body.tok, "type of case bodies do not agree (found {0}, previous types {1})", mc.Body.Type, me.Type);
-        scope.PopMarker();
-      }
-      if (dtd != null && memberNamesUsed.Count != dtd.Ctors.Count) {
-        // We could complain about the syntactic omission of constructors:
-        //   reporter.Error(MessageSource.Resolver, expr, "match expression does not cover all constructors");
-        // but instead we let the verifier do a semantic check.
-        // So, for now, record the missing constructors:
-        foreach (var ctr in dtd.Ctors) {
-          if (!memberNamesUsed.Contains(ctr.Name)) {
-            me.MissingCases.Add(ctr);
-          }
-        }
-        Contract.Assert(memberNamesUsed.Count + me.MissingCases.Count == dtd.Ctors.Count);
-      }
     }
 
     void ResolveCasePattern<VT>(CasePattern<VT> pat, Type sourceType, ResolutionContext resolutionContext)

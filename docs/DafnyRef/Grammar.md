@@ -10,8 +10,10 @@ have arguments. The arguments control some alternatives within
 the productions, such as whether an alternative is allowed or not in a specific context.
 These arguments allow for a more compact and understandable grammar.
 
-The precise, technical details of the grammar are presented together in [Section 29](#sec-grammar-details).
+The precise, technical details of the grammar are presented together in [Section 17](#sec-grammar-details).
 The expository parts of this manual present the language structure less formally.
+Throughout this document there are embedded hyperlinks to relevant grammar sections, 
+marked as [grammar](#sec-grammar-details).
 
 ## 2.1. Dafny Input {#sec-unicode}
 
@@ -20,6 +22,9 @@ All program text other than the contents of comments, character, string and verb
 consists of printable and white-space ASCII characters,
 that is, ASCII characters in the range `!` to `~`, plus space, tab, 
 carriage return and newline (ASCII 9, 10, 13, 32) characters.
+
+String and character literals and comments may contain any unicode character,
+either directly or as an escape sequence.
 
 ## 2.2. Tokens and whitespace {#sec-token-types}
 The characters used in a Dafny program fall into four groups:
@@ -80,11 +85,11 @@ digit              | base-ten digit ("0123456789")
 posDigit           | digits, excluding 0 ("123456789")
 posDigitFrom2      | digits excluding 0 and 1 ("23456789")
 hexdigit           | a normal hex digit ("0123456789abcdefABCDEF")
-special            | "`?_"
-cr                 | carriage return character ('\r')
-lf                 | line feed character 
-tab                | tab character ('\t')
-space              | space character (' ')
+special            | `?_"
+cr                 | carriage return character (ASCII 10)
+lf                 | line feed character (ASCII 13)
+tab                | tab character (ASCII 9)
+space              | space character (ASCII 32)
                    |
 nondigitIdChar     | characters allowed in an identifier, except digits (letter + special)
 idchar             | characters allowed in an identifier (nondigitIdChar + digits)
@@ -103,7 +108,7 @@ that are allowed to appear in a Dafny identifier. These are
   programmers like to start names of type parameters with a `'`,
 * `_` because computer scientists expect to be able to have underscores in identifiers, and
 * `?` because it is useful to have `?` at the end of names of predicates,
-  e.g., "Cons?".
+  e.g., `Cons?`.
 
 A `nonidchar` is any character except those that can be used in an identifier.
 Here the scanner generator will interpret `ANY` as any unicode character.
@@ -180,10 +185,11 @@ These are listed [here](#sec-g-tokens).
 
 In particular note that
 
-- `array`, `array2`, `array3` , etc. are reserved words, but not `array1` or `array0`.
-These denote array types of given rank.
-- `array?`, `array2?`, `array3?` , etc. are reserved words, but not `array1?` or `array0?`.
-These denote possibly-null array types of given rank.
+- `array`, `array2`, `array3`, etc. are reserved words, denoting array types of given rank.
+However,  `array1` and `array0` are ordinary identifiers.
+- `array?`, `array2?`, `array3?`, etc. are reserved words, 
+denoting possibly-null array types of given rank,
+but not `array1?` or `array0?`.
 - `bv0`, `bv1`, `bv2`, etc. are reserved words that denote the types of
 bitvectors of given length.
 The sequence of digits after 'array' or 'bv' may not have leading zeros: 
@@ -199,7 +205,8 @@ Also, `ident` tokens that begin with an `_` are not permitted as user identifier
 
 ### 2.5.3. Digits {#sec-digits}
 
-A `digits` token is a sequence of decimal digits (`digit`), possibly interspersed with underscores for readability (but not beginning or ending with an underscore).
+A `digits` token is a sequence of decimal digits (`digit`), possibly interspersed with 
+underscores for readability (but not beginning or ending with an underscore).
 Example: `1_234_567`.
 
 A `hexdigits` token denotes a hexadecimal constant, and is a sequence of hexadecimal digits (`hexdigit`)
@@ -214,7 +221,7 @@ Example: `123_456.789_123`.
 ### 2.5.4. Escaped Character {#sec-escaped-characters}
 
 The `escapedChar` token is a multi-character sequence that denotes a non-printable or non-ASCII character.
-They begin with a backslash characcter (`\`) and denote
+Such tokens begin with a backslash characcter (`\`) and denote
  a single- or double-quote character, backslash,
 null, new line, carriage return, tab, or a
 Unicode character with given hexadecimal representation.
@@ -231,15 +238,14 @@ The hex digits may be interspersed with underscores for readability
 (but not beginning or ending with an underscore), as in `\U{1_F680}`.
 The braces are part of the required character sequence.
 
+Note that although Unicode
+letters are not allowed in Dafny identifiers, Dafny does support [Unicode
+in its character, string, and verbatim strings constants and in its comments](#sec-unicode).
 
 ### 2.5.5. Character Constant Token {#sec-character-constant-token}
 
 The `charToken` token denotes a character constant.
 It is either a `charChar` or an `escapedChar` enclosed in single quotes.
-Note that although Unicode
-letters are not allowed in Dafny identifiers, Dafny does support [Unicode
-in its character, string, and verbatim strings constants and in its comments](#sec-unicode).
-
 
 ### 2.5.6. String Constant Token {#sec-string-constant-token}
 
@@ -281,7 +287,7 @@ Note that
 
 * Digits can be used to name fields of classes and destructors of
   datatypes. For example, the built-in tuple datatypes have destructors
-  named 0, 1, 2, etc. Note that as a field or destructor name a digit sequence
+  named 0, 1, 2, etc. Note that as a field or destructor name, a digit sequence
   is treated as a string, not a number: internal
   underscores matter, so `10` is different from `1_0` and from `010`.
 * `m.requires` is used to denote the [precondition](#sec-requires-clause) for method `m`.
@@ -347,6 +353,9 @@ zero or more ``DotSuffix``s which denote a component. Examples:
 * `MyMethod.requires`
 * `A.B.C.D`
 
+The identifiers and dots are separate tokens and so may optionally be
+separated by whitespace.
+
 ### 2.6.3. Identifier-Type Combinations
 
 Identifiers are typically declared in combination with a type, as in
@@ -409,7 +418,7 @@ For example, in the quantifier domain `i | 0 <= i < |s|, y <- s[i] | i < y`, the
 because the range attached to `i` ensures `i` is a valid index in the sequence `s`.
 
 Allowing per-variable ranges is not fully backwards compatible, and so it is not yet allowed by default;
-the `/quantifierSyntax:4` option needs to be provided to enable this feature (See [Section 25.8.5](#sec-controlling-language)).
+the `--quantifier-syntax:4` option needs to be provided to enable this feature (See [Section 13.8.5](#sec-controlling-language)).
 
 ### 2.6.5. Numeric Literals ([grammar](#g-literal-expression)) {#sec-numeric-literals}
 

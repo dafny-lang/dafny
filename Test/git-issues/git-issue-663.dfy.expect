@@ -1,136 +1,136 @@
 
 Dafny program verifier finished with 23 verified, 0 errors
-git-issue-663.dfy(239,10): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(242,10): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(245,16): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(248,16): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(255,33): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(256,36): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(260,33): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(261,36): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(265,33): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(266,36): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(316,4): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(319,10): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(323,6): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(327,6): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(333,4): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(336,10): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(340,6): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(344,6): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(5,2): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(8,8): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(12,4): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(16,4): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(22,2): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(25,8): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(29,4): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(33,4): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(39,4): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(44,10): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(50,6): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(55,4): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(59,4): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(64,10): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(70,6): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(75,4): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(81,4): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(86,10): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(92,6): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(97,4): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(101,4): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(106,10): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(112,6): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(117,4): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(132,2): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(129,4): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(125,8): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(122,2): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(147,2): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(144,4): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(140,8): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(137,2): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(154,11): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(155,11): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(156,10): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(157,12): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(162,11): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(163,11): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(164,10): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(165,12): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(170,11): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(171,8): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(172,10): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(173,12): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(179,11): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(180,8): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(181,10): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(182,12): Error: an assume statement without an {:axiom} attribute cannot be compiled
+git-issue-663.dfy(239,10): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(242,10): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(245,16): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(248,16): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(255,33): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(256,36): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(260,33): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(261,36): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(265,33): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(266,36): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(316,4): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(319,10): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(323,6): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(327,6): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(333,4): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(336,10): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(340,6): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(344,6): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(5,2): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(8,8): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(12,4): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(16,4): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(22,2): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(25,8): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(29,4): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(33,4): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(39,4): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(44,10): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(50,6): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(55,4): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(59,4): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(64,10): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(70,6): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(75,4): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(81,4): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(86,10): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(92,6): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(97,4): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(101,4): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(106,10): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(112,6): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(117,4): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(132,2): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(129,4): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(125,8): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(122,2): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(147,2): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(144,4): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(140,8): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(137,2): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(154,11): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(155,11): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(156,10): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(157,12): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(162,11): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(163,11): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(164,10): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(165,12): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(170,11): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(171,8): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(172,10): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(173,12): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(179,11): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(180,8): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(181,10): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(182,12): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
 git-issue-663.dfy(187,7): Error: Method _module._default.SpecificationOfCompiledMethodWithoutBody has no body
-git-issue-663.dfy(188,11): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(189,11): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(190,10): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(191,12): Error: an assume statement without an {:axiom} attribute cannot be compiled
+git-issue-663.dfy(188,11): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(189,11): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(190,10): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(191,12): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
 git-issue-663.dfy(193,13): Error: Method _module._default.SpecificationOfGhostMethodWithoutBody has no body
-git-issue-663.dfy(194,11): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(195,11): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(196,10): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(197,12): Error: an assume statement without an {:axiom} attribute cannot be compiled
+git-issue-663.dfy(194,11): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(195,11): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(196,10): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(197,12): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
 git-issue-663.dfy(199,16): Error: Function _module._default.SpecificationOfCompiledFunctionWithoutBody has no body
-git-issue-663.dfy(200,11): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(201,8): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(202,10): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(203,12): Error: an assume statement without an {:axiom} attribute cannot be compiled
+git-issue-663.dfy(200,11): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(201,8): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(202,10): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(203,12): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
 git-issue-663.dfy(205,9): Error: Function _module._default.SpecificationOfGhostFunctionWithoutBody has no body
-git-issue-663.dfy(206,11): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(207,8): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(208,10): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(209,12): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(214,11): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(216,2): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(221,11): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(222,10): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(223,12): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(225,2): Error: an assume statement without an {:axiom} attribute cannot be compiled
+git-issue-663.dfy(206,11): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(207,8): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(208,10): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(209,12): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(214,11): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(216,2): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(221,11): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(222,10): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(223,12): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(225,2): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
 git-issue-663.dfy(228,16): Error: Function _module._default.ExtremePredicateWithoutBody has no body
-git-issue-663.dfy(229,11): Error: an assume statement without an {:axiom} attribute cannot be compiled
+git-issue-663.dfy(229,11): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
 git-issue-663.dfy(231,12): Error: Method _module._default.ExtremeLemmaWithoutBody has no body
-git-issue-663.dfy(232,11): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(233,10): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(234,12): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(279,13): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(279,30): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(280,19): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(281,4): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(281,21): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(282,4): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(283,14): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(283,31): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(284,20): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(284,37): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(288,13): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(288,30): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(289,19): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(290,4): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(291,14): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(291,31): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(292,20): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(292,37): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(296,13): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(296,30): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(297,19): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(299,14): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(299,31): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(300,20): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(300,37): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(298,4): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(305,13): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(305,30): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(306,19): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(308,14): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(308,31): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(309,20): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(309,37): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(307,4): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(250,23): Error: an assume statement without an {:axiom} attribute cannot be compiled
-git-issue-663.dfy(252,26): Error: an assume statement without an {:axiom} attribute cannot be compiled
+git-issue-663.dfy(232,11): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(233,10): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(234,12): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(279,13): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(279,30): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(280,19): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(281,4): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(281,21): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(282,4): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(283,14): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(283,31): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(284,20): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(284,37): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(288,13): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(288,30): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(289,19): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(290,4): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(291,14): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(291,31): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(292,20): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(292,37): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(296,13): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(296,30): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(297,19): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(299,14): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(299,31): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(300,20): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(300,37): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(298,4): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(305,13): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(305,30): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(306,19): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(308,14): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(308,31): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(309,20): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(309,37): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(307,4): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(250,23): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
+git-issue-663.dfy(252,26): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)

@@ -155,7 +155,7 @@ namespace DafnyServer {
                   ParentClass = userType.ResolvedClass.SanitizedName,
                   Module = userType.ResolvedClass.EnclosingModuleDefinition.SanitizedName,
                   SymbolType = SymbolInformation.Type.Definition,
-                  StartToken = method.BodyStartTok,
+                  StartToken = method.StartToken,
                   EndToken = method.EndToken
                 });
               }

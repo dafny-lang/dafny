@@ -922,7 +922,7 @@ public class StringLiteralExpr : LiteralExpr {
   }
 }
 
-public class DatatypeValue : Expression, IHasUsages, ICloneable<DatatypeValue> {
+public class DatatypeValue : Expression, IHasUsages, ICloneable<DatatypeValue>, ICanFormat {
   public readonly string DatatypeName;
   public readonly string MemberName;
   public readonly ActualBindings Bindings;
@@ -986,6 +986,10 @@ public class DatatypeValue : Expression, IHasUsages, ICloneable<DatatypeValue> {
   }
 
   public IToken NameToken => tok;
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    formatter.SetMethodLikeIndent(StartToken, OwnedTokens, indentBefore);
+    return true;
+  }
 }
 
 public class ThisExpr : Expression {
@@ -2091,7 +2095,8 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr>, ICanFormat {
   }
 
   public BinaryExpr(IToken tok, Opcode op, Expression e0, Expression e1)
-    : base(tok) {
+    :
+    base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(e0 != null);
     Contract.Requires(e1 != null);

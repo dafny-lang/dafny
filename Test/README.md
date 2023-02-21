@@ -25,6 +25,25 @@ dotnet test --logger "console;verbosity=normal" Source/IntegrationTests --filter
 [See here](https://docs.microsoft.com/en-us/dotnet/core/tools/dotnet-test) for more information about
 the `dotnet test` command and other supported options.
 
+## Writing tests
+
+Lit tests use a very restricted form of command-line: executables and their arguments, piping,
+`>` and `>>` redirections (for respectively writing and appending stdout to a file) 
+and `2>` and `2>>` redirections (for respectively writing and appending both stdout and stderr to a file).
+
+To work cross-platform, use a number of macros: %verify, %resolve, %build, %run, %translate (with %trargs),
+%exits-with, %diff, %sed and others you can find defined in lit.site.cfg
+
+`Any new macros defined here must also be defied in Source/IntegrationTetss/LitTests.cs`
+
+A typical simple test for a single source file that has verification errors is
+```
+// RUN: %exits-with 4 %verify "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+```
+
+There are many examples in the .dfy files under this directory.
+
 ## Executing Tests from JetBrains Rider
 
 You will likely find it more convenient to run tests from an IDE such as
