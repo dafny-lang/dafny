@@ -221,7 +221,7 @@ class MyClass<A, B> {
     P(x, y)
   }
   /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
-  predicate P#<X, Y>[_k: ORDINAL](x: X, y: Y)
+  predicate {:axiom} P#<X, Y>[_k: ORDINAL](x: X, y: Y)
     decreases _k
   {
     P(x, y)
@@ -233,7 +233,7 @@ class MyClass<A, B> {
     R<T>()
   }
   /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
-  predicate R#<T>[_k: ORDINAL]()
+  predicate {:axiom} R#<T>[_k: ORDINAL]()
     decreases _k
   {
     R<T>()
@@ -245,7 +245,7 @@ class MyClass<A, B> {
     S<Q>()
   }
   /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
-  static predicate S#<Q>[_k: ORDINAL]()
+  static predicate {:axiom} S#<Q>[_k: ORDINAL]()
     decreases _k
   {
     S<Q>()
@@ -257,7 +257,7 @@ class MyClass<A, B> {
     MyClass<B, A>.RST<QQ>()
   }
   /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
-  static predicate RST#<QQ>[_k: ORDINAL]()
+  static predicate {:axiom} RST#<QQ>[_k: ORDINAL]()
     decreases _k
   {
     MyClass<B, A>.RST<QQ>()
@@ -269,7 +269,7 @@ class MyClass<A, B> {
     MyClass<B, A>.RST_Nat<QQ>()
   }
   /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
-  static predicate RST_Nat#<QQ>[_k: nat]()
+  static predicate {:axiom} RST_Nat#<QQ>[_k: nat]()
     decreases _k
   {
     MyClass<B, A>.RST_Nat<QQ>()
@@ -282,7 +282,7 @@ class MyClass<A, B> {
     L(u, v);
   }
   /***
-  lemma /*{:_induction this, _k}*/ L#<U, V>[_k: ORDINAL](u: U, v: V)
+  lemma {:axiom} /*{:_induction this, _k}*/ L#<U, V>[_k: ORDINAL](u: U, v: V)
     ensures P#[_k](u, v)
     decreases _k
   {
@@ -305,7 +305,7 @@ class MyClass<A, B> {
     assert R#<char>[_k - 1]();
   }
   /***
-  lemma /*{:_induction this, _k}*/ M#<W>[_k: ORDINAL]()
+  lemma {:axiom} /*{:_induction this, _k}*/ M#<W>[_k: ORDINAL]()
     ensures R#<char>[_k]()
     decreases _k
   {
@@ -332,7 +332,7 @@ greatest lemma N<D0, D1, D2>(o: MyClass<D0, D1>)
   N<D0, D1, D2>(o);
 }
 /***
-lemma /*{:_induction _k}*/ N#<D0, D1, D2>[_k: ORDINAL](o: MyClass<D0, D1>)
+lemma {:axiom} /*{:_induction _k}*/ N#<D0, D1, D2>[_k: ORDINAL](o: MyClass<D0, D1>)
   ensures o.R#<D2>[_k]()
   decreases _k, o
 {
@@ -354,7 +354,7 @@ greatest lemma O<D0, D1, D2>()
   O<D0, D1, D2>();
 }
 /***
-lemma /*{:_induction _k}*/ O#<D0, D1, D2>[_k: ORDINAL]()
+lemma {:axiom} /*{:_induction _k}*/ O#<D0, D1, D2>[_k: ORDINAL]()
   ensures MyClass<D0, D1>.S#<D2>[_k]()
   decreases _k
 {
@@ -376,7 +376,7 @@ greatest lemma {:induction false} RstRst0<alpha, gamma>()
   RstRst0<int, gamma>();
 }
 /***
-lemma {:induction false} RstRst0#<alpha, gamma>[_k: ORDINAL]()
+lemma {:induction false} {:axiom} RstRst0#<alpha, gamma>[_k: ORDINAL]()
   ensures MyClass<alpha, char>.RST#<gamma>[_k]()
   decreases _k
 {
@@ -398,7 +398,7 @@ greatest lemma {:induction false} RstRst1<alpha, gamma>()
   RstRst1<int, int>();
 }
 /***
-lemma {:induction false} RstRst1#<alpha, gamma>[_k: ORDINAL]()
+lemma {:induction false} {:axiom} RstRst1#<alpha, gamma>[_k: ORDINAL]()
   ensures MyClass<alpha, char>.RST#<gamma>[_k]()
   decreases _k
 {
@@ -420,7 +420,7 @@ greatest lemma {:induction false} RstRst2<alpha, gamma>()
   RstRst2<alpha, gamma>();
 }
 /***
-lemma {:induction false} RstRst2#<alpha, gamma>[_k: ORDINAL]()
+lemma {:induction false} {:axiom} RstRst2#<alpha, gamma>[_k: ORDINAL]()
   ensures MyClass<alpha, char>.RST#<gamma>[_k]()
   decreases _k
 {
@@ -442,7 +442,7 @@ greatest lemma {:induction false} RstRst3<alpha, beta, gamma>()
   RstRst3<alpha, beta, gamma>();
 }
 /***
-lemma {:induction false} RstRst3#<alpha, beta, gamma>[_k: ORDINAL]()
+lemma {:induction false} {:axiom} RstRst3#<alpha, beta, gamma>[_k: ORDINAL]()
   ensures MyClass<alpha, beta>.RST#<gamma>[_k]()
   decreases _k
 {
@@ -464,7 +464,7 @@ greatest lemma {:induction false} RstRst4<alpha, beta, gamma>()
   RstRst4<beta, alpha, gamma>();
 }
 /***
-lemma {:induction false} RstRst4#<alpha, beta, gamma>[_k: ORDINAL]()
+lemma {:induction false} {:axiom} RstRst4#<alpha, beta, gamma>[_k: ORDINAL]()
   ensures MyClass<alpha, beta>.RST#<gamma>[_k]()
   decreases _k
 {
@@ -490,7 +490,7 @@ greatest lemma {:induction false} RstRst5<alpha, gamma>()
   }
 }
 /***
-lemma {:induction false} RstRst5#<alpha, gamma>[_k: ORDINAL]()
+lemma {:induction false} {:axiom} RstRst5#<alpha, gamma>[_k: ORDINAL]()
   ensures MyClass<alpha, char>.RST#<gamma>[_k]()
   decreases _k
 {
@@ -520,7 +520,7 @@ greatest lemma {:induction false} RstRst6<alpha, beta, gamma>()
     RstRst6#<alpha, beta, gamma>[_k - 2]();
 }
 /***
-lemma {:induction false} RstRst6#<alpha, beta, gamma>[_k: ORDINAL]()
+lemma {:induction false} {:axiom} RstRst6#<alpha, beta, gamma>[_k: ORDINAL]()
   ensures MyClass<alpha, beta>.RST#<gamma>[_k]()
   decreases _k
 {
@@ -549,7 +549,7 @@ greatest lemma RstRst7<alpha, beta, gamma>()
   }
 }
 /***
-lemma /*{:_induction _k}*/ RstRst7#<alpha, beta, gamma>[_k: ORDINAL]()
+lemma {:axiom} /*{:_induction _k}*/ RstRst7#<alpha, beta, gamma>[_k: ORDINAL]()
   ensures MyClass<alpha, beta>.RST#<gamma>[_k]()
   decreases _k
 {
@@ -576,7 +576,7 @@ greatest lemma {:induction false} RstRst8<alpha, gamma>[nat]()
   }
 }
 /***
-lemma {:induction false} RstRst8#<alpha, gamma>[_k: nat]()
+lemma {:induction false} {:axiom} RstRst8#<alpha, gamma>[_k: nat]()
   ensures MyClass<alpha, char>.RST_Nat#<gamma>[_k]()
   decreases _k
 {
@@ -596,7 +596,7 @@ greatest lemma {:induction false} RstRst9<alpha, beta, gamma>[nat]()
   }
 }
 /***
-lemma {:induction false} RstRst9#<alpha, beta, gamma>[_k: nat]()
+lemma {:induction false} {:axiom} RstRst9#<alpha, beta, gamma>[_k: nat]()
   ensures MyClass<alpha, beta>.RST_Nat#<gamma>[_k]()
   decreases _k
 {
@@ -613,7 +613,7 @@ greatest lemma RstRst10<alpha, beta, gamma>[nat]()
 {
 }
 /***
-lemma /*{:_induction _k}*/ RstRst10#<alpha, beta, gamma>[_k: nat]()
+lemma {:axiom} /*{:_induction _k}*/ RstRst10#<alpha, beta, gamma>[_k: nat]()
   ensures MyClass<alpha, beta>.RST_Nat#<gamma>[_k]()
   decreases _k
 {
