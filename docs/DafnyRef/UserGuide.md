@@ -1597,7 +1597,7 @@ or the Dafny 4 syntax (`ghost function` and `function`)
   that is, any Unicode code point excluding surrogates and
   allows `\U{X..X}` escapes in string and character literals. 
   The default is false for Dafny version 3 and true for version 4.
-  The legacy option was -unicodeChar:<n>` with values 0 and 1 for
+  The legacy option was `-unicodeChar:<n>` with values 0 and 1 for
   false and true above.
 
 Legacy options:
