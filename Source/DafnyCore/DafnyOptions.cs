@@ -324,7 +324,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     public bool AuditProgram = false;
 
-    public string DefaultZ3Version = "4.12.1";
+    public static string DefaultZ3Version = "4.12.1";
 
     public static readonly ReadOnlyCollection<Plugin> DefaultPlugins = new(new[] { SinglePassCompiler.Plugin });
     private IList<Plugin> cliPluginCache;

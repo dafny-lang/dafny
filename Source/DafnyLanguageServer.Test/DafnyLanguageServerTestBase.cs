@@ -108,6 +108,7 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
     protected virtual ILanguageClient CreateClient(
       Action<LanguageClientOptions> clientOptionsAction = null,
       Action<LanguageServerOptions> serverOptionsAction = null) {
+      DafnyOptions.DefaultZ3Version = "4.8.5";
       var client = LanguageClient.PreInit(
         options => {
           var (reader, writer) = SetupServer(serverOptionsAction);
