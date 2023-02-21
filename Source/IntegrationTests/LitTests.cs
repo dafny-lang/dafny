@@ -48,7 +48,7 @@ namespace IntegrationTests {
         { "%diff", "diff" },
         { "%trargs", "--use-basename-for-filename --cores:2 --verification-time-limit:300" },
         { "%binaryDir", "." },
-        { "%z3", Path.Join("z3", "bin", "z3") },
+        { "%z3", Path.Join("z3", "bin", "z3-4.12.1") },
         { "%repositoryRoot", repositoryRoot.Replace(@"\", "/") },
       };
 
