@@ -31,9 +31,8 @@ in the Dafny language.)
 
 The easiest way to try out the Dafny language is to [download the supporting tools and documentation](https://github.com/dafny-lang/dafny/releases) and
 run `dafny` on your machine as you follow along with the [Dafny tutorial](../OnlineTutorial/guide).
-The `dafny` tool can be run from the command line (on Linux, MacOS, Windows or other platforms) or from an IDE
-such as emacs or an editor such as VSCode, which can provide syntax highlighting without
-the built-in verification.
+The `dafny` tool can be run from the command line (on Linux, MacOS, Windows or other platforms) or from IDEs
+such as emacs and VSCode, which can provide syntax highlighting and code manipulation capabilities.
 
 The verifier is powered
 by [Boogie](http://research.microsoft.com/boogie)
@@ -45,7 +44,6 @@ of different backends:
 the .NET platform via intermediate C\# files, Java, Javascript, Go, and C++.
 Each language provides a basic Foreign Function Interface (through uses of `:extern`)
 and a supporting runtime library.
-However, there is no automatic FFI generator, so `:extern` stubs must be written by hand.
 
 This reference manual for the Dafny verification system is
 based on the following references:
@@ -58,9 +56,25 @@ based on the following references:
 The main part of the reference manual is in top down order except for an
 initial section that deals with the lowest level constructs.
 
-The details of using (and contributing to) the dafny tool are described in the User Guide ([Section 25](#sec-user-guide)).
+The details of using (and contributing to) the dafny tool are described in the User Guide ([Section 13](#sec-user-guide)).
 
-## 1.1. Dafny Example {#sec-example}
+## 1.1. Dafny 4.0
+
+The most recent major version of the Dafny language is Dafny 4.0, released in February 2023.
+It has some backwards incompatibilities with Dafny 3, as decribed in the [migration guide](https://github.com/dafny-lang/ide-vscode/wiki/Quick-migration-guide-from-Dafny-3.X-to-Dafny-4.0).
+
+Some of the highlights of Dafny 4.0 are
+* support for full unicode
+TODO
+
+The user documentation has been expanded with more examples, a FAQ, and an error explanation catalog.
+There is even a new book, [Program Proofs](https://mitpress.mit.edu/9780262546232/program-proofs/) by Dafny designer Rustan Leino.
+
+The IDE now has a framework for showing error explanation information and corresponding quick fixes are
+being added, with refactoring operations on the horizon.
+MORE TODO
+
+## 1.2. Dafny Example {#sec-example}
 To give a flavor of Dafny, here is the solution to a competition problem.
 
 <!-- %check-verify -->

@@ -5,8 +5,14 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class NestedMatchExpr : Expression, ICloneable<NestedMatchExpr> {
-  public readonly Expression Source;
+interface INestedMatch : INode {
+  Expression Source { get; }
+  string MatchTypeName { get; }
+}
+
+public class NestedMatchExpr : Expression, ICloneable<NestedMatchExpr>, ICanFormat, INestedMatch {
+  public Expression Source { get; }
+  public string MatchTypeName => "expression";
   public readonly List<NestedMatchCaseExpr> Cases;
   public readonly bool UsesOptionalBraces;
   public Attributes Attributes;
@@ -35,7 +41,7 @@ public class NestedMatchExpr : Expression, ICloneable<NestedMatchExpr> {
   public override IEnumerable<Expression> SubExpressions =>
     new[] { Source }.Concat(Cases.Select(c => c.Body));
 
-  public override IEnumerable<INode> Children => new[] { Source }.Concat<INode>(Cases);
+  public override IEnumerable<Node> Children => new[] { Source }.Concat<Node>(Cases);
 
   public void Resolve(Resolver resolver, ResolutionContext resolutionContext) {
 
@@ -77,5 +83,13 @@ public class NestedMatchExpr : Expression, ICloneable<NestedMatchExpr> {
 
   public NestedMatchExpr Clone(Cloner cloner) {
     return new NestedMatchExpr(cloner, this);
+  }
+
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    return formatter.SetIndentCases(indentBefore, OwnedTokens.Concat(Cases.SelectMany(oneCase => oneCase.OwnedTokens)).OrderBy(token => token.pos), () => {
+      foreach (var e in formatter.SubExpressions(this)) {
+        formatter.Visit(e, indentBefore);
+      }
+    });
   }
 }

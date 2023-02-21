@@ -1,6 +1,6 @@
-# 24. Advanced Topics {#sec-advanced-topics}
+# 12. Advanced Topics {#sec-advanced-topics}
 
-## 24.1. Type Parameter Completion {#sec-type-parameter-completion}
+## 12.1. Type Parameter Completion {#sec-type-parameter-completion}
 
 Generic types, like `A<T,U>`, consist of a _type constructor_, here `A`, and type parameters, here `T` and `U`.
 Type constructors are not first-class entities in Dafny, they are always used syntactically to construct
@@ -21,8 +21,8 @@ type List<T>
 function Elements(list: List): set
 ```
 In the latter case, Dafny knows that the already defined types `set` and `List` each take one type parameter
-so it fills in `<T>` (using some unique type parameter name) and then determines the the function itself needs
-a type parameter `<T>` also.
+so it fills in `<T>` (using some unique type parameter name) and then determines that the function itself needs
+a type parameter `<T>` as well.
 
 Dafny also accepts
 <!-- %check-resolve -->
@@ -40,7 +40,7 @@ Omitting them in cases where Dafny can intuit them makes a more compact definiti
 This process is described in more detail with more examples in this paper:
 [http://leino.science/papers/krml270.html](http://leino.science/papers/krml270.html).
 
-## 24.2. Type Inference {#sec-type-inference}
+## 12.2. Type Inference {#sec-type-inference}
 
 Signatures of methods, functions, fields (except `const` fields with a
 RHS), and datatype constructors have to declare the types of their
@@ -190,7 +190,7 @@ some notes about type inference:
 
 * Many of the types inferred can be inspected in the IDE.
 
-## 24.3. Ghost Inference {#sec-ghost-inference}
+## 12.3. Ghost Inference {#sec-ghost-inference}
 
 After[^why-after-type-inference] [type inference](#sec-type-inference), Dafny revisits the program
 and makes a final decision about which statements are to be compiled,
@@ -205,8 +205,8 @@ These statements are determined to be ghost:
 - The body of the `by` of an [`assert`](#sec-assert-statement) statement.
 - Calls to ghost methods, including [lemmas](#sec-lemmas).
 - [`if`](#sec-if-statement), [`match`](#sec-match-statement), and [`while`](#sec-while-statement) statements with condition expressions or alternatives containing ghost expressions. Their bodies are also ghost.
-- [`for`](#sec-for-loops) loops whose start expression contains ghost expressions.
-- [Variable declarations](#sec-var-decl-statement) if they are explicitly ghost or if their respective right-hand side is a ghost expression.
+- [`for`](#sec-for-statement) loops whose start expression contains ghost expressions.
+- [Variable declarations](#sec-variable-declaration-statement) if they are explicitly ghost or if their respective right-hand side is a ghost expression.
 - [Assignments or update statement](#sec-update-and-call-statement) if all updated variables are ghost.
 - [`forall`](#sec-forall-statement) statements, unless there is exactly one assignment to a non-ghost array in its body.
 
@@ -218,8 +218,8 @@ These statements always non-ghost:
 The following expressions are ghost, which is used in some of the tests above:
 
 - All [specification expressions](#sec-list-of-specification-expressions)
-- All calls to functions and predicates not marked as `method`
-- All variables, [constants](#sec-constant-field-declarations) and [fields](#sec-field-declarations) declared using the `ghost` keyword
+- All calls to functions and predicates marked as `ghost`
+- All variables, [constants](#sec-constant-field-declaration) and [fields](#sec-field-declaration) declared using the `ghost` keyword
 
 Note that inferring ghostness can uncover other errors, such as updating non-ghost variables in ghost contexts.
 For example, if `f` is a ghost function, in the presence of the following code:
@@ -236,7 +236,7 @@ Dafny will infer that the entire `if` is ghost because the condition uses a ghos
 and will then raise the error that it's not possible to update the non-ghost variable `x` in a ghost context.
 
 
-## 24.4. Well-founded Functions and Extreme Predicates {#sec-extreme}
+## 12.4. Well-founded Functions and Extreme Predicates {#sec-extreme}
 
 Recursive functions are a core part of computer science and mathematics.
 Roughly speaking, when the definition of such a function spells out a
@@ -285,7 +285,7 @@ way.
 The encoding for greatest predicates in Dafny was described previously
 [@LeinoMoskal:Coinduction] and is here described in [the section about datatypes](#sec-coinductive-datatypes).
 
-### 24.4.1. Function Definitions
+### 12.4.1. Function Definitions
 
 To define a function $f \colon X \to Y$ in terms of itself, one can
 write a general equation like
@@ -342,7 +342,7 @@ logical inconsistency.  In general, there
 could be many solutions to an equation like [the general equation](#eq-general) or there could be none.
 Let's consider two ways to make sure we're defining the function uniquely.
 
-#### 24.4.1.1. Well-founded Functions
+#### 12.4.1.1. Well-founded Functions
 
 A standard way to ensure that [the general equation](#eq-general) has a unique solution in $f$ is
 to make sure the recursion is well-founded, which roughly means that the
@@ -390,7 +390,7 @@ $\mathit{P}\_\downarrow(n)$ for every natural number $n$.  However, what we are 
 about here is to avoid mathematical inconsistencies, and that is
 indeed a consequence of the decrement condition.
 
-#### 24.4.1.2. Example with Well-founded Functions {#sec-fib-example}
+#### 12.4.1.2. Example with Well-founded Functions {#sec-fib-example}
 
 So that we can later see how inductive proofs are done in Dafny, let's prove that
 for any $n$, $\mathit{fib}(n)$ is even iff $n$ is a multiple of $3$.
@@ -406,7 +406,7 @@ even number and an odd number, which is odd.  In this proof, we invoked the indu
 hypothesis on $n-2$ and on $n-1$.  This is allowed, because both are smaller than
 $n$, and hence the invocations go down in the well-founded ordering on natural numbers.
 
-#### 24.4.1.3. Extreme Solutions
+#### 12.4.1.3. Extreme Solutions
 
 We don't need to exclude the possibility of [the general equation](#eq-general) having multiple
 solutions---instead, we can just be clear about which one of them we want.
@@ -526,7 +526,7 @@ solution for $g$, there are two proof trees that establish $g(0)$:  one is the f
 proof tree that uses the left-hand rule of [these coinductive rules](#g-coind-rule) once, the other is the infinite
 proof tree that keeps on using the right-hand rule of [these coinductive rules](#g-coind-rule).
 
-### 24.4.2. Working with Extreme Predicates {#sec-extreme-predicates}
+### 12.4.2. Working with Extreme Predicates {#sec-extreme-predicates}
 
 In general, one cannot evaluate whether or not an extreme predicate holds for some
 input, because doing so may take an infinite number of steps.  For example, following
@@ -597,7 +597,7 @@ Let's consider two examples, both involving function $g$ in
 and therefore I will write $g^{\downarrow}$ and $g^{\uparrow}$ to denote the
 least and greatest solutions for $g$ in [the EvenNat equation](#eq-EvenNat).
 
-#### 24.4.2.1. Example with Least Solution {#sec-example-least-solution}
+#### 12.4.2.1. Example with Least Solution {#sec-example-least-solution}
 
 The main technique for establishing that $g^{\downarrow}(x)$ holds for some
 $x$, that is, proving something of the form $Q \Longrightarrow g^{\downarrow}(x)$, is to
@@ -651,7 +651,7 @@ we apply the induction hypothesis (on the smaller $k-1$ and with $x-2$) and
 obtain $0 \leq (x-2)\;\wedge\; (x-2) \textrm{ even}$, from which our proof goal
 follows.
 
-#### 24.4.2.2. Example with Greatest Solution {#sec-example-greatest-solution}
+#### 12.4.2.2. Example with Greatest Solution {#sec-example-greatest-solution}
 
 We can think of a predicate $g^{\uparrow}(x)$ as being represented
 by a proof tree---in this case a term in a _coinductive datatype_,
@@ -711,7 +711,7 @@ If $k > 0$, then ${ {}^{\sharp}\kern-1mm g}\_k(x) = (x = 0 \:\vee\: { {}^{\sharp
 disjunct by applying the induction hypothesis (on the smaller $k-1$ and with $x-2$).
 
 
-### 24.4.3. Other Techniques
+### 12.4.3. Other Techniques
 
 Although this section has considered only well-founded functions and extreme
 predicates, it is worth mentioning that there are additional ways of making sure that
@@ -726,7 +726,7 @@ This was pointed out by Manolios and Moore [@ManoliosMoore:PartialFunctions].
 Functions can be underspecified in this way in the proof assistants ACL2 [@ACL2:book]
 and HOL [@Krauss:PhD].
 
-## 24.5. Functions in Dafny
+## 12.5. Functions in Dafny
 
 This section explains with examples the support in
 Dafny for well-founded functions, extreme predicates,
@@ -734,7 +734,7 @@ and proofs regarding these, building on the concepts
 explained in the previous section.
 
 
-### 24.5.1. Well-founded Functions in Dafny
+### 12.5.1. Well-founded Functions in Dafny
 
 Declarations of well-founded functions are unsurprising.  For example, the Fibonacci
 function is declared as follows:
@@ -766,9 +766,9 @@ Dafny IDE) is very often correct, so users are rarely bothered to provide explic
 If a function returns `bool`, one can drop the result type `: bool` and change the
 keyword `function` to `predicate`.
 
-### 24.5.2. Proofs in Dafny {#sec-proofs-in-dafny}
+### 12.5.2. Proofs in Dafny {#sec-proofs-in-dafny}
 
-Dafny has `lemma` declarations, as described in [Section 13.3.3](#sec-lemmas):
+Dafny has `lemma` declarations, as described in [Section 6.3.3](#sec-lemmas):
 lemmas can have pre- and postcondition specifications and their body is a code block.
 Here is the lemma we stated and proved in [the fib example](#sec-fib-example) in the previous section:
 
@@ -854,7 +854,7 @@ $\\exists k \bullet\; 100 \leq \mathit{fib}(k) < 200$ is known, then the stateme
 `k :| 100 <= fib(k) < 200;` will assign to `k` some value (chosen arbitrarily)
 for which `fib(k)` falls in the given range.
 
-### 24.5.3. Extreme Predicates in Dafny {#sec-friendliness}
+### 12.5.3. Extreme Predicates in Dafny {#sec-friendliness}
 
 The previous subsection explained that a `predicate` declaration introduces a
 well-founded predicate.  The declarations for introducing extreme predicates are
@@ -895,7 +895,7 @@ that recursive calls to least predicates are
 not inside unbounded universal quantifiers and that recursive calls to greatest predicates
 are not inside unbounded existential quantifiers [@Milner:CCS; @LeinoMoskal:Coinduction].
 
-### 24.5.4. Proofs about Extreme Predicates
+### 12.5.4. Proofs about Extreme Predicates
 
 From what has been presented so far, we can do the formal proofs for
 [the example about the least solution](#sec-example-least-solution) and [the example about the greatest solution](#sec-example-greatest-solution).  Here is the
@@ -964,7 +964,7 @@ the proofs do not reflect the intuitive proofs described in
 [the example of the least solution](#sec-example-least-solution) and [the example of the greatest solution](#sec-example-greatest-solution).
 These shortcomings are addressed in the next subsection.
 
-### 24.5.5. Nicer Proofs of Extreme Predicates {#sec-nicer-proofs-of-extremes}
+### 12.5.5. Nicer Proofs of Extreme Predicates {#sec-nicer-proofs-of-extremes}
 
 The proofs we just saw follow standard forms:
 use Skolemization to convert the least predicate into a prefix predicate for some `k`
@@ -1023,7 +1023,7 @@ each lemma, the bodies of the given extreme lemmas `EvenNat` and
 `Always` can be empty and Dafny still completes the proofs.
 Folks, it doesn't get any simpler than that!
 
-## 24.6. Variable Initialization and Definite Assignment {#sec-definite-assignment}
+## 12.6. Variable Initialization and Definite Assignment {#sec-definite-assignment}
 
 The Dafny language semantics require that when a constant or variable is used
 that it have a definite value. It need not be given a value when it is declared,
@@ -1033,10 +1033,19 @@ through `if`, `match`, loop statements and expressions, checking for
 definite assignment can require some program flow analysis.
 
 Dafny will issue an error message if it cannot assure itself that a variable 
-has been given a value. This may be a conservative warning: Dafny may issue an error message even if it is possible to prove, but Dafny does not, that a
+has been given a value. This may be a conservative warning: Dafny may issue an 
+error message even if it is possible to prove, but Dafny does not, that a
 variable will always be initialized.
 
-If the type of a variable is _auto-initializable_, then a default value is used
+Dafny has two definite assignment modes: 
+- a strict mode (the default) in which 
+assignments are required even for auto-initializable types, and 
+- a relaxed mode,
+enabled by the option `--relax-definite-assignment`, in which the
+auto-initialization is sufficient to satisfy the definite assignment rules.
+
+In relaxed definite assignment mode,
+if the type of a variable is _auto-initializable_, then a default value is used
 implicitly even if the declaration of the variable does not have an 
 explicit initializer. For example, a `bool` variable is initialized by default
 to `false` and a variable with an int-based type for which `0` is a valid value
@@ -1044,7 +1053,7 @@ is auto-initialized to `0`; a non-nullable class type is not
 auto-initialized, but a nullable class type is auto-initalized to `null`.
 
 In declaring generic types, type parameters can be declared to be required to
-be auto-initializable types (cf. [Section 8.1.2](#sec-auto-init)).
+be auto-initializable types (cf. [Section 5.3.1.2](#sec-auto-init)).
 
 If a class has fields that are not auto-initializable, then the class must
 have a constructor, and in each constructor those fields must be explicitly
@@ -1055,10 +1064,7 @@ having been initialized.
 [This document](../Compilation/AutoInitialization) has more detail on
 auto-initialization.
 
-The `--strict-definite-assignment` option will cause definite assignment rules
-to be enforced even for auto-initializable types.
-
-## 24.7. Well-founded Orders {#sec-well-founded-orders}
+## 12.7. Well-founded Orders {#sec-well-founded-orders}
 
 The well-founded order relations for a variety of built-in types in Dafny
 are given in the following table:

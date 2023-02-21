@@ -89,6 +89,12 @@ class CodePoint(str):
     def __dafnystr__(self):
         return f"'{self.__escaped__()}'"
 
+    def __add__(self, other):
+        return CodePoint(plus_char(self, other))
+
+    def __sub__(self, other):
+        return CodePoint(minus_char(self, other))
+
 class Seq(tuple):
     def __init__(self, __iterable = None, isStr = False):
         '''
@@ -470,7 +476,7 @@ class Doubler:
 class defaults:
     bool = staticmethod(lambda: False)
     char = staticmethod(lambda: 'D')
-    codepoint = staticmethod(lambda: CodePoint('D'))
+    codepoint = staticmethod(lambda: CodePoint(defaults.char()))
     int = staticmethod(lambda: 0)
     real = staticmethod(BigRational)
     pointer = staticmethod(lambda: None)

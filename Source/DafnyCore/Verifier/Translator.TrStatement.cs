@@ -278,8 +278,8 @@ namespace Microsoft.Dafny {
 
         // The "new;" translates into an allocation of "this"
         AddComment(builder, stmt, "new;");
-        fields.Iter(f => CheckDefiniteAssignmentSurrogate(s.SeparatorTok ?? s.EndTok, f, true, builder));
-        fields.Iter(f => RemoveDefiniteAssignmentTrackerSurrogate(f));
+        fields.Iter(f => CheckDefiniteAssignmentSurrogate(s.SeparatorTok ?? s.RangeToken.EndToken, f, true, builder));
+        fields.Iter(RemoveDefiniteAssignmentTrackerSurrogate);
         var th = new ThisExpr(cl);
         var bplThis = (Bpl.IdentifierExpr)etran.TrExpr(th);
         SelectAllocateObject(tok, bplThis, th.Type, false, builder, etran);
@@ -578,7 +578,7 @@ namespace Microsoft.Dafny {
             var substMap = new Dictionary<IVariable, Expression>();
             foreach (var v in FreeVariablesUtil.ComputeFreeVariables(assertStmt.Expr)) {
               if (v is LocalVariable) {
-                var vcopy = new LocalVariable(stmt.Tok, stmt.Tok, string.Format("##{0}#{1}", name, v.Name), v.Type, v.IsGhost);
+                var vcopy = new LocalVariable(stmt.RangeToken, string.Format("##{0}#{1}", name, v.Name), v.Type, v.IsGhost);
                 vcopy.type = vcopy.OptionalType; // resolve local here
                 IdentifierExpr ie = new IdentifierExpr(vcopy.Tok, vcopy.AssignUniqueName(currentDeclaration.IdGenerator));
                 ie.Var = vcopy;
@@ -750,6 +750,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
 
+      FillMissingCases(stmt);
+
       TrStmt_CheckWellformed(stmt.Source, builder, locals, etran, true);
       Bpl.Expr source = etran.TrExpr(stmt.Source);
       var b = new BoogieStmtListBuilder(this);
@@ -806,8 +808,48 @@ namespace Microsoft.Dafny {
         els = null;
         CurrentIdGenerator.Pop();
       }
-      Contract.Assert(ifCmd != null); // follows from the fact that s.Cases.Count + s.MissingCases.Count != 0.
-      builder.Add(ifCmd);
+      if (ifCmd != null) {
+        builder.Add(ifCmd);
+      }
+    }
+
+    void FillMissingCases(IMatch match) {
+      Contract.Requires(match != null);
+      if (match.MissingCases.Any()) {
+        return;
+      }
+
+      var dtd = match.Source.Type.AsDatatype;
+      var constructors = dtd?.ConstructorsByName;
+
+      ISet<string> memberNamesUsed = new HashSet<string>();
+
+      foreach (var matchCase in match.Cases) {
+        if (constructors != null) {
+          Contract.Assert(dtd != null);
+          var ctorId = matchCase.Ctor.Name;
+          if (match.Source.Type.AsDatatype is TupleTypeDecl) {
+            var tuple = (TupleTypeDecl)match.Source.Type.AsDatatype;
+            ctorId = BuiltIns.TupleTypeCtorName(tuple.Dims);
+          }
+
+          if (constructors.ContainsKey(ctorId)) {
+            memberNamesUsed.Add(ctorId); // add mc.Id to the set of names used
+          }
+        }
+      }
+      if (dtd != null && memberNamesUsed.Count != dtd.Ctors.Count) {
+        // We could complain about the syntactic omission of constructors:
+        //   Reporter.Error(MessageSource.Resolver, stmt, "match statement does not cover all constructors");
+        // but instead we let the verifier do a semantic check.
+        // So, for now, record the missing constructors:
+        foreach (var ctr in dtd.Ctors) {
+          if (!memberNamesUsed.Contains(ctr.Name)) {
+            match.MissingCases.Add(ctr);
+          }
+        }
+        Contract.Assert(memberNamesUsed.Count + match.MissingCases.Count == dtd.Ctors.Count);
+      }
     }
 
     private void TrForLoop(ForLoopStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
@@ -1776,7 +1818,7 @@ namespace Microsoft.Dafny {
       var substMap = new Dictionary<IVariable, Expression>();
       for (int i = 0; i < callee.Ins.Count; i++) {
         var formal = callee.Ins[i];
-        var local = new LocalVariable(formal.tok, formal.tok, formal.Name + "#", formal.Type.Subst(tySubst), formal.IsGhost);
+        var local = new LocalVariable(formal.RangeToken, formal.Name + "#", formal.Type.Subst(tySubst), formal.IsGhost);
         local.type = local.OptionalType;  // resolve local here
         var ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator));
         ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here

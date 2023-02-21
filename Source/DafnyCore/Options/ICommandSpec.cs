@@ -16,6 +16,13 @@ public interface ICommandSpec {
   }
   public static Argument<IEnumerable<FileInfo>> FilesArgument { get; }
 
+  public static IEnumerable<Option> FormatOptions => new Option[] {
+    CommonOptionBag.Check,
+    CommonOptionBag.Verbose,
+    CommonOptionBag.FormatPrint,
+    DeveloperOptionBag.UseBaseFileName
+  }.Concat(ParserOptions);
+
   public static IReadOnlyList<Option> VerificationOptions = new Option[] {
     CommonOptionBag.RelaxDefiniteAssignment,
     BoogieOptionBag.VerificationTimeLimit,
@@ -23,14 +30,20 @@ public interface ICommandSpec {
     CommonOptionBag.ManualLemmaInduction,
     CommonOptionBag.SolverPath,
     CommonOptionBag.DisableNonLinearArithmetic,
+    CommonOptionBag.IsolateAssertions,
     BoogieOptionBag.BoogieArguments,
+    CommonOptionBag.VerificationLogFormat,
+    CommonOptionBag.SolverResourceLimit,
+    CommonOptionBag.SolverPlugin,
+    CommonOptionBag.SolverLog,
   }.ToList();
 
   public static IReadOnlyList<Option> TranslationOptions = new Option[] {
     BoogieOptionBag.NoVerify,
     CommonOptionBag.EnforceDeterminism,
     CommonOptionBag.OptimizeErasableDatatypeWrapper,
-    CommonOptionBag.TestAssumptions
+    CommonOptionBag.TestAssumptions,
+    DeveloperOptionBag.Bootstrapping
   }.Concat(VerificationOptions).ToList();
 
   public static IReadOnlyList<Option> ExecutionOptions = new Option[] {
@@ -48,18 +61,23 @@ public interface ICommandSpec {
     CommonOptionBag.WarningAsErrors,
   });
 
-  public static IReadOnlyList<Option> CommonOptions = new List<Option>(new Option[] {
+  public static IReadOnlyList<Option> ParserOptions = new List<Option>(new Option[] {
+    CommonOptionBag.StdIn,
     BoogieOptionBag.Cores,
     CommonOptionBag.Libraries,
     CommonOptionBag.Plugin,
     CommonOptionBag.Prelude,
     Function.FunctionSyntaxOption,
     CommonOptionBag.QuantifierSyntax,
+    CommonOptionBag.UnicodeCharacters,
+    CommonOptionBag.ErrorLimit,
+  });
+
+  public static IReadOnlyList<Option> ResolverOptions = new List<Option>(new Option[] {
     CommonOptionBag.WarnShadowing,
     CommonOptionBag.WarnMissingConstructorParenthesis,
     PrintStmt.TrackPrintEffectsOption,
-    CommonOptionBag.UnicodeCharacters,
-  });
+  }).Concat(ParserOptions).ToList();
 
   IEnumerable<Option> Options { get; }
 

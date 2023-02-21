@@ -3,7 +3,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBearingExpression, ICloneable<LetExpr> {
+public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBearingExpression, ICloneable<LetExpr>, ICanFormat {
   public readonly List<CasePattern<BoundVar>> LHSs;
   public readonly List<Expression> RHSs;
   public readonly Expression Body;
@@ -14,11 +14,6 @@ public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBeari
   // invariant Constraint_Bounds == null || Constraint_Bounds.Count == BoundVars.Count;
   private Expression translationDesugaring;  // filled in during translation, lazily; to be accessed only via Translation.LetDesugaring; always null when Exact==true
   private Translator lastTranslatorUsed; // avoid clashing desugaring between translators
-
-  public IToken BodyStartTok = Token.NoToken;
-  public IToken BodyEndTok = Token.NoToken;
-  IToken IRegion.BodyStartTok { get { return BodyStartTok; } }
-  IToken IRegion.BodyEndTok { get { return BodyEndTok; } }
 
   public void SetTranslationDesugaring(Translator trans, Expression expr) {
     lastTranslatorUsed = trans;
@@ -56,6 +51,17 @@ public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBeari
     Exact = exact;
     Attributes = attrs;
   }
+
+  public static LetExpr Havoc(IToken tok, Type type = null) {
+    type ??= new InferredTypeProxy();
+    var boundVar = new BoundVar(tok, "x", type);
+    var casePatterns = new List<CasePattern<BoundVar>>() { new(tok, boundVar) };
+    return new LetExpr(tok, casePatterns, new List<Expression>() { CreateBoolLiteral(tok, true) },
+      new IdentifierExpr(tok, boundVar), false) {
+      Type = type
+    };
+  }
+
   public override IEnumerable<Expression> SubExpressions {
     get {
       foreach (var e in Attributes.SubExpressions(Attributes)) {
@@ -82,8 +88,12 @@ public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBeari
 
   public IEnumerable<BoundVar> AllBoundVars => BoundVars;
 
-  public override IEnumerable<INode> Children =>
-    (Attributes != null ? new List<INode> { Attributes } : Enumerable.Empty<INode>())
+  public override IEnumerable<Node> Children =>
+    (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>())
     .Concat(LHSs)
     .Concat(base.Children);
+
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    return formatter.SetIndentVarDeclStmt(indentBefore, OwnedTokens, false, true);
+  }
 }

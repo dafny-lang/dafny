@@ -25,10 +25,9 @@ public abstract class LoopStmt : Statement, IDeclarationOrUsage {
     }
   }
 
-  public LoopStmt(IToken tok, IToken endTok, List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod)
-    : base(tok, endTok) {
-    Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+  public LoopStmt(RangeToken rangeToken, List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod)
+    : base(rangeToken) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(cce.NonNullElements(invariants));
     Contract.Requires(decreases != null);
     Contract.Requires(mod != null);
@@ -37,10 +36,9 @@ public abstract class LoopStmt : Statement, IDeclarationOrUsage {
     this.Decreases = decreases;
     this.Mod = mod;
   }
-  public LoopStmt(IToken tok, IToken endTok, List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod, Attributes attrs)
-    : base(tok, endTok, attrs) {
-    Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+  public LoopStmt(RangeToken rangeToken, List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod, Attributes attrs)
+    : base(rangeToken, attrs) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(cce.NonNullElements(invariants));
     Contract.Requires(decreases != null);
     Contract.Requires(mod != null);

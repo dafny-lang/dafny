@@ -46,6 +46,7 @@ js - Compile to JavaScript.
 java - Compile to Java.
 py - Compile to Python.
 cpp - Compile to C++.
+dfy - Compile to Dafny.
 
 Note that the C++ backend has various limitations (see
 Docs/Compilation/Cpp.md). This includes lack of support for
@@ -201,7 +202,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       Prune = true;
       NormalizeNames = true;
       EmitDebugInformation = false;
-      Compiler = new CsharpCompiler();
+      Backend = new CsharpBackend();
     }
 
     public override string VersionNumber {
@@ -248,6 +249,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public bool TypeInferenceDebug = false;
     public string DafnyPrelude = null;
     public string DafnyPrintFile = null;
+    public List<string> FoldersToFormat { get; } = new();
 
     public enum ContractTestingMode {
       None,
@@ -261,9 +263,11 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public List<string> DafnyPrintExportedViews = new List<string>();
     public bool Compile = true;
     public List<string> MainArgs = new List<string>();
+    public bool Format = false;
+    public bool FormatCheck = false;
 
     public string CompilerName;
-    public Compiler Compiler;
+    public IExecutableBackend Backend;
     public bool CompileVerbose = true;
     public bool EnforcePrintEffects = false;
     public string DafnyPrintCompiledFile = null;
@@ -447,6 +451,14 @@ NoGhost - disable printing of functions, ghost methods, and proof
         case "main": {
             if (ps.ConfirmArgumentCount(1)) {
               MainMethod = args[ps.i];
+            }
+
+            return true;
+          }
+
+        case "check": {
+            if (!ps.hasColonArgument || ps.ConfirmArgumentCount(1)) {
+              FormatCheck = !ps.hasColonArgument || args[ps.i] == "1";
             }
 
             return true;
@@ -811,7 +823,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public void ApplyDefaultOptionsWithoutSettingsDefault() {
       base.ApplyDefaultOptions();
 
-      Compiler ??= new CsharpCompiler();
+      Backend ??= new CsharpBackend();
 
       // expand macros in filenames, now that LogPrefix is fully determined
 
@@ -1162,11 +1174,14 @@ NoGhost - disable printing of functions, ghost methods, and proof
       SetZ3Option("smt.qi.eager_threshold", "100"); // TODO: try lowering
       SetZ3Option("smt.delay_units", "true");
 
-      if (z3Version is not null && z3Version.CompareTo(new Version(4, 8, 5)) <= 0) {
-        // These options tend to help with Z3 4.8.5 but hurt with newer versions of Z3.
-        SetZ3Option("smt.case_split", "3");
-        SetZ3Option("smt.arith.solver", "2");
-      }
+      // This option helps avoid "time travelling triggers".
+      // See: https://github.com/dafny-lang/dafny/discussions/3362
+      SetZ3Option("smt.case_split", "3");
+
+      // This option tends to lead to the best all-around arithmetic
+      // performance, though some programs can be verified more quickly
+      // (or verified at all) using a different solver.
+      SetZ3Option("smt.arith.solver", "2");
 
       if (DisableNLarith || 3 <= ArithMode) {
         SetZ3Option("smt.arith.nl", "false");
@@ -1571,7 +1586,6 @@ However, some Boogie options, like /loopUnroll, may not be sound for
 Dafny or may not have the same meaning for a Dafny program as it would
 for a similar Boogie program.
 ".Replace("\n", "\n  ");
-
   }
 
 }

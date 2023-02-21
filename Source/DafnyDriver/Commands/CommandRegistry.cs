@@ -27,9 +27,10 @@ static class CommandRegistry {
   static CommandRegistry() {
     AddCommand(new ResolveCommand());
     AddCommand(new VerifyCommand());
-    AddCommand(new RunCommand());
     AddCommand(new BuildCommand());
+    AddCommand(new RunCommand());
     AddCommand(new TranslateCommand());
+    AddCommand(new FormatCommand());
     AddCommand(new MeasureComplexityCommand());
     AddCommand(new ServerCommand());
     AddCommand(new TestCommand());
@@ -59,13 +60,18 @@ static class CommandRegistry {
     var optionValues = new Dictionary<Option, object>();
     var options = new Options(optionValues);
     dafnyOptions.ShowEnv = ExecutionEngineOptions.ShowEnvironment.Never;
+    dafnyOptions.Environment = "Command-line arguments: " + string.Join(" ", arguments);
     dafnyOptions.Options = options;
 
     foreach (var option in Commands.SelectMany(c => c.Options)) {
       if (!allowHidden) {
         option.IsHidden = false;
       }
+      if (!option.Arity.Equals(ArgumentArity.ZeroOrMore) && !option.Arity.Equals(ArgumentArity.OneOrMore)) {
+        option.AllowMultipleArgumentsPerToken = true;
+      }
     }
+
     var commandToSpec = Commands.ToDictionary(c => {
       var result = c.Create();
       foreach (var option in c.Options) {
@@ -82,6 +88,11 @@ static class CommandRegistry {
       var keywordForNewMode = commandToSpec.Keys.Select(c => c.Name).
         Union(new[] { "--dev", "--version", "-h", "--help", "[parse]", "[suggest]" });
       if (!keywordForNewMode.Contains(first)) {
+        if (first.Length > 0 && first[0] != '/' && first[0] != '-' && !System.IO.File.Exists(first) && first.IndexOf('.') == -1) {
+          dafnyOptions.Printer.ErrorWriteLine(Console.Out,
+            "*** Error: '{0}': The first input must be a command or a legacy option or file with supported extension", first);
+          return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR);
+        }
         var oldOptions = new DafnyOptions();
         if (oldOptions.Parse(arguments)) {
           return new ParseArgumentSuccess(oldOptions);

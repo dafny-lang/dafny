@@ -9,11 +9,20 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
   public readonly List<AssignmentRhs> Rhss;
   public readonly AttributedToken KeywordToken;
   [FilledInDuringResolution] public readonly List<Statement> ResolvedStatements = new List<Statement>();
-  public override IEnumerable<Statement> SubStatements {
-    get { return ResolvedStatements; }
+  public override IEnumerable<Statement> SubStatements => ResolvedStatements;
+  public override IToken Tok {
+    get {
+      var result = Rhs.StartToken.Prev;
+      if (char.IsLetter(result.val[0])) {
+        // Jump to operator if we're on an assume/expect/assert keyword.
+        result = result.Prev;
+      }
+      return result;
+    }
   }
 
-  public override IEnumerable<INode> Children => ResolvedStatements;
+  public override IEnumerable<Node> Children => ResolvedStatements;
+  public override IEnumerable<Statement> PreResolveSubStatements => Enumerable.Empty<Statement>();
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -39,15 +48,33 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
     }
   }
 
-  public AssignOrReturnStmt(IToken tok, IToken endTok, List<Expression> lhss, ExprRhs rhs, AttributedToken keywordToken, List<AssignmentRhs> rhss = null)
-    : base(tok, endTok, lhss) {
-    Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+  public AssignOrReturnStmt(RangeToken rangeToken, List<Expression> lhss, ExprRhs rhs, AttributedToken keywordToken, List<AssignmentRhs> rhss = null)
+    : base(rangeToken, lhss) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(lhss != null);
     Contract.Requires(lhss.Count <= 1);
     Contract.Requires(rhs != null);
     Rhs = rhs;
     Rhss = rhss;
     KeywordToken = keywordToken;
+  }
+
+  public override IEnumerable<Expression> PreResolveSubExpressions {
+    get {
+      foreach (var e in base.SpecificationSubExpressions) {
+        yield return e;
+      }
+      foreach (var e in base.Lhss) {
+        yield return e;
+      }
+      if (Rhs != null) {
+        yield return Rhs.Expr;
+      }
+      foreach (var rhs in Rhss) {
+        foreach (var e in rhs.SubExpressions) {
+          yield return e;
+        }
+      }
+    }
   }
 }

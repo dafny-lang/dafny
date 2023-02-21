@@ -1,9 +1,10 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class AlternativeStmt : Statement, ICloneable<AlternativeStmt> {
+public class AlternativeStmt : Statement, ICloneable<AlternativeStmt>, ICanFormat {
   public readonly bool UsesOptionalBraces;
   public readonly List<GuardedAlternative> Alternatives;
   [ContractInvariantMethod]
@@ -20,18 +21,14 @@ public class AlternativeStmt : Statement, ICloneable<AlternativeStmt> {
     UsesOptionalBraces = original.UsesOptionalBraces;
   }
 
-  public AlternativeStmt(IToken tok, IToken endTok, List<GuardedAlternative> alternatives, bool usesOptionalBraces)
-    : base(tok, endTok) {
-    Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+  public AlternativeStmt(RangeToken rangeToken, List<GuardedAlternative> alternatives, bool usesOptionalBraces)
+    : base(rangeToken) {
     Contract.Requires(alternatives != null);
     this.Alternatives = alternatives;
     this.UsesOptionalBraces = usesOptionalBraces;
   }
-  public AlternativeStmt(IToken tok, IToken endTok, List<GuardedAlternative> alternatives, bool usesOptionalBraces, Attributes attrs)
-    : base(tok, endTok, attrs) {
-    Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+  public AlternativeStmt(RangeToken rangeToken, List<GuardedAlternative> alternatives, bool usesOptionalBraces, Attributes attrs)
+    : base(rangeToken, attrs) {
     Contract.Requires(alternatives != null);
     this.Alternatives = alternatives;
     this.UsesOptionalBraces = usesOptionalBraces;
@@ -54,5 +51,10 @@ public class AlternativeStmt : Statement, ICloneable<AlternativeStmt> {
     }
   }
 
-  public override IEnumerable<INode> Children => Alternatives;
+  public override IEnumerable<Node> Children => Alternatives;
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    return formatter.SetIndentCases(indentBefore, OwnedTokens.Concat(Alternatives.SelectMany(alternative => alternative.OwnedTokens)).OrderBy(token => token.pos), () => {
+      formatter.VisitAlternatives(Alternatives, indentBefore);
+    });
+  }
 }

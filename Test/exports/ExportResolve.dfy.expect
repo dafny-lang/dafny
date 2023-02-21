@@ -60,9 +60,9 @@ ExportResolve.dfy(126,19): Error: Cannot export mutable field 'x' without reveal
 ExportResolve.dfy(127,19): Error: Cannot export mutable field 'x' without revealing its enclosing class 'Klass'
 ExportResolve.dfy(184,18): Error: Raised while checking export set WhatIsKnownAboutProvidedClass1: Function body type mismatch (expected object, got Trait)
 ExportResolve.dfy(169,9): Error: This export set is not consistent: WhatIsKnownAboutProvidedClass1
-ExportResolve.dfy(185,30): Error: Raised while checking export set WhatIsKnownAboutProvidedClass2: Undeclared top-level type or type parameter: Trait? (did you forget to qualify a name or declare a module import 'opened'?)
+ExportResolve.dfy(185,30): Error: Raised while checking export set WhatIsKnownAboutProvidedClass2: Type or type parameter is not declared in this scope: Trait? (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
 ExportResolve.dfy(172,9): Error: This export set is not consistent: WhatIsKnownAboutProvidedClass2
-ExportResolve.dfy(185,30): Error: Raised while checking export set WhatIsKnownAboutProvidedClass3: Undeclared top-level type or type parameter: Trait? (did you forget to qualify a name or declare a module import 'opened'?)
+ExportResolve.dfy(185,30): Error: Raised while checking export set WhatIsKnownAboutProvidedClass3: Type or type parameter is not declared in this scope: Trait? (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
 ExportResolve.dfy(175,9): Error: This export set is not consistent: WhatIsKnownAboutProvidedClass3
 ExportResolve.dfy(248,20): Error: unresolved identifier: X
 ExportResolve.dfy(248,28): Error: member 'More?' has not been imported in this scope and cannot be accessed here
@@ -111,11 +111,11 @@ ExportResolve.dfy(506,9): Error: This export set is not consistent: ProvideAllAn
 ExportResolve.dfy(582,16): Error: member 'u' has not been imported in this scope and cannot be accessed here
 ExportResolve.dfy(590,16): Error: member 'u' has not been imported in this scope and cannot be accessed here
 ExportResolve.dfy(595,19): Error: member 'FromInt' does not exist in type 'F' or cannot be part of type name
-ExportResolve.dfy(595,8): Error: new can be applied only to class types (got S.F.FromInt)
+ExportResolve.dfy(595,11): Error: new can be applied only to class types (got S.F.FromInt)
 ExportResolve.dfy(599,18): Error: member 'u' has not been imported in this scope and cannot be accessed here
 ExportResolve.dfy(619,6): Error: when allocating an object of type 'D', one of its constructor methods must be called
 ExportResolve.dfy(622,10): Error: when allocating an object of imported type 'E', one of its constructor methods must be called
 ExportResolve.dfy(627,19): Error: member 'FromInt' does not exist in type 'F' or cannot be part of type name
-ExportResolve.dfy(627,8): Error: new can be applied only to class types (got S.F.FromInt)
+ExportResolve.dfy(627,11): Error: new can be applied only to class types (got S.F.FromInt)
 ExportResolve.dfy(631,18): Error: member 'u' has not been imported in this scope and cannot be accessed here
 120 resolution/type errors detected in ExportResolve.dfy

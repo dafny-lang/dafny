@@ -1,4 +1,4 @@
-# 22. Refinement {#sec-module-refinement}
+# 10. Refinement {#sec-module-refinement}
 
 Refinement is the process of replacing something somewhat abstract with something somewhat more concrete.
 For example, in one module one might declare a type name, with no definition,
@@ -29,7 +29,7 @@ module M refines P { // refining module
 The refinement result is created as follows.
 
 0) The refinement result is a module within the same enclosing module as the
-refining module, has the same name, and in fact replaces the refining module  in their shared scope.
+refining module, has the same name, and in fact replaces the refining module in their shared scope.
 
 1) All the declarations (including import and export declarations) of the parent are copied into the refinement result.
 These declarations are _not_ re-resolved. That is, the assignment of
@@ -59,9 +59,9 @@ So that it is clear that refinement is taking place, refining declarations
 have some syntactic indicator that they are refining some parent declaration.
 Typically this is the presence of a `...` token.
 
-## 22.1. Export set declarations
+## 10.1. Export set declarations
 
-A refining export set declaration begins with the syntax
+A refining export set declaration begins with [the syntax](#g-module-export)
 ````grammar
 "export" Ident ellipsis
 ````
@@ -76,7 +76,7 @@ module with the name of the parent module. The result module has a default
 export set according to the general rules for export sets, after all of
 the result module's export set declarations have been assembled.
 
-## 22.2. Import declarations
+## 10.2. Import declarations
 
 Aliasing import declarations are not refined. The result module contains the union
 of the import declarations from the two input modules.
@@ -87,7 +87,7 @@ abstract import and the refining module contains a regular aliasing
 import for the same name. Dafny checks that the refining import _adheres_ to
 the abstract import.
 
-## 22.3. Sub-module declarations
+## 10.3. Sub-module declarations
 
 With respect to refinement, a nested module behaves just like a top-level module. It may be declared abstract and it may be declared to `refine` some refinement parent. If the nested module is not refining anything and not being refined, then it is copied into the refinement result like any other declaration.
 
@@ -114,7 +114,7 @@ module M {
 The refinement result of `P` and `X` contains nested modules `A`, `B'`, and `C`. It is this refinement result that is imported into `M`.
 Hence the names `X.B'.T`, `X.A.i` and `X.C.k` are all valid.
 
-## 22.4. Const declarations
+## 10.4. Const declarations
 
 Const declarations can be refined as in the following example.
 
@@ -146,7 +146,7 @@ from a parent module if
 A refining module can also introduce new `const` declarations that do
 not exist in the refinement parent.
 
-## 22.5. Method declarations
+## 10.5. Method declarations
 
 Method declarations can be refined as in the following example.
 
@@ -203,54 +203,13 @@ parameters allowed) or by using an ellipsis (`...`) to indicate copying
 of the parent type signature. The body of a child method must satisfy
 any ensures clauses from its parent in addition to any it adds.
 
-To introduce additional statements, the child method can include
-ellipses within the body to stand in for portions of code from the
-parent body. Dafny then attempts to merge the body of the child with the
-body of the parent by filling in the ellipses. In the `ToSuperimpose`
-example, the explicit `...` at the beginning will expand to the variable
-declaration for `y`. In addition, there is an implicit `...` before
-every `}`, allowing new statements to be introduced at the beginning of
-each block. In `ToSuperimpose`, these implicit ellipses expand to the
-return statements in the parent method.
-
-To help with understanding of the merging process, the IDE provides
-hover text that shows what each `...` or `}` expands to.
-
-The refinement result for `ToSuperimpose` will be as follows.
-
-<!-- %check-verify -->
-```dafny
-method ToSuperimpose(x: int) returns (r: int)
-{
-  var y: int := x;
-  if y < 0 {
-    print "inverting";
-    return -y;
-  } else {
-    print "not modifying";
-    return y;
-  }
-}
-```
-
-In general, a child method can add local variables and assignments,
-add some forms of `assert`, convert an `assume ` to an `assert` (using
-`assert ...;`), replace a non-deterministic operation with a more
-deterministic one, and insert additional `return` statements. A child
-method cannot otherwise change the control-flow structure of a method.
-Full details of the algorithm used to perform the merge operation are
-available in [this
-paper](https://dl.acm.org/doi/10.1007/s00165-012-0254-3). See also [this
-comment](https://github.com/dafny-lang/dafny/blob/76c8d599155f45e9745ce854ab54d0ab4be52049/Source/Dafny/RefinementTransformer.cs#L55)
-in the source code.
-
 A refined method is allowed only if it does not invalidate any parent
 lemmas that mention it.
 
 A refining module can also introduce new `method` declarations or
 definitions that do not exist in the refinement parent.
 
-## 22.6. Lemma declarations
+## 10.6. Lemma declarations
 
 As lemmas are (ghost) methods, the description of method refinement from
 the previous section also applies to lemma refinement.
@@ -259,7 +218,7 @@ A valid refinement is one that does not invalidate any proofs. A lemma
 from a refinement parent must still be valid for the refinement result
 of any method or lemma it mentions.
 
-## 22.7. Function and predicate declarations
+## 10.7. Function and predicate declarations
 
 Function (and equivalently predicate) declarations can be refined as in
 the following example.
@@ -298,7 +257,7 @@ A refining module can also introduce new `function` declarations or
 definitions that do not exist in the refinement parent.
 
 
-## 22.8. Class, trait and iterator declarations
+## 10.8. Class, trait and iterator declarations
 
 Class, trait, and iterator declarations are refined as follows: 
 - If a class (or trait or iterator, respectively) `C` in a refining parent contains a
@@ -326,7 +285,7 @@ module X refines P {
 }
 ```
 
-## 22.9. Type declarations
+## 10.9. Type declarations
 
 Types can be refined in two ways:
 
@@ -388,8 +347,8 @@ abstract module ChildWithExtraMembers refines Parent {
 (The last example is marked `abstract` because it leaves `T` opaque.)
 
 Note that datatype constructors, codatatype destructors, and newtype definitions
-cannot be refined: it is not possible to add or remove constructors to a
-`datatype`, nor to change destructors of a `codatatype`, nor to change the base
+cannot be refined: it is not possible to add or remove `datatype` constructors,
+nor to change destructors of a `codatatype`, nor to change the base
 type, constraint, or witness of a `newtype`.
 
 When a type takes arguments, its refinement must use the same type arguments
@@ -419,7 +378,7 @@ module X refines P {
 
 Note that type refinements are not required to include the `...` indicator that they are refining a parent type.
 
-## 22.10. Statements
+## 10.10. Statements
 
-The refinment syntax (`...`) in statements is deprecated.
+The refinement syntax (`...`) in statements is deprecated.
 

@@ -355,30 +355,30 @@ Usage: dafny [ option ... ] [ filename ... ]
   
   ---- Test generation options -----------------------------------------------
   
+  /warnDeadCode
+      Use counterexample generation to warn about potential dead code.
   /generateTestMode:<None|Block|Path>
       None (default) - Has no effect.
       Block - Prints block-coverage tests for the given program.
       Path - Prints path-coverage tests for the given program.
-  
-      Using /definiteAssignment:3 and /loopUnroll is highly recommended
+      Using /definiteAssignment:3, /generateTestNoPrune, 
+      /generateTestSeqLengthLimit, and /loopUnroll is highly recommended
       when generating tests.
-  
-  /warnDeadCode
-      Use block-coverage tests to warn about potential dead code.
-  
   /generateTestSeqLengthLimit:<n>
-      If /testMode is not None, using this argument adds an axiom that
-      sets the length of all sequences to be no greater than <n>. This is
-      useful in conjunction with loop unrolling.
-  
+      Add an axiom that sets the length of all sequences to be no greater 
+      than <n>. 0 (default) indicates no limit.
   /generateTestTargetMethod:<methodName>
       If specified, only this method will be tested.
-  
   /generateTestInlineDepth:<n>
       0 is the default. When used in conjunction with /testTargetMethod,
       this argument specifies the depth up to which all non-tested methods
       should be inlined.
-  
+  /generateTestPrintBpl:<fileName>
+      Print the Boogie code used during test generation.
+  /generateTestVerbose
+      Print various debugging info as comments for the generated tests.
+  /generateTestNoPrune
+      Disable axiom pruning that Dafny uses to speed up verification.
   ---- Compilation options ---------------------------------------------------
   
   /compileTarget:<language>
@@ -388,6 +388,7 @@ Usage: dafny [ option ... ] [ filename ... ]
       java - Compile to Java.
       py - Compile to Python.
       cpp - Compile to C++.
+      dfy - Compile to Dafny.
       
       Note that the C++ backend has various limitations (see
       Docs/Compilation/Cpp.md). This includes lack of support for
@@ -399,6 +400,7 @@ Usage: dafny [ option ... ] [ filename ... ]
       However, these contents are skipped during code generation and verification.
       This option is useful in a diamond dependency situation, 
       to prevent code from the bottom dependency from being generated more than once.
+      The value may be a comma-separated list of files and folders.
 
   /optimizeErasableDatatypeWrapper:<value>
       0 - Include all non-ghost datatype constructors in the compiled code

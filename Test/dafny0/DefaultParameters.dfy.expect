@@ -66,7 +66,7 @@ DefaultParameters.dfy(443,28): Error: default-value expression is not allowed to
 DefaultParameters.dfy(447,5): Error: cannot prove termination; try supplying a decreases clause
 DefaultParameters.dfy(453,32): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
 DefaultParameters.dfy(481,32): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
-DefaultParameters.dfy(494,28): Error: value does not satisfy the subset constraints of 'nat'
+DefaultParameters.dfy(494,32): Error: value does not satisfy the subset constraints of 'nat'
 DefaultParameters.dfy(493,18): Error: value does not satisfy the subset constraints of 'nat'
 DefaultParameters.dfy(500,15): Error: A precondition for this call might not hold.
 DefaultParameters.dfy(503,13): Related location: This is the precondition that might not hold.
