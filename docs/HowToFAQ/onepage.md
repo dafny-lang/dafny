@@ -2053,11 +2053,7 @@ How do I model extern methods that return objects?
 ## Answer:
 
 When modeling extern functions that return objects, it's usually not good to have specifications that return objects. 
-<<<<<<< HEAD
-It's better to have a predicate that takes the input of a function, an object, and relates the two together.
-=======
 It's better to have a predicate that takes the input of a function, an object, and relates the two with each other.
->>>>>>> master
 
 For example:
 
@@ -2080,13 +2076,8 @@ trait {:extern} {:compile false} Importer {
 }
 ```
 
-<<<<<<< HEAD
-In this case, it's better to write a predicate, and use existential quantifiers along with the :| operator, 
-and there no need to prove uniqueness because we are in ghost code!
-=======
 In this case, it's better to write a predicate, and use existential quantifiers along with the `:|` operator, 
 and there is no need to prove uniqueness because we are in ghost code!
->>>>>>> master
 
 ```dafny
 trait {:extern} {:compile false} Test {
@@ -2096,10 +2087,7 @@ trait {:extern} {:compile false} Importer {
   predicate IsImported(i: int, r: Test) {
     r.i == i
   }
-<<<<<<< HEAD
-=======
   
->>>>>>> master
   method {:extern} {:compile false} DoImport(i: int) returns (r: Test)
     ensures IsImported(i, r)
 
