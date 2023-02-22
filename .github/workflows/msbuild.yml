@@ -49,6 +49,7 @@ jobs:
       run: dotnet pack --no-build dafny/Source/Dafny.sln
 
   check-deep-tests:
+    if: !contains(github.event.pull_request.labels.*.name, 'skip-deep-tests')
     uses: ./.github/workflows/check-deep-tests-reusable.yml
     with:
       branch: master
