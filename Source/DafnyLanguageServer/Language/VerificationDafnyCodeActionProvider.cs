@@ -16,7 +16,7 @@ namespace Microsoft.Dafny.LanguageServer.Language;
 /// indicated on the '{' -- meaning there is no explicit return.
 /// </summary>
 class VerificationDafnyCodeActionProvider : DiagnosticDafnyCodeActionProvider {
-  protected override IEnumerable<DafnyCodeAction>? GetDafnyCodeActions(IDafnyCodeActionInput input, Diagnostic diagnostic, Range selection) {
+  protected override IEnumerable<DafnyCodeAction>? GetDafnyCodeActions(Microsoft.Dafny.LanguageServer.Plugins.IDafnyCodeActionInput input, ErrorMessage errorMessage, Diagnostic diagnostic, Range selection) {
     var uri = input.Uri;
     if (diagnostic.Source != MessageSource.Verifier.ToString()) {
       return null;

@@ -2,13 +2,19 @@
 // SPDX-License-Identifier: MIT
 
 using System.Collections.Generic;
-using Microsoft.Dafny.LanguageServer.Plugins;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny;
 
-public delegate List<DafnyCodeAction> ActionSignature(IDafnyCodeActionInput input, Diagnostic diagnostic, Range range);
+/// <summary>
+/// A quick fix replaces a range with the replacing text.
+/// </summary>
+/// <param name="Range">The range to replace. The start is given by the token's start, and the length is given by the val's length.</param>
+/// <param name="Replacement"></param>
+public record DafnyCodeActionEdit(RangeToken Range, string Replacement = "");
+
+public delegate List<DafnyAction> ActionSignature(RangeToken range);
+
+public record DafnyAction(string Title, IReadOnlyList<DafnyCodeActionEdit> Edits);
 
 public static class ErrorRegistry {
 
@@ -19,22 +25,22 @@ public static class ErrorRegistry {
 #nullable disable
 
   public static ActionSignature Insert(string newContent, string title) {
-    return (input, diagnostic, range) => InsertAction(title, diagnostic, range, newContent);
+    return range => InsertAction(title, range, newContent);
   }
 
   public static ActionSignature Replace(string newContent, string overrideTitle = null) {
     if (overrideTitle == null) {
-      return (input, diagnostic, range) => ReplacementAction(input, diagnostic, range, newContent);
+      return range => ReplacementAction(range.PrintOriginal(), range, newContent);
     }
-    return (input, diagnostic, range) => ReplacementAction(overrideTitle, diagnostic, range, newContent);
+    return range => ReplacementAction(overrideTitle, range, newContent);
   }
-  
+
   public static ActionSignature Replacements(IEnumerable<(string NewContent, string Title)> replacements) {
-    return (input, diagnostic, range) => {
-      var actions = new List<DafnyCodeAction>();
+    return range => {
+      var actions = new List<DafnyAction>();
       foreach (var replacement in replacements) {
-        var edit = new[] {new DafnyCodeActionEdit(range, replacement.NewContent)};
-        var action = new InstantDafnyCodeAction(replacement.Title, new List<Diagnostic> {diagnostic}, edit);
+        var edit = new[] { new DafnyCodeActionEdit(range, replacement.NewContent) };
+        var action = new DafnyAction(replacement.Title, edit);
         actions.Add(action);
       }
 
@@ -50,7 +56,7 @@ public static class ErrorRegistry {
       return RemoveAction;
     }
 
-    return (input, diagnostic, range) => RemoveAction(overrideTitle, diagnostic, range);
+    return range => RemoveAction(overrideTitle, range);
   }
 
 
@@ -67,38 +73,38 @@ public static class ErrorRegistry {
     }
   }
 
-  private static List<DafnyCodeAction> ReplacementAction(string title, Diagnostic diagnostic, Range range, string newText) {
+  private static List<DafnyAction> ReplacementAction(string title, RangeToken range, string newText) {
     var edit = new[] { new DafnyCodeActionEdit(range, newText) };
-    var action = new InstantDafnyCodeAction(title, new List<Diagnostic> { diagnostic }, edit);
-    return new List<DafnyCodeAction> { action };
+    var action = new DafnyAction(title, edit);
+    return new List<DafnyAction> { action };
   }
 
-  private static List<DafnyCodeAction> ReplacementAction(IDafnyCodeActionInput input, Diagnostic diagnostic, Range range, string newText) {
-    string toBeReplaced = input.Extract(range).Trim();
+  private static List<DafnyAction> ReplacementAction(RangeToken range, string newText) {
+    string toBeReplaced = range.PrintOriginal();
     string title = "replace '" + toBeReplaced + "' with '" + newText + "'";
     var edit = new[] { new DafnyCodeActionEdit(range, newText) };
-    var action = new InstantDafnyCodeAction(title, new List<Diagnostic> { diagnostic }, edit);
-    return new List<DafnyCodeAction> { action };
+    var action = new DafnyAction(title, edit);
+    return new List<DafnyAction> { action };
   }
 
-  private static List<DafnyCodeAction> InsertAction(string title, Diagnostic diagnostic, Range range, string newText) {
-    var edit = new[] { new DafnyCodeActionEdit(new Range(range.End, range.End), newText) };
-    var action = new InstantDafnyCodeAction(title, new List<Diagnostic> { diagnostic }, edit);
-    return new List<DafnyCodeAction> { action };
+  private static List<DafnyAction> InsertAction(string title, RangeToken range, string newText) {
+    var edits = new[] { new DafnyCodeActionEdit(range, newText) };
+    var action = new DafnyAction(title, edits);
+    return new List<DafnyAction> { action };
   }
 
-  private static List<DafnyCodeAction> RemoveAction(string title, Diagnostic diagnostic, Range range) {
+  private static List<DafnyAction> RemoveAction(string title, RangeToken range) {
     var edit = new[] { new DafnyCodeActionEdit(range, "") };
-    var action = new InstantDafnyCodeAction(title, new List<Diagnostic> { diagnostic }, edit);
-    return new List<DafnyCodeAction> { action };
+    var action = new DafnyAction(title, edit);
+    return new List<DafnyAction> { action };
   }
 
-  private static List<DafnyCodeAction> RemoveAction(IDafnyCodeActionInput input, Diagnostic diagnostic, Range range) {
-    string toBeRemoved = input.Extract(range).Trim();
+  private static List<DafnyAction> RemoveAction(RangeToken range) {
+    string toBeRemoved = range.PrintOriginal();
     string title = "remove '" + toBeRemoved + "'";
     var edit = new[] { new DafnyCodeActionEdit(range, "") };
-    var action = new InstantDafnyCodeAction(title, new List<Diagnostic> { diagnostic }, edit);
-    return new List<DafnyCodeAction> { action };
+    var action = new DafnyAction(title, edit);
+    return new List<DafnyAction> { action };
   }
 
 #nullable enable

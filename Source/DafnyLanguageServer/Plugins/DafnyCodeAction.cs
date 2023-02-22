@@ -29,10 +29,3 @@ public abstract class DafnyCodeAction {
   // They are lazily invoked, so that they can be as complex as needed.
   public abstract IEnumerable<DafnyCodeActionEdit> GetEdits();
 }
-
-/// <summary>
-/// A quick fix replaces a range with the replacing text.
-/// </summary>
-/// <param name="Range">The range to replace. The start is given by the token's start, and the length is given by the val's length.</param>
-/// <param name="Replacement"></param>
-public record DafnyCodeActionEdit(Range Range, string Replacement = "");

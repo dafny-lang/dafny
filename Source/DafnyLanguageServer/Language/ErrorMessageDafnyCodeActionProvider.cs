@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
+using System.Linq;
 using Microsoft.Dafny.LanguageServer.Plugins;
 using Newtonsoft.Json.Linq;
-using static Microsoft.Dafny.ErrorRegistry;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer;
 public class ErrorMessageDafnyCodeActionProvider : DiagnosticDafnyCodeActionProvider {
@@ -25,13 +25,15 @@ public class ErrorMessageDafnyCodeActionProvider : DiagnosticDafnyCodeActionProv
     return def;
   }
 
-  protected override IEnumerable<DafnyCodeAction>? GetDafnyCodeActions(IDafnyCodeActionInput input, Diagnostic diagnostic, Range selection) {
-    var actionSigs = GetAction(diagnostic.Code);
+  protected override IEnumerable<DafnyCodeAction>? GetDafnyCodeActions(Microsoft.Dafny.LanguageServer.Plugins.IDafnyCodeActionInput input,
+    ErrorMessage errorMessage, Diagnostic diagnostic, Range selection) {
+    var actionSigs = ErrorRegistry.GetAction(diagnostic.Code);
     var actions = new List<DafnyCodeAction>();
     if (actionSigs != null) {
       var range = InterpretDataAsRangeOrDefault(diagnostic.Data, diagnostic.Range);
       foreach (var sig in actionSigs) {
-        actions.AddRange(sig(input, diagnostic, range));
+        var dafnyActions = sig(errorMessage.Token.ToRange());
+        actions.AddRange(dafnyActions.Select(dafnyAction => new InstantDafnyCodeAction(dafnyAction.Title, new[] { diagnostic }, dafnyAction.Edits)));
       }
     }
     return actions;

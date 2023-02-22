@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
@@ -130,14 +131,14 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
     foreach (var (range, toReplace) in quickFixEdits) {
       edits.Add(new TextEdit() {
         NewText = toReplace,
-        Range = range
+        Range = range.ToLspRange()
       });
     }
     return edits;
   }
 }
 
-public class DafnyCodeActionInput : IDafnyCodeActionInput {
+public class DafnyCodeActionInput : Microsoft.Dafny.LanguageServer.Plugins.IDafnyCodeActionInput {
   public DafnyCodeActionInput(DocumentAfterParsing document) {
     Document = document;
   }
@@ -148,10 +149,12 @@ public class DafnyCodeActionInput : IDafnyCodeActionInput {
   public Dafny.Program Program => Document.Program;
   public DocumentAfterParsing Document { get; }
 
-  public Diagnostic[] Diagnostics {
+  public IDictionary<ErrorMessage, Diagnostic> Diagnostics {
     get {
-      var result = Document.Diagnostics.ToArray();
-      return result;
+      // TODO 
+      // var result = Document.Diagnostics.ToArray();
+      // return result;
+      throw new NotImplementedException();
     }
   }
 

@@ -143,18 +143,18 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       };
     }
 
-    public override bool Message(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {
+    public override bool Message(MessageSource source, ErrorLevel level, string errorId, IToken rootTok, string msg) {
       if (ErrorsOnly && level != ErrorLevel.Error) {
         return false;
       }
       var relatedInformation = new List<DiagnosticRelatedInformation>();
-      var ntok = tok;
-      while (ntok is NestedToken nestedToken) {
-        ntok = nestedToken.Inner;
-        if (!(ntok is CodeActionRange)) {
+      var tok = rootTok;
+      while (tok is NestedToken nestedToken) {
+        tok = nestedToken.Inner;
+        if (!(tok is CodeActionRange)) {
           relatedInformation.AddRange(
             CreateDiagnosticRelatedInformationFor(
-              ntok, nestedToken.Message ?? "Related location")
+              tok, nestedToken.Message ?? "Related location")
           );
           break;
         }
@@ -164,13 +164,13 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         Code = errorId.ToString(),
         Severity = ToSeverity(level),
         Message = msg,
-        Range = tok.GetLspRange(),
+        Range = rootTok.GetLspRange(),
         Source = source.ToString(),
         RelatedInformation = relatedInformation,
         CodeDescription = errorId == null ? null : new CodeDescription { Href = new System.Uri("https://dafny.org/dafny/HowToFAQ/Errors#" + errorId.ToString()) },
-        Data = Errors.FindCodeActionRange(tok).StartLength(),
+        Data = Errors.FindCodeActionRange(rootTok).StartLength(),
       };
-      AddDiagnosticForFile(item, source, GetDocumentUriOrDefault(tok));
+      AddDiagnosticForFile(item, source, GetDocumentUriOrDefault(rootTok));
       return true;
     }
 

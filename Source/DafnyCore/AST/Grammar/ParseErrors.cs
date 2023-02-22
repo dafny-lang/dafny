@@ -280,7 +280,7 @@ Such designations are allowed in generic type declarations but not in generic me
 [Type characteristics](https://dafny.org/latest/DafnyRef/DafnyRef#sec-type-parameters), 
 indicated in parentheses after the type name, state properties of the otherwise uninterpreted or opaque type.
 The currently defined type characteristics are designated by `==` (equality-supporting), `0` (auto-initializable), `00` (non-empty), and `!new` (non-reference).
-", Replacements(new [] {
+", Replacements(new[] {
       ("==", "replace with '=='"),
       ("0", "replace with '0'"),
       ("00", "replace with '00'"),

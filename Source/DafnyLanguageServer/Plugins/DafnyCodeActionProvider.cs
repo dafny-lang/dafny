@@ -39,10 +39,12 @@ public abstract class DiagnosticDafnyCodeActionProvider : DafnyCodeActionProvide
     }
     var diagnostics = input.Diagnostics;
     var result = new List<DafnyCodeAction>();
-    foreach (var diagnostic in diagnostics) {
-      if (diagnostic.Range.Start.Line <= selection.Start.Line &&
-          selection.Start.Line <= diagnostic.Range.End.Line) {
-        var moreDafnyCodeActions = GetDafnyCodeActions(input, diagnostic, selection);
+    foreach (var errorAndDiagnostic in diagnostics) {
+      var diagnostic = errorAndDiagnostic.Value;
+      var linesOverlap = diagnostic.Range.Start.Line <= selection.Start.Line
+                         && selection.Start.Line <= diagnostic.Range.End.Line;
+      if (linesOverlap) {
+        var moreDafnyCodeActions = GetDafnyCodeActions(input, errorAndDiagnostic.Key, diagnostic, selection);
         if (moreDafnyCodeActions != null) {
           result.AddRange(moreDafnyCodeActions);
         }
@@ -58,5 +60,6 @@ public abstract class DiagnosticDafnyCodeActionProvider : DafnyCodeActionProvide
   /// <param name="input">The state of the document, containing the code and possibly the resolved program</param>
   /// <param name="diagnostic">The diagnostic for which to provide a fix</param>
   /// <param name="selection">Where the user's caret is</param>
-  protected abstract IEnumerable<DafnyCodeAction>? GetDafnyCodeActions(IDafnyCodeActionInput input, Diagnostic diagnostic, Range selection);
+  protected abstract IEnumerable<DafnyCodeAction>? GetDafnyCodeActions(IDafnyCodeActionInput input,
+    ErrorMessage errorMessage, Diagnostic diagnostic, Range selection);
 }

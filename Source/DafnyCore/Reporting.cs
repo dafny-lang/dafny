@@ -1,13 +1,10 @@
 // Copyright by the contributors to the Dafny Project
 // SPDX-License-Identifier: MIT
 
-using Microsoft.Boogie;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
-using System.Text;
-using static Microsoft.Dafny.ErrorRegistry;
 
 namespace Microsoft.Dafny {
   public enum ErrorLevel {
