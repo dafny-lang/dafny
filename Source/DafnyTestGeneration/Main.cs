@@ -119,7 +119,7 @@ namespace DafnyTestGeneration {
 
       DafnyOptions.O.PrintMode = PrintModes.Everything;
       TestMethod.ClearTypesToSynthesize();
-      var source = new StreamReader(sourceFile).ReadToEnd();
+      var source = await new StreamReader(sourceFile).ReadToEndAsync();
       var program = Utils.Parse(source, sourceFile);
       if (program == null) {
         yield break;

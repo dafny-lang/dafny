@@ -1,11 +1,9 @@
 using System;
-using System.IO;
 using System.Collections.Generic;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 using Microsoft.Dafny.LanguageServer.Plugins;
 using Newtonsoft.Json.Linq;
-using Microsoft.Dafny.LanguageServer.Handlers;
 using static Microsoft.Dafny.ErrorRegistry;
 
 namespace Microsoft.Dafny.LanguageServer;
@@ -29,9 +27,9 @@ public class ErrorMessageDafnyCodeActionProvider : DiagnosticDafnyCodeActionProv
 
   protected override IEnumerable<DafnyCodeAction>? GetDafnyCodeActions(IDafnyCodeActionInput input, Diagnostic diagnostic, Range selection) {
     var actionSigs = GetAction(diagnostic.Code);
-    var actions = new List<DafnyCodeAction> { };
+    var actions = new List<DafnyCodeAction>();
     if (actionSigs != null) {
-      Range range = InterpretDataAsRangeOrDefault(diagnostic.Data, diagnostic.Range);
+      var range = InterpretDataAsRangeOrDefault(diagnostic.Data, diagnostic.Range);
       foreach (var sig in actionSigs) {
         actions.AddRange(sig(input, diagnostic, range));
       }

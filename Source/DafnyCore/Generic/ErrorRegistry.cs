@@ -1,75 +1,20 @@
 // Copyright by the contributors to the Dafny Project
 // SPDX-License-Identifier: MIT
 
-using System;
 using System.Collections.Generic;
-using Microsoft.Dafny.LanguageServer.Handlers;
 using Microsoft.Dafny.LanguageServer.Plugins;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny;
 
-/// <summary>
-/// Describe a single suggestion made to the user, where edits can be
-/// computed lazily.
-/// If the edits can be provided instantly, you can use the derived class
-/// `new InstantDafnyCodeAction(title, edits)`
-/// </summary>
-public abstract class DafnyCodeAction {
-  // The title to display in the quickfix interface
-  public readonly string Title;
-
-  public readonly Container<Diagnostic> Diagnostics;
-
-  protected DafnyCodeAction(string title) {
-    Title = title;
-    Diagnostics = new();
-  }
-
-  protected DafnyCodeAction(string title, Container<Diagnostic> diagnostics) {
-    Title = title;
-    Diagnostics = diagnostics;
-  }
-
-  // Edits are all performed at the same time
-  // They are lazily invoked, so that they can be as complex as needed.
-  public abstract IEnumerable<DafnyCodeActionEdit> GetEdits();
-}
-
-/// <summary>
-/// A quick fix replaces a range with the replacing text.
-/// </summary>
-/// <param name="Range">The range to replace. The start is given by the token's start, and the length is given by the val's length.</param>
-/// <param name="Replacement"></param>
-public record DafnyCodeActionEdit(Range Range, string Replacement = "");
-
-#nullable enable
-public interface IDafnyCodeActionInput {
-  /// <summary>
-  /// The URI of the document being considered
-  /// </summary>
-  string Uri { get; }
-  /// <summary>
-  /// The version of the document being considered. Always increasing
-  /// If it did not change, it guarantees that Code is the same.
-  /// This might be helpful for caching any pre-computation.
-  /// </summary>
-  int Version { get; }
-  string Code { get; }
-  Dafny.Program? Program { get; }
-  Diagnostic[] Diagnostics { get; }
-  string Extract(Range range);
-}
-#nullable disable
-
 public delegate List<DafnyCodeAction> ActionSignature(IDafnyCodeActionInput input, Diagnostic diagnostic, Range range);
 
 public static class ErrorRegistry {
 
 #nullable enable
-  public static List<ActionSignature>? GetAction(string errorId) {
-    return codeActionMap.ContainsKey(errorId) ? new List<ActionSignature> { codeActionMap[errorId] } : null;
+  public static List<ActionSignature>? GetAction(string? errorId) {
+    return errorId != null && codeActionMap.ContainsKey(errorId) ? new List<ActionSignature> { codeActionMap[errorId] } : null;
   }
 #nullable disable
 
