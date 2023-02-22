@@ -151,19 +151,14 @@ static class CommandRegistry {
     return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR);
   }
 
-  private static CommandLineBuilder AddDeveloperHelp(RootCommand rootCommand, CommandLineBuilder builder)
-  {
+  private static CommandLineBuilder AddDeveloperHelp(RootCommand rootCommand, CommandLineBuilder builder) {
     var languageDeveloperHelp = new Option<bool>(ToolchainDebuggingHelpName,
       "Show help and usage information, including options designed for developing the Dafny language and toolchain.");
     rootCommand.AddGlobalOption(languageDeveloperHelp);
-    builder = builder.AddMiddleware(async (context, next) =>
-    {
-      if (context.ParseResult.FindResultFor(languageDeveloperHelp) is { })
-      {
+    builder = builder.AddMiddleware(async (context, next) => {
+      if (context.ParseResult.FindResultFor(languageDeveloperHelp) is { }) {
         context.InvocationResult = new HelpResult();
-      }
-      else
-      {
+      } else {
         await next(context);
       }
     }, MiddlewareOrder.Configuration - 101);
@@ -175,10 +170,8 @@ static class CommandRegistry {
 /// The class HelpResult is internal to System.CommandLine so we have to include it as source.
 /// It seems System.CommandLine didn't consider having more than one help option as a use-case.
 /// </summary>
-internal class HelpResult : IInvocationResult
-{
-  public void Apply(InvocationContext context)
-  {
+internal class HelpResult : IInvocationResult {
+  public void Apply(InvocationContext context) {
     var output = context.Console.Out.CreateTextWriter();
     var helpBuilder = ((HelpBuilder)context.BindingContext.GetService(typeof(HelpBuilder)))!;
     var helpContext = new HelpContext(helpBuilder,
