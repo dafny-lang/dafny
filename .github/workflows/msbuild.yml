@@ -68,6 +68,12 @@ jobs:
     runs-on: ubuntu-20.04
     needs: integration-tests
     steps:
+      # Check out Dafny so that highlighted source is possible
+      - name: Checkout Dafny
+        uses: actions/checkout@v3
+        with:
+          path: dafny
+
       - name: Setup dotnet
         uses: actions/setup-dotnet@v3
         with:
@@ -94,13 +100,13 @@ jobs:
 
       - name: Merge reports
         run: |
-          reportgenerator -reports:"./**/coverage.cobertura.xml" -reporttypes:Cobertura -targetdir:combined
-          ls -lR combined
+          reportgenerator -reports:"./**/coverage.cobertura.xml" -reporttypes:Cobertura -targetdir:coverage-cobertura
+          reportgenerator -reports:"./**/coverage.cobertura.xml" -reporttypes:Html -targetdir:coverage-html
 
       - name: Code coverage report
         uses: irongut/CodeCoverageSummary@v1.3.0
         with:
-          filename: ./combined/Cobertura.xml
+          filename: ./coverage-cobertura/Cobertura.xml
           badge: true
           fail_below_min: true
           format: markdown
@@ -109,3 +115,10 @@ jobs:
           indicators: true
           output: both
           thresholds: '70 80'
+
+    - uses: actions/upload-artifact@v3
+      with:
+        name: test-coverage-results
+        path: |
+          coverage-cobertura
+          coverage-html
