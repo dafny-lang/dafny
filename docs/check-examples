@@ -126,10 +126,6 @@ do
    && msg=`echo "$line" | sed -E -e 's/ \{#.*\}[ ]*$//' -e 's/^##[ ]*[*]*//' -e 's/[*]*$//' -e 's/\\*/\\\\*/' -e 's/_[a-z]+_/.*/g'`
 
   ## Check for the test command information
-  use=""
-  save=""
-  expect=""
-  options=( )
   echo "$line" | grep '^[ ]*<!-- [ ]*%' > /dev/null
   if [ "$?" == "0" ]; then 
       ##echo COMMAND "$line"
