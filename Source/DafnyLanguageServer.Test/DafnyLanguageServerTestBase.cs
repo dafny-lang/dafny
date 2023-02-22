@@ -17,6 +17,7 @@ using OmniSharp.Extensions.LanguageServer.Server;
 using System.IO;
 using System.IO.Pipelines;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using MediatR;
@@ -66,10 +67,28 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
       ));
     }
 
+    // This compensates for the fact that we're not running the full options
+    // creation process, with Z3 detection, when initializing a client. We
+    // know where Z3 will be, so we set it directly.
+    private void AddProverPath(DafnyOptions dafnyOptions) {
+      var dafnyBinDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+      var platform = System.Environment.OSVersion.Platform;
+      var isWindows =
+        platform is
+          PlatformID.Win32S or
+          PlatformID.Win32Windows or
+          PlatformID.Win32NT or
+          PlatformID.WinCE;
+      var z3LocalBinName = "z3-4.8.5" + (isWindows ? ".exe" : "");
+      var z3BinPath = Path.Combine(dafnyBinDir, "z3", "bin", z3LocalBinName);
+      dafnyOptions.ProverOptions.Add($"PROVER_PATH={z3BinPath}");
+    }
+
     protected virtual async Task<ILanguageClient> InitializeClient(
       Action<LanguageClientOptions> clientOptionsAction = null,
       Action<DafnyOptions> modifyOptions = null) {
       var dafnyOptions = DafnyOptions.Create();
+      AddProverPath(dafnyOptions);
       DafnyOptions.Install(dafnyOptions);
       modifyOptions?.Invoke(dafnyOptions);
 
@@ -108,7 +127,6 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
     protected virtual ILanguageClient CreateClient(
       Action<LanguageClientOptions> clientOptionsAction = null,
       Action<LanguageServerOptions> serverOptionsAction = null) {
-      DafnyOptions.DefaultZ3Version = "4.8.5";
       var client = LanguageClient.PreInit(
         options => {
           var (reader, writer) = SetupServer(serverOptionsAction);

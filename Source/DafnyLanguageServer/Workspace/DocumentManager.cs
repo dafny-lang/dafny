@@ -188,7 +188,6 @@ public class DocumentManager {
   }
 
   private async Task VerifyEverythingAsync() {
-    logger.LogDebug($"Memory use before verifying document: {GC.GetTotalMemory(true)}");
     try {
       var translatedDocument = await Compilation.TranslatedDocument;
 
@@ -217,7 +216,6 @@ public class DocumentManager {
     finally {
       logger.LogDebug("Setting result for workCompletedForCurrentVersion");
       workCompletedForCurrentVersion.Release();
-      logger.LogDebug($"Memory use after verifying document: {GC.GetTotalMemory(true)}");
     }
   }
 

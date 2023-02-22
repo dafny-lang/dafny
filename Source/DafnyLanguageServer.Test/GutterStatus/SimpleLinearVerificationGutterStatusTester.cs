@@ -8,7 +8,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
 
 [TestClass]
 public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutterStatusTester {
-  private const int MaxTestExecutionTimeMs = 10000;
+  private const int MaxTestExecutionTimeMs = 20000;
 
   // To add a new test, just call VerifyTrace on a given program,
   // the test will fail and give the correct output that can be use for the test

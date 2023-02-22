@@ -17,7 +17,7 @@ method Foo()
 {
     assert false;
 }";
-    const string solverProcessName = "z3";
+    const string solverProcessName = "z3-4.8.5";
     var processes1 = Process.GetProcessesByName(solverProcessName);
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
