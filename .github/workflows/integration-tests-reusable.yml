@@ -117,8 +117,10 @@ jobs:
         sudo apt-get install -qq libarchive-tools
         mkdir -p dafny/Binaries/z3/bin
         wget -qO- https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-02-17/z3-4.12.1-ubuntu-20.04-bin.zip | bsdtar -xf -
-        mv z3-* dafny/Binaries/z3/bin/
-        chmod +x dafny/Binaries/z3/bin/z3-*
+        mv z3-4.12.1 dafny/Binaries/z3/bin/
+        chmod +x dafny/Binaries/z3/bin/z3-4.12.1
+        mkdir -p unzippedRelease/dafny/z3/bin
+        ln dafny/Binaries/z3/bin/z3-4.12.1 unzippedRelease/dafny/z3/bin/z3-4.12.1
     - name: Run integration tests
       if: runner.os == 'Windows'
       env:
@@ -126,6 +128,7 @@ jobs:
         XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
         DAFNY_RELEASE: ${{ github.workspace }}\unzippedRelease\dafny
       run: |
+        cmd /c mklink D:\a\dafny\dafny\unzippedRelease\dafny\z3\bin\z3 D:\a\dafny\dafny\unzippedRelease\dafny\z3\bin\z3.exe
         dotnet test --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj
     - name: Run integration tests
       if: runner.os != 'Windows'
