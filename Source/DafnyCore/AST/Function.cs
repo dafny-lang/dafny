@@ -282,7 +282,7 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
   public static readonly Option<string> FunctionSyntaxOption = new("--function-syntax",
     () => "4",
     @"
-The syntax for functions is changing from Dafny version 3 to version 4. This switch gives early access to the new syntax, and also provides a mode to help with migration.
+The syntax for functions changed from Dafny version 3 to version 4. This switch gives early access to the new syntax, and also provides a mode to help with migration.
 
 3 - Compiled functions are written `function method` and `predicate method`. Ghost functions are written `function` and `predicate`.
 4 - Compiled functions are written `function` and `predicate`. Ghost functions are written `ghost function` and `ghost predicate`.
