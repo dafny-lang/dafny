@@ -192,6 +192,7 @@ do
       fi
       if [ -n "$save" ]; then
          cp $text $save
+         save=
       fi
       if [ "$lang" == "dafny" -o "$lang" == "cli" ]; then
         echo TESTING $n $file "$command" $expect
