@@ -80,14 +80,10 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
   public bool IsTailRecursive => TailRecursion != TailStatus.NotTailRecursive;
   public bool IsAccumulatorTailRecursive => IsTailRecursive && TailRecursion != TailStatus.TailRecursive;
   [FilledInDuringResolution] public bool IsFueled; // if anyone tries to adjust this function's fuel
-  public readonly List<TypeParameter> TypeArgs;
   public readonly List<Formal> Formals;
   public readonly Formal Result;
   public readonly Type ResultType;
-  public readonly List<AttributedExpression> Req;
   public readonly List<FrameExpression> Reads;
-  public readonly List<AttributedExpression> Ens;
-  public readonly Specification<Expression> Decreases;
   public Expression Body; // an extended expression; Body is readonly after construction, except for any kind of rewrite that may take place around the time of resolution
   public IToken /*?*/ ByMethodTok; // null iff ByMethodBody is null
   public BlockStmt /*?*/ ByMethodBody;
@@ -207,7 +203,7 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
     List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
     Expression/*?*/ body, IToken/*?*/ byMethodTok, BlockStmt/*?*/ byMethodBody,
     Attributes attributes, IToken/*?*/ signatureEllipsis)
-    : base(range, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null) {
+    : base(range, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null, typeArgs, req, ens, decreases) {
 
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
@@ -220,14 +216,10 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
     Contract.Requires(decreases != null);
     Contract.Requires(byMethodBody == null || (!isGhost && body != null)); // function-by-method has a ghost expr and non-ghost stmt, but to callers appears like a functiion-method
     IsFueled = false;  // Defaults to false.  Only set to true if someone mentions this function in a fuel annotation
-    TypeArgs = typeArgs;
     Formals = formals;
     Result = result;
     ResultType = result != null ? result.Type : resultType;
-    Req = req;
     Reads = reads;
-    Ens = ens;
-    Decreases = decreases;
     Body = body;
     ByMethodTok = byMethodTok;
     ByMethodBody = byMethodBody;

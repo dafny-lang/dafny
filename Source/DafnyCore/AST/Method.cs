@@ -17,13 +17,9 @@ public class Method : MethodOrFunction, TypeParameter.ParentType, IMethodCodeCon
   public readonly bool IsByMethod;
   public bool MustReverify;
   public bool IsEntryPoint = false;
-  public readonly List<TypeParameter> TypeArgs;
   public readonly List<Formal> Ins;
   public readonly List<Formal> Outs;
-  public readonly List<AttributedExpression> Req;
   public readonly Specification<FrameExpression> Mod;
-  public readonly List<AttributedExpression> Ens;
-  public readonly Specification<Expression> Decreases;
   private BlockStmt methodBody;  // Body is readonly after construction, except for any kind of rewrite that may take place around the time of resolution (note that "methodBody" is a "DividedBlockStmt" for any "Method" that is a "Constructor")
   [FilledInDuringResolution] public bool IsRecursive;
   [FilledInDuringResolution] public bool IsTailRecursive;
@@ -108,7 +104,8 @@ public class Method : MethodOrFunction, TypeParameter.ParentType, IMethodCodeCon
     [Captured] Specification<Expression> decreases,
     [Captured] BlockStmt body,
     Attributes attributes, IToken signatureEllipsis, bool isByMethod = false)
-    : base(rangeToken, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null) {
+    : base(rangeToken, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null,
+      typeArgs, req, ens, decreases) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
@@ -118,13 +115,9 @@ public class Method : MethodOrFunction, TypeParameter.ParentType, IMethodCodeCon
     Contract.Requires(mod != null);
     Contract.Requires(cce.NonNullElements(ens));
     Contract.Requires(decreases != null);
-    this.TypeArgs = typeArgs;
     this.Ins = ins;
     this.Outs = outs;
-    this.Req = req;
     this.Mod = mod;
-    this.Ens = ens;
-    this.Decreases = decreases;
     this.methodBody = body;
     this.SignatureEllipsis = signatureEllipsis;
     this.IsByMethod = isByMethod;

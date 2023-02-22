@@ -2896,31 +2896,27 @@ namespace Microsoft.Dafny {
       foreach (var com in ModuleDefinition.AllExtremeLemmas(declarations)) {
         var prefixLemma = com.PrefixLemma;
         if (prefixLemma == null) {
-          continue; // something went wrong during registration of the prefix lemma (probably a duplicated extreme lemma name)
+          continue;  // something went wrong during registration of the prefix lemma (probably a duplicated extreme lemma name)
         }
-
         var k = prefixLemma.Ins[0];
         var focalPredicates = new HashSet<ExtremePredicate>();
         if (com is GreatestLemma) {
           // compute the postconditions of the prefix lemma
-          Contract.Assume(prefixLemma.Ens.Count == 0); // these are not supposed to have been filled in before
+          Contract.Assume(prefixLemma.Ens.Count == 0);  // these are not supposed to have been filled in before
           foreach (var p in com.Ens) {
             var coConclusions = new HashSet<Expression>();
             CollectFriendlyCallsInExtremeLemmaSpecification(p.E, true, coConclusions, true, com);
-            var subst = new ExtremeLemmaSpecificationSubstituter(coConclusions, new IdentifierExpr(k.tok, k.Name),
-              this.reporter, true);
+            var subst = new ExtremeLemmaSpecificationSubstituter(coConclusions, new IdentifierExpr(k.tok, k.Name), this.reporter, true);
             var post = subst.CloneExpr(p.E);
             prefixLemma.Ens.Add(new AttributedExpression(post));
             foreach (var e in coConclusions) {
               var fce = e as FunctionCallExpr;
-              if (fce != null) {
-                // the other possibility is that "e" is a BinaryExpr
+              if (fce != null) {  // the other possibility is that "e" is a BinaryExpr
                 GreatestPredicate predicate = (GreatestPredicate)fce.Function;
                 focalPredicates.Add(predicate);
                 // For every focal predicate P in S, add to S all greatest predicates in the same strongly connected
                 // component (in the call graph) as P
-                foreach (var node in predicate.EnclosingClass.EnclosingModuleDefinition.CallGraph.GetSCC(
-                           predicate)) {
+                foreach (var node in predicate.EnclosingClass.EnclosingModuleDefinition.CallGraph.GetSCC(predicate)) {
                   if (node is GreatestPredicate) {
                     focalPredicates.Add((GreatestPredicate)node);
                   }
@@ -2930,16 +2926,15 @@ namespace Microsoft.Dafny {
           }
         } else {
           // compute the preconditions of the prefix lemma
-          Contract.Assume(prefixLemma.Req.Count == 0); // these are not supposed to have been filled in before
+          Contract.Assume(prefixLemma.Req.Count == 0);  // these are not supposed to have been filled in before
           foreach (var p in com.Req) {
             var antecedents = new HashSet<Expression>();
             CollectFriendlyCallsInExtremeLemmaSpecification(p.E, true, antecedents, false, com);
-            var subst = new ExtremeLemmaSpecificationSubstituter(antecedents, new IdentifierExpr(k.tok, k.Name),
-              this.reporter, false);
+            var subst = new ExtremeLemmaSpecificationSubstituter(antecedents, new IdentifierExpr(k.tok, k.Name), this.reporter, false);
             var pre = subst.CloneExpr(p.E);
             prefixLemma.Req.Add(new AttributedExpression(pre, p.Label, null));
             foreach (var e in antecedents) {
-              var fce = (FunctionCallExpr)e; // we expect "antecedents" to contain only FunctionCallExpr's
+              var fce = (FunctionCallExpr)e;  // we expect "antecedents" to contain only FunctionCallExpr's
               LeastPredicate predicate = (LeastPredicate)fce.Function;
               focalPredicates.Add(predicate);
               // For every focal predicate P in S, add to S all least predicates in the same strongly connected
@@ -2952,16 +2947,14 @@ namespace Microsoft.Dafny {
             }
           }
         }
-
         reporter.Info(MessageSource.Resolver, com.tok,
-          focalPredicates.Count == 0
-            ? $"{com.PrefixLemma.Name} has no focal predicates"
-            : $"{com.PrefixLemma.Name} with focal predicate{Util.Plural(focalPredicates.Count)} {Util.Comma(focalPredicates, p => p.Name)}");
+          focalPredicates.Count == 0 ?
+            $"{com.PrefixLemma.Name} has no focal predicates" :
+            $"{com.PrefixLemma.Name} with focal predicate{Util.Plural(focalPredicates.Count)} {Util.Comma(focalPredicates, p => p.Name)}");
         // Compute the statement body of the prefix lemma
-        Contract.Assume(prefixLemma.Body == null); // this is not supposed to have been filled in before
+        Contract.Assume(prefixLemma.Body == null);  // this is not supposed to have been filled in before
         if (com.Body != null) {
-          var kMinusOne = new BinaryExpr(com.tok, BinaryExpr.Opcode.Sub, new IdentifierExpr(k.tok, k.Name),
-            new LiteralExpr(com.tok, 1));
+          var kMinusOne = new BinaryExpr(com.tok, BinaryExpr.Opcode.Sub, new IdentifierExpr(k.tok, k.Name), new LiteralExpr(com.tok, 1));
           var subst = new ExtremeLemmaBodyCloner(com, kMinusOne, focalPredicates, this.reporter);
           var mainBody = subst.CloneBlockStmt(com.Body);
           Expression kk;
@@ -2974,13 +2967,13 @@ namespace Microsoft.Dafny {
             //     forall k', params | k' < _k && Precondition {
             //       pp(k', params);
             //     }
-            Contract.Assume(builtIns.ORDINAL_Offset != null); // should have been filled in earlier
+            Contract.Assume(builtIns.ORDINAL_Offset != null);  // should have been filled in earlier
             var kId = new IdentifierExpr(com.tok, k);
             var kprimeVar = new BoundVar(com.tok, "_k'", Type.BigOrdinal);
             var kprime = new IdentifierExpr(com.tok, kprimeVar);
             var smaller = Expression.CreateLess(kprime, kId);
 
-            var bvs = new List<BoundVar>(); // TODO: populate with k', params
+            var bvs = new List<BoundVar>();  // the following loop populates bvs with k', params
             var substMap = new Dictionary<IVariable, Expression>();
             foreach (var inFormal in prefixLemma.Ins) {
               if (inFormal == k) {
@@ -2995,21 +2988,17 @@ namespace Microsoft.Dafny {
 
             Expression recursiveCallReceiver;
             List<Expression> recursiveCallArgs;
-            Translator.RecursiveCallParameters(com.tok, prefixLemma, prefixLemma.TypeArgs, prefixLemma.Ins, null,
-              substMap, out recursiveCallReceiver, out recursiveCallArgs);
+            Translator.RecursiveCallParameters(com.tok, prefixLemma, prefixLemma.TypeArgs, prefixLemma.Ins, null, substMap, out recursiveCallReceiver, out recursiveCallArgs);
             var methodSel = new MemberSelectExpr(com.tok, recursiveCallReceiver, prefixLemma.Name);
-            methodSel.Member = prefixLemma; // resolve here
-            methodSel.TypeApplication_AtEnclosingClass =
-              prefixLemma.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp));
-            methodSel.TypeApplication_JustMember =
-              prefixLemma.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp));
+            methodSel.Member = prefixLemma;  // resolve here
+            methodSel.TypeApplication_AtEnclosingClass = prefixLemma.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp));
+            methodSel.TypeApplication_JustMember = prefixLemma.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp));
             methodSel.Type = new InferredTypeProxy();
-            var recursiveCall = new CallStmt(com.RangeToken, new List<Expression>(), methodSel,
-              recursiveCallArgs.ConvertAll(e => new ActualBinding(null, e)));
-            recursiveCall.IsGhost = prefixLemma.IsGhost; // resolve here
+            var recursiveCall = new CallStmt(com.RangeToken, new List<Expression>(), methodSel, recursiveCallArgs.ConvertAll(e => new ActualBinding(null, e)));
+            recursiveCall.IsGhost = prefixLemma.IsGhost;  // resolve here
 
-            var range = smaller; // The range will be strengthened later with the call's precondition, substituted
-            // appropriately (which can only be done once the precondition has been resolved).
+            var range = smaller;  // The range will be strengthened later with the call's precondition, substituted
+                                  // appropriately (which can only be done once the precondition has been resolved).
             var attrs = new Attributes("_autorequires", new List<Expression>(), null);
 #if VERIFY_CORRECTNESS_OF_TRANSLATION_FORALL_STATEMENT_RANGE
               // don't add the :_trustWellformed attribute
@@ -3018,20 +3007,16 @@ namespace Microsoft.Dafny {
 #endif
             attrs = new Attributes("auto_generated", new List<Expression>(), attrs);
             var forallBody = new BlockStmt(mainBody.RangeToken, new List<Statement>() { recursiveCall });
-            var forallStmt = new ForallStmt(mainBody.RangeToken, bvs, attrs, range,
-              new List<AttributedExpression>(), forallBody);
+            var forallStmt = new ForallStmt(mainBody.RangeToken, bvs, attrs, range, new List<AttributedExpression>(), forallBody);
             els = new BlockStmt(mainBody.RangeToken, new List<Statement>() { forallStmt });
           } else {
             kk = new IdentifierExpr(k.tok, k.Name);
             els = null;
           }
-
           var kPositive = new BinaryExpr(com.tok, BinaryExpr.Opcode.Lt, new LiteralExpr(com.tok, 0), kk);
           var condBody = new IfStmt(mainBody.RangeToken, false, kPositive, mainBody, els);
           prefixLemma.Body = new BlockStmt(mainBody.RangeToken, new List<Statement>() { condBody });
-        } else {
         }
-
         // The prefix lemma now has all its components, so it's finally time we resolve it
         currentClass = (TopLevelDeclWithMembers)prefixLemma.EnclosingClass;
         allTypeParameters.PushMarker();
@@ -4948,12 +4933,12 @@ namespace Microsoft.Dafny {
           } else if (traitMember.Overrides(prevMember)) {
             // we're inheriting "prevMember" and "traitMember" from different parent traits, where "traitMember" is an override of "prevMember"
             Contract.Assert(traitMember.EnclosingClass != cl && prevMember.EnclosingClass != cl && traitMember.EnclosingClass != prevMember.EnclosingClass); // sanity checks
-            // re-map "traitMember.Name" to point to the overriding member
+                                                                                                                                                             // re-map "traitMember.Name" to point to the overriding member
             inheritedMembers[traitMember.Name] = traitMember;
           } else if (prevMember.Overrides(traitMember)) {
             // we're inheriting "prevMember" and "traitMember" from different parent traits, where "prevMember" is an override of "traitMember"
             Contract.Assert(traitMember.EnclosingClass != cl && prevMember.EnclosingClass != cl && traitMember.EnclosingClass != prevMember.EnclosingClass); // sanity checks
-            // keep the mapping to "prevMember"
+                                                                                                                                                             // keep the mapping to "prevMember"
           } else {
             // "prevMember" and "traitMember" refer to different members (with the same name)
             reporter.Error(MessageSource.Resolver, cl.tok, "{0} '{1}' inherits a member named '{2}' from both traits '{3}' and '{4}'",

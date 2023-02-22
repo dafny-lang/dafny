@@ -1,1 +1,0 @@
-Fixed race conditions in the language server that made gutter icons behave abnormally

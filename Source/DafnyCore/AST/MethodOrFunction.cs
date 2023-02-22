@@ -1,16 +1,36 @@
+using System.Collections.Generic;
+
 namespace Microsoft.Dafny;
 
 public abstract class MethodOrFunction : MemberDecl {
+  public readonly List<TypeParameter> TypeArgs;
+  public readonly List<AttributedExpression> Req;
+  public readonly List<AttributedExpression> Ens;
+  public readonly Specification<Expression> Decreases;
+
+  protected MethodOrFunction(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isGhost,
+    Attributes attributes, bool isRefining, List<TypeParameter> typeArgs,
+    List<AttributedExpression> req,
+    List<AttributedExpression> ens,
+    Specification<Expression> decreases)
+    : base(rangeToken, name, hasStaticKeyword, isGhost, attributes, isRefining) {
+    TypeArgs = typeArgs;
+    Req = req;
+    Decreases = decreases;
+    Ens = ens;
+  }
+
   protected abstract bool Bodyless { get; }
   protected abstract string TypeName { get; }
 
   public bool IsVirtual => EnclosingClass is TraitDecl && !IsStatic;
 
   public virtual void Resolve(Resolver resolver) {
-    if (Bodyless && !IsVirtual) {
-      var mayBeAxiom = this.IsExplicitAxiom() || this.IsExtern();
-      if (!resolver.Options.Get(CommonOptionBag.AllowAxioms) && !mayBeAxiom) {
-        resolver.Reporter.Warning(MessageSource.Resolver, ErrorDetail.ErrorID.None, Tok, $"{TypeName.CapitaliseFirstLetter()} {FullName} has no body. Add the {{:axiom}} attribute to it to suppress this warning");
+    if (Bodyless && !IsVirtual && !this.IsExtern()) {
+      foreach (var ensures in Ens) {
+        if (!ensures.IsExplicitAxiom() && !resolver.Options.Get(CommonOptionBag.AllowAxioms)) {
+          resolver.Reporter.Warning(MessageSource.Resolver, ErrorDetail.ErrorID.None, Tok, $"This ensures clause is part of a bodyless ${TypeName}. Add the {{:axiom}} attribute to it to suppress this warning");
+        }
       }
     }
   }
