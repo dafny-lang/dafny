@@ -1,5 +1,5 @@
 function Eval(): string -> bool {
-   EvalOperator(Dummy)
+  EvalOperator(Dummy)
 }
 
 function EvalOperator(op: string -> bool): string -> bool 
