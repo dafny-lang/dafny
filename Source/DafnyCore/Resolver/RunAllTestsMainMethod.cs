@@ -95,7 +95,7 @@ public class RunAllTestsMainMethod : IRewriter {
 
     // Don't use Type.String() because that's an unresolved type
     var seqCharType = new SeqType(Type.Char);
-    
+
     foreach (var moduleDefinition in program.CompileModules) {
       foreach (var callable in ModuleDefinition.AllCallables(moduleDefinition.TopLevelDecls)) {
         if ((callable is Method method) && Attributes.Contains(method.Attributes, "test")) {
