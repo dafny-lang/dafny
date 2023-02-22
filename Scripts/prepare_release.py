@@ -290,10 +290,16 @@ class Release:
     def _no_release_blocking_issues() -> bool:
         progress("Checking... ", end="")
         HEADERS = {"Accept": "application/vnd.github.v3+json"}
-        ENDPOINT = 'https://api.github.com/repos/dafny-lang/dafny/issues?labels=severity%3A+release-blocker'
-        with urlopen(Request(ENDPOINT, data=None, headers=HEADERS)) as fs:
-            response = fs.read().decode("utf-8")
-        return json.loads(response) == []
+        ENDPOINTS = (
+            'https://api.github.com/repos/dafny-lang/dafny/issues?labels=severity%3A+release-blocker',
+            "https://api.github.com/repos/dafny-lang/ide-vscode/issues?labels=severity%3A+release-blocker",
+        )
+        for endpoint in ENDPOINTS:
+            with urlopen(Request(endpoint, data=None, headers=HEADERS)) as fs:
+                response = fs.read().decode("utf-8")
+                if json.loads(response) != []:
+                    return False
+        return True
 
     def _no_release_branch(self) -> bool:
         return git("rev-parse", "--quiet", "--verify", self.branch_path).returncode == 1
@@ -368,7 +374,7 @@ class Release:
                    self._is_repo_clean)
         assert_one("Is HEAD is up to date?",
                    self._head_up_to_date)
-        assert_one("Are all release-blocking issues closed?",
+        assert_one("Are all release-blocking issues closed in both dafny and ide-vscode?",
                    self._no_release_blocking_issues)
         assert_one(f"Can we create release tag `{self.tag}`?",
                    self._no_release_tag)
