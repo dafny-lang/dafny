@@ -2076,7 +2076,7 @@ trait {:extern} {:compile false} Importer {
 }
 ```
 
-In this case, it's better to write a predicate, and use existential quantifiers along with the :| operator, 
+In this case, it's better to write a predicate, and use existential quantifiers along with the `:|` operator, 
 and there no need to prove uniqueness because we are in ghost code!
 
 ```dafny
