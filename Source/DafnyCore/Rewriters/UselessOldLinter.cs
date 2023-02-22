@@ -40,7 +40,7 @@ namespace Microsoft.Dafny {
         FreeVariablesUtil.ComputeFreeVariables(oldExpr.E, fvs, ref usesHeap, true);
         if (!usesHeap) {
           oldExpr.Useless = true;
-          this.reporter.Warning(MessageSource.Rewriter, ErrorDetail.ErrorID.None, oldExpr.tok,
+          this.reporter.Warning(MessageSource.Rewriter, null, oldExpr.tok,
             $"Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect");
         }
       }

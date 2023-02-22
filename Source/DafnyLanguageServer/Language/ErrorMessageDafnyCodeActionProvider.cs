@@ -6,7 +6,7 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 using Microsoft.Dafny.LanguageServer.Plugins;
 using Newtonsoft.Json.Linq;
 using Microsoft.Dafny.LanguageServer.Handlers;
-using static Microsoft.Dafny.ErrorDetail;
+using static Microsoft.Dafny.ErrorRegistry;
 
 namespace Microsoft.Dafny.LanguageServer;
 public class ErrorMessageDafnyCodeActionProvider : DiagnosticDafnyCodeActionProvider {
@@ -28,9 +28,7 @@ public class ErrorMessageDafnyCodeActionProvider : DiagnosticDafnyCodeActionProv
   }
 
   protected override IEnumerable<DafnyCodeAction>? GetDafnyCodeActions(IDafnyCodeActionInput input, Diagnostic diagnostic, Range selection) {
-    ErrorID errorID = ErrorID.None;
-    bool ok = Enum.TryParse<ErrorID>(diagnostic.Code, out errorID);
-    var actionSigs = DafnyCodeActions.GetAction(errorID);
+    var actionSigs = GetAction(diagnostic.Code);
     var actions = new List<DafnyCodeAction> { };
     if (actionSigs != null) {
       Range range = InterpretDataAsRangeOrDefault(diagnostic.Data, diagnostic.Range);

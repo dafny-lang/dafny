@@ -17,11 +17,15 @@ namespace Microsoft.Dafny {
   public static class Util {
 
     public static Task<U> SelectMany<T, U>(this Task<T> task, Func<T, Task<U>> f) {
+#pragma warning disable VSTHRD003
       return Select(task, f).Unwrap();
+#pragma warning restore VSTHRD003
     }
 
     public static Task<U> Select<T, U>(this Task<T> task, Func<T, U> f) {
+#pragma warning disable VSTHRD105
       return task.ContinueWith(completedTask => f(completedTask.Result), TaskContinuationOptions.OnlyOnRanToCompletion);
+#pragma warning restore VSTHRD105
     }
 
     public static string Comma(this IEnumerable<string> l) {

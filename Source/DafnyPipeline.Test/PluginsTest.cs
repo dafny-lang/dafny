@@ -47,7 +47,7 @@ public class PluginsTest {
 
   class CollectionErrorReporter : BatchErrorReporter {
     public string GetLastErrorMessage() {
-      return AllMessages[ErrorLevel.Error][0].message;
+      return AllMessages[ErrorLevel.Error][0].Message;
     }
   }
 

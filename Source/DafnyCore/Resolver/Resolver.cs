@@ -18,7 +18,7 @@ using Microsoft.BaseTypes;
 using Microsoft.Boogie;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Dafny.Plugins;
-using static Microsoft.Dafny.ErrorDetail;
+using static Microsoft.Dafny.ErrorRegistry;
 
 namespace Microsoft.Dafny {
   public partial class Resolver {
@@ -886,7 +886,7 @@ namespace Microsoft.Dafny {
           // then an error will already have been produced ("duplicate name of top-level declaration").
           if (classMembers.TryGetValue((ClassDecl)defaultClass, out members) &&
               members.TryGetValue(d.Name, out member)) {
-            reporter.Warning(MessageSource.Resolver, ErrorID.None, d.tok,
+            reporter.Warning(MessageSource.Resolver, null, d.tok,
               "note, this export set is empty (did you perhaps forget the 'provides' or 'reveals' keyword?)");
           }
         }
@@ -3239,7 +3239,7 @@ namespace Microsoft.Dafny {
     void CheckForUnnecessaryEqualitySupportDeclarations(MemberDecl member, List<TypeParameter> typeParameters) {
       if (member.IsGhost) {
         foreach (var p in typeParameters.Where(p => p.SupportsEquality)) {
-          reporter.Warning(MessageSource.Resolver, ErrorID.None, p.tok,
+          reporter.Warning(MessageSource.Resolver, null, p.tok,
             $"type parameter {p.Name} of ghost {member.WhatKind} {member.Name} is declared (==), which is unnecessary because the {member.WhatKind} doesn't contain any compiled code");
         }
       }
@@ -5710,10 +5710,10 @@ namespace Microsoft.Dafny {
         case Scope<Thing>.PushResult.Success:
           break;
         case Scope<Thing>.PushResult.Duplicate:
-          reporter.Error(MessageSource.Resolver, ErrorID.None, tok, "Duplicate {0} name: {1}", kind, name);
+          reporter.Error(MessageSource.Resolver, null, tok, "Duplicate {0} name: {1}", kind, name);
           break;
         case Scope<Thing>.PushResult.Shadow:
-          reporter.Warning(MessageSource.Resolver, ErrorID.None, tok, "Shadowed {0} name: {1}", kind, name);
+          reporter.Warning(MessageSource.Resolver, null, tok, "Shadowed {0} name: {1}", kind, name);
           break;
       }
     }
@@ -6458,7 +6458,7 @@ namespace Microsoft.Dafny {
           // fine
         } else if (allowMethod && memberDecl is Method) {
           // give a deprecation warning, so we will remove this language feature around the Dafny 4 time frame
-          origReporter.Deprecated(MessageSource.Resolver, ErrorID.None, tok,
+          origReporter.Deprecated(MessageSource.Resolver, null, tok,
             $"Support for member '{memberDecl.Name}' in type '{tp}' (used indirectly via a :- statement) being a method is deprecated;" +
             " declare it to be a function instead");
         } else {
@@ -7563,9 +7563,9 @@ namespace Microsoft.Dafny {
       public bool Collected = false;
 
       public bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
-        return Message(source, level, ErrorID.None, tok, msg);
+        return Message(source, level, null, tok, msg);
       }
-      public override bool Message(MessageSource source, ErrorLevel level, ErrorID errorID, IToken tok, string msg) {
+      public override bool Message(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {
         if (!Collected && level == ErrorLevel.Error) {
           FirstCollectedMessage = msg;
           FirstCollectedToken = tok;

@@ -41,7 +41,7 @@ public class TimeLimitRewriter : IRewriter {
                       Expression newArg = new LiteralExpr(attr.Args[0].tok, value * current_limit);
                       member.Attributes = new Attributes("_" + name, new List<Expression>() { newArg }, attrs);
                       if (Attributes.Contains(attrs, name)) {
-                        Reporter.Warning(MessageSource.Rewriter, ErrorDetail.ErrorID.None, member.tok, "timeLimitMultiplier annotation overrides " + name + " annotation");
+                        Reporter.Warning(MessageSource.Rewriter, null, member.tok, "timeLimitMultiplier annotation overrides " + name + " annotation");
                       }
                     }
                   }

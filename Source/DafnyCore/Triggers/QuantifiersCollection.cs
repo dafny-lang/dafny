@@ -9,7 +9,7 @@ using System.Linq;
 using System.Text;
 using Microsoft.Boogie;
 using System.Diagnostics.Contracts;
-using static Microsoft.Dafny.ErrorDetail;
+using static Microsoft.Dafny.ErrorRegistry;
 
 namespace Microsoft.Dafny.Triggers {
   class QuantifierWithTriggers {
@@ -342,7 +342,7 @@ namespace Microsoft.Dafny.Triggers {
 
       if (msg.Length > 0 && !Attributes.Contains(q.quantifier.Attributes, "auto_generated")) {
         var msgStr = msg.ToString().TrimEnd("\r\n ".ToCharArray());
-        reporter.Message(MessageSource.Rewriter, errorLevel, ErrorID.None, reportingToken, msgStr);
+        reporter.Message(MessageSource.Rewriter, errorLevel, null, reportingToken, msgStr);
       }
     }
 

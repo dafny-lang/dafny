@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text;
-using static Microsoft.Dafny.ErrorDetail;
+using static Microsoft.Dafny.ErrorRegistry;
 
 namespace Microsoft.Dafny {
   public enum ErrorLevel {
@@ -18,12 +18,7 @@ namespace Microsoft.Dafny {
     Parser, Cloner, RefinementTransformer, Rewriter, Resolver, Translator, Verifier, Compiler
   }
 
-  public struct ErrorMessage {
-    public ErrorID errorID;
-    public IToken token;
-    public string message;
-    public MessageSource source;
-  }
+  public record ErrorMessage(string ErrorId, IToken Token, string Message, MessageSource Source);
 
   public abstract class ErrorReporter {
     public bool ErrorsOnly { get; set; }
@@ -33,13 +28,12 @@ namespace Microsoft.Dafny {
     public bool HasErrorsUntilResolver => ErrorCountUntilResolver > 0;
     public int ErrorCountUntilResolver => CountExceptVerifierAndCompiler(ErrorLevel.Error);
 
-
-    public abstract bool Message(MessageSource source, ErrorLevel level, ErrorID errorID, IToken tok, string msg);
+    public abstract bool Message(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg);
 
     public void Error(MessageSource source, IToken tok, string msg) {
-      Error(source, ErrorID.None, tok, msg);
+      Error(source, null, tok, msg);
     }
-    public void Error(MessageSource source, ErrorID errorID, IToken tok, string msg) {
+    public void Error(MessageSource source, string errorId, IToken tok, string msg) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
       // if the tok is IncludeToken, we need to indicate to the including file
@@ -48,104 +42,104 @@ namespace Microsoft.Dafny {
         IncludeToken includeToken = (IncludeToken)tok;
         Include include = includeToken.Include;
         if (!include.ErrorReported) {
-          Message(source, ErrorLevel.Error, ErrorID.None, include.tok, "the included file " + tok.Filename + " contains error(s)");
+          Message(source, ErrorLevel.Error, null, include.tok, "the included file " + tok.Filename + " contains error(s)");
           include.ErrorReported = true;
         }
       }
-      Message(source, ErrorLevel.Error, errorID, tok, msg);
+      Message(source, ErrorLevel.Error, errorId, tok, msg);
     }
 
     public abstract int Count(ErrorLevel level);
     public abstract int CountExceptVerifierAndCompiler(ErrorLevel level);
 
     // This method required by the Parser
-    internal void Error(MessageSource source, ErrorID errorID, string filename, int line, int col, string msg) {
+    internal void Error(MessageSource source, string errorId, string filename, int line, int col, string msg) {
       var tok = new Token(line, col);
       tok.Filename = filename;
-      Error(source, errorID, tok, msg);
+      Error(source, errorId, tok, msg);
     }
 
     public void Error(MessageSource source, IToken tok, string msg, params object[] args) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
-      Error(source, ErrorID.None, tok, String.Format(msg, args));
+      Error(source, null, tok, String.Format(msg, args));
     }
 
-    public void Error(MessageSource source, ErrorID errorID, IToken tok, string msg, params object[] args) {
+    public void Error(MessageSource source, string errorId, IToken tok, string msg, params object[] args) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
-      Error(source, errorID, tok, String.Format(msg, args));
+      Error(source, errorId, tok, String.Format(msg, args));
     }
 
     public void Error(MessageSource source, Declaration d, string msg, params object[] args) {
       Contract.Requires(d != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
-      Error(source, ErrorID.None, d.tok, msg, args);
+      Error(source, null, d.tok, msg, args);
     }
 
-    public void Error(MessageSource source, ErrorID errorID, Declaration d, string msg, params object[] args) {
+    public void Error(MessageSource source, string errorId, Declaration d, string msg, params object[] args) {
       Contract.Requires(d != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
-      Error(source, errorID, d.tok, msg, args);
+      Error(source, errorId, d.tok, msg, args);
     }
 
     public void Error(MessageSource source, Statement s, string msg, params object[] args) {
       Contract.Requires(s != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
-      Error(source, ErrorID.None, s.Tok, msg, args);
+      Error(source, null, s.Tok, msg, args);
     }
 
     public void Error(MessageSource source, INode v, string msg, params object[] args) {
       Contract.Requires(v != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
-      Error(source, ErrorID.None, v.Tok, msg, args);
+      Error(source, null, v.Tok, msg, args);
     }
 
     public void Error(MessageSource source, Expression e, string msg, params object[] args) {
       Contract.Requires(e != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
-      Error(source, ErrorID.None, e.tok, msg, args);
+      Error(source, null, e.tok, msg, args);
     }
 
-    public void Warning(MessageSource source, ErrorID errorID, IToken tok, string msg) {
+    public void Warning(MessageSource source, string errorId, IToken tok, string msg) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
       if (DafnyOptions.O.WarningsAsErrors) {
-        Error(source, errorID, tok, msg);
+        Error(source, errorId, tok, msg);
       } else {
-        Message(source, ErrorLevel.Warning, errorID, tok, msg);
+        Message(source, ErrorLevel.Warning, errorId, tok, msg);
       }
     }
 
-    public void Warning(MessageSource source, ErrorID errorID, IToken tok, string msg, params object[] args) {
+    public void Warning(MessageSource source, string errorId, IToken tok, string msg, params object[] args) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
-      Warning(source, errorID, tok, String.Format(msg, args));
+      Warning(source, errorId, tok, String.Format(msg, args));
     }
 
-    public void Deprecated(MessageSource source, ErrorID errorID, IToken tok, string msg, params object[] args) {
+    public void Deprecated(MessageSource source, string errorId, IToken tok, string msg, params object[] args) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
       if (DafnyOptions.O.DeprecationNoise != 0) {
-        Warning(source, errorID, tok, String.Format(msg, args));
+        Warning(source, errorId, tok, String.Format(msg, args));
       }
     }
 
-    public void DeprecatedStyle(MessageSource source, ErrorID errorID, IToken tok, string msg, params object[] args) {
+    public void DeprecatedStyle(MessageSource source, string errorId, IToken tok, string msg, params object[] args) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
       if (DafnyOptions.O.DeprecationNoise == 2) {
-        Warning(source, errorID, tok, String.Format(msg, args));
+        Warning(source, errorId, tok, String.Format(msg, args));
       }
     }
 
@@ -153,7 +147,7 @@ namespace Microsoft.Dafny {
     public void Info(MessageSource source, IToken tok, string msg) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
-      Message(source, ErrorLevel.Info, ErrorID.None, tok, msg);
+      Message(source, ErrorLevel.Info, null, tok, msg);
     }
 
     public void Info(MessageSource source, IToken tok, string msg, params object[] args) {
@@ -184,12 +178,12 @@ namespace Microsoft.Dafny {
       };
     }
 
-    public override bool Message(MessageSource source, ErrorLevel level, ErrorID errorID, IToken tok, string msg) {
+    public override bool Message(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {
       if (ErrorsOnly && level != ErrorLevel.Error) {
         // discard the message
         return false;
       }
-      AllMessages[level].Add(new ErrorMessage { errorID = errorID, token = tok, message = msg, source = source });
+      AllMessages[level].Add(new ErrorMessage(errorId, tok, msg, source));
       return true;
     }
 
@@ -198,8 +192,8 @@ namespace Microsoft.Dafny {
     }
 
     public override int CountExceptVerifierAndCompiler(ErrorLevel level) {
-      return AllMessages[level].Count(message => message.source != MessageSource.Verifier &&
-                                                 message.source != MessageSource.Compiler);
+      return AllMessages[level].Count(message => message.Source != MessageSource.Verifier &&
+                                                 message.Source != MessageSource.Compiler);
     }
   }
 
@@ -217,8 +211,8 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public override bool Message(MessageSource source, ErrorLevel level, ErrorID errorID, IToken tok, string msg) {
-      if (base.Message(source, level, errorID, tok, msg) && (DafnyOptions.O is { PrintTooltips: true } || level != ErrorLevel.Info)) {
+    public override bool Message(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {
+      if (base.Message(source, level, errorId, tok, msg) && (DafnyOptions.O is { PrintTooltips: true } || level != ErrorLevel.Info)) {
         // Extra indent added to make it easier to distinguish multiline error messages for clients that rely on the CLI
         msg = msg.Replace("\n", "\n ");
 
@@ -237,7 +231,7 @@ namespace Microsoft.Dafny {
         }
 
         if (DafnyOptions.O.CompileVerbose && false) { // Need to control tests better before we enable this
-          var info = ErrorDetail.GetDetail(errorID);
+          var info = ErrorRegistry.GetDetail(errorId);
           if (info != null) {
             errorLine += "\n" + info;
           }
@@ -255,7 +249,7 @@ namespace Microsoft.Dafny {
   public class ErrorReporterSink : ErrorReporter {
     public ErrorReporterSink() { }
 
-    public override bool Message(MessageSource source, ErrorLevel level, ErrorID errorID, IToken tok, string msg) {
+    public override bool Message(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {
       return false;
     }
 
@@ -278,9 +272,9 @@ namespace Microsoft.Dafny {
       this.WrappedReporter = reporter;
     }
 
-    public override bool Message(MessageSource source, ErrorLevel level, ErrorID errorID, IToken tok, string msg) {
-      base.Message(source, level, errorID, tok, msg);
-      return WrappedReporter.Message(source, level, errorID, tok, msgPrefix + msg);
+    public override bool Message(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {
+      base.Message(source, level, errorId, tok, msg);
+      return WrappedReporter.Message(source, level, errorId, tok, msgPrefix + msg);
     }
   }
 }

@@ -30,7 +30,7 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
       
     <!-- Locking down versions that would otherwise be downgraded -->
-    <PackageReference Include="System.Security.Principal.Windows" Version="4.6.0" />
+    <PackageReference Include="System.Security.Principal.Windows" Version="5.0.0" />
     <PackageReference Include="System.Collections" Version="4.3.0" />
     <PackageReference Include="System.Diagnostics.Debug" Version="4.3.0" />
     <PackageReference Include="System.IO.FileSystem.Primitives" Version="4.3.0" />

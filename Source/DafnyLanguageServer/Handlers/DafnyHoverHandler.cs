@@ -72,10 +72,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       areMethodStatistics = false;
       foreach (var diagnostic in state.Diagnostics) {
         if (diagnostic.Range.Contains(position)) {
-          string? code = diagnostic.Code;
-          ErrorDetail.ErrorID errorID = ErrorDetail.ErrorID.None;
-          Enum.TryParse<ErrorDetail.ErrorID>(code, out errorID);
-          string? detail = ErrorDetail.GetDetail(errorID);
+          string? detail = ErrorRegistry.GetDetail(diagnostic.Code);
           if (detail is not null) {
             return detail;
           }

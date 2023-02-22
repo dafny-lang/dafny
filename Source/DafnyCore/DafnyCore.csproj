@@ -29,7 +29,8 @@
       <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.7.0" />
       <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
       <PackageReference Include="System.Runtime.Numerics" Version="4.3.0" />
-      <PackageReference Include="System.Collections.Immutable" Version="1.7.0" />
+      <PackageReference Include="System.Collections.Immutable" Version="5.0.0" />
+      <PackageReference Include="OmniSharp.Extensions.LanguageProtocol" Version="0.19.7" />
       <PackageReference Include="Boogie.ExecutionEngine" Version="2.16.0" />
   </ItemGroup>
 
