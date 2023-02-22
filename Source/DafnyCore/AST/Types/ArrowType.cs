@@ -23,17 +23,15 @@ public class ArrowType : UserDefinedType {
       var oVar = new BoundVar(e.tok, idGen.FreshId("_o"), builtIns.ObjectQ());
       var obj = new IdentifierExpr(e.tok, oVar.Name) { Type = oVar.Type, Var = oVar };
       bvars.Add(oVar);
+      var collection = new ApplyExpr(e.tok, e, bexprs, e.tok) {
+        Type = new SetType(true, builtIns.ObjectQ())
+      };
+      var resolvedOpcode = ((CollectionType)arrTy.Result).ResolvedOpcodeForIn;
 
       return
         new SetComprehension(e.tok, e.RangeToken, true, bvars,
-          new BinaryExpr(e.tok, BinaryExpr.Opcode.In, obj,
-            new ApplyExpr(e.tok, e, bexprs, e.tok) {
-              Type = new SetType(true, builtIns.ObjectQ())
-            }) {
-            ResolvedOp =
-              arrTy.Result.AsMultiSetType != null ? BinaryExpr.ResolvedOpcode.InMultiSet :
-              arrTy.Result.AsSeqType != null ? BinaryExpr.ResolvedOpcode.InSeq :
-              BinaryExpr.ResolvedOpcode.InSet,
+          new BinaryExpr(e.tok, BinaryExpr.Opcode.In, obj, collection) {
+            ResolvedOp = resolvedOpcode,
             Type = Type.Bool
           }, obj, null) {
           Type = new SetType(true, builtIns.ObjectQ())
