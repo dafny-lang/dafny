@@ -57,7 +57,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var documentItem = CreateTestDocument(SlowToVerify2);
       client.OpenDocument(documentItem);
       Assert.IsTrue(await client.RunSymbolVerification(documentItem, new Position(11, 23), CancellationToken));
-      Assert.IsTrue(await client.RunSymbolVerification(documentItem, new Position(0, 30), CancellationToken));
+      Assert.IsTrue(await client.RunSymbolVerification(documentItem, new Position(0, 23), CancellationToken));
 
       await WaitForStatus(new Range(11, 23, 11, 27), PublishedVerificationStatus.Running, CancellationToken);
 
@@ -65,7 +65,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       ApplyChange(ref documentItem, new Range((12, 9), (12, 23)), "true");
 
       Assert.IsTrue(await client.RunSymbolVerification(documentItem, new Position(11, 23), CancellationToken));
-      Assert.IsTrue(await client.RunSymbolVerification(documentItem, new Position(0, 30), CancellationToken));
+      Assert.IsTrue(await client.RunSymbolVerification(documentItem, new Position(0, 23), CancellationToken));
       await AssertNothingIsQueued(documentItem);
     }
 

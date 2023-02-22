@@ -394,7 +394,7 @@ method f(i: int) {
     [TestMethod]
     public async Task HoveringForAllBoundVarInPredicateReturnsBoundVarInferredType() {
       await AssertHover(@"
-predicate f(i: int) {
+ghost predicate f(i: int) {
   forall j :: j + i == i + j
          ^[```dafny\nj: int\n```]
               ^[```dafny\nj: int\n```]
