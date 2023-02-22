@@ -814,7 +814,7 @@ The following Dafny Power User note may be helpful in understanding the syntax: 
 
 ## Question
 
-Is there any difference between a method without a `modifies` clause and a function method with a `reads this` clause?  I know that the latter you can use in expressionse.  Is there anything the former can do that the latter can’t, for example?
+Is there any difference between a method without a `modifies` clause and a function method with a `reads this` clause?  I know that the latter you can use in expressions.  Is there anything the former can do that the latter can’t, for example?
 
 ## Answer
 
