@@ -1737,7 +1737,13 @@ namespace Microsoft.Dafny.Compilers {
       var tryBlock = wr.NewBlockPy("try:");
       TrStmt(body, tryBlock);
       var exceptBlock = wr.NewBlockPy($"except {DafnyRuntimeModule}.HaltException as e:");
-      exceptBlock.WriteLine($"{IdProtect(haltMessageVarName)} = e.message");
+      exceptBlock.Write($"{IdProtect(haltMessageVarName)} = ");
+      if (UnicodeCharEnabled) {
+        exceptBlock.Write($"{DafnySeqMakerFunction}(map({DafnyRuntimeModule}.CodePoint, e.message))");
+      } else {
+        exceptBlock.Write("e.message");
+      }
+      exceptBlock.WriteLine();
       TrStmt(recoveryBody, exceptBlock);
     }
   }
