@@ -22,6 +22,7 @@ record ParseArgumentSuccess(DafnyOptions DafnyOptions) : ParseArgumentResult;
 record ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult ExitResult) : ParseArgumentResult;
 
 static class CommandRegistry {
+  private const string ToolchainDebuggingHelpName = "--toolchain-debugging-help";
   private static readonly HashSet<ICommandSpec> Commands = new();
 
   static void AddCommand(ICommandSpec command) {
@@ -49,8 +50,7 @@ static class CommandRegistry {
 
   [CanBeNull]
   public static ParseArgumentResult Create(string[] arguments) {
-
-    bool allowHidden = arguments.All(a => a != "--language-developer-help");
+    bool allowHidden = arguments.All(a => a != ToolchainDebuggingHelpName);
 
     var wasInvoked = false;
     var dafnyOptions = new DafnyOptions();
@@ -83,7 +83,7 @@ static class CommandRegistry {
     if (arguments.Length != 0) {
       var first = arguments[0];
       var keywordForNewMode = commandToSpec.Keys.Select(c => c.Name).
-        Union(new[] { "--dev", "--version", "-h", "--language-developer-help", "--help", "[parse]", "[suggest]" });
+        Union(new[] { "--version", "-h", ToolchainDebuggingHelpName, "--help", "[parse]", "[suggest]" });
       if (!keywordForNewMode.Contains(first)) {
         if (first.Length > 0 && first[0] != '/' && first[0] != '-' && !System.IO.File.Exists(first) && first.IndexOf('.') == -1) {
           dafnyOptions.Printer.ErrorWriteLine(Console.Out,
@@ -153,7 +153,7 @@ static class CommandRegistry {
 
   private static CommandLineBuilder AddDeveloperHelp(RootCommand rootCommand, CommandLineBuilder builder)
   {
-    var languageDeveloperHelp = new Option<bool>("--language-developer-help",
+    var languageDeveloperHelp = new Option<bool>(ToolchainDebuggingHelpName,
       "Show help and usage information, including options designed for developing the Dafny language and toolchain.");
     rootCommand.AddGlobalOption(languageDeveloperHelp);
     builder = builder.AddMiddleware(async (context, next) =>
