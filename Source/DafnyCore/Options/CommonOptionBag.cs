@@ -142,7 +142,7 @@ true - The char type represents any Unicode scalar value.".TrimStart()) {
   public static readonly Option<FileInfo> SolverPath = new("--solver-path",
       "Can be used to specify a custom SMT solver to use for verifying Dafny proofs.");
 
-  public static readonly Option<bool> AllowAxioms = new("--allow-axioms",
+  public static readonly Option<bool> AllowAxioms = new("--allow-axioms", () => true,
     "Prevents a warning from being generated for axioms, such as assume statements and functions or methods without a body, that don't have an {:axiom} attribute.") {
     IsHidden = true
   };
@@ -170,7 +170,7 @@ true - The char type represents any Unicode scalar value.".TrimStart()) {
 Functionality is still being expanded. Currently only checks contracts on every call to a function or method marked with the {:extern} attribute.".TrimStart());
 
   static CommonOptionBag() {
-    DafnyOptions.RegisterLegacyUi(AllowAxioms, DafnyOptions.ParseBoolean, "Verification options", legacyName: "allowAxioms");
+    DafnyOptions.RegisterLegacyUi(AllowAxioms, DafnyOptions.ParseBoolean, "Verification options", legacyName: "allowAxioms", defaultValue: true);
     QuantifierSyntax = QuantifierSyntax.FromAmong("3", "4");
     DafnyOptions.RegisterLegacyBinding(SolverPath, (options, value) => {
       if (value != null) {
