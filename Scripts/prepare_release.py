@@ -291,7 +291,7 @@ class Release:
         progress("Checking... ", end="")
         HEADERS = {"Accept": "application/vnd.github.v3+json"}
         ENDPOINTS = (
-            'https://api.github.com/repos/dafny-lang/dafny/issues?labels=severity%3A+release-blocker',
+            "https://api.github.com/repos/dafny-lang/dafny/issues?labels=severity%3A+release-blocker",
             "https://api.github.com/repos/dafny-lang/ide-vscode/issues?labels=severity%3A+release-blocker",
         )
         for endpoint in ENDPOINTS:
