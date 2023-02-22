@@ -151,7 +151,6 @@ namespace IntegrationTests {
     [FileTheory]
     [FileData(Includes = new[] { "**/*.dfy", "**/*.transcript" },
               Excludes = new[] { "**/Inputs/**/*", "**/Output/**/*",
-                "**/libraries/**",
                 "examples/induction-principle-code/*"
               })]
     public void LitTest(string path) {
