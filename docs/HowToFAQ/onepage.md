@@ -2087,6 +2087,7 @@ trait {:extern} {:compile false} Importer {
   predicate IsImported(i: int, r: Test) {
     r.i == i
   }
+  
   method {:extern} {:compile false} DoImport(i: int) returns (r: Test)
     ensures IsImported(i, r)
 
