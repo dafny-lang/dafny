@@ -7,7 +7,7 @@ predicate pm(a: int)
     true
 }
 
-function  fm'(n: int): int
+function fm'(n: int): int
   ensures pm(n)
 {
     var v := fm(n);
