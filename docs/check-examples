@@ -73,8 +73,8 @@ defaultCommand=
 defaultExit=
 defaultLang=
 useHeadings=0
-defOptions="--use-basename-for-filename --unicode-char:false"
-legacyOptions="-useBaseNameForFileName"
+defOptions="--function-syntax:4 --use-basename-for-filename --unicode-char:false"
+legacyOptions="-functionSyntax:4 -useBaseNameForFileName"
 
 while getopts 'md:x:l:' opt; do
   case "$opt" in
@@ -243,6 +243,8 @@ do
             "$dafny" $com $dOptions ${options[@]} $text > actual
           else
             "$dafny" $com $dOptions ${options[@]} $text > actual
+          else
+            "$dafny" $com --function-syntax:4 $dOptions ${options[@]} $text > actual
           fi
           actualec=$?
           if [ "$useHeadings" == "1" ]; then
