@@ -1,0 +1,4 @@
+This test is failing at the moment.
+- It works locally
+- It fails in CI
+- I suspect it has something to do with dotnet test
