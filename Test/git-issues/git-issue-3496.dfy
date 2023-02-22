@@ -1,4 +1,4 @@
-// RUN: %resolve "%s" > "%t"
+// RUN: %resolve --allow-axioms:false "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method m() {

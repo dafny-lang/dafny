@@ -1,2 +1,2 @@
-opened_workaround.dfy(6,14): Error: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
+opened_workaround.dfy(6,26): Error: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
 1 resolution/type errors detected in opened_workaround.dfy

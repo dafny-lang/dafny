@@ -66,22 +66,22 @@ git-issue-663.dfy(179,11): Error: assume statement has no {:axiom} annotation
 git-issue-663.dfy(180,8): Error: assume statement has no {:axiom} annotation
 git-issue-663.dfy(181,10): Error: assume statement has no {:axiom} annotation
 git-issue-663.dfy(182,12): Error: assume statement has no {:axiom} annotation
-git-issue-663.dfy(187,7): Error: Method _module._default.SpecificationOfCompiledMethodWithoutBody has no body. Add the {:axiom} attribute to it to suppress this warning
+git-issue-663.dfy(190,10): Error: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
 git-issue-663.dfy(188,11): Error: assume statement has no {:axiom} annotation
 git-issue-663.dfy(189,11): Error: assume statement has no {:axiom} annotation
 git-issue-663.dfy(191,12): Error: assume statement has no {:axiom} annotation
 git-issue-663.dfy(190,10): Error: assume statement has no {:axiom} annotation
-git-issue-663.dfy(193,13): Error: Method _module._default.SpecificationOfGhostMethodWithoutBody has no body. Add the {:axiom} attribute to it to suppress this warning
+git-issue-663.dfy(196,10): Error: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
 git-issue-663.dfy(194,11): Error: assume statement has no {:axiom} annotation
 git-issue-663.dfy(195,11): Error: assume statement has no {:axiom} annotation
 git-issue-663.dfy(197,12): Error: assume statement has no {:axiom} annotation
 git-issue-663.dfy(196,10): Error: assume statement has no {:axiom} annotation
-git-issue-663.dfy(199,16): Error: Function _module._default.SpecificationOfCompiledFunctionWithoutBody has no body. Add the {:axiom} attribute to it to suppress this warning
+git-issue-663.dfy(202,10): Error: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
 git-issue-663.dfy(200,11): Error: assume statement has no {:axiom} annotation
 git-issue-663.dfy(201,8): Error: assume statement has no {:axiom} annotation
 git-issue-663.dfy(202,10): Error: assume statement has no {:axiom} annotation
 git-issue-663.dfy(203,12): Error: assume statement has no {:axiom} annotation
-git-issue-663.dfy(205,9): Error: Function _module._default.SpecificationOfGhostFunctionWithoutBody has no body. Add the {:axiom} attribute to it to suppress this warning
+git-issue-663.dfy(208,10): Error: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
 git-issue-663.dfy(206,11): Error: assume statement has no {:axiom} annotation
 git-issue-663.dfy(207,8): Error: assume statement has no {:axiom} annotation
 git-issue-663.dfy(208,10): Error: assume statement has no {:axiom} annotation
