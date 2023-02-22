@@ -36,6 +36,7 @@ public interface ICommandSpec {
     CommonOptionBag.SolverResourceLimit,
     CommonOptionBag.SolverPlugin,
     CommonOptionBag.SolverLog,
+    CommonOptionBag.VerificationErrorLimit,
   }.ToList();
 
   public static IReadOnlyList<Option> TranslationOptions = new Option[] {
@@ -70,7 +71,6 @@ public interface ICommandSpec {
     Function.FunctionSyntaxOption,
     CommonOptionBag.QuantifierSyntax,
     CommonOptionBag.UnicodeCharacters,
-    CommonOptionBag.ErrorLimit,
   });
 
   public static IReadOnlyList<Option> ResolverOptions = new List<Option>(new Option[] {
