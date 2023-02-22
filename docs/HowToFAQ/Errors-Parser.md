@@ -1261,5 +1261,5 @@ const s := @"
 
 This pragma syntax is no longer supported. If this message is seen, please report it to the Dafny development team.
 The Dafny scanner saw a pragma -- the first character of the line is a # character. But it is not one that the
-scanner recopgnizes. The only pragma ever recognized was `#line`.
+scanner recognizes. The only pragma ever recognized was `#line`.
 
