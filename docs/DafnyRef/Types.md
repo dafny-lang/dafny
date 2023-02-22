@@ -54,7 +54,7 @@ type declarations. They are also used to refer to type variables.
 A Named Type is denoted by a dot-separated sequence of name segments ([Section 9.32](#sec-name-segment)).
 
 A name segment (for a type) is a type name optionally followed by a
-_generic instatiation_, which supplies type parameters to a generic
+_generic instantiation_, which supplies type parameters to a generic
 type, if needed.
 
 The following sections describe each of these kinds of types in more detail.
