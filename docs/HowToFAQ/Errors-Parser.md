@@ -32,7 +32,7 @@ ghost function f(): int
 }
 ```
 
-## **Error: _decl_ cannot be declared 'ghost' (it is 'ghost' by default)** {#p_ghost_forbidden_default}
+## **Error: _decl_ cannot be declared 'ghost' (it is 'ghost' by default when using --function-syntax:3)** {#p_ghost_forbidden_default}
 
 ```dafny
 module {:options "--function-syntax:3"} M {
@@ -1263,5 +1263,5 @@ const s := @"
 
 This pragma syntax is no longer supported. If this message is seen, please report it to the Dafny development team.
 The Dafny scanner saw a pragma -- the first character of the line is a # character. But it is not one that the
-scanner recopgnizes. The only pragma ever recognized was `#line`.
+scanner recognizes. The only pragma ever recognized was `#line`.
 
