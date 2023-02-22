@@ -1,4 +1,3 @@
-github-issue-2574.dfy(6,9): Warning: Method Spec._default.ReadInput has no body. Add the {:axiom} attribute to it to suppress this warning
 github-issue-2574.dfy(12,2): Error: out-parameter 'i', which is subject to definite-assignment rules, might be uninitialized at this return point
    |
 12 |   }

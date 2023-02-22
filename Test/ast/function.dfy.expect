@@ -1,8 +1,10 @@
-function.dfy(5,16): Warning: Function _module._default.Foo has no body. Add the {:axiom} attribute to it to suppress this warning
+function.dfy(5,35): Warning: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
+function.dfy(5,50): Warning: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
 
-Dafny program verifier finished with 0 verified, 0 errors
-function.dfy(5,16): Warning: Function _module._default.Foo has no body. Add the {:axiom} attribute to it to suppress this warning
+Dafny program verifier finished with 3 verified, 0 errors
+function.dfy(5,35): Warning: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
+function.dfy(5,50): Warning: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier finished with 3 verified, 0 errors
 function.dfy(5,16): Error: Function _module._default.Foo has no body so it cannot be executed
 function.dfy(6,25): Error: Function _module._default.Bar has no body so it cannot be executed

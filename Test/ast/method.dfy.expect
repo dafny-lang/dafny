@@ -1,7 +1,9 @@
-method.dfy(5,7): Warning: Method _module._default.Foo has no body. Add the {:axiom} attribute to it to suppress this warning
+method.dfy(5,21): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
+method.dfy(5,36): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
 
 Dafny program verifier finished with 0 verified, 0 errors
-method.dfy(5,7): Warning: Method _module._default.Foo has no body. Add the {:axiom} attribute to it to suppress this warning
+method.dfy(5,21): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
+method.dfy(5,36): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
 
 Dafny program verifier finished with 0 verified, 0 errors
 method.dfy(5,7): Error: Method _module._default.Foo has no body so it cannot be executed

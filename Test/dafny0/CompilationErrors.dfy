@@ -3,8 +3,8 @@
 
 type MyType  // compile error: opaque type
 iterator Iter()  // compile error: body-less iterator
-ghost method M()  // compile error: body-less ghost method
-method P()  // compile error: body-less method
+ghost method M() ensures false  // compile error: body-less ghost method
+method P() ensures false  // compile error: body-less method
 class TestClass {
   method Q()
   {
@@ -16,8 +16,8 @@ class TestClass {
   ghost var g: int;
 }
 
-function F(): int  // compile error: body-less ghost function
-function method H(): int  // compile error: body-less function method
+function F(): int ensures false  // compile error: body-less ghost function
+function method H(): int ensures false // compile error: body-less function method
 
 lemma Lemma() {
   assume false;  // compile error: assume

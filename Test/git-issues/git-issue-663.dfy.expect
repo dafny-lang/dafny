@@ -92,9 +92,8 @@ git-issue-663.dfy(221,11): Error: assume statement has no {:axiom} annotation
 git-issue-663.dfy(223,12): Error: assume statement has no {:axiom} annotation
 git-issue-663.dfy(222,10): Error: assume statement has no {:axiom} annotation
 git-issue-663.dfy(225,2): Error: assume statement has no {:axiom} annotation
-git-issue-663.dfy(228,16): Error: Function _module._default.ExtremePredicateWithoutBody has no body. Add the {:axiom} attribute to it to suppress this warning
 git-issue-663.dfy(229,11): Error: assume statement has no {:axiom} annotation
-git-issue-663.dfy(231,12): Error: Method _module._default.ExtremeLemmaWithoutBody has no body. Add the {:axiom} attribute to it to suppress this warning
+git-issue-663.dfy(233,10): Error: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
 git-issue-663.dfy(232,11): Error: assume statement has no {:axiom} annotation
 git-issue-663.dfy(234,12): Error: assume statement has no {:axiom} annotation
 git-issue-663.dfy(233,10): Error: assume statement has no {:axiom} annotation
@@ -132,4 +131,4 @@ git-issue-663.dfy(308,14): Error: assume statement has no {:axiom} annotation
 git-issue-663.dfy(308,31): Error: assume statement has no {:axiom} annotation
 git-issue-663.dfy(309,20): Error: assume statement has no {:axiom} annotation
 git-issue-663.dfy(309,37): Error: assume statement has no {:axiom} annotation
-134 resolution/type errors detected in git-issue-663.dfy
+133 resolution/type errors detected in git-issue-663.dfy

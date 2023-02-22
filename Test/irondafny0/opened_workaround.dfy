@@ -3,7 +3,7 @@
 
 module A {
 
-    predicate P()
+    predicate P() ensures false
 
     class C
     {

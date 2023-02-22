@@ -1,7 +1,7 @@
-CompilationErrors.dfy(6,13): Warning: Method _module._default.M has no body. Add the {:axiom} attribute to it to suppress this warning
-CompilationErrors.dfy(7,7): Warning: Method _module._default.P has no body. Add the {:axiom} attribute to it to suppress this warning
-CompilationErrors.dfy(19,9): Warning: Function _module._default.F has no body. Add the {:axiom} attribute to it to suppress this warning
-CompilationErrors.dfy(20,16): Warning: Function _module._default.H has no body. Add the {:axiom} attribute to it to suppress this warning
+CompilationErrors.dfy(6,25): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
+CompilationErrors.dfy(7,19): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
+CompilationErrors.dfy(19,26): Warning: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
+CompilationErrors.dfy(20,33): Warning: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
 CompilationErrors.dfy(23,2): Warning: assume statement has no {:axiom} annotation
 CompilationErrors.dfy(27,2): Warning: assume statement has no {:axiom} annotation
 CompilationErrors.dfy(33,2): Warning: assume statement has no {:axiom} annotation
@@ -14,7 +14,7 @@ CompilationErrors.dfy(83,4): Warning: note, this loop has no body (loop frame: x
 CompilationErrors.dfy(85,4): Warning: note, this loop has no body (loop frame: i, x)
 CompilationErrors.dfy(12,6): Warning: assume statement has no {:axiom} annotation
 
-Dafny program verifier finished with 5 verified, 0 errors
+Dafny program verifier finished with 7 verified, 0 errors
 CompilationErrors.dfy(7,7): Error: Method _module._default.P has no body so it cannot be executed
 CompilationErrors.dfy(20,16): Error: Function _module._default.H has no body so it cannot be executed
 CompilationErrors.dfy(71,2): Error: a loop without a body cannot be compiled

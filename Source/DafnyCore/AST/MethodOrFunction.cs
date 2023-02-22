@@ -26,10 +26,11 @@ public abstract class MethodOrFunction : MemberDecl {
   public bool IsVirtual => EnclosingClass is TraitDecl && !IsStatic;
 
   public virtual void Resolve(Resolver resolver) {
-    if (Bodyless && !IsVirtual && !this.IsExtern()) {
+    if (Bodyless && !IsVirtual && !this.IsExtern() && !this.IsExplicitAxiom()) {
       foreach (var ensures in Ens) {
         if (!ensures.IsExplicitAxiom() && !resolver.Options.Get(CommonOptionBag.AllowAxioms)) {
-          resolver.Reporter.Warning(MessageSource.Resolver, ErrorDetail.ErrorID.None, Tok, $"This ensures clause is part of a bodyless ${TypeName}. Add the {{:axiom}} attribute to it to suppress this warning");
+          resolver.Reporter.Warning(MessageSource.Resolver, ErrorDetail.ErrorID.None, ensures.Tok,
+            $"This ensures clause is part of a bodyless {TypeName}. Add the {{:axiom}} attribute to it or the enclosing {TypeName} to suppress this warning");
         }
       }
     }
