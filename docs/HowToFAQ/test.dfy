@@ -8,7 +8,7 @@ predicate pm(a: int)
 }
 
 function  fm'(n: int): int
-ensures pm(n)
+  ensures pm(n)
 {
     var v := fm(n);
     //assert pm(v);   // OK
