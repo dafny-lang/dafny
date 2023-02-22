@@ -93,6 +93,9 @@ public class RunAllTestsMainMethod : IRewriter {
     var successVar = successVarStmt.Locals[0];
     var successVarExpr = new IdentifierExpr(tok, successVar);
 
+    // Don't use Type.String() because that's an unresolved type
+    var seqCharType = new SeqType(Type.Char);
+    
     foreach (var moduleDefinition in program.CompileModules) {
       foreach (var callable in ModuleDefinition.AllCallables(moduleDefinition.TopLevelDecls)) {
         if ((callable is Method method) && Attributes.Contains(method.Attributes, "test")) {
@@ -177,8 +180,8 @@ public class RunAllTestsMainMethod : IRewriter {
           //   success := false;
           // }
           //
-          var haltMessageVar = new LocalVariable(tok.ToRange(), "haltMessage", Type.String(), false) {
-            type = Type.String()
+          var haltMessageVar = new LocalVariable(tok.ToRange(), "haltMessage", seqCharType, false) {
+            type = seqCharType
           };
           var haltMessageVarExpr = new IdentifierExpr(tok, haltMessageVar);
           var recoverBlock =
