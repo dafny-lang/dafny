@@ -93,7 +93,7 @@ jobs:
         run: ls -lR
 
       - name: Merge reports
-        run: \
+        run: |
           reportgenerator -reports:"./**/coverage.cobertura.xml" -reporttypes:Cobertura -targetdir:combined
           ls -lR combined
 
