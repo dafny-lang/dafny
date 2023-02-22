@@ -299,7 +299,7 @@ The following subsections show various uses and alternatives.
 ### 8.6.1. Failure compatible types {#sec-failure-compatible-types}
 
 A simple failure-compatible type is the following:
-<!-- %check-resolve -->
+<!-- %check-resolve %save Status.tmp -->
 ```dafny
 datatype Status =
 | Success
@@ -312,10 +312,10 @@ datatype Status =
     Failure(this.error)
   }
 }
-``` <!-- %save Status.tmp -->
+```
 
 A commonly used alternative that carries some value information is something like this generic type:
-<!-- %check-resolve -->
+<!-- %check-resolve %save Outcome.tmp -->
 ```dafny
 datatype Outcome<T> =
 | Success(value: T)
@@ -335,7 +335,7 @@ datatype Outcome<T> =
     this.value
   }
 }
-``` <!-- %save Outcome.tmp -->
+```
 
 
 ### 8.6.2. Simple status return with no other outputs {#sec-simple-fc-return}
