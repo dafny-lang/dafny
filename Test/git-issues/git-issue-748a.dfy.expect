@@ -1,4 +1,4 @@
-git-issue-748a.dfy(17,9): Error: Undeclared top-level type or type parameter: array0 (did you forget to qualify a name or declare a module import 'opened'?)
-git-issue-748a.dfy(18,9): Error: Undeclared top-level type or type parameter: array1 (did you forget to qualify a name or declare a module import 'opened'?)
-git-issue-748a.dfy(19,9): Error: Undeclared top-level type or type parameter: array1? (did you forget to qualify a name or declare a module import 'opened'?)
+git-issue-748a.dfy(17,9): Error: Type or type parameter is not declared in this scope: array0 (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
+git-issue-748a.dfy(18,9): Error: Type or type parameter is not declared in this scope: array1 (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
+git-issue-748a.dfy(19,9): Error: Type or type parameter is not declared in this scope: array1? (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
 3 resolution/type errors detected in git-issue-748a.dfy

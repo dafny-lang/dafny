@@ -31,19 +31,16 @@ namespace Microsoft.Dafny {
       //         { Dt.Ctor1?(G,d) }
       //         $Is(d, T(G)) ==> Dt.Ctor0?(G,d) || Dt.Ctor1?(G,d) || ...);
       {
-        var tyvars = MkTyParamBinders(dt.TypeArgs, out var tyexprs);
-        Bpl.Expr d;
-        var dVar = BplBoundVar("d", predef.DatatypeType, out d);
-        var d_is = MkIs(d, ClassTyCon(dt, tyexprs));
+        MkIsPredicateForDatatype(dt, out var boundVariables, out var d, out _, out var isPredicate);
         Bpl.Expr cases_body = Bpl.Expr.False;
         Bpl.Trigger tr = null;
         foreach (DatatypeCtor ctor in dt.Ctors) {
           var disj = FunctionCall(ctor.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, d);
           cases_body = BplOr(cases_body, disj);
-          tr = new Bpl.Trigger(ctor.tok, true, new List<Bpl.Expr> { disj, d_is }, tr);
+          tr = new Bpl.Trigger(ctor.tok, true, new List<Bpl.Expr> { disj, isPredicate }, tr);
         }
-        var body = Bpl.Expr.Imp(d_is, cases_body);
-        var ax = BplForall(Snoc(tyvars, dVar), tr, body);
+        var body = Bpl.Expr.Imp(isPredicate, cases_body);
+        var ax = BplForall(boundVariables, tr, body);
         var axiom = new Bpl.Axiom(dt.tok, ax, "Questionmark data type disjunctivity");
         sink.AddTopLevelDeclaration(axiom);
       }
@@ -166,7 +163,7 @@ namespace Microsoft.Dafny {
         (typeOfK, K) => {
           Func<string, List<TypeParameter>> renew = s =>
             Map(codecl.TypeArgs, tp =>
-              new TypeParameter(tp.tok, tp.Name + "#" + s, tp.PositionalIndex, tp.Parent));
+              new TypeParameter(tp.RangeToken, tp.NameNode.Append("#" + s), tp.PositionalIndex, tp.Parent));
           List<TypeParameter> typaramsL = renew("l"), typaramsR = renew("r");
           List<Bpl.Expr> lexprs;
           var lvars = MkTyParamBinders(typaramsL, out lexprs);
@@ -671,6 +668,25 @@ namespace Microsoft.Dafny {
           "Constructor $IsAlloc");
         AddOtherDefinition(ctorFunction, constructorIsAllocAxiom);
       }
+    }
+
+    /// <summary>
+    /// Return list of variables
+    ///     d: DatatypeValue, T0,T1,...: Ty  // in out-parameter "boundVariables"
+    /// expression
+    ///     d                                // in out-parameter "varExpression"
+    /// expression
+    ///     T(T0,T1,...)                     // in out-parameter "typeExpression"
+    /// and predicate
+    ///     $Is(d, T(T0,T1,...))             // in out-parameter "isPredicate"
+    /// </summary>
+    private void MkIsPredicateForDatatype(DatatypeDecl datatypeDecl, out List<Bpl.Variable> boundVariables,
+      out Bpl.Expr varExpression, out Bpl.Expr typeExpression, out Bpl.Expr isPredicate) {
+      var typeVariables = MkTyParamBinders(datatypeDecl.TypeArgs, out var typeExpressions);
+      var dVar = BplBoundVar("d", predef.DatatypeType, out varExpression);
+      boundVariables = Snoc(typeVariables, dVar);
+      typeExpression = ClassTyCon(datatypeDecl, typeExpressions);
+      isPredicate = MkIs(varExpression, typeExpression);
     }
 
     /* (forall d : DatatypeType, G : Ty, H : Heap •

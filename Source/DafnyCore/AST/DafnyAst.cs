@@ -59,7 +59,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(reporter != null);
       FullName = name;
       DefaultModule = module;
-      DefaultModuleDef = (DefaultModuleDecl)((LiteralModuleDecl)module).ModuleDef;
+      DefaultModuleDef = (DefaultModuleDefinition)((LiteralModuleDecl)module).ModuleDef;
       BuiltIns = builtIns;
       this.Options = options;
       this.Reporter = reporter;
@@ -367,11 +367,6 @@ namespace Microsoft.Dafny {
     }
   }
 
-
-  public abstract class INamedRegion : TokenNode {
-    string Name { get; }
-  }
-
   [ContractClass(typeof(IVariableContracts))]
   public interface IVariable : IDeclarationOrUsage {
     string Name {
@@ -407,9 +402,6 @@ namespace Microsoft.Dafny {
       get;
     }
     void MakeGhost();
-    IToken Tok {
-      get;
-    }
   }
   [ContractClassFor(typeof(IVariable))]
   public abstract class IVariableContracts : TokenNode, IVariable {
@@ -937,6 +929,9 @@ namespace Microsoft.Dafny {
       if (VisitOneExpr(expr, ref st)) {
         if (preResolve && expr is ConcreteSyntaxExpression concreteSyntaxExpression) {
           concreteSyntaxExpression.PreResolveSubExpressions.Iter(e => Visit(e, st));
+        } else if (preResolve && expr is QuantifierExpr quantifierExpr) {
+          // pre-resolve, split expressions are not children
+          quantifierExpr.PreResolveSubExpressions.Iter(e => Visit(e, st));
         } else {
           // recursively visit all subexpressions and all substatements
           expr.SubExpressions.Iter(e => Visit(e, st));

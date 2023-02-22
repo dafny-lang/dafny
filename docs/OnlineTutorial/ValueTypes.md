@@ -454,9 +454,9 @@ Like sets, multisets are unordered. However, because they keep track of how many
 element they have, the above literal actually has two 3's in it.
 
 Many of the operations defined on sets are also available for multisets. You can use `in` to
-test whether some element is in a multiset (in means that it has at least one member of the given value). Multiset union
+test whether some element is in a multiset (in means that it has at least one member of the given value). Multiset sum
 (`+`) means take elements from both, and add them up. So if one multiset has two 3's and another has one, then their multiset
-union would have a total of three 3's. The multiset difference (`-`) works similarly, in that the duplicity of the elements
+sum would have a total of three 3's. The multiset difference (`-`) works similarly, in that the multiplicity of the elements
 (i.e. how many of each element are in the multiset) matters. So the following:
 
 <!-- %check-verify -->
@@ -469,7 +469,7 @@ method test()
 
 holds, because we start with three 1's, then take away two to be left with one.
 
-Multiset disjoint (`!!`) works as expected, and is true if and only if the two multisets have no members in common.
+Multiset disjoint (`!!`) works as expected: it is true if and only if the two multisets have no members in common.
 Also, two multisets are equal if they have exactly the same count of each element.
 
 
@@ -487,7 +487,7 @@ method test()
 Both of these assertions are correct because the multiset of a sequence considers each element seperately,
 whereas a set only has at most one of each element. Dafny lets you write `{1,1}`, but this is the same
 as `{1}`, because duplicates are ignored. Thus when making a multiset from a set, each element in the
-multiset will have duplicity exactly one. Making multisets from sequences is particularly useful, as when
+multiset will have multiplicity exactly one. Making multisets from sequences is particularly useful, as when
 combined with the slice of an array, allows you to talk about the set of elements in an array (as in `multiset(a[..])`),
 which is very helpful in verifying sorting algorithms and some data structures.
 

@@ -15,6 +15,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 using Microsoft.BaseTypes;
+using Microsoft.Boogie;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
 namespace Microsoft.Dafny.Compilers {
@@ -101,10 +102,13 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(program != null);
       Contract.Requires(wr != null);
 
-      var strwr = new StringWriter();
-      strwr.NewLine = Environment.NewLine;
-      new Printer(strwr, PrintModes.DllEmbed).PrintProgram(program, true);
-      var programString = strwr.GetStringBuilder().Replace("\"", "\"\"").ToString();
+      var stringWriter = new StringWriter();
+      stringWriter.NewLine = Environment.NewLine;
+      var oldValue = DafnyOptions.O.ShowEnv;
+      DafnyOptions.O.ShowEnv = ExecutionEngineOptions.ShowEnvironment.DuringPrint;
+      new Printer(stringWriter, PrintModes.DllEmbed).PrintProgram(program, true);
+      DafnyOptions.O.ShowEnv = oldValue;
+      var programString = stringWriter.GetStringBuilder().Replace("\"", "\"\"").ToString();
 
       wr.WriteLine($"[assembly: DafnyAssembly.DafnySourceAttribute(@\"{programString}\")]");
       wr.WriteLine();
@@ -153,7 +157,7 @@ namespace Microsoft.Dafny.Compilers {
         var argConvDecls = arity switch {
           0 => "",
           1 => $"{ArgConvDecl(("U", "T"))}, ",
-          _ => us.SkipLast(1).Zip(ts.SkipLast(1))
+          _ => Enumerable.Zip(us.SkipLast(1), ts.SkipLast(1))
                  .Comma((tp, i) => $"{ArgConvDecl(tp)}{++i}")
                + ", "
         };
@@ -529,9 +533,19 @@ namespace Microsoft.Dafny.Compilers {
       foreach (var ctor in dt.Ctors.Where(ctor => !ctor.IsGhost)) {
         wr.Write($"public static {DtTypeName(dt)} {DtCreateName(ctor)}(");
         WriteFormals("", ctor.Formals, wr);
-        var w = wr.NewBlock(")");
-        var arguments = ctor.Formals.Where(f => !f.IsGhost).Comma(FormalName);
-        w.WriteLine($"return new {DtCtorDeclarationName(ctor)}{DtT_TypeArgs}({arguments});");
+        wr.NewBlock(")")
+          .WriteLine($"return new {DtCtorDeclarationName(ctor)}{DtT_TypeArgs}({ctor.Formals.Where(f => !f.IsGhost).Comma(FormalName)});");
+      }
+
+      if (dt.IsRecordType) {
+        // Also emit a "create_<ctor_name>" method that thunks to "create",
+        // to provide a more uniform interface.
+
+        var ctor = dt.Ctors[0];
+        wr.Write($"public static {DtTypeName(dt)} create_{ctor.CompileName}(");
+        WriteFormals("", ctor.Formals, wr);
+        wr.NewBlock(")")
+          .WriteLine($"return create({ctor.Formals.Where(f => !f.IsGhost).Comma(FormalName)});");
       }
 
       // query properties
@@ -602,7 +616,7 @@ namespace Microsoft.Dafny.Compilers {
       var typeArgs = TypeParameters(nonGhostTypeArgs);
       var typeSubstMap = nonGhostTypeArgs.ToDictionary(
         tp => tp,
-        tp => (Type)new UserDefinedType(tp.tok, new TypeParameter(tp.tok, $"_{tp.Name}", tp.VarianceSyntax)));
+        tp => (Type)new UserDefinedType(tp.tok, new TypeParameter(tp.RangeToken, tp.NameNode.Prepend("_"), tp.VarianceSyntax)));
 
       var resultType = DatatypeWrapperEraser.GetInnerTypeOfErasableDatatypeWrapper(datatype, out var innerType)
         ? TypeName(innerType.Subst(typeSubstMap), wr, datatype.tok)
@@ -677,7 +691,7 @@ namespace Microsoft.Dafny.Compilers {
         if (nonGhostTypeArgs.Exists(ty => ContainsTyVar(ty, fromType))) {
           var map = nonGhostTypeArgs.ToDictionary(
             tp => tp,
-            tp => (Type)new UserDefinedType(tp.tok, new TypeParameter(tp.tok, $"_{tp.Name}", tp.VarianceSyntax)));
+            tp => (Type)new UserDefinedType(tp.tok, new TypeParameter(tp.RangeToken, tp.NameNode.Prepend("_"), tp.VarianceSyntax)));
           var to = fromType.Subst(map);
           var downcast = new ConcreteSyntaxTree();
           EmitDowncast(fromType, to, null, downcast).Write(name);
@@ -2724,7 +2738,7 @@ namespace Microsoft.Dafny.Compilers {
 
         var typeArgs = from.IsArrowType ? from.TypeArgs.Concat(to.TypeArgs) : to.TypeArgs;
         var wTypeArgs = typeArgs.Comma(ta => TypeName(ta, wr, tok));
-        var argPairs = from.TypeArgs.Zip(to.TypeArgs);
+        var argPairs = Enumerable.Zip(from.TypeArgs, to.TypeArgs);
         if (from.IsArrowType) {
           argPairs = argPairs.Select((tp, i) => ++i < to.TypeArgs.Count ? (tp.Second, tp.First) : tp);
         }
