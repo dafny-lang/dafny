@@ -85,7 +85,8 @@ jobs:
     ## Check that dafny and z3 run and that a simple program verifies or fails
     - name: Versions
       run: |
-        z3 -version
+        z3-4.8.5 -version
+        z3-4.12.1 -version
         dafny -version
     - name: Fatch latest release version string
       id: dafny
