@@ -18,7 +18,7 @@ You could use a function-by-method to encapsulate the above in a function.
 Here is an extended example taken from  [Dafny Power User: Iterating over a Collection](http://leino.science/papers/krml275.html).
 
 ```dafny
-function method SetToSequence<A(!new)>(s: set<A>, R: (A, A) -> bool): seq<A>
+function SetToSequence<A(!new)>(s: set<A>, R: (A, A) -> bool): seq<A>
   requires IsTotalOrder(R)
   ensures var q := SetToSequence(s, R);
     forall i :: 0 <= i < |q| ==> q[i] in s
