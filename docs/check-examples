@@ -241,7 +241,7 @@ do
           elif [ "$com" == "%check-legacy" ]; then
             "$dafny" $com $dOptions ${options[@]} $text > actual
           else
-            "$dafny" $com --function-syntax:4 $dOptions ${options[@]} $text > actual
+            "$dafny" $com $dOptions ${options[@]} $text > actual
           fi
           actualec=$?
           if [ "$useHeadings" == "1" ]; then
