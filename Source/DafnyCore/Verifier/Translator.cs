@@ -2724,8 +2724,9 @@ namespace Microsoft.Dafny {
         if (pp.ExtremePred is GreatestPredicate) {
           // forall k':ORDINAL | _k' LESS _k :: pp(_k', args)
           var smaller = Expression.CreateLess(kprime, k);
-          limitCalls = new ForallExpr(pp.tok, pp.RangeToken, new List<BoundVar> { kprimeVar }, smaller, ppCall, triggerAttr);
-          limitCalls.Type = Type.Bool;  // resolve here
+          limitCalls = new ForallExpr(pp.tok, pp.RangeToken, new List<BoundVar> { kprimeVar }, smaller, ppCall, triggerAttr) {
+            Type = Type.Bool,
+          };
         } else {
           // exists k':ORDINAL | _k' LESS _k :: pp(_k', args)
           // Here, instead of using the usual ORD#Less, we use the semantically equivalent ORD#LessThanLimit, because this
@@ -2735,8 +2736,9 @@ namespace Microsoft.Dafny {
             ResolvedOp = BinaryExpr.ResolvedOpcode.LessThanLimit,
             Type = Type.Bool
           };
-          limitCalls = new ExistsExpr(pp.tok, pp.RangeToken, new List<BoundVar> { kprimeVar }, smaller, ppCall, triggerAttr);
-          limitCalls.Type = Type.Bool;  // resolve here
+          limitCalls = new ExistsExpr(pp.tok, pp.RangeToken, new List<BoundVar> { kprimeVar }, smaller, ppCall, triggerAttr) {
+            Type = Type.Bool,
+          };
         }
         var a = Expression.CreateImplies(kIsPositive, body);
         var b = Expression.CreateImplies(kIsLimit, limitCalls);
@@ -8131,42 +8133,42 @@ namespace Microsoft.Dafny {
       Contract.Requires(type != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
-      var normType = type.NormalizeExpandKeepConstraints();
+      type = type.NormalizeExpandKeepConstraints();
 
-      if (normType.IsTypeParameter || normType.IsOpaqueType) {
-        var udt = (UserDefinedType)normType;
+      if (type.IsTypeParameter || type.IsOpaqueType) {
+        var udt = (UserDefinedType)type;
         return trTypeParamOrOpaqueType(udt.ResolvedClass, udt.TypeArgs);
-      } else if (normType is UserDefinedType) {
+      } else if (type is UserDefinedType) {
         // Classes, (co-)datatypes, newtypes, subset types, ...
-        var args = normType.TypeArgs.ConvertAll(TypeToTy);
-        return ClassTyCon(((UserDefinedType)normType), args);
-      } else if (normType is SetType) {
-        bool finite = ((SetType)normType).Finite;
-        return FunctionCall(Token.NoToken, finite ? "TSet" : "TISet", predef.Ty, TypeToTy(((CollectionType)normType).Arg));
-      } else if (normType is MultiSetType) {
-        return FunctionCall(Token.NoToken, "TMultiSet", predef.Ty, TypeToTy(((CollectionType)normType).Arg));
-      } else if (normType is SeqType) {
-        return FunctionCall(Token.NoToken, "TSeq", predef.Ty, TypeToTy(((CollectionType)normType).Arg));
-      } else if (normType is MapType) {
-        bool finite = ((MapType)normType).Finite;
+        var args = type.TypeArgs.ConvertAll(TypeToTy);
+        return ClassTyCon(((UserDefinedType)type), args);
+      } else if (type is SetType) {
+        bool finite = ((SetType)type).Finite;
+        return FunctionCall(Token.NoToken, finite ? "TSet" : "TISet", predef.Ty, TypeToTy(((CollectionType)type).Arg));
+      } else if (type is MultiSetType) {
+        return FunctionCall(Token.NoToken, "TMultiSet", predef.Ty, TypeToTy(((CollectionType)type).Arg));
+      } else if (type is SeqType) {
+        return FunctionCall(Token.NoToken, "TSeq", predef.Ty, TypeToTy(((CollectionType)type).Arg));
+      } else if (type is MapType) {
+        bool finite = ((MapType)type).Finite;
         return FunctionCall(Token.NoToken, finite ? "TMap" : "TIMap", predef.Ty,
-          TypeToTy(((MapType)normType).Domain),
-          TypeToTy(((MapType)normType).Range));
-      } else if (normType is BoolType) {
+          TypeToTy(((MapType)type).Domain),
+          TypeToTy(((MapType)type).Range));
+      } else if (type is BoolType) {
         return new Bpl.IdentifierExpr(Token.NoToken, "TBool", predef.Ty);
-      } else if (normType is CharType) {
+      } else if (type is CharType) {
         return new Bpl.IdentifierExpr(Token.NoToken, "TChar", predef.Ty);
-      } else if (normType is RealType) {
+      } else if (type is RealType) {
         return new Bpl.IdentifierExpr(Token.NoToken, "TReal", predef.Ty);
-      } else if (normType is BitvectorType) {
-        var t = (BitvectorType)normType;
+      } else if (type is BitvectorType) {
+        var t = (BitvectorType)type;
         return FunctionCall(Token.NoToken, "TBitvector", predef.Ty, Bpl.Expr.Literal(t.Width));
-      } else if (normType is IntType) {
+      } else if (type is IntType) {
         return new Bpl.IdentifierExpr(Token.NoToken, "TInt", predef.Ty);
-      } else if (normType is BigOrdinalType) {
+      } else if (type is BigOrdinalType) {
         return new Bpl.IdentifierExpr(Token.NoToken, "TORDINAL", predef.Ty);
-      } else if (normType is ParamTypeProxy) {
-        return trTypeParamOrOpaqueType(((ParamTypeProxy)normType).orig);
+      } else if (type is ParamTypeProxy) {
+        return trTypeParamOrOpaqueType(((ParamTypeProxy)type).orig);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
@@ -8233,7 +8235,7 @@ namespace Microsoft.Dafny {
     /// Return $IsBox(x, t).
     /// </summary>
     Bpl.Expr MkIsBox(Bpl.Expr x, Type t) {
-      return MkIs(x, TypeToTy(t.NormalizeExpandKeepConstraints()), true);
+      return MkIs(x, TypeToTy(t), true);
     }
 
     // Boxes, if necessary
