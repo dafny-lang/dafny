@@ -62,23 +62,23 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   }
 
   public class DocumentAfterParsing : Document {
-    private readonly IReadOnlyList<Diagnostic> parseDiagnostics;
+    private readonly IDictionary<DafnyDiagnostic, Diagnostic> parseDiagnostics;
 
     public DocumentAfterParsing(DocumentTextBuffer textDocumentItem,
       Dafny.Program program,
-      IReadOnlyList<Diagnostic> parseDiagnostics) : base(textDocumentItem) {
+      IDictionary<DafnyDiagnostic, Diagnostic> parseDiagnostics) : base(textDocumentItem) {
       this.parseDiagnostics = parseDiagnostics;
       Program = program;
     }
 
-    public override IEnumerable<Diagnostic> Diagnostics => parseDiagnostics;
+    public override IEnumerable<Diagnostic> Diagnostics => parseDiagnostics.Values;
 
     public Dafny.Program Program { get; }
 
     public override IdeState ToIdeState(IdeState previousState) {
       return previousState with {
         TextDocumentItem = TextDocumentItem,
-        ResolutionDiagnostics = parseDiagnostics,
+        ResolutionDiagnostics = Diagnostics,
         ImplementationsWereUpdated = false,
       };
     }

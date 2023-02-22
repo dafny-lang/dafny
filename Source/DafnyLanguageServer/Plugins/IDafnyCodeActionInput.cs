@@ -1,5 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Plugins;
@@ -17,6 +16,6 @@ public interface IDafnyCodeActionInput {
   int Version { get; }
   string Code { get; }
   Dafny.Program? Program { get; }
-  IDictionary<ErrorMessage, Diagnostic> Diagnostics { get; }
+  IDictionary<DafnyDiagnostic, Diagnostic> Diagnostics { get; }
   string Extract(Range range);
 }

@@ -138,7 +138,7 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
   }
 }
 
-public class DafnyCodeActionInput : Microsoft.Dafny.LanguageServer.Plugins.IDafnyCodeActionInput {
+public class DafnyCodeActionInput : IDafnyCodeActionInput {
   public DafnyCodeActionInput(DocumentAfterParsing document) {
     Document = document;
   }
@@ -149,7 +149,7 @@ public class DafnyCodeActionInput : Microsoft.Dafny.LanguageServer.Plugins.IDafn
   public Dafny.Program Program => Document.Program;
   public DocumentAfterParsing Document { get; }
 
-  public IDictionary<ErrorMessage, Diagnostic> Diagnostics {
+  public IDictionary<DafnyDiagnostic, Diagnostic> Diagnostics {
     get {
       // TODO 
       // var result = Document.Diagnostics.ToArray();

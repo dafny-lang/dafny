@@ -61,5 +61,5 @@ public abstract class DiagnosticDafnyCodeActionProvider : DafnyCodeActionProvide
   /// <param name="diagnostic">The diagnostic for which to provide a fix</param>
   /// <param name="selection">Where the user's caret is</param>
   protected abstract IEnumerable<DafnyCodeAction>? GetDafnyCodeActions(IDafnyCodeActionInput input,
-    ErrorMessage errorMessage, Diagnostic diagnostic, Range selection);
+    DafnyDiagnostic dafnyDiagnostic, Diagnostic diagnostic, Range selection);
 }

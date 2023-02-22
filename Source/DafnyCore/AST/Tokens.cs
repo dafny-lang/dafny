@@ -258,16 +258,13 @@ public class BoogieRangeToken : TokenWrapper {
   }
 }
 
-public class CodeActionRange : TokenWrapper {
-  public int column;
-  public int length;
-  public CodeActionRange(IToken sourceTok, int column, int length) : base(sourceTok) {
-    this.column = column;
-    this.length = length;
-  }
+public class TokenRange : TokenWrapper {
+  public IToken Start { get; }
+  public IToken End { get; }
 
-  public String StartLength() {
-    return (line - 1) + " " + (column - 1) + " " + length;
+  public TokenRange(IToken original, IToken start, IToken end) : base(original) {
+    this.Start = start;
+    this.End = end;
   }
 
   public override IToken WithVal(string newVal) {

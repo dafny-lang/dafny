@@ -2,9 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 using System;
-using System.Collections.Generic;
 using System.Diagnostics.Contracts;
-using System.Linq;
 
 namespace Microsoft.Dafny {
   public enum ErrorLevel {
@@ -15,7 +13,7 @@ namespace Microsoft.Dafny {
     Parser, Cloner, RefinementTransformer, Rewriter, Resolver, Translator, Verifier, Compiler
   }
 
-  public record ErrorMessage(string ErrorId, IToken Token, string Message, MessageSource Source);
+  public record DafnyDiagnostic(string ErrorId, IToken Token, string Message, MessageSource Source);
 
   public abstract class ErrorReporter {
     public bool ErrorsOnly { get; set; }
@@ -160,37 +158,6 @@ namespace Microsoft.Dafny {
 
     public static string TokenToString(IToken tok) {
       return String.Format("{0}({1},{2})", tok.Filename, tok.line, tok.col - 1);
-    }
-  }
-
-  public class BatchErrorReporter : ErrorReporter {
-    public Dictionary<ErrorLevel, List<ErrorMessage>> AllMessages;
-
-    public BatchErrorReporter() {
-      ErrorsOnly = false;
-      AllMessages = new Dictionary<ErrorLevel, List<ErrorMessage>> {
-        [ErrorLevel.Error] = new(),
-        [ErrorLevel.Warning] = new(),
-        [ErrorLevel.Info] = new()
-      };
-    }
-
-    public override bool Message(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {
-      if (ErrorsOnly && level != ErrorLevel.Error) {
-        // discard the message
-        return false;
-      }
-      AllMessages[level].Add(new ErrorMessage(errorId, tok, msg, source));
-      return true;
-    }
-
-    public override int Count(ErrorLevel level) {
-      return AllMessages[level].Count;
-    }
-
-    public override int CountExceptVerifierAndCompiler(ErrorLevel level) {
-      return AllMessages[level].Count(message => message.Source != MessageSource.Verifier &&
-                                                 message.Source != MessageSource.Compiler);
     }
   }
 

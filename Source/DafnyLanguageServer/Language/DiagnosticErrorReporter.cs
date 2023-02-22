@@ -7,10 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 using VCGeneration;
-using Newtonsoft.Json.Linq;
-using static Microsoft.Dafny.ErrorRegistry;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   public class DiagnosticErrorReporter : ErrorReporter {
@@ -19,7 +16,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private const string RelatedLocationMessage = RelatedLocationCategory;
 
     private readonly DocumentUri entryDocumentUri;
-    private readonly Dictionary<DocumentUri, List<Diagnostic>> diagnostics = new();
+    private readonly Dictionary<DocumentUri, IDictionary<DafnyDiagnostic, Diagnostic>> diagnostics = new();
     private readonly Dictionary<DiagnosticSeverity, int> counts = new();
     private readonly Dictionary<DiagnosticSeverity, int> countsNotVerificationOrCompiler = new();
     private readonly ReaderWriterLockSlim rwLock = new();
@@ -32,11 +29,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// The uri of the entry document is necessary to report general compiler errors as part of this document.
     /// </remarks>
     public DiagnosticErrorReporter(string documentSource, DocumentUri entryDocumentUri) {
-      this.entryDocumentsource = documentSource;
+      this.entryDocumentSource = documentSource;
       this.entryDocumentUri = entryDocumentUri;
     }
 
-    public IReadOnlyDictionary<DocumentUri, List<Diagnostic>> AllDiagnostics => diagnostics;
+    public IReadOnlyDictionary<DocumentUri, IDictionary<DafnyDiagnostic, Diagnostic>> AllDiagnostics => diagnostics;
 
     public IReadOnlyList<Diagnostic> GetDiagnostics(DocumentUri documentUri) {
       rwLock.EnterReadLock();
@@ -44,7 +41,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         // Concurrency: Return a copy of the list not to expose a reference to an object that requires synchronization.
         // LATER: Make the Diagnostic type immutable, since we're not protecting it from concurrent accesses
         return new List<Diagnostic>(
-          diagnostics.GetValueOrDefault(documentUri) ??
+          diagnostics.GetValueOrDefault(documentUri)?.Values ??
           Enumerable.Empty<Diagnostic>());
       }
       finally {
@@ -71,7 +68,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(innerToken, "Related location"));
       }
 
-      var uri = GetDocumentUriOrDefault(Translator.ToDafnyToken(error.Tok));
+      var dafnyToken = Translator.ToDafnyToken(error.Tok);
+      var uri = GetDocumentUriOrDefault(dafnyToken);
+      var dafnyDiagnostic = new DafnyDiagnostic(null, dafnyToken, error.Msg, VerifierMessageSource);
       var diagnostic = new Diagnostic {
         Severity = DiagnosticSeverity.Error,
         Message = error.Msg,
@@ -80,6 +79,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         Source = VerifierMessageSource.ToString()
       };
       AddDiagnosticForFile(
+        dafnyDiagnostic,
         diagnostic,
         VerifierMessageSource,
         uri
@@ -87,7 +87,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     public static readonly string PostConditionFailingMessage = new EnsuresDescription().FailureDescription;
-    private readonly string entryDocumentsource;
+    private readonly string entryDocumentSource;
 
     public static string FormatRelated(string related) {
       return $"Could not prove: {related}";
@@ -98,12 +98,12 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       if (tokenForMessage is BoogieRangeToken range) {
         var rangeLength = range.EndToken.pos + range.EndToken.val.Length - range.StartToken.pos;
         if (message == PostConditionFailingMessage) {
-          var postcondition = entryDocumentsource.Substring(range.StartToken.pos, rangeLength);
+          var postcondition = entryDocumentSource.Substring(range.StartToken.pos, rangeLength);
           message = $"This postcondition might not hold: {postcondition}";
         } else if (message == "Related location") {
           var tokenUri = tokenForMessage.GetDocumentUri();
           if (tokenUri == entryDocumentUri) {
-            message = FormatRelated(entryDocumentsource.Substring(range.StartToken.pos, rangeLength));
+            message = FormatRelated(entryDocumentSource.Substring(range.StartToken.pos, rangeLength));
           } else {
             var fileName = tokenForMessage.GetDocumentUri().GetFileSystemPath();
             message = "";
@@ -143,7 +143,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       };
     }
 
-    public override bool Message(MessageSource source, ErrorLevel level, string errorId, IToken rootTok, string msg) {
+    public override bool Message(MessageSource source, ErrorLevel level, string? errorId, IToken rootTok, string msg) {
       if (ErrorsOnly && level != ErrorLevel.Error) {
         return false;
       }
@@ -151,7 +151,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       var tok = rootTok;
       while (tok is NestedToken nestedToken) {
         tok = nestedToken.Inner;
-        if (!(tok is CodeActionRange)) {
+        if (!(tok is TokenRange)) {
           relatedInformation.AddRange(
             CreateDiagnosticRelatedInformationFor(
               tok, nestedToken.Message ?? "Related location")
@@ -160,17 +160,17 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         }
       }
 
+      var dafnyDiagnostic = new DafnyDiagnostic(errorId, rootTok, msg, source);
       var item = new Diagnostic {
-        Code = errorId.ToString(),
+        Code = errorId,
         Severity = ToSeverity(level),
         Message = msg,
         Range = rootTok.GetLspRange(),
         Source = source.ToString(),
         RelatedInformation = relatedInformation,
-        CodeDescription = errorId == null ? null : new CodeDescription { Href = new System.Uri("https://dafny.org/dafny/HowToFAQ/Errors#" + errorId.ToString()) },
-        Data = Errors.FindCodeActionRange(rootTok).StartLength(),
+        CodeDescription = errorId == null ? null : new CodeDescription { Href = new System.Uri("https://dafny.org/dafny/HowToFAQ/Errors#" + errorId) },
       };
-      AddDiagnosticForFile(item, source, GetDocumentUriOrDefault(rootTok));
+      AddDiagnosticForFile(dafnyDiagnostic, item, source, GetDocumentUriOrDefault(rootTok));
       return true;
     }
 
@@ -194,7 +194,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
     }
 
-    private void AddDiagnosticForFile(Diagnostic item, MessageSource messageSource, DocumentUri documentUri) {
+    private void AddDiagnosticForFile(DafnyDiagnostic dafnyDiagnostic, Diagnostic item, MessageSource messageSource, DocumentUri documentUri) {
       rwLock.EnterWriteLock();
       try {
         var severity = item.Severity!.Value; // All our diagnostics have a severity.
@@ -203,7 +203,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           countsNotVerificationOrCompiler[severity] =
             countsNotVerificationOrCompiler.GetValueOrDefault(severity, 0) + 1;
         }
-        diagnostics.GetOrCreate(documentUri, () => new List<Diagnostic>()).Add(item);
+        diagnostics.GetOrCreate(documentUri, () => new Dictionary<DafnyDiagnostic, Diagnostic>()).Add(dafnyDiagnostic, item);
       }
       finally {
         rwLock.ExitWriteLock();

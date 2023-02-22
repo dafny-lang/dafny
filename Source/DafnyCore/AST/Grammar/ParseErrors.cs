@@ -68,12 +68,12 @@ public class ParseErrors {
     @"
 No Dafny modifier, such as [`abstract`, `static`, `ghost`](https://dafny.org/latest/DafnyRef/DafnyRef#sec-declaration-modifiers) may be repeated
 Such repetition would be superfluous even if allowed.
-", Remove("remove duplicate modifier"));
+", Remove(true, "remove duplicate modifier"));
 
     Add(ErrorId.p_abstract_not_allowed,
     @"
 Only modules may be declared abstract.
-", Remove());
+", Remove(true));
 
     Add(ErrorId.p_no_ghost_for_by_method,
     @"
@@ -82,7 +82,7 @@ section to their body can be used both in ghost contexts and in non-ghost contex
 in ghost contexts the function body is used and in compiled contexts
 the by-method body is used. The `ghost` keyword is not permitted on the
 declaration.
-", Remove());
+", Remove(true));
 
     Add(ErrorId.p_ghost_forbidden_default,
     @"
@@ -92,25 +92,25 @@ From Dafny 4 on, `ghost function` means a ghost function and
 `function` means a non-ghost function. 
 See the discussion [here](https://dafny.org/latest/DafnyRef/DafnyRef#sec-function-syntax) for
 a discussion of options to control this feature.
-", Remove());
+", Remove(true));
 
     Add(ErrorId.p_ghost_forbidden,
     @"
 Only some kinds of declarations can be declared `ghost`, most often functions,
 fields, and local declarations. In the example, a `module` may not be `ghost`.
-", Remove());
+", Remove(true));
 
     Add(ErrorId.p_no_static,
     @"
 Only some kinds of declarations can be declared 'static', most often
 fields, constants, methods, and functions, and only within classes. 
 Modules and the declarations within them are already always static.
-", Remove());
+", Remove(true));
 
     Add(ErrorId.p_deprecated_attribute,
     @"
 The `{:handle}` and `{:dllimport}` attributes are obsolete and unmaintained. They will be removed.
-", Remove("remove attribute"));
+", Remove(true, "remove attribute")); // TODO test!!
 
     Add(ErrorId.p_literal_string_required,
     @"
@@ -123,7 +123,7 @@ User-declared identifiers may not begin with an underscore;
 such identifiers are reserved for internal use.
 In match statements and expressions, an identifier
 that is a single underscore is used as a wild-card match.
-", Remove("remove underscore"));
+", Remove(false, "remove underscore")); // TODO change so it removes only the first character.
 
     Add(ErrorId.p_bitvector_too_large,
     @"
@@ -161,7 +161,7 @@ An export declaration consists of one or more `reveals`, `provides`, and extends
 a comma-separated list of identifiers, but the clauses themselves are not separated by any delimiter.
 So in the example above, the comma after `a` is wrong in each export declaration. 
 This mistake is easy to make when the clauses are on the same line.
-", Remove("remove comma"));
+", Remove(false, "remove comma"));
 
     Add(ErrorId.p_top_level_field,
     @"
@@ -206,29 +206,29 @@ There are limitations on refining a newtype, namely that the base type cannot be
     @"
 The output of a predicate or function cannot be ghost.
 It is implicitly ghost if the function is ghost itself.
-", Remove());
+", Remove(true));
 
     // TODO - MISPLACED
     Add(ErrorId.p_ghost_function_output_not_ghost,
     @"
 If a method, function, or predicate is declared as ghost, then its formal parameters may not also be declared ghost.
 Any use of this construct will always be in ghost contexts.
-", Remove());
+", Remove(true));
 
-    Add(ErrorId.p_no_new_on_output_formals,
+    Add(ErrorId.p_no_new_on_output_formals, // TODO errorId is never used in parser
     @"
 The `new` modifier only applies to input parameters.
-", Remove());
+", Remove(true));
 
-    Add(ErrorId.p_no_nameonly_on_output_formals,
+    Add(ErrorId.p_no_nameonly_on_output_formals, // TODO errorId is never used in parser
     @"
 The `nameonly` modifier only applies to input parameters.
-", Remove());
+", Remove(true));
 
     Add(ErrorId.p_no_older_on_output_formals,
     @"
 The `older` modifier only applies to input parameters.
-", Remove());
+", Remove(true));
 
     Add(ErrorId.p_var_decl_must_have_type,
     @"
@@ -257,7 +257,7 @@ However, if `nameonly` is used, meaning the constructor can be called using name
 then the name must be given, as in `datatype D = D (i: int, nameonly j: int) {}`
 
 More detail is given [here](https://dafny.org/latest/DafnyRef/DafnyRef#sec-parameter-bindings).
-", Remove());
+", Remove(true));
 
     Add(ErrorId.p_should_be_yields_instead_of_returns,
     @"
@@ -273,7 +273,7 @@ The example above is a valid example if `returns` is replaced by `yields`.
 [Type-parameter variance](https://dafny.org/latest/DafnyRef/DafnyRef#sec-type-parameter-variance) is specified by a 
 `+`, `-`, `*` or `!` before the type-parameter name.
 Such designations are allowed in generic type declarations but not in generic method, function, or predicate declarations.
-", Remove("remove type parameter variance"));
+", Remove(false, "remove type parameter variance"));
 
     Add(ErrorId.p_unexpected_type_characteristic,
     @"
@@ -333,7 +333,7 @@ Least and greatest lemmas and predicates have a special parameter named `k`.
 Its type is specified in square brackets between the lemma/predicate name and the rest of the signature.
 The type may be either `nat` or `ORDINAL`.
 But this type is specified only for `least` and `greatest` constructs.
-", Remove());
+", Remove(false));
 
     Add(ErrorId.p_constructors_have_no_out_parameters,
     @"
@@ -361,7 +361,7 @@ Out-parameters of a method are declared (inside the parentheses after the `retur
 with just an identifier and a type, separated by a colon. 
 No initializing value may be given. If a default value is needed, assign the out-parameter
 that value as a first statement in the body of the method.
-", Remove("remove initializer"));
+", Remove(false, "remove initializer"));
 
     Add(ErrorId.p_set_only_one_type_parameter,
     @"

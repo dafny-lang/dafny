@@ -57,7 +57,7 @@ class DeclModifierData {
 public void CheckAndSetToken(ref IToken token)
 {
     if (token != null) {
-      SemErr(ParseErrors.ErrorId.p_duplicate_modifier, Errors.CodeAction(t,true), "Duplicate declaration modifier: " + t.val);
+      SemErr(ParseErrors.ErrorId.p_duplicate_modifier, t, "Duplicate declaration modifier: " + t.val);
     }
     token = t;
 }
@@ -97,27 +97,27 @@ void CheckDeclModifiers(ref DeclModifierData dmod, string declCaption, AllowedDe
 {
   declCaption = (declCaption.StartsWith("i") || declCaption.StartsWith("o") ? "an " : "a ") + declCaption;
   if (dmod.IsAbstract && ((allowed & AllowedDeclModifiers.Abstract) == 0)) {
-    SemErr(ParseErrors.ErrorId.p_abstract_not_allowed, Errors.CodeAction(dmod.AbstractToken,true), $"{declCaption} cannot be declared 'abstract'");
+    SemErr(ParseErrors.ErrorId.p_abstract_not_allowed, dmod.AbstractToken, $"{declCaption} cannot be declared 'abstract'");
     dmod.IsAbstract = false;
   }
   if (dmod.IsGhost) {
     if ((allowed & AllowedDeclModifiers.AlreadyGhost) != 0) {
       if (declCaption.Contains("-by-method")) {
-        SemErr(ParseErrors.ErrorId.p_no_ghost_for_by_method, Errors.CodeAction(dmod.GhostToken,true),
+        SemErr(ParseErrors.ErrorId.p_no_ghost_for_by_method, dmod.GhostToken,
           $"{declCaption} has a ghost function body and a non-ghost method body; {declCaption} declaration does not use the 'ghost' keyword.");
       } else if (declCaption == "a function" || declCaption == "a predicate") {
-        SemErr(ParseErrors.ErrorId.p_ghost_forbidden_default, Errors.CodeAction(dmod.GhostToken,true), $"{declCaption} cannot be declared 'ghost' (it is 'ghost' by default when using --function-syntax:3)");
+        SemErr(ParseErrors.ErrorId.p_ghost_forbidden_default, dmod.GhostToken, $"{declCaption} cannot be declared 'ghost' (it is 'ghost' by default when using --function-syntax:3)");
       } else {
-        SemErr(ParseErrors.ErrorId.p_ghost_forbidden_default, Errors.CodeAction(dmod.GhostToken,true), $"{declCaption} cannot be declared 'ghost' (it is 'ghost' by default)");
+        SemErr(ParseErrors.ErrorId.p_ghost_forbidden_default, dmod.GhostToken, $"{declCaption} cannot be declared 'ghost' (it is 'ghost' by default)");
       }
       dmod.IsGhost = false;
     } else if ((allowed & AllowedDeclModifiers.Ghost) == 0) {
-      SemErr(ParseErrors.ErrorId.p_ghost_forbidden, Errors.CodeAction(dmod.GhostToken,true), $"{declCaption} cannot be declared 'ghost'");
+      SemErr(ParseErrors.ErrorId.p_ghost_forbidden, dmod.GhostToken, $"{declCaption} cannot be declared 'ghost'");
       dmod.IsGhost = false;
     }
   }
   if (dmod.IsStatic && ((allowed & AllowedDeclModifiers.Static) == 0)) {
-    SemErr(ParseErrors.ErrorId.p_no_static, Errors.CodeAction(dmod.StaticToken,true), $"{declCaption} cannot be declared 'static'");
+    SemErr(ParseErrors.ErrorId.p_no_static, dmod.StaticToken, $"{declCaption} cannot be declared 'static'");
     dmod.IsStatic = false;
   }
   if (dmod.IsOpaque && ((allowed & AllowedDeclModifiers.Opaque) == 0)) {
@@ -126,12 +126,11 @@ void CheckDeclModifiers(ref DeclModifierData dmod, string declCaption, AllowedDe
   }
 }
 
-void CheckAttribute(Errors errors, IToken attr, RangeToken range, IToken next) {
+void CheckAttribute(Errors errors, IToken attr, RangeToken range) {
   // attr is the identifier of the Attribute
   // range is from opening brace to closing brace
-  // next is the next token (after any whitespace)
   if (attr.val == "dllimport" || attr.val == "handle") {
-    errors.Deprecated(ParseErrors.ErrorId.p_deprecated_attribute, Errors.CodeAction(attr, range.StartToken.col, next.pos - range.StartToken.pos),
+    errors.Deprecated(ParseErrors.ErrorId.p_deprecated_attribute, Errors.CodeAction(attr, range.StartToken, range.EndToken),
       $"Attribute :{attr.val} is deprecated and will be removed in Dafny 4.0");
   }
 }
@@ -211,7 +210,7 @@ public void ApplyOptionsFromAttributes(Attributes attrs) {
       (token: (a as UserSuppliedAttributes)?.tok,
        options: a.Args.Select(arg => {
          if (arg is not LiteralExpr {Value: string optStr}) {
-           SemErr(ParseErrors.ErrorId.p_literal_string_required, Errors.CodeAction(arg.tok), "argument to :options attribute must be a literal string");
+           SemErr(ParseErrors.ErrorId.p_literal_string_required, arg.tok, "argument to :options attribute must be a literal string");
            return null;
          }
          return optStr;
@@ -522,15 +521,15 @@ bool IsSuffix() {
   return la.kind == _dot || la.kind == _lbracket || la.kind == _openparen;
 }
 
-string UnwildIdent(string x, bool allowWildcardId) {
-  if (x.StartsWith("_")) {
-    if (allowWildcardId && x.Length == 1) {
+string UnwildIdent(IToken x, bool allowWildcardId) {
+  if (x.val.StartsWith("_")) {
+    if (allowWildcardId && x.val.Length == 1) {
       return "_v" + anonymousIds++;
     } else {
-      SemErr(ParseErrors.ErrorId.p_no_leading_underscore, Errors.CodeAction(t, 1), "cannot declare identifier beginning with underscore");
+      SemErr(ParseErrors.ErrorId.p_no_leading_underscore, x, "cannot declare identifier beginning with underscore");
     }
   }
-  return x;
+  return x.val;
 }
 
 bool IsLambda(bool allowLambda)
@@ -1246,7 +1245,7 @@ ModuleExport<ModuleDefinition parent, out ModuleDecl submodule>
       (. scanner.ResetPeek(); laa = scanner.Peek(); .)
     }
   )
-  [ "," (. SemErr(ParseErrors.ErrorId.p_extraneous_comma_in_export, Errors.CodeAction(t), "no comma is allowed between provides and reveals and extends clauses in an export declaration"); .) ]
+  [ "," (. SemErr(ParseErrors.ErrorId.p_extraneous_comma_in_export, t, "no comma is allowed between provides and reveals and extends clauses in an export declaration"); .) ]
   }
   (. 
      Name name;
@@ -1688,10 +1687,10 @@ GIdentType<bool allowGhostKeyword, bool allowNewKeyword, bool allowNameOnlyKeywo
      IToken startToken = t.Next;
   .)
   { IF(IsKeywordForFormal())
-    ( "ghost"                    (. if (allowGhostKeyword) { isGhost = true; } else { SemErr(ParseErrors.ErrorId.p_output_of_function_not_ghost, Errors.CodeAction(t,true), "formal cannot be declared 'ghost' in this context"); } .)
-    | "new"                      (. if (allowNewKeyword) { isOld = false; } else { SemErr(ParseErrors.ErrorId.p_output_of_function_not_ghost, Errors.CodeAction(t,true), "formal cannot be declared 'new' in this context"); } .)
-    | "nameonly"                 (. if (allowNameOnlyKeyword) { isNameOnly = true; } else { SemErr(ParseErrors.ErrorId.p_output_of_function_not_ghost, Errors.CodeAction(t,true), "formal cannot be declared 'nameonly' in this context"); } .)
-    | "older"                    (. if (allowOlderKeyword) { isOlder = true; } else { SemErr(ParseErrors.ErrorId.p_output_of_function_not_ghost, Errors.CodeAction(t,true), "formal cannot be declared 'older' in this context"); } .)
+    ( "ghost"                    (. if (allowGhostKeyword) { isGhost = true; } else { SemErr(ParseErrors.ErrorId.p_output_of_function_not_ghost, t, "formal cannot be declared 'ghost' in this context"); } .)
+    | "new"                      (. if (allowNewKeyword) { isOld = false; } else { SemErr(ParseErrors.ErrorId.p_output_of_function_not_ghost, t, "formal cannot be declared 'new' in this context"); } .)
+    | "nameonly"                 (. if (allowNameOnlyKeyword) { isNameOnly = true; } else { SemErr(ParseErrors.ErrorId.p_output_of_function_not_ghost, t, "formal cannot be declared 'nameonly' in this context"); } .)
+    | "older"                    (. if (allowOlderKeyword) { isOlder = true; } else { SemErr(ParseErrors.ErrorId.p_output_of_function_not_ghost, t, "formal cannot be declared 'older' in this context"); } .)
     )
   }
   IdentType<out var id, out var originalId, out ty, false> 
@@ -1795,7 +1794,7 @@ TypeIdentOptional<out RangeToken/*!*/ range, out Name/*!*/ identName, out Type/*
      } else {
        identName = new Name(range, "#" + anonymousIds++);
        if (nameonlyToken != null) {
-         SemErr(ParseErrors.ErrorId.p_nameonly_must_have_parameter_name, Errors.CodeAction(nameonlyToken,true), "use of the 'nameonly' modifier must be accompanied with a parameter name");
+         SemErr(ParseErrors.ErrorId.p_nameonly_must_have_parameter_name, nameonlyToken, "use of the 'nameonly' modifier must be accompanied with a parameter name");
        }
        isNameOnly = false;
      }
@@ -1836,7 +1835,7 @@ IteratorDecl<DeclModifierData dmod, ModuleDefinition module, out IteratorDecl/*!
     [ GenericParameters<typeArgs, true> ]
     Formals<true, true, false, false, ins>
     [ ( "yields"
-      | "returns"           (. SemErr(ParseErrors.ErrorId.p_should_be_yields_instead_of_returns, Errors.CodeAction(t), "iterators don't have a 'returns' clause; did you mean 'yields'?"); .)
+      | "returns"           (. SemErr(ParseErrors.ErrorId.p_should_be_yields_instead_of_returns, t, "iterators don't have a 'returns' clause; did you mean 'yields'?"); .)
       )
       Formals<false, true, false, false, outs>
     ]
@@ -1976,14 +1975,14 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
   | ( "greatest"                    (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
       "lemma"
     | "colemma"                     (. CheckAndSetTokenOnce(ref dmod.FirstToken); 
-                                       errors.Deprecated(ParseErrors.ErrorId.p_deprecated_colemma, Errors.CodeAction(t), "the old keyword 'colemma' has been renamed to the keyword phrase 'greatest lemma'"); 
+                                       errors.Deprecated(ParseErrors.ErrorId.p_deprecated_colemma, t, "the old keyword 'colemma' has been renamed to the keyword phrase 'greatest lemma'"); 
                                     .)
     )
                                     (. isGreatestLemma = true; caption = "greatest lemma";
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static; .)
   | ( "least"                       (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
     | "inductive"                   (. CheckAndSetTokenOnce(ref dmod.FirstToken);
-                                       errors.Deprecated(ParseErrors.ErrorId.p_deprecated_inductive_lemma, Errors.CodeAction(t), "the old keyword phrase 'inductive lemma' has been renamed to 'least lemma'"); 
+                                       errors.Deprecated(ParseErrors.ErrorId.p_deprecated_inductive_lemma, t, "the old keyword phrase 'inductive lemma' has been renamed to 'least lemma'"); 
                                     .)
     )
     "lemma"
@@ -2019,7 +2018,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
                                          // Note: When ranges are refactored, make the first use of openBracket a range
                                          // that extends through closeBracket
                                          SemErr(ParseErrors.ErrorId.p_extraneous_k, 
-                                                Errors.CodeAction(openBracket, openBracket, closeBracket.Next), 
+                                                Errors.CodeAction(openBracket, closeBracket.Next), 
                                                 "type of _k can only be specified for least and greatest lemmas"); 
                                        } 
                                     .)
@@ -5234,7 +5233,7 @@ Attribute<ref Attributes attrs>
   (. 
      attrs = new UserSuppliedAttributes(x, openBrace, closeBrace, args, attrs);
      attrs.RangeToken = new RangeToken(openBrace, t);
-     CheckAttribute(errors, x, attrs.RangeToken, la);
+     CheckAttribute(errors, x, attrs.RangeToken);
   .)
   .
 
@@ -5333,7 +5332,7 @@ Name<out Name name>
 NoUSIdent<out IToken/*!*/ x>
 = (. Contract.Ensures(Contract.ValueAtReturn(out x) != null); .)
   Ident<out x>     (. if (x.val.StartsWith("_")) {
-                        SemErr(ParseErrors.ErrorId.p_no_leading_underscore, Errors.CodeAction(x,1), 
+                        SemErr(ParseErrors.ErrorId.p_no_leading_underscore, x, 
                           "cannot declare identifier beginning with underscore");
                       }
                    .)
@@ -5392,7 +5391,7 @@ WildIdentN<out Name name, bool allowWildcardId>
 // Identifier, disallowing leading underscores, except possibly the "wildcard" identifier "_"
 WildIdent<out IToken x, bool allowWildcardId>
 = (. Contract.Ensures(Contract.ValueAtReturn(out x) != null); .)
-  Ident<out x>     (. x = t.WithVal(UnwildIdent(t.val, allowWildcardId)); .)
+  Ident<out x>     (. x = t.WithVal(UnwildIdent(t, allowWildcardId)); .)
   .
 
 /*------------------------------------------------------------------------*/

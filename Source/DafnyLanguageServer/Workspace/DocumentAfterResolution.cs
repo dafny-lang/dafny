@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
@@ -12,7 +13,7 @@ public class DocumentAfterResolution : DocumentAfterParsing {
     SymbolTable? symbolTable,
     SignatureAndCompletionTable signatureAndCompletionTable,
     IReadOnlyList<Diagnostic> ghostDiagnostics) :
-    base(textDocumentItem, program, ArraySegment<Diagnostic>.Empty) {
+    base(textDocumentItem, program, ImmutableDictionary<DafnyDiagnostic, Diagnostic>.Empty) {
     ParseAndResolutionDiagnostics = parseAndResolutionDiagnostics;
     SymbolTable = symbolTable;
     SignatureAndCompletionTable = signatureAndCompletionTable;

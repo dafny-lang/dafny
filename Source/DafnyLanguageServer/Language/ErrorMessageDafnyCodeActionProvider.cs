@@ -25,14 +25,14 @@ public class ErrorMessageDafnyCodeActionProvider : DiagnosticDafnyCodeActionProv
     return def;
   }
 
-  protected override IEnumerable<DafnyCodeAction>? GetDafnyCodeActions(Microsoft.Dafny.LanguageServer.Plugins.IDafnyCodeActionInput input,
-    ErrorMessage errorMessage, Diagnostic diagnostic, Range selection) {
+  protected override IEnumerable<DafnyCodeAction>? GetDafnyCodeActions(IDafnyCodeActionInput input,
+    DafnyDiagnostic dafnyDiagnostic, Diagnostic diagnostic, Range selection) {
     var actionSigs = ErrorRegistry.GetAction(diagnostic.Code);
     var actions = new List<DafnyCodeAction>();
     if (actionSigs != null) {
-      var range = InterpretDataAsRangeOrDefault(diagnostic.Data, diagnostic.Range);
+      var range = dafnyDiagnostic.Token is TokenRange tokenRange ? new RangeToken(tokenRange.Start, tokenRange.End) : dafnyDiagnostic.Token.ToRange();
       foreach (var sig in actionSigs) {
-        var dafnyActions = sig(errorMessage.Token.ToRange());
+        var dafnyActions = sig(range);
         actions.AddRange(dafnyActions.Select(dafnyAction => new InstantDafnyCodeAction(dafnyAction.Title, new[] { diagnostic }, dafnyAction.Edits)));
       }
     }

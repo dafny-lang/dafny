@@ -51,7 +51,7 @@ public static class ErrorRegistry {
   /// <summary>
   /// Default title is "remove'X'" where X is the content of the range
   /// </summary>
-  public static ActionSignature Remove(string overrideTitle = null) {
+  public static ActionSignature Remove(bool removeTrailingSpaces, string overrideTitle = null) {
     if (overrideTitle == null) {
       return RemoveAction;
     }
