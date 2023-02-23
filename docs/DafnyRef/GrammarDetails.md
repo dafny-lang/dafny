@@ -186,7 +186,9 @@ To aid in explaining the grammar we have added some additional productions
 that are not present in the original grammar. We name these with a trailing
 underscore. Inlining these where they are referenced will reconstruct the original grammar.
 
-<!-- A note on formatting the sections below: LaTex 
+<!-- A note on formatting the sections below: LaTex renders the 'discussion' link in line with the heading for level-4 and higher headings.
+     I've not found a sensible way around it (and it is not worth much trouble). -->
+
 ### 17.2.1. Programs {#g-program}
 ([discussion](#sec-program)) 
 
