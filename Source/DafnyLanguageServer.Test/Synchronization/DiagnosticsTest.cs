@@ -584,7 +584,7 @@ method Multiply(x: int, y: int) returns (product: int
     }
 
     [TestMethod]
-    public async Task DoubleIncludes() {
+    public async Task DoubleIncludesGitHubIssue3599() {
       var source = @"
 include ""./A.dfy""
 include ""./B.dfy""
@@ -594,13 +594,9 @@ module ModC {
 ";
       var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles/test.dfy"));
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      //var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
       Assert.AreEqual(1, diagnostics.Length);
-      Assert.AreEqual("Parser", diagnostics[0].Source);
-      Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
-      Assert.AreEqual(new Range((0, 8), (0, 25)), diagnostics[0].Range);
-      await AssertNoDiagnosticsAreComing(CancellationToken);
+      Assert.IsTrue(diagnostics[0].Message.Contains("A postcondition"));
     }
 
     [TestMethod]
